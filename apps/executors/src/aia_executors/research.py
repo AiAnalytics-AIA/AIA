@@ -25,18 +25,34 @@ from collections.abc import Callable, Mapping
 from typing import Any, Final, Protocol
 
 from aia_core.application.research import research_artifacts
+from aia_core.domain.evidence.support import AIA_SUPPORT_V1
 from aia_core.domain.fieldwork import (
+    JOINT_CERTIFICATE_METADATA,
+    RESPONDENT_SYSTEM_METADATA,
     FieldworkDataset,
     FieldworkSource,
     InvalidDataset,
+    OriginKind,
+    PersonaSource,
+    origin_kind,
+    persona_source_of,
     validate_dataset,
+)
+from aia_core.domain.methodology.pins import (
+    UNIT_AGGREGATION_PIN,
+    read_aggregation_pin,
+    read_readiness_pin,
+    read_support_pin,
 )
 from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.research_aggregate import AGGREGATE_VERSION, aggregate_dataset
 from aia_core.domain.research_design import (
+    AIA_READINESS_V1,
+    ReadinessSpec,
     ResearchSpecification,
     assess_readiness,
     compile_design,
+    readiness_values,
 )
 from aia_core.domain.research_sociomap import (
     LEGACY_METHODS,
@@ -57,9 +73,9 @@ from aia_core.domain.sociomap import (
 from aia_core.domain.sociomap.hmodel_candidate import CANDIDATE_METHOD, CandidateParameters
 from aia_core.domain.workflow import FailureClass
 from aia_core.domain.workflow_templates import RESEARCH_KINDS, SOCIOMAPPING_STEP_KIND
-from aia_core.infrastructure.artifact_repository import ArtifactRepository
+from aia_core.infrastructure.artifact_repository import ArtifactNotFound, ArtifactRepository
 from aia_core.infrastructure.build_identity import BuildIdentity
-from aia_core.infrastructure.storage import ArtifactStore
+from aia_core.infrastructure.storage import ArtifactStore, IntegrityError, ObjectNotFound
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Succeeded
@@ -103,6 +119,13 @@ class AIDatasetProducer(Protocol):
     ) -> ProducedDataset | Failed: ...
 
 
+#: What the fieldwork step says when its dataset is stored: never "fieldwork done" for answers no
+#: person gave (ADR 0024 §7), and an origin of unknown kind is said, never read as real.
+_DATA_READY: Final[dict[OriginKind, str]] = {
+    OriginKind.SIMULATED: "fiktivní data připravena",
+    OriginKind.MODELLED: "modelovaná data připravena",
+    OriginKind.UNKNOWN: "data neznámého původu uložena",
+}
 _RUNTIME_UNAVAILABLE_MESSAGE: Final = (
     "AI respondenti zatím nejsou nasazeni. Běh čeká u sběru dat; nic nebylo vymyšleno "
     "ani nahrazeno a další kroky se nespustí, dokud sběr neproběhne."
@@ -128,6 +151,14 @@ def _artifacts(session: Session, context: StepContext, store: ArtifactStore) -> 
 def _read_spec(repo: ArtifactRepository, artifact_id: str) -> ResearchSpecification:
     payload = repo.read_json(artifact_id)
     return ResearchSpecification.model_validate(payload["specification"])
+
+
+def _limits_part(limits: ReadinessSpec) -> dict[str, Any]:
+    """A step's readiness limits for its input fingerprint: their values when they are not
+    the preset's, nothing when they are, so every artifact stored before the pin keeps its
+    key (plan methodology-tab V1a)."""
+    values = readiness_values(limits)
+    return {} if values == readiness_values(AIA_READINESS_V1) else {"readiness": values}
 
 
 def _missing_upstream(node_key: str) -> Failed:
@@ -197,10 +228,19 @@ class CompileExecutor(_Step):
     def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
         context.checkpoint()
         revision_id = str(step.payload.get("design_revision_id") or "")
+        # The limits the run pinned (plan methodology-tab V1a); a run started before the pin
+        # has none here and compiles under aia-readiness-1, as it always did.
+        try:
+            limits = read_readiness_pin(step.payload.get("readiness"))
+        except ValueError as exc:
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={"code": "readiness_pin_invalid", "message": str(exc)},
+            )
         with context.transaction() as (session, _workflow):
             designs = StudyDesignRepository(session, context.scope)
             content = designs.content(revision_id)
-            spec, problems = compile_design(content)
+            spec, problems = compile_design(content, limits=limits)
             if spec is None:
                 return Failed(
                     FailureClass.SCHEMA_VIOLATION,
@@ -220,7 +260,12 @@ class CompileExecutor(_Step):
                 },
                 artifact_type=SPECIFICATION,
                 input_fingerprint=fingerprint(
-                    {"design": content, "compiler": spec.compiler_version}
+                    {
+                        "design": content,
+                        "compiler": spec.compiler_version,
+                        # Only when it can change the outcome: the preset's key is unchanged.
+                        **_limits_part(limits),
+                    }
                 ),
             )
         context.progress("specifikace sestavena", artifact_id=artifact.artifact_id)
@@ -244,13 +289,31 @@ class PreflightExecutor(_Step):
                 FailureClass.SCHEMA_VIOLATION,
                 error={"code": "sociomap_method_invalid", "message": str(exc)},
             )
+        # A run pinned to its population draws under the design's filters (6d); a run stored
+        # before the pin reached this step reads as the fictional roster.
+        try:
+            panel = persona_source_of(step.payload) is PersonaSource.PANEL
+        except ValueError as exc:
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={"code": "persona_source_unknown", "message": str(exc)},
+            )
+        try:
+            limits = read_readiness_pin(step.payload.get("readiness"))
+        except ValueError as exc:
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={"code": "readiness_pin_invalid", "message": str(exc)},
+            )
         with context.transaction() as (session, workflow):
             spec_id = upstream_artifact(workflow, step, "compile")
             if spec_id is None:
                 return _missing_upstream("compile")
             repo = _artifacts(session, context, self._store)
             spec = _read_spec(repo, spec_id)
-            readiness = assess_readiness(spec, pair_n_min=pair_n_min)
+            readiness = assess_readiness(
+                spec, pair_n_min=pair_n_min, filters_applied=panel, limits=limits
+            )
             artifact, created = self._put(
                 repo,
                 step,
@@ -261,6 +324,9 @@ class PreflightExecutor(_Step):
                         "spec": spec.fingerprint(),
                         "rules": readiness.rules,
                         "pair_n_min": pair_n_min,
+                        # Only when it changes the checks: a roster run's key is unchanged.
+                        **({"filters_applied": True} if panel else {}),
+                        **_limits_part(limits),
                     }
                 ),
                 depends_on=[spec_id],
@@ -312,6 +378,8 @@ class FieldworkExecutor(_Step):
 
     def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
         context.checkpoint()
+        if "frozen_dataset" in step.payload:
+            return self._frozen(step, context, step.payload["frozen_dataset"])
         try:
             source = FieldworkSource(str(step.payload.get("fieldwork_source")))
         except ValueError:
@@ -345,12 +413,16 @@ class FieldworkExecutor(_Step):
             spec = _read_spec(repo, spec_id)
 
         provenance: dict[str, Any] | None = None
+        system: dict[str, str] | None = None
+        certificate: dict[str, str] | None = None
         if source is FieldworkSource.AI_RUNTIME:
             assert self._ai is not None
             produced = self._ai.produce(spec, step, context)
             if isinstance(produced, Failed):
                 return produced
             dataset, provenance = produced.dataset, produced.provenance
+            system = produced.respondent_system
+            certificate = produced.joint_certificate
         else:
             assert producer is not None
             dataset = producer(spec)
@@ -384,10 +456,19 @@ class FieldworkExecutor(_Step):
                 artifact_type=FIELDWORK_DATASET,
                 input_fingerprint=fingerprint(fingerprint_inputs),
                 depends_on=[spec_id],
-                metadata={"data_origin": origin, "fieldwork_source": source.value},
+                metadata={
+                    "data_origin": origin,
+                    "fieldwork_source": source.value,
+                    # What a modelled analysis is judged on (ADR 0024 §4, plan 4e3).
+                    **({RESPONDENT_SYSTEM_METADATA: system} if system is not None else {}),
+                    # The certificate that covered those respondents (B5a).
+                    **(
+                        {JOINT_CERTIFICATE_METADATA: certificate} if certificate is not None else {}
+                    ),
+                },
             )
         context.progress(
-            "fiktivní data připravena" if dataset.is_synthetic else "sběr dat dokončen",
+            _DATA_READY[origin_kind(dataset.origin)],
             artifact_id=artifact.artifact_id,
             respondents=len(dataset.respondents),
         )
@@ -398,6 +479,77 @@ class FieldworkExecutor(_Step):
             FIELDWORK_DATASET,
             data_origin=origin,
             respondents=len(dataset.respondents),
+        )
+
+    def _frozen(self, step: StepInput, context: StepContext, frozen: object) -> StepOutcome:
+        """An analysis retry: the dataset another run of this Study already collected.
+
+        Nothing is asked of anyone. The dataset is named by artifact id *and* SHA-256 at
+        the retry's start; one that is not this project's, not a dataset, has other bytes
+        or does not fit the compiled specification is refused, never substituted.
+        """
+        named = frozen if isinstance(frozen, Mapping) else {}
+        artifact_id, sha256 = named.get("artifact_id"), named.get("sha256")
+        if not isinstance(artifact_id, str) or not isinstance(sha256, str):
+            return Failed(
+                FailureClass.MISSING_CONFIGURATION,
+                error={
+                    "reason": "frozen_dataset_unnamed",
+                    "message": "the retry does not name the dataset it reuses",
+                },
+            )
+        mismatch = Failed(
+            FailureClass.SCHEMA_VIOLATION,
+            error={
+                "reason": "frozen_dataset_mismatch",
+                "message": f"dataset {artifact_id} is not the one the retry was started over",
+                "artifact_id": artifact_id,
+            },
+        )
+        with context.transaction() as (session, workflow):
+            spec_id = upstream_artifact(workflow, step, "compile")
+            if spec_id is None:
+                return _missing_upstream("compile")
+            repo = _artifacts(session, context, self._store)
+            spec = _read_spec(repo, spec_id)
+            try:
+                artifact = repo.get(artifact_id)
+            except ArtifactNotFound:
+                return mismatch
+            if (
+                artifact.artifact_type != FIELDWORK_DATASET
+                or artifact.project_id != step.project_id
+                or artifact.sha256 != sha256
+            ):
+                return mismatch
+            try:
+                dataset = _read_dataset(repo, artifact_id)
+            except (IntegrityError, ObjectNotFound):
+                # Returned, not raised: the CORRUPT mark the read made must commit (OI-77).
+                return Failed(
+                    FailureClass.SCHEMA_VIOLATION,
+                    error={"reason": "frozen_dataset_corrupt", "artifact_id": artifact_id},
+                )
+        try:
+            validate_dataset(spec, dataset)
+        except InvalidDataset as exc:
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={"reason": "frozen_dataset_mismatch", "message": str(exc)},
+            )
+        context.progress(
+            "data z původního běhu převzata, nic se znovu nesbírá",
+            artifact_id=artifact_id,
+            respondents=len(dataset.respondents),
+        )
+        return _produced(
+            step,
+            artifact,
+            False,
+            FIELDWORK_DATASET,
+            data_origin=dataset.origin.value if dataset.origin else None,
+            respondents=len(dataset.respondents),
+            frozen_from_run=named.get("run_id"),
         )
 
 
@@ -430,7 +582,26 @@ class AggregateExecutor(_Step):
             validate_dataset(spec, dataset)
         except InvalidDataset as exc:
             return Failed(FailureClass.SCHEMA_VIOLATION, error={"message": str(exc)})
-        result = aggregate_dataset(spec, dataset)
+        # The run's pinned support rules (plan methodology-tab G1c); a run started before they
+        # were pinned reads as aia-support-1, the rules it was computed under.
+        try:
+            support = read_support_pin(step.payload.get("support"))
+        except ValueError as exc:
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={"code": "support_pin_invalid", "message": str(exc)},
+            )
+        # The run's pinned aggregation (G3a): its specification and replaced formulas. A run
+        # started before it was pinned reads as 18.6.6's port, the way it was computed.
+        stored = step.payload.get("aggregation")
+        try:
+            method, slots = read_aggregation_pin(stored)
+        except ValueError as exc:
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={"code": "aggregation_pin_invalid", "message": str(exc)},
+            )
+        result = aggregate_dataset(spec, dataset, support=support, method=method, slots=slots)
         context.checkpoint()
         origin = result["data_origin"]
         with context.transaction() as (session, _workflow):
@@ -444,6 +615,19 @@ class AggregateExecutor(_Step):
                         "dataset": dataset_sha,
                         "aggregate": AGGREGATE_VERSION,
                         "spec": spec.fingerprint(),
+                        # Only a rule other than today's enters the key, so an aggregate
+                        # stored under aia-support-1 is reused as it always was.
+                        **(
+                            {}
+                            if support == AIA_SUPPORT_V1
+                            else {"support": support.model_dump(mode="json")}
+                        ),
+                        # Likewise only an aggregation other than 18.6.6's port.
+                        **(
+                            {}
+                            if stored is None or stored == UNIT_AGGREGATION_PIN
+                            else {"aggregation": stored}
+                        ),
                     }
                 ),
                 depends_on=[spec_id, dataset_id],

@@ -13,7 +13,8 @@
  *
  *   * the fictional-data notice on every stage that shows the run;
  *   * a completed run: compile, preflight, fieldwork, aggregate, sociomap;
- *   * an aggregate table and the Sociomap labelled INTERNAL_ONLY (PROGRESS D6);
+ *   * an aggregate table and the Sociomap labelled by the Sociomap register (each map says
+ *     whether its method is approved for reports; complete-study-report B4);
  *   * no page error, and no request to a path the 18.6.6 unit served (ADR 0018): the
  *     facade routes none of them to the unit, as the develop Caddyfile does not, so
  *     such a request would be a dependency on 18.6.6; and no 502 from the facade.
@@ -43,7 +44,7 @@ const TEXT = {
   fictional: "Fiktivní data. Tento běh používá smyšlené respondenty",
   start: "Spustit výzkum",
   completed: "Dokončeno",
-  internal: "Interní: metodika Sociomapy (PROGRESS D6)",
+  internal: "U každé mapy je uvedeno, zda AIA schválila metodiku",
 };
 
 async function loadPlaywright() {
@@ -111,13 +112,13 @@ for (const step of ["compile", "preflight", "run", "aggregate", "sociomap"]) {
 ok("Progress: the run completed");
 await shot("2-progress");
 
-// 3. Results: labelled fictional, an aggregate table, the Sociomap internal only.
+// 3. Results: labelled fictional, an aggregate table, the Sociomap labelled by method.
 await page.goto(stage("results"), { waitUntil: "load", timeout: 120000 });
 await page.getByText(TEXT.fictional).first().waitFor({ timeout: 60000 }).catch(() => fail("Results do not say the data are fictional"));
 await page.getByRole("tab", { name: "Data", exact: true }).click();
-await page.locator("table").first().waitFor({ timeout: 60000 }).catch(() => fail("Results show no aggregate table"));
+await page.locator("table").first().waitFor({ state: "attached", timeout: 60000 }).catch(() => fail("Results show no aggregate table"));
 await page.getByRole("tab", { name: "Sociomapy", exact: true }).click();
-await page.getByText(TEXT.internal).first().waitFor({ timeout: 60000 }).catch(() => fail("the Sociomap is not labelled INTERNAL_ONLY"));
+await page.getByText(TEXT.internal).first().waitFor({ timeout: 60000 }).catch(() => fail("the Sociomap does not say which methods are approved"));
 ok("Results: fictional notice, aggregate tables, Sociomap INTERNAL_ONLY");
 await shot("3-results");
 

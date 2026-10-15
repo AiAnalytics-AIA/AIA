@@ -207,6 +207,7 @@ def module_problems(module: MethodModule) -> dict[str, str]:
 
     problems.update(_coverage_problems(module))
     problems.update(_group_problems(module))
+    problems.update(_input_problems(module))
     problems.update(_formula_problems(module))
     return problems
 
@@ -285,6 +286,21 @@ def _coverage_problems(module: MethodModule) -> dict[str, str]:
                 problems[f"preset:{preset.name}:{leaf}"] = (
                     f"shown by more than one step: {', '.join(readers)}"
                 )
+    return problems
+
+
+def _input_problems(module: MethodModule) -> dict[str, str]:
+    """A step's inputs name other steps of the same module, each once."""
+    ids = {s.id for s in module.steps}
+    problems: dict[str, str] = {}
+    for step in module.steps:
+        if len(set(step.inputs)) != len(step.inputs):
+            problems[f"step:{step.id}:inputs"] = "an input is named twice"
+        for sid in step.inputs:
+            if sid == step.id:
+                problems[f"step:{step.id}:inputs:{sid}"] = "a step cannot read itself"
+            elif sid not in ids:
+                problems[f"step:{step.id}:inputs:{sid}"] = "no such step"
     return problems
 
 

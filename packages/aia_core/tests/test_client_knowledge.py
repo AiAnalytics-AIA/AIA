@@ -9,14 +9,23 @@ the client's knowledge revision.
 
 from __future__ import annotations
 
+import dataclasses
 import inspect
 from typing import Any
 
 import pytest
 
-from aia_core.domain.knowledge import KnowledgeKind, ProposalStatus
+from aia_core.domain.knowledge import (
+    KnowledgeKind,
+    LabelColour,
+    OrganizerNameTaken,
+    ProposalStatus,
+    StaleKnowledgeProposal,
+    source_ref,
+)
 from aia_core.domain.scope import (
     ClientContext,
+    ClientPermission,
     ScopeDenied,
     SeparationOfDutiesViolation,
 )
@@ -253,6 +262,30 @@ def test_every_member_proposes_and_approves_including_one_with_no_grant(
     }
 
 
+def test_each_study_counts_what_it_proposed_by_status_within_its_own_client(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    """What a study brought into the client's knowledge, for the studies list."""
+    study = scoped.scope(user="researcher")
+    taken = knowledge.propose_from_study(study, kind=KnowledgeKind.FINDING, title="Taken")
+    knowledge.propose_from_study(study, kind=KnowledgeKind.FINDING, title="Waiting")
+    dropped = knowledge.propose_from_study(study, kind=KnowledgeKind.TERM, title="Dropped")
+    lead = client_scope(scoped, "lead")
+    knowledge.decide(lead, proposal_id=taken.proposal_id, approve=True)
+    knowledge.decide(lead, proposal_id=dropped.proposal_id, approve=False)
+    # A person's own addition belongs to no study and is not counted against one.
+    knowledge.propose(lead, kind=KnowledgeKind.FACT, title="Typed in the workspace")
+
+    assert knowledge.proposal_counts_by_study(lead) == {
+        scoped.studies["primary"].study_id: {
+            ProposalStatus.APPROVED: 1,
+            ProposalStatus.PROPOSED: 1,
+            ProposalStatus.REJECTED: 1,
+        }
+    }
+    assert knowledge.proposal_counts_by_study(client_scope(scoped, "other_lead", "other")) == {}
+
+
 def test_client_a_knowledge_never_appears_under_client_b(
     scoped: Any, knowledge: ClientKnowledgeRepository
 ) -> None:
@@ -339,3 +372,390 @@ def test_retrieval_takes_an_issued_scope_and_nothing_else(
         params = list(inspect.signature(method).parameters)
         assert params[1] == "scope", name
         assert "client_id" not in params, name
+
+
+# --------------------------------------------------------------------------- #
+# Folders and labels (client-workspace C3): organization, not knowledge
+# --------------------------------------------------------------------------- #
+
+
+def _two_items(knowledge: ClientKnowledgeRepository, scope: ClientContext) -> tuple[str, str]:
+    for title in ("Výroční zpráva 2025", "Hlavní konkurenti"):
+        knowledge.add(scope, kind=KnowledgeKind.SOURCE, title=title)
+    a, b = sorted(i.item_id for i in knowledge.items(scope))
+    return a, b
+
+
+def test_a_folder_name_is_the_clients_own_once_whatever_its_case_and_spacing(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    lead = client_scope(scoped, "lead")
+    made = knowledge.create_folder(lead, name="  Trh a   konkurence ")
+    assert made.name == "Trh a konkurence"
+    with pytest.raises(OrganizerNameTaken):
+        knowledge.create_folder(lead, name="TRH A KONKURENCE")
+    with pytest.raises(ValueError):
+        knowledge.create_folder(lead, name="   ")
+    with pytest.raises(ValueError):
+        knowledge.create_folder(lead, name="x" * 81)
+    # Accents count: in Czech they change the word.
+    knowledge.create_folder(lead, name="Trh a konkurencé")
+    # Another client may use the same name; it never sees this one.
+    globex = client_scope(scoped, "other_lead", "other")
+    knowledge.create_folder(globex, name="Trh a konkurence")
+    assert [f.name for f in knowledge.folders(globex)] == ["Trh a konkurence"]
+    assert len(knowledge.folders(lead)) == 2
+    renamed = knowledge.rename_folder(lead, folder_id=made.folder_id, name="Konkurence")
+    assert renamed.name == "Konkurence"
+    with pytest.raises(OrganizerNameTaken):
+        knowledge.rename_folder(lead, folder_id=made.folder_id, name="trh a konkurencé")
+    # Renaming to its own name in another case is not a clash.
+    assert knowledge.rename_folder(lead, folder_id=made.folder_id, name="KONKURENCE").name == (
+        "KONKURENCE"
+    )
+
+
+def test_filing_writes_no_revision_and_moves_no_dates(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    """D4: folders and labels are organization; the knowledge itself does not change."""
+    lead = client_scope(scoped, "lead")
+    a, b = _two_items(knowledge, lead)
+    before = {i.item_id: i for i in knowledge.items(lead)}
+    context_before = knowledge.summary(lead).context_revision
+    folder = knowledge.create_folder(lead, name="Minulé výzkumy")
+    label = knowledge.create_label(lead, name="2025", colour=LabelColour.BLUE)
+
+    placed = knowledge.place(
+        lead, item_ids=[a, b, a], folder_id=folder.folder_id, add_labels=[label.label_id]
+    )
+    assert [(i.item_id, i.folder_id, i.label_ids) for i in placed] == [
+        (a, folder.folder_id, (label.label_id,)),
+        (b, folder.folder_id, (label.label_id,)),
+    ]
+    for item in knowledge.items(lead):
+        assert item.revision == before[item.item_id].revision
+        assert item.modified_at == before[item.item_id].modified_at
+    assert knowledge.summary(lead).context_revision == context_before
+    assert [len(knowledge.revisions(lead, item_id=i)) for i in (a, b)] == [1, 1]
+    # Adding the same label again changes nothing; the folder is kept unless named.
+    knowledge.place(lead, item_ids=[a], add_labels=[label.label_id])
+    [again] = knowledge.items(lead, label_id=label.label_id, text="výroční")
+    assert again.label_ids == (label.label_id,) and again.folder_id == folder.folder_id
+
+
+def test_items_are_found_by_folder_by_label_and_by_having_no_folder(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    lead = client_scope(scoped, "lead")
+    a, b = _two_items(knowledge, lead)
+    folder = knowledge.create_folder(lead, name="Značka")
+    label = knowledge.create_label(lead, name="ověřit", colour=LabelColour.ORANGE)
+    knowledge.place(lead, item_ids=[a], folder_id=folder.folder_id)
+    knowledge.place(lead, item_ids=[b], add_labels=[label.label_id])
+    assert [i.item_id for i in knowledge.items(lead, folder_id=folder.folder_id)] == [a]
+    assert [i.item_id for i in knowledge.items(lead, unfiled=True)] == [b]
+    assert [i.item_id for i in knowledge.items(lead, label_id=label.label_id)] == [b]
+    assert [f.item_count for f in knowledge.folders(lead)] == [1]
+    assert [lb.item_count for lb in knowledge.labels(lead)] == [1]
+    # Out of the folder, a label off: back where it started.
+    knowledge.place(lead, item_ids=[a], folder_id=None)
+    knowledge.place(lead, item_ids=[b], remove_labels=[label.label_id])
+    assert {i.item_id for i in knowledge.items(lead, unfiled=True)} == {a, b}
+    assert knowledge.items(lead, label_id=label.label_id) == []
+
+
+def test_deleting_a_folder_or_a_label_keeps_the_items(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    lead = client_scope(scoped, "lead")
+    a, b = _two_items(knowledge, lead)
+    folder = knowledge.create_folder(lead, name="Dočasná")
+    label = knowledge.create_label(lead, name="koncept", colour=LabelColour.SLATE)
+    knowledge.place(lead, item_ids=[a, b], folder_id=folder.folder_id, add_labels=[label.label_id])
+    knowledge.delete_folder(lead, folder_id=folder.folder_id)
+    knowledge.delete_label(lead, label_id=label.label_id)
+    items = knowledge.items(lead)
+    assert {i.item_id for i in items} == {a, b}
+    assert all(i.folder_id is None and i.label_ids == () for i in items)
+    assert knowledge.folders(lead) == [] and knowledge.labels(lead) == []
+    with pytest.raises(ScopeDenied):
+        knowledge.delete_folder(lead, folder_id=folder.folder_id)
+
+
+def test_filing_is_all_or_nothing_and_never_crosses_clients(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    lead = client_scope(scoped, "lead")
+    a, _ = _two_items(knowledge, lead)
+    mine = knowledge.create_folder(lead, name="Moje")
+    label = knowledge.create_label(lead, name="moje", colour=LabelColour.GREEN)
+    globex = client_scope(scoped, "other_lead", "other")
+    knowledge.add(globex, kind=KnowledgeKind.FACT, title="Globex only")
+    [theirs] = knowledge.items(globex)
+    their_folder = knowledge.create_folder(globex, name="Jejich")
+
+    for attempt in (
+        {"item_ids": [a, theirs.item_id], "folder_id": mine.folder_id},
+        {"item_ids": [a], "folder_id": their_folder.folder_id},
+        {"item_ids": [a], "add_labels": [label.label_id, "KNL-00000000000000"]},
+    ):
+        with pytest.raises(ScopeDenied):
+            knowledge.place(lead, **attempt)  # type: ignore[arg-type]
+    with pytest.raises(ValueError):
+        knowledge.place(
+            lead, item_ids=[a], add_labels=[label.label_id], remove_labels=[label.label_id]
+        )
+    with pytest.raises(ValueError):
+        knowledge.place(lead, item_ids=[])
+    # Nothing of the refused attempts was written.
+    [item] = [i for i in knowledge.items(lead) if i.item_id == a]
+    assert item.folder_id is None and item.label_ids == ()
+    # Through another client's context, this client's folders are not found.
+    with pytest.raises(ScopeDenied):
+        knowledge.rename_folder(globex, folder_id=mine.folder_id, name="hijack")
+    assert knowledge.items(globex, folder_id=mine.folder_id) == []
+
+
+def test_what_a_study_reads_never_carries_folders_or_labels(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    """D4: no model sees how people filed the knowledge."""
+    lead = client_scope(scoped, "lead")
+    a, b = _two_items(knowledge, lead)
+    folder = knowledge.create_folder(lead, name="Interní")
+    label = knowledge.create_label(lead, name="citlivé", colour=LabelColour.VIOLET)
+    knowledge.place(lead, item_ids=[a, b], folder_id=folder.folder_id, add_labels=[label.label_id])
+    consumed = knowledge.for_study(scoped.scope(user="researcher"))
+    assert {i.item_id for i in consumed} == {a, b}
+    assert all(i.folder_id is None and i.label_ids == () for i in consumed)
+
+
+def test_organizing_needs_the_permission_to_propose_and_is_audited(
+    scoped: Any, knowledge: ClientKnowledgeRepository, session: Any
+) -> None:
+    from sqlalchemy import select
+
+    from aia_core.infrastructure.tables import AccessAuditRow
+
+    lead = client_scope(scoped, "lead")
+    a, _ = _two_items(knowledge, lead)
+    folder = knowledge.create_folder(lead, name="Audit")
+    knowledge.place(lead, item_ids=[a], folder_id=folder.folder_id)
+    actions = session.scalars(
+        select(AccessAuditRow.action).where(AccessAuditRow.action.like("CLIENT_KNOWLEDGE_%"))
+    ).all()
+    assert "CLIENT_KNOWLEDGE_FOLDER_CREATED" in actions
+    assert "CLIENT_KNOWLEDGE_ORGANIZED" in actions
+
+    # Every member holds every permission today (ADR 0019); a narrower context is what a
+    # future reader-only role would be issued, so the rule is pinned against it.
+    reader = dataclasses.replace(
+        lead,
+        permissions=frozenset(
+            p for p in lead.permissions if p is not ClientPermission.PROPOSE_CLIENT_KNOWLEDGE
+        ),
+    )
+    with pytest.raises(ScopeDenied):
+        knowledge.create_folder(reader, name="Bez práva")
+    with pytest.raises(ScopeDenied):
+        knowledge.place(reader, item_ids=[a], folder_id=None)
+    assert [f.name for f in knowledge.folders(reader)] == ["Audit"]
+
+
+# --------------------------------------------------------------------------- #
+# Přehled (client-workspace C10): what wants a person's attention, what changed
+# --------------------------------------------------------------------------- #
+
+
+def test_health_counts_items_unchanged_for_a_year_and_items_in_no_folder(
+    scoped: Any, knowledge: ClientKnowledgeRepository, session: Any
+) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    from sqlalchemy import update
+
+    from aia_core.infrastructure.tables import ClientKnowledgeItemRow
+
+    lead = client_scope(scoped, "lead")
+    a, b = _two_items(knowledge, lead)
+    now = datetime.now(UTC)
+    assert knowledge.health(lead, now=now).model_dump() == {"stale": 0, "unfiled": 2}
+    folder = knowledge.create_folder(lead, name="Archiv")
+    knowledge.place(lead, item_ids=[a], folder_id=folder.folder_id)
+    session.execute(
+        update(ClientKnowledgeItemRow)
+        .where(ClientKnowledgeItemRow.item_id == b)
+        .values(modified_at=now - timedelta(days=400))
+    )
+    assert knowledge.health(lead, now=now).model_dump() == {"stale": 1, "unfiled": 1}
+    # A day short of the year is not stale yet.
+    assert knowledge.health(lead, now=now - timedelta(days=36)).stale == 0
+    assert knowledge.health(client_scope(scoped, "other_lead", "other"), now=now).model_dump() == {
+        "stale": 0,
+        "unfiled": 0,
+    }
+
+
+def test_recent_revisions_are_the_clients_latest_changes_newest_first(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    lead = client_scope(scoped, "lead")
+    first = knowledge.add(lead, kind=KnowledgeKind.FACT, title="První")
+    knowledge.add(lead, kind=KnowledgeKind.TERM, title="Druhý")
+    knowledge.add(lead, kind=KnowledgeKind.FACT, title="První, opravený", item_id=first.item_id)
+    recent = knowledge.recent_revisions(lead, limit=2)
+    assert [(r.title, r.revision) for r in recent] == [("První, opravený", 2), ("Druhý", 1)]
+    assert knowledge.recent_revisions(client_scope(scoped, "other_lead", "other")) == []
+
+
+# ---------------------------------------------------------------- F-K1: stale revisions
+
+
+def _fact_corrected_after_a_study_proposed(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> tuple[str, str]:
+    """A FACT at revision 1, a study's edit of it, then a person's correction (revision 2)."""
+    researcher = client_scope(scoped, "researcher")
+    first = knowledge.add(researcher, kind=KnowledgeKind.FACT, title="Dealers: 120")
+    assert first.item_id is not None
+    edit = knowledge.propose_from_study(
+        scoped.scope(user="researcher"),
+        kind=KnowledgeKind.FACT,
+        title="Dealers: 125",
+        item_id=first.item_id,
+    )
+    assert edit.base_revision == 1
+    knowledge.add(researcher, kind=KnowledgeKind.FACT, title="Dealers: 134", item_id=first.item_id)
+    return first.item_id, edit.proposal_id
+
+
+def test_an_edit_written_before_a_newer_correction_is_refused_and_changes_nothing(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    """F-K1: approving the older edit used to replace the correction at revision 3."""
+    item_id, proposal_id = _fact_corrected_after_a_study_proposed(scoped, knowledge)
+    reviewer = client_scope(scoped, "reviewer")
+    with pytest.raises(StaleKnowledgeProposal) as refused:
+        knowledge.decide(reviewer, proposal_id=proposal_id, approve=True)
+    assert (refused.value.item_id, refused.value.base_revision) == (item_id, 1)
+    assert refused.value.current_revision == 2
+    [item] = knowledge.items(reviewer)
+    assert (item.title, item.revision) == ("Dealers: 134", 2)
+    [pending] = knowledge.proposals(reviewer, status=ProposalStatus.PROPOSED)
+    assert pending.proposal_id == proposal_id
+    # Naming a revision that is not the current one is still stale.
+    with pytest.raises(StaleKnowledgeProposal):
+        knowledge.decide(reviewer, proposal_id=proposal_id, approve=True, reviewed_revision=1)
+    assert knowledge.summary(reviewer).context_revision == 2
+
+
+def test_a_reviewer_who_names_the_current_revision_accepts_the_edit_over_it(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    item_id, proposal_id = _fact_corrected_after_a_study_proposed(scoped, knowledge)
+    reviewer = client_scope(scoped, "reviewer")
+    decided = knowledge.decide(reviewer, proposal_id=proposal_id, approve=True, reviewed_revision=2)
+    assert decided.status is ProposalStatus.APPROVED and decided.revision == 3
+    history = knowledge.revisions(reviewer, item_id=item_id)
+    assert [r.title for r in history] == ["Dealers: 120", "Dealers: 134", "Dealers: 125"]
+    assert history[-1].provenance["base_revision"] == 1
+    assert history[-1].provenance["accepted_over_revision"] == 2
+
+
+def test_a_stale_edit_can_still_be_rejected(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    _, proposal_id = _fact_corrected_after_a_study_proposed(scoped, knowledge)
+    reviewer = client_scope(scoped, "reviewer")
+    rejected = knowledge.decide(reviewer, proposal_id=proposal_id, approve=False, note="older")
+    assert rejected.status is ProposalStatus.REJECTED
+    [item] = knowledge.items(reviewer)
+    assert item.title == "Dealers: 134"
+
+
+def test_a_persons_edit_from_an_older_revision_is_refused_before_it_is_filed(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    researcher = client_scope(scoped, "researcher")
+    first = knowledge.add(researcher, kind=KnowledgeKind.FACT, title="Dealers: 120")
+    assert first.item_id is not None
+    knowledge.add(
+        researcher,
+        kind=KnowledgeKind.FACT,
+        title="Dealers: 134",
+        item_id=first.item_id,
+        base_revision=1,
+    )
+    with pytest.raises(StaleKnowledgeProposal):
+        knowledge.add(
+            researcher,
+            kind=KnowledgeKind.FACT,
+            title="Dealers: 99",
+            item_id=first.item_id,
+            base_revision=1,
+        )
+    [item] = knowledge.items(researcher)
+    assert (item.title, item.revision) == ("Dealers: 134", 2)
+    assert knowledge.proposals(researcher, status=ProposalStatus.PROPOSED) == []
+    with pytest.raises(ValueError):
+        knowledge.add(researcher, kind=KnowledgeKind.FACT, title="New", base_revision=1)
+
+
+def test_an_edit_filed_before_its_base_was_recorded_is_treated_as_stale(
+    scoped: Any, knowledge: ClientKnowledgeRepository, session: Any
+) -> None:
+    """Unknown is never current: a pending edit from before the column waits for a reviewer."""
+    from aia_core.infrastructure.tables import ClientKnowledgeProposalRow
+
+    researcher = client_scope(scoped, "researcher")
+    first = knowledge.add(researcher, kind=KnowledgeKind.FACT, title="Dealers: 120")
+    edit = knowledge.propose(
+        researcher, kind=KnowledgeKind.FACT, title="Dealers: 125", item_id=first.item_id
+    )
+    row = session.get(ClientKnowledgeProposalRow, edit.proposal_id)
+    row.base_revision = None
+    session.flush()
+    reviewer = client_scope(scoped, "reviewer")
+    with pytest.raises(StaleKnowledgeProposal) as refused:
+        knowledge.decide(reviewer, proposal_id=edit.proposal_id, approve=True)
+    assert refused.value.base_revision is None
+    decided = knowledge.decide(
+        reviewer, proposal_id=edit.proposal_id, approve=True, reviewed_revision=1
+    )
+    assert decided.revision == 2
+
+
+# ---- a file by reference (client-workspace C7a) -----------------------------------------
+
+
+def test_only_a_source_document_or_dataset_names_a_source_and_only_by_its_id() -> None:
+    ref = {"source_id": "SRC-0123456789abcdef"}
+    for kind in (KnowledgeKind.SOURCE, KnowledgeKind.DOCUMENT, KnowledgeKind.DATASET):
+        assert source_ref(kind, ref) == "SRC-0123456789abcdef"
+        assert source_ref(kind, {}) is None
+    with pytest.raises(ValueError, match="does not carry a source"):
+        source_ref(KnowledgeKind.FACT, ref)
+    for bad in ("SRC-XYZ", "src-0123456789abcdef", " SRC-0123456789abcdef", None, 7):
+        with pytest.raises(ValueError, match="not a source's id"):
+            source_ref(KnowledgeKind.DOCUMENT, {"source_id": bad})
+
+
+def test_a_malformed_reference_is_refused_on_every_way_in_and_a_study_names_none(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    lead = client_scope(scoped, "lead")
+    with pytest.raises(ValueError):
+        knowledge.add(
+            lead, kind=KnowledgeKind.FACT, title="F", content={"source_id": "SRC-0123456789abcdef"}
+        )
+    with pytest.raises(ValueError):
+        knowledge.propose(lead, kind=KnowledgeKind.DOCUMENT, title="D", content={"source_id": "x"})
+    with pytest.raises(ValueError, match="does not attach"):
+        knowledge.propose_from_study(
+            scoped.scope(user="researcher"),
+            kind=KnowledgeKind.DOCUMENT,
+            title="D",
+            content={"source_id": "SRC-0123456789abcdef"},
+        )
+    assert knowledge.proposals(lead) == []

@@ -120,15 +120,21 @@ class InstrumentStatus(StrEnum):
     #: Answered by simulated respondents: code-invented, or a model answering as an
     #: invented persona. Modelled, never measured.
     SIMULATED_RESPONSE = "SIMULATED_RESPONSE"
+    #: Answered by a model as respondents built from rows of the run's own population
+    #: (ADR 0024). Modelled evidence, never measured and never fictional.
+    MODELLED_PANEL_RESPONSE = "MODELLED_PANEL_RESPONSE"
 
 
 class ClaimRule(StrEnum):
     """Machine-checkable claim restrictions extracted from ``recommended_use`` prose.
 
-    All but :attr:`INTERNAL_ONLY` are the reference catalogue, extracted by
-    :func:`claim_rules_for`. ``INTERNAL_ONLY`` is never extracted from dictionary
-    prose: only AIA's own declarations carry it (:mod:`.instrument`), and the claim
-    gate refuses any client-facing claim on a field that does.
+    All but :attr:`INTERNAL_ONLY` and :attr:`MODELED_DISCLOSURE_ALWAYS` are the reference
+    catalogue, extracted by :func:`claim_rules_for`. Those two are never extracted from
+    dictionary prose: only AIA's own declarations carry them (:mod:`.instrument`).
+    ``INTERNAL_ONLY``: the claim gate refuses any client-facing claim on the field.
+    ``MODELED_DISCLOSURE_ALWAYS``: a client-facing claim on it needs the modelled-value
+    disclosure whatever its basis -- the dictionary's ``REQUIRES_MODELED_DISCLOSURE`` asks it
+    of a measured claim only (ADR 0024 §3).
     """
 
     NEVER_MEASURED_FACT = "NEVER_MEASURED_FACT"
@@ -141,6 +147,7 @@ class ClaimRule(StrEnum):
     HISTORICAL_OR_EXPLORATORY = "HISTORICAL_OR_EXPLORATORY"
     SPECIFIED_WEIGHT_REQUIRED = "SPECIFIED_WEIGHT_REQUIRED"
     INTERNAL_ONLY = "INTERNAL_ONLY"
+    MODELED_DISCLOSURE_ALWAYS = "MODELED_DISCLOSURE_ALWAYS"
 
 
 class FieldUse(StrEnum):

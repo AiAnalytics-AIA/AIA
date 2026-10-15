@@ -35,6 +35,7 @@ from aia_core.domain.methodology import (
     StepGroup,
     ValueOrigin,
     describe,
+    feeds_of,
     leaf_paths,
     module,
     module_problems,
@@ -275,6 +276,30 @@ def test_groups_hold_every_step_exactly_once() -> None:
         "group:F2:nothing": "no such step",
         "step:layout:group": "the module groups its steps; this one is in none",
     }
+
+
+def test_a_steps_inputs_name_other_steps_of_its_module_once() -> None:
+    steps = (
+        _step("scale", inputs=("kernel", "kernel")),
+        _step("kernel", inputs=("kernel",)),
+        _step("layout", inputs=("nothing",)),
+    )
+    assert module_problems(_module(steps=steps, presets=(), in_force=None)) == {
+        "step:scale:inputs": "an input is named twice",
+        "step:kernel:inputs:kernel": "a step cannot read itself",
+        "step:layout:inputs:nothing": "no such step",
+    }
+
+
+def test_the_steps_that_read_a_step_are_derived_from_their_inputs() -> None:
+    steps = (
+        _step("scale"),
+        _step("kernel", inputs=("scale",)),
+        _step("layout", inputs=("scale", "kernel")),
+    )
+    toy = _module(steps=steps, presets=(), in_force=None)
+    assert feeds_of(toy, "scale") == ("kernel", "layout")
+    assert feeds_of(toy, "layout") == ()
 
 
 # --------------------------------------------------------------------------- the page

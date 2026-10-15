@@ -8,7 +8,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DrSetting, DrSettingApproval, DrSettingDetail, DrSettingValue, DrSettingVersion } from "@/lib/api";
 import { resetConfigCache } from "@/lib/auth";
+import { researchPolicyHelp } from "./settings-guide";
 import { DeepResearchSettingsPanel, showValue } from "./DeepResearchSettingsPanel";
+import { TechnicalProvider } from "./technical";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }), usePathname: () => "/app/settings" }));
 
@@ -96,7 +98,10 @@ const row = (key: string) =>
   });
 const people = (id: string | null) => (id === "USR-1" ? "owner@example.test" : (id ?? "—"));
 async function openDetail(key: string): Promise<HTMLElement> {
-  fireEvent.click(within(await row(key)).getByRole("button", { name: "Detail" }));
+  // As a person does: the rule's group first, then its row.
+  const group = (await row(key)).closest("[data-dr-group]")?.getAttribute("data-dr-group");
+  fireEvent.click(document.querySelector(`[data-dr-group-link="${group}"]`) as HTMLElement);
+  fireEvent.click(within(await row(key)).getByRole("button", { name: /^(Upravit|Historie)$/ }));
   return waitFor(() => {
     const el = document.querySelector(`[data-dr-detail="${key}"]`) as HTMLElement | null;
     if (!el) throw new Error(`no detail ${key}`);
@@ -120,9 +125,10 @@ describe("Deep Research settings", () => {
     render(<DeepResearchSettingsPanel people={people} />);
     const crawl = await row(CRAWL);
     expect(crawl.closest("[data-dr-group]")?.getAttribute("data-dr-group")).toBe("budgets");
-    // The page's Czech name, the key beneath it, the code's default in force and so labelled.
+    // The page's Czech name, the code's default in force and so labelled; the key is a
+    // technical detail, shown only when the page's switch is on.
     expect(within(crawl).getByText("Exhaustive: procházené stránky")).toBeTruthy();
-    expect(within(crawl).getByText(CRAWL)).toBeTruthy();
+    expect(within(crawl).queryByText(CRAWL)).toBeNull();
     expect(crawl.querySelector("[data-value]")?.textContent).toBe(showValue("integer", 1000));
     expect(within(crawl).getByText("na běh")).toBeTruthy();
     expect(crawl.querySelector("[data-origin]")?.textContent).toBe("Navržená výchozí");
@@ -135,16 +141,47 @@ describe("Deep Research settings", () => {
     expect((await row(DENYLIST)).querySelector("[data-value]")?.textContent).toBe("prázdný seznam");
   });
 
-  it("lists exactly what live still needs approved, in the catalogue's order", async () => {
+  it("shows the catalogue keys only with technical details on", async () => {
+    fakeApi();
+    render(<TechnicalProvider on><DeepResearchSettingsPanel people={people} /></TechnicalProvider>);
+    expect(within(await row(CRAWL)).getByText(CRAWL)).toBeTruthy();
+    expect(screen.getByText("Katalog aia-dr-settings-catalogue-1")).toBeTruthy();
+  });
+
+  it("opens on one group and switches groups without losing an unsaved proposal", async () => {
+    fakeApi();
+    render(<DeepResearchSettingsPanel people={people} />);
+    const budgets = (await row(CRAWL)).closest("[data-dr-group]") as HTMLElement;
+    const retention = (await row(RETENTION)).closest("[data-dr-group]") as HTMLElement;
+    expect(budgets.hidden).toBe(false);
+    expect(retention.hidden).toBe(true);
+    // The group list says what waits in each group: retention has one rule live needs.
+    expect(document.querySelector('[data-dr-group-link="retention"]')?.textContent).toBe("Uchovávání1");
+    const form = (await openDetail(CRAWL)).querySelector("[data-dr-propose]") as HTMLElement;
+    fireEvent.change(within(form).getByLabelText("Hodnota"), { target: { value: "500" } });
+    fireEvent.click(document.querySelector('[data-dr-group-link="retention"]') as HTMLElement);
+    expect(budgets.hidden).toBe(true);
+    expect(retention.hidden).toBe(false);
+    fireEvent.click(document.querySelector('[data-dr-group-link="budgets"]') as HTMLElement);
+    expect((within(form).getByLabelText("Hodnota") as HTMLInputElement).value).toBe("500");
+  });
+
+  it("says in one line what live still needs, and shows exactly those rules on request", async () => {
     fakeApi();
     render(<DeepResearchSettingsPanel people={people} />);
     const readiness = await waitFor(() => {
       const el = document.querySelector("[data-live-readiness]") as HTMLElement | null;
-      if (!el) throw new Error("no readiness list");
+      if (!el) throw new Error("no readiness line");
       return el;
     });
-    await waitFor(() => expect([...readiness.querySelectorAll("[data-missing]")].map((e) => e.getAttribute("data-missing"))).toEqual([RETENTION, REGISTER]));
-    expect(within(readiness).getByText("Zachycené stránky uchovávat")).toBeTruthy();
+    expect(readiness.textContent).toContain("pravidla čekající na schválení: 2.");
+    expect(readiness.querySelector("details")).toBeNull();
+    fireEvent.click(within(readiness).getByRole("button", { name: "Zobrazit jen tato pravidla" }));
+    const shown = [...document.querySelectorAll<HTMLElement>("[data-dr-setting]")].filter((r) => !r.hidden && !(r.closest("[data-dr-group]") as HTMLElement).hidden);
+    expect(shown.map((r) => r.getAttribute("data-dr-setting"))).toEqual([RETENTION, REGISTER]);
+    expect(within(shown[0]).getByText("Zachycené stránky uchovávat")).toBeTruthy();
+    fireEvent.click(within(readiness).getByRole("button", { name: "Zobrazit všechna pravidla" }));
+    expect((document.querySelector('[data-dr-group="budgets"]') as HTMLElement).hidden).toBe(false);
   });
 
   it("proposes a value that is not in force until approved, then withdraws it", async () => {
@@ -155,12 +192,13 @@ describe("Deep Research settings", () => {
     fireEvent.change(within(form).getByLabelText("Hodnota"), { target: { value: "90" } });
     fireEvent.change(within(form).getByLabelText("Zdroj (https URL, nepovinné)"), { target: { value: "https://example.org/retention" } });
     fireEvent.click(within(form).getByRole("button", { name: "Uložit návrh" }));
-    await screen.findByText("Uloženo jako e1. Neplatí, dokud ji někdo neschválí.");
+    await screen.findByText("Uloženo jako verze 1. Neplatí, dokud ji někdo neschválí.");
     expect(called("POST", `/api/v1/deep-research/settings/${RETENTION}/versions`)[0].body).toEqual({ value: 90, source_url: "https://example.org/retention", note: "" });
-    // Proposed is not in force.
+    // Proposed is not in force, and the change now waits on its approval.
     await waitFor(async () => expect((await row(RETENTION)).querySelector("[data-origin]")?.textContent).toBe("Navržená výchozí"));
+    await waitFor(() => expect(document.querySelector('[data-dr-flow] [data-state="now"]')?.textContent).toBe("2Schválit"));
 
-    fireEvent.click(await screen.findByRole("button", { name: "Schválit e1" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Schválit verzi 1" }));
     const approve = document.querySelector("[data-dr-approve]") as HTMLElement;
     fireEvent.change(within(approve).getByLabelText("Důvod (nepovinný)"), { target: { value: "podepsáno" } });
     fireEvent.click(within(approve).getByRole("button", { name: "Potvrdit" }));
@@ -172,6 +210,7 @@ describe("Deep Research settings", () => {
       expect(r.querySelector("[data-value]")?.textContent).toBe("90");
     });
     await waitFor(() => expect(document.querySelector(`[data-missing="${RETENTION}"]`)).toBeNull());
+    await waitFor(() => expect(document.querySelector('[data-dr-flow] [data-state="now"]')).toBeNull());
 
     fireEvent.click(await screen.findByRole("button", { name: "Vrátit na výchozí" }));
     fireEvent.click(within(document.querySelector("[data-dr-approve]") as HTMLElement).getByRole("button", { name: "Potvrdit" }));
@@ -184,7 +223,7 @@ describe("Deep Research settings", () => {
       return [...items].map((e) => e.textContent ?? "");
     });
     expect(history[0]).toMatch(/^vráceno na výchozí/);
-    expect(history[1]).toMatch(/^e1 · owner@example\.test/);
+    expect(history[1]).toMatch(/^Verze 1 · owner@example\.test/);
   });
 
   it("sends a host list as a list, one per line", async () => {
@@ -225,6 +264,7 @@ describe("Deep Research settings", () => {
     expect(within(detail).getByText("Zatím žádná navržená verze.")).toBeTruthy();
     expect(detail.querySelector("[data-dr-propose]")).toBeNull();
     expect(within(detail).queryByRole("button", { name: /Schválit|Vrátit/ })).toBeNull();
+    expect(detail.querySelector("[data-dr-flow]")).toBeNull();
   });
 
   it("says the API sent no settings rather than drawing an empty tab", async () => {
@@ -233,3 +273,31 @@ describe("Deep Research settings", () => {
     expect(await screen.findByText("API nevrátilo nastavení Deep Research.")).toBeTruthy();
   });
 });
+
+  it("explains and searches policy purpose, preserving and guarding an unfinished proposal", async () => {
+    fakeApi(); render(<DeepResearchSettingsPanel people={people} />);
+    const detail = await openDetail(CRAWL);
+    const form = detail.querySelector("[data-dr-propose]") as HTMLElement;
+    fireEvent.change(within(form).getByLabelText("Hodnota"), { target: { value: "777" } });
+    fireEvent.change(screen.getByRole("searchbox", { name: "Hledat pravidlo rešerše" }), { target: { value: "uchovávají" } });
+    expect((within(form).getByLabelText("Hodnota") as HTMLInputElement).value).toBe("777");
+    expect(screen.getByText(/Počet dní, po které se uchovávají zachycené/)).toBeTruthy();
+    fireEvent.click(within(await row(CRAWL)).getByRole("button", { name: "Zavřít" }));
+    expect(screen.getByRole("alertdialog")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Ponechat" }));
+    expect((within(form).getByLabelText("Hodnota") as HTMLInputElement).value).toBe("777");
+    fireEvent.click(within(form).getByRole("button", { name: "Vrátit neuložené změny" }));
+    fireEvent.change(screen.getByRole("searchbox", { name: "Hledat pravidlo rešerše" }), { target: { value: "no-such-rule" } });
+    expect(screen.getByText("Žádné pravidlo neodpovídá hledání.")).toBeTruthy();
+    expect(calls.filter((c) => c.method !== "GET")).toEqual([]);
+  });
+
+  it("explains exact, agent-limit, budget, connector and extraction policy families without inventing controls", () => {
+    expect(researchPolicyHelp("provider.search.storage_and_ai_use_granted", "provider")).toContain("uchovávat výsledky");
+    expect(researchPolicyHelp("limits.lead.window_tokens", "limits")).toContain("vstup");
+    expect(researchPolicyHelp("limits.verifier.answer_tokens", "limits")).toContain("odpověď");
+    expect(researchPolicyHelp("budgets.run_limit.standard", "budgets")).toContain("rozpočet studie");
+    expect(researchPolicyHelp("budgets.allowance.deep.connector_calls", "budgets")).toContain("konektorů");
+    expect(researchPolicyHelp("extraction.caps.deep.pages_per_host", "extraction")).toContain("jedné domény");
+    expect(researchPolicyHelp("future.rule", "future")).toContain("až po schválení");
+  });

@@ -29,7 +29,7 @@ export function agentJobUpdate(job: ResearchAgentJob, title: string): JobUpdate 
   const last = job.steps.find((s) => s.error_message);
   return { jobId: job.run_id, title,
     phase: job.status === "COMPLETED" ? "Návrh je připravený k revizi" : waiting ? "Čeká na zásah" : "AI zpracovává návrh",
-    startedAt, orb: agentJobOrb(job), paused: waiting ? last?.error_message || "Krok čeká na schválení nebo dostupnost prostředí." : null,
+    startedAt, orb: agentJobOrb(job), stepId: job.steps[0]?.step_id ?? null, paused: waiting ? last?.error_message || "Krok čeká na schválení nebo dostupnost prostředí." : null,
     meta: jobMeta({ telemetry: { provider: "AWS Bedrock", actual_cost_usd: job.actual_cost_usd ?? undefined } },
       { elapsed: (Date.now() - startedAt) / 1000 }),
   };

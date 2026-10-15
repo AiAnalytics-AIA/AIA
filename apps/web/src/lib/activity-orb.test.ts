@@ -2,7 +2,7 @@
 // as AI, a step that is code as work in progress.
 import { describe, expect, it } from "vitest";
 
-import { AGENT_ORB, agentJobOrb, deepResearchRunOrb, deepResearchStepOrb, researchStepOrb } from "./activity-orb";
+import { AGENT_ORB, agentJobOrb, deepResearchRunOrb, deepResearchRunningStep, deepResearchStepOrb, researchStepOrb } from "./activity-orb";
 import type { ResearchAgentAction } from "./api";
 
 const step = (node_key: string, status: string) => ({ node_key, status }) as never;
@@ -67,5 +67,9 @@ describe("a Deep Research step", () => {
     expect(deepResearchRunOrb([step("merge", "RUNNING"), step("investigate/a", "RUNNING")])).toEqual({ state: "searching", ink: "ai" });
     expect(deepResearchRunOrb([step("plan", "SUCCEEDED"), step("merge", "RUNNING")])).toEqual({ state: "weaving", ink: "running" });
     expect(deepResearchRunOrb([step("verify", "WAITING_PROVIDER")])).toBeNull();
+    // The step itself, so its own feed can be shown.
+    const steps = [step("merge", "RUNNING"), step("investigate/a", "RUNNING")];
+    expect(deepResearchRunningStep(steps)?.step).toBe(steps[1]);
+    expect(deepResearchRunningStep([step("plan", "SUCCEEDED")])).toBeNull();
   });
 });

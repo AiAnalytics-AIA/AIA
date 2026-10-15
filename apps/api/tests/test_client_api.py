@@ -100,6 +100,65 @@ def test_a_client_workspace_opens_for_every_member_and_an_unknown_one_is_404(
     assert lead.get(f"{API}/clients/not-a-client").status_code == 422
 
 
+def test_the_client_counts_its_open_studies_and_its_knowledge_for_the_tabs(
+    owner: TestClient, researcher: TestClient, world: Any
+) -> None:
+    """The tabs' counts: open studies by kind, proposals waiting, datasets; this client only."""
+    url = f"{API}/clients/{world.client_id()}"
+    assert researcher.get(url).json()["counts"] == {
+        "research": 2,
+        "simulations": 0,
+        "pending_proposals": 0,
+        "datasets": 0,
+    }
+    start(researcher, world, "Cenové scénáře", kind="SIMULATION")
+    start(researcher, world, "Jinde", client="other")
+    researcher.post(
+        f"{API}/studies/{world.study_id()}/knowledge-proposals",
+        json={"kind": "FINDING", "title": "Mladší kupci řeší cenu"},
+    )
+    researcher.post(
+        f"{url}/knowledge/proposals", json={"kind": "DATASET", "title": "Klientská báze 2026"}
+    )
+    archived = owner.put(
+        f"{API}/studies/{world.study_id('sibling')}/status", json={"status": "ARCHIVED"}
+    )
+    assert archived.status_code == 200, archived.text
+    assert researcher.get(url).json()["counts"] == {
+        "research": 1,
+        "simulations": 1,
+        "pending_proposals": 1,
+        "datasets": 1,
+    }
+    other = researcher.get(f"{API}/clients/{world.client_id('other')}").json()["counts"]
+    assert other == {"research": 2, "simulations": 0, "pending_proposals": 0, "datasets": 0}
+
+
+def test_the_studies_list_says_what_each_study_brought_into_the_clients_knowledge(
+    researcher: TestClient, lead: TestClient, world: Any
+) -> None:
+    base = f"{API}/clients/{world.client_id()}/knowledge/proposals"
+    for title in ("Mladší kupci řeší cenu", "Starší kupci řeší servis"):
+        researcher.post(
+            f"{API}/studies/{world.study_id()}/knowledge-proposals",
+            json={"kind": "FINDING", "title": title},
+        )
+    waiting = lead.get(base, params={"status": "PROPOSED"}).json()
+    lead.post(f"{base}/{waiting[0]['proposal_id']}/decision", json={"approve": True})
+    # A person's own addition counts against no study.
+    researcher.post(base, json={"kind": "TERM", "title": "Flotilový zákazník"})
+
+    listed = {
+        s["study_id"]: s["knowledge"]
+        for s in researcher.get(f"{API}/clients/{world.client_id()}/studies").json()
+    }
+    assert listed[world.study_id()] == {"approved": 1, "proposed": 1, "rejected": 0}
+    assert listed[world.study_id("sibling")] == {"approved": 0, "proposed": 0, "rejected": 0}
+    # Another client's list knows nothing of it.
+    theirs = researcher.get(f"{API}/clients/{world.client_id('other')}/studies").json()
+    assert all(s["knowledge"] == {"approved": 0, "proposed": 0, "rejected": 0} for s in theirs)
+
+
 def test_research_and_simulation_belong_to_the_selected_client(
     researcher: TestClient, other_client_lead: TestClient, world: Any
 ) -> None:
@@ -157,6 +216,12 @@ def test_the_overview_shows_active_work_and_the_knowledge_state(
     assert body["knowledge"]["items_by_kind"] == {"TERM": 1}
     assert body["knowledge"]["pending_proposals"] == 1
     assert [p["title"] for p in body["pending"]] == ["Mladší kupci řeší cenu"]
+    # What wants attention: the new term is in no folder and was changed today.
+    assert body["knowledge"]["unfiled_items"] == 1 and body["knowledge"]["stale_items"] == 0
+    # What changed: the term a person wrote; the study's finding still waits, so it is not here.
+    assert [(c["title"], c["origin"], c["revision"]) for c in body["recent_changes"]] == [
+        ("Flotilový zákazník", "PERSON", 1)
+    ]
 
 
 # --------------------------------------------------------------------------- #
@@ -301,6 +366,47 @@ def test_a_study_proposes_and_consumes_but_never_writes_client_knowledge(
     # (ADR 0019) and gets this study's client context, never their own client's.
     here = other_client_lead.get(f"{study}/context")
     assert here.status_code == 200 and here.json()["client_id"] == world.client_id()
+
+
+def test_an_edit_written_from_an_older_revision_is_a_409_until_the_reviewer_names_the_current(
+    researcher: TestClient, reviewer: TestClient, world: Any
+) -> None:
+    """F-K1: approving a study's older edit no longer replaces a newer correction."""
+    base = f"{API}/clients/{world.client_id()}/knowledge"
+    first = researcher.post(f"{base}/proposals", json={"kind": "FACT", "title": "Dealers: 120"})
+    item_id = first.json()["item_id"]
+    edit = researcher.post(
+        f"{API}/studies/{world.study_id()}/knowledge-proposals",
+        json={"kind": "FACT", "title": "Dealers: 125", "item_id": item_id},
+    ).json()
+    assert edit["base_revision"] == 1
+    corrected = researcher.post(
+        f"{base}/proposals",
+        json={"kind": "FACT", "title": "Dealers: 134", "item_id": item_id, "base_revision": 1},
+    )
+    assert corrected.status_code == 201 and corrected.json()["revision"] == 2
+
+    # A person's save from the screen that still showed revision 1 is refused too.
+    again = researcher.post(
+        f"{base}/proposals",
+        json={"kind": "FACT", "title": "Dealers: 99", "item_id": item_id, "base_revision": 1},
+    )
+    assert again.status_code == 409
+    assert again.json()["code"] == "knowledge_proposal_stale"
+
+    decision = f"{base}/proposals/{edit['proposal_id']}/decision"
+    refused = reviewer.post(decision, json={"approve": True})
+    assert refused.status_code == 409, refused.text
+    error = refused.json()
+    assert error["code"] == "knowledge_proposal_stale"
+    assert error["details"] == {"item_id": item_id, "base_revision": 1, "current_revision": 2}
+    [item] = researcher.get(base, params={"section": "knowledge"}).json()
+    assert (item["title"], item["revision"]) == ("Dealers: 134", 2)
+
+    accepted = reviewer.post(decision, json={"approve": True, "reviewed_revision": 2})
+    assert accepted.status_code == 200 and accepted.json()["revision"] == 3
+    [item] = researcher.get(base, params={"section": "knowledge"}).json()
+    assert item["title"] == "Dealers: 125"
 
 
 def test_any_member_sees_the_whole_client_and_its_knowledge(
@@ -593,3 +699,182 @@ def test_the_questionnaire_template_is_aias_workbook_for_any_reader_of_the_study
     )
     # Any member reads it, another client's lead included (ADR 0019).
     assert other_client_lead.get(url).status_code == 200
+
+
+# --------------------------------------------------------------------------- #
+# Folders and labels (client-workspace C3)
+# --------------------------------------------------------------------------- #
+
+
+def test_a_person_files_the_clients_knowledge_in_folders_and_labels(
+    researcher: TestClient, world: Any
+) -> None:
+    base = f"{API}/clients/{world.client_id()}/knowledge"
+    for title in ("Výroční zpráva 2025", "Hlavní konkurenti"):
+        researcher.post(f"{base}/proposals", json={"kind": "SOURCE", "title": title})
+    items = researcher.get(base).json()
+    assert all(i["folder_id"] is None and i["label_ids"] == [] for i in items)
+    a, b = sorted(i["item_id"] for i in items)
+
+    folder = researcher.post(f"{base}/folders", json={"name": " Minulé  výzkumy "})
+    assert folder.status_code == 201, folder.text
+    folder_id = folder.json()["folder_id"]
+    assert folder.json() == {"folder_id": folder_id, "name": "Minulé výzkumy", "item_count": 0}
+    taken = researcher.post(f"{base}/folders", json={"name": "minulé výzkumy"})
+    assert taken.status_code == 409 and taken.json()["code"] == "name_taken"
+    label = researcher.post(f"{base}/labels", json={"name": "2025", "colour": "BLUE"}).json()
+    assert researcher.post(f"{base}/labels", json={"name": "x", "colour": "RED"}).status_code == 422
+
+    placed = researcher.put(
+        f"{base}/placement",
+        json={"item_ids": [a, b], "folder_id": folder_id, "add_labels": [label["label_id"]]},
+    )
+    assert placed.status_code == 200, placed.text
+    assert {(i["folder_id"], tuple(i["label_ids"])) for i in placed.json()} == {
+        (folder_id, (label["label_id"],))
+    }
+    # Filing is not a change to the knowledge: no new revision.
+    assert len(researcher.get(f"{base}/items/{a}/revisions").json()) == 1
+    assert researcher.get(f"{base}/folders").json()[0]["item_count"] == 2
+
+    # Left out, the folder is kept; null takes the item out of it.
+    researcher.put(
+        f"{base}/placement", json={"item_ids": [a], "remove_labels": [label["label_id"]]}
+    )
+    researcher.put(f"{base}/placement", json={"item_ids": [b], "folder_id": None})
+    by_folder = researcher.get(base, params={"folder": folder_id}).json()
+    assert [i["item_id"] for i in by_folder] == [a]
+    assert [i["item_id"] for i in researcher.get(base, params={"folder": "unfiled"}).json()] == [b]
+    labelled = researcher.get(base, params={"label": label["label_id"]}).json()
+    assert [i["item_id"] for i in labelled] == [b]
+
+    renamed = researcher.put(f"{base}/folders/{folder_id}", json={"name": "Archiv"})
+    assert renamed.status_code == 200 and renamed.json()["name"] == "Archiv"
+    recoloured = researcher.put(
+        f"{base}/labels/{label['label_id']}", json={"colour": "TEAL"}
+    ).json()
+    assert recoloured["colour"] == "TEAL" and recoloured["name"] == "2025"
+    assert researcher.delete(f"{base}/folders/{folder_id}").status_code == 204
+    assert researcher.delete(f"{base}/labels/{label['label_id']}").status_code == 204
+    assert all(i["folder_id"] is None and i["label_ids"] == [] for i in researcher.get(base).json())
+    assert researcher.delete(f"{base}/folders/{folder_id}").status_code == 404
+
+
+def test_filing_never_crosses_clients_and_is_all_or_nothing(
+    researcher: TestClient, world: Any
+) -> None:
+    mine = f"{API}/clients/{world.client_id()}/knowledge"
+    theirs = f"{API}/clients/{world.client_id('other')}/knowledge"
+    researcher.post(f"{mine}/proposals", json={"kind": "FACT", "title": "Acme"})
+    researcher.post(f"{theirs}/proposals", json={"kind": "FACT", "title": "Globex"})
+    [a] = researcher.get(mine).json()
+    [g] = researcher.get(theirs).json()
+    my_folder = researcher.post(f"{mine}/folders", json={"name": "Moje"}).json()["folder_id"]
+    their_folder = researcher.post(f"{theirs}/folders", json={"name": "Moje"}).json()["folder_id"]
+
+    for body in (
+        {"item_ids": [a["item_id"], g["item_id"]], "folder_id": my_folder},
+        {"item_ids": [a["item_id"]], "folder_id": their_folder},
+    ):
+        assert researcher.put(f"{mine}/placement", json=body).status_code == 404
+    assert researcher.get(mine).json()[0]["folder_id"] is None
+    # Another client's folder is not found under this client's path.
+    assert researcher.put(f"{mine}/folders/{their_folder}", json={"name": "x"}).status_code == 404
+    assert researcher.get(mine, params={"folder": their_folder}).json() == []
+    assert [f["folder_id"] for f in researcher.get(f"{theirs}/folders").json()] == [their_folder]
+    # Shape is checked before anything is read.
+    assert researcher.put(f"{mine}/placement", json={"item_ids": []}).status_code == 422
+    assert researcher.put(f"{mine}/placement", json={"item_ids": ["nope"]}).status_code == 422
+
+
+# --------------------------------------------------------------------------- #
+# The client's profile and contacts (client-workspace C5)
+# --------------------------------------------------------------------------- #
+
+
+def test_a_member_fills_in_the_clients_profile_and_its_history_says_what_changed(
+    researcher: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    url = f"{API}/clients/{world.client_id()}/profile"
+    empty = researcher.get(url).json()
+    assert {k: empty[k] for k in ("short_code", "industry", "market", "description")} == {
+        "short_code": "",
+        "industry": "",
+        "market": "",
+        "description": "",
+    }
+    assert empty["contacts"] == [] and empty["history"] == []
+    saved = researcher.put(
+        url, json={"short_code": " AC ", "industry": "Automotive", "market": "Česko"}
+    )
+    assert saved.status_code == 200, saved.text
+    body = saved.json()
+    assert (body["short_code"], body["industry"], body["description"]) == ("AC", "Automotive", "")
+    assert body["history"][0]["action"] == "CLIENT_PROFILE_CHANGED"
+    assert set(body["history"][0]["fields"]) == {"short_code", "industry", "market"}
+    too_long = researcher.put(url, json={"short_code": "x" * 30})
+    assert too_long.status_code == 422 and too_long.json()["code"] == "invalid_profile"
+    # Another client's profile is its own.
+    theirs = other_client_lead.get(f"{API}/clients/{world.client_id('other')}/profile").json()
+    assert theirs["industry"] == ""
+
+
+def test_a_member_sets_the_clients_own_budget_and_the_directory_does_not_carry_it(
+    researcher: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    """client-budget CB1: work on the client itself has a budget of its own, 0 until set."""
+    url = f"{API}/clients/{world.client_id()}/budget"
+    assert researcher.get(url).json() == {
+        "budget_usd": 0.0,
+        "spent_usd": 0.0,
+        "reserved_usd": 0.0,
+        "available_usd": 0.0,
+    }
+    saved = researcher.put(url, json={"budget_usd": 12.5})
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["available_usd"] == 12.5
+    for bad in ({"budget_usd": -1}, {"budget_usd": 2_000_000}, {"budget_usd": 5, "spent_usd": 1}):
+        assert researcher.put(url, json=bad).status_code == 422
+    # Costs stay behind their own route: the client's detail does not carry them.
+    detail = researcher.get(f"{API}/clients/{world.client_id()}").json()
+    assert "budget_usd" not in detail and "spent_usd" not in detail
+    # Another client's budget is its own, and a client that does not exist is not found.
+    theirs = other_client_lead.get(f"{API}/clients/{world.client_id('other')}/budget").json()
+    assert theirs["budget_usd"] == 0.0
+    assert researcher.get(f"{API}/clients/CLI-0000000000ffff/budget").status_code == 404
+
+
+def test_contacts_are_kept_per_client_and_checked(researcher: TestClient, world: Any) -> None:
+    base = f"{API}/clients/{world.client_id()}/contacts"
+    added = researcher.post(
+        base, json={"name": "Jana Nová", "email": "jana@klient.cz", "receives_reports": True}
+    )
+    assert added.status_code == 201, added.text
+    contact = added.json()
+    assert researcher.post(base, json={"name": "x", "email": "nope"}).status_code == 422
+    changed = researcher.put(
+        f"{base}/{contact['contact_id']}", json={"name": "Jana Nová", "role": "Insights"}
+    ).json()
+    assert (changed["role"], changed["email"], changed["receives_reports"]) == (
+        "Insights",
+        "",
+        False,
+    )
+    other = f"{API}/clients/{world.client_id('other')}/contacts/{contact['contact_id']}"
+    assert researcher.delete(other).status_code == 404
+    profile = researcher.get(f"{API}/clients/{world.client_id()}/profile").json()
+    assert [c["name"] for c in profile["contacts"]] == ["Jana Nová"]
+    assert "jana@klient.cz" not in str(profile["history"])
+    assert researcher.delete(f"{base}/{contact['contact_id']}").status_code == 204
+    assert researcher.get(f"{API}/clients/{world.client_id()}/profile").json()["contacts"] == []
+
+
+def test_the_client_says_whether_a_proposer_may_accept_their_own_proposal(
+    owner: TestClient, researcher: TestClient, world: Any
+) -> None:
+    url = f"{API}/clients/{world.client_id()}"
+    before = researcher.get(url).json()
+    assert before["self_approval_allowed"] is True and before["self_approval_source"] == "default"
+    owner.put(f"{API}/self-approval", json={"allowed": False, "client_id": world.client_id()})
+    after = researcher.get(url).json()
+    assert after["self_approval_allowed"] is False and after["self_approval_source"] == "client"

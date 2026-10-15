@@ -122,6 +122,7 @@ jobs:
           build-args: |
             AIA_BUILD_SHA=${{ env.SHA }}
             AIA_BUILD_TIME=${{ github.run_started_at }}
+            AIA_WORKER_PDF=true
           cache-from: type=gha,scope=python
           cache-to: type=gha,scope=python,mode=max
           provenance: false
@@ -183,6 +184,10 @@ jobs:
           # AWS-RunShellScript starts commands with /bin/sh. Pass one POSIX
           # command that decodes and launches the multiline deploy script in
           # Bash, where pipefail and process substitution are supported.
+          # executionTimeout: the wait below gives the host 20 minutes (a deploy
+          # takes about two); a host still running at 25 is stopped, so a hung
+          # step cannot keep bin/deploy.sh's lock for the document's default hour
+          # and refuse every rerun meanwhile (2026-10-13).
           encoded_script=$(printf '%s' "$script" | base64 -w0)
           launcher="printf '%s' '$encoded_script' | base64 -d | /bin/bash"
           command_id=$(aws ssm send-command \
@@ -190,7 +195,7 @@ jobs:
             --document-name AWS-RunShellScript \
             --comment "aia develop deploy $SHA" \
             --timeout-seconds 600 \
-            --parameters "commands=$(jq -n --arg s "$launcher" '[$s]')" \
+            --parameters "$(jq -n --arg s "$launcher" '{commands: [$s], executionTimeout: ["1500"]}')" \
             --query 'Command.CommandId' --output text)
           echo "ssm command $command_id"
 
@@ -212,7 +217,7 @@ jobs:
           if [ -n "$err" ] && [ "$err" != "None" ]; then echo "$err" | tail -c 20000; fi
 
           if [ "$status" != "Success" ]; then
-            echo "::error::deploy of $SHA ended with SSM status $status"; exit 1
+            echo "::error::deploy of $SHA ended with SSM status $status (InProgress: the host is stopped at the command's 25-minute execution timeout and its lock released)"; exit 1
           fi
           echo "deployed $SHA to https://${{ vars.AIA_PUBLIC_HOSTNAME }}/" >> "$GITHUB_STEP_SUMMARY"
 

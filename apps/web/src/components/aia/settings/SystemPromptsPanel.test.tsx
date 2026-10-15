@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PromptActive, PromptSlotDetail, PromptSlotSummary, PromptVersion, SettingsDocument } from "@/lib/api";
 import { resetConfigCache } from "@/lib/auth";
+import { TechnicalProvider } from "./technical";
 import type { Part, StudyRow } from "./ControlPanel";
 import { SystemPromptsPanel, actionOf, nameOf } from "./SystemPromptsPanel";
 
@@ -150,8 +151,8 @@ const studies: Part<StudyRow[]> = {
   data: [STUDY("STU-1", "Fiktivní studie"), STUDY("STU-9", "Simulace", "SIMULATION"), STUDY("STU-2", "Skutečná studie", "RESEARCH", "CLI-b")],
 };
 
-function mount(may = true) {
-  render(<SystemPromptsPanel doc={DOC(may)} members={members} clients={clients} studies={studies} />);
+function mount(may = true, technical = false) {
+  render(<TechnicalProvider on={technical}><SystemPromptsPanel doc={DOC(may)} members={members} clients={clients} studies={studies} /></TechnicalProvider>);
 }
 const editor = async () => (await screen.findByLabelText("Instrukce")) as HTMLTextAreaElement;
 const saveButton = () => screen.getByRole("button", { name: "Uložit jako novou verzi" }) as HTMLButtonElement;
@@ -216,8 +217,15 @@ describe("a prompt that can be edited", () => {
     fakeApi();
     mount();
     expect((await editor()).value).toBe("Analyzuj problém.\nNesestavuj dotazník.");
-    const frame = document.querySelector("[data-frame]") as HTMLElement;
-    expect(within(frame).getByText(/Kód kolem vaší instrukce \(nelze upravit\)/)).toBeTruthy();
+    // One plain line says the frame is there; its text is a technical detail.
+    let frame = document.querySelector("[data-frame]") as HTMLElement;
+    expect(frame.textContent).toMatch(/Tento text vždy stojí před vaší instrukcí/);
+    expect(frame.textContent).not.toContain("Jsi výzkumný pracovník AIA.");
+    expect(frame.querySelector("details")).toBeNull();
+    cleanup();
+    mount(true, true);
+    await editor();
+    frame = document.querySelector("[data-frame]") as HTMLElement;
     expect(frame.textContent).toContain("Jsi výzkumný pracovník AIA.");
     expect(frame.querySelector("textarea, input")).toBeNull();
   });
@@ -258,7 +266,7 @@ describe("a prompt that can be edited", () => {
     fakeApi();
     mount();
     await saveAs("  Analyzuj stručně.  ", "kratší");
-    expect(await screen.findByText("Uloženo jako e1. Zatím neběží.")).toBeTruthy();
+    expect(await screen.findByText("Uloženo jako verze 1. Zatím neběží.")).toBeTruthy();
     expect(called("POST", `/api/v1/system-prompts/${ANALYZE}/versions`)[0].body).toEqual({ text: "Analyzuj stručně.", note: "kratší", based_on: "baseline", declares_no_client_data: true });
     const row = await versionRow("v1");
     expect(row.getAttribute("data-running")).toBe("no");
@@ -268,6 +276,41 @@ describe("a prompt that can be edited", () => {
     expect((document.querySelector('[data-version="baseline"]') as HTMLElement).getAttribute("data-running")).toBe("yes");
     const list = screen.getByRole("navigation", { name: "Seznam promptů" });
     expect(within(list.querySelector(`[data-prompt="${ANALYZE}"]`) as HTMLElement).getByText("Základ z kódu")).toBeTruthy();
+  });
+
+  it("walks the change in order: edit, save, then switch on from the next step beside the editor", async () => {
+    fakeApi();
+    mount();
+    const box = await editor();
+    const now = () => document.querySelector('[data-prompt-flow] [data-state="now"]')?.textContent;
+    expect(now()).toBe("1Upravit");
+    fireEvent.change(box, { target: { value: "Analyzuj problém.\nPiš stručně." } });
+    expect(now()).toBe("2Uložit verzi");
+    // What the edit changes shows as it is typed, against the text it started from.
+    const diff = await waitFor(() => {
+      const el = document.querySelector("[data-live-diff]") as HTMLElement | null;
+      if (!el) throw new Error("no live diff");
+      return el;
+    });
+    expect(diff.querySelector('[data-diff="add"]')?.textContent).toContain("Piš stručně.");
+    expect(diff.querySelector('[data-diff="del"]')?.textContent).toContain("Nesestavuj dotazník.");
+    fireEvent.click(saveButton());
+    await screen.findByText("Uloženo jako verze 1. Zatím neběží.");
+    expect(now()).toBe("4Zapnout");
+    const next = document.querySelector("[data-next-step]") as HTMLElement;
+    expect(next.textContent).toContain("Uložená verze 1 zatím neběží.");
+    expect(document.querySelector("[data-live-diff]")).toBeNull();
+    // One button switches the saved version on: the next step's, not also its row's.
+    expect(within(await versionRow("v1")).queryByRole("button", { name: "Zapnout verzi 1" })).toBeNull();
+    // Reverting a later, unsaved edit keeps that next step: the saved version still waits.
+    fireEvent.change(await editor(), { target: { value: "Ještě jinak." } });
+    fireEvent.click(screen.getByRole("button", { name: "Vrátit neuložené změny" }));
+    expect(document.querySelector("[data-next-step]")).toBe(next);
+    fireEvent.click(within(next).getByRole("button", { name: "Zapnout verzi 1" }));
+    fireEvent.click(within(document.querySelector("[data-activation]") as HTMLElement).getByRole("button", { name: "Potvrdit" }));
+    await screen.findByText("Teď běží: verze 1.");
+    await waitFor(() => expect(document.querySelector("[data-running-card]")?.textContent).toContain("verze 1"));
+    expect(document.querySelector("[data-next-step]")).toBeNull();
   });
 
   it("shows the API's refusal of a save as given", async () => {
@@ -284,7 +327,7 @@ describe("a prompt that can be edited", () => {
 describe("putting a version live", () => {
   async function savedAndAskedToActivate() {
     await saveAs("Analyzuj stručně.");
-    fireEvent.click(await screen.findByRole("button", { name: "Zapnout e1" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Zapnout verzi 1" }));
     return document.querySelector("[data-activation]") as HTMLElement;
   }
 
@@ -292,18 +335,17 @@ describe("putting a version live", () => {
     fakeApi();
     mount();
     const panel = await savedAndAskedToActivate();
-    expect(within(panel).getByText(/Od teď poběží místo Základ z kódu verze e1 pro všechny nově zadané úlohy/)).toBeTruthy();
+    expect(within(panel).getByText(/Od teď poběží verze 1 místo Základ z kódu pro všechny nově zadané úlohy/)).toBeTruthy();
     expect(within(panel).getByText(/Úlohy zadané před touto změnou doběhnou s promptem, se kterým byly zadány/)).toBeTruthy();
     fireEvent.change(within(panel).getByLabelText(/Důvod/), { target: { value: "kratší je lepší" } });
     fireEvent.click(within(panel).getByRole("button", { name: "Potvrdit" }));
     await waitFor(() => expect(called("PUT", `/api/v1/system-prompts/${ANALYZE}/active`)).toHaveLength(1));
     expect(called("PUT", `/api/v1/system-prompts/${ANALYZE}/active`)[0].body).toEqual({ version_number: 1, reason: "kratší je lepší" });
-    expect(await screen.findByText("Teď běží: e1.")).toBeTruthy();
+    expect(await screen.findByText("Teď běží: verze 1.")).toBeTruthy();
     await waitFor(() => expect((document.querySelector('[data-version="v1"]') as HTMLElement).getAttribute("data-running")).toBe("yes"));
     const list = screen.getByRole("navigation", { name: "Seznam promptů" });
-    expect(within(list.querySelector(`[data-prompt="${ANALYZE}"]`) as HTMLElement).getByText("Upraveno e1")).toBeTruthy();
+    expect(within(list.querySelector(`[data-prompt="${ANALYZE}"]`) as HTMLElement).getByText("Upraveno · běží verze 1")).toBeTruthy();
     expect(document.querySelector("[data-activation]")).toBeNull();
-    fireEvent.click(screen.getByText("Historie zapnutí"));
     const history = document.querySelector("[data-history]") as HTMLElement;
     expect(within(history).getByText("kratší je lepší", { exact: false })).toBeTruthy();
   });
@@ -326,7 +368,7 @@ describe("putting a version live", () => {
     mount();
     const panel = await savedAndAskedToActivate();
     fireEvent.click(within(panel).getByRole("button", { name: "Potvrdit" }));
-    await screen.findByText("Teď běží: e1.");
+    await screen.findByText("Teď běží: verze 1.");
     fireEvent.click(await screen.findByRole("button", { name: "Vrátit základ z kódu" }));
     const reset = document.querySelector("[data-activation]") as HTMLElement;
     expect(within(reset).getByRole("heading", { name: "Vrátit základ z kódu" })).toBeTruthy();
@@ -348,13 +390,13 @@ describe("the author's declaration", () => {
 
   it("sends the declaration with the save, and shows who made it", async () => {
     fakeApi();
-    mount();
+    mount(true, true);
     await saveAs("Analyzuj stručně.");
-    await screen.findByText("Uloženo jako e1. Zatím neběží.");
+    await screen.findByText("Uloženo jako verze 1. Zatím neběží.");
     expect(called("POST", `/api/v1/system-prompts/${ANALYZE}/versions`)[0].body).toMatchObject({ declares_no_client_data: true });
     await versionRow("v1");
     const approval = document.querySelector("[data-approval]") as HTMLElement;
-    fireEvent.click(within(approval).getByText("Třída dat a schválení operátora"));
+    expect(within(approval).getByText("Třída dat a schválení operátora")).toBeTruthy();
     const line = approval.querySelector('[data-material="e1"]') as HTMLElement;
     expect(line.textContent).toMatch(/prohlásil\(a\) owner@example\.test/);
     expect(line.querySelector("[data-undeclared]")).toBeNull();
@@ -367,14 +409,14 @@ describe("the author's declaration", () => {
     fakeApi();
     mount();
     await saveAs("Analyzuj stručně.");
-    fireEvent.click(await screen.findByRole("button", { name: "Zapnout e1" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Zapnout verzi 1" }));
     const panel = document.querySelector("[data-activation]") as HTMLElement;
     expect(panel.querySelector("[data-needs-approval]")).toBeNull();
   });
 
   it("knows the version it just saved before the prompt has been read again", async () => {
     fakeApi();
-    // Hold every read of the prompt after the save: the "Zapnout e1" button shows at once, from
+    // Hold every read of the prompt after the save: the "Zapnout verzi 1" button shows at once, from
     // the save's answer, while the detail it once read the version from is still the old one.
     const served = globalThis.fetch;
     let release!: () => void;
@@ -388,12 +430,12 @@ describe("the author's declaration", () => {
     });
     mount();
     await saveAs("Analyzuj stručně.");
-    fireEvent.click(await screen.findByRole("button", { name: "Zapnout e1" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Zapnout verzi 1" }));
     expect(document.querySelector('[data-version="v1"]')).toBeNull(); // the detail has not been read again
     const panel = document.querySelector("[data-activation]") as HTMLElement;
     expect(panel.querySelector("[data-needs-approval]")).toBeNull();
     fireEvent.click(within(panel).getByRole("button", { name: "Potvrdit" }));
-    await screen.findByText("Teď běží: e1.");
+    await screen.findByText("Teď běží: verze 1.");
     // The editor keeps the text that now runs, not an empty one.
     expect((await editor()).value).toBe("Analyzuj stručně.");
     release();
@@ -405,18 +447,17 @@ describe("the author's declaration", () => {
     fakeApi();
     mount();
     await saveAs("Stará verze.");
-    await screen.findByText("Uloženo jako e1. Zatím neběží.");
+    await screen.findByText("Uloženo jako verze 1. Zatím neběží.");
     // The server's rows from before declarations carry none.
     for (const v of backend.versions[ANALYZE]) Object.assign(v, { declared_class: null, declared_by: null, declared_at: null });
     cleanup();
     mount();
     await versionRow("v1");
-    fireEvent.click(within(await versionRow("v1")).getByRole("button", { name: "Zapnout e1" }));
+    fireEvent.click(within(await versionRow("v1")).getByRole("button", { name: "Zapnout verzi 1" }));
     const panel = document.querySelector("[data-activation]") as HTMLElement;
     expect(panel.querySelector("[data-needs-approval]")?.textContent).toMatch(/byla uložena bez prohlášení autora/);
     expect(panel.querySelector("[data-needs-approval]")?.textContent).toMatch(/nově zadané úlohy čekají/);
     const approval = document.querySelector("[data-approval]") as HTMLElement;
-    fireEvent.click(within(approval).getByText("Třída dat a schválení operátora"));
     expect(approval.querySelector('[data-material="e1"] [data-undeclared]')?.textContent).toBe("bez prohlášení");
   });
 });
@@ -426,10 +467,11 @@ describe("comparing", () => {
     fakeApi();
     mount();
     await saveAs("Analyzuj problém.\nPiš stručně.");
-    await screen.findByText("Uloženo jako e1. Zatím neběží.");
-    const compare = document.querySelector("[data-compare]") as HTMLElement;
-    fireEvent.click(within(compare).getByText("Porovnání verzí"));
+    await screen.findByText("Uloženo jako verze 1. Zatím neběží.");
+    // Comparing opens on request; there is no closed disclosure waiting for it.
+    expect(document.querySelector("[data-compare]")).toBeNull();
     fireEvent.click(within(await versionRow("v1")).getByRole("button", { name: "Porovnat" }));
+    const compare = document.querySelector("[data-compare]") as HTMLElement;
     const [from, to] = within(compare).getAllByRole("combobox") as HTMLSelectElement[];
     fireEvent.change(from, { target: { value: "baseline" } });
     fireEvent.change(to, { target: { value: "v1" } });
@@ -495,7 +537,7 @@ describe("a prompt no running step reads", () => {
     expect(within(locked).getByRole("note").textContent).toMatch(/Tento prompt zatím nelze upravit.*otisku/);
     expect(screen.queryByLabelText("Instrukce")).toBeNull();
     expect(screen.queryByRole("button", { name: "Uložit jako novou verzi" })).toBeNull();
-    fireEvent.click(within(locked).getByText("Zobrazit text z kódu"));
+    expect(within(locked).getByText("Text z kódu, který běží")).toBeTruthy();
     expect(locked.textContent).toContain("Jsi respondent.");
   });
 });
@@ -503,7 +545,7 @@ describe("a prompt no running step reads", () => {
 describe("trying a version", () => {
   async function openTest() {
     await saveAs("Analyzuj stručně.");
-    await screen.findByText("Uloženo jako e1. Zatím neběží.");
+    await screen.findByText("Uloženo jako verze 1. Zatím neběží.");
     fireEvent.click(within(await versionRow("v1")).getByRole("button", { name: "Vyzkoušet" }));
     return (await waitFor(() => {
       const el = document.querySelector("[data-test-run]") as HTMLElement | null;
@@ -555,7 +597,7 @@ describe("trying a version", () => {
     backend.draftClients = [];
     mount();
     await saveAs("Analyzuj stručně.");
-    await screen.findByText("Uloženo jako e1. Zatím neběží.");
+    await screen.findByText("Uloženo jako verze 1. Zatím neběží.");
     const row = await versionRow("v1");
     expect(within(row).queryByRole("button", { name: "Vyzkoušet" })).toBeNull();
     expect(document.querySelector("[data-test-off]")?.textContent).toMatch(/AIA_AI_FICTIONAL_CLIENT_IDS/);

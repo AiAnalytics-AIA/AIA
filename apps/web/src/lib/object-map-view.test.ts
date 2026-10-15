@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "./fixtures/object-map.json";
 import {
   type BatteryWithMaps,
+  mapApproval,
   type ObjectMapArtifact,
   MAP_VIEW,
   TERRACE_BANDS,
@@ -329,5 +330,24 @@ describe("the top view's frame and the snapshot's colours", () => {
     const markup = '<rect fill="var(--viz-terrace-3)" stroke="white" data-n="0,52"/><text fill="var(--missing)">0,52</text>';
     const tokens: Record<string, string> = { "--viz-terrace-3": "#2aa3d8" };
     expect(resolveVars(markup, (t) => tokens[t] ?? "")).toBe('<rect fill="#2aa3d8" stroke="white" data-n="0,52"/><text fill="var(--missing)">0,52</text>');
+  });
+});
+
+
+describe("mapApproval (the Sociomap register, B4)", () => {
+  const entry = { method_id: "aia-sociomap-3", spec_fingerprint: "e".repeat(64), status: "CLIENT_FACING", decided_on: "2026-10-13", reader_note: "n" };
+  const recorded = [{ method_id: "aia-sociomap-1", spec_fingerprint: "9".repeat(64) }, { method_id: "aia-sociomap-3", spec_fingerprint: "e".repeat(64) }];
+
+  it("approves only the method the run recorded at exactly the registered spec", () => {
+    expect(mapApproval(recorded, [entry], "aia-sociomap-3")).toBe(entry);
+    expect(mapApproval(recorded, [entry], "aia-sociomap-1")).toBeNull();
+    expect(mapApproval([{ method_id: "aia-sociomap-3", spec_fingerprint: "f".repeat(64) }], [entry], "aia-sociomap-3")).toBeNull();
+  });
+
+  it("never presumes approval: no register, no recorded methods or replaced formulas read internal", () => {
+    expect(mapApproval(recorded, null, "aia-sociomap-3")).toBeNull();
+    expect(mapApproval(undefined, [entry], "aia-sociomap-3")).toBeNull();
+    expect(mapApproval([{ ...recorded[1], formulas: { "F6.target": "1 - r" } }], [entry], "aia-sociomap-3")).toBeNull();
+    expect(mapApproval(recorded, [{ ...entry, status: "INTERNAL_ONLY" }], "aia-sociomap-3")).toBeNull();
   });
 });

@@ -29,7 +29,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Annotated, Any
+from typing import Annotated, Any, Final
 
 from aia_core.domain.methodology import (
     ABSENT,
@@ -39,11 +39,24 @@ from aia_core.domain.methodology import (
     MethodologyReferenceError,
     StepView,
     describe,
+    feeds_of,
     module,
 )
+from aia_core.domain.methodology.aggregation_check import (
+    AggregationComparison,
+    compare_aggregation_with_in_force,
+)
 from aia_core.domain.methodology.expressions import compile_formula, latex
-from aia_core.domain.methodology.pins import uncomputed_formulas
+from aia_core.domain.methodology.pins import support_spec_for, uncomputed_formulas
+from aia_core.domain.methodology.response_check import (
+    ResponseComparison,
+    compare_response_with_in_force,
+)
 from aia_core.domain.methodology.sociomap_check import PanelComparison, compare_with_in_force
+from aia_core.domain.methodology.support_check import (
+    SupportComparison,
+    compare_support_with_in_force,
+)
 from aia_core.domain.methodology.versions import (
     MethodologyVersionInvalid,
     named,
@@ -171,11 +184,17 @@ class FormulaOut(_Strict):
     expression: str
     latex: str
     note_cs: str
+    #: What the engine keeps around the expression whatever replaces it.
+    kept_cs: list[str]
     variables: list[FormulaVariableOut]
     properties: list[FormulaPropertyOut]
 
 
 class StepOut(_Strict):
+    """One step. ``role_cs``, ``inputs``, ``source_cs`` and ``audit`` say where it sits in the
+    computation (empty where the module declares none); ``feeds`` are the steps that read it,
+    derived from their inputs, and ``effect_cs`` where its result shows outside the module."""
+
     id: str
     title_cs: str
     formula_latex: str
@@ -185,6 +204,12 @@ class StepOut(_Strict):
     evidence: list[EvidenceOut]
     tests: list[str]
     note_cs: str
+    role_cs: str
+    inputs: list[str]
+    feeds: list[str]
+    source_cs: str
+    audit: str
+    effect_cs: str
     values: list[ValueOut]
     formulas: list[FormulaOut]
 
@@ -298,13 +323,103 @@ class PanelOut(_Strict):
     notes: list[str]
 
 
+class SupportCellOut(_Strict):
+    """One fictional cell: its support, and each surface's status ``[in force, draft]``;
+    ``changes`` names each surface whose status moved (``reported``, ``suppressed``,
+    ``changed``)."""
+
+    cell: str
+    label_cs: str
+    n: int
+    effective_n: float
+    donors: int
+    results: list[str]
+    analysis: list[str]
+    changes: dict[str, str]
+
+
+class SupportCompareOut(_Strict):
+    """The support draft check (plan G1d): every cell, and every ``[cell, surface]`` the draft
+    newly reports or newly suppresses."""
+
+    draft: str
+    cells: list[SupportCellOut]
+    newly_reported: list[list[str]]
+    newly_suppressed: list[list[str]]
+
+
+class EstimateOut(_Strict):
+    """One estimate: ``[value, low, high]`` in force and in the draft; ``null`` where none."""
+
+    question: str
+    measure: str
+    in_force: list[float | None]
+    draft: list[float | None]
+    moved: bool
+
+
+class QuestionStatusOut(_Strict):
+    """A question whose support status the draft moves."""
+
+    question: str
+    in_force: str
+    draft: str
+
+
+class AggregationPanelOut(_Strict):
+    panel: str
+    label_cs: str
+    respondents: int
+    rows: list[EstimateOut]
+    status_changes: list[QuestionStatusOut]
+    effective_n: dict[str, list[float]]
+
+
+class AggregationCompareOut(_Strict):
+    """The aggregation draft check (plan G3b): every estimate of every fictional panel, the
+    statuses that changed and each question's effective n, in force beside the draft."""
+
+    draft: str
+    panels: list[AggregationPanelOut]
+
+
+class ResponseQuestionOut(_Strict):
+    """One fictional question: each option's share in percent under the model's vector, the
+    process in force and the draft, and how far one respondent moves from the model."""
+
+    question: str
+    label_cs: str
+    labels: list[str]
+    model: list[float]
+    in_force: list[float]
+    draft: list[float]
+    moved_pp: float
+    shift_in_force: float
+    shift_draft: float
+
+
+class ResponseCompareOut(_Strict):
+    """The response-process draft check (plan R1c): fixed fictional questions answered by a
+    fixed fictional roster under the process in force and the draft; no model is called."""
+
+    draft: str
+    respondents: int
+    questions: list[ResponseQuestionOut]
+    described_in_force: int
+    described_draft: int
+
+
 class CompareOut(_Strict):
-    """``problems`` refuse the draft (nothing is computed); otherwise every panel."""
+    """``problems`` refuse the draft (nothing is computed); otherwise every panel of an
+    object map, every cell of a support rule, or every estimate of the aggregation."""
 
     valid: bool
     problems: dict[str, str]
     in_force: str
     panels: list[PanelOut]
+    support: SupportCompareOut | None = None
+    aggregation: AggregationCompareOut | None = None
+    response: ResponseCompareOut | None = None
 
 
 class ActivationIn(_Strict):
@@ -352,6 +467,7 @@ def _formula(f: BuiltinFormula) -> FormulaOut:
         expression=f.expression,
         latex=latex(compile_formula(f.slot, f.expression)),
         note_cs=f.note_cs,
+        kept_cs=list(f.kept_cs),
         variables=[
             FormulaVariableOut(
                 name=v.name, latex=v.latex, meaning_cs=v.meaning_cs, unit=v.unit, vector=v.vector
@@ -367,7 +483,7 @@ def _formula(f: BuiltinFormula) -> FormulaOut:
     )
 
 
-def _step(view: StepView) -> StepOut:
+def _step(found: MethodModule, view: StepView) -> StepOut:
     s = view.step
     return StepOut(
         id=s.id,
@@ -379,6 +495,12 @@ def _step(view: StepView) -> StepOut:
         evidence=[EvidenceOut(kind=e.kind.value, ref=e.ref, note_cs=e.note_cs) for e in s.evidence],
         tests=list(s.tests),
         note_cs=s.note_cs,
+        role_cs=s.role_cs,
+        inputs=list(s.inputs),
+        feeds=list(feeds_of(found, s.id)),
+        source_cs=s.source_cs,
+        audit=s.audit,
+        effect_cs=s.effect_cs,
         values=[
             ValueOut(
                 reference=v.reference,
@@ -456,6 +578,83 @@ def _panel(c: PanelComparison) -> PanelOut:
     )
 
 
+def _support_comparison(c: SupportComparison) -> SupportCompareOut:
+    return SupportCompareOut(
+        draft=c.draft,
+        cells=[
+            SupportCellOut(
+                cell=x.cell,
+                label_cs=x.label_cs,
+                n=x.n,
+                effective_n=x.effective_n,
+                donors=x.donors,
+                results=list(x.results),
+                analysis=list(x.analysis),
+                changes=x.changes(),
+            )
+            for x in c.cells
+        ],
+        newly_reported=[list(m) for m in c.moved("reported")],
+        newly_suppressed=[list(m) for m in c.moved("suppressed")],
+    )
+
+
+#: The modules a draft check is built for.
+_COMPARED: Final = frozenset({"sociomap", "support", "aggregation", "response"})
+
+
+def _response_comparison(c: ResponseComparison) -> ResponseCompareOut:
+    return ResponseCompareOut(
+        draft=c.draft,
+        respondents=c.respondents,
+        questions=[
+            ResponseQuestionOut(
+                question=q.question,
+                label_cs=q.label_cs,
+                labels=list(q.labels),
+                model=list(q.model),
+                in_force=list(q.in_force),
+                draft=list(q.draft),
+                moved_pp=q.moved_pp,
+                shift_in_force=q.shift_in_force,
+                shift_draft=q.shift_draft,
+            )
+            for q in c.questions
+        ],
+        described_in_force=c.described_in_force,
+        described_draft=c.described_draft,
+    )
+
+
+def _aggregation_comparison(c: AggregationComparison) -> AggregationCompareOut:
+    return AggregationCompareOut(
+        draft=c.draft,
+        panels=[
+            AggregationPanelOut(
+                panel=p.panel,
+                label_cs=p.label_cs,
+                respondents=p.respondents,
+                rows=[
+                    EstimateOut(
+                        question=r.question,
+                        measure=r.measure,
+                        in_force=list(r.in_force),
+                        draft=list(r.draft),
+                        moved=r.moved,
+                    )
+                    for r in p.rows
+                ],
+                status_changes=[
+                    QuestionStatusOut(question=q, in_force=x, draft=y)
+                    for q, x, y in p.status_changes
+                ],
+                effective_n={q: [x, y] for q, x, y in p.effective_n},
+            )
+            for p in c.panels
+        ],
+    )
+
+
 def _fields(summary: Any) -> dict[str, Any]:
     return {name: getattr(summary, name) for name in MapSummaryOut.model_fields}
 
@@ -508,7 +707,7 @@ def read_module_detail(module_id: str, preset: str | None = None) -> ModuleDetai
     return ModuleDetail(
         **_summary(found).model_dump(),
         preset=view.preset,
-        step_details=[_step(s) for s in view.steps],
+        step_details=[_step(found, s) for s in view.steps],
     )
 
 
@@ -595,7 +794,7 @@ def compare(
         found = module(module_id)
     except KeyError as exc:
         raise _not_found("unknown_module", f"no method module {module_id!r}") from exc
-    if module_id != "sociomap":
+    if module_id not in _COMPARED:
         raise HTTPException(
             status_code=422,
             detail={
@@ -618,6 +817,46 @@ def compare(
     except MethodologyRefused as exc:
         raise _refused(exc) from exc
     stored = None if in_force.version is None else in_force.version.payload
+    if module_id == "aggregation":
+        # Statuses are decided by the support rules in force, as a run started now would.
+        try:
+            support_in_force = MethodologyReader(session, org).in_force("support")
+        except MethodologyRefused as exc:
+            raise _refused(exc) from exc
+        support = support_spec_for(
+            None if support_in_force.version is None else support_in_force.version.payload
+        )
+        return CompareOut(
+            valid=True,
+            problems={},
+            in_force=_in_force(in_force).name,
+            panels=[],
+            aggregation=_aggregation_comparison(
+                compare_aggregation_with_in_force(
+                    stored, version_payload(validated), support=support
+                )
+            ),
+        )
+    if module_id == "response":
+        return CompareOut(
+            valid=True,
+            problems={},
+            in_force=_in_force(in_force).name,
+            panels=[],
+            response=_response_comparison(
+                compare_response_with_in_force(stored, version_payload(validated))
+            ),
+        )
+    if module_id == "support":
+        return CompareOut(
+            valid=True,
+            problems={},
+            in_force=_in_force(in_force).name,
+            panels=[],
+            support=_support_comparison(
+                compare_support_with_in_force(stored, version_payload(validated))
+            ),
+        )
     panels = compare_with_in_force(stored, version_payload(validated))
     return CompareOut(
         valid=True,

@@ -147,6 +147,34 @@ def test_what_the_unit_does_and_aia_does_not_yet_is_refused_not_skipped() -> Non
     assert r.ready and _check(r, "audience").status is CheckStatus.WARN
 
 
+def test_the_audience_check_says_whether_the_run_will_apply_the_filters() -> None:
+    """Plan panel-grounded-respondents 6d: a run pinned to its population draws under the
+    design's filters, so readiness says they apply; any other run, that they do not."""
+    n = AUDIT_PROVISIONAL_N_MIN
+    filtered = {**DESIGN, "audience": {"source_mode": "population", "filters": {"vek": [30, 59]}}}
+    _, roster = prepare(filtered, pair_n_min=n)
+    assert _check(roster, "audience").status is CheckStatus.WARN
+    assert "nepoužije filtry" in _check(roster, "audience").message
+    _, panel = prepare(filtered, pair_n_min=n, filters_applied=True)
+    assert _check(panel, "audience").status is CheckStatus.PASS
+    assert _check(panel, "audience").message == (
+        "Filtry se uplatní při výběru respondentů z populace."
+    )
+    # The whole population needs no filter either way.
+    for applied in (False, True):
+        _, whole = prepare(DESIGN, pair_n_min=n, filters_applied=applied)
+        assert _check(whole, "audience").message == "Celá populace."
+    # An own audience or special dataset AIA does not have stays a warning, saying what the
+    # run will do instead.
+    own = {**DESIGN, "audience": {"source_mode": "customer", "filters": {"vek": [18, 35]}}}
+    _, own_panel = prepare(own, pair_n_min=n, filters_applied=True)
+    assert _check(own_panel, "audience").status is CheckStatus.WARN
+    assert "pod uloženými filtry" in _check(own_panel, "audience").message
+    own_nothing = {**DESIGN, "audience": {"source_mode": "customer", "filters": {}}}
+    _, bare = prepare(own_nothing, pair_n_min=n, filters_applied=True)
+    assert _check(bare, "audience").message.endswith("z populace.")
+
+
 def test_a_design_that_does_not_compile_is_not_ready() -> None:
     spec, r = prepare(
         {"n": 100, "sections": [{"type": "questions", "questions": [{"typ": "vyber"}]}]},

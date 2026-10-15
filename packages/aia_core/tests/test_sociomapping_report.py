@@ -123,3 +123,27 @@ def test_the_research_graph_gains_the_two_steps_only_with_the_switch() -> None:
     assert added["sociomapping"].stage_type == "ANALYSIS"
     assert added["sociomapping_report"].depends_on == ("sociomapping",)
     assert added["sociomapping_report"].stage_type == "REPORT"
+
+
+@pytest.mark.parametrize(
+    ("origin", "synthetic", "title", "says"),
+    [
+        ("SYNTHETIC_FIXTURE", True, "Fiktivní data", "fiktivní"),
+        ("MODELLED_AI_PANEL", False, "Modelovaná data", "modelováno: AI respondenti z populace"),
+        (None, False, "Neznámý původ dat", "není znám"),
+        ("PANEL", False, "Neznámý původ dat", "není znám"),
+    ],
+)
+def test_every_origin_is_said_and_an_unknown_one_is_never_read_as_real(
+    origin: str | None, synthetic: bool, title: str, says: str
+) -> None:
+    document = _compose({**FIXTURE, "data_origin": origin, "synthetic_data": synthetic})
+    blocks = [b for s in document.sections for b in s.blocks]
+    [note] = [b for b in blocks if isinstance(b, Callout) and b.kind is CalloutKind.NOTE]
+    assert note.title == title
+    assert says in note.content[0].text  # type: ignore[union-attr]
+
+
+def test_a_synthetic_flag_beside_an_origin_of_another_kind_is_refused() -> None:
+    with pytest.raises(SociomappingReportRefused, match="disagree"):
+        _compose({**FIXTURE, "data_origin": "MODELLED_AI_PANEL", "synthetic_data": True})

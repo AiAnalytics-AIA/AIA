@@ -826,6 +826,7 @@ def evidence_row() -> Any:
         assess_support,
         parse_metric,
     )
+    from aia_core.domain.fieldwork import DataOrigin
 
     def build(ref: str = "E1", **overrides: Any) -> Any:
         metric = overrides.pop("metric", "top2box_pct")
@@ -842,6 +843,9 @@ def evidence_row() -> Any:
             "question_id": "q1",
             "interval": Interval(38.1, 46.9, 0.95),
             "disclosures": frozenset({Disclosure.SCOPE}),
+            # The one client-admissible origin (ADR 0024 §2): a row's other rules are tested
+            # on an origin the gate lets through; the origin gate is tested on its own.
+            "data_origin": DataOrigin.MODELLED_AI_PANEL,
         }
         args.update(overrides)
         return EvidenceRow(**args)
@@ -1241,6 +1245,38 @@ def certificate_json() -> Any:
     return joint_certificate_json
 
 
+@dataclass(frozen=True, slots=True)
+class PopulationKit:
+    """What a test needs to build and establish a population of its own: the panel,
+    dictionary and certificate writers above, and an issued population-operator context.
+
+    A fixture, never ``from conftest import ...``: when the four test trees run in one
+    session (CI's SQLite step), ``conftest`` names whichever tree's conftest loaded last.
+    """
+
+    gzip_csv: Any
+    policy_dictionary_csv: Any
+    joint_certificate_json: Any
+    operator: Any
+
+
+@pytest.fixture
+def population_kit() -> PopulationKit:
+    from aia_core.application.population_authority import (
+        PopulationAuthority,
+        PopulationOperatorConfig,
+    )
+    from aia_core.application.scope import AuthenticatedPrincipal
+
+    config = PopulationOperatorConfig.from_names(
+        {"owner": ("POPULATION_ESTABLISH", "POPULATION_PROMOTE")}
+    )
+    operator = PopulationAuthority(config).operator_context(
+        AuthenticatedPrincipal(user_id="owner", organization_id="platform")
+    )
+    return PopulationKit(gzip_csv, policy_dictionary_csv, joint_certificate_json, operator)
+
+
 # --- Simulation core ----------------------------------------------------------
 #
 # The deterministic simulation tests run from a frozen, hand-authored world model
@@ -1546,3 +1582,355 @@ def deep_research_bundles() -> Any:
     return SimpleNamespace(
         QUESTION=question, OBJECT=obj, WEB_O=web_o, accepted=accepted, bundle=bundle
     )
+
+
+# --------------------------------------------------------------------------- #
+# The sampler's fictional rows as a LIVE population (panel-grounded respondents)
+# --------------------------------------------------------------------------- #
+
+
+class _NoEnrichment:
+    enricher_id = "test-no-enrichment/v1"
+
+    def derive(self, panel: Any) -> dict[str, tuple[str | None, ...]]:
+        return {}
+
+
+@dataclass(frozen=True)
+class SampledPopulation:
+    """A runtime over the fictional population, and LIVE loaded as a run loads it."""
+
+    runtime: Any
+    population: Any
+
+
+@pytest.fixture
+def sampled_population(session: Any) -> Any:
+    """Build ``fixtures/representative_draw/rows.csv`` (3,000 fictional rows on 400 donors,
+    every quota field) as v1_BASE, v1_1 (STATIC) and v1_4 (LIVE), with the persona
+    companions, and load LIVE's ANALYSIS view. ``omit`` leaves companions out; ``policy``
+    overrides a field's dictionary row (block, evidence status, grade, use, persona)."""
+    import csv
+    import io
+    import math
+
+    from aia_core.application.population import PopulationRuntime
+    from aia_core.application.population_authority import (
+        PopulationAuthority,
+        PopulationOperatorConfig,
+    )
+    from aia_core.application.scope import AuthenticatedPrincipal
+    from aia_core.domain.population import (
+        CompanionKind,
+        CompanionSpec,
+        KnownVersion,
+        PopulationImportContract,
+        PopulationKind,
+        PopulationSelector,
+        PopulationView,
+        WeightScheme,
+        content_sha256,
+        field_names_fingerprint,
+    )
+    from aia_core.infrastructure.population_source import InMemoryPopulationSource
+
+    tests = Path(__file__).parent
+    weight = "vaha_strukturalni_2025"
+    raw = (tests / "fixtures" / "representative_draw" / "rows.csv").read_text("utf-8")
+    header_row, *body = list(csv.reader(io.StringIO(raw)))
+    header = tuple(header_row)
+    rows = [dict(zip(header, r, strict=True)) for r in body]
+    catalog = (tests / "fixtures" / "persona_profile" / "catalog.csv").read_bytes()
+    labels = (
+        tests.parents[2] / "legacy" / "npc-panel-18.6.6" / "app" / "PERSONA_VALUE_LABELS_v17.json"
+    ).read_bytes()
+    operator = PopulationAuthority(
+        PopulationOperatorConfig.from_names(
+            {"owner": ("POPULATION_ESTABLISH", "POPULATION_PROMOTE")}
+        )
+    ).operator_context(AuthenticatedPrincipal(user_id="owner", organization_id="platform"))
+
+    def build(
+        *,
+        omit: tuple[str, ...] = (),
+        policy: dict[str, tuple[str, str, str, str, str]] | None = None,
+    ) -> SampledPopulation:
+        versions = {
+            label: [{**r, "panel_row_id": f"{r['panel_row_id']}-{label}"} for r in rows]
+            for label in ("v1_BASE", "v1_1", "v1_4")
+        }
+        panels = {label: gzip_csv(header, vrows) for label, vrows in versions.items()}
+        dictionary = policy_dictionary_csv(
+            header,
+            {
+                "panel_row_id": ("provenance", "PROVENANCE_OR_CORE", "T", "AUDIT_ONLY", "no"),
+                "core_donor_id": ("provenance", "PROVENANCE_OR_CORE", "T", "AUDIT_ONLY", "no"),
+                weight: ("weight", "NEW_WEIGHT", "T", "AUDIT_ONLY", "no"),
+                **(policy or {}),
+            },
+        )
+        certificate = joint_certificate_json(content_sha256(panels["v1_4"]))
+        assets = {
+            asset: data
+            for asset, data in (
+                ("CORE_JOINT_STATUS.json", certificate),
+                ("PERSONA_SIGNAL_CATALOG_v17.csv", catalog),
+                ("PERSONA_VALUE_LABELS_v17.json", labels),
+            )
+            if asset not in omit
+        }
+        total = math.fsum(float(r[weight] or 0) for r in rows)
+        contract = PopulationImportContract(
+            contract_id="panel_source_population/v1",
+            dataset_id="panel_source_population",
+            field_count=len(header),
+            field_names_sha256=field_names_fingerprint(header),
+            dictionary_sha256=content_sha256(dictionary),
+            primary_key="panel_row_id",
+            expected_rows=len(rows),
+            weight_schemes=(
+                WeightScheme("default_current", weight, expected_total=total, tolerance=1e-6),
+            ),
+            default_weight_role="default_current",
+            known_versions=(
+                KnownVersion("v1_BASE", content_sha256(panels["v1_BASE"]), len(panels["v1_BASE"])),
+                KnownVersion(
+                    "v1_1", content_sha256(panels["v1_1"]), len(panels["v1_1"]), "v1_BASE"
+                ),
+                KnownVersion("v1_4", content_sha256(panels["v1_4"]), len(panels["v1_4"]), "v1_1"),
+            ),
+            static_reference_label="v1_1",
+            enrichment_fields=(),
+            companions=tuple(
+                CompanionSpec(
+                    asset_id=asset,
+                    kind=CompanionKind.CORE_JOINT_STATUS
+                    if asset == "CORE_JOINT_STATUS.json"
+                    else CompanionKind.INTEGRITY_ONLY,
+                    sha256=content_sha256(data),
+                    byte_size=len(data),
+                    fmt="json" if asset.endswith(".json") else "csv",
+                )
+                for asset, data in assets.items()
+            ),
+            joint_certified_labels=frozenset({"v1_4"}),
+        )
+        source = InMemoryPopulationSource({"dictionary.csv": dictionary})
+        for label, data in panels.items():
+            source.put(f"panels/{label}.csv.gz", data)
+            for asset, blob in assets.items():
+                source.put(f"companions/{label}/{asset}", blob)
+        rt = PopulationRuntime(session, contract=contract, source=source, enricher=_NoEnrichment())
+
+        def load(label: str) -> Any:
+            return rt.import_version(
+                label=label,
+                panel_location=f"panels/{label}.csv.gz",
+                dictionary_location="dictionary.csv",
+                provenance="fictional sampling rows",
+                imported_by="importer",
+                companion_locations={a: f"companions/{label}/{a}" for a in assets},
+            )
+
+        load("v1_BASE")
+        anchor = load("v1_1")
+        rt.establish(
+            population_id="PANEL_SOURCE_STATIC",
+            kind=PopulationKind.STATIC,
+            version_id=anchor.version_id,
+            operator=operator,
+            reason="the anchor",
+        )
+        version = load("v1_4")
+        rt.establish(
+            population_id="PANEL_SOURCE_LIVE",
+            kind=PopulationKind.LIVE,
+            version_id=version.version_id,
+            operator=operator,
+            reason="the panel source's test population",
+        )
+        loaded = rt.load(
+            rt.resolve(
+                PopulationSelector.population("PANEL_SOURCE_LIVE"), view=PopulationView.ANALYSIS
+            )
+        )
+        return SampledPopulation(runtime=rt, population=loaded)
+
+    return build
+
+
+@dataclass
+class HoldoutPopulation:
+    """A fictional population with the four things the holdout reads (7b): its fields, their
+    dictionary policy, the analysis weight and the columns."""
+
+    columns: dict[str, tuple[str | None, ...]]
+    weights: tuple[float, ...]
+    policy_rows: list[dict[str, str]]
+
+    @property
+    def fields(self) -> tuple[str, ...]:
+        return tuple(self.columns)
+
+    @property
+    def field_policy(self) -> Any:
+        from aia_core.domain.population.policy import build_field_policy
+
+        cached = self.__dict__.get("_policy")
+        if cached is None:
+            cached = build_field_policy(
+                self.policy_rows, dictionary_sha256="a" * 64, weight_columns=()
+            )
+            self.__dict__["_policy"] = cached
+        return cached
+
+    @property
+    def analysis_weight(self) -> tuple[float, ...]:
+        return self.weights
+
+    def column(self, name: str) -> tuple[str | None, ...]:
+        return self.columns[name]
+
+
+@pytest.fixture(scope="session")
+def holdout_population() -> Any:
+    """Build a :class:`HoldoutPopulation` from ``{field: (block, evidence_status, cells)}`` and
+    the weights (default 1.0 each). A factory with no state, so any scope may use it."""
+
+    def build(
+        spec: dict[str, tuple[str, str, tuple[str | None, ...]]],
+        weights: tuple[float, ...] | None = None,
+    ) -> HoldoutPopulation:
+        n = len(next(iter(spec.values()))[2])
+        rows = [
+            {
+                "field": name,
+                "block": block,
+                "source": "fictional",
+                "evidence_status": status,
+                "production_grade": "B",
+                "recommended_use": "PERSONA_OR_ANALYSIS_WITH_SCOPE",
+                "persona_eligible": "yes",
+            }
+            for name, (block, status, _) in spec.items()
+        ]
+        columns = {name: cells for name, (_, _, cells) in spec.items()}
+        return HoldoutPopulation(columns, weights or tuple(1.0 for _ in range(n)), rows)
+
+    return build
+
+
+class HoldoutRecords:
+    """A small item bank and a preregistration over it, built by hand (7e2, 7e3).
+
+    Three confirmation items in two blocks: ``c1`` and ``c2`` (family), ``c3`` (work). The
+    preregistration is shaped as ``preregister`` writes one, so the storage and the run can be
+    tested without drawing a split; the split itself is ``test_holdout_preregistration``'s.
+    """
+
+    SYSTEM: dict[str, str] = {  # noqa: RUF012 - read-only by convention, copied on use
+        "respondent_prompt_sha256": "c" * 64,
+        "persona_builder": "panel-persona-1/profile-1",
+        "persona_mode": "calibrated->core (no active profile)",
+        "sampler_version": "sampler-1",
+        "population_version": "pv_live",
+        "model_binding": "bedrock/claude/bedrock-eu-primary",
+        "response_process_version": "behavior-1/facts-1",
+    }
+    BANK_SHA256 = "b" * 64
+
+    def bank(self, *, wording: dict[str, str] | None = None) -> Any:
+        from aia_core.domain.holdout.bank import HoldoutItem, ItemBank, Option, SourceDocument
+
+        words = {
+            "c1": "Do jaké míry souhlasíte: rodina je základ společnosti?",
+            "c2": "Jak často se vídáte se svými sourozenci?",
+            "c3": "Jak jste spokojen se svou prací?",
+            **(wording or {}),
+        }
+        domains = {"c1": "family", "c2": "family", "c3": "work"}
+        items = tuple(
+            HoldoutItem(
+                field=field,
+                survey="ISSP_2022_CZ",
+                domain=domains[field],
+                wording=words[field],
+                options=(Option("1", "Rozhodně ano"), Option("2", "Spíše ano"), Option("3", "Ne")),
+                measured_ages=None,
+                ordinal=True,
+                source=SourceDocument("https://example.org/q.pdf", "d" * 64, "3", field),
+            )
+            for field in ("c1", "c2", "c3")
+        )
+        return ItemBank(items=items, sha256=self.BANK_SHA256)
+
+    def preregistration(self, *, system: dict[str, str] | None = None, **overrides: Any) -> Any:
+        from aia_core.domain.evidence.validation import respondent_system_fingerprint
+        from aia_core.domain.holdout.preregistration import (
+            ARMS,
+            MODEL_ARMS,
+            PREREGISTRATION_VERSION,
+            THRESHOLDS,
+            Preregistration,
+        )
+        from aia_core.domain.holdout.scoring import SCORING_VERSION
+
+        components = {**self.SYSTEM, **(system or {})}
+        document: dict[str, Any] = {
+            "preregistration_version": PREREGISTRATION_VERSION,
+            "bank_sha256": self.BANK_SHA256,
+            "pool_sha256": "p" * 64,
+            "split": {
+                "seed": 20261013,
+                "development_share": 0.4,
+                "near_duplicate": 0.7,
+                "development": ["d1", "d2"],
+                "confirmation": ["c1", "c2", "c3"],
+                "duplicates": [],
+            },
+            "blocks": [
+                {
+                    "items": ["c1", "c2"],
+                    "excluded": [
+                        {"field": "c1", "item": "c1", "reason": "ITEM", "association": None},
+                        {"field": "c2", "item": "c2", "reason": "ITEM", "association": None},
+                        {
+                            "field": "persona_income",
+                            "item": "c1",
+                            "reason": "ASSOCIATED",
+                            "association": 0.41,
+                        },
+                    ],
+                    "signals": ["signal_family"],
+                },
+                {
+                    "items": ["c3"],
+                    "excluded": [
+                        {"field": "c3", "item": "c3", "reason": "ITEM", "association": None}
+                    ],
+                    "signals": [],
+                },
+            ],
+            "arms": list(ARMS),
+            "model_arms": list(MODEL_ARMS),
+            "n": 600,
+            "sample_seed": 1,
+            "replicate_seeds": [11, 12, 13],
+            "bootstrap": {"seed": 7, "resamples": 10_000},
+            "thresholds": dict(THRESHOLDS),
+            "scoring_version": SCORING_VERSION,
+            "population_version": components["population_version"],
+            "respondent_system": {
+                "components": components,
+                "fingerprint": respondent_system_fingerprint(components),
+            },
+            "cost_ceiling_usd": 500.0,
+        }
+        document.update(overrides)
+        return Preregistration(document=document)
+
+
+@pytest.fixture(scope="session")
+def holdout_records() -> HoldoutRecords:
+    """A hand-built item bank and preregistration (:class:`HoldoutRecords`); no state."""
+    return HoldoutRecords()

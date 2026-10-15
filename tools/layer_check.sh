@@ -210,17 +210,52 @@ forbid "the worker never builds an unscoped repository" \
 # decision 7). A table used anywhere else is a query that could forget the
 # client: an unscoped pool filtered afterwards, which the ADR forbids.
 forbid "client knowledge tables are touched only by their repository" \
-  'ClientKnowledge(Item|Revision|Proposal)Row' \
+  'ClientKnowledge(Item|Revision|Proposal|Folder|Label|ItemFolder|ItemLabel)Row' \
   "$CORE" \
   "$CORE/infrastructure/tables.py" "$CORE/infrastructure/client_knowledge_repository.py"
 forbid "the API never touches the client knowledge tables" \
-  'ClientKnowledge(Item|Revision|Proposal)Row' \
+  'ClientKnowledge(Item|Revision|Proposal|Folder|Label|ItemFolder|ItemLabel)Row' \
   "$API"
 forbid "the worker never touches the client knowledge tables" \
-  'ClientKnowledge(Item|Revision|Proposal)Row' \
+  'ClientKnowledge(Item|Revision|Proposal|Folder|Label|ItemFolder|ItemLabel)Row' \
   "$WORKER"
 forbid "executors never touch the client knowledge tables" \
-  'ClientKnowledge(Item|Revision|Proposal)Row' \
+  'ClientKnowledge(Item|Revision|Proposal|Folder|Label|ItemFolder|ItemLabel)Row' \
+  "$EXECUTORS"
+
+# A client's contacts are personal data on the client record (client-workspace C5). They
+# are read and written only by their repository, under an issued ClientContext; nothing
+# that builds a study context or a model request may reach them.
+forbid "client contacts are touched only by their repository" \
+  'ClientContactRow' \
+  "$CORE" \
+  tables.py client_profile_repository.py
+forbid "the API never touches the client contacts table" \
+  'ClientContactRow' \
+  "$API"
+forbid "the worker never touches the client contacts table" \
+  'ClientContactRow' \
+  "$WORKER"
+forbid "executors never touch the client contacts table" \
+  'ClientContactRow' \
+  "$EXECUTORS"
+
+# A client's sources are the material a person adds (lifecycle K2a). Their rows are read
+# and written only by their repository, under an issued ClientContext, which keeps the
+# bytes under the client's prefix and reads them back against the kept hash. A source is
+# not knowledge: nothing that builds a study context may reach the table.
+forbid "client sources are touched only by their repository" \
+  'ClientSource(Occurrence)?Row' \
+  "$CORE" \
+  tables.py client_source_repository.py
+forbid "the API never touches the client sources tables" \
+  'ClientSource(Occurrence)?Row' \
+  "$API"
+forbid "the worker never touches the client sources tables" \
+  'ClientSource(Occurrence)?Row' \
+  "$WORKER"
+forbid "executors never touch the client sources tables" \
+  'ClientSource(Occurrence)?Row' \
   "$EXECUTORS"
 
 # System prompts are data an administrator edits (ADR 0020). Their rows are written and
@@ -305,6 +340,15 @@ forbid "the study design table is touched only by its repository" \
 forbid "the API, worker and executors never touch the study design table" \
   'StudyDesignRow' \
   apps
+# A reused design's citation is written once, by the only writer of a Study's design
+# (project memory M3); read through the Study, never queried by its source.
+forbid "the design source table is touched only by the design repository" \
+  'StudyDesignSourceRow|study_design_sources' \
+  "$CORE" \
+  tables.py study_design_repository.py
+forbid "the API, worker and executors never touch the design source table" \
+  'StudyDesignSourceRow|study_design_sources' \
+  apps
 # A Study's design project is owned (projects.owner): a repository that does not
 # name the owner cannot see it. Naming it anywhere else would reopen the path by
 # which content that skipped validate_design became a Design Revision (ADR 0016).
@@ -345,6 +389,22 @@ forbid "among the executors, only the workbench composition builds fictional fie
 forbid "no deployment runs the workbench composition" \
   'aia_executors\.workbench|aia_executors/workbench' \
   deploy
+# A validation's persona arms (panel-grounded-respondents 7c, 7e4) show a respondent another
+# person's profile, or none at all. Only the validation's own executor builds them, so no
+# client research run can carry an arm or an exclusion.
+forbid "nothing in the core builds a validation arm but the holdout package" \
+  '^\s*(from|import)\s+\S*holdout\.arms' \
+  "$CORE"
+forbid "the API never builds a validation arm" \
+  '^\s*(from|import)\s+\S*holdout\.arms' \
+  "$API"
+forbid "the worker never builds a validation arm" \
+  '^\s*(from|import)\s+\S*holdout\.arms' \
+  "$WORKER"
+forbid "among the executors, only the validation executor builds a validation arm" \
+  '^\s*(from|import)\s+\S*holdout\.arms' \
+  "$EXECUTORS" \
+  validation.py
 # Recorded web retrieval (Deep Research, plan decision I-9) replays captured
 # exchanges and is never a production fallback: it is defined only beside the web
 # adapters, built only by the recorded composition, imported by nothing in the
@@ -600,6 +660,33 @@ forbid "population panels are parsed only by the canonical loader" \
 forbid "the API never parses a population panel" \
   '^[^#]*\bparse_panel\(' \
   "$API"
+
+# A population version may belong to one organization (a materialized child,
+# population-operations P4c, M5). Which versions a person sees is decided in one
+# place: PopulationRegistryRepository returns the shared versions plus only the
+# asking organization's own. A table used anywhere else is a query that could
+# forget the owner and show one organization's child to every other; and the API
+# reads a version only as an organization sees it (visible_version, versions with
+# its organization), never by the unfiltered id lookups the loader and operator use.
+forbid "population version and extension tables are touched only by their repository" \
+  'Population(DatasetVersion|ContractExtension)Row' \
+  "$CORE" \
+  tables.py population_repository.py __init__.py
+forbid "the API never touches the population version tables" \
+  'Population(DatasetVersion|ContractExtension)Row' \
+  "$API"
+forbid "the worker never touches the population version tables" \
+  'Population(DatasetVersion|ContractExtension)Row' \
+  "$WORKER"
+forbid "executors never touch the population version tables" \
+  'Population(DatasetVersion|ContractExtension)Row' \
+  "$EXECUTORS"
+forbid "the API reads a population version only as an organization sees it" \
+  '\.(get_version|version_by_sha|version_by_label)\(' \
+  "$API"
+forbid "a person's characteristics read is scoped to their organization" \
+  '^[^#]*\bregistry\.get_version\(' \
+  "$CORE/application/population_characteristics.py"
 
 # Establishing and promoting a population is platform administration. The
 # operator grant is issued only by PopulationAuthority from trusted configuration

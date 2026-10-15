@@ -80,6 +80,12 @@ def test_start_is_scoped_idempotent_and_does_not_publish_before_worker(
     assert viewer.get(f"{run_url}/events").status_code == 200
     events = researcher.get(f"{run_url}/events")
     assert events.status_code == 200, events.text
+    # Each step names the id its events carry, so a reader can tell which step said what.
+    step_ids = {step["step_id"] for step in job["steps"]}
+    assert len(step_ids) == len(job["steps"])
+    assert all(step["started_at"] is None for step in job["steps"])  # no attempt yet
+    named = {e["step_id"] for e in events.json() if e["step_id"]}
+    assert named <= step_ids
     wrong_study = f"{_url(world, 'other_client')}/{job['run_id']}"
     for path in (run_url, f"{run_url}/events"):
         assert outsider.get(path).status_code == 200, path
@@ -93,6 +99,27 @@ def test_start_is_scoped_idempotent_and_does_not_publish_before_worker(
             f"{wrong_study}/events",
         ):
             assert member.get(path).status_code == 404, path
+
+
+def test_a_snapshot_is_read_only_through_its_own_published_run(
+    researcher: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    """``GET …/runs/{id}/snapshots/{snapshot_id}``: the route's own contract.
+
+    Nothing is read before the run publishes (409, the same code as the bundle), a run is
+    not found under another study's path, and an id that is not a snapshot id is refused
+    before anything is read. Reading a published snapshot is ``DeepResearchRuns.snapshot``'s,
+    exercised over a real bundle by the executor journeys.
+    """
+    revision = _revision(researcher, world)
+    payload = {"design_revision_id": revision, "preset_name": "QUICK", "channels": ["WEB"]}
+    run_id = researcher.post(_url(world), json=payload).json()["run_id"]
+    path = f"{_url(world)}/{run_id}/snapshots/SNP-{'0' * 24}"
+    early = researcher.get(path)
+    assert early.status_code == 409 and early.json()["code"] == "bundle_not_ready"
+    elsewhere = f"{_url(world, 'other_client')}/{run_id}/snapshots/SNP-{'0' * 24}"
+    assert other_client_lead.get(elsewhere).status_code == 404
+    assert researcher.get(f"{_url(world)}/{run_id}/snapshots/not-a-snapshot").status_code == 422
 
 
 def test_an_invalid_job_is_refused_before_enqueue_and_a_viewer_label_may_start(

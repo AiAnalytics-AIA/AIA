@@ -43,9 +43,11 @@ from types import MappingProxyType
 from typing import Any, Final
 
 from ..evidence import (
+    REFERENCE_THRESHOLDS,
     AnalysisMetric,
     ClaimBasis,
     ClaimLevel,
+    ClaimRule,
     ClaimSurface,
     Disclosure,
     EvidenceRow,
@@ -57,6 +59,8 @@ from ..evidence import (
     MetricKind,
     SupportAssessment,
     SupportEvidence,
+    SupportThresholds,
+    ValidationState,
     Violation,
     ViolationCode,
     assess_support,
@@ -64,7 +68,8 @@ from ..evidence import (
     instrument_policy_book,
     load_joint_status,
 )
-from ..fieldwork import NON_EVIDENCE_ORIGINS, DataOrigin
+from ..evidence.report_lift import ModelledReportLift
+from ..fieldwork import CLIENT_ADMISSIBLE_ORIGINS, NON_EVIDENCE_ORIGINS, DataOrigin
 from ..pipeline import fingerprint
 from ..research_aggregate import AGGREGATE_VERSION
 from ..research_design import ResearchSpecification, SpecQuestion
@@ -79,6 +84,7 @@ __all__ = [
     "native_evidence",
     "native_items",
     "native_preflight",
+    "reassess_support",
     "research_questions_of",
 ]
 
@@ -240,8 +246,10 @@ def _number(value: object) -> float | None:
     return number if math.isfinite(number) else None
 
 
-def _support(result: Mapping[str, Any]) -> SupportAssessment:
-    """The unit's donor support, re-assessed by AIA's thresholds. Unknown suppresses."""
+def reassess_support(result: Mapping[str, Any], rule: SupportThresholds) -> SupportAssessment:
+    """The aggregate's support, re-assessed by the run's pinned ``analysis`` rule (AIA's
+    thresholds unless a version is in force); the stricter of the two wins. Unknown
+    suppresses. The Metodika tab's draft check decides through this function too."""
     unit = result.get("support_status")
     if unit not in _UNIT_SUPPORT:
         return SupportAssessment(reasons=(f"unknown support status {unit!r}",))
@@ -251,10 +259,12 @@ def _support(result: Mapping[str, Any]) -> SupportAssessment:
             effective_n=_number(result.get("effective_n")),
             requires_donor_support=True,
             n_unique_layer_donors=_integer(result.get("n_unique_layer_donors")),
-        )
+        ),
+        rule,
     )
     if unit == "SUPPRESS" and assessed.reportable:
-        # Cannot happen with the unit's own thresholds; if it ever does, the stricter wins.
+        # Not under aia-support-1; a version whose analysis rule is looser than its
+        # results rule gets here, and the stricter wins.
         return SupportAssessment(reasons=("the unit suppressed this cell",))
     return assessed
 
@@ -346,9 +356,9 @@ def _scale(q: SpecQuestion) -> str:
     return f"{q.scale[0]}-{q.scale[1]}" if q.scale else "?"
 
 
-def _item_rows(rows: _Rows, item: _Item) -> None:
+def _item_rows(rows: _Rows, item: _Item, rule: SupportThresholds) -> None:
     q, r = item.question, item.result
-    support = _support(r)
+    support = reassess_support(r, rule)
     refusal = _fidelity_refusal(r)
     rows.add(
         item,
@@ -412,20 +422,56 @@ def _item_rows(rows: _Rows, item: _Item) -> None:
         )
 
 
+def _aggregation_identity(deviation: Any) -> dict[str, Any]:
+    """The aggregation's part of the system fingerprint: nothing for 18.6.6's port, the
+    method's name and every change otherwise. A deviation that cannot be read is refused,
+    never taken for the port."""
+    if deviation is None:
+        return {}
+    if not isinstance(deviation, Mapping) or not isinstance(
+        deviation.get("methodology_version"), str
+    ):
+        raise NativeEvidenceRefused("the aggregate's deviation from 18.6.6 cannot be read")
+    return {
+        "aggregation": {
+            "methodology_version": deviation["methodology_version"],
+            "changed": deviation.get("changed") or [],
+            "replaced_formulas": deviation.get("replaced_formulas") or [],
+        }
+    }
+
+
 def native_evidence(
     spec: ResearchSpecification,
     aggregate: Mapping[str, Any],
     *,
     dataset_sha256: str,
     origin: DataOrigin | None,
+    support: SupportThresholds,
+    respondent_system: str | None = None,
+    validation: ValidationState | None = None,
+    joint_certificate: tuple[bytes, str] | None = None,
+    report_lift: ModelledReportLift | None = None,
 ) -> NativeEvidence:
     """Build the evidence of one native run from its specification and aggregate.
+
+    ``support`` is the run's pinned ``analysis`` rule (plan ``methodology-tab`` G1c). Only a
+    rule other than AIA's reference thresholds enters the system fingerprint, so a run under
+    today's rule keeps the fingerprint its validations are bound to.
+
+    Likewise an aggregate that is no longer 18.6.6's port (its ``deviation``, plan
+    ``methodology-tab`` G3c) enters the fingerprint with what it changed, so a validation
+    recorded for the unit's method never vouches for numbers another method computed.
 
     ``origin`` is the fieldwork dataset's, as the dataset artifact records it; the
     aggregate must say the same. Raises :class:`NativeEvidenceRefused` when the two
     artifacts do not describe one computation this mapping knows, and
     :class:`~aia_core.domain.evidence.InstrumentPolicyRefused` when the answers' origin
     has no instrument policy.
+
+    ``respondent_system`` and ``validation`` apply to a modelled origin only (ADR 0024 §4):
+    the respondent system the dataset recorded, and the validation that holds for it. Both
+    enter the book's identity, and so the system fingerprint.
     """
     if aggregate.get("data_origin") != (origin.value if origin else None):
         raise NativeEvidenceRefused(
@@ -438,16 +484,23 @@ def native_evidence(
         native_items(spec),
         origin=origin,
         source=f"fieldwork dataset {dataset_sha256} ({origin.value if origin else '?'})",
+        respondent_system=respondent_system,
+        validation=validation,
+        report_lift=report_lift,
     )
     assert origin is not None  # the book refuses an unknown origin
     rows = _Rows(kept=[], removed={}, origin=origin)
     for item in _results(spec, aggregate):
-        _item_rows(rows, item)
+        _item_rows(rows, item, support)
     built = EvidenceTable.build(rows.kept)
     table = EvidenceTable(
         rows=built.rows, suppressed=MappingProxyType({**built.suppressed, **rows.removed})
     )
-    joint = load_joint_status(None, measured_panel_sha256=None)
+    # A modelled run is judged under the certificate of the population its respondents were
+    # drawn from, checked against the panel hash the loader measured (B5a); anything else has
+    # none, and its evidence is uncertified: nothing client-facing.
+    certificate, panel_sha256 = joint_certificate if joint_certificate is not None else (None, None)
+    joint = load_joint_status(certificate, measured_panel_sha256=panel_sha256)
     return NativeEvidence(
         table=table,
         book=book,
@@ -463,6 +516,12 @@ def native_evidence(
                 "specification": spec.fingerprint(),
                 "instrument_policy": book.source_sha256,
                 "joint_status": joint.fingerprint(),
+                **(
+                    {}
+                    if support == REFERENCE_THRESHOLDS
+                    else {"support": support.model_dump(mode="json")}
+                ),
+                **_aggregation_identity(aggregate.get("deviation")),
             }
         ),
         rows_considered=len(table.rows) + len(table.suppressed),
@@ -497,13 +556,25 @@ def native_preflight(
                     "them is a client-facing finding",
                 )
             )
-        found.append(
-            Violation(
-                ViolationCode.FIELD_INTERNAL_ONLY,
-                "preflight",
-                "the study instrument's evidence policy is internal only (decision ANL-1)",
+        elif evidence.origin not in CLIENT_ADMISSIBLE_ORIGINS:
+            found.append(
+                Violation(
+                    ViolationCode.ORIGIN_NOT_ADMISSIBLE,
+                    "preflight",
+                    f"no client-facing finding may come from origin {evidence.origin.value} "
+                    "(ADR 0024 §2)",
+                )
             )
-        )
+        # Only while the book still says so: a current holdout on the respondent system lifts it
+        # from a modelled run's policy (ADR 0024 §4), and the gate then judges every claim.
+        if any(evidence.book.get(f).has(ClaimRule.INTERNAL_ONLY) for f in evidence.book.fields):
+            found.append(
+                Violation(
+                    ViolationCode.FIELD_INTERNAL_ONLY,
+                    "preflight",
+                    "the study instrument's evidence policy is internal only (decision ANL-1)",
+                )
+            )
         if not evidence.joint_status.certified:
             joint = evidence.joint_status
             found.append(

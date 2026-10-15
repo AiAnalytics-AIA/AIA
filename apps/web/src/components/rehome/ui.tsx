@@ -8,7 +8,6 @@
 
 import {
   type ButtonHTMLAttributes, type ComponentProps, type ReactNode, type SelectHTMLAttributes,
-  type TextareaHTMLAttributes,
   useLayoutEffect, useRef, useState,
 } from "react";
 
@@ -126,7 +125,7 @@ export function TextInput(props: ComponentProps<"input">) {
   return <input {...props} className={`${CONTROL} ${props.className ?? "w-full"}`} />;
 }
 
-export function TextArea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+export function TextArea(props: ComponentProps<"textarea">) {
   return <textarea {...props} className={`${CONTROL} min-h-24 py-2 leading-6 ${props.className ?? "w-full"}`} />;
 }
 

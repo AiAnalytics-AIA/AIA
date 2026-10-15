@@ -18,6 +18,7 @@ __all__ = [
     "EnrichmentFailed",
     "ImportRejected",
     "LineageError",
+    "OwnedVersionNotShared",
     "PopulationBindingConflict",
     "PopulationBindingMissing",
     "PopulationBindingRequired",
@@ -71,6 +72,17 @@ class StaticReferenceImmutable(PromotionRefused):
     """
 
     reason = "static_immutable"
+
+
+class OwnedVersionNotShared(PromotionRefused):
+    """An organization's materialized child named as a shared population's version.
+
+    STATIC and LIVE are shared by every organization; a child materialized for one
+    organization's client is visible and bindable only there (population-operations P4,
+    M5), so it is never established or promoted.
+    """
+
+    reason = "owned_version"
 
 
 class PromotionConflict(PromotionRefused):

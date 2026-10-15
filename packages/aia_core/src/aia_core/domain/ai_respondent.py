@@ -16,12 +16,12 @@ division of labour is 18.6.6's (``dotaznik.py:106-356``), and it is the whole de
 This module builds requests and reads answers. It never calls anything: the
 fieldwork executor sends each request through ``GovernedModelGateway``.
 
-**Personas are fictional here.** :func:`fictional_roster` invents respondents from
-``random.Random(seed)``; their lineage is AIA's fictional fixture dataset, the one
-determination that approves transmission (``licence_determinations``). A persona
-from the population panel would derive from PIAAC, ISSP and the Czech panel, which
-OI-61 leaves UNDETERMINED: the licence gate refuses it before any adapter, and this
-PR builds no such persona.
+**Personas come from one of two sources, the one a run pinned.** :func:`fictional_roster`
+invents respondents from ``random.Random(seed)``; their lineage is AIA's fictional fixture
+dataset. A persona built from the run's population (``panel_persona`` via ``panel_source``)
+derives from PIAAC, ISSP and the Czech panel, approved for ``bedrock-eu-primary`` only (OI-61,
+``licence_determinations``); :func:`dataset_origin` reads which a dataset is, and a mixed roster
+is refused.
 
 Pure: stdlib and Pydantic.
 """
@@ -47,12 +47,14 @@ from .fieldwork import (
     FieldworkSource,
 )
 from .licence import DataLineage
-from .licence_determinations import SYNTHETIC_FIXTURE_DATASET
+from .licence_determinations import PANEL_DERIVED_DATASETS, SYNTHETIC_FIXTURE_DATASET
 from .research_design import ResearchSpecification, SpecQuestion
 from .residency import DataClass
 from .respondent_behavior import (
+    AIA_RESPONSE_V1,
     EDUCATION_ORDER,
     STYLES,
+    ResponseProcessSpec,
     ResponseQuestion,
     adjust_probabilities,
     assign_styles,
@@ -87,7 +89,9 @@ __all__ = [
     "block_contract",
     "build_request",
     "classify_material",
+    "dataset_origin",
     "fictional_roster",
+    "fieldwork_seed",
     "interpret_block",
     "plan_items",
     "plan_respondent",
@@ -174,20 +178,21 @@ class Persona(BaseModel):
     persona_id: str
     donor_id: str
     weight: float = Field(gt=0)
-    facts: dict[str, str | int]
+    facts: dict[str, str | int | float | bool]
     style: dict[str, float]
     lineage: frozenset[str]
     fictional: bool
 
-    def profile(self) -> str:
-        """The profile text shown to the model: its facts and response style."""
+    def profile(self, threshold: float = AIA_RESPONSE_V1.describe_threshold) -> str:
+        """The profile text shown to the model: its facts and response style (a style in
+        words from ``threshold``, the run's response process's)."""
         f = self.facts
         lines = [
             "FIKTIVNÍ RESPONDENT: smyšlená persona pro test, ne skutečný člověk.",
             f"Pohlaví: {f.get('pohlavi', 'neuvedeno')}; věk: {f.get('vek', 'neuvedeno')}; "
             f"vzdělání: {f.get('vzdelani', 'neuvedeno')}; kraj: {f.get('kraj', 'neuvedeno')}.",
         ]
-        described = describe_style(self.style)
+        described = describe_style(self.style, threshold)
         if described:
             lines.append(f"Jak odpovídá v dotaznících: {described}.")
         return "\n".join(lines)
@@ -222,8 +227,11 @@ _STYLE_WORDS: Final[dict[str, tuple[str, str]]] = {
 }
 
 
-def describe_style(style: Mapping[str, float], threshold: float = 0.7) -> str:
-    """``styly.popis_stylu``: only the pronounced sides of a style, joined by '; '."""
+def describe_style(
+    style: Mapping[str, float], threshold: float = AIA_RESPONSE_V1.describe_threshold
+) -> str:
+    """``styly.popis_stylu``: only the pronounced sides of a style, joined by '; '. The
+    threshold is the response process's (``aia-response-1``: the unit's 0.7)."""
     parts: list[str] = []
     for name in STYLES:
         value = float(style.get(name, 0.0))
@@ -252,8 +260,18 @@ _REGIONS: Final = (
 )
 
 
-def fictional_roster(n: int, *, seed: int) -> tuple[Persona, ...]:
-    """``n`` invented respondents, the same for the same ``(n, seed)`` on any host.
+def fieldwork_seed(spec: ResearchSpecification) -> int:
+    """The run's roster and draw seed: from the specification, so a rerun is the same.
+
+    The same seed lets readiness forecast the roster fieldwork will draw
+    (``domain.support_forecast``) before anything is paid for."""
+    return int(hashlib.sha256(spec.fingerprint().encode()).hexdigest()[:12], 16)
+
+
+def fictional_roster(
+    n: int, *, seed: int, response: ResponseProcessSpec = AIA_RESPONSE_V1
+) -> tuple[Persona, ...]:
+    """``n`` invented respondents, the same for the same ``(n, seed, response)`` on any host.
 
     Attributes are drawn uniformly from ``random.Random(seed)``: they are not a
     sample of any population, and a map drawn from their answers is not a finding.
@@ -275,7 +293,7 @@ def fictional_roster(n: int, *, seed: int) -> tuple[Persona, ...]:
             }
         )
     donors = max(3, n // 3)
-    styles = assign_styles(rows)
+    styles = assign_styles(rows, response)
     return tuple(
         Persona(
             persona_id=row["respondent_id"],
@@ -400,6 +418,13 @@ class RespondentPlan:
     persona: Persona
     facts: dict[str, Answer] = field(default_factory=dict)
     blocks: tuple[Block, ...] = ()
+    #: The profile shown with each block, by block index, when it depends on the block's topics
+    #: (a panel persona, ``panel_persona.PanelPersonas.plan``); empty: ``persona.profile()``.
+    profiles: tuple[str, ...] = ()
+
+    def profile(self, block: Block, threshold: float = AIA_RESPONSE_V1.describe_threshold) -> str:
+        """The profile a model is shown with ``block``."""
+        return self.profiles[block.index] if self.profiles else self.persona.profile(threshold)
 
 
 def plan_respondent(spec: ResearchSpecification, persona: Persona) -> RespondentPlan:
@@ -582,15 +607,17 @@ def build_request(
     data_class: DataClass,
     lineage: DataLineage,
     max_output_tokens: int,
+    response: ResponseProcessSpec = AIA_RESPONSE_V1,
 ) -> ModelRequest:
-    """One respondent's request for one block. Scope is never in it; class and lineage are."""
+    """One respondent's request for one block. Scope is never in it; class and lineage are.
+    A style is put into the profile's words from ``response``'s threshold."""
     sections = [
         f"OTÁZKA {pos}/{len(block.items)} (ID {item.item_id})\n{item.text}\n{_instruction(item)}"
         for pos, item in enumerate(block.items, 1)
     ]
     content = (
         "PROFIL RESPONDENTA:\n"
-        + plan.persona.profile()
+        + plan.profile(block, response.describe_threshold)
         + "\n\nPŘEDCHOZÍ ODPOVĚDI V TOMTO ROZHOVORU:\n"
         + _history(answers_so_far, items_by_id)
         + "\n\n"
@@ -624,6 +651,7 @@ def interpret_block(
     persona: Persona,
     *,
     seed: int,
+    response: ResponseProcessSpec = AIA_RESPONSE_V1,
 ) -> tuple[dict[str, Answer], dict[str, dict[str, Any]]]:
     """The model's validated output -> final answers, drawn by code. And what was done.
 
@@ -641,7 +669,9 @@ def interpret_block(
         if item.kind in ("choice", "scale"):
             raw = list(part.probabilities)
             try:
-                probs, behavior = adjust_probabilities(raw, item.response_question(), persona.style)
+                probs, behavior = adjust_probabilities(
+                    raw, item.response_question(), persona.style, response
+                )
             except ValueError as exc:
                 raise RespondentOutputInvalid(f"{item.item_id}: {exc}") from exc
             index = draw_index(probs, item_seed(seed, persona.persona_id, item.item_id))
@@ -668,6 +698,25 @@ def interpret_block(
     return answers, meta
 
 
+def dataset_origin(personas: Sequence[Persona]) -> DataOrigin:
+    """The origin the personas make, derived, never chosen by a caller (ADR 0024 §1).
+
+    Every persona fictional: ``SYNTHETIC_AI_FICTIONAL``. Every persona built from the
+    population panel (not fictional, its lineage the panel's datasets):
+    ``MODELLED_AI_PANEL``. Anything else, a mixed roster included, is refused, not labelled.
+    """
+    if not personas:
+        raise ValueError("a dataset needs at least one respondent")
+    if all(p.fictional for p in personas):
+        return DataOrigin.SYNTHETIC_AI_FICTIONAL
+    if all(not p.fictional and p.lineage == PANEL_DERIVED_DATASETS for p in personas):
+        return DataOrigin.MODELLED_AI_PANEL
+    raise ValueError(
+        "the personas are neither all fictional nor all built from the population panel; "
+        "a mixed roster has no origin"
+    )
+
+
 def assemble_dataset(
     spec: ResearchSpecification,
     respondents: Sequence[tuple[Persona, Mapping[str, Answer]]],
@@ -675,11 +724,7 @@ def assemble_dataset(
     seed: int,
 ) -> FieldworkDataset:
     """The fieldwork dataset: ids, weights and donors from the personas, answers drawn."""
-    origin = DataOrigin.SYNTHETIC_AI_FICTIONAL if all(p.fictional for p, _ in respondents) else None
-    if origin is None:
-        # No persona source other than the fictional roster exists; one that did
-        # would need its own origin decided, not a default.
-        raise ValueError("only fictional personas are supported by this generator")
+    origin = dataset_origin([persona for persona, _ in respondents])
     return FieldworkDataset(
         dataset_version=DATASET_VERSION,
         source=FieldworkSource.AI_RUNTIME,

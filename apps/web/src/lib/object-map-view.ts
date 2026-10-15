@@ -72,6 +72,33 @@ export type ReadMap =
   | { ok: false; reason: "none" | "contract" };
 
 /** The battery's object map under the newest pinned method; another contract is refused. */
+/** One entry of the Sociomap register (complete-study-report B4): a method approved at its exact spec. */
+export type RegisterEntry = {
+  method_id: string;
+  spec_fingerprint: string;
+  status: string;
+  decided_on: string;
+  reader_note: string;
+};
+
+export type RecordedMethod = { method_id: string; spec_fingerprint: string; formulas?: Record<string, string> };
+
+/**
+ * The register's approval of the map stored under `methodId`: the method the run recorded with
+ * that id must match an entry's id and spec fingerprint exactly, and carry no replaced formulas.
+ * Anything else, a register not read included, is null: internal, never presumed approved.
+ */
+export function mapApproval(
+  methods: RecordedMethod[] | undefined,
+  register: RegisterEntry[] | null,
+  methodId: string,
+): RegisterEntry | null {
+  const recorded = (methods ?? []).find((m) => m.method_id === methodId);
+  if (!recorded || !register || (recorded.formulas && Object.keys(recorded.formulas).length > 0)) return null;
+  return register.find((e) => e.method_id === methodId && e.spec_fingerprint === recorded.spec_fingerprint
+    && e.status === "CLIENT_FACING") ?? null;
+}
+
 export function readObjectMap(battery: BatteryWithMaps): ReadMap {
   const maps = battery.maps ?? {};
   const known: string[] = [...OBJECT_MAP_METHODS];

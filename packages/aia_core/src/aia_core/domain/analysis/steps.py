@@ -74,12 +74,18 @@ def analysis_step_definitions() -> tuple[StepDefinition, ...]:
     )
 
 
-def analysis_step_inputs(surface: ClaimSurface) -> dict[str, dict[str, Any]]:
-    """What each analysis step is told: its module and the surface it writes for."""
+def analysis_step_inputs(
+    surface: ClaimSurface, *, analysis_round: int = 0
+) -> dict[str, dict[str, Any]]:
+    """What each analysis step is told: its module, the surface it writes for, and on an
+    analysis retry the round a person asked for (absent in a run's own analysis)."""
+    if analysis_round < 0:
+        raise ValueError("an analysis round is 0 or more")
     return {
         analysis_node_key(spec.module_id): {
             "analysis_module": spec.module_id.value,
             "analysis_surface": surface.value,
+            **({"analysis_round": analysis_round} if analysis_round else {}),
         }
         for spec in ANALYSIS_MODULES
     }

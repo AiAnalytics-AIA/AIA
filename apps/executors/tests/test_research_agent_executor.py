@@ -156,6 +156,7 @@ def worker(
     enabled: bool = True,
     fictional: bool = True,
     approvals: tuple[MaterialApproval, ...] = (),
+    step_events: bool = False,
 ) -> Worker:
     cfg = settings(world.client_id if fictional else "")
     executor = ResearchAgentExecutor(
@@ -169,6 +170,7 @@ def worker(
             reservation_usd=cfg.research_reservation_usd,
             fictional_client_ids=cfg.fictional_client_ids,
             material_approvals=(APPROVAL, *approvals) if fictional else (),
+            step_events=step_events,
         )
         if enabled
         else None,
@@ -230,6 +232,44 @@ def test_worker_stores_proposal_and_review_creates_a_new_revision(
             "revision_created": True,
             "artifact_id": job["steps"][0]["output"]["artifact_id"],
         }
+
+
+@pytest.mark.parametrize("step_events", [False, True])
+def test_the_feed_says_a_request_was_sent_and_what_its_answer_cost_only_when_switched_on(
+    world: Any, database_url: str, store: Any, build: Any, step_events: bool
+) -> None:
+    """AIA_AI_STEP_EVENTS: counts, cost and latency from the settled result; never text."""
+    run_id = start(world)
+    w = worker(world, database_url, store, build, RecordedBedrock(), step_events=step_events)
+    assert w.run_once()
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        feed = [
+            e
+            for e in ResearchAgentJobs(session, scope).events(run_id)
+            if e["event_type"] == "STEP_PROGRESS"
+        ]
+        charged = sum(e.cost_usd for e in AIUsageRepository(session, scope).events(run_id=run_id))
+    codes = [e["message"] for e in feed]
+    if not step_events:
+        assert "ai_request_sent" not in codes and "ai_request_answered" not in codes
+        return
+    assert codes.index("ai_request_sent") < codes.index("ai_request_answered")
+    sent, answered = (
+        next(e for e in feed if e["message"] == c)
+        for c in ("ai_request_sent", "ai_request_answered")
+    )
+    assert set(sent["payload"]) == {"agent"}
+    answer = answered["payload"]
+    assert (answer["input_tokens"], answer["output_tokens"]) == (900, 200)
+    assert answer["cost_usd"] == pytest.approx(charged) and charged > 0
+    assert isinstance(answer["latency_ms"], int) and answer["latency_ms"] >= 0
+    assert set(answer) == {"agent", "input_tokens", "output_tokens", "cost_usd", "latency_ms"}
+
+
+def test_the_step_events_switch_is_off_unless_set() -> None:
+    assert settings("CLI-x").step_events is False
+    assert settings("CLI-x", AIA_AI_STEP_EVENTS="true").step_events is True
 
 
 def ledger(session: Any, run_id: str) -> list[ApprovalDecisionRow]:

@@ -9,10 +9,12 @@ import pytest
 from aia_core.application.workflows import start_workflow
 from aia_core.domain.analysis.steps import ANALYSIS_STEP_KIND
 from aia_core.domain.deep_research.workflow import DEEP_RESEARCH_KINDS, INVESTIGATE_TRACK_KIND
+from aia_core.domain.holdout.run import ARM_KIND, SAMPLE_KIND, SCORE_KIND
 from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.workflow import StepRunStatus, WorkflowRunStatus
 from aia_core.domain.workflow_templates import (
     DEVELOP_SNAPSHOT,
+    POPULATION_MATERIALIZE,
     REPORT_STEP_KIND,
     RESEARCH_AGENT,
     RESEARCH_KINDS,
@@ -83,9 +85,13 @@ def test_the_registry_offers_the_snapshot_kind_and_loads_through_the_worker(
         *DEEP_RESEARCH_KINDS.values(),
         INVESTIGATE_TRACK_KIND,
         KIND,
+        POPULATION_MATERIALIZE,
         REPORT_STEP_KIND,
         SOCIOMAPPING_REPORT_STEP_KIND,
         *PRODUCTION_RESEARCH_KINDS,
+        SAMPLE_KIND,
+        ARM_KIND,
+        SCORE_KIND,
     }
     assert isinstance(build_registry()[KIND], SnapshotExecutor)
     assert isinstance(loaded[RESEARCH_AGENT], ResearchAgentExecutor)
@@ -208,6 +214,7 @@ def test_a_member_with_no_grant_can_start_a_run(
 def test_registry_for_is_keyed_by_kind(store: InMemoryArtifactStore, build: BuildIdentity) -> None:
     registry = registry_for(store=store, build=build)
     assert list(registry) == [
+        POPULATION_MATERIALIZE,
         RESEARCH_AGENT,
         ANALYSIS_STEP_KIND,
         *DEEP_RESEARCH_KINDS.values(),
@@ -216,4 +223,7 @@ def test_registry_for_is_keyed_by_kind(store: InMemoryArtifactStore, build: Buil
         REPORT_STEP_KIND,
         SOCIOMAPPING_REPORT_STEP_KIND,
         *PRODUCTION_RESEARCH_KINDS,
+        SAMPLE_KIND,
+        ARM_KIND,
+        SCORE_KIND,
     ]

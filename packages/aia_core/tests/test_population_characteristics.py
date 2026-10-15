@@ -39,7 +39,9 @@ def test_every_field_with_its_dictionary_facts_and_each_uses_answer(
     session: Any, imported: tuple[Any, str]
 ) -> None:
     pop, version_id = imported
-    found = version_characteristics(session, contract=pop.contract, version_id=version_id)
+    found = version_characteristics(
+        session, contract=pop.contract, version_id=version_id, organization_id="ORG-any"
+    )
     assert found.dictionary_kept and found.label == "v1_BASE"
     names = [f.field for f in found.fields]
     assert names[: len(pop.fields)] == list(pop.fields)  # dictionary order first
@@ -72,7 +74,9 @@ def test_every_field_with_its_dictionary_facts_and_each_uses_answer(
 
 def test_blocks_and_weights_come_with_it(session: Any, imported: tuple[Any, str]) -> None:
     pop, version_id = imported
-    found = version_characteristics(session, contract=pop.contract, version_id=version_id)
+    found = version_characteristics(
+        session, contract=pop.contract, version_id=version_id, organization_id="ORG-any"
+    )
     assert sum(n for _, n in found.blocks) == len(found.fields)
     assert dict(found.blocks)["weight"] == 2
     assert [(w.role, w.column, w.is_default) for w in found.weights] == [
@@ -85,7 +89,9 @@ def test_each_subpanel_is_checked_against_this_version(
     session: Any, imported: tuple[Any, str]
 ) -> None:
     pop, version_id = imported
-    found = version_characteristics(session, contract=pop.contract, version_id=version_id)
+    found = version_characteristics(
+        session, contract=pop.contract, version_id=version_id, organization_id="ORG-any"
+    )
     assert [s.subpanel.key for s in found.subpanels] == [s.key for s in BUILTIN_SUBPANELS]
     checks = {s.subpanel.key: (s.usable, s.reason) for s in found.subpanels}
     assert checks["young_18_29"] == (True, None)  # filters on vek, which this version lets filter
@@ -98,7 +104,9 @@ def test_without_a_kept_dictionary_nothing_is_said_usable(
     pop, version_id = imported
     session.execute(delete(PopulationVersionDictionaryRow))
     session.flush()
-    found = version_characteristics(session, contract=pop.contract, version_id=version_id)
+    found = version_characteristics(
+        session, contract=pop.contract, version_id=version_id, organization_id="ORG-any"
+    )
     assert not found.dictionary_kept and found.fields == () and found.blocks == ()
     assert {(s.usable, s.reason) for s in found.subpanels} == {(None, None)}
     assert found.weights  # the contract's weights are known without the dictionary
@@ -113,11 +121,16 @@ def test_a_kept_dictionary_that_does_not_hash_to_the_pin_is_refused(
     )
     session.flush()
     with pytest.raises(VersionIntegrityError):
-        version_characteristics(session, contract=pop.contract, version_id=version_id)
+        version_characteristics(
+            session, contract=pop.contract, version_id=version_id, organization_id="ORG-any"
+        )
 
 
 def test_an_unknown_version_is_refused(session: Any, synthetic_population: Any) -> None:
     with pytest.raises(UnknownDatasetVersion):
         version_characteristics(
-            session, contract=synthetic_population.contract, version_id="nope@sha256:00"
+            session,
+            contract=synthetic_population.contract,
+            version_id="nope@sha256:00",
+            organization_id="ORG-any",
         )

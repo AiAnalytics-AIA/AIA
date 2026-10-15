@@ -18,6 +18,10 @@ production answer, parks every run at fieldwork; ``synthetic_fixture`` -- legal
 only because this is the ``local`` environment -- gives the workbench worker
 (``aia_executors.workbench``) fictional respondents to finish the chain with.
 
+The audience step's catalogue and preview read a fictional LIVE population built from
+the sampler's fixture rows (``fictional_population.py``), unless ``--no-audience-population``;
+research runs still record the Czech LIVE, which the workbench never establishes.
+
 Needs the repository's own Python environment (``make setup``), not the
 workbench venv, which holds the 18.6.6 unit's requirements.
 """
@@ -76,6 +80,11 @@ def main(argv: list[str]) -> int:
         choices=("ai_runtime", "synthetic_fixture"),
         help="the fieldwork source recorded on research runs",
     )
+    ap.add_argument(
+        "--no-audience-population",
+        action="store_true",
+        help="leave the audience step without a population (it says so, as on a fresh develop)",
+    )
     args = ap.parse_args(argv)
 
     import uvicorn
@@ -99,6 +108,11 @@ def main(argv: list[str]) -> int:
         with session_cls(engine) as session:  # type: ignore[operator]
             result = seed_develop(session, owner_email=WORKBENCH_EMAIL)
             session.commit()
+            if not args.no_audience_population:
+                import fictional_population
+
+                contract, source = fictional_population.build(session)
+                fictional_population.install(app, contract, source)
     print(f"api: seeded for {WORKBENCH_EMAIL}: {sorted(result.workspaces)}", file=sys.stderr)
     uvicorn.run(app, host="127.0.0.1", port=args.port, log_level="warning")  # type: ignore[arg-type]
     return 0

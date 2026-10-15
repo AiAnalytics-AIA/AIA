@@ -122,6 +122,18 @@ describe("Dotazník", () => {
     expect((screen.getByRole("button", { name: /Další · cílová skupina/ }) as HTMLButtonElement).disabled).toBe(false);
   });
 
+  it("marks a question without wording where it is, and lists it beside the questionnaire", async () => {
+    const sections = structuredClone(SECTIONS) as { questions?: { text?: string }[] }[];
+    sections[0]!.questions![1]!.text = "";
+    unitStub({ ...BRIEF, sections, ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByRole("heading", { name: "2 otázek · 1 sledovaných sad" });
+    const unworded = screen.getAllByRole("textbox", { name: "Znění otázky" }).find((x) => x.getAttribute("aria-invalid") === "true")!;
+    expect(document.getElementById(unworded.getAttribute("aria-describedby")!)?.textContent).toBe("Doplňte znění. Bez něj návrh nejde spustit.");
+    const ready = screen.getByRole("region", { name: "Dotazník" });
+    expect(within(ready).getByRole("button", { name: /Otázky bez znění: 1/ })).toBeTruthy();
+  });
+
   it("edits a question as the classic editor does: type, options and a scale", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
@@ -138,6 +150,59 @@ describe("Dotazník", () => {
     await saved();
     const q1 = lastSave().content.sections[0].questions![0];
     expect(q1).toMatchObject({ typ: "skala", kategorie: ["Denně", "Týdně", "Nikdy"] });
+  });
+
+  it("says which research question a question and a set measure, and drops a link the plan no longer states", async () => {
+    const plan = { research_questions: ["Jak často lidé pijí kávu?", "Která média lidé používají?"] };
+    const sections = [{ ...SECTIONS[0], questions: [{ ...SECTIONS[0].questions![0], research_questions: ["Stará otázka?"] }, SECTIONS[0].questions![1]] }, SECTIONS[1]];
+    unitStub({ ...BRIEF, research_plan: plan, sections, ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByRole("heading", { name: "2 otázek · 1 sledovaných sad" });
+    const card = document.getElementById("qedit_Q1") as HTMLElement;
+    const links = within(card).getByRole("group", { name: "Odpovídá na výzkumné otázky" });
+    fireEvent.click(within(links).getByRole("button", { name: "Odebrat odkaz na „Stará otázka?“" }));
+    fireEvent.click(within(links).getByRole("button", { name: "Jak často lidé pijí kávu?" }));
+    expect(within(links).getByRole("button", { name: "Jak často lidé pijí kávu?" }).getAttribute("aria-pressed")).toBe("true");
+    const set = document.getElementById("qset_sec_b") as HTMLElement;
+    fireEvent.click(within(within(set).getByRole("group", { name: "Odpovídá na výzkumné otázky" })).getByRole("button", { name: "Která média lidé používají?" }));
+    await saved();
+    await waitFor(() => expect(lastSave().reason).toBe("questionnaire_links"));
+    const content = lastSave().content as unknown as { sections: { research_questions?: string[]; questions?: { research_questions?: string[] }[] }[] };
+    expect(content.sections[0].questions![0].research_questions).toEqual(["Jak často lidé pijí kávu?"]);
+    expect(content.sections[0].questions![1]).not.toHaveProperty("research_questions");
+    expect(content.sections[1].research_questions).toEqual(["Která média lidé používají?"]);
+  });
+
+  it("declares how each research question is answered and saves it in the plan", async () => {
+    const plan = { research_questions: ["Jak často lidé pijí kávu?", "Která média lidé používají?"] };
+    unitStub({ ...BRIEF, research_plan: plan, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    const panel = await screen.findByRole("region", { name: "Jak výzkumné otázky zodpovíme" });
+    const media = within(panel).getByLabelText("Způsob odpovědi na „Která média lidé používají?“") as HTMLSelectElement;
+    expect(media.value).toBe("");
+    fireEvent.change(media, { target: { value: "rank_objects" } });
+    await saved();
+    await waitFor(() => expect(lastSave().reason).toBe("research_question_comparison"));
+    const content = lastSave().content as unknown as { research_plan: { research_question_comparisons?: Record<string, string>; research_questions: string[] } };
+    expect(content.research_plan.research_question_comparisons).toEqual({ "Která média lidé používají?": "rank_objects" });
+    expect(content.research_plan.research_questions).toEqual(plan.research_questions);
+  });
+
+  it("turns a tracked set into a concept test an A/B comparison needs, and back (review, Codex on #426)", async () => {
+    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByRole("heading", { name: "2 otázek · 1 sledovaných sad" });
+    const set = document.getElementById("qset_sec_b") as HTMLElement;
+    const toggle = within(set).getByRole("switch", { name: "Porovnat položky jako koncepty (A/B test)" });
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
+    expect(within(set).queryByText("Cenová pásma pro test konceptu")).toBeNull();
+    fireEvent.click(toggle);
+    await saved();
+    await waitFor(() => expect(lastSave().reason).toBe("concept_test"));
+    expect((lastSave().content as unknown as { sections: { output_type?: string }[] }).sections[1].output_type).toBe("test_konceptu");
+    expect(within(set).getByText("Cenová pásma pro test konceptu")).toBeTruthy();
+    fireEvent.click(within(set).getByRole("switch", { name: "Porovnat položky jako koncepty (A/B test)" }));
+    await waitFor(() => expect((lastSave().content as unknown as { sections: { output_type?: string }[] }).sections[1].output_type).toBe("pozicni_mapa"), { timeout: 4000 });
   });
 
   it("adds a guided question through the classic prompt, and refuses a set of three", async () => {

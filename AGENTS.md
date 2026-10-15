@@ -472,6 +472,12 @@ A "harmless" stamp on a just-inserted row is still an UPDATE. Chunk 1 of PR C se
 the listener; the fix was for `create()` to take the reason, so the INSERT carries
 it. `test_design_revisions.py::test_a_revision_row_is_never_updated`.
 
+**The UI workbench builds its SQLite schema with `create_all`, which never alters an existing
+table.** After a migration that adds columns, the workbench's API fails with
+`no such column: clients.short_code` on a database from before it. Start it from an empty one:
+`python tools/ui_workbench/workbench.py up --fresh`, then `make ui-fixtures` again
+(client-workspace C5, #380).
+
 ## Alembic
 
 Three checks, and each catches something the others do not:
@@ -569,6 +575,22 @@ reports eighteen `import-untyped` errors; run together with
 `packages/aia_core/src` it resolves the source directly. `make typecheck` and CI
 therefore pass all three trees to a single `mypy` invocation. Splitting that
 command "for speed" silently changes what is checked.
+
+**An incremental run can report false errors after an edit to a file using
+`pydantic.create_model`.** With a warm `.mypy_cache`, appending a comment to
+`domain/ai_respondent.py` made the full four-tree invocation report three
+`create_model` `arg-type` errors on unchanged lines; `rm -rf .mypy_cache` and the
+same invocation passed (reproduced twice, PR #315 and chunk 4b). A third time (#385,
+pydantic 2.14.1, mypy 1.20.2) the edit was to an unrelated module
+(`domain/panel_source.py`, which imports it), not to `ai_respondent.py` itself. CI starts
+from an empty cache, so it never sees them.
+
+```bash
+# WRONG: trust a warm-cache failure on create_model and "fix" working code
+make typecheck            # 3 errors in ai_respondent.py after an unrelated edit
+# RIGHT: confirm on a clean cache before acting on it
+rm -rf .mypy_cache && make typecheck
+```
 
 Where a whole library has no stubs and pulling them in is not worth the
 dependency, add a narrow `[[tool.mypy.overrides]]` in the root `pyproject.toml`
@@ -790,6 +812,21 @@ because `audit_trail()` returns a `payload` key that `AuditEntryResponse`
 in it. Fixed by declaring the field (`87da177`). Every route needs one API test
 that returns *data*, not only one that is refused.
 
+**A `Content-Disposition` header is Latin-1.** A Czech file name cannot go into
+`filename="…"` as it is: "Zadání.pdf" passes as raw Latin-1 bytes a browser may decode
+differently, and "Přehled č. 3.pdf" raises `UnicodeEncodeError` in Starlette (measured,
+starlette's `Response`). Give an ASCII fallback and the name as written (RFC 6266 / 5987,
+client sources, #392):
+
+```python
+# Wrong: raises for č, ř, ž; sends á, í as bytes a browser may misread
+headers = {"Content-Disposition": f'attachment; filename="{name}"'}
+# Right
+from urllib.parse import quote
+fallback = name.encode("ascii", "replace").decode().replace("?", "_").replace('"', "_")
+headers = {"Content-Disposition": f"attachment; filename=\"{fallback}\"; filename*=UTF-8''{quote(name)}"}
+```
+
 ## Pydantic strict mode
 
 **Strict *Python* mode rejects what JSON can express.** `model_validate(data,
@@ -809,6 +846,20 @@ Contract.model_validate_json(text, strict=True)
 
 The model gateway, the tool registry and `parse_model_config` all validate this
 way; a dict is re-serialised with `canonical_json` first.
+
+**A validation error's `msg` carries no input value; its `str()` does.** Building a
+diagnostic that is stored or shown from `str(exc)` copies the refused values into it
+(a model's answer, a person's input). Build it from each error's `loc` and `msg`
+(checked on Pydantic 2 for extra keys and type errors; `analysis/draft.py`,
+`test_a_gateway_schema_failure_is_refused_once_per_failed_path`).
+
+```python
+# WRONG -- the stored diagnostic quotes the input
+violations = (str(exc),)
+
+# RIGHT -- the path and the reason, never the value
+violations = tuple(f"{'.'.join(map(str, e['loc']))}: {e['msg']}" for e in exc.errors())
+```
 
 ## Pydantic settings
 
@@ -1185,7 +1236,9 @@ skin, which ADR 0018 removed), so it names the self-hosted families directly and
 treated the monorepo as the workspace, and emitted
 `.next/standalone/apps/web/server.js` — while an image built from `apps/web`
 alone emits `.next/standalone/server.js`. The same Dockerfile then works in one
-place and not the other. Pin the trace root to the package:
+place and not the other. (That root lockfile was the retired Fastify stub's,
+removed in #307; the pin stays, so a lockfile added above `apps/web` cannot move
+the output again.) Pin the trace root to the package:
 
 ```ts
 // WRONG — layout depends on what is above apps/web
@@ -1291,6 +1344,20 @@ code calls `file.arrayBuffer()` directly (`fileToBase64` in
 an error the screen then shows, not a thrown one, which reads as a rendering
 bug. Polyfill it in the test through `FileReader`, never in app code
 (`BriefStep.test.tsx`).
+
+**Testing Library normalizes the page's text, never the string you ask for.** A cs-CZ
+number (`toLocaleString("cs-CZ")`) groups thousands with a non-breaking space (U+00A0).
+The default normalizer collapses whitespace in the *rendered* text to a plain space and
+compares the matcher string unchanged (`@testing-library/dom` 10.4.2, `matches`), so an
+expected string written with the very character the page renders never matches. Write
+the plain space; a regex wildcard would also pass but hides a formatting regression:
+
+```ts
+// WRONG: the rendered U+00A0 is normalized to " "; this expected one is not
+await findByText("Přečteno: 2 části, 1\u00a0200 znaků");
+// RIGHT
+await findByText("Přečteno: 2 části, 1 200 znaků");
+```
 
 **jsdom has no `URL.createObjectURL`, and a clicked `<a download>` goes nowhere.**
 A download that needs the bearer token cannot be a plain link: the app fetches the
@@ -1502,6 +1569,24 @@ Read it on load *and* on `hashchange` (the 18.6.6 hand-off script did, until ADR
 0018 removed it).
 Playwright's `page.goto` to the same path with a new fragment is the same trap in
 tests: go to `about:blank` first.
+
+**`t()` returns the key for a missing string, so removing a string fails no test.** A page
+that renders `aia.knowledge.sections.SOURCE` instead of *Zdroje* still passes every test that
+looks for a role or a heading. When removing strings from `cs.ts`, grep for template keys
+(`` `aia.x.${…}` ``) as well as literals, and assert the rendered words in a test.
+
+**After `router.push`, the target page's first render can still see the old
+`window.location`.** "Přidat znalost" on Přehled pushed `…/knowledge?add=1`, and Znalosti read
+the query from `window.location`: on that first render it was still Přehled's URL, so the form
+never opened. A unit test that sets the URL before rendering cannot catch it; only the in-app
+navigation does (client-workspace C10, #380).
+
+```tsx
+// Wrong: the URL of the page navigated from, on the first render after router.push
+const add = new URLSearchParams(window.location.search).get("add");
+// Right: Next.js's own reading of the target URL, inside a <Suspense> boundary
+const add = useSearchParams().get("add");
+```
 
 ## The 18.6.6 unit, run outside its container
 
@@ -1805,6 +1890,21 @@ Anything that stores a result over a run's artifacts and reads it back -- an ana
 outcome, a report -- compares sources by content (`ModuleSources.content()`), keeping the
 ids only as provenance of where it was computed.
 
+**The same reuse hands back an old result when a step means to replace it.** An analysis
+retry round stored its COMPLETED outcome under the module's reuse fingerprint and `put`
+returned the earlier BLOCKED artifact under that key, while the step's own output said
+COMPLETED (#405, `test_retrying_failed_modules_asks_only_them_over_the_same_data`). A
+step that decides afresh over the same inputs stores with `reuse=False`; `find_reusable`
+is newest first within a revision, so the newer outcome is the one a later read finds.
+
+```python
+# WRONG -- a retry round gets the refusal it was asked to replace
+repo.put_json(payload=completed, input_fingerprint=reuse_key, ...)
+
+# RIGHT -- stored beside it; the newest is what find_reusable returns
+repo.put_json(payload=completed, input_fingerprint=reuse_key, reuse=False, ...)
+```
+
 ## A tool journal proves what was sent, not what came back (Deep Research recovery, #166)
 
 A step released mid-call (a deploy's `SIGTERM`, a crash between calls) runs again on another
@@ -1956,3 +2056,37 @@ separate indicator from partial metadata. Anchors:
 `application/contextual_report.py:62 @ b3f1a881`;
 `test_citation_valid_inapplicability_inference_is_not_published` and
 `test_partial_measure_period_does_not_replace_the_source_claims_full_range`.
+
+
+## Docker release cleanup must protect tags and run before downloads
+
+The develop disk filled because `docker image prune` without `--all` removed
+only dangling images; the SHA-tagged releases remained, and cleanup ran after
+the image pull that failed. A broad `--all` prune would discard local rollback
+releases. Use the deployment's explicit retention policy instead: prove image
+ownership/age, protect every container reference and recorded successful release,
+and remove immutable IDs without force or parent pruning, before checking space
+and downloading. Unknown/shared images stay. Docker removal by a tag can only
+untag a shared image; removal by immutable ID without force refuses a newly
+shared/referenced image. Never add force to overcome that refusal. See
+`deploy/develop/bin/image_retention.py`,
+`test_develop_image_retention.py::test_actual_deploy_stops_before_download_migration_or_replacement`
+and the [Docker command reference](https://docs.docker.com/reference/cli/docker/image/rm/).
+
+## Office and OpenDocument files read with the stdlib
+
+**Refuse an XML part that declares a DTD before parsing it.** OOXML (DOCX, PPTX, XLSX) and
+OpenDocument (ODT, ODS) never carry a document type declaration, so a part with `<!DOCTYPE` or
+`<!ENTITY` in it is hostile or broken. Refusing it outright closes entity expansion whatever the
+expat version, instead of trusting the parser's amplification limits (client sources K2b, #395).
+Check the ZIP's declared sizes first (`document_text.check_zip_bounds`), then the part:
+
+```python
+# Wrong: parses whatever the part declares
+root = ET.fromstring(archive.read("content.xml"))
+# Right: bounded, and no DTD
+data = archive.read("content.xml")
+if b"<!DOCTYPE" in data or b"<!ENTITY" in data:
+    raise DocumentRefused("the part declares a DTD", reason="document_malformed")
+root = ET.fromstring(data)
+```

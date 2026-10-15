@@ -20,8 +20,9 @@ from aia_core.domain.report.model import (
     text,
 )
 from aia_core.domain.report.numbers import number
-from aia_core.domain.sociomap import SociomapArtifactV3, read_artifact
+from aia_core.domain.sociomap import read_object_maps
 from aia_core.domain.sociomap.terrain import EnvelopeTerrain
+from aia_core.domain.sociomap_register import MethodologyStatus, recorded_statuses
 
 QUALITY = {
     "good": "dobrá",
@@ -32,20 +33,32 @@ QUALITY = {
 
 
 def compose_map_sections(
-    result: Mapping[str, Any], images: Mapping[tuple[str, str, str], bytes], *, source: str
+    result: Mapping[str, Any],
+    images: Mapping[tuple[str, str, str], bytes],
+    *,
+    source: str,
+    client: bool = False,
 ) -> tuple[Section, ...]:
-    """Explain each stored corrected map, with labelled snapshots and no new claims."""
-    if result.get("methodology_status") != "INTERNAL_ONLY":
-        raise ValueError("native map report requires an internal methodology status")
+    """Explain each stored corrected map, with labelled snapshots and no new claims.
+
+    Each map's status is the Sociomap register's for the method, at the exact specification,
+    the run recorded beside its maps (complete-study-report B4): an approved map prints the
+    approval's note, any other is internal and says its methodology awaits approval.
+
+    ``client`` (B5c) keeps only approved maps, and only their figures and reading guide: the
+    support counts and the pair table print numbers outside the evidence ledger, which a
+    client page never does. Each figure still prints its fit.
+    """
+    approvals = recorded_statuses(result)
     sections: list[Section] = []
     for index, battery in enumerate(result.get("batteries", []), start=1):
         blocks: list[Block] = [
             Callout(
                 CalloutKind.LIMITATION,
                 text(
-                    "Mapy jsou interním výstupem metody AIA, která dosud čeká na metodické "
-                    "schválení. Polohy a povrch popisují uložený výpočet; neprokazují příčinu "
-                    "vztahů ani chování skutečné populace."
+                    "Polohy a povrch map popisují uložený výpočet; neprokazují příčinu "
+                    "vztahů ani chování skutečné populace. U každé mapy je uvedeno, zda "
+                    "metodiku, kterou byla spočtena, AIA schválila k použití ve zprávách."
                 ),
                 title="Rámec interpretace map",
             ),
@@ -62,12 +75,14 @@ def compose_map_sections(
                 )
             ),
         ]
-        for ordinal, (method, payload) in enumerate(battery.get("maps", {}).items(), start=1):
-            artifact = read_artifact(payload)
-            if not isinstance(artifact, SociomapArtifactV3):
-                raise ValueError("an object map must use contract 3")
-            if artifact.spec.methodology_version != method:
-                raise ValueError("map method differs from its stored key")
+        drawn = 0
+        for ordinal, (method, artifact) in enumerate(read_object_maps(battery), start=1):
+            approval = approvals.get(method)
+            map_status = (
+                approval.status if approval is not None else MethodologyStatus.INTERNAL_ONLY
+            )
+            if client and map_status is not MethodologyStatus.CLIENT_FACING:
+                continue
             if artifact.layout is None:
                 assert artifact.not_mappable is not None
                 blocks.append(
@@ -79,20 +94,33 @@ def compose_map_sections(
             layout = artifact.layout
             support = artifact.support
             blocks.append(
-                Paragraph(
+                Callout(CalloutKind.METHOD, text(approval.reader_note))
+                if approval is not None and map_status is MethodologyStatus.CLIENT_FACING
+                else Callout(
+                    CalloutKind.LIMITATION,
                     text(
-                        f"Metoda {method} zahrnuje {len(artifact.object_ids)} objektů. "
-                        "Vztahy vycházejí "
-                        f"z {support.placed} použitelných profilů hodnocení z celkem "
-                        f"{support.respondents} odpovědních profilů; počet nezávislých donorů je "
-                        f"{support.donors}. Stress-1 je {number(round(layout.stress_1, 3), 3)} "
-                        f"(uložená kvalita: {QUALITY.get(layout.quality, layout.quality)}). "
-                        "Nižší Stress-1 znamená menší "
-                        "nesoulad mezi cílovými vztahy a vzdálenostmi na mapě. Shoda uspořádání "
-                        "není testem statistické významnosti vztahů."
-                    )
+                        f"Mapa metodou {method} je interním výstupem: metodika dosud čeká "
+                        "na schválení a mapa nesmí do klientské zprávy."
+                    ),
                 )
             )
+            if not client:
+                # Support counts and the fit, as numbers outside the ledger: internal only.
+                blocks.append(
+                    Paragraph(
+                        text(
+                            f"Metoda {method} zahrnuje {len(artifact.object_ids)} objektů. "
+                            "Vztahy vycházejí "
+                            f"z {support.placed} použitelných profilů hodnocení z celkem "
+                            f"{support.respondents} odpovědních profilů; počet nezávislých "
+                            f"donorů je {support.donors}. Stress-1 je "
+                            f"{number(round(layout.stress_1, 3), 3)} (uložená kvalita: "
+                            f"{QUALITY.get(layout.quality, layout.quality)}). Nižší Stress-1 "
+                            "znamená menší nesoulad mezi cílovými vztahy a vzdálenostmi na mapě. "
+                            "Shoda uspořádání není testem statistické významnosti vztahů."
+                        )
+                    )
+                )
             for view in (
                 ("top", "3d") if isinstance(artifact.terrain, EnvelopeTerrain) else ("top",)
             ):
@@ -105,7 +133,7 @@ def compose_map_sections(
                         id=f"fig-native-map-{index}-{ordinal}-{view}",
                         title=f"{battery['title']} · {view_title} · {method}",
                         image_png=images[key],
-                        methodology_status="INTERNAL_ONLY",
+                        methodology_status=map_status.value,
                         stress_1=layout.stress_1,
                         source=source,
                         alt=f"{view_title} uložené mapy {battery['title']}. Číslované objekty "
@@ -126,6 +154,9 @@ def compose_map_sections(
                         )
                     )
                 )
+            drawn += 1
+            if client:
+                continue  # the pair table prints r and n outside the ledger: internal only
             labels = {o["id"]: o["label"] for o in battery["objects"]}
             pairs = artifact.relations
             rows: list[TableRow] = []
@@ -164,6 +195,8 @@ def compose_map_sections(
                     ),
                 )
             )
+        if client and not drawn:
+            continue  # no approved map of this set: the client report leaves it out
         if not battery.get("maps"):
             blocks.append(
                 Paragraph(
@@ -176,6 +209,8 @@ def compose_map_sections(
         sections.append(
             Section(f"Sociomapy · {battery['title']}", tuple(blocks), id=f"ch-native-map-{index}")
         )
+    if client:
+        return tuple(sections)  # no approved map at all: the client report has no map chapter
     if not sections:
         sections.append(
             Section(

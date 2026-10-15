@@ -1,0 +1,52 @@
+{
+  "name": "AIA Settings · contextual UX",
+  "round": "S1",
+  "variant": "ui_kits/aia-develop/contextual-ux/Settings Context.dc.html",
+  "baseline": { "file": "ui_kits/aia-develop/AIA Develop Settings.dc.html", "repo": "AiAnalytics-AIA/AIA", "branch": "develop", "sources": ["apps/web/src/components/aia/settings/MethodologyVersions.tsx", "apps/web/src/components/aia/settings/MethodologyComparison.tsx", "apps/web/src/lib/api.ts (MethodModule, MethodGroup, MethodStep, MethodFormula, MethodCheck)", "apps/web/src/lib/fixtures/methodology.json", "apps/web/src/components/aia/settings/SystemPromptsPanel.tsx", "apps/web/src/components/aia/settings/DeepResearchSettingsPanel.tsx", "apps/web/src/lib/deep-research-settings.ts"] },
+  "data": "Fictional examples only. Methodology structure (modules, groups, steps, values, formulas, tests, provenance) is extracted from the repo fixture into methodology-data.js; versions, people, studies and events are fictional.",
+  "foundation": { "tokens": "tokens/tokens.css light + [data-theme=dark], copied verbatim into the DC helmet", "fonts": "IBM Plex Sans / Mono (self-hosted)", "brand": "assets/aia-mark-on-graphite.svg", "aiAccent": "--ai #a3319a / --ai-ink #8a2783 (dark --ai #e07ad6); not used for settings controls, which use --signal" },
+  "hierarchy": {
+    "shell": ["App sidebar (>=1280px)", "Header: breadcrumbs + role", "Settings navigation grouped by purpose (vertical >=1024px, horizontal scroller below)", "Tab header: h1, purpose, scope/ownership facts", "Tab content"],
+    "navigation": { "Nastavení výzkumu": ["methodology", "prompts", "deep_research", "ai"], "Tým a útrata": ["access", "studies"], "Provoz": ["audit", "reference"] },
+    "hashIds": ["ai", "prompts", "deep_research", "methodology", "access", "studies", "audit", "reference"],
+    "rule": "At most two side columns (app sidebar + settings nav). Choosers inside tabs are inline grids or selects, never a third sidebar."
+  },
+  "methodology": {
+    "modules": { "editable": ["sociomap", "support", "aggregation", "response"], "readOnly": ["sociomap_reference", "sociomapping", "weighting"] },
+    "chooser": { "Mapy objektů": ["sociomap", "sociomap_reference", "sociomapping"], "Čísla ve výsledcích": ["aggregation", "support"], "Respondenti a váhy": ["response", "weighting"] },
+    "hierarchy": "module.groups → group.step_ids → step.values (child variables) + step.formulas (expert slots)",
+    "blockPicker": "Select with optgroup per group, prev/next buttons, position text; option labels show change and problem counts",
+    "block": ["group › step title", "readable formula (Výpočet) above fields", "step note", "fields: label [unit], input, original value, changed marker, problem, technical reference (details)", "Pro experty (details): formula slots + variables, provenance (implements, SHA-256, evidence), tests"],
+    "readOnlyModules": "Values rendered as output elements; no edit, save or activate controls; note says changes happen only in code",
+    "draft": "Per module; persisted in localStorage; survives block, module and tab changes; replacing a dirty draft (edit from version, discard) needs explicit confirmation",
+    "changedCount": "values + formula slots differing from the draft's start",
+    "validation": "Local parse errors first (number, boolean, JSON), then server check; problems shown at the field and in a summary whose links select the block and focus the field",
+    "invalidation": "Any edit clears check and comparison results",
+    "compare": "Shown only after the server returns; lists metrics that moved on fixed fictional panels; states it does not attribute causes",
+    "save": "Check + store as a new immutable version (name preset+eN); does not activate",
+    "activate": "Separate action per version or reset to preset; reason required; applies to runs started afterwards; existing runs keep their pinned methodology; locked while editing",
+    "history": "Activation log with person, time, reason"
+  },
+  "tabs": {
+    "prompts": "Search + filter, agent chooser grid grouped by family; cards for active / working / stored; full prompt text editable for editors, read-only for locked prompts and members; save creates a version, activation is separate with confirmation; every version keeps its full text and declaration; data-class approval explained",
+    "deep_research": "Readiness list linking to missing required rules; search + status filter; rules grouped by category with effective value and origin (approved eN / proposed default) and proposals; detail: versions, approve with reason, propose with validation (lower-only caps, https source), history",
+    "ai": "Deployment configuration read-only; states that a switch is not a verified connection or grant",
+    "access": "Members with role and server-evaluated approval eligibility; client state; scoped approvals with scope and expiry",
+    "studies": "Client/study search; budget, spent, reserved, remaining; unknown cost shown as 'neznámé', never 0; budget validation (not below spent) and save outcome",
+    "audit": "Filters: person, event type, reason text; readable sentences; technical JSON in details; read-only",
+    "reference": "Purpose search; ownership (Invariant v kódu / Nasazení / Organizace) and where it changes; no switches"
+  },
+  "states": {
+    "loading": "Načítám {tab}…",
+    "empty": "Per-tab empty sentence",
+    "error": "HTTP 504 alert with explicit Zkusit znovu; drafts kept",
+    "busy": "Action buttons disabled while a request is pending; label shows progress verb; no duplicate submission",
+    "saveFailure": "First save attempt fails (serverScenario=saveFails); message keeps the draft and offers explicit retry",
+    "refused": "403 from server (serverScenario=refused); nothing changes; no retry offered",
+    "readOnlyRole": "role=member: no edit/save/activate/approve controls; content readable",
+    "guard": "Inline alertdialog before discarding a dirty draft"
+  },
+  "accessibility": { "targets": "Main controls >= 44px", "focus": "Global :focus-visible outline; tab change focuses h1; module change focuses module heading; problem links focus the field", "keyboard": "Native buttons, selects and links in DOM order; Enter submits forms; no custom key traps", "live": "role=status for counts, saves and checks; role=alert for errors", "reducedMotion": "No animation; transitions disabled under prefers-reduced-motion", "themes": ["light", "dark"] },
+  "responsive": { "1440": "Sidebar + vertical settings nav + content max 1180px", "768": "No app sidebar; horizontal grouped settings nav; grids wrap", "390": "16px padding; single column; tables scroll horizontally" },
+  "timing": { "local": "< 400 ms for navigation, chooser, block switch, validation", "server": "check 700 ms, compare 900 ms, save 700–900 ms, activate 700 ms; always shown as pending until the response" }
+}

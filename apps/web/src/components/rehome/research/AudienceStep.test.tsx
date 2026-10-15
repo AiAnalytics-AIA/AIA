@@ -6,6 +6,7 @@ import { AGENTS_PATH, NATIVE_TEST_TIMEOUT_MS, approveProposal, findProposalDialo
 import { ResearchScreen } from "./ResearchScreen";
 import { type SavedBody, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME } from "./test-frame";
+import { CATALOGUE } from "@/research/audience.live.test";
 
 // Native jobs need more than vitest's 5 s under CI load (test-native-agents.ts).
 vi.setConfig({ testTimeout: NATIVE_TEST_TIMEOUT_MS });
@@ -128,5 +129,69 @@ describe("Audience", () => {
     await saved();
     expect(lastSave().content.audience).toMatchObject({ filters: { kraj: ["A"] }, description: "Mladí sportovci", strategy: "filters" });
     noUnitCalls();
+  });
+
+  describe("from AIA's population (panel-grounded-respondents 6e)", () => {
+    const CAT = "/api/v1/population/audience-catalogue";
+    const PREVIEW = "/api/v1/population/audience-preview";
+    const live = (extra: Record<string, (b: unknown) => unknown> = {}) => ({ [CAT]: () => CATALOGUE, ...extra });
+
+    it("filters are chosen from the catalogue, an empty bound is no bound, and nothing says 'not in AIA'", async () => {
+      aiaStub({ ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", filters: {} } }, live());
+      render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      expect(await screen.findByText(/z populace v17_4_0/)).toBeTruthy();
+      expect(screen.queryByText("V AIA zatím není")).toBeNull();
+      expect(screen.queryByText(/Katalog faktorů společnosti/)).toBeNull();
+      fireEvent.click(screen.getByRole("checkbox", { name: /Zlínský kraj/ }));
+      await saved();
+      expect(lastSave().content.audience.filters).toEqual({ kraj: ["Zlínský kraj"] });
+      const from = screen.getAllByLabelText("Od")[0] as HTMLInputElement;
+      fireEvent.change(from, { target: { value: "30" } });
+      fireEvent.blur(from);
+      await waitFor(() => expect(lastSave().content.audience.filters).toEqual({ kraj: ["Zlínský kraj"], vek: { min: 30 } }), { timeout: 4000 });
+      // A factor the version's policy refuses is listed, said, and cannot be chosen.
+      expect((screen.getByRole("checkbox", { name: /Rodič/ }) as HTMLInputElement).disabled).toBe(true);
+      expect(screen.getByText(/unclassified_derived_field/)).toBeTruthy();
+      expect(screen.getByText("Vybrané filtry:")).toBeTruthy();
+      noUnitCalls();
+    });
+
+    it("the preview counts the audience in AIA and says whether n can be drawn", async () => {
+      aiaStub(
+        { ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", filters: { vek: { min: 30, max: 59 } } } },
+        live({ [PREVIEW]: () => ({ version_id: "DSV-1", version_label: "v17_4_0", population_rows: 18766, selected_rows: 5120, selected_donors: 1400, filters_applied: { vek: { min: 30, max: 59 } }, audience: { ok: true }, n: 500, sample: { ok: false, reason: "sampling_unrepresentative", message: "x" }, seed: 20261012 }) }),
+      );
+      render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      fireEvent.click(await screen.findByRole("button", { name: "Ověřit proveditelnost" }));
+      const status = await screen.findByRole("status");
+      expect(status.textContent).toContain("Filtry vyberou 5\u00a0120 z 18\u00a0766 lidí populace v17_4_0");
+      expect(status.textContent).toMatch(/nebyl reprezentativní/);
+      expect(posted(PREVIEW)[0]!.body).toEqual({ filters: { vek: { min: 30, max: 59 } }, n: 500 });
+      noUnitCalls();
+    });
+
+    it("a deployment without the population mounted says the preview is not here", async () => {
+      aiaStub(
+        { ui_state: ANALYTICS, audience: { strategy: "filters", source_mode: "population", filters: {} } },
+        live({ [PREVIEW]: () => new Response(JSON.stringify({ code: "audience_preview_unavailable", message: "no" }), { status: 503 }) }),
+      );
+      render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      fireEvent.click(await screen.findByRole("button", { name: "Ověřit proveditelnost" }));
+      expect((await screen.findByRole("status")).textContent).toContain("populace k ní není připojená");
+    });
+
+    it("a built-in subpanel is chosen as its filter; one the policy refuses cannot be", async () => {
+      aiaStub({ ui_state: { audience_entry: "analytics", analytics_choice: "special" } }, live());
+      render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      const young = await screen.findByRole("radio", { name: /Mladí 18–29/ });
+      expect((screen.getByRole("radio", { name: /Studenti/ }) as HTMLButtonElement).disabled).toBe(true);
+      expect(screen.getByText(/Nelze použít: audit_only/)).toBeTruthy();
+      expect(screen.getByText(/speciální panely a vlastní publikum stavěla 18.6.6/i)).toBeTruthy();
+      fireEvent.click(young);
+      await saved();
+      expect(lastSave()).toMatchObject({ reason: "population_subpanel", content: { audience: { builtin_subpanel: "young_18_29", source_mode: "population", filters: { vek: [18, 29] } } } });
+      await waitFor(() => expect((screen.getByRole("button", { name: /Další · dimenze/ }) as HTMLButtonElement).disabled).toBe(false));
+      noUnitCalls();
+    });
   });
 });

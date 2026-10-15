@@ -45,6 +45,7 @@ from .gate import GateDecision, ViolationCode, allow, block, combine
 __all__ = [
     "METHOD_STATUS_HOLDOUT_VALIDATED",
     "METHOD_STATUS_PENDING",
+    "RESPONDENT_SYSTEM_COMPONENTS",
     "SYSTEM_FINGERPRINT_COMPONENTS",
     "TIER_PERMITS",
     "EvidenceTier",
@@ -54,7 +55,9 @@ __all__ = [
     "effective_validation_status",
     "evaluate_predictive_validity_claim",
     "evaluate_tier",
+    "lifts_internal_only",
     "method_status",
+    "respondent_system_fingerprint",
     "system_fingerprint",
 ]
 
@@ -100,6 +103,39 @@ def system_fingerprint(components: Mapping[str, str]) -> str:
     return fingerprint({k: components[k] for k in sorted(components)})
 
 
+#: What a modelled respondent system's fingerprint binds (ADR 0024 §4). A validation earned on
+#: one value of any of these says nothing about another: the claim goes back to internal.
+RESPONDENT_SYSTEM_COMPONENTS: Final = (
+    "respondent_prompt_sha256",
+    "persona_builder",
+    "persona_mode",
+    "sampler_version",
+    "population_version",
+    "model_binding",
+    "response_process_version",
+)
+
+
+def respondent_system_fingerprint(components: Mapping[str, str]) -> str:
+    """Fingerprint the respondent system a modelled validation is earned on.
+
+    Every component is required and nothing else is accepted: a missing one would let a
+    validation survive a change to it, and an extra one is a name nobody checked. The prompt
+    is named by its SHA-256.
+    """
+    missing = [k for k in RESPONDENT_SYSTEM_COMPONENTS if not str(components.get(k, "")).strip()]
+    if missing:
+        raise ValueError(f"respondent system fingerprint needs {', '.join(missing)}")
+    extra = sorted(set(components) - set(RESPONDENT_SYSTEM_COMPONENTS))
+    if extra:
+        raise ValueError(f"respondent system fingerprint does not bind {', '.join(extra)}")
+    if not _SHA256.fullmatch(components["respondent_prompt_sha256"]):
+        raise ValueError("respondent_prompt_sha256 is not a SHA-256")
+    return fingerprint(
+        {"kind": "respondent_system", **{k: components[k] for k in RESPONDENT_SYSTEM_COMPONENTS}}
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class ValidationState:
     """A validation status and the system fingerprint it was earned on."""
@@ -119,6 +155,20 @@ def effective_validation_status(
     if state is None or state.system_fingerprint != current_fingerprint:
         return ValidationStatus.NOT_VALIDATED
     return state.status
+
+
+def lifts_internal_only(state: ValidationState | None, current_fingerprint: str | None) -> bool:
+    """May a modelled claim leave the internal surface? Only on a current holdout validation.
+
+    ADR 0024 §4. No current system (``None``), no validation, one earned on another system, and
+    a smoke validation all keep it internal: smoke never stands in for the holdout.
+    """
+    if current_fingerprint is None:
+        return False
+    return (
+        effective_validation_status(state, current_fingerprint)
+        is ValidationStatus.HOLDOUT_VALIDATED
+    )
 
 
 def evaluate_predictive_validity_claim(

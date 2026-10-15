@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="cs" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIA · Settings contextual UX · component layouts</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+/* All colours come from the AIA foundation (tokens/tokens.css via styles.css). No overrides. */
+html,body{margin:0;background:var(--surface);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+.wrap{max-width:1100px;margin:0 auto;padding:24px;display:flex;flex-direction:column;gap:36px}
+.label{margin:0 0 8px;font:11px/16px "IBM Plex Mono",monospace;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint)}
+.card{border-radius:8px;border:1px solid var(--border);background:var(--surface-raised);padding:16px}
+.btn{min-height:44px;border-radius:4px;border:1px solid var(--border-strong);background:var(--surface-raised);color:var(--ink);padding:0 14px;font:500 14px "IBM Plex Sans",sans-serif;cursor:pointer}
+.btn-primary{min-height:44px;border-radius:4px;border:1px solid var(--signal);background:var(--signal);color:var(--on-signal);padding:0 16px;font:600 14px "IBM Plex Sans",sans-serif;cursor:pointer}
+.field input,.field select{min-height:44px;width:100%;box-sizing:border-box;border-radius:4px;border:1px solid var(--border-strong);background:var(--surface-raised);padding:0 10px;font:14px "IBM Plex Mono",monospace;color:var(--ink)}
+.field label{display:block;margin-bottom:4px;font-size:12px;font-weight:500;color:var(--ink-muted)}
+.hint{margin:4px 0 0;font-size:12px;color:var(--ink-muted)}
+.tag{border-radius:2px;border:1px solid var(--border);padding:0 6px;font-size:12px;line-height:18px;color:var(--ink-muted)}
+.tag-edit{border-color:var(--signal-edge);color:var(--signal)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+.mod{display:flex;width:100%;min-height:44px;box-sizing:border-box;flex-direction:column;align-items:flex-start;gap:2px;border-radius:6px;border:1px solid var(--border);background:var(--surface-raised);padding:10px 12px;text-align:left;font:inherit;color:var(--ink);cursor:pointer}
+.mod[aria-pressed=true]{border:2px solid var(--signal);background:var(--signal-wash)}
+.formula{border-radius:4px;border:1px solid var(--border);background:var(--surface);padding:10px 12px;font:14px/22px "IBM Plex Mono",monospace}
+.problems{border-radius:4px;border:1px solid var(--status-fault);background:var(--status-fault-wash);padding:12px;color:var(--status-fault)}
+.bar{position:sticky;bottom:12px;display:flex;flex-wrap:wrap;gap:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-raised);padding:10px 12px;box-shadow:var(--shadow-overlay)}
+.activate{display:flex;flex-direction:column;gap:8px;border-radius:4px;border:1px solid var(--signal-edge);background:var(--signal-tint);padding:12px}
+.unknown{font-size:12px;color:var(--status-you-ink)}
+</style>
+</head>
+<body>
+<p style="max-width:1100px;margin:16px auto 0;padding:0 24px"><button class="btn" type="button" onclick="var r=document.documentElement;r.dataset.theme=r.dataset.theme==='dark'?'light':'dark'">Přepnout světlý / tmavý motiv</button></p>
+<div class="wrap">
+  <section><p class="label">Purpose-based module chooser</p>
+    <div class="grid">
+      <div role="group" aria-label="Mapy objektů" style="display:flex;flex-direction:column;gap:6px"><p class="label">Mapy objektů</p>
+        <button class="mod" type="button" aria-pressed="true"><span><strong>Sociomapa</strong> <span class="tag tag-edit">Upravitelné</span></span><span class="hint">objektová mapa</span></button>
+        <button class="mod" type="button" aria-pressed="false"><span><strong>Sociomapping</strong> <span class="tag">Jen ke čtení</span></span><span class="hint">experimentální H-Model</span></button>
+      </div>
+    </div>
+  </section>
+
+  <section><p class="label">Block picker (no third sidebar)</p>
+    <div class="card" style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px;background:var(--surface-sunken)">
+      <div class="field" style="flex:1 1 280px"><label for="blk">Logický blok</label><select id="blk"><optgroup label="F3 Vztah dvou objektů"><option>Korelace · 1 změn</option><option>Efektivní n</option></optgroup></select></div>
+      <button class="btn" type="button" aria-label="Předchozí blok">←</button><button class="btn" type="button" aria-label="Další blok">→</button>
+    </div>
+  </section>
+
+  <section><p class="label">Selected block: formula above fields</p>
+    <article class="card" style="display:flex;flex-direction:column;gap:12px">
+      <h3 style="margin:0;font-size:16px">Korelace relativních preferencí</h3>
+      <div class="formula"><p class="label" style="margin:0">Výpočet</p>r = Σ w (xi − mi)(xj − mj) / …</div>
+      <div class="field"><label for="f1">Minimální podpora dvojice [respondentů]</label><input id="f1" value="40" aria-describedby="f1d"><p id="f1d" class="hint">Původní hodnota: 30 <strong style="color:var(--status-you-ink)">· změněno</strong></p></div>
+      <details><summary style="min-height:44px;display:flex;align-items:center;cursor:pointer">Pro experty: vzorce, testy a původ</summary><p class="hint">Proměnné, implementace, SHA-256, testy.</p></details>
+    </article>
+  </section>
+
+  <section><p class="label">Problem summary with links to blocks</p>
+    <div class="problems" role="alert"><strong>Kontrola neprošla: 1 problém</strong><ul style="margin:6px 0 0;padding-left:18px"><li><a href="#f1" style="color:inherit">F3 › Korelace: Hodnota nesmí být záporná.</a></li></ul></div>
+  </section>
+
+  <section><p class="label">Sticky action bar · save ≠ activate</p>
+    <div class="bar"><button class="btn" type="button">Zkontrolovat</button><button class="btn" type="button">Porovnat s metodikou v platnosti</button><button class="btn-primary" type="button">Uložit jako novou verzi</button><span role="status" class="hint" style="margin-left:auto">Kontroluji na serveru…</span></div>
+  </section>
+
+  <section><p class="label">Separate activation with reason</p>
+    <form class="activate"><strong>Uvést v platnost aia-sociomap-3+e2</strong><p class="hint" style="margin:0">Platí jen pro běhy spuštěné po potvrzení. Běhy už spuštěné si ponechají svou metodiku.</p><div class="field"><label for="rs">Důvod (zapíše se do historie)</label><input id="rs" style="font-family:'IBM Plex Sans',sans-serif"></div><div style="display:flex;gap:8px"><button class="btn-primary" type="submit">Potvrdit</button><button class="btn" type="button">Zrušit</button></div></form>
+  </section>
+
+  <section><p class="label">Budget row · unknown cost is never zero</p>
+    <article class="card"><strong>Nová řada nealko piv</strong><dl style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:8px 0"><div><dt class="hint">Utraceno</dt><dd style="margin:0;font-weight:600">2.40 USD + neznámé</dd></div><div><dt class="hint">Zbývá</dt><dd style="margin:0;font-weight:600">neznámé</dd></div></dl><p class="unknown">Cena není známá: 1 rešerše bez uložené ceny. Nepočítá se jako 0.</p></article>
+  </section>
+
+  <section><p class="label">Audit event · technical data optional</p>
+    <div class="card"><p style="margin:0">Uvedla v platnost metodiku Podpora a potlačení aia-support-1+e2.</p><p class="hint">jana.dvorakova@aia.cz · před 9 dny · důvod: pilot na studiích Q3</p><details><summary style="cursor:pointer;font-size:12px">Technické údaje</summary><pre style="font:12px 'IBM Plex Mono',monospace">{ "event": "methodology.activated" }</pre></details></div>
+  </section>
+</div>
+</body>
+</html>

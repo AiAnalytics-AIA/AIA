@@ -55,6 +55,7 @@ __all__ = [
     "AnalysisDraft",
     "DraftCheck",
     "FindingDraft",
+    "InvalidStructuredOutput",
     "NumericClaimDraft",
     "ResearchQuestionAnswerDraft",
     "check_analysis_draft",
@@ -62,6 +63,42 @@ __all__ = [
     "numbers_in",
     "uncovered_numbers",
 ]
+
+
+#: A schema failure lists at most this many paths; the rest are counted.
+_SCHEMA_VIOLATIONS_KEPT: Final = 20
+
+
+@dataclass(frozen=True, slots=True)
+class InvalidStructuredOutput:
+    """What a turn produced when the answer failed the output contract at the gateway.
+
+    Not a draft. ``violations`` are the gateway's, one per failed path
+    (``"<path>: <message>"``): where the answer broke the contract and how, never a
+    value from it. ``rejected_output`` is the refused answer itself, bounded, when the
+    gateway returned it -- shown to the model on the repair turn, never to a reader.
+    The call that produced it was made, ledgered and paid for like any other.
+    """
+
+    violations: tuple[str, ...]
+    rejected_output: str | None = None
+
+
+def _schema_failure(failed: InvalidStructuredOutput) -> GateDecision:
+    """One ``SCHEMA_INVALID`` per path the gateway named, so the outcome says which field."""
+    named = failed.violations or ("<root>: the answer did not match the output contract",)
+    decisions = []
+    for violation in named[:_SCHEMA_VIOLATIONS_KEPT]:
+        path, sep, detail = violation.partition(": ")
+        if not sep:
+            path, detail = "draft", violation
+        decisions.append(block(ViolationCode.SCHEMA_INVALID, path or "draft", detail))
+    hidden = len(named) - _SCHEMA_VIOLATIONS_KEPT
+    if hidden > 0:
+        decisions.append(
+            block(ViolationCode.SCHEMA_INVALID, "draft", f"and {hidden} more schema violations")
+        )
+    return combine(decisions)
 
 
 class _Strict(BaseModel):
@@ -271,6 +308,8 @@ def check_analysis_draft(
     research_questions: Sequence[str],
 ) -> DraftCheck:
     """Check one module draft completely. Every violation is reported for the repair turn."""
+    if isinstance(raw, InvalidStructuredOutput):
+        return DraftCheck(_schema_failure(raw), None, None)
     if not isinstance(raw, Mapping):
         return DraftCheck(
             block(ViolationCode.SCHEMA_INVALID, "draft", "the draft is not a JSON object"),

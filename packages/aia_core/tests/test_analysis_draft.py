@@ -17,7 +17,7 @@ from aia_core.domain.analysis import (
     result_from_check,
     uncovered_numbers,
 )
-from aia_core.domain.analysis.draft import number_spans
+from aia_core.domain.analysis.draft import InvalidStructuredOutput, number_spans
 from aia_core.domain.evidence import (
     METHOD_STATUS_PENDING,
     ClaimLevel,
@@ -200,6 +200,32 @@ def test_schema_violations_are_refused(check: Any, raw: object) -> None:
     result = check(raw)
     assert result.decision.codes == {ViolationCode.SCHEMA_INVALID}
     assert result.admission is None
+
+
+def test_a_gateway_schema_failure_is_refused_once_per_failed_path(check: Any) -> None:
+    failed = InvalidStructuredOutput(
+        (
+            "numeric_claims.0.value: Input should be a valid number",
+            "confidence: Extra inputs are not permitted",
+            "output is not a single JSON object",
+        ),
+        rejected_output='{"value": "42.5"}',
+    )
+    result = check(failed)
+    assert result.admission is None
+    assert [(v.code, v.subject, v.detail) for v in result.decision.violations] == [
+        (ViolationCode.SCHEMA_INVALID, "numeric_claims.0.value", "Input should be a valid number"),
+        (ViolationCode.SCHEMA_INVALID, "confidence", "Extra inputs are not permitted"),
+        (ViolationCode.SCHEMA_INVALID, "draft", "output is not a single JSON object"),
+    ]
+    assert all("42.5" not in v.detail for v in result.decision.violations)
+
+
+def test_a_long_schema_failure_keeps_twenty_paths_and_counts_the_rest(check: Any) -> None:
+    failed = InvalidStructuredOutput(tuple(f"f{i}: Field required" for i in range(23)))
+    subjects = [v.subject for v in check(failed).decision.violations]
+    assert subjects[:20] == [f"f{i}" for i in range(20)] and subjects[20] == "draft"
+    assert "and 3 more" in check(failed).decision.violations[20].detail
 
 
 def test_a_model_cannot_stamp_its_own_method_status(check: Any) -> None:

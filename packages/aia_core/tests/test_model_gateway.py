@@ -23,6 +23,7 @@ from aia_core.application.model_gateway import (
     input_token_bound,
 )
 from aia_core.domain.ai_contracts import (
+    MAX_REJECTED_OUTPUT_CHARS,
     AdapterRequest,
     AdapterResponse,
     AgentDefinition,
@@ -405,9 +406,10 @@ def test_egress_is_refused_before_dispatch(
     ("lineage", "reason"),
     [
         (None, "licence_lineage_undeclared"),
-        (DataLineage.of("czech_population_panel"), "licence_undetermined"),
-        (DataLineage.of("piaac"), "licence_undetermined"),
-        (DataLineage.of(SYNTHETIC_FIXTURE_DATASET, "issp"), "licence_undetermined"),
+        # Panel lineage is approved for the EU Bedrock route alone (OI-61), not these.
+        (DataLineage.of("czech_population_panel"), "licence_not_approved_for_route"),
+        (DataLineage.of("piaac"), "licence_not_approved_for_route"),
+        (DataLineage.of(SYNTHETIC_FIXTURE_DATASET, "issp"), "licence_not_approved_for_route"),
         (DataLineage.of("never_heard_of_it"), "licence_dataset_unknown"),
     ],
 )
@@ -420,7 +422,7 @@ def test_licence_is_a_second_gate_refused_before_dispatch(
 ) -> None:
     """ADR 0016 decision 5: residency passes here (internal material, an approved
     route) and the call is still refused, because a dataset it derives from is not
-    cleared for any provider -- and nothing is offered instead."""
+    cleared for this route -- and nothing is offered instead."""
     adapter = ScriptedAdapter(Provider.OPENAI, [_ok()])
     failure = _fail(_gateway(model_registry, adapter), _request(data_lineage=lineage), context)
     assert failure.failure is FailureClass.PERMISSION
@@ -940,6 +942,21 @@ def test_agent_without_repair_fails_on_the_first_violation(
     )
     assert failure.failure is FailureClass.SCHEMA_VIOLATION
     assert len(adapter.requests) == 1
+    assert failure.rejected_output == "nope", "the refused answer goes back to the caller"
+
+
+def test_a_refused_answer_is_bounded_and_absent_on_other_failures(
+    model_registry: ModelRegistry, context: ExecutionContext
+) -> None:
+    adapter = ScriptedAdapter(Provider.OPENAI, [_ok("x" * (MAX_REJECTED_OUTPUT_CHARS + 10))])
+    failure = _fail(
+        _gateway(model_registry, adapter),
+        _request(agent=_agent(schema_repair_attempts=0)),
+        context,
+    )
+    assert failure.rejected_output is not None
+    assert len(failure.rejected_output) == MAX_REJECTED_OUTPUT_CHARS
+    assert ModelCallFailed("m", failure=FailureClass.UNKNOWN, reason="r").rejected_output is None
 
 
 def test_truncated_structured_output_is_a_violation(
@@ -1077,10 +1094,13 @@ def test_preflight_resolves_an_allowed_request_and_sends_nothing(
             "egress_route_not_approved_for_class",
         ),
         ({"data_lineage": None}, "licence_lineage_undeclared"),
-        ({"data_lineage": DataLineage.of("czech_population_panel")}, "licence_undetermined"),
+        (
+            {"data_lineage": DataLineage.of("czech_population_panel")},
+            "licence_not_approved_for_route",
+        ),
         (
             {"data_lineage": DataLineage.of("piaac", SYNTHETIC_FIXTURE_DATASET)},
-            "licence_undetermined",
+            "licence_not_approved_for_route",
         ),
     ],
 )

@@ -30,7 +30,7 @@ from __future__ import annotations
 
 from typing import Any, Final
 
-from .fieldwork import NON_EVIDENCE_ORIGINS, FieldworkDataset
+from .fieldwork import FieldworkDataset, OriginKind, origin_kind
 from .research_design import ResearchSpecification, SpecBattery
 from .sociomap.coherence import CoherenceTree, coherences
 from .sociomap.declared import declared_from_correlations
@@ -356,7 +356,7 @@ def research_sociomappings(
         "method_status": METHOD_STATUS,
         "client_facing": False,
         "data_origin": origin,
-        "synthetic_data": dataset.origin in NON_EVIDENCE_ORIGINS,
+        "synthetic_data": origin_kind(dataset.origin) is OriginKind.SIMULATED,
         "batteries": [battery_sociomapping(b, dataset, params) for b in spec.batteries],
         "note": None if spec.batteries else "Návrh nemá sledovanou sadu; mapa nevznikla.",
     }

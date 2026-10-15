@@ -32,6 +32,9 @@ from aia_core.application.analysis_results import (
     reconstruct_run,
 )
 from aia_core.application.report import ReportCompositionRefused, compose_internal_report
+from aia_core.application.report_design import compose_design_sections
+from aia_core.application.report_method import compose_method_section
+from aia_core.application.report_tables import compose_question_tables
 from aia_core.application.research import research_artifacts
 from aia_core.domain.analysis import ANALYSIS_MODULES, AnalysisModuleId
 from aia_core.domain.analysis.artifact import (
@@ -40,7 +43,7 @@ from aia_core.domain.analysis.artifact import (
     ProducedBy,
     parse_module_artifact,
 )
-from aia_core.domain.analysis.native import NativeEvidenceRefused
+from aia_core.domain.analysis.native import NativeEvidenceRefused, native_evidence, native_items
 from aia_core.domain.analysis.steps import (
     ANALYSIS_STEP_KIND,
     analysis_step_definitions,
@@ -52,22 +55,28 @@ from aia_core.domain.evidence import (
     Violation,
     ViolationCode,
 )
+from aia_core.domain.evidence.instrument import instrument_policy_book
+from aia_core.domain.evidence.support import AIA_SUPPORT_V1, REFERENCE_THRESHOLDS
 from aia_core.domain.fieldwork import DataOrigin, FieldworkSource
 from aia_core.domain.licence_determinations import SYNTHETIC_FIXTURE_DATASET
 from aia_core.domain.pipeline import ProjectType, fingerprint
 from aia_core.domain.report.model import (
+    AuditBlock,
     BulletList,
     Callout,
     Classification,
+    NumberCell,
     Paragraph,
     ParagraphRole,
     ReportKind,
     ReportMeta,
+    Table,
     Text,
+    TextCell,
 )
 from aia_core.domain.report.validation import cited_refs
-from aia_core.domain.research_aggregate import aggregate_dataset
-from aia_core.domain.research_design import compile_design
+from aia_core.domain.research_aggregate import AIA_AGGREGATE_V1, aggregate_dataset
+from aia_core.domain.research_design import AIA_READINESS_V1, compile_design
 from aia_core.domain.synthetic_fieldwork import synthetic_dataset
 from aia_core.domain.workflow_templates import RESEARCH, steps_for_workflow
 from aia_core.infrastructure.report_docx.lint import lint_docx
@@ -225,7 +234,10 @@ class World:
                 work,
                 stored.get(
                     "aggregate",
-                    {"kind": AGGREGATE_ARTIFACT, "aggregate": aggregate_dataset(spec, dataset)},
+                    {
+                        "kind": AGGREGATE_ARTIFACT,
+                        "aggregate": aggregate_dataset(spec, dataset, support=AIA_SUPPORT_V1),
+                    },
                 ),
                 AGGREGATE_ARTIFACT,
                 depends_on=[ids["spec"], ids["dataset"]] if lineage else [ids["spec"]],
@@ -480,6 +492,32 @@ def test_a_specification_compiled_from_other_content_is_refused_whatever_it_reco
     assert refused.value.reason == "design_revision"
 
 
+def test_the_specification_is_recompiled_under_the_readiness_limits_the_run_pinned(
+    world: World,
+) -> None:
+    """A run compiles under the readiness limits it pinned (plan methodology-tab V1a), so its
+    specification is checked by compiling under the same limits: under limits its sets do not
+    keep it is not the revision compiled, and a pin that does not read is refused by name."""
+    battery = {
+        "type": "object_battery",
+        "title": "Nápoje",
+        "object_family": "nápoje",
+        "objects": ["Káva", "Čaj", "Kakao", "Džus", "Voda"],
+        "scale": [1, 10],
+    }
+    run_id = world.start({**DESIGN, "sections": [*DESIGN["sections"], battery]})
+    world.upstream()
+    assert world.sources(run_id).refs.design_revision_id
+    run = world.run(run_id)
+    narrow = AIA_READINESS_V1.model_dump(mode="json")
+    narrow["tracked_set"] = {"min": 3, "max": 4, "recommended_min": 3, "recommended_max": 4}
+    for pin, reason in ((narrow, "design_revision"), ({"sample_size": {}}, "readiness_pin")):
+        run["metadata"] = {**run["metadata"], "readiness": pin}
+        with pytest.raises(SourcesRefused) as refused:
+            native_sources(world.session, world.scope, world.store, run)
+        assert refused.value.reason == reason
+
+
 @pytest.mark.parametrize("names_the_run", [True, False], ids=["the-run", "another"])
 def test_another_compilers_specification_is_held_to_the_revision_it_records(
     world: World, names_the_run: bool
@@ -713,6 +751,9 @@ def test_reconstructed_analysis_composes_an_internal_branded_draft(
     assert "Ranní nápoj" in "".join(i.text for i in intro[0].content if isinstance(i, Text))
     assert any(isinstance(b, BulletList) for b in intro)
     assert any(isinstance(b, Callout) and b.title == "Rámec interpretace" for b in intro)
+    # 18.6.6's own aggregation: no deviation is claimed anywhere (G3c).
+    assert run.aggregation_deviation is None
+    assert not any(isinstance(b, Callout) and b.title == "Odchylka od 18.6.6" for b in intro)
     assert doc.meta.approvals == ()
     assert "q1.mean" in cited_refs(doc)
     assert doc.ledger.surface is ClaimSurface.INTERNAL
@@ -744,6 +785,51 @@ def test_reconstructed_analysis_composes_an_internal_branded_draft(
         compose_internal_report(
             dataclasses.replace(run, modules=modules), report_meta(first.method_status)
         )
+
+
+def _callout_texts(blocks: Any) -> list[str]:
+    return [
+        "".join(i.text for i in b.content if isinstance(i, Text))
+        for b in blocks
+        if isinstance(b, Callout)
+    ]
+
+
+def test_a_modelled_run_is_framed_as_modelled_in_the_introduction_and_the_limits(
+    world: World,
+) -> None:
+    """ADR 0024 §7: the report says "modelováno: AI respondenti z populace", never synthetic,
+    and never leaves a modelled run unframed as plain research."""
+    from aia_core.application.report import RESEARCH_SUBTITLE
+    from aia_core.domain.fieldwork import OriginKind
+
+    run_id = world.start()
+    world.upstream()
+    world.store_outcomes(run_id, completed, count=8)
+    run = reconstruct_run(world.session, world.scope, world.store, run_id=run_id)
+    first = run.modules[AnalysisModuleId.EXECUTIVE].result
+    assert first is not None
+    modules = {}
+    for module_id, module in run.modules.items():
+        labels = module.record.labels.model_copy(
+            update={
+                "data_origin": DataOrigin.MODELLED_AI_PANEL,
+                "simulated_respondents": False,
+                "modelled_respondents": True,
+            }
+        )
+        record = module.record.model_copy(update={"labels": labels})
+        modules[module_id] = dataclasses.replace(module, record=record)
+    doc = compose_internal_report(
+        dataclasses.replace(run, modules=modules), report_meta(first.method_status)
+    )
+    intro = " ".join(_callout_texts(doc.sections[0].blocks))
+    assert "modelováno: AI respondenti z populace" in intro
+    assert "syntetičtí" not in intro
+    limits = " ".join(_callout_texts(next(s for s in doc.sections if s.title == "Limity").blocks))
+    assert "modelováno: AI respondenti z populace" in limits and "syntetičtí" not in limits
+    assert RESEARCH_SUBTITLE[OriginKind.MODELLED] == "Modelovaný výzkum"
+    assert set(RESEARCH_SUBTITLE) == set(OriginKind)
 
 
 def report_meta(method_status: str) -> ReportMeta:
@@ -1007,3 +1093,267 @@ def test_report_preserves_admitted_paragraphs_without_rewriting_claims(world: Wo
         )
     assert "q1.mean" in cited_refs(doc)
     assert doc.ledger.surface is ClaimSurface.INTERNAL
+
+
+def test_a_runs_pinned_support_rules_reach_its_analysis(world: World) -> None:
+    """Plan methodology-tab G1c: analysis gates by the rule the run pinned."""
+    run_id = world.start()
+    world.upstream()
+    assert world.sources(run_id).support == AIA_SUPPORT_V1
+    edited = AIA_SUPPORT_V1.model_copy(
+        update={
+            "methodology_version": "aia-support-1+e1",
+            "analysis": AIA_SUPPORT_V1.analysis.model_copy(update={"min_cell": 7}),
+        }
+    )
+    pinned = world.run(run_id)
+    pinned["metadata"] = {**pinned["metadata"], "support": edited.model_dump(mode="json")}
+    assert native_sources(world.session, world.scope, world.store, pinned).support == edited
+    unpinned = world.run(run_id)
+    unpinned["metadata"] = {k: v for k, v in unpinned["metadata"].items() if k != "support"}
+    # A run started before support was pinned was computed under aia-support-1.
+    assert native_sources(world.session, world.scope, world.store, unpinned).support == (
+        AIA_SUPPORT_V1
+    )
+
+
+def test_a_support_pin_that_does_not_read_is_refused_by_name(world: World) -> None:
+    run_id = world.start()
+    world.upstream()
+    broken = world.run(run_id)
+    broken["metadata"] = {**broken["metadata"], "support": {"methodology_version": "x"}}
+    with pytest.raises(SourcesRefused) as refused:
+        native_sources(world.session, world.scope, world.store, broken)
+    assert refused.value.reason == "support_pin"
+
+
+def _text(blocks: Any) -> str:
+    return "\n".join(
+        "".join(i.text for i in b.content if isinstance(i, Text))
+        for b in blocks
+        if isinstance(b, (Paragraph, Callout))
+    )
+
+
+def test_an_aggregate_that_is_not_the_units_port_says_so_in_analysis_and_the_report(
+    world: World,
+) -> None:
+    """Plan methodology-tab G3c: the deviation the aggregate records reaches the analysis
+    (its system fingerprint, so no validation of the unit's method vouches for it) and the
+    internal report (introduction, methodology, limitations, audit)."""
+    spec, _ = compile_design(DESIGN)
+    assert spec is not None
+    dataset = synthetic_dataset(spec, seed=20260816)
+    method = AIA_AGGREGATE_V1.model_copy(
+        update={"methodology_version": "aia-aggregate-1+e1", "top_box": 1}
+    )
+    deviating = aggregate_dataset(spec, dataset, support=AIA_SUPPORT_V1, method=method)
+    unit = aggregate_dataset(spec, dataset, support=AIA_SUPPORT_V1)
+    assert deviating["deviation"]["changed"] == [{"path": "top_box", "unit": 2, "used": 1}]
+
+    # The fingerprint moves with the method, and only with it.
+    args: dict[str, Any] = {
+        "dataset_sha256": "d" * 64,
+        "origin": dataset.origin,
+        "support": REFERENCE_THRESHOLDS,
+    }
+    assert (
+        native_evidence(spec, deviating, **args).system_fingerprint
+        != native_evidence(spec, unit, **args).system_fingerprint
+    )
+    with pytest.raises(NativeEvidenceRefused, match="deviation"):
+        native_evidence(spec, {**unit, "deviation": "garbled"}, **args)
+
+    run_id = world.start()
+    world.upstream(payloads={"aggregate": {"kind": AGGREGATE_ARTIFACT, "aggregate": deviating}})
+    world.store_outcomes(run_id, completed, count=8)
+    run = reconstruct_run(world.session, world.scope, world.store, run_id=run_id)
+    assert run.complete and run.aggregation_deviation == deviating["deviation"]
+
+    first = run.modules[AnalysisModuleId.EXECUTIVE].result
+    assert first is not None
+    doc = compose_internal_report(run, report_meta(first.method_status))
+    sections = {s.id: s for s in doc.sections}
+    intro = sections["intro"].blocks
+    assert any(isinstance(b, Callout) and b.title == "Odchylka od 18.6.6" for b in intro)
+    methodology = _text(sections["methodology"].blocks)
+    assert "aia-aggregate-1+e1" in methodology and "top_box (18.6.6: 2, zde 1)" in methodology
+    ordinal = next(
+        m.ordinal for m in ANALYSIS_MODULES if m.module_id is AnalysisModuleId.LIMITATIONS
+    )
+    limitations = sections[f"ch-{ordinal}"]
+    assert "odchyluje od přenosu 18.6.6" in _text(limitations.blocks)
+    audit = next(b for b in sections["app-audit"].blocks if isinstance(b, AuditBlock))
+    assert ("Metodika agregace", "aia-aggregate-1+e1") in audit.entries
+    assert not lint_docx(DocxRenderer().render(doc))
+
+
+def test_a_modelled_dataset_names_its_respondent_system_and_a_bad_record_is_refused() -> None:
+    """The dataset's recorded respondent system (ADR 0024 §4) is read for a modelled origin only,
+    fingerprinted, and refused when it does not fingerprint -- never read as no system."""
+    from aia_core.application.analysis_results import SourcesRefused, _respondent_system
+    from aia_core.domain.evidence import respondent_system_fingerprint
+    from aia_core.domain.fieldwork import RESPONDENT_SYSTEM_METADATA
+
+    system = {
+        "respondent_prompt_sha256": "a" * 64,
+        "persona_builder": "aia-panel-persona-source-1",
+        "persona_mode": "calibrated",
+        "sampler_version": "aia-panel-sample-1",
+        "population_version": "v17_4_0",
+        "model_binding": "bedrock/bedrock-eu-primary",
+        "response_process_version": "aia-response-process-1",
+    }
+    meta = {RESPONDENT_SYSTEM_METADATA: system}
+    modelled = DataOrigin.MODELLED_AI_PANEL
+    assert _respondent_system(modelled, meta) == respondent_system_fingerprint(system)
+    assert _respondent_system(modelled, {}) is None
+    # A simulated dataset is never validated: whatever it recorded, it names no system.
+    assert _respondent_system(DataOrigin.SYNTHETIC_AI_FICTIONAL, meta) is None
+    for bad in ({**system, "persona_mode": ""}, {**system, "seed": "7"}, ["x"], {"a": 1}):
+        with pytest.raises(SourcesRefused, match="respondent"):
+            _respondent_system(modelled, {RESPONDENT_SYSTEM_METADATA: bad})
+
+
+def _question_tables_run(world: World) -> Any:
+    run_id = world.start()
+    world.upstream()
+    world.store_outcomes(run_id, completed)
+    return reconstruct_run(world.session, world.scope, world.store, run_id=run_id)
+
+
+def test_every_question_prints_its_numbers_through_admission_after_the_methodology(
+    world: World, tmp_path: Path
+) -> None:
+    """complete-study-report B1a: a table per question, each cell an admitted ref."""
+    run = _question_tables_run(world)
+    spec, _ = compile_design(DESIGN)
+    assert spec is not None
+    items = native_items(spec)
+    tables = compose_question_tables(run, items, source="Zmrazený běh")
+    table = run.modules[AnalysisModuleId.EXECUTIVE].inputs.table
+    assert tables.refused == ()
+    # Every kept row of the run's evidence is admitted once, and nothing else is.
+    assert sorted(c.row.evidence_ref for c in tables.claims) == sorted(table.rows)
+    assert all(c.surface is ClaimSurface.INTERNAL for c in tables.claims)
+    (chapter,) = tables.sections
+    printed = [b for b in chapter.blocks if isinstance(b, Table)]
+    assert [t.title for t in printed] == [
+        i.text
+        for i in items
+        if any(r.startswith(f"{i.question_id}.") for r in (*table.rows, *table.suppressed))
+    ]
+    # Estimates first, then the counts behind them, the same in every table.
+    for t in printed:
+        labels = [r.cells[0].text for r in t.rows if isinstance(r.cells[0], TextCell)]
+        assert labels[-2:] == ["platné odpovědi", "efektivní n"]
+    for t in printed:
+        for row in t.rows:
+            (label, value) = row.cells
+            assert isinstance(label, TextCell) and label.text
+            # A number is a ref, never text: suppression and intervals stay the ledger's.
+            assert isinstance(value, NumberCell) and value.with_interval
+
+    first = run.modules[AnalysisModuleId.EXECUTIVE].result
+    assert first is not None
+    doc = compose_internal_report(run, report_meta(first.method_status), question_tables=tables)
+    ids = [s.id for s in doc.sections]
+    assert ids.index("methodology") + 1 == ids.index("ch-questions")
+    assert set(table.rows) <= set(doc.ledger.rows)
+    rendered = DocxRenderer().render(doc)
+    assert not lint_docx(rendered)
+    (tmp_path / "internal-report-with-questions.docx").write_bytes(rendered)
+
+
+def test_a_question_the_gate_refuses_is_named_and_the_others_keep_their_tables(
+    world: World,
+) -> None:
+    run = _question_tables_run(world)
+    spec, _ = compile_design(DESIGN)
+    assert spec is not None
+    items = native_items(spec)
+    executive = run.modules[AnalysisModuleId.EXECUTIVE]
+    # A policy book that does not know the first question: its claims cannot be admitted.
+    origin = executive.record.labels.data_origin
+    narrower = instrument_policy_book(items[1:], origin=origin, source="test: without the first")
+    modules = dict(run.modules)
+    modules[AnalysisModuleId.EXECUTIVE] = dataclasses.replace(
+        executive, inputs=dataclasses.replace(executive.inputs, book=narrower)
+    )
+    tables = compose_question_tables(
+        dataclasses.replace(run, modules=modules), items, source="Zmrazený běh"
+    )
+    assert [qid for qid, _ in tables.refused] == [items[0].question_id]
+    (chapter,) = tables.sections
+    assert any(
+        isinstance(b, Callout)
+        and items[0].text in "".join(i.text for i in b.content if isinstance(i, Text))
+        for b in chapter.blocks
+    )
+    assert not any(c.row.question_id == items[0].question_id for c in tables.claims)
+    assert {t.title for t in chapter.blocks if isinstance(t, Table)} >= {items[1].text}
+
+
+def _all_text(blocks: Any) -> str:
+    """Paragraphs, callouts and every list item's words."""
+    items = [
+        "".join(i.text for i in item.content if isinstance(i, Text))
+        for b in blocks
+        if isinstance(b, BulletList)
+        for item in b.items
+    ]
+    return "\n".join([_text(blocks), *items])
+
+
+def test_the_report_states_the_design_it_ran_and_appends_its_questionnaire(
+    world: World, tmp_path: Path
+) -> None:
+    """complete-study-report B1b: the design and questionnaire, from the run's specification."""
+    run = _question_tables_run(world)
+    spec, _ = compile_design(DESIGN)
+    assert spec is not None
+    first = run.modules[AnalysisModuleId.EXECUTIVE]
+    assert first.result is not None
+    design = compose_design_sections(spec, first.inputs.research_questions)
+    chapter = _all_text(design.chapter.blocks)
+    for q in first.inputs.research_questions:
+        assert q in chapter
+    for battery in spec.batteries:
+        assert battery.title in chapter
+        assert all(o.label in chapter for o in battery.objects)
+    appendix = _all_text(design.appendix.blocks)
+    assert design.appendix.appendix
+    # Every question as it was asked, with its options or its scale.
+    for q in spec.questions:
+        assert q.text in appendix
+        assert all(option in appendix for option in q.options)
+
+    doc = compose_internal_report(run, report_meta(first.result.method_status), design=design)
+    ids = [s.id for s in doc.sections]
+    assert ids[:2] == ["intro", "ch-design"]
+    assert ids.index("app-questionnaire") + 1 == ids.index("app-evidence")
+    rendered = DocxRenderer().render(doc)
+    assert not lint_docx(rendered)
+    (tmp_path / "internal-report-with-design.docx").write_bytes(rendered)
+
+
+def test_who_answered_comes_after_the_methodology_and_before_the_numbers(world: World) -> None:
+    """complete-study-report B1c."""
+    run = _question_tables_run(world)
+    spec, _ = compile_design(DESIGN)
+    assert spec is not None
+    first = run.modules[AnalysisModuleId.EXECUTIVE]
+    assert first.result is not None
+    method = compose_method_section(
+        {"persona_source": "fictional_roster"}, first.record.labels.data_origin
+    )
+    doc = compose_internal_report(
+        run,
+        report_meta(first.result.method_status),
+        method=method,
+        question_tables=compose_question_tables(run, native_items(spec), source="Zmrazený běh"),
+    )
+    ids = [s.id for s in doc.sections]
+    assert ids.index("methodology") + 1 == ids.index("ch-method")
+    assert ids.index("ch-method") + 1 == ids.index("ch-questions")
+    assert not lint_docx(DocxRenderer().render(doc))
