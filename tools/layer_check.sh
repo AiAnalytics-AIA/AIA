@@ -14,40 +14,71 @@
 # this script is green from the day it lands and a red run always means a
 # regression rather than a backlog.
 #
-# Exemptions are named, never silent. Every `--exclude` below carries a comment
-# saying why the file is allowed the thing the rule forbids. Pretending an
+# Exemptions are named, never silent. Every exempt path below is the file's path
+# from the repository root -- never a basename, which would also exempt every
+# same-named file anywhere under the rule's path -- and carries a comment saying
+# why that file is allowed the thing the rule forbids. Pretending an
 # exception does not exist is what kills these scripts.
 
 set -uo pipefail
-cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 FAILED=0
 PASSED=0
 
-# forbid <rule-name> <pattern> <path> [excluded-basename ...]
+# forbid <rule-name> <pattern> <path> [exempt-path ...]
+#
+# Every exempt path is a file named from the repository root, exactly: an
+# exemption is a decision about one file, so it never reaches a same-named file
+# in another directory. A rule path or an exempt path that does not exist fails
+# the rule -- a check that silently looks at nothing is a check that has stopped.
 forbid() {
-  local rule="$1" pattern="$2" path="$3"; shift 3
-  local excludes=(--exclude-dir=node_modules --exclude-dir=.next
-                  --exclude-dir=__pycache__ --exclude-dir=.venv)
-  while [ $# -gt 0 ]; do excludes+=(--exclude="$1"); shift; done
+  local rule="$1" pattern="$2" path="${3%/}"; shift 3
+  local exempt=() missing=()
+  local ex
+  for ex in "$@"; do
+    if [ -f "$ex" ]; then exempt+=("$ex"); else missing+=("$ex"); fi
+  done
 
   if [ ! -e "$path" ]; then
-    printf 'skip  %s\n      (path %s does not exist yet)\n' "$rule" "$path"
+    printf 'FAIL  %s\n      (path %s does not exist)\n' "$rule" "$path"
+    FAILED=1
+    return 0
+  fi
+  if [ ${#missing[@]} -gt 0 ]; then
+    printf 'FAIL  %s\n' "$rule"
+    printf '      (exempt path %s does not exist)\n' "${missing[@]}"
+    FAILED=1
     return 0
   fi
 
-  local hits
-  hits=$(grep -rn "${excludes[@]}" -E "$pattern" "$path" 2>/dev/null || true)
+  local hits line kept=()
+  hits=$(grep -rHn --exclude-dir=node_modules --exclude-dir=.next \
+           --exclude-dir=__pycache__ --exclude-dir=.venv \
+           -E "$pattern" "$path" 2>/dev/null || true)
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    for ex in "${exempt[@]}"; do
+      [[ "$line" == "$ex:"* ]] && continue 2
+    done
+    kept+=("$line")
+  done <<< "$hits"
 
-  if [ -n "$hits" ]; then
+  if [ ${#kept[@]} -gt 0 ]; then
     printf 'FAIL  %s\n' "$rule"
-    printf '%s\n' "$hits" | sed 's/^/      /'
+    printf '      %s\n' "${kept[@]}"
     FAILED=1
   else
     printf 'ok    %s\n' "$rule"
     PASSED=$((PASSED + 1))
   fi
 }
+
+# Sourced (packages/aia_core/tests/test_layer_check_tool.py), the file defines
+# `forbid` and stops: the rule engine is tested on a scratch tree, apart from the
+# rules, which only make sense against this repository.
+if (return 0 2>/dev/null); then return 0; fi
+
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 CORE=packages/aia_core/src/aia_core
 API=apps/api/src/aia_api
@@ -100,18 +131,28 @@ forbid "infrastructure knows nothing about HTTP" \
 forbid "AWS SDK stays behind the storage adapter and the Bedrock signer" \
   '^\s*(from|import)\s+(boto3|botocore)\b' \
   "$CORE" \
-  storage.py aws_signing.py
+  "$CORE/infrastructure/storage.py" "$CORE/infrastructure/model_adapters/aws_signing.py"
 # The error reporter (plan error-tracking) is one module: it decides what may leave
 # (redaction, no bodies, no locals) for every process. A second import site is a
 # second client that sends without those hooks. Named exemptions: the tests that drive
 # the real client over a capturing transport (test_error_tracking.py in the core,
 # test_error_reporting.py in the API and the worker) import its Transport base class.
-for tree in packages apps/api apps/worker apps/executors; do
-  forbid "sentry_sdk is imported only by the error reporter ($tree)" \
-    '^\s*(from|import)\s+sentry_sdk\b' \
-    "$tree" \
-    error_tracking.py test_error_tracking.py test_error_reporting.py
-done
+SENTRY_IMPORT='^\s*(from|import)\s+sentry_sdk\b'
+forbid "sentry_sdk is imported only by the error reporter (packages)" \
+  "$SENTRY_IMPORT" \
+  packages \
+  "$CORE/infrastructure/error_tracking.py" packages/aia_core/tests/test_error_tracking.py
+forbid "sentry_sdk is imported only by the error reporter (apps/api)" \
+  "$SENTRY_IMPORT" \
+  apps/api \
+  apps/api/tests/test_error_reporting.py
+forbid "sentry_sdk is imported only by the error reporter (apps/worker)" \
+  "$SENTRY_IMPORT" \
+  apps/worker \
+  apps/worker/tests/test_error_reporting.py
+forbid "sentry_sdk is imported only by the error reporter (apps/executors)" \
+  "$SENTRY_IMPORT" \
+  apps/executors
 forbid "no botocore client is built for Bedrock (signing only, ADR 0010)" \
   '(boto3|botocore\.session\.get_session\(\))\.client\(|create_client\(' \
   "$CORE/infrastructure/model_adapters/"
@@ -144,7 +185,7 @@ forbid "the API never builds or invokes the model gateway or an adapter" \
 forbid "only the AI runtime composition builds the Bedrock adapter" \
   'BedrockConverseAdapter\(' \
   "$EXECUTORS" \
-  ai_runtime.py
+  "$EXECUTORS/ai_runtime.py"
 
 # --- Layer 4: the worker executes; it does not serve, and it does not know ---
 #
@@ -180,7 +221,7 @@ forbid "the API never executes workflow steps" \
 forbid "only the work queue may query across studies" \
   '_across_studies' \
   "$CORE" \
-  workflow_repository.py
+  "$CORE/infrastructure/workflow_repository.py"
 forbid "the worker never builds an unscoped repository" \
   '_across_studies' \
   "$WORKER"
@@ -192,7 +233,7 @@ forbid "the worker never builds an unscoped repository" \
 forbid "client knowledge tables are touched only by their repository" \
   'ClientKnowledge(Item|Revision|Proposal|Folder|Label|ItemFolder|ItemLabel)Row' \
   "$CORE" \
-  tables.py client_knowledge_repository.py
+  "$CORE/infrastructure/tables.py" "$CORE/infrastructure/client_knowledge_repository.py"
 forbid "the API never touches the client knowledge tables" \
   'ClientKnowledge(Item|Revision|Proposal|Folder|Label|ItemFolder|ItemLabel)Row' \
   "$API"
@@ -209,7 +250,7 @@ forbid "executors never touch the client knowledge tables" \
 forbid "client contacts are touched only by their repository" \
   'ClientContactRow' \
   "$CORE" \
-  tables.py client_profile_repository.py
+  "$CORE/infrastructure/tables.py" "$CORE/infrastructure/client_profile_repository.py"
 forbid "the API never touches the client contacts table" \
   'ClientContactRow' \
   "$API"
@@ -227,7 +268,7 @@ forbid "executors never touch the client contacts table" \
 forbid "client sources are touched only by their repository" \
   'ClientSource(Occurrence)?Row' \
   "$CORE" \
-  tables.py client_source_repository.py
+  "$CORE/infrastructure/tables.py" "$CORE/infrastructure/client_source_repository.py"
 forbid "the API never touches the client sources tables" \
   'ClientSource(Occurrence)?Row' \
   "$API"
@@ -245,7 +286,7 @@ forbid "executors never touch the client sources tables" \
 forbid "the prompt tables are touched only by their repository" \
   'Prompt(Version|Activation)Row' \
   "$CORE" \
-  tables.py prompt_repository.py
+  "$CORE/infrastructure/tables.py" "$CORE/infrastructure/prompt_repository.py"
 forbid "the API never touches the prompt tables" \
   'Prompt(Version|Activation)Row' \
   "$API"
@@ -263,7 +304,7 @@ forbid "executors never touch the prompt tables" \
 forbid "the methodology tables are touched only by their repository" \
   'Methodology(Version|Activation)Row' \
   "$CORE" \
-  tables.py methodology_repository.py
+  "$CORE/infrastructure/tables.py" "$CORE/infrastructure/methodology_repository.py"
 forbid "the API never touches the methodology tables" \
   'Methodology(Version|Activation)Row' \
   "$API"
@@ -280,7 +321,7 @@ forbid "executors never touch the methodology tables" \
 forbid "the Deep Research settings tables are touched only by their repository" \
   'DeepResearch(Setting(Version|Approval)|Test(Policy|Approval))Row' \
   "$CORE" \
-  tables.py deep_research_settings_repository.py
+  "$CORE/infrastructure/tables.py" "$CORE/infrastructure/deep_research_settings_repository.py"
 forbid "the API never touches the Deep Research settings tables" \
   'DeepResearch(Setting(Version|Approval)|Test(Policy|Approval))Row' \
   "$API"
@@ -299,7 +340,7 @@ forbid "executors never touch the Deep Research settings tables" \
 forbid "the fan-out coordination tables are touched only by their module" \
   '(HostPoliteness|ModelConcurrencySlot)Row|host_politeness|model_concurrency_slots' \
   "$CORE" \
-  tables.py fan_out_coordination.py
+  "$CORE/infrastructure/tables.py" "$CORE/infrastructure/fan_out_coordination.py"
 forbid "the API never touches the fan-out coordination tables" \
   '(HostPoliteness|ModelConcurrencySlot)Row|host_politeness|model_concurrency_slots' \
   "$API"
@@ -316,7 +357,7 @@ forbid "executors never touch the fan-out coordination tables" \
 forbid "the study design table is touched only by its repository" \
   'StudyDesignRow' \
   "$CORE" \
-  tables.py study_design_repository.py
+  "$CORE/infrastructure/tables.py" "$CORE/infrastructure/study_design_repository.py"
 forbid "the API, worker and executors never touch the study design table" \
   'StudyDesignRow' \
   apps
@@ -325,7 +366,7 @@ forbid "the API, worker and executors never touch the study design table" \
 forbid "the design source table is touched only by the design repository" \
   'StudyDesignSourceRow|study_design_sources' \
   "$CORE" \
-  tables.py study_design_repository.py
+  "$CORE/infrastructure/tables.py" "$CORE/infrastructure/study_design_repository.py"
 forbid "the API, worker and executors never touch the design source table" \
   'StudyDesignSourceRow|study_design_sources' \
   apps
@@ -335,7 +376,7 @@ forbid "the API, worker and executors never touch the design source table" \
 forbid "only the design repository and the research runs name the design project's owner" \
   'DESIGN_PROJECT_OWNER' \
   "$CORE" \
-  design.py study_design_repository.py research.py
+  "$CORE/domain/design.py" "$CORE/infrastructure/study_design_repository.py" "$CORE/application/research.py"
 forbid "the API, worker and executors never name the design project's owner" \
   'DESIGN_PROJECT_OWNER|study_design\b' \
   apps
@@ -345,7 +386,7 @@ forbid "the API, worker and executors never name the design project's owner" \
 forbid "licence determinations are written only in their policy-data module" \
   'LicenceDetermination\(|LicencePolicy\(' \
   "$CORE" \
-  licence.py licence_determinations.py
+  "$CORE/domain/licence.py" "$CORE/domain/licence_determinations.py"
 forbid "the API, worker and executors never build a licence policy of their own" \
   'LicenceDetermination\(|LicencePolicy\(' \
   apps
@@ -355,7 +396,7 @@ forbid "the API, worker and executors never build a licence policy of their own"
 forbid "only the workbench composition imports the fictional fieldwork generator" \
   '^\s*(from|import)\s+\S*synthetic_fieldwork' \
   "$CORE" \
-  synthetic_fieldwork.py
+  "$CORE/domain/synthetic_fieldwork.py"
 forbid "no API code imports the fictional fieldwork generator" \
   '^\s*(from|import)\s+\S*(synthetic_fieldwork|aia_executors\.workbench)' \
   "$API"
@@ -365,7 +406,7 @@ forbid "the worker never imports the fictional fieldwork generator" \
 forbid "among the executors, only the workbench composition builds fictional fieldwork" \
   '^\s*(from|import)\s+\S*(synthetic_fieldwork|\.workbench|aia_executors\.workbench)' \
   "$EXECUTORS" \
-  workbench.py
+  "$EXECUTORS/workbench.py"
 forbid "no deployment runs the workbench composition" \
   'aia_executors\.workbench|aia_executors/workbench' \
   deploy
@@ -384,7 +425,7 @@ forbid "the worker never builds a validation arm" \
 forbid "among the executors, only the validation executor builds a validation arm" \
   '^\s*(from|import)\s+\S*holdout\.arms' \
   "$EXECUTORS" \
-  validation.py
+  "$EXECUTORS/validation.py"
 # Recorded web retrieval (Deep Research, plan decision I-9) replays captured
 # exchanges and is never a production fallback: it is defined only beside the web
 # adapters, built only by the recorded composition, imported by nothing in the
@@ -396,7 +437,7 @@ RECORDED_WEB='RecordedSearch|RecordedFetchTransport|RecordedResolver|RecordedWeb
 forbid "recorded web retrieval is defined only beside the web adapters" \
   "$RECORDED_WEB" \
   "$CORE/infrastructure" \
-  web_retrieval.py common_crawl.py dataset_connectors.py
+  "$CORE/infrastructure/web_retrieval.py" "$CORE/infrastructure/common_crawl.py" "$CORE/infrastructure/dataset_connectors.py"
 forbid "application code never names recorded web retrieval" \
   "$RECORDED_WEB" \
   "$CORE/application"
@@ -412,7 +453,7 @@ forbid "the worker never imports recorded web retrieval" \
 forbid "among the executors, only the recorded composition builds recorded web retrieval" \
   "$RECORDED_WEB|deep_research_recorded" \
   "$EXECUTORS" \
-  deep_research_recorded.py
+  "$EXECUTORS/deep_research_recorded.py"
 forbid "no deployment runs the recorded Deep Research composition" \
   'deep_research_recorded|load_recorded_web' \
   deploy
@@ -438,7 +479,7 @@ forbid "the Deep Research service never writes a design or a research run's resu
 forbid "only the person's accept applies a Design Research proposal to a design" \
   'apply_to_design' \
   "$CORE" \
-  design_research.py design_proposals.py
+  "$CORE/application/design_research.py" "$CORE/domain/deep_research/design_proposals.py"
 forbid "no executor, worker or route applies a Design Research proposal itself" \
   'apply_to_design' \
   apps
@@ -461,7 +502,7 @@ forbid "the acquisition ladder imports no transport and no HTTP client" \
 forbid "only the archive policy issues an archive permit" \
   'ArchivePermit\(' \
   packages/aia_core/src \
-  archive.py
+  "$CORE/domain/deep_research/archive.py"
 # The public dataset and archive connectors are composed in one place, with their
 # fee-free Class C routes (plan chunk 23b): Deep Research's live composition. The
 # procurement connector has no live source and is composed nowhere.
@@ -474,7 +515,7 @@ done
 forbid "only deep_research_live.py composes a dataset connector ($EXECUTORS)" \
   "$DATASET_CONNECTORS" \
   "$EXECUTORS" \
-  deep_research_live.py
+  "$EXECUTORS/deep_research_live.py"
 forbid "no composition registers the procurement connector: it has no live source" \
   'ProcurementNoticeConnector' \
   "$EXECUTORS"
@@ -484,7 +525,7 @@ RECORDED_NOTICES='RecordedNoticeSource'
 forbid "the recorded notice source is defined only beside the procurement connector" \
   "$RECORDED_NOTICES" \
   "$CORE/infrastructure" \
-  dataset_procurement.py
+  "$CORE/infrastructure/dataset_procurement.py"
 forbid "application code never names the recorded notice source" \
   "$RECORDED_NOTICES" \
   "$CORE/application"
@@ -500,7 +541,7 @@ forbid "the worker never names the recorded notice source" \
 forbid "among the executors, only the recorded composition builds the recorded notice source" \
   "$RECORDED_NOTICES" \
   "$EXECUTORS" \
-  deep_research_recorded.py
+  "$EXECUTORS/deep_research_recorded.py"
 # A revision is what a run executed. The ORM refuses to UPDATE one
 # (tables.py, before_update); a bulk update() would go around it.
 forbid "no statement updates a project revision" \
@@ -543,7 +584,7 @@ forbid "executors never build an unscoped workflow repository" \
 forbid "no database access in the HTTP layer" \
   '^\s*(from|import)\s+sqlalchemy\b' \
   "$API" \
-  dependencies.py main.py
+  "$API/dependencies.py" "$API/main.py"
 
 # Tables are the infrastructure's private shape. The API talks to repositories,
 # which return domain objects; reaching for a table means a query is about to be
@@ -558,10 +599,15 @@ forbid "no ORM tables in the HTTP layer" \
 # sentinel. If any other module can build one, then a request body, a tool
 # payload or a model-generated argument can widen its own scope -- which is the
 # whole isolation boundary gone. See docs/architecture/scope-and-authorization.md.
+# Exempt: application/scope.py is ScopeResolver. domain/scope.py defines the
+# contexts, and its only matches are their own __repr__ strings
+# (f"StudyContext(...", f"ClientContext(..."), which construct nothing. Before
+# exemptions were matched by path, this second file was exempt only by accident:
+# the exemption was the basename scope.py.
 forbid "scope contexts are issued only by ScopeResolver" \
   '^[^#]*\b(Organization|Client|Study)Context\(' \
   "$CORE" \
-  scope.py
+  "$CORE/application/scope.py" "$CORE/domain/scope.py"
 
 forbid "the API never builds its own scope context" \
   '^[^#]*\b(Organization|Client|Study)Context\(' \
@@ -584,7 +630,7 @@ forbid "the worker never builds its own scope context" \
 forbid "claims are admitted only by the evidence admission gate" \
   '^[^#]*\bAdmittedClaim\(' \
   "$CORE" \
-  admission.py
+  "$CORE/domain/evidence/admission.py"
 
 forbid "the API never admits its own claims" \
   '^[^#]*\bAdmittedClaim\(' \
@@ -598,7 +644,7 @@ forbid "the API never admits its own claims" \
 forbid "a joint status is issued only by its loader" \
   '^[^#]*\bJointStatus\(' \
   "$CORE" \
-  joint_status.py companions.py
+  "$CORE/domain/evidence/joint_status.py" "$CORE/domain/population/companions.py"
 
 # Field policy and the joint certificate are authority: what a claim may rest on.
 # An app that built its own -- a permissive book for a questionnaire, a certificate
@@ -621,7 +667,7 @@ forbid "the API, worker and executors never build field policy or a joint status
 forbid "runtime populations are issued only by the canonical loader" \
   '^[^#]*RuntimePopulation\._issue\(' \
   "$CORE" \
-  population.py runtime.py
+  "$CORE/application/population.py" "$CORE/domain/population/runtime.py"
 
 forbid "the API never issues a runtime population" \
   '^[^#]*RuntimePopulation\._issue\(' \
@@ -630,7 +676,7 @@ forbid "the API never issues a runtime population" \
 forbid "population panels are parsed only by the canonical loader" \
   '^[^#]*\bparse_panel\(' \
   "$CORE" \
-  population.py population_parser.py
+  "$CORE/application/population.py" "$CORE/infrastructure/population_parser.py"
 
 forbid "the API never parses a population panel" \
   '^[^#]*\bparse_panel\(' \
@@ -646,7 +692,7 @@ forbid "the API never parses a population panel" \
 forbid "population version and extension tables are touched only by their repository" \
   'Population(DatasetVersion|ContractExtension)Row' \
   "$CORE" \
-  tables.py population_repository.py __init__.py
+  "$CORE/infrastructure/tables.py" "$CORE/infrastructure/population_repository.py" "$CORE/infrastructure/__init__.py"
 forbid "the API never touches the population version tables" \
   'Population(DatasetVersion|ContractExtension)Row' \
   "$API"
@@ -670,7 +716,7 @@ forbid "a person's characteristics read is scoped to their organization" \
 forbid "population-operator grants are issued only by the population authority" \
   '^[^#]*PopulationOperatorGrant\._issue\(' \
   "$CORE" \
-  population_authority.py authority.py
+  "$CORE/application/population_authority.py" "$CORE/domain/population/authority.py"
 
 forbid "the API never issues a population-operator grant" \
   '^[^#]*PopulationOperatorGrant\._issue\(' \
