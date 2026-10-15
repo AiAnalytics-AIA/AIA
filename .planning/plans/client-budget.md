@@ -175,6 +175,21 @@ Mapped 2026-10-15 on `origin/develop` @ 7d4f1ef5. Paths under `packages/aia_core
   SQLite run, 2026-10-15). Fixed by a marker of letters outside hex (`qzxw`). The test that
   would have caught it: the same test, run until an id collided; the rule is "a marker must
   not be producible by an id generator".
+- **F-CB2. A fan-out slot test asserts timing, not only the limit** (found here, not fixed:
+  another plan's test).
+  1. `test_fan_out_coordination.py::test_eight_threads_never_hold_more_slots_than_the_limit`
+     requires the peak to *reach* 3 as well as never pass it, so it fails when the slots are
+     slower to take than the 10 ms they are held.
+  2. `packages/aia_core/tests/test_fan_out_coordination.py:465 @ 500e5c8e`
+     (`assert peak == 3`).
+  3. Failed once in the full core + worker suite on PostgreSQL 16 (2026-10-15, peak 2);
+     `DATABASE_URL=postgresql+psycopg://… pytest packages/aia_core/tests/test_fan_out_coordination.py`
+     alone passes (21/21).
+  4. No user-visible consequence: the safety property (never above the limit) held; CI can
+     go red on a correct change.
+  5. Smallest fix: assert `peak <= 3`, and prove the limit is reachable separately with a
+     barrier that holds three slots until all three are taken (or hold each slot ~50 ms).
+  6. The test that would have caught it: the same test under load (`-n` or a busy runner).
 
 ## Doc follow-up
 
