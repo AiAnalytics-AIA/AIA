@@ -1138,6 +1138,8 @@ describe("Results", () => {
     // A suppressed object is not drawn and has no number, but is named.
     expect(within(comparison).getByText("Bez čísla (potlačeno nebo bez průměru): Mléko.")).toBeTruthy();
     expect(within(comparison).queryByText("3,50")).toBeNull();
+    // No rounding block: 18.6.6's two places, as each card prints them.
+    expect(within(comparison).getByText("4,20")).toBeTruthy();
     // A link to a card clears the filters that hide it and opens its detail.
     const explorer = document.querySelector("[data-aggregate-explorer]") as HTMLElement;
     fireEvent.change(within(explorer).getByRole("searchbox", { name: "Najít otázku nebo objekt" }), { target: { value: "káva" } });
@@ -1149,6 +1151,23 @@ describe("Results", () => {
     expect((card.querySelector("details") as HTMLDetailsElement).open).toBe(true);
     expect((within(explorer).getByRole("searchbox", { name: "Najít otázku nebo objekt" }) as HTMLInputElement).value).toBe("");
     window.location.hash = "";
+  });
+
+  it("ranks a set's means at the places the run stored them, as its cards print them", async () => {
+    const rating = (mean: number, low: number, high: number) => ({ typ: "skala", ...support("REPORTABLE", 140), prumer: mean, prumer_interval_95: { low, high }, top2box_pct: 40, top2box_interval_95: { low: 30, high: 50 } });
+    const aggregate = { ...AGGREGATE, payload: { aggregate: { ...AGGREGATE.payload.aggregate, rounding: { share_decimals: 0, mean_decimals: 1 }, batteries: { napoje: { title: "Nápoje", objects: {
+      kava: { label: "Káva", ...rating(4.2, 4.0, 4.4) }, caj: { label: "Čaj", ...rating(3.0, 2.7, 3.3) },
+    } } } } } };
+    api({ ...listed(COMPLETED),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => aggregate,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
+    const comparison = await screen.findByRole("region", { name: "Srovnání: Nápoje" });
+    expect(within(comparison).getByText("4,2")).toBeTruthy();
+    expect(within(comparison).getByText("3,0")).toBeTruthy();
+    expect(within(comparison).queryByText("4,20")).toBeNull();
   });
 
   it("says there are no results while the run waits at fieldwork", async () => {

@@ -1502,7 +1502,9 @@ const READING_TONE: Record<ReadingTone, string> = {
 };
 
 /** One set's objects side by side: each mean with its 95 % interval on the set's scale. */
-function ObjectComparison({ title, comparison, scale }: { title: string; comparison: ReturnType<typeof compareObjects>; scale: readonly [number, number] | null }) {
+// `places`: the decimals the run stored its means at (its aggregation's rounding), so the ranking
+// prints each mean as the measure's card does.
+function ObjectComparison({ title, comparison, scale, places }: { title: string; comparison: ReturnType<typeof compareObjects>; scale: readonly [number, number] | null; places: number }) {
   const [lo, hi] = comparison.domain;
   const at = (x: number) => `${hi > lo ? Math.min(100, Math.max(0, ((x - lo) / (hi - lo)) * 100)) : 50}%`;
   return (
@@ -1521,7 +1523,7 @@ function ObjectComparison({ title, comparison, scale }: { title: string; compari
               {o.low !== null && o.high !== null ? <span className="absolute top-1 h-2 rounded-full bg-signal/25" style={{ left: at(o.low), width: `calc(${at(o.high)} - ${at(o.low)})` }} /> : null}
               <span className="absolute top-0.5 size-3 -translate-x-1/2 rounded-full bg-signal" style={{ left: at(o.value) }} />
             </span>
-            <span className="text-right tabular-nums">{o.value.toLocaleString("cs-CZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            <span className="text-right tabular-nums">{o.value.toLocaleString("cs-CZ", { minimumFractionDigits: places, maximumFractionDigits: places })}</span>
           </li>
         ))}
       </ol>
@@ -1585,7 +1587,7 @@ function AggregateView({ artifact, run, specification }: { artifact: Artifact; r
       </section>
       {sets.length ? <section aria-label="Srovnání hodnocených objektů" className="flex flex-col gap-3">
         <h3 className="text-base font-semibold">Srovnání hodnocených objektů</h3>
-        {sets.map((set) => <ObjectComparison key={set.id} title={set.title} comparison={set.comparison} scale={set.scale} />)}
+        {sets.map((set) => <ObjectComparison key={set.id} title={set.title} comparison={set.comparison} scale={set.scale} places={at.mean} />)}
       </section> : null}
       <div className="flex flex-wrap items-end gap-3">
         <label className="min-w-56 flex-1 text-sm font-medium">Najít otázku nebo objekt
