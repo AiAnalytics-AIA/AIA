@@ -8,7 +8,7 @@ chunks:
   - "[x] 2b. Readiness: per planned question, answerable / at risk / unanswerable, in the run screen"
   - "[x] 3a. Design: a question or tracked set names the research questions it measures; readiness traces each research question to its measures and flags one nothing measures"
   - "[x] 3b. Dotazník: link each question and tracked set to research questions; the Run screen shows the chain"
-  - "[ ] 3c. Comparison: each research question declares its comparison, and readiness checks its measures can carry it"
+  - "[x] 3c. Comparison: each research question declares its comparison, and readiness checks its measures can carry it"
   - "[ ] 3d. External source: the Deep Research evidence and gaps cited against each research question, shown in the chain"
   - "[ ] 3e. The questionnaire agent proposes the links; a person accepts them with the proposal"
   - "[ ] 4. Deep Research: source diversity beyond Wikipedia, the exact supporting passage per claim, and every rejection's reason shown"
@@ -315,6 +315,45 @@ Tests:
 - `research-execution.test.ts` ("a research question's measures in words")
 - `ExecutionSteps.test.tsx` ("traces each research question to its measures")
 
+## 3c — how each research question is answered
+
+The product owner chose a closed set, checked against what the run can produce
+(2026-10-15, in session). Free text was the alternative, but it could not flag anything
+before a paid run.
+
+- **The declaration.** `research_plan.research_question_comparisons` maps a research
+  question's text (whitespace collapsed, as links match) to one of `describe`,
+  `rank_objects`, `compare_segments` or `ab_test`. It lives in the working content, not in
+  the specification. The run executes nothing differently, so no fingerprint moves.
+- **The check.** `domain/research_trace.py` (`comparisons_of`, `Comparison`) checks each
+  declared comparison against the research question's measures:
+  - `describe`: any measure.
+  - `rank_objects`: a tracked set with at least two primary objects among the measures.
+    The verdict is that set's, not the best of every measure.
+    Otherwise `comparison_needs_tracked_set`.
+  - `ab_test`: a `test_konceptu` set of at least two concepts. Otherwise
+    `comparison_needs_concept_set`.
+  - `compare_segments`: always `segments_unavailable`, UNANSWERABLE. No native run gives its
+    analysis segment evidence, and the segments module says segmentation cannot be assessed
+    without it (`analysis/modules.py` SEGMENTS).
+  - A kind AIA does not know is `comparison_unknown`, UNKNOWN. An undeclared comparison is
+    not checked.
+- **Readiness.** The `research_question_coverage` check names each comparison failure in
+  its own words, apart from "measured only by questions the run will not answer".
+- **API and web.** `research_trace.questions[].comparison` carries the declared kind.
+  - Dotazník opens with "Jak výzkumné otázky zodpovíme": one choice per research question,
+    saved with the reason `research_question_comparison`.
+  - The Run card shows "Odpověď: …" and the reason in words.
+
+Tests:
+
+- `test_research_trace.py`: comparisons read, ranking, A/B, segments, unknown and
+  undeclared.
+- The API trace test, 3c part.
+- `trace.test.ts` (setComparison / comparisonOf).
+- `QuestionnaireStep.test.tsx` ("declares how each research question is answered").
+- `ExecutionSteps.test.tsx` (the trace card's comparison row).
+
 ## Doc follow-up
 
 - `CLAUDE.md` § map, `analysis.py`: "a schema failure is stored per field; the
@@ -362,3 +401,8 @@ Tests:
   read and toggled)"; `QuestionnaireStep`: "Odpovídá na výzkumné otázky on every question
   and tracked set"; `ExecutionSteps.tsx`: "the Run stage's 'Výzkumné otázky a jejich
   měření' card"; `research-execution.ts`: "traceMeasures".
+- 3c, `CLAUDE.md` § map, `research_trace.py`: append "; research_plan.research_question_comparisons
+  (describe / rank_objects / compare_segments / ab_test, by text) checked against the
+  measures: ranking needs a tracked set, A/B a concept-test set, segments unavailable,
+  unknown never answerable (comparisons_of)"; web `trace.ts`: "comparisonOf /
+  setComparison"; Dotazník: "Jak výzkumné otázky zodpovíme".

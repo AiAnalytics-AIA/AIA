@@ -23,7 +23,8 @@ export function ResultsWorkspace({ run, panels, progressHref, notice, lead }: {
       const id = window.location.hash.slice(1);
       // Old result anchors still open their containing view.
       const aliases: Record<string, string> = { "res-sociomap": "maps", "res-sociomapping": "maps", "res-aggregate": "data", "res-analysis": "analysis", "res-report": "report", "res-literature": "report" };
-      const next = aliases[id] ?? id;
+      // A measure's card (#measure-<id>, result-reading.ts measureAnchor) is in Data.
+      const next = id.startsWith("measure-") ? "data" : aliases[id] ?? id;
       setActive(next === "overview" || panelKeys.split(",").includes(next) ? next : "overview");
     };
     read();

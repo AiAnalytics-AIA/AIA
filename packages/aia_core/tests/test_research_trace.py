@@ -4,6 +4,7 @@ run-recovery-and-truth 3a)."""
 from __future__ import annotations
 
 import copy
+import dataclasses
 from typing import Any
 
 from aia_core.domain.analysis.native import research_questions_of
@@ -13,7 +14,9 @@ from aia_core.domain.question_outlook import Verdict, question_outlook
 from aia_core.domain.research_design import CheckStatus, assess_readiness, compile_design
 from aia_core.domain.research_trace import (
     RESEARCH_TRACE_CHECK,
+    Comparison,
     TraceReason,
+    comparisons_of,
     trace_research,
     with_research_trace,
 )
@@ -76,7 +79,12 @@ def _trace(design: dict[str, Any]) -> Any:
     forecast = forecast_support(
         spec, support=AIA_SUPPORT_V1, persona_source=PersonaSource.FICTIONAL_ROSTER
     )
-    return trace_research(spec, research_questions_of(design), question_outlook(spec, forecast))
+    return trace_research(
+        spec,
+        research_questions_of(design),
+        question_outlook(spec, forecast),
+        comparisons_of(design),
+    )
 
 
 def _check(design: dict[str, Any]) -> Any:
@@ -182,3 +190,98 @@ def test_a_question_whose_id_is_a_set_items_id_is_refused_not_merged() -> None:
     spec, problems = compile_design(design)
     assert spec is None
     assert [(p.code, p.where) for p in problems] == [("item_id_collision", "set_obj_kava")]
+
+
+def _with_comparisons(design: dict[str, Any], comparisons: dict[str, Any]) -> dict[str, Any]:
+    out = copy.deepcopy(design)
+    out["research_plan"]["research_question_comparisons"] = comparisons
+    return out
+
+
+_trace_of = _trace
+
+
+def test_comparisons_are_read_by_text_and_an_unknown_kind_is_kept_as_unknown() -> None:
+    design = _with_comparisons(
+        DESIGN, {f" {RQ_IMAGE} ": "rank_objects", RQ_HABIT: "guess", "": "describe", 3: "x"}
+    )
+    assert comparisons_of(design) == {RQ_IMAGE: Comparison.RANK_OBJECTS, RQ_HABIT: None}
+    assert comparisons_of({"research_plan": {"research_question_comparisons": []}}) == {}
+    assert comparisons_of({}) == {}
+
+
+def test_ranking_objects_needs_a_tracked_set_among_its_measures() -> None:
+    ranked = _trace_of(_with_comparisons(DESIGN, {RQ_IMAGE: "rank_objects"}))
+    image = next(q for q in ranked.questions if q.text == RQ_IMAGE)
+    assert image.comparison is Comparison.RANK_OBJECTS
+    assert image.verdict is Verdict.ANSWERABLE and image.reasons == ()
+
+    # The habit question is measured by one plain question: nothing to rank.
+    wrong = _trace_of(_with_comparisons(DESIGN, {RQ_HABIT: "rank_objects"}))
+    habit = next(q for q in wrong.questions if q.text == RQ_HABIT)
+    assert habit.verdict is Verdict.UNANSWERABLE
+    assert habit.reasons == (TraceReason.COMPARISON_NEEDS_TRACKED_SET,)
+    check = _check(_with_comparisons(DESIGN, {RQ_HABIT: "rank_objects"}))
+    assert "Pořadí položek" in check.message and RQ_HABIT in check.message
+
+
+def test_an_ab_test_needs_a_concept_test_set_of_two_concepts() -> None:
+    plain = _trace_of(_with_comparisons(DESIGN, {RQ_IMAGE: "ab_test"}))
+    image = next(q for q in plain.questions if q.text == RQ_IMAGE)
+    assert image.reasons == (TraceReason.COMPARISON_NEEDS_CONCEPT_SET,)
+
+    concepts = _with_comparisons(DESIGN, {RQ_IMAGE: "ab_test"})
+    concepts["sections"][1]["output_type"] = "test_konceptu"
+    tested = next(q for q in _trace_of(concepts).questions if q.text == RQ_IMAGE)
+    assert tested.verdict is Verdict.ANSWERABLE and tested.reasons == ()
+
+
+def test_comparing_segments_is_unanswerable_by_name_and_describing_needs_only_a_measure() -> None:
+    design = _with_comparisons(DESIGN, {RQ_HABIT: "compare_segments", RQ_IMAGE: "describe"})
+    by_text = {q.text: q for q in _trace_of(design).questions}
+    assert by_text[RQ_HABIT].verdict is Verdict.UNANSWERABLE
+    assert by_text[RQ_HABIT].reasons == (TraceReason.SEGMENTS_UNAVAILABLE,)
+    assert by_text[RQ_IMAGE].verdict is Verdict.ANSWERABLE
+    message = _check(design).message
+    assert "Srovnání segmentů" in message
+    # A comparison its measures cannot carry is named as such, not as an unanswerable measure.
+    unanswered = [p for p in message.split(". ") if "měří jen otázky" in p]
+    assert all(RQ_HABIT not in p for p in unanswered)
+
+
+def test_an_unknown_comparison_is_never_answerable_and_an_undeclared_one_is_not_checked() -> None:
+    unknown = _trace_of(_with_comparisons(DESIGN, {RQ_HABIT: "guess"}))
+    habit = next(q for q in unknown.questions if q.text == RQ_HABIT)
+    assert habit.comparison is None
+    assert habit.verdict is Verdict.UNKNOWN
+    assert habit.reasons == (TraceReason.COMPARISON_UNKNOWN,)
+    plain = next(q for q in _trace(DESIGN).questions if q.text == RQ_HABIT)
+    assert plain.verdict is Verdict.ANSWERABLE and plain.comparison is None
+
+
+def test_a_set_ranks_only_whole_one_refused_object_of_two_leaves_nothing_to_rank() -> None:
+    """Review (Codex on #426): the best single object's verdict must not stand for the set."""
+    design = _with_comparisons(DESIGN, {RQ_IMAGE: "rank_objects"})
+    design["sections"][1]["objects"] = ["Káva", "Čaj", "Voda"]
+    design["sections"][1]["context_objects"] = ["Voda"]  # two primary objects to rank
+    spec = _compile(design)
+    outlook = question_outlook(
+        spec,
+        forecast_support(
+            spec, support=AIA_SUPPORT_V1, persona_source=PersonaSource.FICTIONAL_ROSTER
+        ),
+    )
+    kava, _caj, voda = spec.battery_questions()
+
+    def image(refuse: str | None) -> Any:
+        items = [
+            dataclasses.replace(o, verdict=Verdict.UNANSWERABLE) if o.question_id == refuse else o
+            for o in outlook
+        ]
+        trace = trace_research(spec, research_questions_of(design), items, comparisons_of(design))
+        return next(q for q in trace.questions if q.text == RQ_IMAGE)
+
+    assert image(None).verdict is Verdict.ANSWERABLE
+    assert image(kava).verdict is Verdict.UNANSWERABLE  # one primary object left: no ranking
+    # A context object takes no part in the ranking; its verdict does not hold it back.
+    assert image(voda).verdict is Verdict.ANSWERABLE

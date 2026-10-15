@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from .aggregation import AGGREGATION
 from .catalogue import MethodModule
+from .readiness import READINESS
 from .response import RESPONSE
 from .sociomap import SOCIOMAP
 from .sociomap_reference import SOCIOMAP_REFERENCE
@@ -26,6 +27,7 @@ MODULES: tuple[MethodModule, ...] = (
     AGGREGATION,
     WEIGHTING,
     RESPONSE,
+    READINESS,
 )
 
 

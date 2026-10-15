@@ -1901,6 +1901,8 @@ export const cs = {
       setHigh: "Pravý konec škály",
       familiarity: "Před hodnocením ověřovat znalost každého objektu",
       familiarityHelp: "Zapínejte jen když to dává věcný smysl — typicky u značek, produktů či konceptů. U médií, emocí nebo vztahových výroků obvykle ne.",
+      conceptTest: "Porovnat položky jako koncepty (A/B test)",
+      conceptTestHelp: "Sada se vyhodnotí jako test konceptů místo poziční mapy; výzkumnou otázku zodpovídanou A/B testem lze zodpovědět jen takovou sadou.",
       priceBands: "Cenová pásma pro test konceptu",
       priceBandsPlaceholder: "např. 199 Kč, 249 Kč, 299 Kč",
       priceBandsHelp: "Ceny musí zadat uživatel; AI si je nesmí vymyslet.",
@@ -1934,6 +1936,19 @@ export const cs = {
       removeSetConfirm: "Odstranit tuto sadu?",
       range: "Rozsah",
       openNote: "Respondent odpoví vlastními slovy.",
+      // Plan run-recovery-and-truth 3c: how each research question is answered.
+      comparisons: {
+        title: "Jak výzkumné otázky zodpovíme",
+        help: "U každé výzkumné otázky zvolte, jakým srovnáním se na ni odpoví. Kontrola před spuštěním ověří, že otázky, které na ni odpovídají, takové srovnání unesou.",
+        choose: "Způsob odpovědi na „{rq}“",
+        none: "Neurčeno",
+        kind: {
+          describe: "Popis výsledků",
+          rank_objects: "Pořadí položek sady",
+          compare_segments: "Srovnání segmentů",
+          ab_test: "Test A/B konceptů",
+        },
+      },
       // Plan run-recovery-and-truth 3b: which research question an item measures.
       links: {
         label: "Odpovídá na výzkumné otázky",
@@ -2253,9 +2268,14 @@ export const cs = {
         help: "Každá výzkumná otázka z plánu a otázky, které na ni podle dotazníku odpovídají. Výzkumná otázka je zodpověditelná tak, jak její nejlepší měření.",
         set: "{first} a další položky sady ({count} celkem)",
         dangling: "Odkazy na výzkumnou otázku, kterou plán neuvádí: {list}",
+        comparison: "Odpověď: {kind}",
         reason: {
           unmeasured: "Žádná otázka dotazníku na ni neodpovídá: analýza ji bude muset nechat bez odpovědi.",
           unlinked_design: "U otázek dotazníku není uvedeno, na co odpovídají, takže nelze ověřit, že ji běh zodpoví.",
+          comparison_needs_tracked_set: "Má se odpovědět pořadím položek, ale neměří ji žádná sledovaná sada.",
+          comparison_needs_concept_set: "Má se odpovědět testem A/B, ale neměří ji sada testu konceptů s alespoň dvěma koncepty.",
+          segments_unavailable: "Má se odpovědět srovnáním segmentů, které AIA zatím neumí: analýza nedostává žádnou segmentovou evidenci.",
+          comparison_unknown: "Uvedený způsob odpovědi AIA nezná; zvolte jiný v dotazníku.",
         },
       },
       // Plan run-recovery-and-truth 2b: each item, and whether the run will answer it.

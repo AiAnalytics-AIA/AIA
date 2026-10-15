@@ -63,6 +63,7 @@
     "step_details": [
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -99,6 +100,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -125,6 +127,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -191,6 +194,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -277,6 +281,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -352,6 +357,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -384,6 +390,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -457,6 +464,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -565,6 +573,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -606,6 +615,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -671,6 +681,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -717,6 +728,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -777,6 +789,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -804,6 +817,202 @@
     ],
     "steps": 13,
     "title_cs": "Agregace: z odpovědí odhad s intervalem"
+   }
+  },
+  "readiness": {
+   "aia-readiness-1": {
+    "editable": true,
+    "groups": [
+     {
+      "id": "M",
+      "note_cs": "",
+      "step_ids": [
+       "method"
+      ],
+      "title_cs": "Meze připravenosti"
+     },
+     {
+      "id": "N",
+      "note_cs": "",
+      "step_ids": [
+       "sample_size"
+      ],
+      "title_cs": "Vzorek"
+     },
+     {
+      "id": "S",
+      "note_cs": "",
+      "step_ids": [
+       "tracked_set"
+      ],
+      "title_cs": "Sledovaná sada"
+     }
+    ],
+    "id": "readiness",
+    "in_force": "aia-readiness-1",
+    "note_cs": "Meze, které kontrola připravenosti čte: velikost vzorku a počet položek ve sledované sadě. Základ z kódu jsou hodnoty 18.6.6. Verze v platnosti platí pro kontrolu každé studie od aktivace; běh, který už začal, si své meze nese a nemění se. Nejmenší n páru pro Sociomapu se upravuje v oblasti Sociomapa.",
+    "preset": "aia-readiness-1",
+    "presets": [
+     "aia-readiness-1"
+    ],
+    "step_details": [
+     {
+      "audit": "",
+      "effect_cs": "kontrola připravenosti každé studie od aktivace; běh si meze nese",
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Meze připravenosti jsou upravitelné jako verze (vlastník, 2026-10-14).",
+        "ref": ".planning/plans/methodology-tab.md, V1a"
+       }
+      ],
+      "feeds": [],
+      "formula_latex": "\\text{meze} = \\text{methodology\\_version}",
+      "formulas": [],
+      "id": "method",
+      "implements": "aia_core.domain.research_design:ReadinessSpec",
+      "inputs": [],
+      "note_cs": "",
+      "role_cs": "Pojmenuje meze, se kterými kontrola připravenosti studii posoudí.",
+      "source_cs": "verze v platnosti pro organizaci, nebo základ z kódu",
+      "source_sha256": "bcafdb6691eb2df280a3b524b70c5644c3ddad15a49ba61a2385f5c4e8e0a4c4",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_readiness.py::test_the_preset_is_the_units_policy"
+      ],
+      "title_cs": "Pojmenování mezí",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Verze mezí připravenosti",
+        "origin": "specification",
+        "reference": "methodology_version",
+        "unit": "",
+        "value": "aia-readiness-1"
+       }
+      ]
+     },
+     {
+      "audit": "",
+      "effect_cs": "Kontrola a spuštění: řádek „Velikost vzorku“; tlačítko Spustit zůstane zablokované",
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Meze převzaté z produktové politiky 18.6.6.",
+        "ref": "PRODUCT_POLICY.json research_design.sample_size + tracked_set"
+       }
+      ],
+      "feeds": [],
+      "formula_latex": "n_{\\min} \\le n \\le n_{\\max}",
+      "formulas": [],
+      "id": "sample_size",
+      "implements": "aia_core.domain.research_design:assess_readiness",
+      "inputs": [],
+      "note_cs": "Obě meze zahrnuté. Bez zadaného n studii spustit nelze nikdy. Sociomapa upozorní, je-li n pod nejmenším n páru; to pravidlo patří Sociomapě.",
+      "role_cs": "Kolik respondentů smí studie mít. Mimo rozsah AIA běh nespustí: výzkumník musí vzorek upravit.",
+      "source_cs": "n zadané v kroku Dimenze a vzorek",
+      "source_sha256": "854f32cf534861872d21d325a78ef21c9e4056fb5fe4cfb43fcf831e3c8e0181",
+      "symbols": [
+       {
+        "latex": "n",
+        "meaning_cs": "velikost vzorku zadaná v návrhu",
+        "unit": "respondenti"
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_research_design.py::test_readiness_is_named_checks_and_a_fail_blocks",
+       "packages/aia_core/tests/test_methodology_readiness.py::test_the_limits_in_force_decide_the_checks"
+      ],
+      "title_cs": "Velikost vzorku",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Nejmenší vzorek",
+        "origin": "specification",
+        "reference": "sample_size.min",
+        "unit": "respondenti",
+        "value": 20
+       },
+       {
+        "absent": false,
+        "label_cs": "Největší vzorek",
+        "origin": "specification",
+        "reference": "sample_size.max",
+        "unit": "respondenti",
+        "value": 10000
+       }
+      ]
+     },
+     {
+      "audit": "",
+      "effect_cs": "Návrh: sestavení se zastaví s chybou u sady · Kontrola a spuštění: upozornění u sady",
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Meze převzaté z produktové politiky 18.6.6.",
+        "ref": "PRODUCT_POLICY.json research_design.sample_size + tracked_set"
+       }
+      ],
+      "feeds": [],
+      "formula_latex": "k_{\\min} \\le k \\le k_{\\max},\\quad \\text{doporučeno}\\ k^{\\mathrm{dop}}_{\\min} \\le k \\le k^{\\mathrm{dop}}_{\\max}",
+      "formulas": [],
+      "id": "tracked_set",
+      "implements": "aia_core.domain.research_design:_battery",
+      "inputs": [],
+      "note_cs": "Pevné meze čte sestavení návrhu, doporučené kontrola připravenosti (assess_readiness). Doporučený rozsah leží uvnitř pevného; méně než 3 položky mapu nedají.",
+      "role_cs": "Kolik srovnatelných položek (značek, médií, emocí) smí mít jedna sledovaná sada. Mimo pevné meze se návrh nesestaví; mimo doporučené kontrola jen upozorní.",
+      "source_cs": "položky každé sledované sady v dotazníku",
+      "source_sha256": "4e0f062fc16ec99db8f57043bd32f5651d6eec1d68c978abcd366aa2e1b0bf92",
+      "symbols": [
+       {
+        "latex": "k",
+        "meaning_cs": "počet srovnatelných položek jedné sledované sady",
+        "unit": "položky"
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_readiness.py::test_the_limits_in_force_decide_the_checks",
+       "packages/aia_core/tests/test_methodology_readiness.py::test_a_set_compiles_under_the_limits_it_is_given"
+      ],
+      "title_cs": "Počet položek v sadě",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Nejméně položek",
+        "origin": "specification",
+        "reference": "tracked_set.min",
+        "unit": "položky",
+        "value": 3
+       },
+       {
+        "absent": false,
+        "label_cs": "Nejvíce položek",
+        "origin": "specification",
+        "reference": "tracked_set.max",
+        "unit": "položky",
+        "value": 40
+       },
+       {
+        "absent": false,
+        "label_cs": "Doporučeno nejméně",
+        "origin": "specification",
+        "reference": "tracked_set.recommended_min",
+        "unit": "položky",
+        "value": 4
+       },
+       {
+        "absent": false,
+        "label_cs": "Doporučeno nejvíce",
+        "origin": "specification",
+        "reference": "tracked_set.recommended_max",
+        "unit": "položky",
+        "value": 15
+       }
+      ]
+     }
+    ],
+    "steps": 3,
+    "title_cs": "Připravenost studie: kdy lze běh spustit"
    }
   },
   "response": {
@@ -877,6 +1086,7 @@
     "step_details": [
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -912,6 +1122,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -944,6 +1155,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -970,6 +1182,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -1026,6 +1239,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -1086,6 +1300,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -1137,6 +1352,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -1193,6 +1409,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -1244,6 +1461,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -1316,6 +1534,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -1348,6 +1567,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -1558,6 +1778,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -1591,6 +1812,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -1632,6 +1854,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -1793,6 +2016,7 @@
     "step_details": [
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -1828,6 +2052,7 @@
      },
      {
       "audit": "F1",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -1941,6 +2166,7 @@
      },
      {
       "audit": "F2",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -2048,6 +2274,7 @@
      },
      {
       "audit": "F3",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -2119,6 +2346,7 @@
      },
      {
       "audit": "F3",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -2205,6 +2433,7 @@
      },
      {
       "audit": "F3",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -2371,6 +2600,7 @@
      },
      {
       "audit": "F3",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -2429,6 +2659,7 @@
      },
      {
       "audit": "F3",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -2513,6 +2744,7 @@
      },
      {
       "audit": "F4",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -2542,6 +2774,7 @@
      },
      {
       "audit": "F6",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -2601,6 +2834,7 @@
      },
      {
       "audit": "F6",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -2692,6 +2926,7 @@
      },
      {
       "audit": "F6",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -2797,6 +3032,7 @@
      },
      {
       "audit": "F7",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -2874,6 +3110,7 @@
      },
      {
       "audit": "F7",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -2938,6 +3175,7 @@
      },
      {
       "audit": "F8",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -3036,6 +3274,7 @@
      },
      {
       "audit": "F8",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -3121,6 +3360,7 @@
      },
      {
       "audit": "F9",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -3234,6 +3474,7 @@
      },
      {
       "audit": "F9",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -3270,6 +3511,7 @@
      },
      {
       "audit": "F9",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -3299,6 +3541,7 @@
      },
      {
       "audit": "F10",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -3348,6 +3591,7 @@
      },
      {
       "audit": "F11",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -3381,6 +3625,7 @@
      },
      {
       "audit": "F11",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -3441,6 +3686,7 @@
      },
      {
       "audit": "F12-F13",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -3715,6 +3961,7 @@
     "step_details": [
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -3750,6 +3997,7 @@
      },
      {
       "audit": "F1",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -3863,6 +4111,7 @@
      },
      {
       "audit": "F2",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -3970,6 +4219,7 @@
      },
      {
       "audit": "F3",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -4041,6 +4291,7 @@
      },
      {
       "audit": "F3",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -4127,6 +4378,7 @@
      },
      {
       "audit": "F3",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -4293,6 +4545,7 @@
      },
      {
       "audit": "F3",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -4351,6 +4604,7 @@
      },
      {
       "audit": "F3",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -4435,6 +4689,7 @@
      },
      {
       "audit": "F4",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -4464,6 +4719,7 @@
      },
      {
       "audit": "F6",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -4523,6 +4779,7 @@
      },
      {
       "audit": "F6",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -4614,6 +4871,7 @@
      },
      {
       "audit": "F6",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -4719,6 +4977,7 @@
      },
      {
       "audit": "F7",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -4796,6 +5055,7 @@
      },
      {
       "audit": "F7",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -4860,6 +5120,7 @@
      },
      {
       "audit": "F8",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -4958,6 +5219,7 @@
      },
      {
       "audit": "F8",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -5043,6 +5305,7 @@
      },
      {
       "audit": "F9",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -5156,6 +5419,7 @@
      },
      {
       "audit": "F9",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -5192,6 +5456,7 @@
      },
      {
       "audit": "F9",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -5221,6 +5486,7 @@
      },
      {
       "audit": "F10",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -5270,6 +5536,7 @@
      },
      {
       "audit": "F11",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -5303,6 +5570,7 @@
      },
      {
       "audit": "F11",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -5363,6 +5631,7 @@
      },
      {
       "audit": "F12-F13",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -5637,6 +5906,7 @@
     "step_details": [
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -5672,6 +5942,7 @@
      },
      {
       "audit": "F1",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -5785,6 +6056,7 @@
      },
      {
       "audit": "F2",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -5892,6 +6164,7 @@
      },
      {
       "audit": "F3",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -5963,6 +6236,7 @@
      },
      {
       "audit": "F3",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -6049,6 +6323,7 @@
      },
      {
       "audit": "F3",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -6215,6 +6490,7 @@
      },
      {
       "audit": "F3",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -6273,6 +6549,7 @@
      },
      {
       "audit": "F3",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -6357,6 +6634,7 @@
      },
      {
       "audit": "F4",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -6386,6 +6664,7 @@
      },
      {
       "audit": "F6",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -6445,6 +6724,7 @@
      },
      {
       "audit": "F6",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -6536,6 +6816,7 @@
      },
      {
       "audit": "F6",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -6641,6 +6922,7 @@
      },
      {
       "audit": "F7",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -6718,6 +7000,7 @@
      },
      {
       "audit": "F7",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -6786,6 +7069,7 @@
      },
      {
       "audit": "F8",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -6884,6 +7168,7 @@
      },
      {
       "audit": "F8",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -6969,6 +7254,7 @@
      },
      {
       "audit": "F9",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7085,6 +7371,7 @@
      },
      {
       "audit": "F9",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7121,6 +7408,7 @@
      },
      {
       "audit": "F9",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7150,6 +7438,7 @@
      },
      {
       "audit": "F10",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7199,6 +7488,7 @@
      },
      {
       "audit": "F11",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7232,6 +7522,7 @@
      },
      {
       "audit": "F11",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7292,6 +7583,7 @@
      },
      {
       "audit": "F12-F13",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7523,6 +7815,7 @@
     "step_details": [
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -7558,6 +7851,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7595,6 +7889,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7649,6 +7944,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7676,6 +7972,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -7724,6 +8021,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "fixture",
@@ -7806,6 +8104,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7846,6 +8145,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -7907,6 +8207,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -7998,6 +8299,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -8024,6 +8326,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -8072,6 +8375,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -8120,6 +8424,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "fixture",
@@ -8151,6 +8456,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "fixture",
@@ -8199,6 +8505,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -8230,6 +8537,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -8303,6 +8611,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "fixture",
@@ -8376,6 +8685,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -8479,6 +8789,7 @@
     "step_details": [
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -8529,6 +8840,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -8555,6 +8867,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -8581,6 +8894,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -8607,6 +8921,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -8650,6 +8965,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -8676,6 +8992,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -8725,6 +9042,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -8766,6 +9084,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -8815,6 +9134,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -8885,6 +9205,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -8920,6 +9241,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -8958,6 +9280,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -9017,6 +9340,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -9043,6 +9367,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -9069,6 +9394,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -9143,6 +9469,7 @@
     "step_details": [
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -9179,6 +9506,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -9205,6 +9533,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -9231,6 +9560,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -9269,6 +9599,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -9342,6 +9673,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [],
       "feeds": [],
       "formula_latex": "n_{\\mathrm{Kish}} = \\frac{\\left(\\sum_k w_k\\right)^2}{\\sum_k w_k^2},\\quad w_k \\notin (0, \\infty) \\Rightarrow \\text{odmítnuto}",
@@ -9363,6 +9695,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -9433,6 +9766,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -9537,6 +9871,7 @@
     "step_details": [
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -9572,6 +9907,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -9660,6 +9996,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -9686,6 +10023,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -9713,6 +10051,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -9816,6 +10155,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -9863,6 +10203,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -9900,6 +10241,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -9981,6 +10323,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -10007,6 +10350,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -10045,6 +10389,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -10071,6 +10416,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -10097,6 +10443,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -10134,6 +10481,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -10160,6 +10508,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -10186,6 +10535,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -10212,6 +10562,7 @@
      },
      {
       "audit": "",
+      "effect_cs": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -10734,6 +11085,43 @@
    ],
    "steps": 14,
    "title_cs": "Odpověď respondenta: od pravděpodobností modelu k odpovědi"
+  },
+  {
+   "editable": true,
+   "groups": [
+    {
+     "id": "M",
+     "note_cs": "",
+     "step_ids": [
+      "method"
+     ],
+     "title_cs": "Meze připravenosti"
+    },
+    {
+     "id": "N",
+     "note_cs": "",
+     "step_ids": [
+      "sample_size"
+     ],
+     "title_cs": "Vzorek"
+    },
+    {
+     "id": "S",
+     "note_cs": "",
+     "step_ids": [
+      "tracked_set"
+     ],
+     "title_cs": "Sledovaná sada"
+    }
+   ],
+   "id": "readiness",
+   "in_force": "aia-readiness-1",
+   "note_cs": "Meze, které kontrola připravenosti čte: velikost vzorku a počet položek ve sledované sadě. Základ z kódu jsou hodnoty 18.6.6. Verze v platnosti platí pro kontrolu každé studie od aktivace; běh, který už začal, si své meze nese a nemění se. Nejmenší n páru pro Sociomapu se upravuje v oblasti Sociomapa.",
+   "presets": [
+    "aia-readiness-1"
+   ],
+   "steps": 3,
+   "title_cs": "Připravenost studie: kdy lze běh spustit"
   }
  ],
  "presets": {
@@ -10751,6 +11139,21 @@
     },
     "methodology_version": "aia-aggregate-1",
     "top_box": 2
+   }
+  },
+  "readiness": {
+   "aia-readiness-1": {
+    "methodology_version": "aia-readiness-1",
+    "sample_size": {
+     "max": 10000,
+     "min": 20
+    },
+    "tracked_set": {
+     "max": 40,
+     "min": 3,
+     "recommended_max": 15,
+     "recommended_min": 4
+    }
    }
   },
   "response": {
