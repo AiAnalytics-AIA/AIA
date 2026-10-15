@@ -1,0 +1,101 @@
+# GlitchTip: AIA's error tracker on the develop host (.planning/plans/error-tracking.md).
+#
+#   glitchtip     GlitchTip 6.2.6, all-in-one (web + task worker in one process),
+#                 Postgres-only: no Valkey (VALKEY_URL empty). Reached by Caddy at
+#                 errors.<public hostname>, and by the API and the worker on the
+#                 product's internal network as glitchtip:8000.
+#   glitchtip-db  its own PostgreSQL 16 on its own volume and network: GlitchTip's
+#                 partitions take lock slots instance-wide (it asks for
+#                 max_locks_per_transaction=512) and its ingest is bursty, so none of
+#                 that lands on AIA's database.
+#
+# A Compose project of its own (aia-errors), started by bin/errors.sh -- by hand, and
+# by bin/deploy.sh at the end of a deploy when AIA_ERRORS_ENABLED is true. Nothing of
+# AIA's stack depends on it: a deploy never waits on it, and AIA runs the same whether
+# this is up, down or absent (the reporters are off without a DSN and drop events
+# they cannot send).
+#
+# Configuration from the host's .env (bin/write-env.sh, SSM /aia/develop/*):
+# glitchtip_secret_key and glitchtip_db_password as SecureString. Events are kept 30
+# days and are not in bin/backup.sh: they are operational, and rebuilt by the next
+# failure.
+
+name: aia-errors
+
+services:
+  glitchtip:
+    image: glitchtip/glitchtip:6.2.6
+    restart: unless-stopped
+    command: ["./bin/start.sh"]
+    environment:
+      SERVER_ROLE: all_in_one
+      DATABASE_URL: postgres://glitchtip:${GLITCHTIP_DB_PASSWORD:?SSM glitchtip_db_password}@glitchtip-db:5432/glitchtip
+      VALKEY_URL: ""
+      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:?SSM glitchtip_secret_key}
+      GLITCHTIP_DOMAIN: https://errors.${AIA_PUBLIC_HOSTNAME:?}
+      # The public name for people, `glitchtip` for the API and the worker inside.
+      ALLOWED_HOSTS: errors.${AIA_PUBLIC_HOSTNAME},glitchtip
+      CSRF_TRUSTED_ORIGINS: https://errors.${AIA_PUBLIC_HOSTNAME}
+      # Accounts are made by an operator (README § Error tracking), never by a visitor.
+      ENABLE_USER_REGISTRATION: "false"
+      ENABLE_ORGANIZATION_CREATION: "false"
+      GLITCHTIP_MAX_EVENT_LIFE_DAYS: "30"
+      # Errors only: no uptime monitors, no log ingestion (CloudWatch has the logs).
+      GLITCHTIP_ENABLE_UPTIME: "false"
+      GLITCHTIP_ENABLE_LOGS: "false"
+      DEFAULT_FROM_EMAIL: errors@${AIA_PUBLIC_HOSTNAME}
+      # No SMTP route on the host yet: e-mail is written to the log. Alerts go by webhook.
+      EMAIL_BACKEND: django.core.mail.backends.console.EmailBackend
+      GRANIAN_WORKERS: "1"
+      # Recycle the web worker before the container's limit, never at it.
+      GRANIAN_WORKERS_MAX_RSS: "640"
+      PORT: "8000"
+    expose: ["8000"]
+    depends_on:
+      glitchtip-db:
+        condition: service_healthy
+    networks: [aia, errors]
+    mem_limit: 900m
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD-SHELL", "python3 /code/healthcheck.py || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      # The first start migrates an empty database.
+      start_period: 180s
+    logging: &logging
+      driver: json-file
+      options: { max-size: "20m", max-file: "3" }
+
+  glitchtip-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    command: ["postgres", "-c", "max_locks_per_transaction=512"]
+    environment:
+      POSTGRES_USER: glitchtip
+      POSTGRES_PASSWORD: ${GLITCHTIP_DB_PASSWORD:?SSM glitchtip_db_password}
+      POSTGRES_DB: glitchtip
+    # No `ports:`: reachable from GlitchTip alone, on the errors network.
+    volumes:
+      - glitchtip_db:/var/lib/postgresql/data
+    networks: [errors]
+    mem_limit: 384m
+    shm_size: 128m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U glitchtip -d glitchtip"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    logging: *logging
+
+networks:
+  # The product's internal network (deploy/develop/docker-compose.yml), so Caddy, the
+  # API and the worker reach glitchtip:8000. Created by the product stack, never here.
+  aia:
+    name: aia-develop_internal
+    external: true
+  errors:
+
+volumes:
+  glitchtip_db:

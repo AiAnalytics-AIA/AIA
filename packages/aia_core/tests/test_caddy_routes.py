@@ -196,3 +196,30 @@ def test_the_api_elsewhere_is_refused(routes: Any) -> None:
     product(config)[at(config, "/api/v1/*")] = sub(["/api/v1/*"], proxy("web:3000"))
     problems = routes.check(config)
     assert any(p.startswith("/api/v1/* must be the API") for p in problems)
+
+
+def _with_errors_site(config: dict[str, Any], *dials: str) -> dict[str, Any]:
+    errors = site("errors.aia.example.test", [sub(None, *(proxy(d) for d in dials))])
+    config["apps"]["http"]["servers"]["srv0"]["routes"].append(errors)
+    return config
+
+
+def test_glitchtip_on_its_own_name_passes(routes: Any) -> None:
+    # Plan error-tracking: errors.<product hostname> is the one other site, GlitchTip's.
+    assert routes.check(_with_errors_site(good(), "glitchtip:8000")) == []
+
+
+@pytest.mark.parametrize("dials", [("api:8000",), ("web:3000",), ("glitchtip:8000", UNIT)])
+def test_the_errors_name_reaching_anything_but_glitchtip_is_refused(
+    routes: Any, dials: tuple[str, ...]
+) -> None:
+    problems = routes.check(_with_errors_site(good(), *dials))
+    assert any("must reach GlitchTip (glitchtip:8000) and nothing else" in p for p in problems)
+
+
+def test_glitchtip_on_another_name_is_refused(routes: Any) -> None:
+    config = good()
+    other = site("glitchtip.example.test", [sub(None, proxy("glitchtip:8000"))])
+    config["apps"]["http"]["servers"]["srv0"]["routes"].append(other)
+    problems = routes.check(config)
+    assert any("serves another hostname: ['glitchtip.example.test']" in p for p in problems)

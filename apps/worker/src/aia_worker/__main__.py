@@ -20,7 +20,9 @@ import signal
 import sys
 from types import FrameType
 
+from aia_core.infrastructure import error_tracking
 from aia_core.infrastructure.db import create_app_engine, create_session_factory
+from aia_core.infrastructure.error_tracking import ErrorTrackingSettings
 
 from .observability import configure_logging
 from .registry import load_executors
@@ -46,11 +48,14 @@ def main() -> int:
     """Run a worker until signalled. Returns the process exit code."""
     try:
         settings = WorkerSettings.from_env()
+        reporting = ErrorTrackingSettings.from_env("worker")
     except ValueError as error:
         print(str(error), file=sys.stderr)
         return 2
 
     configure_logging(worker_id=settings.worker_id, level=os.environ.get("AIA_LOG_LEVEL", "INFO"))
+    # After logging: the reporter adds its handler beside the JSON one. Off without a DSN.
+    error_tracking.init(reporting)
     try:
         executors = load_executors(settings.executors)
     except (ImportError, ValueError) as error:
@@ -70,6 +75,7 @@ def main() -> int:
         worker.run_forever()
     finally:
         engine.dispose()
+        error_tracking.close()
     return 0
 
 

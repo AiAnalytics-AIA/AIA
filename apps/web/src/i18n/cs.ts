@@ -1967,6 +1967,14 @@ export const cs = {
           ab_test: "Test A/B konceptů",
         },
       },
+      // Plan run-recovery-and-truth 3e: the links a questionnaire proposal brings with it.
+      proposed: {
+        title: "Výzkumné otázky v návrhu",
+        measures: "Měří: {list}",
+        unmeasured: "Návrh ji ničím neměří.",
+        answer: "Odpověď: {kind}",
+        dropped: "AIA zahodila vazby na otázky, které zadání neuvádí: {count}.",
+      },
       // Plan run-recovery-and-truth 3b: which research question an item measures.
       links: {
         label: "Odpovídá na výzkumné otázky",
@@ -2669,6 +2677,13 @@ export const cs = {
     missing:
       "Co AIA zatím nemá, říká tam, kde to potkáte, například simulace, ověření a další krok výzkumu, Data Library, klientský report nebo filtry publika z panelu.",
     openAia: "Otevřít AIA",
+  },
+  pageError: {
+    title: "Tuto stránku se nepodařilo zobrazit",
+    text: "Chyba byla zaznamenána a tým AIA ji uvidí. Zkuste stránku načíst znovu; vaše uložená práce zůstává v AIA.",
+    reference: "Číslo chyby:",
+    retry: "Zkusit znovu",
+    home: "Zpět na klienty",
   },
   dialog: {
     ok: "OK",

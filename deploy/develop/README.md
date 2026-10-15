@@ -250,6 +250,72 @@ agent ships them to the log group `/aia/develop` (`infra/develop`).
 
 Host: `journalctl -u docker`, `journalctl -u aia-backup.service`, `df -h /`.
 
+## Error tracking
+
+GlitchTip (self-hosted, `errors/docker-compose.yml`) collects what broke, grouped into
+issues, with the build, the environment and where it happened. It speaks Sentry's
+protocol; the plan is `.planning/plans/error-tracking.md`.
+
+| From | What becomes an issue | Tags to search by |
+|---|---|---|
+| API | an unhandled exception (the 500 a person saw), any 5xx | `request_id`, `route` |
+| Worker | a step left `FAILED` (one issue per step kind, failure class and cause), an unclassified exception, an outcome that could not be recorded, a loop or sweep that raised | `run_id`, `step_id`, `attempt_id`, `step_kind`, `failure_class`, `study_id` |
+| Browser | an uncaught error, an unhandled rejection, a page that crashed while rendering | `boundary`, `digest` |
+
+Never an issue: a 4xx, a retry that later succeeds, a park, a gate, a budget stop, a quota
+wait, a cancellation. Every event is scrubbed before it leaves (secret shapes by key and
+value, no bodies, cookies, query strings, local variables or user); events are kept 30
+days. An issue's `request_id` or `run_id` opens its log lines in CloudWatch:
+
+```
+fields @timestamp, level, message, step_id
+| filter run_id = "RUN-…"      # or request_id = "…"
+| sort @timestamp asc
+```
+
+### Turning it on (once)
+
+1. **DNS:** an A record for `errors.<public hostname>` to the host's address (Terraform
+   output `public_ip`; Terraform makes it when `route53_zone_id` is set). Caddy obtains
+   the certificate itself.
+2. **Secrets**, from CloudShell (hex only: the database password sits in a URL):
+
+   ```bash
+   P=/aia/develop
+   aws ssm put-parameter --name $P/glitchtip_secret_key --type SecureString --value "$(openssl rand -hex 32)"
+   aws ssm put-parameter --name $P/glitchtip_db_password --type SecureString --value "$(openssl rand -hex 24)"
+   aws ssm put-parameter --name $P/aia_errors_enabled --type String --value true
+   ```
+
+3. **Start it**, on the host: `bin/write-env.sh && bin/errors.sh up` (the first start
+   migrates an empty database: a minute or two). Then `bin/errors.sh admin <your email>`
+   makes the first account; sign in at `https://errors.<public hostname>`.
+4. **Projects**, in GlitchTip: an organization `AIA`, then a project `aia-backend`
+   (Python; the API and the worker, told apart by the `service` tag) and `aia-web`
+   (JavaScript). Each shows its DSN under Settings → Client Keys.
+5. **DSNs**: the backend's with its host replaced by `glitchtip:8000` over `http` (the API
+   and the worker send inside the host); the web's as shown (browsers send to the public
+   name):
+
+   ```bash
+   aws ssm put-parameter --name $P/aia_error_tracking_dsn --type String --value "http://<key>@glitchtip:8000/<id>"
+   aws ssm put-parameter --name $P/aia_web_error_tracking_dsn --type String --value "https://<key>@errors.<public hostname>/<id>"
+   ```
+
+   Then `bin/write-env.sh && docker compose up -d api worker web`. A malformed backend
+   DSN stops the API and the worker from starting (said in their log); a malformed web
+   DSN turns the browser's reporting off and says so in the web's log.
+6. **Alerts**: in each project, Alerts → a webhook (Slack, Discord, Google Chat or any
+   URL). E-mail needs an SMTP route the host does not have yet.
+
+From then on every deploy starts or updates GlitchTip after AIA is healthy
+(`aia_errors_enabled`); a GlitchTip that will not start is said and does not fail the
+deploy. Off: delete the two DSN parameters (AIA stops reporting) and
+`bin/errors.sh down` (its database volume is kept).
+
+`bin/errors.sh status` shows its two services. GlitchTip's events are not in
+`bin/backup.sh`: they are operational, and the next failure rebuilds them.
+
 ## Database
 
 **Connect** (debugging only; the port is not published anywhere):

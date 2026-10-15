@@ -28,14 +28,12 @@ from .deep_research.agents import prompt_for as deep_research_prompt_for
 from .deep_research.agents import prompt_version_for as deep_research_prompt_version
 from .prompts import PromptPin, validate_prompt_text
 from .research_agents import (
-    BASELINE_PROMPT_VERSION as RESEARCH_PROMPT_VERSION,
-)
-from .research_agents import (
     FIXED_PREFIX as RESEARCH_FIXED_PREFIX,
 )
 from .research_agents import (
     ResearchAction,
     baseline_task,
+    prompt_version_for,
 )
 
 __all__ = [
@@ -94,7 +92,7 @@ def _research_slots() -> list[PromptSlot]:
         PromptSlot(
             prompt_id=f"aia.research.{action.value}",
             family="research_agents",
-            baseline_version=RESEARCH_PROMPT_VERSION,
+            baseline_version=prompt_version_for(action),
             baseline_text=baseline_task(action),
             fixed_prefix=RESEARCH_FIXED_PREFIX,
             # The build prompt names the placeholder the questionnaire contract validates.

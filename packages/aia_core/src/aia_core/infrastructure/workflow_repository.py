@@ -42,10 +42,18 @@ from ..domain.population import (
 )
 from ..domain.providers import Provider, is_paid
 from ..domain.scope import (
+    CLIENT_WORK_PROJECT_OWNER,
     ApprovalIndependence,
+    ClientContext,
+    ClientPermission,
+    ClientWorkContext,
     Permission,
+    ScopeDenied,
+    SelfApprovalPolicy,
     StudyContext,
+    WorkScope,
     observe_approval_independence,
+    payer_study_id,
     require_approval_independence,
 )
 from ..domain.workflow import (
@@ -79,6 +87,8 @@ from ..domain.workflow import (
 from .tables import (
     ApprovalDecisionRow,
     BudgetReservationRow,
+    ClientRow,
+    ProjectRow,
     RunPopulationBindingRow,
     StepAttemptRow,
     StepDependencyRow,
@@ -234,7 +244,8 @@ class ClaimedWork:
     worker_id: str
     organization_id: str
     client_id: str
-    study_id: str
+    #: None: a run on the client's own work, paid by the client (client-budget CB2).
+    study_id: str | None
 
 
 class WorkflowRepository:
@@ -245,14 +256,14 @@ class WorkflowRepository:
     reservation and the state change be one atomic unit.
     """
 
-    def __init__(self, session: Session, scope: StudyContext) -> None:
-        if not isinstance(scope, StudyContext):
+    def __init__(self, session: Session, scope: WorkScope) -> None:
+        if not isinstance(scope, StudyContext | ClientWorkContext):
             raise TypeError(
-                "WorkflowRepository requires a StudyContext issued by the "
-                "authorization layer; unscoped access is not permitted"
+                "WorkflowRepository requires a StudyContext or ClientWorkContext issued by "
+                "the authorization layer; unscoped access is not permitted"
             )
         self._session = session
-        self._scope: StudyContext | None = scope
+        self._scope: WorkScope | None = scope
 
     @classmethod
     def _across_studies(cls, session: Session) -> WorkflowRepository:
@@ -271,9 +282,37 @@ class WorkflowRepository:
 
     @property
     def scope(self) -> StudyContext:
-        """The authorised scope this repository operates in."""
+        """The authorised study scope this repository operates in.
+
+        Everything about a study -- starting, listing, approving, lifting its budget --
+        reads this, so a repository over the client's own work (a
+        :class:`ClientWorkContext`) refuses all of it by name rather than act on a study
+        it does not have.
+        """
         if self._scope is None:
             raise RuntimeError("this repository is the unscoped work queue and has no study scope")
+        if not isinstance(self._scope, StudyContext):
+            raise ScopeDenied("client work has no study", reason="client_work_scope")
+        return self._scope
+
+    def _require_client_work_project(self, scope: ClientWorkContext, project_id: str) -> None:
+        project = self._session.scalar(
+            select(ProjectRow).where(
+                ProjectRow.project_id == project_id,
+                ProjectRow.organization_id == scope.organization_id,
+                ProjectRow.client_id == scope.client_id,
+                ProjectRow.study_id.is_(None),
+                ProjectRow.owner == CLIENT_WORK_PROJECT_OWNER,
+            )
+        )
+        if project is None:
+            raise WorkflowNotFound(project_id)
+
+    @property
+    def _work_scope(self) -> WorkScope:
+        """The scope an attempt's own writes run under: a study's, or the client's work."""
+        if self._scope is None:
+            raise RuntimeError("this repository is the unscoped work queue and has no scope")
         return self._scope
 
     # ---------------------------------------------------------------- helpers --
@@ -285,10 +324,17 @@ class WorkflowRepository:
         """
         if self._scope is None:
             return ()
+        if isinstance(self._scope, ClientWorkContext):
+            # The client's own work: its runs name no study, so no study's run is in scope.
+            return (
+                WorkflowRunRow.organization_id == self._scope.organization_id,
+                WorkflowRunRow.client_id == self._scope.client_id,
+                WorkflowRunRow.study_id.is_(None),
+            )
         return (
-            WorkflowRunRow.organization_id == self.scope.organization_id,
-            WorkflowRunRow.client_id == self.scope.client_id,
-            WorkflowRunRow.study_id == self.scope.study_id,
+            WorkflowRunRow.organization_id == self._scope.organization_id,
+            WorkflowRunRow.client_id == self._scope.client_id,
+            WorkflowRunRow.study_id == self._scope.study_id,
         )
 
     def _run(self, run_id: str) -> WorkflowRunRow:
@@ -438,8 +484,13 @@ class WorkflowRepository:
         refused rather than handed the old run: that would silently substitute
         the recorded population for the one the caller asked for.
         """
-        self.scope.require(Permission.RUN_WORKFLOW)
-        self.scope.require_open_study()
+        scope = self._work_scope
+        scope.require(Permission.RUN_WORKFLOW)
+        if isinstance(scope, StudyContext):
+            scope.require_open_study()
+        else:
+            # The client's own work runs only in the client's own project.
+            self._require_client_work_project(scope, project_id)
 
         existing = self._session.scalar(
             select(WorkflowRunRow).where(
@@ -463,16 +514,16 @@ class WorkflowRepository:
         self._session.add(
             WorkflowRunRow(
                 run_id=run_id,
-                organization_id=self.scope.organization_id,
-                client_id=self.scope.client_id,
-                study_id=self.scope.study_id,
+                organization_id=scope.organization_id,
+                client_id=scope.client_id,
+                study_id=payer_study_id(scope),
                 project_id=project_id,
                 project_revision=int(project_revision),
                 workflow_type=workflow_type,
                 status=WorkflowRunStatus.PENDING.value,
                 priority=int(priority),
                 idempotency_key=idempotency_key,
-                triggered_by=self.scope.actor_id,
+                triggered_by=scope.actor_id,
                 metadata_json=metadata or {},
             )
         )
@@ -1004,11 +1055,22 @@ class WorkflowRepository:
 
     # ------------------------------------------------------- budget and costs --
 
-    def _outstanding_reservations(self, study_id: str) -> float:
-        """Sum of reservations still holding budget."""
+    def _outstanding_reservations(self, *, client_id: str, study_id: str | None) -> float:
+        """Sum of reservations still holding the payer's budget.
+
+        The payer is the study, or, with ``study_id`` None, the client's own budget
+        (client-budget CB2): a study's holds never count against the client's, nor
+        the client's against any study's.
+        """
+        payer = (
+            BudgetReservationRow.study_id == study_id
+            if study_id is not None
+            else (BudgetReservationRow.client_id == client_id)
+            & BudgetReservationRow.study_id.is_(None)
+        )
         total = self._session.scalar(
             select(func.coalesce(func.sum(BudgetReservationRow.amount_usd), 0.0)).where(
-                BudgetReservationRow.study_id == study_id,
+                payer,
                 BudgetReservationRow.status == ReservationStatus.RESERVED.value,
             )
         )
@@ -1087,35 +1149,44 @@ class WorkflowRepository:
         self, *, attempt_id: str, worker_id: str, amount_usd: float, payee: str, reason: str
     ) -> str:
         """The locked check and the hold behind both kinds of reservation."""
-        # Attempt before study: every path that locks both takes them in this
+        # Attempt before payer: every path that locks both takes them in this
         # order -- completion and recovery lock the attempt, then charge the
-        # study -- so no two of them can wait on each other in a cycle.
+        # payer -- so no two of them can wait on each other in a cycle.
         attempt = self._held_attempt(attempt_id, worker_id=worker_id)
         step = self._step(attempt.step_id)
         run = self._run(step.run_id)
 
-        study_query = select(StudyRow).where(StudyRow.study_id == run.study_id)
-        if self._is_postgres:
-            # Blocking, NOT skip_locked: a concurrent reserver must wait and then
-            # re-read the total, never skip the check.
-            study_query = study_query.with_for_update()
-
-        study = self._session.scalar(study_query)
-        if study is None:
-            raise WorkflowNotFound(run.study_id)
+        # The payer: the run's study, or, for a run on the client's own work, the
+        # client (client-budget CB2). Its row is locked for the check.
+        payer: StudyRow | ClientRow | None
+        if run.study_id is not None:
+            study_query = select(StudyRow).where(StudyRow.study_id == run.study_id)
+            if self._is_postgres:
+                # Blocking, NOT skip_locked: a concurrent reserver must wait and then
+                # re-read the total, never skip the check.
+                study_query = study_query.with_for_update()
+            payer = self._session.scalar(study_query)
+        else:
+            client_query = select(ClientRow).where(ClientRow.client_id == run.client_id)
+            if self._is_postgres:
+                client_query = client_query.with_for_update()
+            payer = self._session.scalar(client_query)
+        if payer is None:
+            raise WorkflowNotFound(run.study_id or run.client_id)
 
         requested = max(0.0, float(amount_usd))
-        outstanding = self._outstanding_reservations(run.study_id)
-        remaining = max(0.0, study.budget_usd - study.spent_usd - outstanding)
+        outstanding = self._outstanding_reservations(client_id=run.client_id, study_id=run.study_id)
+        remaining = max(0.0, payer.budget_usd - payer.spent_usd - outstanding)
 
         # Epsilon so an exact-limit reservation is permitted despite float drift.
         if requested > remaining + 1e-9:
-            raise BudgetExceeded(requested=requested, remaining=remaining, limit=study.budget_usd)
+            raise BudgetExceeded(requested=requested, remaining=remaining, limit=payer.budget_usd)
 
         reservation_id = new_reservation_id()
         self._session.add(
             BudgetReservationRow(
                 reservation_id=reservation_id,
+                client_id=run.client_id,
                 study_id=run.study_id,
                 run_id=run.run_id,
                 step_id=step.step_id,
@@ -1234,7 +1305,7 @@ class WorkflowRepository:
             reservation.status = ReservationStatus.SETTLED.value
             reservation.settled_amount_usd = actual
             reservation.settled_at = utcnow()
-            self._charge_study(reservation.study_id, actual)
+            self._charge(reservation, actual)
         self._session.flush()
         attempt.paid_call_outcome_known = self._paid_call_outcome_known(attempt)
         self._session.flush()
@@ -1288,7 +1359,7 @@ class WorkflowRepository:
         reservation.status = ReservationStatus.SETTLED.value
         reservation.settled_amount_usd = actual
         reservation.settled_at = utcnow()
-        self._charge_study(reservation.study_id, actual)
+        self._charge(reservation, actual)
         self._session.flush()
 
     def release_reservation(self, reservation_id: str, *, reason: str = "") -> None:
@@ -1339,7 +1410,7 @@ class WorkflowRepository:
             reservation.reason = "paid_external_call_side_effect_uncertain"
             # The reservation's own study, not this repository's: the cross-study
             # work queue recovers attempts without a study scope of its own.
-            self._charge_study(reservation.study_id, amount)
+            self._charge(reservation, amount)
 
         if exposure:
             attempt.actual_cost_usd = float(attempt.actual_cost_usd or 0.0) + exposure
@@ -1382,16 +1453,16 @@ class WorkflowRepository:
         )
         unbilled = max(0.0, float(attempt.actual_cost_usd or 0.0) - charged)
 
-        study_id: str | None = None
+        payer: BudgetReservationRow | None = None
         for reservation in reservations:
             if reservation.status != ReservationStatus.RESERVED.value:
                 continue
-            study_id = reservation.study_id
+            payer = reservation
             reservation.settled_at = utcnow()
             if unbilled > 1e-12:
                 reservation.status = ReservationStatus.SETTLED.value
                 reservation.settled_amount_usd = unbilled
-                self._charge_study(reservation.study_id, unbilled)
+                self._charge(reservation, unbilled)
                 unbilled = 0.0
             else:
                 reservation.status = ReservationStatus.RELEASED.value
@@ -1401,7 +1472,9 @@ class WorkflowRepository:
         if unbilled > 1e-12:
             # Known spend with no reservation behind it -- a cost reported at
             # completion for work that reserved nothing. Charged, not dropped.
-            if study_id is None:
+            if payer is not None:
+                self._charge(payer, unbilled)
+            else:
                 step = self._session.scalar(
                     select(StepRunRow).where(StepRunRow.step_id == attempt.step_id)
                 )
@@ -1412,10 +1485,28 @@ class WorkflowRepository:
                     if step is not None
                     else None
                 )
-                study_id = run.study_id if run is not None else None
-            if study_id is not None:
-                self._charge_study(study_id, unbilled)
+                if run is not None:
+                    self._charge(run, unbilled)
         return 0.0
+
+    def _charge(self, payer: BudgetReservationRow | WorkflowRunRow, amount_usd: float) -> None:
+        """Add to the recorded spend of whoever pays for ``payer``, atomically.
+
+        A hold or run with a study charges the study; one without charges the client's
+        own budget (client-budget CB2). The same atomic increment either way.
+        """
+        if payer.study_id is not None:
+            self._charge_study(payer.study_id, amount_usd)
+            return
+        amount = max(0.0, float(amount_usd))
+        if not amount:
+            return
+        self._session.execute(
+            update(ClientRow)
+            .where(ClientRow.client_id == payer.client_id)
+            .values(spent_usd=ClientRow.spent_usd + amount)
+            .execution_options(synchronize_session="fetch")
+        )
 
     def _charge_study(self, study_id: str, amount_usd: float) -> None:
         """Add to a study's recorded spend, atomically.
@@ -1461,7 +1552,9 @@ class WorkflowRepository:
         if study is None:
             raise WorkflowNotFound(self.scope.study_id)
 
-        reserved = self._outstanding_reservations(self.scope.study_id)
+        reserved = self._outstanding_reservations(
+            client_id=self.scope.client_id, study_id=self.scope.study_id
+        )
         uncertain = self._session.scalar(
             select(func.coalesce(func.sum(BudgetReservationRow.settled_amount_usd), 0.0)).where(
                 BudgetReservationRow.study_id == self.scope.study_id,
@@ -2032,6 +2125,63 @@ class WorkflowRepository:
         makes a second lift a no-op, and when the run is being cancelled.
         """
         self.scope.require(Permission.APPROVE_BUDGET)
+        self._resume_budget_wait(
+            step_id,
+            note=note,
+            budget_before=budget_before,
+            budget_after=budget_after,
+            actor_id=self.scope.actor_id,
+            study_id=self.scope.study_id,
+            policy=self.scope.self_approval,
+            request_id=self.scope.request_id,
+        )
+
+    def resume_client_budget_wait(
+        self,
+        approver: ClientContext,
+        step_id: str,
+        *,
+        note: str = "",
+        budget_before: float,
+        budget_after: float,
+    ) -> None:
+        """:meth:`resume_budget_wait` for the client's own work (client-budget CB4).
+
+        The repository's scope is the client's work; the person lifting is ``approver``,
+        who must hold ``MANAGE_CLIENT_BUDGET`` on the same client. The decision is the
+        same ``budget`` approval, naming the client and no study.
+        """
+        scope = self._work_scope
+        if not isinstance(scope, ClientWorkContext) or (
+            approver.organization_id,
+            approver.client_id,
+        ) != (scope.organization_id, scope.client_id):
+            raise ScopeDenied("not found", reason="scope_mismatch")
+        approver.require(ClientPermission.MANAGE_CLIENT_BUDGET)
+        self._resume_budget_wait(
+            step_id,
+            note=note,
+            budget_before=budget_before,
+            budget_after=budget_after,
+            actor_id=approver.actor_id,
+            study_id=None,
+            policy=approver.self_approval,
+            request_id=approver.request_id,
+        )
+
+    def _resume_budget_wait(
+        self,
+        step_id: str,
+        *,
+        note: str,
+        budget_before: float,
+        budget_after: float,
+        actor_id: str,
+        study_id: str | None,
+        policy: SelfApprovalPolicy,
+        request_id: str | None,
+    ) -> None:
+        """The lift itself, once the caller has established who may lift and for whom."""
         step = self._step(step_id)
         self._lock_run_for(step)
         run = self._run(step.run_id)
@@ -2043,14 +2193,14 @@ class WorkflowRepository:
 
         independence = observe_approval_independence(
             producer_user_id=run.triggered_by,
-            approving_user_id=self.scope.actor_id,
-            policy=self.scope.self_approval,
+            approving_user_id=actor_id,
+            policy=policy,
         )
         self._session.add(
             ApprovalDecisionRow(
-                organization_id=self.scope.organization_id,
-                client_id=self.scope.client_id,
-                study_id=self.scope.study_id,
+                organization_id=run.organization_id,
+                client_id=run.client_id,
+                study_id=study_id,
                 subject_type="budget",
                 subject_id=step_id,
                 run_id=step.run_id,
@@ -2058,7 +2208,7 @@ class WorkflowRepository:
                 gate_type="budget",
                 decision="lift",
                 comment=note,
-                request_id=self.scope.request_id,
+                request_id=request_id,
                 **independence.audit_fields(),
             )
         )
@@ -2074,7 +2224,7 @@ class WorkflowRepository:
             ),
             payload={
                 "from": StepRunStatus.AWAITING_BUDGET.value,
-                "actor_id": self.scope.actor_id,
+                "actor_id": actor_id,
                 "budget_before_usd": budget_before,
                 "budget_after_usd": budget_after,
                 "note": note,
@@ -2390,7 +2540,7 @@ class WorkflowRepository:
                 question=question,
                 options_json={"options": list(options)},
                 context_json=context or {},
-                produced_by_user_id=produced_by_user_id or self.scope.actor_id,
+                produced_by_user_id=produced_by_user_id or self._work_scope.actor_id,
             )
         )
         step.status = StepRunStatus.AWAITING_GATE.value
