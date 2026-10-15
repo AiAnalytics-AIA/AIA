@@ -112,6 +112,17 @@ names exactly `aia_executors.ai_runtime`, `aia_executors.deep_research_live` and
   contract stayed KEPT. `aia_core.infrastructure.*` reports it; that wildcard leaves
   out `aia_core/__init__.py` and `aia_core/infrastructure/__init__.py`, now a grep
   rule. Belongs in AGENTS.md (below).
+  *Not the 2.12 overlap limitation.* Codex's later finding (the minimum raised to
+  2.12, `packages/aia_core/pyproject.toml`) looked like the same problem, so the
+  plain source was re-tested with the same probe: still `1 kept, 0 broken` under
+  import-linter 2.12 and 2.15 (clean venvs, 2026-10-15), and an
+  `infrastructure/__init__.py` import of `.model_adapters` is missed too. 2.12 made
+  the overlapping configuration *valid* (2.11 rejects even the clean tree:
+  `0 kept, 1 broken`, flagging model_adapters' own imports); it did not make an
+  import from the source package into its own descendant *visible*. The likely
+  mechanism (hypothesis, not read in import-linter's source): an import between
+  two modules of the same source package is treated as internal to that source.
+  The wildcard and the `__init__` grep rule stay.
 - **F6. A docs-only PR cannot change what lint-imports or the grep rules read.**
   The `changes` job (`.github/workflows/ci.yml:62-66 @ 5d545eb`) sets `code=false`
   only when every changed path matches `.planning/*`, `docs/architecture/adr/*`,
