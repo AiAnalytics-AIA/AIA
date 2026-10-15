@@ -825,6 +825,28 @@ jobs:
           services="$(docker compose --env-file placeholder.env -f deploy/develop/docker-compose.yml config --services | sort | tr '\n' ' ')"
           test "$services" = "api caddy postgres web worker " || { echo "::error::product services: $services"; exit 1; }
 
+      - name: Validate GlitchTip's Compose project
+        run: |
+          # deploy/develop/errors: GlitchTip and its own database, a project of its own on
+          # the product's network (plan error-tracking). Its two secrets are required.
+          if docker compose --env-file placeholder.env -f deploy/develop/errors/docker-compose.yml config -q 2>/dev/null; then
+            echo "::error::GlitchTip's project starts without its secrets"; exit 1
+          fi
+          printf 'GLITCHTIP_DB_PASSWORD=placeholder\nGLITCHTIP_SECRET_KEY=placeholder\n' > errors.env
+          cat placeholder.env >> errors.env
+          docker compose --env-file errors.env -f deploy/develop/errors/docker-compose.yml config -q
+          # The product's services are told where to report only through these two keys.
+          AIA_ERROR_TRACKING_DSN=http://k@glitchtip:8000/1 AIA_WEB_ERROR_TRACKING_DSN=https://k@errors.aia.example.test/2 \
+            docker compose --env-file placeholder.env -f deploy/develop/docker-compose.yml config --format json > composed.json
+          python3 - <<'PY'
+          import json
+          env = {name: s["environment"] for name, s in json.load(open("composed.json"))["services"].items()}
+          assert env["api"]["AIA_ERROR_TRACKING_DSN"] == "http://k@glitchtip:8000/1"
+          assert env["worker"]["AIA_ERROR_TRACKING_DSN"] == "http://k@glitchtip:8000/1"
+          assert env["web"]["AIA_WEB_ERROR_TRACKING_DSN"] == "https://k@errors.aia.example.test/2"
+          assert "AIA_ERROR_TRACKING_DSN" not in env["web"], "the backend DSN stays inside"
+          PY
+
       - name: Caddy loads through Compose
         run: |
           # The same check bin/deploy.sh makes before it replaces anything (run 10,
