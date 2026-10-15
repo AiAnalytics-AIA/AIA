@@ -180,6 +180,18 @@ jobs:
           alembic downgrade base
           alembic upgrade head
 
+      - name: Every test tree collects in one session
+        # The SQLite step below runs all four trees in one pytest session and only
+        # on a push to develop. Two test modules with one basename in different
+        # trees collect apart but not together ("import file mismatch"), and the
+        # collection error then runs no test at all. 3f7fc500 did exactly that and
+        # was found only after it merged. Collection alone takes about 16 s.
+        env:
+          DATABASE_URL: ""
+        run: >-
+          pytest packages/aia_core apps/api apps/worker apps/executors -q --collect-only
+          --junit-xml=tmp/junit/collect.xml -o junit_family=xunit1
+
       # Every pytest step writes JUnit XML. tools/parity_status.py reads it to
       # tell a parity gate that passed from one that was skipped or never
       # collected -- the exit code alone cannot, which is how 94 skipped parity
