@@ -574,11 +574,13 @@ jobs:
 
           # A client-derived resource outside a study prefix would mean scope is
           # no longer carried in the path, which is how isolation gets lost.
+          # The one other scope: the client's own work (client-budget), which by
+          # design names no study and carries its client in the path instead.
           unscoped = [
               p
               for p in paths
               if any(k in p for k in ("/projects", "/runs", "/artifacts", "/agent-jobs"))
-              and not p.startswith("/api/v1/studies/")
+              and not p.startswith(("/api/v1/studies/", "/api/v1/clients/{client_id}/work/"))
           ]
           if unscoped:
               sys.exit(f"project routes must sit under a study scope: {unscoped}")
