@@ -51,6 +51,47 @@ ignore_missing_imports = true
 module = ["openpyxl", "openpyxl.*"]
 ignore_missing_imports = true
 
+# Import contracts, checked by `lint-imports` from `make layer_check`
+# (tools/layer_check.sh is the grep half; this is the import-graph half, for a rule
+# a grep cannot state exactly). ARCHITECTURE.md §3.
+[tool.importlinter]
+root_packages = ["aia_core", "aia_api", "aia_worker", "aia_executors"]
+include_external_packages = false
+
+# ADR 0005: a model call goes through GovernedModelGateway, which an executor
+# composition builds over an adapter. The adapters are therefore imported by the
+# three compositions that build a route and by nothing else -- not the gateway,
+# which receives them through its protocol, not the API, not a web route. An
+# import anywhere else is a second model-call path the gateway never sees.
+# Direct imports only: a module that imports a composition (the registry, a test
+# harness) reaches the adapters through the composition, which is the point.
+# "aia_core.infrastructure.*", not the package: a source that contains the
+# forbidden package finds no chain to it, and an infrastructure module's import
+# went unreported (measured). The two __init__ modules the wildcard leaves out are
+# a grep rule in tools/layer_check.sh. Every ignore below must match an import, or
+# lint-imports fails: an allowance outlives nothing it was for.
+[[tool.importlinter.contracts]]
+name = "only the executor compositions import the model adapters (ADR 0005)"
+type = "forbidden"
+source_modules = [
+    "aia_core.domain",
+    "aia_core.application",
+    "aia_core.infrastructure.*",
+    "aia_api",
+    "aia_worker",
+    "aia_executors",
+]
+forbidden_modules = ["aia_core.infrastructure.model_adapters"]
+allow_indirect_imports = true
+ignore_imports = [
+    "aia_core.infrastructure.model_adapters.** -> aia_core.infrastructure.model_adapters.**",
+    "aia_executors.ai_runtime -> aia_core.infrastructure.model_adapters.**",
+    "aia_executors.ai_runtime -> aia_core.infrastructure.model_adapters",
+    "aia_executors.deep_research_live -> aia_core.infrastructure.model_adapters.**",
+    "aia_executors.deep_research_runtime -> aia_core.infrastructure.model_adapters.**",
+    "aia_executors.deep_research_runtime -> aia_core.infrastructure.model_adapters",
+]
+
 [tool.pytest.ini_options]
 # Both test directories are called `tests`, so they are not importable packages.
 # Helpers are shared through conftest fixtures rather than imports.

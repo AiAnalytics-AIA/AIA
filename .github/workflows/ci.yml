@@ -145,10 +145,12 @@ jobs:
           pip install -e "apps/api[dev]"
 
       - name: Layering rules
-        # Grep-level enforcement of ARCHITECTURE.md. Runs before the expensive
-        # steps: a layer violation is cheaper to report in five seconds than
-        # after a full PostgreSQL suite.
-        run: ./tools/layer_check.sh
+        # Enforcement of ARCHITECTURE.md: the grep rules (tools/layer_check.sh) and
+        # the import contracts (lint-imports, [tool.importlinter] in pyproject.toml),
+        # both through `make layer_check`, so CI and a contributor run the same
+        # thing. Runs before the expensive steps: a layer violation is cheaper to
+        # report in five seconds than after a full PostgreSQL suite.
+        run: make layer_check
 
       - name: Reference-exposure rules
         # The legacy reference is client work. Blocking, and early: once a commit
