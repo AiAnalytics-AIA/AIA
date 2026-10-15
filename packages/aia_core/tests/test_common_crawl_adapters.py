@@ -27,11 +27,11 @@ from aia_core.domain.deep_research.common_crawl import (
 )
 from aia_core.domain.deep_research.contracts import RetrievalMode
 from aia_core.domain.deep_research.web import FetchRefused
+from aia_core.infrastructure.archive_index import IndexQueryFailed
 from aia_core.infrastructure.common_crawl import (
     ArchiveFetcher,
     ArchiveRangeTransport,
     AthenaUrlIndex,
-    IndexQueryFailed,
     PostResponse,
     RecordedArchiveTransport,
     common_crawl_settings,
