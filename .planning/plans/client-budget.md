@@ -134,7 +134,13 @@ Mapped 2026-10-15 on `origin/develop` @ 7d4f1ef5. Paths under `packages/aia_core
 
 ## Findings
 
-None yet.
+- **F-CB1. A client-source test flaked on a random id** (fixed on this branch).
+  `test_client_sources.py::test_a_source_is_not_knowledge_and_no_study_reads_it` asserted that
+  the digits `7319` from a client's file never reach a study's snapshot; a fresh item id
+  (`KNW-e3170301731944`, hex) contained them, so the test failed on a correct snapshot (one
+  SQLite run, 2026-10-15). Fixed by a marker of letters outside hex (`qzxw`). The test that
+  would have caught it: the same test, run until an id collided; the rule is "a marker must
+  not be producible by an id generator".
 
 ## Doc follow-up
 
