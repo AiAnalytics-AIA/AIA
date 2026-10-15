@@ -68,7 +68,7 @@ from aia_core.domain.methodology.pins import response_deviates, run_methods
 from aia_core.domain.population import PopulationError, UnknownDatasetVersion
 from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ResearchAction
-from aia_core.domain.research_design import FILTERS_AWAIT_DRAW
+from aia_core.domain.research_design import DIMENSIONS_AWAIT_DRAW, FILTERS_AWAIT_DRAW
 from aia_core.domain.research_trace import ResearchTrace
 from aia_core.domain.scope import (
     Permission,
@@ -278,8 +278,8 @@ class ResearchRunPopulation(BaseModel):
 
 
 #: A panel run that ended before its population draw succeeded: no respondent was drawn under
-#: the filters.
-FILTERS_NOT_DRAWN: Final = "population_draw_not_completed"
+#: the filters, and no persona read the dimensions.
+DRAW_NOT_COMPLETED: Final = "population_draw_not_completed"
 
 
 class ResearchRunSelection(BaseModel):
@@ -801,25 +801,29 @@ def _run(
 def _selection(
     meta: dict[str, Any], steps: list[ResearchStepResponse], *, terminal: bool
 ) -> ResearchRunSelection | None:
-    """The run's recorded selection, its filters settled by its fieldwork (5b; review, Codex on
-    #439): a panel run's filters await the draw until the fieldwork step has succeeded with
-    data drawn from the population, the step that applies them; a run that ended without it
-    never drew anyone, and says so."""
+    """The run's recorded selection, its filters and dimensions settled by its fieldwork (5b,
+    5c; review, Codex on #439): a panel run's await the draw until the fieldwork step has
+    succeeded with data drawn from the population, the step that applies both; a run that
+    ended without it never drew anyone, and says so."""
     if not isinstance(meta.get("selection"), dict):
         return None
     selection = ResearchRunSelection.model_validate(meta["selection"])
-    if selection.filters_reason != FILTERS_AWAIT_DRAW:
-        return selection
     fieldwork = next((s for s in steps if s.node_key == "run"), None)
-    if (
+    drawn = (
         fieldwork is not None
         and fieldwork.status == "SUCCEEDED"
         and fieldwork.data_origin == DataOrigin.MODELLED_AI_PANEL.value
-    ):
-        return selection.model_copy(update={"filters_applied": True, "filters_reason": None})
-    if terminal:
-        return selection.model_copy(update={"filters_reason": FILTERS_NOT_DRAWN})
-    return selection
+    )
+    update: dict[str, Any] = {}
+    # Filters and dimensions alike apply at the draw (5b, 5c): settled from the same step.
+    for part, awaiting in (("filters", FILTERS_AWAIT_DRAW), ("dimensions", DIMENSIONS_AWAIT_DRAW)):
+        if getattr(selection, f"{part}_reason") != awaiting:
+            continue
+        if drawn:
+            update |= {f"{part}_applied": True, f"{part}_reason": None}
+        elif terminal:
+            update[f"{part}_reason"] = DRAW_NOT_COMPLETED
+    return selection.model_copy(update=update) if update else selection
 
 
 def _persona_source(request: Request) -> PersonaSource:

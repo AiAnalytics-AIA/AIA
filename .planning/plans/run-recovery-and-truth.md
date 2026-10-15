@@ -14,7 +14,7 @@ chunks:
   - "[ ] 4. Deep Research: source diversity beyond Wikipedia, the exact supporting passage per claim, and every rejection's reason shown"
   - "[x] 5a. Population: a person chooses who answers a run (fictional roster or the population) before it starts; the deployment only says what it offers"
   - "[x] 5b. Population: the run receipt says who answered, from which population, and which selected dimensions and filters were applied"
-  - "[ ] 5c. Population: selected dimensions applied to panel respondents (needs the product owner's decision: methodology)"
+  - "[ ] 5c. Population: selected dimensions applied to panel respondents as 18.6.6 applied them, the topic allowlist (product owner, 2026-10-15)"
   - "[ ] 6. Desktop UX: one state vocabulary (ready, running, needs repair, evidence unavailable, report ready), plain reasons, question text, cost remaining"
 ---
 
@@ -426,11 +426,30 @@ person starting a run never saw that a choice existed.
     - the population recorded, and whether fieldwork read it;
     - each selected dimension and the filters, applied or not, and why.
   - A run started before 5b says the selection was not recorded, never "none".
-- **5c — dimensions on respondents.** A panel persona reads a fixed set of columns: profile,
-  style and fact columns, and the catalog's signal columns (`panel_persona.py` `panel_personas`,
-  `wanted`). A materialized dimension is persona-eligible (`materialized.py`
-  `materialized_policy_entry`) but no persona reads it. Applying it is a change to how a
-  respondent is described to the model, so it waits for the product owner.
+- **5c — dimensions on respondents.** The product owner decided on 2026-10-15, in session,
+  that a study's selected dimensions are applied to the respondents drawn from the population.
+  18.6.6 applied them in one way, and AIA ports exactly that:
+  - The approved dimensions became the run's `persona_topic_allowlist`
+    (`legacy/npc-panel-18.6.6/app/research_project.py:440`).
+  - In a block request, each question's topics were filtered to the allowlist before the
+    block's union (`dotaznik.py:937-948`). A respondent's profile and catalog signals are then
+    drawn from those topics only. A block left with no topic gets the core profile.
+  - The dimension ids are the persona topic keys (`media`, `nakup`, `finance`, …;
+    `persona_topics.py`, the web's `PERSONA_DIM_LABELS`). An id that is no topic filters
+    every topic out, as the unit's set test did.
+
+  In AIA:
+  - `persona_topics.block_topics(…, allowlist=)` filters per question, as the unit did.
+  - `PanelPersonas.plan` reads the allowlist from the specification's selection.
+  - A panel run with selected dimensions is its own identity
+    (`:persona-topics:<fingerprint>`), so a start never returns a panel run computed before
+    the allowlist applied.
+  - The receipt says dimensions await the draw, as filters do, and are applied once the
+    population draw has succeeded. The roster has no topic signals, so a roster run says the
+    dimensions need a population draw.
+- **4 — sign-off.** On 2026-10-15, in session, the product owner signed off on building the
+  priced search routes (ADR 0022). Each organization still approves its live settings on
+  Settings → Deep Research before a priced route runs.
 
 ## Doc follow-up
 

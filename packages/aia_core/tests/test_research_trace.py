@@ -287,10 +287,9 @@ def test_a_set_ranks_only_whole_one_refused_object_of_two_leaves_nothing_to_rank
     assert image(voda).verdict is Verdict.ANSWERABLE
 
 
-def test_a_selection_receipt_applies_filters_only_to_a_population_draw_and_never_dimensions() -> (
-    None
-):
-    """Plan run-recovery-and-truth 5b (research_design.selection_receipt)."""
+def test_a_selection_receipt_has_filters_and_dimensions_await_a_population_draw() -> None:
+    """Plan run-recovery-and-truth 5b and 5c (research_design.selection_receipt): both apply
+    only to a draw from the population, and neither is recorded applied before it."""
     from aia_core.domain.research_design import selection_receipt
 
     design = {
@@ -305,12 +304,13 @@ def test_a_selection_receipt_applies_filters_only_to_a_population_draw_and_never
     assert drawn["filters_applied"] is False
     assert drawn["filters_reason"] == "filters_await_population_draw"
     assert drawn["dimensions"] == ["region"] and drawn["dimensions_applied"] is False
-    assert drawn["dimensions_reason"] == "dimensions_not_read_by_personas"
+    assert drawn["dimensions_reason"] == "dimensions_await_population_draw"
     roster = selection_receipt(spec, population_draw=False)
     assert (roster["filters_applied"], roster["filters_reason"]) == (
         False,
         "filters_need_population_draw",
     )
+    assert roster["dimensions_reason"] == "dimensions_need_population_draw"
     none = selection_receipt(_compile(DESIGN), population_draw=True)
     assert none == {
         "dimensions": [],
@@ -320,3 +320,24 @@ def test_a_selection_receipt_applies_filters_only_to_a_population_draw_and_never
         "filters_applied": False,
         "filters_reason": None,
     }
+
+
+def test_readiness_says_the_dimensions_shape_only_respondents_drawn_from_the_population() -> None:
+    """Plan run-recovery-and-truth 5c: the dimensions are a panel persona's topic allowlist; an
+    id that is no persona topic lets no topic through and is named."""
+    design = {**copy.deepcopy(DESIGN), "persona_dimensions": {"approved": ["media", "region"]}}
+    spec = _compile(design)
+
+    def dimensions(panel: bool) -> Any:
+        readiness = assess_readiness(spec, pair_n_min=30, filters_applied=panel)
+        return next(c for c in readiness.checks if c.id == "dimensions")
+
+    roster = dimensions(False)
+    assert (
+        roster.status is CheckStatus.WARN and "fiktivní respondenti je nepoužijí" in roster.message
+    )
+    panel = dimensions(True)
+    assert panel.status is CheckStatus.WARN and "region" in panel.message.split(":")[-1]
+    only_topics = _compile({**design, "persona_dimensions": {"approved": ["media"]}})
+    readiness = assess_readiness(only_topics, pair_n_min=30, filters_applied=True)
+    assert next(c for c in readiness.checks if c.id == "dimensions").status is CheckStatus.PASS

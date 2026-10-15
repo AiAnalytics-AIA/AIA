@@ -38,6 +38,7 @@ from ..domain.methodology.pins import (
     sociomap_methods_for,
     support_spec_for,
 )
+from ..domain.panel_persona import persona_allowlist
 from ..domain.pipeline import fingerprint
 from ..domain.population import (
     CZ_LIVE,
@@ -494,6 +495,11 @@ class ResearchRuns:
             raise ValueError("panel personas answer only through the ai_runtime source")
         if panel:
             key += ":personas:panel"
+            # A panel run's personas read the study's selected dimensions as their topic
+            # allowlist (5c): with any selected, it is its own run, never one made before.
+            allowlist = persona_allowlist(_spec) if _spec is not None else ()
+            if allowlist:
+                key += f":persona-topics:{fingerprint(list(allowlist))[:16]}"
         if frozen_dataset is not None:
             if not retry_of or not analysis_enabled:
                 raise ValueError("an analysis retry names the run it retries, with analysis on")

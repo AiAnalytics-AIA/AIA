@@ -2182,6 +2182,8 @@ export const cs = {
           applied: "uplatněny",
           reason: {
             dimensions_not_read_by_personas: "neuplatněny: AIA je zatím respondentům nepředává",
+            dimensions_need_population_draw: "neuplatněny: určují témata jen respondentům vybraným z populace",
+            dimensions_await_population_draw: "uplatní se jako témata profilu, až běh vybere respondenty z populace",
             filters_need_population_draw: "neuplatněny: platí jen pro respondenty vybrané z populace",
             filters_await_population_draw: "uplatní se, až běh vybere respondenty z populace",
             population_draw_not_completed: "neuplatněny: běh skončil dřív, než vybral respondenty z populace",

@@ -1402,8 +1402,8 @@ def test_a_person_chooses_who_answers_among_the_sources_the_deployment_offers(
 def test_a_run_records_what_its_design_selected_and_what_reached_its_respondents(
     app: FastAPI, researcher: TestClient, world: Any
 ) -> None:
-    """Plan run-recovery-and-truth 5b: dimensions are never applied yet; the filters only by a
-    draw from the population; a run from before 5b recorded nothing and says so."""
+    """Plan run-recovery-and-truth 5b, 5c: dimensions and filters apply only to a draw from the
+    population, so a roster run says so; a run from before 5b recorded nothing and says so."""
     selected = {
         **DESIGN,
         "persona_dimensions": {"approved": ["vek_skupina", "region"]},
@@ -1414,7 +1414,7 @@ def test_a_run_records_what_its_design_selected_and_what_reached_its_respondents
     assert run["selection"] == {
         "dimensions": ["vek_skupina", "region"],
         "dimensions_applied": False,
-        "dimensions_reason": "dimensions_not_read_by_personas",
+        "dimensions_reason": "dimensions_need_population_draw",
         "audience_filters": {"vek": {"max": 59, "min": 30}},
         "filters_applied": False,
         "filters_reason": "filters_need_population_draw",
@@ -1435,9 +1435,9 @@ def test_a_panel_runs_filters_are_applied_only_once_its_draw_succeeded() -> None
 
     meta = {
         "selection": {
-            "dimensions": [],
+            "dimensions": ["media"],
             "dimensions_applied": False,
-            "dimensions_reason": None,
+            "dimensions_reason": "dimensions_await_population_draw",
             "audience_filters": {"vek": {"min": 30}},
             "filters_applied": False,
             "filters_reason": "filters_await_population_draw",
@@ -1457,12 +1457,15 @@ def test_a_panel_runs_filters_are_applied_only_once_its_draw_succeeded() -> None
     )
     drawn = _selection(meta, fieldwork("SUCCEEDED", "MODELLED_AI_PANEL"), terminal=True)
     assert drawn is not None and (drawn.filters_applied, drawn.filters_reason) == (True, None)
+    # 5c: the dimensions are the drawn personas' topic allowlist, settled by the same step.
+    assert (drawn.dimensions_applied, drawn.dimensions_reason) == (True, None)
     failed = _selection(meta, fieldwork("FAILED", None), terminal=True)
     assert failed is not None
     assert (failed.filters_applied, failed.filters_reason) == (
         False,
         "population_draw_not_completed",
     )
+    assert failed.dimensions_reason == "population_draw_not_completed"
     # Data that is not the population's never counts as the draw.
     roster = _selection(meta, fieldwork("SUCCEEDED", "SYNTHETIC_AI_FICTIONAL"), terminal=True)
     assert roster is not None and roster.filters_applied is False

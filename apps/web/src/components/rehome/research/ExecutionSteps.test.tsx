@@ -591,7 +591,7 @@ describe("Progress", () => {
       persona_source: "fictional_roster",
       population: { population_id: "cz", version_id: "v17_4_0", version_label: "v17_4_0", read_by_fieldwork: false },
       selection: {
-        dimensions: ["region"], dimensions_applied: false, dimensions_reason: "dimensions_not_read_by_personas",
+        dimensions: ["region"], dimensions_applied: false, dimensions_reason: "dimensions_need_population_draw",
         audience_filters: { vek: { min: 30 } }, filters_applied: false, filters_reason: "filters_need_population_draw",
       },
     });
@@ -602,7 +602,7 @@ describe("Progress", () => {
     const value = (label: string) => within(card).getByText(label).nextElementSibling?.textContent;
     expect(value(t(`${R}.source`))).toBe(`${t("research.exec.respondents.fictional_roster")} · ${t(`${R}.observed.SIMULATED`)}`);
     expect(value(t(`${R}.population`))).toContain("v17_4_0");
-    expect(value(t(`${R}.dimensions`))).toContain(t(`${R}.reason.dimensions_not_read_by_personas`));
+    expect(value(t(`${R}.dimensions`))).toContain(t(`${R}.reason.dimensions_need_population_draw`));
     expect(value(t(`${R}.filters`))).toBe(`vek · ${t(`${R}.reason.filters_need_population_draw`)}`);
     expect(within(card).queryByRole("alert")).toBeNull();
   });

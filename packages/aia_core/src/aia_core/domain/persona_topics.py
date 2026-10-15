@@ -299,11 +299,24 @@ def question_topics(text: str, max_topics: int = MAX_TOPICS) -> list[str]:
     return [topic for topic, _ in sorted(score.items(), key=lambda x: (-x[1], x[0]))[:max_topics]]
 
 
-def block_topics(questions: Sequence[tuple[str, Sequence[str]]]) -> list[str]:
-    """One request's topics: each question's (text and options) in order, first seen first."""
+def block_topics(
+    questions: Sequence[tuple[str, Sequence[str]]],
+    allowlist: Sequence[str] | None = None,
+) -> list[str]:
+    """One request's topics: each question's (text and options) in order, first seen first.
+
+    ``allowlist`` is the study's selected dimensions, the run's ``persona_topic_allowlist``
+    (``research_project.py:440``): when it holds any, each question's topics are kept only where
+    they are in it, compared stripped and lowercased, before the union (``dotaznik.py:943-945``).
+    An empty or absent allowlist filters nothing, as the unit's ``if persona_topic_allowlist``.
+    """
+    allowed = {str(x).strip().lower() for x in allowlist or () if str(x).strip()}
     union: list[str] = []
     for text, options in questions:
-        for topic in question_topics(text + " " + " ".join(options)):
+        topics = question_topics(text + " " + " ".join(options))
+        if allowed:
+            topics = [t for t in topics if str(t).strip().lower() in allowed]
+        for topic in topics:
             if topic not in union:
                 union.append(topic)
     return union
