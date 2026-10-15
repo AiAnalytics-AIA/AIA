@@ -1106,7 +1106,7 @@ export type DeepResearchRun = {
 };
 export type DeepResearchBundle = {
   quality_status: string; fictional_client: boolean; client_facing: false;
-  accepted: { evidence: { claim: string; quote: string; source_ref: string }; score: { score: number; source_class: string } }[];
+  accepted: { evidence: { evidence_id?: string; claim: string; quote: string; source_ref: string }; score: { score: number; source_class: string } }[];
   quarantined: { reason: string; detail?: string }[];
   snapshots: { snapshot_id: string; url: string; title: string; retrieval_mode: string }[];
   counts: Record<string, number>; sha256: string;
