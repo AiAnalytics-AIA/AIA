@@ -2157,6 +2157,8 @@ export const cs = {
           reason: {
             dimensions_not_read_by_personas: "neuplatněny: AIA je zatím respondentům nepředává",
             filters_need_population_draw: "neuplatněny: platí jen pro respondenty vybrané z populace",
+            filters_await_population_draw: "uplatní se, až běh vybere respondenty z populace",
+            population_draw_not_completed: "neuplatněny: běh skončil dřív, než vybral respondenty z populace",
           },
           unrecorded: "Běh nezaznamenal, které dimenze a filtry byly vybrané (spuštěn dříve, než to AIA evidovala).",
         },

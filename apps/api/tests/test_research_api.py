@@ -1425,3 +1425,44 @@ def test_a_run_records_what_its_design_selected_and_what_reached_its_respondents
         row.metadata_json = {k: v for k, v in row.metadata_json.items() if k != "selection"}
         session.commit()
     assert researcher.get(f"{_runs(world)}/{run['run_id']}").json()["selection"] is None
+
+
+def test_a_panel_runs_filters_are_applied_only_once_its_draw_succeeded() -> None:
+    """Review (Codex on #439): a start records the filters as awaiting the draw; only a
+    fieldwork step that succeeded with population-drawn data applies them, and a run that
+    ended without one says no respondent was drawn."""
+    from aia_api.routers.research import ResearchStepResponse, _selection
+
+    meta = {
+        "selection": {
+            "dimensions": [],
+            "dimensions_applied": False,
+            "dimensions_reason": None,
+            "audience_filters": {"vek": {"min": 30}},
+            "filters_applied": False,
+            "filters_reason": "filters_await_population_draw",
+        }
+    }
+
+    def fieldwork(status: str, origin: str | None) -> list[ResearchStepResponse]:
+        return [
+            ResearchStepResponse.model_construct(node_key="run", status=status, data_origin=origin)
+        ]
+
+    waiting = _selection(meta, fieldwork("RUNNING", None), terminal=False)
+    assert waiting is not None
+    assert (waiting.filters_applied, waiting.filters_reason) == (
+        False,
+        "filters_await_population_draw",
+    )
+    drawn = _selection(meta, fieldwork("SUCCEEDED", "MODELLED_AI_PANEL"), terminal=True)
+    assert drawn is not None and (drawn.filters_applied, drawn.filters_reason) == (True, None)
+    failed = _selection(meta, fieldwork("FAILED", None), terminal=True)
+    assert failed is not None
+    assert (failed.filters_applied, failed.filters_reason) == (
+        False,
+        "population_draw_not_completed",
+    )
+    # Data that is not the population's never counts as the draw.
+    roster = _selection(meta, fieldwork("SUCCEEDED", "SYNTHETIC_AI_FICTIONAL"), terminal=True)
+    assert roster is not None and roster.filters_applied is False
