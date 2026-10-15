@@ -3723,10 +3723,9 @@ is disabled until the report's status is read.
 
 ## OI-114 · Finding · Orphaned artifact objects are never reaped
 
-**Claim.** `ArtifactRepository.put` uploads the object before it adds the row, and `delete` drops
-the row before the object, so a rolled-back transaction or a failed delete leaves an object in the
-store that no row references; the docstrings and `docs/architecture/artifacts.md` said a reaper
-removes these, and none exists.
+**Claim.** `ArtifactRepository.put` uploads the object before it adds the row, so a transaction
+that rolls back after the upload leaves an object in the store that no row references; the
+docstrings and `docs/architecture/artifacts.md` said a reaper removes these, and none exists.
 
 **Anchor.** `packages/aia_core/src/aia_core/infrastructure/artifact_repository.py:347` (upload),
 `:386` (row), `:312` and `:600` (the "reaped later" docstrings) @ `80dc2167`; no function in
@@ -3737,9 +3736,16 @@ apps/worker/tests/test_stale_lease_artifacts.py -k orphans_its_object`: an execu
 raises after its upload rolls the row back, and after the step's successor completes, the store
 still holds two objects against one row.
 
-**Consequence.** Storage grows by one object for every executor block that fails after its upload
-and every artifact deleted after its row; nothing a person sees is wrong, and nothing reclaims the
-space or the data those objects hold.
+**Consequence.** Storage grows by one object for every executor block that fails after its upload;
+nothing a person sees is wrong, and nothing reclaims the space or the data those objects hold.
+
+**Related, latent: `delete` is not transactional with its object.** It flushes the row's deletion and
+deletes the object at once, before the caller commits (`artifact_repository.py:610-612 @ 223621d5`).
+A successful delete leaves no orphan; a delete whose transaction rolls back afterwards restores a
+row pointing at a deleted object, the hazard the upload order exists to avoid. No product code calls
+`delete` (only `test_artifact_repository.py`), so nothing reaches it today. Smallest fix, when a
+caller arrives: delete the object after the commit (an after-commit hook), and a test that rolls
+back a delete and reads the artifact. Hypothesis until that test exists (CLAUDE.md §9).
 
 **Smallest fix.** A periodic sweep that deletes store keys under the artifact prefix that no
 `project_artifacts.storage_key` names and that are older than a grace period longer than any

@@ -167,14 +167,17 @@ Trashing a project is a soft delete: `trashed_at` is set and nothing is removed.
 Purging is a separate, deliberate action that only a trashed project accepts, and
 it cascades through revisions, stages and events.
 
-Object writes lead their rows and object deletion follows them: `put` uploads
-before it adds the row, and `delete` removes the row before the object. Doing it
-the other way would risk a row that points at nothing, which the system would
-trust. The cost is orphans: an object whose row never committed (a transaction
-rolled back after its upload) or whose row was deleted stays in the store. **No
+An object is uploaded before its row is added (`put`), so a transaction that rolls
+back after the upload leaves the object in the store with no row: an orphan. **No
 reaper exists yet** (OI-114); the orphan is pinned by
 `test_a_put_inside_the_fence_holds_off_recovery_and_a_failed_block_orphans_its_object`
 (`apps/worker/tests/test_stale_lease_artifacts.py`).
+
+`delete` is not the mirror of that. It flushes the row's deletion and then deletes
+the object at once, before the caller commits (`artifact_repository.py:610-612`). A
+delete that commits leaves nothing behind; a delete whose transaction then rolls back
+restores a row whose object is gone, which the system would trust. Nothing in the
+product calls `delete` today (only its tests), so this is latent (OI-114).
 
 Frozen and approved artifacts are exempt from automatic retention. A deliverable
 a client has been shown is not garbage-collected on a schedule.
