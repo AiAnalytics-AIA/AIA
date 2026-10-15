@@ -142,7 +142,7 @@ forbid "AWS SDK stays behind the storage adapter and the Bedrock signer" \
 # (redaction, no bodies, no locals) for every process. A second import site is a
 # second client that sends without those hooks. Named exemptions: the tests that drive
 # the real client over a capturing transport (test_error_tracking.py in the core,
-# test_error_reporting.py in the API and the worker) import its Transport base class.
+# test_api_error_reporting.py and test_worker_error_reporting.py) import its Transport base class.
 SENTRY_IMPORT='^\s*(from|import)\s+sentry_sdk\b'
 forbid "sentry_sdk is imported only by the error reporter (packages)" \
   "$SENTRY_IMPORT" \
@@ -151,11 +151,11 @@ forbid "sentry_sdk is imported only by the error reporter (packages)" \
 forbid "sentry_sdk is imported only by the error reporter (apps/api)" \
   "$SENTRY_IMPORT" \
   apps/api \
-  apps/api/tests/test_error_reporting.py
+  apps/api/tests/test_api_error_reporting.py
 forbid "sentry_sdk is imported only by the error reporter (apps/worker)" \
   "$SENTRY_IMPORT" \
   apps/worker \
-  apps/worker/tests/test_error_reporting.py
+  apps/worker/tests/test_worker_error_reporting.py
 forbid "sentry_sdk is imported only by the error reporter (apps/executors)" \
   "$SENTRY_IMPORT" \
   apps/executors
