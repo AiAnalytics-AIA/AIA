@@ -111,7 +111,9 @@ def lift_client_budget_wait(
     if step["status"] is not StepRunStatus.AWAITING_BUDGET:
         raise BudgetWaitNotLiftable("only a step waiting for budget can be lifted")
     scopes = ScopeRepository(session)
-    current = scopes.client_budget(client).budget_usd
+    # Locked before it is compared: a concurrent lift waits here, then reads what the
+    # first committed, so a raise is never overwritten by a smaller one decided earlier.
+    current = scopes.client_budget(client, for_update=True).budget_usd
     if budget_usd < current:
         raise BudgetNotRaised(offered=budget_usd, current=current)
     if budget_usd > current:
