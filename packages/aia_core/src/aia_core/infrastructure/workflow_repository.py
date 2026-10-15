@@ -719,6 +719,17 @@ class WorkflowRepository:
                 .with_for_update()
             )
 
+    def lock_run(self, run_id: str) -> None:
+        """Take a run's lock, in scope, before a change that will also lock its payer.
+
+        Every path that settles money locks the run, then the study or client it
+        charges; a caller that must read the payer locked before changing the run takes
+        the run first through here, so the two orders never cross. A run outside the
+        scope is not found.
+        """
+        self._run(run_id)
+        self._lock_run(run_id)
+
     def _lock_run_for(self, step: StepRunRow) -> None:
         """Lock the step's run, then re-read the step as it now stands.
 

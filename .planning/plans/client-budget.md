@@ -208,6 +208,48 @@ Mapped 2026-10-15 on `origin/develop` @ 7d4f1ef5. Paths under `packages/aia_core
      barrier that holds three slots until all three are taken (or hold each slot ~50 ms).
   6. The test that would have caught it: the same test under load (`-n` or a busy runner).
 
+- **F-CB3. The client's budget answered reserved $0 while client holds existed** (fixed
+  on `fix/client-work-races`; Codex review of #438).
+  - `ScopeRepository.client_budget` built the position from budget and spend alone
+    (`scope_repository.py:462-470 @ 80dc2167`). With $6 of $10 held, `GET …/budget`
+    said $10 available while a reservation would allow $4.
+  - Fixed: the sum of the client's open holds that name no study.
+  - Test: `test_client_paid_holds.py::test_a_client_hold_is_checked_against_and_charged_to_the_client_alone`.
+- **F-CB4. Two concurrent lifts could lower the client's budget** (same fix branch).
+  - `lift_client_budget_wait` compared the offer with an unlocked read and only then
+    locked to write (`application/client_work.py:113-118 @ 80dc2167`). One lift raised to
+    $10; another, decided on the old value, then wrote $8.
+  - Fixed: the comparison reads the budget under the client row's lock, taken after the
+    run's lock. That is the order a completing step takes them in (run, then the payer
+    it charges). Locking the client first deadlocked with a step of the same run
+    finishing (reproduced on PostgreSQL: `DeadlockDetected` on `workflow_runs`; Codex
+    review of #445).
+  - Test for the order:
+    `test_client_budget_lift.py::test_a_lift_takes_the_run_before_the_client_as_a_completing_step_does`.
+  - Test: `test_client_budget_lift.py::test_a_lift_decided_on_a_stale_budget_never_lowers_one_raised_meanwhile`
+    (PostgreSQL; $8 without the lock, $10 with it).
+- **F-CB5. Two first requests could each create the client's work project** (same fix
+  branch).
+  - `client_work_project` read then inserted with no constraint
+    (`application/client_work.py:37-50 @ 80dc2167`).
+  - Fixed: partial unique index `uq_projects_client_work` (migration `b3d5f7a9c1e4`); the
+    losing insert is rolled back to a savepoint and answered with the project the other
+    made.
+  - Test: `test_client_work_start.py::test_a_client_has_one_work_project_even_when_two_first_requests_race`.
+
+- **F-CB6 (hypothesis). The study lift has the same two defects** (found here, not fixed:
+  another plan's code, which predates client budgets).
+  1. `ResearchRuns.lift_budget_wait` compares with an unlocked read of the study's budget.
+     `set_study_budget` then updates the study row before `resume_budget_wait` locks the
+     run.
+  2. Anchor: `application/research.py:713-746 @ 80dc2167`.
+  3. Reproduction (not yet run): the two PostgreSQL tests above, ported to a study.
+  4. Consequence: two concurrent lifts can lower a study's budget, and a lift can
+     deadlock with a step of the same run completing.
+  5. Smallest fix: the same as the client's: `lock_run`, then read the study budget
+     locked.
+  6. Test: the ported pair.
+
 ## Doc follow-up
 
 - Lifecycle K2d's text says it runs "beneath the chosen study and its budget". After CB5 it is
