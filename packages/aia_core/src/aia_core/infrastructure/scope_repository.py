@@ -440,13 +440,21 @@ class ScopeRepository:
             raise ScopeDenied("not found", reason="unknown_client")
         return _client_to_domain(row)
 
-    def _client_row(self, scope: ClientContext) -> ClientRow:
-        row = self._session.scalar(
-            select(ClientRow).where(
-                ClientRow.client_id == scope.client_id,
-                ClientRow.organization_id == scope.organization_id,
-            )
+    def _client_row(self, scope: ClientContext, *, for_update: bool = False) -> ClientRow:
+        """The client in scope; ``for_update`` locks it and re-reads what is committed.
+
+        A row already in this session would otherwise keep the value it was read with,
+        so a change made meanwhile by another request would be compared and audited
+        against a stale predecessor.
+        """
+        query = select(ClientRow).where(
+            ClientRow.client_id == scope.client_id,
+            ClientRow.organization_id == scope.organization_id,
         )
+        if for_update:
+            # Blocking FOR UPDATE on PostgreSQL (SQLite has none and serialises writers).
+            query = query.with_for_update().execution_options(populate_existing=True)
+        row = self._session.scalar(query)
         if row is None:
             raise ScopeDenied("not found", reason="unknown_client")
         return row
@@ -470,7 +478,9 @@ class ScopeRepository:
         scope.require(ClientPermission.MANAGE_CLIENT_BUDGET)
         if budget_usd < 0:
             raise ValueError("budget_usd must not be negative")
-        row = self._client_row(scope)
+        # Locked and freshly read: two concurrent changes are applied one after the
+        # other, each audited against the value the other committed.
+        row = self._client_row(scope, for_update=True)
         previous = row.budget_usd
         if previous != float(budget_usd):
             row.budget_usd = float(budget_usd)
