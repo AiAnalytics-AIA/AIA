@@ -659,7 +659,8 @@ export function RunStep() {
       <RunList runs={runs} />
       <ActionDock
         back={{ href: stepHref("persona"), label: `5. ${t("aia.stages.persona")}` }}
-        ready={prepared.kind === "ready" && prepared.readiness.ready && frame.canEdit && !blocked}
+        // Not while a new choice of respondents is being checked: Start would send the old one.
+        ready={prepared.kind === "ready" && prepared.readiness.ready && frame.canEdit && !blocked && !choosing}
         note={
           !frame.canEdit
             ? t("research.exec.readOnly")
@@ -675,7 +676,7 @@ export function RunStep() {
         }
       >
         {prepared.kind === "ready" ? (
-          <AiButton variant="primary" onClick={() => void start()} disabled={!prepared.readiness.ready || !frame.canEdit || starting || blocked}>
+          <AiButton variant="primary" onClick={() => void start()} disabled={!prepared.readiness.ready || !frame.canEdit || starting || blocked || choosing}>
             {starting ? t("research.exec.starting") : t("research.exec.start")}
           </AiButton>
         ) : null}

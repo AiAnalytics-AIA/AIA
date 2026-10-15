@@ -194,7 +194,11 @@ describe("Run", () => {
     const panel = within(card).getByRole("radio", { name: new RegExp(t("research.exec.respondents.panel")) }) as HTMLInputElement;
     expect(roster.checked).toBe(true);
     fireEvent.click(panel);
+    // While the checks are read again under the new choice, Start cannot send the old one
+    // (review, Codex on #439).
+    expect((screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement).disabled).toBe(true);
     await screen.findByText("Filtry se uplatní při výběru respondentů z populace.");
+    await waitFor(() => expect((screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement).disabled).toBe(false));
     expect(called("GET", READINESS).at(-1)!.url).toContain("persona_source=panel");
     expect((within(card).getByRole("radio", { name: new RegExp(t("research.exec.respondents.panel")) }) as HTMLInputElement).checked).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: t("research.exec.start") }));
