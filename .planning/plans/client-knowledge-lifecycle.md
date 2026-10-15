@@ -8,7 +8,7 @@ chunks:
   - "[x] K2b. Presentation and open/legacy document readers: PPTX, ODT, DOC"
   - "[x] K2c. Dataset intake: CSV, XLSX, XLS, ODS schema preview with row/column locators"
   - "[ ] K2d. AI proposals from a document source, paid by the client's budget, every quote grounded"
-  - "[ ] K2d1. Extraction in the domain: closed contract, Czech prompt, segment batches, every quote grounded in its segment"
+  - "[x] K2d1. Extraction in the domain: closed contract, Czech prompt, segment batches, every quote grounded in its segment"
   - "[ ] K2d2. Persistence: a client-work reading pinned by its SHA-256; AI-authored proposals written once per run"
   - "[ ] K2d3. The client_source_proposals step: executor, workflow type, kill switch, parks by name; recorded-gateway tests under the real worker loop, charged to the client"
   - "[ ] K2d4. Start and follow: POST /clients/{id}/sources/{source_id}/proposals, idempotent per reading; the run's state"
@@ -426,6 +426,14 @@ generic historical records without inventing source spans or validated dimension
   - **Burst, latency and money** measured before merge (CLAUDE.md § 8): requests per document
     (bounded by the 250,000-character reading cap and the batch size), tokens and the
     reservation per request at the model's prices; live latency is the owner's activation run.
+  - **K2d1 landed** (2026-10-15): `domain/source_proposals.py`. `require_extractable` (a
+    `DOCUMENT` with segments; `dataset_not_extracted`, `no_text`, `nothing_read` by name);
+    `batches` (whole segments in order, at most `BATCH_MAX_CHARS` = 12,000 characters, a longer
+    segment in pieces keeping its locator; deterministic, so at most 21 requests per document);
+    `proposal_request` (`FAST_EXTRACTION`, Class A, `SourceProposals` closed, one schema repair,
+    the segments numbered and no locator sent); `ground` (a quote kept only when `locate_quote`
+    finds it in the segment it names; its locator is that segment's; `quote_not_found` and
+    `unknown_segment` counted). Tests: `packages/aia_core/tests/test_source_proposals.py` (4).
 - **K2e. Web intake.**
   - URL capture is one fetch through `RetrievalGate` beneath the chosen study. The snapshot is
     stored as a client source with `origin=web`, the URL and the retrieval time.
