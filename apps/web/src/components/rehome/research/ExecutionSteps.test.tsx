@@ -387,6 +387,8 @@ describe("Run: which questions the run will answer (run-recovery-and-truth 2b)",
     expect(within(rows()[1]).getByText(t("research.exec.trace.evidence.gap"))).toBeTruthy();
     expect(within(rows()[1]).getByText(tv("research.exec.trace.evidence.rejected", { list: `1× ${t("research.exec.trace.quarantine.low_source_quality")}` }))).toBeTruthy();
     expect(within(rows()[2]).getByText(t("research.exec.trace.evidence.notStudied"))).toBeTruthy();
+    // Asked for the server's widest page, so newer runs never hide the design run.
+    expect(calls.filter((c) => c.method === "GET" && c.url.startsWith(DR) && !c.url.slice(DR.length).startsWith("/")).map((c) => c.url)).toEqual([`${DR}?limit=100`]);
   });
 
   it("keeps the card for stale links when the plan states no research question", async () => {

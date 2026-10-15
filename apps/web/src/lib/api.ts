@@ -1144,7 +1144,9 @@ export const deepResearch = {
     requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/context/download${query({ deep_research_run_id: deepRunId })}`),
   start: (studyId: string, revisionId: string) =>
     request<DeepResearchRun>("POST", deepPath(studyId), { design_revision_id: revisionId, preset_name: "QUICK", channels: ["WEB"] }),
-  runs: (studyId: string) => request<DeepResearchRun[]>("GET", deepPath(studyId)),
+  /** The Study's runs, newest first; the server lists 20 unless asked for more (at most 100). */
+  runs: (studyId: string, limit?: number) =>
+    request<DeepResearchRun[]>("GET", `${deepPath(studyId)}${query({ limit: limit === undefined ? undefined : String(limit) })}`),
   events: (studyId: string, runId: string, since = 0) =>
     request<RunEvent[]>("GET", `${deepPath(studyId)}/${enc(runId)}/events${eventsQuery(since)}`),
   bundle: (studyId: string, runId: string) => request<DeepResearchBundle>("GET", `${deepPath(studyId)}/${enc(runId)}/bundle`),

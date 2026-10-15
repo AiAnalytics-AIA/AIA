@@ -509,6 +509,9 @@ function QuestionOutlookCard({ items }: { items: readonly QuestionOutlook[] }) {
 /** Failures first, then warnings: what stops the run is read before what passed. */
 const CHECK_ORDER: Record<string, number> = { FAIL: 0, WARN: 1, PASS: 2 };
 
+/** The most runs `GET …/deep-research/runs` lists (its `limit` query, le=100). */
+const DEEP_RESEARCH_RUNS_MAX = 100;
+
 export function RunStep() {
   const { store, stepHref, confirm } = useResearch();
   const frame = useFrame();
@@ -529,7 +532,9 @@ export function RunStep() {
     setDesign(null);
     if (!frame.canEdit) return;
     (async () => {
-      const run = latestDesignRun(await deepResearch.runs(frame.studyId));
+      // The server's widest page: newer interpretation or unfinished runs must not push the
+      // finished design run out of the default 20 (review, Codex on #427).
+      const run = latestDesignRun(await deepResearch.runs(frame.studyId, DEEP_RESEARCH_RUNS_MAX));
       if (!run) return;
       const [proposal, bundle] = await Promise.all([deepResearch.designProposal(frame.studyId, run.run_id), deepResearch.bundle(frame.studyId, run.run_id)]);
       if (live) setDesign({ run, proposal, bundle });
