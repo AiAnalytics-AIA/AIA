@@ -7,7 +7,13 @@ chunks:
   - "[x] K2a. Client source store: immutable originals, dedupe per client, PDF/DOCX/TXT/MD read with locators"
   - "[x] K2b. Presentation and open/legacy document readers: PPTX, ODT, DOC"
   - "[x] K2c. Dataset intake: CSV, XLSX, XLS, ODS schema preview with row/column locators"
-  - "[ ] K2d. AI proposals from a source, beneath a chosen study and its budget, every quote grounded"
+  - "[ ] K2d. AI proposals from a document source, paid by the client's budget, every quote grounded"
+  - "[ ] K2d1. Extraction in the domain: closed contract, Czech prompt, segment batches, every quote grounded in its segment"
+  - "[ ] K2d2. Persistence: a client-work reading pinned by its SHA-256; AI-authored proposals written once per run"
+  - "[ ] K2d3. The client_source_proposals step: executor, workflow type, kill switch, parks by name; recorded-gateway tests under the real worker loop, charged to the client"
+  - "[ ] K2d4. Start and follow: POST /clients/{id}/sources/{source_id}/proposals, idempotent per reading; the run's state"
+  - "[ ] K2d5. Web: Navrhnout znalosti on a document's item and the intake sheet; waiting for budget with the lift; proposals land in Ke schválení"
+  - "[ ] K2d6. Burst, latency and money measured; develop activation is the owner's call"
   - "[ ] K2e. Web intake beneath a chosen study: one public URL captured, Deep Research evidence imported"
   - "[ ] K2f. Review payload with evidence beside each proposal; connected acceptance over all three families"
   - "[x] K3a. Refuse an edit written from an item revision that is no longer current (F-K1)"
@@ -385,16 +391,41 @@ generic historical records without inventing source spans or validated dimension
     - `test_source_datasets.py`, 24 tests, on SQLite and PostgreSQL;
     - `test_client_sources.py::test_every_format_on_the_owners_list_has_a_reader`;
     - two API tests: the dataset's masked columns, and the re-read route.
-- **K2d. AI proposals from a source.**
-  - A new workflow type beneath the chosen study, in a study-owned hidden project, as
-    `population_materialize` does (`application/materialize.py:204-245` @ 362f90e0).
-  - The executor uses `StepModelCaller`; the reservation is held against the study's budget.
-  - A closed output contract: FACT / FINDING / TERM / ENTITY proposals, each with a quote and its
-    locator.
-  - Code grounds every quote in the stored reading.
-  - Off by default behind `AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED`; without it, the job parks by
-    name.
-  - Burst, latency and money are measured before merge (CLAUDE.md § 8).
+- **K2d. AI proposals from a source.** *(Re-planned 2026-10-15.)*
+  - **Who pays changed.** The owner decided on 2026-10-15 that the client has a budget of its
+    own for work on the client itself (`client-budget.md`, CB1-CB4 @ f50d2532). K2d runs as the
+    client's own work: a `client_sources` project with no study, a `ClientWorkContext` issued
+    against the lease, every hold and charge on the client's budget. It no longer runs beneath a
+    chosen study. That also makes `:263-265` ("a worker job needs a study") no longer true.
+  - **Documents first** (owner, 2026-10-15). A `DOCUMENT` source (PDF, DOCX, DOC, ODT, PPTX,
+    TXT, MD) is extracted. A `DATASET` is refused by name (`dataset_not_extracted`) until a
+    column-aware slice leaves out its personal-data columns cell by cell: its segments today are
+    whole rows joined with ` | ` (`infrastructure/source_reading.py:575-577` @ f50d2532), so a
+    flagged column cannot be removed from them safely. `IMAGE` / `VIDEO` have no text.
+  - **What is sent.** The stored reading's segments, pinned by the reading's SHA-256 at enqueue
+    (a re-read stores a new reading beside the old, `:374-379`), in batches of whole segments
+    up to a bounded size. Each segment carries its index; the model never sees a locator it
+    could alter. The material is Class A (`domain/residency.py:48-69`), so a route not approved
+    for Class A refuses it at egress before anything leaves, and the step parks by name.
+  - **The contract.** Closed (`extra="forbid"` throughout): a list of proposals, each `kind`
+    (FACT / FINDING / TERM / ENTITY), `title`, `summary`, `quote`, `segment` (the index it
+    quotes). One schema repair, as every agent.
+  - **Grounding, by code.** A quote is kept only when `locate_quote`
+    (`domain/deep_research/grounding.py:116-123`, NFKC and punctuation folded, case kept) finds
+    it in the text of the segment it names. Otherwise it is dropped and counted; a dropped
+    proposal is never shown. The locator written is that segment's, never the model's.
+  - **What is written.** Each kept proposal becomes a client knowledge *proposal* (never an item),
+    through a new `ClientKnowledgeRepository.propose_from_client_work(ClientWorkContext, …)`:
+    `content` holds the quote and its locator (not `source_id`: `source_ref` refuses it on these
+    kinds, `domain/knowledge.py:213-225`); `provenance` names `authored: "ai"`, the source, the
+    occurrence, the reading's SHA-256, the locator, the run, the agent, prompt and harness. A run
+    writes its proposals once: the step's retry finds them by run and writes none twice.
+  - **Off by default** behind `AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED`; without it the step parks
+    `client_source_proposals_unconfigured` and calls nothing. A client budget of 0 parks it
+    `AWAITING_BUDGET` until a person lifts it (client-budget CB4).
+  - **Burst, latency and money** measured before merge (CLAUDE.md § 8): requests per document
+    (bounded by the 250,000-character reading cap and the batch size), tokens and the
+    reservation per request at the model's prices; live latency is the owner's activation run.
 - **K2e. Web intake.**
   - URL capture is one fetch through `RetrievalGate` beneath the chosen study. The snapshot is
     stored as a client source with `origin=web`, the URL and the retrieval time.
