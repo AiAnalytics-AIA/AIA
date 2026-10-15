@@ -208,6 +208,29 @@ Mapped 2026-10-15 on `origin/develop` @ 7d4f1ef5. Paths under `packages/aia_core
      barrier that holds three slots until all three are taken (or hold each slot ~50 ms).
   6. The test that would have caught it: the same test under load (`-n` or a busy runner).
 
+- **F-CB3. The client's budget answered reserved $0 while client holds existed** (fixed
+  on `fix/client-work-races`; Codex review of #438).
+  - `ScopeRepository.client_budget` built the position from budget and spend alone
+    (`scope_repository.py:462-470 @ 80dc2167`). With $6 of $10 held, `GET …/budget`
+    said $10 available while a reservation would allow $4.
+  - Fixed: the sum of the client's open holds that name no study.
+  - Test: `test_client_paid_holds.py::test_a_client_hold_is_checked_against_and_charged_to_the_client_alone`.
+- **F-CB4. Two concurrent lifts could lower the client's budget** (same fix branch).
+  - `lift_client_budget_wait` compared the offer with an unlocked read and only then
+    locked to write (`application/client_work.py:113-118 @ 80dc2167`). One lift raised to
+    $10; another, decided on the old value, then wrote $8.
+  - Fixed: the comparison reads the budget under the client row's lock.
+  - Test: `test_client_budget_lift.py::test_a_lift_decided_on_a_stale_budget_never_lowers_one_raised_meanwhile`
+    (PostgreSQL; $8 without the lock, $10 with it).
+- **F-CB5. Two first requests could each create the client's work project** (same fix
+  branch).
+  - `client_work_project` read then inserted with no constraint
+    (`application/client_work.py:37-50 @ 80dc2167`).
+  - Fixed: partial unique index `uq_projects_client_work` (migration `b3d5f7a9c1e4`); the
+    losing insert is rolled back to a savepoint and answered with the project the other
+    made.
+  - Test: `test_client_work_start.py::test_a_client_has_one_work_project_even_when_two_first_requests_race`.
+
 ## Doc follow-up
 
 - Lifecycle K2d's text says it runs "beneath the chosen study and its budget". After CB5 it is

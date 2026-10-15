@@ -152,6 +152,15 @@ class ProjectRow(Base):
         Index("ix_projects_study_modified", "study_id", "modified_at"),
         Index("ix_projects_client_modified", "client_id", "modified_at"),
         Index("ix_projects_org_status", "organization_id", "status"),
+        # One project of the client's own work per client: two first requests at once
+        # cannot both create one (client-budget CB3b).
+        Index(
+            "uq_projects_client_work",
+            "client_id",
+            unique=True,
+            postgresql_where=text("owner = 'client_sources'"),
+            sqlite_where=text("owner = 'client_sources'"),
+        ),
     )
 
 
