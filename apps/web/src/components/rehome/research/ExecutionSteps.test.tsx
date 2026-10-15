@@ -397,6 +397,49 @@ describe("Run: which questions the run will answer (run-recovery-and-truth 2b)",
     expect(within(rows[2]).getByText(t("research.exec.trace.reason.segments_unavailable"))).toBeTruthy();
   });
 
+  it("shows what Design Research found per research question, a gap, and every rejection's reason", async () => {
+    const traced = {
+      ...OUTLOOK,
+      research_trace: {
+        linked: true,
+        dangling: [],
+        questions: [
+          { text: "Jak často lidé pijí kávu?", measures: ["q1"], verdict: "ANSWERABLE", reasons: [] },
+          { text: "Co lidé snídají?", measures: ["q1"], verdict: "ANSWERABLE", reasons: [] },
+          { text: "Nová otázka?", measures: ["q1"], verdict: "ANSWERABLE", reasons: [] },
+        ],
+      },
+    };
+    const DR = "/api/v1/studies/STU-1/deep-research/runs";
+    api({
+      "GET /api/v1/studies/STU-1/research/readiness": () => traced,
+      [`GET ${DR}`]: () => [{ run_id: "DR-1", purpose: "DESIGN_RESEARCH", phase: "COMPLETED", steps: [] }],
+      [`GET ${DR}/DR-1/design-proposal`]: () => ({
+        run_id: "DR-1", admissible: true, refusal: null,
+        items: [
+          { item_id: "DRP-1", kind: "EVIDENCE", subject_key: "q-aaaaaaaaaaaa", subject_kind: "QUESTION", subject_text: "Jak často lidé pijí kávu?", subject_origin: "o", findings: [{ evidence_id: "EV-1", claim: "Kávu pije denně většina dospělých.", quote: "denně pije kávu 6 z 10", source_title: "Fiktivní zdroj", source: "https://example.org", source_class: "B", confidence: 0.8 }] },
+          { item_id: "DRP-2", kind: "GAP", subject_key: "q-bbbbbbbbbbbb", subject_kind: "QUESTION", subject_text: "Co lidé snídají?", subject_origin: "o", findings: [] },
+        ],
+      }),
+      [`GET ${DR}/DR-1/bundle`]: () => ({
+        quality_status: "OK", fictional_client: true, client_facing: false, accepted: [], snapshots: [], counts: {}, sha256: "x",
+        subjects: [{ key: "q-aaaaaaaaaaaa", kind: "QUESTION", text: "Jak často lidé pijí kávu?", origin: "o" }, { key: "q-bbbbbbbbbbbb", kind: "QUESTION", text: "Co lidé snídají?", origin: "o" }],
+        tracks: [{ track_id: "T-2", subject_key: "q-bbbbbbbbbbbb" }],
+        quarantined: [{ reason: "low_source_quality", track_id: "T-2" }],
+      }),
+    });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const card = await screen.findByRole("region", { name: t("research.exec.trace.title") });
+    const rows = () => within(card).getAllByRole("listitem").filter((li) => li.parentElement?.tagName === "OL");
+    await waitFor(() => expect(within(rows()[0]).getByText(tv("research.exec.trace.evidence.found", { count: 1 }))).toBeTruthy());
+    expect(within(rows()[0]).getByText("Kávu pije denně většina dospělých.")).toBeTruthy();
+    expect(within(rows()[1]).getByText(t("research.exec.trace.evidence.gap"))).toBeTruthy();
+    expect(within(rows()[1]).getByText(tv("research.exec.trace.evidence.rejected", { list: `1× ${t("research.exec.trace.quarantine.low_source_quality")}` }))).toBeTruthy();
+    expect(within(rows()[2]).getByText(t("research.exec.trace.evidence.notStudied"))).toBeTruthy();
+    // Asked for the server's widest page, so newer runs never hide the design run.
+    expect(calls.filter((c) => c.method === "GET" && c.url.startsWith(DR) && !c.url.slice(DR.length).startsWith("/")).map((c) => c.url)).toEqual([`${DR}?limit=100`]);
+  });
+
   it("keeps the card for stale links when the plan states no research question", async () => {
     const stale = { ...OUTLOOK, research_trace: { linked: true, questions: [], dangling: [{ question_id: "q1", research_question: "Stará otázka?" }] } };
     api({ "GET /api/v1/studies/STU-1/research/readiness": () => stale });
