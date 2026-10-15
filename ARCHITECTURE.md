@@ -93,6 +93,14 @@ silently.
 
 Run it before every commit. It is blocking in CI.
 
+`make layer_check` runs two halves: `tools/layer_check.sh` (grep rules) and `lint-imports`
+(import contracts, `[tool.importlinter]` in the root `pyproject.toml`). CI's Backend job runs the
+target; the docs-only job runs the script alone. Network egress is fenced by ruff (`TID251`,
+banned-api in the same file). Both bans are by import name, so `importlib.import_module` and
+`__import__` are not seen; two dynamic-import sites exist, `domain/methodology/resolution.py`
+(restricted to `aia_core.domain.`) and `aia_worker/registry.py` (any module
+`AIA_WORKER_EXECUTORS` names: operator configuration).
+
 | Rule | Prevents |
 |---|---|
 | domain imports no framework, driver or SDK | The domain becoming untestable without a database |
@@ -105,6 +113,11 @@ Run it before every commit. It is blocking in CI.
 | no ORM tables in the HTTP layer | Queries written where they cannot be tested without the whole stack |
 | scope contexts are issued only by `ScopeResolver` | A request body, tool payload or model-generated argument widening its own scope |
 | provider SDKs and gateway libraries are not imported (core or API) | A second model-call path that can retry, fall back or substitute without `GovernedModelGateway` deciding to (ADR 0005) |
+| only the executor compositions import the model adapters (import contract) | A second model-call path: an adapter driven without the gateway's retry, budget, egress and provenance (ADR 0005) |
+| only the AI runtime composition builds the model gateway | A gateway nobody configured: a route, policy or registry outside `ai_runtime.py`'s validated settings |
+| only the step's model caller invokes the model gateway | A model call with no reservation, no settle and no journal under the lease (`ai_step.py`, StepModelCaller) |
+| network egress only from the transport modules (ruff TID251: `urllib3`, `urllib.request`, `http.client`, `socket`, `ssl`; exemptions per file in the root `pyproject.toml`) | A connection with no residency check, pacing, TLS-refusal handling or record: web reads around RetrievalGate, model calls around GovernedModelGateway |
+| deep-research steps never import a live wire; only `deep_research_live` and `deep_research_runtime` do (import contract) | A step building a connection its composition never configured |
 | the API never builds its own scope context | The same, at the edge where untrusted input arrives |
 | the worker never builds its own scope context | The same, inside the process where model-driven code will run |
 | the worker knows nothing about HTTP | A worker that only works behind a web server |
@@ -141,7 +154,9 @@ Two things make this survive contact with a busy week:
 - **Exemptions are named in the rule itself.** `dependencies.py` and `main.py`
   are exempt from the database rule because they are the composition root;
   `storage.py` is exempt from the AWS rule because it *is* the adapter. Each
-  carries a comment saying so. Pretending an exception does not exist is what
+  carries a comment saying so. An exempt path is the file's path from the repository
+  root, never a basename; a rule whose path or exempt path does not exist fails
+  rather than skipping (`test_layer_check_tool.py`). Pretending an exception does not exist is what
   kills these scripts.
 - **Rules are a ratchet.** A rule is added only once it already passes, so the
   check is green the day it lands and a red run always means a regression, never
@@ -199,6 +214,8 @@ can grant approval or supply deployment prices.
   Client Knowledge is read only inside such a context -- never a global pool
   filtered afterwards -- and changes only by a person's own write or when a study's
   proposal is accepted, either of which writes a new revision ([ADR 0019](docs/architecture/adr/0019-two-roles-and-human-ai-gates.md), [ADR 0015](docs/architecture/adr/0015-client-first-product-interface.md)).
+  A client's document reaches a model only through the client's own work, paid by
+  the client: grounded quotes only, filed as proposals a person accepts (lifecycle K2d).
   Three things beside it are deliberately not knowledge, and `for_study` reads none
   of them. **Filing** -- a client's folders and labels -- is organization: it writes
   no revision, moves no date (an item's folder is kept off the item row so

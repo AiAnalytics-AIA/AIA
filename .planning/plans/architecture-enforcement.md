@@ -3,7 +3,9 @@ status: in-progress
 chunks:
   - "[x] 0. Make tools/layer_check.sh honest: a missing path fails, exemptions match by path from the root, a self-test"
   - "[x] 1. Close the second model-call path: the web routes' helpers out of model_adapters; an import-linter contract on model_adapters; grep rules for GovernedModelGateway( and the gateway's .invoke("
-  - "[ ] 2. Not recorded in this file yet: the chunks after 1 come from the exploration report and are written here when they are taken up"
+  - "[x] 2. Fence network egress to the transport modules: ruff TID251 banned-api, one root ruff configuration, an import contract keeping live wires out of the deep-research steps"
+  - "[x] 3. Pin what a worker that outlived its lease can still write (B completes, then A writes)"
+  - "[ ] 4. Not recorded in this file yet: the chunks after 3 come from the exploration report and are written here when they are taken up"
 ---
 # Architecture enforcement — the layering guard says what it checks
 
@@ -79,6 +81,31 @@ names exactly `aia_executors.ai_runtime`, `aia_executors.deep_research_live` and
   `__init__` modules above `model_adapters` never name it (F5). 121 rules.
   `test_layer_check_tool.py` runs both gateway patterns from the script itself.
 - Each rule shown to bite with a temporary violation (PR description).
+
+## Chunk 2 — fence network egress (done, #444)
+
+- `packages/aia_core` and `apps/api` extend the root ruff configuration instead of copying it
+  (95990c9d), so a rule added at the root reaches every tree.
+- Ruff `TID251` bans `urllib3`, `urllib.request`, `http.client`, `socket` and `ssl` outside
+  seven named files (the model and web transports, `http_transport.py`, the Cognito JWKS fetch,
+  the worker's hostname) and tests (1dce09c7).
+- An import contract keeps `web_retrieval_live`, `web_retrieval_brave`, `common_crawl` and
+  `model_adapters.live_transport` out of `aia_executors.deep_research`.
+- Findings, for decisions (#444): **E1** `application/web_retrieval.py:140` imports protocols
+  from `infrastructure/common_crawl.py`, which imports `web_retrieval_live`, so the contract
+  needs `allow_indirect_imports`; moving those protocols to a protocol module would let it
+  forbid indirect imports. **E2** `aia_worker/registry.py:32` imports any module
+  `AIA_WORKER_EXECUTORS` names, unrestricted (operator configuration). **E3** the contract's
+  source is the deep-research steps only; widening it to every executor and the API needs one
+  ignore, `aia_api/routers/deep_research.py:69` (`MIN_SCAN_CUTOFF_BYTES`).
+
+## Chunk 3 — what a stale worker can still write (done, #443)
+
+`apps/worker/tests/test_stale_lease_artifacts.py` (PostgreSQL) pins:
+`test_a_stale_worker_is_refused_before_it_reaches_the_store`,
+`test_a_put_inside_the_fence_holds_off_recovery_and_a_failed_block_orphans_its_object` (the
+orphan is OI-114) and
+`test_an_artifact_committed_before_the_lease_lapsed_is_reused_by_the_successor`.
 
 ## Findings
 
