@@ -31,6 +31,8 @@ ignore = ["N818"]
 # __import__ are not seen; tools/layer_check.sh's rules and review cover those.
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "urllib3".msg = "Network egress goes through the transport modules: RetrievalGate over infrastructure/web_retrieval_live.py, or GovernedModelGateway over model_adapters/live_transport.py"
+"httpx".msg = "Network egress goes through the transport modules: RetrievalGate over infrastructure/web_retrieval_live.py, or GovernedModelGateway over model_adapters/live_transport.py"
+"requests".msg = "Network egress goes through the transport modules: RetrievalGate over infrastructure/web_retrieval_live.py, or GovernedModelGateway over model_adapters/live_transport.py"
 "urllib.request".msg = "Network egress goes through the transport modules: RetrievalGate over infrastructure/web_retrieval_live.py, or GovernedModelGateway over model_adapters/live_transport.py"
 "http.client".msg = "Network egress goes through the transport modules: RetrievalGate over infrastructure/web_retrieval_live.py, or GovernedModelGateway over model_adapters/live_transport.py"
 "socket".msg = "Network egress goes through the transport modules: RetrievalGate over infrastructure/web_retrieval_live.py, or GovernedModelGateway over model_adapters/live_transport.py"
