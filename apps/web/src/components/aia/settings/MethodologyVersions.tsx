@@ -282,6 +282,7 @@ function EditorForm({ summary, start, presets, detail, currentSpec, onBase, onDi
   const titles = useMemo(() => Object.fromEntries(detail.step_details.map((s) => [s.id, s.title_cs])), [detail]);
   const editableIds = useMemo(() => new Set(steps.map(({ step }) => step.id)), [steps]);
   const stageOf = useMemo(() => new Map(groupSteps(detail).flatMap(({ group, steps: groupItems }) => group ? groupItems.map((item) => [item.id, group.title_cs] as const) : [])), [detail]);
+  const numbers = useMemo(() => stageNumbers(detail.groups), [detail]);
   const notYet = useMemo(() => groupSteps(detail).filter(({ group, steps: groupItems }) => group && !groupItems.length).map(({ group }) => group!.title_cs.replace(/^Zatím v AIA není:\s*/, "")), [detail]);
   const [leaveHref, setLeaveHref] = useState<string | null>(null);
   const changedCount = Object.keys(raw).filter((r) => raw[r] !== toInput(readPath(start.spec, r))).length + [...builtin.keys()].filter((slot) => exprs[slot] !== (start.formulas[slot] ?? builtin.get(slot))).length;
@@ -431,7 +432,7 @@ function EditorForm({ summary, start, presets, detail, currentSpec, onBase, onDi
             <div key={group?.id ?? "other"} data-outline-stage className={i ? "border-t border-border pt-3" : undefined}>
               {/* The stage reads as a heading, its steps beneath it (product owner, 2026-10-15). */}
               <p className="flex items-baseline gap-2 px-2 pb-1.5 text-sm font-semibold leading-5 text-ink">
-                <span aria-hidden="true" className="w-4 shrink-0 font-mono text-xs font-normal text-ink-faint">{stageNumber(grouped, i)}</span>
+                <span aria-hidden="true" className="w-4 shrink-0 font-mono text-xs font-normal text-ink-faint">{(group && numbers.get(group.id)) ?? ""}</span>
                 <span className="min-w-0">{group?.title_cs ?? "Další kroky"}</span>
               </p>
               <ul className="flex flex-col gap-0.5">
@@ -546,11 +547,11 @@ function EditorForm({ summary, start, presets, detail, currentSpec, onBase, onDi
   );
 }
 
-/** A stage's number in the outline: the computation's stages count from 1; a module's opening
- *  "Metoda" group, which only names the method, has none. */
-function stageNumber(grouped: readonly { group: { id: string } | null }[], index: number): string {
-  if (grouped[index].group?.id === "M") return "";
-  return String(grouped.slice(0, index + 1).filter(({ group }) => group?.id !== "M").length);
+/** Each stage's number in the computation, from the module's full list of stages (the editor
+ *  leaves out stages with nothing to edit, and a number must not shift when one is left out);
+ *  a module's opening "Metoda" group, which only names the method, has none. */
+function stageNumbers(groups: readonly { id: string }[]): Map<string, string> {
+  return new Map(groups.filter((g) => g.id !== "M").map((g, i) => [g.id, String(i + 1)]));
 }
 
 /** One step of the editor, redrawn only when its own values, problems or visibility change:

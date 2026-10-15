@@ -421,6 +421,19 @@ describe("guided methodology editing", () => {
     expect(within(kept).getByText(/Výraz nahrazuje jen Kishovu větev/)).toBeTruthy();
   });
 
+  it("numbers each stage by its place in the computation, also when a stage has nothing to edit", async () => {
+    fakeApi(); render(<MethodologyPanel />);
+    await openModule("Odpověď respondenta: od pravděpodobností modelu k odpovědi");
+    await versionsSection();
+    await openEditor();
+    const form = await editor();
+    const heads = [...form.querySelectorAll("[data-outline-stage] > p")].map((p) => p.textContent);
+    // Pravděpodobnosti od modelu (1) and Losování (3) have nothing to edit; counting only what is
+    // shown would read 1 and 2.
+    expect(heads).toEqual(expect.arrayContaining(["2Mechanismy odpovědi", "4Styly respondenta"]));
+    expect(heads.some((h) => h?.endsWith("Pravděpodobnosti od modelu"))).toBe(false);
+  });
+
   it("invalidates a previous successful check when the parameter changes", async () => {
     const { sent } = fakeApi(); render(<MethodologyPanel />);
     await openEditor();
