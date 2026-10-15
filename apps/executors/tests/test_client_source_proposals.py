@@ -282,6 +282,8 @@ def test_grounded_proposals_are_filed_and_the_client_pays(
         "source_id": source_id,
         "reading_sha256": step["output"]["reading_sha256"],
         "batches": 1,
+        "sent": 1,
+        "replayed": 0,
         "proposed": 2,
         "dropped": {"quote_not_found": 1, "unknown_segment": 1},
     }
@@ -438,3 +440,41 @@ def test_a_document_over_the_request_cap_is_refused_before_any_call(
     assert run["steps"][0]["attempts"][-1]["error"]["reason"] == "too_many_requests"
     assert transport.requests == []
     assert spent(world) == (0.0, 0.0)
+
+
+def test_a_document_parked_between_batches_resumes_without_paying_twice(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """Two batches; the client's budget holds the first request ($0.50) and not the
+    second on top of what the first spent. Parked, then lifted: the step asks only the
+    second batch -- the first is replayed from the journal, never re-sent or re-charged."""
+    page = ("Fiktivní pivovar Lupínek vaří světlé pivo v Kolíně. " * 300).strip()
+    two_batches = f"{page}\n\n{page} Druhá strana.".encode()
+    run_id, _ = start(world, store, budget=0.505, filename="dlouhy.txt", data=two_batches)
+    transport = RecordedBedrock()
+    w = worker(world, database_url, store, build, transport)
+    w.run_once()
+    step = run_state(world, run_id)["steps"][0]
+    assert step["status"] is StepRunStatus.AWAITING_BUDGET
+    assert len(transport.requests) == 1
+    first_charge = spent(world)[0]
+    assert first_charge > 0
+
+    with world.sessions() as session:
+        lift_client_budget_wait(
+            session,
+            client_scope(world, session),
+            work_scope(world, session),
+            run_id,
+            "extract",
+            budget_usd=5.0,
+        )
+        session.commit()
+    assert w.run_once()
+    run = run_state(world, run_id)
+    assert run["status"] is WorkflowRunStatus.COMPLETED
+    assert len(transport.requests) == 2  # the first batch was not sent again
+    output = run["steps"][0]["output"]
+    assert (output["batches"], output["sent"], output["replayed"]) == (2, 1, 1)
+    # Charged for two requests, not three.
+    assert spent(world)[0] == pytest.approx(2 * first_charge)
