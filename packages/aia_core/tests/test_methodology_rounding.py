@@ -18,6 +18,7 @@ from aia_core.domain.methodology.pins import read_aggregation_pin
 from aia_core.domain.methodology.versions import (
     MethodologyVersionInvalid,
     named,
+    spec_as_computed,
     validate_version,
 )
 from aia_core.domain.research_aggregate import (
@@ -128,6 +129,18 @@ def test_a_pin_stored_before_rounding_was_declared_reads_as_the_units() -> None:
     del old["rounding"]
     spec, slots = read_aggregation_pin({"spec": old, "formulas": {}})
     assert spec.rounding == AIA_AGGREGATE_V1.rounding and slots == {}
+
+
+def test_a_stored_spec_without_rounding_reads_as_its_runs_compute_it() -> None:
+    old = AIA_AGGREGATE_V1.model_dump(mode="json")
+    del old["rounding"]
+    old["bootstrap"]["reps"] = 200
+    shown = spec_as_computed(AGGREGATION, "aia-aggregate-1", old)
+    assert shown["rounding"] == {"share_decimals": 1, "mean_decimals": 2}
+    assert shown["bootstrap"]["reps"] == 200 and "rounding" not in old
+    # A stored value always wins; what no preset type reads is shown as stored.
+    assert spec_as_computed(AGGREGATION, "aia-aggregate-1", {"bootstrap": 1}) == {"bootstrap": 1}
+    assert spec_as_computed(AGGREGATION, "no-such-preset", old) == old
 
 
 def _validate(**rounding: Any) -> Any:

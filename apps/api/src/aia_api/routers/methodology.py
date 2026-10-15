@@ -66,6 +66,7 @@ from aia_core.domain.methodology.support_check import (
 from aia_core.domain.methodology.versions import (
     MethodologyVersionInvalid,
     named,
+    spec_as_computed,
     validate_version,
     version_payload,
 )
@@ -593,7 +594,9 @@ def _version(v: StoredVersion) -> VersionOut:
         version_number=v.version_number,
         name=v.name,
         base_preset=v.base_preset,
-        spec=dict(v.payload["spec"]),
+        # A field declared after the version was stored reads as the run reads it; the
+        # payload and its hash stay as stored.
+        spec=spec_as_computed(module(v.module_id), v.base_preset, v.payload["spec"]),
         formulas=dict(v.payload["formulas"]),
         payload_sha256=v.payload_sha256,
         note=v.note,

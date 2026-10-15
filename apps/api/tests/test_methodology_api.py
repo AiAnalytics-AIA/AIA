@@ -8,6 +8,7 @@ code.
 
 from __future__ import annotations
 
+import copy
 from typing import Any
 
 import pytest
@@ -18,7 +19,11 @@ from aia_core.domain.research_design import AIA_READINESS_V1
 from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1
 from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V3
 from aia_core.domain.sociomap.view import STRESS_QUALITY_BANDS
+from aia_core.infrastructure.db import create_session_factory
+from aia_core.infrastructure.tables import MethodologyVersionRow
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 API = "/api/v1"
 METHODOLOGY = f"{API}/methodology"
@@ -659,3 +664,38 @@ def test_the_rounding_stage_says_what_it_changes_and_previews_results_lines(
     assert lines[0] == ("round_share", "", "Ranní nápoj: Kávu: 38 % (34\u201343 %)")
     refused = owner.post(f"{AGGREGATION}/check", json=_aggregation_edit(rounding__share_decimals=4))
     assert refused.json()["valid"] is False and refused.json()["preview"] == []
+
+
+def test_a_version_stored_before_rounding_opens_with_the_places_its_runs_read(
+    owner: TestClient, app: FastAPI
+) -> None:
+    """An aggregation version stored before the rounding fields were declared has no
+    ``rounding``: it reads back with the places a run pinned to it computes (1 and 2), so the
+    editor meets every field it shows; the stored payload and its hash are not touched."""
+    stored = owner.post(f"{AGGREGATION}/versions", json=_aggregation_edit(bootstrap__reps=200))
+    assert stored.status_code == 201, stored.text
+    number = stored.json()["version_number"]
+    with create_session_factory(app.state.engine)() as session:
+        row = session.scalars(
+            select(MethodologyVersionRow).where(
+                MethodologyVersionRow.module_id == "aggregation",
+                MethodologyVersionRow.version_number == number,
+            )
+        ).one()
+        legacy = copy.deepcopy(row.payload)
+        del legacy["spec"]["rounding"]
+        row.payload = legacy
+        session.commit()
+        sha = row.payload_sha256
+
+    (version,) = owner.get(f"{AGGREGATION}/versions").json()["versions"]
+    assert version["spec"]["rounding"] == {"share_decimals": 1, "mean_decimals": 2}
+    assert version["spec"]["bootstrap"]["reps"] == 200 and version["payload_sha256"] == sha
+    checked = owner.post(
+        f"{AGGREGATION}/check",
+        json={"base_preset": version["base_preset"], "spec": version["spec"], "formulas": {}},
+    )
+    assert checked.json()["valid"] is True
+    with create_session_factory(app.state.engine)() as session:
+        kept = session.get(MethodologyVersionRow, row.version_id)
+        assert kept is not None and "rounding" not in kept.payload["spec"]

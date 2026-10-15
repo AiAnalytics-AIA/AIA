@@ -39,6 +39,7 @@ __all__ = [
     "ValidatedVersion",
     "named",
     "payload_sha256",
+    "spec_as_computed",
     "validate_version",
     "version_payload",
 ]
@@ -146,6 +147,37 @@ def validate_version(
         spec=validated_spec,
         formulas={k: v.strip() for k, v in sorted(formulas.items())},
     )
+
+
+def spec_as_computed(
+    module: MethodModule, base_preset: str, spec: Mapping[str, Any]
+) -> dict[str, Any]:
+    """A stored version's specification as a run that pins it computes it.
+
+    A field the module declared after the version was stored reads as its default, as the pin
+    reads it (``pins.read_aggregation_pin``): the editor then meets every field it shows. Every
+    stored value is kept as stored; the stored payload and its hash are never rewritten. A spec
+    its preset's type no longer validates is returned as stored, for the person to see.
+    """
+    preset = _preset(module, base_preset)
+    if preset is None:
+        return dict(spec)
+    try:
+        computed = type(preset.spec).model_validate(dict(spec)).model_dump(mode="json")
+    except ValidationError:
+        return dict(spec)
+    return _filled(spec, computed)
+
+
+def _filled(stored: Mapping[str, Any], computed: Mapping[str, Any]) -> dict[str, Any]:
+    """``stored`` with each key only ``computed`` has added; a stored value always wins."""
+    out = dict(stored)
+    for key, value in computed.items():
+        if key not in out:
+            out[key] = value
+        elif isinstance(out[key], Mapping) and isinstance(value, Mapping):
+            out[key] = _filled(out[key], value)
+    return out
 
 
 def version_payload(version: ValidatedVersion) -> dict[str, Any]:
