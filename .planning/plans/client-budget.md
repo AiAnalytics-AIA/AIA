@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] CB1. The client's budget: clients.budget_usd / spent_usd, VIEW_CLIENT_COSTS and MANAGE_CLIENT_BUDGET, GET/PUT /clients/{id}/budget audited, shown and set on Profil"
-  - "[ ] CB2. Client-paid runs in the schema: one payer per project, run, hold, usage row and approval (study XOR client), the client_sources owner"
+  - "[x] CB2. Client-paid runs in the schema: one payer per project, run, hold, usage row and approval (study or, when none, the client), the client_sources owner; the repository's hold, charge and close paths read the payer"
   - "[ ] CB3. A run's payer in the worker: ScopeResolver issues a ClientWorkContext against a held lease; reserve, settle and charge the client; the gateway, egress and usage ledger take either payer"
   - "[ ] CB4. Over budget: a client run parks AWAITING_BUDGET and a person lifts it from the client, recorded in the approval ledger"
   - "[ ] CB5. Proof: a scripted paid step charged to a client end to end on SQLite and PostgreSQL; Doc follow-up (lifecycle K2d pays from the client)"
@@ -94,11 +94,32 @@ Mapped 2026-10-15 on `origin/develop` @ 7d4f1ef5. Paths under `packages/aia_core
   table that the payer is one or the other; `projects.owner = client_sources` exactly when
   `study_id` is NULL.
 - PostgreSQL and SQLite both; the existing rows already satisfy the CHECKs.
+- **Landed** (2026-10-15), with one change of shape: rather than a study-XOR-client CHECK,
+  `client_id` stays NOT NULL everywhere (now on holds too, backfilled from each hold's study)
+  and the payer is *the study, or, when `study_id` is NULL, the client*. Every scoped table
+  then reads the same way, and a client's outstanding holds are one indexed sum.
+  - Migration `f8b0d2a4c6e3`: `study_id` nullable on `projects`, `workflow_runs`,
+    `budget_reservations`, `approval_decisions`, `ai_usage_events`;
+    `budget_reservations.client_id` (FK, `ix_reservations_client_status`);
+    `ck_projects_project_study_unless_client_owned`. Checked on PostgreSQL 16: upgrade with an
+    existing hold backfilled, the CHECK refusing an ordinary project without a study,
+    downgrade and upgrade again, `alembic check` clean. (A fresh SQLite `alembic upgrade`
+    already fails at `6750a204efd9`, before this; SQLite runs on `create_all`.)
+  - The repository's money paths, brought forward from CB3 because the types forced the
+    question: `_reserve` locks and checks the payer row (study or client);
+    `_outstanding_reservations(client_id=, study_id=)` sums one payer's holds;
+    `_charge(hold or run)` charges the study or the client, the same atomic increment;
+    `_close_open_reservations` charges a hold's payer, else the run's.
+    `ClaimedWork.study_id` and `AIUsageEvent.study_id` are `str | None`.
+  - Tests: `packages/aia_core/tests/test_client_paid_holds.py` (4), on SQLite and PostgreSQL;
+    the reservation, concurrency, ledger and engine suites unchanged on both.
 
 ### CB3. A run's payer in the worker
 
 - `ClientWorkContext`, `ScopeResolver.execution_context` returning it for a client run, the
-  repositories and the gateway path taking it; `_reserve` locks the client for a client run.
+  repositories and the gateway path taking it. (`_reserve` locking the client landed in CB2.)
+- Creating a client run: a `client_sources` project for the client and `create_run` under a
+  person's `ClientContext` with a new `RUN_CLIENT_WORK` permission.
 
 ### CB4. Over budget
 

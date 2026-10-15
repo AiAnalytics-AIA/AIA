@@ -79,6 +79,7 @@ from ..domain.workflow import (
 from .tables import (
     ApprovalDecisionRow,
     BudgetReservationRow,
+    ClientRow,
     RunPopulationBindingRow,
     StepAttemptRow,
     StepDependencyRow,
@@ -234,7 +235,8 @@ class ClaimedWork:
     worker_id: str
     organization_id: str
     client_id: str
-    study_id: str
+    #: None: a run on the client's own work, paid by the client (client-budget CB2).
+    study_id: str | None
 
 
 class WorkflowRepository:
@@ -1004,11 +1006,22 @@ class WorkflowRepository:
 
     # ------------------------------------------------------- budget and costs --
 
-    def _outstanding_reservations(self, study_id: str) -> float:
-        """Sum of reservations still holding budget."""
+    def _outstanding_reservations(self, *, client_id: str, study_id: str | None) -> float:
+        """Sum of reservations still holding the payer's budget.
+
+        The payer is the study, or, with ``study_id`` None, the client's own budget
+        (client-budget CB2): a study's holds never count against the client's, nor
+        the client's against any study's.
+        """
+        payer = (
+            BudgetReservationRow.study_id == study_id
+            if study_id is not None
+            else (BudgetReservationRow.client_id == client_id)
+            & BudgetReservationRow.study_id.is_(None)
+        )
         total = self._session.scalar(
             select(func.coalesce(func.sum(BudgetReservationRow.amount_usd), 0.0)).where(
-                BudgetReservationRow.study_id == study_id,
+                payer,
                 BudgetReservationRow.status == ReservationStatus.RESERVED.value,
             )
         )
@@ -1087,35 +1100,44 @@ class WorkflowRepository:
         self, *, attempt_id: str, worker_id: str, amount_usd: float, payee: str, reason: str
     ) -> str:
         """The locked check and the hold behind both kinds of reservation."""
-        # Attempt before study: every path that locks both takes them in this
+        # Attempt before payer: every path that locks both takes them in this
         # order -- completion and recovery lock the attempt, then charge the
-        # study -- so no two of them can wait on each other in a cycle.
+        # payer -- so no two of them can wait on each other in a cycle.
         attempt = self._held_attempt(attempt_id, worker_id=worker_id)
         step = self._step(attempt.step_id)
         run = self._run(step.run_id)
 
-        study_query = select(StudyRow).where(StudyRow.study_id == run.study_id)
-        if self._is_postgres:
-            # Blocking, NOT skip_locked: a concurrent reserver must wait and then
-            # re-read the total, never skip the check.
-            study_query = study_query.with_for_update()
-
-        study = self._session.scalar(study_query)
-        if study is None:
-            raise WorkflowNotFound(run.study_id)
+        # The payer: the run's study, or, for a run on the client's own work, the
+        # client (client-budget CB2). Its row is locked for the check.
+        payer: StudyRow | ClientRow | None
+        if run.study_id is not None:
+            study_query = select(StudyRow).where(StudyRow.study_id == run.study_id)
+            if self._is_postgres:
+                # Blocking, NOT skip_locked: a concurrent reserver must wait and then
+                # re-read the total, never skip the check.
+                study_query = study_query.with_for_update()
+            payer = self._session.scalar(study_query)
+        else:
+            client_query = select(ClientRow).where(ClientRow.client_id == run.client_id)
+            if self._is_postgres:
+                client_query = client_query.with_for_update()
+            payer = self._session.scalar(client_query)
+        if payer is None:
+            raise WorkflowNotFound(run.study_id or run.client_id)
 
         requested = max(0.0, float(amount_usd))
-        outstanding = self._outstanding_reservations(run.study_id)
-        remaining = max(0.0, study.budget_usd - study.spent_usd - outstanding)
+        outstanding = self._outstanding_reservations(client_id=run.client_id, study_id=run.study_id)
+        remaining = max(0.0, payer.budget_usd - payer.spent_usd - outstanding)
 
         # Epsilon so an exact-limit reservation is permitted despite float drift.
         if requested > remaining + 1e-9:
-            raise BudgetExceeded(requested=requested, remaining=remaining, limit=study.budget_usd)
+            raise BudgetExceeded(requested=requested, remaining=remaining, limit=payer.budget_usd)
 
         reservation_id = new_reservation_id()
         self._session.add(
             BudgetReservationRow(
                 reservation_id=reservation_id,
+                client_id=run.client_id,
                 study_id=run.study_id,
                 run_id=run.run_id,
                 step_id=step.step_id,
@@ -1234,7 +1256,7 @@ class WorkflowRepository:
             reservation.status = ReservationStatus.SETTLED.value
             reservation.settled_amount_usd = actual
             reservation.settled_at = utcnow()
-            self._charge_study(reservation.study_id, actual)
+            self._charge(reservation, actual)
         self._session.flush()
         attempt.paid_call_outcome_known = self._paid_call_outcome_known(attempt)
         self._session.flush()
@@ -1288,7 +1310,7 @@ class WorkflowRepository:
         reservation.status = ReservationStatus.SETTLED.value
         reservation.settled_amount_usd = actual
         reservation.settled_at = utcnow()
-        self._charge_study(reservation.study_id, actual)
+        self._charge(reservation, actual)
         self._session.flush()
 
     def release_reservation(self, reservation_id: str, *, reason: str = "") -> None:
@@ -1339,7 +1361,7 @@ class WorkflowRepository:
             reservation.reason = "paid_external_call_side_effect_uncertain"
             # The reservation's own study, not this repository's: the cross-study
             # work queue recovers attempts without a study scope of its own.
-            self._charge_study(reservation.study_id, amount)
+            self._charge(reservation, amount)
 
         if exposure:
             attempt.actual_cost_usd = float(attempt.actual_cost_usd or 0.0) + exposure
@@ -1382,16 +1404,16 @@ class WorkflowRepository:
         )
         unbilled = max(0.0, float(attempt.actual_cost_usd or 0.0) - charged)
 
-        study_id: str | None = None
+        payer: BudgetReservationRow | None = None
         for reservation in reservations:
             if reservation.status != ReservationStatus.RESERVED.value:
                 continue
-            study_id = reservation.study_id
+            payer = reservation
             reservation.settled_at = utcnow()
             if unbilled > 1e-12:
                 reservation.status = ReservationStatus.SETTLED.value
                 reservation.settled_amount_usd = unbilled
-                self._charge_study(reservation.study_id, unbilled)
+                self._charge(reservation, unbilled)
                 unbilled = 0.0
             else:
                 reservation.status = ReservationStatus.RELEASED.value
@@ -1401,7 +1423,9 @@ class WorkflowRepository:
         if unbilled > 1e-12:
             # Known spend with no reservation behind it -- a cost reported at
             # completion for work that reserved nothing. Charged, not dropped.
-            if study_id is None:
+            if payer is not None:
+                self._charge(payer, unbilled)
+            else:
                 step = self._session.scalar(
                     select(StepRunRow).where(StepRunRow.step_id == attempt.step_id)
                 )
@@ -1412,10 +1436,28 @@ class WorkflowRepository:
                     if step is not None
                     else None
                 )
-                study_id = run.study_id if run is not None else None
-            if study_id is not None:
-                self._charge_study(study_id, unbilled)
+                if run is not None:
+                    self._charge(run, unbilled)
         return 0.0
+
+    def _charge(self, payer: BudgetReservationRow | WorkflowRunRow, amount_usd: float) -> None:
+        """Add to the recorded spend of whoever pays for ``payer``, atomically.
+
+        A hold or run with a study charges the study; one without charges the client's
+        own budget (client-budget CB2). The same atomic increment either way.
+        """
+        if payer.study_id is not None:
+            self._charge_study(payer.study_id, amount_usd)
+            return
+        amount = max(0.0, float(amount_usd))
+        if not amount:
+            return
+        self._session.execute(
+            update(ClientRow)
+            .where(ClientRow.client_id == payer.client_id)
+            .values(spent_usd=ClientRow.spent_usd + amount)
+            .execution_options(synchronize_session="fetch")
+        )
 
     def _charge_study(self, study_id: str, amount_usd: float) -> None:
         """Add to a study's recorded spend, atomically.
@@ -1461,7 +1503,9 @@ class WorkflowRepository:
         if study is None:
             raise WorkflowNotFound(self.scope.study_id)
 
-        reserved = self._outstanding_reservations(self.scope.study_id)
+        reserved = self._outstanding_reservations(
+            client_id=self.scope.client_id, study_id=self.scope.study_id
+        )
         uncertain = self._session.scalar(
             select(func.coalesce(func.sum(BudgetReservationRow.settled_amount_usd), 0.0)).where(
                 BudgetReservationRow.study_id == self.scope.study_id,
