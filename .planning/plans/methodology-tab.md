@@ -39,7 +39,7 @@ chunks:
   - "[x] R1c. Response process editable, with the draft check on fixed fictional questions and respondents"
   - "[x] R1d. Results name the run's response process and say when it is not 18.6.6's, on Z1a's Metodika běhu"
   - "[x] V1a1. Readiness bounds (sample size 20-10 000, tracked set 3-40, recommended 4-15) declared as a module of their own (ReadinessSpec, aia-readiness-1), editable as a version, pinned by a run and read by its compile and preflight steps (owner, 2026-10-14)"
-  - "[ ] V1a2. The readiness area as the canvas board MethodologyReadiness draws it: each limit's effect, the rule as read, what every version keeps, the Kontrola a spuštění preview, and Porovnat as the impact on the organization's studies"
+  - "[x] V1a2. The readiness area as the canvas board MethodologyReadiness draws it: each limit's effect, the rule as read, what every version keeps, the Kontrola a spuštění preview, and Porovnat as the impact on the organization's studies"
   - "[ ] V1b. Presentation rounding (shares 0.1 %, means 2 dp) declared and editable as a version; the code's preset keeps 18.6.6's decimals, so parity holds under it (owner, 2026-10-14)"
   - "[ ] V1c. Evidence tiers shown read-only: what tier A, B and C each permit, from TIER_PERMITS; a change stays a reviewed code change (owner, 2026-10-14)"
   - "[ ] X1. Simulation documented read-only; declared and editable when it is wired into runs"
@@ -1238,4 +1238,20 @@ To be written as chunks land:
     impact on the organization's studies; `run_methods` and the report's method table do not
     list readiness (it computes nothing a result carries); `support_forecast` still caps its
     search at the preset's largest sample.
+- **V1a2, built.** The board `MethodologyReadiness` from data the catalogue declares, never
+  from words written in the page:
+  - `ParameterRef.effect` (`ParameterEffect`: blocks_run, blocks_design, warns) is each
+    limit's pill; `MethodStep.reading_cs` is the rule with `{dotted.path}` placeholders the
+    page fills from the draft (`fillReading`); `MethodStep.keeps_cs` is "Co musí každá verze
+    splnit" (ticked after a passing check). `module_problems` refuses a reading naming a path
+    no preset has.
+  - `MethodModule.preview`: the readiness module checks fixed fictional designs (n 12 and 450,
+    a set of 18 and of 41 items) with the code's own `prepare` under the draft; `check` returns
+    the lines (`CheckOut.preview`), so the page shows exactly what Kontrola a spuštění writes.
+  - `Porovnat` is `application.readiness_impact`: every open research study the member may
+    open, each under its own `StudyContext`, checked on its working content, else its latest
+    Design Revision, under the limits in force and under the draft; studies whose verdict moves
+    first. Nothing is written (`test_readiness_compare_lists_the_studies_whose_verdict_the_draft_moves`).
+  - Measured on the workbench at 1440/1710/1920: switching step 44-81 ms, the rule redrawn on a
+    keystroke 50-67 ms, no horizontal overflow, no page errors.
 

@@ -13,7 +13,8 @@
 import type { ReactNode } from "react";
 
 import { t, tv } from "@/i18n/t";
-import type { MethodAggregationPanel, MethodCompare, MethodEstimate, MethodMapSummary, MethodPanel, MethodResponseCompare, MethodResponseQuestion, MethodSupportCompare } from "@/lib/api";
+import type { MethodAggregationPanel, MethodCompare, MethodEstimate, MethodMapSummary, MethodPanel, MethodReadinessCompare, MethodResponseCompare, MethodResponseQuestion, MethodSupportCompare } from "@/lib/api";
+import { appRoutes } from "@/lib/app-routes";
 
 const C = "aia.settings.methodology.versions.compare";
 const number = new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 4 });
@@ -45,7 +46,9 @@ export function MethodologyComparison({ result }: { result: MethodCompare }) {
   return (
     <section aria-label={t(`${C}.title`)} data-methodology-compare className="flex min-w-0 flex-col gap-3">
       <h5 className="text-sm font-semibold">{tv(`${C}.heading`, { name: result.in_force })}</h5>
-      {result.aggregation ? (
+      {result.readiness ? (
+        <ReadinessImpact readiness={result.readiness} />
+      ) : result.aggregation ? (
         <div data-compare-aggregation className="flex min-w-0 flex-col gap-3">
           <p className="max-w-3xl text-xs text-ink-muted">{t(`${A}.intro`)}</p>
           {result.aggregation.panels.map((p, i) => <AggregationPanel key={p.panel} panel={p} initiallyOpen={i === 0} />)}
@@ -305,5 +308,53 @@ function ResponseQuestion({ q, initiallyOpen }: { q: MethodResponseQuestion; ini
         </table></div>
       </details>
     </article>
+  );
+}
+
+const RD = `${C}.readiness`;
+
+/** The readiness draft on the organization's open research studies (plan V1a2): each study
+ *  whose verdict or any check the draft moves, verdict changes first and in bold. */
+function ReadinessImpact({ readiness }: { readiness: MethodReadinessCompare }) {
+  const verdict = (ready: boolean) => t(`${RD}.${ready ? "ready" : "blocked"}`);
+  const flipped = readiness.studies.filter((s) => s.ready[0] !== s.ready[1]).length;
+  const status = (s: string | null) => t(`${RD}.check.${s ?? "none"}`);
+  return (
+    <div data-compare-readiness className="flex min-w-0 flex-col gap-3">
+      <h6 className="text-sm font-semibold">{t(`${RD}.title`)}</h6>
+      <p className="max-w-3xl text-xs text-ink-muted">{t(`${RD}.intro`)}</p>
+      {readiness.studies.length ? (
+        <table className="w-full text-sm" aria-label={t(`${RD}.title`)}>
+          <thead>
+            <tr className="text-left text-xs text-ink-muted">
+              <th className="py-1 font-medium">{t(`${RD}.study`)}</th>
+              <th className="w-28 py-1 font-medium">{t(`${RD}.now`)}</th>
+              <th className="w-28 py-1 font-medium">{t(`${RD}.next`)}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {readiness.studies.map((s) => {
+              const changed = s.ready[0] !== s.ready[1];
+              return (
+                <tr key={s.study_id} data-readiness-study={s.study_id} className={`border-t border-border align-top ${changed ? "font-semibold" : ""}`}>
+                  <td className="py-2 pr-3">
+                    <a className="underline underline-offset-2" href={appRoutes.study(s.client_id, s.study_id, "RESEARCH")}>{s.name}</a>
+                    <span className="block text-xs font-normal text-ink-muted">{s.client_name} · {t(`${RD}.${s.source === "draft" ? "sourceDraft" : "sourceDesign"}`)}{s.n !== null ? ` · n = ${s.n.toLocaleString("cs-CZ")}` : ""}</span>
+                    <ul className="mt-1 text-xs font-normal text-ink-muted">
+                      {s.moves.map((m) => <li key={m.check_id}>{status(m.in_force)} → {status(m.draft)}: {m.message}</li>)}
+                    </ul>
+                  </td>
+                  <td className="py-2">{verdict(s.ready[0])}</td>
+                  <td className="py-2">{verdict(s.ready[1])}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      ) : null}
+      <p role="status" className="text-sm">{flipped ? tv(`${RD}.moved`, { count: flipped }) : t(`${RD}.noneMoved`)}</p>
+      {readiness.unchanged ? <p className="text-xs text-ink-muted">{tv(`${RD}.unchanged`, { count: readiness.unchanged })}</p> : null}
+      {readiness.not_assessed ? <p className="text-xs text-ink-muted">{tv(`${RD}.notAssessed`, { count: readiness.not_assessed })}</p> : null}
+    </div>
   );
 }

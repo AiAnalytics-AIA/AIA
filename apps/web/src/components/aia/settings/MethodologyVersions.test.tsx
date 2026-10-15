@@ -147,6 +147,60 @@ describe("the support rules' versions (plan G1d)", () => {
   });
 });
 
+describe("the readiness limits (plan V1a2)", () => {
+  const preview = [
+    { step_id: "sample_size", status: "PASS", message_cs: "n = 12." },
+    { step_id: "sample_size", status: "PASS", message_cs: "n = 450." },
+    { step_id: "tracked_set", status: "WARN", message_cs: "Značky: 18 položek; doporučeno 4–15." },
+    { step_id: "tracked_set", status: "FAIL", message_cs: "Značky: sada potřebuje 3–40 srovnatelných položek, má 41." },
+  ];
+  it("says what each limit does, reads the rule with the draft's values and previews the check's own lines", async () => {
+    const compare = {
+      valid: true, problems: {}, in_force: "aia-readiness-1", panels: [],
+      readiness: {
+        draft: "aia-readiness-1+e1", unchanged: 1, not_assessed: 2,
+        studies: [{
+          study_id: "S-1", client_id: "C-1", client_name: "Horizont Mobility (fiktivní)", name: "Pilotní vlna", source: "draft", n: 15,
+          ready: [false, true], moves: [{ check_id: "sample_size", in_force: "FAIL", draft: "PASS", message: "n = 15." }],
+        }],
+      },
+    };
+    fakeApi({ check: () => ({ valid: true, problems: {}, not_computed: [], formulas_latex: {}, preview }), compare });
+    render(<MethodologyPanel />);
+    await openModule("Připravenost studie: kdy lze běh spustit");
+    await versionsSection();
+    await openEditor();
+    const form = await editor();
+    const min = await field(form, "sample_size.min");
+    const step = min.closest("fieldset") as HTMLElement;
+    expect(within(step).getAllByText("zablokuje běh")).toHaveLength(2);
+    const reading = step.querySelector("[data-step-reading]") as HTMLElement;
+    expect(reading.textContent).toMatch(/20 ≤ n ≤ 10\s000/);
+    fireEvent.change(min, { target: { value: "10" } });
+    expect(reading.textContent).toMatch(/10 ≤ n ≤ 10\s000/);
+    // Before a check the preview says what it will show; after, the lines the code wrote.
+    expect(within(step.querySelector("[data-step-preview]") as HTMLElement).getByText(/Po kontrole/)).toBeTruthy();
+    fireEvent.click(within(form).getByRole("button", { name: /^Zkontrolovat$/ }));
+    await waitFor(() => expect(step.querySelectorAll("[data-preview-status]")).toHaveLength(2));
+    expect(within(step).getByText("n = 12.")).toBeTruthy();
+    expect(within(step.querySelector("[data-step-keeps]") as HTMLElement).getByText("chybějící n blokuje vždy")).toBeTruthy();
+
+    const set = await field(form, "tracked_set.recommended_max");
+    const setStep = set.closest("fieldset") as HTMLElement;
+    expect(within(setStep).getAllByText("zablokuje návrh")).toHaveLength(2);
+    expect(within(setStep).getAllByText("jen upozorní")).toHaveLength(2);
+
+    fireEvent.click(within(form).getByRole("button", { name: "Porovnat s metodikou v platnosti" }));
+    const impact = await found("[data-compare-readiness]");
+    const row = impact.querySelector('[data-readiness-study="S-1"]') as HTMLElement;
+    expect(within(row).getByRole("link", { name: "Pilotní vlna" }).getAttribute("href")).toBe("/app/clients/C-1/research/S-1");
+    expect(within(row).getByText("zablokováno")).toBeTruthy();
+    expect(within(row).getByText("lze spustit")).toBeTruthy();
+    expect(within(impact).getByText(/změní výsledek kontroly: 1\. Žádná studie se sama nespustí/)).toBeTruthy();
+    expect(within(impact).getByText("Další studie beze změny: 1")).toBeTruthy();
+  });
+});
+
 describe("the aggregation's versions (plan G3b)", () => {
   it("edit a value, the interval's quantiles and an estimator, and store them together", async () => {
     const { sent } = fakeApi();
