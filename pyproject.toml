@@ -134,10 +134,8 @@ ignore_imports = [
 # keeps urllib3 and socket inside these modules; this keeps the modules inside the
 # two compositions. The source names no forbidden module's ancestor, so the
 # containment blind spot of the contract above does not apply (probed).
-# Direct imports only: application/web_retrieval.py (RetrievalGate itself) imports
-# its index protocols from infrastructure/common_crawl.py, which imports
-# web_retrieval_live, so every step that names the gate reaches a wire module
-# indirectly. urllib3 is imported only when a wire is built, which a step never does.
+# Indirect imports count too: RetrievalGate reaches the index and the archive
+# through infrastructure/archive_index.py, which loads no wire.
 [[tool.importlinter.contracts]]
 name = "deep-research steps never import a live network wire; only the two compositions do"
 type = "forbidden"
@@ -148,7 +146,7 @@ forbidden_modules = [
     "aia_core.infrastructure.common_crawl",
     "aia_core.infrastructure.model_adapters.live_transport",
 ]
-allow_indirect_imports = true
+allow_indirect_imports = false
 
 [tool.pytest.ini_options]
 # Both test directories are called `tests`, so they are not importable packages.
