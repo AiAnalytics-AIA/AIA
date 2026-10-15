@@ -32,7 +32,7 @@ from typing import Any, Final, Literal
 
 from pydantic import BaseModel, ConfigDict, StrictInt, model_validator
 
-from .persona_topics import TOPIC_KEYS
+from .persona_topics import dimension_topic
 from .pipeline import fingerprint
 from .sociomap.metrics import ObjectRole
 
@@ -737,7 +737,7 @@ DIMENSIONS_NEED_POPULATION: Final = "dimensions_need_population_draw"
 #: its sample, after the run records its selection (settled from the fieldwork step, as filters).
 DIMENSIONS_AWAIT_DRAW: Final = "dimensions_await_population_draw"
 #: Why a drawn run applied none of its dimensions: no selected id is a persona topic
-#: (``persona_topics.TOPIC_KEYS``), so the allowlist let no topic through (18.6.6's set test).
+#: (``persona_topics.dimension_topic``), so the allowlist let no topic through (18.6.6's set test).
 DIMENSIONS_NOT_TOPICS: Final = "dimensions_not_persona_topics"
 #: Why a run did not apply its design's audience filters: only a draw from the population does,
 #: and this run's respondents are the fictional roster.
@@ -769,7 +769,7 @@ def selection_receipt(spec: ResearchSpecification, *, population_draw: bool) -> 
     )
     return {
         "dimensions": dimensions,
-        "dimensions_unmatched": [d for d in dimensions if d.strip().lower() not in TOPIC_KEYS],
+        "dimensions_unmatched": [d for d in dimensions if dimension_topic(d) is None],
         "dimensions_applied": False,
         "dimensions_reason": (
             (DIMENSIONS_AWAIT_DRAW if population_draw else DIMENSIONS_NEED_POPULATION)
@@ -890,7 +890,7 @@ def assess_readiness(
     # respondents from the population, the same pin that applies the filters below.
     if spec.selection is not None and spec.selection.dimensions:
         dims = spec.selection.dimensions
-        unknown = [d for d in dims if d.strip().lower() not in TOPIC_KEYS]
+        unknown = [d for d in dims if dimension_topic(d) is None]
         if filters_applied:
             check(
                 "dimensions",
