@@ -903,7 +903,13 @@ export type Readiness = {
   /** Each stated research question traced to its measures; `null` when the design does not compile,
    * absent from an API that predates it. */
   research_trace?: ResearchTrace | null;
+  /** The source of AI respondents these checks assumed (run-recovery-and-truth 5a). */
+  persona_source?: string;
+  /** Every source, whether this deployment offers it, why not, and which a start takes by default. */
+  persona_sources?: PersonaSourceOption[];
 };
+
+export type PersonaSourceOption = { source: string; offered: boolean; reason: string | null; default: boolean };
 
 export type ResearchPhase = "QUEUED" | "RUNNING" | "WAITING" | "COMPLETED" | "FAILED" | "CANCELLED";
 /** One entry of a run's event feed, read after a cursor (lib/step-activity.ts folds them). */
@@ -963,6 +969,19 @@ export type ResearchRun = {
   population?: ResearchRunPopulation | null;
   /** The methods the run pinned when it started (methodology-tab Z1); absent from an older API. */
   methodology?: ResearchRunMethodology;
+  /** Who its AI respondents are, as the run pinned it: `fictional_roster` or `panel`. */
+  persona_source?: string;
+  /** What its design selected and what was applied (5b); null: a run from before it recorded this. */
+  selection?: ResearchRunSelection | null;
+};
+/** Every applied flag is true only where the code that applies it ran; each false one has its reason. */
+export type ResearchRunSelection = {
+  dimensions: string[];
+  dimensions_applied: boolean;
+  dimensions_reason: string | null;
+  audience_filters: Record<string, unknown>;
+  filters_applied: boolean;
+  filters_reason: string | null;
 };
 /** One pinned method: its name, and whether it is a version stored on the Metodika tab. */
 /** `name: null`: the run recorded a pin that cannot be read as a name; never a guess. */
@@ -1034,17 +1053,20 @@ export const research = {
   /** One Design Revision with its content (project memory M2c reads a past study's). */
   revision: (studyId: string, revisionId: string) =>
     request<DesignRevision & { content: Record<string, unknown> }>("GET", `${studyPath(studyId)}/design/revisions/${enc(revisionId)}`),
-  readiness: (studyId: string, revisionId: string) =>
-    request<Readiness>("GET", `${studyPath(studyId)}/research/readiness${query({ design_revision_id: revisionId })}`),
+  /** `personaSource` assesses the design under that source of respondents; omitted, the deployment's default. */
+  readiness: (studyId: string, revisionId: string, personaSource?: string) =>
+    request<Readiness>("GET", `${studyPath(studyId)}/research/readiness${query({ design_revision_id: revisionId, persona_source: personaSource })}`),
   /**
    * `confirmCostUsd` is the person's yes to the ceiling the server showed, when the study's limit asks for one.
    * `populationVersionId` runs over one of the study's client's materialized children instead of LIVE (P4d4c).
+   * `personaSource` is who answers, as the person chose it among the offered sources (5a).
    */
-  start: (studyId: string, revisionId: string, confirmCostUsd?: number, populationVersionId?: string) =>
+  start: (studyId: string, revisionId: string, confirmCostUsd?: number, populationVersionId?: string, personaSource?: string) =>
     request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs`, {
       design_revision_id: revisionId,
       ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
       ...(populationVersionId === undefined ? {} : { population_version_id: populationVersionId }),
+      ...(personaSource === undefined ? {} : { persona_source: personaSource }),
     }),
   /** Set, or with `null` clear, the cost at which starting a run asks for confirmation. */
   setSpendConfirm: (studyId: string, limitUsd: number | null) =>
@@ -1119,11 +1141,23 @@ export type DeepResearchRun = {
 export type DeepResearchBundle = {
   quality_status: string; fictional_client: boolean; client_facing: false;
   accepted: { evidence: { evidence_id?: string; claim: string; quote: string; source_ref: string }; score: { score: number; source_class: string } }[];
-  quarantined: { reason: string; detail?: string; claim?: string }[];
+  quarantined: { reason: string; detail?: string; track_id?: string; claim?: string; evidence?: { subject_key?: string } | null }[];
   snapshots: { snapshot_id: string; url: string; title: string; retrieval_mode: string }[];
+  /** What the run researched: each research question, tracked object and cross, by key. */
+  subjects?: { key: string; kind: string; text: string; origin: string; question_key?: string | null }[];
+  tracks?: { track_id: string; subject_key: string }[];
   counts: Record<string, number>; sha256: string;
   synthesis?: { check: { summary: string | null; summary_withheld?: string | null; findings: { subject_key: string; text: string; evidence_ids: string[] }[]; excluded?: { subject_key: string; text: string; reason: string; detail?: string }[]; gaps: string[]; limitations: string[]; status: string }; brief?: { gaps: { need: string; reason: string }[] } | null } | null;
   origins?: string[];
+};
+/** One accepted finding of a Design Research run, as its proposal cites it. */
+export type DesignFinding = { evidence_id: string; claim: string; quote: string; source_title: string; source: string; source_class: string; confidence: number };
+/** A Design Research run's proposal: per subject its findings (EVIDENCE) or none (GAP). */
+export type DesignProposal = {
+  run_id: string;
+  admissible: boolean;
+  refusal: string | null;
+  items: { item_id: string; kind: "EVIDENCE" | "GAP"; subject_key: string; subject_kind: string; subject_text: string; subject_origin: string; findings: DesignFinding[] }[];
 };
 const deepPath = (studyId: string) => `${studyPath(studyId)}/deep-research/runs`;
 export const deepResearch = {
@@ -1137,10 +1171,13 @@ export const deepResearch = {
     requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/context/download${query({ deep_research_run_id: deepRunId })}`),
   start: (studyId: string, revisionId: string) =>
     request<DeepResearchRun>("POST", deepPath(studyId), { design_revision_id: revisionId, preset_name: "QUICK", channels: ["WEB"] }),
-  runs: (studyId: string) => request<DeepResearchRun[]>("GET", deepPath(studyId)),
+  /** The Study's runs, newest first; the server lists 20 unless asked for more (at most 100). */
+  runs: (studyId: string, limit?: number) =>
+    request<DeepResearchRun[]>("GET", `${deepPath(studyId)}${query({ limit: limit === undefined ? undefined : String(limit) })}`),
   events: (studyId: string, runId: string, since = 0) =>
     request<RunEvent[]>("GET", `${deepPath(studyId)}/${enc(runId)}/events${eventsQuery(since)}`),
   bundle: (studyId: string, runId: string) => request<DeepResearchBundle>("GET", `${deepPath(studyId)}/${enc(runId)}/bundle`),
+  designProposal: (studyId: string, runId: string) => request<DesignProposal>("GET", `${deepPath(studyId)}/${enc(runId)}/design-proposal`),
   cancel: (studyId: string, runId: string) => request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/cancel`),
   retry: (studyId: string, runId: string, confirmCostUsd?: number) => request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/retry`, confirmCostUsd === undefined ? undefined : { confirm_cost_usd: confirmCostUsd }),
 };

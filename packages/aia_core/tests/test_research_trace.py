@@ -285,3 +285,38 @@ def test_a_set_ranks_only_whole_one_refused_object_of_two_leaves_nothing_to_rank
     assert image(kava).verdict is Verdict.UNANSWERABLE  # one primary object left: no ranking
     # A context object takes no part in the ranking; its verdict does not hold it back.
     assert image(voda).verdict is Verdict.ANSWERABLE
+
+
+def test_a_selection_receipt_applies_filters_only_to_a_population_draw_and_never_dimensions() -> (
+    None
+):
+    """Plan run-recovery-and-truth 5b (research_design.selection_receipt)."""
+    from aia_core.domain.research_design import selection_receipt
+
+    design = {
+        **copy.deepcopy(DESIGN),
+        "persona_dimensions": {"approved": ["region"]},
+        "audience": {"filters": {"vek": {"min": 30, "max": ""}}},
+    }
+    spec = _compile(design)
+    # Recorded at start, before any draw: a panel run's filters await it, never applied yet
+    # (review, Codex on #439).
+    drawn = selection_receipt(spec, population_draw=True)
+    assert drawn["filters_applied"] is False
+    assert drawn["filters_reason"] == "filters_await_population_draw"
+    assert drawn["dimensions"] == ["region"] and drawn["dimensions_applied"] is False
+    assert drawn["dimensions_reason"] == "dimensions_not_read_by_personas"
+    roster = selection_receipt(spec, population_draw=False)
+    assert (roster["filters_applied"], roster["filters_reason"]) == (
+        False,
+        "filters_need_population_draw",
+    )
+    none = selection_receipt(_compile(DESIGN), population_draw=True)
+    assert none == {
+        "dimensions": [],
+        "dimensions_applied": False,
+        "dimensions_reason": None,
+        "audience_filters": {},
+        "filters_applied": False,
+        "filters_reason": None,
+    }
