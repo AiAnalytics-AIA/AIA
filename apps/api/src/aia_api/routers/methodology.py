@@ -66,6 +66,7 @@ from aia_core.domain.methodology.support_check import (
 from aia_core.domain.methodology.versions import (
     MethodologyVersionInvalid,
     named,
+    spec_as_computed,
     validate_version,
     version_payload,
 )
@@ -136,6 +137,8 @@ class ModuleSummary(_Strict):
     editable: bool
     steps: int
     groups: list[GroupOut]
+    #: Where a person meets the module's preview lines (empty: it shows none).
+    preview_title_cs: str = ""
 
 
 class SymbolOut(_Strict):
@@ -166,7 +169,8 @@ class ValueOut(_Strict):
     value: Any
     absent: bool
     #: Where the value is a limit a design is held to, what crossing it does:
-    #: ``blocks_run``, ``blocks_design`` or ``warns``; empty otherwise.
+    #: ``blocks_run``, ``blocks_design`` or ``warns``; ``changes_stored`` where it changes the
+    #: numbers a run stores; empty otherwise.
     effect: str
 
 
@@ -513,6 +517,7 @@ def _summary(m: MethodModule) -> ModuleSummary:
         presets=[p.name for p in m.presets],
         in_force=m.in_force,
         editable=m.editable,
+        preview_title_cs=m.preview_title_cs,
         steps=len(m.steps),
         groups=[
             GroupOut(id=g.id, title_cs=g.title_cs, step_ids=list(g.step_ids), note_cs=g.note_cs)
@@ -589,7 +594,9 @@ def _version(v: StoredVersion) -> VersionOut:
         version_number=v.version_number,
         name=v.name,
         base_preset=v.base_preset,
-        spec=dict(v.payload["spec"]),
+        # A field declared after the version was stored reads as the run reads it; the
+        # payload and its hash stay as stored.
+        spec=spec_as_computed(module(v.module_id), v.base_preset, v.payload["spec"]),
         formulas=dict(v.payload["formulas"]),
         payload_sha256=v.payload_sha256,
         note=v.note,

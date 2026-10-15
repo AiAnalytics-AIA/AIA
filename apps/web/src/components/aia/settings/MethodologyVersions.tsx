@@ -510,6 +510,7 @@ function EditorForm({ summary, start, presets, detail, currentSpec, onBase, onDi
                 onPick={setSelectedStep}
                 checked={check ? check.valid : null}
                 preview={stepPreview}
+                previewTitle={summary.preview_title_cs ?? ""}
                 signature={JSON.stringify([selectedStep === step.id, busy, values, formulas, own, written, notComputed, check?.valid ?? null, stepPreview])}
               />
             );
@@ -562,13 +563,15 @@ function stageNumbers(groups: readonly { id: string }[]): Map<string, string> {
 /** One step of the editor, redrawn only when its own values, problems or visibility change:
  *  every keystroke would otherwise re-typeset every step's formulas (measured: the guided test
  *  went from 3.7 s to 5.4 s before this split). */
-const StepEditor = memo(function StepEditor({ step, fields, hidden, busy, start, currentSpec, values, formulas, problems, written, notComputed, setRaw, setExprs, clearPreview, stage, titles, linkable, onPick, checked, preview }: {
+const StepEditor = memo(function StepEditor({ step, fields, hidden, busy, start, currentSpec, values, formulas, problems, written, notComputed, setRaw, setExprs, clearPreview, stage, titles, linkable, onPick, checked, preview, previewTitle }: {
   step: MethodStepOut; fields: EditField[]; hidden: boolean; busy: boolean; start: Start; currentSpec?: Record<string, unknown>;
   values: Record<string, string>; formulas: Record<string, string>; problems: Record<string, string>;
   written: Record<string, string>; notComputed: string[];
   /** Whether the draft as it stands passed the domain's check (`null`: not checked since the
    *  last change), and the lines the code writes under it for this step. */
   checked: boolean | null; preview: MethodPreviewLine[];
+  /** The module's own heading for its preview (where a person meets the lines). */
+  previewTitle: string;
   setRaw: Dispatch<SetStateAction<Record<string, string>>>; setExprs: Dispatch<SetStateAction<Record<string, string>>>; clearPreview: () => void;
   /** The step's stage, every step's title and the move to another step: its place in the computation. */
   stage: string; titles: Record<string, string>; linkable: ReadonlySet<string>; onPick: (stepId: string) => void;
@@ -653,7 +656,7 @@ const StepEditor = memo(function StepEditor({ step, fields, hidden, busy, start,
               <div key={f.reference} className={`grid items-start gap-x-4 gap-y-1 py-3 sm:grid-cols-[minmax(0,1fr)_14rem] ${i ? "border-t border-border" : ""}`}>
                 <div className="flex flex-col items-start gap-1 pt-2">
                   <label htmlFor={`mf-${f.reference}`} className="text-sm font-medium">{f.label_cs}{f.unit ? <span className="font-normal text-ink-muted"> · {f.unit}</span> : null}</label>
-                  {f.effect ? <span data-effect={f.effect} className={`rounded-sm px-1.5 text-xs font-medium leading-5 ${f.effect === "warns" ? "bg-status-you-wash text-status-you-ink" : "bg-status-fault-wash text-status-fault"}`}>{t(`${V}.effect.${f.effect}`)}</span> : null}
+                  {f.effect ? <span data-effect={f.effect} className={`rounded-sm px-1.5 text-xs font-medium leading-5 ${f.effect === "warns" ? "bg-status-you-wash text-status-you-ink" : f.effect === "changes_stored" ? "bg-signal-wash text-signal" : "bg-status-fault-wash text-status-fault"}`}>{t(`${V}.effect.${f.effect}`)}</span> : null}
                 </div>
                 <div className="flex flex-col gap-1">
                   <TextInput
@@ -691,13 +694,13 @@ const StepEditor = memo(function StepEditor({ step, fields, hidden, busy, start,
       ) : null}
 
       {step.keeps_cs.length && !hidden ? (
-        <section data-step-preview aria-label={t(`${V}.preview`)} className="rounded-card border border-border bg-surface-raised px-4 py-3">
-          <p className="text-sm font-semibold">{t(`${V}.preview`)}</p>
+        <section data-step-preview aria-label={previewTitle || t(`${V}.preview`)} className="rounded-card border border-border bg-surface-raised px-4 py-3">
+          <p className="text-sm font-semibold">{previewTitle || t(`${V}.preview`)}</p>
           {preview.length ? (
             <ul className="mt-2 flex flex-col gap-1.5 text-sm">
               {preview.map((line, i) => (
                 <li key={i} data-preview-status={line.status} className="flex items-start gap-3">
-                  <span className={`w-24 flex-none rounded-sm px-1.5 text-center text-xs font-medium leading-5 ${line.status === "FAIL" ? "bg-status-fault-wash text-status-fault" : line.status === "WARN" ? "bg-status-you-wash text-status-you-ink" : "bg-ink/10 text-ink"}`}>{t(`${V}.previewStatus.${line.status}`)}</span>
+                  {line.status ? <span className={`w-24 flex-none rounded-sm px-1.5 text-center text-xs font-medium leading-5 ${line.status === "FAIL" ? "bg-status-fault-wash text-status-fault" : line.status === "WARN" ? "bg-status-you-wash text-status-you-ink" : "bg-ink/10 text-ink"}`}>{t(`${V}.previewStatus.${line.status}`)}</span> : null}
                   <span>{line.message_cs}</span>
                 </li>
               ))}

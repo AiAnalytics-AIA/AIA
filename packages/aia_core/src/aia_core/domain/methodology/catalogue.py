@@ -85,6 +85,8 @@ class ParameterEffect(StrEnum):
     BLOCKS_DESIGN = "blocks_design"
     #: A design outside it is only warned about.
     WARNS = "warns"
+    #: Not a limit: changing it changes the numbers a run stores (V1b).
+    CHANGES_STORED = "changes_stored"
 
 
 @dataclass(frozen=True, slots=True)
@@ -231,6 +233,8 @@ class MethodModule:
     #: What a person would meet under a specification, computed by the code on fixed
     #: fictional inputs (V1a2); ``None`` where the module shows none.
     preview: Callable[[BaseModel], tuple[PreviewLine, ...]] | None = None
+    #: Where a person meets the preview's lines, as the page heads them.
+    preview_title_cs: str = ""
 
 
 def feeds_of(module: MethodModule, step_id: str) -> tuple[str, ...]:

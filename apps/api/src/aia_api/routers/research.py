@@ -1476,6 +1476,8 @@ def run_analysis(
                         "claim_id": claim.claim_id,
                         "evidence_ref": claim.row.evidence_ref,
                         "value": claim.value,
+                        # The places the number was admitted at, as the aggregate stored it.
+                        "decimals": claim.row.decimals,
                         "indicative": claim.indicative,
                         "data_origin": claim.row.data_origin.value
                         if claim.row.data_origin

@@ -40,7 +40,7 @@ chunks:
   - "[x] R1d. Results name the run's response process and say when it is not 18.6.6's, on Z1a's Metodika běhu"
   - "[x] V1a1. Readiness bounds (sample size 20-10 000, tracked set 3-40, recommended 4-15) declared as a module of their own (ReadinessSpec, aia-readiness-1), editable as a version, pinned by a run and read by its compile and preflight steps (owner, 2026-10-14)"
   - "[x] V1a2. The readiness area as the canvas board MethodologyReadiness draws it: each limit's effect, the rule as read, what every version keeps, the Kontrola a spuštění preview, and Porovnat as the impact on the organization's studies"
-  - "[ ] V1b. Presentation rounding (shares 0.1 %, means 2 dp) declared and editable as a version; the code's preset keeps 18.6.6's decimals, so parity holds under it (owner, 2026-10-14)"
+  - "[x] V1b. Presentation rounding (shares 0.1 %, means 2 dp) declared and editable as a version; the code's preset keeps 18.6.6's decimals, so parity holds under it (owner, 2026-10-14)"
   - "[ ] V1c. Evidence tiers shown read-only: what tier A, B and C each permit, from TIER_PERMITS; a change stays a reviewed code change (owner, 2026-10-14)"
   - "[ ] X1. Simulation documented read-only; declared and editable when it is wired into runs"
   - "[x] Z1a. The path walked on the workbench for the Sociomap, support and aggregation (edit, check, compare, store, activate, run, Results); Results name the methods a run computed under"
@@ -1214,6 +1214,24 @@ To be written as chunks land:
     value, the holdout before a modelled panel leaves INTERNAL_ONLY): **left in code**, not
     shown as editable. They are the fail-closed gates every number passes. No chunk.
   - Each chunk is designed on the canvas first, then built (owner, 2026-10-13).
+- **V1b, built.** The places a run stores are `research_aggregate.RoundingSpec`
+  (`share_decimals` 1, `mean_decimals` 2; whole numbers 0-3, `StrictInt`), a field of
+  `AggregationSpec` with 18.6.6's values as its default, so a pin or version stored before it
+  reads as the unit's. The aggregate rounds every share, top box and their intervals at
+  `share_decimals` and every mean, its interval and SD at `mean_decimals`; under the unit's
+  values it is byte for byte what it was, and otherwise carries a `rounding` block and names the
+  change in its `deviation` (`test_the_aggregate_stores_its_numbers_at_the_versions_places`).
+  - Found while designing: analysis admitted shares only at 1 place and means at 2
+    (`analysis/native.py` `_item_rows`) and refused any other, so a version adding a place
+    would have refused every share. It now reads `stored_decimals(aggregate)`
+    (`test_analysis_admits_each_number_at_the_places_the_aggregate_stored`); the report prints
+    what was admitted. Results and the analysis's cited numbers in the web read the same places
+    (`storedPlaces`, the claim's `decimals` from the API), never rounding a number again.
+  - The Metodika stage "Zobrazení čísel" (aggregation group Z, steps `round_share`,
+    `round_mean`): `ParameterEffect.CHANGES_STORED`, what every version keeps, and preview lines
+    rounded by the aggregate's `round` and written as the report writes them
+    (`MethodModule.preview_title_cs`: "Jak to uvidí výzkumník ve Výsledcích a ve zprávě").
+  - Effective n (1 place) and the largest donor's share (4) stay code: they decide support.
 - **V1a1, built.** The limits are `research_design.ReadinessSpec` (`sample_size`: min, max;
   `tracked_set`: min, max, recommended_min, recommended_max), preset `AIA_READINESS_V1`
   (`aia-readiness-1`), built from `SAMPLE_SIZE_BOUNDS` and `TRACKED_SET_LIMITS`, which stay

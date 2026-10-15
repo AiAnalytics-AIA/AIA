@@ -263,6 +263,7 @@ READINESS: Final = MethodModule(
     editable=True,
     groups=_GROUPS,
     preview=_preview,
+    preview_title_cs="Jak to uvidí výzkumník v Kontrole a spuštění",
     note_cs=(
         "Meze, které kontrola připravenosti čte: velikost vzorku a počet položek ve "
         "sledované sadě. Základ z kódu jsou hodnoty 18.6.6. Verze v platnosti platí pro "
