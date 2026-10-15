@@ -173,6 +173,21 @@ describe("Dotazník", () => {
     expect(content.sections[1].research_questions).toEqual(["Která média lidé používají?"]);
   });
 
+  it("declares how each research question is answered and saves it in the plan", async () => {
+    const plan = { research_questions: ["Jak často lidé pijí kávu?", "Která média lidé používají?"] };
+    unitStub({ ...BRIEF, research_plan: plan, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    const panel = await screen.findByRole("region", { name: "Jak výzkumné otázky zodpovíme" });
+    const media = within(panel).getByLabelText("Způsob odpovědi na „Která média lidé používají?“") as HTMLSelectElement;
+    expect(media.value).toBe("");
+    fireEvent.change(media, { target: { value: "rank_objects" } });
+    await saved();
+    await waitFor(() => expect(lastSave().reason).toBe("research_question_comparison"));
+    const content = lastSave().content as unknown as { research_plan: { research_question_comparisons?: Record<string, string>; research_questions: string[] } };
+    expect(content.research_plan.research_question_comparisons).toEqual({ "Která média lidé používají?": "rank_objects" });
+    expect(content.research_plan.research_questions).toEqual(plan.research_questions);
+  });
+
   it("adds a guided question through the classic prompt, and refuses a set of three", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);

@@ -67,7 +67,7 @@ import {
   SET_SIZE,
 } from "@/research/questionnaire";
 import type { ResearchProject } from "@/research/model";
-import { danglingLinks, linkKey, linksOf, researchQuestionsOf, toggleQuestionLink, toggleSectionLink } from "@/research/trace";
+import { COMPARISONS, type Comparison, comparisonOf, danglingLinks, linkKey, linksOf, researchQuestionsOf, setComparison, toggleQuestionLink, toggleSectionLink } from "@/research/trace";
 import { Icon, type IconName } from "../icons";
 import { ActionDock, ChipInput, InlineConfirm, Segmented, Switch } from "../step";
 import { AiButton, Button } from "../ui";
@@ -553,6 +553,7 @@ function Editor({ update }: { update: Update }) {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-[13px] leading-5 text-ink-muted">{t("research.questionnaire.editorIntro")}</p>
+      <ResearchQuestionComparisons update={update} />
       {xs.length ? (
         xs.map((sec, si) => {
           if (sec.type === "questions") {
@@ -569,6 +570,41 @@ function Editor({ update }: { update: Update }) {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * "Jak výzkumné otázky zodpovíme": for each research question of the plan, the comparison
+ * that answers it (run-recovery-and-truth 3c). Readiness checks that the questions linked
+ * to it can carry that comparison; "neurčeno" declares nothing and checks nothing.
+ */
+function ResearchQuestionComparisons({ update }: { update: Update }) {
+  const { state } = useResearch();
+  const stated = researchQuestionsOf(state.project);
+  if (!stated.length) return null;
+  return (
+    <section aria-label={t("research.questionnaire.comparisons.title")} className={CARD}>
+      <h3 className="text-[15px] font-semibold">{t("research.questionnaire.comparisons.title")}</h3>
+      <p className="mt-1 text-[13px] text-ink-muted">{t("research.questionnaire.comparisons.help")}</p>
+      <ul className="mt-3 flex flex-col gap-2">
+        {stated.map((rq) => (
+          <li key={rq} className="grid gap-2 text-sm md:grid-cols-[1fr_16rem] md:items-center">
+            <span>{rq}</span>
+            <select
+              aria-label={tv("research.questionnaire.comparisons.choose", { rq })}
+              className={INPUT}
+              value={comparisonOf(state.project, rq) ?? ""}
+              onChange={(e) => update((p) => setComparison(p, rq, (e.target.value || null) as Comparison | null), "research_question_comparison")}
+            >
+              <option value="">{t("research.questionnaire.comparisons.none")}</option>
+              {COMPARISONS.map((kind) => (
+                <option key={kind} value={kind}>{t(`research.questionnaire.comparisons.kind.${kind}`)}</option>
+              ))}
+            </select>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

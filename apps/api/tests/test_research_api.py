@@ -969,6 +969,23 @@ def test_readiness_traces_each_research_question_to_the_questions_that_measure_i
     assert check["status"] == "WARN" and other in check["message"]
     assert linked["ready"] is True, "a trace warns, it never refuses"
 
+    # 3c: the comparison the plan declares is checked against what measures it.
+    ranked = readiness(
+        {
+            **DESIGN,
+            "research_plan": {
+                "research_questions": [habit, other],
+                "research_question_comparisons": {habit: "rank_objects"},
+            },
+            "sections": sections,
+        }
+    )
+    trace = {q["text"]: q for q in ranked["research_trace"]["questions"]}
+    assert trace[habit]["comparison"] == "rank_objects"
+    assert trace[habit]["verdict"] == "UNANSWERABLE"
+    assert trace[habit]["reasons"] == ["comparison_needs_tracked_set"]
+    assert trace[other]["comparison"] is None
+
 
 def test_research_artifacts_are_read_only_through_the_run_that_produced_them(
     app: FastAPI,

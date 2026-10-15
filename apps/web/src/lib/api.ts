@@ -848,7 +848,14 @@ export type CheckStatus = "PASS" | "WARN" | "FAIL";
 export type OutlookVerdict = "ANSWERABLE" | "UNKNOWN" | "AT_RISK" | "UNANSWERABLE";
 /** One item a respondent will answer, as they read it, and whether the run will answer it. */
 /** One stated research question and the items (`QuestionOutlook.question_id`) that measure it. */
-export type ResearchQuestionTrace = { text: string; measures: string[]; verdict: OutlookVerdict; reasons: string[] };
+export type ResearchQuestionTrace = {
+  text: string;
+  measures: string[];
+  verdict: OutlookVerdict;
+  reasons: string[];
+  /** The comparison the plan declares for it; `null` when none is declared or it is unknown. */
+  comparison?: string | null;
+};
 export type ResearchTrace = {
   questions: ResearchQuestionTrace[];
   /** Items naming a research question the plan does not state. */

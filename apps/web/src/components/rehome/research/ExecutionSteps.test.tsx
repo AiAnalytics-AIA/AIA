@@ -330,6 +330,7 @@ describe("Run: which questions the run will answer (run-recovery-and-truth 2b)",
         questions: [
           { text: "Jak často lidé pijí kávu?", measures: ["q1"], verdict: "ANSWERABLE", reasons: [] },
           { text: "Co lidé snídají?", measures: [], verdict: "UNANSWERABLE", reasons: ["unmeasured"] },
+          { text: "Liší se segmenty?", measures: ["q1"], verdict: "UNANSWERABLE", reasons: ["segments_unavailable"], comparison: "compare_segments" },
         ],
       },
     };
@@ -342,6 +343,9 @@ describe("Run: which questions the run will answer (run-recovery-and-truth 2b)",
     expect(within(rows[1]).getByText(t("research.exec.trace.reason.unmeasured"))).toBeTruthy();
     expect(within(rows[1]).getByRole("link", { name: t("research.exec.fix") })).toBeTruthy();
     expect(within(card).getByText(/Stará otázka\?/)).toBeTruthy();
+    // The comparison the plan declares, and why the run cannot carry it.
+    expect(within(rows[2]).getByText(tv("research.exec.trace.comparison", { kind: t("research.questionnaire.comparisons.kind.compare_segments") }))).toBeTruthy();
+    expect(within(rows[2]).getByText(t("research.exec.trace.reason.segments_unavailable"))).toBeTruthy();
   });
 
   it("keeps the card for stale links when the plan states no research question", async () => {

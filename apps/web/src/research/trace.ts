@@ -72,3 +72,32 @@ export function toggleSectionLink(p: ResearchProject, si: number, rq: string): R
     sectionsOf(p).map((s, i) => (i !== si ? s : withLinks(s, toggled(linksOf(s), rq)))),
   );
 }
+
+/** How a research question is answered (plan run-recovery-and-truth 3c); the server checks it. */
+export const COMPARISONS = ["describe", "rank_objects", "compare_segments", "ab_test"] as const;
+export type Comparison = (typeof COMPARISONS)[number];
+
+const planOf = (p: ResearchProject): Obj =>
+  (p.research_plan && typeof p.research_plan === "object" && !Array.isArray(p.research_plan) ? p.research_plan : {}) as Obj;
+
+/** The comparison the plan declares for a research question, if one AIA knows. */
+export function comparisonOf(p: ResearchProject, rq: string): Comparison | null {
+  const raw = planOf(p).research_question_comparisons;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const hit = Object.entries(raw as Obj).find(([text]) => linkKey(text) === linkKey(rq));
+  const kind = hit?.[1];
+  return typeof kind === "string" && (COMPARISONS as readonly string[]).includes(kind) ? (kind as Comparison) : null;
+}
+
+/** Declare how a research question is answered, or clear it (`null`): no declaration, not checked. */
+export function setComparison(p: ResearchProject, rq: string, kind: Comparison | null): ResearchProject {
+  const plan = planOf(p);
+  const raw = plan.research_question_comparisons;
+  const current = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Obj) : {};
+  const next: Obj = Object.fromEntries(Object.entries(current).filter(([text]) => linkKey(text) !== linkKey(rq)));
+  if (kind) next[rq] = kind;
+  const nextPlan: Obj = { ...plan };
+  if (Object.keys(next).length) nextPlan.research_question_comparisons = next;
+  else delete nextPlan.research_question_comparisons;
+  return { ...p, research_plan: nextPlan };
+}

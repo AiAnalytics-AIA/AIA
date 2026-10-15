@@ -373,6 +373,9 @@ function ResearchTraceCard({ trace, outlook }: { trace: ResearchTrace; outlook: 
               <Chip tone={verdictTone(q.verdict)}>{t(`research.exec.outlook.verdict.${q.verdict}`)}</Chip>
               <div className="min-w-0 flex-1">
                 <p className="font-medium">{q.text}</p>
+                {q.comparison ? (
+                  <p className="text-[13px] text-ink-muted">{tv("research.exec.trace.comparison", { kind: t(`research.questionnaire.comparisons.kind.${q.comparison}`) })}</p>
+                ) : null}
                 {q.reasons.map((r) => (
                   <p key={r} className="text-[13px] text-ink-muted">{t(`research.exec.trace.reason.${r}`)}</p>
                 ))}
