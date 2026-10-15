@@ -9,10 +9,12 @@ chunks:
   - "[x] 3a. Design: a question or tracked set names the research questions it measures; readiness traces each research question to its measures and flags one nothing measures"
   - "[x] 3b. Dotazník: link each question and tracked set to research questions; the Run screen shows the chain"
   - "[x] 3c. Comparison: each research question declares its comparison, and readiness checks its measures can carry it"
-  - "[ ] 3d. External source: the Deep Research evidence and gaps cited against each research question, shown in the chain"
+  - "[x] 3d. External source: the Deep Research evidence and gaps cited against each research question, shown in the chain"
   - "[x] 3e. The questionnaire agent proposes the links; a person accepts them with the proposal"
   - "[ ] 4. Deep Research: source diversity beyond Wikipedia, the exact supporting passage per claim, and every rejection's reason shown"
-  - "[ ] 5. Population: a study-scoped, governed source choice; the source and dimensions actually used on the run receipt"
+  - "[x] 5a. Population: a person chooses who answers a run (fictional roster or the population) before it starts; the deployment only says what it offers"
+  - "[x] 5b. Population: the run receipt says who answered, from which population, and which selected dimensions and filters were applied"
+  - "[ ] 5c. Population: selected dimensions applied to panel respondents (needs the product owner's decision: methodology)"
   - "[ ] 6. Desktop UX: one state vocabulary (ready, running, needs repair, evidence unavailable, report ready), plain reasons, question text, cost remaining"
 ---
 
@@ -354,6 +356,45 @@ Tests:
 - `QuestionnaireStep.test.tsx` ("declares how each research question is answered").
 - `ExecutionSteps.test.tsx` (the trace card's comparison row).
 
+## 3d — what Design Research found for each research question
+
+A Design Research run already researches each research question as a subject:
+
+- the subject's origin is `research_plan.research_questions[i]` (`planning.py` `extract_subjects`);
+- its proposal lists, per subject, the accepted findings (EVIDENCE) or none (GAP)
+  (`design_proposals.py` `design_research_proposal`);
+- its bundle keeps every quarantined finding with its reason.
+
+None of this was shown beside the research question. The panel in Dotazník showed accepted
+findings in one list and only a count of the rejected.
+
+- **`src/lib/design-evidence.ts`** (pure):
+  - `latestDesignRun` returns the study's newest finished `DESIGN_RESEARCH` run, never an
+    interpretation run.
+  - `questionEvidence` joins one research question, by its text as the run studied it, to:
+    - its findings;
+    - every rejection on it or on a question × object cross of it, counted by reason;
+    - whether the run studied it at all. A research question added after the run reads
+      "nezkoumal", never as a gap.
+- **The Run card** reads the run, its proposal and its bundle through the existing routes,
+  which need EDIT_STUDY; a reader sees the trace without them. Under each research
+  question it shows:
+  - up to three findings, each with its quote and source;
+  - or the gap, or that the run did not study it;
+  - "Zamítnuto: N× <reason>" for the rejected.
+  The card says this is external context for the design, never respondent evidence.
+- **Reason words.** The sixteen quarantine reasons have Czech words, held equal to
+  `QuarantineReason` by `test_every_quarantine_reason_has_words_on_the_run_screen`.
+
+Not done: source diversity beyond Wikipedia, which is priority 4's own engine work and needs
+the priced routes signed off (ADR 0022).
+
+Tests:
+
+- `design-evidence.test.ts`
+- `test_quarantine_reason_words.py`
+- `ExecutionSteps.test.tsx` ("shows what Design Research found per research question")
+
 ## 3e — the questionnaire agent proposes the links
 
 3a–3c let a person link each item to the research questions it measures and declare how
@@ -390,6 +431,45 @@ Tests:
 - `test_prompt_upgrade.py`: each action's baseline version.
 - `trace.test.ts` (`proposedTrace`).
 - `ProposalReview` test: the research questions in the review.
+
+## 5 — who answered, chosen and said
+
+The 200-respondent Fio run recorded LIVE as its population, but its answers came from the
+fictional roster. Six dimensions were selected and saved, and none was applied. Both were
+true and both were said only in small print: the run's population note
+(`research-execution.ts` `populationNote`) and a readiness WARN (`research_design.py`
+`dimensions`).
+
+The persona source was one deployment switch, `AIA_AI_POPULATION_PERSONAS_ENABLED`, applied
+to every run (`routers/research.py` `_persona_source`). A study could not choose, and a
+person starting a run never saw that a choice existed.
+
+- **5a — the choice.**
+  - Readiness takes `persona_source` (the source to assess the design under) and answers
+    `persona_sources`: each source with whether the deployment offers it, and the reason it
+    doesn't. The roster is always offered under `ai_runtime`; the panel only with the switch on.
+  - Start takes `persona_source`. A source the deployment does not offer is refused by name
+    (409 `persona_source_unavailable`) and nothing starts; it is never swapped for the other.
+  - Omitted, it is the deployment's default, so an older client keeps today's behaviour. The
+    switch now means "the panel is offered and is the default", not "every run is panel".
+  - The Run stage's "Kdo bude odpovídat" shows both, with the offered one preselected. It
+    re-reads readiness under the chosen source, since the support forecast and the audience
+    check differ, and sends the choice.
+- **5b — the receipt.**
+  - A start records what the design selected (`selection`: dimensions, audience filters) and
+    what was applied: filters only under the panel source, dimensions never yet (5c), each with
+    its reason.
+  - The run response carries it. The Run, Progress and Results screens show one receipt:
+    - who answered: the pinned source beside the origin its fieldwork data reports, with a
+      mismatch named, never resolved by picking one;
+    - the population recorded, and whether fieldwork read it;
+    - each selected dimension and the filters, applied or not, and why.
+  - A run started before 5b says the selection was not recorded, never "none".
+- **5c — dimensions on respondents.** A panel persona reads a fixed set of columns: profile,
+  style and fact columns, and the catalog's signal columns (`panel_persona.py` `panel_personas`,
+  `wanted`). A materialized dimension is persona-eligible (`materialized.py`
+  `materialized_policy_entry`) but no persona reads it. Applying it is a change to how a
+  respondent is described to the model, so it waits for the product owner.
 
 ## Doc follow-up
 
@@ -443,6 +523,10 @@ Tests:
   measures: ranking needs a tracked set, A/B a concept-test set, segments unavailable,
   unknown never answerable (comparisons_of)"; web `trace.ts`: "comparisonOf /
   setComparison"; Dotazník: "Jak výzkumné otázky zodpovíme".
+- 3d, `CLAUDE.md` § map, web `src/lib/`: "design-evidence.ts: what the newest finished
+  Design Research run found per research question (latestDesignRun, questionEvidence:
+  findings, gap or not studied, rejections by reason)"; `ExecutionSteps.tsx`: the trace
+  card shows it under each research question; `api.ts`: `deepResearch.designProposal`.
 - 3e, `CLAUDE.md` § map, `research_agents.py`: "Eight closed Research task contracts …";
   append "; the questionnaire contract (harness 3) proposes each item's research_questions,
   a set's output_type and each research question's comparison; proposal_result keeps only
@@ -450,3 +534,16 @@ Tests:
   build/optimize at 3, the rest at 2". Web `trace.ts`: append "proposedTrace (a proposal's
   links, read on the inline review)"; `ProposalReview`: "a questionnaire proposal's research
   questions, their measures and answers, before it is accepted".
+- 5a, `CLAUDE.md` § map, routers/research: "readiness and start take persona_source; readiness
+  answers persona_sources (offered, reason, default); an unoffered source is 409
+  persona_source_unavailable". `CLAUDE.md` § A research run (the persona-source paragraph):
+  "AIA_AI_POPULATION_PERSONAS_ENABLED offers the panel and makes it the default; a person
+  chooses per run on the Run stage ('Kdo bude odpovídat')".
+- 5b, `CLAUDE.md` § map, `research_design.py`: append "selection_receipt: what a run records
+  of its design's selection, dimensions never applied yet, filters only by a population draw";
+  routers/research: "a run's selection"; web `research-execution.ts`: "respondentReceipt: the
+  pinned source beside the fieldwork data's origin, a mismatch named"; `ExecutionSteps.tsx`:
+  "'Kdo odpovídal' on Progress and Results replaces the population note".
+- 5c (open, for `open-items.md`): applying a selected dimension to panel respondents needs the
+  product owner's decision; no persona reads a materialized dimension
+  (`panel_persona.py` `panel_personas`, `wanted`).
