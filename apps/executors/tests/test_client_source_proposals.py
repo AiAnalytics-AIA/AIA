@@ -14,6 +14,10 @@ from typing import Any
 import pytest
 from aia_core.application.client_work import lift_client_budget_wait, start_client_work
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+from aia_core.application.source_proposals import (
+    latest_source_proposals,
+    start_source_proposals,
+)
 from aia_core.domain.knowledge import ProposalStatus
 from aia_core.domain.scope import ClientContext, ClientWorkContext
 from aia_core.domain.source_proposals import HARNESS_VERSION
@@ -205,27 +209,51 @@ def start(
         client.budget_usd, client.spent_usd = budget, 0.0
         sources = ClientSourceRepository(session, store)
         record, _ = sources.add(client_scope(world, session), filename=filename, data=data)
-        pin = sources.reading_pin(client_scope(world, session), record.source_id)
-        started = start_client_work(
-            session,
-            work_scope(world, session),
-            workflow_type=CLIENT_SOURCE_PROPOSALS,
-            idempotency_key=f"proposals:{record.source_id}:{pin.reading_sha256}",
-            step_inputs={
-                "extract": {
-                    "source_id": record.source_id,
-                    "reading_sha256": pin.reading_sha256,
-                    "harness_version": HARNESS_VERSION,
-                }
-            },
-        )
+        if record.family.value == "DOCUMENT":
+            # As a person asks: the API's start (lifecycle K2d4).
+            run_id = start_source_proposals(
+                session,
+                client_scope(world, session),
+                work_scope(world, session),
+                store,
+                record.source_id,
+            ).run_id
+        else:
+            # A source the start refuses, queued by hand to show the step refuses it too.
+            pin = sources.reading_pin(client_scope(world, session), record.source_id)
+            run_id = start_client_work(
+                session,
+                work_scope(world, session),
+                workflow_type=CLIENT_SOURCE_PROPOSALS,
+                idempotency_key=f"by-hand:{record.source_id}",
+                step_inputs={
+                    "extract": {
+                        "source_id": record.source_id,
+                        "reading_sha256": pin.reading_sha256,
+                        "harness_version": HARNESS_VERSION,
+                    }
+                },
+            ).run_id
         session.commit()
-        return started.run_id, record.source_id
+        return run_id, record.source_id
 
 
 def run_state(world: Any, run_id: str) -> dict[str, Any]:
     with world.sessions() as session:
         return WorkflowRepository(session, work_scope(world, session)).get_run(run_id)
+
+
+def latest(world: Any, store: Any) -> Any:
+    """The run as a person follows it (lifecycle K2d4)."""
+    with world.sessions() as session:
+        sources = ClientSourceRepository(session, store).sources(client_scope(world, session))
+        return latest_source_proposals(
+            session,
+            client_scope(world, session),
+            work_scope(world, session),
+            store,
+            sources[0].source_id,
+        )
 
 
 def spent(world: Any) -> tuple[float, float]:
@@ -290,6 +318,13 @@ def test_unconfigured_it_parks_without_a_call_or_an_attempt(
     assert step["status"] is not StepRunStatus.SUCCEEDED
     assert step["attempts"][-1]["error"]["reason"] == "client_source_proposals_unconfigured"
     assert transport.requests == []
+    # A person following it reads the step's own reason, not the worker's general one.
+    followed = latest(world, store)
+    assert followed is not None and followed.run_id == run_id
+    assert (followed.step_status, followed.reason) == (
+        "WAITING_PROVIDER",
+        "client_source_proposals_unconfigured",
+    )
     assert spent(world) == (0.0, 0.0)
 
 
@@ -344,6 +379,8 @@ def test_a_budget_that_cannot_hold_the_call_waits_and_a_lift_lets_it_finish(
     w.run_once()
     step = run_state(world, run_id)["steps"][0]
     assert step["status"] is StepRunStatus.AWAITING_BUDGET
+    followed = latest(world, store)
+    assert followed is not None and followed.reason == step["waiting_reason"]
     assert transport.requests == []
     assert spent(world) == (0.0, 0.0)
 

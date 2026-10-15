@@ -109,13 +109,21 @@ def _runs(session: Session, work: ClientWorkContext, prefix: str) -> list[dict[s
 
 
 def _reason(step: dict[str, Any]) -> str | None:
-    if step["waiting_reason"]:
+    """Why the step waits or stopped, as specifically as it was named.
+
+    A park's waiting reason is the worker's general one (``ai_runtime_unavailable``); the
+    step's own reason (``client_source_proposals_unconfigured``,
+    ``egress_route_not_approved_for_class`` …) is on its last attempt, and says what to
+    change. A step waiting for budget waits on the budget, whatever an earlier attempt said.
+    """
+    if step["status"].value == "AWAITING_BUDGET" and step["waiting_reason"]:
         return str(step["waiting_reason"])
-    for attempt in reversed(step["attempts"]):
-        error = attempt.get("error") or {}
-        if error.get("reason"):
-            return str(error["reason"])
-    return None
+    if step["status"].value != "SUCCEEDED":
+        for attempt in reversed(step["attempts"]):
+            error = attempt.get("error") or {}
+            if error.get("reason"):
+                return str(error["reason"])
+    return str(step["waiting_reason"]) if step["waiting_reason"] else None
 
 
 def _follow(
