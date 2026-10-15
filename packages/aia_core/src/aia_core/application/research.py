@@ -57,7 +57,13 @@ from ..domain.research_agents import (
     prompt_for,
     snapshot_hash,
 )
-from ..domain.research_design import Readiness, ReadinessSpec, ResearchSpecification, prepare
+from ..domain.research_design import (
+    Readiness,
+    ReadinessSpec,
+    ResearchSpecification,
+    prepare,
+    selection_receipt,
+)
 from ..domain.research_sociomap import (
     SociomapMethod,
     default_methods,
@@ -565,6 +571,12 @@ class ResearchRuns:
                 **(
                     {"population": _population_note(population, read_by_fieldwork=panel)}
                     if population
+                    else {}
+                ),
+                # What the design selected and what reached its respondents (5b).
+                **(
+                    {"selection": selection_receipt(_spec, population_draw=panel)}
+                    if _spec is not None
                     else {}
                 ),
             },

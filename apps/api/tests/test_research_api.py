@@ -1397,3 +1397,31 @@ def test_a_person_chooses_who_answers_among_the_sources_the_deployment_offers(
     )
     assert run.status_code == 201, run.text
     assert run.json()["persona_source"] == "fictional_roster"
+
+
+def test_a_run_records_what_its_design_selected_and_what_reached_its_respondents(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """Plan run-recovery-and-truth 5b: dimensions are never applied yet; the filters only by a
+    draw from the population; a run from before 5b recorded nothing and says so."""
+    selected = {
+        **DESIGN,
+        "persona_dimensions": {"approved": ["vek_skupina", "region"]},
+        "audience": {"source_mode": "population", "filters": {"vek": {"min": 30, "max": 59}}},
+    }
+    revision_id = submit(researcher, world, selected).json()["revision_id"]
+    run = start(researcher, world, revision_id).json()
+    assert run["selection"] == {
+        "dimensions": ["vek_skupina", "region"],
+        "dimensions_applied": False,
+        "dimensions_reason": "dimensions_not_read_by_personas",
+        "audience_filters": {"vek": {"max": 59, "min": 30}},
+        "filters_applied": False,
+        "filters_reason": "filters_need_population_draw",
+    }
+    with create_session_factory(app.state.engine)() as session:
+        row = session.get(WorkflowRunRow, run["run_id"])
+        assert row is not None
+        row.metadata_json = {k: v for k, v in row.metadata_json.items() if k != "selection"}
+        session.commit()
+    assert researcher.get(f"{_runs(world)}/{run['run_id']}").json()["selection"] is None

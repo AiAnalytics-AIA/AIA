@@ -38,7 +38,9 @@ from .sociomap.metrics import ObjectRole
 __all__ = [
     "AIA_READINESS_V1",
     "COMPILER_VERSION",
+    "DIMENSIONS_NOT_READ",
     "DONT_KNOW",
+    "FILTERS_NEED_POPULATION",
     "SAMPLE_SIZE_BOUNDS",
     "SELECTION_NOT_APPLIED",
     "TRACKED_SET_LIMITS",
@@ -59,6 +61,7 @@ __all__ = [
     "prepare",
     "readiness_problems",
     "readiness_values",
+    "selection_receipt",
 ]
 
 #: The compiler's own version: part of the specification's fingerprint.
@@ -717,6 +720,37 @@ def _selection(content: dict[str, Any], audience: dict[str, Any]) -> SpecSelecti
         applied=False,
         reason=SELECTION_NOT_APPLIED,
     )
+
+
+#: Why a run applied none of the dimensions its design selected: a panel persona reads a fixed
+#: set of columns (``panel_persona.panel_personas``), and no selected dimension is among them.
+DIMENSIONS_NOT_READ: Final = "dimensions_not_read_by_personas"
+#: Why a run did not apply its design's audience filters: only a draw from the population does,
+#: and this run's respondents are the fictional roster.
+FILTERS_NEED_POPULATION: Final = "filters_need_population_draw"
+
+
+def selection_receipt(spec: ResearchSpecification, *, population_draw: bool) -> dict[str, Any]:
+    """What a run records about its design's selection (plan run-recovery-and-truth 5b): the
+    dimensions and audience filters it selected, and whether each reached the respondents.
+
+    ``population_draw``: the run's respondents are drawn from its population (the panel
+    source), which is the only thing that applies the filters (``panel_source.panel_plans``).
+    Nothing applies a dimension yet. An applied flag is never true without the code that
+    applies it, and a reason accompanies every one that is false.
+    """
+    selection = spec.selection
+    dimensions = list(selection.dimensions) if selection is not None else []
+    filters = dict(selection.audience_filters) if selection is not None else {}
+    filters_applied = population_draw and bool(filters)
+    return {
+        "dimensions": dimensions,
+        "dimensions_applied": False,
+        "dimensions_reason": DIMENSIONS_NOT_READ if dimensions else None,
+        "audience_filters": filters,
+        "filters_applied": filters_applied,
+        "filters_reason": FILTERS_NEED_POPULATION if filters and not filters_applied else None,
+    }
 
 
 # --------------------------------------------------------------------------- #

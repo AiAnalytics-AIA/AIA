@@ -275,6 +275,23 @@ class ResearchRunPopulation(BaseModel):
     read_by_fieldwork: bool
 
 
+class ResearchRunSelection(BaseModel):
+    """What a run's design selected for its respondents and what reached them (5b).
+
+    An applied flag is true only where the code that applies it ran; every false one carries
+    its reason (``research_design.selection_receipt``).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    dimensions: list[str]
+    dimensions_applied: bool
+    dimensions_reason: str | None
+    audience_filters: dict[str, Any]
+    filters_applied: bool
+    filters_reason: str | None
+
+
 class ResearchRunMethod(BaseModel):
     """One method a run pinned when it started (plan ``methodology-tab`` Z1)."""
 
@@ -331,6 +348,9 @@ class ResearchRunResponse(BaseModel):
     methodology: ResearchRunMethodology
     #: Who its AI respondents are, as the run pinned it: ``fictional_roster`` or ``panel``.
     persona_source: str = PersonaSource.FICTIONAL_ROSTER.value
+    #: What the design selected and what was applied; ``None``: a run started before 5b,
+    #: which recorded nothing -- never read as "nothing selected".
+    selection: ResearchRunSelection | None = None
 
 
 class ResearchRunList(BaseModel):
@@ -767,6 +787,11 @@ def _run(
         ),
         methodology=_methodology(meta),
         persona_source=persona_source_of(meta).value,
+        selection=(
+            ResearchRunSelection.model_validate(meta["selection"])
+            if isinstance(meta.get("selection"), dict)
+            else None
+        ),
     )
 
 
