@@ -10,7 +10,7 @@ chunks:
   - "[ ] K2d. AI proposals from a document source, paid by the client's budget, every quote grounded"
   - "[x] K2d1. Extraction in the domain: closed contract, Czech prompt, segment batches, every quote grounded in its segment"
   - "[x] K2d2. Persistence: a client-work reading pinned by its SHA-256; AI-authored proposals written once per run"
-  - "[ ] K2d3. The client_source_proposals step: executor, workflow type, kill switch, parks by name; recorded-gateway tests under the real worker loop, charged to the client"
+  - "[x] K2d3. The client_source_proposals step: executor, workflow type, kill switch, parks by name; recorded-gateway tests under the real worker loop, charged to the client"
   - "[ ] K2d4. Start and follow: POST /clients/{id}/sources/{source_id}/proposals, idempotent per reading; the run's state"
   - "[ ] K2d5. Web: Navrhnout znalosti on a document's item and the intake sheet; waiting for budget with the lift; proposals land in Ke schválení"
   - "[ ] K2d6. Burst, latency and money measured; develop activation is the owner's call"
@@ -444,6 +444,24 @@ generic historical records without inventing source spans or validated dimension
     filed). `client_knowledge_proposals.run_id` and its index (migration `a9c1e3b5d7f2`,
     checked on PostgreSQL 16: upgrade, downgrade, upgrade, `alembic check` clean). Tests:
     `packages/aia_core/tests/test_client_work_proposals.py` (2, SQLite and PostgreSQL).
+  - **K2d3 landed** (2026-10-15): `aia_executors/client_source_proposals.py`, the
+    `client_source_proposals` workflow type (one step, `extract`, `max_attempts=1`;
+    `domain/workflow_templates.py`). The executor takes the worker's `ClientWorkContext` (a
+    study's scope is refused, `not_client_work`), reads the pinned reading (`reading_changed`
+    when it moved), refuses a source it does not extract by name, preflights, then asks batch by
+    batch through `StepModelCaller` (each request held against and charged to the client's
+    budget) and files what `ground` keeps, once per run. Kill switch
+    `AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED` (off; with `…_MAX_OUTPUT_TOKENS` and
+    `…_RESERVATION_USD`, which must cover two calls at the model ceilings, as research's), which
+    binds `FAST_EXTRACTION` on the route's model; unset, the step parks
+    `client_source_proposals_unconfigured`. Class A: the route must name
+    `CLASS_A_CLIENT_CONFIDENTIAL` and state its retention, else egress parks it
+    (`egress_route_not_approved_for_class`, `egress_retention_unspecified`) before any call. The
+    develop Compose passes the three keys, off. Tests:
+    `apps/executors/tests/test_client_source_proposals.py` (9: grounded proposals filed and the
+    client charged, the study not; unconfigured; both egress parks; a dataset refused; a $1 client
+    budget waits `AWAITING_BUDGET`, a lift to $5 lets it finish -- client-budget CB5's proof
+    under the real worker loop; the settings' binding and reservation floor).
 - **K2e. Web intake.**
   - URL capture is one fetch through `RetrievalGate` beneath the chosen study. The snapshot is
     stored as a client source with `origin=web`, the URL and the retrieval time.

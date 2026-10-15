@@ -207,6 +207,10 @@ services:
       AIA_AI_ANALYSIS_ENABLED: ${AIA_AI_ANALYSIS_ENABLED:-false}
       AIA_AI_ANALYSIS_MAX_OUTPUT_TOKENS: ${AIA_AI_ANALYSIS_MAX_OUTPUT_TOKENS:-}
       AIA_AI_ANALYSIS_RESERVATION_USD: ${AIA_AI_ANALYSIS_RESERVATION_USD:-}
+      # AI proposals from a client's document, paid by the client (lifecycle K2d); off.
+      AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED: ${AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED:-false}
+      AIA_AI_CLIENT_SOURCE_MAX_OUTPUT_TOKENS: ${AIA_AI_CLIENT_SOURCE_MAX_OUTPUT_TOKENS:-}
+      AIA_AI_CLIENT_SOURCE_RESERVATION_USD: ${AIA_AI_CLIENT_SOURCE_RESERVATION_USD:-}
       # A model request's "sent" and "answered" in its run's feed (step-activity plan, chunk 5).
       AIA_AI_STEP_EVENTS: ${AIA_AI_STEP_EVENTS:-false}
       # The report's PDF beside its DOCX (complete-study-report B3). The develop worker image

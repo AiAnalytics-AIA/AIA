@@ -13,6 +13,7 @@ from aia_core.domain.holdout.run import ARM_KIND, SAMPLE_KIND, SCORE_KIND
 from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.workflow import StepRunStatus, WorkflowRunStatus
 from aia_core.domain.workflow_templates import (
+    CLIENT_SOURCE_PROPOSALS,
     DEVELOP_SNAPSHOT,
     POPULATION_MATERIALIZE,
     REPORT_STEP_KIND,
@@ -81,6 +82,7 @@ def test_the_registry_offers_the_snapshot_kind_and_loads_through_the_worker(
     # Every closed production kind is registered, including disabled AI jobs.
     assert set(loaded) == {
         RESEARCH_AGENT,
+        CLIENT_SOURCE_PROPOSALS,
         ANALYSIS_STEP_KIND,
         *DEEP_RESEARCH_KINDS.values(),
         INVESTIGATE_TRACK_KIND,
@@ -216,6 +218,7 @@ def test_registry_for_is_keyed_by_kind(store: InMemoryArtifactStore, build: Buil
     assert list(registry) == [
         POPULATION_MATERIALIZE,
         RESEARCH_AGENT,
+        CLIENT_SOURCE_PROPOSALS,
         ANALYSIS_STEP_KIND,
         *DEEP_RESEARCH_KINDS.values(),
         INVESTIGATE_TRACK_KIND,

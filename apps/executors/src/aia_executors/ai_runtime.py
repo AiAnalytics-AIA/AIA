@@ -232,6 +232,11 @@ class AIRuntimeSettings:
     analysis_enabled: bool = False
     analysis_max_output_tokens: int = 0
     analysis_reservation_usd: float = 0.0
+    #: ``AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED`` (off by default): AI proposals from a
+    #: client's document, paid by the client (lifecycle K2d). Binds ``FAST_EXTRACTION``.
+    client_source_proposals_enabled: bool = False
+    client_source_max_output_tokens: int = 0
+    client_source_reservation_usd: float = 0.0
     material_approvals: tuple[MaterialApproval, ...] = ()
     #: Binds ``RESEARCH_LEAD`` -- Deep Research's lead researcher, its own policy entry
     #: -- to the route's model. Never read from the environment here: the Deep Research
@@ -355,6 +360,19 @@ class AIRuntimeSettings:
             analysis_reservation_usd=float(_number(env, "AIA_AI_ANALYSIS_RESERVATION_USD") or 0)
             if _flag(env, "AIA_AI_ANALYSIS_ENABLED", required=False)
             else 0,
+            client_source_proposals_enabled=_flag(
+                env, "AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED", required=False
+            ),
+            client_source_max_output_tokens=_positive_int(
+                env, "AIA_AI_CLIENT_SOURCE_MAX_OUTPUT_TOKENS"
+            )
+            if _flag(env, "AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED", required=False)
+            else 0,
+            client_source_reservation_usd=float(
+                _number(env, "AIA_AI_CLIENT_SOURCE_RESERVATION_USD") or 0
+            )
+            if _flag(env, "AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED", required=False)
+            else 0,
         )
         if settings.population_personas_enabled and settings.population_asset_root is None:
             raise AIRuntimeConfigError(
@@ -377,6 +395,18 @@ class AIRuntimeSettings:
             if settings.research_reservation_usd < worst:
                 raise AIRuntimeConfigError(
                     "research reservation must cover two calls at the model ceilings"
+                )
+        if settings.client_source_proposals_enabled:
+            if settings.client_source_max_output_tokens > settings.max_output_tokens:
+                raise AIRuntimeConfigError("client source output limit exceeds the model limit")
+            worst = reservation_usd(
+                settings.model_prices(),
+                window_tokens=settings.context_window_tokens,
+                output_tokens=settings.client_source_max_output_tokens,
+            )
+            if settings.client_source_reservation_usd < worst:
+                raise AIRuntimeConfigError(
+                    "client source reservation must cover two calls at the model ceilings"
                 )
         return settings
 
@@ -422,6 +452,8 @@ class AIRuntimeSettings:
             capabilities.append(ModelCapability.RESEARCH_REASONING)
         if self.research_agents_enabled:
             capabilities.append(ModelCapability.CRITIC)
+        if self.client_source_proposals_enabled:
+            capabilities.append(ModelCapability.FAST_EXTRACTION)
         models: list[dict[str, Any]] = [
             {
                 "provider": Provider.AWS_BEDROCK.value,
