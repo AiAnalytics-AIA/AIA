@@ -152,6 +152,27 @@ describe("Dotazník", () => {
     expect(q1).toMatchObject({ typ: "skala", kategorie: ["Denně", "Týdně", "Nikdy"] });
   });
 
+  it("says which research question a question and a set measure, and drops a link the plan no longer states", async () => {
+    const plan = { research_questions: ["Jak často lidé pijí kávu?", "Která média lidé používají?"] };
+    const sections = [{ ...SECTIONS[0], questions: [{ ...SECTIONS[0].questions![0], research_questions: ["Stará otázka?"] }, SECTIONS[0].questions![1]] }, SECTIONS[1]];
+    unitStub({ ...BRIEF, research_plan: plan, sections, ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByRole("heading", { name: "2 otázek · 1 sledovaných sad" });
+    const card = document.getElementById("qedit_Q1") as HTMLElement;
+    const links = within(card).getByRole("group", { name: "Odpovídá na výzkumné otázky" });
+    fireEvent.click(within(links).getByRole("button", { name: "Odebrat odkaz na „Stará otázka?“" }));
+    fireEvent.click(within(links).getByRole("button", { name: "Jak často lidé pijí kávu?" }));
+    expect(within(links).getByRole("button", { name: "Jak často lidé pijí kávu?" }).getAttribute("aria-pressed")).toBe("true");
+    const set = document.getElementById("qset_sec_b") as HTMLElement;
+    fireEvent.click(within(within(set).getByRole("group", { name: "Odpovídá na výzkumné otázky" })).getByRole("button", { name: "Která média lidé používají?" }));
+    await saved();
+    await waitFor(() => expect(lastSave().reason).toBe("questionnaire_links"));
+    const content = lastSave().content as unknown as { sections: { research_questions?: string[]; questions?: { research_questions?: string[] }[] }[] };
+    expect(content.sections[0].questions![0].research_questions).toEqual(["Jak často lidé pijí kávu?"]);
+    expect(content.sections[0].questions![1]).not.toHaveProperty("research_questions");
+    expect(content.sections[1].research_questions).toEqual(["Která média lidé používají?"]);
+  });
+
   it("adds a guided question through the classic prompt, and refuses a set of three", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);

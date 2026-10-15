@@ -67,6 +67,7 @@ from aia_core.domain.methodology.pins import response_deviates, run_methods
 from aia_core.domain.population import PopulationError, UnknownDatasetVersion
 from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ResearchAction
+from aia_core.domain.research_trace import ResearchTrace
 from aia_core.domain.scope import (
     Permission,
     ScopeDenied,
@@ -357,6 +358,38 @@ class QuestionOutlookResponse(BaseModel):
     reasons: list[str]
 
 
+class ResearchQuestionTraceResponse(BaseModel):
+    """One stated research question and the items that measure it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    text: str
+    #: Item ids (``question_outlook[].question_id``) that declare they measure it.
+    measures: list[str]
+    #: The best verdict among its measures; UNANSWERABLE or UNKNOWN with a reason when none.
+    verdict: str
+    reasons: list[str]
+
+
+class DanglingLinkResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    question_id: str
+    research_question: str
+
+
+class ResearchTraceResponse(BaseModel):
+    """Each stated research question traced to its measures (``domain.research_trace``)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    questions: list[ResearchQuestionTraceResponse]
+    #: Items naming a research question the plan does not state.
+    dangling: list[DanglingLinkResponse]
+    #: Whether any item declares a link; without one, coverage is unknown.
+    linked: bool
+
+
 class ReadinessResponse(BaseModel):
     """Whether a Design Revision can run in AIA: AIA's structural checks, by name."""
 
@@ -385,6 +418,8 @@ class ReadinessResponse(BaseModel):
     #: Every item, in questionnaire order, with its verdict; empty when the design does not
     #: compile.
     question_outlook: list[QuestionOutlookResponse] = []
+    #: ``None`` when the design does not compile.
+    research_trace: ResearchTraceResponse | None = None
 
 
 def _reservations(request: Request) -> RunReservations:
@@ -818,6 +853,26 @@ def readiness(
             )
             for q in outlook.questions
         ],
+        research_trace=_trace(outlook.trace) if outlook.trace is not None else None,
+    )
+
+
+def _trace(trace: ResearchTrace) -> ResearchTraceResponse:
+    return ResearchTraceResponse(
+        questions=[
+            ResearchQuestionTraceResponse(
+                text=q.text,
+                measures=list(q.measures),
+                verdict=q.verdict.value,
+                reasons=[r.value for r in q.reasons],
+            )
+            for q in trace.questions
+        ],
+        dangling=[
+            DanglingLinkResponse(question_id=d.question_id, research_question=d.research_question)
+            for d in trace.dangling
+        ],
+        linked=trace.linked,
     )
 
 

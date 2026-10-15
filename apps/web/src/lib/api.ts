@@ -847,6 +847,15 @@ export type DesignRevision = {
 export type CheckStatus = "PASS" | "WARN" | "FAIL";
 export type OutlookVerdict = "ANSWERABLE" | "UNKNOWN" | "AT_RISK" | "UNANSWERABLE";
 /** One item a respondent will answer, as they read it, and whether the run will answer it. */
+/** One stated research question and the items (`QuestionOutlook.question_id`) that measure it. */
+export type ResearchQuestionTrace = { text: string; measures: string[]; verdict: OutlookVerdict; reasons: string[] };
+export type ResearchTrace = {
+  questions: ResearchQuestionTrace[];
+  /** Items naming a research question the plan does not state. */
+  dangling: { question_id: string; research_question: string }[];
+  /** Whether any item declares a link; without one, coverage is unknown. */
+  linked: boolean;
+};
 export type QuestionOutlook = {
   question_id: string;
   text: string;
@@ -879,6 +888,9 @@ export type Readiness = {
   /** Every item, in questionnaire order, with its verdict; empty when the design does not compile,
    * absent from an API that predates it (no card is shown then). */
   question_outlook?: QuestionOutlook[];
+  /** Each stated research question traced to its measures; `null` when the design does not compile,
+   * absent from an API that predates it. */
+  research_trace?: ResearchTrace | null;
 };
 
 export type ResearchPhase = "QUEUED" | "RUNNING" | "WAITING" | "COMPLETED" | "FAILED" | "CANCELLED";
