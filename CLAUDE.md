@@ -447,7 +447,14 @@ packages/aia_core/src/aia_core/
                             tally: what a run bought, a reused unit costing nothing
     ai_respondent.py        The AI respondent: agent aia.research.respondent, prompt v1, per-block strict
                             contract, fictional roster, facts by code, interpretation, the dataset;
-                            dataset_origin: the origin derived from the personas (a mixed roster refused)
+                            dataset_origin: the origin derived from the personas (a mixed roster refused);
+                            fieldwork_seed: the roster and draw seed from the specification
+    support_forecast.py     A run's evidence support, forecast before launch from the roster fieldwork
+                            will draw (fieldwork_seed + fictional_roster through donor_support and
+                            reassess_support, under the support rules and aggregation formulas a start
+                            would pin); unknown for a panel run, never good; the smallest sufficient n
+                            searched within 40,000 respondents; readiness's support_forecast check
+                            (WARN, never FAIL) for an ai_runtime run
     respondent_behavior.py  18.6.6 behavior.py + styly.py: response process, styles, the seeded draw
     respondent_facts.py     18.6.6 factual_layer.py: facts answered by code, unsupported facts refused
     persona_profile.py      A panel respondent's profile: 18.6.6's generate_persona_text in the mode it
@@ -801,7 +808,9 @@ packages/aia_core/src/aia_core/
                             established population: PanelPopulationMissing); a retry keeps it.
                             retry_analysis: the same restart under every pin, its fieldwork step
                             given the original's dataset (FrozenDataset: artifact id + SHA-256,
-                            verified by the step, never substituted)
+                            verified by the step, never substituted). readiness(…, fieldwork_source=):
+                            with ai_runtime, the support forecast under the support rules and
+                            aggregation a start would pin
     deep_research.py        DeepResearchRuns: the run spec frozen at enqueue (ADR 0021):
                             freeze_design (the engine request: knowledge via for_study, client
                             terms) and freeze_interpretation (a result of this Study's own research
