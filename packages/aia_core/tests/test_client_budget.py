@@ -13,11 +13,11 @@ from typing import Any
 
 import pytest
 from pydantic import ValidationError
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from aia_core.domain.scope import ClientBudget, ClientContext, ClientPermission, ScopeDenied
 from aia_core.infrastructure.scope_repository import ScopeRepository
-from aia_core.infrastructure.tables import AccessAuditRow, StudyRow
+from aia_core.infrastructure.tables import AccessAuditRow, ClientRow, StudyRow
 
 
 def client_scope(scoped: Any, user: str = "lead", client: str = "primary") -> ClientContext:
@@ -67,6 +67,31 @@ def test_setting_it_is_audited_once_per_real_change_and_touches_no_study(
     assert studies_after == studies_before
     with pytest.raises(ValueError):
         repo.set_client_budget(lead, -1)
+
+
+def test_a_change_is_audited_against_what_was_committed_meanwhile(
+    scoped: Any, session: Any
+) -> None:
+    """Codex on #428: a row read before another request's change kept its old value,
+    so the change was audited as from 0 and a repeat of the same value was recorded."""
+    repo = ScopeRepository(session)
+    lead = client_scope(scoped)
+    row = session.get(ClientRow, lead.client_id)
+    assert row is not None and row.budget_usd == 0.0
+    # Another request sets 10 and commits; this session still holds the row it read.
+    session.execute(
+        update(ClientRow)
+        .where(ClientRow.client_id == lead.client_id)
+        .values(budget_usd=10.0)
+        .execution_options(synchronize_session=False)
+    )
+    assert row.budget_usd == 0.0
+    repo.set_client_budget(lead, 10.0)  # the same value: no change, no audit
+    repo.set_client_budget(lead, 20.0)
+    reasons = session.scalars(
+        select(AccessAuditRow.reason).where(AccessAuditRow.action == "CLIENT_BUDGET_CHANGED")
+    ).all()
+    assert reasons == ["10.0 -> 20.0"]
 
 
 def test_it_is_the_clients_own(scoped: Any, session: Any) -> None:
