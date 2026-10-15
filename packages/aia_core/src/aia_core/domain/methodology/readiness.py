@@ -199,6 +199,17 @@ _PREVIEW_SAMPLES: Final = (12, 450)
 _PREVIEW_SETS: Final = (18, 41)
 
 
+_SAMPLE_DESIGN: Final[dict[str, object]] = {
+    "title": "Ukázka (fiktivní)",
+    "sections": [
+        {
+            "type": "questions",
+            "questions": [{"id": "q1", "text": "Jak hodnotíte?", "typ": "skala", "skala": [1, 5]}],
+        }
+    ],
+}
+
+
 def _preview_design(n: int, items: int) -> dict[str, object]:
     return {
         "title": "Ukázka (fiktivní)",
@@ -221,9 +232,9 @@ def _preview(spec: BaseModel) -> tuple[PreviewLine, ...]:
         raise TypeError(f"not a readiness specification: {type(spec).__name__}")
     lines: list[PreviewLine] = []
     for n in _PREVIEW_SAMPLES:
-        # A set the draft's own hard limits keep, so the sample's line never depends on them.
-        items = spec.tracked_set.recommended_min
-        _, readiness = prepare(_preview_design(n, items), pair_n_min=1, limits=spec)
+        # One question and no tracked set: the sample's line depends on no other limit, and
+        # the preview's size on no value of the draft.
+        _, readiness = prepare(_SAMPLE_DESIGN | {"n": n}, pair_n_min=1, limits=spec)
         check = next(c for c in readiness.checks if c.id == "sample_size")
         lines.append(PreviewLine("sample_size", check.status.value, check.message))
     for items in _PREVIEW_SETS:

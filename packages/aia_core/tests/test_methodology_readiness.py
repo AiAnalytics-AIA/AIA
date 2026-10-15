@@ -181,3 +181,33 @@ def test_the_preview_shows_the_sample_line_whatever_set_size_the_draft_allows() 
         ("sample_size", "FAIL"),
         ("sample_size", "PASS"),
     ]
+
+
+def test_the_sample_preview_does_not_grow_with_the_draft(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The sample's line is checked on one question, never on a set the draft sizes: a huge
+    recommended minimum must not build a huge design."""
+    from aia_core.domain.methodology import readiness as module
+
+    built: list[int] = []
+    original = module._preview_design
+
+    def counting(n: int, items: int) -> dict[str, object]:
+        built.append(items)
+        # Refused, not built: a regression must fail here, never allocate the draft's size.
+        assert items <= 41, f"the preview would build a set of {items} items"
+        return original(n, items)
+
+    monkeypatch.setattr(module, "_preview_design", counting)
+    version = _validate(
+        _limits(
+            tracked_set__max=10**8,
+            tracked_set__recommended_min=10**7,
+            tracked_set__recommended_max=10**8 - 1,
+        )
+    )
+    lines = module._preview(version.spec)
+    assert [(line.step_id, line.status) for line in lines][:2] == [
+        ("sample_size", "FAIL"),
+        ("sample_size", "PASS"),
+    ]
+    assert built == [18, 41]  # only the preview's fixed set sizes, never the draft's
