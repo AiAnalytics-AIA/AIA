@@ -10,6 +10,7 @@ import { useStepActivity } from "./useStepActivity";
 import { phaseLabel } from "@/lib/research-execution";
 import { AiButton, Button, Field, Select } from "../ui";
 import { useResearch } from "./context";
+import { FormattedText } from "./FormattedText";
 
 const message = (e: unknown) => e instanceof Error ? e.message : String(e);
 const coverageLabel = (status: string) => ({
@@ -188,26 +189,48 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
       </div>
       {bundle.origins?.includes("RECORDED_FIXTURE") ? <p className="text-sm text-status-fault">Podklady obsahují testovací výměny; nejde výhradně o živou rešerši.</p> : null}
       <p className="text-sm leading-6">Níže jsou přijatá zjištění s kontrolovanou citací. Generovaná syntéza vyžaduje věcné posouzení; kontrola citací a čísel sama nepotvrzuje její interpretace. Zpráva obsahuje přijaté podklady a uvádí toto omezení.</p>
-      <ol className="space-y-3">{bundle.accepted.map((a, i) => {
+      <ol className="space-y-3" aria-label="Přijatá zjištění">{bundle.accepted.map((a, i) => {
         const source = bundle.snapshots.find(s => s.snapshot_id === a.evidence.source_ref);
-        return <li key={i} className="rounded-control border border-border p-4">
-          <p className="text-sm leading-6">{a.evidence.claim}</p>
-          <p className="mt-2 break-words text-xs text-ink-muted">Zdroj: {source ? <a href={source.url} target="_blank" rel="noreferrer" className="underline">{source.title || source.url}</a> : a.evidence.source_ref}</p>
-          {a.evidence.quote ? <details className="mt-2 text-xs"><summary className="cursor-pointer text-ink-muted">Citovaný podklad</summary><blockquote className="mt-2 border-l-2 border-border pl-3 leading-5 text-ink-muted">{a.evidence.quote}</blockquote></details> : null}
+        return <li key={i} data-accepted-finding className="rounded-control border border-border p-4">
+          <p className="text-xs font-semibold text-ink-muted">Zjištění č. {i + 1}</p>
+          <FormattedText text={a.evidence.claim} className="mt-1" />
+          <p className="mt-2 break-words text-xs text-ink-muted">Zdroj: {source ? <a href={source.url} target="_blank" rel="noreferrer" className="underline">{source.title || source.url}</a> : a.evidence.source_ref}{a.score?.source_class ? ` · třída zdroje ${a.score.source_class}` : ""}</p>
+          {a.evidence.quote ? <details className="mt-2 text-xs"><summary className="cursor-pointer text-ink-muted">Citovaný podklad</summary><blockquote className="mt-2 whitespace-pre-wrap border-l-2 border-border pl-3 leading-5 text-ink-muted">{a.evidence.quote}</blockquote></details> : null}
         </li>;
       })}</ol>
-      <details><summary className="cursor-pointer text-sm font-medium">Zachycené zdroje</summary>
-        {bundle.snapshots.map(s => <p key={s.snapshot_id} className="mt-2 text-sm"><a href={s.url} target="_blank" rel="noreferrer" className="underline">{s.title || s.url}</a></p>)}
+      <details><summary className="cursor-pointer text-sm font-medium">Zachycené zdroje ({bundle.snapshots.length})</summary>
+        <ul className="mt-2 flex flex-col gap-1">{bundle.snapshots.map(s => <li key={s.snapshot_id} className="text-sm"><a href={s.url} target="_blank" rel="noreferrer" className="underline">{s.title || s.url}</a>{s.retrieval_mode ? <span className="text-xs text-ink-muted"> · {s.retrieval_mode}</span> : null}</li>)}</ul>
       </details>
-      <details><summary className="cursor-pointer text-sm font-medium">Mezery a omezení</summary>
-        {bundle.synthesis?.brief?.gaps.map((g, i) => <p key={i} className="mt-2 text-sm">V tomto běhu nebyl doložen požadovaný podklad: {g.need}</p>)}
-        <p className="mt-2 text-sm">Odmítnutá zjištění: {bundle.quarantined.length}</p>
+      <details><summary className="cursor-pointer text-sm font-medium">Mezery a odmítnutá zjištění</summary>
+        {bundle.synthesis?.brief?.gaps.length ? <><h4 className="mt-3 text-sm font-semibold">Co se nepodařilo doložit</h4>
+          <ul className="mt-1 list-disc space-y-1 pl-5 text-sm leading-6">{bundle.synthesis.brief.gaps.map((g, i) => <li key={i}>{g.need}{g.reason ? <span className="text-ink-muted"> · {g.reason}</span> : null}</li>)}</ul></> : null}
+        <h4 className="mt-3 text-sm font-semibold">Odmítnutá zjištění: {bundle.quarantined.length}</h4>
+        {bundle.quarantined.length ? <ul className="mt-1 list-disc space-y-1 pl-5 text-sm leading-6">{bundle.quarantined.map((q, i) => <li key={i}>{q.claim ? <FormattedText text={q.claim} /> : null}<span className={q.claim ? "text-xs text-ink-muted" : undefined}>{q.reason}{q.detail ? <span className="text-ink-muted"> · {q.detail}</span> : null}</span></li>)}</ul> : null}
+        {Object.keys(bundle.counts ?? {}).length ? <p className="mt-3 text-xs text-ink-muted">Počty: {Object.entries(bundle.counts).map(([k, v]) => `${k} ${v}`).join(" · ")}</p> : null}
       </details>
-      {bundle.synthesis ? <details><summary className="cursor-pointer text-sm font-medium">Generovaný návrh syntézy · věcně neschválený</summary>
+      {bundle.synthesis ? <details data-synthesis-draft><summary className="cursor-pointer text-sm font-medium">Generovaný návrh syntézy · věcně neschválený</summary>
         <p className="mt-2 text-sm">Pracovní text může obsahovat nepodložené interpretace. Je uchován pro kontrolu; není součástí stažené zprávy.</p>
-        {bundle.synthesis.check.summary ? <p className="mt-2 text-sm leading-6">{bundle.synthesis.check.summary}</p> : null}
-        {bundle.synthesis.check.findings.map((f, i) => <p key={i} className="mt-2 text-sm leading-6">{f.text}</p>)}
-        {[...bundle.synthesis.check.gaps, ...bundle.synthesis.check.limitations].map((s, i) => <p key={i} className="mt-2 text-sm">{s}</p>)}
+        {bundle.synthesis.check.status ? <p className="mt-1 text-xs text-ink-muted">Stav kontroly: {bundle.synthesis.check.status}</p> : null}
+        {bundle.synthesis.check.summary ? <><h4 className="mt-3 text-sm font-semibold">Shrnutí</h4><FormattedText text={bundle.synthesis.check.summary} className="mt-1" /></> : null}
+        {bundle.synthesis.check.findings.length ? <><h4 className="mt-3 text-sm font-semibold">Zjištění</h4>
+          <ul className="mt-1 flex flex-col gap-3">{bundle.synthesis.check.findings.map((f, i) => {
+            const rests = f.evidence_ids.map(id => bundle.accepted.findIndex(a => a.evidence.evidence_id === id)).filter(n => n >= 0).map(n => n + 1);
+            return <li key={i} className="border-l-2 border-border pl-3">
+              <FormattedText text={f.text} />
+              <p className="mt-1 text-xs text-ink-muted">{rests.length ? `Opírá se o přijatá zjištění č. ${rests.join(", ")}` : "Neopírá se o žádné přijaté zjištění"}{f.evidence_ids.length > rests.length ? ` · odkazy mimo přijatá zjištění: ${f.evidence_ids.length - rests.length}` : ""}</p>
+            </li>;
+          })}</ul></> : null}
+        {bundle.synthesis.check.gaps.length ? <><h4 className="mt-3 text-sm font-semibold">Mezery</h4><ul className="mt-1 list-disc space-y-1 pl-5 text-sm leading-6">{bundle.synthesis.check.gaps.map((g, i) => <li key={i}>{g}</li>)}</ul></> : null}
+        {bundle.synthesis.check.limitations.length ? <><h4 className="mt-3 text-sm font-semibold">Omezení</h4><ul className="mt-1 list-disc space-y-1 pl-5 text-sm leading-6">{bundle.synthesis.check.limitations.map((l, i) => <li key={i}>{l}</li>)}</ul></> : null}
+        {bundle.synthesis.check.summary_withheld || bundle.synthesis.check.excluded?.length ? <div data-synthesis-rejected>
+          <h4 className="mt-3 text-sm font-semibold">Odmítnuto kontrolou</h4>
+          <p className="mt-1 text-xs text-ink-muted">Text, který kontrola citací a čísel nepustila do syntézy, s důvodem.</p>
+          {bundle.synthesis.check.summary_withheld ? <p className="mt-2 text-sm">Shrnutí zadrženo<span className="text-ink-muted"> · {bundle.synthesis.check.summary_withheld}</span></p> : null}
+          {bundle.synthesis.check.excluded?.length ? <ul className="mt-2 flex flex-col gap-3">{bundle.synthesis.check.excluded.map((x, i) => <li key={i} className="border-l-2 border-status-fault pl-3">
+            <FormattedText text={x.text} />
+            <p className="mt-1 text-xs text-ink-muted">{x.reason}{x.detail ? ` · ${x.detail}` : ""}</p>
+          </li>)}</ul> : null}
+        </div> : null}
       </details> : null}
     </div> : null}
     {error ? <p role="alert" className="mt-3 text-sm text-status-fault">{error}</p> : null}

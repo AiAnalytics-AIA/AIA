@@ -819,6 +819,31 @@ def test_a_member_fills_in_the_clients_profile_and_its_history_says_what_changed
     assert theirs["industry"] == ""
 
 
+def test_a_member_sets_the_clients_own_budget_and_the_directory_does_not_carry_it(
+    researcher: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    """client-budget CB1: work on the client itself has a budget of its own, 0 until set."""
+    url = f"{API}/clients/{world.client_id()}/budget"
+    assert researcher.get(url).json() == {
+        "budget_usd": 0.0,
+        "spent_usd": 0.0,
+        "reserved_usd": 0.0,
+        "available_usd": 0.0,
+    }
+    saved = researcher.put(url, json={"budget_usd": 12.5})
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["available_usd"] == 12.5
+    for bad in ({"budget_usd": -1}, {"budget_usd": 2_000_000}, {"budget_usd": 5, "spent_usd": 1}):
+        assert researcher.put(url, json=bad).status_code == 422
+    # Costs stay behind their own route: the client's detail does not carry them.
+    detail = researcher.get(f"{API}/clients/{world.client_id()}").json()
+    assert "budget_usd" not in detail and "spent_usd" not in detail
+    # Another client's budget is its own, and a client that does not exist is not found.
+    theirs = other_client_lead.get(f"{API}/clients/{world.client_id('other')}/budget").json()
+    assert theirs["budget_usd"] == 0.0
+    assert researcher.get(f"{API}/clients/CLI-0000000000ffff/budget").status_code == 404
+
+
 def test_contacts_are_kept_per_client_and_checked(researcher: TestClient, world: Any) -> None:
     base = f"{API}/clients/{world.client_id()}/contacts"
     added = researcher.post(

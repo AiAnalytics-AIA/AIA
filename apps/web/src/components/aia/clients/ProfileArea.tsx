@@ -11,6 +11,7 @@ import { type FormEvent, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import {
+  type ClientBudget,
   type ClientContact,
   type ClientProfile,
   type ClientProfileFields,
@@ -341,11 +342,82 @@ function History({ history }: { history: ClientProfile["history"] }) {
   );
 }
 
+const usd = (n: number) => `${n.toLocaleString("cs-CZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`;
+
+/** The client's own budget (client-budget CB1): it pays for AI work on the client, not its studies. */
+function Budget({ clientId, mayManage }: { clientId: string; mayManage: boolean }) {
+  const [version, setVersion] = useState(0);
+  const [res, retry] = useResource(() => workspace.budget(clientId), [clientId, version]);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const save = (e: FormEvent) => {
+    e.preventDefault();
+    const value = Number(editing);
+    if (!Number.isFinite(value) || value < 0) return;
+    workspace.setBudget(clientId, value).then(
+      () => {
+        setError(null);
+        setEditing(null);
+        setSaved(true);
+        setVersion((v) => v + 1);
+      },
+      (err: unknown) => setError(said(err)),
+    );
+  };
+  return (
+    <section className={CARD} aria-labelledby="profile-budget">
+      <div className="flex flex-wrap items-baseline gap-2">
+        <h2 id="profile-budget" className="flex-1 text-base font-semibold">{t("aia.profile.budget.title")}</h2>
+        {saved && editing === null ? <span role="status" className="text-xs text-ink-muted">{t("aia.profile.budget.saved")}</span> : null}
+      </div>
+      <p className="mt-1 text-xs leading-5 text-ink-faint">{t("aia.profile.budget.hint")}</p>
+      <Loaded res={res} retry={retry}>
+        {(b: ClientBudget) => (
+          <>
+            <dl className="mt-3 grid grid-cols-[7rem_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
+              <dt className="text-ink-muted">{t("aia.profile.budget.limit")}</dt>
+              <dd className="font-mono">{usd(b.budget_usd)}</dd>
+              <dt className="text-ink-muted">{t("aia.profile.budget.spent")}</dt>
+              <dd className="font-mono">{usd(b.spent_usd)}</dd>
+              {b.reserved_usd > 0 ? (
+                <>
+                  <dt className="text-ink-muted">{t("aia.profile.budget.reserved")}</dt>
+                  <dd className="font-mono">{usd(b.reserved_usd)}</dd>
+                </>
+              ) : null}
+              <dt className="text-ink-muted">{t("aia.profile.budget.available")}</dt>
+              <dd className="font-mono font-semibold">{usd(b.available_usd)}</dd>
+            </dl>
+            {b.budget_usd === 0 ? <p className="mt-3 text-xs leading-5 text-status-you-ink">{t("aia.profile.budget.none")}</p> : null}
+            {b.budget_usd > 0 && b.budget_usd < b.spent_usd ? <p className="mt-3 text-xs leading-5 text-status-you-ink">{t("aia.profile.budget.belowSpent")}</p> : null}
+            {mayManage && editing === null ? (
+              <Button small className="mt-3" onClick={() => { setSaved(false); setEditing(String(b.budget_usd)); }}>{t("aia.profile.budget.set")}</Button>
+            ) : null}
+            {mayManage && editing !== null ? (
+              <form className="mt-3 flex flex-wrap items-end gap-2" onSubmit={save}>
+                <Field label={t("aia.profile.budget.field")}>
+                  <TextInput type="number" min={0} max={1000000} step="0.01" required className="w-36" value={editing} onChange={(e) => setEditing(e.target.value)} />
+                </Field>
+                <Button small variant="primary" type="submit">{t("aia.profile.budget.save")}</Button>
+                <Button small variant="quiet" onClick={() => { setEditing(null); setError(null); }}>{t("aia.profile.budget.cancel")}</Button>
+              </form>
+            ) : null}
+            {error ? <p role="alert" className={`mt-3 ${ERROR}`}>{error}</p> : null}
+          </>
+        )}
+      </Loaded>
+    </section>
+  );
+}
+
 export function ProfileArea() {
   const { client } = useClient();
   const mayEdit = client.permissions.includes("EDIT_CLIENT_PROFILE");
   const mayKnowledge = client.permissions.includes("VIEW_CLIENT_KNOWLEDGE");
   const mayPropose = client.permissions.includes("PROPOSE_CLIENT_KNOWLEDGE");
+  const mayCosts = client.permissions.includes("VIEW_CLIENT_COSTS");
+  const mayBudget = client.permissions.includes("MANAGE_CLIENT_BUDGET");
   const [version, setVersion] = useState(0);
   const [res, retry] = useResource(() => workspace.profile(client.client_id), [client.client_id, version]);
   const [me] = useResource(() => workspace.me(), []);
@@ -376,6 +448,7 @@ export function ProfileArea() {
                 </dl>
                 <p className="mt-4 text-xs leading-5 text-ink-faint">{t("aia.profile.statusOwner")}</p>
               </section>
+              {mayCosts ? <Budget clientId={client.client_id} mayManage={mayBudget} /> : null}
               <Rules mayAdminister={mayAdminister} />
               <History history={profile.history} />
             </div>

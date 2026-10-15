@@ -55,7 +55,7 @@ def _with(**change: object) -> ResponseProcessSpec:
 
 
 def test_it_is_registered_after_weighting_and_is_complete() -> None:
-    assert [m.id for m in MODULES][-2:] == ["weighting", "response"]
+    assert [m.id for m in MODULES][-3:-1] == ["weighting", "response"]
     assert module_problems(RESPONSE) == {}
 
 

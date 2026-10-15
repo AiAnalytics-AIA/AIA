@@ -261,6 +261,8 @@ export type ClientContact = { contact_id: string; name: string; role: string; em
 export type ContactWrite = Omit<ClientContact, "contact_id">;
 export type ProfileChange = { action: string; at: string | null; fields: string[]; contact_name: string | null };
 export type ClientProfile = ClientProfileFields & { contacts: ClientContact[]; history: ProfileChange[] };
+/** What the client's own AI work may cost (client-budget CB1); never its studies' budgets. */
+export type ClientBudget = { budget_usd: number; spent_usd: number; reserved_usd: number; available_usd: number };
 
 export type KnowledgeSection = "sources" | "knowledge" | "dimensions" | "audiences" | "data";
 
@@ -757,6 +759,9 @@ export const workspace = {
   knowledge: (clientId: string, section?: KnowledgeSection, q?: string, filing: KnowledgeFiling = {}) =>
     request<KnowledgeItem[]>("GET", `/api/v1/clients/${enc(clientId)}/knowledge${query({ section, q, folder: filing.folder, label: filing.label })}`),
   profile: (clientId: string) => request<ClientProfile>("GET", `/api/v1/clients/${enc(clientId)}/profile`),
+  budget: (clientId: string) => request<ClientBudget>("GET", `/api/v1/clients/${enc(clientId)}/budget`),
+  setBudget: (clientId: string, budgetUsd: number) =>
+    request<ClientBudget>("PUT", `/api/v1/clients/${enc(clientId)}/budget`, { budget_usd: budgetUsd }),
   saveProfile: (clientId: string, fields: ClientProfileFields) =>
     request<ClientProfile>("PUT", `/api/v1/clients/${enc(clientId)}/profile`, fields),
   addContact: (clientId: string, contact: ContactWrite) =>
@@ -1113,14 +1118,14 @@ export type DeepResearchRun = {
 };
 export type DeepResearchBundle = {
   quality_status: string; fictional_client: boolean; client_facing: false;
-  accepted: { evidence: { claim: string; quote: string; source_ref: string }; score: { score: number; source_class: string } }[];
+  accepted: { evidence: { evidence_id?: string; claim: string; quote: string; source_ref: string }; score: { score: number; source_class: string } }[];
   quarantined: { reason: string; detail?: string; track_id?: string; claim?: string; evidence?: { subject_key?: string } | null }[];
   snapshots: { snapshot_id: string; url: string; title: string; retrieval_mode: string }[];
   /** What the run researched: each research question, tracked object and cross, by key. */
   subjects?: { key: string; kind: string; text: string; origin: string; question_key?: string | null }[];
   tracks?: { track_id: string; subject_key: string }[];
   counts: Record<string, number>; sha256: string;
-  synthesis?: { check: { summary: string | null; findings: { subject_key: string; text: string; evidence_ids: string[] }[]; gaps: string[]; limitations: string[]; status: string }; brief?: { gaps: { need: string; reason: string }[] } | null } | null;
+  synthesis?: { check: { summary: string | null; summary_withheld?: string | null; findings: { subject_key: string; text: string; evidence_ids: string[] }[]; excluded?: { subject_key: string; text: string; reason: string; detail?: string }[]; gaps: string[]; limitations: string[]; status: string }; brief?: { gaps: { need: string; reason: string }[] } | null } | null;
   origins?: string[];
 };
 /** One accepted finding of a Design Research run, as its proposal cites it. */
@@ -1390,6 +1395,8 @@ export const deepResearchSettings = {
 export type MethodValue = {
   reference: string; label_cs: string; unit: string; origin: "specification" | "code_constant";
   value: unknown; absent: boolean;
+  /** Where the value is a limit a design is held to, what crossing it does; empty otherwise. */
+  effect: "" | "blocks_run" | "blocks_design" | "warns";
 };
 /** A step's editable formula: its slot, the expression the engine computes today, and the
  *  LaTeX the domain writes from that expression (the page shows what runs). */
@@ -1406,7 +1413,9 @@ export type MethodStepOut = {
   /** Where the step sits in the computation: what it is for, the steps it reads, the steps
    *  that read it (derived by the API), what it reads from outside the module, the audit's
    *  point. Empty where the module declares none. */
-  role_cs: string; inputs: string[]; feeds: string[]; source_cs: string; audit: string;
+  role_cs: string; inputs: string[]; feeds: string[]; source_cs: string; audit: string; effect_cs: string;
+  /** The rule in words, its values as `{dotted.path}` placeholders; what every version keeps. */
+  reading_cs: string; keeps_cs: string[];
 };
 export type MethodGroup = { id: string; title_cs: string; step_ids: string[]; note_cs: string };
 export type MethodModuleSummary = {
@@ -1431,7 +1440,19 @@ export type MethodVersions = {
 };
 /** An edit: the whole specification and the formulas it replaces (by slot). */
 export type MethodEdit = { base_preset: string; spec: Record<string, unknown>; formulas: Record<string, string>; note?: string };
-export type MethodCheck = { valid: boolean; problems: Record<string, string>; not_computed: string[]; formulas_latex: Record<string, string> };
+/** A line a person would meet under the edit, as the code writes it (readiness). */
+export type MethodPreviewLine = { step_id: string; status: "PASS" | "WARN" | "FAIL"; message_cs: string };
+export type MethodCheck = { valid: boolean; problems: Record<string, string>; not_computed: string[]; formulas_latex: Record<string, string>; preview?: MethodPreviewLine[] };
+/** The readiness draft beside the limits in force, on the organization's open research studies. */
+export type MethodReadinessCompare = {
+  draft: string;
+  studies: {
+    study_id: string; client_id: string; client_name: string; name: string; source: "draft" | "design"; n: number | null;
+    ready: [boolean, boolean];
+    moves: { check_id: string; in_force: string | null; draft: string | null; message: string }[];
+  }[];
+  unchanged: number; not_assessed: number;
+};
 /** One map of a check panel. */
 export type MethodMapSummary = {
   outcome: string; not_mappable: string | null; stress_1: number | null; quality: string | null;
@@ -1488,6 +1509,7 @@ export type MethodCompare = {
   support?: MethodSupportCompare | null;
   aggregation?: MethodAggregationCompare | null;
   response?: MethodResponseCompare | null;
+  readiness?: MethodReadinessCompare | null;
 };
 
 const METHODOLOGY = "/api/v1/methodology";

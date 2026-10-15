@@ -9,14 +9,16 @@ existed.
 
 from __future__ import annotations
 
+import copy
 from typing import Any
 
 import pytest
-from aia_core.application.research import ResearchRuns, research_artifacts
+from aia_core.application.research import DesignNotReady, ResearchRuns, research_artifacts
 from aia_core.domain.evidence.support import AIA_SUPPORT_V1
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.methodology.pins import UNIT_AGGREGATION_PIN, RunMethod, run_methods
 from aia_core.domain.research_aggregate import AIA_AGGREGATE_V1
+from aia_core.domain.research_design import AIA_READINESS_V1
 from aia_core.domain.research_sociomap import default_methods
 from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1
 from aia_core.domain.sociomap import AIA_SOCIOMAP_V3
@@ -577,3 +579,133 @@ def test_a_retry_keeps_the_stored_versions_its_pins_came_from(world: Any) -> Non
         "aggregation": RunMethod("aia-aggregate-1+e1", stored=True),
         "response": RunMethod("aia-response-1+e1", stored=True),
     }
+
+
+# ------------------------------------------- V1a: the readiness limits a run pins --
+
+
+def _limits(world: Any, **change: Any) -> None:
+    """Propose and put in force readiness limits, as the Metodika tab does."""
+    spec = AIA_READINESS_V1.model_dump(mode="json")
+    for path, value in change.items():
+        part, field = path.split("__")
+        spec[part][field] = value
+    with world.sessions() as session:
+        repo = MethodologyRepository(session, world.admin_context(session))
+        version = repo.propose(
+            "readiness", base_preset="aia-readiness-1", spec=spec, formulas={}, note="test"
+        )
+        repo.activate("readiness", version.version_number, reason="test")
+        session.commit()
+
+
+def _reset_limits(world: Any) -> None:
+    with world.sessions() as session:
+        MethodologyRepository(session, world.admin_context(session)).activate("readiness", None)
+        session.commit()
+
+
+def _start_design(world: Any, design: dict[str, Any]) -> str:
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        revision, _ = StudyDesignRepository(session, scope).submit(
+            content=design, source_stage="run"
+        )
+        started = ResearchRuns(session, scope).start(
+            design_revision_id=revision.revision_id,
+            fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
+        )
+        session.commit()
+        return started.run_id
+
+
+def _check(readiness: Any, prefix: str) -> dict[str, Any] | None:
+    checks = (
+        readiness["checks"]
+        if isinstance(readiness, dict)
+        else readiness.model_dump(mode="json")["checks"]
+    )
+    return next((dict(c) for c in checks if str(c["id"]).startswith(prefix)), None)
+
+
+def test_with_nothing_stored_a_run_pins_the_units_readiness_limits(world: Any) -> None:
+    meta = _run(world, _start(world))["metadata"]
+    assert meta["readiness"] == AIA_READINESS_V1.model_dump(mode="json")
+    assert "readiness_methodology" not in meta
+
+
+def test_a_start_is_checked_under_the_readiness_limits_in_force(world: Any) -> None:
+    # DESIGN asks 40 respondents: inside the code's 20-10 000, below an edit's 50.
+    assert (_check(_readiness(world), "sample_size") or {}).get("status") == "PASS"
+    _limits(world, sample_size__min=50)
+    refused = _check(_readiness(world), "sample_size")
+    assert refused is not None and refused["status"] == "FAIL" and "50" in refused["message"]
+    with pytest.raises(DesignNotReady):
+        _start(world)
+    _reset_limits(world)
+    assert (_check(_readiness(world), "sample_size") or {}).get("status") == "PASS"
+
+
+def test_the_compile_and_preflight_steps_read_the_runs_pin_not_what_is_in_force_later(
+    world: Any, worker: Worker, store: InMemoryArtifactStore
+) -> None:
+    # 41 items: more than the code lets a set have; 5 items: above an edit's recommended 4.
+    wide = copy.deepcopy(DESIGN)
+    wide["sections"][0]["objects"] = [f"Nápoj {i}" for i in range(41)]
+    _limits(world, tracked_set__max=50, tracked_set__recommended_max=4)
+    wide_run = _start_design(world, wide)
+    warned_run = _start(world)
+    _reset_limits(world)  # the preset in force again while both run
+    _drain(worker)
+    compiled = next(s for s in _run(world, wide_run)["steps"] if s["node_key"] == "compile")
+    assert compiled["status"] is StepRunStatus.SUCCEEDED, compiled
+    warned = _check(_preflight(world, store, warned_run), "battery_size:")
+    assert warned is not None and warned["status"] == "WARN" and "4" in warned["message"]
+    meta = _run(world, warned_run)["metadata"]
+    assert meta["readiness_methodology"]["name"] == "aia-readiness-1+e1"
+    assert meta["readiness"]["tracked_set"]["recommended_max"] == 4
+
+
+def test_a_retry_keeps_the_readiness_limits_its_run_pinned(world: Any) -> None:
+    _limits(world, sample_size__min=10)
+    run_id = _start(world)
+    _reset_limits(world)
+    with world.sessions() as session:
+        runs = ResearchRuns(session, world.lead_scope(session))
+        runs.cancel(run_id)
+        retried = runs.retry(run_id, fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE)
+        session.commit()
+    original, retry = _run(world, run_id)["metadata"], _run(world, retried.run_id)["metadata"]
+    assert retry["readiness"] == original["readiness"]
+    assert retry["readiness"]["sample_size"]["min"] == 10
+    assert retry["readiness_methodology"] == original["readiness_methodology"]
+
+
+def test_a_start_that_finds_its_run_returns_it_under_stricter_limits(world: Any) -> None:
+    """The limits are not part of a run's key: a second start of a revision whose run began
+    under looser limits returns that run, never refusing it under the limits now in force."""
+    small = {**DESIGN, "n": 15}
+    _limits(world, sample_size__min=10)
+    first = _start_design(world, small)
+    _reset_limits(world)  # 15 is below the preset's 20 again
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        designs = StudyDesignRepository(session, scope)
+        revision, _ = designs.submit(content=small, source_stage="run")
+        again = ResearchRuns(session, scope).start(
+            design_revision_id=revision.revision_id,
+            fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
+        )
+        session.commit()
+    assert again.run_id == first
+    assert _run(world, first)["metadata"]["readiness"]["sample_size"]["min"] == 10
+    # A revision with no run is still held to the limits in force.
+    with world.sessions() as session, pytest.raises(DesignNotReady):
+        scope = world.lead_scope(session)
+        other, _ = StudyDesignRepository(session, scope).submit(
+            content={**small, "title": "Jiný nápoj"}, source_stage="run"
+        )
+        ResearchRuns(session, scope).start(
+            design_revision_id=other.revision_id,
+            fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
+        )

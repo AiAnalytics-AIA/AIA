@@ -38,7 +38,8 @@ chunks:
   - "[x] R1b. A run pins its response process, a retry keeps it; AI fieldwork reads the pin; the dataset's provenance names the process and whether it is the unit's"
   - "[x] R1c. Response process editable, with the draft check on fixed fictional questions and respondents"
   - "[x] R1d. Results name the run's response process and say when it is not 18.6.6's, on Z1a's Metodika běhu"
-  - "[ ] V1a. Readiness bounds (sample size 20-10 000, tracked set 3-40, recommended 4-15) declared as a module of their own, editable as a version, pinned by a run (owner, 2026-10-14)"
+  - "[x] V1a1. Readiness bounds (sample size 20-10 000, tracked set 3-40, recommended 4-15) declared as a module of their own (ReadinessSpec, aia-readiness-1), editable as a version, pinned by a run and read by its compile and preflight steps (owner, 2026-10-14)"
+  - "[x] V1a2. The readiness area as the canvas board MethodologyReadiness draws it: each limit's effect, the rule as read, what every version keeps, the Kontrola a spuštění preview, and Porovnat as the impact on the organization's studies"
   - "[ ] V1b. Presentation rounding (shares 0.1 %, means 2 dp) declared and editable as a version; the code's preset keeps 18.6.6's decimals, so parity holds under it (owner, 2026-10-14)"
   - "[ ] V1c. Evidence tiers shown read-only: what tier A, B and C each permit, from TIER_PERMITS; a change stays a reviewed code change (owner, 2026-10-14)"
   - "[ ] X1. Simulation documented read-only; declared and editable when it is wired into runs"
@@ -1213,4 +1214,44 @@ To be written as chunks land:
     value, the holdout before a modelled panel leaves INTERNAL_ONLY): **left in code**, not
     shown as editable. They are the fail-closed gates every number passes. No chunk.
   - Each chunk is designed on the canvas first, then built (owner, 2026-10-13).
+- **V1a1, built.** The limits are `research_design.ReadinessSpec` (`sample_size`: min, max;
+  `tracked_set`: min, max, recommended_min, recommended_max), preset `AIA_READINESS_V1`
+  (`aia-readiness-1`), built from `SAMPLE_SIZE_BOUNDS` and `TRACKED_SET_LIMITS`, which stay
+  as 18.6.6's policy. `compile_design`, `assess_readiness` and `prepare` take `limits` (the
+  preset by default); the module is `methodology/readiness.py` (groups Meze připravenosti,
+  Vzorek, Sledovaná sada). What every version keeps (`readiness_problems`, reported at the
+  field): whole numbers of at least 1, each minimum below its maximum, a set never under three
+  items, the recommended range inside the hard one. A missing n always blocks: code.
+  - A run pins the limits in force (`metadata.readiness`, `readiness_methodology` when stored;
+    `compile` and `preflight` step inputs); `pins.read_readiness_pin` reads it back and refuses
+    a pin that breaks the rules, never falling back. A retry keeps the original's.
+  - The limits are **not** part of a run's identity: they decide whether a run may start, not
+    what it computes, and a design that compiles under two sets of limits compiles to the same
+    specification (`test_a_set_compiles_under_the_limits_it_is_given`). A step's input
+    fingerprint carries the limits' values only when they differ from the preset's, so every
+    artifact stored before the pin keeps its key.
+  - The analysis lineage check recompiles a run's specification under the run's pin
+    (`test_the_specification_is_recompiled_under_the_readiness_limits_the_run_pinned`).
+  - `MethodStep.effect_cs` (new): where a step's result shows outside its module when no step
+    reads it; the context row "Předává do" reads it before its map-reader fallback.
+  - Not in V1a1: `Porovnat` answers 422 `no_comparison` for this module until V1a2 builds the
+    impact on the organization's studies; `run_methods` and the report's method table do not
+    list readiness (it computes nothing a result carries); `support_forecast` still caps its
+    search at the preset's largest sample.
+- **V1a2, built.** The board `MethodologyReadiness` from data the catalogue declares, never
+  from words written in the page:
+  - `ParameterRef.effect` (`ParameterEffect`: blocks_run, blocks_design, warns) is each
+    limit's pill; `MethodStep.reading_cs` is the rule with `{dotted.path}` placeholders the
+    page fills from the draft (`fillReading`); `MethodStep.keeps_cs` is "Co musí každá verze
+    splnit" (ticked after a passing check). `module_problems` refuses a reading naming a path
+    no preset has.
+  - `MethodModule.preview`: the readiness module checks fixed fictional designs (n 12 and 450,
+    a set of 18 and of 41 items) with the code's own `prepare` under the draft; `check` returns
+    the lines (`CheckOut.preview`), so the page shows exactly what Kontrola a spuštění writes.
+  - `Porovnat` is `application.readiness_impact`: every open research study the member may
+    open, each under its own `StudyContext`, checked on its working content, else its latest
+    Design Revision, under the limits in force and under the draft; studies whose verdict moves
+    first. Nothing is written (`test_readiness_compare_lists_the_studies_whose_verdict_the_draft_moves`).
+  - Measured on the workbench at 1440/1710/1920: switching step 44-81 ms, the rule redrawn on a
+    keystroke 50-67 ms, no horizontal overflow, no page errors.
 

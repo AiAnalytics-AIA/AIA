@@ -31,6 +31,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Annotated, Any, Final
 
+from aia_core.application.readiness_impact import ReadinessImpact, readiness_impact
 from aia_core.domain.methodology import (
     ABSENT,
     MODULES,
@@ -47,7 +48,12 @@ from aia_core.domain.methodology.aggregation_check import (
     compare_aggregation_with_in_force,
 )
 from aia_core.domain.methodology.expressions import compile_formula, latex
-from aia_core.domain.methodology.pins import support_spec_for, uncomputed_formulas
+from aia_core.domain.methodology.pins import (
+    readiness_spec_for,
+    sociomap_methods_for,
+    support_spec_for,
+    uncomputed_formulas,
+)
 from aia_core.domain.methodology.response_check import (
     ResponseComparison,
     compare_response_with_in_force,
@@ -63,6 +69,8 @@ from aia_core.domain.methodology.versions import (
     validate_version,
     version_payload,
 )
+from aia_core.domain.research_design import ReadinessSpec
+from aia_core.domain.research_sociomap import side_tables_of
 from aia_core.domain.scope import ScopeDenied
 from aia_core.infrastructure.methodology_repository import (
     Activation,
@@ -75,7 +83,7 @@ from aia_core.infrastructure.methodology_repository import (
 from fastapi import APIRouter, HTTPException, Path, Query
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..dependencies import OrganizationDep, SessionDep
+from ..dependencies import OrganizationDep, PrincipalDep, ResolverDep, SessionDep
 from ..schemas.projects import ErrorResponse
 
 router = APIRouter(
@@ -157,6 +165,9 @@ class ValueOut(_Strict):
     origin: str
     value: Any
     absent: bool
+    #: Where the value is a limit a design is held to, what crossing it does:
+    #: ``blocks_run``, ``blocks_design`` or ``warns``; empty otherwise.
+    effect: str
 
 
 class FormulaVariableOut(_Strict):
@@ -193,7 +204,7 @@ class FormulaOut(_Strict):
 class StepOut(_Strict):
     """One step. ``role_cs``, ``inputs``, ``source_cs`` and ``audit`` say where it sits in the
     computation (empty where the module declares none); ``feeds`` are the steps that read it,
-    derived from their inputs."""
+    derived from their inputs, and ``effect_cs`` where its result shows outside the module."""
 
     id: str
     title_cs: str
@@ -209,6 +220,11 @@ class StepOut(_Strict):
     feeds: list[str]
     source_cs: str
     audit: str
+    effect_cs: str
+    #: The rule in words, its values as ``{dotted.path}`` placeholders, and what every
+    #: version of it keeps.
+    reading_cs: str
+    keeps_cs: list[str]
     values: list[ValueOut]
     formulas: list[FormulaOut]
 
@@ -274,6 +290,14 @@ class EditIn(_Strict):
     note: str = Field(default="", max_length=500)
 
 
+class PreviewLineOut(_Strict):
+    """A line a person would meet under the edit, as the code writes it."""
+
+    step_id: str
+    status: str
+    message_cs: str
+
+
 class CheckOut(_Strict):
     """What storing this edit would meet: ``problems`` (every one, by field or slot) refuse it;
     ``not_computed`` lists replaced formulas it may store but not yet put in force."""
@@ -283,6 +307,9 @@ class CheckOut(_Strict):
     not_computed: list[str]
     #: Each replaced formula as LaTeX, written by the domain from the expression checked.
     formulas_latex: dict[str, str]
+    #: For a module that shows one, what a person would meet under the edit (empty when the
+    #: edit is refused).
+    preview: list[PreviewLineOut] = Field(default_factory=list)
 
 
 class MapSummaryOut(_Strict):
@@ -408,6 +435,40 @@ class ResponseCompareOut(_Strict):
     described_draft: int
 
 
+class ReadinessMoveOut(_Strict):
+    """A readiness check whose status the draft moves; ``null``: the check is not made."""
+
+    check_id: str
+    in_force: str | None
+    draft: str | None
+    message: str
+
+
+class ReadinessStudyOut(_Strict):
+    """An open research study the draft changes something for."""
+
+    study_id: str
+    client_id: str
+    client_name: str
+    name: str
+    #: ``draft``: its working content; ``design``: its latest Design Revision.
+    source: str
+    n: int | None
+    #: Whether a run could start, ``[in force, draft]``.
+    ready: list[bool]
+    moves: list[ReadinessMoveOut]
+
+
+class ReadinessCompareOut(_Strict):
+    """The readiness draft beside the limits in force, on the organization's open research
+    studies (plan V1a2). Nothing is started or stopped."""
+
+    draft: str
+    studies: list[ReadinessStudyOut]
+    unchanged: int
+    not_assessed: int
+
+
 class CompareOut(_Strict):
     """``problems`` refuse the draft (nothing is computed); otherwise every panel of an
     object map, every cell of a support rule, or every estimate of the aggregation."""
@@ -419,6 +480,7 @@ class CompareOut(_Strict):
     support: SupportCompareOut | None = None
     aggregation: AggregationCompareOut | None = None
     response: ResponseCompareOut | None = None
+    readiness: ReadinessCompareOut | None = None
 
 
 class ActivationIn(_Strict):
@@ -499,6 +561,9 @@ def _step(found: MethodModule, view: StepView) -> StepOut:
         feeds=list(feeds_of(found, s.id)),
         source_cs=s.source_cs,
         audit=s.audit,
+        effect_cs=s.effect_cs,
+        reading_cs=s.reading_cs,
+        keeps_cs=list(s.keeps_cs),
         values=[
             ValueOut(
                 reference=v.reference,
@@ -507,6 +572,7 @@ def _step(found: MethodModule, view: StepView) -> StepOut:
                 origin=v.origin.value,
                 value=None if v.value is ABSENT else _wire(v.value),
                 absent=v.value is ABSENT,
+                effect=v.effect.value,
             )
             for v in view.values
         ],
@@ -598,7 +664,33 @@ def _support_comparison(c: SupportComparison) -> SupportCompareOut:
 
 
 #: The modules a draft check is built for.
-_COMPARED: Final = frozenset({"sociomap", "support", "aggregation", "response"})
+_COMPARED: Final = frozenset({"sociomap", "support", "aggregation", "response", "readiness"})
+
+
+def _readiness_comparison(draft: str, c: ReadinessImpact) -> ReadinessCompareOut:
+    return ReadinessCompareOut(
+        draft=draft,
+        studies=[
+            ReadinessStudyOut(
+                study_id=s.study_id,
+                client_id=s.client_id,
+                client_name=s.client_name,
+                name=s.name,
+                source=s.source,
+                n=s.n,
+                ready=list(s.ready),
+                moves=[
+                    ReadinessMoveOut(
+                        check_id=m.check_id, in_force=m.in_force, draft=m.draft, message=m.message
+                    )
+                    for m in s.moves
+                ],
+            )
+            for s in c.studies
+        ],
+        unchanged=c.unchanged,
+        not_assessed=c.not_assessed,
+    )
 
 
 def _response_comparison(c: ResponseComparison) -> ResponseCompareOut:
@@ -768,9 +860,14 @@ def check(module_id: ModuleId, body: EditIn, org: OrganizationDep) -> CheckOut:
             valid=False, problems=dict(exc.problems), not_computed=[], formulas_latex={}
         )
     slots = {f.slot.id: f.slot for f in found.formulas}
+    preview = found.preview(validated.spec) if found.preview is not None else ()
     return CheckOut(
         valid=True,
         problems={},
+        preview=[
+            PreviewLineOut(step_id=p.step_id, status=p.status, message_cs=p.message_cs)
+            for p in preview
+        ],
         not_computed=list(uncomputed_formulas(version_payload(validated))),
         formulas_latex={
             slot: latex(compile_formula(slots[slot], text))
@@ -785,9 +882,15 @@ def check(module_id: ModuleId, body: EditIn, org: OrganizationDep) -> CheckOut:
     summary="The edit beside the methodology in force, on fictional panels",
 )
 def compare(
-    module_id: ModuleId, body: EditIn, org: OrganizationDep, session: SessionDep
+    module_id: ModuleId,
+    body: EditIn,
+    org: OrganizationDep,
+    session: SessionDep,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
 ) -> CompareOut:
-    """Any member may compare: nothing is stored, and only fixed fictional panels are read."""
+    """Any member may compare: nothing is stored. Every module reads only fixed fictional
+    panels, except readiness, which checks the open research studies the member may open."""
     try:
         found = module(module_id)
     except KeyError as exc:
@@ -833,6 +936,32 @@ def compare(
                 compare_aggregation_with_in_force(
                     stored, version_payload(validated), support=support
                 )
+            ),
+        )
+    if module_id == "readiness":
+        try:
+            sociomap = MethodologyReader(session, org).in_force("sociomap")
+        except MethodologyRefused as exc:
+            raise _refused(exc) from exc
+        methods = sociomap_methods_for(
+            None if sociomap.version is None else sociomap.version.payload
+        )
+        assert isinstance(validated.spec, ReadinessSpec)
+        return CompareOut(
+            valid=True,
+            problems={},
+            in_force=_in_force(in_force).name,
+            panels=[],
+            readiness=_readiness_comparison(
+                validated.spec.methodology_version,
+                readiness_impact(
+                    session,
+                    resolver,
+                    principal,
+                    in_force=readiness_spec_for(stored),
+                    draft=validated.spec,
+                    pair_n_min=side_tables_of(methods).n_min,
+                ),
             ),
         )
     if module_id == "response":

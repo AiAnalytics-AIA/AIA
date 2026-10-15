@@ -35,8 +35,10 @@ __all__ = [
     "EvidenceKind",
     "MethodModule",
     "MethodStep",
+    "ParameterEffect",
     "ParameterRef",
     "Preset",
+    "PreviewLine",
     "StepGroup",
     "Symbol",
     "feeds_of",
@@ -72,6 +74,19 @@ class Symbol:
     unit: str = ""
 
 
+class ParameterEffect(StrEnum):
+    """What crossing a limit does, where a value is a limit a design is held to (V1a2)."""
+
+    #: No limit: a value the computation reads.
+    NONE = ""
+    #: A design outside it may not start a run.
+    BLOCKS_RUN = "blocks_run"
+    #: A design outside it does not compile.
+    BLOCKS_DESIGN = "blocks_design"
+    #: A design outside it is only warned about.
+    WARNS = "warns"
+
+
 @dataclass(frozen=True, slots=True)
 class ParameterRef:
     """A field of the module's specification, by dotted path (``relation.n_min``).
@@ -82,6 +97,7 @@ class ParameterRef:
     path: str
     label_cs: str
     unit: str = ""
+    effect: ParameterEffect = ParameterEffect.NONE
 
 
 @dataclass(frozen=True, slots=True)
@@ -122,11 +138,18 @@ class MethodStep:
     #: 2026-10-14): what it is for, the steps whose results it reads (``inputs``, step ids of
     #: the same module), what it reads from outside the module when it reads none of them
     #: (``source_cs``), and the audit's point it implements (``audit``, e.g. "F3"). The steps
-    #: that read this one are derived from the others' ``inputs`` (:func:`feeds_of`).
+    #: that read this one are derived from the others' ``inputs`` (:func:`feeds_of`); where
+    #: its result goes outside the module when no step reads it is ``effect_cs``.
     role_cs: str = ""
     inputs: tuple[str, ...] = ()
     source_cs: str = ""
     audit: str = ""
+    effect_cs: str = ""
+    #: The rule in words, its values as ``{dotted.path}`` placeholders the page fills from the
+    #: draft (``"{sample_size.min} ≤ n ≤ {sample_size.max}"``), and what every version of it
+    #: keeps whatever the values (V1a2).
+    reading_cs: str = ""
+    keeps_cs: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -164,6 +187,16 @@ class BuiltinFormula:
 
 
 @dataclass(frozen=True, slots=True)
+class PreviewLine:
+    """One line a person would meet under a specification, as the code itself writes it: the
+    step it belongs to, its status (``PASS`` / ``WARN`` / ``FAIL``) and its words."""
+
+    step_id: str
+    status: str
+    message_cs: str
+
+
+@dataclass(frozen=True, slots=True)
 class StepGroup:
     """Steps shown together under one heading (for the Sociomap: one of the audit's F1-F16)."""
 
@@ -195,6 +228,9 @@ class MethodModule:
     #: Whether a methodology version may be stored for it (ADR 0023 decision 4).
     editable: bool = False
     note_cs: str = ""
+    #: What a person would meet under a specification, computed by the code on fixed
+    #: fictional inputs (V1a2); ``None`` where the module shows none.
+    preview: Callable[[BaseModel], tuple[PreviewLine, ...]] | None = None
 
 
 def feeds_of(module: MethodModule, step_id: str) -> tuple[str, ...]:

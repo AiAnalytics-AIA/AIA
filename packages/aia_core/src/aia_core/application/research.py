@@ -30,8 +30,10 @@ from ..domain.methodology.pins import (
     UNIT_AGGREGATION_PIN,
     aggregation_pin_for,
     read_aggregation_pin,
+    read_readiness_pin,
     read_response_pin,
     read_support_pin,
+    readiness_spec_for,
     response_spec_for,
     sociomap_methods_for,
     support_spec_for,
@@ -55,7 +57,7 @@ from ..domain.research_agents import (
     prompt_for,
     snapshot_hash,
 )
-from ..domain.research_design import Readiness, ResearchSpecification, prepare
+from ..domain.research_design import Readiness, ReadinessSpec, ResearchSpecification, prepare
 from ..domain.research_sociomap import (
     SociomapMethod,
     default_methods,
@@ -351,6 +353,7 @@ class ResearchRuns:
         support: SupportSpec | None = None,
         aggregation: Mapping[str, Any] | None = None,
         response: ResponseProcessSpec | None = None,
+        readiness: ReadinessSpec | None = None,
         kept: Mapping[str, Any] | None = None,
         persona_source: PersonaSource = PersonaSource.FICTIONAL_ROSTER,
         population_version_id: str | None = None,
@@ -371,17 +374,23 @@ class ResearchRuns:
         started fictional instead.
 
         ``kept`` is a retry's: the stored-version records (``methodology``,
-        ``support_methodology``, ``aggregation_methodology``, ``response_methodology``) of the
-        run it retries. A retry passes that run's pins explicitly, so they are not resolved
-        from what is in force here; without these records the new run would say its stored
-        versions were the code's (plan ``methodology-tab`` Z1a). They are metadata only, never
-        part of the run's key.
+        ``support_methodology``, ``aggregation_methodology``, ``response_methodology``,
+        ``readiness_methodology``) of the run it retries. A retry passes that run's pins
+        explicitly, so they are not resolved from what is in force here; without these records
+        the new run would say its stored versions were the code's (plan ``methodology-tab``
+        Z1a). They are metadata only, never part of the run's key.
 
         The run records the population it names (``population_version_id``: a materialized
         child of the study's client, P4e2; LIVE when not given). A selected child is part of
         the run's identity, so the same revision over LIVE and over a child is two runs; a
         child that is not this client's raises
         :class:`~aia_core.domain.population.UnknownDatasetVersion`, as a scope miss does.
+
+        The run also pins its readiness limits (``readiness``; the organization's readiness
+        version in force when not given, plan ``methodology-tab`` V1a): the start checks the
+        design under them, and the run's compile and preflight steps read the pin. They decide
+        whether a run may start, never what it computes, so they are not part of the run's
+        identity: a start that finds the revision's run returns it with the limits it pinned.
 
         The run also pins its response process (``response``; the organization's response
         version in force when not given, plan ``methodology-tab`` R1b): AI fieldwork assigns
@@ -433,12 +442,12 @@ class ResearchRuns:
         support_spec, support_version = self._support(support)
         aggregation_pin, aggregation_version = self._aggregation(aggregation)
         response_spec, response_version = self._response(response)
-        _spec, readiness = prepare(
+        limits, readiness_version = self._readiness(readiness)
+        _spec, checked = prepare(
             designs.content(revision.revision_id),
             pair_n_min=side_tables_of(methods).n_min,
+            limits=limits,
         )
-        if not readiness.ready:
-            raise DesignNotReady(readiness)
         # A retry keeps the original's population and never re-chooses it.
         selected = self._selected(population_version_id if retry_of is None else None)
         project_id = designs.project_id()
@@ -485,12 +494,19 @@ class ResearchRuns:
             key += f":analysis-retry:{retry_of}"
         elif retry_of:
             key += f":retry:{retry_of}"
+        # The limits are not part of the key (they decide whether a run may start, not what
+        # it computes): a start that finds its run returns it, whatever limits are in force
+        # now. Only a run that would be created is held to them.
+        if not checked.ready and self._workflows().find_run_by_idempotency_key(key) is None:
+            raise DesignNotReady(checked)
         # A retry's pins came from stored versions resolved when its original started.
         held = dict(kept or {})
         methodology = methodology or held.get("methodology")
         support_version = support_version or held.get("support_methodology")
         aggregation_version = aggregation_version or held.get("aggregation_methodology")
         response_version = response_version or held.get("response_methodology")
+        readiness_version = readiness_version or held.get("readiness_methodology")
+        readiness_pin = limits.model_dump(mode="json")
         support_pin = support_spec.model_dump(mode="json")
         # Before the cost gate: a panel run with no population to draw from can never start,
         # so it is refused as that, never put to the person as a cost to confirm.
@@ -541,6 +557,8 @@ class ResearchRuns:
                 **({"aggregation_methodology": aggregation_version} if aggregation_version else {}),
                 "response": response_pin,
                 **({"response_methodology": response_version} if response_version else {}),
+                "readiness": readiness_pin,
+                **({"readiness_methodology": readiness_version} if readiness_version else {}),
                 **({"retry_of": retry_of} if retry_of else {}),
                 **({"analysis_retry": frozen_dataset.note()} if frozen_dataset else {}),
                 "persona_source": persona_source.value,
@@ -551,8 +569,15 @@ class ResearchRuns:
                 ),
             },
             step_inputs={
-                "compile": {"design_revision_id": revision.revision_id},
-                "preflight": {"methods": pinned, "persona_source": persona_source.value},
+                "compile": {
+                    "design_revision_id": revision.revision_id,
+                    "readiness": readiness_pin,
+                },
+                "preflight": {
+                    "methods": pinned,
+                    "persona_source": persona_source.value,
+                    "readiness": readiness_pin,
+                },
                 "run": {
                     "fieldwork_source": fieldwork_source.value,
                     "persona_source": persona_source.value,
@@ -664,6 +689,7 @@ class ResearchRuns:
             support=read_support_pin(run["metadata"].get("support")),
             aggregation=_aggregation_of(run["metadata"]),
             response=read_response_pin(run["metadata"].get("response")),
+            readiness=read_readiness_pin(run["metadata"].get("readiness")),
             kept={
                 k: run["metadata"][k]
                 for k in (
@@ -671,6 +697,7 @@ class ResearchRuns:
                     "support_methodology",
                     "aggregation_methodology",
                     "response_methodology",
+                    "readiness_methodology",
                 )
                 if run["metadata"].get(k)
             },
@@ -752,11 +779,13 @@ class ResearchRuns:
         designs = self._designs()
         revision = designs.get(design_revision_id)
         methods, _ = self._methods(None)
+        limits, _ = self._readiness(None)
         content = designs.content(revision.revision_id)
         spec, readiness = prepare(
             content,
             pair_n_min=side_tables_of(methods).n_min,
             filters_applied=persona_source is PersonaSource.PANEL,
+            limits=limits,
         )
         if spec is None:
             return RunOutlook(spec=None, readiness=readiness, questions=(), trace=None)
@@ -797,6 +826,26 @@ class ResearchRuns:
             return support_spec_for(None), None
         return support_spec_for(in_force.version.payload), {
             "module": "support",
+            "version": in_force.version.version_number,
+            "name": in_force.version.name,
+            "payload_sha256": in_force.version.payload_sha256,
+        }
+
+    def _readiness(
+        self, readiness: ReadinessSpec | None
+    ) -> tuple[ReadinessSpec, dict[str, Any] | None]:
+        """The readiness limits a start checks under and pins, and the stored version they
+        come from (``None``: the code's preset, ``aia-readiness-1``, or the caller's own).
+
+        ``readiness`` ``None`` is the organization's readiness version in force (plan
+        ``methodology-tab`` V1a); with nothing stored, 18.6.6's product policy."""
+        if readiness is not None:
+            return readiness, None
+        in_force = methodology_in_force_for_study(self.session, self.scope, "readiness")
+        if in_force.version is None:
+            return readiness_spec_for(None), None
+        return readiness_spec_for(in_force.version.payload), {
+            "module": "readiness",
             "version": in_force.version.version_number,
             "name": in_force.version.name,
             "payload_sha256": in_force.version.payload_sha256,

@@ -41,14 +41,18 @@ from aia_core.domain.fieldwork import (
 from aia_core.domain.methodology.pins import (
     UNIT_AGGREGATION_PIN,
     read_aggregation_pin,
+    read_readiness_pin,
     read_support_pin,
 )
 from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.research_aggregate import AGGREGATE_VERSION, aggregate_dataset
 from aia_core.domain.research_design import (
+    AIA_READINESS_V1,
+    ReadinessSpec,
     ResearchSpecification,
     assess_readiness,
     compile_design,
+    readiness_values,
 )
 from aia_core.domain.research_sociomap import (
     LEGACY_METHODS,
@@ -149,6 +153,14 @@ def _read_spec(repo: ArtifactRepository, artifact_id: str) -> ResearchSpecificat
     return ResearchSpecification.model_validate(payload["specification"])
 
 
+def _limits_part(limits: ReadinessSpec) -> dict[str, Any]:
+    """A step's readiness limits for its input fingerprint: their values when they are not
+    the preset's, nothing when they are, so every artifact stored before the pin keeps its
+    key (plan methodology-tab V1a)."""
+    values = readiness_values(limits)
+    return {} if values == readiness_values(AIA_READINESS_V1) else {"readiness": values}
+
+
 def _missing_upstream(node_key: str) -> Failed:
     return Failed(
         FailureClass.MISSING_CONFIGURATION,
@@ -216,10 +228,19 @@ class CompileExecutor(_Step):
     def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
         context.checkpoint()
         revision_id = str(step.payload.get("design_revision_id") or "")
+        # The limits the run pinned (plan methodology-tab V1a); a run started before the pin
+        # has none here and compiles under aia-readiness-1, as it always did.
+        try:
+            limits = read_readiness_pin(step.payload.get("readiness"))
+        except ValueError as exc:
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={"code": "readiness_pin_invalid", "message": str(exc)},
+            )
         with context.transaction() as (session, _workflow):
             designs = StudyDesignRepository(session, context.scope)
             content = designs.content(revision_id)
-            spec, problems = compile_design(content)
+            spec, problems = compile_design(content, limits=limits)
             if spec is None:
                 return Failed(
                     FailureClass.SCHEMA_VIOLATION,
@@ -239,7 +260,12 @@ class CompileExecutor(_Step):
                 },
                 artifact_type=SPECIFICATION,
                 input_fingerprint=fingerprint(
-                    {"design": content, "compiler": spec.compiler_version}
+                    {
+                        "design": content,
+                        "compiler": spec.compiler_version,
+                        # Only when it can change the outcome: the preset's key is unchanged.
+                        **_limits_part(limits),
+                    }
                 ),
             )
         context.progress("specifikace sestavena", artifact_id=artifact.artifact_id)
@@ -272,13 +298,22 @@ class PreflightExecutor(_Step):
                 FailureClass.SCHEMA_VIOLATION,
                 error={"code": "persona_source_unknown", "message": str(exc)},
             )
+        try:
+            limits = read_readiness_pin(step.payload.get("readiness"))
+        except ValueError as exc:
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={"code": "readiness_pin_invalid", "message": str(exc)},
+            )
         with context.transaction() as (session, workflow):
             spec_id = upstream_artifact(workflow, step, "compile")
             if spec_id is None:
                 return _missing_upstream("compile")
             repo = _artifacts(session, context, self._store)
             spec = _read_spec(repo, spec_id)
-            readiness = assess_readiness(spec, pair_n_min=pair_n_min, filters_applied=panel)
+            readiness = assess_readiness(
+                spec, pair_n_min=pair_n_min, filters_applied=panel, limits=limits
+            )
             artifact, created = self._put(
                 repo,
                 step,
@@ -291,6 +326,7 @@ class PreflightExecutor(_Step):
                         "pair_n_min": pair_n_min,
                         # Only when it changes the checks: a roster run's key is unchanged.
                         **({"filters_applied": True} if panel else {}),
+                        **_limits_part(limits),
                     }
                 ),
                 depends_on=[spec_id],

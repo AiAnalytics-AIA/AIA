@@ -221,12 +221,23 @@ apps/
                             modelled run, client; DOCX or PDF -- and approved, the document approved
                             being the one downloaded); the internal report panel below shows its
                             provenance only; InterpretationResearch approves the report with
-                            literature it downloaded; ProposalEditor and PlanStep edit the research narrative
+                            literature it downloaded and shows the bundle in full: numbered accepted
+                            findings with their source class, the sources, gaps and rejected
+                            findings with their claims and reasons, and the unapproved draft by
+                            section, each finding naming the accepted findings it rests on, then
+                            what the checker refused; FormattedText: a model's long text as
+                            paragraphs and lists (result-reading.ts textBlocks); ProposalEditor and PlanStep edit the research narrative
                             and whole comparable measurements with live previews, preserving existing
                             questionnaires (PlanStep tests: direct proposal editing); ExecutionSteps.tsx: Run, Progress, Results (ADR 0016);
                             the Run stage's "Na co běh odpoví" card (every item's verdict, worst first) and
                             its "Výzkumné otázky a jejich měření" card (each research question, its
-                            measures by their wording, stale links);
+                            measures by their wording, stale links); Progress follows the run an
+                            action answers with (?run= rewritten, read again at once, the poll
+                            restarted), so a retry's steps move on screen; Results' Data: measure
+                            cards in questionnaire order, each read in words, a comparison per rated
+                            set, #measure-<id> opens one; its analysis: Hlavní zjištění across
+                            modules first, each finding with the numbers it cites linked to Data,
+                            then every module's full text;
                             RunResults, one run's results from the StudyFrame alone (read-only when
                             canEdit is false). DesignSourceNote: on every stage of a reused study, its
                             source study and revision and the labels it carries.
@@ -239,6 +250,12 @@ apps/
                             and panel factors say "V AIA zatím není" where they are met.
                             The Run stage offers the study's client's materialized children
                             ("Populace běhu"; LIVE by default) and sends the one chosen
+    src/lib/result-reading.ts  How a run's results read in words, pure: readMeasure (an order
+                            only where 95 % intervals part, audit F9; a missing interval unknown,
+                            never ordered), compareObjects (a set's objects on their scale, the top
+                            and bottom groups, suppressed ones named), citedMeasure (an analysis
+                            claim's evidence_ref resolved to its measure), textBlocks (a model's
+                            long text as paragraphs and lists, every word kept)
     src/lib/research-agent-jobs.ts  Native Study jobs: enqueue/follow; proposal review and reload
                             live in useResearchAgents.tsx. No classic provider probe.
     src/lib/research-execution.ts  How a run's state and results read: suppression hides numbers,

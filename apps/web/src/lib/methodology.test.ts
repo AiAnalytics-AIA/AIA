@@ -13,7 +13,7 @@ const doc = fixture as unknown as Document;
 const details = Object.values(doc.details).flatMap((byPreset) => Object.values(byPreset));
 const WORDS = { absent: "v této metodice není", none: "žádná (null)", yes: "ano", no: "ne" };
 const value = (v: unknown, absent = false): MethodValue => ({
-  reference: "x", label_cs: "x", unit: "", origin: "specification", value: v, absent,
+  reference: "x", label_cs: "x", unit: "", origin: "specification", value: v, absent, effect: "",
 });
 
 describe("every formula the API serves", () => {

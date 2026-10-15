@@ -67,10 +67,12 @@ describe("the Metodika tab", () => {
     fireEvent.click(screen.getByRole("button", { name: "Změnit oblast" }));
     const nav = await screen.findByRole("navigation", { name: "Oblasti metodiky" });
     expect(within(nav).getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual([
+      "Připravenost studie: kdy lze běh spustit",
       "Sociomapa: objektová mapa", "Sociomapa: referenční mapa (18.6.6)", "Sociomapping: experimentální H-Model (kandidát AIA)",
       "Agregace: z odpovědí odhad s intervalem", "Podpora a potlačení: kdy se číslo smí ukázat",
       "Odpověď respondenta: od pravděpodobností modelu k odpovědi", "Vážení: která váha patří respondentovi a co s neplatnou",
     ]);
+    expect(within(nav).getByRole("group", { name: "Před spuštěním" })).toBeTruthy();
     expect(within(nav).getByRole("group", { name: "Mapy objektů" })).toBeTruthy();
     expect(within(nav).getByRole("group", { name: "Čísla ve výsledcích" })).toBeTruthy();
     expect(within(nav).getByRole("group", { name: "Respondenti a váhy" })).toBeTruthy();
@@ -171,6 +173,20 @@ describe("the Metodika tab", () => {
     expect(screen.getByRole("heading", { name: "Brána důkazů AIA (analýza)" })).toBeTruthy();
     expect(calls.some((c) => c.startsWith("/api/v1/methodology/support"))).toBe(true);
     await waitFor(() => expect(calls).toContain("/api/v1/methodology/support/versions")); // its versions, so its editor
+  });
+
+  it("opens study readiness with its limits, from 18.6.6's policy, editable as a version", async () => {
+    fakeApi();
+    render(<MethodologyPanel />);
+    await openModule("Připravenost studie: kdy lze běh spustit");
+    await screen.findByRole("heading", { name: "Vzorek" });
+    expect(screen.getByRole("heading", { name: "Sledovaná sada" })).toBeTruthy();
+    expect(screen.getAllByText(/aia-readiness-1/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Velikost vzorku/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Počet položek v sadě/).length).toBeGreaterThan(0);
+    // Where a limit shows is the module's own, not the map reader's.
+    expect(screen.queryByText("výsledek běhu, který čte čtenář mapy")).toBeNull();
+    await waitFor(() => expect(calls).toContain("/api/v1/methodology/readiness/versions")); // its versions, so its editor
   });
 
   it("opens aggregation with its declared bootstrap and the findings on their steps", async () => {

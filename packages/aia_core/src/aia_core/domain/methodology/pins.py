@@ -24,6 +24,7 @@ from typing import Any, Final
 
 from ..evidence.support import AIA_SUPPORT_V1, SupportSpec
 from ..research_aggregate import AGGREGATE_SLOTS, AIA_AGGREGATE_V1, AggregationSpec
+from ..research_design import AIA_READINESS_V1, ReadinessSpec, readiness_problems
 from ..research_sociomap import SociomapMethod, default_methods
 from ..respondent_behavior import AIA_RESPONSE_V1, ResponseProcessSpec
 from ..sociomap.slots import ENGINE_SLOTS, NO_SLOTS, Slots
@@ -39,8 +40,10 @@ __all__ = [
     "aggregation_pin_for",
     "is_units_process",
     "read_aggregation_pin",
+    "read_readiness_pin",
     "read_response_pin",
     "read_support_pin",
+    "readiness_spec_for",
     "response_deviates",
     "response_spec_for",
     "run_methods",
@@ -109,6 +112,32 @@ def read_support_pin(value: Any) -> SupportSpec:
     if value is None:
         return AIA_SUPPORT_V1
     return SupportSpec.model_validate(value)
+
+
+def readiness_spec_for(payload: Mapping[str, Any] | None) -> ReadinessSpec:
+    """The readiness limits a run started under ``payload`` pins (plan ``methodology-tab``
+    V1a). ``None`` -- nothing stored -- is the code's preset, ``aia-readiness-1``: 18.6.6's
+    product policy."""
+    if payload is None:
+        return AIA_READINESS_V1
+    return read_readiness_pin(payload["spec"])
+
+
+def read_readiness_pin(value: Any) -> ReadinessSpec:
+    """A run's pinned readiness limits from their stored form. A run started before the
+    limits were pinned (``None``) was compiled and checked under ``aia-readiness-1``, so that
+    is what it reads. A pin that does not validate, or breaks a rule every version keeps,
+    raises ``ValueError``; nothing falls back to the code's limits."""
+    if value is None:
+        return AIA_READINESS_V1
+    spec = ReadinessSpec.model_validate(value)
+    problems = readiness_problems(spec)
+    if problems:
+        raise ValueError(
+            "the readiness pin breaks its rules: "
+            + "; ".join(f"{k}: {v}" for k, v in sorted(problems.items()))
+        )
+    return spec
 
 
 def aggregation_pin_for(payload: Mapping[str, Any] | None) -> dict[str, Any]:
