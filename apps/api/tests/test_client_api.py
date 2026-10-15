@@ -877,9 +877,12 @@ def test_a_member_lifts_the_clients_budget_for_its_own_waiting_work(
     assert lowered.status_code == 422 and lowered.json()["code"] == "budget_not_raised"
     # Another client's work is not found from there.
     elsewhere = f"{API}/clients/{world.client_id('other')}/work/runs/{started.run_id}"
-    assert other_client_lead.post(
-        f"{elsewhere}/steps/{node}/budget", json={"budget_usd": 9}
-    ).status_code == 404
+    assert (
+        other_client_lead.post(
+            f"{elsewhere}/steps/{node}/budget", json={"budget_usd": 9}
+        ).status_code
+        == 404
+    )
     lifted = researcher.post(url, json={"budget_usd": 8, "note": "víc"})
     assert lifted.status_code == 200, lifted.text
     assert lifted.json()["steps"] == [{"node_key": node, "status": "RUNNABLE"}]
