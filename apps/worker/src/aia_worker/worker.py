@@ -50,7 +50,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from aia_core.application.scope import ScopeResolver
-from aia_core.domain.scope import ScopeDenied, WorkScope
+from aia_core.domain.scope import ScopeDenied, WorkScope, payer_study_id
 from aia_core.domain.workflow import FailureClass, InteractionMode, StepDefinition, StepRunStatus
 from aia_core.infrastructure import error_tracking
 from aia_core.infrastructure.db import shares_one_connection
@@ -338,7 +338,9 @@ class Worker:
                 step_id=work.step_id,
                 attempt_id=work.attempt_id,
                 step_kind=work.kind,
-                study_id=claim.scope.study_id,
+                # The client's own work names no study (client-budget): tag who pays.
+                study_id=payer_study_id(claim.scope),
+                client_id=claim.scope.client_id,
                 worker_id=self.worker_id,
             ):
                 return self._run_executor(claim, context)

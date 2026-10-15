@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from aia_core.domain.pipeline import ProjectType
@@ -35,18 +36,30 @@ __all__ = ["client_work_project", "lift_client_budget_wait", "start_client_work"
 
 
 def client_work_project(session: Session, scope: ClientWorkContext) -> str:
-    """The client's own project, created on first use: one per client, no study."""
+    """The client's own project, created on first use: one per client, no study.
+
+    ``uq_projects_client_work`` holds the one: when another request created it between
+    the read and the insert, the insert is refused, rolled back to its savepoint, and the
+    project that request made is the answer.
+    """
     projects = ProjectRepository(session, scope, owner=CLIENT_WORK_PROJECT_OWNER)
     found = projects.list_projects(limit=1).items
     if found:
         return found[0].project_id
-    project, _ = projects.create(
-        title="Práce na klientovi",
-        project_type=ProjectType.RESEARCH,
-        content={},
-        created_by=scope.actor_id,
-        reason="client_work",
-    )
+    try:
+        with session.begin_nested():
+            project, _ = projects.create(
+                title="Práce na klientovi",
+                project_type=ProjectType.RESEARCH,
+                content={},
+                created_by=scope.actor_id,
+                reason="client_work",
+            )
+    except IntegrityError:
+        made = projects.list_projects(limit=1).items
+        if not made:
+            raise
+        return made[0].project_id
     return project.project_id
 
 
@@ -111,7 +124,9 @@ def lift_client_budget_wait(
     if step["status"] is not StepRunStatus.AWAITING_BUDGET:
         raise BudgetWaitNotLiftable("only a step waiting for budget can be lifted")
     scopes = ScopeRepository(session)
-    current = scopes.client_budget(client).budget_usd
+    # Locked before it is compared: a concurrent lift waits here, then reads what the
+    # first committed, so a raise is never overwritten by a smaller one decided earlier.
+    current = scopes.client_budget(client, for_update=True).budget_usd
     if budget_usd < current:
         raise BudgetNotRaised(offered=budget_usd, current=current)
     if budget_usd > current:

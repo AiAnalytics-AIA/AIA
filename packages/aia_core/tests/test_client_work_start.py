@@ -7,6 +7,7 @@ invisible to every study -- and its run names no study, so the client's budget p
 
 from __future__ import annotations
 
+import dataclasses
 from typing import Any
 
 import pytest
@@ -125,3 +126,35 @@ def test_runs_are_listed_by_their_keys_prefix_matched_literally(
         project_id=mine.project_id, key_prefix="a_b:"
     )
     assert [r["run_id"] for r in runs] == [mine.run_id]
+
+
+def test_a_client_has_one_work_project_even_when_two_first_requests_race(
+    scoped: Any, session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The database holds one ``client_sources`` project per client. A request that read
+    no project, then lost the insert to another, answers with the project the other made."""
+    from sqlalchemy.exc import IntegrityError
+
+    from aia_core.domain.pipeline import ProjectType
+
+    scope = work_scope(scoped)
+    made = client_work_project(session, scope)
+    projects = ProjectRepository(session, scope, owner=CLIENT_WORK_PROJECT_OWNER)
+    with pytest.raises(IntegrityError), session.begin_nested():
+        projects.create(title="druhý", project_type=ProjectType.RESEARCH, content={})
+
+    # The race: this request saw no project, then the other's insert won.
+    real = ProjectRepository.list_projects
+    seen: list[int] = []
+
+    def first_sees_none(self: ProjectRepository, **kwargs: Any) -> Any:
+        page = real(self, **kwargs)
+        seen.append(1)
+        return dataclasses.replace(page, items=[]) if len(seen) == 1 else page
+
+    monkeypatch.setattr(ProjectRepository, "list_projects", first_sees_none)
+    assert client_work_project(session, scope) == made
+    owned = session.scalars(
+        select(ProjectRow).where(ProjectRow.owner == CLIENT_WORK_PROJECT_OWNER)
+    ).all()
+    assert len(owned) == 1
