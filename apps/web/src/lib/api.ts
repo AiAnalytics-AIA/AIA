@@ -1368,6 +1368,8 @@ export const deepResearchSettings = {
 export type MethodValue = {
   reference: string; label_cs: string; unit: string; origin: "specification" | "code_constant";
   value: unknown; absent: boolean;
+  /** Where the value is a limit a design is held to, what crossing it does; empty otherwise. */
+  effect: "" | "blocks_run" | "blocks_design" | "warns";
 };
 /** A step's editable formula: its slot, the expression the engine computes today, and the
  *  LaTeX the domain writes from that expression (the page shows what runs). */
@@ -1385,6 +1387,8 @@ export type MethodStepOut = {
    *  that read it (derived by the API), what it reads from outside the module, the audit's
    *  point. Empty where the module declares none. */
   role_cs: string; inputs: string[]; feeds: string[]; source_cs: string; audit: string; effect_cs: string;
+  /** The rule in words, its values as `{dotted.path}` placeholders; what every version keeps. */
+  reading_cs: string; keeps_cs: string[];
 };
 export type MethodGroup = { id: string; title_cs: string; step_ids: string[]; note_cs: string };
 export type MethodModuleSummary = {
@@ -1409,7 +1413,19 @@ export type MethodVersions = {
 };
 /** An edit: the whole specification and the formulas it replaces (by slot). */
 export type MethodEdit = { base_preset: string; spec: Record<string, unknown>; formulas: Record<string, string>; note?: string };
-export type MethodCheck = { valid: boolean; problems: Record<string, string>; not_computed: string[]; formulas_latex: Record<string, string> };
+/** A line a person would meet under the edit, as the code writes it (readiness). */
+export type MethodPreviewLine = { step_id: string; status: "PASS" | "WARN" | "FAIL"; message_cs: string };
+export type MethodCheck = { valid: boolean; problems: Record<string, string>; not_computed: string[]; formulas_latex: Record<string, string>; preview?: MethodPreviewLine[] };
+/** The readiness draft beside the limits in force, on the organization's open research studies. */
+export type MethodReadinessCompare = {
+  draft: string;
+  studies: {
+    study_id: string; client_id: string; client_name: string; name: string; source: "draft" | "design"; n: number | null;
+    ready: [boolean, boolean];
+    moves: { check_id: string; in_force: string | null; draft: string | null; message: string }[];
+  }[];
+  unchanged: number; not_assessed: number;
+};
 /** One map of a check panel. */
 export type MethodMapSummary = {
   outcome: string; not_mappable: string | null; stress_1: number | null; quality: string | null;
@@ -1466,6 +1482,7 @@ export type MethodCompare = {
   support?: MethodSupportCompare | null;
   aggregation?: MethodAggregationCompare | null;
   response?: MethodResponseCompare | null;
+  readiness?: MethodReadinessCompare | null;
 };
 
 const METHODOLOGY = "/api/v1/methodology";
