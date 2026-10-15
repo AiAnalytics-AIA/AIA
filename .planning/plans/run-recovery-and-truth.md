@@ -12,7 +12,9 @@ chunks:
   - "[ ] 3d. External source: the Deep Research evidence and gaps cited against each research question, shown in the chain"
   - "[ ] 3e. The questionnaire agent proposes the links; a person accepts them with the proposal"
   - "[ ] 4. Deep Research: source diversity beyond Wikipedia, the exact supporting passage per claim, and every rejection's reason shown"
-  - "[ ] 5. Population: a study-scoped, governed source choice; the source and dimensions actually used on the run receipt"
+  - "[ ] 5a. Population: a person chooses who answers a run (fictional roster or the population) before it starts; the deployment only says what it offers"
+  - "[ ] 5b. Population: the run receipt says who answered, from which population, and which selected dimensions and filters were applied"
+  - "[ ] 5c. Population: selected dimensions applied to panel respondents (needs the product owner's decision: methodology)"
   - "[ ] 6. Desktop UX: one state vocabulary (ready, running, needs repair, evidence unavailable, report ready), plain reasons, question text, cost remaining"
 ---
 
@@ -353,6 +355,45 @@ Tests:
 - `trace.test.ts` (setComparison / comparisonOf).
 - `QuestionnaireStep.test.tsx` ("declares how each research question is answered").
 - `ExecutionSteps.test.tsx` (the trace card's comparison row).
+
+## 5 — who answered, chosen and said
+
+The 200-respondent Fio run recorded LIVE as its population, but its answers came from the
+fictional roster. Six dimensions were selected and saved, and none was applied. Both were
+true and both were said only in small print: the run's population note
+(`research-execution.ts` `populationNote`) and a readiness WARN (`research_design.py`
+`dimensions`).
+
+The persona source was one deployment switch, `AIA_AI_POPULATION_PERSONAS_ENABLED`, applied
+to every run (`routers/research.py` `_persona_source`). A study could not choose, and a
+person starting a run never saw that a choice existed.
+
+- **5a — the choice.**
+  - Readiness takes `persona_source` (the source to assess the design under) and answers
+    `persona_sources`: each source with whether the deployment offers it, and the reason it
+    doesn't. The roster is always offered under `ai_runtime`; the panel only with the switch on.
+  - Start takes `persona_source`. A source the deployment does not offer is refused by name
+    (409 `persona_source_unavailable`) and nothing starts; it is never swapped for the other.
+  - Omitted, it is the deployment's default, so an older client keeps today's behaviour. The
+    switch now means "the panel is offered and is the default", not "every run is panel".
+  - The Run stage's "Kdo bude odpovídat" shows both, with the offered one preselected. It
+    re-reads readiness under the chosen source, since the support forecast and the audience
+    check differ, and sends the choice.
+- **5b — the receipt.**
+  - A start records what the design selected (`selection`: dimensions, audience filters) and
+    what was applied: filters only under the panel source, dimensions never yet (5c), each with
+    its reason.
+  - The run response carries it. The Run, Progress and Results screens show one receipt:
+    - who answered: the pinned source beside the origin its fieldwork data reports, with a
+      mismatch named, never resolved by picking one;
+    - the population recorded, and whether fieldwork read it;
+    - each selected dimension and the filters, applied or not, and why.
+  - A run started before 5b says the selection was not recorded, never "none".
+- **5c — dimensions on respondents.** A panel persona reads a fixed set of columns: profile,
+  style and fact columns, and the catalog's signal columns (`panel_persona.py` `panel_personas`,
+  `wanted`). A materialized dimension is persona-eligible (`materialized.py`
+  `materialized_policy_entry`) but no persona reads it. Applying it is a change to how a
+  respondent is described to the model, so it waits for the product owner.
 
 ## Doc follow-up
 

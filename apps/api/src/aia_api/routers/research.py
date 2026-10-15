@@ -216,6 +216,10 @@ class RunStart(BaseModel):
     confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000)
     #: A materialized child of this study's client to run over instead of LIVE (P4e2).
     population_version_id: str | None = Field(default=None, min_length=1, max_length=255)
+    #: Who answers the run, as the person chose it (plan run-recovery-and-truth 5a): one the
+    #: deployment offers (``persona_sources`` on readiness), else 409. ``None``: the
+    #: deployment's default.
+    persona_source: PersonaSource | None = None
 
 
 class RunRetry(BaseModel):
@@ -423,6 +427,25 @@ class ReadinessResponse(BaseModel):
     question_outlook: list[QuestionOutlookResponse] = []
     #: ``None`` when the design does not compile.
     research_trace: ResearchTraceResponse | None = None
+    #: The source of AI respondents these checks assumed (5a): the one asked for, else the
+    #: deployment's default.
+    persona_source: str = PersonaSource.FICTIONAL_ROSTER.value
+    #: Every source, offered or not, and why not.
+    persona_sources: list[PersonaSourceOption] = []
+
+
+class PersonaSourceOption(BaseModel):
+    """One source of a run's AI respondents, and whether this deployment offers it (5a)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source: str
+    offered: bool
+    #: Why it is not offered (``fieldwork_not_ai_runtime``, ``panel_personas_disabled``);
+    #: ``None`` when it is.
+    reason: str | None
+    #: The source a start that names none pins.
+    default: bool
 
 
 def _reservations(request: Request) -> RunReservations:
@@ -748,8 +771,9 @@ def _run(
 
 
 def _persona_source(request: Request) -> PersonaSource:
-    """The deployment's choice for a new run: the panel only with the switch on and the AI
-    runtime as the source; the run pins it, and a retry keeps the original's instead."""
+    """The deployment's default for a new run that names no source (5a): the panel with the
+    switch on and the AI runtime as the source, else the roster. The run pins what it starts
+    with, and a retry keeps the original's instead."""
     settings = request.app.state.settings
     if (
         settings.ai_population_personas_enabled
@@ -757,6 +781,49 @@ def _persona_source(request: Request) -> PersonaSource:
     ):
         return PersonaSource.PANEL
     return PersonaSource.FICTIONAL_ROSTER
+
+
+def _unoffered(request: Request, source: PersonaSource) -> str | None:
+    """Why this deployment does not offer ``source``; ``None`` when it does. The roster is
+    always offered; the panel only under the AI runtime with the panel switch on."""
+    if source is PersonaSource.FICTIONAL_ROSTER:
+        return None
+    if _fieldwork_source(request) is not FieldworkSource.AI_RUNTIME:
+        return "fieldwork_not_ai_runtime"
+    if not request.app.state.settings.ai_population_personas_enabled:
+        return "panel_personas_disabled"
+    return None
+
+
+def _persona_sources(request: Request) -> list[PersonaSourceOption]:
+    default = _persona_source(request)
+    return [
+        PersonaSourceOption(
+            source=source.value,
+            offered=_unoffered(request, source) is None,
+            reason=_unoffered(request, source),
+            default=source is default,
+        )
+        for source in PersonaSource
+    ]
+
+
+def _chosen_persona_source(request: Request, asked: PersonaSource | None) -> PersonaSource:
+    """The source a person asked for, when the deployment offers it; the default when none
+    was asked. One it does not offer is refused by name, never swapped for another."""
+    if asked is None:
+        return _persona_source(request)
+    reason = _unoffered(request, asked)
+    if reason is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "persona_source_unavailable",
+                "message": "This deployment does not offer that source of respondents.",
+                "details": {"persona_source": asked.value, "reason": reason},
+            },
+        )
+    return asked
 
 
 def _no_population(exc: PanelPopulationMissing) -> HTTPException:
@@ -793,16 +860,20 @@ def readiness(
     scope: StudyScopeDep,
     session: SessionDep,
     design_revision_id: Annotated[str, Query(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")],
+    persona_source: Annotated[PersonaSource | None, Query()] = None,
 ) -> ReadinessResponse:
     """Compile the revision and run AIA's structural checks, without starting anything.
 
+    ``persona_source`` assesses the design under that source of respondents (the support
+    forecast and the audience check differ); one the deployment does not offer is 409.
     The 18.6.6 technical preflight is not these checks and is not claimed.
     """
+    chosen = _chosen_persona_source(request, persona_source)
     runs = ResearchRuns(session, scope)
     try:
         outlook = runs.outlook(
             design_revision_id,
-            persona_source=_persona_source(request),
+            persona_source=chosen,
             fieldwork_source=_fieldwork_source(request),
         )
     except DesignRevisionNotFound as exc:
@@ -857,6 +928,8 @@ def readiness(
             for q in outlook.questions
         ],
         research_trace=_trace(outlook.trace) if outlook.trace is not None else None,
+        persona_source=chosen.value,
+        persona_sources=_persona_sources(request),
     )
 
 
@@ -897,8 +970,10 @@ def start_run(
     """Idempotent per Design Revision: a double submission gets the existing run.
 
     Needs ``RUN_WORKFLOW`` on an open Study. The fieldwork source is the
-    deployment's, never the request's.
+    deployment's, never the request's; who answers is the person's, among the sources the
+    deployment offers (409 ``persona_source_unavailable`` otherwise).
     """
+    persona_source = _chosen_persona_source(request, body.persona_source)
     runs = ResearchRuns(session, scope)
     try:
         started = runs.start(
@@ -909,7 +984,7 @@ def start_run(
             reservations=_reservations(request),
             confirm_cost_usd=body.confirm_cost_usd,
             population_version_id=body.population_version_id,
-            persona_source=_persona_source(request),
+            persona_source=persona_source,
         )
     except ScopeDenied as exc:
         raise _refused(exc) from exc

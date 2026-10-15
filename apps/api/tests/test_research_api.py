@@ -1336,3 +1336,64 @@ def test_a_run_stored_before_the_pin_reads_as_the_fictional_roster(
     assert researcher.get(f"{_runs(world)}/{run['run_id']}").json()["persona_source"] == (
         "fictional_roster"
     )
+
+
+def test_a_person_chooses_who_answers_among_the_sources_the_deployment_offers(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """Plan run-recovery-and-truth 5a: the switch says what is offered and what is the
+    default; a person chooses per run, and an unoffered source is refused, never swapped."""
+    filtered = {
+        **DESIGN,
+        "audience": {"source_mode": "population", "filters": {"vek": {"min": 30, "max": 59}}},
+    }
+    revision_id = submit(researcher, world, filtered).json()["revision_id"]
+    url = f"{API}/studies/{world.study_id()}/research/readiness"
+
+    def readiness(**params: str) -> Any:
+        return researcher.get(url, params={"design_revision_id": revision_id, **params})
+
+    off = readiness().json()
+    assert off["persona_source"] == "fictional_roster"
+    assert off["persona_sources"] == [
+        {"source": "fictional_roster", "offered": True, "reason": None, "default": True},
+        {
+            "source": "panel",
+            "offered": False,
+            "reason": "panel_personas_disabled",
+            "default": False,
+        },
+    ]
+    asked = readiness(persona_source="panel")
+    assert asked.status_code == 409, asked.text
+    assert (asked.json()["code"], asked.json()["details"]["reason"]) == (
+        "persona_source_unavailable",
+        "panel_personas_disabled",
+    )
+    refused = researcher.post(
+        _runs(world), json={"design_revision_id": revision_id, "persona_source": "panel"}
+    )
+    assert refused.status_code == 409 and refused.json()["code"] == "persona_source_unavailable"
+    assert researcher.get(_runs(world)).json()["items"] == []  # nothing started
+
+    app.state.settings = app.state.settings.model_copy(
+        update={"ai_population_personas_enabled": True}
+    )
+    on = readiness().json()
+    assert on["persona_source"] == "panel"
+    assert [(o["source"], o["offered"], o["default"]) for o in on["persona_sources"]] == [
+        ("fictional_roster", True, False),
+        ("panel", True, True),
+    ]
+    # Readiness under the roster, chosen with the panel on: the filters are not applied.
+    roster = readiness(persona_source="fictional_roster").json()
+    assert roster["persona_source"] == "fictional_roster"
+    audience = next(c for c in roster["checks"] if c["id"] == "audience")
+    assert audience["status"] == "WARN"
+    # The roster can be chosen with the panel on: the switch no longer decides every run.
+    run = researcher.post(
+        _runs(world),
+        json={"design_revision_id": revision_id, "persona_source": "fictional_roster"},
+    )
+    assert run.status_code == 201, run.text
+    assert run.json()["persona_source"] == "fictional_roster"
