@@ -314,6 +314,7 @@ def test_a_selection_receipt_has_filters_and_dimensions_await_a_population_draw(
     none = selection_receipt(_compile(DESIGN), population_draw=True)
     assert none == {
         "dimensions": [],
+        "dimensions_unmatched": [],
         "dimensions_applied": False,
         "dimensions_reason": None,
         "audience_filters": {},
@@ -341,3 +342,17 @@ def test_readiness_says_the_dimensions_shape_only_respondents_drawn_from_the_pop
     only_topics = _compile({**design, "persona_dimensions": {"approved": ["media"]}})
     readiness = assess_readiness(only_topics, pair_n_min=30, filters_applied=True)
     assert next(c for c in readiness.checks if c.id == "dimensions").status is CheckStatus.PASS
+
+
+def test_a_selection_receipt_names_the_dimensions_that_are_no_persona_topic() -> None:
+    """Codex on #447: ``ekologie`` and ``komunikace`` are in the web's dimension catalogue but are
+    no persona topic (``eko`` is), so the allowlist lets none of their topics through. The
+    receipt names them, so a run never says they reached its respondents."""
+    from aia_core.domain.research_design import selection_receipt
+
+    design = {
+        **copy.deepcopy(DESIGN),
+        "persona_dimensions": {"approved": ["media", "ekologie", "komunikace"]},
+    }
+    receipt = selection_receipt(_compile(design), population_draw=True)
+    assert receipt["dimensions_unmatched"] == ["ekologie", "komunikace"]

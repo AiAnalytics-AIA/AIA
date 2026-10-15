@@ -2180,10 +2180,12 @@ export const cs = {
           filters: "Filtry publika",
           none: "žádné nevybrány",
           applied: "uplatněny",
+          unmatched: "není tématem persony, k respondentům se nedostane: {list}",
           reason: {
             dimensions_not_read_by_personas: "neuplatněny: AIA je zatím respondentům nepředává",
             dimensions_need_population_draw: "neuplatněny: určují témata jen respondentům vybraným z populace",
             dimensions_await_population_draw: "uplatní se jako témata profilu, až běh vybere respondenty z populace",
+            dimensions_not_persona_topics: "neuplatněny: žádná z nich není tématem persony",
             filters_need_population_draw: "neuplatněny: platí jen pro respondenty vybrané z populace",
             filters_await_population_draw: "uplatní se, až běh vybere respondenty z populace",
             population_draw_not_completed: "neuplatněny: běh skončil dřív, než vybral respondenty z populace",

@@ -68,7 +68,11 @@ from aia_core.domain.methodology.pins import response_deviates, run_methods
 from aia_core.domain.population import PopulationError, UnknownDatasetVersion
 from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ResearchAction
-from aia_core.domain.research_design import DIMENSIONS_AWAIT_DRAW, FILTERS_AWAIT_DRAW
+from aia_core.domain.research_design import (
+    DIMENSIONS_AWAIT_DRAW,
+    DIMENSIONS_NOT_TOPICS,
+    FILTERS_AWAIT_DRAW,
+)
 from aia_core.domain.research_trace import ResearchTrace
 from aia_core.domain.scope import (
     Permission,
@@ -292,6 +296,9 @@ class ResearchRunSelection(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     dimensions: list[str]
+    #: Selected ids that are no persona topic, so they reached no respondent; a run recorded
+    #: before this field reads as none named.
+    dimensions_unmatched: list[str] = []
     dimensions_applied: bool
     dimensions_reason: str | None
     audience_filters: dict[str, Any]
@@ -819,7 +826,14 @@ def _selection(
     for part, awaiting in (("filters", FILTERS_AWAIT_DRAW), ("dimensions", DIMENSIONS_AWAIT_DRAW)):
         if getattr(selection, f"{part}_reason") != awaiting:
             continue
-        if drawn:
+        if (
+            drawn
+            and part == "dimensions"
+            and set(selection.dimensions_unmatched) >= set(selection.dimensions)
+        ):
+            # No selected id is a persona topic: the allowlist let nothing through (5c).
+            update["dimensions_reason"] = DIMENSIONS_NOT_TOPICS
+        elif drawn:
             update |= {f"{part}_applied": True, f"{part}_reason": None}
         elif terminal:
             update[f"{part}_reason"] = DRAW_NOT_COMPLETED

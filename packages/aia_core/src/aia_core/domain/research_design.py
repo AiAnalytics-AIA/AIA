@@ -42,6 +42,7 @@ __all__ = [
     "DIMENSIONS_AWAIT_DRAW",
     "DIMENSIONS_NEED_POPULATION",
     "DIMENSIONS_NOT_READ",
+    "DIMENSIONS_NOT_TOPICS",
     "DONT_KNOW",
     "FILTERS_AWAIT_DRAW",
     "FILTERS_NEED_POPULATION",
@@ -735,6 +736,9 @@ DIMENSIONS_NEED_POPULATION: Final = "dimensions_need_population_draw"
 #: Why a panel run's dimensions are not applied yet: its personas are built when fieldwork draws
 #: its sample, after the run records its selection (settled from the fieldwork step, as filters).
 DIMENSIONS_AWAIT_DRAW: Final = "dimensions_await_population_draw"
+#: Why a drawn run applied none of its dimensions: no selected id is a persona topic
+#: (``persona_topics.TOPIC_KEYS``), so the allowlist let no topic through (18.6.6's set test).
+DIMENSIONS_NOT_TOPICS: Final = "dimensions_not_persona_topics"
 #: Why a run did not apply its design's audience filters: only a draw from the population does,
 #: and this run's respondents are the fictional roster.
 FILTERS_NEED_POPULATION: Final = "filters_need_population_draw"
@@ -754,7 +758,8 @@ def selection_receipt(spec: ResearchSpecification, *, population_draw: bool) -> 
     (``FILTERS_AWAIT_DRAW``), and so do its dimensions, which its personas read as their topic
     allowlist (5c, ``DIMENSIONS_AWAIT_DRAW``); none is ever recorded applied here. An applied
     flag is never true without the code that applies it having run, and a reason accompanies
-    every one that is false.
+    every one that is false. ``dimensions_unmatched`` names each selected id that is no persona
+    topic: the allowlist lets none of its topics through, so it never reaches a respondent.
     """
     selection = spec.selection
     dimensions = list(selection.dimensions) if selection is not None else []
@@ -764,6 +769,7 @@ def selection_receipt(spec: ResearchSpecification, *, population_draw: bool) -> 
     )
     return {
         "dimensions": dimensions,
+        "dimensions_unmatched": [d for d in dimensions if d.strip().lower() not in TOPIC_KEYS],
         "dimensions_applied": False,
         "dimensions_reason": (
             (DIMENSIONS_AWAIT_DRAW if population_draw else DIMENSIONS_NEED_POPULATION)

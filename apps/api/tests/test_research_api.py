@@ -1413,6 +1413,7 @@ def test_a_run_records_what_its_design_selected_and_what_reached_its_respondents
     run = start(researcher, world, revision_id).json()
     assert run["selection"] == {
         "dimensions": ["vek_skupina", "region"],
+        "dimensions_unmatched": ["vek_skupina", "region"],
         "dimensions_applied": False,
         "dimensions_reason": "dimensions_need_population_draw",
         "audience_filters": {"vek": {"max": 59, "min": 30}},
@@ -1469,3 +1470,18 @@ def test_a_panel_runs_filters_are_applied_only_once_its_draw_succeeded() -> None
     # Data that is not the population's never counts as the draw.
     roster = _selection(meta, fieldwork("SUCCEEDED", "SYNTHETIC_AI_FICTIONAL"), terminal=True)
     assert roster is not None and roster.filters_applied is False
+    # Codex on #447: a drawn run whose every dimension is no persona topic applied none of them.
+    none_topics = {
+        "selection": {
+            **meta["selection"],
+            "dimensions": ["ekologie"],
+            "dimensions_unmatched": ["ekologie"],
+        }
+    }
+    unmatched = _selection(none_topics, fieldwork("SUCCEEDED", "MODELLED_AI_PANEL"), terminal=True)
+    assert unmatched is not None
+    assert (unmatched.dimensions_applied, unmatched.dimensions_reason) == (
+        False,
+        "dimensions_not_persona_topics",
+    )
+    assert unmatched.filters_applied is True

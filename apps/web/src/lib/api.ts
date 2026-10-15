@@ -977,6 +977,8 @@ export type ResearchRun = {
 /** Every applied flag is true only where the code that applies it ran; each false one has its reason. */
 export type ResearchRunSelection = {
   dimensions: string[];
+  /** Selected ids that are no persona topic: they reach no respondent (absent on older runs). */
+  dimensions_unmatched?: string[];
   dimensions_applied: boolean;
   dimensions_reason: string | null;
   audience_filters: Record<string, unknown>;
