@@ -110,6 +110,24 @@ def test_no_study_and_no_other_client_reaches_the_clients_own_project(
         ProjectRepository(session, work_scope(scoped))  # no owner: a study's projects
 
 
+def test_runs_are_listed_by_their_keys_prefix_matched_literally(
+    scoped: Any, session: Session
+) -> None:
+    """``_`` and ``%`` in a prefix are characters, never wildcards (lifecycle K2d4)."""
+    from aia_core.infrastructure.workflow_repository import WorkflowRepository
+
+    scope = work_scope(scoped)
+    mine = start_client_work(
+        session, scope, workflow_type=DEVELOP_SNAPSHOT, idempotency_key="a_b:1"
+    )
+    start_client_work(session, scope, workflow_type=DEVELOP_SNAPSHOT, idempotency_key="aXb:1")
+    start_client_work(session, scope, workflow_type=DEVELOP_SNAPSHOT, idempotency_key="a%b:1")
+    runs = WorkflowRepository(session, scope).list_runs(
+        project_id=mine.project_id, key_prefix="a_b:"
+    )
+    assert [r["run_id"] for r in runs] == [mine.run_id]
+
+
 def test_a_client_has_one_work_project_even_when_two_first_requests_race(
     scoped: Any, session: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:

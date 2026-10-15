@@ -57,6 +57,7 @@ from aia_core.domain.deployment import fictional_material_problem, parse_environ
 from aia_core.domain.licence_determinations import recorded_policy
 from aia_core.domain.providers import Provider
 from aia_core.domain.residency import DataClass, EgressPolicy, ProviderRoute, ResidencyZone
+from aia_core.domain.source_proposals import request_window_tokens as source_request_window
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.model_adapters import (
     BedrockConverseAdapter,
@@ -232,6 +233,11 @@ class AIRuntimeSettings:
     analysis_enabled: bool = False
     analysis_max_output_tokens: int = 0
     analysis_reservation_usd: float = 0.0
+    #: ``AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED`` (off by default): AI proposals from a
+    #: client's document, paid by the client (lifecycle K2d). Binds ``FAST_EXTRACTION``.
+    client_source_proposals_enabled: bool = False
+    client_source_max_output_tokens: int = 0
+    client_source_reservation_usd: float = 0.0
     material_approvals: tuple[MaterialApproval, ...] = ()
     #: Binds ``RESEARCH_LEAD`` -- Deep Research's lead researcher, its own policy entry
     #: -- to the route's model. Never read from the environment here: the Deep Research
@@ -355,6 +361,19 @@ class AIRuntimeSettings:
             analysis_reservation_usd=float(_number(env, "AIA_AI_ANALYSIS_RESERVATION_USD") or 0)
             if _flag(env, "AIA_AI_ANALYSIS_ENABLED", required=False)
             else 0,
+            client_source_proposals_enabled=_flag(
+                env, "AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED", required=False
+            ),
+            client_source_max_output_tokens=_positive_int(
+                env, "AIA_AI_CLIENT_SOURCE_MAX_OUTPUT_TOKENS"
+            )
+            if _flag(env, "AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED", required=False)
+            else 0,
+            client_source_reservation_usd=float(
+                _number(env, "AIA_AI_CLIENT_SOURCE_RESERVATION_USD") or 0
+            )
+            if _flag(env, "AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED", required=False)
+            else 0,
         )
         if settings.population_personas_enabled and settings.population_asset_root is None:
             raise AIRuntimeConfigError(
@@ -377,6 +396,25 @@ class AIRuntimeSettings:
             if settings.research_reservation_usd < worst:
                 raise AIRuntimeConfigError(
                     "research reservation must cover two calls at the model ceilings"
+                )
+        if settings.client_source_proposals_enabled:
+            if settings.client_source_max_output_tokens > settings.max_output_tokens:
+                raise AIRuntimeConfigError("client source output limit exceeds the model limit")
+            window = source_request_window(settings.client_source_max_output_tokens)
+            if window > settings.context_window_tokens:
+                raise AIRuntimeConfigError(
+                    "a client source request and its repair do not fit the model's window"
+                )
+            # Two calls at what one request can take (lifecycle K2d6), never the model's whole
+            # window: a document's requests are bounded by bytes (source_proposals).
+            worst = reservation_usd(
+                settings.model_prices(),
+                window_tokens=window,
+                output_tokens=settings.client_source_max_output_tokens,
+            )
+            if settings.client_source_reservation_usd < worst:
+                raise AIRuntimeConfigError(
+                    "client source reservation must cover two calls at the model ceilings"
                 )
         return settings
 
@@ -422,6 +460,8 @@ class AIRuntimeSettings:
             capabilities.append(ModelCapability.RESEARCH_REASONING)
         if self.research_agents_enabled:
             capabilities.append(ModelCapability.CRITIC)
+        if self.client_source_proposals_enabled:
+            capabilities.append(ModelCapability.FAST_EXTRACTION)
         models: list[dict[str, Any]] = [
             {
                 "provider": Provider.AWS_BEDROCK.value,

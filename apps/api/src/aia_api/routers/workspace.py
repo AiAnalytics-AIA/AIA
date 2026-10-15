@@ -342,6 +342,18 @@ class KnowledgeRevisionResponse(BaseModel):
     approved_at: datetime | None = None
 
 
+class ProposalGroundingResponse(BaseModel):
+    """What an AI proposal from a document rests on: the words, checked by code to be there."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source_id: str
+    run_id: str
+    quote: str
+    #: Where the quote stands in the original, as the reader placed it (page, line …).
+    locator: dict[str, Any]
+
+
 class ProposalResponse(BaseModel):
     """A proposed knowledge update."""
 
@@ -367,6 +379,9 @@ class ProposalResponse(BaseModel):
     yours: bool = False
     #: The client's source the proposed item names (C7a), so a reviewer sees the file.
     source_id: str | None = None
+    #: For a proposal the AI drew from a client's document (lifecycle K2d): the document,
+    #: the quote it rests on and where the quote stands in it; null for any other.
+    from_source: ProposalGroundingResponse | None = None
 
 
 class KnowledgeSummaryResponse(BaseModel):
@@ -689,6 +704,24 @@ def _proposal(p: KnowledgeProposal, *, actor: str, names: dict[str, str]) -> Pro
         base_revision=p.base_revision,
         yours=p.proposed_by == actor,
         source_id=_named_source(p),
+        from_source=_grounding(p),
+    )
+
+
+def _grounding(p: KnowledgeProposal) -> ProposalGroundingResponse | None:
+    """An AI proposal's document and quote (lifecycle K2d); ``None`` for any other, or one
+    whose record does not have the shape the step writes."""
+    prov, content = p.provenance, p.content
+    if prov.get("authored") != "ai" or not prov.get("source_id"):
+        return None
+    quote, locator = content.get("quote"), content.get("locator")
+    if not isinstance(quote, str) or not isinstance(locator, dict):
+        return None
+    return ProposalGroundingResponse(
+        source_id=str(prov["source_id"]),
+        run_id=str(prov.get("run_id", "")),
+        quote=quote,
+        locator=locator,
     )
 
 

@@ -12,6 +12,10 @@ bytes, as ``application/octet-stream``, never rendered in AIA's origin.
 ``POST …/{source_id}/reading`` -- read a source again with its format's current reader,
 when a newer one has come (OI-110).
 
+``POST …/{source_id}/proposals`` -- ask AI for knowledge proposals from a document, as the
+client's own work paid by its budget, one run per reading (lifecycle K2d4); ``GET`` the
+newest such run and why it waits or stopped.
+
 A source is not knowledge: adding one accepts nothing, and no study reads it. Found only
 within its client; another client's source is a 404.
 """
@@ -24,13 +28,19 @@ from datetime import datetime
 from typing import Annotated, Any
 from urllib.parse import quote
 
+from aia_core.application.source_proposals import (
+    ProposalsRun,
+    latest_source_proposals,
+    start_source_proposals,
+)
 from aia_core.domain.client_sources import (
     SOURCE_MAX_BYTES,
     SourceReading,
     SourceRecord,
     SourceRejected,
 )
-from aia_core.domain.scope import ClientContext, ScopeDenied
+from aia_core.domain.scope import ClientContext, ClientWorkContext, ScopeDenied
+from aia_core.domain.source_proposals import NotExtractable
 from aia_core.infrastructure.client_source_repository import ClientSourceRepository
 from aia_core.infrastructure.storage import IntegrityError, ObjectNotFound
 from fastapi import APIRouter, HTTPException, Path, Response, status
@@ -373,3 +383,125 @@ def reread_source(
     except (IntegrityError, ObjectNotFound) as exc:
         raise _corrupt() from exc
     return SourceDetailResponse(**_source(record), reading=_reading(reading))
+
+
+# ---------------------------------------------------------------- AI proposals (K2d4)
+
+
+class ProposalsRunResponse(_Model):
+    """A run asking a model for knowledge proposals from one source, paid by the client."""
+
+    run_id: str
+    source_id: str
+    reading_sha256: str
+    #: The run's state: ``PENDING``, ``RUNNING``, ``COMPLETED``, ``FAILED`` …
+    status: str
+    #: Its step's: ``QUEUED``, ``RUNNING``, ``AWAITING_BUDGET``, ``SUCCEEDED`` …
+    step_status: str
+    #: Why the step stopped or waits, by name (``client_source_proposals_unconfigured``,
+    #: ``egress_route_not_approved_for_class``, ``reading_changed`` …); null when it has not.
+    reason: str | None
+    #: Whether the reading this run pinned is still the source's.
+    current: bool
+    created_at: datetime | None
+    finished_at: datetime | None
+    #: When it succeeded: ``batches``, ``proposed`` and ``dropped`` by reason.
+    output: dict[str, Any]
+    #: False when a run for this reading already existed and was returned.
+    created: bool
+    #: Whether asking again starts a new run: this one ended without a result and left no
+    #: paid call of unknown outcome (what it answered is replayed, not paid again).
+    restartable: bool
+
+
+def _proposals_run(run: ProposalsRun) -> ProposalsRunResponse:
+    return ProposalsRunResponse(
+        run_id=run.run_id,
+        source_id=run.source_id,
+        reading_sha256=run.reading_sha256,
+        status=run.status.value,
+        step_status=run.step_status,
+        reason=run.reason,
+        current=run.current,
+        created_at=run.created_at,
+        finished_at=run.finished_at,
+        output=run.output,
+        created=run.created,
+        restartable=run.restartable,
+    )
+
+
+def _work_scope(principal: Any, resolver: Any, client_id: str) -> ClientWorkContext:
+    try:
+        work: ClientWorkContext = resolver.client_work_context(principal, client_id=client_id)
+    except ScopeDenied as exc:
+        raise _denied(exc) from exc
+    return work
+
+
+@router.post(
+    "/{source_id}/proposals",
+    response_model=ProposalsRunResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Ask AI for knowledge proposals from a document, paid by the client",
+    responses={
+        200: {"model": ProposalsRunResponse, "description": "A run for this reading exists"},
+        409: {"model": ErrorResponse, "description": "The stored reading is altered"},
+        422: {
+            "model": ErrorResponse,
+            "description": "A dataset, a file without text, or a document nothing was read from",
+        },
+    },
+)
+def start_proposals(
+    client_id: ClientIdPath,
+    source_id: SourceIdPath,
+    response: Response,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> ProposalsRunResponse:
+    """Needs ``PROPOSE_CLIENT_KNOWLEDGE`` and ``RUN_CLIENT_WORK``. Queues one run per
+    reading of the source; asking again returns it (200) unless it failed or was
+    cancelled. What the model proposes is filed as proposals a person decides on."""
+    scope = _scope(principal, resolver, client_id)
+    work = _work_scope(principal, resolver, client_id)
+    try:
+        run = start_source_proposals(session, scope, work, store, source_id)
+    except ScopeDenied as exc:
+        raise _denied(exc) from exc
+    except NotExtractable as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "code": exc.reason,
+                "message": "AIA navrhuje znalosti zatím jen z přečteného dokumentu.",
+            },
+        ) from exc
+    if not run.created:
+        response.status_code = status.HTTP_200_OK
+    return _proposals_run(run)
+
+
+@router.get(
+    "/{source_id}/proposals",
+    response_model=ProposalsRunResponse | None,
+    summary="The newest proposals run about a source; null when nobody has asked",
+)
+def get_proposals(
+    client_id: ClientIdPath,
+    source_id: SourceIdPath,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> ProposalsRunResponse | None:
+    """Needs ``VIEW_CLIENT_KNOWLEDGE`` and ``RUN_CLIENT_WORK``."""
+    scope = _scope(principal, resolver, client_id)
+    work = _work_scope(principal, resolver, client_id)
+    try:
+        run = latest_source_proposals(session, scope, work, store, source_id)
+    except ScopeDenied as exc:
+        raise _denied(exc) from exc
+    return None if run is None else _proposals_run(run)

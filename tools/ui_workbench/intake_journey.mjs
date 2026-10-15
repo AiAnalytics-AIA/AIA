@@ -4,7 +4,8 @@
 // a PNG and a format AIA does not take) are kept and read, each row in words; a table names
 // its personal-data column and is kept as a dataset; files dropped on the client's page open
 // the sheet; Přidat makes one item per file and Znalosti lists them. Fictional local identity
-// only; no paid job is started (the sheet's AI extraction is disabled and says so).
+// only; no paid job is started (Navrhnout znalosti z textu, AI proposals paid by the client,
+// lifecycle K2d5, is left unticked and nothing asks for one).
 //
 //   make ui-workbench && make ui-fixtures
 //   node tools/ui_workbench/intake_journey.mjs [--facade URL] [--out DIR]
@@ -94,7 +95,11 @@ const opened = await page.evaluate(() => {
 });
 check("the sheet opens within the budget", opened < OPEN_BUDGET_MS, `${Math.round(opened)} ms`);
 const sheet = page.getByRole("dialog", { name: /Přidat podklady/ });
-check("links and AI extraction are not offered", await sheet.getByRole("button", { name: "Vložit odkaz" }).isDisabled() && (await sheet.getByRole("checkbox").isDisabled()));
+check(
+  "links are not offered and AI proposals start unticked",
+  (await sheet.getByRole("button", { name: "Vložit odkaz" }).isDisabled()) &&
+    !(await sheet.getByRole("checkbox", { name: /Navrhnout znalosti z textu/ }).isChecked()),
+);
 await page.screenshot({ path: join(out, "1-open.png") });
 
 // 2. Four files: each kept and read, said in words.
@@ -125,6 +130,8 @@ check("the document is listed under its edited title", true);
 await page.screenshot({ path: join(out, "3-listed.png"), fullPage: true });
 const items = writes.filter((w) => w.path.endsWith("/knowledge/proposals")).length;
 check("one item per added file", items === 3, `${items}`);
+const asked = writes.filter((w) => /\/sources\/[^/]+\/proposals$/.test(w.path)).length;
+check("no AI proposals asked for, the box unticked", asked === 0, `${asked}`);
 
 // 4. A file dropped anywhere on the client's page opens the sheet with it.
 await page.evaluate((name) => {
