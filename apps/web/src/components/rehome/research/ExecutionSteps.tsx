@@ -61,6 +61,7 @@ import {
   stepLabel,
   stepOf,
   populationNote,
+  respondentReceipt,
   stepStatusLabel,
   stepTone,
   supportNote,
@@ -72,7 +73,7 @@ import {
 } from "@/lib/research-execution";
 import { CONFLICT_MESSAGE } from "@/research/store";
 import { projectVariants, selectedVariant } from "@/research/plan";
-import { withApproval } from "@/research/persona";
+import { dimensionLabels, withApproval } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
 import { ActionDock, Switch } from "../step";
 import { AiButton, Button, Chip, Field, TextArea, TextInput } from "../ui";
@@ -155,14 +156,40 @@ function OriginBanners({ run }: { run: ResearchRun }) {
   );
 }
 
-// The population a run recorded, and that fieldwork did not read it (population-operations P3).
-function PopulationNote({ run }: { run: ResearchRun }) {
-  const note = populationNote(run);
-  return note ? (
-    <p role="note" data-population={run.population?.version_label} className="text-sm text-ink-muted">
-      {note}
-    </p>
-  ) : null;
+/**
+ * "Kdo odpovídal" (run-recovery-and-truth 5b): who answered -- the source the run pinned beside
+ * the origin its data reports, a mismatch named -- the population it recorded and whether it was
+ * read, and each selected dimension and filter, applied or not and why.
+ */
+function RespondentsReceipt({ run }: { run: ResearchRun }) {
+  const R = "research.exec.respondents.receipt";
+  const who = respondentReceipt(run);
+  const sel = run.selection;
+  const labels = dimensionLabels({});
+  const applied = (on: boolean, reason: string | null) => (on ? t(`${R}.applied`) : reason ? t(`${R}.reason.${reason}`) : t(`${R}.none`));
+  const filters = sel ? Object.keys(sel.audience_filters) : [];
+  const rows: [string, string][] = [
+    [t(`${R}.source`), `${t(`research.exec.respondents.${who.pinned}`)} · ${who.observed ? t(`${R}.observed.${who.observed}`) : t(`${R}.pending`)}`],
+    [t(`${R}.population`), populationNote(run) ?? t(`${R}.populationNone`)],
+  ];
+  if (sel) {
+    rows.push([t(`${R}.dimensions`), sel.dimensions.length ? `${sel.dimensions.map((d) => labels[d] ?? d).join(", ")} · ${applied(sel.dimensions_applied, sel.dimensions_reason)}` : t(`${R}.none`)]);
+    rows.push([t(`${R}.filters`), filters.length ? `${filters.join(", ")} · ${applied(sel.filters_applied, sel.filters_reason)}` : t(`${R}.none`)]);
+  }
+  return (
+    <Card title={t(`${R}.title`)}>
+      {who.mismatch ? <p role="alert" className="mb-2 text-sm font-semibold text-status-fault">{t(`${R}.mismatch`)}</p> : null}
+      <dl data-population={run.population?.version_label} className="divide-y divide-border rounded-control border border-border">
+        {rows.map(([k, v]) => (
+          <div key={k} className="grid grid-cols-[8rem_1fr] items-baseline gap-3 px-3 py-2 text-sm">
+            <dt className="text-ink-muted">{k}</dt>
+            <dd className="min-w-0">{v}</dd>
+          </div>
+        ))}
+      </dl>
+      {sel === null || sel === undefined ? <p className="mt-2 text-xs text-ink-muted">{t(`${R}.unrecorded`)}</p> : null}
+    </Card>
+  );
 }
 
 
@@ -1034,7 +1061,7 @@ export function ProgressStep() {
         <ProgressActions run={run} act={act} busy={busy} refresh={refresh} actionError={actionError} repairable={repairable} />
       </InspectorSlot>
       <OriginBanners run={run} />
-      <PopulationNote run={run} />
+      <RespondentsReceipt run={run} />
       <Card>
         <div className="flex flex-wrap items-center gap-3">
           <Chip tone={phaseTone(run.phase)}>{phaseLabel(run.phase)}</Chip>
@@ -1231,7 +1258,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
     <div><h4 className="text-sm font-semibold">Literární rešerše</h4><p className="mt-1 text-xs leading-5 text-ink-muted">Externí kontext a citované zdroje patří do samostatné rešerše. Vyberte ji v oddílu Rešerše a zpráva; odpověď AI z klientských znalostí ji nenahrazuje.</p></div></div>
   </section>;
   return <ResultsWorkspace run={run} progressHref={progressHref}
-    notice={<><OriginBanners run={run} /><PopulationNote run={run} /></>}
+    notice={<><OriginBanners run={run} /><RespondentsReceipt run={run} /></>}
     lead={session ? <CompleteReport run={run} /> : null}
     panels={[
       { id: "data", label: "Data", description: "Odpovědi a srovnání hodnocených objektů. U každého výsledku zůstává uvedena podpora dat a nejistota.", content: <>

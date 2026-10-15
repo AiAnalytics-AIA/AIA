@@ -2137,6 +2137,29 @@ export const cs = {
           fieldwork_not_ai_runtime: "Tento běh neodpovídá přes AI, takže populace se nepoužije.",
         },
         note: "Volba je součástí běhu: tentýž návrh s fiktivními respondenty a s respondenty z populace jsou dva běhy. Kontroly výše platí pro zvolený zdroj.",
+        // 5b: what the run did, beside what it was asked to do.
+        receipt: {
+          title: "Kdo odpovídal",
+          source: "Respondenti",
+          observed: {
+            SIMULATED: "data jsou fiktivní",
+            MODELLED: "data jsou modelovaná",
+            UNKNOWN: "původ dat je neznámý",
+          },
+          pending: "data zatím nevznikla",
+          mismatch: "Data neodpovídají zdroji, který běh zvolil. Výsledky berte jako neověřené.",
+          population: "Populace",
+          populationNone: "běh žádnou nezaznamenal",
+          dimensions: "Dimenze",
+          filters: "Filtry publika",
+          none: "žádné nevybrány",
+          applied: "uplatněny",
+          reason: {
+            dimensions_not_read_by_personas: "neuplatněny: AIA je zatím respondentům nepředává",
+            filters_need_population_draw: "neuplatněny: platí jen pro respondenty vybrané z populace",
+          },
+          unrecorded: "Běh nezaznamenal, které dimenze a filtry byly vybrané (spuštěn dříve, než to AIA evidovala).",
+        },
       },
       population: {
         title: "Populace běhu",

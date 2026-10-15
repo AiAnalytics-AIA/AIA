@@ -581,6 +581,37 @@ describe("Run: what a run can cost (5b.2)", () => {
 });
 
 describe("Progress", () => {
+  it("says who answered, the population, and which selected dimensions and filters were applied (run-recovery-and-truth 5b)", async () => {
+    const answered = run({
+      ...COMPLETED,
+      persona_source: "fictional_roster",
+      population: { population_id: "cz", version_id: "v17_4_0", version_label: "v17_4_0", read_by_fieldwork: false },
+      selection: {
+        dimensions: ["region"], dimensions_applied: false, dimensions_reason: "dimensions_not_read_by_personas",
+        audience_filters: { vek: { min: 30 } }, filters_applied: false, filters_reason: "filters_need_population_draw",
+      },
+    });
+    api(listed(answered));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const R = "research.exec.respondents.receipt";
+    const card = (await screen.findByRole("heading", { name: t(`${R}.title`) })).closest("section") as HTMLElement;
+    const value = (label: string) => within(card).getByText(label).nextElementSibling?.textContent;
+    expect(value(t(`${R}.source`))).toBe(`${t("research.exec.respondents.fictional_roster")} · ${t(`${R}.observed.SIMULATED`)}`);
+    expect(value(t(`${R}.population`))).toContain("v17_4_0");
+    expect(value(t(`${R}.dimensions`))).toContain(t(`${R}.reason.dimensions_not_read_by_personas`));
+    expect(value(t(`${R}.filters`))).toBe(`vek · ${t(`${R}.reason.filters_need_population_draw`)}`);
+    expect(within(card).queryByRole("alert")).toBeNull();
+  });
+
+  it("names data that does not match the source the run chose, and a run that recorded no selection", async () => {
+    api(listed(run({ ...COMPLETED, persona_source: "panel" })));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const R = "research.exec.respondents.receipt";
+    const card = (await screen.findByRole("heading", { name: t(`${R}.title`) })).closest("section") as HTMLElement;
+    expect(within(card).getByRole("alert").textContent).toBe(t(`${R}.mismatch`));
+    expect(within(card).getByText(t(`${R}.unrecorded`))).toBeTruthy();
+  });
+
   it("explains a run waiting for the AI runtime, step by step, without offering a retry", async () => {
     api(listed(PARKED));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);

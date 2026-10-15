@@ -969,6 +969,19 @@ export type ResearchRun = {
   population?: ResearchRunPopulation | null;
   /** The methods the run pinned when it started (methodology-tab Z1); absent from an older API. */
   methodology?: ResearchRunMethodology;
+  /** Who its AI respondents are, as the run pinned it: `fictional_roster` or `panel`. */
+  persona_source?: string;
+  /** What its design selected and what was applied (5b); null: a run from before it recorded this. */
+  selection?: ResearchRunSelection | null;
+};
+/** Every applied flag is true only where the code that applies it ran; each false one has its reason. */
+export type ResearchRunSelection = {
+  dimensions: string[];
+  dimensions_applied: boolean;
+  dimensions_reason: string | null;
+  audience_filters: Record<string, unknown>;
+  filters_applied: boolean;
+  filters_reason: string | null;
 };
 /** One pinned method: its name, and whether it is a version stored on the Metodika tab. */
 /** `name: null`: the run recorded a pin that cannot be read as a name; never a guess. */

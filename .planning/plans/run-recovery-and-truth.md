@@ -13,7 +13,7 @@ chunks:
   - "[ ] 3e. The questionnaire agent proposes the links; a person accepts them with the proposal"
   - "[ ] 4. Deep Research: source diversity beyond Wikipedia, the exact supporting passage per claim, and every rejection's reason shown"
   - "[x] 5a. Population: a person chooses who answers a run (fictional roster or the population) before it starts; the deployment only says what it offers"
-  - "[ ] 5b. Population: the run receipt says who answered, from which population, and which selected dimensions and filters were applied"
+  - "[x] 5b. Population: the run receipt says who answered, from which population, and which selected dimensions and filters were applied"
   - "[ ] 5c. Population: selected dimensions applied to panel respondents (needs the product owner's decision: methodology)"
   - "[ ] 6. Desktop UX: one state vocabulary (ready, running, needs repair, evidence unavailable, report ready), plain reasons, question text, cost remaining"
 ---
@@ -447,3 +447,16 @@ person starting a run never saw that a choice existed.
   measures: ranking needs a tracked set, A/B a concept-test set, segments unavailable,
   unknown never answerable (comparisons_of)"; web `trace.ts`: "comparisonOf /
   setComparison"; Dotazník: "Jak výzkumné otázky zodpovíme".
+- 5a, `CLAUDE.md` § map, routers/research: "readiness and start take persona_source; readiness
+  answers persona_sources (offered, reason, default); an unoffered source is 409
+  persona_source_unavailable". `CLAUDE.md` § A research run (the persona-source paragraph):
+  "AIA_AI_POPULATION_PERSONAS_ENABLED offers the panel and makes it the default; a person
+  chooses per run on the Run stage ('Kdo bude odpovídat')".
+- 5b, `CLAUDE.md` § map, `research_design.py`: append "selection_receipt: what a run records
+  of its design's selection, dimensions never applied yet, filters only by a population draw";
+  routers/research: "a run's selection"; web `research-execution.ts`: "respondentReceipt: the
+  pinned source beside the fieldwork data's origin, a mismatch named"; `ExecutionSteps.tsx`:
+  "'Kdo odpovídal' on Progress and Results replaces the population note".
+- 5c (open, for `open-items.md`): applying a selected dimension to panel respondents needs the
+  product owner's decision; no persona reads a materialized dimension
+  (`panel_persona.py` `panel_personas`, `wanted`).
