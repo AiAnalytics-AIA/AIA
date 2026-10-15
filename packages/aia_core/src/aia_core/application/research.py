@@ -443,8 +443,6 @@ class ResearchRuns:
             pair_n_min=side_tables_of(methods).n_min,
             limits=limits,
         )
-        if not checked.ready:
-            raise DesignNotReady(checked)
         # A retry keeps the original's population and never re-chooses it.
         selected = self._selected(population_version_id if retry_of is None else None)
         project_id = designs.project_id()
@@ -491,6 +489,11 @@ class ResearchRuns:
             key += f":analysis-retry:{retry_of}"
         elif retry_of:
             key += f":retry:{retry_of}"
+        # The limits are not part of the key (they decide whether a run may start, not what
+        # it computes): a start that finds its run returns it, whatever limits are in force
+        # now. Only a run that would be created is held to them.
+        if not checked.ready and self._workflows().find_run_by_idempotency_key(key) is None:
+            raise DesignNotReady(checked)
         # A retry's pins came from stored versions resolved when its original started.
         held = dict(kept or {})
         methodology = methodology or held.get("methodology")

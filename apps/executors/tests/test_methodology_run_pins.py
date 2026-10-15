@@ -679,3 +679,33 @@ def test_a_retry_keeps_the_readiness_limits_its_run_pinned(world: Any) -> None:
     assert retry["readiness"] == original["readiness"]
     assert retry["readiness"]["sample_size"]["min"] == 10
     assert retry["readiness_methodology"] == original["readiness_methodology"]
+
+
+def test_a_start_that_finds_its_run_returns_it_under_stricter_limits(world: Any) -> None:
+    """The limits are not part of a run's key: a second start of a revision whose run began
+    under looser limits returns that run, never refusing it under the limits now in force."""
+    small = {**DESIGN, "n": 15}
+    _limits(world, sample_size__min=10)
+    first = _start_design(world, small)
+    _reset_limits(world)  # 15 is below the preset's 20 again
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        designs = StudyDesignRepository(session, scope)
+        revision, _ = designs.submit(content=small, source_stage="run")
+        again = ResearchRuns(session, scope).start(
+            design_revision_id=revision.revision_id,
+            fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
+        )
+        session.commit()
+    assert again.run_id == first
+    assert _run(world, first)["metadata"]["readiness"]["sample_size"]["min"] == 10
+    # A revision with no run is still held to the limits in force.
+    with world.sessions() as session, pytest.raises(DesignNotReady):
+        scope = world.lead_scope(session)
+        other, _ = StudyDesignRepository(session, scope).submit(
+            content={**small, "title": "Jiný nápoj"}, source_stage="run"
+        )
+        ResearchRuns(session, scope).start(
+            design_revision_id=other.revision_id,
+            fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
+        )
