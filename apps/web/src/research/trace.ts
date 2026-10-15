@@ -101,3 +101,20 @@ export function setComparison(p: ResearchProject, rq: string, kind: Comparison |
   else delete nextPlan.research_question_comparisons;
   return { ...p, research_plan: nextPlan };
 }
+
+/** The output type of a concept-test set: what an `ab_test` comparison needs (3c). */
+export const CONCEPT_TEST = "test_konceptu";
+const POSITION_MAP = "pozicni_mapa";
+
+/** A set a person may turn into a concept test and back: a position map or a concept test.
+ *  Another output type (an imported segmentation, a lovebrand) is left as it was set. */
+export const togglesConceptTest = (sec: Section): boolean =>
+  sec.type === "object_battery" && [undefined, "", POSITION_MAP, CONCEPT_TEST].includes(sec.output_type);
+
+/** Tracked set `si` compares its objects as concepts (an A/B test), or maps them again. */
+export function setConceptTest(p: ResearchProject, si: number, on: boolean): ResearchProject {
+  return withSections(
+    p,
+    sectionsOf(p).map((s, i) => (i !== si ? s : { ...s, output_type: on ? CONCEPT_TEST : POSITION_MAP })),
+  );
+}

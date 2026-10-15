@@ -67,7 +67,7 @@ import {
   SET_SIZE,
 } from "@/research/questionnaire";
 import type { ResearchProject } from "@/research/model";
-import { COMPARISONS, type Comparison, comparisonOf, danglingLinks, linkKey, linksOf, researchQuestionsOf, setComparison, toggleQuestionLink, toggleSectionLink } from "@/research/trace";
+import { COMPARISONS, CONCEPT_TEST, type Comparison, comparisonOf, danglingLinks, linkKey, linksOf, researchQuestionsOf, setComparison, setConceptTest, toggleQuestionLink, toggleSectionLink, togglesConceptTest } from "@/research/trace";
 import { Icon, type IconName } from "../icons";
 import { ActionDock, ChipInput, InlineConfirm, Segmented, Switch } from "../step";
 import { AiButton, Button } from "../ui";
@@ -953,7 +953,17 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
         <Switch checked={Boolean(sec.familiarity_required)} onChange={(on) => update((p) => setSectionField(p, si, "familiarity_required", on))} label={<b className="font-semibold">{t("research.questionnaire.familiarity")}</b>} />
         <p className="pl-[44px] text-xs text-ink-muted">{t("research.questionnaire.familiarityHelp")}</p>
       </div>
-      {sec.output_type === "test_konceptu" ? (
+      {togglesConceptTest(sec) ? (
+        <div className="flex flex-col gap-1">
+          <Switch
+            checked={sec.output_type === CONCEPT_TEST}
+            onChange={(on) => update((p) => setConceptTest(p, si, on), "concept_test")}
+            label={<b className="font-semibold">{t("research.questionnaire.conceptTest")}</b>}
+          />
+          <p className="pl-[44px] text-xs text-ink-muted">{t("research.questionnaire.conceptTestHelp")}</p>
+        </div>
+      ) : null}
+      {sec.output_type === CONCEPT_TEST ? (
         <label className="flex flex-col gap-1">
           <span className={LABEL}>{t("research.questionnaire.priceBands")}</span>
           <input

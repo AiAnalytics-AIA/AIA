@@ -1886,6 +1886,8 @@ export const cs = {
       setHigh: "Pravý konec škály",
       familiarity: "Před hodnocením ověřovat znalost každého objektu",
       familiarityHelp: "Zapínejte jen když to dává věcný smysl — typicky u značek, produktů či konceptů. U médií, emocí nebo vztahových výroků obvykle ne.",
+      conceptTest: "Porovnat položky jako koncepty (A/B test)",
+      conceptTestHelp: "Sada se vyhodnotí jako test konceptů místo poziční mapy; výzkumnou otázku zodpovídanou A/B testem lze zodpovědět jen takovou sadou.",
       priceBands: "Cenová pásma pro test konceptu",
       priceBandsPlaceholder: "např. 199 Kč, 249 Kč, 299 Kč",
       priceBandsHelp: "Ceny musí zadat uživatel; AI si je nesmí vymyslet.",
