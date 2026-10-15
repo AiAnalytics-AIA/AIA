@@ -20,7 +20,6 @@ fact, or retry anything on its own.
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -51,6 +50,7 @@ from aia_core.domain.ai_respondent import (
     build_request,
     classify_material,
     fictional_roster,
+    fieldwork_seed,
     interpret_block,
     plan_items,
     plan_respondent,
@@ -170,11 +170,6 @@ class Answered:
     resolution: Any
     #: Per respondent, in ``rows``' order: what each item's draw recorded (its probabilities).
     details: list[dict[str, dict[str, Any]]]
-
-
-def fieldwork_seed(spec: ResearchSpecification) -> int:
-    """The run's roster and draw seed: from the specification, so a rerun is the same."""
-    return int(hashlib.sha256(spec.fingerprint().encode()).hexdigest()[:12], 16)
 
 
 class AIFieldwork:

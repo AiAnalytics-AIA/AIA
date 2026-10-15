@@ -2,8 +2,8 @@
 // execution stages share, without React.
 import { describe, expect, it } from "vitest";
 
-import type { ResearchRun, ResearchStep } from "@/lib/api";
-import { aggregateDeviation, hasUnknownOrigin, isModelled, isSynthetic, mayRetryAnalysis, MODELLED_DISCLOSURE, needsRepair, originKind, resultOriginKind, stepOriginKind, parkedForRuntime, phaseTone, populationNote, reportHolds, resultTable, shouldPoll, stepLabel, stepStatusLabel, stepTone, supportNote, topBoxWidth, waitingDetail } from "./research-execution";
+import type { QuestionOutlook, ResearchRun, ResearchStep } from "@/lib/api";
+import { aggregateDeviation, hasUnknownOrigin, isModelled, isSynthetic, mayRetryAnalysis, MODELLED_DISCLOSURE, needsRepair, originKind, outlookByVerdict, outlookCounts, outlookFixStep, outlookReason, resultOriginKind, stepOriginKind, parkedForRuntime, phaseTone, populationNote, reportHolds, resultTable, shouldPoll, stepLabel, stepStatusLabel, stepTone, supportNote, topBoxWidth, verdictTone, waitingDetail } from "./research-execution";
 
 const run = (extra: Partial<ResearchRun>): ResearchRun =>
   ({ phase: "RUNNING", is_terminal: false, steps: [], fieldwork_source: "ai_runtime", ...extra }) as ResearchRun;
@@ -216,5 +216,39 @@ describe("reportHolds (run-gate-visibility chunk 2)", () => {
     ]));
     expect(held.map((h) => h.step.node_key)).toEqual(["analysis_objects"]);
     expect(held[0].detail).toMatch(/zopakovat/);
+  });
+});
+
+describe("which questions a run will answer (run-recovery-and-truth 2b)", () => {
+  const item = (id: string, verdict: QuestionOutlook["verdict"], reasons: string[] = []): QuestionOutlook => ({ question_id: id, text: id, section_id: "s", battery_id: null, verdict, reasons });
+
+  it("reads worst first and keeps questionnaire order within a verdict", () => {
+    const items = [item("a", "ANSWERABLE"), item("b", "AT_RISK"), item("c", "UNANSWERABLE"), item("d", "UNKNOWN"), item("e", "UNANSWERABLE")];
+    expect(outlookByVerdict(items).map((i) => i.question_id)).toEqual(["c", "e", "b", "d", "a"]);
+    expect(outlookCounts(items)).toEqual({ UNANSWERABLE: 2, AT_RISK: 1, UNKNOWN: 1, ANSWERABLE: 1 });
+    expect(outlookCounts([])).toEqual({ UNANSWERABLE: 0, AT_RISK: 0, UNKNOWN: 0, ANSWERABLE: 0 });
+  });
+
+  it("never gives unknown the tone of an answer", () => {
+    expect(verdictTone("UNKNOWN")).toBe("neutral");
+    expect(verdictTone("ANSWERABLE")).toBe("done");
+    expect(verdictTone("AT_RISK")).toBe("you");
+    expect(verdictTone("UNANSWERABLE")).toBe("fault");
+  });
+
+  it("sends a question's own fault to the questionnaire and a support fault to the sample", () => {
+    expect(outlookFixStep(["fidelity_refused", "support_suppressed"])).toBe("questionnaire");
+    expect(outlookFixStep(["support_suppressed"])).toBe("persona");
+    expect(outlookFixStep(["support_indicative"])).toBe("persona");
+    expect(outlookFixStep(["support_analysis_excluded"])).toBe("persona");
+    expect(outlookFixStep(["support_unknown"])).toBeNull();
+    expect(outlookFixStep([])).toBeNull();
+  });
+
+  it("words every reason, and names one it does not know", () => {
+    for (const code of ["conditional", "familiarity", "fidelity_refused", "open_ended", "support_suppressed", "support_analysis_excluded", "support_indicative", "support_unknown"]) {
+      expect(outlookReason(code)).not.toContain(code);
+    }
+    expect(outlookReason("new_rule")).toContain("new_rule");
   });
 });

@@ -4,8 +4,8 @@ chunks:
   - "[x] 1a. Analysis: a schema failure is stored with the fields that failed, and the repair turn shows the model its own rejected answer"
   - "[x] 1b. Analysis: retry failed modules over the run's frozen dataset and aggregate (no new fieldwork), as a new linked run"
   - "[x] 1c. Web: a blocked module is not \"Hotovo\"; the run offers \"Zopakovat neúspěšné moduly\"; no report download that can only fail"
-  - "[ ] 2a. Preflight: donor-cluster and support feasibility from the roster rules, before launch"
-  - "[ ] 2b. Readiness: per planned question, answerable / at risk / unanswerable, in the run screen"
+  - "[x] 2a. Preflight: donor-cluster and support feasibility from the roster rules, before launch"
+  - "[x] 2b. Readiness: per planned question, answerable / at risk / unanswerable, in the run screen"
   - "[ ] 3. Proposal editor: research question -> measure -> comparison -> external source, unanswered questions flagged before a paid run"
   - "[ ] 4. Deep Research: source diversity beyond Wikipedia, the exact supporting passage per claim, and every rejection's reason shown"
   - "[ ] 5. Population: a study-scoped, governed source choice; the source and dimensions actually used on the run receipt"
@@ -121,6 +121,106 @@ Review findings (Codex on #405), both fixed:
   (`ExecutionSteps.tsx` `InternalReport`). The download that could only fail is the
   contextual report's, in `InterpretationResearch.tsx`: chunk 6.
 
+## 2a — support forecast before launch
+
+The 50-respondent run's 15 donors were not bad luck. Fieldwork seeds its roster from the
+specification (`fieldwork_seed`, now in `domain/ai_respondent.py`) and draws donors with
+replacement from `max(3, n // 3)` ids (`domain/ai_respondent.py` `fictional_roster`; the
+Metodika tab already records it as D6, `test_d6_a_fictional_roster_draws_too_few_distinct_donors_for_support`).
+So the donors a run will have are known from its design.
+
+`domain/support_forecast.py` draws that roster and runs it through the aggregate's own
+`donor_support` (results rule) and the analysis gate's `reassess_support` (analysis rule),
+both under the support rules a start would pin. `ResearchRuns.readiness` adds a
+`support_forecast` check for an `ai_runtime` run:
+
+- **SUPPRESS (analysis)**: WARN. Every number will be suppressed for analysis, so neither
+  the analysis nor the report will be produced. The check names the smallest n, everything
+  else unchanged, that the gate admits; the search goes up to `max(4n, n + 200)`.
+- **INDICATIVE**: WARN, and the numbers will show with weak support.
+- **REPORTABLE**: PASS, as long as respondents do not skip answers.
+- **A panel run**: WARN that the count is unknown until fieldwork draws respondents (the
+  audience preview shows the selected donors). An unknown count is never scored as good.
+
+A forecast never FAILs. It says what the run will show; whether to pay for that is still
+the person's call. It is an upper bound, because an empty answer lowers a question's donors.
+
+Review (Codex on #416):
+- **The aggregation formulas a start would pin are applied.** `ResearchRuns._aggregation`
+  is compiled with `read_aggregation_pin`, so a version replacing Kish's formula changes
+  the forecast as it changes the aggregate.
+  Test: `test_the_aggregation_formulas_a_start_would_pin_are_applied`.
+- **The search for a sufficient n is bounded.** It draws at most 40,000 respondents over
+  all its candidates, about 1 s, so one readiness read stays bounded whatever rules are in
+  force. Test: `test_the_search_for_a_sufficient_n_is_bounded_whatever_the_rules`.
+- **The test's design is its own.** It is no longer imported from another test module
+  (`AGENTS.md` § pytest).
+
+Tests:
+- `packages/aia_core/tests/test_support_forecast.py`
+- `test_the_support_forecast_is_what_the_aggregate_then_computes[50|150]`: a real AI-runtime
+  run's aggregate carries exactly the forecast's donors and status.
+- `test_readiness_forecasts_whether_a_runs_numbers_will_be_shown` (API)
+
+## 2b — which questions a run will answer
+
+2a gives one status for every question, because every question is asked of every
+respondent. A design can pass it and still pay for questions that come back empty, for
+reasons just as certain before launch:
+
+- the unit's fidelity rule refuses a question about absolute willingness to pay or market
+  size (`research_aggregate.evidence_rating`, mode `REFUSE`);
+- the analysis gate then removes every row of that question (`analysis/native.py`
+  `_fidelity_refusal`);
+- an open question's verbatims are never evidence.
+
+The Run screen named none of this.
+
+`domain/question_outlook.py` gives every item a respondent will answer (each question,
+and each object of each tracked set, worded as fieldwork asks it) one verdict, with every
+reason behind it:
+
+- **UNANSWERABLE**:
+  - `conditional` and `familiarity`: it cannot be asked;
+  - `fidelity_refused`;
+  - `support_suppressed`, from the 2a forecast.
+- **AT_RISK**: `open_ended`, or `support_indicative`.
+- **UNKNOWN**: `support_unknown`. This covers a panel run, and a source with no forecast
+  (the workbench's fixture). Unknown is never answerable.
+- **ANSWERABLE**: none of these reasons applies. This is still an upper bound.
+
+The worst verdict wins. The reasons are codes, and the screen words them
+(`research.exec.outlook.reason.*`).
+
+`ResearchRuns.outlook` returns the specification, the readiness and the outlook from one
+forecast; `readiness` reads it. `GET …/research/readiness` carries `question_outlook`.
+The outlook is kept out of `Readiness` on purpose: the preflight step stores `Readiness`
+in its artifact, and a new field would change every preflight artifact's bytes.
+
+The Run screen's card "Na co běh odpoví":
+
+- the counts per verdict;
+- every item the run will not fully answer, worst first, by its wording, with the reasons
+  in words and a fix link (the questionnaire for a question's own fault, Dimenze for
+  support);
+- what it will answer, folded away.
+
+Review (Codex on #419): a version whose results rule is looser than its analysis rule
+shows a question's numbers on Results while the analysis suppresses them. That is now
+`support_analysis_excluded` (AT_RISK, "Results shows them, the analysis may not cite
+them"), and `support_suppressed` stays for numbers Results hides too. Test:
+`test_numbers_results_shows_but_the_analysis_may_not_cite_are_at_risk_not_suppressed`.
+
+Tests:
+
+- `packages/aia_core/tests/test_question_outlook.py`, including
+  `test_what_the_outlook_refuses_the_analysis_gate_then_removes`: over a real aggregate,
+  a refused question keeps no row in the evidence table and an open question keeps no
+  content row.
+- `test_readiness_lists_every_question_with_whether_the_run_will_answer_it` (API).
+- `research-execution.test.ts` ("which questions a run will answer").
+- `ExecutionSteps.test.tsx` ("Run: which questions the run will answer").
+
 ## Doc follow-up
 
 - `CLAUDE.md` § map, `analysis.py`: "a schema failure is stored per field; the
@@ -134,3 +234,22 @@ Review findings (Codex on #405), both fixed:
   dataset (`frozen_dataset`: artifact id + SHA-256, verified, never substituted).
 - `AGENTS.md`: a strict Pydantic validation error's `msg` carries no input value,
   but `str(ValidationError)` does; diagnostics are built from `loc` + `msg` only.
+- (1a–1c above applied by AiAnalytics-AIA/AIA#414.)
+- 2a, `CLAUDE.md` § map, domain (new line after `ai_respondent.py`):
+  "support_forecast.py: a run's evidence support forecast from the roster fieldwork will
+  draw (fieldwork_seed + fictional_roster through donor_support and reassess_support,
+  under the pinned support rules); unknown for a panel run, never good; readiness adds
+  it as the support_forecast check (WARN, never FAIL) for an ai_runtime run".
+- 2a, `CLAUDE.md` § map, `ai_respondent.py`: append "fieldwork_seed: the roster and
+  draw seed from the specification (moved from the executor)".
+- 2a, `CLAUDE.md` § map, `application/research.py`: "readiness(…, fieldwork_source=):
+  with ai_runtime, the support forecast under the support rules a start would pin".
+- 2b, `CLAUDE.md` § map, domain (new line after `support_forecast.py`):
+  "question_outlook.py: before a run, every item a respondent will answer with one verdict
+  (ANSWERABLE / AT_RISK / UNKNOWN / UNANSWERABLE) and its reasons (conditional,
+  familiarity, fidelity_refused, open_ended, support_*), by the rules that decide after
+  the run; unknown never answerable".
+- 2b, `CLAUDE.md` § map, `application/research.py`: "outlook(): the specification,
+  readiness and question outlook from one forecast (RunOutlook); readiness reads it".
+- 2b, `CLAUDE.md` § map, routers/research: "GET …/research/readiness carries
+  question_outlook"; web `ExecutionSteps.tsx`: "the Run stage's 'Na co běh odpoví' card".

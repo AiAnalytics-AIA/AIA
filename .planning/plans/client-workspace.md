@@ -9,7 +9,7 @@ chunks:
   - "[x] C5. Profile: the client record's fields, contacts, brands and competitors as entities, self-approval on the client"
   - "[ ] C6. Review queue: proposals grouped by source, with citation, diff and editable folder/labels; action-named buttons (needs lifecycle K3)"
   - "[x] C7a. A document's file: Dokument, Zdroj and Datová sada take a file, kept as the client's source; the open item shows what AIA read"
-  - "[ ] C7b. Intake sheet for files and text: Přidat podklady everywhere, drop anywhere, per-file reading, Datová sada or Dokument, folder and labels; links and AI extraction say V AIA zatím není"
+  - "[x] C7b. Intake sheet for files and text: Přidat podklady everywhere, drop anywhere, per-file reading, Datová sada or Dokument, folder and labels; links and AI extraction say V AIA zatím není"
   - "[ ] C7. Intake sheet: one way in for files, links and text; dataset or document; the paying study for AI extraction (needs lifecycle K2)"
   - "[ ] C8. Data area: datasets with column check, personal-data columns dropped, ownership and licence; use in a study says V AIA zatím není (needs lifecycle K2)"
   - "[ ] C9. Retire and restore an item from the library (needs lifecycle K6's contract)"
@@ -374,9 +374,34 @@ Each chunk is its own PR into `develop`, small enough to review in one sitting.
   rule).
 - **Not here:** reading progress as a percentage (the API reads in one request; the row says
   it is reading, never a number it does not have); per-file labels.
-- **Tests:** `lib/intake.ts` as pure functions (`intake.test.ts`); the sheet against a fake
-  API (`IntakeSheet.test.tsx`): drop, mixed batch, dataset or document, refusal, pasted text,
-  the items and placements sent, nothing sent for links or AI.
+- **Tests:** `lib/intake.ts` as pure functions (`intake.test.ts`, 8); the sheet against a
+  fake API (`IntakeSheet.test.tsx`, 5): a mixed batch read and filed, dataset or document,
+  a refused format, waiting for a file still reading, pasted text, a drop on the page, items
+  held for review filing nothing; nothing can send a link or an AI job.
+- **Landed (2026-10-14).** `components/aia/clients/IntakeSheet.tsx` and `lib/intake.ts`;
+  the shared state (`intake`, `openIntake`, `added`) and the client-wide drop in
+  `ClientContext.tsx`; `IntakeButton` on every area; Znalosti's form is *Napsat znalost*.
+  A dataset's personal columns come from its kept reading (`GET …/sources/{id}`, one more
+  request per table). No API change: the sheet uses K2a-K2c's routes and C7a's reference.
+  - **In a browser:** `make ui-intake` (`tools/ui_workbench/intake_journey.mjs`), 16 checks
+    on the workbench: the sheet opened in 84 ms (budget 400 ms); a DOCX, an XLSX with its
+    E-mail column named, a PNG and a refused `.key`; three items listed; a drop on the page
+    opens the sheet; no paid job; no failed request but the refused format.
+- **Review fixes (#417):**
+  - A table now stays *Ukládám a čtu…* until its columns are in. If they fail to load, the row
+    says so and offers *Zkusit znovu*. Saving no longer happens without the personal-data
+    warning.
+  - Items made before a placement failed are kept. *Dokončit zařazení* files them without
+    making them again. Repeating a placement has the same effect as applying it once: the folder
+    is replaced, and a label an item already has is skipped (`ClientKnowledgeRepository.place`).
+  - Every control is held still while a batch is being sent, Esc included. Files dropped on the
+    page during a save wait for it to finish.
+  - Tests: `IntakeSheet.test.tsx` "holds a table whose columns did not load…", "files items made
+    before a failed placement…" and "holds every control still…". The journey ran again: 16
+    checks, opened in 66 ms.
+- **Open question for the owner before K2d** (canvas note *clientOpen*): who pays for AI
+  extraction at the client, which has no budget today. The sheet's option names "the study
+  you choose" until that is decided.
 
 ### C7. Intake sheet
 - **Depends on:** lifecycle K2's client-level source API.

@@ -342,6 +342,21 @@ class ReadinessCheckResponse(BaseModel):
     message: str
 
 
+class QuestionOutlookResponse(BaseModel):
+    """One item a respondent will answer, and whether the run will answer it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    question_id: str
+    text: str
+    section_id: str
+    #: The tracked set an object's rating belongs to; ``None`` for a question.
+    battery_id: str | None
+    #: ANSWERABLE, AT_RISK, UNANSWERABLE or UNKNOWN (``domain.question_outlook``).
+    verdict: str
+    reasons: list[str]
+
+
 class ReadinessResponse(BaseModel):
     """Whether a Design Revision can run in AIA: AIA's structural checks, by name."""
 
@@ -367,6 +382,9 @@ class ReadinessResponse(BaseModel):
     #: The study's limit, and whether this run's start will ask for confirmation against it.
     spend_confirm_usd: float | None = None
     confirmation_required: bool = False
+    #: Every item, in questionnaire order, with its verdict; empty when the design does not
+    #: compile.
+    question_outlook: list[QuestionOutlookResponse] = []
 
 
 def _reservations(request: Request) -> RunReservations:
@@ -744,9 +762,14 @@ def readiness(
     """
     runs = ResearchRuns(session, scope)
     try:
-        spec, result = runs.readiness(design_revision_id, persona_source=_persona_source(request))
+        outlook = runs.outlook(
+            design_revision_id,
+            persona_source=_persona_source(request),
+            fieldwork_source=_fieldwork_source(request),
+        )
     except DesignRevisionNotFound as exc:
         raise _not_found("design_revision") from exc
+    spec, result = outlook.spec, outlook.readiness
     settings = request.app.state.settings
     ceiling = (
         runs.cost_ceiling(
@@ -784,6 +807,17 @@ def readiness(
             and ceiling.total_usd is not None
             and ceiling.total_usd >= limit
         ),
+        question_outlook=[
+            QuestionOutlookResponse(
+                question_id=q.question_id,
+                text=q.text,
+                section_id=q.section_id,
+                battery_id=q.battery_id,
+                verdict=q.verdict.value,
+                reasons=[r.value for r in q.reasons],
+            )
+            for q in outlook.questions
+        ],
     )
 
 

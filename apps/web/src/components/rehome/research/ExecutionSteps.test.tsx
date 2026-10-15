@@ -7,7 +7,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
-import { t } from "@/i18n/t";
+import { t, tv } from "@/i18n/t";
 import type { ResearchRun } from "@/lib/api";
 import { CONFLICT_MESSAGE } from "@/research/store";
 import { RunResults } from "./ExecutionSteps";
@@ -29,6 +29,7 @@ const READY = {
     { id: "sample_size", status: "PASS", message: "n = 450." },
     { id: "audience", status: "WARN", message: "AIA zatím nepoužije filtry." },
   ],
+  question_outlook: [] as unknown[],
 };
 const step = (node: string, status: string, extra: Record<string, unknown> = {}) => ({
   step_id: `STEP-${node}`, node_key: node, kind: `research_${node}`, stage_type: "BRIEF", status, waiting_reason: null, attempts_recorded: 1, max_attempts: 3,
@@ -292,6 +293,39 @@ describe("Run", () => {
     expect(called("GET", "/api/v1/studies/STU-1/research/readiness")[0].url).toContain("design_revision_id=REV-old");
     expect((screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText(t("research.exec.readOnly"))).toBeTruthy();
+  });
+});
+
+describe("Run: which questions the run will answer (run-recovery-and-truth 2b)", () => {
+  const item = (id: string, text: string, verdict: string, reasons: string[]) => ({ question_id: id, text, section_id: "s1", battery_id: null, verdict, reasons });
+  const OUTLOOK = {
+    ...READY,
+    question_outlook: [
+      item("q1", "Jak často pijete kávu?", "ANSWERABLE", []),
+      item("q2", "Kolik Kč byste maximálně zaplatili?", "UNANSWERABLE", ["fidelity_refused"]),
+      item("q3", "Co vás ráno probudí?", "AT_RISK", ["open_ended"]),
+    ],
+  };
+
+  it("lists what the run will not answer first, by its wording, with the reason and where to fix it", async () => {
+    api({ "GET /api/v1/studies/STU-1/research/readiness": () => OUTLOOK });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const card = await screen.findByRole("region", { name: t("research.exec.outlook.title") });
+    expect(within(card).getByText("1 bez odpovědi · 1 s rizikem · 0 neznámo · 1 zodpoví")).toBeTruthy();
+    const flagged = within(card).getByRole("list", { name: t("research.exec.outlook.title") });
+    const rows = within(flagged).getAllByRole("listitem").filter((li) => li.parentElement === flagged);
+    expect(rows.map((r) => r.querySelector("p")?.textContent)).toEqual(["Kolik Kč byste maximálně zaplatili?", "Co vás ráno probudí?"]);
+    expect(within(rows[0]).getByText(t("research.exec.outlook.reason.fidelity_refused"))).toBeTruthy();
+    expect(within(rows[0]).getByRole("link", { name: t("research.exec.fix") })).toBeTruthy();
+    // What it will answer is there, folded away.
+    expect(within(card).getByText(tv("research.exec.outlook.answerable", { count: 1 }))).toBeTruthy();
+  });
+
+  it("shows no card for a design with no items", async () => {
+    api();
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    expect(await screen.findByText(t("research.exec.ready"))).toBeTruthy();
+    expect(screen.queryByRole("region", { name: t("research.exec.outlook.title") })).toBeNull();
   });
 });
 

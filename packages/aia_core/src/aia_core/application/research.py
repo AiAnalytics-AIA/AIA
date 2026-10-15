@@ -45,6 +45,7 @@ from ..domain.population import (
     VersionOwner,
 )
 from ..domain.prompts import PromptPin
+from ..domain.question_outlook import QuestionOutlook, question_outlook
 from ..domain.research import phase_of, retryable
 from ..domain.research_agents import (
     HARNESS_VERSION,
@@ -64,6 +65,7 @@ from ..domain.research_sociomap import (
 from ..domain.respondent_behavior import AIA_RESPONSE_V1, ResponseProcessSpec
 from ..domain.run_cost import CeilingUnknown, RunCostCeiling, run_cost_ceiling
 from ..domain.scope import OrganizationRole, Permission, StudyContext
+from ..domain.support_forecast import SupportForecast, forecast_support, with_support_forecast
 from ..domain.workflow import StepRunStatus, WorkflowRunStatus
 from ..domain.workflow_templates import RESEARCH, RESEARCH_AGENT
 from ..infrastructure.artifact_repository import ArtifactRepository
@@ -94,6 +96,7 @@ __all__ = [
     "ResearchRunNotRetryable",
     "ResearchRuns",
     "ResearchStepNotFound",
+    "RunOutlook",
     "RunReservations",
     "research_artifacts",
 ]
@@ -197,6 +200,17 @@ class FrozenDataset:
 
     def note(self) -> dict[str, Any]:
         return {**self.step_input(), "round": self.analysis_round, "modules": list(self.retried)}
+
+
+@dataclass(frozen=True, slots=True)
+class RunOutlook:
+    """What a run of a revision would be, before it starts: its specification (``None``: it
+    does not compile), its readiness, and every item's verdict (empty when it does not
+    compile)."""
+
+    spec: ResearchSpecification | None
+    readiness: Readiness
+    questions: tuple[QuestionOutlook, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -700,17 +714,55 @@ class ResearchRuns:
         design_revision_id: str,
         *,
         persona_source: PersonaSource = PersonaSource.FICTIONAL_ROSTER,
+        fieldwork_source: FieldworkSource | None = None,
     ) -> tuple[ResearchSpecification | None, Readiness]:
+        """Compile a revision of this Study and assess it, without starting anything (see
+        :meth:`outlook`, which this reads)."""
+        prepared = self.outlook(
+            design_revision_id, persona_source=persona_source, fieldwork_source=fieldwork_source
+        )
+        return prepared.spec, prepared.readiness
+
+    def outlook(
+        self,
+        design_revision_id: str,
+        *,
+        persona_source: PersonaSource = PersonaSource.FICTIONAL_ROSTER,
+        fieldwork_source: FieldworkSource | None = None,
+    ) -> RunOutlook:
         """Compile a revision of this Study and assess it, without starting anything, under
         the methodology a start would pin now (the one in force) and the persona source it
-        would pin (a panel run applies the design's audience filters)."""
+        would pin (a panel run applies the design's audience filters).
+
+        With ``fieldwork_source`` ``ai_runtime`` the readiness also forecasts the run's
+        evidence support (``domain.support_forecast``) under the support rules a start would
+        pin: the donors fieldwork will draw and whether any number will be shown. Other
+        sources answer by code (the workbench's fixture) and get no forecast, so their
+        questions' support reads unknown. ``questions`` is every item's verdict
+        (``domain.question_outlook``), from that forecast."""
         designs = self._designs()
         revision = designs.get(design_revision_id)
         methods, _ = self._methods(None)
-        return prepare(
+        spec, readiness = prepare(
             designs.content(revision.revision_id),
             pair_n_min=side_tables_of(methods).n_min,
             filters_applied=persona_source is PersonaSource.PANEL,
+        )
+        if spec is None:
+            return RunOutlook(spec=None, readiness=readiness, questions=())
+        forecast: SupportForecast | None = None
+        if fieldwork_source is FieldworkSource.AI_RUNTIME:
+            support, _ = self._support(None)
+            # The aggregation a start would pin, compiled as the aggregate reads it: a version
+            # that replaces Kish's formula changes every cell's effective n.
+            pin, _ = self._aggregation(None)
+            _, slots = read_aggregation_pin(pin)
+            forecast = forecast_support(
+                spec, support=support, persona_source=persona_source, slots=slots
+            )
+            readiness = with_support_forecast(readiness, forecast, support=support)
+        return RunOutlook(
+            spec=spec, readiness=readiness, questions=question_outlook(spec, forecast)
         )
 
     def _support(self, support: SupportSpec | None) -> tuple[SupportSpec, dict[str, Any] | None]:

@@ -15,11 +15,12 @@ import { useResource } from "../useResource";
 import { ClientPage, useClient } from "./ClientContext";
 
 export function DataArea() {
-  const { client } = useClient();
+  const { client, added } = useClient();
   const mayView = client.permissions.includes("VIEW_CLIENT_KNOWLEDGE");
+  // `added`: a dataset the intake sheet just added is listed without a reload.
   const [res, retry] = useResource(
     () => (mayView ? workspace.knowledge(client.client_id, "data") : Promise.resolve([])),
-    [client.client_id, mayView],
+    [client.client_id, mayView, added],
   );
   return (
     <ClientPage sub={t("aia.data.sub")}>
