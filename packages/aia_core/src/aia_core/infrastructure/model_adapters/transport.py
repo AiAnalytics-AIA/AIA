@@ -24,10 +24,11 @@ from aia_core.domain.ai_contracts import (
     ProviderErrorKind,
 )
 
+from ..http_transport import CredentialSource
+
 __all__ = [
     "CliResult",
     "CliRunner",
-    "CredentialSource",
     "EnvironmentCredentials",
     "HttpRequest",
     "HttpResponse",
@@ -243,16 +244,6 @@ class RecordedCliRunner:
 # --------------------------------------------------------------------------- #
 # Credentials
 # --------------------------------------------------------------------------- #
-
-
-class CredentialSource(Protocol):
-    """Resolves a credential reference to its secret. Raises ``KeyError`` if absent.
-
-    The adapter holds a *reference*, never the secret, so configuration and logs
-    can name which credential a route uses without containing it.
-    """
-
-    def secret(self, reference: str) -> str: ...
 
 
 @dataclass(frozen=True, slots=True)

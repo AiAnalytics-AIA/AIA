@@ -43,8 +43,8 @@ from aia_core.domain.ai_contracts import (
 )
 from aia_core.domain.providers import Provider
 
+from ..http_transport import CredentialSource
 from .transport import (
-    CredentialSource,
     HttpRequest,
     HttpResponse,
     HttpTransport,

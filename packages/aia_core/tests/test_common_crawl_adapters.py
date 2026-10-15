@@ -36,7 +36,7 @@ from aia_core.infrastructure.common_crawl import (
     RecordedArchiveTransport,
     common_crawl_settings,
 )
-from aia_core.infrastructure.model_adapters.bedrock import SigningUnavailable
+from aia_core.infrastructure.http_transport import SigningUnavailable
 from aia_core.infrastructure.web_retrieval import (
     FetchedResponse,
     RecordedResolver,
