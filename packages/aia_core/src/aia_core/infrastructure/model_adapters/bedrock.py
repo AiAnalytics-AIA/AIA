@@ -70,6 +70,7 @@ from aia_core.domain.ai_contracts import (
 )
 from aia_core.domain.providers import Provider
 
+from ..http_transport import SigningUnavailable
 from .transport import (
     HttpRequest,
     HttpResponse,
@@ -84,7 +85,6 @@ __all__ = [
     "BEDROCK_SIGNING_SERVICE",
     "BedrockConverseAdapter",
     "BedrockSigner",
-    "SigningUnavailable",
     "bedrock_runtime_host",
 ]
 
@@ -119,10 +119,6 @@ def bedrock_runtime_host(region: str) -> str:
 
 def _utcnow() -> datetime:
     return datetime.now(UTC)
-
-
-class SigningUnavailable(Exception):
-    """No acceptable credential could sign the request. Nothing was sent."""
 
 
 class BedrockSigner(Protocol):

@@ -26,7 +26,6 @@ from .pinned import ModelPinnedAdapter, PinnedModels
 from .transport import (
     CliResult,
     CliRunner,
-    CredentialSource,
     EnvironmentCredentials,
     HttpRequest,
     HttpResponse,
@@ -44,7 +43,6 @@ __all__ = [
     "ClaudeCodeCliAdapter",
     "CliResult",
     "CliRunner",
-    "CredentialSource",
     "EnvironmentCredentials",
     "HttpRequest",
     "HttpResponse",
