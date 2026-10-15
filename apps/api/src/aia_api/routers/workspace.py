@@ -1264,6 +1264,78 @@ def update_client_profile(
     return _profile_out(scope, repo)
 
 
+# The client's own budget (client-budget CB1)
+
+
+class ClientBudgetResponse(BaseModel):
+    """What the client's own AI work may cost; never its studies' budgets."""
+
+    budget_usd: float
+    spent_usd: float
+    reserved_usd: float
+    available_usd: float
+
+
+class ClientBudgetWrite(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    budget_usd: float = Field(ge=0, le=1_000_000)
+
+
+def _budget_out(budget: Any) -> ClientBudgetResponse:
+    return ClientBudgetResponse(
+        budget_usd=budget.budget_usd,
+        spent_usd=budget.spent_usd,
+        reserved_usd=budget.reserved_usd,
+        available_usd=budget.available_usd,
+    )
+
+
+def _budget_error(exc: ScopeDenied) -> HTTPException:
+    if exc.reason == "unknown_client":
+        return _not_found()
+    return _forbidden(exc.reason, "Your role for this client does not permit this.")
+
+
+@router.get(
+    "/clients/{client_id}/budget",
+    response_model=ClientBudgetResponse,
+    summary="What the client's own AI work may cost",
+)
+def client_budget(
+    client_id: ClientIdPath,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    repo: ScopeRepositoryDep,
+) -> ClientBudgetResponse:
+    """Behind VIEW_CLIENT_COSTS; it pays for work on the client itself, not its studies."""
+    scope = _client_scope(principal, resolver, client_id)
+    try:
+        return _budget_out(repo.client_budget(scope))
+    except ScopeDenied as exc:
+        raise _budget_error(exc) from exc
+
+
+@router.put(
+    "/clients/{client_id}/budget",
+    response_model=ClientBudgetResponse,
+    summary="Set what the client's own AI work may cost",
+)
+def set_client_budget(
+    client_id: ClientIdPath,
+    body: ClientBudgetWrite,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    repo: ScopeRepositoryDep,
+) -> ClientBudgetResponse:
+    """Audited as CLIENT_BUDGET_CHANGED with the old and new value; spent is never set here."""
+    scope = _client_scope(principal, resolver, client_id)
+    try:
+        return _budget_out(repo.set_client_budget(scope, body.budget_usd))
+    except ScopeDenied as exc:
+        raise _budget_error(exc) from exc
+
+
 @router.post(
     "/clients/{client_id}/contacts",
     response_model=ContactResponse,

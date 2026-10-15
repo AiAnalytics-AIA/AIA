@@ -228,6 +228,9 @@ class ClientPermission(StrEnum):
     CREATE_STUDY = "CREATE_STUDY"
     #: The client's profile and contacts (client-workspace C5); its name and status are not.
     EDIT_CLIENT_PROFILE = "EDIT_CLIENT_PROFILE"
+    #: The client's own budget and spend: what its client-level AI work may cost (client-budget).
+    VIEW_CLIENT_COSTS = "VIEW_CLIENT_COSTS"
+    MANAGE_CLIENT_BUDGET = "MANAGE_CLIENT_BUDGET"
 
 
 # Client role -> client permissions. A Researcher holds all of them (ADR 0019).
@@ -548,6 +551,33 @@ class Client(BaseModel):
     description: str = ""
     created_at: datetime | None = None
     modified_at: datetime | None = None
+
+
+class ClientBudget(BaseModel):
+    """What the client's own AI work may cost, and where it stands (client-budget CB1).
+
+    Pays for work on the client itself (AI proposals from its documents), never for its
+    studies: each study keeps its own budget. Read only behind ``VIEW_CLIENT_COSTS``, so a
+    client's directory entry never carries it. ``reserved_usd`` is held by calls in flight.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    budget_usd: float
+    spent_usd: float
+    reserved_usd: float = 0.0
+
+    @field_validator("budget_usd", "spent_usd", "reserved_usd")
+    @classmethod
+    def _non_negative(cls, v: float) -> float:
+        if v < 0:
+            raise ValueError("monetary amounts must not be negative")
+        return float(v)
+
+    @property
+    def available_usd(self) -> float:
+        """Headroom for a new hold, never negative."""
+        return max(0.0, self.budget_usd - self.spent_usd - self.reserved_usd)
 
 
 class Study(BaseModel):

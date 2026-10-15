@@ -484,6 +484,13 @@ class ClientRow(Base):
     )
     market: Mapped[str] = mapped_column(String(120), nullable=False, default="", server_default="")
     description: Mapped[str] = mapped_column(Text, nullable=False, default="", server_default="")
+    # The client's own budget (client-budget CB1): what work on the client itself may
+    # cost, never its studies'. 0 until a person sets it, so client AI work waits for one.
+    # `spent_usd` is maintained from settled holds, never set by hand.
+    budget_usd: Mapped[float] = mapped_column(
+        Float, nullable=False, default=0.0, server_default="0"
+    )
+    spent_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0, server_default="0")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
     )
@@ -498,6 +505,8 @@ class ClientRow(Base):
         # A slug is unique per organization, not globally: two organizations may
         # each have a client called "acme".
         UniqueConstraint("organization_id", "slug", name="client_slug_unique"),
+        CheckConstraint("budget_usd >= 0", name="client_budget_non_negative"),
+        CheckConstraint("spent_usd >= 0", name="client_spent_non_negative"),
         CheckConstraint("status in ('ACTIVE','DORMANT','ARCHIVED')", name="client_status_known"),
         Index("ix_clients_org", "organization_id", "status"),
     )

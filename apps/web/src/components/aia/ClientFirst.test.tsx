@@ -338,6 +338,40 @@ describe("a client's workspace", () => {
     expect(calls.find((c) => c.method !== "GET" && c.url.includes("self-approval"))!.body).toEqual({ allowed: false, client_id: "CLI-a" });
   });
 
+  it("shows the client's own budget on Profil and sets it, apart from its studies'", async () => {
+    path = "/app/clients/CLI-a/profile";
+    let budget = { budget_usd: 0, spent_usd: 0, reserved_usd: 0, available_usd: 0 };
+    profileApi({
+      "GET /api/v1/clients/CLI-a": () => ({ ...EDITOR, permissions: [...EDITOR.permissions, "VIEW_CLIENT_COSTS", "MANAGE_CLIENT_BUDGET"] }),
+      "GET /api/v1/clients/CLI-a/budget": () => budget,
+      "PUT /api/v1/clients/CLI-a/budget": (b) => {
+        const v = (b as { budget_usd: number }).budget_usd;
+        budget = { budget_usd: v, spent_usd: 0, reserved_usd: 0, available_usd: v };
+        return budget;
+      },
+    });
+    render(inClient("CLI-a", <ProfileArea />));
+    const card = (await screen.findByRole("heading", { name: "Rozpočet klienta" })).closest("section")!;
+    expect(await within(card).findByText(/práce AI na klientovi počká/)).toBeTruthy();
+    expect(within(card).getByText(/Rozpočty studií jsou zvlášť/)).toBeTruthy();
+    fireEvent.click(within(card).getByRole("button", { name: "Nastavit rozpočet" }));
+    fireEvent.change(within(card).getByRole("spinbutton", { name: "Rozpočet v USD" }), { target: { value: "25.5" } });
+    fireEvent.click(within(card).getByRole("button", { name: "Uložit rozpočet" }));
+    await waitFor(() => expect(called("PUT", "/api/v1/clients/CLI-a/budget")).toHaveLength(1));
+    expect(called("PUT", "/api/v1/clients/CLI-a/budget")[0].body).toEqual({ budget_usd: 25.5 });
+    expect(await within(card).findAllByText(/25,50\sUSD/)).toHaveLength(2);
+    expect(within(card).queryByText(/počká/)).toBeNull();
+  });
+
+  it("shows no budget to a person who may not see the client's costs", async () => {
+    path = "/app/clients/CLI-a/profile";
+    profileApi();
+    render(inClient("CLI-a", <ProfileArea />));
+    await screen.findByRole("heading", { name: "Základní údaje" });
+    expect(screen.queryByRole("heading", { name: "Rozpočet klienta" })).toBeNull();
+    expect(called("GET", "/api/v1/clients/CLI-a/budget")).toHaveLength(0);
+  });
+
   it("shows the profile read-only to a person who may not change it", async () => {
     path = "/app/clients/CLI-a/profile";
     profileApi({ "GET /api/v1/clients/CLI-a": () => A, "GET /api/v1/workspace/me": () => ({ user_id: "USR-2", email: "b@example.test", organization_role: "MEMBER", may_administer: false }) });

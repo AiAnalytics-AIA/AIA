@@ -261,6 +261,8 @@ export type ClientContact = { contact_id: string; name: string; role: string; em
 export type ContactWrite = Omit<ClientContact, "contact_id">;
 export type ProfileChange = { action: string; at: string | null; fields: string[]; contact_name: string | null };
 export type ClientProfile = ClientProfileFields & { contacts: ClientContact[]; history: ProfileChange[] };
+/** What the client's own AI work may cost (client-budget CB1); never its studies' budgets. */
+export type ClientBudget = { budget_usd: number; spent_usd: number; reserved_usd: number; available_usd: number };
 
 export type KnowledgeSection = "sources" | "knowledge" | "dimensions" | "audiences" | "data";
 
@@ -757,6 +759,9 @@ export const workspace = {
   knowledge: (clientId: string, section?: KnowledgeSection, q?: string, filing: KnowledgeFiling = {}) =>
     request<KnowledgeItem[]>("GET", `/api/v1/clients/${enc(clientId)}/knowledge${query({ section, q, folder: filing.folder, label: filing.label })}`),
   profile: (clientId: string) => request<ClientProfile>("GET", `/api/v1/clients/${enc(clientId)}/profile`),
+  budget: (clientId: string) => request<ClientBudget>("GET", `/api/v1/clients/${enc(clientId)}/budget`),
+  setBudget: (clientId: string, budgetUsd: number) =>
+    request<ClientBudget>("PUT", `/api/v1/clients/${enc(clientId)}/budget`, { budget_usd: budgetUsd }),
   saveProfile: (clientId: string, fields: ClientProfileFields) =>
     request<ClientProfile>("PUT", `/api/v1/clients/${enc(clientId)}/profile`, fields),
   addContact: (clientId: string, contact: ContactWrite) =>
