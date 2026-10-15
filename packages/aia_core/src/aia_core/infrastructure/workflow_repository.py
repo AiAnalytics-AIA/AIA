@@ -632,15 +632,23 @@ class WorkflowRepository:
         )
 
     def list_runs(
-        self, *, project_id: str, limit: int = 50, workflow_type: str | None = None
+        self,
+        *,
+        project_id: str,
+        limit: int = 50,
+        workflow_type: str | None = None,
+        key_prefix: str | None = None,
     ) -> list[dict[str, Any]]:
         """Return a project's runs, newest first, without their steps.
 
-        A listing for a screen; :meth:`get_run` returns one run in full.
+        A listing for a screen; :meth:`get_run` returns one run in full. ``key_prefix``
+        keeps the runs whose idempotency key starts with it (matched literally).
         """
         filters = [WorkflowRunRow.project_id == project_id, *self._scope_filter()]
         if workflow_type is not None:
             filters.append(WorkflowRunRow.workflow_type == workflow_type)
+        if key_prefix is not None:
+            filters.append(WorkflowRunRow.idempotency_key.startswith(key_prefix, autoescape=True))
         rows = self._session.scalars(
             select(WorkflowRunRow)
             .where(*filters)

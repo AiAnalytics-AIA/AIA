@@ -225,3 +225,80 @@ def test_a_studys_proposal_does_not_attach_a_clients_source(lead: TestClient, wo
         json={"kind": "DOCUMENT", "title": "Zadání", "content": {"source_id": kept["source_id"]}},
     )
     assert got.status_code == 422 and got.json()["code"] == "invalid_proposal"
+
+
+# ------------------------------------------------- AI proposals from a source (K2d4)
+
+DOCUMENT = (
+    "Fiktivní pivovar Lupínek vaří od roku 1998.\n\nZnačku zná 41 % dospělých v kraji.\n"
+).encode()
+
+
+def _fail_run(app: Any, run_id: str) -> None:
+    """End a run without a result, as a refused step would."""
+    from aia_core.domain.workflow import WorkflowRunStatus
+    from aia_core.infrastructure.db import create_session_factory
+    from aia_core.infrastructure.tables import WorkflowRunRow
+
+    with create_session_factory(app.state.engine)() as session:
+        run = session.get(WorkflowRunRow, run_id)
+        assert run is not None
+        run.status = WorkflowRunStatus.FAILED.value
+        session.commit()
+
+
+def test_proposals_are_queued_once_per_reading_as_the_clients_own_work(
+    lead: TestClient, world: Any, app: Any
+) -> None:
+    client = world.client_id("primary")
+    source = upload(lead, client, "lupinek.txt", DOCUMENT).json()["source_id"]
+    url = f"{API}/clients/{client}/sources/{source}/proposals"
+    assert lead.get(url).json() is None  # nobody has asked
+
+    first = lead.post(url)
+    assert first.status_code == 202, first.text
+    body = first.json()
+    assert (body["source_id"], body["created"], body["current"]) == (source, True, True)
+    assert (body["status"], body["step_status"]) == ("RUNNING", "RUNNABLE")
+    assert body["reason"] is None and body["output"] == {}
+
+    # Asked again: the same run, nothing queued (and nothing paid) twice.
+    again = lead.post(url)
+    assert again.status_code == 200 and again.json()["run_id"] == body["run_id"]
+    assert again.json()["created"] is False
+    assert lead.get(url).json()["run_id"] == body["run_id"]
+
+    # After a run ends without a result, asking again starts another.
+    _fail_run(app, body["run_id"])
+    retried = lead.post(url)
+    assert retried.status_code == 202 and retried.json()["run_id"] != body["run_id"]
+    assert lead.get(url).json()["run_id"] == retried.json()["run_id"]
+
+    # The run is the client's: it names no study.
+    from aia_core.infrastructure.db import create_session_factory
+    from aia_core.infrastructure.tables import WorkflowRunRow
+
+    with create_session_factory(app.state.engine)() as session:
+        run = session.get(WorkflowRunRow, retried.json()["run_id"])
+        assert run is not None and (run.client_id, run.study_id) == (client, None)
+
+
+def test_a_source_it_does_not_extract_is_refused_by_name_and_nothing_is_queued(
+    lead: TestClient, world: Any
+) -> None:
+    client = world.client_id("primary")
+    table = upload(lead, client, "znalost.csv", "značka;znalost\nLupínek;41\n".encode()).json()
+    url = f"{API}/clients/{client}/sources/{table['source_id']}/proposals"
+    refused = lead.post(url)
+    assert refused.status_code == 422 and refused.json()["code"] == "dataset_not_extracted"
+    assert lead.get(url).json() is None
+
+
+def test_another_clients_source_has_no_proposals_here(
+    lead: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    source = upload(lead, world.client_id("primary"), "a.txt", DOCUMENT).json()["source_id"]
+    other = world.client_id("other")
+    url = f"{API}/clients/{other}/sources/{source}/proposals"
+    assert other_client_lead.post(url).status_code == 404
+    assert other_client_lead.get(url).status_code == 404

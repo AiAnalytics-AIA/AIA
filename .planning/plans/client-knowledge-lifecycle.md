@@ -11,7 +11,7 @@ chunks:
   - "[x] K2d1. Extraction in the domain: closed contract, Czech prompt, segment batches, every quote grounded in its segment"
   - "[x] K2d2. Persistence: a client-work reading pinned by its SHA-256; AI-authored proposals written once per run"
   - "[x] K2d3. The client_source_proposals step: executor, workflow type, kill switch, parks by name; recorded-gateway tests under the real worker loop, charged to the client"
-  - "[ ] K2d4. Start and follow: POST /clients/{id}/sources/{source_id}/proposals, idempotent per reading; the run's state"
+  - "[x] K2d4. Start and follow: POST /clients/{id}/sources/{source_id}/proposals, idempotent per reading; the run's state"
   - "[ ] K2d5. Web: Navrhnout znalosti on a document's item and the intake sheet; waiting for budget with the lift; proposals land in Ke schválení"
   - "[ ] K2d6. Burst, latency and money measured; develop activation is the owner's call"
   - "[ ] K2e. Web intake beneath a chosen study: one public URL captured, Deep Research evidence imported"
@@ -462,6 +462,24 @@ generic historical records without inventing source spans or validated dimension
     client charged, the study not; unconfigured; both egress parks; a dataset refused; a $1 client
     budget waits `AWAITING_BUDGET`, a lift to $5 lets it finish -- client-budget CB5's proof
     under the real worker loop; the settings' binding and reservation floor).
+  - **K2d4 landed** (2026-10-15): `application/source_proposals.py`:
+    `start_source_proposals(session, client, work, store, source_id)` (the person's
+    `ClientContext` with `PROPOSE_CLIENT_KNOWLEDGE` and their `ClientWorkContext`, the same
+    person and client) pins the current reading and queues the run as the client's own work.
+    One run per reading: its idempotency key is
+    `client_source_proposals:<source>:<reading sha256>:<harness>:<n>`, and asking again returns
+    the newest run for that reading unless it `FAILED` or was `CANCELLED`, when run `n+1` is
+    queued. A dataset, a source without text or a document nothing was read from is refused by
+    the step's own names before anything is queued. `latest_source_proposals`: the newest run
+    about the source, any reading, with `current` (its reading is still the source's), the
+    step's state, `reason` (the step's waiting reason or its last attempt's error reason) and,
+    once it succeeded, its output. `WorkflowRepository.list_runs(key_prefix=)` matches a key's
+    start literally (`_` and `%` are characters). Routes: `POST
+    /clients/{id}/sources/{source_id}/proposals` (202 new, 200 an existing run, 422 by name,
+    404 another client's source) and `GET` the same (the newest run, or null). Tests:
+    `apps/api/tests/test_client_sources_api.py` (3: once per reading, a retry after a failed
+    run, no study named; a dataset refused with nothing queued; another client's source 404) and
+    `test_client_work_start.py::test_runs_are_listed_by_their_keys_prefix_matched_literally`.
 - **K2e. Web intake.**
   - URL capture is one fetch through `RetrievalGate` beneath the chosen study. The snapshot is
     stored as a client source with `origin=web`, the URL and the retrieval time.
