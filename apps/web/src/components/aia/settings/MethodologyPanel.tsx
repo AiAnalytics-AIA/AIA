@@ -33,6 +33,7 @@ async function loadList(): Promise<MethodModuleSummary[]> {
 
 const anyone: People = (id) => id ?? "—";
 const PURPOSE_GROUPS = [
+  { title: "Před spuštěním", ids: ["readiness"] },
   { title: "Mapy objektů", ids: ["sociomap", "sociomap_reference", "sociomapping"] },
   { title: "Čísla ve výsledcích", ids: ["aggregation", "support"] },
   { title: "Respondenti a váhy", ids: ["response", "weighting"] },
