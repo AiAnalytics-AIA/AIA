@@ -17,13 +17,15 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from .ai_contracts import AgentDefinition, Message, ModelRequest, canonical_json
 from .ai_material import MaterialApproval, classify_material, most_restrictive_material
 from .ai_models import ModelCapability
+from .analysis.native import MAX_RESEARCH_QUESTIONS, research_questions_of
 from .knowledge import KnowledgeItem
 from .licence import DataLineage
 from .prompts import PromptPin
 from .residency import DataClass
 
-HARNESS_VERSION: Final = "aia-research-harness-2"
+HARNESS_VERSION: Final = "aia-research-harness-3"
 #: The prompt version of the wording this code ships; a stored edit has its own (``prompts``).
+#: Each action's own is :func:`prompt_version_for`.
 BASELINE_PROMPT_VERSION: Final = "2"
 CONTEXT_MAX_BYTES: Final = 64_000
 KNOWLEDGE_MAX_BYTES: Final = 20_000
@@ -38,6 +40,11 @@ class ResearchAction(StrEnum):
     CRITIQUE = "critique_design"
     COPILOT = "design_copilot"
     MEMORY = "answer_memory"
+
+
+#: The most research questions an item links to, or a proposal answers: as many as the
+#: analysis reads.
+MAX_LINKS: Final = MAX_RESEARCH_QUESTIONS
 
 
 class Closed(BaseModel):
@@ -93,6 +100,8 @@ class Question(Closed):
     povolit_nevim: bool
     max_slov: int = Field(ge=1, le=600)
     topics: list[str] = Field(max_length=10)
+    #: The stated research questions this question measures, by text (plan 3e).
+    research_questions: list[str] = Field(max_length=MAX_LINKS)
 
     @model_validator(mode="after")
     def coherent(self) -> Question:
@@ -122,6 +131,10 @@ class BatterySection(Closed):
     scale_labels: tuple[str, str]
     familiarity_required: bool
     visualize: bool
+    #: ``test_konceptu``: the objects are concepts compared as an A/B test (plan 3c).
+    output_type: Literal["pozicni_mapa", "test_konceptu"]
+    #: The stated research questions the whole set measures, by text (plan 3e).
+    research_questions: list[str] = Field(max_length=MAX_LINKS)
 
     @model_validator(mode="after")
     def coherent(self) -> BatterySection:
@@ -130,10 +143,18 @@ class BatterySection(Closed):
         return self
 
 
+class ResearchQuestionAnswer(Closed):
+    """How one stated research question is answered (``research_trace.Comparison``)."""
+
+    research_question: str = Field(min_length=1, max_length=1500)
+    comparison: Literal["describe", "rank_objects", "compare_segments", "ab_test"]
+
+
 class QuestionnaireProposal(Closed):
     message: str = Field(max_length=2000)
     sections: list[QuestionSection | BatterySection] = Field(min_length=1, max_length=12)
     warnings: list[str] = Field(max_length=10)
+    comparisons: list[ResearchQuestionAnswer] = Field(max_length=MAX_LINKS)
 
 
 class AudienceProposal(Closed):
@@ -232,15 +253,26 @@ společným object_question obsahujícím přesně {object}, konzistentním smě
 oběma scale_labels, objects, object_family a object_type. visualize=true znamená
 návrh zobrazení, nikoli záruku mapovatelnosti. Nepřidávej nesouvisející objekty jen
 kvůli mapě. Pokud se má testovat škála znalosti či hodnocení, nemíchej tyto konstrukty.
-Každá Question má i kategorie, skala, popisky_skaly, povolit_nevim, max_slov a topics.
+Každá Question má i kategorie, skala, popisky_skaly, povolit_nevim, max_slov, topics
+a research_questions.
 Dvojice v JSON jsou dvouprvková pole; bool je true/false; kategorie a topics jsou
 pole řetězců. Pro výběr uveď alespoň dvě kategorie. Typy jsou pouze vyber, multi,
 skala, otevrena. Nevymýšlej nový typ familiarity nebo routing. Pro nepoužitou škálu
 lze uvést [1,5] a popisky ["nízké","vysoké"]; nepoužité kategorie jsou [].
 QuestionSection: type="questions", title, purpose, questions. BatterySection:
 type="object_battery", title, purpose, object_family, object_type, objects,
-object_question, scale, scale_labels, familiarity_required, visualize. Nemíchej klíče
-obou typů. Výstup je úplný QuestionnaireProposal: message, sections, warnings.
+object_question, scale, scale_labels, familiarity_required, visualize, output_type,
+research_questions. Nemíchej klíče obou typů. Výstup je úplný QuestionnaireProposal:
+message, sections, warnings, comparisons.
+Vazby na výzkumné otázky: u každé Question i BatterySection uveď v research_questions
+přesné znění výzkumných otázek ze zadání (design.research_plan.research_questions;
+chybí-li, objectives), které položka měří. Text zkopíruj beze změny; položka, která
+žádnou neměří, má []. Nevymýšlej výzkumnou otázku, kterou zadání neuvádí: aplikace
+vazbu na neuvedenou otázku zahodí. V comparisons uveď pro každou výzkumnou otázku, jak
+ji výsledek zodpoví: describe (rozložení odpovědí), rank_objects (pořadí objektů jedné
+sledované sady), compare_segments (srovnání skupin respondentů), ab_test (srovnání
+konceptů v sadě s output_type="test_konceptu"). Ostatní sady mají
+output_type="pozicni_mapa". Zda běh otázku skutečně zodpoví, posoudí aplikace.
 Nepředstírej schválenou analýzu, pokud není dodaná. Seznam domyšlených služeb je
 výslovně návrh k potvrzení, ne typický ověřený katalog. Pokud cíl požaduje skutečnou
 nabídku institucí, v message a warnings řekni, že dotazování veřejnosti ji neověří;
@@ -265,8 +297,19 @@ Zachovej společnou otázku baterie s {object}, směr škály a koncové popisky
 Sociomapping může použít jen srovnatelné objekty společně hodnocené na stejné škále;
 chybějící baterii navrhni pouze při vazbě na cíl, ne kvůli dekoraci reportu.
 Vrať celý QuestionnaireProposal včetně všech vlastních sekcí, ne diff. U questions
-použij text, typ, kategorie, skala, popisky_skaly, povolit_nevim, max_slov, topics.
-U object_battery použij pouze její předepsané klíče. Dvojice jsou pole délky dva,
+použij text, typ, kategorie, skala, popisky_skaly, povolit_nevim, max_slov, topics,
+research_questions. U object_battery použij pouze její předepsané klíče včetně
+output_type a research_questions; vazby, které obsah položky stále měří, zachovej.
+Vazby na výzkumné otázky: u každé Question i BatterySection uveď v research_questions
+přesné znění výzkumných otázek ze zadání (design.research_plan.research_questions;
+chybí-li, objectives), které položka měří. Text zkopíruj beze změny; položka, která
+žádnou neměří, má []. Nevymýšlej výzkumnou otázku, kterou zadání neuvádí: aplikace
+vazbu na neuvedenou otázku zahodí. V comparisons uveď pro každou výzkumnou otázku, jak
+ji výsledek zodpoví: describe (rozložení odpovědí), rank_objects (pořadí objektů jedné
+sledované sady), compare_segments (srovnání skupin respondentů), ab_test (srovnání
+konceptů v sadě s output_type="test_konceptu"). Ostatní sady mají
+output_type="pozicni_mapa". Zda běh otázku skutečně zodpoví, posoudí aplikace.
+Dvojice jsou pole délky dva,
 seznamy jsou pole a bool jsou JSON booleany. Nezaváděj nepodporované routing klíče.
 Návrh musí oddělit znalost a využívání do různých otázek; nepoužívej "využíváte
 nebo znáte". Nesrovnatelnost starého a nového nástroje, změna kategorií a návrh
@@ -274,7 +317,7 @@ nové neověřené sady služeb patří vždy do warnings. Bez poskytnutého kat
 nesmíš tvrdit, že seznam jsou skutečně nabízené či běžné služby. Při nesouladu
 cíle vysvětli v message, že návrh na povědomí cíl ověřené nabídky nezodpoví.
 Cíl délky: message do 1200 znaků, otázky obvykle do 350, purpose do 500; warnings
-jsou krátké řetězce, prázdné pole je [].""",
+jsou krátké řetězce, prázdné pole je []; comparisons je pole objektů.""",
     ResearchAction.AUDIENCE: """Navrhni vymezení cílové skupiny, inclusion/exclusion a
 nezbytné doplňující otázky. Nenavrhuj číselné podíly nebo počty z modelové znalosti.
 Nastavení filtrů a výpočet proveditelnosti proběhnou samostatně nad katalogem.
@@ -460,6 +503,19 @@ _TASKS: Final[dict[ResearchAction, str]] = {
 FIXED_PREFIX: Final = _COMMON + "\n"
 
 
+#: The actions whose wording moved past the baseline version, and to which version: the
+#: questionnaire prompts name the research-question links and comparisons (plan 3e).
+_PROMPT_VERSIONS: Final[dict[ResearchAction, str]] = {
+    ResearchAction.BUILD: "3",
+    ResearchAction.OPTIMIZE: "3",
+}
+
+
+def prompt_version_for(action: ResearchAction) -> str:
+    """The version of the task wording this code ships for ``action``."""
+    return _PROMPT_VERSIONS.get(action, BASELINE_PROMPT_VERSION)
+
+
 def baseline_task(action: ResearchAction) -> str:
     """The task wording this code ships: the editable part's baseline."""
     return _TASKS[action]
@@ -597,7 +653,7 @@ def agent_request(
             version="1",
             capability=capability,
             prompt_id=prompt_id,
-            prompt_version=BASELINE_PROMPT_VERSION if prompt is None else prompt.version,
+            prompt_version=prompt_version_for(action) if prompt is None else prompt.version,
             output_contract=CONTRACTS[action],
             max_output_tokens=max_output_tokens,
             schema_repair_attempts=1,
@@ -613,6 +669,27 @@ def agent_request(
             ),
         ),
     )
+
+
+def _link_key(text: str) -> str:
+    """A research question as links compare it: whitespace collapsed (``research_trace``)."""
+    return " ".join(text.split())
+
+
+def _keep_links(
+    item: dict[str, Any], item_id: str, stated: dict[str, str], dropped: list[dict[str, str]]
+) -> None:
+    """``item``'s links, kept only where they name a stated research question (in its
+    stated wording); any other is dropped and named. None kept is no declaration."""
+    kept: list[str] = []
+    for text in item.pop("research_questions", []):
+        known = stated.get(_link_key(text))
+        if known is None:
+            dropped.append({"item": item_id, "research_question": text})
+        elif known not in kept:
+            kept.append(known)
+    if kept:
+        item["research_questions"] = kept
 
 
 def proposal_result(
@@ -648,11 +725,32 @@ def proposal_result(
             used_ids.add(candidate)
             return candidate
 
+        stated = {_link_key(t): t for t in research_questions_of(baseline)}
+        dropped: list[dict[str, str]] = []
         for i, section in enumerate(sections):
             section["id"] = assign_id(f"ai_section_{i + 1}")
+            if section["type"] == "object_battery":
+                _keep_links(section, section["id"], stated, dropped)
             for j, question in enumerate(section.get("questions", [])):
                 question["id"] = assign_id(f"ai_q_{i + 1}_{j + 1}")
+                _keep_links(question, question["id"], stated, dropped)
         p["sections"] = preserved + sections
+        answered = data["comparisons"]
+        plan = dict(p.get("research_plan") or {})
+        declared = dict(plan.get("research_question_comparisons") or {})
+        for answer in answered:
+            text = stated.get(_link_key(answer["research_question"]))
+            if text is None:
+                dropped.append(
+                    {"item": "comparison", "research_question": answer["research_question"]}
+                )
+                continue
+            declared = {k: v for k, v in declared.items() if _link_key(str(k)) != _link_key(text)}
+            declared[text] = answer["comparison"]
+        if declared:
+            plan["research_question_comparisons"] = declared
+            p["research_plan"] = plan
+        result["dropped_links"] = dropped
     elif isinstance(output, AudienceProposal):
         p["audience"] = {
             **p.get("audience", {}),

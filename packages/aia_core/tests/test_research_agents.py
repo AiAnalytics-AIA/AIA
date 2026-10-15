@@ -196,10 +196,12 @@ def test_questionnaire_proposal_preserves_library_sections_and_unique_ids() -> N
                             "povolit_nevim": True,
                             "max_slov": 20,
                             "topics": [],
+                            "research_questions": [],
                         }
                     ],
                 }
             ],
+            "comparisons": [],
         }
     )
     result = proposal_result(ResearchAction.BUILD, baseline, output, context_snapshot(baseline, []))
@@ -245,3 +247,143 @@ def test_audience_and_dimension_proposals_never_approve_filters_or_dimensions() 
     result = proposal_result(ResearchAction.DIMENSIONS, baseline, dimensions, snapshot)
     assert result["project"]["persona_dimensions"]["approved"] == ["existing"]
     assert result["dimensions"] == []
+
+
+RQ_HABIT = "Jak často lidé pijí kávu?"
+RQ_IMAGE = "Jak lidé vnímají ranní nápoje?"
+
+
+def _question(text: str, links: list[str]) -> dict[str, Any]:
+    return {
+        "text": text,
+        "typ": "skala",
+        "kategorie": [],
+        "skala": [1, 5],
+        "popisky_skaly": ["Málo", "Hodně"],
+        "povolit_nevim": False,
+        "max_slov": 20,
+        "topics": [],
+        "research_questions": links,
+    }
+
+
+def _linked_proposal(comparisons: list[dict[str, str]]) -> Any:
+    from aia_core.domain.research_agents import QuestionnaireProposal
+
+    return QuestionnaireProposal.model_validate(
+        {
+            "message": "Návrh",
+            "warnings": [],
+            "sections": [
+                {
+                    "type": "questions",
+                    "title": "Zvyky",
+                    "purpose": "Frekvence",
+                    "questions": [
+                        _question(
+                            "Jak často pijete kávu?", [f"  {RQ_HABIT} ", "Vymyšlená otázka?"]
+                        ),
+                        _question("Kolik šálků denně?", []),
+                    ],
+                },
+                {
+                    "type": "object_battery",
+                    "title": "Nápoje",
+                    "purpose": "Vnímání",
+                    "object_family": "nápoje",
+                    "object_type": "nápoje",
+                    "objects": ["Káva", "Čaj", "Kakao"],
+                    "object_question": "Jak hodnotíte {object}?",
+                    "scale": [1, 10],
+                    "scale_labels": ["vůbec", "velmi"],
+                    "familiarity_required": False,
+                    "visualize": True,
+                    "output_type": "test_konceptu",
+                    "research_questions": [RQ_IMAGE, RQ_IMAGE],
+                },
+            ],
+            "comparisons": comparisons,
+        }
+    )
+
+
+def test_the_questionnaire_contract_stays_strict_compatible() -> None:
+    """Plan 3e: the new fields are required, so the strict tier still applies."""
+    from aia_core.domain.ai_contracts import output_schema, schema_supports_strict
+    from aia_core.domain.research_agents import QuestionnaireProposal
+
+    assert schema_supports_strict(output_schema(QuestionnaireProposal))
+
+
+def test_a_proposal_keeps_only_links_to_stated_research_questions_in_their_wording() -> None:
+    baseline = {**DESIGN, "research_plan": {"research_questions": [RQ_HABIT, RQ_IMAGE]}}
+    result = proposal_result(
+        ResearchAction.BUILD,
+        baseline,
+        _linked_proposal([]),
+        context_snapshot(baseline, []),
+    )
+    questions, battery = result["project"]["sections"]
+    assert questions["questions"][0]["research_questions"] == [RQ_HABIT]
+    # None declared is no declaration: the key is left out, as the editor leaves it.
+    assert "research_questions" not in questions["questions"][1]
+    assert battery["research_questions"] == [RQ_IMAGE]
+    assert battery["output_type"] == "test_konceptu"
+    assert result["dropped_links"] == [
+        {"item": questions["questions"][0]["id"], "research_question": "Vymyšlená otázka?"}
+    ]
+
+
+def test_a_proposal_declares_comparisons_for_stated_questions_and_keeps_the_others() -> None:
+    baseline = {
+        **DESIGN,
+        "research_plan": {
+            "research_questions": [RQ_HABIT, RQ_IMAGE],
+            "research_question_comparisons": {RQ_HABIT: "describe", f" {RQ_IMAGE}": "describe"},
+        },
+    }
+    output = _linked_proposal(
+        [
+            {"research_question": RQ_IMAGE, "comparison": "ab_test"},
+            {"research_question": "Vymyšlená otázka?", "comparison": "rank_objects"},
+        ]
+    )
+    result = proposal_result(
+        ResearchAction.OPTIMIZE, baseline, output, context_snapshot(baseline, [])
+    )
+    plan = result["project"]["research_plan"]
+    assert plan["research_question_comparisons"] == {RQ_HABIT: "describe", RQ_IMAGE: "ab_test"}
+    assert plan["research_questions"] == [RQ_HABIT, RQ_IMAGE]
+    assert {"item": "comparison", "research_question": "Vymyšlená otázka?"} in result[
+        "dropped_links"
+    ]
+    assert baseline["research_plan"]["research_question_comparisons"][RQ_HABIT] == "describe"
+
+
+def test_without_stated_research_questions_every_link_is_dropped_not_invented() -> None:
+    result = proposal_result(
+        ResearchAction.BUILD,
+        {**DESIGN, "goal": ""},
+        _linked_proposal([{"research_question": RQ_HABIT, "comparison": "describe"}]),
+        context_snapshot(DESIGN, []),
+    )
+    sections = result["project"]["sections"]
+    assert all("research_questions" not in q for q in sections[0]["questions"])
+    assert "research_questions" not in sections[1]
+    assert "research_plan" not in result["project"]
+    assert len(result["dropped_links"]) == 5
+
+
+def test_an_accepted_proposal_compiles_with_its_links_and_concept_set() -> None:
+    from aia_core.domain.research_design import compile_design
+
+    baseline = {**DESIGN, "n": 400, "research_plan": {"research_questions": [RQ_HABIT, RQ_IMAGE]}}
+    output = _linked_proposal([{"research_question": RQ_IMAGE, "comparison": "ab_test"}])
+    project = proposal_result(
+        ResearchAction.BUILD, baseline, output, context_snapshot(baseline, [])
+    )["project"]
+    spec, problems = compile_design(project)
+    assert spec is not None, problems
+    assert spec.questions[0].research_questions == (RQ_HABIT,)
+    assert spec.batteries[0].research_questions == (RQ_IMAGE,)
+    assert spec.batteries[0].output_type == "test_konceptu"
