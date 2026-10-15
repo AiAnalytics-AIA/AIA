@@ -3,7 +3,8 @@ status: in-progress
 chunks:
   - "[x] CB1. The client's budget: clients.budget_usd / spent_usd, VIEW_CLIENT_COSTS and MANAGE_CLIENT_BUDGET, GET/PUT /clients/{id}/budget audited, shown and set on Profil"
   - "[x] CB2. Client-paid runs in the schema: one payer per project, run, hold, usage row and approval (study or, when none, the client), the client_sources owner; the repository's hold, charge and close paths read the payer"
-  - "[ ] CB3. A run's payer in the worker: ScopeResolver issues a ClientWorkContext against a held lease; reserve, settle and charge the client; the gateway, egress and usage ledger take either payer"
+  - "[x] CB3. A run's payer in the worker: ScopeResolver issues a ClientWorkContext against a held lease; reserve, settle and charge the client; the gateway, egress and usage ledger take either payer"
+  - "[ ] CB3b. Starting the client's own work: a client_sources project and a run created by a person under a ClientContext with RUN_CLIENT_WORK"
   - "[ ] CB4. Over budget: a client run parks AWAITING_BUDGET and a person lifts it from the client, recorded in the approval ledger"
   - "[ ] CB5. Proof: a scripted paid step charged to a client end to end on SQLite and PostgreSQL; Doc follow-up (lifecycle K2d pays from the client)"
 ---
@@ -119,7 +120,25 @@ Mapped 2026-10-15 on `origin/develop` @ 7d4f1ef5. Paths under `packages/aia_core
 - `ClientWorkContext`, `ScopeResolver.execution_context` returning it for a client run, the
   repositories and the gateway path taking it. (`_reserve` locking the client landed in CB2.)
 - Creating a client run: a `client_sources` project for the client and `create_run` under a
-  person's `ClientContext` with a new `RUN_CLIENT_WORK` permission.
+  person's `ClientContext` with a new `RUN_CLIENT_WORK` permission. Split out as **CB3b**.
+- **Landed** (2026-10-15):
+  - `ClientWorkContext` (`domain/scope.py`): organization, client, actor, the worker's
+    permissions, an issued grant, no study; `WorkScope = StudyContext | ClientWorkContext`;
+    `payer_study_id(scope)`, the one reading of who pays.
+  - `ScopeResolver.execution_context` returns a `ClientWorkContext` for a run that names no
+    study: the same lease rule, the run's own client, refused when archived
+    (`application/scope.py`).
+  - `WorkflowRepository` takes either; under a client scope its isolation predicate is the
+    client's runs with no study, and `.scope` (everything about a study) refuses by name
+    (`client_work_scope`). `AIUsageRepository`, `ExecutionContext` and `evaluate_egress`
+    take either; an egress decision and a usage event name no study for client work.
+  - The worker: `AttemptContext.work_scope` is what paid calls run under
+    (`StepModelCaller` reads it); `.scope` refuses on client work, so an executor written
+    for a study fails closed there.
+  - Tests: `packages/aia_core/tests/test_client_work_scope.py` (4, SQLite and PostgreSQL);
+    `apps/worker/tests/test_worker_loop.py`: a paid call on the client's work charged to
+    the client under the real worker loop, and one too large for its budget parked
+    `AWAITING_BUDGET` while the study's $100 stood untouched.
 
 ### CB4. Over budget
 

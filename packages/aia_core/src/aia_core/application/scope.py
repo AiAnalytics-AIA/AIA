@@ -28,6 +28,7 @@ from ..domain.scope import (
     ClientContext,
     ClientPermission,
     ClientStatus,
+    ClientWorkContext,
     OrganizationContext,
     OrganizationRole,
     Permission,
@@ -285,7 +286,9 @@ class ScopeResolver:
 
         return context
 
-    def execution_context(self, *, attempt_id: str, worker_id: str) -> StudyContext:
+    def execution_context(
+        self, *, attempt_id: str, worker_id: str
+    ) -> StudyContext | ClientWorkContext:
         """Issue the scope a worker executes one claimed attempt under.
 
         **The capability is the lease.** The context is issued only while
@@ -311,7 +314,19 @@ class ScopeResolver:
 
         Denials raise :class:`ScopeDenied` with a reason, like every other
         resolution.
+
+        A run that names no study is the client's own work (client-budget): it gets a
+        :class:`ClientWorkContext` for the run's client, by the same lease rule, so it
+        can be paid for by the client and can reach no study.
         """
+        claimed = self._session.execute(
+            select(StepAttemptRow, WorkflowRunRow)
+            .join(StepRunRow, StepRunRow.step_id == StepAttemptRow.step_id)
+            .join(WorkflowRunRow, WorkflowRunRow.run_id == StepRunRow.run_id)
+            .where(StepAttemptRow.attempt_id == attempt_id)
+        ).first()
+        if claimed is not None and claimed[1].study_id is None:
+            return self._client_work_context(claimed[0], claimed[1], worker_id=worker_id)
         row = self._session.execute(
             select(StepAttemptRow, WorkflowRunRow, StudyRow, ClientRow)
             .join(StepRunRow, StepRunRow.step_id == StepAttemptRow.step_id)
@@ -352,6 +367,27 @@ class ScopeResolver:
                 client=client.allow_self_approval,
                 study=study.allow_self_approval,
             ),
+            request_id=f"{run.run_id}/{attempt.attempt_id}",
+        )
+
+    def _client_work_context(
+        self, attempt: StepAttemptRow, run: WorkflowRunRow, *, worker_id: str
+    ) -> ClientWorkContext:
+        """The client-paid half of :meth:`execution_context`: the same lease, the client's
+        own record (never one named by the caller), the same archive rule."""
+        if attempt.worker_id != worker_id or not AttemptStatus(attempt.status).holds_lease:
+            raise ScopeDenied("not found", reason="lease_not_held")
+        client = self._session.scalar(select(ClientRow).where(ClientRow.client_id == run.client_id))
+        if client is None or client.organization_id != run.organization_id:
+            raise ScopeDenied("not found", reason="scope_mismatch")
+        if client.status == ClientStatus.ARCHIVED.value:
+            raise ScopeDenied("not found", reason="client_archived")
+        return ClientWorkContext(
+            organization_id=run.organization_id,
+            client_id=client.client_id,
+            actor_id=run.triggered_by or f"worker:{worker_id}",
+            permissions=WORKER_PERMISSIONS,
+            grant=ScopeGrant._issue(),
             request_id=f"{run.run_id}/{attempt.attempt_id}",
         )
 

@@ -43,8 +43,11 @@ from ..domain.population import (
 from ..domain.providers import Provider, is_paid
 from ..domain.scope import (
     ApprovalIndependence,
+    ClientWorkContext,
     Permission,
+    ScopeDenied,
     StudyContext,
+    WorkScope,
     observe_approval_independence,
     require_approval_independence,
 )
@@ -247,14 +250,14 @@ class WorkflowRepository:
     reservation and the state change be one atomic unit.
     """
 
-    def __init__(self, session: Session, scope: StudyContext) -> None:
-        if not isinstance(scope, StudyContext):
+    def __init__(self, session: Session, scope: WorkScope) -> None:
+        if not isinstance(scope, StudyContext | ClientWorkContext):
             raise TypeError(
-                "WorkflowRepository requires a StudyContext issued by the "
-                "authorization layer; unscoped access is not permitted"
+                "WorkflowRepository requires a StudyContext or ClientWorkContext issued by "
+                "the authorization layer; unscoped access is not permitted"
             )
         self._session = session
-        self._scope: StudyContext | None = scope
+        self._scope: WorkScope | None = scope
 
     @classmethod
     def _across_studies(cls, session: Session) -> WorkflowRepository:
@@ -273,9 +276,24 @@ class WorkflowRepository:
 
     @property
     def scope(self) -> StudyContext:
-        """The authorised scope this repository operates in."""
+        """The authorised study scope this repository operates in.
+
+        Everything about a study -- starting, listing, approving, lifting its budget --
+        reads this, so a repository over the client's own work (a
+        :class:`ClientWorkContext`) refuses all of it by name rather than act on a study
+        it does not have.
+        """
         if self._scope is None:
             raise RuntimeError("this repository is the unscoped work queue and has no study scope")
+        if not isinstance(self._scope, StudyContext):
+            raise ScopeDenied("client work has no study", reason="client_work_scope")
+        return self._scope
+
+    @property
+    def _work_scope(self) -> WorkScope:
+        """The scope an attempt's own writes run under: a study's, or the client's work."""
+        if self._scope is None:
+            raise RuntimeError("this repository is the unscoped work queue and has no scope")
         return self._scope
 
     # ---------------------------------------------------------------- helpers --
@@ -287,10 +305,17 @@ class WorkflowRepository:
         """
         if self._scope is None:
             return ()
+        if isinstance(self._scope, ClientWorkContext):
+            # The client's own work: its runs name no study, so no study's run is in scope.
+            return (
+                WorkflowRunRow.organization_id == self._scope.organization_id,
+                WorkflowRunRow.client_id == self._scope.client_id,
+                WorkflowRunRow.study_id.is_(None),
+            )
         return (
-            WorkflowRunRow.organization_id == self.scope.organization_id,
-            WorkflowRunRow.client_id == self.scope.client_id,
-            WorkflowRunRow.study_id == self.scope.study_id,
+            WorkflowRunRow.organization_id == self._scope.organization_id,
+            WorkflowRunRow.client_id == self._scope.client_id,
+            WorkflowRunRow.study_id == self._scope.study_id,
         )
 
     def _run(self, run_id: str) -> WorkflowRunRow:
@@ -2434,7 +2459,7 @@ class WorkflowRepository:
                 question=question,
                 options_json={"options": list(options)},
                 context_json=context or {},
-                produced_by_user_id=produced_by_user_id or self.scope.actor_id,
+                produced_by_user_id=produced_by_user_id or self._work_scope.actor_id,
             )
         )
         step.status = StepRunStatus.AWAITING_GATE.value
