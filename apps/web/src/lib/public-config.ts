@@ -31,7 +31,25 @@ export type PublicConfig = {
     switches: Record<(typeof AI_SWITCHES)[number], boolean | null>;
   };
   build: { sha: string | null; built_at: string | null };
+  // Where the browser reports an error it could not handle (GlitchTip; lib/error-tracking.ts).
+  // A DSN's key is public by design: it can only send events. null: nothing is loaded.
+  errorTracking: { dsn: string | null; environment: string | null; release: string | null };
 };
+
+// A DSN as GlitchTip and Sentry write one: http(s)://<key>@<host>[:port]/<project id>. The
+// API and the worker refuse a malformed one at start (aia_core error_tracking); /config cannot
+// refuse to answer, so it reports none and says why in the server's log.
+const DSN_SHAPE = /^https?:\/\/[A-Za-z0-9]+@[A-Za-z0-9.-]+(:\d+)?\/\d+$/;
+
+export function errorTrackingDsn(raw: string | undefined): string | null {
+  const value = (raw ?? "").trim();
+  if (!value) return null;
+  if (!DSN_SHAPE.test(value)) {
+    console.error("AIA_WEB_ERROR_TRACKING_DSN is not a DSN; browser error tracking is off");
+    return null;
+  }
+  return value;
+}
 
 // The worker's vocabulary for AIA_AI_RUNTIME_ENABLED (apps/executors/src/aia_executors/
 // ai_runtime.py, _TRUE/_FALSE). Compose hands both services the same raw value, so the

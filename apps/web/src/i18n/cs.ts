@@ -2670,6 +2670,13 @@ export const cs = {
       "Co AIA zatím nemá, říká tam, kde to potkáte, například simulace, ověření a další krok výzkumu, Data Library, klientský report nebo filtry publika z panelu.",
     openAia: "Otevřít AIA",
   },
+  pageError: {
+    title: "Tuto stránku se nepodařilo zobrazit",
+    text: "Chyba byla zaznamenána a tým AIA ji uvidí. Zkuste stránku načíst znovu; vaše uložená práce zůstává v AIA.",
+    reference: "Číslo chyby:",
+    retry: "Zkusit znovu",
+    home: "Zpět na klienty",
+  },
   dialog: {
     ok: "OK",
     cancel: "Zrušit",
