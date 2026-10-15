@@ -709,3 +709,27 @@ def test_a_start_that_finds_its_run_returns_it_under_stricter_limits(world: Any)
             design_revision_id=other.revision_id,
             fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
         )
+
+
+# ------------------------------------------------- V1b: the places a run stores its numbers
+
+
+def test_a_run_stores_its_numbers_at_the_places_its_aggregation_pinned(
+    world: Any, worker: Worker, store: InMemoryArtifactStore
+) -> None:
+    spec = AIA_AGGREGATE_V1.model_dump(mode="json")
+    spec["methodology_version"] = "aia-aggregate-1+e1"
+    spec["rounding"] = {"share_decimals": 0, "mean_decimals": 3}
+    today, edited = _start(world), _start_aggregation(world, {"spec": spec, "formulas": {}})
+    _drain(worker)
+    unit, ours = _aggregate(world, store, today), _aggregate(world, store, edited)
+    assert "rounding" not in unit
+    assert ours["rounding"] == {"share_decimals": 0, "mean_decimals": 3}
+    assert {c["path"] for c in ours["deviation"]["changed"]} == {
+        "rounding.mean_decimals",
+        "rounding.share_decimals",
+    }
+    for oid, cell in next(iter(ours["batteries"].values()))["objects"].items():
+        if cell["prumer"] is not None:
+            assert cell["prumer"] == round(cell["prumer"], 3), oid
+            assert cell["top2box_pct"] == round(cell["top2box_pct"]), oid

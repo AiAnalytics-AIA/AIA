@@ -51,6 +51,15 @@
        "fidelity"
       ],
       "title_cs": "Věrohodnost otázky"
+     },
+     {
+      "id": "Z",
+      "note_cs": "",
+      "step_ids": [
+       "round_share",
+       "round_mean"
+      ],
+      "title_cs": "Zobrazení čísel"
      }
     ],
     "id": "aggregation",
@@ -60,6 +69,7 @@
     "presets": [
      "aia-aggregate-1"
     ],
+    "preview_title_cs": "Jak to uvidí výzkumník ve Výsledcích a ve zprávě",
     "step_details": [
      {
       "audit": "",
@@ -82,7 +92,7 @@
       "reading_cs": "",
       "role_cs": "",
       "source_cs": "",
-      "source_sha256": "b4a5fabda39765ee5338208acc77f25674896dea4aaa59d71dd3cb7ef9d0540d",
+      "source_sha256": "0366231c59589dc23ae7c9f7aaa9f81038147f8ec1a942e32bef7dbf5766cf31",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_methodology_aggregation.py::test_the_preset_is_the_units_literals_bit_for_bit",
@@ -273,7 +283,7 @@
       "reading_cs": "",
       "role_cs": "",
       "source_cs": "",
-      "source_sha256": "753ecee5c57b695210093700b35cef706bd195a57c3810f9db68b73a634e46b9",
+      "source_sha256": "ccbf0a5f0ad9a737ed5ae6e741a9ddee5cbe183015a658f7a22abdb276f4e25a",
       "symbols": [
        {
         "latex": "p_c",
@@ -555,7 +565,7 @@
       "reading_cs": "",
       "role_cs": "",
       "source_cs": "",
-      "source_sha256": "cc5a38c8a135ede7d140dad91814cd57bf2270d7dcd8d85ee9fe2cbd43134ff4",
+      "source_sha256": "d028b86b424ef08f51a1ab7adb400bb2f6b828a39fc4a0d84ca35044a6f448c9",
       "symbols": [
        {
         "latex": "b",
@@ -616,7 +626,7 @@
       "reading_cs": "",
       "role_cs": "",
       "source_cs": "",
-      "source_sha256": "cc5a38c8a135ede7d140dad91814cd57bf2270d7dcd8d85ee9fe2cbd43134ff4",
+      "source_sha256": "d028b86b424ef08f51a1ab7adb400bb2f6b828a39fc4a0d84ca35044a6f448c9",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit",
@@ -848,9 +858,111 @@
       ],
       "title_cs": "Hodnocení věrohodnosti",
       "values": []
+     },
+     {
+      "audit": "",
+      "effect_cs": "Výsledky: tabulky a grafy otázek · Analýza: čísla, která smí převzít · Zpráva",
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT); hodnoty, které jednotka psala přímo do kódu, jsou deklarované v aia-aggregate-1.",
+        "ref": "dotaznik.py agreguj_otazku"
+       }
+      ],
+      "feeds": [],
+      "formula_latex": "p^{*} = \\operatorname{round}(p,\\ d_p)",
+      "formulas": [],
+      "id": "round_share",
+      "implements": "aia_core.domain.research_aggregate:aggregate_question",
+      "inputs": [],
+      "keeps_cs": [
+       "celé číslo od 0 do 3",
+       "meze intervalu na stejný počet míst jako odhad",
+       "analýza a zpráva převezmou uložené číslo, znovu nezaokrouhlují",
+       "jiný počet míst než 18.6.6 se u běhu uvede jako odchylka"
+      ],
+      "note_cs": "Na nejbližší hodnotu. Meze intervalu na stejný počet míst jako odhad.",
+      "reading_cs": "desetinná místa podílu = {rounding.share_decimals}",
+      "role_cs": "Na kolik desetinných míst se uloží podíl odpovědi a podíl top boxu. Uloží se s výsledkem běhu; analýza a zpráva číslo převezmou a znovu ho nezaokrouhlují.",
+      "source_cs": "podíly odpovědí (jedna i více odpovědí), podíl top boxu, meze intervalu",
+      "source_sha256": "d028b86b424ef08f51a1ab7adb400bb2f6b828a39fc4a0d84ca35044a6f448c9",
+      "symbols": [
+       {
+        "latex": "d_p",
+        "meaning_cs": "počet desetinných míst podílu",
+        "unit": "míst"
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit",
+       "packages/aia_core/tests/test_methodology_rounding.py::test_the_aggregate_stores_its_numbers_at_the_versions_places"
+      ],
+      "title_cs": "Podíly v procentech",
+      "values": [
+       {
+        "absent": false,
+        "effect": "changes_stored",
+        "label_cs": "Desetinná místa podílů",
+        "origin": "specification",
+        "reference": "rounding.share_decimals",
+        "unit": "místa",
+        "value": 1
+       }
+      ]
+     },
+     {
+      "audit": "",
+      "effect_cs": "Výsledky: řádek škálové otázky · Analýza: čísla, která smí převzít · Zpráva",
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT); hodnoty, které jednotka psala přímo do kódu, jsou deklarované v aia-aggregate-1.",
+        "ref": "dotaznik.py agreguj_otazku"
+       }
+      ],
+      "feeds": [],
+      "formula_latex": "\\bar{x}^{*} = \\operatorname{round}(\\bar{x},\\ d_m),\\quad s^{*} = \\operatorname{round}(s,\\ d_m)",
+      "formulas": [],
+      "id": "round_mean",
+      "implements": "aia_core.domain.research_aggregate:aggregate_question",
+      "inputs": [],
+      "keeps_cs": [
+       "celé číslo od 0 do 3",
+       "meze intervalu na stejný počet míst jako odhad",
+       "analýza a zpráva převezmou uložené číslo, znovu nezaokrouhlují",
+       "jiný počet míst než 18.6.6 se u běhu uvede jako odchylka"
+      ],
+      "note_cs": "Medián se nezaokrouhluje: je to vždy bod škály.",
+      "reading_cs": "desetinná místa průměru a SD = {rounding.mean_decimals}",
+      "role_cs": "Na kolik desetinných míst se uloží průměr škálové otázky, meze jeho intervalu a směrodatná odchylka.",
+      "source_cs": "průměr škály, meze jeho 95% intervalu, směrodatná odchylka",
+      "source_sha256": "d028b86b424ef08f51a1ab7adb400bb2f6b828a39fc4a0d84ca35044a6f448c9",
+      "symbols": [
+       {
+        "latex": "d_m",
+        "meaning_cs": "počet desetinných míst průměru a SD",
+        "unit": "míst"
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit",
+       "packages/aia_core/tests/test_methodology_rounding.py::test_the_aggregate_stores_its_numbers_at_the_versions_places"
+      ],
+      "title_cs": "Průměry a směrodatná odchylka",
+      "values": [
+       {
+        "absent": false,
+        "effect": "changes_stored",
+        "label_cs": "Desetinná místa průměrů a SD",
+        "origin": "specification",
+        "reference": "rounding.mean_decimals",
+        "unit": "místa",
+        "value": 2
+       }
+      ]
      }
     ],
-    "steps": 13,
+    "steps": 15,
     "title_cs": "Agregace: z odpovědí odhad s intervalem"
    }
   },
@@ -890,6 +1002,7 @@
     "presets": [
      "aia-readiness-1"
     ],
+    "preview_title_cs": "Jak to uvidí výzkumník v Kontrole a spuštění",
     "step_details": [
      {
       "audit": "",
@@ -1140,6 +1253,7 @@
     "presets": [
      "aia-response-1"
     ],
+    "preview_title_cs": "",
     "step_details": [
      {
       "audit": "",
@@ -2128,6 +2242,7 @@
      "aia-sociomap-3",
      "aia-sociomap-2"
     ],
+    "preview_title_cs": "",
     "step_details": [
      {
       "audit": "",
@@ -4153,6 +4268,7 @@
      "aia-sociomap-3",
      "aia-sociomap-2"
     ],
+    "preview_title_cs": "",
     "step_details": [
      {
       "audit": "",
@@ -6178,6 +6294,7 @@
      "aia-sociomap-3",
      "aia-sociomap-2"
     ],
+    "preview_title_cs": "",
     "step_details": [
      {
       "audit": "",
@@ -8167,6 +8284,7 @@
     "presets": [
      "aia-sociomap-1"
     ],
+    "preview_title_cs": "",
     "step_details": [
      {
       "audit": "",
@@ -9212,6 +9330,7 @@
     "presets": [
      "aia_hmodel_candidate_v1"
     ],
+    "preview_title_cs": "",
     "step_details": [
      {
       "audit": "",
@@ -9939,6 +10058,7 @@
     "presets": [
      "aia-support-1"
     ],
+    "preview_title_cs": "",
     "step_details": [
      {
       "audit": "",
@@ -10368,6 +10488,7 @@
     "presets": [
      "aia-weighting-1"
     ],
+    "preview_title_cs": "",
     "step_details": [
      {
       "audit": "",
@@ -11263,6 +11384,7 @@
     "aia-sociomap-3",
     "aia-sociomap-2"
    ],
+   "preview_title_cs": "",
    "steps": 23,
    "title_cs": "Sociomapa: objektová mapa"
   },
@@ -11336,6 +11458,7 @@
    "presets": [
     "aia-sociomap-1"
    ],
+   "preview_title_cs": "",
    "steps": 18,
    "title_cs": "Sociomapa: referenční mapa (18.6.6)"
   },
@@ -11393,6 +11516,7 @@
    "presets": [
     "aia_hmodel_candidate_v1"
    ],
+   "preview_title_cs": "",
    "steps": 16,
    "title_cs": "Sociomapping: experimentální H-Model (kandidát AIA)"
   },
@@ -11435,6 +11559,7 @@
    "presets": [
     "aia-support-1"
    ],
+   "preview_title_cs": "",
    "steps": 8,
    "title_cs": "Podpora a potlačení: kdy se číslo smí ukázat"
   },
@@ -11488,6 +11613,15 @@
       "fidelity"
      ],
      "title_cs": "Věrohodnost otázky"
+    },
+    {
+     "id": "Z",
+     "note_cs": "",
+     "step_ids": [
+      "round_share",
+      "round_mean"
+     ],
+     "title_cs": "Zobrazení čísel"
     }
    ],
    "id": "aggregation",
@@ -11496,7 +11630,8 @@
    "presets": [
     "aia-aggregate-1"
    ],
-   "steps": 13,
+   "preview_title_cs": "Jak to uvidí výzkumník ve Výsledcích a ve zprávě",
+   "steps": 15,
    "title_cs": "Agregace: z odpovědí odhad s intervalem"
   },
   {
@@ -11568,6 +11703,7 @@
    "presets": [
     "aia-weighting-1"
    ],
+   "preview_title_cs": "",
    "steps": 17,
    "title_cs": "Vážení: která váha patří respondentovi a co s neplatnou"
   },
@@ -11637,6 +11773,7 @@
    "presets": [
     "aia-response-1"
    ],
+   "preview_title_cs": "",
    "steps": 14,
    "title_cs": "Odpověď respondenta: od pravděpodobností modelu k odpovědi"
   },
@@ -11674,6 +11811,7 @@
    "presets": [
     "aia-readiness-1"
    ],
+   "preview_title_cs": "Jak to uvidí výzkumník v Kontrole a spuštění",
    "steps": 3,
    "title_cs": "Připravenost studie: kdy lze běh spustit"
   }
@@ -11692,6 +11830,10 @@
      "seed_top_box": 20260818
     },
     "methodology_version": "aia-aggregate-1",
+    "rounding": {
+     "mean_decimals": 2,
+     "share_decimals": 1
+    },
     "top_box": 2
    }
   },

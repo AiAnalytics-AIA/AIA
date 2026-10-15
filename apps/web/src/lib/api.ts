@@ -1060,7 +1060,7 @@ export type ResearchAnalysis = {
     summary: string | null;
     research_question_answers: { question: string; answer: string; claim_ids: string[] }[];
     key_findings: { text: string; claim_ids: string[] }[];
-    claims: { claim_id: string; evidence_ref: string; value: number; indicative: boolean; data_origin: string | null }[];
+    claims: { claim_id: string; evidence_ref: string; value: number; decimals?: number; indicative: boolean; data_origin: string | null }[];
     violations: { code: string; subject: string; detail: string }[];
   }>;
 };
@@ -1458,7 +1458,7 @@ export type MethodValue = {
   reference: string; label_cs: string; unit: string; origin: "specification" | "code_constant";
   value: unknown; absent: boolean;
   /** Where the value is a limit a design is held to, what crossing it does; empty otherwise. */
-  effect: "" | "blocks_run" | "blocks_design" | "warns";
+  effect: "" | "blocks_run" | "blocks_design" | "warns" | "changes_stored";
 };
 /** A step's editable formula: its slot, the expression the engine computes today, and the
  *  LaTeX the domain writes from that expression (the page shows what runs). */
@@ -1483,6 +1483,8 @@ export type MethodGroup = { id: string; title_cs: string; step_ids: string[]; no
 export type MethodModuleSummary = {
   id: string; title_cs: string; note_cs: string; presets: string[]; in_force: string | null;
   editable: boolean; steps: number; groups: MethodGroup[];
+  /** Where a person meets the module's preview lines; empty when it shows none. */
+  preview_title_cs?: string;
 };
 export type MethodModuleDetail = MethodModuleSummary & { preset: string | null; step_details: MethodStepOut[] };
 
@@ -1503,7 +1505,7 @@ export type MethodVersions = {
 /** An edit: the whole specification and the formulas it replaces (by slot). */
 export type MethodEdit = { base_preset: string; spec: Record<string, unknown>; formulas: Record<string, string>; note?: string };
 /** A line a person would meet under the edit, as the code writes it (readiness). */
-export type MethodPreviewLine = { step_id: string; status: "PASS" | "WARN" | "FAIL"; message_cs: string };
+export type MethodPreviewLine = { step_id: string; status: "" | "PASS" | "WARN" | "FAIL"; message_cs: string };
 export type MethodCheck = { valid: boolean; problems: Record<string, string>; not_computed: string[]; formulas_latex: Record<string, string>; preview?: MethodPreviewLine[] };
 /** The readiness draft beside the limits in force, on the organization's open research studies. */
 export type MethodReadinessCompare = {
