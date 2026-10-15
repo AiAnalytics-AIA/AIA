@@ -6,7 +6,11 @@ chunks:
   - "[x] 1c. Web: a blocked module is not \"Hotovo\"; the run offers \"Zopakovat neúspěšné moduly\"; no report download that can only fail"
   - "[x] 2a. Preflight: donor-cluster and support feasibility from the roster rules, before launch"
   - "[x] 2b. Readiness: per planned question, answerable / at risk / unanswerable, in the run screen"
-  - "[ ] 3. Proposal editor: research question -> measure -> comparison -> external source, unanswered questions flagged before a paid run"
+  - "[x] 3a. Design: a question or tracked set names the research questions it measures; readiness traces each research question to its measures and flags one nothing measures"
+  - "[x] 3b. Dotazník: link each question and tracked set to research questions; the Run screen shows the chain"
+  - "[ ] 3c. Comparison: each research question declares its comparison, and readiness checks its measures can carry it"
+  - "[ ] 3d. External source: the Deep Research evidence and gaps cited against each research question, shown in the chain"
+  - "[ ] 3e. The questionnaire agent proposes the links; a person accepts them with the proposal"
   - "[ ] 4. Deep Research: source diversity beyond Wikipedia, the exact supporting passage per claim, and every rejection's reason shown"
   - "[ ] 5. Population: a study-scoped, governed source choice; the source and dimensions actually used on the run receipt"
   - "[ ] 6. Desktop UX: one state vocabulary (ready, running, needs repair, evidence unavailable, report ready), plain reasons, question text, cost remaining"
@@ -221,6 +225,96 @@ Tests:
 - `research-execution.test.ts` ("which questions a run will answer").
 - `ExecutionSteps.test.tsx` ("Run: which questions the run will answer").
 
+## 3a — each research question traced to its measures
+
+The analysis module `research_questions` must answer every research question the design
+states (`analysis/draft.py`: `RESEARCH_QUESTION_UNANSWERED`). It can cite only the numbers
+the run produces. Until now, nothing tied a measure to a research question:
+
+- research questions are plain strings (`research_agents.py` `BriefAnalysis`);
+- a question carries no link (`questionnaire.ts` `Question`);
+- `compile_design` never reads `research_plan`.
+
+So a research question nothing measured was found only after fieldwork, as a blocked
+module.
+
+- **The link is a declaration on the item.** A question, or a tracked-set section, may
+  carry `research_questions`: the texts of the research questions it measures, as the
+  plan states them.
+  - `compile_design` reads it into `SpecQuestion.research_questions` and
+    `SpecBattery.research_questions`, with whitespace collapsed, each once, in order.
+  - Anything but a list of texts is a compile problem (`invalid_research_question_links`).
+    It is never guessed.
+  - An empty or absent declaration stays out of the fingerprint, as `rating_item` does:
+    a design without links compiles to the fingerprint it always had (pinned in
+    `test_a_link_is_compiled_as_declared_and_an_undeclared_one_keeps_the_fingerprint`).
+  - It links by text, not id, because research questions have no ids. The analysis gate
+    matches by text too. A link whose text is no longer stated is reported as dangling,
+    never re-pointed.
+- **`domain/research_trace.py`** traces each research question, as the analysis will read
+  it (`research_questions_of`), to the items that declare it. It takes the best verdict
+  among them from the 2b outlook (a research question is as answerable as its best
+  measure):
+  - with no measure: UNANSWERABLE, reason `unmeasured`;
+  - in a design that declares no link at all: UNKNOWN for every research question, reason
+    `unlinked_design`, never covered.
+- **Readiness** adds `research_question_coverage`. It is a WARN, never a FAIL, when:
+  - there are no research questions (the module will block);
+  - there are no links;
+  - a research question is unmeasured;
+  - every measure of a research question is unanswerable;
+  - a link is dangling.
+  It is a PASS when every research question is measured.
+- **`ResearchRuns.outlook`** returns the trace beside the outlook, and
+  `GET …/research/readiness` carries `research_trace`.
+
+Review (Codex on #421), both fixed:
+
+- **A question whose id equals a set item's generated id** (`<set>_obj_<object>`) took that
+  item's links in the trace. Worse, it shared the item's column in fieldwork, because a
+  respondent's answers are kept by item id (`ai_respondent.py` `answers[item.item_id]`).
+  The compiler now refuses such a design (`item_id_collision`, the question named).
+  Test: `test_a_question_whose_id_is_a_set_items_id_is_refused_not_merged`.
+- **The Run card hid dangling links** when the plan stated no research question. It now
+  shows while either list has entries. Test: `ExecutionSteps.test.tsx` ("keeps the card
+  for stale links").
+
+Tests:
+
+- `packages/aia_core/tests/test_research_trace.py`
+- `test_readiness_traces_each_research_question_to_the_questions_that_measure_it` (API)
+
+## 3b — the link in Dotazník and the chain on the Run screen
+
+- **`src/research/trace.ts`**, pure:
+  - `researchQuestionsOf` reads research questions as the server's `research_questions_of`
+    does: the plan's research questions, else its objectives, else the goal; at most eight.
+  - `linksOf` and `danglingLinks` read an item's declaration.
+  - `toggleQuestionLink` and `toggleSectionLink` write it. An empty declaration is
+    removed, not written as `[]`.
+- **Dotazník:** every question card and tracked set shows "Odpovídá na výzkumné otázky",
+  a toggle per stated research question (`aria-pressed`). A link the plan no longer states
+  is shown in the warning tone, to remove. Saves use the reason `questionnaire_links`.
+- **Run screen:** a "Výzkumné otázky a jejich měření" card lists each research question
+  with:
+  - its verdict;
+  - its reasons in words;
+  - its measures by their wording, a tracked set listed once with its object count and
+    best verdict (`traceMeasures`);
+  - a fix link to Dotazník for any research question not answerable.
+  Dangling links are listed under it.
+- **Not done:** editing a research question's text in the plan does not carry its links
+  along. Matching by index breaks when questions are inserted or reordered, so the link
+  goes dangling where the person sees it.
+
+Tests:
+
+- `trace.test.ts`
+- `QuestionnaireStep.test.tsx` ("says which research question a question and a set
+  measure")
+- `research-execution.test.ts` ("a research question's measures in words")
+- `ExecutionSteps.test.tsx` ("traces each research question to its measures")
+
 ## Doc follow-up
 
 - `CLAUDE.md` § map, `analysis.py`: "a schema failure is stored per field; the
@@ -253,3 +347,18 @@ Tests:
   readiness and question outlook from one forecast (RunOutlook); readiness reads it".
 - 2b, `CLAUDE.md` § map, routers/research: "GET …/research/readiness carries
   question_outlook"; web `ExecutionSteps.tsx`: "the Run stage's 'Na co běh odpoví' card".
+- 3a, `CLAUDE.md` § map, domain (new line after `question_outlook.py`): "research_trace.py:
+  each research question (as research_questions_of reads it) traced to the items that
+  declare they measure it (research_questions on a question or a tracked set, by text), as
+  answerable as its best measure; unmeasured, unlinked (unknown) and dangling links named;
+  readiness's research_question_coverage (WARN, never FAIL)".
+- 3a, `CLAUDE.md` § map, `research_design.py`: append "a question's or set's
+  research_questions: the research questions it measures, by text; out of the fingerprint
+  when empty; a question whose id is a set item's id refused (item_id_collision)".
+- 3a, `CLAUDE.md` § map, routers/research: "GET …/research/readiness carries
+  research_trace".
+- 3b, `CLAUDE.md` § map, web `src/research/`: "trace.ts: which research question each
+  questionnaire item measures (researchQuestionsOf, as the server reads them; the link
+  read and toggled)"; `QuestionnaireStep`: "Odpovídá na výzkumné otázky on every question
+  and tracked set"; `ExecutionSteps.tsx`: "the Run stage's 'Výzkumné otázky a jejich
+  měření' card"; `research-execution.ts`: "traceMeasures".

@@ -8,7 +8,7 @@
 // * anything computed from the fictional dataset says so, every time.
 
 import { t, tv } from "@/i18n/t";
-import type { OutlookVerdict, QuestionOutlook, ResearchPhase, ResearchRun, ResearchRunSummary, ResearchStep } from "@/lib/api";
+import type { OutlookVerdict, QuestionOutlook, ResearchPhase, ResearchQuestionTrace, ResearchRun, ResearchRunSummary, ResearchStep } from "@/lib/api";
 import type { Tone } from "@/lib/tone";
 
 export const RUNTIME_UNAVAILABLE = "ai_runtime_unavailable";
@@ -381,4 +381,43 @@ export function outlookFixStep(reasons: readonly string[]): "persona" | "questio
   if (reasons.some((r) => r !== "support_unknown" && !r.startsWith("support_"))) return "questionnaire";
   if (reasons.some((r) => r === "support_suppressed" || r === "support_analysis_excluded" || r === "support_indicative")) return "persona";
   return null;
+}
+
+/** One measure of a research question as it reads: a question by its wording, a tracked set once. */
+export type TraceMeasure = { key: string; text: string; verdict: OutlookVerdict };
+
+/**
+ * A research question's measures in words (run-recovery-and-truth 3b): each question by its
+ * wording with its verdict; a tracked set once, by its first object's wording and how many
+ * objects it rates, with its best verdict. An id the outlook does not list reads unknown.
+ */
+export function traceMeasures(question: ResearchQuestionTrace, outlook: readonly QuestionOutlook[]): TraceMeasure[] {
+  const byId = new Map(outlook.map((o) => [o.question_id, o]));
+  const best = (a: OutlookVerdict, b: OutlookVerdict) => (VERDICT_ORDER.indexOf(a) >= VERDICT_ORDER.indexOf(b) ? a : b);
+  const out: TraceMeasure[] = [];
+  const sets = new Map<string, { measure: TraceMeasure; count: number }>();
+  for (const id of question.measures) {
+    const item = byId.get(id);
+    if (!item) {
+      out.push({ key: id, text: id, verdict: "UNKNOWN" });
+      continue;
+    }
+    if (item.battery_id === null) {
+      out.push({ key: id, text: item.text, verdict: item.verdict });
+      continue;
+    }
+    const seen = sets.get(item.battery_id);
+    if (seen) {
+      seen.count += 1;
+      seen.measure.verdict = best(seen.measure.verdict, item.verdict);
+      continue;
+    }
+    const measure: TraceMeasure = { key: item.battery_id, text: item.text, verdict: item.verdict };
+    sets.set(item.battery_id, { measure, count: 1 });
+    out.push(measure);
+  }
+  for (const { measure, count } of sets.values()) {
+    if (count > 1) measure.text = tv("research.exec.trace.set", { first: measure.text, count });
+  }
+  return out;
 }

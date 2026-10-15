@@ -67,6 +67,7 @@ import {
   SET_SIZE,
 } from "@/research/questionnaire";
 import type { ResearchProject } from "@/research/model";
+import { danglingLinks, linkKey, linksOf, researchQuestionsOf, toggleQuestionLink, toggleSectionLink } from "@/research/trace";
 import { Icon, type IconName } from "../icons";
 import { ActionDock, ChipInput, InlineConfirm, Segmented, Switch } from "../step";
 import { AiButton, Button } from "../ui";
@@ -718,7 +719,52 @@ function QuestionCard({ n, q, si, qi, update }: { n: number; q: Question; si: nu
       {typ === "otevrena" ? (
         <p className="mt-3 rounded-control border border-dashed border-border-strong px-3 py-2 text-xs text-ink-muted">{t("research.questionnaire.openNote")}</p>
       ) : null}
+      <ResearchQuestionLinks item={q} onToggle={(rq) => update((p) => toggleQuestionLink(p, si, qi, rq), "questionnaire_links")} />
     </div>
+  );
+}
+
+/**
+ * "Odpovídá na výzkumné otázky": which of the plan's research questions this item measures
+ * (run-recovery-and-truth 3b). Readiness traces each research question to the items that
+ * say so before a run; a link the plan no longer states is shown to be removed.
+ */
+function ResearchQuestionLinks({ item, onToggle }: { item: Question | Section; onToggle: (rq: string) => void }) {
+  const { state } = useResearch();
+  const stated = researchQuestionsOf(state.project);
+  const links = linksOf(item);
+  const dangling = danglingLinks(item, stated);
+  if (!stated.length && !dangling.length) return <p className="mt-3 text-xs text-ink-muted">{t("research.questionnaire.links.none")}</p>;
+  const on = (rq: string) => links.some((l) => linkKey(l) === linkKey(rq));
+  return (
+    <fieldset className="mt-3 flex flex-col gap-1">
+      <legend className={LABEL}>{t("research.questionnaire.links.label")}</legend>
+      <div className="flex flex-wrap gap-1">
+        {stated.map((rq) => (
+          <button
+            key={rq}
+            type="button"
+            aria-pressed={on(rq)}
+            onClick={() => onToggle(rq)}
+            className={`max-w-full rounded-pill border px-2.5 text-left text-xs leading-6 ${FOCUS} ${on(rq) ? "border-signal bg-signal-wash font-semibold text-signal" : "border-border bg-surface text-ink-muted hover:text-ink"}`}
+          >
+            {rq}
+          </button>
+        ))}
+        {dangling.map((rq) => (
+          <button
+            key={`dangling-${rq}`}
+            type="button"
+            aria-label={tv("research.questionnaire.links.removeDangling", { rq })}
+            onClick={() => onToggle(rq)}
+            className={`max-w-full rounded-pill border border-status-you-ink/40 bg-status-you-wash px-2.5 text-left text-xs leading-6 text-status-you-ink ${FOCUS}`}
+          >
+            {rq} ×
+          </button>
+        ))}
+      </div>
+      {dangling.length ? <p className="text-xs text-status-you-ink">{t("research.questionnaire.links.dangling")}</p> : null}
+    </fieldset>
   );
 }
 
@@ -884,6 +930,7 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
           <span className="text-xs text-ink-muted">{t("research.questionnaire.priceBandsHelp")}</span>
         </label>
       ) : null}
+      <ResearchQuestionLinks item={sec} onToggle={(rq) => update((p) => toggleSectionLink(p, si, rq), "questionnaire_links")} />
       <p className="rounded-control border border-signal-edge bg-signal-tint p-3 text-[13px]">
         <strong>{t("research.questionnaire.outputLabel")}</strong> {t("research.questionnaire.outputText")}
       </p>

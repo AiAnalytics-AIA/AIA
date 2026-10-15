@@ -935,6 +935,41 @@ def test_readiness_lists_every_question_with_whether_the_run_will_answer_it(
     assert any(i["battery_id"] is not None for i in enough)
 
 
+def test_readiness_traces_each_research_question_to_the_questions_that_measure_it(
+    researcher: TestClient, viewer: TestClient, world: Any
+) -> None:
+    """Plan run-recovery-and-truth 3a: a research question nothing measures is named before
+    anything is paid for; a design that declares no link is unknown, never covered."""
+    url = f"{API}/studies/{world.study_id()}/research/readiness"
+
+    def readiness(content: dict[str, Any]) -> Any:
+        revision_id = submit(researcher, world, content).json()["revision_id"]
+        return viewer.get(url, params={"design_revision_id": revision_id}).json()
+
+    plain = readiness(DESIGN)
+    assert plain["research_trace"]["linked"] is False
+    assert [q["verdict"] for q in plain["research_trace"]["questions"]] == ["UNKNOWN"]
+
+    habit, other = "Jak často lidé pijí kávu?", "Co lidé snídají?"
+    sections = [dict(s) for s in DESIGN["sections"]]
+    sections[0] = {
+        **sections[0],
+        "questions": [
+            {**sections[0]["questions"][0], "research_questions": [habit]},
+            sections[0]["questions"][1],
+        ],
+    }
+    linked = readiness(
+        {**DESIGN, "research_plan": {"research_questions": [habit, other]}, "sections": sections}
+    )
+    trace = {q["text"]: q for q in linked["research_trace"]["questions"]}
+    assert trace[habit]["measures"] == ["q1"] and trace[habit]["verdict"] == "ANSWERABLE"
+    assert trace[other]["verdict"] == "UNANSWERABLE" and trace[other]["reasons"] == ["unmeasured"]
+    check = next(c for c in linked["checks"] if c["id"] == "research_question_coverage")
+    assert check["status"] == "WARN" and other in check["message"]
+    assert linked["ready"] is True, "a trace warns, it never refuses"
+
+
 def test_research_artifacts_are_read_only_through_the_run_that_produced_them(
     app: FastAPI,
     researcher: TestClient,
