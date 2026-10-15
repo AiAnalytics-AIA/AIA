@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect } from "react";
 
-import { reportError } from "@/lib/error-tracking";
+import { loadConfig } from "@/lib/auth";
+import { reportError, startErrorTracking } from "@/lib/error-tracking";
 import { t } from "@/i18n/t";
 
 // What a person sees when a page crashed while rendering: said plainly, with the way back
@@ -19,6 +20,12 @@ export function PageError({
 }) {
   useEffect(() => {
     reportError(error, { boundary, ...(error.digest ? { digest: error.digest } : {}) });
+    // The global boundary replaces the root layout, so <ErrorTracking /> may never have
+    // mounted: start the reporter from here too (once; a no-op when it already runs), and
+    // the report held above is sent when it starts.
+    loadConfig()
+      .then((config) => startErrorTracking(config.errorTracking))
+      .catch(() => undefined);
   }, [error, boundary]);
 
   return (
