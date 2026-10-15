@@ -100,7 +100,8 @@ apps/
                             POST …/runs/{id}/analysis/retry (a finished run's failed analysis modules
                             asked again over its own collected data) and GET …/analysis/retryable
                             (read from the outcomes as stored), each step's analysis_outcome,
-                            readiness with the run's cost ceiling and the study's spend limit, and native
+                            readiness with the run's cost ceiling and the study's spend limit (and
+                            question_outlook: every item's verdict before a run), and native
                             agent-jobs beneath each Study, with their event feed (…/agent-jobs/{id}/events?
                             since=; a step names the step_id its events carry); GET …/design/source: where a reused design
                             came from; a run's reports: GET …/report, …/report/download,
@@ -219,6 +220,7 @@ apps/
                             literature it downloaded; ProposalEditor and PlanStep edit the research narrative
                             and whole comparable measurements with live previews, preserving existing
                             questionnaires (PlanStep tests: direct proposal editing); ExecutionSteps.tsx: Run, Progress, Results (ADR 0016);
+                            the Run stage's "Na co běh odpoví" card (every item's verdict, worst first);
                             RunResults, one run's results from the StudyFrame alone (read-only when
                             canEdit is false). DesignSourceNote: on every stage of a reused study, its
                             source study and revision and the labels it carries.
@@ -465,6 +467,11 @@ packages/aia_core/src/aia_core/
                             would pin); unknown for a panel run, never good; the smallest sufficient n
                             searched within 40,000 respondents; readiness's support_forecast check
                             (WARN, never FAIL) for an ai_runtime run
+    question_outlook.py     Before a run, every item a respondent will answer with one verdict
+                            (ANSWERABLE / AT_RISK / UNKNOWN / UNANSWERABLE) and its reasons
+                            (conditional, familiarity, fidelity_refused, open_ended, support_*;
+                            support_analysis_excluded: shown on Results, not citable), by the rules
+                            that decide after the run; unknown never answerable
     respondent_behavior.py  18.6.6 behavior.py + styly.py: response process, styles, the seeded draw
     respondent_facts.py     18.6.6 factual_layer.py: facts answered by code, unsupported facts refused
     persona_profile.py      A panel respondent's profile: 18.6.6's generate_persona_text in the mode it
@@ -820,7 +827,8 @@ packages/aia_core/src/aia_core/
                             given the original's dataset (FrozenDataset: artifact id + SHA-256,
                             verified by the step, never substituted). readiness(…, fieldwork_source=):
                             with ai_runtime, the support forecast under the support rules and
-                            aggregation a start would pin
+                            aggregation a start would pin; outlook(): the specification, readiness
+                            and question outlook from one forecast (RunOutlook); readiness reads it
     deep_research.py        DeepResearchRuns: the run spec frozen at enqueue (ADR 0021):
                             freeze_design (the engine request: knowledge via for_study, client
                             terms) and freeze_interpretation (a result of this Study's own research
