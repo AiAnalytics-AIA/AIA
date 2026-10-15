@@ -922,6 +922,54 @@ describe("Results", () => {
     expect(within(diagnostic!).getByText(/SCHEMA_INVALID: Input should be a valid array/)).toBeTruthy();
   });
 
+  it("puts every module's key findings first, each with the numbers it cites, and keeps every word formatted", async () => {
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6" }),
+      step("analysis_objects", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-8" }),
+      step("analysis_audience", "WAITING_PROVIDER", { kind: "research_analysis" }),
+    ] });
+    const specification = { ...AGGREGATE, artifact_id: "ART-1", artifact_type: "research_specification",
+      payload: { specification: { n: 200, questions: [{ id: "q2", text: "Který nápoj byste si vybrali?", typ: "vyber", options: ["Kávu", "Čaj"] }], batteries: [] } } };
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-1": () => specification,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: { audience: "WAITING_PROVIDER" }, modules: {
+        executive: { outcome: "COMPLETED", summary: "Úvodní odstavec.\n\n- první bod\n- druhý bod", research_question_answers: [{ question: "Co lidé pijí?", answer: "Hlavně čaj a kávu.", claim_ids: ["C2"] }],
+          key_findings: [{ text: "Čaj a káva jsou **vyrovnané**.", claim_ids: ["C1", "C2", "C9"] }],
+          claims: [{ claim_id: "C1", evidence_ref: "q2.pct.2", value: 38.4, indicative: false, data_origin: null }, { claim_id: "C2", evidence_ref: "q2.pct.1", value: 34.8, indicative: true, data_origin: null }], violations: [] },
+        objects: { outcome: "COMPLETED", summary: null, research_question_answers: [], key_findings: [{ text: "Bez čísel.", claim_ids: [] }], claims: [], violations: [] },
+      } }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const keyFindings = await screen.findByRole("region", { name: "Hlavní zjištění" });
+    // Both modules' findings, under their module, before the module-by-module view.
+    expect(within(keyFindings).getByText("Shrnutí analýzy")).toBeTruthy();
+    expect(within(keyFindings).getByText("Srovnání objektů")).toBeTruthy();
+    expect(within(keyFindings).getByText("Bez čísel.")).toBeTruthy();
+    expect(within(keyFindings).getByText("vyrovnané").tagName).toBe("STRONG");
+    // Each cited number: value, what, which question, a link to its card; C9 is not a claim and is left out.
+    const cited = within(keyFindings).getAllByRole("link");
+    expect(cited.map((a) => a.textContent)).toEqual([
+      "38,4 % podíl odpovědi „Čaj“ · Který nápoj byste si vybrali?",
+      "34,8 % podíl odpovědi „Kávu“ · Který nápoj byste si vybrali?",
+    ]);
+    expect(cited[0].getAttribute("href")).toBe("#measure-q2");
+    expect(within(keyFindings).getByText(/· orientační/)).toBeTruthy();
+    expect(keyFindings.compareDocumentPosition(screen.getByText("Analýza po částech")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // The module's own text, formatted: its summary's list, its answer with the number it cites.
+    const items = screen.getAllByRole("listitem").map((li) => li.textContent);
+    expect(items).toContain("první bod");
+    expect(items).toContain("druhý bod");
+    const answer = screen.getByText("Co lidé pijí?").parentElement as HTMLElement;
+    expect(within(answer).getByText("Hlavně čaj a kávu.")).toBeTruthy();
+    expect(within(answer).getByRole("link").textContent).toBe("34,8 % podíl odpovědi „Kávu“ · Který nápoj byste si vybrali?");
+    // A pending module keeps its reason.
+    fireEvent.click(screen.getByRole("button", { name: /Cílová skupina.*Čeká/ }));
+    expect(screen.getByText(/WAITING_PROVIDER/)).toBeTruthy();
+  });
+
   it("says on the analysis when the aggregate it read is no longer 18.6.6's port (G3c)", async () => {
     const partial = run({
       status: "WAITING_PROVIDER", phase: "WAITING", fieldwork_source: "synthetic_fixture",
@@ -1037,7 +1085,7 @@ describe("Results", () => {
       artifact_id: "ART-1",
       artifact_type: "research_specification",
       // An identical compiled specification may be reused from an earlier revision.
-      payload: { design_revision_id: "REV-older", specification: { n: 200, questions: [{ id: "q2", text: "Který nápoj byste si vybrali?" }, { id: "t1", text: "Jak hodnotíte nabídku?" }] } },
+      payload: { design_revision_id: "REV-older", specification: { n: 200, questions: [{ id: "t1", text: "Jak hodnotíte nabídku?", typ: "skala", scale: [1, 5] }, { id: "q2", text: "Který nápoj byste si vybrali?", typ: "vyber", options: ["Kávu", "Čaj"] }] } },
     };
     api({
       ...listed(COMPLETED),
@@ -1048,8 +1096,14 @@ describe("Results", () => {
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
     const question = await screen.findByRole("region", { name: "Který nápoj byste si vybrali?" });
-    expect(within(question).getByText(/Nejčastější odpověď: Čaj · 38,4 %/)).toBeTruthy();
+    // Čaj leads only by its estimate: the intervals overlap, so no winner is named.
+    expect(within(question).getByText("Nejvíce odpovědí: Čaj (38,4 %) a Kávu (34,8 %); pořadí mezi nimi nelze potvrdit, 95% intervaly se překrývají.")).toBeTruthy();
+    expect(within(question).queryByText(/Nejčastější odpověď/)).toBeNull();
     const explorer = document.querySelector("[data-aggregate-explorer]") as HTMLElement;
+    // The questionnaire's order, not the aggregate's: t1 is asked first.
+    expect(within(explorer).getAllByRole("region").map((r) => r.getAttribute("aria-label")).filter((l) => l !== "Jak číst tato data"))
+      .toEqual(["Jak hodnotíte nabídku?", "Který nápoj byste si vybrali?"]);
+    expect(within(explorer).getByRole("region", { name: "Jak hodnotíte nabídku?" }).textContent).toMatch(/Číselný výsledek je skrytý: podpora dat nestačí\./);
     expect(within(explorer).getByText("Plánovaný vzorek: 200")).toBeTruthy();
     expect(within(explorer).getAllByText("Podložené v rámci běhu").length).toBeGreaterThan(0);
     fireEvent.change(within(explorer).getByRole("searchbox", { name: "Najít otázku nebo objekt" }), { target: { value: "nabídku" } });
@@ -1059,6 +1113,42 @@ describe("Results", () => {
     fireEvent.change(within(explorer).getByRole("combobox", { name: "Podpora dat" }), { target: { value: "SUPPRESS" } });
     expect(within(explorer).queryByRole("region", { name: "Který nápoj byste si vybrali?" })).toBeNull();
     expect(within(explorer).getByRole("region", { name: "Jak hodnotíte nabídku?" })).toBeTruthy();
+  });
+
+  it("compares a set's objects in words and on one scale, and opens a card from its link", async () => {
+    const rating = (mean: number, low: number, high: number, status = "REPORTABLE") => ({ typ: "skala", ...support(status as "REPORTABLE", 140), prumer: mean, prumer_interval_95: { low, high }, top2box_pct: 40, top2box_interval_95: { low: 30, high: 50 } });
+    const aggregate = { ...AGGREGATE, payload: { aggregate: { ...AGGREGATE.payload.aggregate, batteries: { napoje: { title: "Nápoje", objects: {
+      kava: { label: "Káva", ...rating(4.2, 4.0, 4.4) }, caj: { label: "Čaj", ...rating(3.0, 2.7, 3.3) }, voda: { label: "Voda", ...rating(2.9, 2.6, 3.2) },
+      mleko: { label: "Mléko", ...rating(3.5, 2.0, 5.0, "SUPPRESS") },
+    } } } } } };
+    const specification = { ...AGGREGATE, artifact_id: "ART-1", artifact_type: "research_specification",
+      payload: { specification: { n: 200, questions: [], batteries: [{ id: "napoje", title: "Nápoje", scale: [1, 5], objects: [{ id: "kava", label: "Káva" }, { id: "caj", label: "Čaj" }, { id: "voda", label: "Voda" }, { id: "mleko", label: "Mléko" }] }] } } };
+    api({ ...listed(COMPLETED),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-1": () => specification,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => aggregate,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
+    const comparison = await screen.findByRole("region", { name: "Srovnání: Nápoje" });
+    expect(within(comparison).getByText("Průměr na škále 1–5 · 95% interval")).toBeTruthy();
+    expect(within(comparison).getByText("Spolehlivě nejvýše hodnocený: Káva.")).toBeTruthy();
+    expect(within(comparison).getByText("Nejníže hodnocené: Čaj a Voda; pořadí mezi nimi nelze potvrdit.")).toBeTruthy();
+    expect(within(comparison).getAllByRole("link").map((a) => a.textContent)).toEqual(["Káva", "Čaj", "Voda"]);
+    // A suppressed object is not drawn and has no number, but is named.
+    expect(within(comparison).getByText("Bez čísla (potlačeno nebo bez průměru): Mléko.")).toBeTruthy();
+    expect(within(comparison).queryByText("3,50")).toBeNull();
+    // A link to a card clears the filters that hide it and opens its detail.
+    const explorer = document.querySelector("[data-aggregate-explorer]") as HTMLElement;
+    fireEvent.change(within(explorer).getByRole("searchbox", { name: "Najít otázku nebo objekt" }), { target: { value: "káva" } });
+    expect(within(explorer).queryByRole("region", { name: "Čaj" })).toBeNull();
+    window.location.hash = "measure-napoje-caj";
+    fireEvent(window, new HashChangeEvent("hashchange"));
+    const card = await within(explorer).findByRole("region", { name: "Čaj" });
+    expect(card.getAttribute("data-focused")).toBe("true");
+    expect((card.querySelector("details") as HTMLDetailsElement).open).toBe(true);
+    expect((within(explorer).getByRole("searchbox", { name: "Najít otázku nebo objekt" }) as HTMLInputElement).value).toBe("");
+    window.location.hash = "";
   });
 
   it("says there are no results while the run waits at fieldwork", async () => {
@@ -1339,6 +1429,64 @@ describe("Interpretation research", () => {
     fireEvent.click(downloadReport);
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/context/download")).toHaveLength(0);
   });
+  it("shows every word of the review, formatted: findings, sources, gaps and rejections with their reasons, the draft by section", async () => {
+    const completed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-questions" })] });
+    const review = { run_id: "RUN-deep", purpose: "INTERPRETATION_RESEARCH", target: { research_run_id: "RUN-1" },
+      preset: "QUICK", status: "COMPLETED", phase: "COMPLETED", is_terminal: true, retryable: false,
+      created_at: null, actual_cost_usd: 0.8, steps: [] };
+    const bundle = { quality_status: "PARTIAL", sha256: "b-2", counts: { tracks: 3 },
+      accepted: [
+        { evidence: { evidence_id: "EV-1", claim: "Spotřeba čaje roste.\n- hlavně u mladých\n- ve městech", quote: "Čaj roste o 4 %.", source_ref: "SRC-1" }, score: { score: 0.8, source_class: "B" } },
+        { evidence: { evidence_id: "EV-2", claim: "Káva je stabilní.", quote: "", source_ref: "SRC-2" }, score: { score: 0.6, source_class: "C" } },
+      ],
+      snapshots: [{ snapshot_id: "SRC-1", title: "Zpráva o trhu", url: "https://example.org/a", retrieval_mode: "LIVE" }, { snapshot_id: "SRC-2", title: "", url: "https://example.org/b", retrieval_mode: "LIVE" }],
+      quarantined: [{ reason: "QUOTE_NOT_FOUND", detail: "citace není ve zdroji", claim: "Čaj pijí hlavně senioři." }],
+      synthesis: {
+        check: { status: "CHECKED", summary: "Trh se posouvá.\n\nDruhý odstavec.", summary_withheld: "shrnutí cituje číslo mimo podklady", excluded: [{ subject_key: "s3", text: "Káva brzy zmizí z trhu.", reason: "UNSUPPORTED_NUMBER", detail: "číslo není v citaci" }], findings: [{ subject_key: "s1", text: "Čaj roste rychleji než káva.", evidence_ids: ["EV-2", "EV-1"] }, { subject_key: "s2", text: "Bez opory.", evidence_ids: ["EV-x"] }], gaps: ["Chybí data za rok 2025."], limitations: ["Jen veřejné zdroje."] },
+        brief: { gaps: [{ need: "Benchmark spokojenosti", reason: "žádný zdroj ho neuvádí" }] },
+      } };
+    api({ ...listed(completed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: true, modules: {}, pending: {} }),
+      "GET /api/v1/studies/STU-1/deep-research/runs": () => [review],
+      "GET /api/v1/studies/STU-1/deep-research/runs/RUN-deep/bundle": () => bundle,
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Rešerše a zpráva" }));
+    const accepted = await screen.findByRole("list", { name: "Přijatá zjištění" });
+    const first = within(accepted).getAllByRole("listitem")[0];
+    expect(within(first).getByText("Zjištění č. 1")).toBeTruthy();
+    expect(within(first).getByText("Spotřeba čaje roste.")).toBeTruthy();
+    expect(within(first).getByText("hlavně u mladých").parentElement?.tagName).toBe("LI"); // a list inside the finding
+    expect(within(first).getByText(/třída zdroje B/)).toBeTruthy();
+    expect(within(first).getByText("Čaj roste o 4 %.")).toBeTruthy();
+    expect(screen.getByText("Zachycené zdroje (2)")).toBeTruthy();
+    expect(screen.getAllByText("https://example.org/b")).toHaveLength(2); // the finding's source and the source list
+    // Gaps and rejections keep their reasons.
+    expect(screen.getByText("Benchmark spokojenosti")).toBeTruthy();
+    expect(screen.getByText("· žádný zdroj ho neuvádí")).toBeTruthy();
+    expect(screen.getByText("QUOTE_NOT_FOUND")).toBeTruthy();
+    expect(screen.getByText("· citace není ve zdroji")).toBeTruthy();
+    // The draft stays closed and labelled, but reads by section, each finding naming what it rests on.
+    const draft = document.querySelector("[data-synthesis-draft]") as HTMLDetailsElement;
+    expect(draft.open).toBe(false);
+    expect(within(draft).getByText("Trh se posouvá.")).toBeTruthy();
+    expect(within(draft).getByText("Druhý odstavec.")).toBeTruthy();
+    expect(within(draft).getByText("Opírá se o přijatá zjištění č. 2, 1")).toBeTruthy();
+    expect(within(draft).getByText("Neopírá se o žádné přijaté zjištění · odkazy mimo přijatá zjištění: 1")).toBeTruthy();
+    expect(within(draft).getByText("Chybí data za rok 2025.")).toBeTruthy();
+    expect(within(draft).getByText("Jen veřejné zdroje.")).toBeTruthy();
+    expect(within(draft).getByText("Stav kontroly: CHECKED")).toBeTruthy();
+    // The rejected claim and the prose the checker refused stay readable, with their reasons.
+    expect(screen.getByText("Čaj pijí hlavně senioři.")).toBeTruthy();
+    const rejected = within(draft).getByText("Odmítnuto kontrolou").parentElement as HTMLElement;
+    expect(within(rejected).getByText("Káva brzy zmizí z trhu.")).toBeTruthy();
+    expect(within(rejected).getByText("UNSUPPORTED_NUMBER · číslo není v citaci")).toBeTruthy();
+    expect(within(rejected).getByText("· shrnutí cituje číslo mimo podklady")).toBeTruthy();
+  });
+
   it("requires confirmation before cancelling an active interpretation review", async () => {
     const completed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
       step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-questions" })] });
