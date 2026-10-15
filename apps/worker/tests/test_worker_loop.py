@@ -32,8 +32,12 @@ from aia_core.domain.workflow import (
 from aia_core.infrastructure.tables import (
     BudgetReservationRow,
     ClientRow,
+    ProjectRow,
     StepAttemptRow,
+    StepRunRow,
+    StudyRow,
     WorkflowEventRow,
+    WorkflowRunRow,
 )
 from aia_core.infrastructure.workflow_repository import WorkflowRepository, WorkQueue
 from aia_worker.context import in_transaction
@@ -577,3 +581,94 @@ def test_reservations_never_outlive_their_attempt(
         ).all()
     assert open_holds == []
     assert study.budget()["spent_usd"] == pytest.approx(0.5)
+
+
+# --------------------------------------------------------------------------- #
+# The client's own work (client-budget CB3)
+# --------------------------------------------------------------------------- #
+
+
+def _client_paid(sessions: sessionmaker[Session], study: Any, run_id: str, budget: float) -> None:
+    """Make ``run_id`` the client's own work (no study), the client's budget ``budget``."""
+    with sessions() as session:
+        run = session.get(WorkflowRunRow, run_id)
+        assert run is not None
+        project = session.get(ProjectRow, run.project_id)
+        assert project is not None
+        project.owner, project.study_id, run.study_id = "client_sources", None, None
+        client = session.get(ClientRow, study.client_id)
+        assert client is not None
+        client.budget_usd, client.spent_usd = budget, 0.0
+        session.commit()
+
+
+def _client_run(sessions: sessionmaker[Session], run_id: str) -> tuple[str, float, float]:
+    with sessions() as session:
+        step = session.scalars(select(StepRunRow).where(StepRunRow.run_id == run_id)).one()
+        run = session.get(WorkflowRunRow, run_id)
+        assert run is not None
+        client = session.get(ClientRow, run.client_id)
+        study = session.scalars(select(StudyRow).where(StudyRow.client_id == run.client_id)).one()
+        assert client is not None
+        return step.status, client.spent_usd, study.spent_usd
+
+
+def test_a_paid_call_on_the_clients_own_work_is_charged_to_the_client(
+    study: Any, make_worker: MakeWorker, sessions: sessionmaker[Session]
+) -> None:
+    """The worker issues the client's work scope from the lease; the call is held against
+    and charged to the client's budget, and the study's ledger does not move."""
+    run_id = study.create_run({"paid": {"reserve": 2.0, "cost": 1.5}}, key="client-paid")
+    _client_paid(sessions, study, run_id, budget=5.0)
+
+    result = make_worker().run_once()
+
+    assert result is not None and result.ending == "completed"
+    assert _client_run(sessions, run_id) == (StepRunStatus.SUCCEEDED.value, 1.5, 0.0)
+    assert study.budget()["spent_usd"] == pytest.approx(0.0)
+
+
+def test_the_clients_own_work_waits_when_its_budget_cannot_hold_the_call(
+    study: Any, make_worker: MakeWorker, sessions: sessionmaker[Session]
+) -> None:
+    """The study's $100 is not the client's: a $2 hold on a $1 client budget parks."""
+    run_id = study.create_run({"paid": {"reserve": 2.0, "cost": 1.5}}, key="client-over")
+    _client_paid(sessions, study, run_id, budget=1.0)
+
+    make_worker().run_once()
+
+    assert _client_run(sessions, run_id) == (StepRunStatus.AWAITING_BUDGET.value, 0.0, 0.0)
+
+
+def test_a_person_lifts_the_clients_budget_and_the_waiting_step_finishes_on_it(
+    study: Any, make_worker: MakeWorker, sessions: sessionmaker[Session]
+) -> None:
+    """Parked at the client's $1, lifted to $5 by the person: the next worker finishes the
+    step and the call is charged to the client; the study's ledger never moves."""
+    from aia_core.application.client_work import lift_client_budget_wait
+    from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+
+    run_id = study.create_run({"paid": {"reserve": 2.0, "cost": 1.5}}, key="client-lift")
+    _client_paid(sessions, study, run_id, budget=1.0)
+    make_worker().run_once()
+    assert _client_run(sessions, run_id)[0] == StepRunStatus.AWAITING_BUDGET.value
+
+    with sessions() as session:
+        resolver = ScopeResolver(session)
+        principal = AuthenticatedPrincipal(
+            user_id=study.lead_id, organization_id=study.organization_id
+        )
+        lift_client_budget_wait(
+            session,
+            resolver.client_context(principal, client_id=study.client_id),
+            resolver.client_work_context(principal, client_id=study.client_id),
+            run_id,
+            "s0",
+            budget_usd=5.0,
+        )
+        session.commit()
+
+    result = make_worker().run_once()
+
+    assert result is not None and result.ending == "completed"
+    assert _client_run(sessions, run_id) == (StepRunStatus.SUCCEEDED.value, 1.5, 0.0)

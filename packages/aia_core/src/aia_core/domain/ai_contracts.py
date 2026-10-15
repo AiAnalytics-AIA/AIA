@@ -800,7 +800,8 @@ class AIUsageEvent:
     purpose: CallPurpose
     organization_id: str
     client_id: str
-    study_id: str
+    #: None: a call the client's own budget paid for (client-budget CB2).
+    study_id: str | None
     actor_id: str
     run_id: str | None
     step_id: str | None

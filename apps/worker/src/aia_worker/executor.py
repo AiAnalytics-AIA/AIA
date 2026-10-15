@@ -37,7 +37,7 @@ from typing import Any, Protocol, runtime_checkable
 
 from aia_core.domain.ai_contracts import AIUsageEvent
 from aia_core.domain.providers import Provider
-from aia_core.domain.scope import StudyContext
+from aia_core.domain.scope import StudyContext, WorkScope
 from aia_core.domain.workflow import FailureClass, InteractionMode
 from aia_core.infrastructure.workflow_repository import BudgetExceeded, WorkflowRepository
 from sqlalchemy.orm import Session
@@ -275,7 +275,17 @@ class StepContext(Protocol):
 
     @property
     def scope(self) -> StudyContext:
-        """The execution scope: the claimed study, RESEARCHER permissions."""
+        """The execution scope: the claimed study, RESEARCHER permissions.
+
+        Refused (``ScopeDenied``, ``client_work_scope``) on a run of the client's own work,
+        which has no study: an executor that needs a study cannot run there.
+        """
+        ...
+
+    @property
+    def work_scope(self) -> WorkScope:
+        """The scope paid calls run under: the claimed study's, or, on the client's own
+        work, a :class:`ClientWorkContext` the client's budget pays for (client-budget)."""
         ...
 
     @property

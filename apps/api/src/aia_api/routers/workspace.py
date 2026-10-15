@@ -21,11 +21,13 @@ from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 from uuid import uuid4
 
+from aia_core.application.client_work import lift_client_budget_wait
 from aia_core.application.design_reuse import ReuseRefused, reuse_design
 from aia_core.application.project_memory import (
     MIN_QUERY_LENGTH,
     search_client_studies,
 )
+from aia_core.application.research import BudgetNotRaised, ResearchStepNotFound
 from aia_core.domain.attachments import ATTACHMENT_MAX_BYTES, AttachmentRejected
 from aia_core.domain.client_profile import ClientContact, ClientProfile, ContactDraft
 from aia_core.domain.design import DesignRejected
@@ -78,6 +80,7 @@ from aia_core.infrastructure.study_workspace_repository import (
     StudyWorkspaceRepository,
     WorkspaceConflict,
 )
+from aia_core.infrastructure.workflow_repository import BudgetWaitNotLiftable, WorkflowNotFound
 from fastapi import APIRouter, HTTPException, Path, Query, Response, status
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -1334,6 +1337,85 @@ def set_client_budget(
         return _budget_out(repo.set_client_budget(scope, body.budget_usd))
     except ScopeDenied as exc:
         raise _budget_error(exc) from exc
+
+
+class ClientWorkLift(BaseModel):
+    """The budget the client is raised to, and why. Never a lower one."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    budget_usd: float = Field(ge=0, le=1_000_000)
+    note: str = Field(default="", max_length=500)
+
+
+class ClientWorkStep(BaseModel):
+    node_key: str
+    status: str
+
+
+class ClientWorkRun(BaseModel):
+    """A run of the client's own work, as far as its steps' states."""
+
+    run_id: str
+    status: str
+    steps: list[ClientWorkStep]
+
+
+@router.post(
+    "/clients/{client_id}/work/runs/{run_id}/steps/{node_key}/budget",
+    response_model=ClientWorkRun,
+    summary="Raise the client's budget and let a step of its own work that stopped at it go on",
+    responses={
+        409: {"model": ErrorResponse, "description": "The step is not waiting for budget"},
+        422: {"model": ErrorResponse, "description": "The budget offered is below the current one"},
+    },
+)
+def lift_client_work_budget(
+    client_id: ClientIdPath,
+    run_id: Annotated[str, Path(max_length=64, pattern=r"^RUN-[0-9a-f]{1,32}$")],
+    node_key: Annotated[str, Path(max_length=64, pattern=r"^[a-z][a-z0-9_]*$")],
+    body: ClientWorkLift,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+) -> ClientWorkRun:
+    """client-budget CB4: the study route's lift, for work the client's budget pays for.
+
+    Needs ``MANAGE_CLIENT_BUDGET`` and ``RUN_CLIENT_WORK``. The budget is raised (audited
+    ``CLIENT_BUDGET_CHANGED``) and the decision is a ``budget`` approval naming the client
+    and no study. A run of a study, or of another client, is not found here.
+    """
+    client = _client_scope(principal, resolver, client_id)
+    try:
+        work = resolver.client_work_context(principal, client_id=client_id)
+        run = lift_client_budget_wait(
+            session, client, work, run_id, node_key, budget_usd=body.budget_usd, note=body.note
+        )
+    except ScopeDenied as exc:
+        raise _budget_error(exc) from exc
+    except (WorkflowNotFound, ResearchStepNotFound) as exc:
+        raise _not_found() from exc
+    except BudgetWaitNotLiftable as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "not_waiting_for_budget", "message": str(exc)},
+        ) from exc
+    except BudgetNotRaised as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "code": "budget_not_raised",
+                "message": f"The client's budget is already {exc.current:.2f}; "
+                "offer at least that.",
+            },
+        ) from exc
+    return ClientWorkRun(
+        run_id=run["run_id"],
+        status=run["status"].value,
+        steps=[
+            ClientWorkStep(node_key=s["node_key"], status=s["status"].value) for s in run["steps"]
+        ],
+    )
 
 
 @router.post(

@@ -50,7 +50,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from aia_core.application.scope import ScopeResolver
-from aia_core.domain.scope import ScopeDenied, StudyContext
+from aia_core.domain.scope import ScopeDenied, WorkScope
 from aia_core.domain.workflow import FailureClass, InteractionMode, StepDefinition, StepRunStatus
 from aia_core.infrastructure import error_tracking
 from aia_core.infrastructure.db import shares_one_connection
@@ -104,7 +104,8 @@ class AttemptResult:
 @dataclass(frozen=True, slots=True)
 class _Claim:
     work: ClaimedWork
-    scope: StudyContext
+    #: A study's scope, or the client's own work's (client-budget).
+    scope: WorkScope
     step: StepInput
 
 

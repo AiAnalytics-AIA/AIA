@@ -38,7 +38,14 @@ from ..domain.project import (
     resolve_provider_defaults,
 )
 from ..domain.providers import DEFAULT_MAX_API_COST_USD, Provider, ProviderPolicy
-from ..domain.scope import Permission, StudyContext
+from ..domain.scope import (
+    CLIENT_WORK_PROJECT_OWNER,
+    ClientWorkContext,
+    Permission,
+    StudyContext,
+    WorkScope,
+    payer_study_id,
+)
 from .tables import (
     ProjectEventRow,
     ProjectRevisionRow,
@@ -130,24 +137,27 @@ class ProjectRepository:
     save, write an event and enqueue a job atomically.
     """
 
-    def __init__(self, session: Session, scope: StudyContext, *, owner: str | None = None) -> None:
+    def __init__(self, session: Session, scope: WorkScope, *, owner: str | None = None) -> None:
         """``owner`` names the repository this one acts for (``projects.owner``).
 
         ``None`` -- every ordinary caller, the API included -- sees only ordinary
         projects. A Study's design project is owned by the design repository and is
         invisible here unless its owner is named, so nothing else can write it.
         """
-        if not isinstance(scope, StudyContext):
+        if not isinstance(scope, StudyContext | ClientWorkContext):
             raise TypeError(
-                "ProjectRepository requires a StudyContext issued by the "
-                "authorization layer; unscoped access is not permitted"
+                "ProjectRepository requires a StudyContext or ClientWorkContext issued by "
+                "the authorization layer; unscoped access is not permitted"
             )
+        if isinstance(scope, ClientWorkContext) and owner != CLIENT_WORK_PROJECT_OWNER:
+            # The client's own work has one project, its own; no study's is reachable.
+            raise TypeError(f"client work reaches only the {CLIENT_WORK_PROJECT_OWNER} project")
         self._session = session
-        self._scope = scope
+        self._scope: WorkScope = scope
         self._owner = owner
 
     @property
-    def scope(self) -> StudyContext:
+    def scope(self) -> WorkScope:
         """The authorised scope this repository operates in."""
         return self._scope
 
@@ -161,10 +171,13 @@ class ProjectRepository:
         organization too means a corrupted or mis-migrated row cannot be read
         under the wrong authorisation.
         """
+        study_id = payer_study_id(self._scope)
         return (
             ProjectRow.organization_id == self._scope.organization_id,
             ProjectRow.client_id == self._scope.client_id,
-            ProjectRow.study_id == self._scope.study_id,
+            ProjectRow.study_id == study_id
+            if study_id is not None
+            else ProjectRow.study_id.is_(None),
             ProjectRow.owner.is_(None) if self._owner is None else ProjectRow.owner == self._owner,
         )
 
@@ -349,7 +362,8 @@ class ProjectRepository:
         guess.
         """
         self._scope.require(Permission.EDIT_STUDY)
-        self._scope.require_open_study()
+        if isinstance(self._scope, StudyContext):
+            self._scope.require_open_study()
 
         ptype = ProjectType.coerce(project_type)
         provider, policy = resolve_provider_defaults(
@@ -382,7 +396,7 @@ class ProjectRepository:
             parent_project_id=parent_project_id,
             organization_id=self._scope.organization_id,
             client_id=self._scope.client_id,
-            study_id=self._scope.study_id,
+            study_id=payer_study_id(self._scope),
             created_by=created_by,
             preferred_provider=provider.value,
             provider_policy=policy.value,
