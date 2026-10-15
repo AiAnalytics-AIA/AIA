@@ -17,6 +17,7 @@ import { Button, Tag, TextInput } from "../../rehome/ui";
 import { InlineConfirm } from "../../rehome/step";
 import { Loaded } from "../states";
 import { useResource } from "../useResource";
+import { FieldOriginPanel } from "./FieldOriginPanel";
 import { Formula } from "./MethodologyFormula";
 import { StepContext } from "./MethodologyContext";
 import { MethodologyVersions, type People } from "./MethodologyVersions";
@@ -32,11 +33,21 @@ async function loadList(): Promise<MethodModuleSummary[]> {
 }
 
 const anyone: People = (id) => id ?? "—";
+/** A read-only area the panel adds itself: the population's field policy has no formulas or
+ *  versions to show, so it is not a method module (methodology-tab V1c). */
+type Area = Pick<MethodModuleSummary, "id" | "title_cs" | "note_cs" | "editable">;
+const FIELD_ORIGIN: Area = {
+  id: "field_origin",
+  title_cs: "Původ polí: k čemu smí sloužit",
+  note_cs: "Co rozhoduje, k čemu smí posloužit každé pole populace: jeho původ, věta o použití ve slovníku a kvalita.",
+  editable: false,
+};
 const PURPOSE_GROUPS = [
   { title: "Před spuštěním", ids: ["readiness"] },
   { title: "Mapy objektů", ids: ["sociomap", "sociomap_reference", "sociomapping"] },
   { title: "Čísla ve výsledcích", ids: ["aggregation", "support"] },
   { title: "Respondenti a váhy", ids: ["response", "weighting"] },
+  { title: "Populace a tvrzení", ids: ["field_origin"] },
 ] as const;
 
 export function MethodologyPanel({ people = anyone }: { people?: People }) {
@@ -55,9 +66,10 @@ function Modules({ modules, people }: { modules: MethodModuleSummary[]; people: 
   const onDirty = useCallback((value: boolean) => setEditing(value), []);
   // Which area's editor is open: there the editor speaks for itself.
   const [openFor, setOpenFor] = useState<string | null>(null);
-  const current = modules.find((m) => m.id === active) ?? null;
-  const visible = modules.filter((m) => `${m.title_cs} ${m.note_cs}`.toLocaleLowerCase("cs").includes(query.trim().toLocaleLowerCase("cs")));
-  const groups: { title: string; modules: MethodModuleSummary[] }[] = PURPOSE_GROUPS.map((group) => ({ title: group.title, modules: group.ids.map((id) => visible.find((module) => module.id === id)).filter((module): module is MethodModuleSummary => module !== undefined) }));
+  const areas: Area[] = [...modules, FIELD_ORIGIN];
+  const current = areas.find((m) => m.id === active) ?? null;
+  const visible = areas.filter((m) => `${m.title_cs} ${m.note_cs}`.toLocaleLowerCase("cs").includes(query.trim().toLocaleLowerCase("cs")));
+  const groups: { title: string; modules: Area[] }[] = PURPOSE_GROUPS.map((group) => ({ title: group.title, modules: group.ids.map((id) => visible.find((module) => module.id === id)).filter((module): module is Area => module !== undefined) }));
   const additional = visible.filter((module) => !PURPOSE_GROUPS.some((group) => (group.ids as readonly string[]).includes(module.id)));
   if (additional.length) groups.push({ title: "Další výpočty", modules: additional });
   return <div className="flex min-w-0 flex-col gap-4">
@@ -86,7 +98,8 @@ function Modules({ modules, people }: { modules: MethodModuleSummary[]; people: 
     </div> : null}
     {!visible.length ? <p role="status" className="text-sm text-ink-muted">{t(`${M}.noMatch`)}</p> : null}
     {pending ? <InlineConfirm message={t(`${M}.leaveEditor`)} action={t(`${M}.discardEditor`)} onCancel={() => { setPending(null); setChooserOpen(false); }} onConfirm={() => { setActive(pending); setPending(null); setEditing(false); setChooserOpen(false); }} /> : null}
-    {current ? <ModuleView key={current.id} summary={current} people={people} onDirty={onDirty} onOpen={(open) => setOpenFor(open ? current.id : null)} /> : null}
+    {current?.id === FIELD_ORIGIN.id ? <FieldOriginPanel /> : null}
+    {current && current.id !== FIELD_ORIGIN.id ? <ModuleView key={current.id} summary={modules.find((m) => m.id === current.id) as MethodModuleSummary} people={people} onDirty={onDirty} onOpen={(open) => setOpenFor(open ? current.id : null)} /> : null}
   </div>;
 }
 
