@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 from aia_core.domain.providers import Provider
 from aia_core.domain.workflow import ReservationStatus, StepDefinition
 from aia_core.infrastructure.repositories import ProjectRepository
+from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.tables import (
     BudgetReservationRow,
     ClientRow,
@@ -119,6 +120,13 @@ def test_a_client_hold_is_checked_against_and_charged_to_the_client_alone(
     hold = session.get(BudgetReservationRow, reservation_id)
     assert hold is not None
     assert (hold.client_id, hold.study_id) == (client.client_id, None)
+    # The client's budget says what is held: $6 of $10, $4 left (never the study's).
+    position = ScopeRepository(session).client_budget(
+        scoped.resolver.client_context(
+            scoped.principal(scoped.users["lead"]), client_id=client.client_id
+        )
+    )
+    assert (position.reserved_usd, position.available_usd) == (6.0, 4.0)
     # The client's own hold counts against the client's next one.
     with pytest.raises(BudgetExceeded):
         _reserve(queue, work, 5.0)
