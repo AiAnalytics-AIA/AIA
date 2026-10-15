@@ -2123,6 +2123,21 @@ export const cs = {
       dockNote: "{d} dimenzí · N={n}",
     },
     exec: {
+      // Plan run-recovery-and-truth 5a: who answers the run, chosen before it starts.
+      respondents: {
+        title: "Kdo bude odpovídat",
+        text: "Odkud běh vezme své AI respondenty:",
+        fictional_roster: "Fiktivní respondenti",
+        fictional_rosterHelp: "Vymyšlené osoby AIA. Data jsou fiktivní a nikdy nejsou důkazem o populaci.",
+        panel: "AI respondenti z populace",
+        panelHelp: "Osoby vybrané z populace běhu pod uloženými filtry; jejich odpovědi jsou modelované.",
+        default: "výchozí",
+        reason: {
+          panel_personas_disabled: "Toto nasazení odpovědi z populace zatím nenabízí.",
+          fieldwork_not_ai_runtime: "Tento běh neodpovídá přes AI, takže populace se nepoužije.",
+        },
+        note: "Volba je součástí běhu: tentýž návrh s fiktivními respondenty a s respondenty z populace jsou dva běhy. Kontroly výše platí pro zvolený zdroj.",
+      },
       population: {
         title: "Populace běhu",
         text: "Nad jakou populací se běh počítá:",

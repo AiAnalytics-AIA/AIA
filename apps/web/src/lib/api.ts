@@ -903,7 +903,13 @@ export type Readiness = {
   /** Each stated research question traced to its measures; `null` when the design does not compile,
    * absent from an API that predates it. */
   research_trace?: ResearchTrace | null;
+  /** The source of AI respondents these checks assumed (run-recovery-and-truth 5a). */
+  persona_source?: string;
+  /** Every source, whether this deployment offers it, why not, and which a start takes by default. */
+  persona_sources?: PersonaSourceOption[];
 };
+
+export type PersonaSourceOption = { source: string; offered: boolean; reason: string | null; default: boolean };
 
 export type ResearchPhase = "QUEUED" | "RUNNING" | "WAITING" | "COMPLETED" | "FAILED" | "CANCELLED";
 /** One entry of a run's event feed, read after a cursor (lib/step-activity.ts folds them). */
@@ -1034,17 +1040,20 @@ export const research = {
   /** One Design Revision with its content (project memory M2c reads a past study's). */
   revision: (studyId: string, revisionId: string) =>
     request<DesignRevision & { content: Record<string, unknown> }>("GET", `${studyPath(studyId)}/design/revisions/${enc(revisionId)}`),
-  readiness: (studyId: string, revisionId: string) =>
-    request<Readiness>("GET", `${studyPath(studyId)}/research/readiness${query({ design_revision_id: revisionId })}`),
+  /** `personaSource` assesses the design under that source of respondents; omitted, the deployment's default. */
+  readiness: (studyId: string, revisionId: string, personaSource?: string) =>
+    request<Readiness>("GET", `${studyPath(studyId)}/research/readiness${query({ design_revision_id: revisionId, persona_source: personaSource })}`),
   /**
    * `confirmCostUsd` is the person's yes to the ceiling the server showed, when the study's limit asks for one.
    * `populationVersionId` runs over one of the study's client's materialized children instead of LIVE (P4d4c).
+   * `personaSource` is who answers, as the person chose it among the offered sources (5a).
    */
-  start: (studyId: string, revisionId: string, confirmCostUsd?: number, populationVersionId?: string) =>
+  start: (studyId: string, revisionId: string, confirmCostUsd?: number, populationVersionId?: string, personaSource?: string) =>
     request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs`, {
       design_revision_id: revisionId,
       ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
       ...(populationVersionId === undefined ? {} : { population_version_id: populationVersionId }),
+      ...(personaSource === undefined ? {} : { persona_source: personaSource }),
     }),
   /** Set, or with `null` clear, the cost at which starting a run asks for confirmation. */
   setSpendConfirm: (studyId: string, limitUsd: number | null) =>

@@ -174,6 +174,51 @@ describe("Run", () => {
     expect(called("POST", "/api/v1/studies/STU-1/research/runs")[0].body).toEqual({ design_revision_id: "REV-a1" });
   });
 
+  it("lets the person choose who answers, reads the checks again under it, and starts with it (run-recovery-and-truth 5a)", async () => {
+    const READINESS = "/api/v1/studies/STU-1/research/readiness";
+    const sources = [
+      { source: "fictional_roster", offered: true, reason: null, default: true },
+      { source: "panel", offered: true, reason: null, default: false },
+    ];
+    api({
+      [`GET ${READINESS}`]: () => {
+        const asked = new URL(called("GET", READINESS).at(-1)!.url, "http://x").searchParams.get("persona_source");
+        const source = asked ?? "fictional_roster";
+        const audience = source === "panel" ? { id: "audience", status: "PASS", message: "Filtry se uplatní při výběru respondentů z populace." } : READY.checks[1];
+        return { ...READY, checks: [READY.checks[0], audience], persona_source: source, persona_sources: sources };
+      },
+    });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const card = (await screen.findByRole("heading", { name: t("research.exec.respondents.title") })).closest("section") as HTMLElement;
+    const roster = within(card).getByRole("radio", { name: new RegExp(t("research.exec.respondents.fictional_roster")) }) as HTMLInputElement;
+    const panel = within(card).getByRole("radio", { name: new RegExp(t("research.exec.respondents.panel")) }) as HTMLInputElement;
+    expect(roster.checked).toBe(true);
+    fireEvent.click(panel);
+    await screen.findByText("Filtry se uplatní při výběru respondentů z populace.");
+    expect(called("GET", READINESS).at(-1)!.url).toContain("persona_source=panel");
+    expect((within(card).getByRole("radio", { name: new RegExp(t("research.exec.respondents.panel")) }) as HTMLInputElement).checked).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: t("research.exec.start") }));
+    await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("progress")));
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs")[0].body).toEqual({ design_revision_id: "REV-a1", persona_source: "panel" });
+  });
+
+  it("shows a source the deployment does not offer, with its reason, and never selectable", async () => {
+    api({
+      "GET /api/v1/studies/STU-1/research/readiness": () => ({
+        ...READY,
+        persona_source: "fictional_roster",
+        persona_sources: [
+          { source: "fictional_roster", offered: true, reason: null, default: true },
+          { source: "panel", offered: false, reason: "panel_personas_disabled", default: false },
+        ],
+      }),
+    });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const card = (await screen.findByRole("heading", { name: t("research.exec.respondents.title") })).closest("section") as HTMLElement;
+    expect((within(card).getByRole("radio", { name: new RegExp(t("research.exec.respondents.panel")) }) as HTMLInputElement).disabled).toBe(true);
+    expect(within(card).getByText(t("research.exec.respondents.reason.panel_personas_disabled"))).toBeTruthy();
+  });
+
   it("saves a change not yet saved before the design becomes a revision", async () => {
     const workspace = workspaceFixture(PROJECT);
     api({ "PUT /api/v1/studies/STU-1/workspace/content": (b) => workspace.answer(CONTENT_PATH, "PUT", b) });

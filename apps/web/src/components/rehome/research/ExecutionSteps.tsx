@@ -19,6 +19,7 @@ import {
   type ResearchAnalysis,
   type ResearchReport,
   type QuestionOutlook,
+  type PersonaSourceOption,
   type Readiness,
   type ResearchTrace,
   type ResearchRun,
@@ -481,6 +482,8 @@ export function RunStep() {
   // The client's materialized children a run may be started over (P4d4c); none read is LIVE.
   const [children, setChildren] = useState<PopulationVersion[]>([]);
   const [childId, setChildId] = useState<string | null>(null);
+  // Who answers (5a): the source the readiness was read under, changed only by the person.
+  const [choosing, setChoosing] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -528,14 +531,20 @@ export function RunStep() {
     };
   }, [frame.studyId, frame.canEdit, store]);
 
-  const rereadReadiness = async () => {
+  const rereadReadiness = async (personaSource = prepared.kind === "ready" ? prepared.readiness.persona_source : undefined) => {
     if (prepared.kind !== "ready") return;
     try {
-      const readiness = await research.readiness(frame.studyId, prepared.readiness.design_revision_id);
+      const readiness = await research.readiness(frame.studyId, prepared.readiness.design_revision_id, personaSource);
       setPrepared({ ...prepared, readiness });
     } catch (e) {
       setStartError(message(e));
     }
+  };
+  // The checks differ by source (the support forecast, the audience): read them again under it.
+  const chooseSource = async (source: string) => {
+    setChoosing(true);
+    await rereadReadiness(source);
+    setChoosing(false);
   };
 
   const ask = (ceiling: number, limit: number) =>
@@ -555,12 +564,12 @@ export function RunStep() {
     setStartError(null);
     try {
       try {
-        await research.start(frame.studyId, readiness.design_revision_id, yes, childId ?? undefined);
+        await research.start(frame.studyId, readiness.design_revision_id, yes, childId ?? undefined, readiness.persona_source);
       } catch (e) {
         // The limit or the ceiling changed since the page read them: ask with the server's figure.
         const asked = confirmationAsked(e);
         if (!asked || yes !== undefined || !(await ask(asked.ceiling, asked.limit))) throw e;
-        await research.start(frame.studyId, readiness.design_revision_id, asked.ceiling, childId ?? undefined);
+        await research.start(frame.studyId, readiness.design_revision_id, asked.ceiling, childId ?? undefined, readiness.persona_source);
       }
       router.push(stepHref("progress"));
     } catch (e) {
@@ -602,7 +611,15 @@ export function RunStep() {
           {prepared.readiness.research_trace ? <ResearchTraceCard trace={prepared.readiness.research_trace} outlook={prepared.readiness.question_outlook ?? []} /> : null}
           <QuestionOutlookCard items={prepared.readiness.question_outlook ?? []} />
           <Receipt revision={prepared.revision} readiness={prepared.readiness} />
-          <CostCard readiness={prepared.readiness} canEdit={frame.canEdit} onLimitSaved={rereadReadiness} />
+          <CostCard readiness={prepared.readiness} canEdit={frame.canEdit} onLimitSaved={() => void rereadReadiness()} />
+          {prepared.readiness.fieldwork_source === "ai_runtime" && prepared.readiness.persona_sources?.length ? (
+            <RespondentChoice
+              options={prepared.readiness.persona_sources}
+              value={prepared.readiness.persona_source ?? null}
+              onChange={(source) => void chooseSource(source)}
+              disabled={!frame.canEdit || starting || choosing}
+            />
+          ) : null}
           {children.length ? <PopulationChoice choices={children} value={childId} onChange={setChildId} disabled={!frame.canEdit || starting} /> : null}
           {prepared.readiness.fieldwork_source === "ai_runtime" ? (
             <p role="note" className="rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">{t("research.exec.aiRuntimeNotice")}</p>
@@ -676,6 +693,37 @@ function PopulationChoice({
             </label>
           );
         })}
+      </fieldset>
+      <p className="mt-2 text-xs text-ink-muted">{t(`${P}.note`)}</p>
+    </Card>
+  );
+}
+
+/** "Kdo bude odpovídat": every source of AI respondents, the offered ones choosable, the others
+ * with the reason this deployment gives (plan run-recovery-and-truth 5a). */
+function RespondentChoice({ options, value, onChange, disabled }: {
+  options: PersonaSourceOption[];
+  value: string | null;
+  onChange: (source: string) => void;
+  disabled: boolean;
+}) {
+  const P = "research.exec.respondents";
+  return (
+    <Card title={t(`${P}.title`)}>
+      <fieldset className="flex flex-col gap-2 text-sm" disabled={disabled}>
+        <legend className="mb-1 text-ink-muted">{t(`${P}.text`)}</legend>
+        {options.map((o) => (
+          <label key={o.source} className={`flex items-start gap-2 ${o.offered ? "" : "text-ink-muted"}`}>
+            <input type="radio" name="run-respondents" checked={value === o.source} disabled={!o.offered} onChange={() => onChange(o.source)} />
+            <span className="flex flex-col">
+              <span>
+                <span className="font-semibold">{t(`${P}.${o.source}`)}</span>
+                {o.default ? <span className="text-ink-muted"> · {t(`${P}.default`)}</span> : null}
+              </span>
+              <span className="text-xs text-ink-muted">{o.offered ? t(`${P}.${o.source}Help`) : t(`${P}.reason.${o.reason}`)}</span>
+            </span>
+          </label>
+        ))}
       </fieldset>
       <p className="mt-2 text-xs text-ink-muted">{t(`${P}.note`)}</p>
     </Card>

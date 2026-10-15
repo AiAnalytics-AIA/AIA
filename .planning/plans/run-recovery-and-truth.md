@@ -12,7 +12,7 @@ chunks:
   - "[ ] 3d. External source: the Deep Research evidence and gaps cited against each research question, shown in the chain"
   - "[ ] 3e. The questionnaire agent proposes the links; a person accepts them with the proposal"
   - "[ ] 4. Deep Research: source diversity beyond Wikipedia, the exact supporting passage per claim, and every rejection's reason shown"
-  - "[ ] 5a. Population: a person chooses who answers a run (fictional roster or the population) before it starts; the deployment only says what it offers"
+  - "[x] 5a. Population: a person chooses who answers a run (fictional roster or the population) before it starts; the deployment only says what it offers"
   - "[ ] 5b. Population: the run receipt says who answered, from which population, and which selected dimensions and filters were applied"
   - "[ ] 5c. Population: selected dimensions applied to panel respondents (needs the product owner's decision: methodology)"
   - "[ ] 6. Desktop UX: one state vocabulary (ready, running, needs repair, evidence unavailable, report ready), plain reasons, question text, cost remaining"
