@@ -201,6 +201,26 @@ export function populationNote(run: Pick<ResearchRun, "population">): string | n
   return tv(p.read_by_fieldwork ? "research.exec.populationRead" : "research.exec.populationRecorded", vars);
 }
 
+/** The origin each persona source's data must report: the roster's is fictional, the panel's modelled. */
+const EXPECTED_KIND: Record<string, OriginKind> = { fictional_roster: "SIMULATED", panel: "MODELLED" };
+
+/**
+ * Who answered a run (run-recovery-and-truth 5b): the source it pinned beside the origin its
+ * fieldwork data reports. `observed` is null until fieldwork has stored its data; a mismatch is
+ * named, never resolved by trusting one of the two.
+ */
+export function respondentReceipt(run: Pick<ResearchRun, "persona_source" | "steps">): {
+  pinned: string;
+  observed: OriginKind | null;
+  mismatch: boolean;
+} {
+  const pinned = run.persona_source ?? "fictional_roster";
+  const fieldwork = run.steps.find((s) => s.node_key === "run");
+  const stored = fieldwork && (fieldwork.data_origin_kind || fieldwork.data_origin) ? statedKind(fieldwork.data_origin_kind, fieldwork.data_origin) : null;
+  const expected = EXPECTED_KIND[pinned];
+  return { pinned, observed: stored, mismatch: stored !== null && (expected === undefined || stored !== expected) };
+}
+
 export function stepOf(run: ResearchRun, nodeKey: string): ResearchStep | null {
   return run.steps.find((s) => s.node_key === nodeKey) ?? null;
 }

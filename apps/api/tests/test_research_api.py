@@ -1336,3 +1336,133 @@ def test_a_run_stored_before_the_pin_reads_as_the_fictional_roster(
     assert researcher.get(f"{_runs(world)}/{run['run_id']}").json()["persona_source"] == (
         "fictional_roster"
     )
+
+
+def test_a_person_chooses_who_answers_among_the_sources_the_deployment_offers(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """Plan run-recovery-and-truth 5a: the switch says what is offered and what is the
+    default; a person chooses per run, and an unoffered source is refused, never swapped."""
+    filtered = {
+        **DESIGN,
+        "audience": {"source_mode": "population", "filters": {"vek": {"min": 30, "max": 59}}},
+    }
+    revision_id = submit(researcher, world, filtered).json()["revision_id"]
+    url = f"{API}/studies/{world.study_id()}/research/readiness"
+
+    def readiness(**params: str) -> Any:
+        return researcher.get(url, params={"design_revision_id": revision_id, **params})
+
+    off = readiness().json()
+    assert off["persona_source"] == "fictional_roster"
+    assert off["persona_sources"] == [
+        {"source": "fictional_roster", "offered": True, "reason": None, "default": True},
+        {
+            "source": "panel",
+            "offered": False,
+            "reason": "panel_personas_disabled",
+            "default": False,
+        },
+    ]
+    asked = readiness(persona_source="panel")
+    assert asked.status_code == 409, asked.text
+    assert (asked.json()["code"], asked.json()["details"]["reason"]) == (
+        "persona_source_unavailable",
+        "panel_personas_disabled",
+    )
+    refused = researcher.post(
+        _runs(world), json={"design_revision_id": revision_id, "persona_source": "panel"}
+    )
+    assert refused.status_code == 409 and refused.json()["code"] == "persona_source_unavailable"
+    assert researcher.get(_runs(world)).json()["items"] == []  # nothing started
+
+    app.state.settings = app.state.settings.model_copy(
+        update={"ai_population_personas_enabled": True}
+    )
+    on = readiness().json()
+    assert on["persona_source"] == "panel"
+    assert [(o["source"], o["offered"], o["default"]) for o in on["persona_sources"]] == [
+        ("fictional_roster", True, False),
+        ("panel", True, True),
+    ]
+    # Readiness under the roster, chosen with the panel on: the filters are not applied.
+    roster = readiness(persona_source="fictional_roster").json()
+    assert roster["persona_source"] == "fictional_roster"
+    audience = next(c for c in roster["checks"] if c["id"] == "audience")
+    assert audience["status"] == "WARN"
+    # The roster can be chosen with the panel on: the switch no longer decides every run.
+    run = researcher.post(
+        _runs(world),
+        json={"design_revision_id": revision_id, "persona_source": "fictional_roster"},
+    )
+    assert run.status_code == 201, run.text
+    assert run.json()["persona_source"] == "fictional_roster"
+
+
+def test_a_run_records_what_its_design_selected_and_what_reached_its_respondents(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """Plan run-recovery-and-truth 5b: dimensions are never applied yet; the filters only by a
+    draw from the population; a run from before 5b recorded nothing and says so."""
+    selected = {
+        **DESIGN,
+        "persona_dimensions": {"approved": ["vek_skupina", "region"]},
+        "audience": {"source_mode": "population", "filters": {"vek": {"min": 30, "max": 59}}},
+    }
+    revision_id = submit(researcher, world, selected).json()["revision_id"]
+    run = start(researcher, world, revision_id).json()
+    assert run["selection"] == {
+        "dimensions": ["vek_skupina", "region"],
+        "dimensions_applied": False,
+        "dimensions_reason": "dimensions_not_read_by_personas",
+        "audience_filters": {"vek": {"max": 59, "min": 30}},
+        "filters_applied": False,
+        "filters_reason": "filters_need_population_draw",
+    }
+    with create_session_factory(app.state.engine)() as session:
+        row = session.get(WorkflowRunRow, run["run_id"])
+        assert row is not None
+        row.metadata_json = {k: v for k, v in row.metadata_json.items() if k != "selection"}
+        session.commit()
+    assert researcher.get(f"{_runs(world)}/{run['run_id']}").json()["selection"] is None
+
+
+def test_a_panel_runs_filters_are_applied_only_once_its_draw_succeeded() -> None:
+    """Review (Codex on #439): a start records the filters as awaiting the draw; only a
+    fieldwork step that succeeded with population-drawn data applies them, and a run that
+    ended without one says no respondent was drawn."""
+    from aia_api.routers.research import ResearchStepResponse, _selection
+
+    meta = {
+        "selection": {
+            "dimensions": [],
+            "dimensions_applied": False,
+            "dimensions_reason": None,
+            "audience_filters": {"vek": {"min": 30}},
+            "filters_applied": False,
+            "filters_reason": "filters_await_population_draw",
+        }
+    }
+
+    def fieldwork(status: str, origin: str | None) -> list[ResearchStepResponse]:
+        return [
+            ResearchStepResponse.model_construct(node_key="run", status=status, data_origin=origin)
+        ]
+
+    waiting = _selection(meta, fieldwork("RUNNING", None), terminal=False)
+    assert waiting is not None
+    assert (waiting.filters_applied, waiting.filters_reason) == (
+        False,
+        "filters_await_population_draw",
+    )
+    drawn = _selection(meta, fieldwork("SUCCEEDED", "MODELLED_AI_PANEL"), terminal=True)
+    assert drawn is not None and (drawn.filters_applied, drawn.filters_reason) == (True, None)
+    failed = _selection(meta, fieldwork("FAILED", None), terminal=True)
+    assert failed is not None
+    assert (failed.filters_applied, failed.filters_reason) == (
+        False,
+        "population_draw_not_completed",
+    )
+    # Data that is not the population's never counts as the draw.
+    roster = _selection(meta, fieldwork("SUCCEEDED", "SYNTHETIC_AI_FICTIONAL"), terminal=True)
+    assert roster is not None and roster.filters_applied is False
