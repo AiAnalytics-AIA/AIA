@@ -70,6 +70,15 @@ from aia_core.domain.methodology.versions import (
     validate_version,
     version_payload,
 )
+from aia_core.domain.population.policy import (
+    CLIENT_BLOCKING_GRADES,
+    EVIDENCE_STATUS_CLASS,
+    FIELD_POLICY_VERSION,
+    KNOWN_GRADES,
+    RECOMMENDED_USE_POLICY,
+    FieldUse,
+    ProvenanceClass,
+)
 from aia_core.domain.research_design import ReadinessSpec
 from aia_core.domain.research_sociomap import side_tables_of
 from aia_core.domain.scope import ScopeDenied
@@ -806,6 +815,82 @@ def read_module_detail(module_id: str, preset: str | None = None) -> ModuleDetai
         preset=view.preset,
         step_details=[_step(found, s) for s in view.steps],
     )
+
+
+class OriginOut(_Strict):
+    #: ``ProvenanceClass``: where a field's values come from.
+    id: str
+    #: True for a value measured on a person (observed, donor-matched): only these may back a
+    #: client-facing measured claim.
+    measured: bool
+    #: The dictionary's ``evidence_status`` codes of this origin, verbatim.
+    statuses: list[str]
+
+
+class PhraseOut(_Strict):
+    #: A ``recommended_use`` sentence of the dictionary, verbatim.
+    phrase: str
+    #: ``ClaimRule`` values the sentence carries.
+    rules: list[str]
+    #: ``ClientClaimPermit``: what it lets a client be told.
+    client_permit: str
+
+
+class GradeOut(_Strict):
+    grade: str
+    #: True for a grade that never backs a client-facing claim.
+    client_blocking: bool
+
+
+class FieldPolicyTablesOut(_Strict):
+    """The tables ``RuntimePopulation.decide`` reads, as code holds them. No field, no row."""
+
+    version: str
+    #: ``FieldUse`` values, in the order the policy lists them.
+    uses: list[str]
+    origins: list[OriginOut]
+    phrases: list[PhraseOut]
+    grades: list[GradeOut]
+
+
+def field_policy_tables() -> FieldPolicyTablesOut:
+    """Shared with ``tools/methodology_fixture.py``."""
+    return FieldPolicyTablesOut(
+        version=FIELD_POLICY_VERSION,
+        uses=[u.value for u in FieldUse],
+        origins=[
+            OriginOut(
+                id=c.value,
+                measured=c.is_measured,
+                statuses=[s for s, of in EVIDENCE_STATUS_CLASS.items() if of is c],
+            )
+            for c in ProvenanceClass
+        ],
+        phrases=[
+            PhraseOut(
+                phrase=phrase,
+                rules=sorted(r.value for r in p.rules),
+                client_permit=p.client_permit.value,
+            )
+            for phrase, p in RECOMMENDED_USE_POLICY.items()
+        ],
+        grades=[
+            GradeOut(grade=g, client_blocking=g in CLIENT_BLOCKING_GRADES)
+            for g in sorted(KNOWN_GRADES)
+        ],
+    )
+
+
+@router.get(
+    "/field-policy",
+    response_model=FieldPolicyTablesOut,
+    summary="What decides each population field's uses (read-only)",
+)
+def read_field_policy(org: OrganizationDep) -> FieldPolicyTablesOut:
+    """Plan methodology-tab V1c: the field policy's tables, from code. A version's fields and
+    each one's answers are ``GET /population/versions/{id}/characteristics``."""
+    del org  # any member reads it
+    return field_policy_tables()
 
 
 @router.get("/{module_id}", response_model=ModuleDetail, summary="One module, step by step")

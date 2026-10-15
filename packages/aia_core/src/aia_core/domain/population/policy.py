@@ -44,6 +44,7 @@ from typing import Final
 from .errors import PopulationError
 
 __all__ = [
+    "CLIENT_BLOCKING_GRADES",
     "EVIDENCE_STATUS_CLASS",
     "FIELD_POLICY_VERSION",
     "KNOWN_GRADES",
@@ -228,7 +229,7 @@ EVIDENCE_STATUS_CLASS: Final[Mapping[str, ProvenanceClass]] = {
 #: Production grades in the v17 dictionary. ``T`` (technical) and ``D`` never back
 #: a client-facing claim.
 KNOWN_GRADES: Final = frozenset({"A", "B", "B_WEIGHTED", "C", "C_RAW/B_WEIGHTED", "D", "T"})
-_CLIENT_BLOCKING_GRADES: Final = frozenset({"T", "D"})
+CLIENT_BLOCKING_GRADES: Final = frozenset({"T", "D"})
 
 # The dictionary columns the policy reads. A dictionary without them cannot state
 # a policy and is refused at import.
@@ -412,7 +413,7 @@ class FieldPolicy:
             return UsageDecision(name, use, True, "persona_eligible", frozenset(obligations))
 
         # Client-facing from here on: positive support required.
-        if entry.production_grade in _CLIENT_BLOCKING_GRADES:
+        if entry.production_grade in CLIENT_BLOCKING_GRADES:
             return _refuse(name, use, f"grade_{entry.production_grade}_not_client_facing")
         if entry.client_permit is ClientClaimPermit.NONE:
             return _refuse(name, use, "phrase_permits_no_client_claim")
