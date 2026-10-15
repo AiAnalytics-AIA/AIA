@@ -1102,8 +1102,11 @@ describe("Results", () => {
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     const report = await card();
-    fireEvent.click(await report.findByRole("radio", { name: "Pro klienta" }));
-    expect(report.getByText(t("research.exec.results.reportClientHint"))).toBeTruthy();
+    // The client option is there from the first render but disabled until the run's report
+    // status says its data is modelled: click it only once that has loaded.
+    await waitFor(() => expect(report.getByRole("radio", { name: "Pro klienta" }).getAttribute("aria-disabled")).not.toBe("true"));
+    fireEvent.click(report.getByRole("radio", { name: "Pro klienta" }));
+    expect(await report.findByText(t("research.exec.results.reportClientHint"))).toBeTruthy();
     // The client version is DOCX only.
     expect(report.getByRole("radio", { name: "PDF" }).getAttribute("aria-disabled")).toBe("true");
     fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportDownloadClient") }));
