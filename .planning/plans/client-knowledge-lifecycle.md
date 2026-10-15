@@ -12,7 +12,7 @@ chunks:
   - "[x] K2d2. Persistence: a client-work reading pinned by its SHA-256; AI-authored proposals written once per run"
   - "[x] K2d3. The client_source_proposals step: executor, workflow type, kill switch, parks by name; recorded-gateway tests under the real worker loop, charged to the client"
   - "[x] K2d4. Start and follow: POST /clients/{id}/sources/{source_id}/proposals, idempotent per reading; the run's state"
-  - "[ ] K2d5. Web: Navrhnout znalosti on a document's item and the intake sheet; waiting for budget with the lift; proposals land in Ke schválení"
+  - "[x] K2d5. Web: Navrhnout znalosti on a document's item and the intake sheet; waiting for budget with the lift; proposals land in Ke schválení"
   - "[ ] K2d6. Burst, latency and money measured; develop activation is the owner's call"
   - "[ ] K2e. Web intake beneath a chosen study: one public URL captured, Deep Research evidence imported"
   - "[ ] K2f. Review payload with evidence beside each proposal; connected acceptance over all three families"
@@ -480,6 +480,41 @@ generic historical records without inventing source spans or validated dimension
     `apps/api/tests/test_client_sources_api.py` (3: once per reading, a retry after a failed
     run, no study named; a dataset refused with nothing queued; another client's source 404) and
     `test_client_work_start.py::test_runs_are_listed_by_their_keys_prefix_matched_literally`.
+  - **K2d5 landed** (2026-10-15). The web:
+    - `lib/source-proposals.ts` (pure): `canPropose` (a document something was read from; never
+      a table), `proposalsPhase` (the step's state: queued, running, budget, waiting, done,
+      failed; a state it does not know is a wait, never done), `mayAsk`, `proposalsLine` and
+      `proposalsReason` (the step's reasons in words, an unknown one as its code).
+    - `components/aia/clients/SourceProposals.tsx`: Navrhnout znalosti on a document's file on
+      the open item (`SourceCard ai=`, from `KnowledgeArea`: ask with
+      `PROPOSE_CLIENT_KNOWLEDGE` + `RUN_CLIENT_WORK`, lift with `MANAGE_CLIENT_BUDGET`). It uses
+      the AI button with a client-budget title. It reads the run again every 2 s while it is
+      queued or running; it says why a run waits; a run waiting for the budget offers the lift
+      (`workspace.liftClientWork`). A finished run says how many proposals wait and links to Ke
+      schválení, and a run about an older reading says so.
+    - The intake sheet's "Navrhnout znalosti z textu" is live: ticked, it asks about each
+      document once its item is made and the batch filed. Asks still owed are kept for a retry
+      after a failed filing. A refusal is named per file and stops no other. The sheet stays
+      open to say what was asked.
+    - Ke schválení: an AI proposal shows its quote, where the quote stands and the document
+      (`ProposalResponse.from_source`: source, run, quote, locator, only for a proposal with
+      `authored: "ai"` in the shape the step writes), says "Navrhla AI z dokumentu", and drops
+      "Váš návrh".
+    - `latest_source_proposals`' reason is the step's own (its last attempt's error reason)
+      rather than the worker's general `ai_runtime_unavailable`; while waiting for budget it is
+      the budget.
+    - Tests: `source-proposals.test.ts` (7); `KnowledgeLibrary.test.tsx` (5: asked, followed to
+      Ke schválení, paid by the client; the budget lift; a parked reason with nothing offered to
+      a person who may not run; not offered for a table; the review card); `IntakeSheet.test.tsx`
+      (3: documents asked only after their items exist, never a table; a refusal named; nothing
+      asked unticked); the API's `test_an_ai_proposal_shows_its_quote_and_where_it_stands_for_review`;
+      the executor tests now start through `start_source_proposals` and read the parked reason
+      back. `tools/ui_workbench/intake_journey.mjs`: the box starts unticked and no proposals are
+      asked.
+    - In a browser, on the workbench at 1440 and 390 px: a TXT file added with the box ticked;
+      the sheet said "AI navrhne znalosti z 1 dokumentu"; the item said "Čeká: AI návrhy z
+      podkladů nejsou v tomto prostředí zapnuté." (the workbench worker has no gateway); no
+      overflow, no page error.
 - **K2e. Web intake.**
   - URL capture is one fetch through `RetrievalGate` beneath the chosen study. The snapshot is
     stored as a client source with `origin=web`, the URL and the retrieval time.
@@ -561,6 +596,13 @@ dimensions (K5) and retirement (K6).
    draft/non-executable definitions honestly and allow computational selection only when resolved.
 6. Test: disposable `test_a_dimension_can_be_accepted_with_no_definition_or_values` pins the
    current behavior; connected acceptance must refuse execution with an unresolved definition.
+
+**F-K3 (hypothesis) — A web test failed once under the full suite.**
+`ExecutionSteps.test.tsx` › "offers the report's PDF when the run stored one, and says why when
+it could not" failed once in `npx vitest run` (1 of 1511, 2026-10-15, while K2d5 was written).
+It passed alone twice and in the next full run. There is no reproduction, so it is a
+hypothesis. The file is not touched by K2d. Next step: run the full suite repeatedly and, if it
+recurs, capture the assertion and its timing.
 
 ## Doc follow-up
 

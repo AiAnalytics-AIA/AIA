@@ -319,6 +319,9 @@ export type Proposal = {
   yours: boolean;
   /** The client's source (a file) the proposed item names, client-workspace C7a. */
   source_id?: string | null;
+  /** An AI proposal from a client's document (lifecycle K2d): the document, the quote it
+   *  rests on (checked by code to be there) and where the quote stands. */
+  from_source?: { source_id: string; run_id: string; quote: string; locator: SourceLocator } | null;
 };
 
 // ---- a client's sources (lifecycle K2a-K2c; the file a document item names, C7a) ----
@@ -345,6 +348,25 @@ export type ClientSource = {
 };
 
 export type SourceAdded = ClientSource & { created: boolean };
+
+/** A run asking AI for knowledge proposals from one source, paid by the client (lifecycle K2d4). */
+export type ProposalsRun = {
+  run_id: string;
+  source_id: string;
+  reading_sha256: string;
+  status: "PENDING" | "RUNNING" | "COMPLETED" | "FAILED" | "CANCELLED" | string;
+  /** The step's state: RUNNABLE, CLAIMED, RUNNING, AWAITING_BUDGET, SUCCEEDED, FAILED … */
+  step_status: string;
+  /** Why it waits or stopped, by name; null when it has not. */
+  reason: string | null;
+  /** Whether the reading the run asked about is still the source's. */
+  current: boolean;
+  created_at: string | null;
+  finished_at: string | null;
+  /** When it succeeded: batches, proposed and dropped by reason. */
+  output: { batches?: number; proposed?: number; dropped?: Record<string, number> };
+  created: boolean;
+};
 
 export type SourceLocator = {
   page?: number | null;
@@ -803,6 +825,19 @@ export const workspace = {
     request<SourceDetail>("GET", `/api/v1/clients/${enc(clientId)}/sources/${enc(sourceId)}`),
   sourceOriginal: (clientId: string, sourceId: string) =>
     requestBlob(`/api/v1/clients/${enc(clientId)}/sources/${enc(sourceId)}/original`),
+  /** The newest AI proposals run about a source; null when nobody has asked. */
+  sourceProposals: (clientId: string, sourceId: string) =>
+    request<ProposalsRun | null>("GET", `/api/v1/clients/${enc(clientId)}/sources/${enc(sourceId)}/proposals`),
+  /** Ask AI for knowledge proposals from a document, paid by the client; once per reading. */
+  proposeFromSource: (clientId: string, sourceId: string) =>
+    request<ProposalsRun>("POST", `/api/v1/clients/${enc(clientId)}/sources/${enc(sourceId)}/proposals`),
+  /** Raise the client's budget to `budgetUsd` and let a step of its own work that stopped at it go on. */
+  liftClientWork: (clientId: string, runId: string, nodeKey: string, budgetUsd: number, note = "") =>
+    request<{ run_id: string; status: string; steps: { node_key: string; status: string }[] }>(
+      "POST",
+      `/api/v1/clients/${enc(clientId)}/work/runs/${enc(runId)}/steps/${enc(nodeKey)}/budget`,
+      { budget_usd: budgetUsd, note },
+    ),
   /** `reviewedRevision`: the item's current revision, read by the reviewer, to approve an edit of an older one over it. */
   decide: (clientId: string, proposalId: string, approve: boolean, note = "", reviewedRevision?: number) =>
     request<Proposal>("POST", `/api/v1/clients/${enc(clientId)}/knowledge/proposals/${enc(proposalId)}/decision`, {

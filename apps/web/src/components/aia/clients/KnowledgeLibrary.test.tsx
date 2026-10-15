@@ -335,3 +335,105 @@ describe("a document's file", () => {
     );
   });
 });
+
+// ---- AI proposals from a document (lifecycle K2d5) -------------------------------------
+
+const MAY_RUN = { ...CLIENT, permissions: [...ALL, "RUN_CLIENT_WORK", "MANAGE_CLIENT_BUDGET"] };
+const proposalsRun = (extra: Record<string, unknown> = {}) => ({
+  run_id: "RUN-1", source_id: SRC, reading_sha256: "b".repeat(64), status: "RUNNING", step_status: "RUNNABLE",
+  reason: null, current: true, created_at: null, finished_at: null, output: {}, created: true, ...extra,
+});
+const docItem = item("KNW-4", "Brief", { kind: "DOCUMENT", content: { source_id: SRC } });
+const openDoc = async (client: typeof CLIENT, routes: Record<string, (body: unknown, url: string) => unknown>) => {
+  api({
+    "GET /api/v1/clients/CLI-a/knowledge": () => [...ITEMS, docItem],
+    "GET /api/v1/clients/CLI-a/knowledge/items/KNW-4/revisions": () => [],
+    [`GET ${SOURCES}/${SRC}`]: () => detail(SRC, "Brief.pdf"),
+    ...routes,
+  });
+  open(client);
+  fireEvent.click(await screen.findByRole("button", { name: /Brief/ }));
+  return within(await screen.findByRole("complementary", { name: "Otevřená znalost" }));
+};
+
+describe("AI proposals from a document", () => {
+  it("are asked for from the open item, paid by the client, followed until they wait in Ke schválení", async () => {
+    let run: Record<string, unknown> | null = null;
+    const panel = await openDoc(MAY_RUN, {
+      // The fake answers {} for a missing value; the API answers null when nobody has asked.
+      [`GET ${SOURCES}/${SRC}/proposals`]: () => run ?? new Response("null", { status: 200 }),
+      [`POST ${SOURCES}/${SRC}/proposals`]: () => (run = proposalsRun()),
+    });
+    const ask = (await panel.findByRole("button", { name: "Navrhnout znalosti" })) as HTMLButtonElement;
+    // The AI colour, and the title says who pays: the client, never a study.
+    expect(ask.title).toBe("Spustí AI úlohu na pozadí · platí se z rozpočtu klienta");
+    expect(panel.getByText(/Nic se nestane znalostí, dokud to člověk nepřijme/)).toBeTruthy();
+    fireEvent.click(ask);
+    expect(await panel.findByText("Návrhy čekají ve frontě.")).toBeTruthy();
+    expect(panel.queryByRole("button", { name: /Navrhnout/ })).toBeNull();
+
+    // Read again while it moves; done, it says where the proposals wait.
+    run = proposalsRun({ status: "COMPLETED", step_status: "SUCCEEDED", output: { batches: 1, proposed: 2, dropped: { quote_not_found: 1 } } });
+    expect(await panel.findByText("AI navrhla 2 návrhy. Čekají v Ke schválení.", {}, { timeout: 4000 })).toBeTruthy();
+    expect(panel.getByText("Zahozeno bez doložené citace: 1.")).toBeTruthy();
+    expect(panel.getByRole("link", { name: "Otevřít Ke schválení" }).getAttribute("href")).toBe("/app/clients/CLI-a/knowledge?view=review");
+    expect(calls.filter((c) => c.method === "POST" && c.url.endsWith(`/sources/${SRC}/proposals`))).toHaveLength(1);
+  });
+
+  it("waits for the client's budget and lets a person who may set it raise it", async () => {
+    let run: Record<string, unknown> = proposalsRun({ step_status: "AWAITING_BUDGET", reason: "budget_exceeded" });
+    const panel = await openDoc(MAY_RUN, {
+      [`GET ${SOURCES}/${SRC}/proposals`]: () => run,
+      "POST /api/v1/clients/CLI-a/work/runs/RUN-1/steps/extract/budget": () => {
+        run = proposalsRun({ step_status: "RUNNING" });
+        return { run_id: "RUN-1", status: "RUNNING", steps: [{ node_key: "extract", status: "RUNNABLE" }] };
+      },
+    });
+    expect(await panel.findByText(/Čeká na rozpočet klienta/)).toBeTruthy();
+    fireEvent.change(panel.getByRole("textbox", { name: "Nový rozpočet klienta (USD)" }), { target: { value: "5" } });
+    fireEvent.click(panel.getByRole("button", { name: "Zvýšit rozpočet a pokračovat" }));
+    expect(await panel.findByText("AI čte dokument a navrhuje znalosti…")).toBeTruthy();
+    expect(calls.find((c) => c.url.endsWith("/work/runs/RUN-1/steps/extract/budget"))?.body).toEqual({ budget_usd: 5, note: "" });
+  });
+
+  it("says why a run waits, and offers nothing to a person who may not run the client's work", async () => {
+    const panel = await openDoc(CLIENT, {
+      [`GET ${SOURCES}/${SRC}/proposals`]: () => proposalsRun({ step_status: "WAITING_PROVIDER", reason: "client_source_proposals_unconfigured" }),
+    });
+    expect(await panel.findByText("Čeká: AI návrhy z podkladů nejsou v tomto prostředí zapnuté.")).toBeTruthy();
+    expect(panel.queryByRole("button", { name: /Navrhnout/ })).toBeNull();
+    expect(panel.queryByRole("textbox", { name: /rozpočet/ })).toBeNull();
+  });
+
+  it("is not offered for a table", async () => {
+    const panel = await openDoc(MAY_RUN, {
+      [`GET ${SOURCES}/${SRC}`]: () => ({ ...detail(SRC, "odpovedi.xlsx"), family: "DATASET" }),
+      [`GET ${SOURCES}/${SRC}/proposals`]: () => new Response("null", { status: 200 }),
+    });
+    expect(await panel.findByText("odpovedi.xlsx")).toBeTruthy();
+    expect(panel.queryByRole("button", { name: "Navrhnout znalosti" })).toBeNull();
+    expect(calls.some((c) => c.url.endsWith("/proposals") && c.url.includes("/sources/"))).toBe(false);
+  });
+
+  it("reach Ke schválení with the quote they rest on and where it stands in the document", async () => {
+    const pending = {
+      proposal_id: "KNP-7", origin: "CLIENT", study_id: null, study_name: null, item_id: null, kind: "FINDING", title: "Znalost značky 41 %",
+      summary: "", status: "PROPOSED", proposed_by: "USR-1", proposed_at: "2026-10-15T10:00:00Z", decided_by: null, decided_at: null,
+      decision_note: "", revision: null, base_revision: null, yours: true, source_id: null,
+      from_source: { source_id: SRC, run_id: "RUN-1", quote: "Značku zná 41 % dospělých", locator: { page: 2 } },
+    };
+    api({
+      "GET /api/v1/clients/CLI-a/knowledge/proposals": () => [pending],
+      [`GET ${SOURCES}/${SRC}`]: () => detail(SRC, "Brief.pdf"),
+    });
+    window.history.replaceState(null, "", "/app/clients/CLI-a/knowledge?view=review");
+    open();
+    expect(await screen.findByText("„Značku zná 41 % dospělých“")).toBeTruthy();
+    expect(screen.getByText("Citace · str. 2")).toBeTruthy();
+    expect(screen.getByText(/Navrhla AI z dokumentu/)).toBeTruthy();
+    expect(await screen.findByText("Brief.pdf")).toBeTruthy();
+    // The AI's words, not the starter's: no "Váš návrh".
+    expect(screen.queryByText("Váš návrh")).toBeNull();
+    window.history.replaceState(null, "", "/");
+  });
+});
