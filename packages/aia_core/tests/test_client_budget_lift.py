@@ -167,3 +167,65 @@ def test_a_lift_decided_on_a_stale_budget_never_lowers_one_raised_meanwhile(
     assert row is not None
     session.refresh(row)
     assert row.budget_usd == 10.0
+
+
+def test_a_lift_takes_the_run_before_the_client_as_a_completing_step_does(
+    session: Session, scoped: Any, engine: Any
+) -> None:
+    """A worker finishing another step of the same run holds the run, then charges the
+    client; a lift must take the same locks in the same order (run, then client), or
+    the two deadlock and PostgreSQL aborts one of them.
+
+    PostgreSQL only: SQLite takes no row locks."""
+    import threading
+    import time
+
+    from sqlalchemy import update
+
+    from aia_core.infrastructure.db import create_session_factory
+    from aia_core.infrastructure.workflow_repository import WorkflowRepository
+
+    if engine.dialect.name != "postgresql":
+        pytest.skip("row locks are PostgreSQL's; SQLite serialises writers")
+    run_id, node = parked(session, scoped)
+    session.commit()
+    client, work = scopes(scoped)
+    factory = create_session_factory(engine)
+    holding, errors = threading.Event(), []
+
+    def completing_step() -> None:
+        # As complete_attempt: the run first, then (settling a hold) the client.
+        try:
+            with factory() as own:
+                WorkflowRepository._across_studies(own)._lock_run(run_id)
+                holding.set()
+                time.sleep(1.0)
+                own.execute(
+                    update(ClientRow)
+                    .where(ClientRow.client_id == client.client_id)
+                    .values(spent_usd=ClientRow.spent_usd + 0.25)
+                )
+                own.commit()
+        except BaseException as exc:  # reported below, never swallowed
+            errors.append(exc)
+
+    def lifting() -> None:
+        try:
+            with factory() as own:
+                lift_client_budget_wait(own, client, work, run_id, node, budget_usd=4.0)
+                own.commit()
+        except BaseException as exc:
+            errors.append(exc)
+
+    worker = threading.Thread(target=completing_step)
+    worker.start()
+    assert holding.wait(30)
+    lift = threading.Thread(target=lifting)
+    lift.start()
+    worker.join(30)
+    lift.join(30)
+    assert not errors, errors
+    row = session.get(ClientRow, client.client_id)
+    assert row is not None
+    session.refresh(row)
+    assert (row.budget_usd, row.spent_usd) == (4.0, 0.25)
