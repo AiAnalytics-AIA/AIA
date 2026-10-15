@@ -387,3 +387,25 @@ def test_an_accepted_proposal_compiles_with_its_links_and_concept_set() -> None:
     assert spec.questions[0].research_questions == (RQ_HABIT,)
     assert spec.batteries[0].research_questions == (RQ_IMAGE,)
     assert spec.batteries[0].output_type == "test_konceptu"
+
+
+@pytest.mark.parametrize(
+    ("plan", "kept"),
+    [
+        ("not an object", False),
+        ({"research_questions": [RQ_HABIT], "research_question_comparisons": ["bad"]}, True),
+    ],
+)
+def test_a_malformed_plan_never_loses_the_paid_proposal(plan: Any, kept: bool) -> None:
+    """Review (Codex on #435): a design may hold any JSON below its top level; the mapping
+    must still return the proposal, never raise after the model was paid for."""
+    baseline = {**DESIGN, "goal": RQ_HABIT, "research_plan": plan}
+    output = _linked_proposal([{"research_question": RQ_HABIT, "comparison": "describe"}])
+    result = proposal_result(ResearchAction.BUILD, baseline, output, context_snapshot(baseline, []))
+    project = result["project"]
+    assert project["sections"][0]["questions"][0]["research_questions"] == [RQ_HABIT]
+    if kept:
+        assert project["research_plan"]["research_question_comparisons"] == {RQ_HABIT: "describe"}
+    else:
+        assert project["research_plan"] == "not an object"
+        assert {"item": "comparison", "research_question": RQ_HABIT} in result["dropped_links"]

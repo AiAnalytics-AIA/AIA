@@ -736,18 +736,23 @@ def proposal_result(
                 _keep_links(question, question["id"], stated, dropped)
         p["sections"] = preserved + sections
         answered = data["comparisons"]
-        plan = dict(p.get("research_plan") or {})
-        declared = dict(plan.get("research_question_comparisons") or {})
+        # A design may hold any JSON below its top level (``validate_design``): a plan that is
+        # not an object is never overwritten, so its comparisons are dropped and named; a
+        # comparisons value that is not an object declares nothing (``comparisons_of``).
+        raw_plan = p.get("research_plan")
+        plan = dict(raw_plan) if isinstance(raw_plan, dict) else {} if raw_plan is None else None
+        raw_declared = plan.get("research_question_comparisons") if plan is not None else None
+        declared = dict(raw_declared) if isinstance(raw_declared, dict) else {}
         for answer in answered:
             text = stated.get(_link_key(answer["research_question"]))
-            if text is None:
+            if text is None or plan is None:
                 dropped.append(
                     {"item": "comparison", "research_question": answer["research_question"]}
                 )
                 continue
             declared = {k: v for k, v in declared.items() if _link_key(str(k)) != _link_key(text)}
             declared[text] = answer["comparison"]
-        if declared:
+        if plan is not None and declared:
             plan["research_question_comparisons"] = declared
             p["research_plan"] = plan
         result["dropped_links"] = dropped
