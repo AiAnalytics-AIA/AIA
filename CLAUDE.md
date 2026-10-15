@@ -101,7 +101,8 @@ apps/
                             asked again over its own collected data) and GET …/analysis/retryable
                             (read from the outcomes as stored), each step's analysis_outcome,
                             readiness with the run's cost ceiling and the study's spend limit (and
-                            question_outlook: every item's verdict before a run), and native
+                            question_outlook: every item's verdict before a run; research_trace: each
+                            research question traced to its measures), and native
                             agent-jobs beneath each Study, with their event feed (…/agent-jobs/{id}/events?
                             since=; a step names the step_id its events carry); GET …/design/source: where a reused design
                             came from; a run's reports: GET …/report, …/report/download,
@@ -199,7 +200,10 @@ apps/
                             Node): model, the ten steps, the job panel's words, and the store that
                             loads and saves a study's working content in AIA (1.8 s save, visible
                             state, a stale save refused and said, ADR 0018); plan-edit.ts keeps direct human
-                            proposal edits consistent in native research_plan and legacy analysis
+                            proposal edits consistent in native research_plan and legacy analysis;
+                            trace.ts: which research question each questionnaire item measures
+                            (researchQuestionsOf, as the server reads them; the link read and toggled),
+                            "Odpovídá na výzkumné otázky" on every question and tracked set in Dotazník
     src/testing/legacy.ts   Parity harness: a function's effective binding, run in a Node vm (reads
                             the vendored ui_app.html: reference only, never product code)
     src/lib/app-routes.ts   Every /app URL, built in one place (stage slugs: `persona` is `dimensions`)
@@ -220,7 +224,9 @@ apps/
                             literature it downloaded; ProposalEditor and PlanStep edit the research narrative
                             and whole comparable measurements with live previews, preserving existing
                             questionnaires (PlanStep tests: direct proposal editing); ExecutionSteps.tsx: Run, Progress, Results (ADR 0016);
-                            the Run stage's "Na co běh odpoví" card (every item's verdict, worst first);
+                            the Run stage's "Na co běh odpoví" card (every item's verdict, worst first) and
+                            its "Výzkumné otázky a jejich měření" card (each research question, its
+                            measures by their wording, stale links);
                             RunResults, one run's results from the StudyFrame alone (read-only when
                             canEdit is false). DesignSourceNote: on every stage of a reused study, its
                             source study and revision and the labels it carries.
@@ -241,7 +247,8 @@ apps/
                             origin (fictional, modelled, unknown -- never fieldwork), the one
                             every screen's label uses; needsRepair: an analysis step that
                             succeeded with its module stored BLOCKED ("Potřebuje opravu", never
-                            "Hotovo"), which reportHolds names as holding the report
+                            "Hotovo"), which reportHolds names as holding the report; traceMeasures:
+                            a research question's measures in words, a tracked set once
     src/lib/population.ts   How Společenská inteligence reads the population registry (summarize,
                             labelOf, shortSha); read-only. children / clientChildren / sharedVersions /
                             targetVerdict / outcomeValue: an organization's materialized children,
@@ -472,6 +479,11 @@ packages/aia_core/src/aia_core/
                             (conditional, familiarity, fidelity_refused, open_ended, support_*;
                             support_analysis_excluded: shown on Results, not citable), by the rules
                             that decide after the run; unknown never answerable
+    research_trace.py       Each research question (as research_questions_of reads it) traced to the
+                            items that declare they measure it (research_questions on a question or a
+                            tracked set, by text), as answerable as its best measure; unmeasured,
+                            unlinked (unknown) and dangling links named; readiness's
+                            research_question_coverage (WARN, never FAIL)
     respondent_behavior.py  18.6.6 behavior.py + styly.py: response process, styles, the seeded draw
     respondent_facts.py     18.6.6 factual_layer.py: facts answered by code, unsupported facts refused
     persona_profile.py      A panel respondent's profile: 18.6.6's generate_persona_text in the mode it
@@ -500,7 +512,10 @@ packages/aia_core/src/aia_core/
                             the Sociomap's declarations (sociomap_rating on a scale question,
                             context_objects on a battery: SECONDARY), SpecSelection (the dimensions
                             and audience filters recorded, applied: false), sociomap_support (WARN
-                            below n_min 30); a declaration not made is out of the fingerprint
+                            below n_min 30); a declaration not made is out of the fingerprint; a
+                            question's or set's research_questions: the research questions it
+                            measures, by text; a question whose id is a set item's id refused
+                            (item_id_collision)
     run_cost.py             The most a run can cost: its model requests x the reservation per request
                             (fieldwork, analysis with its repairs); an upper bound; unknown, never zero
     fieldwork.py            FieldworkSource, FieldworkDataset, validate_dataset; DataOrigin (two
