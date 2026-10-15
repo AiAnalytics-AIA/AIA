@@ -102,7 +102,11 @@ apps/
                             (read from the outcomes as stored), each step's analysis_outcome,
                             readiness with the run's cost ceiling and the study's spend limit (and
                             question_outlook: every item's verdict before a run; research_trace: each
-                            research question traced to its measures), and native
+                            research question traced to its measures; persona_sources: each source
+                            offered or not, with its reason, and the default), readiness and start
+                            taking persona_source (an unoffered one 409 persona_source_unavailable),
+                            a run's selection (filters and dimensions awaiting the population draw,
+                            settled from the fieldwork step), and native
                             agent-jobs beneath each Study, with their event feed (…/agent-jobs/{id}/events?
                             since=; a step names the step_id its events carry); GET …/design/source: where a reused design
                             came from; a run's reports: GET …/report, …/report/download,
@@ -203,7 +207,9 @@ apps/
                             proposal edits consistent in native research_plan and legacy analysis;
                             trace.ts: which research question each questionnaire item measures
                             (researchQuestionsOf, as the server reads them; the link read and toggled),
-                            "Odpovídá na výzkumné otázky" on every question and tracked set in Dotazník
+                            "Odpovídá na výzkumné otázky" on every question and tracked set in Dotazník;
+                            comparisonOf / setComparison ("Jak výzkumné otázky zodpovíme" in Dotazník);
+                            proposedTrace (a proposal's links, read on the inline review)
     src/testing/legacy.ts   Parity harness: a function's effective binding, run in a Node vm (reads
                             the vendored ui_app.html: reference only, never product code)
     src/lib/app-routes.ts   Every /app URL, built in one place (stage slugs: `persona` is `dimensions`)
@@ -215,7 +221,9 @@ apps/
                             Inspector (InspectorProvider / InspectorSlot: a stage's readiness beside
                             it, then AI pomoc, then "Do spuštění zbývá"), save state, job panel, the
                             shared brief analysis (useAnalysis), one screen per stage; ProposalReview
-                            (a design proposal reviewed inline, its changes listed); CompleteReport
+                            (a design proposal reviewed inline, its changes listed; a questionnaire
+                            proposal's research questions, their measures and answers, before it is
+                            accepted); CompleteReport
                             (the report card on Výsledky: a part claimed only when the run's steps
                             made it; the one place a run's report is downloaded -- internal or, for a
                             modelled run, client; DOCX or PDF -- and approved, the document approved
@@ -231,7 +239,10 @@ apps/
                             questionnaires (PlanStep tests: direct proposal editing); ExecutionSteps.tsx: Run, Progress, Results (ADR 0016);
                             the Run stage's "Na co běh odpoví" card (every item's verdict, worst first) and
                             its "Výzkumné otázky a jejich měření" card (each research question, its
-                            measures by their wording, stale links); Progress follows the run an
+                            measures by their wording, stale links, and under each what the newest
+                            finished Design Research run found); its "Kdo bude odpovídat" card (the
+                            persona source chosen per run; Start waits while it reloads); "Kdo
+                            odpovídal" on Progress and Results; Progress follows the run an
                             action answers with (?run= rewritten, read again at once, the poll
                             restarted), so a retry's steps move on screen; Results' Data: measure
                             cards in questionnaire order, each read in words, a comparison per rated
@@ -256,6 +267,9 @@ apps/
                             and bottom groups, suppressed ones named), citedMeasure (an analysis
                             claim's evidence_ref resolved to its measure), textBlocks (a model's
                             long text as paragraphs and lists, every word kept)
+    src/lib/design-evidence.ts  What the newest finished Design Research run found per research
+                            question (latestDesignRun, questionEvidence: findings, a gap or not
+                            studied, rejections by reason); api.ts deepResearch.designProposal
     src/lib/research-agent-jobs.ts  Native Study jobs: enqueue/follow; proposal review and reload
                             live in useResearchAgents.tsx. No classic provider probe.
     src/lib/research-execution.ts  How a run's state and results read: suppression hides numbers,
@@ -265,7 +279,9 @@ apps/
                             every screen's label uses; needsRepair: an analysis step that
                             succeeded with its module stored BLOCKED ("Potřebuje opravu", never
                             "Hotovo"), which reportHolds names as holding the report; traceMeasures:
-                            a research question's measures in words, a tracked set once
+                            a research question's measures in words, a tracked set once;
+                            respondentReceipt: the pinned persona source beside the fieldwork
+                            data's origin, a mismatch named
     src/lib/population.ts   How Společenská inteligence reads the population registry (summarize,
                             labelOf, shortSha); read-only. children / clientChildren / sharedVersions /
                             targetVerdict / outcomeValue: an organization's materialized children,
@@ -443,7 +459,11 @@ packages/aia_core/src/aia_core/
     ai_execution.py         ModelGateway + ExecutionContext: the step-executor contract
     ai_tools.py             ToolRegistry — scope never from model arguments
     research_agents.py     Eight closed Research task contracts, prompt/harness versions,
-                            bounded context and task-owned proposal mapping
+                            bounded context and task-owned proposal mapping; the questionnaire
+                            contract (harness 3) proposes each item's research_questions, a set's
+                            output_type and each research question's comparison; proposal_result
+                            keeps only links to stated research questions (dropped_links names the
+                            rest); prompt_version_for: build/optimize at 3, the rest at 2
     deep_research/          Deep Research (ADR 0017, ADR 0021), pure; the engine is frozen after #166:
       contracts.py          subjects, tracks, snapshots, knowledge sources, evidence, quarantine and
                             stop reasons, the request a run is frozen to; harness 3: the request's
@@ -500,7 +520,11 @@ packages/aia_core/src/aia_core/
                             items that declare they measure it (research_questions on a question or a
                             tracked set, by text), as answerable as its best measure; unmeasured,
                             unlinked (unknown) and dangling links named; readiness's
-                            research_question_coverage (WARN, never FAIL)
+                            research_question_coverage (WARN, never FAIL);
+                            research_plan.research_question_comparisons (describe / rank_objects /
+                            compare_segments / ab_test, by text) checked against the measures:
+                            ranking needs a tracked set, A/B a concept-test set, segments
+                            unavailable, unknown never answerable (comparisons_of)
     respondent_behavior.py  18.6.6 behavior.py + styly.py: response process, styles, the seeded draw
     respondent_facts.py     18.6.6 factual_layer.py: facts answered by code, unsupported facts refused
     persona_profile.py      A panel respondent's profile: 18.6.6's generate_persona_text in the mode it
@@ -532,7 +556,8 @@ packages/aia_core/src/aia_core/
                             below n_min 30); a declaration not made is out of the fingerprint; a
                             question's or set's research_questions: the research questions it
                             measures, by text; a question whose id is a set item's id refused
-                            (item_id_collision)
+                            (item_id_collision); selection_receipt: what a run records of its
+                            design's selection, filters and dimensions awaiting a population draw
     run_cost.py             The most a run can cost: its model requests x the reservation per request
                             (fieldwork, analysis with its repairs); an upper bound; unknown, never zero
     fieldwork.py            FieldworkSource, FieldworkDataset, validate_dataset; DataOrigin (two
@@ -1198,7 +1223,8 @@ returns one respondent's probabilities; code answers facts and draws the answer.
 Panel-derived data may reach only `bedrock-eu-primary` (OI-61, determined by the data
 owner 2026-10-12, `licence_determinations.py`); the licence gate stays beside residency
 and refuses it on any other route. A run pins its persona source at start
-(`AIA_AI_POPULATION_PERSONAS_ENABLED`, off by default, in the API and the worker): a panel run's
+(`AIA_AI_POPULATION_PERSONAS_ENABLED`, off by default, in the API and the worker, offers the panel
+and makes it the default; a person chooses per run on the Run stage, "Kdo bude odpovídat"): a panel run's
 respondents are drawn from the population it recorded and its dataset is `MODELLED_AI_PANEL`; a
 worker without the path parks it, never answering with the roster instead
 ([`panel-grounded-respondents.md`](.planning/plans/panel-grounded-respondents.md)).
