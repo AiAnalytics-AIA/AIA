@@ -9,7 +9,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type ReactNode, useCallback, useContext, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import {
@@ -710,16 +710,35 @@ function runFromQuery(): string | null {
   return new URLSearchParams(window.location.search).get("run");
 }
 
-/** The run the page is about: `?run=` if given, else the newest; kept fresh while it can change. */
+/**
+ * The run the page is about: `?run=` if given, else the run an action last answered with, else the
+ * newest; kept fresh while it can change.
+ *
+ * The third value is how an action hands the page the run it answered with. A retry answers with a
+ * new run: the page follows it -- `?run=` names it, so a reload stays on it -- and reads it again
+ * at once, which restarts the poll the old, finished run had stopped. Setting it without reading
+ * again left the new run's first step "running" on screen for good while the worker went on.
+ */
 function useRun(): [ResearchRun | null | undefined, () => void, (r: ResearchRun) => void, string | null] {
   const frame = useFrame();
   const [run, setRun] = useState<ResearchRun | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
+  const followed = useRef<string | null>(null);
+  const follow = useCallback((next: ResearchRun) => {
+    setRun(next);
+    followed.current = next.run_id;
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("run") && params.get("run") !== next.run_id) {
+      params.set("run", next.run_id);
+      window.history.replaceState(window.history.state, "", `${window.location.pathname}?${params}${window.location.hash}`);
+    }
+    setVersion((v) => v + 1);
+  }, []);
   useEffect(() => {
     let live = true;
     let timer: ReturnType<typeof setTimeout> | null = null;
-    const wanted = runFromQuery();
+    const wanted = runFromQuery() ?? followed.current;
     const read = async () => {
       try {
         // The list is a summary (no steps, no artifacts): the newest is read in full.
@@ -745,7 +764,7 @@ function useRun(): [ResearchRun | null | undefined, () => void, (r: ResearchRun)
       if (timer) clearTimeout(timer);
     };
   }, [frame.studyId, version]);
-  return [run, () => setVersion((v) => v + 1), setRun, error];
+  return [run, () => setVersion((v) => v + 1), follow, error];
 }
 
 /**

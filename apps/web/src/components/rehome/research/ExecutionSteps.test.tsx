@@ -517,6 +517,8 @@ describe("Run: what a run can cost (5b.2)", () => {
         }
         return run({ run_id: "RUN-2", retry_of: "RUN-1", phase: "QUEUED" });
       },
+      // The retry's run, as the API then serves it (the page follows and reads it).
+      "GET /api/v1/studies/STU-1/research/runs/RUN-2": () => run({ run_id: "RUN-2", retry_of: "RUN-1", phase: "QUEUED" }),
     });
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: t("research.exec.retry") }));
@@ -702,10 +704,13 @@ describe("Progress", () => {
 
     it("offers to raise the budget, showing what is spent, and posts the new total for that step", async () => {
       const resumed = run({ steps: [step("compile", "SUCCEEDED"), step("analysis_executive", "RUNNABLE")] });
+      // As the API does: once lifted, the run reads resumed (the page reads it again after an action).
+      let lifted = false;
       api({
         ...listed(waiting()),
+        "GET /api/v1/studies/STU-1/research/runs/RUN-1": () => (lifted ? resumed : waiting()),
         "GET /api/v1/studies/STU-1": () => STUDY,
-        [`POST ${BUDGET_PATH}`]: () => resumed,
+        [`POST ${BUDGET_PATH}`]: () => { lifted = true; return resumed; },
       });
       render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
       const form = await screen.findByRole("form", { name: t("research.exec.budget.title") });
@@ -757,11 +762,40 @@ describe("Progress", () => {
     });
   });
 
+  it("follows the run a retry starts and keeps reading it, so its steps move on screen", async () => {
+    // The bug: the retry's run replaced the page's run, but the poll had stopped with the old,
+    // finished run, so the new run's first step read "running" until the page was reloaded --
+    // and a reload went back to the old run, which ?run= still named.
+    window.history.replaceState(null, "", "/progress?run=RUN-1");
+    const failed = run({ status: "FAILED", phase: "FAILED", is_terminal: true, retryable: true,
+      steps: [step("compile", "SUCCEEDED"), step("run", "FAILED", { error_message: "boom" })] });
+    let reads = 0;
+    const retried = (phase: string, compile: string) => run({ run_id: "RUN-2", retry_of: "RUN-1", phase, status: phase, is_terminal: phase === "COMPLETED", steps: [step("compile", compile)] });
+    api({
+      ...listed(failed),
+      "POST /api/v1/studies/STU-1/research/runs/RUN-1/retry": () => retried("RUNNING", "RUNNING"),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-2": () => (++reads < 2 ? retried("RUNNING", "RUNNING") : retried("COMPLETED", "SUCCEEDED")),
+    });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.retry") }));
+    expect(await screen.findByText("Opakování běhu RUN-1")).toBeTruthy();
+    // The page is now about the new run, a reload included.
+    expect(window.location.search).toBe("?run=RUN-2");
+    // And it keeps reading it: the first step finishes on screen without a reload.
+    await waitFor(() => expect(document.querySelector('[data-step="compile"]')?.getAttribute("data-status")).toBe("SUCCEEDED"), { timeout: 6000 });
+    expect(reads).toBeGreaterThanOrEqual(2);
+    expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1").filter((c) => !c.url.includes("/runs/RUN-1/"))).toHaveLength(1);
+  }, 10000);
+
   it("cancels only after the person confirms, and retries a failed run as a new run", async () => {
+    let cancelled = false;
     api({
       ...listed(PARKED),
-      "POST /api/v1/studies/STU-1/research/runs/RUN-1/cancel": () => ({ ...PARKED, phase: "CANCELLED", status: "CANCELLED", is_terminal: true, retryable: true }),
+      // As the API does: a cancelled run reads cancelled, and the retry's run is served.
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1": () => (cancelled ? { ...PARKED, phase: "CANCELLED", status: "CANCELLED", is_terminal: true, retryable: true } : PARKED),
+      "POST /api/v1/studies/STU-1/research/runs/RUN-1/cancel": () => { cancelled = true; return { ...PARKED, phase: "CANCELLED", status: "CANCELLED", is_terminal: true, retryable: true }; },
       "POST /api/v1/studies/STU-1/research/runs/RUN-1/retry": () => run({ run_id: "RUN-2", retry_of: "RUN-1", phase: "QUEUED" }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-2": () => run({ run_id: "RUN-2", retry_of: "RUN-1", phase: "QUEUED" }),
     });
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: t("research.exec.cancel") }));
@@ -1059,6 +1093,13 @@ describe("Results", () => {
     await screen.findByRole("heading", { name: "Kompletní zpráva studie" });
     return within(document.querySelector("[data-complete-report]") as HTMLElement);
   };
+  // An option of the card once the report's status has been read and offers it: until then it is
+  // drawn but disabled, and a click on it does nothing (the race this waits out).
+  const offered = async (report: Awaited<ReturnType<typeof card>>, name: string) => {
+    const option = await report.findByRole("radio", { name });
+    await waitFor(() => expect(option.getAttribute("aria-disabled")).toBeNull());
+    return option;
+  };
 
   it("shows the internal draft from the completed report step and downloads it from the report card", async () => {
     const createObjectURL = stubDownloads();
@@ -1134,7 +1175,7 @@ describe("Results", () => {
     });
     const { unmount } = render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     let report = await card();
-    fireEvent.click(await report.findByRole("radio", { name: "PDF" }));
+    fireEvent.click(await offered(report, "PDF"));
     fireEvent.click(report.getByRole("button", { name: /Stáhnout zprávu/ }));
     await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/pdf/download")).toHaveLength(1));
     unmount();
