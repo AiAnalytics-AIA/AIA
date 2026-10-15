@@ -180,7 +180,7 @@ describe("the readiness limits (plan V1a2)", () => {
     expect(reading.textContent).toMatch(/10 ≤ n ≤ 10\s000/);
     // Before a check the preview says what it will show; after, the lines the code wrote.
     expect(within(step.querySelector("[data-step-preview]") as HTMLElement).getByText(/Po kontrole/)).toBeTruthy();
-    fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat", exact: true }));
+    fireEvent.click(within(form).getByRole("button", { name: /^Zkontrolovat$/ }));
     await waitFor(() => expect(step.querySelectorAll("[data-preview-status]")).toHaveLength(2));
     expect(within(step).getByText("n = 12.")).toBeTruthy();
     expect(within(step.querySelector("[data-step-keeps]") as HTMLElement).getByText("chybějící n blokuje vždy")).toBeTruthy();
