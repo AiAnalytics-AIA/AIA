@@ -24,6 +24,7 @@ import { Button, Field, Select, Tag, TextArea, TextInput } from "../../rehome/ui
 import { CARD, Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
 import { SourceCard, SourcePicker } from "./SourceFile";
+import type { AiRights } from "./SourceProposals";
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 
@@ -63,13 +64,15 @@ type LibraryProps = {
   folders: KnowledgeFolder[];
   labels: KnowledgeLabel[];
   mayPropose: boolean;
+  /** AI proposals from a document's file (lifecycle K2d5); absent: not offered. */
+  ai?: AiRights;
   /** Bumped by anything that changed what the library shows. */
   version: number;
   /** Something was filed, edited or retitled: folders, labels and the tabs' counts follow. */
   onChanged: () => void;
 };
 
-export function KnowledgeLibrary({ clientId, view, label, section, folders, labels, mayPropose, version, onChanged }: LibraryProps) {
+export function KnowledgeLibrary({ clientId, view, label, section, folders, labels, mayPropose, ai, version, onChanged }: LibraryProps) {
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const [openId, setOpenId] = useState<string | null>(null);
@@ -199,6 +202,7 @@ export function KnowledgeLibrary({ clientId, view, label, section, folders, labe
                     folders={folders}
                     labels={labels}
                     mayPropose={mayPropose}
+                    ai={ai}
                     onClose={() => setOpenId(null)}
                     onPlace={(p) => place({ ...p, item_ids: [open.item_id] })}
                     onChanged={onChanged}
@@ -279,6 +283,7 @@ function ItemPanel({
   folders,
   labels,
   mayPropose,
+  ai,
   onClose,
   onPlace,
   onChanged,
@@ -288,6 +293,7 @@ function ItemPanel({
   folders: KnowledgeFolder[];
   labels: KnowledgeLabel[];
   mayPropose: boolean;
+  ai?: AiRights;
   onClose: () => void;
   onPlace: (p: Omit<Placement, "item_ids">) => Promise<void>;
   onChanged: () => void;
@@ -345,7 +351,7 @@ function ItemPanel({
           {takesFile(item.kind) ? (
             <div className="flex flex-col gap-2" role="group" aria-label={t("aia.sources.file")}>
               <span className="text-xs font-medium text-ink-muted">{t("aia.sources.file")}</span>
-              {fileShown ? <SourceCard key={fileShown} clientId={clientId} sourceId={fileShown} /> : null}
+              {fileShown ? <SourceCard key={fileShown} clientId={clientId} sourceId={fileShown} ai={fileShown === named ? ai : undefined} /> : null}
               <SourcePicker
                 clientId={clientId}
                 label={fileShown ? t("aia.sources.replace") : t("aia.sources.attach")}
@@ -364,7 +370,7 @@ function ItemPanel({
       ) : (
         <>
           {item.summary ? <p className="text-sm text-ink-muted">{item.summary}</p> : null}
-          {named ? <SourceCard clientId={clientId} sourceId={named} /> : null}
+          {named ? <SourceCard clientId={clientId} sourceId={named} ai={ai} /> : null}
         </>
       )}
       {error ? <p role="alert" className="text-sm text-status-fault">{error}</p> : null}

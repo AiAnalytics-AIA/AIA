@@ -1289,7 +1289,8 @@ ungated fixture.
 
 | Purpose | Command |
 |---|---|
-| One-time setup | `make setup` |
+| One-time setup | `make setup` (needs `python3.12`: the venv is built with the version in `.python-version`, the one CI runs) |
+| **Python version** | `make python-version` (also before `make typecheck`): fails unless the venv's Python is `.python-version`'s and ci.yml's `PYTHON_VERSION` agrees. A venv on another minor version reports mypy errors CI does not (3.13: three in `ai_respondent.py`) -- `rm -rf .venv && make deps` |
 | Start Postgres / MinIO | `make services` |
 | Migrate | `make migrate` |
 | New migration | `make migration m="add jobs"` |
@@ -1465,6 +1466,13 @@ and who has to configure it, is in
 [`infra/develop/README.md` § Human actions](infra/develop/README.md#human-actions).
 OI-3 recorded the condition for a second branch: a deployed environment to
 protect a release from. That condition is met by `develop`.
+
+**Branch from a fresh `develop`, every time:** `git fetch origin develop`, then
+`git checkout -b <prefix>/<slug> origin/develop` -- never from a local `develop`,
+which can be any age. CI tests a pull request merged with the current `develop`, so
+a branch cut from a stale one is tested against code it never ran: a branch begun
+322 commits behind went red on rules it had never seen (#433, 2026-10-15). Before
+pushing a long-lived branch, fetch and merge `origin/develop` again.
 
 ### Commit messages
 

@@ -17,6 +17,7 @@ Reading the sources needs ``VIEW_CLIENT_KNOWLEDGE``; adding one needs
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Final
 
 from sqlalchemy import select
@@ -39,7 +40,13 @@ from ..domain.client_sources import (
     new_occurrence_id,
     new_source_id,
 )
-from ..domain.scope import ClientContext, ClientPermission, ScopeDenied
+from ..domain.scope import (
+    ClientContext,
+    ClientPermission,
+    ClientWorkContext,
+    Permission,
+    ScopeDenied,
+)
 from .source_reading import READERS, read_source
 from .storage import ArtifactStore, sha256_bytes
 from .tables import (
@@ -50,7 +57,27 @@ from .tables import (
     utcnow,
 )
 
-__all__ = ["ClientSourceRepository"]
+__all__ = ["ClientSourceRepository", "ReadingPin", "SourceReadingChanged"]
+
+
+@dataclass(frozen=True, slots=True)
+class ReadingPin:
+    """The exact reading a run of the client's own work is queued with (lifecycle K2d2).
+
+    A re-read stores a new reading beside the old and moves the source to it, so a run
+    names the one it was asked about by its SHA-256 and reads that one or none.
+    """
+
+    source_id: str
+    family: SourceFamily
+    reader: str | None
+    reading_sha256: str | None
+    segments: int
+
+
+class SourceReadingChanged(LookupError):
+    """The source has been read again since the run was queued; it asks a new run."""
+
 
 #: How many sources one listing returns at most, newest first.
 LIST_LIMIT: Final = 500
@@ -76,7 +103,7 @@ class ClientSourceRepository:
     # ------------------------------------------------------------------ reading
 
     def _rows(
-        self, scope: ClientContext, source_ids: list[str] | None = None
+        self, scope: ClientContext | ClientWorkContext, source_ids: list[str] | None = None
     ) -> list[ClientSourceRow]:
         query = select(ClientSourceRow).where(
             ClientSourceRow.organization_id == scope.organization_id,
@@ -86,7 +113,7 @@ class ClientSourceRepository:
             query = query.where(ClientSourceRow.source_id.in_(source_ids))
         return list(self._session.scalars(query).all())
 
-    def _row(self, scope: ClientContext, source_id: str) -> ClientSourceRow:
+    def _row(self, scope: ClientContext | ClientWorkContext, source_id: str) -> ClientSourceRow:
         rows = self._rows(scope, [source_id])
         if not rows:
             raise ScopeDenied("not found", reason="unknown_source")
@@ -160,6 +187,38 @@ class ClientSourceRepository:
             return SourceReading(outcome=ReadingOutcome(row.outcome), reason=row.reason)
         data = self._store.get(row.reading_key, expected_sha256=row.reading_sha256)
         return SourceReading.model_validate_json(data)
+
+    def reading_pin(self, scope: ClientContext, source_id: str) -> ReadingPin:
+        """What a run about this source pins when it is queued: the reading as it stands."""
+        scope = _client(scope)
+        scope.require(ClientPermission.VIEW_CLIENT_KNOWLEDGE)
+        row = self._row(scope, source_id)
+        return ReadingPin(
+            source_id=row.source_id,
+            family=SourceFamily(row.family),
+            reader=row.reader,
+            reading_sha256=row.reading_sha256,
+            segments=row.segment_count,
+        )
+
+    def pinned_reading(
+        self, scope: ClientWorkContext, source_id: str, *, reading_sha256: str
+    ) -> tuple[SourceRecord, SourceReading]:
+        """The source and the exact reading a run of the client's own work was queued with.
+
+        Only the worker's scope of that client's own work reads here (``RUN_WORKFLOW``); a
+        source of another client is not found. A source read again since is refused
+        (:class:`SourceReadingChanged`) rather than answered with a reading nobody asked
+        about; the bytes are verified against the pinned hash.
+        """
+        if not isinstance(scope, ClientWorkContext):
+            raise ScopeDenied("client work requires a client work context", reason="forged_scope")
+        scope.require(Permission.RUN_WORKFLOW)
+        row = self._row(scope, source_id)
+        if row.reading_key is None or row.reading_sha256 != reading_sha256:
+            raise SourceReadingChanged(source_id)
+        data = self._store.get(row.reading_key, expected_sha256=reading_sha256)
+        return self._records([row])[0], SourceReading.model_validate_json(data)
 
     def original(self, scope: ClientContext, source_id: str) -> tuple[str, bytes]:
         """The original's bytes, verified, and the name it was last added under."""

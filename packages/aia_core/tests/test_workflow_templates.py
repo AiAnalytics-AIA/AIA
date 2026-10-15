@@ -9,6 +9,7 @@ from aia_core.domain.analysis.steps import analysis_node_key
 from aia_core.domain.pipeline import ProjectType
 from aia_core.domain.workflow import validate_dag
 from aia_core.domain.workflow_templates import (
+    CLIENT_SOURCE_PROPOSALS,
     DEVELOP_SNAPSHOT,
     POPULATION_MATERIALIZE,
     REPORT_STEP_KIND,
@@ -22,7 +23,15 @@ from aia_core.domain.workflow_templates import (
 
 def test_the_set_of_workflow_types_is_closed() -> None:
     assert (
-        frozenset({DEVELOP_SNAPSHOT, RESEARCH, RESEARCH_AGENT, POPULATION_MATERIALIZE})
+        frozenset(
+            {
+                DEVELOP_SNAPSHOT,
+                RESEARCH,
+                RESEARCH_AGENT,
+                POPULATION_MATERIALIZE,
+                CLIENT_SOURCE_PROPOSALS,
+            }
+        )
         == WORKFLOW_TYPES
     )
     with pytest.raises(UnknownWorkflowType):
@@ -50,6 +59,16 @@ def test_research_agent_is_one_step_without_automatic_paid_retries() -> None:
     assert step.consumes_population is False
     with pytest.raises(UnknownWorkflowType):
         steps_for_workflow(RESEARCH_AGENT, project_type=ProjectType.SIMULATION)
+
+
+def test_client_source_proposals_is_one_step_without_automatic_paid_retries() -> None:
+    """Lifecycle K2d3: one paid step; a lost answer is asked again by a person, never resent."""
+    steps = steps_for_workflow(CLIENT_SOURCE_PROPOSALS, project_type=ProjectType.RESEARCH)
+    validate_dag(steps)
+    (step,) = steps
+    assert (step.node_key, step.kind) == ("extract", CLIENT_SOURCE_PROPOSALS)
+    assert step.max_attempts == 1
+    assert step.consumes_population is False
 
 
 def test_report_waits_for_every_analysis_module_when_analysis_is_enabled() -> None:

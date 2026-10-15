@@ -99,7 +99,7 @@ days.
   `Exception` handler, so `_error` reads an empty id (`apps/api/src/aia_api/observability.py`,
   `dispatch` and `_unhandled` @ f6f88cb9). **Hypothesis**: reasoned from the middleware order, not
   reproduced by a test here. The reporter is not affected: it tags the request id when the request
-  starts (`error_tracking.set_tags`), and `apps/api/tests/test_error_reporting.py` asserts it.
+  starts (`error_tracking.set_tags`), and `apps/api/tests/test_api_error_reporting.py` asserts it.
 
 ## Doc follow-up
 

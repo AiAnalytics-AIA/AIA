@@ -110,9 +110,9 @@ afterEach(() => {
   sessionStorage.clear();
 });
 
-const open = () =>
+const open = (client = CLIENT) =>
   render(
-    <ClientValue client={CLIENT}>
+    <ClientValue client={client}>
       <KnowledgeArea />
     </ClientValue>,
   );
@@ -124,10 +124,9 @@ describe("the intake sheet", () => {
     api();
     open();
     fireEvent.click(await screen.findByRole("button", { name: "Přidat podklady" }));
-    // Links and AI extraction are drawn, not built: nothing can send them.
+    // Links are drawn, not built; AI proposals need RUN_CLIENT_WORK, which this person lacks.
     expect((sheet().getByRole("button", { name: "Vložit odkaz" }) as HTMLButtonElement).disabled).toBe(true);
     expect((sheet().getByRole("checkbox") as HTMLInputElement).disabled).toBe(true);
-    expect(sheet().getAllByText("V AIA zatím není").length).toBeGreaterThan(0);
 
     pick(file("Zadání výzkumu.pdf"), file("odpovedi.xlsx"), file("prezentace.key"));
     expect(await sheet().findByText(/Přečteno: 2 části/)).toBeTruthy();
@@ -272,5 +271,54 @@ describe("the intake sheet", () => {
     fireEvent.click(await sheet().findByRole("button", { name: "Přidat 1 podklad" }));
     expect(await sheet().findByText(/čekají na schválení někým jiným/)).toBeTruthy();
     expect(sent("PUT", "/knowledge/placement")).toEqual([]);
+  });
+
+  it("asks AI about each document once its item is filed, never about a table", async () => {
+    api();
+    open({ ...CLIENT, permissions: [...ALL, "RUN_CLIENT_WORK"] });
+    fireEvent.click(await screen.findByRole("button", { name: "Přidat podklady" }));
+    const box = sheet().getByRole("checkbox", { name: /Navrhnout znalosti z textu/ }) as HTMLInputElement;
+    expect(box.disabled).toBe(false);
+    fireEvent.click(box);
+    pick(file("Zadání výzkumu.pdf"), file("odpovedi.xlsx"));
+    expect(await sheet().findByText(/Přečteno: 2 části/)).toBeTruthy();
+    expect(await sheet().findByText("Přečteno: 1 list, 2 sloupce, 4 řádky")).toBeTruthy();
+    fireEvent.click(sheet().getByRole("button", { name: "Přidat 2 podklady" }));
+
+    // The sheet stays open to say what was asked; the proposals come to Ke schválení.
+    expect(await sheet().findByText("AI navrhne znalosti z 1 dokumentu; návrhy přijdou do Ke schválení.")).toBeTruthy();
+    expect(sent("POST", `/sources/${PDF}/proposals`)).toHaveLength(1);
+    expect(sent("POST", `/sources/${XLSX}/proposals`)).toHaveLength(0);
+    // Asked only after both items exist.
+    const order = calls.map((c) => `${c.method} ${c.url}`);
+    expect(order.lastIndexOf("POST /api/v1/clients/CLI-a/knowledge/proposals")).toBeLessThan(
+      order.indexOf(`POST /api/v1/clients/CLI-a/sources/${PDF}/proposals`),
+    );
+  });
+
+  it("says by name a document AI could not be asked about, and adds the item anyway", async () => {
+    api({
+      [`POST /api/v1/clients/CLI-a/sources/${PDF}/proposals`]: () =>
+        new Response(JSON.stringify({ code: "nothing_read", message: "no" }), { status: 422 }),
+    });
+    open({ ...CLIENT, permissions: [...ALL, "RUN_CLIENT_WORK"] });
+    fireEvent.click(await screen.findByRole("button", { name: "Přidat podklady" }));
+    fireEvent.click(sheet().getByRole("checkbox", { name: /Navrhnout znalosti z textu/ }));
+    pick(file("brief.pdf"));
+    fireEvent.click(await sheet().findByRole("button", { name: "Přidat 1 podklad" }));
+    expect((await sheet().findByRole("alert")).textContent).toBe(
+      "Návrhy z brief.pdf se nespustily: z dokumentu se nic nepřečetlo.",
+    );
+    expect(sent("POST", "/knowledge/proposals")).toHaveLength(1);
+  });
+
+  it("asks nothing when the box is left unticked", async () => {
+    api();
+    open({ ...CLIENT, permissions: [...ALL, "RUN_CLIENT_WORK"] });
+    fireEvent.click(await screen.findByRole("button", { name: "Přidat podklady" }));
+    pick(file("brief.pdf"));
+    fireEvent.click(await sheet().findByRole("button", { name: "Přidat 1 podklad" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(calls.some((c) => c.url.endsWith("/proposals") && c.url.includes("/sources/"))).toBe(false);
   });
 });

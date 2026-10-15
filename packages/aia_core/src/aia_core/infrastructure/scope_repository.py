@@ -37,8 +37,10 @@ from ..domain.scope import (
     new_user_id,
     resolve_self_approval_policy,
 )
+from ..domain.workflow import ReservationStatus
 from .tables import (
     AccessAuditRow,
+    BudgetReservationRow,
     ClientRow,
     OrganizationMemberRow,
     OrganizationRow,
@@ -459,15 +461,25 @@ class ScopeRepository:
             raise ScopeDenied("not found", reason="unknown_client")
         return row
 
-    def client_budget(self, scope: ClientContext) -> ClientBudget:
+    def client_budget(self, scope: ClientContext, *, for_update: bool = False) -> ClientBudget:
         """What the client's own AI work may cost and where it stands (client-budget CB1).
 
-        Nothing holds against it yet, so ``reserved_usd`` is 0 until client-paid runs
-        reserve (CB3). Never the studies' budgets: those are theirs.
+        ``reserved_usd`` is what the client's own work holds now: its runs' open holds, which
+        name no study. Never the studies' budgets or holds: those are theirs. ``for_update``
+        locks the client row and reads it as committed, for a change decided on this value.
         """
         scope.require(ClientPermission.VIEW_CLIENT_COSTS)
-        row = self._client_row(scope)
-        return ClientBudget(budget_usd=row.budget_usd, spent_usd=row.spent_usd)
+        row = self._client_row(scope, for_update=for_update)
+        held = self._session.scalar(
+            select(func.coalesce(func.sum(BudgetReservationRow.amount_usd), 0.0)).where(
+                BudgetReservationRow.client_id == scope.client_id,
+                BudgetReservationRow.study_id.is_(None),
+                BudgetReservationRow.status == ReservationStatus.RESERVED.value,
+            )
+        )
+        return ClientBudget(
+            budget_usd=row.budget_usd, spent_usd=row.spent_usd, reserved_usd=float(held or 0.0)
+        )
 
     def set_client_budget(self, scope: ClientContext, budget_usd: float) -> ClientBudget:
         """Set what the client's own AI work may cost; audited with the old and new value.

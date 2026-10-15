@@ -391,3 +391,36 @@ def test_a_persona_that_cannot_be_built_as_18_6_6_built_it_is_refused(
     with pytest.raises(PopulationError) as refused:
         panel_personas(population, _sample(population, [0]))
     assert refused.value.reason == reason
+
+
+def test_the_studys_selected_dimensions_are_each_blocks_topic_allowlist(population: Any) -> None:
+    """Plan run-recovery-and-truth 5c: 18.6.6 passed the approved dimensions as the run's
+    persona_topic_allowlist (research_project.py:440) and kept, per question, only the topics
+    in it before the block's union (dotaznik.py:943-945)."""
+    from test_ai_respondent import _spec
+
+    from aia_core.domain.research_design import SELECTION_NOT_APPLIED, SpecSelection
+
+    spec = _spec()
+    built = panel_personas(population, _sample(population, [4]))
+    persona = built.personas[0]
+    plain = built.plan(spec, persona)
+    every = [block_topics([(i.text, i.labels) for i in b.items]) for b in plain.blocks]
+    chosen = next(t for topics in every for t in topics)  # one topic some block has
+    selected = spec.model_copy(
+        update={
+            "selection": SpecSelection(
+                dimensions=(chosen.upper(), "not-a-topic"),  # compared lowercased, as the unit
+                audience_filters={},
+                applied=False,
+                reason=SELECTION_NOT_APPLIED,
+            )
+        }
+    )
+    plan = built.plan(selected, persona)
+    for block, topics in zip(plan.blocks, every, strict=True):
+        kept = [t for t in topics if t == chosen]
+        assert plan.profiles[block.index] == built.profile(persona.persona_id, kept)
+    # The allowlist narrowed some block's topics (the fixture's signals may not differ by them).
+    assert any([t for t in topics if t == chosen] != topics for topics in every)
+    assert block_topics([("x", ())], allowlist=()) == block_topics([("x", ())])

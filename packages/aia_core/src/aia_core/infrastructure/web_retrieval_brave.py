@@ -18,7 +18,7 @@ runs, so every failure is a :class:`ToolCallFailed` stating its
   read timeout, a reset, a 5xx. Closed uncertain by the gate, never resent.
 
 The subscription key is held as a *credential reference*
-(:class:`~aia_core.infrastructure.model_adapters.transport.CredentialSource`),
+(:class:`~aia_core.infrastructure.http_transport.CredentialSource`),
 by default :data:`BRAVE_CREDENTIAL_REF`, which ``EnvironmentCredentials`` reads
 from ``AIA_DEEP_RESEARCH_BRAVE_API_KEY``. It is resolved for each request, before
 anything is looked up or sent, and placed only in the ``X-Subscription-Token``
@@ -58,8 +58,7 @@ from ..domain.deep_research.web import (
     check_resolution,
     check_url,
 )
-from .model_adapters.live_transport import _certificate_refused
-from .model_adapters.transport import CredentialSource
+from .http_transport import CredentialSource, certificate_refused
 from .web_retrieval import FetchedResponse, Resolver, SearchResponse, ToolCallFailed, extract_page
 
 __all__ = [
@@ -483,7 +482,7 @@ class BraveHttpsTransport:
                 "the Brave API did not answer in time", reason="timeout", delivery=Delivery.UNKNOWN
             ) from exc
         except u.exceptions.SSLError as exc:
-            delivery = Delivery.NOT_SENT if _certificate_refused(exc) else Delivery.UNKNOWN
+            delivery = Delivery.NOT_SENT if certificate_refused(exc) else Delivery.UNKNOWN
             raise ToolCallFailed(
                 "TLS with the Brave API failed", reason="tls_failed", delivery=delivery
             ) from exc

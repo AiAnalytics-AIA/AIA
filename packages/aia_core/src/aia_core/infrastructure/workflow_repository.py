@@ -632,15 +632,23 @@ class WorkflowRepository:
         )
 
     def list_runs(
-        self, *, project_id: str, limit: int = 50, workflow_type: str | None = None
+        self,
+        *,
+        project_id: str,
+        limit: int = 50,
+        workflow_type: str | None = None,
+        key_prefix: str | None = None,
     ) -> list[dict[str, Any]]:
         """Return a project's runs, newest first, without their steps.
 
-        A listing for a screen; :meth:`get_run` returns one run in full.
+        A listing for a screen; :meth:`get_run` returns one run in full. ``key_prefix``
+        keeps the runs whose idempotency key starts with it (matched literally).
         """
         filters = [WorkflowRunRow.project_id == project_id, *self._scope_filter()]
         if workflow_type is not None:
             filters.append(WorkflowRunRow.workflow_type == workflow_type)
+        if key_prefix is not None:
+            filters.append(WorkflowRunRow.idempotency_key.startswith(key_prefix, autoescape=True))
         rows = self._session.scalars(
             select(WorkflowRunRow)
             .where(*filters)
@@ -718,6 +726,17 @@ class WorkflowRepository:
                 .where(WorkflowRunRow.run_id == run_id)
                 .with_for_update()
             )
+
+    def lock_run(self, run_id: str) -> None:
+        """Take a run's lock, in scope, before a change that will also lock its payer.
+
+        Every path that settles money locks the run, then the study or client it
+        charges; a caller that must read the payer locked before changing the run takes
+        the run first through here, so the two orders never cross. A run outside the
+        scope is not found.
+        """
+        self._run(run_id)
+        self._lock_run(run_id)
 
     def _lock_run_for(self, step: StepRunRow) -> None:
         """Lock the step's run, then re-read the step as it now stands.
