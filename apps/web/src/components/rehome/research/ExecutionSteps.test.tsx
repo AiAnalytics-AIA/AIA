@@ -1437,9 +1437,9 @@ describe("Interpretation research", () => {
         { evidence: { evidence_id: "EV-2", claim: "Káva je stabilní.", quote: "", source_ref: "SRC-2" }, score: { score: 0.6, source_class: "C" } },
       ],
       snapshots: [{ snapshot_id: "SRC-1", title: "Zpráva o trhu", url: "https://example.org/a", retrieval_mode: "LIVE" }, { snapshot_id: "SRC-2", title: "", url: "https://example.org/b", retrieval_mode: "LIVE" }],
-      quarantined: [{ reason: "QUOTE_NOT_FOUND", detail: "citace není ve zdroji" }],
+      quarantined: [{ reason: "QUOTE_NOT_FOUND", detail: "citace není ve zdroji", claim: "Čaj pijí hlavně senioři." }],
       synthesis: {
-        check: { status: "CHECKED", summary: "Trh se posouvá.\n\nDruhý odstavec.", findings: [{ subject_key: "s1", text: "Čaj roste rychleji než káva.", evidence_ids: ["EV-2", "EV-1"] }, { subject_key: "s2", text: "Bez opory.", evidence_ids: ["EV-x"] }], gaps: ["Chybí data za rok 2025."], limitations: ["Jen veřejné zdroje."] },
+        check: { status: "CHECKED", summary: "Trh se posouvá.\n\nDruhý odstavec.", summary_withheld: "shrnutí cituje číslo mimo podklady", excluded: [{ subject_key: "s3", text: "Káva brzy zmizí z trhu.", reason: "UNSUPPORTED_NUMBER", detail: "číslo není v citaci" }], findings: [{ subject_key: "s1", text: "Čaj roste rychleji než káva.", evidence_ids: ["EV-2", "EV-1"] }, { subject_key: "s2", text: "Bez opory.", evidence_ids: ["EV-x"] }], gaps: ["Chybí data za rok 2025."], limitations: ["Jen veřejné zdroje."] },
         brief: { gaps: [{ need: "Benchmark spokojenosti", reason: "žádný zdroj ho neuvádí" }] },
       } };
     api({ ...listed(completed),
@@ -1475,6 +1475,12 @@ describe("Interpretation research", () => {
     expect(within(draft).getByText("Chybí data za rok 2025.")).toBeTruthy();
     expect(within(draft).getByText("Jen veřejné zdroje.")).toBeTruthy();
     expect(within(draft).getByText("Stav kontroly: CHECKED")).toBeTruthy();
+    // The rejected claim and the prose the checker refused stay readable, with their reasons.
+    expect(screen.getByText("Čaj pijí hlavně senioři.")).toBeTruthy();
+    const rejected = within(draft).getByText("Odmítnuto kontrolou").parentElement as HTMLElement;
+    expect(within(rejected).getByText("Káva brzy zmizí z trhu.")).toBeTruthy();
+    expect(within(rejected).getByText("UNSUPPORTED_NUMBER · číslo není v citaci")).toBeTruthy();
+    expect(within(rejected).getByText("· shrnutí cituje číslo mimo podklady")).toBeTruthy();
   });
 
   it("requires confirmation before cancelling an active interpretation review", async () => {

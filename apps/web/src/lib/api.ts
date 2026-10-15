@@ -1107,10 +1107,10 @@ export type DeepResearchRun = {
 export type DeepResearchBundle = {
   quality_status: string; fictional_client: boolean; client_facing: false;
   accepted: { evidence: { evidence_id?: string; claim: string; quote: string; source_ref: string }; score: { score: number; source_class: string } }[];
-  quarantined: { reason: string; detail?: string }[];
+  quarantined: { reason: string; detail?: string; claim?: string }[];
   snapshots: { snapshot_id: string; url: string; title: string; retrieval_mode: string }[];
   counts: Record<string, number>; sha256: string;
-  synthesis?: { check: { summary: string | null; findings: { subject_key: string; text: string; evidence_ids: string[] }[]; gaps: string[]; limitations: string[]; status: string }; brief?: { gaps: { need: string; reason: string }[] } | null } | null;
+  synthesis?: { check: { summary: string | null; summary_withheld?: string | null; findings: { subject_key: string; text: string; evidence_ids: string[] }[]; excluded?: { subject_key: string; text: string; reason: string; detail?: string }[]; gaps: string[]; limitations: string[]; status: string }; brief?: { gaps: { need: string; reason: string }[] } | null } | null;
   origins?: string[];
 };
 const deepPath = (studyId: string) => `${studyPath(studyId)}/deep-research/runs`;

@@ -205,7 +205,7 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
         {bundle.synthesis?.brief?.gaps.length ? <><h4 className="mt-3 text-sm font-semibold">Co se nepodařilo doložit</h4>
           <ul className="mt-1 list-disc space-y-1 pl-5 text-sm leading-6">{bundle.synthesis.brief.gaps.map((g, i) => <li key={i}>{g.need}{g.reason ? <span className="text-ink-muted"> · {g.reason}</span> : null}</li>)}</ul></> : null}
         <h4 className="mt-3 text-sm font-semibold">Odmítnutá zjištění: {bundle.quarantined.length}</h4>
-        {bundle.quarantined.length ? <ul className="mt-1 list-disc space-y-1 pl-5 text-sm leading-6">{bundle.quarantined.map((q, i) => <li key={i}>{q.reason}{q.detail ? <span className="text-ink-muted"> · {q.detail}</span> : null}</li>)}</ul> : null}
+        {bundle.quarantined.length ? <ul className="mt-1 list-disc space-y-1 pl-5 text-sm leading-6">{bundle.quarantined.map((q, i) => <li key={i}>{q.claim ? <FormattedText text={q.claim} /> : null}<span className={q.claim ? "text-xs text-ink-muted" : undefined}>{q.reason}{q.detail ? <span className="text-ink-muted"> · {q.detail}</span> : null}</span></li>)}</ul> : null}
         {Object.keys(bundle.counts ?? {}).length ? <p className="mt-3 text-xs text-ink-muted">Počty: {Object.entries(bundle.counts).map(([k, v]) => `${k} ${v}`).join(" · ")}</p> : null}
       </details>
       {bundle.synthesis ? <details data-synthesis-draft><summary className="cursor-pointer text-sm font-medium">Generovaný návrh syntézy · věcně neschválený</summary>
@@ -222,6 +222,15 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
           })}</ul></> : null}
         {bundle.synthesis.check.gaps.length ? <><h4 className="mt-3 text-sm font-semibold">Mezery</h4><ul className="mt-1 list-disc space-y-1 pl-5 text-sm leading-6">{bundle.synthesis.check.gaps.map((g, i) => <li key={i}>{g}</li>)}</ul></> : null}
         {bundle.synthesis.check.limitations.length ? <><h4 className="mt-3 text-sm font-semibold">Omezení</h4><ul className="mt-1 list-disc space-y-1 pl-5 text-sm leading-6">{bundle.synthesis.check.limitations.map((l, i) => <li key={i}>{l}</li>)}</ul></> : null}
+        {bundle.synthesis.check.summary_withheld || bundle.synthesis.check.excluded?.length ? <div data-synthesis-rejected>
+          <h4 className="mt-3 text-sm font-semibold">Odmítnuto kontrolou</h4>
+          <p className="mt-1 text-xs text-ink-muted">Text, který kontrola citací a čísel nepustila do syntézy, s důvodem.</p>
+          {bundle.synthesis.check.summary_withheld ? <p className="mt-2 text-sm">Shrnutí zadrženo<span className="text-ink-muted"> · {bundle.synthesis.check.summary_withheld}</span></p> : null}
+          {bundle.synthesis.check.excluded?.length ? <ul className="mt-2 flex flex-col gap-3">{bundle.synthesis.check.excluded.map((x, i) => <li key={i} className="border-l-2 border-status-fault pl-3">
+            <FormattedText text={x.text} />
+            <p className="mt-1 text-xs text-ink-muted">{x.reason}{x.detail ? ` · ${x.detail}` : ""}</p>
+          </li>)}</ul> : null}
+        </div> : null}
       </details> : null}
     </div> : null}
     {error ? <p role="alert" className="mt-3 text-sm text-status-fault">{error}</p> : null}
