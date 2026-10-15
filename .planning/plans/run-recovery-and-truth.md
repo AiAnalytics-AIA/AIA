@@ -9,7 +9,7 @@ chunks:
   - "[x] 3a. Design: a question or tracked set names the research questions it measures; readiness traces each research question to its measures and flags one nothing measures"
   - "[x] 3b. Dotazník: link each question and tracked set to research questions; the Run screen shows the chain"
   - "[x] 3c. Comparison: each research question declares its comparison, and readiness checks its measures can carry it"
-  - "[ ] 3d. External source: the Deep Research evidence and gaps cited against each research question, shown in the chain"
+  - "[x] 3d. External source: the Deep Research evidence and gaps cited against each research question, shown in the chain"
   - "[x] 3e. The questionnaire agent proposes the links; a person accepts them with the proposal"
   - "[ ] 4. Deep Research: source diversity beyond Wikipedia, the exact supporting passage per claim, and every rejection's reason shown"
   - "[ ] 5. Population: a study-scoped, governed source choice; the source and dimensions actually used on the run receipt"
@@ -354,6 +354,45 @@ Tests:
 - `QuestionnaireStep.test.tsx` ("declares how each research question is answered").
 - `ExecutionSteps.test.tsx` (the trace card's comparison row).
 
+## 3d — what Design Research found for each research question
+
+A Design Research run already researches each research question as a subject:
+
+- the subject's origin is `research_plan.research_questions[i]` (`planning.py` `extract_subjects`);
+- its proposal lists, per subject, the accepted findings (EVIDENCE) or none (GAP)
+  (`design_proposals.py` `design_research_proposal`);
+- its bundle keeps every quarantined finding with its reason.
+
+None of this was shown beside the research question. The panel in Dotazník showed accepted
+findings in one list and only a count of the rejected.
+
+- **`src/lib/design-evidence.ts`** (pure):
+  - `latestDesignRun` returns the study's newest finished `DESIGN_RESEARCH` run, never an
+    interpretation run.
+  - `questionEvidence` joins one research question, by its text as the run studied it, to:
+    - its findings;
+    - every rejection on it or on a question × object cross of it, counted by reason;
+    - whether the run studied it at all. A research question added after the run reads
+      "nezkoumal", never as a gap.
+- **The Run card** reads the run, its proposal and its bundle through the existing routes,
+  which need EDIT_STUDY; a reader sees the trace without them. Under each research
+  question it shows:
+  - up to three findings, each with its quote and source;
+  - or the gap, or that the run did not study it;
+  - "Zamítnuto: N× <reason>" for the rejected.
+  The card says this is external context for the design, never respondent evidence.
+- **Reason words.** The sixteen quarantine reasons have Czech words, held equal to
+  `QuarantineReason` by `test_every_quarantine_reason_has_words_on_the_run_screen`.
+
+Not done: source diversity beyond Wikipedia, which is priority 4's own engine work and needs
+the priced routes signed off (ADR 0022).
+
+Tests:
+
+- `design-evidence.test.ts`
+- `test_quarantine_reason_words.py`
+- `ExecutionSteps.test.tsx` ("shows what Design Research found per research question")
+
 ## 3e — the questionnaire agent proposes the links
 
 3a–3c let a person link each item to the research questions it measures and declare how
@@ -443,6 +482,10 @@ Tests:
   measures: ranking needs a tracked set, A/B a concept-test set, segments unavailable,
   unknown never answerable (comparisons_of)"; web `trace.ts`: "comparisonOf /
   setComparison"; Dotazník: "Jak výzkumné otázky zodpovíme".
+- 3d, `CLAUDE.md` § map, web `src/lib/`: "design-evidence.ts: what the newest finished
+  Design Research run found per research question (latestDesignRun, questionEvidence:
+  findings, gap or not studied, rejections by reason)"; `ExecutionSteps.tsx`: the trace
+  card shows it under each research question; `api.ts`: `deepResearch.designProposal`.
 - 3e, `CLAUDE.md` § map, `research_agents.py`: "Eight closed Research task contracts …";
   append "; the questionnaire contract (harness 3) proposes each item's research_questions,
   a set's output_type and each research question's comparison; proposal_result keeps only

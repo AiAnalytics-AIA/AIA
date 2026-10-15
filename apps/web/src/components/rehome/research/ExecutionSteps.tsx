@@ -21,6 +21,10 @@ import {
   type QuestionOutlook,
   type Readiness,
   type ResearchTrace,
+  type DeepResearchBundle,
+  type DeepResearchRun,
+  type DesignProposal,
+  deepResearch,
   type ResearchRun,
   type ResearchRunSummary,
   type ResearchStep,
@@ -30,6 +34,7 @@ import {
   research,
 } from "@/lib/api";
 import { clientChildren, outcomeValue, targetVerdict } from "@/lib/population";
+import { latestDesignRun, questionEvidence } from "@/lib/design-evidence";
 import { researchStepOrb } from "@/lib/activity-orb";
 import { activityOf } from "@/lib/step-activity";
 import { type BatteryWithMaps, mapApproval, readObjectMap, type RecordedMethod, type RegisterEntry } from "@/lib/object-map-view";
@@ -361,13 +366,54 @@ function Receipt({ revision, readiness }: { revision: number; readiness: Readine
 
 /** "Výzkumné otázky a jejich měření": each research question of the plan, the questions that
  * measure it and what the run will make of them (plan run-recovery-and-truth 3b). */
-function ResearchTraceCard({ trace, outlook }: { trace: ResearchTrace; outlook: readonly QuestionOutlook[] }) {
+type DesignEvidence = { run: DeepResearchRun; proposal: DesignProposal; bundle: DeepResearchBundle };
+
+/** What the study's Design Research run found for one research question (3d): its accepted
+ * findings with their sources, a gap, or that it never studied it; every rejection by reason. */
+function DesignEvidenceNote({ rq, design }: { rq: string; design: DesignEvidence }) {
+  const found = questionEvidence(rq, design.proposal, design.bundle);
+  if (!found.studied) return <p className="mt-1 text-[13px] text-ink-muted">{t("research.exec.trace.evidence.notStudied")}</p>;
+  return (
+    <div className="mt-1 rounded-control border border-border bg-surface-sunken px-2.5 py-1.5 text-[13px]">
+      {found.findings.length ? (
+        <>
+          <p className="font-medium">{tv("research.exec.trace.evidence.found", { count: found.findings.length })}</p>
+          <ul className="mt-1 flex flex-col gap-1">
+            {found.findings.slice(0, 3).map((f) => (
+              <li key={f.evidence_id}>
+                <span>{f.claim}</span>
+                <span className="block text-ink-muted">„{f.quote}“ · {f.source_title || f.source}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <p>{t("research.exec.trace.evidence.gap")}</p>
+      )}
+      {found.rejected.length ? (
+        <p className="mt-1 text-ink-muted">
+          {tv("research.exec.trace.evidence.rejected", { list: found.rejected.map((r) => `${r.count}× ${quarantineWords(r.reason)}`).join("; ") })}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/** A quarantine reason in words; one this client does not know is named, never hidden. */
+function quarantineWords(code: string): string {
+  const key = `research.exec.trace.quarantine.${code}`;
+  const words = t(key);
+  return words === key ? code : words;
+}
+
+function ResearchTraceCard({ trace, outlook, design }: { trace: ResearchTrace; outlook: readonly QuestionOutlook[]; design: DesignEvidence | null }) {
   const { stepHref } = useResearch();
   // Stale links stay visible even when the plan states no research question any more.
   if (!trace.questions.length && !trace.dangling.length) return null;
   return (
     <Card title={t("research.exec.trace.title")} region>
       <p className="text-[13px] text-ink-muted">{t("research.exec.trace.help")}</p>
+      {design ? <p className="mt-1 text-[13px] text-ink-muted">{t("research.exec.trace.evidence.source")}</p> : null}
       <ol className="mt-3 flex flex-col gap-3">
         {trace.questions.map((q, i) => {
           const measures = traceMeasures(q, outlook);
@@ -382,6 +428,7 @@ function ResearchTraceCard({ trace, outlook }: { trace: ResearchTrace; outlook: 
                 {q.reasons.map((r) => (
                   <p key={r} className="text-[13px] text-ink-muted">{t(`research.exec.trace.reason.${r}`)}</p>
                 ))}
+                {design ? <DesignEvidenceNote rq={q.text} design={design} /> : null}
                 {measures.length ? (
                   <ul className="mt-1 flex flex-col gap-1">
                     {measures.map((m) => (
@@ -465,6 +512,9 @@ function QuestionOutlookCard({ items }: { items: readonly QuestionOutlook[] }) {
 /** Failures first, then warnings: what stops the run is read before what passed. */
 const CHECK_ORDER: Record<string, number> = { FAIL: 0, WARN: 1, PASS: 2 };
 
+/** The most runs `GET …/deep-research/runs` lists (its `limit` query, le=100). */
+const DEEP_RESEARCH_RUNS_MAX = 100;
+
 export function RunStep() {
   const { store, stepHref, confirm } = useResearch();
   const frame = useFrame();
@@ -478,6 +528,26 @@ export function RunStep() {
   const [runs, setRuns] = useState<ResearchRunSummary[]>([]);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
+  // The newest finished Design Research run and what it found (3d); its routes need EDIT_STUDY.
+  const [design, setDesign] = useState<DesignEvidence | null>(null);
+  useEffect(() => {
+    let live = true;
+    setDesign(null);
+    if (!frame.canEdit) return;
+    (async () => {
+      // The server's widest page: newer interpretation or unfinished runs must not push the
+      // finished design run out of the default 20 (review, Codex on #427).
+      const run = latestDesignRun(await deepResearch.runs(frame.studyId, DEEP_RESEARCH_RUNS_MAX));
+      if (!run) return;
+      const [proposal, bundle] = await Promise.all([deepResearch.designProposal(frame.studyId, run.run_id), deepResearch.bundle(frame.studyId, run.run_id)]);
+      if (live) setDesign({ run, proposal, bundle });
+    })().catch(() => {
+      // Nothing to show is said by the card's own absence: the trace stands without it.
+    });
+    return () => {
+      live = false;
+    };
+  }, [frame.studyId, frame.canEdit]);
   // The client's materialized children a run may be started over (P4d4c); none read is LIVE.
   const [children, setChildren] = useState<PopulationVersion[]>([]);
   const [childId, setChildId] = useState<string | null>(null);
@@ -599,7 +669,7 @@ export function RunStep() {
             </ul>
             <p className="mt-3 text-xs text-ink-muted">{tv("research.exec.rules", { rules: prepared.readiness.rules })}</p>
           </Card>
-          {prepared.readiness.research_trace ? <ResearchTraceCard trace={prepared.readiness.research_trace} outlook={prepared.readiness.question_outlook ?? []} /> : null}
+          {prepared.readiness.research_trace ? <ResearchTraceCard trace={prepared.readiness.research_trace} outlook={prepared.readiness.question_outlook ?? []} design={design} /> : null}
           <QuestionOutlookCard items={prepared.readiness.question_outlook ?? []} />
           <Receipt revision={prepared.revision} readiness={prepared.readiness} />
           <CostCard readiness={prepared.readiness} canEdit={frame.canEdit} onLimitSaved={rereadReadiness} />
