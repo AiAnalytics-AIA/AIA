@@ -11,9 +11,15 @@ PY := $(shell [ -x $(VENV)/bin/python ] && echo $(VENV)/bin/python || command -v
 PIP := $(PY) -m pip
 BIN := $(shell [ -d $(VENV)/bin ] && echo $(VENV)/bin/ || echo "")
 
+# The interpreter CI runs (PYTHON_VERSION in .github/workflows/ci.yml), pinned in
+# .python-version, which pyenv and uv also read. A venv on another minor version
+# gives mypy a different typeshed: on 3.13, domain/ai_respondent.py reported three
+# errors that 3.12 and CI do not, with the same pydantic and mypy (2026-10-15).
+PYTHON_VERSION := $(shell cat .python-version)
+
 .PHONY: ui-audience ui-intake ui-methodology help setup deps services migrate migration dev dev-api dev-web dev-worker \
         test test-core test-api test-worker test-executors test-parity test-golden test-oracle parity-status test-web report-preview web_design ui-workbench ui-workbench-reference ui-workbench-status ui-workbench-down ui-capture ui-fixtures ui-research ui-sociomapping ui-workspace \
-        lint format typecheck \
+        lint format typecheck python-version \
         layer_check exposure_check check verify openapi clean
 
 help: ## Show available targets
@@ -26,7 +32,10 @@ setup: deps ## One-time setup: Python venv, dependencies, web packages
 	@echo "Setup complete. Next: make services && make migrate && make dev"
 
 deps: ## Create the venv and install Python packages in editable mode
-	@test -d $(VENV) || python3 -m venv $(VENV)
+	@command -v python$(PYTHON_VERSION) >/dev/null || { \
+	  echo "deps: python$(PYTHON_VERSION) is not installed (.python-version)"; exit 1; }
+	@test -d $(VENV) || python$(PYTHON_VERSION) -m venv $(VENV)
+	@$(MAKE) --no-print-directory python-version
 	@$(VENV)/bin/python -m pip install -q --upgrade pip
 	@$(VENV)/bin/python -m pip install -q -e "packages/aia_core[dev,postgres,s3,report,bedrock,documents,errors]"
 	@$(VENV)/bin/python -m pip install -q -e "apps/worker[dev]"
@@ -150,7 +159,17 @@ format: ## Auto-format Python and the web client
 	@$(BIN)ruff format packages/aia_core apps/api apps/worker apps/executors migrations
 	@$(BIN)ruff check --fix packages/aia_core apps/api apps/worker apps/executors migrations
 
-typecheck: ## Type-check Python and the web client
+python-version: ## Fail unless the Python in use is the one CI runs (.python-version)
+	@ci=$$(sed -n 's/^  PYTHON_VERSION: "\(.*\)"$$/\1/p' .github/workflows/ci.yml); \
+	if [ "$$ci" != "$(PYTHON_VERSION)" ]; then \
+	  echo "python-version: .python-version says $(PYTHON_VERSION), ci.yml PYTHON_VERSION says $$ci."; \
+	  exit 1; fi
+	@actual=$$($(PY) -c 'import sys; print("%d.%d" % sys.version_info[:2])'); \
+	if [ "$$actual" != "$(PYTHON_VERSION)" ]; then \
+	  echo "python-version: $(PY) is Python $$actual; CI runs $(PYTHON_VERSION) (.python-version)."; \
+	  echo "  Rebuild the venv: rm -rf $(VENV) && make deps"; exit 1; fi
+
+typecheck: python-version ## Type-check Python and the web client
 	@$(BIN)mypy packages/aia_core/src apps/api/src apps/worker/src apps/executors/src
 	@cd apps/web && npx tsc --noEmit
 

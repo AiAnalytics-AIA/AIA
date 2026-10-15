@@ -164,6 +164,12 @@ jobs:
           ruff check packages/aia_core apps/api apps/worker apps/executors migrations
           ruff format --check packages/aia_core apps/api apps/worker apps/executors migrations
 
+      - name: Python version
+        # The runner's Python is PYTHON_VERSION; make python-version also fails when
+        # .python-version (what make deps builds a local venv with) disagrees with it,
+        # so the two cannot drift apart in a merged change.
+        run: make python-version
+
       - name: Type check
         # One invocation over every source tree: aia_core ships no py.typed, so a
         # tree checked on its own sees aia_core as untyped (AGENTS.md § mypy).
