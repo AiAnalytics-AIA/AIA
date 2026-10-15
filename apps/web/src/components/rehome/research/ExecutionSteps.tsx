@@ -19,6 +19,7 @@ import {
   type ResearchAnalysis,
   type ResearchReport,
   type QuestionOutlook,
+  type PersonaSourceOption,
   type Readiness,
   type ResearchTrace,
   type DeepResearchBundle,
@@ -65,6 +66,7 @@ import {
   stepLabel,
   stepOf,
   populationNote,
+  respondentReceipt,
   stepStatusLabel,
   stepTone,
   supportNote,
@@ -76,7 +78,7 @@ import {
 } from "@/lib/research-execution";
 import { CONFLICT_MESSAGE } from "@/research/store";
 import { projectVariants, selectedVariant } from "@/research/plan";
-import { withApproval } from "@/research/persona";
+import { dimensionLabels, withApproval } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
 import { ActionDock, Switch } from "../step";
 import { AiButton, Button, Chip, Field, TextArea, TextInput } from "../ui";
@@ -159,14 +161,40 @@ function OriginBanners({ run }: { run: ResearchRun }) {
   );
 }
 
-// The population a run recorded, and that fieldwork did not read it (population-operations P3).
-function PopulationNote({ run }: { run: ResearchRun }) {
-  const note = populationNote(run);
-  return note ? (
-    <p role="note" data-population={run.population?.version_label} className="text-sm text-ink-muted">
-      {note}
-    </p>
-  ) : null;
+/**
+ * "Kdo odpovídal" (run-recovery-and-truth 5b): who answered -- the source the run pinned beside
+ * the origin its data reports, a mismatch named -- the population it recorded and whether it was
+ * read, and each selected dimension and filter, applied or not and why.
+ */
+function RespondentsReceipt({ run }: { run: ResearchRun }) {
+  const R = "research.exec.respondents.receipt";
+  const who = respondentReceipt(run);
+  const sel = run.selection;
+  const labels = dimensionLabels({});
+  const applied = (on: boolean, reason: string | null) => (on ? t(`${R}.applied`) : reason ? t(`${R}.reason.${reason}`) : t(`${R}.none`));
+  const filters = sel ? Object.keys(sel.audience_filters) : [];
+  const rows: [string, string][] = [
+    [t(`${R}.source`), `${t(`research.exec.respondents.${who.pinned}`)} · ${who.observed ? t(`${R}.observed.${who.observed}`) : t(`${R}.pending`)}`],
+    [t(`${R}.population`), populationNote(run) ?? t(`${R}.populationNone`)],
+  ];
+  if (sel) {
+    rows.push([t(`${R}.dimensions`), sel.dimensions.length ? `${sel.dimensions.map((d) => labels[d] ?? d).join(", ")} · ${applied(sel.dimensions_applied, sel.dimensions_reason)}` : t(`${R}.none`)]);
+    rows.push([t(`${R}.filters`), filters.length ? `${filters.join(", ")} · ${applied(sel.filters_applied, sel.filters_reason)}` : t(`${R}.none`)]);
+  }
+  return (
+    <Card title={t(`${R}.title`)}>
+      {who.mismatch ? <p role="alert" className="mb-2 text-sm font-semibold text-status-fault">{t(`${R}.mismatch`)}</p> : null}
+      <dl data-population={run.population?.version_label} className="divide-y divide-border rounded-control border border-border">
+        {rows.map(([k, v]) => (
+          <div key={k} className="grid grid-cols-[8rem_1fr] items-baseline gap-3 px-3 py-2 text-sm">
+            <dt className="text-ink-muted">{k}</dt>
+            <dd className="min-w-0">{v}</dd>
+          </div>
+        ))}
+      </dl>
+      {sel === null || sel === undefined ? <p className="mt-2 text-xs text-ink-muted">{t(`${R}.unrecorded`)}</p> : null}
+    </Card>
+  );
 }
 
 
@@ -551,6 +579,8 @@ export function RunStep() {
   // The client's materialized children a run may be started over (P4d4c); none read is LIVE.
   const [children, setChildren] = useState<PopulationVersion[]>([]);
   const [childId, setChildId] = useState<string | null>(null);
+  // Who answers (5a): the source the readiness was read under, changed only by the person.
+  const [choosing, setChoosing] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -598,14 +628,20 @@ export function RunStep() {
     };
   }, [frame.studyId, frame.canEdit, store]);
 
-  const rereadReadiness = async () => {
+  const rereadReadiness = async (personaSource = prepared.kind === "ready" ? prepared.readiness.persona_source : undefined) => {
     if (prepared.kind !== "ready") return;
     try {
-      const readiness = await research.readiness(frame.studyId, prepared.readiness.design_revision_id);
+      const readiness = await research.readiness(frame.studyId, prepared.readiness.design_revision_id, personaSource);
       setPrepared({ ...prepared, readiness });
     } catch (e) {
       setStartError(message(e));
     }
+  };
+  // The checks differ by source (the support forecast, the audience): read them again under it.
+  const chooseSource = async (source: string) => {
+    setChoosing(true);
+    await rereadReadiness(source);
+    setChoosing(false);
   };
 
   const ask = (ceiling: number, limit: number) =>
@@ -625,12 +661,12 @@ export function RunStep() {
     setStartError(null);
     try {
       try {
-        await research.start(frame.studyId, readiness.design_revision_id, yes, childId ?? undefined);
+        await research.start(frame.studyId, readiness.design_revision_id, yes, childId ?? undefined, readiness.persona_source);
       } catch (e) {
         // The limit or the ceiling changed since the page read them: ask with the server's figure.
         const asked = confirmationAsked(e);
         if (!asked || yes !== undefined || !(await ask(asked.ceiling, asked.limit))) throw e;
-        await research.start(frame.studyId, readiness.design_revision_id, asked.ceiling, childId ?? undefined);
+        await research.start(frame.studyId, readiness.design_revision_id, asked.ceiling, childId ?? undefined, readiness.persona_source);
       }
       router.push(stepHref("progress"));
     } catch (e) {
@@ -672,7 +708,15 @@ export function RunStep() {
           {prepared.readiness.research_trace ? <ResearchTraceCard trace={prepared.readiness.research_trace} outlook={prepared.readiness.question_outlook ?? []} design={design} /> : null}
           <QuestionOutlookCard items={prepared.readiness.question_outlook ?? []} />
           <Receipt revision={prepared.revision} readiness={prepared.readiness} />
-          <CostCard readiness={prepared.readiness} canEdit={frame.canEdit} onLimitSaved={rereadReadiness} />
+          <CostCard readiness={prepared.readiness} canEdit={frame.canEdit} onLimitSaved={() => void rereadReadiness()} />
+          {prepared.readiness.fieldwork_source === "ai_runtime" && prepared.readiness.persona_sources?.length ? (
+            <RespondentChoice
+              options={prepared.readiness.persona_sources}
+              value={prepared.readiness.persona_source ?? null}
+              onChange={(source) => void chooseSource(source)}
+              disabled={!frame.canEdit || starting || choosing}
+            />
+          ) : null}
           {children.length ? <PopulationChoice choices={children} value={childId} onChange={setChildId} disabled={!frame.canEdit || starting} /> : null}
           {prepared.readiness.fieldwork_source === "ai_runtime" ? (
             <p role="note" className="rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">{t("research.exec.aiRuntimeNotice")}</p>
@@ -685,7 +729,8 @@ export function RunStep() {
       <RunList runs={runs} />
       <ActionDock
         back={{ href: stepHref("persona"), label: `5. ${t("aia.stages.persona")}` }}
-        ready={prepared.kind === "ready" && prepared.readiness.ready && frame.canEdit && !blocked}
+        // Not while a new choice of respondents is being checked: Start would send the old one.
+        ready={prepared.kind === "ready" && prepared.readiness.ready && frame.canEdit && !blocked && !choosing}
         note={
           !frame.canEdit
             ? t("research.exec.readOnly")
@@ -701,7 +746,7 @@ export function RunStep() {
         }
       >
         {prepared.kind === "ready" ? (
-          <AiButton variant="primary" onClick={() => void start()} disabled={!prepared.readiness.ready || !frame.canEdit || starting || blocked}>
+          <AiButton variant="primary" onClick={() => void start()} disabled={!prepared.readiness.ready || !frame.canEdit || starting || blocked || choosing}>
             {starting ? t("research.exec.starting") : t("research.exec.start")}
           </AiButton>
         ) : null}
@@ -746,6 +791,37 @@ function PopulationChoice({
             </label>
           );
         })}
+      </fieldset>
+      <p className="mt-2 text-xs text-ink-muted">{t(`${P}.note`)}</p>
+    </Card>
+  );
+}
+
+/** "Kdo bude odpovídat": every source of AI respondents, the offered ones choosable, the others
+ * with the reason this deployment gives (plan run-recovery-and-truth 5a). */
+function RespondentChoice({ options, value, onChange, disabled }: {
+  options: PersonaSourceOption[];
+  value: string | null;
+  onChange: (source: string) => void;
+  disabled: boolean;
+}) {
+  const P = "research.exec.respondents";
+  return (
+    <Card title={t(`${P}.title`)}>
+      <fieldset className="flex flex-col gap-2 text-sm" disabled={disabled}>
+        <legend className="mb-1 text-ink-muted">{t(`${P}.text`)}</legend>
+        {options.map((o) => (
+          <label key={o.source} className={`flex items-start gap-2 ${o.offered ? "" : "text-ink-muted"}`}>
+            <input type="radio" name="run-respondents" checked={value === o.source} disabled={!o.offered} onChange={() => onChange(o.source)} />
+            <span className="flex flex-col">
+              <span>
+                <span className="font-semibold">{t(`${P}.${o.source}`)}</span>
+                {o.default ? <span className="text-ink-muted"> · {t(`${P}.default`)}</span> : null}
+              </span>
+              <span className="text-xs text-ink-muted">{o.offered ? t(`${P}.${o.source}Help`) : t(`${P}.reason.${o.reason}`)}</span>
+            </span>
+          </label>
+        ))}
       </fieldset>
       <p className="mt-2 text-xs text-ink-muted">{t(`${P}.note`)}</p>
     </Card>
@@ -1056,7 +1132,7 @@ export function ProgressStep() {
         <ProgressActions run={run} act={act} busy={busy} refresh={refresh} actionError={actionError} repairable={repairable} />
       </InspectorSlot>
       <OriginBanners run={run} />
-      <PopulationNote run={run} />
+      <RespondentsReceipt run={run} />
       <Card>
         <div className="flex flex-wrap items-center gap-3">
           <Chip tone={phaseTone(run.phase)}>{phaseLabel(run.phase)}</Chip>
@@ -1253,7 +1329,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
     <div><h4 className="text-sm font-semibold">Literární rešerše</h4><p className="mt-1 text-xs leading-5 text-ink-muted">Externí kontext a citované zdroje patří do samostatné rešerše. Vyberte ji v oddílu Rešerše a zpráva; odpověď AI z klientských znalostí ji nenahrazuje.</p></div></div>
   </section>;
   return <ResultsWorkspace run={run} progressHref={progressHref}
-    notice={<><OriginBanners run={run} /><PopulationNote run={run} /></>}
+    notice={<><OriginBanners run={run} /><RespondentsReceipt run={run} /></>}
     lead={session ? <CompleteReport run={run} /> : null}
     panels={[
       { id: "data", label: "Data", description: "Odpovědi a srovnání hodnocených objektů. U každého výsledku zůstává uvedena podpora dat a nejistota.", content: <>

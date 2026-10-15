@@ -2149,6 +2149,46 @@ export const cs = {
       dockNote: "{d} dimenzí · N={n}",
     },
     exec: {
+      // Plan run-recovery-and-truth 5a: who answers the run, chosen before it starts.
+      respondents: {
+        title: "Kdo bude odpovídat",
+        text: "Odkud běh vezme své AI respondenty:",
+        fictional_roster: "Fiktivní respondenti",
+        fictional_rosterHelp: "Vymyšlené osoby AIA. Data jsou fiktivní a nikdy nejsou důkazem o populaci.",
+        panel: "AI respondenti z populace",
+        panelHelp: "Osoby vybrané z populace běhu pod uloženými filtry; jejich odpovědi jsou modelované.",
+        default: "výchozí",
+        reason: {
+          panel_personas_disabled: "Toto nasazení odpovědi z populace zatím nenabízí.",
+          fieldwork_not_ai_runtime: "Tento běh neodpovídá přes AI, takže populace se nepoužije.",
+        },
+        note: "Volba je součástí běhu: tentýž návrh s fiktivními respondenty a s respondenty z populace jsou dva běhy. Kontroly výše platí pro zvolený zdroj.",
+        // 5b: what the run did, beside what it was asked to do.
+        receipt: {
+          title: "Kdo odpovídal",
+          source: "Respondenti",
+          observed: {
+            SIMULATED: "data jsou fiktivní",
+            MODELLED: "data jsou modelovaná",
+            UNKNOWN: "původ dat je neznámý",
+          },
+          pending: "data zatím nevznikla",
+          mismatch: "Data neodpovídají zdroji, který běh zvolil. Výsledky berte jako neověřené.",
+          population: "Populace",
+          populationNone: "běh žádnou nezaznamenal",
+          dimensions: "Dimenze",
+          filters: "Filtry publika",
+          none: "žádné nevybrány",
+          applied: "uplatněny",
+          reason: {
+            dimensions_not_read_by_personas: "neuplatněny: AIA je zatím respondentům nepředává",
+            filters_need_population_draw: "neuplatněny: platí jen pro respondenty vybrané z populace",
+            filters_await_population_draw: "uplatní se, až běh vybere respondenty z populace",
+            population_draw_not_completed: "neuplatněny: běh skončil dřív, než vybral respondenty z populace",
+          },
+          unrecorded: "Běh nezaznamenal, které dimenze a filtry byly vybrané (spuštěn dříve, než to AIA evidovala).",
+        },
+      },
       population: {
         title: "Populace běhu",
         text: "Nad jakou populací se běh počítá:",
