@@ -39,7 +39,7 @@ export function StepContext({ step, titles, onPick, linkable }: {
       <dt className="text-ink-faint">{t(`${C}.from`)}</dt>
       <dd data-context="from" className="text-ink">{step.inputs.length ? links(step.inputs) : step.source_cs || "—"}</dd>
       <dt className="text-ink-faint">{t(`${C}.to`)}</dt>
-      <dd data-context="to" className="text-ink">{step.feeds.length ? links(step.feeds) : t(`${C}.toResults`)}</dd>
+      <dd data-context="to" className="text-ink">{step.feeds.length ? links(step.feeds) : step.effect_cs || t(`${C}.toResults`)}</dd>
     </dl>
   );
 }

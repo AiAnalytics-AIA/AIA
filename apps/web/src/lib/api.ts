@@ -1396,7 +1396,7 @@ export type MethodStepOut = {
   /** Where the step sits in the computation: what it is for, the steps it reads, the steps
    *  that read it (derived by the API), what it reads from outside the module, the audit's
    *  point. Empty where the module declares none. */
-  role_cs: string; inputs: string[]; feeds: string[]; source_cs: string; audit: string;
+  role_cs: string; inputs: string[]; feeds: string[]; source_cs: string; audit: string; effect_cs: string;
 };
 export type MethodGroup = { id: string; title_cs: string; step_ids: string[]; note_cs: string };
 export type MethodModuleSummary = {

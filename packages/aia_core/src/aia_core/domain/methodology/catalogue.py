@@ -122,11 +122,13 @@ class MethodStep:
     #: 2026-10-14): what it is for, the steps whose results it reads (``inputs``, step ids of
     #: the same module), what it reads from outside the module when it reads none of them
     #: (``source_cs``), and the audit's point it implements (``audit``, e.g. "F3"). The steps
-    #: that read this one are derived from the others' ``inputs`` (:func:`feeds_of`).
+    #: that read this one are derived from the others' ``inputs`` (:func:`feeds_of`); where
+    #: its result goes outside the module when no step reads it is ``effect_cs``.
     role_cs: str = ""
     inputs: tuple[str, ...] = ()
     source_cs: str = ""
     audit: str = ""
+    effect_cs: str = ""
 
 
 @dataclass(frozen=True, slots=True)

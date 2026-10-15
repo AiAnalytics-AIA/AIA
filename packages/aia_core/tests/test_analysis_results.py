@@ -76,7 +76,7 @@ from aia_core.domain.report.model import (
 )
 from aia_core.domain.report.validation import cited_refs
 from aia_core.domain.research_aggregate import AIA_AGGREGATE_V1, aggregate_dataset
-from aia_core.domain.research_design import compile_design
+from aia_core.domain.research_design import AIA_READINESS_V1, compile_design
 from aia_core.domain.synthetic_fieldwork import synthetic_dataset
 from aia_core.domain.workflow_templates import RESEARCH, steps_for_workflow
 from aia_core.infrastructure.report_docx.lint import lint_docx
@@ -490,6 +490,32 @@ def test_a_specification_compiled_from_other_content_is_refused_whatever_it_reco
     with pytest.raises(SourcesRefused) as refused:
         world.sources(run_id)
     assert refused.value.reason == "design_revision"
+
+
+def test_the_specification_is_recompiled_under_the_readiness_limits_the_run_pinned(
+    world: World,
+) -> None:
+    """A run compiles under the readiness limits it pinned (plan methodology-tab V1a), so its
+    specification is checked by compiling under the same limits: under limits its sets do not
+    keep it is not the revision compiled, and a pin that does not read is refused by name."""
+    battery = {
+        "type": "object_battery",
+        "title": "Nápoje",
+        "object_family": "nápoje",
+        "objects": ["Káva", "Čaj", "Kakao", "Džus", "Voda"],
+        "scale": [1, 10],
+    }
+    run_id = world.start({**DESIGN, "sections": [*DESIGN["sections"], battery]})
+    world.upstream()
+    assert world.sources(run_id).refs.design_revision_id
+    run = world.run(run_id)
+    narrow = AIA_READINESS_V1.model_dump(mode="json")
+    narrow["tracked_set"] = {"min": 3, "max": 4, "recommended_min": 3, "recommended_max": 4}
+    for pin, reason in ((narrow, "design_revision"), ({"sample_size": {}}, "readiness_pin")):
+        run["metadata"] = {**run["metadata"], "readiness": pin}
+        with pytest.raises(SourcesRefused) as refused:
+            native_sources(world.session, world.scope, world.store, run)
+        assert refused.value.reason == reason
 
 
 @pytest.mark.parametrize("names_the_run", [True, False], ids=["the-run", "another"])
