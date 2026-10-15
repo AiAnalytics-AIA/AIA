@@ -15,6 +15,7 @@ from typing import Literal
 from aia_core.domain.deployment import DeploymentEnvironment, fictional_material_problem
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.infrastructure.build_identity import BuildIdentity, parse_build_sha
+from aia_core.infrastructure.error_tracking import DSN_ENV, ErrorTrackingSettings
 from aia_core.infrastructure.storage_settings import StorageBackend, StorageSettings
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -155,6 +156,10 @@ class Settings(BaseSettings):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_format: Literal["json", "console"] = "json"
 
+    # Where a 500 is reported (aia_core.infrastructure.error_tracking): GlitchTip's DSN for
+    # the API project. Empty, the reporter is off and nothing is installed.
+    error_tracking_dsn: str = ""
+
     # Request body ceiling. Dataset uploads go through a dedicated upload path with
     # its own limit; this guards ordinary JSON endpoints.
     max_request_bytes: int = 2 * 1024 * 1024
@@ -203,6 +208,18 @@ class Settings(BaseSettings):
     def fictional_client_ids(self) -> frozenset[str]:
         """The clients a draft prompt may be tested on; empty means none."""
         return frozenset(c.strip() for c in self.ai_fictional_client_ids.split(",") if c.strip())
+
+    @property
+    def error_tracking(self) -> ErrorTrackingSettings | None:
+        """The reporter's settings, or None when it is off. A malformed DSN raises."""
+        return ErrorTrackingSettings.from_env(
+            "api",
+            {
+                DSN_ENV: self.error_tracking_dsn,
+                "AIA_ENV": self.env.value,
+                "AIA_BUILD_SHA": self.build_sha,
+            },
+        )
 
     @property
     def build(self) -> BuildIdentity:

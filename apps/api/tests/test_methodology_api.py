@@ -14,6 +14,7 @@ import pytest
 from aia_core.domain.evidence.support import AIA_SUPPORT_V1
 from aia_core.domain.methodology import MODULES
 from aia_core.domain.research_aggregate import AIA_AGGREGATE_V1
+from aia_core.domain.research_design import AIA_READINESS_V1
 from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1
 from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V3
 from aia_core.domain.sociomap.view import STRESS_QUALITY_BANDS
@@ -313,7 +314,7 @@ def test_compare_refuses_an_invalid_edit_with_its_problems_and_computes_nothing(
     assert "spec.relation.n_min" in body["problems"]
 
 
-def test_compare_is_for_the_object_map_and_support(owner: TestClient) -> None:
+def test_compare_is_for_the_editable_modules(owner: TestClient) -> None:
     edit = {"base_preset": "aia-sociomap-1", "spec": {}, "formulas": {}}
     reference = owner.post(f"{METHODOLOGY}/sociomap_reference/compare", json=edit)
     assert reference.status_code == 422 and reference.json()["code"] == "no_comparison"
@@ -502,3 +503,137 @@ def test_the_response_draft_check_answers_fixed_questions_under_both_processes(
     scale = {q["question"]: q for q in sharper["questions"]}["skala7"]
     assert scale["shift_draft"] > scale["shift_in_force"]  # each respondent moves further
     assert sharper["described_draft"] < sharper["described_in_force"]
+
+
+# ------------------------------------------------------------- readiness (V1a1, V1a2)
+
+READINESS = f"{METHODOLOGY}/readiness"
+
+
+def _readiness_edit(**limits: Any) -> dict[str, Any]:
+    spec = AIA_READINESS_V1.model_dump(mode="json")
+    for path, value in limits.items():
+        part, field = path.split("__")
+        spec[part][field] = value
+    return {"base_preset": "aia-readiness-1", "spec": spec, "formulas": {}}
+
+
+def _readiness_draft(n: int, items: int) -> dict[str, Any]:
+    return {
+        "content": {
+            "title": "Fiktivní nápoje",
+            "n": n,
+            "sections": [
+                {
+                    "type": "object_battery",
+                    "title": "Nápoje",
+                    "object_family": "nápoje",
+                    "objects": [f"Nápoj {i}" for i in range(1, items + 1)],
+                }
+            ],
+        },
+        "base_revision": None,
+    }
+
+
+def test_each_limit_says_what_crossing_it_does_and_the_rule_reads_with_its_values(
+    owner: TestClient,
+) -> None:
+    body = owner.get(READINESS).json()
+    values = _values(body)
+    assert values["sample_size.min"]["effect"] == "blocks_run"
+    assert values["tracked_set.max"]["effect"] == "blocks_design"
+    assert values["tracked_set.recommended_min"]["effect"] == "warns"
+    assert values["methodology_version"]["effect"] == ""
+    steps = {s["id"]: s for s in body["step_details"]}
+    assert steps["sample_size"]["reading_cs"] == "{sample_size.min} ≤ n ≤ {sample_size.max}"
+    assert "chybějící n blokuje vždy" in steps["sample_size"]["keeps_cs"]
+
+
+def test_the_readiness_check_previews_the_lines_the_code_writes_under_the_draft(
+    owner: TestClient,
+) -> None:
+    preset = owner.post(f"{READINESS}/check", json=_readiness_edit()).json()
+    assert [(p["step_id"], p["status"]) for p in preset["preview"]] == [
+        ("sample_size", "FAIL"),
+        ("sample_size", "PASS"),
+        ("tracked_set", "WARN"),
+        ("tracked_set", "FAIL"),
+    ]
+    wider = owner.post(
+        f"{READINESS}/check",
+        json=_readiness_edit(
+            sample_size__min=10, tracked_set__max=50, tracked_set__recommended_max=20
+        ),
+    ).json()
+    assert [p["status"] for p in wider["preview"]] == ["PASS", "PASS", "PASS", "WARN"]
+    assert wider["preview"][0]["message_cs"] == "n = 12."
+    refused = owner.post(f"{READINESS}/check", json=_readiness_edit(sample_size__max=5)).json()
+    assert refused["valid"] is False and refused["preview"] == []
+    # A module that shows no preview answers an empty list.
+    assert owner.post(f"{SOCIOMAP}/check", json=_edit()).json()["preview"] == []
+
+
+def test_readiness_compare_lists_the_studies_whose_verdict_the_draft_moves(
+    world: Any, as_user: Any
+) -> None:
+    lead = as_user("lead")
+    for study, n in (("primary", 15), ("sibling", 450)):
+        saved = lead.put(
+            f"{API}/studies/{world.study_id(study)}/workspace/content",
+            json=_readiness_draft(n, 5),
+        )
+        assert saved.status_code == 200, saved.text
+    compared = lead.post(f"{READINESS}/compare", json=_readiness_edit(sample_size__min=10))
+    assert compared.status_code == 200, compared.text
+    body = compared.json()
+    assert body["valid"] is True and body["in_force"] == "aia-readiness-1"
+    impact = body["readiness"]
+    assert impact["draft"] == "aia-readiness-1+e1"
+    (moved,) = impact["studies"]
+    assert (moved["study_id"], moved["name"], moved["n"]) == (
+        world.study_id("primary"),
+        "Acme brand",
+        15,
+    )
+    assert moved["ready"] == [False, True] and moved["source"] == "draft"
+    assert [(m["check_id"], m["in_force"], m["draft"]) for m in moved["moves"]] == [
+        ("sample_size", "FAIL", "PASS")
+    ]
+    # The 450 study stays as it was; the other client's study has nothing to check.
+    assert (impact["unchanged"], impact["not_assessed"]) == (1, 1)
+    # A study with no working content is checked on its latest Design Revision.
+    submitted = lead.post(
+        f"{API}/studies/{world.study_id('other_client')}/design/revisions",
+        json={"content": _readiness_draft(18, 5)["content"], "source_stage": "run"},
+    )
+    assert submitted.status_code == 201, submitted.text
+    again = lead.post(f"{READINESS}/compare", json=_readiness_edit(sample_size__min=10)).json()
+    by_id = {s["study_id"]: s for s in again["readiness"]["studies"]}
+    assert by_id[world.study_id("other_client")]["source"] == "design"
+    assert by_id[world.study_id("other_client")]["ready"] == [False, True]
+    assert again["readiness"]["not_assessed"] == 0
+    # Nothing was written: the study's content and the limits in force are as they were.
+    assert lead.get(f"{READINESS}/versions").json()["versions"] == []
+
+
+def test_a_half_written_draft_is_not_assessed_and_never_stops_the_comparison(
+    world: Any, as_user: Any
+) -> None:
+    lead = as_user("lead")
+    broken = lead.put(
+        f"{API}/studies/{world.study_id('sibling')}/workspace/content",
+        json={"content": {"sections": 1}, "base_revision": None},
+    )
+    assert broken.status_code == 200, broken.text
+    saved = lead.put(
+        f"{API}/studies/{world.study_id('primary')}/workspace/content",
+        json=_readiness_draft(15, 5),
+    )
+    assert saved.status_code == 200, saved.text
+    compared = lead.post(f"{READINESS}/compare", json=_readiness_edit(sample_size__min=10))
+    assert compared.status_code == 200, compared.text
+    impact = compared.json()["readiness"]
+    assert [s["study_id"] for s in impact["studies"]] == [world.study_id("primary")]
+    # The broken draft and the other client's empty study: nothing a check can read.
+    assert impact["not_assessed"] == 2

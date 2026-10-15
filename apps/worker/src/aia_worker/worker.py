@@ -52,6 +52,7 @@ from typing import Any
 from aia_core.application.scope import ScopeResolver
 from aia_core.domain.scope import ScopeDenied, WorkScope
 from aia_core.domain.workflow import FailureClass, InteractionMode, StepDefinition, StepRunStatus
+from aia_core.infrastructure import error_tracking
 from aia_core.infrastructure.db import shares_one_connection
 from aia_core.infrastructure.workflow_repository import (
     BudgetExceeded,
@@ -331,7 +332,16 @@ class Worker:
         )
         heartbeat.start()
         try:
-            return self._run_executor(claim, context)
+            # Every event this attempt raises names it, as its log lines do.
+            with error_tracking.tagged(
+                run_id=work.run_id,
+                step_id=work.step_id,
+                attempt_id=work.attempt_id,
+                step_kind=work.kind,
+                study_id=claim.scope.study_id,
+                worker_id=self.worker_id,
+            ):
+                return self._run_executor(claim, context)
         finally:
             heartbeat.stop()
             attempt_context.reset(token)
@@ -385,6 +395,9 @@ class Worker:
                 Failed(failed.failure, _redacted(failed.error), failed.quota_reset_at),
             )
         except Exception as error:
+            # An error event with its stack (the logging integration), even when a retry
+            # succeeds: an unclassified exception is a bug. So the step's own failure, if
+            # this was its last attempt, is not reported a second time.
             log.exception("executor raised an unclassified error")
             return self._record_failure(
                 claim,
@@ -392,6 +405,7 @@ class Worker:
                     FailureClass.UNKNOWN,
                     {"type": type(error).__name__, "message": redact_text(str(error))},
                 ),
+                reported=True,
             )
 
         if isinstance(outcome, Succeeded):
@@ -454,8 +468,10 @@ class Worker:
         )
         return StepRunStatus.AWAITING_GATE
 
-    def _record_failure(self, claim: _Claim, failed: Failed) -> AttemptResult:
-        return self._record(
+    def _record_failure(
+        self, claim: _Claim, failed: Failed, *, reported: bool = False
+    ) -> AttemptResult:
+        result = self._record(
             claim,
             "failed",
             lambda repo: (
@@ -468,6 +484,11 @@ class Worker:
                 ).step_status
             ),
         )
+        # A step left FAILED is a run broken for the person who started it. A retry, a
+        # park, a gate or a budget stop is a state the interface explains: no issue.
+        if result.step_status is StepRunStatus.FAILED and not reported:
+            _report_step_failed(claim, failed)
+        return result
 
     def _record(
         self,
@@ -495,6 +516,22 @@ class Worker:
             return AttemptResult(attempt_id, step_id, "unrecorded")
         log.info(ending, extra={"fields": {"step_status": status.value}})
         return AttemptResult(attempt_id, step_id, ending, status)
+
+
+def _report_step_failed(claim: _Claim, failed: Failed) -> None:
+    """One issue per step kind, failure class and cause, however many runs hit it."""
+    kind, failure = claim.work.kind, failed.failure.value
+    cause = str(failed.error.get("code") or failed.error.get("type") or "")
+    error_tracking.report_failure(
+        f"{kind} failed: {failure}" + (f" ({cause})" if cause else ""),
+        fingerprint=["step-failed", kind, failure, cause],
+        tags={"failure_class": failure},
+        context={
+            "attempt_number": claim.work.attempt_number,
+            "node_key": claim.work.node_key,
+            "error": failed.error,
+        },
+    )
 
 
 def _redacted(error: dict[str, Any]) -> dict[str, Any]:

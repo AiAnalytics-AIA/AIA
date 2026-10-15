@@ -4,7 +4,7 @@ output "instance_id" {
 }
 
 output "public_ip" {
-  description = "Point the A record for public_hostname here (Terraform does it when route53_zone_id is set)."
+  description = "Point the A records for public_hostname and errors.<public_hostname> here (Terraform does it when route53_zone_id is set)."
   value       = aws_eip.host.public_ip
 }
 

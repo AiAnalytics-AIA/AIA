@@ -954,6 +954,12 @@ export const cs = {
         },
         versions: {
           versionChangeCount: "{fields} parametrů a {formulas} vzorců", changeDetails: "Která pole se změnila",
+          effect: { blocks_run: "zablokuje běh", blocks_design: "zablokuje návrh", warns: "jen upozorní" },
+          reading: "Pravidlo",
+          keeps: "Co musí každá verze splnit",
+          preview: "Jak to uvidí výzkumník v Kontrole a spuštění",
+          previewHint: "Po kontrole tu uvidíte řádky, které kód napíše pro ukázkové studie pod upravenými mezemi.",
+          previewStatus: { PASS: "v pořádku", WARN: "upozorní", FAIL: "blokuje" },
           workflow: "1. Upravte → 2. Zkontrolujte a porovnejte → 3. Uložte verzi → 4. Uveďte v platnost",
           flowLabel: "Postup změny",
           flow: { edit: "Upravit", check: "Zkontrolovat", compare: "Porovnat", store: "Uložit verzi", activate: "Aktivovat" },
@@ -1014,6 +1020,18 @@ export const cs = {
           compare: {
             title: "Porovnání s metodikou v platnosti",
             heading: "Co úprava změní oproti {name}",
+            readiness: {
+              title: "Dopad na rozpracované studie",
+              intro: "Otevřené výzkumné studie organizace zkontrolované pod mezemi v platnosti a pod úpravou: pracovní verze návrhu, jinak poslední revize návrhu. Nic se neuložilo.",
+              study: "Studie", now: "Dnes", next: "S úpravou",
+              ready: "lze spustit", blocked: "zablokováno",
+              sourceDraft: "pracovní verze", sourceDesign: "revize návrhu",
+              moved: "Studie, kterým úprava změní výsledek kontroly: {count}. Žádná studie se sama nespustí ani nezastaví.",
+              noneMoved: "Žádná rozpracovaná studie nezmění, zda ji lze spustit.",
+              unchanged: "Další studie beze změny: {count}",
+              notAssessed: "Studie bez návrhu, které nelze posoudit: {count}",
+              check: { PASS: "v pořádku", WARN: "upozorní", FAIL: "blokuje", none: "bez kontroly" },
+            },
             intro:
               "Úprava a metodika v platnosti spočítané stejným výpočtem na pevných smyšlených panelech; data klienta se nečtou. Ukazuje se jen to, co se pohnulo; co zůstalo stejné, to výslovně říká.",
             inForce: "V platnosti",
@@ -1987,6 +2005,14 @@ export const cs = {
           ab_test: "Test A/B konceptů",
         },
       },
+      // Plan run-recovery-and-truth 3e: the links a questionnaire proposal brings with it.
+      proposed: {
+        title: "Výzkumné otázky v návrhu",
+        measures: "Měří: {list}",
+        unmeasured: "Návrh ji ničím neměří.",
+        answer: "Odpověď: {kind}",
+        dropped: "AIA zahodila vazby na otázky, které zadání neuvádí: {count}.",
+      },
       // Plan run-recovery-and-truth 3b: which research question an item measures.
       links: {
         label: "Odpovídá na výzkumné otázky",
@@ -2689,6 +2715,13 @@ export const cs = {
     missing:
       "Co AIA zatím nemá, říká tam, kde to potkáte, například simulace, ověření a další krok výzkumu, Data Library, klientský report nebo filtry publika z panelu.",
     openAia: "Otevřít AIA",
+  },
+  pageError: {
+    title: "Tuto stránku se nepodařilo zobrazit",
+    text: "Chyba byla zaznamenána a tým AIA ji uvidí. Zkuste stránku načíst znovu; vaše uložená práce zůstává v AIA.",
+    reference: "Číslo chyby:",
+    retry: "Zkusit znovu",
+    home: "Zpět na klienty",
   },
   dialog: {
     ok: "OK",

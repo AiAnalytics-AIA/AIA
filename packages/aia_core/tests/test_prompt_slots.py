@@ -23,12 +23,12 @@ from aia_core.domain.prompts import (
     validate_prompt_text,
 )
 from aia_core.domain.research_agents import (
-    BASELINE_PROMPT_VERSION,
     FIXED_PREFIX,
     ResearchAction,
     agent_request,
     prompt_data_class,
     prompt_for,
+    prompt_version_for,
 )
 from aia_core.domain.residency import DataClass
 
@@ -102,7 +102,7 @@ def test_baseline_renders_byte_identical_to_the_prompt_the_code_always_sent(
     assert slot is not None and slot.wired
     assert slot.assemble(slot.baseline_text) == prompt_for(action)
     assert slot.fixed_prefix == FIXED_PREFIX
-    assert slot.baseline_version == BASELINE_PROMPT_VERSION
+    assert slot.baseline_version == prompt_version_for(action)
     assert slot.baseline_pin().text_sha256 == prompt_sha256(slot.baseline_text)
 
 
@@ -111,7 +111,7 @@ def test_no_pin_sends_the_current_baseline_version(action: ResearchAction) -> No
     request = _request(action)
     assert request.system == prompt_for(action)
     assert request.agent.prompt_id == f"aia.research.{action.value}"
-    assert request.agent.prompt_version == BASELINE_PROMPT_VERSION
+    assert request.agent.prompt_version == prompt_version_for(action)
 
 
 def test_a_stored_pin_replaces_only_the_task_and_keeps_the_rails() -> None:
