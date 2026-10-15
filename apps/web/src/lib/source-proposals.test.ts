@@ -15,6 +15,7 @@ const run = (over: Partial<ProposalsRun> = {}): ProposalsRun => ({
   finished_at: null,
   output: {},
   created: true,
+  restartable: false,
   ...over,
 });
 
@@ -58,7 +59,14 @@ describe("a proposals run's state", () => {
 
   it("may be asked again when none was asked, the last failed, or the document was read again", () => {
     expect(mayAsk(null)).toBe(true);
-    expect(mayAsk(run({ step_status: "FAILED" }))).toBe(true);
+    expect(mayAsk(run({ step_status: "FAILED", restartable: true }))).toBe(true);
+    // Recovery: the API decides. Known outcomes restart; a call of unknown outcome does not.
+    expect(mayAsk(run({ step_status: "RECOVERY_REQUIRED", reason: "max_attempts_exhausted", restartable: true }))).toBe(true);
+    expect(mayAsk(run({ step_status: "RECOVERY_REQUIRED", reason: "paid_external_call_side_effect_uncertain" }))).toBe(false);
+    expect(proposalsPhase(run({ step_status: "RECOVERY_REQUIRED", reason: "paid_external_call_side_effect_uncertain" }))).toEqual({
+      phase: "failed",
+      reason: "paid_external_call_side_effect_uncertain",
+    });
     expect(mayAsk(run({ step_status: "SUCCEEDED", current: false }))).toBe(true);
     expect(mayAsk(run({ step_status: "SUCCEEDED" }))).toBe(false);
     expect(mayAsk(run())).toBe(false);

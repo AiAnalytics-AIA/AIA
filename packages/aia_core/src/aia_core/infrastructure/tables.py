@@ -1080,6 +1080,33 @@ class ClientKnowledgeRevisionRow(Base):
     )
 
 
+class ClientWorkJournalRow(Base):
+    """One answered model request of the client's own work, kept the moment it returns.
+
+    Keyed by the client and a fingerprint of exactly what was sent, so a step resumed
+    after a budget lift or a worker's release -- or a new run over the same reading --
+    replays what was answered and pays only for what was not (lifecycle K2d). Written
+    once; ``run_id`` names the run that paid for it.
+    """
+
+    __tablename__ = "client_work_journal"
+
+    journal_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    request_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    run_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
+        UniqueConstraint("client_id", "request_key", name="client_work_journal_request"),
+    )
+
+
 class ClientKnowledgeProposalRow(Base):
     """A proposed addition or change to a client's knowledge, awaiting a person.
 

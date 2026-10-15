@@ -653,6 +653,40 @@ dimensions (K5) and retirement (K6).
 6. Tests: `test_a_batch_is_bounded_by_the_bytes_it_sends_whatever_the_text`,
    `test_a_document_needing_more_than_the_request_cap_is_refused_before_anything_is_sent`.
 
+**F-K5 — A step stopped between batches paid for its answered batches again** (fixed;
+Codex review of #446).
+1. Claim: a document's answers lived only in the attempt's memory. A step parked at the
+   client's budget, or released by its worker, restarted at batch 0 when it resumed and
+   re-sent the batches already paid for.
+2. Anchor: the batch loop in `aia_executors/client_source_proposals.py @ 43e20119`.
+3. Reproduction: `test_a_document_parked_between_batches_resumes_without_paying_twice`
+   makes 3 requests without the journal and 2 with it.
+4. Consequence: every lifted or released multi-batch document billed its first batches
+   twice.
+5. Fix: `client_work_journal` (migration `c5e7a9b1d3f6`) keeps each answer the moment it
+   returns, under the lease. It is keyed by the client and a fingerprint of exactly what
+   was sent (request, policy, output limit, harness), so a resumed step, or a new run over
+   the same reading, replays what was answered and preflights only if something is
+   unanswered. The step reports `sent` and `replayed`.
+6. Tests: the one above; `test_client_work_journal.py` (2).
+
+**F-K6 — A run stopped for recovery could never be asked again** (fixed; Codex review of #446).
+1. Claim: with one attempt, a retryable failure whose outcome is known ends in
+   `RECOVERY_REQUIRED` (`max_attempts_exhausted`), not `FAILED`. Asking again counted only
+   failed and cancelled runs as ended, so it returned the stuck run forever.
+2. Anchor: `_ENDED_WITHOUT_RESULT` in `application/source_proposals.py @ 43e20119`.
+3. Reproduction:
+   `test_a_run_stopped_for_recovery_restarts_only_when_no_paid_call_is_uncertain`.
+4. Consequence: a document could not be proposed from again until an operator intervened.
+5. Fix:
+   - A run is `restartable` when it failed, was cancelled, or stopped for recovery with
+     every paid call's outcome known; asking again then starts a new run, which replays
+     the journal.
+   - A run left with a paid call of unknown outcome
+     (`paid_external_call_side_effect_uncertain`) is never restarted from here.
+   - The API answers `restartable`, and the web's ask-again follows it.
+6. Test: the API test above; `source-proposals.test.ts`.
+
 **F-K3 (hypothesis) — A web test failed once under the full suite.**
 `ExecutionSteps.test.tsx` › "offers the report's PDF when the run stored one, and says why when
 it could not" failed once in `npx vitest run` (1 of 1511, 2026-10-15, while K2d5 was written).

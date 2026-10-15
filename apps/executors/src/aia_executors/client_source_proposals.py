@@ -23,7 +23,7 @@ from dataclasses import dataclass
 from typing import Any, Final
 
 from aia_core.application.model_gateway import GovernedModelGateway
-from aia_core.domain.ai_contracts import ModelCallFailed
+from aia_core.domain.ai_contracts import ModelCallFailed, ModelRequest, canonical_json
 from aia_core.domain.deep_research.request_limits import window_fits
 from aia_core.domain.knowledge import ProposalDraft
 from aia_core.domain.providers import Provider
@@ -50,6 +50,7 @@ from aia_core.infrastructure.client_source_repository import (
     ClientSourceRepository,
     SourceReadingChanged,
 )
+from aia_core.infrastructure.client_work_journal import ClientWorkJournal
 from aia_core.infrastructure.storage import ArtifactStore
 from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Succeeded
 
@@ -68,6 +69,22 @@ class SourceProposalsConfig:
     reservation_usd: float
     #: Each model request writes a "sent" and an "answered" event (``AIA_AI_STEP_EVENTS``).
     step_events: bool = False
+
+
+def _request_key(request: ModelRequest, cfg: SourceProposalsConfig) -> str:
+    """What identifies an answer: exactly what was sent, under which policy and harness."""
+    return hashlib.sha256(
+        canonical_json(
+            {
+                "harness": HARNESS_VERSION,
+                "policy": cfg.policy_version,
+                "max_output_tokens": cfg.max_output_tokens,
+                "system": request.system,
+                "message": request.messages[0].content,
+                "schema": request.agent.schema,
+            }
+        ).encode()
+    ).hexdigest()
 
 
 class ClientSourceProposalsExecutor:
@@ -171,29 +188,56 @@ class ClientSourceProposalsExecutor:
                 FailureClass.SCHEMA_VIOLATION,
                 error={"reason": "request_too_large", "message": "a request exceeds its window"},
             )
-        try:
-            caller.preflight(requests[0])
-        except ModelCallFailed as exc:
-            return Failed(
-                FailureClass.RUNTIME_UNAVAILABLE,
-                error={
-                    "reason": exc.reason,
-                    "message": f"AI návrhy čekají na povolenou trasu: {exc}",
-                },
-            )
+        # What was already answered -- by an earlier attempt parked at the budget or
+        # released, or by an earlier run over this reading -- is replayed, never re-sent.
+        keys = [_request_key(r, cfg) for r in requests]
+        with context.transaction() as (session, _):
+            journal = ClientWorkJournal(session, scope)
+            kept_answers = {k: journal.get(k) for k in keys}
+        if any(v is None for v in kept_answers.values()):
+            try:
+                caller.preflight(requests[0])
+            except ModelCallFailed as exc:
+                return Failed(
+                    FailureClass.RUNTIME_UNAVAILABLE,
+                    error={
+                        "reason": exc.reason,
+                        "message": f"AI návrhy čekají na povolenou trasu: {exc}",
+                    },
+                )
         prompt_sha256 = hashlib.sha256(requests[0].system.encode()).hexdigest()
         drafts: list[ProposalDraft] = []
         dropped: dict[str, int] = {}
-        for batch, request in zip(work, requests, strict=True):
+        sent = replayed = 0
+        for batch, request, key in zip(work, requests, keys, strict=True):
             context.checkpoint()
             context.progress(
                 f"Čtu část {batch.index + 1} z {len(work)}",
                 batch=batch.index + 1,
                 batches=len(work),
             )
-            result = caller.invoke(request)
-            assert isinstance(result.output, SourceProposals)
-            grounding = ground(batch, result.output)
+            answer = kept_answers[key]
+            if answer is None:
+                result = caller.invoke(request)
+                assert isinstance(result.output, SourceProposals)
+                answer = {
+                    "output": result.output.model_dump(mode="json"),
+                    "call_id": result.call_id,
+                    "model": result.resolved_model,
+                    "route_id": result.provenance.route_id,
+                    "policy_version": result.provenance.policy_version,
+                }
+                # Kept the moment it returns, under the lease: a stop before the next
+                # batch resumes here rather than paying for this one again.
+                with context.transaction() as (session, _):
+                    answer = ClientWorkJournal(session, scope).put(
+                        key, run_id=step.run_id, payload=answer
+                    )
+                sent += 1
+            else:
+                replayed += 1
+            output = SourceProposals.model_validate(answer["output"])
+            grounding = ground(batch, output)
             for reason, count in grounding.dropped.items():
                 dropped[reason] = dropped.get(reason, 0) + count
             for kept in grounding.kept:
@@ -209,10 +253,10 @@ class ClientSourceProposalsExecutor:
                     "prompt_version": PROMPT_VERSION,
                     "prompt_sha256": prompt_sha256,
                     "harness_version": HARNESS_VERSION,
-                    "call_id": result.call_id,
-                    "model": result.resolved_model,
-                    "route_id": result.provenance.route_id,
-                    "policy_version": result.provenance.policy_version,
+                    "call_id": answer["call_id"],
+                    "model": answer["model"],
+                    "route_id": answer["route_id"],
+                    "policy_version": answer["policy_version"],
                 }
                 drafts.append(
                     ProposalDraft(
@@ -232,6 +276,8 @@ class ClientSourceProposalsExecutor:
                 "source_id": record.source_id,
                 "reading_sha256": reading_sha256,
                 "batches": len(work),
+                "sent": sent,
+                "replayed": replayed,
                 "proposed": len(filed),
                 "dropped": dropped,
             }

@@ -364,8 +364,11 @@ export type ProposalsRun = {
   created_at: string | null;
   finished_at: string | null;
   /** When it succeeded: batches, proposed and dropped by reason. */
-  output: { batches?: number; proposed?: number; dropped?: Record<string, number> };
+  output: { batches?: number; sent?: number; replayed?: number; proposed?: number; dropped?: Record<string, number> };
   created: boolean;
+  /** Whether asking again starts a new run: this one ended without a result and left no
+   *  paid call of unknown outcome. */
+  restartable: boolean;
 };
 
 export type SourceLocator = {
