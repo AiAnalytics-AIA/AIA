@@ -66,9 +66,22 @@ export function mayRetryAnalysis(run: ResearchRun): boolean {
   );
 }
 
-/** Keep reading while something can still change on its own; a parked run cannot. */
+/**
+ * Keep reading while something can still change on its own: a queued or running run, and a run
+ * waiting on a provider's quota or capacity, which clears without anyone acting
+ * (WAITING_PROVIDER / WAITING_CAPACITY: `needs_attention` false, domain/workflow.py). A run
+ * that waits for a person (a gate, the budget, recovery) cannot. Reading only queued and running
+ * runs left a run that resumed by itself "waiting" on screen after it had finished, its results
+ * and report unseen until a reload (research-integrity-report F9).
+ */
 export function shouldPoll(run: ResearchRun): boolean {
-  return !run.is_terminal && (run.phase === "QUEUED" || run.phase === "RUNNING");
+  if (run.is_terminal) return false;
+  return run.phase === "QUEUED" || run.phase === "RUNNING" || (run.phase === "WAITING" && run.needs_attention === false);
+}
+
+/** How long until the next read: a wait on a provider clears in seconds to hours, so it is read less often. */
+export function pollMs(run: ResearchRun): number {
+  return run.phase === "WAITING" ? 10_000 : 2_000;
 }
 
 /** The step the run is waiting at because the AI runtime is not deployed, if any. */

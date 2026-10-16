@@ -62,6 +62,7 @@ import {
   needsRepair,
   aggregateDeviation,
   resultTable,
+  pollMs,
   shouldPoll,
   sociomapObjects,
   stepLabel,
@@ -101,7 +102,6 @@ import { CompleteReport } from "./CompleteReport";
 import { AnswerabilityGate } from "./AnswerabilityGate";
 import { type AcknowledgementState, acknowledgementOf, hasGaps, NO_ACKNOWLEDGEMENT, needsAcknowledgement, unanswerableAsked } from "@/lib/answerability";
 
-const POLL_MS = 2000;
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
 /** The server refused a start or retry because the study's limit asks first: the ceiling it worked out. */
@@ -932,7 +932,7 @@ function useRun(): [ResearchRun | null | undefined, () => void, (r: ResearchRun)
         if (!live) return;
         setRun(current);
         setError(null);
-        if (current && shouldPoll(current)) timer = setTimeout(read, POLL_MS);
+        if (current && shouldPoll(current)) timer = setTimeout(read, pollMs(current));
       } catch (e) {
         if (!live) return;
         // 404 is "no run here": a retry that lands on it clears the earlier failure.

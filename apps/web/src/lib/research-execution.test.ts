@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { QuestionOutlook, ResearchRun, ResearchStep } from "@/lib/api";
-import { aggregateDeviation, hasUnknownOrigin, isModelled, isSynthetic, mayRetryAnalysis, MODELLED_DISCLOSURE, needsRepair, originKind, outlookByVerdict, traceMeasures, outlookCounts, outlookFixStep, outlookReason, resultOriginKind, stepOriginKind, parkedForRuntime, phaseTone, populationNote, reportHolds, respondentReceipt, resultTable, shouldPoll, storedPlaces, UNIT_PLACES, stepLabel, stepStatusLabel, stepTone, supportNote, topBoxWidth, verdictTone, waitingDetail } from "./research-execution";
+import { aggregateDeviation, hasUnknownOrigin, isModelled, isSynthetic, mayRetryAnalysis, MODELLED_DISCLOSURE, needsRepair, originKind, outlookByVerdict, traceMeasures, outlookCounts, outlookFixStep, outlookReason, resultOriginKind, stepOriginKind, parkedForRuntime, phaseTone, populationNote, reportHolds, respondentReceipt, resultTable, pollMs, shouldPoll, storedPlaces, UNIT_PLACES, stepLabel, stepStatusLabel, stepTone, supportNote, topBoxWidth, verdictTone, waitingDetail } from "./research-execution";
 
 const run = (extra: Partial<ResearchRun>): ResearchRun =>
   ({ phase: "RUNNING", is_terminal: false, steps: [], fieldwork_source: "ai_runtime", ...extra }) as ResearchRun;
@@ -12,7 +12,13 @@ describe("research execution", () => {
   it("keeps reading only while something can change on its own", () => {
     expect(shouldPoll(run({ phase: "QUEUED" }))).toBe(true);
     expect(shouldPoll(run({ phase: "RUNNING" }))).toBe(true);
-    expect(shouldPoll(run({ phase: "WAITING" }))).toBe(false); // a parked run does not move by itself
+    // A run that waits for a person (a gate, the budget, recovery) does not move by itself...
+    expect(shouldPoll(run({ phase: "WAITING", needs_attention: true }))).toBe(false);
+    // ...and an older payload that does not say is not read as moving either.
+    expect(shouldPoll(run({ phase: "WAITING" }))).toBe(false);
+    // A provider's quota or capacity clears on its own: the run then finishes, and the page must see it.
+    expect(shouldPoll(run({ phase: "WAITING", status: "WAITING_PROVIDER", needs_attention: false }))).toBe(true);
+    expect(pollMs(run({ phase: "WAITING", needs_attention: false }))).toBeGreaterThan(pollMs(run({ phase: "RUNNING" })));
     expect(shouldPoll(run({ phase: "COMPLETED", is_terminal: true }))).toBe(false);
   });
 

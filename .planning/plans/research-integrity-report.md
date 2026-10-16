@@ -217,6 +217,17 @@ converted by `LibreOfficePdf` (LibreOffice 24.2.7.2), the worker's own converter
   evidence and Upozornění on every row; the words are `domain/report/copy.py:78, 93, 101 @
   357d779`. Reproduction: the chunk 4 render above. Not changed here; it belongs to
   complete-study-report F1.
+- **F9 (confirmed, fixed in chunk 3). A run that resumed by itself finished unseen.** Claim: the
+  Progress and Výsledky pages stop reading a run in phase WAITING, though a run waiting on a
+  provider's quota or capacity (and a run parked for the AI runtime, `WAITING_PROVIDER`) resumes
+  without anyone acting (`domain/workflow.py:152 @ 357d779`). Anchor:
+  `apps/web/src/lib/research-execution.ts:70-72 @ 357d779` (`shouldPoll`: QUEUED or RUNNING
+  only), its test asserting "a parked run does not move by itself". Reproduction:
+  `research-execution.test.ts` "keeps reading only while something can change on its own" (fails
+  on 357d779's `shouldPoll` for a `WAITING_PROVIDER` run with `needs_attention: false`).
+  Consequence: the run completes and the page still says it waits; results and the report card
+  appear only after a reload. Smallest fix: read a WAITING run whose `needs_attention` is false,
+  every 10 s (`pollMs`). Test: the same.
 
 ## Decisions for the owner
 
@@ -266,6 +277,7 @@ converted by `LibreOfficePdf` (LibreOffice 24.2.7.2), the worker's own converter
   to its digest, GAP_REASONS pinned to the domain), `AnswerabilityGate.tsx`,
   `lib/report-variant.ts` (currentVariant, every PdfState in words, downloadMismatch), and
   CompleteReport's variant choice; `lib/api.ts`: the internal report downloads read
-  `X-AIA-Artifact-Id` (requestStored) in both formats.
+  `X-AIA-Artifact-Id` (requestStored) in both formats; `research-execution.ts` `shouldPoll` /
+  `pollMs`: a wait that clears by itself is read every 10 s.
 - Contracts: `aia-internal-report-8`, `aia-contextual-report-4`, `aia-client-report-2`,
   `aia-answerability-1`; workflow type `report_pdf`; ledger subject `answerability`.
