@@ -17,11 +17,18 @@ export function known(key: string): string | null {
   return words === key ? null : words;
 }
 
-/** A stored code in words, or the plain "no words for this" with the code kept aside. */
-export function codeWords(prefix: string, code: string): Coded {
+/**
+ * A stored code in words, or the plain "no words for this" (or `fallbackKey`'s words) with the
+ * code kept aside: a caller shows it (CodedWords, codedText), never drops it.
+ */
+export function codeWords(prefix: string, code: string, fallbackKey = "research.exec.code.unknown"): Coded {
   const words = known(`${prefix}.${code}`);
-  return words === null ? { words: t("research.exec.code.unknown"), code } : { words, code: null };
+  return words === null ? { words: t(fallbackKey), code } : { words, code: null };
 }
+
+/** A coded value as one line of text, for a place that takes a string: the code named after the words. */
+export const codedText = (coded: Coded): string =>
+  coded.code === null ? coded.words : `${coded.words} (${t("research.exec.code.technical")}: ${coded.code})`;
 
 /** How well a Deep Research bundle is covered by evidence; a status this client does not know is undetermined. */
 export const coverageWords = (status: string): string =>

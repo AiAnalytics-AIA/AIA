@@ -2214,6 +2214,7 @@ export const cs = {
         verification_batches_reused: "převzaté dávky ověření",
         accepted: "přijatá zjištění",
         quarantined: "odmítnutá zjištění",
+        other: "jiný počet",
       },
       check: {
         COMPLETE: "všechna zjištění a shrnutí prošla",
@@ -2234,6 +2235,7 @@ export const cs = {
     exec: {
       code: {
         unknown: "AIA k tomuto záznamu zatím nemá popis.",
+        technical: "technický kód",
       },
       checkStatus: {
         PASS: "V pořádku",

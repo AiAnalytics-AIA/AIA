@@ -8,7 +8,7 @@ import { activityOf } from "@/lib/step-activity";
 import { StepActivityPanel } from "./StepActivityPanel";
 import { useStepActivity } from "./useStepActivity";
 import { needsRepair, phaseLabel } from "@/lib/research-execution";
-import { codeWords, coverageWords, deepStepLabel, known, stepProblem } from "@/lib/reason-words";
+import { codedText, codeWords, coverageWords, deepStepLabel, stepProblem } from "@/lib/reason-words";
 import { CodedWords } from "./CodedWords";
 import { AiButton, Button, Field, Select } from "../ui";
 import { useResearch } from "./context";
@@ -198,18 +198,18 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
         </li>;
       })}</ol>
       <details><summary className="cursor-pointer text-sm font-medium">Zachycené zdroje ({bundle.snapshots.length})</summary>
-        <ul className="mt-2 flex flex-col gap-1">{bundle.snapshots.map(s => <li key={s.snapshot_id} className="text-sm"><a href={s.url} target="_blank" rel="noreferrer" className="underline">{s.title || s.url}</a>{s.retrieval_mode ? <span className="text-xs text-ink-muted"> · {codeWords("research.deep.retrieval", s.retrieval_mode).words}</span> : null}</li>)}</ul>
+        <ul className="mt-2 flex flex-col gap-1">{bundle.snapshots.map(s => <li key={s.snapshot_id} className="text-sm"><a href={s.url} target="_blank" rel="noreferrer" className="underline">{s.title || s.url}</a>{s.retrieval_mode ? <span className="text-xs text-ink-muted"> · <CodedWords inline coded={codeWords("research.deep.retrieval", s.retrieval_mode)} /></span> : null}</li>)}</ul>
       </details>
       <details><summary className="cursor-pointer text-sm font-medium">Mezery a odmítnutá zjištění</summary>
         {bundle.synthesis?.brief?.gaps.length ? <><h4 className="mt-3 text-sm font-semibold">Co se nepodařilo doložit</h4>
           <ul className="mt-1 list-disc space-y-1 pl-5 text-sm leading-6">{bundle.synthesis.brief.gaps.map((g, i) => <li key={i}>{g.need}{g.reason ? <span className="text-ink-muted"> · {g.reason}</span> : null}</li>)}</ul></> : null}
         <h4 className="mt-3 text-sm font-semibold">Odmítnutá zjištění: {bundle.quarantined.length}</h4>
         {bundle.quarantined.length ? <ul className="mt-1 list-disc space-y-1 pl-5 text-sm leading-6">{bundle.quarantined.map((q, i) => <li key={i}>{q.claim ? <FormattedText text={q.claim} /> : null}<div className={q.claim ? "text-xs text-ink-muted" : undefined}><CodedWords coded={codeWords("research.exec.trace.quarantine", q.reason)} />{q.detail ? <span className="text-ink-muted"> · {q.detail}</span> : null}</div></li>)}</ul> : null}
-        {Object.keys(bundle.counts ?? {}).length ? <p className="mt-3 text-xs text-ink-muted">Počty: {Object.entries(bundle.counts).map(([k, v]) => `${known(`research.deep.counts.${k}`) ?? k} ${v}`).join(" · ")}</p> : null}
+        {Object.keys(bundle.counts ?? {}).length ? <p className="mt-3 text-xs text-ink-muted">Počty: {Object.entries(bundle.counts).map(([k, v]) => `${codedText(codeWords("research.deep.counts", k, "research.deep.counts.other"))} ${v}`).join(" · ")}</p> : null}
       </details>
       {bundle.synthesis ? <details data-synthesis-draft><summary className="cursor-pointer text-sm font-medium">Generovaný návrh syntézy · věcně neschválený</summary>
         <p className="mt-2 text-sm">Pracovní text může obsahovat nepodložené interpretace. Je uchován pro kontrolu; není součástí stažené zprávy.</p>
-        {bundle.synthesis.check.status ? <p className="mt-1 text-xs text-ink-muted">Stav kontroly: {codeWords("research.deep.check", bundle.synthesis.check.status).words}</p> : null}
+        {bundle.synthesis.check.status ? <p className="mt-1 text-xs text-ink-muted">Stav kontroly: <CodedWords inline coded={codeWords("research.deep.check", bundle.synthesis.check.status)} /></p> : null}
         {bundle.synthesis.check.summary ? <><h4 className="mt-3 text-sm font-semibold">Shrnutí</h4><FormattedText text={bundle.synthesis.check.summary} className="mt-1" /></> : null}
         {bundle.synthesis.check.findings.length ? <><h4 className="mt-3 text-sm font-semibold">Zjištění</h4>
           <ul className="mt-1 flex flex-col gap-3">{bundle.synthesis.check.findings.map((f, i) => {
@@ -227,7 +227,7 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
           {bundle.synthesis.check.summary_withheld ? <p className="mt-2 text-sm">Shrnutí zadrženo<span className="text-ink-muted"> · {bundle.synthesis.check.summary_withheld}</span></p> : null}
           {bundle.synthesis.check.excluded?.length ? <ul className="mt-2 flex flex-col gap-3">{bundle.synthesis.check.excluded.map((x, i) => <li key={i} className="border-l-2 border-status-fault pl-3">
             <FormattedText text={x.text} />
-            <p className="mt-1 text-xs text-ink-muted">{codeWords("research.deep.excluded", x.reason).words}{x.detail ? ` · ${x.detail}` : ""}</p>
+            <p className="mt-1 text-xs text-ink-muted"><CodedWords inline coded={codeWords("research.deep.excluded", x.reason)} />{x.detail ? ` · ${x.detail}` : ""}</p>
           </li>)}</ul> : null}
         </div> : null}
       </details> : null}

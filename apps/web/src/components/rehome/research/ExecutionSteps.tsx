@@ -78,7 +78,7 @@ import {
   verdictTone,
 } from "@/lib/research-execution";
 import { runDestination, runState } from "@/lib/run-state";
-import { codeWords } from "@/lib/reason-words";
+import { codedText, codeWords } from "@/lib/reason-words";
 import type { Tone } from "@/lib/tone";
 import { CodedWords } from "./CodedWords";
 import { CONFLICT_MESSAGE } from "@/research/store";
@@ -176,7 +176,7 @@ function RespondentsReceipt({ run }: { run: ResearchRun }) {
   const who = respondentReceipt(run);
   const sel = run.selection;
   const labels = dimensionLabels({});
-  const applied = (on: boolean, reason: string | null) => (on ? t(`${R}.applied`) : reason ? codeWords(`${R}.reason`, reason).words : t(`${R}.none`));
+  const applied = (on: boolean, reason: string | null) => (on ? t(`${R}.applied`) : reason ? codedText(codeWords(`${R}.reason`, reason)) : t(`${R}.none`));
   const filters = sel ? Object.keys(sel.audience_filters) : [];
   const rows: [string, string][] = [
     [t(`${R}.source`), `${t(`research.exec.respondents.${who.pinned}`)} · ${who.observed ? t(`${R}.observed.${who.observed}`) : t(`${R}.pending`)}`],
@@ -703,7 +703,7 @@ export function RunStep() {
             <ul className="flex flex-col gap-2" aria-label={t("research.exec.steps.preflight")}>
               {[...prepared.readiness.checks].sort((a, b) => (CHECK_ORDER[a.status] ?? 3) - (CHECK_ORDER[b.status] ?? 3)).map((c) => (
                 <li key={c.id} className="flex items-start gap-2 text-sm">
-                  <Chip tone={checkTone(c.status)}>{codeWords("research.exec.checkStatus", c.status).words}</Chip>
+                  <Chip tone={checkTone(c.status)}><CodedWords inline coded={codeWords("research.exec.checkStatus", c.status)} /></Chip>
                   <span className="flex-1">{c.message}</span>
                   {c.status !== "PASS" ? (
                     <Link href={stepHref(fixStep(c.id))} className="whitespace-nowrap text-xs text-signal no-underline hover:underline">
@@ -828,7 +828,7 @@ function RespondentChoice({ options, value, onChange, disabled }: {
                 <span className="font-semibold">{t(`${P}.${o.source}`)}</span>
                 {o.default ? <span className="text-ink-muted"> · {t(`${P}.default`)}</span> : null}
               </span>
-              <span className="text-xs text-ink-muted">{o.offered ? t(`${P}.${o.source}Help`) : codeWords(`${P}.reason`, o.reason ?? "").words}</span>
+              <span className="text-xs text-ink-muted">{o.offered ? t(`${P}.${o.source}Help`) : <CodedWords inline coded={codeWords(`${P}.reason`, o.reason ?? "")} />}</span>
             </span>
           </label>
         ))}
@@ -1592,7 +1592,7 @@ function AnalysisResults({ run, spec }: { run: ResearchRun; spec: CompiledSpecif
                 {selected.key_findings.length ? <div className="mt-5"><h4 className="text-sm font-semibold">Hlavní zjištění</h4><ul className="mt-2 flex flex-col gap-3">{selected.key_findings.map((finding, index) => <li key={index} className="border-l-2 border-signal pl-3"><FormattedText text={finding.text} /><CitedNumbers ids={finding.claim_ids} outcome={selected} spec={spec} /></li>)}</ul></div> : null}
                 {!selected.summary && !selected.research_question_answers.length && !selected.key_findings.length ? <p className="mt-3 text-sm text-ink-muted">Tato část nemá textový souhrn.</p> : null}
                 {selected.claims.length ? <details className="mt-5 border-t border-border pt-3 text-xs text-ink-muted"><summary className="cursor-pointer">{t("research.exec.results.analysisEvidence")} a technický původ tvrzení</summary><p className="mt-2 break-words">{selected.claims.map((claim) => `${claim.claim_id} → ${claim.evidence_ref}`).join(", ")}</p></details> : null}
-              </> : <div className="mt-3 text-sm text-ink-muted"><p>{selectedStep ? `Stav kroku: ${stepStatusLabel(selectedStep)}` : "Tato část zatím nemá uložený výstup."}</p>{selectedPending && !selectedStep ? <p className="mt-1">{t("research.exec.results.analysisPending")}: {codeWords("research.exec.stepStatus", selectedPending).words}</p> : null}{selectedStep && waitingDetail(selectedStep) ? <p className="mt-1">{waitingDetail(selectedStep)}</p> : null}</div>}
+              </> : <div className="mt-3 text-sm text-ink-muted"><p>{selectedStep ? `Stav kroku: ${stepStatusLabel(selectedStep)}` : "Tato část zatím nemá uložený výstup."}</p>{selectedPending && !selectedStep ? <p className="mt-1">{t("research.exec.results.analysisPending")}: <CodedWords inline coded={codeWords("research.exec.stepStatus", selectedPending)} /></p> : null}{selectedStep && waitingDetail(selectedStep) ? <p className="mt-1">{waitingDetail(selectedStep)}</p> : null}</div>}
             </section>
           </div>
         </div>

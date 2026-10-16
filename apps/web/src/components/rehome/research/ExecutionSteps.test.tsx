@@ -157,6 +157,8 @@ describe("Run", () => {
     render(<ResearchScreen step="run" frame={TEST_FRAME} />);
     const novel = (await screen.findByText("Nová kontrola.")).closest("li") as HTMLElement;
     expect(within(novel).getByText("AIA k tomuto záznamu zatím nemá popis.").closest("[data-tone]")?.getAttribute("data-tone")).toBe("neutral");
+    // The status it does not know stays visible beside the words, never dropped.
+    expect(within(novel).getByText("SOMETHING_NEW").tagName).toBe("CODE");
     expect(screen.getAllByText("Upozornění").length).toBeGreaterThan(0);
     expect(screen.queryByText("WARN")).toBeNull();
     expect(screen.queryByText("PASS")).toBeNull();
@@ -1634,7 +1636,7 @@ describe("Interpretation research", () => {
     const review = { run_id: "RUN-deep", purpose: "INTERPRETATION_RESEARCH", target: { research_run_id: "RUN-1" },
       preset: "QUICK", status: "COMPLETED", phase: "COMPLETED", is_terminal: true, retryable: false,
       created_at: null, actual_cost_usd: 0.8, steps: [] };
-    const bundle = { quality_status: "PARTIAL", sha256: "b-2", counts: { tracks: 3 },
+    const bundle = { quality_status: "PARTIAL", sha256: "b-2", counts: { tracks: 3, new_metric: 2 },
       accepted: [
         { evidence: { evidence_id: "EV-1", claim: "Spotřeba čaje roste.\n- hlavně u mladých\n- ve městech", quote: "Čaj roste o 4 %.", source_ref: "SRC-1" }, score: { score: 0.8, source_class: "B" } },
         { evidence: { evidence_id: "EV-2", claim: "Káva je stabilní.", quote: "", source_ref: "SRC-2" }, score: { score: 0.6, source_class: "C" } },
@@ -1666,6 +1668,8 @@ describe("Interpretation research", () => {
     // Gaps and rejections keep their reasons.
     expect(screen.getByText("Benchmark spokojenosti")).toBeTruthy();
     expect(screen.getByText("· žádný zdroj ho neuvádí")).toBeTruthy();
+    // A count key a newer engine added keeps its code; a known one reads in words.
+    expect(screen.getByText("Počty: stopy 3 · jiný počet (technický kód: new_metric) 2")).toBeTruthy();
     // A reason this client has no words for says so; its code stays under technical details.
     expect(screen.getByText("AIA k tomuto záznamu zatím nemá popis.")).toBeTruthy();
     expect(screen.getByText("QUOTE_NOT_FOUND").closest("details")).toBeTruthy();

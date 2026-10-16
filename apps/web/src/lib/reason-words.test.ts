@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ResearchPhase } from "@/lib/api";
-import { codeWords, coverageWords, deepStepLabel, known, stepProblem } from "./reason-words";
+import { codedText, codeWords, coverageWords, deepStepLabel, known, stepProblem } from "./reason-words";
 import { phaseLabel } from "./research-execution";
 
 const step = (extra: { status?: string; waiting_reason?: string | null; error_message?: string | null }) => ({
@@ -21,6 +21,11 @@ describe("reason words", () => {
       code: "brand_new_reason",
     });
     expect(known("research.exec.nothing.here")).toBeNull();
+  });
+
+  it("keeps an unknown code in a line of text, after the words, and words a known one alone", () => {
+    expect(codedText(codeWords("research.deep.counts", "new_metric", "research.deep.counts.other"))).toBe("jiný počet (technický kód: new_metric)");
+    expect(codedText(codeWords("research.deep.counts", "fetches", "research.deep.counts.other"))).toBe("otevřené stránky");
   });
 
   it("names Deep Research's steps and an investigate track, never by its node key", () => {
