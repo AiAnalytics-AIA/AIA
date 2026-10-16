@@ -51,10 +51,22 @@ forbid() {
     return 0
   fi
 
-  local hits line kept=()
+  # grep exits 0 on a match, 1 on none and 2 when it could not search: an invalid
+  # pattern, an unreadable file. 2 fails the rule -- swallowed, a typo in a pattern
+  # turned its rule into "ok" with the violation still there (measured).
+  local hits line kept=() err status
+  err=$(mktemp)
   hits=$(grep -rHn --exclude-dir=node_modules --exclude-dir=.next \
            --exclude-dir=__pycache__ --exclude-dir=.venv \
-           -E "$pattern" "$path" 2>/dev/null || true)
+           -E "$pattern" "$path" 2>"$err")
+  status=$?
+  if [ "$status" -gt 1 ]; then
+    printf 'FAIL  %s\n      (grep could not search: %s)\n' "$rule" "$(head -n 1 "$err")"
+    rm -f "$err"
+    FAILED=1
+    return 0
+  fi
+  rm -f "$err"
   while IFS= read -r line; do
     [ -n "$line" ] || continue
     for ex in "${exempt[@]}"; do

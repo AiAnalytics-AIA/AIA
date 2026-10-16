@@ -217,3 +217,13 @@ def test_the_step_model_callers_own_invoke_is_not_the_gateway(scratch: Path) -> 
     result = _gateway_rule(scratch, "GATEWAY_INVOKED")
 
     assert result.returncode == 0, result.stdout
+
+
+def test_a_pattern_grep_cannot_run_fails_the_rule(scratch: Path) -> None:
+    """The defect: grep's exit 2 was swallowed, so a typo printed "ok" over a violation."""
+    result = _forbid(scratch, RULE, r"Widget\((", "pkg")
+
+    assert result.returncode != 0, result.stdout
+    assert f"FAIL  {RULE}" in result.stdout, result.stdout
+    assert "grep could not search" in result.stdout
+    assert f"ok    {RULE}" not in result.stdout
