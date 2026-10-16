@@ -41,8 +41,14 @@ ignore = ["N818"]
 [tool.ruff.lint.per-file-ignores]
 # Tests assert on private behaviour deliberately, and fixture-heavy signatures
 # trip the unused-argument and boolean-trap rules without being wrong. They also
-# stand up local stub servers (CLAUDE.md §7), which needs sockets: TID251.
-"**/tests/**" = ["SLF001", "PLR2004", "TID251"]
+# stand up local stub servers (CLAUDE.md §7), which needs sockets: TID251. Anchored to
+# the four test trees by name: "**/tests/**" also exempted any source package named
+# tests (measured: infrastructure/tests/egress.py importing urllib3 passed), and so does
+# "packages/*/tests/**", because ruff's * crosses a "/".
+"packages/aia_core/tests/**" = ["SLF001", "PLR2004", "TID251"]
+"apps/api/tests/**" = ["SLF001", "PLR2004", "TID251"]
+"apps/worker/tests/**" = ["SLF001", "PLR2004", "TID251"]
+"apps/executors/tests/**" = ["SLF001", "PLR2004", "TID251"]
 # The egress fence's exits (TID251), each the one module that owns its wire.
 "packages/aia_core/src/aia_core/infrastructure/model_adapters/live_transport.py" = ["TID251"]  # urllib3: the model routes' HTTPS
 "packages/aia_core/src/aia_core/infrastructure/web_retrieval_live.py" = ["TID251"]  # urllib3 + socket.getaddrinfo: public web reads, resolved then pinned
