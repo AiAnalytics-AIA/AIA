@@ -279,7 +279,7 @@ describe("Dotazník", () => {
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "Spustit veřejný výzkum" }));
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText("Výzkum může stát nejvýše 4.00 USD. Čerpá rozpočet této studie. Spustit? Z rozpočtu studie zbývá 3.00 USD. To je víc, než zbývá: krok se zastaví, dokud rozpočet nezvýšíte.")).toBeTruthy();
+    expect(within(dialog).getByText("Výzkum může stát nejvýše 4.00 USD. Čerpá rozpočet této studie. Spustit? Z rozpočtu studie zbývá 3.00 USD. To je víc, než nyní zbývá: přesáhne-li skutečná cena zbytek, krok se zastaví, dokud rozpočet nezvýšíte.")).toBeTruthy();
     fireEvent.click(within(dialog).getByRole("button", { name: "OK" }));
     await waitFor(() => expect(posted(path).map((c) => (c.body as { confirm_cost_usd?: number }).confirm_cost_usd)).toEqual([undefined, 4]));
   });

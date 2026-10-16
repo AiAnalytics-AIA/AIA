@@ -2583,8 +2583,8 @@ export const cs = {
       budgetLine: {
         unknown: "Kolik z rozpočtu studie zbývá, AIA nyní neví.",
         remaining: "Z rozpočtu studie zbývá {remaining} USD.",
-        within: "Poté zbude nejméně {after} USD.",
-        beyond: "To je víc, než zbývá: krok se zastaví, dokud rozpočet nezvýšíte.",
+        within: "I při nejvyšší ceně by zbylo {after} USD, bez částek, které právě drží běžící kroky.",
+        beyond: "To je víc, než nyní zbývá: přesáhne-li skutečná cena zbytek, krok se zastaví, dokud rozpočet nezvýšíte.",
         ceilingUnknown: "Kolik může stát, AIA předem neví.",
       },
       budget: {
