@@ -129,19 +129,29 @@ ignore_imports = [
     "aia_executors.deep_research_runtime -> aia_core.infrastructure.model_adapters",
 ]
 
-# The research steps reach the web only through what a composition hands them:
-# RetrievalGate over the wires deep_research_live builds, settings read by
-# deep_research_runtime. A step importing a live wire would open a connection the
-# composition never configured -- no residency check, pacing or record. Ruff's TID251
-# keeps urllib3 and socket inside these modules; this keeps the modules inside the
-# two compositions. The source names no forbidden module's ancestor, so the
+# Live network wires are imported by the compositions that build a route and by
+# nothing else: deep_research_live and deep_research_runtime (web search, Common
+# Crawl), ai_runtime (the model route's transport). A module importing a wire would
+# open a connection no composition configured -- no residency check, pacing or record.
+# Ruff's TID251 keeps urllib3 and socket inside these modules; this keeps the modules
+# inside the compositions. Every app is a source, and the core's domain and
+# application layers; no source names a forbidden module's ancestor, so the
 # containment blind spot of the contract above does not apply (probed).
-# Indirect imports count too: RetrievalGate reaches the index and the archive
-# through infrastructure/archive_index.py, which loads no wire.
+# Indirect imports count too: the compositions' own edges are the ignores below, so
+# a module that imports a composition (the registry, a test harness) is not flagged
+# through them, and anything else that reaches a wire is. RetrievalGate reaches the
+# index and the archive through infrastructure/archive_index.py, which loads no wire.
+# Every ignore must match an import, or lint-imports fails.
 [[tool.importlinter.contracts]]
-name = "deep-research steps never import a live network wire; only the two compositions do"
+name = "only the executor compositions import a live network wire"
 type = "forbidden"
-source_modules = ["aia_executors.deep_research"]
+source_modules = [
+    "aia_core.domain",
+    "aia_core.application",
+    "aia_api",
+    "aia_worker",
+    "aia_executors",
+]
 forbidden_modules = [
     "aia_core.infrastructure.web_retrieval_live",
     "aia_core.infrastructure.web_retrieval_brave",
@@ -149,6 +159,15 @@ forbidden_modules = [
     "aia_core.infrastructure.model_adapters.live_transport",
 ]
 allow_indirect_imports = false
+ignore_imports = [
+    "aia_executors.deep_research_live -> aia_core.infrastructure.common_crawl",
+    "aia_executors.deep_research_live -> aia_core.infrastructure.web_retrieval_brave",
+    "aia_executors.deep_research_live -> aia_core.infrastructure.web_retrieval_live",
+    "aia_executors.deep_research_runtime -> aia_core.infrastructure.common_crawl",
+    "aia_executors.deep_research_runtime -> aia_core.infrastructure.web_retrieval_brave",
+    "aia_executors.deep_research_runtime -> aia_core.infrastructure.web_retrieval_live",
+    "aia_executors.ai_runtime -> aia_core.infrastructure.model_adapters.live_transport",
+]
 
 [tool.pytest.ini_options]
 # Both test directories are called `tests`, so they are not importable packages.
