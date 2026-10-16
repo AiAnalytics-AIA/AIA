@@ -522,7 +522,8 @@ describe("Run: what a run can cost (5b.2)", () => {
     render(<ResearchScreen step="run" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: t("research.exec.start") }));
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText("Tento běh může stát až 225.00 USD (limit studie je 100.00 USD). Spustit?")).toBeTruthy();
+    // Beside the question, what remains of the study's budget, read as it asks (6d).
+    expect(within(dialog).getByText("Tento běh může stát až 225.00 USD (limit studie je 100.00 USD). Spustit? Z rozpočtu studie zbývá 400.00 USD. Poté zbude nejméně 175.00 USD.")).toBeTruthy();
     fireEvent.click(within(dialog).getByRole("button", { name: t("dialog.cancel") }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(called("POST", RUNS)).toHaveLength(0); // no yes, no run
@@ -650,11 +651,13 @@ describe("Run: what a run can cost (5b.2)", () => {
       },
       // The retry's run, as the API then serves it (the page follows and reads it).
       "GET /api/v1/studies/STU-1/research/runs/RUN-2": () => run({ run_id: "RUN-2", retry_of: "RUN-1", phase: "QUEUED" }),
+      "GET /api/v1/studies/STU-1": () => STUDY,
     });
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: t("research.exec.retry") }));
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText("Tento běh může stát až 225.00 USD (limit studie je 100.00 USD). Spustit?")).toBeTruthy();
+    // Beside the question, what remains of the study's budget, read as it asks (6d).
+    expect(within(dialog).getByText("Tento běh může stát až 225.00 USD (limit studie je 100.00 USD). Spustit? Z rozpočtu studie zbývá 400.00 USD. Poté zbude nejméně 175.00 USD.")).toBeTruthy();
     fireEvent.click(within(dialog).getByRole("button", { name: "OK" }));
     expect(await screen.findByText("Opakování běhu RUN-1")).toBeTruthy();
     expect(asked).toBe(1);
@@ -900,6 +903,19 @@ describe("Progress", () => {
       await waitFor(() => expect(called("POST", BUDGET_PATH)).toHaveLength(1));
       expect(called("POST", BUDGET_PATH)[0].body).toEqual({ budget_usd: 15, note: "Schváleno" });
       await waitFor(() => expect(screen.queryByRole("form", { name: t("research.exec.budget.title") })).toBeNull());
+    });
+
+    it("says what remains beside the budget, and never reads a spend the API did not report as zero (6d)", async () => {
+      api({ ...listed(waiting()), "GET /api/v1/studies/STU-1": () => STUDY });
+      render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+      const form = await screen.findByRole("form", { name: t("research.exec.budget.title") });
+      expect(await within(form).findByText("Rozpočet 10.00 USD, vyčerpáno 9.50 USD. Z rozpočtu studie zbývá 0.50 USD.")).toBeTruthy();
+      cleanup();
+      api({ ...listed(waiting()), "GET /api/v1/studies/STU-1": () => ({ ...STUDY, spent_usd: null, remaining_usd: null }) });
+      render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+      const unread = await screen.findByRole("form", { name: t("research.exec.budget.title") });
+      expect(await within(unread).findByText("Rozpočet 10.00 USD; kolik je vyčerpáno, AIA nyní neví. Kolik z rozpočtu studie zbývá, AIA nyní neví.")).toBeTruthy();
+      expect(within(unread).queryByText(/vyčerpáno 0\.00/)).toBeNull();
     });
 
     it("will not offer a total below the current budget", async () => {

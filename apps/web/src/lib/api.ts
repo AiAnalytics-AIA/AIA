@@ -1210,8 +1210,12 @@ export const deepResearch = {
     }),
   downloadContextReport: (studyId: string, runId: string, deepRunId: string) =>
     requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/context/download${query({ deep_research_run_id: deepRunId })}`),
-  start: (studyId: string, revisionId: string) =>
-    request<DeepResearchRun>("POST", deepPath(studyId), { design_revision_id: revisionId, preset_name: "QUICK", channels: ["WEB"] }),
+  /** `confirmCostUsd`: the ceiling a person confirmed when the study's limit asked (409 cost_confirmation_required). */
+  start: (studyId: string, revisionId: string, confirmCostUsd?: number) =>
+    request<DeepResearchRun>("POST", deepPath(studyId), {
+      design_revision_id: revisionId, preset_name: "QUICK", channels: ["WEB"],
+      ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
+    }),
   /** The Study's runs, newest first; the server lists 20 unless asked for more (at most 100). */
   runs: (studyId: string, limit?: number) =>
     request<DeepResearchRun[]>("GET", `${deepPath(studyId)}${query({ limit: limit === undefined ? undefined : String(limit) })}`),

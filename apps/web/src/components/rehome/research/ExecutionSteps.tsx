@@ -79,6 +79,7 @@ import {
 } from "@/lib/research-execution";
 import { runDestination, runState } from "@/lib/run-state";
 import { codedText, codeWords } from "@/lib/reason-words";
+import { budgetLine, type StudyBudget, withBudget } from "@/lib/budget-line";
 import type { Tone } from "@/lib/tone";
 import { CodedWords } from "./CodedWords";
 import { CONFLICT_MESSAGE } from "@/research/store";
@@ -654,8 +655,9 @@ export function RunStep() {
     setChoosing(false);
   };
 
-  const ask = (ceiling: number, limit: number) =>
-    confirm(tv("research.exec.cost.confirm", { ceiling: ceiling.toFixed(2), limit: limit.toFixed(2) }));
+  // The question carries what remains of the study's budget, read as it asks (6d).
+  const ask = async (ceiling: number, limit: number) =>
+    confirm(await withBudget(frame.studyId, tv("research.exec.cost.confirm", { ceiling: ceiling.toFixed(2), limit: limit.toFixed(2) }), ceiling));
 
   const start = async () => {
     if (prepared.kind !== "ready") return;
@@ -936,7 +938,7 @@ function useRun(): [ResearchRun | null | undefined, () => void, (r: ResearchRun)
  */
 function BudgetLift({ run, step, act, busy }: { run: ResearchRun; step: ResearchStep; act: (fn: () => Promise<ResearchRun>) => Promise<void>; busy: boolean }) {
   const frame = useFrame();
-  const [current, setCurrent] = useState<{ budget: number; spent: number } | null | undefined>(undefined);
+  const [current, setCurrent] = useState<{ budget: number; spent: number | null; study: StudyBudget } | null | undefined>(undefined);
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   useEffect(() => {
@@ -945,7 +947,8 @@ function BudgetLift({ run, step, act, busy }: { run: ResearchRun; step: Research
       (s) => {
         if (!live) return;
         const budget = typeof s.budget_usd === "number" ? s.budget_usd : null;
-        setCurrent(budget === null ? null : { budget, spent: s.spent_usd ?? 0 });
+        // A spend the API did not report is unknown, never zero.
+        setCurrent(budget === null ? null : { budget, spent: typeof s.spent_usd === "number" ? s.spent_usd : null, study: s });
         if (budget !== null) setAmount(String(budget));
       },
       () => live && setCurrent(null),
@@ -970,7 +973,10 @@ function BudgetLift({ run, step, act, busy }: { run: ResearchRun; step: Research
       ) : current === null ? (
         <p role="alert" className="text-xs text-status-fault">{t("research.exec.budget.unknown")}</p>
       ) : (
-        <p className="text-xs">{tv("research.exec.budget.status", { budget: current.budget.toFixed(2), spent: current.spent.toFixed(2) })}</p>
+        <p className="text-xs">
+          {current.spent === null ? tv("research.exec.budget.statusSpentUnknown", { budget: current.budget.toFixed(2) }) : tv("research.exec.budget.status", { budget: current.budget.toFixed(2), spent: current.spent.toFixed(2) })}{" "}
+          {budgetLine(current.study)}
+        </p>
       )}
       <div className="flex flex-wrap items-end gap-3">
         <Field label={t("research.exec.budget.amount")} className="w-48">
@@ -1033,7 +1039,7 @@ function AnalysisRepair({ run, modules, act, busy }: { run: ResearchRun; modules
                 // The retry asks a model again, so the study's limit asks again over what it may cost.
                 const asked = confirmationAsked(e);
                 if (!asked) throw e;
-                const yes = await confirm(tv("research.exec.cost.confirm", { ceiling: asked.ceiling.toFixed(2), limit: asked.limit.toFixed(2) }));
+                const yes = await confirm(await withBudget(frame.studyId, tv("research.exec.cost.confirm", { ceiling: asked.ceiling.toFixed(2), limit: asked.limit.toFixed(2) }), asked.ceiling));
                 if (!yes) return run;
                 return research.retryAnalysis(frame.studyId, run.run_id, asked.ceiling);
               }
@@ -1087,7 +1093,7 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
                   // A retry is a new run, so the study's limit asks again.
                   const asked = confirmationAsked(e);
                   if (!asked) throw e;
-                  const yes = await confirm(tv("research.exec.cost.confirm", { ceiling: asked.ceiling.toFixed(2), limit: asked.limit.toFixed(2) }));
+                  const yes = await confirm(await withBudget(frame.studyId, tv("research.exec.cost.confirm", { ceiling: asked.ceiling.toFixed(2), limit: asked.limit.toFixed(2) }), asked.ceiling));
                   if (!yes) return run;
                   return research.retry(frame.studyId, run.run_id, asked.ceiling);
                 }

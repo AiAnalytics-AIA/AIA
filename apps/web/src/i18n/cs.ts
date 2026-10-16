@@ -2580,9 +2580,17 @@ export const cs = {
         approval_required: "Krok čeká na rozhodnutí člověka.",
         ai_runtime_unavailable: "Krok čeká: AI model pro něj není dostupný nebo povolený.",
       },
+      budgetLine: {
+        unknown: "Kolik z rozpočtu studie zbývá, AIA nyní neví.",
+        remaining: "Z rozpočtu studie zbývá {remaining} USD.",
+        within: "Poté zbude nejméně {after} USD.",
+        beyond: "To je víc, než zbývá: krok se zastaví, dokud rozpočet nezvýšíte.",
+        ceilingUnknown: "Kolik může stát, AIA předem neví.",
+      },
       budget: {
         title: "Zvýšit rozpočet studie",
         status: "Rozpočet {budget} USD, vyčerpáno {spent} USD.",
+        statusSpentUnknown: "Rozpočet {budget} USD; kolik je vyčerpáno, AIA nyní neví.",
         unknown: "Rozpočet studie se nepodařilo načíst.",
         amount: "Nový rozpočet studie (USD)",
         note: "Poznámka k rozhodnutí",
