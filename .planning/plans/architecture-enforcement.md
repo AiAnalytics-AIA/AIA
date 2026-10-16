@@ -134,7 +134,9 @@ Four contracts beside the two already there (`pyproject.toml`, `[tool.importlint
   "executors never import the API". Probed: worker -> executors, executors ->
   `aia_worker.worker`, API -> `aia_worker.settings` each fail.
 - **Routers -> infrastructure, a ratchet** (decided 2026-10-16): 28 router -> module
-  edges across nine routers are listed. A new router complies, a listed router can't
+  edges across nine routers were listed; 27 since #467, because #461 had already removed
+  `deep_research.py`'s `common_crawl` import and the stale line failed `develop`'s
+  Layering rules (run 1245) -- the ratchet shrinking as designed, two merges apart. A new router complies, a listed router can't
   add an infrastructure module, and a line no import matches fails lint-imports, so
   the list only shrinks. `projects.py` only caught `ProjectNotFound`; it now imports
   the repository's own class from `aia_core/application/errors.py`
