@@ -2580,6 +2580,18 @@ export const cs = {
         approval_required: "Krok čeká na rozhodnutí člověka.",
         ai_runtime_unavailable: "Krok čeká: AI model pro něj není dostupný nebo povolený.",
       },
+      report: {
+        status: {
+          NONE: "Tento běh zprávu nevytváří.",
+          COMPOSING: "Zpráva se ještě skládá.",
+          NOT_MADE: "Běh skončil, aniž zprávu složil.",
+          FAILED: "Zprávu se nepodařilo vytvořit. Podrobnosti jsou v průběhu běhu.",
+          REFUSED: "Zprávu nelze vytvořit, protože jeden nebo více modulů analýzy neprošlo ověřením.",
+          DRAFT: "Koncept čeká na schválení.",
+          APPROVED: "Schváleno pouze pro interní použití.",
+          UNKNOWN: "Stav zprávy se nepodařilo zjistit.",
+        },
+      },
       budgetLine: {
         unknown: "Kolik z rozpočtu studie zbývá, AIA nyní neví.",
         remaining: "Z rozpočtu studie zbývá {remaining} USD.",

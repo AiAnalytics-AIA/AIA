@@ -11,6 +11,7 @@ import { needsRepair, phaseLabel } from "@/lib/research-execution";
 import { codedText, codeWords, coverageWords, deepStepLabel, stepProblem } from "@/lib/reason-words";
 import { CodedWords } from "./CodedWords";
 import { withBudget } from "@/lib/budget-line";
+import { approvalRefusal, reviewStatus } from "@/lib/report-status";
 import { AiButton, Button, Field, Select } from "../ui";
 import { useResearch } from "./context";
 import { FormattedText } from "./FormattedText";
@@ -105,7 +106,7 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
     try {
       const got = await deepResearch.downloadContextReport(frame.studyId, run.run_id, current.run_id);
       saveBlob(got.blob, `AIA-${frame.studyId}-with-research.docx`);
-      setStored(got.artifactId ? { runId: current.run_id, artifactId: got.artifactId, approved: got.reviewState === "APPROVED_INTERNAL" } : null);
+      setStored(got.artifactId ? { runId: current.run_id, artifactId: got.artifactId, approved: reviewStatus(got.reviewState) === "APPROVED" } : null);
     } catch (e) { setError(message(e)); }
     finally { setBusy(false); }
   };
@@ -117,8 +118,7 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
       await research.approveReport(frame.studyId, run.run_id, currentStored.artifactId);
       setStored({ ...currentStored, approved: true });
     } catch (e) {
-      setError(e instanceof ApiError && e.code === "separation_of_duties"
-        ? "Tuto zprávu musí schválit někdo jiný než ten, kdo ji vytvořil." : message(e));
+      setError(approvalRefusal(e));
     } finally { setBusy(false); }
   };
 
