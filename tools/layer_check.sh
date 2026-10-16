@@ -839,13 +839,14 @@ forbid "readiness never reads the Sociomap's code constants" \
 # `# noqa: TID251`, a bare `# noqa` (every code) or a code-less `# ruff: noqa` (the
 # whole file) lifts it in a line of a large diff instead, and nothing fails (measured
 # at e57c3b82). A code-scoped file directive (`# ruff: noqa: RUF001`) names what it
-# lifts and stays allowed.
+# lifts and stays allowed. Ruff reads a line's `noqa` in any case (`# NOQA` suppresses,
+# measured), so these do too; it honours `# ruff: noqa` only in lower case.
 for tree in "$CORE" "$API" "$WORKER" "$EXECUTORS"; do
   forbid "the egress ban is never suppressed inline ($tree)" \
-    '#\s*noqa:[^#]*\bTID251\b' \
+    '#\s*[Nn][Oo][Qq][Aa]:[^#]*\bTID251\b' \
     "$tree"
   forbid "no bare noqa suppresses every rule on a line ($tree)" \
-    '#\s*noqa\b\s*($|[^:])' \
+    '#\s*[Nn][Oo][Qq][Aa]\b\s*($|[^:])' \
     "$tree"
   forbid "no code-less ruff: noqa suppresses a whole file ($tree)" \
     '#\s*ruff\s*:\s*noqa\b\s*($|[^:])' \
@@ -861,18 +862,20 @@ done
 # Any reference to the marker counts, not only the decorator: a module's
 # `pytestmark = pytest.mark.skip`, an alias (`skip = pytest.mark.skip`, then `@skip`)
 # and `from pytest import mark` all passed the decorator-only pattern (measured at
-# e57c3b82). `skipif` is a different word and stays allowed: its condition is code.
+# e57c3b82). `skipif` stays refused, as the decorator-only pattern refused it: a
+# condition decided at collection drops the test as silently. A runtime `pytest.skip(...)`
+# inside the test is the allowed form.
 forbid "no statically skipped or xfailed tests" \
-  '\bmark\.(skip|xfail)\b' \
+  '\bmark\.(skip|xfail)' \
   packages/aia_core/tests
 forbid "no statically skipped or xfailed API tests" \
-  '\bmark\.(skip|xfail)\b' \
+  '\bmark\.(skip|xfail)' \
   apps/api/tests
 forbid "no statically skipped or xfailed worker tests" \
-  '\bmark\.(skip|xfail)\b' \
+  '\bmark\.(skip|xfail)' \
   apps/worker/tests
 forbid "no statically skipped or xfailed executor tests" \
-  '\bmark\.(skip|xfail)\b' \
+  '\bmark\.(skip|xfail)' \
   apps/executors/tests
 
 # --- Presentation: the client renders, it does not decide -------------------

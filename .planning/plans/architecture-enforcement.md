@@ -218,7 +218,11 @@ was proved with a temporary violation, then reverted.
   never ran locally through the pre-commit sequence. It does now.
 - **Static skips by any name.** `pytestmark = pytest.mark.skip`, an alias, `from pytest
   import mark` and `pytest.param(..., marks=...xfail)` passed the decorator-only
-  pattern. The pattern is any `mark.skip` / `mark.xfail`; `skipif` stays allowed.
+  pattern. The pattern is any `mark.skip` / `mark.xfail`, `skipif` included (the old
+  pattern refused it too, as a prefix; a first version of this change let it through and
+  Codex caught the loosening on #476). A runtime `pytest.skip(...)` is the allowed form.
+- **`noqa` in any case.** Ruff honours a line's `# NOQA` (measured), so the two `noqa`
+  rules match it in any case; `# ruff: noqa` is honoured only in lower case.
 - **The script header** said "no AST, no dependency-graph tool"; it now says it is the
   text half of `make layer_check`.
 
