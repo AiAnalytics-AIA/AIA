@@ -354,7 +354,8 @@ apps/
     context.py              Checkpoints, per-call metering, lease-fenced transactions
     heartbeat.py            Lease extension + cancellation carried back, one thread per attempt
     settings.py             Typed, validated settings from the environment
-    registry.py             Loads executors from AIA_WORKER_EXECUTORS=module:factory
+    registry.py             Loads executors from AIA_WORKER_EXECUTORS=module:factory; outside
+                            AIA_ENV=local/test only an aia_executors module, refused before import
     testing.py              Scripted executor for the tests (and the multi-process suite)
   executors/src/aia_executors/  Step implementations the worker runs, registered by kind
     snapshot.py             develop_snapshot: a project revision as a JSON artifact (S3)
