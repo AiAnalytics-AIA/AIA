@@ -1578,10 +1578,23 @@ export type MethodCompare = {
 
 const METHODOLOGY = "/api/v1/methodology";
 
+/** GET /methodology/field-policy (methodology-tab V1c): the tables the population's field
+ *  policy reads, from code. A version's fields and their answers are its characteristics. */
+export type FieldPolicyTables = {
+  version: string;
+  uses: PopulationFieldUse[];
+  /** `measured`: only these origins may back a client-facing measured claim. */
+  origins: { id: string; measured: boolean; statuses: string[] }[];
+  /** Every known recommended-use sentence, verbatim: its rules and what it lets a client be told. */
+  phrases: { phrase: string; rules: string[]; client_permit: string }[];
+  grades: { grade: string; client_blocking: boolean }[];
+};
+
 /** Any member reads and checks; storing a version and changing what is in force need an
  *  organization OWNER or ADMIN (the API refuses anyone else). */
 export const methodology = {
   list: () => request<MethodModuleSummary[]>("GET", METHODOLOGY),
+  fieldPolicy: () => request<FieldPolicyTables>("GET", `${METHODOLOGY}/field-policy`),
   get: (moduleId: string, preset?: string) =>
     request<MethodModuleDetail>("GET", `${METHODOLOGY}/${enc(moduleId)}${preset ? `?preset=${enc(preset)}` : ""}`),
   versions: (moduleId: string) => request<MethodVersions>("GET", `${METHODOLOGY}/${enc(moduleId)}/versions`),

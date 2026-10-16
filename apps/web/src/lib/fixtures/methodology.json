@@ -11268,6 +11268,230 @@
    }
   }
  },
+ "field_policy": {
+  "grades": [
+   {
+    "client_blocking": false,
+    "grade": "A"
+   },
+   {
+    "client_blocking": false,
+    "grade": "B"
+   },
+   {
+    "client_blocking": false,
+    "grade": "B_WEIGHTED"
+   },
+   {
+    "client_blocking": false,
+    "grade": "C"
+   },
+   {
+    "client_blocking": false,
+    "grade": "C_RAW/B_WEIGHTED"
+   },
+   {
+    "client_blocking": true,
+    "grade": "D"
+   },
+   {
+    "client_blocking": true,
+    "grade": "T"
+   }
+  ],
+  "origins": [
+   {
+    "id": "OBSERVED",
+    "measured": true,
+    "statuses": [
+     "MEASURED_CORE_PIAAC",
+     "CANONICAL_CORE",
+     "POPULATION_ANCHOR"
+    ]
+   },
+   {
+    "id": "DONOR_MATCHED",
+    "measured": true,
+    "statuses": [
+     "MATCHED_WHOLE_BLOCK",
+     "MATCHED_WHOLE_BLOCK_CANONICAL",
+     "MATCHED_POLITICS_CANONICAL"
+    ]
+   },
+   {
+    "id": "DERIVED",
+    "measured": false,
+    "statuses": [
+     "DERIVED_TRANSPARENT",
+     "DERIVED_QC"
+    ]
+   },
+   {
+    "id": "CALIBRATED",
+    "measured": false,
+    "statuses": [
+     "CALIBRATED_BENCHMARK",
+     "CALIBRATED_CZ_BENCHMARK",
+     "CALIBRATED_CZ_BENCHMARK_WITH_MEASURED_GUARD",
+     "CALIBRATED_MODELED",
+     "CALIBRATED_MODELED_BINARY",
+     "CALIBRATED_MODELED_COMPOSITE",
+     "CALIBRATED_ONLINE_SAMPLE"
+    ]
+   },
+   {
+    "id": "MODELLED",
+    "measured": false,
+    "statuses": [
+     "MODELED_MARKETING_PRIOR",
+     "MODELED_VALUE_PROXY",
+     "MODELED_METADATA"
+    ]
+   },
+   {
+    "id": "HYBRID",
+    "measured": false,
+    "statuses": [
+     "HYBRID_MEASURED_PIAAC_OR_MODELED"
+    ]
+   },
+   {
+    "id": "PROVENANCE",
+    "measured": false,
+    "statuses": [
+     "PROVENANCE_OR_CORE"
+    ]
+   },
+   {
+    "id": "UNCLASSIFIED",
+    "measured": false,
+    "statuses": [
+     "NEW_WEIGHT",
+     "BENCHMARK_WEIGHT"
+    ]
+   }
+  ],
+  "phrases": [
+   {
+    "client_permit": "MEASURED_OR_MODELLED",
+    "phrase": "PERSONA_OR_ANALYSIS_WITH_SCOPE",
+    "rules": [
+     "REQUIRES_SCOPE"
+    ]
+   },
+   {
+    "client_permit": "NONE",
+    "phrase": "HISTORICAL_OR_EXPLORATORY",
+    "rules": [
+     "HISTORICAL_OR_EXPLORATORY"
+    ]
+   },
+   {
+    "client_permit": "NONE",
+    "phrase": "behavioral prior / simulation modifier, never measured fact",
+    "rules": [
+     "NEVER_MEASURED_FACT"
+    ]
+   },
+   {
+    "client_permit": "NONE",
+    "phrase": "AUDIT_ONLY",
+    "rules": [
+     "AUDIT_ONLY"
+    ]
+   },
+   {
+    "client_permit": "MODELLED_AGGREGATE",
+    "phrase": "aggregate planning and persona background with modeled-value disclosure",
+    "rules": [
+     "AGGREGATE_ONLY",
+     "REQUIRES_MODELED_DISCLOSURE"
+    ]
+   },
+   {
+    "client_permit": "NONE",
+    "phrase": "simulation prior; never claim direct Schwartz measurement",
+    "rules": [
+     "NEVER_DIRECT_SCHWARTZ"
+    ]
+   },
+   {
+    "client_permit": "MODELLED_AGGREGATE",
+    "phrase": "segmentation/aggregate; individual value modeled",
+    "rules": [
+     "AGGREGATE_ONLY",
+     "PERSON_VALUE_MODELED"
+    ]
+   },
+   {
+    "client_permit": "MODELLED_AGGREGATE",
+    "phrase": "population segmentation / reach; person value is modeled, not measured",
+    "rules": [
+     "AGGREGATE_ONLY",
+     "PERSON_VALUE_MODELED"
+    ]
+   },
+   {
+    "client_permit": "NONE",
+    "phrase": "modeled context only",
+    "rules": []
+   },
+   {
+    "client_permit": "MODELLED_AGGREGATE",
+    "phrase": "platform reach/segmentation among internet users; modeled at person level",
+    "rules": [
+     "AGGREGATE_ONLY",
+     "PERSON_VALUE_MODELED"
+    ]
+   },
+   {
+    "client_permit": "NONE",
+    "phrase": "technical/provenance only",
+    "rules": [
+     "AUDIT_ONLY"
+    ]
+   },
+   {
+    "client_permit": "NONE",
+    "phrase": "persona/context with provenance",
+    "rules": []
+   },
+   {
+    "client_permit": "MODELLED_AGGREGATE",
+    "phrase": "individual simulation background; aggregate components benchmarked",
+    "rules": [
+     "AGGREGATE_ONLY"
+    ]
+   },
+   {
+    "client_permit": "NONE",
+    "phrase": "audience selection; use vaha_strukturalni_2025",
+    "rules": [
+     "SPECIFIED_WEIGHT_REQUIRED"
+    ]
+   },
+   {
+    "client_permit": "NONE",
+    "phrase": "provenance/confidence",
+    "rules": []
+   },
+   {
+    "client_permit": "NONE",
+    "phrase": "AUDIT_AND_PERSONA_CONFIDENCE",
+    "rules": []
+   }
+  ],
+  "uses": [
+   "AUDIENCE_FILTERING",
+   "PERSONA_CONSTRUCTION",
+   "AGGREGATE_ANALYSIS",
+   "SIMULATION",
+   "CLIENT_MEASURED_CLAIM",
+   "CLIENT_MODELLED_CLAIM",
+   "WEIGHTING"
+  ],
+  "version": "field-policy/v1"
+ },
  "modules": [
   {
    "editable": true,

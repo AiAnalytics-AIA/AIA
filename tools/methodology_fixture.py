@@ -21,9 +21,15 @@ FIXTURE = REPO / "apps/web/src/lib/fixtures/methodology.json"
 
 
 def document() -> dict[str, Any]:
-    """Every module's summary and detail, and each module's presets as the versions route
-    serves them (what an edit starts from), exactly as the routes serialise them."""
-    from aia_api.routers.methodology import _presets, _summary, read_module_detail
+    """Every module's summary and detail, each module's presets as the versions route serves
+    them (what an edit starts from), and the field policy's tables, exactly as the routes
+    serialise them."""
+    from aia_api.routers.methodology import (
+        _presets,
+        _summary,
+        field_policy_tables,
+        read_module_detail,
+    )
     from aia_core.domain.methodology import MODULES
 
     return {
@@ -36,6 +42,7 @@ def document() -> dict[str, Any]:
             for m in MODULES
         },
         "presets": {m.id: _presets(m.id) for m in MODULES},
+        "field_policy": field_policy_tables().model_dump(mode="json"),
     }
 
 

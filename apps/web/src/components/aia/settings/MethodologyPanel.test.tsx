@@ -71,6 +71,8 @@ describe("the Metodika tab", () => {
       "Sociomapa: objektová mapa", "Sociomapa: referenční mapa (18.6.6)", "Sociomapping: experimentální H-Model (kandidát AIA)",
       "Agregace: z odpovědí odhad s intervalem", "Podpora a potlačení: kdy se číslo smí ukázat",
       "Odpověď respondenta: od pravděpodobností modelu k odpovědi", "Vážení: která váha patří respondentovi a co s neplatnou",
+      // Read-only and not a method module: the population's field policy (V1c).
+      "Původ polí: k čemu smí sloužit",
     ]);
     expect(within(nav).getByRole("group", { name: "Před spuštěním" })).toBeTruthy();
     expect(within(nav).getByRole("group", { name: "Mapy objektů" })).toBeTruthy();

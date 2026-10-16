@@ -78,8 +78,9 @@ try {
   checks.push("All eight purpose-grouped tabs retain their hashes and show scope/ownership facts");
   await page.locator("#tab-methodology").click();
   const nav = page.getByRole("navigation", { name: "Oblasti metodiky" });
-  for (const name of ["Mapy objektů", "Čísla ve výsledcích", "Respondenti a váhy"]) assert(await nav.getByRole("group", { name }).isVisible());
-  assert.equal(await nav.getByRole("button").count(), 7);
+  for (const name of ["Před spuštěním", "Mapy objektů", "Čísla ve výsledcích", "Respondenti a váhy", "Populace a tvrzení"]) assert(await nav.getByRole("group", { name }).isVisible());
+  // Eight method modules and the read-only field-origin area (methodology-tab V1c).
+  assert.equal(await nav.getByRole("button").count(), 9);
   await timed("Open editable support module", nav.getByRole("button", { name: "Podpora a potlačení: kdy se číslo smí ukázat" }), '[data-methodology-versions="support"]');
   await page.getByRole("button", { name: "Změnit oblast" }).click();
   await timed("Return to object map", nav.getByRole("button", { name: "Sociomapa: objektová mapa" }), '[data-methodology-versions="sociomap"]');
