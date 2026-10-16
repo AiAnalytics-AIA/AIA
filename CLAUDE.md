@@ -1055,6 +1055,9 @@ packages/aia_core/src/aia_core/
     population_source.py    PopulationAssetSource: filesystem / memory (EU store later)
     ai_usage_repository.py  Append-only AI usage ledger; uncertain-call resolution
     ai_call_journal.py      CallJournal over the workflow attempt + ledger
+    archive_index.py        What RetrievalGate asks of a URL index and an archive fetcher (UrlIndex,
+                            ArchiveRecordFetcher, IndexQueryFailed): protocols only, no wire;
+                            common_crawl.py implements them
     http_transport.py       What every outbound HTTP adapter shares: certificate_refused,
                             CredentialSource, SigningUnavailable (model adapters and web routes alike; nothing outside
                             the executor compositions imports model_adapters, an import contract)
