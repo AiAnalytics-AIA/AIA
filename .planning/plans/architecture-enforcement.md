@@ -189,6 +189,14 @@ Probed on one tree, each restored after:
 fail the contract; a fourth ignore line (`application.research -> tables`) that no
 import matches fails the run ("No matches for ignored import").
 
+The facade gap (Codex on AiAnalytics-AIA/AIA#472): `infrastructure/__init__.py:43-65 @
+78cf889b` re-exported 20 row classes, `Base` and `utcnow` from `tables`, so
+`from ..infrastructure import StudyRow` in `application/research.py` was an edge to the
+package, and the contract stayed KEPT with it present (reproduced). Nothing imported
+them through the package (an AST sweep of every source, test, migration and tool
+tree), so the re-exports are removed rather than guarded by a second contract;
+`test_infrastructure_facade.py` fails if the package exports a `tables` object again.
+
 `layer_check`: 142 rules + 6 contracts.
 
 ## Findings
@@ -313,3 +321,9 @@ For the next docs-only PR:
   - Application's "Owns" cell, after "Orchestrates domain + infrastructure.":
     "Reaches rows only through a repository (chunk 5's contract)."
 
+- **AGENTS.md**, import-linter (chunk 5): a forbidden contract on a module sees only
+  edges to that module. WRONG: forbid `pkg.tables` while `pkg/__init__.py` re-exports
+  its classes -- `from pkg import StudyRow` is an edge to `pkg` and the contract stays
+  KEPT (`allow_indirect_imports = true`; with `false` every importer of the package
+  breaks it). RIGHT: the package re-exports nothing from the forbidden module, held by a
+  test (`test_infrastructure_facade.py`).
