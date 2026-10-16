@@ -197,6 +197,14 @@ them through the package (an AST sweep of every source, test, migration and tool
 tree), so the re-exports are removed rather than guarded by a second contract;
 `test_infrastructure_facade.py` fails if the package exports a `tables` object again.
 
+The facade's re-exports were not the whole gap (Codex, second pass on #474): Python
+attaches every imported submodule to its package, so `from aia_core import
+infrastructure` then `infrastructure.tables.StudyRow` reaches a row with no import edge
+to `tables`, and no test can remove that attribute. A grep rule now refuses the attribute
+path in `application/` (`infrastructure.tables`, or `tables.<Name>Row` after any alias),
+with the ratchet's three modules exempt by path. Probed: both forms fail; `getattr(pkg,
+"tables")` still passes, which chunk 10's AST check is the place for.
+
 `layer_check`: 142 rules + 6 contracts.
 
 ## Findings
