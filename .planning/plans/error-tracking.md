@@ -101,6 +101,11 @@ days.
   reproduced by a test here. The reporter is not affected: it tags the request id when the request
   starts (`error_tracking.set_tags`), and `apps/api/tests/test_api_error_reporting.py` asserts it.
 
+- GlitchTip never turned healthy on its first start (2026-10-16): the image's health check asks
+  `http://localhost:8000/_health/` and `ALLOWED_HOSTS` named only the public name and `glitchtip`,
+  so Django answered 400 and `bin/errors.sh up` timed out while the service ran.
+  `deploy/develop/errors/docker-compose.yml` @ f5383923; fixed by adding `localhost`.
+
 ## Doc follow-up
 
 - `CLAUDE.md` § map: `aia_core/infrastructure/redaction.py` (every process's redaction, OI-23) and

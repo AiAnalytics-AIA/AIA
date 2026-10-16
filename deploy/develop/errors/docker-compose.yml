@@ -33,8 +33,10 @@ services:
       VALKEY_URL: ""
       SECRET_KEY: ${GLITCHTIP_SECRET_KEY:?SSM glitchtip_secret_key}
       GLITCHTIP_DOMAIN: https://errors.${AIA_PUBLIC_HOSTNAME:?}
-      # The public name for people, `glitchtip` for the API and the worker inside.
-      ALLOWED_HOSTS: errors.${AIA_PUBLIC_HOSTNAME},glitchtip
+      # The public name for people, `glitchtip` for the API and the worker inside, and
+      # `localhost` for the image's own health check (/code/healthcheck.py asks
+      # http://localhost:8000/_health/; refused, the container never turns healthy).
+      ALLOWED_HOSTS: errors.${AIA_PUBLIC_HOSTNAME},glitchtip,localhost
       CSRF_TRUSTED_ORIGINS: https://errors.${AIA_PUBLIC_HOSTNAME}
       # Accounts are made by an operator (README § Error tracking), never by a visitor.
       ENABLE_USER_REGISTRATION: "false"
