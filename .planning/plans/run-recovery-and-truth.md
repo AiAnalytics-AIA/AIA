@@ -18,8 +18,8 @@ chunks:
   - "[x] 6a. Web: one run state (running, waiting, needs repair, evidence unavailable, results ready, report ready) read by every screen and the stage track"
   - "[x] 6b. Web: plain reasons, never a raw code: Deep Research and Interpretation Research steps, preflight checks, unknown keys"
   - "[x] 6c. Web: a measure, a trace and a citation name the question by its wording; the id only under technical details"
-  - "[ ] 6d. Web: what remains of the study's budget beside every start, retry, analysis retry and budget lift"
-  - "[ ] 6e. Web: one report rule (composing, draft, approved, refused) for the report card, the internal report, Interpretation Research and project memory"
+  - "[x] 6d. Web: what remains of the study's budget beside every start, retry, analysis retry and budget lift"
+  - "[x] 6e. Web: one report rule (composing, draft, approved, refused) for the report card, the internal report, Interpretation Research and project memory"
 ---
 
 # Run recovery and truthful run state
@@ -571,7 +571,26 @@ blocked module in the step list; an inventory on 2026-10-16 (@ c809315b) found t
   in the next full run; no cause found.
 - **6d.** `budgetLine(study, ceiling)`: what remains and what this action can cost at most,
   unknown said, never zero.
+  As built: `lib/budget-line.ts` `budgetLine(study, ceiling?)` and `withBudget`, which reads the
+  study when a confirmation asks, so its numbers are those of that moment. Each question already
+  names its ceiling, so the line says only what follows: what remains, what is left after at the
+  least, or that the step would stop for a person to lift the budget. The start, the retry, the
+  analysis retry, Interpretation Research's start and retry, and Design Research's start and
+  retry all add it. Design Research's start and retry did not answer the study's limit at all:
+  a 409 `cost_confirmation_required` showed as an error, and `deepResearch.start` sent no
+  `confirm_cost_usd`. Both now ask. The budget lift read an unreported spend as 0 USD; it now
+  says so in words, beside what remains.
 - **6e.** `reportStatus(report)`, read by the four.
+
+  As built: `lib/report-status.ts` reads the report endpoint's answer: the stored report and its
+  review, the report step's own status until then, or NOT_IN_RUN. It gives NONE, COMPOSING,
+  NOT_MADE, FAILED, REFUSED, DRAFT, APPROVED or UNKNOWN; a report not read, or a state the client
+  does not know, is UNKNOWN. `reviewStatus` reads a downloaded document's review the same way,
+  and `approvalRefusal` words the separation-of-duties refusal. Interpretation Research had kept
+  its own copy of that wording. The report card had said "zpráva se ještě skládá" for every report
+  not yet stored: a failed or refused one too. It now says which. Project memory keeps its rule
+  that "none" comes from the run's steps alone, and reads NOT_IN_RUN against a run with a report
+  step as unknown.
 
 ## Doc follow-up
 
@@ -664,3 +683,11 @@ blocked module in the step list; an inventory on 2026-10-16 (@ c809315b) found t
 - 6c, `CLAUDE.md` § map, `src/lib/result-reading.ts`: append "untitled: a measure without stored
   wording titled in words, never by its id"; `research-execution.ts` traceMeasures: "an unlisted
   measure's id kept as code, never its text".
+- 6d, `CLAUDE.md` § map, web `src/lib/` (new line): "budget-line.ts: what remains of a study's
+  budget beside what an action can cost (budgetLine, withBudget: read as a confirmation asks;
+  unknown never zero), on every start, retry, analysis retry, Deep Research start and budget lift";
+  `api.ts` deepResearch.start takes confirmCostUsd.
+- 6e, `CLAUDE.md` § map, web `src/lib/` (new line): "report-status.ts: one rule for a run's internal
+  report (reportStatus: NONE, COMPOSING, NOT_MADE, FAILED, REFUSED, DRAFT, APPROVED, UNKNOWN;
+  reviewStatus; approvalRefusal), read by CompleteReport, the internal report panel, project
+  memory's runLabels and Interpretation Research".

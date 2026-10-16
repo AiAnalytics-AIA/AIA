@@ -8,6 +8,7 @@
 // place a report is downloaded and approved; the report panel below shows its provenance.
 
 import { useEffect, useState } from "react";
+import { approvalRefusal, reportStatus, reportStatusWords, reviewStatus } from "@/lib/report-status";
 
 import { t } from "@/i18n/t";
 import { ApiError, type ResearchReport, type ResearchRun, research } from "@/lib/api";
@@ -110,7 +111,7 @@ export function CompleteReport({ run }: { run: ResearchRun }) {
       ? "PDF se nepodařilo vytvořit; zpráva je k dispozici jako DOCX."
       : pdfReady ? null : "Tento běh PDF nevytvořil.";
   const chosenFormat: Format = pdfWhy ? "docx" : format;
-  const approved = version === "client" ? client?.approved === true : report?.review_state === "APPROVED_INTERNAL";
+  const approved = version === "client" ? client?.approved === true : reviewStatus(report?.review_state) === "APPROVED";
   const approvable = version === "client" ? client !== null : Boolean(report?.artifact_id);
 
   const run_ = async (work: () => Promise<void>) => {
@@ -119,8 +120,7 @@ export function CompleteReport({ run }: { run: ResearchRun }) {
     try {
       await work();
     } catch (e) {
-      setError(e instanceof ApiError && e.code === "separation_of_duties"
-        ? t("research.exec.results.reportApproveIndependent") : message(e));
+      setError(approvalRefusal(e));
     } finally {
       setBusy(false);
     }
@@ -129,7 +129,7 @@ export function CompleteReport({ run }: { run: ResearchRun }) {
     if (version === "client") {
       const got = await research.downloadClientReport(frame.studyId, run.run_id);
       saveBlob(got.blob, `AIA-${frame.studyId}-klient.docx`);
-      setClient(got.artifactId ? { artifactId: got.artifactId, approved: got.reviewState === "APPROVED_INTERNAL" } : null);
+      setClient(got.artifactId ? { artifactId: got.artifactId, approved: reviewStatus(got.reviewState) === "APPROVED" } : null);
     } else if (chosenFormat === "pdf") {
       saveBlob(await research.downloadReportPdf(frame.studyId, run.run_id), `AIA-${frame.studyId}-zprava.pdf`);
     } else {
@@ -146,11 +146,15 @@ export function CompleteReport({ run }: { run: ResearchRun }) {
     }
   });
 
-  const stateLine = !report
-    ? reportStep ? "Stav: zpráva se ještě skládá" : "Tento běh zprávu nevytváří"
-    : version === "client" && !client
-      ? "Stav: klientská zpráva se složí při stažení; schvalujete právě tu, kterou stáhnete"
-      : approved ? "Stav: schváleno" : "Stav: koncept, zatím neschválený";
+  // The report's state by the one rule (6e); a report still being read is said to be loading.
+  const internal = !reportStep ? "NONE" : status === null ? null : reportStatus(status);
+  const stateLine = internal === null
+    ? t("research.loading")
+    : !report
+      ? `Stav: ${reportStatusWords(internal)}`
+      : version === "client" && !client
+        ? "Stav: klientská zpráva se složí při stažení; schvalujete právě tu, kterou stáhnete"
+        : `Stav: ${reportStatusWords(approved ? "APPROVED" : "DRAFT")}`;
 
   return (
     <section aria-labelledby="complete-report-title" data-complete-report className="overflow-hidden rounded-card border border-ink bg-surface-raised">

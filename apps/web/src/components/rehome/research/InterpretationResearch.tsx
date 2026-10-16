@@ -10,6 +10,8 @@ import { useStepActivity } from "./useStepActivity";
 import { needsRepair, phaseLabel } from "@/lib/research-execution";
 import { codedText, codeWords, coverageWords, deepStepLabel, stepProblem } from "@/lib/reason-words";
 import { CodedWords } from "./CodedWords";
+import { withBudget } from "@/lib/budget-line";
+import { approvalRefusal, reviewStatus } from "@/lib/report-status";
 import { AiButton, Button, Field, Select } from "../ui";
 import { useResearch } from "./context";
 import { FormattedText } from "./FormattedText";
@@ -89,7 +91,7 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
       } catch (e) {
         if (!(e instanceof ApiError) || e.code !== "cost_confirmation_required" || typeof e.details.ceiling_usd !== "number") throw e;
         const ceiling = e.details.ceiling_usd;
-        if (!await confirm(`Rešerše může stát nejvýše ${ceiling.toFixed(2)} USD. Čerpá rozpočet této studie. Spustit?`)) return;
+        if (!await confirm(await withBudget(frame.studyId, `Rešerše může stát nejvýše ${ceiling.toFixed(2)} USD. Čerpá rozpočet této studie. Spustit?`, ceiling))) return;
         job = await deepResearch.interpret(frame.studyId, run.run_id, artifact, preset, ceiling);
       }
       setJobs(old => [job, ...old.filter(j => j.run_id !== job.run_id)]);
@@ -104,7 +106,7 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
     try {
       const got = await deepResearch.downloadContextReport(frame.studyId, run.run_id, current.run_id);
       saveBlob(got.blob, `AIA-${frame.studyId}-with-research.docx`);
-      setStored(got.artifactId ? { runId: current.run_id, artifactId: got.artifactId, approved: got.reviewState === "APPROVED_INTERNAL" } : null);
+      setStored(got.artifactId ? { runId: current.run_id, artifactId: got.artifactId, approved: reviewStatus(got.reviewState) === "APPROVED" } : null);
     } catch (e) { setError(message(e)); }
     finally { setBusy(false); }
   };
@@ -116,8 +118,7 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
       await research.approveReport(frame.studyId, run.run_id, currentStored.artifactId);
       setStored({ ...currentStored, approved: true });
     } catch (e) {
-      setError(e instanceof ApiError && e.code === "separation_of_duties"
-        ? "Tuto zprávu musí schválit někdo jiný než ten, kdo ji vytvořil." : message(e));
+      setError(approvalRefusal(e));
     } finally { setBusy(false); }
   };
 
@@ -130,7 +131,7 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
       catch (e) {
         if (action !== "retry" || !(e instanceof ApiError) || e.code !== "cost_confirmation_required" || typeof e.details.ceiling_usd !== "number") throw e;
         const ceiling = e.details.ceiling_usd;
-        if (!await confirm(`Opakování rešerše může stát nejvýše ${ceiling.toFixed(2)} USD. Čerpá rozpočet této studie. Pokračovat?`)) return;
+        if (!await confirm(await withBudget(frame.studyId, `Opakování rešerše může stát nejvýše ${ceiling.toFixed(2)} USD. Čerpá rozpočet této studie. Pokračovat?`, ceiling))) return;
         await deepResearch.retry(frame.studyId, current.run_id, ceiling);
       }
       setRefresh(n => n + 1);

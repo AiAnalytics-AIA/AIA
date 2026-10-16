@@ -2,6 +2,7 @@
 // what matches (one client, every word, accent-folded); this says when a query is worth
 // sending and how a hit explains itself.
 
+import { reportStatus } from "./report-status";
 import type { DesignSourceLabels, MemoryHit, ResearchReport, ResearchRun, ResearchRunSummary, StudyKind } from "./api";
 import { hasUnknownOrigin, isModelled, isSynthetic } from "./research-execution";
 
@@ -62,7 +63,14 @@ export function runLabels(run: ResearchRun | ResearchRunSummary, report?: Resear
   const hasReport = steps ? steps.some((s) => s.kind === "research_report") : null;
   let reportLabel: RunReportLabel = "unknown";
   if (hasReport === false) reportLabel = "none";
-  else if (report?.state === "READY") reportLabel = report.review_state === "APPROVED_INTERNAL" ? "approved_internal" : "draft";
+  else {
+    // The report's state by the one rule (report-status.ts): only a stored report is a draft or
+    // approved. "None" comes from the run's steps alone; an API's NOT_IN_RUN against a run whose
+    // steps hold a report step is a contradiction, read unknown.
+    const status = reportStatus(report);
+    if (status === "APPROVED") reportLabel = "approved_internal";
+    else if (status === "DRAFT") reportLabel = "draft";
+  }
   const internal = steps ? steps.some((s) => INTERNAL_KINDS.has(s.kind)) : false;
   return { data, report: reportLabel, internal };
 }
