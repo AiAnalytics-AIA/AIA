@@ -2,12 +2,16 @@
 #
 # Lightweight layering enforcement for AIA.
 #
-# One rule here per rule stated in ARCHITECTURE.md. Deliberately grep-level: no
-# AST, no dependency-graph tool, nothing to install. A checker that needs its own
-# toolchain gets disabled the first time that toolchain breaks, and then the
-# layering rots silently -- which is the failure this file exists to prevent.
+# One rule here per rule stated in ARCHITECTURE.md. This script is the text half
+# of `make layer_check`: grep rules over names and patterns, with nothing to
+# install. Which module may import which is the other half, the import contracts
+# in the root pyproject.toml ([tool.importlinter]), which read real imports in
+# every form; `make layer_check` runs both and fails if either does. A rule about
+# imports belongs there. A rule here sees text only: an alias, a parenthesised
+# import or importlib passes it.
 #
-# Exit 0 = every rule passes. Run it before every commit; CI runs it blocking.
+# Exit 0 = every rule passes. Run `make layer_check` before every commit; CI runs it
+# blocking, and the docs-only job runs this script alone.
 #
 # Adding a rule: state it under Doc follow-up (the docs PR adds it to ARCHITECTURE.md), then add one `forbid` line
 # here. Rules are a ratchet -- each one is added only once it already passes, so
@@ -51,10 +55,22 @@ forbid() {
     return 0
   fi
 
-  local hits line kept=()
+  # grep exits 0 on a match, 1 on none and 2 when it could not search: an invalid
+  # pattern, an unreadable file. 2 fails the rule -- swallowed, a typo in a pattern
+  # turned its rule into "ok" with the violation still there (measured).
+  local hits line kept=() err status
+  err=$(mktemp)
   hits=$(grep -rHn --exclude-dir=node_modules --exclude-dir=.next \
            --exclude-dir=__pycache__ --exclude-dir=.venv \
-           -E "$pattern" "$path" 2>/dev/null || true)
+           -E "$pattern" "$path" 2>"$err")
+  status=$?
+  if [ "$status" -gt 1 ]; then
+    printf 'FAIL  %s\n      (grep could not search: %s)\n' "$rule" "$(head -n 1 "$err")"
+    rm -f "$err"
+    FAILED=1
+    return 0
+  fi
+  rm -f "$err"
   while IFS= read -r line; do
     [ -n "$line" ] || continue
     for ex in "${exempt[@]}"; do
@@ -816,23 +832,50 @@ forbid "readiness never reads the Sociomap's code constants" \
   "$SOCIOMAP_CODE_CONSTANTS" \
   "$CORE/domain/research_design.py"
 
+# --- Suppressions: a ban is lifted in pyproject.toml, never inline ----------
+#
+# Ruff's banned-api (TID251) is the network-egress fence, and its exits are named per
+# file in the root pyproject.toml, where a reviewer reads them. An inline
+# `# noqa: TID251`, a bare `# noqa` (every code) or a code-less `# ruff: noqa` (the
+# whole file) lifts it in a line of a large diff instead, and nothing fails (measured
+# at e57c3b82). A code-scoped file directive (`# ruff: noqa: RUF001`) names what it
+# lifts and stays allowed. Ruff reads a line's `noqa` in any case (`# NOQA` suppresses,
+# measured), so these do too; it honours `# ruff: noqa` only in lower case.
+for tree in "$CORE" "$API" "$WORKER" "$EXECUTORS"; do
+  forbid "the egress ban is never suppressed inline ($tree)" \
+    '#\s*[Nn][Oo][Qq][Aa]:[^#]*\bTID251\b' \
+    "$tree"
+  forbid "no bare noqa suppresses every rule on a line ($tree)" \
+    '#\s*[Nn][Oo][Qq][Aa]\b\s*($|[^:])' \
+    "$tree"
+  forbid "no code-less ruff: noqa suppresses a whole file ($tree)" \
+    '#\s*ruff\s*:\s*noqa\b\s*($|[^:])' \
+    "$tree"
+done
+
 # --- Tests: the signal is never deleted ------------------------------------
 #
 # A failing test is a finding (ARCHITECTURE.md §7). Runtime `pytest.skip(...)`
 # is allowed and used deliberately -- a missing PostgreSQL or a missing legacy
 # reference checkout is a real environment fact. A *static* skip or xfail is
 # different: it removes the signal permanently and silently.
+# Any reference to the marker counts, not only the decorator: a module's
+# `pytestmark = pytest.mark.skip`, an alias (`skip = pytest.mark.skip`, then `@skip`)
+# and `from pytest import mark` all passed the decorator-only pattern (measured at
+# e57c3b82). `skipif` stays refused, as the decorator-only pattern refused it: a
+# condition decided at collection drops the test as silently. A runtime `pytest.skip(...)`
+# inside the test is the allowed form.
 forbid "no statically skipped or xfailed tests" \
-  '@pytest\.mark\.(skip|xfail)' \
+  '\bmark\.(skip|xfail)' \
   packages/aia_core/tests
 forbid "no statically skipped or xfailed API tests" \
-  '@pytest\.mark\.(skip|xfail)' \
+  '\bmark\.(skip|xfail)' \
   apps/api/tests
 forbid "no statically skipped or xfailed worker tests" \
-  '@pytest\.mark\.(skip|xfail)' \
+  '\bmark\.(skip|xfail)' \
   apps/worker/tests
 forbid "no statically skipped or xfailed executor tests" \
-  '@pytest\.mark\.(skip|xfail)' \
+  '\bmark\.(skip|xfail)' \
   apps/executors/tests
 
 # --- Presentation: the client renders, it does not decide -------------------
