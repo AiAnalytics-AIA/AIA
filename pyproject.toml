@@ -150,6 +150,39 @@ forbidden_modules = [
 ]
 allow_indirect_imports = false
 
+# ARCHITECTURE.md §2: the core's three layers, each importing only the layers
+# below it. The domain is pure (no I/O); infrastructure implements what the domain
+# names; application orchestrates both. The grep rule this replaces matched only
+# `from ..application` / `from aia_core.application`, so `from ...application`
+# written from a domain subpackage and `import aia_core.application.x` passed it
+# (probed); the import graph sees every form, and indirect chains too. Dynamic
+# imports are invisible to both: there is one in the domain
+# (domain/methodology/resolution.py, importlib.import_module of a declared
+# function's module), checked by its own tests.
+# TODO(architecture-enforcement chunk 4, open with Kyi): application/scope.py
+# queries tables directly (select() over infrastructure.tables, scope.py:23,45),
+# as do application/develop_seed.py and application/workspace_migration.py.
+# Whether that is a deliberate exception or moves behind a repository is not
+# decided, so no contract forbids it yet; when it is, it lands here with any
+# exception named.
+[[tool.importlinter.contracts]]
+name = "the core's layers: application above infrastructure above domain"
+type = "layers"
+containers = ["aia_core"]
+layers = ["application", "infrastructure", "domain"]
+
+# The three apps meet only through aia_core and one seam: a step implementation
+# depends on the worker's executor protocol (aia_worker.executor), never on the
+# loop, and nothing reaches the API. The worker finds the executors at run time
+# through AIA_WORKER_EXECUTORS (aia_worker/registry.py, importlib), which no
+# graph sees, by design. Source only: the tests cross on purpose (the API's slice
+# test drives a real worker).
+[[tool.importlinter.contracts]]
+name = "the API, the worker and the executors are independent but for the executor seam"
+type = "independence"
+modules = ["aia_api", "aia_worker", "aia_executors"]
+ignore_imports = ["aia_executors.** -> aia_worker.executor"]
+
 [tool.pytest.ini_options]
 # Both test directories are called `tests`, so they are not importable packages.
 # Helpers are shared through conftest fixtures rather than imports.
