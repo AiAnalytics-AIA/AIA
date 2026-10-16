@@ -523,7 +523,7 @@ describe("Run: what a run can cost (5b.2)", () => {
     fireEvent.click(await screen.findByRole("button", { name: t("research.exec.start") }));
     const dialog = await screen.findByRole("dialog");
     // Beside the question, what remains of the study's budget, read as it asks (6d).
-    expect(within(dialog).getByText("Tento běh může stát až 225.00 USD (limit studie je 100.00 USD). Spustit? Z rozpočtu studie zbývá 400.00 USD. Poté zbude nejméně 175.00 USD.")).toBeTruthy();
+    expect(within(dialog).getByText("Tento běh může stát až 225.00 USD (limit studie je 100.00 USD). Spustit? Z rozpočtu studie zbývá 400.00 USD. I při nejvyšší ceně by zbylo 175.00 USD, bez částek, které právě drží běžící kroky.")).toBeTruthy();
     fireEvent.click(within(dialog).getByRole("button", { name: t("dialog.cancel") }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(called("POST", RUNS)).toHaveLength(0); // no yes, no run
@@ -657,7 +657,7 @@ describe("Run: what a run can cost (5b.2)", () => {
     fireEvent.click(await screen.findByRole("button", { name: t("research.exec.retry") }));
     const dialog = await screen.findByRole("dialog");
     // Beside the question, what remains of the study's budget, read as it asks (6d).
-    expect(within(dialog).getByText("Tento běh může stát až 225.00 USD (limit studie je 100.00 USD). Spustit? Z rozpočtu studie zbývá 400.00 USD. Poté zbude nejméně 175.00 USD.")).toBeTruthy();
+    expect(within(dialog).getByText("Tento běh může stát až 225.00 USD (limit studie je 100.00 USD). Spustit? Z rozpočtu studie zbývá 400.00 USD. I při nejvyšší ceně by zbylo 175.00 USD, bez částek, které právě drží běžící kroky.")).toBeTruthy();
     fireEvent.click(within(dialog).getByRole("button", { name: "OK" }));
     expect(await screen.findByText("Opakování běhu RUN-1")).toBeTruthy();
     expect(asked).toBe(1);

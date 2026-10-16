@@ -12,8 +12,10 @@ const usd = (v: unknown): number | null => (typeof v === "number" && Number.isFi
 
 /**
  * The study's remaining budget in words and, when `ceiling` is given (a number, or null for "cannot
- * be worked out"), what follows from it: what is left after the action at the least, or that it can
- * cost more than remains and would stop for a person to lift the budget. The question it is added to
+ * be worked out"), what follows from it: what the action at its ceiling would leave, or that it can
+ * cost more than remains and may stop for a person to lift the budget. The API's remainder is the
+ * budget less recorded spend; what running steps hold is not in it, so the line says so and promises
+ * nothing it cannot see. The question it is added to
  * names the ceiling itself; with the remainder unknown, nothing follows and nothing is said.
  */
 export function budgetLine(study: StudyBudget | null | undefined, ceiling?: number | null): string {
