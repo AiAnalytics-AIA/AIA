@@ -60,19 +60,19 @@ function Origin({ tables, pop }: { tables: FieldPolicyTables; pop: Population })
       <div className="flex min-w-0 flex-col gap-4">
         <section aria-labelledby="fo-origin" className="rounded-md border border-border bg-surface-raised">
           <div className="px-4 pb-3 pt-3"><h4 id="fo-origin" className="font-semibold">{t(`${F}.originTitle`)}</h4><p className="mt-1 text-xs leading-5 text-ink-muted">{t(`${F}.originHelp`)}</p></div>
-          {tables.origins.map((o) => <button key={o.id} type="button" aria-pressed={on("origin", o.id)} onClick={() => pick({ kind: "origin", id: o.id })} className={`${rowClass(on("origin", o.id))} grid-cols-[180px_minmax(0,1fr)_80px_170px]`}>
+          {tables.origins.map((o) => <button key={o.id} type="button" aria-pressed={on("origin", o.id)} onClick={() => pick({ kind: "origin", id: o.id })} className={`${rowClass(on("origin", o.id))} grid-cols-1 gap-y-1 md:grid-cols-[180px_minmax(0,1fr)_80px_170px]`}>
             <strong>{originName(o.id)}</strong>
             <span className="text-xs leading-5 text-ink-muted">{ORIGIN_WORDS[o.id]?.means ?? o.statuses.join(", ")}</span>
-            <span className="text-right text-xs text-ink-muted">{shown(n.origins[o.id])}</span>
+            <span className="text-xs text-ink-muted md:text-right">{shown(n.origins[o.id])}</span>
             <span className={`justify-self-start rounded-full px-2 py-0.5 text-xs font-semibold ${o.measured ? "bg-surface-sunken text-ink" : "bg-status-you-wash text-status-you-ink"}`}>{o.measured ? t(`${F}.asMeasured`) : t(`${F}.asModelled`)}</span>
           </button>)}
         </section>
         <section aria-labelledby="fo-rules" className="rounded-md border border-border bg-surface-raised">
           <div className="px-4 pb-3 pt-3"><h4 id="fo-rules" className="font-semibold">{t(`${F}.rulesTitle`)}</h4><p className="mt-1 text-xs leading-5 text-ink-muted">{tv(`${F}.rulesHelp`, { n: tables.phrases.length })}</p></div>
-          {ruleIds(tables).map((r) => <button key={r} type="button" aria-pressed={on("rule", r)} onClick={() => pick({ kind: "rule", id: r })} className={`${rowClass(on("rule", r))} grid-cols-[240px_minmax(0,1fr)_80px]`}>
+          {ruleIds(tables).map((r) => <button key={r} type="button" aria-pressed={on("rule", r)} onClick={() => pick({ kind: "rule", id: r })} className={`${rowClass(on("rule", r))} grid-cols-1 gap-y-1 md:grid-cols-[240px_minmax(0,1fr)_80px]`}>
             <strong>{ruleName(r)}</strong>
             <span className="text-xs leading-5 text-ink-muted">{RULE_WORDS[r]?.effect ?? r}</span>
-            <span className="text-right text-xs text-ink-muted">{shown(n.rules[r])}</span>
+            <span className="text-xs text-ink-muted md:text-right">{shown(n.rules[r])}</span>
           </button>)}
         </section>
         <section aria-labelledby="fo-grade" className="rounded-md border border-border bg-surface-raised">
