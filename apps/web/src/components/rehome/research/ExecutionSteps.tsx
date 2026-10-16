@@ -1370,6 +1370,9 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
   const aggregate = useArtifact(run, "aggregate");
   const sociomap = useArtifact(run, "sociomap");
   const sociomapping = useArtifact(run, "sociomapping");
+  // The literature review the report variant adds (research-integrity-report 3): chosen once,
+  // read by the report card above and the literature panel below, never two selections.
+  const [review, setReview] = useState<string | null>(null);
   const report = run?.steps.some((step) => step.kind === "research_report")
     ? <InternalReport key={run.run_id} run={run} progressHref={progressHref} />
     : <p className="text-sm text-ink-muted">{t("research.exec.results.reportNotInAia")}</p>;
@@ -1394,7 +1397,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
   </section>;
   return <ResultsWorkspace run={run} progressHref={progressHref}
     notice={<><OriginBanners run={run} /><RespondentsReceipt run={run} /></>}
-    lead={session ? <CompleteReport run={run} /> : null}
+    lead={session ? <CompleteReport run={run} review={review} onReview={setReview} /> : null}
     panels={[
       { id: "data", label: "Data", description: "Odpovědi a srovnání hodnocených objektů. U každého výsledku zůstává uvedena podpora dat a nejistota.", content: <>
       <Card id="res-aggregate" title={t("research.exec.results.aggregate")}>
@@ -1426,7 +1429,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
       ...(showAnalysis ? [{ id: "analysis", label: "AI analýza", description: "Souhrn, odpovědi na výzkumné otázky a omezení. Interpretace vychází z podkladů tohoto běhu a čeká na posouzení výzkumníkem.", content: <div id="res-analysis"><AnalysisResults key={run.run_id} run={run} spec={pinnedSpecification(specification?.state === "ready" ? specification.value : null)} /></div> }] : []),
       { id: "report", label: "Rešerše a zpráva", description: "Zkontrolujte připravenost interní zprávy, přijaté externí podklady a omezení rešerše. Dostupnost stažení závisí na úplnosti analýzy.", content: <>
         <div id="res-report">{report}</div>
-        {showAnalysis && frame.canEdit ? <InterpretationResearch key={run.run_id} run={run} /> : null}
+        {showAnalysis && frame.canEdit ? <InterpretationResearch key={run.run_id} run={run} review={review} onReview={setReview} /> : null}
         <details><summary className="cursor-pointer text-sm font-medium">Klientské znalosti a kontextová AI pomoc</summary><div className="mt-3">{knowledgeContext}</div></details>
       </> },
     ]} />;

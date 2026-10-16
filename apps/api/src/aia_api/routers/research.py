@@ -12,7 +12,7 @@ from __future__ import annotations
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Annotated, Any, Final
+from typing import Annotated, Any, Final, Literal
 
 from aia_core.application.analysis_results import (
     AnalysisNotRetryable,
@@ -37,6 +37,12 @@ from aia_core.application.report import (
     ReportCompositionRefused,
 )
 from aia_core.application.report_approval import ReportNotApprovable, approve_report
+from aia_core.application.report_variants import (
+    PdfState,
+    VariantState,
+    VariantStatus,
+    variant_status,
+)
 from aia_core.application.research import (
     BudgetNotRaised,
     CostCeilingUnknown,
@@ -1738,6 +1744,16 @@ def _pdf_state(
     return None
 
 
+def _review_headers(docx: Artifact, filename: str) -> dict[str, str]:
+    return {
+        "Content-Disposition": f'attachment; filename="{filename}"',
+        "Cache-Control": "no-store",
+        # The stored draft these bytes are (or render), for its review and approval (B2).
+        "X-AIA-Artifact-Id": docx.artifact_id,
+        "X-AIA-Review-State": "APPROVED_INTERNAL" if docx.is_approved else "DRAFT_UNAPPROVED",
+    }
+
+
 @router.get(
     "/research/runs/{run_id}/report/pdf/download",
     summary="Download the run's internal report as PDF (a rendering of the stored DOCX)",
@@ -1758,15 +1774,11 @@ def download_run_report_pdf(
         data = repo.read(pdf.artifact_id)
     except (IntegrityError, ObjectNotFound) as exc:
         raise artifact_corrupt(session) from exc
+    assert report is not None  # a PDF is served only as the stored report's rendering
     return Response(
         content=data,
         media_type=PDF_MEDIA_TYPE,
-        headers={
-            "Content-Disposition": (
-                f'attachment; filename="AIA-{scope.study_id}-internal-draft.pdf"'
-            ),
-            "Cache-Control": "no-store",
-        },
+        headers=_review_headers(report, f"AIA-{scope.study_id}-internal-draft.pdf"),
     )
 
 
@@ -1788,36 +1800,131 @@ def download_run_report(
         data = research_artifacts(session, scope, store).read(artifact.artifact_id)
     except (IntegrityError, ObjectNotFound) as exc:
         raise artifact_corrupt(session) from exc
-    filename = f"AIA-{scope.study_id}-internal-draft.docx"
     return Response(
         content=data,
         media_type=INTERNAL_REPORT_MEDIA_TYPE,
-        headers={
-            "Content-Disposition": f'attachment; filename="{filename}"',
-            "Cache-Control": "no-store",
-        },
+        # The same headers as its PDF: the page checks the draft it downloaded is the one it
+        # approves (research-integrity-report 3).
+        headers=_review_headers(artifact, f"AIA-{scope.study_id}-internal-draft.docx"),
     )
 
 
 # The experimental Sociomapping's internal draft, read only through the run that produced it.
 
 
-@router.get(
-    "/research/runs/{run_id}/report/context/download",
-    response_class=Response,
-    summary="Internal report with an explicitly selected interpretation research run",
+DeepResearchRunIdQuery = Annotated[str, Query(max_length=64, pattern=r"^RUN-[0-9a-f]{1,32}$")]
+_CONTEXT_REFUSALS = (
+    ReportCompositionRefused,
+    ReconstructionRefused,
+    ReportInvalid,
+    BundleNotReady,
+    LineageChanged,
+    RunNotGoverned,
+    RunSpecCorrupt,
+    ArtifactNotFound,
+    ValueError,
+)
+
+
+class ReportVariantPdfResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    state: PdfState
+    artifact_id: str | None = None
+    sha256: str | None = None
+    size_bytes: int | None = None
+    #: Why a FAILED or INVALID PDF is not there (``pdf_disabled``, ``pdf_conversion_failed`` …).
+    reason: str | None = None
+
+
+class ReportVariantResponse(BaseModel):
+    """The report of a run with one chosen literature review (research-integrity-report 3):
+    its stored draft and the PDF rendered from exactly that draft."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    run_id: str
+    deep_research_run_id: str
+    state: VariantState
+    artifact_id: str | None = None
+    sha256: str | None = None
+    review_state: Literal["DRAFT_UNAPPROVED", "APPROVED_INTERNAL"] | None = None
+    internal_only: bool = True
+    pdf: ReportVariantPdfResponse | None = None
+
+
+def _variant_response(
+    run_id: str, deep_research_run_id: str, status_: VariantStatus
+) -> ReportVariantResponse:
+    docx = status_.docx
+    if docx is None:
+        return ReportVariantResponse(
+            run_id=run_id, deep_research_run_id=deep_research_run_id, state=status_.state
+        )
+    return ReportVariantResponse(
+        run_id=run_id,
+        deep_research_run_id=deep_research_run_id,
+        state=status_.state,
+        artifact_id=docx.artifact_id,
+        sha256=docx.sha256,
+        review_state="APPROVED_INTERNAL" if docx.is_approved else "DRAFT_UNAPPROVED",
+        pdf=ReportVariantPdfResponse.model_validate(status_.pdf.to_json()) if status_.pdf else None,
+    )
+
+
+def _variant(
+    run_id: str,
+    deep_research_run_id: str,
+    scope: StudyContext,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    *,
+    export: bool = False,
+) -> VariantStatus:
+    """The variant as prepared, read only: composes nothing, enqueues nothing (a download is
+    not a state change, research-journey.md:317-322)."""
+    try:
+        scope.require(Permission.EDIT_STUDY)
+        if export:
+            scope.require(Permission.EXPORT_DELIVERABLE)
+        return variant_status(
+            session, scope, store, run_id=run_id, deep_research_run_id=deep_research_run_id
+        )
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ResearchRunNotFound as exc:
+        raise _not_found("run") from exc
+
+
+def _not_prepared() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={
+            "code": "context_report_not_prepared",
+            "message": "Prepare the report with this review first (POST …/report/context).",
+        },
+    )
+
+
+@router.post(
+    "/research/runs/{run_id}/report/context",
+    response_model=ReportVariantResponse,
+    summary="Prepare the report with a chosen literature review: its draft and its PDF",
     responses={409: {"model": ErrorResponse}},
 )
-def download_contextual_report(
+def prepare_contextual_report(
     run_id: RunIdPath,
-    deep_research_run_id: Annotated[str, Query(max_length=64, pattern=r"^RUN-[0-9a-f]{1,32}$")],
+    deep_research_run_id: DeepResearchRunIdQuery,
     scope: StudyScopeDep,
     session: SessionDep,
     store: ArtifactStoreDep,
     settings: SettingsDep,
-) -> Response:
+) -> ReportVariantResponse:
+    """Store the variant's draft once (refused by name when the review does not interpret this
+    run, or the run's analysis is incomplete) and ask the worker for its PDF. Idempotent: the
+    same run and review are one draft; preparing again after the PDF failed asks again."""
     try:
-        artifact, data = stored_contextual_report(
+        artifact, _data = stored_contextual_report(
             session,
             scope,
             store,
@@ -1825,40 +1932,104 @@ def download_contextual_report(
             deep_research_run_id=deep_research_run_id,
             build=settings.build.sha or "",
         )
+        ResearchRuns(session, scope).request_report_pdf(
+            docx=artifact, run_id=run_id, deep_research_run_id=deep_research_run_id
+        )
     except ScopeDenied as exc:
         raise _refused(exc) from exc
     except (ResearchRunNotFound, DeepResearchRunNotFound) as exc:
         raise _not_found("run") from exc
     except (IntegrityError, ObjectNotFound) as exc:
         raise artifact_corrupt(session) from exc
-    except (
-        ReportCompositionRefused,
-        ReconstructionRefused,
-        ReportInvalid,
-        BundleNotReady,
-        LineageChanged,
-        RunNotGoverned,
-        RunSpecCorrupt,
-        ArtifactNotFound,
-        ValueError,
-    ) as exc:
+    except _CONTEXT_REFUSALS as exc:
         raise HTTPException(
             409, detail={"code": "context_report_refused", "message": str(exc)}
         ) from exc
+    return _variant_response(
+        run_id,
+        deep_research_run_id,
+        _variant(run_id, deep_research_run_id, scope, session, store),
+    )
+
+
+@router.get(
+    "/research/runs/{run_id}/report/context",
+    response_model=ReportVariantResponse,
+    summary="Where the report with a chosen literature review stands, composing nothing",
+)
+def contextual_report_status(
+    run_id: RunIdPath,
+    deep_research_run_id: DeepResearchRunIdQuery,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> ReportVariantResponse:
+    return _variant_response(
+        run_id,
+        deep_research_run_id,
+        _variant(run_id, deep_research_run_id, scope, session, store),
+    )
+
+
+@router.get(
+    "/research/runs/{run_id}/report/context/download",
+    response_class=Response,
+    summary="The prepared report with a chosen literature review, as DOCX",
+    responses={409: {"model": ErrorResponse}},
+)
+def download_contextual_report(
+    run_id: RunIdPath,
+    deep_research_run_id: DeepResearchRunIdQuery,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> Response:
+    """The draft the variant was prepared as -- the one its PDF renders and its approval
+    names. 409 ``context_report_not_prepared`` before it is prepared."""
+    found = _variant(run_id, deep_research_run_id, scope, session, store, export=True)
+    if found.docx is None:
+        raise _not_prepared()
+    try:
+        data = research_artifacts(session, scope, store).read(found.docx.artifact_id)
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
     return Response(
         content=data,
         media_type=INTERNAL_REPORT_MEDIA_TYPE,
-        headers={
-            "Content-Disposition": (
-                f'attachment; filename="AIA-{scope.study_id}-with-research.docx"'
-            ),
-            "Cache-Control": "no-store",
-            # The stored draft these bytes are, for its review and approval (B2).
-            "X-AIA-Artifact-Id": artifact.artifact_id,
-            "X-AIA-Review-State": "APPROVED_INTERNAL"
-            if artifact.is_approved
-            else "DRAFT_UNAPPROVED",
-        },
+        headers=_review_headers(
+            found.docx, f"AIA-{scope.study_id}-{run_id}-{deep_research_run_id}.docx"
+        ),
+    )
+
+
+@router.get(
+    "/research/runs/{run_id}/report/context/pdf/download",
+    response_class=Response,
+    summary="The PDF of the prepared report with a chosen literature review: its draft, rendered",
+    responses={404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
+)
+def download_contextual_report_pdf(
+    run_id: RunIdPath,
+    deep_research_run_id: DeepResearchRunIdQuery,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> Response:
+    found = _variant(run_id, deep_research_run_id, scope, session, store, export=True)
+    if found.docx is None:
+        raise _not_prepared()
+    if found.pdf is None or found.pdf.artifact is None:
+        raise _not_found("report_pdf")
+    try:
+        data = research_artifacts(session, scope, store).read(found.pdf.artifact.artifact_id)
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+    return Response(
+        content=data,
+        media_type=PDF_MEDIA_TYPE,
+        headers=_review_headers(
+            found.docx, f"AIA-{scope.study_id}-{run_id}-{deep_research_run_id}.pdf"
+        ),
     )
 
 

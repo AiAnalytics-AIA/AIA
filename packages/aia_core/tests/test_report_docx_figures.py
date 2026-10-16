@@ -146,7 +146,18 @@ def test_captions_number_figures_and_state_base_and_suppression(report_ledger: A
     sources = [_t(p) for p in root.iter(f"{W}p") if _t(p).startswith("Zdroj:")]
     assert sources[0].endswith("Potlačeno pro nedostatečnou efektivní velikost vzorku: 1.")
     instr = [(i.text or "").strip() for i in root.iter(f"{W}instrText")]
-    assert 'TOC \\h \\z \\c "Graf"' in instr
+    # The list of figures is no TOC field (LibreOffice leaves its pages empty): each entry
+    # is a PAGEREF to its caption's bookmark, numbered in Word and in the PDF alike.
+    listed = [
+        (i.text or "").strip()
+        for p in root.iter(f"{W}p")
+        if (s := p.find(f"{W}pPr/{W}pStyle")) is not None
+        and s.get(f"{W}val") == "tableoffigures"
+        and "Graf" in _t(p)
+        for i in p.iter(f"{W}instrText")
+    ]
+    assert listed and all(i.startswith("PAGEREF ") for i in listed)
+    assert not any((i.text or "").strip().startswith("TOC") for i in root.iter(f"{W}instrText"))
     assert instr.count("SEQ Graf \\* ARABIC") == 7
 
 

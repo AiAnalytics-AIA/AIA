@@ -894,6 +894,11 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
                     deep_research_run_id=interpreted.run_id,
                 )
                 assert data.startswith(b"PK") and same == data
+                # The front matter and the literature chapter name one seal, the one the bundle
+                # verifies (research-integrity-report 4: they printed two different hashes).
+                printed = zipfile.ZipFile(io.BytesIO(data)).read("word/document.xml").decode()
+                assert printed.count(evidence.sha256) == 2
+                assert "Pečeť balíčku" in printed and "Pečeť ověřeného balíčku" in printed
                 assert again.artifact_id == stored.artifact_id and not stored.is_approved
                 assert stored.metadata["review_state"] == "DRAFT_UNAPPROVED"
                 assert stored.metadata["deep_research_run_id"] == interpreted.run_id

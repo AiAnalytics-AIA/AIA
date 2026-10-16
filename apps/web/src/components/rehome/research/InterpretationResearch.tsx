@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { ApiError, deepResearch, research, type DeepResearchBundle, type DeepResearchRun, type ResearchRun } from "@/lib/api";
-import { saveBlob } from "@/lib/download";
 import { deepResearchRunningStep } from "@/lib/activity-orb";
 import { activityOf } from "@/lib/step-activity";
 import { StepActivityPanel } from "./StepActivityPanel";
@@ -18,8 +17,13 @@ const coverageLabel = (status: string) => ({
   INSUFFICIENT: "Nedostatek podkladů", NO_EVIDENCE: "Bez ověřených zjištění",
 }[status] ?? "Pokrytí nelze určit");
 
-/** Research over the pinned result, with its own explicit report selection. */
-export function InterpretationResearch({ run }: { run: ResearchRun }) {
+/**
+ * Research over the pinned result. Which completed review the report adds is one choice
+ * (``review``), held by the results page and offered here as "Použít ve zprávě": the report card
+ * above downloads and approves that variant, as DOCX or PDF of the same draft
+ * (research-integrity-report 3).
+ */
+export function InterpretationResearch({ run, review = null, onReview }: { run: ResearchRun; review?: string | null; onReview?: (id: string | null) => void }) {
   const { frame, confirm } = useResearch();
   const [jobs, setJobs] = useState<DeepResearchRun[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -29,13 +33,11 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refresh, setRefresh] = useState(0);
-  // The stored draft the last download was, for its approval (complete-study-report B2/B1d).
-  const [stored, setStored] = useState<{ runId: string; artifactId: string; approved: boolean } | null>(null);
   // A module stored BLOCKED succeeded as a step and is no result to interpret.
   const artifact = run.steps.find(s => s.node_key === "analysis_research_questions" && s.status === "SUCCEEDED" && !needsRepair(s))?.artifact_id;
   const current = jobs.find(j => j.run_id === selected);
   const bundle = bundleFor && current && bundleFor.runId === current.run_id ? bundleFor.value : null;
-  const currentStored = stored && current && stored.runId === current.run_id ? stored : null;
+  const used = !!current && review === current.run_id;
   const running = jobs.some(j => !j.is_terminal);
   const active = current ? deepResearchRunningStep(current.steps) : null;
   // The rešerše's feed, read live while one of its steps runs (lib/step-activity.ts).
@@ -100,29 +102,6 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
     finally { setBusy(false); }
   };
 
-  const download = async () => {
-    if (!current || !bundle || analysisReady !== "ready" || busy) return;
-    setBusy(true); setError(null);
-    try {
-      const got = await deepResearch.downloadContextReport(frame.studyId, run.run_id, current.run_id);
-      saveBlob(got.blob, `AIA-${frame.studyId}-with-research.docx`);
-      setStored(got.artifactId ? { runId: current.run_id, artifactId: got.artifactId, approved: got.reviewState === "APPROVED_INTERNAL" } : null);
-    } catch (e) { setError(message(e)); }
-    finally { setBusy(false); }
-  };
-
-  const approve = async () => {
-    if (!currentStored || busy) return;
-    setBusy(true); setError(null);
-    try {
-      await research.approveReport(frame.studyId, run.run_id, currentStored.artifactId);
-      setStored({ ...currentStored, approved: true });
-    } catch (e) {
-      setError(e instanceof ApiError && e.code === "separation_of_duties"
-        ? "Tuto zprávu musí schválit někdo jiný než ten, kdo ji vytvořil." : message(e));
-    } finally { setBusy(false); }
-  };
-
   const control = async (action: "retry" | "cancel") => {
     if (!current || busy) return;
     if (action === "cancel" && !await confirm("Zrušit probíhající literární rešerši? Již získané podklady a vykázané náklady zůstanou uložené.")) return;
@@ -175,7 +154,7 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
       </div>
       {bundle.accepted.length === 0 ? <p role="note" className="rounded-control border border-status-you-ink/40 bg-status-you-wash p-3 text-sm leading-6">Rešerše dokončila hledání, ale žádné externí tvrzení neprošlo ověřením. Zachycené zdroje si můžete prohlédnout níže; zpráva z nich nesmí vytvářet benchmark ani literární závěr.</p> : null}
       <div className="rounded-control border border-signal/30 bg-signal-wash p-4">
-        <p className="mb-2 text-sm font-semibold">AIA zpráva s vybranou rešerší</p>
+        <p className="mb-2 text-sm font-semibold">Tato rešerše ve zprávě</p>
         <p className="mb-3 text-sm leading-6">{bundle.accepted.length
           ? "Zpráva spojí uložené výsledky a sociomapy s přijatými externími podklady a jejich zdroji. Stažení nespouští další placený výzkum."
           : "Zpráva může uvést, že rešerše nepřinesla ověřené zjištění; nebude tvrdit, že obsahuje externě doložený benchmark. Stažení nespouští další placený výzkum."}</p>
@@ -183,10 +162,13 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
         {analysisReady === "unavailable" ? <p role="status" className="mb-3 text-sm font-medium">Připravenost analýzy se nepodařilo ověřit. Obnovte stránku a zkuste to znovu.</p> : null}
         {analysisReady === "loading" ? <p role="status" className="mb-3 text-sm text-ink-muted">Ověřuji připravenost zprávy…</p> : null}
         <div className="flex flex-wrap gap-2">
-          <Button variant="primary" onClick={download} disabled={busy || !frame.canEdit || analysisReady !== "ready"}>{busy ? "Připravuji zprávu…" : "Stáhnout AIA zprávu s rešerší"}</Button>
-          {currentStored && !currentStored.approved && frame.canEdit ? <Button onClick={approve} disabled={busy}>Schválit pro interní použití</Button> : null}
+          {used
+            ? <Button onClick={() => onReview?.(null)} disabled={busy || !frame.canEdit}>Nepoužívat ve zprávě</Button>
+            : <Button variant="primary" onClick={() => { if (current) { onReview?.(current.run_id); document.getElementById("complete-report-title")?.scrollIntoView?.({ block: "start" }); } }} disabled={busy || !frame.canEdit || analysisReady !== "ready"}>Použít ve zprávě</Button>}
         </div>
-        {currentStored ? <p className="mt-2 text-xs text-ink-muted">{currentStored.approved ? "Stažený dokument je schválen pro interní použití." : "Stažený dokument je koncept: schvalujete právě ten, který jste stáhli."}</p> : null}
+        <p className="mt-2 text-xs text-ink-muted">{used
+          ? "Kompletní zpráva studie nahoře je teď varianta s touto rešerší: stáhnete ji jako DOCX i PDF se stejným obsahem a schválíte tam."
+          : "Zprávu s rešerší stahujete a schvalujete v kartě Kompletní zpráva studie nahoře."}</p>
       </div>
       {bundle.origins?.includes("RECORDED_FIXTURE") ? <p className="text-sm text-status-fault">Podklady obsahují testovací výměny; nejde výhradně o živou rešerši.</p> : null}
       <p className="text-sm leading-6">Níže jsou přijatá zjištění s kontrolovanou citací. Generovaná syntéza vyžaduje věcné posouzení; kontrola citací a čísel sama nepotvrzuje její interpretace. Zpráva obsahuje přijaté podklady a uvádí toto omezení.</p>

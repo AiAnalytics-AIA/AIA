@@ -1,0 +1,142 @@
+"""The report with a chosen review over HTTP: one draft, read only (research-integrity-report 3).
+
+Preparing composes and stores the variant and asks the worker for its PDF; every GET reads what
+was prepared and changes nothing, so a closed study still downloads and the status, the DOCX, the
+PDF and the approval name one draft. The draft here is fictional bytes stored in-process the way
+the prepare stores it; composing a real one needs a completed run and review, which the executor
+journey covers (test_analysis_executor.py).
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+from aia_core.application.contextual_report import CONTEXT_REPORT_ARTIFACT_TYPE
+from aia_core.application.research import ResearchRuns, research_artifacts
+from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+from aia_core.domain.scope import StudyStatus
+from aia_core.infrastructure.db import create_session_factory
+from aia_core.infrastructure.scope_repository import ScopeRepository
+from aia_core.infrastructure.tables import WorkflowRunRow
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+from sqlalchemy import func, select
+
+API = "/api/v1"
+REVIEW = "RUN-feedfeed"
+DESIGN = {
+    "title": "Fiktivní studie",
+    "n": 50,
+    "sections": [
+        {
+            "type": "questions",
+            "questions": [{"id": "q1", "text": "Jak často?", "typ": "skala", "skala": [1, 5]}],
+        }
+    ],
+}
+
+
+def _study(world: Any, name: str = "primary") -> str:
+    return f"{API}/studies/{world.study_id(name)}"
+
+
+def _scope(session: Any, world: Any) -> Any:
+    return ScopeResolver(session).study_context(
+        AuthenticatedPrincipal(
+            user_id=world.users["researcher"], organization_id=world.organization_id
+        ),
+        study_id=world.study_id(),
+    )
+
+
+def _prepared(app: FastAPI, researcher: TestClient, world: Any) -> tuple[str, str]:
+    """A run, and the variant's draft stored and its PDF asked for, as the prepare does."""
+    made = researcher.post(
+        f"{_study(world)}/design/revisions", json={"content": DESIGN, "source_stage": "run"}
+    )
+    assert made.status_code in (200, 201), made.text
+    started = researcher.post(
+        f"{_study(world)}/research/runs", json={"design_revision_id": made.json()["revision_id"]}
+    )
+    assert started.status_code == 201, started.text
+    run_id = started.json()["run_id"]
+    with create_session_factory(app.state.engine)() as session:
+        scope = _scope(session, world)
+        runs = ResearchRuns(session, scope)
+        project_id = runs.design_project_id()
+        assert project_id is not None
+        docx, _ = research_artifacts(session, scope, app.state.artifact_store).put(
+            project_id=project_id,
+            revision=made.json()["revision"],
+            stage_type="REPORT",
+            artifact_type=CONTEXT_REPORT_ARTIFACT_TYPE,
+            data=b"PK fictional draft with literature",
+            input_fingerprint="fictional",
+            metadata={"run_id": run_id, "deep_research_run_id": REVIEW, "report_kind": "internal"},
+        )
+        runs.request_report_pdf(docx=docx, run_id=run_id, deep_research_run_id=REVIEW)
+        session.commit()
+    return run_id, docx.artifact_id
+
+
+def _jobs(app: FastAPI) -> int:
+    with create_session_factory(app.state.engine)() as session:
+        return int(session.scalar(select(func.count()).select_from(WorkflowRunRow)) or 0)
+
+
+def test_the_status_names_the_prepared_draft_and_its_pdf_and_composes_nothing(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    run_id, artifact_id = _prepared(app, researcher, world)
+    before = _jobs(app)
+    url = f"{_study(world)}/research/runs/{run_id}/report/context"
+    status_ = researcher.get(url, params={"deep_research_run_id": REVIEW})
+    assert status_.status_code == 200, status_.text
+    body = status_.json()
+    assert body["state"] == "READY" and body["artifact_id"] == artifact_id
+    assert body["review_state"] == "DRAFT_UNAPPROVED"
+    assert body["pdf"]["state"] == "RENDERING" and body["pdf"]["artifact_id"] is None
+    other = researcher.get(url, params={"deep_research_run_id": "RUN-abcabc"})
+    assert other.json()["state"] == "NOT_PREPARED" and other.json()["pdf"] is None
+    assert _jobs(app) == before
+
+
+def test_the_docx_download_is_the_prepared_draft_and_the_pdf_waits_for_its_rendering(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    run_id, artifact_id = _prepared(app, researcher, world)
+    base = f"{_study(world)}/research/runs/{run_id}/report/context"
+    docx = researcher.get(f"{base}/download", params={"deep_research_run_id": REVIEW})
+    assert docx.status_code == 200, docx.text
+    assert docx.content == b"PK fictional draft with literature"
+    assert docx.headers["X-AIA-Artifact-Id"] == artifact_id
+    assert docx.headers["X-AIA-Review-State"] == "DRAFT_UNAPPROVED"
+    assert f"{run_id}-{REVIEW}.docx" in docx.headers["Content-Disposition"]
+    pdf = researcher.get(f"{base}/pdf/download", params={"deep_research_run_id": REVIEW})
+    assert pdf.status_code == 404  # asked for, not rendered yet: never another file instead
+
+
+def test_a_closed_study_still_downloads_and_no_job_is_made(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    run_id, artifact_id = _prepared(app, researcher, world)
+    with create_session_factory(app.state.engine)() as session:
+        ScopeRepository(session).set_study_status(_scope(session, world), StudyStatus.DELIVERED)
+        session.commit()
+    before = _jobs(app)
+    url = f"{_study(world)}/research/runs/{run_id}/report/context/download"
+    got = researcher.get(url, params={"deep_research_run_id": REVIEW})
+    assert got.status_code == 200, got.text
+    assert got.headers["X-AIA-Artifact-Id"] == artifact_id
+    assert _jobs(app) == before
+
+
+def test_another_clients_study_finds_no_variant(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    run_id, _ = _prepared(app, researcher, world)
+    foreign = f"{_study(world, 'other_client')}/research/runs/{run_id}/report/context"
+    params = {"deep_research_run_id": REVIEW}
+    assert researcher.get(foreign, params=params).status_code == 404
+    assert researcher.get(f"{foreign}/download", params=params).status_code == 404
+    assert researcher.get(f"{foreign}/pdf/download", params=params).status_code == 404

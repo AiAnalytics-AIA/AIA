@@ -156,19 +156,25 @@ def test_context_report_requires_explicit_completed_owned_research(
     results = _results(app, researcher, world)
     review = researcher.post(f"{_url(world)}/interpretation", json=_body(_object_target(results)))
     assert review.status_code == 201, review.text
-    url = f"{_study(world)}/research/runs/{results['run_id']}/report/context/download"
-    assert researcher.get(url).status_code == 422
+    # Preparing composes and checks; a download only reads what was prepared
+    # (research-integrity-report chunk 3), so the refusals are the prepare's.
+    url = f"{_study(world)}/research/runs/{results['run_id']}/report/context"
+    assert researcher.post(url).status_code == 422
     params = {"deep_research_run_id": review.json()["run_id"]}
-    pending = researcher.get(url, params=params)
+    pending = researcher.post(url, params=params)
     assert pending.status_code == 409 and pending.json()["code"] == "context_report_refused"
-    foreign = (
-        f"{_study(world, 'other_client')}/research/runs/{results['run_id']}/report/context/download"
-    )
-    assert researcher.get(foreign, params=params).status_code == 404
-    assert researcher.get(url, params={"deep_research_run_id": "RUN-000000"}).status_code == 404
+    foreign = f"{_study(world, 'other_client')}/research/runs/{results['run_id']}/report/context"
+    assert researcher.post(foreign, params=params).status_code == 404
+    assert researcher.post(url, params={"deep_research_run_id": "RUN-000000"}).status_code == 404
     assert (
-        researcher.get(url, params={"deep_research_run_id": "untrusted-value"}).status_code == 422
+        researcher.post(url, params={"deep_research_run_id": "untrusted-value"}).status_code == 422
     )
+    # Nothing was prepared, so there is nothing to download; nothing is composed on a GET.
+    download = researcher.get(f"{url}/download", params=params)
+    assert download.status_code == 409 and download.json()["code"] == "context_report_not_prepared"
+    assert researcher.get(f"{foreign}/download", params=params).status_code == 404
+    status_ = researcher.get(url, params=params)
+    assert status_.status_code == 200 and status_.json()["state"] == "NOT_PREPARED"
 
 
 def test_the_route_starts_interpretation_over_a_result_once_per_spec(

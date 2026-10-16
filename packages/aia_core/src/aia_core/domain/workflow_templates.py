@@ -19,6 +19,10 @@ The templates:
   ``delivery``) join this template as their executors land; a node without an
   executor is never added, because a step no worker can claim would leave the run
   "running" forever.
+* ``report_pdf`` -- one step that renders an already stored report DOCX as PDF (plan
+  ``research-integrity-report`` chunk 3): the report with a chosen literature review is
+  composed in the API, and only the worker holds the converter, so the same bytes reach both
+  formats. No model call and no money.
 * ``population_materialize`` -- one step that derives a client's materialized dimension over
   LIVE and registers the owned child version (population-operations P4d3); never promotes.
 """
@@ -36,6 +40,8 @@ __all__ = [
     "CLIENT_SOURCE_PROPOSALS",
     "DEVELOP_SNAPSHOT",
     "POPULATION_MATERIALIZE",
+    "REPORT_PDF",
+    "REPORT_PDF_STEP_KIND",
     "REPORT_STEP_KIND",
     "RESEARCH",
     "RESEARCH_KINDS",
@@ -58,6 +64,10 @@ REPORT_STEP_KIND: Final = "research_report"
 SOCIOMAPPING_STEP_KIND: Final = "research_sociomapping"
 SOCIOMAPPING_REPORT_STEP_KIND: Final = "research_sociomapping_report"
 
+#: A stored report DOCX rendered as PDF by the worker, the one process with the converter.
+REPORT_PDF: Final = "report_pdf"
+REPORT_PDF_STEP_KIND: Final = "research_report_pdf"
+
 #: A materialized dimension (population-operations P4d3): one step that derives a client's
 #: dimension over LIVE and registers the owned child version. It never promotes.
 POPULATION_MATERIALIZE: Final = "population_materialize"
@@ -68,7 +78,14 @@ CLIENT_SOURCE_PROPOSALS: Final = "client_source_proposals"
 
 #: Every workflow type a run may be created with. Closed: an unknown type is refused.
 WORKFLOW_TYPES: Final[frozenset[str]] = frozenset(
-    {DEVELOP_SNAPSHOT, RESEARCH, RESEARCH_AGENT, POPULATION_MATERIALIZE, CLIENT_SOURCE_PROPOSALS}
+    {
+        DEVELOP_SNAPSHOT,
+        RESEARCH,
+        RESEARCH_AGENT,
+        POPULATION_MATERIALIZE,
+        CLIENT_SOURCE_PROPOSALS,
+        REPORT_PDF,
+    }
 )
 
 #: The research template's step kinds, by node key -- what an executor registers for.
@@ -144,6 +161,19 @@ def steps_for_workflow(
                 stage_type="BRIEF",
                 artifact_target="client_knowledge_proposals",
                 max_attempts=1,
+            )
+        ]
+    if workflow_type == REPORT_PDF:
+        if project_type is not ProjectType.RESEARCH:
+            raise UnknownWorkflowType(f"{REPORT_PDF} needs a research project")
+        # A conversion that timed out may succeed again; it costs nothing to try once more.
+        return [
+            StepDefinition(
+                node_key="pdf",
+                kind=REPORT_PDF_STEP_KIND,
+                stage_type="REPORT",
+                artifact_target="research_internal_pdf",
+                max_attempts=2,
             )
         ]
     if workflow_type == RESEARCH_AGENT:

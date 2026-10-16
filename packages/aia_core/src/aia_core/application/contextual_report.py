@@ -604,8 +604,12 @@ def _compose(
         classification=Classification.INTERNAL,
         identifiers=(
             ("Běh", run_id),
+            ("Varianta", "s literární rešerší"),
             ("Deep Research", deep_research_run_id),
-            ("Balíček", provenance.evidence_bundle_artifact_sha256),
+            # The seal is what the chapter prints and the bundle verifies; the artifact's
+            # SHA-256 is the stored file. Two hashes, so two names a reader can tell apart.
+            ("Pečeť balíčku", provenance.evidence_bundle_seal),
+            ("Artefakt balíčku (SHA-256)", provenance.evidence_bundle_artifact_sha256),
             ("Kontrakt", CONTEXT_REPORT_CONTRACT),
         ),
     )

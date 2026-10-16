@@ -92,8 +92,8 @@ from ..domain.run_cost import CeilingUnknown, RunCostCeiling, run_cost_ceiling
 from ..domain.scope import OrganizationRole, Permission, StudyContext
 from ..domain.support_forecast import SupportForecast, forecast_support, with_support_forecast
 from ..domain.workflow import StepRunStatus, WorkflowRunStatus
-from ..domain.workflow_templates import RESEARCH, RESEARCH_AGENT
-from ..infrastructure.artifact_repository import ArtifactRepository
+from ..domain.workflow_templates import REPORT_PDF, RESEARCH, RESEARCH_AGENT
+from ..infrastructure.artifact_repository import Artifact, ArtifactRepository
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from ..infrastructure.methodology_repository import methodology_in_force_for_study
 from ..infrastructure.prompt_repository import PromptRefused, PromptResolver
@@ -124,6 +124,7 @@ __all__ = [
     "ResearchStepNotFound",
     "RunOutlook",
     "RunReservations",
+    "report_pdf_key",
     "research_artifacts",
 ]
 
@@ -138,6 +139,13 @@ def research_artifacts(
     generic project routes, only by the run that produced it (ADR 0016).
     """
     return ArtifactRepository(session, scope, store, owner=DESIGN_PROJECT_OWNER)
+
+
+def report_pdf_key(run_id: str, deep_research_run_id: str | None, docx_artifact_id: str) -> str:
+    """The idempotency key of the first PDF job for one stored report DOCX of one run and
+    review (plan research-integrity-report chunk 3); a later job for the same DOCX, asked after
+    one failed, adds ``:again-<n>``, so every job of the DOCX shares this prefix."""
+    return f"{REPORT_PDF}:{run_id}:{deep_research_run_id or 'base'}:{docx_artifact_id}"
 
 
 class DesignNotReady(Exception):
@@ -833,6 +841,59 @@ class ResearchRuns:
             acknowledge=acknowledge,
             inherited_acknowledgement=_acknowledgement_of(run),
             require_answerability=require_answerability,
+        )
+
+    def design_project_id(self) -> str | None:
+        """The Study's owned design project, where its runs and reports are; ``None`` before
+        its first Design Revision."""
+        return self._designs().project_id()
+
+    def request_report_pdf(
+        self, *, docx: Artifact, run_id: str, deep_research_run_id: str | None
+    ) -> StartedRun:
+        """Ask the worker to render a stored report DOCX of ``run_id`` as PDF (``report_pdf``).
+
+        Asking again while a job for the same DOCX is queued, running or done returns that job;
+        after one failed, was cancelled or stopped for recovery (no converter, a conversion that
+        failed both attempts), a
+        person asking again starts a new job, so enabling the converter later is never final.
+        Needs ``RUN_WORKFLOW`` on an open Study, as any job does; only a person's explicit
+        "prepare" calls it, never a download.
+        """
+        self.get(run_id)
+        base = report_pdf_key(run_id, deep_research_run_id, docx.artifact_id)
+        jobs = self._workflows().list_runs(
+            project_id=docx.project_id, workflow_type=REPORT_PDF, key_prefix=base, limit=100
+        )
+        rounds = len(jobs)
+        if jobs and jobs[0]["status"] in (
+            WorkflowRunStatus.FAILED,
+            WorkflowRunStatus.CANCELLED,
+            WorkflowRunStatus.RECOVERY_REQUIRED,
+        ):
+            rounds += 1
+        key = base if rounds <= 1 else f"{base}:again-{rounds - 1}"
+        return start_workflow(
+            self.session,
+            self.scope,
+            project_id=docx.project_id,
+            workflow_type=REPORT_PDF,
+            revision=docx.revision,
+            idempotency_key=key,
+            metadata={
+                "run_id": run_id,
+                "deep_research_run_id": deep_research_run_id,
+                "docx_artifact_id": docx.artifact_id,
+            },
+            step_inputs={
+                "pdf": {
+                    "docx_artifact_id": docx.artifact_id,
+                    "docx_sha256": docx.sha256,
+                    "run_id": run_id,
+                    "deep_research_run_id": deep_research_run_id,
+                }
+            },
+            owner=DESIGN_PROJECT_OWNER,
         )
 
     def cancel(self, run_id: str, *, reason: str = "researcher") -> WorkflowRunStatus:

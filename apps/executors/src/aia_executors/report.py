@@ -6,6 +6,7 @@ import hashlib
 import time
 
 from aia_core.application.analysis_results import ReconstructionRefused, reconstruct_run
+from aia_core.application.contextual_report import CONTEXT_REPORT_ARTIFACT_TYPE
 from aia_core.application.report import (
     INTERNAL_REPORT_ARTIFACT_TYPE,
     INTERNAL_REPORT_PDF_ARTIFACT_TYPE,
@@ -21,12 +22,18 @@ from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.report.model import Classification, ReportKind, ReportMeta
 from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.workflow import FailureClass
-from aia_core.domain.workflow_templates import REPORT_STEP_KIND
+from aia_core.domain.workflow_templates import REPORT_PDF_STEP_KIND, REPORT_STEP_KIND
+from aia_core.infrastructure.artifact_repository import ArtifactNotFound
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.report_docx.renderer import DocxRenderer
-from aia_core.infrastructure.report_pdf import PDF_MEDIA_TYPE, PdfConversionFailed, PdfConverter
+from aia_core.infrastructure.report_pdf import (
+    PDF_MEDIA_TYPE,
+    REPORT_PDF_KEY,
+    PdfConversionFailed,
+    PdfConverter,
+)
 from aia_core.infrastructure.scope_repository import ScopeRepository
-from aia_core.infrastructure.storage import ArtifactStore
+from aia_core.infrastructure.storage import ArtifactStore, IntegrityError, ObjectNotFound
 from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Succeeded
 
 from .research import upstream_artifact
@@ -69,7 +76,10 @@ class ReportExecutor:
                     revision=step.project_revision,
                     method_status=first.result.method_status,
                     classification=Classification.INTERNAL,
-                    identifiers=(("Běh", step.run_id),),
+                    identifiers=(
+                        ("Běh", step.run_id),
+                        ("Varianta", "základní zpráva bez literární rešerše"),
+                    ),
                 )
                 # Maps, every question's numbers, the design and who answered: the same
                 # chapters as the report with literature, from the run's verified sources.
@@ -159,55 +169,169 @@ class ReportExecutor:
         """The stored DOCX rendered as PDF, beside it. The DOCX is the report: a PDF that
         cannot be made is said so in the step's output and fails nothing."""
         assert self._pdf is not None
-        key = fingerprint(
-            {"docx": hashlib.sha256(docx).hexdigest(), "converter": self._pdf.version}
+        try:
+            return store_pdf_rendering(
+                step,
+                context,
+                store=self._store,
+                build=self._build,
+                pdf=self._pdf,
+                docx_id=docx_id,
+                docx=docx,
+                metadata={"run_id": run},
+            )
+        except PdfConversionFailed as exc:
+            return {"state": "FAILED", "reason": "pdf_conversion_failed", "message": str(exc)}
+
+
+def store_pdf_rendering(
+    step: StepInput,
+    context: StepContext,
+    *,
+    store: ArtifactStore,
+    build: BuildIdentity,
+    pdf: PdfConverter,
+    docx_id: str,
+    docx: bytes,
+    metadata: dict[str, object],
+) -> dict[str, object]:
+    """``docx`` (the stored artifact ``docx_id``) rendered as PDF and stored beside it, or the
+    PDF already stored for the same bytes and converter. Raises :class:`PdfConversionFailed`.
+
+    One path for every report variant (plan ``research-integrity-report`` chunk 3): the PDF is
+    a rendering of a stored DOCX, never a second composition, so both formats carry the same
+    content for the same run and selected review."""
+    # The artifact id is part of the key: a PDF is served only as the rendering of the DOCX it
+    # names (rendering_of), so two drafts with the same bytes each get their own.
+    key = fingerprint(
+        {
+            "docx": hashlib.sha256(docx).hexdigest(),
+            "docx_artifact_id": docx_id,
+            "converter": pdf.version,
+        }
+    )
+    context.checkpoint()
+    with context.transaction() as (session, _workflow):
+        found = research_artifacts(session, context.scope, store).find_reusable(
+            project_id=step.project_id,
+            stage_type=step.stage_type,
+            artifact_type=REPORT_PDF_ARTIFACT_TYPE,
+            input_fingerprint=key,
         )
+    if found is None:
+        started = time.perf_counter()
+        rendered = pdf.convert(docx)
+        seconds = round(time.perf_counter() - started, 2)
         context.checkpoint()
         with context.transaction() as (session, _workflow):
-            found = research_artifacts(session, context.scope, self._store).find_reusable(
+            found, _created = research_artifacts(session, context.scope, store).put(
                 project_id=step.project_id,
+                revision=step.project_revision,
                 stage_type=step.stage_type,
                 artifact_type=REPORT_PDF_ARTIFACT_TYPE,
+                data=rendered,
+                content_type=PDF_MEDIA_TYPE,
                 input_fingerprint=key,
+                runtime_version=build.sha or "",
+                produced_by_job_id=step.attempt_id,
+                metadata={
+                    **metadata,
+                    "step_id": step.step_id,
+                    "report_kind": ReportKind.INTERNAL.value,
+                    "rendering_of": docx_id,
+                    "converter": pdf.version,
+                    "conversion_seconds": seconds,
+                },
+                depends_on=[docx_id],
             )
-        if found is None:
-            started = time.perf_counter()
+    return {
+        "state": "READY",
+        "artifact_id": found.artifact_id,
+        "artifact_type": REPORT_PDF_ARTIFACT_TYPE,
+        "sha256": found.sha256,
+        "size_bytes": found.size_bytes,
+    }
+
+
+#: The report DOCX types a ``report_pdf`` step renders: the run's own report and the report
+#: with a chosen literature review.
+RENDERABLE_REPORTS = frozenset({INTERNAL_REPORT_ARTIFACT_TYPE, CONTEXT_REPORT_ARTIFACT_TYPE})
+
+
+class ReportPdfExecutor:
+    """The ``report_pdf`` step: an already stored report DOCX rendered as PDF.
+
+    Its payload names the DOCX by artifact id and SHA-256 and the run (and review) it reports;
+    a DOCX that is not one of those, or whose bytes changed, is refused, never rendered. With
+    no converter composed it fails by name (``pdf_disabled``) instead of staying queued.
+    """
+
+    def __init__(
+        self, *, store: ArtifactStore, build: BuildIdentity, pdf: PdfConverter | None = None
+    ) -> None:
+        self._store = store
+        self._build = build
+        self._pdf = pdf
+
+    def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
+        payload = step.payload
+        docx_id = str(payload.get("docx_artifact_id") or "")
+        context.checkpoint()
+        with context.transaction() as (session, _workflow):
+            repo = research_artifacts(session, context.scope, self._store)
             try:
-                pdf = self._pdf.convert(docx)
-            except PdfConversionFailed as exc:
-                return {"state": "FAILED", "reason": "pdf_conversion_failed", "message": str(exc)}
-            seconds = round(time.perf_counter() - started, 2)
-            context.checkpoint()
-            with context.transaction() as (session, _workflow):
-                found, _created = research_artifacts(session, context.scope, self._store).put(
-                    project_id=step.project_id,
-                    revision=step.project_revision,
-                    stage_type=step.stage_type,
-                    artifact_type=REPORT_PDF_ARTIFACT_TYPE,
-                    data=pdf,
-                    content_type=PDF_MEDIA_TYPE,
-                    input_fingerprint=key,
-                    runtime_version=self._build.sha or "",
-                    produced_by_job_id=step.attempt_id,
-                    metadata={
-                        "run_id": run,
-                        "step_id": step.step_id,
-                        "report_kind": ReportKind.INTERNAL.value,
-                        "rendering_of": docx_id,
-                        "converter": self._pdf.version,
-                        "conversion_seconds": seconds,
-                    },
-                    depends_on=[docx_id],
+                artifact = repo.get(docx_id)
+                docx = repo.read(docx_id)
+            except (ArtifactNotFound, IntegrityError, ObjectNotFound) as exc:
+                return Failed(
+                    FailureClass.SCHEMA_VIOLATION,
+                    error={"reason": "report_docx_missing", "message": str(exc)},
                 )
-        return {
-            "state": "READY",
-            "artifact_id": found.artifact_id,
-            "sha256": found.sha256,
-            "size_bytes": found.size_bytes,
-        }
+        if (
+            artifact.artifact_type not in RENDERABLE_REPORTS
+            or artifact.sha256 != payload.get("docx_sha256")
+            or artifact.metadata.get("run_id") != payload.get("run_id")
+            or artifact.metadata.get("deep_research_run_id") != payload.get("deep_research_run_id")
+        ):
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={"reason": "report_docx_mismatch", "message": "not the report this names"},
+            )
+        if self._pdf is None:
+            return Failed(
+                FailureClass.MISSING_CONFIGURATION,
+                error={"reason": "pdf_disabled", "message": f"{REPORT_PDF_KEY} is off"},
+            )
+        try:
+            output = store_pdf_rendering(
+                step,
+                context,
+                store=self._store,
+                build=self._build,
+                pdf=self._pdf,
+                docx_id=docx_id,
+                docx=docx,
+                metadata={
+                    "run_id": payload.get("run_id"),
+                    **(
+                        {"deep_research_run_id": payload["deep_research_run_id"]}
+                        if payload.get("deep_research_run_id")
+                        else {}
+                    ),
+                },
+            )
+        except PdfConversionFailed as exc:
+            return Failed(
+                FailureClass.TRANSIENT,
+                error={"reason": "pdf_conversion_failed", "message": str(exc)},
+            )
+        return Succeeded(output=output)
 
 
 def report_registry(
     *, store: ArtifactStore, build: BuildIdentity, pdf: PdfConverter | None = None
-) -> dict[str, ReportExecutor]:
-    return {REPORT_STEP_KIND: ReportExecutor(store=store, build=build, pdf=pdf)}
+) -> dict[str, ReportExecutor | ReportPdfExecutor]:
+    return {
+        REPORT_STEP_KIND: ReportExecutor(store=store, build=build, pdf=pdf),
+        REPORT_PDF_STEP_KIND: ReportPdfExecutor(store=store, build=build, pdf=pdf),
+    }

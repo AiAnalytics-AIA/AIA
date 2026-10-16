@@ -370,4 +370,31 @@ def compose_internal_report(
         Section("Evidenční příloha", (EvidenceAppendix(),), id="app-evidence", appendix=True)
     )
     sections.append(Section("Audit", (AuditBlock(tuple(audit)),), id="app-audit", appendix=True))
+    sections[0] = _with_contents(sections[0], sections, literature=bool(context_sections))
     return require_valid(ReportDocument(meta, tuple(sections), ledger))
+
+
+def _with_contents(intro: Section, sections: list[Section], *, literature: bool) -> Section:
+    """The introduction with what this variant of the report holds (research-integrity-report
+    chunk 3): a reader of a downloaded file -- DOCX or its PDF -- sees whether the literature
+    review is in it and which chapters and appendices it has, without the screen it came from."""
+    chapters = [s.title for s in sections[1:] if not s.appendix]
+    appendices = [s.title for s in sections if s.appendix]
+    variant = (
+        "Tato verze zprávy obsahuje literární rešerši vybranou k tomuto běhu."
+        if literature
+        else "Tato verze je základní zprávou běhu: literární rešerše není její součástí. "
+        "Zpráva s vybranou rešerší je samostatná varianta: vychází z týchž uložených výsledků "
+        "běhu a navíc má kapitolu o literatuře."
+    )
+    contents: list[Block] = [
+        Paragraph(text(f"{variant} Zpráva má tyto kapitoly:")),
+        BulletList(tuple(ListItem(text(title)) for title in chapters)),
+        Paragraph(
+            text(
+                "Přílohy: " + "; ".join(appendices) + "." if appendices else "Zpráva nemá přílohy."
+            )
+        ),
+    ]
+    blocks = (intro.blocks[0], *contents, *intro.blocks[1:])
+    return Section(intro.title, blocks, id=intro.id, appendix=intro.appendix)

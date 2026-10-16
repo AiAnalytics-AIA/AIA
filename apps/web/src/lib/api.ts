@@ -1098,6 +1098,19 @@ export type ResearchAnalysis = {
   }>;
 };
 
+/** Where a variant's PDF stands: the server's closed set (application/report_variants.py PdfState). */
+export type ReportPdfState = "NOT_REQUESTED" | "RENDERING" | "READY" | "FAILED" | "INVALID";
+/** The report of a run with one chosen literature review, and the PDF rendered from that very draft. */
+export type ReportVariant = {
+  run_id: string;
+  deep_research_run_id: string;
+  state: "NOT_PREPARED" | "READY";
+  artifact_id?: string | null;
+  sha256?: string | null;
+  review_state?: "DRAFT_UNAPPROVED" | "APPROVED_INTERNAL" | null;
+  internal_only: true;
+  pdf?: { state: ReportPdfState; artifact_id: string | null; size_bytes: number | null; reason: string | null } | null;
+};
 export type ResearchReport = {
   run_id: string;
   state: "NOT_IN_RUN" | "READY" | string;
@@ -1193,16 +1206,18 @@ export const research = {
     request<ResearchAnalysis>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/analysis`),
   report: (studyId: string, runId: string) =>
     request<ResearchReport>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report`),
+  /** The run's own report: its bytes and the stored draft they are, so the card approves that draft. */
   downloadReport: (studyId: string, runId: string) =>
-    requestBlob(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/download`),
+    requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/download`),
   /** Which Sociomap methods are approved, by exact spec (complete-study-report B4). */
   sociomapRegister: (studyId: string) =>
     request<{ entries: RegisterEntry[] }>("GET", `${studyPath(studyId)}/research/sociomap-register`),
   /** The client report of a modelled run (complete-study-report B5c); 409 names why a run has none. */
   downloadClientReport: (studyId: string, runId: string) =>
     requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/client/download`),
+  /** The PDF rendered from the run's own report; its artifact id is that DOCX draft's. */
   downloadReportPdf: (studyId: string, runId: string) =>
-    requestBlob(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/pdf/download`),
+    requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/pdf/download`),
   /** A person approves a stored report of the run (internal only; recorded in the ledger). */
   approveReport: (studyId: string, runId: string, artifactId: string, note = "") =>
     request<{ run_id: string; artifact_id: string; review_state: "APPROVED_INTERNAL"; internal_only: true }>(
@@ -1256,6 +1271,14 @@ export const deepResearch = {
     }),
   downloadContextReport: (studyId: string, runId: string, deepRunId: string) =>
     requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/context/download${query({ deep_research_run_id: deepRunId })}`),
+  /** Where the report with this review stands, composing nothing (research-integrity-report 3). */
+  contextReport: (studyId: string, runId: string, deepRunId: string) =>
+    request<ReportVariant>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/context${query({ deep_research_run_id: deepRunId })}`),
+  /** Store the report with this review once and ask the worker for its PDF: the same draft in both formats. */
+  prepareContextReport: (studyId: string, runId: string, deepRunId: string) =>
+    request<ReportVariant>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/context${query({ deep_research_run_id: deepRunId })}`),
+  downloadContextReportPdf: (studyId: string, runId: string, deepRunId: string) =>
+    requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/context/pdf/download${query({ deep_research_run_id: deepRunId })}`),
   start: (studyId: string, revisionId: string) =>
     request<DeepResearchRun>("POST", deepPath(studyId), { design_revision_id: revisionId, preset_name: "QUICK", channels: ["WEB"] }),
   /** The Study's runs, newest first; the server lists 20 unless asked for more (at most 100). */

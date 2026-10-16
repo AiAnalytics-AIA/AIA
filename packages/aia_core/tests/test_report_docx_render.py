@@ -204,7 +204,9 @@ def test_the_contents_is_a_toc_field_prefilled_from_the_outline(
     rendered: dict[str, bytes],
 ) -> None:
     root = _xml(rendered, "word/document.xml")
-    assert 'TOC \\o "1-3" \\h \\z \\u' in _instr(root)
+    # No TOC field: headless LibreOffice leaves its cached page numbers empty
+    # (research-integrity-report F3); each entry carries its own PAGEREF instead.
+    assert not any(i.startswith("TOC") for i in _instr(root))
     entries = [
         _text(p)
         for p in root.iter(f"{W}p")
@@ -221,6 +223,11 @@ def test_the_contents_is_a_toc_field_prefilled_from_the_outline(
     for link in root.iter(f"{W}hyperlink"):
         if link.get(f"{W}anchor"):
             assert link.get(f"{W}anchor") in anchors  # every entry and cross-ref resolves
+    for p in root.iter(f"{W}p"):
+        style = p.find(f"{W}pPr/{W}pStyle")
+        if style is not None and style.get(f"{W}val").startswith("toc"):
+            refs = [i.split()[1] for i in _instr(p) if i.startswith("PAGEREF")]
+            assert len(refs) == 1 and refs[0] in anchors  # numbered in Word and in the PDF
 
 
 def test_headings_print_their_number_and_cross_references_their_label(

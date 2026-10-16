@@ -3,8 +3,8 @@ status: in-progress
 chunks:
   - "[x] 1. Runnable is not answerable: each start decides whether the run can answer the research questions it states; a run with gaps starts only on a person's recorded acknowledgement of exactly those gaps (AIA_RESEARCH_ANSWERABILITY_GATE, off by default), and the report prints the frozen record"
   - "[x] 2. The literature chapter keeps credibility and relevance apart: every accepted claim beside its verbatim passage and the topic it was searched for, every source with what its domain says (proposed tiers labelled), a review resting on one publisher said so, a sparse review said once"
-  - "[ ] 3. One report variant, the same draft in DOCX and PDF: the researcher chooses the run's own report or the report with one completed review; the worker renders the stored draft (report_pdf); both files say which variant they are and what they hold"
-  - "[ ] 4. Local render and inspection, USD 0: both variants of a fictional run composed, DOCX and PDF compared chapter by chapter, citations, maps, limitations, repeated prose, table of contents and layout checked by eye"
+  - "[x] 3. One report variant, the same draft in DOCX and PDF: the researcher chooses the run's own report or the report with one completed review; the worker renders the stored draft (report_pdf); both files say which variant they are and what they hold"
+  - "[x] 4. Local render and inspection, USD 0: both variants of a fictional run composed, DOCX and PDF compared chapter by chapter, citations, maps, limitations, repeated prose, table of contents and layout checked by eye"
   - "[ ] 5. Develop acceptance on the existing fictional Fio run, USD 0 (owner's call: needs the deploy): recompose the literature variant at contract -4, render its PDF in the worker image, compare with the DOCX"
   - "[ ] 6. The lineage matrix from frozen records only: research question | items by wording | start verdict | the research_questions module's answer | literature L# or none | chapter"
   - "[ ] 7. Statistical reading notes: the interval method and the fictional-donor caveat, Czech pair-status words with their n basis, the person-scaling null, Stress-1 beside each figure, the multi-select note"
@@ -152,6 +152,34 @@ acquisition gaps grouped by reason. Nothing in `domain/deep_research/` changes.
   says whether the run will not (UNANSWERABLE) or may not answer it; every `GapReason` has words,
   pinned by `test_the_web_words_exactly_the_reasons_a_gap_can_have`; a retry's gate clears once
   the retry succeeds.
+
+## Chunk 4 — what the local render showed
+
+Rendered 2026-10-16 at USD 0: `test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs
+[deep-research-and-internal-report]` (fictional respondents, recorded web, scripted models) run
+with a scratch pytest plugin that saves every DOCX `DocxRenderer.render` returns, then each
+converted by `LibreOfficePdf` (LibreOffice 24.2.7.2), the worker's own converter.
+
+- **Variants.** Base 26 pages, with literature 28. The literature variant's contents are the
+  base's 37 entries plus the five of "Literární rešerše a externí kontext"; none missing. Outside
+  that chapter the two texts differ only in the variant sentence, one introduction sentence that
+  points to the literature, and chapter, table and page numbers: every result line is the same.
+- **DOCX against PDF.** Every word of each DOCX is in its PDF except tokens the PDF wraps across
+  lines (hashes, one URL): no content lost in conversion. Maps are embedded as figures (two per
+  map), with the AIA cover, lockup and draft footer kept.
+- **Contents.** Page numbers on every entry in the PDF (F3).
+- **Fixed from the render:** the literature table's date broke at "2025-10-"; the scope sentence
+  read "3 stran", "z 1 citovaných zdrojů" (now "label: number", no agreement to get wrong); the
+  front matter's "Balíček" was the bundle artifact's SHA-256 while the chapter's "Otisk" was the
+  seal -- two hashes under one name, now "Pečeť balíčku" in both places and the artifact's
+  SHA-256 named as such (`test_native_ai_study_…` asserts the seal printed twice); the gaps
+  callout repeated one reason after every question below the table that had just given it, and
+  read "Česku?; Proč" (now quoted questions sharing one statement of their reason,
+  `test_questions_with_the_same_reason_share_one_statement_of_it`).
+- **Seen, not changed here:** F8 below (Appendix B prints "modelováno" on a fictional run), the
+  appendix's internal evidence keys (`sekce_2_obj_ovesny_napoj.effective_n`), and short chapters
+  alone on a page (D5). The module prose in this render is the test's scripted model, not AIA's
+  wording, so it says nothing about the Czech of real analyses.
 
 ## Findings
 

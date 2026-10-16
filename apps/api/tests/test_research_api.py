@@ -426,6 +426,9 @@ def test_internal_report_is_listed_and_downloaded_only_through_its_study_run(
     assert downloaded.headers["content-type"] == INTERNAL_REPORT_MEDIA_TYPE
     assert "internal-draft.docx" in downloaded.headers["content-disposition"]
     assert downloaded.headers["cache-control"] == "no-store"
+    # The draft these bytes are, so the page approves the one it downloaded.
+    assert downloaded.headers["X-AIA-Artifact-Id"] == report_id
+    assert downloaded.headers["X-AIA-Review-State"] == "DRAFT_UNAPPROVED"
     assert outsider.get(url).status_code == 200  # ADR 0019: a member with no grant reads it too
     assert outsider.get(f"{url}/download").status_code == 200
     other_url = f"{_runs(world, 'other_client')}/{run_id}/report"
