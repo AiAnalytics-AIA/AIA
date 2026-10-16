@@ -1,4 +1,4 @@
-"""Validation status bound to the system fingerprint, and the tier gate."""
+"""Validation status bound to the system fingerprint."""
 
 from __future__ import annotations
 
@@ -7,15 +7,11 @@ import pytest
 from aia_core.domain.evidence import (
     METHOD_STATUS_HOLDOUT_VALIDATED,
     METHOD_STATUS_PENDING,
-    TIER_PERMITS,
-    EvidenceTier,
-    TierUseCase,
     ValidationState,
     ValidationStatus,
     ViolationCode,
     effective_validation_status,
     evaluate_predictive_validity_claim,
-    evaluate_tier,
     method_status,
     system_fingerprint,
 )
@@ -102,48 +98,17 @@ def test_method_status_stamp() -> None:
     )
 
 
-# --- tier gate -----------------------------------------------------------------------------
+# --- the retired tier gate (methodology-tab V1c2) -----------------------------------------
 
 
-@pytest.mark.parametrize(
-    ("tier", "use_case", "allowed"),
-    [
-        (EvidenceTier.A, TierUseCase.INDIVIDUAL, True),
-        (EvidenceTier.A, TierUseCase.SEGMENTATION, True),
-        (EvidenceTier.B, TierUseCase.AGGREGATE, True),
-        (EvidenceTier.B, TierUseCase.DEMOGRAPHIC_BREAKDOWN, True),
-        (EvidenceTier.B, TierUseCase.INTERNAL_EXPERIMENTAL, True),
-        (EvidenceTier.B, TierUseCase.SEGMENTATION, False),
-        (EvidenceTier.B, TierUseCase.PERSONA, False),
-        (EvidenceTier.B, TierUseCase.INDIVIDUAL, False),
-        (EvidenceTier.C, TierUseCase.INTERNAL_EXPERIMENTAL, True),
-        (EvidenceTier.C, TierUseCase.AGGREGATE, False),
-    ],
-)
-def test_tier_permits(tier: EvidenceTier, use_case: TierUseCase, allowed: bool) -> None:
-    assert evaluate_tier({"d1": tier.value}, use_case).allowed is allowed
+def test_the_tier_gate_is_retired() -> None:
+    """Nothing gave a field a tier, so the A/B/C gate decided nothing; the population's field
+    policy decides a field's uses. Neither its names nor its codes remain to be reached for."""
+    from aia_core.domain import evidence
 
-
-def test_weakest_dimension_decides() -> None:
-    decision = evaluate_tier({"d1": "B", "d2": "C"}, "aggregate")
-    assert decision.codes == {ViolationCode.TIER_INSUFFICIENT}
-    assert decision.violations[0].subject == "d2"
-
-
-@pytest.mark.parametrize("tier", [None, "", "D", "a", "B+"])
-def test_unknown_tier_refuses(tier: str | None) -> None:
-    assert evaluate_tier({"d1": tier}, "internal_experimental").codes == {
-        ViolationCode.TIER_UNKNOWN
-    }
-
-
-def test_unknown_use_case_and_no_dimensions_refuse() -> None:
-    assert evaluate_tier({"d1": "A"}, "everything").codes == {ViolationCode.TIER_UNKNOWN}
-    assert evaluate_tier({}, "aggregate").codes == {ViolationCode.TIER_UNKNOWN}
-
-
-def test_tier_a_permits_every_use_case() -> None:
-    assert TIER_PERMITS[EvidenceTier.A] == frozenset(TierUseCase)
+    for name in ("TIER_PERMITS", "EvidenceTier", "TierUseCase", "evaluate_tier"):
+        assert not hasattr(evidence, name), name
+    assert not [code for code in ViolationCode if code.name.startswith("TIER_")]
 
 
 # --- the respondent system a modelled validation is earned on (ADR 0024 §4) ---------------
