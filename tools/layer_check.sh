@@ -854,17 +854,21 @@ done
 # is allowed and used deliberately -- a missing PostgreSQL or a missing legacy
 # reference checkout is a real environment fact. A *static* skip or xfail is
 # different: it removes the signal permanently and silently.
+# Any reference to the marker counts, not only the decorator: a module's
+# `pytestmark = pytest.mark.skip`, an alias (`skip = pytest.mark.skip`, then `@skip`)
+# and `from pytest import mark` all passed the decorator-only pattern (measured at
+# e57c3b82). `skipif` is a different word and stays allowed: its condition is code.
 forbid "no statically skipped or xfailed tests" \
-  '@pytest\.mark\.(skip|xfail)' \
+  '\bmark\.(skip|xfail)\b' \
   packages/aia_core/tests
 forbid "no statically skipped or xfailed API tests" \
-  '@pytest\.mark\.(skip|xfail)' \
+  '\bmark\.(skip|xfail)\b' \
   apps/api/tests
 forbid "no statically skipped or xfailed worker tests" \
-  '@pytest\.mark\.(skip|xfail)' \
+  '\bmark\.(skip|xfail)\b' \
   apps/worker/tests
 forbid "no statically skipped or xfailed executor tests" \
-  '@pytest\.mark\.(skip|xfail)' \
+  '\bmark\.(skip|xfail)\b' \
   apps/executors/tests
 
 # --- Presentation: the client renders, it does not decide -------------------
