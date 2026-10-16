@@ -98,8 +98,9 @@ Run it before every commit. It is blocking in CI.
 target; the docs-only job runs the script alone. Network egress is fenced by ruff (`TID251`,
 banned-api in the same file). Both bans are by import name, so `importlib.import_module` and
 `__import__` are not seen; two dynamic-import sites exist, `domain/methodology/resolution.py`
-(restricted to `aia_core.domain.`) and `aia_worker/registry.py` (any module
-`AIA_WORKER_EXECUTORS` names: operator configuration).
+(restricted to `aia_core.domain.`) and `aia_worker/registry.py` (the module
+`AIA_WORKER_EXECUTORS` names: under `aia_executors.`, refused before it is imported, except
+under `AIA_ENV=local` or `test`; an unset or unknown `AIA_ENV` counts as deployed).
 
 | Rule | Prevents |
 |---|---|
@@ -117,7 +118,7 @@ banned-api in the same file). Both bans are by import name, so `importlib.import
 | only the AI runtime composition builds the model gateway | A gateway nobody configured: a route, policy or registry outside `ai_runtime.py`'s validated settings |
 | only the step's model caller invokes the model gateway | A model call with no reservation, no settle and no journal under the lease (`ai_step.py`, StepModelCaller) |
 | network egress only from the transport modules (ruff TID251: `urllib3`, `httpx`, `requests`, `urllib.request`, `http.client`, `socket`, `ssl`; exemptions per file in the root `pyproject.toml`) | A connection with no residency check, pacing, TLS-refusal handling or record: web reads around RetrievalGate, model calls around GovernedModelGateway |
-| deep-research steps never import a live wire; only `deep_research_live` and `deep_research_runtime` do (import contract, indirect imports included: RetrievalGate reaches the index and archive through `infrastructure/archive_index.py`, which loads no wire) | A step building a connection its composition never configured |
+| only the executor compositions import a live network wire: `deep_research_live` and `deep_research_runtime` (web search, Common Crawl), `ai_runtime` (the model transport); every app and the core's domain and application layers are checked, indirect imports included (import contract; RetrievalGate reaches the index and archive through `infrastructure/archive_index.py`, which loads no wire) | A module building a connection no composition configured |
 | the API never builds its own scope context | The same, at the edge where untrusted input arrives |
 | the worker never builds its own scope context | The same, inside the process where model-driven code will run |
 | the worker knows nothing about HTTP | A worker that only works behind a web server |
