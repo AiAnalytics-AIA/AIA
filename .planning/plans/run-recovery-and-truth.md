@@ -16,7 +16,7 @@ chunks:
   - "[x] 5b. Population: the run receipt says who answered, from which population, and which selected dimensions and filters were applied"
   - "[ ] 5c. Population: selected dimensions applied to panel respondents as 18.6.6 applied them, the topic allowlist (product owner, 2026-10-15)"
   - "[x] 6a. Web: one run state (running, waiting, needs repair, evidence unavailable, results ready, report ready) read by every screen and the stage track"
-  - "[ ] 6b. Web: plain reasons, never a raw code: Deep Research and Interpretation Research steps, preflight checks, unknown keys"
+  - "[x] 6b. Web: plain reasons, never a raw code: Deep Research and Interpretation Research steps, preflight checks, unknown keys"
   - "[ ] 6c. Web: a measure, a trace and a citation name the question by its wording; the id only under technical details"
   - "[ ] 6d. Web: what remains of the study's budget beside every start, retry, analysis retry and budget lift"
   - "[ ] 6e. Web: one report rule (composing, draft, approved, refused) for the report card, the internal report, Interpretation Research and project memory"
@@ -552,6 +552,14 @@ blocked module in the step list; an inventory on 2026-10-16 (@ c809315b) found t
   (`test_a_listed_run_carries_its_steps_and_no_cost_it_cannot_know`).
 - **6b.** Every reason through one reader; a key with no words says so generically and
   keeps the code under technical details.
+  As built: `lib/reason-words.ts` (`codeWords`, `known`, `stepProblem`, `deepStepLabel`,
+  `coverageWords`) and `CodedWords`, which keeps an unknown code under "Technické
+  podrobnosti". Deep Research and Interpretation Research name each step and its reason;
+  check chips, quarantine, exclusion, check and retrieval codes, the bundle's counts and
+  an unknown phase or study status read in words. A readiness check whose status the
+  client does not know no longer takes the "done" tone (`checkTone`). Left as they were:
+  `stepLabel` and `stepStatusLabel` still fall back to the step's own key, a name rather
+  than a reason.
 - **6c.** A measure's wording from the specification; the id moves under technical details.
 - **6d.** `budgetLine(study, ceiling)`: what remains and what this action can cost at most,
   unknown said, never zero.
@@ -641,3 +649,7 @@ blocked module in the step list; an inventory on 2026-10-16 (@ c809315b) found t
 - 6a, `CLAUDE.md` § map, routers/research: "GET …/research/runs lists each run with its steps,
   without their attempt history (no start time, error or cost)"; `workflow_repository.py`:
   "list_runs(steps=True): a page's steps in one more query, no attempts".
+- 6b, `CLAUDE.md` § map, web `src/lib/` (new line): "reason-words.ts: a stored code in words
+  (codeWords, known; the code of one with no words kept aside), a Deep Research step's name
+  and reason (deepStepLabel, stepProblem), coverageWords; components/rehome/research/
+  CodedWords.tsx shows an unknown code under Technické podrobnosti".
