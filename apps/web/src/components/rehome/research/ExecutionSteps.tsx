@@ -78,6 +78,9 @@ import {
   verdictTone,
 } from "@/lib/research-execution";
 import { runDestination, runState } from "@/lib/run-state";
+import { codedText, codeWords } from "@/lib/reason-words";
+import type { Tone } from "@/lib/tone";
+import { CodedWords } from "./CodedWords";
 import { CONFLICT_MESSAGE } from "@/research/store";
 import { projectVariants, selectedVariant } from "@/research/plan";
 import { dimensionLabels, withApproval } from "@/research/persona";
@@ -173,7 +176,7 @@ function RespondentsReceipt({ run }: { run: ResearchRun }) {
   const who = respondentReceipt(run);
   const sel = run.selection;
   const labels = dimensionLabels({});
-  const applied = (on: boolean, reason: string | null) => (on ? t(`${R}.applied`) : reason ? t(`${R}.reason.${reason}`) : t(`${R}.none`));
+  const applied = (on: boolean, reason: string | null) => (on ? t(`${R}.applied`) : reason ? codedText(codeWords(`${R}.reason`, reason)) : t(`${R}.none`));
   const filters = sel ? Object.keys(sel.audience_filters) : [];
   const rows: [string, string][] = [
     [t(`${R}.source`), `${t(`research.exec.respondents.${who.pinned}`)} · ${who.observed ? t(`${R}.observed.${who.observed}`) : t(`${R}.pending`)}`],
@@ -270,7 +273,7 @@ function CostCard({ readiness, canEdit, onLimitSaved }: { readiness: Readiness; 
           <CostBar ceiling={ceiling} limit={limit} asks={readiness.confirmation_required} />
         </>
       ) : (
-        <p className="text-sm">{t(`research.exec.cost.unknown.${readiness.cost_ceiling_unknown ?? "sample_size_missing"}`)}</p>
+        <div className="text-sm"><CodedWords coded={codeWords("research.exec.cost.unknown", readiness.cost_ceiling_unknown ?? "sample_size_missing")} /></div>
       )}
       {study === undefined ? null : remaining !== null && budget !== null ? (
         <p className="mt-2 text-sm">{tv("research.exec.cost.remaining", { remaining: remaining.toFixed(2), budget: budget.toFixed(2) })}</p>
@@ -438,6 +441,9 @@ function quarantineWords(code: string): string {
   return words === key ? code : words;
 }
 
+/** A readiness check's tone: only a check that passed is good; a status this client does not know is not. */
+const checkTone = (status: string): Tone => (status === "PASS" ? "done" : status === "WARN" ? "you" : status === "FAIL" ? "fault" : "neutral");
+
 function ResearchTraceCard({ trace, outlook, design }: { trace: ResearchTrace; outlook: readonly QuestionOutlook[]; design: DesignEvidence | null }) {
   const { stepHref } = useResearch();
   // Stale links stay visible even when the plan states no research question any more.
@@ -458,7 +464,7 @@ function ResearchTraceCard({ trace, outlook, design }: { trace: ResearchTrace; o
                   <p className="text-[13px] text-ink-muted">{tv("research.exec.trace.comparison", { kind: t(`research.questionnaire.comparisons.kind.${q.comparison}`) })}</p>
                 ) : null}
                 {q.reasons.map((r) => (
-                  <p key={r} className="text-[13px] text-ink-muted">{t(`research.exec.trace.reason.${r}`)}</p>
+                  <div key={r} className="text-[13px] text-ink-muted"><CodedWords coded={codeWords("research.exec.trace.reason", r)} /></div>
                 ))}
                 {design ? <DesignEvidenceNote rq={q.text} design={design} /> : null}
                 {measures.length ? (
@@ -697,7 +703,7 @@ export function RunStep() {
             <ul className="flex flex-col gap-2" aria-label={t("research.exec.steps.preflight")}>
               {[...prepared.readiness.checks].sort((a, b) => (CHECK_ORDER[a.status] ?? 3) - (CHECK_ORDER[b.status] ?? 3)).map((c) => (
                 <li key={c.id} className="flex items-start gap-2 text-sm">
-                  <Chip tone={c.status === "FAIL" ? "fault" : c.status === "WARN" ? "you" : "done"}>{c.status}</Chip>
+                  <Chip tone={checkTone(c.status)}><CodedWords inline coded={codeWords("research.exec.checkStatus", c.status)} /></Chip>
                   <span className="flex-1">{c.message}</span>
                   {c.status !== "PASS" ? (
                     <Link href={stepHref(fixStep(c.id))} className="whitespace-nowrap text-xs text-signal no-underline hover:underline">
@@ -822,7 +828,7 @@ function RespondentChoice({ options, value, onChange, disabled }: {
                 <span className="font-semibold">{t(`${P}.${o.source}`)}</span>
                 {o.default ? <span className="text-ink-muted"> · {t(`${P}.default`)}</span> : null}
               </span>
-              <span className="text-xs text-ink-muted">{o.offered ? t(`${P}.${o.source}Help`) : t(`${P}.reason.${o.reason}`)}</span>
+              <span className="text-xs text-ink-muted">{o.offered ? t(`${P}.${o.source}Help`) : <CodedWords inline coded={codeWords(`${P}.reason`, o.reason ?? "")} />}</span>
             </span>
           </label>
         ))}
@@ -1586,7 +1592,7 @@ function AnalysisResults({ run, spec }: { run: ResearchRun; spec: CompiledSpecif
                 {selected.key_findings.length ? <div className="mt-5"><h4 className="text-sm font-semibold">Hlavní zjištění</h4><ul className="mt-2 flex flex-col gap-3">{selected.key_findings.map((finding, index) => <li key={index} className="border-l-2 border-signal pl-3"><FormattedText text={finding.text} /><CitedNumbers ids={finding.claim_ids} outcome={selected} spec={spec} /></li>)}</ul></div> : null}
                 {!selected.summary && !selected.research_question_answers.length && !selected.key_findings.length ? <p className="mt-3 text-sm text-ink-muted">Tato část nemá textový souhrn.</p> : null}
                 {selected.claims.length ? <details className="mt-5 border-t border-border pt-3 text-xs text-ink-muted"><summary className="cursor-pointer">{t("research.exec.results.analysisEvidence")} a technický původ tvrzení</summary><p className="mt-2 break-words">{selected.claims.map((claim) => `${claim.claim_id} → ${claim.evidence_ref}`).join(", ")}</p></details> : null}
-              </> : <div className="mt-3 text-sm text-ink-muted"><p>{selectedStep ? `Stav kroku: ${stepStatusLabel(selectedStep)}` : "Tato část zatím nemá uložený výstup."}</p>{selectedPending ? <p className="mt-1">{t("research.exec.results.analysisPending")}: {selectedPending}</p> : null}{selectedStep && waitingDetail(selectedStep) ? <p className="mt-1">{waitingDetail(selectedStep)}</p> : null}</div>}
+              </> : <div className="mt-3 text-sm text-ink-muted"><p>{selectedStep ? `Stav kroku: ${stepStatusLabel(selectedStep)}` : "Tato část zatím nemá uložený výstup."}</p>{selectedPending && !selectedStep ? <p className="mt-1">{t("research.exec.results.analysisPending")}: <CodedWords inline coded={codeWords("research.exec.stepStatus", selectedPending)} /></p> : null}{selectedStep && waitingDetail(selectedStep) ? <p className="mt-1">{waitingDetail(selectedStep)}</p> : null}</div>}
             </section>
           </div>
         </div>

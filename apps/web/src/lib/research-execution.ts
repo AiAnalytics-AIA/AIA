@@ -32,7 +32,12 @@ export function phaseTone(phase: ResearchPhase): Tone {
   }
 }
 
-export const phaseLabel = (phase: ResearchPhase): string => t(`research.exec.phase.${phase}`);
+/** A phase in words; one this client does not know is said to be unknown, never printed as a key. */
+export function phaseLabel(phase: ResearchPhase): string {
+  const key = `research.exec.phase.${phase}`;
+  const words = t(key);
+  return words === key ? t("research.exec.phase.other") : words;
+}
 
 export function stepLabel(nodeKey: string): string {
   const label = t(`research.exec.steps.${nodeKey}`);
@@ -84,7 +89,7 @@ const WAITING_STATUS = /^(WAITING|AWAITING)_|^RECOVERY_REQUIRED$/;
  * -- budget, provider quota, a decision owed -- is told from its machine reason. It says only
  * what is known: that the step waits, and why. It promises no action the page cannot take.
  */
-export function waitingDetail(step: ResearchStep): string | null {
+export function waitingDetail(step: Pick<ResearchStep, "status" | "waiting_reason" | "error_message">): string | null {
   if (!WAITING_STATUS.test(step.status)) return null;
   if (step.error_message) return step.error_message;
   const reason = step.waiting_reason ?? "";

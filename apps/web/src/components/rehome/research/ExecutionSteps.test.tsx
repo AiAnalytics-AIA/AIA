@@ -152,6 +152,18 @@ afterEach(() => {
 });
 
 describe("Run", () => {
+  it("names each check's status in words, and gives a status it does not know no good tone (6b)", async () => {
+    api({ "GET /api/v1/studies/STU-1/research/readiness": () => ({ ...READY, checks: [...READY.checks, { id: "novel", status: "SOMETHING_NEW", message: "Nová kontrola." }] }) });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const novel = (await screen.findByText("Nová kontrola.")).closest("li") as HTMLElement;
+    expect(within(novel).getByText("AIA k tomuto záznamu zatím nemá popis.").closest("[data-tone]")?.getAttribute("data-tone")).toBe("neutral");
+    // The status it does not know stays visible beside the words, never dropped.
+    expect(within(novel).getByText("SOMETHING_NEW").tagName).toBe("CODE");
+    expect(screen.getAllByText("Upozornění").length).toBeGreaterThan(0);
+    expect(screen.queryByText("WARN")).toBeNull();
+    expect(screen.queryByText("PASS")).toBeNull();
+  });
+
   it("lists each earlier run in the state every screen reads, and opens results only once they are ready (6a)", async () => {
     const analysis = (outcome: string) => step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", analysis_outcome: outcome });
     const blocked = run({ ...COMPLETED, run_id: "RUN-2", steps: [...COMPLETED.steps, analysis("BLOCKED")] });
@@ -1119,9 +1131,10 @@ describe("Results", () => {
     const answer = screen.getByText("Co lidé pijí?").parentElement as HTMLElement;
     expect(within(answer).getByText("Hlavně čaj a kávu.")).toBeTruthy();
     expect(within(answer).getByRole("link").textContent).toBe("34,8 % podíl odpovědi „Kávu“ · Který nápoj byste si vybrali?");
-    // A pending module keeps its reason.
+    // A pending module keeps its reason, in words (6b), never the stored status.
     fireEvent.click(screen.getByRole("button", { name: /Cílová skupina.*Čeká/ }));
-    expect(screen.getByText(/WAITING_PROVIDER/)).toBeTruthy();
+    expect(screen.getByText("Stav kroku: Čeká")).toBeTruthy();
+    expect(screen.queryByText(/WAITING_PROVIDER/)).toBeNull();
   });
 
   it("says on the analysis when the aggregate it read is no longer 18.6.6's port (G3c)", async () => {
@@ -1623,7 +1636,7 @@ describe("Interpretation research", () => {
     const review = { run_id: "RUN-deep", purpose: "INTERPRETATION_RESEARCH", target: { research_run_id: "RUN-1" },
       preset: "QUICK", status: "COMPLETED", phase: "COMPLETED", is_terminal: true, retryable: false,
       created_at: null, actual_cost_usd: 0.8, steps: [] };
-    const bundle = { quality_status: "PARTIAL", sha256: "b-2", counts: { tracks: 3 },
+    const bundle = { quality_status: "PARTIAL", sha256: "b-2", counts: { tracks: 3, new_metric: 2 },
       accepted: [
         { evidence: { evidence_id: "EV-1", claim: "Spotřeba čaje roste.\n- hlavně u mladých\n- ve městech", quote: "Čaj roste o 4 %.", source_ref: "SRC-1" }, score: { score: 0.8, source_class: "B" } },
         { evidence: { evidence_id: "EV-2", claim: "Káva je stabilní.", quote: "", source_ref: "SRC-2" }, score: { score: 0.6, source_class: "C" } },
@@ -1631,7 +1644,7 @@ describe("Interpretation research", () => {
       snapshots: [{ snapshot_id: "SRC-1", title: "Zpráva o trhu", url: "https://example.org/a", retrieval_mode: "LIVE" }, { snapshot_id: "SRC-2", title: "", url: "https://example.org/b", retrieval_mode: "LIVE" }],
       quarantined: [{ reason: "QUOTE_NOT_FOUND", detail: "citace není ve zdroji", claim: "Čaj pijí hlavně senioři." }],
       synthesis: {
-        check: { status: "CHECKED", summary: "Trh se posouvá.\n\nDruhý odstavec.", summary_withheld: "shrnutí cituje číslo mimo podklady", excluded: [{ subject_key: "s3", text: "Káva brzy zmizí z trhu.", reason: "UNSUPPORTED_NUMBER", detail: "číslo není v citaci" }], findings: [{ subject_key: "s1", text: "Čaj roste rychleji než káva.", evidence_ids: ["EV-2", "EV-1"] }, { subject_key: "s2", text: "Bez opory.", evidence_ids: ["EV-x"] }], gaps: ["Chybí data za rok 2025."], limitations: ["Jen veřejné zdroje."] },
+        check: { status: "PARTIAL", summary: "Trh se posouvá.\n\nDruhý odstavec.", summary_withheld: "shrnutí cituje číslo mimo podklady", excluded: [{ subject_key: "s3", text: "Káva brzy zmizí z trhu.", reason: "number_not_in_cited_evidence", detail: "číslo není v citaci" }], findings: [{ subject_key: "s1", text: "Čaj roste rychleji než káva.", evidence_ids: ["EV-2", "EV-1"] }, { subject_key: "s2", text: "Bez opory.", evidence_ids: ["EV-x"] }], gaps: ["Chybí data za rok 2025."], limitations: ["Jen veřejné zdroje."] },
         brief: { gaps: [{ need: "Benchmark spokojenosti", reason: "žádný zdroj ho neuvádí" }] },
       } };
     api({ ...listed(completed),
@@ -1655,7 +1668,11 @@ describe("Interpretation research", () => {
     // Gaps and rejections keep their reasons.
     expect(screen.getByText("Benchmark spokojenosti")).toBeTruthy();
     expect(screen.getByText("· žádný zdroj ho neuvádí")).toBeTruthy();
-    expect(screen.getByText("QUOTE_NOT_FOUND")).toBeTruthy();
+    // A count key a newer engine added keeps its code; a known one reads in words.
+    expect(screen.getByText("Počty: stopy 3 · jiný počet (technický kód: new_metric) 2")).toBeTruthy();
+    // A reason this client has no words for says so; its code stays under technical details.
+    expect(screen.getByText("AIA k tomuto záznamu zatím nemá popis.")).toBeTruthy();
+    expect(screen.getByText("QUOTE_NOT_FOUND").closest("details")).toBeTruthy();
     expect(screen.getByText("· citace není ve zdroji")).toBeTruthy();
     // The draft stays closed and labelled, but reads by section, each finding naming what it rests on.
     const draft = document.querySelector("[data-synthesis-draft]") as HTMLDetailsElement;
@@ -1666,12 +1683,12 @@ describe("Interpretation research", () => {
     expect(within(draft).getByText("Neopírá se o žádné přijaté zjištění · odkazy mimo přijatá zjištění: 1")).toBeTruthy();
     expect(within(draft).getByText("Chybí data za rok 2025.")).toBeTruthy();
     expect(within(draft).getByText("Jen veřejné zdroje.")).toBeTruthy();
-    expect(within(draft).getByText("Stav kontroly: CHECKED")).toBeTruthy();
+    expect(within(draft).getByText("Stav kontroly: část byla vyřazena nebo zadržena, důvody jsou níže")).toBeTruthy();
     // The rejected claim and the prose the checker refused stay readable, with their reasons.
     expect(screen.getByText("Čaj pijí hlavně senioři.")).toBeTruthy();
     const rejected = within(draft).getByText("Odmítnuto kontrolou").parentElement as HTMLElement;
     expect(within(rejected).getByText("Káva brzy zmizí z trhu.")).toBeTruthy();
-    expect(within(rejected).getByText("UNSUPPORTED_NUMBER · číslo není v citaci")).toBeTruthy();
+    expect(within(rejected).getByText("číslo není v citovaném podkladu · číslo není v citaci")).toBeTruthy();
     expect(within(rejected).getByText("· shrnutí cituje číslo mimo podklady")).toBeTruthy();
   });
 
