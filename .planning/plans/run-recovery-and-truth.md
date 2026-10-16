@@ -15,7 +15,11 @@ chunks:
   - "[x] 5a. Population: a person chooses who answers a run (fictional roster or the population) before it starts; the deployment only says what it offers"
   - "[x] 5b. Population: the run receipt says who answered, from which population, and which selected dimensions and filters were applied"
   - "[ ] 5c. Population: selected dimensions applied to panel respondents as 18.6.6 applied them, the topic allowlist (product owner, 2026-10-15)"
-  - "[ ] 6. Desktop UX: one state vocabulary (ready, running, needs repair, evidence unavailable, report ready), plain reasons, question text, cost remaining"
+  - "[ ] 6a. Web: one run state (running, waiting, needs repair, evidence unavailable, results ready, report ready) read by every screen and the stage track"
+  - "[ ] 6b. Web: plain reasons, never a raw code: Deep Research and Interpretation Research steps, preflight checks, unknown keys"
+  - "[ ] 6c. Web: a measure, a trace and a citation name the question by its wording; the id only under technical details"
+  - "[ ] 6d. Web: what remains of the study's budget beside every start, retry, analysis retry and budget lift"
+  - "[ ] 6e. Web: one report rule (composing, draft, approved, refused) for the report card, the internal report, Interpretation Research and project memory"
 ---
 
 # Run recovery and truthful run state
@@ -497,6 +501,56 @@ person starting a run never saw that a choice existed.
 - **4 — sign-off.** On 2026-10-15, in session, the product owner signed off on building the
   priced search routes (ADR 0022). Each organization still approves its live settings on
   Settings → Deep Research before a priced route runs.
+
+## 6 — one state, in words
+
+The review's last finding: each screen reads a run its own way. 1c fixed "Hotovo" on a
+blocked module in the step list; an inventory on 2026-10-16 (@ c809315b) found the rest.
+
+- **State, decided in many places.**
+  - The stage track's `runLane` (`apps/web/src/research/lane.ts:116-134`) reads only the
+    latest run's phase, so a COMPLETED run with a blocked module reads "dokončen".
+  - Progress counts SUCCEEDED as finished in its bar (`ExecutionSteps.tsx:1132`), a
+    blocked module included.
+  - Interpretation Research's start needs `analysis_research_questions` SUCCEEDED and never
+    asks `needsRepair` (`InterpretationResearch.tsx:34`).
+  - Results says "Vyžaduje opravu" where the step list says "Potřebuje opravu"
+    (`ExecutionSteps.tsx:1508-1538`).
+- **Raw codes.** `DeepResearchPanel.tsx:87-89` prints phase, status, node key and
+  waiting reason as stored; `InterpretationResearch.tsx:165` prints `waiting_reason`;
+  preflight chips print FAIL/WARN/PASS (`ExecutionSteps.tsx:700`); `phaseLabel` and several
+  `t()` reads print their key when it is missing (`i18n/t.ts:21-25`).
+- **Ids for wording.** Every measure card prints "ID otázky" (`ExecutionSteps.tsx:1771`);
+  `traceMeasures` falls back to the id (`research-execution.ts:439`); an unresolved citation
+  prints `evidence_ref` (`ExecutionSteps.tsx:1452`).
+- **Cost.** Only the Run stage's cost card says what remains of the study's budget
+  (`ExecutionSteps.tsx:275-279`). The start and retry confirms, the analysis retry, the
+  budget lift (`ExecutionSteps.tsx:931-981`: budget and spent, no remainder) and both Deep
+  Research starts do not.
+- **Report.** "Ready" is decided four times: CompleteReport (`CompleteReport.tsx:101-114`),
+  InternalReport (`ExecutionSteps.tsx:1404-1432`), Interpretation Research
+  (`InterpretationResearch.tsx:63-108`, from the analysis's `complete`) and project memory
+  (`lib/memory.ts:53-68`).
+
+**Design.**
+- **6a.** `lib/run-state.ts`, pure: `runState(run)` gives one of `RUNNING`, `WAITING`,
+  `NEEDS_REPAIR`, `EVIDENCE_UNAVAILABLE`, `RESULTS_READY`, `REPORT_READY`, `CANCELLED`, with
+  its reason in words. The order is the gate order:
+  - a run that has not ended is RUNNING or WAITING;
+  - an ended run with no fieldwork data is EVIDENCE_UNAVAILABLE;
+  - one whose analysis or report needs a person is NEEDS_REPAIR;
+  - otherwise RESULTS_READY, or REPORT_READY once its report step succeeded.
+
+  Unknown is never good: a phase or status it does not know reads as WAITING with no
+  invented reason. "Ready" before a run stays the Run stage's, from readiness. The run list
+  carries no steps (`application/research.py:962-977`), so the stage track reads the latest
+  run in full, one request.
+- **6b.** Every reason through one reader; a key with no words says so generically and
+  keeps the code under technical details.
+- **6c.** A measure's wording from the specification; the id moves under technical details.
+- **6d.** `budgetLine(study, ceiling)`: what remains and what this action can cost at most,
+  unknown said, never zero.
+- **6e.** `reportStatus(report)`, read by the four.
 
 ## Doc follow-up
 
