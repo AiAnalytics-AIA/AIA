@@ -631,13 +631,19 @@ pydantic 2.14.1, mypy 1.20.2) the edit was to an unrelated module
 (`domain/panel_source.py`, which imports it), not to `ai_respondent.py` itself. A fourth
 time (#451) it read as a pydantic regression: the errors appeared under 2.14.1 and went
 away after downgrading to 2.13.5, but the downgrade had only invalidated the cache; a
-clean-cache run under 2.14.1 passes. CI starts from an empty cache, so it never sees them.
+clean-cache run under 2.14.1 passes. A fifth time (#441) it read as Python 3.13's doing and the
+local interpreter was pinned to 3.12; that was the cache too. The general trigger is a cache
+warmed on one tree and reused on another -- a branch switch or a merge: on 3.12 alone, warm
+the cache on `0678c398`, check `da826d80`, and the three errors appear on every later run,
+while a fresh cache, a warm cache on an unchanged tree and `--no-incremental` are clean (#466).
+CI starts from an empty cache, so it never sees them, and `make typecheck` now runs
+`--no-incremental` (~45 s against 0.7 s warm), which also rewrites the cache.
 
 ```bash
-# WRONG: trust a warm-cache failure on create_model and "fix" working code
-make typecheck            # 3 errors in ai_respondent.py after an unrelated edit
-# RIGHT: confirm on a clean cache before acting on it
-rm -rf .mypy_cache && make typecheck
+# WRONG: trust a warm-cache run after a branch switch, a merge or an edit, and "fix" working code
+mypy packages/aia_core/src apps/api/src apps/worker/src apps/executors/src   # 3 errors in ai_respondent.py
+# RIGHT: the gate, as CI runs it
+make typecheck            # mypy --no-incremental: no incremental state is trusted
 ```
 
 Where a whole library has no stubs and pulling them in is not worth the
