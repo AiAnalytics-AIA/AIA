@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 
 
 import { t, tv } from "@/i18n/t";
 import type { ResearchRun } from "@/lib/api";
+import { measureAnchor } from "@/lib/result-reading";
 import { CONFLICT_MESSAGE } from "@/research/store";
 import { RunResults } from "./ExecutionSteps";
 import { StudyFrameProvider } from "./frame";
@@ -130,6 +131,12 @@ function api(overrides: Record<string, (body: unknown) => unknown> = {}) {
     }),
   );
 }
+/** A measure's card on Data, by its anchor: a question without stored wording has no id in its name. */
+const findMeasure = (id: string) => waitFor(() => {
+  const card = document.getElementById(measureAnchor(id));
+  if (!card) throw new Error(`no measure ${id}`);
+  return card;
+});
 const called = (method: string, prefix: string) => calls.filter((c) => c.method === method && c.url.startsWith(prefix));
 
 beforeEach(() => {
@@ -152,6 +159,18 @@ afterEach(() => {
 });
 
 describe("Run", () => {
+  it("names each check's status in words, and gives a status it does not know no good tone (6b)", async () => {
+    api({ "GET /api/v1/studies/STU-1/research/readiness": () => ({ ...READY, checks: [...READY.checks, { id: "novel", status: "SOMETHING_NEW", message: "Nová kontrola." }] }) });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const novel = (await screen.findByText("Nová kontrola.")).closest("li") as HTMLElement;
+    expect(within(novel).getByText("AIA k tomuto záznamu zatím nemá popis.").closest("[data-tone]")?.getAttribute("data-tone")).toBe("neutral");
+    // The status it does not know stays visible beside the words, never dropped.
+    expect(within(novel).getByText("SOMETHING_NEW").tagName).toBe("CODE");
+    expect(screen.getAllByText("Upozornění").length).toBeGreaterThan(0);
+    expect(screen.queryByText("WARN")).toBeNull();
+    expect(screen.queryByText("PASS")).toBeNull();
+  });
+
   it("lists each earlier run in the state every screen reads, and opens results only once they are ready (6a)", async () => {
     const analysis = (outcome: string) => step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", analysis_outcome: outcome });
     const blocked = run({ ...COMPLETED, run_id: "RUN-2", steps: [...COMPLETED.steps, analysis("BLOCKED")] });
@@ -503,7 +522,8 @@ describe("Run: what a run can cost (5b.2)", () => {
     render(<ResearchScreen step="run" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: t("research.exec.start") }));
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText("Tento běh může stát až 225.00 USD (limit studie je 100.00 USD). Spustit?")).toBeTruthy();
+    // Beside the question, what remains of the study's budget, read as it asks (6d).
+    expect(within(dialog).getByText("Tento běh může stát až 225.00 USD (limit studie je 100.00 USD). Spustit? Z rozpočtu studie zbývá 400.00 USD. I při nejvyšší ceně by zbylo 175.00 USD, bez částek, které právě drží běžící kroky.")).toBeTruthy();
     fireEvent.click(within(dialog).getByRole("button", { name: t("dialog.cancel") }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(called("POST", RUNS)).toHaveLength(0); // no yes, no run
@@ -681,11 +701,13 @@ describe("Run: what a run can cost (5b.2)", () => {
       },
       // The retry's run, as the API then serves it (the page follows and reads it).
       "GET /api/v1/studies/STU-1/research/runs/RUN-2": () => run({ run_id: "RUN-2", retry_of: "RUN-1", phase: "QUEUED" }),
+      "GET /api/v1/studies/STU-1": () => STUDY,
     });
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: t("research.exec.retry") }));
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText("Tento běh může stát až 225.00 USD (limit studie je 100.00 USD). Spustit?")).toBeTruthy();
+    // Beside the question, what remains of the study's budget, read as it asks (6d).
+    expect(within(dialog).getByText("Tento běh může stát až 225.00 USD (limit studie je 100.00 USD). Spustit? Z rozpočtu studie zbývá 400.00 USD. I při nejvyšší ceně by zbylo 175.00 USD, bez částek, které právě drží běžící kroky.")).toBeTruthy();
     fireEvent.click(within(dialog).getByRole("button", { name: "OK" }));
     expect(await screen.findByText("Opakování běhu RUN-1")).toBeTruthy();
     expect(asked).toBe(1);
@@ -967,6 +989,19 @@ describe("Progress", () => {
       await waitFor(() => expect(screen.queryByRole("form", { name: t("research.exec.budget.title") })).toBeNull());
     });
 
+    it("says what remains beside the budget, and never reads a spend the API did not report as zero (6d)", async () => {
+      api({ ...listed(waiting()), "GET /api/v1/studies/STU-1": () => STUDY });
+      render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+      const form = await screen.findByRole("form", { name: t("research.exec.budget.title") });
+      expect(await within(form).findByText("Rozpočet 10.00 USD, vyčerpáno 9.50 USD. Z rozpočtu studie zbývá 0.50 USD.")).toBeTruthy();
+      cleanup();
+      api({ ...listed(waiting()), "GET /api/v1/studies/STU-1": () => ({ ...STUDY, spent_usd: null, remaining_usd: null }) });
+      render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+      const unread = await screen.findByRole("form", { name: t("research.exec.budget.title") });
+      expect(await within(unread).findByText("Rozpočet 10.00 USD; kolik je vyčerpáno, AIA nyní neví. Kolik z rozpočtu studie zbývá, AIA nyní neví.")).toBeTruthy();
+      expect(within(unread).queryByText(/vyčerpáno 0\.00/)).toBeNull();
+    });
+
     it("will not offer a total below the current budget", async () => {
       api({ ...listed(waiting()), "GET /api/v1/studies/STU-1": () => STUDY });
       render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
@@ -1174,8 +1209,8 @@ describe("Results", () => {
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: { audience: "WAITING_PROVIDER" }, modules: {
         executive: { outcome: "COMPLETED", summary: "Úvodní odstavec.\n\n- první bod\n- druhý bod", research_question_answers: [{ question: "Co lidé pijí?", answer: "Hlavně čaj a kávu.", claim_ids: ["C2"] }],
-          key_findings: [{ text: "Čaj a káva jsou **vyrovnané**.", claim_ids: ["C1", "C2", "C9"] }],
-          claims: [{ claim_id: "C1", evidence_ref: "q2.pct.2", value: 38.4, indicative: false, data_origin: null }, { claim_id: "C2", evidence_ref: "q2.pct.1", value: 34.8, indicative: true, data_origin: null }], violations: [] },
+          key_findings: [{ text: "Čaj a káva jsou **vyrovnané**.", claim_ids: ["C1", "C2", "C9", "C3"] }],
+          claims: [{ claim_id: "C1", evidence_ref: "q2.pct.2", value: 38.4, indicative: false, data_origin: null }, { claim_id: "C2", evidence_ref: "q2.pct.1", value: 34.8, indicative: true, data_origin: null }, { claim_id: "C3", evidence_ref: "x9.median", value: 4, indicative: false, data_origin: null }], violations: [] },
         objects: { outcome: "COMPLETED", summary: null, research_question_answers: [], key_findings: [{ text: "Bez čísel.", claim_ids: [] }], claims: [], violations: [] },
       } }),
     });
@@ -1194,6 +1229,9 @@ describe("Results", () => {
       "34,8 % podíl odpovědi „Kávu“ · Který nápoj byste si vybrali?",
     ]);
     expect(cited[0].getAttribute("href")).toBe("#measure-q2");
+    // A number whose question AIA cannot find says so in words; its reference stays as a code (6c).
+    expect(within(keyFindings).getByText(/číslo, k němuž AIA nedohledala otázku/)).toBeTruthy();
+    expect(within(keyFindings).getByText("x9.median").tagName).toBe("CODE");
     expect(within(keyFindings).getByText(/· orientační/)).toBeTruthy();
     expect(keyFindings.compareDocumentPosition(screen.getByText("Analýza po částech")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // The module's own text, formatted: its summary's list, its answer with the number it cites.
@@ -1203,9 +1241,10 @@ describe("Results", () => {
     const answer = screen.getByText("Co lidé pijí?").parentElement as HTMLElement;
     expect(within(answer).getByText("Hlavně čaj a kávu.")).toBeTruthy();
     expect(within(answer).getByRole("link").textContent).toBe("34,8 % podíl odpovědi „Kávu“ · Který nápoj byste si vybrali?");
-    // A pending module keeps its reason.
+    // A pending module keeps its reason, in words (6b), never the stored status.
     fireEvent.click(screen.getByRole("button", { name: /Cílová skupina.*Čeká/ }));
-    expect(screen.getByText(/WAITING_PROVIDER/)).toBeTruthy();
+    expect(screen.getByText("Stav kroku: Čeká")).toBeTruthy();
+    expect(screen.queryByText(/WAITING_PROVIDER/)).toBeNull();
   });
 
   it("says on the analysis when the aggregate it read is no longer 18.6.6's port (G3c)", async () => {
@@ -1251,11 +1290,13 @@ describe("Results", () => {
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
     expect(await screen.findByText(/Fiktivní data\. Tento běh používá smyšlené respondenty/)).toBeTruthy();
-    const q2 = await screen.findByRole("region", { name: "Otázka q2" });
+    // A question with no stored wording says so, never its id; its card is found by its anchor (6c).
+    const q2 = await findMeasure("q2");
+    expect(q2.getAttribute("aria-label")).toBe("Otázka bez uloženého znění");
     fireEvent.click(within(q2).getByText("Odpovědi, intervaly a původ otázky"));
     expect(within(q2).getByText("34,8 %")).toBeTruthy();
     expect(within(q2).getByText("30,1–39,9")).toBeTruthy();
-    const t1 = screen.getByRole("region", { name: "Otázka t1" });
+    const t1 = await findMeasure("t1");
     expect(within(t1).getByText(/Potlačeno: jen 19 unikátních dárců/)).toBeTruthy();
     expect(within(t1).queryByText("3,73")).toBeNull();
     expect(within(t1).queryByText(/3,25/)).toBeNull();
@@ -1311,7 +1352,7 @@ describe("Results", () => {
     expect(within(note).getByText("top_box: 2 v 18.6.6, zde 3")).toBeTruthy();
     expect(within(note).getByText("Nahrazený vzorec: agg.mean")).toBeTruthy();
     // The top box is named by the width this aggregate used, not the unit's two.
-    const t2 = screen.getByRole("region", { name: "Otázka t2" });
+    const t2 = await findMeasure("t2");
     fireEvent.click(within(t2).getByText("Odpovědi, intervaly a původ otázky"));
     expect(within(t2).getByText("Horní body (3)")).toBeTruthy();
     expect(within(t2).queryByText("Horní dva body")).toBeNull();
@@ -1521,7 +1562,7 @@ describe("Results", () => {
     expect(screen.getByText(t("research.exec.results.reportSynthetic"))).toBeTruthy();
     expect(screen.getByText(/Artefakt ART-report/)).toBeTruthy();
     const report = await card();
-    expect(report.getByText("Stav: koncept, zatím neschválený")).toBeTruthy();
+    expect(report.getByText("Stav: Koncept čeká na schválení.")).toBeTruthy();
     fireEvent.click(report.getByRole("button", { name: /Stáhnout zprávu/ }));
     await waitFor(() => expect(createObjectURL).toHaveBeenCalledOnce());
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/download")).toHaveLength(1);
@@ -1580,7 +1621,7 @@ describe("Results", () => {
     fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportDownloadClient") }));
     const approve = await report.findByRole("button", { name: t("research.exec.results.reportApprove") });
     fireEvent.click(approve);
-    expect(await report.findByText("Stav: schváleno")).toBeTruthy();
+    expect(await report.findByText("Stav: Schváleno pouze pro interní použití.")).toBeTruthy();
     const posted = called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve");
     expect(posted).toHaveLength(1);
     expect(posted[0].body).toEqual({ artifact_id: "ART-client", note: "" });
@@ -1629,7 +1670,7 @@ describe("Results", () => {
     expect(await report.findByText(t("research.exec.results.reportApproveIndependent"))).toBeTruthy();
     refuse = false;
     fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportApprove") }));
-    expect(await report.findByText("Stav: schváleno")).toBeTruthy();
+    expect(await report.findByText("Stav: Schváleno pouze pro interní použití.")).toBeTruthy();
     expect(report.queryByRole("button", { name: t("research.exec.results.reportApprove") })).toBeNull();
     expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")[1].body)
       .toEqual({ artifact_id: "ART-report", note: "" });
@@ -1651,7 +1692,8 @@ describe("Results", () => {
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
-    expect(await screen.findByText(t("research.exec.results.reportInputsRefused"))).toBeTruthy();
+    // One rule, one wording, on the card and the panel (6e).
+    expect((await screen.findAllByText(t("research.exec.report.status.REFUSED"), { exact: false })).length).toBeGreaterThanOrEqual(2);
     expect(screen.queryByRole("button", { name: t("research.exec.results.reportDownload") })).toBeNull();
   });
 
@@ -1693,7 +1735,7 @@ describe("Results", () => {
     });
     render(<ResearchScreen step="results" frame={{ ...TEST_FRAME, canEdit: false }} />);
     fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
-    expect(await screen.findByRole("region", { name: "Otázka q2" })).toBeTruthy();
+    expect(await findMeasure("q2")).toBeTruthy();
     await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5")).toHaveLength(1));
     expect(screen.queryByText(t("research.exec.results.mapsByMethod"))).toBeNull();
   });
@@ -1782,7 +1824,7 @@ describe("Interpretation research", () => {
     const review = { run_id: "RUN-deep", purpose: "INTERPRETATION_RESEARCH", target: { research_run_id: "RUN-1" },
       preset: "QUICK", status: "COMPLETED", phase: "COMPLETED", is_terminal: true, retryable: false,
       created_at: null, actual_cost_usd: 0.8, steps: [] };
-    const bundle = { quality_status: "PARTIAL", sha256: "b-2", counts: { tracks: 3 },
+    const bundle = { quality_status: "PARTIAL", sha256: "b-2", counts: { tracks: 3, new_metric: 2 },
       accepted: [
         { evidence: { evidence_id: "EV-1", claim: "Spotřeba čaje roste.\n- hlavně u mladých\n- ve městech", quote: "Čaj roste o 4 %.", source_ref: "SRC-1" }, score: { score: 0.8, source_class: "B" } },
         { evidence: { evidence_id: "EV-2", claim: "Káva je stabilní.", quote: "", source_ref: "SRC-2" }, score: { score: 0.6, source_class: "C" } },
@@ -1790,7 +1832,7 @@ describe("Interpretation research", () => {
       snapshots: [{ snapshot_id: "SRC-1", title: "Zpráva o trhu", url: "https://example.org/a", retrieval_mode: "LIVE" }, { snapshot_id: "SRC-2", title: "", url: "https://example.org/b", retrieval_mode: "LIVE" }],
       quarantined: [{ reason: "QUOTE_NOT_FOUND", detail: "citace není ve zdroji", claim: "Čaj pijí hlavně senioři." }],
       synthesis: {
-        check: { status: "CHECKED", summary: "Trh se posouvá.\n\nDruhý odstavec.", summary_withheld: "shrnutí cituje číslo mimo podklady", excluded: [{ subject_key: "s3", text: "Káva brzy zmizí z trhu.", reason: "UNSUPPORTED_NUMBER", detail: "číslo není v citaci" }], findings: [{ subject_key: "s1", text: "Čaj roste rychleji než káva.", evidence_ids: ["EV-2", "EV-1"] }, { subject_key: "s2", text: "Bez opory.", evidence_ids: ["EV-x"] }], gaps: ["Chybí data za rok 2025."], limitations: ["Jen veřejné zdroje."] },
+        check: { status: "PARTIAL", summary: "Trh se posouvá.\n\nDruhý odstavec.", summary_withheld: "shrnutí cituje číslo mimo podklady", excluded: [{ subject_key: "s3", text: "Káva brzy zmizí z trhu.", reason: "number_not_in_cited_evidence", detail: "číslo není v citaci" }], findings: [{ subject_key: "s1", text: "Čaj roste rychleji než káva.", evidence_ids: ["EV-2", "EV-1"] }, { subject_key: "s2", text: "Bez opory.", evidence_ids: ["EV-x"] }], gaps: ["Chybí data za rok 2025."], limitations: ["Jen veřejné zdroje."] },
         brief: { gaps: [{ need: "Benchmark spokojenosti", reason: "žádný zdroj ho neuvádí" }] },
       } };
     api({ ...listed(completed),
@@ -1814,7 +1856,11 @@ describe("Interpretation research", () => {
     // Gaps and rejections keep their reasons.
     expect(screen.getByText("Benchmark spokojenosti")).toBeTruthy();
     expect(screen.getByText("· žádný zdroj ho neuvádí")).toBeTruthy();
-    expect(screen.getByText("QUOTE_NOT_FOUND")).toBeTruthy();
+    // A count key a newer engine added keeps its code; a known one reads in words.
+    expect(screen.getByText("Počty: stopy 3 · jiný počet (technický kód: new_metric) 2")).toBeTruthy();
+    // A reason this client has no words for says so; its code stays under technical details.
+    expect(screen.getByText("AIA k tomuto záznamu zatím nemá popis.")).toBeTruthy();
+    expect(screen.getByText("QUOTE_NOT_FOUND").closest("details")).toBeTruthy();
     expect(screen.getByText("· citace není ve zdroji")).toBeTruthy();
     // The draft stays closed and labelled, but reads by section, each finding naming what it rests on.
     const draft = document.querySelector("[data-synthesis-draft]") as HTMLDetailsElement;
@@ -1825,12 +1871,12 @@ describe("Interpretation research", () => {
     expect(within(draft).getByText("Neopírá se o žádné přijaté zjištění · odkazy mimo přijatá zjištění: 1")).toBeTruthy();
     expect(within(draft).getByText("Chybí data za rok 2025.")).toBeTruthy();
     expect(within(draft).getByText("Jen veřejné zdroje.")).toBeTruthy();
-    expect(within(draft).getByText("Stav kontroly: CHECKED")).toBeTruthy();
+    expect(within(draft).getByText("Stav kontroly: část byla vyřazena nebo zadržena, důvody jsou níže")).toBeTruthy();
     // The rejected claim and the prose the checker refused stay readable, with their reasons.
     expect(screen.getByText("Čaj pijí hlavně senioři.")).toBeTruthy();
     const rejected = within(draft).getByText("Odmítnuto kontrolou").parentElement as HTMLElement;
     expect(within(rejected).getByText("Káva brzy zmizí z trhu.")).toBeTruthy();
-    expect(within(rejected).getByText("UNSUPPORTED_NUMBER · číslo není v citaci")).toBeTruthy();
+    expect(within(rejected).getByText("číslo není v citovaném podkladu · číslo není v citaci")).toBeTruthy();
     expect(within(rejected).getByText("· shrnutí cituje číslo mimo podklady")).toBeTruthy();
   });
 

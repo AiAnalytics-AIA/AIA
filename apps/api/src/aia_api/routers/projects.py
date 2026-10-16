@@ -13,10 +13,10 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
+from aia_core.application.errors import ProjectNotFound
 from aia_core.domain.pipeline import ProjectType, impact_preview, stage_ids
 from aia_core.domain.project import Project, ProjectStatus, StageState
 from aia_core.domain.providers import ui_label
-from aia_core.infrastructure.repositories import ProjectNotFound
 from fastapi import APIRouter, HTTPException, Path, Query, Response, status
 
 from ..dependencies import PrincipalDep, ProjectRepositoryDep, StudyIdPath

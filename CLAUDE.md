@@ -71,6 +71,8 @@ apps/
                             deployment; only the workbench installs another on app.state)
     identity/               IdentityProvider protocol: cognito, testing, development
     observability.py        Structured logging, request correlation, secret redaction
+                            (aia_core.infrastructure.redaction); tags every error report with the
+                            request id; a 500 is reported (AIA_ERROR_TRACKING_DSN, off when unset)
     routers/                health, projects, scope, runs (runs + artifacts under a project),
                             workspace (clients, a client's workspace, its knowledge and proposals,
                             a study's frame and its working content in AIA, ADR 0015, ADR 0018;
@@ -326,6 +328,11 @@ apps/
                             switch, invalid (the worker will not start), unknown -- never verified
     src/lib/public-config.ts  Public config type, runtime switch vocabulary and class parser;
                             /config reads server values at request time, never credentials
+    src/lib/error-tracking.ts  The browser's error reporter: started from /config's errorTracking
+                            (AIA_WEB_ERROR_TRACKING_DSN; none, nothing is loaded), @sentry/browser
+                            through error-tracking-sdk.ts by dynamic import, the same scrubbing as
+                            the backend; components/errors/ (ErrorTracking, PageError) and the
+                            app/global-error.tsx + app/app/error.tsx boundaries report a render crash
     src/research/lane.ts    Each stage's state from the study's working content and runs (no new
                             rule: Kontrola's server readiness stays the authority); proposal-diff.ts:
                             a proposal's changes against the working content
@@ -350,11 +357,15 @@ apps/
   worker/src/aia_worker/    The execution loop. Claims, heartbeats, records. Does no work itself.
     executor.py             StepExecutor / StepContext protocols, outcomes -- the seam
     worker.py               The loop: claim, execute, record; reconcile on an interval.
-                            Refuses a one-connection engine (in-memory SQLite)
+                            Refuses a one-connection engine (in-memory SQLite). Reports what broke a
+                            run (error_tracking): a step left FAILED, one issue per step kind /
+                            failure class / cause; an unclassified exception once, with its stack;
+                            never a retry, park, gate, budget stop or cancellation
     context.py              Checkpoints, per-call metering, lease-fenced transactions
     heartbeat.py            Lease extension + cancellation carried back, one thread per attempt
     settings.py             Typed, validated settings from the environment
-    registry.py             Loads executors from AIA_WORKER_EXECUTORS=module:factory
+    registry.py             Loads executors from AIA_WORKER_EXECUTORS=module:factory; outside
+                            AIA_ENV=local/test only an aia_executors module, refused before import
     testing.py              Scripted executor for the tests (and the multi-process suite)
   executors/src/aia_executors/  Step implementations the worker runs, registered by kind
     snapshot.py             develop_snapshot: a project revision as a JSON artifact (S3)
@@ -817,6 +828,9 @@ packages/aia_core/src/aia_core/
                             inoculation, scenarios, variants, frozen results
   application/
     model_gateway.py        GovernedModelGateway — the ONLY model call path (ADR 0005)
+    errors.py               The infrastructure errors a router catches, re-exported (the same
+                            classes), so a router need not import infrastructure (the ratchet
+                            contract in pyproject.toml)
     scope.py                ScopeResolver — the ONLY issuer of a scope context,
                             including a worker's, issued only against a held lease,
                             and of a ClientContext (client_context, accessible_clients);
@@ -1084,6 +1098,13 @@ packages/aia_core/src/aia_core/
                             RECORDED and nothing else). The one live route is web_retrieval_live.py:
                             fee-free Czech/English Wikipedia, separately pinned IP/host, no proxy
     build_identity.py       AIA_BUILD_SHA: the commit a process runs; null, never a guess
+    redaction.py            What never reaches a log, an error_json or an error report: secret keys
+                            and value shapes (provider keys, bearer tokens, JWTs); one definition for
+                            the API, the worker and the reporter (OI-23)
+    error_tracking.py       The error reporter (GlitchTip, Sentry's protocol): the ONLY sentry_sdk
+                            import site, from the `errors` extra; off without AIA_ERROR_TRACKING_DSN,
+                            a malformed DSN refused at start; every event redacted, no bodies,
+                            cookies, queries, locals, user or model input; no tracing
 
 migrations/                 Alembic
 deploy/docker/              python.Dockerfile (api + worker targets; the worker build arg AIA_WORKER_PDF
@@ -1099,7 +1120,11 @@ deploy/develop/             The develop host: Compose, Caddyfile, deploy/backup/
                             bin/sync-population.sh (by hand) puts the population's 19 files, listed
                             and pinned in population/v17.files, read-only under AIA_POPULATION_DIR;
                             bin/population.sh runs population_ops in a one-off worker container.
-                            AIA's population, never the unit
+                            AIA's population, never the unit.
+                            errors/: GlitchTip 6.2.6 and its own PostgreSQL, a Compose project of
+                            its own (aia-errors) on AIA's internal network, at errors.<hostname>;
+                            bin/errors.sh up / down / status / admin; bin/deploy.sh starts it after
+                            AIA is healthy when aia_errors_enabled, never failing the deploy
 deploy/reference/           The 18.6.6 unit beside the product, never part of it: Compose project
                             `aia-reference` on the unit's external volume, a basic-auth gate on the
                             host's loopback (127.0.0.1:8765), up/down/backup-state by hand;
@@ -1234,7 +1259,8 @@ decided per call by the API (user → organization membership; ADR 0019: no clie
 study grant is read). No legacy setting touches it. The product hostname serves nothing of the unit (ADR 0018
 decision 5): its old paths are the web client's 404, the panel's gate is gone with
 it, and `tools/caddy_routes.py` fails a Caddyfile that routes anywhere but the API
-and the web client.
+and the web client. The one other name, `errors.<hostname>`, is GlitchTip's, and reaches
+GlitchTip alone (`deploy/develop/README.md` § Error tracking).
 
 **A research study's working content lives in AIA** (ADR 0018, OI-58). The stages load
 and save it through `/api/v1/studies/{study_id}/workspace/content`; it is the Study's
@@ -1366,7 +1392,7 @@ ungated fixture.
 | Purpose | Command |
 |---|---|
 | One-time setup | `make setup` (needs `python3.12`: the venv is built with the version in `.python-version`, the one CI runs) |
-| **Python version** | `make python-version` (also before `make typecheck`): fails unless the venv's Python is `.python-version`'s and ci.yml's `PYTHON_VERSION` agrees. A venv on another minor version reports mypy errors CI does not (3.13: three in `ai_respondent.py`) -- `rm -rf .venv && make deps` |
+| **Python version** | `make python-version` (also before `make typecheck`): fails unless the venv's Python is `.python-version`'s and ci.yml's `PYTHON_VERSION` agrees. A venv on another minor version: `rm -rf .venv && make deps` |
 | Start Postgres / MinIO | `make services` |
 | Migrate | `make migrate` |
 | New migration | `make migration m="add jobs"` |
@@ -1374,6 +1400,7 @@ ungated fixture.
 | Run one worker | `make dev-worker` (needs `DATABASE_URL`; the real executors, over `AIA_STORAGE_*`) |
 | Seed the synthetic develop world | `make seed-develop` (needs `DATABASE_URL`, `AIA_SEED_OWNER_EMAIL`; idempotent) |
 | Operate the population | `python -m aia_executors.population_ops <import\|attach\|establish\|promote> --as <email> …` (needs `DATABASE_URL`, `AIA_POPULATION_ASSET_ROOT`, `AIA_POPULATION_OPERATORS`); `status`, `record-dictionary` and `record-catalogue [--version]` act as no one and take no `--as` (no `AIA_POPULATION_OPERATORS`) |
+| **Error tracking on develop** | `bin/errors.sh up \| down \| status \| admin <email>`; GlitchTip at `https://errors.<hostname>`; turning it on: `deploy/develop/README.md` § Error tracking |
 | **The population on develop** | `bin/sync-population.sh`, then `bin/population.sh import … --all-companions` / `establish` (`deploy/develop/README.md` § The population) |
 | **Migrate 18.6.6 content** | `python -m aia_executors.legacy_workspace --store <copy> --attachments <copy> --as <email> [--apply] [--recover-missing]` (needs `DATABASE_URL`, `AIA_STORAGE_*`; dry run by default; runbook `deploy/develop/README.md` § Migrating 18.6.6 content) |
 | Tests | `make test` (core + API + worker + executors) |
@@ -1391,7 +1418,7 @@ ungated fixture.
 | **Parity verdicts** | `make parity-status` — `PASS` / `FAIL` / `NOT_EXECUTED` / `NOT_RUNNABLE` per capability |
 | Lint | `make lint` (ruff, one configuration: the root `pyproject.toml`; `packages/aia_core` and `apps/api` extend it) |
 | Format | `make format` |
-| Types | `make typecheck` (mypy `--strict` + `tsc --noEmit`) |
+| Types | `make typecheck` (mypy `--strict --no-incremental` + `tsc --noEmit`; ~45 s, the check CI runs; a stale incremental cache reports errors CI does not, `AGENTS.md` § mypy) |
 | Web tests | `make test-web` (Vitest, pure functions) |
 | **Design tokens** | `make web_design` — generated files match `tokens.json`; contrast, palette and accent evidence holds. Change a token: edit `tokens.json`, then `npm run tokens` |
 | **UI workbench** | `make ui-workbench` → <http://127.0.0.1:8780/workbench/sign-in>: AIA alone, nothing of 18.6.6; `make ui-workbench-reference`: the same with the unit at `:8767` as reference (its first run installs the unit's requirements into `tmp/ui-workbench/venv`); `make ui-workbench-status`, `make ui-workbench-down`. The API runs on the repo's env (`make setup`) |

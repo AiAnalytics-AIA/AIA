@@ -287,8 +287,10 @@ describe("a research question's measures in words (run-recovery-and-truth 3b)", 
     ]);
   });
 
-  it("reads a measure the outlook does not list as unknown, never answerable", () => {
-    expect(traceMeasures({ text: "RQ", measures: ["gone"], verdict: "UNKNOWN", reasons: [] }, outlook)).toEqual([{ key: "gone", text: "gone", verdict: "UNKNOWN" }]);
+  it("reads a measure the outlook does not list as unknown, never answerable, by words with its id kept aside (6c)", () => {
+    expect(traceMeasures({ text: "RQ", measures: ["gone"], verdict: "UNKNOWN", reasons: [] }, outlook)).toEqual([
+      { key: "gone", text: "Otázka bez uloženého znění", verdict: "UNKNOWN", code: "gone" },
+    ]);
   });
 });
 

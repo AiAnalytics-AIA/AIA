@@ -2,20 +2,31 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { deepResearch, research, type DeepResearchBundle, type DeepResearchRun } from "@/lib/api";
+import { ApiError, deepResearch, research, type DeepResearchBundle, type DeepResearchRun } from "@/lib/api";
+import { withBudget } from "@/lib/budget-line";
 import { deepResearchRunningStep } from "@/lib/activity-orb";
 import { activityOf } from "@/lib/step-activity";
 import { StepActivityPanel } from "./StepActivityPanel";
 import { useStepActivity } from "./useStepActivity";
 import { AiButton, Button } from "../ui";
+import { phaseLabel } from "@/lib/research-execution";
+import { coverageWords, deepStepLabel, stepProblem } from "@/lib/reason-words";
+import { CodedWords } from "./CodedWords";
 import { useResearch } from "./context";
 
 const POLL_MS = 2500;
 const message = (error: unknown) => error instanceof Error ? error.message : String(error);
 
 /** A persistent, review-only evidence surface. A bundle is never copied into the working design. */
+/** The ceiling the API worked out when the study's limit asks first, or null for any other refusal. */
+function askedCeiling(e: unknown): number | null {
+  if (!(e instanceof ApiError) || e.code !== "cost_confirmation_required") return null;
+  const ceiling = (e.details as { ceiling_usd?: unknown }).ceiling_usd;
+  return typeof ceiling === "number" && Number.isFinite(ceiling) ? ceiling : null;
+}
+
 export function DeepResearchPanel() {
-  const { frame, store } = useResearch();
+  const { frame, store, confirm } = useResearch();
   const [runs, setRuns] = useState<DeepResearchRun[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [bundle, setBundle] = useState<DeepResearchBundle | null>(null);
@@ -64,11 +75,34 @@ export function DeepResearchPanel() {
     try {
       await store.flush("questionnaire");
       const revision = await research.submitDesign(frame.studyId, store.get().project, "questionnaire");
-      const job = await deepResearch.start(frame.studyId, revision.revision_id);
+      let job: DeepResearchRun;
+      try {
+        job = await deepResearch.start(frame.studyId, revision.revision_id);
+      } catch (e) {
+        // The study's limit asks first (6d): the ceiling the API worked out, beside what remains.
+        const ceiling = askedCeiling(e);
+        if (ceiling === null) throw e;
+        if (!await confirm(await withBudget(frame.studyId, `Výzkum může stát nejvýše ${ceiling.toFixed(2)} USD. Čerpá rozpočet této studie. Spustit?`, ceiling))) return;
+        job = await deepResearch.start(frame.studyId, revision.revision_id, ceiling);
+      }
       await refresh();
       setSelected(job.run_id);
     } catch (e) { setError(message(e)); }
     finally { setBusy(false); }
+  };
+
+  const retry = async (runId: string) => {
+    try {
+      try {
+        await deepResearch.retry(frame.studyId, runId);
+      } catch (e) {
+        const ceiling = askedCeiling(e);
+        if (ceiling === null) throw e;
+        if (!await confirm(await withBudget(frame.studyId, `Opakování výzkumu může stát nejvýše ${ceiling.toFixed(2)} USD. Čerpá rozpočet této studie. Pokračovat?`, ceiling))) return;
+        await deepResearch.retry(frame.studyId, runId, ceiling);
+      }
+      await refresh();
+    } catch (e) { setError(message(e)); }
   };
 
   return (
@@ -84,16 +118,18 @@ export function DeepResearchPanel() {
       ) : <p className="mt-3 text-sm text-ink-muted">Zatím bez běhů.</p>}
       {current ? (
         <div className="mt-4 space-y-2 text-sm">
-          <p role="status">Stav: {current.phase} · {current.status}</p>
-          <StepActivityPanel orb={running?.orb ?? null} activity={activityOf(feed, running?.step.step_id)} startedAt={running?.step.started_at} label={running?.step.node_key ?? "Veřejný hloubkový výzkum"} />
-          {current.steps.filter((step) => step.waiting_reason || step.error_message).map((step) => <p key={step.node_key} className="text-status-fault">{step.node_key}: {step.waiting_reason ?? step.error_message}</p>)}
-          {current.retryable && frame.canEdit ? <Button small variant="quiet" onClick={() => void deepResearch.retry(frame.studyId, current.run_id).then(refresh).catch((e: unknown) => setError(message(e)))}>Opakovat běh</Button> : null}
+          <p role="status">Stav: {phaseLabel(current.phase)}</p>
+          <StepActivityPanel orb={running?.orb ?? null} activity={activityOf(feed, running?.step.step_id)} startedAt={running?.step.started_at} label={running ? deepStepLabel(running.step.node_key) : "Veřejný hloubkový výzkum"} />
+          {current.steps.map((step) => ({ step, problem: stepProblem(step) })).filter((x) => x.problem !== null).map(({ step, problem }) => (
+            <div key={step.node_key} className="text-status-fault">{deepStepLabel(step.node_key)}: <CodedWords coded={problem!} /></div>
+          ))}
+          {current.retryable && frame.canEdit ? <Button small variant="quiet" onClick={() => void retry(current.run_id)}>Opakovat běh</Button> : null}
           {!current.is_terminal && frame.canEdit ? <Button small variant="quiet" onClick={() => void deepResearch.cancel(frame.studyId, current.run_id).then(refresh).catch((e: unknown) => setError(message(e)))}>Zrušit běh</Button> : null}
         </div>
       ) : null}
       {bundle ? (
         <div className="mt-4 space-y-4 text-sm">
-          <p className="font-semibold">Výsledek: {bundle.quality_status} · přijaté podklady {bundle.accepted.length} · odmítnuté {bundle.quarantined.length}</p>
+          <p className="font-semibold">Výsledek: {coverageWords(bundle.quality_status)} · přijaté podklady {bundle.accepted.length} · odmítnuté {bundle.quarantined.length}</p>
           {bundle.accepted.map((item, index) => {
             const source = bundle.snapshots.find((snapshot) => snapshot.snapshot_id === item.evidence.source_ref);
             return <article key={`${item.evidence.source_ref}-${index}`} className="rounded-sm border border-border p-3">

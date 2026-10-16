@@ -8,6 +8,7 @@
 // place a report is downloaded and approved; the report panel below shows its provenance.
 
 import { useEffect, useState } from "react";
+import { approvalRefusal, reportStatus, reportStatusWords, reviewStatus } from "@/lib/report-status";
 
 import { t } from "@/i18n/t";
 import { ApiError, deepResearch, type DeepResearchRun, type ReportVariant, type ResearchReport, type ResearchRun, research } from "@/lib/api";
@@ -168,7 +169,7 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
   const chosenFormat: Format = pdfWhy ? "docx" : format;
   const approved = version === "client"
     ? client?.approved === true
-    : withReview ? current?.review_state === "APPROVED_INTERNAL" : report?.review_state === "APPROVED_INTERNAL";
+    : reviewStatus(withReview ? current?.review_state : report?.review_state) === "APPROVED";
   const approvable = version === "client" ? client !== null : withReview ? Boolean(current?.artifact_id) : Boolean(report?.artifact_id);
   // The stored draft the chosen internal variant is: what its download must be and what is approved.
   const shown = withReview ? current?.artifact_id ?? null : report?.artifact_id ?? null;
@@ -179,8 +180,7 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
     try {
       await work();
     } catch (e) {
-      setError(e instanceof ApiError && e.code === "separation_of_duties"
-        ? t("research.exec.results.reportApproveIndependent") : message(e));
+      setError(approvalRefusal(e));
     } finally {
       setBusy(false);
     }
@@ -189,7 +189,7 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
     if (version === "client") {
       const got = await research.downloadClientReport(frame.studyId, run.run_id);
       saveBlob(got.blob, `AIA-${frame.studyId}-klient.docx`);
-      setClient(got.artifactId ? { artifactId: got.artifactId, approved: got.reviewState === "APPROVED_INTERNAL" } : null);
+      setClient(got.artifactId ? { artifactId: got.artifactId, approved: reviewStatus(got.reviewState) === "APPROVED" } : null);
     } else if (withReview && review !== null && !variantReady) {
       // Store the draft once and ask the worker for its PDF: both formats of one document.
       setVariant(await deepResearch.prepareContextReport(frame.studyId, run.run_id, review));
@@ -221,13 +221,17 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
     }
   });
 
-  const stateLine = !report
-    ? reportStep ? "Stav: zpráva se ještě skládá" : "Tento běh zprávu nevytváří"
-    : version === "client" && !client
-      ? "Stav: klientská zpráva se složí při stažení; schvalujete právě tu, kterou stáhnete"
-      : withReview && !variantReady
-        ? "Stav: zprávu s rešerší je třeba jednou připravit; pak ji stáhnete jako DOCX i PDF"
-        : approved ? "Stav: schváleno" : "Stav: koncept, zatím neschválený";
+  // The report's state by the one rule (6e); a report still being read is said to be loading.
+  const internal = !reportStep ? "NONE" : status === null ? null : reportStatus(status);
+  const stateLine = internal === null
+    ? t("research.loading")
+    : !report
+      ? `Stav: ${reportStatusWords(internal)}`
+      : version === "client" && !client
+        ? "Stav: klientská zpráva se složí při stažení; schvalujete právě tu, kterou stáhnete"
+        : withReview && !variantReady
+          ? "Stav: zprávu s rešerší je třeba jednou připravit; pak ji stáhnete jako DOCX i PDF"
+          : `Stav: ${reportStatusWords(approved ? "APPROVED" : "DRAFT")}`;
   const chosenReview = reviews?.find((r) => r.run_id === review) ?? null;
   const limitation = report?.synthetic
     ? "Odpovídali syntetičtí respondenti: zpráva nepopisuje skutečné osoby."

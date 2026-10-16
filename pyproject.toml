@@ -169,6 +169,101 @@ ignore_imports = [
     "aia_executors.ai_runtime -> aia_core.infrastructure.model_adapters.live_transport",
 ]
 
+# ARCHITECTURE.md §2: the core's three layers, each importing only the layers
+# below it. The domain is pure (no I/O); infrastructure implements what the domain
+# names; application orchestrates both. The grep rule this replaces matched only
+# `from ..application` / `from aia_core.application`, so `from ...application`
+# written from a domain subpackage and `import aia_core.application.x` passed it
+# (probed); the import graph sees every form, and indirect chains too. Dynamic
+# imports are invisible to both: there is one in the domain
+# (domain/methodology/resolution.py, importlib.import_module of a declared
+# function's module), checked by its own tests.
+[[tool.importlinter.contracts]]
+name = "the core's layers: application above infrastructure above domain"
+type = "layers"
+containers = ["aia_core"]
+layers = ["application", "infrastructure", "domain"]
+
+# ARCHITECTURE.md §2: infrastructure owns "SQLAlchemy tables and repositories".
+# A use case that selects over the tables itself bypasses the repository that
+# carries a table's isolation predicate (owner=, the client, the study), so the
+# next query written beside it can forget the predicate and nothing notices.
+# Decided 2026-10-16 (architecture-enforcement chunk 5): the application layer
+# reads and writes rows only through a repository. The three modules below are
+# a ratchet: they predate the rule, each leaves the list when its queries move
+# behind a repository, and a line that no longer matches fails the run.
+[[tool.importlinter.contracts]]
+name = "the application reaches the tables only through a repository"
+type = "forbidden"
+source_modules = ["aia_core.application"]
+forbidden_modules = ["aia_core.infrastructure.tables"]
+allow_indirect_imports = true
+ignore_imports = [
+    "aia_core.application.develop_seed -> aia_core.infrastructure.tables",
+    "aia_core.application.scope -> aia_core.infrastructure.tables",
+    "aia_core.application.workspace_migration -> aia_core.infrastructure.tables",
+]
+
+# The three apps meet only through aia_core and one seam: a step implementation
+# depends on the worker's executor protocol (aia_worker.executor), never on the
+# loop, and nothing reaches the API. The worker finds the executors at run time
+# through AIA_WORKER_EXECUTORS (aia_worker/registry.py, importlib), which no
+# graph sees, by design. Source only: the tests cross on purpose (the API's slice
+# test drives a real worker).
+[[tool.importlinter.contracts]]
+name = "the API, the worker and the executors are independent but for the executor seam"
+type = "independence"
+modules = ["aia_api", "aia_worker", "aia_executors"]
+ignore_imports = ["aia_executors.** -> aia_worker.executor"]
+
+# ARCHITECTURE.md §2: transport validates, delegates, serialises. A route that
+# imports infrastructure can query, store or decide without the application layer
+# seeing it. A ratchet, decided 2026-10-16 (plan architecture-enforcement, chunk 4):
+# the routers below imported infrastructure when the contract landed, and are listed
+# edge by edge -- a listed router may not take a new infrastructure module either. A
+# new router complies. A router leaves the list when it is next touched: move what it
+# needs behind the application layer (an error it only catches is re-exported from
+# aia_core/application/errors.py), then delete its lines; an entry no import matches
+# fails lint-imports, so the list only shrinks. The composition root
+# (aia_api.dependencies, main, config, observability) is not a router and is not
+# held to this. Direct imports only: a router reaches infrastructure through the
+# application layer, which is the point.
+[[tool.importlinter.contracts]]
+name = "routers reach infrastructure only through the application layer (ratchet)"
+type = "forbidden"
+source_modules = ["aia_api.routers"]
+forbidden_modules = ["aia_core.infrastructure"]
+allow_indirect_imports = true
+ignore_imports = [
+    "aia_api.routers.client_sources -> aia_core.infrastructure.client_source_repository",
+    "aia_api.routers.client_sources -> aia_core.infrastructure.storage",
+    "aia_api.routers.deep_research -> aia_core.infrastructure.deep_research_settings_repository",
+    "aia_api.routers.deep_research -> aia_core.infrastructure.storage",
+    "aia_api.routers.deep_research -> aia_core.infrastructure.study_design_repository",
+    "aia_api.routers.deep_research_settings -> aia_core.infrastructure.deep_research_settings_repository",
+    "aia_api.routers.methodology -> aia_core.infrastructure.methodology_repository",
+    "aia_api.routers.population -> aia_core.infrastructure.population_repository",
+    "aia_api.routers.research -> aia_core.infrastructure.artifact_repository",
+    "aia_api.routers.research -> aia_core.infrastructure.report_pdf",
+    "aia_api.routers.research -> aia_core.infrastructure.storage",
+    "aia_api.routers.research -> aia_core.infrastructure.study_design_repository",
+    "aia_api.routers.research -> aia_core.infrastructure.workflow_repository",
+    "aia_api.routers.runs -> aia_core.infrastructure.artifact_repository",
+    "aia_api.routers.runs -> aia_core.infrastructure.repositories",
+    "aia_api.routers.runs -> aia_core.infrastructure.storage",
+    "aia_api.routers.runs -> aia_core.infrastructure.workflow_repository",
+    "aia_api.routers.system_prompts -> aia_core.infrastructure.prompt_repository",
+    "aia_api.routers.workspace -> aia_core.infrastructure.artifact_repository",
+    "aia_api.routers.workspace -> aia_core.infrastructure.client_knowledge_repository",
+    "aia_api.routers.workspace -> aia_core.infrastructure.client_profile_repository",
+    "aia_api.routers.workspace -> aia_core.infrastructure.client_source_repository",
+    "aia_api.routers.workspace -> aia_core.infrastructure.questionnaire_file",
+    "aia_api.routers.workspace -> aia_core.infrastructure.storage",
+    "aia_api.routers.workspace -> aia_core.infrastructure.study_design_repository",
+    "aia_api.routers.workspace -> aia_core.infrastructure.study_workspace_repository",
+    "aia_api.routers.workspace -> aia_core.infrastructure.workflow_repository",
+]
+
 [tool.pytest.ini_options]
 # Both test directories are called `tests`, so they are not importable packages.
 # Helpers are shared through conftest fixtures rather than imports.
