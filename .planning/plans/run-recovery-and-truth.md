@@ -19,7 +19,7 @@ chunks:
   - "[x] 6b. Web: plain reasons, never a raw code: Deep Research and Interpretation Research steps, preflight checks, unknown keys"
   - "[x] 6c. Web: a measure, a trace and a citation name the question by its wording; the id only under technical details"
   - "[x] 6d. Web: what remains of the study's budget beside every start, retry, analysis retry and budget lift"
-  - "[ ] 6e. Web: one report rule (composing, draft, approved, refused) for the report card, the internal report, Interpretation Research and project memory"
+  - "[x] 6e. Web: one report rule (composing, draft, approved, refused) for the report card, the internal report, Interpretation Research and project memory"
 ---
 
 # Run recovery and truthful run state
@@ -582,6 +582,16 @@ blocked module in the step list; an inventory on 2026-10-16 (@ c809315b) found t
   says so in words, beside what remains.
 - **6e.** `reportStatus(report)`, read by the four.
 
+  As built: `lib/report-status.ts` reads the report endpoint's answer: the stored report and its
+  review, the report step's own status until then, or NOT_IN_RUN. It gives NONE, COMPOSING,
+  NOT_MADE, FAILED, REFUSED, DRAFT, APPROVED or UNKNOWN; a report not read, or a state the client
+  does not know, is UNKNOWN. `reviewStatus` reads a downloaded document's review the same way,
+  and `approvalRefusal` words the separation-of-duties refusal. Interpretation Research had kept
+  its own copy of that wording. The report card had said "zpráva se ještě skládá" for every report
+  not yet stored: a failed or refused one too. It now says which. Project memory keeps its rule
+  that "none" comes from the run's steps alone, and reads NOT_IN_RUN against a run with a report
+  step as unknown.
+
 ## Doc follow-up
 
 - `CLAUDE.md` § map, `analysis.py`: "a schema failure is stored per field; the
@@ -677,3 +687,7 @@ blocked module in the step list; an inventory on 2026-10-16 (@ c809315b) found t
   budget beside what an action can cost (budgetLine, withBudget: read as a confirmation asks;
   unknown never zero), on every start, retry, analysis retry, Deep Research start and budget lift";
   `api.ts` deepResearch.start takes confirmCostUsd.
+- 6e, `CLAUDE.md` § map, web `src/lib/` (new line): "report-status.ts: one rule for a run's internal
+  report (reportStatus: NONE, COMPOSING, NOT_MADE, FAILED, REFUSED, DRAFT, APPROVED, UNKNOWN;
+  reviewStatus; approvalRefusal), read by CompleteReport, the internal report panel, project
+  memory's runLabels and Interpretation Research".

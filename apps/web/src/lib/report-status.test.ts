@@ -1,0 +1,39 @@
+// One rule for a run's internal report (run-recovery-and-truth 6e): a report not read, or a state
+// this client does not know, is never composing and never approved.
+import { describe, expect, it } from "vitest";
+
+import { ApiError } from "@/lib/api";
+import { approvalRefusal, reportStatus, reportStatusWords, reviewStatus } from "./report-status";
+
+const r = (state: string, extra: Record<string, unknown> = {}) => ({ state, ...extra }) as Parameters<typeof reportStatus>[0];
+
+describe("reportStatus", () => {
+  it("reads a stored report by its review, only APPROVED_INTERNAL being approved", () => {
+    expect(reportStatus(r("READY", { review_state: "APPROVED_INTERNAL" }))).toBe("APPROVED");
+    expect(reportStatus(r("READY", { review_state: "DRAFT_UNAPPROVED" }))).toBe("DRAFT");
+    expect(reportStatus(r("READY"))).toBe("DRAFT");
+    expect(reviewStatus(undefined)).toBe("DRAFT");
+  });
+
+  it("reads the report step's own status until a report is stored", () => {
+    expect(reportStatus(r("NOT_IN_RUN"))).toBe("NONE");
+    expect(reportStatus(r("PENDING"))).toBe("COMPOSING");
+    expect(reportStatus(r("WAITING_PROVIDER"))).toBe("COMPOSING");
+    expect(reportStatus(r("AWAITING_BUDGET"))).toBe("COMPOSING");
+    expect(reportStatus(r("FAILED", { reason: "report_inputs_refused" }))).toBe("REFUSED");
+    expect(reportStatus(r("FAILED", { reason: "renderer_crashed" }))).toBe("FAILED");
+    expect(reportStatus(r("CANCELLED"))).toBe("NOT_MADE");
+    expect(reportStatus(r("SKIPPED"))).toBe("NOT_MADE");
+  });
+
+  it("never reads an unread report or a state it does not know as composing or approved", () => {
+    expect(reportStatus(null)).toBe("UNKNOWN");
+    expect(reportStatus(r("SOMETHING_NEW"))).toBe("UNKNOWN");
+    expect(reportStatusWords("UNKNOWN")).toBe("Stav zprávy se nepodařilo zjistit.");
+  });
+
+  it("says why an approval was refused, in words where a person can act on it", () => {
+    expect(approvalRefusal(new ApiError(409, "separation_of_duties", "x", null))).toBe("Tuto zprávu musí schválit někdo jiný než ten, kdo ji vytvořil.");
+    expect(approvalRefusal(new Error("Síť selhala."))).toBe("Síť selhala.");
+  });
+});

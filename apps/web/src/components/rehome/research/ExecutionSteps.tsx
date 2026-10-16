@@ -80,6 +80,7 @@ import {
 import { runDestination, runState } from "@/lib/run-state";
 import { codedText, codeWords } from "@/lib/reason-words";
 import { budgetLine, type StudyBudget, withBudget } from "@/lib/budget-line";
+import { reportStatus, reportStatusWords } from "@/lib/report-status";
 import type { Tone } from "@/lib/tone";
 import { CodedWords } from "./CodedWords";
 import { CONFLICT_MESSAGE } from "@/research/store";
@@ -1419,9 +1420,7 @@ function InternalReport({ run, progressHref }: { run: ResearchRun; progressHref:
       {loaded.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{loaded.message}</p> : null}
       {status?.state === "READY" ? (
         <>
-          <p className="text-sm">{status.review_state === "APPROVED_INTERNAL"
-            ? t("research.exec.results.reportApprovedInternal")
-            : t("research.exec.results.reportDraft")}</p>
+          <p className="text-sm">{reportStatusWords(reportStatus(status))}</p>
           {/* A ready report rests on data, so a kind it does not state is unknown, never neutral. */}
           <p data-origin-kind={reportKind} className={reportKind === "MODELLED" ? "mt-2 text-sm" : "mt-2 text-sm text-status-fault"}>
             {t(REPORT_ORIGIN[reportKind])}
@@ -1436,15 +1435,7 @@ function InternalReport({ run, progressHref }: { run: ResearchRun; progressHref:
           ) : null}
         </>
       ) : null}
-      {status && status.state !== "READY" ? (
-        <p className="text-sm text-ink-muted">
-          {status.state === "FAILED"
-            ? status.reason === "report_inputs_refused"
-              ? t("research.exec.results.reportInputsRefused")
-              : t("research.exec.results.reportFailed")
-            : t("research.exec.results.reportWaiting")}
-        </p>
-      ) : null}
+      {status && status.state !== "READY" ? <p className="text-sm text-ink-muted">{reportStatusWords(reportStatus(status))}</p> : null}
       {status && status.state !== "READY" ? <ReportHolds run={run} progressHref={progressHref} /> : null}
     </Card>
   );

@@ -1425,7 +1425,7 @@ describe("Results", () => {
     expect(screen.getByText(t("research.exec.results.reportSynthetic"))).toBeTruthy();
     expect(screen.getByText(/Artefakt ART-report/)).toBeTruthy();
     const report = await card();
-    expect(report.getByText("Stav: koncept, zatím neschválený")).toBeTruthy();
+    expect(report.getByText("Stav: Koncept čeká na schválení.")).toBeTruthy();
     fireEvent.click(report.getByRole("button", { name: /Stáhnout zprávu/ }));
     await waitFor(() => expect(createObjectURL).toHaveBeenCalledOnce());
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/download")).toHaveLength(1);
@@ -1464,7 +1464,7 @@ describe("Results", () => {
     fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportDownloadClient") }));
     const approve = await report.findByRole("button", { name: t("research.exec.results.reportApprove") });
     fireEvent.click(approve);
-    expect(await report.findByText("Stav: schváleno")).toBeTruthy();
+    expect(await report.findByText("Stav: Schváleno pouze pro interní použití.")).toBeTruthy();
     const posted = called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve");
     expect(posted).toHaveLength(1);
     expect(posted[0].body).toEqual({ artifact_id: "ART-client", note: "" });
@@ -1513,7 +1513,7 @@ describe("Results", () => {
     expect(await report.findByText(t("research.exec.results.reportApproveIndependent"))).toBeTruthy();
     refuse = false;
     fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportApprove") }));
-    expect(await report.findByText("Stav: schváleno")).toBeTruthy();
+    expect(await report.findByText("Stav: Schváleno pouze pro interní použití.")).toBeTruthy();
     expect(report.queryByRole("button", { name: t("research.exec.results.reportApprove") })).toBeNull();
     expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")[1].body)
       .toEqual({ artifact_id: "ART-report", note: "" });
@@ -1535,7 +1535,8 @@ describe("Results", () => {
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
-    expect(await screen.findByText(t("research.exec.results.reportInputsRefused"))).toBeTruthy();
+    // One rule, one wording, on the card and the panel (6e).
+    expect((await screen.findAllByText(t("research.exec.report.status.REFUSED"), { exact: false })).length).toBeGreaterThanOrEqual(2);
     expect(screen.queryByRole("button", { name: t("research.exec.results.reportDownload") })).toBeNull();
   });
 
