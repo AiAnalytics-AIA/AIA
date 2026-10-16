@@ -828,6 +828,26 @@ forbid "readiness never reads the Sociomap's code constants" \
   "$SOCIOMAP_CODE_CONSTANTS" \
   "$CORE/domain/research_design.py"
 
+# --- Suppressions: a ban is lifted in pyproject.toml, never inline ----------
+#
+# Ruff's banned-api (TID251) is the network-egress fence, and its exits are named per
+# file in the root pyproject.toml, where a reviewer reads them. An inline
+# `# noqa: TID251`, a bare `# noqa` (every code) or a code-less `# ruff: noqa` (the
+# whole file) lifts it in a line of a large diff instead, and nothing fails (measured
+# at e57c3b82). A code-scoped file directive (`# ruff: noqa: RUF001`) names what it
+# lifts and stays allowed.
+for tree in "$CORE" "$API" "$WORKER" "$EXECUTORS"; do
+  forbid "the egress ban is never suppressed inline ($tree)" \
+    '#\s*noqa:[^#]*\bTID251\b' \
+    "$tree"
+  forbid "no bare noqa suppresses every rule on a line ($tree)" \
+    '#\s*noqa\b\s*($|[^:])' \
+    "$tree"
+  forbid "no code-less ruff: noqa suppresses a whole file ($tree)" \
+    '#\s*ruff\s*:\s*noqa\b\s*($|[^:])' \
+    "$tree"
+done
+
 # --- Tests: the signal is never deleted ------------------------------------
 #
 # A failing test is a finding (ARCHITECTURE.md §7). Runtime `pytest.skip(...)`
