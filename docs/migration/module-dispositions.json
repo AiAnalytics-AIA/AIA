@@ -1754,14 +1754,14 @@
       "state": "not-started"
     },
     {
-      "disposition": "port",
-      "phase": 6,
+      "disposition": "drop",
+      "phase": null,
       "context": "governance",
-      "note": "Fail-closed evidence and predictive-validity gates",
+      "note": "Retired 2026-10-15 (methodology-tab V1c2): nothing gave a field a tier and its B/C description breaks off mid-sentence; the population field policy decides each field’s uses",
       "module": "tier_gate.py",
       "loc": 75,
       "docstring": "Fail-closed evidence tier gate for NPC Panel 10.13. Tier A: conditional + independently validated joint evidence (currently none). Tier B: documented marginal/conditional evidence; aggregate and demog",
-      "state": "not-started"
+      "state": "n/a"
     },
     {
       "disposition": "port",

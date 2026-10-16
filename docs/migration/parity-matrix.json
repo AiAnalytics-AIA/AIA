@@ -1692,7 +1692,6 @@
    "reference_modules": [
     "evidence_validator.py",
     "fidelity.py",
-    "tier_gate.py",
     "validation_gate.py"
    ],
    "parity_type": "EXACT",
