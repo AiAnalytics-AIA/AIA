@@ -43,6 +43,7 @@ __all__ = [
     "MAX_CRAWLS_PER_QUERY",
     "MAX_INDEX_ROWS",
     "MAX_WARC_RECORD_BYTES",
+    "MIN_SCAN_CUTOFF_BYTES",
     "TERABYTE_BYTES",
     "AthenaPricing",
     "IndexQueryInvalid",
@@ -65,6 +66,8 @@ ARCHIVE_HOST: Final = "data.commoncrawl.org"
 MAX_INDEX_ROWS: Final = 1000
 #: Each crawl named is another partition scanned and paid for.
 MAX_CRAWLS_PER_QUERY: Final = 6
+#: Athena refuses a workgroup cutoff below 10 MB (service model ``BytesScannedCutoffValue``).
+MIN_SCAN_CUTOFF_BYTES: Final = 10_000_000
 #: One compressed WARC record (one gzip member) AIA will request.
 MAX_WARC_RECORD_BYTES: Final = 2_000_000
 #: Bytes in a terabyte for Athena's price. Unverified: decimal assumed.
