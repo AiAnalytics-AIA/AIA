@@ -17,7 +17,7 @@ chunks:
   - "[ ] 5c. Population: selected dimensions applied to panel respondents as 18.6.6 applied them, the topic allowlist (product owner, 2026-10-15)"
   - "[x] 6a. Web: one run state (running, waiting, needs repair, evidence unavailable, results ready, report ready) read by every screen and the stage track"
   - "[x] 6b. Web: plain reasons, never a raw code: Deep Research and Interpretation Research steps, preflight checks, unknown keys"
-  - "[ ] 6c. Web: a measure, a trace and a citation name the question by its wording; the id only under technical details"
+  - "[x] 6c. Web: a measure, a trace and a citation name the question by its wording; the id only under technical details"
   - "[ ] 6d. Web: what remains of the study's budget beside every start, retry, analysis retry and budget lift"
   - "[ ] 6e. Web: one report rule (composing, draft, approved, refused) for the report card, the internal report, Interpretation Research and project memory"
 ---
@@ -561,6 +561,14 @@ blocked module in the step list; an inventory on 2026-10-16 (@ c809315b) found t
   `stepLabel` and `stepStatusLabel` still fall back to the step's own key, a name rather
   than a reason.
 - **6c.** A measure's wording from the specification; the id moves under technical details.
+  As built: `result-reading.ts` `untitled(question | object | set)` titles a measure its
+  specification gives no wording ("Otázka bez uloženého znění"), on Data, in comparisons and in
+  a citation; the id stays the anchor and under the card's "Odpovědi, intervaly a původ
+  otázky". `traceMeasures` keeps an unlisted measure's id as `code`, shown after the words; an
+  unresolved citation reads "číslo, k němuž AIA nedohledala otázku" with its reference as a code.
+  Hypothesis (not reproduced): `MethodologyVersions.test.tsx` "switches areas at once from an
+  untouched editor…" failed once in a full web run on 2026-10-16 and passed alone three times and
+  in the next full run; no cause found.
 - **6d.** `budgetLine(study, ceiling)`: what remains and what this action can cost at most,
   unknown said, never zero.
 - **6e.** `reportStatus(report)`, read by the four.
@@ -653,3 +661,6 @@ blocked module in the step list; an inventory on 2026-10-16 (@ c809315b) found t
   (codeWords, known; the code of one with no words kept aside), a Deep Research step's name
   and reason (deepStepLabel, stepProblem), coverageWords; components/rehome/research/
   CodedWords.tsx shows an unknown code under Technické podrobnosti".
+- 6c, `CLAUDE.md` § map, `src/lib/result-reading.ts`: append "untitled: a measure without stored
+  wording titled in words, never by its id"; `research-execution.ts` traceMeasures: "an unlisted
+  measure's id kept as code, never its text".

@@ -96,7 +96,7 @@ import { useStepActivity } from "./useStepActivity";
 import { ObjectMapView } from "./ObjectMapView";
 import { InterpretationResearch } from "./InterpretationResearch";
 import { ResultsWorkspace } from "./ResultsWorkspace";
-import { citedMeasure, compareObjects, type CompiledSpecification, measureAnchor, readMeasure, type ReadingTone } from "@/lib/result-reading";
+import { citedMeasure, untitled, compareObjects, type CompiledSpecification, measureAnchor, readMeasure, type ReadingTone } from "@/lib/result-reading";
 import { FormattedText } from "./FormattedText";
 import { CompleteReport } from "./CompleteReport";
 
@@ -472,7 +472,7 @@ function ResearchTraceCard({ trace, outlook, design }: { trace: ResearchTrace; o
                     {measures.map((m) => (
                       <li key={m.key} className="flex items-start gap-2 text-[13px]">
                         <Chip tone={verdictTone(m.verdict)}>{t(`research.exec.outlook.verdict.${m.verdict}`)}</Chip>
-                        <span className="min-w-0 flex-1">{m.text}</span>
+                        <span className="min-w-0 flex-1">{m.code ? <CodedWords inline coded={{ words: m.text, code: m.code }} /> : m.text}</span>
                       </li>
                     ))}
                   </ul>
@@ -1459,7 +1459,7 @@ function CitedNumbers({ ids, outcome, spec }: { ids: readonly string[]; outcome:
           <li key={claim.claim_id} data-cited-number className="max-w-full rounded-control border border-border bg-surface-sunken px-2.5 py-1 text-xs leading-5">
             {measure
               ? <a href={`#${measureAnchor(measure.measureId)}`} className="no-underline hover:underline"><span className="font-semibold tabular-nums">{measure.format(claim.value, claim.decimals)}</span> {measure.what} · {measure.title}</a>
-              : <span><span className="font-semibold tabular-nums">{claim.value.toLocaleString("cs-CZ")}</span> <code>{claim.evidence_ref}</code></span>}
+              : <span><span className="font-semibold tabular-nums">{claim.value.toLocaleString("cs-CZ")}</span> <CodedWords inline coded={{ words: t("research.exec.untitled.cited"), code: claim.evidence_ref }} /></span>}
             {claim.indicative ? <span className="text-status-you-ink"> · orientační</span> : null}
           </li>
         );
@@ -1641,7 +1641,7 @@ function aggregateMeasures(payload: AggregatePayload, pinned: CompiledSpecificat
   return [
     ...questionIds.map((id) => {
       const q = specQuestions.get(id);
-      return { id, title: q?.text || `Otázka ${id}`, group: null, result: questions[id], table: resultTable(id, questions[id], box, at), scale: q?.scale ?? null };
+      return { id, title: q?.text || untitled("question"), group: null, result: questions[id], table: resultTable(id, questions[id], box, at), scale: q?.scale ?? null };
     }),
     ...batteryIds.flatMap((id) => {
       const battery = batteries[id];
@@ -1649,7 +1649,7 @@ function aggregateMeasures(payload: AggregatePayload, pinned: CompiledSpecificat
       const objectIds = inOrder<string>(Object.keys(battery.objects), (spec?.objects ?? []).map((o) => o.id));
       return objectIds.map((oid) => {
         const result = battery.objects[oid];
-        return { id: `${id}:${oid}`, title: result.label || `Objekt ${oid}`, group: battery.title || `Sada ${id}`, result, table: resultTable(oid, result, box, at), scale: spec?.scale ?? null };
+        return { id: `${id}:${oid}`, title: result.label || untitled("object"), group: battery.title || untitled("set"), result, table: resultTable(oid, result, box, at), scale: spec?.scale ?? null };
       });
     }),
   ];
@@ -1726,8 +1726,8 @@ function AggregateView({ artifact, run, specification }: { artifact: Artifact; r
   );
   const sets = Object.entries(payload.aggregate.batteries).map(([id, battery]) => {
     const spec = pinned?.batteries?.find((b) => b.id === id);
-    const objects = Object.entries(battery.objects).map(([oid, result]) => ({ id: `${id}:${oid}`, label: result.label || `Objekt ${oid}`, result }));
-    return { id, title: battery.title || `Sada ${id}`, scale: spec?.scale ?? null, comparison: compareObjects(objects, spec?.scale ?? null) };
+    const objects = Object.entries(battery.objects).map(([oid, result]) => ({ id: `${id}:${oid}`, label: result.label || untitled("object"), result }));
+    return { id, title: battery.title || untitled("set"), scale: spec?.scale ?? null, comparison: compareObjects(objects, spec?.scale ?? null) };
   }).filter((set) => set.comparison.ranked.length >= 2);
   return (
     <div className="flex flex-col gap-5" data-aggregate-explorer>

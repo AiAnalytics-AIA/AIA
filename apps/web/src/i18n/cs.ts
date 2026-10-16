@@ -2237,6 +2237,12 @@ export const cs = {
         unknown: "AIA k tomuto záznamu zatím nemá popis.",
         technical: "technický kód",
       },
+      untitled: {
+        question: "Otázka bez uloženého znění",
+        object: "Položka bez názvu",
+        set: "Sada bez názvu",
+        cited: "číslo, k němuž AIA nedohledala otázku",
+      },
       checkStatus: {
         PASS: "V pořádku",
         WARN: "Upozornění",

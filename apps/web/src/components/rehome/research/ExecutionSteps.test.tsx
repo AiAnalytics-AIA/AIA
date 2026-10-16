@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 
 
 import { t, tv } from "@/i18n/t";
 import type { ResearchRun } from "@/lib/api";
+import { measureAnchor } from "@/lib/result-reading";
 import { CONFLICT_MESSAGE } from "@/research/store";
 import { RunResults } from "./ExecutionSteps";
 import { StudyFrameProvider } from "./frame";
@@ -130,6 +131,12 @@ function api(overrides: Record<string, (body: unknown) => unknown> = {}) {
     }),
   );
 }
+/** A measure's card on Data, by its anchor: a question without stored wording has no id in its name. */
+const findMeasure = (id: string) => waitFor(() => {
+  const card = document.getElementById(measureAnchor(id));
+  if (!card) throw new Error(`no measure ${id}`);
+  return card;
+});
 const called = (method: string, prefix: string) => calls.filter((c) => c.method === method && c.url.startsWith(prefix));
 
 beforeEach(() => {
@@ -1102,8 +1109,8 @@ describe("Results", () => {
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: { audience: "WAITING_PROVIDER" }, modules: {
         executive: { outcome: "COMPLETED", summary: "Úvodní odstavec.\n\n- první bod\n- druhý bod", research_question_answers: [{ question: "Co lidé pijí?", answer: "Hlavně čaj a kávu.", claim_ids: ["C2"] }],
-          key_findings: [{ text: "Čaj a káva jsou **vyrovnané**.", claim_ids: ["C1", "C2", "C9"] }],
-          claims: [{ claim_id: "C1", evidence_ref: "q2.pct.2", value: 38.4, indicative: false, data_origin: null }, { claim_id: "C2", evidence_ref: "q2.pct.1", value: 34.8, indicative: true, data_origin: null }], violations: [] },
+          key_findings: [{ text: "Čaj a káva jsou **vyrovnané**.", claim_ids: ["C1", "C2", "C9", "C3"] }],
+          claims: [{ claim_id: "C1", evidence_ref: "q2.pct.2", value: 38.4, indicative: false, data_origin: null }, { claim_id: "C2", evidence_ref: "q2.pct.1", value: 34.8, indicative: true, data_origin: null }, { claim_id: "C3", evidence_ref: "x9.median", value: 4, indicative: false, data_origin: null }], violations: [] },
         objects: { outcome: "COMPLETED", summary: null, research_question_answers: [], key_findings: [{ text: "Bez čísel.", claim_ids: [] }], claims: [], violations: [] },
       } }),
     });
@@ -1122,6 +1129,9 @@ describe("Results", () => {
       "34,8 % podíl odpovědi „Kávu“ · Který nápoj byste si vybrali?",
     ]);
     expect(cited[0].getAttribute("href")).toBe("#measure-q2");
+    // A number whose question AIA cannot find says so in words; its reference stays as a code (6c).
+    expect(within(keyFindings).getByText(/číslo, k němuž AIA nedohledala otázku/)).toBeTruthy();
+    expect(within(keyFindings).getByText("x9.median").tagName).toBe("CODE");
     expect(within(keyFindings).getByText(/· orientační/)).toBeTruthy();
     expect(keyFindings.compareDocumentPosition(screen.getByText("Analýza po částech")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // The module's own text, formatted: its summary's list, its answer with the number it cites.
@@ -1180,11 +1190,13 @@ describe("Results", () => {
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
     expect(await screen.findByText(/Fiktivní data\. Tento běh používá smyšlené respondenty/)).toBeTruthy();
-    const q2 = await screen.findByRole("region", { name: "Otázka q2" });
+    // A question with no stored wording says so, never its id; its card is found by its anchor (6c).
+    const q2 = await findMeasure("q2");
+    expect(q2.getAttribute("aria-label")).toBe("Otázka bez uloženého znění");
     fireEvent.click(within(q2).getByText("Odpovědi, intervaly a původ otázky"));
     expect(within(q2).getByText("34,8 %")).toBeTruthy();
     expect(within(q2).getByText("30,1–39,9")).toBeTruthy();
-    const t1 = screen.getByRole("region", { name: "Otázka t1" });
+    const t1 = await findMeasure("t1");
     expect(within(t1).getByText(/Potlačeno: jen 19 unikátních dárců/)).toBeTruthy();
     expect(within(t1).queryByText("3,73")).toBeNull();
     expect(within(t1).queryByText(/3,25/)).toBeNull();
@@ -1240,7 +1252,7 @@ describe("Results", () => {
     expect(within(note).getByText("top_box: 2 v 18.6.6, zde 3")).toBeTruthy();
     expect(within(note).getByText("Nahrazený vzorec: agg.mean")).toBeTruthy();
     // The top box is named by the width this aggregate used, not the unit's two.
-    const t2 = screen.getByRole("region", { name: "Otázka t2" });
+    const t2 = await findMeasure("t2");
     fireEvent.click(within(t2).getByText("Odpovědi, intervaly a původ otázky"));
     expect(within(t2).getByText("Horní body (3)")).toBeTruthy();
     expect(within(t2).queryByText("Horní dva body")).toBeNull();
@@ -1549,7 +1561,7 @@ describe("Results", () => {
     });
     render(<ResearchScreen step="results" frame={{ ...TEST_FRAME, canEdit: false }} />);
     fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
-    expect(await screen.findByRole("region", { name: "Otázka q2" })).toBeTruthy();
+    expect(await findMeasure("q2")).toBeTruthy();
     await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5")).toHaveLength(1));
     expect(screen.queryByText(t("research.exec.results.mapsByMethod"))).toBeNull();
   });
