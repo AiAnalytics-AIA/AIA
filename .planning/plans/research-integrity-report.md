@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] 1. Runnable is not answerable: each start decides whether the run can answer the research questions it states; a run with gaps starts only on a person's recorded acknowledgement of exactly those gaps (AIA_RESEARCH_ANSWERABILITY_GATE, off by default), and the report prints the frozen record"
-  - "[ ] 2. The literature chapter keeps credibility and relevance apart: every accepted claim beside its verbatim passage and the topic it was searched for, every source with what its domain says (proposed tiers labelled), a review resting on one publisher said so, a sparse review said once"
+  - "[x] 2. The literature chapter keeps credibility and relevance apart: every accepted claim beside its verbatim passage and the topic it was searched for, every source with what its domain says (proposed tiers labelled), a review resting on one publisher said so, a sparse review said once"
   - "[ ] 3. One report variant, the same draft in DOCX and PDF: the researcher chooses the run's own report or the report with one completed review; the worker renders the stored draft (report_pdf); both files say which variant they are and what they hold"
   - "[ ] 4. Local render and inspection, USD 0: both variants of a fictional run composed, DOCX and PDF compared chapter by chapter, citations, maps, limitations, repeated prose, table of contents and layout checked by eye"
   - "[ ] 5. Develop acceptance on the existing fictional Fio run, USD 0 (owner's call: needs the deploy): recompose the literature variant at contract -4, render its PDF in the worker image, compare with the DOCX"
