@@ -2,12 +2,16 @@
 #
 # Lightweight layering enforcement for AIA.
 #
-# One rule here per rule stated in ARCHITECTURE.md. Deliberately grep-level: no
-# AST, no dependency-graph tool, nothing to install. A checker that needs its own
-# toolchain gets disabled the first time that toolchain breaks, and then the
-# layering rots silently -- which is the failure this file exists to prevent.
+# One rule here per rule stated in ARCHITECTURE.md. This script is the text half
+# of `make layer_check`: grep rules over names and patterns, with nothing to
+# install. Which module may import which is the other half, the import contracts
+# in the root pyproject.toml ([tool.importlinter]), which read real imports in
+# every form; `make layer_check` runs both and fails if either does. A rule about
+# imports belongs there. A rule here sees text only: an alias, a parenthesised
+# import or importlib passes it.
 #
-# Exit 0 = every rule passes. Run it before every commit; CI runs it blocking.
+# Exit 0 = every rule passes. Run `make layer_check` before every commit; CI runs it
+# blocking, and the docs-only job runs this script alone.
 #
 # Adding a rule: state it under Doc follow-up (the docs PR adds it to ARCHITECTURE.md), then add one `forbid` line
 # here. Rules are a ratchet -- each one is added only once it already passes, so
