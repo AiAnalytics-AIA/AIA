@@ -828,6 +828,9 @@ packages/aia_core/src/aia_core/
                             inoculation, scenarios, variants, frozen results
   application/
     model_gateway.py        GovernedModelGateway — the ONLY model call path (ADR 0005)
+    errors.py               The infrastructure errors a router catches, re-exported (the same
+                            classes), so a router need not import infrastructure (the ratchet
+                            contract in pyproject.toml)
     scope.py                ScopeResolver — the ONLY issuer of a scope context,
                             including a worker's, issued only against a held lease,
                             and of a ClientContext (client_context, accessible_clients);
@@ -1389,7 +1392,7 @@ ungated fixture.
 | Purpose | Command |
 |---|---|
 | One-time setup | `make setup` (needs `python3.12`: the venv is built with the version in `.python-version`, the one CI runs) |
-| **Python version** | `make python-version` (also before `make typecheck`): fails unless the venv's Python is `.python-version`'s and ci.yml's `PYTHON_VERSION` agrees. A venv on another minor version reports mypy errors CI does not (3.13: three in `ai_respondent.py`) -- `rm -rf .venv && make deps` |
+| **Python version** | `make python-version` (also before `make typecheck`): fails unless the venv's Python is `.python-version`'s and ci.yml's `PYTHON_VERSION` agrees. A venv on another minor version: `rm -rf .venv && make deps` |
 | Start Postgres / MinIO | `make services` |
 | Migrate | `make migrate` |
 | New migration | `make migration m="add jobs"` |
@@ -1415,7 +1418,7 @@ ungated fixture.
 | **Parity verdicts** | `make parity-status` — `PASS` / `FAIL` / `NOT_EXECUTED` / `NOT_RUNNABLE` per capability |
 | Lint | `make lint` (ruff, one configuration: the root `pyproject.toml`; `packages/aia_core` and `apps/api` extend it) |
 | Format | `make format` |
-| Types | `make typecheck` (mypy `--strict` + `tsc --noEmit`) |
+| Types | `make typecheck` (mypy `--strict --no-incremental` + `tsc --noEmit`; ~45 s, the check CI runs; a stale incremental cache reports errors CI does not, `AGENTS.md` § mypy) |
 | Web tests | `make test-web` (Vitest, pure functions) |
 | **Design tokens** | `make web_design` — generated files match `tokens.json`; contrast, palette and accent evidence holds. Change a token: edit `tokens.json`, then `npm run tokens` |
 | **UI workbench** | `make ui-workbench` → <http://127.0.0.1:8780/workbench/sign-in>: AIA alone, nothing of 18.6.6; `make ui-workbench-reference`: the same with the unit at `:8767` as reference (its first run installs the unit's requirements into `tmp/ui-workbench/venv`); `make ui-workbench-status`, `make ui-workbench-down`. The API runs on the repo's env (`make setup`) |

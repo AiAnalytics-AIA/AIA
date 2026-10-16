@@ -105,7 +105,7 @@ under `AIA_ENV=local` or `test`; an unset or unknown `AIA_ENV` counts as deploye
 | Rule | Prevents |
 |---|---|
 | domain imports no framework, driver or SDK | The domain becoming untestable without a database |
-| domain does not import outward | A dependency cycle through application or infrastructure |
+| the core's layers: application above infrastructure above domain (import contract) | A domain that reaches infrastructure, or infrastructure that reaches application, by any import form (the grep rule it replaced missed `from ...` and `import a.b`) |
 | application knows nothing about HTTP | Use cases that only work behind FastAPI |
 | infrastructure knows nothing about HTTP | Adapters that cannot be reused by a worker |
 | AWS SDK stays behind the storage adapter and the Bedrock signer (`aws_signing.py`: SigV4 and the role credential only) | `boto3` becoming a mandatory dependency of the whole package, or a botocore client calling Bedrock behind the gateway |
@@ -113,6 +113,7 @@ under `AIA_ENV=local` or `test`; an unset or unknown `AIA_ENV` counts as deploye
 | no botocore client is built for Bedrock | A second call path under the adapter that retries and chooses endpoints on its own (ADR 0005 A, ADR 0010) |
 | no database access in the HTTP layer | A handler opening a Session, and deciding something the domain never saw |
 | no ORM tables in the HTTP layer | Queries written where they cannot be tested without the whole stack |
+| routers reach infrastructure only through the application layer (import contract, a ratchet: the routers that did when it landed are listed edge by edge, and leave the list when next touched; a line no import matches fails) | A route that queries or stores where the application layer never sees it |
 | scope contexts are issued only by `ScopeResolver` | A request body, tool payload or model-generated argument widening its own scope |
 | provider SDKs and gateway libraries are not imported (core or API) | A second model-call path that can retry, fall back or substitute without `GovernedModelGateway` deciding to (ADR 0005) |
 | only the executor compositions import the model adapters (import contract) | A second model-call path: an adapter driven without the gateway's retry, budget, egress and provenance (ADR 0005) |
@@ -123,9 +124,9 @@ under `AIA_ENV=local` or `test`; an unset or unknown `AIA_ENV` counts as deploye
 | the API never builds its own scope context | The same, at the edge where untrusted input arrives |
 | the worker never builds its own scope context | The same, inside the process where model-driven code will run |
 | the worker knows nothing about HTTP | A worker that only works behind a web server |
-| the worker never imports the API | Layer 4 depending on layer 5, and the API's request state leaking into jobs |
+| the API, the worker and the executors are independent but for the executor seam, `aia_worker.executor` (import contract) | A worker that loads a step, an executor that drives the loop, or anything of the API outside the API, and its request state leaking into jobs |
 | the worker imports nothing domain-specific | The executor seam becoming decoration: the loop importing the AI or research code it is supposed to be ignorant of |
-| executors know nothing about HTTP and never import the API | A step implementation that only works behind a web server, or reaches into request state |
+| executors know nothing about HTTP | A step implementation that only works behind a web server |
 | executors never build their own scope context, admit their own claims, or build an unscoped repository | A claimed step writing another client's artifacts, or a number reaching a result without the admission gate, from inside the process where model-driven code will run |
 | the API never executes workflow steps | Expensive work inside a request, holding a lease exactly as long as a browser stays connected |
 | the API never builds or invokes the model gateway or an adapter | A model call inside a request: no lease, no reservation, no heartbeat, no recovery |
