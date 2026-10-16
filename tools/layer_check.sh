@@ -112,9 +112,9 @@ forbid "domain imports no document, XML or plotting library" \
   '^\s*(from|import)\s+(docx|lxml|matplotlib|numpy|PIL|pptx|openpyxl)\b' \
   "$CORE/domain/"
 
-forbid "domain does not import outward (application, infrastructure)" \
-  '^\s*from\s+(\.\.|aia_core\.)(application|infrastructure)\b' \
-  "$CORE/domain/"
+# The domain importing outward (application, infrastructure) is the import
+# contract "the core's layers" in pyproject.toml, run by `make layer_check`: it
+# sees every import form, which the grep rule it replaced did not.
 
 # --- Layer 2: application orchestrates, it does not serve HTTP --------------
 
@@ -240,9 +240,8 @@ forbid "the worker knows nothing about HTTP" \
   '^\s*(from|import)\s+(fastapi|starlette)\b' \
   "$WORKER"
 
-forbid "the worker never imports the API" \
-  '^\s*(from|import)\s+aia_api\b' \
-  "$WORKER"
+# The worker importing the API (or an executor) is the import contract "the API,
+# the worker and the executors are independent" in pyproject.toml.
 
 forbid "the worker imports nothing domain-specific" \
   '^\s*(from|import)\s+aia_core\.(domain\.(pipeline|project|sociomap|residency)|infrastructure\.(repositories|artifact_repository|storage|scope_repository))\b' \
@@ -600,9 +599,8 @@ forbid "executors know nothing about HTTP" \
   '^\s*(from|import)\s+(fastapi|starlette)\b' \
   "$EXECUTORS"
 
-forbid "executors never import the API" \
-  '^\s*(from|import)\s+aia_api\b' \
-  "$EXECUTORS"
+# Executors importing the API (or the worker beyond aia_worker.executor) is the
+# import contract "the API, the worker and the executors are independent".
 
 forbid "executors never build their own scope context" \
   '^[^#]*\b(Organization|Client|Study)Context\(' \
