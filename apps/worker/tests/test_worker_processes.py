@@ -64,6 +64,7 @@ class WorkerProcess:
         env = {
             **os.environ,
             "DATABASE_URL": database_url,
+            "AIA_ENV": "test",
             "AIA_WORKER_EXECUTORS": "aia_worker.testing:build_registry",
             "AIA_WORKER_ID": name,
             "AIA_WORKER_LEASE_SECONDS": str(LEASE_SECONDS),

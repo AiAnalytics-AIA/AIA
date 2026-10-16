@@ -385,7 +385,9 @@ against the person who started the run. An archived client's work fails closed.
 
 **The executor seam** (`aia_worker.executor`) is one method,
 `execute(step, context) -> Succeeded | Failed | NeedsApproval`. Executors are
-registered by step kind from `AIA_WORKER_EXECUTORS=module:factory`, and a worker
+registered by step kind from `AIA_WORKER_EXECUTORS=module:factory` (outside
+`AIA_ENV=local`/`test`, a module under `aia_executors.`, refused before it is
+imported: the name is a dynamic import no lint rule sees), and a worker
 claims only kinds it has, so a rolling deploy that adds a kind never has an old
 worker claim and fail it. Through the context an executor checkpoints (raising
 `StopExecution`, a `BaseException`, on cancellation, shutdown or lost lease),
@@ -407,7 +409,8 @@ cheap.
 | database unreachable | The loop logs and retries; a heartbeat silent for a whole lease is treated as a lost lease |
 
 Configuration is `WorkerSettings.from_env`: `DATABASE_URL` (required — a worker
-never falls back to SQLite), `AIA_WORKER_EXECUTORS`, `AIA_WORKER_ID`,
+never falls back to SQLite), `AIA_WORKER_EXECUTORS`, `AIA_ENV` (local and test may name a
+factory outside `aia_executors`; unset counts as deployed), `AIA_WORKER_ID`,
 `AIA_WORKER_LEASE_SECONDS` (120), `AIA_WORKER_HEARTBEAT_SECONDS` (30, at most half
 the lease), `AIA_WORKER_POLL_SECONDS` (2), `AIA_WORKER_MAINTENANCE_SECONDS` (30),
 `AIA_WORKER_CAPACITY_BACKOFF_SECONDS` (60), `AIA_WORKER_QUOTA_FALLBACK_SECONDS`

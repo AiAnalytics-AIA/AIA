@@ -110,7 +110,7 @@ def _module(name: str, **attributes: Any) -> None:
 
 
 def test_the_testing_registry_loads() -> None:
-    registry = load_executors("aia_worker.testing:build_registry")
+    registry = load_executors("aia_worker.testing:build_registry", any_package=True)
     assert list(registry) == [KIND]
     assert isinstance(registry[KIND], ScriptedExecutor)
 
@@ -128,7 +128,7 @@ def test_an_unusable_registry_is_refused(factory: Any, complaint: str) -> None:
     _module("aia_worker_test_factories", build=factory)
     try:
         with pytest.raises(ValueError, match=complaint):
-            load_executors("aia_worker_test_factories:build")
+            load_executors("aia_worker_test_factories:build", any_package=True)
     finally:
         del sys.modules["aia_worker_test_factories"]
 
@@ -136,14 +136,81 @@ def test_an_unusable_registry_is_refused(factory: Any, complaint: str) -> None:
 @pytest.mark.parametrize("spec", ["no_colon", ":build", "aia_worker.testing:"])
 def test_a_malformed_factory_path_is_refused(spec: str) -> None:
     with pytest.raises(ValueError):
-        load_executors(spec)
+        load_executors(spec, any_package=True)
 
 
 def test_a_missing_module_fails_loudly() -> None:
     with pytest.raises(ImportError):
-        load_executors("aia_worker_no_such_module:build")
+        load_executors("aia_worker_no_such_module:build", any_package=True)
 
 
 def test_a_non_callable_factory_is_refused() -> None:
     with pytest.raises(ValueError, match="not callable"):
-        load_executors("aia_worker.testing:KIND")
+        load_executors("aia_worker.testing:KIND", any_package=True)
+
+
+# --------------------------------------------------------------------------- #
+# Where an executor factory may come from
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [
+        "aia_worker.testing:build_registry",
+        "aia_executors_lookalike.registry:build_registry",
+        "aia_executors:build_registry",
+    ],
+)
+def test_a_deployed_worker_refuses_a_factory_outside_aia_executors(spec: str) -> None:
+    with pytest.raises(ValueError, match="outside aia_executors"):
+        load_executors(spec)
+
+
+def test_a_refused_factory_is_never_imported() -> None:
+    # The module does not exist: importing it would raise ImportError, not ValueError.
+    with pytest.raises(ValueError, match="outside aia_executors"):
+        load_executors("aia_worker_no_such_module:build")
+
+
+def test_a_deployed_worker_will_not_start_on_a_test_factory(
+    monkeypatch: pytest.MonkeyPatch, capfd: pytest.CaptureFixture[str]
+) -> None:
+    import aia_worker.__main__ as entry
+
+    def no_engine(*_: object, **__: object) -> None:
+        raise AssertionError("the worker went past its executor check")
+
+    # Reached only if the check regressed: fail here rather than run a worker loop.
+    monkeypatch.setattr(entry, "create_app_engine", no_engine)
+    for name in ("AIA_ENV", "AIA_ERROR_TRACKING_DSN"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://u:p@127.0.0.1:1/never")
+    monkeypatch.setenv("AIA_WORKER_EXECUTORS", "aia_worker.testing:build_registry")
+    assert entry.main() == 2
+    out, err = capfd.readouterr()
+    assert "outside aia_executors" in out + err
+
+
+@pytest.mark.parametrize(
+    ("environment", "any_package"),
+    [
+        ("local", True),
+        ("test", True),
+        (" TEST ", True),
+        ("develop", False),
+        ("staging", False),
+        ("production", False),
+        ("", False),
+        ("prod", False),
+    ],
+)
+def test_only_local_and_test_accept_a_factory_from_any_package(
+    environment: str, any_package: bool
+) -> None:
+    settings = WorkerSettings.from_env({**BASE, "AIA_ENV": environment})
+    assert settings.executors_from_any_package is any_package
+
+
+def test_an_unset_environment_counts_as_deployed() -> None:
+    assert WorkerSettings.from_env(BASE).executors_from_any_package is False
