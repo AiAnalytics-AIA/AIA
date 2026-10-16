@@ -280,6 +280,24 @@ def test_a_run_starts_once_per_design_revision_and_is_read_by_its_study(
     assert named <= step_ids
 
 
+def test_a_listed_run_carries_its_steps_and_no_cost_it_cannot_know(
+    researcher: TestClient, world: Any
+) -> None:
+    revision_id = submit(researcher, world).json()["revision_id"]
+    run = start(researcher, world, revision_id).json()
+    (listed,) = researcher.get(_runs(world)).json()["items"]
+    # The screens read a run's state from its steps, so the listing carries them...
+    assert [(s["node_key"], s["status"]) for s in listed["steps"]] == [
+        (s["node_key"], s["status"]) for s in run["steps"]
+    ]
+    assert [s["step_id"] for s in listed["steps"]] == [s["step_id"] for s in run["steps"]]
+    # ...without their attempt history: what it holds is absent, never made up.
+    assert all(s["started_at"] is None and s["error_message"] is None for s in listed["steps"])
+    full = researcher.get(f"{_runs(world)}/{run['run_id']}").json()
+    assert full["actual_cost_usd"] is not None
+    assert listed["actual_cost_usd"] is None
+
+
 def test_analysis_results_are_study_scoped_and_internal(
     app: FastAPI,
     researcher: TestClient,
