@@ -40,18 +40,19 @@ without a database, a network or a provider key.
 
 ## 2. Layers
 
-Each layer calls the layer directly below. `aia_core.domain` is the universal
+Each layer depends only on the layers its row names, and every dependency points
+toward the domain; `make layer_check` holds the rows (§3). `aia_core.domain` is the universal
 seam, callable from any layer above. Each subsystem has exactly one public entry
 point; nothing outside it touches its internals.
 
 | # | Layer | Path | Owns | May depend on |
 |---|---|---|---|---|
 | 1 | **Domain** | `packages/aia_core/src/aia_core/domain/` | Pure rules: pipeline, project, providers, scope vocabulary, population versions and import contract, Sociomapping mathematics, evidence gates, analysis modules. Shapes and validation. No I/O. | Nothing internal. Stdlib + Pydantic only — numerical code included, which is why the Sociomap engine is pure Python rather than numpy. |
-| 2 | **Application** | `packages/aia_core/src/aia_core/application/` | Use cases. **The only issuer of a scope context, and the only loader of population data.** Orchestrates domain + infrastructure. | 1, 3 |
+| 2 | **Application** | `packages/aia_core/src/aia_core/application/` | Use cases. **The only issuer of a scope context, and the only loader of population data.** Orchestrates domain + infrastructure. Reaches rows only through a repository. | 1, 3 |
 | 3 | **Infrastructure** | `packages/aia_core/src/aia_core/infrastructure/` | SQLAlchemy tables and repositories, object storage, provider gateways. Every external service behind a protocol. | 1 |
 | 4 | **Workers** | `apps/worker/src/aia_worker/` | Durable step execution: claim from the PostgreSQL queue, heartbeat, run the `StepExecutor` registered for the step's kind, record the outcome; every worker also reconciles. **Knows nothing about what a step does.** | 1, 2, 3 — never 5 |
 | 4b | **Executors** | `apps/executors/src/aia_executors/` | What a step of each kind *does*, under the scope the lease issued and through the worker's `StepContext`. Registered by kind; the worker loads them from `AIA_WORKER_EXECUTORS`. Also the operator commands (seed, smoke) that act as a user would through the application layer. | 1, 2, 3 and `aia_worker.executor` — never 5 |
-| 5 | **Transport** | `apps/api/src/aia_api/` | HTTP. Validates, delegates, serialises. **No business rules.** | 1, 2, 3 — through `dependencies.py` only |
+| 5 | **Transport** | `apps/api/src/aia_api/` | HTTP. Validates, delegates, serialises. **No business rules.** | 1, 2; 3 only outside `routers/` (the composition root `dependencies.py` and `main.py`, and `config.py` and `observability.py` for settings and redaction). Routers that import infrastructure today are a ratchet in `pyproject.toml` and leave it when next touched |
 | 6 | **Presentation** | `apps/web/` | Next.js client. Renders server-computed state. **No business rules.** | 5, over HTTP |
 | — | **Legacy unit** | `legacy/npc-panel-18.6.6/` | The NPC Panel 18.6.6 product, extracted byte-for-byte from the audited archive ([ADR 0011](docs/architecture/adr/0011-vendor-legacy-product-unit.md)). The rebuild's behavioural baseline and parity oracle. **Frozen: regenerated, never edited** (one exception to date: `runtime/hydrate_data.py`, hand-edited by PR #57, OI-68). Outside every code-quality gate by construction. Not part of the product deployment (ADR 0018 decision 5): it runs, when a comparison needs it, from `deploy/reference/` beside the develop host's product, behind a basic-auth gate on the host's loopback. | Nothing. Neither the back end nor the web client calls it (ADR 0018); parity tests reach it over HTTP. |
 
@@ -106,6 +107,7 @@ under `AIA_ENV=local` or `test`; an unset or unknown `AIA_ENV` counts as deploye
 |---|---|
 | domain imports no framework, driver or SDK | The domain becoming untestable without a database |
 | the core's layers: application above infrastructure above domain (import contract) | A domain that reaches infrastructure, or infrastructure that reaches application, by any import form (the grep rule it replaced missed `from ...` and `import a.b`) |
+| the application reaches the tables only through a repository (import contract, a ratchet: `develop_seed`, `scope` and `workspace_migration` listed, leaving as their queries move behind repositories; a line no import matches fails) | A use case that queries a table itself and drops the isolation predicate its repository carries (`owner=`, the resolved client, the study) |
 | application knows nothing about HTTP | Use cases that only work behind FastAPI |
 | infrastructure knows nothing about HTTP | Adapters that cannot be reused by a worker |
 | AWS SDK stays behind the storage adapter and the Bedrock signer (`aws_signing.py`: SigV4 and the role credential only) | `boto3` becoming a mandatory dependency of the whole package, or a botocore client calling Bedrock behind the gateway |
