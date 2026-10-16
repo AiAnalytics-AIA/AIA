@@ -6,7 +6,9 @@ chunks:
   - "[x] 2. Fence network egress to the transport modules: ruff TID251 banned-api, one root ruff configuration, an import contract keeping live wires out of the deep-research steps"
   - "[x] 3. Pin what a worker that outlived its lease can still write (B completes, then A writes)"
   - "[x] 4. The core's layers, the apps' independence and the routers' boundary (a ratchet) as import contracts; the grep rules they cover removed"
-  - "[ ] 5. Not recorded in this file yet: the chunks after 4 come from the exploration report (.planning/notes/architecture-exploration-2026-10-15.md) and are written here when they are taken up"
+  - "[x] 5. Decide the application layer's table access (repositories own it) and encode it as a ratchet contract naming today's three modules"
+  - "[ ] 6. develop_seed.py and workspace_migration.py reach their rows through repositories; both leave the ratchet"
+  - "[ ] 7. ScopeResolver's queries move behind an infrastructure repository (scope_repository.py); scope.py leaves the ratchet, still the only issuer of a context"
 ---
 # Architecture enforcement — the layering guard says what it checks
 
@@ -153,6 +155,42 @@ forbidding application -> tables would need all three named, or moved behind
 repositories. Also open with Kyi: the two contradictions in ARCHITECTURE.md's layer
 table (see the exploration report).
 
+Decided 2026-10-16 (chunk 5 below); the exploration report was never filed, so
+chunks 6 and 7 are written from the code, not from it.
+
+## Chunk 5 — the application reaches the tables only through a repository (done)
+
+**Decision** (2026-10-16, the owner delegated it: "decide this off of best
+practices"). ARCHITECTURE.md §2 gives infrastructure "SQLAlchemy tables and
+repositories"; the repository is where a table's isolation predicate lives
+(`ProjectRepository(owner=)`, `ClientKnowledgeRepository` querying by the resolved
+client). A use case that writes its own `select()` over `tables` can drop that
+predicate, and the next query written beside it copies the one before. So:
+application modules read and write rows only through a repository, and keep what
+is theirs -- deciding, issuing a context, orchestrating. `ScopeResolver` stays the
+only issuer of a scope context (ARCHITECTURE.md §2, layer 2); what moves is how it
+reads memberships, studies and clients, not who decides.
+
+Not chosen: a named, permanent exception for `scope.py`. It is the most
+security-critical query code in the repository, which is the argument for a
+repository with its own tests, not against one.
+
+**Encoded** as a forbidden contract, `aia_core.application` ->
+`aia_core.infrastructure.tables` (`pyproject.toml`), with today's three importers
+listed as a ratchet, as the routers' contract is: `develop_seed`, `scope`,
+`workspace_migration`. They are the only application modules that import
+`sqlalchemy`'s `select` too (`develop_seed.py:31`, `scope.py:23`,
+`workspace_migration.py:35 @ b8d9789b`); every other application module imports
+`Session` or `IntegrityError` alone. Replaces the TODO beside the layers contract.
+
+Probed on one tree, each restored after:
+`from ..infrastructure import tables` in `application/research.py` and
+`import aia_core.infrastructure.tables` in `application/project_memory.py` each
+fail the contract; a fourth ignore line (`application.research -> tables`) that no
+import matches fails the run ("No matches for ignored import").
+
+`layer_check`: 142 rules + 6 contracts.
+
 ## Findings
 
 - **F1. Three web-retrieval adapters import from `model_adapters`.** The AST
@@ -257,3 +295,21 @@ For the next docs-only PR:
   catches, re-exported (the same classes) so routers need not import infrastructure`.
 - **AGENTS.md**, mypy: the cache trap of F8 -- carried by AiAnalytics-AIA/AIA#466's Doc
   follow-up (wrong: trust a warm cache after a branch switch; right: `--no-incremental`).
+- **ARCHITECTURE.md §3**, rule table, one row (chunk 5):
+  | the application reaches the tables only through a repository (import contract, ratchet) | A use case that queries a table itself and drops the isolation predicate its repository carries; today's three modules listed, leaving with chunks 6 and 7 |
+- **ARCHITECTURE.md §2**, the two places the prose disagrees with the table and
+  with the contracts:
+  - Replace "Each layer calls the layer directly below." with "Each layer depends
+    only on the layers its row names, and every dependency points toward the
+    domain; `make layer_check` holds the rows (§3)." The table itself has
+    application -> infrastructure (2 -> 3) and workers, executors and transport
+    each reaching 1, 2 and 3, none of which is "directly below".
+  - Transport's "May depend on" cell, "1, 2, 3 — through `dependencies.py` only",
+    becomes "1, 2; 3 only in the composition root (`dependencies.py`, `main.py`).
+    Routers that import infrastructure today are a ratchet in `pyproject.toml`
+    and leave it when next touched". Routers import application and domain
+    directly throughout (none goes through `dependencies.py` for them), and nine
+    routers import infrastructure (the ratchet's 27 edges).
+  - Application's "Owns" cell, after "Orchestrates domain + infrastructure.":
+    "Reaches rows only through a repository (chunk 5's contract)."
+
