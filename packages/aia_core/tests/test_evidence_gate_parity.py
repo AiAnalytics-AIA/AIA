@@ -13,9 +13,9 @@ Two sources of truth, and each section says which it uses:
   allow/block decision, with the code free to be more specific.
 
 What neither source can supply is the legacy *source* -- it is withheld with the
-archive. The decisions of ``tier_gate.py``, ``validation_gate.py`` and
-``core_joint._fallback()`` that the docstrings do not state are recorded in
-``.planning/open-items.md`` for the run that has the archive.
+archive. The decisions of ``validation_gate.py`` and ``core_joint._fallback()`` that the
+docstrings do not state are recorded in ``.planning/open-items.md`` for the run that has the
+archive. ``tier_gate.py`` is not ported (methodology-tab V1c2), so it has no cases here.
 """
 
 from __future__ import annotations
@@ -57,7 +57,6 @@ from aia_core.domain.evidence import (
     block,
     evaluate_claim,
     evaluate_predictive_validity_claim,
-    evaluate_tier,
     load_joint_status,
     system_fingerprint,
 )
@@ -398,7 +397,7 @@ GATE_CASES: tuple[GateCase, ...] = (
         _admit(NumericClaim("c1", "E1", "t_score", 42.5, "%")), False,
         frozenset({ViolationCode.METRIC_NOT_ALLOWED}),
     ),
-    # M10 / R12 -- validation and tiers
+    # M10 / R12 -- validation
     GateCase(
         "smoke-never-unlocks", "M10 smoke_validation.py", "EXACT",
         lambda _: evaluate_predictive_validity_claim(
@@ -417,15 +416,6 @@ GATE_CASES: tuple[GateCase, ...] = (
             ValidationState(ValidationStatus.HOLDOUT_VALIDATED, _OLD_FP), _FP
         ),
         False, frozenset({ViolationCode.VALIDATION_NOT_CURRENT}),
-    ),
-    GateCase(
-        "tier-b-aggregate", "M10 tier_gate.py Tier B", "EXACT",
-        lambda _: evaluate_tier({"d": "B"}, "aggregate"), True,
-    ),
-    GateCase(
-        "tier-b-persona", "M10 tier_gate.py Tier A currently none", "SEMANTIC",
-        lambda _: evaluate_tier({"d": "B"}, "persona"), False,
-        frozenset({ViolationCode.TIER_INSUFFICIENT}),
     ),
 )  # fmt: skip
 

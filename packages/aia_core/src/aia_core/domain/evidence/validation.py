@@ -1,4 +1,4 @@
-"""Validation status bound to system identity, and the evidence tier gate.
+"""Validation status bound to system identity.
 
 Two reference rules (methodology-ledger M10, high-risk R12):
 
@@ -15,15 +15,10 @@ Two reference rules (methodology-ledger M10, high-risk R12):
   claim, and none exists today: external validity is
   ``EXTERNAL_HOLDOUT_PENDING``.
 
-The tier gate (``tier_gate.py``): "Tier A: conditional + independently
-validated joint evidence (currently none). Tier B: documented
-marginal/conditional evidence; aggregate and demographic breakdowns ma[...]",
-with use cases ``aggregate, demographic_breakdown, segmentation, persona,
-individual, internal_experimental``. The recovered excerpt stops mid-sentence,
-so two readings here are this port's, both fail closed and both listed for the
-legacy-source parity run: Tier B permits aggregate, demographic-breakdown and
-internal-experimental use and nothing else; Tier C permits internal-experimental
-use only.
+The reference's tier gate (``tier_gate.py``) is not ported: nothing gave a field a tier and
+its description of tiers B and C breaks off mid-sentence, so the A/B/C permits AIA once read
+into it decided nothing. What a population field may serve is the population's field policy
+(``domain/population/policy.py``; plan methodology-tab V1c2, owner 2026-10-15).
 
 What the holdout certificate itself requires (preregistration, locked truth,
 the five ablation baselines, the fourteen thresholds in
@@ -40,21 +35,17 @@ from enum import StrEnum
 from typing import Final
 
 from ..pipeline import fingerprint
-from .gate import GateDecision, ViolationCode, allow, block, combine
+from .gate import GateDecision, ViolationCode, allow, block
 
 __all__ = [
     "METHOD_STATUS_HOLDOUT_VALIDATED",
     "METHOD_STATUS_PENDING",
     "RESPONDENT_SYSTEM_COMPONENTS",
     "SYSTEM_FINGERPRINT_COMPONENTS",
-    "TIER_PERMITS",
-    "EvidenceTier",
-    "TierUseCase",
     "ValidationState",
     "ValidationStatus",
     "effective_validation_status",
     "evaluate_predictive_validity_claim",
-    "evaluate_tier",
     "lifts_internal_only",
     "method_status",
     "respondent_system_fingerprint",
@@ -201,68 +192,3 @@ def method_status(state: ValidationState | None, current_fingerprint: str) -> st
     ):
         return METHOD_STATUS_HOLDOUT_VALIDATED
     return METHOD_STATUS_PENDING
-
-
-# --- tier gate ----------------------------------------------------------------------------
-
-
-class EvidenceTier(StrEnum):
-    A = "A"
-    B = "B"
-    C = "C"
-
-
-class TierUseCase(StrEnum):
-    AGGREGATE = "aggregate"
-    DEMOGRAPHIC_BREAKDOWN = "demographic_breakdown"
-    SEGMENTATION = "segmentation"
-    PERSONA = "persona"
-    INDIVIDUAL = "individual"
-    INTERNAL_EXPERIMENTAL = "internal_experimental"
-
-
-TIER_PERMITS: Final[Mapping[EvidenceTier, frozenset[TierUseCase]]] = {
-    EvidenceTier.A: frozenset(TierUseCase),
-    EvidenceTier.B: frozenset(
-        {
-            TierUseCase.AGGREGATE,
-            TierUseCase.DEMOGRAPHIC_BREAKDOWN,
-            TierUseCase.INTERNAL_EXPERIMENTAL,
-        }
-    ),
-    EvidenceTier.C: frozenset({TierUseCase.INTERNAL_EXPERIMENTAL}),
-}
-
-
-def evaluate_tier(
-    dimension_tiers: Mapping[str, str | None], use_case: str | TierUseCase
-) -> GateDecision:
-    """May these dimensions support a claim of this use case? Every dimension must permit it.
-
-    An unknown use case, a dimension with no tier or an unrecognised tier, and
-    an empty set of dimensions all refuse.
-    """
-    try:
-        wanted = TierUseCase(use_case)
-    except ValueError:
-        return block(ViolationCode.TIER_UNKNOWN, str(use_case), "unknown use case")
-    if not dimension_tiers:
-        return block(ViolationCode.TIER_UNKNOWN, wanted.value, "no dimensions to evaluate")
-
-    decisions: list[GateDecision] = []
-    for dimension, raw in sorted(dimension_tiers.items()):
-        try:
-            tier = EvidenceTier(raw) if raw is not None else None
-        except ValueError:
-            tier = None
-        if tier is None:
-            decisions.append(block(ViolationCode.TIER_UNKNOWN, dimension, f"tier {raw!r}"))
-        elif wanted not in TIER_PERMITS[tier]:
-            decisions.append(
-                block(
-                    ViolationCode.TIER_INSUFFICIENT,
-                    dimension,
-                    f"tier {tier} does not support {wanted} claims",
-                )
-            )
-    return combine(decisions)

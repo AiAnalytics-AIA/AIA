@@ -127,7 +127,9 @@ def test_values_are_the_domain_constants(owner: TestClient) -> None:
     assert history["project_default_provider_policy"]["value"] == DEFAULT_POLICY.value
     assert groups["workflow"]["lease_seconds"]["value"] == DEFAULT_LEASE_SECONDS
     assert groups["evidence"]["min_cell"]["value"] == REFERENCE_THRESHOLDS.min_cell
-    assert groups["evidence"]["tier_C_permits"]["value"] == ["internal_experimental"]
+    # The A/B/C tier permits are retired (methodology-tab V1c2): Metodika's Původ polí shows
+    # the field policy that runs instead.
+    assert not [key for key in groups["evidence"] if key.startswith("tier_")]
 
 
 def test_every_item_states_its_control_and_source(owner: TestClient) -> None:

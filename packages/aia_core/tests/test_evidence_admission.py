@@ -17,7 +17,6 @@ from aia_core.domain.evidence import (
     SupportAssessment,
     SupportEvidence,
     SupportStatus,
-    TierUseCase,
     UnsupportedEstimate,
     ViolationCode,
     admit_numeric_claims,
@@ -64,7 +63,6 @@ def test_row_unit_is_derived_from_its_metric(evidence_row: Any) -> None:
         ({"decimals": 9}, "decimals"),
         ({"value": 42.54}, "not rounded"),
         ({"interval": Interval(1.0, 2.0, 0.95)}, "outside"),
-        ({"dimension_tiers": {"d1": "B"}}, "use case"),
     ],
 )
 def test_malformed_rows_are_refused(
@@ -185,11 +183,12 @@ def test_modelled_row_backs_a_modelled_claim(admit: Any, evidence_row: Any) -> N
     assert admit([nc()], EvidenceTable.build([row])).decision.allowed
 
 
-def test_tier_gate_runs_when_the_row_names_dimensions(admit: Any, evidence_row: Any) -> None:
-    row = evidence_row(use_case=TierUseCase.SEGMENTATION, dimension_tiers={"d1": "B"})
-    assert admit([nc()], EvidenceTable.build([row])).decision.codes == {
-        ViolationCode.TIER_INSUFFICIENT
-    }
+def test_a_rows_identity_keeps_the_retired_tier_fields(evidence_row: Any) -> None:
+    """The tier gate is retired (V1c2), but a row's canonical form keeps its two fields at the
+    only values a row ever had, so no evidence table's fingerprint -- and no stored analysis
+    that cites one -- changes."""
+    canonical = evidence_row().canonical()
+    assert canonical["use_case"] is None and canonical["dimension_tiers"] == {}
 
 
 def test_indicative_support_is_admitted_and_flagged(admit: Any, evidence_row: Any) -> None:
