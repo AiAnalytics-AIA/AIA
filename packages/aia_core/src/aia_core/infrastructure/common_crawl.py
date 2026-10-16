@@ -56,6 +56,7 @@ from ..domain.deep_research.common_crawl import (
     ARCHIVE_HOST,
     ATHENA_REGION,
     MAX_INDEX_ROWS,
+    MIN_SCAN_CUTOFF_BYTES,
     AthenaPricing,
     IndexRow,
     IndexTable,
@@ -638,8 +639,6 @@ _KEYS: Final = (
     "BILLING_INCREMENT_BYTES",
     "PRICES_AS_OF",
 )
-#: Athena refuses a workgroup cutoff below 10 MB (service model ``BytesScannedCutoffValue``).
-MIN_SCAN_CUTOFF_BYTES: Final = 10_000_000
 
 
 @dataclass(frozen=True, slots=True)

@@ -102,7 +102,11 @@ names exactly `aia_executors.ai_runtime`, `aia_executors.deep_research_live` and
   `aia_executors.`, refused before it is imported (`load_executors`,
   `test_a_deployed_worker_refuses_a_factory_outside_aia_executors`). **E3** the contract's
   source is the deep-research steps only; widening it to every executor and the API needs one
-  ignore, `aia_api/routers/deep_research.py:69` (`MIN_SCAN_CUTOFF_BYTES`).
+  ignore, `aia_api/routers/deep_research.py:69` (`MIN_SCAN_CUTOFF_BYTES`). *Closed:* the constant moved to
+  `domain/deep_research/common_crawl.py`, so the API imports no wire module, and the contract's
+  sources are every app plus the core's domain and application layers, indirect imports
+  included, the compositions' own edges ignored ("only the executor compositions import a live
+  network wire").
 
 ## Chunk 3 — what a stale worker can still write (done, #443)
 

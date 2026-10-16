@@ -46,7 +46,7 @@ from aia_core.application.deep_research import (
 from aia_core.application.design_research import DesignResearchProposals
 from aia_core.application.research import CostCeilingUnknown, CostConfirmationRequired
 from aia_core.domain.deep_research.budgets import CallKind, ResearchMode
-from aia_core.domain.deep_research.common_crawl import AthenaPricing
+from aia_core.domain.deep_research.common_crawl import MIN_SCAN_CUTOFF_BYTES, AthenaPricing
 from aia_core.domain.deep_research.contracts import Channel
 from aia_core.domain.deep_research.integration import (
     LEGACY_UNVERSIONED,
@@ -66,7 +66,6 @@ from aia_core.domain.deep_research.settings import request_limits
 from aia_core.domain.design import DesignRejected
 from aia_core.domain.run_cost import DeepResearchPrices, RoutePrice
 from aia_core.domain.scope import Permission, ScopeDenied, StudyContext
-from aia_core.infrastructure.common_crawl import MIN_SCAN_CUTOFF_BYTES
 from aia_core.infrastructure.deep_research_settings_repository import (
     settings_in_force_for_study,
 )
