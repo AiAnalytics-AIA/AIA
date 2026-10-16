@@ -699,3 +699,32 @@ def test_a_version_stored_before_rounding_opens_with_the_places_its_runs_read(
     with create_session_factory(app.state.engine)() as session:
         kept = session.get(MethodologyVersionRow, row.version_id)
         assert kept is not None and "rounding" not in kept.payload["spec"]
+
+
+# ------------------------------------------------------- field origin (V1c): read-only
+
+
+def test_the_field_policy_is_served_from_the_tables_decide_reads(as_user: Any) -> None:
+    """Any member reads it; every origin, sentence and grade is the policy's own, so the
+    Metodika page explains exactly what ``RuntimePopulation.decide`` applies."""
+    from aia_core.domain.population.policy import (
+        CLIENT_BLOCKING_GRADES,
+        EVIDENCE_STATUS_CLASS,
+        FIELD_POLICY_VERSION,
+        RECOMMENDED_USE_POLICY,
+        FieldUse,
+    )
+
+    body = as_user("viewer").get(f"{METHODOLOGY}/field-policy").json()
+    assert body["version"] == FIELD_POLICY_VERSION
+    assert body["uses"] == [u.value for u in FieldUse]
+    measured = {o["id"] for o in body["origins"] if o["measured"]}
+    assert measured == {"OBSERVED", "DONOR_MATCHED"}
+    codes = [code for o in body["origins"] for code in o["statuses"]]
+    assert sorted(codes) == sorted(EVIDENCE_STATUS_CLASS) and len(codes) == len(set(codes))
+    phrases = {p["phrase"]: p for p in body["phrases"]}
+    assert set(phrases) == set(RECOMMENDED_USE_POLICY) and len(phrases) == 16
+    audit = phrases["AUDIT_ONLY"]
+    assert audit["rules"] == ["AUDIT_ONLY"] and audit["client_permit"] == "NONE"
+    blocking = {g["grade"] for g in body["grades"] if g["client_blocking"]}
+    assert blocking == set(CLIENT_BLOCKING_GRADES) == {"D", "T"}

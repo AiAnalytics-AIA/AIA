@@ -19,6 +19,7 @@ import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 
+from aia_core.domain.deployment import DeploymentEnvironment, parse_environment
 from aia_core.domain.workflow import (
     DEFAULT_CAPACITY_BACKOFF_SECONDS,
     DEFAULT_LEASE_SECONDS,
@@ -65,6 +66,10 @@ class WorkerSettings:
     #: start so a running container can be matched to a revision. None when the
     #: deployment did not say; never a placeholder.
     build_sha: str | None = None
+    #: Whether ``AIA_WORKER_EXECUTORS`` may name a factory outside ``aia_executors``:
+    #: only where ``AIA_ENV`` is local or test, for the suites' doubles. Unset or
+    #: unknown counts as deployed.
+    executors_from_any_package: bool = False
 
     def __post_init__(self) -> None:
         problems: list[str] = []
@@ -136,6 +141,8 @@ class WorkerSettings:
             database_url=source.get("DATABASE_URL", "").strip(),
             build_sha=build_sha,
             executors=source.get("AIA_WORKER_EXECUTORS", "").strip(),
+            executors_from_any_package=parse_environment(source.get("AIA_ENV"))
+            in (DeploymentEnvironment.LOCAL, DeploymentEnvironment.TEST),
             worker_id=source.get("AIA_WORKER_ID", "").strip() or default_worker_id(),
             lease_seconds=lease,
             heartbeat_seconds=heartbeat,

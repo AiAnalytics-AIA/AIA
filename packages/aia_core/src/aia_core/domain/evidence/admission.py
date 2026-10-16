@@ -10,7 +10,7 @@ through uncovered (``evidence_validator.py``: ``coverage >= 0.95``).
 Here a model's numeric claim is untrusted input (:class:`NumericClaim`) until
 :func:`admit_numeric_claims` has checked it against the deterministic
 :class:`EvidenceTable` *and* through every governance gate -- field policy,
-joint structure, support, interval, tier. Only then does it become an
+joint structure, support, interval. Only then does it become an
 :class:`AdmittedClaim`, which carries a module-private issuer sentinel and so
 cannot be constructed anywhere else (``make layer_check`` enforces that no other
 module even spells the constructor). A result type that accepts only
@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any, Final
 
@@ -47,7 +47,6 @@ from .gate import GateDecision, Violation, ViolationCode, block, combine
 from .joint_status import JointStatus
 from .metrics import AnalysisMetric, MetricKind, MetricUnit, UnknownMetric, parse_metric
 from .support import Interval, SupportAssessment, SupportStatus
-from .validation import TierUseCase, evaluate_tier
 
 __all__ = [
     "Admission",
@@ -84,8 +83,6 @@ class EvidenceRow:
     joint: bool = False
     disclosures: frozenset[Disclosure] = frozenset()
     weight_scheme: str | None = None
-    use_case: TierUseCase | None = None
-    dimension_tiers: Mapping[str, str | None] = field(default_factory=lambda: MappingProxyType({}))
     #: Where the respondent data behind the number came from. ``SYNTHETIC_FIXTURE``
     #: (the fictional fieldwork of ADR 0016) can never back a client-facing claim.
     data_origin: DataOrigin | None = None
@@ -105,9 +102,6 @@ class EvidenceRow:
             )
         if self.interval is not None and not self.interval.contains(self.value):
             raise ValueError(f"{self.evidence_ref}: value lies outside its interval")
-        if self.dimension_tiers and self.use_case is None:
-            raise ValueError(f"{self.evidence_ref}: dimension tiers need the use case they back")
-        object.__setattr__(self, "dimension_tiers", MappingProxyType(dict(self.dimension_tiers)))
 
     @property
     def unit(self) -> MetricUnit:
@@ -137,8 +131,11 @@ class EvidenceRow:
             "joint": self.joint,
             "disclosures": sorted(d.value for d in self.disclosures),
             "weight_scheme": self.weight_scheme,
-            "use_case": None if self.use_case is None else self.use_case.value,
-            "dimension_tiers": dict(sorted(self.dimension_tiers.items())),
+            # The retired tier gate's two fields (V1c2), at the only values a row ever had:
+            # kept so every evidence table's fingerprint, and the identity of every stored
+            # analysis that cites it, stays what it was.
+            "use_case": None,
+            "dimension_tiers": {},
         }
 
 
@@ -295,11 +292,6 @@ def _check_claim(
         weight_scheme=row.weight_scheme,
     )
     decisions.append(_prefixed(cid, evaluate_claim(request, book, joint_status)))
-    if row.dimension_tiers:
-        # A row with tiers always names its use case (EvidenceRow.__post_init__); an
-        # empty use case would be refused by the tier gate rather than skipped.
-        use_case = row.use_case.value if row.use_case is not None else ""
-        decisions.append(_prefixed(cid, evaluate_tier(row.dimension_tiers, use_case)))
     return combine(decisions)
 
 

@@ -210,7 +210,9 @@ apps/
                             proposal edits consistent in native research_plan and legacy analysis;
                             trace.ts: which research question each questionnaire item measures
                             (researchQuestionsOf, as the server reads them; the link read and toggled),
-                            "Odpovídá na výzkumné otázky" on every question and tracked set in Dotazník
+                            "Odpovídá na výzkumné otázky" on every question and tracked set in Dotazník;
+                            comparisonOf / setComparison ("Jak výzkumné otázky zodpovíme" in Dotazník);
+                            proposedTrace (a proposal's links, read on the inline review)
     src/testing/legacy.ts   Parity harness: a function's effective binding, run in a Node vm (reads
                             the vendored ui_app.html: reference only, never product code)
     src/lib/app-routes.ts   Every /app URL, built in one place (stage slugs: `persona` is `dimensions`)
@@ -222,7 +224,9 @@ apps/
                             Inspector (InspectorProvider / InspectorSlot: a stage's readiness beside
                             it, then AI pomoc, then "Do spuštění zbývá"), save state, job panel, the
                             shared brief analysis (useAnalysis), one screen per stage; ProposalReview
-                            (a design proposal reviewed inline, its changes listed); CompleteReport
+                            (a design proposal reviewed inline, its changes listed; a questionnaire
+                            proposal's research questions, their measures and answers, before it is
+                            accepted); CompleteReport
                             (the report card on Výsledky: a part claimed only when the run's steps
                             made it; the one place a run's report is downloaded -- internal or, for a
                             modelled run, client; DOCX or PDF -- and approved, the document approved
@@ -470,7 +474,11 @@ packages/aia_core/src/aia_core/
     ai_execution.py         ModelGateway + ExecutionContext: the step-executor contract
     ai_tools.py             ToolRegistry — scope never from model arguments
     research_agents.py     Eight closed Research task contracts, prompt/harness versions,
-                            bounded context and task-owned proposal mapping
+                            bounded context and task-owned proposal mapping; the questionnaire
+                            contract (harness 3) proposes each item's research_questions, a set's
+                            output_type and each research question's comparison; proposal_result
+                            keeps only links to stated research questions (dropped_links names the
+                            rest); prompt_version_for: build/optimize at 3, the rest at 2
     deep_research/          Deep Research (ADR 0017, ADR 0021), pure; the engine is frozen after #166:
       contracts.py          subjects, tracks, snapshots, knowledge sources, evidence, quarantine and
                             stop reasons, the request a run is frozen to; harness 3: the request's
@@ -527,7 +535,11 @@ packages/aia_core/src/aia_core/
                             items that declare they measure it (research_questions on a question or a
                             tracked set, by text), as answerable as its best measure; unmeasured,
                             unlinked (unknown) and dangling links named; readiness's
-                            research_question_coverage (WARN, never FAIL)
+                            research_question_coverage (WARN, never FAIL);
+                            research_plan.research_question_comparisons (describe / rank_objects /
+                            compare_segments / ab_test, by text) checked against the measures:
+                            ranking needs a tracked set, A/B a concept-test set, segments
+                            unavailable, unknown never answerable (comparisons_of)
     respondent_behavior.py  18.6.6 behavior.py + styly.py: response process, styles, the seeded draw
     respondent_facts.py     18.6.6 factual_layer.py: facts answered by code, unsupported facts refused
     persona_profile.py      A panel respondent's profile: 18.6.6's generate_persona_text in the mode it
@@ -1261,7 +1273,8 @@ returns one respondent's probabilities; code answers facts and draws the answer.
 Panel-derived data may reach only `bedrock-eu-primary` (OI-61, determined by the data
 owner 2026-10-12, `licence_determinations.py`); the licence gate stays beside residency
 and refuses it on any other route. A run pins its persona source at start
-(`AIA_AI_POPULATION_PERSONAS_ENABLED`, off by default, in the API and the worker): a panel run's
+(`AIA_AI_POPULATION_PERSONAS_ENABLED`, off by default, in the API and the worker, offers the panel
+and makes it the default; a person chooses per run on the Run stage, "Kdo bude odpovídat"): a panel run's
 respondents are drawn from the population it recorded and its dataset is `MODELLED_AI_PANEL`; a
 worker without the path parks it, never answering with the roster instead
 ([`panel-grounded-respondents.md`](.planning/plans/panel-grounded-respondents.md)).

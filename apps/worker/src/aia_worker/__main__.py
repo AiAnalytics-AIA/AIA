@@ -57,7 +57,9 @@ def main() -> int:
     # After logging: the reporter adds its handler beside the JSON one. Off without a DSN.
     error_tracking.init(reporting)
     try:
-        executors = load_executors(settings.executors)
+        executors = load_executors(
+            settings.executors, any_package=settings.executors_from_any_package
+        )
     except (ImportError, ValueError) as error:
         log.error("invalid executor configuration: %s", error)
         return 2

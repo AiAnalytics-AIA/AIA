@@ -27,7 +27,7 @@ from aia_core.domain.analysis.steps import ANALYSIS_STEP_KIND
 from aia_core.domain.deep_research import settings as dr_settings
 from aia_core.domain.deep_research.contracts import HARNESS_VERSION as DR_HARNESS_VERSION
 from aia_core.domain.deep_research.workflow import DEEP_RESEARCH_KINDS
-from aia_core.domain.evidence import REFERENCE_THRESHOLDS, TIER_PERMITS
+from aia_core.domain.evidence import REFERENCE_THRESHOLDS
 from aia_core.domain.pipeline import RESEARCH_STAGES, SIMULATION_STAGES
 from aia_core.domain.population import CZ_DATASET_ID, CZ_LIVE, CZ_STATIC_REFERENCE
 from aia_core.domain.population.policy import FIELD_POLICY_VERSION
@@ -411,15 +411,6 @@ def _groups() -> list[SettingGroup]:
                     _CODE,
                     "aia_core.domain.evidence:REFERENCE_THRESHOLDS",
                     "n",
-                ),
-                *(
-                    _item(
-                        f"tier_{tier.value}_permits",
-                        sorted(use.value for use in uses),
-                        _CODE,
-                        "aia_core.domain.evidence:TIER_PERMITS",
-                    )
-                    for tier, uses in sorted(TIER_PERMITS.items())
                 ),
                 _item("no_invented_certainty", True, _INVARIANT, "ARCHITECTURE.md §10"),
             ],

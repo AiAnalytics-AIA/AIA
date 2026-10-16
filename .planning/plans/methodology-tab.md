@@ -41,7 +41,8 @@ chunks:
   - "[x] V1a1. Readiness bounds (sample size 20-10 000, tracked set 3-40, recommended 4-15) declared as a module of their own (ReadinessSpec, aia-readiness-1), editable as a version, pinned by a run and read by its compile and preflight steps (owner, 2026-10-14)"
   - "[x] V1a2. The readiness area as the canvas board MethodologyReadiness draws it: each limit's effect, the rule as read, what every version keeps, the Kontrola a spuštění preview, and Porovnat as the impact on the organization's studies"
   - "[x] V1b. Presentation rounding (shares 0.1 %, means 2 dp) declared and editable as a version; the code's preset keeps 18.6.6's decimals, so parity holds under it (owner, 2026-10-14)"
-  - "[ ] V1c. Evidence tiers shown read-only: what tier A, B and C each permit, from TIER_PERMITS; a change stays a reviewed code change (owner, 2026-10-14)"
+  - "[x] V1c. Původ polí, read-only: the field policy that runs (origin, recommended-use sentence, grade -> seven uses) from GET /methodology/field-policy and LIVE's characteristics; replaces the A/B/C tiers (owner, 2026-10-15)"
+  - "[x] V1c2. Retire the A/B/C evidence tiers from the code: TIER_PERMITS, evaluate_tier, EvidenceRow.dimension_tiers/use_case, the Reference tab's tier rows; every evidence table's fingerprint unchanged"
   - "[ ] X1. Simulation documented read-only; declared and editable when it is wired into runs"
   - "[x] Z1a. The path walked on the workbench for the Sociomap, support and aggregation (edit, check, compare, store, activate, run, Results); Results name the methods a run computed under"
   - "[x] Z1b. The walk as committed workbench journeys per module, run like make ui-research; Doc follow-up"
@@ -1214,6 +1215,43 @@ To be written as chunks land:
     value, the holdout before a modelled panel leaves INTERNAL_ONLY): **left in code**, not
     shown as editable. They are the fail-closed gates every number passes. No chunk.
   - Each chunk is designed on the canvas first, then built (owner, 2026-10-13).
+- **V1c, rethought and built (owner, 2026-10-15).** Designing the read-only tiers page showed
+  that the A/B/C tiers (`evidence.validation.TIER_PERMITS`, `evaluate_tier`) never run: nothing
+  outside their own module and tests gives a field a tier, so `admission.py:298` is never reached
+  with one, and the 18.6.6 source of B and C stops mid-sentence. Three gradings existed side by
+  side; only one decides anything: the population's field policy (`domain/population/policy.py`,
+  `RuntimePopulation.decide`), from each field's origin (`EVIDENCE_STATUS_CLASS`, measured only
+  OBSERVED and DONOR_MATCHED), its recommended-use sentence (`RECOMMENDED_USE_POLICY`, 16 known;
+  an unknown one refuses every use) and its grade (`CLIENT_BLOCKING_GRADES` D and T). The owner
+  chose to show that one and retire A/B/C.
+  - `GET /methodology/field-policy` serves those tables from code, any member
+    (`test_the_field_policy_is_served_from_the_tables_decide_reads`); the fields and each one's
+    seven answers are LIVE's characteristics, shown as the policy gave them, never recomputed.
+  - The Metodika area "Původ polí: k čemu smí sloužit" (`FieldOriginPanel.tsx`,
+    `lib/field-origin.ts`), group "Populace a tvrzení": origins with their counts and whether they
+    may reach a client as a measurement, the rules each sentence carries, grades, and the fields
+    filtered by any of them. Without a LIVE population or its kept dictionary the counts say
+    "nevíme", never zero (`FieldOriginPanel.test.tsx`).
+  - Found while designing: the board first followed `evidence/field_policy.derive_eligibility`,
+    which lets calibrated, derived and hybrid fields back a measured claim; the policy that runs
+    does not. Both exist, but on a run the claim gate's book holds only the study's own items
+    (`instrument_policy_book`, `analysis/native.py:493`) and the dictionary-derived book
+    (`FieldPolicyBook` over `derive_field_policy`) is built nowhere outside its module and tests,
+    so for population fields only `population/policy.py` is applied.
+    V1c2 retires A/B/C; whether `derive_eligibility` should follow is a separate question.
+- **V1c2, built.** The A/B/C tier gate is gone: `EvidenceTier`, `TierUseCase`, `TIER_PERMITS`,
+  `evaluate_tier`, the codes `TIER_UNKNOWN` / `TIER_INSUFFICIENT`, `EvidenceRow.use_case` and
+  `.dimension_tiers`, and Settings → Reference's three `tier_*_permits` rows
+  (`test_the_tier_gate_is_retired`). `tier_gate.py` is a `drop` in
+  `docs/migration/module-dispositions.json` and leaves `governance.evidence_gates`'
+  reference modules; its two recovered parity cases go with it.
+  - An evidence row's canonical form keeps `"use_case": null, "dimension_tiers": {}`, the only
+    values a row ever had, so `EvidenceTable.fingerprint()` -- and every analysis and report
+    identity built on it -- is byte for byte what it was
+    (`test_a_rows_identity_keeps_the_retired_tier_fields`; the same table hashed by develop and
+    by this branch: `05bb2238…` both).
+  - ADR 0024 §"The tier gate still applies on top" described a check no number reached; its
+    amendment is a Doc follow-up.
 - **V1b, built.** The places a run stores are `research_aggregate.RoundingSpec`
   (`share_decimals` 1, `mean_decimals` 2; whole numbers 0-3, `StrictInt`), a field of
   `AggregationSpec` with 18.6.6's values as its default, so a pin or version stored before it

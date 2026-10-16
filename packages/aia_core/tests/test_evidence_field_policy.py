@@ -60,13 +60,13 @@ def test_require_raises_with_every_reason() -> None:
     decision = combine(
         [
             block(ViolationCode.FIELD_UNDECLARED, "x", "a"),
-            block(ViolationCode.TIER_UNKNOWN, "d", "b"),
+            block(ViolationCode.INTERVAL_MISSING, "d", "b"),
         ]
     )
     with pytest.raises(GateBlocked) as caught:
         decision.require()
     assert caught.value.decision is decision
-    assert "FIELD_UNDECLARED" in str(caught.value) and "TIER_UNKNOWN" in str(caught.value)
+    assert "FIELD_UNDECLARED" in str(caught.value) and "INTERVAL_MISSING" in str(caught.value)
     allow().require()
 
 
