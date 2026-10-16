@@ -221,7 +221,7 @@ export function respondentReceipt(run: Pick<ResearchRun, "persona_source" | "ste
   return { pinned, observed: stored, mismatch: stored !== null && (expected === undefined || stored !== expected) };
 }
 
-export function stepOf(run: ResearchRun, nodeKey: string): ResearchStep | null {
+export function stepOf(run: Pick<ResearchRun, "steps">, nodeKey: string): ResearchStep | null {
   return run.steps.find((s) => s.node_key === nodeKey) ?? null;
 }
 

@@ -248,6 +248,25 @@ class ClaimedWork:
     study_id: str | None
 
 
+def _listed_step(s: StepRunRow) -> dict[str, Any]:
+    """A step as a run listing carries it: :meth:`WorkflowRepository.get_run`'s, no attempts."""
+    return {
+        "step_id": s.step_id,
+        "node_key": s.node_key,
+        "kind": s.kind,
+        "status": StepRunStatus(s.status),
+        "stage_type": s.stage_type,
+        "attempts_recorded": s.attempts_recorded,
+        "attempts_consumed": s.attempts_consumed,
+        "max_attempts": s.max_attempts,
+        "waiting_reason": s.waiting_reason,
+        "runnable_after": s.runnable_after,
+        "updated_at": s.updated_at,
+        "finished_at": s.finished_at,
+        "output": dict(s.output_json or {}),
+    }
+
+
 class WorkflowRepository:
     """Durable workflow state within one authorised study scope.
 
@@ -638,11 +657,15 @@ class WorkflowRepository:
         limit: int = 50,
         workflow_type: str | None = None,
         key_prefix: str | None = None,
+        steps: bool = False,
     ) -> list[dict[str, Any]]:
-        """Return a project's runs, newest first, without their steps.
+        """Return a project's runs, newest first, without their steps unless ``steps``.
 
         A listing for a screen; :meth:`get_run` returns one run in full. ``key_prefix``
         keeps the runs whose idempotency key starts with it (matched literally).
+        ``steps`` adds each run's steps from one more query for the page, without their
+        attempt history: no ``attempts`` key, so nothing read from attempts (a start
+        time, an error, a cost) is guessed from an empty list.
         """
         filters = [WorkflowRunRow.project_id == project_id, *self._scope_filter()]
         if workflow_type is not None:
@@ -665,7 +688,7 @@ class WorkflowRepository:
                 .distinct()
             ).all()
         )
-        return [
+        listed: list[dict[str, Any]] = [
             {
                 "run_id": r.run_id,
                 "status": WorkflowRunStatus(r.status),
@@ -681,6 +704,17 @@ class WorkflowRepository:
             }
             for r in rows
         ]
+        if steps:
+            by_run: dict[str, list[dict[str, Any]]] = {r["run_id"]: [] for r in listed}
+            for s in self._session.scalars(
+                select(StepRunRow)
+                .where(StepRunRow.run_id.in_(list(by_run)))
+                .order_by(StepRunRow.run_id, StepRunRow.ordinal)
+            ).all():
+                by_run[s.run_id].append(_listed_step(s))
+            for r in listed:
+                r["steps"] = by_run[r["run_id"]]
+        return listed
 
     def population_binding(self, run_id: str) -> PopulationBinding:
         """Return the population binding a run recorded, or raise.
@@ -2765,23 +2799,7 @@ class WorkflowRepository:
             "metadata": dict(run.metadata_json or {}),
             "population": _binding(binding_row).as_record() if binding_row is not None else None,
             "steps": [
-                {
-                    "step_id": s.step_id,
-                    "node_key": s.node_key,
-                    "kind": s.kind,
-                    "status": StepRunStatus(s.status),
-                    "stage_type": s.stage_type,
-                    "attempts_recorded": s.attempts_recorded,
-                    "attempts_consumed": s.attempts_consumed,
-                    "max_attempts": s.max_attempts,
-                    "waiting_reason": s.waiting_reason,
-                    "runnable_after": s.runnable_after,
-                    "updated_at": s.updated_at,
-                    "finished_at": s.finished_at,
-                    "output": dict(s.output_json or {}),
-                    "attempts": self.attempt_history(s.step_id),
-                }
-                for s in steps
+                {**_listed_step(s), "attempts": self.attempt_history(s.step_id)} for s in steps
             ],
         }
 

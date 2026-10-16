@@ -6,6 +6,8 @@
 // the study's runs, which the caller passes when it has them; without them they say
 // nothing rather than guess (CLAUDE.md § 8: never stamp a guess).
 
+import { runState, type RunLike } from "@/lib/run-state";
+
 import { canAnalyse } from "./brief";
 import { audienceReady } from "./audience";
 import type { ResearchProject } from "./model";
@@ -112,23 +114,24 @@ export function blockers(state: Pick<ResearchState, "project" | "analysis">): Bl
   return out;
 }
 
-/** The run stages' state from the study's runs, newest first as the API lists them; null: not loaded (says nothing). */
-export function runLane(runs: readonly Pick<ResearchRunSummary, "phase" | "design_revision" | "finished_at">[] | null): Record<"run" | "progress" | "results", LaneStage> {
+/**
+ * The run stages' state from the study's runs, newest first as the API lists them, each read by
+ * `runState` as every screen reads it; null: not loaded (says nothing).
+ */
+export function runLane(runs: readonly (RunLike & Pick<ResearchRunSummary, "design_revision">)[] | null): Record<"run" | "progress" | "results", LaneStage> {
   const idle = (line: string): LaneStage => ({ tone: "idle", line });
   if (!runs) return { run: idle(""), progress: idle(""), results: idle("") };
   if (!runs.length) return { run: idle("Nespuštěno"), progress: idle("Zatím žádný běh"), results: idle("Zatím nic") };
-  const latest = runs[0]!;
-  const done = runs.find((r) => r.phase === "COMPLETED");
+  const latest = runState(runs[0]!);
+  const ready = runs.find((r) => {
+    const { state } = runState(r);
+    return state === "RESULTS_READY" || state === "REPORT_READY";
+  });
   const n = runs.length;
-  const progress: LaneStage =
-    latest.phase === "RUNNING" || latest.phase === "QUEUED" ? { tone: "running", line: `Běh ${n} běží` }
-    : latest.phase === "WAITING" ? { tone: "you", line: `Běh ${n} čeká` }
-    : latest.phase === "FAILED" ? { tone: "fault", line: `Běh ${n} selhal` }
-    : latest.phase === "CANCELLED" ? idle(`Běh ${n} zrušen`)
-    : { tone: "done", line: `Běh ${n} dokončen` };
+  const line = `Běh ${n}: ${latest.label.toLowerCase()}`;
   return {
     run: { tone: "done", line: `Spuštěno ${n}×` },
-    progress,
-    results: done ? { tone: "done", line: `Revize ${done.design_revision}` } : idle("Zatím nic"),
+    progress: { tone: latest.tone === "neutral" || latest.tone === "world" ? "idle" : latest.tone, line },
+    results: ready ? { tone: "done", line: `Revize ${ready.design_revision}` } : idle("Zatím nic"),
   };
 }

@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { blockers, designLane, questionnaireIssues, runLane } from "./lane";
 import type { ResearchProject } from "./model";
+import type { ResearchPhase, ResearchStep } from "@/lib/api";
 
 const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/research/fixtures/empty-project.json"), "utf8")) as ResearchProject;
 const project = (over: Record<string, unknown> = {}): ResearchProject => ({ ...structuredClone(EMPTY), ...over }) as ResearchProject;
@@ -64,22 +65,33 @@ describe("blockers", () => {
 });
 
 describe("runLane", () => {
+  const data = { node_key: "aggregate", kind: "research", status: "SUCCEEDED", artifact_id: "ART-1" } as ResearchStep;
+  const blocked = { node_key: "analysis_executive", kind: "research_analysis", status: "SUCCEEDED", analysis_outcome: "BLOCKED" } as ResearchStep;
+  const ran = (phase: ResearchPhase, design_revision: number, steps: ResearchStep[] = []) =>
+    ({ phase, design_revision, is_terminal: !["RUNNING", "QUEUED", "WAITING"].includes(phase), steps });
+
   it("says nothing before the runs are loaded, and that nothing ran when none did", () => {
     expect(runLane(null).progress).toEqual({ tone: "idle", line: "" });
     expect(runLane([]).run).toEqual({ tone: "idle", line: "Nespuštěno" });
   });
 
-  it("follows the newest run, and points results at the newest completed one", () => {
-    const lane = runLane([
-      { phase: "RUNNING", design_revision: 4, finished_at: null },
-      { phase: "COMPLETED", design_revision: 3, finished_at: "2026-10-09T16:40:00Z" },
-    ]);
-    expect(lane.progress).toEqual({ tone: "running", line: "Běh 2 běží" });
+  it("follows the newest run, and points results at the newest one whose results are ready", () => {
+    const lane = runLane([ran("RUNNING", 4), ran("COMPLETED", 3, [data])]);
+    expect(lane.progress).toEqual({ tone: "running", line: "Běh 2: běží" });
     expect(lane.results).toEqual({ tone: "done", line: "Revize 3" });
   });
 
-  it("names a waiting run as needing a person and a failed one as a fault", () => {
-    expect(runLane([{ phase: "WAITING", design_revision: 1, finished_at: null }]).progress.tone).toBe("you");
-    expect(runLane([{ phase: "FAILED", design_revision: 1, finished_at: null }]).progress.tone).toBe("fault");
+  it("names a waiting run as needing a person and a run without data as a fault", () => {
+    expect(runLane([ran("WAITING", 1)]).progress.tone).toBe("you");
+    const stopped = { node_key: "run", kind: "research", status: "FAILED", artifact_id: null } as ResearchStep;
+    expect(runLane([ran("FAILED", 1, [stopped])]).progress).toEqual({ tone: "fault", line: "Běh 1: bez dat k vyhodnocení" });
+    // Listed without its steps (an older API), an ended run says only its phase.
+    expect(runLane([ran("COMPLETED", 1)]).progress).toEqual({ tone: "idle", line: "Běh 1: dokončeno" });
+  });
+
+  it("never calls a completed run with a blocked module done, nor its results ready", () => {
+    const lane = runLane([ran("COMPLETED", 2, [data, blocked])]);
+    expect(lane.progress).toEqual({ tone: "fault", line: "Běh 1: potřebuje opravu" });
+    expect(lane.results).toEqual({ tone: "idle", line: "Zatím nic" });
   });
 });

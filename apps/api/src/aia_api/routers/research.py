@@ -768,7 +768,9 @@ def _run(
     meta = run.get("metadata") or {}
     steps = [_step(s) for s in run.get("steps", [])]
     cost: float | None = None
-    if scope.has(Permission.VIEW_COSTS) and "steps" in run:
+    # A listed run's steps carry no attempts, so no cost: unknown, never zero.
+    listed = "steps" in run and any("attempts" not in s for s in run["steps"])
+    if scope.has(Permission.VIEW_COSTS) and "steps" in run and not listed:
         cost = sum(
             float(a.get("actual_cost_usd") or 0.0)
             for s in run["steps"]
@@ -1094,7 +1096,7 @@ def list_runs(
     scope: StudyScopeDep, session: SessionDep, limit: Annotated[int, Query(ge=1, le=100)] = 20
 ) -> ResearchRunList:
     runs = ResearchRuns(session, scope)
-    return ResearchRunList(items=[_run(r, scope) for r in runs.runs(limit=limit)])
+    return ResearchRunList(items=[_run(r, scope) for r in runs.runs(limit=limit, steps=True)])
 
 
 @router.get(

@@ -23,7 +23,7 @@ import {
 } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
 import { type RunLabels, designSummary, runLabels } from "@/lib/memory";
-import { phaseLabel } from "@/lib/research-execution";
+import { runState } from "@/lib/run-state";
 import { PERSONA_DIM_LABELS } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
 import { RunResults } from "../rehome/research/ExecutionSteps";
@@ -289,7 +289,7 @@ function RevisionRuns({ studyId, revision }: { studyId: string; revision: Design
                       }`}
                     >
                       <span className="flex-1 text-sm font-medium">{tv(`${S}.run`, { when: when(r.created_at) })}</span>
-                      <Tag>{phaseLabel(r.phase)}</Tag>
+                      <Tag>{runState(r).label}</Tag>
                       <LabelChips labels={runLabels(r)} brief />
                     </button>
                   </li>

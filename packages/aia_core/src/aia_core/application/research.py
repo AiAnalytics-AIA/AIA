@@ -959,15 +959,18 @@ class ResearchRuns:
         run["retryable"] = retryable(run["status"])
         return run
 
-    def runs(self, *, limit: int = 20) -> list[dict[str, Any]]:
-        """This Study's research runs, newest first, with their phases."""
+    def runs(self, *, limit: int = 20, steps: bool = False) -> list[dict[str, Any]]:
+        """This Study's research runs, newest first, with their phases.
+
+        ``steps``: each with its steps, without their attempt history (one more query).
+        """
         project_id = self._designs().project_id()
         if project_id is None:
             return []
         runs = [
             r
             for r in self._workflows().list_runs(
-                project_id=project_id, limit=limit, workflow_type=RESEARCH
+                project_id=project_id, limit=limit, workflow_type=RESEARCH, steps=steps
             )
             if r["workflow_type"] == RESEARCH
         ]
