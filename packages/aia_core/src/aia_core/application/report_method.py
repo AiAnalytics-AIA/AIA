@@ -130,10 +130,20 @@ def _answerability_blocks(meta: Mapping[str, Any], *, client: bool = False) -> l
             )
         )
         return blocks
+    # A research question that is a gap reads by its gap: the trace's verdict is the best over
+    # every measure, an open question's included, and could say "at risk" beside a callout that
+    # says the run could not answer it.
+    gap_of = {
+        str(g.get("research_question")): g
+        for g in note["gaps"]
+        if isinstance(g, Mapping) and g.get("research_question")
+    }
     rows = []
-    for q in note["research_questions"]:
-        if not isinstance(q, Mapping):
+    for traced in note["research_questions"]:
+        if not isinstance(traced, Mapping):
             continue
+        gap = gap_of.get(str(traced.get("text")), {})
+        q = {**traced, **{k: gap[k] for k in ("verdict", "reasons") if k in gap}}
         reasons = [_REASON.get(str(r), _REASON_UNKNOWN) for r in q.get("reasons") or ()]
         measures = q.get("measures") or []
         rows.append(

@@ -169,6 +169,32 @@ def test_questions_with_the_same_reason_share_one_statement_of_it() -> None:
     assert words.count("žádná otázka dotazníku neuvádí") == 1  # prose only: once, not per question
 
 
+def test_a_gap_reads_by_its_gap_in_the_table_too() -> None:
+    # The trace said "at risk" (an open question beside one the run will not answer); the gap,
+    # and so the table, says the run could not answer it.
+    note = _note()
+    note["research_questions"] = [
+        {"text": _RQ, "verdict": "AT_RISK", "reasons": [], "measures": ["q3", "q4"]}
+    ]
+    note["gaps"] = [
+        {
+            "kind": "not_answerable",
+            "research_question": _RQ,
+            "verdict": "UNANSWERABLE",
+            "reasons": ["measures_unanswerable"],
+            "measures": ["q3", "q4"],
+        }
+    ]
+    section = compose_method_section({"answerability": note}, DataOrigin.SYNTHETIC_AI_FICTIONAL)
+    table = next(
+        b for b in section.blocks if isinstance(b, Table) and b.id == "tab-run-answerability"
+    )
+    (row,) = table.rows
+    assert isinstance(row.cells[2], TextCell)
+    assert row.cells[2].text.startswith("běh na ni odpovědět nemohl")
+    assert "měří ji jen otázky, na které běh neodpoví" in row.cells[2].text
+
+
 def test_an_unenforced_gap_says_nobody_confirmed_it() -> None:
     words = _words({"answerability": _note(enforced=False)}, DataOrigin.SYNTHETIC_AI_FICTIONAL)
     assert "Při spuštění to nikdo nepotvrdil" in words

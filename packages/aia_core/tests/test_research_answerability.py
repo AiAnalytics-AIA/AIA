@@ -157,6 +157,39 @@ def test_a_question_measured_only_by_items_the_run_will_not_answer_names_why() -
     assert gap.verdict is Verdict.UNANSWERABLE and gap.reasons == ("measures_unanswerable",)
 
 
+def test_an_open_question_beside_one_the_run_will_not_answer_is_still_a_gap() -> None:
+    """Review, 2026-10-16: the open question's AT_RISK was the trace's best verdict, so the
+    research question passed with no measure the analysis could cite and the run answer."""
+    content = copy.deepcopy(PARTLY)
+    content["sections"][0]["questions"] += [
+        {"id": "q3", "text": "Proč?", "typ": "otevrena", "research_questions": [RQS[2]]},
+        {
+            "id": "q4",
+            "text": "Kolik byste zaplatil?",
+            "typ": "skala",
+            "skala": [1, 5],
+            "filtr": {"q": "q1"},
+            "research_questions": [RQS[2]],
+        },
+    ]
+    trace, answer = _answer(content)
+    assert next(q for q in trace.questions if q.text == RQS[2]).verdict is Verdict.AT_RISK
+    gap = next(g for g in answer.gaps if g.research_question == RQS[2])
+    assert gap.verdict is Verdict.UNANSWERABLE and gap.reasons == ("measures_unanswerable",)
+    assert gap.measures == ("q3", "q4")
+
+
+def test_support_left_to_fieldwork_is_pending_even_beside_an_open_question() -> None:
+    """The open question's AT_RISK must not lift a citable measure's unknown support."""
+    content = copy.deepcopy(COVERED)
+    content["sections"][0]["questions"].append(
+        {"id": "q3", "text": "Proč?", "typ": "otevrena", "research_questions": [RQS[0]]}
+    )
+    trace, answer = _answer(content)
+    assert next(q for q in trace.questions if q.text == RQS[0]).verdict is Verdict.AT_RISK
+    assert answer.capable and RQS[0] in answer.pending
+
+
 def test_every_gap_carries_a_reason() -> None:
     for design in (FIO_LIKE, PARTLY):
         assert all(g.reasons for g in _answer(design)[1].gaps)

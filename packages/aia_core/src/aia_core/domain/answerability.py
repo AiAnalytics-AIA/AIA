@@ -82,6 +82,12 @@ class GapReason(StrEnum):
 _GAP_REASONS: Final = frozenset({TraceReason.UNLINKED_DESIGN, TraceReason.COMPARISON_UNKNOWN})
 #: An item with any of these is answered, but the analysis cites none of its numbers.
 _NOT_CITABLE: Final = frozenset({OutlookReason.OPEN_ENDED, OutlookReason.SUPPORT_ANALYSIS_EXCLUDED})
+#: Best first, as the trace orders verdicts (``research_trace``): "worse" is later.
+_ORDER: Final = (Verdict.ANSWERABLE, Verdict.AT_RISK, Verdict.UNKNOWN, Verdict.UNANSWERABLE)
+
+
+def _worse(a: Verdict, b: Verdict) -> Verdict:
+    return max(a, b, key=_ORDER.index)
 
 
 class GapKind(StrEnum):
@@ -151,8 +157,16 @@ def answerability(trace: ResearchTrace, outlook: Sequence[QuestionOutlook] = ())
     """The gaps between ``trace``'s research questions and what the run can answer.
 
     ``outlook`` is every item's verdict (:func:`~.question_outlook.question_outlook`), the one
-    the trace was built from: it says which measures the analysis may cite at all."""
+    the trace was built from: it says which measures the analysis may cite at all, and which
+    the run will answer.
+
+    The trace's verdict is the best over *all* measures, so an open question (AT_RISK, never
+    cited) beside a conditional one (UNANSWERABLE) read as at risk and passed, with no measure
+    the research questions module could cite (review, 2026-10-16). Only measures the analysis
+    may cite and the run will answer decide here: none of them is a gap, and their best verdict
+    decides whether support is left to fieldwork (pending)."""
     reasons_of = {o.question_id: set(o.reasons) for o in outlook}
+    verdict_of = {o.question_id: o.verdict for o in outlook}
     gaps: list[AnswerabilityGap] = []
     pending: list[str] = []
     if not trace.questions:
@@ -160,20 +174,33 @@ def answerability(trace: ResearchTrace, outlook: Sequence[QuestionOutlook] = ())
     for q in trace.questions:
         why = [GapReason(r.value) for r in q.reasons]
         citable = [m for m in q.measures if not reasons_of.get(m, set()) & _NOT_CITABLE]
+        # A measure the outlook does not know is UNKNOWN, never answerable; with no outlook at
+        # all there is nothing to judge measures by, and the trace's verdict stands.
+        usable = [
+            m for m in citable if verdict_of.get(m, Verdict.UNKNOWN) is not Verdict.UNANSWERABLE
+        ]
+        verdict = q.verdict
+        if outlook and usable:
+            best = min((verdict_of.get(m, Verdict.UNKNOWN) for m in usable), key=_ORDER.index)
+            verdict = _worse(q.verdict, best)
         if q.verdict is Verdict.UNANSWERABLE or set(q.reasons) & _GAP_REASONS:
             if not why:
                 why = [GapReason.MEASURES_UNANSWERABLE]
         elif q.measures and not citable:
             why.append(GapReason.NO_CITABLE_MEASURE)
+        elif q.measures and outlook and not usable:
+            # Every measure it could cite is one the run will not answer.
+            why.append(GapReason.MEASURES_UNANSWERABLE)
+            verdict = Verdict.UNANSWERABLE
         else:
-            if q.verdict is Verdict.UNKNOWN:
+            if verdict is Verdict.UNKNOWN:
                 pending.append(q.text)
             continue
         gaps.append(
             AnswerabilityGap(
                 kind=GapKind.NOT_ANSWERABLE,
                 research_question=q.text,
-                verdict=q.verdict,
+                verdict=verdict,
                 reasons=tuple(r.value for r in dict.fromkeys(why)),
                 measures=q.measures,
             )
