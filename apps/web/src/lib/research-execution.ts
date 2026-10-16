@@ -32,7 +32,12 @@ export function phaseTone(phase: ResearchPhase): Tone {
   }
 }
 
-export const phaseLabel = (phase: ResearchPhase): string => t(`research.exec.phase.${phase}`);
+/** A phase in words; one this client does not know is said to be unknown, never printed as a key. */
+export function phaseLabel(phase: ResearchPhase): string {
+  const key = `research.exec.phase.${phase}`;
+  const words = t(key);
+  return words === key ? t("research.exec.phase.other") : words;
+}
 
 export function stepLabel(nodeKey: string): string {
   const label = t(`research.exec.steps.${nodeKey}`);
@@ -84,7 +89,7 @@ const WAITING_STATUS = /^(WAITING|AWAITING)_|^RECOVERY_REQUIRED$/;
  * -- budget, provider quota, a decision owed -- is told from its machine reason. It says only
  * what is known: that the step waits, and why. It promises no action the page cannot take.
  */
-export function waitingDetail(step: ResearchStep): string | null {
+export function waitingDetail(step: Pick<ResearchStep, "status" | "waiting_reason" | "error_message">): string | null {
   if (!WAITING_STATUS.test(step.status)) return null;
   if (step.error_message) return step.error_message;
   const reason = step.waiting_reason ?? "";
@@ -421,7 +426,8 @@ export function outlookFixStep(reasons: readonly string[]): "persona" | "questio
 }
 
 /** One measure of a research question as it reads: a question by its wording, a tracked set once. */
-export type TraceMeasure = { key: string; text: string; verdict: OutlookVerdict };
+/** `code`: the measure's id, set only when its wording is unknown (kept for technical details, never the text). */
+export type TraceMeasure = { key: string; text: string; verdict: OutlookVerdict; code?: string };
 
 /**
  * A research question's measures in words (run-recovery-and-truth 3b): each question by its
@@ -436,7 +442,7 @@ export function traceMeasures(question: ResearchQuestionTrace, outlook: readonly
   for (const id of question.measures) {
     const item = byId.get(id);
     if (!item) {
-      out.push({ key: id, text: id, verdict: "UNKNOWN" });
+      out.push({ key: id, text: t("research.exec.untitled.question"), verdict: "UNKNOWN", code: id });
       continue;
     }
     if (item.battery_id === null) {

@@ -8,7 +8,14 @@
 //   the words are "cannot be confirmed", never "the same". A missing interval is unknown and
 //   is never read as an order.
 
+import { t } from "@/i18n/t";
 import { type QuestionResult, type StoredPlaces, type SupportStatus, UNIT_PLACES } from "@/lib/research-execution";
+
+/**
+ * A measure's title when its specification gives it no wording (run-recovery-and-truth 6c): said
+ * in words, never the id, which stays under the measure's technical details.
+ */
+export const untitled = (what: "question" | "object" | "set"): string => t(`research.exec.untitled.${what}`);
 
 export type Estimate = { value: number; low: number | null; high: number | null };
 
@@ -186,11 +193,11 @@ export function citedMeasure(ref: string, spec: CompiledSpecification | null | u
   if (battery) {
     const objectId = questionId.slice(`${battery.id}_obj_`.length);
     measureId = `${battery.id}:${objectId}`;
-    title = `${battery.objects?.find((o) => o.id === objectId)?.label ?? `Objekt ${objectId}`} (${battery.title})`;
+    title = `${battery.objects?.find((o) => o.id === objectId)?.label ?? untitled("object")} (${battery.title || untitled("set")})`;
   } else {
     const question = spec?.questions?.find((q) => q.id === questionId);
     measureId = questionId;
-    title = question?.text || `Otázka ${questionId}`;
+    title = question?.text || untitled("question");
     options = question?.options ?? [];
   }
   const pct = (v: number, d?: number) => pctAt(v, d ?? UNIT_PLACES.share);

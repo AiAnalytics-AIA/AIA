@@ -131,7 +131,8 @@ describe("citedMeasure", () => {
   });
 
   it("still names what it can without the specification, and nothing for an unknown reference", () => {
-    expect(citedMeasure("q9.pct.3", null)).toMatchObject({ measureId: "q9", title: "Otázka q9", what: "podíl odpovědi „možnost 3“" });
+    // Without wording a question is said to have none (6c); its id stays the link, never the title.
+    expect(citedMeasure("q9.pct.3", null)).toMatchObject({ measureId: "q9", title: "Otázka bez uloženého znění", what: "podíl odpovědi „možnost 3“" });
     expect(citedMeasure("q9.median", spec)).toBeNull();
   });
 

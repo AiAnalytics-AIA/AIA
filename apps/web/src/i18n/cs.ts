@@ -2217,7 +2217,66 @@ export const cs = {
       sampleBelow: "Pod doporučeným N={n}: menší skupiny budou mít méně spolehlivé výsledky.",
       dockNote: "{d} dimenzí · N={n}",
     },
+    deep: {
+      steps: {
+        plan: "Plán rešerše",
+        investigate: "Hledání zdrojů",
+        merge: "Sloučení podkladů",
+        verify: "Ověření podkladů",
+        synthesize: "Syntéza",
+        publish: "Zveřejnění podkladů",
+        other: "Krok rešerše",
+      },
+      counts: {
+        tracks: "stopy",
+        tracks_researched: "prozkoumané stopy",
+        tracks_reused: "převzaté stopy",
+        tracks_blocked: "zablokované stopy",
+        tracks_incomplete: "nedokončené stopy",
+        tracks_beyond_limit: "stopy nad limit",
+        model_requests: "požadavky na model",
+        search_calls: "hledání",
+        fetches: "otevřené stránky",
+        queries_refused: "odmítnuté dotazy",
+        snapshots: "zachycené zdroje",
+        verification_batches: "dávky ověření",
+        verification_batches_reused: "převzaté dávky ověření",
+        accepted: "přijatá zjištění",
+        quarantined: "odmítnutá zjištění",
+        other: "jiný počet",
+      },
+      check: {
+        COMPLETE: "všechna zjištění a shrnutí prošla",
+        PARTIAL: "část byla vyřazena nebo zadržena, důvody jsou níže",
+        BLOCKED: "žádné zjištění neprošlo",
+        EMPTY: "nebylo z čeho psát",
+      },
+      excluded: {
+        citation_not_accepted: "cituje podklad, který nebyl přijat",
+        number_not_in_cited_evidence: "číslo není v citovaném podkladu",
+        unknown_subject: "netýká se žádného zkoumaného tématu",
+      },
+      retrieval: {
+        LIVE: "živě",
+        RECORDED: "ze záznamu (test)",
+      },
+    },
     exec: {
+      code: {
+        unknown: "AIA k tomuto záznamu zatím nemá popis.",
+        technical: "technický kód",
+      },
+      untitled: {
+        question: "Otázka bez uloženého znění",
+        object: "Položka bez názvu",
+        set: "Sada bez názvu",
+        cited: "číslo, k němuž AIA nedohledala otázku",
+      },
+      checkStatus: {
+        PASS: "V pořádku",
+        WARN: "Upozornění",
+        FAIL: "Brání spuštění",
+      },
       // Plan run-recovery-and-truth 5a: who answers the run, chosen before it starts.
       respondents: {
         title: "Kdo bude odpovídat",
@@ -2276,6 +2335,7 @@ export const cs = {
         COMPLETED: "Dokončeno",
         FAILED: "Selhalo",
         CANCELLED: "Zrušeno",
+        other: "Neznámý stav",
       },
       state: {
         RUNNING: "Běží",
@@ -2518,6 +2578,7 @@ export const cs = {
         budget_exceeded: "Krok čeká, protože by překročil rozpočet studie.",
         provider_quota_exhausted: "Krok čeká, protože poskytovatel modelu vyčerpal kvótu. Pokračuje po jejím obnovení.",
         approval_required: "Krok čeká na rozhodnutí člověka.",
+        ai_runtime_unavailable: "Krok čeká: AI model pro něj není dostupný nebo povolený.",
       },
       budget: {
         title: "Zvýšit rozpočet studie",

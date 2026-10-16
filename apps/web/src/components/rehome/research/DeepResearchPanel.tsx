@@ -8,6 +8,9 @@ import { activityOf } from "@/lib/step-activity";
 import { StepActivityPanel } from "./StepActivityPanel";
 import { useStepActivity } from "./useStepActivity";
 import { AiButton, Button } from "../ui";
+import { phaseLabel } from "@/lib/research-execution";
+import { coverageWords, deepStepLabel, stepProblem } from "@/lib/reason-words";
+import { CodedWords } from "./CodedWords";
 import { useResearch } from "./context";
 
 const POLL_MS = 2500;
@@ -84,16 +87,18 @@ export function DeepResearchPanel() {
       ) : <p className="mt-3 text-sm text-ink-muted">Zatím bez běhů.</p>}
       {current ? (
         <div className="mt-4 space-y-2 text-sm">
-          <p role="status">Stav: {current.phase} · {current.status}</p>
-          <StepActivityPanel orb={running?.orb ?? null} activity={activityOf(feed, running?.step.step_id)} startedAt={running?.step.started_at} label={running?.step.node_key ?? "Veřejný hloubkový výzkum"} />
-          {current.steps.filter((step) => step.waiting_reason || step.error_message).map((step) => <p key={step.node_key} className="text-status-fault">{step.node_key}: {step.waiting_reason ?? step.error_message}</p>)}
+          <p role="status">Stav: {phaseLabel(current.phase)}</p>
+          <StepActivityPanel orb={running?.orb ?? null} activity={activityOf(feed, running?.step.step_id)} startedAt={running?.step.started_at} label={running ? deepStepLabel(running.step.node_key) : "Veřejný hloubkový výzkum"} />
+          {current.steps.map((step) => ({ step, problem: stepProblem(step) })).filter((x) => x.problem !== null).map(({ step, problem }) => (
+            <div key={step.node_key} className="text-status-fault">{deepStepLabel(step.node_key)}: <CodedWords coded={problem!} /></div>
+          ))}
           {current.retryable && frame.canEdit ? <Button small variant="quiet" onClick={() => void deepResearch.retry(frame.studyId, current.run_id).then(refresh).catch((e: unknown) => setError(message(e)))}>Opakovat běh</Button> : null}
           {!current.is_terminal && frame.canEdit ? <Button small variant="quiet" onClick={() => void deepResearch.cancel(frame.studyId, current.run_id).then(refresh).catch((e: unknown) => setError(message(e)))}>Zrušit běh</Button> : null}
         </div>
       ) : null}
       {bundle ? (
         <div className="mt-4 space-y-4 text-sm">
-          <p className="font-semibold">Výsledek: {bundle.quality_status} · přijaté podklady {bundle.accepted.length} · odmítnuté {bundle.quarantined.length}</p>
+          <p className="font-semibold">Výsledek: {coverageWords(bundle.quality_status)} · přijaté podklady {bundle.accepted.length} · odmítnuté {bundle.quarantined.length}</p>
           {bundle.accepted.map((item, index) => {
             const source = bundle.snapshots.find((snapshot) => snapshot.snapshot_id === item.evidence.source_ref);
             return <article key={`${item.evidence.source_ref}-${index}`} className="rounded-sm border border-border p-3">

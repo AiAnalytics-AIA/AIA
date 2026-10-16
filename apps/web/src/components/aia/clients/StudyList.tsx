@@ -12,6 +12,8 @@ import { type ReactNode, useState } from "react";
 import { t, tv } from "@/i18n/t";
 import { type StudyKind, type WorkspaceStudy, workspace } from "@/lib/api";
 import { relative } from "@/lib/format";
+import { codeWords } from "@/lib/reason-words";
+import { CodedWords } from "../../rehome/research/CodedWords";
 import { STUDY_FILTERS, STUDY_SORTS, type StudyFilter, type StudySort, brought, countByFilter, inFilter, sortStudies } from "@/lib/study-table";
 import { Icon } from "../../rehome/icons";
 import { Chip, Select } from "../../rehome/ui";
@@ -108,7 +110,7 @@ function StudyTable({ clientId, studies, research }: { clientId: string; studies
                     </Link>
                   </td>
                   <td className="px-4 py-3 align-top">
-                    <Chip tone={TONE[s.status] ?? "neutral"}>{t(`aia.status.${s.status}`)}</Chip>
+                    <Chip tone={TONE[s.status] ?? "neutral"}><CodedWords inline coded={codeWords("aia.status", s.status, "research.exec.phase.other")} /></Chip>
                   </td>
                   {showKnowledge ? <td className="px-4 py-3 align-top text-[13px]">{broughtCell(s)}</td> : null}
                   <td className="whitespace-nowrap px-4 py-3 text-right align-top text-xs text-ink-faint">{relative(s.modified_at)}</td>

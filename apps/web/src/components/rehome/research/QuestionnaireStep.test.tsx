@@ -234,7 +234,12 @@ describe("Dotazník", () => {
 
   it("starts durable public Deep Research from the saved design, without the legacy endpoint", async () => {
     const path = "/api/v1/studies/STU-1/deep-research/runs";
-    const job = { run_id: "RUN-a1", design_revision_id: "REV-A", preset: "QUICK", channels: ["WEB"], status: "RUNNING", phase: "RUNNING", is_terminal: false, needs_attention: false, retryable: false, created_at: null, steps: [], actual_cost_usd: null };
+    // A step that waits on the study's budget, and one waiting for a reason this client has no words for.
+    const waiting = [
+      { step_id: "S-1", node_key: "investigate/web-1", status: "AWAITING_BUDGET", waiting_reason: "budget_exceeded", error_message: null },
+      { step_id: "S-2", node_key: "verify", status: "RUNNABLE", waiting_reason: "gate:novel", error_message: null },
+    ];
+    const job = { run_id: "RUN-a1", design_revision_id: "REV-A", preset: "QUICK", channels: ["WEB"], status: "RUNNING", phase: "RUNNING", is_terminal: false, needs_attention: false, retryable: false, created_at: null, steps: waiting, actual_cost_usd: null };
     let started = false;
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } }, null, {
       [path]: (body) => {
@@ -248,7 +253,12 @@ describe("Dotazník", () => {
     expect(posted(path)[0].body).toEqual({ design_revision_id: "REV-A", preset_name: "QUICK", channels: ["WEB"] });
     expect(posted("/api/v1/studies/STU-1/design/revisions")[0].body).toMatchObject({ source_stage: "questionnaire" });
     expect(calls.some((call) => call.url === "/api/research/deep")).toBe(false);
-    expect(await screen.findByText("Stav: RUNNING · RUNNING")).toBeTruthy();
+    expect(await screen.findByText("Stav: Běží")).toBeTruthy();
+    // Each step by its name and its reason in words (6b); an unknown reason keeps its code aside.
+    expect(screen.getByText(/Hledání zdrojů \(web-1\):/).textContent).toContain("Krok čeká, protože by překročil rozpočet studie.");
+    expect(screen.getByText(/Ověření podkladů:/).textContent).toContain("AIA k tomuto záznamu zatím nemá popis.");
+    expect(screen.getByText("gate:novel").closest("details")).toBeTruthy();
+    expect(screen.queryByText(/budget_exceeded|investigate\/web-1/)).toBeNull();
   });
 
   const IMPORT_PATH = "/api/v1/studies/STU-1/workspace/questionnaire-import";
