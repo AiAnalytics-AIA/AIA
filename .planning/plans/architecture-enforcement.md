@@ -5,7 +5,8 @@ chunks:
   - "[x] 1. Close the second model-call path: the web routes' helpers out of model_adapters; an import-linter contract on model_adapters; grep rules for GovernedModelGateway( and the gateway's .invoke("
   - "[x] 2. Fence network egress to the transport modules: ruff TID251 banned-api, one root ruff configuration, an import contract keeping live wires out of the deep-research steps"
   - "[x] 3. Pin what a worker that outlived its lease can still write (B completes, then A writes)"
-  - "[ ] 4. Not recorded in this file yet: the chunks after 3 come from the exploration report and are written here when they are taken up"
+  - "[x] 4. The core's layers, the apps' independence and the routers' boundary (a ratchet) as import contracts; the grep rules they cover removed"
+  - "[ ] 5. Not recorded in this file yet: the chunks after 4 come from the exploration report (.planning/notes/architecture-exploration-2026-10-15.md) and are written here when they are taken up"
 ---
 # Architecture enforcement — the layering guard says what it checks
 
@@ -116,6 +117,42 @@ names exactly `aia_executors.ai_runtime`, `aia_executors.deep_research_live` and
 orphan is OI-114) and
 `test_an_artifact_committed_before_the_lease_lapsed_is_reused_by_the_successor`.
 
+## Chunk 4 — core layering and the API boundary as import contracts (done)
+
+Four contracts beside the two already there (`pyproject.toml`, `[tool.importlinter]`):
+
+- **Layers** inside `aia_core`: application > infrastructure > domain. Kept at
+  `c032cf72`. It replaces the grep rule "domain does not import outward", which matched
+  only `from ..application` / `from aia_core.application`. Probed on one tree:
+  `from ...application import scope` in `domain/deep_research/contracts.py` and
+  `import aia_core.infrastructure.tables` in `domain/licence.py` both passed the grep and
+  failed the contract. Nothing checked infrastructure importing application before;
+  `from ..application import scope` in `infrastructure/storage.py` now fails.
+- **Independence** of `aia_api`, `aia_worker`, `aia_executors` (source only), with one
+  allowance: `aia_executors.** -> aia_worker.executor`, the step protocol (25 imports,
+  all of that one module). It replaces "the worker never imports the API" and
+  "executors never import the API". Probed: worker -> executors, executors ->
+  `aia_worker.worker`, API -> `aia_worker.settings` each fail.
+- **Routers -> infrastructure, a ratchet** (decided 2026-10-16): 28 router -> module
+  edges across nine routers were listed; 27 since #467, because #461 had already removed
+  `deep_research.py`'s `common_crawl` import and the stale line failed `develop`'s
+  Layering rules (run 1245) -- the ratchet shrinking as designed, two merges apart. A new router complies, a listed router can't
+  add an infrastructure module, and a line no import matches fails lint-imports, so
+  the list only shrinks. `projects.py` only caught `ProjectNotFound`; it now imports
+  the repository's own class from `aia_core/application/errors.py`
+  (`test_application_errors.py`). Probed: a new router, `research.py` importing
+  `tables`, `projects.py` regressing, and a stale ignore line each fail.
+
+`layer_check`: 145 rules -> 142 + 5 contracts.
+
+**Not encoded, open with Kyi** (TODO in `pyproject.toml` beside the layers contract):
+`application/scope.py` queries tables with raw `select()` (`scope.py:23,45,98 @
+c032cf72`). It isn't alone: `application/develop_seed.py` and
+`application/workspace_migration.py` import `infrastructure.tables` too. A contract
+forbidding application -> tables would need all three named, or moved behind
+repositories. Also open with Kyi: the two contradictions in ARCHITECTURE.md's layer
+table (see the exploration report).
+
 ## Findings
 
 - **F1. Three web-retrieval adapters import from `model_adapters`.** The AST
@@ -170,6 +207,20 @@ orphan is OI-114) and
   (where the contract lives) is not on the list, so changing it runs Backend. A push
   to `develop` always runs everything.
 
+- **F7. A dynamic import is invisible to both the grep rules and import-linter.**
+  Two exist in source (AST walk, `c032cf72`): `domain/methodology/resolution.py:145`
+  (`importlib.import_module` of a declared function's module) and
+  `aia_worker/registry.py:32` (the `AIA_WORKER_EXECUTORS` loader, by design). Named in
+  the contracts' comments; nothing enforces them.
+- **F8. A warm `.mypy_cache` reused across a branch switch or merge reports errors CI
+  does not; the interpreter is not the cause.** Reproduced on 3.12 alone (mypy 1.20.2,
+  pydantic 2.14.1, 2026-10-16): warm the cache on `0678c398`, check `da826d80` with it,
+  and `domain/ai_respondent.py:494,505,516` report three `create_model` arg-type errors
+  on every later run; a fresh cache, a warm cache on an unchanged tree, a 3.13 venv
+  with a fresh cache and `--no-incremental` on the stale cache are all clean. #441
+  blamed 3.13 (wrong). Fix: `make typecheck` runs `mypy --no-incremental`, CI's own
+  check, ~45 s against 0.7 s warm (AiAnalytics-AIA/AIA#466).
+
 ## Doc follow-up
 
 For the next docs-only PR:
@@ -195,3 +246,14 @@ For the next docs-only PR:
   with a violating import present (F5). RIGHT
   `source_modules = ["aia_core.infrastructure.*"]`, plus a check of the
   containing packages' `__init__` modules, which the wildcard leaves out.
+- **ARCHITECTURE.md §3**, rule table, three rows (chunk 4):
+  | the core's layers: application above infrastructure above domain (import contract) | A domain that reaches infrastructure, or infrastructure that reaches application, by any import form (the grep rule it replaced missed `from ...` and `import a.b`) |
+  | the API, the worker and the executors are independent but for the executor seam | A worker that loads a step, an executor that drives the loop, or anything of the API outside the API |
+  | routers reach infrastructure only through the application layer (ratchet) | A route that queries or stores where the application layer never sees it; today's nine routers listed edge by edge, leaving when next touched |
+- **ARCHITECTURE.md §3**: drop the rows for "domain does not import outward", "the
+  worker never imports the API" and "executors never import the API", if present (the
+  contracts above replace them).
+- **CLAUDE.md §2 map**: `application/errors.py  The infrastructure errors a router
+  catches, re-exported (the same classes) so routers need not import infrastructure`.
+- **AGENTS.md**, mypy: the cache trap of F8 -- carried by AiAnalytics-AIA/AIA#466's Doc
+  follow-up (wrong: trust a warm cache after a branch switch; right: `--no-incremental`).
