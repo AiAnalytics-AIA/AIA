@@ -109,6 +109,7 @@ under `AIA_ENV=local` or `test`; an unset or unknown `AIA_ENV` counts as deploye
 | application knows nothing about HTTP | Use cases that only work behind FastAPI |
 | infrastructure knows nothing about HTTP | Adapters that cannot be reused by a worker |
 | AWS SDK stays behind the storage adapter and the Bedrock signer (`aws_signing.py`: SigV4 and the role credential only) | `boto3` becoming a mandatory dependency of the whole package, or a botocore client calling Bedrock behind the gateway |
+| `sentry_sdk` is imported only by the error reporter (`infrastructure/error_tracking.py`; the tests that drive it over a capturing transport named) | A second error client that sends without the redaction, the dropped bodies and the missing locals the reporter guarantees |
 | no botocore client is built for Bedrock | A second call path under the adapter that retries and chooses endpoints on its own (ADR 0005 A, ADR 0010) |
 | no database access in the HTTP layer | A handler opening a Session, and deciding something the domain never saw |
 | no ORM tables in the HTTP layer | Queries written where they cannot be tested without the whole stack |

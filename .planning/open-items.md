@@ -776,7 +776,7 @@ organization; and any Researcher, not only a LEAD, can cancel the run.
 
 ---
 
-## OI-23 · Finding · Secret-redaction patterns are defined twice
+## OI-23 · Finding, closed · Secret-redaction patterns are defined twice
 
 **Claim.** The provider-key shapes that must never reach a log or an attempt's
 `error_json` are defined in the API and restated in the worker, so a new key
@@ -802,8 +802,10 @@ from both.
 **Test that would catch it.** One parametrised test over both redactors with the
 same key fixtures, asserting identical output.
 
-**Status.** Open. Deliberately not done in the worker change set: it moves code
-the API owns, and one logical change per commit.
+**Status.** Closed by #432: the patterns and `redact_text` live in
+`packages/aia_core/src/aia_core/infrastructure/redaction.py` @ `f5383923`, imported by both
+observability modules and the error reporter; a JWT shape was added there.
+`packages/aia_core/tests/test_error_tracking.py::test_redaction_by_key_and_by_value_shape`.
 
 ---
 
@@ -3957,3 +3959,47 @@ deploy dispatch. The offline SQLite path was unverified for that whole time.
 every pull request (#451).
 
 **Status.** Fixed in #449; guarded by #451.
+
+---
+
+## OI-124 · Finding, closed · GlitchTip never turned healthy on develop
+
+**Claim.** The GlitchTip image's health check asks `http://localhost:8000/_health/`, and
+`ALLOWED_HOSTS` named only `errors.<hostname>` and `glitchtip`, so Django answered 400: the service
+ran and served traffic but its container never turned healthy.
+
+**Anchor.** `deploy/develop/errors/docker-compose.yml` `ALLOWED_HOSTS` @ `f5383923`; the image's
+`/code/healthcheck.py` at GlitchTip v6.2.6.
+
+**Reproduction.** `bin/errors.sh up` on develop (2026-10-16): "application not healthy after 5m0s"
+while `docker compose -p aia-errors logs glitchtip` shows granian listening on :8000.
+
+**Consequence.** `bin/errors.sh up` timed out, and every deploy with `aia_errors_enabled` would warn
+that GlitchTip did not start; error tracking itself worked.
+
+**Smallest fix.** Add `localhost` to `ALLOWED_HOSTS` (#469).
+
+**Test.** None automatic: CI validates the Compose file but does not run the image.
+
+**Status.** Fixed in #469.
+
+---
+
+## OI-125 · Hypothesis · An API 500's error body may lose its request id
+
+**Claim.** `RequestContextMiddleware` resets `request_id_var` in its `finally` before Starlette's
+`ServerErrorMiddleware` runs the `Exception` handler, so `_error` may read an empty id and a 500's
+body carry `"request_id": null`.
+
+**Anchor.** `apps/api/src/aia_api/observability.py` `RequestContextMiddleware.dispatch` and
+`install_exception_handlers._unhandled` @ `f5383923`.
+
+**Reproduction.** Not yet: a test that raises in a route and asserts the 500 body's `request_id`
+equals the sent `X-Request-ID` would decide it.
+
+**Consequence.** A person quoting "the request id" from a 500 has none to quote; the error report is
+unaffected (it is tagged when the request starts, `apps/api/tests/test_api_error_reporting.py`).
+
+**Smallest fix.** Read the id before the reset (keep it on `request.state`) and use that in `_error`.
+
+**Status.** Hypothesis: reproduce or delete (CLAUDE.md §9).
