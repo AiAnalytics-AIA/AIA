@@ -23,36 +23,14 @@ from __future__ import annotations
 
 import asyncio
 import json
-import ssl
 from typing import Any
 
 from aia_core.domain.ai_contracts import Delivery
 
+from ..http_transport import certificate_refused
 from .transport import HttpRequest, HttpResponse, TransportFailure
 
 __all__ = ["Urllib3Transport"]
-
-
-def _certificate_refused(error: BaseException) -> bool:
-    """True when ``error`` wraps a refused server certificate (a handshake-only failure).
-
-    urllib3 wraps the ``ssl`` exception as the SSLError's argument and chains it;
-    both are followed. ``ssl.CertificateError`` is ``SSLCertVerificationError``.
-    """
-    seen: set[int] = set()
-    stack: list[BaseException] = [error]
-    while stack:
-        current = stack.pop()
-        if id(current) in seen:
-            continue
-        seen.add(id(current))
-        if isinstance(current, ssl.SSLCertVerificationError):
-            return True
-        stack.extend(a for a in current.args if isinstance(a, BaseException))
-        for linked in (current.__cause__, current.__context__):
-            if linked is not None:
-                stack.append(linked)
-    return False
 
 
 class Urllib3Transport:
@@ -93,7 +71,7 @@ class Urllib3Transport:
             # the request was written. Only a certificate-verification failure is
             # provably pre-send -- the client verifies the server during the
             # handshake, before any application data -- so only that is NOT_SENT.
-            delivery = Delivery.NOT_SENT if _certificate_refused(exc) else Delivery.UNKNOWN
+            delivery = Delivery.NOT_SENT if certificate_refused(exc) else Delivery.UNKNOWN
             raise TransportFailure(str(exc), delivery=delivery) from exc
         except u.exceptions.HTTPError as exc:
             # ReadTimeoutError, ProtocolError (reset, incomplete read) and anything

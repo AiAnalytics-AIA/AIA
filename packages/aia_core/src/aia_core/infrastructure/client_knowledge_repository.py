@@ -28,6 +28,7 @@ from ..domain.knowledge import (
     KnowledgeSummary,
     LabelColour,
     OrganizerNameTaken,
+    ProposalDraft,
     ProposalOrigin,
     ProposalStatus,
     StaleKnowledgeProposal,
@@ -42,6 +43,7 @@ from ..domain.knowledge import (
 from ..domain.scope import (
     ClientContext,
     ClientPermission,
+    ClientWorkContext,
     Permission,
     ScopeDenied,
     SeparationOfDutiesViolation,
@@ -782,6 +784,7 @@ class ClientKnowledgeRepository:
         provenance: dict[str, Any],
         item_id: str | None,
         base_revision: int | None,
+        run_id: str | None = None,
     ) -> KnowledgeProposal:
         if not title.strip():
             raise ValueError("a proposal needs a title")
@@ -828,6 +831,7 @@ class ClientKnowledgeRepository:
             proposed_by=actor_id,
             proposed_at=utcnow(),
             base_revision=base_revision,
+            run_id=run_id,
         )
         self._session.add(row)
         self._session.flush()
@@ -895,6 +899,51 @@ class ClientKnowledgeRepository:
             item_id=item_id,
             base_revision=base_revision,
         )
+
+    def propose_from_client_work(
+        self, scope: ClientWorkContext, *, run_id: str, drafts: Sequence[ProposalDraft]
+    ) -> list[KnowledgeProposal]:
+        """File what a run of the client's own work proposes, once (lifecycle K2d2).
+
+        AI proposals from a client's document: each a proposal and never knowledge, marked
+        ``authored: "ai"`` and naming the run, until a person accepts it. ``proposed_by`` is the
+        person who started the run. A retried step files nothing twice: when the run has
+        filed already, what it filed is returned and nothing is written. Only the worker's
+        scope of that client's own work files here (``RUN_WORKFLOW``); no study is named.
+        """
+        if not isinstance(scope, ClientWorkContext):
+            raise ScopeDenied("client work requires a client work context", reason="forged_scope")
+        scope.require(Permission.RUN_WORKFLOW)
+        filed = self._session.scalars(
+            select(ClientKnowledgeProposalRow)
+            .where(
+                ClientKnowledgeProposalRow.organization_id == scope.organization_id,
+                ClientKnowledgeProposalRow.client_id == scope.client_id,
+                ClientKnowledgeProposalRow.run_id == run_id,
+            )
+            .order_by(
+                ClientKnowledgeProposalRow.proposed_at, ClientKnowledgeProposalRow.proposal_id
+            )
+        ).all()
+        if filed:
+            return [_proposal(r) for r in filed]
+        return [
+            self._add_proposal(
+                organization_id=scope.organization_id,
+                client_id=scope.client_id,
+                study_id=None,
+                actor_id=scope.actor_id,
+                kind=draft.kind,
+                title=draft.title,
+                summary=draft.summary,
+                content=draft.content,
+                provenance={**draft.provenance, "authored": "ai", "run_id": run_id},
+                item_id=None,
+                base_revision=None,
+                run_id=run_id,
+            )
+            for draft in drafts
+        ]
 
     # --------------------------------------------------------------- decisions
 

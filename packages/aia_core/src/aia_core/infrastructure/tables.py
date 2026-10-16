@@ -152,6 +152,15 @@ class ProjectRow(Base):
         Index("ix_projects_study_modified", "study_id", "modified_at"),
         Index("ix_projects_client_modified", "client_id", "modified_at"),
         Index("ix_projects_org_status", "organization_id", "status"),
+        # One project of the client's own work per client: two first requests at once
+        # cannot both create one (client-budget CB3b).
+        Index(
+            "uq_projects_client_work",
+            "client_id",
+            unique=True,
+            postgresql_where=text("owner = 'client_sources'"),
+            sqlite_where=text("owner = 'client_sources'"),
+        ),
     )
 
 
@@ -1071,6 +1080,33 @@ class ClientKnowledgeRevisionRow(Base):
     )
 
 
+class ClientWorkJournalRow(Base):
+    """One answered model request of the client's own work, kept the moment it returns.
+
+    Keyed by the client and a fingerprint of exactly what was sent, so a step resumed
+    after a budget lift or a worker's release -- or a new run over the same reading --
+    replays what was answered and pays only for what was not (lifecycle K2d). Written
+    once; ``run_id`` names the run that paid for it.
+    """
+
+    __tablename__ = "client_work_journal"
+
+    journal_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    request_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    run_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
+        UniqueConstraint("client_id", "request_key", name="client_work_journal_request"),
+    )
+
+
 class ClientKnowledgeProposalRow(Base):
     """A proposed addition or change to a client's knowledge, awaiting a person.
 
@@ -1104,6 +1140,9 @@ class ClientKnowledgeProposalRow(Base):
     # The item revision a revising proposal was written from (F-K1); null for a new item and
     # for a revision filed before this column, which an approval treats as stale.
     base_revision: Mapped[int | None] = mapped_column(Integer)
+    # The run of the client's own work that proposed it (lifecycle K2d2): an AI proposal from a
+    # client's document. A run writes its proposals once; null for every other proposal.
+    run_id: Mapped[str | None] = mapped_column(String(64))
 
     __table_args__ = (
         ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
@@ -1114,6 +1153,7 @@ class ClientKnowledgeProposalRow(Base):
             "status in ('PROPOSED','APPROVED','REJECTED')", name="knowledge_proposal_status_known"
         ),
         Index("ix_client_knowledge_proposals_client", "client_id", "status"),
+        Index("ix_client_knowledge_proposals_run", "run_id"),
     )
 
 

@@ -16,17 +16,41 @@ target-version = "py312"
 extend-exclude = ["migrations/versions"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "UP", "B", "A", "C4", "SIM", "RUF"]
+select = ["E", "F", "I", "N", "UP", "B", "A", "C4", "SIM", "RUF", "TID251"]
 # N818 requires an "Error" suffix on every exception. Our exception names are
 # domain vocabulary that reads better as-is -- `raise ScopeDenied(...)`,
 # `except ExpiredToken` -- and they match the terms used in the architecture
 # docs. Renaming them would make the code read worse for no safety gain.
 ignore = ["N818"]
 
+# Network egress is fenced (TID251). A socket opened outside the transport modules
+# has no residency check, no host pacing, no TLS-refusal handling and no record:
+# web reads go through RetrievalGate (application/web_retrieval.py) over the wires in
+# infrastructure/web_retrieval_live.py, model calls through GovernedModelGateway over
+# model_adapters/live_transport.py. The ban is by import, so importlib and
+# __import__ are not seen; tools/layer_check.sh's rules and review cover those.
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"urllib3".msg = "Network egress goes through the transport modules: RetrievalGate over infrastructure/web_retrieval_live.py, or GovernedModelGateway over model_adapters/live_transport.py"
+"httpx".msg = "Network egress goes through the transport modules: RetrievalGate over infrastructure/web_retrieval_live.py, or GovernedModelGateway over model_adapters/live_transport.py"
+"requests".msg = "Network egress goes through the transport modules: RetrievalGate over infrastructure/web_retrieval_live.py, or GovernedModelGateway over model_adapters/live_transport.py"
+"urllib.request".msg = "Network egress goes through the transport modules: RetrievalGate over infrastructure/web_retrieval_live.py, or GovernedModelGateway over model_adapters/live_transport.py"
+"http.client".msg = "Network egress goes through the transport modules: RetrievalGate over infrastructure/web_retrieval_live.py, or GovernedModelGateway over model_adapters/live_transport.py"
+"socket".msg = "Network egress goes through the transport modules: RetrievalGate over infrastructure/web_retrieval_live.py, or GovernedModelGateway over model_adapters/live_transport.py"
+"ssl".msg = "TLS handling lives in the transport modules: infrastructure/http_transport.py (certificate_refused) and the live wires behind RetrievalGate and GovernedModelGateway"
+
 [tool.ruff.lint.per-file-ignores]
 # Tests assert on private behaviour deliberately, and fixture-heavy signatures
-# trip the unused-argument and boolean-trap rules without being wrong.
-"**/tests/**" = ["SLF001", "PLR2004"]
+# trip the unused-argument and boolean-trap rules without being wrong. They also
+# stand up local stub servers (CLAUDE.md §7), which needs sockets: TID251.
+"**/tests/**" = ["SLF001", "PLR2004", "TID251"]
+# The egress fence's exits (TID251), each the one module that owns its wire.
+"packages/aia_core/src/aia_core/infrastructure/model_adapters/live_transport.py" = ["TID251"]  # urllib3: the model routes' HTTPS
+"packages/aia_core/src/aia_core/infrastructure/web_retrieval_live.py" = ["TID251"]  # urllib3 + socket.getaddrinfo: public web reads, resolved then pinned
+"packages/aia_core/src/aia_core/infrastructure/web_retrieval_brave.py" = ["TID251"]  # urllib3: the Brave search API
+"packages/aia_core/src/aia_core/infrastructure/common_crawl.py" = ["TID251"]  # urllib3: Athena's JSON POST
+"packages/aia_core/src/aia_core/infrastructure/http_transport.py" = ["TID251"]  # ssl: certificate_refused reads SSLCertVerificationError
+"apps/api/src/aia_api/identity/cognito.py" = ["TID251"]  # urllib.request: the Cognito JWKS fetch
+"apps/worker/src/aia_worker/settings.py" = ["TID251"]  # socket.gethostname for the worker id; no egress
 
 [tool.mypy]
 python_version = "3.12"
@@ -63,6 +87,68 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = ["xlrd", "xlrd.*"]
 ignore_missing_imports = true
+
+# Import contracts, checked by `lint-imports` from `make layer_check`
+# (tools/layer_check.sh is the grep half; this is the import-graph half, for a rule
+# a grep cannot state exactly). ARCHITECTURE.md §3.
+[tool.importlinter]
+root_packages = ["aia_core", "aia_api", "aia_worker", "aia_executors"]
+include_external_packages = false
+
+# ADR 0005: a model call goes through GovernedModelGateway, which an executor
+# composition builds over an adapter. The adapters are therefore imported by the
+# three compositions that build a route and by nothing else -- not the gateway,
+# which receives them through its protocol, not the API, not a web route. An
+# import anywhere else is a second model-call path the gateway never sees.
+# Direct imports only: a module that imports a composition (the registry, a test
+# harness) reaches the adapters through the composition, which is the point.
+# "aia_core.infrastructure.*", not the package: a source that contains the
+# forbidden package finds no chain to it, and an infrastructure module's import
+# went unreported (measured). The two __init__ modules the wildcard leaves out are
+# a grep rule in tools/layer_check.sh. Every ignore below must match an import, or
+# lint-imports fails: an allowance outlives nothing it was for.
+[[tool.importlinter.contracts]]
+name = "only the executor compositions import the model adapters (ADR 0005)"
+type = "forbidden"
+source_modules = [
+    "aia_core.domain",
+    "aia_core.application",
+    "aia_core.infrastructure.*",
+    "aia_api",
+    "aia_worker",
+    "aia_executors",
+]
+forbidden_modules = ["aia_core.infrastructure.model_adapters"]
+allow_indirect_imports = true
+ignore_imports = [
+    "aia_core.infrastructure.model_adapters.** -> aia_core.infrastructure.model_adapters.**",
+    "aia_executors.ai_runtime -> aia_core.infrastructure.model_adapters.**",
+    "aia_executors.ai_runtime -> aia_core.infrastructure.model_adapters",
+    "aia_executors.deep_research_live -> aia_core.infrastructure.model_adapters.**",
+    "aia_executors.deep_research_runtime -> aia_core.infrastructure.model_adapters.**",
+    "aia_executors.deep_research_runtime -> aia_core.infrastructure.model_adapters",
+]
+
+# The research steps reach the web only through what a composition hands them:
+# RetrievalGate over the wires deep_research_live builds, settings read by
+# deep_research_runtime. A step importing a live wire would open a connection the
+# composition never configured -- no residency check, pacing or record. Ruff's TID251
+# keeps urllib3 and socket inside these modules; this keeps the modules inside the
+# two compositions. The source names no forbidden module's ancestor, so the
+# containment blind spot of the contract above does not apply (probed).
+# Indirect imports count too: RetrievalGate reaches the index and the archive
+# through infrastructure/archive_index.py, which loads no wire.
+[[tool.importlinter.contracts]]
+name = "deep-research steps never import a live network wire; only the two compositions do"
+type = "forbidden"
+source_modules = ["aia_executors.deep_research"]
+forbidden_modules = [
+    "aia_core.infrastructure.web_retrieval_live",
+    "aia_core.infrastructure.web_retrieval_brave",
+    "aia_core.infrastructure.common_crawl",
+    "aia_core.infrastructure.model_adapters.live_transport",
+]
+allow_indirect_imports = false
 
 [tool.pytest.ini_options]
 # Both test directories are called `tests`, so they are not importable packages.

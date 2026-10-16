@@ -32,13 +32,17 @@ from typing import Any, Final, Literal
 
 from pydantic import BaseModel, ConfigDict, StrictInt, model_validator
 
+from .persona_topics import dimension_topic
 from .pipeline import fingerprint
 from .sociomap.metrics import ObjectRole
 
 __all__ = [
     "AIA_READINESS_V1",
     "COMPILER_VERSION",
+    "DIMENSIONS_AWAIT_DRAW",
+    "DIMENSIONS_NEED_POPULATION",
     "DIMENSIONS_NOT_READ",
+    "DIMENSIONS_NOT_TOPICS",
     "DONT_KNOW",
     "FILTERS_AWAIT_DRAW",
     "FILTERS_NEED_POPULATION",
@@ -723,9 +727,18 @@ def _selection(content: dict[str, Any], audience: dict[str, Any]) -> SpecSelecti
     )
 
 
-#: Why a run applied none of the dimensions its design selected: a panel persona reads a fixed
-#: set of columns (``panel_persona.panel_personas``), and no selected dimension is among them.
+#: Why a run started before 5c applied none of its design's dimensions: no persona read them
+#: then. Kept so that such a run's record still reads as what it was.
 DIMENSIONS_NOT_READ: Final = "dimensions_not_read_by_personas"
+#: Why a run's selected dimensions are not applied: they are a panel persona's topic allowlist
+#: (``panel_persona.persona_allowlist``, 5c), and this run's respondents are the fictional roster.
+DIMENSIONS_NEED_POPULATION: Final = "dimensions_need_population_draw"
+#: Why a panel run's dimensions are not applied yet: its personas are built when fieldwork draws
+#: its sample, after the run records its selection (settled from the fieldwork step, as filters).
+DIMENSIONS_AWAIT_DRAW: Final = "dimensions_await_population_draw"
+#: Why a drawn run applied none of its dimensions: no selected id is a persona topic
+#: (``persona_topics.dimension_topic``), so the allowlist let no topic through (18.6.6's set test).
+DIMENSIONS_NOT_TOPICS: Final = "dimensions_not_persona_topics"
 #: Why a run did not apply its design's audience filters: only a draw from the population does,
 #: and this run's respondents are the fictional roster.
 FILTERS_NEED_POPULATION: Final = "filters_need_population_draw"
@@ -742,9 +755,11 @@ def selection_receipt(spec: ResearchSpecification, *, population_draw: bool) -> 
     ``population_draw``: the run's respondents will be drawn from its population (the panel
     source), which is the only thing that applies the filters (``panel_source.panel_plans``).
     It is recorded at start, before any draw, so a panel run's filters await the draw
-    (``FILTERS_AWAIT_DRAW``); none is ever recorded applied here. Nothing applies a dimension
-    yet. An applied flag is never true without the code that applies it having run, and a
-    reason accompanies every one that is false.
+    (``FILTERS_AWAIT_DRAW``), and so do its dimensions, which its personas read as their topic
+    allowlist (5c, ``DIMENSIONS_AWAIT_DRAW``); none is ever recorded applied here. An applied
+    flag is never true without the code that applies it having run, and a reason accompanies
+    every one that is false. ``dimensions_unmatched`` names each selected id that is no persona
+    topic: the allowlist lets none of its topics through, so it never reaches a respondent.
     """
     selection = spec.selection
     dimensions = list(selection.dimensions) if selection is not None else []
@@ -754,8 +769,13 @@ def selection_receipt(spec: ResearchSpecification, *, population_draw: bool) -> 
     )
     return {
         "dimensions": dimensions,
+        "dimensions_unmatched": [d for d in dimensions if dimension_topic(d) is None],
         "dimensions_applied": False,
-        "dimensions_reason": DIMENSIONS_NOT_READ if dimensions else None,
+        "dimensions_reason": (
+            (DIMENSIONS_AWAIT_DRAW if population_draw else DIMENSIONS_NEED_POPULATION)
+            if dimensions
+            else None
+        ),
         "audience_filters": filters,
         "filters_applied": False,
         "filters_reason": reason,
@@ -866,14 +886,35 @@ def assess_readiness(
     else:
         check("sociomap_input", CheckStatus.WARN, "Bez sledované sady nevznikne Sociomapa.")
 
+    # Dimensions are a panel persona's topic allowlist (5c): applied only when the run draws its
+    # respondents from the population, the same pin that applies the filters below.
     if spec.selection is not None and spec.selection.dimensions:
-        check(
-            "dimensions",
-            CheckStatus.WARN,
-            "Vybrané dimenze ("
-            + ", ".join(spec.selection.dimensions)
-            + ") jsou uložené s během, ale AIA je zatím na respondenty neuplatní.",
-        )
+        dims = spec.selection.dimensions
+        unknown = [d for d in dims if dimension_topic(d) is None]
+        if filters_applied:
+            check(
+                "dimensions",
+                CheckStatus.WARN if unknown else CheckStatus.PASS,
+                "Vybrané dimenze ("
+                + ", ".join(dims)
+                + ") určí témata, o kterých AI respondenti z populace mluví ve svém profilu."
+                + (
+                    " Tyto nejsou tématem persony a žádné téma nepropustí: "
+                    + ", ".join(unknown)
+                    + "."
+                    if unknown
+                    else ""
+                ),
+            )
+        else:
+            check(
+                "dimensions",
+                CheckStatus.WARN,
+                "Vybrané dimenze ("
+                + ", ".join(dims)
+                + ") se uplatní jen u AI respondentů z populace;"
+                " fiktivní respondenti je nepoužijí.",
+            )
     # ``filters_applied``: the run is pinned to draw its respondents from the population, and
     # draws them under the design's filters (plan panel-grounded-respondents 6d). Otherwise
     # nothing applies them, and the check says so.

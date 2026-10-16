@@ -99,7 +99,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         title_cs="Velikost vzorku",
         formula_latex=r"n_{\min} \le n \le n_{\max}",
         implements=f"{_R}:assess_readiness",
-        source_sha256="854f32cf534861872d21d325a78ef21c9e4056fb5fe4cfb43fcf831e3c8e0181",
+        source_sha256="e1196c42c750ff73856e31189824b7edb8b300329411da07b19e6674a33e9a4f",
         symbols=(Symbol("n", "velikost vzorku zadaná v návrhu", "respondenti"),),
         parameters=(
             ParameterRef(
@@ -263,6 +263,7 @@ READINESS: Final = MethodModule(
     editable=True,
     groups=_GROUPS,
     preview=_preview,
+    preview_title_cs="Jak to uvidí výzkumník v Kontrole a spuštění",
     note_cs=(
         "Meze, které kontrola připravenosti čte: velikost vzorku a počet položek ve "
         "sledované sadě. Základ z kódu jsou hodnoty 18.6.6. Verze v platnosti platí pro "

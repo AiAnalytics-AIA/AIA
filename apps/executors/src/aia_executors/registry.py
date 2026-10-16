@@ -30,6 +30,8 @@ from aia_worker.executor import StepExecutor
 from .ai_fieldwork import AIFieldwork
 from .ai_runtime import AIRuntimeSettings, build_ai_fieldwork, build_gateway
 from .analysis import AnalysisConfig, analysis_registry
+from .client_source_proposals import KIND as CLIENT_SOURCE_PROPOSALS_KIND
+from .client_source_proposals import ClientSourceProposalsExecutor, SourceProposalsConfig
 from .deep_research import DeepResearchRuntime, deep_research_registry
 from .deep_research_runtime import deep_research_runtime
 from .materialize import KIND as MATERIALIZE_KIND
@@ -79,6 +81,7 @@ def registry_for(
     build: BuildIdentity,
     ai_runtime: AIDatasetProducer | None = None,
     research_agent: StepExecutor | None = None,
+    client_source_proposals: StepExecutor | None = None,
     analysis: StepExecutor | None = None,
     deep_research: DeepResearchRuntime | None = None,
     sociomap_connectedness_interval: bool = False,
@@ -90,6 +93,9 @@ def registry_for(
         # Without a store and the shared population it parks (population-operations P4d3).
         MATERIALIZE_KIND: materialize or MaterializeExecutor(store=None, shared=None),
         "research_agent": research_agent or ResearchAgentExecutor(store=store, build=build),
+        # Without a gateway it parks (client-knowledge-lifecycle K2d3).
+        CLIENT_SOURCE_PROPOSALS_KIND: client_source_proposals
+        or ClientSourceProposalsExecutor(store=store, build=build),
         **(
             analysis_registry(store=store, build=build)
             if analysis is None
@@ -163,6 +169,19 @@ def build_registry() -> dict[str, StepExecutor]:
                 step_events=settings.step_events,
             ),
         )
+    proposals = None
+    if settings is not None and settings.client_source_proposals_enabled:
+        proposals = ClientSourceProposalsExecutor(
+            store=store,
+            build=build,
+            gateway=build_gateway(settings),
+            config=SourceProposalsConfig(
+                policy_version=settings.policy_version,
+                max_output_tokens=settings.client_source_max_output_tokens,
+                reservation_usd=settings.client_source_reservation_usd,
+                step_events=settings.step_events,
+            ),
+        )
     analysis = None
     if settings is not None and settings.analysis_enabled:
         config = AnalysisConfig.from_settings(
@@ -178,6 +197,7 @@ def build_registry() -> dict[str, StepExecutor]:
         store=store,
         materialize=materialize_executor(os.environ, store=children),
         research_agent=agent,
+        client_source_proposals=proposals,
         analysis=analysis,
         deep_research=deep_research_runtime(settings),
         build=build,

@@ -136,3 +136,84 @@ def test_a_violating_single_file_path_names_the_file(scratch: Path) -> None:
 
     assert result.returncode != 0, result.stdout
     assert "pkg/infra/factory.py:1:w = Widget()" in result.stdout
+
+
+# --------------------------------------------------------------------------- #
+# The model gateway's two grep rules, run with the script's own patterns
+# --------------------------------------------------------------------------- #
+
+
+def _gateway_rule(root: Path, pattern_var: str, *exempt: str) -> subprocess.CompletedProcess[str]:
+    """``forbid`` over ``pkg`` with the script's ``$GATEWAY_BUILT`` / ``$GATEWAY_INVOKED``."""
+    args = " ".join(f"'{e}'" for e in exempt)
+    driver = (
+        "source tools/layer_check.sh\n"
+        f'forbid "gateway rule" "${pattern_var}" pkg {args}\n'
+        'exit "$FAILED"\n'
+    )
+    return subprocess.run(
+        ["bash", "-c", driver], cwd=root, capture_output=True, text=True, check=False
+    )
+
+
+def _write(root: Path, rel: str, text: str) -> None:
+    path = root / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def test_building_the_gateway_outside_the_composition_is_caught(scratch: Path) -> None:
+    _write(scratch, "pkg/ai_runtime.py", "gateway = GovernedModelGateway(\n    registry,\n)\n")
+    _write(scratch, "pkg/elsewhere.py", "g = GovernedModelGateway(registry)\n")
+
+    result = _gateway_rule(scratch, "GATEWAY_BUILT", "pkg/ai_runtime.py")
+
+    assert result.returncode != 0, result.stdout
+    assert "pkg/elsewhere.py:1:g = GovernedModelGateway(registry)" in result.stdout
+    assert "pkg/ai_runtime.py" not in result.stdout
+
+
+def test_naming_the_gateway_class_without_building_it_passes(scratch: Path) -> None:
+    _write(
+        scratch,
+        "pkg/elsewhere.py",
+        "from x import GovernedModelGateway\n"
+        "def f(gateway: GovernedModelGateway) -> None: ...\n"
+        "# GovernedModelGateway(...) is built in ai_runtime.py\n",
+    )
+
+    result = _gateway_rule(scratch, "GATEWAY_BUILT")
+
+    assert result.returncode == 0, result.stdout
+
+
+@pytest.mark.parametrize(
+    "call",
+    [
+        "self._gateway.invoke(request, context)",
+        "gateway.invoke(request, context)",
+        "model_gateway.invoke(request, context)",
+        "GovernedModelGateway.invoke(gw, request, context)",
+    ],
+)
+def test_invoking_the_gateway_outside_the_step_caller_is_caught(scratch: Path, call: str) -> None:
+    _write(scratch, "pkg/ai_step.py", "self._gateway.invoke(request, ctx)\n")
+    _write(scratch, "pkg/elsewhere.py", f"result = {call}\n")
+
+    result = _gateway_rule(scratch, "GATEWAY_INVOKED", "pkg/ai_step.py")
+
+    assert result.returncode != 0, result.stdout
+    assert f"pkg/elsewhere.py:1:result = {call}" in result.stdout
+    assert "pkg/ai_step.py" not in result.stdout
+
+
+def test_the_step_model_callers_own_invoke_is_not_the_gateway(scratch: Path) -> None:
+    _write(
+        scratch,
+        "pkg/fieldwork.py",
+        "result = caller.invoke(request)\nresult = self._caller.invoke(request)\n",
+    )
+
+    result = _gateway_rule(scratch, "GATEWAY_INVOKED")
+
+    assert result.returncode == 0, result.stdout

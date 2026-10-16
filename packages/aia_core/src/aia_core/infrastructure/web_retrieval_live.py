@@ -50,7 +50,7 @@ from ..domain.deep_research.web import (
     check_url,
 )
 from .host_pacing import HostPacer, LocalHostPacer
-from .model_adapters.live_transport import _certificate_refused
+from .http_transport import certificate_refused
 from .web_retrieval import (
     FetchedResponse,
     FetchTransport,
@@ -183,7 +183,7 @@ class UrllibWire:
                 delivery=Delivery.NOT_SENT,
             ) from exc
         except u.exceptions.SSLError as exc:
-            delivery = Delivery.NOT_SENT if _certificate_refused(exc) else Delivery.UNKNOWN
+            delivery = Delivery.NOT_SENT if certificate_refused(exc) else Delivery.UNKNOWN
             raise ToolCallFailed(
                 "the TLS session failed", reason="tls_failed", delivery=delivery
             ) from exc

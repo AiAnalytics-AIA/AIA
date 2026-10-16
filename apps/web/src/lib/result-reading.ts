@@ -8,7 +8,7 @@
 //   the words are "cannot be confirmed", never "the same". A missing interval is unknown and
 //   is never read as an order.
 
-import type { QuestionResult, SupportStatus } from "@/lib/research-execution";
+import { type QuestionResult, type StoredPlaces, type SupportStatus, UNIT_PLACES } from "@/lib/research-execution";
 
 export type Estimate = { value: number; low: number | null; high: number | null };
 
@@ -21,7 +21,7 @@ export function separation(a: Estimate, b: Estimate): Separation {
 }
 
 const fmt = (x: number, decimals: number) => x.toLocaleString("cs-CZ", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-const pct = (x: number) => `${fmt(x, 1)} %`;
+const pctAt = (x: number, d: number) => `${fmt(x, d)} %`;
 const finite = (x: unknown): x is number => typeof x === "number" && Number.isFinite(x);
 
 function interval(raw: unknown): { low: number | null; high: number | null } {
@@ -43,7 +43,8 @@ export type MeasureReading = { text: string; tone: ReadingTone };
 /** How a scale is named in a sentence: "na škále 1–5", nothing when the run did not record it. */
 const onScale = (scale: readonly [number, number] | null | undefined) => (scale ? ` na škále ${scale[0]}–${scale[1]}` : "");
 
-function choiceReading(result: QuestionResult): string | null {
+function choiceReading(result: QuestionResult, d: number): string | null {
+  const pct = (x: number) => pctAt(x, d);
   const shares = (result.celkem_pct ?? {}) as Record<string, unknown>;
   const intervals = (result.intervaly_95 ?? {}) as Record<string, unknown>;
   const options = Object.entries(shares)
@@ -53,7 +54,7 @@ function choiceReading(result: QuestionResult): string | null {
   if (!options.length) return null;
   const multi = result.typ === "multi";
   const [leader, ...rest] = options;
-  const share = `${leader.label} (${pct(leader.value)}${leader.low !== null && leader.high !== null ? `, 95% interval ${fmt(leader.low, 1)}–${pct(leader.high)}` : ""})`;
+  const share = `${leader.label} (${pct(leader.value)}${leader.low !== null && leader.high !== null ? `, 95% interval ${fmt(leader.low, d)}–${pct(leader.high)}` : ""})`;
   if (!rest.length) return `${multi ? "Vybíráno" : "Jediná odpověď"}: ${share}.`;
   if (leader.low === null) return `Nejvíce ${multi ? "vybíráno" : "odpovědí"}: ${share}; bez intervalu nelze pořadí odpovědí posoudit.`;
   const tied = rest.filter((option) => separation(leader, option) !== "ABOVE");
@@ -63,11 +64,11 @@ function choiceReading(result: QuestionResult): string | null {
   return `Nejvíce ${multi ? "vybíráno" : "odpovědí"}: ${czechList(names, 4, "dalších možností")}; pořadí mezi nimi nelze potvrdit, ${unknown ? "některé intervaly chybějí nebo se překrývají" : "95% intervaly se překrývají"}.`;
 }
 
-function scaleReading(result: QuestionResult, scale: readonly [number, number] | null | undefined, topBox: number): string | null {
+function scaleReading(result: QuestionResult, scale: readonly [number, number] | null | undefined, topBox: number, at: StoredPlaces): string | null {
   if (!finite(result.prumer)) return null;
   const iv = interval(result.prumer_interval_95);
-  const mean = `Průměr ${fmt(result.prumer, 2)}${onScale(scale)}${iv.low !== null && iv.high !== null ? ` (95% interval ${fmt(iv.low, 2)}–${fmt(iv.high, 2)})` : " (interval chybí)"}.`;
-  const top = finite(result.top2box_pct) ? ` ${topBox === 2 ? "Horní dva body" : `Horní body (${topBox})`}: ${pct(result.top2box_pct)}.` : "";
+  const mean = `Průměr ${fmt(result.prumer, at.mean)}${onScale(scale)}${iv.low !== null && iv.high !== null ? ` (95% interval ${fmt(iv.low, at.mean)}–${fmt(iv.high, at.mean)})` : " (interval chybí)"}.`;
+  const top = finite(result.top2box_pct) ? ` ${topBox === 2 ? "Horní dva body" : `Horní body (${topBox})`}: ${pctAt(result.top2box_pct, at.share)}.` : "";
   return mean + top;
 }
 
@@ -76,12 +77,12 @@ function scaleReading(result: QuestionResult, scale: readonly [number, number] |
  * its leading answer only as far as the intervals separate it from the next ones; a scale names
  * its mean with its interval and, when recorded, the scale it was asked on.
  */
-export function readMeasure(result: QuestionResult, scale?: readonly [number, number] | null, topBox = 2): MeasureReading {
+export function readMeasure(result: QuestionResult, scale?: readonly [number, number] | null, topBox = 2, at: StoredPlaces = UNIT_PLACES): MeasureReading {
   if (result.support_status === "SUPPRESS") return { text: "Číselný výsledek je skrytý: podpora dat nestačí.", tone: "suppressed" };
   const words = result.typ === "vyber" || result.typ === "multi"
-    ? choiceReading(result)
+    ? choiceReading(result, at.share)
     : result.typ === "skala"
-      ? scaleReading(result, scale, topBox)
+      ? scaleReading(result, scale, topBox, at)
       : Array.isArray(result.verbatimy) && result.verbatimy.length
         ? "Otevřené odpovědi: ukázky jsou v detailu."
         : null;
@@ -162,8 +163,9 @@ export type CitedMeasure = {
   title: string;
   /** What was measured, in words: "podíl odpovědi „Čaj“", "průměr", "platné odpovědi". */
   what: string;
-  /** How the cited value is printed with its unit. */
-  format: (value: number) => string;
+  /** How the cited value is printed with its unit, at the places it was admitted at
+   *  (`decimals`, from the claim) or 18.6.6's for its kind when the claim does not say. */
+  format: (value: number, decimals?: number) => string;
 };
 
 const REF = /^(.+)\.(n|effective_n|mean|top2box|pct\.(\d+))$/;
@@ -191,9 +193,10 @@ export function citedMeasure(ref: string, spec: CompiledSpecification | null | u
     title = question?.text || `Otázka ${questionId}`;
     options = question?.options ?? [];
   }
-  if (metric === "n") return { measureId, title, what: "platné odpovědi", format: (v) => fmt(v, 0) };
-  if (metric === "effective_n") return { measureId, title, what: "efektivní n", format: (v) => fmt(v, 1) };
-  if (metric === "mean") return { measureId, title, what: "průměr", format: (v) => fmt(v, 2) };
+  const pct = (v: number, d?: number) => pctAt(v, d ?? UNIT_PLACES.share);
+  if (metric === "n") return { measureId, title, what: "platné odpovědi", format: (v, d) => fmt(v, d ?? 0) };
+  if (metric === "effective_n") return { measureId, title, what: "efektivní n", format: (v, d) => fmt(v, d ?? 1) };
+  if (metric === "mean") return { measureId, title, what: "průměr", format: (v, d) => fmt(v, d ?? UNIT_PLACES.mean) };
   if (metric === "top2box") return { measureId, title, what: "horní body škály", format: pct };
   const index = Number(option);
   return { measureId, title, what: `podíl odpovědi „${options[index - 1] ?? `možnost ${index}`}“`, format: pct };

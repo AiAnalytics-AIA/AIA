@@ -225,3 +225,175 @@ def test_a_studys_proposal_does_not_attach_a_clients_source(lead: TestClient, wo
         json={"kind": "DOCUMENT", "title": "Zadání", "content": {"source_id": kept["source_id"]}},
     )
     assert got.status_code == 422 and got.json()["code"] == "invalid_proposal"
+
+
+# ------------------------------------------------- AI proposals from a source (K2d4)
+
+DOCUMENT = (
+    "Fiktivní pivovar Lupínek vaří od roku 1998.\n\nZnačku zná 41 % dospělých v kraji.\n"
+).encode()
+
+
+def _fail_run(app: Any, run_id: str) -> None:
+    """End a run without a result, as a refused step would."""
+    from aia_core.domain.workflow import WorkflowRunStatus
+    from aia_core.infrastructure.db import create_session_factory
+    from aia_core.infrastructure.tables import WorkflowRunRow
+
+    with create_session_factory(app.state.engine)() as session:
+        run = session.get(WorkflowRunRow, run_id)
+        assert run is not None
+        run.status = WorkflowRunStatus.FAILED.value
+        session.commit()
+
+
+def test_proposals_are_queued_once_per_reading_as_the_clients_own_work(
+    lead: TestClient, world: Any, app: Any
+) -> None:
+    client = world.client_id("primary")
+    source = upload(lead, client, "lupinek.txt", DOCUMENT).json()["source_id"]
+    url = f"{API}/clients/{client}/sources/{source}/proposals"
+    assert lead.get(url).json() is None  # nobody has asked
+
+    first = lead.post(url)
+    assert first.status_code == 202, first.text
+    body = first.json()
+    assert (body["source_id"], body["created"], body["current"]) == (source, True, True)
+    assert (body["status"], body["step_status"]) == ("RUNNING", "RUNNABLE")
+    assert body["reason"] is None and body["output"] == {}
+
+    # Asked again: the same run, nothing queued (and nothing paid) twice.
+    again = lead.post(url)
+    assert again.status_code == 200 and again.json()["run_id"] == body["run_id"]
+    assert again.json()["created"] is False
+    assert lead.get(url).json()["run_id"] == body["run_id"]
+
+    # After a run ends without a result, asking again starts another.
+    _fail_run(app, body["run_id"])
+    retried = lead.post(url)
+    assert retried.status_code == 202 and retried.json()["run_id"] != body["run_id"]
+    assert lead.get(url).json()["run_id"] == retried.json()["run_id"]
+
+    # The run is the client's: it names no study.
+    from aia_core.infrastructure.db import create_session_factory
+    from aia_core.infrastructure.tables import WorkflowRunRow
+
+    with create_session_factory(app.state.engine)() as session:
+        run = session.get(WorkflowRunRow, retried.json()["run_id"])
+        assert run is not None and (run.client_id, run.study_id) == (client, None)
+
+
+def test_a_source_it_does_not_extract_is_refused_by_name_and_nothing_is_queued(
+    lead: TestClient, world: Any
+) -> None:
+    client = world.client_id("primary")
+    table = upload(lead, client, "znalost.csv", "značka;znalost\nLupínek;41\n".encode()).json()
+    url = f"{API}/clients/{client}/sources/{table['source_id']}/proposals"
+    refused = lead.post(url)
+    assert refused.status_code == 422 and refused.json()["code"] == "dataset_not_extracted"
+    assert lead.get(url).json() is None
+
+
+def test_another_clients_source_has_no_proposals_here(
+    lead: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    source = upload(lead, world.client_id("primary"), "a.txt", DOCUMENT).json()["source_id"]
+    other = world.client_id("other")
+    url = f"{API}/clients/{other}/sources/{source}/proposals"
+    assert other_client_lead.post(url).status_code == 404
+    assert other_client_lead.get(url).status_code == 404
+
+
+def test_an_ai_proposal_shows_its_quote_and_where_it_stands_for_review(
+    lead: TestClient, world: Any, app: Any
+) -> None:
+    """What the step filed reaches Ke schválení with the words it rests on."""
+    from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+    from aia_core.domain.knowledge import KnowledgeKind, ProposalDraft
+    from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
+    from aia_core.infrastructure.db import create_session_factory
+
+    client = world.client_id("primary")
+    source = upload(lead, client, "lupinek.txt", DOCUMENT).json()["source_id"]
+    run_id = lead.post(f"{API}/clients/{client}/sources/{source}/proposals").json()["run_id"]
+    with create_session_factory(app.state.engine)() as session:
+        principal = AuthenticatedPrincipal(
+            user_id=world.users["lead"], organization_id=world.organization_id
+        )
+        work = ScopeResolver(session).client_work_context(principal, client_id=client)
+        ClientKnowledgeRepository(session).propose_from_client_work(
+            work,
+            run_id=run_id,
+            drafts=[
+                ProposalDraft(
+                    kind=KnowledgeKind.FINDING,
+                    title="Znalost značky 41 %",
+                    summary="",
+                    content={"quote": "Značku zná 41 %", "locator": {"line": 3}},
+                    provenance={"source_id": source, "segment": 1},
+                )
+            ],
+        )
+        session.commit()
+    pending = lead.get(f"{API}/clients/{client}/knowledge/proposals?status=PROPOSED").json()
+    ai = next(p for p in pending if p["title"] == "Znalost značky 41 %")
+    assert ai["from_source"] == {
+        "source_id": source,
+        "run_id": run_id,
+        "quote": "Značku zná 41 %",
+        "locator": {"line": 3},
+    }
+    assert ai["study_id"] is None and ai["source_id"] is None
+
+
+def _recovering(app: Any, run_id: str, *, uncertain: bool) -> None:
+    """The run's step stopped for recovery; ``uncertain``: a paid call's outcome unknown."""
+    from aia_core.domain.workflow import StepRunStatus
+    from aia_core.infrastructure.db import create_session_factory
+    from aia_core.infrastructure.tables import StepAttemptRow, StepRunRow
+    from sqlalchemy import select
+
+    with create_session_factory(app.state.engine)() as session:
+        step = session.scalars(select(StepRunRow).where(StepRunRow.run_id == run_id)).one()
+        step.status = StepRunStatus.RECOVERY_REQUIRED.value
+        session.add(
+            StepAttemptRow(
+                attempt_id=f"ATT-{run_id[-12:]}",
+                step_id=step.step_id,
+                attempt_number=1,
+                status="FAILED",
+                paid_call_dispatched=uncertain,
+                paid_call_outcome_known=False,
+            )
+        )
+        session.commit()
+
+
+def test_a_run_stopped_for_recovery_restarts_only_when_no_paid_call_is_uncertain(
+    lead: TestClient, world: Any, app: Any
+) -> None:
+    """A run whose single attempt ran out with every outcome known is restarted by
+    asking again (what it answered is replayed from the journal). A run that left a paid
+    call of unknown outcome is not: that call may have been billed."""
+    client = world.client_id("primary")
+    source = upload(lead, client, "lupinek.txt", DOCUMENT).json()["source_id"]
+    url = f"{API}/clients/{client}/sources/{source}/proposals"
+
+    first = lead.post(url).json()["run_id"]
+    _recovering(app, first, uncertain=False)
+    followed = lead.get(url).json()
+    assert (followed["step_status"], followed["reason"], followed["restartable"]) == (
+        "RECOVERY_REQUIRED",
+        "max_attempts_exhausted",
+        True,
+    )
+    second = lead.post(url)
+    assert second.status_code == 202 and second.json()["run_id"] != first
+
+    _recovering(app, second.json()["run_id"], uncertain=True)
+    held = lead.post(url)
+    assert held.status_code == 200 and held.json()["run_id"] == second.json()["run_id"]
+    assert (held.json()["reason"], held.json()["restartable"]) == (
+        "paid_external_call_side_effect_uncertain",
+        False,
+    )

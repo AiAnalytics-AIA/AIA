@@ -137,7 +137,7 @@ from ..domain.deep_research.web import (
 )
 from ..domain.residency import DataClass, EgressDenied, evaluate_egress
 from ..domain.scope import ScopeDenied, ScopeGrant, StudyContext
-from ..infrastructure.common_crawl import ArchiveFetcher, IndexQueryFailed, UrlIndex
+from ..infrastructure.archive_index import ArchiveRecordFetcher, IndexQueryFailed, UrlIndex
 from ..infrastructure.dataset_connectors import DatasetConnector, dataset_snapshot
 from ..infrastructure.web_retrieval import (
     FetchedPage,
@@ -240,7 +240,7 @@ class ArchiveRetrieval:
     index_route: ToolRoute
     archive_route: ToolRoute
     index: UrlIndex
-    fetcher: ArchiveFetcher
+    fetcher: ArchiveRecordFetcher
     pricing: AthenaPricing | None = None
     scan_cutoff_bytes: int | None = None
 

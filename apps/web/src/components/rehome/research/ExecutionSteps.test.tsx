@@ -634,7 +634,7 @@ describe("Progress", () => {
       persona_source: "fictional_roster",
       population: { population_id: "cz", version_id: "v17_4_0", version_label: "v17_4_0", read_by_fieldwork: false },
       selection: {
-        dimensions: ["region"], dimensions_applied: false, dimensions_reason: "dimensions_not_read_by_personas",
+        dimensions: ["region"], dimensions_unmatched: ["region"], dimensions_applied: false, dimensions_reason: "dimensions_need_population_draw",
         audience_filters: { vek: { min: 30 } }, filters_applied: false, filters_reason: "filters_need_population_draw",
       },
     });
@@ -645,7 +645,9 @@ describe("Progress", () => {
     const value = (label: string) => within(card).getByText(label).nextElementSibling?.textContent;
     expect(value(t(`${R}.source`))).toBe(`${t("research.exec.respondents.fictional_roster")} · ${t(`${R}.observed.SIMULATED`)}`);
     expect(value(t(`${R}.population`))).toContain("v17_4_0");
-    expect(value(t(`${R}.dimensions`))).toContain(t(`${R}.reason.dimensions_not_read_by_personas`));
+    expect(value(t(`${R}.dimensions`))).toContain(t(`${R}.reason.dimensions_need_population_draw`));
+    // A selected id that is no persona topic is named: it never reaches a respondent (Codex on #447).
+    expect(value(t(`${R}.dimensions`))).toContain(tv(`${R}.unmatched`, { list: "region" }));
     expect(value(t(`${R}.filters`))).toBe(`vek · ${t(`${R}.reason.filters_need_population_draw`)}`);
     expect(within(card).queryByRole("alert")).toBeNull();
   });
@@ -1261,6 +1263,8 @@ describe("Results", () => {
     // A suppressed object is not drawn and has no number, but is named.
     expect(within(comparison).getByText("Bez čísla (potlačeno nebo bez průměru): Mléko.")).toBeTruthy();
     expect(within(comparison).queryByText("3,50")).toBeNull();
+    // No rounding block: 18.6.6's two places, as each card prints them.
+    expect(within(comparison).getByText("4,20")).toBeTruthy();
     // A link to a card clears the filters that hide it and opens its detail.
     const explorer = document.querySelector("[data-aggregate-explorer]") as HTMLElement;
     fireEvent.change(within(explorer).getByRole("searchbox", { name: "Najít otázku nebo objekt" }), { target: { value: "káva" } });
@@ -1272,6 +1276,23 @@ describe("Results", () => {
     expect((card.querySelector("details") as HTMLDetailsElement).open).toBe(true);
     expect((within(explorer).getByRole("searchbox", { name: "Najít otázku nebo objekt" }) as HTMLInputElement).value).toBe("");
     window.location.hash = "";
+  });
+
+  it("ranks a set's means at the places the run stored them, as its cards print them", async () => {
+    const rating = (mean: number, low: number, high: number) => ({ typ: "skala", ...support("REPORTABLE", 140), prumer: mean, prumer_interval_95: { low, high }, top2box_pct: 40, top2box_interval_95: { low: 30, high: 50 } });
+    const aggregate = { ...AGGREGATE, payload: { aggregate: { ...AGGREGATE.payload.aggregate, rounding: { share_decimals: 0, mean_decimals: 1 }, batteries: { napoje: { title: "Nápoje", objects: {
+      kava: { label: "Káva", ...rating(4.2, 4.0, 4.4) }, caj: { label: "Čaj", ...rating(3.0, 2.7, 3.3) },
+    } } } } } };
+    api({ ...listed(COMPLETED),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => aggregate,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
+    const comparison = await screen.findByRole("region", { name: "Srovnání: Nápoje" });
+    expect(within(comparison).getByText("4,2")).toBeTruthy();
+    expect(within(comparison).getByText("3,0")).toBeTruthy();
+    expect(within(comparison).queryByText("4,20")).toBeNull();
   });
 
   it("says there are no results while the run waits at fieldwork", async () => {

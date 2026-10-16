@@ -3719,3 +3719,212 @@ is disabled until the report's status is read.
 
 **Status.** Fixed in #423 (progress-follows-retry F2); develop carried the same wait independently.
 
+---
+
+## OI-114 · Finding · Orphaned artifact objects are never reaped
+
+**Claim.** `ArtifactRepository.put` uploads the object before it adds the row, so a transaction
+that rolls back after the upload leaves an object in the store that no row references; the
+docstrings and `docs/architecture/artifacts.md` said a reaper removes these, and none exists.
+
+**Anchor.** `packages/aia_core/src/aia_core/infrastructure/artifact_repository.py:347` (upload),
+`:386` (row), `:312` and `:600` (the "reaped later" docstrings) @ `80dc2167`; no function in
+`packages/` or `apps/` sweeps unreferenced objects (#443).
+
+**Reproduction.** `DATABASE_URL=postgresql+psycopg://… AIA_REQUIRE_POSTGRES=1 pytest
+apps/worker/tests/test_stale_lease_artifacts.py -k orphans_its_object`: an executor block that
+raises after its upload rolls the row back, and after the step's successor completes, the store
+still holds two objects against one row.
+
+**Consequence.** Storage grows by one object for every executor block that fails after its upload;
+nothing a person sees is wrong, and nothing reclaims the space or the data those objects hold.
+
+**Related, latent: `delete` is not transactional with its object.** It flushes the row's deletion and
+deletes the object at once, before the caller commits (`artifact_repository.py:610-612 @ 223621d5`).
+A successful delete leaves no orphan; a delete whose transaction rolls back afterwards restores a
+row pointing at a deleted object, the hazard the upload order exists to avoid. No product code calls
+`delete` (only `test_artifact_repository.py`), so nothing reaches it today. Smallest fix, when a
+caller arrives: delete the object after the commit (an after-commit hook), and a test that rolls
+back a delete and reads the artifact. Hypothesis until that test exists (CLAUDE.md §9).
+
+**Smallest fix.** A periodic sweep that deletes store keys under the artifact prefix that no
+`project_artifacts.storage_key` names and that are older than a grace period longer than any
+transaction; or a decision that orphans are kept, with the docstrings at `:312` and `:600` saying
+so (they still claim a reaper).
+
+**Test.** The reproduction above, turned to assert the orphan is gone after a sweep past its grace
+period, and kept before it.
+
+**Status.** Open. The docs now say no reaper exists; the docstrings change with the code that
+settles this.
+
+---
+
+## OI-115 · Finding, closed · The client's budget said nothing was held while client holds existed
+
+**Claim.** `ScopeRepository.client_budget` built the position from budget and spend alone, so
+`reserved_usd` was 0 whatever the client's own work held.
+
+**Anchor.** `packages/aia_core/src/aia_core/infrastructure/scope_repository.py:462-470 @ 80dc2167`
+(plan `client-budget.md` F-CB3).
+
+**Reproduction.** `test_client_paid_holds.py::test_a_client_hold_is_checked_against_and_charged_to_the_client_alone`:
+with $6 of $10 held, the budget said $10 available where a reservation would allow $4.
+
+**Consequence.** A person deciding a lift saw more room than the client had.
+
+**Smallest fix.** `reserved_usd` is the sum of the client's open holds that name no study.
+
+**Test.** The reproduction above.
+
+**Status.** Fixed in #445 (Codex review of #438).
+
+---
+
+## OI-116 · Finding, closed · Two concurrent lifts could lower the client's budget
+
+**Claim.** `lift_client_budget_wait` compared the offer with an unlocked read and only then locked
+to write, so a lift decided on the old budget could overwrite a larger one made meanwhile.
+
+**Anchor.** `packages/aia_core/src/aia_core/application/client_work.py:113-118 @ 80dc2167`
+(plan `client-budget.md` F-CB4).
+
+**Reproduction.** `test_client_budget_lift.py::test_a_lift_decided_on_a_stale_budget_never_lowers_one_raised_meanwhile`
+(PostgreSQL, two threads): $8 without the lock, $10 with it.
+
+**Consequence.** A raised client budget could silently fall back.
+
+**Smallest fix.** Read the budget under the client row's lock before comparing
+(`client_budget(for_update=True)`); a later lock order fix takes the run's lock first.
+
+**Test.** The reproduction above.
+
+**Status.** Fixed in #445.
+
+---
+
+## OI-117 · Finding, closed · Two first requests could each create the client's work project
+
+**Claim.** `client_work_project` read, then inserted, with no constraint.
+
+**Anchor.** `packages/aia_core/src/aia_core/application/client_work.py:37-50 @ 80dc2167`
+(plan `client-budget.md` F-CB5).
+
+**Reproduction.** `test_client_work_start.py::test_a_client_has_one_work_project_even_when_two_first_requests_race`.
+
+**Consequence.** A client's own runs could split across two projects.
+
+**Smallest fix.** Partial unique index `uq_projects_client_work` (migration `b3d5f7a9c1e4`); the
+losing insert rolls back to its savepoint and answers with the project the other made.
+
+**Test.** The reproduction above.
+
+**Status.** Fixed in #445.
+
+---
+
+## OI-118 · Finding, closed · Two green PRs merged into a worker that crashed every client-work attempt
+
+**Claim.** #432 tagged each attempt with `claim.scope.study_id`; #438 introduced the client's own
+work, whose `ClientWorkContext` has no study. Each PR was green alone; together the worker raised
+`AttributeError` before any client-work executor ran.
+
+**Anchor.** `apps/worker/src/aia_worker/worker.py:341 @ 80dc2167`.
+
+**Reproduction.** The three client-work tests in `apps/worker/tests/test_worker_loop.py` at
+`80dc2167`.
+
+**Consequence.** None user-visible: no route started client work until #446.
+
+**Smallest fix.** Tag the payer's study (none for client work) and the client.
+
+**Test.** The worker-loop tests above.
+
+**Status.** Fixed in #440 (#445 carried an equivalent fix and kept #440's line on merge).
+
+---
+
+## OI-119 · Finding, closed · A document's AI requests were bounded neither in number nor in size
+
+**Claim.** K2d1 packed batches by characters, so the stated cap of 21 requests per document did not
+hold and a request of short lines could exceed the model's window.
+
+**Anchor.** `batches` in `packages/aia_core/src/aia_core/domain/source_proposals.py @ 4b15e6f6`
+(plan `client-knowledge-lifecycle.md` F-K4).
+
+**Reproduction.** 41 pages of 6,001 characters made 41 requests; 12,000 one-character lines made
+one request of 338,949 bytes.
+
+**Consequence.** A document's burst and cost were not what the plan said.
+
+**Smallest fix.** Batches bounded by bytes (`BATCH_MAX_BYTES`), `MAX_REQUESTS` refused before any
+call, the hold sized to the request's window.
+
+**Test.** `test_a_batch_is_bounded_by_the_bytes_it_sends_whatever_the_text`,
+`test_a_document_needing_more_than_the_request_cap_is_refused_before_anything_is_sent`.
+
+**Status.** Fixed in #446 (K2d6).
+
+---
+
+## OI-120 · Finding, closed · A document stopped between batches paid for its answered batches again
+
+**Claim.** A document's answers lived only in the attempt's memory, so a step parked at the
+client's budget or released by its worker restarted at batch 0.
+
+**Anchor.** The batch loop in `apps/executors/src/aia_executors/client_source_proposals.py @ 43e20119`
+(plan `client-knowledge-lifecycle.md` F-K5).
+
+**Reproduction.** `test_a_document_parked_between_batches_resumes_without_paying_twice`: 3
+requests without the journal, 2 with it.
+
+**Consequence.** Every lifted or released multi-batch document billed its first batches twice.
+
+**Smallest fix.** `client_work_journal` (migration `c5e7a9b1d3f6`) keeps each answer under the
+lease the moment it returns; a resumed step replays it.
+
+**Test.** The reproduction above; `test_client_work_journal.py`.
+
+**Status.** Fixed in #446 (Codex review).
+
+---
+
+## OI-121 · Finding, closed · A document's proposals run stopped for recovery could never be asked again
+
+**Claim.** With one attempt, a retryable failure whose outcome is known ends in
+`RECOVERY_REQUIRED`, and asking again counted only failed and cancelled runs as ended.
+
+**Anchor.** `_ENDED_WITHOUT_RESULT` in `packages/aia_core/src/aia_core/application/source_proposals.py @ 43e20119`
+(plan `client-knowledge-lifecycle.md` F-K6).
+
+**Reproduction.** `test_a_run_stopped_for_recovery_restarts_only_when_no_paid_call_is_uncertain`.
+
+**Consequence.** Such a document's proposals were stuck for good.
+
+**Smallest fix.** A run is `restartable` when it failed, was cancelled, or stopped for recovery with
+every paid call's outcome known; one with an uncertain paid call is never restarted from there.
+
+**Test.** The reproduction above.
+
+**Status.** Fixed in #446 (Codex review).
+
+---
+
+## OI-122 · Hypothesis · A web report-card test failed once under the full suite
+
+**Claim.** `ExecutionSteps.test.tsx` › "offers the report's PDF when the run stored one, and says
+why when it could not" failed once in a full `npx vitest run` (1 of 1,511, 2026-10-15).
+
+**Anchor.** `apps/web/src/components/rehome/research/ExecutionSteps.test.tsx` @ `43e20119`
+(plan `client-knowledge-lifecycle.md` F-K3).
+
+**Reproduction.** None: it passed alone twice and in the next full run.
+
+**Consequence.** A red web suite unrelated to the change under test, if it recurs.
+
+**Smallest fix.** Unknown until reproduced; OI-113 was the same family (a click before the option
+was offered).
+
+**Test.** Run the full suite repeatedly; if it recurs, capture the assertion and its timing.
+
+**Status.** Hypothesis: reproduce or delete (CLAUDE.md §9).

@@ -42,6 +42,33 @@ This is not cosmetic: a `mypy` override sat in a package file and was silently
 ignored until the root file existed. The type checker reported clean while not
 applying the rule at all.
 
+**A `[tool.ruff]` block copied into a sub-package shadows the root.** Ruff reads the
+nearest configuration, so a rule added at the root silently skips that tree (#444).
+
+```toml
+# WRONG -- packages/aia_core/pyproject.toml carries its own [tool.ruff] select list
+[tool.ruff]
+line-length = 100
+
+# RIGHT -- the sub-package extends the one configuration
+[tool.ruff]
+extend = "../../pyproject.toml"
+```
+
+**import-linter: a forbidden contract whose source contains the forbidden package reports
+nothing** (#437, plan `architecture-enforcement` F5; measured on 2.12 and 2.15). A violating
+import from a sibling module raised the graph by one dependency and the contract stayed KEPT.
+
+```toml
+# WRONG -- KEPT with a violation present
+source_modules = ["aia_core.infrastructure"]
+forbidden_modules = ["aia_core.infrastructure.model_adapters"]
+
+# RIGHT -- the package's children, plus a grep rule for the containing __init__ modules,
+# which the wildcard leaves out
+source_modules = ["aia_core.infrastructure.*"]
+```
+
 ## Python packaging
 
 **A dev extra that names a sibling distribution installs in dependency order.**

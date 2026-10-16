@@ -33,8 +33,8 @@ from aia_core.domain.ai_contracts import (
     output_schema,
 )
 from aia_core.domain.providers import Provider
+from aia_core.infrastructure.http_transport import SigningUnavailable
 from aia_core.infrastructure.model_adapters import BedrockConverseAdapter, RecordedTransport
-from aia_core.infrastructure.model_adapters.bedrock import SigningUnavailable
 from aia_core.infrastructure.model_adapters.transport import HttpRequest, TransportFailure
 
 FIXTURES = Path(__file__).parent / "fixtures" / "model_adapters" / "bedrock"

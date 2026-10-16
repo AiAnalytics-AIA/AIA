@@ -71,7 +71,12 @@ from ..evidence import (
 from ..evidence.report_lift import ModelledReportLift
 from ..fieldwork import CLIENT_ADMISSIBLE_ORIGINS, NON_EVIDENCE_ORIGINS, DataOrigin
 from ..pipeline import fingerprint
-from ..research_aggregate import AGGREGATE_VERSION
+from ..research_aggregate import (
+    AGGREGATE_VERSION,
+    AIA_AGGREGATE_V1,
+    RoundingSpec,
+    stored_decimals,
+)
 from ..research_design import ResearchSpecification, SpecQuestion
 from .modules import AnalysisModuleSpec
 
@@ -356,7 +361,12 @@ def _scale(q: SpecQuestion) -> str:
     return f"{q.scale[0]}-{q.scale[1]}" if q.scale else "?"
 
 
-def _item_rows(rows: _Rows, item: _Item, rule: SupportThresholds) -> None:
+def _item_rows(
+    rows: _Rows,
+    item: _Item,
+    rule: SupportThresholds,
+    places: RoundingSpec = AIA_AGGREGATE_V1.rounding,
+) -> None:
     q, r = item.question, item.result
     support = reassess_support(r, rule)
     refusal = _fidelity_refusal(r)
@@ -391,7 +401,7 @@ def _item_rows(rows: _Rows, item: _Item, rule: SupportThresholds) -> None:
                 f"pct.{index}",
                 AnalysisMetric(MetricKind.PCT, option),
                 shares.get(option),
-                1,
+                places.share_decimals,
                 f"odpověď: {option}",
                 support=support,
                 interval=intervals.get(option),
@@ -403,7 +413,7 @@ def _item_rows(rows: _Rows, item: _Item, rule: SupportThresholds) -> None:
             "mean",
             AnalysisMetric(MetricKind.MEAN),
             r.get("prumer"),
-            2,
+            places.mean_decimals,
             f"průměr, škála {_scale(q)}",
             support=support,
             interval=r.get("prumer_interval_95"),
@@ -414,7 +424,7 @@ def _item_rows(rows: _Rows, item: _Item, rule: SupportThresholds) -> None:
             "top2box",
             AnalysisMetric(MetricKind.TOP2BOX_PCT),
             r.get("top2box_pct"),
-            1,
+            places.share_decimals,
             f"podíl dvou nejvyšších bodů, škála {_scale(q)}",
             support=support,
             interval=r.get("top2box_interval_95"),
@@ -489,9 +499,15 @@ def native_evidence(
         report_lift=report_lift,
     )
     assert origin is not None  # the book refuses an unknown origin
+    # The places the aggregate stored its numbers at (plan methodology-tab V1b): a number is
+    # admitted as stored, never rounded again, so the check reads the same places.
+    try:
+        places = stored_decimals(aggregate)
+    except ValueError as exc:
+        raise NativeEvidenceRefused(f"the aggregate's rounding cannot be read: {exc}") from None
     rows = _Rows(kept=[], removed={}, origin=origin)
     for item in _results(spec, aggregate):
-        _item_rows(rows, item, support)
+        _item_rows(rows, item, support, places)
     built = EvidenceTable.build(rows.kept)
     table = EvidenceTable(
         rows=built.rows, suppressed=MappingProxyType({**built.suppressed, **rows.removed})

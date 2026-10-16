@@ -319,6 +319,9 @@ export type Proposal = {
   yours: boolean;
   /** The client's source (a file) the proposed item names, client-workspace C7a. */
   source_id?: string | null;
+  /** An AI proposal from a client's document (lifecycle K2d): the document, the quote it
+   *  rests on (checked by code to be there) and where the quote stands. */
+  from_source?: { source_id: string; run_id: string; quote: string; locator: SourceLocator } | null;
 };
 
 // ---- a client's sources (lifecycle K2a-K2c; the file a document item names, C7a) ----
@@ -345,6 +348,28 @@ export type ClientSource = {
 };
 
 export type SourceAdded = ClientSource & { created: boolean };
+
+/** A run asking AI for knowledge proposals from one source, paid by the client (lifecycle K2d4). */
+export type ProposalsRun = {
+  run_id: string;
+  source_id: string;
+  reading_sha256: string;
+  status: "PENDING" | "RUNNING" | "COMPLETED" | "FAILED" | "CANCELLED" | string;
+  /** The step's state: RUNNABLE, CLAIMED, RUNNING, AWAITING_BUDGET, SUCCEEDED, FAILED … */
+  step_status: string;
+  /** Why it waits or stopped, by name; null when it has not. */
+  reason: string | null;
+  /** Whether the reading the run asked about is still the source's. */
+  current: boolean;
+  created_at: string | null;
+  finished_at: string | null;
+  /** When it succeeded: batches, proposed and dropped by reason. */
+  output: { batches?: number; sent?: number; replayed?: number; proposed?: number; dropped?: Record<string, number> };
+  created: boolean;
+  /** Whether asking again starts a new run: this one ended without a result and left no
+   *  paid call of unknown outcome. */
+  restartable: boolean;
+};
 
 export type SourceLocator = {
   page?: number | null;
@@ -803,6 +828,19 @@ export const workspace = {
     request<SourceDetail>("GET", `/api/v1/clients/${enc(clientId)}/sources/${enc(sourceId)}`),
   sourceOriginal: (clientId: string, sourceId: string) =>
     requestBlob(`/api/v1/clients/${enc(clientId)}/sources/${enc(sourceId)}/original`),
+  /** The newest AI proposals run about a source; null when nobody has asked. */
+  sourceProposals: (clientId: string, sourceId: string) =>
+    request<ProposalsRun | null>("GET", `/api/v1/clients/${enc(clientId)}/sources/${enc(sourceId)}/proposals`),
+  /** Ask AI for knowledge proposals from a document, paid by the client; once per reading. */
+  proposeFromSource: (clientId: string, sourceId: string) =>
+    request<ProposalsRun>("POST", `/api/v1/clients/${enc(clientId)}/sources/${enc(sourceId)}/proposals`),
+  /** Raise the client's budget to `budgetUsd` and let a step of its own work that stopped at it go on. */
+  liftClientWork: (clientId: string, runId: string, nodeKey: string, budgetUsd: number, note = "") =>
+    request<{ run_id: string; status: string; steps: { node_key: string; status: string }[] }>(
+      "POST",
+      `/api/v1/clients/${enc(clientId)}/work/runs/${enc(runId)}/steps/${enc(nodeKey)}/budget`,
+      { budget_usd: budgetUsd, note },
+    ),
   /** `reviewedRevision`: the item's current revision, read by the reviewer, to approve an edit of an older one over it. */
   decide: (clientId: string, proposalId: string, approve: boolean, note = "", reviewedRevision?: number) =>
     request<Proposal>("POST", `/api/v1/clients/${enc(clientId)}/knowledge/proposals/${enc(proposalId)}/decision`, {
@@ -977,6 +1015,8 @@ export type ResearchRun = {
 /** Every applied flag is true only where the code that applies it ran; each false one has its reason. */
 export type ResearchRunSelection = {
   dimensions: string[];
+  /** Selected ids that are no persona topic: they reach no respondent (absent on older runs). */
+  dimensions_unmatched?: string[];
   dimensions_applied: boolean;
   dimensions_reason: string | null;
   audience_filters: Record<string, unknown>;
@@ -1020,7 +1060,7 @@ export type ResearchAnalysis = {
     summary: string | null;
     research_question_answers: { question: string; answer: string; claim_ids: string[] }[];
     key_findings: { text: string; claim_ids: string[] }[];
-    claims: { claim_id: string; evidence_ref: string; value: number; indicative: boolean; data_origin: string | null }[];
+    claims: { claim_id: string; evidence_ref: string; value: number; decimals?: number; indicative: boolean; data_origin: string | null }[];
     violations: { code: string; subject: string; detail: string }[];
   }>;
 };
@@ -1418,7 +1458,7 @@ export type MethodValue = {
   reference: string; label_cs: string; unit: string; origin: "specification" | "code_constant";
   value: unknown; absent: boolean;
   /** Where the value is a limit a design is held to, what crossing it does; empty otherwise. */
-  effect: "" | "blocks_run" | "blocks_design" | "warns";
+  effect: "" | "blocks_run" | "blocks_design" | "warns" | "changes_stored";
 };
 /** A step's editable formula: its slot, the expression the engine computes today, and the
  *  LaTeX the domain writes from that expression (the page shows what runs). */
@@ -1443,6 +1483,8 @@ export type MethodGroup = { id: string; title_cs: string; step_ids: string[]; no
 export type MethodModuleSummary = {
   id: string; title_cs: string; note_cs: string; presets: string[]; in_force: string | null;
   editable: boolean; steps: number; groups: MethodGroup[];
+  /** Where a person meets the module's preview lines; empty when it shows none. */
+  preview_title_cs?: string;
 };
 export type MethodModuleDetail = MethodModuleSummary & { preset: string | null; step_details: MethodStepOut[] };
 
@@ -1463,7 +1505,7 @@ export type MethodVersions = {
 /** An edit: the whole specification and the formulas it replaces (by slot). */
 export type MethodEdit = { base_preset: string; spec: Record<string, unknown>; formulas: Record<string, string>; note?: string };
 /** A line a person would meet under the edit, as the code writes it (readiness). */
-export type MethodPreviewLine = { step_id: string; status: "PASS" | "WARN" | "FAIL"; message_cs: string };
+export type MethodPreviewLine = { step_id: string; status: "" | "PASS" | "WARN" | "FAIL"; message_cs: string };
 export type MethodCheck = { valid: boolean; problems: Record<string, string>; not_computed: string[]; formulas_latex: Record<string, string>; preview?: MethodPreviewLine[] };
 /** The readiness draft beside the limits in force, on the organization's open research studies. */
 export type MethodReadinessCompare = {

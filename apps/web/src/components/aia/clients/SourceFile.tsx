@@ -3,7 +3,8 @@
 // A file on a client's knowledge item (client-workspace C7a). The file is kept as the
 // client's source (lifecycle K2: POST /clients/{id}/sources), read at once, and the item
 // names it by id. SourcePicker stores one file and says what reading produced; SourceCard
-// shows a named file: its name, size, the reading in words, what was read, the original.
+// shows a named file: its name, size, the reading in words, what was read, the original,
+// and, for a document, Navrhnout znalosti (lifecycle K2d5).
 
 import { useRef, useState } from "react";
 
@@ -11,10 +12,12 @@ import { t, tv } from "@/i18n/t";
 import { ApiError, type SourceAdded, type SourceDetail, workspace } from "@/lib/api";
 import { FILE_ACCEPT, FILE_MAX_BYTES, locatorWords, readingLine, reasonKnown, reasonWords, sizeWords } from "@/lib/client-sources";
 import { saveBlob } from "@/lib/download";
+import { canPropose } from "@/lib/source-proposals";
 import { plural, relative } from "@/lib/format";
 import { fileToBase64 } from "@/research/brief";
 import { Button, Chip } from "../../rehome/ui";
 import { useResource } from "../useResource";
+import { type AiRights, SourceProposals } from "./SourceProposals";
 
 /** How many of a source's segments the card shows; the original holds the rest. */
 const SHOWN_SEGMENTS = 8;
@@ -88,7 +91,18 @@ export function SourcePicker({
 }
 
 /** A named file: what it is, what reading produced, what was read, and the original. */
-export function SourceCard({ clientId, sourceId, compact = false }: { clientId: string; sourceId: string; compact?: boolean }) {
+export function SourceCard({
+  clientId,
+  sourceId,
+  compact = false,
+  ai,
+}: {
+  clientId: string;
+  sourceId: string;
+  compact?: boolean;
+  /** Offer AI proposals from the file (lifecycle K2d5), with what the person may do. */
+  ai?: AiRights;
+}) {
   const [res, retry] = useResource(() => workspace.source(clientId, sourceId), [clientId, sourceId]);
   const [error, setError] = useState<string | null>(null);
   if (res.state === "loading") return <p className="text-xs text-ink-muted">{t("aia.loading")}</p>;
@@ -124,6 +138,7 @@ export function SourceCard({ clientId, sourceId, compact = false }: { clientId: 
       <span><Chip tone={line.tone}>{line.text}</Chip></span>
       {error ? <p role="alert" className="text-xs text-status-fault">{error}</p> : null}
       {compact ? null : <WhatWasRead source={s} />}
+      {!compact && ai && canPropose(s) ? <SourceProposals clientId={clientId} source={s} rights={ai} /> : null}
     </div>
   );
 }

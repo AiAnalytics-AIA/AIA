@@ -139,7 +139,7 @@ def test_the_findings_are_named_on_their_steps() -> None:
     assert "D5" in notes["interval"]
     assert "D7" in notes["classify"]
     groups = {g.id for g in AGGREGATION.groups}
-    assert groups == {"M", "V", "O", "B", "F"}
+    assert groups == {"M", "V", "O", "B", "F", "Z"}
 
 
 def test_the_keyword_lists_decide_what_is_refused() -> None:

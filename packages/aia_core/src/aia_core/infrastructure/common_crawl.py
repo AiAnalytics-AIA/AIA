@@ -28,6 +28,10 @@ or substitutes.
 * :func:`common_crawl_settings` -- the configuration, every key required: the
   workgroup, database and table, the scan cutoff and the dated price.
 
+What the gate asks of these (:class:`~.archive_index.UrlIndex`,
+:class:`~.archive_index.ArchiveRecordFetcher`, :class:`~.archive_index.IndexQueryFailed`)
+is in :mod:`.archive_index`, so the gate never imports this module or its wires.
+
 The recorded doubles (:class:`RecordedUrlIndex`, :class:`RecordedArchiveTransport`)
 are test doubles beside the adapters, as for web retrieval: they state
 ``RECORDED`` and nothing else, and ``make layer_check`` keeps them out of every
@@ -66,6 +70,7 @@ from ..domain.deep_research.web import (
     check_resolution,
     check_url,
 )
+from .archive_index import IndexQueryFailed, IndexQueryResult
 from .web_retrieval import FetchedPage, FetchedResponse, Resolver, ToolCallFailed, page_snapshot
 from .web_retrieval_live import HttpsWire, UrllibWire, public_user_agent
 
@@ -76,14 +81,11 @@ __all__ = [
     "AthenaUrlIndex",
     "AwsSigner",
     "CommonCrawlSettings",
-    "IndexQueryFailed",
-    "IndexQueryResult",
     "JsonPostWire",
     "PostResponse",
     "RangeTransport",
     "RecordedArchiveTransport",
     "RecordedUrlIndex",
-    "UrlIndex",
     "UrllibPostWire",
     "athena_endpoint",
     "common_crawl_settings",
@@ -110,58 +112,6 @@ def athena_endpoint(region: str = ATHENA_REGION) -> str:
 # --------------------------------------------------------------------------- #
 # The index
 # --------------------------------------------------------------------------- #
-
-
-class IndexQueryFailed(ToolCallFailed):
-    """A URL index query that returned no rows. ``data_scanned_bytes`` is what it cost.
-
-    ``None`` means the bytes scanned are not known -- the query may have run --
-    and the gate charges the call's ceiling. ``0`` means nothing was scanned (the
-    query was refused before it was created).
-    """
-
-    def __init__(
-        self,
-        message: str,
-        *,
-        reason: str,
-        delivery: Delivery,
-        data_scanned_bytes: int | None,
-        execution_id: str | None = None,
-    ) -> None:
-        super().__init__(message, reason=reason, delivery=delivery)
-        self.data_scanned_bytes = data_scanned_bytes
-        self.execution_id = execution_id
-
-
-@dataclass(frozen=True, slots=True)
-class IndexQueryResult:
-    """One statement's answer: its columns, its rows as text, and what it scanned."""
-
-    execution_id: str | None
-    columns: tuple[str, ...]
-    rows: tuple[tuple[str | None, ...], ...]
-    #: Athena's ``Statistics.DataScannedInBytes``; ``None`` when it was not reported.
-    data_scanned_bytes: int | None
-
-
-class UrlIndex(Protocol):
-    """A URL index that runs one statement the gate wrote. Never retries."""
-
-    @property
-    def adapter_id(self) -> str: ...
-
-    @property
-    def retrieval_mode(self) -> RetrievalMode: ...
-
-    @property
-    def table(self) -> IndexTable:
-        """The database and table the gate's statement names."""
-        ...
-
-    def run(self, statement: str, *, request_token: str, max_rows: int) -> IndexQueryResult:
-        """Run ``statement`` once, or raise :class:`IndexQueryFailed`."""
-        ...
 
 
 class AwsSigner(Protocol):
@@ -208,7 +158,7 @@ class UrllibPostWire:
     def post(
         self, url: str, *, headers: Mapping[str, str], body: bytes, max_bytes: int
     ) -> PostResponse:
-        from .model_adapters.live_transport import _certificate_refused
+        from .http_transport import certificate_refused
 
         u = self._urllib3
         response: Any = None
@@ -240,7 +190,7 @@ class UrllibPostWire:
                 str(exc), reason="connect_failed", delivery=Delivery.NOT_SENT
             ) from exc
         except u.exceptions.SSLError as exc:
-            delivery = Delivery.NOT_SENT if _certificate_refused(exc) else Delivery.UNKNOWN
+            delivery = Delivery.NOT_SENT if certificate_refused(exc) else Delivery.UNKNOWN
             raise ToolCallFailed(str(exc), reason="tls_failed", delivery=delivery) from exc
         except u.exceptions.HTTPError as exc:
             raise ToolCallFailed(
@@ -325,7 +275,7 @@ class AthenaUrlIndex:
 
     def _call(self, action: str, payload: Mapping[str, Any]) -> Mapping[str, Any]:
         """One signed JSON action. Raises ToolCallFailed (no answer) or _AthenaRefused."""
-        from .model_adapters.bedrock import SigningUnavailable
+        from .http_transport import SigningUnavailable
 
         body = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
         unsigned = {

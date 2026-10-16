@@ -27,16 +27,16 @@ from aia_core.domain.deep_research.common_crawl import (
 )
 from aia_core.domain.deep_research.contracts import RetrievalMode
 from aia_core.domain.deep_research.web import FetchRefused
+from aia_core.infrastructure.archive_index import IndexQueryFailed
 from aia_core.infrastructure.common_crawl import (
     ArchiveFetcher,
     ArchiveRangeTransport,
     AthenaUrlIndex,
-    IndexQueryFailed,
     PostResponse,
     RecordedArchiveTransport,
     common_crawl_settings,
 )
-from aia_core.infrastructure.model_adapters.bedrock import SigningUnavailable
+from aia_core.infrastructure.http_transport import SigningUnavailable
 from aia_core.infrastructure.web_retrieval import (
     FetchedResponse,
     RecordedResolver,
