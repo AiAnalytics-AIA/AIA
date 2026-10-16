@@ -21,6 +21,8 @@ import {
   type QuestionOutlook,
   type PersonaSourceOption,
   type Readiness,
+  type Answerability,
+  type AnswerabilityAcknowledgement,
   type ResearchTrace,
   type DeepResearchBundle,
   type DeepResearchRun,
@@ -96,6 +98,8 @@ import { ResultsWorkspace } from "./ResultsWorkspace";
 import { citedMeasure, compareObjects, type CompiledSpecification, measureAnchor, readMeasure, type ReadingTone } from "@/lib/result-reading";
 import { FormattedText } from "./FormattedText";
 import { CompleteReport } from "./CompleteReport";
+import { AnswerabilityGate } from "./AnswerabilityGate";
+import { type AcknowledgementState, acknowledgementOf, hasGaps, NO_ACKNOWLEDGEMENT, needsAcknowledgement, unanswerableAsked } from "@/lib/answerability";
 
 const POLL_MS = 2000;
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
@@ -585,6 +589,9 @@ export function RunStep() {
   const [childId, setChildId] = useState<string | null>(null);
   // Who answers (5a): the source the readiness was read under, changed only by the person.
   const [choosing, setChoosing] = useState(false);
+  // A run that cannot answer every research question starts only acknowledged, where the
+  // deployment requires it (integrity 1); the confirmation names the gaps it was given for.
+  const [ack, setAck] = useState<AcknowledgementState>(NO_ACKNOWLEDGEMENT);
 
   useEffect(() => {
     let live = true;
@@ -661,16 +668,25 @@ export function RunStep() {
       if (!(await ask(ceiling, limit))) return;
       yes = ceiling;
     }
+    const acknowledged = acknowledgementOf(readiness.answerability, ack) ?? undefined;
+    if (needsAcknowledgement(readiness.answerability) && !acknowledged) return;
     setStarting(true);
     setStartError(null);
     try {
       try {
-        await research.start(frame.studyId, readiness.design_revision_id, yes, childId ?? undefined, readiness.persona_source);
+        await research.start(frame.studyId, readiness.design_revision_id, yes, childId ?? undefined, readiness.persona_source, acknowledged);
       } catch (e) {
+        // The design or the requirement changed since the page read it: read again, so the
+        // person sees the gaps the server refused and confirms those.
+        if (unanswerableAsked(e)) {
+          setAck({ ...ack, confirmed: false });
+          await rereadReadiness();
+          throw e;
+        }
         // The limit or the ceiling changed since the page read them: ask with the server's figure.
         const asked = confirmationAsked(e);
         if (!asked || yes !== undefined || !(await ask(asked.ceiling, asked.limit))) throw e;
-        await research.start(frame.studyId, readiness.design_revision_id, asked.ceiling, childId ?? undefined, readiness.persona_source);
+        await research.start(frame.studyId, readiness.design_revision_id, asked.ceiling, childId ?? undefined, readiness.persona_source, acknowledged);
       }
       router.push(stepHref("progress"));
     } catch (e) {
@@ -680,6 +696,8 @@ export function RunStep() {
   };
   const blocked =
     prepared.kind === "ready" && num(prepared.readiness.spend_confirm_usd) !== null && num(prepared.readiness.cost_ceiling_usd) === null;
+  const unacknowledged =
+    prepared.kind === "ready" && needsAcknowledgement(prepared.readiness.answerability) && !acknowledgementOf(prepared.readiness.answerability, ack);
 
   return (
     <div className="flex max-w-4xl flex-col gap-4">
@@ -709,6 +727,15 @@ export function RunStep() {
             </ul>
             <p className="mt-3 text-xs text-ink-muted">{tv("research.exec.rules", { rules: prepared.readiness.rules })}</p>
           </Card>
+          {hasGaps(prepared.readiness.answerability) ? (
+            <AnswerabilityGate
+              answer={prepared.readiness.answerability}
+              value={ack}
+              onChange={setAck}
+              fixHref={stepHref("questionnaire")}
+              disabled={!frame.canEdit || starting}
+            />
+          ) : null}
           {prepared.readiness.research_trace ? <ResearchTraceCard trace={prepared.readiness.research_trace} outlook={prepared.readiness.question_outlook ?? []} design={design} /> : null}
           <QuestionOutlookCard items={prepared.readiness.question_outlook ?? []} />
           <Receipt revision={prepared.revision} readiness={prepared.readiness} />
@@ -734,7 +761,7 @@ export function RunStep() {
       <ActionDock
         back={{ href: stepHref("persona"), label: `5. ${t("aia.stages.persona")}` }}
         // Not while a new choice of respondents is being checked: Start would send the old one.
-        ready={prepared.kind === "ready" && prepared.readiness.ready && frame.canEdit && !blocked && !choosing}
+        ready={prepared.kind === "ready" && prepared.readiness.ready && frame.canEdit && !blocked && !choosing && !unacknowledged}
         note={
           !frame.canEdit
             ? t("research.exec.readOnly")
@@ -744,13 +771,15 @@ export function RunStep() {
                 ? t("research.exec.dockNotReady")
                 : blocked
                   ? t("research.exec.dockBlocked")
-                  : prepared.readiness.confirmation_required
+                  : unacknowledged
+                    ? t("research.exec.answerability.dock")
+                    : prepared.readiness.confirmation_required
                     ? t("research.exec.dockAsk")
                     : t("research.exec.dockReady")
         }
       >
         {prepared.kind === "ready" ? (
-          <AiButton variant="primary" onClick={() => void start()} disabled={!prepared.readiness.ready || !frame.canEdit || starting || blocked || choosing}>
+          <AiButton variant="primary" onClick={() => void start()} disabled={!prepared.readiness.ready || !frame.canEdit || starting || blocked || choosing || unacknowledged}>
             {starting ? t("research.exec.starting") : t("research.exec.start")}
           </AiButton>
         ) : null}
@@ -1049,6 +1078,35 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
 }) {
   const { confirm, stepHref } = useResearch();
   const frame = useFrame();
+  // A retry the server refused for its research questions: the gaps, and the person's answer.
+  const [gate, setGate] = useState<Answerability | null>(null);
+  const [ack, setAck] = useState<AcknowledgementState>(NO_ACKNOWLEDGEMENT);
+  const retry = (acknowledge?: AnswerabilityAcknowledgement) =>
+    act(async () => {
+      try {
+        let next: ResearchRun;
+        try {
+          next = await research.retry(frame.studyId, run.run_id, undefined, acknowledge);
+        } catch (e) {
+          // A retry is a new run, so the study's limit asks again.
+          const asked = confirmationAsked(e);
+          if (!asked) throw e;
+          const yes = await confirm(tv("research.exec.cost.confirm", { ceiling: asked.ceiling.toFixed(2), limit: asked.limit.toFixed(2) }));
+          if (!yes) return run;
+          next = await research.retry(frame.studyId, run.run_id, asked.ceiling, acknowledge);
+        }
+        // Retried: the gaps asked about were this run's, and the new run recorded the answer.
+        setGate(null);
+        setAck(NO_ACKNOWLEDGEMENT);
+        return next;
+      } catch (e) {
+        const gaps = unanswerableAsked(e);
+        if (!gaps) throw e;
+        setGate(gaps);
+        return run;
+      }
+    });
+  const acknowledged = acknowledgementOf(gate, ack);
   return (
     <section aria-labelledby="run-actions" className="flex flex-col gap-3 rounded-card border border-border bg-surface-raised p-3.5">
       <h2 id="run-actions" className="text-sm font-semibold">{tv("research.exec.revision", { revision: run.design_revision })}</h2>
@@ -1073,26 +1131,24 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
           <Button
             variant={repairable ? undefined : "primary"}
             disabled={busy}
-            onClick={() =>
-              act(async () => {
-                try {
-                  return await research.retry(frame.studyId, run.run_id);
-                } catch (e) {
-                  // A retry is a new run, so the study's limit asks again.
-                  const asked = confirmationAsked(e);
-                  if (!asked) throw e;
-                  const yes = await confirm(tv("research.exec.cost.confirm", { ceiling: asked.ceiling.toFixed(2), limit: asked.limit.toFixed(2) }));
-                  if (!yes) return run;
-                  return research.retry(frame.studyId, run.run_id, asked.ceiling);
-                }
-              })
-            }
+            onClick={() => void retry()}
           >
             {repairable ? t("research.exec.retryWhole") : t("research.exec.retry")}
           </Button>
         ) : null}
         <Button variant="quiet" onClick={refresh}>{t("research.exec.refresh")}</Button>
       </div>
+      {gate ? (
+        <>
+          <p role="note" className="text-sm">{t("research.exec.answerability.retry")}</p>
+          <AnswerabilityGate answer={gate} value={ack} onChange={setAck} fixHref={stepHref("questionnaire")} disabled={busy} />
+          <div>
+            <Button variant="primary" disabled={busy || !acknowledged} onClick={() => acknowledged && void retry(acknowledged)}>
+              {t("research.exec.answerability.retryAction")}
+            </Button>
+          </div>
+        </>
+      ) : null}
       {actionError ? <p role="alert" className="text-sm text-status-fault">{actionError}</p> : null}
     </section>
   );

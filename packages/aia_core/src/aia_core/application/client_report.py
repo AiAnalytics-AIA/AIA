@@ -59,7 +59,7 @@ from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import ArtifactStore
 
 CLIENT_REPORT_ARTIFACT_TYPE = "research_client_docx"
-CLIENT_REPORT_CONTRACT = "aia-client-report-1"
+CLIENT_REPORT_CONTRACT = "aia-client-report-2"
 CLIENT_REPORT_STAGE = "REPORT"
 
 
@@ -197,7 +197,7 @@ def compose_client_report(
     sections = [
         intro,
         design.chapter,
-        compose_method_section(meta_run, origin),
+        compose_method_section(meta_run, origin, client=True),
         *tables.sections,
         *maps,
         design.appendix,

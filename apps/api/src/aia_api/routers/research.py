@@ -44,6 +44,7 @@ from aia_core.application.research import (
     DesignNotReady,
     PanelPopulationMissing,
     ResearchAgentJobs,
+    ResearchQuestionsUnanswerable,
     ResearchRunNotFound,
     ResearchRunNotRetryable,
     ResearchRuns,
@@ -54,6 +55,15 @@ from aia_core.application.research import (
 from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFACT_TYPE
 from aia_core.application.workflows import StartedRun
 from aia_core.domain.analysis.steps import ANALYSIS_STEP_KIND
+from aia_core.domain.answerability import (
+    ANSWERABILITY_RULES,
+    MAX_ACKNOWLEDGEMENT_CHARS,
+    MIN_ACKNOWLEDGEMENT_CHARS,
+    Acknowledgement,
+    AcknowledgementRefused,
+    Answerability,
+    read_answerability_note,
+)
 from aia_core.domain.design import DesignRejected, DesignRevision
 from aia_core.domain.design_reuse import DesignSource
 from aia_core.domain.fieldwork import (
@@ -68,11 +78,7 @@ from aia_core.domain.methodology.pins import response_deviates, run_methods
 from aia_core.domain.population import PopulationError, UnknownDatasetVersion
 from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ResearchAction
-from aia_core.domain.research_design import (
-    DIMENSIONS_AWAIT_DRAW,
-    DIMENSIONS_NOT_TOPICS,
-    FILTERS_AWAIT_DRAW,
-)
+from aia_core.domain.research_design import settle_selection
 from aia_core.domain.research_trace import ResearchTrace
 from aia_core.domain.scope import (
     Permission,
@@ -211,6 +217,22 @@ class DesignRevisionList(BaseModel):
     items: list[DesignRevisionResponse]
 
 
+class AnswerabilityAcknowledgementBody(BaseModel):
+    """A person's decision to run a design whose research questions the run cannot all answer.
+
+    ``digest`` is readiness's ``answerability.digest``: it names the exact gaps the person
+    saw, so an acknowledgement never covers a design that changed after it was read.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    digest: str = Field(min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$")
+    reason: str = Field(min_length=MIN_ACKNOWLEDGEMENT_CHARS, max_length=MAX_ACKNOWLEDGEMENT_CHARS)
+
+    def domain(self) -> Acknowledgement:
+        return Acknowledgement(digest=self.digest, reason=self.reason)
+
+
 class RunStart(BaseModel):
     """Start the research workflow over one Design Revision of this Study."""
 
@@ -226,6 +248,9 @@ class RunStart(BaseModel):
     #: deployment offers (``persona_sources`` on readiness), else 409. ``None``: the
     #: deployment's default.
     persona_source: PersonaSource | None = None
+    #: Only read when the run cannot answer every research question it states (readiness's
+    #: ``answerability``); a start without it is 409 ``research_questions_unanswerable``.
+    acknowledge_research_questions: AnswerabilityAcknowledgementBody | None = None
 
 
 class RunRetry(BaseModel):
@@ -234,6 +259,8 @@ class RunRetry(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000)
+    #: A retry inherits the original's acknowledgement while the gaps are the same.
+    acknowledge_research_questions: AnswerabilityAcknowledgementBody | None = None
 
 
 class ResearchStepResponse(BaseModel):
@@ -281,11 +308,6 @@ class ResearchRunPopulation(BaseModel):
     read_by_fieldwork: bool
 
 
-#: A panel run that ended before its population draw succeeded: no respondent was drawn under
-#: the filters, and no persona read the dimensions.
-DRAW_NOT_COMPLETED: Final = "population_draw_not_completed"
-
-
 class ResearchRunSelection(BaseModel):
     """What a run's design selected for its respondents and what reached them (5b).
 
@@ -331,6 +353,46 @@ class ResearchRunMethodology(BaseModel):
     response_deviates: bool | None
 
 
+class AnswerabilityGapResponse(BaseModel):
+    """One research question the run cannot answer, or a design that states none."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: str
+    research_question: str | None
+    verdict: str | None
+    reasons: list[str]
+    measures: list[str]
+
+
+class AnswerabilityResponse(BaseModel):
+    """Whether the run can answer every research question it states (``domain.answerability``).
+
+    ``ready`` on readiness says whether the design can run at all; this says whether it can
+    answer what it asks. A start over a design that cannot needs a person's acknowledgement of
+    exactly these gaps (``digest``).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    rules: str
+    capable: bool
+    digest: str
+    gaps: list[AnswerabilityGapResponse]
+    #: Research questions whose support only fieldwork decides: not gaps, never answerable.
+    pending: list[str] = []
+    #: On readiness: whether a start needs the person's acknowledgement of these gaps -- the
+    #: deployment's switch is on and the run cannot answer every research question. The page
+    #: asks exactly when the server would refuse; off, it only shows the gaps.
+    acknowledgement_required: bool = False
+    #: On a run: the acknowledgement that let it start with gaps; ``None`` when it had none.
+    acknowledgement: dict[str, Any] | None = None
+    #: On a run with gaps and no acknowledgement: ``False`` when the switch was off.
+    enforced: bool | None = None
+    #: On an analysis retry: never refused, recorded as exempt (``analysis_retry``).
+    exempt: str | None = None
+
+
 class ResearchRunResponse(BaseModel):
     """A research run of this Study, as a person needs to read it (ADR 0016)."""
 
@@ -365,6 +427,9 @@ class ResearchRunResponse(BaseModel):
     #: What the design selected and what was applied; ``None``: a run started before 5b,
     #: which recorded nothing -- never read as "nothing selected".
     selection: ResearchRunSelection | None = None
+    #: Whether the run could answer its research questions when it started; ``None``: a run
+    #: started before it was recorded -- never read as capable.
+    answerability: AnswerabilityResponse | None = None
 
 
 class ResearchRunList(BaseModel):
@@ -466,6 +531,8 @@ class ReadinessResponse(BaseModel):
     persona_source: str = PersonaSource.FICTIONAL_ROSTER.value
     #: Every source, offered or not, and why not.
     persona_sources: list[PersonaSourceOption] = []
+    #: ``None`` when the design does not compile.
+    answerability: AnswerabilityResponse | None = None
 
 
 class PersonaSourceOption(BaseModel):
@@ -515,6 +582,58 @@ def _cost_refused(exc: CostConfirmationRequired | CostCeilingUnknown) -> HTTPExc
             },
         },
     )
+
+
+def _answerability(answer: Answerability, *, required: bool) -> AnswerabilityResponse:
+    return AnswerabilityResponse(
+        rules=ANSWERABILITY_RULES,
+        capable=answer.capable,
+        digest=answer.digest,
+        gaps=[AnswerabilityGapResponse.model_validate(g.to_json()) for g in answer.gaps],
+        pending=list(answer.pending),
+        acknowledgement_required=required and not answer.capable,
+    )
+
+
+def _recorded_answerability(meta: Mapping[str, Any]) -> AnswerabilityResponse | None:
+    note = read_answerability_note(meta)
+    if note is None:
+        return None
+    return AnswerabilityResponse(
+        rules=str(note["rules"]),
+        capable=bool(note["capable"]),
+        digest=str(note.get("digest") or ""),
+        gaps=[AnswerabilityGapResponse.model_validate(g) for g in note["gaps"]],
+        pending=[str(p) for p in note.get("pending") or []],
+        acknowledgement=note.get("acknowledgement"),
+        enforced=note.get("enforced") if isinstance(note.get("enforced"), bool) else None,
+        exempt=str(note["exempt"]) if note.get("exempt") else None,
+    )
+
+
+def _unanswerable(exc: ResearchQuestionsUnanswerable) -> HTTPException:
+    """409: the design can run, but not answer every research question it states."""
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={
+            "code": "research_questions_unanswerable",
+            "message": "The run cannot answer every research question the design states; "
+            "acknowledge these gaps with a reason to start it anyway.",
+            "details": _answerability(exc.answerability, required=True).model_dump(mode="json"),
+        },
+    )
+
+
+def _acknowledgement(
+    body: AnswerabilityAcknowledgementBody | None,
+) -> Acknowledgement | None:
+    try:
+        return body.domain() if body is not None else None
+    except AcknowledgementRefused as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={"code": "acknowledgement_invalid", "message": str(exc)},
+        ) from exc
 
 
 def _not_ready(readiness: Any) -> HTTPException:
@@ -804,42 +923,26 @@ def _run(
         methodology=_methodology(meta),
         persona_source=persona_source_of(meta).value,
         selection=_selection(meta, steps, terminal=run["status"].is_terminal),
+        answerability=_recorded_answerability(meta),
     )
 
 
 def _selection(
     meta: dict[str, Any], steps: list[ResearchStepResponse], *, terminal: bool
 ) -> ResearchRunSelection | None:
-    """The run's recorded selection, its filters and dimensions settled by its fieldwork (5b,
-    5c; review, Codex on #439): a panel run's await the draw until the fieldwork step has
-    succeeded with data drawn from the population, the step that applies both; a run that
-    ended without it never drew anyone, and says so."""
+    """The run's recorded selection, settled by its fieldwork (``settle_selection``; 5b, 5c;
+    review, Codex on #439). ``None``: a run that recorded none, never read as nothing selected."""
     if not isinstance(meta.get("selection"), dict):
         return None
-    selection = ResearchRunSelection.model_validate(meta["selection"])
     fieldwork = next((s for s in steps if s.node_key == "run"), None)
     drawn = (
         fieldwork is not None
         and fieldwork.status == "SUCCEEDED"
         and fieldwork.data_origin == DataOrigin.MODELLED_AI_PANEL.value
     )
-    update: dict[str, Any] = {}
-    # Filters and dimensions alike apply at the draw (5b, 5c): settled from the same step.
-    for part, awaiting in (("filters", FILTERS_AWAIT_DRAW), ("dimensions", DIMENSIONS_AWAIT_DRAW)):
-        if getattr(selection, f"{part}_reason") != awaiting:
-            continue
-        if (
-            drawn
-            and part == "dimensions"
-            and set(selection.dimensions_unmatched) >= set(selection.dimensions)
-        ):
-            # No selected id is a persona topic: the allowlist let nothing through (5c).
-            update["dimensions_reason"] = DIMENSIONS_NOT_TOPICS
-        elif drawn:
-            update |= {f"{part}_applied": True, f"{part}_reason": None}
-        elif terminal:
-            update[f"{part}_reason"] = DRAW_NOT_COMPLETED
-    return selection.model_copy(update=update) if update else selection
+    return ResearchRunSelection.model_validate(
+        settle_selection(meta["selection"], drawn=drawn, ended=terminal)
+    )
 
 
 def _persona_source(request: Request) -> PersonaSource:
@@ -1002,6 +1105,12 @@ def readiness(
         research_trace=_trace(outlook.trace) if outlook.trace is not None else None,
         persona_source=chosen.value,
         persona_sources=_persona_sources(request),
+        answerability=_answerability(
+            outlook.answerability,
+            required=request.app.state.settings.research_answerability_gate,
+        )
+        if outlook.answerability is not None
+        else None,
     )
 
 
@@ -1057,6 +1166,8 @@ def start_run(
             confirm_cost_usd=body.confirm_cost_usd,
             population_version_id=body.population_version_id,
             persona_source=persona_source,
+            acknowledge=_acknowledgement(body.acknowledge_research_questions),
+            require_answerability=request.app.state.settings.research_answerability_gate,
         )
     except ScopeDenied as exc:
         raise _refused(exc) from exc
@@ -1064,6 +1175,8 @@ def start_run(
         raise _not_found("design_revision") from exc
     except DesignNotReady as exc:
         raise _not_ready(exc.readiness) from exc
+    except ResearchQuestionsUnanswerable as exc:
+        raise _unanswerable(exc) from exc
     except (CostConfirmationRequired, CostCeilingUnknown) as exc:
         raise _cost_refused(exc) from exc
     except PanelPopulationMissing as exc:
@@ -1251,6 +1364,8 @@ def retry_run(
             fieldwork_source=_fieldwork_source(request),
             reservations=_reservations(request),
             confirm_cost_usd=body.confirm_cost_usd if body else None,
+            acknowledge=_acknowledgement(body.acknowledge_research_questions if body else None),
+            require_answerability=request.app.state.settings.research_answerability_gate,
         )
     except ScopeDenied as exc:
         raise _refused(exc) from exc
@@ -1258,6 +1373,8 @@ def retry_run(
         raise _not_found("run") from exc
     except DesignNotReady as exc:
         raise _not_ready(exc.readiness) from exc
+    except ResearchQuestionsUnanswerable as exc:
+        raise _unanswerable(exc) from exc
     except (CostConfirmationRequired, CostCeilingUnknown) as exc:
         raise _cost_refused(exc) from exc
     except PanelPopulationMissing as exc:
@@ -1339,6 +1456,7 @@ def retry_analysis(
             run_id=run_id,
             reservations=_reservations(request),
             confirm_cost_usd=body.confirm_cost_usd if body else None,
+            acknowledge=_acknowledgement(body.acknowledge_research_questions if body else None),
         )
     except ScopeDenied as exc:
         raise _refused(exc) from exc
@@ -1352,6 +1470,8 @@ def retry_analysis(
         ) from exc
     except DesignNotReady as exc:
         raise _not_ready(exc.readiness) from exc
+    except ResearchQuestionsUnanswerable as exc:
+        raise _unanswerable(exc) from exc
     except (CostConfirmationRequired, CostCeilingUnknown) as exc:
         raise _cost_refused(exc) from exc
     except AnalysisNotRetryable as exc:

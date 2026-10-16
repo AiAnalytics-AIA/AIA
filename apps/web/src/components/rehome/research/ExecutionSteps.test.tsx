@@ -514,6 +514,56 @@ describe("Run: what a run can cost (5b.2)", () => {
     expect(called("POST", RUNS)[0].body).toEqual({ design_revision_id: "REV-a1", confirm_cost_usd: 225 });
   });
 
+  it("starts a run that cannot answer its research questions only once the person acknowledges it", async () => {
+    // research-integrity-report 1: the Fio pattern -- ready, but no question linked to any research question.
+    const digest = "d".repeat(64);
+    const answerability = {
+      rules: "aia-answerability-1",
+      capable: false,
+      digest,
+      acknowledgement_required: true,
+      gaps: [{ kind: "not_answerable", research_question: "Jak klienti důvěřují účtu?", verdict: "UNKNOWN", reasons: ["unlinked_design"], measures: [] }],
+    };
+    api({ "GET /api/v1/studies/STU-1/research/readiness": () => ({ ...READY, answerability }) });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const gate = await screen.findByRole("region", { name: t("research.exec.answerability.title") });
+    expect(within(gate).getByText("Jak klienti důvěřují účtu?")).toBeTruthy();
+    const start = screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement;
+    expect(start.disabled).toBe(true); // runnable, not answerable: not started on a click
+    fireEvent.click(within(gate).getByRole("checkbox"));
+    fireEvent.change(within(gate).getByRole("textbox"), { target: { value: "Ověřujeme jen postup na fiktivních datech." } });
+    await waitFor(() => expect(start.disabled).toBe(false));
+    fireEvent.click(start);
+    await waitFor(() => expect(called("POST", RUNS)).toHaveLength(1));
+    expect(called("POST", RUNS)[0].body).toEqual({
+      design_revision_id: "REV-a1",
+      acknowledge_research_questions: { digest, reason: "Ověřujeme jen postup na fiktivních datech." },
+    });
+  });
+
+  it("shows the gaps without asking where the deployment does not require an acknowledgement", async () => {
+    // The switch off (the default): the researcher still sees what the run cannot answer, and
+    // starting sends no acknowledgement the server did not ask for.
+    const answerability = {
+      rules: "aia-answerability-1", capable: false, digest: "e".repeat(64), acknowledgement_required: false,
+      gaps: [{ kind: "not_answerable", research_question: "Co je odrazuje?", verdict: "UNANSWERABLE", reasons: ["measures_unanswerable"], measures: ["q2"] }],
+      pending: ["Jak často platí kartou?"],
+    };
+    api({ "GET /api/v1/studies/STU-1/research/readiness": () => ({ ...READY, answerability }) });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const gate = await screen.findByRole("region", { name: t("research.exec.answerability.title") });
+    expect(within(gate).getByText("Co je odrazuje?")).toBeTruthy();
+    expect(within(gate).getByText(/Běh na ni neodpoví/)).toBeTruthy();
+    expect(within(gate).getByText(/Jak často platí kartou\?/)).toBeTruthy();
+    expect(within(gate).queryByRole("checkbox")).toBeNull();
+    expect(within(gate).getByText(t("research.exec.answerability.notRequired"))).toBeTruthy();
+    const start = screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement;
+    await waitFor(() => expect(start.disabled).toBe(false));
+    fireEvent.click(start);
+    await waitFor(() => expect(called("POST", RUNS)).toHaveLength(1));
+    expect(called("POST", RUNS)[0].body).toEqual({ design_revision_id: "REV-a1" });
+  });
+
   it("offers the client's materialized children, and a run started over one names it", async () => {
     const child = (id: string, client: string, achieved: number) => ({
       version_id: id, label: `v_5+${id}`, content_sha256: "c".repeat(64), row_count: 6, column_count: 5,
@@ -640,6 +690,40 @@ describe("Run: what a run can cost (5b.2)", () => {
     expect(await screen.findByText("Opakování běhu RUN-1")).toBeTruthy();
     expect(asked).toBe(1);
     expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/retry").map((c) => c.body)).toEqual([null, { confirm_cost_usd: 225 }]);
+  });
+
+  it("asks for the research questions on a retry the server refused, retries with the answer, and then asks no more", async () => {
+    // research-integrity-report 1: a run started before the gate has no acknowledgement to inherit.
+    const cancelled = { ...PARKED, phase: "CANCELLED", status: "CANCELLED", is_terminal: true, retryable: true };
+    const digest = "f".repeat(64);
+    const refusal = {
+      rules: "aia-answerability-1", capable: false, digest, acknowledgement_required: true,
+      gaps: [{ kind: "not_answerable", research_question: "Jak klienti důvěřují účtu?", verdict: "UNKNOWN", reasons: ["unlinked_design"], measures: [] }],
+    };
+    api({
+      ...listed(cancelled),
+      "POST /api/v1/studies/STU-1/research/runs/RUN-1/retry": (b) =>
+        (b as { acknowledge_research_questions?: unknown } | null)?.acknowledge_research_questions
+          ? run({ run_id: "RUN-2", retry_of: "RUN-1", phase: "QUEUED" })
+          : new Response(JSON.stringify({ code: "research_questions_unanswerable", message: "…", details: refusal }), { status: 409 }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-2": () => run({ run_id: "RUN-2", retry_of: "RUN-1", phase: "QUEUED" }),
+    });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.retry") }));
+    const gate = await screen.findByRole("region", { name: t("research.exec.answerability.title") });
+    const again = screen.getByRole("button", { name: t("research.exec.answerability.retryAction") }) as HTMLButtonElement;
+    expect(again.disabled).toBe(true);
+    fireEvent.click(within(gate).getByRole("checkbox"));
+    fireEvent.change(within(gate).getByRole("textbox"), { target: { value: "Opakujeme jen ověření postupu." } });
+    await waitFor(() => expect(again.disabled).toBe(false));
+    fireEvent.click(again);
+    expect(await screen.findByText("Opakování běhu RUN-1")).toBeTruthy();
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/retry").map((c) => c.body)).toEqual([
+      null,
+      { acknowledge_research_questions: { digest, reason: "Opakujeme jen ověření postupu." } },
+    ]);
+    // Retried: the gaps were the old run's, so nothing about them is asked any more.
+    await waitFor(() => expect(screen.queryByRole("region", { name: t("research.exec.answerability.title") })).toBeNull());
   });
 });
 

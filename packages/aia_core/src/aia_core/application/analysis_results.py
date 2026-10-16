@@ -82,6 +82,7 @@ from ..domain.analysis.native import (
     research_questions_of,
 )
 from ..domain.analysis.steps import analysis_node_key, module_of_node
+from ..domain.answerability import Acknowledgement
 from ..domain.evidence import (
     ClaimSurface,
     InstrumentPolicyRefused,
@@ -993,6 +994,7 @@ def retry_failed_modules(
     run_id: str,
     reservations: RunReservations | None = None,
     confirm_cost_usd: float | None = None,
+    acknowledge: Acknowledgement | None = None,
 ) -> StartedRun:
     """Ask a finished run's failed analysis modules again, without collecting data again.
 
@@ -1065,4 +1067,5 @@ def retry_failed_modules(
         frozen_dataset=frozen,
         reservations=reservations,
         confirm_cost_usd=confirm_cost_usd,
+        acknowledge=acknowledge,
     )

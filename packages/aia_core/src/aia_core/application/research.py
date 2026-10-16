@@ -22,6 +22,15 @@ from sqlalchemy.orm import Session
 from ..domain.ai_contracts import canonical_json
 from ..domain.analysis.native import research_questions_of
 from ..domain.analysis.steps import analysis_step_inputs
+from ..domain.answerability import (
+    ANSWERABILITY_RULES,
+    Acknowledgement,
+    AcknowledgementRefused,
+    Answerability,
+    answerability,
+    answerability_note,
+    read_answerability_note,
+)
 from ..domain.design import DESIGN_PROJECT_OWNER, DesignRejected, DesignRevision
 from ..domain.evidence import ClaimSurface
 from ..domain.evidence.support import AIA_SUPPORT_V1, SupportSpec
@@ -108,6 +117,7 @@ __all__ = [
     "FrozenDataset",
     "PanelPopulationMissing",
     "ResearchAgentJobs",
+    "ResearchQuestionsUnanswerable",
     "ResearchRunNotFound",
     "ResearchRunNotRetryable",
     "ResearchRuns",
@@ -136,6 +146,17 @@ class DesignNotReady(Exception):
     def __init__(self, readiness: Readiness) -> None:
         super().__init__("the design is not ready to run")
         self.readiness = readiness
+
+
+class ResearchQuestionsUnanswerable(Exception):
+    """The design is technically runnable, but the run cannot answer every research question
+    it states, and no person has acknowledged these exact gaps (``domain.answerability``)."""
+
+    def __init__(self, answer: Answerability) -> None:
+        super().__init__(
+            f"{len(answer.gaps)} research question gap(s) need a person's acknowledgement"
+        )
+        self.answerability = answer
 
 
 class PanelPopulationMissing(Exception):
@@ -229,6 +250,9 @@ class RunOutlook:
     questions: tuple[QuestionOutlook, ...]
     #: Each stated research question traced to its measures; ``None`` when it does not compile.
     trace: ResearchTrace | None
+    #: Whether the run can answer every stated research question, and the gaps a start must
+    #: have acknowledged when it cannot; ``None`` when it does not compile.
+    answerability: Answerability | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -365,8 +389,23 @@ class ResearchRuns:
         persona_source: PersonaSource = PersonaSource.FICTIONAL_ROSTER,
         population_version_id: str | None = None,
         frozen_dataset: FrozenDataset | None = None,
+        acknowledge: Acknowledgement | None = None,
+        inherited_acknowledgement: tuple[Acknowledgement, str, str | None] | None = None,
+        require_answerability: bool = False,
     ) -> StartedRun:
         """Run the research workflow over one Design Revision of the Study.
+
+        A design can be runnable and still unable to answer what it asks
+        (``domain.answerability``): a research question nothing measures, or only questions the
+        run will not answer. A start that would create such a run is refused
+        (:class:`ResearchQuestionsUnanswerable`) unless ``acknowledge`` names those exact gaps
+        with a person's reason, or a retry inherits the acknowledgement its original recorded
+        for the same gaps (``inherited_acknowledgement``: the acknowledgement, the original's
+        run id and who gave it). The run records its answerability either way
+        (``metadata.answerability``); a new acknowledgement is also written to the approval
+        ledger. Like the cost gate, a start that finds its run asks nothing. The refusal ships
+        behind ``require_answerability`` (the API's ``AIA_RESEARCH_ANSWERABILITY_GATE``): off,
+        a run with gaps starts and records them unacknowledged, so its report still says so.
 
         ``frozen_dataset`` makes the run an analysis retry (:func:`retry_failed_modules`
         in ``application.analysis_results``, through :meth:`retry_analysis`): its fieldwork
@@ -450,8 +489,9 @@ class ResearchRuns:
         aggregation_pin, aggregation_version = self._aggregation(aggregation)
         response_spec, response_version = self._response(response)
         limits, readiness_version = self._readiness(readiness)
+        content = designs.content(revision.revision_id)
         _spec, checked = prepare(
-            designs.content(revision.revision_id),
+            content,
             pair_n_min=side_tables_of(methods).n_min,
             limits=limits,
         )
@@ -529,6 +569,51 @@ class ResearchRuns:
                 "established; nothing was started"
             )
         response_pin = response_spec.model_dump(mode="json")
+        exists = self._workflows().find_run_by_idempotency_key(key) is not None
+        answer_note: dict[str, Any] | None = None
+        fresh_acknowledgement: Answerability | None = None
+        if _spec is not None and not exists:
+            # Under the support and aggregation this run pins, as readiness traced it.
+            forecast: SupportForecast | None = None
+            if fieldwork_source is FieldworkSource.AI_RUNTIME:
+                _, slots = read_aggregation_pin(aggregation_pin)
+                forecast = forecast_support(
+                    _spec, support=support_spec, persona_source=persona_source, slots=slots
+                )
+            items = question_outlook(_spec, forecast)
+            trace = trace_research(
+                _spec, research_questions_of(content), items, comparisons_of(content)
+            )
+            answer = answerability(trace, items)
+            if answer.capable:
+                answer_note = answerability_note(trace, answer)
+            elif acknowledge is not None and acknowledge.covers(answer):
+                answer_note = answerability_note(
+                    trace,
+                    answer,
+                    acknowledged_by=self.scope.actor_id,
+                    acknowledgement=acknowledge,
+                )
+                fresh_acknowledgement = answer
+            elif inherited_acknowledgement is not None and inherited_acknowledgement[0].covers(
+                answer
+            ):
+                held_ack, original, by = inherited_acknowledgement
+                answer_note = answerability_note(
+                    trace,
+                    answer,
+                    acknowledged_by=by,
+                    acknowledgement=held_ack,
+                    inherited_from=original,
+                )
+            elif frozen_dataset is not None:
+                # An analysis retry collects nothing and cannot change what the design measures:
+                # never refused, and recorded as exempt -- never as "not enforced".
+                answer_note = {**answerability_note(trace, answer), "exempt": "analysis_retry"}
+            elif require_answerability:
+                raise ResearchQuestionsUnanswerable(answer)
+            else:
+                answer_note = {**answerability_note(trace, answer), "enforced": False}
         confirmation: tuple[float, float] | None = None
         limit = self.spend_limit()
         if limit is not None and self._workflows().find_run_by_idempotency_key(key) is None:
@@ -585,6 +670,8 @@ class ResearchRuns:
                     if _spec is not None
                     else {}
                 ),
+                # Whether the run can answer what it asks, and who decided to run it anyway.
+                **({"answerability": answer_note} if answer_note else {}),
             },
             step_inputs={
                 "compile": {
@@ -618,6 +705,16 @@ class ResearchRuns:
             sociomapping_enabled=sociomapping_enabled,
             population=population,
         )
+        if fresh_acknowledgement is not None and started.created:
+            assert acknowledge is not None
+            self._workflows().record_answerability_acknowledgement(
+                started.run_id,
+                digest=fresh_acknowledgement.digest,
+                reason=acknowledge.reason,
+                gaps=[g.to_json() for g in fresh_acknowledgement.gaps],
+                rules=ANSWERABILITY_RULES,
+                design_revision_id=revision.revision_id,
+            )
         if confirmation is not None and started.created:
             assert confirm_cost_usd is not None
             self._workflows().record_spend_confirmation(
@@ -635,6 +732,8 @@ class ResearchRuns:
         fieldwork_source: FieldworkSource,
         reservations: RunReservations | None = None,
         confirm_cost_usd: float | None = None,
+        acknowledge: Acknowledgement | None = None,
+        require_answerability: bool = False,
     ) -> StartedRun:
         """Start a failed or cancelled run again, as a new run linked to it.
 
@@ -653,6 +752,8 @@ class ResearchRuns:
             fieldwork_source=fieldwork_source,
             reservations=reservations,
             confirm_cost_usd=confirm_cost_usd,
+            acknowledge=acknowledge,
+            require_answerability=require_answerability,
         )
 
     def retry_analysis(
@@ -662,8 +763,13 @@ class ResearchRuns:
         frozen_dataset: FrozenDataset,
         reservations: RunReservations | None = None,
         confirm_cost_usd: float | None = None,
+        acknowledge: Acknowledgement | None = None,
     ) -> StartedRun:
         """Start ``run_id`` again over its own collected data: an analysis retry.
+
+        It is never refused for its research questions: no new data is collected, and asking
+        the same modules again cannot change what the design measures. It records the gaps,
+        with the original's acknowledgement when it has one.
 
         Every pin is kept as :meth:`retry` keeps it, and so is the fieldwork source the run
         recorded (its dataset is reused, never collected again). Which runs may be retried
@@ -678,6 +784,7 @@ class ResearchRuns:
             confirm_cost_usd=confirm_cost_usd,
             analysis_enabled=True,
             frozen_dataset=frozen_dataset,
+            acknowledge=acknowledge,
         )
 
     def _restart(
@@ -689,8 +796,11 @@ class ResearchRuns:
         confirm_cost_usd: float | None,
         analysis_enabled: bool | None = None,
         frozen_dataset: FrozenDataset | None = None,
+        acknowledge: Acknowledgement | None = None,
+        require_answerability: bool = False,
     ) -> StartedRun:
-        """A new run linked to ``run``, under every pin it recorded."""
+        """A new run linked to ``run``, under every pin it recorded, and the answerability
+        acknowledgement it recorded: it covers the retry only while the gaps are the same."""
         run_id = str(run["run_id"])
         return self.start(
             design_revision_id=str(run["metadata"]["design_revision_id"]),
@@ -720,6 +830,9 @@ class ResearchRuns:
                 if run["metadata"].get(k)
             },
             persona_source=persona_source_of(run["metadata"]),
+            acknowledge=acknowledge,
+            inherited_acknowledgement=_acknowledgement_of(run),
+            require_answerability=require_answerability,
         )
 
     def cancel(self, run_id: str, *, reason: str = "researcher") -> WorkflowRunStatus:
@@ -828,6 +941,7 @@ class ResearchRuns:
             readiness=with_research_trace(readiness, trace),
             questions=questions,
             trace=trace,
+            answerability=answerability(trace, questions),
         )
 
     def _support(self, support: SupportSpec | None) -> tuple[SupportSpec, dict[str, Any] | None]:
@@ -1220,3 +1334,20 @@ def _aggregation_of(metadata: Mapping[str, Any]) -> dict[str, Any]:
     if stored is None:
         return {"spec": dict(UNIT_AGGREGATION_PIN["spec"]), "formulas": {}}
     return {"spec": dict(stored["spec"]), "formulas": dict(stored.get("formulas") or {})}
+
+
+def _acknowledgement_of(run: Mapping[str, Any]) -> tuple[Acknowledgement, str, str | None] | None:
+    """The answerability acknowledgement ``run`` recorded, with its run id and who gave it.
+
+    An inherited one names the run that first recorded it, so a retry of a retry still points
+    at the person's own decision. A record AIA cannot read is no acknowledgement."""
+    note = read_answerability_note(run["metadata"])
+    held = note.get("acknowledgement") if note else None
+    if note is None or not isinstance(held, Mapping):
+        return None
+    try:
+        ack = Acknowledgement(digest=str(note["digest"]), reason=str(held.get("reason") or ""))
+    except AcknowledgementRefused:
+        return None
+    by = held.get("by")
+    return ack, str(held.get("inherited_from") or run["run_id"]), str(by) if by else None

@@ -945,6 +945,8 @@ export type Readiness = {
   persona_source?: string;
   /** Every source, whether this deployment offers it, why not, and which a start takes by default. */
   persona_sources?: PersonaSourceOption[];
+  /** Whether the run can answer every stated research question; absent from an older API. */
+  answerability?: Answerability | null;
 };
 
 export type PersonaSourceOption = { source: string; offered: boolean; reason: string | null; default: boolean };
@@ -1011,7 +1013,37 @@ export type ResearchRun = {
   persona_source?: string;
   /** What its design selected and what was applied (5b); null: a run from before it recorded this. */
   selection?: ResearchRunSelection | null;
+  /** Whether it could answer its research questions when it started; null: a run from before it
+   * recorded this -- never read as capable. */
+  answerability?: Answerability | null;
 };
+export type AnswerabilityGap = {
+  kind: "no_research_questions" | "not_answerable" | string;
+  research_question: string | null;
+  verdict: OutlookVerdict | null;
+  reasons: string[];
+  measures: string[];
+};
+/** Whether a run can answer what its design asks (research-integrity-report 1). `ready` says it can run. */
+export type Answerability = {
+  rules: string;
+  capable: boolean;
+  /** Names the exact gaps: an acknowledgement covers a design only while they are unchanged. */
+  digest: string;
+  gaps: AnswerabilityGap[];
+  /** Research questions whose support only fieldwork decides: not gaps, and never read as answered. */
+  pending?: string[];
+  /** On readiness: whether a start needs the person's acknowledgement. The server's switch decides
+   * it, so the page asks exactly when a start would be refused; false: the gaps are only shown. */
+  acknowledgement_required?: boolean;
+  /** On a run: the person's decision that let it start with gaps. */
+  acknowledgement?: { reason: string; by: string | null; inherited_from?: string } | null;
+  /** On a run with gaps and no acknowledgement: false when the deployment did not require one. */
+  enforced?: boolean | null;
+  /** On an analysis retry over the original's data: never asked, recorded as exempt. */
+  exempt?: string | null;
+};
+export type AnswerabilityAcknowledgement = { digest: string; reason: string };
 /** Every applied flag is true only where the code that applies it ran; each false one has its reason. */
 export type ResearchRunSelection = {
   dimensions: string[];
@@ -1101,13 +1133,22 @@ export const research = {
    * `confirmCostUsd` is the person's yes to the ceiling the server showed, when the study's limit asks for one.
    * `populationVersionId` runs over one of the study's client's materialized children instead of LIVE (P4d4c).
    * `personaSource` is who answers, as the person chose it among the offered sources (5a).
+   * `acknowledge` is the person's decision to run a design that cannot answer every research question.
    */
-  start: (studyId: string, revisionId: string, confirmCostUsd?: number, populationVersionId?: string, personaSource?: string) =>
+  start: (
+    studyId: string,
+    revisionId: string,
+    confirmCostUsd?: number,
+    populationVersionId?: string,
+    personaSource?: string,
+    acknowledge?: AnswerabilityAcknowledgement,
+  ) =>
     request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs`, {
       design_revision_id: revisionId,
       ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
       ...(populationVersionId === undefined ? {} : { population_version_id: populationVersionId }),
       ...(personaSource === undefined ? {} : { persona_source: personaSource }),
+      ...(acknowledge === undefined ? {} : { acknowledge_research_questions: acknowledge }),
     }),
   /** Set, or with `null` clear, the cost at which starting a run asks for confirmation. */
   setSpendConfirm: (studyId: string, limitUsd: number | null) =>
@@ -1119,11 +1160,16 @@ export const research = {
     request<RunEvent[]>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/events${eventsQuery(since)}`),
   cancel: (studyId: string, runId: string) =>
     request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/cancel`),
-  retry: (studyId: string, runId: string, confirmCostUsd?: number) =>
+  retry: (studyId: string, runId: string, confirmCostUsd?: number, acknowledge?: AnswerabilityAcknowledgement) =>
     request<ResearchRun>(
       "POST",
       `${studyPath(studyId)}/research/runs/${enc(runId)}/retry`,
-      confirmCostUsd === undefined ? undefined : { confirm_cost_usd: confirmCostUsd },
+      confirmCostUsd === undefined && acknowledge === undefined
+        ? undefined
+        : {
+            ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
+            ...(acknowledge === undefined ? {} : { acknowledge_research_questions: acknowledge }),
+          },
     ),
   /** The modules a finished run may ask again (`retryAnalysis`), read from its stored outcomes. */
   retryableModules: (studyId: string, runId: string) =>

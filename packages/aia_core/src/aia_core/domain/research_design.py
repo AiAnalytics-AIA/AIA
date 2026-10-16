@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from collections.abc import Mapping
 from enum import StrEnum
 from typing import Any, Final, Literal
 
@@ -44,6 +45,7 @@ __all__ = [
     "DIMENSIONS_NOT_READ",
     "DIMENSIONS_NOT_TOPICS",
     "DONT_KNOW",
+    "DRAW_NOT_COMPLETED",
     "FILTERS_AWAIT_DRAW",
     "FILTERS_NEED_POPULATION",
     "SAMPLE_SIZE_BOUNDS",
@@ -67,6 +69,7 @@ __all__ = [
     "readiness_problems",
     "readiness_values",
     "selection_receipt",
+    "settle_selection",
 ]
 
 #: The compiler's own version: part of the specification's fingerprint.
@@ -746,6 +749,36 @@ FILTERS_NEED_POPULATION: Final = "filters_need_population_draw"
 #: and a run records its selection at start, before that (the reader settles it from the
 #: fieldwork step: ``routers/research.py`` ``_selection``).
 FILTERS_AWAIT_DRAW: Final = "filters_await_population_draw"
+
+
+#: A panel run that ended before its population draw succeeded: no respondent was drawn under
+#: the filters, and no persona read the dimensions.
+DRAW_NOT_COMPLETED: Final = "population_draw_not_completed"
+
+
+def settle_selection(selection: Mapping[str, Any], *, drawn: bool, ended: bool) -> dict[str, Any]:
+    """A run's recorded selection (:func:`selection_receipt`), its filters and dimensions settled
+    by its fieldwork (5b, 5c): a panel run's await the draw until fieldwork has drawn respondents
+    from the population, the step that applies both; a run that ended without it never drew
+    anyone, and says so. ``drawn``: the fieldwork step succeeded with data drawn from the
+    population. One rule for every reader -- the run screen and the report's method chapter."""
+    out = dict(selection)
+    for part, awaiting in (("filters", FILTERS_AWAIT_DRAW), ("dimensions", DIMENSIONS_AWAIT_DRAW)):
+        if out.get(f"{part}_reason") != awaiting:
+            continue
+        if (
+            drawn
+            and part == "dimensions"
+            and set(out.get("dimensions_unmatched") or ()) >= set(out.get("dimensions") or ())
+        ):
+            # No selected id is a persona topic: the allowlist let nothing through (5c).
+            out["dimensions_reason"] = DIMENSIONS_NOT_TOPICS
+        elif drawn:
+            out[f"{part}_applied"] = True
+            out[f"{part}_reason"] = None
+        elif ended:
+            out[f"{part}_reason"] = DRAW_NOT_COMPLETED
+    return out
 
 
 def selection_receipt(spec: ResearchSpecification, *, population_draw: bool) -> dict[str, Any]:

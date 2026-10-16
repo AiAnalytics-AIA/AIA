@@ -2333,6 +2333,59 @@ class WorkflowRepository:
         )
         self._session.flush()
 
+    def record_answerability_acknowledgement(
+        self,
+        run_id: str,
+        *,
+        digest: str,
+        reason: str,
+        gaps: list[dict[str, Any]],
+        rules: str,
+        design_revision_id: str,
+    ) -> None:
+        """Write a person's decision to run a design whose research questions the run cannot
+        all answer (``domain.answerability``), in the append-only approval ledger.
+
+        The row is self-contained: the rules and Design Revision the gaps were computed under,
+        the gaps and their digest, and the person's reason, so a later reader sees exactly what
+        was known to be unanswerable when the run started.
+        Needs ``APPROVE_GATE``, which the worker's scope does not hold: a step cannot wave
+        through its own design.
+        """
+        self.scope.require(Permission.APPROVE_GATE)
+        run = self._run(run_id)
+        independence = observe_approval_independence(
+            producer_user_id=run.triggered_by,
+            approving_user_id=self.scope.actor_id,
+            policy=self.scope.self_approval,
+        )
+        self._session.add(
+            ApprovalDecisionRow(
+                organization_id=self.scope.organization_id,
+                client_id=self.scope.client_id,
+                study_id=self.scope.study_id,
+                subject_type="answerability",
+                subject_id=run_id,
+                run_id=run_id,
+                gate_type="answerability",
+                decision="acknowledge",
+                comment=json.dumps(
+                    {
+                        "rules": rules,
+                        "design_revision_id": design_revision_id,
+                        "digest": digest,
+                        "reason": reason,
+                        "gaps": gaps,
+                    },
+                    sort_keys=True,
+                    ensure_ascii=False,
+                ),
+                request_id=self.scope.request_id,
+                **independence.audit_fields(),
+            )
+        )
+        self._session.flush()
+
     def record_ai_proposal_acceptance(
         self,
         run_id: str,

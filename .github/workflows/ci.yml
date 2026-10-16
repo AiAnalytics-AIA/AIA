@@ -843,6 +843,15 @@ jobs:
               config --format json > composed.json
             python3 -c 'import json,sys; assert json.load(open("composed.json"))["services"]["api"]["environment"]["AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED"] == sys.argv[1]' "$flag_value"
           done
+          # The answerability gate ships off on develop until the owner turns it on
+          # (research-integrity-report D1): the default, and an explicit value, both reach the API.
+          docker compose --env-file placeholder.env -f deploy/develop/docker-compose.yml \
+            config --format json > composed.json
+          python3 -c 'import json; assert json.load(open("composed.json"))["services"]["api"]["environment"]["AIA_RESEARCH_ANSWERABILITY_GATE"] == "false"'
+          AIA_RESEARCH_ANSWERABILITY_GATE=true \
+            docker compose --env-file placeholder.env -f deploy/develop/docker-compose.yml \
+            config --format json > composed.json
+          python3 -c 'import json; assert json.load(open("composed.json"))["services"]["api"]["environment"]["AIA_RESEARCH_ANSWERABILITY_GATE"] == "true"'
           # ADR 0018 decision 5: the product stack is AIA's five services, nothing else.
           services="$(docker compose --env-file placeholder.env -f deploy/develop/docker-compose.yml config --services | sort | tr '\n' ' ')"
           test "$services" = "api caddy postgres web worker " || { echo "::error::product services: $services"; exit 1; }

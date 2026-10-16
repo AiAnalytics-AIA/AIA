@@ -986,6 +986,11 @@ def test_readiness_traces_each_research_question_to_the_questions_that_measure_i
     check = next(c for c in linked["checks"] if c["id"] == "research_question_coverage")
     assert check["status"] == "WARN" and other in check["message"]
     assert linked["ready"] is True, "a trace warns, it never refuses"
+    # Runnable is not answerable (research-integrity-report 1): said beside it, and with the
+    # deployment's gate off no acknowledgement is asked for -- the switch reaches the page.
+    assert linked["answerability"]["capable"] is False
+    assert linked["answerability"]["acknowledgement_required"] is False
+    assert [g["research_question"] for g in linked["answerability"]["gaps"]] == [other]
 
     # 3c: the comparison the plan declares is checked against what measures it.
     ranked = readiness(
