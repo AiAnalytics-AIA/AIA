@@ -134,7 +134,9 @@ Four contracts beside the two already there (`pyproject.toml`, `[tool.importlint
   "executors never import the API". Probed: worker -> executors, executors ->
   `aia_worker.worker`, API -> `aia_worker.settings` each fail.
 - **Routers -> infrastructure, a ratchet** (decided 2026-10-16): 28 router -> module
-  edges across nine routers are listed. A new router complies, a listed router can't
+  edges across nine routers were listed; 27 since #467, because #461 had already removed
+  `deep_research.py`'s `common_crawl` import and the stale line failed `develop`'s
+  Layering rules (run 1245) -- the ratchet shrinking as designed, two merges apart. A new router complies, a listed router can't
   add an infrastructure module, and a line no import matches fails lint-imports, so
   the list only shrinks. `projects.py` only caught `ProjectNotFound`; it now imports
   the repository's own class from `aia_core/application/errors.py`
@@ -210,16 +212,14 @@ table (see the exploration report).
   (`importlib.import_module` of a declared function's module) and
   `aia_worker/registry.py:32` (the `AIA_WORKER_EXECUTORS` loader, by design). Named in
   the contracts' comments; nothing enforces them.
-- **F8. A `.mypy_cache` written by one interpreter keeps its errors under another.**
-  The root `pyproject.toml` sets `python_version = "3.12"`, so the cache directory is
-  `.mypy_cache/3.12` whichever interpreter wrote it. A 3.13 venv wrote three
-  `ai_respondent.py` `create_model` errors there; a fresh 3.12 venv with the same
-  pydantic 2.14.1 and mypy 1.20.2 reported the same three until the cache went
-  (`mypy --cache-dir <fresh>`: `Success: no issues found in 407 source files`).
-  So #441's hint, `rm -rf .venv && make deps`, is incomplete: `.mypy_cache` must go
-  too. Smallest fix: `make deps` removes `.mypy_cache` when it builds a new venv,
-  and the `python-version` message says so. Reproduction: a 3.13 `make typecheck`,
-  then a 3.12 one on the same checkout.
+- **F8. A warm `.mypy_cache` reused across a branch switch or merge reports errors CI
+  does not; the interpreter is not the cause.** Reproduced on 3.12 alone (mypy 1.20.2,
+  pydantic 2.14.1, 2026-10-16): warm the cache on `0678c398`, check `da826d80` with it,
+  and `domain/ai_respondent.py:494,505,516` report three `create_model` arg-type errors
+  on every later run; a fresh cache, a warm cache on an unchanged tree, a 3.13 venv
+  with a fresh cache and `--no-incremental` on the stale cache are all clean. #441
+  blamed 3.13 (wrong). Fix: `make typecheck` runs `mypy --no-incremental`, CI's own
+  check, ~45 s against 0.7 s warm (AiAnalytics-AIA/AIA#466).
 
 ## Doc follow-up
 
@@ -255,5 +255,5 @@ For the next docs-only PR:
   contracts above replace them).
 - **CLAUDE.md §2 map**: `application/errors.py  The infrastructure errors a router
   catches, re-exported (the same classes) so routers need not import infrastructure`.
-- **AGENTS.md**, mypy: the cache trap of F8, wrong vs right: switching interpreters
-  with `rm -rf .venv && make deps` only (wrong); also `rm -rf .mypy_cache` (right).
+- **AGENTS.md**, mypy: the cache trap of F8 -- carried by AiAnalytics-AIA/AIA#466's Doc
+  follow-up (wrong: trust a warm cache after a branch switch; right: `--no-incremental`).

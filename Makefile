@@ -169,8 +169,15 @@ python-version: ## Fail unless the Python in use is the one CI runs (.python-ver
 	  echo "python-version: $(PY) is Python $$actual; CI runs $(PYTHON_VERSION) (.python-version)."; \
 	  echo "  Rebuild the venv: rm -rf $(VENV) && make deps"; exit 1; fi
 
+# --no-incremental: mypy's cache, warmed on one tree and reused on another (a branch
+# switch, a merge), reported three create_model errors in domain/ai_respondent.py on
+# every later run, which a fresh cache and CI do not (reproduced 2026-10-16 on 3.12:
+# warm on 0678c398, check da826d80). CI starts from a fresh checkout, so this is the
+# same check. It costs ~45 s on 4 CPUs against ~0.7 s warm. It also rewrites the
+# cache, so a quick `$(BIN)mypy ...` run straight after it is sound again; trust this
+# target before a push.
 typecheck: python-version ## Type-check Python and the web client
-	@$(BIN)mypy packages/aia_core/src apps/api/src apps/worker/src apps/executors/src
+	@$(BIN)mypy --no-incremental packages/aia_core/src apps/api/src apps/worker/src apps/executors/src
 	@cd apps/web && npx tsc --noEmit
 
 layer_check: ## Enforce the layering rules in ARCHITECTURE.md (grep rules + import contracts)
