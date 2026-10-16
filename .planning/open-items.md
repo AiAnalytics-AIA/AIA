@@ -3928,3 +3928,32 @@ was offered).
 **Test.** Run the full suite repeatedly; if it recurs, capture the assertion and its timing.
 
 **Status.** Hypothesis: reproduce or delete (CLAUDE.md §9).
+
+---
+
+## OI-123 · Finding, closed · Develop's SQLite step ran no test while every pull request was green
+
+**Claim.** Two test modules shared the basename `test_error_reporting.py` in `apps/api/tests`
+and `apps/worker/tests`, which are not packages, so the one pytest session over all four test
+trees (the `Domain tests on SQLite` step) failed collection with "import file mismatch" and ran
+nothing. Every per-tree step passed, and the SQLite step runs only on a push to `develop`, so no
+pull request showed it.
+
+**Anchor.** `apps/worker/tests/test_error_reporting.py` and `apps/api/tests/test_error_reporting.py`
+@ `3f7fc500`; `.github/workflows/ci.yml` `Domain tests on SQLite`
+(`if: github.event_name != 'pull_request'`) @ `80dc2167`.
+
+**Reproduction.** At `223621d5` (before #449): `DATABASE_URL= pytest packages/aia_core apps/api apps/worker
+apps/executors -q --collect-only` gives 8,277 collected, 1 error, "Interrupted: 1 error during
+collection". Develop run 38746704500 at `1d7dbc05` shows the same in CI.
+
+**Consequence.** From #432 until #449, develop's SQLite step tested nothing and blocked the develop
+deploy dispatch. The offline SQLite path was unverified for that whole time.
+
+**Smallest fix.** Unique basenames across the four trees (#449 renamed both to
+`test_api_error_reporting.py` and `test_worker_error_reporting.py`).
+
+**Test.** CI's `Every test tree collects in one session` step, the same collect-only command on
+every pull request (#451).
+
+**Status.** Fixed in #449; guarded by #451.
