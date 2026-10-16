@@ -15,7 +15,7 @@ chunks:
   - "[x] 5a. Population: a person chooses who answers a run (fictional roster or the population) before it starts; the deployment only says what it offers"
   - "[x] 5b. Population: the run receipt says who answered, from which population, and which selected dimensions and filters were applied"
   - "[ ] 5c. Population: selected dimensions applied to panel respondents as 18.6.6 applied them, the topic allowlist (product owner, 2026-10-15)"
-  - "[ ] 6a. Web: one run state (running, waiting, needs repair, evidence unavailable, results ready, report ready) read by every screen and the stage track"
+  - "[x] 6a. Web: one run state (running, waiting, needs repair, evidence unavailable, results ready, report ready) read by every screen and the stage track"
   - "[ ] 6b. Web: plain reasons, never a raw code: Deep Research and Interpretation Research steps, preflight checks, unknown keys"
   - "[ ] 6c. Web: a measure, a trace and a citation name the question by its wording; the id only under technical details"
   - "[ ] 6d. Web: what remains of the study's budget beside every start, retry, analysis retry and budget lift"
@@ -545,6 +545,11 @@ blocked module in the step list; an inventory on 2026-10-16 (@ c809315b) found t
   invented reason. "Ready" before a run stays the Run stage's, from readiness. The run list
   carries no steps (`application/research.py:962-977`), so the stage track reads the latest
   run in full, one request.
+  As built: an ended run read without its steps (an older API's listing, or a fixture) is
+  `UNKNOWN`, in its phase's own word, never "bez dat" and never done. The run list now
+  carries each run's steps from one more query for the page (`list_runs(steps=True)`),
+  without their attempt history, so a listed run has no start time, error or cost
+  (`test_a_listed_run_carries_its_steps_and_no_cost_it_cannot_know`).
 - **6b.** Every reason through one reader; a key with no words says so generically and
   keeps the code under technical details.
 - **6c.** A measure's wording from the specification; the id moves under technical details.
@@ -628,3 +633,11 @@ blocked module in the step list; an inventory on 2026-10-16 (@ c809315b) found t
 - 5c (open, for `open-items.md`): applying a selected dimension to panel respondents needs the
   product owner's decision; no persona reads a materialized dimension
   (`panel_persona.py` `panel_personas`, `wanted`).
+- 6a, `CLAUDE.md` § map, web `src/lib/` (new line): "run-state.ts: runState(run), one research
+  run's state (RUNNING, WAITING, NEEDS_REPAIR, EVIDENCE_UNAVAILABLE, RESULTS_READY, REPORT_READY,
+  CANCELLED; UNKNOWN for an ended run read without its steps) with its reason in words, and
+  runDestination; the run list, Progress, Results, project memory and the stage track
+  (lane.ts runLane) read it".
+- 6a, `CLAUDE.md` § map, routers/research: "GET …/research/runs lists each run with its steps,
+  without their attempt history (no start time, error or cost)"; `workflow_repository.py`:
+  "list_runs(steps=True): a page's steps in one more query, no attempts".

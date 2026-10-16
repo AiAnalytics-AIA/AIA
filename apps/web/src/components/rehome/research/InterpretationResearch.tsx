@@ -7,7 +7,7 @@ import { deepResearchRunningStep } from "@/lib/activity-orb";
 import { activityOf } from "@/lib/step-activity";
 import { StepActivityPanel } from "./StepActivityPanel";
 import { useStepActivity } from "./useStepActivity";
-import { phaseLabel } from "@/lib/research-execution";
+import { needsRepair, phaseLabel } from "@/lib/research-execution";
 import { AiButton, Button, Field, Select } from "../ui";
 import { useResearch } from "./context";
 import { FormattedText } from "./FormattedText";
@@ -31,7 +31,8 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
   const [refresh, setRefresh] = useState(0);
   // The stored draft the last download was, for its approval (complete-study-report B2/B1d).
   const [stored, setStored] = useState<{ runId: string; artifactId: string; approved: boolean } | null>(null);
-  const artifact = run.steps.find(s => s.node_key === "analysis_research_questions" && s.status === "SUCCEEDED")?.artifact_id;
+  // A module stored BLOCKED succeeded as a step and is no result to interpret.
+  const artifact = run.steps.find(s => s.node_key === "analysis_research_questions" && s.status === "SUCCEEDED" && !needsRepair(s))?.artifact_id;
   const current = jobs.find(j => j.run_id === selected);
   const bundle = bundleFor && current && bundleFor.runId === current.run_id ? bundleFor.value : null;
   const currentStored = stored && current && stored.runId === current.run_id ? stored : null;

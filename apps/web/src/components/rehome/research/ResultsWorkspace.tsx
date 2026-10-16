@@ -3,7 +3,7 @@
 import { type KeyboardEvent, type ReactNode, useEffect, useId, useState } from "react";
 import Link from "next/link";
 import type { ResearchRun } from "@/lib/api";
-import { phaseLabel } from "@/lib/research-execution";
+import { runState } from "@/lib/run-state";
 
 export type ResultPanel = { id: string; label: string; description: string; content: ReactNode };
 
@@ -57,7 +57,7 @@ export function ResultsWorkspace({ run, panels, progressHref, notice, lead }: {
         </div>{progressHref ? <Link href={progressHref} className="rounded-control border border-border px-3 py-2 text-sm font-medium no-underline hover:bg-surface-sunken">Průběh tohoto běhu →</Link> : null}
       </div>
       <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-2 border-t border-border pt-3 text-sm">
-        <div><dt className="text-xs text-ink-muted">Stav běhu</dt><dd className="font-semibold">{phaseLabel(run.phase)}</dd></div>
+        <div><dt className="text-xs text-ink-muted">Stav běhu</dt><dd className="font-semibold">{runState(run).label}</dd></div>
         <div><dt className="text-xs text-ink-muted">Revize návrhu</dt><dd className="font-semibold">{run.design_revision}</dd></div>
         <div><dt className="text-xs text-ink-muted">Skutečné náklady běhu</dt><dd className="font-semibold">{run.actual_cost_usd == null ? "Zatím nejsou vykázané" : `${run.actual_cost_usd.toFixed(2)} USD`}</dd></div>
         {run.methodology ? <div data-run-methodology><dt className="text-xs text-ink-muted">Metodika běhu</dt><dd className="flex flex-wrap gap-x-3 gap-y-1">

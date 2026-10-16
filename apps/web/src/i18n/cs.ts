@@ -2248,6 +2248,19 @@ export const cs = {
         FAILED: "Selhalo",
         CANCELLED: "Zrušeno",
       },
+      state: {
+        RUNNING: "Běží",
+        WAITING: "Čeká",
+        NEEDS_REPAIR: "Potřebuje opravu",
+        EVIDENCE_UNAVAILABLE: "Bez dat k vyhodnocení",
+        RESULTS_READY: "Výsledky jsou hotové",
+        REPORT_READY: "Zpráva je hotová",
+        CANCELLED: "Zrušeno",
+        reason: {
+          failedAt: "Zastavilo se u kroku „{step}“.",
+          modules: "{n} z {total} částí analýzy potřebuje opravu.",
+        },
+      },
       steps: {
         compile: "Sestavení dotazníku z návrhu",
         preflight: "Kontrola připravenosti",

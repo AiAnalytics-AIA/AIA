@@ -62,10 +62,13 @@ const COMPLETED = run({
     step("sociomap", "SUCCEEDED", { artifact_id: "ART-5", data_origin: "SYNTHETIC_FIXTURE" }),
   ],
 });
-// What the API gives: the Study's list is a summary (no steps, no artifacts); the run itself is read in full.
+// What the API gives: the Study's list carries each run's steps without their attempt history
+// (no start time, no error); the run itself is read in full.
 const listed = (...runs: ReturnType<typeof run>[]) => {
   const routes: Record<string, () => unknown> = {
-    "GET /api/v1/studies/STU-1/research/runs": () => ({ items: runs.map((r) => ({ ...r, steps: [], artifact_ids: [] })) }),
+    "GET /api/v1/studies/STU-1/research/runs": () => ({
+      items: runs.map((r) => ({ ...r, steps: (r.steps as ReturnType<typeof step>[]).map((s) => ({ ...s, started_at: null, error_message: null })), actual_cost_usd: null })),
+    }),
   };
   for (const r of runs) routes[`GET /api/v1/studies/STU-1/research/runs/${r.run_id}`] = () => r;
   return routes;
@@ -149,6 +152,19 @@ afterEach(() => {
 });
 
 describe("Run", () => {
+  it("lists each earlier run in the state every screen reads, and opens results only once they are ready (6a)", async () => {
+    const analysis = (outcome: string) => step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", analysis_outcome: outcome });
+    const blocked = run({ ...COMPLETED, run_id: "RUN-2", steps: [...COMPLETED.steps, analysis("BLOCKED")] });
+    const ready = run({ ...COMPLETED, run_id: "RUN-1", steps: [...COMPLETED.steps, analysis("COMPLETED")] });
+    api(listed(blocked, ready));
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    expect(await screen.findByText("Potřebuje opravu")).toBeTruthy();
+    expect(screen.getByText("Výsledky jsou hotové")).toBeTruthy();
+    expect(screen.queryByText("Dokončeno")).toBeNull();
+    const links = screen.getAllByRole("link", { name: /Zobrazit (průběh|výsledky)/ }).map((a) => [a.textContent, a.getAttribute("href")?.split("?run=")[1]]);
+    expect(links).toEqual([["Zobrazit průběh", "RUN-2"], ["Zobrazit výsledky", "RUN-1"]]);
+  });
+
   it("submits the design the person sees as a revision, shows AIA's checks, and starts one run over it", async () => {
     api();
     render(<ResearchScreen step="run" frame={TEST_FRAME} />);
@@ -628,6 +644,19 @@ describe("Run: what a run can cost (5b.2)", () => {
 });
 
 describe("Progress", () => {
+  it("never calls a run with a blocked module done: its state, its reason, and a bar that does not count it (6a)", async () => {
+    const blocked = run({
+      ...COMPLETED,
+      steps: [...COMPLETED.steps, step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", analysis_outcome: "BLOCKED" }), step("analysis_objects", "SUCCEEDED", { kind: "research_analysis", analysis_outcome: "COMPLETED" })],
+    });
+    api({ ...listed(blocked), "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis/retryable": () => ({ run_id: "RUN-1", modules: ["executive"] }) });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    expect(await screen.findByText("1 z 2 částí analýzy potřebuje opravu.")).toBeTruthy();
+    expect(screen.getAllByText("Potřebuje opravu").length).toBeGreaterThanOrEqual(2); // the run, and its blocked module
+    expect(screen.queryByText("Dokončeno")).toBeNull();
+    expect(screen.getByText("6 z 7 kroků hotovo")).toBeTruthy();
+  });
+
   it("says who answered, the population, and which selected dimensions and filters were applied (run-recovery-and-truth 5b)", async () => {
     const answered = run({
       ...COMPLETED,
@@ -1039,7 +1068,7 @@ describe("Results", () => {
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
     expect(await screen.findByText("1 z 8 částí analýzy dokončeno · k opravě: 1")).toBeTruthy();
-    const blocked = screen.getByRole("button", { name: /Výzkumné otázky.*Vyžaduje opravu/ });
+    const blocked = screen.getByRole("button", { name: /Výzkumné otázky.*Potřebuje opravu/ });
     fireEvent.click(blocked);
     expect(screen.getByText(/Výstup této části neprošel kontrolou/)).toBeTruthy();
     const diagnostic = screen.getByText("Technické důvody odmítnutí").closest("details");
@@ -1550,6 +1579,21 @@ describe("A run's results outside a study session (project memory M2a)", () => {
 });
 
 describe("Interpretation research", () => {
+  it("does not interpret a research-questions module stored BLOCKED: it is no result yet (6a)", async () => {
+    const blocked = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-questions", analysis_outcome: "BLOCKED" })] });
+    api({ ...listed(blocked),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, modules: {}, pending: {} }),
+      "GET /api/v1/studies/STU-1/deep-research/runs": () => [],
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Rešerše a zpráva" }));
+    expect(await screen.findByText("Nejprve je potřeba dokončit analýzu výzkumných otázek.")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Spustit rešerši výsledků" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
   it("shows a completed search with no accepted findings and blocks an incomplete report", async () => {
     const completed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
       step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-questions" })] });

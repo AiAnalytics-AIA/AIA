@@ -57,8 +57,7 @@ import {
   stepOriginKind,
   type OriginKind,
   waitingDetail,
-  phaseLabel,
-  phaseTone,
+  needsRepair,
   aggregateDeviation,
   resultTable,
   shouldPoll,
@@ -78,6 +77,7 @@ import {
   type ResultTable,
   verdictTone,
 } from "@/lib/research-execution";
+import { runDestination, runState } from "@/lib/run-state";
 import { CONFLICT_MESSAGE } from "@/research/store";
 import { projectVariants, selectedVariant } from "@/research/plan";
 import { dimensionLabels, withApproval } from "@/research/persona";
@@ -842,14 +842,14 @@ function RunList({ runs }: { runs: ResearchRunSummary[] }) {
         <ul className="flex flex-col gap-2">
           {runs.map((r) => (
             <li key={r.run_id} className="flex flex-wrap items-center gap-2 text-sm">
-              <Chip tone={phaseTone(r.phase)}>{phaseLabel(r.phase)}</Chip>
+              <Chip tone={runState(r).tone}>{runState(r).label}</Chip>
               <span>{tv("research.exec.revision", { revision: r.design_revision })}</span>
               <span className="text-ink-muted">{tv("research.exec.startedAt", { when: when(r.created_at) })}</span>
               {isSynthetic(r) ? <Chip tone="fault">{t("research.exec.fictional")}</Chip> : null}
               {isModelled(r) ? <Chip tone="neutral">{t("research.exec.modelled")}</Chip> : null}
               {hasUnknownOrigin(r) ? <Chip tone="fault">{t("research.exec.unknownOrigin")}</Chip> : null}
-              <a className="underline" href={`${stepHref(r.phase === "COMPLETED" ? "results" : "progress")}?run=${encodeURIComponent(r.run_id)}`}>
-                {r.phase === "COMPLETED" ? t("research.exec.toResults") : t("research.exec.toProgress")}
+              <a className="underline" href={`${stepHref(runDestination(r))}?run=${encodeURIComponent(r.run_id)}`}>
+                {runDestination(r) === "results" ? t("research.exec.toResults") : t("research.exec.toProgress")}
               </a>
             </li>
           ))}
@@ -1129,7 +1129,9 @@ export function ProgressStep() {
   const parked = parkedForRuntime(run);
   const failed = run.steps.find((s) => s.status === "FAILED");
   const listed = [...STEP_ORDER, ...ANALYSIS_ORDER.map((id) => `analysis_${id}`), "report"].map((key) => stepOf(run, key)).filter((s): s is ResearchStep => !!s);
-  const finished = listed.filter((s) => s.status === "SUCCEEDED" || s.status === "SKIPPED").length;
+  // A module stored BLOCKED succeeded as a step and is not finished as a result.
+  const finished = listed.filter((s) => (s.status === "SUCCEEDED" && !needsRepair(s)) || s.status === "SKIPPED").length;
+  const state = runState(run);
   return (
     <div className="flex max-w-[82.5rem] flex-col gap-4">
       <InspectorSlot>
@@ -1139,7 +1141,7 @@ export function ProgressStep() {
       <RespondentsReceipt run={run} />
       <Card>
         <div className="flex flex-wrap items-center gap-3">
-          <Chip tone={phaseTone(run.phase)}>{phaseLabel(run.phase)}</Chip>
+          <Chip tone={state.tone}>{state.label}</Chip>
           <span className="text-sm">{tv("research.exec.revision", { revision: run.design_revision })}</span>
           <span className="text-sm text-ink-muted">{tv("research.exec.startedAt", { when: when(run.created_at) })}</span>
           {run.finished_at ? <span className="text-sm text-ink-muted">{tv("research.exec.finishedAt", { when: when(run.finished_at) })}</span> : null}
@@ -1162,6 +1164,8 @@ export function ProgressStep() {
           <p role="alert" className="mt-3 text-sm text-status-fault">
             {tv("research.exec.failed", { step: stepLabel(failed.node_key) })} {failed.error_message ?? ""}
           </p>
+        ) : state.state === "NEEDS_REPAIR" && state.reason ? (
+          <p role="status" className="mt-3 text-sm">{state.reason}</p>
         ) : null}
         {error ? <p role="alert" className="mt-3 text-sm text-status-fault">{error}</p> : null}
       </Card>
@@ -1560,7 +1564,7 @@ function AnalysisResults({ run, spec }: { run: ResearchRun; spec: CompiledSpecif
             <nav aria-label="Části AI analýzy" className="flex flex-col gap-1">
               {ANALYSIS_ORDER.map((id) => {
                 const outcome = analysis.modules[id];
-                const label = outcome?.outcome === "COMPLETED" ? "Dokončeno" : outcome?.outcome === "BLOCKED" ? "Vyžaduje opravu" : "Čeká";
+                const label = outcome?.outcome === "COMPLETED" ? "Dokončeno" : outcome?.outcome === "BLOCKED" ? t("research.exec.stepStatus.ANALYSIS_BLOCKED") : "Čeká";
                 return <button key={id} type="button" onClick={() => setSelectedModule(id)} aria-current={selectedModule === id ? "true" : undefined}
                   className={`flex items-center justify-between gap-2 rounded-control px-3 py-2 text-left text-sm focus-visible:outline-2 focus-visible:outline-focus-ring ${selectedModule === id ? "bg-signal-wash font-semibold text-signal" : "hover:bg-surface-sunken"}`}>
                   <span>{stepLabel(`analysis_${id}`)}</span><span className="shrink-0 text-xs font-normal text-ink-muted">{label}</span>

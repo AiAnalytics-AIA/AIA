@@ -1041,7 +1041,8 @@ export type ResearchRunPopulation = {
   read_by_fieldwork: boolean;
 };
 /** A run as the Study's list gives it: its state, without its steps or artifacts. */
-export type ResearchRunSummary = Omit<ResearchRun, "steps" | "artifact_ids">;
+/** A listed run: its steps without their attempt history (no start time, error or cost from attempts). */
+export type ResearchRunSummary = ResearchRun;
 
 export type ResearchAnalysis = {
   run_id: string;
