@@ -63,14 +63,15 @@ describe("answerability (research-integrity-report 1)", () => {
     );
   });
 
-  it("words every reason the server gives, and never prints a code it does not know", () => {
+  it("words every reason the server gives, and keeps a code it has no words for on screen", () => {
     for (const reason of GAP_REASONS) {
       const key = `research.exec.answerability.reason.${reason}`;
       expect(t(key), reason).not.toBe(key);
+      expect(gapWords({ kind: "not_answerable", research_question: "X?", verdict: "UNKNOWN", reasons: [reason], measures: [] }).why).not.toContain(reason);
     }
+    // Never hidden behind the generic words, never printed as if it were a sentence (reason-words).
     const unknown = gapWords({ kind: "not_answerable", research_question: "X?", verdict: "UNKNOWN", reasons: ["future_reason"], measures: [] });
-    expect(unknown.why).toBe(t("research.exec.answerability.reasonUnknown"));
-    expect(unknown.why).not.toContain("future_reason");
+    expect(unknown.why).toBe(`${t("research.exec.answerability.reasonUnknown")} (${t("research.exec.code.technical")}: future_reason)`);
   });
 
   it("reads the server's refusal of a start or retry as a requirement", () => {

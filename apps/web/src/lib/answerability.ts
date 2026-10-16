@@ -8,6 +8,7 @@
  * Elsewhere the gaps are shown and nothing is asked. Pure.
  */
 import { ApiError, type Answerability, type AnswerabilityAcknowledgement, type AnswerabilityGap } from "./api";
+import { codedText, codeWords } from "./reason-words";
 import { t } from "@/i18n/t";
 
 export const MIN_REASON = 10;
@@ -55,15 +56,14 @@ export function acknowledgementOf(
   return { digest: answer.digest, reason };
 }
 
-const KNOWN = new Set<string>(GAP_REASONS);
-
 /** A gap in words: the research question, whether the run will not or may not answer it, and why. */
 export function gapWords(gap: AnswerabilityGap): { question: string; verdict: string; why: string } {
   if (gap.kind === "no_research_questions") return { question: "", verdict: "", why: t("research.exec.answerability.none") };
   // A record from before every gap carried a reason: measured, but by nothing the run answers.
   const reasons = gap.reasons.length ? gap.reasons : gap.measures.length ? ["measures_unanswerable"] : ["unmeasured"];
+  // A reason this client has no words for keeps its code on screen (reason-words), never hidden.
   const why = reasons
-    .map((r) => (KNOWN.has(r) ? t(`research.exec.answerability.reason.${r}`) : t("research.exec.answerability.reasonUnknown")))
+    .map((r) => codedText(codeWords("research.exec.answerability.reason", r, "research.exec.answerability.reasonUnknown")))
     .join("; ");
   const verdict = gap.verdict === "UNANSWERABLE" ? t("research.exec.answerability.wont") : t("research.exec.answerability.unshown");
   return { question: gap.research_question ?? "", verdict, why };
