@@ -601,7 +601,7 @@ front-matter, committed-key scan) instead of the suites; the path list is the `c
 | `make layer_check` | **blocking** |
 | `make exposure_check` | **blocking** |
 | `alembic upgrade head` / `alembic check` / downgrade-to-base | **blocking** |
-| `pytest` — core + API, on PostgreSQL on every pull request; the SQLite run only on a push to `develop`, where it blocks the deploy | **blocking** |
+| `pytest` — core + API, on PostgreSQL on every pull request; the SQLite run only on a push to `develop`, where it blocks the deploy; a collect-only pass over all four test trees in one session on every pull request, so a cross-tree module-name collision fails before the SQLite run on `develop` | **blocking** |
 | Parity-matrix consistency (`test_parity_matrix.py`, inside the pytest steps) | **blocking** |
 | Concurrency suite with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
 | Worker suite, including real worker processes, with `AIA_REQUIRE_POSTGRES=1` | **blocking** |

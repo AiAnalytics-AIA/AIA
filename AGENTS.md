@@ -134,6 +134,25 @@ from tests.helpers import make_project
 def test_x(project_factory): ...
 ```
 
+**Because they are not packages, a test module's basename must be unique across
+all four test trees.** pytest imports each module under its basename alone, so
+`apps/api/tests/test_error_reporting.py` and `apps/worker/tests/test_error_reporting.py`
+each collect on their own, and every per-tree step stays green. The one session over
+all four trees (`Domain tests on SQLite`, on a push to `develop`) imports the first
+module, refuses the second with "import file mismatch", and interrupts collection,
+so it runs no test at all. That happened from `3f7fc500` (#432) until #449 renamed
+both. CI's "Every test tree collects in one session" step now finds it on the pull
+request (#451).
+
+```bash
+# WRONG — one basename in two trees: each passes alone, together nothing runs
+apps/api/tests/test_error_reporting.py
+apps/worker/tests/test_error_reporting.py
+# RIGHT — name the module after its tree
+apps/api/tests/test_api_error_reporting.py
+apps/worker/tests/test_worker_error_reporting.py
+```
+
 **There is no `pytest-asyncio`.** The model gateway is `async`; tests drive it
 with `asyncio.run(gateway.invoke(...))` rather than adding a plugin and a marker.
 To simulate a worker dying mid-call, raise a `BaseException` subclass from the
@@ -609,8 +628,10 @@ command "for speed" silently changes what is checked.
 `create_model` `arg-type` errors on unchanged lines; `rm -rf .mypy_cache` and the
 same invocation passed (reproduced twice, PR #315 and chunk 4b). A third time (#385,
 pydantic 2.14.1, mypy 1.20.2) the edit was to an unrelated module
-(`domain/panel_source.py`, which imports it), not to `ai_respondent.py` itself. CI starts
-from an empty cache, so it never sees them.
+(`domain/panel_source.py`, which imports it), not to `ai_respondent.py` itself. A fourth
+time (#451) it read as a pydantic regression: the errors appeared under 2.14.1 and went
+away after downgrading to 2.13.5, but the downgrade had only invalidated the cache; a
+clean-cache run under 2.14.1 passes. CI starts from an empty cache, so it never sees them.
 
 ```bash
 # WRONG: trust a warm-cache failure on create_model and "fix" working code
