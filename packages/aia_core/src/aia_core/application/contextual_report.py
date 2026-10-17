@@ -57,7 +57,7 @@ from aia_core.domain.report.model import (
     text,
 )
 from aia_core.domain.scope import Permission, StudyContext
-from aia_core.infrastructure.artifact_repository import Artifact
+from aia_core.infrastructure.artifact_repository import Artifact, ArtifactRepository, ArtifactStatus
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import ArtifactStore
 
@@ -516,8 +516,13 @@ def stored_contextual_report(
         artifact_type=CONTEXT_REPORT_ARTIFACT_TYPE,
         input_fingerprint=key,
     )
-    if found is not None:
+    drafts = prepared_drafts(
+        artifacts, composed.run, run_id=run_id, deep_research_run_id=deep_research_run_id
+    )
+    if found is not None and drafts and drafts[-1].artifact_id == found.artifact_id:
         return found, artifacts.read(found.artifact_id)
+    # Not stored, or stored but no longer the newest draft (the study was renamed and back):
+    # stored again, so the draft just composed is the one every read names, its PDF included.
     data = DocxRenderer().render(composed.document)
     artifact, _created = artifacts.put(
         project_id=composed.run["project_id"],
@@ -537,8 +542,36 @@ def stored_contextual_report(
             "evidence_bundle_sha256": composed.sources["bundle"],
         },
         depends_on=list(composed.depends_on),
+        reuse=False,
     )
     return artifact, data
+
+
+def prepared_drafts(
+    artifacts: ArtifactRepository,
+    run: Mapping[str, Any],
+    *,
+    run_id: str,
+    deep_research_run_id: str,
+) -> list[Artifact]:
+    """Every valid draft of ``run``'s report with this review composed under the current
+    contract, oldest first: the newest is the variant (``report_variants``), and
+    :func:`stored_contextual_report` keeps the draft it composes the newest. A draft of an older
+    contract is a different document, never served as this one: a contract-3 draft read as ready
+    for ever, and the page never prepared the variant again (review 2, 2026-10-16)."""
+    return [
+        a
+        for a in artifacts.list_for_stage(
+            project_id=str(run["project_id"]),
+            revision=int(run["project_revision"]),
+            stage_type=CONTEXT_REPORT_STAGE,
+        )
+        if a.artifact_type == CONTEXT_REPORT_ARTIFACT_TYPE
+        and a.status is ArtifactStatus.VALID
+        and a.metadata.get("run_id") == run_id
+        and a.metadata.get("deep_research_run_id") == deep_research_run_id
+        and a.metadata.get("report_contract") == CONTEXT_REPORT_CONTRACT
+    ]
 
 
 def _compose(

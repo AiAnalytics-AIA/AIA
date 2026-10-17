@@ -11,7 +11,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from aia_core.application.contextual_report import CONTEXT_REPORT_ARTIFACT_TYPE
+from aia_core.application.contextual_report import (
+    CONTEXT_REPORT_ARTIFACT_TYPE,
+    CONTEXT_REPORT_CONTRACT,
+)
 from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.domain.scope import StudyStatus
@@ -50,10 +53,16 @@ def _scope(session: Any, world: Any) -> Any:
 
 
 def _prepared(
-    app: FastAPI, researcher: TestClient, world: Any, *, ask_pdf: bool = True
+    app: FastAPI,
+    researcher: TestClient,
+    world: Any,
+    *,
+    ask_pdf: bool = True,
+    contract: str = CONTEXT_REPORT_CONTRACT,
 ) -> tuple[str, str]:
     """A run, and the variant's draft stored and (``ask_pdf``) its PDF asked for, as the
-    prepare does; without it, as a draft whose PDF nobody asked for yet."""
+    prepare does; without it, as a draft whose PDF nobody asked for yet. ``contract``: the
+    composition contract the draft was stored under."""
     made = researcher.post(
         f"{_study(world)}/design/revisions", json={"content": DESIGN, "source_stage": "run"}
     )
@@ -75,7 +84,12 @@ def _prepared(
             artifact_type=CONTEXT_REPORT_ARTIFACT_TYPE,
             data=b"PK fictional draft with literature",
             input_fingerprint="fictional",
-            metadata={"run_id": run_id, "deep_research_run_id": REVIEW, "report_kind": "internal"},
+            metadata={
+                "run_id": run_id,
+                "deep_research_run_id": REVIEW,
+                "report_kind": "internal",
+                "report_contract": contract,
+            },
         )
         if ask_pdf:
             runs.request_report_pdf(docx=docx, run_id=run_id, deep_research_run_id=REVIEW)
@@ -103,6 +117,21 @@ def test_the_status_names_the_prepared_draft_and_its_pdf_and_composes_nothing(
     other = researcher.get(url, params={"deep_research_run_id": "RUN-abcabc"})
     assert other.json()["state"] == "NOT_PREPARED" and other.json()["pdf"] is None
     assert _jobs(app) == before
+
+
+def test_a_draft_of_an_older_composition_contract_is_prepared_again_never_served(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """Review 2: drafts stored under aia-contextual-report-3 (the Fio run's, 2026-10-16) read
+    READY for ever, and the page, which prepares only a variant NOT_PREPARED, never composed one
+    under the current contract."""
+    run_id, _ = _prepared(app, researcher, world, contract="aia-contextual-report-3")
+    base = f"{_study(world)}/research/runs/{run_id}/report/context"
+    body = researcher.get(base, params={"deep_research_run_id": REVIEW}).json()
+    assert body["state"] == "NOT_PREPARED" and body["artifact_id"] is None
+    download = researcher.get(f"{base}/download", params={"deep_research_run_id": REVIEW})
+    assert download.status_code == 409
+    assert download.json()["code"] == "context_report_not_prepared"
 
 
 def test_the_docx_download_is_the_prepared_draft_and_the_pdf_waits_for_its_rendering(

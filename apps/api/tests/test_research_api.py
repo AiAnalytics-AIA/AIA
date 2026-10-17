@@ -38,7 +38,7 @@ from aia_worker.settings import WorkerSettings
 from aia_worker.worker import Worker
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from aia_api.config import Settings
 
@@ -491,6 +491,30 @@ def test_a_report_without_a_pdf_says_it_can_be_asked_for_and_another_documents_i
     }
     refused = researcher.get(f"{other_url}/pdf/download")
     assert refused.status_code == 409 and refused.json()["code"] == "report_artifact_invalid"
+
+
+def test_a_step_pdf_gone_bad_or_missing_is_said_as_what_it_is(
+    app: FastAPI, researcher: TestClient, world: Any, damage_artifact: Any
+) -> None:
+    """Review 2: a corrupt or deleted PDF the report step made read as "not this report's
+    rendering", a different document, which told the reader the wrong cause."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    _store_internal_report(app, world, run_id, b"PK\x03\x04docx", pdf=b"%PDF-1.7 test")
+    url = f"{_runs(world)}/{run_id}/report"
+    pdf_id = researcher.get(url).json()["pdf"]["artifact_id"]
+    damage_artifact(pdf_id, "tampered")
+    assert researcher.get(f"{url}/pdf/download").status_code == 409  # the read marks it CORRUPT
+    assert researcher.get(url).json()["pdf"] == {
+        "state": "INVALID",
+        "reason": "pdf_corrupt",
+        "askable": True,
+    }
+    with create_session_factory(app.state.engine)() as session:
+        session.execute(delete(ProjectArtifactRow).where(ProjectArtifactRow.artifact_id == pdf_id))
+        session.commit()
+    assert researcher.get(url).json()["pdf"]["reason"] == "pdf_missing"
 
 
 def test_the_runs_own_report_gets_its_pdf_when_a_person_asks(

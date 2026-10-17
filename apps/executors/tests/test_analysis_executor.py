@@ -43,6 +43,7 @@ from aia_core.application.analysis_results import (
 from aia_core.application.contextual_report import contextual_report, stored_contextual_report
 from aia_core.application.deep_research import DeepResearchRuns
 from aia_core.application.report import ReportCompositionRefused
+from aia_core.application.report_variants import prepared_context_report
 from aia_core.application.research import FrozenDataset, ResearchRuns, research_artifacts
 from aia_core.domain.ai_contracts import Delivery, UsageOutcome
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
@@ -902,6 +903,36 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
                 assert again.artifact_id == stored.artifact_id and not stored.is_approved
                 assert stored.metadata["review_state"] == "DRAFT_UNAPPROVED"
                 assert stored.metadata["deep_research_run_id"] == interpreted.run_id
+                # A newer draft of the same pair (the study renamed and prepared again), then the
+                # first sources once more: prepare stores its draft again so the draft it asks a
+                # PDF for is the one every read names (review 2: they were two drafts).
+                drafts = research_artifacts(session, world.lead_scope(session), store)
+                renamed, _ = drafts.put(
+                    project_id=stored.project_id,
+                    revision=stored.revision,
+                    stage_type=stored.stage_type,
+                    artifact_type=stored.artifact_type,
+                    data=b"PK renamed",
+                    input_fingerprint="renamed",
+                    metadata=dict(stored.metadata),
+                )
+                restored, restored_data = stored_contextual_report(
+                    session,
+                    world.lead_scope(session),
+                    store,
+                    run_id=started.run_id,
+                    deep_research_run_id=interpreted.run_id,
+                )
+                assert restored.artifact_id not in (stored.artifact_id, renamed.artifact_id)
+                assert restored_data == data
+                current = prepared_context_report(
+                    session,
+                    world.lead_scope(session),
+                    store,
+                    run_id=started.run_id,
+                    deep_research_run_id=interpreted.run_id,
+                )
+                assert current is not None and current.artifact_id == restored.artifact_id
                 record_property(f"interpretation_{result_target.kind}_run_id", interpreted.run_id)
                 record_property(f"interpretation_{result_target.kind}_bundle_seal", evidence.sha256)
                 record_property(

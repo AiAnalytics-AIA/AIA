@@ -39,12 +39,15 @@ const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
  * What the report holds, from the run's own steps; nothing here is guessed from elsewhere.
  * The report is composed once every analysis module is done (its own step), so a part is
  * in it only when that step succeeded; the Sociomap only when the run computed one.
+ * ``prepared``: the chosen variant's draft is stored. It is composed on its own, with the same
+ * chapters, so its parts are in it whatever the run's own report step did (review 2).
  */
 export function reportParts(
   run: { steps: readonly { kind?: string | null; node_key?: string; status: string }[] },
   literature: Part["state"] = "pending",
+  prepared = false,
 ): Part[] {
-  const composed = run.steps.some((s) => s.kind === "research_report" && s.status === "SUCCEEDED");
+  const composed = prepared || run.steps.some((s) => s.kind === "research_report" && s.status === "SUCCEEDED");
   const map = run.steps.find((s) => s.node_key === "sociomap");
   const fromReport = (label: string, detail: string): Part => ({ label, detail, state: composed ? "in" : "pending" });
   return [
@@ -169,8 +172,8 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
   const report = status !== null && status.state === "READY" ? status : null;
   const modelled = report?.data_origin_kind === "MODELLED";
   const withReview = version === "internal" && review !== null;
-  const parts = reportParts(run, withReview ? literatureState(review, current) : "excluded");
   const variantReady = withReview && current?.state === "READY";
+  const parts = reportParts(run, withReview ? literatureState(review, current) : "excluded", variantReady);
 
   const clientWhy = modelled ? null : "Klientská zpráva vzniká jen z běhu s AI respondenty z populace.";
   // Why PDF is not offered for the chosen version, in the one wording every PDF state has.
@@ -241,7 +244,9 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
   const internal = !reportStep ? "NONE" : status === null ? null : reportStatus(status);
   const stateLine = withReview
     ? !variantReady
-      ? "Stav: zprávu s rešerší je třeba jednou připravit; pak ji stáhnete jako DOCX i PDF"
+      // A PDF is promised only where one will be made: not on a closed study, not where this
+      // deployment renders none (review 2).
+      ? "Stav: zprávu s rešerší je třeba jednou připravit. Pak ji stáhnete jako DOCX; PDF se stejným obsahem vznikne, pokud ho toto prostředí a stav studie dovolí"
       : `Stav: ${reportStatusWords(approved ? "APPROVED" : "DRAFT")}`
     : internal === null
       ? t("research.loading")

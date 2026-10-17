@@ -166,7 +166,7 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
             : <Button variant="primary" onClick={() => { if (current) { onReview?.(current.run_id); document.getElementById("complete-report-title")?.scrollIntoView?.({ block: "start" }); } }} disabled={busy || !frame.canEdit || analysisReady !== "ready"}>Použít ve zprávě</Button>}
         </div>
         <p className="mt-2 text-xs text-ink-muted">{used
-          ? "Kompletní zpráva studie nahoře je teď varianta s touto rešerší: stáhnete ji jako DOCX i PDF se stejným obsahem a schválíte tam."
+          ? "Kompletní zpráva studie nahoře je teď varianta s touto rešerší: stáhnete ji jako DOCX, PDF se stejným obsahem tam, kde ho toto prostředí a stav studie dovolí, a schválíte tam."
           : "Zprávu s rešerší stahujete a schvalujete v kartě Kompletní zpráva studie nahoře."}</p>
       </div>
       {bundle.origins?.includes("RECORDED_FIXTURE") ? <p className="text-sm text-status-fault">Podklady obsahují testovací výměny; nejde výhradně o živou rešerši.</p> : null}

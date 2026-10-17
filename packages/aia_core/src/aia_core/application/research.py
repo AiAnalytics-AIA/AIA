@@ -875,21 +875,23 @@ class ResearchRuns:
         if not self.scope.study_status.accepts_work:
             return None
         base = report_pdf_key(run_id, deep_research_run_id, docx.artifact_id)
-        jobs = self._workflows().list_runs(
-            project_id=docx.project_id, workflow_type=REPORT_PDF, key_prefix=base, limit=100
+        # The round is the newest job's, never a count of a capped listing: past 100 jobs the
+        # count named an existing key, and asking again silently returned the failed job.
+        newest = self._workflows().list_runs(
+            project_id=docx.project_id, workflow_type=REPORT_PDF, key_prefix=base, limit=1
         )
-        rounds = len(jobs)
-        if jobs and (
+        round_ = int(newest[0]["metadata"].get("round") or 0) if newest else 0
+        if newest and (
             again
-            or jobs[0]["status"]
+            or newest[0]["status"]
             in (
                 WorkflowRunStatus.FAILED,
                 WorkflowRunStatus.CANCELLED,
                 WorkflowRunStatus.RECOVERY_REQUIRED,
             )
         ):
-            rounds += 1
-        key = base if rounds <= 1 else f"{base}:again-{rounds - 1}"
+            round_ += 1
+        key = base if round_ == 0 else f"{base}:again-{round_}"
         return start_workflow(
             self.session,
             self.scope,
@@ -901,6 +903,7 @@ class ResearchRuns:
                 "run_id": run_id,
                 "deep_research_run_id": deep_research_run_id,
                 "docx_artifact_id": docx.artifact_id,
+                "round": round_,
             },
             step_inputs={
                 "pdf": {

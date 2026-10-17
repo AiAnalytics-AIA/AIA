@@ -24,7 +24,7 @@ from aia_core.infrastructure.report_pdf import PdfConversionFailed
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
-from aia_core.infrastructure.tables import ProjectArtifactRow, StepRunRow
+from aia_core.infrastructure.tables import ProjectArtifactRow, StepRunRow, WorkflowRunRow
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_executors.report import ReportPdfExecutor
 from aia_worker.settings import WorkerSettings
@@ -181,6 +181,29 @@ def test_a_pdf_that_failed_for_want_of_a_converter_is_rendered_once_a_person_ask
     assert again.created
     assert _drain(_worker(world, database_url, store, build, _FakePdf())) == ["completed"]
     assert _pdf_state(world, store, run_id, docx).state is PdfState.READY
+
+
+def test_asking_again_after_a_hundred_failed_jobs_still_starts_a_new_one(
+    world: Any, store: InMemoryArtifactStore
+) -> None:
+    """Review 2: the next round was the count of a listing capped at 100, so the 102nd ask
+    named an existing key and returned the failed job while the card still offered to ask."""
+    run_id, docx = _report(world, store)
+    for _ in range(102):
+        started = _ask(world, run_id, docx)
+        assert started.created
+        with world.sessions() as session:
+            session.execute(
+                update(WorkflowRunRow)
+                .where(WorkflowRunRow.run_id == started.run_id)
+                .values(status=WorkflowRunStatus.FAILED.value)
+            )
+            session.commit()
+    with world.sessions() as session:
+        jobs = WorkflowRepository(session, world.lead_scope(session)).list_runs(
+            project_id=docx.project_id, workflow_type=REPORT_PDF, limit=200
+        )
+    assert len(jobs) == 102 and jobs[0]["metadata"]["round"] == 101
 
 
 def test_a_conversion_that_fails_both_attempts_is_said_so_and_can_be_asked_again(

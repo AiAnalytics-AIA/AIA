@@ -30,7 +30,7 @@ from ..domain.workflow_templates import REPORT_PDF
 from ..infrastructure.artifact_repository import Artifact, ArtifactNotFound, ArtifactStatus
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.workflow_repository import WorkflowRepository
-from .contextual_report import CONTEXT_REPORT_ARTIFACT_TYPE, CONTEXT_REPORT_STAGE
+from .contextual_report import prepared_drafts
 from .report import INTERNAL_REPORT_PDF_ARTIFACT_TYPE
 from .research import ResearchRuns, report_pdf_key, research_artifacts
 
@@ -200,21 +200,17 @@ def prepared_context_report(
     deep_research_run_id: str,
 ) -> Artifact | None:
     """The report with this review as last prepared: the newest valid draft stored for this run
-    and review, read without composing anything; ``None`` when it was never prepared or none is
-    valid any more. Found as itself, never through a PDF job, which a closed Study never has."""
+    and review under the current composition contract (``prepared_drafts``), read without
+    composing anything; ``None`` when it was never prepared, none is valid any more, or every
+    draft predates the contract (the page then prepares it again). Found as itself, never
+    through a PDF job, which a closed Study never has."""
     run = ResearchRuns(session, scope).get(run_id)
-    drafts = [
-        a
-        for a in research_artifacts(session, scope, store).list_for_stage(
-            project_id=str(run["project_id"]),
-            revision=int(run["project_revision"]),
-            stage_type=CONTEXT_REPORT_STAGE,
-        )
-        if a.artifact_type == CONTEXT_REPORT_ARTIFACT_TYPE
-        and a.status is ArtifactStatus.VALID
-        and a.metadata.get("run_id") == run_id
-        and a.metadata.get("deep_research_run_id") == deep_research_run_id
-    ]
+    drafts = prepared_drafts(
+        research_artifacts(session, scope, store),
+        run,
+        run_id=run_id,
+        deep_research_run_id=deep_research_run_id,
+    )
     return drafts[-1] if drafts else None
 
 

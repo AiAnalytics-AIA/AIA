@@ -25,4 +25,15 @@ describe("reportParts", () => {
     // Literature waits on a chosen review; nothing claims it.
     expect(states["Literatura (Deep Research)"]).toBe("pending");
   });
+
+  it("claims the run-derived parts of a prepared variant whatever the run's own report step did", () => {
+    // Review 2: a failed report step left a ready report-with-review listed as "čeká na přípravu".
+    const steps = [step("report", "research_report", "FAILED"), step("sociomap", "sociomap", "SUCCEEDED")];
+    const states = Object.fromEntries(reportParts({ steps }, "in", true).map((p) => [p.label, p.state]));
+    expect(states["Shrnutí a dopady pro rozhodnutí"]).toBe("in");
+    expect(states["Tabulky všech otázek"]).toBe("in");
+    expect(states["Sociomapy"]).toBe("in");
+    expect(states["Literatura (Deep Research)"]).toBe("in");
+    expect(state(steps)["Shrnutí a dopady pro rozhodnutí"]).toBe("pending");
+  });
 });
