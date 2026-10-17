@@ -41,6 +41,8 @@ from aia_core.application.report_variants import (
     PdfState,
     VariantState,
     VariantStatus,
+    request_pdf,
+    variant_pdf,
     variant_status,
 )
 from aia_core.application.research import (
@@ -1725,23 +1727,51 @@ def run_report(
         "size_bytes": artifact.size_bytes,
         "synthetic": bool(artifact.metadata.get("synthetic")),
         **_origin_flags({_artifact_origin_kind(artifact.metadata)}),
-        "pdf": _pdf_state(step, artifact, run_id, research_artifacts(session, scope, store)),
+        "pdf": _base_pdf(step, artifact, run_id, scope, session, store)[1],
     }
 
 
-def _pdf_state(
-    step: dict[str, Any], report: Artifact, run_id: str, repo: ArtifactRepository
-) -> dict[str, Any] | None:
+def _base_pdf(
+    step: dict[str, Any] | None,
+    report: Artifact,
+    run_id: str,
+    scope: StudyContext,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> tuple[Artifact | None, dict[str, Any] | None]:
+    """The run's own report's PDF -- the one its report step rendered, else one a person asked
+    for since (``report_pdf``, research-integrity-report review: a step that rendered none, or
+    failed to, left no way to get one) -- and its state; the PDF only when it is ready."""
     try:
-        pdf, said = _report_pdf(step, report, run_id, repo)
+        own, said = _report_pdf(step, report, run_id, research_artifacts(session, scope, store))
     except HTTPException:
-        # The report stands; a PDF that is not its rendering is never offered.
-        return {"state": "INVALID", "reason": None}
-    if pdf is not None:
-        return {"state": "READY", "artifact_id": pdf.artifact_id, "size_bytes": pdf.size_bytes}
-    if said is not None:
-        return {"state": str(said.get("state") or "FAILED"), "reason": said.get("reason")}
-    return None
+        # The step's PDF is not this report's rendering: never offered, asked for anew.
+        own, said = None, {"state": "INVALID", "reason": "pdf_not_this_report"}
+    if own is not None:
+        return own, {
+            "state": "READY",
+            "artifact_id": own.artifact_id,
+            "size_bytes": own.size_bytes,
+            "askable": False,
+        }
+    asked = variant_pdf(
+        session, scope, store, docx=report, run_id=run_id, deep_research_run_id=None
+    )
+    if asked.state is not PdfState.NOT_REQUESTED:
+        # A rendering a person asked for since: its state is the PDF's now.
+        return asked.artifact, asked.to_json()
+    if said is None:
+        # The step rendered none (the converter was off) and nobody has asked since.
+        return None, {
+            "state": PdfState.NOT_REQUESTED.value,
+            "reason": asked.reason,
+            "askable": asked.askable,
+        }
+    return None, {
+        "state": str(said.get("state") or "FAILED"),
+        "reason": said.get("reason"),
+        "askable": asked.askable,
+    }
 
 
 def _review_headers(docx: Artifact, filename: str) -> dict[str, str]:
@@ -1766,20 +1796,48 @@ def download_run_report_pdf(
     except ScopeDenied as exc:
         raise _refused(exc) from exc
     step, report = _report_for_run(run_id, scope, session, store)
-    repo = research_artifacts(session, scope, store)
-    pdf, _said = _report_pdf(step, report, run_id, repo)
+    if report is None:
+        raise _not_found("report_pdf")
+    pdf, state = _base_pdf(step, report, run_id, scope, session, store)
     if pdf is None:
+        if state is not None and state.get("state") == PdfState.INVALID.value:
+            # Never another document's bytes, and never a bare "not found" for one.
+            raise HTTPException(409, detail={"code": "report_artifact_invalid"})
         raise _not_found("report_pdf")
     try:
-        data = repo.read(pdf.artifact_id)
+        data = research_artifacts(session, scope, store).read(pdf.artifact_id)
     except (IntegrityError, ObjectNotFound) as exc:
         raise artifact_corrupt(session) from exc
-    assert report is not None  # a PDF is served only as the stored report's rendering
     return Response(
         content=data,
         media_type=PDF_MEDIA_TYPE,
         headers=_review_headers(report, f"AIA-{scope.study_id}-internal-draft.pdf"),
     )
+
+
+@router.post(
+    "/research/runs/{run_id}/report/pdf",
+    response_model=dict[str, Any],
+    summary="Ask for the PDF of the run's own report: a rendering of its stored DOCX",
+)
+def ask_run_report_pdf(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> dict[str, Any]:
+    """When the report step rendered no PDF, or one that failed or became invalid, a new
+    rendering of exactly its stored DOCX (``report_pdf``); a ready PDF is left as it is. On a
+    Study that starts no work nothing is asked, and the status says why."""
+    step, report = _report_for_run(run_id, scope, session, store)
+    if report is None:
+        raise _not_found("report")
+    own, _state = _base_pdf(step, report, run_id, scope, session, store)
+    if own is None:
+        try:
+            request_pdf(
+                session, scope, store, docx=report, run_id=run_id, deep_research_run_id=None
+            )
+        except ScopeDenied as exc:
+            raise _refused(exc) from exc
+    return run_report(run_id, scope, session, store)
 
 
 @router.get(
@@ -1833,8 +1891,11 @@ class ReportVariantPdfResponse(BaseModel):
     artifact_id: str | None = None
     sha256: str | None = None
     size_bytes: int | None = None
-    #: Why a FAILED or INVALID PDF is not there (``pdf_disabled``, ``pdf_conversion_failed`` …).
+    #: Why a FAILED or INVALID PDF is not there (``pdf_disabled``, ``pdf_conversion_failed``,
+    #: ``pdf_corrupt`` …), or why none was asked for (``study_closed``).
     reason: str | None = None
+    #: Whether asking now (``POST …/pdf``) starts a rendering: the page offers it exactly then.
+    askable: bool = False
 
 
 class ReportVariantResponse(BaseModel):
@@ -1932,8 +1993,14 @@ def prepare_contextual_report(
             deep_research_run_id=deep_research_run_id,
             build=settings.build.sha or "",
         )
-        ResearchRuns(session, scope).request_report_pdf(
-            docx=artifact, run_id=run_id, deep_research_run_id=deep_research_run_id
+        # On a Study that starts no work the draft is still stored; its PDF says why it waits.
+        request_pdf(
+            session,
+            scope,
+            store,
+            docx=artifact,
+            run_id=run_id,
+            deep_research_run_id=deep_research_run_id,
         )
     except ScopeDenied as exc:
         raise _refused(exc) from exc
@@ -1945,6 +2012,43 @@ def prepare_contextual_report(
         raise HTTPException(
             409, detail={"code": "context_report_refused", "message": str(exc)}
         ) from exc
+    return _variant_response(
+        run_id,
+        deep_research_run_id,
+        _variant(run_id, deep_research_run_id, scope, session, store),
+    )
+
+
+@router.post(
+    "/research/runs/{run_id}/report/context/pdf",
+    response_model=ReportVariantResponse,
+    summary="Ask again for the PDF of the prepared report with a chosen review",
+    responses={409: {"model": ErrorResponse}},
+)
+def ask_contextual_report_pdf(
+    run_id: RunIdPath,
+    deep_research_run_id: DeepResearchRunIdQuery,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> ReportVariantResponse:
+    """A new rendering of the draft already prepared, after its PDF failed or became invalid;
+    composes nothing, so a deploy that changed what composition accepts never strands a stored
+    draft without its PDF. 409 ``context_report_not_prepared`` before it is prepared."""
+    found = _variant(run_id, deep_research_run_id, scope, session, store)
+    if found.docx is None:
+        raise _not_prepared()
+    try:
+        request_pdf(
+            session,
+            scope,
+            store,
+            docx=found.docx,
+            run_id=run_id,
+            deep_research_run_id=deep_research_run_id,
+        )
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
     return _variant_response(
         run_id,
         deep_research_run_id,

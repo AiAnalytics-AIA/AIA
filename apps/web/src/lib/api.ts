@@ -1098,8 +1098,18 @@ export type ResearchAnalysis = {
   }>;
 };
 
-/** Where a variant's PDF stands: the server's closed set (application/report_variants.py PdfState). */
+/** Where a report's PDF stands: the server's closed set (application/report_variants.py PdfState). */
 export type ReportPdfState = "NOT_REQUESTED" | "RENDERING" | "READY" | "FAILED" | "INVALID";
+/** A stored report's PDF, the run's own or a variant's: its state, why it is not there, and
+ * whether a person asking now starts a rendering (the server decides; absent: never offered). */
+export type ReportPdf = {
+  state: ReportPdfState;
+  artifact_id?: string | null;
+  sha256?: string | null;
+  size_bytes?: number | null;
+  reason?: string | null;
+  askable?: boolean;
+};
 /** The report of a run with one chosen literature review, and the PDF rendered from that very draft. */
 export type ReportVariant = {
   run_id: string;
@@ -1109,7 +1119,7 @@ export type ReportVariant = {
   sha256?: string | null;
   review_state?: "DRAFT_UNAPPROVED" | "APPROVED_INTERNAL" | null;
   internal_only: true;
-  pdf?: { state: ReportPdfState; artifact_id: string | null; size_bytes: number | null; reason: string | null } | null;
+  pdf?: ReportPdf | null;
 };
 export type ResearchReport = {
   run_id: string;
@@ -1123,8 +1133,9 @@ export type ResearchReport = {
   synthetic?: boolean;
   modelled?: boolean;
   data_origin_kind?: string | null;
-  /** The stored DOCX rendered as PDF; null when this run's worker made none (B3). */
-  pdf?: { state: "READY"; artifact_id: string; size_bytes: number } | { state: string; reason?: string | null } | null;
+  /** The stored DOCX rendered as PDF (B3): by its report step, or since on request; null from an
+   * older API when this run's worker made none. */
+  pdf?: ReportPdf | null;
 };
 
 const studyPath = (studyId: string) => `/api/v1/studies/${enc(studyId)}`;
@@ -1216,6 +1227,9 @@ export const research = {
   downloadClientReport: (studyId: string, runId: string) =>
     requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/client/download`),
   /** The PDF rendered from the run's own report; its artifact id is that DOCX draft's. */
+  /** Ask for the PDF of the run's own report when its step rendered none, or one failed. */
+  askReportPdf: (studyId: string, runId: string) =>
+    request<ResearchReport>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/pdf`),
   downloadReportPdf: (studyId: string, runId: string) =>
     requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/pdf/download`),
   /** A person approves a stored report of the run (internal only; recorded in the ledger). */
@@ -1277,6 +1291,9 @@ export const deepResearch = {
   /** Store the report with this review once and ask the worker for its PDF: the same draft in both formats. */
   prepareContextReport: (studyId: string, runId: string, deepRunId: string) =>
     request<ReportVariant>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/context${query({ deep_research_run_id: deepRunId })}`),
+  /** A new rendering of the prepared draft after its PDF failed or went bad; composes nothing. */
+  askContextReportPdf: (studyId: string, runId: string, deepRunId: string) =>
+    request<ReportVariant>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/context/pdf${query({ deep_research_run_id: deepRunId })}`),
   downloadContextReportPdf: (studyId: string, runId: string, deepRunId: string) =>
     requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/context/pdf/download${query({ deep_research_run_id: deepRunId })}`),
   /** `confirmCostUsd`: the ceiling a person confirmed when the study's limit asked (409 cost_confirmation_required). */

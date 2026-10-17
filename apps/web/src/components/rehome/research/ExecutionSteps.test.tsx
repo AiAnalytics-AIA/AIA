@@ -1603,6 +1603,55 @@ describe("Results", () => {
     expect(report.getByText(/Klientská zpráva vzniká jen z běhu s AI respondenty z populace/)).toBeTruthy();
   });
 
+  it("asks for the run's own report's PDF again when its step made none", async () => {
+    // Review, 2026-10-16: a report whose step rendered no PDF had no way to get one.
+    stubDownloads();
+    let asked = false;
+    api({
+      ...listed(reportRun()),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () =>
+        reportStatus({ pdf: asked ? { state: "RENDERING", askable: false } : { state: "NOT_REQUESTED", reason: null, askable: true } }),
+      "POST /api/v1/studies/STU-1/research/runs/RUN-1/report/pdf": () => {
+        asked = true;
+        return reportStatus({ pdf: { state: "RENDERING", askable: false } });
+      },
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    const report = await card();
+    fireEvent.click(await report.findByRole("button", { name: "Vytvořit PDF znovu" }));
+    await waitFor(() => expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/pdf")).toHaveLength(1));
+    await waitFor(() => expect(report.queryByRole("button", { name: "Vytvořit PDF znovu" })).toBeNull());
+    expect(report.getByRole("radio", { name: "PDF" }).getAttribute("title")).toContain("vytváří");
+  });
+
+  it("prepares the report with a review although the run's own report failed", async () => {
+    // Review, 2026-10-16: the card's one action waited on the base report being ready, which the
+    // report with a review does not need (the prepare is refused by name when it cannot be made).
+    const review = { run_id: "RUN-deep", purpose: "INTERPRETATION_RESEARCH", target: { research_run_id: "RUN-1" },
+      preset: "QUICK", status: "COMPLETED", phase: "COMPLETED", is_terminal: true, retryable: false,
+      created_at: "2026-10-16T10:00:00Z", actual_cost_usd: 0.1, steps: [] };
+    api({
+      ...listed(run({ ...COMPLETED, steps: [...COMPLETED.steps, step("report", "FAILED", { kind: "research_report", stage_type: "REPORT" })] })),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => ({ run_id: "RUN-1", state: "FAILED", internal_only: true, reason: "pdf_conversion_failed" }),
+      "GET /api/v1/studies/STU-1/deep-research/runs": () => [review],
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/context": () => ({ run_id: "RUN-1", deep_research_run_id: "RUN-deep", state: "NOT_PREPARED", internal_only: true }),
+      "POST /api/v1/studies/STU-1/research/runs/RUN-1/report/context": () => ({ run_id: "RUN-1", deep_research_run_id: "RUN-deep", state: "NOT_PREPARED", internal_only: true }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    const report = await card();
+    const variant = await report.findByRole("combobox", { name: "Varianta zprávy" });
+    await waitFor(() => expect(within(variant).getAllByRole("option")).toHaveLength(2));
+    fireEvent.change(variant, { target: { value: "RUN-deep" } });
+    const prepare = await report.findByRole("button", { name: /Připravit zprávu s rešerší/ }) as HTMLButtonElement;
+    expect(prepare.disabled).toBe(false);
+    fireEvent.click(prepare);
+    await waitFor(() => expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/context")).toHaveLength(1));
+  });
+
   it("never hands over a file that is not the draft the card shows and approves", async () => {
     // A newer draft stored since the card read the status: its bytes are not what an approval here names.
     const createObjectURL = stubDownloads();

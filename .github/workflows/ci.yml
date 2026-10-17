@@ -565,7 +565,9 @@ jobs:
               # One report variant, the same draft in DOCX and PDF (research-integrity-report 3).
               "/api/v1/studies/{study_id}/research/runs/{run_id}/report/context",
               "/api/v1/studies/{study_id}/research/runs/{run_id}/report/context/download",
+              "/api/v1/studies/{study_id}/research/runs/{run_id}/report/context/pdf",
               "/api/v1/studies/{study_id}/research/runs/{run_id}/report/context/pdf/download",
+              "/api/v1/studies/{study_id}/research/runs/{run_id}/report/pdf",
               # AIA's own session and the gate in front of /app (ADR 0018); Caddy's
               # forward_auth names /session/gate, so a rename breaks the site.
               "/api/v1/session",

@@ -849,27 +849,42 @@ class ResearchRuns:
         return self._designs().project_id()
 
     def request_report_pdf(
-        self, *, docx: Artifact, run_id: str, deep_research_run_id: str | None
-    ) -> StartedRun:
+        self,
+        *,
+        docx: Artifact,
+        run_id: str,
+        deep_research_run_id: str | None,
+        again: bool = False,
+    ) -> StartedRun | None:
         """Ask the worker to render a stored report DOCX of ``run_id`` as PDF (``report_pdf``).
 
         Asking again while a job for the same DOCX is queued, running or done returns that job;
         after one failed, was cancelled or stopped for recovery (no converter, a conversion that
-        failed both attempts), a
-        person asking again starts a new job, so enabling the converter later is never final.
-        Needs ``RUN_WORKFLOW`` on an open Study, as any job does; only a person's explicit
-        "prepare" calls it, never a download.
+        failed both attempts), or with ``again`` (its rendering is missing or corrupt, which the
+        caller read: ``report_variants.variant_pdf``), a person asking again starts a new job,
+        so enabling the converter later is never final.
+
+        ``None`` on a delivered or archived Study: it starts no work, so no job is asked for,
+        and its stored DOCX stays the report (the caller says why the PDF is not there). Needs
+        ``RUN_WORKFLOW``, as any job does; only a person's explicit request calls it, never a
+        download.
         """
         self.get(run_id)
+        if not self.scope.study_status.accepts_work:
+            return None
         base = report_pdf_key(run_id, deep_research_run_id, docx.artifact_id)
         jobs = self._workflows().list_runs(
             project_id=docx.project_id, workflow_type=REPORT_PDF, key_prefix=base, limit=100
         )
         rounds = len(jobs)
-        if jobs and jobs[0]["status"] in (
-            WorkflowRunStatus.FAILED,
-            WorkflowRunStatus.CANCELLED,
-            WorkflowRunStatus.RECOVERY_REQUIRED,
+        if jobs and (
+            again
+            or jobs[0]["status"]
+            in (
+                WorkflowRunStatus.FAILED,
+                WorkflowRunStatus.CANCELLED,
+                WorkflowRunStatus.RECOVERY_REQUIRED,
+            )
         ):
             rounds += 1
         key = base if rounds <= 1 else f"{base}:again-{rounds - 1}"

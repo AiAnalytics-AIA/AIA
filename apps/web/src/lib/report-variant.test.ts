@@ -4,6 +4,8 @@ import {
   currentVariant,
   downloadMismatch,
   literatureState,
+  pdfAskable,
+  pdfWhy,
   reviewsFor,
   variantPdfAskable,
   variantPdfWhy,
@@ -47,19 +49,31 @@ describe("report variant (research-integrity-report 3)", () => {
     expect(variantPdfWhy(variant(pdf("NOT_REQUESTED")))).toContain("nebylo vyžádáno");
     expect(variantPdfWhy(variant(pdf("FAILED", "pdf_conversion_failed")))).toContain("nepodařilo");
     expect(variantPdfWhy(variant(pdf("FAILED", "pdf_disabled")))).toContain("není v tomto nasazení");
-    expect(variantPdfWhy(variant(pdf("INVALID")))).toContain("neodpovídá");
+    expect(variantPdfWhy(variant(pdf("INVALID", "pdf_not_this_report")))).toContain("neodpovídá");
+    expect(variantPdfWhy(variant(pdf("INVALID", "pdf_corrupt")))).toContain("poškozené");
+    expect(variantPdfWhy(variant(pdf("NOT_REQUESTED", "study_closed")))).toContain("uzavřená");
     expect(variantPdfWhy(variant(null, "NOT_PREPARED"))).toContain("připravte");
     // A state this page does not know is never a download.
     expect(variantPdfWhy(variant({ ...pdf("READY"), state: "SOMETHING" as never }))).toContain("nelze přečíst");
   });
 
-  it("asks for a PDF again only when none was asked for or it failed", () => {
-    expect(variantPdfAskable(variant(null))).toBe(true);
-    expect(variantPdfAskable(variant(pdf("FAILED", "pdf_conversion_failed")))).toBe(true);
-    expect(variantPdfAskable(variant(pdf("RENDERING")))).toBe(false);
-    expect(variantPdfAskable(variant(pdf("READY")))).toBe(false);
-    expect(variantPdfAskable(variant(pdf("INVALID")))).toBe(false);
-    expect(variantPdfAskable(variant(null, "NOT_PREPARED"))).toBe(false);
+  it("says a new rendering can be asked for exactly when the server says so", () => {
+    const failed = { ...pdf("FAILED", "pdf_conversion_failed"), askable: true };
+    expect(pdfWhy(failed)).toContain("Můžete ho nechat vytvořit znovu.");
+    expect(pdfWhy({ ...failed, askable: false })).not.toContain("znovu");
+    // The run's own report from an older API that recorded no PDF: it made none.
+    expect(pdfWhy(null)).toBe("Tento běh PDF nevytvořil.");
+  });
+
+  it("asks for a PDF again only when the server would start a rendering", () => {
+    expect(variantPdfAskable(variant({ ...pdf("FAILED", "pdf_conversion_failed"), askable: true }))).toBe(true);
+    expect(variantPdfAskable(variant({ ...pdf("INVALID", "pdf_corrupt"), askable: true }))).toBe(true);
+    // The server's no is final: a closed study, a ready or rendering PDF, or an older API.
+    expect(variantPdfAskable(variant({ ...pdf("NOT_REQUESTED", "study_closed"), askable: false }))).toBe(false);
+    expect(variantPdfAskable(variant(pdf("FAILED", "pdf_conversion_failed")))).toBe(false);
+    expect(variantPdfAskable(variant(null))).toBe(false);
+    expect(variantPdfAskable(variant({ ...pdf("NOT_REQUESTED"), askable: true }, "NOT_PREPARED"))).toBe(false);
+    expect(pdfAskable({ ...pdf("NOT_REQUESTED"), askable: true })).toBe(true);
   });
 
   it("reads again only while the PDF is being made", () => {

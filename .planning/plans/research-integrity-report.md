@@ -229,6 +229,53 @@ converted by `LibreOfficePdf` (LibreOffice 24.2.7.2), the worker's own converter
   appear only after a reload. Smallest fix: read a WAITING run whose `needs_attention` is false,
   every 10 s (`pollMs`). Test: the same.
 
+### Found by the branch review (2026-10-16), all fixed on this branch
+
+An adversarial review of the branch, six lenses with a skeptic per finding. Its verifiers and four
+lenses stopped at a session limit, so every finding below was checked against the code here and
+each fix carries a test that fails without it.
+
+- **F10. An open question beside one the run will not answer passed the gate.**
+  `domain/answerability.py:166 @ 56a5fe4` judged by the trace's verdict, the best over every
+  measure, so an open question (AT_RISK, never cited) lifted a conditional one (UNANSWERABLE): the
+  run started unacknowledged and the report claimed a citable measure. Now only measures the run
+  answers and the analysis cites decide. Test:
+  `test_an_open_question_beside_one_the_run_will_not_answer_is_still_a_gap`.
+- **F11. The same ranking hid support left to fieldwork.** `:169 @ 56a5fe4`: pending read the
+  trace's verdict, so an open question's AT_RISK recorded an unknown measure as at risk. Test:
+  `test_support_left_to_fieldwork_is_pending_even_beside_an_open_question`.
+- **F12. An acknowledgement given for a revision that already had a run was kept nowhere.**
+  `ExecutionSteps.tsx:691 @ 56a5fe4` moved on to Progress whatever the start returned; a start
+  returns the revision's existing run. The page now checks the run holds the acknowledgement,
+  and says so when it does not. Test: "says nothing new started when the revision already had a
+  run".
+- **F13. The setting's comment said the gate is on for develop** (`config.py:95 @ 56a5fe4`); it
+  ships off everywhere until D1.
+- **F14. A delivered study could not get the report with a review in any format.**
+  `report_variants.py:156 @ 1e696ac` found a draft only through its PDF job, and a closed study
+  starts none (`workflow_repository.py:509 @ e57c3b8`, `require_open_study`). Drafts are found as
+  themselves; on a closed study the PDF says `study_closed`. Tests:
+  `test_a_closed_study_finds_its_draft_and_says_why_its_pdf_waits`,
+  `test_a_closed_study_asks_for_no_pdf_and_says_why`.
+- **F15. A corrupt or missing PDF could never be rendered again.** `research.py:869 @ 1e696ac`
+  started a new job only after a failed one; a corrupt PDF's job had succeeded. Asking after an
+  INVALID PDF starts a new job, and the reason says `pdf_corrupt` apart from
+  `pdf_not_this_report`. Test: `test_a_pdf_whose_bytes_went_bad_is_rendered_again_when_a_person_asks`.
+- **F16. Asking for a PDF again recomposed the whole report**, which a later deploy can refuse
+  (`CompleteReport.tsx:209 @ 1e696ac`). `POST …/report/context/pdf` asks for the stored draft.
+  Test: `test_asking_again_renders_the_prepared_draft_once_and_never_composes`.
+- **F17. The run's own report could never get a PDF its step did not make**
+  (`routers/research.py:1681 @ 1e696ac` read only the step's output). `POST …/report/pdf`
+  renders its stored DOCX; the status and the download fall back to that rendering. Test:
+  `test_the_runs_own_report_gets_its_pdf_when_a_person_asks`.
+- **F18. The report with a review waited on the run's own report**
+  (`CompleteReport.tsx:311 @ 1e696ac`: `disabled={!report …}`), a regression from 357d779, where
+  Interpretation Research offered it whenever the analysis was complete. Test: "prepares the
+  report with a review although the run's own report failed".
+
+Every PDF's state now says whether asking starts a rendering (`askable`), and the card offers
+"Vytvořit PDF znovu" exactly then, for the run's own report and a variant alike.
+
 ## Decisions for the owner
 
 - **D1.** Whether the answerability acknowledgement is a recorded precondition (proposed: ADR 0025)
@@ -266,7 +313,9 @@ converted by `LibreOfficePdf` (LibreOffice 24.2.7.2), the worker's own converter
   (research_report_pdf): a stored report DOCX rendered as PDF".
 - `CLAUDE.md` § 2, routers/research: "readiness answers answerability (acknowledgement_required);
   start and retries take acknowledge_research_questions; POST/GET …/report/context,
-  …/report/context/pdf/download".
+  POST …/report/context/pdf (asks for the prepared draft's PDF again, composing nothing),
+  …/report/context/pdf/download; POST …/report/pdf (the run's own report's PDF, when its step
+  made none or one failed); every report PDF state says askable".
 - `CLAUDE.md` § A research run: the answerability paragraph and the new key.
 - `ARCHITECTURE.md` § 4: "A run records whether it can answer what it asks"; narrow the "no
   override field" sentence (:422) to evidence gates, which this acknowledgement is not.

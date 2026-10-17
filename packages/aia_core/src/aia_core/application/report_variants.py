@@ -9,9 +9,11 @@ literature had no PDF at all, and the card offering PDF never knew a review was 
 A researcher now chooses a variant: the run's own report, or the report with one completed
 interpretation review. Preparing the variant stores its DOCX once
 (``stored_contextual_report``) and asks the worker to render *that stored artifact*
-(``ResearchRuns.request_report_pdf``). Everything else reads: :func:`variant_status` resolves a
-variant's draft and PDF in one place, composing nothing and changing no state, so the status, the
-DOCX download, the PDF download and the approval all name the same draft.
+(:func:`request_pdf`). Everything else reads: :func:`variant_status` resolves a variant's draft
+and PDF in one place, composing nothing and changing no state, so the status, the DOCX download,
+the PDF download and the approval all name the same draft. The draft is found as itself (its
+stage, type, run and review), never through a PDF job, so a delivered study, which starts no job,
+still prepares and downloads its DOCX.
 """
 
 from __future__ import annotations
@@ -22,13 +24,13 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from ..domain.scope import StudyContext
+from ..domain.scope import Permission, StudyContext
 from ..domain.workflow import StepRunStatus
 from ..domain.workflow_templates import REPORT_PDF
 from ..infrastructure.artifact_repository import Artifact, ArtifactNotFound, ArtifactStatus
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.workflow_repository import WorkflowRepository
-from .contextual_report import CONTEXT_REPORT_ARTIFACT_TYPE
+from .contextual_report import CONTEXT_REPORT_ARTIFACT_TYPE, CONTEXT_REPORT_STAGE
 from .report import INTERNAL_REPORT_PDF_ARTIFACT_TYPE
 from .research import ResearchRuns, report_pdf_key, research_artifacts
 
@@ -38,6 +40,7 @@ __all__ = [
     "VariantState",
     "VariantStatus",
     "prepared_context_report",
+    "request_pdf",
     "variant_pdf",
     "variant_status",
 ]
@@ -64,11 +67,19 @@ class PdfState(StrEnum):
     INVALID = "INVALID"
 
 
+#: Where a person asking for the PDF starts a new rendering of the same draft.
+_ASKABLE = frozenset({PdfState.NOT_REQUESTED, PdfState.FAILED, PdfState.INVALID})
+
+
 @dataclass(frozen=True, slots=True)
 class VariantPdf:
     state: PdfState
     artifact: Artifact | None = None
     reason: str | None = None
+    #: Whether a person asking now starts a rendering (:func:`request_pdf`): never asked, failed
+    #: or invalid, on a Study that still starts work, by someone who may run one. The page
+    #: offers it exactly then.
+    askable: bool = False
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -77,7 +88,18 @@ class VariantPdf:
             "sha256": self.artifact.sha256 if self.artifact else None,
             "size_bytes": self.artifact.size_bytes if self.artifact else None,
             "reason": self.reason,
+            "askable": self.askable,
         }
+
+
+def _judged(scope: StudyContext, state: PdfState, **kw: Any) -> VariantPdf:
+    """A PDF state with whether asking now would start a rendering, and, on a Study that starts
+    no work, why nothing was asked for."""
+    open_ = scope.study_status.accepts_work
+    if state is PdfState.NOT_REQUESTED and not open_:
+        kw.setdefault("reason", "study_closed")
+    askable = state in _ASKABLE and open_ and scope.has(Permission.RUN_WORKFLOW)
+    return VariantPdf(state, askable=askable, **kw)
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,7 +129,7 @@ def variant_pdf(
         limit=1,
     )
     if not jobs:
-        return VariantPdf(PdfState.NOT_REQUESTED)
+        return _judged(scope, PdfState.NOT_REQUESTED)
     (step,) = workflows.get_run(str(jobs[0]["run_id"]))["steps"]
     status = step["status"]
     if status is StepRunStatus.SUCCEEDED:
@@ -115,13 +137,15 @@ def variant_pdf(
         try:
             pdf = research_artifacts(session, scope, store).get(str(output.get("artifact_id")))
         except ArtifactNotFound:
-            return VariantPdf(PdfState.INVALID, reason="pdf_missing")
+            return _judged(scope, PdfState.INVALID, reason="pdf_missing")
         if (
             pdf.artifact_type != INTERNAL_REPORT_PDF_ARTIFACT_TYPE
-            or pdf.status is not ArtifactStatus.VALID
             or pdf.metadata.get("rendering_of") != docx.artifact_id
         ):
-            return VariantPdf(PdfState.INVALID, reason="pdf_not_this_report")
+            return _judged(scope, PdfState.INVALID, reason="pdf_not_this_report")
+        if pdf.status is not ArtifactStatus.VALID:
+            # Its stored bytes failed a read: rendered again on request, never served.
+            return _judged(scope, PdfState.INVALID, reason="pdf_corrupt")
         return VariantPdf(PdfState.READY, artifact=pdf)
     # A conversion that failed every attempt stops for recovery: for a PDF that needs nobody
     # but a person asking again (ResearchRuns.request_report_pdf starts a new job).
@@ -133,8 +157,38 @@ def variant_pdf(
     ):
         attempts = step.get("attempts") or []
         error = (attempts[-1].get("error") or {}) if attempts else {}
-        return VariantPdf(PdfState.FAILED, reason=str(error.get("reason") or "pdf_failed"))
+        return _judged(scope, PdfState.FAILED, reason=str(error.get("reason") or "pdf_failed"))
     return VariantPdf(PdfState.RENDERING)
+
+
+def request_pdf(
+    session: Session,
+    scope: StudyContext,
+    store: ArtifactStore,
+    *,
+    docx: Artifact,
+    run_id: str,
+    deep_research_run_id: str | None,
+) -> VariantPdf:
+    """Ask for the PDF of a stored report DOCX (the run's own, or a variant's), by one rule: a
+    rendering that is ready or under way is left as it is; one never asked for, failed or
+    invalid is asked again as a new job of exactly that DOCX. Composes nothing, so a draft
+    stored before a later deploy changed what composition accepts still gets its PDF. On a
+    Study that starts no work nothing is asked and the state says so (``study_closed``)."""
+    current = variant_pdf(
+        session, scope, store, docx=docx, run_id=run_id, deep_research_run_id=deep_research_run_id
+    )
+    if current.state not in _ASKABLE or not scope.study_status.accepts_work:
+        return current
+    ResearchRuns(session, scope).request_report_pdf(
+        docx=docx,
+        run_id=run_id,
+        deep_research_run_id=deep_research_run_id,
+        again=current.state is PdfState.INVALID,
+    )
+    return variant_pdf(
+        session, scope, store, docx=docx, run_id=run_id, deep_research_run_id=deep_research_run_id
+    )
 
 
 def prepared_context_report(
@@ -145,33 +199,23 @@ def prepared_context_report(
     run_id: str,
     deep_research_run_id: str,
 ) -> Artifact | None:
-    """The report with this review as last prepared (its newest PDF job names its draft), read
-    without composing anything; ``None`` when it was never prepared or is no longer valid."""
-    project_id = ResearchRuns(session, scope).design_project_id()
-    if project_id is None:
-        return None
-    jobs = WorkflowRepository(session, scope).list_runs(
-        project_id=project_id,
-        workflow_type=REPORT_PDF,
-        key_prefix=f"{REPORT_PDF}:{run_id}:{deep_research_run_id}:",
-        limit=1,
-    )
-    if not jobs:
-        return None
-    try:
-        docx = research_artifacts(session, scope, store).get(
-            str((jobs[0].get("metadata") or {}).get("docx_artifact_id"))
+    """The report with this review as last prepared: the newest valid draft stored for this run
+    and review, read without composing anything; ``None`` when it was never prepared or none is
+    valid any more. Found as itself, never through a PDF job, which a closed Study never has."""
+    run = ResearchRuns(session, scope).get(run_id)
+    drafts = [
+        a
+        for a in research_artifacts(session, scope, store).list_for_stage(
+            project_id=str(run["project_id"]),
+            revision=int(run["project_revision"]),
+            stage_type=CONTEXT_REPORT_STAGE,
         )
-    except ArtifactNotFound:
-        return None
-    if (
-        docx.artifact_type != CONTEXT_REPORT_ARTIFACT_TYPE
-        or docx.status is not ArtifactStatus.VALID
-        or docx.metadata.get("run_id") != run_id
-        or docx.metadata.get("deep_research_run_id") != deep_research_run_id
-    ):
-        return None
-    return docx
+        if a.artifact_type == CONTEXT_REPORT_ARTIFACT_TYPE
+        and a.status is ArtifactStatus.VALID
+        and a.metadata.get("run_id") == run_id
+        and a.metadata.get("deep_research_run_id") == deep_research_run_id
+    ]
+    return drafts[-1] if drafts else None
 
 
 def variant_status(

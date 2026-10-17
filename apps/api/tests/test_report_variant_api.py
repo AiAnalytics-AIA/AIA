@@ -49,8 +49,11 @@ def _scope(session: Any, world: Any) -> Any:
     )
 
 
-def _prepared(app: FastAPI, researcher: TestClient, world: Any) -> tuple[str, str]:
-    """A run, and the variant's draft stored and its PDF asked for, as the prepare does."""
+def _prepared(
+    app: FastAPI, researcher: TestClient, world: Any, *, ask_pdf: bool = True
+) -> tuple[str, str]:
+    """A run, and the variant's draft stored and (``ask_pdf``) its PDF asked for, as the
+    prepare does; without it, as a draft whose PDF nobody asked for yet."""
     made = researcher.post(
         f"{_study(world)}/design/revisions", json={"content": DESIGN, "source_stage": "run"}
     )
@@ -74,7 +77,8 @@ def _prepared(app: FastAPI, researcher: TestClient, world: Any) -> tuple[str, st
             input_fingerprint="fictional",
             metadata={"run_id": run_id, "deep_research_run_id": REVIEW, "report_kind": "internal"},
         )
-        runs.request_report_pdf(docx=docx, run_id=run_id, deep_research_run_id=REVIEW)
+        if ask_pdf:
+            runs.request_report_pdf(docx=docx, run_id=run_id, deep_research_run_id=REVIEW)
         session.commit()
     return run_id, docx.artifact_id
 
@@ -140,3 +144,63 @@ def test_another_clients_study_finds_no_variant(
     assert researcher.get(foreign, params=params).status_code == 404
     assert researcher.get(f"{foreign}/download", params=params).status_code == 404
     assert researcher.get(f"{foreign}/pdf/download", params=params).status_code == 404
+
+
+def test_a_closed_study_finds_its_draft_and_says_why_its_pdf_waits(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """Review, 2026-10-16: the draft was found only through its PDF job, and a delivered study
+    starts no job, so its report with literature could be had in no format. The draft is found
+    as itself; its PDF says why nothing was asked, and asking makes nothing."""
+    run_id, artifact_id = _prepared(app, researcher, world, ask_pdf=False)
+    with create_session_factory(app.state.engine)() as session:
+        ScopeRepository(session).set_study_status(_scope(session, world), StudyStatus.DELIVERED)
+        session.commit()
+    before = _jobs(app)
+    base = f"{_study(world)}/research/runs/{run_id}/report/context"
+    params = {"deep_research_run_id": REVIEW}
+    body = researcher.get(base, params=params).json()
+    assert body["state"] == "READY" and body["artifact_id"] == artifact_id
+    assert body["pdf"] == {
+        "state": "NOT_REQUESTED",
+        "artifact_id": None,
+        "sha256": None,
+        "size_bytes": None,
+        "reason": "study_closed",
+        "askable": False,
+    }
+    asked = researcher.post(f"{base}/pdf", params=params)
+    assert asked.status_code == 200, asked.text
+    assert asked.json()["pdf"]["reason"] == "study_closed"
+    assert _jobs(app) == before
+    docx = researcher.get(f"{base}/download", params=params)
+    assert docx.status_code == 200 and docx.headers["X-AIA-Artifact-Id"] == artifact_id
+
+
+def test_asking_again_renders_the_prepared_draft_once_and_never_composes(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """Review, 2026-10-16: asking for the PDF again went through the whole composition, which
+    a later deploy can refuse though the draft is stored. It asks for the draft itself."""
+    run_id, artifact_id = _prepared(app, researcher, world, ask_pdf=False)
+    base = f"{_study(world)}/research/runs/{run_id}/report/context"
+    params = {"deep_research_run_id": REVIEW}
+    assert researcher.get(base, params=params).json()["pdf"]["askable"] is True
+    before = _jobs(app)
+    asked = researcher.post(f"{base}/pdf", params=params)
+    assert asked.status_code == 200, asked.text
+    assert asked.json()["artifact_id"] == artifact_id
+    assert asked.json()["pdf"]["state"] == "RENDERING" and asked.json()["pdf"]["askable"] is False
+    assert _jobs(app) == before + 1
+    # Asking while it renders is the same job.
+    assert researcher.post(f"{base}/pdf", params=params).json()["pdf"]["state"] == "RENDERING"
+    assert _jobs(app) == before + 1
+
+
+def test_asking_for_a_pdf_before_preparing_is_refused_by_name(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    run_id, _ = _prepared(app, researcher, world)
+    url = f"{_study(world)}/research/runs/{run_id}/report/context/pdf"
+    refused = researcher.post(url, params={"deep_research_run_id": "RUN-abcabc"})
+    assert refused.status_code == 409 and refused.json()["code"] == "context_report_not_prepared"

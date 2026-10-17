@@ -13,7 +13,18 @@ import { approvalRefusal, reportStatus, reportStatusWords, reviewStatus } from "
 import { t } from "@/i18n/t";
 import { ApiError, deepResearch, type DeepResearchRun, type ReportVariant, type ResearchReport, type ResearchRun, research } from "@/lib/api";
 import { saveBlob } from "@/lib/download";
-import { currentVariant, downloadMismatch, literatureState, reviewsFor, variantPdfAskable, variantPdfWhy, variantPending } from "@/lib/report-variant";
+import {
+  currentVariant,
+  downloadMismatch,
+  literatureState,
+  pdfAskable,
+  pdfWhy,
+  reportPdfPending,
+  reviewsFor,
+  variantPdfAskable,
+  variantPdfWhy,
+  variantPending,
+} from "@/lib/report-variant";
 import { Button, Select } from "../ui";
 import { Icon } from "../icons";
 import { useFrame } from "./frame-hook";
@@ -109,15 +120,19 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const reportStep = run.steps.find((s) => s.kind === "research_report");
+  // The run's own report, read again while a PDF a person asked for is being made.
+  const basePending = status !== null && status !== "hidden" && reportPdfPending(status.pdf);
   useEffect(() => {
     if (!reportStep) return;
     let live = true;
-    research.report(frame.studyId, run.run_id).then(
+    const read = () => research.report(frame.studyId, run.run_id).then(
       (value) => live && setStatus(value),
       (e: unknown) => live && (e instanceof ApiError && e.status === 403 ? setStatus("hidden") : setError(message(e))),
     );
-    return () => { live = false; };
-  }, [frame.studyId, run.run_id, reportStep?.status, reportStep?.artifact_id, reportStep]);
+    void read();
+    const timer = basePending ? setInterval(() => { void read(); }, 2500) : null;
+    return () => { live = false; if (timer) clearInterval(timer); };
+  }, [frame.studyId, run.run_id, reportStep?.status, reportStep?.artifact_id, reportStep, basePending]);
   // The completed reviews a variant may add: read on mount and whenever the choice moves.
   useEffect(() => {
     let live = true;
@@ -153,20 +168,18 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
   if (status === "hidden") return null;
   const report = status !== null && status.state === "READY" ? status : null;
   const modelled = report?.data_origin_kind === "MODELLED";
-  const pdfReady = report?.pdf?.state === "READY";
   const withReview = version === "internal" && review !== null;
   const parts = reportParts(run, withReview ? literatureState(review, current) : "excluded");
   const variantReady = withReview && current?.state === "READY";
 
   const clientWhy = modelled ? null : "Klientská zpráva vzniká jen z běhu s AI respondenty z populace.";
-  const pdfWhy = version === "client"
+  // Why PDF is not offered for the chosen version, in the one wording every PDF state has.
+  const formatWhy = version === "client"
     ? "Klientská zpráva je zatím jen DOCX."
-    : withReview
-      ? variantPdfWhy(current)
-      : report?.pdf && report.pdf.state !== "READY"
-      ? "PDF se nepodařilo vytvořit; zpráva je k dispozici jako DOCX."
-      : pdfReady ? null : "Tento běh PDF nevytvořil.";
-  const chosenFormat: Format = pdfWhy ? "docx" : format;
+    : withReview ? variantPdfWhy(current) : pdfWhy(report?.pdf);
+  const chosenFormat: Format = formatWhy ? "docx" : format;
+  // A new rendering of the stored draft is offered exactly when the server would start one.
+  const askable = version === "internal" && (withReview ? variantPdfAskable(current) : !!report && pdfAskable(report.pdf));
   const approved = version === "client"
     ? client?.approved === true
     : reviewStatus(withReview ? current?.review_state : report?.review_state) === "APPROVED";
@@ -204,9 +217,11 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
       saveBlob(got.blob, name);
     }
   });
-  // The variant's PDF asked for again: the same stored draft, rendered by a new job.
+  // The chosen report's PDF asked for again: the same stored draft, rendered by a new job,
+  // composing nothing.
   const askPdf = () => run_(async () => {
-    if (review !== null) setVariant(await deepResearch.prepareContextReport(frame.studyId, run.run_id, review));
+    if (withReview && review !== null) setVariant(await deepResearch.askContextReportPdf(frame.studyId, run.run_id, review));
+    else setStatus(await research.askReportPdf(frame.studyId, run.run_id));
   });
   const approve = () => run_(async () => {
     if (version === "client" && client) {
@@ -222,15 +237,18 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
   });
 
   // The report's state by the one rule (6e); a report still being read is said to be loading.
+  // The variant with a review is its own draft: its state never waits on the run's own report.
   const internal = !reportStep ? "NONE" : status === null ? null : reportStatus(status);
-  const stateLine = internal === null
-    ? t("research.loading")
-    : !report
-      ? `Stav: ${reportStatusWords(internal)}`
-      : version === "client" && !client
-        ? "Stav: klientská zpráva se složí při stažení; schvalujete právě tu, kterou stáhnete"
-        : withReview && !variantReady
-          ? "Stav: zprávu s rešerší je třeba jednou připravit; pak ji stáhnete jako DOCX i PDF"
+  const stateLine = withReview
+    ? !variantReady
+      ? "Stav: zprávu s rešerší je třeba jednou připravit; pak ji stáhnete jako DOCX i PDF"
+      : `Stav: ${reportStatusWords(approved ? "APPROVED" : "DRAFT")}`
+    : internal === null
+      ? t("research.loading")
+      : !report
+        ? `Stav: ${reportStatusWords(internal)}`
+        : version === "client" && !client
+          ? "Stav: klientská zpráva se složí při stažení; schvalujete právě tu, kterou stáhnete"
           : `Stav: ${reportStatusWords(approved ? "APPROVED" : "DRAFT")}`;
   const chosenReview = reviews?.find((r) => r.run_id === review) ?? null;
   const limitation = report?.synthetic
@@ -308,11 +326,13 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
             onChange={setFormat}
             options={[
               { id: "docx", text: "DOCX", disabled: null },
-              { id: "pdf", text: "PDF", disabled: pdfWhy },
+              { id: "pdf", text: "PDF", disabled: formatWhy },
             ]}
           />
           <p className="text-xs leading-4 text-ink-muted">{stateLine}</p>
-          <Button variant="primary" className="!min-h-11 justify-center" disabled={!report || busy || !frame.canEdit} onClick={() => void download()}>
+          {/* The variant with a review needs no ready run report: preparing it is refused by name
+              when the run's analysis is incomplete. */}
+          <Button variant="primary" className="!min-h-11 justify-center" disabled={(!withReview && !report) || busy || !frame.canEdit} onClick={() => void download()}>
             <Icon name="download" size={16} />
             {busy
               ? t("research.exec.results.reportDownloading")
@@ -320,12 +340,12 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
                 ? t("research.exec.results.reportDownloadClient")
                 : withReview && !variantReady ? "Připravit zprávu s rešerší" : "Stáhnout zprávu"}
           </Button>
-          {withReview && version === "internal" && variantPdfAskable(current) && frame.canEdit ? (
+          {askable && frame.canEdit ? (
             <Button variant="quiet" className="justify-center" disabled={busy} onClick={() => void askPdf()}>
               Vytvořit PDF znovu
             </Button>
           ) : null}
-          {report && approvable && !approved && frame.canEdit ? (
+          {approvable && !approved && frame.canEdit ? (
             <Button className="!min-h-11 justify-center" disabled={busy} onClick={() => void approve()}>
               {t("research.exec.results.reportApprove")}
             </Button>

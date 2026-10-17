@@ -13,16 +13,18 @@ from typing import Any
 
 import pytest
 from aia_core.application.report import INTERNAL_REPORT_ARTIFACT_TYPE
-from aia_core.application.report_variants import PdfState, variant_pdf
+from aia_core.application.report_variants import PdfState, request_pdf, variant_pdf
 from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.fieldwork import FieldworkSource
+from aia_core.domain.scope import StudyStatus
 from aia_core.domain.workflow import StepRunStatus, WorkflowRunStatus
 from aia_core.domain.workflow_templates import REPORT_PDF, REPORT_PDF_STEP_KIND
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.report_pdf import PdfConversionFailed
+from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
-from aia_core.infrastructure.tables import StepRunRow
+from aia_core.infrastructure.tables import ProjectArtifactRow, StepRunRow
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_executors.report import ReportPdfExecutor
 from aia_worker.settings import WorkerSettings
@@ -268,3 +270,61 @@ def test_two_drafts_with_the_same_bytes_each_get_their_own_rendering(
     assert first.artifact is not None and second.artifact is not None
     assert first.artifact.metadata["rendering_of"] == docx.artifact_id
     assert second.artifact.metadata["rendering_of"] == twin.artifact_id
+
+
+def _ask_again(world: Any, store: InMemoryArtifactStore, run_id: str, docx: Any) -> Any:
+    with world.sessions() as session:
+        found = request_pdf(
+            session,
+            world.lead_scope(session),
+            store,
+            docx=docx,
+            run_id=run_id,
+            deep_research_run_id=None,
+        )
+        session.commit()
+        return found
+
+
+def test_a_pdf_whose_bytes_went_bad_is_rendered_again_when_a_person_asks(
+    world: Any, database_url: str, store: InMemoryArtifactStore, build: BuildIdentity
+) -> None:
+    """Review, 2026-10-16: a rendered PDF marked corrupt by a failed read was INVALID for good:
+    its job had succeeded, so asking again found the same finished job."""
+    run_id, docx = _report(world, store)
+    _ask(world, run_id, docx)
+    assert _drain(_worker(world, database_url, store, build, _FakePdf())) == ["completed"]
+    ready = _pdf_state(world, store, run_id, docx)
+    assert ready.state is PdfState.READY and ready.artifact is not None
+    assert not ready.askable  # a ready PDF is left as it is
+    with world.sessions() as session:
+        session.execute(
+            update(ProjectArtifactRow)
+            .where(ProjectArtifactRow.artifact_id == ready.artifact.artifact_id)
+            .values(status="CORRUPT")
+        )
+        session.commit()
+    bad = _pdf_state(world, store, run_id, docx)
+    assert bad.state is PdfState.INVALID and bad.reason == "pdf_corrupt" and bad.askable
+    assert _ask_again(world, store, run_id, docx).state is PdfState.RENDERING
+    assert _drain(_worker(world, database_url, store, build, _FakePdf())) == ["completed"]
+    again = _pdf_state(world, store, run_id, docx)
+    assert again.state is PdfState.READY and again.artifact is not None
+    assert again.artifact.artifact_id != ready.artifact.artifact_id
+
+
+def test_a_closed_study_asks_for_no_pdf_and_says_why(
+    world: Any, store: InMemoryArtifactStore
+) -> None:
+    """A delivered study starts no work: its stored DOCX stays the report, and its PDF says
+    why none was asked for instead of the request failing."""
+    run_id, docx = _report(world, store)
+    with world.sessions() as session:
+        ScopeRepository(session).set_study_status(world.lead_scope(session), StudyStatus.DELIVERED)
+        session.commit()
+    with world.sessions() as session:
+        runs = ResearchRuns(session, world.lead_scope(session))
+        assert runs.request_report_pdf(docx=docx, run_id=run_id, deep_research_run_id=None) is None
+    found = _ask_again(world, store, run_id, docx)
+    assert found.state is PdfState.NOT_REQUESTED
+    assert found.reason == "study_closed" and not found.askable

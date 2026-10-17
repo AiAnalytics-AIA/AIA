@@ -460,7 +460,7 @@ def test_the_reports_pdf_is_read_only_as_the_rendering_of_its_stored_docx(
     assert other_client_lead.get(foreign).status_code == 404
 
 
-def test_a_report_without_a_pdf_says_none_and_a_pdf_of_another_document_is_refused(
+def test_a_report_without_a_pdf_says_it_can_be_asked_for_and_another_documents_is_refused(
     app: FastAPI, researcher: TestClient, world: Any
 ) -> None:
     app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
@@ -468,7 +468,12 @@ def test_a_report_without_a_pdf_says_none_and_a_pdf_of_another_document_is_refus
     run_id = start(researcher, world, revision).json()["run_id"]
     _store_internal_report(app, world, run_id, b"PK\x03\x04docx")
     url = f"{_runs(world)}/{run_id}/report"
-    assert researcher.get(url).json()["pdf"] is None
+    # The step rendered none (the converter was off): never asked for, and a person may ask.
+    assert researcher.get(url).json()["pdf"] == {
+        "state": "NOT_REQUESTED",
+        "reason": None,
+        "askable": True,
+    }
     assert researcher.get(f"{url}/pdf/download").status_code == 404
 
     other_revision = submit(researcher, world, {**DESIGN, "title": "Jiná"}).json()["revision_id"]
@@ -477,10 +482,34 @@ def test_a_report_without_a_pdf_says_none_and_a_pdf_of_another_document_is_refus
         app, world, other_run, b"PK\x03\x04other", pdf=b"%PDF x", pdf_of="ART-0000000000000000"
     )
     other_url = f"{_runs(world)}/{other_run}/report"
-    # The report still reads; only its PDF is said to be unusable.
-    assert researcher.get(other_url).json()["pdf"] == {"state": "INVALID", "reason": None}
+    # The report still reads; only its PDF is said to be unusable, and why, and it can be
+    # rendered again from the report itself.
+    assert researcher.get(other_url).json()["pdf"] == {
+        "state": "INVALID",
+        "reason": "pdf_not_this_report",
+        "askable": True,
+    }
     refused = researcher.get(f"{other_url}/pdf/download")
     assert refused.status_code == 409 and refused.json()["code"] == "report_artifact_invalid"
+
+
+def test_the_runs_own_report_gets_its_pdf_when_a_person_asks(
+    app: FastAPI, researcher: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    """Review, 2026-10-16: a report whose step rendered no PDF (the converter was off) could
+    never get one. Asking renders exactly its stored DOCX; a ready PDF is left as it is."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    _store_internal_report(app, world, run_id, b"PK\x03\x04docx")
+    url = f"{_runs(world)}/{run_id}/report"
+    asked = researcher.post(f"{url}/pdf")
+    assert asked.status_code == 200, asked.text
+    assert asked.json()["pdf"]["state"] == "RENDERING"
+    assert asked.json()["pdf"]["askable"] is False
+    assert researcher.get(f"{url}/pdf/download").status_code == 404  # not rendered yet
+    foreign = f"{_runs(world, 'other_client')}/{run_id}/report/pdf"
+    assert other_client_lead.post(foreign).status_code == 404
 
 
 def test_a_run_without_modelled_data_has_no_client_report_and_says_why(

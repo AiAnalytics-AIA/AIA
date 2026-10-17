@@ -104,6 +104,7 @@ import { ResultsWorkspace } from "./ResultsWorkspace";
 import { citedMeasure, untitled, compareObjects, type CompiledSpecification, measureAnchor, readMeasure, type ReadingTone } from "@/lib/result-reading";
 import { FormattedText } from "./FormattedText";
 import { CompleteReport } from "./CompleteReport";
+import { pdfWhy } from "@/lib/report-variant";
 import { AnswerabilityGate } from "./AnswerabilityGate";
 import { type AcknowledgementState, acknowledgementOf, acknowledges, hasGaps, NO_ACKNOWLEDGEMENT, needsAcknowledgement, unanswerableAsked } from "@/lib/answerability";
 
@@ -1506,7 +1507,7 @@ function InternalReport({ run, progressHref }: { run: ResearchRun; progressHref:
           {/* Downloading and approving happen in one place: the report card above (CompleteReport). */}
           {frame.canEdit ? <p className="mt-2 text-xs text-ink-muted">{t("research.exec.results.reportActionsAbove")}</p> : null}
           {status.pdf && status.pdf.state !== "READY" ? (
-            <p className="mt-1 text-xs text-ink-muted">{t("research.exec.results.reportPdfFailed")}</p>
+            <p className="mt-1 text-xs text-ink-muted">{pdfWhy(status.pdf)}</p>
           ) : null}
         </>
       ) : null}
