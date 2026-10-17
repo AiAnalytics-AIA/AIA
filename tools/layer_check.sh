@@ -122,6 +122,20 @@ forbid "application layer knows nothing about HTTP" \
   '^\s*(from|import)\s+(fastapi|starlette)\b' \
   "$CORE/application/"
 
+# The import contract "the application reaches the tables only through a repository"
+# (pyproject.toml) sees import edges. Python attaches every imported submodule to its
+# package, so once anything has imported infrastructure.tables, `from aia_core import
+# infrastructure` then `infrastructure.tables.StudyRow` reaches a row with no edge to
+# tables at all (Codex on #474; measured). This names that attribute path in text, an
+# aliased package included (`tables.<Name>Row` after any prefix); `getattr(pkg, "tables")`
+# still passes. The three exemptions are the contract's ratchet, by the same paths; each
+# leaves with its line there.
+forbid "the application names the tables only in the ratchet's three modules" \
+  '\binfrastructure\.tables\b|\btables\.[A-Z][A-Za-z0-9_]*Row\b' \
+  "$CORE/application/" \
+  "$CORE/application/develop_seed.py" "$CORE/application/scope.py" \
+  "$CORE/application/workspace_migration.py"
+
 # --- Layer 3: infrastructure is driven, never driving -----------------------
 
 forbid "infrastructure knows nothing about HTTP" \
