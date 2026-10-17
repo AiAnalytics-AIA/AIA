@@ -165,16 +165,22 @@ def test_an_open_question_beside_one_the_run_will_not_answer_is_still_a_gap() ->
     content = copy.deepcopy(PARTLY)
     content["sections"][0]["questions"] += [
         {"id": "q3", "text": "Proč?", "typ": "otevrena", "research_questions": [RQS[2]]},
+        # An item the run refuses to answer (an absolute willingness to pay): a conditional
+        # one cannot show this, readiness refuses conditional questions first (review 3).
         {
             "id": "q4",
-            "text": "Kolik byste zaplatil?",
+            "text": "Kolik Kč byste maximálně zaplatili za účet?",
             "typ": "skala",
             "skala": [1, 5],
-            "filtr": {"q": "q1"},
             "research_questions": [RQS[2]],
         },
     ]
     trace, answer = _answer(content)
+    spec, _ = compile_design(content)
+    assert spec is not None
+    (refused,) = (o for o in question_outlook(spec, None) if o.question_id == "q4")
+    assert refused.verdict is Verdict.UNANSWERABLE
+    assert "fidelity_refused" in [r.value for r in refused.reasons]
     assert next(q for q in trace.questions if q.text == RQS[2]).verdict is Verdict.AT_RISK
     gap = next(g for g in answer.gaps if g.research_question == RQS[2])
     assert gap.verdict is Verdict.UNANSWERABLE and gap.reasons == ("measures_unanswerable",)
@@ -438,13 +444,49 @@ def test_an_acknowledgement_read_for_one_revision_never_covers_another() -> None
 
 
 def test_every_research_question_records_the_verdict_decided_for_it() -> None:
-    trace, answer = _answer(PARTLY)
+    """The decided verdict, never the trace's: a question only an open item measures is AT_RISK
+    by the trace and UNANSWERABLE by the decision (review 3: the test could not tell them apart)."""
+    content = copy.deepcopy(PARTLY)
+    content["sections"][0]["questions"].append(
+        {"id": "q3", "text": "Proč?", "typ": "otevrena", "research_questions": [RQS[2]]}
+    )
+    trace, answer = _answer(content)
     decided = dict(answer.verdicts)
     assert set(decided) == set(RQS)
-    assert {decided[q] for q in RQS[2:]} == {Verdict.UNANSWERABLE}
+    assert decided[RQS[2]] is Verdict.UNANSWERABLE
     note = answerability_note(trace, answer)
     row = next(r for r in note["research_questions"] if r["text"] == RQS[2])
-    assert row["verdict"] == "UNANSWERABLE" and row["trace_verdict"] == "UNANSWERABLE"
+    assert row["verdict"] == "UNANSWERABLE" and row["trace_verdict"] == "AT_RISK"
+
+
+def test_an_unknown_comparison_never_hides_that_nothing_measures_it_citably() -> None:
+    """Review 3: a trace reason (an unknown comparison) skipped the measure checks, so a
+    question measured only by an open item read UNKNOWN instead of UNANSWERABLE."""
+    from aia_core.domain.research_trace import comparisons_of
+
+    rq = RQS[0]
+    content = {
+        **copy.deepcopy(PARTLY),
+        "sections": [
+            {
+                "type": "questions",
+                "questions": [
+                    {"id": "q1", "text": "Proč?", "typ": "otevrena", "research_questions": [rq]}
+                ],
+            }
+        ],
+        "research_plan": {
+            "research_questions": [rq],
+            "research_question_comparisons": {rq: "cluster"},
+        },
+    }
+    spec, problems = compile_design(content)
+    assert spec is not None, problems
+    items = question_outlook(spec, None)
+    trace = trace_research(spec, [rq], items, comparisons_of(content))
+    (gap,) = answerability(trace, items).gaps
+    assert gap.verdict is Verdict.UNANSWERABLE
+    assert gap.reasons == ("comparison_unknown", "no_citable_measure")
 
 
 def test_a_ranking_whose_set_the_run_will_not_answer_says_so() -> None:

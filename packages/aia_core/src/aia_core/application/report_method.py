@@ -62,6 +62,12 @@ _MODULE = {
 
 
 #: A research question's state at start, as the run recorded it (Verdict).
+#: A gap's verdict where no column says what it is about: under an answer, "předem nešlo ověřit"
+#: alone left out what could not be verified (review 3).
+_GAP_VERDICT = {
+    "UNANSWERABLE": "běh na ni odpovědět nemohl",
+    "UNKNOWN": "předem nešlo ověřit, že na ni běh odpoví",
+}
 _VERDICT = {
     "ANSWERABLE": "běh na ni mohl odpovědět",
     "AT_RISK": "běh na ni mohl odpovědět jen s rizikem (slabá podpora nebo otevřená otázka)",
@@ -152,7 +158,7 @@ def research_question_gaps(meta: Mapping[str, Any]) -> dict[str, str]:
         if not isinstance(gap, Mapping) or not gap.get("research_question"):
             continue
         why = _why(gap.get("reasons"), plural=False)
-        words = _VERDICT.get(str(gap.get("verdict")), "stav nelze přečíst")
+        words = _GAP_VERDICT.get(str(gap.get("verdict")), "stav nelze přečíst")
         gaps[" ".join(str(gap["research_question"]).split())] = words + (f" ({why})" if why else "")
     return gaps
 
@@ -267,11 +273,15 @@ def _answerability_blocks(meta: Mapping[str, Any], *, client: bool = False) -> l
         blocks.append(
             Paragraph(
                 text(
-                    "Při spuštění měla každá výzkumná otázka alespoň jedno měření, "
-                    + (
-                        "na které běh mohl odpovědět."
+                    # The client wording claims what the record holds: a measure the run
+                    # collected answers to, never that it could answer the research question
+                    # (a pending one's support was unknown at start; review 3).
+                    (
+                        "Podle záznamu ze spuštění měřila každou výzkumnou otázku alespoň "
+                        "jedna otázka dotazníku, na kterou běh sbíral odpovědi."
                         if client
-                        else "jehož čísla může analýza citovat."
+                        else "Při spuštění měla každá výzkumná otázka alespoň jedno měření, "
+                        "jehož čísla může analýza citovat."
                     )
                     + (f" {pending_sentence}" if pending_sentence else "")
                 )
@@ -287,21 +297,35 @@ def _answerability_blocks(meta: Mapping[str, Any], *, client: bool = False) -> l
         )
     if unanswerable:
         parts.append(
-            "Běh nemohl odpovědět na tyto výzkumné otázky: " + _gap_lines(unanswerable) + "."
+            "Běh nemohl odpovědět na "
+            + ("tuto výzkumnou otázku: " if len(unanswerable) == 1 else "tyto výzkumné otázky: ")
+            + _gap_lines(unanswerable)
+            + "."
         )
     if unverified:
         parts.append(
-            "Předem nešlo ověřit, že běh zodpoví tyto výzkumné otázky: "
+            "Předem nešlo ověřit, že běh zodpoví "
+            + ("tuto výzkumnou otázku: " if len(unverified) == 1 else "tyto výzkumné otázky: ")
             + _gap_lines(unverified)
             + "."
         )
     if gaps:
+        # Said by what the record holds, never by the measure: a comparison gap's measures
+        # were linked and answered, only the comparison was not shown (review 3).
+        one = len(gaps) == 1
         parts.append(
             "Tato zpráva uvádí výsledky jednotlivých otázek dotazníku, nikoli odpovědi na "
-            "výzkumné otázky; u těchto výzkumných otázek z nich odpověď nevyplývá."
+            "výzkumné otázky; že z nich vyplývá odpověď na "
+            + ("tuto výzkumnou otázku" if one else "tyto výzkumné otázky")
+            + ", běh při spuštění nedoložil."
             if client
-            else "Odpovědi, které na ně zpráva přesto uvádí, se neopírají o měření, které by "
-            "návrh k těmto otázkám určil a běh zodpověděl; čtěte je jako nedoložené."
+            else (
+                "Odpověď, kterou na ni zpráva přesto uvádí, čtěte jako nedoloženou: běh při "
+                "spuštění nedoložil, že na ni odpoví."
+                if one
+                else "Odpovědi, které na ně zpráva přesto uvádí, čtěte jako nedoložené: běh "
+                "při spuštění nedoložil, že na ně odpoví."
+            )
         )
     if pending_sentence:
         parts.append(pending_sentence)

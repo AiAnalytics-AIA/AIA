@@ -1378,7 +1378,7 @@ def test_an_answer_to_a_research_question_the_run_could_not_answer_says_so_where
         research_question_gaps={f" {question}\n": words},
     )
     intro = _all_text(doc.sections[0].blocks)
-    assert f"{question} (bez doloženého měření, viz kapitola Respondenti a výpočet)" in intro
+    assert f"{question} (bez doložené odpovědi, viz kapitola Respondenti a výpočet)" in intro
     # Every answer to it is qualified right under the question, before it is read: why, once,
     # at the first answer; a short line at each later one (review 3: the full callout under
     # every answering module repeated one reason 16 times in the fictional render).
@@ -1398,7 +1398,7 @@ def test_an_answer_to_a_research_question_the_run_could_not_answer_says_so_where
                 qualified.append(_callout_texts([after])[0])
     assert answers > 1 and len(qualified) == answers
     assert qualified[0].startswith(f"Při spuštění běh zaznamenal: {words}.")
-    assert all(q.startswith("Ani tato odpověď") for q in qualified[1:])
+    assert all(q.startswith("Ani tuto odpověď nečtěte jako doloženou") for q in qualified[1:])
     assert sum(f"{words}." in q for q in qualified) == 1
     assert not lint_docx(DocxRenderer().render(doc))
 
@@ -1406,9 +1406,9 @@ def test_an_answer_to_a_research_question_the_run_could_not_answer_says_so_where
     plain = compose_internal_report(
         run, report_meta(first.result.method_status), research_question_gaps={"Jiná?": words}
     )
-    assert "bez doloženého měření" not in _all_text(plain.sections[0].blocks)
+    assert "bez doložené odpovědi" not in _all_text(plain.sections[0].blocks)
     assert not any(
-        isinstance(b, Callout) and b.title == "Bez doloženého měření"
+        isinstance(b, Callout) and b.title == "Bez doložené odpovědi"
         for s in plain.sections
         for b in s.blocks
     )

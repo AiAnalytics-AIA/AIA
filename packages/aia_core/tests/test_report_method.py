@@ -138,7 +138,7 @@ def test_a_run_started_before_the_check_says_it_recorded_nothing_never_capable()
 def test_an_acknowledged_gap_is_printed_with_the_persons_reason() -> None:
     meta = {"answerability": _note(acknowledgement={"reason": "Test postupu.", "by": "u1"})}
     words = _words(meta, DataOrigin.SYNTHETIC_AI_FICTIONAL)
-    assert "Předem nešlo ověřit, že běh zodpoví tyto výzkumné otázky: " in words
+    assert "Předem nešlo ověřit, že běh zodpoví tuto výzkumnou otázku: " in words
     assert f"„{_RQ}“ (žádná otázka dotazníku neuvádí, na kterou výzkumnou otázku odpovídá)" in words
     assert "„Test postupu.“" in words
     assert "nemohl" not in words  # UNKNOWN is not UNANSWERABLE
@@ -267,12 +267,14 @@ def _decided(content: dict[str, Any]) -> dict[str, Any]:
     from aia_core.domain.answerability import answerability, answerability_note
     from aia_core.domain.question_outlook import question_outlook
     from aia_core.domain.research_design import compile_design
-    from aia_core.domain.research_trace import trace_research
+    from aia_core.domain.research_trace import comparisons_of, trace_research
 
     spec, problems = compile_design(content)
     assert spec is not None, problems
     items = question_outlook(spec, None)
-    trace = trace_research(spec, content["research_plan"]["research_questions"], items)
+    trace = trace_research(
+        spec, content["research_plan"]["research_questions"], items, comparisons_of(content)
+    )
     return answerability_note(trace, answerability(trace, items, design_revision_id="REV-1"))
 
 
@@ -435,10 +437,102 @@ def test_each_recorded_gap_is_worded_for_the_answer_it_qualifies() -> None:
     spaced = {**_note(), "gaps": [{**_note()["gaps"][0], "research_question": f"  {_RQ}\n"}]}
     gaps = research_question_gaps({"answerability": spaced})
     assert gaps == {
-        _RQ: "předem nešlo ověřit (žádná otázka dotazníku neuvádí, na kterou výzkumnou otázku "
+        _RQ: "předem nešlo ověřit, že na ni běh odpoví (žádná otázka dotazníku neuvádí, na kterou "
+        "výzkumnou otázku "
         "odpovídá)"
     }
     # Nothing recorded, unreadable or capable: no answer is qualified.
     assert research_question_gaps({}) == {}
     assert research_question_gaps({"answerability": {"rules": "aia-answerability-1"}}) == {}
     assert research_question_gaps({"answerability": _note(capable=True, gaps=[])}) == {}
+
+
+def _segments_gap() -> tuple[str, dict[str, Any]]:
+    """A research question asking for a segment comparison, measured by an answered scale item:
+    a gap, though its measure was linked and answered (segments_unavailable)."""
+    rq = "Liší se důvěra mladších a starších klientů?"
+    content = _design(
+        {
+            "id": "q1",
+            "text": "Nakolik?",
+            "typ": "skala",
+            "skala": [1, 5],
+            "research_questions": [rq],
+        },
+        rqs=[rq],
+    )
+    content["research_plan"]["research_question_comparisons"] = {rq: "compare_segments"}
+    return rq, _decided(content)
+
+
+def test_a_comparison_gap_is_never_said_to_rest_on_no_measure() -> None:
+    """Review 3: every gap read "se neopírá o měření, které by návrh … určil a běh zodpověděl",
+    false for a comparison gap whose measure was linked and answered; it is said by what the
+    record holds, that the run did not show it would answer."""
+    rq, note = _segments_gap()
+    (gap,) = note["gaps"]
+    assert gap["reasons"] == ["segments_unavailable"] and gap["measures"] == ["q1"]
+    for client in (False, True):
+        section = compose_method_section(
+            {"answerability": note}, DataOrigin.SYNTHETIC_AI_FICTIONAL, client=client
+        )
+        words = " ".join(
+            "".join(i.text for i in b.content if isinstance(i, Text))
+            for b in section.blocks
+            if isinstance(b, (Paragraph, Callout))
+        )
+        assert "měření" not in words.split("Běh nemohl")[-1], client
+        assert "nedoložil" in words, client
+    assert research_question_gaps({"answerability": note}) == {
+        rq: "běh na ni odpovědět nemohl (srovnání segmentů AIA zatím neumí)"
+    }
+
+
+def test_one_gap_is_said_in_the_singular_and_an_unverified_one_never_as_a_no() -> None:
+    """Review 3: the sentence after the gaps was plural for one research question, and the
+    client report said "z nich odpověď nevyplývá" for gaps only unverified (unlinked_design),
+    a negative nobody established."""
+    internal = _words({"answerability": _note()}, DataOrigin.SYNTHETIC_AI_FICTIONAL)
+    assert "Odpověď, kterou na ni zpráva přesto uvádí, čtěte jako nedoloženou" in internal
+    assert "na ně" not in internal and "těmto otázkám" not in internal
+    section = compose_method_section(
+        {"answerability": _note()}, DataOrigin.MODELLED_AI_PANEL, client=True
+    )
+    client = " ".join(
+        "".join(i.text for i in b.content if isinstance(i, Text))
+        for b in section.blocks
+        if isinstance(b, (Paragraph, Callout))
+    )
+    assert "nevyplývá" not in client
+    assert (
+        "že z nich vyplývá odpověď na tuto výzkumnou otázku, běh při spuštění nedoložil" in client
+    )
+
+
+def test_the_client_report_never_calls_a_pending_question_one_the_run_could_answer() -> None:
+    """Review 3: a capable run's client chapter said every research question had a measure the
+    run "mohl odpovědět", beside a table row reading "předem nešlo ověřit" for a pending one."""
+    rq = "Jak klienti důvěřují účtu?"
+    note = _decided(
+        _design(
+            {
+                "id": "q1",
+                "text": "Nakolik?",
+                "typ": "skala",
+                "skala": [1, 5],
+                "research_questions": [rq],
+            },
+            rqs=[rq],
+        )
+    )
+    assert note["pending"] == [rq] and note["capable"]
+    section = compose_method_section(
+        {"answerability": note}, DataOrigin.MODELLED_AI_PANEL, client=True
+    )
+    words = " ".join(
+        "".join(i.text for i in b.content if isinstance(i, Text))
+        for b in section.blocks
+        if isinstance(b, (Paragraph, Callout))
+    )
+    assert "mohl odpovědět" not in words
+    assert "na kterou běh sbíral odpovědi" in words and "rozhodla až podpora" in words

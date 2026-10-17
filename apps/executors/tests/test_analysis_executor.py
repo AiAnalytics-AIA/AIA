@@ -72,6 +72,7 @@ from aia_core.domain.deep_research.workflow import deep_research_steps
 from aia_core.domain.evidence import AdmittedClaim, ClaimSurface, ViolationCode
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.pipeline import ProjectType
+from aia_core.domain.report.model import Callout
 from aia_core.domain.residency import DataClass
 from aia_core.domain.sociomap import SociomapArtifactV3, read_artifact
 from aia_core.domain.workflow import (
@@ -791,6 +792,14 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
     body = zipfile.ZipFile(io.BytesIO(document)).read("word/document.xml").decode()
     assert "schválil k použití ve zprávách" in body
     assert "Mapa metodou aia-sociomap-3 je interním výstupem" not in body
+    # The run recorded its research questions as gaps at start (the design links none): the
+    # stored report marks the introduction's list and each answer, the reason once (review 3:
+    # unwiring the gaps from the worker left every test green).
+    recorded = run["metadata"]["answerability"]["gaps"]
+    assert recorded and all(g["reasons"] == ["unlinked_design"] for g in recorded)
+    assert "bez doložené odpovědi, viz kapitola Respondenti a výpočet" in body
+    assert body.count("Bez doložené odpovědi") == len(recorded)
+    assert "Ani tuto odpověď nečtěte jako doloženou" in body
     record_property("report_artifact_id", report_id)
     record_property("report_sha256", report.sha256)
     record_property("report_review_state", report.metadata["review_state"])
@@ -873,6 +882,12 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
                     deep_research_run_id=interpreted.run_id,
                 )
                 assert any(s.id == "literature" for s in combined.sections)
+                # The report with literature takes the same recorded gaps (review 3).
+                assert any(
+                    isinstance(b, Callout) and b.title == "Bez doložené odpovědi"
+                    for s in combined.sections
+                    for b in s.blocks
+                )
                 assert any((s.id or "").startswith("ch-native-map-") for s in combined.sections)
                 # The same study's report: the same design, method and question chapters.
                 assert {"ch-design", "ch-method", "ch-questions", "app-questionnaire"} <= {

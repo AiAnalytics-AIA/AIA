@@ -132,3 +132,59 @@ def test_an_acknowledgement_of_a_different_digest_or_without_a_reason_is_not_one
         },
     )
     assert short.status_code == 422
+
+
+def test_readiness_carries_the_decided_verdict_and_a_digest_of_its_own_revision(
+    researcher: TestClient, world: Any
+) -> None:
+    """Review 3: the readiness route's wiring (the decided trace, the coverage check beside a
+    gap, the revision in the digest) had no test; reverting any of it left every test green."""
+    linked = {
+        **UNLINKED,
+        "research_plan": {"research_questions": RQS[:2]},
+        "sections": [
+            {
+                "type": "questions",
+                "questions": [
+                    {
+                        "id": "q1",
+                        "text": "Nakolik důvěřujete mobilní bance?",
+                        "typ": "skala",
+                        "skala": [1, 5],
+                        "research_questions": [RQS[0]],
+                    },
+                    {
+                        "id": "q2",
+                        "text": "Co vás odrazuje?",
+                        "typ": "otevrena",
+                        "research_questions": [RQS[1]],
+                    },
+                ],
+            }
+        ],
+    }
+    first = _revision(researcher, world, linked)
+    body = _readiness(researcher, world, first)
+    coverage = next(c for c in body["checks"] if c["id"] == "research_question_coverage")
+    assert coverage["status"] == "WARN" and RQS[1] in coverage["message"]
+    traced = {q["text"]: q["verdict"] for q in body["research_trace"]["questions"]}
+    assert traced[RQS[1]] == "UNANSWERABLE"  # the trace alone says AT_RISK (an open question)
+    (gap,) = body["answerability"]["gaps"]
+    assert gap["research_question"] == RQS[1] and gap["verdict"] == "UNANSWERABLE"
+
+    second = _revision(researcher, world, {**linked, "title": "Jiná revize (fiktivní)"})
+    other = _readiness(researcher, world, second)["answerability"]
+    assert other["gaps"] == body["answerability"]["gaps"]
+    assert other["digest"] != body["answerability"]["digest"]
+    refused = researcher.post(
+        f"{_study(world)}/research/runs",
+        json={
+            "design_revision_id": second,
+            "acknowledge_research_questions": {
+                "digest": body["answerability"]["digest"],
+                "reason": "Potvrzeno pro jinou revizi návrhu.",
+            },
+        },
+    )
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["code"] == "research_questions_unanswerable"

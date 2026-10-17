@@ -210,7 +210,16 @@ def answerability(
             best = min((verdict_of.get(m, Verdict.UNKNOWN) for m in usable), key=_ORDER.index)
             verdict = _worse(q.verdict, best)
         if q.verdict is Verdict.UNANSWERABLE or set(q.reasons) & _GAP_REASONS:
-            if not why:
+            # What is known of its measures is said beside the trace's reason, never hidden
+            # by it: an unknown comparison over open questions only has no number to cite
+            # either, known before the run (review 3).
+            if q.measures and not citable:
+                why.append(GapReason.NO_CITABLE_MEASURE)
+                verdict = Verdict.UNANSWERABLE
+            elif q.measures and outlook and not usable:
+                why.append(GapReason.MEASURES_UNANSWERABLE)
+                verdict = Verdict.UNANSWERABLE
+            elif not why:
                 # Unanswerable with no reason of the trace's own: a ranking or test whose set is
                 # not answered as a whole, beside measures that are; else nothing it cites.
                 carried = q.comparison in _SET_COMPARISONS and bool(usable)

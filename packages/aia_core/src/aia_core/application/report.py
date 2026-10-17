@@ -171,7 +171,7 @@ def compose_internal_report(
 
     gaps = {_folded(q): words for q, words in (research_question_gaps or {}).items()}
     marked: set[str] = set()
-    gap_mark = " (bez doloženého měření" + (
+    gap_mark = " (bez doložené odpovědi" + (
         ", viz kapitola Respondenti a výpočet)" if method is not None else ")"
     )
     claims: list[AdmittedClaim] = []
@@ -356,13 +356,14 @@ def compose_internal_report(
                 blocks.append(
                     Callout(
                         CalloutKind.LIMITATION,
+                        # By what the record holds, never "no measure": a comparison gap's
+                        # measures were answered, only the comparison was not shown (review 3).
                         text(
-                            f"Při spuštění běh zaznamenal: {gaps[folded]}. Odpověď níže se "
-                            "proto neopírá o měření, které by návrh k této otázce určil a běh "
-                            "zodpověděl; čtěte ji jako nedoloženou. Totéž platí pro každou "
-                            "další odpověď na tuto otázku ve zprávě."
+                            f"Při spuštění běh zaznamenal: {gaps[folded]}. Odpověď níže proto "
+                            "čtěte jako nedoloženou; totéž platí pro každou další odpověď na "
+                            "tuto otázku ve zprávě."
                         ),
-                        title="Bez doloženého měření",
+                        title="Bez doložené odpovědi",
                     )
                 )
             elif folded in gaps:
@@ -370,8 +371,8 @@ def compose_internal_report(
                     Callout(
                         CalloutKind.LIMITATION,
                         text(
-                            "Ani tato odpověď se neopírá o doložené měření této otázky "
-                            "(důvod je u její první odpovědi)."
+                            "Ani tuto odpověď nečtěte jako doloženou (důvod je u první "
+                            "odpovědi na tuto otázku)."
                         ),
                     )
                 )

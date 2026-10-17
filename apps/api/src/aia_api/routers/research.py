@@ -477,7 +477,9 @@ class ResearchQuestionTraceResponse(BaseModel):
     text: str
     #: Item ids (``question_outlook[].question_id``) that declare they measure it.
     measures: list[str]
-    #: The best verdict among its measures; UNANSWERABLE or UNKNOWN with a reason when none.
+    #: The verdict the start would decide (``answerability.decided_trace``): a gap's, else the
+    #: best among the measures the run answers and the analysis cites; never "at risk" beside
+    #: a gap that says the run will not answer it.
     verdict: str
     reasons: list[str]
     #: The comparison the plan declares for it (describe, rank_objects, compare_segments,
