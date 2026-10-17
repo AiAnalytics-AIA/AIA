@@ -21,6 +21,8 @@ import {
   type QuestionOutlook,
   type PersonaSourceOption,
   type Readiness,
+  type Answerability,
+  type AnswerabilityAcknowledgement,
   type ResearchTrace,
   type DeepResearchBundle,
   type DeepResearchRun,
@@ -60,6 +62,7 @@ import {
   needsRepair,
   aggregateDeviation,
   resultTable,
+  pollMs,
   shouldPoll,
   sociomapObjects,
   stepLabel,
@@ -101,8 +104,9 @@ import { ResultsWorkspace } from "./ResultsWorkspace";
 import { citedMeasure, untitled, compareObjects, type CompiledSpecification, measureAnchor, readMeasure, type ReadingTone } from "@/lib/result-reading";
 import { FormattedText } from "./FormattedText";
 import { CompleteReport } from "./CompleteReport";
+import { AnswerabilityGate } from "./AnswerabilityGate";
+import { type AcknowledgementState, acknowledgementOf, acknowledges, hasGaps, refusalFor, NO_ACKNOWLEDGEMENT, needsAcknowledgement, unanswerableAsked } from "@/lib/answerability";
 
-const POLL_MS = 2000;
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
 /** The server refused a start or retry because the study's limit asks first: the ceiling it worked out. */
@@ -593,6 +597,11 @@ export function RunStep() {
   const [childId, setChildId] = useState<string | null>(null);
   // Who answers (5a): the source the readiness was read under, changed only by the person.
   const [choosing, setChoosing] = useState(false);
+  // A run that cannot answer every research question starts only acknowledged, where the
+  // deployment requires it (integrity 1); the confirmation names the gaps it was given for.
+  const [ack, setAck] = useState<AcknowledgementState>(NO_ACKNOWLEDGEMENT);
+  // A run the start found instead of creating, when the acknowledgement given was not recorded.
+  const [found, setFound] = useState<string | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -670,16 +679,40 @@ export function RunStep() {
       if (!(await ask(ceiling, limit))) return;
       yes = ceiling;
     }
+    const acknowledged = acknowledgementOf(readiness.answerability, ack) ?? undefined;
+    if (needsAcknowledgement(readiness.answerability) && !acknowledged) return;
     setStarting(true);
     setStartError(null);
+    setFound(null);
     try {
+      let started: ResearchRun;
       try {
-        await research.start(frame.studyId, readiness.design_revision_id, yes, childId ?? undefined, readiness.persona_source);
+        started = await research.start(frame.studyId, readiness.design_revision_id, yes, childId ?? undefined, readiness.persona_source, acknowledged);
       } catch (e) {
+        // The design or the requirement changed since the page read it: read again, so the
+        // person sees the gaps the server refused and confirms those.
+        const refused = unanswerableAsked(e);
+        if (refused) {
+          setAck({ ...ack, confirmed: false });
+          // The gaps shown are the ones the server just refused, whatever the re-read does: a
+          // failed re-read never leaves older gaps, or none, on screen as the server's (review 3).
+          setPrepared({ ...prepared, readiness: { ...readiness, answerability: refused } });
+          await rereadReadiness();
+          throw new Error(t("research.exec.answerability.refused"));
+        }
         // The limit or the ceiling changed since the page read them: ask with the server's figure.
         const asked = confirmationAsked(e);
         if (!asked || yes !== undefined || !(await ask(asked.ceiling, asked.limit))) throw e;
-        await research.start(frame.studyId, readiness.design_revision_id, asked.ceiling, childId ?? undefined, readiness.persona_source);
+        started = await research.start(frame.studyId, readiness.design_revision_id, asked.ceiling, childId ?? undefined, readiness.persona_source, acknowledged);
+      }
+      // A start over a revision that already has a run returns that run (created: false):
+      // nothing new started. Unless that run already holds this very acknowledgement (a start
+      // whose answer was lost, asked again), what was just given was recorded nowhere. Say so,
+      // and stay, ready to start again once the design changes.
+      if (acknowledged && started.created === false && !acknowledges(started, acknowledged)) {
+        setFound(started.run_id);
+        setStarting(false);
+        return;
       }
       router.push(stepHref("progress"));
     } catch (e) {
@@ -689,6 +722,8 @@ export function RunStep() {
   };
   const blocked =
     prepared.kind === "ready" && num(prepared.readiness.spend_confirm_usd) !== null && num(prepared.readiness.cost_ceiling_usd) === null;
+  const unacknowledged =
+    prepared.kind === "ready" && needsAcknowledgement(prepared.readiness.answerability) && !acknowledgementOf(prepared.readiness.answerability, ack);
 
   return (
     <div className="flex max-w-4xl flex-col gap-4">
@@ -718,6 +753,22 @@ export function RunStep() {
             </ul>
             <p className="mt-3 text-xs text-ink-muted">{tv("research.exec.rules", { rules: prepared.readiness.rules })}</p>
           </Card>
+          {found ? (
+            <p role="alert" className="text-sm">
+              {t("research.exec.answerability.existing")}{" "}
+              <a className="underline" href={`${stepHref("progress")}?run=${encodeURIComponent(found)}`}>{t("research.exec.toProgress")}</a>
+            </p>
+          ) : null}
+          {hasGaps(prepared.readiness.answerability) ? (
+            <AnswerabilityGate
+              answer={prepared.readiness.answerability}
+              value={ack}
+              onChange={setAck}
+              fixHref={stepHref("questionnaire")}
+              disabled={!frame.canEdit || starting}
+              runnable={prepared.readiness.ready}
+            />
+          ) : null}
           {prepared.readiness.research_trace ? <ResearchTraceCard trace={prepared.readiness.research_trace} outlook={prepared.readiness.question_outlook ?? []} design={design} /> : null}
           <QuestionOutlookCard items={prepared.readiness.question_outlook ?? []} />
           <Receipt revision={prepared.revision} readiness={prepared.readiness} />
@@ -743,7 +794,7 @@ export function RunStep() {
       <ActionDock
         back={{ href: stepHref("persona"), label: `5. ${t("aia.stages.persona")}` }}
         // Not while a new choice of respondents is being checked: Start would send the old one.
-        ready={prepared.kind === "ready" && prepared.readiness.ready && frame.canEdit && !blocked && !choosing}
+        ready={prepared.kind === "ready" && prepared.readiness.ready && frame.canEdit && !blocked && !choosing && !unacknowledged}
         note={
           !frame.canEdit
             ? t("research.exec.readOnly")
@@ -753,13 +804,15 @@ export function RunStep() {
                 ? t("research.exec.dockNotReady")
                 : blocked
                   ? t("research.exec.dockBlocked")
-                  : prepared.readiness.confirmation_required
+                  : unacknowledged
+                    ? t("research.exec.answerability.dock")
+                    : prepared.readiness.confirmation_required
                     ? t("research.exec.dockAsk")
                     : t("research.exec.dockReady")
         }
       >
         {prepared.kind === "ready" ? (
-          <AiButton variant="primary" onClick={() => void start()} disabled={!prepared.readiness.ready || !frame.canEdit || starting || blocked || choosing}>
+          <AiButton variant="primary" onClick={() => void start()} disabled={!prepared.readiness.ready || !frame.canEdit || starting || blocked || choosing || unacknowledged}>
             {starting ? t("research.exec.starting") : t("research.exec.start")}
           </AiButton>
         ) : null}
@@ -912,7 +965,7 @@ function useRun(): [ResearchRun | null | undefined, () => void, (r: ResearchRun)
         if (!live) return;
         setRun(current);
         setError(null);
-        if (current && shouldPoll(current)) timer = setTimeout(read, POLL_MS);
+        if (current && shouldPoll(current)) timer = setTimeout(read, pollMs(current));
       } catch (e) {
         if (!live) return;
         // 404 is "no run here": a retry that lands on it clears the earlier failure.
@@ -1062,6 +1115,37 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
 }) {
   const { confirm, stepHref } = useResearch();
   const frame = useFrame();
+  // A retry the server refused for its research questions: the gaps, for the run it was refused
+  // for, and the person's answer. Shown only while that run is the one followed and retryable.
+  const [refusal, setGate] = useState<{ runId: string; answer: Answerability } | null>(null);
+  const gate = refusalFor(refusal, run, frame.canEdit);
+  const [ack, setAck] = useState<AcknowledgementState>(NO_ACKNOWLEDGEMENT);
+  const retry = (acknowledge?: AnswerabilityAcknowledgement) =>
+    act(async () => {
+      try {
+        let next: ResearchRun;
+        try {
+          next = await research.retry(frame.studyId, run.run_id, undefined, acknowledge);
+        } catch (e) {
+          // A retry is a new run, so the study's limit asks again.
+          const asked = confirmationAsked(e);
+          if (!asked) throw e;
+          const yes = await confirm(await withBudget(frame.studyId, tv("research.exec.cost.confirm", { ceiling: asked.ceiling.toFixed(2), limit: asked.limit.toFixed(2) }), asked.ceiling));
+          if (!yes) return run;
+          next = await research.retry(frame.studyId, run.run_id, asked.ceiling, acknowledge);
+        }
+        // Retried: the gaps asked about were this run's, and the new run recorded the answer.
+        setGate(null);
+        setAck(NO_ACKNOWLEDGEMENT);
+        return next;
+      } catch (e) {
+        const gaps = unanswerableAsked(e);
+        if (!gaps) throw e;
+        setGate({ runId: run.run_id, answer: gaps });
+        return run;
+      }
+    });
+  const acknowledged = acknowledgementOf(gate, ack);
   return (
     <section aria-labelledby="run-actions" className="flex flex-col gap-3 rounded-card border border-border bg-surface-raised p-3.5">
       <h2 id="run-actions" className="text-sm font-semibold">{tv("research.exec.revision", { revision: run.design_revision })}</h2>
@@ -1086,26 +1170,24 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
           <Button
             variant={repairable ? undefined : "primary"}
             disabled={busy}
-            onClick={() =>
-              act(async () => {
-                try {
-                  return await research.retry(frame.studyId, run.run_id);
-                } catch (e) {
-                  // A retry is a new run, so the study's limit asks again.
-                  const asked = confirmationAsked(e);
-                  if (!asked) throw e;
-                  const yes = await confirm(await withBudget(frame.studyId, tv("research.exec.cost.confirm", { ceiling: asked.ceiling.toFixed(2), limit: asked.limit.toFixed(2) }), asked.ceiling));
-                  if (!yes) return run;
-                  return research.retry(frame.studyId, run.run_id, asked.ceiling);
-                }
-              })
-            }
+            onClick={() => void retry()}
           >
             {repairable ? t("research.exec.retryWhole") : t("research.exec.retry")}
           </Button>
         ) : null}
         <Button variant="quiet" onClick={refresh}>{t("research.exec.refresh")}</Button>
       </div>
+      {gate ? (
+        <>
+          <p role="note" className="text-sm">{t("research.exec.answerability.retry")}</p>
+          <AnswerabilityGate answer={gate} value={ack} onChange={setAck} fixHref={stepHref("questionnaire")} disabled={busy} />
+          <div>
+            <Button variant="primary" disabled={busy || !acknowledged} onClick={() => acknowledged && void retry(acknowledged)}>
+              {t("research.exec.answerability.retryAction")}
+            </Button>
+          </div>
+        </>
+      ) : null}
       {actionError ? <p role="alert" className="text-sm text-status-fault">{actionError}</p> : null}
     </section>
   );
@@ -1327,6 +1409,9 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
   const aggregate = useArtifact(run, "aggregate");
   const sociomap = useArtifact(run, "sociomap");
   const sociomapping = useArtifact(run, "sociomapping");
+  // The literature review the report variant adds (research-integrity-report 3): chosen once,
+  // read by the report card above and the literature panel below, never two selections.
+  const [review, setReview] = useState<string | null>(null);
   const report = run?.steps.some((step) => step.kind === "research_report")
     ? <InternalReport key={run.run_id} run={run} progressHref={progressHref} />
     : <p className="text-sm text-ink-muted">{t("research.exec.results.reportNotInAia")}</p>;
@@ -1351,7 +1436,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
   </section>;
   return <ResultsWorkspace run={run} progressHref={progressHref}
     notice={<><OriginBanners run={run} /><RespondentsReceipt run={run} /></>}
-    lead={session ? <CompleteReport run={run} /> : null}
+    lead={session ? <CompleteReport run={run} review={review} onReview={setReview} /> : null}
     panels={[
       { id: "data", label: "Data", description: "Odpovědi a srovnání hodnocených objektů. U každého výsledku zůstává uvedena podpora dat a nejistota.", content: <>
       <Card id="res-aggregate" title={t("research.exec.results.aggregate")}>
@@ -1383,7 +1468,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
       ...(showAnalysis ? [{ id: "analysis", label: "AI analýza", description: "Souhrn, odpovědi na výzkumné otázky a omezení. Interpretace vychází z podkladů tohoto běhu a čeká na posouzení výzkumníkem.", content: <div id="res-analysis"><AnalysisResults key={run.run_id} run={run} spec={pinnedSpecification(specification?.state === "ready" ? specification.value : null)} /></div> }] : []),
       { id: "report", label: "Rešerše a zpráva", description: "Zkontrolujte připravenost interní zprávy, přijaté externí podklady a omezení rešerše. Dostupnost stažení závisí na úplnosti analýzy.", content: <>
         <div id="res-report">{report}</div>
-        {showAnalysis && frame.canEdit ? <InterpretationResearch key={run.run_id} run={run} /> : null}
+        {showAnalysis && frame.canEdit ? <InterpretationResearch key={run.run_id} run={run} review={review} onReview={setReview} /> : null}
         <details><summary className="cursor-pointer text-sm font-medium">Klientské znalosti a kontextová AI pomoc</summary><div className="mt-3">{knowledgeContext}</div></details>
       </> },
     ]} />;
@@ -1430,9 +1515,6 @@ function InternalReport({ run, progressHref }: { run: ResearchRun; progressHref:
           })}</p>
           {/* Downloading and approving happen in one place: the report card above (CompleteReport). */}
           {frame.canEdit ? <p className="mt-2 text-xs text-ink-muted">{t("research.exec.results.reportActionsAbove")}</p> : null}
-          {status.pdf && status.pdf.state !== "READY" ? (
-            <p className="mt-1 text-xs text-ink-muted">{t("research.exec.results.reportPdfFailed")}</p>
-          ) : null}
         </>
       ) : null}
       {status && status.state !== "READY" ? <p className="text-sm text-ink-muted">{reportStatusWords(reportStatus(status))}</p> : null}

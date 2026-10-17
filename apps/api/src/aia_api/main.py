@@ -126,7 +126,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             allow_credentials=True,
             allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
             allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
-            expose_headers=["X-Request-ID"],
+            # A stored report's download names its draft and review state (requestStored):
+            # unexposed, a browser on another origin reads them as null and the report card
+            # refuses every report it cannot tell is the one it shows.
+            expose_headers=["X-Request-ID", "X-AIA-Artifact-Id", "X-AIA-Review-State"],
         )
 
     install_exception_handlers(app)

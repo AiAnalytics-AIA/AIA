@@ -41,8 +41,9 @@ from aia_core.application.analysis_results import (
     stored_analysis,
 )
 from aia_core.application.contextual_report import contextual_report, stored_contextual_report
-from aia_core.application.deep_research import DeepResearchRuns
+from aia_core.application.deep_research import DeepResearchRuns, run_settings
 from aia_core.application.report import ReportCompositionRefused
+from aia_core.application.report_variants import prepared_context_report
 from aia_core.application.research import FrozenDataset, ResearchRuns, research_artifacts
 from aia_core.domain.ai_contracts import Delivery, UsageOutcome
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
@@ -71,6 +72,7 @@ from aia_core.domain.deep_research.workflow import deep_research_steps
 from aia_core.domain.evidence import AdmittedClaim, ClaimSurface, ViolationCode
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.pipeline import ProjectType
+from aia_core.domain.report.model import Callout
 from aia_core.domain.residency import DataClass
 from aia_core.domain.sociomap import SociomapArtifactV3, read_artifact
 from aia_core.domain.workflow import (
@@ -582,7 +584,7 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
         < body.index("Výsledky jednotlivých otázek")
     )
     assert "smyšlení respondenti" in body
-    assert report.metadata["report_contract"] == "aia-internal-report-7"
+    assert report.metadata["report_contract"] == "aia-internal-report-8"
 
 
 @pytest.mark.parametrize(
@@ -790,6 +792,14 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
     body = zipfile.ZipFile(io.BytesIO(document)).read("word/document.xml").decode()
     assert "schválil k použití ve zprávách" in body
     assert "Mapa metodou aia-sociomap-3 je interním výstupem" not in body
+    # The run recorded its research questions as gaps at start (the design links none): the
+    # stored report marks the introduction's list and each answer, the reason once (review 3:
+    # unwiring the gaps from the worker left every test green).
+    recorded = run["metadata"]["answerability"]["gaps"]
+    assert recorded and all(g["reasons"] == ["unlinked_design"] for g in recorded)
+    assert "bez doložené odpovědi, viz kapitola Respondenti a výpočet" in body
+    assert body.count("Bez doložené odpovědi") == len(recorded)
+    assert "Ani tuto odpověď nečtěte jako doloženou" in body
     record_property("report_artifact_id", report_id)
     record_property("report_sha256", report.sha256)
     record_property("report_review_state", report.metadata["review_state"])
@@ -872,6 +882,12 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
                     deep_research_run_id=interpreted.run_id,
                 )
                 assert any(s.id == "literature" for s in combined.sections)
+                # The report with literature takes the same recorded gaps (review 3).
+                assert any(
+                    isinstance(b, Callout) and b.title == "Bez doložené odpovědi"
+                    for s in combined.sections
+                    for b in s.blocks
+                )
                 assert any((s.id or "").startswith("ch-native-map-") for s in combined.sections)
                 # The same study's report: the same design, method and question chapters.
                 assert {"ch-design", "ch-method", "ch-questions", "app-questionnaire"} <= {
@@ -894,9 +910,48 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
                     deep_research_run_id=interpreted.run_id,
                 )
                 assert data.startswith(b"PK") and same == data
+                # The front matter and the literature chapter name one seal, the one the bundle
+                # verifies (research-integrity-report 4: they printed two different hashes).
+                printed = zipfile.ZipFile(io.BytesIO(data)).read("word/document.xml").decode()
+                assert printed.count(evidence.sha256) == 2
+                assert "Pečeť balíčku" in printed and "Pečeť ověřeného balíčku" in printed
+                # The source table's approval is the review's own pin: this one runs under the
+                # code's proposed defaults, so the table reads as not yet approved (review 3).
+                assert run_settings(runs.get(interpreted.run_id)["metadata"]) is not None
+                assert "dosud neschválila" in printed and "nezaznamenala" not in printed
                 assert again.artifact_id == stored.artifact_id and not stored.is_approved
                 assert stored.metadata["review_state"] == "DRAFT_UNAPPROVED"
                 assert stored.metadata["deep_research_run_id"] == interpreted.run_id
+                # A newer draft of the same pair (the study renamed and prepared again), then the
+                # first sources once more: prepare stores its draft again so the draft it asks a
+                # PDF for is the one every read names (review 2: they were two drafts).
+                drafts = research_artifacts(session, world.lead_scope(session), store)
+                renamed, _ = drafts.put(
+                    project_id=stored.project_id,
+                    revision=stored.revision,
+                    stage_type=stored.stage_type,
+                    artifact_type=stored.artifact_type,
+                    data=b"PK renamed",
+                    input_fingerprint="renamed",
+                    metadata=dict(stored.metadata),
+                )
+                restored, restored_data = stored_contextual_report(
+                    session,
+                    world.lead_scope(session),
+                    store,
+                    run_id=started.run_id,
+                    deep_research_run_id=interpreted.run_id,
+                )
+                assert restored.artifact_id not in (stored.artifact_id, renamed.artifact_id)
+                assert restored_data == data
+                current = prepared_context_report(
+                    session,
+                    world.lead_scope(session),
+                    store,
+                    run_id=started.run_id,
+                    deep_research_run_id=interpreted.run_id,
+                )
+                assert current is not None and current.artifact_id == restored.artifact_id
                 record_property(f"interpretation_{result_target.kind}_run_id", interpreted.run_id)
                 record_property(f"interpretation_{result_target.kind}_bundle_seal", evidence.sha256)
                 record_property(

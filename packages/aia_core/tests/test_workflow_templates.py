@@ -12,6 +12,8 @@ from aia_core.domain.workflow_templates import (
     CLIENT_SOURCE_PROPOSALS,
     DEVELOP_SNAPSHOT,
     POPULATION_MATERIALIZE,
+    REPORT_PDF,
+    REPORT_PDF_STEP_KIND,
     REPORT_STEP_KIND,
     RESEARCH,
     RESEARCH_AGENT,
@@ -30,6 +32,7 @@ def test_the_set_of_workflow_types_is_closed() -> None:
                 RESEARCH_AGENT,
                 POPULATION_MATERIALIZE,
                 CLIENT_SOURCE_PROPOSALS,
+                REPORT_PDF,
             }
         )
         == WORKFLOW_TYPES
@@ -88,3 +91,13 @@ def test_report_waits_for_every_analysis_module_when_analysis_is_enabled() -> No
         s.node_key != "report"
         for s in steps_for_workflow(RESEARCH, project_type=ProjectType.RESEARCH)
     )
+
+
+def test_report_pdf_is_one_step_rendering_a_stored_report() -> None:
+    steps = steps_for_workflow(REPORT_PDF, project_type=ProjectType.RESEARCH)
+    validate_dag(steps)
+    (step,) = steps
+    assert (step.node_key, step.kind, step.stage_type) == ("pdf", REPORT_PDF_STEP_KIND, "REPORT")
+    assert step.consumes_population is False
+    with pytest.raises(UnknownWorkflowType):
+        steps_for_workflow(REPORT_PDF, project_type=ProjectType.SIMULATION)

@@ -118,6 +118,12 @@ def _deviation_text(deviation: Mapping[str, Any]) -> str:
     )
 
 
+def _folded(question: str) -> str:
+    """A research question's text with its whitespace folded: how a gap the run recorded at
+    start is matched to the question the analysis answered."""
+    return " ".join(question.split())
+
+
 def compose_internal_report(
     run: RunAnalysis,
     meta: ReportMeta,
@@ -127,6 +133,7 @@ def compose_internal_report(
     question_tables: QuestionTables | None = None,
     design: DesignSections | None = None,
     method: Section | None = None,
+    research_question_gaps: Mapping[str, str] | None = None,
 ) -> ReportDocument:
     """Make an unapproved AIA-branded internal draft from all eight admitted modules.
 
@@ -136,6 +143,9 @@ def compose_internal_report(
     ``design`` (``compose_design_sections``): its chapter follows the introduction and the
     questionnaire is an appendix before the evidence appendix. ``method``
     (``compose_method_section``): who answered and the run's methods, after the methodology.
+    ``research_question_gaps`` (``research_question_gaps``): the research questions the run
+    recorded at start as gaps, in words, by their text; the introduction's list and every answer
+    to one of them say so where the answer is read.
     Client deliverables have a separate admission and review contract; this
     function never upgrades internal claims to a client-facing surface.
     """
@@ -159,6 +169,11 @@ def compose_internal_report(
     if meta.method_status != first.result.method_status:
         raise ReportCompositionRefused("report method status differs from analysis")
 
+    gaps = {_folded(q): words for q, words in (research_question_gaps or {}).items()}
+    marked: set[str] = set()
+    gap_mark = " (bez doložené odpovědi" + (
+        ", viz kapitola Respondenti a výpočet)" if method is not None else ")"
+    )
     claims: list[AdmittedClaim] = []
     introduction: list[Block] = [
         Paragraph(
@@ -185,7 +200,12 @@ def compose_internal_report(
         introduction.extend(
             [
                 Paragraph(text("Studie byla vedena následujícími výzkumnými otázkami:")),
-                BulletList(tuple(ListItem(text(q)) for q in reference.research_questions)),
+                BulletList(
+                    tuple(
+                        ListItem(text(q + (gap_mark if _folded(q) in gaps else "")))
+                        for q in reference.research_questions
+                    )
+                ),
             ]
         )
     if context_sections:
@@ -327,6 +347,35 @@ def compose_internal_report(
             blocks.append(Heading("Odpovědi na výzkumné otázky", 2))
         for answer in result.research_question_answers:
             blocks.append(Paragraph((Text(answer.question, "strong"),)))
+            folded = _folded(answer.question)
+            if folded in gaps and folded not in marked:
+                # Why, once: at the first answer to it. Several modules answer the same
+                # research questions, and the full callout under each repeated one reason up
+                # to 16 times in the fictional render (research-integrity-report review 3).
+                marked.add(folded)
+                blocks.append(
+                    Callout(
+                        CalloutKind.LIMITATION,
+                        # By what the record holds, never "no measure": a comparison gap's
+                        # measures were answered, only the comparison was not shown (review 3).
+                        text(
+                            f"Při spuštění běh zaznamenal: {gaps[folded]}. Odpověď níže proto "
+                            "čtěte jako nedoloženou; totéž platí pro každou další odpověď na "
+                            "tuto otázku ve zprávě."
+                        ),
+                        title="Bez doložené odpovědi",
+                    )
+                )
+            elif folded in gaps:
+                blocks.append(
+                    Callout(
+                        CalloutKind.LIMITATION,
+                        text(
+                            "Ani tuto odpověď nečtěte jako doloženou (důvod je u první "
+                            "odpovědi na tuto otázku)."
+                        ),
+                    )
+                )
             blocks.extend(
                 Paragraph(
                     text(part.strip()),
@@ -370,4 +419,31 @@ def compose_internal_report(
         Section("Evidenční příloha", (EvidenceAppendix(),), id="app-evidence", appendix=True)
     )
     sections.append(Section("Audit", (AuditBlock(tuple(audit)),), id="app-audit", appendix=True))
+    sections[0] = _with_contents(sections[0], sections, literature=bool(context_sections))
     return require_valid(ReportDocument(meta, tuple(sections), ledger))
+
+
+def _with_contents(intro: Section, sections: list[Section], *, literature: bool) -> Section:
+    """The introduction with what this variant of the report holds (research-integrity-report
+    chunk 3): a reader of a downloaded file -- DOCX or its PDF -- sees whether the literature
+    review is in it and which chapters and appendices it has, without the screen it came from."""
+    chapters = [s.title for s in sections[1:] if not s.appendix]
+    appendices = [s.title for s in sections if s.appendix]
+    variant = (
+        "Tato verze zprávy obsahuje literární rešerši vybranou k tomuto běhu."
+        if literature
+        else "Tato verze je základní zprávou běhu: literární rešerše není její součástí. "
+        "Zpráva s vybranou rešerší je samostatná varianta: vychází z týchž uložených výsledků "
+        "běhu a navíc má kapitolu o literatuře."
+    )
+    contents: list[Block] = [
+        Paragraph(text(f"{variant} Zpráva má tyto kapitoly:")),
+        BulletList(tuple(ListItem(text(title)) for title in chapters)),
+        Paragraph(
+            text(
+                "Přílohy: " + "; ".join(appendices) + "." if appendices else "Zpráva nemá přílohy."
+            )
+        ),
+    ]
+    blocks = (intro.blocks[0], *contents, *intro.blocks[1:])
+    return Section(intro.title, blocks, id=intro.id, appendix=intro.appendix)

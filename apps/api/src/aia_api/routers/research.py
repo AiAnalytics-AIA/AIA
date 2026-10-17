@@ -12,7 +12,7 @@ from __future__ import annotations
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Annotated, Any, Final
+from typing import Annotated, Any, Final, Literal
 
 from aia_core.application.analysis_results import (
     AnalysisNotRetryable,
@@ -37,6 +37,14 @@ from aia_core.application.report import (
     ReportCompositionRefused,
 )
 from aia_core.application.report_approval import ReportNotApprovable, approve_report
+from aia_core.application.report_variants import (
+    PdfState,
+    VariantState,
+    VariantStatus,
+    request_pdf,
+    variant_pdf,
+    variant_status,
+)
 from aia_core.application.research import (
     BudgetNotRaised,
     CostCeilingUnknown,
@@ -44,6 +52,7 @@ from aia_core.application.research import (
     DesignNotReady,
     PanelPopulationMissing,
     ResearchAgentJobs,
+    ResearchQuestionsUnanswerable,
     ResearchRunNotFound,
     ResearchRunNotRetryable,
     ResearchRuns,
@@ -54,6 +63,15 @@ from aia_core.application.research import (
 from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFACT_TYPE
 from aia_core.application.workflows import StartedRun
 from aia_core.domain.analysis.steps import ANALYSIS_STEP_KIND
+from aia_core.domain.answerability import (
+    ANSWERABILITY_RULES,
+    MAX_ACKNOWLEDGEMENT_CHARS,
+    MIN_ACKNOWLEDGEMENT_CHARS,
+    Acknowledgement,
+    AcknowledgementRefused,
+    Answerability,
+    read_answerability_note,
+)
 from aia_core.domain.design import DesignRejected, DesignRevision
 from aia_core.domain.design_reuse import DesignSource
 from aia_core.domain.fieldwork import (
@@ -68,11 +86,7 @@ from aia_core.domain.methodology.pins import response_deviates, run_methods
 from aia_core.domain.population import PopulationError, UnknownDatasetVersion
 from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ResearchAction
-from aia_core.domain.research_design import (
-    DIMENSIONS_AWAIT_DRAW,
-    DIMENSIONS_NOT_TOPICS,
-    FILTERS_AWAIT_DRAW,
-)
+from aia_core.domain.research_design import settle_selection
 from aia_core.domain.research_trace import ResearchTrace
 from aia_core.domain.scope import (
     Permission,
@@ -211,6 +225,22 @@ class DesignRevisionList(BaseModel):
     items: list[DesignRevisionResponse]
 
 
+class AnswerabilityAcknowledgementBody(BaseModel):
+    """A person's decision to run a design whose research questions the run cannot all answer.
+
+    ``digest`` is readiness's ``answerability.digest``: it names the exact gaps the person
+    saw, so an acknowledgement never covers a design that changed after it was read.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    digest: str = Field(min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$")
+    reason: str = Field(min_length=MIN_ACKNOWLEDGEMENT_CHARS, max_length=MAX_ACKNOWLEDGEMENT_CHARS)
+
+    def domain(self) -> Acknowledgement:
+        return Acknowledgement(digest=self.digest, reason=self.reason)
+
+
 class RunStart(BaseModel):
     """Start the research workflow over one Design Revision of this Study."""
 
@@ -226,6 +256,9 @@ class RunStart(BaseModel):
     #: deployment offers (``persona_sources`` on readiness), else 409. ``None``: the
     #: deployment's default.
     persona_source: PersonaSource | None = None
+    #: Only read when the run cannot answer every research question it states (readiness's
+    #: ``answerability``); a start without it is 409 ``research_questions_unanswerable``.
+    acknowledge_research_questions: AnswerabilityAcknowledgementBody | None = None
 
 
 class RunRetry(BaseModel):
@@ -234,6 +267,8 @@ class RunRetry(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000)
+    #: A retry inherits the original's acknowledgement while the gaps are the same.
+    acknowledge_research_questions: AnswerabilityAcknowledgementBody | None = None
 
 
 class ResearchStepResponse(BaseModel):
@@ -281,11 +316,6 @@ class ResearchRunPopulation(BaseModel):
     read_by_fieldwork: bool
 
 
-#: A panel run that ended before its population draw succeeded: no respondent was drawn under
-#: the filters, and no persona read the dimensions.
-DRAW_NOT_COMPLETED: Final = "population_draw_not_completed"
-
-
 class ResearchRunSelection(BaseModel):
     """What a run's design selected for its respondents and what reached them (5b).
 
@@ -331,6 +361,46 @@ class ResearchRunMethodology(BaseModel):
     response_deviates: bool | None
 
 
+class AnswerabilityGapResponse(BaseModel):
+    """One research question the run cannot answer, or a design that states none."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: str
+    research_question: str | None
+    verdict: str | None
+    reasons: list[str]
+    measures: list[str]
+
+
+class AnswerabilityResponse(BaseModel):
+    """Whether the run can answer every research question it states (``domain.answerability``).
+
+    ``ready`` on readiness says whether the design can run at all; this says whether it can
+    answer what it asks. A start over a design that cannot needs a person's acknowledgement of
+    exactly these gaps (``digest``).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    rules: str
+    capable: bool
+    digest: str
+    gaps: list[AnswerabilityGapResponse]
+    #: Research questions whose support only fieldwork decides: not gaps, never answerable.
+    pending: list[str] = []
+    #: On readiness: whether a start needs the person's acknowledgement of these gaps -- the
+    #: deployment's switch is on and the run cannot answer every research question. The page
+    #: asks exactly when the server would refuse; off, it only shows the gaps.
+    acknowledgement_required: bool = False
+    #: On a run: the acknowledgement that let it start with gaps; ``None`` when it had none.
+    acknowledgement: dict[str, Any] | None = None
+    #: On a run with gaps and no acknowledgement: ``False`` when the switch was off.
+    enforced: bool | None = None
+    #: On an analysis retry: never refused, recorded as exempt (``analysis_retry``).
+    exempt: str | None = None
+
+
 class ResearchRunResponse(BaseModel):
     """A research run of this Study, as a person needs to read it (ADR 0016)."""
 
@@ -365,6 +435,9 @@ class ResearchRunResponse(BaseModel):
     #: What the design selected and what was applied; ``None``: a run started before 5b,
     #: which recorded nothing -- never read as "nothing selected".
     selection: ResearchRunSelection | None = None
+    #: Whether the run could answer its research questions when it started; ``None``: a run
+    #: started before it was recorded -- never read as capable.
+    answerability: AnswerabilityResponse | None = None
 
 
 class ResearchRunList(BaseModel):
@@ -404,7 +477,9 @@ class ResearchQuestionTraceResponse(BaseModel):
     text: str
     #: Item ids (``question_outlook[].question_id``) that declare they measure it.
     measures: list[str]
-    #: The best verdict among its measures; UNANSWERABLE or UNKNOWN with a reason when none.
+    #: The verdict the start would decide (``answerability.decided_trace``): a gap's, else the
+    #: best among the measures the run answers and the analysis cites; never "at risk" beside
+    #: a gap that says the run will not answer it.
     verdict: str
     reasons: list[str]
     #: The comparison the plan declares for it (describe, rank_objects, compare_segments,
@@ -466,6 +541,8 @@ class ReadinessResponse(BaseModel):
     persona_source: str = PersonaSource.FICTIONAL_ROSTER.value
     #: Every source, offered or not, and why not.
     persona_sources: list[PersonaSourceOption] = []
+    #: ``None`` when the design does not compile.
+    answerability: AnswerabilityResponse | None = None
 
 
 class PersonaSourceOption(BaseModel):
@@ -515,6 +592,58 @@ def _cost_refused(exc: CostConfirmationRequired | CostCeilingUnknown) -> HTTPExc
             },
         },
     )
+
+
+def _answerability(answer: Answerability, *, required: bool) -> AnswerabilityResponse:
+    return AnswerabilityResponse(
+        rules=ANSWERABILITY_RULES,
+        capable=answer.capable,
+        digest=answer.digest,
+        gaps=[AnswerabilityGapResponse.model_validate(g.to_json()) for g in answer.gaps],
+        pending=list(answer.pending),
+        acknowledgement_required=required and not answer.capable,
+    )
+
+
+def _recorded_answerability(meta: Mapping[str, Any]) -> AnswerabilityResponse | None:
+    note = read_answerability_note(meta)
+    if note is None:
+        return None
+    return AnswerabilityResponse(
+        rules=str(note["rules"]),
+        capable=bool(note["capable"]),
+        digest=str(note.get("digest") or ""),
+        gaps=[AnswerabilityGapResponse.model_validate(g) for g in note["gaps"]],
+        pending=[str(p) for p in note.get("pending") or []],
+        acknowledgement=note.get("acknowledgement"),
+        enforced=note.get("enforced") if isinstance(note.get("enforced"), bool) else None,
+        exempt=str(note["exempt"]) if note.get("exempt") else None,
+    )
+
+
+def _unanswerable(exc: ResearchQuestionsUnanswerable) -> HTTPException:
+    """409: the design can run, but not answer every research question it states."""
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={
+            "code": "research_questions_unanswerable",
+            "message": "The run cannot answer every research question the design states; "
+            "acknowledge these gaps with a reason to start it anyway.",
+            "details": _answerability(exc.answerability, required=True).model_dump(mode="json"),
+        },
+    )
+
+
+def _acknowledgement(
+    body: AnswerabilityAcknowledgementBody | None,
+) -> Acknowledgement | None:
+    try:
+        return body.domain() if body is not None else None
+    except AcknowledgementRefused as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={"code": "acknowledgement_invalid", "message": str(exc)},
+        ) from exc
 
 
 def _not_ready(readiness: Any) -> HTTPException:
@@ -804,42 +933,26 @@ def _run(
         methodology=_methodology(meta),
         persona_source=persona_source_of(meta).value,
         selection=_selection(meta, steps, terminal=run["status"].is_terminal),
+        answerability=_recorded_answerability(meta),
     )
 
 
 def _selection(
     meta: dict[str, Any], steps: list[ResearchStepResponse], *, terminal: bool
 ) -> ResearchRunSelection | None:
-    """The run's recorded selection, its filters and dimensions settled by its fieldwork (5b,
-    5c; review, Codex on #439): a panel run's await the draw until the fieldwork step has
-    succeeded with data drawn from the population, the step that applies both; a run that
-    ended without it never drew anyone, and says so."""
+    """The run's recorded selection, settled by its fieldwork (``settle_selection``; 5b, 5c;
+    review, Codex on #439). ``None``: a run that recorded none, never read as nothing selected."""
     if not isinstance(meta.get("selection"), dict):
         return None
-    selection = ResearchRunSelection.model_validate(meta["selection"])
     fieldwork = next((s for s in steps if s.node_key == "run"), None)
     drawn = (
         fieldwork is not None
         and fieldwork.status == "SUCCEEDED"
         and fieldwork.data_origin == DataOrigin.MODELLED_AI_PANEL.value
     )
-    update: dict[str, Any] = {}
-    # Filters and dimensions alike apply at the draw (5b, 5c): settled from the same step.
-    for part, awaiting in (("filters", FILTERS_AWAIT_DRAW), ("dimensions", DIMENSIONS_AWAIT_DRAW)):
-        if getattr(selection, f"{part}_reason") != awaiting:
-            continue
-        if (
-            drawn
-            and part == "dimensions"
-            and set(selection.dimensions_unmatched) >= set(selection.dimensions)
-        ):
-            # No selected id is a persona topic: the allowlist let nothing through (5c).
-            update["dimensions_reason"] = DIMENSIONS_NOT_TOPICS
-        elif drawn:
-            update |= {f"{part}_applied": True, f"{part}_reason": None}
-        elif terminal:
-            update[f"{part}_reason"] = DRAW_NOT_COMPLETED
-    return selection.model_copy(update=update) if update else selection
+    return ResearchRunSelection.model_validate(
+        settle_selection(meta["selection"], drawn=drawn, ended=terminal)
+    )
 
 
 def _persona_source(request: Request) -> PersonaSource:
@@ -1002,6 +1115,12 @@ def readiness(
         research_trace=_trace(outlook.trace) if outlook.trace is not None else None,
         persona_source=chosen.value,
         persona_sources=_persona_sources(request),
+        answerability=_answerability(
+            outlook.answerability,
+            required=request.app.state.settings.research_answerability_gate,
+        )
+        if outlook.answerability is not None
+        else None,
     )
 
 
@@ -1057,6 +1176,8 @@ def start_run(
             confirm_cost_usd=body.confirm_cost_usd,
             population_version_id=body.population_version_id,
             persona_source=persona_source,
+            acknowledge=_acknowledgement(body.acknowledge_research_questions),
+            require_answerability=request.app.state.settings.research_answerability_gate,
         )
     except ScopeDenied as exc:
         raise _refused(exc) from exc
@@ -1064,6 +1185,8 @@ def start_run(
         raise _not_found("design_revision") from exc
     except DesignNotReady as exc:
         raise _not_ready(exc.readiness) from exc
+    except ResearchQuestionsUnanswerable as exc:
+        raise _unanswerable(exc) from exc
     except (CostConfirmationRequired, CostCeilingUnknown) as exc:
         raise _cost_refused(exc) from exc
     except PanelPopulationMissing as exc:
@@ -1251,6 +1374,8 @@ def retry_run(
             fieldwork_source=_fieldwork_source(request),
             reservations=_reservations(request),
             confirm_cost_usd=body.confirm_cost_usd if body else None,
+            acknowledge=_acknowledgement(body.acknowledge_research_questions if body else None),
+            require_answerability=request.app.state.settings.research_answerability_gate,
         )
     except ScopeDenied as exc:
         raise _refused(exc) from exc
@@ -1258,6 +1383,8 @@ def retry_run(
         raise _not_found("run") from exc
     except DesignNotReady as exc:
         raise _not_ready(exc.readiness) from exc
+    except ResearchQuestionsUnanswerable as exc:
+        raise _unanswerable(exc) from exc
     except (CostConfirmationRequired, CostCeilingUnknown) as exc:
         raise _cost_refused(exc) from exc
     except PanelPopulationMissing as exc:
@@ -1339,6 +1466,7 @@ def retry_analysis(
             run_id=run_id,
             reservations=_reservations(request),
             confirm_cost_usd=body.confirm_cost_usd if body else None,
+            acknowledge=_acknowledgement(body.acknowledge_research_questions if body else None),
         )
     except ScopeDenied as exc:
         raise _refused(exc) from exc
@@ -1352,6 +1480,8 @@ def retry_analysis(
         ) from exc
     except DesignNotReady as exc:
         raise _not_ready(exc.readiness) from exc
+    except ResearchQuestionsUnanswerable as exc:
+        raise _unanswerable(exc) from exc
     except (CostConfirmationRequired, CostCeilingUnknown) as exc:
         raise _cost_refused(exc) from exc
     except AnalysisNotRetryable as exc:
@@ -1547,24 +1677,40 @@ def _report_for_run(
     return step, artifact
 
 
-def _report_pdf(
+def _step_pdf(
     step: dict[str, Any] | None, report: Artifact | None, run_id: str, repo: ArtifactRepository
-) -> tuple[Artifact | None, dict[str, Any] | None]:
-    """The PDF the report step stored beside ``report``, verified as its rendering; and what
-    the step said about it (None when the step made no PDF: the switch was off)."""
+) -> tuple[Artifact | None, dict[str, Any] | None, str | None]:
+    """The PDF the report step stored beside ``report``, verified as its rendering; what the
+    step said about it (None when the step made no PDF: the switch was off); and, when the step
+    said READY but its PDF is not offered, why, in the reasons a requested rendering has
+    (``report_variants.variant_pdf``): gone, corrupt, or not this report's rendering."""
     said = ((step or {}).get("output") or {}).get("pdf")
     if report is None or not isinstance(said, dict) or said.get("state") != "READY":
-        return None, said if isinstance(said, dict) else None
+        return None, said if isinstance(said, dict) else None, None
     try:
         pdf = repo.get(str(said.get("artifact_id")))
-    except ArtifactNotFound as exc:
-        raise HTTPException(409, detail={"code": "report_artifact_missing"}) from exc
+    except ArtifactNotFound:
+        return None, said, "pdf_missing"
     if (
         pdf.artifact_type != INTERNAL_REPORT_PDF_ARTIFACT_TYPE
-        or pdf.status is not ArtifactStatus.VALID
         or pdf.metadata.get("run_id") != run_id
         or pdf.metadata.get("rendering_of") != report.artifact_id
     ):
+        return None, said, "pdf_not_this_report"
+    if pdf.status is not ArtifactStatus.VALID:
+        return None, said, "pdf_corrupt"
+    return pdf, said, None
+
+
+def _report_pdf(
+    step: dict[str, Any] | None, report: Artifact | None, run_id: str, repo: ArtifactRepository
+) -> tuple[Artifact | None, dict[str, Any] | None]:
+    """:func:`_step_pdf` for a download: a PDF the step said it made but cannot be served is
+    409, never another file."""
+    pdf, said, why = _step_pdf(step, report, run_id, repo)
+    if why == "pdf_missing":
+        raise HTTPException(409, detail={"code": "report_artifact_missing"})
+    if why is not None:
         raise HTTPException(409, detail={"code": "report_artifact_invalid"})
     return pdf, said
 
@@ -1599,23 +1745,61 @@ def run_report(
         "size_bytes": artifact.size_bytes,
         "synthetic": bool(artifact.metadata.get("synthetic")),
         **_origin_flags({_artifact_origin_kind(artifact.metadata)}),
-        "pdf": _pdf_state(step, artifact, run_id, research_artifacts(session, scope, store)),
+        "pdf": _base_pdf(step, artifact, run_id, scope, session, store)[1],
     }
 
 
-def _pdf_state(
-    step: dict[str, Any], report: Artifact, run_id: str, repo: ArtifactRepository
-) -> dict[str, Any] | None:
-    try:
-        pdf, said = _report_pdf(step, report, run_id, repo)
-    except HTTPException:
-        # The report stands; a PDF that is not its rendering is never offered.
-        return {"state": "INVALID", "reason": None}
-    if pdf is not None:
-        return {"state": "READY", "artifact_id": pdf.artifact_id, "size_bytes": pdf.size_bytes}
-    if said is not None:
-        return {"state": str(said.get("state") or "FAILED"), "reason": said.get("reason")}
-    return None
+def _base_pdf(
+    step: dict[str, Any] | None,
+    report: Artifact,
+    run_id: str,
+    scope: StudyContext,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> tuple[Artifact | None, dict[str, Any] | None]:
+    """The run's own report's PDF -- the one its report step rendered, else one a person asked
+    for since (``report_pdf``, research-integrity-report review: a step that rendered none, or
+    failed to, left no way to get one) -- and its state; the PDF only when it is ready."""
+    own, said, why = _step_pdf(step, report, run_id, research_artifacts(session, scope, store))
+    if why is not None:
+        # The step's PDF is gone, corrupt or not this report's: never offered, asked for anew,
+        # and said as what it is (review 2: corruption read as a different report's rendering).
+        said = {"state": "INVALID", "reason": why}
+    if own is not None:
+        return own, {
+            "state": "READY",
+            "artifact_id": own.artifact_id,
+            "size_bytes": own.size_bytes,
+            "askable": False,
+        }
+    asked = variant_pdf(
+        session, scope, store, docx=report, run_id=run_id, deep_research_run_id=None
+    )
+    if asked.state is not PdfState.NOT_REQUESTED:
+        # A rendering a person asked for since: its state is the PDF's now.
+        return asked.artifact, asked.to_json()
+    if said is None:
+        # The step rendered none (the converter was off) and nobody has asked since.
+        return None, {
+            "state": PdfState.NOT_REQUESTED.value,
+            "reason": asked.reason,
+            "askable": asked.askable,
+        }
+    return None, {
+        "state": str(said.get("state") or "FAILED"),
+        "reason": said.get("reason"),
+        "askable": asked.askable,
+    }
+
+
+def _review_headers(docx: Artifact, filename: str) -> dict[str, str]:
+    return {
+        "Content-Disposition": f'attachment; filename="{filename}"',
+        "Cache-Control": "no-store",
+        # The stored draft these bytes are (or render), for its review and approval (B2).
+        "X-AIA-Artifact-Id": docx.artifact_id,
+        "X-AIA-Review-State": "APPROVED_INTERNAL" if docx.is_approved else "DRAFT_UNAPPROVED",
+    }
 
 
 @router.get(
@@ -1630,24 +1814,48 @@ def download_run_report_pdf(
     except ScopeDenied as exc:
         raise _refused(exc) from exc
     step, report = _report_for_run(run_id, scope, session, store)
-    repo = research_artifacts(session, scope, store)
-    pdf, _said = _report_pdf(step, report, run_id, repo)
+    if report is None:
+        raise _not_found("report_pdf")
+    pdf, state = _base_pdf(step, report, run_id, scope, session, store)
     if pdf is None:
+        if state is not None and state.get("state") == PdfState.INVALID.value:
+            # Never another document's bytes, and never a bare "not found" for one.
+            raise HTTPException(409, detail={"code": "report_artifact_invalid"})
         raise _not_found("report_pdf")
     try:
-        data = repo.read(pdf.artifact_id)
+        data = research_artifacts(session, scope, store).read(pdf.artifact_id)
     except (IntegrityError, ObjectNotFound) as exc:
         raise artifact_corrupt(session) from exc
     return Response(
         content=data,
         media_type=PDF_MEDIA_TYPE,
-        headers={
-            "Content-Disposition": (
-                f'attachment; filename="AIA-{scope.study_id}-internal-draft.pdf"'
-            ),
-            "Cache-Control": "no-store",
-        },
+        headers=_review_headers(report, f"AIA-{scope.study_id}-internal-draft.pdf"),
     )
+
+
+@router.post(
+    "/research/runs/{run_id}/report/pdf",
+    response_model=dict[str, Any],
+    summary="Ask for the PDF of the run's own report: a rendering of its stored DOCX",
+)
+def ask_run_report_pdf(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> dict[str, Any]:
+    """When the report step rendered no PDF, or one that failed or became invalid, a new
+    rendering of exactly its stored DOCX (``report_pdf``); a ready PDF is left as it is. On a
+    Study that starts no work nothing is asked, and the status says why."""
+    step, report = _report_for_run(run_id, scope, session, store)
+    if report is None:
+        raise _not_found("report")
+    own, _state = _base_pdf(step, report, run_id, scope, session, store)
+    if own is None:
+        try:
+            request_pdf(
+                session, scope, store, docx=report, run_id=run_id, deep_research_run_id=None
+            )
+        except ScopeDenied as exc:
+            raise _refused(exc) from exc
+    return run_report(run_id, scope, session, store)
 
 
 @router.get(
@@ -1668,36 +1876,140 @@ def download_run_report(
         data = research_artifacts(session, scope, store).read(artifact.artifact_id)
     except (IntegrityError, ObjectNotFound) as exc:
         raise artifact_corrupt(session) from exc
-    filename = f"AIA-{scope.study_id}-internal-draft.docx"
     return Response(
         content=data,
         media_type=INTERNAL_REPORT_MEDIA_TYPE,
-        headers={
-            "Content-Disposition": f'attachment; filename="{filename}"',
-            "Cache-Control": "no-store",
-        },
+        # The same headers as its PDF: the page checks the draft it downloaded is the one it
+        # approves (research-integrity-report 3).
+        headers=_review_headers(artifact, f"AIA-{scope.study_id}-internal-draft.docx"),
     )
 
 
 # The experimental Sociomapping's internal draft, read only through the run that produced it.
 
 
-@router.get(
-    "/research/runs/{run_id}/report/context/download",
-    response_class=Response,
-    summary="Internal report with an explicitly selected interpretation research run",
+DeepResearchRunIdQuery = Annotated[str, Query(max_length=64, pattern=r"^RUN-[0-9a-f]{1,32}$")]
+_CONTEXT_REFUSALS = (
+    ReportCompositionRefused,
+    ReconstructionRefused,
+    ReportInvalid,
+    BundleNotReady,
+    LineageChanged,
+    RunNotGoverned,
+    RunSpecCorrupt,
+    ArtifactNotFound,
+    ValueError,
+)
+
+
+class ReportVariantPdfResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    state: PdfState
+    artifact_id: str | None = None
+    sha256: str | None = None
+    size_bytes: int | None = None
+    #: Why a FAILED or INVALID PDF is not there (``pdf_disabled``, ``pdf_conversion_failed``,
+    #: ``pdf_corrupt`` …), or why none was asked for (``study_closed``).
+    reason: str | None = None
+    #: Whether asking now (``POST …/pdf``) starts a rendering: the page offers it exactly then.
+    askable: bool = False
+
+
+class ReportVariantResponse(BaseModel):
+    """The report of a run with one chosen literature review (research-integrity-report 3):
+    its stored draft and the PDF rendered from exactly that draft."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    run_id: str
+    deep_research_run_id: str
+    state: VariantState
+    artifact_id: str | None = None
+    sha256: str | None = None
+    review_state: Literal["DRAFT_UNAPPROVED", "APPROVED_INTERNAL"] | None = None
+    internal_only: bool = True
+    pdf: ReportVariantPdfResponse | None = None
+    #: The composition contract the draft was stored under, and whether it is today's: an
+    #: earlier one stays downloadable and approvable, and preparing composes it anew.
+    contract: str | None = None
+    contract_current: bool | None = None
+
+
+def _variant_response(
+    run_id: str, deep_research_run_id: str, status_: VariantStatus
+) -> ReportVariantResponse:
+    docx = status_.docx
+    if docx is None:
+        return ReportVariantResponse(
+            run_id=run_id, deep_research_run_id=deep_research_run_id, state=status_.state
+        )
+    return ReportVariantResponse(
+        run_id=run_id,
+        deep_research_run_id=deep_research_run_id,
+        state=status_.state,
+        artifact_id=docx.artifact_id,
+        sha256=docx.sha256,
+        review_state="APPROVED_INTERNAL" if docx.is_approved else "DRAFT_UNAPPROVED",
+        pdf=ReportVariantPdfResponse.model_validate(status_.pdf.to_json()) if status_.pdf else None,
+        contract=docx.metadata.get("report_contract"),
+        contract_current=status_.contract_current,
+    )
+
+
+def _variant(
+    run_id: str,
+    deep_research_run_id: str,
+    scope: StudyContext,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    *,
+    export: bool = False,
+) -> VariantStatus:
+    """The variant as prepared, read only: composes nothing, enqueues nothing (a download is
+    not a state change, research-journey.md:317-322)."""
+    try:
+        scope.require(Permission.EDIT_STUDY)
+        if export:
+            scope.require(Permission.EXPORT_DELIVERABLE)
+        return variant_status(
+            session, scope, store, run_id=run_id, deep_research_run_id=deep_research_run_id
+        )
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ResearchRunNotFound as exc:
+        raise _not_found("run") from exc
+
+
+def _not_prepared() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={
+            "code": "context_report_not_prepared",
+            "message": "Prepare the report with this review first (POST …/report/context).",
+        },
+    )
+
+
+@router.post(
+    "/research/runs/{run_id}/report/context",
+    response_model=ReportVariantResponse,
+    summary="Prepare the report with a chosen literature review: its draft and its PDF",
     responses={409: {"model": ErrorResponse}},
 )
-def download_contextual_report(
+def prepare_contextual_report(
     run_id: RunIdPath,
-    deep_research_run_id: Annotated[str, Query(max_length=64, pattern=r"^RUN-[0-9a-f]{1,32}$")],
+    deep_research_run_id: DeepResearchRunIdQuery,
     scope: StudyScopeDep,
     session: SessionDep,
     store: ArtifactStoreDep,
     settings: SettingsDep,
-) -> Response:
+) -> ReportVariantResponse:
+    """Store the variant's draft once (refused by name when the review does not interpret this
+    run, or the run's analysis is incomplete) and ask the worker for its PDF. Idempotent: the
+    same run and review are one draft; preparing again after the PDF failed asks again."""
     try:
-        artifact, data = stored_contextual_report(
+        artifact, _data = stored_contextual_report(
             session,
             scope,
             store,
@@ -1705,40 +2017,147 @@ def download_contextual_report(
             deep_research_run_id=deep_research_run_id,
             build=settings.build.sha or "",
         )
+        # On a Study that starts no work the draft is still stored; its PDF says why it waits.
+        request_pdf(
+            session,
+            scope,
+            store,
+            docx=artifact,
+            run_id=run_id,
+            deep_research_run_id=deep_research_run_id,
+        )
     except ScopeDenied as exc:
         raise _refused(exc) from exc
     except (ResearchRunNotFound, DeepResearchRunNotFound) as exc:
         raise _not_found("run") from exc
     except (IntegrityError, ObjectNotFound) as exc:
         raise artifact_corrupt(session) from exc
-    except (
-        ReportCompositionRefused,
-        ReconstructionRefused,
-        ReportInvalid,
-        BundleNotReady,
-        LineageChanged,
-        RunNotGoverned,
-        RunSpecCorrupt,
-        ArtifactNotFound,
-        ValueError,
-    ) as exc:
+    except _CONTEXT_REFUSALS as exc:
         raise HTTPException(
             409, detail={"code": "context_report_refused", "message": str(exc)}
         ) from exc
+    return _variant_response(
+        run_id,
+        deep_research_run_id,
+        _variant(run_id, deep_research_run_id, scope, session, store),
+    )
+
+
+@router.post(
+    "/research/runs/{run_id}/report/context/pdf",
+    response_model=ReportVariantResponse,
+    summary="Ask again for the PDF of the prepared report with a chosen review",
+    responses={409: {"model": ErrorResponse}},
+)
+def ask_contextual_report_pdf(
+    run_id: RunIdPath,
+    deep_research_run_id: DeepResearchRunIdQuery,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> ReportVariantResponse:
+    """A new rendering of the draft already prepared, after its PDF failed or became invalid;
+    composes nothing, so a deploy that changed what composition accepts never strands a stored
+    draft without its PDF. 409 ``context_report_not_prepared`` before it is prepared."""
+    found = _variant(run_id, deep_research_run_id, scope, session, store)
+    if found.docx is None:
+        raise _not_prepared()
+    try:
+        request_pdf(
+            session,
+            scope,
+            store,
+            docx=found.docx,
+            run_id=run_id,
+            deep_research_run_id=deep_research_run_id,
+        )
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    return _variant_response(
+        run_id,
+        deep_research_run_id,
+        _variant(run_id, deep_research_run_id, scope, session, store),
+    )
+
+
+@router.get(
+    "/research/runs/{run_id}/report/context",
+    response_model=ReportVariantResponse,
+    summary="Where the report with a chosen literature review stands, composing nothing",
+)
+def contextual_report_status(
+    run_id: RunIdPath,
+    deep_research_run_id: DeepResearchRunIdQuery,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> ReportVariantResponse:
+    return _variant_response(
+        run_id,
+        deep_research_run_id,
+        _variant(run_id, deep_research_run_id, scope, session, store),
+    )
+
+
+@router.get(
+    "/research/runs/{run_id}/report/context/download",
+    response_class=Response,
+    summary="The prepared report with a chosen literature review, as DOCX",
+    responses={409: {"model": ErrorResponse}},
+)
+def download_contextual_report(
+    run_id: RunIdPath,
+    deep_research_run_id: DeepResearchRunIdQuery,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> Response:
+    """The draft the variant was prepared as -- the one its PDF renders and its approval
+    names. 409 ``context_report_not_prepared`` before it is prepared."""
+    found = _variant(run_id, deep_research_run_id, scope, session, store, export=True)
+    if found.docx is None:
+        raise _not_prepared()
+    try:
+        data = research_artifacts(session, scope, store).read(found.docx.artifact_id)
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
     return Response(
         content=data,
         media_type=INTERNAL_REPORT_MEDIA_TYPE,
-        headers={
-            "Content-Disposition": (
-                f'attachment; filename="AIA-{scope.study_id}-with-research.docx"'
-            ),
-            "Cache-Control": "no-store",
-            # The stored draft these bytes are, for its review and approval (B2).
-            "X-AIA-Artifact-Id": artifact.artifact_id,
-            "X-AIA-Review-State": "APPROVED_INTERNAL"
-            if artifact.is_approved
-            else "DRAFT_UNAPPROVED",
-        },
+        headers=_review_headers(
+            found.docx, f"AIA-{scope.study_id}-{run_id}-{deep_research_run_id}.docx"
+        ),
+    )
+
+
+@router.get(
+    "/research/runs/{run_id}/report/context/pdf/download",
+    response_class=Response,
+    summary="The PDF of the prepared report with a chosen literature review: its draft, rendered",
+    responses={404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
+)
+def download_contextual_report_pdf(
+    run_id: RunIdPath,
+    deep_research_run_id: DeepResearchRunIdQuery,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> Response:
+    found = _variant(run_id, deep_research_run_id, scope, session, store, export=True)
+    if found.docx is None:
+        raise _not_prepared()
+    if found.pdf is None or found.pdf.artifact is None:
+        raise _not_found("report_pdf")
+    try:
+        data = research_artifacts(session, scope, store).read(found.pdf.artifact.artifact_id)
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+    return Response(
+        content=data,
+        media_type=PDF_MEDIA_TYPE,
+        headers=_review_headers(
+            found.docx, f"AIA-{scope.study_id}-{run_id}-{deep_research_run_id}.pdf"
+        ),
     )
 
 

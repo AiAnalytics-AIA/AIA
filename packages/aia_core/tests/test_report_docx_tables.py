@@ -109,9 +109,18 @@ def test_the_caption_numbers_titles_and_states_the_base(report_ledger: Any) -> N
         "modelováno: AI respondenti z populace)"
     )
     assert "viz tabulka 1" in _t(root).lower()
-    assert 'TOC \\h \\z \\c "Tabulka"' in [
-        (i.text or "").strip() for i in root.iter(f"{W}instrText")
+    # The list of tables is no TOC field (LibreOffice leaves its pages empty): each entry
+    # is a PAGEREF to its caption's bookmark, numbered in Word and in the PDF alike.
+    listed = [
+        (i.text or "").strip()
+        for p in root.iter(f"{W}p")
+        if (s := p.find(f"{W}pPr/{W}pStyle")) is not None
+        and s.get(f"{W}val") == "tableoffigures"
+        and "Tabulka" in _t(p)
+        for i in p.iter(f"{W}instrText")
     ]
+    assert listed and all(i.startswith("PAGEREF ") for i in listed)
+    assert not any((i.text or "").strip().startswith("TOC") for i in root.iter(f"{W}instrText"))
 
 
 def test_a_suppressed_row_is_removed_and_counted(report_ledger: Any) -> None:

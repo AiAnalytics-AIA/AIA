@@ -38,7 +38,7 @@ from aia_worker.settings import WorkerSettings
 from aia_worker.worker import Worker
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import delete, func, select
 
 from aia_api.config import Settings
 
@@ -426,6 +426,9 @@ def test_internal_report_is_listed_and_downloaded_only_through_its_study_run(
     assert downloaded.headers["content-type"] == INTERNAL_REPORT_MEDIA_TYPE
     assert "internal-draft.docx" in downloaded.headers["content-disposition"]
     assert downloaded.headers["cache-control"] == "no-store"
+    # The draft these bytes are, so the page approves the one it downloaded.
+    assert downloaded.headers["X-AIA-Artifact-Id"] == report_id
+    assert downloaded.headers["X-AIA-Review-State"] == "DRAFT_UNAPPROVED"
     assert outsider.get(url).status_code == 200  # ADR 0019: a member with no grant reads it too
     assert outsider.get(f"{url}/download").status_code == 200
     other_url = f"{_runs(world, 'other_client')}/{run_id}/report"
@@ -457,7 +460,7 @@ def test_the_reports_pdf_is_read_only_as_the_rendering_of_its_stored_docx(
     assert other_client_lead.get(foreign).status_code == 404
 
 
-def test_a_report_without_a_pdf_says_none_and_a_pdf_of_another_document_is_refused(
+def test_a_report_without_a_pdf_says_it_can_be_asked_for_and_another_documents_is_refused(
     app: FastAPI, researcher: TestClient, world: Any
 ) -> None:
     app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
@@ -465,7 +468,12 @@ def test_a_report_without_a_pdf_says_none_and_a_pdf_of_another_document_is_refus
     run_id = start(researcher, world, revision).json()["run_id"]
     _store_internal_report(app, world, run_id, b"PK\x03\x04docx")
     url = f"{_runs(world)}/{run_id}/report"
-    assert researcher.get(url).json()["pdf"] is None
+    # The step rendered none (the converter was off): never asked for, and a person may ask.
+    assert researcher.get(url).json()["pdf"] == {
+        "state": "NOT_REQUESTED",
+        "reason": None,
+        "askable": True,
+    }
     assert researcher.get(f"{url}/pdf/download").status_code == 404
 
     other_revision = submit(researcher, world, {**DESIGN, "title": "Jiná"}).json()["revision_id"]
@@ -474,10 +482,96 @@ def test_a_report_without_a_pdf_says_none_and_a_pdf_of_another_document_is_refus
         app, world, other_run, b"PK\x03\x04other", pdf=b"%PDF x", pdf_of="ART-0000000000000000"
     )
     other_url = f"{_runs(world)}/{other_run}/report"
-    # The report still reads; only its PDF is said to be unusable.
-    assert researcher.get(other_url).json()["pdf"] == {"state": "INVALID", "reason": None}
+    # The report still reads; only its PDF is said to be unusable, and why, and it can be
+    # rendered again from the report itself.
+    assert researcher.get(other_url).json()["pdf"] == {
+        "state": "INVALID",
+        "reason": "pdf_not_this_report",
+        "askable": True,
+    }
     refused = researcher.get(f"{other_url}/pdf/download")
     assert refused.status_code == 409 and refused.json()["code"] == "report_artifact_invalid"
+
+
+def test_a_step_pdf_gone_bad_or_missing_is_said_as_what_it_is(
+    app: FastAPI, researcher: TestClient, world: Any, damage_artifact: Any
+) -> None:
+    """Review 2: a corrupt or deleted PDF the report step made read as "not this report's
+    rendering", a different document, which told the reader the wrong cause."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    _store_internal_report(app, world, run_id, b"PK\x03\x04docx", pdf=b"%PDF-1.7 test")
+    url = f"{_runs(world)}/{run_id}/report"
+    pdf_id = researcher.get(url).json()["pdf"]["artifact_id"]
+    damage_artifact(pdf_id, "tampered")
+    assert researcher.get(f"{url}/pdf/download").status_code == 409  # the read marks it CORRUPT
+    assert researcher.get(url).json()["pdf"] == {
+        "state": "INVALID",
+        "reason": "pdf_corrupt",
+        "askable": True,
+    }
+    with create_session_factory(app.state.engine)() as session:
+        session.execute(delete(ProjectArtifactRow).where(ProjectArtifactRow.artifact_id == pdf_id))
+        session.commit()
+    assert researcher.get(url).json()["pdf"]["reason"] == "pdf_missing"
+
+
+def test_the_runs_own_report_gets_its_pdf_when_a_person_asks(
+    app: FastAPI, researcher: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    """Review, 2026-10-16: a report whose step rendered no PDF (the converter was off) could
+    never get one. Asking renders exactly its stored DOCX; a ready PDF is left as it is."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    docx_id = _store_internal_report(app, world, run_id, b"PK\x03\x04docx")
+    url = f"{_runs(world)}/{run_id}/report"
+    asked = researcher.post(f"{url}/pdf")
+    assert asked.status_code == 200, asked.text
+    assert asked.json()["pdf"]["state"] == "RENDERING"
+    assert asked.json()["pdf"]["askable"] is False
+    assert researcher.get(f"{url}/pdf/download").status_code == 404  # not rendered yet
+    foreign = f"{_runs(world, 'other_client')}/{run_id}/report/pdf"
+    assert other_client_lead.post(foreign).status_code == 404
+
+    # The job renders it, as the worker's report_pdf step stores one: the status and the
+    # download then read that rendering (review 2: nothing checked the fallback past RENDERING).
+    factory = create_session_factory(app.state.engine)
+    with factory() as session:
+        principal = AuthenticatedPrincipal(
+            user_id=world.users["researcher"], organization_id=world.organization_id
+        )
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        workflow = WorkflowRepository(session, scope)
+        work = workflow.claim_next(worker_id="pdf-fixture")
+        assert work is not None and work.node_key == "pdf"
+        pdf, _ = research_artifacts(session, scope, app.state.artifact_store).put(
+            project_id=work.project_id,
+            revision=work.project_revision,
+            stage_type="REPORT",
+            artifact_type=INTERNAL_REPORT_PDF_ARTIFACT_TYPE,
+            data=b"%PDF-1.7 asked",
+            content_type="application/pdf",
+            input_fingerprint=f"report-pdf-asked-{run_id}",
+            metadata={"run_id": run_id, "rendering_of": docx_id},
+            depends_on=[docx_id],
+        )
+        workflow.complete_attempt(
+            work.attempt_id, worker_id="pdf-fixture", output={"artifact_id": pdf.artifact_id}
+        )
+        session.commit()
+    ready = researcher.get(url).json()["pdf"]
+    assert ready["state"] == "READY" and ready["artifact_id"] == pdf.artifact_id
+    downloaded = researcher.get(f"{url}/pdf/download")
+    assert downloaded.status_code == 200 and downloaded.content == b"%PDF-1.7 asked"
+    assert downloaded.headers["X-AIA-Artifact-Id"] == docx_id
+    # A ready PDF is left as it is: asking again starts nothing.
+    with factory() as session:
+        jobs = session.scalar(select(func.count()).select_from(WorkflowRunRow))
+    assert researcher.post(f"{url}/pdf").json()["pdf"]["state"] == "READY"
+    with factory() as session:
+        assert session.scalar(select(func.count()).select_from(WorkflowRunRow)) == jobs
 
 
 def test_a_run_without_modelled_data_has_no_client_report_and_says_why(
@@ -986,6 +1080,11 @@ def test_readiness_traces_each_research_question_to_the_questions_that_measure_i
     check = next(c for c in linked["checks"] if c["id"] == "research_question_coverage")
     assert check["status"] == "WARN" and other in check["message"]
     assert linked["ready"] is True, "a trace warns, it never refuses"
+    # Runnable is not answerable (research-integrity-report 1): said beside it, and with the
+    # deployment's gate off no acknowledgement is asked for -- the switch reaches the page.
+    assert linked["answerability"]["capable"] is False
+    assert linked["answerability"]["acknowledgement_required"] is False
+    assert [g["research_question"] for g in linked["answerability"]["gaps"]] == [other]
 
     # 3c: the comparison the plan declares is checked against what measures it.
     ranked = readiness(

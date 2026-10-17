@@ -9,7 +9,18 @@ from aia_core.application.report import ReportCompositionRefused
 from aia_core.domain.deep_research.bundle import EvidenceBundle
 from aia_core.domain.deep_research.confidence import CONFIDENCE_WEIGHTS_V1
 from aia_core.domain.deep_research.contracts import digest
-from aia_core.domain.report.model import Heading, Link, Paragraph, Text
+from aia_core.domain.fieldwork import OriginKind
+from aia_core.domain.report.model import (
+    BulletList,
+    Callout,
+    Heading,
+    Link,
+    Paragraph,
+    Quote,
+    Table,
+    Text,
+    TextCell,
+)
 
 
 def bundle(**updates: object) -> EvidenceBundle:
@@ -21,18 +32,47 @@ def bundle(**updates: object) -> EvidenceBundle:
     return EvidenceBundle.model_validate(data)
 
 
-def prose(value: EvidenceBundle) -> str:
+def _words(block: object) -> str:
+    """Every word a reader sees in a block: paragraphs, callouts, lists, quotes, tables."""
+    if isinstance(block, Callout):
+        # Its title too: a reader sees it (review 3: a wrong title passed every test).
+        words = "".join(i.text for i in block.content if isinstance(i, (Text, Link)))
+        return f"{block.title}\n{words}" if block.title else words
+    if isinstance(block, Paragraph):
+        return "".join(i.text for i in block.content if isinstance(i, (Text, Link)))
+    if isinstance(block, BulletList):
+        return "\n".join(
+            "".join(i.text for i in item.content if isinstance(i, Text)) for item in block.items
+        )
+    if isinstance(block, Quote):
+        return f"{block.text} {block.attribution}"
+    if isinstance(block, Table):
+        return (
+            "\n".join(
+                " | ".join(c.text for c in row.cells if isinstance(c, TextCell))
+                for row in block.rows
+            )
+            + "\n"
+            + "\n".join(block.notes)
+        )
+    return ""
+
+
+def prose(
+    value: EvidenceBundle, origin: OriginKind | None = None, tiers_approved: bool | None = None
+) -> str:
     return "\n".join(
-        "".join(i.text for i in b.content if isinstance(i, (Text, Link)))
-        for s in literature_sections(value, research_run_id="RUN-abc")
+        _words(b)
+        for s in literature_sections(
+            value, research_run_id="RUN-abc", origin=origin, tiers_approved=tiers_approved
+        )
         for b in s.blocks
-        if isinstance(b, Paragraph)
     )
 
 
 def test_source_claims_have_separate_citations_limits_and_fixture_disclosure() -> None:
     original = bundle()
-    written = prose(original)
+    written = prose(original, OriginKind.SIMULATED)
     for finding in original.accepted:
         assert finding.evidence.claim in written
     for excluded in original.synthesis.check.excluded:
@@ -41,7 +81,7 @@ def test_source_claims_have_separate_citations_limits_and_fixture_disclosure() -
     assert "2026-09-01" in written
     assert "nahraných testovacích výměn" in written
     assert "nikoli o systematický přehled" in written
-    assert "Syntetické odpovědi" in written
+    assert "Odpovědi této studie jsou smyšlené a nejsou odhadem žádné populace." in written
     assert original.sha256 in written
     assert "nikoli schválením věcné platnosti" in written
     assert all(
@@ -71,6 +111,10 @@ def test_corrupt_seal_and_foreign_synthesis_citations_refuse() -> None:
 def test_missing_synthesis_keeps_verified_findings_and_does_not_invent_benchmarks() -> None:
     original = bundle(synthesis=None)
     written = prose(original)
+    # Each claim is printed beside its verbatim cited passage, so a reader checks the
+    # paraphrase against it (research-integrity-report chunk 2).
+    for a in original.accepted:
+        assert a.evidence.quote in written
     assert "Souvislá syntéza nebyla přijata" in written
     assert "neobsahují strukturovaný číselný benchmark" in written
     for a in original.accepted:
@@ -168,11 +212,15 @@ def test_long_research_subject_is_body_text_and_duplicate_gaps_appear_once() -> 
     assert prose(updated).count("Srovnatelná původní studie") == 1
     assert gap["reason"] not in prose(updated)
     assert "přepisu stopy" not in prose(updated)
-    assert "Další nedostupný zdroj" in prose(updated)
+    assert "zdroj bez uvedeného názvu" in prose(updated)
     assert "not_pursued" not in prose(updated)
-    assert "Získání tohoto zdroje nebylo v tomto běhu dokončeno. Doplnit z knihovny." in prose(
-        updated
-    )
+    # One notice per reason, its sources together and said in the plural (review 2: "tohoto
+    # zdroje" stood before two titles), how to obtain them said once.
+    assert (
+        "Získání těchto zdrojů nebylo v tomto běhu dokončeno: Původní publikace; zdroj bez "
+        "uvedeného názvu. Doplnit z knihovny."
+    ) in prose(updated)
+    assert prose(updated).count("Doplnit z knihovny.") == 1
 
 
 def test_citation_valid_inapplicability_inference_is_not_published() -> None:
@@ -205,3 +253,187 @@ def test_partial_measure_period_does_not_replace_the_source_claims_full_range() 
     written = prose(bundle(accepted=accepted, synthesis=None))
     assert "14 příspěvků ze 149 publikací z let 2018-2022. [L1]" in written
     assert "vybrané příspěvky:" not in written
+
+
+def _single_source() -> EvidenceBundle:
+    """The Fio pattern, fictional: every accepted finding from one university thesis, found
+    for a research topic it is not about (research-integrity-report chunk 2)."""
+    original = bundle()
+    data = original.model_dump(mode="json")
+    thesis = "https://is.vse.cz/zp/fiktivni-prace-o-volbe-hypotecni-banky.pdf"
+    kept = []
+    for a in data["accepted"][:3]:
+        a["evidence"]["source_url"] = thesis
+        a["evidence"]["source_title"] = "Volba poskytovatele hypotéky (fiktivní práce)"
+        a["evidence"]["subject_key"] = data["subjects"][0]["key"]
+        a["score"]["source_class"] = "ACADEMIC_INSTITUTION"
+        kept.append(a)
+    return bundle(accepted=kept, synthesis=None)
+
+
+def test_a_review_resting_on_one_source_says_so_and_shows_what_each_finding_rests_on() -> None:
+    weak = _single_source()
+    written = prose(weak)
+    assert "Všechna přijatá zjištění (3) pocházejí od jediného vydavatele (vse.cz)" in written
+    assert "nenabízí nezávislé potvrzení" in written
+    # Credibility is the domain's, said as that, never as relevance.
+    assert "akademická instituce (může jít i o studentskou práci)" in written
+    assert "jen podle domény, nikoli podle obsahu" in written
+    assert "Autora, metodu a vzorek zdroje AIA nezaznamenává" in written
+    # Every claim stands beside its verbatim passage and the topic it was searched for.
+    topic = weak.subjects[0].text
+    for a in weak.accepted:
+        assert f"{a.evidence.quote} [L1] Volba poskytovatele hypotéky (fiktivní práce); " in written
+        assert f"hledáno k tématu: {topic}" in written
+    assert "[L2]" not in written
+    assert "neobsahují strukturovaný číselný benchmark" in written
+
+
+def test_two_pages_of_one_publisher_are_still_one_source_of_evidence() -> None:
+    weak = _single_source()
+    data = weak.model_dump(mode="json")
+    data["accepted"][1]["evidence"]["source_url"] = "https://www.vse.cz/fiktivni-anotace"
+    two_pages = bundle(accepted=data["accepted"], synthesis=None)
+    written = prose(two_pages)
+    assert "[L2]" in written  # two citations ...
+    assert "pocházejí od jediného vydavatele (vse.cz)" in written  # ... one publisher
+    # Its title says the same, never "one source" beside two cited ones (review 2, F36).
+    assert "Rešerše stojí na jednom vydavateli" in written
+    assert "jednom zdroji" not in written
+
+
+def test_counts_say_how_much_was_captured_against_how_little_was_cited() -> None:
+    written = prose(_single_source())
+    # As "label: number", so no count reads as bad Czech ("z 1 citovaných zdrojů" did).
+    assert "Přijatá zjištění: 3, citované zdroje: 1." in written
+    assert "Důvody odmítnutí:" in written
+    assert "hodnocení zdroje (typ domény a stáří stránky) je pod prahem přijetí (1krát)" in written
+    assert "PARTIAL" not in written and "GROUNDED" not in written  # status in words
+
+
+def test_every_rejection_reason_and_source_class_has_words_in_the_report() -> None:
+    from aia_core.application.contextual_report import _QUARANTINE, _SOURCE_CLASS
+    from aia_core.domain.deep_research.contracts import QuarantineReason
+    from aia_core.domain.deep_research.sources import SourceClass
+
+    assert set(_QUARANTINE) == {r.value for r in QuarantineReason}
+    assert set(_SOURCE_CLASS) == {c.value for c in SourceClass}
+
+
+def test_the_origin_sentence_follows_the_studys_respondents_and_unknown_says_nothing() -> None:
+    """ARCHITECTURE.md labels: an origin is read through origin_kind, never assumed."""
+    assert "modelovali AI respondenti" in prose(bundle(), OriginKind.MODELLED)
+    unknown = prose(bundle())
+    assert "smyšlené" not in unknown and "modelovali" not in unknown
+
+
+def test_two_ministries_on_one_government_domain_are_two_publishers() -> None:
+    """The publisher is Deep Research's own (triangulation.publisher_identity): the report's
+    single-source callout never reads gov.cz, or co.uk, as one publisher."""
+    weak = _single_source()
+    data = weak.model_dump(mode="json")
+    data["accepted"][0]["evidence"]["source_url"] = "https://www.mpo.gov.cz/fiktivni"
+    data["accepted"][1]["evidence"]["source_url"] = "https://www.mfcr.gov.cz/fiktivni"
+    data["accepted"][2]["evidence"]["source_url"] = "https://www.mfcr.gov.cz/fiktivni"
+    written = prose(bundle(accepted=data["accepted"], synthesis=None))
+    assert "jediného vydavatele" not in written
+
+
+def test_a_withheld_gap_need_prints_no_internal_marker() -> None:
+    original = bundle()
+    synthesis = original.synthesis.model_dump(mode="json")
+    marker = "[text s číslem bez citace je jen v přepisu stopy]"
+    synthesis["brief"] = {
+        "kind": "deep_research_brief",
+        "version": "test",
+        "status": "EMPTY",
+        "summary": None,
+        "summary_withheld": None,
+        "answers": [],
+        "findings": [],
+        "conflicts": [],
+        "gaps": [
+            {
+                "gap_id": "GAP-withheld",
+                "kind": "unanswered",
+                "subject_key": original.subjects[0].key,
+                "track_id": None,
+                "need": marker,
+                "reason": "x",
+                "tried": None,
+                "conflict_id": None,
+                "text_withheld": True,
+            }
+        ],
+        "limitations": [],
+        "excluded": [],
+        "repair": None,
+        "weights": CONFIDENCE_WEIGHTS_V1.model_dump(mode="json"),
+        "acquisition_gaps": [],
+    }
+    written = prose(bundle(synthesis=synthesis))
+    assert marker not in written and "podklad bez uvedeného znění" in written
+    # Three withheld needs are three, never merged into one (review 2).
+    gaps = synthesis["brief"]["gaps"]
+    synthesis["brief"]["gaps"] = [{**gaps[0], "gap_id": f"GAP-withheld-{i}"} for i in range(3)]
+    three = prose(bundle(synthesis=synthesis))
+    assert "podklady bez uvedeného znění (počet: 3)" in three and "znění;" not in three
+
+
+def test_the_source_table_is_called_approved_only_where_the_review_pinned_its_approval() -> None:
+    """Review 3: the note called the table an unapproved proposal on every review, though a
+    priced live route runs only once the review's pinned settings sign it off (ADR 0022)."""
+    proposed = prose(bundle(), tiers_approved=False)
+    assert "navržená tabulka zdrojů" in proposed and "dosud neschválila" in proposed
+    approved = prose(bundle(), tiers_approved=True)
+    assert "organizace schválila v nastavení Deep Research" in approved
+    assert "neschválila" not in approved and "navržená" not in approved
+    unpinned = prose(bundle())
+    assert "rešerše nezaznamenala" in unpinned
+    assert "neschválila" not in unpinned and "schválila v nastavení" not in unpinned
+
+
+def test_three_withheld_sources_of_one_reason_are_three_in_the_plural() -> None:
+    """Review 3: the plural reason and the count of withheld sources had no test that could fail."""
+    original = bundle()
+    synthesis = original.model_dump(mode="json")["synthesis"]
+    synthesis["brief"] = {
+        "kind": "deep_research_brief",
+        "version": "test",
+        "status": "EMPTY",
+        "summary": None,
+        "summary_withheld": None,
+        "answers": [],
+        "findings": [],
+        "conflicts": [],
+        "gaps": [],
+        "limitations": [],
+        "excluded": [],
+        "repair": None,
+        "weights": CONFIDENCE_WEIGHTS_V1.model_dump(mode="json"),
+        "acquisition_gaps": [
+            {
+                "gap_id": f"GAP-withheld-{i}",
+                "publisher": None,
+                "title": "[skryto]",
+                "reason": "not_pursued",
+                "rungs_tried": [],
+                "ladder_version": None,
+                "how_to_obtain": "",
+                "raised_by": "investigator_lead",
+                "origin": "LIVE_RETRIEVAL",
+                "subject_key": None,
+                "track_id": None,
+                "url": None,
+                "text_withheld": True,
+            }
+            for i in range(3)
+        ],
+    }
+    written = prose(bundle(synthesis=synthesis))
+    assert "zdroje bez uvedeného názvu (počet: 3)" in written
+    assert "[skryto]" not in written
+    assert (
+        "Získání těchto zdrojů nebylo v tomto běhu dokončeno: zdroje bez uvedeného názvu "
+        "(počet: 3)." in written
+    )

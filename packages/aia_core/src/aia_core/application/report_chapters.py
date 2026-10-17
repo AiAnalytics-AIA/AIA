@@ -26,7 +26,7 @@ from aia_core.application.analysis_results import RunAnalysis
 from aia_core.application.report import ReportCompositionRefused
 from aia_core.application.report_design import DesignSections, compose_design_sections
 from aia_core.application.report_maps import compose_map_sections
-from aia_core.application.report_method import compose_method_section
+from aia_core.application.report_method import compose_method_section, research_question_gaps
 from aia_core.application.report_tables import QuestionTables, compose_question_tables
 from aia_core.domain.analysis import AnalysisModuleId
 from aia_core.domain.analysis.native import native_items
@@ -48,6 +48,9 @@ class ReportChapters:
     method: Section
     map_artifact_id: str
     map_sha256: str
+    #: Each research question the run recorded as a gap at start, in words, by its text: the
+    #: chapter that answers the research questions marks those answers (research_question_gaps).
+    gaps: Mapping[str, str]
 
 
 @dataclass(frozen=True, slots=True)
@@ -138,4 +141,5 @@ def report_chapters(
         method=compose_method_section(run.get("metadata") or {}, first.record.labels.data_origin),
         map_artifact_id=mapped.artifact_id,
         map_sha256=mapped.sha256,
+        gaps=research_question_gaps(run.get("metadata") or {}),
     )

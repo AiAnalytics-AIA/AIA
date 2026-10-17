@@ -945,6 +945,8 @@ export type Readiness = {
   persona_source?: string;
   /** Every source, whether this deployment offers it, why not, and which a start takes by default. */
   persona_sources?: PersonaSourceOption[];
+  /** Whether the run can answer every stated research question; absent from an older API. */
+  answerability?: Answerability | null;
 };
 
 export type PersonaSourceOption = { source: string; offered: boolean; reason: string | null; default: boolean };
@@ -1011,7 +1013,37 @@ export type ResearchRun = {
   persona_source?: string;
   /** What its design selected and what was applied (5b); null: a run from before it recorded this. */
   selection?: ResearchRunSelection | null;
+  /** Whether it could answer its research questions when it started; null: a run from before it
+   * recorded this -- never read as capable. */
+  answerability?: Answerability | null;
 };
+export type AnswerabilityGap = {
+  kind: "no_research_questions" | "not_answerable" | string;
+  research_question: string | null;
+  verdict: OutlookVerdict | null;
+  reasons: string[];
+  measures: string[];
+};
+/** Whether a run can answer what its design asks (research-integrity-report 1). `ready` says it can run. */
+export type Answerability = {
+  rules: string;
+  capable: boolean;
+  /** Names the exact gaps: an acknowledgement covers a design only while they are unchanged. */
+  digest: string;
+  gaps: AnswerabilityGap[];
+  /** Research questions whose support only fieldwork decides: not gaps, and never read as answered. */
+  pending?: string[];
+  /** On readiness: whether a start needs the person's acknowledgement. The server's switch decides
+   * it, so the page asks exactly when a start would be refused; false: the gaps are only shown. */
+  acknowledgement_required?: boolean;
+  /** On a run: the person's decision that let it start with gaps. */
+  acknowledgement?: { reason: string; by: string | null; inherited_from?: string } | null;
+  /** On a run with gaps and no acknowledgement: false when the deployment did not require one. */
+  enforced?: boolean | null;
+  /** On an analysis retry over the original's data: never asked, recorded as exempt. */
+  exempt?: string | null;
+};
+export type AnswerabilityAcknowledgement = { digest: string; reason: string };
 /** Every applied flag is true only where the code that applies it ran; each false one has its reason. */
 export type ResearchRunSelection = {
   dimensions: string[];
@@ -1066,6 +1098,33 @@ export type ResearchAnalysis = {
   }>;
 };
 
+/** Where a report's PDF stands: the server's closed set (application/report_variants.py PdfState). */
+export type ReportPdfState = "NOT_REQUESTED" | "RENDERING" | "READY" | "FAILED" | "INVALID";
+/** A stored report's PDF, the run's own or a variant's: its state, why it is not there, and
+ * whether a person asking now starts a rendering (the server decides; absent: never offered). */
+export type ReportPdf = {
+  state: ReportPdfState;
+  artifact_id?: string | null;
+  sha256?: string | null;
+  size_bytes?: number | null;
+  reason?: string | null;
+  askable?: boolean;
+};
+/** The report of a run with one chosen literature review, and the PDF rendered from that very draft. */
+export type ReportVariant = {
+  run_id: string;
+  deep_research_run_id: string;
+  state: "NOT_PREPARED" | "READY";
+  artifact_id?: string | null;
+  sha256?: string | null;
+  review_state?: "DRAFT_UNAPPROVED" | "APPROVED_INTERNAL" | null;
+  internal_only: true;
+  pdf?: ReportPdf | null;
+  /** The composition contract the draft was stored under, and whether it is today's: an earlier
+   * one stays the report (downloadable, approvable) until it is prepared anew. */
+  contract?: string | null;
+  contract_current?: boolean | null;
+};
 export type ResearchReport = {
   run_id: string;
   state: "NOT_IN_RUN" | "READY" | string;
@@ -1078,8 +1137,9 @@ export type ResearchReport = {
   synthetic?: boolean;
   modelled?: boolean;
   data_origin_kind?: string | null;
-  /** The stored DOCX rendered as PDF; null when this run's worker made none (B3). */
-  pdf?: { state: "READY"; artifact_id: string; size_bytes: number } | { state: string; reason?: string | null } | null;
+  /** The stored DOCX rendered as PDF (B3): by its report step, or since on request; null from an
+   * older API when this run's worker made none. */
+  pdf?: ReportPdf | null;
 };
 
 const studyPath = (studyId: string) => `/api/v1/studies/${enc(studyId)}`;
@@ -1101,13 +1161,22 @@ export const research = {
    * `confirmCostUsd` is the person's yes to the ceiling the server showed, when the study's limit asks for one.
    * `populationVersionId` runs over one of the study's client's materialized children instead of LIVE (P4d4c).
    * `personaSource` is who answers, as the person chose it among the offered sources (5a).
+   * `acknowledge` is the person's decision to run a design that cannot answer every research question.
    */
-  start: (studyId: string, revisionId: string, confirmCostUsd?: number, populationVersionId?: string, personaSource?: string) =>
+  start: (
+    studyId: string,
+    revisionId: string,
+    confirmCostUsd?: number,
+    populationVersionId?: string,
+    personaSource?: string,
+    acknowledge?: AnswerabilityAcknowledgement,
+  ) =>
     request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs`, {
       design_revision_id: revisionId,
       ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
       ...(populationVersionId === undefined ? {} : { population_version_id: populationVersionId }),
       ...(personaSource === undefined ? {} : { persona_source: personaSource }),
+      ...(acknowledge === undefined ? {} : { acknowledge_research_questions: acknowledge }),
     }),
   /** Set, or with `null` clear, the cost at which starting a run asks for confirmation. */
   setSpendConfirm: (studyId: string, limitUsd: number | null) =>
@@ -1119,11 +1188,16 @@ export const research = {
     request<RunEvent[]>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/events${eventsQuery(since)}`),
   cancel: (studyId: string, runId: string) =>
     request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/cancel`),
-  retry: (studyId: string, runId: string, confirmCostUsd?: number) =>
+  retry: (studyId: string, runId: string, confirmCostUsd?: number, acknowledge?: AnswerabilityAcknowledgement) =>
     request<ResearchRun>(
       "POST",
       `${studyPath(studyId)}/research/runs/${enc(runId)}/retry`,
-      confirmCostUsd === undefined ? undefined : { confirm_cost_usd: confirmCostUsd },
+      confirmCostUsd === undefined && acknowledge === undefined
+        ? undefined
+        : {
+            ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
+            ...(acknowledge === undefined ? {} : { acknowledge_research_questions: acknowledge }),
+          },
     ),
   /** The modules a finished run may ask again (`retryAnalysis`), read from its stored outcomes. */
   retryableModules: (studyId: string, runId: string) =>
@@ -1147,16 +1221,21 @@ export const research = {
     request<ResearchAnalysis>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/analysis`),
   report: (studyId: string, runId: string) =>
     request<ResearchReport>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report`),
+  /** The run's own report: its bytes and the stored draft they are, so the card approves that draft. */
   downloadReport: (studyId: string, runId: string) =>
-    requestBlob(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/download`),
+    requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/download`),
   /** Which Sociomap methods are approved, by exact spec (complete-study-report B4). */
   sociomapRegister: (studyId: string) =>
     request<{ entries: RegisterEntry[] }>("GET", `${studyPath(studyId)}/research/sociomap-register`),
   /** The client report of a modelled run (complete-study-report B5c); 409 names why a run has none. */
   downloadClientReport: (studyId: string, runId: string) =>
     requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/client/download`),
+  /** The PDF rendered from the run's own report; its artifact id is that DOCX draft's. */
+  /** Ask for the PDF of the run's own report when its step rendered none, or one failed. */
+  askReportPdf: (studyId: string, runId: string) =>
+    request<ResearchReport>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/pdf`),
   downloadReportPdf: (studyId: string, runId: string) =>
-    requestBlob(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/pdf/download`),
+    requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/pdf/download`),
   /** A person approves a stored report of the run (internal only; recorded in the ledger). */
   approveReport: (studyId: string, runId: string, artifactId: string, note = "") =>
     request<{ run_id: string; artifact_id: string; review_state: "APPROVED_INTERNAL"; internal_only: true }>(
@@ -1210,6 +1289,17 @@ export const deepResearch = {
     }),
   downloadContextReport: (studyId: string, runId: string, deepRunId: string) =>
     requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/context/download${query({ deep_research_run_id: deepRunId })}`),
+  /** Where the report with this review stands, composing nothing (research-integrity-report 3). */
+  contextReport: (studyId: string, runId: string, deepRunId: string) =>
+    request<ReportVariant>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/context${query({ deep_research_run_id: deepRunId })}`),
+  /** Store the report with this review once and ask the worker for its PDF: the same draft in both formats. */
+  prepareContextReport: (studyId: string, runId: string, deepRunId: string) =>
+    request<ReportVariant>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/context${query({ deep_research_run_id: deepRunId })}`),
+  /** A new rendering of the prepared draft after its PDF failed or went bad; composes nothing. */
+  askContextReportPdf: (studyId: string, runId: string, deepRunId: string) =>
+    request<ReportVariant>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/context/pdf${query({ deep_research_run_id: deepRunId })}`),
+  downloadContextReportPdf: (studyId: string, runId: string, deepRunId: string) =>
+    requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/context/pdf/download${query({ deep_research_run_id: deepRunId })}`),
   /** `confirmCostUsd`: the ceiling a person confirmed when the study's limit asked (409 cost_confirmation_required). */
   start: (studyId: string, revisionId: string, confirmCostUsd?: number) =>
     request<DeepResearchRun>("POST", deepPath(studyId), {

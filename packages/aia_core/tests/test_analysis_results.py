@@ -1357,3 +1357,58 @@ def test_who_answered_comes_after_the_methodology_and_before_the_numbers(world: 
     assert ids.index("methodology") + 1 == ids.index("ch-method")
     assert ids.index("ch-method") + 1 == ids.index("ch-questions")
     assert not lint_docx(DocxRenderer().render(doc))
+
+
+def test_an_answer_to_a_research_question_the_run_could_not_answer_says_so_where_it_is_read(
+    world: World,
+) -> None:
+    """research-integrity-report review 2: the run recorded the gap at start, and the report said
+    so only in "Respondenti a výpočet", chapters after an answer that read as measured."""
+    run = _question_tables_run(world)
+    first = run.modules[AnalysisModuleId.EXECUTIVE]
+    assert first.result is not None
+    (question,) = first.inputs.research_questions
+    method = compose_method_section({}, first.record.labels.data_origin)
+    words = "běh na ni odpovědět nemohl (měří ji jen otázky, na které běh neodpoví)"
+
+    doc = compose_internal_report(
+        run,
+        report_meta(first.result.method_status),
+        method=method,
+        research_question_gaps={f" {question}\n": words},
+    )
+    intro = _all_text(doc.sections[0].blocks)
+    assert f"{question} (bez doložené odpovědi, viz kapitola Respondenti a výpočet)" in intro
+    # Every answer to it is qualified right under the question, before it is read: why, once,
+    # at the first answer; a short line at each later one (review 3: the full callout under
+    # every answering module repeated one reason 16 times in the fictional render).
+    qualified: list[str] = []
+    answers = 0
+    for section in doc.sections:
+        blocks = list(section.blocks)
+        for i, block in enumerate(blocks):
+            if (
+                isinstance(block, Paragraph)
+                and "".join(t.text for t in block.content if isinstance(t, Text)) == question
+                and i + 1 < len(blocks)
+            ):
+                answers += 1
+                after = blocks[i + 1]
+                assert isinstance(after, Callout), section.id
+                qualified.append(_callout_texts([after])[0])
+    assert answers > 1 and len(qualified) == answers
+    assert qualified[0].startswith(f"Při spuštění běh zaznamenal: {words}.")
+    assert all(q.startswith("Ani tuto odpověď nečtěte jako doloženou") for q in qualified[1:])
+    assert sum(f"{words}." in q for q in qualified) == 1
+    assert not lint_docx(DocxRenderer().render(doc))
+
+    # A question the run did not record as a gap is not qualified.
+    plain = compose_internal_report(
+        run, report_meta(first.result.method_status), research_question_gaps={"Jiná?": words}
+    )
+    assert "bez doložené odpovědi" not in _all_text(plain.sections[0].blocks)
+    assert not any(
+        isinstance(b, Callout) and b.title == "Bez doložené odpovědi"
+        for s in plain.sections
+        for b in s.blocks
+    )

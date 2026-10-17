@@ -24,7 +24,7 @@ import copy
 import re
 from io import BytesIO
 from pathlib import Path
-from typing import Final, Literal
+from typing import Literal
 
 from docx.enum.section import WD_ORIENT
 from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_ROW_HEIGHT_RULE
@@ -45,20 +45,15 @@ from aia_core.infrastructure.report_docx.ooxml import (
     add_field,
     add_tab,
     add_toc_entry,
-    begin_field,
     el,
-    end_field,
     insert_ordered,
 )
 from aia_core.infrastructure.report_docx.styles import S
 
 PageFormat = Literal["lowerRoman", "decimal"]
 
-#: The TOC fields. ``\u`` picks up paragraph outline levels (the appendix
-#: heading style has one), ``\c`` collects the captions' SEQ fields by name.
-TOC_CONTENTS: Final = 'TOC \\o "1-3" \\h \\z \\u'
-TOC_FIGURES: Final = 'TOC \\h \\z \\c "Graf"'
-TOC_TABLES: Final = 'TOC \\h \\z \\c "Tabulka"'
+# The contents has no TOC field: headless LibreOffice keeps a TOC field's cached page
+# numbers empty, so each entry carries its own PAGEREF (research-integrity-report F3).
 
 
 # ---------------------------------------------------------------------- pages
@@ -357,32 +352,23 @@ def heading_label(entry: OutlineEntry, *, appendix: bool) -> str:
     return entry.number
 
 
-def _toc(
-    ctx: RenderContext,
-    instruction: str,
-    entries: list[tuple[str, str, str]],
-) -> None:
-    """A TOC field whose cached result is the outline's own entries.
+def _toc(ctx: RenderContext, entries: list[tuple[str, str, str]]) -> None:
+    """The outline's own entries, each a link to its heading and a ``PAGEREF`` to its page.
 
-    ``entries`` are ``(style, text, anchor)``. Word refreshes the field on open
-    (``w:updateFields``); a reader that never computes fields shows these.
+    ``entries`` are ``(style, text, anchor)``. They are not wrapped in a ``TOC`` field:
+    headless LibreOffice, which
+    renders every PDF, keeps a TOC field's cached result as it stands and leaves its page
+    references empty (research-integrity-report F3: 0 of 17 entries numbered), while a bare
+    ``PAGEREF`` is computed on conversion and refreshed by Word on open (``w:updateFields``).
+    The entries are the outline, so nothing a TOC field would regenerate is lost.
     """
     d = ctx.document
-    first: Paragraph | None = None
-    last: Paragraph | None = None
     for style, text, anchor in entries:
-        p = d.add_paragraph(style=style)
-        if first is None:
-            first = p
-            begin_field(p, instruction)
-        add_toc_entry(p, text, ctx.bookmarks.name(anchor), "")
-        last = p
-    assert first is not None and last is not None
-    end_field(last)
+        add_toc_entry(d.add_paragraph(style=style), text, ctx.bookmarks.name(anchor), "")
 
 
 def render_contents(ctx: RenderContext) -> None:
-    """Obsah, Seznam grafů and Seznam tabulek, each a TOC field."""
+    """Obsah, Seznam grafů and Seznam tabulek, each entry linked and numbered by PAGEREF."""
     report, outline = ctx.report, ctx.outline
     d = ctx.document
     appendix_anchors = {
@@ -395,7 +381,6 @@ def render_contents(ctx: RenderContext) -> None:
         styles = {1: S.TOC_1, 2: S.TOC_2, 3: S.TOC_3}
         _toc(
             ctx,
-            TOC_CONTENTS,
             [
                 (
                     styles[e.level],
@@ -405,14 +390,13 @@ def render_contents(ctx: RenderContext) -> None:
                 for e in outline.headings
             ],
         )
-    for wanted, entries, heading, word, instruction in (
-        (report.list_of_figures, outline.figures, "list_of_figures", "figure", TOC_FIGURES),
-        (report.list_of_tables, outline.tables, "list_of_tables", "table", TOC_TABLES),
+    for wanted, entries, heading, word in (
+        (report.list_of_figures, outline.figures, "list_of_figures", "figure"),
+        (report.list_of_tables, outline.tables, "list_of_tables", "table"),
     ):
         if wanted and entries:
             d.add_paragraph(t(heading), style=S.FRONT_HEADING)
             _toc(
                 ctx,
-                instruction,
                 [(S.TOF, f"{t(word)} {e.number} \u2014 {e.title}", e.anchor) for e in entries],
             )
