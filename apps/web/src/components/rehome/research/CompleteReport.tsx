@@ -334,6 +334,9 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
               { id: "pdf", text: "PDF", disabled: formatWhy },
             ]}
           />
+          {/* Why no PDF, as text: a disabled option's tooltip reaches no touch or keyboard reader,
+              and the panel below no longer repeats it (review 3). */}
+          {formatWhy ? <p data-format-why className="text-xs leading-4 text-ink-muted">{formatWhy}</p> : null}
           <p className="text-xs leading-4 text-ink-muted">{stateLine}</p>
           {/* The variant with a review needs no ready run report: preparing it is refused by name
               when the run's analysis is incomplete. */}

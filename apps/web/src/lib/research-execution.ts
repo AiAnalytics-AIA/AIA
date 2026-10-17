@@ -81,11 +81,19 @@ export function mayRetryAnalysis(run: ResearchRun): boolean {
  */
 export function shouldPoll(run: ResearchRun): boolean {
   if (run.is_terminal) return false;
-  // A park for a runtime that is not deployed waits too, but never resumes by itself (only a
-  // person's retry reopens it): reading it every 10 s re-read every artifact on Výsledky for a
-  // run that cannot change (review 2).
-  return run.phase === "QUEUED" || run.phase === "RUNNING" || (run.phase === "WAITING" && run.needs_attention === false && !parkedForRuntime(run));
+  if (run.phase === "QUEUED" || run.phase === "RUNNING") return true;
+  if (run.phase !== "WAITING" || run.needs_attention !== false) return false;
+  // A park for a runtime that is not deployed never resumes by itself, so a run held only by
+  // one is not read every 10 s (review 2). One whose other steps still run, or wait on a provider
+  // that clears by itself, still changes on its own and is read (review 3: a map step running
+  // beside parked analysis modules went unseen).
+  return !parkedForRuntime(run) || run.steps.some((s) =>
+    s.status === "RUNNING" || s.status === "RUNNABLE"
+    || (WAITS_ON_ITS_OWN.has(s.status) && s.waiting_reason !== RUNTIME_UNAVAILABLE));
 }
+
+/** A step's waits that clear without anyone acting (domain/workflow.py resume_due). */
+const WAITS_ON_ITS_OWN = new Set(["WAITING_PROVIDER", "WAITING_CAPACITY"]);
 
 /** How long until the next read: a wait on a provider clears in seconds to hours, so it is read less often. */
 export function pollMs(run: ResearchRun): number {

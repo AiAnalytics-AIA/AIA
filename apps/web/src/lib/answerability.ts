@@ -57,6 +57,29 @@ export function acknowledgementOf(
   return { digest: answer.digest, reason };
 }
 
+/**
+ * Whether ``run`` carries this acknowledgement. A start that found the revision's run (created:
+ * false) recorded what the person just gave nowhere, unless that run already holds it: a start
+ * whose answer was lost, asked again with the same reason (review 3).
+ */
+export function acknowledges(run: { answerability?: Answerability | null }, given: AnswerabilityAcknowledgement): boolean {
+  const held = run.answerability?.acknowledgement;
+  return !!held && held.reason === given.reason && run.answerability?.digest === given.digest;
+}
+
+/**
+ * The gaps a retry was refused for, while they still apply: to the run they were refused for,
+ * while it can be retried, by someone who may. A refusal for one run never offers to retry
+ * another with its acknowledgement (review 2, F32).
+ */
+export function refusalFor(
+  refusal: { runId: string; answer: Answerability } | null,
+  run: { run_id: string; retryable?: boolean | null },
+  canEdit: boolean,
+): Answerability | null {
+  return refusal && refusal.runId === run.run_id && canEdit && run.retryable ? refusal.answer : null;
+}
+
 /** A gap in words: the research question, whether the run will not or may not answer it, and why. */
 export function gapWords(gap: AnswerabilityGap): { question: string; verdict: string; why: string } {
   if (gap.kind === "no_research_questions") return { question: "", verdict: "", why: t("research.exec.answerability.none") };

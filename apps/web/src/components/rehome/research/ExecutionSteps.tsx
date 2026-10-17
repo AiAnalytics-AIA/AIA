@@ -105,7 +105,7 @@ import { citedMeasure, untitled, compareObjects, type CompiledSpecification, mea
 import { FormattedText } from "./FormattedText";
 import { CompleteReport } from "./CompleteReport";
 import { AnswerabilityGate } from "./AnswerabilityGate";
-import { type AcknowledgementState, acknowledgementOf, hasGaps, NO_ACKNOWLEDGEMENT, needsAcknowledgement, unanswerableAsked } from "@/lib/answerability";
+import { type AcknowledgementState, acknowledgementOf, acknowledges, hasGaps, refusalFor, NO_ACKNOWLEDGEMENT, needsAcknowledgement, unanswerableAsked } from "@/lib/answerability";
 
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
@@ -691,8 +691,12 @@ export function RunStep() {
       } catch (e) {
         // The design or the requirement changed since the page read it: read again, so the
         // person sees the gaps the server refused and confirms those.
-        if (unanswerableAsked(e)) {
+        const refused = unanswerableAsked(e);
+        if (refused) {
           setAck({ ...ack, confirmed: false });
+          // The gaps shown are the ones the server just refused, whatever the re-read does: a
+          // failed re-read never leaves older gaps, or none, on screen as the server's (review 3).
+          setPrepared({ ...prepared, readiness: { ...readiness, answerability: refused } });
           await rereadReadiness();
           throw new Error(t("research.exec.answerability.refused"));
         }
@@ -702,9 +706,10 @@ export function RunStep() {
         started = await research.start(frame.studyId, readiness.design_revision_id, asked.ceiling, childId ?? undefined, readiness.persona_source, acknowledged);
       }
       // A start over a revision that already has a run returns that run (created: false):
-      // nothing new started, and the acknowledgement just given was recorded nowhere. Say so,
+      // nothing new started. Unless that run already holds this very acknowledgement (a start
+      // whose answer was lost, asked again), what was just given was recorded nowhere. Say so,
       // and stay, ready to start again once the design changes.
-      if (acknowledged && started.created === false) {
+      if (acknowledged && started.created === false && !acknowledges(started, acknowledged)) {
         setFound(started.run_id);
         setStarting(false);
         return;
@@ -1113,7 +1118,7 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
   // A retry the server refused for its research questions: the gaps, for the run it was refused
   // for, and the person's answer. Shown only while that run is the one followed and retryable.
   const [refusal, setGate] = useState<{ runId: string; answer: Answerability } | null>(null);
-  const gate = refusal?.runId === run.run_id && frame.canEdit && run.retryable ? refusal.answer : null;
+  const gate = refusalFor(refusal, run, frame.canEdit);
   const [ack, setAck] = useState<AcknowledgementState>(NO_ACKNOWLEDGEMENT);
   const retry = (acknowledge?: AnswerabilityAcknowledgement) =>
     act(async () => {

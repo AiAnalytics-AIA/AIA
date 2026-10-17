@@ -21,6 +21,14 @@ describe("research execution", () => {
     // A park for a runtime that is not deployed never resumes by itself: only a person's retry reopens it.
     const parked = { node_key: "run", status: "WAITING_PROVIDER", waiting_reason: "ai_runtime_unavailable" } as ResearchRun["steps"][number];
     expect(shouldPoll(run({ phase: "WAITING", status: "WAITING_PROVIDER", needs_attention: false, steps: [parked] }))).toBe(false);
+    // ...but a run whose other steps still move on their own is read (review 3: a map step running
+    // beside parked analysis modules went unseen until a reload).
+    const step = (status: string, waiting_reason: string | null = null) => ({ node_key: status, status, waiting_reason }) as ResearchRun["steps"][number];
+    const waiting = (steps: ResearchRun["steps"]) => run({ phase: "WAITING", status: "WAITING_PROVIDER", needs_attention: false, steps });
+    expect(shouldPoll(waiting([parked, step("RUNNING")]))).toBe(true);
+    expect(shouldPoll(waiting([parked, step("RUNNABLE")]))).toBe(true);
+    expect(shouldPoll(waiting([parked, step("WAITING_CAPACITY", "capacity")]))).toBe(true);
+    expect(shouldPoll(waiting([parked, step("SUCCEEDED"), step("BLOCKED")]))).toBe(false);
     expect(pollMs(run({ phase: "WAITING", needs_attention: false }))).toBeGreaterThan(pollMs(run({ phase: "RUNNING" })));
     expect(shouldPoll(run({ phase: "COMPLETED", is_terminal: true }))).toBe(false);
   });

@@ -618,6 +618,56 @@ describe("Run: what a run can cost (5b.2)", () => {
     await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("progress")));
   });
 
+  it("follows a found run that already holds this very acknowledgement", async () => {
+    // Review 3: a start whose answer was lost, asked again with the same reason, finds the run that
+    // recorded it; the page said the confirmation was saved nowhere.
+    const digest = "d".repeat(64);
+    const reason = "Ověřujeme jen postup na fiktivních datech.";
+    const answerability = {
+      rules: "aia-answerability-1", capable: false, digest, acknowledgement_required: true,
+      gaps: [{ kind: "not_answerable", research_question: "Jak klienti důvěřují účtu?", verdict: "UNKNOWN", reasons: ["unlinked_design"], measures: [] }],
+    };
+    api({
+      "GET /api/v1/studies/STU-1/research/readiness": () => ({ ...READY, answerability }),
+      "POST /api/v1/studies/STU-1/research/runs": () =>
+        run({ created: false, phase: "QUEUED", answerability: { ...answerability, acknowledgement: { reason, by: "USR-1" } } }),
+    });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const gate = await screen.findByRole("region", { name: t("research.exec.answerability.title") });
+    fireEvent.click(within(gate).getByRole("checkbox"));
+    fireEvent.change(within(gate).getByRole("textbox"), { target: { value: reason } });
+    const start = screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement;
+    await waitFor(() => expect(start.disabled).toBe(false));
+    fireEvent.click(start);
+    await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("progress")));
+    expect(screen.queryByText((_, el) => !!el?.textContent?.includes(t("research.exec.answerability.existing")) && el?.getAttribute("role") === "alert")).toBeNull();
+  });
+
+  it("shows the gaps the server refused even when reading readiness again fails", async () => {
+    // Review 3: a failed re-read left the old reading on screen under a message calling it the
+    // server's current one.
+    const answerability = {
+      rules: "aia-answerability-1", capable: false, digest: "d".repeat(64), acknowledgement_required: true,
+      gaps: [{ kind: "not_answerable", research_question: "Co klienty odrazuje?", verdict: "UNKNOWN", reasons: ["unlinked_design"], measures: [] }],
+    };
+    let reads = 0;
+    api({
+      "GET /api/v1/studies/STU-1/research/readiness": () =>
+        reads++ === 0
+          ? { ...READY, answerability: { rules: "aia-answerability-1", capable: true, digest: "e".repeat(64), acknowledgement_required: false, gaps: [] } }
+          : new Response(JSON.stringify({ code: "internal_error", message: "Chyba.", details: {} }), { status: 500 }),
+      "POST /api/v1/studies/STU-1/research/runs": () =>
+        new Response(JSON.stringify({ code: "research_questions_unanswerable", message: "…", details: answerability }), { status: 409 }),
+    });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const start = await screen.findByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement;
+    await waitFor(() => expect(start.disabled).toBe(false));
+    fireEvent.click(start);
+    expect(await screen.findByText(t("research.exec.answerability.refused"))).toBeTruthy();
+    const gate = await screen.findByRole("region", { name: t("research.exec.answerability.title") });
+    expect(within(gate).getByText("Co klienty odrazuje?")).toBeTruthy();
+  });
+
   it("says a start refused for its research questions in Czech, beside the gaps read again", async () => {
     const digest = "d".repeat(64);
     const answerability = {
@@ -1640,7 +1690,11 @@ describe("Results", () => {
     const variant = await report.findByRole("combobox", { name: "Varianta zprávy" });
     await waitFor(() => expect(within(variant).getAllByRole("option")).toHaveLength(2));
     fireEvent.change(variant, { target: { value: "RUN-deep" } });
-    fireEvent.click(await report.findByRole("button", { name: /Připravit zprávu s rešerší/ }));
+    const prepare = await report.findByRole("button", { name: /Připravit zprávu s rešerší/ });
+    // A PDF is promised only where one will be made (review 2, F35), never as "DOCX i PDF".
+    expect(report.getByText(/PDF se stejným obsahem vznikne, pokud ho toto prostředí a stav studie dovolí/)).toBeTruthy();
+    expect(report.queryByText(/DOCX i PDF/)).toBeNull();
+    fireEvent.click(prepare);
     await waitFor(() => expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/context")).toHaveLength(1));
     expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/context")[0].url).toContain("deep_research_run_id=RUN-deep");
     expect(await report.findByText("kapitola s rešerší a zdroji")).toBeTruthy();
@@ -1658,6 +1712,24 @@ describe("Results", () => {
     // The draft is named before and after: the approval is AIA's record about that one file.
     expect(report.getByText("ART-context")).toBeTruthy();
     expect(await report.findByText("schváleno v AIA")).toBeTruthy();
+  });
+
+  it("says why there is no PDF as text on the card, once on the page", async () => {
+    // Review 3: removing the panel's stale line left the reason only in a disabled option's tooltip.
+    api({
+      ...listed(reportRun()),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () =>
+        reportStatus({ pdf: { state: "FAILED", reason: "pdf_disabled", askable: false } }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    const report = await card();
+    const why = "PDF není v tomto nasazení zapnuté; zpráva je k dispozici jako DOCX.";
+    expect(await report.findByText(why)).toBeTruthy();
+    fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
+    await screen.findByText(t("research.exec.results.reportDraft"));
+    expect(screen.getAllByText(why)).toHaveLength(1);
   });
 
   it("shows the internal draft from the completed report step and downloads it from the report card", async () => {
@@ -2132,7 +2204,9 @@ describe("Interpretation research", () => {
     const use = screen.getByRole("button", { name: "Použít ve zprávě" }) as HTMLButtonElement;
     await waitFor(() => expect(use.disabled).toBe(false));
     fireEvent.click(use);
-    expect(await screen.findByText(/Kompletní zpráva studie nahoře je teď varianta s touto rešerší/)).toBeTruthy();
+    const note = await screen.findByText(/Kompletní zpráva studie nahoře je teď varianta s touto rešerší/);
+    expect(note.textContent).not.toContain("DOCX i PDF");
+    expect(note.textContent).toContain("kde ho toto prostředí a stav studie dovolí");
     const variant = screen.getByRole("combobox", { name: "Varianta zprávy" }) as HTMLSelectElement;
     await waitFor(() => expect(variant.value).toBe("RUN-deep"));
     expect(called("POST", "/api/v1/studies/STU-1/research/runs")).toHaveLength(0);
