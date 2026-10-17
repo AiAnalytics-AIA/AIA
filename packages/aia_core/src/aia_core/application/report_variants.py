@@ -30,7 +30,7 @@ from ..domain.workflow_templates import REPORT_PDF
 from ..infrastructure.artifact_repository import Artifact, ArtifactNotFound, ArtifactStatus
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.workflow_repository import WorkflowRepository
-from .contextual_report import prepared_drafts
+from .contextual_report import CONTEXT_REPORT_CONTRACT, prepared_drafts
 from .report import INTERNAL_REPORT_PDF_ARTIFACT_TYPE
 from .research import ResearchRuns, report_pdf_key, research_artifacts
 
@@ -104,11 +104,14 @@ def _judged(scope: StudyContext, state: PdfState, **kw: Any) -> VariantPdf:
 
 @dataclass(frozen=True, slots=True)
 class VariantStatus:
-    """A run's report with one review: its stored draft (``None``: not prepared) and its PDF."""
+    """A run's report with one review: its stored draft (``None``: not prepared) and its PDF.
+    ``contract_current`` is false for a draft composed under an earlier contract: still the
+    report a person prepared, downloadable and approvable, and preparing composes it anew."""
 
     state: VariantState
     docx: Artifact | None
     pdf: VariantPdf | None
+    contract_current: bool = True
 
 
 def variant_pdf(
@@ -199,19 +202,21 @@ def prepared_context_report(
     run_id: str,
     deep_research_run_id: str,
 ) -> Artifact | None:
-    """The report with this review as last prepared: the newest valid draft stored for this run
-    and review under the current composition contract (``prepared_drafts``), read without
-    composing anything; ``None`` when it was never prepared, none is valid any more, or every
-    draft predates the contract (the page then prepares it again). Found as itself, never
-    through a PDF job, which a closed Study never has."""
+    """The report with this review as last prepared, read without composing anything: the
+    newest valid draft under the current composition contract, else the newest of an earlier
+    one, which stays the report a person prepared (and may have approved) until a current one
+    exists; ``None`` when it was never prepared or none is valid any more. Found as itself,
+    never through a PDF job, which a closed Study never has."""
     run = ResearchRuns(session, scope).get(run_id)
     drafts = prepared_drafts(
         research_artifacts(session, scope, store),
         run,
         run_id=run_id,
         deep_research_run_id=deep_research_run_id,
+        any_contract=True,
     )
-    return drafts[-1] if drafts else None
+    current = [a for a in drafts if a.metadata.get("report_contract") == CONTEXT_REPORT_CONTRACT]
+    return (current or drafts)[-1] if drafts else None
 
 
 def variant_status(
@@ -238,4 +243,9 @@ def variant_status(
         run_id=run_id,
         deep_research_run_id=deep_research_run_id,
     )
-    return VariantStatus(VariantState.READY, docx, pdf)
+    return VariantStatus(
+        VariantState.READY,
+        docx,
+        pdf,
+        contract_current=docx.metadata.get("report_contract") == CONTEXT_REPORT_CONTRACT,
+    )

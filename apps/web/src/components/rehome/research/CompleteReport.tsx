@@ -173,6 +173,9 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
   const modelled = report?.data_origin_kind === "MODELLED";
   const withReview = version === "internal" && review !== null;
   const variantReady = withReview && current?.state === "READY";
+  // Stored under an earlier composition: still the report prepared (and maybe approved), said so,
+  // and offered to be prepared anew; never hidden (review 3).
+  const variantEarlier = variantReady && current?.contract_current === false;
   const parts = reportParts(run, withReview ? literatureState(review, current) : "excluded", variantReady);
 
   const clientWhy = modelled ? null : "Klientská zpráva vzniká jen z běhu s AI respondenty z populace.";
@@ -219,6 +222,11 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
       if (why) throw new Error(why);
       saveBlob(got.blob, name);
     }
+  });
+  // An earlier composition's draft prepared anew under today's: a new draft, which needs its
+  // own approval; the earlier one stays downloadable if composing is refused.
+  const prepareAgain = () => run_(async () => {
+    if (review !== null) setVariant(await deepResearch.prepareContextReport(frame.studyId, run.run_id, review));
   });
   // The chosen report's PDF asked for again: the same stored draft, rendered by a new job,
   // composing nothing.
@@ -348,6 +356,18 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
                 ? t("research.exec.results.reportDownloadClient")
                 : withReview && !variantReady ? "Připravit zprávu s rešerší" : "Stáhnout zprávu"}
           </Button>
+          {variantEarlier ? (
+            <>
+              <p data-variant-earlier className="text-xs leading-4 text-ink-muted">
+                Tato zpráva s rešerší byla připravena podle dřívější skladby zprávy{current?.contract ? ` (${current.contract})` : ""}. Stáhnout a schválit ji lze dál; připravená znovu bude nový koncept, který potřebuje vlastní schválení.
+              </p>
+              {frame.canEdit ? (
+                <Button variant="quiet" className="justify-center" disabled={busy} onClick={() => void prepareAgain()}>
+                  Připravit znovu podle současné skladby
+                </Button>
+              ) : null}
+            </>
+          ) : null}
           {askable && frame.canEdit ? (
             <Button variant="quiet" className="justify-center" disabled={busy} onClick={() => void askPdf()}>
               Vytvořit PDF znovu

@@ -1714,6 +1714,40 @@ describe("Results", () => {
     expect(await report.findByText("schváleno v AIA")).toBeTruthy();
   });
 
+  it("keeps a report with a review prepared under an earlier composition, says so, and prepares it anew", async () => {
+    // Review 3: hiding an earlier contract's draft lost a prepared, possibly approved, report
+    // whenever composing it again is refused.
+    const review = { run_id: "RUN-deep", purpose: "INTERPRETATION_RESEARCH", target: { research_run_id: "RUN-1" },
+      preset: "QUICK", status: "COMPLETED", phase: "COMPLETED", is_terminal: true, retryable: false,
+      created_at: "2026-10-16T10:00:00Z", actual_cost_usd: 0.1, steps: [] };
+    const earlier = { run_id: "RUN-1", deep_research_run_id: "RUN-deep", state: "READY", artifact_id: "ART-old", sha256: "c",
+      review_state: "APPROVED_INTERNAL", internal_only: true, contract: "aia-contextual-report-3", contract_current: false,
+      pdf: { state: "NOT_REQUESTED", artifact_id: null, size_bytes: null, reason: null, askable: true } };
+    api({
+      ...listed(reportRun()),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => reportStatus(),
+      "GET /api/v1/studies/STU-1/deep-research/runs": () => [review],
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/context": () => earlier,
+      "POST /api/v1/studies/STU-1/research/runs/RUN-1/report/context": () =>
+        new Response(JSON.stringify({ code: "context_report_refused", message: "fingerprint_mismatch", details: {} }), { status: 409 }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    const report = await card();
+    const variant = await report.findByRole("combobox", { name: "Varianta zprávy" });
+    await waitFor(() => expect(within(variant).getAllByRole("option")).toHaveLength(2));
+    fireEvent.change(variant, { target: { value: "RUN-deep" } });
+    expect(await report.findByText(/podle dřívější skladby zprávy \(aia-contextual-report-3\)/)).toBeTruthy();
+    expect(report.getByRole("button", { name: /Stáhnout zprávu/ })).toBeTruthy();
+    expect(report.getByText("schváleno v AIA")).toBeTruthy();
+    fireEvent.click(report.getByRole("button", { name: "Připravit znovu podle současné skladby" }));
+    await waitFor(() => expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/context")).toHaveLength(1));
+    // Refused: the earlier report is still the one offered.
+    expect(await report.findByRole("alert")).toBeTruthy();
+    expect(report.getByRole("button", { name: /Stáhnout zprávu/ })).toBeTruthy();
+  });
+
   it("says why there is no PDF as text on the card, once on the page", async () => {
     // Review 3: removing the panel's stale line left the reason only in a disabled option's tooltip.
     api({

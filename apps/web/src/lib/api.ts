@@ -1120,6 +1120,10 @@ export type ReportVariant = {
   review_state?: "DRAFT_UNAPPROVED" | "APPROVED_INTERNAL" | null;
   internal_only: true;
   pdf?: ReportPdf | null;
+  /** The composition contract the draft was stored under, and whether it is today's: an earlier
+   * one stays the report (downloadable, approvable) until it is prepared anew. */
+  contract?: string | null;
+  contract_current?: boolean | null;
 };
 export type ResearchReport = {
   run_id: string;

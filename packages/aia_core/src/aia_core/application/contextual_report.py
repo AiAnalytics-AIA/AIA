@@ -599,8 +599,9 @@ def stored_contextual_report(
     )
     if found is not None and drafts and drafts[-1].artifact_id == found.artifact_id:
         return found, artifacts.read(found.artifact_id)
-    # Not stored, or stored but no longer the newest draft (the study was renamed and back):
-    # stored again, so the draft just composed is the one every read names, its PDF included.
+    # Not stored, or stored but no longer the newest draft of this contract (its composed sources
+    # changed and changed back; defensive, no known path reaches it): stored again, so the draft
+    # just composed is the one every read names, its PDF included.
     data = DocxRenderer().render(composed.document)
     artifact, _created = artifacts.put(
         project_id=composed.run["project_id"],
@@ -631,12 +632,14 @@ def prepared_drafts(
     *,
     run_id: str,
     deep_research_run_id: str,
+    any_contract: bool = False,
 ) -> list[Artifact]:
-    """Every valid draft of ``run``'s report with this review composed under the current
-    contract, oldest first: the newest is the variant (``report_variants``), and
-    :func:`stored_contextual_report` keeps the draft it composes the newest. A draft of an older
-    contract is a different document, never served as this one: a contract-3 draft read as ready
-    for ever, and the page never prepared the variant again (review 2, 2026-10-16)."""
+    """Every valid draft of ``run``'s report with this review, oldest first: composed under the
+    current contract, or with ``any_contract`` under any. :func:`stored_contextual_report` keeps
+    the draft it composes the newest of the current contract; ``report_variants`` serves that
+    one, else the newest of an earlier contract, said to be earlier (review 2: an earlier one
+    read as current for ever; review 3: hiding it lost a prepared, possibly approved, report
+    whenever composing it again is refused)."""
     return [
         a
         for a in artifacts.list_for_stage(
@@ -648,7 +651,7 @@ def prepared_drafts(
         and a.status is ArtifactStatus.VALID
         and a.metadata.get("run_id") == run_id
         and a.metadata.get("deep_research_run_id") == deep_research_run_id
-        and a.metadata.get("report_contract") == CONTEXT_REPORT_CONTRACT
+        and (any_contract or a.metadata.get("report_contract") == CONTEXT_REPORT_CONTRACT)
     ]
 
 

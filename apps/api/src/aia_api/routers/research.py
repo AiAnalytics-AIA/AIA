@@ -1930,6 +1930,10 @@ class ReportVariantResponse(BaseModel):
     review_state: Literal["DRAFT_UNAPPROVED", "APPROVED_INTERNAL"] | None = None
     internal_only: bool = True
     pdf: ReportVariantPdfResponse | None = None
+    #: The composition contract the draft was stored under, and whether it is today's: an
+    #: earlier one stays downloadable and approvable, and preparing composes it anew.
+    contract: str | None = None
+    contract_current: bool | None = None
 
 
 def _variant_response(
@@ -1948,6 +1952,8 @@ def _variant_response(
         sha256=docx.sha256,
         review_state="APPROVED_INTERNAL" if docx.is_approved else "DRAFT_UNAPPROVED",
         pdf=ReportVariantPdfResponse.model_validate(status_.pdf.to_json()) if status_.pdf else None,
+        contract=docx.metadata.get("report_contract"),
+        contract_current=status_.contract_current,
     )
 
 
