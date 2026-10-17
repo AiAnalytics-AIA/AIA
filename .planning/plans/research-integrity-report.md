@@ -433,6 +433,33 @@ them; each fix carries a test that fails without it.
   theses (ADR 0022 approval).
 - **D5.** Layout: one chapter per page, or short chapters sharing a page.
 
+### The owner's answers (2026-10-17, in session, MVP approach)
+
+Verbatim:
+
+- **D1 Answerability.** "Clearly show missing measurements, offer a way to fix them, and allow an
+  explicit 'continue with limitations.' Record that choice. No additional approval role."
+- **D2 Report approval.** "Keep a simple draft/approved status tied to a specific report version.
+  Export that version consistently. Defer separate certificates and additional approval
+  workflows."
+- **D3 Paid retry.** "Skip it until the quality fixes are ready to evaluate together."
+- **D4 Literature quality.** "Prioritize this. Check whether sources actually support the
+  research topic and distinguish document types. Start with a small, tested set of rules."
+- **D5 Layout.** "Make a sensible editorial choice and move on. It doesn't need an owner decision.
+  Remove automatic page breaks before chapters. Keep headings with the following text, avoid
+  orphaned lines, and keep figures with their captions where practical. Give the branded cover
+  its own page; let the report body and appendices flow without forcing each chapter onto a new
+  page."
+
+What follows from them:
+
+- D1 settles ADR 0025 decision 3 as proposed: a recorded precondition, not a fourth gate, and no
+  second person when self-approval is off. ADR 0025 is Accepted.
+- D3: no analysis retry of the Fio run. Its base report keeps its earlier contract until the
+  quality fixes below are evaluated together; chunk 5 needs nothing paid.
+- D4 is the evaluation finding ADR 0021 decision 7 asks for (F1), and the owner's call on it: the
+  engine changes, by a small set of deterministic rules, each with a test.
+
 ## Relation to other plans
 
 - run-recovery-and-truth: chunk 1 builds on 3a-3e (the trace) without editing them; chunk 2 covers
