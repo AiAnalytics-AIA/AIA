@@ -41,7 +41,7 @@ from aia_core.application.analysis_results import (
     stored_analysis,
 )
 from aia_core.application.contextual_report import contextual_report, stored_contextual_report
-from aia_core.application.deep_research import DeepResearchRuns
+from aia_core.application.deep_research import DeepResearchRuns, run_settings
 from aia_core.application.report import ReportCompositionRefused
 from aia_core.application.report_variants import prepared_context_report
 from aia_core.application.research import FrozenDataset, ResearchRuns, research_artifacts
@@ -915,6 +915,10 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
                 printed = zipfile.ZipFile(io.BytesIO(data)).read("word/document.xml").decode()
                 assert printed.count(evidence.sha256) == 2
                 assert "Pečeť balíčku" in printed and "Pečeť ověřeného balíčku" in printed
+                # The source table's approval is the review's own pin: this one runs under the
+                # code's proposed defaults, so the table reads as not yet approved (review 3).
+                assert run_settings(runs.get(interpreted.run_id)["metadata"]) is not None
+                assert "dosud neschválila" in printed and "nezaznamenala" not in printed
                 assert again.artifact_id == stored.artifact_id and not stored.is_approved
                 assert stored.metadata["review_state"] == "DRAFT_UNAPPROVED"
                 assert stored.metadata["deep_research_run_id"] == interpreted.run_id

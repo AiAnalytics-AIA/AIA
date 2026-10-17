@@ -34,7 +34,11 @@ def bundle(**updates: object) -> EvidenceBundle:
 
 def _words(block: object) -> str:
     """Every word a reader sees in a block: paragraphs, callouts, lists, quotes, tables."""
-    if isinstance(block, (Paragraph, Callout)):
+    if isinstance(block, Callout):
+        # Its title too: a reader sees it (review 3: a wrong title passed every test).
+        words = "".join(i.text for i in block.content if isinstance(i, (Text, Link)))
+        return f"{block.title}\n{words}" if block.title else words
+    if isinstance(block, Paragraph):
         return "".join(i.text for i in block.content if isinstance(i, (Text, Link)))
     if isinstance(block, BulletList):
         return "\n".join(
@@ -54,10 +58,14 @@ def _words(block: object) -> str:
     return ""
 
 
-def prose(value: EvidenceBundle, origin: OriginKind | None = None) -> str:
+def prose(
+    value: EvidenceBundle, origin: OriginKind | None = None, tiers_approved: bool | None = None
+) -> str:
     return "\n".join(
         _words(b)
-        for s in literature_sections(value, research_run_id="RUN-abc", origin=origin)
+        for s in literature_sections(
+            value, research_run_id="RUN-abc", origin=origin, tiers_approved=tiers_approved
+        )
         for b in s.blocks
     )
 
@@ -204,13 +212,13 @@ def test_long_research_subject_is_body_text_and_duplicate_gaps_appear_once() -> 
     assert prose(updated).count("Srovnatelná původní studie") == 1
     assert gap["reason"] not in prose(updated)
     assert "přepisu stopy" not in prose(updated)
-    assert "další nedostupný zdroj" in prose(updated)
+    assert "zdroj bez uvedeného názvu" in prose(updated)
     assert "not_pursued" not in prose(updated)
     # One notice per reason, its sources together and said in the plural (review 2: "tohoto
     # zdroje" stood before two titles), how to obtain them said once.
     assert (
-        "Získání těchto zdrojů nebylo v tomto běhu dokončeno: Původní publikace; další "
-        "nedostupný zdroj. Doplnit z knihovny."
+        "Získání těchto zdrojů nebylo v tomto běhu dokončeno: Původní publikace; zdroj bez "
+        "uvedeného názvu. Doplnit z knihovny."
     ) in prose(updated)
     assert prose(updated).count("Doplnit z knihovny.") == 1
 
@@ -289,6 +297,9 @@ def test_two_pages_of_one_publisher_are_still_one_source_of_evidence() -> None:
     written = prose(two_pages)
     assert "[L2]" in written  # two citations ...
     assert "pocházejí od jediného vydavatele (vse.cz)" in written  # ... one publisher
+    # Its title says the same, never "one source" beside two cited ones (review 2, F36).
+    assert "Rešerše stojí na jednom vydavateli" in written
+    assert "jednom zdroji" not in written
 
 
 def test_counts_say_how_much_was_captured_against_how_little_was_cited() -> None:
@@ -361,9 +372,68 @@ def test_a_withheld_gap_need_prints_no_internal_marker() -> None:
         "acquisition_gaps": [],
     }
     written = prose(bundle(synthesis=synthesis))
-    assert marker not in written and "další nedoložený podklad" in written
+    assert marker not in written and "podklad bez uvedeného znění" in written
     # Three withheld needs are three, never merged into one (review 2).
     gaps = synthesis["brief"]["gaps"]
     synthesis["brief"]["gaps"] = [{**gaps[0], "gap_id": f"GAP-withheld-{i}"} for i in range(3)]
     three = prose(bundle(synthesis=synthesis))
-    assert "další nedoložené podklady (počet: 3)" in three and "nedoložený podklad;" not in three
+    assert "podklady bez uvedeného znění (počet: 3)" in three and "znění;" not in three
+
+
+def test_the_source_table_is_called_approved_only_where_the_review_pinned_its_approval() -> None:
+    """Review 3: the note called the table an unapproved proposal on every review, though a
+    priced live route runs only once the review's pinned settings sign it off (ADR 0022)."""
+    proposed = prose(bundle(), tiers_approved=False)
+    assert "navržená tabulka zdrojů" in proposed and "dosud neschválila" in proposed
+    approved = prose(bundle(), tiers_approved=True)
+    assert "organizace schválila v nastavení Deep Research" in approved
+    assert "neschválila" not in approved and "navržená" not in approved
+    unpinned = prose(bundle())
+    assert "rešerše nezaznamenala" in unpinned
+    assert "neschválila" not in unpinned and "schválila v nastavení" not in unpinned
+
+
+def test_three_withheld_sources_of_one_reason_are_three_in_the_plural() -> None:
+    """Review 3: the plural reason and the count of withheld sources had no test that could fail."""
+    original = bundle()
+    synthesis = original.model_dump(mode="json")["synthesis"]
+    synthesis["brief"] = {
+        "kind": "deep_research_brief",
+        "version": "test",
+        "status": "EMPTY",
+        "summary": None,
+        "summary_withheld": None,
+        "answers": [],
+        "findings": [],
+        "conflicts": [],
+        "gaps": [],
+        "limitations": [],
+        "excluded": [],
+        "repair": None,
+        "weights": CONFIDENCE_WEIGHTS_V1.model_dump(mode="json"),
+        "acquisition_gaps": [
+            {
+                "gap_id": f"GAP-withheld-{i}",
+                "publisher": None,
+                "title": "[skryto]",
+                "reason": "not_pursued",
+                "rungs_tried": [],
+                "ladder_version": None,
+                "how_to_obtain": "",
+                "raised_by": "investigator_lead",
+                "origin": "LIVE_RETRIEVAL",
+                "subject_key": None,
+                "track_id": None,
+                "url": None,
+                "text_withheld": True,
+            }
+            for i in range(3)
+        ],
+    }
+    written = prose(bundle(synthesis=synthesis))
+    assert "zdroje bez uvedeného názvu (počet: 3)" in written
+    assert "[skryto]" not in written
+    assert (
+        "Získání těchto zdrojů nebylo v tomto běhu dokončeno: zdroje bez uvedeného názvu "
+        "(počet: 3)." in written
+    )

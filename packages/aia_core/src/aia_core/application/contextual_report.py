@@ -16,7 +16,7 @@ from urllib.parse import urlsplit
 from sqlalchemy.orm import Session
 
 from aia_core.application.analysis_results import reconstruct_run
-from aia_core.application.deep_research import DeepResearchRuns
+from aia_core.application.deep_research import DeepResearchRuns, run_settings
 from aia_core.application.report import (
     RESEARCH_SUBTITLE,
     ReportCompositionRefused,
@@ -30,6 +30,7 @@ from aia_core.domain.deep_research.contracts import EvidenceOrigin, QualityStatu
 from aia_core.domain.deep_research.gaps import AcquisitionReason
 from aia_core.domain.deep_research.integration import DeepResearchPurpose, InterpretationLineage
 from aia_core.domain.deep_research.reputation import REPUTATION_REGISTER_V1
+from aia_core.domain.deep_research.settings import Origin, SettingsPinCorrupt
 from aia_core.domain.deep_research.triangulation import publisher_identity
 from aia_core.domain.fieldwork import OriginKind, origin_kind
 from aia_core.domain.pipeline import fingerprint
@@ -65,6 +66,8 @@ CONTEXT_REPORT_CONTRACT = "aia-contextual-report-4"
 # Stored beside the run's own report, on the Study's design project (ADR 0016).
 CONTEXT_REPORT_ARTIFACT_TYPE = "research_internal_docx_with_research"
 CONTEXT_REPORT_STAGE = "REPORT"
+#: The Deep Research setting that signs off the source table (domain.deep_research.settings).
+SOURCE_TIERS_SETTING: Final = "sources.tiers"
 #: Why a source was not obtained, before the list of its titles: for one source and for several.
 _ACQUISITION_REASONS: dict[AcquisitionReason, tuple[str, str]] = {
     AcquisitionReason.PAYWALL: (
@@ -77,9 +80,10 @@ _ACQUISITION_REASONS: dict[AcquisitionReason, tuple[str, str]] = {
         "Zdroje nebyly veřejně přístupné",
     ),
     AcquisitionReason.NOT_FOUND: ("Zdroj se nepodařilo nalézt", "Zdroje se nepodařilo nalézt"),
+    # Said of the sources, never of how many websites: two pages of one host are not "webů".
     AcquisitionReason.ROBOTS: (
-        "Pravidla webu neumožnila automatické získání zdroje",
-        "Pravidla webů neumožnila automatické získání zdrojů",
+        "Automatické získání zdroje zakázala pravidla robots.txt",
+        "Automatické získání těchto zdrojů zakázala pravidla robots.txt",
     ),
     AcquisitionReason.NOT_PURSUED: (
         "Získání tohoto zdroje nebylo v tomto běhu dokončeno",
@@ -153,7 +157,11 @@ def _host(url: str | None) -> str | None:
 
 
 def literature_sections(
-    bundle: EvidenceBundle, *, research_run_id: str, origin: OriginKind | None = None
+    bundle: EvidenceBundle,
+    *,
+    research_run_id: str,
+    origin: OriginKind | None = None,
+    tiers_approved: bool | None = None,
 ) -> tuple[Section, ...]:
     """Publish accepted source claims; citation checks do not approve model inferences.
 
@@ -167,7 +175,9 @@ def literature_sections(
     reads it (``triangulation.publisher_identity`` over the reputation register), so a landing
     page and its PDF are one publisher and two ministries on gov.cz are two. A sparse review is
     said briefly, once. ``origin`` is the study's respondents' origin kind, for the one sentence
-    that says what they are; unknown says nothing.
+    that says what they are; unknown says nothing. ``tiers_approved`` is whether the review's
+    pinned settings sign off the source table (``sources.tiers`` approved as ``approved``,
+    ADR 0022); ``None`` for a review that pinned none, which says so, never guessed either way.
     """
     if not bundle.verify():
         raise ReportCompositionRefused("Deep Research bundle seal is invalid")
@@ -382,11 +392,12 @@ def literature_sections(
                 ),
                 source=f"Ověřený balíček Deep Research {research_run_id}",
                 notes=(
-                    "Typ zdroje určuje navržená tabulka zdrojů ("
-                    + ", ".join(sorted({str(v["table"]) for v in sources.values()}))
-                    + "), kterou vlastník metodiky dosud neschválil, a to jen podle domény, "
-                    "nikoli podle obsahu. Autora, metodu a vzorek zdroje AIA nezaznamenává; "
-                    "před srovnáním s výsledky je ověřte ve zdroji.",
+                    _table_note(
+                        ", ".join(sorted({str(v["table"]) for v in sources.values()})),
+                        tiers_approved,
+                    )
+                    + " Autora, metodu a vzorek zdroje AIA nezaznamenává; před srovnáním "
+                    "s výsledky je ověřte ve zdroji.",
                 ),
             )
         )
@@ -423,7 +434,7 @@ def literature_sections(
                 needs.append(need)
     if withheld_needs:
         needs.append(
-            _withheld("další nedoložený podklad", "další nedoložené podklady", withheld_needs)
+            _withheld("podklad bez uvedeného znění", "podklady bez uvedeného znění", withheld_needs)
         )
     if needs:
         blocks.append(
@@ -449,7 +460,9 @@ def literature_sections(
             titles = [t for t, _ in entries if t]
             if withheld[reason]:
                 titles.append(
-                    _withheld("další nedostupný zdroj", "další nedostupné zdroje", withheld[reason])
+                    _withheld(
+                        "zdroj bez uvedeného názvu", "zdroje bez uvedeného názvu", withheld[reason]
+                    )
                 )
             many = len(titles) + max(0, withheld[reason] - 1) > 1
             items.append(
@@ -494,9 +507,33 @@ def literature_sections(
 
 
 def _withheld(one: str, several: str, count: int) -> str:
-    """Items whose text is withheld, said as how many there are: three withheld needs printed as
-    one "další nedoložený podklad" (review 2). Counts print as "label: number" (chunk 4)."""
+    """Items whose text is withheld, said as how many there are and as what is known of them,
+    that their text is not given: three withheld needs printed as one "další nedoložený
+    podklad" (review 2), and "další" and "nedostupný" said what nobody knew (review 3).
+    Counts print as "label: number" (chunk 4)."""
     return one if count == 1 else f"{several} (počet: {count})"
+
+
+def _table_note(tables: str, approved: bool | None) -> str:
+    """Where a source's type comes from, and whether the review's own pinned settings sign the
+    table off (ADR 0022): a priced live route runs only once they do, so a fixed "not approved"
+    contradicted every live review's record (review 3)."""
+    if approved is None:
+        return (
+            f"Typ zdroje určuje tabulka zdrojů ({tables}) jen podle domény, nikoli podle obsahu; "
+            "zda byla tabulka schválena, rešerše nezaznamenala (vznikla před připínáním "
+            "nastavení)."
+        )
+    if approved:
+        return (
+            f"Typ zdroje určuje tabulka zdrojů ({tables}), kterou organizace schválila "
+            "v nastavení Deep Research a rešerše si ji připnula, a to jen podle domény, nikoli "
+            "podle obsahu."
+        )
+    return (
+        f"Typ zdroje určuje navržená tabulka zdrojů ({tables}), kterou organizace dosud "
+        "neschválila, a to jen podle domény, nikoli podle obsahu."
+    )
 
 
 def _norm(value: str) -> str:
@@ -630,6 +667,18 @@ def _compose(
     deep_run = service.get(deep_research_run_id)
     if str(deep_run["status"]) != "COMPLETED":
         raise ReportCompositionRefused("Deep Research must be completed before export")
+    # Whether the source table the chapter names is signed off is the review's own pinned record
+    # (ADR 0022), never assumed either way; a pin that does not verify refuses the report.
+    try:
+        pinned = run_settings(dict(deep_run.get("metadata") or {}))
+    except SettingsPinCorrupt as exc:
+        raise ReportCompositionRefused("the review's settings pin does not verify") from exc
+    tiers_approved = (
+        None
+        if pinned is None
+        else pinned[SOURCE_TIERS_SETTING].origin is Origin.APPROVED
+        and pinned.value(SOURCE_TIERS_SETTING) == "approved"
+    )
     provenance = service.provenance(deep_research_run_id, store=store)
     lineage = service.resolve_lineage(deep_research_run_id, store=store)
     if (
@@ -695,6 +744,7 @@ def _compose(
             bundle,
             research_run_id=deep_research_run_id,
             origin=origin_kind(first.record.labels.data_origin),
+            tiers_approved=tiers_approved,
         ),
         question_tables=chapters.questions,
         design=chapters.design,
