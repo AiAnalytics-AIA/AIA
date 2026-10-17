@@ -38,7 +38,7 @@ from aia_worker.settings import WorkerSettings
 from aia_worker.worker import Worker
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 
 from aia_api.config import Settings
 
@@ -525,7 +525,7 @@ def test_the_runs_own_report_gets_its_pdf_when_a_person_asks(
     app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
     revision = submit(researcher, world).json()["revision_id"]
     run_id = start(researcher, world, revision).json()["run_id"]
-    _store_internal_report(app, world, run_id, b"PK\x03\x04docx")
+    docx_id = _store_internal_report(app, world, run_id, b"PK\x03\x04docx")
     url = f"{_runs(world)}/{run_id}/report"
     asked = researcher.post(f"{url}/pdf")
     assert asked.status_code == 200, asked.text
@@ -534,6 +534,44 @@ def test_the_runs_own_report_gets_its_pdf_when_a_person_asks(
     assert researcher.get(f"{url}/pdf/download").status_code == 404  # not rendered yet
     foreign = f"{_runs(world, 'other_client')}/{run_id}/report/pdf"
     assert other_client_lead.post(foreign).status_code == 404
+
+    # The job renders it, as the worker's report_pdf step stores one: the status and the
+    # download then read that rendering (review 2: nothing checked the fallback past RENDERING).
+    factory = create_session_factory(app.state.engine)
+    with factory() as session:
+        principal = AuthenticatedPrincipal(
+            user_id=world.users["researcher"], organization_id=world.organization_id
+        )
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        workflow = WorkflowRepository(session, scope)
+        work = workflow.claim_next(worker_id="pdf-fixture")
+        assert work is not None and work.node_key == "pdf"
+        pdf, _ = research_artifacts(session, scope, app.state.artifact_store).put(
+            project_id=work.project_id,
+            revision=work.project_revision,
+            stage_type="REPORT",
+            artifact_type=INTERNAL_REPORT_PDF_ARTIFACT_TYPE,
+            data=b"%PDF-1.7 asked",
+            content_type="application/pdf",
+            input_fingerprint=f"report-pdf-asked-{run_id}",
+            metadata={"run_id": run_id, "rendering_of": docx_id},
+            depends_on=[docx_id],
+        )
+        workflow.complete_attempt(
+            work.attempt_id, worker_id="pdf-fixture", output={"artifact_id": pdf.artifact_id}
+        )
+        session.commit()
+    ready = researcher.get(url).json()["pdf"]
+    assert ready["state"] == "READY" and ready["artifact_id"] == pdf.artifact_id
+    downloaded = researcher.get(f"{url}/pdf/download")
+    assert downloaded.status_code == 200 and downloaded.content == b"%PDF-1.7 asked"
+    assert downloaded.headers["X-AIA-Artifact-Id"] == docx_id
+    # A ready PDF is left as it is: asking again starts nothing.
+    with factory() as session:
+        jobs = session.scalar(select(func.count()).select_from(WorkflowRunRow))
+    assert researcher.post(f"{url}/pdf").json()["pdf"]["state"] == "READY"
+    with factory() as session:
+        assert session.scalar(select(func.count()).select_from(WorkflowRunRow)) == jobs
 
 
 def test_a_run_without_modelled_data_has_no_client_report_and_says_why(

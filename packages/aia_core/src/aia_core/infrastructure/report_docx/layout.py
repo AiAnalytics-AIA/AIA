@@ -52,8 +52,8 @@ from aia_core.infrastructure.report_docx.styles import S
 
 PageFormat = Literal["lowerRoman", "decimal"]
 
-#: The TOC fields. ``\u`` picks up paragraph outline levels (the appendix
-#: heading style has one), ``\c`` collects the captions' SEQ fields by name.
+# The contents has no TOC field: headless LibreOffice keeps a TOC field's cached page
+# numbers empty, so each entry carries its own PAGEREF (research-integrity-report F3).
 
 
 # ---------------------------------------------------------------------- pages

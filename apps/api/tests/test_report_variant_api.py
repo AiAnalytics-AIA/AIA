@@ -206,6 +206,36 @@ def test_a_closed_study_finds_its_draft_and_says_why_its_pdf_waits(
     assert docx.status_code == 200 and docx.headers["X-AIA-Artifact-Id"] == artifact_id
 
 
+def test_preparing_answers_the_stored_draft_and_asks_for_its_pdf_once(
+    app: FastAPI, researcher: TestClient, world: Any, monkeypatch: Any
+) -> None:
+    """The prepare route's own path (review 2: only its refusals were tested): the draft it
+    stores is the one it answers with, its PDF is asked for in the same request, and preparing
+    again starts nothing new. Composition is the executor journey's; here it returns the draft
+    stored the way it stores one."""
+    from aia_api.routers import research as routes
+
+    run_id, artifact_id = _prepared(app, researcher, world, ask_pdf=False)
+
+    def stored(session: Any, scope: Any, store: Any, **_: Any) -> tuple[Any, bytes]:
+        return research_artifacts(session, scope, store).get(artifact_id), b""
+
+    monkeypatch.setattr(routes, "stored_contextual_report", stored)
+    url = f"{_study(world)}/research/runs/{run_id}/report/context"
+    params = {"deep_research_run_id": REVIEW}
+    before = _jobs(app)
+    prepared = researcher.post(url, params=params)
+    assert prepared.status_code == 200, prepared.text
+    body = prepared.json()
+    assert body["state"] == "READY" and body["artifact_id"] == artifact_id
+    assert body["pdf"]["state"] == "RENDERING" and body["pdf"]["askable"] is False
+    assert _jobs(app) == before + 1
+    again = researcher.post(url, params=params)
+    assert again.status_code == 200 and again.json()["artifact_id"] == artifact_id
+    assert _jobs(app) == before + 1
+    assert researcher.get(url, params=params).json()["artifact_id"] == artifact_id
+
+
 def test_asking_again_renders_the_prepared_draft_once_and_never_composes(
     app: FastAPI, researcher: TestClient, world: Any
 ) -> None:

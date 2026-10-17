@@ -197,7 +197,7 @@ converted by `LibreOfficePdf` (LibreOffice 24.2.7.2), the worker's own converter
 - **F3 (confirmed, fixed in chunk 3). The table of contents has no page numbers in a PDF.**
   `report_docx/layout.py:377-381 @ 357d779` wraps prefilled PAGEREF results in a TOC field;
   LibreOffice keeps the empty cached results (measured 0 of 17 entries numbered). Test:
-  `test_report_renderer.py` contents assertion.
+  `test_report_docx_render.py::test_the_contents_lists_the_outline_with_a_pageref_per_entry_and_no_toc_field`.
 - **F4 (confirmed, chunk 7). The interval method is never printed.** The aggregate's interval is
   a donor-cluster bootstrap (`research_aggregate.py:480-510`); for a fictional roster the donor
   labels carry no dependence, so its width is that of 200 rows, printed beside "efektivní n 62"
@@ -319,9 +319,21 @@ The same six lenses over the branch after F10-F18; each fix carries a test that 
   (`report_variants.py:205 @ 78baf5c`), so the page never prepared it again. Only drafts of the
   current contract are the variant (`prepared_drafts`). Test:
   `test_a_draft_of_an_older_composition_contract_is_prepared_again_never_served`.
-- **F27. Prepare asked for one draft's PDF and served another** when the composed sources matched
-  an older draft (`routers/research.py:1988 @ 78baf5c`). The draft just composed is stored again
-  as the newest. Test: the interpretation journey in `test_analysis_executor.py`.
+- **F27 (far-fetched, kept because it is six lines). Prepare could ask for one draft's PDF and
+  serve another** when the composed sources matched an older draft while a newer one existed
+  (`routers/research.py:1988 @ 78baf5c`). Its verifier showed no code renames a study or a client,
+  so only a deploy that brings back an earlier contract reaches it, and then every read still names
+  one draft; the only cost was a needless rendering. The draft just composed is now stored again as
+  the newest, so prepare's PDF is always the served draft's. Test: the interpretation journey in
+  `test_analysis_executor.py`.
+- **F38. Across origins, every internal report download was refused**: CORS exposed only
+  X-Request-ID (`main.py:129 @ 78baf5c`), so the card read the draft header as null. Same-origin
+  develop is unaffected. Test: `test_a_browser_on_another_origin_reads_which_draft_a_report_download_is`.
+- **F39. Tests did not reach what the plan cites them for:** the prepare route's success path
+  (`test_preparing_answers_the_stored_draft_and_asks_for_its_pdf_once`), F17's READY fallback and
+  download (`test_the_runs_own_report_gets_its_pdf_when_a_person_asks`, extended), a contents test
+  named for the TOC field it asserts is absent (renamed), and F3's and ADR 0025's anchors (a test
+  file that does not exist, a working-tree anchor; both corrected).
 - **F28. Past 100 jobs, asking for a PDF again returned the failed job**
   (`research.py:877 @ 78baf5c`, a capped count). The round is the newest job's. Test:
   `test_asking_again_after_a_hundred_failed_jobs_still_starts_a_new_one`.

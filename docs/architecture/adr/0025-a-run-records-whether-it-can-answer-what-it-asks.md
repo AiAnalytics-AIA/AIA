@@ -43,7 +43,8 @@ answering a client.
    deployment requires it.** The acknowledgement is the digest the person was shown and a reason
    (10–1000 characters). A digest of other gaps covers nothing: a design that changed asks again.
    It is written to the approval ledger (subject `answerability`, `APPROVE_GATE`, so a worker cannot
-   give it; `workflow_repository.py` `record_answerability_acknowledgement`, wt) and kept with the
+   give it; `workflow_repository.py:2336 @ 56a5fe4`, `record_answerability_acknowledgement`; test
+   `test_an_acknowledged_start_records_the_gaps_who_and_why`) and kept with the
    run. Without it the start is refused (`ResearchQuestionsUnanswerable`, 409
    `research_questions_unanswerable`) and nothing is created. `AIA_RESEARCH_ANSWERABILITY_GATE`
    decides whether it is required: **off by default**. Off, the run starts as before and records

@@ -200,7 +200,7 @@ def test_an_approved_report_drops_the_draft_notice(report_ledger: Any) -> None:
     assert all(DRAFT not in text for text, _ in _header_footer_text(parts, "footer"))
 
 
-def test_the_contents_is_a_toc_field_prefilled_from_the_outline(
+def test_the_contents_lists_the_outline_with_a_pageref_per_entry_and_no_toc_field(
     rendered: dict[str, bytes],
 ) -> None:
     root = _xml(rendered, "word/document.xml")
