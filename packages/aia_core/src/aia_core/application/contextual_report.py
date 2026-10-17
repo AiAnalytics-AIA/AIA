@@ -65,13 +65,26 @@ CONTEXT_REPORT_CONTRACT = "aia-contextual-report-4"
 # Stored beside the run's own report, on the Study's design project (ADR 0016).
 CONTEXT_REPORT_ARTIFACT_TYPE = "research_internal_docx_with_research"
 CONTEXT_REPORT_STAGE = "REPORT"
-_ACQUISITION_REASONS = {
-    AcquisitionReason.PAYWALL: "Zdroj vyžaduje placený přístup.",
-    AcquisitionReason.LOGIN: "Zdroj vyžaduje přihlášení.",
-    AcquisitionReason.NOT_PUBLIC: "Zdroj nebyl veřejně přístupný.",
-    AcquisitionReason.NOT_FOUND: "Zdroj se nepodařilo nalézt.",
-    AcquisitionReason.ROBOTS: "Pravidla webu neumožnila automatické získání zdroje.",
-    AcquisitionReason.NOT_PURSUED: "Získání tohoto zdroje nebylo v tomto běhu dokončeno.",
+#: Why a source was not obtained, before the list of its titles: for one source and for several.
+_ACQUISITION_REASONS: dict[AcquisitionReason, tuple[str, str]] = {
+    AcquisitionReason.PAYWALL: (
+        "Zdroj vyžaduje placený přístup",
+        "Zdroje vyžadují placený přístup",
+    ),
+    AcquisitionReason.LOGIN: ("Zdroj vyžaduje přihlášení", "Zdroje vyžadují přihlášení"),
+    AcquisitionReason.NOT_PUBLIC: (
+        "Zdroj nebyl veřejně přístupný",
+        "Zdroje nebyly veřejně přístupné",
+    ),
+    AcquisitionReason.NOT_FOUND: ("Zdroj se nepodařilo nalézt", "Zdroje se nepodařilo nalézt"),
+    AcquisitionReason.ROBOTS: (
+        "Pravidla webu neumožnila automatické získání zdroje",
+        "Pravidla webů neumožnila automatické získání zdrojů",
+    ),
+    AcquisitionReason.NOT_PURSUED: (
+        "Získání tohoto zdroje nebylo v tomto běhu dokončeno",
+        "Získání těchto zdrojů nebylo v tomto běhu dokončeno",
+    ),
 }
 
 
@@ -101,7 +114,9 @@ _SOURCE_CLASS = {
 _QUARANTINE = {
     "target_outcome_overlap": "překrývá se s tím, co má výzkum teprve zjistit",
     "deterministic_target_overlap": "překrývá se s počítaným výsledkem",
-    "low_source_quality": "doména zdroje má nízké nebo neurčené hodnocení",
+    # The score is the domain's type and the page's age together (sources.py): an old page on an
+    # acceptable domain falls below the threshold too, so the domain alone is never blamed.
+    "low_source_quality": "hodnocení zdroje (typ domény a stáří stránky) je pod prahem přijetí",
     "no_independent_confirmation": "bez nezávislého potvrzení",
     "ungrounded_excerpt": "citace není ve zdroji",
     "citation_outside_track": "citace z jiného hledání",
@@ -294,7 +309,7 @@ def literature_sections(
                     f"vydavatele ({only}). Rešerše tak nenabízí nezávislé potvrzení ani srovnání "
                     "zdrojů; čtěte ji jako jeden doklad, nikoli jako stav poznání."
                 ),
-                title="Rešerše stojí na jednom zdroji",
+                title="Rešerše stojí na jednom vydavateli",
             )
         )
 
@@ -367,10 +382,11 @@ def literature_sections(
                 ),
                 source=f"Ověřený balíček Deep Research {research_run_id}",
                 notes=(
-                    "Typ zdroje určuje tabulka zdrojů ("
+                    "Typ zdroje určuje navržená tabulka zdrojů ("
                     + ", ".join(sorted({str(v["table"]) for v in sources.values()}))
-                    + ") jen podle domény, nikoli podle obsahu. Autora, metodu a vzorek zdroje "
-                    "AIA nezaznamenává; před srovnáním s výsledky je ověřte ve zdroji.",
+                    + "), kterou vlastník metodiky dosud neschválil, a to jen podle domény, "
+                    "nikoli podle obsahu. Autora, metodu a vzorek zdroje AIA nezaznamenává; "
+                    "před srovnáním s výsledky je ověřte ve zdroji.",
                 ),
             )
         )
@@ -392,15 +408,23 @@ def literature_sections(
 
     brief = bundle.synthesis.brief if bundle.synthesis else None
     needs: list[str] = []
+    withheld_needs = 0
     if brief:
         for gap in brief.gaps:
             # A search gap's model-authored reason can contain the same unsupported
             # inference as a summary. Report the unmet need, not that inference.
             # A need written with a number nobody cited is withheld (gaps.py); its marker is
-            # not for a reader.
-            need = "další nedoložený podklad" if gap.text_withheld else gap.need.strip().rstrip(".")
+            # not for a reader, but each one is a need of its own, counted, never merged.
+            if gap.text_withheld:
+                withheld_needs += 1
+                continue
+            need = gap.need.strip().rstrip(".")
             if _norm(need) not in {_norm(n) for n in needs}:
                 needs.append(need)
+    if withheld_needs:
+        needs.append(
+            _withheld("další nedoložený podklad", "další nedoložené podklady", withheld_needs)
+        )
     if needs:
         blocks.append(
             Paragraph(text("V tomto běhu nebyly doloženy tyto podklady: " + "; ".join(needs) + "."))
@@ -409,19 +433,30 @@ def literature_sections(
         # One line per reason, the titles together, how to obtain them once: a sparse review
         # is said briefly instead of repeating the same notice for every missing source.
         grouped: dict[AcquisitionReason, list[tuple[str, str]]] = {}
+        withheld: Counter[AcquisitionReason] = Counter()
         for acquisition in brief.acquisition_gaps:
-            title = "Další nedostupný zdroj" if acquisition.text_withheld else acquisition.title
             entries = grouped.setdefault(acquisition.reason, [])
-            if _norm(title) not in {_norm(t) for t, _ in entries}:
-                entries.append((title, acquisition.how_to_obtain.strip()))
+            how = acquisition.how_to_obtain.strip()
+            if acquisition.text_withheld:
+                # Its title is not for a reader; it is still a source of its own, counted.
+                withheld[acquisition.reason] += 1
+                entries.append(("", how))
+            elif _norm(acquisition.title) not in {_norm(t) for t, _ in entries if t}:
+                entries.append((acquisition.title, how))
         items: list[ListItem] = []
         for reason, entries in grouped.items():
             hows = list(dict.fromkeys(h for _, h in entries if h))
+            titles = [t for t, _ in entries if t]
+            if withheld[reason]:
+                titles.append(
+                    _withheld("další nedostupný zdroj", "další nedostupné zdroje", withheld[reason])
+                )
+            many = len(titles) + max(0, withheld[reason] - 1) > 1
             items.append(
                 ListItem(
                     text(
-                        f"{_ACQUISITION_REASONS[reason]} "
-                        + "; ".join(t for t, _ in entries)
+                        f"{_ACQUISITION_REASONS[reason][1 if many else 0]}: "
+                        + "; ".join(titles)
                         + "."
                         + (f" {' '.join(hows)}" if hows else "")
                     )
@@ -456,6 +491,12 @@ def literature_sections(
         )
     )
     return (Section("Literární rešerše a externí kontext", tuple(blocks), id="literature"),)
+
+
+def _withheld(one: str, several: str, count: int) -> str:
+    """Items whose text is withheld, said as how many there are: three withheld needs printed as
+    one "další nedoložený podklad" (review 2). Counts print as "label: number" (chunk 4)."""
+    return one if count == 1 else f"{several} (počet: {count})"
 
 
 def _norm(value: str) -> str:

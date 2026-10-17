@@ -204,11 +204,12 @@ def test_long_research_subject_is_body_text_and_duplicate_gaps_appear_once() -> 
     assert prose(updated).count("Srovnatelná původní studie") == 1
     assert gap["reason"] not in prose(updated)
     assert "přepisu stopy" not in prose(updated)
-    assert "Další nedostupný zdroj" in prose(updated)
+    assert "další nedostupný zdroj" in prose(updated)
     assert "not_pursued" not in prose(updated)
-    # One notice per reason, its sources together, how to obtain them said once.
+    # One notice per reason, its sources together and said in the plural (review 2: "tohoto
+    # zdroje" stood before two titles), how to obtain them said once.
     assert (
-        "Získání tohoto zdroje nebylo v tomto běhu dokončeno. Původní publikace; Další "
+        "Získání těchto zdrojů nebylo v tomto běhu dokončeno: Původní publikace; další "
         "nedostupný zdroj. Doplnit z knihovny."
     ) in prose(updated)
     assert prose(updated).count("Doplnit z knihovny.") == 1
@@ -295,7 +296,7 @@ def test_counts_say_how_much_was_captured_against_how_little_was_cited() -> None
     # As "label: number", so no count reads as bad Czech ("z 1 citovaných zdrojů" did).
     assert "Přijatá zjištění: 3, citované zdroje: 1." in written
     assert "Důvody odmítnutí:" in written
-    assert "doména zdroje má nízké nebo neurčené hodnocení (1krát)" in written
+    assert "hodnocení zdroje (typ domény a stáří stránky) je pod prahem přijetí (1krát)" in written
     assert "PARTIAL" not in written and "GROUNDED" not in written  # status in words
 
 
@@ -361,3 +362,8 @@ def test_a_withheld_gap_need_prints_no_internal_marker() -> None:
     }
     written = prose(bundle(synthesis=synthesis))
     assert marker not in written and "další nedoložený podklad" in written
+    # Three withheld needs are three, never merged into one (review 2).
+    gaps = synthesis["brief"]["gaps"]
+    synthesis["brief"]["gaps"] = [{**gaps[0], "gap_id": f"GAP-withheld-{i}"} for i in range(3)]
+    three = prose(bundle(synthesis=synthesis))
+    assert "další nedoložené podklady (počet: 3)" in three and "nedoložený podklad;" not in three
