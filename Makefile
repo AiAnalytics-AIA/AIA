@@ -194,6 +194,7 @@ verify: ## The pre-commit sequence from CLAUDE.md §10, in order
 	@$(MAKE) typecheck
 	@$(MAKE) layer_check
 	@$(MAKE) exposure_check
+	@$(BIN)ruff check packages/aia_core apps/api apps/worker apps/executors migrations
 	@$(BIN)ruff format --check packages/aia_core apps/api apps/worker apps/executors migrations
 	@$(MAKE) test
 	@$(MAKE) web_design
