@@ -579,7 +579,7 @@ describe("Run: what a run can cost (5b.2)", () => {
     api({
       "GET /api/v1/studies/STU-1/research/readiness": () => ({ ...READY, answerability }),
       "POST /api/v1/studies/STU-1/research/runs": () =>
-        run({ run_id: "RUN-old", phase: "CANCELLED", answerability: { ...answerability, acknowledgement: null, enforced: false } }),
+        run({ run_id: "RUN-old", created: false, phase: "CANCELLED", answerability: { ...answerability, acknowledgement: null, enforced: false } }),
     });
     render(<ResearchScreen step="run" frame={TEST_FRAME} />);
     const gate = await screen.findByRole("region", { name: t("research.exec.answerability.title") });
@@ -591,6 +591,65 @@ describe("Run: what a run can cost (5b.2)", () => {
     const said = await screen.findByText((_, el) => el?.getAttribute("role") === "alert" && !!el.textContent?.includes(t("research.exec.answerability.existing")));
     expect(within(said).getByRole("link").getAttribute("href")).toBe(`${stagePath("progress")}?run=RUN-old`);
     expect(push).not.toHaveBeenCalled();
+    // Review 2: the page stayed on "Spouštím…" with every control disabled until it was left.
+    await waitFor(() => expect(start.textContent).toBe(t("research.exec.start")));
+    expect((within(gate).getByRole("checkbox") as HTMLInputElement).disabled).toBe(false);
+  });
+
+  it("follows a run the start created, whatever it recorded", async () => {
+    // Review 2: "nothing new started" was read from the acknowledgement, so a new run that is
+    // capable at start (it records none) kept the person here as if nothing had started.
+    const digest = "d".repeat(64);
+    const answerability = {
+      rules: "aia-answerability-1", capable: false, digest, acknowledgement_required: true,
+      gaps: [{ kind: "not_answerable", research_question: "Jak klienti důvěřují účtu?", verdict: "UNKNOWN", reasons: ["unlinked_design"], measures: [] }],
+    };
+    api({
+      "GET /api/v1/studies/STU-1/research/readiness": () => ({ ...READY, answerability }),
+      "POST /api/v1/studies/STU-1/research/runs": () => run({ created: true, phase: "QUEUED", answerability: { ...answerability, capable: true, gaps: [], acknowledgement: null } }),
+    });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const gate = await screen.findByRole("region", { name: t("research.exec.answerability.title") });
+    fireEvent.click(within(gate).getByRole("checkbox"));
+    fireEvent.change(within(gate).getByRole("textbox"), { target: { value: "Ověřujeme jen postup na fiktivních datech." } });
+    const start = screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement;
+    await waitFor(() => expect(start.disabled).toBe(false));
+    fireEvent.click(start);
+    await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("progress")));
+  });
+
+  it("says a start refused for its research questions in Czech, beside the gaps read again", async () => {
+    const digest = "d".repeat(64);
+    const answerability = {
+      rules: "aia-answerability-1", capable: false, digest, acknowledgement_required: true,
+      gaps: [{ kind: "not_answerable", research_question: "Jak klienti důvěřují účtu?", verdict: "UNKNOWN", reasons: ["unlinked_design"], measures: [] }],
+    };
+    let reads = 0;
+    api({
+      // Read first without the requirement (the gate was off), then as the server refuses.
+      "GET /api/v1/studies/STU-1/research/readiness": () => (reads++ === 0 ? { ...READY, answerability: { ...answerability, acknowledgement_required: false } } : { ...READY, answerability }),
+      "POST /api/v1/studies/STU-1/research/runs": () =>
+        new Response(JSON.stringify({ code: "research_questions_unanswerable", message: "The run cannot answer every research question.", details: answerability }), { status: 409 }),
+    });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const start = await screen.findByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement;
+    await waitFor(() => expect(start.disabled).toBe(false));
+    fireEvent.click(start);
+    const said = await screen.findByText(t("research.exec.answerability.refused"));
+    expect(said.getAttribute("role")).toBe("alert");
+    expect(screen.queryByText(/cannot answer/)).toBeNull();
+    expect(await screen.findByRole("checkbox")).toBeTruthy();
+  });
+
+  it("calls the gate runnable only where readiness lets the design run", async () => {
+    const answerability = {
+      rules: "aia-answerability-1", capable: false, digest: "e".repeat(64), acknowledgement_required: false,
+      gaps: [{ kind: "not_answerable", research_question: "Co je odrazuje?", verdict: "UNKNOWN", reasons: ["unlinked_design"], measures: [] }],
+    };
+    api({ "GET /api/v1/studies/STU-1/research/readiness": () => ({ ...READY, ready: false, answerability }) });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    expect(await screen.findByRole("region", { name: t("research.exec.answerability.titleNotReady") })).toBeTruthy();
+    expect(screen.queryByRole("region", { name: t("research.exec.answerability.title") })).toBeNull();
   });
 
   it("shows the gaps without asking where the deployment does not require an acknowledgement", async () => {
@@ -778,6 +837,29 @@ describe("Run: what a run can cost (5b.2)", () => {
     ]);
     // Retried: the gaps were the old run's, so nothing about them is asked any more.
     await waitFor(() => expect(screen.queryByRole("region", { name: t("research.exec.answerability.title") })).toBeNull());
+  });
+
+  it("keeps a refused retry's gaps only while their run can still be retried", async () => {
+    // Review 2: the gate stayed after the run moved on, and its button retried whatever run was shown.
+    let shown: Record<string, unknown> = { ...PARKED, phase: "CANCELLED", status: "CANCELLED", is_terminal: true, retryable: true };
+    const refusal = {
+      rules: "aia-answerability-1", capable: false, digest: "f".repeat(64), acknowledgement_required: true,
+      gaps: [{ kind: "not_answerable", research_question: "Jak klienti důvěřují účtu?", verdict: "UNKNOWN", reasons: ["unlinked_design"], measures: [] }],
+    };
+    api({
+      ...listed(shown as ReturnType<typeof run>),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1": () => shown,
+      "POST /api/v1/studies/STU-1/research/runs/RUN-1/retry": () =>
+        new Response(JSON.stringify({ code: "research_questions_unanswerable", message: "…", details: refusal }), { status: 409 }),
+    });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.retry") }));
+    expect(await screen.findByRole("region", { name: t("research.exec.answerability.title") })).toBeTruthy();
+    // Someone retried it meanwhile: read again, it is no longer retryable, and nothing is asked.
+    shown = { ...shown, retryable: false };
+    fireEvent.click(screen.getByRole("button", { name: t("research.exec.refresh") }));
+    await waitFor(() => expect(screen.queryByRole("region", { name: t("research.exec.answerability.title") })).toBeNull());
+    expect(screen.queryByRole("button", { name: t("research.exec.answerability.retryAction") })).toBeNull();
   });
 });
 

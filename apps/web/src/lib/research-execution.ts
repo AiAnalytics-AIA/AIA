@@ -81,7 +81,10 @@ export function mayRetryAnalysis(run: ResearchRun): boolean {
  */
 export function shouldPoll(run: ResearchRun): boolean {
   if (run.is_terminal) return false;
-  return run.phase === "QUEUED" || run.phase === "RUNNING" || (run.phase === "WAITING" && run.needs_attention === false);
+  // A park for a runtime that is not deployed waits too, but never resumes by itself (only a
+  // person's retry reopens it): reading it every 10 s re-read every artifact on Výsledky for a
+  // run that cannot change (review 2).
+  return run.phase === "QUEUED" || run.phase === "RUNNING" || (run.phase === "WAITING" && run.needs_attention === false && !parkedForRuntime(run));
 }
 
 /** How long until the next read: a wait on a provider clears in seconds to hours, so it is read less often. */

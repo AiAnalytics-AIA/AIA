@@ -57,15 +57,6 @@ export function acknowledgementOf(
   return { digest: answer.digest, reason };
 }
 
-/**
- * Whether ``run`` carries this acknowledgement: false when a start over a revision that already
- * had a run returned that run, so what the person just gave was recorded nowhere.
- */
-export function acknowledges(run: { answerability?: Answerability | null }, given: AnswerabilityAcknowledgement): boolean {
-  const held = run.answerability?.acknowledgement;
-  return !!held && held.reason === given.reason && run.answerability?.digest === given.digest;
-}
-
 /** A gap in words: the research question, whether the run will not or may not answer it, and why. */
 export function gapWords(gap: AnswerabilityGap): { question: string; verdict: string; why: string } {
   if (gap.kind === "no_research_questions") return { question: "", verdict: "", why: t("research.exec.answerability.none") };

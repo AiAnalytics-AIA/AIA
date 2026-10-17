@@ -21,12 +21,15 @@ export function AnswerabilityGate({
   onChange,
   fixHref,
   disabled,
+  runnable = true,
 }: {
   answer: Answerability;
   value: AcknowledgementState;
   onChange: (next: AcknowledgementState) => void;
   fixHref: string;
   disabled?: boolean;
+  /** Whether readiness lets the design run: the card calls it runnable only then. */
+  runnable?: boolean;
 }) {
   const asks = needsAcknowledgement(answer);
   // Given for other gaps (the design changed since): shown unchecked, asked again.
@@ -34,7 +37,7 @@ export function AnswerabilityGate({
   const pending = answer.pending ?? [];
   return (
     <section aria-labelledby="answerability-title" className="flex flex-col gap-3 rounded-card border border-status-you-ink/40 bg-status-you-wash p-3.5">
-      <h2 id="answerability-title" className="text-sm font-semibold">{t("research.exec.answerability.title")}</h2>
+      <h2 id="answerability-title" className="text-sm font-semibold">{t(runnable ? "research.exec.answerability.title" : "research.exec.answerability.titleNotReady")}</h2>
       <p className="text-sm">{t("research.exec.answerability.help")}</p>
       <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm">
         {answer.gaps.map((gap, i) => {

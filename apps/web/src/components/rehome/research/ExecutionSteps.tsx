@@ -105,7 +105,7 @@ import { citedMeasure, untitled, compareObjects, type CompiledSpecification, mea
 import { FormattedText } from "./FormattedText";
 import { CompleteReport } from "./CompleteReport";
 import { AnswerabilityGate } from "./AnswerabilityGate";
-import { type AcknowledgementState, acknowledgementOf, acknowledges, hasGaps, NO_ACKNOWLEDGEMENT, needsAcknowledgement, unanswerableAsked } from "@/lib/answerability";
+import { type AcknowledgementState, acknowledgementOf, hasGaps, NO_ACKNOWLEDGEMENT, needsAcknowledgement, unanswerableAsked } from "@/lib/answerability";
 
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
@@ -694,17 +694,19 @@ export function RunStep() {
         if (unanswerableAsked(e)) {
           setAck({ ...ack, confirmed: false });
           await rereadReadiness();
-          throw e;
+          throw new Error(t("research.exec.answerability.refused"));
         }
         // The limit or the ceiling changed since the page read them: ask with the server's figure.
         const asked = confirmationAsked(e);
         if (!asked || yes !== undefined || !(await ask(asked.ceiling, asked.limit))) throw e;
         started = await research.start(frame.studyId, readiness.design_revision_id, asked.ceiling, childId ?? undefined, readiness.persona_source, acknowledged);
       }
-      // A start over a revision that already has a run returns that run: nothing new started,
-      // and the acknowledgement just given was recorded nowhere. Say so, and stay.
-      if (acknowledged && !acknowledges(started, acknowledged)) {
+      // A start over a revision that already has a run returns that run (created: false):
+      // nothing new started, and the acknowledgement just given was recorded nowhere. Say so,
+      // and stay, ready to start again once the design changes.
+      if (acknowledged && started.created === false) {
         setFound(started.run_id);
+        setStarting(false);
         return;
       }
       router.push(stepHref("progress"));
@@ -759,6 +761,7 @@ export function RunStep() {
               onChange={setAck}
               fixHref={stepHref("questionnaire")}
               disabled={!frame.canEdit || starting}
+              runnable={prepared.readiness.ready}
             />
           ) : null}
           {prepared.readiness.research_trace ? <ResearchTraceCard trace={prepared.readiness.research_trace} outlook={prepared.readiness.question_outlook ?? []} design={design} /> : null}
@@ -1107,8 +1110,10 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
 }) {
   const { confirm, stepHref } = useResearch();
   const frame = useFrame();
-  // A retry the server refused for its research questions: the gaps, and the person's answer.
-  const [gate, setGate] = useState<Answerability | null>(null);
+  // A retry the server refused for its research questions: the gaps, for the run it was refused
+  // for, and the person's answer. Shown only while that run is the one followed and retryable.
+  const [refusal, setGate] = useState<{ runId: string; answer: Answerability } | null>(null);
+  const gate = refusal?.runId === run.run_id && frame.canEdit && run.retryable ? refusal.answer : null;
   const [ack, setAck] = useState<AcknowledgementState>(NO_ACKNOWLEDGEMENT);
   const retry = (acknowledge?: AnswerabilityAcknowledgement) =>
     act(async () => {
@@ -1131,7 +1136,7 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
       } catch (e) {
         const gaps = unanswerableAsked(e);
         if (!gaps) throw e;
-        setGate(gaps);
+        setGate({ runId: run.run_id, answer: gaps });
         return run;
       }
     });
