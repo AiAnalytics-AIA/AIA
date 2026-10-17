@@ -13,7 +13,7 @@ import { t } from "@/i18n/t";
 import { type StudyWorkspace, type WorkingContent, workspace } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
 import { type StepKey, isStepKey, stepFromSlug } from "@/research/steps";
-import { ResearchScreen, ResearchSession } from "../rehome/research/ResearchScreen";
+import { ClosedStudyNotice, ResearchScreen, ResearchSession } from "../rehome/research/ResearchScreen";
 import { type StudyFrame, StudyFrameProvider, useStudyFrame } from "../rehome/research/frame";
 import { AppShell } from "./AppShell";
 import { useClient } from "./clients/ClientContext";
@@ -43,6 +43,9 @@ function Frame({ w, content, children }: { w: StudyWorkspace; content?: WorkingC
   const studyId = w.study.study_id;
   const clientId = client.client_id;
   const canEdit = w.can_edit;
+  const canReview = w.can_review;
+  const closedStatus = w.study.accepts_work ? null : w.study.status;
+  const deliveredAt = w.study.delivered_at ?? null;
   const onStage = useCallback(
     (step: StepKey) => {
       if (canEdit) void workspace.recordStage(studyId, step).catch(() => {});
@@ -57,10 +60,12 @@ function Frame({ w, content, children }: { w: StudyWorkspace; content?: WorkingC
       studyName: w.study.name,
       lastStage: w.study.last_stage && isStepKey(w.study.last_stage) ? w.study.last_stage : null,
       canEdit,
+      canReview,
+      closed: closedStatus ? { status: closedStatus, deliveredAt } : null,
       stepHref: (step: StepKey) => appRoutes.stage(clientId, studyId, step),
       onStage,
     }),
-    [clientId, client.name, studyId, w.study.name, w.study.last_stage, canEdit, onStage],
+    [clientId, client.name, studyId, w.study.name, w.study.last_stage, canEdit, canReview, closedStatus, deliveredAt, onStage],
   );
   return (
     <StudyFrameProvider frame={frame}>
@@ -96,11 +101,16 @@ export function ResearchStudy({ studyId, children }: { studyId: string; children
     );
   }
   if (w.content_state === "EMPTY" && !w.can_edit) {
+    // Nothing was ever written, and nothing may be now: a closed study says why.
     return (
       <Waiting name={w.study.name}>
-        <section className={`${CARD} max-w-xl`}>
-          <p className="text-sm">{t("aia.study.readOnly")}</p>
-        </section>
+        {w.study.accepts_work ? (
+          <section className={`${CARD} max-w-xl`}>
+            <p className="text-sm">{t("aia.study.readOnly")}</p>
+          </section>
+        ) : (
+          <ClosedStudyNotice closed={{ status: w.study.status, deliveredAt: w.study.delivered_at ?? null }} />
+        )}
       </Waiting>
     );
   }

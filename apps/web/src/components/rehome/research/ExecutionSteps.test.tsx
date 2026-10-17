@@ -1791,6 +1791,30 @@ describe("Results", () => {
     expect(report.getByText(/Klientská zpráva vzniká jen z běhu s AI respondenty z populace/)).toBeTruthy();
   });
 
+  it("still downloads and approves the report of a delivered study, which starts no new work", async () => {
+    // productization-coherence PC1: one flag gated both editing and the report, so closing a
+    // study for edits would have taken its deliverable away with them.
+    const createObjectURL = stubDownloads();
+    api({
+      ...listed(reportRun()),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => reportStatus(),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/download": () =>
+        new Response(new Blob(["docx bytes"]), { status: 200, headers: { "X-AIA-Artifact-Id": "ART-report", "X-AIA-Review-State": "DRAFT_UNAPPROVED" } }),
+    });
+    const delivered = { ...TEST_FRAME, canEdit: false, canReview: true, closed: { status: "DELIVERED", deliveredAt: null } };
+    render(<ResearchScreen step="results" frame={delivered} />);
+    expect(await screen.findByText(t("aia.study.closed.DELIVERED"))).toBeTruthy();
+    const report = await card();
+    expect(await report.findByText("Stav: Koncept čeká na schválení.")).toBeTruthy();
+    fireEvent.click(report.getByRole("button", { name: /Stáhnout zprávu/ }));
+    await waitFor(() => expect(createObjectURL).toHaveBeenCalledOnce());
+    expect(report.getByRole("button", { name: /Schválit/ })).toBeTruthy();
+    // Nothing on the page starts work: no analysis, retry or literature run is offered.
+    expect(screen.queryByRole("button", { name: /Spustit rešerši výsledků/ })?.hasAttribute("disabled") ?? true).toBe(true);
+  });
+
   it("asks for the run's own report's PDF again when its step made none", async () => {
     // Review, 2026-10-16: a report whose step rendered no PDF had no way to get one.
     stubDownloads();

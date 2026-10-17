@@ -213,6 +213,8 @@ export type WorkspaceStudy = {
   kind: StudyKind;
   status: string;
   accepts_work: boolean;
+  /** When the study was first marked delivered; null (or absent from an older API) when never. */
+  delivered_at?: string | null;
   last_stage: string | null;
   has_working_content: boolean;
   content_state: ContentState;
@@ -445,7 +447,10 @@ export type StudyWorkspace = {
   study: WorkspaceStudy;
   client_name: string;
   your_role: string;
+  /** May change the study and start work on it now: false on a delivered, archived or cancelled study. */
   can_edit: boolean;
+  /** May read, download and approve what the study holds, and stop what runs, whatever its status. */
+  can_review: boolean;
   content_state: ContentState;
 };
 

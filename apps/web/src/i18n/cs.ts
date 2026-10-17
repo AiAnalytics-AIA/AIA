@@ -1648,6 +1648,16 @@ export const cs = {
       phases: { design: "Návrh výzkumu", sample: "Vzorek", run: "Běh a výsledky" },
       bindFailed: "Rozpracovaný obsah se nepodařilo přiřadit k výzkumu: {message}",
       readOnly: "Tento výzkum můžete jen číst.",
+      // A study that accepts no new work (StudyStatus.accepts_work): said once, on every stage.
+      closed: {
+        DELIVERED: "Studie je předaná klientovi.",
+        DELIVERED_on: "Studie je předaná klientovi ({when}).",
+        ARCHIVED: "Studie je archivovaná.",
+        CANCELLED: "Studie je zrušená.",
+        other: "Studie nepřijímá novou práci.",
+        help: "Návrh už nejde upravit a nová práce (běh, AI pomoc, rešerše) se nespustí. Výsledky a zprávy zůstávají k přečtení, stažení a schválení.",
+        reopen: "Znovu otevřít ji lze v Nastavení → Studie a rozpočty",
+      },
     },
     time: {
       justNow: "právě teď",
@@ -1684,6 +1694,8 @@ export const cs = {
     saveFailed: "Neuloženo",
     saveRetry: "Zkusit znovu",
     saveConflict: "Uloženo jinde · změny zde neuloženy",
+    saveClosed: "Studie je mezitím uzavřená · změny zde neuloženy",
+    saveReadOnly: "Jen ke čtení",
     saveReload: "Načíst znovu",
     jobStarting: "Zakládám durable úlohu…",
     jobElapsed: "Běží",
@@ -2583,6 +2595,7 @@ export const cs = {
       dockBlocked: "Strop nelze spočítat a studie má limit",
       dockAsk: "Před spuštěním se zeptám na potvrzení nákladů",
       readOnly: "Máte jen čtení: výzkum může spustit výzkumník nebo vedoucí studie.",
+      closed: "Studie je uzavřená: nový běh se nespustí.",
       aiRuntimeNotice: "Sběr dat pomocí AI respondentů je dostupný jen pro schválené studie. Před každým voláním se ověří licence, trasa a rozpočet. Pokud sběr není povolený, běh počká a výsledky nevzniknou.",
       fictional: "Fiktivní data",
       syntheticNotice: "Fiktivní data. Tento běh používá smyšlené respondenty pro vývoj a testy. Nic z něj není zjištění a nic z něj nesmí jít ke klientovi.",

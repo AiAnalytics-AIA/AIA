@@ -113,6 +113,29 @@ describe("ResearchScreen", () => {
     expect(screen.queryByRole("button", { name: t("research.startAgain") })).toBeNull();
   });
 
+  it("says a delivered study is closed, keeps its design read-only and saves nothing", async () => {
+    api(() => content({ can_edit: false }));
+    const closed = { ...TEST_FRAME, canEdit: false, canReview: true, closed: { status: "DELIVERED", deliveredAt: "2026-10-17T09:00:00Z" } };
+    render(<ResearchScreen step="brief" frame={closed} />);
+    const goal = (await screen.findByLabelText(GOAL_LABEL)) as HTMLTextAreaElement;
+    // Said once, on the stage: what it is, what still works and where it is reopened.
+    expect(screen.getByText(tv("aia.study.closed.DELIVERED_on", { when: new Date("2026-10-17T09:00:00Z").toLocaleDateString("cs-CZ") }))).toBeTruthy();
+    expect(screen.getByText(t("aia.study.closed.help"))).toBeTruthy();
+    expect(screen.getByRole("link", { name: t("aia.study.closed.reopen") }).getAttribute("href")).toBe("/app/settings#studies");
+    // Every control of the design is disabled as one, and nothing is sent.
+    expect(goal.closest("fieldset")?.disabled).toBe(true);
+    // So are the stage's own actions in the column beside it (the brief's AI proposal).
+    const inspector = document.querySelector("[data-inspector]");
+    const actions = [...(inspector?.querySelectorAll("fieldset button") ?? [])] as HTMLButtonElement[];
+    expect(actions.length).toBeGreaterThan(0);
+    expect(actions.every((b) => b.closest("fieldset")?.disabled)).toBe(true);
+    expect(screen.getByText(t("research.saveReadOnly"))).toBeTruthy();
+    fireEvent.change(goal, { target: { value: "Nový cíl" } });
+    await new Promise((r) => setTimeout(r, 2100));
+    expect(saves()).toHaveLength(0);
+    expect(screen.queryByText(t("research.saveFailed"))).toBeNull();
+  });
+
   it("says why the content could not be loaded, and retries", async () => {
     let fail = true;
     api(() => (fail ? new Response('{"code":"not_found","message":"No such resource."}', { status: 404 }) : content()));

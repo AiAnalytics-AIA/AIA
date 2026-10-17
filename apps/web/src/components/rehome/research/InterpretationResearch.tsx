@@ -12,6 +12,7 @@ import { CodedWords } from "./CodedWords";
 import { withBudget } from "@/lib/budget-line";
 import { AiButton, Button, Field, Select } from "../ui";
 import { useResearch } from "./context";
+import { canReview } from "./frame";
 import { FormattedText } from "./FormattedText";
 
 const message = (e: unknown) => e instanceof Error ? e.message : String(e);
@@ -24,6 +25,8 @@ const message = (e: unknown) => e instanceof Error ? e.message : String(e);
  */
 export function InterpretationResearch({ run, review = null, onReview }: { run: ResearchRun; review?: string | null; onReview?: (id: string | null) => void }) {
   const { frame, confirm } = useResearch();
+  // Reading a finished review, choosing it for the report and stopping one: a closed study allows them.
+  const mayReview = canReview(frame);
   const [jobs, setJobs] = useState<DeepResearchRun[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [bundleFor, setBundleFor] = useState<{ runId: string; value: DeepResearchBundle } | null>(null);
@@ -62,14 +65,14 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
   useEffect(() => {
     let live = true;
     setBundleFor(null);
-    if (current?.status === "COMPLETED" && frame.canEdit) {
+    if (current?.status === "COMPLETED" && mayReview) {
       deepResearch.bundle(frame.studyId, current.run_id).then(
         value => { if (live) setBundleFor({ runId: current.run_id, value }); },
         (e: unknown) => { if (live) setError(message(e)); },
       );
     }
     return () => { live = false; };
-  }, [frame.studyId, frame.canEdit, current?.run_id, current?.status]);
+  }, [frame.studyId, mayReview, current?.run_id, current?.status]);
 
   useEffect(() => {
     if (!bundle) { setAnalysisReady("loading"); return; }
@@ -142,7 +145,7 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
       <details className="mt-2 text-xs text-ink-muted"><summary className="cursor-pointer">Identifikace rešerše</summary><p className="mt-1 break-all">{current.run_id}</p></details>
       {current.actual_cost_usd !== null ? <p className="mt-1 text-sm text-ink-muted">Skutečné náklady: {current.actual_cost_usd.toFixed(4)} USD</p> : null}
       {current.steps.map(s => ({ s, problem: stepProblem(s) })).filter(x => x.problem !== null).map(({ s, problem }) => <div key={s.node_key} className="mt-2 text-sm text-status-fault">{deepStepLabel(s.node_key)}: <CodedWords coded={problem!} /></div>)}
-      {!current.is_terminal ? <Button small disabled={busy || !frame.canEdit} onClick={() => control("cancel")}>Zrušit rešerši</Button> : null}
+      {!current.is_terminal ? <Button small disabled={busy || !mayReview} onClick={() => control("cancel")}>Zrušit rešerši</Button> : null}
       {current.retryable ? <AiButton small disabled={busy || !frame.canEdit} onClick={() => control("retry")}>Zkusit znovu</AiButton> : null}
     </div> : null}
     {bundle ? <div className="mt-4 space-y-3">
@@ -162,8 +165,8 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
         {analysisReady === "loading" ? <p role="status" className="mb-3 text-sm text-ink-muted">Ověřuji připravenost zprávy…</p> : null}
         <div className="flex flex-wrap gap-2">
           {used
-            ? <Button onClick={() => onReview?.(null)} disabled={busy || !frame.canEdit}>Nepoužívat ve zprávě</Button>
-            : <Button variant="primary" onClick={() => { if (current) { onReview?.(current.run_id); document.getElementById("complete-report-title")?.scrollIntoView?.({ block: "start" }); } }} disabled={busy || !frame.canEdit || analysisReady !== "ready"}>Použít ve zprávě</Button>}
+            ? <Button onClick={() => onReview?.(null)} disabled={busy || !mayReview}>Nepoužívat ve zprávě</Button>
+            : <Button variant="primary" onClick={() => { if (current) { onReview?.(current.run_id); document.getElementById("complete-report-title")?.scrollIntoView?.({ block: "start" }); } }} disabled={busy || !mayReview || analysisReady !== "ready"}>Použít ve zprávě</Button>}
         </div>
         <p className="mt-2 text-xs text-ink-muted">{used
           ? "Kompletní zpráva studie nahoře je teď varianta s touto rešerší: stáhnete ji jako DOCX, PDF se stejným obsahem tam, kde ho toto prostředí a stav studie dovolí, a schválíte tam."

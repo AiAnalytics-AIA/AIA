@@ -27,6 +27,7 @@ import {
 } from "@/lib/report-variant";
 import { Button, Select } from "../ui";
 import { Icon } from "../icons";
+import { canReview } from "./frame";
 import { useFrame } from "./frame-hook";
 
 type Part = { label: string; detail: string; state: "in" | "pending" | "later" | "excluded" };
@@ -110,6 +111,8 @@ function Segment<T extends string>({ label, value, options, onChange }: {
  */
 export function CompleteReport({ run, review = null, onReview }: { run: ResearchRun; review?: string | null; onReview?: (id: string | null) => void }) {
   const frame = useFrame();
+  // Everything this card does a closed study still allows: choose, prepare, download, approve.
+  const mayReview = canReview(frame);
   // The completed reviews, and the choice they were read for: a choice is undone only against a
   // list read after it was made, never against one still loading, stale or unread.
   const [listed, setListed] = useState<{ asked: string | null; reviews: DeepResearchRun[] } | null>(null);
@@ -158,7 +161,7 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
   const current = currentVariant(variant, run.run_id, review);
   const pending = variantPending(current);
   useEffect(() => {
-    if (review === null || !frame.canEdit) { setVariant(null); return; }
+    if (review === null || !mayReview) { setVariant(null); return; }
     let live = true;
     const read = () => deepResearch.contextReport(frame.studyId, run.run_id, review).then(
       (v) => live && setVariant(v),
@@ -167,7 +170,7 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
     void read();
     const timer = pending ? setInterval(() => { void read(); }, 2500) : null;
     return () => { live = false; if (timer) clearInterval(timer); };
-  }, [frame.studyId, frame.canEdit, run.run_id, review, pending]);
+  }, [frame.studyId, mayReview, run.run_id, review, pending]);
   if (status === "hidden") return null;
   const report = status !== null && status.state === "READY" ? status : null;
   const modelled = report?.data_origin_kind === "MODELLED";
@@ -317,7 +320,7 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
                   aria-label="Varianta zprávy"
                   value={review ?? ""}
                   onChange={(e) => { onReview?.(e.target.value || null); setError(null); }}
-                  disabled={!frame.canEdit}
+                  disabled={!mayReview}
                 >
                   <option value="">Základní zpráva, bez literární rešerše</option>
                   {/* Chosen, and not (yet) in the list read: shown as chosen, never as another. */}
@@ -348,7 +351,7 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
           <p className="text-xs leading-4 text-ink-muted">{stateLine}</p>
           {/* The variant with a review needs no ready run report: preparing it is refused by name
               when the run's analysis is incomplete. */}
-          <Button variant="primary" className="!min-h-11 justify-center" disabled={(!withReview && !report) || busy || !frame.canEdit} onClick={() => void download()}>
+          <Button variant="primary" className="!min-h-11 justify-center" disabled={(!withReview && !report) || busy || !mayReview} onClick={() => void download()}>
             <Icon name="download" size={16} />
             {busy
               ? t("research.exec.results.reportDownloading")
@@ -361,19 +364,19 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
               <p data-variant-earlier className="text-xs leading-4 text-ink-muted">
                 Tato zpráva s rešerší byla připravena podle dřívější skladby zprávy{current?.contract ? ` (${current.contract})` : ""}. Stáhnout a schválit ji lze dál; připravená znovu bude nový koncept, který potřebuje vlastní schválení.
               </p>
-              {frame.canEdit ? (
+              {mayReview ? (
                 <Button variant="quiet" className="justify-center" disabled={busy} onClick={() => void prepareAgain()}>
                   Připravit znovu podle současné skladby
                 </Button>
               ) : null}
             </>
           ) : null}
-          {askable && frame.canEdit ? (
+          {askable && mayReview ? (
             <Button variant="quiet" className="justify-center" disabled={busy} onClick={() => void askPdf()}>
               Vytvořit PDF znovu
             </Button>
           ) : null}
-          {approvable && !approved && frame.canEdit ? (
+          {approvable && !approved && mayReview ? (
             <Button className="!min-h-11 justify-center" disabled={busy} onClick={() => void approve()}>
               {t("research.exec.results.reportApprove")}
             </Button>

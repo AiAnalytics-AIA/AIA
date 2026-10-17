@@ -92,6 +92,7 @@ import { dimensionLabels, withApproval } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
 import { ActionDock, Switch } from "../step";
 import { AiButton, Button, Chip, Field, TextArea, TextInput } from "../ui";
+import { canReview } from "./frame";
 import { useFrame } from "./frame-hook";
 import { InspectorSlot } from "./Inspector";
 import { ResearchContext, useResearch } from "./context";
@@ -797,7 +798,7 @@ export function RunStep() {
         ready={prepared.kind === "ready" && prepared.readiness.ready && frame.canEdit && !blocked && !choosing && !unacknowledged}
         note={
           !frame.canEdit
-            ? t("research.exec.readOnly")
+            ? t(frame.closed ? "research.exec.closed" : "research.exec.readOnly")
             : prepared.kind !== "ready"
               ? null
               : !prepared.readiness.ready
@@ -1156,7 +1157,8 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
         {run.phase === "COMPLETED" ? (
           <a className="text-sm underline" href={`${stepHref("results")}?run=${encodeURIComponent(run.run_id)}`}>{t("research.exec.toResults")}</a>
         ) : null}
-        {frame.canEdit && !run.is_terminal ? (
+        {/* Stopping what runs is allowed on a closed study too: it starts nothing. */}
+        {canReview(frame) && !run.is_terminal ? (
           <Button
             disabled={busy}
             onClick={async () => {
@@ -1458,7 +1460,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
       {sociomapping && sociomapping.state !== "hidden" ? (
         <Card id="res-sociomapping" title={t("research.exec.results.sociomapping")} tone="notice">
           {sociomapping.state === "ready" ? (
-            <SociomappingView artifact={sociomapping.value} run={run} studyId={frame.studyId} canEdit={frame.canEdit} />
+            <SociomappingView artifact={sociomapping.value} run={run} studyId={frame.studyId} canEdit={canReview(frame)} />
           ) : null}
           {sociomapping.state === "loading" ? <p className="text-sm text-ink-muted">{t("research.loading")}</p> : null}
           {sociomapping.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{sociomapping.message}</p> : null}
@@ -1468,7 +1470,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
       ...(showAnalysis ? [{ id: "analysis", label: "AI analýza", description: "Souhrn, odpovědi na výzkumné otázky a omezení. Interpretace vychází z podkladů tohoto běhu a čeká na posouzení výzkumníkem.", content: <div id="res-analysis"><AnalysisResults key={run.run_id} run={run} spec={pinnedSpecification(specification?.state === "ready" ? specification.value : null)} /></div> }] : []),
       { id: "report", label: "Rešerše a zpráva", description: "Zkontrolujte připravenost interní zprávy, přijaté externí podklady a omezení rešerše. Dostupnost stažení závisí na úplnosti analýzy.", content: <>
         <div id="res-report">{report}</div>
-        {showAnalysis && frame.canEdit ? <InterpretationResearch key={run.run_id} run={run} review={review} onReview={setReview} /> : null}
+        {showAnalysis && canReview(frame) ? <InterpretationResearch key={run.run_id} run={run} review={review} onReview={setReview} /> : null}
         <details><summary className="cursor-pointer text-sm font-medium">Klientské znalosti a kontextová AI pomoc</summary><div className="mt-3">{knowledgeContext}</div></details>
       </> },
     ]} />;
@@ -1514,7 +1516,7 @@ function InternalReport({ run, progressHref }: { run: ResearchRun; progressHref:
             id: status.artifact_id ?? "—", sha: status.sha256?.slice(0, 12) ?? "—", run: run.run_id,
           })}</p>
           {/* Downloading and approving happen in one place: the report card above (CompleteReport). */}
-          {frame.canEdit ? <p className="mt-2 text-xs text-ink-muted">{t("research.exec.results.reportActionsAbove")}</p> : null}
+          {canReview(frame) ? <p className="mt-2 text-xs text-ink-muted">{t("research.exec.results.reportActionsAbove")}</p> : null}
         </>
       ) : null}
       {status && status.state !== "READY" ? <p className="text-sm text-ink-muted">{reportStatusWords(reportStatus(status))}</p> : null}

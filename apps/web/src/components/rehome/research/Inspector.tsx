@@ -52,11 +52,17 @@ const SlotContext = createContext<{ target: HTMLElement | null } | null>(null);
  * open panel) and what is left before a run. It also provides the slot to the stage,
  * which is why it wraps the whole workspace and draws its column through `column`.
  */
-export function InspectorProvider({ children }: { children: (column: (content: ReactNode) => ReactNode) => ReactNode }) {
+export function InspectorProvider({ children, disabled = false }: {
+  children: (column: (content: ReactNode) => ReactNode) => ReactNode;
+  /** The stage's own controls drawn here are disabled as one (a design that may not change). */
+  disabled?: boolean;
+}) {
   const [target, setTarget] = useState<HTMLElement | null>(null);
   const column = (content: ReactNode) => (
     <div data-inspector className="flex min-w-0 flex-col gap-3 lg:sticky lg:top-[136px]">
-      <div ref={setTarget} className="contents" />
+      <fieldset disabled={disabled} className="contents">
+        <div ref={setTarget} className="contents" />
+      </fieldset>
       {content}
     </div>
   );

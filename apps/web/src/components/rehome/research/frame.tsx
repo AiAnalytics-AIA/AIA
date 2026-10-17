@@ -17,8 +17,19 @@ export type StudyFrame = {
   studyName: string;
   /** The stage the study was last opened on. */
   lastStage: StepKey | null;
-  /** EDIT_STUDY on this study: a person who may only read never starts working content. */
+  /**
+   * May change the study and start work on it now (the API's `can_edit`): false for a person who
+   * may only read, and on a delivered, archived or cancelled study, which accepts no new work.
+   */
   canEdit: boolean;
+  /**
+   * May read, download and approve what the study holds, and stop what runs (the API's
+   * `can_review`): what a closed study still allows. Defaults to `canEdit` where a frame does
+   * not say (a past study read from project memory offers neither).
+   */
+  canReview?: boolean;
+  /** Why the study accepts no new work, when it does not: its status, and when it was delivered. */
+  closed?: { status: string; deliveredAt: string | null } | null;
   /** The URL of one of this study's stages. */
   stepHref: (step: StepKey) => string;
   /** Remember the stage opened, for "continue where you left off". */
@@ -36,3 +47,6 @@ export function StudyFrameProvider({ frame, children }: { frame: StudyFrame; chi
 export function useStudyFrame(): StudyFrame | null {
   return useContext(Ctx);
 }
+
+/** What a closed study still allows: read, download, approve, stop. A frame that does not say follows `canEdit`. */
+export const canReview = (frame: Pick<StudyFrame, "canEdit" | "canReview">): boolean => frame.canReview ?? frame.canEdit;
