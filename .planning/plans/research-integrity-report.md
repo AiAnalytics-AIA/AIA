@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] 1. Runnable is not answerable: each start decides whether the run can answer the research questions it states; a run with gaps starts only on a person's recorded acknowledgement of exactly those gaps (AIA_RESEARCH_ANSWERABILITY_GATE, off by default), and the report prints the frozen record"
-  - "[x] 2. The literature chapter keeps credibility and relevance apart: every accepted claim beside its verbatim passage and the topic it was searched for, every source with what its domain says (proposed tiers labelled), a review resting on one publisher said so, a sparse review said once"
+  - "[x] 2. The literature chapter keeps credibility and relevance apart: every accepted claim beside its verbatim passage and the topic it was searched for, every source with what its domain says (the source table labelled a proposal not yet approved), a review resting on one publisher said so, a sparse review said once"
   - "[x] 3. One report variant, the same draft in DOCX and PDF: the researcher chooses the run's own report or the report with one completed review; the worker renders the stored draft (report_pdf); both files say which variant they are and what they hold"
   - "[x] 4. Local render and inspection, USD 0: both variants of a fictional run composed, DOCX and PDF compared chapter by chapter, citations, maps, limitations, repeated prose, table of contents and layout checked by eye"
   - "[ ] 5. Develop acceptance on the existing fictional Fio run, USD 0 (owner's call: needs the deploy): recompose the literature variant at contract -4, render its PDF in the worker image, compare with the DOCX"
@@ -74,7 +74,7 @@ then user trust.
 | Brief and client context → proposal | brief title, goal, decision use, briefing; approved Client Knowledge frozen at job enqueue (`research_agents.py` `context_snapshot`) | agent job run id, snapshot hash; acceptance in the approval ledger (gate 1) | `research_plan`: research questions (plain strings, no ids), objectives, hypotheses | hypotheses never reach analysis (`prompt.py:147-169`); objectives only as a fallback for research questions (`native.py:130-146`) |
 | Research questions → questionnaire | the plan's research questions | per item `research_questions` by text (`research_design.py`, 3a) | links into the specification | optional; designs before harness 3 have none (Fio); editing a research question's text leaves its links dangling (3b "Not done") |
 | Questionnaire → specification | sections, n, audience, title, dimensions, links | Design Revision id + content SHA-256; specification fingerprint | `ResearchSpecification` | a section's `purpose`, a question's `topics` are read by nothing |
-| Audience, dimensions, population → run | the selection; the persona source chosen at start | `metadata.selection` (5b), `metadata.population` with `read_by_fieldwork`, the population binding row | the run's receipt | a roster run applies no filter or dimension; the population is recorded, not read. **The report's method chapter said they were "stored" even when the run recorded no selection** (`report_method.py:209-226`, fixed in chunk 1) |
+| Audience, dimensions, population → run | the selection; the persona source chosen at start | `metadata.selection` (5b), `metadata.population` with `read_by_fieldwork`, the population binding row | the run's receipt | a roster run applies no filter or dimension; the population is recorded, not read. **The report's method chapter said they were "stored" even when the run recorded no selection** (`report_method.py:89-106 @ 357d779`, fixed in chunk 1) |
 | Readiness → start | the compiled specification, pinned readiness limits, the forecast | `metadata.readiness` (pin) | `ready` | research-question coverage was a WARN (fixed: chunk 1 decides answerability at start and records it) |
 | Fieldwork | specification, response pin, persona source | dataset artifact with `data_origin` | answers | fictional donors are random labels (`ai_respondent.py:295-300`) |
 | Aggregation | dataset, support and aggregation pins | aggregate artifact | shares, means, intervals, effective n | the interval is a donor-cluster bootstrap and nothing prints its method; the stored note says "reálné donor clustery" for fictional labels and is read by nothing (`research_aggregate.py:205-207`, chunk 7) |
@@ -192,7 +192,7 @@ converted by `LibreOfficePdf` (LibreOffice 24.2.7.2), the worker's own converter
   (a relevance verdict in verification is an engine change, ADR 0021). Test: a recorded bundle
   whose off-topic finding is not accepted. **Hypothesis until reproduced.**
 - **F2 (confirmed, fixed in chunk 1). The method chapter claimed a selection a run never
-  recorded.** `report_method.py:209-226 @ 357d779` printed "jsou s během uložené" whatever
+  recorded.** `report_method.py:89-106 @ 357d779` printed "jsou s během uložené" whatever
   `metadata.selection` held. Test: `test_report_method.py` "a run that recorded no selection".
 - **F3 (confirmed, fixed in chunk 3). The table of contents has no page numbers in a PDF.**
   `report_docx/layout.py:377-381 @ 357d779` wraps prefilled PAGEREF results in a TOC field;
@@ -210,7 +210,7 @@ converted by `LibreOfficePdf` (LibreOffice 24.2.7.2), the worker's own converter
 - **F6 (confirmed, chunk 7). A multi-select table whose shares sum past 100 % says nothing.** The
   unit printed a note (`pozn`); `report_tables.py:178-189` does not.
 - **F7 (hypothesis, chunk 9). A withheld gap need could print its internal marker.**
-  `contextual_report.py:375-383 @ 357d779` printed `gap.need` without `text_withheld`.
+  `contextual_report.py:248 @ 357d779` printed `gap.need` without `text_withheld`.
 - **F8 (open, OI-9 / complete-study-report F1). Fictional rows print "modelováno".** Confirmed
   in the chunk 4 render: Appendix B of a `SYNTHETIC_AI_FICTIONAL` run, whose own method chapter
   says "Odpovídali smyšlení respondenti", prints "modelováno" / "Modelováno" in Základ, Síla
@@ -219,8 +219,10 @@ converted by `LibreOfficePdf` (LibreOffice 24.2.7.2), the worker's own converter
   complete-study-report F1.
 - **F9 (confirmed, fixed in chunk 3). A run that resumed by itself finished unseen.** Claim: the
   Progress and Výsledky pages stop reading a run in phase WAITING, though a run waiting on a
-  provider's quota or capacity (and a run parked for the AI runtime, `WAITING_PROVIDER`) resumes
-  without anyone acting (`domain/workflow.py:152 @ 357d779`). Anchor:
+  provider's quota or capacity resumes without anyone acting (`domain/workflow.py:152 @
+  357d779`). A run parked for the AI runtime (`WAITING_PROVIDER`, `ai_runtime_unavailable`) does
+  not: `resume_due` never resumes it (`domain/workflow.py:797 @ 357d779`) and only a person's retry
+  reopens it, so the page does not read it (review 2, F33). Anchor:
   `apps/web/src/lib/research-execution.ts:70-72 @ 357d779` (`shouldPoll`: QUEUED or RUNNING
   only), its test asserting "a parked run does not move by itself". Reproduction:
   `research-execution.test.ts` "keeps reading only while something can change on its own" (fails
@@ -237,8 +239,10 @@ each fix carries a test that fails without it.
 
 - **F10. An open question beside one the run will not answer passed the gate.**
   `domain/answerability.py:166 @ 56a5fe4` judged by the trace's verdict, the best over every
-  measure, so an open question (AT_RISK, never cited) lifted a conditional one (UNANSWERABLE): the
-  run started unacknowledged and the report claimed a citable measure. Now only measures the run
+  measure, so an open question (AT_RISK, never cited) lifted one the run refuses to answer
+  (`fidelity_refused`, UNANSWERABLE): the run started unacknowledged and the report claimed a
+  citable measure. (A conditional question cannot show it: readiness fails
+  `conditional_questions` first, `research_design.py:868-875 @ 56a5fe4`.) Now only measures the run
   answers and the analysis cites decide. Test:
   `test_an_open_question_beside_one_the_run_will_not_answer_is_still_a_gap`.
 - **F11. The same ranking hid support left to fieldwork.** `:169 @ 56a5fe4`: pending read the
@@ -275,6 +279,80 @@ each fix carries a test that fails without it.
 
 Every PDF's state now says whether asking starts a rendering (`askable`), and the card offers
 "Vytvořit PDF znovu" exactly then, for the run's own report and a variant alike.
+
+### Found by the second review (2026-10-16, on 78baf5c), all fixed on this branch
+
+The same six lenses over the branch after F10-F18; each fix carries a test that fails without it.
+
+- **F19. The report answered every gap research question as if measured.** The answers chapter
+  (`application/report.py:328 @ 78baf5c`) printed each answer under its question, and the gap was
+  said only in "Respondenti a výpočet", chapters later. Each answer to a recorded gap, and the
+  introduction's list, now say so where they are read (`research_question_gaps`). Test:
+  `test_an_answer_to_a_research_question_the_run_could_not_answer_says_so_where_it_is_read`.
+- **F20. The client report's method chapter pointed to answers and an analysis it does not
+  contain** (`report_method.py:127-128 @ 78baf5c`). Test:
+  `test_the_client_report_points_to_no_analysis_or_answers_it_does_not_contain`.
+- **F21. The method table printed the trace's verdict, not the decision's.** A pending question
+  read "at risk" beside text saying fieldwork decides it, and a question measured only by open
+  items read "could answer with risk". The note records each question's decided verdict, and a
+  question with no citable measure is UNANSWERABLE (`domain/answerability.py:190 @ 78baf5c`).
+  Tests: `test_every_research_question_records_the_verdict_decided_for_it`,
+  `test_a_pending_question_beside_an_open_one_reads_as_left_to_fieldwork`,
+  `test_a_question_only_an_open_question_measures_reads_as_unanswerable`.
+- **F22. The Run screen contradicted itself:** coverage PASS and a trace "S rizikem" beside a gap
+  "Běh na ni neodpoví" (`research_trace.py:353 @ 78baf5c`). Readiness and the trace carry the
+  decision (`with_answerability`, `decided_trace`). Test:
+  `test_readiness_shows_one_verdict_and_never_passes_beside_a_gap`.
+- **F23. An acknowledgement's digest was not bound to the design revision**
+  (`answerability.py:208 @ 78baf5c`). Test:
+  `test_an_acknowledgement_read_for_one_revision_never_covers_another`.
+- **F24. A ranking whose tracked set the run cannot answer was given a false reason.** New
+  `comparison_set_unanswerable`. Test: `test_a_ranking_whose_set_the_run_will_not_answer_says_so`.
+- **F25. The method chapter's words:** a singular pronoun for several questions, pending
+  questions unquoted and dropped beside gaps, "no research question" said twice, "Měřeno: nic" for
+  an unlinked design, unmatched dimensions named as applied, a misplaced clitic ("neuplatnily
+  se", `report_method.py:252-256 @ 78baf5c`), and an unreadable record called older than the
+  check. Tests: the `test_report_method.py` cases added with this fix.
+- **F26. A report-with-review draft of an older contract was served as ready for ever**
+  (`report_variants.py:205 @ 78baf5c`), so the page never prepared it again. Only drafts of the
+  current contract are the variant (`prepared_drafts`). Test:
+  `test_a_draft_of_an_older_composition_contract_is_prepared_again_never_served`.
+- **F27. Prepare asked for one draft's PDF and served another** when the composed sources matched
+  an older draft (`routers/research.py:1988 @ 78baf5c`). The draft just composed is stored again
+  as the newest. Test: the interpretation journey in `test_analysis_executor.py`.
+- **F28. Past 100 jobs, asking for a PDF again returned the failed job**
+  (`research.py:877 @ 78baf5c`, a capped count). The round is the newest job's. Test:
+  `test_asking_again_after_a_hundred_failed_jobs_still_starts_a_new_one`.
+- **F29. A corrupt or missing PDF of the run's own report read as another report's rendering**
+  (`routers/research.py:1749 @ 78baf5c`). Test:
+  `test_a_step_pdf_gone_bad_or_missing_is_said_as_what_it_is`.
+- **F30. A start that found the revision's run left the page on "Spouštím…"**
+  (`ExecutionSteps.tsx:708 @ 78baf5c`), and "found" was read from the acknowledgement's text, not
+  the run's `created`. Tests: "says nothing new started when the revision already had a run",
+  "follows a run the start created, whatever it recorded".
+- **F31. A start refused for its research questions showed the server's English message**
+  (`ExecutionSteps.tsx:697 @ 78baf5c`). Test: "says a start refused for its research questions in
+  Czech, beside the gaps read again".
+- **F32. A refused retry's gate stayed for whatever run was shown next**
+  (`ExecutionSteps.tsx:1112 @ 78baf5c`). Test: "keeps a refused retry's gaps only while their run
+  can still be retried".
+- **F33. A run parked for the AI runtime was read every 10 s for ever**
+  (`research-execution.ts:84 @ 78baf5c`). Test: "keeps reading only while something can change on
+  its own".
+- **F34. The gate called a design runnable that readiness refused, and every confirmation said
+  "běh neodpoví"** (`cs.ts:2480, 2499 @ 78baf5c`). Test: "calls the gate runnable only where
+  readiness lets the design run".
+- **F35. The card under-stated and over-promised:** a prepared variant's parts read "čeká na
+  přípravu" after a failed report step (`CompleteReport.tsx:49 @ 78baf5c`), a PDF was promised on a
+  closed study or with the converter off (`:244`, `InterpretationResearch.tsx:169`), and the panel
+  below kept a stale PDF line (`ExecutionSteps.tsx:1510`). Test: "claims the run-derived parts of a
+  prepared variant whatever the run's own report step did".
+- **F36. The literature chapter's words:** "jednom zdroji" over several sources of one publisher,
+  a page's age blamed on its domain, withheld gaps and sources merged into one, a singular
+  sentence before several titles, and the source table not called a proposal
+  (`contextual_report.py:104, 297, 370, 401 @ 78baf5c`). Tests: `test_contextual_report.py`.
+- **F37. ADR 0025 decision 4 said the report names who acknowledged**; it prints why, and the
+  ledger holds who. Corrected in the ADR.
 
 ## Decisions for the owner
 
