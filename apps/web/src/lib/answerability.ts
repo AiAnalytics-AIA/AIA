@@ -24,6 +24,7 @@ export const GAP_REASONS = [
   "comparison_unknown",
   "measures_unanswerable",
   "no_citable_measure",
+  "comparison_set_unanswerable",
 ] as const;
 
 /** What the person said, and the gaps (`digest`) they said it about. */

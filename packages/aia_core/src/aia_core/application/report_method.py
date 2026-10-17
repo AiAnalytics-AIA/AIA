@@ -68,18 +68,41 @@ _VERDICT = {
     "UNKNOWN": "předem nešlo ověřit",
     "UNANSWERABLE": "běh na ni odpovědět nemohl",
 }
-#: Why it was so (GapReason and the trace's reasons). Closed: test_report_method checks totality.
-_REASON = {
-    "unlinked_design": "žádná otázka dotazníku neuvádí, na kterou výzkumnou otázku odpovídá",
-    "unmeasured": "žádná otázka dotazníku ji neměří",
-    "comparison_needs_tracked_set": "pořadí vyžaduje sledovanou sadu, žádná ji neměří",
-    "comparison_needs_concept_set": "test A/B vyžaduje sadu testu konceptů",
-    "segments_unavailable": "srovnání segmentů AIA zatím neumí",
-    "comparison_unknown": "neznámý způsob srovnání",
-    "measures_unanswerable": "měří ji jen otázky, na které běh neodpoví",
-    "no_citable_measure": "měří ji jen otevřené otázky nebo položky, které analýza necituje",
+#: Why it was so (GapReason and the trace's reasons), for one research question and for several
+#: (grouped: "ji" is "it", "je" is "them"). Closed: test_report_method checks totality.
+_REASON: dict[str, tuple[str, str]] = {
+    "unlinked_design": (
+        "žádná otázka dotazníku neuvádí, na kterou výzkumnou otázku odpovídá",
+        "žádná otázka dotazníku neuvádí, na kterou výzkumnou otázku odpovídá",
+    ),
+    "unmeasured": ("žádná otázka dotazníku ji neměří", "žádná otázka dotazníku je neměří"),
+    "comparison_needs_tracked_set": (
+        "pořadí vyžaduje sledovanou sadu, žádná ji neměří",
+        "pořadí vyžaduje sledovanou sadu, žádná je neměří",
+    ),
+    "comparison_needs_concept_set": (
+        "test A/B vyžaduje sadu testu konceptů",
+        "test A/B vyžaduje sadu testu konceptů",
+    ),
+    "comparison_set_unanswerable": (
+        "sadu, která by objekty seřadila nebo koncepty porovnala, běh celou nezodpoví",
+        "sadu, která by objekty seřadila nebo koncepty porovnala, běh celou nezodpoví",
+    ),
+    "segments_unavailable": (
+        "srovnání segmentů AIA zatím neumí",
+        "srovnání segmentů AIA zatím neumí",
+    ),
+    "comparison_unknown": ("neznámý způsob srovnání", "neznámý způsob srovnání"),
+    "measures_unanswerable": (
+        "měří ji jen otázky, na které běh neodpoví",
+        "měří je jen otázky, na které běh neodpoví",
+    ),
+    "no_citable_measure": (
+        "měří ji jen otevřené otázky nebo položky, jejichž čísla se necitují",
+        "měří je jen otevřené otázky nebo položky, jejichž čísla se necitují",
+    ),
 }
-_REASON_UNKNOWN = "důvod uvedený v záznamu běhu"
+_REASON_UNKNOWN = ("důvod uvedený v záznamu běhu", "důvod uvedený v záznamu běhu")
 
 
 def _items(n: int) -> str:
@@ -88,19 +111,25 @@ def _items(n: int) -> str:
     return f"{n} {word}"
 
 
+def _why(reasons: Any, *, plural: bool) -> str:
+    worded = [_REASON.get(str(r), _REASON_UNKNOWN)[1 if plural else 0] for r in reasons or ()]
+    return ", ".join(dict.fromkeys(worded))
+
+
 def _gap_lines(gaps: list[Mapping[str, Any]]) -> str:
     """Gaps in words: the research questions, and why, never a code. Questions with the same
-    reasons share one statement of them: the rendered Fio-like report repeated one reason after
-    every question, right below the table that had just given it (research-integrity-report 4)."""
-    groups: dict[str, list[str]] = {}
+    reasons share one statement of them, in the plural when there are several: the rendered
+    Fio-like report repeated one reason after every question, right below the table that had
+    just given it (research-integrity-report 4)."""
+    groups: dict[tuple[str, ...], list[str]] = {}
     for gap in gaps:
-        reasons = [_REASON.get(str(r), _REASON_UNKNOWN) for r in gap.get("reasons") or ()]
-        groups.setdefault(", ".join(dict.fromkeys(reasons)), []).append(
-            str(gap.get("research_question"))
-        )
-    return "; ".join(
-        _quoted(questions) + (f" ({why})" if why else "") for why, questions in groups.items()
-    )
+        key = tuple(dict.fromkeys(str(r) for r in gap.get("reasons") or ()))
+        groups.setdefault(key, []).append(str(gap.get("research_question")))
+    lines = []
+    for reasons, questions in groups.items():
+        why = _why(reasons, plural=len(questions) > 1)
+        lines.append(_quoted(questions) + (f" ({why})" if why else ""))
+    return "; ".join(lines)
 
 
 def _quoted(questions: list[str]) -> str:
@@ -110,54 +139,90 @@ def _quoted(questions: list[str]) -> str:
     return marked[0] if len(marked) == 1 else ", ".join(marked[:-1]) + " a " + marked[-1]
 
 
+def research_question_gaps(meta: Mapping[str, Any]) -> dict[str, str]:
+    """Each research question the run recorded as a gap at start, in words (its verdict and why),
+    keyed by its text with whitespace folded: for the chapter that answers the research
+    questions, which must not read as if those answers rest on a measure (review, 2026-10-16:
+    the gaps were said chapters later, under answers given with confidence)."""
+    note = read_answerability_note(meta)
+    if note is None:
+        return {}
+    gaps: dict[str, str] = {}
+    for gap in note["gaps"]:
+        if not isinstance(gap, Mapping) or not gap.get("research_question"):
+            continue
+        why = _why(gap.get("reasons"), plural=False)
+        words = _VERDICT.get(str(gap.get("verdict")), "stav nelze přečíst")
+        gaps[" ".join(str(gap["research_question"]).split())] = words + (f" ({why})" if why else "")
+    return gaps
+
+
 def _answerability_blocks(meta: Mapping[str, Any], *, client: bool = False) -> list[Block]:
     """What the run recorded at start about answering its research questions: each one with
     its measures and state, and the decision that let it start with gaps. From the run's frozen
     record only; a run that recorded none says so and is never read as capable.
 
-    ``client``: the client report says what the run could not answer and why, in plain words;
-    who decided, their reason, run ids and how AIA was configured stay internal."""
+    ``client``: the client report gives question-level results and no written answers to the
+    research questions, so it says what the questionnaire could measure for each, never what an
+    analysis or an answers chapter (which it does not contain) would show; who decided, their
+    reason, run ids and how AIA was configured stay internal."""
     note = read_answerability_note(meta)
     blocks: list[Block] = [Heading("Výzkumné otázky před spuštěním běhu", 2)]
     if note is None:
+        recorded = "answerability" in meta
         blocks.append(
             Paragraph(
                 text(
-                    "Běh nezaznamenal, zda dotazník měří každou výzkumnou otázku; byl spuštěn "
-                    "před zavedením této kontroly. Zda zpráva odpovídá na všechny otázky, "
-                    "posuďte podle kapitoly s odpověďmi a podle dotazníku v příloze."
+                    (
+                        "Záznam běhu o tom, zda dotazník měří každou výzkumnou otázku, AIA "
+                        "nedokáže přečíst; nic se z něj neusuzuje."
+                        if recorded
+                        else "Běh nezaznamenal, zda dotazník měří každou výzkumnou otázku; "
+                        "byl spuštěn před zavedením této kontroly."
+                    )
+                    + (
+                        ""
+                        if client
+                        else " Zda zpráva odpovídá na všechny otázky, posuďte podle kapitoly "
+                        "s odpověďmi a podle dotazníku v příloze."
+                    )
                 )
             )
         )
         return blocks
-    # A research question that is a gap reads by its gap: the trace's verdict is the best over
-    # every measure, an open question's included, and could say "at risk" beside a callout that
-    # says the run could not answer it.
+    # A research question that is a gap reads by its gap (records whose verdict was the
+    # trace's: its best over every measure, an open question's included).
     gap_of = {
         str(g.get("research_question")): g
         for g in note["gaps"]
         if isinstance(g, Mapping) and g.get("research_question")
     }
+    linked = note.get("linked") is not False
     rows = []
     for traced in note["research_questions"]:
         if not isinstance(traced, Mapping):
             continue
         gap = gap_of.get(str(traced.get("text")), {})
         q = {**traced, **{k: gap[k] for k in ("verdict", "reasons") if k in gap}}
-        reasons = [_REASON.get(str(r), _REASON_UNKNOWN) for r in q.get("reasons") or ()]
+        why = _why(q.get("reasons"), plural=False)
         measures = q.get("measures") or []
         rows.append(
             TableRow(
                 (
                     TextCell(str(q.get("text") or "")),
-                    TextCell(_items(len(measures)) if measures else "nic"),
+                    # Unlinked: the design declares no links, which says nothing of what the
+                    # questionnaire measures -- never "nothing".
+                    TextCell(
+                        _items(len(measures)) if measures else "nic" if linked else "neuvedeno"
+                    ),
                     TextCell(
                         _VERDICT.get(str(q.get("verdict")), "stav nelze přečíst")
-                        + (f" ({'; '.join(dict.fromkeys(reasons))})" if reasons else "")
+                        + (f" ({why})" if why else "")
                     ),
                 )
             )
         )
+    pending = [str(p) for p in note.get("pending") or []]
     if rows:
         blocks.append(
             Table(
@@ -172,31 +237,43 @@ def _answerability_blocks(meta: Mapping[str, Any], *, client: bool = False) -> l
                 source="Záznam běhu (kontrola výzkumných otázek při jeho spuštění)",
                 notes=(
                     "Stav vychází z návrhu a pravidel podpory platných při spuštění, nikoli "
-                    "z výsledků; o odpovědi rozhoduje až analýza.",
+                    "z výsledků." + ("" if client else " O odpovědi rozhoduje až analýza."),
+                    *(
+                        ()
+                        if linked
+                        else (
+                            "„Neuvedeno“: návrh u žádné otázky dotazníku neuvádí, kterou "
+                            "výzkumnou otázku měří; co dotazník skutečně měří, záznam neříká.",
+                        )
+                    ),
                 ),
             )
         )
-    else:
-        blocks.append(Paragraph(text("Návrh neuváděl žádnou výzkumnou otázku.")))
     gaps = [g for g in note["gaps"] if isinstance(g, Mapping) and g.get("research_question")]
     none_stated = any(
         isinstance(g, Mapping) and g.get("kind") == "no_research_questions" for g in note["gaps"]
     )
     unanswerable = [g for g in gaps if g.get("verdict") == "UNANSWERABLE"]
     unverified = [g for g in gaps if g.get("verdict") != "UNANSWERABLE"]
-    pending = [str(p) for p in note.get("pending") or []]
+    pending_sentence = (
+        "Zda data stačí, rozhodla až podpora zjištěná při sběru u "
+        + ("této výzkumné otázky: " if len(pending) == 1 else "těchto výzkumných otázek: ")
+        + _quoted(pending)
+        + "."
+        if pending
+        else ""
+    )
     if not gaps and not none_stated:
         blocks.append(
             Paragraph(
                 text(
-                    "Při spuštění měla každá výzkumná otázka alespoň jedno měření, jehož čísla "
-                    "může analýza citovat."
+                    "Při spuštění měla každá výzkumná otázka alespoň jedno měření, "
                     + (
-                        " Zda data stačí, rozhodla až podpora zjištěná při sběru u těchto "
-                        "výzkumných otázek: " + "; ".join(pending) + "."
-                        if pending
-                        else ""
+                        "na které běh mohl odpovědět."
+                        if client
+                        else "jehož čísla může analýza citovat."
                     )
+                    + (f" {pending_sentence}" if pending_sentence else "")
                 )
             )
         )
@@ -204,8 +281,9 @@ def _answerability_blocks(meta: Mapping[str, Any], *, client: bool = False) -> l
     parts: list[str] = []
     if none_stated:
         parts.append(
-            "Návrh neuváděl žádnou výzkumnou otázku, takže modul výzkumných otázek neměl na co "
-            "odpovědět."
+            "Návrh neuváděl žádnou výzkumnou otázku."
+            if client
+            else "Návrh neuváděl žádnou výzkumnou otázku, takže analýza neměla na co odpovědět."
         )
     if unanswerable:
         parts.append(
@@ -217,9 +295,16 @@ def _answerability_blocks(meta: Mapping[str, Any], *, client: bool = False) -> l
             + _gap_lines(unverified)
             + "."
         )
-    parts.append(
-        "Pokud na ně zpráva neodpovídá, vyplývá to z návrhu dotazníku, ne z odpovědí respondentů."
-    )
+    if gaps:
+        parts.append(
+            "Tato zpráva uvádí výsledky jednotlivých otázek dotazníku, nikoli odpovědi na "
+            "výzkumné otázky; u těchto výzkumných otázek z nich odpověď nevyplývá."
+            if client
+            else "Odpovědi, které na ně zpráva přesto uvádí, se neopírají o měření, které by "
+            "návrh k těmto otázkám určil a běh zodpověděl; čtěte je jako nedoložené."
+        )
+    if pending_sentence:
+        parts.append(pending_sentence)
     held = note.get("acknowledgement")
     if not client:
         if isinstance(held, Mapping):
@@ -228,6 +313,7 @@ def _answerability_blocks(meta: Mapping[str, Any], *, client: bool = False) -> l
                 "Výzkumník běh přesto výslovně spustil s odůvodněním: "
                 f"„{held.get('reason')}“"
                 + (f" (potvrzení převzato z běhu {inherited})." if inherited else ".")
+                + " Kdo potvrzení dal, je v záznamu schválení."
             )
         elif note.get("exempt") == "analysis_retry":
             parts.append(
@@ -246,18 +332,21 @@ def _answerability_blocks(meta: Mapping[str, Any], *, client: bool = False) -> l
     return blocks
 
 
-#: How a part of a run's selection reached its respondents, by the reason it recorded.
+#: How a part of a run's selection reached its respondents, by the reason it recorded; the
+#: sentence reads "{part} vybrané v návrhu (…) {reason}." with the clitic in second position.
 _SELECTION_REASON = {
     "dimensions_need_population_draw": (
-        "neuplatnily se: určují témata profilu jen respondentům vybraným z populace"
+        "se neuplatnily: určují témata profilu jen respondentům vybraným z populace"
     ),
-    "dimensions_await_population_draw": "uplatní se, až běh vybere respondenty z populace",
-    "dimensions_not_persona_topics": "neuplatnily se: žádná z nich není tématem profilu",
-    "dimensions_not_read_by_personas": "neuplatnily se: AIA je tehdy respondentům nepředávala",
-    "filters_need_population_draw": "neuplatnily se: platí jen pro respondenty vybrané z populace",
-    "filters_await_population_draw": "uplatní se, až běh vybere respondenty z populace",
+    "dimensions_await_population_draw": "se uplatní, až běh vybere respondenty z populace",
+    "dimensions_not_persona_topics": "se neuplatnily: žádná z nich není tématem profilu",
+    "dimensions_not_read_by_personas": "se neuplatnily: AIA je tehdy respondentům nepředávala",
+    "filters_need_population_draw": (
+        "se neuplatnily: platí jen pro respondenty vybrané z populace"
+    ),
+    "filters_await_population_draw": "se uplatní, až běh vybere respondenty z populace",
     "population_draw_not_completed": (
-        "neuplatnily se: běh skončil dřív, než vybral respondenty z populace"
+        "se neuplatnily: běh skončil dřív, než vybral respondenty z populace"
     ),
 }
 
@@ -282,21 +371,29 @@ def _selection_blocks(meta: Mapping[str, Any], *, drawn: bool) -> list[Block]:
     filters = selection.get("audience_filters") or {}
     if not dimensions and not filters:
         return [Paragraph(text("Návrh nevybral žádné dimenze ani filtry cílové skupiny."))]
+    unmatched = [str(d) for d in selection.get("dimensions_unmatched") or []]
+    # An unmatched dimension never reached anyone: never named among the applied ones.
+    matched = [d for d in dimensions if d not in unmatched]
     for label, chosen, part in (
-        ("Dimenze", ", ".join(dimensions), "dimensions"),
-        ("Filtry cílové skupiny", ", ".join(str(k) for k in filters), "filters"),
+        ("Dimenze", dimensions, "dimensions"),
+        ("Filtry cílové skupiny", [str(k) for k in filters], "filters"),
     ):
         if not chosen:
             continue
         if selection.get(f"{part}_applied") is True:
-            sentences.append(f"{label} vybrané v návrhu ({chosen}) se uplatnily na respondenty.")
+            if part == "dimensions" and not matched:
+                continue
+            shown = matched if part == "dimensions" else chosen
+            sentences.append(
+                f"{label} vybrané v návrhu ({', '.join(shown)}) se uplatnily na respondenty."
+            )
         else:
             reason = _SELECTION_REASON.get(
-                str(selection.get(f"{part}_reason")), "neuplatnily se (důvod v záznamu běhu)"
+                str(selection.get(f"{part}_reason")), "se neuplatnily (důvod v záznamu běhu)"
             )
-            sentences.append(f"{label} vybrané v návrhu ({chosen}) {reason}.")
-    unmatched = [str(d) for d in selection.get("dimensions_unmatched") or []]
-    if unmatched:
+            sentences.append(f"{label} vybrané v návrhu ({', '.join(chosen)}) {reason}.")
+    # Said once: a selection whose every dimension is no topic already says so above.
+    if unmatched and selection.get("dimensions_reason") != "dimensions_not_persona_topics":
         sentences.append(
             "Tyto dimenze nejsou tématem profilu respondenta a k respondentům se nedostaly: "
             + ", ".join(unmatched)

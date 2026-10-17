@@ -97,6 +97,7 @@ class ReportExecutor:
                     question_tables=chapters.questions,
                     design=chapters.design,
                     method=chapters.method,
+                    research_question_gaps=chapters.gaps,
                 )
             except (
                 ReconstructionRefused,

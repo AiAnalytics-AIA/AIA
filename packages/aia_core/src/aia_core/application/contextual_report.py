@@ -625,6 +625,7 @@ def _compose(
         question_tables=chapters.questions,
         design=chapters.design,
         method=chapters.method,
+        research_question_gaps=chapters.gaps,
     )
     modules = [analysis.modules[m.module_id] for m in ANALYSIS_MODULES]
     return _Composed(

@@ -59,8 +59,11 @@ answering a client.
 
 4. **An acknowledgement never makes a research question answerable.** It records a decision to run
    anyway. The report prints the gaps as a limitation, says what was pending, and in the internal
-   report says who acknowledged and why, that the acknowledgement was inherited, that an analysis
-   retry was exempt, or that nobody was asked. The client report prints the gaps without who or why.
+   report says why the run started anyway, that the acknowledgement was inherited, that an analysis
+   retry was exempt, or that nobody was asked; who acknowledged is the approval ledger's record,
+   which the report names, never a person it prints from an id. Every answer the internal report
+   gives to such a research question is marked where it is read. The client report prints the
+   gaps without who or why.
    ARCHITECTURE.md §4's "no override field" stays true of every evidence gate. This is not one.
 
 5. **A retry inherits an acknowledgement only while the gaps are the same.** A retry of a run with

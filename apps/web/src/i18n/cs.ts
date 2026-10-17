@@ -2491,6 +2491,7 @@ export const cs = {
           comparison_unknown: "neznámý způsob srovnání",
           measures_unanswerable: "měří ji jen otázky, na které běh neodpoví",
           no_citable_measure: "měří ji jen otevřené otázky nebo položky, jejichž čísla analýza necituje",
+          comparison_set_unanswerable: "sadu, která by objekty seřadila nebo koncepty porovnala, běh celou nezodpoví",
         },
         reasonUnknown: "důvod, který tato verze stránky nezná",
         pending: "Zda běh odpoví i na tyto výzkumné otázky, rozhodne až podpora dat ze sběru: {list}",

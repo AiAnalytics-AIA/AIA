@@ -138,6 +138,8 @@ def test_a_question_measured_only_by_an_open_question_is_a_gap() -> None:
     _trace, answer = _answer(content)
     gap = next(g for g in answer.gaps if g.research_question == RQS[2])
     assert gap.reasons == ("no_citable_measure",) and gap.measures == ("q3",)
+    # No number to cite is known before the run: never "could answer it with risk".
+    assert gap.verdict is Verdict.UNANSWERABLE
 
 
 def test_a_question_measured_only_by_items_the_run_will_not_answer_names_why() -> None:
@@ -419,3 +421,92 @@ def test_the_worker_cannot_acknowledge_a_design(
             rules="aia-answerability-1",
             design_revision_id="REV-0",
         )
+
+
+# Review of the branch, 2026-10-16.
+
+
+def test_an_acknowledgement_read_for_one_revision_never_covers_another() -> None:
+    spec, _ = compile_design(FIO_LIKE)
+    assert spec is not None
+    items = question_outlook(spec, None)
+    trace = trace_research(spec, RQS, items)
+    first = answerability(trace, items, design_revision_id="REV-1")
+    second = answerability(trace, items, design_revision_id="REV-2")
+    assert first.gaps == second.gaps and first.digest != second.digest
+    assert not Acknowledgement(digest=first.digest, reason="Ověřujeme jen postup.").covers(second)
+
+
+def test_every_research_question_records_the_verdict_decided_for_it() -> None:
+    trace, answer = _answer(PARTLY)
+    decided = dict(answer.verdicts)
+    assert set(decided) == set(RQS)
+    assert {decided[q] for q in RQS[2:]} == {Verdict.UNANSWERABLE}
+    note = answerability_note(trace, answer)
+    row = next(r for r in note["research_questions"] if r["text"] == RQS[2])
+    assert row["verdict"] == "UNANSWERABLE" and row["trace_verdict"] == "UNANSWERABLE"
+
+
+def test_a_ranking_whose_set_the_run_will_not_answer_says_so() -> None:
+    """Not "measured only by questions the run will not answer": another measure is answered.
+    The trace (research_trace._judge) calls such a ranking UNANSWERABLE with no reason of its
+    own when its carrying set is not answered as a whole."""
+    from aia_core.domain.question_outlook import OutlookReason, QuestionOutlook
+    from aia_core.domain.research_trace import Comparison, ResearchQuestionTrace, ResearchTrace
+
+    rq = "Které značky lidé preferují?"
+    measures = ("q9", "b1_a", "b1_b")
+    trace = ResearchTrace(
+        questions=(
+            ResearchQuestionTrace(
+                text=rq,
+                measures=measures,
+                verdict=Verdict.UNANSWERABLE,
+                reasons=(),
+                comparison=Comparison.RANK_OBJECTS,
+            ),
+        ),
+        dangling=(),
+        linked=True,
+    )
+    outlook = (
+        QuestionOutlook("q9", "Nakolik?", "s1", None, Verdict.ANSWERABLE, ()),
+        *(
+            QuestionOutlook(m, m, "s2", "b1", Verdict.UNANSWERABLE, (OutlookReason.FAMILIARITY,))
+            for m in measures[1:]
+        ),
+    )
+    (gap,) = answerability(trace, outlook).gaps
+    assert gap.reasons == ("comparison_set_unanswerable",)
+    # With nothing answered at all, it is what measures it that the run will not answer.
+    unanswered = (
+        QuestionOutlook("q9", "Nakolik?", "s1", None, Verdict.UNANSWERABLE, ()),
+        *outlook[1:],
+    )
+    (gap,) = answerability(trace, unanswered).gaps
+    assert gap.reasons == ("measures_unanswerable",)
+
+
+def test_readiness_shows_one_verdict_and_never_passes_beside_a_gap() -> None:
+    from aia_core.domain.answerability import decided_trace, with_answerability
+    from aia_core.domain.research_design import CheckStatus
+    from aia_core.domain.research_trace import RESEARCH_TRACE_CHECK, with_research_trace
+
+    content = copy.deepcopy(COVERED)
+    content["sections"][0]["questions"][0]["research_questions"] = [RQS[0]]
+    content["sections"][0]["questions"].append(
+        {"id": "q3", "text": "Proč?", "typ": "otevrena", "research_questions": [RQS[2]]}
+    )
+    from aia_core.domain.research_design import prepare
+
+    spec, readiness = prepare(content, pair_n_min=30)
+    assert spec is not None
+    items = question_outlook(spec, None)
+    trace = trace_research(spec, content["research_plan"]["research_questions"], items)
+    answer = answerability(trace, items)
+    shown = decided_trace(trace, answer)
+    gap = next(g for g in answer.gaps if g.research_question == RQS[2])
+    assert next(q for q in shown.questions if q.text == RQS[2]).verdict is gap.verdict
+    checked = with_answerability(with_research_trace(readiness, trace), answer)
+    check = next(c for c in checked.checks if c.id == RESEARCH_TRACE_CHECK)
+    assert check.status is CheckStatus.WARN and RQS[2] in check.message

@@ -29,7 +29,9 @@ from ..domain.answerability import (
     Answerability,
     answerability,
     answerability_note,
+    decided_trace,
     read_answerability_note,
+    with_answerability,
 )
 from ..domain.design import DESIGN_PROJECT_OWNER, DesignRejected, DesignRevision
 from ..domain.evidence import ClaimSurface
@@ -592,7 +594,7 @@ class ResearchRuns:
             trace = trace_research(
                 _spec, research_questions_of(content), items, comparisons_of(content)
             )
-            answer = answerability(trace, items)
+            answer = answerability(trace, items, design_revision_id=revision.revision_id)
             if answer.capable:
                 answer_note = answerability_note(trace, answer)
             elif acknowledge is not None and acknowledge.covers(answer):
@@ -1012,12 +1014,15 @@ class ResearchRuns:
         trace = trace_research(
             spec, research_questions_of(content), questions, comparisons_of(content)
         )
+        answer = answerability(trace, questions, design_revision_id=revision.revision_id)
+        # One verdict on screen: the trace card and the research-question check read what the
+        # gate decided, never "at risk" beside a gap that says the run will not answer it.
         return RunOutlook(
             spec=spec,
-            readiness=with_research_trace(readiness, trace),
+            readiness=with_answerability(with_research_trace(readiness, trace), answer),
             questions=questions,
-            trace=trace,
-            answerability=answerability(trace, questions),
+            trace=decided_trace(trace, answer),
+            answerability=answer,
         )
 
     def _support(self, support: SupportSpec | None) -> tuple[SupportSpec, dict[str, Any] | None]:

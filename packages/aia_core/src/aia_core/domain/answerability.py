@@ -31,6 +31,7 @@ research question answerable. Pure: no I/O.
 
 from __future__ import annotations
 
+import dataclasses
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
@@ -38,7 +39,8 @@ from typing import Any, Final
 
 from .pipeline import fingerprint
 from .question_outlook import OutlookReason, QuestionOutlook, Verdict
-from .research_trace import ResearchTrace, TraceReason
+from .research_design import CheckStatus, Readiness, ReadinessCheck
+from .research_trace import RESEARCH_TRACE_CHECK, Comparison, ResearchTrace, TraceReason
 
 __all__ = [
     "ANSWERABILITY_RULES",
@@ -52,7 +54,9 @@ __all__ = [
     "GapReason",
     "answerability",
     "answerability_note",
+    "decided_trace",
     "read_answerability_note",
+    "with_answerability",
 ]
 
 #: The rules a run records with its answerability; a change to what counts as a gap is a new id.
@@ -76,7 +80,16 @@ class GapReason(StrEnum):
     #: Measured only by open questions or items the analysis may not cite: the research
     #: questions module would have no number to answer it with.
     NO_CITABLE_MEASURE = "no_citable_measure"
+    #: A ranking or A/B test whose carrying set the run will not answer as a whole, though other
+    #: measures of the question are answered: nothing ranks the objects or tests the concepts.
+    COMPARISON_SET_UNANSWERABLE = "comparison_set_unanswerable"
 
+
+#: A record AIA reads: these rules, or any later version of them (a run keeps the rules it started
+#: under, ADR 0025), never read as "started before the check".
+_RULES_PREFIX: Final = "aia-answerability-"
+#: Comparisons a set carries as a whole (``research_trace._judge``).
+_SET_COMPARISONS: Final = frozenset({Comparison.RANK_OBJECTS, Comparison.AB_TEST})
 
 #: Trace reasons that make a research question a gap even when its verdict is not UNANSWERABLE.
 _GAP_REASONS: Final = frozenset({TraceReason.UNLINKED_DESIGN, TraceReason.COMPARISON_UNKNOWN})
@@ -121,12 +134,16 @@ class AnswerabilityGap:
 class Answerability:
     capable: bool
     gaps: tuple[AnswerabilityGap, ...]
-    #: Names these exact gaps under these rules: an acknowledgement covers only the gaps it was
-    #: given for (the design revision and rules are recorded beside it in the ledger).
+    #: Names these exact gaps of this Design Revision under these rules: an acknowledgement
+    #: covers only the gaps, and the design, it was given for.
     digest: str
     #: Research questions measured, whose support only fieldwork decides (UNKNOWN): not gaps,
     #: never answerable either.
     pending: tuple[str, ...] = ()
+    #: Every research question with the verdict decided here (the gap's, UNKNOWN for a pending
+    #: one, else its usable measures' best): the one the report and the screen print, never the
+    #: trace's best over measures the analysis cannot cite.
+    verdicts: tuple[tuple[str, Verdict], ...] = ()
 
 
 class AcknowledgementRefused(ValueError):
@@ -153,7 +170,12 @@ class Acknowledgement:
         return self.digest == answer.digest
 
 
-def answerability(trace: ResearchTrace, outlook: Sequence[QuestionOutlook] = ()) -> Answerability:
+def answerability(
+    trace: ResearchTrace,
+    outlook: Sequence[QuestionOutlook] = (),
+    *,
+    design_revision_id: str | None = None,
+) -> Answerability:
     """The gaps between ``trace``'s research questions and what the run can answer.
 
     ``outlook`` is every item's verdict (:func:`~.question_outlook.question_outlook`), the one
@@ -164,11 +186,15 @@ def answerability(trace: ResearchTrace, outlook: Sequence[QuestionOutlook] = ())
     cited) beside a conditional one (UNANSWERABLE) read as at risk and passed, with no measure
     the research questions module could cite (review, 2026-10-16). Only measures the analysis
     may cite and the run will answer decide here: none of them is a gap, and their best verdict
-    decides whether support is left to fieldwork (pending)."""
+    decides whether support is left to fieldwork (pending).
+
+    ``design_revision_id`` is in the digest, so an acknowledgement read for one revision never
+    covers another with the same gaps (a retry keeps its original's revision)."""
     reasons_of = {o.question_id: set(o.reasons) for o in outlook}
     verdict_of = {o.question_id: o.verdict for o in outlook}
     gaps: list[AnswerabilityGap] = []
     pending: list[str] = []
+    decided: list[tuple[str, Verdict]] = []
     if not trace.questions:
         gaps.append(AnswerabilityGap(kind=GapKind.NO_RESEARCH_QUESTIONS))
     for q in trace.questions:
@@ -185,9 +211,18 @@ def answerability(trace: ResearchTrace, outlook: Sequence[QuestionOutlook] = ())
             verdict = _worse(q.verdict, best)
         if q.verdict is Verdict.UNANSWERABLE or set(q.reasons) & _GAP_REASONS:
             if not why:
-                why = [GapReason.MEASURES_UNANSWERABLE]
+                # Unanswerable with no reason of the trace's own: a ranking or test whose set is
+                # not answered as a whole, beside measures that are; else nothing it cites.
+                carried = q.comparison in _SET_COMPARISONS and bool(usable)
+                why = [
+                    GapReason.COMPARISON_SET_UNANSWERABLE
+                    if carried
+                    else GapReason.MEASURES_UNANSWERABLE
+                ]
         elif q.measures and not citable:
+            # No number the research questions module could cite: known before the run.
             why.append(GapReason.NO_CITABLE_MEASURE)
+            verdict = Verdict.UNANSWERABLE
         elif q.measures and outlook and not usable:
             # Every measure it could cite is one the run will not answer.
             why.append(GapReason.MEASURES_UNANSWERABLE)
@@ -195,7 +230,9 @@ def answerability(trace: ResearchTrace, outlook: Sequence[QuestionOutlook] = ())
         else:
             if verdict is Verdict.UNKNOWN:
                 pending.append(q.text)
+            decided.append((q.text, verdict))
             continue
+        decided.append((q.text, verdict))
         gaps.append(
             AnswerabilityGap(
                 kind=GapKind.NOT_ANSWERABLE,
@@ -205,8 +242,57 @@ def answerability(trace: ResearchTrace, outlook: Sequence[QuestionOutlook] = ())
                 measures=q.measures,
             )
         )
-    digest = fingerprint({"rules": ANSWERABILITY_RULES, "gaps": [g.to_json() for g in gaps]})
-    return Answerability(capable=not gaps, gaps=tuple(gaps), digest=digest, pending=tuple(pending))
+    digest = fingerprint(
+        {
+            "rules": ANSWERABILITY_RULES,
+            "design_revision_id": design_revision_id,
+            "gaps": [g.to_json() for g in gaps],
+        }
+    )
+    return Answerability(
+        capable=not gaps,
+        gaps=tuple(gaps),
+        digest=digest,
+        pending=tuple(pending),
+        verdicts=tuple(decided),
+    )
+
+
+def decided_trace(trace: ResearchTrace, answer: Answerability) -> ResearchTrace:
+    """``trace`` with each research question's verdict as decided here, so the screen shows one
+    verdict beside the gaps: the trace's own reads "at risk" for a question measured by an open
+    question and one the run will not answer, while the gap says the run will not answer it."""
+    decided = dict(answer.verdicts)
+    return dataclasses.replace(
+        trace,
+        questions=tuple(
+            dataclasses.replace(q, verdict=decided.get(q.text, q.verdict)) for q in trace.questions
+        ),
+    )
+
+
+def with_answerability(readiness: Readiness, answer: Answerability) -> Readiness:
+    """``readiness`` whose research-question check never passes beside a gap: every research
+    question can be measured and still not be answerable (only open questions, or questions the
+    run will not answer). A WARN, as the trace's own; the gate decides whether a start waits."""
+    gaps = [g.research_question for g in answer.gaps if g.research_question]
+    if not gaps:
+        return readiness
+    checks = tuple(
+        ReadinessCheck(
+            id=c.id,
+            status=CheckStatus.WARN,
+            message=(
+                f"{c.message} Běh ale nedoloží odpověď na tyto výzkumné otázky: "
+                + "; ".join(f"„{q}“" for q in gaps)
+                + "."
+            ),
+        )
+        if c.id == RESEARCH_TRACE_CHECK and c.status is CheckStatus.PASS
+        else c
+        for c in readiness.checks
+    )
+    return Readiness(rules=readiness.rules, ready=readiness.ready, checks=checks)
 
 
 def answerability_note(
@@ -221,7 +307,9 @@ def answerability_note(
     verdict and measures, the gaps, and the acknowledgement that let a run with gaps start.
 
     It is the frozen record the report reads, never today's design. A run started where the
-    gate was off records its gaps with ``enforced: false`` and no acknowledgement."""
+    gate was off records its gaps with ``enforced: false`` and no acknowledgement. Each research
+    question's ``verdict`` is the one decided here; ``trace_verdict`` keeps the trace's."""
+    decided = dict(answer.verdicts)
     note: dict[str, Any] = {
         "rules": ANSWERABILITY_RULES,
         "capable": answer.capable,
@@ -230,7 +318,8 @@ def answerability_note(
         "research_questions": [
             {
                 "text": q.text,
-                "verdict": q.verdict.value,
+                "verdict": decided.get(q.text, q.verdict).value,
+                "trace_verdict": q.verdict.value,
                 "reasons": [r.value for r in q.reasons],
                 "measures": list(q.measures),
                 "comparison": q.comparison.value if q.comparison else None,
@@ -250,12 +339,13 @@ def answerability_note(
 
 
 def read_answerability_note(meta: Mapping[str, Any]) -> dict[str, Any] | None:
-    """A run's recorded answerability, or ``None`` for a run started before it was recorded
-    (or one whose record AIA cannot read: never read as capable)."""
+    """A run's recorded answerability under any version of these rules (a run keeps the rules it
+    started under), or ``None`` when there is none or AIA cannot read it: never read as capable.
+    A caller tells the two apart by whether ``meta`` holds an ``answerability`` key at all."""
     note = meta.get("answerability")
     if (
         not isinstance(note, Mapping)
-        or note.get("rules") != ANSWERABILITY_RULES
+        or not str(note.get("rules") or "").startswith(_RULES_PREFIX)
         or not isinstance(note.get("capable"), bool)
         or not isinstance(note.get("research_questions"), list)
         or not isinstance(note.get("gaps"), list)

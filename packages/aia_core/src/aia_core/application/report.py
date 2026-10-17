@@ -118,6 +118,12 @@ def _deviation_text(deviation: Mapping[str, Any]) -> str:
     )
 
 
+def _folded(question: str) -> str:
+    """A research question's text with its whitespace folded: how a gap the run recorded at
+    start is matched to the question the analysis answered."""
+    return " ".join(question.split())
+
+
 def compose_internal_report(
     run: RunAnalysis,
     meta: ReportMeta,
@@ -127,6 +133,7 @@ def compose_internal_report(
     question_tables: QuestionTables | None = None,
     design: DesignSections | None = None,
     method: Section | None = None,
+    research_question_gaps: Mapping[str, str] | None = None,
 ) -> ReportDocument:
     """Make an unapproved AIA-branded internal draft from all eight admitted modules.
 
@@ -136,6 +143,9 @@ def compose_internal_report(
     ``design`` (``compose_design_sections``): its chapter follows the introduction and the
     questionnaire is an appendix before the evidence appendix. ``method``
     (``compose_method_section``): who answered and the run's methods, after the methodology.
+    ``research_question_gaps`` (``research_question_gaps``): the research questions the run
+    recorded at start as gaps, in words, by their text; the introduction's list and every answer
+    to one of them say so where the answer is read.
     Client deliverables have a separate admission and review contract; this
     function never upgrades internal claims to a client-facing surface.
     """
@@ -159,6 +169,10 @@ def compose_internal_report(
     if meta.method_status != first.result.method_status:
         raise ReportCompositionRefused("report method status differs from analysis")
 
+    gaps = {_folded(q): words for q, words in (research_question_gaps or {}).items()}
+    gap_mark = " (bez doloženého měření" + (
+        ", viz kapitola Respondenti a výpočet)" if method is not None else ")"
+    )
     claims: list[AdmittedClaim] = []
     introduction: list[Block] = [
         Paragraph(
@@ -185,7 +199,12 @@ def compose_internal_report(
         introduction.extend(
             [
                 Paragraph(text("Studie byla vedena následujícími výzkumnými otázkami:")),
-                BulletList(tuple(ListItem(text(q)) for q in reference.research_questions)),
+                BulletList(
+                    tuple(
+                        ListItem(text(q + (gap_mark if _folded(q) in gaps else "")))
+                        for q in reference.research_questions
+                    )
+                ),
             ]
         )
     if context_sections:
@@ -327,6 +346,18 @@ def compose_internal_report(
             blocks.append(Heading("Odpovědi na výzkumné otázky", 2))
         for answer in result.research_question_answers:
             blocks.append(Paragraph((Text(answer.question, "strong"),)))
+            if _folded(answer.question) in gaps:
+                blocks.append(
+                    Callout(
+                        CalloutKind.LIMITATION,
+                        text(
+                            f"Při spuštění běh zaznamenal: {gaps[_folded(answer.question)]}. "
+                            "Odpověď níže se proto neopírá o měření, které by návrh k této "
+                            "otázce určil a běh zodpověděl; čtěte ji jako nedoloženou."
+                        ),
+                        title="Bez doloženého měření",
+                    )
+                )
             blocks.extend(
                 Paragraph(
                     text(part.strip()),
