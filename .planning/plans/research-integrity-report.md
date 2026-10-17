@@ -287,7 +287,9 @@ The same six lenses over the branch after F10-F18; each fix carries a test that 
 - **F19. The report answered every gap research question as if measured.** The answers chapter
   (`application/report.py:328 @ 78baf5c`) printed each answer under its question, and the gap was
   said only in "Respondenti a výpočet", chapters later. Each answer to a recorded gap, and the
-  introduction's list, now say so where they are read (`research_question_gaps`). Test:
+  introduction's list, now say so where they are read (`research_question_gaps`): the reason once,
+  at the first answer, and a one-line limitation at every later one (the fictional render had
+  every module answer, and a full callout under each repeated one reason 16 times). Test:
   `test_an_answer_to_a_research_question_the_run_could_not_answer_says_so_where_it_is_read`.
 - **F20. The client report's method chapter pointed to answers and an analysis it does not
   contain** (`report_method.py:127-128 @ 78baf5c`). Test:

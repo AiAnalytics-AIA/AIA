@@ -170,6 +170,7 @@ def compose_internal_report(
         raise ReportCompositionRefused("report method status differs from analysis")
 
     gaps = {_folded(q): words for q, words in (research_question_gaps or {}).items()}
+    marked: set[str] = set()
     gap_mark = " (bez doloženého měření" + (
         ", viz kapitola Respondenti a výpočet)" if method is not None else ")"
     )
@@ -346,16 +347,32 @@ def compose_internal_report(
             blocks.append(Heading("Odpovědi na výzkumné otázky", 2))
         for answer in result.research_question_answers:
             blocks.append(Paragraph((Text(answer.question, "strong"),)))
-            if _folded(answer.question) in gaps:
+            folded = _folded(answer.question)
+            if folded in gaps and folded not in marked:
+                # Why, once: at the first answer to it. Several modules answer the same
+                # research questions, and the full callout under each repeated one reason up
+                # to 16 times in the fictional render (research-integrity-report review 3).
+                marked.add(folded)
                 blocks.append(
                     Callout(
                         CalloutKind.LIMITATION,
                         text(
-                            f"Při spuštění běh zaznamenal: {gaps[_folded(answer.question)]}. "
-                            "Odpověď níže se proto neopírá o měření, které by návrh k této "
-                            "otázce určil a běh zodpověděl; čtěte ji jako nedoloženou."
+                            f"Při spuštění běh zaznamenal: {gaps[folded]}. Odpověď níže se "
+                            "proto neopírá o měření, které by návrh k této otázce určil a běh "
+                            "zodpověděl; čtěte ji jako nedoloženou. Totéž platí pro každou "
+                            "další odpověď na tuto otázku ve zprávě."
                         ),
                         title="Bez doloženého měření",
+                    )
+                )
+            elif folded in gaps:
+                blocks.append(
+                    Callout(
+                        CalloutKind.LIMITATION,
+                        text(
+                            "Ani tato odpověď se neopírá o doložené měření této otázky "
+                            "(důvod je u její první odpovědi)."
+                        ),
                     )
                 )
             blocks.extend(

@@ -1379,21 +1379,27 @@ def test_an_answer_to_a_research_question_the_run_could_not_answer_says_so_where
     )
     intro = _all_text(doc.sections[0].blocks)
     assert f"{question} (bez doloženého měření, viz kapitola Respondenti a výpočet)" in intro
-    answered = [
-        s
-        for s in doc.sections
-        if any(c.startswith("Při spuštění") for c in _callout_texts(s.blocks))
-    ]
-    assert answered, "no answer to the gap question was qualified"
-    for section in answered:
+    # Every answer to it is qualified right under the question, before it is read: why, once,
+    # at the first answer; a short line at each later one (review 3: the full callout under
+    # every answering module repeated one reason 16 times in the fictional render).
+    qualified: list[str] = []
+    answers = 0
+    for section in doc.sections:
         blocks = list(section.blocks)
         for i, block in enumerate(blocks):
-            if isinstance(block, Callout) and block.title == "Bez doloženého měření":
-                # Right under the question it qualifies, before the answer is read.
-                heading = blocks[i - 1]
-                assert isinstance(heading, Paragraph)
-                assert "".join(t.text for t in heading.content if isinstance(t, Text)) == question
-                assert f"Při spuštění běh zaznamenal: {words}." in _callout_texts([block])[0]
+            if (
+                isinstance(block, Paragraph)
+                and "".join(t.text for t in block.content if isinstance(t, Text)) == question
+                and i + 1 < len(blocks)
+            ):
+                answers += 1
+                after = blocks[i + 1]
+                assert isinstance(after, Callout), section.id
+                qualified.append(_callout_texts([after])[0])
+    assert answers > 1 and len(qualified) == answers
+    assert qualified[0].startswith(f"Při spuštění běh zaznamenal: {words}.")
+    assert all(q.startswith("Ani tato odpověď") for q in qualified[1:])
+    assert sum(f"{words}." in q for q in qualified) == 1
     assert not lint_docx(DocxRenderer().render(doc))
 
     # A question the run did not record as a gap is not qualified.
