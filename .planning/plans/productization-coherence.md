@@ -77,3 +77,22 @@ then Zadání / Kontrola / Výsledky read; reopened afterwards.
 
 **Not changed (owner decisions, below).** What delivery means (which report it names, whether it
 freezes anything, who may reopen) and whether report approval and new drafts are allowed after it.
+
+## PC5 — the stage track follows the run
+
+**Problem.** On the workbench a run finished ("Výsledky jsou hotové", 7 of 7 steps) while the stage
+track above it still said "Průběh — Běh 1: běží" and "Výsledky — Zatím nic", until a reload.
+
+**Proof.** The track read the study's runs once per study and stage
+(`StageTrack.tsx:53-64 @ 20b24bb`); Progress reads its own run by `shouldPoll` / `pollMs`
+(`research-execution.ts`). Two readers of one run, one of them never refreshed.
+
+**Change.** The track reads the runs again while one of them can still change on its own, by the same
+rule and at the same pace as Progress; a run waiting for a person is read on the next stage change only.
+
+**Tests.** `StageTrack.test.tsx`: follows a running run to its results without a reload (fails on the
+old track), stops reading once nothing can change, keeps reading a provider wait and not a budget wait.
+
+**Second half, open.** The track also calls Spuštění "done" and Výsledky "Revize N" when the design
+has changed since that run; saying "the design changed after this run" needs the working content's
+revision beside the run's (see the findings ledger, F-design-lane), not a browser guess.
