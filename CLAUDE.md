@@ -101,7 +101,9 @@ apps/
                             only when no paid call is uncertain (restartable); a table refused by name, 422; #446),
                             session (AIA's own session + the gate in front of /app: any active
                             member, ADR 0018), research (a study's Design Revisions, readiness, runs, their steps and
-                            artifacts (ADR 0016), the budget lift for a step stopped at the study's cap,
+                            artifacts (ADR 0016; GET …/research/runs lists each run with its steps, without
+                            their attempt history: no start time, error or cost), the budget lift for a step
+                            stopped at the study's cap,
                             POST …/runs/{id}/analysis/retry (a finished run's failed analysis modules
                             asked again over its own collected data) and GET …/analysis/retryable
                             (read from the outcomes as stored), each step's analysis_outcome,
@@ -220,7 +222,8 @@ apps/
     src/lib/app-routes.ts   Every /app URL, built in one place (stage slugs: `persona` is `dimensions`)
     src/lib/api.ts          The API client; a stored report's download (requestStored) reads
                             X-AIA-Artifact-Id / X-AIA-Review-State, so the report approved is the
-                            one downloaded; deepResearch.designProposal, deepResearch.runs(studyId, limit?)
+                            one downloaded; deepResearch.designProposal, deepResearch.runs(studyId, limit?),
+                            deepResearch.start(studyId, revisionId, confirmCostUsd?)
     src/components/rehome/research/  The stage frame (StudyFrame: client, study, rights):
                             StageTrack (every stage with its state, Průběh a stage of its own),
                             Inspector (InspectorProvider / InspectorSlot: a stage's readiness beside
@@ -274,7 +277,25 @@ apps/
                             never ordered), compareObjects (a set's objects on their scale, the top
                             and bottom groups, suppressed ones named), citedMeasure (an analysis
                             claim's evidence_ref resolved to its measure), textBlocks (a model's
-                            long text as paragraphs and lists, every word kept)
+                            long text as paragraphs and lists, every word kept), untitled (a measure
+                            without stored wording titled in words, never by its id)
+    src/lib/run-state.ts    runState(run): one research run's state (RUNNING, WAITING, NEEDS_REPAIR,
+                            EVIDENCE_UNAVAILABLE, RESULTS_READY, REPORT_READY, CANCELLED; UNKNOWN for an
+                            ended run read without its steps) with its reason in words, and
+                            runDestination; the run list, Progress, Results, project memory and the stage
+                            track (lane.ts runLane) read it
+    src/lib/reason-words.ts  A stored code in words (codeWords, codedText, known; the code of one with
+                            no words kept, inline or under details), a Deep Research step's name and
+                            reason (deepStepLabel, stepProblem), coverageWords;
+                            components/rehome/research/CodedWords.tsx
+    src/lib/budget-line.ts  What remains of a study's budget beside what an action can cost (budgetLine,
+                            withBudget: read as a confirmation asks; unknown never zero; open holds not
+                            counted, said so), on every start, retry, analysis retry, Deep Research start
+                            and budget lift
+    src/lib/report-status.ts  One rule for a run's internal report (reportStatus: NONE, COMPOSING,
+                            NOT_MADE, FAILED, REFUSED, DRAFT, APPROVED, UNKNOWN; reviewStatus;
+                            approvalRefusal), read by CompleteReport, the internal report panel, project
+                            memory's runLabels and Interpretation Research
     src/lib/research-agent-jobs.ts  Native Study jobs: enqueue/follow; proposal review and reload
                             live in useResearchAgents.tsx. No classic provider probe.
     src/lib/research-execution.ts  How a run's state and results read: suppression hides numbers,
@@ -284,7 +305,8 @@ apps/
                             every screen's label uses; needsRepair: an analysis step that
                             succeeded with its module stored BLOCKED ("Potřebuje opravu", never
                             "Hotovo"), which reportHolds names as holding the report; traceMeasures:
-                            a research question's measures in words, a tracked set once; respondentReceipt: the
+                            a research question's measures in words, a tracked set once (an unlisted
+                            measure's id kept as code, never its text); respondentReceipt: the
                             pinned persona source beside the fieldwork data's origin, a mismatch named, never resolved
     src/lib/design-evidence.ts  What the newest finished Design Research run found per research
                             question (latestDesignRun, questionEvidence: findings, a gap or not studied, every rejection
@@ -1055,7 +1077,8 @@ packages/aia_core/src/aia_core/
                             expiry, fictional-client and USD 20 guards; settings_in_force_for_study,
                             what an enqueue pins (deep_research_settings_repository.py:208 @ db6db022)
     workflow_repository.py  Durable jobs, lease-fenced writes, cost reservations,
-                            the population binding each run records; list_runs(key_prefix=), matched literally; WorkQueue --
+                            the population binding each run records; list_runs(key_prefix=), matched literally;
+                            list_runs(steps=True): a page's steps in one more query, no attempts; WorkQueue --
                             the only cross-study surface (claim, recover, resume, refuse);
                             resume_budget_wait: a person lifts an AWAITING_BUDGET step, in the
                             approval ledger (the worker's scope cannot); record_spend_confirmation and
