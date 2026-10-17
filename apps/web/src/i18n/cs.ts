@@ -2500,6 +2500,7 @@ export const cs = {
         why: "Proč běh spustit i tak (uloží se s během a vytiskne ve zprávě)",
         whyHint: "Alespoň 10 znaků, např. „ověřujeme jen postup na fiktivních respondentech“.",
         dock: "Potvrďte, že běh spouštíte i přes výzkumné otázky bez měření.",
+        existing: "Tato revize návrhu už běh má, a proto se nic nového nespustilo a vaše potvrzení se nikam neuložilo. Chcete-li nový běh, upravte návrh; jinak otevřete průběh toho existujícího.",
         retry: "Opakovaný běh by stejně nedokázal odpovědět na všechny výzkumné otázky a původní běh to nemá potvrzeno.",
         retryAction: "Zopakovat s tímto potvrzením",
       },

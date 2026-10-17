@@ -92,7 +92,8 @@ class Settings(BaseSettings):
     # Whether a start refuses a run that cannot answer every research question its design
     # states unless a person acknowledges the gaps (AIA_RESEARCH_ANSWERABILITY_GATE, plan
     # research-integrity-report chunk 1). Readiness and the run's record say so either way.
-    # Off by default (tests, the workbench); on for develop in its Compose file.
+    # Off by default everywhere, develop included (deploy/develop/docker-compose.yml): the owner
+    # turns it on (plan research-integrity-report D1).
     research_answerability_gate: bool = False
     # Whether a new ``ai_runtime`` run draws its AI respondents from the population it records
     # (AIA_AI_POPULATION_PERSONAS_ENABLED, plan panel-grounded-respondents 5c). Pinned on the run at

@@ -544,21 +544,53 @@ describe("Run: what a run can cost (5b.2)", () => {
       acknowledgement_required: true,
       gaps: [{ kind: "not_answerable", research_question: "Jak klienti důvěřují účtu?", verdict: "UNKNOWN", reasons: ["unlinked_design"], measures: [] }],
     };
-    api({ "GET /api/v1/studies/STU-1/research/readiness": () => ({ ...READY, answerability }) });
+    const reason = "Ověřujeme jen postup na fiktivních datech.";
+    api({
+      "GET /api/v1/studies/STU-1/research/readiness": () => ({ ...READY, answerability }),
+      // The new run records the acknowledgement it was started with.
+      "POST /api/v1/studies/STU-1/research/runs": () =>
+        run({ phase: "QUEUED", answerability: { ...answerability, acknowledgement: { reason, by: "USR-1" } } }),
+    });
     render(<ResearchScreen step="run" frame={TEST_FRAME} />);
     const gate = await screen.findByRole("region", { name: t("research.exec.answerability.title") });
     expect(within(gate).getByText("Jak klienti důvěřují účtu?")).toBeTruthy();
     const start = screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement;
     expect(start.disabled).toBe(true); // runnable, not answerable: not started on a click
     fireEvent.click(within(gate).getByRole("checkbox"));
-    fireEvent.change(within(gate).getByRole("textbox"), { target: { value: "Ověřujeme jen postup na fiktivních datech." } });
+    fireEvent.change(within(gate).getByRole("textbox"), { target: { value: reason } });
     await waitFor(() => expect(start.disabled).toBe(false));
     fireEvent.click(start);
     await waitFor(() => expect(called("POST", RUNS)).toHaveLength(1));
     expect(called("POST", RUNS)[0].body).toEqual({
       design_revision_id: "REV-a1",
-      acknowledge_research_questions: { digest, reason: "Ověřujeme jen postup na fiktivních datech." },
+      acknowledge_research_questions: { digest, reason },
     });
+    await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("progress")));
+  });
+
+  it("says nothing new started when the revision already had a run, and keeps the person here", async () => {
+    // Review, 2026-10-16: the start returns the revision's existing run, which records nothing of
+    // the acknowledgement just given; the page used to move on as if it had.
+    const digest = "d".repeat(64);
+    const answerability = {
+      rules: "aia-answerability-1", capable: false, digest, acknowledgement_required: true,
+      gaps: [{ kind: "not_answerable", research_question: "Jak klienti důvěřují účtu?", verdict: "UNKNOWN", reasons: ["unlinked_design"], measures: [] }],
+    };
+    api({
+      "GET /api/v1/studies/STU-1/research/readiness": () => ({ ...READY, answerability }),
+      "POST /api/v1/studies/STU-1/research/runs": () =>
+        run({ run_id: "RUN-old", phase: "CANCELLED", answerability: { ...answerability, acknowledgement: null, enforced: false } }),
+    });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const gate = await screen.findByRole("region", { name: t("research.exec.answerability.title") });
+    fireEvent.click(within(gate).getByRole("checkbox"));
+    fireEvent.change(within(gate).getByRole("textbox"), { target: { value: "Ověřujeme jen postup na fiktivních datech." } });
+    const start = screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement;
+    await waitFor(() => expect(start.disabled).toBe(false));
+    fireEvent.click(start);
+    const said = await screen.findByText((_, el) => el?.getAttribute("role") === "alert" && !!el.textContent?.includes(t("research.exec.answerability.existing")));
+    expect(within(said).getByRole("link").getAttribute("href")).toBe(`${stagePath("progress")}?run=RUN-old`);
+    expect(push).not.toHaveBeenCalled();
   });
 
   it("shows the gaps without asking where the deployment does not require an acknowledgement", async () => {

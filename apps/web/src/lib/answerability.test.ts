@@ -3,6 +3,7 @@ import { ApiError, type Answerability } from "./api";
 import { t } from "@/i18n/t";
 import {
   acknowledgementOf,
+  acknowledges,
   GAP_REASONS,
   gapWords,
   hasGaps,
@@ -72,6 +73,16 @@ describe("answerability (research-integrity-report 1)", () => {
     // Never hidden behind the generic words, never printed as if it were a sentence (reason-words).
     const unknown = gapWords({ kind: "not_answerable", research_question: "X?", verdict: "UNKNOWN", reasons: ["future_reason"], measures: [] });
     expect(unknown.why).toBe(`${t("research.exec.answerability.reasonUnknown")} (${t("research.exec.code.technical")}: future_reason)`);
+  });
+
+  it("tells a run that holds the acknowledgement from one a start only found", () => {
+    const given = { digest: FIO_LIKE.digest, reason: "Ověřujeme jen postup." };
+    const held = { ...FIO_LIKE, acknowledgement: { reason: given.reason, by: "u1" } };
+    expect(acknowledges({ answerability: held }, given)).toBe(true);
+    // The revision's earlier run, started where nothing was asked: nothing recorded now.
+    expect(acknowledges({ answerability: { ...FIO_LIKE, acknowledgement: null, enforced: false } }, given)).toBe(false);
+    expect(acknowledges({ answerability: { ...held, digest: "c".repeat(64) } }, given)).toBe(false);
+    expect(acknowledges({ answerability: null }, given)).toBe(false);
   });
 
   it("reads the server's refusal of a start or retry as a requirement", () => {

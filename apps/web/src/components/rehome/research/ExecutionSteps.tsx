@@ -105,7 +105,7 @@ import { citedMeasure, untitled, compareObjects, type CompiledSpecification, mea
 import { FormattedText } from "./FormattedText";
 import { CompleteReport } from "./CompleteReport";
 import { AnswerabilityGate } from "./AnswerabilityGate";
-import { type AcknowledgementState, acknowledgementOf, hasGaps, NO_ACKNOWLEDGEMENT, needsAcknowledgement, unanswerableAsked } from "@/lib/answerability";
+import { type AcknowledgementState, acknowledgementOf, acknowledges, hasGaps, NO_ACKNOWLEDGEMENT, needsAcknowledgement, unanswerableAsked } from "@/lib/answerability";
 
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
@@ -600,6 +600,8 @@ export function RunStep() {
   // A run that cannot answer every research question starts only acknowledged, where the
   // deployment requires it (integrity 1); the confirmation names the gaps it was given for.
   const [ack, setAck] = useState<AcknowledgementState>(NO_ACKNOWLEDGEMENT);
+  // A run the start found instead of creating, when the acknowledgement given was not recorded.
+  const [found, setFound] = useState<string | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -681,9 +683,11 @@ export function RunStep() {
     if (needsAcknowledgement(readiness.answerability) && !acknowledged) return;
     setStarting(true);
     setStartError(null);
+    setFound(null);
     try {
+      let started: ResearchRun;
       try {
-        await research.start(frame.studyId, readiness.design_revision_id, yes, childId ?? undefined, readiness.persona_source, acknowledged);
+        started = await research.start(frame.studyId, readiness.design_revision_id, yes, childId ?? undefined, readiness.persona_source, acknowledged);
       } catch (e) {
         // The design or the requirement changed since the page read it: read again, so the
         // person sees the gaps the server refused and confirms those.
@@ -695,7 +699,13 @@ export function RunStep() {
         // The limit or the ceiling changed since the page read them: ask with the server's figure.
         const asked = confirmationAsked(e);
         if (!asked || yes !== undefined || !(await ask(asked.ceiling, asked.limit))) throw e;
-        await research.start(frame.studyId, readiness.design_revision_id, asked.ceiling, childId ?? undefined, readiness.persona_source, acknowledged);
+        started = await research.start(frame.studyId, readiness.design_revision_id, asked.ceiling, childId ?? undefined, readiness.persona_source, acknowledged);
+      }
+      // A start over a revision that already has a run returns that run: nothing new started,
+      // and the acknowledgement just given was recorded nowhere. Say so, and stay.
+      if (acknowledged && !acknowledges(started, acknowledged)) {
+        setFound(started.run_id);
+        return;
       }
       router.push(stepHref("progress"));
     } catch (e) {
@@ -736,6 +746,12 @@ export function RunStep() {
             </ul>
             <p className="mt-3 text-xs text-ink-muted">{tv("research.exec.rules", { rules: prepared.readiness.rules })}</p>
           </Card>
+          {found ? (
+            <p role="alert" className="text-sm">
+              {t("research.exec.answerability.existing")}{" "}
+              <a className="underline" href={`${stepHref("progress")}?run=${encodeURIComponent(found)}`}>{t("research.exec.toProgress")}</a>
+            </p>
+          ) : null}
           {hasGaps(prepared.readiness.answerability) ? (
             <AnswerabilityGate
               answer={prepared.readiness.answerability}
