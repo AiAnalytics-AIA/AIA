@@ -217,6 +217,24 @@ def test_cors_origins_accept_comma_separated_string() -> None:
 # --------------------------------------------------------------------------- #
 
 
+def test_a_browser_on_another_origin_reads_which_draft_a_report_download_is(
+    settings: Settings,
+) -> None:
+    """The report card hands over a file only when X-AIA-Artifact-Id names the draft it shows
+    (research-integrity-report review 2): a header CORS does not expose reads as null across
+    origins, and every internal report download was refused there."""
+    from aia_api.main import create_app
+
+    origin = "http://localhost:3000"
+    app = create_app(settings.model_copy(update={"cors_origins": [origin]}))
+    with TestClient(app) as client:
+        response = client.get("/api/v1/health", headers={"Origin": origin})
+    exposed = {
+        h.strip().lower() for h in response.headers["access-control-expose-headers"].split(",")
+    }
+    assert {"x-request-id", "x-aia-artifact-id", "x-aia-review-state"} <= exposed
+
+
 def test_development_identity_provider_cannot_be_built_for_production() -> None:
     """The header-trusting provider refuses construction outside local/test.
 
