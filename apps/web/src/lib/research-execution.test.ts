@@ -18,7 +18,7 @@ describe("research execution", () => {
     expect(shouldPoll(run({ phase: "WAITING" }))).toBe(false);
     // A provider's quota or capacity clears on its own: the run then finishes, and the page must see it.
     expect(shouldPoll(run({ phase: "WAITING", status: "WAITING_PROVIDER", needs_attention: false }))).toBe(true);
-    // A park for a runtime that is not deployed never resumes by itself: only a person's retry reopens it.
+    // A park for a runtime that is not deployed never resumes by itself: it waits until a person acts.
     const parked = { node_key: "run", status: "WAITING_PROVIDER", waiting_reason: "ai_runtime_unavailable" } as ResearchRun["steps"][number];
     expect(shouldPoll(run({ phase: "WAITING", status: "WAITING_PROVIDER", needs_attention: false, steps: [parked] }))).toBe(false);
     // ...but a run whose other steps still move on their own is read (review 3: a map step running

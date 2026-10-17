@@ -221,8 +221,8 @@ converted by `LibreOfficePdf` (LibreOffice 24.2.7.2), the worker's own converter
   Progress and Výsledky pages stop reading a run in phase WAITING, though a run waiting on a
   provider's quota or capacity resumes without anyone acting (`domain/workflow.py:152 @
   357d779`). A run parked for the AI runtime (`WAITING_PROVIDER`, `ai_runtime_unavailable`) does
-  not: `resume_due` never resumes it (`domain/workflow.py:797 @ 357d779`) and only a person's retry
-  reopens it, so the page does not read it (review 2, F33). Anchor:
+  not: `resume_due` never resumes it (`domain/workflow.py:797 @ 357d779`), it waits until a person
+  acts, so the page does not read a run held only by one (review 2, F33; review 3, F43). Anchor:
   `apps/web/src/lib/research-execution.ts:70-72 @ 357d779` (`shouldPoll`: QUEUED or RUNNING
   only), its test asserting "a parked run does not move by itself". Reproduction:
   `research-execution.test.ts` "keeps reading only while something can change on its own" (fails
@@ -315,15 +315,17 @@ The same six lenses over the branch after F10-F18; each fix carries a test that 
   an unlinked design, unmatched dimensions named as applied, a misplaced clitic ("neuplatnily
   se", `report_method.py:252-256 @ 78baf5c`), and an unreadable record called older than the
   check. Tests: the `test_report_method.py` cases added with this fix.
-- **F26. A report-with-review draft of an older contract was served as ready for ever**
-  (`report_variants.py:205 @ 78baf5c`), so the page never prepared it again. Only drafts of the
-  current contract are the variant (`prepared_drafts`). Test:
-  `test_a_draft_of_an_older_composition_contract_is_prepared_again_never_served`.
-- **F27 (far-fetched, kept because it is six lines). Prepare could ask for one draft's PDF and
+- **F26. A report-with-review draft of an older contract was served as current for ever**
+  (`report_variants.py:206-217 @ 78baf5c`), so the page never prepared it again. The first fix hid
+  every such draft; the third review showed that lost a prepared, possibly approved, report
+  whenever composing it again is refused (F40). An earlier contract's draft now stays the report,
+  said to be earlier (`contract_current: false`), and the card offers to prepare it anew. Test:
+  `test_a_draft_of_an_earlier_contract_stays_the_report_and_says_it_is_earlier`.
+- **F27 (defensive, kept because it is six lines). Prepare could ask for one draft's PDF and
   serve another** when the composed sources matched an older draft while a newer one existed
-  (`routers/research.py:1988 @ 78baf5c`). Its verifier showed no code renames a study or a client,
-  so only a deploy that brings back an earlier contract reaches it, and then every read still names
-  one draft; the only cost was a needless rendering. The draft just composed is now stored again as
+  (`routers/research.py:1988 @ 78baf5c`). Its verifier showed no code renames a study or a client;
+  since F26 compares drafts of one contract, only composed sources of one contract that change and
+  change back would reach it, and no known path does. The draft just composed is stored again as
   the newest, so prepare's PDF is always the served draft's. Test: the interpretation journey in
   `test_analysis_executor.py`.
 - **F38. Across origins, every internal report download was refused**: CORS exposed only
@@ -345,11 +347,12 @@ The same six lenses over the branch after F10-F18; each fix carries a test that 
   the run's `created`. Tests: "says nothing new started when the revision already had a run",
   "follows a run the start created, whatever it recorded".
 - **F31. A start refused for its research questions showed the server's English message**
-  (`ExecutionSteps.tsx:697 @ 78baf5c`). Test: "says a start refused for its research questions in
+  (`ExecutionSteps.tsx:695-698 @ 78baf5c`). Test: "says a start refused for its research questions in
   Czech, beside the gaps read again".
 - **F32. A refused retry's gate stayed for whatever run was shown next**
-  (`ExecutionSteps.tsx:1112 @ 78baf5c`). Test: "keeps a refused retry's gaps only while their run
-  can still be retried".
+  (`ExecutionSteps.tsx:1112 @ 78baf5c`). Tests: "keeps a refused retry's gaps only while their run
+  can still be retried" and, for the binding to its run, `answerability.test.ts` "keeps a refused
+  retry's gaps for the run they were refused for alone" (`refusalFor`; review 3, F47).
 - **F33. A run parked for the AI runtime was read every 10 s for ever**
   (`research-execution.ts:84 @ 78baf5c`). Test: "keeps reading only while something can change on
   its own".
@@ -367,6 +370,55 @@ The same six lenses over the branch after F10-F18; each fix carries a test that 
   (`contextual_report.py:104, 297, 370, 401 @ 78baf5c`). Tests: `test_contextual_report.py`.
 - **F37. ADR 0025 decision 4 said the report names who acknowledged**; it prints why, and the
   ledger holds who. Corrected in the ADR.
+
+### Found by the third review (2026-10-17, on 82c4b25), all fixed on this branch
+
+The same five lenses over the second review's fixes, two skeptics per finding. Their verifiers
+ran while the fixes below landed, so most refutations read "already fixed at HEAD", which confirms
+them; each fix carries a test that fails without it.
+
+- **F40. Hiding an earlier contract's draft lost the report** whenever composing it again is
+  refused (`contextual_report.py:573 @ 244259a`): status, both downloads and preparing all refused.
+  See F26 for the fix. Test: `test_a_draft_of_an_earlier_contract_stays_the_report_and_says_it_is_earlier`;
+  web: "keeps a report with a review prepared under an earlier composition, says so, and prepares
+  it anew".
+- **F41. Every gap was said to rest on no measure the run answered** (`report.py:360`,
+  `report_method.py:303 @ 3533f67`), false for a comparison gap whose measure was answered; the
+  client report said "z nich odpověď nevyplývá" for gaps only unverified, called a pending
+  question's measure one the run "mohl odpovědět", spoke of one gap in the plural, and printed
+  "předem nešlo ověřit" with no object. Each now says what the record holds ("Bez doložené
+  odpovědi"). Tests: `test_a_comparison_gap_is_never_said_to_rest_on_no_measure`,
+  `test_one_gap_is_said_in_the_singular_and_an_unverified_one_never_as_a_no`,
+  `test_the_client_report_never_calls_a_pending_question_one_the_run_could_answer`.
+- **F42. An unknown comparison hid that a question has no citable measure**
+  (`answerability.py:212 @ 815f592`): an open-only question read UNKNOWN. Test:
+  `test_an_unknown_comparison_never_hides_that_nothing_measures_it_citably`.
+- **F43. A run with a step parked for the AI runtime was no longer read even while another step
+  ran** (`research-execution.ts:87 @ 0a921c4`). Test: research-execution "keeps reading only while
+  something can change on its own".
+- **F44. The refusal and the confirmation said more than the gate** (`cs.ts:2502, 2509 @
+  0a921c4`): "návrh nedokáže odpovědět", the gaps "níže" and "as the server reads them now" after a
+  re-read that may have failed. The refused gaps are shown as the server sent them. Test: "shows
+  the gaps the server refused even when reading readiness again fails".
+- **F45. A found run that already held this acknowledgement was reported as saving it nowhere**
+  (`ExecutionSteps.tsx:707 @ 0a921c4`). Test: "follows a found run that already holds this very
+  acknowledgement".
+- **F46. The PDF's reason was visible nowhere** once the panel's line went
+  (`CompleteReport.tsx:334 @ 244259a`). Test: "says why there is no PDF as text on the card, once on
+  the page"; F35's PDF promise is now asserted in the variant and Interpretation Research tests.
+- **F47. Tests that could not fail:** the readiness route's wiring and the revision in the digest
+  (`test_readiness_carries_the_decided_verdict_and_a_digest_of_its_own_revision`), the stored
+  reports' gaps (the executor journey), the decided verdict (`test_every_research_question_records_
+  the_verdict_decided_for_it`, now with verdicts that differ), F32's binding (`refusalFor`), F36's
+  title, note and withheld count (`test_contextual_report.py`), and F10's test, which used a
+  conditional question its entry rules out (now a fidelity-refused item).
+- **F48. The source table was always called unapproved**, though a priced live review runs only
+  once its pinned settings sign it off (`contextual_report.py:385 @ 57b3190`). The note reads the
+  review's pin. Test: `test_the_source_table_is_called_approved_only_where_the_review_pinned_its_
+  approval`; the journey checks the composed report reads its review's pin.
+- **F49. Withheld items were "další" and "nedostupné", and robots.txt claimed several websites**
+  (`contextual_report.py:82, 452 @ 57b3190`). Test:
+  `test_three_withheld_sources_of_one_reason_are_three_in_the_plural`.
 
 ## Decisions for the owner
 
