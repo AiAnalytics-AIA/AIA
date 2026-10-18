@@ -35,6 +35,7 @@ from aia_core.domain.report.model import (
     TextCell,
     text,
 )
+from aia_core.domain.report.numbers import counted
 from aia_core.domain.research_design import settle_selection
 
 _WHO: dict[OriginKind, str] = {
@@ -116,8 +117,7 @@ _CHOICE: Final = "„Pokračovat s omezeními“"
 
 def _items(n: int) -> str:
     """'1 položka', '3 položky', '5 položek'."""
-    word = "položka" if n == 1 else "položky" if 2 <= n <= 4 else "položek"
-    return f"{n} {word}"
+    return counted(n, "položka", "položky", "položek")
 
 
 def _why(reasons: Any, *, plural: bool) -> str:
