@@ -9,6 +9,9 @@ chunks:
   - "[x] 5. Decide the application layer's table access (repositories own it) and encode it as a ratchet contract naming today's three modules"
   - "[ ] 6. develop_seed.py and workspace_migration.py reach their rows through repositories; both leave the ratchet"
   - "[ ] 7. ScopeResolver's queries move behind an infrastructure repository (scope_repository.py); scope.py leaves the ratchet, still the only issuer of a context"
+  - "[x] 8. Harden against accidental bypass (audit at e57c3b82): an unsearchable grep pattern fails, no inline suppression of the bans, the tests exemption names its four trees, stale per-file-ignores fail, make verify runs ruff check, any static skip is caught"
+  - "[ ] 9. A scope context and an admitted claim carry a digest of their fields, so a modified copy (dataclasses.replace) is refused; its own PR, reviewed by Kyi"
+  - "[ ] 10. Contracts from the audit: no tables row imported from any module, synthetic_fieldwork and the workbench fenced, API non-router modules off tables, the domain's import allowlist"
 ---
 # Architecture enforcement — the layering guard says what it checks
 
@@ -189,7 +192,57 @@ Probed on one tree, each restored after:
 fail the contract; a fourth ignore line (`application.research -> tables`) that no
 import matches fails the run ("No matches for ignored import").
 
+The facade gap (Codex on AiAnalytics-AIA/AIA#472): `infrastructure/__init__.py:43-65 @
+78cf889b` re-exported 20 row classes, `Base` and `utcnow` from `tables`, so
+`from ..infrastructure import StudyRow` in `application/research.py` was an edge to the
+package, and the contract stayed KEPT with it present (reproduced). Nothing imported
+them through the package (an AST sweep of every source, test, migration and tool
+tree), so the re-exports are removed rather than guarded by a second contract;
+`test_infrastructure_facade.py` fails if the package exports a `tables` object again.
+
+The facade's re-exports were not the whole gap (Codex, second pass on #474): Python
+attaches every imported submodule to its package, so `from aia_core import
+infrastructure` then `infrastructure.tables.StudyRow` reaches a row with no import edge
+to `tables`, and no test can remove that attribute. A grep rule now refuses the attribute
+path in `application/` (`infrastructure.tables`, or `tables.<Name>Row` after any alias),
+with the ratchet's three modules exempt by path. Probed: both forms fail; `getattr(pkg,
+"tables")` still passes, which chunk 10's AST check is the place for.
+
 `layer_check`: 142 rules + 6 contracts.
+
+## Chunk 8 — accidental bypass, from the audit at `e57c3b82` (done)
+
+An adversarial audit of `develop @ e57c3b82` (103 probes in a throwaway worktree)
+found where the enforcement could be switched off or stepped around without anything
+failing. This chunk takes the accidents; chunks 9 and 10 take the rest. Each change
+was proved with a temporary violation, then reverted.
+
+- **An unsearchable pattern passed.** `forbid` ran grep with `2>/dev/null || true`
+  (`tools/layer_check.sh:57 @ e57c3b82`), so grep's exit 2 read as "no match": with
+  `_across_studies(` as the pattern and a violation present, 142 rules passed. Exit 2
+  now fails the rule (`test_a_pattern_grep_cannot_run_fails_the_rule`).
+- **Inline suppression lifted the egress ban.** `# noqa: TID251`, a bare `# noqa` and
+  a code-less `# ruff: noqa` each passed. Three grep rules per source tree refuse them;
+  code-scoped `# ruff: noqa: RUF001` (`persona_profile.py:29`) and `# noqa: E501` pass.
+- **The tests exemption reached source.** `"**/tests/**"` (`pyproject.toml:45 @
+  e57c3b82`) exempted a source package named `tests`; so did `packages/*/tests/**`,
+  because ruff's `*` crosses a `/` (measured). The four test trees are now named. The
+  five stub-server tests still pass.
+- **A stale per-file-ignore passed silently.** `test_ruff_config.py` fails an entry
+  whose path does not exist, and one starting with `**`.
+- **`make verify` never ran `ruff check`** (`Makefile:193-200 @ e57c3b82`), so TID251
+  never ran locally through the pre-commit sequence. It does now.
+- **Static skips by any name.** `pytestmark = pytest.mark.skip`, an alias, `from pytest
+  import mark` and `pytest.param(..., marks=...xfail)` passed the decorator-only
+  pattern. The pattern is any `mark.skip` / `mark.xfail`, `skipif` included (the old
+  pattern refused it too, as a prefix; a first version of this change let it through and
+  Codex caught the loosening on #476). A runtime `pytest.skip(...)` is the allowed form.
+- **`noqa` in any case.** Ruff honours a line's `# NOQA` (measured), so the two `noqa`
+  rules match it in any case; `# ruff: noqa` is honoured only in lower case.
+- **The script header** said "no AST, no dependency-graph tool"; it now says it is the
+  text half of `make layer_check`.
+
+`layer_check`: 142 -> 154 rules + 6 contracts.
 
 ## Findings
 
@@ -312,4 +365,23 @@ For the next docs-only PR:
     routers import infrastructure (the ratchet's 27 edges).
   - Application's "Owns" cell, after "Orchestrates domain + infrastructure.":
     "Reaches rows only through a repository (chunk 5's contract)."
+- **ARCHITECTURE.md:90** (chunk 8): "a grep-level checker with no toolchain of its own"
+  becomes "`tools/layer_check.sh` holds the text rules (names and patterns, nothing to
+  install); the import contracts in the root `pyproject.toml` hold which module may
+  import which". **ARCHITECTURE.md:94**: "Run it before every commit" becomes "Run
+  `make layer_check` before every commit (`make verify` runs it with `ruff check`)".
+- **ARCHITECTURE.md §3**, rule table, two rows (chunk 8):
+  | the bans are never suppressed inline: no `# noqa: TID251`, bare `# noqa` or code-less `# ruff: noqa` in a source tree | A ban lifted in one line of a large diff instead of by a named exemption in `pyproject.toml` |
+  | no static skip or xfail, however the marker is written (`pytestmark`, an alias, `from pytest import mark`) | The same signal deleted by a spelling the decorator-only rule did not see |
+  and in the "Exemptions are named" bullet: "a ruff per-file-ignore that names no path
+  fails (`test_ruff_config.py`); the tests' TID251 exemption names its four trees."
+- **CLAUDE.md §10**: add `ruff check packages/aia_core apps/api apps/worker
+  apps/executors migrations` to the command list, before `ruff format --check`
+  (`make verify` runs it since chunk 8).
 
+- **AGENTS.md**, import-linter (chunk 5): a forbidden contract on a module sees only
+  edges to that module. WRONG: forbid `pkg.tables` while `pkg/__init__.py` re-exports
+  its classes -- `from pkg import StudyRow` is an edge to `pkg` and the contract stays
+  KEPT (`allow_indirect_imports = true`; with `false` every importer of the package
+  breaks it). RIGHT: the package re-exports nothing from the forbidden module, held by a
+  test (`test_infrastructure_facade.py`).
