@@ -81,6 +81,8 @@ class S:
     COVER_DETAILS = "AIA Cover Details"
     COVER_ACCENT = "AIA Cover Accent"
     COVER_NOTICE = "AIA Cover Notice"
+    #: The cover's footer: its status, wrapped inside the paper the cover field leaves clear.
+    COVER_FOOTER = "AIA Cover Footer"
     COVER_TABLE = "AIA Cover Placement"
     COVER_META_TABLE = "AIA Cover Metadata"
     # character styles
@@ -153,6 +155,7 @@ class Para:
     outline: int | None = None  # 0 = level 1, for the TOC and the navigation pane
     indent_mm: float = 0.0
     hanging_mm: float = 0.0
+    right_indent_mm: float = 0.0
     space_before_pt: float | None = None
     space_after_pt: float | None = None
     tabs_right_mm: float | None = None  # a right tab with dot leader (TOC entries)
@@ -171,6 +174,11 @@ _TEXT_WIDTH_MM: Final = (
 _WIDE_TEXT_WIDTH_MM: Final = (
     PAGE.height_mm - PAGE.margin_inside_mm - PAGE.margin_outside_mm
 )  # the same on a landscape page
+#: How wide the cover's status may run from the inside margin. The cover field
+#: (``assets/report-cover-field.svg``) is drawn on the paper behind the footer: at the
+#: footer's height its first dots stand 88.2 mm from the page's left edge, so the status
+#: wraps (two lines for the draft's sentence) and ends 4 mm short of them, its rule with it.
+COVER_STATUS_WIDTH_MM: Final = 64.0
 
 PARAGRAPHS: Final[dict[str, Para]] = {
     S.BODY: Para("doc-body"),
@@ -275,6 +283,13 @@ PARAGRAPHS: Final[dict[str, Para]] = {
     S.COVER_DETAILS: Para("doc-meta", color="doc-muted"),
     S.COVER_ACCENT: Para("doc-meta", space_before_pt=21, space_after_pt=21, keep_next=True),
     S.COVER_NOTICE: Para("doc-running", color="doc-muted", space_before_pt=68),
+    S.COVER_FOOTER: Para(
+        "doc-running",
+        color="doc-muted",
+        leader=False,
+        border_top=True,
+        right_indent_mm=_TEXT_WIDTH_MM - COVER_STATUS_WIDTH_MM,
+    ),
 }
 
 
@@ -377,6 +392,7 @@ def _apply_paragraph(style: ParagraphStyle, spec: Para) -> None:
     pf.page_break_before = spec.page_break_before
     pf.alignment = spec.align if spec.align is not None else WD_ALIGN_PARAGRAPH.LEFT
     pf.left_indent = Mm(spec.indent_mm) if spec.indent_mm else None
+    pf.right_indent = Mm(spec.right_indent_mm) if spec.right_indent_mm else None
     pf.first_line_indent = Mm(-spec.hanging_mm) if spec.hanging_mm else None
     ppr = style.element.get_or_add_pPr()
     # Built-in styles may bring theme borders, shading or contextual spacing
@@ -594,6 +610,7 @@ PPR_AFTER_NUMPR: Final = (
 )
 
 __all__ = [
+    "COVER_STATUS_WIDTH_MM",
     "PARAGRAPHS",
     "PPR_AFTER_NUMPR",
     "S",

@@ -717,6 +717,18 @@ def _footers(docx: bytes) -> dict[str, bytes]:
         return {n: z.read(n) for n in z.namelist() if n.startswith("word/footer")}
 
 
+def _says_approved(footers: dict[str, bytes], status: str, version: str) -> bool:
+    """Every footer says the version is approved and none that it is a draft: the cover, in its
+    narrower status column, as two lines (the version id whole), every other one on one line."""
+    one = f"{status} \u00b7 {version}".encode()
+    two = f"{status}</w:t><w:br/><w:t>{version}".encode()
+    return (
+        sum(two in f for f in footers.values()) == 1
+        and all(one in f or two in f for f in footers.values())
+        and all(b"KONCEPT" not in f for f in footers.values())
+    )
+
+
 def _part(docx: bytes, name: str) -> bytes:
     with zipfile.ZipFile(io.BytesIO(docx)) as z:
         return z.read(name)
@@ -770,9 +782,8 @@ def test_an_approved_versions_docx_says_approved_and_names_the_version(
     assert downloaded.headers["X-AIA-Review-State"] == "APPROVED_INTERNAL"
     assert downloaded.headers["content-disposition"].endswith(f'-{report_id}-schvaleno.docx"')
     year, month, day = (int(x) for x in approved_on.split("-"))
-    words = f"SCHVÁLENO {day}.\u00a0{month}.\u00a0{year} \u00b7 verze {report_id}".encode()
-    footers = _footers(downloaded.content)
-    assert footers and all(words in f and b"KONCEPT" not in f for f in footers.values())
+    status = f"SCHVÁLENO {day}.\u00a0{month}.\u00a0{year}"
+    assert _says_approved(_footers(downloaded.content), status, f"verze {report_id}")
     # Everything else is the version a person approved, byte for byte.
     assert _part(downloaded.content, "word/document.xml") == _part(document, "word/document.xml")
     assert downloaded.content != document
@@ -949,9 +960,8 @@ def test_the_approved_client_report_downloads_stamped_and_is_read_once(
         f'-klient-{stored.artifact_id}-schvaleno.docx"'
     )
     year, month, day = (int(x) for x in approved.json()["approved_on"].split("-"))
-    words = f"SCHVÁLENO {day}.\u00a0{month}.\u00a0{year} \u00b7 verze {stored.artifact_id}"
-    footers = _footers(downloaded.content)
-    assert footers and all(words.encode() in f and b"KONCEPT" not in f for f in footers.values())
+    status = f"SCHVÁLENO {day}.\u00a0{month}.\u00a0{year}"
+    assert _says_approved(_footers(downloaded.content), status, f"verze {stored.artifact_id}")
     assert _part(downloaded.content, "word/document.xml") == _part(document, "word/document.xml")
 
 

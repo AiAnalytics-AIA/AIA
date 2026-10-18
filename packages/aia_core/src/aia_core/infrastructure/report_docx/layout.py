@@ -203,7 +203,10 @@ def render_cover(ctx: RenderContext) -> None:
     placement.style = S.COVER_TABLE
     placement.autofit = False
     placement.columns[0].width = Mm(120)
-    placement.rows[0].height = Mm(250)
+    # The cover's paper less its margins (297 - 22 - 20 mm) is 255 mm, and its footer reaches
+    # above the bottom margin once the status wraps to two lines (S.COVER_FOOTER): 246 mm
+    # leaves the section's closing paragraph 4 mm to spare on the cover, never a page of its own.
+    placement.rows[0].height = Mm(246)
     placement.rows[0].height_rule = WD_ROW_HEIGHT_RULE.EXACTLY
     cell = placement.cell(0, 0)
     cell.width = Mm(120)
@@ -261,11 +264,12 @@ def render_cover(ctx: RenderContext) -> None:
         cells[1].paragraphs[0].add_run(value)
     cell.paragraphs[-1].style = S.COVER_RULE
     cell.add_paragraph(_classification(ctx), style=S.COVER_NOTICE)
-    # The cover's status is its footer's, the long sentence in the one run a stamp replaces.
+    # The cover's status is its footer's, the long sentence in the one run a stamp replaces,
+    # wrapped short of the cover field's dots (S.COVER_FOOTER), the draft's and the stamp's.
     footer = cover.footer
     footer.is_linked_to_previous = False
     fp = footer.paragraphs[0]
-    fp.style = S.FOOTER
+    fp.style = S.COVER_FOOTER
     fp.add_run(f"{t('draft')}. {t('draft_long')}", style=S.STATUS)
     d.add_paragraph(style=S.COVER_RULE)
 
