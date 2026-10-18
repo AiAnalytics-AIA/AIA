@@ -11,7 +11,7 @@ chunks:
   - "[x] PC8. The browser journeys pass on today's interface, a label they wait for cannot drift unnoticed, and the coherence journey and report render are committed tools anyone can rerun"
   - "[x] PC9. Report body and appendices flow: no page break before every chapter (owner D5, 2026-10-17)"
   - "[x] PC10. Dimenze shows and saves only the dimensions a person chose: a new study chose none (owner, 2026-10-18; OI-54)"
-  - "[ ] PC11. Product-level acceptance scenarios over the real start, worker and report"
+  - "[x] PC11. Product-level acceptance scenarios over the real start, worker and report"
   - "[x] PC12. Owner decisions recorded with a recommendation each; no code"
   - "[x] PC13. A start that finds the run a design already has says so, and an AI ask that ended without a proposal is asked again as a new round"
   - "[x] PC14. A finished run reads as finished: its untouched steps say they will not run, its report is not 'composing', a run waiting for a person beside steps still running is read, and a step stopped for recovery says why"
@@ -553,6 +553,36 @@ renders three DOCX (27, 29, 29 pages; 21, 23, 23 after PC9).
 literals are composed from templates, fixture data or server-served titles, so it would need an
 allowlist that drifts itself. Running one journey in CI is the owner's call (decisions, below).
 
+## PC11 — the surfaces agree: product acceptance
+
+**Problem.** Every surface had its suite and nothing held the surfaces to one another. PC2 is the
+proof: Results read an answer to a research question the run had recorded as unanswerable as
+measured, while the report printed "Bez doložené odpovědi" beside the same answer, and every suite
+was green. None of the assignment's six scenarios was a test.
+
+**Change.** `apps/executors/tests/test_product_acceptance.py`: one test per scenario, through the
+calls the browser makes -- the API app (`create_app`) over the worker's database and artifact store,
+signed in as the study's lead -- the real worker and executors, and the stored DOCX read back. The
+answerability gate is on, as D-2 recommends. Fictional designs and respondents; the model is
+`scripted_bedrock.py`, the analysis suite's Bedrock double moved out of
+`test_analysis_executor.py` unchanged so both suites share one (that suite: 44 passed after the
+move). USD 0, nothing leaves the process. 26 s on SQLite, 35 s on PostgreSQL 16.
+
+| Scenario | Test | Held across surfaces | Not covered here |
+|---|---|---|---|
+| 1-2. A research question supported / unsupported | `test_a_measured_and_an_unmeasured_research_question_read_the_same_from_readiness_to_report` | Readiness: the measured question ANSWERABLE (n 200; at n 150 support makes it AT_RISK), the other UNANSWERABLE, one gap (`unmeasured`). The start refused with the same gaps and digest, then started on a recorded reason; the run's record equals readiness's and is unchanged after the worker. Results: `gap` on every answer to the unmeasured question, on none to the measured one. The report: one "Bez doložené odpovědi", the same words as Results, the reason, "běh na ni mohl odpovědět" | The web's rendering of these fields (component tests); a panel run (`test_ai_fieldwork.py`'s grounded runs) |
+| 3. A report with contextual research | Not repeated: `test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs[deep-research-and-internal-report]` (the chosen interpretation, the draft stored once, one seal printed twice, the prepared draft is the one read) and `apps/api/tests/test_report_variant_api.py` (the status names the prepared draft and its PDF; the DOCX served is that draft; the PDF waits for its rendering) | -- | One HTTP walk from choosing a review to its PDF |
+| 4. A revision changes | `test_a_runs_results_and_report_stay_its_revisions_when_the_design_changes` | After revision 2 measures the question run 1 could not answer, run 1 keeps revision 1 and its recorded gap on the run, on Results and in its report (same artifact, same bytes); revision 2 is judged alone (no gap); its start is a new run (`created`), revision 2, no gap in its report; the run list names each run's revision, newest first | The stage track still calls Výsledky "Revize N" without saying the design changed since (PC5's second half, R7) |
+| 5. A provider fails, then recovers | `test_a_throttled_module_waits_visibly_and_the_same_run_finishes_paying_each_call_once` | A 429 on one module: the step WAITING_PROVIDER / QUOTA, the run WAITING, not terminal, not retryable; the report step BLOCKED (never failed, nothing stored); resume refused (`runtime_park_not_resumable`) and retry refused (`run_not_retryable`): nothing a person presses pays again. After the reset the worker's own sweep offers the step; the same run completes with its report; that module asked twice, every other once; its ledger DISPATCHED, FAILED, DISPATCHED, SUCCEEDED; the run's cost eight calls | A lost (uncertain) call: `test_an_uncertain_turn_waits_for_a_person_and_recovery_replays_what_was_answered`; a runtime park and its resume (PC4): `test_a_run_parked_for_the_runtime_goes_on_when_a_person_resumes_it`. While it waits, the report card reads "Zpráva se ještě skládá." (R8) |
+| 6. A study is delivered | `test_a_delivered_study_keeps_its_results_and_refuses_new_work_under_one_code` | The frame: `can_edit` false, `can_review` true, `delivered_at`. Allowed: the run, its analysis, the report's status and download (same bytes), approval, a knowledge proposal to the client (the client's, decided by a person; whether delivery should freeze it is D-1's). Refused, each 403 `study_closed`, on a failed run that an open study would retry and whose analysis it would ask again: saving content, importing a questionnaire, attaching a file, submitting a design, starting, retrying the run, retrying its analysis, resuming, lifting a budget wait, an AI agent job, Deep Research. Nothing made; reopening restores the start | Cancelling a running run on a closed study (allowed, PC1: `can_review`) is not walked |
+
+**Found.** Nothing contradicted between surfaces in these walks once PC1, PC2 and PC14 were in. Two
+readings are recorded for later: the report card's "still composing" while the run waits for a
+provider (R8), and knowledge proposals from a delivered study (D-1).
+
+**Not done.** No scenario runs in a browser in CI (D-8); the web's reading of each field is its
+component tests'.
+
 ## Decision ledger (owner questions, 2026-10-18)
 
 Each question is stated so it can be answered without reading the code; the recommendation is mine,
@@ -601,7 +631,9 @@ Safe engineering, no owner decision needed; each would be a chunk of this plan o
 8. **R8.** The small P3 readers: the report panel re-read after approval, `pdf_disabled` not offered
    again until PDF is configured, failed modules not read as "Čeká", run lists that say they are
    truncated, `cancel_requested` shown, working-content history reachable, Settings' AI switches
-   complete (FAST_EXTRACTION, panel personas, the answerability gate).
+   complete (FAST_EXTRACTION, panel personas, the answerability gate), and the report card's "Zpráva
+   se ještě skládá." while the run waits for a provider (`report-status.ts` reads BLOCKED as composing;
+   PC11 scenario 5).
 
 ## Doc follow-up (for the docs PR; this PR edits no shared document)
 
