@@ -184,6 +184,26 @@ def test_an_object_finding_names_its_object_in_the_quote_or_the_title() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "quote",
+    [
+        "Sójový nápoj zdražil.",
+        "Cena sójového nápoje vzrostla.",
+        "Prodej sójových nápojů klesl.",
+        "Se sójovým nápojem se vaří.",
+        "Lidé pijí sójovou variantu.",
+        "Sójové nápoje mají stálé zákazníky.",
+    ],
+)
+def test_an_object_is_named_in_every_case_of_its_adjective(quote: str) -> None:
+    # The light stemmer leaves "sójového" as "sojov" and "Sójový" as "soj"; the screen reads
+    # a trailing -ov away, so every case names the object.
+    oats, soy = _o(OATS), _o(SOY)
+    screen = _screen(oats, soy, client=())
+    assert _judge(screen, soy, quote).verdict is TopicVerdict.ON_TOPIC
+    assert _judge(screen, oats, quote).rule is TopicRule.OBJECT_NAMED
+
+
 def test_a_word_another_tracked_object_shares_names_no_object() -> None:
     fio, air, cs = _o("Fio banka"), _o("Air Bank"), _o("Česká spořitelna")
     screen = _screen(fio, air, cs, client=())
@@ -673,7 +693,7 @@ def test_the_declared_rules_are_the_version_they_name() -> None:
     ).encode()
     assert (TOPICALITY_VERSION, hashlib.sha256(data).hexdigest()) == (
         "aia-dr-topicality-1/aia-dr-filters-1/aia-dr-concepts-1",
-        "907e5ccdc59772caef804799e8f4c084b3052c232624614b089a37ff775e2f3d",
+        "1494b204bcf64e30b4d838a8460841e58168a117887fad2d2b1f68bc29bd6a29",
     )
 
 

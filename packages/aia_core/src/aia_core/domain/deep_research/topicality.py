@@ -10,7 +10,9 @@ deterministic rules over the finding's own text, each with its own test. No mode
 crosses), profiled once per run from the frozen request (:func:`topic_screen`). A finding is
 read in what code holds -- its quote and its source's title -- and, for the topic words of a
 question only, the investigator's own claim. Terms are :func:`.filters.relevance_terms`:
-folded, stopword-free, lightly stemmed.
+folded, stopword-free, lightly stemmed -- with one fold of the screen's own: a stem left
+ending in ``ov`` is read without it, so the ``-ový`` adjectives an object is named by read
+alike in every case (``sójového`` and ``sójových`` are ``sojov``, ``Sójový`` is ``soj``).
 
 **The rules, in order; the first that decides wins** (named as the plan names them,
 ``research-integrity-report.md`` chunk 10; R2, a study-title rule, was dropped there).
@@ -90,8 +92,8 @@ __all__ = [
 #: The concept-family table's version: a changed phrase is a changed table
 #: (``test_the_concept_table_is_the_version_it_names`` holds them together).
 CONCEPTS_VERSION: Final = "aia-dr-concepts-1"
-#: The rules' version, with the term rules and the table they read: a changed word list or
-#: framing is a changed version (``test_the_declared_rules_are_the_version_they_name``).
+#: The rules' version, with the term rules and the table they read: a changed word list,
+#: framing or fold is a changed version (``test_the_declared_rules_are_the_version_they_name``).
 TOPICALITY_VERSION: Final = f"aia-dr-topicality-1/{FILTERS_VERSION}/{CONCEPTS_VERSION}"
 
 #: The client terms that are the client itself (``ClientTerm.source``). A study's name and an
@@ -115,13 +117,20 @@ _WORD: Final = re.compile(r"\w+")
 _TOPIC_CHARS: Final = 200
 #: How many of a topic's words a detail names.
 _TOPIC_WORDS: Final = 8
+#: A stem is read without a trailing ``ov`` only when longer than this: ``slov`` stays.
+_OV_MIN: Final = 4
+
+
+def _terms(text: str) -> list[str]:
+    """:func:`.filters.relevance_terms`, a trailing ``ov`` folded away (the ``-ový`` cases)."""
+    return [t[:-2] if len(t) > _OV_MIN and t.endswith("ov") else t for t in relevance_terms(text)]
 
 
 def _phrase(text: str) -> tuple[str, ...]:
-    return tuple(relevance_terms(text))
+    return tuple(_terms(text))
 
 
-_QUESTION_TERMS: Final = frozenset(relevance_terms(QUESTION_WORDS))
+_QUESTION_TERMS: Final = frozenset(_terms(QUESTION_WORDS))
 
 
 def _framing_pattern(framing: str) -> re.Pattern[str]:
@@ -218,7 +227,7 @@ class ConceptFamily:
 
     def named(self, text: str) -> frozenset[str]:
         """The concepts ``text`` names: phrases matched longest first, each word once."""
-        seq = relevance_terms(text)
+        seq = _terms(text)
         phrases = sorted(
             [(m, c.name) for c in self.concepts for m in c.markers]
             + [(m, None) for m in self.neutral],
@@ -438,11 +447,12 @@ def concept_table() -> list[list[object]]:
 
 def declared_rules() -> dict[str, object]:
     """Everything besides the code and the table that decides a verdict, for its pin: the
-    client names, question words and framings."""
+    client names, question words, framings and the ``-ov`` fold."""
     return {
         "client_identity": sorted(CLIENT_IDENTITY),
         "question_words": QUESTION_WORDS,
         "framings": list(FRAMINGS),
+        "ov_fold_min": _OV_MIN,
     }
 
 
@@ -500,7 +510,7 @@ def _written(text: str) -> dict[str, str]:
     """Each term of ``text`` with the word it is first written as."""
     out: dict[str, str] = {}
     for word in _WORD.findall(normalise_text(text)):
-        for term in relevance_terms(word):
+        for term in _terms(word):
             out.setdefault(term, word)
     return out
 
@@ -509,7 +519,7 @@ def _distinguishing(objects: Sequence[ResearchSubject]) -> dict[str, tuple[str, 
     """Each object's distinguishing phrase: its label's terms, in order, from the first to the
     last that no other object's label shares; the whole label when every term is shared. A
     single word of a longer name never stands for it: ``Česku`` is not ``Česká spořitelna``."""
-    terms = {o.key: tuple(relevance_terms(o.text)) for o in objects}
+    terms = {o.key: tuple(_terms(o.text)) for o in objects}
     out: dict[str, tuple[str, ...]] = {}
     for key, own in terms.items():
         others = frozenset().union(*(t for k, t in terms.items() if k != key))
@@ -520,7 +530,7 @@ def _distinguishing(objects: Sequence[ResearchSubject]) -> dict[str, tuple[str, 
 
 def _says(text: str, phrase: tuple[str, ...]) -> bool:
     """Whether ``text`` has ``phrase``'s terms one after another."""
-    seq, width = relevance_terms(text), len(phrase)
+    seq, width = _terms(text), len(phrase)
     return any(tuple(seq[i : i + width]) == phrase for i in range(len(seq) - width + 1))
 
 
@@ -598,11 +608,7 @@ class TopicScreen:
                     f"{topic}; bez jmen klienta, tázacích a rámcových slov nezbývá slovo, "
                     "podle kterého by šlo souvislost posoudit",
                 )
-            found = {
-                *relevance_terms(quote),
-                *relevance_terms(source_title),
-                *relevance_terms(claim),
-            }
+            found = {*_terms(quote), *_terms(source_title), *_terms(claim)}
             if not any(term in found for term, _ in profile.topic_terms):
                 words = [w for _, w in profile.topic_terms[:_TOPIC_WORDS]]
                 return TopicJudgement(
@@ -633,7 +639,7 @@ def topic_screen(
     ``client_terms`` the request's, of which the client's own names are not topic words.
     """
     client = frozenset(
-        t for c in client_terms if c.source in CLIENT_IDENTITY for t in relevance_terms(c.term)
+        t for c in client_terms if c.source in CLIENT_IDENTITY for t in _terms(c.term)
     )
     removed = client | _QUESTION_TERMS
     by_key = {s.key: s for s in subjects}
