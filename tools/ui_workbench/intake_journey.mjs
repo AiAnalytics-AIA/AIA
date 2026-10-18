@@ -106,6 +106,9 @@ await page.screenshot({ path: join(out, "1-open.png") });
 await sheet.locator('input[type="file"]').setInputFiles(files);
 await sheet.getByText(/Přečteno: \d+ část/).waitFor({ timeout: 30000 });
 await sheet.getByText(/Přečteno: 2 listy|Přečteno: 1 list/).waitFor({ timeout: 30000 });
+// Each row reads on its own: wait for the image's as for the others, then count it (it raced the
+// tables' reading and was counted before it had said anything).
+await sheet.getByText("Uloží se bez textu · AI obrázek ani video nečte").first().waitFor({ timeout: 30000 });
 check("the image says AI does not read it", (await sheet.getByText("Uloží se bez textu · AI obrázek ani video nečte").count()) === 1);
 check("a format AIA does not take is refused by name", (await sheet.getByText("Soubor nelze přečíst: tento formát AIA nepřijímá").count()) === 1);
 check("the table names its personal column", (await sheet.getByText(/Sloupec E-mail vypadá jako osobní údaj/).count()) === 1);
