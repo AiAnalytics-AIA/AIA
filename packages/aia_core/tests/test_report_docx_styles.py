@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import date
 from typing import Any
 
@@ -23,7 +24,15 @@ from aia_core.domain.report.model import (
 )
 from aia_core.domain.report.outline import appendix_letter, build_outline
 from aia_core.domain.report.print_tokens import STYLES
-from aia_core.infrastructure.report_docx.styles import PARAGRAPHS, S, install_styles
+from aia_core.infrastructure.report_docx.styles import (
+    KEPT,
+    PARAGRAPHS,
+    SHORT_TABLE_ROWS,
+    S,
+    install_styles,
+    kept_style,
+    row_keeps,
+)
 
 
 def test_appendix_letters() -> None:
@@ -130,6 +139,45 @@ def test_headings_captions_and_figures_keep_with_what_follows() -> None:
     for name in kept:  # a heading, caption or title is never split across a page
         assert _on(document, name, "keepLines"), name
     assert not _on(document, S.SOURCE, "keepNext")  # the chain ends at the source line
+
+
+def test_each_kept_twin_is_its_style_keeping_with_the_next() -> None:
+    # A table row and a note line keep with what follows them through a style: the lint
+    # forbids a paragraph's own keepNext (research-integrity-report D5, review documents#4).
+    assert set(KEPT) == {
+        S.TABLE,
+        S.TABLE_NUMBER,
+        S.TABLE_HEAD,
+        S.TABLE_HEAD_NUMBER,
+        S.MONO,
+        S.SOURCE,
+    }
+    document = _installed()
+    for style, twin in KEPT.items():
+        assert PARAGRAPHS[twin] == replace(PARAGRAPHS[style], keep_next=True), twin
+        assert _on(document, twin, "keepNext") and not _on(document, style, "keepNext"), twin
+        assert kept_style(style, True) == twin and kept_style(style, False) == style
+    # Under a figure: the picture keeps with "Zdroj", each line with the next, the last ends it.
+    assert _on(document, S.SOURCE_KEPT, "keepNext") and not _on(document, S.SOURCE, "keepNext")
+
+
+def test_a_short_table_keeps_every_row_and_a_long_one_its_ends() -> None:
+    n = SHORT_TABLE_ROWS
+    assert row_keeps(0, notes=True) == []
+    assert row_keeps(1, notes=True) == [True] and row_keeps(1, notes=False) == [False]
+    assert row_keeps(n, notes=True) == [True] * n  # whole, the last row with the notes row
+    assert row_keeps(n, notes=False) == [True] * (n - 1) + [False]
+    long = n + 4
+    # never broken after its first row or before its last; the last keeps with the notes
+    assert row_keeps(long, notes=True) == [True] + [False] * (long - 3) + [True, True]
+    assert row_keeps(long, notes=False) == [True] + [False] * (long - 3) + [True, False]
+
+
+def test_the_data_table_style_draws_no_rule_under_its_notes_row() -> None:
+    style = _installed().styles[S.DATA_TABLE].element
+    (last,) = [p for p in style.findall(qn("w:tblStylePr")) if p.get(qn("w:type")) == "lastRow"]
+    bottom = last.find(f"{qn('w:tcPr')}/{qn('w:tcBorders')}/{qn('w:bottom')}")
+    assert bottom is not None and bottom.get(qn("w:val")) == "nil"
 
 
 def test_every_paragraph_style_avoids_widows_and_orphans() -> None:

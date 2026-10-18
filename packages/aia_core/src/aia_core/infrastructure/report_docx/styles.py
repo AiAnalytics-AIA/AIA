@@ -14,7 +14,7 @@ styles keep the built-in names and are restyled rather than replaced.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Final
 
 from docx.document import Document
@@ -59,6 +59,13 @@ class S:
     TABLE_NUMBER = "AIA Table Number"
     TABLE_HEAD = "AIA Table Head"
     TABLE_HEAD_NUMBER = "AIA Table Head Number"
+    #: A table row kept with what follows it, a note line with the next: KEPT's twins.
+    TABLE_KEPT = "AIA Table Kept"
+    TABLE_NUMBER_KEPT = "AIA Table Number Kept"
+    TABLE_HEAD_KEPT = "AIA Table Head Kept"
+    TABLE_HEAD_NUMBER_KEPT = "AIA Table Head Number Kept"
+    MONO_KEPT = "AIA Mono Kept"
+    SOURCE_KEPT = "AIA Source Kept"
     KPI_VALUE = "AIA KPI"
     KPI_LABEL = "AIA KPI Label"
     QUOTE = "Quote"
@@ -293,6 +300,48 @@ PARAGRAPHS: Final[dict[str, Para]] = {
 }
 
 
+#: Each style a data table's row or a note line under a figure is written in, and its twin
+#: that keeps with the next paragraph: the same in everything else. The lint forbids a
+#: paragraph's own ``keepNext``, so which rows and lines keep is a choice of style
+#: (:func:`row_keeps`, ``tables.source_line``; research-integrity-report D5).
+KEPT: Final[dict[str, str]] = {
+    S.TABLE: S.TABLE_KEPT,
+    S.TABLE_NUMBER: S.TABLE_NUMBER_KEPT,
+    S.TABLE_HEAD: S.TABLE_HEAD_KEPT,
+    S.TABLE_HEAD_NUMBER: S.TABLE_HEAD_NUMBER_KEPT,
+    S.MONO: S.MONO_KEPT,
+    S.SOURCE: S.SOURCE_KEPT,
+}
+PARAGRAPHS.update(
+    {twin: replace(PARAGRAPHS[style], keep_next=True) for style, twin in KEPT.items()}
+)
+
+
+def kept_style(style: str, keep: bool) -> str:
+    """``style``, or its twin that keeps with the next paragraph when ``keep``."""
+    return KEPT[style] if keep else style
+
+
+#: A data table of at most this many body rows prints whole (:func:`row_keeps`).
+SHORT_TABLE_ROWS: Final = 8
+
+
+def row_keeps(rows: int, *, notes: bool) -> list[bool]:
+    """Which of a data table's ``rows`` body rows keep with the row after them.
+
+    A short table keeps every row with the next, so it moves to the next page entire rather
+    than break. A longer one breaks under its repeated header, but never after its first row
+    or before its last. The last row keeps with the notes row under it when ``notes``
+    (``ooxml.notes_row``). Its header row always keeps with its first row.
+    """
+    if rows <= SHORT_TABLE_ROWS:
+        return [i < rows - 1 or notes for i in range(rows)]
+    keeps = [False] * rows
+    keeps[0] = keeps[-2] = True
+    keeps[-1] = notes
+    return keeps
+
+
 @dataclass(frozen=True, slots=True)
 class Char:
     token: str | None = None  # a print style for the face; None keeps the paragraph's
@@ -517,6 +566,14 @@ def _data_table_style(document: Document) -> None:
     tc_pr.append(tc_borders)
     header.append(tc_pr)
     style.element.append(header)
+    # The notes row (ooxml.notes_row): the rule above it closes the data, none under it.
+    notes = el("w:tblStylePr", type="lastRow")
+    notes_pr = el("w:tcPr")
+    notes_borders = el("w:tcBorders")
+    notes_borders.append(el("w:bottom", val="nil"))
+    notes_pr.append(notes_borders)
+    notes.append(notes_pr)
+    style.element.append(notes)
 
 
 def _kpi_table_style(document: Document) -> None:
@@ -611,11 +668,15 @@ PPR_AFTER_NUMPR: Final = (
 
 __all__ = [
     "COVER_STATUS_WIDTH_MM",
+    "KEPT",
     "PARAGRAPHS",
     "PPR_AFTER_NUMPR",
+    "SHORT_TABLE_ROWS",
     "S",
     "color_val",
     "hex_rgb",
     "insert_in_order",
     "install_styles",
+    "kept_style",
+    "row_keeps",
 ]

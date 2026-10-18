@@ -127,7 +127,7 @@ def test_a_suppressed_row_is_removed_and_counted(report_ledger: Any) -> None:
     root = _render(table_document(report_ledger()))
     tbl = _data_table(root)
     rows = tbl.findall(f"{W}tr")
-    firsts = [_t(r.findall(f"{W}tc")[0]) for r in rows]
+    firsts = [_t(r.findall(f"{W}tc")[0]) for r in rows[:-1]]  # the last row holds the notes
     assert firsts == ["Region", "Praha", "Brno", "Ostrava", "Jihlava", "Celkem"]
     assert "Zlín" not in _t(tbl) and "51,0" not in _t(root)
     source = next(p for p in root.iter(f"{W}p") if _t(p).startswith("Zdroj:"))
@@ -144,7 +144,7 @@ def test_units_in_the_header_numbers_right_aligned_header_repeats(report_ledger:
     assert [_t(c) for c in head.findall(f"{W}tc")] == ["Region", "Důvěra (%)"]
     praha = rows[1].findall(f"{W}tc")[1]
     styles = [p.find(f"{W}pPr/{W}pStyle").get(f"{W}val") for p in praha.iter(f"{W}p")]
-    assert styles == ["AIATableNumber", "AIATableNumber"]
+    assert styles == ["AIATableNumberKept", "AIATableNumberKept"]  # a short table: kept
     # the value without its unit (the header has it), the interval beneath
     assert [_t(p) for p in praha.iter(f"{W}p")] == ["48,2", f"(41,0\u201355,4{NB}%)"]
     ostrava = rows[3].findall(f"{W}tc")[1]
@@ -202,3 +202,64 @@ def test_column_weights_allocate_labels_more_room_without_changing_values(
     widths = [int(c.get(f"{W}w")) for c in grid]
     assert widths[0] / widths[1] == pytest.approx(3, abs=0.01)
     assert _t(tbl) == _t(_data_table(_render(document)))
+
+
+def _styles(el: etree._Element) -> list[str]:
+    return [p.find(f"{W}pPr/{W}pStyle").get(f"{W}val") for p in el.iter(f"{W}p")]
+
+
+def test_a_short_table_prints_whole_with_its_notes_in_its_last_row(report_ledger: Any) -> None:
+    # Was: rows kept from splitting but not with each other, and the source, notes and dagger
+    # as paragraphs after the table: a short table broke after its first row and its notes
+    # opened the next page apart from it (review documents#4, research-integrity-report D5).
+    # LibreOffice keeps no table with the paragraph after it, so the notes are its last row.
+    from aia_core.infrastructure.report_docx.styles import SHORT_TABLE_ROWS
+
+    root = _render(table_document(report_ledger()))
+    tbl = _data_table(root)
+    head, *body, notes = tbl.findall(f"{W}tr")
+    assert head.find(f"{W}trPr/{W}tblHeader") is not None  # the header still repeats
+    assert set(_styles(head)) == {"AIATableHeadKept", "AIATableHeadNumberKept"}
+    assert 1 < len(body) <= SHORT_TABLE_ROWS
+    for row in body:  # every row keeps with the next, the last with the notes row
+        assert all(style.endswith("Kept") for style in _styles(row)), _t(row)
+    (cell,) = notes.findall(f"{W}tc")
+    assert cell.find(f"{W}tcPr/{W}gridSpan").get(f"{W}val") == "2"  # across the table
+    assert notes.find(f"{W}trPr/{W}cantSplit") is not None
+    assert [_t(p) for p in cell.iter(f"{W}p")] == [
+        "Zdroj: AIA, syntetický panel 2026 · "
+        "Potlačeno pro nedostatečnou efektivní velikost vzorku: 1.",
+        "Poznámka: Váženo na populaci ČR 18+.",
+        "\u2020 orientační hodnota: nízká efektivní velikost vzorku, čtěte opatrně.",
+    ]
+    assert _styles(cell) == ["AIASourceKept", "AIASourceKept", "AIASource"]
+    look = tbl.find(f"{W}tblPr/{W}tblLook")
+    assert look.get(f"{W}lastRow") == "1"  # the style's last-row look: no rule under the notes
+    assert int(look.get(f"{W}val"), 16) & 0x0040
+    # Nothing of the table follows it: the next paragraph is the section's own.
+    following = tbl.getnext()
+    assert following is not None and _t(following) == "Další text."
+
+
+def test_a_long_table_breaks_only_between_its_middle_rows(report_ledger: Any) -> None:
+    from aia_core.infrastructure.report_docx.styles import SHORT_TABLE_ROWS
+
+    long = Table(
+        "tab-items",
+        "Položky dotazníku",
+        (Column("Region"), Column("Znění")),
+        tuple(
+            TableRow((TextCell(f"Položka {i}"), TextCell("Jak moc důvěřujete bankám?")))
+            for i in range(SHORT_TABLE_ROWS + 4)
+        ),
+        "AIA, dotazník 2026",
+    )
+    section = Section("Položky", (Callout(CalloutKind.METHOD, ()), long))
+    tbl = _data_table(_render(ReportDocument(_meta(), (section,), report_ledger())))
+    head, *body, notes = tbl.findall(f"{W}tr")
+    assert head.find(f"{W}trPr/{W}tblHeader") is not None  # repeated on every page
+    kept = [all(style.endswith("Kept") for style in _styles(row)) for row in body]
+    # never after its first row, never before its last; the last row with the notes row
+    assert kept == [True] + [False] * (len(body) - 3) + [True, True]
+    assert [_t(p) for p in notes.iter(f"{W}p")] == ["Zdroj: AIA, dotazník 2026"]
+    assert _styles(notes) == ["AIASource"]

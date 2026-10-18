@@ -54,8 +54,9 @@ from aia_core.infrastructure.report_docx.ooxml import (
     full_width,
     header_row,
     keep_row,
+    notes_row,
 )
-from aia_core.infrastructure.report_docx.styles import S
+from aia_core.infrastructure.report_docx.styles import S, kept_style, row_keeps
 
 # ---------------------------------------------------------------------- inline
 
@@ -342,13 +343,17 @@ def render_evidence_appendix(
     table.autofit = False
     for column, share in zip(table.columns, shares, strict=True):
         column.width = Emu(int(width * share))
-    header_row(table.rows[0])
+    refs = cited_refs(ctx.report)
+    used = sorted({d for ref in refs for d in ctx.ledger.row(ref).disclosures})
+    header_row(table.rows[0])  # kept with the first row below it
     for i, (cell, label) in enumerate(zip(table.rows[0].cells, head, strict=True)):
         cell.width = Emu(int(width * shares[i]))
-        cell.paragraphs[0].style = S.TABLE_HEAD_NUMBER if i in numeric else S.TABLE_HEAD
+        head_style = S.TABLE_HEAD_NUMBER if i in numeric else S.TABLE_HEAD
+        cell.paragraphs[0].style = kept_style(head_style, bool(refs))
         cell.paragraphs[0].add_run(label)
-    refs = cited_refs(ctx.report)
-    for ref in refs:
+    # A short appendix prints whole; its last row keeps with the legend in the notes row
+    # under it (research-integrity-report D5).
+    for ref, keep in zip(refs, row_keeps(len(refs), notes=bool(used)), strict=True):
         row = ctx.ledger.row(ref)
         interval = (
             numbers.interval(row.interval, row.decimals, row.unit)
@@ -372,15 +377,17 @@ def render_evidence_appendix(
         cells = added.cells
         for i, (cell, value) in enumerate(zip(cells, values, strict=True)):
             cell.width = Emu(int(width * shares[i]))
-            cell.paragraphs[0].style = (
-                S.MONO if i == 0 else S.TABLE_NUMBER if i in numeric else S.TABLE
+            cell.paragraphs[0].style = kept_style(
+                S.MONO if i == 0 else S.TABLE_NUMBER if i in numeric else S.TABLE, keep
             )
             cell.paragraphs[0].add_run(value)
-    used = sorted({d for ref in refs for d in ctx.ledger.row(ref).disclosures})
-    for d in used:
-        p = container.add_paragraph(style=S.SOURCE)
-        p.add_run(t(f"disclosure_short_{d.value}"), style=S.STRONG)
-        p.add_run(f" \u2014 {t(f'disclosure_{d.value}')}")
+    if used:  # the legend, in the table's notes row
+        legend = notes_row(table)
+        for i, d in enumerate(used):
+            p = legend.paragraphs[0] if i == 0 else legend.add_paragraph()
+            p.style = S.SOURCE
+            p.add_run(t(f"disclosure_short_{d.value}"), style=S.STRONG)
+            p.add_run(f" \u2014 {t(f'disclosure_{d.value}')}")
 
 
 def render_audit(ctx: RenderContext, container: Container, block: AuditBlock) -> None:
