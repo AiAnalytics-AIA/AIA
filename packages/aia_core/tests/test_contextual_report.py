@@ -1,15 +1,24 @@
 """A literature chapter consumes checked evidence, never the withheld prose."""
 
+import json
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
-from aia_core.application.contextual_report import literature_sections
+from aia_core.application.contextual_report import (
+    TopicRulesUnread,
+    literature_sections,
+    todays_topic_rules,
+)
+from aia_core.application.deep_research import BundleNotReady
 from aia_core.application.report import ReportCompositionRefused
 from aia_core.domain.deep_research.bundle import EvidenceBundle
 from aia_core.domain.deep_research.confidence import CONFIDENCE_WEIGHTS_V1
 from aia_core.domain.deep_research.contracts import (
     ClientTerm,
+    DeepResearchRequest,
     ResearchSubject,
     SourceKind,
     SubjectKind,
@@ -40,6 +49,9 @@ from aia_core.domain.report.model import (
     TextCell,
 )
 from aia_core.domain.research_design import compile_design
+from aia_core.domain.scope import ScopeDenied
+from aia_core.infrastructure.artifact_repository import ArtifactNotFound
+from aia_core.infrastructure.storage import IntegrityError, ObjectNotFound, StorageError
 
 
 def bundle(**updates: object) -> EvidenceBundle:
@@ -81,7 +93,7 @@ def prose(
     value: EvidenceBundle,
     origin: OriginKind | None = None,
     tiers_approved: bool | None = None,
-    topics: TopicScreen | None = None,
+    topics: TopicScreen | TopicRulesUnread | None = None,
 ) -> str:
     return "\n".join(
         _words(b)
@@ -739,6 +751,110 @@ def test_a_review_merged_under_the_topic_rules_is_never_labelled_again() -> None
     judged = _merged_under(older, MERGE_RULES_VERSION)
     written = prose(judged, topics=screen)
     assert "Dnešní kontrola tématu" not in written and "nepřijala" not in written
+
+
+def _refusing(error: BaseException) -> Callable[[], DeepResearchRequest]:
+    def read() -> DeepResearchRequest:
+        raise error
+
+    return read
+
+
+def _invalid_request() -> BaseException:
+    try:
+        DeepResearchRequest.model_validate({})
+    except ValidationError as exc:
+        return exc
+    raise AssertionError("an empty request validated")
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        BundleNotReady("the stored plan is not this run's request"),
+        BundleNotReady("the run has planned nothing"),
+        IntegrityError("hash mismatch"),
+        ObjectNotFound("gone"),
+        ArtifactNotFound("ART-1"),
+        _invalid_request(),
+        json.JSONDecodeError("Expecting value", "", 0),
+        KeyError("request"),
+    ],
+    ids=lambda e: type(e).__name__,
+)
+def test_an_older_review_whose_plan_cannot_be_read_is_composed_without_labels_and_says_so(
+    error: BaseException,
+) -> None:
+    """Today's topic rules read the client's names from the review's stored plan. A plan that
+    is gone, corrupt or not the run's request refused the whole report with literature
+    (cross-review); the labels are what need it, so the chapter is composed without them and
+    says, once, that the check could not be applied -- an unlabelled finding is unknown, never
+    one that passes."""
+    older, screen = _older_current_account_review()
+    rules = todays_topic_rules(older, _refusing(error))
+    assert rules is TopicRulesUnread.PLAN_UNVERIFIED
+    written = prose(older, topics=rules)
+    title = "Dnešní kontrolu tématu nebylo možné použít"
+    assert written.count(title) == 1
+    assert (
+        f"Rešerše vznikla před dnešní kontrolou tématu ({TOPICALITY_VERSION}) a tu na ni nebylo "
+        "možné použít: uložený plán rešerše, z něhož kontrola čte jména klienta, se nepodařilo "
+        "ověřit. Zda by některé z přijatých zjištění dnes kontrolou tématu neprošlo, proto není "
+        "známo; že u zjištění není uveden důvod, neznamená, že by jí prošlo."
+    ) in written
+    # No finding labelled by a check that did not run; the document rules, which need no plan,
+    # still name the thesis; counts and seal as stored.
+    assert "Dnešní kontrola tématu" not in written
+    assert written.count(THESIS_LABEL) == 2
+    # The thesis's two findings are a lower bound of what today's rules would not accept,
+    # never their total: the chapter said "neprošla: 2" here and "3" when the plan was read
+    # (cross-review). Otherwise the unlabelled chapter and the callout.
+    bound = "neprošla: nejméně 2 (dnešní kontrolu tématu nebylo možné použít)."
+    assert bound in written and "neprošla: 2." not in written
+    assert "neprošla: 3." in prose(older, topics=screen)
+    unlabelled = prose(older)
+    assert written.replace(_words_of_callout(written, title), "") == unlabelled.replace(
+        "neprošla: 2.", bound
+    )
+    assert UNCHECKED in written
+
+
+def _words_of_callout(written: str, title: str) -> str:
+    start = written.index(title)
+    return written[start : written.index("\n", written.index("\n", start) + 1) + 1]
+
+
+def test_a_review_merged_under_the_topic_rules_never_reads_its_plan() -> None:
+    older, _screen = _older_current_account_review()
+    judged = _merged_under(older, MERGE_RULES_VERSION)
+    assert todays_topic_rules(judged, _refusing(AssertionError("read"))) is None
+    assert "Dnešní kontrolu tématu nebylo možné použít" not in prose(judged, topics=None)
+
+
+def test_a_readable_plan_gives_todays_rules_and_a_refused_access_still_refuses() -> None:
+    older, _screen = _older_current_account_review()
+    request = DeepResearchRequest.model_validate_json(
+        (Path(__file__).parent / "fixtures/deep_research_pre_step1/request.json").read_bytes()
+    )
+    assert todays_topic_rules(older, lambda: request) == topic_screen(
+        older.subjects, client_terms=request.client_terms
+    )
+    # A person without access is not a plan that cannot be read: the report is refused.
+    with pytest.raises(ScopeDenied):
+        todays_topic_rules(older, _refusing(ScopeDenied()))
+
+
+def test_a_store_that_failed_to_answer_is_not_a_plan_that_cannot_be_read() -> None:
+    """S3's get raises the base StorageError for any failure but a missing object (a timeout,
+    throttling). Read as an unverified plan, it stored a newest draft without today's labels,
+    servable and approvable, that a retry seconds later would have labelled (cross-review): it
+    fails the request instead, and only the store's verdicts on the object leave the labels
+    out."""
+    older, _screen = _older_current_account_review()
+    with pytest.raises(StorageError, match="could not read"):
+        todays_topic_rules(older, _refusing(StorageError("could not read k")))
+    for verdict in (ObjectNotFound("k"), IntegrityError("hash mismatch")):
+        assert todays_topic_rules(older, _refusing(verdict)) is TopicRulesUnread.PLAN_UNVERIFIED
 
 
 # --------------------------------------------------------------------------- the document (D4)
