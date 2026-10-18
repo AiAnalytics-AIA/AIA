@@ -82,7 +82,7 @@ from aia_core.infrastructure.artifact_repository import Artifact, ArtifactReposi
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import ArtifactStore
 
-CONTEXT_REPORT_CONTRACT = "aia-contextual-report-4"
+CONTEXT_REPORT_CONTRACT = "aia-contextual-report-5"
 # Stored beside the run's own report, on the Study's design project (ADR 0016).
 CONTEXT_REPORT_ARTIFACT_TYPE = "research_internal_docx_with_research"
 CONTEXT_REPORT_STAGE = "REPORT"

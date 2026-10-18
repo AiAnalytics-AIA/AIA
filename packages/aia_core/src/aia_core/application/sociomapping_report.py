@@ -52,7 +52,7 @@ __all__ = [
 ]
 
 SOCIOMAPPING_REPORT_ARTIFACT_TYPE: Final = "research_sociomapping_docx"
-SOCIOMAPPING_REPORT_CONTRACT: Final = "aia-sociomapping-report-3"
+SOCIOMAPPING_REPORT_CONTRACT: Final = "aia-sociomapping-report-4"
 
 #: The limitation codes the artifact carries -> what the report prints. A code without
 #: wording prints its stored English detail, never nothing.
