@@ -2411,6 +2411,44 @@ describe("Interpretation research", () => {
     expect(within(rejected).getByText("· shrnutí cituje číslo mimo podklady")).toBeTruthy();
   });
 
+  it("says an older review predates today's acceptance rules its report applies, and nothing of a newer one (review web#5)", async () => {
+    // The screen listed an older review's findings as plain accepted ones while its report with
+    // literature labelled those today's rules would not accept.
+    const completed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-questions" })] });
+    const review = { run_id: "RUN-deep", purpose: "INTERPRETATION_RESEARCH", target: { research_run_id: "RUN-1" },
+      preset: "QUICK", status: "COMPLETED", phase: "COMPLETED", is_terminal: true, retryable: false,
+      created_at: null, actual_cost_usd: 0.4, steps: [] };
+    let merge = "aia-merge-1";
+    api({ ...listed(completed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: true, modules: {}, pending: {} }),
+      "GET /api/v1/studies/STU-1/deep-research/runs": () => [review],
+      "GET /api/v1/studies/STU-1/deep-research/runs/RUN-deep/bundle": () => ({
+        quality_status: "OK", sha256: "b-3", counts: {}, quarantined: [], versions: { harness: "aia-deep-research-harness-1", merge },
+        accepted: [{ evidence: { evidence_id: "EV-1", claim: "Fiktivní zjištění o běžném účtu.", quote: "Fiktivní citace.", source_ref: "SRC-1" }, score: { score: 0.7, source_class: "ACADEMIC_INSTITUTION" } }],
+        snapshots: [{ snapshot_id: "SRC-1", title: "Fiktivní práce", url: "https://example.org/prace.pdf", retrieval_mode: "LIVE" }],
+      }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Rešerše a zpráva" }));
+    const note = await screen.findByRole("note", { name: t("research.deep.olderRules.title") });
+    expect(note.textContent).toContain("vznikla před zavedením kontroly tématu a pravidel typů dokumentů");
+    expect(note.textContent).toContain("v ní označí s důvodem");
+    // Never unconditionally: today's topic check needs the review's stored plan to verify.
+    expect(note.textContent).toContain("Kontrolu tématu přitom lze použít, jen když se podaří ověřit uložený plán rešerše");
+    // The findings stay listed as the review accepted them.
+    expect(within(await screen.findByRole("list", { name: "Přijatá zjištění" })).getByText("Fiktivní zjištění o běžném účtu.")).toBeTruthy();
+    // A review merged under today's rules: nothing to say of them.
+    cleanup();
+    merge = "aia-merge-3/aia-works-1/aia-dr-topicality-1/aia-dr-filters-1/aia-dr-concepts-1/aia-document-types-1";
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Rešerše a zpráva" }));
+    expect(within(await screen.findByRole("list", { name: "Přijatá zjištění" })).getByText("Fiktivní zjištění o běžném účtu.")).toBeTruthy();
+    expect(screen.queryByRole("note", { name: t("research.deep.olderRules.title") })).toBeNull();
+  });
+
   it("requires confirmation before cancelling an active interpretation review", async () => {
     const completed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
       step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-questions" })] });

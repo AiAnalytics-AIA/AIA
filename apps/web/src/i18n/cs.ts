@@ -2275,6 +2275,19 @@ export const cs = {
         UNKNOWN: "neurčený typ",
         other: "jiný typ",
       },
+      // A review merged before today's acceptance rules (lib/review-rules.ts, review web#5): the
+      // screen lists its findings as it accepted them; the report composed today labels them.
+      // Today's topic check reads the client's names from the review's stored plan, so it is
+      // promised only where that plan verifies (topicPlan; cross-review).
+      olderRules: {
+        title: "Rešerše vznikla před dnešními pravidly pro přijetí zjištění",
+        text: "Tato rešerše vznikla před zavedením {rules}. Níže jsou její zjištění tak, jak je tehdy přijala. Zpráva s touto rešerší sestavená podle současné skladby je posoudí dnešními pravidly{documents} a ta, která by neprošla, v ní označí s důvodem; žádné neodstraní a počty nemění.{topicPlan}",
+        both: "kontroly tématu a pravidel typů dokumentů",
+        topic: "kontroly tématu",
+        documents: "pravidel typů dokumentů",
+        documentsHow: " (typ dokumentu jen podle adresy a názvu zdroje)",
+        topicPlan: " Kontrolu tématu přitom lze použít, jen když se podaří ověřit uložený plán rešerše, z něhož kontrola čte jména klienta.",
+      },
     },
     exec: {
       code: {

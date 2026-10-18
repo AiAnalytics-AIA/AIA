@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
+import pytest
 from aia_core.application.deep_research import DeepResearchRuns, run_spec_metadata
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+from aia_core.domain.deep_research.bundle import EvidenceBundle
 from aia_core.domain.deep_research.contracts import Channel
 from aia_core.domain.deep_research.integration import (
     RUN_SPEC_CONTRACT,
@@ -22,6 +25,11 @@ from aia_core.infrastructure.tables import WorkflowRunRow
 from fastapi.testclient import TestClient
 
 API = "/api/v1"
+#: A sealed bundle merged before today's acceptance rules (aia_core's fixture, fictional).
+BUNDLE = (
+    Path(__file__).resolve().parents[3]
+    / "packages/aia_core/tests/fixtures/deep_research_pre_step1/bundle.json"
+)
 DESIGN = {
     "title": "Fiktivní káva",
     "goal": "Zjistit veřejný kontext přípravy kávy.",
@@ -281,3 +289,24 @@ def test_a_design_proposal_waits_for_the_run_and_its_accept_is_validated(
     # Nothing was written: the design is still the one the run was started on.
     revisions = researcher.get(f"{API}/studies/{world.study_id()}/design/revisions")
     assert [r["revision_id"] for r in revisions.json()["items"]] == [revision]
+
+
+def test_the_bundle_route_serves_the_sealed_bundle_with_the_rules_it_ran_under(
+    researcher: TestClient, world: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The literature screen says a review predates today's acceptance rules from the bundle's
+    ``versions.merge`` (review web#5), as its report with literature does: the route serves the
+    sealed bundle whole, its versions included."""
+    sealed = EvidenceBundle.model_validate_json(BUNDLE.read_bytes())
+    asked: list[str] = []
+
+    def served(self: DeepResearchRuns, run_id: str, *, store: Any) -> EvidenceBundle:
+        asked.append(run_id)
+        return sealed
+
+    monkeypatch.setattr(DeepResearchRuns, "bundle", served)
+    got = researcher.get(f"{_url(world)}/RUN-00000000000000b1/bundle")
+    assert got.status_code == 200, got.text
+    assert asked == ["RUN-00000000000000b1"]
+    assert got.json()["versions"] == sealed.versions
+    assert got.json()["versions"]["merge"] == "aia-merge-1"
