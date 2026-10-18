@@ -397,6 +397,10 @@ def test_the_cover_names_the_study_and_anchors_the_original_field(report_ledger:
     )
     assert "čeká na podpis" not in _text(body)  # the status is the footers' (D2)
     assert cover.tables[0].columns[0].width.mm == pytest.approx(120, abs=0.02)
+    # The metadata grid gives its labels room for "Revize návrhu studie" (it wrapped at 28 mm).
+    (grid,) = cell.tables
+    assert [round(c.width.mm) for c in grid.columns] == [36, 84]
+    assert [r.cells[0].text for r in grid.rows][-1] == "Revize návrhu studie"
     from aia_core.infrastructure.report_docx.cover import ASSETS
 
     assert (ASSETS / "aia-lockup.svg").read_bytes() in parts.values()
