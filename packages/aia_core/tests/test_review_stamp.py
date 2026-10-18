@@ -272,9 +272,13 @@ def test_the_study_s_own_words_never_hold_back_the_stamp(
     for document in said:
         mark = _mark(document)
         old, new = _parts(document), _parts(stamped := stamp_review(document, mark))
+        words = approved_words(mark)
+        # The cover prints the date and the version on lines of their own (its status column).
+        on_cover = "</w:t><w:br/><w:t>".join(words.split(" · "))
         for name in old:
             if _footer(name):
-                assert approved_words(mark).encode() in new[name], name
+                says = on_cover if COVER.encode() in old[name] else words
+                assert says.encode() in new[name], name
                 assert DRAFT.encode() not in new[name], name
             else:
                 assert new[name] == old[name], name  # the study's words as stored
