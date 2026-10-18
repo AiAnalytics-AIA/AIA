@@ -877,6 +877,8 @@ def test_a_version_approved_before_the_stamp_layout_keeps_its_pdf_on_a_closed_st
     assert pdf.content == b"%PDF-1.7 draft rendering"
     assert pdf.headers["X-AIA-Artifact-Id"] == report_id
     assert pdf.headers["X-AIA-Review-State"] == "APPROVED_INTERNAL"
+    # Its pages keep the draft footer it was stored with: named approved in AIA, not stamped.
+    assert pdf.headers["content-disposition"].endswith(f'-{report_id}-schvaleno-v-aia.pdf"')
     docx = researcher.get(f"{url}/download")
     assert docx.status_code == 200 and docx.content == _rendered_report()
 
@@ -1088,11 +1090,52 @@ def test_an_approved_client_report_stays_the_client_report_after_its_contract_ch
     assert stored == [version]
 
 
+def test_a_client_report_the_stamp_refuses_says_so_in_its_status_and_name(
+    app: FastAPI,
+    researcher: TestClient,
+    outsider: TestClient,
+    world: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cross-review web#14: the writer recorded that a version takes the stamp whatever its
+    bytes, and the status's ``stamped`` read only that record, so an approved file the stamp
+    refuses was said to state SCHVÁLENO while it was served as stored. The writer now tries
+    the stamp first: a body that states the draft status is recorded unstampable, and the
+    approval's answer, the file and its name agree."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    stated = _client_report_document()
+    body = Section("Poznámka", (Paragraph(text("KONCEPT \u2014 NESCHVÁLENO")),))
+    document = ReportDocument(stated.meta, (*stated.sections, body), stated.ledger)
+
+    def compose(session: Any, scope: Any, store: Any, *, run_id: str) -> Any:
+        return client_report.ComposedClientReport(
+            document=document,
+            sources={"contract": client_report.CLIENT_REPORT_CONTRACT, "run_id": run_id},
+            depends_on=(),
+        )
+
+    monkeypatch.setattr(client_report, "compose_client_report", compose)
+    url = f"{_runs(world)}/{run_id}/report"
+    draft = researcher.get(f"{url}/client/download")
+    assert draft.status_code == 200, draft.text
+    version = draft.headers["X-AIA-Artifact-Id"]
+    approved = outsider.post(f"{url}/approve", json={"artifact_id": version})
+    assert approved.status_code == 200 and approved.json()["stamped"] is False
+    after = researcher.get(f"{url}/client/download")
+    assert after.content == draft.content  # as stored, never partly stamped
+    assert after.headers["X-AIA-Review-State"] == "APPROVED_INTERNAL"
+    assert after.headers["content-disposition"].endswith(f'-klient-{version}-schvaleno-v-aia.docx"')
+
+
 def test_an_older_version_approved_is_served_unstamped_and_says_so(
     app: FastAPI, researcher: TestClient, world: Any
 ) -> None:
     """A version stored before this layout (no record of it) is approved as it is: its DOCX is
-    the stored bytes, never partly stamped, and the status says it is not stamped."""
+    the stored bytes, never partly stamped, and the status says it is not stamped. Its file
+    name says so too (cross-review interactions#9: it was named "-schvaleno" while every
+    footer said KONCEPT)."""
     app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
     revision = submit(researcher, world).json()["revision_id"]
     run_id = start(researcher, world, revision).json()["run_id"]
@@ -1105,6 +1148,9 @@ def test_an_older_version_approved_is_served_unstamped_and_says_so(
     downloaded = researcher.get(f"{url}/download")
     assert downloaded.status_code == 200 and downloaded.content == document
     assert downloaded.headers["X-AIA-Review-State"] == "APPROVED_INTERNAL"
+    assert downloaded.headers["content-disposition"].endswith(
+        f'-zakladni-{report_id}-schvaleno-v-aia.docx"'
+    )
 
 
 def test_an_approval_without_its_ledger_row_is_refused_by_name(

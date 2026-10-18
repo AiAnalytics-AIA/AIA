@@ -1839,7 +1839,9 @@ def _export(
 def _review_fields(artifact: Artifact, mark: ReviewMark) -> dict[str, Any]:
     """A version's review as a status says it: its state, the day it was approved, and whether
     its file states it (``stamped``: an approved export says SCHVÁLENO in its footers; false
-    for a version stored before that layout, whose file keeps its draft footer)."""
+    for a version stored before that layout, or whose bytes the stamp refused when it was
+    stored, whose file keeps its draft footer). Read from the record its writer made after
+    trying the stamp (``report_export.review_stamp_record``), so it is what the export does."""
     return {
         "review_state": mark.state.value,
         "approved_on": mark.approved_on.isoformat() if mark.approved_on else None,
@@ -1847,10 +1849,19 @@ def _review_fields(artifact: Artifact, mark: ReviewMark) -> dict[str, Any]:
     }
 
 
-def _report_filename(study_id: str, run_id: str, variant: str, mark: ReviewMark, ext: str) -> str:
-    """``AIA-<study>-<run>-<variant>-<version>-<koncept|schvaleno>.<ext>``: the file names the
-    version it is and its review, as its footers do."""
-    state = "schvaleno" if mark.state is ReviewState.APPROVED else "koncept"
+def _report_filename(
+    study_id: str, run_id: str, variant: str, mark: ReviewMark, ext: str, *, stamped: bool
+) -> str:
+    """``AIA-<study>-<run>-<variant>-<version>-<review>.<ext>``: the file names the version it
+    is and its review as the file itself states it -- ``koncept`` for a draft, ``schvaleno``
+    for an approved version whose footers say SCHVÁLENO (``stamped``: the export, or the PDF
+    rendered from it, was stamped), and ``schvaleno-v-aia`` for one approved in AIA whose file
+    keeps the draft footer it was stored with (cross-review interactions#9: named
+    ``schvaleno`` while every footer said KONCEPT, contradicting itself outside AIA)."""
+    if mark.state is not ReviewState.APPROVED:
+        state = "koncept"
+    else:
+        state = "schvaleno" if stamped else "schvaleno-v-aia"
     return f"AIA-{study_id}-{run_id}-{variant}-{mark.artifact_id}-{state}.{ext}"
 
 
@@ -1895,7 +1906,15 @@ def download_run_report_pdf(
         content=data,
         media_type=PDF_MEDIA_TYPE,
         headers=_review_headers(
-            mark, _report_filename(scope.study_id, run_id, "zakladni", mark, "pdf")
+            mark,
+            _report_filename(
+                scope.study_id,
+                run_id,
+                "zakladni",
+                mark,
+                "pdf",
+                stamped=pdf.metadata.get("stamped") is True,
+            ),
         ),
     )
 
@@ -1948,7 +1967,9 @@ def download_run_report(
         # approves (research-integrity-report 3).
         headers=_review_headers(
             exported.mark,
-            _report_filename(scope.study_id, run_id, "zakladni", exported.mark, "docx"),
+            _report_filename(
+                scope.study_id, run_id, "zakladni", exported.mark, "docx", stamped=exported.stamped
+            ),
         ),
     )
 
@@ -1999,7 +2020,8 @@ class ReportVariantResponse(BaseModel):
     #: The Prague day the draft was approved (D2); null while it is a draft.
     approved_on: date | None = None
     #: Whether its file states its review: approved, its DOCX and PDF say SCHVÁLENO in their
-    #: footers; false for a draft stored before that layout, which keeps its draft footer.
+    #: footers; false for a draft stored before that layout (or whose bytes the stamp refused),
+    #: which keeps its draft footer and downloads as "…-schvaleno-v-aia" once approved.
     stamped: bool | None = None
     internal_only: bool = True
     pdf: ReportVariantPdfResponse | None = None
@@ -2217,7 +2239,14 @@ def download_contextual_report(
         media_type=INTERNAL_REPORT_MEDIA_TYPE,
         headers=_review_headers(
             exported.mark,
-            _report_filename(scope.study_id, run_id, deep_research_run_id, exported.mark, "docx"),
+            _report_filename(
+                scope.study_id,
+                run_id,
+                deep_research_run_id,
+                exported.mark,
+                "docx",
+                stamped=exported.stamped,
+            ),
         ),
     )
 
@@ -2251,7 +2280,14 @@ def download_contextual_report_pdf(
         media_type=PDF_MEDIA_TYPE,
         headers=_review_headers(
             found.mark,
-            _report_filename(scope.study_id, run_id, deep_research_run_id, found.mark, "pdf"),
+            _report_filename(
+                scope.study_id,
+                run_id,
+                deep_research_run_id,
+                found.mark,
+                "pdf",
+                stamped=found.pdf.artifact.metadata.get("stamped") is True,
+            ),
         ),
     )
 
@@ -2306,7 +2342,9 @@ def download_client_report(
         media_type=INTERNAL_REPORT_MEDIA_TYPE,
         headers=_review_headers(
             exported.mark,
-            _report_filename(scope.study_id, run_id, "klient", exported.mark, "docx"),
+            _report_filename(
+                scope.study_id, run_id, "klient", exported.mark, "docx", stamped=exported.stamped
+            ),
         ),
     )
 

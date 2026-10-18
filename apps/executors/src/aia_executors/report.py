@@ -15,11 +15,11 @@ from aia_core.application.report import (
 )
 from aia_core.application.report_chapters import report_chapters
 from aia_core.application.report_export import (
-    REVIEW_STAMP_RECORD,
     Export,
     ReviewUnrecorded,
     export_docx,
     exports_stamped,
+    review_stamp_record,
 )
 from aia_core.application.report_variants import PDF_DISABLED, RENDERABLE_REPORTS
 from aia_core.application.research import research_artifacts
@@ -156,7 +156,7 @@ class ReportExecutor:
                     "data_origin": first.record.labels.data_origin.value,
                     "map_source_sha256": chapters.map_sha256,
                     "report_contract": REPORT_CONTRACT_VERSION,
-                    **REVIEW_STAMP_RECORD,
+                    **review_stamp_record(data),
                 },
                 depends_on=[*[m.artifact_id for m in sources], chapters.map_artifact_id],
             )

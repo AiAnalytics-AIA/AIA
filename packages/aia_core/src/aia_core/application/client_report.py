@@ -28,7 +28,7 @@ from aia_core.application.analysis_results import SourcesRefused, native_sources
 from aia_core.application.report import RESEARCH_SUBTITLE
 from aia_core.application.report_chapters import verified_map
 from aia_core.application.report_design import compose_design_sections
-from aia_core.application.report_export import REVIEW_STAMP_RECORD
+from aia_core.application.report_export import review_stamp_record
 from aia_core.application.report_maps import compose_map_sections
 from aia_core.application.report_method import compose_method_section
 from aia_core.application.report_tables import question_tables
@@ -305,7 +305,7 @@ def stored_client_report(
             "data_origin": "MODELLED_AI_PANEL",
             "lift": MODELLED_CLIENT_REPORT_LIFT.lift_id,
             "report_contract": CLIENT_REPORT_CONTRACT,
-            **REVIEW_STAMP_RECORD,
+            **review_stamp_record(data),
         },
         depends_on=list(composed.depends_on),
     )

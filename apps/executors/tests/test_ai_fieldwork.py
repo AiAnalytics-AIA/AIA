@@ -29,6 +29,7 @@ from aia_core.domain.ai_contracts import Delivery, UsageOutcome
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.fieldwork import DataOrigin, FieldworkSource
 from aia_core.domain.pipeline import fingerprint
+from aia_core.domain.report.review import REVIEW_STAMP_CONTRACT
 from aia_core.domain.residency import DataClass
 from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1, ResponseProcessSpec
 from aia_core.domain.workflow import (
@@ -1221,6 +1222,8 @@ def test_a_panel_run_has_a_client_report_of_admitted_modelled_numbers_and_a_fict
         again, same = stored_client_report(session, scope, store, run_id=run_id)
         assert again.artifact_id == stored.artifact_id and same == data
         assert stored.metadata["review_state"] == "DRAFT_UNAPPROVED"
+        # The composed client report takes the stamp, as its writer recorded after trying it.
+        assert stored.metadata.get("review_stamp") == REVIEW_STAMP_CONTRACT
         assert approve_report(
             session, scope, store, run_id=run_id, artifact_id=stored.artifact_id
         ).is_approved

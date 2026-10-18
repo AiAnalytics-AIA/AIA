@@ -9,6 +9,7 @@ journey covers (test_analysis_executor.py).
 
 from __future__ import annotations
 
+import hashlib
 from datetime import date
 from typing import Any
 
@@ -17,7 +18,7 @@ from aia_core.application.contextual_report import (
     CONTEXT_REPORT_CONTRACT,
 )
 from aia_core.application.report import INTERNAL_REPORT_PDF_ARTIFACT_TYPE
-from aia_core.application.report_export import REVIEW_STAMP_RECORD
+from aia_core.application.report_export import REVIEW_STAMP_RECORD, export_docx
 from aia_core.application.research import ResearchRuns, report_pdf_key, research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.domain.evidence import ClaimSurface
@@ -32,7 +33,7 @@ from aia_core.domain.report.model import (
     Section,
     text,
 )
-from aia_core.domain.report.review import ReviewMark, ReviewState
+from aia_core.domain.report.review import REVIEW_STAMP_CONTRACT, ReviewMark, ReviewState
 from aia_core.domain.scope import StudyStatus
 from aia_core.domain.workflow_templates import REPORT_PDF, REPORT_PDF_STEP_KIND
 from aia_core.infrastructure.db import create_session_factory
@@ -458,11 +459,22 @@ def test_approving_a_prepared_variant_asks_for_its_approved_pdf_under_its_review
     assert len(asked) == 1
     assert asked[0]["metadata"]["deep_research_run_id"] == REVIEW
     assert asked[0]["metadata"]["review_state"] == "APPROVED_INTERNAL"
+    # Rendered, the approved PDF is served, and both formats are named for what they state.
+    _render_pdfs(app, world)
+    params = {"deep_research_run_id": REVIEW}
+    assert researcher.get(base, params=params).json()["pdf"]["state"] == "READY"
+    for route, ext in (("download", "docx"), ("pdf/download", "pdf")):
+        got = researcher.get(f"{base}/{route}", params=params)
+        assert got.status_code == 200, got.text
+        assert got.headers["content-disposition"].endswith(
+            f'-{REVIEW}-{artifact_id}-schvaleno.{ext}"'
+        ), route
 
 
 def _render_pdfs(app: FastAPI, world: Any) -> list[str]:
     """The worker's part, stood in for: every waiting PDF job renders the DOCX its payload
-    names and stores the rendering the way the report_pdf step stores one; returns the PDFs."""
+    names -- an approved version's export -- and stores the rendering with what the
+    report_pdf step records beside it; returns the PDFs."""
     made: list[str] = []
     with create_session_factory(app.state.engine)() as session:
         scope = _scope(session, world)
@@ -470,18 +482,32 @@ def _render_pdfs(app: FastAPI, world: Any) -> list[str]:
         repo = research_artifacts(session, scope, app.state.artifact_store)
         while work := workflow.claim_next(worker_id="pdf-fixture", kinds={REPORT_PDF_STEP_KIND}):
             docx = repo.get(str(work.payload["docx_artifact_id"]))
+            exported = export_docx(repo, docx)
+            mark = exported.mark
+            review = (
+                {
+                    "review_state": mark.state.value,
+                    "approved_on": mark.approved_on.isoformat(),
+                    "review_stamp": REVIEW_STAMP_CONTRACT,
+                    "stamped": exported.stamped,
+                    "docx_sha256": mark.sha256,
+                }
+                if mark.approved_on is not None
+                else {}
+            )
             pdf, _ = repo.put(
                 project_id=work.project_id,
                 revision=work.project_revision,
                 stage_type="REPORT",
                 artifact_type=INTERNAL_REPORT_PDF_ARTIFACT_TYPE,
-                data=b"%PDF-1.7 rendering of " + docx.sha256.encode(),
+                data=b"%PDF-1.7 rendering of " + hashlib.sha256(exported.data).hexdigest().encode(),
                 content_type="application/pdf",
                 input_fingerprint=f"pdf-fixture-{work.attempt_id}",
                 metadata={
                     "run_id": work.payload["run_id"],
                     "deep_research_run_id": work.payload["deep_research_run_id"],
                     "rendering_of": docx.artifact_id,
+                    **review,
                 },
                 depends_on=[docx.artifact_id],
             )
