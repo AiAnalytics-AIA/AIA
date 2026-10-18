@@ -19,6 +19,8 @@ is pure:
 * :mod:`.merge` -- scoring, the topic gate, dedupe, confirmation and the verifier's verdicts;
 * :mod:`.topicality` -- whether a grounded finding supports the topic it was searched for:
   fixed rules over its quote, source title and claim, and the concept-family table;
+* :mod:`.document_types` -- what kind of document a web source is: a student thesis by
+  declared hosts, archive paths, path segments and title segments, or undetermined;
 * :mod:`.synthesis` -- the brief, and what of it may be published;
 * :mod:`.bundle` -- the sealed evidence bundle;
 * :mod:`.steps` -- what each step of a run stores, and the gate each refusal names;
