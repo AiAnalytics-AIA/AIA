@@ -155,6 +155,11 @@ Deep Research is a governed evidence service used at two checkpoints, not an eig
    [research-integrity-report](../../../.planning/plans/research-integrity-report.md). They change
    acceptance in the merge alone (`aia-merge-3`); the harness, grounding, the source table and
    the verification keys do not move, so reused tracks are judged again by the run-scoped merge.
+   Anchors, `@ 94744de` under `packages/aia_core/src/aia_core/domain/deep_research/`:
+   `aia-merge-3` is `merge.py:86-88`; the harness is `contracts.py:98`, and the only change to
+   `contracts.py` since `3b8fd98` adds the three quarantine reasons; `git diff 3b8fd98 94744de`
+   touches neither `grounding.py`, `sources.py` nor `steps.py`, where the merge record is the
+   run's own (`steps.py:15-16`) and a verifier batch is reused only unchanged (`steps.py:502`).
 
 **The methodological invariant.** Deep Research helps decide what to measure. Respondents
 determine what we observed. Deterministic analysis and Sociomapping determine the computed
