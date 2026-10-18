@@ -603,12 +603,13 @@ def literature_sections(
         )
         for v in sources.values()
     )
+    # The review and its seal, and nothing of the report's status: a version states that in its
+    # footers alone, so an approved one's stamp is the whole truth (D2). The stamp reads only the
+    # renderer's own status marks, never words (a study's may say "neschválení"), so these words
+    # are held by the tests that render this report (``review_stamp``).
     blocks.append(
         Paragraph(
-            text(
-                f"Deep Research: {research_run_id}. Pečeť ověřeného balíčku: {bundle.sha256}. "
-                "Tato kapitola je součástí interního neschváleného návrhu zprávy."
-            )
+            text(f"Deep Research: {research_run_id}. Pečeť ověřeného balíčku: {bundle.sha256}.")
         )
     )
     return (Section("Literární rešerše a externí kontext", tuple(blocks), id="literature"),)

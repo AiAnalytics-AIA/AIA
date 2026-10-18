@@ -10,6 +10,16 @@ A version stored before that layout says "KONCEPT — NESCHVÁLENO" on its cover
 document control too; stamping its footers would leave an "approved" file that says draft
 inside. It is :class:`NotStampable`, and its caller serves it as stored, never partly
 stamped (``application.report_export``).
+
+The check reads the renderer's own status marks alone -- a run in the status style, or the
+draft words themselves -- never the study's words. A bank's questionnaire asks "Jaký byl důvod
+neschválení vaší žádosti o hypotéku?", a quoted source says "podíl neschválených žádostí
+vzrostl": that is what the study says, not the version's status, and reading every word
+beginning "neschválen" as status would serve such an approved version with its draft footers
+(cross-review). That no composer's own words state a status outside
+the footers is held where those words are rendered: the four templates (``test_review_stamp``),
+the stored internal report and report with literature (``test_analysis_executor``) and the
+client report (``test_ai_fieldwork``).
 """
 
 from __future__ import annotations
@@ -68,7 +78,8 @@ def stamp_review(docx: bytes, mark: ReviewMark) -> bytes:
 
     Raises ``ValueError`` for a draft mark (a draft is its stored bytes) or bytes that are not
     the version the mark names, and :class:`NotStampable` when a footer holds other than one
-    status run, or anything a reader sees outside the footers states a status.
+    status run, or a part a reader sees outside the footers holds a status run or the draft
+    words.
     """
     words = approved_words(mark)
     if hashlib.sha256(docx).hexdigest() != mark.sha256:

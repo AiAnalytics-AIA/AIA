@@ -119,6 +119,16 @@ def test_an_empty_bundle_reports_a_gap_instead_of_inventing_a_review() -> None:
     assert "L1" not in written
 
 
+def test_the_chapter_names_its_review_and_seal_and_never_the_reports_status() -> None:
+    # A version states its review status in its footers alone (D2): the chapter ended with
+    # "…součástí interního neschváleného návrhu zprávy", and an approved export printed that
+    # under a SCHVÁLENO footer (cross-review).
+    original = bundle()
+    written = prose(original)
+    assert written.endswith(f"Deep Research: RUN-abc. Pečeť ověřeného balíčku: {original.sha256}.")
+    assert "neschválen" not in written.casefold() and "koncept" not in written.casefold()
+
+
 def test_corrupt_seal_and_foreign_synthesis_citations_refuse() -> None:
     original = bundle()
     with pytest.raises(ReportCompositionRefused, match="seal"):

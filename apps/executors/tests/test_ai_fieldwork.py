@@ -1212,8 +1212,12 @@ def test_a_panel_run_has_a_client_report_of_admitted_modelled_numbers_and_a_fict
     assert "interním výstupem" not in body and "Směr a podpora vztahů" not in body
 
     # Stored once as an unapproved draft, read back, and approvable as this run's report.
+    from datetime import date
+
     from aia_core.application.client_report import stored_client_report
     from aia_core.application.report_approval import approve_report
+    from aia_core.domain.report.review import ReviewMark, ReviewState
+    from aia_core.infrastructure.report_docx.review_stamp import stamp_review
 
     with world.sessions() as session:
         scope = world.lead_scope(session)
@@ -1221,6 +1225,21 @@ def test_a_panel_run_has_a_client_report_of_admitted_modelled_numbers_and_a_fict
         again, same = stored_client_report(session, scope, store, run_id=run_id)
         assert again.artifact_id == stored.artifact_id and same == data
         assert stored.metadata["review_state"] == "DRAFT_UNAPPROVED"
+        # Once approved, its export says SCHVÁLENO in every footer and no status elsewhere. The
+        # stamp reads only the renderer's own status marks (a study's words may say
+        # "neschválení"), so the client report's own words are held here (D2).
+        approved = stamp_review(
+            data,
+            ReviewMark(ReviewState.APPROVED, stored.artifact_id, stored.sha256, date(2026, 10, 18)),
+        )
+        with zipfile.ZipFile(io.BytesIO(approved)) as package:
+            for part in package.namelist():
+                words = package.read(part).decode(errors="ignore")
+                if part.startswith("word/footer"):
+                    assert "SCHVÁLENO" in words and "KONCEPT" not in words, part
+                elif part.endswith(".xml"):
+                    assert "neschválen" not in words.casefold(), part
+                    assert "KONCEPT" not in words, part
         assert approve_report(
             session, scope, store, run_id=run_id, artifact_id=stored.artifact_id
         ).is_approved
