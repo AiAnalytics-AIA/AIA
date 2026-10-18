@@ -89,11 +89,13 @@ _FRAME_TEXT: dict[OriginKind, str] = {
     ),
 }
 _LIMITATION_TEXT: dict[OriginKind, str] = {
-    OriginKind.SIMULATED: "Respondenti jsou syntetičtí. Tento návrh není měřením skutečných osob.",
-    OriginKind.MODELLED: (
-        f"Respondenti jsou {MODELLED_DISCLOSURE}. Tento návrh není měřením skutečných osob."
+    OriginKind.SIMULATED: (
+        "Respondenti jsou syntetičtí. Tato studie není měřením skutečných osob."
     ),
-    OriginKind.UNKNOWN: "Původ dat není znám. Tento návrh není měřením skutečných osob.",
+    OriginKind.MODELLED: (
+        f"Respondenti jsou {MODELLED_DISCLOSURE}. Tato studie není měřením skutečných osob."
+    ),
+    OriginKind.UNKNOWN: "Původ dat není znám. Tato studie není měřením skutečných osob.",
 }
 
 
@@ -427,9 +429,9 @@ def _with_contents(intro: Section, sections: list[Section], *, literature: bool)
     chapters = [s.title for s in sections[1:] if not s.appendix]
     appendices = [s.title for s in sections if s.appendix]
     variant = (
-        "Tato verze zprávy obsahuje literární rešerši vybranou k tomuto běhu."
+        "Tato varianta zprávy obsahuje literární rešerši vybranou k tomuto běhu."
         if literature
-        else "Tato verze je základní zprávou běhu: literární rešerše není její součástí. "
+        else "Tato varianta je základní zprávou běhu: literární rešerše není její součástí. "
         "Zpráva s vybranou rešerší je samostatná varianta: vychází z týchž uložených výsledků "
         "běhu a navíc má kapitolu o literatuře."
     )

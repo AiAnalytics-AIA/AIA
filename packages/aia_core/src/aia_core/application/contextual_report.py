@@ -375,7 +375,7 @@ def literature_sections(
         blocks.append(
             Paragraph(
                 text(
-                    "Automatický návrh syntézy prošel kontrolou citací a čísel, nikoli "
+                    "Automaticky sestavená syntéza prošla kontrolou citací a čísel, nikoli "
                     "schválením věcné platnosti všech interpretací. Generované závěry proto do "
                     "kapitoly nevstupují; uvedena jsou jen přijatá zjištění ze zdrojů."
                 )

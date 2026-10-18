@@ -144,6 +144,9 @@ def test_the_chapter_names_its_review_and_seal_and_never_the_reports_status() ->
     written = prose(original)
     assert written.endswith(f"Deep Research: RUN-abc. Pečeť ověřeného balíčku: {original.sha256}.")
     assert "neschválen" not in written.casefold() and "koncept" not in written.casefold()
+    # "návrh" is the study's design in a report, never a model's proposed synthesis.
+    assert "Automaticky sestavená syntéza prošla kontrolou citací a čísel" in written
+    assert "návrh syntézy" not in written
 
 
 def test_corrupt_seal_and_foreign_synthesis_citations_refuse() -> None:

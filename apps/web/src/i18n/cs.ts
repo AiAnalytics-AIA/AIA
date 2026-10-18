@@ -2512,7 +2512,7 @@ export const cs = {
         },
         reasonUnknown: "důvod, který tato verze stránky nezná",
         pending: "Zda běh odpoví i na tyto výzkumné otázky, rozhodne až podpora dat ze sběru: {list}",
-        notRequired: "Toto nasazení volbu Pokračovat s omezeními nevyžaduje, běh lze spustit i bez ní. Zpráva tyto výzkumné otázky uvede mezi omezeními; interní zpráva navíc zaznamená, že spuštění nikdo nepotvrdil.",
+        notRequired: "Toto nasazení volbu „Pokračovat s omezeními“ nevyžaduje, běh lze spustit i bez ní. Zpráva tyto výzkumné otázky uvede mezi omezeními jako výzkumné otázky bez doložené odpovědi; interní zpráva navíc zaznamená, že volbu při spuštění nikdo neudělal.",
         fix: "Propojit otázky s výzkumnými otázkami v Dotazníku",
         // Where each gap is fixed (lib/answerability.ts gapFixes), one link per place.
         fixTo: {

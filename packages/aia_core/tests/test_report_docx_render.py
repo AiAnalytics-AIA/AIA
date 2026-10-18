@@ -317,9 +317,11 @@ def test_the_revision_a_report_prints_is_named_as_its_designs(
 ) -> None:
     # Review 4 of D2: an approved file printed "Revize 1" on its cover and in its document
     # control, and "verze ART-…" in its footers, two numbers either of which read as the
-    # version. The first is the Design Revision the report was composed from, and says so.
+    # version. The first is the Design Revision the report was composed from, and says so --
+    # the study's design (cross-review: "Revize návrhu 1" above "KONCEPT" read as a draft's).
     body = _text(_xml(rendered, "word/document.xml"))
-    assert body.count("Revize návrhu") == 2  # the cover and the document control
+    assert body.count("Revize návrhu studie") == 2  # the cover and the document control
+    assert body.count("Revize návrhu") == 2
 
 
 def test_an_internal_report_prints_its_identifiers(report_ledger: Any) -> None:
