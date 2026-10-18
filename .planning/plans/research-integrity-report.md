@@ -5,11 +5,16 @@ chunks:
   - "[x] 2. The literature chapter keeps credibility and relevance apart: every accepted claim beside its verbatim passage and the topic it was searched for, every source with what its domain says (the source table labelled a proposal not yet approved), a review resting on one publisher said so, a sparse review said once"
   - "[x] 3. One report variant, the same draft in DOCX and PDF: the researcher chooses the run's own report or the report with one completed review; the worker renders the stored draft (report_pdf); both files say which variant they are and what they hold"
   - "[x] 4. Local render and inspection, USD 0: both variants of a fictional run composed, DOCX and PDF compared chapter by chapter, citations, maps, limitations, repeated prose, table of contents and layout checked by eye"
-  - "[ ] 5. Develop acceptance on the existing fictional Fio run, USD 0 (owner's call: needs the deploy): recompose the literature variant at contract -4, render its PDF in the worker image, compare with the DOCX"
+  - "[ ] 5. Develop acceptance on the existing fictional Fio run, USD 0 (owner's call: needs the deploy): recompose the literature variant at the current contract, render its PDF in the worker image, compare with the DOCX"
   - "[ ] 6. The lineage matrix from frozen records only: research question | items by wording | start verdict | the research_questions module's answer | literature L# or none | chapter"
   - "[ ] 7. Statistical reading notes: the interval method and the fictional-donor caveat, Czech pair-status words with their n basis, the person-scaling null, Stress-1 beside each figure, the multi-select note"
   - "[ ] 8. Association questions and the analysis handoff: Comparison.ASSOCIATE (aia-answerability-2), hypotheses and item links in the analysis payload, one statement of what analysis did not receive"
-  - "[ ] 9. Deep Research evaluation findings recorded with all six parts (topical relevance, student theses as academic), then the owner's call on ADR 0021 decision 7"
+  - "[ ] 9. Deep Research evaluation findings recorded with all six parts (topical relevance, student theses as academic), then the owner's call on ADR 0021 decision 7 (the call: D4, 2026-10-17; the rules are chunks 10 and 11)"
+  - "[ ] 10. D4, topic: merge quarantines a grounded finding whose quote and source title name a sibling concept and not the topic's, an object topic's finding that does not name its object, and a question topic's finding that shares none of its words (aia-dr-topicality-1 in aia-merge-3); a review stored under older rules is labelled in the report, never re-scored"
+  - "[ ] 11. D4, document types: merge quarantines a student thesis by declared host, path and title rules (aia-document-types-1), Client Knowledge exempt; the report labels one an older review accepted"
+  - "[ ] 12. D5, layout: the cover alone on page 1, the contents on a page of its own, chapters and appendices flow; a section only where orientation changes; headings and captions kept with what follows and never split; one contract bump for every report"
+  - "[ ] 13. D2, approval in the file: a report version states its status only in its footers; an approved version downloads stamped SCHVÁLENO with its date and version, DOCX and PDF alike; approving freezes the version and asks for its approved PDF"
+  - "[ ] 14. D1, the Run screen: each gap links to where it is fixed; an explicit Pokračovat s omezeními recorded as today; the gate on for develop, off in tests and the workbench; ADR 0025 Accepted"
 ---
 # Research integrity and report quality
 
@@ -180,6 +185,135 @@ converted by `LibreOfficePdf` (LibreOffice 24.2.7.2), the worker's own converter
   appendix's internal evidence keys (`sekce_2_obj_ovesny_napoj.effective_n`), and short chapters
   alone on a page (D5). The module prose in this render is the test's scripted model, not AIA's
   wording, so it says nothing about the Czech of real analyses.
+
+## Chunks 10-14 — the owner's answers in code (design, 2026-10-18)
+
+Mapped by five code readers and checked by two skeptics; anchors @ `c708721` (the code is byte-identical
+to `53e2752`). One deploy carries all five: the merge-rule and report-contract bumps land once, so
+in-flight Deep Research runs fail `composition_changed` once and prepared drafts read as earlier
+once.
+
+### Chunk 10 — does the finding support its topic (D4)
+
+Today no gate reads the subject. Grounding (`grounding.py:264-332`), the source score
+(`merge.py:231-246`) and the verifier (`agents.py:567-570`, which sees claim, quote and excerpt only,
+`review.py:262-269`) all pass a grounded quote from a credible host whatever it is about.
+
+- **Where:** a pure `domain/deep_research/topicality.py`, applied inside `merge_evidence` after the
+  source score and before dedupe (`merge.py:248-250`). No model is called, and both verify modes
+  start from `merge.candidates`, so an off-topic finding costs no verifier call.
+- **Rules (`aia-dr-topicality-1`), first deciding wins; terms from `filters.relevance_terms`:**
+  - R1 *object named* (OBJECT, CROSS): the quote or source title names the object by at least one
+    of its distinguishing terms (the label's terms less the ones every tracked object shares; the
+    whole label when that leaves none).
+  - R4 *concept swap*: the quote or source title names a sibling concept of a declared family and
+    not the topic's own. Families: a small table seeded with retail-banking products (běžný účet,
+    spořicí účet, hypotéka, úvěr, kreditní karta, pojištění, investice, penzijní spoření, stavební
+    spoření), each entry with its own test, plus the run's tracked objects as a family.
+  - R3 *topic words* (QUESTION, CROSS): claim, quote or source title shares at least one of the
+    topic's terms, after the client's terms, question words, the interpretation framings' words and
+    digits are taken out.
+  - No terms left to judge by: `topic_undetermined`, quarantined. Unknown is never good.
+  - R1 and R4 read only code-held text (quote, source title): the investigator's own claim never
+    decides a rule against it. A study-title rule was considered and dropped: client terms carry
+    the study's name, which empties it, and it rejects object findings that do not repeat the title.
+- **Result:** quarantine `off_topic` / `topic_undetermined`, the evidence kept, the detail in Czech
+  words as written (never stems). No new field on candidates or accepted evidence: the sealed
+  bundle's bytes do not move, and `bundle.versions["merge"]` says the check ran.
+- **Versions:** `MERGE_RULES_VERSION = aia-merge-3/{WORKS_VERSION}/{TOPICALITY_VERSION}/
+  {DOCUMENT_RULES_VERSION}`. The merge step checks the full composition (as verify does,
+  `review.py:221`), not only the source table (`review.py:101-102`). HARNESS_VERSION, GROUNDING_VERSION
+  and the verification keys do not move: reused tracks are judged again by the run-scoped merge.
+- **Older reviews:** a start on an unchanged target returns the completed run
+  (`application/deep_research.py:618-622, 699`), so an existing review is never judged again by the
+  engine. The report labels, never removes: for a bundle whose merge version predates the rules, each
+  accepted finding today's rules would quarantine is marked so, at USD 0. The Fio review is that case
+  (D3: no paid re-run).
+- **Report:** the relevance paragraph branches on the bundle's merge version by prefix
+  (`aia-dr-topicality-`), so a later version does not read as "nobody checked".
+- **Reproduction:** a fictional F1 test: a current-account trust topic, a grounded mortgage-thesis
+  quote on a credible academic host, sharing bank, trust and client words; R4 rejects it on its title.
+  The real Fio items stay a hypothesis until read (no network path to develop).
+
+### Chunk 11 — document types (D4)
+
+`vse.cz` is ACADEMIC_INSTITUTION for any page (`sources.py:350`); `is.vse.cz/zp/…`, `is.muni.cz/th/…`
+and `dspace.cuni.cz/…` score 0.70 undated, accepted, T2 (measured, read-only
+`score_web_source(..., table=SOURCE_TABLE_V1)`).
+
+- **A merge rule, on the retraction precedent** (`merge.py:212-230`): a pure
+  `domain/deep_research/document_types.py` (`aia-document-types-1`): `STUDENT_THESIS` or
+  `UNDETERMINED`, from declared whole-host thesis registers, path prefixes on declared university
+  hosts (never `/th/` on any host), whole path segments (`zaverecne-prace`, …) and whole title
+  segments (`bakalářská práce`, `diplomová práce`, `disertační práce`, …). A WEB_PAGE finding typed
+  STUDENT_THESIS is quarantined `student_thesis` with its signal and rules version; Client Knowledge
+  is never typed.
+- **Not a new source table:** V1's pinned hash, the ADR 0022 catalogue and every existing pin stay
+  as they are; the approved table is literally the same table, and a thesis on it is refused as a
+  retracted article on an approved host is.
+- **Doctoral dissertations count as theses** in this version, a choice the owner can revisit.
+- **Coverage, said plainly:** a thesis on a host or path no rule declares, with a title that does
+  not name its genre, is still accepted; the report keeps "může jít i o studentskou práci" for an
+  academic host the rules leave undetermined. A DOI is not a document type (repositories mint them
+  for theses), so no "scholarly" type is printed. Company pages and news versus opinion are the next
+  rules, not this version.
+- **Report:** a review stored before the rules has its accepted web sources typed at composition,
+  shown in the source table's type cell, with one callout naming the L# labels; the rules version
+  enters the composed draft's identity.
+
+### Chunk 12 — layout (D5)
+
+Today `Heading 1` and `AIA Appendix Heading` break the page (`styles.py:177, 180`), and the renderer
+opens a section for the first appendix even when portrait (`renderer.py:96`).
+
+- A page breaks only where the page furniture changes: after the cover, before the body (page
+  numbers restart; a continuous section cannot, measured), at every orientation change. The contents
+  keeps its own page (letting it flow saves no page and splits "Obsah").
+- `page_break_before` off for chapters and appendices; `keep_lines` added to the paragraph spec and
+  set on headings, captions, callout and finding titles; widow control pinned on every style.
+- `doc-h1` gets 24 pt above (the guideline's 32 px), so a flowing chapter opens with more air than a
+  section.
+- Dead renderer state (`ctx.running`) removed.
+- Measured in memory: internal 17 → 9 pages, client 16 → 9, final 18 → 9, documentation 11 → 7.
+- **One contract bump for every report**, shared with chunks 10, 11 and 13: the reuse keys do not
+  cover the renderer, so without it a recompose would return a stored page-per-chapter draft.
+
+### Chunk 13 — approval in the file (D2)
+
+Today no production path sets `ReportMeta.approvals` (`model.py:407`), so every stored report prints
+"KONCEPT — NESCHVÁLENO" (footers, cover, document control: `layout.py:160-172, 244-268, 316-326`), and
+after approval every download sends `X-AIA-Review-State: APPROVED_INTERNAL` over those bytes, under
+a "draft" file name (`routers/research.py:1795-1802, 1832, 1884`).
+
+- **A version** is one stored DOCX artifact (id + SHA-256). A draft exports its stored bytes. An
+  approved version exports the same bytes with only the footers' status runs replaced: "SCHVÁLENO
+  <date> · verze <id>". The renderer therefore states status only in footers.
+- **One function decides the mark**: approved only with `is_approved` and its ledger row; otherwise
+  draft. A version stored before this layout is served unstamped and the card says so; never a
+  partial stamp.
+- **PDF:** the approved PDF renders the stamped bytes under its own job key (never a prefix of a
+  draft key: the lookup is a literal `startswith`, `workflow_repository.py:673-674`); a draft PDF is
+  never served for an approved version.
+- **Approving** freezes the version and asks for its approved PDF.
+- **Not done here:** certificates, other approval workflows (D2); the client report's compose-on-
+  download, which can serve a new draft after a contract change (`client_report.py:249-260`), is its
+  own chunk.
+
+### Chunk 14 — the Run screen (D1)
+
+Today the card has one link, to the questionnaire's root, for every gap (`AnswerabilityGate.tsx:55`,
+`ExecutionSteps.tsx:767`), and develop never asks (`docker-compose.yml:139-142`, default false), so
+the owner's "record that choice" was not met there.
+
+- Each gap links to where it is fixed: no research questions → Návrh; unlinked or unmeasured →
+  the questionnaire's links; comparison reasons → the comparison card; a set the run will not
+  answer → that set; a measure the run will not answer → that question, or Dimenze for support.
+  An unknown reason keeps the questionnaire link, never hidden.
+- The choice is named "Pokračovat s omezeními", the start button reads "Spustit s omezeními" once
+  it is chosen, and the record is unchanged (digest, reason, ledger row).
+- The gate is on for develop through its compose default, still off in code, tests and the
+  workbench (§8); CI proves an SSM `false` still turns it off.
+- ADR 0025 Accepted with D1's words.
 
 ## Findings
 
