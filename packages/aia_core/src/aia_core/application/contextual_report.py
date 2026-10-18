@@ -23,6 +23,7 @@ from aia_core.application.report import (
     compose_internal_report,
 )
 from aia_core.application.report_chapters import report_chapters
+from aia_core.application.report_export import REVIEW_STAMP_RECORD
 from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.analysis import ANALYSIS_MODULES, AnalysisModuleId
 from aia_core.domain.deep_research.bundle import EvidenceBundle, SnapshotRef
@@ -792,6 +793,7 @@ def stored_contextual_report(
             "review_state": "DRAFT_UNAPPROVED",
             "report_contract": CONTEXT_REPORT_CONTRACT,
             "evidence_bundle_sha256": composed.sources["bundle"],
+            **REVIEW_STAMP_RECORD,
         },
         depends_on=list(composed.depends_on),
         reuse=False,

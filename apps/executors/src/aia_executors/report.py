@@ -6,7 +6,6 @@ import hashlib
 import time
 
 from aia_core.application.analysis_results import ReconstructionRefused, reconstruct_run
-from aia_core.application.contextual_report import CONTEXT_REPORT_ARTIFACT_TYPE
 from aia_core.application.report import (
     INTERNAL_REPORT_ARTIFACT_TYPE,
     INTERNAL_REPORT_PDF_ARTIFACT_TYPE,
@@ -15,11 +14,19 @@ from aia_core.application.report import (
     compose_internal_report,
 )
 from aia_core.application.report_chapters import report_chapters
+from aia_core.application.report_export import (
+    REVIEW_STAMP_RECORD,
+    Export,
+    ReviewUnrecorded,
+    export_docx,
+)
+from aia_core.application.report_variants import RENDERABLE_REPORTS
 from aia_core.application.research import research_artifacts
 from aia_core.domain.analysis import ANALYSIS_MODULES
 from aia_core.domain.fieldwork import origin_kind
 from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.report.model import Classification, ReportKind, ReportMeta
+from aia_core.domain.report.review import REVIEW_STAMP_CONTRACT, ReviewState
 from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.workflow import FailureClass
 from aia_core.domain.workflow_templates import REPORT_PDF_STEP_KIND, REPORT_STEP_KIND
@@ -148,6 +155,7 @@ class ReportExecutor:
                     "data_origin": first.record.labels.data_origin.value,
                     "map_source_sha256": chapters.map_sha256,
                     "report_contract": REPORT_CONTRACT_VERSION,
+                    **REVIEW_STAMP_RECORD,
                 },
                 depends_on=[*[m.artifact_id for m in sources], chapters.map_artifact_id],
             )
@@ -201,20 +209,38 @@ def store_pdf_rendering(
     docx_id: str,
     docx: bytes,
     metadata: dict[str, object],
+    approved: Export | None = None,
 ) -> dict[str, object]:
     """``docx`` (the stored artifact ``docx_id``) rendered as PDF and stored beside it, or the
     PDF already stored for the same bytes and converter. Raises :class:`PdfConversionFailed`.
 
     One path for every report variant (plan ``research-integrity-report`` chunk 3): the PDF is
     a rendering of a stored DOCX, never a second composition, so both formats carry the same
-    content for the same run and selected review."""
+    content for the same run and selected review.
+
+    ``approved``: the approved version's export (D2), whose bytes are ``docx``. Its mark and
+    the stamp contract enter the key and the metadata, so its PDF is never the draft's, even
+    for a version stored before the stamp layout, whose export is its stored bytes."""
     # The artifact id is part of the key: a PDF is served only as the rendering of the DOCX it
-    # names (rendering_of), so two drafts with the same bytes each get their own.
+    # names (rendering_of), so two drafts with the same bytes each get their own. A draft's key
+    # is as it always was, so every stored draft PDF is found again.
+    review: dict[str, object] = {}
+    if approved is not None:
+        mark = approved.mark
+        assert mark.state is ReviewState.APPROVED and mark.approved_on is not None
+        review = {
+            "review_state": mark.state.value,
+            "approved_on": mark.approved_on.isoformat(),
+            "review_stamp": REVIEW_STAMP_CONTRACT,
+            "stamped": approved.stamped,
+            "docx_sha256": mark.sha256,
+        }
     key = fingerprint(
         {
             "docx": hashlib.sha256(docx).hexdigest(),
             "docx_artifact_id": docx_id,
             "converter": pdf.version,
+            **({"review": review} if review else {}),
         }
     )
     context.checkpoint()
@@ -248,6 +274,7 @@ def store_pdf_rendering(
                     "rendering_of": docx_id,
                     "converter": pdf.version,
                     "conversion_seconds": seconds,
+                    **review,
                 },
                 depends_on=[docx_id],
             )
@@ -260,17 +287,19 @@ def store_pdf_rendering(
     }
 
 
-#: The report DOCX types a ``report_pdf`` step renders: the run's own report and the report
-#: with a chosen literature review.
-RENDERABLE_REPORTS = frozenset({INTERNAL_REPORT_ARTIFACT_TYPE, CONTEXT_REPORT_ARTIFACT_TYPE})
-
-
 class ReportPdfExecutor:
     """The ``report_pdf`` step: an already stored report DOCX rendered as PDF.
 
     Its payload names the DOCX by artifact id and SHA-256 and the run (and review) it reports;
     a DOCX that is not one of those, or whose bytes changed, is refused, never rendered. With
     no converter composed it fails by name (``pdf_disabled``) instead of staying queued.
+
+    The payload also names the version's review as the person asking read it (D2; a job asked
+    before that reads as a draft's). The step reads the mark again itself: a draft's job renders
+    the stored bytes, an approved version's renders its export -- the stamped DOCX a download of
+    it is. A draft's job whose version was approved since ends superseded, rendering nothing (its
+    approval asked for its own PDF); a mark that moved any other way is refused
+    (``report_review_changed``).
     """
 
     def __init__(
@@ -288,11 +317,20 @@ class ReportPdfExecutor:
             repo = research_artifacts(session, context.scope, self._store)
             try:
                 artifact = repo.get(docx_id)
-                docx = repo.read(docx_id)
+                exported = export_docx(repo, artifact)
             except (ArtifactNotFound, IntegrityError, ObjectNotFound) as exc:
                 return Failed(
                     FailureClass.SCHEMA_VIOLATION,
                     error={"reason": "report_docx_missing", "message": str(exc)},
+                )
+            except ReviewUnrecorded as exc:
+                return Failed(
+                    FailureClass.SCHEMA_VIOLATION,
+                    error={
+                        "code": "report_review_unrecorded",
+                        "reason": "report_review_unrecorded",
+                        "message": str(exc),
+                    },
                 )
         if (
             artifact.artifact_type not in RENDERABLE_REPORTS
@@ -303,6 +341,24 @@ class ReportPdfExecutor:
             return Failed(
                 FailureClass.SCHEMA_VIOLATION,
                 error={"reason": "report_docx_mismatch", "message": "not the report this names"},
+            )
+        # A job asked before payloads named the review was asked for a draft.
+        mark = exported.mark
+        asked = (payload.get("review_state") or ReviewState.DRAFT.value, payload.get("approved_on"))
+        now = (mark.state.value, mark.approved_on.isoformat() if mark.approved_on else None)
+        if asked != now:
+            if asked[0] == ReviewState.DRAFT.value and mark.state is ReviewState.APPROVED:
+                # Approved while its draft's PDF waited: a person's routine path, not a broken
+                # run. The draft has no PDF to make any more and the approval asked for its own,
+                # so the job ends having converted and stored nothing.
+                return Succeeded(output={"state": "SUPERSEDED", "reason": "report_review_changed"})
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={
+                    "code": "report_review_changed",
+                    "reason": "report_review_changed",
+                    "message": f"asked as {asked}, now {now}",
+                },
             )
         if self._pdf is None:
             return Failed(
@@ -317,7 +373,8 @@ class ReportPdfExecutor:
                 build=self._build,
                 pdf=self._pdf,
                 docx_id=docx_id,
-                docx=docx,
+                docx=exported.data,
+                approved=exported if mark.state is ReviewState.APPROVED else None,
                 metadata={
                     "run_id": payload.get("run_id"),
                     **(
