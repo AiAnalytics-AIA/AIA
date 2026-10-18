@@ -111,6 +111,11 @@ revision beside the run's (see the findings ledger, F-design-lane), not a browse
 
 ## PC9 — the report flows (owner D5)
 
+**Superseded on merge.** #478 implemented the same decision (a6fdd48, research-integrity-report chunk
+12: a page breaks only where the page furniture changes) and its `styles.py` replaced this chunk's
+when develop was merged in (aff7ecb). PC9's test passes under it; the page counts below are this
+chunk's own, measured before the merge.
+
 **Problem.** Every chapter and appendix heading carried a page break (`report_docx/styles.py:177,
 180 @ 20b24bb`), so short chapters stood alone on near-empty pages: the three journey reports rendered
 27, 29 and 29 pages with pages of 6 and 11 lines (runtime finding R7; #477's render, "short chapters
@@ -591,14 +596,14 @@ the decision is the owner's. Findings it covers are in the ledger below (Next: "
 | # | Kind | Question | Recommendation |
 |---|---|---|---|
 | D-1 | product | What does "Předáno" mean? Today it is a free, audited label set only in Settings; it names no report, freezes nothing in flight, and any member may reopen. PC1 made the screens honour it. | A "Předat klientovi" action on Výsledky that names the approved report artifact(s), stamps `delivered_at` on first delivery and sets DELIVERED; "Znovu otevřít" with a reason, audited; Settings keeps archive and cancel only. |
-| D-2 | product | D1 asked for an explicit, recorded "continue with limitations". It exists only with `AIA_RESEARCH_ANSWERABILITY_GATE` on, which ships off (CI pins it off). Turn it on for develop? | Yes: flip the develop value and the CI assertion in one small PR; ADR 0025 to Accepted in the docs PR. |
+| D-2 | product | D1 asked for an explicit, recorded "continue with limitations". It exists only with `AIA_RESEARCH_ANSWERABILITY_GATE` on, which ships off (CI pins it off). Turn it on for develop? | **Decided and done in #478** (d7fcf09, research-integrity-report chunk 14): on for develop, off in tests and the workbench, ADR 0025 Accepted. |
 | D-3 | product + data owner | AI fieldwork and analysis of every new or edited Design Revision need an operator to hash it into `AIA_AI_MATERIAL_CLASSIFICATIONS` and restart the worker (two P1 findings). Should classifying a revision's material be an audited in-product act by an authorised person? | Yes, as ADR 0020 does for prompts: bound to the revision's `material_sha256`, recorded in the approval ledger. Until then: show the digest and the classification state on the Run stage and in the park, and add the key to the runbook's table. |
 | D-4 | product | One approved DATASET or FINDING item (unresolved licence lineage) parks every design AI job of that client's studies, with no item named. Keep the licence rule and... | ...leave such items out of the design snapshot, named in AI pomoc as omitted with the reason (option a); a person records lineage later (lifecycle K3/K4). |
 | D-5 | product | "Nová simulace" creates a study nothing can act on, counted as active work. S0 (what a simulation is in AIA) is undecided (D9). | Until S1: keep the entry but say before creating that the workflow is not in AIA yet, and do not count simulations as active work; decide S0 separately. |
 | D-6 | product + methodology | A run "over" a materialized child draws the same respondents as over LIVE (no step reads the added column) and is a second paid run; the MVP gate's "new LIVE revision" contradicts M5. | Until a consumer exists, say on the Run stage and in the report that the dimension is recorded and read by no respondent (or hide the picker); restate the MVP gate under M5. |
 | D-7 | product | After LIVE is promoted, a panel start of an unchanged design returns the run drawn from the superseded LIVE. | Put the resolved LIVE version in a panel run's key (a child selection already is); PC13 already says when a start found a run. |
 | D-8 | engineering policy | No browser journey runs in CI, and they drift with the interface's words (three did; OI-106 two more). | Run the research and coherence journeys nightly on the workbench (no secrets, USD 0), not on every PR. |
-| D-9 | product (D2) | An approved report's files still print "KONCEPT — NESCHVÁLENO", and a newer unapproved draft (after a contract bump) replaces the approved one with no route to it. | On approval, render an approved copy (the draft stays immutable) and serve it; list a run's report versions with their approval; prefer the approved one and say a newer draft exists. |
+| D-9 | product (D2) | An approved report's files still print "KONCEPT — NESCHVÁLENO", and a newer unapproved draft (after a contract bump) replaces the approved one with no route to it. | **First half done in #478** (cb62426, 06da982, 594e21d, chunk 13): an approved version downloads stamped SCHVÁLENO, DOCX and PDF alike, and the card reads it again after approving. Still open: list a run's report versions and say when a newer draft exists. |
 | D-10 | product | Does D2's draft/approved status cover ADR 0019 gate 3 for the client report? Today the client report leaves AIA with no release gate, approving it says "interní použití", and "independent review" governs report approval but not design acceptance. | Give the client report its own approval wording and require it before the client download (or record every export); name the decisions independent review governs; record the run's starter, not the downloader, as the producer of a composed report. |
 | D-11 | product | A number the aggregate's rating refuses (absolute WTP, market size) is shown on Results, now labelled (PC2); the report omits it. | Keep it shown and labelled for researchers; it never reaches a client surface. |
 | D-12 | product | "Použít ve zprávě" is offered for a Deep Research run that sent no query (PC18 now says so). | Disable it when no query was sent. |
@@ -607,7 +612,7 @@ the decision is the owner's. Findings it covers are in the ledger below (Next: "
 | D-15 | product + data protection | Every picked or dropped client file is kept for ever, with no list and no delete (a wrong-client file stays). | A per-client source list with delete-when-unreferenced, audited. |
 | D-16 | product | Archiving a client fails every in-flight run of its studies, unconfirmed, and hides its delivered work. | Answer 409 with the running work unless confirmed; decide whether an archived client's delivered studies stay readable. |
 | D-17 | product | The run's cost ceiling ("horní mez") is not a bound: retries and parks repeat paid fieldwork (OI-64). | Fix OI-64 (per-respondent checkpoint, planned) rather than reword the approval. |
-| D-18 | methodology | The tracked-set size rule has three readings; the interval ordering rule lives only in the browser; K100's interval cannot be reached on develop and is not pinned; a superseded preset is still offered as a base; D4's relevance and document-type placement; modules without inputs gate the report. | Decide each with the methodology owner; none is changed here. |
+| D-18 | methodology | The tracked-set size rule has three readings; the interval ordering rule lives only in the browser; K100's interval cannot be reached on develop and is not pinned; a superseded preset is still offered as a base; modules without inputs gate the report. (D4's topical relevance and document types were decided and implemented in #478, chunks 10-11.) | Decide each with the methodology owner; none is changed here. |
 | D-20 | product | An analysis built under an earlier harness is hidden until repaired (PC3). Show it, labelled with its harness, instead? | Keep it hidden: it is text today's gate has not judged; the repair is one confirmed action over the frozen data. |
 
 ## Remaining plan, ranked (value × confidence ÷ complexity)
@@ -628,7 +633,7 @@ Safe engineering, no owner decision needed; each would be a chunk of this plan o
 6. **R6.** Czech words for the API's remaining refusal codes (about 45 of 64), research screens first.
 7. **R7 (PC5, second half).** The stage track says when the design changed after the run it shows; needs
    the design content's digest compared on the server, not in the browser.
-8. **R8.** The small P3 readers: the report panel re-read after approval, `pdf_disabled` not offered
+8. **R8.** The small P3 readers (the report card re-read after approval is done in #478, 594e21d): `pdf_disabled` not offered
    again until PDF is configured, failed modules not read as "Čeká", run lists that say they are
    truncated, `cancel_requested` shown, working-content history reachable, Settings' AI switches
    complete (FAST_EXTRACTION, panel personas, the answerability gate), and the report card's "Zpráva
