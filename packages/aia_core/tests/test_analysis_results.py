@@ -70,9 +70,11 @@ from aia_core.domain.report.model import (
     ParagraphRole,
     ReportKind,
     ReportMeta,
+    Section,
     Table,
     Text,
     TextCell,
+    text,
 )
 from aia_core.domain.report.validation import cited_refs
 from aia_core.domain.research_aggregate import AIA_AGGREGATE_V1, aggregate_dataset
@@ -794,6 +796,14 @@ def _callout_texts(blocks: Any) -> list[str]:
     ]
 
 
+def _paragraph_texts(blocks: Any) -> str:
+    return "\n".join(
+        "".join(i.text for i in b.content if isinstance(i, Text))
+        for b in blocks
+        if isinstance(b, Paragraph)
+    )
+
+
 def test_a_modelled_run_is_framed_as_modelled_in_the_introduction_and_the_limits(
     world: World,
 ) -> None:
@@ -827,6 +837,26 @@ def test_a_modelled_run_is_framed_as_modelled_in_the_introduction_and_the_limits
     assert "syntetičtí" not in intro
     limits = " ".join(_callout_texts(next(s for s in doc.sections if s.title == "Limity").blocks))
     assert "modelováno: AI respondenti z populace" in limits and "syntetičtí" not in limits
+    # One meaning per word (cross-review): "návrh" is the study's design, never what is not a
+    # measurement; "varianta" is the base report or the one with literature, "verze" the
+    # stored version only.
+    assert "Tato studie není měřením skutečných osob." in limits and "návrh" not in limits
+    assert (
+        "Tato varianta je základní zprávou běhu: literární rešerše není její součástí."
+        in _paragraph_texts(doc.sections[0].blocks)
+    )
+    with_literature = compose_internal_report(
+        dataclasses.replace(run, modules=modules),
+        report_meta(first.method_status),
+        context_sections=(
+            Section(
+                "Literární rešerše a externí kontext", (Paragraph(text("—")),), id="literature"
+            ),
+        ),
+    )
+    lead = _paragraph_texts(with_literature.sections[0].blocks)
+    assert "Tato varianta zprávy obsahuje literární rešerši vybranou k tomuto běhu." in lead
+    assert "Tato verze" not in lead + _paragraph_texts(doc.sections[0].blocks)
     assert RESEARCH_SUBTITLE[OriginKind.MODELLED] == "Modelovaný výzkum"
     assert set(RESEARCH_SUBTITLE) == set(OriginKind)
 

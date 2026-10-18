@@ -24,6 +24,7 @@ import uuid
 import zipfile
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
+from datetime import date
 from typing import Any
 
 import pytest
@@ -73,7 +74,7 @@ from aia_core.domain.evidence import AdmittedClaim, ClaimSurface, ViolationCode
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.pipeline import ProjectType
 from aia_core.domain.report.model import Callout
-from aia_core.domain.report.review import REVIEW_STAMP_CONTRACT
+from aia_core.domain.report.review import REVIEW_STAMP_CONTRACT, ReviewMark, ReviewState
 from aia_core.domain.residency import DataClass
 from aia_core.domain.sociomap import SociomapArtifactV3, read_artifact
 from aia_core.domain.workflow import (
@@ -93,6 +94,7 @@ from aia_core.infrastructure.model_adapters.transport import (
 )
 from aia_core.infrastructure.report_docx.lint import lint_docx
 from aia_core.infrastructure.report_docx.renderer import DocxRenderer
+from aia_core.infrastructure.report_docx.review_stamp import stamp_review
 from aia_core.infrastructure.report_pdf import PdfConversionFailed, PdfConverter
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
@@ -516,6 +518,25 @@ def _ledger(world: Any, run_id: str) -> list[Any]:
         return AIUsageRepository(session, world.lead_scope(session)).events(run_id=run_id)
 
 
+def _states_its_approval_in_its_footers_alone(data: bytes, artifact_id: str, sha256: str) -> None:
+    """The stored version ``data``, once approved: its export says SCHVÁLENO in every footer and
+    states no status anywhere else. The stamp reads only the renderer's own status marks (a
+    study's words may say "neschválení"), so a composer's own words are held here, where the
+    stored report is rendered (D2; the literature chapter once called itself part of an
+    unapproved draft under a SCHVÁLENO footer, cross-review)."""
+    approved = stamp_review(
+        data, ReviewMark(ReviewState.APPROVED, artifact_id, sha256, date(2026, 10, 18))
+    )
+    with zipfile.ZipFile(io.BytesIO(approved)) as package:
+        for part in package.namelist():
+            words = package.read(part).decode(errors="ignore")
+            if part.startswith("word/footer"):
+                assert "SCHVÁLENO" in words and "KONCEPT" not in words, part
+            elif part.endswith(".xml"):
+                assert "neschválen" not in words.casefold(), part
+                assert "KONCEPT" not in words, part
+
+
 def _reservations(world: Any, run_id: str) -> list[BudgetReservationRow]:
     with world.sessions() as session:
         return list(
@@ -793,6 +814,7 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
         steps["sociomap"]["output"]["artifact_id"],
     }
     assert document.startswith(b"PK") and lint_docx(document) == []
+    _states_its_approval_in_its_footers_alone(document, report_id, report.sha256)
     # The map of aia-sociomap-3 prints the register's approval, never "awaiting" (B4).
     body = zipfile.ZipFile(io.BytesIO(document)).read("word/document.xml").decode()
     assert "schválil k použití ve zprávách" in body
@@ -925,6 +947,10 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
                 assert run_settings(runs.get(interpreted.run_id)["metadata"]) is not None
                 assert "dosud neschválila" in printed and "nezaznamenala" not in printed
                 assert again.artifact_id == stored.artifact_id and not stored.is_approved
+                # Once approved, its export states that in every footer and nowhere says
+                # otherwise: the literature chapter called itself part of an unapproved draft
+                # under a SCHVÁLENO footer (cross-review, D2).
+                _states_its_approval_in_its_footers_alone(data, stored.artifact_id, stored.sha256)
                 assert stored.metadata["review_state"] == "DRAFT_UNAPPROVED"
                 assert stored.metadata["deep_research_run_id"] == interpreted.run_id
                 # The literature chapter is stampable too, as stored_contextual_report recorded.

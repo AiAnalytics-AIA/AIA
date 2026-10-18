@@ -19,10 +19,52 @@ from aia_core.domain.report.model import (
     TextCell,
     text,
 )
-from aia_core.domain.report.numbers import number
+from aia_core.domain.report.numbers import counted, effective_n, number
 from aia_core.domain.sociomap import read_object_maps
+from aia_core.domain.sociomap.pairs import PairRelations
+from aia_core.domain.sociomap.relations import PairStatus
 from aia_core.domain.sociomap.terrain import EnvelopeTerrain
 from aia_core.domain.sociomap_register import MethodologyStatus, recorded_statuses
+
+#: A pair's status in words (audit F3; the web's ``objectMap.state``): the table printed the
+#: code ("reliable") in English (cross-review).
+PAIR_STATUS: dict[PairStatus, str] = {
+    PairStatus.RELIABLE: "spolehlivý",
+    PairStatus.WEAK: "slabý",
+    PairStatus.UNKNOWN: "neznámý",
+}
+#: The basis under which a pair's state reads the effective n of its common raters' weights,
+#: not their count (``PairRelations.basis``; ``aia-sociomap-3``'s, AIA Q6 (c)).
+_EFFECTIVE_N_BASIS = "kish_effective_n"
+_ANSWERS = ("společná odpověď", "společné odpovědi", "společných odpovědí")
+
+
+def pair_status_means(relations: PairRelations) -> dict[PairStatus, str]:
+    """What each state says, as ``relations.pair_status`` decided it for this map: on the n
+    its recorded basis names, at its ``n_min``; nothing more.
+
+    The count of common raters decides it under ``respondent_count`` and for a relation
+    stored before the evidence policy (no basis). Under the effective-n basis it is the
+    effective n of those raters' weights, which the count can far exceed, so the words name
+    that n and never the count (cross-review: "málo společných odpovědí" beside 60 of them
+    at n_min 30, the effective n 6.2).
+    """
+    if relations.basis == _EFFECTIVE_N_BASIS:
+        enough = f"efektivní n aspoň {relations.n_min}"
+        short = f"efektivní n pod {relations.n_min}"
+    else:
+        enough = f"aspoň {counted(relations.n_min, *_ANSWERS)}"
+        short = f"méně než {counted(relations.n_min, *_ANSWERS)}"
+    return {
+        PairStatus.RELIABLE: f"{enough} a interval korelace nezahrnuje nulu",
+        # The interval includes zero, so the correlation is not told apart from zero: never "od
+        # žádného", which Czech reads as "from any relation" (cross-review).
+        PairStatus.WEAK: (
+            f"{enough}, ale interval korelace zahrnuje nulu, takže korelaci nelze odlišit od nuly"
+        ),
+        PairStatus.UNKNOWN: f"{short}, nebo korelaci nelze spočítat",
+    }
+
 
 QUALITY = {
     "good": "dobrá",
@@ -109,7 +151,8 @@ def compose_map_sections(
                 blocks.append(
                     Paragraph(
                         text(
-                            f"Metoda {method} zahrnuje {len(artifact.object_ids)} objektů. "
+                            f"Metoda {method} zahrnuje "
+                            f"{counted(len(artifact.object_ids), 'objekt', 'objekty', 'objektů')}. "
                             "Vztahy vycházejí "
                             f"z {support.placed} použitelných profilů hodnocení z celkem "
                             f"{support.respondents} odpovědních profilů; počet nezávislých "
@@ -159,39 +202,53 @@ def compose_map_sections(
                 continue  # the pair table prints r and n outside the ledger: internal only
             labels = {o["id"]: o["label"] for o in battery["objects"]}
             pairs = artifact.relations
+            means = pair_status_means(pairs)
+            # Under the effective-n basis the state reads that n, so the table prints it
+            # beside the count, rounded down: never more support than there is.
+            effective = pairs.n_effective
             rows: list[TableRow] = []
             for i, first in enumerate(artifact.object_ids):
                 for j in range(i + 1, len(artifact.object_ids)):
                     second = artifact.object_ids[j]
                     r = pairs.r[i][j]
                     status = pairs.status[i][j]
-                    rows.append(
-                        TableRow(
-                            (
-                                TextCell(f"{labels[first]} \u00d7 {labels[second]}"),
-                                TextCell("nedefinováno" if r is None else number(round(r, 3), 3)),
-                                TextCell(str(pairs.n[i][j])),
-                                TextCell(str(status)),
-                            )
-                        )
-                    )
+                    cells = [
+                        TextCell(f"{labels[first]} \u00d7 {labels[second]}"),
+                        TextCell("nedefinováno" if r is None else number(round(r, 3), 3)),
+                        TextCell(str(pairs.n[i][j])),
+                    ]
+                    if effective is not None:
+                        n_eff = effective[i][j]
+                        cells.append(TextCell("neuvedeno" if n_eff is None else effective_n(n_eff)))
+                    cells.append(TextCell("neuvedeno" if status is None else PAIR_STATUS[status]))
+                    rows.append(TableRow(tuple(cells)))
+            columns = [
+                Column("Dvojice objektů", width_weight=3),
+                Column("Korelace r", align=Align.RIGHT),
+                Column("Společné odpovědi", align=Align.RIGHT, width_weight=1.5),
+            ]
+            basis_note = ""
+            if effective is not None:
+                columns.append(Column("Efektivní n", align=Align.RIGHT, width_weight=1.5))
+                basis_note = (
+                    "Efektivní n vychází z vah respondentů, kteří hodnotili oba objekty; stav "
+                    "vztahu se řídí jím, nikoli počtem společných odpovědí. "
+                )
+            columns.append(Column("Stav vztahu"))
             blocks.append(
                 Table(
                     id=f"tab-native-map-pairs-{index}-{ordinal}",
                     title="Směr a podpora vztahů",
-                    columns=(
-                        Column("Dvojice objektů", width_weight=3),
-                        Column("Korelace r", align=Align.RIGHT),
-                        Column("Společné odpovědi", align=Align.RIGHT, width_weight=1.5),
-                        Column("Status"),
-                    ),
+                    columns=tuple(columns),
                     rows=tuple(rows),
                     source=source,
                     notes=(
-                        "Kladné r značí souhlasný vztah, záporné opačný. RELIABLE: "
-                        "vztah splňuje uložené pravidlo podpory a intervalu; WEAK: "
-                        "slabší opora; UNKNOWN: nedostatek informací. "
-                        "Hodnoty jsou vlastnosti výpočtu, nikoli schválená populační tvrzení.",
+                        "Kladné r značí souhlasný vztah, záporné opačný. "
+                        + basis_note
+                        + "Stav vztahu: "
+                        + "; ".join(f"{PAIR_STATUS[s]}: {means[s]}" for s in PairStatus)
+                        + ". Hodnoty jsou vlastnosti výpočtu, nikoli schválená populační "
+                        "tvrzení.",
                     ),
                 )
             )

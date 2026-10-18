@@ -8,15 +8,16 @@ from __future__ import annotations
 
 import re
 from collections import Counter
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any, Final
 from urllib.parse import urlsplit
 
 from sqlalchemy.orm import Session
 
 from aia_core.application.analysis_results import reconstruct_run
-from aia_core.application.deep_research import DeepResearchRuns, run_settings
+from aia_core.application.deep_research import BundleNotReady, DeepResearchRuns, run_settings
 from aia_core.application.report import (
     RESEARCH_SUBTITLE,
     ReportCompositionRefused,
@@ -28,10 +29,12 @@ from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.analysis import ANALYSIS_MODULES, AnalysisModuleId
 from aia_core.domain.deep_research.bundle import EvidenceBundle, SnapshotRef
 from aia_core.domain.deep_research.contracts import (
+    DeepResearchRequest,
     EvidenceItem,
     EvidenceOrigin,
     QualityStatus,
     SourceKind,
+    SubjectKind,
 )
 from aia_core.domain.deep_research.document_types import (
     DOCUMENT_RULES_VERSION,
@@ -79,9 +82,14 @@ from aia_core.domain.report.model import (
     text,
 )
 from aia_core.domain.scope import Permission, StudyContext
-from aia_core.infrastructure.artifact_repository import Artifact, ArtifactRepository, ArtifactStatus
+from aia_core.infrastructure.artifact_repository import (
+    Artifact,
+    ArtifactNotFound,
+    ArtifactRepository,
+    ArtifactStatus,
+)
 from aia_core.infrastructure.scope_repository import ScopeRepository
-from aia_core.infrastructure.storage import ArtifactStore
+from aia_core.infrastructure.storage import ArtifactStore, IntegrityError, ObjectNotFound
 
 CONTEXT_REPORT_CONTRACT = "aia-contextual-report-5"
 # Stored beside the run's own report, on the Study's design project (ADR 0016).
@@ -180,13 +188,57 @@ def _host(url: str | None) -> str | None:
     return host.removeprefix("www.") if host else None
 
 
+class TopicRulesUnread(Enum):
+    """Today's topic rules could not be applied to a review merged before them: the stored plan
+    they read the client's names from (``DeepResearchRuns.frozen_request``) is missing, does not
+    verify, or is not the run's request. Whether they would set any finding aside is unknown."""
+
+    PLAN_UNVERIFIED = "plan_unverified"
+
+
+#: What a plan read fails with when the plan is not there to read as stored: the run's own
+#: refusal, the store's verdict on the object (missing, corrupt), and a payload that is not a
+#: request. A refusal of the person's access is none of these, and still refuses the report;
+#: nor is a store that failed to answer (a timeout, throttling: the base ``StorageError``),
+#: which a retry may read, so it fails the request as before rather than storing a newest
+#: draft without the labels (cross-review).
+_PLAN_UNREADABLE: Final = (
+    BundleNotReady,
+    ObjectNotFound,
+    IntegrityError,
+    ArtifactNotFound,
+    ValueError,
+    KeyError,
+    TypeError,
+)
+
+
+def todays_topic_rules(
+    bundle: EvidenceBundle, read_request: Callable[[], DeepResearchRequest]
+) -> TopicScreen | TopicRulesUnread | None:
+    """The topic rules a review's chapter is read by today (D4): none for a review merged under
+    them (its merge judged every finding, and ``read_request`` is never called); otherwise
+    today's, over its sealed subjects and the client terms its plan kept -- or, when that plan
+    cannot be read, :attr:`TopicRulesUnread.PLAN_UNVERIFIED`, which the chapter says in one
+    callout. A review composed without its labels is still a report; the labels need the plan,
+    the rest of the chapter does not (cross-review: a plan that did not verify refused the
+    whole report with literature)."""
+    if judged_topic(bundle.versions.get("merge", "")):
+        return None
+    try:
+        request = read_request()
+    except _PLAN_UNREADABLE:
+        return TopicRulesUnread.PLAN_UNVERIFIED
+    return topic_screen(bundle.subjects, client_terms=request.client_terms)
+
+
 def literature_sections(
     bundle: EvidenceBundle,
     *,
     research_run_id: str,
     origin: OriginKind | None = None,
     tiers_approved: bool | None = None,
-    topics: TopicScreen | None = None,
+    topics: TopicScreen | TopicRulesUnread | None = None,
 ) -> tuple[Section, ...]:
     """Publish accepted source claims; citation checks do not approve model inferences.
 
@@ -210,6 +262,8 @@ def literature_sections(
     unchanged target returns it); with ``topics``, today's rules over its frozen request, each
     accepted finding they would set aside is labelled with the reason and one callout names
     their sources -- never removed, re-scored or recounted, the bundle and its seal as stored.
+    With :attr:`TopicRulesUnread.PLAN_UNVERIFIED`, one callout says today's topic check could
+    not be applied, so an unlabelled finding is not read as one that passes it.
     The document rules (D4) likewise: a review merged before them has its accepted web sources
     typed now, by their address and title (Client Knowledge never), and a student thesis is
     named in its source's type cell, after each of its findings and in that one callout, ahead
@@ -229,13 +283,20 @@ def literature_sections(
             if typed.type is DocumentType.STUDENT_THESIS:
                 theses[found.evidence.evidence_id] = typed
     would_reject: dict[str, TopicJudgement] = {}
-    if topics is not None and not topic_judged:
+    if isinstance(topics, TopicScreen) and not topic_judged:
         for found in bundle.accepted:
             if found.evidence.evidence_id in theses:
                 continue
             judgement = topics.judge(found.evidence)
             if judgement.verdict is not TopicVerdict.ON_TOPIC:
                 would_reject[found.evidence.evidence_id] = judgement
+    # A finding today's topic check would have judged (a thesis is set aside before it), when
+    # that check could not be applied: unknown, said once, never read as passing.
+    topics_unread = (
+        topics is TopicRulesUnread.PLAN_UNVERIFIED
+        and not topic_judged
+        and any(a.evidence.evidence_id not in theses for a in bundle.accepted)
+    )
     accepted = {a.evidence.evidence_id: a for a in bundle.accepted}
     labels: dict[str, str] = {}
     # url or ref -> (label, url, title, date, retrieved, host, source class, findings)
@@ -290,7 +351,9 @@ def literature_sections(
                 "jsou proto vedeny odděleně od evidence studie."
             )
         ),
-        Paragraph(text(_relevance_sentence(topic_judged))),
+        Paragraph(
+            text(_relevance_sentence(topic_judged, frozenset(s.kind for s in bundle.subjects)))
+        ),
     ]
     if EvidenceOrigin.RECORDED_FIXTURE in bundle.origins:
         blocks.append(
@@ -312,7 +375,7 @@ def literature_sections(
         blocks.append(
             Paragraph(
                 text(
-                    "Automatický návrh syntézy prošel kontrolou citací a čísel, nikoli "
+                    "Automaticky sestavená syntéza prošla kontrolou citací a čísel, nikoli "
                     "schválením věcné platnosti všech interpretací. Generované závěry proto do "
                     "kapitoly nevstupují; uvedena jsou jen přijatá zjištění ze zdrojů."
                 )
@@ -388,17 +451,40 @@ def literature_sections(
                 "Nepodporuje téma, pro které bylo hledáno, nebo to nelze posoudit, podle kontroly "
                 f"tématu {TOPICALITY_VERSION}: {named(would_reject)}."
             )
+        # With today's topic check not applied, the count is of the document rules alone: a
+        # lower bound, never the total under today's rules (cross-review).
+        failed = len(theses) + len(would_reject)
+        total = (
+            f"nejméně {failed} (dnešní kontrolu tématu nebylo možné použít)"
+            if topics_unread
+            else str(failed)
+        )
         blocks.append(
             Callout(
                 CalloutKind.LIMITATION,
                 text(
                     "Rešerše vznikla před dnešními pravidly pro přijetí zjištění. Přijatá "
-                    f"zjištění, která by podle nich neprošla: {len(theses) + len(would_reject)}. "
+                    f"zjištění, která by podle nich neprošla: {total}. "
                     + " ".join(rules)
                     + " U každého je níže uveden důvod. Kapitola je uvádí tak, jak je rešerše "
                     "přijala, a nemění počty ani pečeť balíčku; čtěte je s touto výhradou."
                 ),
                 title="Zjištění, která by dnešní pravidla nepřijala",
+            )
+        )
+    if topics_unread:
+        blocks.append(
+            Callout(
+                CalloutKind.LIMITATION,
+                text(
+                    f"Rešerše vznikla před dnešní kontrolou tématu ({TOPICALITY_VERSION}) a tu "
+                    "na ni nebylo možné použít: uložený plán rešerše, z něhož kontrola čte "
+                    "jména klienta, se nepodařilo ověřit. Zda by některé z přijatých zjištění "
+                    "dnes kontrolou tématu neprošlo, proto není známo; že u zjištění není uveden "
+                    "důvod, neznamená, že by jí prošlo. Kapitola uvádí zjištění tak, jak je "
+                    "rešerše přijala."
+                ),
+                title="Dnešní kontrolu tématu nebylo možné použít",
             )
         )
 
@@ -603,12 +689,13 @@ def literature_sections(
         )
         for v in sources.values()
     )
+    # The review and its seal, and nothing of the report's status: a version states that in its
+    # footers alone, so an approved one's stamp is the whole truth (D2). The stamp reads only the
+    # renderer's own status marks, never words (a study's may say "neschválení"), so these words
+    # are held by the tests that render this report (``review_stamp``).
     blocks.append(
         Paragraph(
-            text(
-                f"Deep Research: {research_run_id}. Pečeť ověřeného balíčku: {bundle.sha256}. "
-                "Tato kapitola je součástí interního neschváleného návrhu zprávy."
-            )
+            text(f"Deep Research: {research_run_id}. Pečeť ověřeného balíčku: {bundle.sha256}.")
         )
     )
     return (Section("Literární rešerše a externí kontext", tuple(blocks), id="literature"),)
@@ -654,9 +741,21 @@ def _document_note(typed_by: str | None) -> str:
     )
 
 
-def _relevance_sentence(topic_judged: bool) -> str:
+def _relevance_sentence(topic_judged: bool, kinds: frozenset[SubjectKind]) -> str:
     """What code checked of a finding's relevance, by the review's own record (D4): with the
-    topic rules, what they check and what they leave; without them, that nobody checked."""
+    topic rules, what they check and what they leave; without them, that nobody checked.
+
+    Each check is said of the topics it runs for (``topicality.TopicScreen.judge_text``), named
+    as the reader sees them in the chapter's list of topics, and only for the kinds of topic
+    the review holds (``kinds``, its subjects'): the object's own words (R1) for a topic that
+    is an object's name, and for a cross (another topic with an object after a dash); two
+    shared words (R3) for a question or a framed context -- in Interpretation Research every
+    such topic is a framing (``interpretation.FRAMINGS``) of a result, a research question, the
+    study's goal, a category or a pair of objects -- and for a cross's part before the dash;
+    the concept swap (R4) for any topic naming a concept of a family. Cross-review: the
+    sentence claimed the object check for "a question about it", which never runs for a framed
+    question about an object (a QUESTION, not a CROSS), and named the two-word check only for
+    research questions."""
     if not topic_judged:
         return (
             "U každého zjištění AIA ověřila, že citovaná pasáž je doslova v zachyceném zdroji "
@@ -666,19 +765,41 @@ def _relevance_sentence(topic_judged: bool) -> str:
             "uvedeno téma, pro které bylo hledáno, a doslovná citace, a u každého zdroje jeho "
             "typ podle domény."
         )
-    return (
+    checks = [
         "U každého zjištění AIA ověřila, že citovaná pasáž je doslova v zachyceném zdroji "
         "a že čísla tvrzení jsou v ní uvedena; ověřovací model posoudil, zda pasáž "
         "tvrzení podporuje. AIA také ověřila, že se zjištění týká tématu, pro které bylo "
-        "hledáno: u sledovaného objektu, že ho citace nebo název zdroje jmenuje; u tématu, "
-        "které jmenuje pojem z pevně dané skupiny (bankovní produkt, sledovaný objekt), že "
-        "zdroj nejmenuje místo něj jiný pojem téže skupiny; a že tvrzení, citace nebo název "
-        "zdroje sdílejí aspoň dvě slova tématu (má-li téma jediné slovo, to jedno). Neověřila "
-        "však, zda se zdroj týká stejné populace, území a období jako tato studie, ani zda "
-        "shoda slov znamená shodu významu. "
+        "hledáno, a to podle druhu tématu."
+    ]
+    if SubjectKind.OBJECT in kinds:
+        checks.append(
+            "U tématu, které je názvem objektu, ověřila, že citace nebo název zdroje obsahuje "
+            "ta slova jeho názvu, kterými se liší od ostatních objektů této rešerše (je-li "
+            "objekt v rešerši jediný, celý název)."
+        )
+    if SubjectKind.QUESTION in kinds:
+        checks.append(
+            "U tématu, které je otázkou nebo popisem hledaného kontextu (k výsledku otázky, "
+            "výzkumné otázce, cíli studie, kategorii nebo dvojici objektů), ověřila, že "
+            "tvrzení, citace a název zdroje dohromady sdílejí aspoň dvě jeho slova (zbývá-li "
+            "jediné, to jedno); nepočítají se přitom slova, kterými AIA téma uvozuje, jména "
+            "klienta, tázací slova a slova s číslicí."
+        )
+    if SubjectKind.CROSS in kinds:
+        checks.append(
+            "U tématu, které za pomlčkou připojuje název objektu, ověřila obojí: u objektu za "
+            "pomlčkou slova jeho názvu, u části před pomlčkou její slova jako u otázky."
+        )
+    checks.append(
+        "U každého tématu, které jmenuje pojem z pevně dané skupiny (druh bankovního "
+        "produktu; objekt této rešerše, je-li jich v ní víc), ověřila také, že citace ani "
+        "název zdroje nejmenují místo něj jiný pojem téže skupiny. "
+        "Neověřila však, zda se zdroj týká stejné populace, území a období jako tato studie, "
+        "ani zda shoda slov znamená shodu významu. "
         "To posuzuje čtenář: u každého zjištění je proto uvedeno téma, pro které bylo hledáno, "
         "a doslovná citace, a u každého zdroje jeho typ podle domény."
     )
+    return " ".join(checks)
 
 
 def _withheld(one: str, several: str, count: int) -> str:
@@ -875,13 +996,9 @@ def _compose(
         raise ReportCompositionRefused("Deep Research bundle has different design lineage")
     # A review merged before the topic rules (D4) is labelled by today's, over its own frozen
     # request: its subjects as sealed, the client terms its plan kept. USD 0, nothing re-run.
-    topics = (
-        None
-        if judged_topic(bundle.versions.get("merge", ""))
-        else topic_screen(
-            bundle.subjects,
-            client_terms=service.frozen_request(deep_research_run_id, store=store).client_terms,
-        )
+    # A plan that cannot be read leaves the labels out and says so.
+    topics = todays_topic_rules(
+        bundle, lambda: service.frozen_request(deep_research_run_id, store=store)
     )
     analysis = reconstruct_run(session, scope, store, run_id=run_id)
     first = analysis.modules[AnalysisModuleId.EXECUTIVE]
@@ -956,6 +1073,12 @@ def _compose(
             # either composes afresh.
             "topicality": TOPICALITY_VERSION,
             "documents": DOCUMENT_RULES_VERSION,
+            # Composed without today's topic labels: another document than with them.
+            **(
+                {"topic_rules": TopicRulesUnread.PLAN_UNVERIFIED.value}
+                if topics is TopicRulesUnread.PLAN_UNVERIFIED
+                else {}
+            ),
             "title": meta.title,
             "subtitle": meta.subtitle,
             "client": meta.client_name,

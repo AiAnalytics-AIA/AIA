@@ -95,6 +95,12 @@ def czech_short_date(d: date) -> str:
     return f"{d.day}.{NBSP}{d.month}.{NBSP}{d.year}"
 
 
+def counted(n: int, one: str, few: str, many: str) -> str:
+    """``n`` with the words that agree with it in Czech: ``one`` for 1, ``few`` for 2 to 4,
+    ``many`` otherwise (0 and 5 up): "1 položka", "3 položky", "5 položek"."""
+    return f"{n} {one if n == 1 else few if 2 <= n <= 4 else many}"
+
+
 def page_of(page: int, total: int) -> str:
     """Only for tests of the footer text: ``3 z 42``."""
     return f"{page}{NBSP}z{NBSP}{total}"

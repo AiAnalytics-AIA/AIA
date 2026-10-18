@@ -92,6 +92,14 @@ def test_a_short_czech_date_is_numeric_and_unbreakable() -> None:
     assert numbers.czech_short_date(date(2026, 10, 8)) == f"8.{NB}10.{NB}2026"
 
 
+@pytest.mark.parametrize(
+    ("n", "out"),
+    [(0, "0 objektů"), (1, "1 objekt"), (2, "2 objekty"), (4, "4 objekty"), (5, "5 objektů")],
+)
+def test_a_count_takes_the_words_that_agree_with_it(n: int, out: str) -> None:
+    assert numbers.counted(n, "objekt", "objekty", "objektů") == out
+
+
 # --- grades ------------------------------------------------------------------------------
 
 

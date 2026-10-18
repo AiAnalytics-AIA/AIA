@@ -7,10 +7,15 @@ from pathlib import Path
 
 import pytest
 
-from aia_core.application.report_maps import compose_map_sections
-from aia_core.domain.report.model import Paragraph, SociomapFigure
+from aia_core.application.report_maps import (
+    PAIR_STATUS,
+    compose_map_sections,
+    pair_status_means,
+)
+from aia_core.domain.report.model import Paragraph, SociomapFigure, Table, TextCell
 from aia_core.domain.sociomap import (
     AIA_SOCIOMAP_V1,
+    AIA_SOCIOMAP_V2,
     AIA_SOCIOMAP_V3,
     ArtifactIntegrityError,
     ObjectMapInputs,
@@ -18,11 +23,13 @@ from aia_core.domain.sociomap import (
     RatingsMatrix,
     RelationMatrix,
     SociomapInputs,
+    SociomapSpecV3,
     compute_object_map,
     compute_sociomap,
     read_object_maps,
 )
 from aia_core.domain.sociomap.layout import correlation_distance
+from aia_core.domain.sociomap.relations import PairStatus
 from aia_core.infrastructure.report_docx.cover import ASSET
 from aia_core.infrastructure.report_docx.object_map_figure import object_map_snapshots
 
@@ -75,6 +82,122 @@ def test_both_views_preserve_the_frozen_artifact_and_are_deterministic() -> None
         if hasattr(i, "text")
     )
     assert "20" in prose and "donorů" in prose and "Prázdné oblasti" in prose
+
+
+def test_the_map_chapter_says_its_counts_and_pair_states_in_czech() -> None:
+    # "4 objektů" broke Czech agreement and the pair table's state column printed the code
+    # ("reliable") in English (cross-review): every state has its words, in the cells and in
+    # the table's note.
+    frozen = result()
+    ((_, artifact),) = read_object_maps(frozen["batteries"][0])
+    means = pair_status_means(artifact.relations)
+    assert set(PAIR_STATUS) == set(PairStatus) == set(means)
+    sections = compose_map_sections(frozen, object_map_snapshots(frozen), source="Frozen map SHA")
+    prose = " ".join(
+        i.text
+        for b in sections[0].blocks
+        if isinstance(b, Paragraph)
+        for i in b.content
+        if hasattr(i, "text")
+    )
+    assert "Metoda aia-sociomap-3 zahrnuje 4 objekty." in prose
+    (table,) = [b for b in sections[0].blocks if isinstance(b, Table)]
+    assert table.columns[-1].label == "Stav vztahu"
+    states = [r.cells[-1].text for r in table.rows if isinstance(r.cells[-1], TextCell)]
+    assert len(states) == 6 and set(states) <= set(PAIR_STATUS.values())
+    for status in PairStatus:
+        assert f"{PAIR_STATUS[status]}: {means[status]}" in table.notes[0]
+    words = " ".join([*states, *table.notes])
+    assert not any(code in words for code in ("reliable", "RELIABLE", "WEAK", "UNKNOWN"))
+
+
+def weighted_result(spec: SociomapSpecV3) -> dict:
+    """Five fictional objects, ten respondents weighted 5 and seventy weighted 1; ``d`` and
+    ``e`` each unrated by sixteen of the latter, so the pair ``(d, e)`` keeps 48 common raters
+    whose weights' effective n is 26.9, below the methods' n_min of 30."""
+    rng = random.Random(92)
+    objects = ("a", "b", "c", "d", "e")
+    values: list[tuple[float | None, ...]] = []
+    for k in range(80):
+        row: list[float | None] = [float(rng.randint(1, 10)) for _ in objects]
+        if 10 <= k < 26:
+            row[3] = None
+        if 26 <= k < 42:
+            row[4] = None
+        values.append(tuple(row))
+    data = ObjectMapInputs(
+        respondent_ids=tuple(f"FIC-{i}" for i in range(80)),
+        donor_ids=tuple(f"DONOR-{i}" for i in range(80)),
+        items=tuple(RatingItem(item_id=o, scale_min=1, scale_max=10) for o in objects),
+        values=tuple(values),
+        weights=(5.0,) * 10 + (1.0,) * 70,
+        object_ids=objects,
+        object_items=objects,
+        roles=dict.fromkeys(objects, "primary"),
+    )
+    artifact = compute_object_map(data, spec, connectedness_interval=False)
+    return {
+        "methodology_status": "INTERNAL_ONLY",
+        "batteries": [
+            {
+                "battery_id": "fictional",
+                "title": "Fiktivní nabídky",
+                "objects": [{"id": o, "label": f"Objekt {o}"} for o in objects],
+                "maps": {spec.methodology_version: artifact.to_payload()},
+            }
+        ],
+    }
+
+
+def pair_table(frozen: dict) -> Table:
+    sections = compose_map_sections(frozen, object_map_snapshots(frozen), source="Frozen map SHA")
+    (table,) = [b for b in sections[0].blocks if isinstance(b, Table)]
+    return table
+
+
+def test_a_pair_state_is_explained_by_the_n_its_method_decided_it_on() -> None:
+    # aia-sociomap-3 decides a pair's state on the effective n of its raters' weights, and
+    # the note said "neznámý: málo společných odpovědí" beside 48 of them at n_min 30
+    # (cross-review): under that basis the table prints the effective n, and no state is
+    # explained by the count.
+    table = pair_table(weighted_result(AIA_SOCIOMAP_V3))
+    labels = [c.label for c in table.columns]
+    assert labels == [
+        "Dvojice objektů",
+        "Korelace r",
+        "Společné odpovědi",
+        "Efektivní n",
+        "Stav vztahu",
+    ]
+    cells = {
+        r.cells[0].text: [c.text for c in r.cells if isinstance(c, TextCell)] for r in table.rows
+    }
+    assert cells["Objekt d \u00d7 Objekt e"][2:] == ["48", "26", "neznámý"]
+    assert cells["Objekt a \u00d7 Objekt b"][2:4] == ["80", "45"]
+    note = table.notes[0]
+    assert "neznámý: efektivní n pod 30, nebo korelaci nelze spočítat" in note
+    assert "spolehlivý: efektivní n aspoň 30 a interval korelace nezahrnuje nulu" in note
+    # Weak: the interval includes zero, so the correlation is not told apart from zero ("od
+    # žádného" read as "from any relation", cross-review).
+    assert (
+        "slabý: efektivní n aspoň 30, ale interval korelace zahrnuje nulu, takže korelaci "
+        "nelze odlišit od nuly" in note
+    )
+    assert "žádného" not in note
+    assert "stav vztahu se řídí jím, nikoli počtem společných odpovědí" in note
+    assert "málo společných" not in note and "aspoň 30 společných" not in note
+    # The same answers under the count: no effective n, and the states read the count.
+    counted = pair_table(weighted_result(AIA_SOCIOMAP_V2))
+    assert "Efektivní n" not in [c.label for c in counted.columns]
+    assert (
+        "neznámý: méně než 30 společných odpovědí, nebo korelaci nelze spočítat"
+        in (counted.notes[0])
+    )
+    assert (
+        "slabý: aspoň 30 společných odpovědí, ale interval korelace zahrnuje nulu, takže "
+        "korelaci nelze odlišit od nuly" in counted.notes[0]
+    )
+    assert "efektivní n" not in counted.notes[0].lower()
 
 
 def test_no_map_does_not_become_a_fabricated_flat_image() -> None:

@@ -317,9 +317,11 @@ def test_the_revision_a_report_prints_is_named_as_its_designs(
 ) -> None:
     # Review 4 of D2: an approved file printed "Revize 1" on its cover and in its document
     # control, and "verze ART-…" in its footers, two numbers either of which read as the
-    # version. The first is the Design Revision the report was composed from, and says so.
+    # version. The first is the Design Revision the report was composed from, and says so --
+    # the study's design (cross-review: "Revize návrhu 1" above "KONCEPT" read as a draft's).
     body = _text(_xml(rendered, "word/document.xml"))
-    assert body.count("Revize návrhu") == 2  # the cover and the document control
+    assert body.count("Revize návrhu studie") == 2  # the cover and the document control
+    assert body.count("Revize návrhu") == 2
 
 
 def test_an_internal_report_prints_its_identifiers(report_ledger: Any) -> None:
@@ -395,6 +397,10 @@ def test_the_cover_names_the_study_and_anchors_the_original_field(report_ledger:
     )
     assert "čeká na podpis" not in _text(body)  # the status is the footers' (D2)
     assert cover.tables[0].columns[0].width.mm == pytest.approx(120, abs=0.02)
+    # The metadata grid gives its labels room for "Revize návrhu studie" (it wrapped at 28 mm).
+    (grid,) = cell.tables
+    assert [round(c.width.mm) for c in grid.columns] == [36, 84]
+    assert [r.cells[0].text for r in grid.rows][-1] == "Revize návrhu studie"
     from aia_core.infrastructure.report_docx.cover import ASSETS
 
     assert (ASSETS / "aia-lockup.svg").read_bytes() in parts.values()

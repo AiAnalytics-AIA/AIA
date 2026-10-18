@@ -65,6 +65,22 @@ Three facts decide the shape:
    `topic_undetermined`, the evidence kept in the bundle either way.
    Shared words are not shared meaning: population, place, period and what a sentence says
    remain the reader's to check.
+   Anchors, all `@ 94744de` under `packages/aia_core/src/aia_core/domain/deep_research/`: the
+   order is `merge.py:282` (score), `:299` (topic), `:320` (dedupe), each topic refusal kept with
+   its evidence (`:299-313`); `aia-dr-topicality-1` is `topicality.py:103`, carried by
+   `merge.py:86-88`; the object named is `topicality.py:593-606`, the concept swap `:607-617`
+   (families `:436`), two shared words `:618-639` (`SHARED_TERMS` `:129`), and only the last reads
+   the claim (`:626`; the first two read the quote and title, `:601`, `:611`). Tests:
+   `test_deep_research_merge.py::test_an_off_topic_copy_is_set_aside_before_dedupe_and_never_stands_in_for_its_twin`,
+   `::test_a_source_is_scored_before_its_topic_and_unknown_topics_are_never_accepted`,
+   `::test_the_merge_rules_carry_the_topic_rules`;
+   `test_deep_research_topicality.py::test_an_object_finding_names_its_object_in_the_quote_or_the_title`,
+   `::test_a_word_of_a_longer_name_names_no_tracked_object`,
+   `::test_a_mortgage_thesis_does_not_support_a_current_account_topic`,
+   `::test_a_kind_of_the_topics_concept_is_no_swap`,
+   `::test_the_runs_tracked_objects_are_one_family`,
+   `::test_a_question_finding_shares_two_words_of_its_topic`,
+   `::test_nothing_to_judge_by_is_undetermined_never_on_topic`.
 
    *Amended 2026-10-18 (D4, the same plan, chunk 11):* a credible host is not a credible document
    -- a university's host scored a bachelor thesis in its information system as an academic
@@ -80,6 +96,22 @@ Three facts decide the shape:
    retracted work on one is. A thesis no rule declares, whose title does not name its genre, is
    still accepted; repository hosts (`dspace.*`, `.edu`) are not declared, and a DOI is no
    document type.
+   Anchors, all `@ 94744de` under `packages/aia_core/src/aia_core/domain/deep_research/`: the
+   order is `merge.py:247` (retraction), `:266-267` (thesis), `:282` (score), the thesis kept
+   with its evidence (`:270-278`); Client Knowledge untyped is `merge.py:215`;
+   `aia-document-types-1` is `document_types.py:78`; the encyclopedia first,
+   `document_types.py:191-192` (`ENCYCLOPEDIAS` `:82`), then registers `:84`, archive prefixes
+   `:87-92`, path segments `:94-102` and title phrases `:105-122`, in that order (`:188-224`).
+   `git diff 3b8fd98 94744de` touches neither `sources.py` nor `settings.py`. Tests:
+   `test_deep_research_merge.py::test_a_retraction_is_named_before_a_thesis_and_a_thesis_before_its_score_and_topic`,
+   `::test_a_student_thesis_is_quarantined_by_name_and_kept_as_a_lead`,
+   `::test_client_knowledge_is_never_typed`;
+   `test_deep_research_document_types.py::test_every_page_of_a_thesis_register_is_a_thesis`,
+   `::test_a_thesis_archive_on_a_declared_university_host_is_a_thesis`,
+   `::test_a_path_segment_that_names_the_genre_is_a_thesis`,
+   `::test_a_title_segment_that_names_the_genre_is_a_thesis`,
+   `::test_an_encyclopedia_article_on_the_genre_is_not_a_thesis`,
+   `::test_the_coverage_limits_stay_undetermined`.
 
 5. **The legacy anti-leakage quarantine is kept exactly** and re-run at fieldwork compile against
    the final questionnaire. Quarantined evidence never becomes respondent context; accepted

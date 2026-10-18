@@ -53,8 +53,8 @@ named. On the filters' fictional corpus (``tests/fixtures/deep_research_filters`
 sentence as the claim, no title) R3 keeps 22 of 27 relevant pairs and sets aside 148 of 149
 irrelevant ones (``test_deep_research_topicality.py::test_measured_topicality``). One shared
 word would keep 25 relevant but also 29 irrelevant pairs, each sharing a single generic word
-(``trh``, ``Česku``, ``ceny``); the five relevant pairs two words miss share one (a headline,
-a synonym, another language) and are set aside with their reason, never lost.
+(``trh``, ``Česku``, ``ceny``); the five relevant pairs two words miss share one word or none
+(a headline, a synonym, another language) and are set aside with their reason, never lost.
 
 Pure: stdlib, and this package's own text rules and contracts.
 """

@@ -10,8 +10,10 @@ What decides acceptance, in order, each deterministic except the verifier's verd
 3. **Source quality** from the declared tables (:mod:`.sources`), never the agent's
    own score: below :data:`~.sources.ACCEPT_THRESHOLD` is ``low_source_quality``.
 4. **Topic** (:mod:`.topicality`, D4): the finding supports the topic it was searched
-   for -- its object named, no sibling concept named instead, a word of its topic
-   shared -- or it is ``off_topic``; a topic with nothing to judge by is
+   for -- an object (alone or after a cross's dash) named by its distinguishing words, no
+   sibling concept named instead, and for a question (an interpretation framing without its
+   frame) or a cross's question two of its words shared (all when it has fewer) -- or it
+   is ``off_topic``; a topic with nothing to judge by is
    ``topic_undetermined``. Before dedupe, so an off-topic copy never stands in for an
    on-topic twin, and before the verifier, so it costs no verifier call.
 5. **Dedupe** -- the same source saying the same thing twice (claim similarity at
