@@ -1321,13 +1321,26 @@ class ResearchAgentJobs:
         }
         project_id = designs.project_id()
         assert project_id is not None
+        # The same ask on the same design is the same job: asked again, it is followed, never
+        # paid twice. Once it ended without a proposal -- failed, cancelled, or stopped for
+        # recovery with no paid call of unknown outcome -- asking again is a new round, as a
+        # report's PDF is (request_report_pdf) and a source's proposals are (OI-121). Before
+        # this, a cancelled job answered every later ask, and the stage could only say so.
+        base = f"{RESEARCH_AGENT}:{design_revision_id}:{digest}"
+        workflows = WorkflowRepository(self.session, self.scope)
+        newest = workflows.list_runs(
+            project_id=project_id, workflow_type=RESEARCH_AGENT, key_prefix=base, limit=1
+        )
+        round_ = int(newest[0]["metadata"].get("round") or 0) if newest else 0
+        if newest and _ended_without_result(workflows.get_run(newest[0]["run_id"])):
+            round_ += 1
         return start_workflow(
             self.session,
             self.scope,
             project_id=project_id,
             revision=revision.revision,
             workflow_type=RESEARCH_AGENT,
-            idempotency_key=f"{RESEARCH_AGENT}:{design_revision_id}:{digest}",
+            idempotency_key=base if round_ == 0 else f"{base}:again-{round_}",
             metadata={
                 "design_revision_id": design_revision_id,
                 "action": action.value,
@@ -1335,6 +1348,7 @@ class ResearchAgentJobs:
                 "harness_version": HARNESS_VERSION,
                 "prompt_version": prompt.version,
                 "prompt_origin": prompt.origin,
+                "round": round_,
             },
             step_inputs={"agent": payload},
             owner=DESIGN_PROJECT_OWNER,
@@ -1481,6 +1495,21 @@ class ResearchAgentJobs:
             artifact_id=str(run["steps"][0]["output"]["artifact_id"]),
         )
         return revision, created
+
+
+def _ended_without_result(run: Mapping[str, Any]) -> bool:
+    """Whether asking again may start a new round in place of ``run``: it failed or was
+    cancelled, or it stopped for recovery and no attempt left a paid call of unknown outcome
+    (that call may have been billed, so an operator settles it first)."""
+    if run["status"] in (WorkflowRunStatus.FAILED, WorkflowRunStatus.CANCELLED):
+        return True
+    if run["status"] is not WorkflowRunStatus.RECOVERY_REQUIRED:
+        return False
+    return not any(
+        a["paid_call_dispatched"] and not a["paid_call_outcome_known"]
+        for step in run["steps"]
+        for a in step["attempts"]
+    )
 
 
 def _aggregation_of(metadata: Mapping[str, Any]) -> dict[str, Any]:

@@ -618,6 +618,28 @@ describe("Run: what a run can cost (5b.2)", () => {
     await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("progress")));
   });
 
+  it("opens a run the start found instead of starting one, and says nothing new started (PC13)", async () => {
+    api({ "POST /api/v1/studies/STU-1/research/runs": () => run({ created: false, phase: "CANCELLED", status: "CANCELLED", is_terminal: true, retryable: true }) });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const start = await screen.findByRole("button", { name: t("research.exec.start") });
+    await waitFor(() => expect((start as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(start);
+    await waitFor(() => expect(push).toHaveBeenCalledWith(`${stagePath("progress")}?run=RUN-1&found=1`));
+  });
+
+  it("says on Průběh that the run was found, not started, only for the run the start found", async () => {
+    window.history.replaceState(null, "", "/?run=RUN-1&found=1");
+    api(listed(COMPLETED));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    expect(await screen.findByText(t("research.exec.foundByStart"))).toBeTruthy();
+    cleanup();
+    window.history.replaceState(null, "", "/?run=RUN-1");
+    api(listed(COMPLETED));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    expect((await screen.findAllByText(tv("research.exec.revision", { revision: COMPLETED.design_revision }))).length).toBeGreaterThan(0);
+    expect(screen.queryByText(t("research.exec.foundByStart"))).toBeNull();
+  });
+
   it("follows a found run that already holds this very acknowledgement", async () => {
     // Review 3: a start whose answer was lost, asked again with the same reason, finds the run that
     // recorded it; the page said the confirmation was saved nowhere.

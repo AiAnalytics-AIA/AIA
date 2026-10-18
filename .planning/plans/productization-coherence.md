@@ -13,6 +13,7 @@ chunks:
   - "[x] PC10. Dimenze shows and saves only the dimensions a person chose: a new study chose none (owner, 2026-10-18; OI-54)"
   - "[ ] PC11. Product-level acceptance scenarios over the real start, worker and report"
   - "[ ] PC12. Owner decisions recorded with a recommendation each; no code"
+  - "[x] PC13. A start that finds the run a design already has says so, and an AI ask that ended without a proposal is asked again as a new round"
 ---
 # Productization and system coherence
 
@@ -97,6 +98,40 @@ old track), stops reading once nothing can change, keeps reading a provider wait
 **Second half, open.** The track also calls Spuštění "done" and Výsledky "Revize N" when the design
 has changed since that run; saying "the design changed after this run" needs the working content's
 revision beside the run's (see the findings ledger, F-design-lane), not a browser guess.
+
+## PC13 — asking again says what it found
+
+**Problem.** Two idempotent starts answered a person's new click with an old run in silence.
+
+- *Spustit výzkum on a design that already ran.* A start whose key exists returns that run
+  (`application/research.py:513-566 @ 20b24bb`), in any state, and skips the spend confirmation
+  (`:629`). The Run stage said nothing and went to Průběh without `?run=` (`ExecutionSteps.tsx:717`);
+  only a start that carried an acknowledgement was told (`:708-715`, research-integrity-report F12).
+  A person who pressed Start on an unchanged design after a cancelled run saw that cancelled run as if
+  they had just started it (runtime finding R3, runs audit `restart-same-revision-silent`).
+- *An AI ask that ended without a proposal.* An agent job's key is the revision and a digest of the
+  ask (`application/research.py:1265-1270`) and its template has one attempt
+  (`workflow_templates.py:188`), so once cancelled or failed, every later identical ask returned the
+  dead job and the stage repeated its error; only a changed design or instruction got past it (runs
+  audit `idempotent-start-returns-dead-runs`).
+
+**Change.** A start that finds its run opens Průběh on that run (`?run=…&found=1`) and Průběh says
+nothing new was started or paid for, and what starts a new one; a lost-answer re-ask that finds its own
+acknowledged run is followed plainly, as before. An agent ask whose newest job failed, was cancelled,
+or stopped for recovery with no paid call of unknown outcome starts a new round
+(`<key>:again-<n>`, `metadata.round`), the precedent `request_report_pdf` and OI-121 set; a job still
+queued, running, waiting or done is followed, and one with a call of unknown outcome is never asked
+again.
+
+**Not changed.** The research run's key: a design run once is still not run twice by a click (that is
+the point of the key; a retry or a changed design starts another). Readiness does not yet say before
+the click that the design has a run, which would need the start's key computed without starting
+(the key is built inline in `start`); the cost question can therefore still be asked before a start
+that finds its run, when the study's limit is at or below the ceiling.
+
+**Tests.** Web: "opens a run the start found instead of starting one…", "says on Průběh that the run
+was found, not started…"; API: `test_asking_again_after_a_job_ended_without_a_proposal_starts_a_new_round`
+(cancelled, then failed, then done), `test_a_job_stopped_with_a_paid_call_of_unknown_outcome_is_never_asked_again`.
 
 ## PC7 — the copy agrees with what was decided
 

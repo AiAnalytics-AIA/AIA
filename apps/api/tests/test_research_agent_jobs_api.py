@@ -232,6 +232,83 @@ def test_a_job_stopped_at_the_budget_cap_goes_on_when_a_person_lifts_it(
     assert researcher.get(f"{url}/{job_id}").json()["status"] == "COMPLETED"
 
 
+class _Refused:
+    def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
+        return Failed(FailureClass.PERMISSION, error={"message": "refused"})
+
+
+def test_asking_again_after_a_job_ended_without_a_proposal_starts_a_new_round(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """PC13: the same ask on the same design was the same job in any state, so a cancelled or
+    failed job answered every later ask and the stage could only repeat its error."""
+    rid = revision(researcher, world)
+    url = base(world)
+    ask = {"design_revision_id": rid, "action": "analyze_brief"}
+    first = researcher.post(url, json=ask).json()["run_id"]
+    # Still queued: asked again, it is followed, nothing new.
+    assert researcher.post(url, json=ask).json()["run_id"] == first
+
+    researcher.post(f"{url}/{first}/cancel")
+    assert researcher.get(f"{url}/{first}").json()["status"] == "CANCELLED"
+    again = researcher.post(url, json=ask)
+    assert again.status_code == 201, again.text
+    second = again.json()["run_id"]
+    assert second != first
+    assert researcher.post(url, json=ask).json()["run_id"] == second
+
+    assert _worker(app, _Refused()).run_once() is not None
+    assert researcher.get(f"{url}/{second}").json()["status"] == "FAILED"
+    third = researcher.post(url, json=ask)
+    assert third.status_code == 201 and third.json()["run_id"] not in (first, second)
+    assert _worker(app).run_once() is not None
+    assert researcher.get(f"{url}/{third.json()['run_id']}").json()["status"] == "COMPLETED"
+    # Done: asked again, the proposal is followed, never paid for twice.
+    assert researcher.post(url, json=ask).json()["run_id"] == third.json()["run_id"]
+
+
+def _recovering(app: FastAPI, run_id: str, *, uncertain: bool) -> None:
+    """The job's step stopped for recovery; ``uncertain``: a paid call's outcome unknown."""
+    from aia_core.domain.workflow import StepRunStatus, WorkflowRunStatus
+    from aia_core.infrastructure.tables import StepAttemptRow, StepRunRow, WorkflowRunRow
+    from sqlalchemy import select
+
+    with create_session_factory(app.state.engine)() as session:
+        step = session.scalars(select(StepRunRow).where(StepRunRow.run_id == run_id)).one()
+        step.status = StepRunStatus.RECOVERY_REQUIRED.value
+        run = session.get(WorkflowRunRow, run_id)
+        assert run is not None
+        run.status = WorkflowRunStatus.RECOVERY_REQUIRED.value
+        session.add(
+            StepAttemptRow(
+                attempt_id=f"ATT-{run_id[-12:]}",
+                step_id=step.step_id,
+                attempt_number=1,
+                status="FAILED",
+                paid_call_dispatched=uncertain,
+                paid_call_outcome_known=False,
+            )
+        )
+        session.commit()
+
+
+def test_a_job_stopped_with_a_paid_call_of_unknown_outcome_is_never_asked_again(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """The OI-121 rule: a call that may have been billed is settled by an operator first."""
+    rid = revision(researcher, world)
+    url = base(world)
+    ask = {"design_revision_id": rid, "action": "critique_design"}
+    first = researcher.post(url, json=ask).json()["run_id"]
+    _recovering(app, first, uncertain=True)
+    assert researcher.post(url, json=ask).json()["run_id"] == first
+    other = {"design_revision_id": rid, "action": "analyze_brief"}
+    known = researcher.post(url, json=other).json()["run_id"]
+    _recovering(app, known, uncertain=False)
+    restarted = researcher.post(url, json=other)
+    assert restarted.status_code == 201 and restarted.json()["run_id"] != known
+
+
 class _Reports(_Proposes):
     """Reports progress as the real executor does, then proposes."""
 

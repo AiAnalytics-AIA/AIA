@@ -717,7 +717,13 @@ export function RunStep() {
         setStarting(false);
         return;
       }
-      router.push(stepHref("progress"));
+      // Any other found run is opened and said to be found, never passed off as a new start
+      // (PC13: a second "Spustit výzkum" on the same design opened the old run in silence).
+      // A start whose answer was lost, asked again, finds the run it made: that is followed plainly.
+      const ownLostStart = acknowledged !== undefined && acknowledges(started, acknowledged);
+      router.push(started.created === false && !ownLostStart
+        ? `${stepHref("progress")}?run=${encodeURIComponent(started.run_id)}&found=1`
+        : stepHref("progress"));
     } catch (e) {
       setStartError(message(e));
       setStarting(false);
@@ -1170,6 +1176,8 @@ export function ProgressStep() {
   if (run === null) return <Card><p className="text-sm">{t("research.exec.noRuns")}</p></Card>;
   const parked = parkedForRuntime(run);
   const failed = run.steps.find((s) => s.status === "FAILED");
+  // Opened by a start that found this run instead of starting one (PC13).
+  const foundByStart = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("found") === "1" && runFromQuery() === run.run_id;
   const listed = [...STEP_ORDER, ...ANALYSIS_ORDER.map((id) => `analysis_${id}`), "report"].map((key) => stepOf(run, key)).filter((s): s is ResearchStep => !!s);
   // A module stored BLOCKED succeeded as a step and is not finished as a result.
   const finished = listed.filter((s) => (s.status === "SUCCEEDED" && !needsRepair(s)) || s.status === "SKIPPED").length;
@@ -1179,6 +1187,7 @@ export function ProgressStep() {
       <InspectorSlot>
         <ProgressActions run={run} act={act} busy={busy} refresh={refresh} actionError={actionError} repairable={repairable} />
       </InspectorSlot>
+      {foundByStart ? <p role="status" data-found-by-start className="rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">{t("research.exec.foundByStart")}</p> : null}
       <OriginBanners run={run} />
       <RespondentsReceipt run={run} />
       <Card>

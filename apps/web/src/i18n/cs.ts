@@ -2629,6 +2629,8 @@ export const cs = {
       parkedResume:
         "Sám od sebe nepokračuje. Až bude AI zapnutá nebo povolená, pokračujte v tomto běhu: nic se nespouští znovu a nic, co už proběhlo, se neplatí podruhé. Pokud AI dostupná stále nebude, běh počká znovu.",
       resume: "Pokračovat v běhu",
+      foundByStart:
+        "Tento návrh se stejným nastavením už běžel, a proto se nic nového nespustilo ani nezaplatilo: otevřel se tento běh. Chcete-li nový běh, upravte návrh; běh, který skončil chybou nebo byl zrušen, lze zde spustit znovu.",
       wait: {
         budget_exceeded: "Krok čeká, protože by překročil rozpočet studie.",
         provider_quota_exhausted: "Krok čeká, protože poskytovatel modelu vyčerpal kvótu. Pokračuje po jejím obnovení.",
