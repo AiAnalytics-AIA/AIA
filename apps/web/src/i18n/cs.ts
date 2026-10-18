@@ -2249,6 +2249,9 @@ export const cs = {
       dockNote: "{d} dimenzí · N={n}",
     },
     deep: {
+      searchedNothing: "Tato rešerše nic nehledala: neodešel z ní žádný dotaz (zablokovaných stop: {blocked} z {tracks}).",
+      searchedNothingWhy:
+        "Prázdný výsledek proto neznamená, že zdroje nic neuvádějí. Obvykle v tomto prostředí není zapnutá vyhledávací trasa; to nastavuje provozovatel.",
       steps: {
         plan: "Plán rešerše",
         investigate: "Hledání zdrojů",

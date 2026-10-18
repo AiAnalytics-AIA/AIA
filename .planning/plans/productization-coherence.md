@@ -18,6 +18,7 @@ chunks:
   - "[x] PC15. A question carrying an 18.6.6 display condition says so in Dotazník and the condition can be removed there; readiness no longer sends anyone to the retired classic interface"
   - "[ ] PC16. Rewording a research question carries its links to the questions that measure it, or names the ones it would orphan, before the change is saved"
   - "[x] PC17. Reports and maps say what they contain: the client report promises maps only when it has them, a run without maps says why, putting an edited Sociomap in force says its maps will be internal, and a literature report refused for a stale analysis says so in Czech"
+  - "[x] PC18. Deep Research and refusals say what happened: the questionnaire's panel shows only design-checkpoint runs, a run that sent no query never reads as a search that found nothing, and no refusal reaches the screen as an empty message"
 ---
 # Productization and system coherence
 
@@ -102,6 +103,37 @@ old track), stops reading once nothing can change, keeps reading a provider wait
 **Second half, open.** The track also calls Spuštění "done" and Výsledky "Revize N" when the design
 has changed since that run; saying "the design changed after this run" needs the working content's
 revision beside the run's (see the findings ledger, F-design-lane), not a browser guess.
+
+## PC18 — Deep Research and refusals say what happened
+
+**Problem.**
+- The Deep Research panel on Dotazník -- the design checkpoint (ADR 0021) -- listed every Deep Research
+  run of the study and preselected the newest, an Interpretation Research run included, labelled only by
+  its date (`DeepResearchPanel.tsx:36-50, 116 @ 20b24bb`); it then loaded that run's bundle and offered
+  Opakovat and Zrušit on it. The other readers filter by purpose (`InterpretationResearch.tsx:50`,
+  `design-evidence.ts:19-21`) (Deep Research and web audits, P2).
+- A run on a deployment with no search route completes with every web track blocked, no query sent and
+  no finding (`test_deep_research_journey.py:1040-1055`), and Interpretation Research said "Rešerše
+  dokončila hledání, ale žádné externí tvrzení neprošlo ověřením" -- a search that found nothing, which
+  it was not (`nothing-searched-reads-searched`, P2).
+- An error raised with a code and no message reached the web with message `""`
+  (`observability.py:222-229`, reproduced), and the web kept the empty string (`api.ts:48`): the report
+  card showed "Načítám…" for ever when a stored report was missing or invalid, and its download and
+  approval failures said nothing (`api-refusals-lose-words-and-detail`, P2).
+
+**Change.** The design panel reads design-checkpoint runs only (`isDesignRun`: Design Research, or a run
+from before purposes were recorded). A finished run whose coverage says no query left (`GET
+…/coverage`, `searchedNothing`) says so beside its bundle, in both panels: how many tracks were blocked,
+and that an empty result does not mean the sources say nothing. The API's error handler gives a
+code-only refusal its code as its message, and the web reads an empty message as the code.
+
+**Tests.** `design-evidence.test.ts` "isDesignRun", `reason-words.test.ts` "searchedNothing",
+`DeepResearchWaits.test.tsx` "a Deep Research run that searched nothing" (unknown coverage says
+nothing); `test_a_refusal_raised_with_only_a_code_keeps_its_code_as_its_message`; `api-refusal.test.ts`.
+
+**Not changed.** Whether "Použít ve zprávě" should be offered for a run that searched nothing is the
+owner's (a report variant over it prints no literature); about 45 of the API's 64 refusal codes still
+have no Czech words, which is incremental work recorded below.
 
 ## PC17 — reports and maps say what they contain
 

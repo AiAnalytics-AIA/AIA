@@ -15,6 +15,13 @@ export type QuestionEvidence = {
   rejected: { reason: string; count: number }[];
 };
 
+/**
+ * A run of the design checkpoint (ADR 0021): Design Research, or a run made before purposes were
+ * recorded (legacy-unversioned), which only the design stage could start. An Interpretation
+ * Research run belongs to a run's results, never to the questionnaire (PC18).
+ */
+export const isDesignRun = (run: Pick<DeepResearchRun, "purpose">): boolean => run.purpose === "DESIGN_RESEARCH" || run.purpose == null;
+
 /** The study's newest finished Design Research run; runs come newest first. */
 export function latestDesignRun(runs: readonly DeepResearchRun[]): DeepResearchRun | null {
   return runs.find((r) => r.purpose === "DESIGN_RESEARCH" && r.phase === "COMPLETED") ?? null;

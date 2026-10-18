@@ -1275,6 +1275,11 @@ export type DeepResearchRun = {
   target?: { kind: string; research_run_id?: string } | null;
   title?: string | null;
 };
+/** What a finished run searched and found, from its journal (GET …/coverage; domain/deep_research/coverage.py). */
+export type DeepResearchCoverage = {
+  tracks: number; blocked_tracks: number; queries_proposed: number; queries_sent: number; queries_refused: number;
+  hits: number; sources_captured: number; findings_accepted: number; findings_quarantined: number;
+};
 export type DeepResearchBundle = {
   quality_status: string; fictional_client: boolean; client_facing: false;
   accepted: { evidence: { evidence_id?: string; claim: string; quote: string; source_ref: string }; score: { score: number; source_class: string } }[];
@@ -1329,6 +1334,7 @@ export const deepResearch = {
   events: (studyId: string, runId: string, since = 0) =>
     request<RunEvent[]>("GET", `${deepPath(studyId)}/${enc(runId)}/events${eventsQuery(since)}`),
   bundle: (studyId: string, runId: string) => request<DeepResearchBundle>("GET", `${deepPath(studyId)}/${enc(runId)}/bundle`),
+  coverage: (studyId: string, runId: string) => request<DeepResearchCoverage>("GET", `${deepPath(studyId)}/${enc(runId)}/coverage`),
   designProposal: (studyId: string, runId: string) => request<DesignProposal>("GET", `${deepPath(studyId)}/${enc(runId)}/design-proposal`),
   cancel: (studyId: string, runId: string) => request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/cancel`),
   retry: (studyId: string, runId: string, confirmCostUsd?: number) => request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/retry`, confirmCostUsd === undefined ? undefined : { confirm_cost_usd: confirmCostUsd }),

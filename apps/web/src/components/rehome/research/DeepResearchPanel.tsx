@@ -13,6 +13,8 @@ import { phaseLabel } from "@/lib/research-execution";
 import { coverageWords, deepStepLabel, stepProblem } from "@/lib/reason-words";
 import { CodedWords } from "./CodedWords";
 import { DeepResearchWaits } from "./DeepResearchWaits";
+import { SearchedNothing } from "./SearchedNothing";
+import { isDesignRun } from "@/lib/design-evidence";
 import { useResearch } from "./context";
 import { canReview } from "./frame";
 
@@ -37,16 +39,19 @@ export function DeepResearchPanel() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // The design checkpoint's runs only (ADR 0021): an Interpretation Research run belongs to a
+  // run's results, where it is read and used; here it was the newest and preselected (PC18).
   const refresh = useCallback(async () => {
-    const jobs = await deepResearch.runs(frame.studyId);
+    const jobs = (await deepResearch.runs(frame.studyId)).filter(isDesignRun);
     setRuns(jobs);
     setSelected((old) => old ?? jobs[0]?.run_id ?? null);
   }, [frame.studyId]);
 
   useEffect(() => {
     let live = true;
-    deepResearch.runs(frame.studyId).then((jobs) => {
+    deepResearch.runs(frame.studyId).then((all) => {
       if (!live) return;
+      const jobs = all.filter(isDesignRun);
       setRuns(jobs);
       setSelected(jobs[0]?.run_id ?? null);
     }).catch((e: unknown) => { if (live) setError(message(e)); });
@@ -135,6 +140,7 @@ export function DeepResearchPanel() {
       {bundle ? (
         <div className="mt-4 space-y-4 text-sm">
           <p className="font-semibold">Výsledek: {coverageWords(bundle.quality_status)} · přijaté podklady {bundle.accepted.length} · odmítnuté {bundle.quarantined.length}</p>
+          {current ? <SearchedNothing studyId={frame.studyId} runId={current.run_id} /> : null}
           {bundle.accepted.map((item, index) => {
             const source = bundle.snapshots.find((snapshot) => snapshot.snapshot_id === item.evidence.source_ref);
             return <article key={`${item.evidence.source_ref}-${index}`} className="rounded-sm border border-border p-3">

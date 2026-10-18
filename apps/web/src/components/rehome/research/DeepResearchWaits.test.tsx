@@ -2,15 +2,18 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { t } from "@/i18n/t";
+import { t, tv } from "@/i18n/t";
 import type { DeepResearchRun, ResearchAgentJob, ResearchStep } from "@/lib/api";
 
 import { AgentBudgetWaits } from "./AgentBudgetWaits";
 import { DeepResearchWaits } from "./DeepResearchWaits";
+import { SearchedNothing } from "./SearchedNothing";
 import { signedIn } from "./test-workspace";
 
 const STUDY = { study_id: "STU-1", name: "Fiktivní", budget_usd: 10, spent_usd: 9.5, remaining_usd: 0.5 };
 let posts: { url: string; body: unknown }[] = [];
+const coverage = (sent: number) => ({ tracks: 4, blocked_tracks: sent ? 0 : 4, queries_proposed: 6, queries_sent: sent, queries_refused: 0, hits: 0, sources_captured: 0, findings_accepted: 0, findings_quarantined: 0 });
+const COVERAGE: Record<string, ReturnType<typeof coverage>> = { "DRR-NONE": coverage(0), "DRR-SOME": coverage(5) };
 
 beforeEach(() => {
   signedIn();
@@ -21,6 +24,7 @@ beforeEach(() => {
       const u = String(url).split("?")[0];
       if (u === "/config") return new Response(JSON.stringify({ apiBase: "", cognitoDomain: "", cognitoClientId: "", publicOrigin: "http://localhost" }));
       if (u === "/api/v1/studies/STU-1") return new Response(JSON.stringify(STUDY));
+      if (u.endsWith("/coverage")) return new Response(JSON.stringify(COVERAGE[u.split("/").at(-2)!] ?? {}), { status: COVERAGE[u.split("/").at(-2)!] ? 200 : 404 });
       if (init?.method === "POST") {
         posts.push({ url: u, body: init.body ? JSON.parse(String(init.body)) : null });
         return new Response("{}");
@@ -104,5 +108,24 @@ describe("an AI job stopped at the study's budget cap (PC4)", () => {
     render(<AgentBudgetWaits jobs={[job("AWAITING_BUDGET")]} studyId="STU-1" canEdit={false} onChanged={vi.fn()} />);
     expect(screen.getByText(t("research.aiBudget.title"))).toBeTruthy();
     expect(screen.queryByRole("form")).toBeNull();
+  });
+});
+
+describe("a Deep Research run that searched nothing (PC18)", () => {
+  it("says no query left, never that the sources say nothing", async () => {
+    render(<SearchedNothing studyId="STU-1" runId="DRR-NONE" />);
+    const note = await screen.findByText((_, el) => el?.getAttribute("data-searched-nothing") !== null && el?.tagName === "P");
+    expect(note.textContent).toContain(tv("research.deep.searchedNothing", { blocked: 4, tracks: 4 }));
+    expect(note.textContent).toContain(t("research.deep.searchedNothingWhy"));
+  });
+
+  it("says nothing for a run that searched, or whose coverage was not read", async () => {
+    const searched = render(<SearchedNothing studyId="STU-1" runId="DRR-SOME" />);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(searched.container.textContent).toBe("");
+    searched.unmount();
+    const unread = render(<SearchedNothing studyId="STU-1" runId="DRR-UNKNOWN" />);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(unread.container.textContent).toBe("");
   });
 });
