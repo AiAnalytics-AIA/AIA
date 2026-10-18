@@ -1414,9 +1414,17 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
       <details className="rounded-md border border-border bg-surface-raised p-3"><summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold">Jak používat mapu a AI pomoc</summary><p className="mt-2 text-sm leading-6 text-ink-muted">Začněte legendou a metodikou uloženou u konkrétní mapy. Polohu, výšku a barvu čtěte odděleně. Potlačené a chybějící hodnoty nenahrazujte nulou. AI pomoc pracuje s návrhem a schválenými znalostmi; číselné hodnoty z mapy se do otázky neposílají automaticky.</p></details>
       {sociomap && sociomap.state !== "hidden" ? (
         <Card id="res-sociomap" title={t("research.exec.results.sociomap")} tone="notice">
-          <p role="note" className="mb-3 text-sm font-semibold">{t("research.exec.results.mapsByMethod")}</p>
-          <p className="mb-3 text-sm text-ink-muted">{t("research.exec.results.mapToolNotInAia")}</p>
-          {sociomap.state === "ready" ? <SociomapView artifact={sociomap.value} run={run} /> : null}
+          {sociomap.state === "ready" && noMaps(sociomap.value) !== null ? (
+            // No battery was mapped: the note the run stored says why, and nothing explains a map that is not there (PC17).
+            <p role="note" data-no-maps className="text-sm">{noMaps(sociomap.value) || t("research.exec.results.noMaps")}</p>
+          ) : (
+            <>
+              <p role="note" className="mb-3 text-sm font-semibold">{t("research.exec.results.mapsByMethod")}</p>
+              <p className="mb-3 text-sm text-ink-muted">{t("research.exec.results.mapToolNotInAia")}</p>
+              {sociomap.state === "ready" ? <SociomapView artifact={sociomap.value} run={run} /> : null}
+            </>
+          )}
+          {sociomap.state === "loading" ? <p className="text-sm text-ink-muted">{t("research.loading")}</p> : null}
           {sociomap.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{sociomap.message}</p> : null}
         </Card>
       ) : null}
@@ -1865,6 +1873,13 @@ function Deviation({ deviation: d }: { deviation: AggregateDeviation }) {
       ) : <p className="text-xs text-ink-muted">{t(`${D}.unreadable`)}</p>}
     </div>
   );
+}
+
+/** The note a Sociomap artifact stored when it mapped no battery ("" when it stored none), or null when it has maps or its payload does not say. */
+function noMaps(artifact: Artifact): string | null {
+  const body = (artifact.payload as { sociomap?: { batteries?: unknown; note?: unknown } } | null)?.sociomap;
+  if (!body || !Array.isArray(body.batteries) || body.batteries.length) return null;
+  return typeof body.note === "string" ? body.note : "";
 }
 
 function SociomapView({ artifact, run }: { artifact: Artifact; run: ResearchRun }) {

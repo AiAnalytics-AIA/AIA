@@ -1023,6 +1023,8 @@ export const cs = {
           editFrom: "Upravit z této verze",
           reset: "Vrátit na {preset} z kódu",
           activateTitle: "Uvést {name} v platnost",
+          sociomapInternal:
+            "Mapy spočtené touto verzí budou interní, dokud ji registr Sociomap neschválí pro zprávy: klientská zpráva běhů spuštěných pod ní mapy obsahovat nebude. Pro zprávy je schválená jen aia-sociomap-3 v podobě z kódu; návrat na ni je jedno tlačítko.",
           resetTitle: "Vrátit na {name} z kódu",
           reason: "Důvod (zapíše se do historie)",
           confirm: "Potvrdit",
@@ -2703,6 +2705,7 @@ export const cs = {
       noResults: "Výsledky zatím nejsou.",
       noResultsParked: "Výsledky nevzniknou, dokud běh čeká u sběru dat.",
       results: {
+        noMaps: "Tento běh žádnou Sociomapu nespočetl.",
         answerGap: "Při spuštění běh zaznamenal: {words}. Odpověď proto čtěte jako nedoloženou, stejně jako ve zprávě.",
         fidelityRefused: "Analýza ani zpráva toto číslo necitují: {reason}",
         fidelityRefusedBare: "Analýza ani zpráva toto číslo necitují.",

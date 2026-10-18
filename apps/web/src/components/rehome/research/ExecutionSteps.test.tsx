@@ -1567,6 +1567,21 @@ describe("Results", () => {
     expect(t1.querySelector("[data-fidelity-refused]")).toBeNull();
   });
 
+  it("says why a run has no Sociomap, from the note it stored, and explains no map that is not there (PC17)", async () => {
+    const note = "Návrh nemá sledovanou sadu; Sociomapa nevznikla.";
+    const none = { ...SOCIOMAP, payload: { sociomap: { methodology_status: "INTERNAL_ONLY", batteries: [], note } } };
+    api({
+      ...listed(COMPLETED),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => none,
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Sociomapy" }));
+    expect(await screen.findByText(note)).toBeTruthy();
+    expect(screen.queryByText(t("research.exec.results.mapToolNotInAia"))).toBeNull();
+    expect(screen.queryByText(t("research.exec.results.mapsByMethod"))).toBeNull();
+  });
+
   it("shows a fictional run's aggregates labelled as fiction, hides a suppressed cell, keeps the Sociomap internal", async () => {
     api({
       ...listed(COMPLETED),

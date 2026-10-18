@@ -17,6 +17,7 @@ chunks:
   - "[x] PC14. A finished run reads as finished: its untouched steps say they will not run, its report is not 'composing', a run waiting for a person beside steps still running is read, and a step stopped for recovery says why"
   - "[x] PC15. A question carrying an 18.6.6 display condition says so in Dotazník and the condition can be removed there; readiness no longer sends anyone to the retired classic interface"
   - "[ ] PC16. Rewording a research question carries its links to the questions that measure it, or names the ones it would orphan, before the change is saved"
+  - "[x] PC17. Reports and maps say what they contain: the client report promises maps only when it has them, a run without maps says why, putting an edited Sociomap in force says its maps will be internal, and a literature report refused for a stale analysis says so in Czech"
 ---
 # Productization and system coherence
 
@@ -101,6 +102,44 @@ old track), stops reading once nothing can change, keeps reading a provider wait
 **Second half, open.** The track also calls Spuštění "done" and Výsledky "Revize N" when the design
 has changed since that run; saying "the design changed after this run" needs the working content's
 revision beside the run's (see the findings ledger, F-design-lane), not a browser guess.
+
+## PC17 — reports and maps say what they contain
+
+**Problem.** Four places promised or hid what a report or map holds.
+
+- The client report's introduction always said it contains "mapy hodnocených objektů"
+  (`application/client_report.py:187-193 @ 20b24bb`), while `compose_map_sections(…, client=True)`
+  returns no chapter when no map is approved or drawn (`report_maps.py:84-85, 198-199, 212-213`). The
+  executor test's own panel run is such a report: no map chapter, maps promised (Sociomap audit
+  `client-report-promises-absent-maps`, P2).
+- A run whose design has no tracked set stores the note "Návrh nemá sledovanou sadu; Sociomapa
+  nevznikla" with no battery (`domain/research_sociomap.py:587`); Results' Sociomapy tab printed how to
+  read and use a map over nothing and never read the note (`empty-maps-tab-without-reason`).
+- Putting any stored Sociomap version in force -- even an unchanged copy, since the editor starts from
+  aia-sociomap-4 -- makes new runs pin aia-sociomap-1 and `<base>+e<n>`, both INTERNAL_ONLY in the
+  register, so their client reports have no maps; the Metodika tab never said so
+  (`methodology/pins.py:84-95`, `sociomap_register.py:52-69`; `edited-method-silently-loses-client-approval`,
+  P2). The register's exact-spec rule is deliberate (B4, ADR 0023) and is not changed.
+- A report with literature refused because the run's analysis was built under an earlier harness came
+  back as `context_report_refused` with the English message and no reason
+  (`routers/research.py:1892-1902, 2035-2038`; reports audit `context-refusal-loses-reason`, P2).
+
+**Change.** The client report's introduction names the maps only when a map chapter was composed, and
+otherwise says it has none and why. Results shows the stored note when no battery was mapped and drops
+the map instructions. Activating an edited Sociomap version says, before it is confirmed, that its maps
+will be internal and the client report will carry none, and that the code's aia-sociomap-3 is one button
+away. A context-report refusal carries its reason when the refusal names one (`details.reason`), and the
+report card says a `fingerprint_mismatch` in the Czech PC3 uses, pointing to the repair.
+
+**Tests.** `test_a_panel_run_has_a_client_report_of_admitted_modelled_numbers_and_a_fictional_none` (no map
+chapter, no maps promised); ExecutionSteps "says why a run has no Sociomap…" and the variant refusal now
+read in words; MethodologyVersions (the warning on activating an edit, none on the reset);
+`report-status.test.ts` "approvalRefusal"; the interpretation API test (no reason invented).
+
+**Not changed.** Keeping an approved client report reachable after its contract or evidence fingerprint
+moves (`approved-version-shadowed`) and showing who approved a report and why
+(`approval-provenance-invisible`) are findings below: both need the approval ledger read on the report
+routes, and the first a product rule for which version is offered.
 
 ## PC6 — a proposal says what it replaces
 
