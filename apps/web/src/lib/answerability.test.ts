@@ -15,6 +15,8 @@ import {
   gapWords,
   hashTarget,
   hasGaps,
+  MAX_REASON,
+  MIN_REASON,
   NO_ACKNOWLEDGEMENT,
   needsAcknowledgement,
   pythonCollapse,
@@ -57,6 +59,20 @@ describe("answerability (research-integrity-report 1)", () => {
     // Collapsed as the server collapses it, by Python's whitespace (review web#9), so the reason
     // the run holds is the one sent (acknowledges).
     expect(acknowledgementOf(FIO_LIKE, given("Ověřujeme\u0085jen\u001fpostup.\ufeff"))?.reason).toBe("Ověřujeme jen postup.\ufeff");
+  });
+
+  it("counts the reason in characters as the server does, never in UTF-16 units", () => {
+    // Acknowledgement counts code points (len); a character beyond U+FFFF is two UTF-16 units,
+    // so counting units sent five emoji the server refuses (422 acknowledgement_invalid).
+    const emoji = "\u{1F600}";
+    expect(acknowledgementOf(FIO_LIKE, given(emoji.repeat(9)))).toBeNull();
+    expect(acknowledgementOf(FIO_LIKE, given(emoji.repeat(5)))).toBeNull();
+    expect(acknowledgementOf(FIO_LIKE, given(emoji.repeat(10)))?.reason).toBe(emoji.repeat(10));
+    // And at the top: the server takes 1,000 characters however many units they are.
+    expect(acknowledgementOf(FIO_LIKE, given(emoji.repeat(MAX_REASON)))?.reason).toBe(emoji.repeat(MAX_REASON));
+    expect(acknowledgementOf(FIO_LIKE, given(emoji.repeat(MAX_REASON + 1)))).toBeNull();
+    expect(acknowledgementOf(FIO_LIKE, given("a".repeat(MIN_REASON)))?.reason).toBe("a".repeat(MIN_REASON));
+    expect(acknowledgementOf(FIO_LIKE, given("a".repeat(MIN_REASON - 1)))).toBeNull();
   });
 
   it("covers only the gaps it was given for: a design that changed asks again", () => {

@@ -58,7 +58,10 @@ export function acknowledgementOf(
   if (!needsAcknowledgement(answer) || !confirmedFor(answer, state)) return null;
   // As the server normalizes it (Acknowledgement: " ".join(reason.split())), by Python's whitespace.
   const reason = pythonCollapse(state.reason);
-  if (reason.length < MIN_REASON || reason.length > MAX_REASON) return null;
+  // Counted in characters (code points), as Python's len counts them: a character beyond U+FFFF
+  // is two of JavaScript's units, and counting those sent a reason the server refuses.
+  const length = [...reason].length;
+  if (length < MIN_REASON || length > MAX_REASON) return null;
   return { digest: answer.digest, reason };
 }
 
