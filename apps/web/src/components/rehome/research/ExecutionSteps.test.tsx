@@ -1807,18 +1807,20 @@ describe("Results", () => {
     expect(await report.findByText("schváleno 18. 10. 2026")).toBeTruthy();
     // Its approved PDF is being made: the line names the DOCX alone until that PDF exists (was:
     // "DOCX i PDF … to nesou", said of a PDF that could still fail; review 4).
-    expect(report.getByText("Schváleno 18. 10. 2026 · verze ART-context — DOCX této verze to nese v zápatí")).toBeTruthy();
+    expect(report.getByText("Stav: Schváleno 18. 10. 2026 · verze ART-context — DOCX této verze to nese v zápatí")).toBeTruthy();
     expect(report.getByText(/PDF schválené verze se právě vytváří/)).toBeTruthy();
   });
 
   it("keeps a report with a review prepared under an earlier composition, says so, and prepares it anew", async () => {
     // Review 3: hiding an earlier contract's draft lost a prepared, possibly approved, report
-    // whenever composing it again is refused.
+    // whenever composing it again is refused. Changed on purpose (cross-review interactions#5):
+    // this draft was approved here, and preparing an approved version anew displaced it; an
+    // approved one is no longer offered to be prepared anew (the next test), so this one is a draft.
     const review = { run_id: "RUN-deep", purpose: "INTERPRETATION_RESEARCH", target: { research_run_id: "RUN-1" },
       preset: "QUICK", status: "COMPLETED", phase: "COMPLETED", is_terminal: true, retryable: false,
       created_at: "2026-10-16T10:00:00Z", actual_cost_usd: 0.1, steps: [] };
     const earlier = { run_id: "RUN-1", deep_research_run_id: "RUN-deep", state: "READY", artifact_id: "ART-old", sha256: "c",
-      review_state: "APPROVED_INTERNAL", internal_only: true, contract: "aia-contextual-report-3", contract_current: false,
+      review_state: "DRAFT_UNAPPROVED", internal_only: true, contract: "aia-contextual-report-3", contract_current: false,
       pdf: { state: "NOT_REQUESTED", artifact_id: null, size_bytes: null, reason: null, askable: true } };
     api({
       ...listed(reportRun()),
@@ -1837,11 +1839,40 @@ describe("Results", () => {
     fireEvent.change(variant, { target: { value: "RUN-deep" } });
     expect(await report.findByText(/podle dřívější skladby zprávy \(aia-contextual-report-3\)/)).toBeTruthy();
     expect(report.getByRole("button", { name: /Stáhnout zprávu/ })).toBeTruthy();
-    expect(report.getByText("schváleno v AIA")).toBeTruthy();
+    expect(report.getByText("neschváleno")).toBeTruthy();
     fireEvent.click(report.getByRole("button", { name: "Připravit znovu podle současné skladby" }));
     await waitFor(() => expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/context")).toHaveLength(1));
     // Refused: the earlier report is still the one offered.
     expect(await report.findByRole("alert")).toBeTruthy();
+    expect(report.getByRole("button", { name: /Stáhnout zprávu/ })).toBeTruthy();
+  });
+
+  it("keeps an approved report with a review of an earlier composition the report, and offers no new one", async () => {
+    // Cross-review interactions#5 / web#6: preparing an approved earlier version anew stored a
+    // new draft that became the variant, and the approved one could no longer be downloaded.
+    const review = { run_id: "RUN-deep", purpose: "INTERPRETATION_RESEARCH", target: { research_run_id: "RUN-1" },
+      preset: "QUICK", status: "COMPLETED", phase: "COMPLETED", is_terminal: true, retryable: false,
+      created_at: "2026-10-16T10:00:00Z", actual_cost_usd: 0.1, steps: [] };
+    const approved = { run_id: "RUN-1", deep_research_run_id: "RUN-deep", state: "READY", artifact_id: "ART-old", sha256: "c",
+      review_state: "APPROVED_INTERNAL", internal_only: true, contract: "aia-contextual-report-3", contract_current: false,
+      pdf: { state: "READY", artifact_id: "ART-old-pdf", size_bytes: 9, reason: null, askable: false } };
+    api({
+      ...listed(reportRun()),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => reportStatus(),
+      "GET /api/v1/studies/STU-1/deep-research/runs": () => [review],
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/context": () => approved,
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    const report = await card();
+    const variant = await report.findByRole("combobox", { name: "Varianta zprávy" });
+    await waitFor(() => expect(within(variant).getAllByRole("option")).toHaveLength(2));
+    fireEvent.change(variant, { target: { value: "RUN-deep" } });
+    expect(await report.findByText(/a je schválená: zůstává zprávou této varianty/)).toBeTruthy();
+    expect(report.getByText("schváleno v AIA")).toBeTruthy();
+    expect(report.queryByRole("button", { name: "Připravit znovu podle současné skladby" })).toBeNull();
+    expect(report.queryByText(/připravená znovu bude nový koncept/)).toBeNull();
     expect(report.getByRole("button", { name: /Stáhnout zprávu/ })).toBeTruthy();
   });
 
@@ -1858,6 +1889,8 @@ describe("Results", () => {
     const report = await card();
     const why = "PDF není v tomto nasazení zapnuté; zpráva je k dispozici jako DOCX.";
     expect(await report.findByText(why)).toBeTruthy();
+    // Not offered again: in this deployment asking only fails again (cross-review web#2).
+    expect(report.queryByRole("button", { name: /Vytvořit PDF/ })).toBeNull();
     fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
     await screen.findByText(t("research.exec.results.reportDraft"));
     expect(screen.getAllByText(why)).toHaveLength(1);
@@ -1956,7 +1989,7 @@ describe("Results", () => {
     expect(await report.findByText("ART-report")).toBeTruthy(); // the draft named before download
     fireEvent.click(report.getByRole("button", { name: /Stáhnout zprávu/ }));
     expect(await report.findByRole("alert")).toBeTruthy();
-    expect(report.getByRole("alert").textContent).toContain("není koncept, který karta ukazuje");
+    expect(report.getByRole("alert").textContent).toContain("není verze, kterou karta ukazuje");
     expect(createObjectURL).not.toHaveBeenCalled();
   });
 
@@ -1982,6 +2015,8 @@ describe("Results", () => {
     await waitFor(() => expect(report.getByRole("radio", { name: "Pro klienta" }).getAttribute("aria-disabled")).not.toBe("true"));
     fireEvent.click(report.getByRole("radio", { name: "Pro klienta" }));
     expect(await report.findByText(t("research.exec.results.reportClientHint"))).toBeTruthy();
+    // Not downloaded yet: whether it is a draft is not known here, and not said.
+    expect(report.queryByText(new RegExp(t("research.exec.results.reportClientHintDraft")))).toBeNull();
     // The client version is DOCX only.
     expect(report.getByRole("radio", { name: "PDF" }).getAttribute("aria-disabled")).toBe("true");
     fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportDownloadClient") }));
@@ -1992,10 +2027,14 @@ describe("Results", () => {
     // (D2): never worded as an approval "for internal use" (was, review 4 of D2).
     const approve = await report.findByRole("button", { name: t("research.exec.results.reportApproveClient") });
     expect(report.queryByRole("button", { name: t("research.exec.results.reportApprove") })).toBeNull();
+    // The downloaded draft is said to be one, and to need approving before it is handed over.
+    expect(report.getByText(new RegExp(t("research.exec.results.reportClientHintDraft")))).toBeTruthy();
     fireEvent.click(approve);
     // The approval's answer does not say whether the file states it: the card says the review alone.
     expect(await report.findByText(`Stav: ${t("research.exec.report.review.clientApproved")}`)).toBeTruthy();
     expect(report.queryByText(/interní použití/)).toBeNull();
+    // Approved: never "Je to koncept" two lines from "Schváleno" (cross-review web#4).
+    expect(report.queryByText(new RegExp(t("research.exec.results.reportClientHintDraft")))).toBeNull();
     const posted = called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve");
     expect(posted).toHaveLength(1);
     expect(posted[0].body).toEqual({ artifact_id: "ART-client", note: "" });
@@ -2022,7 +2061,7 @@ describe("Results", () => {
     expect(await report.findByText(`Stav: ${t("research.exec.report.review.clientDraft")}`)).toBeTruthy();
     fireEvent.click(await report.findByRole("button", { name: t("research.exec.results.reportApproveClient") }));
     // Its DOCX, the one the client receives, says SCHVÁLENO with the date and the version.
-    expect(await report.findByText("Schváleno 18. 10. 2026 · verze ART-client — DOCX této verze to nese v zápatí")).toBeTruthy();
+    expect(await report.findByText("Stav: Schváleno 18. 10. 2026 · verze ART-client — DOCX této verze to nese v zápatí")).toBeTruthy();
     expect(report.queryByText(/interní použití/)).toBeNull();
   });
 
@@ -2107,7 +2146,10 @@ describe("Results", () => {
     const reads = called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report").filter((c) => c.url.endsWith("/report")).length;
     fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportApprove") }));
     // The approved PDF is not made yet: the DOCX alone is said to carry it (review 4).
-    expect(await report.findByText("Schváleno 18. 10. 2026 · verze ART-report — DOCX této verze to nese v zápatí")).toBeTruthy();
+    expect(await report.findByText("Stav: Schváleno 18. 10. 2026 · verze ART-report — DOCX této verze to nese v zápatí")).toBeTruthy();
+    // The state line is a live region: the approval a screen reader user made is announced
+    // (cross-review web#11: the focused button vanished and nothing was said).
+    expect(report.getByRole("status").textContent).toBe("Stav: Schváleno 18. 10. 2026 · verze ART-report — DOCX této verze to nese v zápatí");
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report").filter((c) => c.url.endsWith("/report")).length).toBeGreaterThan(reads);
     // The draft's PDF is not the approved version's: the approved one is being made.
     const pdf = report.getByRole("radio", { name: "PDF" });

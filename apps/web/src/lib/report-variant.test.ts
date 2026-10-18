@@ -73,6 +73,23 @@ describe("report variant (research-integrity-report 3)", () => {
     expect(pdfWhy(null)).toBe("Tento běh PDF nevytvořil.");
   });
 
+  it("never offers again a PDF this deployment does not render", () => {
+    // Cross-review web#2: "PDF není v tomto nasazení zapnuté … Můžete ho nechat vytvořit znovu".
+    const disabled = { ...pdf("FAILED", "pdf_disabled"), askable: false };
+    expect(pdfWhy(disabled)).toBe("PDF není v tomto nasazení zapnuté; zpráva je k dispozici jako DOCX.");
+    expect(pdfWhy(disabled, true)).not.toContain("znovu");
+    expect(variantPdfAskable(variant(disabled))).toBe(false);
+  });
+
+  it("calls a PDF that does not match a version, never a draft, what it is", () => {
+    // Cross-review web#10: an approved version's invalid PDF read "neodpovídá tomuto konceptu".
+    for (const approved of [false, true]) {
+      const why = pdfWhy(pdf("INVALID", "pdf_not_this_report"), approved);
+      expect(why).toContain("neodpovídá této verzi zprávy");
+      expect(why).not.toContain("koncept");
+    }
+  });
+
   it("asks for a PDF again only when the server would start a rendering", () => {
     expect(variantPdfAskable(variant({ ...pdf("FAILED", "pdf_conversion_failed"), askable: true }))).toBe(true);
     expect(variantPdfAskable(variant({ ...pdf("INVALID", "pdf_corrupt"), askable: true }))).toBe(true);
@@ -93,8 +110,10 @@ describe("report variant (research-integrity-report 3)", () => {
   it("hands over a file only when it is the draft the card shows and approves", () => {
     const seen = (artifactId: string | null, reviewState: string | null = "DRAFT_UNAPPROVED") => ({ artifactId, reviewState });
     expect(downloadMismatch(seen("ART-1"), seen("ART-1"))).toBeNull();
-    expect(downloadMismatch(seen("ART-9"), seen("ART-1"))).toContain("není koncept");
-    expect(downloadMismatch(seen(null), seen("ART-1"))).toContain("není koncept");
+    // A version, not "a draft": the card may show an approved one (cross-review web#10).
+    expect(downloadMismatch(seen("ART-9"), seen("ART-1"))).toContain("není verze");
+    expect(downloadMismatch(seen(null), seen("ART-1", "APPROVED_INTERNAL"))).toContain("není verze");
+    expect(downloadMismatch(seen("ART-9"), seen("ART-1"))).not.toContain("koncept");
     // D2: the version the card shows, in the review it shows -- approved since, or not yet.
     expect(downloadMismatch(seen("ART-1", "APPROVED_INTERNAL"), seen("ART-1"))).toContain("jiný stav schválení");
     expect(downloadMismatch(seen("ART-1"), seen("ART-1", "APPROVED_INTERNAL"))).toContain("jiný stav schválení");
@@ -112,8 +131,9 @@ describe("report variant (research-integrity-report 3)", () => {
     );
     expect(reviewLine(review, false)).toContain("po schválení ponese DOCX této verze");
     const approved = { ...review, reviewState: "APPROVED_INTERNAL", approvedOn: "2026-10-08" };
-    expect(reviewLine(approved, true)).toBe("Schváleno 8. 10. 2026 · verze ART-1 — DOCX i PDF této verze to nesou v zápatí");
-    expect(reviewLine(approved, false)).toBe("Schváleno 8. 10. 2026 · verze ART-1 — DOCX této verze to nese v zápatí");
+    // "Stav:" like every other state line (cross-review web#10).
+    expect(reviewLine(approved, true)).toBe("Stav: Schváleno 8. 10. 2026 · verze ART-1 — DOCX i PDF této verze to nesou v zápatí");
+    expect(reviewLine(approved, false)).toBe("Stav: Schváleno 8. 10. 2026 · verze ART-1 — DOCX této verze to nese v zápatí");
     // Stored before the footer layout, or not said: the card claims nothing about the footers.
     expect(reviewLine({ ...approved, stamped: false }, true)).toBeNull();
     expect(reviewLine({ ...review, stamped: undefined }, true)).toBeNull();

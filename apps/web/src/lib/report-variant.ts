@@ -35,7 +35,7 @@ const PDF_WHY: Record<ReportPdfState, string | null> = {
   RENDERING: "PDF se právě vytváří ze stejného konceptu jako DOCX.",
   READY: null,
   FAILED: "PDF se nepodařilo vytvořit; zpráva je k dispozici jako DOCX.",
-  INVALID: "Uložené PDF neodpovídá tomuto konceptu, a proto se nenabízí; zpráva je k dispozici jako DOCX.",
+  INVALID: "Uložené PDF neodpovídá této verzi zprávy, a proto se nenabízí; zpráva je k dispozici jako DOCX.",
 };
 /** A reason the server gives that changes what the person can do, in words. */
 const PDF_REASON: Record<string, string> = {
