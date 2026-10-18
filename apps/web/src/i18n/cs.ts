@@ -2514,6 +2514,16 @@ export const cs = {
         pending: "Zda běh odpoví i na tyto výzkumné otázky, rozhodne až podpora dat ze sběru: {list}",
         notRequired: "Běh lze spustit i bez potvrzení. Zpráva tyto výzkumné otázky uvede mezi omezeními; interní zpráva navíc zaznamená, že spuštění nikdo nepotvrdil.",
         fix: "Propojit otázky s výzkumnými otázkami v Dotazníku",
+        // Where each gap is fixed (lib/answerability.ts gapFixes), one link per place.
+        fixTo: {
+          plan: "Doplnit výzkumné otázky v Návrhu →",
+          links: "Přiřadit otázky dotazníku k výzkumné otázce →",
+          comparison: "Upravit, jak na ni odpovíme →",
+          set: "Upravit sadu →",
+          measure: "Upravit otázky, které ji měří →",
+          support: "Upravit počet respondentů v Dimenzích →",
+          questionnaire: "Otevřít Dotazník →",
+        },
         confirm: "Rozumím, že na tyto výzkumné otázky běh neodpoví nebo nelze předem doložit, že na ně odpoví, a chci ho přesto spustit.",
         why: "Proč běh spustit i tak (uloží se s během a vytiskne ve zprávě)",
         whyHint: "Alespoň 10 znaků, např. „ověřujeme jen postup na fiktivních respondentech“.",

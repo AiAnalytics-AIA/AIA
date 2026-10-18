@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
+import { hashTarget } from "@/lib/answerability";
 import {
   type TrackedSet,
   type Variant,
@@ -101,6 +102,19 @@ export function PlanStep() {
     document.addEventListener("click", leave, true);
     return () => { window.removeEventListener("beforeunload", beforeUnload); document.removeEventListener("click", leave, true); };
   }, [editing, confirm, router]);
+  // A link to a section of the plan (#plan-understanding: the Run stage's gap of a design with no
+  // research question, lib/answerability.ts gapFixes) opens it, once the plan is drawn.
+  const drawn = !!a;
+  useEffect(() => {
+    if (!drawn) return;
+    const read = () => {
+      const id = hashTarget(window.location.hash);
+      if (id) window.requestAnimationFrame(() => jumpTo(id));
+    };
+    read();
+    window.addEventListener("hashchange", read);
+    return () => window.removeEventListener("hashchange", read);
+  }, [drawn]);
   const [answers, setAnswers] = useState<string[]>([]);
   // Comments still being typed: a quote and its text, kept on the page until they have text.
   const [drafts, setDrafts] = useState<Draft[]>([]);

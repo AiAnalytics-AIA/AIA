@@ -432,6 +432,46 @@ describe("Run: which questions the run will answer (run-recovery-and-truth 2b)",
     expect(within(rows[2]).getByText(t("research.exec.trace.reason.segments_unavailable"))).toBeTruthy();
   });
 
+  it("sends each gap to where it is fixed, and the trace card sends its research question to the same place", async () => {
+    // research-integrity-report 14 (D1): one link to Dotazník's root for every gap did not say where.
+    const gaps = {
+      rules: "aia-answerability-1", capable: false, digest: "e".repeat(64), acknowledgement_required: false,
+      gaps: [
+        { kind: "not_answerable", research_question: "Co lidé snídají?", verdict: "UNANSWERABLE", reasons: ["unmeasured"], measures: [] },
+        { kind: "not_answerable", research_question: "Liší se segmenty?", verdict: "UNANSWERABLE", reasons: ["segments_unavailable"], measures: ["q1"] },
+        { kind: "not_answerable", research_question: "Kolik by zaplatili?", verdict: "UNANSWERABLE", reasons: ["measures_unanswerable"], measures: ["q2"] },
+      ],
+    };
+    const traced = {
+      ...OUTLOOK,
+      answerability: gaps,
+      research_trace: {
+        linked: true,
+        dangling: [],
+        questions: [
+          { text: "Jak často lidé pijí kávu?", measures: ["q1"], verdict: "ANSWERABLE", reasons: [] },
+          { text: "Co lidé snídají?", measures: [], verdict: "UNANSWERABLE", reasons: ["unmeasured"] },
+          { text: "Liší se segmenty?", measures: ["q1"], verdict: "UNANSWERABLE", reasons: ["segments_unavailable"], comparison: "compare_segments" },
+          { text: "Kolik by zaplatili?", measures: ["q2"], verdict: "UNANSWERABLE", reasons: [] },
+        ],
+      },
+    };
+    api({ "GET /api/v1/studies/STU-1/research/readiness": () => traced });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const gate = await screen.findByRole("region", { name: t("research.exec.answerability.title") });
+    const gapRows = within(gate).getAllByRole("listitem");
+    const places = gapRows.map((li) => within(li).getAllByRole("link").map((a) => a.getAttribute("href")));
+    const questionnaire = stagePath("questionnaire");
+    expect(places).toEqual([[`${questionnaire}#q-editor`], [`${questionnaire}#q-comparisons`], [`${questionnaire}#qedit_q2`]]);
+    expect(within(gapRows[0]).getByRole("link").textContent).toBe(t("research.exec.answerability.fixTo.links"));
+    // Dotazník itself stays below the gaps.
+    expect(within(gate).getByRole("link", { name: t("research.exec.answerability.fix") }).getAttribute("href")).toBe(questionnaire);
+    const card = screen.getByRole("region", { name: t("research.exec.trace.title") });
+    const traceRows = within(card).getAllByRole("listitem").filter((li) => li.parentElement?.tagName === "OL");
+    const fixes = traceRows.slice(1).map((li) => within(li).getByRole("link", { name: t("research.exec.fix") }).getAttribute("href"));
+    expect(fixes).toEqual(places.map((p) => p[0]));
+  });
+
   it("shows what Design Research found per research question, a gap, and every rejection's reason", async () => {
     const traced = {
       ...OUTLOOK,
@@ -718,6 +758,8 @@ describe("Run: what a run can cost (5b.2)", () => {
     expect(within(gate).getByText(/Jak často platí kartou\?/)).toBeTruthy();
     expect(within(gate).queryByRole("checkbox")).toBeNull();
     expect(within(gate).getByText(t("research.exec.answerability.notRequired"))).toBeTruthy();
+    // Under the gap, the way to the question that measures it (research-integrity-report 14).
+    expect(within(gate).getByRole("link", { name: t("research.exec.answerability.fixTo.measure") }).getAttribute("href")).toBe(`${stagePath("questionnaire")}#qedit_q2`);
     const start = screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement;
     await waitFor(() => expect(start.disabled).toBe(false));
     fireEvent.click(start);
