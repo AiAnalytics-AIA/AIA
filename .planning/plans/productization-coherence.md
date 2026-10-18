@@ -9,7 +9,7 @@ chunks:
   - "[x] PC6. Proposal review names what acceptance replaces"
   - "[x] PC7. Researcher copy agrees with the Sociomap register and ADR 0018: no D6 or 18.6.6 remedies, no stale report sentence"
   - "[x] PC8. The browser journeys pass on today's interface, a label they wait for cannot drift unnoticed, and the coherence journey and report render are committed tools anyone can rerun"
-  - "[ ] PC9. Report body and appendices flow: no page break before every chapter (owner D5, 2026-10-17)"
+  - "[x] PC9. Report body and appendices flow: no page break before every chapter (owner D5, 2026-10-17)"
   - "[x] PC10. Dimenze shows and saves only the dimensions a person chose: a new study chose none (owner, 2026-10-18; OI-54)"
   - "[ ] PC11. Product-level acceptance scenarios over the real start, worker and report"
   - "[ ] PC12. Owner decisions recorded with a recommendation each; no code"
@@ -103,6 +103,29 @@ old track), stops reading once nothing can change, keeps reading a provider wait
 **Second half, open.** The track also calls Spuštění "done" and Výsledky "Revize N" when the design
 has changed since that run; saying "the design changed after this run" needs the working content's
 revision beside the run's (see the findings ledger, F-design-lane), not a browser guess.
+
+## PC9 — the report flows (owner D5)
+
+**Problem.** Every chapter and appendix heading carried a page break (`report_docx/styles.py:177,
+180 @ 20b24bb`), so short chapters stood alone on near-empty pages: the three journey reports rendered
+27, 29 and 29 pages with pages of 6 and 11 lines (runtime finding R7; #477's render, "short chapters
+alone on a page (D5)", `research-integrity-report.md:181`). The owner's answer (2026-10-17,
+`research-integrity-report.md:448`): "Remove automatic page breaks before chapters. Keep headings with
+the following text, avoid orphaned lines, and keep figures with their captions where practical. Give the
+branded cover its own page; let the report body and appendices flow."
+
+**Change.** The chapter and appendix heading styles break no page; they keep with the following
+paragraph and take 28 pt above them instead. Already true and now pinned: body text has widow control,
+a caption keeps with its figure and the figure with its source line. Each Word section still starts a
+page: the cover, the front matter, the body, the appendices and every landscape page (an orientation
+change needs one).
+
+**Measured** (`make report-journey`, LibreOffice, the same three DOCX): 21, 23 and 23 pages (from 27, 29,
+29). Lines per page, first report: `11 18 40 15 30 28 28 27 35 33 26 25 5 21 26 26 6 10 18 9 23`. The two
+short pages left close a section: the body's last chapter before the appendices begin, and Příloha A
+before the landscape evidence table.
+
+**Tests.** `test_chapters_flow_with_their_headings_kept_to_their_text`.
 
 ## PC18 — Deep Research and refusals say what happened
 

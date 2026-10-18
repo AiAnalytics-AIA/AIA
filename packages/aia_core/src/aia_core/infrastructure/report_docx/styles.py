@@ -174,10 +174,14 @@ PARAGRAPHS: Final[dict[str, Para]] = {
     S.SUBTITLE: Para("doc-subtitle", color="doc-muted", keep_next=True),
     S.KICKER: Para("doc-kicker", color="doc-accent", keep_next=True),
     S.META: Para("doc-meta", color="doc-muted"),
-    S.H1: Para("doc-h1", keep_next=True, page_break_before=True, outline=0),
+    # The owner's D5 (2026-10-17): no automatic page break before a chapter. The body and the
+    # appendices flow; a chapter heading keeps with its text and takes room above it instead. The
+    # cover, the front matter and each Word section (body, appendices, landscape pages) still
+    # start a page of their own (layout.end_section).
+    S.H1: Para("doc-h1", keep_next=True, outline=0, space_before_pt=28),
     S.H2: Para("doc-h2", keep_next=True, outline=1),
     S.H3: Para("doc-h3", keep_next=True, outline=2),
-    S.APPENDIX: Para("doc-h1", keep_next=True, page_break_before=True, outline=0),
+    S.APPENDIX: Para("doc-h1", keep_next=True, outline=0, space_before_pt=28),
     S.FRONT_HEADING: Para("doc-h1", keep_next=True, page_break_before=False),
     S.FRONT_HEADING_BREAK: Para("doc-h1", keep_next=True, page_break_before=True),
     S.H2_FRONT: Para("doc-h2", keep_next=True),
