@@ -995,6 +995,62 @@ def test_an_approval_without_its_ledger_row_is_refused_by_name(
         assert got.status_code == 409 and got.json()["code"] == "report_review_unrecorded"
 
 
+def test_an_experimental_sociomapping_report_is_never_approved(
+    app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any
+) -> None:
+    """The experimental Sociomapping's draft is never client-facing, so it is never approved:
+    no ledger row, never frozen, never stamped. Its composer's own guard went with
+    ``ReportMeta.approvals`` (cb62426), leaving the approval route's type check untested while
+    approving came to freeze a version and ask for its PDF."""
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    principal = AuthenticatedPrincipal(
+        user_id=world.users["researcher"], organization_id=world.organization_id
+    )
+    factory = create_session_factory(app.state.engine)
+    with factory() as session:
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        run = ResearchRuns(session, scope).get(run_id)
+        stored, _ = research_artifacts(session, scope, app.state.artifact_store).put(
+            project_id=run["project_id"],
+            revision=int(run["project_revision"]),
+            stage_type="REPORT",
+            artifact_type=SOCIOMAPPING_REPORT_ARTIFACT_TYPE,
+            data=_rendered_report(),
+            content_type=INTERNAL_REPORT_MEDIA_TYPE,
+            input_fingerprint="sociomapping-approval-test",
+            metadata={
+                "run_id": run_id,
+                "report_kind": "internal",
+                "review_state": "DRAFT_UNAPPROVED",
+                "method_status": "EXPERIMENTAL_AIA",
+                "client_facing": False,
+                **REVIEW_STAMP_RECORD,
+            },
+        )
+        session.commit()
+    before = _jobs_count(app)
+    for person in (researcher, outsider):
+        refused = person.post(
+            f"{_runs(world)}/{run_id}/report/approve", json={"artifact_id": stored.artifact_id}
+        )
+        assert refused.status_code == 409, refused.text
+        assert refused.json()["code"] == "report_not_approvable"
+    with factory() as session:
+        row = session.get(ProjectArtifactRow, stored.artifact_id)
+        assert row is not None and not row.is_approved and not row.is_frozen
+        decisions = session.scalars(
+            select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_id == stored.artifact_id)
+        ).all()
+    assert decisions == []
+    assert _jobs_count(app) == before  # nothing asked for its PDF either
+
+
+def _jobs_count(app: FastAPI) -> int:
+    with create_session_factory(app.state.engine)() as session:
+        return int(session.scalar(select(func.count()).select_from(WorkflowRunRow)) or 0)
+
+
 def test_experimental_sociomapping_is_read_and_downloaded_only_through_its_run(
     app: FastAPI,
     researcher: TestClient,
