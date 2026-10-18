@@ -33,7 +33,6 @@ from aia_core.application.deep_research import (
 from aia_core.application.report import (
     INTERNAL_REPORT_ARTIFACT_TYPE,
     INTERNAL_REPORT_MEDIA_TYPE,
-    INTERNAL_REPORT_PDF_ARTIFACT_TYPE,
     ReportCompositionRefused,
 )
 from aia_core.application.report_approval import ReportNotApprovable, approve_report
@@ -52,6 +51,7 @@ from aia_core.application.report_variants import (
     approval_renders_pdf,
     prepared_context_report,
     request_pdf,
+    step_pdf,
     variant_pdf,
     variant_status,
 )
@@ -1688,37 +1688,12 @@ def _report_for_run(
     return step, artifact
 
 
-def _step_pdf(
-    step: dict[str, Any] | None, report: Artifact | None, run_id: str, repo: ArtifactRepository
-) -> tuple[Artifact | None, dict[str, Any] | None, str | None]:
-    """The PDF the report step stored beside ``report``, verified as its rendering; what the
-    step said about it (None when the step made no PDF: the switch was off); and, when the step
-    said READY but its PDF is not offered, why, in the reasons a requested rendering has
-    (``report_variants.variant_pdf``): gone, corrupt, or not this report's rendering."""
-    said = ((step or {}).get("output") or {}).get("pdf")
-    if report is None or not isinstance(said, dict) or said.get("state") != "READY":
-        return None, said if isinstance(said, dict) else None, None
-    try:
-        pdf = repo.get(str(said.get("artifact_id")))
-    except ArtifactNotFound:
-        return None, said, "pdf_missing"
-    if (
-        pdf.artifact_type != INTERNAL_REPORT_PDF_ARTIFACT_TYPE
-        or pdf.metadata.get("run_id") != run_id
-        or pdf.metadata.get("rendering_of") != report.artifact_id
-    ):
-        return None, said, "pdf_not_this_report"
-    if pdf.status is not ArtifactStatus.VALID:
-        return None, said, "pdf_corrupt"
-    return pdf, said, None
-
-
 def _report_pdf(
     step: dict[str, Any] | None, report: Artifact | None, run_id: str, repo: ArtifactRepository
 ) -> tuple[Artifact | None, dict[str, Any] | None]:
-    """:func:`_step_pdf` for a download: a PDF the step said it made but cannot be served is
+    """:func:`step_pdf` for a download: a PDF the step said it made but cannot be served is
     409, never another file."""
-    pdf, said, why = _step_pdf(step, report, run_id, repo)
+    pdf, said, why = step_pdf(step, report, run_id, repo)
     if why == "pdf_missing":
         raise HTTPException(409, detail={"code": "report_artifact_missing"})
     if why is not None:
@@ -1790,7 +1765,7 @@ def _base_pdf(
             session, scope, store, docx=report, run_id=run_id, deep_research_run_id=None
         )
         return approved.artifact, approved.to_json()
-    own, said, why = _step_pdf(step, report, run_id, research_artifacts(session, scope, store))
+    own, said, why = step_pdf(step, report, run_id, research_artifacts(session, scope, store))
     if why is not None:
         # The step's PDF is gone, corrupt or not this report's: never offered, asked for anew,
         # and said as what it is (review 2: corruption read as a different report's rendering).

@@ -889,12 +889,22 @@ def test_a_draft_whose_step_rendered_no_pdf_promises_none(
     app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
     revision = submit(researcher, world).json()["revision_id"]
     run_id = start(researcher, world, revision).json()["run_id"]
-    _store_internal_report(
+    report_id = _store_internal_report(
         app, world, run_id, _rendered_report(), metadata=dict(REVIEW_STAMP_RECORD)
     )
-    status_ = researcher.get(f"{_runs(world)}/{run_id}/report").json()
+    url = f"{_runs(world)}/{run_id}/report"
+    status_ = researcher.get(url).json()
     assert status_["pdf"] == {"state": "NOT_REQUESTED", "reason": None, "askable": True}
     assert status_["approval_renders_pdf"] is False
+    # Cross-review web#2: approving asks for no PDF here either -- a job would only fail
+    # pdf_disabled where none is rendered. A person may ask for one on the report.
+    before = _jobs_count(app)
+    approved = researcher.post(f"{url}/approve", json={"artifact_id": report_id})
+    assert approved.status_code == 200, approved.text
+    assert _jobs_count(app) == before
+    status_ = researcher.get(url).json()
+    assert status_["review_state"] == "APPROVED_INTERNAL"
+    assert status_["pdf"]["state"] == "NOT_REQUESTED" and status_["pdf"]["askable"] is True
 
 
 def test_the_approved_client_report_downloads_stamped_and_is_read_once(

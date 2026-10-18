@@ -21,7 +21,7 @@ from aia_core.application.report_export import (
     export_docx,
     exports_stamped,
 )
-from aia_core.application.report_variants import RENDERABLE_REPORTS
+from aia_core.application.report_variants import PDF_DISABLED, RENDERABLE_REPORTS
 from aia_core.application.research import research_artifacts
 from aia_core.domain.analysis import ANALYSIS_MODULES
 from aia_core.domain.fieldwork import origin_kind
@@ -370,7 +370,7 @@ class ReportPdfExecutor:
         if self._pdf is None:
             return Failed(
                 FailureClass.MISSING_CONFIGURATION,
-                error={"reason": "pdf_disabled", "message": f"{REPORT_PDF_KEY} is off"},
+                error={"reason": PDF_DISABLED, "message": f"{REPORT_PDF_KEY} is off"},
             )
         try:
             output = store_pdf_rendering(

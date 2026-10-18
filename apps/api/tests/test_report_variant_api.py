@@ -424,6 +424,11 @@ def test_approving_a_prepared_variant_asks_for_its_approved_pdf_under_its_review
     status would read NOT_REQUESTED for ever, and no test said so. A version whose approved
     export is stamped: one that exports its stored bytes asks for nothing new (the next test)."""
     run_id, artifact_id = _prepared(app, researcher, world, stampable=True)
+    # Its draft's own PDF rendered here: evidence this deployment converts (cross-review web#2).
+    _render_pdfs(app, world)
+    base = f"{_study(world)}/research/runs/{run_id}/report/context"
+    drafted = researcher.get(base, params={"deep_research_run_id": REVIEW}).json()
+    assert drafted["pdf"]["state"] == "READY" and drafted["approval_renders_pdf"] is True
     approved = researcher.post(
         f"{_study(world)}/research/runs/{run_id}/report/approve",
         json={"artifact_id": artifact_id, "note": ""},
@@ -517,3 +522,26 @@ def test_an_older_variant_approved_keeps_its_drafts_pdf_on_a_closed_study(
     assert pdf.headers["X-AIA-Artifact-Id"] == artifact_id
     assert pdf.headers["X-AIA-Review-State"] == "APPROVED_INTERNAL"
     assert _jobs(app) == before
+
+
+def test_approving_a_variant_whose_pdf_is_not_rendered_yet_asks_for_none(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """Cross-review web#2: approving asked for the approved PDF whatever the draft's own PDF
+    was, so a deployment that renders none failed the job (pdf_disabled) and the card offered
+    to ask again. Without a ready draft PDF nothing is asked; the status says the approved
+    PDF was not asked for, and a person may ask."""
+    run_id, artifact_id = _prepared(app, researcher, world, stampable=True)
+    before = _jobs(app)
+    approved = researcher.post(
+        f"{_study(world)}/research/runs/{run_id}/report/approve",
+        json={"artifact_id": artifact_id, "note": ""},
+    )
+    assert approved.status_code == 200, approved.text
+    assert _jobs(app) == before
+    body = researcher.get(
+        f"{_study(world)}/research/runs/{run_id}/report/context",
+        params={"deep_research_run_id": REVIEW},
+    ).json()
+    assert body["review_state"] == "APPROVED_INTERNAL"
+    assert body["pdf"]["state"] == "NOT_REQUESTED" and body["pdf"]["askable"] is True

@@ -8,9 +8,14 @@ found through the Study's run and checked to name that run. Approval is a person
 on the stored document; what the client report may contain was decided when it was composed.
 
 Approving a version (research-integrity-report D2) also freezes it -- it can no longer be
-deleted or superseded in place -- and, for a report the worker renders, asks for the PDF of its
-approved export in the same transaction. A Study that starts no work asks for nothing; its PDF
-state says why (``study_closed``), and its DOCX is still downloaded stamped, which needs no job.
+deleted or superseded in place -- and, for a report the worker renders whose approved export is
+stamped, asks for that export's PDF in the same transaction, where this deployment has shown it
+converts: the draft's own PDF is ready (``report_variants.approval_asks_pdf``). A Study that
+starts no work asks for nothing; its PDF state says why (``study_closed``), and its DOCX is
+still downloaded stamped, which needs no job. Where no draft PDF was made, nothing is asked: a
+person asks for the approved PDF on the report itself -- unless the draft's own job failed for
+want of a converter, a reason the approved version's PDF state keeps (``pdf_disabled``, not
+offered: ``report_variants.variant_pdf``).
 """
 
 from __future__ import annotations
@@ -20,7 +25,7 @@ from sqlalchemy.orm import Session
 from aia_core.application.client_report import CLIENT_REPORT_ARTIFACT_TYPE
 from aia_core.application.contextual_report import CONTEXT_REPORT_ARTIFACT_TYPE
 from aia_core.application.report import INTERNAL_REPORT_ARTIFACT_TYPE
-from aia_core.application.report_variants import approval_asks_pdf, request_pdf
+from aia_core.application.report_variants import approval_asks_pdf, draft_pdf_ready, request_pdf
 from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.scope import Permission, StudyContext
 from aia_core.infrastructure.artifact_repository import Artifact, ArtifactStatus
@@ -44,9 +49,10 @@ def approve_report(
     artifact_id: str,
     note: str = "",
 ) -> Artifact:
-    """Approve ``artifact_id`` as ``run_id``'s report, freeze it and ask for its approved PDF.
-    A report already approved is returned as it is: one decision per report, never a second
-    ledger row, and nothing asked again (a person asks for a PDF on the report itself)."""
+    """Approve ``artifact_id`` as ``run_id``'s report, freeze it and, where its draft's own PDF
+    is ready, ask for its approved PDF. A report already approved is returned as it is: one
+    decision per report, never a second ledger row, and nothing asked again (a person asks for
+    a PDF on the report itself)."""
     scope.require(Permission.SIGN_OFF_DELIVERABLE)
     ResearchRuns(session, scope).get(run_id)
     artifacts = research_artifacts(session, scope, store)
@@ -59,9 +65,11 @@ def approve_report(
         raise ReportNotApprovable(artifact_id)
     if artifact.is_approved:
         return artifact
+    # Read while it is still a draft: its own PDF, under the draft's key.
+    ready = draft_pdf_ready(session, scope, store, docx=artifact, run_id=run_id)
     artifacts.approve(artifact_id, note=note)
     approved = artifacts.freeze(artifact_id)
-    if approval_asks_pdf(scope, approved):
+    if approval_asks_pdf(scope, approved, pdf_ready=ready):
         request_pdf(
             session,
             scope,
