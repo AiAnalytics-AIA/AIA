@@ -23,7 +23,7 @@ import { AppShell } from "../../aia/AppShell";
 import { type Ask, AskDialog, Button, Toast } from "../ui";
 import { JobPanel } from "./JobPanel";
 import { StageTrack, TRACK_STEPS } from "./StageTrack";
-import { Blockers, InspectorProvider } from "./Inspector";
+import { Blockers, InspectorProvider, ReadOnly } from "./Inspector";
 import { ProposalReview } from "./ProposalReview";
 import { SaveIndicator } from "./SaveIndicator";
 import { StepPlaceholder } from "./StepPlaceholder";
@@ -280,10 +280,10 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
             <div className="flex min-w-0 flex-col gap-4">
               {/* A design that may not change is read, never edited: every control of a design stage
                   is disabled as one (the run stages decide their own actions). */}
-              <fieldset disabled={!frame.canEdit && DESIGN_STEPS.has(step)} className="contents">
+              <ReadOnly when={!frame.canEdit && DESIGN_STEPS.has(step)}>
                 {agents.proposalReview ? <ProposalReview result={agents.proposalReview.result} state={state} onDecision={agents.proposalReview.decide} /> : null}
                 {Screen ? <Screen /> : <StepPlaceholder step={step} />}
-              </fieldset>
+              </ReadOnly>
             </div>
             {column(<>
               {expanded ? panel : card}

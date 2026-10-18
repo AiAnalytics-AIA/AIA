@@ -124,6 +124,7 @@ describe("ResearchScreen", () => {
     expect(screen.getByRole("link", { name: t("aia.study.closed.reopen") }).getAttribute("href")).toBe("/app/settings#studies");
     // Every control of the design is disabled as one, and nothing is sent.
     expect(goal.closest("fieldset")?.disabled).toBe(true);
+    expect(goal.closest("fieldset")?.getAttribute("role")).toBe("none"); // disables, announces no group
     // So are the stage's own actions in the column beside it (the brief's AI proposal).
     const inspector = document.querySelector("[data-inspector]");
     const actions = [...(inspector?.querySelectorAll("fieldset button") ?? [])] as HTMLButtonElement[];
@@ -134,6 +135,14 @@ describe("ResearchScreen", () => {
     await new Promise((r) => setTimeout(r, 2100));
     expect(saves()).toHaveLength(0);
     expect(screen.queryByText(t("research.saveFailed"))).toBeNull();
+  });
+
+  it("wraps an editable stage in nothing: the read-only fieldset exists only on a closed study", async () => {
+    api(() => content());
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    await screen.findByLabelText(GOAL_LABEL);
+    // No unnamed group round the stage or its column, nothing for a selector to match (journey review).
+    expect(document.querySelector('fieldset[role="none"]')).toBeNull();
   });
 
   it("says why the content could not be loaded, and retries", async () => {

@@ -48,6 +48,16 @@ export function Blockers({ state, stepHref }: { state: Pick<ResearchState, "proj
 const SlotContext = createContext<{ target: HTMLElement | null } | null>(null);
 
 /**
+ * Every control inside disabled as one, only `when` the design may not change. An editable stage
+ * gets no wrapper at all: no unnamed group in the accessibility tree, nothing for a selector to
+ * match (a fieldset round every stage broke the audience journey's own fieldset lookups). The
+ * fieldset is `role="none"`: it disables, it does not announce a group.
+ */
+export function ReadOnly({ when, children }: { when: boolean; children: ReactNode }) {
+  return when ? <fieldset disabled role="none" className="contents">{children}</fieldset> : <>{children}</>;
+}
+
+/**
  * The inspector column: the stage's readiness (InspectorSlot), then AI help (or its
  * open panel) and what is left before a run. It also provides the slot to the stage,
  * which is why it wraps the whole workspace and draws its column through `column`.
@@ -60,9 +70,9 @@ export function InspectorProvider({ children, disabled = false }: {
   const [target, setTarget] = useState<HTMLElement | null>(null);
   const column = (content: ReactNode) => (
     <div data-inspector className="flex min-w-0 flex-col gap-3 lg:sticky lg:top-[136px]">
-      <fieldset disabled={disabled} className="contents">
+      <ReadOnly when={disabled}>
         <div ref={setTarget} className="contents" />
-      </fieldset>
+      </ReadOnly>
       {content}
     </div>
   );
