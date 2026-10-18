@@ -49,6 +49,7 @@ from aia_core.application.report_variants import (
     VariantState,
     VariantStatus,
     approval_renders_pdf,
+    prepared_context_report,
     request_pdf,
     variant_pdf,
     variant_status,
@@ -2108,16 +2109,25 @@ def prepare_contextual_report(
 ) -> ReportVariantResponse:
     """Store the variant's draft once (refused by name when the review does not interpret this
     run, or the run's analysis is incomplete) and ask the worker for its PDF. Idempotent: the
-    same run and review are one draft; preparing again after the PDF failed asks again."""
+    same run and review are one draft; preparing again after the PDF failed asks again. Once a
+    person approved a version it is the report (D2): preparing composes nothing over it, and
+    only asks for its PDF where that is missing."""
     try:
-        artifact, _data = stored_contextual_report(
-            session,
-            scope,
-            store,
-            run_id=run_id,
-            deep_research_run_id=deep_research_run_id,
-            build=settings.build.sha or "",
+        scope.require(Permission.EDIT_STUDY)
+        prepared = prepared_context_report(
+            session, scope, store, run_id=run_id, deep_research_run_id=deep_research_run_id
         )
+        if prepared is not None and prepared.is_approved:
+            artifact = prepared
+        else:
+            artifact, _data = stored_contextual_report(
+                session,
+                scope,
+                store,
+                run_id=run_id,
+                deep_research_run_id=deep_research_run_id,
+                build=settings.build.sha or "",
+            )
         # On a Study that starts no work the draft is still stored; its PDF says why it waits.
         request_pdf(
             session,

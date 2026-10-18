@@ -147,7 +147,8 @@ def approval_renders_pdf(
 class VariantStatus:
     """A run's report with one review: its stored draft (``None``: not prepared) and its PDF.
     ``contract_current`` is false for a draft composed under an earlier contract: still the
-    report a person prepared, downloadable and approvable, and preparing composes it anew."""
+    report a person prepared, downloadable and approvable; while it is a draft, preparing
+    composes it anew, and once approved it stays the report (:func:`prepared_context_report`)."""
 
     state: VariantState
     docx: Artifact | None
@@ -270,10 +271,12 @@ def prepared_context_report(
     deep_research_run_id: str,
 ) -> Artifact | None:
     """The report with this review as last prepared, read without composing anything: the
-    newest valid draft under the current composition contract, else the newest of an earlier
-    one, which stays the report a person prepared (and may have approved) until a current one
-    exists; ``None`` when it was never prepared or none is valid any more. Found as itself,
-    never through a PDF job, which a closed Study never has."""
+    newest valid version a person approved, under any composition contract (D2: the approved
+    version is the one exported; a newer draft never displaces it); else the newest valid
+    draft under the current contract, else the newest of an earlier one, which stays the
+    report a person prepared until a current one exists; ``None`` when it was never prepared
+    or none is valid any more. Found as itself, never through a PDF job, which a closed Study
+    never has."""
     run = ResearchRuns(session, scope).get(run_id)
     drafts = prepared_drafts(
         research_artifacts(session, scope, store),
@@ -282,8 +285,9 @@ def prepared_context_report(
         deep_research_run_id=deep_research_run_id,
         any_contract=True,
     )
+    approved = [a for a in drafts if a.is_approved]
     current = [a for a in drafts if a.metadata.get("report_contract") == CONTEXT_REPORT_CONTRACT]
-    return (current or drafts)[-1] if drafts else None
+    return (approved or current or drafts)[-1] if drafts else None
 
 
 def variant_status(

@@ -131,6 +131,30 @@ def test_the_status_names_the_prepared_draft_and_its_pdf_and_composes_nothing(
     assert _jobs(app) == before
 
 
+def _store_draft(app: FastAPI, world: Any, run_id: str, data: bytes, contract: str) -> str:
+    """Another draft of the variant, stored the way the prepare stores one."""
+    with create_session_factory(app.state.engine)() as session:
+        scope = _scope(session, world)
+        project_id = ResearchRuns(session, scope).design_project_id()
+        assert project_id is not None
+        draft, _ = research_artifacts(session, scope, app.state.artifact_store).put(
+            project_id=project_id,
+            revision=1,
+            stage_type="REPORT",
+            artifact_type=CONTEXT_REPORT_ARTIFACT_TYPE,
+            data=data,
+            input_fingerprint=f"fictional-{contract}",
+            metadata={
+                "run_id": run_id,
+                "deep_research_run_id": REVIEW,
+                "report_kind": "internal",
+                "report_contract": contract,
+            },
+        )
+        session.commit()
+    return draft.artifact_id
+
+
 def test_a_draft_of_an_earlier_contract_stays_the_report_and_says_it_is_earlier(
     app: FastAPI, researcher: TestClient, world: Any
 ) -> None:
@@ -138,7 +162,12 @@ def test_a_draft_of_an_earlier_contract_stays_the_report_and_says_it_is_earlier(
     current for ever, and the page never composed one under today's contract. Review 3: hiding
     them instead lost a prepared, possibly approved, report whenever composing it again is
     refused. An earlier draft stays the report, downloadable and approvable, and says it is
-    earlier, so the page offers to prepare it anew."""
+    earlier, so the page offers to prepare it anew.
+
+    Changed on purpose (cross-review interactions#5): this test used to end with a draft of
+    today's contract, prepared after the earlier one was approved, becoming the report. That
+    left the approved version downloadable in neither format. The approved version now stays
+    the report; a draft displaces only a draft (the next test)."""
     run_id, artifact_id = _prepared(app, researcher, world, contract="aia-contextual-report-3")
     base = f"{_study(world)}/research/runs/{run_id}/report/context"
     params = {"deep_research_run_id": REVIEW}
@@ -155,28 +184,59 @@ def test_a_draft_of_an_earlier_contract_stays_the_report_and_says_it_is_earlier(
     again = researcher.get(base, params=params).json()
     assert again["artifact_id"] == artifact_id and again["review_state"] == "APPROVED_INTERNAL"
 
-    # A draft of today's contract, once prepared, is the report.
-    with create_session_factory(app.state.engine)() as session:
-        scope = _scope(session, world)
-        project_id = ResearchRuns(session, scope).design_project_id()
-        assert project_id is not None
-        current, _ = research_artifacts(session, scope, app.state.artifact_store).put(
-            project_id=project_id,
-            revision=1,
-            stage_type="REPORT",
-            artifact_type=CONTEXT_REPORT_ARTIFACT_TYPE,
-            data=b"PK today's draft",
-            input_fingerprint="today",
-            metadata={
-                "run_id": run_id,
-                "deep_research_run_id": REVIEW,
-                "report_kind": "internal",
-                "report_contract": CONTEXT_REPORT_CONTRACT,
-            },
-        )
-        session.commit()
+    # A draft of today's contract stored since does not displace the approved version.
+    _store_draft(app, world, run_id, b"PK today's draft", CONTEXT_REPORT_CONTRACT)
     now = researcher.get(base, params=params).json()
-    assert now["artifact_id"] == current.artifact_id and now["contract_current"] is True
+    assert now["artifact_id"] == artifact_id and now["review_state"] == "APPROVED_INTERNAL"
+    assert now["contract_current"] is False
+    docx = researcher.get(f"{base}/download", params=params)
+    assert docx.status_code == 200 and docx.headers["X-AIA-Artifact-Id"] == artifact_id
+    assert docx.headers["X-AIA-Review-State"] == "APPROVED_INTERNAL"
+    # Its PDF is still being made: never the newer draft's instead.
+    assert researcher.get(f"{base}/pdf/download", params=params).status_code == 404
+
+
+def test_a_draft_of_todays_contract_displaces_an_earlier_draft(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    run_id, artifact_id = _prepared(app, researcher, world, contract="aia-contextual-report-3")
+    base = f"{_study(world)}/research/runs/{run_id}/report/context"
+    params = {"deep_research_run_id": REVIEW}
+    current = _store_draft(app, world, run_id, b"PK today's draft", CONTEXT_REPORT_CONTRACT)
+    now = researcher.get(base, params=params).json()
+    assert now["artifact_id"] == current and now["contract_current"] is True
+    assert now["review_state"] == "DRAFT_UNAPPROVED"
+    download = researcher.get(f"{base}/download", params=params)
+    assert download.headers["X-AIA-Artifact-Id"] == current != artifact_id
+
+
+def test_preparing_an_approved_variant_again_composes_nothing_over_it(
+    app: FastAPI, researcher: TestClient, world: Any, monkeypatch: Any
+) -> None:
+    """Cross-review interactions#5 / web#6: preparing anew an approved variant of an earlier
+    contract stored a new draft that became the report, and the approved version was then
+    downloadable in neither format. Preparing now composes nothing over an approved version."""
+    from aia_api.routers import research as routes
+
+    run_id, artifact_id = _prepared(app, researcher, world, contract="aia-contextual-report-3")
+    approved = researcher.post(
+        f"{_study(world)}/research/runs/{run_id}/report/approve",
+        json={"artifact_id": artifact_id, "note": ""},
+    )
+    assert approved.status_code == 200, approved.text
+    composed: list[str] = []
+
+    def compose(*_a: Any, **_kw: Any) -> Any:
+        composed.append("composed")
+        raise AssertionError("an approved variant is never composed over")
+
+    monkeypatch.setattr(routes, "stored_contextual_report", compose)
+    url = f"{_study(world)}/research/runs/{run_id}/report/context"
+    prepared = researcher.post(url, params={"deep_research_run_id": REVIEW})
+    assert prepared.status_code == 200, prepared.text
+    body = prepared.json()
+    assert body["artifact_id"] == artifact_id and body["review_state"] == "APPROVED_INTERNAL"
+    assert composed == []
 
 
 def test_the_docx_download_is_the_prepared_draft_and_the_pdf_waits_for_its_rendering(
