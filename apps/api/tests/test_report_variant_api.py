@@ -471,6 +471,54 @@ def test_approving_a_prepared_variant_asks_for_its_approved_pdf_under_its_review
         ), route
 
 
+def test_a_draft_whose_body_states_its_status_is_approved_as_stored_never_stamped(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """Integration review of the cross-review fixes: PR #478 stored literature drafts under
+    aia-contextual-report-5, recorded as stampable, whose chapter ended "Tato kapitola je
+    součástí interního neschváleného návrhu zprávy.". The stamp reads only the renderer's own
+    status marks, so approving one exported SCHVÁLENO in every footer over that sentence.
+    Such a draft reads as an earlier composition, and approved it is exported as stored --
+    its file says draft throughout -- named for what it states, and no approved PDF is
+    asked."""
+    run_id, artifact_id = _prepared(
+        app, researcher, world, contract="aia-contextual-report-5", stampable=True
+    )
+    _render_pdfs(app, world)
+    base = f"{_study(world)}/research/runs/{run_id}/report/context"
+    params = {"deep_research_run_id": REVIEW}
+    drafted = researcher.get(base, params=params).json()
+    assert drafted["artifact_id"] == artifact_id and drafted["contract_current"] is False
+    # Exported as stored once approved, it keeps the PDF its draft already has.
+    assert drafted["approval_renders_pdf"] is True
+    approved = researcher.post(
+        f"{_study(world)}/research/runs/{run_id}/report/approve",
+        json={"artifact_id": artifact_id, "note": ""},
+    )
+    assert approved.status_code == 200 and approved.json()["stamped"] is False
+    with create_session_factory(app.state.engine)() as session:
+        scope = _scope(session, world)
+        docx = research_artifacts(session, scope, app.state.artifact_store).get(artifact_id)
+        asked = WorkflowRepository(session, scope).list_runs(
+            project_id=docx.project_id,
+            workflow_type=REPORT_PDF,
+            key_prefix=report_pdf_key(run_id, REVIEW, artifact_id, approved=True),
+            limit=10,
+        )
+    assert asked == []
+    got = researcher.get(f"{base}/download", params=params)
+    assert got.status_code == 200 and got.headers["X-AIA-Review-State"] == "APPROVED_INTERNAL"
+    assert got.content == _rendered()  # as stored: its footers still say KONCEPT
+    assert got.headers["content-disposition"].endswith(
+        f'-{REVIEW}-{artifact_id}-schvaleno-v-aia.docx"'
+    )
+    # Its draft's PDF renders those same bytes: it is the approved version's PDF.
+    pdf = researcher.get(f"{base}/pdf/download", params=params)
+    assert pdf.status_code == 200 and pdf.headers["content-disposition"].endswith(
+        f'-{REVIEW}-{artifact_id}-schvaleno-v-aia.pdf"'
+    )
+
+
 def _render_pdfs(app: FastAPI, world: Any) -> list[str]:
     """The worker's part, stood in for: every waiting PDF job renders the DOCX its payload
     names -- an approved version's export -- and stores the rendering with what the

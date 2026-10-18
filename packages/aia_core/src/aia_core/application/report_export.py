@@ -101,11 +101,23 @@ def review_stamp_record(docx: bytes) -> Mapping[str, str]:
     return REVIEW_STAMP_RECORD
 
 
+#: Compositions whose body states the report's status although their writer recorded the
+#: stamp: aia-contextual-report-5's literature chapter ended "Tato kapitola je součástí
+#: interního neschváleného návrhu zprávy." (contextual_report.py:610 @ f58bfb8), which the
+#: stamp, reading only the renderer's own status marks, does not see. A version of one is
+#: exported as stored, like one from before the stamp layout -- never SCHVÁLENO in its footers
+#: over that sentence (integration review of the cross-review fixes).
+STATUS_IN_BODY: Final = frozenset({"aia-contextual-report-5"})
+
+
 def stampable(artifact: Artifact) -> bool:
     """Whether the version states its status in its footers alone, as its writer recorded
     after trying the stamp on its bytes (:func:`review_stamp_record`): once approved, its
-    export says so there. False for every report stored before."""
-    return all(artifact.metadata.get(k) == v for k, v in REVIEW_STAMP_RECORD.items())
+    export says so there. False for every report stored before, and for a composition whose
+    body states its status (:data:`STATUS_IN_BODY`)."""
+    return artifact.metadata.get("report_contract") not in STATUS_IN_BODY and all(
+        artifact.metadata.get(k) == v for k, v in REVIEW_STAMP_RECORD.items()
+    )
 
 
 def exports_stamped(artifact: Artifact, mark: ReviewMark) -> bool:
