@@ -30,6 +30,9 @@ CS: Final[dict[str, str]] = {
     "page": "strana",
     "page_of": "z",
     "revision": "revize",
+    # The Design Revision a report was composed from: never the stored version an approval
+    # names in the footers ("verze ART-…", D2), so the two numbers are never read as one.
+    "design_revision": "Revize návrhu",
     "prepared_by": "Zpracovalo",
     "prepared_for": "Pro",
     "date": "Datum",
@@ -37,17 +40,19 @@ CS: Final[dict[str, str]] = {
     "client": "Klient",
     "classification": "Klasifikace",
     "document_control": "Řízení dokumentu",
-    "approved_by": "Schválil(a)",
     "approval": "Schválení",
     "revision_history": "Historie revizí",
     "identifiers": "Identifikátory",
     "study_id": "Označení studie",
     "method": "Metoda",
-    "reviewer": "Schvalovatel",
-    "decided_on": "Datum schválení",
     "change": "Změna",
+    # A version's status, printed in its footers only (research-integrity-report D2): the
+    # stored draft's words, and the approved export's (review.approved_words).
     "draft": "KONCEPT — NESCHVÁLENO",
-    "draft_long": "Tato revize dosud nebyla schválena. Nepředávejte ji jako finální.",
+    "draft_long": "Tato verze dosud nebyla schválena. Nepředávejte ji jako finální.",
+    "approved": "SCHVÁLENO",
+    "version": "verze",
+    "approval_note": "Stav této verze uvádí zápatí; záznam o schválení vede AIA.",
     "separator": " \u00b7 ",
     # report kinds
     "kind_client": "Závěrečná zpráva",

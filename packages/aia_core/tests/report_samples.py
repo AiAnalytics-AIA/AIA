@@ -16,7 +16,6 @@ from aia_core.domain.evidence.claims import ClaimSurface
 from aia_core.domain.evidence.validation import METHOD_STATUS_PENDING
 from aia_core.domain.report.model import (
     Align,
-    Approval,
     Chart,
     ChartKind,
     Classification,
@@ -294,17 +293,12 @@ def content(s: Callable[[str], str]) -> ReportContent:
     )
 
 
-def build(
-    kind: str, report_ledger: Any, *, stress: float = 1.0, approved: bool = False
-) -> ReportDocument:
+def build(kind: str, report_ledger: Any, *, stress: float = 1.0) -> ReportDocument:
     """One sample report of ``kind`` (``KINDS``)."""
     s = stretch(stress)
-    approvals = (Approval("J. Nováková", date(2026, 9, 26)),) if approved else ()
     audit = (("Běh", "run-7f3a2c"), ("Model", "anthropic.claude (Bedrock EU)"), ("QA", "passed"))
     if kind == "client":
-        return client_report(
-            meta(ReportKind.CLIENT, approvals=approvals), content(s), report_ledger()
-        )
+        return client_report(meta(ReportKind.CLIENT), content(s), report_ledger())
     if kind == "final":
         final = FinalContent(
             triangulation=(
@@ -312,14 +306,10 @@ def build(
             ),
             support=_support_table(s),
         )
-        return final_report(
-            meta(ReportKind.FINAL, approvals=approvals), content(s), final, report_ledger()
-        )
+        return final_report(meta(ReportKind.FINAL), content(s), final, report_ledger())
     ledger = report_ledger(ClaimSurface.INTERNAL)
     if kind == "internal":
-        return internal_report(
-            meta(ReportKind.INTERNAL, approvals=approvals), content(s), audit, ledger
-        )
+        return internal_report(meta(ReportKind.INTERNAL), content(s), audit, ledger)
     if kind == "documentation":
         doc = DocumentationContent(
             purpose=(
@@ -333,7 +323,5 @@ def build(
             ),
             limitations=(s("Externí validace čeká."),),
         )
-        return study_documentation(
-            meta(ReportKind.DOCUMENTATION, approvals=approvals), doc, audit, ledger
-        )
+        return study_documentation(meta(ReportKind.DOCUMENTATION), doc, audit, ledger)
     raise ValueError(f"no sample for {kind!r}")

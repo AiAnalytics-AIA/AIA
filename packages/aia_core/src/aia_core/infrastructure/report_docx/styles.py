@@ -90,7 +90,9 @@ class S:
     NUMERAL = "AIA Numeral"
     GRADE = "AIA Grade"
     HEADING_NUMBER = "AIA Heading Number"
-    DRAFT = "AIA Draft"
+    #: A version's review status, only ever in a footer: the one run the approved export
+    #: replaces (review_stamp.py).
+    STATUS = "AIA Status"
     # table styles
     DATA_TABLE = "AIA Data Table"
     KPI_TABLE = "AIA KPI Table"
@@ -290,7 +292,7 @@ CHARACTERS: Final[dict[str, Char]] = {
     S.NUMERAL: Char(token="doc-table"),  # tabular Plex Sans numbers inside prose
     S.GRADE: Char(token="doc-caption", color="doc-muted"),
     S.HEADING_NUMBER: Char(color="doc-accent"),
-    S.DRAFT: Char(token="doc-table-head", color="doc-accent"),
+    S.STATUS: Char(token="doc-table-head", color="doc-accent"),
 }
 
 

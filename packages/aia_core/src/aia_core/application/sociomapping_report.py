@@ -341,8 +341,6 @@ def compose_sociomapping_report(
     """The internal draft. ``images`` maps a battery id to its drawn map (PNG)."""
     if meta.kind is not ReportKind.INTERNAL or meta.classification is not Classification.INTERNAL:
         raise SociomappingReportRefused("an experimental Sociomapping is reported internally only")
-    if meta.approvals:
-        raise SociomappingReportRefused("an experimental Sociomapping report is never approved")
     if (
         result.get("client_facing") is not False
         or result.get("method_status") != "EXPERIMENTAL_AIA"

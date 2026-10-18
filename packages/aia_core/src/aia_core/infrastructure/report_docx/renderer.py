@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import io
 import zipfile
+from collections.abc import Iterable
 from datetime import UTC, datetime
 from typing import Final
 
@@ -136,11 +137,20 @@ def _finish(ctx: RenderContext) -> None:
 def _normalise_zip(data: bytes) -> bytes:
     """Rewrite the package with fixed timestamps, so equal content is equal bytes."""
     src = zipfile.ZipFile(io.BytesIO(data))
+    return write_package((info.filename, src.read(info.filename)) for info in src.infolist())
+
+
+def write_package(parts: Iterable[tuple[str, bytes]]) -> bytes:
+    """``parts`` as a package, in the order given, every part at the fixed timestamp.
+
+    The one way a report package is written: the renderer's, and a stamp's
+    (``review_stamp.py``), so a part a stamp leaves alone is written exactly as it was.
+    """
     out = io.BytesIO()
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as dst:
-        for info in src.infolist():
-            fixed = zipfile.ZipInfo(info.filename, date_time=_ZIP_EPOCH)
+        for name, data in parts:
+            fixed = zipfile.ZipInfo(name, date_time=_ZIP_EPOCH)
             fixed.compress_type = zipfile.ZIP_DEFLATED
             fixed.external_attr = 0o644 << 16
-            dst.writestr(fixed, src.read(info.filename))
+            dst.writestr(fixed, data)
     return out.getvalue()

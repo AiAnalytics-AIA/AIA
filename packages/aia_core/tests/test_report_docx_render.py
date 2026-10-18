@@ -21,7 +21,6 @@ from lxml import etree
 from aia_core.domain.evidence import ClaimSurface
 from aia_core.domain.evidence.validation import METHOD_STATUS_PENDING
 from aia_core.domain.report.model import (
-    Approval,
     Callout,
     CalloutKind,
     Classification,
@@ -200,20 +199,38 @@ def test_running_heads_match_the_supplied_study_and_client_template(
             )
 
 
-def test_an_unapproved_report_says_draft_in_every_footer(rendered: dict[str, bytes]) -> None:
+def _status_runs(root: etree._Element) -> list[str]:
+    return [
+        "".join(t.text or "" for t in r.iter(f"{W}t"))
+        for r in root.iter(f"{W}r")
+        if (st := r.find(f"{W}rPr/{W}rStyle")) is not None and st.get(f"{W}val") == "AIAStatus"
+    ]
+
+
+def test_a_draft_says_its_status_only_in_its_footers(rendered: dict[str, bytes]) -> None:
+    # Was: the cover notice, the cover's "Schválení: čeká na podpis" and the document control
+    # said draft too, so an approved export could not differ from its version in the footers
+    # alone (research-integrity-report D2). Now every footer part says it in one run.
     footers = _header_footer_text(rendered, "footer")
     assert len(footers) == 3  # cover, front matter, body (the appendix flows on in it)
     assert all(DRAFT in text for text, _ in footers)
     assert sum("PAGE" in instr for _, instr in footers) == 2
     assert all("Důvěrné" in text for text, instr in footers if "PAGE" in instr)
-
-
-def test_an_approved_report_drops_the_draft_notice(report_ledger: Any) -> None:
-    doc = _doc(report_ledger(), approvals=(Approval("J. Nováková", date(2026, 9, 26)),))
-    parts = _parts(DocxRenderer().render(doc))
-    assert DRAFT not in _text(_xml(parts, "word/document.xml"))
-    assert len(_header_footer_text(parts, "footer")) == 2  # front matter, body; the cover none
-    assert all(DRAFT not in text for text, _ in _header_footer_text(parts, "footer"))
+    runs = {
+        n: _status_runs(_xml(rendered, n))
+        for n in rendered
+        if n.startswith("word/footer") and n.endswith(".xml")
+    }
+    assert all(len(r) == 1 for r in runs.values()), runs
+    assert sorted(r for (r,) in runs.values()) == [
+        DRAFT,
+        DRAFT,
+        f"{DRAFT}. Tato verze dosud nebyla schválena. Nepředávejte ji jako finální.",  # the cover
+    ]
+    body = _xml(rendered, "word/document.xml")
+    assert _status_runs(body) == []
+    assert DRAFT not in _text(body) and "schválena" not in _text(body)
+    assert "Stav této verze uvádí zápatí; záznam o schválení vede AIA." in _text(body)
 
 
 def test_chapters_and_appendices_flow_and_only_furniture_breaks_the_page(
@@ -295,6 +312,16 @@ def test_document_control_with_no_identifiers_in_a_client_report(
     assert "Syntetický a modelovaný výzkum" in body  # the method status, in words
 
 
+def test_the_revision_a_report_prints_is_named_as_its_designs(
+    rendered: dict[str, bytes],
+) -> None:
+    # Review 4 of D2: an approved file printed "Revize 1" on its cover and in its document
+    # control, and "verze ART-…" in its footers, two numbers either of which read as the
+    # version. The first is the Design Revision the report was composed from, and says so.
+    body = _text(_xml(rendered, "word/document.xml"))
+    assert body.count("Revize návrhu") == 2  # the cover and the document control
+
+
 def test_an_internal_report_prints_its_identifiers(report_ledger: Any) -> None:
     from aia_core.domain.evidence.claims import ClaimSurface
 
@@ -366,7 +393,7 @@ def test_the_cover_names_the_study_and_anchors_the_original_field(report_ledger:
     assert (
         next(p.text for p in cell.paragraphs if p.style.name == "Title") == internal.meta.study_name
     )
-    assert "čeká na podpis" in _text(body)
+    assert "čeká na podpis" not in _text(body)  # the status is the footers' (D2)
     assert cover.tables[0].columns[0].width.mm == pytest.approx(120, abs=0.02)
     from aia_core.infrastructure.report_docx.cover import ASSETS
 

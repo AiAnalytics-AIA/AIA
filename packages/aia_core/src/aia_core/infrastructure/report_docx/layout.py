@@ -2,14 +2,19 @@
 
 A report has three kinds of section, each a Word section of its own:
 
-* the **cover**, with no running heads (a draft's cover still carries the draft
-  notice in its footer: every footer of an unapproved report says so);
+* the **cover**, with no running heads; its footer carries the draft notice;
 * the **front matter** (document control, contents, lists), paged in lower-case
   roman numerals from i;
 * the **body**, paged in arabic numerals from 1, with the study and the client
   in the header and the classification and page in the footer. Chapters and
   appendices flow within it; only a landscape page is a further section of the
   body, which continues its numbering, and the portrait page after it another.
+
+A document states its review status in its footers and nowhere else
+(research-integrity-report D2): every footer part holds exactly one :attr:`S.STATUS` run,
+the draft's words. A stored version stays a draft; the export of an approved one replaces
+those runs alone (``review_stamp.py``), so the cover, the document control and the body
+of an approved file are byte for byte the version a person approved.
 
 A section starts a new page, so a page breaks only where its furniture changes
 (research-integrity-report D5): after the cover, before the body (its numbering
@@ -131,10 +136,6 @@ def _classification(ctx: RenderContext) -> str:
     return t("classification_client")
 
 
-def _draft(ctx: RenderContext) -> bool:
-    return not ctx.report.meta.approvals
-
-
 def running(ctx: RenderContext, section: Section, *, wide: bool = False) -> None:
     """The running heads of ``section``: the study and client, the classification and page.
 
@@ -163,14 +164,13 @@ def running_head(
 
 
 def running_foot(ctx: RenderContext, section: Section, *, page: bool, wide: bool = False) -> None:
-    """Classification and the page; a draft's footer says it is a draft, first."""
+    """The version's status, the classification and the page."""
     footer = section.footer
     footer.is_linked_to_previous = False
     p = footer.paragraphs[0]
     p.style = S.FOOTER_WIDE if wide else S.FOOTER
-    if _draft(ctx):
-        p.add_run(t("draft"), style=S.DRAFT)
-        p.add_run(t("separator"))
+    p.add_run(t("draft"), style=S.STATUS)
+    p.add_run(t("separator"))
     p.add_run(_classification(ctx))
     if page:
         add_tab(p)
@@ -244,33 +244,29 @@ def render_cover(ctx: RenderContext) -> None:
     grid = cell.add_table(rows=0, cols=2)
     grid.style = S.COVER_META_TABLE
     grid.autofit = False
-    grid.columns[0].width = Mm(22)
-    grid.columns[1].width = Mm(98)
-    signature = meta.approvals[-1].reviewer if meta.approvals else "čeká na podpis"
+    grid.columns[0].width = Mm(28)
+    grid.columns[1].width = Mm(92)
     rows = [
         ("Klient", meta.client_name, S.META),
         ("Datum", numbers.czech_date(meta.issued_on), S.META),
         ("Autoři", meta.prepared_by, S.META),
-        ("Revize", str(meta.revision), S.MONO),
-        ("Schválení", signature, S.META),
+        (t("design_revision"), str(meta.revision), S.MONO),
     ]
     for label, value, style in rows:
         cells = grid.add_row().cells
-        cells[0].width, cells[1].width = Mm(22), Mm(98)
+        cells[0].width, cells[1].width = Mm(28), Mm(92)
         cells[0].paragraphs[0].style = S.META
         cells[0].paragraphs[0].add_run(label)
         cells[1].paragraphs[0].style = style
         cells[1].paragraphs[0].add_run(value)
     cell.paragraphs[-1].style = S.COVER_RULE
-    notice = cell.add_paragraph(_classification(ctx), style=S.COVER_NOTICE)
-    if _draft(ctx):
-        notice.add_run(" · " + t("draft"), style=S.DRAFT)
-        notice.add_run(". " + t("draft_long"))
-        footer = cover.footer
-        footer.is_linked_to_previous = False
-        fp = footer.paragraphs[0]
-        fp.style = S.FOOTER
-        fp.add_run(t("draft"), style=S.DRAFT)
+    cell.add_paragraph(_classification(ctx), style=S.COVER_NOTICE)
+    # The cover's status is its footer's, the long sentence in the one run a stamp replaces.
+    footer = cover.footer
+    footer.is_linked_to_previous = False
+    fp = footer.paragraphs[0]
+    fp.style = S.FOOTER
+    fp.add_run(f"{t('draft')}. {t('draft_long')}", style=S.STATUS)
     d.add_paragraph(style=S.COVER_RULE)
 
 
@@ -301,7 +297,11 @@ def _grid(ctx: RenderContext, head: tuple[str, ...], rows: list[tuple[str, ...]]
 
 
 def render_document_control(ctx: RenderContext) -> None:
-    """The meta table, sign-off and revision history; identifiers only internally."""
+    """The meta table, where the status is, and revision history; identifiers only internally.
+
+    The approval section says where the status is, in words true of a draft and of its
+    approved export alike: the status itself is the footers'.
+    """
     meta = ctx.report.meta
     d = ctx.document
     d.add_paragraph(t("document_control"), style=S.FRONT_HEADING)
@@ -309,7 +309,7 @@ def render_document_control(ctx: RenderContext) -> None:
         (t("client"), meta.client_name),
         (t("study"), meta.study_name),
         (t("date"), numbers.czech_date(meta.issued_on)),
-        (t("revision").capitalize(), str(meta.revision)),
+        (t("design_revision"), str(meta.revision)),
         (t("classification"), _classification(ctx)),
         (t("prepared_by"), meta.prepared_by),
         (t("method_status"), method_status_text(meta.method_status)),
@@ -319,16 +319,7 @@ def render_document_control(ctx: RenderContext) -> None:
     _key_value_table(ctx, rows)
 
     d.add_paragraph(t("approval"), style=S.H2_FRONT)
-    if meta.approvals:
-        _grid(
-            ctx,
-            (t("reviewer"), t("decided_on")),
-            [(a.reviewer, numbers.czech_date(a.decided_on)) for a in meta.approvals],
-        )
-    else:
-        p = d.add_paragraph(style=S.BODY)
-        p.add_run(t("draft"), style=S.DRAFT)
-        p.add_run(" " + t("draft_long"))
+    d.add_paragraph(t("approval_note"), style=S.BODY)
 
     if meta.history:
         d.add_paragraph(t("revision_history"), style=S.H2_FRONT)

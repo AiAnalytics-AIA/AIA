@@ -754,7 +754,6 @@ def test_reconstructed_analysis_composes_an_internal_branded_draft(
     # 18.6.6's own aggregation: no deviation is claimed anywhere (G3c).
     assert run.aggregation_deviation is None
     assert not any(isinstance(b, Callout) and b.title == "Odchylka od 18.6.6" for b in intro)
-    assert doc.meta.approvals == ()
     assert "q1.mean" in cited_refs(doc)
     assert doc.ledger.surface is ClaimSurface.INTERNAL
     assert doc.sections[-1].appendix
