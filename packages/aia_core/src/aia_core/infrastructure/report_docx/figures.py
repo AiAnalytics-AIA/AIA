@@ -17,7 +17,6 @@ from io import BytesIO
 from docx.shared import Mm
 from PIL import Image
 
-from aia_core.domain.fieldwork import MODELLED_DISCLOSURE
 from aia_core.domain.report import numbers
 from aia_core.domain.report.copy import t
 from aia_core.domain.report.model import Figure, SociomapFigure
@@ -50,7 +49,7 @@ def render_figure(ctx: RenderContext, container: Container, block: Figure) -> No
         anchor=block.id,
         base_ref=block.base_ref,
         grade=uniform_grade(ctx, refs),
-        extra=MODELLED_DISCLOSURE if ctx.ledger.modelled_panel(refs) else None,
+        modelled_panel=ctx.ledger.modelled_panel(refs),
     )
     drawn = draw_chart(ctx, block.chart, landscape=block.landscape)
     p = container.add_paragraph(style=S.FIGURE)

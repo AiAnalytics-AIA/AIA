@@ -123,6 +123,41 @@ def test_the_caption_numbers_titles_and_states_the_base(report_ledger: Any) -> N
     assert not any((i.text or "").strip().startswith("TOC") for i in root.iter(f"{W}instrText"))
 
 
+def test_a_modelled_caption_says_modelled_once(report_ledger: Any) -> None:
+    # Was: "(modelováno; modelováno: AI respondenti z populace)", the grade's word and then the
+    # disclosure that begins with it, on a client report's modelled tables and figures
+    # (cross-review). The disclosure says the grade and what it rests on; any other grade (the
+    # fixture's region table: measured) still prints beside it.
+    from aia_core.domain.fieldwork import MODELLED_DISCLOSURE
+    from aia_core.domain.report.evidence import PrintGrade
+    from aia_core.infrastructure.report_docx.marks import grade_label
+
+    # The disclosure stands for the grade only while it begins with the grade's word.
+    assert MODELLED_DISCLOSURE.startswith(f"{grade_label(PrintGrade.MODELLED).lower()}:")
+    modelled = Table(
+        "tab-switch",
+        "Ochota přejít k jiné bance",
+        (Column("Skupina"), Column("Ochota", Align.RIGHT, unit="%")),
+        (
+            TableRow((TextCell("Všichni"), NumberCell("switch_modelled"))),
+            TableRow((TextCell("Mladší"), NumberCell("switch_modelled_young"))),
+        ),
+        "AIA, AI respondenti 2026",
+    )
+    section = Section("Výsledky", (Callout(CalloutKind.METHOD, ()), modelled, region_table()))
+    root = _render(ReportDocument(_meta(), (section,), report_ledger()))
+    captions = [
+        _t(p)
+        for p in root.iter(f"{W}p")
+        if (style := p.find(f"{W}pPr/{W}pStyle")) is not None and style.get(f"{W}val") == "Caption"
+    ]
+    assert captions == [
+        "Tabulka 1 — Ochota přejít k jiné bance (modelováno: AI respondenti z populace)",
+        f"Tabulka 2 — Důvěra v banky podle regionu (n{NB}={NB}480; měřeno; "
+        "modelováno: AI respondenti z populace)",
+    ]
+
+
 def test_a_suppressed_row_is_removed_and_counted(report_ledger: Any) -> None:
     root = _render(table_document(report_ledger()))
     tbl = _data_table(root)

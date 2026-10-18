@@ -71,16 +71,24 @@ def caption(
     anchor: str,
     base_ref: str | None,
     grade: PrintGrade | None,
+    modelled_panel: bool = False,
     extra: str | None = None,
 ) -> None:
-    """ "Tabulka 3 — title (n = 480; měřeno)": the SEQ field, then what it rests on."""
+    """ "Tabulka 3 — title (n = 480; měřeno)": the SEQ field, then what it rests on.
+
+    ``modelled_panel``: some of its numbers rest on AI respondents built from the population,
+    said once beside them (ADR 0024 §7). The disclosure begins with the modelled grade's word
+    and says more, so a modelled grade prints as the disclosure alone, never the word twice.
+    """
     p = container.add_paragraph(style=S.CAPTION)
     p.add_run(f"{word} ")
     add_field(p, f"SEQ {word} \\* ARABIC", str(number))
     p.add_run(f" — {title}")
     basis = [base_text(ctx, base_ref)] if base_ref else []
-    if grade is not None:
+    if grade is not None and not (modelled_panel and grade is PrintGrade.MODELLED):
         basis.append(_grade_phrase(grade))
+    if modelled_panel:
+        basis.append(MODELLED_DISCLOSURE)
     if extra:
         basis.append(extra)
     if basis:
@@ -212,7 +220,7 @@ def render_table(ctx: RenderContext, container: Container, block: Table) -> None
         base_ref=block.base_ref,
         grade=grade,
         # Once beside the table's numbers rather than in every cell (ADR 0024 §7).
-        extra=MODELLED_DISCLOSURE if ctx.ledger.modelled_panel(refs) else None,
+        modelled_panel=ctx.ledger.modelled_panel(refs),
     )
 
     table = ctx.document.add_table(rows=1, cols=len(block.columns))
