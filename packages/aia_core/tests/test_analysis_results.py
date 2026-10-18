@@ -1392,6 +1392,8 @@ def test_an_answer_to_a_research_question_the_run_could_not_answer_says_so_where
                 and i + 1 < len(blocks)
             ):
                 answers += 1
+                # The question titles its answer, so it never ends a page alone above it.
+                assert block.role is ParagraphRole.LEAD_IN, section.id
                 after = blocks[i + 1]
                 assert isinstance(after, Callout), section.id
                 qualified.append(_callout_texts([after])[0])

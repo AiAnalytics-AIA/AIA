@@ -90,6 +90,7 @@ class Heading:
 class ParagraphRole(StrEnum):
     BODY = "body"
     LEDE = "lede"  # the headline answer, set larger
+    LEAD_IN = "lead_in"  # a short line that titles what follows: kept with it, never split
 
 
 @dataclass(frozen=True, slots=True)

@@ -342,7 +342,8 @@ def compose_internal_report(
         if result.research_question_answers:
             blocks.append(Heading("Odpovědi na výzkumné otázky", 2))
         for answer in result.research_question_answers:
-            blocks.append(Paragraph((Text(answer.question, "strong"),)))
+            # Titles its answer: kept on the page with the qualification and answer below it.
+            blocks.append(Paragraph((Text(answer.question, "strong"),), ParagraphRole.LEAD_IN))
             folded = _folded(answer.question)
             if folded in gaps and folded not in marked:
                 # Why, once: at the first answer to it. Several modules answer the same

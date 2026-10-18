@@ -122,6 +122,7 @@ def test_headings_captions_and_figures_keep_with_what_follows() -> None:
         S.CALLOUT_TITLE,
         S.FINDING_TITLE,
         S.FINDING_LABEL,
+        S.LEAD_IN,
     }
     document = _installed()
     for name in kept | {S.FIGURE}:  # caption -> picture -> the first source line

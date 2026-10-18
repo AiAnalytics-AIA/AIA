@@ -47,6 +47,7 @@ class S:
     FRONT_HEADING_BREAK = "AIA Front Heading Page"
     H2_FRONT = "AIA Front Subheading"
     LEDE = "AIA Lede"
+    LEAD_IN = "AIA Lead-in"
     CAPTION = "Caption"
     SOURCE = "AIA Source"
     FOOTNOTE = "footnote text"
@@ -187,6 +188,9 @@ PARAGRAPHS: Final[dict[str, Para]] = {
     S.FRONT_HEADING_BREAK: Para("doc-h1", keep_next=True, keep_lines=True, page_break_before=True),
     S.H2_FRONT: Para("doc-h2", keep_next=True, keep_lines=True),
     S.LEDE: Para("doc-lede"),
+    # A body line that titles what follows it (a research question above its answer): a
+    # heading in all but the outline, so it never ends a page alone.
+    S.LEAD_IN: Para("doc-body", keep_next=True, keep_lines=True),
     S.CAPTION: Para(
         "doc-caption", keep_next=True, keep_lines=True, space_before_pt=10, space_after_pt=4
     ),
