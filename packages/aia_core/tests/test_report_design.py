@@ -85,3 +85,19 @@ def test_the_appendix_lists_every_question_as_asked_and_each_set() -> None:
     assert "Co si ráno koupíte? — jedna odpověď: Kávu, Čaj, Nic" in words
     assert "Proč? — otevřená odpověď" in words
     assert "Káva, Čaj, Kakao, Džus" in words
+
+
+def test_a_sets_count_agrees_with_its_words() -> None:
+    # "4 položek hodnocených" broke Czech agreement in every report with a 2-4 item set
+    # (cross-review); 2-4 take "položky hodnocené", 5 and more "položek hodnocených".
+    spec, problems = compile_design(DESIGN)
+    assert spec is not None, problems
+    assert "Nápoje — 4 položky hodnocené otázkou „Jak hodnotíte …?“" in _words(
+        compose_design_sections(spec, ()).chapter.blocks
+    )
+    battery = {**DESIGN["sections"][1], "objects": ["Káva", "Čaj", "Kakao", "Džus", "Voda"]}
+    spec, problems = compile_design({**DESIGN, "sections": [DESIGN["sections"][0], battery]})
+    assert spec is not None, problems
+    assert "Nápoje — 5 položek hodnocených otázkou" in _words(
+        compose_design_sections(spec, ()).chapter.blocks
+    )

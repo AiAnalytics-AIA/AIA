@@ -1157,8 +1157,8 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
       {gate ? (
         <>
           <p role="note" className="text-sm">{t("research.exec.answerability.retry")}</p>
-          {/* The refusal carries no outlook: its links stop at a stage or a section. */}
-          <AnswerabilityGate answer={gate} value={ack} onChange={setAck} outlook={null} stepHref={stepHref} disabled={busy} />
+          {/* A retry reruns the original's Design Revision: no edit closes these gaps for it, so no links to a fix. */}
+          <AnswerabilityGate answer={gate} value={ack} onChange={setAck} outlook={null} stepHref={stepHref} disabled={busy} retry />
           <div>
             <Button variant="primary" disabled={busy || !acknowledged} onClick={() => acknowledged && void retry(acknowledged)}>
               {t("research.exec.answerability.retryAction")}

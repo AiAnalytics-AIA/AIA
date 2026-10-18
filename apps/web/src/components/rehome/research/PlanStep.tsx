@@ -14,6 +14,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { hashTarget } from "@/lib/answerability";
+import { openPlace, scrollToPlace } from "@/lib/open-place";
 import {
   type TrackedSet,
   type Variant,
@@ -60,7 +61,7 @@ const outOfRange = (set: TrackedSet) => {
   return n < SET_MIN || n > SET_MAX;
 };
 
-const jumpTo = (id: string) => document.getElementById(id)?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+const jumpTo = (id: string) => scrollToPlace(id, "start");
 
 /**
  * The follow-up answers, one per question, as the one block of text the classic
@@ -109,7 +110,8 @@ export function PlanStep() {
     if (!drawn) return;
     const read = () => {
       const id = hashTarget(window.location.hash);
-      if (id) window.requestAnimationFrame(() => jumpTo(id));
+      // Focus follows the scroll there, so Tab goes on from the place (openPlace).
+      if (id) window.requestAnimationFrame(() => openPlace(id, "start"));
     };
     read();
     window.addEventListener("hashchange", read);

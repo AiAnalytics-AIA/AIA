@@ -263,7 +263,8 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
     }
   });
   // An earlier composition's draft prepared anew under today's: a new draft, which needs its
-  // own approval; the earlier one stays downloadable if composing is refused.
+  // own approval; the earlier one stays downloadable if composing is refused. Never offered for
+  // an approved version, which stays the report.
   const prepareAgain = () => run_(async () => {
     if (review !== null) setVariant(await deepResearch.prepareContextReport(frame.studyId, run.run_id, review));
   });
@@ -304,7 +305,8 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
         ? `Stav: ${reportStatusWords(internal)}`
         : version === "client"
           ? !client
-            ? "Stav: klientská zpráva se složí při stažení; schvalujete právě tu, kterou stáhnete"
+            // An approved client report is the one downloaded, whatever composing would give today.
+            ? "Stav: schválená klientská zpráva se stáhne taková, jaká byla schválena; dokud žádná schválená není, složí se při stažení a schvalujete právě tu, kterou stáhnete"
             // The file the client receives: approving signs it off for them, never "for internal use".
             : fileLine ?? `Stav: ${t(`research.exec.report.review.${approved ? "clientApproved" : "clientDraft"}`)}`
           : fileLine ?? `Stav: ${reportStatusWords(approved ? "APPROVED" : "DRAFT")}`;
@@ -339,7 +341,12 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
             ))}
           </ul>
           {version === "client" ? (
-            <p className="text-xs leading-4 text-ink-muted">{t("research.exec.results.reportClientHint")}</p>
+            <p className="text-xs leading-4 text-ink-muted">
+              {t("research.exec.results.reportClientHint")}
+              {/* A draft only where the card knows it is one (its last download said so): never
+                  beside an approved version, never guessed before a download (cross-review web#4). */}
+              {client && !approved ? ` ${t("research.exec.results.reportClientHintDraft")}` : null}
+            </p>
           ) : null}
         </div>
         <div className="flex flex-col gap-2.5 border-t border-border bg-surface p-4 lg:border-l lg:border-t-0">
@@ -390,7 +397,9 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
           {/* Why no PDF, as text: a disabled option's tooltip reaches no touch or keyboard reader,
               and the panel below no longer repeats it (review 3). */}
           {formatWhy ? <p data-format-why className="text-xs leading-4 text-ink-muted">{formatWhy}</p> : null}
-          <p className="text-xs leading-4 text-ink-muted">{stateLine}</p>
+          {/* A live region: approving removes the focused button and changes this line, which a
+              screen reader then announces (cross-review web#11). */}
+          <p role="status" data-report-state className="text-xs leading-4 text-ink-muted">{stateLine}</p>
           {/* The variant with a review needs no ready run report: preparing it is refused by name
               when the run's analysis is incomplete. */}
           <Button variant="primary" className="!min-h-11 justify-center" disabled={(!withReview && !report) || busy || !mayReview} onClick={() => void download()}>
@@ -401,7 +410,13 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
                 ? t("research.exec.results.reportDownloadClient")
                 : withReview && !variantReady ? "Připravit zprávu s rešerší" : "Stáhnout zprávu"}
           </Button>
-          {variantEarlier ? (
+          {variantEarlier && approved ? (
+            // An approved version stays the report: preparing anew would compose nothing over it
+            // (cross-review interactions#5), so it is not offered.
+            <p data-variant-earlier className="text-xs leading-4 text-ink-muted">
+              Tato zpráva s rešerší byla připravena podle dřívější skladby zprávy{current?.contract ? ` (${current.contract})` : ""} a je schválená: zůstává zprávou této varianty a stahuje se taková, jaká byla schválena.
+            </p>
+          ) : variantEarlier ? (
             <>
               <p data-variant-earlier className="text-xs leading-4 text-ink-muted">
                 Tato zpráva s rešerší byla připravena podle dřívější skladby zprávy{current?.contract ? ` (${current.contract})` : ""}. Stáhnout a schválit ji lze dál; připravená znovu bude nový koncept, který potřebuje vlastní schválení.
@@ -429,7 +444,7 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
             <dt>Rešerše</dt><dd className="break-all font-mono">{withReview ? review : "žádná (základní zpráva)"}</dd>
             {chosenReview?.title ? <><dt>Název</dt><dd>{chosenReview.title}</dd></> : null}
             <dt>Literatura</dt><dd>{withReview ? (variantReady ? "kapitola s rešerší a zdroji" : "po přípravě zprávy") : "není součástí"}</dd>
-            {version === "internal" && shown ? <><dt>Verze</dt><dd className="break-all font-mono">{shown}</dd></> : null}
+            {version === "internal" && shown ? <><dt>Uložená verze</dt><dd className="break-all font-mono">{shown}</dd></> : null}
             {version === "internal" && shown ? (
               <>
                 <dt>Schválení</dt>

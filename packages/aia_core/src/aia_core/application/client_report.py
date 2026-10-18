@@ -28,7 +28,7 @@ from aia_core.application.analysis_results import SourcesRefused, native_sources
 from aia_core.application.report import RESEARCH_SUBTITLE
 from aia_core.application.report_chapters import verified_map
 from aia_core.application.report_design import compose_design_sections
-from aia_core.application.report_export import REVIEW_STAMP_RECORD
+from aia_core.application.report_export import review_stamp_record
 from aia_core.application.report_maps import compose_map_sections
 from aia_core.application.report_method import compose_method_section
 from aia_core.application.report_tables import question_tables
@@ -55,12 +55,12 @@ from aia_core.domain.report.model import (
 )
 from aia_core.domain.report.validation import require_valid
 from aia_core.domain.scope import Permission, StudyContext
-from aia_core.infrastructure.artifact_repository import Artifact
+from aia_core.infrastructure.artifact_repository import Artifact, ArtifactRepository, ArtifactStatus
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import ArtifactStore
 
 CLIENT_REPORT_ARTIFACT_TYPE = "research_client_docx"
-CLIENT_REPORT_CONTRACT = "aia-client-report-3"
+CLIENT_REPORT_CONTRACT = "aia-client-report-4"
 CLIENT_REPORT_STAGE = "REPORT"
 
 
@@ -190,9 +190,8 @@ def compose_client_report(
                     # The maps only when a chapter of them was composed: none for a design with
                     # no tracked set, a set that is not mappable, or a method the Sociomap
                     # register does not approve (PC17; compose_map_sections returns none then).
-                    "Zpráva uvádí návrh studie, kdo odpovídal, výsledky jednotlivých otázek"
-                    + (" a mapy hodnocených objektů." if maps else ".")
-                    + " Uvádí jen čísla s dostatečnou oporou a vždy s 95% intervalem."
+                    f"{intro_contents(questions=bool(tables.sections), maps=bool(maps))} "
+                    "Uvádí jen čísla s dostatečnou oporou a vždy s 95% intervalem."
                     + (
                         ""
                         if maps
@@ -240,6 +239,41 @@ def compose_client_report(
     )
 
 
+def approved_client_report(
+    artifacts: ArtifactRepository, run: Mapping[str, Any], *, run_id: str
+) -> Artifact | None:
+    """The newest valid client report of ``run`` a person approved, under any composition
+    contract; ``None`` while none is. Found as itself on the run's project, never by the
+    fingerprint of what composing would give today (D2: the approved version is exported)."""
+    approved = [
+        a
+        for a in artifacts.list_for_stage(
+            project_id=str(run["project_id"]),
+            revision=int(run["project_revision"]),
+            stage_type=CLIENT_REPORT_STAGE,
+        )
+        if a.artifact_type == CLIENT_REPORT_ARTIFACT_TYPE
+        and a.status is ArtifactStatus.VALID
+        and a.metadata.get("run_id") == run_id
+        and a.is_approved
+    ]
+    return approved[-1] if approved else None
+
+
+def intro_contents(*, questions: bool, maps: bool) -> str:
+    """What the introduction says the report holds: only the parts composed. The maps are
+    approved maps alone (``compose_map_sections(client=True)``), and a run without a tracked
+    set or an approved map has none, so the sentence named maps the report did not hold
+    (cross-review)."""
+    parts = [
+        "návrh studie",
+        "kdo odpovídal",
+        *(["výsledky jednotlivých otázek"] if questions else []),
+        *(["mapy hodnocených objektů"] if maps else []),
+    ]
+    return f"Zpráva uvádí {', '.join(parts[:-1])} a {parts[-1]}."
+
+
 def stored_client_report(
     session: Session,
     scope: StudyContext,
@@ -248,17 +282,25 @@ def stored_client_report(
     run_id: str,
     build: str = "",
 ) -> tuple[Artifact, bytes]:
-    """The client report as a stored, unapproved draft artifact, and its bytes.
+    """The run's client report as a stored artifact, and its bytes.
 
-    Composed from the run's verified sources every time; rendered and stored only when no
-    valid artifact has exactly those sources, so the document a person approves (B2) is the
+    Once a person has approved one (B2, research-integrity-report D2), the newest valid
+    approved version is the client report, whatever composition contract it was stored under:
+    nothing is composed, so a later deploy that changes the contract, or what composition
+    accepts, never replaces it with a new draft or refuses it. Until then it is composed from
+    the run's verified sources every time, and rendered and stored as a draft only when no
+    valid artifact has exactly those sources, so the document a person approves is the
     document they downloaded.
     """
     from aia_core.infrastructure.report_docx.renderer import DocxRenderer
 
-    composed = compose_client_report(session, scope, store, run_id=run_id)
+    scope.require(Permission.EXPORT_DELIVERABLE)
     run = ResearchRuns(session, scope).get(run_id)
     artifacts = research_artifacts(session, scope, store)
+    approved = approved_client_report(artifacts, run, run_id=run_id)
+    if approved is not None:
+        return approved, artifacts.read(approved.artifact_id)
+    composed = compose_client_report(session, scope, store, run_id=run_id)
     key = fingerprint(composed.sources)
     found = artifacts.find_reusable(
         project_id=run["project_id"],
@@ -285,7 +327,7 @@ def stored_client_report(
             "data_origin": "MODELLED_AI_PANEL",
             "lift": MODELLED_CLIENT_REPORT_LIFT.lift_id,
             "report_contract": CLIENT_REPORT_CONTRACT,
-            **REVIEW_STAMP_RECORD,
+            **review_stamp_record(data),
         },
         depends_on=list(composed.depends_on),
     )

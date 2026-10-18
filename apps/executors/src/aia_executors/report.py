@@ -15,12 +15,13 @@ from aia_core.application.report import (
 )
 from aia_core.application.report_chapters import report_chapters
 from aia_core.application.report_export import (
-    REVIEW_STAMP_RECORD,
     Export,
     ReviewUnrecorded,
     export_docx,
+    exports_stamped,
+    review_stamp_record,
 )
-from aia_core.application.report_variants import RENDERABLE_REPORTS
+from aia_core.application.report_variants import PDF_DISABLED, RENDERABLE_REPORTS
 from aia_core.application.research import research_artifacts
 from aia_core.domain.analysis import ANALYSIS_MODULES
 from aia_core.domain.fieldwork import origin_kind
@@ -46,7 +47,7 @@ from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Suc
 from .research import upstream_artifact
 
 REPORT_ARTIFACT_TYPE = INTERNAL_REPORT_ARTIFACT_TYPE
-REPORT_CONTRACT_VERSION = "aia-internal-report-9"
+REPORT_CONTRACT_VERSION = "aia-internal-report-10"
 REPORT_PDF_ARTIFACT_TYPE = INTERNAL_REPORT_PDF_ARTIFACT_TYPE
 
 
@@ -155,7 +156,7 @@ class ReportExecutor:
                     "data_origin": first.record.labels.data_origin.value,
                     "map_source_sha256": chapters.map_sha256,
                     "report_contract": REPORT_CONTRACT_VERSION,
-                    **REVIEW_STAMP_RECORD,
+                    **review_stamp_record(data),
                 },
                 depends_on=[*[m.artifact_id for m in sources], chapters.map_artifact_id],
             )
@@ -219,8 +220,10 @@ def store_pdf_rendering(
     content for the same run and selected review.
 
     ``approved``: the approved version's export (D2), whose bytes are ``docx``. Its mark and
-    the stamp contract enter the key and the metadata, so its PDF is never the draft's, even
-    for a version stored before the stamp layout, whose export is its stored bytes."""
+    the stamp contract enter the key and the metadata, so a stamped export's PDF is never the
+    draft's. A version stored before the stamp layout exports its stored bytes: the rendering
+    of those bytes made while it was a draft is its approved PDF as well
+    (``report_variants.variant_pdf``), and one made since records the approval beside it."""
     # The artifact id is part of the key: a PDF is served only as the rendering of the DOCX it
     # names (rendering_of), so two drafts with the same bytes each get their own. A draft's key
     # is as it always was, so every stored draft PDF is found again.
@@ -297,9 +300,10 @@ class ReportPdfExecutor:
     The payload also names the version's review as the person asking read it (D2; a job asked
     before that reads as a draft's). The step reads the mark again itself: a draft's job renders
     the stored bytes, an approved version's renders its export -- the stamped DOCX a download of
-    it is. A draft's job whose version was approved since ends superseded, rendering nothing (its
-    approval asked for its own PDF); a mark that moved any other way is refused
-    (``report_review_changed``).
+    it is. A draft's job whose version was approved since ends superseded, rendering nothing,
+    when its export is stamped (that is rendered under a key of its own); one whose export is
+    its stored bytes (stored before the stamp layout) renders them, its approved PDF. A mark
+    that moved any other way is refused (``report_review_changed``).
     """
 
     def __init__(
@@ -346,12 +350,15 @@ class ReportPdfExecutor:
         mark = exported.mark
         asked = (payload.get("review_state") or ReviewState.DRAFT.value, payload.get("approved_on"))
         now = (mark.state.value, mark.approved_on.isoformat() if mark.approved_on else None)
-        if asked != now:
-            if asked[0] == ReviewState.DRAFT.value and mark.state is ReviewState.APPROVED:
-                # Approved while its draft's PDF waited: a person's routine path, not a broken
-                # run. The draft has no PDF to make any more and the approval asked for its own,
-                # so the job ends having converted and stored nothing.
-                return Succeeded(output={"state": "SUPERSEDED", "reason": "report_review_changed"})
+        approved_since = asked[0] == ReviewState.DRAFT.value and mark.state is ReviewState.APPROVED
+        if approved_since and exports_stamped(artifact, mark):
+            # Approved while its draft's PDF waited: a person's routine path, not a broken run.
+            # The draft has no PDF to make any more and its stamped export is rendered under a
+            # key of its own, so the job ends having converted and stored nothing.
+            return Succeeded(output={"state": "SUPERSEDED", "reason": "report_review_changed"})
+        # A version stored before the stamp layout exports its stored bytes once approved: the
+        # rendering this job was asked for is its approved PDF, made here as it would have been.
+        if asked != now and not approved_since:
             return Failed(
                 FailureClass.SCHEMA_VIOLATION,
                 error={
@@ -363,7 +370,7 @@ class ReportPdfExecutor:
         if self._pdf is None:
             return Failed(
                 FailureClass.MISSING_CONFIGURATION,
-                error={"reason": "pdf_disabled", "message": f"{REPORT_PDF_KEY} is off"},
+                error={"reason": PDF_DISABLED, "message": f"{REPORT_PDF_KEY} is off"},
             )
         try:
             output = store_pdf_rendering(

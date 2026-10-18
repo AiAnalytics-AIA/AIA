@@ -219,10 +219,15 @@ describe("Dotazník", () => {
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     // Once the editor is drawn, never before.
     await waitFor(() => expect(seen).toEqual(["qedit_Q2"]));
+    // Keyboard focus moves there too, so Tab goes on from the question, not the page's start
+    // (review web#7); the card is focusable from script only, never in the Tab order.
+    await waitFor(() => expect(document.activeElement?.id).toBe("qedit_Q2"));
+    expect(document.activeElement?.getAttribute("tabindex")).toBe("-1");
     const go = async (hash: string, id: string) => {
       window.location.hash = hash;
       fireEvent(window, new HashChangeEvent("hashchange"));
       await waitFor(() => expect(seen.at(-1)).toBe(id));
+      await waitFor(() => expect(document.activeElement?.id).toBe(id));
     };
     await go("q-comparisons", "q-comparisons");
     expect(document.getElementById("q-comparisons")?.getAttribute("aria-label")).toBe("Jak výzkumné otázky zodpovíme");

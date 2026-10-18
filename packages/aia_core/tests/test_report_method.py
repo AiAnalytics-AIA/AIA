@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+from pathlib import Path
 from typing import Any
 
 from aia_core.application.report_method import (
@@ -144,19 +146,31 @@ def test_an_acknowledged_gap_is_printed_with_the_persons_reason() -> None:
     words = _words(meta, DataOrigin.SYNTHETIC_AI_FICTIONAL)
     assert "Předem nešlo ověřit, že běh zodpoví tuto výzkumnou otázku: " in words
     assert f"„{_RQ}“ (žádná otázka dotazníku neuvádí, na kterou výzkumnou otázku odpovídá)" in words
-    # The choice by its name on the Run screen (research-integrity-report 14, D1).
+    # The choice by its name on the Run screen, quoted (research-integrity-report 14, D1); the
+    # reason ends the sentence it ends, never "„….“." (cross-review).
     assert (
-        "Výzkumník zvolil Pokračovat s omezeními s odůvodněním: „Test postupu.“. "
+        "Výzkumník zvolil „Pokračovat s omezeními“ s odůvodněním „Test postupu.“ "
         "Kdo volbu udělal, je v záznamu schválení."
     ) in words
+    assert "“." not in words
+    unended = {"answerability": _note(acknowledgement={"reason": "Test postupu", "by": "u1"})}
+    assert "s odůvodněním „Test postupu“. Kdo volbu udělal" in _words(
+        unended, DataOrigin.SYNTHETIC_AI_FICTIONAL
+    )
     assert "nemohl" not in words  # UNKNOWN is not UNANSWERABLE
     inherited = _note(
         acknowledgement={"reason": "Test postupu.", "by": "u1", "inherited_from": "RUN-1"}
     )
-    assert "„Test postupu.“ (volba převzata z běhu RUN-1)." in _words(
-        {"answerability": inherited}, DataOrigin.SYNTHETIC_AI_FICTIONAL
-    )
+    assert (
+        "Výzkumník zvolil „Pokračovat s omezeními“ (volba převzata z běhu RUN-1) s odůvodněním "
+        "„Test postupu.“ Kdo"
+    ) in _words({"answerability": inherited}, DataOrigin.SYNTHETIC_AI_FICTIONAL)
     section = compose_method_section(meta, DataOrigin.SYNTHETIC_AI_FICTIONAL)
+    # The gap titled as chapter 3 titles it, not "na které běh nemusel odpovědět" (read as "was
+    # not required to answer"; cross-review).
+    assert [b.title for b in section.blocks if isinstance(b, Callout)] == [
+        "Výzkumné otázky bez doložené odpovědi"
+    ]
     table = next(
         b for b in section.blocks if isinstance(b, Table) and b.id == "tab-run-answerability"
     )
@@ -211,17 +225,42 @@ def test_a_gap_reads_by_its_gap_in_the_table_too() -> None:
     assert "měří ji jen otázky, na které běh neodpoví" in row.cells[2].text
 
 
-def test_an_unenforced_gap_says_nobody_confirmed_it() -> None:
+def test_an_unenforced_gap_says_nobody_made_the_choice() -> None:
+    # The same act is "volba" in every branch (cross-review: "potvrzení" here and on retry).
     words = _words({"answerability": _note(enforced=False)}, DataOrigin.SYNTHETIC_AI_FICTIONAL)
-    assert "Při spuštění to nikdo nepotvrdil" in words
+    assert (
+        "Volbu „Pokračovat s omezeními“ AIA tehdy nevyžadovala a při spuštění ji nikdo neudělal."
+    ) in words
+    assert "potvrz" not in words
+
+
+def test_the_run_screen_says_what_the_report_then_records_in_its_words() -> None:
+    # The Run screen's notice for a deployment that does not ask for the choice
+    # (answerability.notRequired) says what the report will record: the choice by the same
+    # name, the gap by the callout's title, nobody making the choice by the same verb.
+    cs = (Path(__file__).resolve().parents[3] / "apps/web/src/i18n/cs.ts").read_text("utf-8")
+    found = re.search(r'notRequired: "([^"]*)"', cs)
+    assert found is not None
+    screen = found.group(1)
+    words = _words({"answerability": _note(enforced=False)}, DataOrigin.SYNTHETIC_AI_FICTIONAL)
+    section = compose_method_section(
+        {"answerability": _note(enforced=False)}, DataOrigin.SYNTHETIC_AI_FICTIONAL
+    )
+    (title,) = [b.title for b in section.blocks if isinstance(b, Callout)]
+    assert "volbu „Pokračovat s omezeními“" in screen and "„Pokračovat s omezeními“" in words
+    assert title is not None and title.removeprefix("Výzkumné otázky ") in screen
+    assert "volbu při spuštění nikdo neudělal" in screen and "ji nikdo neudělal" in words
 
 
 def test_an_analysis_retry_says_it_was_exempt_not_that_nothing_was_enforced() -> None:
     words = _words(
         {"answerability": _note(exempt="analysis_retry")}, DataOrigin.SYNTHETIC_AI_FICTIONAL
     )
-    assert "opakoval jen analýzu nad již sebranými daty" in words
-    assert "nevyžadovala" not in words
+    assert (
+        "Tento běh opakoval jen analýzu nad již sebranými daty, a proto se u něj volba "
+        "„Pokračovat s omezeními“ neprováděla."
+    ) in words
+    assert "nevyžadovala" not in words and "potvrz" not in words
 
 
 def test_the_client_report_says_what_could_not_be_answered_without_internals() -> None:

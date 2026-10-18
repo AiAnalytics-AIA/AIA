@@ -31,8 +31,11 @@ CS: Final[dict[str, str]] = {
     "page_of": "z",
     "revision": "revize",
     # The Design Revision a report was composed from: never the stored version an approval
-    # names in the footers ("verze ART-…", D2), so the two numbers are never read as one.
-    "design_revision": "Revize návrhu",
+    # names in the footers ("verze ART-…", D2), so the two numbers are never read as one; and
+    # the study's design, never a draft of the report, beside "KONCEPT" on a draft's cover.
+    # One meaning per word in a report: "návrh" is the study's design, "varianta" the base
+    # report or the one with literature, "verze" the stored version alone.
+    "design_revision": "Revize návrhu studie",
     "prepared_by": "Zpracovalo",
     "prepared_for": "Pro",
     "date": "Datum",

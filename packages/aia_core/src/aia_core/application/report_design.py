@@ -24,6 +24,7 @@ from aia_core.domain.report.model import (
     Text,
     text,
 )
+from aia_core.domain.report.numbers import counted
 from aia_core.domain.research_design import ResearchSpecification, SpecQuestion
 
 _TYPE = {
@@ -71,6 +72,11 @@ def _filter_value(value: object) -> str:
     return str(value)
 
 
+def _rated_items(n: int) -> str:
+    """'1 položka hodnocená', '3 položky hodnocené', '5 položek hodnocených'."""
+    return counted(n, "položka hodnocená", "položky hodnocené", "položek hodnocených")
+
+
 def _audience_sentence(spec: ResearchSpecification) -> str:
     """The audience as the design stated it: the strategy and, when it narrowed, by what."""
     strategy = str(spec.audience.get("strategy") or "population")
@@ -111,7 +117,9 @@ def compose_design_sections(
                     (
                         Text(battery.title, "strong"),
                         Text(
-                            f" — {len(battery.objects)} položek hodnocených otázkou "
+                            # Agreeing with the count: "3 položky hodnocené", "5 položek
+                            # hodnocených" (cross-review: "3 položek").
+                            f" — {_rated_items(len(battery.objects))} otázkou "
                             f"„{battery.question_template.replace('{object}', '…')}“ na škále "
                             f"{battery.scale[0]} ({low}) až {battery.scale[1]} ({high})"
                             + (

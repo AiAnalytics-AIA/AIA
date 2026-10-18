@@ -33,7 +33,6 @@ from aia_core.application.deep_research import (
 from aia_core.application.report import (
     INTERNAL_REPORT_ARTIFACT_TYPE,
     INTERNAL_REPORT_MEDIA_TYPE,
-    INTERNAL_REPORT_PDF_ARTIFACT_TYPE,
     ReportCompositionRefused,
 )
 from aia_core.application.report_approval import ReportNotApprovable, approve_report
@@ -41,6 +40,7 @@ from aia_core.application.report_export import (
     Export,
     ReviewUnrecorded,
     export_docx,
+    exports_stamped,
     review_mark,
     stampable,
 )
@@ -50,7 +50,9 @@ from aia_core.application.report_variants import (
     VariantState,
     VariantStatus,
     approval_renders_pdf,
+    prepared_context_report,
     request_pdf,
+    step_pdf,
     variant_pdf,
     variant_status,
 )
@@ -1765,37 +1767,12 @@ def _report_for_run(
     return step, artifact
 
 
-def _step_pdf(
-    step: dict[str, Any] | None, report: Artifact | None, run_id: str, repo: ArtifactRepository
-) -> tuple[Artifact | None, dict[str, Any] | None, str | None]:
-    """The PDF the report step stored beside ``report``, verified as its rendering; what the
-    step said about it (None when the step made no PDF: the switch was off); and, when the step
-    said READY but its PDF is not offered, why, in the reasons a requested rendering has
-    (``report_variants.variant_pdf``): gone, corrupt, or not this report's rendering."""
-    said = ((step or {}).get("output") or {}).get("pdf")
-    if report is None or not isinstance(said, dict) or said.get("state") != "READY":
-        return None, said if isinstance(said, dict) else None, None
-    try:
-        pdf = repo.get(str(said.get("artifact_id")))
-    except ArtifactNotFound:
-        return None, said, "pdf_missing"
-    if (
-        pdf.artifact_type != INTERNAL_REPORT_PDF_ARTIFACT_TYPE
-        or pdf.metadata.get("run_id") != run_id
-        or pdf.metadata.get("rendering_of") != report.artifact_id
-    ):
-        return None, said, "pdf_not_this_report"
-    if pdf.status is not ArtifactStatus.VALID:
-        return None, said, "pdf_corrupt"
-    return pdf, said, None
-
-
 def _report_pdf(
     step: dict[str, Any] | None, report: Artifact | None, run_id: str, repo: ArtifactRepository
 ) -> tuple[Artifact | None, dict[str, Any] | None]:
-    """:func:`_step_pdf` for a download: a PDF the step said it made but cannot be served is
+    """:func:`step_pdf` for a download: a PDF the step said it made but cannot be served is
     409, never another file."""
-    pdf, said, why = _step_pdf(step, report, run_id, repo)
+    pdf, said, why = step_pdf(step, report, run_id, repo)
     if why == "pdf_missing":
         raise HTTPException(409, detail={"code": "report_artifact_missing"})
     if why is not None:
@@ -1857,14 +1834,17 @@ def _base_pdf(
     for since (``report_pdf``, research-integrity-report review: a step that rendered none, or
     failed to, left no way to get one) -- and its state; the PDF only when it is ready.
 
-    Once the version is approved (D2) its PDF is only the rendering of its approved export:
-    the step's PDF renders the draft, and is never served under an approved header."""
-    if mark.state is ReviewState.APPROVED:
+    Once the version is approved (D2) its PDF is the rendering of its approved export: for a
+    stamped export only the rendering asked for it, never the step's (which renders the draft).
+    A version stored before the stamp layout exports its stored bytes, so the step's PDF, or one
+    asked for while it was a draft, renders exactly that export and stays its PDF
+    (``report_export.exports_stamped``; cross-review interactions#4)."""
+    if exports_stamped(report, mark):
         approved = variant_pdf(
             session, scope, store, docx=report, run_id=run_id, deep_research_run_id=None
         )
         return approved.artifact, approved.to_json()
-    own, said, why = _step_pdf(step, report, run_id, research_artifacts(session, scope, store))
+    own, said, why = step_pdf(step, report, run_id, research_artifacts(session, scope, store))
     if why is not None:
         # The step's PDF is gone, corrupt or not this report's: never offered, asked for anew,
         # and said as what it is (review 2: corruption read as a different report's rendering).
@@ -1938,7 +1918,9 @@ def _export(
 def _review_fields(artifact: Artifact, mark: ReviewMark) -> dict[str, Any]:
     """A version's review as a status says it: its state, the day it was approved, and whether
     its file states it (``stamped``: an approved export says SCHVÁLENO in its footers; false
-    for a version stored before that layout, whose file keeps its draft footer)."""
+    for a version stored before that layout, or whose bytes the stamp refused when it was
+    stored, whose file keeps its draft footer). Read from the record its writer made after
+    trying the stamp (``report_export.review_stamp_record``), so it is what the export does."""
     return {
         "review_state": mark.state.value,
         "approved_on": mark.approved_on.isoformat() if mark.approved_on else None,
@@ -1946,10 +1928,19 @@ def _review_fields(artifact: Artifact, mark: ReviewMark) -> dict[str, Any]:
     }
 
 
-def _report_filename(study_id: str, run_id: str, variant: str, mark: ReviewMark, ext: str) -> str:
-    """``AIA-<study>-<run>-<variant>-<version>-<koncept|schvaleno>.<ext>``: the file names the
-    version it is and its review, as its footers do."""
-    state = "schvaleno" if mark.state is ReviewState.APPROVED else "koncept"
+def _report_filename(
+    study_id: str, run_id: str, variant: str, mark: ReviewMark, ext: str, *, stamped: bool
+) -> str:
+    """``AIA-<study>-<run>-<variant>-<version>-<review>.<ext>``: the file names the version it
+    is and its review as the file itself states it -- ``koncept`` for a draft, ``schvaleno``
+    for an approved version whose footers say SCHVÁLENO (``stamped``: the export, or the PDF
+    rendered from it, was stamped), and ``schvaleno-v-aia`` for one approved in AIA whose file
+    keeps the draft footer it was stored with (cross-review interactions#9: named
+    ``schvaleno`` while every footer said KONCEPT, contradicting itself outside AIA)."""
+    if mark.state is not ReviewState.APPROVED:
+        state = "koncept"
+    else:
+        state = "schvaleno" if stamped else "schvaleno-v-aia"
     return f"AIA-{study_id}-{run_id}-{variant}-{mark.artifact_id}-{state}.{ext}"
 
 
@@ -1994,7 +1985,15 @@ def download_run_report_pdf(
         content=data,
         media_type=PDF_MEDIA_TYPE,
         headers=_review_headers(
-            mark, _report_filename(scope.study_id, run_id, "zakladni", mark, "pdf")
+            mark,
+            _report_filename(
+                scope.study_id,
+                run_id,
+                "zakladni",
+                mark,
+                "pdf",
+                stamped=pdf.metadata.get("stamped") is True,
+            ),
         ),
     )
 
@@ -2047,7 +2046,9 @@ def download_run_report(
         # approves (research-integrity-report 3).
         headers=_review_headers(
             exported.mark,
-            _report_filename(scope.study_id, run_id, "zakladni", exported.mark, "docx"),
+            _report_filename(
+                scope.study_id, run_id, "zakladni", exported.mark, "docx", stamped=exported.stamped
+            ),
         ),
     )
 
@@ -2098,7 +2099,8 @@ class ReportVariantResponse(BaseModel):
     #: The Prague day the draft was approved (D2); null while it is a draft.
     approved_on: date | None = None
     #: Whether its file states its review: approved, its DOCX and PDF say SCHVÁLENO in their
-    #: footers; false for a draft stored before that layout, which keeps its draft footer.
+    #: footers; false for a draft stored before that layout (or whose bytes the stamp refused),
+    #: which keeps its draft footer and downloads as "…-schvaleno-v-aia" once approved.
     stamped: bool | None = None
     internal_only: bool = True
     pdf: ReportVariantPdfResponse | None = None
@@ -2187,16 +2189,25 @@ def prepare_contextual_report(
 ) -> ReportVariantResponse:
     """Store the variant's draft once (refused by name when the review does not interpret this
     run, or the run's analysis is incomplete) and ask the worker for its PDF. Idempotent: the
-    same run and review are one draft; preparing again after the PDF failed asks again."""
+    same run and review are one draft; preparing again after the PDF failed asks again. Once a
+    person approved a version it is the report (D2): preparing composes nothing over it, and
+    only asks for its PDF where that is missing."""
     try:
-        artifact, _data = stored_contextual_report(
-            session,
-            scope,
-            store,
-            run_id=run_id,
-            deep_research_run_id=deep_research_run_id,
-            build=settings.build.sha or "",
+        scope.require(Permission.EDIT_STUDY)
+        prepared = prepared_context_report(
+            session, scope, store, run_id=run_id, deep_research_run_id=deep_research_run_id
         )
+        if prepared is not None and prepared.is_approved:
+            artifact = prepared
+        else:
+            artifact, _data = stored_contextual_report(
+                session,
+                scope,
+                store,
+                run_id=run_id,
+                deep_research_run_id=deep_research_run_id,
+                build=settings.build.sha or "",
+            )
         # On a Study that starts no work the draft is still stored; its PDF says why it waits.
         request_pdf(
             session,
@@ -2315,7 +2326,14 @@ def download_contextual_report(
         media_type=INTERNAL_REPORT_MEDIA_TYPE,
         headers=_review_headers(
             exported.mark,
-            _report_filename(scope.study_id, run_id, deep_research_run_id, exported.mark, "docx"),
+            _report_filename(
+                scope.study_id,
+                run_id,
+                deep_research_run_id,
+                exported.mark,
+                "docx",
+                stamped=exported.stamped,
+            ),
         ),
     )
 
@@ -2336,7 +2354,8 @@ def download_contextual_report_pdf(
     found = _variant(run_id, deep_research_run_id, scope, session, store, export=True)
     if found.docx is None or found.mark is None:
         raise _not_prepared()
-    # The variant's PDF is the one its review allows: an approved draft's approved rendering.
+    # The variant's PDF is the one its review allows: an approved version's rendering of its
+    # export (report_variants.variant_pdf), never a draft's when the two differ.
     if found.pdf is None or found.pdf.artifact is None:
         raise _not_found("report_pdf")
     try:
@@ -2348,7 +2367,14 @@ def download_contextual_report_pdf(
         media_type=PDF_MEDIA_TYPE,
         headers=_review_headers(
             found.mark,
-            _report_filename(scope.study_id, run_id, deep_research_run_id, found.mark, "pdf"),
+            _report_filename(
+                scope.study_id,
+                run_id,
+                deep_research_run_id,
+                found.mark,
+                "pdf",
+                stamped=found.pdf.artifact.metadata.get("stamped") is True,
+            ),
         ),
     )
 
@@ -2356,7 +2382,7 @@ def download_contextual_report_pdf(
 @router.get(
     "/research/runs/{run_id}/report/client/download",
     response_class=Response,
-    summary="The run's client report (modelled data, labelled; a stored, unapproved draft)",
+    summary="The run's client report (modelled data, labelled): its approved version, else a draft",
     responses={409: {"model": ErrorResponse}},
 )
 def download_client_report(
@@ -2403,7 +2429,9 @@ def download_client_report(
         media_type=INTERNAL_REPORT_MEDIA_TYPE,
         headers=_review_headers(
             exported.mark,
-            _report_filename(scope.study_id, run_id, "klient", exported.mark, "docx"),
+            _report_filename(
+                scope.study_id, run_id, "klient", exported.mark, "docx", stamped=exported.stamped
+            ),
         ),
     )
 

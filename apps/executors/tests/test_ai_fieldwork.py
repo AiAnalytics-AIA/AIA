@@ -29,6 +29,7 @@ from aia_core.domain.ai_contracts import Delivery, UsageOutcome
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.fieldwork import DataOrigin, FieldworkSource
 from aia_core.domain.pipeline import fingerprint
+from aia_core.domain.report.review import REVIEW_STAMP_CONTRACT
 from aia_core.domain.residency import DataClass
 from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1, ResponseProcessSpec
 from aia_core.domain.workflow import (
@@ -1208,16 +1209,22 @@ def test_a_panel_run_has_a_client_report_of_admitted_modelled_numbers_and_a_fict
     assert "modelováno: AI respondenti z populace" in body
     assert "13. 10. 2026 rozhodl zařadit je do klientské" in body
     assert "Výsledky jednotlivých otázek" in body
-    # This run's report has no map chapter, so it never promises maps (PC17): it says why not.
-    assert not any(sec.id.startswith("ch-native-map") for sec in document.sections)
+    # The run tracks no set and has no map chapter, so its introduction names none and says
+    # why not (it said "a mapy hodnocených objektů" whatever was composed; cross-review, PC17).
+    assert not any((s.id or "").startswith("ch-native-map-") for s in document.sections)
+    assert "Zpráva uvádí návrh studie, kdo odpovídal a výsledky jednotlivých otázek." in body
     assert "a mapy hodnocených objektů" not in body
     assert "Mapy hodnocených objektů neobsahuje" in body
     # Nothing internal: no unapproved map, no pair table of raw r.
     assert "interním výstupem" not in body and "Směr a podpora vztahů" not in body
 
     # Stored once as an unapproved draft, read back, and approvable as this run's report.
+    from datetime import date
+
     from aia_core.application.client_report import stored_client_report
     from aia_core.application.report_approval import approve_report
+    from aia_core.domain.report.review import ReviewMark, ReviewState
+    from aia_core.infrastructure.report_docx.review_stamp import stamp_review
 
     with world.sessions() as session:
         scope = world.lead_scope(session)
@@ -1225,6 +1232,23 @@ def test_a_panel_run_has_a_client_report_of_admitted_modelled_numbers_and_a_fict
         again, same = stored_client_report(session, scope, store, run_id=run_id)
         assert again.artifact_id == stored.artifact_id and same == data
         assert stored.metadata["review_state"] == "DRAFT_UNAPPROVED"
+        # The composed client report takes the stamp, as its writer recorded after trying it.
+        assert stored.metadata.get("review_stamp") == REVIEW_STAMP_CONTRACT
+        # Once approved, its export says SCHVÁLENO in every footer and no status elsewhere. The
+        # stamp reads only the renderer's own status marks (a study's words may say
+        # "neschválení"), so the client report's own words are held here (D2).
+        approved = stamp_review(
+            data,
+            ReviewMark(ReviewState.APPROVED, stored.artifact_id, stored.sha256, date(2026, 10, 18)),
+        )
+        with zipfile.ZipFile(io.BytesIO(approved)) as package:
+            for part in package.namelist():
+                words = package.read(part).decode(errors="ignore")
+                if part.startswith("word/footer"):
+                    assert "SCHVÁLENO" in words and "KONCEPT" not in words, part
+                elif part.endswith(".xml"):
+                    assert "neschválen" not in words.casefold(), part
+                    assert "KONCEPT" not in words, part
         assert approve_report(
             session, scope, store, run_id=run_id, artifact_id=stored.artifact_id
         ).is_approved

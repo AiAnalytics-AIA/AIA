@@ -2310,6 +2310,19 @@ export const cs = {
         UNKNOWN: "neurčený typ",
         other: "jiný typ",
       },
+      // A review merged before today's acceptance rules (lib/review-rules.ts, review web#5): the
+      // screen lists its findings as it accepted them; the report composed today labels them.
+      // Today's topic check reads the client's names from the review's stored plan, so it is
+      // promised only where that plan verifies (topicPlan; cross-review).
+      olderRules: {
+        title: "Rešerše vznikla před dnešními pravidly pro přijetí zjištění",
+        text: "Tato rešerše vznikla před zavedením {rules}. Níže jsou její zjištění tak, jak je tehdy přijala. Zpráva s touto rešerší sestavená podle současné skladby je posoudí dnešními pravidly{documents} a ta, která by neprošla, v ní označí s důvodem; žádné neodstraní a počty nemění.{topicPlan}",
+        both: "kontroly tématu a pravidel typů dokumentů",
+        topic: "kontroly tématu",
+        documents: "pravidel typů dokumentů",
+        documentsHow: " (typ dokumentu jen podle adresy a názvu zdroje)",
+        topicPlan: " Kontrolu tématu přitom lze použít, jen když se podaří ověřit uložený plán rešerše, z něhož kontrola čte jména klienta.",
+      },
     },
     exec: {
       code: {
@@ -2533,6 +2546,10 @@ export const cs = {
         // Beside readiness that says the design cannot run yet: never called runnable there.
         titleNotReady: "Běh nemusí odpovědět na všechny výzkumné otázky",
         help: "Kontroly výše říkají, zda běh může proběhnout. Tato karta říká, zda dokáže odpovědět na to, na co se studie ptá. U těchto výzkumných otázek AIA odpověď doložit nedokáže; pod každou je, kde to opravit:",
+        // A refused retry (review web#8): it reruns the original's Design Revision, so no link to a fix.
+        helpRetry: "Tato karta říká, zda opakovaný běh dokáže odpovědět na to, na co se studie ptá. U těchto výzkumných otázek AIA odpověď doložit nedokáže:",
+        retryFixes: "Opakování spouští znovu revizi návrhu původního běhu, takže úpravy návrhu ani dotazníku tyto mezery u něj neodstraní; oprava platí pro nový běh spuštěný v kroku {stage}.",
+        retryOpen: "Otevřít krok {stage} →",
         none: "Návrh neuvádí žádnou výzkumnou otázku, takže modul výzkumných otázek nebude mít na co odpovědět.",
         wont: "Běh na ni neodpoví",
         unshown: "Nelze doložit, že na ni běh odpoví",
@@ -2549,7 +2566,7 @@ export const cs = {
         },
         reasonUnknown: "důvod, který tato verze stránky nezná",
         pending: "Zda běh odpoví i na tyto výzkumné otázky, rozhodne až podpora dat ze sběru: {list}",
-        notRequired: "Toto nasazení volbu Pokračovat s omezeními nevyžaduje, běh lze spustit i bez ní. Zpráva tyto výzkumné otázky uvede mezi omezeními; interní zpráva navíc zaznamená, že spuštění nikdo nepotvrdil.",
+        notRequired: "Toto nasazení volbu „Pokračovat s omezeními“ nevyžaduje, běh lze spustit i bez ní. Zpráva tyto výzkumné otázky uvede mezi omezeními jako výzkumné otázky bez doložené odpovědi; interní zpráva navíc zaznamená, že volbu při spuštění nikdo neudělal.",
         fix: "Propojit otázky s výzkumnými otázkami v Dotazníku",
         // Where each gap is fixed (lib/answerability.ts gapFixes), one link per place.
         fixTo: {
@@ -2708,8 +2725,8 @@ export const cs = {
         review: {
           draft: "Stav: Koncept · verze {version} — soubor nese v zápatí „KONCEPT — NESCHVÁLENO“; po schválení ponese DOCX i PDF této verze „SCHVÁLENO“ s datem.",
           draftDocx: "Stav: Koncept · verze {version} — soubor nese v zápatí „KONCEPT — NESCHVÁLENO“; po schválení ponese DOCX této verze „SCHVÁLENO“ s datem.",
-          approved: "Schváleno {date} · verze {version} — DOCX i PDF této verze to nesou v zápatí",
-          approvedDocx: "Schváleno {date} · verze {version} — DOCX této verze to nese v zápatí",
+          approved: "Stav: Schváleno {date} · verze {version} — DOCX i PDF této verze to nesou v zápatí",
+          approvedDocx: "Stav: Schváleno {date} · verze {version} — DOCX této verze to nese v zápatí",
           older: "Schválení se zaznamená v AIA u tohoto uloženého souboru. Soubor se tím nemění a v zápatí dál nese „KONCEPT — NESCHVÁLENO“.",
           olderApproved: "Schválení je zaznamenané v AIA u tohoto uloženého souboru. Soubor se tím nezměnil a v zápatí dál nese „KONCEPT — NESCHVÁLENO“.",
           // The client report is the file the client receives: approving it signs it off for them.
@@ -2720,7 +2737,8 @@ export const cs = {
           notApproved: "neschváleno",
           pdfRendering: "PDF schválené verze se právě vytváří; zpráva je zatím k dispozici jako DOCX.",
           pdfNotRequested: "PDF schválené verze zatím nebylo vyžádáno.",
-          otherVersion: "Stažený soubor není koncept, který karta ukazuje (mezitím vznikl jiný). Obnovte stránku a stáhněte ho znovu.",
+          pdfNotRequestedDisabled: "PDF schválené verze nebylo vyžádáno: PDF jejího konceptu se nevytvořilo, protože toto nasazení PDF tehdy nevytvářelo; zpráva je k dispozici jako DOCX.",
+          otherVersion: "Stažený soubor není verze, kterou karta ukazuje (mezitím vznikla jiná). Obnovte stránku a stáhněte ho znovu.",
           otherState: "Stažený soubor nese jiný stav schválení, než karta ukazuje (mezitím se změnil). Obnovte stránku a stáhněte ho znovu.",
         },
       },
@@ -2816,7 +2834,9 @@ export const cs = {
         reportDownloading: "Stahuji…",
         reportDownloadPdf: "Stáhnout PDF",
         reportDownloadClient: "Stáhnout klientskou zprávu",
-        reportClientHint: "Klientská zpráva obsahuje jen čísla, která prošla pravidly pro klienta, každé označené jako modelované, a jen schválené mapy. Je to koncept: před předáním ji schvalte.",
+        reportClientHint: "Klientská zpráva obsahuje jen čísla, která prošla pravidly pro klienta, každé označené jako modelované, a jen schválené mapy.",
+        // Said only of a client report the card knows is a draft (its last download said so).
+        reportClientHintDraft: "Je to koncept: před předáním ji schvalte.",
         reportPdfFailed: "PDF se nepodařilo vytvořit; zpráva je k dispozici jako DOCX.",
         reportApprove: "Schválit pro interní použití",
         reportApproveClient: "Schválit k předání klientovi",

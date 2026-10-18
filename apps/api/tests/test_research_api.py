@@ -18,6 +18,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 import pytest
+from aia_core.application import client_report
 from aia_core.application.client_report import CLIENT_REPORT_ARTIFACT_TYPE
 from aia_core.application.report import (
     INTERNAL_REPORT_ARTIFACT_TYPE,
@@ -670,8 +671,10 @@ def test_a_person_approves_a_runs_stored_report_once_and_only_that(
     status_ = researcher.get(url).json()
     assert status_["review_state"] == "APPROVED_INTERNAL"
     assert status_["approved_on"] in {before, _prague_today()}
-    # D2: approving asks for the approved version's PDF; its fictional bytes take no stamp.
-    assert status_["pdf"]["state"] == "RENDERING" and status_["stamped"] is False
+    # D2: its fictional bytes take no stamp, so its approved export is its stored bytes and
+    # approving asks for no new PDF (cross-review interactions#4); a person may ask for one.
+    assert status_["stamped"] is False
+    assert status_["pdf"] == {"state": "NOT_REQUESTED", "reason": None, "askable": True}
     again = outsider.post(approve, json={"artifact_id": report_id})
     assert again.status_code == 200
 
@@ -715,6 +718,18 @@ def _rendered_report() -> bytes:
 def _footers(docx: bytes) -> dict[str, bytes]:
     with zipfile.ZipFile(io.BytesIO(docx)) as z:
         return {n: z.read(n) for n in z.namelist() if n.startswith("word/footer")}
+
+
+def _says_approved(footers: dict[str, bytes], status: str, version: str) -> bool:
+    """Every footer says the version is approved and none that it is a draft: the cover, in its
+    narrower status column, as two lines (the version id whole), every other one on one line."""
+    one = f"{status} \u00b7 {version}".encode()
+    two = f"{status}</w:t><w:br/><w:t>{version}".encode()
+    return (
+        sum(two in f for f in footers.values()) == 1
+        and all(one in f or two in f for f in footers.values())
+        and all(b"KONCEPT" not in f for f in footers.values())
+    )
 
 
 def _part(docx: bytes, name: str) -> bytes:
@@ -770,9 +785,8 @@ def test_an_approved_versions_docx_says_approved_and_names_the_version(
     assert downloaded.headers["X-AIA-Review-State"] == "APPROVED_INTERNAL"
     assert downloaded.headers["content-disposition"].endswith(f'-{report_id}-schvaleno.docx"')
     year, month, day = (int(x) for x in approved_on.split("-"))
-    words = f"SCHVÁLENO {day}.\u00a0{month}.\u00a0{year} \u00b7 verze {report_id}".encode()
-    footers = _footers(downloaded.content)
-    assert footers and all(words in f and b"KONCEPT" not in f for f in footers.values())
+    status = f"SCHVÁLENO {day}.\u00a0{month}.\u00a0{year}"
+    assert _says_approved(_footers(downloaded.content), status, f"verze {report_id}")
     # Everything else is the version a person approved, byte for byte.
     assert _part(downloaded.content, "word/document.xml") == _part(document, "word/document.xml")
     assert downloaded.content != document
@@ -846,6 +860,40 @@ def test_a_draft_promises_an_approved_pdf_only_where_approving_makes_one(
     assert status_["approval_renders_pdf"] is False
 
 
+def test_a_version_approved_before_the_stamp_layout_keeps_its_pdf_on_a_closed_study(
+    app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any
+) -> None:
+    """Cross-review interactions#4 / web#3: an approved version's PDF was looked up only under
+    the approved key, so a report approved before this release -- stored without the stamp
+    layout, its step PDF ready -- read NOT_REQUESTED, study_closed, and its PDF download was a
+    404 for good on a delivered study. Its export is its stored bytes, which the step's PDF
+    renders exactly: that PDF is the approved version's, and approving asks for nothing."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    report_id = _store_internal_report(
+        app, world, run_id, _rendered_report(), pdf=b"%PDF-1.7 draft rendering"
+    )
+    url = f"{_runs(world)}/{run_id}/report"
+    before = _jobs_count(app)
+    approved = outsider.post(f"{url}/approve", json={"artifact_id": report_id})
+    assert approved.status_code == 200 and approved.json()["stamped"] is False
+    assert _jobs_count(app) == before  # nothing new to render
+    _close_study(app, world)
+    status_ = researcher.get(url).json()
+    assert status_["review_state"] == "APPROVED_INTERNAL"
+    assert status_["pdf"]["state"] == "READY" and status_["pdf"]["askable"] is False
+    pdf = researcher.get(f"{url}/pdf/download")
+    assert pdf.status_code == 200, pdf.text
+    assert pdf.content == b"%PDF-1.7 draft rendering"
+    assert pdf.headers["X-AIA-Artifact-Id"] == report_id
+    assert pdf.headers["X-AIA-Review-State"] == "APPROVED_INTERNAL"
+    # Its pages keep the draft footer it was stored with: named approved in AIA, not stamped.
+    assert pdf.headers["content-disposition"].endswith(f'-{report_id}-schvaleno-v-aia.pdf"')
+    docx = researcher.get(f"{url}/download")
+    assert docx.status_code == 200 and docx.content == _rendered_report()
+
+
 def test_a_draft_whose_step_rendered_no_pdf_promises_none(
     app: FastAPI, researcher: TestClient, world: Any
 ) -> None:
@@ -854,12 +902,22 @@ def test_a_draft_whose_step_rendered_no_pdf_promises_none(
     app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
     revision = submit(researcher, world).json()["revision_id"]
     run_id = start(researcher, world, revision).json()["run_id"]
-    _store_internal_report(
+    report_id = _store_internal_report(
         app, world, run_id, _rendered_report(), metadata=dict(REVIEW_STAMP_RECORD)
     )
-    status_ = researcher.get(f"{_runs(world)}/{run_id}/report").json()
+    url = f"{_runs(world)}/{run_id}/report"
+    status_ = researcher.get(url).json()
     assert status_["pdf"] == {"state": "NOT_REQUESTED", "reason": None, "askable": True}
     assert status_["approval_renders_pdf"] is False
+    # Cross-review web#2: approving asks for no PDF here either -- a job would only fail
+    # pdf_disabled where none is rendered. A person may ask for one on the report.
+    before = _jobs_count(app)
+    approved = researcher.post(f"{url}/approve", json={"artifact_id": report_id})
+    assert approved.status_code == 200, approved.text
+    assert _jobs_count(app) == before
+    status_ = researcher.get(url).json()
+    assert status_["review_state"] == "APPROVED_INTERNAL"
+    assert status_["pdf"]["state"] == "NOT_REQUESTED" and status_["pdf"]["askable"] is True
 
 
 def test_the_approved_client_report_downloads_stamped_and_is_read_once(
@@ -949,17 +1007,144 @@ def test_the_approved_client_report_downloads_stamped_and_is_read_once(
         f'-klient-{stored.artifact_id}-schvaleno.docx"'
     )
     year, month, day = (int(x) for x in approved.json()["approved_on"].split("-"))
-    words = f"SCHVÁLENO {day}.\u00a0{month}.\u00a0{year} \u00b7 verze {stored.artifact_id}"
-    footers = _footers(downloaded.content)
-    assert footers and all(words.encode() in f and b"KONCEPT" not in f for f in footers.values())
+    status = f"SCHVÁLENO {day}.\u00a0{month}.\u00a0{year}"
+    assert _says_approved(_footers(downloaded.content), status, f"verze {stored.artifact_id}")
     assert _part(downloaded.content, "word/document.xml") == _part(document, "word/document.xml")
+
+
+def _client_report_document() -> ReportDocument:
+    meta = ReportMeta(
+        ReportKind.CLIENT,
+        "Výzkumná zpráva",
+        "Fiktivní data",
+        "Fiktivní klient",
+        "Fiktivní studie",
+        "STU-1",
+        date(2026, 10, 18),
+        1,
+        METHOD_STATUS_PENDING,
+        classification=Classification.CLIENT_CONFIDENTIAL,
+    )
+    ledger = EvidenceLedger.from_claims([], surface=ClaimSurface.CLIENT_FACING)
+    method = Callout(CalloutKind.METHOD, text("Fiktivní data."), title="Jak číst tuto zprávu")
+    section = Section("Shrnutí", (method, Paragraph(text("Fiktivní zpráva pro klienta."))))
+    return ReportDocument(meta, (section,), ledger)
+
+
+def test_an_approved_client_report_stays_the_client_report_after_its_contract_changes(
+    app: FastAPI,
+    researcher: TestClient,
+    outsider: TestClient,
+    world: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cross-review interactions#1: the client download keyed its stored draft on the
+    fingerprint of what composing gives today, which carries the composition contract. A
+    contract bump (aia-client-report-2 -> -3 on this branch) composed and served a new draft
+    instead of the approved version, which no route served any more; composing refused under
+    the new rules, the download was a 409. The approved version is the client report (D2).
+
+    The real stored_client_report; composing is stubbed the way it reads the contract (at call
+    time), since a real composition needs a population-grounded run (test_ai_fieldwork)."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    composed: list[str] = []
+
+    def compose(session: Any, scope: Any, store: Any, *, run_id: str) -> Any:
+        composed.append(client_report.CLIENT_REPORT_CONTRACT)
+        return client_report.ComposedClientReport(
+            document=_client_report_document(),
+            sources={"contract": client_report.CLIENT_REPORT_CONTRACT, "run_id": run_id},
+            depends_on=(),
+        )
+
+    monkeypatch.setattr(client_report, "compose_client_report", compose)
+    monkeypatch.setattr(client_report, "CLIENT_REPORT_CONTRACT", "aia-client-report-2")
+    url = f"{_runs(world)}/{run_id}/report"
+    draft = researcher.get(f"{url}/client/download")
+    assert draft.status_code == 200, draft.text
+    version = draft.headers["X-AIA-Artifact-Id"]
+    assert draft.headers["X-AIA-Review-State"] == "DRAFT_UNAPPROVED"
+    approved = outsider.post(f"{url}/approve", json={"artifact_id": version})
+    assert approved.status_code == 200 and approved.json()["stamped"] is True
+
+    # The deploy: the contract moves on. The approved version is served, nothing composed.
+    monkeypatch.setattr(client_report, "CLIENT_REPORT_CONTRACT", "aia-client-report-3")
+    composed.clear()
+    after = researcher.get(f"{url}/client/download")
+    assert after.status_code == 200, after.text
+    assert after.headers["X-AIA-Artifact-Id"] == version
+    assert after.headers["X-AIA-Artifact-Sha256"] == draft.headers["X-AIA-Artifact-Sha256"]
+    assert after.headers["X-AIA-Review-State"] == "APPROVED_INTERNAL"
+    assert after.headers["content-disposition"].endswith(f'-klient-{version}-schvaleno.docx"')
+    year, month, day = (int(x) for x in approved.json()["approved_on"].split("-"))
+    status = f"SCHVÁLENO {day}.\u00a0{month}.\u00a0{year}"
+    assert _says_approved(_footers(after.content), status, f"verze {version}")
+    assert composed == []
+
+    # Composing refused under today's rules refuses nothing a person approved.
+    def refused(*_a: Any, **_kw: Any) -> Any:
+        raise client_report.ClientReportRefused("not_modelled", "fiktivní odmítnutí")
+
+    monkeypatch.setattr(client_report, "compose_client_report", refused)
+    again = researcher.get(f"{url}/client/download")
+    assert again.status_code == 200 and again.headers["X-AIA-Artifact-Id"] == version
+    with create_session_factory(app.state.engine)() as session:
+        stored = session.scalars(
+            select(ProjectArtifactRow.artifact_id).where(
+                ProjectArtifactRow.artifact_type == CLIENT_REPORT_ARTIFACT_TYPE
+            )
+        ).all()
+    assert stored == [version]
+
+
+def test_a_client_report_the_stamp_refuses_says_so_in_its_status_and_name(
+    app: FastAPI,
+    researcher: TestClient,
+    outsider: TestClient,
+    world: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cross-review web#14: the writer recorded that a version takes the stamp whatever its
+    bytes, and the status's ``stamped`` read only that record, so an approved file the stamp
+    refuses was said to state SCHVÁLENO while it was served as stored. The writer now tries
+    the stamp first: a body that states the draft status is recorded unstampable, and the
+    approval's answer, the file and its name agree."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    stated = _client_report_document()
+    body = Section("Poznámka", (Paragraph(text("KONCEPT \u2014 NESCHVÁLENO")),))
+    document = ReportDocument(stated.meta, (*stated.sections, body), stated.ledger)
+
+    def compose(session: Any, scope: Any, store: Any, *, run_id: str) -> Any:
+        return client_report.ComposedClientReport(
+            document=document,
+            sources={"contract": client_report.CLIENT_REPORT_CONTRACT, "run_id": run_id},
+            depends_on=(),
+        )
+
+    monkeypatch.setattr(client_report, "compose_client_report", compose)
+    url = f"{_runs(world)}/{run_id}/report"
+    draft = researcher.get(f"{url}/client/download")
+    assert draft.status_code == 200, draft.text
+    version = draft.headers["X-AIA-Artifact-Id"]
+    approved = outsider.post(f"{url}/approve", json={"artifact_id": version})
+    assert approved.status_code == 200 and approved.json()["stamped"] is False
+    after = researcher.get(f"{url}/client/download")
+    assert after.content == draft.content  # as stored, never partly stamped
+    assert after.headers["X-AIA-Review-State"] == "APPROVED_INTERNAL"
+    assert after.headers["content-disposition"].endswith(f'-klient-{version}-schvaleno-v-aia.docx"')
 
 
 def test_an_older_version_approved_is_served_unstamped_and_says_so(
     app: FastAPI, researcher: TestClient, world: Any
 ) -> None:
     """A version stored before this layout (no record of it) is approved as it is: its DOCX is
-    the stored bytes, never partly stamped, and the status says it is not stamped."""
+    the stored bytes, never partly stamped, and the status says it is not stamped. Its file
+    name says so too (cross-review interactions#9: it was named "-schvaleno" while every
+    footer said KONCEPT)."""
     app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
     revision = submit(researcher, world).json()["revision_id"]
     run_id = start(researcher, world, revision).json()["run_id"]
@@ -972,6 +1157,9 @@ def test_an_older_version_approved_is_served_unstamped_and_says_so(
     downloaded = researcher.get(f"{url}/download")
     assert downloaded.status_code == 200 and downloaded.content == document
     assert downloaded.headers["X-AIA-Review-State"] == "APPROVED_INTERNAL"
+    assert downloaded.headers["content-disposition"].endswith(
+        f'-zakladni-{report_id}-schvaleno-v-aia.docx"'
+    )
 
 
 def test_an_approval_without_its_ledger_row_is_refused_by_name(
@@ -993,6 +1181,62 @@ def test_an_approval_without_its_ledger_row_is_refused_by_name(
     url = f"{_runs(world)}/{run_id}/report"
     for got in (researcher.get(url), researcher.get(f"{url}/download")):
         assert got.status_code == 409 and got.json()["code"] == "report_review_unrecorded"
+
+
+def test_an_experimental_sociomapping_report_is_never_approved(
+    app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any
+) -> None:
+    """The experimental Sociomapping's draft is never client-facing, so it is never approved:
+    no ledger row, never frozen, never stamped. Its composer's own guard went with
+    ``ReportMeta.approvals`` (cb62426), leaving the approval route's type check untested while
+    approving came to freeze a version and ask for its PDF."""
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    principal = AuthenticatedPrincipal(
+        user_id=world.users["researcher"], organization_id=world.organization_id
+    )
+    factory = create_session_factory(app.state.engine)
+    with factory() as session:
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        run = ResearchRuns(session, scope).get(run_id)
+        stored, _ = research_artifacts(session, scope, app.state.artifact_store).put(
+            project_id=run["project_id"],
+            revision=int(run["project_revision"]),
+            stage_type="REPORT",
+            artifact_type=SOCIOMAPPING_REPORT_ARTIFACT_TYPE,
+            data=_rendered_report(),
+            content_type=INTERNAL_REPORT_MEDIA_TYPE,
+            input_fingerprint="sociomapping-approval-test",
+            metadata={
+                "run_id": run_id,
+                "report_kind": "internal",
+                "review_state": "DRAFT_UNAPPROVED",
+                "method_status": "EXPERIMENTAL_AIA",
+                "client_facing": False,
+                **REVIEW_STAMP_RECORD,
+            },
+        )
+        session.commit()
+    before = _jobs_count(app)
+    for person in (researcher, outsider):
+        refused = person.post(
+            f"{_runs(world)}/{run_id}/report/approve", json={"artifact_id": stored.artifact_id}
+        )
+        assert refused.status_code == 409, refused.text
+        assert refused.json()["code"] == "report_not_approvable"
+    with factory() as session:
+        row = session.get(ProjectArtifactRow, stored.artifact_id)
+        assert row is not None and not row.is_approved and not row.is_frozen
+        decisions = session.scalars(
+            select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_id == stored.artifact_id)
+        ).all()
+    assert decisions == []
+    assert _jobs_count(app) == before  # nothing asked for its PDF either
+
+
+def _jobs_count(app: FastAPI) -> int:
+    with create_session_factory(app.state.engine)() as session:
+        return int(session.scalar(select(func.count()).select_from(WorkflowRunRow)) or 0)
 
 
 def test_experimental_sociomapping_is_read_and_downloaded_only_through_its_run(

@@ -37,7 +37,7 @@ export function StepSection({
 }) {
   const headingId = useId();
   return (
-    <section id={id} aria-labelledby={headingId} className="scroll-mt-40 rounded-card border border-border bg-surface-raised">
+    <section id={id} aria-labelledby={headingId} className={`scroll-mt-40 rounded-card border border-border bg-surface-raised ${FOCUS}`}>
       <div className={`flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5 ${children ? "border-b border-border" : ""}`}>
         {done ? (
           <span aria-hidden="true" className="inline-flex size-[18px] shrink-0 items-center justify-center rounded-full bg-status-done text-surface-raised">

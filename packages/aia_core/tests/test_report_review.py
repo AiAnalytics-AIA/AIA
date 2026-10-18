@@ -11,6 +11,7 @@ from aia_core.domain.report.review import (
     ReviewMark,
     ReviewState,
     approval_date,
+    approved_lines,
     approved_words,
 )
 
@@ -39,6 +40,16 @@ def test_the_approved_words_name_the_date_and_the_version_on_one_line() -> None:
     assert "\n" not in words and len(words) < 60
     with pytest.raises(ValueError, match="only an approved"):
         approved_words(ReviewMark(ReviewState.DRAFT, "ART-0123456789abcdef", SHA))
+
+
+def test_the_cover_prints_the_same_words_as_two_lines_the_version_whole() -> None:
+    # The cover's status column wrapped the one line after "verze ART-", and the id read from
+    # the page lost its hyphen (cross-review): there the date and the version are lines.
+    mark = ReviewMark(ReviewState.APPROVED, "ART-0123456789abcdef", SHA, date(2026, 10, 8))
+    assert approved_lines(mark) == (f"SCHVÁLENO 8.{NB}10.{NB}2026", "verze ART-0123456789abcdef")
+    assert " \u00b7 ".join(approved_lines(mark)) == approved_words(mark)
+    with pytest.raises(ValueError, match="only an approved"):
+        approved_lines(ReviewMark(ReviewState.DRAFT, "ART-0123456789abcdef", SHA))
 
 
 def test_an_approval_is_dated_on_the_prague_calendar() -> None:

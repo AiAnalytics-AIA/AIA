@@ -4,7 +4,10 @@
  * Runnable is not answerable (research-integrity-report 1). Shown when a run cannot show an
  * answer to every research question its design states: which ones, whether the run will not or
  * may not answer each and why, and under each the links to where it is fixed (gapFixes: Návrh,
- * a place in Dotazník, Dimenze), with Dotazník itself below them all. Where the deployment
+ * a place in Dotazník, Dimenze), with Dotazník itself below them all where the design states a
+ * research question to link items to. A refused retry reruns its original's Design Revision, so
+ * no edit closes a gap for it: there the gaps carry no links, and one line says a fix applies to a
+ * new run started from Kontrola a spuštění (review web#8). Where the deployment
  * requires it (`acknowledgement_required`), the person's explicit choice to continue with
  * limitations ("Pokračovat s omezeními", the owner's D1) with a reason, made for exactly these
  * gaps, which the run records as its acknowledgement and the internal report prints; elsewhere
@@ -28,6 +31,7 @@ export function AnswerabilityGate({
   stepHref,
   disabled,
   runnable = true,
+  retry = false,
 }: {
   answer: Answerability;
   value: AcknowledgementState;
@@ -38,16 +42,20 @@ export function AnswerabilityGate({
   disabled?: boolean;
   /** Whether readiness lets the design run: the card calls it runnable only then. */
   runnable?: boolean;
+  /** A refused retry: it reruns the original run's Design Revision, which no edit changes. */
+  retry?: boolean;
 }) {
   const asks = needsAcknowledgement(answer);
   const helpId = useId();
   // Given for other gaps (the design changed since): shown unchecked, asked again.
   const confirmed = confirmedFor(answer, value);
   const pending = answer.pending ?? [];
+  // Items are linked to the research questions the design states: with none, nothing to link.
+  const linkable = answer.gaps.some((gap) => gap.kind !== "no_research_questions");
   return (
     <section aria-labelledby="answerability-title" className="flex flex-col gap-3 rounded-card border border-status-you-ink/40 bg-status-you-wash p-3.5">
       <h2 id="answerability-title" className="text-sm font-semibold">{t(runnable ? "research.exec.answerability.title" : "research.exec.answerability.titleNotReady")}</h2>
-      <p className="text-sm">{t("research.exec.answerability.help")}</p>
+      <p className="text-sm">{t(retry ? "research.exec.answerability.helpRetry" : "research.exec.answerability.help")}</p>
       <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm">
         {answer.gaps.map((gap, i) => {
           const { question, verdict, why } = gapWords(gap);
@@ -56,19 +64,28 @@ export function AnswerabilityGate({
               {question ? <strong className="font-semibold">{question}</strong> : null}
               {question ? ` — ${verdict}: ` : null}
               {why}
-              <span className="mt-0.5 flex flex-wrap gap-x-3">
-                {gapFixes(gap, outlook).map((fix) => (
-                  <Link key={`${fix.step}#${fix.anchor ?? ""}`} href={fixHref(fix, stepHref)} className="text-[13px] text-signal no-underline hover:underline">
-                    {fix.words}
-                  </Link>
-                ))}
-              </span>
+              {retry ? null : (
+                <span className="mt-0.5 flex flex-wrap gap-x-3">
+                  {gapFixes(gap, outlook).map((fix) => (
+                    <Link key={`${fix.step}#${fix.anchor ?? ""}`} href={fixHref(fix, stepHref)} className="text-[13px] text-signal no-underline hover:underline">
+                      {fix.words}
+                    </Link>
+                  ))}
+                </span>
+              )}
             </li>
           );
         })}
       </ul>
       {pending.length ? <p className="text-sm text-ink-muted">{tv("research.exec.answerability.pending", { list: pending.join("; ") })}</p> : null}
-      <Link href={stepHref("questionnaire")} className="text-sm text-signal no-underline hover:underline">{t("research.exec.answerability.fix")}</Link>
+      {retry ? (
+        <p className="text-sm">
+          {tv("research.exec.answerability.retryFixes", { stage: t("aia.stages.run") })}{" "}
+          <Link href={stepHref("run")} className="text-signal no-underline hover:underline">{tv("research.exec.answerability.retryOpen", { stage: t("aia.stages.run") })}</Link>
+        </p>
+      ) : linkable ? (
+        <Link href={stepHref("questionnaire")} className="text-sm text-signal no-underline hover:underline">{t("research.exec.answerability.fix")}</Link>
+      ) : null}
       {asks ? (
         <>
           <div className="flex flex-col gap-1">

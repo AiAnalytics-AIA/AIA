@@ -53,12 +53,17 @@ from aia_core.infrastructure.report_pdf import PdfConversionFailed
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
-from aia_core.infrastructure.tables import ProjectArtifactRow, StepRunRow, WorkflowRunRow
+from aia_core.infrastructure.tables import (
+    ApprovalDecisionRow,
+    ProjectArtifactRow,
+    StepRunRow,
+    WorkflowRunRow,
+)
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_executors.report import ReportPdfExecutor
 from aia_worker.settings import WorkerSettings
 from aia_worker.worker import Worker
-from sqlalchemy import update
+from sqlalchemy import func, select, update
 
 DESIGN = {
     "title": "Fiktivní studie",
@@ -218,6 +223,9 @@ def test_a_pdf_that_failed_for_want_of_a_converter_is_rendered_once_a_person_ask
     assert _drain(_worker(world, database_url, store, build, None)) == ["failed"]
     failed = _pdf_state(world, store, run_id, docx)
     assert failed.state is PdfState.FAILED and failed.reason == "pdf_disabled"
+    # Cross-review web#2: the card does not offer it again -- in this deployment asking only
+    # fails again, each failure an error-tracking issue.
+    assert not failed.askable
     # The converter is turned on; the person prepares again: a new job, not the failed one.
     again = _ask(world, run_id, docx)
     assert again.created
@@ -452,7 +460,7 @@ def _rendering_of(data: bytes) -> bytes:
 
 
 def test_the_approved_pdf_key_never_matches_a_draft_prefix(
-    world: Any, store: InMemoryArtifactStore
+    world: Any, database_url: str, store: InMemoryArtifactStore, build: BuildIdentity
 ) -> None:
     """The job lookup is a literal ``startswith``: an approved key that extended a draft key
     would be found, and served, as the draft's PDF -- and the other way round."""
@@ -465,6 +473,7 @@ def test_the_approved_pdf_key_never_matches_a_draft_prefix(
         assert not f"{draft}:again-1".startswith(approved)
     run_id, docx = _report(world, store, _rendered(), metadata=dict(REVIEW_STAMP_RECORD))
     _ask(world, run_id, docx)
+    assert _drain(_worker(world, database_url, store, build, _FakePdf())) == ["completed"]
     _approve(world, store, run_id, docx)
     draft_jobs = _jobs(world, docx, report_pdf_key(run_id, None, docx.artifact_id))
     approved_jobs = _jobs(
@@ -477,7 +486,11 @@ def test_the_approved_pdf_key_never_matches_a_draft_prefix(
 def test_approving_freezes_the_version_and_asks_for_its_approved_pdf_once(
     world: Any, database_url: str, store: InMemoryArtifactStore, build: BuildIdentity
 ) -> None:
+    """Approving asks for the approved version's PDF where its draft's own PDF was rendered
+    here (cross-review web#2: asking where none is rendered only fails)."""
     run_id, docx = _report(world, store, _rendered(), metadata=dict(REVIEW_STAMP_RECORD))
+    _ask(world, run_id, docx)
+    assert _drain(_worker(world, database_url, store, build, _FakePdf())) == ["completed"]
     approved = _approve(world, store, run_id, docx)
     assert approved.is_approved and approved.is_frozen
     prefix = report_pdf_key(run_id, None, docx.artifact_id, approved=True)
@@ -514,11 +527,15 @@ def test_the_approved_pdf_renders_the_stamped_version_and_refuses_a_changed_revi
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A draft's job asked before the approval, run after it, renders nothing: the version it
-    was asked for is no longer a draft, and its approval asked for its own PDF. That is a
-    person approving while the draft's PDF waited, not a broken run: the job ends superseded,
-    reported to nobody (it failed SCHEMA_VIOLATION, one error-tracking issue with every real
-    integrity fault of the step). The approved job renders the stamped export; one whose payload
-    names another approval is refused, by name."""
+    was asked for is no longer a draft. That is a person approving while the draft's PDF
+    waited, not a broken run: the job ends superseded, reported to nobody (it failed
+    SCHEMA_VIOLATION, one error-tracking issue with every real integrity fault of the step).
+    The approved job renders the stamped export; one whose payload names another approval is
+    refused, by name.
+
+    Changed on purpose (cross-review web#2): the approval asked for the approved PDF itself.
+    Its draft's PDF was not ready yet -- no evidence this deployment converts -- so it now asks
+    for nothing, and a person asks for the approved PDF on the report."""
     reported: list[tuple[str, list[str]]] = []
     monkeypatch.setattr(
         error_tracking,
@@ -529,7 +546,12 @@ def test_the_approved_pdf_renders_the_stamped_version_and_refuses_a_changed_revi
     draft_job = _ask(world, run_id, docx)
     _approve(world, store, run_id, docx)
     pdf = _FakePdf()
-    assert _drain(_worker(world, database_url, store, build, pdf)) == ["completed", "completed"]
+    assert _drain(_worker(world, database_url, store, build, pdf)) == ["completed"]
+    assert pdf.calls == 0
+    asked = _pdf_state(world, store, run_id, docx)
+    assert asked.state is PdfState.NOT_REQUESTED and asked.askable
+    assert _ask(world, run_id, docx, mark=_export(world, store, docx).mark).created
+    assert _drain(_worker(world, database_url, store, build, pdf)) == ["completed"]
     assert pdf.calls == 1
     assert reported == []
     with world.sessions() as session:
@@ -656,13 +678,80 @@ def test_an_older_approved_version_renders_as_stored_and_says_so(
     world: Any, database_url: str, store: InMemoryArtifactStore, build: BuildIdentity
 ) -> None:
     """A version stored before the stamp layout has no record of it: approved, its DOCX and
-    PDF are its stored bytes, never partly stamped, and they say they are not stamped."""
+    PDF are its stored bytes, never partly stamped, and they say they are not stamped.
+
+    Changed on purpose (cross-review interactions#4): approving it asked for a new rendering
+    under the approved key. Its export is its stored bytes, so there is nothing new to render:
+    approving asks for nothing, and a person asking renders the stored bytes under the draft's
+    key, where a rendering made while it was a draft already is its PDF."""
     run_id, docx = _report(world, store, _rendered())
     _approve(world, store, run_id, docx)
     exported = _export(world, store, docx)
     assert exported.data == _rendered() and not exported.stamped
     assert exported.mark.state is ReviewState.APPROVED
+    assert _drain(_worker(world, database_url, store, build, _FakePdf())) == []
+    asked = _pdf_state(world, store, run_id, docx)
+    assert asked.state is PdfState.NOT_REQUESTED and asked.askable
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        request_pdf(
+            session,
+            scope,
+            store,
+            docx=research_artifacts(session, scope, store).get(docx.artifact_id),
+            run_id=run_id,
+            deep_research_run_id=None,
+        )
+        session.commit()
+    assert _jobs(world, docx, report_pdf_key(run_id, None, docx.artifact_id, approved=True)) == []
     assert _drain(_worker(world, database_url, store, build, _FakePdf())) == ["completed"]
+    found = _pdf_state(world, store, run_id, docx)
+    assert found.state is PdfState.READY and found.artifact is not None
+    assert found.artifact.metadata["stamped"] is False
+    with world.sessions() as session:
+        data = research_artifacts(session, world.lead_scope(session), store).read(
+            found.artifact.artifact_id
+        )
+    assert data == _rendering_of(_rendered())
+
+
+def test_an_older_version_keeps_the_pdf_its_draft_had_once_approved(
+    world: Any, database_url: str, store: InMemoryArtifactStore, build: BuildIdentity
+) -> None:
+    """Cross-review interactions#4 / web#3: every report approved before this release lost its
+    PDF -- for good on a closed Study, which asks for nothing -- although the PDF its draft had
+    renders exactly the file its approved export is. It stays its PDF, and nothing is asked."""
+    run_id, docx = _report(world, store, _rendered())
+    _ask(world, run_id, docx)
+    pdf = _FakePdf()
+    assert _drain(_worker(world, database_url, store, build, pdf)) == ["completed"]
+    drafted = _pdf_state(world, store, run_id, docx)
+    assert drafted.state is PdfState.READY and drafted.artifact is not None
+    _approve(world, store, run_id, docx)
+    with world.sessions() as session:
+        ScopeRepository(session).set_study_status(world.lead_scope(session), StudyStatus.DELIVERED)
+        session.commit()
+    found = _pdf_state(world, store, run_id, docx)
+    assert found.state is PdfState.READY and found.artifact is not None
+    assert found.artifact.artifact_id == drafted.artifact.artifact_id
+    assert _drain(_worker(world, database_url, store, build, pdf)) == [] and pdf.calls == 1
+
+
+def test_an_older_version_approved_while_its_draft_pdf_waited_still_gets_it(
+    world: Any, database_url: str, store: InMemoryArtifactStore, build: BuildIdentity
+) -> None:
+    """The draft's job of a version stored before the stamp layout, run after the version was
+    approved, renders it: its approved export is those bytes. Ending it superseded, as a
+    stamped version's is, would leave the version without a PDF and nothing asking for one."""
+    run_id, docx = _report(world, store, _rendered())
+    job = _ask(world, run_id, docx)
+    _approve(world, store, run_id, docx)
+    assert _drain(_worker(world, database_url, store, build, _FakePdf())) == ["completed"]
+    with world.sessions() as session:
+        (step,) = WorkflowRepository(session, world.lead_scope(session)).get_run(job.run_id)[
+            "steps"
+        ]
+    assert step["output"]["state"] == "READY"
     found = _pdf_state(world, store, run_id, docx)
     assert found.state is PdfState.READY and found.artifact is not None
     assert found.artifact.metadata["stamped"] is False
@@ -707,3 +796,107 @@ def test_a_closed_study_approves_and_stamps_the_docx_and_says_why_no_pdf(
     found = _pdf_state(world, store, run_id, docx)
     assert found.state is PdfState.NOT_REQUESTED and found.reason == "study_closed"
     assert _export(world, store, docx).stamped
+
+
+def test_a_version_approved_before_approving_froze_is_frozen_without_a_second_decision(
+    world: Any, store: InMemoryArtifactStore
+) -> None:
+    """Codex review of PR #478: a version approved by the previous release is approved but not
+    frozen, and approving it again returned it as it was, so invalidate_stage and delete, which
+    spare only a frozen artifact, could still remove a signed version. Approving it now freezes
+    it; freezing is no decision, so the ledger keeps its one row and nothing is asked."""
+    run_id, docx = _report(world, store, _rendered(), metadata=dict(REVIEW_STAMP_RECORD))
+    with world.sessions() as session:
+        # What the previous release did: the ledger row and the flag, no freeze.
+        before = research_artifacts(session, world.lead_scope(session), store).approve(
+            docx.artifact_id
+        )
+        session.commit()
+    assert before.is_approved and not before.is_frozen
+
+    def decisions() -> int:
+        with world.sessions() as session:
+            return int(
+                session.scalar(
+                    select(func.count())
+                    .select_from(ApprovalDecisionRow)
+                    .where(
+                        ApprovalDecisionRow.subject_type == "artifact",
+                        ApprovalDecisionRow.subject_id == docx.artifact_id,
+                    )
+                )
+                or 0
+            )
+
+    assert decisions() == 1
+    approved = _approve(world, store, run_id, docx)
+    assert approved.is_approved and approved.is_frozen
+    assert decisions() == 1
+    assert _jobs(world, docx, report_pdf_key(run_id, None, docx.artifact_id, approved=True)) == []
+    with world.sessions() as session:
+        stored = research_artifacts(session, world.lead_scope(session), store).get(docx.artifact_id)
+    assert stored.is_frozen
+
+
+def test_approving_where_no_pdf_is_rendered_asks_for_none(
+    world: Any,
+    database_url: str,
+    store: InMemoryArtifactStore,
+    build: BuildIdentity,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cross-review web#2: approving asked for an approved PDF where this deployment renders
+    none (AIA_REPORT_PDF_ENABLED off, the default outside develop): the job failed pdf_disabled,
+    raised an error-tracking issue, and the card offered "Vytvořit PDF znovu", which could only
+    fail again. Approving asks only where the draft's own PDF was rendered; a pdf_disabled
+    failure is not offered again -- nor, once the version is approved, is the approved PDF the
+    draft's failure showed would fail too (it read NOT_REQUESTED, askable: the card offered
+    "Vytvořit PDF" for a job that failed pdf_disabled again)."""
+    reported: list[str] = []
+    monkeypatch.setattr(
+        error_tracking, "report_failure", lambda title, **_kw: reported.append(title)
+    )
+    run_id, docx = _report(world, store, _rendered(), metadata=dict(REVIEW_STAMP_RECORD))
+    _ask(world, run_id, docx)
+    assert _drain(_worker(world, database_url, store, build, None)) == ["failed"]
+    reported.clear()
+    failed = _pdf_state(world, store, run_id, docx)
+    assert failed.state is PdfState.FAILED and failed.reason == "pdf_disabled"
+    assert not failed.askable
+    _approve(world, store, run_id, docx)
+    prefix = report_pdf_key(run_id, None, docx.artifact_id, approved=True)
+    assert _jobs(world, docx, prefix) == []
+    assert _drain(_worker(world, database_url, store, build, None)) == []
+    assert reported == []
+    # Approved: nothing was asked for its PDF, and the reason its draft's failed is kept.
+    approved = _pdf_state(world, store, run_id, docx)
+    assert approved.state is PdfState.NOT_REQUESTED and approved.reason == "pdf_disabled"
+    assert not approved.askable
+    # On a Study that starts no work, the closure is why nothing is asked.
+    for status, reason in ((StudyStatus.DELIVERED, "study_closed"), (StudyStatus.ACTIVE, None)):
+        with world.sessions() as session:
+            ScopeRepository(session).set_study_status(world.lead_scope(session), status)
+            session.commit()
+        if reason is not None:
+            closed = _pdf_state(world, store, run_id, docx)
+            assert closed.reason == reason and not closed.askable
+    assert _pdf_state(world, store, run_id, docx).reason == "pdf_disabled"
+    # The converter turned on, the operator's ask (POST …/report/pdf) still renders the
+    # approved export, under the approved key.
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        request_pdf(
+            session,
+            scope,
+            store,
+            docx=research_artifacts(session, scope, store).get(docx.artifact_id),
+            run_id=run_id,
+            deep_research_run_id=None,
+        )
+        session.commit()
+    assert len(_jobs(world, docx, prefix)) == 1
+    assert _drain(_worker(world, database_url, store, build, _FakePdf())) == ["completed"]
+    rendered = _pdf_state(world, store, run_id, docx)
+    assert rendered.state is PdfState.READY and rendered.artifact is not None
+    assert rendered.artifact.metadata["stamped"] is True
+    assert reported == []

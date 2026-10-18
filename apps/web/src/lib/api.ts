@@ -1325,6 +1325,8 @@ export type DeepResearchBundle = {
   subjects?: { key: string; kind: string; text: string; origin: string; question_key?: string | null }[];
   tracks?: { track_id: string; subject_key: string }[];
   counts: Record<string, number>; sha256: string;
+  /** The rules each step ran under, as sealed (``versions.merge``: the merge's, lib/review-rules.ts). */
+  versions: Record<string, string>;
   synthesis?: { check: { summary: string | null; summary_withheld?: string | null; findings: { subject_key: string; text: string; evidence_ids: string[] }[]; excluded?: { subject_key: string; text: string; reason: string; detail?: string }[]; gaps: string[]; limitations: string[]; status: string }; brief?: { gaps: { need: string; reason: string }[] } | null } | null;
   origins?: string[];
 };

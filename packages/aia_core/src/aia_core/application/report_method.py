@@ -11,7 +11,7 @@ from a default.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, Final
 
 from aia_core.domain.answerability import read_answerability_note
 from aia_core.domain.fieldwork import (
@@ -35,6 +35,7 @@ from aia_core.domain.report.model import (
     TextCell,
     text,
 )
+from aia_core.domain.report.numbers import counted
 from aia_core.domain.research_design import settle_selection
 
 _WHO: dict[OriginKind, str] = {
@@ -109,12 +110,14 @@ _REASON: dict[str, tuple[str, str]] = {
     ),
 }
 _REASON_UNKNOWN = ("důvod uvedený v záznamu běhu", "důvod uvedený v záznamu běhu")
+#: The Run screen's choice, quoted as its button names it (``answerability.choice`` in the web's
+#: cs.ts; its ``notRequired`` says what this chapter then records).
+_CHOICE: Final = "„Pokračovat s omezeními“"
 
 
 def _items(n: int) -> str:
     """'1 položka', '3 položky', '5 položek'."""
-    word = "položka" if n == 1 else "položky" if 2 <= n <= 4 else "položek"
-    return f"{n} {word}"
+    return counted(n, "položka", "položky", "položek")
 
 
 def _why(reasons: Any, *, plural: bool) -> str:
@@ -338,28 +341,36 @@ def _answerability_blocks(meta: Mapping[str, Any], *, client: bool = False) -> l
         parts.append(pending_sentence)
     held = note.get("acknowledgement")
     if not client:
+        # The choice by the name the Run screen gives it, quoted, and called the choice in
+        # every branch (D1, 2026-10-17; cross-review: "potvrzení" in two branches); the record
+        # is the acknowledgement it always was.
         if isinstance(held, Mapping):
-            # The choice by the name the Run screen gave it (D1, 2026-10-17); the record is the
-            # acknowledgement it always was.
             inherited = held.get("inherited_from")
+            reason = str(held.get("reason"))
             parts.append(
-                "Výzkumník zvolil Pokračovat s omezeními s odůvodněním: "
-                f"„{held.get('reason')}“"
-                + (f" (volba převzata z běhu {inherited})." if inherited else ".")
+                f"Výzkumník zvolil {_CHOICE}"
+                + (f" (volba převzata z běhu {inherited})" if inherited else "")
+                + f" s odůvodněním „{reason}“"
+                # The person's words end the sentence when they end one: never "„….“.".
+                + ("" if reason.rstrip().endswith((".", "!", "?", "…")) else ".")
                 + " Kdo volbu udělal, je v záznamu schválení."
             )
         elif note.get("exempt") == "analysis_retry":
             parts.append(
-                "Tento běh opakoval jen analýzu nad již sebranými daty, a proto se potvrzení "
-                "nevyžadovalo."
+                "Tento běh opakoval jen analýzu nad již sebranými daty, a proto se u něj volba "
+                f"{_CHOICE} neprováděla."
             )
         elif note.get("enforced") is False:
-            parts.append("Při spuštění to nikdo nepotvrdil: AIA potvrzení tehdy nevyžadovala.")
+            parts.append(
+                f"Volbu {_CHOICE} AIA tehdy nevyžadovala a při spuštění ji nikdo neudělal."
+            )
     blocks.append(
         Callout(
             CalloutKind.LIMITATION,
             text(" ".join(parts)),
-            title="Výzkumné otázky, na které běh nemusel odpovědět",
+            # The gap as chapter 3 names it ("Bez doložené odpovědi"): "nemusel odpovědět" read
+            # as "was not required to answer" (cross-review).
+            title="Výzkumné otázky bez doložené odpovědi",
         )
     )
     return blocks

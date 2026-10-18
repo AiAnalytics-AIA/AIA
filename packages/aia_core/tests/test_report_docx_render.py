@@ -8,7 +8,9 @@ opens (schema order) and the same content always gives the same bytes.
 
 from __future__ import annotations
 
+import hashlib
 import io
+import re
 import zipfile
 from dataclasses import replace
 from datetime import date
@@ -233,6 +235,109 @@ def test_a_draft_says_its_status_only_in_its_footers(rendered: dict[str, bytes])
     assert "Stav této verze uvádí zápatí; záznam o schválení vede AIA." in _text(body)
 
 
+def _wrapped_lines(text: str, width_mm: float, size_pt: float, font: Any) -> int:
+    """How many lines ``text`` takes in a column ``width_mm`` wide, broken greedily where a
+    renderer may break it: at a space and after a hyphen."""
+    pieces = [p for p in re.split(r"(?<=[ -])", text) if p]
+    lines, line = 1, ""
+    for piece in pieces:
+        if line and font.getlength((line + piece).rstrip()) / 1000 * size_pt * 25.4 / 72 > width_mm:
+            lines, line = lines + 1, piece
+        else:
+            line += piece
+    return lines
+
+
+def _printed_lines(paragraph: etree._Element) -> list[str]:
+    """A paragraph's text as its line breaks part it."""
+    lines = [""]
+    for node in paragraph.iter(f"{W}t", f"{W}br"):
+        if node.tag == f"{W}br":
+            lines.append("")
+        else:
+            lines[-1] += node.text or ""
+    return lines
+
+
+def test_the_cover_status_wraps_short_of_the_cover_field(rendered: dict[str, bytes]) -> None:
+    # Was: the cover's footer in the running-foot style, its long draft sentence (and, once
+    # approved, "SCHVÁLENO … · verze ART-…") printed over the cover field's dots across the
+    # full text width (review documents#3).
+    from PIL import ImageFont
+
+    from aia_core.domain.report.print_tokens import PAGE, STYLES
+    from aia_core.domain.report.review import ReviewMark, ReviewState
+    from aia_core.infrastructure.report_docx.cover import ASSET
+    from aia_core.infrastructure.report_docx.renderer import write_package
+    from aia_core.infrastructure.report_docx.review_stamp import stamp_review
+    from aia_core.infrastructure.report_docx.styles import S
+
+    cover_text = f"{DRAFT}. Tato verze dosud nebyla schválena. Nepředávejte ji jako finální."
+    (name,) = [
+        n
+        for n in rendered
+        if n.startswith("word/footer") and cover_text in _text(_xml(rendered, n))
+    ]
+    (paragraph,) = _xml(rendered, name).iter(f"{W}p")
+    assert paragraph.find(f"{W}pPr/{W}pStyle").get(f"{W}val") == "AIACoverFooter"
+    assert _status_runs(paragraph) == [cover_text]  # still the one run a stamp replaces
+
+    style = _xml(rendered, "word/styles.xml").find(f"{W}style[@{W}styleId='AIACoverFooter']")
+    assert style.find(f"{W}name").get(f"{W}val") == S.COVER_FOOTER
+    right_indent_mm = int(style.find(f"{W}pPr/{W}ind").get(f"{W}right")) / 1440 * 25.4
+    cover = _sections(rendered)[0].find(f"{W}pgMar")
+    left_mm = int(cover.get(f"{W}left")) / 1440 * 25.4
+    right_mm = int(cover.get(f"{W}right")) / 1440 * 25.4
+    width_mm = PAGE.width_mm - left_mm - right_mm - right_indent_mm
+    text_ends_mm = left_mm + width_mm
+
+    # The field's dots in the band the footer can occupy (its distance plus four lines).
+    field = etree.parse(str(ASSET)).getroot()
+    _, _, vb_w, vb_h = (float(v) for v in field.get("viewBox").split())
+    band_top_mm = PAGE.height_mm - PAGE.footer_mm - 4 * STYLES["doc-running"].leading_pt * 25.4 / 72
+    dots = [
+        (float(c.get("cx")) - float(c.get("r"))) * PAGE.width_mm / vb_w
+        for c in field
+        if etree.QName(c).localname == "circle"
+        and float(c.get("cy")) * PAGE.height_mm / vb_h >= band_top_mm
+    ]
+    assert dots and text_ends_mm + 3 <= min(dots), (text_ends_mm, min(dots))
+
+    # The draft's sentence wraps to two lines (measured in the status face), and the cover
+    # leaves those two lines room above its bottom edge.
+    face = STYLES["doc-table-head"]
+    font = ImageFont.truetype(
+        str(ASSET.parent.parent / "fonts" / "IBMPlexSans-SemiBold.ttf"), size=1000
+    )
+    assert _wrapped_lines(cover_text, width_mm, face.size_pt, font) == 2, cover_text
+    placement = next(_xml(rendered, "word/document.xml").iter(f"{W}tbl"))
+    row_mm = int(placement.find(f"{W}tr/{W}trPr/{W}trHeight").get(f"{W}val")) / 1440 * 25.4
+    top_mm = int(cover.get(f"{W}top")) / 1440 * 25.4
+    # the footer's distance, its rule (6 pt above it, 0.75 pt) and two lines; the section's
+    # closing 1 pt paragraph under the placement table
+    footer_mm = PAGE.footer_mm + (6 + 0.75 + 2 * STYLES["doc-running"].leading_pt) * 25.4 / 72
+    assert top_mm + row_mm + 25.4 / 72 + footer_mm <= PAGE.height_mm - 3, row_mm
+
+    # An approved cover prints its stamp as two lines, each whole. Was: the stamp's one line,
+    # wrapped by the column after "verze ART-", so the id read from page 1 lost its hyphen
+    # ("ART0123…", an id that does not exist; cross-review). The widest id the repository
+    # issues ("ART-" and 16 hex characters), on a date with two-digit day and month.
+    widest = max("0123456789abcdef", key=font.getlength)
+    stored = write_package(rendered.items())
+    mark = ReviewMark(
+        ReviewState.APPROVED,
+        f"ART-{widest * 16}",
+        hashlib.sha256(stored).hexdigest(),
+        date(2026, 12, 28),
+    )
+    (stamped,) = _xml(_parts(stamp_review(stored, mark)), name).iter(f"{W}p")
+    lines = _printed_lines(stamped)
+    nb = "\u00a0"
+    assert lines == [f"SCHVÁLENO 28.{nb}12.{nb}2026", f"verze {mark.artifact_id}"]
+    for line in lines:
+        assert _wrapped_lines(line, width_mm, face.size_pt, font) == 1, line
+
+
 def test_chapters_and_appendices_flow_and_only_furniture_breaks_the_page(
     rendered: dict[str, bytes],
 ) -> None:
@@ -317,9 +422,11 @@ def test_the_revision_a_report_prints_is_named_as_its_designs(
 ) -> None:
     # Review 4 of D2: an approved file printed "Revize 1" on its cover and in its document
     # control, and "verze ART-…" in its footers, two numbers either of which read as the
-    # version. The first is the Design Revision the report was composed from, and says so.
+    # version. The first is the Design Revision the report was composed from, and says so --
+    # the study's design (cross-review: "Revize návrhu 1" above "KONCEPT" read as a draft's).
     body = _text(_xml(rendered, "word/document.xml"))
-    assert body.count("Revize návrhu") == 2  # the cover and the document control
+    assert body.count("Revize návrhu studie") == 2  # the cover and the document control
+    assert body.count("Revize návrhu") == 2
 
 
 def test_an_internal_report_prints_its_identifiers(report_ledger: Any) -> None:
@@ -395,6 +502,10 @@ def test_the_cover_names_the_study_and_anchors_the_original_field(report_ledger:
     )
     assert "čeká na podpis" not in _text(body)  # the status is the footers' (D2)
     assert cover.tables[0].columns[0].width.mm == pytest.approx(120, abs=0.02)
+    # The metadata grid gives its labels room for "Revize návrhu studie" (it wrapped at 28 mm).
+    (grid,) = cell.tables
+    assert [round(c.width.mm) for c in grid.columns] == [36, 84]
+    assert [r.cells[0].text for r in grid.rows][-1] == "Revize návrhu studie"
     from aia_core.infrastructure.report_docx.cover import ASSETS
 
     assert (ASSETS / "aia-lockup.svg").read_bytes() in parts.values()

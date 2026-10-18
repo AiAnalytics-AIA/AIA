@@ -75,6 +75,7 @@ import { Icon, type IconName } from "../icons";
 import { ActionDock, ChipInput, InlineConfirm, Segmented, Switch } from "../step";
 import { AiButton, Button } from "../ui";
 import { isNativeResult } from "@/lib/research-agent-jobs";
+import { openPlace, scrollBehavior, scrollToPlace } from "@/lib/open-place";
 import { useResearch } from "./context";
 import { InspectorSlot } from "./Inspector";
 import { questionnaireIssues } from "@/research/lane";
@@ -94,7 +95,7 @@ const setInvalid = (sec: Section) => {
 };
 const OBJECT = "{object}";
 
-const jumpTo = (id: string) => document.getElementById(id)?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+const jumpTo = (id: string) => scrollToPlace(id, "center");
 
 export function QuestionnaireStep() {
   const { store, state, template, runJob, toast, stepHref } = useResearch();
@@ -155,7 +156,8 @@ export function QuestionnaireStep() {
       if (!id) return;
       setTab("edit");
       const place = questionnairePlace(id, sections(store.get().project));
-      window.requestAnimationFrame(() => jumpTo(document.getElementById(place) ? place : "q-editor"));
+      // Focus follows the scroll there, so Tab goes on from the place (openPlace).
+      window.requestAnimationFrame(() => openPlace(document.getElementById(place) ? place : "q-editor", "center"));
     };
     read();
     window.addEventListener("hashchange", read);
@@ -271,7 +273,7 @@ function QuestionnaireReadiness() {
   const { state } = useResearch();
   const counts = questionnaireCounts(state.project);
   const issues = questionnaireIssues(state.project);
-  const firstUnworded = () => document.querySelector<HTMLElement>("[data-unworded]")?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+  const firstUnworded = () => document.querySelector<HTMLElement>("[data-unworded]")?.scrollIntoView?.({ behavior: scrollBehavior(), block: "center" });
   const rows: { label: string; detail: string; ok: boolean; go?: () => void }[] = [
     { label: tv("research.questionnaire.readyCounts", counts), detail: t("research.questionnaire.readyCountsDetail"), ok: counts.questions > 0 },
     ...(issues.empty ? [{ label: tv("research.questionnaire.dockEmpty", { n: issues.empty }), detail: t("research.questionnaire.unworded"), ok: false, go: firstUnworded }] : []),
@@ -532,7 +534,7 @@ function Outline({ update }: { update: Update }) {
     <aside aria-labelledby="q-editor" className="sticky top-[136px] flex flex-[1_1_240px] flex-col gap-3 rounded-card border border-border bg-surface-raised p-3.5">
       <div>
         <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint">{t("research.questionnaire.editorTag")}</div>
-        <h2 id="q-editor" className="mt-0.5 text-sm font-semibold">{tv("research.questionnaire.editorCounts", counts)}</h2>
+        <h2 id="q-editor" className={`mt-0.5 rounded-sm text-sm font-semibold ${FOCUS}`}>{tv("research.questionnaire.editorCounts", counts)}</h2>
       </div>
       {xs.length ? (
         <ul className="flex max-h-[45vh] flex-col gap-0.5 overflow-y-auto">
@@ -603,7 +605,7 @@ function ResearchQuestionComparisons({ update }: { update: Update }) {
   const stated = researchQuestionsOf(state.project);
   if (!stated.length) return null;
   return (
-    <section id="q-comparisons" aria-label={t("research.questionnaire.comparisons.title")} className={`scroll-mt-40 ${CARD}`}>
+    <section id="q-comparisons" aria-label={t("research.questionnaire.comparisons.title")} className={`scroll-mt-40 ${CARD} ${FOCUS}`}>
       <h3 className="text-[15px] font-semibold">{t("research.questionnaire.comparisons.title")}</h3>
       <p className="mt-1 text-[13px] text-ink-muted">{t("research.questionnaire.comparisons.help")}</p>
       <ul className="mt-3 flex flex-col gap-2">
@@ -694,7 +696,7 @@ function QuestionCard({ n, q, si, qi, update }: { n: number; q: Question; si: nu
   const unworded = !String(q.text || "").trim();
   const hint = `${questionElementId(q)}_missing`;
   return (
-    <div id={questionElementId(q)} data-unworded={unworded || undefined} className={`scroll-mt-40 rounded-card border bg-surface-raised p-4 ${unworded ? "border-status-you shadow-[0_0_0_3px_var(--color-status-you-wash)]" : "border-border"}`}>
+    <div id={questionElementId(q)} data-unworded={unworded || undefined} className={`scroll-mt-40 rounded-card border bg-surface-raised p-4 ${FOCUS} ${unworded ? "border-status-you shadow-[0_0_0_3px_var(--color-status-you-wash)]" : "border-border"}`}>
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-md bg-signal-wash px-1.5 py-0.5 font-mono text-xs font-semibold text-signal" title={String(q.id || "")}>Q{n}</span>
         <span className="sr-only">{q.id || "Q"}</span>
@@ -907,7 +909,7 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
     setNote(r.note);
   };
   return (
-    <article id={setElementId(sec, si)} className="scroll-mt-40 flex flex-col gap-3 rounded-card border border-border border-t-[3px] border-t-hue-violet bg-surface-raised p-4">
+    <article id={setElementId(sec, si)} className={`scroll-mt-40 flex flex-col gap-3 rounded-card border border-border border-t-[3px] border-t-hue-violet bg-surface-raised p-4 ${FOCUS}`}>
       <div className="flex items-start gap-3">
         <span className="mt-1 whitespace-nowrap rounded-md bg-hue-violet/12 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-hue-violet">{tv("research.questionnaire.setBadge", { n })}</span>
         <div className="min-w-0 flex-1">

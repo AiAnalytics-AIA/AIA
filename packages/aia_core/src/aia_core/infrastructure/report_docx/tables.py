@@ -10,7 +10,11 @@ A table prints as a consultancy table does:
   right-aligned in the tabular face;
 * **a row that cites a suppressed ref is removed, never greyed**, and the source
   line under the table says how many rows were removed and why;
-* INDICATIVE cells marked with a dagger, explained under the table.
+* INDICATIVE cells marked with a dagger, explained under the table;
+* a short table printed whole and a longer one never broken after its first row or
+  before its last (``styles.row_keeps``), its source and notes in the table's last row,
+  which keeps with the row above it, so they never open a page apart from the table
+  (research-integrity-report D5).
 
 A landscape table gets a landscape section of its own.
 """
@@ -20,6 +24,7 @@ from __future__ import annotations
 from typing import Final
 
 from docx.shared import Emu
+from docx.table import Table as DocxTable
 from docx.table import _Cell
 
 from aia_core.domain.fieldwork import MODELLED_DISCLOSURE
@@ -39,8 +44,14 @@ from aia_core.infrastructure.report_docx import layout
 from aia_core.infrastructure.report_docx.blocks import base_text, shows_interval, write_mark
 from aia_core.infrastructure.report_docx.context import Container, RenderContext
 from aia_core.infrastructure.report_docx.marks import grade_label
-from aia_core.infrastructure.report_docx.ooxml import add_field, full_width, header_row, keep_row
-from aia_core.infrastructure.report_docx.styles import S
+from aia_core.infrastructure.report_docx.ooxml import (
+    add_field,
+    full_width,
+    header_row,
+    keep_row,
+    notes_row,
+)
+from aia_core.infrastructure.report_docx.styles import S, kept_style, row_keeps
 
 INDICATIVE_MARK: Final = "\u2020"  # dagger
 
@@ -60,16 +71,24 @@ def caption(
     anchor: str,
     base_ref: str | None,
     grade: PrintGrade | None,
+    modelled_panel: bool = False,
     extra: str | None = None,
 ) -> None:
-    """ "Tabulka 3 — title (n = 480; měřeno)": the SEQ field, then what it rests on."""
+    """ "Tabulka 3 — title (n = 480; měřeno)": the SEQ field, then what it rests on.
+
+    ``modelled_panel``: some of its numbers rest on AI respondents built from the population,
+    said once beside them (ADR 0024 §7). The disclosure begins with the modelled grade's word
+    and says more, so a modelled grade prints as the disclosure alone, never the word twice.
+    """
     p = container.add_paragraph(style=S.CAPTION)
     p.add_run(f"{word} ")
     add_field(p, f"SEQ {word} \\* ARABIC", str(number))
     p.add_run(f" — {title}")
     basis = [base_text(ctx, base_ref)] if base_ref else []
-    if grade is not None:
+    if grade is not None and not (modelled_panel and grade is PrintGrade.MODELLED):
         basis.append(_grade_phrase(grade))
+    if modelled_panel:
+        basis.append(MODELLED_DISCLOSURE)
     if extra:
         basis.append(extra)
     if basis:
@@ -77,17 +96,51 @@ def caption(
     ctx.bookmarks.wrap(p, anchor)
 
 
-def source_line(container: Container, source: str, removed: int, notes: tuple[str, ...]) -> None:
-    """ "Zdroj: …", what was removed and why, then the notes."""
-    p = container.add_paragraph(style=S.SOURCE)
+def source_line(
+    container: Container,
+    source: str,
+    removed: int,
+    notes: tuple[str, ...],
+    *,
+    indicative: bool = False,
+) -> None:
+    """ "Zdroj: …", what was removed and why, the notes, then what the dagger means.
+
+    One block: every line but the last keeps with the next, so under a figure, whose picture
+    keeps with the first, no line of it opens a page apart from the rest
+    (research-integrity-report D5). A table writes it into its notes row (:func:`table_notes`).
+    """
+    p = container.add_paragraph(style=S.SOURCE_KEPT)
     p.add_run(f"{t('source')}: ", style=S.STRONG)
     p.add_run(source)
     if removed:
         p.add_run(f"{t('separator')}{t('suppressed_rows')}: {removed}.")
+    lines = [p]
     for note in notes:
-        n = container.add_paragraph(style=S.SOURCE)
+        n = container.add_paragraph(style=S.SOURCE_KEPT)
         n.add_run(f"{t('note')}: ", style=S.STRONG)
         n.add_run(note)
+        lines.append(n)
+    if indicative:
+        d = container.add_paragraph(style=S.SOURCE_KEPT)
+        d.add_run(f"{INDICATIVE_MARK} {t('indicative_note')}")
+        lines.append(d)
+    lines[-1].style = S.SOURCE  # the chain ends here
+
+
+def table_notes(
+    table: DocxTable,
+    source: str,
+    removed: int,
+    notes: tuple[str, ...],
+    *,
+    indicative: bool = False,
+) -> None:
+    """The table's source line and notes, in its notes row (``ooxml.notes_row``)."""
+    cell = notes_row(table)
+    empty = cell.paragraphs[0]
+    source_line(cell, source, removed, notes, indicative=indicative)
+    cell._tc.remove(empty._p)
 
 
 def _refs(row: TableRow) -> list[str]:
@@ -112,9 +165,11 @@ def _write_cell(
     *,
     strong: bool,
     marks: bool,
+    keep: bool,
 ) -> bool:
-    """Write one cell; return whether it was INDICATIVE."""
-    style = S.TABLE_NUMBER if column.align is Align.RIGHT else S.TABLE
+    """Write one cell, every paragraph kept with the next when ``keep``; return whether it
+    was INDICATIVE."""
+    style = kept_style(S.TABLE_NUMBER if column.align is Align.RIGHT else S.TABLE, keep)
     p = cell.paragraphs[0]
     p.style = style
     run_style = S.STRONG if strong else None
@@ -139,7 +194,7 @@ def _write_cell(
         p.add_run(numbers.NBSP)
         write_mark(ctx, p, value.ref)
     if row.interval is not None and shows_interval(ctx, value.ref, value.with_interval):
-        under = cell.add_paragraph(style=S.TABLE_NUMBER)
+        under = cell.add_paragraph(style=kept_style(S.TABLE_NUMBER, keep))
         under.add_run(numbers.interval(row.interval, row.decimals, row.unit), style=S.GRADE)
     return indicative
 
@@ -165,7 +220,7 @@ def render_table(ctx: RenderContext, container: Container, block: Table) -> None
         base_ref=block.base_ref,
         grade=grade,
         # Once beside the table's numbers rather than in every cell (ADR 0024 §7).
-        extra=MODELLED_DISCLOSURE if ctx.ledger.modelled_panel(refs) else None,
+        modelled_panel=ctx.ledger.modelled_panel(refs),
     )
 
     table = ctx.document.add_table(rows=1, cols=len(block.columns))
@@ -182,13 +237,15 @@ def render_table(ctx: RenderContext, container: Container, block: Table) -> None
         column.width = width
     for cell, width in zip(table.rows[0].cells, widths, strict=True):
         cell.width = width
-    header_row(table.rows[0])
+    header_row(table.rows[0])  # kept with the first row below it
     for cell, column in zip(table.rows[0].cells, block.columns, strict=True):
         p = cell.paragraphs[0]
-        p.style = S.TABLE_HEAD_NUMBER if column.align is Align.RIGHT else S.TABLE_HEAD
+        head = S.TABLE_HEAD_NUMBER if column.align is Align.RIGHT else S.TABLE_HEAD
+        p.style = kept_style(head, bool(kept))
         p.add_run(_head_label(column))
     any_indicative = False
-    for trow in kept:
+    # The source line always follows in the notes row, so the last row keeps with it.
+    for trow, keep in zip(kept, row_keeps(len(kept), notes=True), strict=True):
         row = table.add_row()
         keep_row(row)
         cells = row.cells
@@ -196,12 +253,9 @@ def render_table(ctx: RenderContext, container: Container, block: Table) -> None
             cell.width = width
         for cell, column, value in zip(cells, block.columns, trow.cells, strict=True):
             any_indicative |= _write_cell(
-                ctx, cell, column, value, strong=trow.emphasis, marks=grade is None
+                ctx, cell, column, value, strong=trow.emphasis, marks=grade is None, keep=keep
             )
 
-    source_line(container, block.source, removed, block.notes)
-    if any_indicative:
-        p = container.add_paragraph(style=S.SOURCE)
-        p.add_run(f"{INDICATIVE_MARK} {t('indicative_note')}")
+    table_notes(table, block.source, removed, block.notes, indicative=any_indicative)
     if block.landscape:
         layout.running(ctx, layout.end_section(ctx, layout.last_paragraph(ctx)))

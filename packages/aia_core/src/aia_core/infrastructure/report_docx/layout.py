@@ -34,7 +34,7 @@ import copy
 import re
 from io import BytesIO
 from pathlib import Path
-from typing import Literal
+from typing import Final, Literal
 
 from docx.enum.section import WD_ORIENT
 from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_ROW_HEIGHT_RULE
@@ -61,6 +61,11 @@ from aia_core.infrastructure.report_docx.ooxml import (
 from aia_core.infrastructure.report_docx.styles import S
 
 PageFormat = Literal["lowerRoman", "decimal"]
+
+#: The cover's metadata grid: its width, and its labels' column, wide enough for the longest
+#: label ("Revize návrhu studie") on one line at the meta style.
+COVER_META_MM: Final = 120
+COVER_LABEL_MM: Final = 36
 
 # The contents has no TOC field: headless LibreOffice keeps a TOC field's cached page
 # numbers empty, so each entry carries its own PAGEREF (research-integrity-report F3).
@@ -203,7 +208,10 @@ def render_cover(ctx: RenderContext) -> None:
     placement.style = S.COVER_TABLE
     placement.autofit = False
     placement.columns[0].width = Mm(120)
-    placement.rows[0].height = Mm(250)
+    # The cover's paper less its margins (297 - 22 - 20 mm) is 255 mm, and its footer reaches
+    # above the bottom margin once the status wraps to two lines (S.COVER_FOOTER): 246 mm
+    # leaves the section's closing paragraph 4 mm to spare on the cover, never a page of its own.
+    placement.rows[0].height = Mm(246)
     placement.rows[0].height_rule = WD_ROW_HEIGHT_RULE.EXACTLY
     cell = placement.cell(0, 0)
     cell.width = Mm(120)
@@ -244,8 +252,9 @@ def render_cover(ctx: RenderContext) -> None:
     grid = cell.add_table(rows=0, cols=2)
     grid.style = S.COVER_META_TABLE
     grid.autofit = False
-    grid.columns[0].width = Mm(28)
-    grid.columns[1].width = Mm(92)
+    # The labels' column holds the longest label, "Revize návrhu studie", on one line.
+    grid.columns[0].width = Mm(COVER_LABEL_MM)
+    grid.columns[1].width = Mm(COVER_META_MM - COVER_LABEL_MM)
     rows = [
         ("Klient", meta.client_name, S.META),
         ("Datum", numbers.czech_date(meta.issued_on), S.META),
@@ -254,18 +263,19 @@ def render_cover(ctx: RenderContext) -> None:
     ]
     for label, value, style in rows:
         cells = grid.add_row().cells
-        cells[0].width, cells[1].width = Mm(28), Mm(92)
+        cells[0].width, cells[1].width = Mm(COVER_LABEL_MM), Mm(COVER_META_MM - COVER_LABEL_MM)
         cells[0].paragraphs[0].style = S.META
         cells[0].paragraphs[0].add_run(label)
         cells[1].paragraphs[0].style = style
         cells[1].paragraphs[0].add_run(value)
     cell.paragraphs[-1].style = S.COVER_RULE
     cell.add_paragraph(_classification(ctx), style=S.COVER_NOTICE)
-    # The cover's status is its footer's, the long sentence in the one run a stamp replaces.
+    # The cover's status is its footer's, the long sentence in the one run a stamp replaces,
+    # wrapped short of the cover field's dots (S.COVER_FOOTER), the draft's and the stamp's.
     footer = cover.footer
     footer.is_linked_to_previous = False
     fp = footer.paragraphs[0]
-    fp.style = S.FOOTER
+    fp.style = S.COVER_FOOTER
     fp.add_run(f"{t('draft')}. {t('draft_long')}", style=S.STATUS)
     d.add_paragraph(style=S.COVER_RULE)
 

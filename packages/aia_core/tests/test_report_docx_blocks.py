@@ -187,6 +187,30 @@ def test_the_evidence_key_and_appendix(report_ledger: Any) -> None:
     assert "modelováno" in lines and "orientační" in lines
 
 
+def test_the_evidence_appendix_keeps_its_legend_in_its_last_row(report_ledger: Any) -> None:
+    # Was: the legend as paragraphs after the appendix's table, alone on the client report's
+    # last page (review documents#4, research-integrity-report D5).
+    root = _body(_render(components(report_ledger())))
+
+    def text(el: etree._Element) -> str:
+        return "".join(t.text or "" for t in el.iter(f"{W}t"))
+
+    def styles(el: etree._Element) -> list[str]:
+        return [p.find(f"{W}pPr/{W}pStyle").get(f"{W}val") for p in el.iter(f"{W}p")]
+
+    (tbl,) = [t for t in root.iter(f"{W}tbl") if text(t).startswith("Evidence")]
+    head, *rows, legend = tbl.findall(f"{W}tr")
+    assert head.find(f"{W}trPr/{W}tblHeader") is not None
+    assert len(rows) == 5  # five cited refs: a short appendix, every row kept
+    assert all(s.endswith("Kept") for row in (head, *rows) for s in styles(row))
+    (cell,) = legend.findall(f"{W}tc")
+    assert cell.find(f"{W}tcPr/{W}gridSpan").get(f"{W}val") == "8"
+    lines = [text(p) for p in cell.iter(f"{W}p")]
+    assert lines and all(" \u2014 " in line for line in lines)  # "modelováno — …"
+    assert set(styles(cell)) == {"AIASource"}
+    assert tbl.find(f"{W}tblPr/{W}tblLook").get(f"{W}lastRow") == "1"
+
+
 def test_an_internal_report_prints_the_audit_block(report_ledger: Any) -> None:
     doc = components(
         report_ledger(ClaimSurface.INTERNAL),

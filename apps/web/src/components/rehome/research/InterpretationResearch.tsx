@@ -11,6 +11,7 @@ import { needsRepair, phaseLabel } from "@/lib/research-execution";
 import { codedText, codeWords, coverageWords, deepStepLabel, stepProblem } from "@/lib/reason-words";
 import { CodedWords } from "./CodedWords";
 import { withBudget } from "@/lib/budget-line";
+import { olderRulesWords } from "@/lib/review-rules";
 import { AiButton, Button, Field, Select } from "../ui";
 import { useResearch } from "./context";
 import { canReview } from "./frame";
@@ -43,6 +44,8 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
   const current = jobs.find(j => j.run_id === selected);
   const bundle = bundleFor && current && bundleFor.runId === current.run_id ? bundleFor.value : null;
   const used = !!current && review === current.run_id;
+  // Merged before today's acceptance rules: listed as it accepted them, labelled in its report (web#5).
+  const older = bundle ? olderRulesWords(bundle.versions) : null;
   const running = jobs.some(j => !j.is_terminal);
   const active = current ? deepResearchRunningStep(current.steps) : null;
   // The rešerše's feed, read live while one of its steps runs (lib/step-activity.ts).
@@ -181,6 +184,10 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
           : "Zprávu s rešerší stahujete a schvalujete v kartě Kompletní zpráva studie nahoře."}</p>
       </div>
       {bundle.origins?.includes("RECORDED_FIXTURE") ? <p className="text-sm text-status-fault">Podklady obsahují testovací výměny; nejde výhradně o živou rešerši.</p> : null}
+      {older && bundle.accepted.length ? <div role="note" aria-label={older.title} data-older-rules className="rounded-control border border-status-you-ink/40 bg-status-you-wash p-3 text-sm leading-6">
+        <p className="font-semibold">{older.title}</p>
+        <p className="mt-1">{older.text}</p>
+      </div> : null}
       <p className="text-sm leading-6">Níže jsou přijatá zjištění s kontrolovanou citací. Generovaná syntéza vyžaduje věcné posouzení; kontrola citací a čísel sama nepotvrzuje její interpretace. Zpráva obsahuje přijaté podklady a uvádí toto omezení.</p>
       <ol className="space-y-3" aria-label="Přijatá zjištění">{bundle.accepted.map((a, i) => {
         const source = bundle.snapshots.find(s => s.snapshot_id === a.evidence.source_ref);

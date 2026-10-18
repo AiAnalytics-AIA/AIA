@@ -290,3 +290,29 @@ def header_row(row: Any) -> None:
     tr_pr: etree._Element = row._tr.get_or_add_trPr()
     tr_pr.append(el("w:cantSplit"))
     tr_pr.append(el("w:tblHeader"))
+
+
+#: ``w:tblLook``'s bit for the table style's last-row formatting (ECMA-376 17.4.56).
+_LOOK_LAST_ROW: Final = 0x0040
+
+
+def notes_row(table: Any) -> Any:
+    """A last row of one cell across the whole table, never split, for what is said under it.
+
+    The table style's last-row formatting draws no rule under it (``styles``), so it reads
+    as lines under the table; in the table, it stays with the row above it wherever that row
+    keeps with the next, which a paragraph after a table does not in LibreOffice.
+    Returns the cell, its one empty paragraph still in it.
+    """
+    row = table.add_row()
+    keep_row(row)
+    cells = row.cells
+    cell = cells[0].merge(cells[-1]) if len(cells) > 1 else cells[0]
+    tbl_pr: etree._Element = table._tbl.tblPr
+    look: etree._Element | None = tbl_pr.find(qn("w:tblLook"))
+    if look is None:
+        look = el("w:tblLook")
+        insert_in_order(tbl_pr, look, ("tblCaption", "tblDescription", "tblPrChange"))
+    look.set(qn("w:lastRow"), "1")
+    look.set(qn("w:val"), f"{int(look.get(qn('w:val'), '0'), 16) | _LOOK_LAST_ROW:04X}")
+    return cell

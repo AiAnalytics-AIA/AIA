@@ -2,15 +2,19 @@
 
 On real rendered sample reports (``report_samples``): a stamp leaves every part of the package
 but the footers byte for byte as stored, changes each footer only where its status run's words
-were, is deterministic and passes the lint. A document that states a status anywhere else --
-every version stored before this layout -- is not stampable, never partly stamped.
+were, is deterministic and passes the lint. A document whose renderer's status marks are
+anywhere else -- every version stored before this layout -- is not stampable, never partly
+stamped. The study's own words are not a status: a questionnaire item on a loan not approved
+stamps, and each template's own words are held here to state no status outside the footers.
 """
 
 from __future__ import annotations
 
 import hashlib
 import io
+import re
 import zipfile
+from dataclasses import replace
 from datetime import date
 from typing import Any
 
@@ -18,6 +22,7 @@ import pytest
 import report_samples
 from docx import Document
 
+from aia_core.domain.report.model import Paragraph, text
 from aia_core.domain.report.review import ReviewMark, ReviewState, approved_words
 from aia_core.infrastructure.report_docx.lint import lint_docx
 from aia_core.infrastructure.report_docx.renderer import DocxRenderer, write_package
@@ -53,12 +58,19 @@ _RENDERED: dict[str, bytes] = {}
 @pytest.fixture
 def samples(report_ledger: Any) -> dict[str, bytes]:
     if not _RENDERED:
-        for kind in ("internal", "client"):
+        for kind in report_samples.KINDS:
             _RENDERED[kind] = DocxRenderer().render(report_samples.build(kind, report_ledger))
     return _RENDERED
 
 
-@pytest.mark.parametrize("kind", ["internal", "client"])
+#: A status in words: the draft words' first one as the renderer writes it, or a word beginning
+#: "neschválen" in any case. The stamp never reads these (a study's words may say them); the
+#: templates' own words are held to them here.
+_STATUS_WORDS = re.compile(r"KONCEPT|(?<!\w)(?i:neschválen)")
+
+
+# Every template stamps, and none of its own words outside the footers states a status.
+@pytest.mark.parametrize("kind", report_samples.KINDS)
 def test_a_stamp_changes_only_the_status_runs_of_the_footers(
     samples: dict[str, bytes], kind: str
 ) -> None:
@@ -72,6 +84,9 @@ def test_a_stamp_changes_only_the_status_runs_of_the_footers(
     old, new = _parts(stored), _parts(stamped)
     footers = [n for n in old if _footer(n)]
     assert len(footers) >= 3  # cover, front matter, body
+    for name, data in old.items():
+        if name.endswith(".xml") and not _footer(name):
+            assert not _STATUS_WORDS.search(data.decode()), name
     for b, a in zip(before, after, strict=True):
         assert a.date_time == b.date_time == (1980, 1, 1, 0, 0, 0)
         if _footer(b.filename):
@@ -79,11 +94,15 @@ def test_a_stamp_changes_only_the_status_runs_of_the_footers(
         # Every other part byte for byte, compressed alike.
         assert new[b.filename] == old[b.filename], b.filename
         assert (a.CRC, a.compress_size) == (b.CRC, b.compress_size), b.filename
+    # The cover's status column is narrower than the words: they print as two lines, each
+    # whole, so the version id is never broken at its hyphen (cross-review).
+    status, version = words.split(" \u00b7 ")
+    on_cover = f"{status}</w:t><w:br/><w:t>{version}"
     for name in footers:
         # Each footer changed exactly where its one status run's words were.
-        said = COVER if COVER.encode() in old[name] else DRAFT
+        said, says = (COVER, on_cover) if COVER.encode() in old[name] else (DRAFT, words)
         assert old[name].count(said.encode()) == 1, name
-        assert new[name] == old[name].replace(said.encode(), words.encode()), name
+        assert new[name] == old[name].replace(said.encode(), says.encode()), name
         assert DRAFT.encode() not in new[name]
 
     assert stamp_review(stored, mark) == stamped  # deterministic
@@ -100,7 +119,10 @@ def test_an_approved_footer_reads_its_date_and_version_beside_the_classification
     texts = [s.footer.paragraphs[0].text for s in document.sections]
     nb = "\u00a0"
     approved = f"SCHVÁLENO 18.{nb}10.{nb}2026 \u00b7 verze ART-0123456789abcdef"
-    assert texts[0] == approved  # the cover: the status alone
+    # The cover: the status alone, the date and the version on lines of their own
+    assert texts[0] == f"SCHVÁLENO 18.{nb}10.{nb}2026\nverze ART-0123456789abcdef"
+    # in the cover's bounded footer style, short of the cover field's dots (documents#3)
+    assert document.sections[0].footer.paragraphs[0].style.name == "AIA Cover Footer"
     assert all(t.startswith(f"{approved} \u00b7 Důvěrné") for t in texts[1:])
 
 
@@ -173,3 +195,94 @@ def test_a_document_that_states_its_status_other_than_once_per_footer_is_not_sta
     broken = _rewritten(stored, edit(_parts(stored)))
     with pytest.raises(NotStampable):
         stamp_review(broken, _mark(broken))
+
+
+def _paragraph(*runs: str) -> bytes:
+    return (
+        "<w:p>"
+        + "".join(f'<w:r><w:t xml:space="preserve">{r}</w:t></w:r>' for r in runs)
+        + "</w:p>"
+    ).encode()
+
+
+def _appended(data: bytes, body: bytes) -> bytes:
+    """The package with ``body`` at the end of the document, before its section properties."""
+
+    def add(b: bytes) -> bytes:
+        at = b.rindex(b"<w:sectPr")
+        return b[:at] + body + b[at:]
+
+    return _rewritten(data, {"word/document.xml": add})
+
+
+def _with_item(report_ledger: Any, words: str) -> bytes:
+    """The internal sample rendered with one more item, ``words``, in its questionnaire."""
+    doc = report_samples.build("internal", report_ledger)
+    sections = tuple(
+        replace(s, blocks=(*s.blocks, Paragraph(text(words)))) if s.id == "app-questionnaire" else s
+        for s in doc.sections
+    )
+    assert sections != doc.sections
+    return DocxRenderer().render(replace(doc, sections=sections))
+
+
+def test_the_study_s_own_words_never_hold_back_the_stamp(
+    samples: dict[str, bytes], report_ledger: Any
+) -> None:
+    """A bank's questionnaire asks why a loan was not approved, a quoted source counts the
+    applications not approved, a study is named after them: each says "neschválen…", and none
+    states the version's status. Read as status, an approved version holding one was served
+    with its draft footers while its status said it was stamped (cross-review). The stamp
+    reads only the renderer's own status marks and leaves the study's words as stored; the
+    templates' own words are held above. The renderer's draft words are still refused, even
+    split across the runs of one paragraph."""
+    stored = samples["client"]
+    heads = {n for n, b in _parts(stored).items() if n.startswith("word/header") and b"AIA" in b}
+    question = "Schválení úvěru proběhlo rychle?"
+    said = [
+        _with_item(report_ledger, "Q7. Jaký byl důvod neschválení vaší žádosti o hypotéku?"),
+        _appended(stored, _paragraph("„Podíl neschválených žádostí o úvěr meziročně vzrostl.“")),
+        _rewritten(
+            stored,
+            {
+                n: lambda b: b.replace("Důvěra 2026".encode(), "Neschválené úvěry 2026".encode())
+                for n in heads
+            },
+        ),
+        # A yes/no item's options above a question beginning "Schválení" ("…Ne" + "Schválení…"):
+        # in two paragraphs, two table cells, either side of a line break.
+        _appended(stored, _paragraph("Jedna odpověď: Ano, Ne") + _paragraph(question)),
+        _appended(
+            stored,
+            b"<w:tbl><w:tr><w:tc>"
+            + _paragraph("Ne")
+            + b"</w:tc><w:tc>"
+            + _paragraph(question)
+            + b"</w:tc></w:tr></w:tbl>",
+        ),
+        _appended(
+            stored,
+            (
+                '<w:p><w:r><w:t xml:space="preserve">Ano, Ne</w:t><w:br/>'
+                f'<w:t xml:space="preserve">{question}</w:t></w:r></w:p>'
+            ).encode(),
+        ),
+    ]
+    assert heads
+    for document in said:
+        mark = _mark(document)
+        old, new = _parts(document), _parts(stamped := stamp_review(document, mark))
+        words = approved_words(mark)
+        # The cover prints the date and the version on lines of their own (its status column).
+        on_cover = "</w:t><w:br/><w:t>".join(words.split(" · "))
+        for name in old:
+            if _footer(name):
+                says = on_cover if COVER.encode() in old[name] else words
+                assert says.encode() in new[name], name
+                assert DRAFT.encode() not in new[name], name
+            else:
+                assert new[name] == old[name], name  # the study's words as stored
+        assert lint_docx(stamped) == []
+    refused = _appended(stored, _paragraph("Stav: KONCEPT \u2014 NESCHVÁ", "LENO"))
+    with pytest.raises(NotStampable):
+        stamp_review(refused, _mark(refused))
