@@ -83,7 +83,14 @@ const bad = [];
 const toUnit = [];
 const UNIT_PATH = /^\/(api\/(?!v1\/)|files\/|artifacts\/|project-attachments\/|brand\/|fullsim-arena|status$|health$|classic|interface-document)/;
 page.on("pageerror", (e) => errors.push(String(e)));
-page.on("console", (m) => { if (m.type() === "error") consoleErrors.push(m.text()); });
+// The study screens ask for optional content that may not exist: a 404 is "nothing here"
+// (useResource), and the browser logs each as a failed resource load.
+const NOTHING_HERE = /\/(workspace\/content|knowledge|agent-jobs|analysis|report|design\/source)\b/;
+page.on("console", (m) => {
+  if (m.type() !== "error") return;
+  if (m.text().startsWith("Failed to load resource") && m.text().includes("404") && NOTHING_HERE.test(m.location().url ?? "")) return;
+  consoleErrors.push(m.text());
+});
 // The study frame records the stage a person is on with a fire-and-forget PUT whose errors it
 // ignores (components/aia/ResearchStudy.tsx); a navigation aborts it in the browser after the
 // API has answered (the facade log shows 204). Listed, not failed; any other failure fails.
@@ -108,7 +115,8 @@ await page.waitForURL(/\/progress/, { timeout: 60000 });
 ok("Run: started");
 
 // 2. Progress until every step, the two experimental ones included, has succeeded.
-await page.getByText("Dokončeno", { exact: true }).first().waitFor({ timeout: 300000 })
+// A finished run reads by its state (lib/run-state.ts): results ready, or its report too.
+await page.getByText(/^(Výsledky jsou hotové|Zpráva je hotová)$/).first().waitFor({ timeout: 300000 })
   .catch(async () => { await shot("2-progress-timeout"); fail("the run did not complete within 300 s (tmp/ui-workbench/logs/worker.log)"); });
 for (const step of STEPS) {
   const status = await page.locator(`[data-step="${step}"]`).first().getAttribute("data-status", { timeout: 5000 }).catch(() => null);
@@ -124,7 +132,8 @@ const cardView = page.locator("#res-sociomapping");
 const card = cardView.getByText("Sociomapping · experimentální metoda AIA");
 await card.first().waitFor({ timeout: 60000 }).catch(() => fail("no experimental Sociomapping card on Results"));
 await page.getByText("nejde o ověřenou rekonstrukci SOMECS").first().waitFor({ timeout: 30000 }).catch(() => fail("the card does not say the method is experimental"));
-await page.getByText(/Fiktivní data \(SYNTHETIC_FIXTURE\)/).first().waitFor({ timeout: 30000 }).catch(() => fail("the card does not say the data are fictional"));
+// The same notice also sits in the object map's hidden panel: read the card's own.
+await cardView.getByText(/Fiktivní data \(SYNTHETIC_FIXTURE\)/).first().waitFor({ timeout: 30000 }).catch(() => fail("the card does not say the data are fictional"));
 ok("Results: the card says experimental and fictional before the map");
 const map = page.getByTestId("sociomapping-map");
 await map.waitFor({ timeout: 30000 }).catch(() => fail("no map drawn"));
@@ -178,8 +187,7 @@ if (!saved.endsWith("sociomapping-experimental-draft.docx")) fail(`unexpected fi
 ok(`Report: downloaded ${file.suggestedFilename()}`);
 
 await browser.close();
-// The study screens ask for optional content that may not exist (a 404 is "nothing here").
-const unexpected = bad.filter((b) => !/^404 GET .*\/(workspace\/content|knowledge|agent-jobs|analysis|report)\b/.test(b));
+const unexpected = bad.filter((b) => !(b.startsWith("404 GET ") && NOTHING_HERE.test(b)));
 writeFileSync(join(OUT, "journey.json"), JSON.stringify({ result: unexpected.length || errors.length || consoleErrors.length || failed.length || toUnit.length ? "FAIL" : "PASS", log, http_errors: bad, console_errors: consoleErrors, failed_requests: failed, aborted_stage_markers: stageMarkers, page_errors: errors, unit_requests: toUnit, report: saved }, null, 1));
 if (toUnit.length) fail(`requests to the unit's paths: ${toUnit.join(" | ")}`);
 if (errors.length) fail(`page errors: ${errors.join(" | ")}`);

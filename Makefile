@@ -18,7 +18,7 @@ BIN := $(shell [ -d $(VENV)/bin ] && echo $(VENV)/bin/ || echo "")
 PYTHON_VERSION := $(shell cat .python-version)
 
 .PHONY: ui-audience ui-intake ui-methodology help setup deps services migrate migration dev dev-api dev-web dev-worker \
-        test test-core test-api test-worker test-executors test-parity test-golden test-oracle parity-status test-web report-preview web_design ui-workbench ui-workbench-reference ui-workbench-status ui-workbench-down ui-capture ui-fixtures ui-research ui-sociomapping ui-workspace \
+        test test-core test-api test-worker test-executors test-parity test-golden test-oracle parity-status test-web report-preview web_design ui-workbench ui-workbench-reference ui-workbench-status ui-workbench-down ui-capture ui-fixtures ui-research ui-sociomapping ui-workspace ui-coherence report-journey \
         lint format typecheck python-version \
         layer_check exposure_check check verify openapi clean
 
@@ -124,6 +124,9 @@ ui-fixtures: ## Write the workbench's fictional research projects (the screens t
 ui-research: ## One research run end to end in a browser on the workbench: Run -> Progress -> Results (fictional fieldwork)
 	@node tools/ui_workbench/research_journey.mjs
 
+ui-coherence: ## The product walked as one researcher, every screen kept as image + text, checks in report.json (needs ui-workbench + ui-fixtures)
+	@node tools/ui_workbench/coherence_journey.mjs
+
 ui-sociomapping: ## The experimental Sociomapping in a browser on the workbench: run, map, report download (needs ui-workbench + ui-fixtures)
 	@node tools/ui_workbench/sociomapping_journey.mjs --fixture sociomapping
 	@$(PY) tools/sociomapping_independent_check.py
@@ -142,6 +145,9 @@ ui-workspace: ## A study's working content in a browser on AIA alone: brief file
 
 ui-workbench-down: ## Stop the UI workbench
 	@python3 tools/ui_workbench/workbench.py down
+
+report-journey: ## The reports one end-to-end run composes (fictional, scripted models, USD 0), DOCX -> PDF -> PNG with lines per page -> tmp/report-journey/
+	@$(PY) tools/report_preview.py --journey --out tmp/report-journey
 
 report-preview: ## Render the four report samples DOCX -> PDF -> PNG (needs libreoffice-writer, poppler-utils) -> tmp/report-preview/
 	@$(PY) tools/report_preview.py --samples --grey

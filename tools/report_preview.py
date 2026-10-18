@@ -10,12 +10,20 @@ the way. It is a verification tool, never a runtime dependency.
     python tools/report_preview.py --samples                 # the four templates
     python tools/report_preview.py --samples --stress        # prose +35 %
     python tools/report_preview.py --samples --grey          # greyscale pages too
+    python tools/report_preview.py --journey                 # the reports one run composes
 
 Needs LibreOffice **Writer** (``libreoffice-writer``, not only its core) and
 ``pdftoppm`` (``poppler-utils``); see AGENTS.md § DOCX. Output goes to
 ``tmp/report-preview/`` unless ``--out`` says otherwise: per document the PDF,
 one PNG per page (``-grey`` twins with ``--grey``) and ``<name>-sheet.png``.
 Exits 1 when a package fails the lint or a conversion fails.
+
+``--journey`` renders what a real run composes rather than a template sample: the executor
+journey test (``test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs``,
+150 fictional respondents, scripted models, recorded web; no paid call) runs with
+``report_journey_capture`` keeping every DOCX it renders, so the internal report and the report
+with literature are read as pages. Each page's count of text lines is printed, so a chapter
+alone on a mostly empty page is seen without opening the PDF.
 """
 
 from __future__ import annotations
@@ -65,6 +73,44 @@ def write_samples(out: Path, stress: float | None) -> list[Path]:
         if suffix
         else sorted(p for p in out.glob("*.docx") if not p.stem.endswith("-stress"))
     )
+
+
+JOURNEY_TEST = (
+    "apps/executors/tests/test_analysis_executor.py::"
+    "test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs"
+    "[deep-research-and-internal-report]"
+)
+
+
+def write_journey(out: Path) -> list[Path]:
+    """Every report DOCX one end-to-end run renders, kept once each, into ``out``."""
+    for old in out.glob("[0-9][0-9]-*.docx"):
+        old.unlink()
+    tools = str(REPO / "tools")
+    env = dict(
+        os.environ,
+        AIA_REPORT_JOURNEY_DIR=str(out),
+        PYTHONPATH=os.pathsep.join(p for p in (tools, os.environ.get("PYTHONPATH")) if p),
+    )
+    cmd = [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider"]
+    cmd += ["-p", "report_journey_capture", JOURNEY_TEST]
+    result = subprocess.run(cmd, cwd=REPO, env=env, capture_output=True, text=True, check=False)
+    if result.returncode != 0:
+        sys.exit(f"report_preview: the journey test failed\n{result.stdout}{result.stderr}")
+    return sorted(out.glob("[0-9][0-9]-*.docx"))
+
+
+def page_lines(pdf: Path) -> list[int]:
+    """How many lines of text each page holds (``pdftotext``): a page nearly empty stands out."""
+    pdftotext = _need("pdftotext")
+    pages = subprocess.run(
+        [pdftotext, "-layout", str(pdf), "-"],
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=300,
+    ).stdout.split("\f")
+    return [sum(1 for line in page.splitlines() if line.strip()) for page in pages if page.strip()]
 
 
 def lint(docx: Path) -> list[str]:
@@ -144,6 +190,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("docx", nargs="*", type=Path, help="DOCX files to preview")
     parser.add_argument("--samples", action="store_true", help="the four template samples")
     parser.add_argument(
+        "--journey", action="store_true", help="the reports one end-to-end run composes"
+    )
+    parser.add_argument(
         "--stress",
         nargs="?",
         const=STRESS_DEFAULT,
@@ -159,8 +208,10 @@ def main(argv: list[str] | None = None) -> int:
     files = list(args.docx)
     if args.samples:
         files += write_samples(args.out, args.stress)
+    if args.journey:
+        files += write_journey(args.out)
     if not files:
-        parser.error("name a DOCX file or pass --samples")
+        parser.error("name a DOCX file or pass --samples or --journey")
 
     failed = False
     for docx in files:
@@ -181,6 +232,8 @@ def main(argv: list[str] | None = None) -> int:
             greys = [p for p in pages if p.stem.endswith("-grey")]
             contact_sheet(greys, args.out / f"{docx.stem}-sheet-grey.png")
         print(f"ok   {docx.name}: {len(colour)} pages -> {args.out / (docx.stem + '-sheet.png')}")
+        if args.journey:
+            print(f"     lines per page: {' '.join(map(str, page_lines(pdf)))}")
     return 1 if failed else 0
 
 

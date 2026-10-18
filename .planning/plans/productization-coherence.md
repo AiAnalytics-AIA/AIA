@@ -8,7 +8,7 @@ chunks:
   - "[ ] PC5. The stage track follows the run (done), and says when the design changed after the run it shows"
   - "[ ] PC6. Proposal review names what acceptance replaces; rewording a research question says which links it would orphan"
   - "[ ] PC7. Researcher copy agrees with the Sociomap register and ADR 0018: no D6 or 18.6.6 remedies, no stale report sentence"
-  - "[ ] PC8. The browser journeys pass on today's interface, a label they wait for cannot drift unnoticed, and the coherence journey and report render are committed tools anyone can rerun"
+  - "[x] PC8. The browser journeys pass on today's interface, a label they wait for cannot drift unnoticed, and the coherence journey and report render are committed tools anyone can rerun"
   - "[ ] PC9. Report body and appendices flow: no page break before every chapter (owner D5, 2026-10-17)"
   - "[x] PC10. Dimenze shows and saves only the dimensions a person chose: a new study chose none (owner, 2026-10-18; OI-54)"
   - "[ ] PC11. Product-level acceptance scenarios over the real start, worker and report"
@@ -126,3 +126,30 @@ record), the test now asserts the classic's refill and AIA's chosen-only result 
 **Tests.** lane "says a new study chose no dimension…" (fails on the old code); PersonaStep's four
 screen tests now assert the empty selection, its save and the one-click recommendation; the parity
 cases above. **Doc follow-up:** OI-54 decided by the owner (2026-10-18): an empty approval stays empty.
+
+## PC8 — the journeys pass, and the pass can be repeated
+
+**Problem.** None of the browser journeys runs in CI, and three had drifted from the interface:
+`make ui-research` and `make ui-sociomapping` waited for "Dokončeno", the run state #458 renamed
+(`research_journey.mjs:46 @ 20b24bb`); the client journey for "Přidat znalost", which the intake
+sheet replaced with "Napsat znalost" on Znalosti; the sociomapping journey read the first of two
+copies of its fictional-data notice, the hidden one, and counted the documented "404 = nothing
+here" of `/design/source` (a study with no reused design) as an error. OI-106 recorded two earlier
+drifts of the same kind.
+
+**Change.** The three journeys wait for what the screens say today (a finished run's state,
+"Napsat znalost", the card's own notice, `design/source` among the nothing-here reads). The pass
+itself is committed: `make ui-coherence` (`tools/ui_workbench/coherence_journey.mjs`) walks the
+product as one researcher and keeps every page as image and text with its checks in
+`report.json`; `make report-journey` (`report_preview.py --journey` with
+`tools/report_journey_capture.py`) renders the reports a run composes and prints the lines per page.
+The workbench README says how to repeat it and what it cannot repeat (the model).
+
+**Verified, 2026-10-18.** `make ui-research`, `make ui-sociomapping`, `client_journey.mjs`,
+`workspace_journey.mjs`, `intake_journey.mjs`, `audience_journey.mjs`, `settings_journey.mjs`,
+`ux_journey.mjs` and `make ui-coherence` (16 checks) pass on the workbench; `make report-journey`
+renders three DOCX (27, 29, 29 pages).
+
+**Not done.** A check that every label a journey waits for exists in the web source: 19 of 194
+literals are composed from templates, fixture data or server-served titles, so it would need an
+allowlist that drifts itself. Running one journey in CI is the owner's call (decisions, below).
