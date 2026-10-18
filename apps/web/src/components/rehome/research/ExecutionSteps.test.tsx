@@ -2095,7 +2095,7 @@ describe("Interpretation research", () => {
       created_at: null, actual_cost_usd: 0.8, steps: [] };
     const bundle = { quality_status: "PARTIAL", sha256: "b-2", counts: { tracks: 3, new_metric: 2 },
       accepted: [
-        { evidence: { evidence_id: "EV-1", claim: "Spotřeba čaje roste.\n- hlavně u mladých\n- ve městech", quote: "Čaj roste o 4 %.", source_ref: "SRC-1" }, score: { score: 0.8, source_class: "B" } },
+        { evidence: { evidence_id: "EV-1", claim: "Spotřeba čaje roste.\n- hlavně u mladých\n- ve městech", quote: "Čaj roste o 4 %.", source_ref: "SRC-1" }, score: { score: 0.8, source_class: "OFFICIAL_STATISTICS" } },
         { evidence: { evidence_id: "EV-2", claim: "Káva je stabilní.", quote: "", source_ref: "SRC-2" }, score: { score: 0.6, source_class: "C" } },
       ],
       snapshots: [{ snapshot_id: "SRC-1", title: "Zpráva o trhu", url: "https://example.org/a", retrieval_mode: "LIVE" }, { snapshot_id: "SRC-2", title: "", url: "https://example.org/b", retrieval_mode: "LIVE" }],
@@ -2118,7 +2118,12 @@ describe("Interpretation research", () => {
     expect(within(first).getByText("Zjištění č. 1")).toBeTruthy();
     expect(within(first).getByText("Spotřeba čaje roste.")).toBeTruthy();
     expect(within(first).getByText("hlavně u mladých").parentElement?.tagName).toBe("LI"); // a list inside the finding
-    expect(within(first).getByText(/třída zdroje B/)).toBeTruthy();
+    // A source's class in words; one this client does not know keeps its code beside them.
+    expect(within(first).getByText(/typ zdroje podle domény: oficiální statistika/)).toBeTruthy();
+    expect(within(first).queryByText(/OFFICIAL_STATISTICS/)).toBeNull();
+    const second = accepted.querySelectorAll("[data-accepted-finding]")[1] as HTMLElement;
+    expect(within(second).getByText(/typ zdroje podle domény: jiný typ/)).toBeTruthy();
+    expect(within(second).getByText("C").tagName).toBe("CODE");
     expect(within(first).getByText("Čaj roste o 4 %.")).toBeTruthy();
     expect(screen.getByText("Zachycené zdroje (2)")).toBeTruthy();
     expect(screen.getAllByText("https://example.org/b")).toHaveLength(2); // the finding's source and the source list

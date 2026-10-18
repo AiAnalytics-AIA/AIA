@@ -176,7 +176,7 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
         return <li key={i} data-accepted-finding className="rounded-control border border-border p-4">
           <p className="text-xs font-semibold text-ink-muted">Zjištění č. {i + 1}</p>
           <FormattedText text={a.evidence.claim} className="mt-1" />
-          <p className="mt-2 break-words text-xs text-ink-muted">Zdroj: {source ? <a href={source.url} target="_blank" rel="noreferrer" className="underline">{source.title || source.url}</a> : a.evidence.source_ref}{a.score?.source_class ? ` · třída zdroje ${a.score.source_class}` : ""}</p>
+          <p className="mt-2 break-words text-xs text-ink-muted">Zdroj: {source ? <a href={source.url} target="_blank" rel="noreferrer" className="underline">{source.title || source.url}</a> : a.evidence.source_ref}{a.score?.source_class ? <>{" · typ zdroje podle domény: "}<CodedWords inline coded={codeWords("research.deep.sourceClass", a.score.source_class, "research.deep.sourceClass.other")} /></> : null}</p>
           {a.evidence.quote ? <details className="mt-2 text-xs"><summary className="cursor-pointer text-ink-muted">Citovaný podklad</summary><blockquote className="mt-2 whitespace-pre-wrap border-l-2 border-border pl-3 leading-5 text-ink-muted">{a.evidence.quote}</blockquote></details> : null}
         </li>;
       })}</ol>

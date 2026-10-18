@@ -2260,6 +2260,21 @@ export const cs = {
         LIVE: "živě",
         RECORDED: "ze záznamu (test)",
       },
+      // What a source's domain says of it (deep_research.sources.SourceClass), as the report's
+      // "Doména a její typ" says it: the publisher's credibility, never the document's genre.
+      sourceClass: {
+        OFFICIAL_STATISTICS: "oficiální statistika",
+        GOVERNMENT_OR_REGULATOR: "státní instituce nebo regulátor",
+        PEER_REVIEWED: "recenzovaná publikace",
+        ACADEMIC_INSTITUTION: "akademická instituce (může jít i o studentskou práci)",
+        PREPRINT: "preprint",
+        INDUSTRY_RESEARCH: "odborný průzkum z praxe",
+        MEDIA: "médium",
+        FORUM_OR_SOCIAL: "diskusní fórum nebo sociální síť",
+        CLIENT_KNOWLEDGE: "znalosti klienta",
+        UNKNOWN: "neurčený typ",
+        other: "jiný typ",
+      },
     },
     exec: {
       code: {
