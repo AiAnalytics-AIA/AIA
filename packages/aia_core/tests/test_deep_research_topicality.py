@@ -62,7 +62,12 @@ from aia_core.domain.deep_research.interpretation import (
     RESULT_FRAMING,
     interpretation_mission,
 )
-from aia_core.domain.deep_research.merge import SourceFacts, TrackEvidence, merge_evidence
+from aia_core.domain.deep_research.merge import (
+    MERGE_RULES_VERSION,
+    SourceFacts,
+    TrackEvidence,
+    merge_evidence,
+)
 from aia_core.domain.deep_research.planning import (
     brief_digest,
     extract_subjects,
@@ -82,6 +87,7 @@ from aia_core.domain.deep_research.topicality import (
     TopicVerdict,
     concept_table,
     declared_rules,
+    judged_topic,
     topic_screen,
 )
 from aia_core.domain.research_design import compile_design
@@ -784,6 +790,13 @@ def test_the_declared_rules_are_the_version_they_name() -> None:
         "aia-dr-topicality-1/aia-dr-filters-1/aia-dr-concepts-1",
         "1494b204bcf64e30b4d838a8460841e58168a117887fad2d2b1f68bc29bd6a29",
     )
+
+
+def test_a_merge_version_says_whether_the_topic_was_judged() -> None:
+    assert judged_topic(MERGE_RULES_VERSION)
+    # Any later version of the rules too: never read as "nobody checked".
+    assert judged_topic("aia-merge-9/aia-works-3/aia-dr-topicality-4/x")
+    assert not judged_topic("aia-merge-2/aia-works-1") and not judged_topic("")
 
 
 def test_the_rules_version_carries_the_term_rules_and_the_table() -> None:

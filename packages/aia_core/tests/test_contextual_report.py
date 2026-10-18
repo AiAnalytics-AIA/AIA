@@ -8,7 +8,19 @@ from aia_core.application.contextual_report import literature_sections
 from aia_core.application.report import ReportCompositionRefused
 from aia_core.domain.deep_research.bundle import EvidenceBundle
 from aia_core.domain.deep_research.confidence import CONFIDENCE_WEIGHTS_V1
-from aia_core.domain.deep_research.contracts import digest
+from aia_core.domain.deep_research.contracts import (
+    ClientTerm,
+    ResearchSubject,
+    SubjectKind,
+    digest,
+    subject_key,
+)
+from aia_core.domain.deep_research.merge import MERGE_RULES_VERSION
+from aia_core.domain.deep_research.topicality import (
+    TOPICALITY_VERSION,
+    TopicScreen,
+    topic_screen,
+)
 from aia_core.domain.fieldwork import OriginKind
 from aia_core.domain.report.model import (
     BulletList,
@@ -59,12 +71,19 @@ def _words(block: object) -> str:
 
 
 def prose(
-    value: EvidenceBundle, origin: OriginKind | None = None, tiers_approved: bool | None = None
+    value: EvidenceBundle,
+    origin: OriginKind | None = None,
+    tiers_approved: bool | None = None,
+    topics: TopicScreen | None = None,
 ) -> str:
     return "\n".join(
         _words(b)
         for s in literature_sections(
-            value, research_run_id="RUN-abc", origin=origin, tiers_approved=tiers_approved
+            value,
+            research_run_id="RUN-abc",
+            origin=origin,
+            tiers_approved=tiers_approved,
+            topics=topics,
         )
         for b in s.blocks
     )
@@ -437,3 +456,98 @@ def test_three_withheld_sources_of_one_reason_are_three_in_the_plural() -> None:
         "Získání těchto zdrojů nebylo v tomto běhu dokončeno: zdroje bez uvedeného názvu "
         "(počet: 3)." in written
     )
+
+
+# --------------------------------------------------------------------------- the topic (D4)
+
+TRUST = "Do jaké míry klienti důvěřují založení běžného účtu online?"
+CHECKED = "AIA také ověřila, že se zjištění týká tématu, pro které bylo hledáno"
+UNCHECKED = "Neověřila však, zda se zdroj týká stejného jevu, populace, území a období"
+
+
+def _merged_under(value: EvidenceBundle, merge: str) -> EvidenceBundle:
+    return bundle(
+        **{
+            k: v
+            for k, v in value.model_dump(mode="json").items()
+            if k not in {"versions", "sha256"}
+        },
+        versions={**value.versions, "merge": merge},
+    )
+
+
+def test_a_review_merged_under_the_topic_rules_says_what_they_check_and_what_they_leave() -> None:
+    for merge in (MERGE_RULES_VERSION, "aia-merge-9/aia-works-3/aia-dr-topicality-4/x"):
+        written = prose(_merged_under(bundle(), merge))
+        assert CHECKED in written and UNCHECKED not in written
+        assert "ani zda shoda slov znamená shodu významu" in written
+        assert "stejné populace, území a období" in written
+    # A review merged before them keeps the sentence that nobody checked the topic.
+    assert bundle().versions["merge"] == "aia-merge-1"
+    written = prose(bundle())
+    assert UNCHECKED in written and CHECKED not in written
+
+
+def _older_current_account_review() -> tuple[EvidenceBundle, TopicScreen]:
+    """F1, fictional, as a review merged before the topic rules stored it: three findings from
+    a mortgage thesis accepted for a current-account topic, one on that topic, the rest the
+    fixture's own; Banka Lípa is no bank."""
+    original = bundle()
+    data = original.model_dump(mode="json")
+    trust = ResearchSubject(
+        key=subject_key(SubjectKind.QUESTION, TRUST),
+        kind=SubjectKind.QUESTION,
+        text=TRUST,
+        origin="research_plan.research_questions[0]",
+    ).model_dump(mode="json")
+    thesis = "https://is.vse.cz/zp/fiktivni-prace-o-volbe-hypotecni-banky.pdf"
+    for a in data["accepted"][:3]:
+        a["evidence"]["source_url"] = thesis
+        a["evidence"]["source_title"] = "Faktory výběru poskytovatele hypotečního úvěru"
+        a["evidence"]["subject_key"] = trust["key"]
+    on = data["accepted"][3]["evidence"]
+    on["subject_key"] = trust["key"]
+    on["source_title"] = "Digitální bankovnictví v Česku (fiktivní)"
+    on["quote"] = on["claim"] = "Podíl klientů, kteří si běžný účet založili online, vzrostl."
+    on["measures"] = []
+    older = bundle(subjects=[trust, *data["subjects"]], accepted=data["accepted"], synthesis=None)
+    screen = topic_screen(
+        older.subjects, client_terms=(ClientTerm(term="Banka Lípa", source="client.name"),)
+    )
+    return older, screen
+
+
+def test_an_older_review_labels_what_todays_topic_rules_would_not_accept() -> None:
+    older, screen = _older_current_account_review()
+    stored = older.model_dump(mode="json")
+    written = prose(older, topics=screen)
+    # One callout names the sources; each finding says why, with the rules' version.
+    assert "Zjištění, která by dnešní kontrola tématu nepřijala" in written
+    assert f"podle dnešních pravidel ({TOPICALITY_VERSION}) neprošla: 3, ze zdroje L1." in written
+    labelled = (
+        f"Dnešní kontrola tématu ({TOPICALITY_VERSION}) by toto zjištění nepřijala: netýká se "
+        "tématu, pro které bylo hledáno (téma: „běžný účet“; zdroj jmenuje: „hypotéka“)."
+    )
+    assert written.count(labelled) == 3
+    for a in older.accepted[:3]:
+        assert f"{a.evidence.quote} [L1] Faktory výběru" in written
+    # Labelled, never removed, re-scored or recounted: counts, citations and the seal as stored.
+    unlabelled = prose(older)
+    assert "Dnešní kontrola tématu" not in unlabelled
+    assert "nepřijala" not in unlabelled
+    for line in (
+        "Přijatá zjištění: 7, citované zdroje:",
+        f"Pečeť ověřeného balíčku: {older.sha256}",
+    ):
+        assert line in written and line in unlabelled
+    assert written.count("[L1]") == unlabelled.count("[L1]")
+    assert older.verify() and older.model_dump(mode="json") == stored
+    # The chapter still says nobody checked the topic when the review was made.
+    assert UNCHECKED in written
+
+
+def test_a_review_merged_under_the_topic_rules_is_never_labelled_again() -> None:
+    older, screen = _older_current_account_review()
+    judged = _merged_under(older, MERGE_RULES_VERSION)
+    written = prose(judged, topics=screen)
+    assert "Dnešní kontrola tématu" not in written and "nepřijala" not in written

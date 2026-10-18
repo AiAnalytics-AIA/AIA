@@ -28,7 +28,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from aia_core.application.deep_research import DeepResearchRuns
+from aia_core.application.deep_research import BundleNotReady, DeepResearchRuns
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.application.web_retrieval import RetrievalGate
 from aia_core.domain.deep_research.agents import AgentRole
@@ -1347,6 +1347,26 @@ def test_a_changed_composition_is_refused_mid_run(
         run = DeepResearchRuns(session, research.lead_scope(session)).get(run_id)
     assert run["steps"][1]["attempts"][0]["error"]["reason"] == "composition_changed"
     assert agents.roles() == Counter(planner=1)
+
+
+def test_a_run_reads_back_the_request_it_was_frozen_to(
+    research: ResearchWorld, database_url: str, store: InMemoryArtifactStore, build: Any
+) -> None:
+    """What a report needs of a review that its bundle does not keep -- the client terms an
+    older review is labelled by (D4) -- is read through the run, from its plan."""
+    approve_knowledge(research)
+    run_id = start(research)
+    with research.sessions() as session, pytest.raises(BundleNotReady):
+        DeepResearchRuns(session, research.lead_scope(session)).frozen_request(run_id, store=store)
+    drain(worker(research, database_url, store, build, recorded(research, RecordedAgents(ANSWERS))))
+    _run, bundle = read(research, run_id, store)
+    with research.sessions() as session:
+        request = DeepResearchRuns(session, research.lead_scope(session)).frozen_request(
+            run_id, store=store
+        )
+    assert request.fingerprint() == bundle.request_fingerprint
+    assert ("Acme", "client.name") in {(t.term, t.source) for t in request.client_terms}
+    assert {s.key for s in request.subjects} <= {s.key for s in bundle.subjects}
 
 
 def test_a_run_planned_under_the_earlier_merge_rules_is_refused_at_merge(

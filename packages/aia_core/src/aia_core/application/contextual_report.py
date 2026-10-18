@@ -31,6 +31,14 @@ from aia_core.domain.deep_research.gaps import AcquisitionReason
 from aia_core.domain.deep_research.integration import DeepResearchPurpose, InterpretationLineage
 from aia_core.domain.deep_research.reputation import REPUTATION_REGISTER_V1
 from aia_core.domain.deep_research.settings import Origin, SettingsPinCorrupt
+from aia_core.domain.deep_research.topicality import (
+    TOPICALITY_VERSION,
+    TopicJudgement,
+    TopicScreen,
+    TopicVerdict,
+    judged_topic,
+    topic_screen,
+)
 from aia_core.domain.deep_research.triangulation import publisher_identity
 from aia_core.domain.fieldwork import OriginKind, origin_kind
 from aia_core.domain.pipeline import fingerprint
@@ -164,6 +172,7 @@ def literature_sections(
     research_run_id: str,
     origin: OriginKind | None = None,
     tiers_approved: bool | None = None,
+    topics: TopicScreen | None = None,
 ) -> tuple[Section, ...]:
     """Publish accepted source claims; citation checks do not approve model inferences.
 
@@ -180,9 +189,23 @@ def literature_sections(
     that says what they are; unknown says nothing. ``tiers_approved`` is whether the review's
     pinned settings sign off the source table (``sources.tiers`` approved as ``approved``,
     ADR 0022); ``None`` for a review that pinned none, which says so, never guessed either way.
+
+    Whether code judged each finding's topic is the bundle's own record (its merge version
+    carries the topic rules, D4): the chapter says what that check covers and what it leaves to
+    the reader. A review merged before them is never judged again by the engine (a start on an
+    unchanged target returns it); with ``topics``, today's rules over its frozen request, each
+    accepted finding they would set aside is labelled with the reason and one callout names
+    their sources -- never removed, re-scored or recounted, the bundle and its seal as stored.
     """
     if not bundle.verify():
         raise ReportCompositionRefused("Deep Research bundle seal is invalid")
+    topic_judged = judged_topic(bundle.versions.get("merge", ""))
+    would_reject: dict[str, TopicJudgement] = {}
+    if topics is not None and not topic_judged:
+        for found in bundle.accepted:
+            judgement = topics.judge(found.evidence)
+            if judgement.verdict is not TopicVerdict.ON_TOPIC:
+                would_reject[found.evidence.evidence_id] = judgement
     accepted = {a.evidence.evidence_id: a for a in bundle.accepted}
     labels: dict[str, str] = {}
     # url or ref -> (label, url, title, date, retrieved, host, source class, findings)
@@ -236,16 +259,7 @@ def literature_sections(
                 "jsou proto vedeny odděleně od evidence studie."
             )
         ),
-        Paragraph(
-            text(
-                "U každého zjištění AIA ověřila, že citovaná pasáž je doslova v zachyceném zdroji "
-                "a že čísla tvrzení jsou v ní uvedena; ověřovací model posoudil, zda pasáž "
-                "tvrzení podporuje. Neověřila však, zda se zdroj týká stejného jevu, populace, "
-                "území a období jako tato studie. To posuzuje čtenář: u každého zjištění je proto "
-                "uvedeno téma, pro které bylo hledáno, a doslovná citace, a u každého zdroje jeho "
-                "typ podle domény."
-            )
-        ),
+        Paragraph(text(_relevance_sentence(topic_judged))),
     ]
     if EvidenceOrigin.RECORDED_FIXTURE in bundle.origins:
         blocks.append(
@@ -324,6 +338,22 @@ def literature_sections(
                 title="Rešerše stojí na jednom vydavateli",
             )
         )
+    if would_reject:
+        flagged = list(dict.fromkeys(labels[i] for i in would_reject))
+        blocks.append(
+            Callout(
+                CalloutKind.LIMITATION,
+                text(
+                    "Rešerše vznikla před kontrolou, zda zjištění podporuje téma, pro které bylo "
+                    "hledáno. Přijatá zjištění, která by podle dnešních pravidel "
+                    f"({TOPICALITY_VERSION}) neprošla: {len(would_reject)}, "
+                    f"{'ze zdroje' if len(flagged) == 1 else 'ze zdrojů'} {', '.join(flagged)}. "
+                    "U každého je níže uveden důvod. Kapitola je uvádí tak, jak je rešerše "
+                    "přijala, a nemění počty ani pečeť balíčku; čtěte je s touto výhradou."
+                ),
+                title="Zjištění, která by dnešní kontrola tématu nepřijala",
+            )
+        )
 
     if accepted:
         blocks.append(Heading("Přijatá zjištění a jejich citace", 2))
@@ -348,6 +378,22 @@ def literature_sections(
                     synthetic=False,
                 )
             )
+            rejected_now = would_reject.get(e.evidence_id)
+            if rejected_now is not None:
+                reason = (
+                    "off_topic"
+                    if rejected_now.verdict is TopicVerdict.OFF_TOPIC
+                    else "topic_undetermined"
+                )
+                blocks.append(
+                    Paragraph(
+                        text(
+                            f"Dnešní kontrola tématu ({TOPICALITY_VERSION}) by toto zjištění "
+                            f"nepřijala: {_QUARANTINE[reason]} ({rejected_now.detail}). "
+                            "Rešerše vznikla před ní a zjištění přijala; uvedeno je beze změny."
+                        )
+                    )
+                )
             # Numeric metadata may capture just the first year of a range. Keep
             # numbers with the accepted claim's full scope instead of reconstructing
             # an independently unverified indicator or period from those fields.
@@ -506,6 +552,32 @@ def literature_sections(
         )
     )
     return (Section("Literární rešerše a externí kontext", tuple(blocks), id="literature"),)
+
+
+def _relevance_sentence(topic_judged: bool) -> str:
+    """What code checked of a finding's relevance, by the review's own record (D4): with the
+    topic rules, what they check and what they leave; without them, that nobody checked."""
+    if not topic_judged:
+        return (
+            "U každého zjištění AIA ověřila, že citovaná pasáž je doslova v zachyceném zdroji "
+            "a že čísla tvrzení jsou v ní uvedena; ověřovací model posoudil, zda pasáž "
+            "tvrzení podporuje. Neověřila však, zda se zdroj týká stejného jevu, populace, "
+            "území a období jako tato studie. To posuzuje čtenář: u každého zjištění je proto "
+            "uvedeno téma, pro které bylo hledáno, a doslovná citace, a u každého zdroje jeho "
+            "typ podle domény."
+        )
+    return (
+        "U každého zjištění AIA ověřila, že citovaná pasáž je doslova v zachyceném zdroji "
+        "a že čísla tvrzení jsou v ní uvedena; ověřovací model posoudil, zda pasáž "
+        "tvrzení podporuje. AIA také ověřila, že se zjištění týká tématu, pro které bylo "
+        "hledáno: u sledovaného objektu, že ho citace nebo název zdroje jmenuje; u tématu, "
+        "které jmenuje pojem z pevně dané skupiny (bankovní produkt, sledovaný objekt), že "
+        "zdroj nejmenuje místo něj jiný pojem téže skupiny; a že tvrzení, citace nebo název "
+        "zdroje sdílí s tématem alespoň jedno slovo. Neověřila však, zda se zdroj týká stejné "
+        "populace, území a období jako tato studie, ani zda shoda slov znamená shodu významu. "
+        "To posuzuje čtenář: u každého zjištění je proto uvedeno téma, pro které bylo hledáno, "
+        "a doslovná citace, a u každého zdroje jeho typ podle domény."
+    )
 
 
 def _withheld(one: str, several: str, count: int) -> str:
@@ -699,6 +771,16 @@ def _compose(
         or bundle.design_revision != lineage.design.design_revision
     ):
         raise ReportCompositionRefused("Deep Research bundle has different design lineage")
+    # A review merged before the topic rules (D4) is labelled by today's, over its own frozen
+    # request: its subjects as sealed, the client terms its plan kept. USD 0, nothing re-run.
+    topics = (
+        None
+        if judged_topic(bundle.versions.get("merge", ""))
+        else topic_screen(
+            bundle.subjects,
+            client_terms=service.frozen_request(deep_research_run_id, store=store).client_terms,
+        )
+    )
     analysis = reconstruct_run(session, scope, store, run_id=run_id)
     first = analysis.modules[AnalysisModuleId.EXECUTIVE]
     if first.result is None:
@@ -750,6 +832,7 @@ def _compose(
             research_run_id=deep_research_run_id,
             origin=origin_kind(first.record.labels.data_origin),
             tiers_approved=tiers_approved,
+            topics=topics,
         ),
         question_tables=chapters.questions,
         design=chapters.design,
@@ -767,6 +850,8 @@ def _compose(
             "analysis": [m.artifact_sha256 for m in modules],
             "sociomap": chapters.map_sha256,
             "bundle": provenance.evidence_bundle_artifact_sha256,
+            # The topic rules the chapter reads an older review by: a change composes afresh.
+            "topicality": TOPICALITY_VERSION,
             "title": meta.title,
             "subtitle": meta.subtitle,
             "client": meta.client_name,

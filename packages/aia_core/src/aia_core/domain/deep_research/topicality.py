@@ -75,6 +75,7 @@ __all__ = [
     "CONCEPTS_VERSION",
     "CONCEPT_FAMILIES",
     "QUESTION_WORDS",
+    "TOPICALITY_PREFIX",
     "TOPICALITY_VERSION",
     "TRACKED_OBJECTS",
     "Concept",
@@ -86,15 +87,18 @@ __all__ = [
     "TopicVerdict",
     "concept_table",
     "declared_rules",
+    "judged_topic",
     "topic_screen",
 ]
 
 #: The concept-family table's version: a changed phrase is a changed table
 #: (``test_the_concept_table_is_the_version_it_names`` holds them together).
 CONCEPTS_VERSION: Final = "aia-dr-concepts-1"
+#: Every version of these rules begins so, and a merge version that carries it judged topic.
+TOPICALITY_PREFIX: Final = "aia-dr-topicality-"
 #: The rules' version, with the term rules and the table they read: a changed word list,
 #: framing or fold is a changed version (``test_the_declared_rules_are_the_version_they_name``).
-TOPICALITY_VERSION: Final = f"aia-dr-topicality-1/{FILTERS_VERSION}/{CONCEPTS_VERSION}"
+TOPICALITY_VERSION: Final = f"{TOPICALITY_PREFIX}1/{FILTERS_VERSION}/{CONCEPTS_VERSION}"
 
 #: The client terms that are the client itself (``ClientTerm.source``). A study's name and an
 #: approved entity stay topic words: a study is routinely named after its topic, and taking
@@ -433,6 +437,12 @@ CONCEPT_FAMILIES: Final = (
         kinds=_RETAIL_BANKING_KINDS,
     ),
 )
+
+
+def judged_topic(merge_rules_version: str) -> bool:
+    """Whether a merge under ``merge_rules_version`` judged each finding's topic: any version
+    of these rules, so a later one never reads as "nobody checked"."""
+    return TOPICALITY_PREFIX in merge_rules_version
 
 
 def concept_table() -> list[list[object]]:
