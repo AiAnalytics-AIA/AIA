@@ -90,10 +90,11 @@ class Settings(BaseSettings):
     # Deterministic, no model call; recorded on the run, so a retry keeps it. Off by default.
     sociomapping_experimental_enabled: bool = False
     # Whether a start refuses a run that cannot answer every research question its design
-    # states unless a person acknowledges the gaps (AIA_RESEARCH_ANSWERABILITY_GATE, plan
-    # research-integrity-report chunk 1). Readiness and the run's record say so either way.
-    # Off by default everywhere, develop included (deploy/develop/docker-compose.yml): the owner
-    # turns it on (plan research-integrity-report D1).
+    # states unless a person chooses to continue with limitations (AIA_RESEARCH_ANSWERABILITY_GATE,
+    # plan research-integrity-report chunk 1, ADR 0025). Readiness and the run's record say so
+    # either way. Off by default in code, tests, local and the workbench (a kill switch, CLAUDE.md
+    # §8); on for develop through its Compose default (deploy/develop/docker-compose.yml), by the
+    # owner's D1, 2026-10-17.
     research_answerability_gate: bool = False
     # Whether a new ``ai_runtime`` run draws its AI respondents from the population it records
     # (AIA_AI_POPULATION_PERSONAS_ENABLED, plan panel-grounded-respondents 5c). Pinned on the run at
