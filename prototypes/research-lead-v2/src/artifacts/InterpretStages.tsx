@@ -113,7 +113,7 @@ export function ReportArt() {
         <span className="cap">Interní zpráva · koncept {s.reportState.draft} · {s.reportState.reviewed ? 'interně schváleno' : 'neschváleno'}</span>
         <span className="grow" />
         <button className="btn btn--sm btn--quiet" onClick={() => C.visual.inspect({ type: 'synthetic' })}>Omezení</button>
-        <button className="btn btn--sm" onClick={() => C.approveReport('ui')} disabled={s.reportState.reviewed || props.length > 0} title={props.length ? 'Nejprve rozhodněte o čekajících změnách' : undefined}>{s.reportState.reviewed ? 'Schváleno' : 'Schválit interně'}</button>
+        <button className="btn btn--sm" onClick={() => C.approveReport('ui')} disabled={s.reportState.reviewed || props.length > 0 || (s.working.report ?? []).length > 0} title={props.length ? 'Nejprve rozhodněte o čekajících změnách' : (s.working.report ?? []).length ? 'Nejprve přijměte nebo zahoďte pracovní úpravy' : undefined}>{s.reportState.reviewed ? 'Schváleno' : 'Schválit interně'}</button>
         <button className="btn btn--sm btn--quiet" onClick={() => send('Připrav klientskou zprávu')} disabled={s.busy}>Klientská zpráva…</button>
       </div>
       <article className="doc" aria-label="Koncept zprávy">

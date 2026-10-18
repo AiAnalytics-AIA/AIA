@@ -189,11 +189,22 @@ export function cancelRun(by: By = 'ui'): Result {
 }
 export function liftBudget(by: By = 'ui', amount = 10): Result {
   const r: Result = by === 'ui' ? { ok: true } : { ok: false, reason: 'Navýšení rozpočtu je rozhodnutí člověka.' };
-  update((d) => { log(d, 'budget.lift +' + amount + ' USD', by, r, 'fieldwork'); if (r.ok) { d.budget.studyLimit += amount; d.failures.budgetLimit = false; if (d.run.status === 'awaiting_budget') d.run.status = 'running'; } });
+  update((d) => {
+    log(d, 'budget.lift +' + amount + ' USD', by, r, 'fieldwork');
+    if (!r.ok) return;
+    d.budget.studyLimit += amount; d.failures.budgetLimit = false;
+    if (d.run.status === 'awaiting_budget') d.run.status = 'running';
+    // The lift answers the open budget decision, whichever control made it: it cannot be applied twice.
+    d.decisions.forEach((x) => { if (x.kind === 'budget' && x.status === 'open') { x.status = 'decided'; x.chosen = 'lift'; } });
+  });
   return r;
 }
 export function approveReport(by: By = 'ui'): Result {
-  const r: Result = by === 'ui' ? { ok: true } : { ok: false, reason: 'Zprávu schvaluje člověk; AI neschvaluje vlastní text.' };
+  const s = getState();
+  const r: Result = by !== 'ui' ? { ok: false, reason: 'Zprávu schvaluje člověk; AI neschvaluje vlastní text.' }
+    : (s.working.report ?? []).length ? { ok: false, reason: 'Ve zprávě jsou pracovní úpravy mimo koncept; nejprve je přijměte nebo zahoďte.' }
+    : s.proposals.some((p) => p.stage === 'report' && p.status === 'pending') ? { ok: false, reason: 'Ke zprávě čekají navržené změny.' }
+    : { ok: true };
   update((d) => { log(d, 'report.approve', by, r, 'report'); if (r.ok) d.reportState.reviewed = true; });
   return r;
 }

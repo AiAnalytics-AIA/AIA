@@ -51,7 +51,7 @@ export function FieldworkArt() {
               ? <button className="btn btn--primary" onClick={() => { const el = document.querySelector<HTMLElement>('.dec:not(.is-decided) .opt.is-chosen'); el?.scrollIntoView({ block: 'center' }); el?.focus(); }}>Rozhodnutí o spuštění čeká v konverzaci</button>
               : <button className="btn btn--primary" disabled={busy} onClick={() => send('Spusť sběr dat')}>Spustit sběr…</button>)}
             {(r.status === 'running' || r.status === 'waiting_provider' || r.status === 'awaiting_budget') && <button className="btn btn--danger" onClick={() => C.cancelRun('ui')}>Zrušit běh</button>}
-            {r.status === 'waiting_provider' && s.failures.provider && <button className="btn" onClick={() => void runScript(retryProvider)}>Zkusit krok znovu</button>}
+            {r.status === 'waiting_provider' && s.failures.provider && <button className="btn" onClick={() => retryProvider()}>Zkusit krok znovu</button>}
             {r.status === 'awaiting_budget' && <button className="btn btn--primary" onClick={() => C.liftBudget('ui', 10)}>Navýšit limit o 10 USD</button>}
             {r.status === 'cancelled' && <button className="btn" disabled={busy} onClick={() => void runScript(fieldwork)}>Spustit znovu</button>}
           </div>

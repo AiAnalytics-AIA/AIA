@@ -14,7 +14,7 @@ cd prototypes/research-lead-v2
 npm ci
 npm run dev            # http://127.0.0.1:5174/   (?s=<A…M|X1…X7>&fast=1&auto=0)
 npm run typecheck
-node scripts/verify.mjs http://127.0.0.1:5174/ screenshots   # 107 browser checks + screenshots
+node scripts/verify.mjs http://127.0.0.1:5174/ screenshots   # 112 browser checks + screenshots
 npm run build          # dist/index.html, one self-contained file (fonts inlined)
 npm run docs           # docs/*.md from src/model/inventory.ts
 ```

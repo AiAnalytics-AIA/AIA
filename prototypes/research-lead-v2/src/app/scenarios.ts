@@ -27,6 +27,9 @@ export async function runScript(fn: (t: number) => Promise<void>) {
     if (!(e instanceof Stopped)) throw e;
     update((d) => {
       d.activities.forEach((a) => { if (a.status === 'running') a.status = 'stopped'; });
+      // A stopped research run releases its hold: nothing more will be spent on it.
+      d.research.forEach((r) => { if (r.status === 'running') r.status = 'stopped'; });
+      d.budget.studyReserved = 0;
       const last = [...d.messages].reverse().find((m) => m.kind === 'lead');
       if (last?.streaming) { last.streaming = false; last.stopped = true; last.shown = undefined; }
     });
@@ -340,9 +343,10 @@ export async function fieldwork(t: number) {
     { links: [{ stage: 'results', label: 'Výsledky' }, { stage: 'analysis', label: 'Analýza' }], runRev: getState().run.revision });
 }
 
-export async function retryProvider(t: number) {
+// The fieldwork script is still running and waiting on the parked step; a retry
+// only releases the park, it never starts a second runner.
+export function retryProvider() {
   update((d) => { d.failures.provider = false; d.run.status = 'running'; d.log.push({ id: nextId('cmd'), cmd: 'run.retry_step fieldwork', by: 'ui', ok: true, at: C.clockLabel(d), stage: 'fieldwork' }); });
-  await w(t, 100);
 }
 
 // ------------------------------------------------------------ G · results

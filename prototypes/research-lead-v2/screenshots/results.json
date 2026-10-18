@@ -1,5 +1,5 @@
 {
-  "when": "2026-10-18T22:45:13.814Z",
+  "when": "2026-10-18T23:17:20.391Z",
   "results": [
     {
       "name": "all 11 stages reachable, no horizontal scroll @1280",
@@ -262,6 +262,11 @@
       "detail": ""
     },
     {
+      "name": "stopping research marks the run stopped and releases its reservation",
+      "ok": true,
+      "detail": "DR-41:stopped · reserved 0"
+    },
+    {
       "name": "a message sent while the Lead works is queued",
       "ok": true,
       "detail": "Ve frontě · odešle se, až Vedoucí dokončí práciKde jsme?Odeslat hned"
@@ -442,6 +447,11 @@
       "detail": ""
     },
     {
+      "name": "lifting from the artifact answers the open budget decision once",
+      "ok": true,
+      "detail": "limit 60 → 70"
+    },
+    {
       "name": "lifting the budget resumes the run",
       "ok": true,
       "detail": ""
@@ -450,6 +460,11 @@
       "name": "provider failure parks the step with a retry for the person",
       "ok": true,
       "detail": ""
+    },
+    {
+      "name": "retry continues the same operation: the Lead stays busy",
+      "ok": true,
+      "detail": "busy true, run running"
     },
     {
       "name": "the run continues after the retry",
@@ -490,6 +505,16 @@
       "name": "approval waits while changes are pending",
       "ok": true,
       "detail": ""
+    },
+    {
+      "name": "approval waits while the report has unaccepted working edits",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "the approve command refuses a report with a working copy",
+      "ok": true,
+      "detail": "Ve zprávě jsou pracovní úpravy mimo koncept; nejprve je přijměte nebo zahoďte."
     },
     {
       "name": "accepting report wording advances the draft, not the study revision",

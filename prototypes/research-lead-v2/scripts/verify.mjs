@@ -213,6 +213,17 @@ for (const [w, h] of [[1280, 800], [1440, 900], [1920, 1080]]) {
   await page.context().close();
 }
 
+{
+  const page = await open('s=A', 1440, 900);
+  await idle(page, 20000);
+  await page.fill('#composer', 'Ověř předpoklady o cílové skupině'); await page.keyboard.press('Enter');
+  const t0 = Date.now(); while (Date.now() - t0 < 10000) { const s = await st(page); if (s.research.some((r) => r.status === 'running') && s.budget.studyReserved > 0) break; await page.waitForTimeout(100); }
+  await page.keyboard.press('Escape'); await page.waitForTimeout(500);
+  const s = await st(page);
+  check('stopping research marks the run stopped and releases its reservation', s.research.every((r) => r.status !== 'running') && s.budget.studyReserved === 0, s.research.map((r) => r.id + ':' + r.status).join(',') + ' · reserved ' + s.budget.studyReserved);
+  await page.context().close();
+}
+
 // ---------------------------------------------------------------- 8 conversation: queue, stop, older, return-to-latest, keys
 {
   const page = await open('s=A', 1440, 900);
@@ -360,7 +371,11 @@ for (const [w, h] of [[1280, 800], [1440, 900], [1920, 1080]]) {
   await idle(page); await page.click('.dec button:has-text("Rozhodnout")');
   const t0 = Date.now(); let saw = false; while (Date.now() - t0 < 15000) { const s = await st(page); if (s.run.status === 'awaiting_budget') { saw = true; break; } await page.waitForTimeout(150); }
   check('budget limit parks the run awaiting your decision', saw);
-  await page.click('.dec:not(.is-decided):has-text("limitu rozpočtu") button:has-text("Rozhodnout")');
+  const limit0 = (await st(page)).budget.studyLimit;
+  await page.click('.nav__stage:has-text("Sběr dat")');
+  await page.click('.artbody button:has-text("Navýšit limit o 10 USD")');
+  const sl = await st(page);
+  check('lifting from the artifact answers the open budget decision once', sl.budget.studyLimit === limit0 + 10 && !sl.decisions.some((d) => d.kind === 'budget' && d.status === 'open'), 'limit ' + limit0 + ' → ' + sl.budget.studyLimit);
   const t1 = Date.now(); while (Date.now() - t1 < 15000) { const s = await st(page); if (s.run.status === 'completed') break; const d = s.decisions.find((x) => x.kind === 'data' && x.status === 'open'); if (d) await page.click('.dec:not(.is-decided) button:has-text("Rozhodnout")'); await page.waitForTimeout(200); }
   check('lifting the budget resumes the run', (await st(page)).run.status === 'completed');
   await page.context().close();
@@ -371,6 +386,8 @@ for (const [w, h] of [[1280, 800], [1440, 900], [1920, 1080]]) {
   const t0 = Date.now(); while (Date.now() - t0 < 15000) { if (await page.isVisible('text=Zkusit krok znovu')) break; await page.waitForTimeout(150); }
   check('provider failure parks the step with a retry for the person', await page.isVisible('text=Zkusit krok znovu'));
   await page.click('text=Zkusit krok znovu');
+  const sr = await st(page);
+  check('retry continues the same operation: the Lead stays busy', sr.busy === true || sr.run.status === 'completed', 'busy ' + sr.busy + ', run ' + sr.run.status);
   const t1 = Date.now(); while (Date.now() - t1 < 15000) { const s = await st(page); if (s.run.status === 'completed') break; const d = s.decisions.find((x) => x.kind === 'data' && x.status === 'open'); if (d) await page.click('.dec:not(.is-decided) button:has-text("Rozhodnout")'); await page.waitForTimeout(200); }
   check('the run continues after the retry', (await st(page)).run.status === 'completed');
   await page.context().close();
@@ -406,6 +423,16 @@ for (const [w, h] of [[1280, 800], [1440, 900], [1920, 1080]]) {
   await page.setViewportSize({ width: 1600, height: 1000 }); await page.waitForTimeout(150);
   await page.screenshot({ path: `${OUT}/08-report-1600.png` });
   check('approval waits while changes are pending', await page.isDisabled('.docbar button:has-text("Schválit interně")'));
+  {
+    const w = await open('fast=1&s=G&auto=0');
+    await w.click('.nav__stage:has-text("Zpráva")');
+    await w.hover('[data-aia="report.r3.P5"]');
+    await w.click('[data-aia="report.r3.P5"] [aria-label="Posunout Odstavec P5 dolů"]');
+    check('approval waits while the report has unaccepted working edits', await w.isDisabled('.docbar button:has-text("Schválit interně")'));
+    const refused = await w.evaluate(async () => (await import('/src/app/commands.ts')).approveReport('ui'));
+    check('the approve command refuses a report with a working copy', refused.ok === false && !(await st(w)).reportState.reviewed, refused.reason);
+    await w.context().close();
+  }
   await page.click('.artbar--you .btn--primary');
   const s = await st(page);
   check('accepting report wording advances the draft, not the study revision', s.reportState.draft === 2 && s.revision === 16);
