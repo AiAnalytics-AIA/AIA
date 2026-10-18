@@ -14,7 +14,7 @@ styles keep the built-in names and are restyled rather than replaced.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Final
 
 from docx.document import Document
@@ -59,6 +59,13 @@ class S:
     TABLE_NUMBER = "AIA Table Number"
     TABLE_HEAD = "AIA Table Head"
     TABLE_HEAD_NUMBER = "AIA Table Head Number"
+    #: A table row kept with what follows it, a note line with the next: KEPT's twins.
+    TABLE_KEPT = "AIA Table Kept"
+    TABLE_NUMBER_KEPT = "AIA Table Number Kept"
+    TABLE_HEAD_KEPT = "AIA Table Head Kept"
+    TABLE_HEAD_NUMBER_KEPT = "AIA Table Head Number Kept"
+    MONO_KEPT = "AIA Mono Kept"
+    SOURCE_KEPT = "AIA Source Kept"
     KPI_VALUE = "AIA KPI"
     KPI_LABEL = "AIA KPI Label"
     QUOTE = "Quote"
@@ -81,6 +88,8 @@ class S:
     COVER_DETAILS = "AIA Cover Details"
     COVER_ACCENT = "AIA Cover Accent"
     COVER_NOTICE = "AIA Cover Notice"
+    #: The cover's footer: its status, wrapped inside the paper the cover field leaves clear.
+    COVER_FOOTER = "AIA Cover Footer"
     COVER_TABLE = "AIA Cover Placement"
     COVER_META_TABLE = "AIA Cover Metadata"
     # character styles
@@ -153,6 +162,7 @@ class Para:
     outline: int | None = None  # 0 = level 1, for the TOC and the navigation pane
     indent_mm: float = 0.0
     hanging_mm: float = 0.0
+    right_indent_mm: float = 0.0
     space_before_pt: float | None = None
     space_after_pt: float | None = None
     tabs_right_mm: float | None = None  # a right tab with dot leader (TOC entries)
@@ -171,6 +181,11 @@ _TEXT_WIDTH_MM: Final = (
 _WIDE_TEXT_WIDTH_MM: Final = (
     PAGE.height_mm - PAGE.margin_inside_mm - PAGE.margin_outside_mm
 )  # the same on a landscape page
+#: How wide the cover's status may run from the inside margin. The cover field
+#: (``assets/report-cover-field.svg``) is drawn on the paper behind the footer: at the
+#: footer's height its first dots stand 88.2 mm from the page's left edge, so the status
+#: wraps (two lines for the draft's sentence) and ends 4 mm short of them, its rule with it.
+COVER_STATUS_WIDTH_MM: Final = 64.0
 
 PARAGRAPHS: Final[dict[str, Para]] = {
     S.BODY: Para("doc-body"),
@@ -275,7 +290,56 @@ PARAGRAPHS: Final[dict[str, Para]] = {
     S.COVER_DETAILS: Para("doc-meta", color="doc-muted"),
     S.COVER_ACCENT: Para("doc-meta", space_before_pt=21, space_after_pt=21, keep_next=True),
     S.COVER_NOTICE: Para("doc-running", color="doc-muted", space_before_pt=68),
+    S.COVER_FOOTER: Para(
+        "doc-running",
+        color="doc-muted",
+        leader=False,
+        border_top=True,
+        right_indent_mm=_TEXT_WIDTH_MM - COVER_STATUS_WIDTH_MM,
+    ),
 }
+
+
+#: Each style a data table's row or a note line under a figure is written in, and its twin
+#: that keeps with the next paragraph: the same in everything else. The lint forbids a
+#: paragraph's own ``keepNext``, so which rows and lines keep is a choice of style
+#: (:func:`row_keeps`, ``tables.source_line``; research-integrity-report D5).
+KEPT: Final[dict[str, str]] = {
+    S.TABLE: S.TABLE_KEPT,
+    S.TABLE_NUMBER: S.TABLE_NUMBER_KEPT,
+    S.TABLE_HEAD: S.TABLE_HEAD_KEPT,
+    S.TABLE_HEAD_NUMBER: S.TABLE_HEAD_NUMBER_KEPT,
+    S.MONO: S.MONO_KEPT,
+    S.SOURCE: S.SOURCE_KEPT,
+}
+PARAGRAPHS.update(
+    {twin: replace(PARAGRAPHS[style], keep_next=True) for style, twin in KEPT.items()}
+)
+
+
+def kept_style(style: str, keep: bool) -> str:
+    """``style``, or its twin that keeps with the next paragraph when ``keep``."""
+    return KEPT[style] if keep else style
+
+
+#: A data table of at most this many body rows prints whole (:func:`row_keeps`).
+SHORT_TABLE_ROWS: Final = 8
+
+
+def row_keeps(rows: int, *, notes: bool) -> list[bool]:
+    """Which of a data table's ``rows`` body rows keep with the row after them.
+
+    A short table keeps every row with the next, so it moves to the next page entire rather
+    than break. A longer one breaks under its repeated header, but never after its first row
+    or before its last. The last row keeps with the notes row under it when ``notes``
+    (``ooxml.notes_row``). Its header row always keeps with its first row.
+    """
+    if rows <= SHORT_TABLE_ROWS:
+        return [i < rows - 1 or notes for i in range(rows)]
+    keeps = [False] * rows
+    keeps[0] = keeps[-2] = True
+    keeps[-1] = notes
+    return keeps
 
 
 @dataclass(frozen=True, slots=True)
@@ -377,6 +441,7 @@ def _apply_paragraph(style: ParagraphStyle, spec: Para) -> None:
     pf.page_break_before = spec.page_break_before
     pf.alignment = spec.align if spec.align is not None else WD_ALIGN_PARAGRAPH.LEFT
     pf.left_indent = Mm(spec.indent_mm) if spec.indent_mm else None
+    pf.right_indent = Mm(spec.right_indent_mm) if spec.right_indent_mm else None
     pf.first_line_indent = Mm(-spec.hanging_mm) if spec.hanging_mm else None
     ppr = style.element.get_or_add_pPr()
     # Built-in styles may bring theme borders, shading or contextual spacing
@@ -501,6 +566,14 @@ def _data_table_style(document: Document) -> None:
     tc_pr.append(tc_borders)
     header.append(tc_pr)
     style.element.append(header)
+    # The notes row (ooxml.notes_row): the rule above it closes the data, none under it.
+    notes = el("w:tblStylePr", type="lastRow")
+    notes_pr = el("w:tcPr")
+    notes_borders = el("w:tcBorders")
+    notes_borders.append(el("w:bottom", val="nil"))
+    notes_pr.append(notes_borders)
+    notes.append(notes_pr)
+    style.element.append(notes)
 
 
 def _kpi_table_style(document: Document) -> None:
@@ -594,11 +667,16 @@ PPR_AFTER_NUMPR: Final = (
 )
 
 __all__ = [
+    "COVER_STATUS_WIDTH_MM",
+    "KEPT",
     "PARAGRAPHS",
     "PPR_AFTER_NUMPR",
+    "SHORT_TABLE_ROWS",
     "S",
     "color_val",
     "hex_rgb",
     "insert_in_order",
     "install_styles",
+    "kept_style",
+    "row_keeps",
 ]

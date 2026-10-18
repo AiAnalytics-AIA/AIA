@@ -94,11 +94,15 @@ def test_a_stamp_changes_only_the_status_runs_of_the_footers(
         # Every other part byte for byte, compressed alike.
         assert new[b.filename] == old[b.filename], b.filename
         assert (a.CRC, a.compress_size) == (b.CRC, b.compress_size), b.filename
+    # The cover's status column is narrower than the words: they print as two lines, each
+    # whole, so the version id is never broken at its hyphen (cross-review).
+    status, version = words.split(" \u00b7 ")
+    on_cover = f"{status}</w:t><w:br/><w:t>{version}"
     for name in footers:
         # Each footer changed exactly where its one status run's words were.
-        said = COVER if COVER.encode() in old[name] else DRAFT
+        said, says = (COVER, on_cover) if COVER.encode() in old[name] else (DRAFT, words)
         assert old[name].count(said.encode()) == 1, name
-        assert new[name] == old[name].replace(said.encode(), words.encode()), name
+        assert new[name] == old[name].replace(said.encode(), says.encode()), name
         assert DRAFT.encode() not in new[name]
 
     assert stamp_review(stored, mark) == stamped  # deterministic
@@ -115,7 +119,10 @@ def test_an_approved_footer_reads_its_date_and_version_beside_the_classification
     texts = [s.footer.paragraphs[0].text for s in document.sections]
     nb = "\u00a0"
     approved = f"SCHVÁLENO 18.{nb}10.{nb}2026 \u00b7 verze ART-0123456789abcdef"
-    assert texts[0] == approved  # the cover: the status alone
+    # The cover: the status alone, the date and the version on lines of their own
+    assert texts[0] == f"SCHVÁLENO 18.{nb}10.{nb}2026\nverze ART-0123456789abcdef"
+    # in the cover's bounded footer style, short of the cover field's dots (documents#3)
+    assert document.sections[0].footer.paragraphs[0].style.name == "AIA Cover Footer"
     assert all(t.startswith(f"{approved} \u00b7 Důvěrné") for t in texts[1:])
 
 

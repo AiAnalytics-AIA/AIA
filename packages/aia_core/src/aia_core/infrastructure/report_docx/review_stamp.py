@@ -4,7 +4,10 @@ A stored report is a draft forever: its bytes are its identity (artifact id + SH
 approval never rewrites them. The renderer states a version's status in its footers alone,
 one :attr:`S.STATUS` run per footer part (``layout.py``), so the approved export is the
 stored package with exactly those runs' words replaced by :func:`review.approved_words` --
-every other part written back as it was read, through the renderer's own package writer.
+the cover's, in its narrower status column (:attr:`S.COVER_FOOTER`), by
+:func:`review.approved_lines` one under the other, so the version id is never broken at its
+hyphen -- every other part written back as it was read, through the renderer's own package
+writer.
 
 A version stored before that layout says "KONCEPT — NESCHVÁLENO" on its cover and in its
 document control too; stamping its footers would leave an "approved" file that says draft
@@ -33,7 +36,7 @@ from typing import Final
 from lxml import etree
 
 from aia_core.domain.report.copy import t
-from aia_core.domain.report.review import ReviewMark, approved_words
+from aia_core.domain.report.review import ReviewMark, approved_lines, approved_words
 from aia_core.infrastructure.report_docx.renderer import write_package
 from aia_core.infrastructure.report_docx.styles import S
 
@@ -49,14 +52,15 @@ class NotStampable(ValueError):
     """The document does not state its status in its footers alone, one run in each."""
 
 
-def _status_style_id(styles: bytes | None) -> str:
-    """The id the package gives the status style; a package without it predates the layout."""
+def _style_ids(styles: bytes | None) -> dict[str, str]:
+    """The id the package gives each of its styles, by the style's name."""
+    ids: dict[str, str] = {}
     if styles is not None:
         for style in etree.fromstring(styles).iter(f"{_W}style"):
             name = style.find(f"{_W}name")
-            if name is not None and name.get(f"{_W}val") == S.STATUS:
-                return str(style.get(f"{_W}styleId"))
-    raise NotStampable(f"the package has no {S.STATUS!r} style")
+            if name is not None:
+                ids[str(name.get(f"{_W}val"))] = str(style.get(f"{_W}styleId"))
+    return ids
 
 
 def _status_runs(root: etree._Element, style_id: str) -> list[etree._Element]:
@@ -65,6 +69,13 @@ def _status_runs(root: etree._Element, style_id: str) -> list[etree._Element]:
         for run in root.iter(f"{_W}r")
         if (rs := run.find(f"{_W}rPr/{_W}rStyle")) is not None and rs.get(f"{_W}val") == style_id
     ]
+
+
+def _paragraph_style(run: etree._Element) -> str | None:
+    """The style id of the paragraph ``run`` is in, if it names one."""
+    paragraph = next(run.iterancestors(f"{_W}p"), None)
+    style = paragraph.find(f"{_W}pPr/{_W}pStyle") if paragraph is not None else None
+    return None if style is None else style.get(f"{_W}val")
 
 
 def _text(root: etree._Element) -> str:
@@ -86,8 +97,10 @@ def stamp_review(docx: bytes, mark: ReviewMark) -> bytes:
         raise ValueError(f"these bytes are not version {mark.artifact_id}")
     with zipfile.ZipFile(io.BytesIO(docx)) as package:
         parts = [(info.filename, package.read(info.filename)) for info in package.infolist()]
-    named = dict(parts)
-    style_id = _status_style_id(named.get("word/styles.xml"))
+    ids = _style_ids(dict(parts).get("word/styles.xml"))
+    if S.STATUS not in ids:  # a package without it predates the layout
+        raise NotStampable(f"the package has no {S.STATUS!r} style")
+    style_id, cover_id = ids[S.STATUS], ids.get(S.COVER_FOOTER)
     for name, data in parts:
         if _STORY.fullmatch(name):
             root = etree.fromstring(data)
@@ -102,7 +115,17 @@ def stamp_review(docx: bytes, mark: ReviewMark) -> bytes:
         texts = runs[0].findall(f"{_W}t") if len(runs) == 1 else []
         if len(texts) != 1:
             raise NotStampable(f"{name} has {len(runs)} status runs, not one with its words")
-        texts[0].text = words
+        if cover_id is not None and _paragraph_style(runs[0]) == cover_id:
+            # The cover's column is narrower than the words: one line each, so the version
+            # id is never broken at its hyphen.
+            status, version = approved_lines(mark)
+            texts[0].text = status
+            line, second = etree.Element(f"{_W}br"), etree.Element(f"{_W}t")
+            second.text = version
+            texts[0].addnext(line)
+            line.addnext(second)
+        else:
+            texts[0].text = words
         stamped[name] = etree.tostring(root, encoding="UTF-8", standalone=True)
     if not stamped:
         raise NotStampable("the package has no footer")

@@ -5,8 +5,9 @@ It is a draft until a person approves it (``ArtifactRepository.approve``, a row 
 approval ledger), and approval never changes the stored bytes. What a file says about its
 status therefore lives in one place only, the footers (research-integrity-report D2): the
 stored draft says "KONCEPT — NESCHVÁLENO" there, and the approved version's export is the
-same bytes with only those footer words replaced by :func:`approved_words` -- the date and
-the version, never who approved (the ledger keeps that).
+same bytes with only those footer words replaced by :func:`approved_words` (the cover's by
+:func:`approved_lines`, one under the other) -- the date and the version, never who approved
+(the ledger keeps that).
 
 The mark is decided once, from the ledger (``application.report_export.review_mark``): an
 approval without its ledger row is refused, never stamped.
@@ -29,11 +30,13 @@ __all__ = [
     "ReviewMark",
     "ReviewState",
     "approval_date",
+    "approved_lines",
     "approved_words",
 ]
 
 #: What an approved export prints, and where: the footers' status runs replaced by
-#: :func:`approved_words`. A change of either is a new contract, and a new approved PDF.
+#: :func:`approved_words`, the cover's by :func:`approved_lines` one under the other. A change
+#: of either is a new contract, and a new approved PDF.
 REVIEW_STAMP_CONTRACT: Final = "aia-review-stamp-1"
 
 #: The date an approval prints is its ledger row's, on the calendar of the people who read it.
@@ -76,14 +79,24 @@ def approval_date(decided_at: datetime) -> date:
     return decided_at.astimezone(ZoneInfo(REVIEW_TIMEZONE)).date()
 
 
+def approved_lines(mark: ReviewMark) -> tuple[str, str]:
+    """The approved words in their two parts: ``SCHVÁLENO 18. 10. 2026`` and ``verze ART-…``.
+
+    The cover prints them one under the other: its status column is narrower than the words,
+    and left to wrap them it broke the version id after its hyphen, so the id read from the
+    page lost it ("ART0123…", an id that does not exist).
+    """
+    if mark.state is not ReviewState.APPROVED or mark.approved_on is None:
+        raise ValueError("only an approved version is stamped")
+    return (
+        f"{t('approved')} {numbers.czech_short_date(mark.approved_on)}",
+        f"{t('version')} {mark.artifact_id}",
+    )
+
+
 def approved_words(mark: ReviewMark) -> str:
     """The footer words of an approved version: ``SCHVÁLENO 18. 10. 2026 · verze ART-…``.
 
     One short line, beside the classification and the page number.
     """
-    if mark.state is not ReviewState.APPROVED or mark.approved_on is None:
-        raise ValueError("only an approved version is stamped")
-    return (
-        f"{t('approved')} {numbers.czech_short_date(mark.approved_on)}"
-        f"{t('separator')}{t('version')} {mark.artifact_id}"
-    )
+    return t("separator").join(approved_lines(mark))
