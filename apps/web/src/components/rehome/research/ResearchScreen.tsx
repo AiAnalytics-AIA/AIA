@@ -278,10 +278,12 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
         <InspectorProvider disabled={!frame.canEdit && DESIGN_STEPS.has(step)}>{(column) => (
           <div data-research-workspace className="grid min-w-0 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
             <div className="flex min-w-0 flex-col gap-4">
+              {/* An AI proposal can be opened from the saved list on any stage: on a closed study it is
+                  read and closed, never applied, whichever stage shows it. */}
+              {agents.proposalReview ? <ProposalReview result={agents.proposalReview.result} state={state} onDecision={agents.proposalReview.decide} canApply={frame.canEdit} /> : null}
               {/* A design that may not change is read, never edited: every control of a design stage
                   is disabled as one (the run stages decide their own actions). */}
               <ReadOnly when={!frame.canEdit && DESIGN_STEPS.has(step)}>
-                {agents.proposalReview ? <ProposalReview result={agents.proposalReview.result} state={state} onDecision={agents.proposalReview.decide} /> : null}
                 {Screen ? <Screen /> : <StepPlaceholder step={step} />}
               </ReadOnly>
             </div>

@@ -35,10 +35,13 @@ function Item({ kind, children }: { kind: "add" | "del"; children: string }) {
   );
 }
 
-export function ProposalReview({ result, state, onDecision }: {
+export function ProposalReview({ result, state, onDecision, canApply = true }: {
   result: ResearchAgentResult;
   state: Pick<ResearchState, "project" | "analysis">;
   onDecision: (apply: boolean) => void;
+  /** False on a study that takes no new work: the proposal is read, never applied; keeping the
+   * current design writes nothing and stays, so the review can always be closed (PC1). */
+  canApply?: boolean;
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
   useLayoutEffect(() => {
@@ -135,9 +138,9 @@ export function ProposalReview({ result, state, onDecision }: {
         </details>
       </div>
       <div className="flex flex-wrap items-center gap-2 border-t border-ai-edge px-4 py-2.5">
-        <span className="flex-1 text-xs leading-4 text-ink-muted">{questionnaire ? t("research.questionnaire.replacement.footer") : "Použití vytvoří novou revizi návrhu. Již vytvořený dotazník se nemění. Nové dimenze jsou návrhy; filtry a proveditelnost audience zkontrolujte samostatně."}</span>
+        <span className="flex-1 text-xs leading-4 text-ink-muted">{!canApply ? t("research.proposalClosed") : questionnaire ? t("research.questionnaire.replacement.footer") : "Použití vytvoří novou revizi návrhu. Již vytvořený dotazník se nemění. Nové dimenze jsou návrhy; filtry a proveditelnost audience zkontrolujte samostatně."}</span>
         <Button onClick={() => onDecision(false)}>Ponechat současný návrh</Button>
-        <Button variant="primary" onClick={() => onDecision(true)}>Použít návrh</Button>
+        <Button variant="primary" disabled={!canApply} onClick={() => onDecision(true)}>Použít návrh</Button>
       </div>
     </section>
   );

@@ -1722,6 +1722,7 @@ export const cs = {
     aiCopilot: "Zeptat se na návrh",
     aiMemory: "Zeptat se na klientské znalosti",
     aiSaved: "Uložené návrhy AI",
+    proposalClosed: "Studie je uzavřená: návrh si můžete přečíst, ale nejde použít.",
     aiBudget: {
       title: "AI úloha čeká na rozpočet studie",
       help: "Úloha se zastavila, protože by překročila rozpočet studie, a sama nepokračuje. Po navýšení rozpočtu pokračuje tatáž úloha; nic dalšího se nespouští.",

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // A questionnaire proposal's research-question links, reviewed before they are accepted
 // (run-recovery-and-truth 3e).
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { t, tv } from "@/i18n/t";
@@ -40,6 +40,16 @@ describe("ProposalReview", () => {
     expect(within(second).getByText(RQ2)).toBeTruthy();
     expect(within(second).getByText(t("research.questionnaire.proposed.unmeasured"))).toBeTruthy();
     expect(within(block).getByText(tv("research.questionnaire.proposed.dropped", { count: 1 }))).toBeTruthy();
+  });
+
+  it("on a study that takes no new work, is read and closed but never applied", () => {
+    const decide = vi.fn();
+    render(<ProposalReview result={result()} state={state} onDecision={decide} canApply={false} />);
+    expect(screen.getByText(t("research.proposalClosed"))).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Použít návrh" }) as HTMLButtonElement).disabled).toBe(true);
+    // Keeping the current design writes nothing, so it stays: the review can always be closed.
+    fireEvent.click(screen.getByRole("button", { name: "Ponechat současný návrh" }));
+    expect(decide).toHaveBeenCalledWith(false);
   });
 
   it("shows no research-question block for a proposal that is not a questionnaire", () => {

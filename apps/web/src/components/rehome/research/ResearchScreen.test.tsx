@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { t, tv } from "@/i18n/t";
+import { defaultsMerge, type Template } from "@/research/model";
 import { REBUILT_STEPS, STEP_KEYS } from "@/research/steps";
 import { ResearchScreen, ResearchSession, aiHelpFor } from "./ResearchScreen";
 import { STEP_SCREENS } from "./steps";
@@ -17,8 +18,9 @@ const GOAL_LABEL = t("research.brief.goalLabel");
 type Call = { method: string; url: string; body: Record<string, unknown> | null };
 let calls: Call[] = [];
 
-/** AIA, answering the study's working content with `load` (and any save with `save`). */
-function api(load: () => unknown, save: (b: Record<string, unknown>) => unknown = () => ({ state: "NATIVE", revision: 1, revision_id: "REV-1", deduplicated: false })) {
+/** AIA, answering the study's working content with `load` (and any save with `save`); `routes`
+ * ("METHOD /path") answer anything else a test needs before the defaults. */
+function api(load: () => unknown, save: (b: Record<string, unknown>) => unknown = () => ({ state: "NATIVE", revision: 1, revision_id: "REV-1", deduplicated: false }), routes: Record<string, () => unknown> = {}) {
   calls = [];
   vi.stubGlobal(
     "fetch",
@@ -27,8 +29,10 @@ function api(load: () => unknown, save: (b: Record<string, unknown>) => unknown 
       const method = init?.method ?? "GET";
       const body = init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : null;
       calls.push({ method, url: u, body });
+      const route = routes[`${method} ${u}`];
       const answer =
-        u === "/config" ? { apiBase: "", cognitoDomain: "", cognitoClientId: "", publicOrigin: "http://localhost" }
+        route ? route()
+        : u === "/config" ? { apiBase: "", cognitoDomain: "", cognitoClientId: "", publicOrigin: "http://localhost" }
         : u === CONTENT_PATH && method === "GET" ? load()
         : u === CONTENT_PATH && method === "PUT" ? save(body ?? {})
         : u.endsWith("/research/readiness") ? { design_revision_id: "REV-3", revision: 3, ready: false, checks: [], questions: 0, batteries: 0, objects: 0, n: 0, rules: "test" }
@@ -135,6 +139,34 @@ describe("ResearchScreen", () => {
     await new Promise((r) => setTimeout(r, 2100));
     expect(saves()).toHaveLength(0);
     expect(screen.queryByText(t("research.saveFailed"))).toBeNull();
+  });
+
+  it("reads an AI proposal on a closed study's run stage and closes it, never applies it (review, Codex on #479)", async () => {
+    const job = { run_id: "RUN-J1", design_revision_id: "REV-2", action: "build_questionnaire", status: "COMPLETED", is_terminal: true,
+      needs_attention: false, context_sha256: "x", harness_version: "3", created_at: "2026-10-17T09:00:00Z", steps: [], actual_cost_usd: 0.1 };
+    const proposed = { title: "Alfa", sections: [{ id: "ai_section_1", type: "questions", title: "Zvyky", questions: [{ id: "ai_q_1_1", text: "Jak často pijete kávu?", typ: "skala" }] }] };
+    api(() => content({ can_edit: false }), undefined, {
+      "GET /api/v1/studies/STU-1/research/agent-jobs": () => [job],
+      // The revision the job was asked over is the working copy as loaded: a proposal, not advice.
+      "GET /api/v1/studies/STU-1/design/revisions/REV-2": () => ({ revision_id: "REV-2", revision: 2,
+        content: defaultsMerge({ title: "Alfa" }, { empty_project: EMPTY_PROJECT } as unknown as Template) }),
+      "GET /api/v1/studies/STU-1/research/agent-jobs/RUN-J1/result": () => ({
+        result: { project: proposed, proposal: { message: "Návrh", sections: proposed.sections, warnings: [], comparisons: [] } },
+        provenance: { agent_id: "aia.research.build_questionnaire", design_revision_id: "REV-2", context_sha256: "x", status: "COMPLETED" },
+      }),
+    });
+    const closed = { ...TEST_FRAME, canEdit: false, canReview: true, closed: { status: "DELIVERED", deliveredAt: "2026-10-17T09:00:00Z" } };
+    render(<ResearchScreen step="results" frame={closed} />);
+    const saved = (await screen.findByRole("heading", { name: t("research.aiSaved") })).parentElement as HTMLElement;
+    fireEvent.click(within(saved).getByRole("button"));
+    const review = (await screen.findByRole("button", { name: "Použít návrh" })).closest("[data-proposal-review]") as HTMLElement;
+    // Read, with the reason it cannot be applied; closing it writes nothing and stays possible.
+    expect(within(review).getByText(t("research.proposalClosed"))).toBeTruthy();
+    expect((within(review).getByRole("button", { name: "Použít návrh" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(within(review).getByRole("button", { name: "Ponechat současný návrh" }));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(document.querySelector("[data-proposal-review]")).toBeNull();
+    expect(calls.filter((c) => c.method === "POST" && c.url.endsWith("/accept"))).toEqual([]);
   });
 
   it("wraps an editable stage in nothing: the read-only fieldset exists only on a closed study", async () => {
