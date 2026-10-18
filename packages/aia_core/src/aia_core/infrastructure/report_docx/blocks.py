@@ -173,7 +173,7 @@ def render_heading(ctx: RenderContext, container: Container, block: Heading) -> 
 
 
 def render_paragraph(ctx: RenderContext, container: Container, block: Paragraph) -> None:
-    style = S.LEDE if block.role is ParagraphRole.LEDE else S.BODY
+    style = {ParagraphRole.LEDE: S.LEDE, ParagraphRole.LEAD_IN: S.LEAD_IN}.get(block.role, S.BODY)
     paragraph = container.add_paragraph(style=style)
     write_inlines(ctx, paragraph, block.content)
     # One mark per grade, rather than a row of identical marks for every number.

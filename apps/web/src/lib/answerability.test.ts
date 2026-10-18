@@ -1,15 +1,23 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { ApiError, type Answerability } from "./api";
+import { ApiError, type Answerability, type AnswerabilityGap, type QuestionOutlook } from "./api";
 import { t } from "@/i18n/t";
+import type { Section } from "@/research/questionnaire";
 import {
   acknowledgementOf,
   acknowledges,
+  compiledPlaces,
+  fixHref,
   refusalFor,
   GAP_REASONS,
+  gapFixes,
   gapWords,
+  hashTarget,
   hasGaps,
   NO_ACKNOWLEDGEMENT,
   needsAcknowledgement,
+  questionnairePlace,
   unanswerableAsked,
 } from "./answerability";
 
@@ -102,5 +110,172 @@ describe("answerability (research-integrity-report 1)", () => {
     expect(asked?.digest).toBe(FIO_LIKE.digest);
     expect(needsAcknowledgement(asked)).toBe(true);
     expect(unanswerableAsked(new ApiError(409, "cost_confirmation_required", "…", null))).toBeNull();
+  });
+});
+
+describe("where a gap is fixed (research-integrity-report 14, D1)", () => {
+  const gap = (reasons: string[], measures: string[] = []): AnswerabilityGap => ({
+    kind: "not_answerable", research_question: "Co klienty odrazuje?", verdict: "UNANSWERABLE", reasons, measures,
+  });
+  const item = (id: string, battery: string | null, verdict: QuestionOutlook["verdict"], reasons: string[] = []): QuestionOutlook => ({
+    question_id: id, text: id, section_id: battery ?? "blok", battery_id: battery, verdict, reasons,
+  });
+  // A set's measure ids are <set>_obj_<object>; the set is read from battery_id, never from the id.
+  const OUTLOOK = [
+    item("q1", null, "ANSWERABLE"),
+    item("q2", null, "UNANSWERABLE", ["conditional"]),
+    item("q3", null, "AT_RISK", ["open_ended"]),
+    item("q4", null, "AT_RISK", ["support_suppressed"]),
+    item("banky_obj_fio", "sada_bank", "ANSWERABLE"),
+    item("banky_obj_csob", "sada_bank", "UNANSWERABLE", ["familiarity"]),
+  ];
+  // Every reason the server gives a gap, with its measures and the place it is fixed.
+  const PLACES: Record<(typeof GAP_REASONS)[number], [string[], string, string | null]> = {
+    unmeasured: [[], "questionnaire", "q-editor"],
+    unlinked_design: [[], "questionnaire", "q-editor"],
+    comparison_needs_tracked_set: [["q1"], "questionnaire", "q-comparisons"],
+    comparison_needs_concept_set: [["q1"], "questionnaire", "q-comparisons"],
+    segments_unavailable: [["q1"], "questionnaire", "q-comparisons"],
+    comparison_unknown: [["q1"], "questionnaire", "q-comparisons"],
+    measures_unanswerable: [["q1", "q2"], "questionnaire", "qedit_q2"],
+    no_citable_measure: [["q3"], "questionnaire", "qedit_q3"],
+    comparison_set_unanswerable: [["q1", "banky_obj_fio", "banky_obj_csob"], "questionnaire", "qset_sada_bank"],
+  };
+
+  it("sends every reason the server gives to a place, in words", () => {
+    expect(Object.keys(PLACES).sort()).toEqual([...GAP_REASONS].sort());
+    for (const reason of GAP_REASONS) {
+      const [measures, step, anchor] = PLACES[reason];
+      const fixes = gapFixes(gap([reason], measures), OUTLOOK);
+      expect(fixes.map((f) => [f.step, f.anchor]), reason).toEqual([[step, anchor]]);
+      expect(fixes[0].words, reason).not.toContain("research.exec");
+    }
+  });
+
+  it("sends a design with no research question to Návrh", () => {
+    const none: AnswerabilityGap = { kind: "no_research_questions", research_question: null, verdict: null, reasons: [], measures: [] };
+    expect(gapFixes(none, OUTLOOK)).toEqual([{ step: "plan", anchor: "plan-understanding", words: t("research.exec.answerability.fixTo.plan") }]);
+  });
+
+  it("sends a measure to its question, its set, or Dimenze where only more respondents help", () => {
+    expect(gapFixes(gap(["measures_unanswerable"], ["q4"]), OUTLOOK)).toEqual([
+      { step: "persona", anchor: null, words: t("research.exec.answerability.fixTo.support") },
+    ]);
+    expect(gapFixes(gap(["measures_unanswerable"], ["banky_obj_csob"]), OUTLOOK).map((f) => f.anchor)).toEqual(["qset_sada_bank"]);
+    // An id the outlook does not list: its question, which Dotazník opens if it has one.
+    expect(gapFixes(gap(["no_citable_measure"], ["q9"]), OUTLOOK).map((f) => f.anchor)).toEqual(["qedit_q9"]);
+    expect(gapFixes(gap(["measures_unanswerable"], []), OUTLOOK).map((f) => f.anchor)).toEqual(["q-editor"]);
+    // A set the outlook does not know: the editor, never a set guessed from an id.
+    expect(gapFixes(gap(["comparison_set_unanswerable"], ["q1", "banky_obj_kb"]), OUTLOOK).map((f) => f.anchor)).toEqual(["q-editor"]);
+  });
+
+  it("sends a measure the run will not answer to one the analysis may cite, never to an open question beside it (F10)", () => {
+    // The gaps and outlooks as domain/answerability.py gives them: measures_unanswerable is about
+    // the citable measures alone, so an open question is never the one to edit.
+    const refused = [item("q_open", null, "AT_RISK", ["open_ended"]), item("q_wtp", null, "UNANSWERABLE", ["fidelity_refused"])];
+    expect(gapFixes(gap(["measures_unanswerable"], ["q_open", "q_wtp"]), refused).map((f) => f.anchor)).toEqual(["qedit_q_wtp"]);
+    // A forecast that suppresses support marks every item, the open one first: only more respondents help.
+    const suppressed = [
+      item("q_open", null, "UNANSWERABLE", ["open_ended", "support_suppressed"]),
+      item("q_scale", null, "UNANSWERABLE", ["support_suppressed"]),
+    ];
+    expect(gapFixes(gap(["measures_unanswerable"], ["q_open", "q_scale"]), suppressed)).toEqual([
+      { step: "persona", anchor: null, words: t("research.exec.answerability.fixTo.support") },
+    ]);
+    // A citable id the outlook does not list comes before an uncitable one it knows.
+    expect(gapFixes(gap(["measures_unanswerable"], ["q3", "q9"]), OUTLOOK).map((f) => f.anchor)).toEqual(["qedit_q9"]);
+    // Measured only by uncitable items: any of them, the first the run may not answer.
+    expect(gapFixes(gap(["no_citable_measure"], ["q_open", "q_wtp"]), refused).map((f) => f.anchor)).toEqual(["qedit_q_open"]);
+  });
+
+  it("without an outlook (a refused retry), stops at a stage or a section", () => {
+    const anchors = (reasons: string[], measures: string[]) => gapFixes(gap(reasons, measures), null).map((f) => f.anchor);
+    expect(anchors(["measures_unanswerable"], ["q2"])).toEqual(["q-editor"]);
+    expect(anchors(["comparison_set_unanswerable"], ["banky_obj_csob"])).toEqual(["q-editor"]);
+    expect(anchors(["comparison_unknown"], ["q1"])).toEqual(["q-comparisons"]);
+    expect(anchors(["unlinked_design"], [])).toEqual(["q-editor"]);
+  });
+
+  it("names each place once, in the order of the reasons", () => {
+    expect(gapFixes(gap(["unlinked_design", "unmeasured"]), OUTLOOK).map((f) => f.anchor)).toEqual(["q-editor"]);
+    expect(gapFixes(gap(["comparison_unknown", "segments_unavailable", "no_citable_measure"], ["q3"]), OUTLOOK).map((f) => f.anchor)).toEqual([
+      "q-comparisons",
+      "qedit_q3",
+    ]);
+  });
+
+  it("keeps a reason it does not know on the way to Dotazník, never without a way", () => {
+    expect(gapFixes(gap(["future_reason"]), OUTLOOK)).toEqual([
+      { step: "questionnaire", anchor: null, words: t("research.exec.answerability.fixTo.questionnaire") },
+    ]);
+    expect(gapFixes(gap(["future_reason", "unlinked_design"]), OUTLOOK).map((f) => f.anchor)).toEqual([null, "q-editor"]);
+  });
+
+  it("reads a record from before every gap carried a reason as gapWords does", () => {
+    expect(gapFixes(gap([], ["q2"]), OUTLOOK).map((f) => f.anchor)).toEqual(["qedit_q2"]);
+    expect(gapFixes(gap([], []), OUTLOOK).map((f) => f.anchor)).toEqual(["q-editor"]);
+  });
+
+  it("links to the stage with the place as its hash, and reads the hash back", () => {
+    const stage = (step: string) => `/app/clients/CLI-1/research/STU-1/${step}`;
+    expect(fixHref({ step: "questionnaire", anchor: "qset_sada bank", words: "" }, stage)).toBe("/app/clients/CLI-1/research/STU-1/questionnaire#qset_sada%20bank");
+    expect(fixHref({ step: "persona", anchor: null, words: "" }, stage)).toBe("/app/clients/CLI-1/research/STU-1/persona");
+    expect(hashTarget("#qset_sada%20bank")).toBe("qset_sada bank");
+    expect(hashTarget("#qedit_q2")).toBe("qedit_q2");
+    expect(hashTarget("")).toBeNull();
+    expect(hashTarget("#")).toBeNull();
+    expect(hashTarget("#%E0%A4%A")).toBeNull();
+  });
+});
+
+// Sections and the ids compile_design writes for them; test_compiled_ids_web_fixture.py checks the server's side.
+const COMPILED = JSON.parse(readFileSync(join(process.cwd(), "src/lib/fixtures/compiled-ids.json"), "utf8")) as {
+  sections: Section[];
+  questions: string[];
+  sets: string[];
+};
+
+describe("the place a link names in Dotazník (review, 2026-10-18)", () => {
+  it("writes each question's and set's id as the server compiles it", () => {
+    const anchors = compiledPlaces(COMPILED.sections).map((p) => p.anchor);
+    expect(anchors.filter((a) => a.startsWith("qedit_"))).toEqual(COMPILED.questions.map((id) => `qedit_${id}`));
+    expect(anchors.filter((a) => a.startsWith("qset_"))).toEqual(COMPILED.sets.map((id) => `qset_${id}`));
+  });
+
+  it("opens the element drawn for the item a link names, never a guess between two", () => {
+    const place = (anchor: string) => questionnairePlace(anchor, COMPILED.sections);
+    // The server lower-cases and folds the web's ids; Dotazník draws the web's.
+    expect(place("qedit_q_wb1")).toBe("qedit_Q_wb1");
+    expect(place("qedit_q1_2")).toBe("qedit_q1");
+    expect(place("qedit_q_1a")).toBe("qedit_1a");
+    expect(place("qedit_ci")).toBe("qedit_Čí?");
+    expect(place("qedit_sec_brands_7")).toBe("qedit_  ");
+    expect(place("qedit_q_12")).toBe("qedit_12");
+    expect(place("qedit_x1")).toBe("qedit_X1");
+    expect(place("qset_sada_bank")).toBe("qset_Sada bank");
+    expect(place("qset_druha_sada")).toBe("qset_3");
+    expect(place("qset_sekce_5")).toBe("qset_4");
+    // Drawn under an id another question's element has too ("Q1" twice, three without one): the editor.
+    expect(place("qedit_q1")).toBe("q-editor");
+    expect(place("qedit_q1_3")).toBe("q-editor");
+    expect(place("qedit_sec_brands_4")).toBe("q-editor");
+    expect(place("qedit_sada_bank_2_2")).toBe("q-editor");
+    // In a section without a type, which Dotazník draws as a set: drawn nowhere.
+    expect(place("qedit_n1")).toBe("q-editor");
+    // The web's own id names no item a link can name; nor does one the questionnaire no longer has.
+    expect(place("qedit_Q_wb1")).toBe("q-editor");
+    expect(place("qedit_gone")).toBe("q-editor");
+    // A place that is not an item is its own element.
+    expect(place("q-comparisons")).toBe("q-comparisons");
+  });
+
+  it("gives no id to a question the server refuses, and stops at one it may write otherwise", () => {
+    const q = (id: unknown, text = "Jak často?") => ({ id, text, typ: "skala" }) as unknown as NonNullable<Section["questions"]>[number];
+    const blank: Section[] = [{ id: "s", type: "questions", questions: [q("Q1", " "), q("q1")] }];
+    expect(compiledPlaces(blank)).toEqual([{ anchor: "qedit_q1", element: "qedit_q1" }]);
+    // A number that is not whole: Python and JavaScript write some apart (1e16, 1e-7), so none is guessed at.
+    const odd: Section[] = [{ id: "s", type: "questions", questions: [q("Q1"), q(1.5), q("Q2")] }];
+    expect(compiledPlaces(odd).map((p) => p.anchor)).toEqual(["qedit_q1"]);
+    expect(questionnairePlace("qedit_q2", odd)).toBe("q-editor");
   });
 });

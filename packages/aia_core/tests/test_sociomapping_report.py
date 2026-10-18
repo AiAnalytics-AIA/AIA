@@ -23,7 +23,6 @@ from aia_core.application.sociomapping_report import (
 from aia_core.domain.evidence.validation import METHOD_STATUS_PENDING
 from aia_core.domain.project import ProjectType
 from aia_core.domain.report.model import (
-    Approval,
     Callout,
     CalloutKind,
     Classification,
@@ -89,11 +88,6 @@ def test_the_draft_says_what_it_is_and_carries_fit_relations_and_provenance() ->
     ("result", "meta", "why"),
     [
         (FIXTURE, replace(META, kind=ReportKind.CLIENT), "internally only"),
-        (
-            FIXTURE,
-            replace(META, approvals=(Approval("X", date(2026, 10, 5)),)),
-            "never approved",
-        ),
         ({**FIXTURE, "client_facing": True}, META, "does not say it is experimental"),
         ({**FIXTURE, "method_status": "CLIENT_FACING"}, META, "does not say it is experimental"),
     ],

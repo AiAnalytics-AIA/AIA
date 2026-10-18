@@ -14,6 +14,10 @@ and PDF in one place, composing nothing and changing no state, so the status, th
 the PDF download and the approval all name the same draft. The draft is found as itself (its
 stage, type, run and review), never through a PDF job, so a delivered study, which starts no job,
 still prepares and downloads its DOCX.
+
+Once a person approves a version (D2), its PDF is the rendering of its approved export -- the
+stamped DOCX -- asked for under a job key of its own (``report_pdf_key(approved=True)``); the
+draft's PDF is never served for it.
 """
 
 from __future__ import annotations
@@ -24,26 +28,40 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from ..domain.report.review import REVIEW_STAMP_CONTRACT, ReviewMark, ReviewState
 from ..domain.scope import Permission, StudyContext
 from ..domain.workflow import StepRunStatus
 from ..domain.workflow_templates import REPORT_PDF
 from ..infrastructure.artifact_repository import Artifact, ArtifactNotFound, ArtifactStatus
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.workflow_repository import WorkflowRepository
-from .contextual_report import CONTEXT_REPORT_CONTRACT, prepared_drafts
-from .report import INTERNAL_REPORT_PDF_ARTIFACT_TYPE
+from .contextual_report import (
+    CONTEXT_REPORT_ARTIFACT_TYPE,
+    CONTEXT_REPORT_CONTRACT,
+    prepared_drafts,
+)
+from .report import INTERNAL_REPORT_ARTIFACT_TYPE, INTERNAL_REPORT_PDF_ARTIFACT_TYPE
+from .report_export import review_mark
 from .research import ResearchRuns, report_pdf_key, research_artifacts
 
 __all__ = [
+    "RENDERABLE_REPORTS",
     "PdfState",
     "VariantPdf",
     "VariantState",
     "VariantStatus",
+    "approval_asks_pdf",
+    "approval_renders_pdf",
     "prepared_context_report",
     "request_pdf",
     "variant_pdf",
     "variant_status",
 ]
+
+
+#: The report DOCX types a ``report_pdf`` job renders: the run's own report and the report with
+#: a chosen literature review (the client report is DOCX only).
+RENDERABLE_REPORTS = frozenset({INTERNAL_REPORT_ARTIFACT_TYPE, CONTEXT_REPORT_ARTIFACT_TYPE})
 
 
 class VariantState(StrEnum):
@@ -102,6 +120,29 @@ def _judged(scope: StudyContext, state: PdfState, **kw: Any) -> VariantPdf:
     return VariantPdf(state, askable=askable, **kw)
 
 
+def approval_asks_pdf(scope: StudyContext, docx: Artifact) -> bool:
+    """Whether approving ``docx`` asks the worker for its approved version's PDF
+    (``report_approval.approve_report``): a report the worker renders, on a Study that still
+    starts work, approved by someone who may start it."""
+    return (
+        docx.artifact_type in RENDERABLE_REPORTS
+        and scope.study_status.accepts_work
+        and scope.has(Permission.RUN_WORKFLOW)
+    )
+
+
+def approval_renders_pdf(
+    scope: StudyContext, docx: Artifact, mark: ReviewMark, *, pdf_ready: bool
+) -> bool:
+    """Whether approving the draft ``docx`` now gives its approved version a PDF too, as far
+    as AIA knows: the approval asks for one (:func:`approval_asks_pdf`) and this draft's own
+    PDF is ready (``pdf_ready``), so this deployment converts. A closed Study, a
+    deployment that rendered none, a PDF still being made or one that failed is no promise:
+    whether a PDF will be made is then unknown, never a yes (D2, review 4). False once approved:
+    approving again asks nothing."""
+    return mark.state is ReviewState.DRAFT and approval_asks_pdf(scope, docx) and pdf_ready
+
+
 @dataclass(frozen=True, slots=True)
 class VariantStatus:
     """A run's report with one review: its stored draft (``None``: not prepared) and its PDF.
@@ -112,6 +153,23 @@ class VariantStatus:
     docx: Artifact | None
     pdf: VariantPdf | None
     contract_current: bool = True
+    #: The draft's review (``report_export.review_mark``); ``None`` before it is prepared.
+    mark: ReviewMark | None = None
+    #: Whether approving the draft now gives its approved version a PDF too
+    #: (:func:`approval_renders_pdf`).
+    approval_renders_pdf: bool = False
+
+
+def _approved_rendering(pdf: Artifact, mark: ReviewMark) -> bool:
+    """Whether ``pdf`` renders the approved export of the version ``mark`` names, as it is
+    stamped today: a rendering of the draft, or of another stamp, is not."""
+    return (
+        pdf.metadata.get("review_state") == ReviewState.APPROVED.value
+        and pdf.metadata.get("docx_sha256") == mark.sha256
+        and mark.approved_on is not None
+        and pdf.metadata.get("approved_on") == mark.approved_on.isoformat()
+        and pdf.metadata.get("review_stamp") == REVIEW_STAMP_CONTRACT
+    )
 
 
 def variant_pdf(
@@ -123,12 +181,18 @@ def variant_pdf(
     run_id: str,
     deep_research_run_id: str | None,
 ) -> VariantPdf:
-    """The PDF rendered from exactly ``docx`` by its newest job, verified as its rendering."""
+    """The PDF rendered from exactly ``docx`` by its newest job, verified as its rendering: of
+    its stored bytes while it is a draft, of its approved export once it is approved (never the
+    draft's). Raises ``report_export.ReviewUnrecorded`` for an approval without its ledger row."""
+    mark = review_mark(research_artifacts(session, scope, store), docx)
+    approved = mark.state is ReviewState.APPROVED
     workflows = WorkflowRepository(session, scope)
     jobs = workflows.list_runs(
         project_id=docx.project_id,
         workflow_type=REPORT_PDF,
-        key_prefix=report_pdf_key(run_id, deep_research_run_id, docx.artifact_id),
+        key_prefix=report_pdf_key(
+            run_id, deep_research_run_id, docx.artifact_id, approved=approved
+        ),
         limit=1,
     )
     if not jobs:
@@ -144,6 +208,7 @@ def variant_pdf(
         if (
             pdf.artifact_type != INTERNAL_REPORT_PDF_ARTIFACT_TYPE
             or pdf.metadata.get("rendering_of") != docx.artifact_id
+            or (approved and not _approved_rendering(pdf, mark))
         ):
             return _judged(scope, PdfState.INVALID, reason="pdf_not_this_report")
         if pdf.status is not ArtifactStatus.VALID:
@@ -175,9 +240,10 @@ def request_pdf(
 ) -> VariantPdf:
     """Ask for the PDF of a stored report DOCX (the run's own, or a variant's), by one rule: a
     rendering that is ready or under way is left as it is; one never asked for, failed or
-    invalid is asked again as a new job of exactly that DOCX. Composes nothing, so a draft
-    stored before a later deploy changed what composition accepts still gets its PDF. On a
-    Study that starts no work nothing is asked and the state says so (``study_closed``)."""
+    invalid is asked again as a new job of exactly that DOCX -- of its approved export once it
+    is approved. Composes nothing, so a draft stored before a later deploy changed what
+    composition accepts still gets its PDF. On a Study that starts no work nothing is asked and
+    the state says so (``study_closed``)."""
     current = variant_pdf(
         session, scope, store, docx=docx, run_id=run_id, deep_research_run_id=deep_research_run_id
     )
@@ -187,6 +253,7 @@ def request_pdf(
         docx=docx,
         run_id=run_id,
         deep_research_run_id=deep_research_run_id,
+        mark=review_mark(research_artifacts(session, scope, store), docx),
         again=current.state is PdfState.INVALID,
     )
     return variant_pdf(
@@ -243,9 +310,14 @@ def variant_status(
         run_id=run_id,
         deep_research_run_id=deep_research_run_id,
     )
+    mark = review_mark(research_artifacts(session, scope, store), docx)
     return VariantStatus(
         VariantState.READY,
         docx,
         pdf,
         contract_current=docx.metadata.get("report_contract") == CONTEXT_REPORT_CONTRACT,
+        mark=mark,
+        approval_renders_pdf=approval_renders_pdf(
+            scope, docx, mark, pdf_ready=pdf.state is PdfState.READY
+        ),
     )

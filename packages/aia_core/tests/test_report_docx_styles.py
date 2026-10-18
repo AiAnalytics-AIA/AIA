@@ -6,6 +6,7 @@ from datetime import date
 from typing import Any
 
 from docx import Document
+from docx.document import Document as WordDocument
 from docx.oxml.ns import qn
 
 from aia_core.domain.evidence.validation import METHOD_STATUS_PENDING
@@ -83,3 +84,65 @@ def test_starter_theme_furniture_cannot_override_the_aia_template() -> None:
     title = document.styles[S.TITLE].element.get_or_add_pPr()
     assert all(title.find(qn(tag)) is None for tag in ("w:pBdr", "w:shd", "w:contextualSpacing"))
     assert PARAGRAPHS[S.FINDING_TITLE].token == "doc-body"
+
+
+def _on(document: WordDocument, name: str, tag: str) -> bool:
+    """Whether the installed style ``name`` sets the paragraph property ``tag`` on."""
+    ppr = document.styles[name].element.find(qn("w:pPr"))
+    prop = None if ppr is None else ppr.find(qn(f"w:{tag}"))
+    return prop is not None and prop.get(qn("w:val")) not in ("0", "false", "off")
+
+
+def _installed() -> WordDocument:
+    document = Document()
+    install_styles(document)
+    return document
+
+
+def test_only_the_contents_starts_a_page_of_its_own() -> None:
+    # Chapters and appendices flow (research-integrity-report D5): no heading but the
+    # contents' breaks the page; the renderer's sections break it where the furniture
+    # changes.
+    assert [n for n, p in PARAGRAPHS.items() if p.page_break_before] == [S.FRONT_HEADING_BREAK]
+    document = _installed()
+    for name in PARAGRAPHS:
+        assert _on(document, name, "pageBreakBefore") is (name == S.FRONT_HEADING_BREAK), name
+
+
+def test_headings_captions_and_figures_keep_with_what_follows() -> None:
+    kept = {
+        S.H1,
+        S.H2,
+        S.H3,
+        S.APPENDIX,
+        S.FRONT_HEADING,
+        S.FRONT_HEADING_BREAK,
+        S.H2_FRONT,
+        S.CAPTION,
+        S.CALLOUT_TITLE,
+        S.FINDING_TITLE,
+        S.FINDING_LABEL,
+        S.LEAD_IN,
+    }
+    document = _installed()
+    for name in kept | {S.FIGURE}:  # caption -> picture -> the first source line
+        assert _on(document, name, "keepNext"), name
+    for name in kept:  # a heading, caption or title is never split across a page
+        assert _on(document, name, "keepLines"), name
+    assert not _on(document, S.SOURCE, "keepNext")  # the chain ends at the source line
+
+
+def test_every_paragraph_style_avoids_widows_and_orphans() -> None:
+    document = _installed()
+    for name in PARAGRAPHS:
+        assert _on(document, name, "widowControl"), name
+
+
+def test_a_chapter_heading_has_more_space_above_it_than_a_section_heading() -> None:
+    # A chapter no longer opens a page, so the air above it is what tells it from a
+    # section. The rule, not the number: a token edit cannot bring back 0 pt.
+    assert STYLES["doc-h1"].before_pt > STYLES["doc-h2"].before_pt
+    document = _installed()
+    h2 = document.styles[S.H2].paragraph_format.space_before
+    for name in (S.H1, S.APPENDIX):
+        assert document.styles[name].paragraph_format.space_before > h2, name

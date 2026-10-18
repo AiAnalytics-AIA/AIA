@@ -88,6 +88,10 @@ def test_czech_dates_use_the_genitive_month() -> None:
     assert numbers.czech_date(date(2026, 9, 25)) == f"25.{NB}září{NB}2026"
 
 
+def test_a_short_czech_date_is_numeric_and_unbreakable() -> None:
+    assert numbers.czech_short_date(date(2026, 10, 8)) == f"8.{NB}10.{NB}2026"
+
+
 # --- grades ------------------------------------------------------------------------------
 
 

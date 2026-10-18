@@ -19,7 +19,7 @@ import pytest
 import report_samples
 from lxml import etree
 
-from aia_core.domain.report.model import ReportKind
+from aia_core.domain.report.model import EvidenceAppendix, ReportKind
 from aia_core.domain.report.templates import client_report
 from aia_core.domain.report.validation import validate
 from aia_core.infrastructure.report_docx.lint import lint_docx
@@ -59,6 +59,29 @@ def test_every_template_renders_a_valid_clean_report(kind: str, report_ledger: A
         suffix = "-stress" if stress != 1.0 else ""
         Path(out).mkdir(parents=True, exist_ok=True)
         (Path(out) / f"{kind}{suffix}.docx").write_bytes(data)
+
+
+#: Word sections per sample: cover, front matter, body, then one per change of
+#: orientation (the landscape evidence appendix, and the portrait page after it).
+SECTIONS = {"internal": 5, "client": 4, "final": 4, "documentation": 5}
+
+
+@pytest.mark.parametrize("kind", report_samples.KINDS)
+def test_a_section_opens_only_where_the_page_changes(kind: str, report_ledger: Any) -> None:
+    # Was one more for each sample with a portrait appendix, which opened a section,
+    # and so a page, of its own. Chapters and appendices now flow
+    # (research-integrity-report D5).
+    doc = report_samples.build(kind, report_ledger)
+    wide = [
+        s.appendix and any(isinstance(b, EvidenceAppendix) for b in s.blocks) for s in doc.sections
+    ]
+    turns = sum(before != after for before, after in zip([False, *wide], wide, strict=False))
+    with zipfile.ZipFile(io.BytesIO(DocxRenderer().render(doc))) as z:
+        root = etree.fromstring(z.read("word/document.xml"))
+    sections = list(root.iter(f"{W}sectPr"))
+    assert len(sections) == 3 + turns == SECTIONS[kind]
+    landscape = [s.find(f"{W}pgSz").get(f"{W}orient") == "landscape" for s in sections[2:]]
+    assert landscape == [i % 2 == 1 for i in range(len(landscape))]  # body portrait, then turns
 
 
 def test_the_client_report_follows_the_legacy_section_order(report_ledger: Any) -> None:

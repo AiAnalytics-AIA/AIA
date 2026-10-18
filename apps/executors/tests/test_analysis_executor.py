@@ -114,7 +114,7 @@ from aia_executors.deep_research import DeepResearchRuntime
 from aia_executors.registry import registry_for
 from aia_executors.report import REPORT_ARTIFACT_TYPE, report_registry
 from aia_executors.workbench import workbench_registry_for
-from aia_worker.executor import StepExecutor
+from aia_worker.executor import ShutdownRequested, StepExecutor
 from aia_worker.settings import WorkerSettings
 from aia_worker.worker import Worker
 from sqlalchemy import select
@@ -584,7 +584,7 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
         < body.index("Výsledky jednotlivých otázek")
     )
     assert "smyšlení respondenti" in body
-    assert report.metadata["report_contract"] == "aia-internal-report-8"
+    assert report.metadata["report_contract"] == "aia-internal-report-9"
 
 
 @pytest.mark.parametrize(
@@ -1026,6 +1026,48 @@ def test_the_report_step_stores_its_docx_rendered_as_pdf_beside_it(
     assert stored.metadata["run_id"] == run_id
     assert stored.metadata["converter"] == "fake-pdf 1"
     assert [d.artifact_id for d in dependencies] == [output["artifact_id"]]
+
+
+class _ShutdownOnce(_FakePdf):
+    """A converter whose first conversion meets the worker shutting down: the attempt is
+    released after its DOCX was stored, and the step runs again."""
+
+    def convert(self, docx: bytes) -> bytes:
+        if self.calls == 0:
+            self.calls += 1
+            raise ShutdownRequested("worker stopping")
+        return super().convert(docx)
+
+
+def test_the_steps_pdf_renders_the_stored_docx_when_the_step_reuses_it(
+    world: Any,
+    store: InMemoryArtifactStore,
+    run_with: Callable[..., Worker],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A step that runs again finds the DOCX it stored by fingerprint, which holds the
+    contract and the inputs, never the renderer: rendering again may give other bytes (a
+    deploy between the attempts). The PDF beside the stored DOCX renders the stored bytes."""
+    rendered: list[bytes] = []
+    render = DocxRenderer.render
+
+    def renders_differently(self: DocxRenderer, doc: Any) -> bytes:
+        rendered.append(render(self, doc) + (b"\0" * len(rendered)))
+        return rendered[-1]
+
+    monkeypatch.setattr(DocxRenderer, "render", renders_differently)
+    run_id = _start_report_run(world)
+    pdf = _ShutdownOnce()
+    assert "released" in _drain(run_with(ScriptedModels(), pdf=pdf))
+    report = next(s for s in _run(world, run_id)["steps"] if s["node_key"] == "report")
+    output = report["output"]
+    assert report["status"] is StepRunStatus.SUCCEEDED and output["reused"] is True
+    with world.sessions() as session:
+        repo = research_artifacts(session, world.lead_scope(session), store)
+        docx = repo.read(output["artifact_id"])
+        stored_pdf = repo.read(output["pdf"]["artifact_id"])
+    assert len(rendered) == 2 and docx == rendered[0] != rendered[1]
+    assert stored_pdf == b"%PDF-1.7 rendering of " + hashlib.sha256(docx).hexdigest().encode()
 
 
 def test_a_pdf_that_cannot_be_made_is_said_so_and_the_report_still_stands(

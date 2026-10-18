@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated, Any, Final, Literal
 
 from aia_core.application.analysis_results import (
@@ -37,10 +37,18 @@ from aia_core.application.report import (
     ReportCompositionRefused,
 )
 from aia_core.application.report_approval import ReportNotApprovable, approve_report
+from aia_core.application.report_export import (
+    Export,
+    ReviewUnrecorded,
+    export_docx,
+    review_mark,
+    stampable,
+)
 from aia_core.application.report_variants import (
     PdfState,
     VariantState,
     VariantStatus,
+    approval_renders_pdf,
     request_pdf,
     variant_pdf,
     variant_status,
@@ -84,6 +92,7 @@ from aia_core.domain.fieldwork import (
 )
 from aia_core.domain.methodology.pins import response_deviates, run_methods
 from aia_core.domain.population import PopulationError, UnknownDatasetVersion
+from aia_core.domain.report.review import ReviewMark, ReviewState
 from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ResearchAction
 from aia_core.domain.research_design import settle_selection
@@ -1735,23 +1744,31 @@ def run_report(
             "internal_only": True,
             "reason": error.get("reason"),
         }
+    mark = _mark(artifact, scope, session, store)
+    pdf = _base_pdf(step, artifact, mark, run_id, scope, session, store)[1]
     return {
         "run_id": run_id,
         "state": "READY",
         "internal_only": True,
-        "review_state": "APPROVED_INTERNAL" if artifact.is_approved else "DRAFT_UNAPPROVED",
+        **_review_fields(artifact, mark),
         "artifact_id": artifact.artifact_id,
         "sha256": artifact.sha256,
         "size_bytes": artifact.size_bytes,
         "synthetic": bool(artifact.metadata.get("synthetic")),
         **_origin_flags({_artifact_origin_kind(artifact.metadata)}),
-        "pdf": _base_pdf(step, artifact, run_id, scope, session, store)[1],
+        "pdf": pdf,
+        # Whether approving this draft now gives its approved version a PDF too: the page
+        # promises one exactly then (D2, review 4).
+        "approval_renders_pdf": approval_renders_pdf(
+            scope, artifact, mark, pdf_ready=pdf is not None and pdf.get("state") == PdfState.READY
+        ),
     }
 
 
 def _base_pdf(
     step: dict[str, Any] | None,
     report: Artifact,
+    mark: ReviewMark,
     run_id: str,
     scope: StudyContext,
     session: SessionDep,
@@ -1759,7 +1776,15 @@ def _base_pdf(
 ) -> tuple[Artifact | None, dict[str, Any] | None]:
     """The run's own report's PDF -- the one its report step rendered, else one a person asked
     for since (``report_pdf``, research-integrity-report review: a step that rendered none, or
-    failed to, left no way to get one) -- and its state; the PDF only when it is ready."""
+    failed to, left no way to get one) -- and its state; the PDF only when it is ready.
+
+    Once the version is approved (D2) its PDF is only the rendering of its approved export:
+    the step's PDF renders the draft, and is never served under an approved header."""
+    if mark.state is ReviewState.APPROVED:
+        approved = variant_pdf(
+            session, scope, store, docx=report, run_id=run_id, deep_research_run_id=None
+        )
+        return approved.artifact, approved.to_json()
     own, said, why = _step_pdf(step, report, run_id, research_artifacts(session, scope, store))
     if why is not None:
         # The step's PDF is gone, corrupt or not this report's: never offered, asked for anew,
@@ -1792,13 +1817,72 @@ def _base_pdf(
     }
 
 
-def _review_headers(docx: Artifact, filename: str) -> dict[str, str]:
+def _unrecorded(exc: ReviewUnrecorded) -> HTTPException:
+    return HTTPException(
+        409,
+        detail={
+            "code": "report_review_unrecorded",
+            "message": "The report is marked approved and the approval ledger has no record of it.",
+        },
+    )
+
+
+def _mark(
+    artifact: Artifact, scope: StudyContext, session: SessionDep, store: ArtifactStoreDep
+) -> ReviewMark:
+    """The version's review, from the ledger; an approval without its row is 409, never a
+    guess (``report_export.review_mark``)."""
+    try:
+        return review_mark(research_artifacts(session, scope, store), artifact)
+    except ReviewUnrecorded as exc:
+        raise _unrecorded(exc) from exc
+
+
+def _export(
+    artifact: Artifact,
+    scope: StudyContext,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    *,
+    data: bytes | None = None,
+) -> Export:
+    """The file a DOCX download of ``artifact`` is: the stored draft, or the approved version
+    stamped in its footers (D2). ``data``: its bytes, when the caller has just read them."""
+    try:
+        return export_docx(research_artifacts(session, scope, store), artifact, data=data)
+    except ReviewUnrecorded as exc:
+        raise _unrecorded(exc) from exc
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+
+
+def _review_fields(artifact: Artifact, mark: ReviewMark) -> dict[str, Any]:
+    """A version's review as a status says it: its state, the day it was approved, and whether
+    its file states it (``stamped``: an approved export says SCHVÁLENO in its footers; false
+    for a version stored before that layout, whose file keeps its draft footer)."""
+    return {
+        "review_state": mark.state.value,
+        "approved_on": mark.approved_on.isoformat() if mark.approved_on else None,
+        "stamped": stampable(artifact),
+    }
+
+
+def _report_filename(study_id: str, run_id: str, variant: str, mark: ReviewMark, ext: str) -> str:
+    """``AIA-<study>-<run>-<variant>-<version>-<koncept|schvaleno>.<ext>``: the file names the
+    version it is and its review, as its footers do."""
+    state = "schvaleno" if mark.state is ReviewState.APPROVED else "koncept"
+    return f"AIA-{study_id}-{run_id}-{variant}-{mark.artifact_id}-{state}.{ext}"
+
+
+def _review_headers(mark: ReviewMark, filename: str) -> dict[str, str]:
     return {
         "Content-Disposition": f'attachment; filename="{filename}"',
         "Cache-Control": "no-store",
-        # The stored draft these bytes are (or render), for its review and approval (B2).
-        "X-AIA-Artifact-Id": docx.artifact_id,
-        "X-AIA-Review-State": "APPROVED_INTERNAL" if docx.is_approved else "DRAFT_UNAPPROVED",
+        # The stored version these bytes are (or render), for its review and approval (B2, D2):
+        # its id and SHA-256, and its review as the file states it.
+        "X-AIA-Artifact-Id": mark.artifact_id,
+        "X-AIA-Artifact-Sha256": mark.sha256,
+        "X-AIA-Review-State": mark.state.value,
     }
 
 
@@ -1816,7 +1900,8 @@ def download_run_report_pdf(
     step, report = _report_for_run(run_id, scope, session, store)
     if report is None:
         raise _not_found("report_pdf")
-    pdf, state = _base_pdf(step, report, run_id, scope, session, store)
+    mark = _mark(report, scope, session, store)
+    pdf, state = _base_pdf(step, report, mark, run_id, scope, session, store)
     if pdf is None:
         if state is not None and state.get("state") == PdfState.INVALID.value:
             # Never another document's bytes, and never a bare "not found" for one.
@@ -1829,7 +1914,9 @@ def download_run_report_pdf(
     return Response(
         content=data,
         media_type=PDF_MEDIA_TYPE,
-        headers=_review_headers(report, f"AIA-{scope.study_id}-internal-draft.pdf"),
+        headers=_review_headers(
+            mark, _report_filename(scope.study_id, run_id, "zakladni", mark, "pdf")
+        ),
     )
 
 
@@ -1847,7 +1934,8 @@ def ask_run_report_pdf(
     step, report = _report_for_run(run_id, scope, session, store)
     if report is None:
         raise _not_found("report")
-    own, _state = _base_pdf(step, report, run_id, scope, session, store)
+    mark = _mark(report, scope, session, store)
+    own, _state = _base_pdf(step, report, mark, run_id, scope, session, store)
     if own is None:
         try:
             request_pdf(
@@ -1872,16 +1960,16 @@ def download_run_report(
     _step, artifact = _report_for_run(run_id, scope, session, store)
     if artifact is None:
         raise _not_found("report")
-    try:
-        data = research_artifacts(session, scope, store).read(artifact.artifact_id)
-    except (IntegrityError, ObjectNotFound) as exc:
-        raise artifact_corrupt(session) from exc
+    exported = _export(artifact, scope, session, store)
     return Response(
-        content=data,
+        content=exported.data,
         media_type=INTERNAL_REPORT_MEDIA_TYPE,
         # The same headers as its PDF: the page checks the draft it downloaded is the one it
         # approves (research-integrity-report 3).
-        headers=_review_headers(artifact, f"AIA-{scope.study_id}-internal-draft.docx"),
+        headers=_review_headers(
+            exported.mark,
+            _report_filename(scope.study_id, run_id, "zakladni", exported.mark, "docx"),
+        ),
     )
 
 
@@ -1928,8 +2016,16 @@ class ReportVariantResponse(BaseModel):
     artifact_id: str | None = None
     sha256: str | None = None
     review_state: Literal["DRAFT_UNAPPROVED", "APPROVED_INTERNAL"] | None = None
+    #: The Prague day the draft was approved (D2); null while it is a draft.
+    approved_on: date | None = None
+    #: Whether its file states its review: approved, its DOCX and PDF say SCHVÁLENO in their
+    #: footers; false for a draft stored before that layout, which keeps its draft footer.
+    stamped: bool | None = None
     internal_only: bool = True
     pdf: ReportVariantPdfResponse | None = None
+    #: Whether approving the draft now gives its approved version a PDF too: approving asks for
+    #: one and this draft's own PDF was rendered here. The page promises a PDF exactly then.
+    approval_renders_pdf: bool = False
     #: The composition contract the draft was stored under, and whether it is today's: an
     #: earlier one stays downloadable and approvable, and preparing composes it anew.
     contract: str | None = None
@@ -1939,8 +2035,8 @@ class ReportVariantResponse(BaseModel):
 def _variant_response(
     run_id: str, deep_research_run_id: str, status_: VariantStatus
 ) -> ReportVariantResponse:
-    docx = status_.docx
-    if docx is None:
+    docx, mark = status_.docx, status_.mark
+    if docx is None or mark is None:
         return ReportVariantResponse(
             run_id=run_id, deep_research_run_id=deep_research_run_id, state=status_.state
         )
@@ -1950,8 +2046,11 @@ def _variant_response(
         state=status_.state,
         artifact_id=docx.artifact_id,
         sha256=docx.sha256,
-        review_state="APPROVED_INTERNAL" if docx.is_approved else "DRAFT_UNAPPROVED",
+        review_state=mark.state.value,
+        approved_on=mark.approved_on,
+        stamped=stampable(docx),
         pdf=ReportVariantPdfResponse.model_validate(status_.pdf.to_json()) if status_.pdf else None,
+        approval_renders_pdf=status_.approval_renders_pdf,
         contract=docx.metadata.get("report_contract"),
         contract_current=status_.contract_current,
     )
@@ -1979,6 +2078,8 @@ def _variant(
         raise _refused(exc) from exc
     except ResearchRunNotFound as exc:
         raise _not_found("run") from exc
+    except ReviewUnrecorded as exc:
+        raise _unrecorded(exc) from exc
 
 
 def _not_prepared() -> HTTPException:
@@ -2032,6 +2133,8 @@ def prepare_contextual_report(
         raise _not_found("run") from exc
     except (IntegrityError, ObjectNotFound) as exc:
         raise artifact_corrupt(session) from exc
+    except ReviewUnrecorded as exc:
+        raise _unrecorded(exc) from exc
     except _CONTEXT_REFUSALS as exc:
         raise HTTPException(
             409, detail={"code": "context_report_refused", "message": str(exc)}
@@ -2073,6 +2176,8 @@ def ask_contextual_report_pdf(
         )
     except ScopeDenied as exc:
         raise _refused(exc) from exc
+    except ReviewUnrecorded as exc:
+        raise _unrecorded(exc) from exc
     return _variant_response(
         run_id,
         deep_research_run_id,
@@ -2117,15 +2222,13 @@ def download_contextual_report(
     found = _variant(run_id, deep_research_run_id, scope, session, store, export=True)
     if found.docx is None:
         raise _not_prepared()
-    try:
-        data = research_artifacts(session, scope, store).read(found.docx.artifact_id)
-    except (IntegrityError, ObjectNotFound) as exc:
-        raise artifact_corrupt(session) from exc
+    exported = _export(found.docx, scope, session, store)
     return Response(
-        content=data,
+        content=exported.data,
         media_type=INTERNAL_REPORT_MEDIA_TYPE,
         headers=_review_headers(
-            found.docx, f"AIA-{scope.study_id}-{run_id}-{deep_research_run_id}.docx"
+            exported.mark,
+            _report_filename(scope.study_id, run_id, deep_research_run_id, exported.mark, "docx"),
         ),
     )
 
@@ -2144,8 +2247,9 @@ def download_contextual_report_pdf(
     store: ArtifactStoreDep,
 ) -> Response:
     found = _variant(run_id, deep_research_run_id, scope, session, store, export=True)
-    if found.docx is None:
+    if found.docx is None or found.mark is None:
         raise _not_prepared()
+    # The variant's PDF is the one its review allows: an approved draft's approved rendering.
     if found.pdf is None or found.pdf.artifact is None:
         raise _not_found("report_pdf")
     try:
@@ -2156,7 +2260,8 @@ def download_contextual_report_pdf(
         content=data,
         media_type=PDF_MEDIA_TYPE,
         headers=_review_headers(
-            found.docx, f"AIA-{scope.study_id}-{run_id}-{deep_research_run_id}.pdf"
+            found.mark,
+            _report_filename(scope.study_id, run_id, deep_research_run_id, found.mark, "pdf"),
         ),
     )
 
@@ -2204,17 +2309,15 @@ def download_client_report(
                 "details": {"reason": "composition_refused"},
             },
         ) from exc
+    # The bytes it just read (or stored) are the version's: never read twice per download.
+    exported = _export(artifact, scope, session, store, data=data)
     return Response(
-        content=data,
+        content=exported.data,
         media_type=INTERNAL_REPORT_MEDIA_TYPE,
-        headers={
-            "Content-Disposition": f'attachment; filename="AIA-{scope.study_id}-client-draft.docx"',
-            "Cache-Control": "no-store",
-            "X-AIA-Artifact-Id": artifact.artifact_id,
-            "X-AIA-Review-State": "APPROVED_INTERNAL"
-            if artifact.is_approved
-            else "DRAFT_UNAPPROVED",
-        },
+        headers=_review_headers(
+            exported.mark,
+            _report_filename(scope.study_id, run_id, "klient", exported.mark, "docx"),
+        ),
     )
 
 
@@ -2270,7 +2373,7 @@ def approve_run_report(
         "run_id": run_id,
         "artifact_id": artifact.artifact_id,
         "artifact_type": artifact.artifact_type,
-        "review_state": "APPROVED_INTERNAL",
+        **_review_fields(artifact, _mark(artifact, scope, session, store)),
         "internal_only": True,
     }
 

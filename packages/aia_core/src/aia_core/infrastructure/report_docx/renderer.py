@@ -3,9 +3,10 @@
 The one entry point of the report's infrastructure. It trusts nothing it is
 handed: the document is validated (``require_valid``) before a byte exists, and
 the outline — every printed number of the furniture — is computed once, first.
-Then the sections are written in order (cover, front matter, body, appendices),
-and the package is finished: footnotes, core properties, embedded fonts, and
-``w:updateFields`` so Word refreshes the contents on open.
+Then the sections are written in order (cover, front matter, body, with a
+section of its own only where the orientation changes), and the package is
+finished: footnotes, core properties, embedded fonts, and ``w:updateFields`` so
+Word refreshes the contents on open.
 
 **The output is deterministic.** The same document renders to the same bytes:
 the zip is rewritten with fixed timestamps and the core properties are dated by
@@ -16,6 +17,7 @@ from __future__ import annotations
 
 import io
 import zipfile
+from collections.abc import Iterable
 from datetime import UTC, datetime
 from typing import Final
 
@@ -36,7 +38,7 @@ from aia_core.infrastructure.report_docx.images import SvgParts
 from aia_core.infrastructure.report_docx.marks import Marks
 from aia_core.infrastructure.report_docx.numbering import Numbering
 from aia_core.infrastructure.report_docx.ooxml import SETTINGS_ORDER, Bookmarks, el, insert_ordered
-from aia_core.infrastructure.report_docx.styles import S, install_styles
+from aia_core.infrastructure.report_docx.styles import install_styles
 
 #: The zip timestamp every part carries: the earliest the format allows.
 _ZIP_EPOCH: Final = (1980, 1, 1, 0, 0, 0)
@@ -70,9 +72,6 @@ class DocxRenderer:
 
 
 def _write(ctx: RenderContext) -> None:
-    first_chapter = ctx.outline.headings[0].number
-    first_title = f"{first_chapter} {ctx.report.sections[0].title}"
-
     layout.page_setup(ctx.document.sections[0])
     layout.render_cover(ctx)
 
@@ -84,26 +83,21 @@ def _write(ctx: RenderContext) -> None:
 
     body = layout.end_section(ctx, layout.last_paragraph(ctx))
     layout.page_numbers(body, "decimal", restart=True)
-    ctx.running = (S.H1, first_title)
     layout.running(ctx, body)
 
-    in_appendix = False
+    # Chapters and appendices flow on (research-integrity-report D5). A new section,
+    # and so a new page, opens only where the orientation changes: a page's size
+    # cannot change mid-page, and a continuous section start cannot change it.
     wide = False
     for si, section in enumerate(ctx.report.sections):
         needs_wide = section.appendix and any(
             isinstance(b, EvidenceAppendix) for b in section.blocks
         )
-        if (section.appendix and not in_appendix) or needs_wide != wide:
-            in_appendix = section.appendix
+        if needs_wide != wide:
             wide = needs_wide
             if si > 0:
-                appendix = layout.end_section(ctx, layout.last_paragraph(ctx), landscape=wide)
-                label = layout.heading_label(
-                    [e for e in ctx.outline.headings if e.level == 1][si],
-                    appendix=section.appendix,
-                )
-                ctx.running = (S.APPENDIX if section.appendix else S.H1, f"{label} {section.title}")
-                layout.running(ctx, appendix, wide=wide)
+                turned = layout.end_section(ctx, layout.last_paragraph(ctx), landscape=wide)
+                layout.running(ctx, turned, wide=wide)
         chapter_heading(ctx, si, section)
         for bi, block in enumerate(section.blocks):
             ctx.position = (si, bi)
@@ -143,11 +137,20 @@ def _finish(ctx: RenderContext) -> None:
 def _normalise_zip(data: bytes) -> bytes:
     """Rewrite the package with fixed timestamps, so equal content is equal bytes."""
     src = zipfile.ZipFile(io.BytesIO(data))
+    return write_package((info.filename, src.read(info.filename)) for info in src.infolist())
+
+
+def write_package(parts: Iterable[tuple[str, bytes]]) -> bytes:
+    """``parts`` as a package, in the order given, every part at the fixed timestamp.
+
+    The one way a report package is written: the renderer's, and a stamp's
+    (``review_stamp.py``), so a part a stamp leaves alone is written exactly as it was.
+    """
     out = io.BytesIO()
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as dst:
-        for info in src.infolist():
-            fixed = zipfile.ZipInfo(info.filename, date_time=_ZIP_EPOCH)
+        for name, data in parts:
+            fixed = zipfile.ZipInfo(name, date_time=_ZIP_EPOCH)
             fixed.compress_type = zipfile.ZIP_DEFLATED
             fixed.external_attr = 0o644 << 16
-            dst.writestr(fixed, src.read(info.filename))
+            dst.writestr(fixed, data)
     return out.getvalue()

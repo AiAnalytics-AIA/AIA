@@ -52,7 +52,7 @@ __all__ = [
 ]
 
 SOCIOMAPPING_REPORT_ARTIFACT_TYPE: Final = "research_sociomapping_docx"
-SOCIOMAPPING_REPORT_CONTRACT: Final = "aia-sociomapping-report-3"
+SOCIOMAPPING_REPORT_CONTRACT: Final = "aia-sociomapping-report-4"
 
 #: The limitation codes the artifact carries -> what the report prints. A code without
 #: wording prints its stored English detail, never nothing.
@@ -341,8 +341,6 @@ def compose_sociomapping_report(
     """The internal draft. ``images`` maps a battery id to its drawn map (PNG)."""
     if meta.kind is not ReportKind.INTERNAL or meta.classification is not Classification.INTERNAL:
         raise SociomappingReportRefused("an experimental Sociomapping is reported internally only")
-    if meta.approvals:
-        raise SociomappingReportRefused("an experimental Sociomapping report is never approved")
     if (
         result.get("client_facing") is not False
         or result.get("method_status") != "EXPERIMENTAL_AIA"

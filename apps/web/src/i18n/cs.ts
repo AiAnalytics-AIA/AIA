@@ -2260,6 +2260,21 @@ export const cs = {
         LIVE: "živě",
         RECORDED: "ze záznamu (test)",
       },
+      // What a source's domain says of it (deep_research.sources.SourceClass), as the report's
+      // "Doména a její typ" says it: the publisher's credibility, never the document's genre.
+      sourceClass: {
+        OFFICIAL_STATISTICS: "oficiální statistika",
+        GOVERNMENT_OR_REGULATOR: "státní instituce nebo regulátor",
+        PEER_REVIEWED: "recenzovaná publikace",
+        ACADEMIC_INSTITUTION: "akademická instituce (může jít i o studentskou práci)",
+        PREPRINT: "preprint",
+        INDUSTRY_RESEARCH: "odborný průzkum z praxe",
+        MEDIA: "médium",
+        FORUM_OR_SOCIAL: "diskusní fórum nebo sociální síť",
+        CLIENT_KNOWLEDGE: "znalosti klienta",
+        UNKNOWN: "neurčený typ",
+        other: "jiný typ",
+      },
     },
     exec: {
       code: {
@@ -2480,7 +2495,7 @@ export const cs = {
         title: "Běh je spustitelný, ale nemusí odpovědět na všechny výzkumné otázky",
         // Beside readiness that says the design cannot run yet: never called runnable there.
         titleNotReady: "Běh nemusí odpovědět na všechny výzkumné otázky",
-        help: "Kontroly výše říkají, zda běh může proběhnout. Tato karta říká, zda dokáže odpovědět na to, na co se studie ptá. U těchto výzkumných otázek AIA odpověď doložit nedokáže:",
+        help: "Kontroly výše říkají, zda běh může proběhnout. Tato karta říká, zda dokáže odpovědět na to, na co se studie ptá. U těchto výzkumných otázek AIA odpověď doložit nedokáže; pod každou je, kde to opravit:",
         none: "Návrh neuvádí žádnou výzkumnou otázku, takže modul výzkumných otázek nebude mít na co odpovědět.",
         wont: "Běh na ni neodpoví",
         unshown: "Nelze doložit, že na ni běh odpoví",
@@ -2497,16 +2512,30 @@ export const cs = {
         },
         reasonUnknown: "důvod, který tato verze stránky nezná",
         pending: "Zda běh odpoví i na tyto výzkumné otázky, rozhodne až podpora dat ze sběru: {list}",
-        notRequired: "Běh lze spustit i bez potvrzení. Zpráva tyto výzkumné otázky uvede mezi omezeními; interní zpráva navíc zaznamená, že spuštění nikdo nepotvrdil.",
+        notRequired: "Toto nasazení volbu Pokračovat s omezeními nevyžaduje, běh lze spustit i bez ní. Zpráva tyto výzkumné otázky uvede mezi omezeními; interní zpráva navíc zaznamená, že spuštění nikdo nepotvrdil.",
         fix: "Propojit otázky s výzkumnými otázkami v Dotazníku",
-        confirm: "Rozumím, že na tyto výzkumné otázky běh neodpoví nebo nelze předem doložit, že na ně odpoví, a chci ho přesto spustit.",
-        why: "Proč běh spustit i tak (uloží se s během a vytiskne ve zprávě)",
+        // Where each gap is fixed (lib/answerability.ts gapFixes), one link per place.
+        fixTo: {
+          plan: "Doplnit výzkumné otázky v Návrhu →",
+          links: "Přiřadit otázky dotazníku k výzkumné otázce →",
+          comparison: "Upravit, jak na ni odpovíme →",
+          set: "Upravit sadu →",
+          measure: "Upravit otázky, které ji měří →",
+          support: "Upravit počet respondentů v Dimenzích →",
+          questionnaire: "Otevřít Dotazník →",
+        },
+        // The named choice (D1, 2026-10-17): recorded as the acknowledgement it always was.
+        choice: "Pokračovat s omezeními",
+        choiceHelp: "Běh spustíte, i když na výzkumné otázky výše neodpoví nebo nelze předem doložit, že na ně odpoví. Zpráva je uvede mezi omezeními; volba platí jen pro tyto mezery a uloží se s během spolu s důvodem.",
+        // The client report prints no reason (report_method.py): only the internal one does.
+        why: "Proč pokračujete s omezeními (uloží se s během a vytiskne v interní zprávě)",
         whyHint: "Alespoň 10 znaků, např. „ověřujeme jen postup na fiktivních respondentech“.",
-        dock: "Potvrďte, že běh spouštíte i přes výzkumné otázky bez měření.",
-        existing: "Tato revize návrhu už běh má, a proto se nic nového nespustilo a vaše potvrzení se nikam neuložilo. Chcete-li nový běh, upravte návrh; jinak otevřete průběh toho existujícího.",
-        retry: "Opakovaný běh by stejně nedokázal odpovědět na všechny výzkumné otázky a původní běh to nemá potvrzeno.",
-        retryAction: "Zopakovat s tímto potvrzením",
-        refused: "Server běh nespustil: u některých výzkumných otázek nelze doložit, že na ně běh odpoví, a k těmto mezerám chybí potvrzení. Mezery jsou uvedeny výše.",
+        dock: "Doplňte chybějící měření, nebo zvolte Pokračovat s omezeními a napište proč.",
+        startLimited: "Spustit s omezeními",
+        existing: "Tato revize návrhu už běh má, a proto se nic nového nespustilo a vaše volba Pokračovat s omezeními se nikam neuložila. Chcete-li nový běh, upravte návrh; jinak otevřete průběh toho existujícího.",
+        retry: "Opakovaný běh by stejně nedokázal odpovědět na všechny výzkumné otázky a původní běh nemá zaznamenanou volbu Pokračovat s omezeními.",
+        retryAction: "Zopakovat s omezeními",
+        refused: "Server běh nespustil: u některých výzkumných otázek nelze doložit, že na ně běh odpoví, a volba Pokračovat s omezeními k těmto mezerám není zaznamenaná. Mezery jsou uvedeny výše.",
       },
       trace: {
         title: "Výzkumné otázky a jejich měření",
@@ -2539,6 +2568,9 @@ export const cs = {
           measure_missing: "chybí měřená veličina",
           superseded: "nahrazeno novějším",
           retracted_source: "zdroj byl stažen",
+          off_topic: "netýká se tématu, pro které bylo hledáno",
+          topic_undetermined: "souvislost s tématem hledání nelze posoudit",
+          student_thesis: "studentská kvalifikační práce",
         },
         reason: {
           unmeasured: "Žádná otázka dotazníku na ni neodpovídá: analýza ji bude muset nechat bez odpovědi.",
@@ -2623,6 +2655,26 @@ export const cs = {
           DRAFT: "Koncept čeká na schválení.",
           APPROVED: "Schváleno pouze pro interní použití.",
           UNKNOWN: "Stav zprávy se nepodařilo zjistit.",
+        },
+        // A stored version's review as its file states it (research-integrity-report D2): only
+        // in its footers, KONCEPT while a draft, SCHVÁLENO with the date once approved.
+        review: {
+          draft: "Stav: Koncept · verze {version} — soubor nese v zápatí „KONCEPT — NESCHVÁLENO“; po schválení ponese DOCX i PDF této verze „SCHVÁLENO“ s datem.",
+          draftDocx: "Stav: Koncept · verze {version} — soubor nese v zápatí „KONCEPT — NESCHVÁLENO“; po schválení ponese DOCX této verze „SCHVÁLENO“ s datem.",
+          approved: "Schváleno {date} · verze {version} — DOCX i PDF této verze to nesou v zápatí",
+          approvedDocx: "Schváleno {date} · verze {version} — DOCX této verze to nese v zápatí",
+          older: "Schválení se zaznamená v AIA u tohoto uloženého souboru. Soubor se tím nemění a v zápatí dál nese „KONCEPT — NESCHVÁLENO“.",
+          olderApproved: "Schválení je zaznamenané v AIA u tohoto uloženého souboru. Soubor se tím nezměnil a v zápatí dál nese „KONCEPT — NESCHVÁLENO“.",
+          // The client report is the file the client receives: approving it signs it off for them.
+          clientDraft: "Koncept čeká na schválení k předání klientovi.",
+          clientApproved: "Schváleno k předání klientovi.",
+          approvedOn: "schváleno {date}",
+          approvedInAia: "schváleno v AIA",
+          notApproved: "neschváleno",
+          pdfRendering: "PDF schválené verze se právě vytváří; zpráva je zatím k dispozici jako DOCX.",
+          pdfNotRequested: "PDF schválené verze zatím nebylo vyžádáno.",
+          otherVersion: "Stažený soubor není koncept, který karta ukazuje (mezitím vznikl jiný). Obnovte stránku a stáhněte ho znovu.",
+          otherState: "Stažený soubor nese jiný stav schválení, než karta ukazuje (mezitím se změnil). Obnovte stránku a stáhněte ho znovu.",
         },
       },
       budgetLine: {
@@ -2711,6 +2763,7 @@ export const cs = {
         reportClientHint: "Klientská zpráva obsahuje jen čísla, která prošla pravidly pro klienta, každé označené jako modelované, a jen schválené mapy. Je to koncept: před předáním ji schvalte.",
         reportPdfFailed: "PDF se nepodařilo vytvořit; zpráva je k dispozici jako DOCX.",
         reportApprove: "Schválit pro interní použití",
+        reportApproveClient: "Schválit k předání klientovi",
         reportApproving: "Schvaluji…",
         reportActionsAbove: "Zprávu stáhnete a schválíte v kartě Kompletní zpráva studie nahoře.",
         reportApproveHint: "Schválením potvrzujete, že jste zprávu přečetli. Klientovi tím neodchází.",

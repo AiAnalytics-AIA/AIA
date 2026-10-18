@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { DESIGN_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { briefFingerprint, defaultsMerge } from "@/research/model";
@@ -103,6 +103,23 @@ describe("Návrh", () => {
     // Jump chips over the sections.
     const jump = screen.getByRole("navigation", { name: "Oddíly návrhu" });
     expect(within(jump).getAllByRole("button").map((b) => b.textContent)).toEqual(["Rozsah", "Porozumění", "Sady · 1", "Otázky AI · 0/1", "Komentáře · 0"]);
+  });
+
+  it("opens on the research questions a link from the Run stage names", async () => {
+    // research-integrity-report 14: a design with no research question is fixed here.
+    const seen: string[] = [];
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (this: Element) {
+      seen.push(this.id);
+    };
+    window.history.replaceState(null, "", "#plan-understanding");
+    onTestFinished(() => {
+      Element.prototype.scrollIntoView = original;
+      window.history.replaceState(null, "", "/");
+    });
+    unitStub();
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    await waitFor(() => expect(seen).toEqual(["plan-understanding"]));
   });
 
   it("applies a design variant to the project", async () => {
