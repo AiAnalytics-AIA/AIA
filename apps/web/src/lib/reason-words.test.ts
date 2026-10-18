@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ResearchPhase } from "@/lib/api";
-import { codedText, codeWords, coverageWords, deepStepLabel, known, stepProblem } from "./reason-words";
+import { codedText, codeWords, coverageWords, deepStepLabel, known, stepProblem, searchedNothing } from "./reason-words";
 import { phaseLabel } from "./research-execution";
 
 const step = (extra: { status?: string; waiting_reason?: string | null; error_message?: string | null }) => ({
@@ -47,5 +47,14 @@ describe("reason words", () => {
     expect(phaseLabel("SOMETHING_NEW" as ResearchPhase)).toBe("Neznámý stav");
     expect(coverageWords("PARTIAL")).toBe("Částečné pokrytí");
     expect(coverageWords("SOMETHING_NEW")).toBe("Pokrytí nelze určit");
+  });
+});
+
+describe("searchedNothing (PC18)", () => {
+  it("is a run that sent no query, never a run whose coverage is unknown", () => {
+    expect(searchedNothing({ queries_sent: 0 })).toBe(true);
+    expect(searchedNothing({ queries_sent: 3 })).toBe(false);
+    expect(searchedNothing(null)).toBe(false);
+    expect(searchedNothing(undefined)).toBe(false);
   });
 });

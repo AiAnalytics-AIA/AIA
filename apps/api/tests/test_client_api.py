@@ -528,6 +528,42 @@ def test_a_studys_workspace_is_that_studys_alone_whoever_opens_it(
     assert sibling["state"] == "EMPTY"
 
 
+@pytest.mark.parametrize("closed", ["DELIVERED", "ARCHIVED", "CANCELLED"])
+def test_a_closed_study_reads_as_closed_and_its_refusal_names_the_closure(
+    lead: TestClient, world: Any, closed: str
+) -> None:
+    """A closed study is not editable, says when it was delivered, and refuses a save as closed.
+
+    Every member holds EDIT_STUDY (ADR 0019), so a frame that read only the permission called a
+    delivered study editable, and the save it then made was refused as a role the person has.
+    """
+    url = f"{API}/studies/{world.study_id()}/workspace"
+    assert lead.put(f"{url}/content", json={"content": BRIEF}).status_code == 200
+    assert (
+        lead.put(f"{API}/studies/{world.study_id()}/status", json={"status": closed}).status_code
+        == 200
+    )
+
+    frame = lead.get(url).json()
+    assert frame["study"]["accepts_work"] is False and frame["study"]["status"] == closed
+    assert frame["can_edit"] is False
+    # Reading, downloading and approving what the study holds is not new work.
+    assert frame["can_review"] is True
+    assert (frame["study"]["delivered_at"] is not None) is (closed == "DELIVERED")
+    assert lead.get(f"{url}/content").json()["can_edit"] is False
+
+    refused = lead.put(
+        f"{url}/content", json={"content": {**BRIEF, "goal": "G"}, "base_revision": 1}
+    )
+    assert refused.status_code == 403
+    assert refused.json()["code"] == "study_closed"
+    assert refused.json()["details"] == {"reason": "study_closed"}
+
+    reopened = lead.put(f"{API}/studies/{world.study_id()}/status", json={"status": "ACTIVE"})
+    assert reopened.status_code == 200
+    assert lead.get(url).json()["can_edit"] is True
+
+
 def test_the_unit_binding_route_is_gone(lead: TestClient, world: Any) -> None:
     """ADR 0018: nothing binds a study to an 18.6.6 project any more."""
     r = lead.put(f"{API}/studies/{world.study_id()}/workspace", json={"unit_project_id": "PRJ-1"})

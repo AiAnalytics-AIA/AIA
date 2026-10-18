@@ -24,8 +24,13 @@ const COMPOSING = /^(PENDING|RUNNABLE|RUNNING|BLOCKED|WAITING_.*|AWAITING_.*|REC
 export const reviewStatus = (reviewState: string | null | undefined): "DRAFT" | "APPROVED" =>
   reviewState === "APPROVED_INTERNAL" ? "APPROVED" : "DRAFT";
 
-export function reportStatus(report: Pick<ResearchReport, "state" | "reason" | "review_state"> | null | undefined): ReportStatus {
+/** The report step's states before it starts: once the run has ended, it never will (PC14). */
+const NOT_STARTED = /^(PENDING|RUNNABLE|BLOCKED)$/;
+
+export function reportStatus(report: Pick<ResearchReport, "state" | "reason" | "review_state"> | null | undefined, runEnded = false): ReportStatus {
   if (!report) return "UNKNOWN";
+  // A finished run's report step that never started makes no report: never "still composing".
+  if (runEnded && NOT_STARTED.test(report.state)) return "NOT_MADE";
   if (report.state === "READY") return reviewStatus(report.review_state);
   if (report.state === "NOT_IN_RUN") return "NONE";
   if (report.state === "FAILED") return report.reason === "report_inputs_refused" ? "REFUSED" : "FAILED";
@@ -47,8 +52,13 @@ const TONE: Record<ReportStatus, Tone> = {
 export const reportStatusTone = (status: ReportStatus): Tone => TONE[status];
 export const reportStatusWords = (status: ReportStatus): string => t(`research.exec.report.status.${status}`);
 
-/** Why an approval was refused, in words: the one refusal a person can act on is the separation of duties. */
+/**
+ * Why a report action was refused, in words where a person can act on it: the separation of duties
+ * on an approval, and a report with literature refused because the run's analysis was built by an
+ * earlier version of AIA (repaired on Průběh, PC3/PC17); anything else as the API said it.
+ */
 export function approvalRefusal(e: unknown): string {
   if (e instanceof ApiError && e.code === "separation_of_duties") return t("research.exec.results.reportApproveIndependent");
+  if (e instanceof ApiError && e.code === "context_report_refused" && e.details.reason === "fingerprint_mismatch") return t("research.exec.results.analysisStale");
   return e instanceof Error ? e.message : String(e);
 }

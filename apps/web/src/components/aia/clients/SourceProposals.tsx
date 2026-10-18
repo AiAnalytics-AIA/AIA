@@ -132,7 +132,7 @@ export function SourceProposals({ clientId, source, rights }: { clientId: string
         <span>
           {/* The AI colour says a click is paid; the title says by whom: the client, never a study. */}
           <AiButton small title={t("aia.sources.ai.title")} disabled={busy} onClick={ask}>
-            {busy ? t("aia.sources.ai.asking") : run ? t("aia.sources.ai.again") : t("aia.sources.ai.action")}
+            {busy ? t("aia.sources.ai.asking") : run?.resumable ? t("aia.sources.ai.resume") : run ? t("aia.sources.ai.again") : t("aia.sources.ai.action")}
           </AiButton>
         </span>
       ) : null}

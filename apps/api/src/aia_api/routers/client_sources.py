@@ -412,6 +412,9 @@ class ProposalsRunResponse(_Model):
     #: Whether asking again starts a new run: this one ended without a result and left no
     #: paid call of unknown outcome (what it answered is replayed, not paid again).
     restartable: bool
+    #: Whether asking again offers this run to a worker again: it parked for the AI runtime
+    #: before it sent anything, and nothing resumes such a park but a person asking.
+    resumable: bool = False
 
 
 def _proposals_run(run: ProposalsRun) -> ProposalsRunResponse:
@@ -428,6 +431,7 @@ def _proposals_run(run: ProposalsRun) -> ProposalsRunResponse:
         output=run.output,
         created=run.created,
         restartable=run.restartable,
+        resumable=run.resumable,
     )
 
 

@@ -99,7 +99,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         title_cs="Velikost vzorku",
         formula_latex=r"n_{\min} \le n \le n_{\max}",
         implements=f"{_R}:assess_readiness",
-        source_sha256="e1196c42c750ff73856e31189824b7edb8b300329411da07b19e6674a33e9a4f",
+        source_sha256="39e3096864f8f3fbc59e93bac544ad4a763362ad24b85f9787b61c3dc12b4aaf",
         symbols=(Symbol("n", "velikost vzorku zadaná v návrhu", "respondenti"),),
         parameters=(
             ParameterRef(

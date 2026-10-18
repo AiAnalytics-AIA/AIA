@@ -1,9 +1,10 @@
 // How a research run and its results read (ADR 0016): the rules the three
 // execution stages share, without React.
+import { t } from "@/i18n/t";
 import { describe, expect, it } from "vitest";
 
 import type { QuestionOutlook, ResearchRun, ResearchStep } from "@/lib/api";
-import { aggregateDeviation, hasUnknownOrigin, isModelled, isSynthetic, mayRetryAnalysis, MODELLED_DISCLOSURE, needsRepair, originKind, outlookByVerdict, traceMeasures, outlookCounts, outlookFixStep, outlookReason, resultOriginKind, stepOriginKind, parkedForRuntime, phaseTone, populationNote, reportHolds, respondentReceipt, resultTable, pollMs, shouldPoll, storedPlaces, UNIT_PLACES, stepLabel, stepStatusLabel, stepTone, supportNote, topBoxWidth, verdictTone, waitingDetail } from "./research-execution";
+import { aggregateDeviation, fidelityRefusal, hasUnknownOrigin, isModelled, isSynthetic, mayRetryAnalysis, MODELLED_DISCLOSURE, needsRepair, originKind, outlookByVerdict, traceMeasures, outlookCounts, outlookFixStep, outlookReason, resultOriginKind, stepOriginKind, parkedForRuntime, phaseTone, populationNote, reportHolds, respondentReceipt, resultTable, pollMs, shouldPoll, storedPlaces, UNIT_PLACES, stepLabel, stepStatusLabel, stepTone, supportNote, topBoxWidth, verdictTone, waitingDetail } from "./research-execution";
 
 const run = (extra: Partial<ResearchRun>): ResearchRun =>
   ({ phase: "RUNNING", is_terminal: false, steps: [], fieldwork_source: "ai_runtime", ...extra }) as ResearchRun;
@@ -29,6 +30,12 @@ describe("research execution", () => {
     expect(shouldPoll(waiting([parked, step("RUNNABLE")]))).toBe(true);
     expect(shouldPoll(waiting([parked, step("WAITING_CAPACITY", "capacity")]))).toBe(true);
     expect(shouldPoll(waiting([parked, step("SUCCEEDED"), step("BLOCKED")]))).toBe(false);
+    // A run that waits for a person while another of its steps still runs is read (PC14): the
+    // map beside a module stopped at the budget finishes, and the page shows it.
+    const attention = (steps: ResearchRun["steps"]) => run({ phase: "WAITING", status: "AWAITING_BUDGET", needs_attention: true, steps });
+    expect(shouldPoll(attention([step("AWAITING_BUDGET", "budget_exceeded"), step("RUNNING")]))).toBe(true);
+    expect(shouldPoll(attention([step("RECOVERY_REQUIRED"), step("RUNNABLE")]))).toBe(true);
+    expect(shouldPoll(attention([step("AWAITING_BUDGET", "budget_exceeded"), step("SUCCEEDED")]))).toBe(false);
     expect(pollMs(run({ phase: "WAITING", needs_attention: false }))).toBeGreaterThan(pollMs(run({ phase: "RUNNING" })));
     expect(shouldPoll(run({ phase: "COMPLETED", is_terminal: true }))).toBe(false);
   });
@@ -43,7 +50,7 @@ describe("research execution", () => {
     expect(phaseTone("WAITING")).toBe("you");
     expect(phaseTone("FAILED")).toBe("fault");
     expect(phaseTone("COMPLETED")).toBe("done");
-    expect(stepLabel("sociomap")).toBe("Sociomapa (interní)");
+    expect(stepLabel("sociomap")).toBe("Sociomapa");
     expect(stepLabel("something_new")).toBe("something_new");
   });
 
@@ -126,6 +133,15 @@ describe("waitingDetail", () => {
     expect(waitingDetail({ ...base, status: "AWAITING_GATE", waiting_reason: "gate:design" })).toMatch(/rozhodnutí/);
   });
 
+  it("says why a step stopped for recovery, a paid call of unknown outcome first (PC14)", () => {
+    const stopped = { ...base, status: "RECOVERY_REQUIRED" };
+    expect(waitingDetail({ ...stopped, recovery_reason: "paid_call_uncertain", error_message: "timeout" })).toBe(t("research.exec.wait.paid_call_uncertain"));
+    expect(waitingDetail({ ...stopped, recovery_reason: "attempts_exhausted", error_message: "Poslední chyba." })).toBe("Poslední chyba.");
+    expect(waitingDetail({ ...stopped, recovery_reason: "attempts_exhausted" })).toBe(t("research.exec.wait.attempts_exhausted"));
+    // Not read (a listing): unknown, said as such, never guessed to be either.
+    expect(waitingDetail({ ...stopped, recovery_reason: null })).toBe(t("research.exec.wait.recovery_required"));
+  });
+
   it("says nothing for a step that is not waiting, and guesses nothing for a reason it does not know", () => {
     expect(waitingDetail({ ...base, status: "SUCCEEDED", error_message: "stará chyba" })).toBeNull();
     expect(waitingDetail({ ...base, status: "FAILED", error_message: "x" })).toBeNull();
@@ -196,12 +212,26 @@ describe("an analysis module a model could not complete", () => {
     expect(needsRepair(analysisStep({ status: "RUNNING", analysis_outcome: null }))).toBe(false);
   });
 
-  it("makes a finished run worth asking about a retry, and only a finished one", () => {
+  it("says a step that had not started when its run ended will not run, never ready (PC14)", () => {
+    for (const status of ["PENDING", "RUNNABLE", "BLOCKED"]) {
+      const untouched = analysisStep({ status, analysis_outcome: null });
+      expect(stepStatusLabel(untouched, true)).toBe(t("research.exec.stepStatus.WILL_NOT_RUN"));
+      expect(stepTone(untouched, true)).toBe("neutral");
+      expect(stepStatusLabel(untouched, false)).not.toBe(t("research.exec.stepStatus.WILL_NOT_RUN"));
+    }
+    // What ran is said as it ran, ended run or not.
+    expect(stepStatusLabel(analysisStep({ status: "RUNNING", analysis_outcome: null }), true)).toBe("Běží");
+    expect(stepStatusLabel(analysisStep({}), true)).toBe("Hotovo");
+  });
+
+  it("makes a finished run with analysis worth asking about a retry, and only a finished one", () => {
     const blocked = analysisStep({ analysis_outcome: "BLOCKED" });
     expect(mayRetryAnalysis(run({ is_terminal: true, steps: [blocked] }))).toBe(true);
     expect(mayRetryAnalysis(run({ is_terminal: false, steps: [blocked] }))).toBe(false);
     expect(mayRetryAnalysis(run({ is_terminal: true, steps: [analysisStep({ status: "FAILED", analysis_outcome: null })] }))).toBe(true);
-    expect(mayRetryAnalysis(run({ is_terminal: true, steps: [analysisStep({})] }))).toBe(false);
+    // A completed module may have been completed under an earlier harness: only the API knows (PC3).
+    expect(mayRetryAnalysis(run({ is_terminal: true, steps: [analysisStep({})] }))).toBe(true);
+    expect(mayRetryAnalysis(run({ is_terminal: true, steps: [] }))).toBe(false);
   });
 });
 
@@ -318,5 +348,16 @@ describe("respondentReceipt (run-recovery-and-truth 5b)", () => {
   it("names a mismatch, and an unknown origin is never a match", () => {
     expect(respondentReceipt({ persona_source: "panel", steps: [fieldwork("SYNTHETIC_AI_FICTIONAL")] }).mismatch).toBe(true);
     expect(respondentReceipt({ persona_source: "fictional_roster", steps: [fieldwork("SOMETHING_NEW")] })).toEqual({ pinned: "fictional_roster", observed: "UNKNOWN", mismatch: true });
+  });
+});
+
+describe("fidelityRefusal (PC2)", () => {
+  const q = (evidence: unknown) => ({ typ: "vyber", support_status: "REPORTABLE", n_platnych: 1, n_unique_layer_donors: 1, effective_n: 1, evidence }) as unknown as Parameters<typeof fidelityRefusal>[0];
+  it("reads the rating the aggregate stored: REFUSE with its reason, nothing for any other or none", () => {
+    expect(fidelityRefusal(q({ mode: "REFUSE", rating: "RED", reason: "Absolutní WTP." }))).toBe("Absolutní WTP.");
+    expect(fidelityRefusal(q({ mode: "REFUSE" }))).toBe("");
+    expect(fidelityRefusal(q({ mode: "JUST_SHOW", reason: "x" }))).toBeNull();
+    expect(fidelityRefusal(q(undefined))).toBeNull();
+    expect(fidelityRefusal(q("REFUSE"))).toBeNull();
   });
 });

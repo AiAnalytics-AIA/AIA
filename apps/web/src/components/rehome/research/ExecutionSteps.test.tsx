@@ -700,6 +700,28 @@ describe("Run: what a run can cost (5b.2)", () => {
     await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("progress")));
   });
 
+  it("opens a run the start found instead of starting one, and says nothing new started (PC13)", async () => {
+    api({ "POST /api/v1/studies/STU-1/research/runs": () => run({ created: false, phase: "CANCELLED", status: "CANCELLED", is_terminal: true, retryable: true }) });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const start = await screen.findByRole("button", { name: t("research.exec.start") });
+    await waitFor(() => expect((start as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(start);
+    await waitFor(() => expect(push).toHaveBeenCalledWith(`${stagePath("progress")}?run=RUN-1&found=1`));
+  });
+
+  it("says on Průběh that the run was found, not started, only for the run the start found", async () => {
+    window.history.replaceState(null, "", "/?run=RUN-1&found=1");
+    api(listed(COMPLETED));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    expect(await screen.findByText(t("research.exec.foundByStart"))).toBeTruthy();
+    cleanup();
+    window.history.replaceState(null, "", "/?run=RUN-1");
+    api(listed(COMPLETED));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    expect((await screen.findAllByText(tv("research.exec.revision", { revision: COMPLETED.design_revision }))).length).toBeGreaterThan(0);
+    expect(screen.queryByText(t("research.exec.foundByStart"))).toBeNull();
+  });
+
   it("follows a found run that already holds this very acknowledgement", async () => {
     // Review 3: a start whose answer was lost, asked again with the same reason, finds the run that
     // recorded it; the page said the confirmation was saved nowhere.
@@ -1011,6 +1033,21 @@ describe("Progress", () => {
     expect(screen.getByText("6 z 7 kroků hotovo")).toBeTruthy();
   });
 
+  it("offers to repair a run whose modules an earlier version of AIA completed, and says that is why (PC3)", async () => {
+    const MODULES = ["executive", "objects"];
+    const stale = run({
+      ...COMPLETED,
+      steps: [...COMPLETED.steps, ...MODULES.map((m) => step(`analysis_${m}`, "SUCCEEDED", { kind: "research_analysis", analysis_outcome: "COMPLETED" }))],
+    });
+    api({ ...listed(stale), "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis/retryable": () => ({ run_id: "RUN-1", modules: MODULES, stale: MODULES }) });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const card = (await screen.findByRole("region", { name: t("research.exec.analysisRetry.title") })) as HTMLElement;
+    expect(within(card).getByText(tv("research.exec.analysisRetry.stale", { n: 2 }))).toBeTruthy();
+    // Not a model's failure: the words for one are not used.
+    expect(within(card).queryByText(/model nedokázal/)).toBeNull();
+    expect(within(card).getByRole("button", { name: t("research.exec.analysisRetry.action") })).toBeTruthy();
+  });
+
   it("says who answered, the population, and which selected dimensions and filters were applied (run-recovery-and-truth 5b)", async () => {
     const answered = run({
       ...COMPLETED,
@@ -1054,7 +1091,7 @@ describe("Progress", () => {
       expect.stringContaining("Kontrola připravenosti"),
       expect.stringContaining("Sběr dat"),
       expect.stringContaining("Agregace"),
-      expect.stringContaining("Sociomapa (interní)"),
+      expect.stringContaining("Sociomapa"),
     ]);
     expect(within(steps[3]).getByText("Čeká na předchozí krok")).toBeTruthy();
     expect(screen.queryByRole("button", { name: t("research.exec.retry") })).toBeNull();
@@ -1190,6 +1227,37 @@ describe("Progress", () => {
     expect(await screen.findByText(/Běh čeká u kroku „Shrnutí analýzy“/)).toBeTruthy();
     expect(screen.queryByText(/Běh čeká u sběru dat/)).toBeNull();
     expect(screen.getByText(message)).toBeTruthy();
+  });
+
+  it("lets a run parked for the AI runtime go on, and says it will not by itself (PC4)", async () => {
+    const parked = () => parkedWith([
+      step("compile", "SUCCEEDED", { artifact_id: "ART-1" }),
+      step("preflight", "SUCCEEDED", { artifact_id: "ART-2" }),
+      step("run", "WAITING_PROVIDER", { waiting_reason: "ai_runtime_unavailable", failure_class: "RUNTIME_UNAVAILABLE" }),
+    ]);
+    const resumed = run({ steps: [step("compile", "SUCCEEDED"), step("preflight", "SUCCEEDED"), step("run", "RUNNABLE")] });
+    let going = false;
+    const RESUME = "/api/v1/studies/STU-1/research/runs/RUN-1/resume";
+    api({
+      ...listed(parked()),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1": () => (going ? resumed : parked()),
+      [`POST ${RESUME}`]: () => { going = true; return resumed; },
+    });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    expect(await screen.findByText(t("research.exec.parkedResume"))).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: t("research.exec.resume") }));
+    await waitFor(() => expect(called("POST", RESUME)).toHaveLength(1));
+    await waitFor(() => expect(screen.queryByText(t("research.exec.parkedResume"))).toBeNull());
+    // Nothing new was started: the same run, no start and no retry.
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/retry")).toHaveLength(0);
+    expect(calls.filter((c) => c.method === "POST" && c.url === "/api/v1/studies/STU-1/research/runs")).toHaveLength(0);
+  });
+
+  it("offers no way on for a run parked on a study that may not change", async () => {
+    api(listed(parkedWith([step("run", "WAITING_PROVIDER", { waiting_reason: "ai_runtime_unavailable" })])));
+    render(<ResearchScreen step="progress" frame={{ ...TEST_FRAME, canEdit: false, canReview: true }} />);
+    expect(await screen.findByText(t("research.exec.parkedResume"))).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("research.exec.resume") })).toBeNull();
   });
 
   it("says why a step waits for budget, provider quota or a decision when it recorded no message", async () => {
@@ -1443,6 +1511,45 @@ describe("Results", () => {
     expect(within(diagnostic!).getByText(/SCHEMA_INVALID: Input should be a valid array/)).toBeTruthy();
   });
 
+  it("says an analysis an earlier version of AIA built cannot be shown, and where it is repaired, not 'try again' (PC3)", async () => {
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6", analysis_outcome: "COMPLETED" }),
+    ] });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => new Response(JSON.stringify({
+        code: "fingerprint_mismatch", message: "the evidence, policy, method status or harness no longer match this outcome", details: {},
+      }), { status: 409 }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    expect(await screen.findByText(t("research.exec.results.analysisStale"))).toBeTruthy();
+    const repair = screen.getByRole("link", { name: t("research.exec.results.analysisStaleRepair") });
+    expect(repair.getAttribute("href")).toContain("?run=RUN-1");
+    expect(screen.queryByText(/harness no longer match/)).toBeNull();
+  });
+
+  it("marks an answer to a research question the run recorded as a gap, as the report does (PC2)", async () => {
+    const words = "běh na ni odpovědět nemohl (měří ji jen otázky, na které běh neodpoví)";
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6", analysis_outcome: "COMPLETED" }),
+    ] });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: {}, modules: {
+        executive: { outcome: "COMPLETED", summary: null, key_findings: [], claims: [], violations: [], research_question_answers: [
+          { question: "Kdo pije kávu?", answer: "Hlavně ráno.", claim_ids: [], gap: words },
+          { question: "Co lidé pijí?", answer: "Čaj a kávu.", claim_ids: [], gap: null },
+        ] },
+      } }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const marked = await screen.findByText(tv("research.exec.results.answerGap", { words }));
+    expect(marked.closest("div")?.textContent).toContain("Kdo pije kávu?");
+    expect(document.querySelectorAll("[data-answer-gap]")).toHaveLength(1);
+  });
+
   it("puts every module's key findings first, each with the numbers it cites, and keeps every word formatted", async () => {
     const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
       step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6" }),
@@ -1527,6 +1634,36 @@ describe("Results", () => {
     expect(within(note).getByText("Odchylka od 18.6.6")).toBeTruthy();
     expect(within(note).getByText("top_box: 2 v 18.6.6, zde 1")).toBeTruthy();
     expect(within(note).getByText("Nahrazený vzorec: agg.kish")).toBeTruthy();
+  });
+
+  it("says beside a number the analysis and report never cite that they do not, from the rating the aggregate stored (PC2)", async () => {
+    const reason = "Absolutní WTP/velikost trhu není validovaný claim.";
+    const rated = { ...AGGREGATE, payload: { aggregate: { ...AGGREGATE.payload.aggregate, questions: {
+      q2: { ...AGGREGATE.payload.aggregate.questions.q2, evidence: { rating: "RED", mode: "REFUSE", question_type: "absolute_value", reason } },
+      t1: { ...AGGREGATE.payload.aggregate.questions.t1, evidence: { rating: "AMBER", mode: "JUST_SHOW", question_type: "rating_scale", reason: "Bez holdoutu." } },
+    } } } };
+    api({ ...listed(COMPLETED), "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => rated });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
+    const q2 = await findMeasure("q2");
+    expect(within(q2).getByText(tv("research.exec.results.fidelityRefused", { reason }))).toBeTruthy();
+    const t1 = await findMeasure("t1");
+    expect(t1.querySelector("[data-fidelity-refused]")).toBeNull();
+  });
+
+  it("says why a run has no Sociomap, from the note it stored, and explains no map that is not there (PC17)", async () => {
+    const note = "Návrh nemá sledovanou sadu; Sociomapa nevznikla.";
+    const none = { ...SOCIOMAP, payload: { sociomap: { methodology_status: "INTERNAL_ONLY", batteries: [], note } } };
+    api({
+      ...listed(COMPLETED),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => none,
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Sociomapy" }));
+    expect(await screen.findByText(note)).toBeTruthy();
+    expect(screen.queryByText(t("research.exec.results.mapToolNotInAia"))).toBeNull();
+    expect(screen.queryByText(t("research.exec.results.mapsByMethod"))).toBeNull();
   });
 
   it("shows a fictional run's aggregates labelled as fiction, hides a suppressed cell, keeps the Sociomap internal", async () => {
@@ -1828,7 +1965,7 @@ describe("Results", () => {
       "GET /api/v1/studies/STU-1/deep-research/runs": () => [review],
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/context": () => earlier,
       "POST /api/v1/studies/STU-1/research/runs/RUN-1/report/context": () =>
-        new Response(JSON.stringify({ code: "context_report_refused", message: "fingerprint_mismatch", details: {} }), { status: 409 }),
+        new Response(JSON.stringify({ code: "context_report_refused", message: "the evidence, policy, method status or harness no longer match this outcome", details: { reason: "fingerprint_mismatch" } }), { status: 409 }),
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     const report = await card();
@@ -1840,8 +1977,8 @@ describe("Results", () => {
     expect(report.getByText("schváleno v AIA")).toBeTruthy();
     fireEvent.click(report.getByRole("button", { name: "Připravit znovu podle současné skladby" }));
     await waitFor(() => expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/context")).toHaveLength(1));
-    // Refused: the earlier report is still the one offered.
-    expect(await report.findByRole("alert")).toBeTruthy();
+    // Refused: the earlier report is still the one offered, and why is said in words (PC17).
+    expect((await report.findByRole("alert")).textContent).toBe(t("research.exec.results.analysisStale"));
     expect(report.getByRole("button", { name: /Stáhnout zprávu/ })).toBeTruthy();
   });
 
@@ -1886,6 +2023,30 @@ describe("Results", () => {
     // Fictional data has no client version, and says why.
     expect(report.getByRole("radio", { name: "Pro klienta" }).getAttribute("aria-disabled")).toBe("true");
     expect(report.getByText(/Klientská zpráva vzniká jen z běhu s AI respondenty z populace/)).toBeTruthy();
+  });
+
+  it("still downloads and approves the report of a delivered study, which starts no new work", async () => {
+    // productization-coherence PC1: one flag gated both editing and the report, so closing a
+    // study for edits would have taken its deliverable away with them.
+    const createObjectURL = stubDownloads();
+    api({
+      ...listed(reportRun()),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => reportStatus(),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/download": () =>
+        new Response(new Blob(["docx bytes"]), { status: 200, headers: { "X-AIA-Artifact-Id": "ART-report", "X-AIA-Review-State": "DRAFT_UNAPPROVED" } }),
+    });
+    const delivered = { ...TEST_FRAME, canEdit: false, canReview: true, closed: { status: "DELIVERED", deliveredAt: null } };
+    render(<ResearchScreen step="results" frame={delivered} />);
+    expect(await screen.findByText(t("aia.study.closed.DELIVERED"))).toBeTruthy();
+    const report = await card();
+    expect(await report.findByText("Stav: Koncept čeká na schválení.")).toBeTruthy();
+    fireEvent.click(report.getByRole("button", { name: /Stáhnout zprávu/ }));
+    await waitFor(() => expect(createObjectURL).toHaveBeenCalledOnce());
+    expect(report.getByRole("button", { name: /Schválit/ })).toBeTruthy();
+    // Nothing on the page starts work: no analysis, retry or literature run is offered.
+    expect(screen.queryByRole("button", { name: /Spustit rešerši výsledků/ })?.hasAttribute("disabled") ?? true).toBe(true);
   });
 
   it("asks for the run's own report's PDF when its step made none", async () => {
@@ -2386,6 +2547,38 @@ describe("Interpretation research", () => {
     expect(within(rejected).getByText("Káva brzy zmizí z trhu.")).toBeTruthy();
     expect(within(rejected).getByText("číslo není v citovaném podkladu · číslo není v citaci")).toBeTruthy();
     expect(within(rejected).getByText("· shrnutí cituje číslo mimo podklady")).toBeTruthy();
+  });
+
+  it.each([
+    ["no query left", 0, true],
+    ["queries left and nothing passed", 5, false],
+  ])("an interpretation review with no finding says one thing: %s (review, Codex on #479)", async (_, sent, nothingSent) => {
+    const completed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-questions" })] });
+    const review = { run_id: "RUN-deep", purpose: "INTERPRETATION_RESEARCH", target: { research_run_id: "RUN-1" },
+      preset: "QUICK", status: "COMPLETED", phase: "COMPLETED", is_terminal: true, retryable: false,
+      created_at: null, actual_cost_usd: 0, steps: [] };
+    api({ ...listed(completed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: true, modules: {}, pending: {} }),
+      "GET /api/v1/studies/STU-1/deep-research/runs": () => [review],
+      "GET /api/v1/studies/STU-1/deep-research/runs/RUN-deep/bundle": () => ({ quality_status: "INSUFFICIENT", accepted: [], snapshots: [], quarantined: [] }),
+      "GET /api/v1/studies/STU-1/deep-research/runs/RUN-deep/coverage": () => ({ tracks: 4, blocked_tracks: sent ? 0 : 4, queries_proposed: 6,
+        queries_sent: sent, queries_refused: 0, hits: 0, sources_captured: 0, findings_accepted: 0, findings_quarantined: 0 }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Rešerše a zpráva" }));
+    await screen.findByText("Přijatá zjištění");
+    const searchedEmpty = /Rešerše dokončila hledání, ale žádné externí tvrzení neprošlo ověřením/;
+    if (nothingSent) {
+      // A run that sent no query never also reads as one that searched and found nothing.
+      expect((await screen.findByText(tv("research.deep.searchedNothing", { blocked: 4, tracks: 4 }), { exact: false })).closest("[data-searched-nothing]")).toBeTruthy();
+      expect(screen.queryByText(searchedEmpty)).toBeNull();
+    } else {
+      expect(await screen.findByText(searchedEmpty)).toBeTruthy();
+      expect(document.querySelector("[data-searched-nothing]")).toBeNull();
+    }
   });
 
   it("requires confirmation before cancelling an active interpretation review", async () => {

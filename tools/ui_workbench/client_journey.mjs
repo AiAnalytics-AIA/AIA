@@ -103,17 +103,18 @@ try {
   await table.waitFor();
   checks.push("Výzkumy is a table with status filters");
 
-  // Znalosti: add, file, label, edit, then remove what this journey made.
-  await visit(clientPath);
-  await page.getByRole("button", { name: "Přidat znalost" }).click();
-  await page.getByRole("heading", { name: "Přidat znalost klienta" }).waitFor();
-  const form = page.getByRole("heading", { name: "Přidat znalost klienta" }).locator("xpath=ancestor::section[1]");
+  // Znalosti: write, file, label, edit, then remove what this journey made. A file comes in
+  // through Přidat podklady (the intake journey); text is written on Znalosti ("Napsat znalost").
+  await visit(`${clientPath}/knowledge`);
+  await page.getByRole("button", { name: "Napsat znalost" }).click();
+  await page.getByRole("heading", { name: "Napsat znalost klienta" }).waitFor();
+  const form = page.getByRole("heading", { name: "Napsat znalost klienta" }).locator("xpath=ancestor::section[1]");
   await form.getByRole("combobox").selectOption("FACT");
   await form.getByRole("textbox").first().fill(names.item);
-  await form.getByRole("button", { name: "Přidat znalost" }).click();
+  await form.getByRole("button", { name: "Uložit znalost" }).click();
   const row = main.getByRole("row").filter({ hasText: names.item });
   await row.waitFor();
-  checks.push("Přidat znalost from Přehled opens the form on Znalosti; the item is listed at once");
+  checks.push("Napsat znalost on Znalosti opens the form; the item is listed at once");
 
   const nav = page.getByRole("navigation", { name: "Pohledy, složky a štítky" });
   await nav.getByRole("button", { name: "Nová složka" }).click();

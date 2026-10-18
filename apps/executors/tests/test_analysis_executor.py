@@ -3,10 +3,10 @@
 A research run's eight analysis modules are drafted by a model and decided by the
 evidence gate. Everything is real except the network: the database, the lease and
 heartbeat, the reservations, the ledger, the artifact store, the scope, the gateway and
-its Bedrock adapter. ``ScriptedModels`` is an ``HttpTransport`` standing in for Bedrock
-Converse: it answers each analysis turn with a draft built from the evidence the turn
-itself sends (or with the recorded failure a test asks for), and each respondent block
-as ``test_ai_fieldwork.py`` does.
+its Bedrock adapter. ``ScriptedModels`` (``scripted_bedrock.py``) is an ``HttpTransport``
+standing in for Bedrock Converse: it answers each analysis turn with a draft built from the
+evidence the turn itself sends (or with the recorded failure a test asks for), and each
+respondent block as ``test_ai_fieldwork.py`` does.
 
 The analysis nodes are added to the research graph here the way the workflow
 integration will add them to the template (``analysis_step_definitions``, each
@@ -18,12 +18,10 @@ from __future__ import annotations
 import hashlib
 import io
 import json
-import threading
 import time
 import uuid
 import zipfile
-from collections.abc import Callable, Mapping
-from dataclasses import dataclass, field
+from collections.abc import Callable
 from typing import Any
 
 import pytest
@@ -86,7 +84,6 @@ from aia_core.infrastructure.ai_usage_repository import AIUsageRepository
 from aia_core.infrastructure.artifact_repository import ArtifactStatus
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.model_adapters.transport import (
-    HttpRequest,
     HttpResponse,
     TransportFailure,
 )
@@ -117,10 +114,9 @@ from aia_executors.workbench import workbench_registry_for
 from aia_worker.executor import ShutdownRequested, StepExecutor
 from aia_worker.settings import WorkerSettings
 from aia_worker.worker import Worker
+from scripted_bedrock import PROFILE, ScriptedModels, Signer, runtime_env
 from sqlalchemy import select
 
-PROFILE = "eu.example.analysis-model-v1:0"  # a test id; the real one is configuration
-ANALYSIS_TOOL = "aia_analysis_module"
 QUESTIONS = ("Co lidé ráno pijí?", "Jak často pijí kávu?")
 MODULES = [m.value for m in AnalysisModuleId]
 
@@ -146,48 +142,17 @@ DESIGN: dict[str, Any] = {
 
 
 def _env(world: Any, **overrides: str) -> dict[str, str]:
-    env = {
-        "AIA_ENV": "test",
-        "AIA_AI_RUNTIME_ENABLED": "true",
-        "AIA_AI_ROUTE_ID": "bedrock-eu-primary",
-        "AIA_BEDROCK_REGION": "eu-central-1",
-        "AIA_BEDROCK_MODEL_ID": PROFILE,
-        "AIA_AI_POLICY_VERSION": "aia-model-policy-test-1",
-        # Test prices, not Bedrock's: the real entry is dated configuration (ADR 0010).
-        "AIA_BEDROCK_INPUT_USD_PER_MTOK": "3",
-        "AIA_BEDROCK_OUTPUT_USD_PER_MTOK": "15",
-        "AIA_BEDROCK_MAX_OUTPUT_TOKENS": "8192",
-        "AIA_BEDROCK_CONTEXT_WINDOW_TOKENS": "200000",
-        "AIA_AI_ROUTE_EU_PROCESSING_APPROVED": "true",
-        "AIA_AI_ROUTE_EXCLUDED_FROM_TRAINING": "true",
-        "AIA_AI_ROUTE_APPROVED_FOR": "CLASS_C_INTERNAL",
-        "AIA_AI_FIELDWORK_MAX_OUTPUT_TOKENS": "1024",
-        "AIA_AI_FIELDWORK_RESERVATION_USD": "0.25",
-        # Today RESEARCH_REASONING is bound only with the design agents' switch; the
-        # analysis switch and its binding are the activation work's (see the plan).
-        "AIA_AI_RESEARCH_AGENTS_ENABLED": "true",
-        "AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS": "8192",
-        "AIA_AI_RESEARCH_RESERVATION_USD": "2",
-        "AIA_AI_FICTIONAL_CLIENT_IDS": world.client_id,
-        "AIA_AI_MATERIAL_CLASSIFICATIONS": "["
-        + ",".join(
-            MaterialApproval(
-                sha256=material_sha256(content),
-                data_class=DataClass.CLASS_C_INTERNAL,
-                provenance="generated wholly by this test",
-            ).model_dump_json()
-            for content in (
-                DESIGN,
-                {**DESIGN, "research_plan": {"research_questions": ["Proč lidé pijí čaj?"]}},
-                {k: v for k, v in DESIGN.items() if k != "research_plan"},
-                {**DESIGN, "n": 150},
-                {**DESIGN, "n": 50},
-            )
-        )
-        + "]",
-    }
-    env.update(overrides)
-    return env
+    return runtime_env(
+        world.client_id,
+        (
+            DESIGN,
+            {**DESIGN, "research_plan": {"research_questions": ["Proč lidé pijí čaj?"]}},
+            {k: v for k, v in DESIGN.items() if k != "research_plan"},
+            {**DESIGN, "n": 150},
+            {**DESIGN, "n": 50},
+        ),
+        **overrides,
+    )
 
 
 def _settings(world: Any, **overrides: str) -> AIRuntimeSettings:
@@ -196,169 +161,7 @@ def _settings(world: Any, **overrides: str) -> AIRuntimeSettings:
     return settings
 
 
-class Signer:
-    def sign(self, *, method: str, url: str, headers: Any, body: bytes) -> dict[str, str]:
-        return {**dict(headers), "authorization": "AWS4-HMAC-SHA256 test"}
-
-
-# --------------------------------------------------------------------------- #
-# the recorded model
-# --------------------------------------------------------------------------- #
-
-
-def _shown(value: float) -> str:
-    return f"{value:g}".replace(".", ",")
-
-
-def grounded_draft(payload: Mapping[str, Any]) -> dict[str, Any]:
-    """What a careful analyst returns: one cited number, written as the table gives it."""
-    rows = payload["evidence"]
-    row = next(
-        (r for r in rows if ".pct." in r["evidence_ref"] or r["evidence_ref"].endswith(".mean")),
-        rows[0],
-    )
-    shown = _shown(row["value"])
-    return {
-        "module": payload["module"],
-        "summary": f"Podle fiktivních respondentů je odhad {shown}; jde o modelovaný údaj.",
-        "research_question_answers": [
-            {"question": q, "answer": f"Modelovaný odhad je {shown}.", "claim_ids": ["c1"]}
-            for q in payload["research_questions"]
-        ],
-        "key_findings": [{"text": f"Modelovaný odhad: {shown}.", "claim_ids": ["c1"]}],
-        "numeric_claims": [
-            {
-                "claim_id": "c1",
-                "evidence_ref": row["evidence_ref"],
-                "metric": row["metric"],
-                "value": row["value"],
-                "unit": row["unit"],
-            }
-        ],
-    }
-
-
-def invented_draft(payload: Mapping[str, Any]) -> dict[str, Any]:
-    """A draft whose number is in no evidence row: the gate refuses it every time."""
-    return {
-        "module": payload["module"],
-        "summary": "Kávu pije 55 % fiktivních respondentů.",
-        "research_question_answers": [
-            {"question": q, "answer": "Nelze doložit.", "claim_ids": []}
-            for q in payload["research_questions"]
-        ],
-        "key_findings": [],
-        "numeric_claims": [],
-    }
-
-
-def _respondent(schema: Mapping[str, Any]) -> dict[str, Any]:
-    def resolve(node: Mapping[str, Any]) -> Mapping[str, Any]:
-        ref = node.get("$ref")
-        return schema["$defs"][ref.rsplit("/", 1)[-1]] if isinstance(ref, str) else node
-
-    out: dict[str, Any] = {}
-    for item_id, node in schema["properties"].items():
-        props = resolve(node)["properties"]
-        if "probabilities" in props:
-            k = int(props["probabilities"]["minItems"])
-            out[item_id] = {"probabilities": [0.6] + [0.4 / (k - 1)] * (k - 1)}
-        elif "selected" in props:
-            out[item_id] = {"selected": [1]}
-        else:
-            out[item_id] = {"text": "Fiktivní odpověď."}
-    return out
-
-
-@dataclass
-class ScriptedModels:
-    """An ``HttpTransport`` for Bedrock Converse. Records every request it is sent.
-
-    Analysis requests are counted per module: ``(module, n)`` is that module's n-th call.
-    A repair turn sends the evidence, the last draft and the repair, not the history, so
-    which *turn* a call answered is the executor's to record (``CallRecord``), not this
-    double's to infer.
-    """
-
-    #: modules whose every draft cites a number no evidence row holds
-    invent: set[str] = field(default_factory=set)
-    #: (module, n) whose draft cites a number no evidence row holds
-    invent_calls: set[tuple[str, int]] = field(default_factory=set)
-    #: (module, n) answered with a draft that breaks the output contract
-    off_contract: set[tuple[str, int]] = field(default_factory=set)
-    #: (module, n) -> a recorded failure: an HttpResponse or a TransportFailure
-    failures: dict[tuple[str, int], HttpResponse | TransportFailure] = field(default_factory=dict)
-    #: called with (module, n) before an analysis call is answered
-    hook: Callable[[str, int], None] | None = None
-    requests: list[HttpRequest] = field(default_factory=list)
-    asked: list[tuple[str, int]] = field(default_factory=list)
-    lock: threading.Lock = field(default_factory=threading.Lock)
-
-    def calls(self, module: str) -> list[int]:
-        return [n for m, n in self.asked if m == module]
-
-    def messages(self, module: str, n: int) -> list[str]:
-        """The texts of the messages a module's n-th call sent."""
-        request = self.requests[self._index[(module, n)]]
-        return [m["content"][0]["text"] for m in request.body["messages"]]
-
-    def __post_init__(self) -> None:
-        self._index: dict[tuple[str, int], int] = {}
-
-    async def send(self, request: HttpRequest, *, timeout_s: float) -> HttpResponse:
-        tool = request.body["toolConfig"]["tools"][0]["toolSpec"]
-        with self.lock:
-            self.requests.append(request)
-            number = len(self.requests)
-            payload: dict[str, Any] = {}
-            if tool["name"] == ANALYSIS_TOOL:
-                payload = json.loads(request.body["messages"][0]["content"][0]["text"])
-                key = (payload["module"], len(self.calls(payload["module"])) + 1)
-                self.asked.append(key)
-                self._index[key] = number - 1
-        if tool["name"] == ANALYSIS_TOOL:
-            if self.hook is not None:
-                self.hook(*key)
-            failure = self.failures.get(key)
-            if isinstance(failure, TransportFailure):
-                raise failure
-            if isinstance(failure, HttpResponse):
-                return failure
-            if key in self.off_contract:
-                answer: dict[str, Any] = {**grounded_draft(payload), "confidence": "high"}
-            elif payload["module"] in self.invent or key in self.invent_calls:
-                answer = invented_draft(payload)
-            else:
-                answer = grounded_draft(payload)
-            usage = {"inputTokens": 2400, "outputTokens": 380, "totalTokens": 2780}
-        else:
-            answer = _respondent(tool["inputSchema"]["json"])
-            usage = {"inputTokens": 900, "outputTokens": 120, "totalTokens": 1020}
-        return HttpResponse(
-            status=200,
-            headers={"x-amzn-requestid": f"req-{number:05d}"},
-            body={
-                "output": {
-                    "message": {
-                        "role": "assistant",
-                        "content": [
-                            {
-                                "toolUse": {
-                                    "toolUseId": f"t{number}",
-                                    "name": tool["name"],
-                                    "input": answer,
-                                }
-                            }
-                        ],
-                    }
-                },
-                "stopReason": "tool_use",
-                "usage": usage,
-                "metrics": {"latencyMs": 900},
-            },
-        )
-
-
+#: One analysis call as ScriptedModels reports it, at the test prices of ``runtime_env``.
 ANALYSIS_CALL_USD = (2400 * 3 + 380 * 15) / 1_000_000
 
 
@@ -800,6 +603,16 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
     assert "bez doložené odpovědi, viz kapitola Respondenti a výpočet" in body
     assert body.count("Bez doložené odpovědi") == len(recorded)
     assert "Ani tuto odpověď nečtěte jako doloženou" in body
+    # Results reads the same record (PC2): the analysis route marks every answer to a gap, in
+    # the words the report prints, so the screen never reads one as measured.
+    from aia_api.routers.research import run_analysis
+
+    with world.sessions() as session:
+        shown = run_analysis(started.run_id, world.lead_scope(session), session, store)
+    answers = [a for m in shown["modules"].values() for a in m["research_question_answers"]]
+    gapped = {" ".join(str(g["research_question"]).split()) for g in recorded}
+    to_gaps = [a for a in answers if " ".join(a["question"].split()) in gapped]
+    assert to_gaps and all(a["gap"] and a["gap"] in body for a in to_gaps)
     record_property("report_artifact_id", report_id)
     record_property("report_sha256", report.sha256)
     record_property("report_review_state", report.metadata["review_state"])
@@ -1456,7 +1269,10 @@ def test_a_run_stored_under_the_previous_harness_can_still_be_repaired(
     assert old.value.reason == "fingerprint_mismatch"
     with world.sessions() as session:
         stored = stored_analysis(session, world.lead_scope(session), store, run_id=first)
-    assert stored.retryable == (AnalysisModuleId.OBJECTS,)
+    # The blocked module, and every module completed under the earlier harness (PC3): today's
+    # refuses to re-admit them, and the retry below asks every one again.
+    assert stored.retryable == tuple(AnalysisModuleId)
+    assert set(stored.stale) == set(AnalysisModuleId) - {AnalysisModuleId.OBJECTS}
 
     asked_before = len(models.asked)
     retry = _retry_analysis(world, store, first)
@@ -1464,6 +1280,55 @@ def test_a_run_stored_under_the_previous_harness_can_still_be_repaired(
     assert _run(world, retry.run_id)["status"] is WorkflowRunStatus.COMPLETED
     assert sorted(m for m, _ in models.asked[asked_before:]) == sorted(MODULES)
     assert _reconstruct(world, store, retry.run_id).complete
+
+
+def test_a_run_whose_every_module_an_earlier_harness_completed_is_repaired_over_its_data(
+    world: Any,
+    store: InMemoryArtifactStore,
+    run_with: Callable[..., Worker],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """PC3: all eight modules completed, then the harness or a prompt moved. The run's analysis
+    was refused whole (fingerprint_mismatch), and with nothing BLOCKED or FAILED there was
+    nothing to retry: the analysis, its literature report and its Interpretation Research
+    stayed dark for good, or cost a whole run with new fieldwork. Now the modules are asked
+    again over the same dataset, and the run's own data is never collected again."""
+    import aia_core.application.analysis_results as analysis_results
+
+    today = analysis_results.harness_summary
+
+    def earlier(**kw: Any) -> Any:
+        return today(**kw).model_copy(update={"harness_version": "aia-analysis-harness-1"})
+
+    monkeypatch.setattr(analysis_results, "harness_summary", earlier)
+    models = ScriptedModels()
+    worker = run_with(models)
+    first = _started_with_analysis(world)
+    _drain(worker)
+    assert _run(world, first)["status"] is WorkflowRunStatus.COMPLETED
+    monkeypatch.undo()
+
+    with pytest.raises(ReconstructionRefused) as dark:
+        _reconstruct(world, store, first)
+    assert dark.value.reason == "fingerprint_mismatch"
+    with world.sessions() as session:
+        stored = stored_analysis(session, world.lead_scope(session), store, run_id=first)
+    assert stored.retryable == stored.stale == tuple(AnalysisModuleId)
+
+    dataset = next(s for s in _run(world, first)["steps"] if s["node_key"] == "run")["output"]
+    asked_before = len(models.asked)
+    retry = _retry_analysis(world, store, first)
+    _drain(worker)
+    second = _run(world, retry.run_id)
+    assert second["status"] is WorkflowRunStatus.COMPLETED, _unfinished(world, retry.run_id)
+    assert sorted(m for m, _ in models.asked[asked_before:]) == sorted(MODULES)
+    fieldwork = next(s for s in second["steps"] if s["node_key"] == "run")["output"]
+    assert (fieldwork["artifact_id"], fieldwork["reused"]) == (dataset["artifact_id"], True)
+    assert _reconstruct(world, store, retry.run_id).complete
+
+    with pytest.raises(AnalysisNotRetryable) as nothing:
+        _retry_analysis(world, store, retry.run_id)
+    assert nothing.value.reason == "nothing_to_retry"
 
 
 def test_a_run_cancelled_after_fieldwork_has_its_cancelled_modules_asked_over_its_data(

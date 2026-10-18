@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { t } from "@/i18n/t";
 import { ApiError, deepResearch, research, type DeepResearchBundle, type DeepResearchRun, type ResearchRun } from "@/lib/api";
 import { deepResearchRunningStep } from "@/lib/activity-orb";
 import { activityOf } from "@/lib/step-activity";
@@ -12,7 +13,10 @@ import { CodedWords } from "./CodedWords";
 import { withBudget } from "@/lib/budget-line";
 import { AiButton, Button, Field, Select } from "../ui";
 import { useResearch } from "./context";
+import { canReview } from "./frame";
 import { FormattedText } from "./FormattedText";
+import { DeepResearchWaits } from "./DeepResearchWaits";
+import { SearchedNothingNote, useSearchedNothing } from "./SearchedNothing";
 
 const message = (e: unknown) => e instanceof Error ? e.message : String(e);
 
@@ -24,10 +28,12 @@ const message = (e: unknown) => e instanceof Error ? e.message : String(e);
  */
 export function InterpretationResearch({ run, review = null, onReview }: { run: ResearchRun; review?: string | null; onReview?: (id: string | null) => void }) {
   const { frame, confirm } = useResearch();
+  // Reading a finished review, choosing it for the report and stopping one: a closed study allows them.
+  const mayReview = canReview(frame);
   const [jobs, setJobs] = useState<DeepResearchRun[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [bundleFor, setBundleFor] = useState<{ runId: string; value: DeepResearchBundle } | null>(null);
-  const [analysisReady, setAnalysisReady] = useState<"loading" | "ready" | "incomplete" | "unavailable">("loading");
+  const [analysisReady, setAnalysisReady] = useState<"loading" | "ready" | "incomplete" | "stale" | "unavailable">("loading");
   const [preset, setPreset] = useState<"QUICK" | "STANDARD">("QUICK");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +47,8 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
   const active = current ? deepResearchRunningStep(current.steps) : null;
   // The rešerše's feed, read live while one of its steps runs (lib/step-activity.ts).
   const feed = useStepActivity(current?.run_id ?? null, (since) => deepResearch.events(frame.studyId, current!.run_id, since), !!active);
+  // A finished review that sent no query is not one that searched and found nothing (PC18).
+  const nothingSearched = useSearchedNothing(frame.studyId, bundle && current ? current.run_id : null);
 
   useEffect(() => {
     let live = true;
@@ -62,14 +70,14 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
   useEffect(() => {
     let live = true;
     setBundleFor(null);
-    if (current?.status === "COMPLETED" && frame.canEdit) {
+    if (current?.status === "COMPLETED" && mayReview) {
       deepResearch.bundle(frame.studyId, current.run_id).then(
         value => { if (live) setBundleFor({ runId: current.run_id, value }); },
         (e: unknown) => { if (live) setError(message(e)); },
       );
     }
     return () => { live = false; };
-  }, [frame.studyId, frame.canEdit, current?.run_id, current?.status]);
+  }, [frame.studyId, mayReview, current?.run_id, current?.status]);
 
   useEffect(() => {
     if (!bundle) { setAnalysisReady("loading"); return; }
@@ -77,7 +85,7 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
     setAnalysisReady("loading");
     research.analysis(frame.studyId, run.run_id).then(
       value => { if (live) setAnalysisReady(value.complete === true ? "ready" : "incomplete"); },
-      () => { if (live) setAnalysisReady("unavailable"); },
+      (e: unknown) => { if (live) setAnalysisReady(e instanceof ApiError && e.code === "fingerprint_mismatch" ? "stale" : "unavailable"); },
     );
     return () => { live = false; };
   }, [bundle, frame.studyId, run.run_id]);
@@ -142,7 +150,8 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
       <details className="mt-2 text-xs text-ink-muted"><summary className="cursor-pointer">Identifikace rešerše</summary><p className="mt-1 break-all">{current.run_id}</p></details>
       {current.actual_cost_usd !== null ? <p className="mt-1 text-sm text-ink-muted">Skutečné náklady: {current.actual_cost_usd.toFixed(4)} USD</p> : null}
       {current.steps.map(s => ({ s, problem: stepProblem(s) })).filter(x => x.problem !== null).map(({ s, problem }) => <div key={s.node_key} className="mt-2 text-sm text-status-fault">{deepStepLabel(s.node_key)}: <CodedWords coded={problem!} /></div>)}
-      {!current.is_terminal ? <Button small disabled={busy || !frame.canEdit} onClick={() => control("cancel")}>Zrušit rešerši</Button> : null}
+      <DeepResearchWaits run={current} studyId={frame.studyId} canEdit={frame.canEdit} onChanged={() => setRefresh(n => n + 1)} onError={(e) => setError(message(e))} />
+      {!current.is_terminal ? <Button small disabled={busy || !mayReview} onClick={() => control("cancel")}>Zrušit rešerši</Button> : null}
       {current.retryable ? <AiButton small disabled={busy || !frame.canEdit} onClick={() => control("retry")}>Zkusit znovu</AiButton> : null}
     </div> : null}
     {bundle ? <div className="mt-4 space-y-3">
@@ -151,19 +160,21 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
         <div><p className="text-xs text-ink-muted">Zachycené zdroje</p><p className="text-xl font-semibold">{bundle.snapshots.length}</p></div>
         <div><p className="text-xs text-ink-muted">Pokrytí podklady</p><p className="text-sm font-semibold">{coverageWords(bundle.quality_status)}</p></div>
       </div>
-      {bundle.accepted.length === 0 ? <p role="note" className="rounded-control border border-status-you-ink/40 bg-status-you-wash p-3 text-sm leading-6">Rešerše dokončila hledání, ale žádné externí tvrzení neprošlo ověřením. Zachycené zdroje si můžete prohlédnout níže; zpráva z nich nesmí vytvářet benchmark ani literární závěr.</p> : null}
+      {nothingSearched ? <SearchedNothingNote coverage={nothingSearched} /> : null}
+      {bundle.accepted.length === 0 && !nothingSearched ? <p role="note" className="rounded-control border border-status-you-ink/40 bg-status-you-wash p-3 text-sm leading-6">Rešerše dokončila hledání, ale žádné externí tvrzení neprošlo ověřením. Zachycené zdroje si můžete prohlédnout níže; zpráva z nich nesmí vytvářet benchmark ani literární závěr.</p> : null}
       <div className="rounded-control border border-signal/30 bg-signal-wash p-4">
         <p className="mb-2 text-sm font-semibold">Tato rešerše ve zprávě</p>
         <p className="mb-3 text-sm leading-6">{bundle.accepted.length
           ? "Zpráva spojí uložené výsledky a sociomapy s přijatými externími podklady a jejich zdroji. Stažení nespouští další placený výzkum."
           : "Zpráva může uvést, že rešerše nepřinesla ověřené zjištění; nebude tvrdit, že obsahuje externě doložený benchmark. Stažení nespouští další placený výzkum."}</p>
         {analysisReady === "incomplete" ? <p role="status" className="mb-3 text-sm font-medium">Analýza běhu není úplná. Zprávu lze stáhnout až po dokončení všech jejích částí.</p> : null}
+        {analysisReady === "stale" ? <p role="status" className="mb-3 text-sm font-medium">{t("research.exec.results.analysisStale")}</p> : null}
         {analysisReady === "unavailable" ? <p role="status" className="mb-3 text-sm font-medium">Připravenost analýzy se nepodařilo ověřit. Obnovte stránku a zkuste to znovu.</p> : null}
         {analysisReady === "loading" ? <p role="status" className="mb-3 text-sm text-ink-muted">Ověřuji připravenost zprávy…</p> : null}
         <div className="flex flex-wrap gap-2">
           {used
-            ? <Button onClick={() => onReview?.(null)} disabled={busy || !frame.canEdit}>Nepoužívat ve zprávě</Button>
-            : <Button variant="primary" onClick={() => { if (current) { onReview?.(current.run_id); document.getElementById("complete-report-title")?.scrollIntoView?.({ block: "start" }); } }} disabled={busy || !frame.canEdit || analysisReady !== "ready"}>Použít ve zprávě</Button>}
+            ? <Button onClick={() => onReview?.(null)} disabled={busy || !mayReview}>Nepoužívat ve zprávě</Button>
+            : <Button variant="primary" onClick={() => { if (current) { onReview?.(current.run_id); document.getElementById("complete-report-title")?.scrollIntoView?.({ block: "start" }); } }} disabled={busy || !mayReview || analysisReady !== "ready"}>Použít ve zprávě</Button>}
         </div>
         <p className="mt-2 text-xs text-ink-muted">{used
           ? "Kompletní zpráva studie nahoře je teď varianta s touto rešerší: stáhnete ji jako DOCX, PDF se stejným obsahem tam, kde ho toto prostředí a stav studie dovolí, a schválíte tam."

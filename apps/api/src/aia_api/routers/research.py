@@ -44,6 +44,7 @@ from aia_core.application.report_export import (
     review_mark,
     stampable,
 )
+from aia_core.application.report_method import research_question_gap, research_question_gaps
 from aia_core.application.report_variants import (
     PdfState,
     VariantState,
@@ -308,6 +309,11 @@ class ResearchStepResponse(BaseModel):
     #: How a label reads ``data_origin``: ``SIMULATED``, ``MODELLED`` or ``UNKNOWN``; ``None``
     #: when the step stamped no origin.
     data_origin_kind: OriginKind | None = None
+    #: Why a step stopped for recovery (``RECOVERY_REQUIRED``, which keeps no waiting reason):
+    #: ``paid_call_uncertain`` (an attempt sent a paid call whose outcome is unknown, so nothing
+    #: repeats it) or ``attempts_exhausted``; ``None`` for any other step, or when its attempts
+    #: were not read (a listing) -- unknown, never guessed.
+    recovery_reason: Literal["paid_call_uncertain", "attempts_exhausted"] | None = None
 
 
 class ResearchRunPopulation(BaseModel):
@@ -860,6 +866,20 @@ def _fieldwork_source(request: Request) -> Any:
     return request.app.state.settings.research_fieldwork_source
 
 
+def _recovery_reason(
+    s: Mapping[str, Any],
+) -> Literal["paid_call_uncertain", "attempts_exhausted"] | None:
+    """Why a step stopped for recovery, from its attempts (PC14); ``None`` when it did not, or when
+    its attempts were not read."""
+    if s["status"] is not StepRunStatus.RECOVERY_REQUIRED or "attempts" not in s:
+        return None
+    if any(a["paid_call_dispatched"] and not a["paid_call_outcome_known"] for a in s["attempts"]):
+        return "paid_call_uncertain"
+    if s["attempts_recorded"] >= s["max_attempts"]:
+        return "attempts_exhausted"
+    return None
+
+
 def _step(s: dict[str, Any]) -> ResearchStepResponse:
     attempts = s.get("attempts") or []
     last = attempts[-1] if attempts else None
@@ -884,6 +904,7 @@ def _step(s: dict[str, Any]) -> ResearchStepResponse:
         analysis_outcome=str(output["outcome"])
         if s.get("kind") == ANALYSIS_STEP_KIND and output.get("outcome") in _ANALYSIS_OUTCOMES
         else None,
+        recovery_reason=_recovery_reason(s),
     )
 
 
@@ -1339,19 +1360,66 @@ def lift_budget_wait(
         raise _not_found("run") from exc
     except ResearchStepNotFound as exc:
         raise _not_found("step") from exc
-    except BudgetWaitNotLiftable as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={"code": "not_waiting_for_budget", "message": str(exc)},
-        ) from exc
-    except BudgetNotRaised as exc:
-        raise HTTPException(
+    except (BudgetWaitNotLiftable, BudgetNotRaised) as exc:
+        raise _budget_lift_refused(exc) from exc
+
+
+def _budget_lift_refused(exc: BudgetWaitNotLiftable | BudgetNotRaised) -> HTTPException:
+    """A refused lift, the same on every kind of a Study's work: nothing waits for budget
+    (409), or the budget offered would lower the cap (422)."""
+    if isinstance(exc, BudgetNotRaised):
+        return HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={
                 "code": "budget_not_raised",
                 "message": f"The study's budget is already {exc.current:.2f}; offer at least that.",
             },
-        ) from exc
+        )
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={"code": "not_waiting_for_budget", "message": str(exc)},
+    )
+
+
+def _runtime_park_refused(exc: RuntimeParkNotResumable) -> HTTPException:
+    """Nothing here waits for the AI runtime, or a step that does may not be offered again
+    (it sent a paid call, is being cancelled or has no attempt left): 409."""
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={"code": "runtime_park_not_resumable", "message": str(exc)},
+    )
+
+
+@router.post(
+    "/research/runs/{run_id}/resume",
+    response_model=ResearchRunResponse,
+    summary="Let a run parked for the AI runtime go on, once the runtime is on",
+    responses={
+        409: {
+            "model": ErrorResponse,
+            "description": "Nothing in the run waits for the AI runtime, or it may not go on",
+        },
+    },
+)
+def resume_run(run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep) -> ResearchRunResponse:
+    """Needs ``RUN_WORKFLOW`` on an open Study.
+
+    A step whose AI runtime is not deployed (fieldwork's AI respondents, an analysis module)
+    or whose gateway refused it before any call parks ``WAITING_PROVIDER`` /
+    ``ai_runtime_unavailable``, and no timer resumes it. Once the runtime is on, a person
+    offers the same run's parked steps to a worker again: same revision, pins and confirmed
+    ceiling, nothing re-chosen. A step that sent a paid call is never offered again here. If
+    the runtime is still off the step parks again, without spending an attempt.
+    """
+    runs = ResearchRuns(session, scope)
+    try:
+        return _run(runs.resume(run_id), scope)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ResearchRunNotFound as exc:
+        raise _not_found("run") from exc
+    except RuntimeParkNotResumable as exc:
+        raise _runtime_park_refused(exc) from exc
 
 
 @router.post(
@@ -1420,7 +1488,8 @@ def run_analysis_retryable(
 ) -> dict[str, Any]:
     """Read from the stored outcomes as they are, under whichever harness stored them, so a
     run made before a harness change can still be repaired (``…/analysis`` re-judges and
-    refuses those)."""
+    refuses those). ``stale``: the modules among them a model completed under an earlier
+    harness, which today's refuses to re-admit -- the reason, not a model's failure."""
     try:
         scope.require(Permission.EDIT_STUDY)
         analysis = stored_analysis(session, scope, store, run_id=run_id)
@@ -1432,7 +1501,11 @@ def run_analysis_retryable(
         raise HTTPException(
             status_code=409, detail={"code": exc.reason, "message": str(exc)}
         ) from exc
-    return {"run_id": run_id, "modules": [module.value for module in analysis.retryable]}
+    return {
+        "run_id": run_id,
+        "modules": [module.value for module in analysis.retryable],
+        "stale": [module.value for module in analysis.stale],
+    }
 
 
 _NOT_RETRYABLE_MESSAGES: Final = {
@@ -1564,10 +1637,15 @@ def run_artifact(
 def run_analysis(
     run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
 ) -> dict[str, Any]:
-    """Recheck stored outcomes against the frozen sources before showing prose."""
+    """Recheck stored outcomes against the frozen sources before showing prose.
+
+    Each answer to a research question carries ``gap``: what the run recorded at start about that
+    question when it recorded it as a gap (its verdict and why), else ``None`` -- the same words
+    the internal report prints beside it, so Results never reads such an answer as measured."""
     try:
         scope.require(Permission.EDIT_STUDY)
         analysis = reconstruct_run(session, scope, store, run_id=run_id)
+        gaps = research_question_gaps(ResearchRuns(session, scope).get(run_id)["metadata"])
     except ScopeDenied as exc:
         raise _refused(exc) from exc
     except ReconstructionRefused as exc:
@@ -1601,6 +1679,7 @@ def run_analysis(
                         "question": answer.question,
                         "answer": answer.answer,
                         "claim_ids": answer.claim_ids,
+                        "gap": research_question_gap(gaps, answer.question),
                     }
                     for answer in outcome.result.research_question_answers
                 ]
@@ -2136,8 +2215,16 @@ def prepare_contextual_report(
     except ReviewUnrecorded as exc:
         raise _unrecorded(exc) from exc
     except _CONTEXT_REFUSALS as exc:
+        # A refusal that names why carries it, so the screen can say it in words (PC17): the
+        # analysis an earlier harness built (fingerprint_mismatch) is repaired on Průběh.
+        reason = getattr(exc, "reason", None)
         raise HTTPException(
-            409, detail={"code": "context_report_refused", "message": str(exc)}
+            409,
+            detail={
+                "code": "context_report_refused",
+                "message": str(exc),
+                "details": {"reason": reason} if isinstance(reason, str) else {},
+            },
         ) from exc
     return _variant_response(
         run_id,
@@ -2527,9 +2614,9 @@ def _agent_errors(session: SessionDep) -> Iterator[None]:
             status_code=409, detail={"code": exc.reason, "message": str(exc)}
         ) from exc
     except RuntimeParkNotResumable as exc:
-        raise HTTPException(
-            status_code=409, detail={"code": "runtime_park_not_resumable", "message": str(exc)}
-        ) from exc
+        raise _runtime_park_refused(exc) from exc
+    except (BudgetWaitNotLiftable, BudgetNotRaised) as exc:
+        raise _budget_lift_refused(exc) from exc
     except (IntegrityError, ObjectNotFound) as exc:
         # The proposal's bytes failed verification on read: keep its CORRUPT mark.
         raise artifact_corrupt(session) from exc
@@ -2609,6 +2696,29 @@ def resume_agent_job(
         jobs = ResearchAgentJobs(session, scope)
         jobs.resume_runtime_park(run_id)
         return _agent_response(jobs.get(run_id), scope)
+
+
+@router.post(
+    "/research/agent-jobs/{run_id}/budget",
+    response_model=AgentJobResponse,
+    summary="Raise the study's budget and let an agent job that stopped at the cap go on",
+    responses={
+        409: {"model": ErrorResponse, "description": "The job is not waiting for budget"},
+        422: {"model": ErrorResponse, "description": "The budget offered is below the current one"},
+    },
+)
+def lift_agent_job_budget(
+    run_id: RunIdPath, body: BudgetLiftRequest, scope: StudyScopeDep, session: SessionDep
+) -> AgentJobResponse:
+    """Needs ``APPROVE_BUDGET`` and ``MANAGE_STUDY_BUDGET`` on an open Study, as a research
+    run's lift: the person names the budget the study is raised to, the job is offered to a
+    worker again, and the decision is written to the approval ledger. Asking the same action
+    again returns this job, so without this a job stopped at the cap ends only by a cancel."""
+    with _agent_errors(session):
+        jobs = ResearchAgentJobs(session, scope)
+        return _agent_response(
+            jobs.lift_budget_wait(run_id, budget_usd=body.budget_usd, note=body.note), scope
+        )
 
 
 @router.get("/research/agent-jobs/{run_id}/result", response_model=dict[str, Any])

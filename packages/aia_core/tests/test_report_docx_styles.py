@@ -72,6 +72,24 @@ def test_the_style_sheet_installs_with_no_theme_fonts() -> None:
     assert h1.find(qn("w:rPr")).find(qn("w:rFonts")).get(qn("w:ascii")) == STYLES["doc-h1"].font
 
 
+def test_chapters_flow_with_their_headings_kept_to_their_text() -> None:
+    """The owner's D5 (2026-10-17): no page break before every chapter -- short chapters stood
+    alone on near-empty pages -- while a heading stays with what follows it, no line is orphaned,
+    and a caption stays with its figure. The cover keeps its own page (a section of its own)."""
+    document = Document()
+    install_styles(document)
+    for name in (S.H1, S.APPENDIX):
+        props = document.styles[name].paragraph_format
+        assert props.page_break_before is not True, name
+        assert props.keep_with_next is True, name
+        assert props.space_before is not None and props.space_before.pt > 0, name
+    assert document.styles[S.BODY].paragraph_format.widow_control is True
+    assert document.styles[S.CAPTION].paragraph_format.keep_with_next is True
+    assert document.styles[S.FIGURE].paragraph_format.keep_with_next is True
+    # A deliberate break before a front-matter page is kept where the front matter asks for one.
+    assert document.styles[S.FRONT_HEADING_BREAK].paragraph_format.page_break_before is True
+
+
 def test_starter_theme_furniture_cannot_override_the_aia_template() -> None:
     from aia_core.infrastructure.report_docx.ooxml import el
 

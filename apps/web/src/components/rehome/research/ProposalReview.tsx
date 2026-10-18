@@ -13,7 +13,7 @@ import { useLayoutEffect, useRef } from "react";
 import { t, tv } from "@/i18n/t";
 import type { ResearchAgentResult } from "@/lib/api";
 import type { ResearchProject } from "@/research/model";
-import { proposalDiff } from "@/research/proposal-diff";
+import { proposalDiff, questionnaireReplacement } from "@/research/proposal-diff";
 import { proposedTrace } from "@/research/trace";
 import { proposalAnalysis } from "@/research/plan-edit";
 import type { ResearchState } from "@/research/store";
@@ -35,10 +35,13 @@ function Item({ kind, children }: { kind: "add" | "del"; children: string }) {
   );
 }
 
-export function ProposalReview({ result, state, onDecision }: {
+export function ProposalReview({ result, state, onDecision, canApply = true }: {
   result: ResearchAgentResult;
   state: Pick<ResearchState, "project" | "analysis">;
   onDecision: (apply: boolean) => void;
+  /** False on a study that takes no new work: the proposal is read, never applied; keeping the
+   * current design writes nothing and stays, so the review can always be closed (PC1). */
+  canApply?: boolean;
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
   useLayoutEffect(() => {
@@ -51,6 +54,8 @@ export function ProposalReview({ result, state, onDecision }: {
   const questionnaire = Array.isArray(result.result.proposal.sections);
   const traced = questionnaire ? proposedTrace(result.result.project as unknown as ResearchProject) : [];
   const dropped = Array.isArray(result.result.dropped_links) ? result.result.dropped_links.length : 0;
+  // What accepting does to the questionnaire there is now (PC6): own blocks are replaced.
+  const replacement = questionnaire ? questionnaireReplacement(state.project, result.result.project as { sections?: unknown }) : null;
   return (
     <section aria-labelledby="proposal-review-title" data-proposal-review className="scroll-mt-40 overflow-hidden rounded-card border border-ai-edge bg-surface-raised">
       <div className="flex flex-wrap items-center gap-2 border-b border-ai-edge bg-ai-wash px-4 py-2.5">
@@ -98,6 +103,18 @@ export function ProposalReview({ result, state, onDecision }: {
             </ul>
           </div>
         ) : null}
+        {replacement && (replacement.removed.length || replacement.added.length || replacement.replaced) ? (
+          <div data-questionnaire-replacement>
+            <h3 className="text-xs font-medium text-ink-muted">{t("research.questionnaire.replacement.title")}</h3>
+            <p className="mt-1 text-[13px] leading-5">
+              {tv("research.questionnaire.replacement.summary", { replaced: replacement.replaced, preserved: replacement.preserved, kept: replacement.kept })}
+            </p>
+            <ul className="mt-1 flex flex-col gap-1">
+              {replacement.removed.map((x) => <Item key={`d-${x}`} kind="del">{x}</Item>)}
+              {replacement.added.map((x) => <Item key={`a-${x}`} kind="add">{x}</Item>)}
+            </ul>
+          </div>
+        ) : null}
         {traced.length ? (
           <div>
             <h3 className="text-xs font-medium text-ink-muted">{t("research.questionnaire.proposed.title")}</h3>
@@ -121,9 +138,9 @@ export function ProposalReview({ result, state, onDecision }: {
         </details>
       </div>
       <div className="flex flex-wrap items-center gap-2 border-t border-ai-edge px-4 py-2.5">
-        <span className="flex-1 text-xs leading-4 text-ink-muted">Použití vytvoří novou revizi návrhu. Již vytvořený dotazník se nemění. Nové dimenze jsou návrhy; filtry a proveditelnost audience zkontrolujte samostatně.</span>
+        <span className="flex-1 text-xs leading-4 text-ink-muted">{!canApply ? t("research.proposalClosed") : questionnaire ? t("research.questionnaire.replacement.footer") : "Použití vytvoří novou revizi návrhu. Již vytvořený dotazník se nemění. Nové dimenze jsou návrhy; filtry a proveditelnost audience zkontrolujte samostatně."}</span>
         <Button onClick={() => onDecision(false)}>Ponechat současný návrh</Button>
-        <Button variant="primary" onClick={() => onDecision(true)}>Použít návrh</Button>
+        <Button variant="primary" disabled={!canApply} onClick={() => onDecision(true)}>Použít návrh</Button>
       </div>
     </section>
   );

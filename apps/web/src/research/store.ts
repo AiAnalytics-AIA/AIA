@@ -21,7 +21,11 @@ export type SaveState =
   | { kind: "saving" }
   | { kind: "failed"; message: string }
   /** Saved elsewhere since this copy was loaded: reload before editing on. */
-  | { kind: "conflict"; current: number | null };
+  | { kind: "conflict"; current: number | null }
+  /** Content that may not change here: a closed study, or a person who may only read. Nothing is saved. */
+  | { kind: "readonly" }
+  /** The study was closed after this copy was loaded: a change made here was refused, never saved. */
+  | { kind: "closed" };
 
 export type Analysis = { [k: string]: Json };
 
@@ -122,9 +126,9 @@ export class ResearchStore {
   constructor(
     initial: ResearchState,
     private readonly studyId: string,
-    private readonly opts: { onSaved?: (revision: number) => void; save?: SaveContent } = {},
+    private readonly opts: { onSaved?: (revision: number) => void; save?: SaveContent; readOnly?: boolean } = {},
   ) {
-    this.state = initial;
+    this.state = opts.readOnly ? { ...initial, save: { kind: "readonly" } } : initial;
   }
 
   get = (): ResearchState => this.state;
@@ -149,8 +153,10 @@ export class ResearchStore {
     change: (s: { project: ResearchProject; analysis: Analysis | null }) => { project: ResearchProject; analysis?: Analysis | null },
     { reason = "autosave", invalidateCheck = true }: { reason?: string; invalidateCheck?: boolean } = {},
   ): void {
+    // Content that may not change here is never changed, so nothing on screen reads as edited.
+    if (this.opts.readOnly) return;
     const r = change({ project: this.state.project, analysis: this.state.analysis });
-    const blocked = this.state.save.kind === "conflict";
+    const blocked = this.state.save.kind === "conflict" || this.state.save.kind === "closed";
     this.set({
       ...this.state,
       project: r.project,
@@ -178,7 +184,9 @@ export class ResearchStore {
     }
     if (this.inflight) await this.inflight;
     const s = this.state;
+    if (this.opts.readOnly) return;
     if (s.save.kind === "conflict") throw new ApiError(409, "stale_revision", CONFLICT_MESSAGE, null);
+    if (s.save.kind === "closed") throw new ApiError(403, "study_closed", CLOSED_MESSAGE, null);
     const body = {
       content: s.project,
       analysis: s.analysis,
@@ -203,6 +211,9 @@ export class ResearchStore {
         if (e instanceof ApiError && e.status === 409 && e.code === "stale_revision") {
           const current = typeof e.details.current_revision === "number" ? e.details.current_revision : null;
           this.set({ ...this.state, save: { kind: "conflict", current } });
+        } else if (e instanceof ApiError && e.code === "study_closed") {
+          // Closed by someone else while this copy was open: a retry can never succeed.
+          this.set({ ...this.state, save: { kind: "closed" } });
         } else {
           this.set({ ...this.state, save: { kind: "failed", message: e instanceof Error ? e.message : String(e) } });
         }
@@ -236,6 +247,7 @@ export class ResearchStore {
 }
 
 export const CONFLICT_MESSAGE = "Obsah studie mezitím uložil někdo jiný. Načtěte ho znovu, než budete pokračovat.";
+export const CLOSED_MESSAGE = "Studie je uzavřená a změny nepřijímá. Načtěte ji znovu.";
 
 /** The API's save reason: the classic reasons are already this shape; anything else is `autosave`. */
 export function saveReason(reason: string): string {

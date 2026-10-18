@@ -54,3 +54,11 @@ export function stepProblem(step: Pick<ResearchStep, "status" | "waiting_reason"
   if (step.waiting_reason) return codeWords("research.exec.wait", step.waiting_reason);
   return null;
 }
+
+/**
+ * Whether a finished Deep Research run sent no query at all: every web track was blocked (no search
+ * route in this deployment, or every query refused). Its empty bundle is then not a search that found
+ * nothing, and is never said to be one (PC18). Unknown coverage is not "nothing searched".
+ */
+export const searchedNothing = (coverage: { queries_sent: number } | null | undefined): boolean =>
+  !!coverage && coverage.queries_sent === 0;

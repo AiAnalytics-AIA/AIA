@@ -33,6 +33,7 @@ import {
   suggestedPersonaDims,
   applyRecommendedSample,
   withApproval,
+  chosenDimensions,
 } from "./persona";
 
 // Dimenze against the classic interface's own functions, run under Node with
@@ -137,13 +138,16 @@ describe("the recommended and approved dimensions are the classic ones", () => {
       expect(got.project).toEqual(ran.p);
     });
   }
-  it("removing the last dimension brings the recommended ones back, as the classic does (OI-54)", () => {
+  it("removing the last dimension leaves none chosen; the classic brought the recommended ones back (OI-54)", () => {
     const p = make({ persona_dimensions: { approved: ["media"] }, research_plan: { recommended_topics: ["zdraví", "cena"] } });
     const ran = classic("removeCatalogDimension1789('media');personaApproved()", { p });
     const removed = removeDimension(p, "media");
     expect(removed.project).toEqual(classic("removeCatalogDimension1789('media')", { p }).p);
+    // The classic's next draw refilled the approval (withApproval is its reading, pinned here)...
     expect(withApproval(removed.project).approved).toEqual(["zdravi", "cena"]);
     expect(withApproval(removed.project).project).toEqual(ran.p);
+    // ...AIA's screen and saves read what was chosen: none (owner, 2026-10-18).
+    expect(chosenDimensions(removed.project)).toEqual([]);
   });
   for (const [name, fn, call] of [
     ["add", (p: ResearchProject) => addDimension(p, "politika"), "addCatalogDimension1789('politika')"],
@@ -152,11 +156,30 @@ describe("the recommended and approved dimensions are the classic ones", () => {
     ["autofill", (p: ResearchProject) => autofill(p), "autofillPersonaDims()"],
   ] as const) {
     it(`${name}, from an approval and from none`, () => {
-      for (const p of [make({ persona_dimensions: { approved: ["media", "cena"] } }), make({ research_plan: { recommended_topics: ["cena", "rodina"] } })]) {
+      const chosen = make({ persona_dimensions: { approved: ["media", "cena"] } });
+      const none = make({ research_plan: { recommended_topics: ["cena", "rodina"] } });
+      for (const p of [chosen, none]) {
         const ran = classic(call, { p });
         const got = fn(p);
-        expect(got.project).toEqual(ran.p);
         expect(ran.saves).toEqual([[got.reason, true]]);
+        if (p === chosen || name === "autofill") {
+          expect(got.project).toEqual(ran.p);
+          continue;
+        }
+        // From no choice, AIA's one deviation here (OI-54, owner 2026-10-18): the classic changed its
+        // refill, the recommended set, as if it had been chosen; AIA changes only what was chosen.
+        // Everything else the change saves is the classic's.
+        const { persona_dimensions: classicDims, ...classicRest } = ran.p;
+        const { persona_dimensions: ours, ...rest } = got.project;
+        expect(rest).toEqual(classicRest);
+        const applied = (from: string[]) => {
+          const a = new Set(from);
+          if (name === "remove") a.delete("cena");
+          else a.add(name === "add" ? "politika" : "media");
+          return [...a];
+        };
+        expect((classicDims as { approved: string[] }).approved).toEqual(applied(suggestedPersonaDims(p)));
+        expect((ours as { approved: string[] }).approved).toEqual(applied([]));
       }
     });
   }
@@ -179,7 +202,7 @@ describe("the sample size is recommendedSample1789 and its input", () => {
     const handler = html.match(/onchange="(PROJECT\.n=Math\.max[^"]*)"/)![1];
     for (const v of ["800", "10", "99999", "", "0", "abc", "250.5"]) {
       const ran = legacy.run<Ran>(`${RESET}PROJECT=__p;(function(){${handler}}).call({value:__v});${OUT}`, { __p: withApproval(base).project, __v: v });
-      const got = setSampleSize(base, v);
+      const got = setSampleSize(withApproval(base).project, v);
       expect(got.project).toEqual(ran.p);
       expect(ran.saves).toEqual([[got.reason, true]]);
     }
@@ -205,9 +228,13 @@ describe("the sample size is recommendedSample1789 and its input", () => {
 describe("the AI suggestion and the dimension requests are the classic ones", () => {
   it("the model's dimensions are approved without the catalogue check, as the classic does (OI-53)", async () => {
     const r = { dimensions: ["Zdraví", "vztah k AI", "Úplně nová věc", ""], new_dimension_suggestions: [{ label: "Důvěra v AI" }] };
-    const p = make({ pre_research: { accepted: [1] } });
+    // A project with dimensions chosen, so the classic's refill (OI-54) is not what is compared.
+    const p = withApproval(make({ pre_research: { accepted: [1] } })).project;
     const ran = await classicAsync("(renderPersonaBase(),suggestPersonaAI())", { p, result: r });
     expect(ran.jobs).toEqual([{ ep: "/api/persona/suggest", payload: suggestPayload(p, ACTIVE), title: SUGGEST_TITLE, opts: { maxMs: 300000, warnMs: SUGGEST_WARN_MS } }]);
+    // With none chosen, the model is told none: the classic sent its refill as the approval.
+    const unchosen = make({ pre_research: { accepted: [1] } });
+    expect((suggestPayload(unchosen, ACTIVE).project as ResearchProject).persona_dimensions).toMatchObject({ approved: [] });
     const got = applySuggestion(p, r);
     expect(got.project).toEqual(ran.p);
     expect(ran.saves).toEqual([[got.reason, true]]);
@@ -226,11 +253,14 @@ describe("the AI suggestion and the dimension requests are the classic ones", ()
   });
   it("addCustomDimension1789: the request, the record, the library refreshed", async () => {
     const r = { dimension_id: "DIM-1", proposal_id: "PROP-1" };
-    const ran = await classicAsync("(renderPersonaBase(),addCustomDimension1789())", { result: r, inputs: { customDim1789: { value: "  Vztah k AI ve zdravotnictví " } } });
+    const drawn = withApproval(base).project; // dimensions chosen: the classic's refill (OI-54) is not compared
+    const ran = await classicAsync("(renderPersonaBase(),addCustomDimension1789())", { p: drawn, result: r, inputs: { customDim1789: { value: "  Vztah k AI ve zdravotnictví " } } });
     expect(requestLabel("  Vztah k AI ve zdravotnictví ")).toBe("Vztah k AI ve zdravotnictví");
     expect(ran.posts).toEqual([{ ep: "/api/library/dimension/request", b: requestBody("Vztah k AI ve zdravotnictví", "document_or_research"), t: 30000 }]);
     expect(ran.gets.sort()).toEqual(["/api/library", "/api/library/system-catalog", "/api/populations", "/api/results-registry?sync=1"].sort());
-    expect(recordRequest(base, "Vztah k AI ve zdravotnictví", "document_or_research", r, new Date(NOW)).project).toEqual(ran.p);
+    expect(recordRequest(drawn, "Vztah k AI ve zdravotnictví", "document_or_research", r, new Date(NOW)).project).toEqual(ran.p);
+    // With none chosen, the record carries none (the classic saved its refill beside it).
+    expect(recordRequest(base, "Vztah k AI ve zdravotnictví", "document_or_research", r, new Date(NOW)).project.persona_dimensions).toMatchObject({ approved: [] });
     expect(ran.saves).toEqual([["requested_dimension_1793", true]]);
     expect(ran.toasts).toEqual([REQUEST_DONE]);
     expect((await classicAsync("addCustomDimension1789()", { inputs: { customDim1789: { value: "  " } } })).alerts).toEqual([REQUEST_EMPTY]);
@@ -239,12 +269,12 @@ describe("the AI suggestion and the dimension requests are the classic ones", ()
     const x = { label: "Důvěra v AI", why: "Mění ochotu", suggested_predictors: ["vek", "vzdelani"], source_strategy: "either" };
     const r = { dimension_id: "D2" };
     const run = (s: unknown) =>
-      legacy.run<Promise<Ran>>(`(async()=>{${RESET}PROJECT=__p;RESULT=__r;PERSONA_AI_SUGGESTION={new_dimension_suggestions:[__x]};renderPersonaBase();await requestAISuggestedDimension1793(0);return ${OUT}})()`, { __p: base, __r: r, __x: s });
+      legacy.run<Promise<Ran>>(`(async()=>{${RESET}PROJECT=__p;RESULT=__r;PERSONA_AI_SUGGESTION={new_dimension_suggestions:[__x]};renderPersonaBase();await requestAISuggestedDimension1793(0);return ${OUT}})()`, { __p: withApproval(base).project, __r: r, __x: s });
     const ran = await run(x);
     const q = suggestedRequest(x);
     expect(ran.posts).toEqual([{ ep: "/api/library/dimension/request", b: requestBody(q.label, q.sourceStrategy, q.extra), t: 30000 }]);
     expect(ran.posts[0].b).toMatchObject({ rationale: "Mění ochotu", origin: "claude", spec: { predictors: [{ column: "vek", direction: "positive", strength: 1 }, { column: "vzdelani", direction: "positive", strength: 1 }] } });
-    expect(recordRequest(base, q.label, q.sourceStrategy, r, new Date(NOW)).project).toEqual(ran.p);
+    expect(recordRequest(withApproval(base).project, q.label, q.sourceStrategy, r, new Date(NOW)).project).toEqual(ran.p);
     expect(ran.toasts).toEqual([REQUEST_AI_DONE]);
     // No strategy from the model: "either".
     const b = suggestedRequest({ label: " Bez strategie " });

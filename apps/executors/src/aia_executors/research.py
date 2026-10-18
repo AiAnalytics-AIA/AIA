@@ -128,7 +128,8 @@ _DATA_READY: Final[dict[OriginKind, str]] = {
 }
 _RUNTIME_UNAVAILABLE_MESSAGE: Final = (
     "AI respondenti zatím nejsou nasazeni. Běh čeká u sběru dat; nic nebylo vymyšleno "
-    "ani nahrazeno a další kroky se nespustí, dokud sběr neproběhne."
+    "ani nahrazeno a další kroky se nespustí, dokud sběr neproběhne. Až budou nasazeni, "
+    "pokračujte v běhu na Průběhu."
 )
 
 
@@ -740,7 +741,7 @@ class SociomapExecutor(_Step):
                     "methodology_status": result["methodology_status"],
                 },
             )
-        context.progress("Sociomapa spočtena (interní)", artifact_id=artifact.artifact_id)
+        context.progress("Sociomapa spočtena", artifact_id=artifact.artifact_id)
         return _produced(
             step,
             artifact,

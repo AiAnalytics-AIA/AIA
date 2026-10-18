@@ -266,6 +266,8 @@ describe("the methodology's versions", () => {
     // The just-saved version is put in force from its confirmation, the one button offering it.
     fireEvent.click(within(section).getByRole("button", { name: "Uvést aia-sociomap-4+e1 v platnost" }));
     const confirm = await found("[data-methodology-activate]", section);
+    // Putting an edited Sociomap in force says its maps will be internal, before it is confirmed (PC17).
+    expect(confirm.querySelector("[data-sociomap-internal]")).toBeTruthy();
     fireEvent.change(within(confirm).getByLabelText("Důvod (zapíše se do historie)"), { target: { value: "ověřeno" } });
     fireEvent.click(within(confirm).getByRole("button", { name: "Potvrdit" }));
     await waitFor(() => expect(within(section).getByText("uložená verze")).toBeTruthy());
@@ -274,6 +276,8 @@ describe("the methodology's versions", () => {
 
     fireEvent.click(within(section).getByRole("button", { name: "Vrátit na aia-sociomap-3 z kódu" }));
     const back = await found("[data-methodology-activate]", section);
+    // Back to the code's preset: nothing to warn about.
+    expect(back.querySelector("[data-sociomap-internal]")).toBeNull();
     fireEvent.click(within(back).getByRole("button", { name: "Potvrdit" }));
     await waitFor(() => expect(within(section).getByText("z kódu")).toBeTruthy());
     expect(sent.filter((s) => s.method === "PUT").at(-1)?.body).toEqual({ version_number: null, reason: "" });

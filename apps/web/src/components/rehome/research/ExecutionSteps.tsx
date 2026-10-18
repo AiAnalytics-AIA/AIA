@@ -47,6 +47,7 @@ import {
   hasUnknownOrigin,
   isModelled,
   isSynthetic,
+  fidelityRefusal,
   mayRetryAnalysis,
   outlookByVerdict,
   outlookCounts,
@@ -82,16 +83,18 @@ import {
 } from "@/lib/research-execution";
 import { runDestination, runState } from "@/lib/run-state";
 import { codedText, codeWords } from "@/lib/reason-words";
-import { budgetLine, type StudyBudget, withBudget } from "@/lib/budget-line";
+import { withBudget } from "@/lib/budget-line";
 import { reportStatus, reportStatusWords } from "@/lib/report-status";
 import type { Tone } from "@/lib/tone";
 import { CodedWords } from "./CodedWords";
 import { CONFLICT_MESSAGE } from "@/research/store";
 import { projectVariants, selectedVariant } from "@/research/plan";
-import { dimensionLabels, withApproval } from "@/research/persona";
+import { chosenDimensions, dimensionLabels } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
 import { ActionDock, Switch } from "../step";
-import { AiButton, Button, Chip, Field, TextArea, TextInput } from "../ui";
+import { AiButton, Button, Chip } from "../ui";
+import { BudgetLift } from "./BudgetLift";
+import { canReview } from "./frame";
 import { useFrame } from "./frame-hook";
 import { InspectorSlot } from "./Inspector";
 import { ResearchContext, useResearch } from "./context";
@@ -384,7 +387,7 @@ function Receipt({ revision, readiness }: { revision: number; readiness: Readine
     ["plan", clip(variant?.title || state.analysis?.problem_summary) || "—"],
     ["questionnaire", tv("research.exec.counts", { questions: readiness.questions, batteries: readiness.batteries, objects: readiness.objects, n: readiness.n ?? "—" })],
     ["audience", clip(p.audience?.description || p.audience?.dataset_name) || "—"],
-    ["persona", tv("research.exec.receiptDims", { d: withApproval(p).approved.length, n: readiness.n ?? "—" })],
+    ["persona", tv("research.exec.receiptDims", { d: chosenDimensions(p).length, n: readiness.n ?? "—" })],
   ];
   return (
     <Card title={tv("research.exec.revision", { revision })}>
@@ -726,7 +729,13 @@ export function RunStep() {
         setStarting(false);
         return;
       }
-      router.push(stepHref("progress"));
+      // Any other found run is opened and said to be found, never passed off as a new start
+      // (PC13: a second "Spustit výzkum" on the same design opened the old run in silence).
+      // A start whose answer was lost, asked again, finds the run it made: that is followed plainly.
+      const ownLostStart = acknowledged !== undefined && acknowledges(started, acknowledged);
+      router.push(started.created === false && !ownLostStart
+        ? `${stepHref("progress")}?run=${encodeURIComponent(started.run_id)}&found=1`
+        : stepHref("progress"));
     } catch (e) {
       setStartError(message(e));
       setStarting(false);
@@ -821,7 +830,7 @@ export function RunStep() {
         ready={prepared.kind === "ready" && prepared.readiness.ready && frame.canEdit && !blocked && !choosing && !unacknowledged}
         note={
           !frame.canEdit
-            ? t("research.exec.readOnly")
+            ? t(frame.closed ? "research.exec.closed" : "research.exec.readOnly")
             : prepared.kind !== "ready"
               ? null
               : !prepared.readiness.ready
@@ -1009,99 +1018,42 @@ function useRun(): [ResearchRun | null | undefined, () => void, (r: ResearchRun)
   return [run, () => setVersion((v) => v + 1), follow, error];
 }
 
-/**
- * A step the study's budget stopped (AWAITING_BUDGET) can be let through by a person who may spend:
- * they name a new total, never lower than the budget now, and the cap stays hard -- the step stops
- * again if that is still not enough. The decision is recorded by the API; nothing here decides it.
- */
-function BudgetLift({ run, step, act, busy }: { run: ResearchRun; step: ResearchStep; act: (fn: () => Promise<ResearchRun>) => Promise<void>; busy: boolean }) {
-  const frame = useFrame();
-  const [current, setCurrent] = useState<{ budget: number; spent: number | null; study: StudyBudget } | null | undefined>(undefined);
-  const [amount, setAmount] = useState("");
-  const [note, setNote] = useState("");
-  useEffect(() => {
-    let live = true;
-    api.study(frame.studyId).then(
-      (s) => {
-        if (!live) return;
-        const budget = typeof s.budget_usd === "number" ? s.budget_usd : null;
-        // A spend the API did not report is unknown, never zero.
-        setCurrent(budget === null ? null : { budget, spent: typeof s.spent_usd === "number" ? s.spent_usd : null, study: s });
-        if (budget !== null) setAmount(String(budget));
-      },
-      () => live && setCurrent(null),
-    );
-    return () => {
-      live = false;
-    };
-  }, [frame.studyId, run.run_id]);
-  const total = amount.trim() === "" ? Number.NaN : Number(amount);
-  const valid = current != null && Number.isFinite(total) && total >= current.budget;
-  return (
-    <form
-      aria-label={t("research.exec.budget.title")}
-      className="mt-1 flex flex-col gap-2 rounded-sm border border-border bg-surface p-3"
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (valid) void act(() => research.liftBudget(frame.studyId, run.run_id, step.node_key, total, note.trim()));
-      }}
-    >
-      {current === undefined ? (
-        <p className="text-xs text-ink-muted">{t("research.loading")}</p>
-      ) : current === null ? (
-        <p role="alert" className="text-xs text-status-fault">{t("research.exec.budget.unknown")}</p>
-      ) : (
-        <p className="text-xs">
-          {current.spent === null ? tv("research.exec.budget.statusSpentUnknown", { budget: current.budget.toFixed(2) }) : tv("research.exec.budget.status", { budget: current.budget.toFixed(2), spent: current.spent.toFixed(2) })}{" "}
-          {budgetLine(current.study)}
-        </p>
-      )}
-      <div className="flex flex-wrap items-end gap-3">
-        <Field label={t("research.exec.budget.amount")} className="w-48">
-          <TextInput type="number" inputMode="decimal" min={current?.budget ?? 0} step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} disabled={current == null} />
-        </Field>
-        <Field label={t("research.exec.budget.note")} className="min-w-48 flex-1">
-          <TextArea rows={1} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} className="min-h-9 w-full" />
-        </Field>
-        <Button type="submit" variant="primary" disabled={!valid || busy}>{t("research.exec.budget.lift")}</Button>
-      </div>
-      <p className="text-xs text-ink-muted">{t("research.exec.budget.hardCap")}</p>
-    </form>
-  );
-}
-
 // ------------------------------------------------------------ Progress -------
 
 /**
  * The modules of a finished run a person may ask again (`GET …/analysis/retryable`), or `null` while
  * there is nothing to ask about. Read once per finished run, not on every poll.
  */
-function useRetryableModules(run: ResearchRun | null | undefined): string[] | null {
+type Repairable = { modules: string[]; stale: string[] };
+
+function useRetryableModules(run: ResearchRun | null | undefined): Repairable | null {
   const frame = useFrame();
   const runId = run?.run_id ?? null;
   const possible = !!run && mayRetryAnalysis(run);
-  const [modules, setModules] = useState<{ runId: string; list: string[] } | null>(null);
+  const [modules, setModules] = useState<{ runId: string; list: Repairable } | null>(null);
   useEffect(() => {
     if (!possible || !runId) return;
     let live = true;
     research
       .retryableModules(frame.studyId, runId)
       .then((list) => live && setModules({ runId, list }))
-      .catch(() => live && setModules({ runId, list: [] }));
+      .catch(() => live && setModules({ runId, list: { modules: [], stale: [] } }));
     return () => {
       live = false;
     };
   }, [frame.studyId, runId, possible]);
-  return possible && modules && modules.runId === runId && modules.list.length ? modules.list : null;
+  return possible && modules && modules.runId === runId && modules.list.modules.length ? modules.list : null;
 }
 
 /** A finished run whose analysis a model could not complete: the data stands, the modules are asked again. */
-function AnalysisRepair({ run, modules, act, busy }: { run: ResearchRun; modules: string[]; act: (fn: () => Promise<ResearchRun>) => Promise<void>; busy: boolean }) {
+function AnalysisRepair({ run, modules: { modules, stale }, act, busy }: { run: ResearchRun; modules: Repairable; act: (fn: () => Promise<ResearchRun>) => Promise<void>; busy: boolean }) {
   const { confirm } = useResearch();
   const frame = useFrame();
+  const failed = modules.length - stale.filter((m) => modules.includes(m)).length;
   return (
     <Card title={t("research.exec.analysisRetry.title")} tone="notice" region>
-      <p className="text-sm">{tv("research.exec.analysisRetry.body", { n: modules.length })}</p>
+      {failed ? <p className="text-sm">{tv("research.exec.analysisRetry.body", { n: failed })}</p> : null}
+      {stale.length ? <p className="text-sm" data-stale-modules>{tv("research.exec.analysisRetry.stale", { n: stale.length })}</p> : null}
       <p className="mt-1 text-sm">{tv("research.exec.analysisRetry.modules", { list: modules.map((m) => stepLabel(`analysis_${m}`)).join(", ") })}</p>
       <p className="mt-1 text-xs text-ink-muted">{t("research.exec.analysisRetry.how")}</p>
       {frame.canEdit ? (
@@ -1135,7 +1087,7 @@ function AnalysisRepair({ run, modules, act, busy }: { run: ResearchRun; modules
 function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
   run: ResearchRun; act: (fn: () => Promise<ResearchRun>) => Promise<void>; busy: boolean; refresh: () => void; actionError: string | null;
   /** Modules an analysis retry would ask again: the whole-run retry then steps back. */
-  repairable: string[] | null;
+  repairable: Repairable | null;
 }) {
   const { confirm, stepHref } = useResearch();
   const frame = useFrame();
@@ -1180,7 +1132,8 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
         {run.phase === "COMPLETED" ? (
           <a className="text-sm underline" href={`${stepHref("results")}?run=${encodeURIComponent(run.run_id)}`}>{t("research.exec.toResults")}</a>
         ) : null}
-        {frame.canEdit && !run.is_terminal ? (
+        {/* Stopping what runs is allowed on a closed study too: it starts nothing. */}
+        {canReview(frame) && !run.is_terminal ? (
           <Button
             disabled={busy}
             onClick={async () => {
@@ -1248,6 +1201,8 @@ export function ProgressStep() {
   if (run === null) return <Card><p className="text-sm">{t("research.exec.noRuns")}</p></Card>;
   const parked = parkedForRuntime(run);
   const failed = run.steps.find((s) => s.status === "FAILED");
+  // Opened by a start that found this run instead of starting one (PC13).
+  const foundByStart = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("found") === "1" && runFromQuery() === run.run_id;
   const listed = [...STEP_ORDER, ...ANALYSIS_ORDER.map((id) => `analysis_${id}`), "report"].map((key) => stepOf(run, key)).filter((s): s is ResearchStep => !!s);
   // A module stored BLOCKED succeeded as a step and is not finished as a result.
   const finished = listed.filter((s) => (s.status === "SUCCEEDED" && !needsRepair(s)) || s.status === "SKIPPED").length;
@@ -1257,6 +1212,7 @@ export function ProgressStep() {
       <InspectorSlot>
         <ProgressActions run={run} act={act} busy={busy} refresh={refresh} actionError={actionError} repairable={repairable} />
       </InspectorSlot>
+      {foundByStart ? <p role="status" data-found-by-start className="rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">{t("research.exec.foundByStart")}</p> : null}
       <OriginBanners run={run} />
       <RespondentsReceipt run={run} />
       <Card>
@@ -1276,9 +1232,15 @@ export function ProgressStep() {
           </div>
         ) : null}
         {parked ? (
-          <p role="status" className="mt-3 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">
-            {parked.node_key === "run" ? t("research.exec.parked") : tv("research.exec.parkedAt", { step: stepLabel(parked.node_key) })}
-          </p>
+          <div role="status" className="mt-3 flex flex-col gap-2 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">
+            <p>{parked.node_key === "run" ? t("research.exec.parked") : tv("research.exec.parkedAt", { step: stepLabel(parked.node_key) })}</p>
+            <p>{t("research.exec.parkedResume")}</p>
+            {frame.canEdit && !run.is_terminal ? (
+              <div>
+                <Button variant="primary" disabled={busy} onClick={() => void act(() => research.resume(frame.studyId, run.run_id))}>{t("research.exec.resume")}</Button>
+              </div>
+            ) : null}
+          </div>
         ) : null}
         {failed ? (
           <p role="alert" className="mt-3 text-sm text-status-fault">
@@ -1295,7 +1257,7 @@ export function ProgressStep() {
           {listed.map((s) => (
             <li key={s.node_key} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
               <div className="flex flex-wrap items-center gap-2">
-                <Chip tone={stepTone(s)}>{stepStatusLabel(s)}</Chip>
+                <Chip tone={stepTone(s, run.is_terminal)}>{stepStatusLabel(s, run.is_terminal)}</Chip>
                 <span className="font-medium">{stepLabel(s.node_key)}</span>
                 {stepOriginKind(s) ? (
                   <span title={s.data_origin ?? undefined} data-origin-kind={stepOriginKind(s)}>
@@ -1311,7 +1273,7 @@ export function ProgressStep() {
               {waitingDetail(s) ? <span className="text-xs text-ink">{waitingDetail(s)}</span> : null}
               <StepActivityPanel orb={researchStepOrb(run, s)} activity={activityOf(activity, s.step_id)} startedAt={s.started_at} label={stepLabel(s.node_key)} />
               {frame.canEdit && s.status === "AWAITING_BUDGET" && !run.is_terminal ? (
-                <BudgetLift run={run} step={s} act={act} busy={busy} />
+                <BudgetLift studyId={frame.studyId} busy={busy} lift={(total, note) => void act(() => research.liftBudget(frame.studyId, run.run_id, s.node_key, total, note))} />
               ) : null}
             </li>
           ))}
@@ -1323,7 +1285,10 @@ export function ProgressStep() {
 
 // ------------------------------------------------------------- Results -------
 
-type Loaded<T> = { state: "loading" } | { state: "ready"; value: T } | { state: "failed"; message: string } | { state: "hidden" };
+type Loaded<T> = { state: "loading" } | { state: "ready"; value: T } | { state: "failed"; message: string; code?: string } | { state: "hidden" };
+
+/** The analysis's refusal when a module was completed under an earlier harness: repairable on Průběh (PC3). */
+const STALE_ANALYSIS = "fingerprint_mismatch";
 
 function useArtifact(run: ResearchRun | null | undefined, nodeKey: string): Loaded<Artifact> | null {
   const frame = useFrame();
@@ -1474,26 +1439,34 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
       <details className="rounded-md border border-border bg-surface-raised p-3"><summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold">Jak používat mapu a AI pomoc</summary><p className="mt-2 text-sm leading-6 text-ink-muted">Začněte legendou a metodikou uloženou u konkrétní mapy. Polohu, výšku a barvu čtěte odděleně. Potlačené a chybějící hodnoty nenahrazujte nulou. AI pomoc pracuje s návrhem a schválenými znalostmi; číselné hodnoty z mapy se do otázky neposílají automaticky.</p></details>
       {sociomap && sociomap.state !== "hidden" ? (
         <Card id="res-sociomap" title={t("research.exec.results.sociomap")} tone="notice">
-          <p role="note" className="mb-3 text-sm font-semibold">{t("research.exec.results.mapsByMethod")}</p>
-          <p className="mb-3 text-sm text-ink-muted">{t("research.exec.results.mapToolNotInAia")}</p>
-          {sociomap.state === "ready" ? <SociomapView artifact={sociomap.value} run={run} /> : null}
+          {sociomap.state === "ready" && noMaps(sociomap.value) !== null ? (
+            // No battery was mapped: the note the run stored says why, and nothing explains a map that is not there (PC17).
+            <p role="note" data-no-maps className="text-sm">{noMaps(sociomap.value) || t("research.exec.results.noMaps")}</p>
+          ) : (
+            <>
+              <p role="note" className="mb-3 text-sm font-semibold">{t("research.exec.results.mapsByMethod")}</p>
+              <p className="mb-3 text-sm text-ink-muted">{t("research.exec.results.mapToolNotInAia")}</p>
+              {sociomap.state === "ready" ? <SociomapView artifact={sociomap.value} run={run} /> : null}
+            </>
+          )}
+          {sociomap.state === "loading" ? <p className="text-sm text-ink-muted">{t("research.loading")}</p> : null}
           {sociomap.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{sociomap.message}</p> : null}
         </Card>
       ) : null}
       {sociomapping && sociomapping.state !== "hidden" ? (
         <Card id="res-sociomapping" title={t("research.exec.results.sociomapping")} tone="notice">
           {sociomapping.state === "ready" ? (
-            <SociomappingView artifact={sociomapping.value} run={run} studyId={frame.studyId} canEdit={frame.canEdit} />
+            <SociomappingView artifact={sociomapping.value} run={run} studyId={frame.studyId} canEdit={canReview(frame)} />
           ) : null}
           {sociomapping.state === "loading" ? <p className="text-sm text-ink-muted">{t("research.loading")}</p> : null}
           {sociomapping.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{sociomapping.message}</p> : null}
         </Card>
       ) : null}
       </> }] : []),
-      ...(showAnalysis ? [{ id: "analysis", label: "AI analýza", description: "Souhrn, odpovědi na výzkumné otázky a omezení. Interpretace vychází z podkladů tohoto běhu a čeká na posouzení výzkumníkem.", content: <div id="res-analysis"><AnalysisResults key={run.run_id} run={run} spec={pinnedSpecification(specification?.state === "ready" ? specification.value : null)} /></div> }] : []),
+      ...(showAnalysis ? [{ id: "analysis", label: "AI analýza", description: "Souhrn, odpovědi na výzkumné otázky a omezení. Interpretace vychází z podkladů tohoto běhu a čeká na posouzení výzkumníkem.", content: <div id="res-analysis"><AnalysisResults key={run.run_id} run={run} progressHref={progressHref} spec={pinnedSpecification(specification?.state === "ready" ? specification.value : null)} /></div> }] : []),
       { id: "report", label: "Rešerše a zpráva", description: "Zkontrolujte připravenost interní zprávy, přijaté externí podklady a omezení rešerše. Dostupnost stažení závisí na úplnosti analýzy.", content: <>
         <div id="res-report">{report}</div>
-        {showAnalysis && frame.canEdit ? <InterpretationResearch key={run.run_id} run={run} review={review} onReview={setReview} /> : null}
+        {showAnalysis && canReview(frame) ? <InterpretationResearch key={run.run_id} run={run} review={review} onReview={setReview} /> : null}
         <details><summary className="cursor-pointer text-sm font-medium">Klientské znalosti a kontextová AI pomoc</summary><div className="mt-3">{knowledgeContext}</div></details>
       </> },
     ]} />;
@@ -1530,7 +1503,7 @@ function InternalReport({ run, progressHref }: { run: ResearchRun; progressHref:
       {loaded.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{loaded.message}</p> : null}
       {status?.state === "READY" ? (
         <>
-          <p className="text-sm">{reportStatusWords(reportStatus(status))}</p>
+          <p className="text-sm">{reportStatusWords(reportStatus(status, run.is_terminal))}</p>
           {/* A ready report rests on data, so a kind it does not state is unknown, never neutral. */}
           <p data-origin-kind={reportKind} className={reportKind === "MODELLED" ? "mt-2 text-sm" : "mt-2 text-sm text-status-fault"}>
             {t(REPORT_ORIGIN[reportKind])}
@@ -1539,10 +1512,10 @@ function InternalReport({ run, progressHref }: { run: ResearchRun; progressHref:
             id: status.artifact_id ?? "—", sha: status.sha256?.slice(0, 12) ?? "—", run: run.run_id,
           })}</p>
           {/* Downloading and approving happen in one place: the report card above (CompleteReport). */}
-          {frame.canEdit ? <p className="mt-2 text-xs text-ink-muted">{t("research.exec.results.reportActionsAbove")}</p> : null}
+          {canReview(frame) ? <p className="mt-2 text-xs text-ink-muted">{t("research.exec.results.reportActionsAbove")}</p> : null}
         </>
       ) : null}
-      {status && status.state !== "READY" ? <p className="text-sm text-ink-muted">{reportStatusWords(reportStatus(status))}</p> : null}
+      {status && status.state !== "READY" ? <p className="text-sm text-ink-muted">{reportStatusWords(reportStatus(status, run.is_terminal))}</p> : null}
       {status && status.state !== "READY" ? <ReportHolds run={run} progressHref={progressHref} /> : null}
     </Card>
   );
@@ -1586,7 +1559,7 @@ function ReportHolds({ run, progressHref }: { run: ResearchRun; progressHref: st
               <li key={step.node_key} data-hold={step.node_key} data-status={step.status}>
                 <span className="font-medium">{stepLabel(step.node_key)}</span>
                 {" · "}
-                {stepStatusLabel(step)}
+                {stepStatusLabel(step, run.is_terminal)}
                 {detail ? <span className="text-ink-muted">{`: ${detail}`}</span> : null}
               </li>
             ))}
@@ -1600,7 +1573,7 @@ function ReportHolds({ run, progressHref }: { run: ResearchRun; progressHref: st
   );
 }
 
-function AnalysisResults({ run, spec }: { run: ResearchRun; spec: CompiledSpecification | null }) {
+function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: CompiledSpecification | null; progressHref: string | null }) {
   const frame = useFrame();
   const [loaded, setLoaded] = useState<Loaded<ResearchAnalysis>>({ state: "loading" });
   const [selectedModule, setSelectedModule] = useState<(typeof ANALYSIS_ORDER)[number]>("executive");
@@ -1612,7 +1585,7 @@ function AnalysisResults({ run, spec }: { run: ResearchRun; spec: CompiledSpecif
       (value) => live && setLoaded({ state: "ready", value }),
       (error: unknown) => live && setLoaded(
         error instanceof ApiError && error.status === 403
-          ? { state: "hidden" } : { state: "failed", message: message(error) }
+          ? { state: "hidden" } : { state: "failed", message: message(error), code: error instanceof ApiError ? error.code : undefined }
       ),
     );
     return () => { live = false; };
@@ -1636,7 +1609,12 @@ function AnalysisResults({ run, spec }: { run: ResearchRun; spec: CompiledSpecif
           ? t(ANALYSIS_ORIGIN[resultOriginKind(loaded.value)!])
           : t("research.exec.results.analysisInternal")}
       </p>
-      {loaded.state === "failed" ? <p role="alert">{loaded.message}</p> : null}
+      {loaded.state === "failed" && loaded.code === STALE_ANALYSIS ? (
+        <div role="status" data-analysis-stale className="text-sm">
+          <p>{t("research.exec.results.analysisStale")}</p>
+          {progressHref ? <a className="mt-1 inline-block underline" href={progressHref}>{t("research.exec.results.analysisStaleRepair")}</a> : null}
+        </div>
+      ) : loaded.state === "failed" ? <p role="alert">{loaded.message}</p> : null}
       {loaded.state === "loading" ? <p>{t("research.loading")}</p> : null}
       {loaded.state === "ready" && loaded.value.aggregation_deviation ? (
         <div className="mb-3"><Deviation deviation={aggregateDeviation({ deviation: loaded.value.aggregation_deviation }) as AggregateDeviation} /></div>
@@ -1691,12 +1669,12 @@ function AnalysisResults({ run, spec }: { run: ResearchRun; spec: CompiledSpecif
               </> : selected?.outcome === "COMPLETED" ? <>
                 {selected.summary ? <FormattedText text={selected.summary} className="mt-3" /> : null}
                 {selected.research_question_answers.length ? <div className="mt-5 space-y-4"><h4 className="text-sm font-semibold">Odpovědi na výzkumné otázky</h4>
-                  {selected.research_question_answers.map((answer, index) => <div key={index} className="rounded-md bg-surface-sunken p-3"><h5 className="text-sm font-medium">{answer.question}</h5><FormattedText text={answer.answer} className="mt-1" /><CitedNumbers ids={answer.claim_ids} outcome={selected} spec={spec} /></div>)}
+                  {selected.research_question_answers.map((answer, index) => <div key={index} className="rounded-md bg-surface-sunken p-3"><h5 className="text-sm font-medium">{answer.question}</h5>{answer.gap ? <p role="note" data-answer-gap className="mt-1 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-sm">{tv("research.exec.results.answerGap", { words: answer.gap })}</p> : null}<FormattedText text={answer.answer} className="mt-1" /><CitedNumbers ids={answer.claim_ids} outcome={selected} spec={spec} /></div>)}
                 </div> : null}
                 {selected.key_findings.length ? <div className="mt-5"><h4 className="text-sm font-semibold">Hlavní zjištění</h4><ul className="mt-2 flex flex-col gap-3">{selected.key_findings.map((finding, index) => <li key={index} className="border-l-2 border-signal pl-3"><FormattedText text={finding.text} /><CitedNumbers ids={finding.claim_ids} outcome={selected} spec={spec} /></li>)}</ul></div> : null}
                 {!selected.summary && !selected.research_question_answers.length && !selected.key_findings.length ? <p className="mt-3 text-sm text-ink-muted">Tato část nemá textový souhrn.</p> : null}
                 {selected.claims.length ? <details className="mt-5 border-t border-border pt-3 text-xs text-ink-muted"><summary className="cursor-pointer">{t("research.exec.results.analysisEvidence")} a technický původ tvrzení</summary><p className="mt-2 break-words">{selected.claims.map((claim) => `${claim.claim_id} → ${claim.evidence_ref}`).join(", ")}</p></details> : null}
-              </> : <div className="mt-3 text-sm text-ink-muted"><p>{selectedStep ? `Stav kroku: ${stepStatusLabel(selectedStep)}` : "Tato část zatím nemá uložený výstup."}</p>{selectedPending && !selectedStep ? <p className="mt-1">{t("research.exec.results.analysisPending")}: <CodedWords inline coded={codeWords("research.exec.stepStatus", selectedPending)} /></p> : null}{selectedStep && waitingDetail(selectedStep) ? <p className="mt-1">{waitingDetail(selectedStep)}</p> : null}</div>}
+              </> : <div className="mt-3 text-sm text-ink-muted"><p>{selectedStep ? `Stav kroku: ${stepStatusLabel(selectedStep, run.is_terminal)}` : "Tato část zatím nemá uložený výstup."}</p>{selectedPending && !selectedStep ? <p className="mt-1">{t("research.exec.results.analysisPending")}: <CodedWords inline coded={codeWords("research.exec.stepStatus", selectedPending)} /></p> : null}{selectedStep && waitingDetail(selectedStep) ? <p className="mt-1">{waitingDetail(selectedStep)}</p> : null}</div>}
             </section>
           </div>
         </div>
@@ -1879,6 +1857,7 @@ function AggregateView({ artifact, run, specification }: { artifact: Artifact; r
               <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${measure.table.suppressed ? "bg-status-fault-wash text-status-fault" : measure.table.support === "INDICATIVE" ? "bg-status-you-wash text-status-you-ink" : "bg-signal-wash text-signal"}`}>{supportLabel(measure.table.support)}</span>
             </div>
             <p className="mt-2 text-xs text-ink-muted">{supportNote(measure.table)}</p>
+            <FidelityRefusal reason={fidelityRefusal(measure.result)} />
             <details className="mt-3 border-t border-border pt-3 text-sm" open={focused === anchor ? true : undefined}>
               <summary className="cursor-pointer font-medium">Odpovědi, intervaly a původ otázky</summary>
               <div className="mt-3"><Table table={measure.table} showSupportNote={false} /></div>
@@ -1889,6 +1868,16 @@ function AggregateView({ artifact, run, specification }: { artifact: Artifact; r
       </div>
       <details className="text-xs text-ink-muted"><summary className="cursor-pointer">Původ agregace</summary><Provenance artifact={artifact} run={run} /></details>
     </div>
+  );
+}
+
+/** A number the aggregate's stored rating refuses: shown, and said that nothing governed cites it. */
+function FidelityRefusal({ reason }: { reason: string | null }) {
+  if (reason === null) return null;
+  return (
+    <p role="note" data-fidelity-refused className="mt-2 rounded-sm border border-status-fault/40 bg-status-fault-wash p-2 text-sm">
+      {reason ? tv("research.exec.results.fidelityRefused", { reason }) : t("research.exec.results.fidelityRefusedBare")}
+    </p>
   );
 }
 
@@ -1909,6 +1898,13 @@ function Deviation({ deviation: d }: { deviation: AggregateDeviation }) {
       ) : <p className="text-xs text-ink-muted">{t(`${D}.unreadable`)}</p>}
     </div>
   );
+}
+
+/** The note a Sociomap artifact stored when it mapped no battery ("" when it stored none), or null when it has maps or its payload does not say. */
+function noMaps(artifact: Artifact): string | null {
+  const body = (artifact.payload as { sociomap?: { batteries?: unknown; note?: unknown } } | null)?.sociomap;
+  if (!body || !Array.isArray(body.batteries) || body.batteries.length) return null;
+  return typeof body.note === "string" ? body.note : "";
 }
 
 function SociomapView({ artifact, run }: { artifact: Artifact; run: ResearchRun }) {

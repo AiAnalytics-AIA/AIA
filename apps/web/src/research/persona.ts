@@ -109,10 +109,10 @@ export function suggestedPersonaDims(p: ResearchProject): string[] {
 }
 
 /**
- * personaApproved: the approved dimensions; an empty (or missing) approval is
- * replaced by the recommended set, so the last one can never be removed (OI-54).
- * The classic writes that refill into the project as the screen draws; the
- * port applies it in every change the screen makes, and draws it.
+ * personaApproved, the classic's reading: an empty (or missing) approval is replaced by the
+ * recommended set, so the last one can never be removed (OI-54), and the classic wrote that refill
+ * into the project as the screen drew. AIA does not apply it (`chosenDimensions`); this stays the
+ * reference the parity suite compares the deviation with.
  */
 export function withApproval(p: ResearchProject): { project: ResearchProject; approved: string[] } {
   const pd = ((p.persona_dimensions as Obj | undefined) || { approved: [] }) as Obj;
@@ -120,18 +120,37 @@ export function withApproval(p: ResearchProject): { project: ResearchProject; ap
   return { project: { ...p, persona_dimensions: { ...pd, approved } }, approved };
 }
 
-/** addCatalogDimension1789 */
+/**
+ * The dimensions the person chose, as the study stores them: an empty approval stays empty.
+ * With the classic's refill a new study showed four dimensions nobody chose, and the first save
+ * from Dimenze (the sample size, "hotovo", an AI suggestion, a request) stored them as chosen, while
+ * a study whose Dimenze was never touched ran with none (an empty selection filters no persona
+ * topic, `persona_topics.block_topics`). The recommended set is one action away (`autofill`,
+ * "Použít doporučené"). Owner, 2026-10-18 (OI-54); productization-coherence PC10.
+ */
+export function chosenDimensions(p: ResearchProject): string[] {
+  const pd = p.persona_dimensions as Obj | undefined;
+  return Array.isArray(pd?.approved) ? (pd.approved as unknown[]).map(String) : [];
+}
+
+/** The project with its approval as chosen: what every change on Dimenze saves beside its own. */
+function withChosen(p: ResearchProject): ResearchProject {
+  const pd = ((p.persona_dimensions as Obj | undefined) || {}) as Obj;
+  return { ...p, persona_dimensions: { ...pd, approved: chosenDimensions(p) } };
+}
+
+/** addCatalogDimension1789, over what was chosen (the classic added to its refill, OI-54). */
 export function addDimension(p: ResearchProject, id: string): Change {
-  const { project, approved } = withApproval(p);
-  const a = new Set(approved);
+  const project = withChosen(p);
+  const a = new Set(chosenDimensions(p));
   a.add(id);
   return { project: { ...project, persona_dimensions: { ...(project.persona_dimensions as Obj), approved: [...a] } }, reason: "dimension_catalog_add" };
 }
 
-/** removeCatalogDimension1789 (the last one comes back as the recommended set when drawn, OI-54). */
+/** removeCatalogDimension1789; removing the last one leaves none chosen (the classic refilled it, OI-54). */
 export function removeDimension(p: ResearchProject, id: string): Change {
-  const { project, approved } = withApproval(p);
-  const a = new Set(approved);
+  const project = withChosen(p);
+  const a = new Set(chosenDimensions(p));
   a.delete(id);
   return { project: { ...project, persona_dimensions: { ...(project.persona_dimensions as Obj), approved: [...a] } }, reason: "dimension_catalog_remove" };
 }
@@ -158,17 +177,17 @@ export function recommendedSample(p: ResearchProject): { n: number; why: string 
 /** The sample input's change: 50–5 000, and the recommendation when it is empty or 0. */
 export function setSampleSize(p: ResearchProject, raw: string): Change {
   const r = recommendedSample(p);
-  return { project: { ...withApproval(p).project, n: Math.max(50, Math.min(5000, +raw || r.n)) }, reason: "sample_n_1789" };
+  return { project: { ...withChosen(p), n: Math.max(50, Math.min(5000, +raw || r.n)) }, reason: "sample_n_1789" };
 }
 
 /** useRecommendedSample1789 */
 export function applyRecommendedSample(p: ResearchProject): Change {
-  return { project: { ...withApproval(p).project, n: recommendedSample(p).n }, reason: "sample_recommended_1789" };
+  return { project: { ...withChosen(p), n: recommendedSample(p).n }, reason: "sample_recommended_1789" };
 }
 
 /** The wizard's way on: the calibrated persona mode, then the run step. */
 export function personaDone(p: ResearchProject): Change {
-  return { project: { ...withApproval(p).project, persona_mode: "calibrated" }, reason: "persona_done_1789" };
+  return { project: { ...withChosen(p), persona_mode: "calibrated" }, reason: "persona_done_1789" };
 }
 
 // ---- the AI suggestion ------------------------------------------------------
@@ -182,10 +201,10 @@ export type Suggestion = {
   new_dimension_suggestions?: { label?: string; why?: string; evidence_needed?: string; suggested_predictors?: string[]; source_strategy?: string }[];
 };
 
-/** suggestPersonaAI's body for /api/persona/suggest: the project as the screen drew it. */
+/** suggestPersonaAI's body for /api/persona/suggest: the project with what was chosen. */
 export function suggestPayload(p: ResearchProject, active: ActiveDimensions): Record<string, unknown> {
   return {
-    project: withApproval(p).project,
+    project: withChosen(p),
     research: p.pre_research || {},
     dimension_labels: dimensionLabels(active),
     library_dimensions: active,
@@ -231,12 +250,11 @@ export function requestBody(label: string, sourceStrategy: string, extra: { why?
 }
 
 /**
- * The request as the project records it, waiting for evidence. The classic
- * screen has already written the approval's refill into the project when it
- * drew, so the save carries it too.
+ * The request as the project records it, waiting for evidence, beside what was chosen (the
+ * classic's save also carried the approval's refill it had drawn, OI-54).
  */
 export function recordRequest(p: ResearchProject, label: string, sourceStrategy: string, r: { dimension_id?: string; proposal_id?: string }, now: Date = new Date()): Change {
-  const drawn = withApproval(p).project;
+  const drawn = withChosen(p);
   const list = strings(drawn.requested_dimensions) as Json[];
   return {
     project: {

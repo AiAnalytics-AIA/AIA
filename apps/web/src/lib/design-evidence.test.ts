@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { DeepResearchBundle, DeepResearchRun, DesignProposal } from "@/lib/api";
-import { latestDesignRun, questionEvidence } from "./design-evidence";
+import { latestDesignRun, questionEvidence, isDesignRun } from "./design-evidence";
 
 const RQ = "Jak často lidé pijí kávu?";
 const finding = (id: string) => ({ evidence_id: id, claim: `Tvrzení ${id}`, quote: "citace", source_title: "Zdroj", source: "https://example.org", source_class: "B", confidence: 0.7 });
@@ -46,5 +46,14 @@ describe("Design Research evidence per research question", () => {
     const run = (run_id: string, purpose: string, phase: string) => ({ run_id, purpose, phase }) as DeepResearchRun;
     expect(latestDesignRun([run("A", "INTERPRETATION_RESEARCH", "COMPLETED"), run("B", "DESIGN_RESEARCH", "RUNNING"), run("C", "DESIGN_RESEARCH", "COMPLETED"), run("D", "DESIGN_RESEARCH", "COMPLETED")])?.run_id).toBe("C");
     expect(latestDesignRun([])).toBeNull();
+  });
+});
+
+describe("isDesignRun (PC18)", () => {
+  it("is a Design Research run, or one made before purposes were recorded; never an interpretation", () => {
+    expect(isDesignRun({ purpose: "DESIGN_RESEARCH" })).toBe(true);
+    expect(isDesignRun({ purpose: null })).toBe(true);
+    expect(isDesignRun({})).toBe(true);
+    expect(isDesignRun({ purpose: "INTERPRETATION_RESEARCH" })).toBe(false);
   });
 });

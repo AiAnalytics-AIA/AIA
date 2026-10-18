@@ -12,7 +12,11 @@ import { AiButton, Button } from "../ui";
 import { phaseLabel } from "@/lib/research-execution";
 import { coverageWords, deepStepLabel, stepProblem } from "@/lib/reason-words";
 import { CodedWords } from "./CodedWords";
+import { DeepResearchWaits } from "./DeepResearchWaits";
+import { SearchedNothing } from "./SearchedNothing";
+import { isDesignRun } from "@/lib/design-evidence";
 import { useResearch } from "./context";
+import { canReview } from "./frame";
 
 const POLL_MS = 2500;
 const message = (error: unknown) => error instanceof Error ? error.message : String(error);
@@ -27,22 +31,27 @@ function askedCeiling(e: unknown): number | null {
 
 export function DeepResearchPanel() {
   const { frame, store, confirm } = useResearch();
+  // Reading a finished review, choosing it for the report and stopping one: a closed study allows them.
+  const mayReview = canReview(frame);
   const [runs, setRuns] = useState<DeepResearchRun[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [bundle, setBundle] = useState<DeepResearchBundle | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // The design checkpoint's runs only (ADR 0021): an Interpretation Research run belongs to a
+  // run's results, where it is read and used; here it was the newest and preselected (PC18).
   const refresh = useCallback(async () => {
-    const jobs = await deepResearch.runs(frame.studyId);
+    const jobs = (await deepResearch.runs(frame.studyId)).filter(isDesignRun);
     setRuns(jobs);
     setSelected((old) => old ?? jobs[0]?.run_id ?? null);
   }, [frame.studyId]);
 
   useEffect(() => {
     let live = true;
-    deepResearch.runs(frame.studyId).then((jobs) => {
+    deepResearch.runs(frame.studyId).then((all) => {
       if (!live) return;
+      const jobs = all.filter(isDesignRun);
       setRuns(jobs);
       setSelected(jobs[0]?.run_id ?? null);
     }).catch((e: unknown) => { if (live) setError(message(e)); });
@@ -62,13 +71,13 @@ export function DeepResearchPanel() {
   useEffect(() => {
     let live = true;
     setBundle(null);
-    if (frame.canEdit && current?.phase === "COMPLETED") {
+    if (mayReview && current?.phase === "COMPLETED") {
       deepResearch.bundle(frame.studyId, current.run_id).then((result) => {
         if (live) setBundle(result);
       }).catch((e: unknown) => { if (live) setError(message(e)); });
     }
     return () => { live = false; };
-  }, [frame.studyId, frame.canEdit, current?.run_id, current?.phase]);
+  }, [frame.studyId, mayReview, current?.run_id, current?.phase]);
 
   const start = async () => {
     setBusy(true); setError(null);
@@ -123,13 +132,15 @@ export function DeepResearchPanel() {
           {current.steps.map((step) => ({ step, problem: stepProblem(step) })).filter((x) => x.problem !== null).map(({ step, problem }) => (
             <div key={step.node_key} className="text-status-fault">{deepStepLabel(step.node_key)}: <CodedWords coded={problem!} /></div>
           ))}
+          <DeepResearchWaits run={current} studyId={frame.studyId} canEdit={frame.canEdit} onChanged={() => void refresh().catch((e: unknown) => setError(message(e)))} onError={(e) => setError(message(e))} />
           {current.retryable && frame.canEdit ? <Button small variant="quiet" onClick={() => void retry(current.run_id)}>Opakovat běh</Button> : null}
-          {!current.is_terminal && frame.canEdit ? <Button small variant="quiet" onClick={() => void deepResearch.cancel(frame.studyId, current.run_id).then(refresh).catch((e: unknown) => setError(message(e)))}>Zrušit běh</Button> : null}
+          {!current.is_terminal && mayReview ? <Button small variant="quiet" onClick={() => void deepResearch.cancel(frame.studyId, current.run_id).then(refresh).catch((e: unknown) => setError(message(e)))}>Zrušit běh</Button> : null}
         </div>
       ) : null}
       {bundle ? (
         <div className="mt-4 space-y-4 text-sm">
           <p className="font-semibold">Výsledek: {coverageWords(bundle.quality_status)} · přijaté podklady {bundle.accepted.length} · odmítnuté {bundle.quarantined.length}</p>
+          {current ? <SearchedNothing studyId={frame.studyId} runId={current.run_id} /> : null}
           {bundle.accepted.map((item, index) => {
             const source = bundle.snapshots.find((snapshot) => snapshot.snapshot_id === item.evidence.source_ref);
             return <article key={`${item.evidence.source_ref}-${index}`} className="rounded-sm border border-border p-3">

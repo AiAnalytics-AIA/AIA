@@ -187,9 +187,18 @@ def compose_client_report(
             ),
             Paragraph(
                 text(
-                    "Zpráva uvádí návrh studie, kdo odpovídal, výsledky jednotlivých otázek "
-                    "a mapy hodnocených objektů. Uvádí jen čísla s dostatečnou oporou a vždy "
-                    "s 95% intervalem."
+                    # The maps only when a chapter of them was composed: none for a design with
+                    # no tracked set, a set that is not mappable, or a method the Sociomap
+                    # register does not approve (PC17; compose_map_sections returns none then).
+                    "Zpráva uvádí návrh studie, kdo odpovídal, výsledky jednotlivých otázek"
+                    + (" a mapy hodnocených objektů." if maps else ".")
+                    + " Uvádí jen čísla s dostatečnou oporou a vždy s 95% intervalem."
+                    + (
+                        ""
+                        if maps
+                        else " Mapy hodnocených objektů neobsahuje: žádná mapa tohoto běhu není "
+                        "spočtena metodou schválenou pro zprávy nebo nevznikla."
+                    )
                 )
             ),
         ),

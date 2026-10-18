@@ -100,7 +100,7 @@ export function ObjectMapView({ battery, dataOrigin, approvalOf }: {
         </span>
       </div>
       {map.outcome === "MAPPED" && map.layout ? (
-        <MappedView key={fingerprint} battery={battery} map={map} methodId={methodId} fingerprint={fingerprint} facts={facts} />
+        <MappedView approved={approval !== null} key={fingerprint} battery={battery} map={map} methodId={methodId} fingerprint={fingerprint} facts={facts} />
       ) : (
         <>
           <p role="alert" className="text-sm text-status-fault">{tv("research.exec.objectMap.notMappable", { message: map.not_mappable?.message ?? "—" })}</p>
@@ -159,7 +159,7 @@ function useChoreography() {
   return { cue, since };
 }
 
-function MappedView({ battery, map, methodId, fingerprint, facts }: { battery: BatteryWithMaps; map: ObjectMapArtifact; methodId: string; fingerprint: string; facts: ReactNode }) {
+function MappedView({ battery, map, methodId, fingerprint, facts, approved }: { battery: BatteryWithMaps; map: ObjectMapArtifact; methodId: string; fingerprint: string; facts: ReactNode; approved: boolean }) {
   const objects = useMemo(() => mapObjects(battery, map), [battery, map]);
   const links = useMemo(() => mapLinks(map), [map]);
   const frame = useMemo(() => mapFrame(map, objects), [map, objects]);
@@ -267,7 +267,7 @@ function MappedView({ battery, map, methodId, fingerprint, facts }: { battery: B
   const dimmed = new Set(selected && showLinks ? objects.filter((o) => o.id !== selected && o.id !== partner && !linked.has(o.id)).map((o) => o.id) : []);
   const marks: MarkState = { selected, partner, hovered, dimmed, labelsOnly };
   const pill = (on: boolean) => `cursor-pointer rounded-full border border-white/[.18] px-[11px] py-[5px] text-xs leading-4 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--viz-stage-ink)] ${on ? "bg-[var(--viz-stage-ink)] text-[var(--viz-stage)]" : "bg-white/[.06] text-[var(--viz-stage-ink)] hover:bg-white/[.12]"}`;
-  const snapshot = () => void saveSnapshot(area.current, tv("research.exec.objectMap.snapshotLabel", { method: methodId, fingerprint: fingerprint.slice(0, 12) }));
+  const snapshot = () => void saveSnapshot(area.current, snapshotNaming(approved, methodId, fingerprint));
 
   return (
     <div className="flex flex-wrap items-start gap-4">
@@ -579,7 +579,19 @@ function Facts({ map, title, methodId, fingerprint, originText }: { map: ObjectM
  * the page's tokens -- with a caption naming the method and fingerprint. Nothing is redrawn
  * from data and nothing is recomputed; the report's figure stays `object_map_figure.py`.
  */
-async function saveSnapshot(area: HTMLElement | null, caption: string): Promise<void> {
+/**
+ * A snapshot's caption and file name carry the map's own approval -- the Sociomap register's, as
+ * the chip above the map says -- never "internal" on a map the register approves for reports,
+ * and never "approved" on one it does not (PC7).
+ */
+export function snapshotNaming(approved: boolean, methodId: string, fingerprint: string): { caption: string; file: string } {
+  const args = { method: methodId, fingerprint: fingerprint.slice(0, 12) };
+  return approved
+    ? { caption: tv("research.exec.objectMap.snapshotLabelApproved", args), file: t("research.exec.objectMap.snapshotFileApproved") }
+    : { caption: tv("research.exec.objectMap.snapshotLabel", args), file: t("research.exec.objectMap.snapshotFile") };
+}
+
+async function saveSnapshot(area: HTMLElement | null, { caption, file }: { caption: string; file: string }): Promise<void> {
   if (!area) return;
   const { width, height } = area.getBoundingClientRect();
   if (!width || !height) return;
@@ -614,7 +626,7 @@ async function saveSnapshot(area: HTMLElement | null, caption: string): Promise<
   context.fillText(caption, 12, height + 19);
   const link = document.createElement("a");
   link.href = out.toDataURL("image/png");
-  link.download = t("research.exec.objectMap.snapshotFile");
+  link.download = file;
   link.click();
 }
 

@@ -45,7 +45,8 @@ async function refusal(response: Response): Promise<ApiError> {
     details?: Record<string, unknown>;
   };
   const code = payload.code ?? `http_${response.status}`;
-  const message = payload.message ?? response.statusText;
+  // An empty message is no message: say the code, never nothing (PC18).
+  const message = payload.message || code || response.statusText;
   if (response.status === 401) return new Unauthenticated(401, code, message, requestId);
   return new ApiError(response.status, code, message, requestId, payload.details ?? {});
 }
@@ -229,6 +230,8 @@ export type WorkspaceStudy = {
   kind: StudyKind;
   status: string;
   accepts_work: boolean;
+  /** When the study was first marked delivered; null (or absent from an older API) when never. */
+  delivered_at?: string | null;
   last_stage: string | null;
   has_working_content: boolean;
   content_state: ContentState;
@@ -385,6 +388,9 @@ export type ProposalsRun = {
   /** Whether asking again starts a new run: this one ended without a result and left no
    *  paid call of unknown outcome. */
   restartable: boolean;
+  /** Whether asking again offers this run to a worker again: it parked for the AI runtime
+   *  before it sent anything. Absent from an API older than PC4: not resumable. */
+  resumable?: boolean;
 };
 
 export type SourceLocator = {
@@ -461,7 +467,10 @@ export type StudyWorkspace = {
   study: WorkspaceStudy;
   client_name: string;
   your_role: string;
+  /** May change the study and start work on it now: false on a delivered, archived or cancelled study. */
   can_edit: boolean;
+  /** May read, download and approve what the study holds, and stop what runs, whatever its status. */
+  can_review: boolean;
   content_state: ContentState;
 };
 
@@ -998,6 +1007,8 @@ export type ResearchStep = {
   data_origin: string | null;
   /** An analysis step's stored outcome: its step SUCCEEDED either way. `null` for other steps. */
   analysis_outcome?: "COMPLETED" | "BLOCKED" | null;
+  /** Why a step stopped for recovery; null or absent when it did not, or its attempts were not read. */
+  recovery_reason?: "paid_call_uncertain" | "attempts_exhausted" | null;
   /** How the API reads `data_origin`: SIMULATED, MODELLED or UNKNOWN; absent from an older API. */
   data_origin_kind?: string | null;
 };
@@ -1107,7 +1118,8 @@ export type ResearchAnalysis = {
     outcome: "COMPLETED" | "BLOCKED";
     artifact_id: string;
     summary: string | null;
-    research_question_answers: { question: string; answer: string; claim_ids: string[] }[];
+    /** `gap`: what the run recorded at start about the question when it recorded it as a gap, in words; null or absent: none. */
+    research_question_answers: { question: string; answer: string; claim_ids: string[]; gap?: string | null }[];
     key_findings: { text: string; claim_ids: string[] }[];
     claims: { claim_id: string; evidence_ref: string; value: number; decimals?: number; indicative: boolean; data_origin: string | null }[];
     violations: { code: string; subject: string; detail: string }[];
@@ -1228,8 +1240,11 @@ export const research = {
           },
     ),
   /** The modules a finished run may ask again (`retryAnalysis`), read from its stored outcomes. */
+  /** The modules a person may ask again over the run's data; `stale`: those among them a model completed under an
+   *  earlier harness, which today's refuses to re-admit (absent from an API older than PC3: none). */
   retryableModules: (studyId: string, runId: string) =>
-    request<{ run_id: string; modules: string[] }>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/analysis/retryable`).then((r) => r.modules),
+    request<{ run_id: string; modules: string[]; stale?: string[] }>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/analysis/retryable`)
+      .then((r) => ({ modules: Array.isArray(r.modules) ? r.modules : [], stale: Array.isArray(r.stale) ? r.stale : [] })),
   /** Ask a finished run's failed analysis modules again: a new run over the same dataset, no new fieldwork. */
   retryAnalysis: (studyId: string, runId: string, confirmCostUsd?: number) =>
     request<ResearchRun>(
@@ -1243,6 +1258,9 @@ export const research = {
       budget_usd: budgetUsd,
       note,
     }),
+  /** Offer the run's steps parked for the AI runtime to a worker again, once the runtime is on: the same run. */
+  resume: (studyId: string, runId: string) =>
+    request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/resume`),
   artifact: (studyId: string, runId: string, artifactId: string) =>
     request<Artifact>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/artifacts/${enc(artifactId)}`),
   analysis: (studyId: string, runId: string) =>
@@ -1292,6 +1310,11 @@ export type DeepResearchRun = {
   purpose?: string | null;
   target?: { kind: string; research_run_id?: string } | null;
   title?: string | null;
+};
+/** What a finished run searched and found, from its journal (GET …/coverage; domain/deep_research/coverage.py). */
+export type DeepResearchCoverage = {
+  tracks: number; blocked_tracks: number; queries_proposed: number; queries_sent: number; queries_refused: number;
+  hits: number; sources_captured: number; findings_accepted: number; findings_quarantined: number;
 };
 export type DeepResearchBundle = {
   quality_status: string; fictional_client: boolean; client_facing: false;
@@ -1347,9 +1370,15 @@ export const deepResearch = {
   events: (studyId: string, runId: string, since = 0) =>
     request<RunEvent[]>("GET", `${deepPath(studyId)}/${enc(runId)}/events${eventsQuery(since)}`),
   bundle: (studyId: string, runId: string) => request<DeepResearchBundle>("GET", `${deepPath(studyId)}/${enc(runId)}/bundle`),
+  coverage: (studyId: string, runId: string) => request<DeepResearchCoverage>("GET", `${deepPath(studyId)}/${enc(runId)}/coverage`),
   designProposal: (studyId: string, runId: string) => request<DesignProposal>("GET", `${deepPath(studyId)}/${enc(runId)}/design-proposal`),
   cancel: (studyId: string, runId: string) => request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/cancel`),
   retry: (studyId: string, runId: string, confirmCostUsd?: number) => request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/retry`, confirmCostUsd === undefined ? undefined : { confirm_cost_usd: confirmCostUsd }),
+  /** The same run, its steps parked for the AI runtime offered to a worker again. */
+  resume: (studyId: string, runId: string) => request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/resume`),
+  /** Raise the Study's budget to `budgetUsd` (never below the current one) and let every step stopped at the cap go on. */
+  liftBudget: (studyId: string, runId: string, budgetUsd: number, note: string) =>
+    request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/budget`, { budget_usd: budgetUsd, note }),
 };
 
 export type ResearchAgentAction = "analyze_brief" | "build_questionnaire" | "optimize_questionnaire" | "propose_audience" | "suggest_dimensions" | "critique_design" | "design_copilot" | "answer_memory";
@@ -1385,6 +1414,9 @@ export const researchAgents = {
     request<RunEvent[]>("GET", `${agentsPath(studyId)}/${enc(jobId)}/events${eventsQuery(since)}`),
   cancel: (studyId: string, jobId: string) => request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/cancel`),
   resume: (studyId: string, jobId: string) => request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/resume`),
+  /** Raise the Study's budget to `budgetUsd` (never below the current one) and let the job stopped at the cap go on. */
+  liftBudget: (studyId: string, jobId: string, budgetUsd: number, note: string) =>
+    request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/budget`, { budget_usd: budgetUsd, note }),
   result: (studyId: string, jobId: string) => request<ResearchAgentResult>("GET", `${agentsPath(studyId)}/${enc(jobId)}/result`),
   accept: (studyId: string, jobId: string, revisionId: string) => request<DesignRevision>("POST", `${agentsPath(studyId)}/${enc(jobId)}/accept`, { expected_revision_id: revisionId }),
 };

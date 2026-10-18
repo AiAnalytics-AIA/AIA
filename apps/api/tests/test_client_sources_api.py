@@ -397,3 +397,55 @@ def test_a_run_stopped_for_recovery_restarts_only_when_no_paid_call_is_uncertain
         "paid_external_call_side_effect_uncertain",
         False,
     )
+
+
+def _park_for_runtime(app: Any, world: Any, client: str) -> None:
+    """Claim the client's proposals step as a worker would; the AI runtime is not there."""
+    from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+    from aia_core.domain.workflow import FailureClass
+    from aia_core.infrastructure.db import create_session_factory
+    from aia_core.infrastructure.workflow_repository import WorkflowRepository
+
+    with create_session_factory(app.state.engine)() as session:
+        principal = AuthenticatedPrincipal(
+            user_id=world.users["lead"], organization_id=world.organization_id
+        )
+        work = ScopeResolver(session).client_work_context(principal, client_id=client)
+        workflow = WorkflowRepository(session, work)
+        claimed = workflow.claim_next(worker_id="proposals-park-fixture")
+        assert claimed is not None
+        workflow.fail_attempt(
+            claimed.attempt_id,
+            worker_id="proposals-park-fixture",
+            failure=FailureClass.RUNTIME_UNAVAILABLE,
+            error={"reason": "client_source_proposals_unconfigured"},
+        )
+        session.commit()
+
+
+def test_a_run_parked_for_the_runtime_goes_on_when_asked_again(
+    lead: TestClient, world: Any, app: Any
+) -> None:
+    """PC4: a run parked because AI proposals were off waited for ever, and asking again
+    returned it unchanged: the screen offered nothing. Asking again now offers the same run
+    to a worker again; a new run beside it would park the same way."""
+    client = world.client_id("primary")
+    source = upload(lead, client, "lupinek.txt", DOCUMENT).json()["source_id"]
+    url = f"{API}/clients/{client}/sources/{source}/proposals"
+    first = lead.post(url).json()["run_id"]
+    _park_for_runtime(app, world, client)
+
+    parked = lead.get(url).json()
+    assert (parked["step_status"], parked["reason"]) == (
+        "WAITING_PROVIDER",
+        "client_source_proposals_unconfigured",
+    )
+    assert (parked["resumable"], parked["restartable"]) == (True, False)
+
+    asked = lead.post(url)
+    assert asked.status_code == 200, asked.text
+    body = asked.json()
+    assert (body["run_id"], body["created"], body["step_status"]) == (first, False, "RUNNABLE")
+    assert body["resumable"] is False
+    # Running again, it is followed, not restarted.
+    assert lead.post(url).json()["run_id"] == first

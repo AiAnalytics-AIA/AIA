@@ -34,6 +34,7 @@ import {
   SUGGEST_WARN_MS,
   type Suggestion,
   addDimension,
+  chosenDimensions,
   applySuggestion,
   autofill,
   catalogEntries,
@@ -52,7 +53,6 @@ import {
   suggestedPersonaDims,
   suggestedRequest,
   applyRecommendedSample,
-  withApproval,
 } from "@/research/persona";
 import { Icon } from "../icons";
 import { ActionDock, StepSection } from "../step";
@@ -94,7 +94,7 @@ export function PersonaStep() {
 
   const p = state.project;
   const labels = dimensionLabels(active);
-  const { approved } = withApproval(p);
+  const approved = chosenDimensions(p);
   const chosen = new Set(approved);
   const suggested = new Set(suggestedPersonaDims(p));
   const entries = catalogEntries(active, CLIENT_LIBRARY_LABEL);

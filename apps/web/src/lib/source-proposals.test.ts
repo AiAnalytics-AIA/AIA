@@ -72,6 +72,13 @@ describe("a proposals run's state", () => {
     expect(mayAsk(run())).toBe(false);
     expect(mayAsk(run({ step_status: "AWAITING_BUDGET" }))).toBe(false);
   });
+
+  it("asks again about a run parked for the AI runtime: the API lets the same run go on (PC4)", () => {
+    const parked = run({ status: "WAITING_PROVIDER", step_status: "WAITING_PROVIDER", reason: "client_source_proposals_unconfigured" });
+    expect(mayAsk(parked)).toBe(false); // an API older than PC4 says nothing: not offered
+    expect(mayAsk({ ...parked, resumable: false })).toBe(false);
+    expect(mayAsk({ ...parked, resumable: true })).toBe(true);
+  });
 });
 
 describe("in words", () => {

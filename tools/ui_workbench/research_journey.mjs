@@ -43,7 +43,8 @@ const OPERATOR = "workbench@example.invalid";
 const TEXT = {
   fictional: "Fiktivní data. Tento běh používá smyšlené respondenty",
   start: "Spustit výzkum",
-  completed: "Dokončeno",
+  // A finished run reads by its state (lib/run-state.ts): results ready, or its report too.
+  completed: /^(Výsledky jsou hotové|Zpráva je hotová)$/,
   internal: "U každé mapy je uvedeno, zda AIA schválila metodiku",
 };
 
@@ -103,7 +104,7 @@ ok("Run: started, now on Progress");
 // 2. Progress: labelled fictional; polls until the worker has finished the chain.
 await page.getByText(TEXT.fictional).first().waitFor({ timeout: 60000 }).catch(() => fail("Progress does not say the data are fictional"));
 ok("Progress: the fictional-data notice is shown");
-await page.getByText(TEXT.completed, { exact: true }).first().waitFor({ timeout: 180000 })
+await page.getByText(TEXT.completed).first().waitFor({ timeout: 180000 })
   .catch(async () => { await shot("2-progress-timeout"); fail("the run did not complete within 180 s (see tmp/ui-workbench/logs/worker.log)"); });
 for (const step of ["compile", "preflight", "run", "aggregate", "sociomap"]) {
   const status = await page.locator(`[data-step="${step}"]`).first().getAttribute("data-status", { timeout: 5000 }).catch(() => null);

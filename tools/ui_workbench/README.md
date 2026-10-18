@@ -119,8 +119,9 @@ captured bare, as shipped, only when the workbench runs it.
 and AIA's readiness is shown; starts one run; follows it on Progress until the
 worker has finished all five steps; and reads Results. It fails unless the
 fictional-data notice is on Progress and Results, every step is `SUCCEEDED`,
-an aggregate table is shown, the Sociomap is labelled INTERNAL_ONLY (PROGRESS
-D6), and no page error occurred. Screenshots go to
+an aggregate table is shown, every map says whether its method is approved (the
+Sociomap register), and no page error occurred. A revision that already has a run
+is not run again: the start returns that run and the journey follows it. Screenshots go to
 `tmp/ui-workbench/shots/research-<time>/`.
 
 Every number on those screens comes from fictional respondents and says so.
@@ -128,6 +129,50 @@ Every number on those screens comes from fictional respondents and says so.
 compared with the unit by `packages/aia_core/tests/test_research_aggregate.py`.
 What the develop host does instead -- the same run parks at fieldwork -- is in
 `tools/develop_routing_proof.py`.
+
+## The whole product as one researcher, and the reports as a reader sees them
+
+The productization pass of 2026-10-17 (`.planning/plans/productization-coherence.md`) walked
+AIA end to end this way, and anyone can repeat it, a person or an agent, on fictional data and
+at no cost:
+
+```bash
+make ui-workbench && make ui-fixtures   # AIA on this machine, its fictional studies
+make ui-research                        # one run: Run -> Průběh -> Výsledky
+make ui-coherence                       # the walk below -> tmp/ui-workbench/coherence-journey/<time>/
+make report-journey                     # the reports a run composes -> tmp/report-journey/
+```
+
+`make ui-coherence` (`coherence_journey.mjs`) opens every global page and the fixture client's
+six areas; starts a new study from the client page and checks its Dimenze start with none chosen;
+starts (or finds) the `persona` study's run, follows it to its results and checks that the stage
+track says what Průběh says; reads Výsledky's three tabs; changes the design after the run and
+checks the Run stage names the newer revision; then delivers the study and checks that every
+stage says so, the design is read-only, nothing is saved, nothing starts and the report stays
+downloadable, before reopening it. Every page is kept as a full-page screenshot **and its text**
+(`NN-<name>.png`, `NN-<name>.txt`), so what a screen said can be read and diffed rather than
+remembered; `report.json` lists each check, every API answer of 400 or more and every page error.
+It fails like the other journeys on a request to a path the unit served or a 502.
+
+`make report-journey` (`tools/report_preview.py --journey`) runs the executor journey test that
+composes a run's reports (150 fictional respondents, scripted models, recorded web: no model is
+called) with `tools/report_journey_capture.py` keeping every DOCX it renders, then converts each
+with LibreOffice as the worker does and prints the lines of text on every page, so a chapter alone
+on a near-empty page shows without opening the PDF. The PDFs and page images stay in
+`tmp/report-journey/` for reading.
+
+**Not repeated here: the AI itself.** The workbench has no model, and its fieldwork is the fixture's
+invented respondents, so analysis and the internal report do not run in `make ui-coherence` (the
+report card says the run makes no report). The AI runtime signs only with an EC2 instance or ECS
+task role (ADR 0010, `infrastructure/model_adapters/aws_signing.py`), which a laptop or a cloud
+session does not have; a paid end-to-end run happens on develop, against a fictional client, with
+the same journeys pointed at it (`--facade https://aia-develop.art-chain.io` after signing in is a
+next step, not built: the journeys sign in with the workbench's development identity).
+
+None of the browser journeys runs in CI. They drift when the interface's words change (the
+research journey waited for "Dokončeno" after #458 renamed the state; the client journey for
+"Přidat znalost" after the intake sheet; OI-106 recorded two earlier drifts), so run them after
+changing a screen's words.
 
 ## The audience step from a population
 
