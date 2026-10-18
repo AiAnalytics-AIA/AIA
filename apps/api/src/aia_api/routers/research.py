@@ -1458,7 +1458,8 @@ def run_analysis_retryable(
 ) -> dict[str, Any]:
     """Read from the stored outcomes as they are, under whichever harness stored them, so a
     run made before a harness change can still be repaired (``…/analysis`` re-judges and
-    refuses those)."""
+    refuses those). ``stale``: the modules among them a model completed under an earlier
+    harness, which today's refuses to re-admit -- the reason, not a model's failure."""
     try:
         scope.require(Permission.EDIT_STUDY)
         analysis = stored_analysis(session, scope, store, run_id=run_id)
@@ -1470,7 +1471,11 @@ def run_analysis_retryable(
         raise HTTPException(
             status_code=409, detail={"code": exc.reason, "message": str(exc)}
         ) from exc
-    return {"run_id": run_id, "modules": [module.value for module in analysis.retryable]}
+    return {
+        "run_id": run_id,
+        "modules": [module.value for module in analysis.retryable],
+        "stale": [module.value for module in analysis.stale],
+    }
 
 
 _NOT_RETRYABLE_MESSAGES: Final = {

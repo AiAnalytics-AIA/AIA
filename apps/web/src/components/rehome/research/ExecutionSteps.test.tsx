@@ -927,6 +927,21 @@ describe("Progress", () => {
     expect(screen.getByText("6 z 7 kroků hotovo")).toBeTruthy();
   });
 
+  it("offers to repair a run whose modules an earlier version of AIA completed, and says that is why (PC3)", async () => {
+    const MODULES = ["executive", "objects"];
+    const stale = run({
+      ...COMPLETED,
+      steps: [...COMPLETED.steps, ...MODULES.map((m) => step(`analysis_${m}`, "SUCCEEDED", { kind: "research_analysis", analysis_outcome: "COMPLETED" }))],
+    });
+    api({ ...listed(stale), "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis/retryable": () => ({ run_id: "RUN-1", modules: MODULES, stale: MODULES }) });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const card = (await screen.findByRole("region", { name: t("research.exec.analysisRetry.title") })) as HTMLElement;
+    expect(within(card).getByText(tv("research.exec.analysisRetry.stale", { n: 2 }))).toBeTruthy();
+    // Not a model's failure: the words for one are not used.
+    expect(within(card).queryByText(/model nedokázal/)).toBeNull();
+    expect(within(card).getByRole("button", { name: t("research.exec.analysisRetry.action") })).toBeTruthy();
+  });
+
   it("says who answered, the population, and which selected dimensions and filters were applied (run-recovery-and-truth 5b)", async () => {
     const answered = run({
       ...COMPLETED,
@@ -1388,6 +1403,24 @@ describe("Results", () => {
     const diagnostic = screen.getByText("Technické důvody odmítnutí").closest("details");
     expect(diagnostic?.open).toBe(false);
     expect(within(diagnostic!).getByText(/SCHEMA_INVALID: Input should be a valid array/)).toBeTruthy();
+  });
+
+  it("says an analysis an earlier version of AIA built cannot be shown, and where it is repaired, not 'try again' (PC3)", async () => {
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6", analysis_outcome: "COMPLETED" }),
+    ] });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => new Response(JSON.stringify({
+        code: "fingerprint_mismatch", message: "the evidence, policy, method status or harness no longer match this outcome", details: {},
+      }), { status: 409 }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    expect(await screen.findByText(t("research.exec.results.analysisStale"))).toBeTruthy();
+    const repair = screen.getByRole("link", { name: t("research.exec.results.analysisStaleRepair") });
+    expect(repair.getAttribute("href")).toContain("?run=RUN-1");
+    expect(screen.queryByText(/harness no longer match/)).toBeNull();
   });
 
   it("puts every module's key findings first, each with the numbers it cites, and keeps every word formatted", async () => {

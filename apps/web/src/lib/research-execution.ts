@@ -63,12 +63,14 @@ export function stepStatusLabel(step: ResearchStep): string {
   return label.startsWith("research.") ? step.status : label;
 }
 
-/** Whether a finished run may have analysis modules to ask again: worth asking the API. */
+/**
+ * Whether a finished run may have analysis modules to ask again: worth asking the API. Any finished
+ * run with analysis: a module a model left blocked, one that failed or was cancelled, and one a
+ * model completed under an earlier harness, which only the API can tell (PC3: such a run's
+ * analysis could not be shown, and nothing offered to repair it).
+ */
 export function mayRetryAnalysis(run: ResearchRun): boolean {
-  return (
-    run.is_terminal &&
-    run.steps.some((s) => s.node_key.startsWith("analysis_") && (needsRepair(s) || s.status === "FAILED" || s.status === "CANCELLED"))
-  );
+  return run.is_terminal && run.steps.some((s) => s.node_key.startsWith("analysis_"));
 }
 
 /**

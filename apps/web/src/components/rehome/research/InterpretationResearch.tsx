@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { t } from "@/i18n/t";
 import { ApiError, deepResearch, research, type DeepResearchBundle, type DeepResearchRun, type ResearchRun } from "@/lib/api";
 import { deepResearchRunningStep } from "@/lib/activity-orb";
 import { activityOf } from "@/lib/step-activity";
@@ -31,7 +32,7 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
   const [jobs, setJobs] = useState<DeepResearchRun[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [bundleFor, setBundleFor] = useState<{ runId: string; value: DeepResearchBundle } | null>(null);
-  const [analysisReady, setAnalysisReady] = useState<"loading" | "ready" | "incomplete" | "unavailable">("loading");
+  const [analysisReady, setAnalysisReady] = useState<"loading" | "ready" | "incomplete" | "stale" | "unavailable">("loading");
   const [preset, setPreset] = useState<"QUICK" | "STANDARD">("QUICK");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +82,7 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
     setAnalysisReady("loading");
     research.analysis(frame.studyId, run.run_id).then(
       value => { if (live) setAnalysisReady(value.complete === true ? "ready" : "incomplete"); },
-      () => { if (live) setAnalysisReady("unavailable"); },
+      (e: unknown) => { if (live) setAnalysisReady(e instanceof ApiError && e.code === "fingerprint_mismatch" ? "stale" : "unavailable"); },
     );
     return () => { live = false; };
   }, [bundle, frame.studyId, run.run_id]);
@@ -163,6 +164,7 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
           ? "Zpráva spojí uložené výsledky a sociomapy s přijatými externími podklady a jejich zdroji. Stažení nespouští další placený výzkum."
           : "Zpráva může uvést, že rešerše nepřinesla ověřené zjištění; nebude tvrdit, že obsahuje externě doložený benchmark. Stažení nespouští další placený výzkum."}</p>
         {analysisReady === "incomplete" ? <p role="status" className="mb-3 text-sm font-medium">Analýza běhu není úplná. Zprávu lze stáhnout až po dokončení všech jejích částí.</p> : null}
+        {analysisReady === "stale" ? <p role="status" className="mb-3 text-sm font-medium">{t("research.exec.results.analysisStale")}</p> : null}
         {analysisReady === "unavailable" ? <p role="status" className="mb-3 text-sm font-medium">Připravenost analýzy se nepodařilo ověřit. Obnovte stránku a zkuste to znovu.</p> : null}
         {analysisReady === "loading" ? <p role="status" className="mb-3 text-sm text-ink-muted">Ověřuji připravenost zprávy…</p> : null}
         <div className="flex flex-wrap gap-2">

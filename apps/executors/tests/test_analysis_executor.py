@@ -1414,7 +1414,10 @@ def test_a_run_stored_under_the_previous_harness_can_still_be_repaired(
     assert old.value.reason == "fingerprint_mismatch"
     with world.sessions() as session:
         stored = stored_analysis(session, world.lead_scope(session), store, run_id=first)
-    assert stored.retryable == (AnalysisModuleId.OBJECTS,)
+    # The blocked module, and every module completed under the earlier harness (PC3): today's
+    # refuses to re-admit them, and the retry below asks every one again.
+    assert stored.retryable == tuple(AnalysisModuleId)
+    assert set(stored.stale) == set(AnalysisModuleId) - {AnalysisModuleId.OBJECTS}
 
     asked_before = len(models.asked)
     retry = _retry_analysis(world, store, first)
@@ -1422,6 +1425,55 @@ def test_a_run_stored_under_the_previous_harness_can_still_be_repaired(
     assert _run(world, retry.run_id)["status"] is WorkflowRunStatus.COMPLETED
     assert sorted(m for m, _ in models.asked[asked_before:]) == sorted(MODULES)
     assert _reconstruct(world, store, retry.run_id).complete
+
+
+def test_a_run_whose_every_module_an_earlier_harness_completed_is_repaired_over_its_data(
+    world: Any,
+    store: InMemoryArtifactStore,
+    run_with: Callable[..., Worker],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """PC3: all eight modules completed, then the harness or a prompt moved. The run's analysis
+    was refused whole (fingerprint_mismatch), and with nothing BLOCKED or FAILED there was
+    nothing to retry: the analysis, its literature report and its Interpretation Research
+    stayed dark for good, or cost a whole run with new fieldwork. Now the modules are asked
+    again over the same dataset, and the run's own data is never collected again."""
+    import aia_core.application.analysis_results as analysis_results
+
+    today = analysis_results.harness_summary
+
+    def earlier(**kw: Any) -> Any:
+        return today(**kw).model_copy(update={"harness_version": "aia-analysis-harness-1"})
+
+    monkeypatch.setattr(analysis_results, "harness_summary", earlier)
+    models = ScriptedModels()
+    worker = run_with(models)
+    first = _started_with_analysis(world)
+    _drain(worker)
+    assert _run(world, first)["status"] is WorkflowRunStatus.COMPLETED
+    monkeypatch.undo()
+
+    with pytest.raises(ReconstructionRefused) as dark:
+        _reconstruct(world, store, first)
+    assert dark.value.reason == "fingerprint_mismatch"
+    with world.sessions() as session:
+        stored = stored_analysis(session, world.lead_scope(session), store, run_id=first)
+    assert stored.retryable == stored.stale == tuple(AnalysisModuleId)
+
+    dataset = next(s for s in _run(world, first)["steps"] if s["node_key"] == "run")["output"]
+    asked_before = len(models.asked)
+    retry = _retry_analysis(world, store, first)
+    _drain(worker)
+    second = _run(world, retry.run_id)
+    assert second["status"] is WorkflowRunStatus.COMPLETED, _unfinished(world, retry.run_id)
+    assert sorted(m for m, _ in models.asked[asked_before:]) == sorted(MODULES)
+    fieldwork = next(s for s in second["steps"] if s["node_key"] == "run")["output"]
+    assert (fieldwork["artifact_id"], fieldwork["reused"]) == (dataset["artifact_id"], True)
+    assert _reconstruct(world, store, retry.run_id).complete
+
+    with pytest.raises(AnalysisNotRetryable) as nothing:
+        _retry_analysis(world, store, retry.run_id)
+    assert nothing.value.reason == "nothing_to_retry"
 
 
 def test_a_run_cancelled_after_fieldwork_has_its_cancelled_modules_asked_over_its_data(

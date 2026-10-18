@@ -196,12 +196,14 @@ describe("an analysis module a model could not complete", () => {
     expect(needsRepair(analysisStep({ status: "RUNNING", analysis_outcome: null }))).toBe(false);
   });
 
-  it("makes a finished run worth asking about a retry, and only a finished one", () => {
+  it("makes a finished run with analysis worth asking about a retry, and only a finished one", () => {
     const blocked = analysisStep({ analysis_outcome: "BLOCKED" });
     expect(mayRetryAnalysis(run({ is_terminal: true, steps: [blocked] }))).toBe(true);
     expect(mayRetryAnalysis(run({ is_terminal: false, steps: [blocked] }))).toBe(false);
     expect(mayRetryAnalysis(run({ is_terminal: true, steps: [analysisStep({ status: "FAILED", analysis_outcome: null })] }))).toBe(true);
-    expect(mayRetryAnalysis(run({ is_terminal: true, steps: [analysisStep({})] }))).toBe(false);
+    // A completed module may have been completed under an earlier harness: only the API knows (PC3).
+    expect(mayRetryAnalysis(run({ is_terminal: true, steps: [analysisStep({})] }))).toBe(true);
+    expect(mayRetryAnalysis(run({ is_terminal: true, steps: [] }))).toBe(false);
   });
 });
 

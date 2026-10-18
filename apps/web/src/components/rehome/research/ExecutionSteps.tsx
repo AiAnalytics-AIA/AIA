@@ -993,32 +993,36 @@ function useRun(): [ResearchRun | null | undefined, () => void, (r: ResearchRun)
  * The modules of a finished run a person may ask again (`GET …/analysis/retryable`), or `null` while
  * there is nothing to ask about. Read once per finished run, not on every poll.
  */
-function useRetryableModules(run: ResearchRun | null | undefined): string[] | null {
+type Repairable = { modules: string[]; stale: string[] };
+
+function useRetryableModules(run: ResearchRun | null | undefined): Repairable | null {
   const frame = useFrame();
   const runId = run?.run_id ?? null;
   const possible = !!run && mayRetryAnalysis(run);
-  const [modules, setModules] = useState<{ runId: string; list: string[] } | null>(null);
+  const [modules, setModules] = useState<{ runId: string; list: Repairable } | null>(null);
   useEffect(() => {
     if (!possible || !runId) return;
     let live = true;
     research
       .retryableModules(frame.studyId, runId)
       .then((list) => live && setModules({ runId, list }))
-      .catch(() => live && setModules({ runId, list: [] }));
+      .catch(() => live && setModules({ runId, list: { modules: [], stale: [] } }));
     return () => {
       live = false;
     };
   }, [frame.studyId, runId, possible]);
-  return possible && modules && modules.runId === runId && modules.list.length ? modules.list : null;
+  return possible && modules && modules.runId === runId && modules.list.modules.length ? modules.list : null;
 }
 
 /** A finished run whose analysis a model could not complete: the data stands, the modules are asked again. */
-function AnalysisRepair({ run, modules, act, busy }: { run: ResearchRun; modules: string[]; act: (fn: () => Promise<ResearchRun>) => Promise<void>; busy: boolean }) {
+function AnalysisRepair({ run, modules: { modules, stale }, act, busy }: { run: ResearchRun; modules: Repairable; act: (fn: () => Promise<ResearchRun>) => Promise<void>; busy: boolean }) {
   const { confirm } = useResearch();
   const frame = useFrame();
+  const failed = modules.length - stale.filter((m) => modules.includes(m)).length;
   return (
     <Card title={t("research.exec.analysisRetry.title")} tone="notice" region>
-      <p className="text-sm">{tv("research.exec.analysisRetry.body", { n: modules.length })}</p>
+      {failed ? <p className="text-sm">{tv("research.exec.analysisRetry.body", { n: failed })}</p> : null}
+      {stale.length ? <p className="text-sm" data-stale-modules>{tv("research.exec.analysisRetry.stale", { n: stale.length })}</p> : null}
       <p className="mt-1 text-sm">{tv("research.exec.analysisRetry.modules", { list: modules.map((m) => stepLabel(`analysis_${m}`)).join(", ") })}</p>
       <p className="mt-1 text-xs text-ink-muted">{t("research.exec.analysisRetry.how")}</p>
       {frame.canEdit ? (
@@ -1052,7 +1056,7 @@ function AnalysisRepair({ run, modules, act, busy }: { run: ResearchRun; modules
 function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
   run: ResearchRun; act: (fn: () => Promise<ResearchRun>) => Promise<void>; busy: boolean; refresh: () => void; actionError: string | null;
   /** Modules an analysis retry would ask again: the whole-run retry then steps back. */
-  repairable: string[] | null;
+  repairable: Repairable | null;
 }) {
   const { confirm, stepHref } = useResearch();
   const frame = useFrame();
@@ -1246,7 +1250,10 @@ export function ProgressStep() {
 
 // ------------------------------------------------------------- Results -------
 
-type Loaded<T> = { state: "loading" } | { state: "ready"; value: T } | { state: "failed"; message: string } | { state: "hidden" };
+type Loaded<T> = { state: "loading" } | { state: "ready"; value: T } | { state: "failed"; message: string; code?: string } | { state: "hidden" };
+
+/** The analysis's refusal when a module was completed under an earlier harness: repairable on Průběh (PC3). */
+const STALE_ANALYSIS = "fingerprint_mismatch";
 
 function useArtifact(run: ResearchRun | null | undefined, nodeKey: string): Loaded<Artifact> | null {
   const frame = useFrame();
@@ -1413,7 +1420,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
         </Card>
       ) : null}
       </> }] : []),
-      ...(showAnalysis ? [{ id: "analysis", label: "AI analýza", description: "Souhrn, odpovědi na výzkumné otázky a omezení. Interpretace vychází z podkladů tohoto běhu a čeká na posouzení výzkumníkem.", content: <div id="res-analysis"><AnalysisResults key={run.run_id} run={run} spec={pinnedSpecification(specification?.state === "ready" ? specification.value : null)} /></div> }] : []),
+      ...(showAnalysis ? [{ id: "analysis", label: "AI analýza", description: "Souhrn, odpovědi na výzkumné otázky a omezení. Interpretace vychází z podkladů tohoto běhu a čeká na posouzení výzkumníkem.", content: <div id="res-analysis"><AnalysisResults key={run.run_id} run={run} progressHref={progressHref} spec={pinnedSpecification(specification?.state === "ready" ? specification.value : null)} /></div> }] : []),
       { id: "report", label: "Rešerše a zpráva", description: "Zkontrolujte připravenost interní zprávy, přijaté externí podklady a omezení rešerše. Dostupnost stažení závisí na úplnosti analýzy.", content: <>
         <div id="res-report">{report}</div>
         {showAnalysis && canReview(frame) ? <InterpretationResearch key={run.run_id} run={run} review={review} onReview={setReview} /> : null}
@@ -1523,7 +1530,7 @@ function ReportHolds({ run, progressHref }: { run: ResearchRun; progressHref: st
   );
 }
 
-function AnalysisResults({ run, spec }: { run: ResearchRun; spec: CompiledSpecification | null }) {
+function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: CompiledSpecification | null; progressHref: string | null }) {
   const frame = useFrame();
   const [loaded, setLoaded] = useState<Loaded<ResearchAnalysis>>({ state: "loading" });
   const [selectedModule, setSelectedModule] = useState<(typeof ANALYSIS_ORDER)[number]>("executive");
@@ -1535,7 +1542,7 @@ function AnalysisResults({ run, spec }: { run: ResearchRun; spec: CompiledSpecif
       (value) => live && setLoaded({ state: "ready", value }),
       (error: unknown) => live && setLoaded(
         error instanceof ApiError && error.status === 403
-          ? { state: "hidden" } : { state: "failed", message: message(error) }
+          ? { state: "hidden" } : { state: "failed", message: message(error), code: error instanceof ApiError ? error.code : undefined }
       ),
     );
     return () => { live = false; };
@@ -1559,7 +1566,12 @@ function AnalysisResults({ run, spec }: { run: ResearchRun; spec: CompiledSpecif
           ? t(ANALYSIS_ORIGIN[resultOriginKind(loaded.value)!])
           : t("research.exec.results.analysisInternal")}
       </p>
-      {loaded.state === "failed" ? <p role="alert">{loaded.message}</p> : null}
+      {loaded.state === "failed" && loaded.code === STALE_ANALYSIS ? (
+        <div role="status" data-analysis-stale className="text-sm">
+          <p>{t("research.exec.results.analysisStale")}</p>
+          {progressHref ? <a className="mt-1 inline-block underline" href={progressHref}>{t("research.exec.results.analysisStaleRepair")}</a> : null}
+        </div>
+      ) : loaded.state === "failed" ? <p role="alert">{loaded.message}</p> : null}
       {loaded.state === "loading" ? <p>{t("research.loading")}</p> : null}
       {loaded.state === "ready" && loaded.value.aggregation_deviation ? (
         <div className="mb-3"><Deviation deviation={aggregateDeviation({ deviation: loaded.value.aggregation_deviation }) as AggregateDeviation} /></div>

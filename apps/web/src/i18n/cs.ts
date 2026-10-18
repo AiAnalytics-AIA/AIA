@@ -2676,12 +2676,17 @@ export const cs = {
         how: "Oprava je nový běh nad týmiž odpověďmi respondentů: znovu se nic nesbírá, hotové moduly se převezmou zdarma a model dostane jen moduly výše.",
         action: "Zopakovat neúspěšné moduly",
         held: "Model modul nesestavil tak, aby každé číslo mělo oporu v datech; lze ho zopakovat nad týmiž daty.",
+        stale:
+          "Sebraná data jsou v pořádku. {n} z 8 modulů analýzy sestavila starší verze AIA a dnešní je nemůže znovu ověřit, proto se analýza tohoto běhu nezobrazí a nelze ji použít ve zprávě s rešerší.",
       },
       refresh: "Obnovit stav",
       retryOf: "Opakování běhu {run}",
       noResults: "Výsledky zatím nejsou.",
       noResultsParked: "Výsledky nevzniknou, dokud běh čeká u sběru dat.",
       results: {
+        analysisStale:
+          "Analýzu tohoto běhu sestavila starší verze AIA a dnešní ji nemůže znovu ověřit, proto se nezobrazí. Sebraná data platí: analýzu lze nechat sestavit znovu nad týmiž odpověďmi, bez nového sběru.",
+        analysisStaleRepair: "Opravit analýzu na Průběhu",
         bar: "Hodnota a 95% interval",
         jumpLabel: "Oddíly výsledků",
         jumpAnalysis: "AI analýza",

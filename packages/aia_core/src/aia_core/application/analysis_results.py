@@ -703,16 +703,33 @@ def _retryable(
 ) -> tuple[AnalysisModuleId, ...]:
     """The modules a person may ask again over a run's frozen data, in module order.
 
-    A module a model's drafts left ``BLOCKED`` (it took turns), and a module whose step
-    ended ``FAILED`` or ``CANCELLED`` without an outcome. Never a module the preflight
-    blocked before any turn: code refused it, and the same data would refuse it again.
+    A module a model's drafts left ``BLOCKED`` (it took turns), a module whose step ended
+    ``FAILED`` or ``CANCELLED`` without an outcome, and a module completed under an earlier
+    harness (:func:`_stale`): today's harness refuses to re-admit it, so the run's analysis,
+    its literature report and its Interpretation Research stay dark until it is asked again.
+    Never a module the preflight blocked before any turn: code refused it, and the same data
+    would refuse it again.
     """
     return tuple(
         m
         for m in AnalysisModuleId
         if (m in records and records[m].outcome == "BLOCKED" and records[m].attempts > 0)
+        or (m in records and _stale(records[m]))
         or pending.get(m) in _RETRYABLE_STEP_STATES
     )
+
+
+def _stale(record: ModuleArtifact) -> bool:
+    """A module a model completed under a harness that is not today's: its stored draft is
+    still exactly what it was, but :func:`reconstruct_run` refuses to re-admit it
+    (``fingerprint_mismatch``) and a retry would ask it again anyway (:func:`_reused`)."""
+    return record.outcome == "COMPLETED" and record.attempts > 0 and not _reused(record)
+
+
+def _stale_modules(
+    records: Mapping[AnalysisModuleId, ModuleArtifact],
+) -> tuple[AnalysisModuleId, ...]:
+    return tuple(m for m in AnalysisModuleId if m in records and _stale(records[m]))
 
 
 @dataclass(frozen=True, slots=True)
@@ -731,6 +748,11 @@ class StoredAnalysis:
     @property
     def retryable(self) -> tuple[AnalysisModuleId, ...]:
         return _retryable(self.records, self.pending)
+
+    @property
+    def stale(self) -> tuple[AnalysisModuleId, ...]:
+        """The retryable modules that completed under an earlier harness (:func:`_stale`)."""
+        return _stale_modules(self.records)
 
 
 def _run(session: Session, scope: StudyContext, run_id: str) -> dict[str, Any]:
@@ -1040,7 +1062,8 @@ def retry_failed_modules(
     retried = analysis.retryable
     if not retried:
         raise AnalysisNotRetryable(
-            "nothing_to_retry", f"run {run_id} has no analysis module a model failed"
+            "nothing_to_retry",
+            f"run {run_id} has no analysis module a model failed or an earlier harness stored",
         )
     asked = sum(
         1

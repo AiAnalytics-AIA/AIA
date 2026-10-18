@@ -3,7 +3,7 @@ status: in-progress
 chunks:
   - "[x] PC1. A closed study reads as closed: the frame says delivered / archived / cancelled, editors and work actions are read-only with the reason, downloads and approval stay, and every refusal is study_closed in Czech"
   - "[ ] PC2. Results read the run's own verdicts: an answer to a research question the run recorded as a gap is marked as in the report, and a number the analysis refuses says so beside it"
-  - "[ ] PC3. A run's analysis stays repairable after a harness change: a module completed under an earlier harness is asked again over the frozen data, never a paid fieldwork re-run"
+  - "[x] PC3. A run's analysis stays repairable after a harness change: a module completed under an earlier harness is asked again over the frozen data, never a paid fieldwork re-run"
   - "[x] PC4. Work that waits for a person can go on: a run, Deep Research run or client-source proposals parked for the AI runtime resumes on a person's action once it is on, an agent job or Deep Research run stopped at the budget cap is lifted like a research run's step, and no copy promises it continues by itself"
   - "[ ] PC5. The stage track follows the run (done), and says when the design changed after the run it shows"
   - "[ ] PC6. Proposal review names what acceptance replaces; rewording a research question says which links it would orphan"
@@ -97,6 +97,45 @@ old track), stops reading once nothing can change, keeps reading a provider wait
 **Second half, open.** The track also calls Spuštění "done" and Výsledky "Revize N" when the design
 has changed since that run; saying "the design changed after this run" needs the working content's
 revision beside the run's (see the findings ledger, F-design-lane), not a browser guess.
+
+## PC3 — an analysis an earlier harness built stays repairable
+
+**Problem.** Results, Interpretation Research, the report with literature and the report step read a
+run's analysis through `reconstruct_run`, which re-judges every module under today's harness, prompt
+wording, policy and evidence and refuses the whole run if one moved
+(`application/analysis_results.py:775-783, 940-964 @ 20b24bb`: `fingerprint_mismatch`). The repair
+(`retry_failed_modules` over the run's frozen dataset) offered only BLOCKED or failed modules
+(`_retryable`, `:701-716`), so a run whose eight modules all completed before a harness or prompt
+change could not show its analysis, prepare its literature variant or use an Interpretation
+Research, and nothing offered to repair it: `nothing_to_retry`, and the web asked only for runs with
+a blocked or failed module (`research-execution.ts mayRetryAnalysis`). Results said the API's English
+refusal; Interpretation Research said "Obnovte stránku a zkuste to znovu". The only way out was a
+whole new run, paying for fieldwork again. A deploy between the modules and the report step left the
+same dark run. The analysis audit rated it P1, to be fixed before research-integrity-report chunk 8
+changes the analysis inputs (which will move every run's fingerprints).
+
+**Change.** A module a model completed under a harness that is not today's is *stale* (`_stale`: the
+same test the retry already used to decide what it reuses, `_reused`), and retryable: the retry asks
+it again over the same dataset, as it would have anyway once started (the ceiling already counted
+it). `GET …/analysis/retryable` names them (`stale`). Progress asks for any finished run with
+analysis, and its repair card says why: an earlier version of AIA built these modules and today's
+cannot re-check them, not that a model failed. Results' analysis tab and Interpretation Research say
+the same in Czech and link to the repair.
+
+**Invariants kept.** No evidence rule moves: a stale draft is never shown or re-admitted; it is asked
+again under today's harness and judged by today's gate. A module the preflight blocked is still not
+retryable. The retry still collects nothing (the dataset by id and SHA-256), still needs the
+person's confirmation over the spend limit, and the report's gate is unchanged.
+
+**Tests.** `test_a_run_whose_every_module_an_earlier_harness_completed_is_repaired_over_its_data`
+(fails on the old code: nothing retryable); `test_a_run_stored_under_the_previous_harness_can_still_be_repaired`
+now also names the stale modules; the route's shape (`stale`). Web: Progress "offers to repair a run
+whose modules an earlier version of AIA completed…", Results "says an analysis an earlier version of
+AIA built cannot be shown…", `mayRetryAnalysis` for any finished run with analysis.
+
+**Not changed (owner decision).** Whether a stale analysis should be *shown*, labelled with the harness
+that built it, instead of hidden until repaired. It is the only product question here; showing it
+would show text today's gate has not judged.
 
 ## PC4 — work that waits for a person can go on
 
