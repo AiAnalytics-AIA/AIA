@@ -56,8 +56,12 @@ export function acknowledgementOf(
   state: AcknowledgementState,
 ): AnswerabilityAcknowledgement | null {
   if (!needsAcknowledgement(answer) || !confirmedFor(answer, state)) return null;
-  const reason = state.reason.split(/\s+/).filter(Boolean).join(" ");
-  if (reason.length < MIN_REASON || reason.length > MAX_REASON) return null;
+  // As the server normalizes it (Acknowledgement: " ".join(reason.split())), by Python's whitespace.
+  const reason = pythonCollapse(state.reason);
+  // Counted in characters (code points), as Python's len counts them: a character beyond U+FFFF
+  // is two of JavaScript's units, and counting those sent a reason the server refuses.
+  const length = [...reason].length;
+  if (length < MIN_REASON || length > MAX_REASON) return null;
   return { digest: answer.digest, reason };
 }
 
@@ -150,7 +154,7 @@ function fixFor(reason: string, gap: AnswerabilityGap, outlook: readonly Questio
     }
     case "measures_unanswerable":
     case "no_citable_measure": {
-      // Without an outlook (a refused retry), only the editor: nothing says what the measure is.
+      // Without an outlook, only the editor: nothing says what the measure is.
       if (!outlook) return { step: "questionnaire", anchor: EDITOR, words: t(`${FIX}.measure`) };
       // Measured only by items the run will not answer: of those the analysis may cite, as the
       // domain decides it. An open question beside them is answered and never cited, so editing
@@ -172,8 +176,8 @@ function fixFor(reason: string, gap: AnswerabilityGap, outlook: readonly Questio
 /**
  * Where each of a gap's reasons is fixed, one link per place, in the order of its reasons: no
  * research question in Návrh; links, comparisons, a set or a measure in Dotazník; a measure's
- * support on Dimenze. ``outlook`` is readiness's: without one (a refused retry), a stage and its
- * sections only.
+ * support on Dimenze. ``outlook`` is readiness's: without one, a stage and its sections only. A
+ * refused retry shows none of them: it reruns its original's Design Revision, which no edit changes.
  */
 export function gapFixes(gap: AnswerabilityGap, outlook: readonly QuestionOutlook[] | null): GapFix[] {
   if (gap.kind === "no_research_questions") return [{ step: "plan", anchor: "plan-understanding", words: t(`${FIX}.plan`) }];
@@ -209,12 +213,36 @@ const isObject = (x: unknown): x is Record<string, unknown> => typeof x === "obj
 const QUESTION_TYPES: ReadonlySet<string> = new Set(["vyber", "multi", "skala", "otevrena"]);
 
 /**
- * research_design.py ``_text``: whitespace collapsed and trimmed, nothing as "". Null for a value
- * Python may write otherwise than JavaScript (anything but text or a whole number): never guessed.
+ * Python's whitespace (``str.isspace``, what ``re``'s ``\s`` and ``str.strip()`` take), which is
+ * not JavaScript's ``\s``: Python also takes U+001C–U+001F and U+0085, JavaScript also U+FEFF
+ * (review web#9). Listed whole, checked against Python 3.12 code point by code point.
+ */
+const PY_SPACE = "\t\n\v\f\r\x1c-\x20\x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000";
+const PY_SPACES = new RegExp(`[${PY_SPACE}]+`, "g");
+
+/** ``re.sub(r"\s+", " ", text).strip()`` as Python runs it: the same characters, never JavaScript's. */
+export function pythonCollapse(text: string): string {
+  return text.replace(PY_SPACES, " ").replace(/^ | $/g, "");
+}
+
+/**
+ * Python's ``a or b`` over a design's JSON values: ``b`` when ``a`` is falsy to Python. Python's
+ * falsy is JavaScript's but for an empty list or object, which ``||`` keeps (review): a question
+ * typed ``[]`` is the server's ``"vyber"``, never skipped. JSON holds no NaN, which would part too.
+ */
+function pythonOr(a: unknown, b: unknown): unknown {
+  const empty = Array.isArray(a) ? a.length === 0 : isObject(a) ? Object.keys(a).length === 0 : !a;
+  return empty ? b : a;
+}
+
+/**
+ * research_design.py ``_text``: whitespace collapsed and trimmed (Python's, ``pythonCollapse``),
+ * nothing as "". Null for a value Python may write otherwise than JavaScript (anything but text
+ * or a whole number): never guessed.
  */
 function serverText(v: unknown): string | null {
   if (v === null || v === undefined) return "";
-  if (typeof v === "string") return v.replace(/\s+/g, " ").trim();
+  if (typeof v === "string") return pythonCollapse(v);
   return typeof v === "number" && Number.isSafeInteger(v) ? String(v) : null;
 }
 
@@ -250,8 +278,9 @@ export type CompiledPlace = { anchor: string; element: string | null };
  * (``qedit_<id>``, ``qset_<id>``: a gap's measure is the outlook's id), beside the element
  * Dotazník draws for it. The server lower-cases and folds what the web wrote: the web's question
  * ``Q_lx3abc`` is the server's ``q_lx3abc``. A section the server reads as questions without
- * saying so is drawn as a set, so its questions have no element. An id the server may write
- * otherwise than this (neither text nor a whole number) ends the list: every later id is unknown.
+ * saying so is drawn as a set, so its questions have no element. Python's ``or`` is ported with
+ * Python's truthiness (``pythonOr``). An id the server may write otherwise than this (neither text
+ * nor a whole number) ends the list: every later id is unknown.
  */
 export function compiledPlaces(xs: readonly Section[]): CompiledPlace[] {
   const out: CompiledPlace[] = [];
@@ -259,9 +288,9 @@ export function compiledPlaces(xs: readonly Section[]): CompiledPlace[] {
   const questionIds = new Set<string>();
   for (const [si, sec] of xs.entries()) {
     if (!isObject(sec)) continue;
-    const kind = serverText(sec.type || "questions");
+    const kind = serverText(pythonOr(sec.type, "questions"));
     if (kind !== "questions" && kind !== "object_battery") continue;
-    const name = serverText(sec.id || sec.title);
+    const name = serverText(pythonOr(sec.id, sec.title));
     if (name === null) return out;
     const sid = unique(compiledSlug(name || `sekce_${si + 1}`, "sec"), sectionIds);
     if (kind === "object_battery") {
@@ -270,7 +299,7 @@ export function compiledPlaces(xs: readonly Section[]): CompiledPlace[] {
     }
     for (const [qi, q] of (Array.isArray(sec.questions) ? sec.questions : []).entries()) {
       // A question the server refuses takes no id (a design with one does not compile).
-      if (!isObject(q) || !QUESTION_TYPES.has(serverText(q.typ || "vyber") ?? "") || serverText(q.text) === "") continue;
+      if (!isObject(q) || !QUESTION_TYPES.has(serverText(pythonOr(q.typ, "vyber")) ?? "") || serverText(q.text) === "") continue;
       const id = serverText(q.id);
       if (id === null) return out;
       const qid = unique(compiledSlug(id || `${sid}_${qi + 1}`, "q"), questionIds);

@@ -15,8 +15,11 @@ import {
   gapWords,
   hashTarget,
   hasGaps,
+  MAX_REASON,
+  MIN_REASON,
   NO_ACKNOWLEDGEMENT,
   needsAcknowledgement,
+  pythonCollapse,
   questionnairePlace,
   unanswerableAsked,
 } from "./answerability";
@@ -53,6 +56,23 @@ describe("answerability (research-integrity-report 1)", () => {
       digest: FIO_LIKE.digest,
       reason: "Ověřujeme jen postup.",
     });
+    // Collapsed as the server collapses it, by Python's whitespace (review web#9), so the reason
+    // the run holds is the one sent (acknowledges).
+    expect(acknowledgementOf(FIO_LIKE, given("Ověřujeme\u0085jen\u001fpostup.\ufeff"))?.reason).toBe("Ověřujeme jen postup.\ufeff");
+  });
+
+  it("counts the reason in characters as the server does, never in UTF-16 units", () => {
+    // Acknowledgement counts code points (len); a character beyond U+FFFF is two UTF-16 units,
+    // so counting units sent five emoji the server refuses (422 acknowledgement_invalid).
+    const emoji = "\u{1F600}";
+    expect(acknowledgementOf(FIO_LIKE, given(emoji.repeat(9)))).toBeNull();
+    expect(acknowledgementOf(FIO_LIKE, given(emoji.repeat(5)))).toBeNull();
+    expect(acknowledgementOf(FIO_LIKE, given(emoji.repeat(10)))?.reason).toBe(emoji.repeat(10));
+    // And at the top: the server takes 1,000 characters however many units they are.
+    expect(acknowledgementOf(FIO_LIKE, given(emoji.repeat(MAX_REASON)))?.reason).toBe(emoji.repeat(MAX_REASON));
+    expect(acknowledgementOf(FIO_LIKE, given(emoji.repeat(MAX_REASON + 1)))).toBeNull();
+    expect(acknowledgementOf(FIO_LIKE, given("a".repeat(MIN_REASON)))?.reason).toBe("a".repeat(MIN_REASON));
+    expect(acknowledgementOf(FIO_LIKE, given("a".repeat(MIN_REASON - 1)))).toBeNull();
   });
 
   it("covers only the gaps it was given for: a design that changed asks again", () => {
@@ -233,6 +253,8 @@ const COMPILED = JSON.parse(readFileSync(join(process.cwd(), "src/lib/fixtures/c
   sections: Section[];
   questions: string[];
   sets: string[];
+  /** Every code point Python's ``re`` ``\s`` and ``str.strip()`` take (the Python test checks it). */
+  whitespace: number[];
 };
 
 describe("the place a link names in Dotazník (review, 2026-10-18)", () => {
@@ -252,6 +274,22 @@ describe("the place a link names in Dotazník (review, 2026-10-18)", () => {
     expect(place("qedit_sec_brands_7")).toBe("qedit_  ");
     expect(place("qedit_q_12")).toBe("qedit_12");
     expect(place("qedit_x1")).toBe("qedit_X1");
+    // Python's whitespace, not JavaScript's (review web#9): U+001C–U+001F and U+0085 are
+    // whitespace to the server, so an id of only those is none; U+FEFF is not, so one of only it
+    // is the server's "q".
+    expect(place("qedit_sec_brands_9")).toBe("qedit_\u001c");
+    expect(place("qedit_sec_brands_10")).toBe("qedit_\u0085");
+    expect(place("qedit_q")).toBe("qedit_\ufeff");
+    expect(place("qset_sekce_9")).toBe("qset_\u001f");
+    // Python's truthiness, not JavaScript's: an empty list or object is nothing to the server.
+    // A question typed [] or {} is its "vyber", so the ids after it move on; a link to the
+    // server's t1 opens the question it compiled as t1, never the next one.
+    expect(place("qedit_t1")).toBe("qedit_T1");
+    expect(place("qedit_t1_2")).toBe("qedit_t1");
+    expect(place("qedit_t2")).toBe("qedit_T2");
+    // A section typed [] or {} is questions to the server and a set to Dotazník: drawn nowhere.
+    expect(place("qedit_e1")).toBe("q-editor");
+    expect(place("qedit_e2")).toBe("q-editor");
     expect(place("qset_sada_bank")).toBe("qset_Sada bank");
     expect(place("qset_druha_sada")).toBe("qset_3");
     expect(place("qset_sekce_5")).toBe("qset_4");
@@ -267,6 +305,22 @@ describe("the place a link names in Dotazník (review, 2026-10-18)", () => {
     expect(place("qedit_gone")).toBe("q-editor");
     // A place that is not an item is its own element.
     expect(place("q-comparisons")).toBe("q-comparisons");
+  });
+
+  it("collapses exactly Python's whitespace, code point by code point (review web#9)", () => {
+    const python = new Set(COMPILED.whitespace);
+    const apart: number[] = [];
+    for (let c = 0; c <= 0x10ffff; c++) {
+      if (c >= 0xd800 && c <= 0xdfff) continue; // a lone surrogate is no Python str a design holds
+      const ch = String.fromCodePoint(c);
+      const collapsed = pythonCollapse(`a${ch}${ch}b`) === "a b" && pythonCollapse(`${ch}a${ch}`) === "a";
+      const kept = pythonCollapse(`a${ch}b`) === `a${ch}b`;
+      if (python.has(c) ? !collapsed : !kept) apart.push(c);
+    }
+    expect(apart).toEqual([]);
+    // Where JavaScript's own \s would have parted from it.
+    expect(pythonCollapse("\u001c\u0085 Q \u001f")).toBe("Q");
+    expect(pythonCollapse("\ufeff")).toBe("\ufeff");
   });
 
   it("gives no id to a question the server refuses, and stops at one it may write otherwise", () => {

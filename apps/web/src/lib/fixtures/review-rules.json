@@ -1,0 +1,14 @@
+{
+  "topicality_prefix": "aia-dr-topicality-",
+  "document_rules_prefix": "aia-document-types-",
+  "current": "aia-merge-3/aia-works-1/aia-dr-topicality-1/aia-dr-filters-1/aia-dr-concepts-1/aia-document-types-1",
+  "cases": [
+    {"merge": "aia-merge-3/aia-works-1/aia-dr-topicality-1/aia-dr-filters-1/aia-dr-concepts-1/aia-document-types-1", "topic": true, "documents": true},
+    {"merge": "aia-merge-1", "topic": false, "documents": false},
+    {"merge": "", "topic": false, "documents": false},
+    {"merge": "aia-merge-9/aia-works-3/aia-dr-topicality-4/x", "topic": true, "documents": false},
+    {"merge": "aia-merge-9/aia-document-types-2", "topic": false, "documents": true},
+    {"merge": "aia-merge-9/x-aia-dr-topicality-2", "topic": true, "documents": false},
+    {"merge": "aia-merge-9/x-aia-document-types-2", "topic": false, "documents": false}
+  ]
+}

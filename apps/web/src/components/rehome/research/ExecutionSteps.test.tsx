@@ -472,6 +472,21 @@ describe("Run: which questions the run will answer (run-recovery-and-truth 2b)",
     expect(fixes).toEqual(places.map((p) => p[0]));
   });
 
+  it("offers no linking in Dotazník for a design that states no research question", async () => {
+    // Review web#12: under "the design states no research question" the gate still offered to link
+    // items to research questions, where there is none to link to; Návrh is where it is fixed.
+    const none = {
+      rules: "aia-answerability-1", capable: false, digest: "d".repeat(64), acknowledgement_required: false,
+      gaps: [{ kind: "no_research_questions", research_question: null, verdict: "UNANSWERABLE", reasons: [], measures: [] }],
+    };
+    api({ "GET /api/v1/studies/STU-1/research/readiness": () => ({ ...OUTLOOK, answerability: none }) });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const gate = await screen.findByRole("region", { name: t("research.exec.answerability.title") });
+    expect(within(gate).getAllByRole("link").map((a) => [a.textContent, a.getAttribute("href")])).toEqual([
+      [t("research.exec.answerability.fixTo.plan"), `${stagePath("plan")}#plan-understanding`],
+    ]);
+  });
+
   it("shows what Design Research found per research question, a gap, and every rejection's reason", async () => {
     const traced = {
       ...OUTLOOK,
@@ -958,6 +973,14 @@ describe("Run: what a run can cost (5b.2)", () => {
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: t("research.exec.retry") }));
     const gate = await screen.findByRole("region", { name: t("research.exec.answerability.title") });
+    // A retry reruns the original's Design Revision: no edit closes its gaps, so no link offers
+    // one; a fix applies to a new run, started from Kontrola a spuštění (review web#8).
+    expect(within(gate).getAllByRole("link").map((a) => [a.textContent, a.getAttribute("href")])).toEqual([
+      [tv("research.exec.answerability.retryOpen", { stage: t("aia.stages.run") }), stagePath("run")],
+    ]);
+    expect(within(gate).getByText(tv("research.exec.answerability.retryFixes", { stage: t("aia.stages.run") }))).toBeTruthy();
+    expect(within(gate).getByText(t("research.exec.answerability.helpRetry"))).toBeTruthy();
+    expect(within(gate).queryByText(t("research.exec.answerability.help"))).toBeNull();
     const again = screen.getByRole("button", { name: t("research.exec.answerability.retryAction") }) as HTMLButtonElement;
     expect(again.disabled).toBe(true);
     fireEvent.click(within(gate).getByRole("checkbox", { name: t("research.exec.answerability.choice") }));
@@ -2450,6 +2473,44 @@ describe("Interpretation research", () => {
     expect(within(rejected).getByText("Káva brzy zmizí z trhu.")).toBeTruthy();
     expect(within(rejected).getByText("číslo není v citovaném podkladu · číslo není v citaci")).toBeTruthy();
     expect(within(rejected).getByText("· shrnutí cituje číslo mimo podklady")).toBeTruthy();
+  });
+
+  it("says an older review predates today's acceptance rules its report applies, and nothing of a newer one (review web#5)", async () => {
+    // The screen listed an older review's findings as plain accepted ones while its report with
+    // literature labelled those today's rules would not accept.
+    const completed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-questions" })] });
+    const review = { run_id: "RUN-deep", purpose: "INTERPRETATION_RESEARCH", target: { research_run_id: "RUN-1" },
+      preset: "QUICK", status: "COMPLETED", phase: "COMPLETED", is_terminal: true, retryable: false,
+      created_at: null, actual_cost_usd: 0.4, steps: [] };
+    let merge = "aia-merge-1";
+    api({ ...listed(completed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: true, modules: {}, pending: {} }),
+      "GET /api/v1/studies/STU-1/deep-research/runs": () => [review],
+      "GET /api/v1/studies/STU-1/deep-research/runs/RUN-deep/bundle": () => ({
+        quality_status: "OK", sha256: "b-3", counts: {}, quarantined: [], versions: { harness: "aia-deep-research-harness-1", merge },
+        accepted: [{ evidence: { evidence_id: "EV-1", claim: "Fiktivní zjištění o běžném účtu.", quote: "Fiktivní citace.", source_ref: "SRC-1" }, score: { score: 0.7, source_class: "ACADEMIC_INSTITUTION" } }],
+        snapshots: [{ snapshot_id: "SRC-1", title: "Fiktivní práce", url: "https://example.org/prace.pdf", retrieval_mode: "LIVE" }],
+      }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Rešerše a zpráva" }));
+    const note = await screen.findByRole("note", { name: t("research.deep.olderRules.title") });
+    expect(note.textContent).toContain("vznikla před zavedením kontroly tématu a pravidel typů dokumentů");
+    expect(note.textContent).toContain("v ní označí s důvodem");
+    // Never unconditionally: today's topic check needs the review's stored plan to verify.
+    expect(note.textContent).toContain("Kontrolu tématu přitom lze použít, jen když se podaří ověřit uložený plán rešerše");
+    // The findings stay listed as the review accepted them.
+    expect(within(await screen.findByRole("list", { name: "Přijatá zjištění" })).getByText("Fiktivní zjištění o běžném účtu.")).toBeTruthy();
+    // A review merged under today's rules: nothing to say of them.
+    cleanup();
+    merge = "aia-merge-3/aia-works-1/aia-dr-topicality-1/aia-dr-filters-1/aia-dr-concepts-1/aia-document-types-1";
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Rešerše a zpráva" }));
+    expect(within(await screen.findByRole("list", { name: "Přijatá zjištění" })).getByText("Fiktivní zjištění o běžném účtu.")).toBeTruthy();
+    expect(screen.queryByRole("note", { name: t("research.deep.olderRules.title") })).toBeNull();
   });
 
   it("requires confirmation before cancelling an active interpretation review", async () => {

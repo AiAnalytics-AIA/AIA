@@ -120,6 +120,8 @@ describe("Návrh", () => {
     unitStub();
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
     await waitFor(() => expect(seen).toEqual(["plan-understanding"]));
+    // Keyboard focus moves there too (review web#7).
+    await waitFor(() => expect(document.activeElement?.id).toBe("plan-understanding"));
   });
 
   it("applies a design variant to the project", async () => {

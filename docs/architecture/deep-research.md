@@ -304,6 +304,23 @@ a readable source label rather than an internal transcription marker. Tests:
 `test_labelled_numeric_data_keeps_its_indicator_and_unit` and
 `test_long_research_subject_is_body_text_and_duplicate_gaps_appear_once`.
 
+A review merged before the topic and document rules (D4) is never merged again. Its report
+with literature, composed under the current contract, applies today's rules to it at
+composition, over the review's frozen request and at USD 0: each accepted finding they would
+not accept is labelled with its reason (a student thesis by its source's address and title
+alone) and one callout names their sources; nothing is removed or recounted
+(`application/contextual_report.py`, `literature_sections`). The topic rules read the client's
+names from the review's stored plan (`DeepResearchRuns.frozen_request`), so they apply only
+when that plan verifies; the document rules read no plan. The literature screen on Výsledky
+reads the same record, the sealed bundle's `versions.merge`, and says above the findings that
+the review predates those rules, that its report labels the findings they would not accept,
+and that the topic check applies only when the stored plan verifies
+(`apps/web/src/lib/review-rules.ts`, held to the domain's prefixes by
+`apps/web/src/lib/fixtures/review-rules.json`). Tests: `test_each_case_reads_as_the_report_reads_it`,
+`test_the_bundle_route_serves_the_sealed_bundle_with_the_rules_it_ran_under` and, in
+`ExecutionSteps.test.tsx`, "says an older review predates today's acceptance rules its report
+applies, and nothing of a newer one".
+
 ## 7. The cost contract for tools (`tooling.py`, `application/web_retrieval.py`)
 
 Search and fetch are bracketed like a model call: `ToolMeter.reserve` →
