@@ -2673,6 +2673,7 @@ export const cs = {
           notApproved: "neschváleno",
           pdfRendering: "PDF schválené verze se právě vytváří; zpráva je zatím k dispozici jako DOCX.",
           pdfNotRequested: "PDF schválené verze zatím nebylo vyžádáno.",
+          pdfNotRequestedDisabled: "PDF schválené verze nebylo vyžádáno: PDF jejího konceptu se nevytvořilo, protože toto nasazení PDF tehdy nevytvářelo; zpráva je k dispozici jako DOCX.",
           otherVersion: "Stažený soubor není verze, kterou karta ukazuje (mezitím vznikla jiná). Obnovte stránku a stáhněte ho znovu.",
           otherState: "Stažený soubor nese jiný stav schválení, než karta ukazuje (mezitím se změnil). Obnovte stránku a stáhněte ho znovu.",
         },

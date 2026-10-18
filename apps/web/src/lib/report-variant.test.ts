@@ -51,7 +51,7 @@ describe("report variant (research-integrity-report 3)", () => {
     expect(variantPdfWhy(variant(pdf("RENDERING")))).toContain("vytváří");
     expect(variantPdfWhy(variant(pdf("NOT_REQUESTED")))).toContain("nebylo vyžádáno");
     expect(variantPdfWhy(variant(pdf("FAILED", "pdf_conversion_failed")))).toContain("nepodařilo");
-    expect(variantPdfWhy(variant(pdf("FAILED", "pdf_disabled")))).toContain("není v tomto nasazení");
+    expect(variantPdfWhy(variant(pdf("FAILED", "pdf_disabled")))).toContain("tehdy nevytvářelo");
     expect(variantPdfWhy(variant(pdf("INVALID", "pdf_not_this_report")))).toContain("neodpovídá");
     expect(variantPdfWhy(variant(pdf("INVALID", "pdf_corrupt")))).toContain("poškozené");
     expect(variantPdfWhy(variant(pdf("NOT_REQUESTED", "study_closed")))).toContain("uzavřená");
@@ -73,12 +73,21 @@ describe("report variant (research-integrity-report 3)", () => {
     expect(pdfWhy(null)).toBe("Tento běh PDF nevytvořil.");
   });
 
-  it("never offers again a PDF this deployment does not render", () => {
+  it("never offers again a PDF a worker without a converter refused, and says it was refused then", () => {
     // Cross-review web#2: "PDF není v tomto nasazení zapnuté … Můžete ho nechat vytvořit znovu".
     const disabled = { ...pdf("FAILED", "pdf_disabled"), askable: false };
-    expect(pdfWhy(disabled)).toBe("PDF není v tomto nasazení zapnuté; zpráva je k dispozici jako DOCX.");
+    // What AIA checked is that the worker rendered nothing when it was asked, never that it
+    // still does not: an operator may have turned the converter on since.
+    expect(pdfWhy(disabled)).toBe("PDF se nevytvořilo, protože toto nasazení PDF tehdy nevytvářelo; zpráva je k dispozici jako DOCX.");
+    expect(pdfWhy(disabled)).not.toContain("není v tomto nasazení");
     expect(pdfWhy(disabled, true)).not.toContain("znovu");
     expect(variantPdfAskable(variant(disabled))).toBe(false);
+    // An approved version's PDF was never asked for: its draft's refusal is why, said of the draft.
+    const approvedNever = { ...pdf("NOT_REQUESTED", "pdf_disabled"), askable: false };
+    expect(pdfWhy(approvedNever, true)).toBe(
+      "PDF schválené verze nebylo vyžádáno: PDF jejího konceptu se nevytvořilo, protože toto nasazení PDF tehdy nevytvářelo; zpráva je k dispozici jako DOCX.",
+    );
+    expect(pdfWhy(approvedNever, true)).not.toContain("Můžete");
   });
 
   it("calls a PDF that does not match a version, never a draft, what it is", () => {

@@ -1887,13 +1887,35 @@ describe("Results", () => {
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     const report = await card();
-    const why = "PDF není v tomto nasazení zapnuté; zpráva je k dispozici jako DOCX.";
+    const why = "PDF se nevytvořilo, protože toto nasazení PDF tehdy nevytvářelo; zpráva je k dispozici jako DOCX.";
     expect(await report.findByText(why)).toBeTruthy();
     // Not offered again: in this deployment asking only fails again (cross-review web#2).
     expect(report.queryByRole("button", { name: /Vytvořit PDF/ })).toBeNull();
     fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
     await screen.findByText(t("research.exec.results.reportDraft"));
     expect(screen.getAllByText(why)).toHaveLength(1);
+  });
+
+  it("says an approved version's PDF was not asked for because its draft's was refused, and offers none", async () => {
+    // The server keeps the draft's pdf_disabled for an approved version never asked for; without
+    // it the card offered "Vytvořit PDF" for a job that could only fail again.
+    api({
+      ...listed(reportRun()),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () =>
+        reportStatus({
+          review_state: "APPROVED_INTERNAL",
+          approved_on: "2026-10-18",
+          stamped: true,
+          pdf: { state: "NOT_REQUESTED", reason: "pdf_disabled", askable: false },
+        }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    const report = await card();
+    expect(await report.findByText(t("research.exec.report.review.pdfNotRequestedDisabled"))).toBeTruthy();
+    expect(report.queryByText(/Můžete ho nechat vytvořit/)).toBeNull();
+    expect(report.queryByRole("button", { name: /Vytvořit PDF/ })).toBeNull();
   });
 
   it("shows the internal draft from the completed report step and downloads it from the report card", async () => {
