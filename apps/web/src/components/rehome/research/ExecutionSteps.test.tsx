@@ -1868,7 +1868,7 @@ describe("Results", () => {
       "GET /api/v1/studies/STU-1/deep-research/runs": () => [review],
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/context": () => earlier,
       "POST /api/v1/studies/STU-1/research/runs/RUN-1/report/context": () =>
-        new Response(JSON.stringify({ code: "context_report_refused", message: "fingerprint_mismatch", details: {} }), { status: 409 }),
+        new Response(JSON.stringify({ code: "context_report_refused", message: "the evidence, policy, method status or harness no longer match this outcome", details: { reason: "fingerprint_mismatch" } }), { status: 409 }),
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     const report = await card();
@@ -1880,8 +1880,8 @@ describe("Results", () => {
     expect(report.getByText("schváleno v AIA")).toBeTruthy();
     fireEvent.click(report.getByRole("button", { name: "Připravit znovu podle současné skladby" }));
     await waitFor(() => expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/context")).toHaveLength(1));
-    // Refused: the earlier report is still the one offered.
-    expect(await report.findByRole("alert")).toBeTruthy();
+    // Refused: the earlier report is still the one offered, and why is said in words (PC17).
+    expect((await report.findByRole("alert")).textContent).toBe(t("research.exec.results.analysisStale"));
     expect(report.getByRole("button", { name: /Stáhnout zprávu/ })).toBeTruthy();
   });
 

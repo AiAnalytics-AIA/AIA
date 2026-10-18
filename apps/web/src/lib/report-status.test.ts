@@ -2,6 +2,7 @@
 // this client does not know, is never composing and never approved.
 import { describe, expect, it } from "vitest";
 
+import { t } from "@/i18n/t";
 import { ApiError } from "@/lib/api";
 import { approvalRefusal, reportStatus, reportStatusWords, reviewStatus } from "./report-status";
 
@@ -44,5 +45,14 @@ describe("reportStatus", () => {
   it("says why an approval was refused, in words where a person can act on it", () => {
     expect(approvalRefusal(new ApiError(409, "separation_of_duties", "x", null))).toBe("Tuto zprávu musí schválit někdo jiný než ten, kdo ji vytvořil.");
     expect(approvalRefusal(new Error("Síť selhala."))).toBe("Síť selhala.");
+  });
+});
+
+describe("approvalRefusal (PC17)", () => {
+  it("says a literature report refused for an analysis an earlier AIA built in words, anything else as the API said", () => {
+    const stale = new ApiError(409, "context_report_refused", "the harness no longer matches", null, { reason: "fingerprint_mismatch" });
+    expect(approvalRefusal(stale)).toBe(t("research.exec.results.analysisStale"));
+    const other = new ApiError(409, "context_report_refused", "bundle not ready", null, {});
+    expect(approvalRefusal(other)).toBe("bundle not ready");
   });
 });

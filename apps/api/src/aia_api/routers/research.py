@@ -2112,8 +2112,16 @@ def prepare_contextual_report(
     except (IntegrityError, ObjectNotFound) as exc:
         raise artifact_corrupt(session) from exc
     except _CONTEXT_REFUSALS as exc:
+        # A refusal that names why carries it, so the screen can say it in words (PC17): the
+        # analysis an earlier harness built (fingerprint_mismatch) is repaired on Průběh.
+        reason = getattr(exc, "reason", None)
         raise HTTPException(
-            409, detail={"code": "context_report_refused", "message": str(exc)}
+            409,
+            detail={
+                "code": "context_report_refused",
+                "message": str(exc),
+                "details": {"reason": reason} if isinstance(reason, str) else {},
+            },
         ) from exc
     return _variant_response(
         run_id,

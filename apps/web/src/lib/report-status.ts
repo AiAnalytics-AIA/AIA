@@ -52,8 +52,13 @@ const TONE: Record<ReportStatus, Tone> = {
 export const reportStatusTone = (status: ReportStatus): Tone => TONE[status];
 export const reportStatusWords = (status: ReportStatus): string => t(`research.exec.report.status.${status}`);
 
-/** Why an approval was refused, in words: the one refusal a person can act on is the separation of duties. */
+/**
+ * Why a report action was refused, in words where a person can act on it: the separation of duties
+ * on an approval, and a report with literature refused because the run's analysis was built by an
+ * earlier version of AIA (repaired on Průběh, PC3/PC17); anything else as the API said it.
+ */
 export function approvalRefusal(e: unknown): string {
   if (e instanceof ApiError && e.code === "separation_of_duties") return t("research.exec.results.reportApproveIndependent");
+  if (e instanceof ApiError && e.code === "context_report_refused" && e.details.reason === "fingerprint_mismatch") return t("research.exec.results.analysisStale");
   return e instanceof Error ? e.message : String(e);
 }
