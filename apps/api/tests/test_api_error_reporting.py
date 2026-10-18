@@ -72,6 +72,10 @@ def api(reported: list[dict[str, Any]]) -> Iterator[TestClient]:
     def conflict() -> None:
         raise HTTPException(409, {"code": "stale", "message": "edited meanwhile"})
 
+    @app.get("/api/v1/wordless")
+    def wordless() -> None:
+        raise HTTPException(409, {"code": "report_artifact_missing"})
+
     with TestClient(app, raise_server_exceptions=False) as client:
         yield client
 
@@ -101,6 +105,14 @@ def test_a_refusal_is_not_an_issue(api: TestClient, reported: list[dict[str, Any
     assert api.get("/api/v1/conflict").status_code == 409
     assert api.get("/api/v1/no-such-route").status_code == 404
     assert reported == []
+
+
+def test_a_refusal_raised_with_only_a_code_keeps_its_code_as_its_message(api: TestClient) -> None:
+    """PC18: an empty message reached the screen as nothing, and the report card read a missing
+    stored report as still loading. The code is said instead; a given message is kept as given."""
+    wordless = api.get("/api/v1/wordless").json()
+    assert (wordless["code"], wordless["message"]) == ("report_artifact_missing",) * 2
+    assert api.get("/api/v1/conflict").json()["message"] == "edited meanwhile"
 
 
 def test_off_without_a_dsn() -> None:

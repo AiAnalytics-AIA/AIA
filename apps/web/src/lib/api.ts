@@ -45,7 +45,8 @@ async function refusal(response: Response): Promise<ApiError> {
     details?: Record<string, unknown>;
   };
   const code = payload.code ?? `http_${response.status}`;
-  const message = payload.message ?? response.statusText;
+  // An empty message is no message: say the code, never nothing (PC18).
+  const message = payload.message || code || response.statusText;
   if (response.status === 401) return new Unauthenticated(401, code, message, requestId);
   return new ApiError(response.status, code, message, requestId, payload.details ?? {});
 }

@@ -220,10 +220,13 @@ def install_exception_handlers(app: FastAPI) -> None:
         detail: Any = exc.detail
         headers = getattr(exc, "headers", None)
         if isinstance(detail, dict) and "code" in detail:
+            # A refusal raised with a code and no message keeps its code as its message: an
+            # empty one reached the screen as nothing at all (PC18; the report card read a
+            # missing stored report as "loading" for ever).
             return _error(
                 exc.status_code,
                 str(detail.get("code")),
-                str(detail.get("message", "")),
+                str(detail.get("message") or detail.get("code")),
                 detail.get("details") if isinstance(detail.get("details"), dict) else {},
                 headers=headers,
             )
