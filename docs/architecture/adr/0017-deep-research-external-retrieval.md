@@ -58,7 +58,8 @@ Three facts decide the shape:
    its distinguishing words together and never by one word of a longer name; a quote or title
    naming a sibling concept of a declared family (retail-banking products; the run's tracked
    objects) and none of the topic's own is set aside, unless it names a kind of the topic's (a
-   mortgage under a loan topic); a question's finding must share one of the topic's words.
+   mortgage under a loan topic); a question's finding must share two of the topic's words (all of
+   them when it has fewer).
    Deterministic, no model; the investigator's claim never decides the first two rules. A
    finding that fails is quarantined `off_topic`, one whose topic leaves nothing to judge by
    `topic_undetermined`, the evidence kept in the bundle either way.

@@ -31,8 +31,9 @@ alike in every case (``sójového`` and ``sójových`` are ``sojov``, ``Sójový
   distinguishing phrase (R1's). A family may declare one concept a kind of another: a mortgage
   is a loan, so a loan topic keeps a mortgage source, never the other way round. A topic that
   names no concept of a family is not judged by it.
-* **R3, topic words** (``QUESTION``, ``CROSS``): the claim, the quote or the source title shares
-  at least one of the topic's terms, once the client's own names (:data:`CLIENT_IDENTITY`),
+* **R3, topic words** (``QUESTION``, ``CROSS``): the claim, the quote and the source title
+  together share at least two of the topic's terms (:data:`SHARED_TERMS`; all of them when it
+  has fewer), once the client's own names (:data:`CLIENT_IDENTITY`),
   question words (:data:`QUESTION_WORDS`) and every term with a digit are taken out; an
   interpretation subject is read without its framing (:data:`.interpretation.FRAMINGS`): the
   framing's own words go, the text in its slots stays, and a subject no framing frames keeps
@@ -48,11 +49,12 @@ inflections that change the stem (``účet``/``účtu``, ``důvěra``/``důvěř
 lexicon across languages, and a synonym shares no word; a concept is named only by the phrases
 the table lists, and a topic naming none (``bezpečnost mobilního bankovnictví``) is judged by
 R3 alone. An object named only in part (``spořitelna`` for ``Česká spořitelna``) is not
-named. R3 asks for one shared word, so it sets aside only a finding with none: on the filters'
-fictional corpus (``tests/fixtures/deep_research_filters``, first sentence as the claim) it
-keeps 25 of 27 relevant pairs and sets aside 120 of 149 irrelevant ones; the other 29 share a
-generic word (``trh``, ``Česku``, ``ceny``)
-(``test_deep_research_topicality.py::test_measured_topicality``).
+named. On the filters' fictional corpus (``tests/fixtures/deep_research_filters``, first
+sentence as the claim, no title) R3 keeps 22 of 27 relevant pairs and sets aside 148 of 149
+irrelevant ones (``test_deep_research_topicality.py::test_measured_topicality``). One shared
+word would keep 25 relevant but also 29 irrelevant pairs, each sharing a single generic word
+(``trh``, ``Česku``, ``ceny``); the five relevant pairs two words miss share one (a headline,
+a synonym, another language) and are set aside with their reason, never lost.
 
 Pure: stdlib, and this package's own text rules and contracts.
 """
@@ -123,6 +125,8 @@ _TOPIC_CHARS: Final = 200
 _TOPIC_WORDS: Final = 8
 #: A stem is read without a trailing ``ov`` only when longer than this: ``slov`` stays.
 _OV_MIN: Final = 4
+#: How many of a topic's terms R3 asks a finding to share (all of them when it has fewer).
+SHARED_TERMS: Final = 2
 
 
 def _terms(text: str) -> list[str]:
@@ -457,12 +461,13 @@ def concept_table() -> list[list[object]]:
 
 def declared_rules() -> dict[str, object]:
     """Everything besides the code and the table that decides a verdict, for its pin: the
-    client names, question words, framings and the ``-ov`` fold."""
+    client names, question words, framings, the ``-ov`` fold and R3's threshold."""
     return {
         "client_identity": sorted(CLIENT_IDENTITY),
         "question_words": QUESTION_WORDS,
         "framings": list(FRAMINGS),
         "ov_fold_min": _OV_MIN,
+        "shared_terms": SHARED_TERMS,
     }
 
 
@@ -619,13 +624,18 @@ class TopicScreen:
                     "podle kterého by šlo souvislost posoudit",
                 )
             found = {*_terms(quote), *_terms(source_title), *_terms(claim)}
-            if not any(term in found for term, _ in profile.topic_terms):
+            shared = [w for term, w in profile.topic_terms if term in found]
+            if len(shared) < min(SHARED_TERMS, len(profile.topic_terms)):
                 words = [w for _, w in profile.topic_terms[:_TOPIC_WORDS]]
+                listed = _listed(words, ordered=True)
                 return TopicJudgement(
                     TopicVerdict.OFF_TOPIC,
                     TopicRule.TOPIC_WORDS,
                     f"{topic}; tvrzení, citace ani název zdroje nesdílí žádné z jeho slov "
-                    f"({_listed(words, ordered=True)})",
+                    f"({listed})"
+                    if not shared
+                    else f"{topic}; tvrzení, citace a název zdroje sdílejí jen slovo "
+                    f"„{shared[0]}“, pravidlo žádá aspoň dvě z jeho slov ({listed})",
                 )
         return TopicJudgement(TopicVerdict.ON_TOPIC, None, "")
 

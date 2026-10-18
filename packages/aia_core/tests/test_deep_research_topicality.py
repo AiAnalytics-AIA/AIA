@@ -7,9 +7,9 @@ filters' own invented one. What is pinned:
   title names the mortgage, sharing bank, trust and client words: R4 sets them aside on the
   title, whatever the investigator's claim says; findings that name the account stay;
 * **each rule** -- an object finding names its object in the quote or title by its
-  distinguishing phrase, never by one word of a longer name (R1); a question finding shares one
-  topic word once the client's names, question words, a subject's framing and digits are out
-  (R3); nothing to judge by is undetermined, never on topic;
+  distinguishing phrase, never by one word of a longer name (R1); a question finding shares two
+  topic words (all of them when the topic has fewer) once the client's names, question words, a
+  subject's framing and digits are out (R3); nothing to judge by is undetermined, never on topic;
 * **the concept table** -- every entry by its inflected forms, longest phrase first, a mortgage
   a kind of loan, pinned to its version; the run's tracked objects a family of their own;
 * **the declared rules** -- word lists, framings and the fold, pinned to the rules' version;
@@ -258,7 +258,10 @@ def test_a_topic_naming_no_concept_is_not_judged_by_its_family() -> None:
     # A known limit, said: R4 needs the topic to name a concept of the family.
     topic = _q("Jak klienti vnímají bezpečnost mobilního bankovnictví?")
     judgement = _judge(
-        _screen(topic), topic, "Důvěra v banku je pro klienty druhým faktorem.", title=THESIS
+        _screen(topic),
+        topic,
+        "Bezpečnost mobilního bankovnictví je pro klienty druhým faktorem důvěry.",
+        title=THESIS,
     )
     assert judgement.verdict is TopicVerdict.ON_TOPIC
 
@@ -365,9 +368,9 @@ def test_a_word_of_a_longer_name_names_no_tracked_object() -> None:
     about_fio = _q("Jak klienti vnímají Fio banku?")
     screen = _screen(fio, air, cs, banks, about_fio, client=())
     assert screen.profiles[banks.key].concepts == frozenset()
-    fio_fact = "Fio banka má mezi bankami nejvíce spokojených klientů."
+    fio_fact = "Lidé v Česku vnímají Fio banku jako nejvstřícnější z bank."
     assert _judge(screen, banks, fio_fact).verdict is TopicVerdict.ON_TOPIC
-    general = "Klienti v Česku nejvíce oceňují nízké poplatky."
+    general = "Klienti v Česku vnímají nízké poplatky jako hlavní výhodu."
     assert _judge(screen, about_fio, general).verdict is TopicVerdict.ON_TOPIC
     # The whole name still names it, in any case.
     swap = _judge(screen, about_fio, "Klienti České spořitelny nejvíce oceňují pobočky.")
@@ -380,7 +383,7 @@ def test_a_word_of_a_longer_name_names_no_tracked_object() -> None:
 # --------------------------------------------------------------------------- R3
 
 
-def test_a_question_finding_shares_one_word_of_its_topic() -> None:
+def test_a_question_finding_shares_two_words_of_its_topic() -> None:
     topic = _q("Proč lidé přecházejí na rostlinné nápoje?")
     screen = _screen(topic, client=())
     off = _judge(screen, topic, "Výkupní ceny kravského mléka loni klesly.")
@@ -389,11 +392,27 @@ def test_a_question_finding_shares_one_word_of_its_topic() -> None:
         "téma: „Proč lidé přecházejí na rostlinné nápoje?“; tvrzení, citace ani název zdroje "
         "nesdílí žádné z jeho slov („lidé“, „přecházejí“, „rostlinné“, „nápoje“)"
     )
-    # One word, anywhere -- the claim counts here, and only here.
-    assert _judge(screen, topic, "Ceny klesly.", claim="Nápoje zdražily.").verdict is (
+    # One shared word is not enough, and the detail says which one it was.
+    one = _judge(screen, topic, "Ceny klesly.", claim="Nápoje zdražily.")
+    assert (one.verdict, one.rule) == (TopicVerdict.OFF_TOPIC, TopicRule.TOPIC_WORDS)
+    assert one.detail == (
+        "téma: „Proč lidé přecházejí na rostlinné nápoje?“; tvrzení, citace a název zdroje "
+        "sdílejí jen slovo „nápoje“, pravidlo žádá aspoň dvě z jeho slov („lidé“, "
+        "„přecházejí“, „rostlinné“, „nápoje“)"
+    )
+    # Two words, anywhere -- the claim counts here, and only here.
+    assert _judge(screen, topic, "Ceny klesly.", claim="Rostlinné nápoje zdražily.").verdict is (
         TopicVerdict.ON_TOPIC
     )
     assert _judge(screen, topic, "Ceny klesly.", title="Rostlinné nápoje").verdict is (
+        TopicVerdict.ON_TOPIC
+    )
+    # A topic of one word asks for that one.
+    single = _q("Elektrokola?")
+    assert [w for _, w in _screen(single, client=()).profiles[single.key].topic_terms] == [
+        "Elektrokola"
+    ]
+    assert _judge(_screen(single, client=()), single, "Elektrokola zdražila.").verdict is (
         TopicVerdict.ON_TOPIC
     )
 
@@ -460,7 +479,7 @@ def test_the_clients_own_names_are_not_topic_words() -> None:
     )
     # The study's name is not the client: a study named after its topic keeps its words.
     assert "digitální" in terms
-    assert _judge(screen, topic, "Digitální kanály používá většina lidí.").verdict is (
+    assert _judge(screen, topic, "Digitální účet hodnotí kladně většina lidí.").verdict is (
         TopicVerdict.ON_TOPIC
     )
 
@@ -746,7 +765,7 @@ def test_a_kind_of_the_topics_concept_is_no_swap() -> None:
     # A mortgage is a loan: a loan topic keeps a mortgage source, never the other way round.
     loans, mortgages = _q("Jak klienti vnímají úvěry?"), _q("Jak klienti vnímají hypotéky?")
     screen = _screen(loans, mortgages, client=())
-    quote = "Objem nově poskytnutých hypotečních úvěrů vzrostl o 20 %."
+    quote = "Klienti vnímají hypoteční úvěry jako nejdostupnější."
     assert _judge(screen, loans, quote, title="Hypoteční trh 2025").verdict is (
         TopicVerdict.ON_TOPIC
     )
@@ -792,7 +811,7 @@ def test_the_declared_rules_are_the_version_they_name() -> None:
     ).encode()
     assert (TOPICALITY_VERSION, hashlib.sha256(data).hexdigest()) == (
         "aia-dr-topicality-1/aia-dr-filters-1/aia-dr-concepts-1",
-        "1494b204bcf64e30b4d838a8460841e58168a117887fad2d2b1f68bc29bd6a29",
+        "1143971ccd1e1cb93ba9be6a3aaa31da815dbd193c9600306ab43da65e912e39",
     )
 
 
@@ -829,7 +848,9 @@ def test_measured_topicality() -> None:
             on = _judge(screen, subject, sentence).verdict is TopicVerdict.ON_TOPIC
             relevant = question_id in document["relevant_to"]
             tally[("t" if on == relevant else "f") + ("p" if on else "n")] += 1
-    # 176 pairs, 27 relevant. Kept: 25 of 27 relevant (missed: a German sentence and "Sdílená
-    # kola" under e-bikes). Set aside: 120 of 149 irrelevant; the 29 kept share one generic
-    # word with their question -- "trh", "Česku", "ceny" -- which is all R3 asks.
-    assert tally == {"tp": 25, "fp": 29, "fn": 2, "tn": 120}
+    # 176 pairs, 27 relevant. Kept: 22 of 27 relevant (missed, each sharing one word or none: a
+    # German sentence, "Sdílená kola" and the headline "Elektrokola: ceny 2025" under e-bikes,
+    # a coffee-machine review, "Rozvoz potravin" for grocery delivery). Set aside: 148 of 149
+    # irrelevant. Asking one shared word instead kept 25 relevant and 29 irrelevant pairs, each
+    # sharing a single generic word -- "trh", "Česku", "ceny".
+    assert tally == {"tp": 22, "fp": 1, "fn": 5, "tn": 148}

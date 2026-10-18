@@ -182,8 +182,8 @@ gate (`topicality.py`, `aia-dr-topicality-1`; D4, 2026-10-18): an object's findi
 names its object in the quote or source title by its distinguishing words together,
 never by one word of a longer name; a quote or title naming a sibling concept of a
 declared family and none of the topic's own is set aside, unless it names a kind of the
-topic's (a mortgage under a loan topic); a question's finding shares one word of its
-topic once the client's names, question words, an interpretation subject's framing and
+topic's (a mortgage under a loan topic); a question's finding shares two words of its
+topic (all of them when it has fewer) once the client's names, question words, an interpretation subject's framing and
 digits are out (`off_topic`; nothing to judge by, `topic_undetermined`).
 Then dedupe (same source, claim similarity ≥ the unit's 0.42), then independent
 confirmation from a different source as a confidence bonus (+0.1 each, at most two,

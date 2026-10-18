@@ -673,8 +673,9 @@ def _relevance_sentence(topic_judged: bool) -> str:
         "hledáno: u sledovaného objektu, že ho citace nebo název zdroje jmenuje; u tématu, "
         "které jmenuje pojem z pevně dané skupiny (bankovní produkt, sledovaný objekt), že "
         "zdroj nejmenuje místo něj jiný pojem téže skupiny; a že tvrzení, citace nebo název "
-        "zdroje sdílí s tématem alespoň jedno slovo. Neověřila však, zda se zdroj týká stejné "
-        "populace, území a období jako tato studie, ani zda shoda slov znamená shodu významu. "
+        "zdroje sdílejí aspoň dvě slova tématu (má-li téma jediné slovo, to jedno). Neověřila "
+        "však, zda se zdroj týká stejné populace, území a období jako tato studie, ani zda "
+        "shoda slov znamená shodu významu. "
         "To posuzuje čtenář: u každého zjištění je proto uvedeno téma, pro které bylo hledáno, "
         "a doslovná citace, a u každého zdroje jeho typ podle domény."
     )
