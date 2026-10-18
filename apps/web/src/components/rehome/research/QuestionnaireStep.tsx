@@ -11,9 +11,10 @@
 // it does nothing in the classic interface (OI-49).
 
 import { useRouter } from "next/navigation";
-import { type DragEvent, type ReactNode, useRef, useState } from "react";
+import { type DragEvent, type ReactNode, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
+import { hashTarget, questionElementId, questionnairePlace, setElementId } from "@/lib/answerability";
 import { workspace } from "@/lib/api";
 import { saveBlob } from "@/lib/download";
 import { fileToBase64 } from "@/research/brief";
@@ -143,6 +144,23 @@ export function QuestionnaireStep() {
   const has = questionnaireHasQuestions(p);
   const xs = sections(p);
   const editor = view === "editor" || (view === "upload" && xs.length > 0);
+  // A link to a place in the questionnaire (#qedit_<id>, #qset_<id>, #q-comparisons: the Run
+  // stage's gaps, lib/answerability.ts gapFixes) opens the editor there, once it is drawn; a place
+  // it no longer has opens the editor itself. A question or set is named by the id the server
+  // compiled, which is not the one drawn here (questionnairePlace).
+  useEffect(() => {
+    if (!editor) return;
+    const read = () => {
+      const id = hashTarget(window.location.hash);
+      if (!id) return;
+      setTab("edit");
+      const place = questionnairePlace(id, sections(store.get().project));
+      window.requestAnimationFrame(() => jumpTo(document.getElementById(place) ? place : "q-editor"));
+    };
+    read();
+    window.addEventListener("hashchange", read);
+    return () => window.removeEventListener("hashchange", read);
+  }, [editor, store]);
   // The classic screen went on from two places: "Další" once a regular question exists,
   // and "Dotazník mám → Koho se ptát" whenever the editor was open. The dock keeps both.
   const canGo = has || editor;
@@ -483,7 +501,7 @@ function Outline({ update }: { update: Update }) {
     const r = addGuidedQuestion(store.get().project, kind, text, choices);
     if (!r) return;
     store.update(() => ({ project: r.project }), { reason: "guided_question" });
-    setTimeout(() => jumpTo(`qedit_${r.questionId}`), 50);
+    setTimeout(() => jumpTo(questionElementId({ id: r.questionId })), 50);
   };
   const trackedSet = async () => {
     const typ = await prompt(PROMPT_SET_TYPE);
@@ -522,9 +540,9 @@ function Outline({ update }: { update: Update }) {
             sec.type === "questions"
               ? [
                   row(`qblock_${sec.id || si}`, `B${++b}`, String(sec.title || ""), !(sec.questions || []).length),
-                  ...(sec.questions || []).map((x) => row(`qedit_${x.id || "Q"}`, `Q${++q}`, String(x.text || ""), !String(x.text || "").trim(), 1)),
+                  ...(sec.questions || []).map((x) => row(questionElementId(x), `Q${++q}`, String(x.text || ""), !String(x.text || "").trim(), 1)),
                 ]
-              : [row(`qset_${sec.id || si}`, `S${++s}`, String(sec.title || ""), setInvalid(sec))],
+              : [row(setElementId(sec, si), `S${++s}`, String(sec.title || ""), setInvalid(sec))],
           )}
         </ul>
       ) : null}
@@ -585,7 +603,7 @@ function ResearchQuestionComparisons({ update }: { update: Update }) {
   const stated = researchQuestionsOf(state.project);
   if (!stated.length) return null;
   return (
-    <section aria-label={t("research.questionnaire.comparisons.title")} className={CARD}>
+    <section id="q-comparisons" aria-label={t("research.questionnaire.comparisons.title")} className={`scroll-mt-40 ${CARD}`}>
       <h3 className="text-[15px] font-semibold">{t("research.questionnaire.comparisons.title")}</h3>
       <p className="mt-1 text-[13px] text-ink-muted">{t("research.questionnaire.comparisons.help")}</p>
       <ul className="mt-3 flex flex-col gap-2">
@@ -674,9 +692,9 @@ function QuestionCard({ n, q, si, qi, update }: { n: number; q: Question; si: nu
   const labels = q.popisky_skaly || ["vůbec", "zcela"];
   // A question without wording stops the run: marked where it is, not only in the dock.
   const unworded = !String(q.text || "").trim();
-  const hint = `qedit_${q.id || "Q"}_missing`;
+  const hint = `${questionElementId(q)}_missing`;
   return (
-    <div id={`qedit_${q.id || "Q"}`} data-unworded={unworded || undefined} className={`scroll-mt-40 rounded-card border bg-surface-raised p-4 ${unworded ? "border-status-you shadow-[0_0_0_3px_var(--color-status-you-wash)]" : "border-border"}`}>
+    <div id={questionElementId(q)} data-unworded={unworded || undefined} className={`scroll-mt-40 rounded-card border bg-surface-raised p-4 ${unworded ? "border-status-you shadow-[0_0_0_3px_var(--color-status-you-wash)]" : "border-border"}`}>
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-md bg-signal-wash px-1.5 py-0.5 font-mono text-xs font-semibold text-signal" title={String(q.id || "")}>Q{n}</span>
         <span className="sr-only">{q.id || "Q"}</span>
@@ -889,7 +907,7 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
     setNote(r.note);
   };
   return (
-    <article id={`qset_${sec.id || si}`} className="scroll-mt-40 flex flex-col gap-3 rounded-card border border-border border-t-[3px] border-t-hue-violet bg-surface-raised p-4">
+    <article id={setElementId(sec, si)} className="scroll-mt-40 flex flex-col gap-3 rounded-card border border-border border-t-[3px] border-t-hue-violet bg-surface-raised p-4">
       <div className="flex items-start gap-3">
         <span className="mt-1 whitespace-nowrap rounded-md bg-hue-violet/12 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-hue-violet">{tv("research.questionnaire.setBadge", { n })}</span>
         <div className="min-w-0 flex-1">

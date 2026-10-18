@@ -5,7 +5,9 @@
  * review. The card then says what that variant holds, offers both formats of the same stored
  * draft, and approves that draft. Pure: what to show from what the API said.
  */
+import { t, tv } from "@/i18n/t";
 import type { DeepResearchRun, ReportPdf, ReportPdfState, ReportVariant } from "./api";
+import { reviewStatus } from "./report-status";
 
 /** Completed interpretation reviews of this research run, newest first: what a variant may add. */
 export function reviewsFor(runs: readonly DeepResearchRun[], researchRunId: string): DeepResearchRun[] {
@@ -43,23 +45,35 @@ const PDF_REASON: Record<string, string> = {
   pdf_missing: "Uložené PDF chybí, a proto se nenabízí; zpráva je k dispozici jako DOCX.",
 };
 
+/** An approved version's PDF is its own rendering, asked for by the approval (D2): said so. */
+const APPROVED_PDF_WHY: Partial<Record<ReportPdfState, string>> = {
+  NOT_REQUESTED: "research.exec.report.review.pdfNotRequested",
+  RENDERING: "research.exec.report.review.pdfRendering",
+};
+
 /**
  * Why a stored report's PDF (the run's own or a variant's) is not offered, in words; `null`
  * when it is ready to download. An older API's missing record reads as a run that made none.
+ * ``approved``: the PDF is the approved version's, never its draft's.
  */
-export function pdfWhy(pdf: ReportPdf | null | undefined): string | null {
+export function pdfWhy(pdf: ReportPdf | null | undefined, approved = false): string | null {
   if (!pdf) return "Tento běh PDF nevytvořil.";
   if (pdf.state === "READY") return null;
+  const approvedWords = approved ? APPROVED_PDF_WHY[pdf.state] : undefined;
   // A state this page does not know is never offered as a download.
   const words = (pdf.reason ? PDF_REASON[pdf.reason] : undefined)
+    ?? (approvedWords ? t(approvedWords) : undefined)
     ?? (pdf.state in PDF_WHY ? PDF_WHY[pdf.state] : "Stav PDF nelze přečíst; zpráva je k dispozici jako DOCX.");
-  return pdfAskable(pdf) ? `${words} Můžete ho nechat vytvořit znovu.` : words;
+  // "Znovu" only for a PDF that was asked for before: one never asked for is made the first time.
+  if (!pdfAskable(pdf)) return words;
+  return pdf.state === "NOT_REQUESTED" ? `${words} Můžete ho nechat vytvořit.` : `${words} Můžete ho nechat vytvořit znovu.`;
 }
 
 /** Where the variant's PDF stands, in the card's words; `null` when it is ready to download. */
 export function variantPdfWhy(variant: ReportVariant | null): string | null {
   if (!variant || variant.state !== "READY") return "Nejprve připravte zprávu s vybranou rešerší.";
-  return variant.pdf ? pdfWhy(variant.pdf) : PDF_WHY.NOT_REQUESTED;
+  const approved = reviewStatus(variant.review_state) === "APPROVED";
+  return variant.pdf ? pdfWhy(variant.pdf, approved) : PDF_WHY.NOT_REQUESTED;
 }
 
 /**
@@ -84,12 +98,67 @@ export function variantPending(variant: ReportVariant | null): boolean {
 export const reportPdfPending = (pdf: ReportPdf | null | undefined): boolean => pdf?.state === "RENDERING";
 
 /**
- * Why a downloaded file is not handed over, or null. The server names the stored draft its bytes
- * are (or, for a PDF, render); a file that is not the draft this card shows and approves -- or
- * names none -- would let a person approve one document and pass on another.
+ * Whether the card may say a version's PDF states its review too (D2), from what the server said
+ * alone: an approved version's once its own PDF is ready; a draft's only where the server says
+ * approving it gives the approved version one (``approval_renders_pdf``: approving asks for a PDF
+ * and this draft's own was rendered here). A closed study, a deployment without PDF, a PDF still
+ * being made or one that failed is no promise (review 4: the card read an unknown as a yes).
  */
-export function downloadMismatch(downloaded: string | null, shown: string | null): string | null {
-  if (shown === null) return null;
-  if (downloaded === shown) return null;
-  return "Stažený soubor není koncept, který karta ukazuje (mezitím vznikl jiný). Obnovte stránku a stáhněte ho znovu.";
+export function pdfStatesReview(
+  reviewState: string | null | undefined,
+  pdf: ReportPdf | null | undefined,
+  approvalRendersPdf: boolean | null | undefined,
+): boolean {
+  return reviewStatus(reviewState) === "APPROVED" ? pdf?.state === "READY" : approvalRendersPdf === true;
+}
+
+/** A stored version as the card shows it, or as a download names it (its headers). */
+export type VersionSeen = { artifactId: string | null; reviewState: string | null | undefined };
+
+/**
+ * Why a downloaded file is not handed over, or null. The server names the stored version its
+ * bytes are (or, for a PDF, render) and the review they state; a file that is not the version
+ * this card shows and approves -- or names none -- would let a person approve one document and
+ * pass on another, and one whose review is not the card's would be passed on as what it is not
+ * (D2). A missing review header reads as a draft, never as approved.
+ */
+export function downloadMismatch(downloaded: VersionSeen, shown: VersionSeen): string | null {
+  if (shown.artifactId === null) return null;
+  if (downloaded.artifactId !== shown.artifactId) return t("research.exec.report.review.otherVersion");
+  if (reviewStatus(downloaded.reviewState) !== reviewStatus(shown.reviewState)) {
+    return t("research.exec.report.review.otherState");
+  }
+  return null;
+}
+
+/** ``2026-10-18`` as ``18. 10. 2026``; anything else as it came, never guessed. */
+export function czechDate(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  return m ? `${Number(m[3])}. ${Number(m[2])}. ${m[1]}` : iso;
+}
+
+/** What the card knows of a stored version's review: the server's words for it. */
+export type VersionReview = {
+  version: string;
+  reviewState: string | null | undefined;
+  approvedOn: string | null | undefined;
+  /** Whether its file states its review in its footers (D2); ``null``/absent: not known. */
+  stamped: boolean | null | undefined;
+};
+
+/**
+ * The card's line about a version's review, as its file states it (research-integrity-report D2),
+ * or ``null`` when the card cannot say what the file states: a version stored before the footer
+ * layout (``stamped`` false: today's sentence about the stored draft applies), one whose layout the
+ * server did not say, or an approval without its date. ``pdf``: whether this version's PDF states
+ * it too (``pdfStatesReview``; the client report is DOCX only).
+ */
+export function reviewLine(review: VersionReview, pdf: boolean): string | null {
+  if (review.stamped !== true) return null;
+  if (reviewStatus(review.reviewState) === "APPROVED") {
+    if (!review.approvedOn) return null;
+    const key = pdf ? "approved" : "approvedDocx";
+    return tv(`research.exec.report.review.${key}`, { date: czechDate(review.approvedOn), version: review.version });
+  }
+  return tv(`research.exec.report.review.${pdf ? "draft" : "draftDocx"}`, { version: review.version });
 }

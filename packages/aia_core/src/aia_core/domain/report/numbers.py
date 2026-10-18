@@ -90,6 +90,11 @@ def czech_date(d: date) -> str:
     return f"{d.day}.{NBSP}{_MONTHS_GENITIVE[d.month - 1]}{NBSP}{d.year}"
 
 
+def czech_short_date(d: date) -> str:
+    """``18. 10. 2026`` — the numeric date, for a line with no room for the month's name."""
+    return f"{d.day}.{NBSP}{d.month}.{NBSP}{d.year}"
+
+
 def page_of(page: int, total: int) -> str:
     """Only for tests of the footer text: ``3 z 42``."""
     return f"{page}{NBSP}z{NBSP}{total}"

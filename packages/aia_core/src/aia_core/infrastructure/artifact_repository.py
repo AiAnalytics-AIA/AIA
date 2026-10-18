@@ -44,6 +44,7 @@ from .tables import (
     ProjectArtifactDependencyRow,
     ProjectArtifactRow,
     ProjectRow,
+    as_utc,
 )
 
 __all__ = [
@@ -577,6 +578,26 @@ class ArtifactRepository:
         )
         self._session.flush()
         return _to_domain(row)
+
+    def approval_of(self, artifact_id: str) -> datetime | None:
+        """When the artifact's approval was recorded: its newest ``APPROVED`` row in the
+        approval ledger, as UTC. ``None`` when the ledger holds none -- which an approved
+        artifact never should, so a caller refuses rather than date it otherwise."""
+        row = self._row(artifact_id)
+        decided = self._session.scalar(
+            select(ApprovalDecisionRow.created_at)
+            .where(
+                ApprovalDecisionRow.organization_id == self._scope.organization_id,
+                ApprovalDecisionRow.client_id == self._scope.client_id,
+                ApprovalDecisionRow.study_id == self._scope.study_id,
+                ApprovalDecisionRow.subject_type == "artifact",
+                ApprovalDecisionRow.subject_id == row.artifact_id,
+                ApprovalDecisionRow.decision == "APPROVED",
+            )
+            .order_by(ApprovalDecisionRow.decision_id.desc())
+            .limit(1)
+        )
+        return None if decided is None else as_utc(decided)
 
     def freeze(self, artifact_id: str) -> Artifact:
         """Freeze an artifact so it can no longer be superseded in place.

@@ -90,6 +90,7 @@ class Heading:
 class ParagraphRole(StrEnum):
     BODY = "body"
     LEDE = "lede"  # the headline answer, set larger
+    LEAD_IN = "lead_in"  # a short line that titles what follows: kept with it, never split
 
 
 @dataclass(frozen=True, slots=True)
@@ -369,14 +370,6 @@ class Classification(StrEnum):
 
 
 @dataclass(frozen=True, slots=True)
-class Approval:
-    """A sign-off on this revision. Recorded by ``ArtifactRepository.approve``."""
-
-    reviewer: str
-    decided_on: date
-
-
-@dataclass(frozen=True, slots=True)
 class RevisionEntry:
     revision: int
     on: date
@@ -392,6 +385,10 @@ class Branding:
 
 @dataclass(frozen=True, slots=True)
 class ReportMeta:
+    """What a report is about. It carries no review status: every document renders as a draft,
+    and a stored version's approval reaches its file only as the export's footer stamp
+    (``review.py``), so there is one path to an approved file."""
+
     kind: ReportKind
     title: str
     subtitle: str
@@ -404,7 +401,6 @@ class ReportMeta:
     prepared_by: str = "AIA"
     classification: Classification = Classification.CLIENT_CONFIDENTIAL
     language: Literal["cs"] = "cs"
-    approvals: tuple[Approval, ...] = ()
     history: tuple[RevisionEntry, ...] = ()
     branding: Branding = field(default_factory=Branding)
     #: Run ids, fingerprints, population version: printed only in internal reports.

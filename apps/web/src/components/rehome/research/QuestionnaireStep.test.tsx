@@ -205,6 +205,33 @@ describe("Dotazník", () => {
     expect(content.research_plan.research_questions).toEqual(plan.research_questions);
   });
 
+  it("opens on the place a link from the Run stage names, and on the editor for a place it no longer has", async () => {
+    // research-integrity-report 14: each gap links to where it is fixed (lib/answerability.ts gapFixes),
+    // by the server's id: the question the web calls "Q2" is "q2" there (review, 2026-10-18).
+    const seen: string[] = [];
+    Element.prototype.scrollIntoView = function (this: Element) {
+      seen.push(this.id);
+    };
+    window.history.replaceState(null, "", "#qedit_q2");
+    onTestFinished(() => window.history.replaceState(null, "", "/"));
+    const plan = { research_questions: ["Jak často lidé pijí kávu?"] };
+    unitStub({ ...BRIEF, research_plan: plan, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    // Once the editor is drawn, never before.
+    await waitFor(() => expect(seen).toEqual(["qedit_Q2"]));
+    const go = async (hash: string, id: string) => {
+      window.location.hash = hash;
+      fireEvent(window, new HashChangeEvent("hashchange"));
+      await waitFor(() => expect(seen.at(-1)).toBe(id));
+    };
+    await go("q-comparisons", "q-comparisons");
+    expect(document.getElementById("q-comparisons")?.getAttribute("aria-label")).toBe("Jak výzkumné otázky zodpovíme");
+    // The web's own id names no item a link can name.
+    await go("qedit_Q2", "q-editor");
+    await go("qset_sec_b", "qset_sec_b");
+    await go("qedit_gone", "q-editor");
+  });
+
   it("turns a tracked set into a concept test an A/B comparison needs, and back (review, Codex on #426)", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);

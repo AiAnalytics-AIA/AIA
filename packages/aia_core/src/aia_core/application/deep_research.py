@@ -857,6 +857,27 @@ class DeepResearchRuns:
             raise BundleNotReady("the stored bundle is not this run's request")
         return bundle
 
+    def frozen_request(self, run_id: str, *, store: ArtifactStore) -> DeepResearchRequest:
+        """The engine request this run was frozen to, as its plan step stored it.
+
+        Read through the run, as the bundle is: the plan step's artifact, whose request must
+        be the one the run was created for (its fingerprint, the run's ``request_fingerprint``).
+        What a review composed afterwards needs of it that the bundle does not keep -- the
+        client terms -- is read here. Raises :class:`BundleNotReady` while the run has planned
+        nothing, and when what it stored is not this run's request.
+        """
+        self.scope.require(Permission.VIEW_RESULTS)
+        run = self.get(run_id)
+        plan = next(s for s in run["steps"] if s["node_key"] == "plan")
+        artifact_id = (plan.get("output") or {}).get("artifact_id")
+        if not artifact_id:
+            raise BundleNotReady("the run has planned nothing", status=run["status"])
+        payload = research_artifacts(self.session, self.scope, store).read_json(str(artifact_id))
+        request = DeepResearchRequest.model_validate(payload["request"])
+        if request.fingerprint() != run["metadata"].get("request_fingerprint"):
+            raise BundleNotReady("the stored plan is not this run's request")
+        return request
+
     def coverage(self, run_id: str, *, store: ArtifactStore) -> CoverageLedger:
         """What the run looked at: found, opened, refused, set aside, by reason (chunk 47).
 

@@ -1085,6 +1085,11 @@ def synthesis_record(store: InMemoryArtifactStore) -> dict[str, Any]:
     return record
 
 
+#: The association's page, on the almond track: its title names the almond drink, so the
+#: figure supports the topic it is found for (D4's topic rule sets aside one that does not).
+SVAZ_TITLE = "Spotřeba rostlinných nápojů podle svazu: mandlové, ovesné a další"
+
+
 def wider_web(tmp: Path) -> Path:
     """The recorded web, and a trade association's figure and a paywalled study."""
     data = json.loads(WEB.read_text(encoding="utf-8"))
@@ -1093,13 +1098,13 @@ def wider_web(tmp: Path) -> Path:
     data["hosts"]["placeny-dr.example"] = ["93.184.215.14"]
     data["search"]["spotřeba rostlinných nápojů svaz"] = {
         "hits": [
-            {"url": SVAZ, "title": "Spotřeba podle svazu", "snippet": "Svaz výrobců."},
+            {"url": SVAZ, "title": SVAZ_TITLE, "snippet": "Svaz výrobců."},
             {"url": PAYWALL, "title": "Studie trhu nápojů", "snippet": "Placená studie."},
         ],
         "request_id": "rec-s-svaz",
     }
     data["pages"][SVAZ] = {
-        "body": "<html><head><title>Spotřeba podle svazu</title></head><body><p>"
+        "body": f"<html><head><title>{SVAZ_TITLE}</title></head><body><p>"
         + SVAZ_QUOTE
         + "</p></body></html>"
     }

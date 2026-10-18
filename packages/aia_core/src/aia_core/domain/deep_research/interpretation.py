@@ -68,7 +68,14 @@ from .integration import (
 )
 
 __all__ = [
+    "FAMILY_FRAMING",
+    "FRAMINGS",
+    "GOAL_FRAMING",
     "MISSION_ORIGIN",
+    "MODULE_FRAMING",
+    "PAIR_FRAMING",
+    "RESEARCH_QUESTION_FRAMING",
+    "RESULT_FRAMING",
     "InterpretationMissionMismatch",
     "MissionTargetInvalid",
     "interpretation_mission",
@@ -93,6 +100,31 @@ _MODULE_CS: Final[dict[AnalysisModuleId, str]] = {
     AnalysisModuleId.IMPLICATIONS: "Důsledky a doporučení",
     AnalysisModuleId.LIMITATIONS: "Omezení a rizika výkladu",
 }
+
+# What an interpretation subject says around what it is about (``{…}``). One source for the
+# missions below and for what :mod:`.topicality` reads a subject without: a framing says what
+# kind of context is sought, never what the context is about. What fills a slot -- a question,
+# a goal, a module's name, a family, an object -- is what the subject is about.
+RESULT_FRAMING: Final = (
+    "Kontext a srovnání pro výsledek otázky „{question}“: srovnatelná měření, "
+    "vývoj v čase a možná vysvětlení z veřejných zdrojů"
+)
+RESEARCH_QUESTION_FRAMING: Final = "Kontext a srovnání pro odpověď na výzkumnou otázku „{question}“"
+GOAL_FRAMING: Final = "Kontext a srovnání pro odpověď na cíl studie „{goal}“"
+MODULE_FRAMING: Final = (
+    "{module} k cíli studie „{goal}“: kontext, srovnání a možná vysvětlení z veřejných zdrojů"
+)
+FAMILY_FRAMING: Final = "Co spojuje a odlišuje položky kategorie „{family}“: {objects}"
+PAIR_FRAMING: Final = "Co spojuje a odlišuje položky „{a}“ a „{b}“ v kategorii „{family}“"
+#: Every framing.
+FRAMINGS: Final = (
+    RESULT_FRAMING,
+    RESEARCH_QUESTION_FRAMING,
+    GOAL_FRAMING,
+    MODULE_FRAMING,
+    FAMILY_FRAMING,
+    PAIR_FRAMING,
+)
 
 
 class MissionTargetInvalid(ValueError):
@@ -167,10 +199,7 @@ def _label(battery: SpecBattery, object_id: str) -> str:
 
 
 def _result_framing(question: str) -> str:
-    return _bounded(
-        f"Kontext a srovnání pro výsledek otázky „{question}“: srovnatelná měření, "
-        "vývoj v čase a možná vysvětlení z veřejných zdrojů"
-    )
+    return _bounded(RESULT_FRAMING.format(question=question))
 
 
 def interpretation_mission(
@@ -238,8 +267,9 @@ def interpretation_mission(
             add(SubjectKind.OBJECT, label, f"objects[{i}]")
         add(
             SubjectKind.QUESTION,
-            f"Co spojuje a odlišuje položky kategorie „{battery.family}“: "
-            + ", ".join(f"„{label}“" for label in labels),
+            FAMILY_FRAMING.format(
+                family=battery.family, objects=", ".join(f"„{label}“" for label in labels)
+            ),
             "question",
         )
     elif isinstance(target, SociomapObjectTarget):
@@ -248,11 +278,7 @@ def interpretation_mission(
         battery = _battery(spec, target.battery_id)
         a = _label(battery, target.source_object_id)
         b = _label(battery, target.target_object_id)
-        add(
-            SubjectKind.QUESTION,
-            f"Co spojuje a odlišuje položky „{a}“ a „{b}“ v kategorii „{battery.family}“",
-            "question",
-        )
+        add(SubjectKind.QUESTION, PAIR_FRAMING.format(a=a, b=b, family=battery.family), "question")
         add(SubjectKind.OBJECT, a, "source")
         add(SubjectKind.OBJECT, b, "target")
     return tuple(subjects)
@@ -274,7 +300,7 @@ def _analysis_module(
             return [
                 (
                     SubjectKind.QUESTION,
-                    f"Kontext a srovnání pro odpověď na výzkumnou otázku „{text}“",
+                    RESEARCH_QUESTION_FRAMING.format(question=text),
                     f"research_questions[{i}]",
                 )
                 for i, text in enumerate(texts)
@@ -282,18 +308,11 @@ def _analysis_module(
             ]
         if not goal:
             return []
-        return [
-            (SubjectKind.QUESTION, f"Kontext a srovnání pro odpověď na cíl studie „{goal}“", "goal")
-        ]
+        return [(SubjectKind.QUESTION, GOAL_FRAMING.format(goal=goal), "goal")]
     if not goal:
         return []
     return [
-        (
-            SubjectKind.QUESTION,
-            f"{_MODULE_CS[module]} k cíli studie „{goal}“: kontext, srovnání "
-            "a možná vysvětlení z veřejných zdrojů",
-            "goal",
-        )
+        (SubjectKind.QUESTION, MODULE_FRAMING.format(module=_MODULE_CS[module], goal=goal), "goal")
     ]
 
 

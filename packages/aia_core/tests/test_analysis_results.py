@@ -754,7 +754,6 @@ def test_reconstructed_analysis_composes_an_internal_branded_draft(
     # 18.6.6's own aggregation: no deviation is claimed anywhere (G3c).
     assert run.aggregation_deviation is None
     assert not any(isinstance(b, Callout) and b.title == "Odchylka od 18.6.6" for b in intro)
-    assert doc.meta.approvals == ()
     assert "q1.mean" in cited_refs(doc)
     assert doc.ledger.surface is ClaimSurface.INTERNAL
     assert doc.sections[-1].appendix
@@ -1393,6 +1392,8 @@ def test_an_answer_to_a_research_question_the_run_could_not_answer_says_so_where
                 and i + 1 < len(blocks)
             ):
                 answers += 1
+                # The question titles its answer, so it never ends a page alone above it.
+                assert block.role is ParagraphRole.LEAD_IN, section.id
                 after = blocks[i + 1]
                 assert isinstance(after, Callout), section.id
                 qualified.append(_callout_texts([after])[0])

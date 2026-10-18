@@ -339,12 +339,14 @@ def _answerability_blocks(meta: Mapping[str, Any], *, client: bool = False) -> l
     held = note.get("acknowledgement")
     if not client:
         if isinstance(held, Mapping):
+            # The choice by the name the Run screen gave it (D1, 2026-10-17); the record is the
+            # acknowledgement it always was.
             inherited = held.get("inherited_from")
             parts.append(
-                "Výzkumník běh přesto výslovně spustil s odůvodněním: "
+                "Výzkumník zvolil Pokračovat s omezeními s odůvodněním: "
                 f"„{held.get('reason')}“"
-                + (f" (potvrzení převzato z běhu {inherited})." if inherited else ".")
-                + " Kdo potvrzení dal, je v záznamu schválení."
+                + (f" (volba převzata z běhu {inherited})." if inherited else ".")
+                + " Kdo volbu udělal, je v záznamu schválení."
             )
         elif note.get("exempt") == "analysis_retry":
             parts.append(

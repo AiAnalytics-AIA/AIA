@@ -61,6 +61,7 @@ from ..domain.population import (
 )
 from ..domain.prompts import PromptPin
 from ..domain.question_outlook import QuestionOutlook, question_outlook
+from ..domain.report.review import ReviewMark, ReviewState
 from ..domain.research import phase_of, retryable
 from ..domain.research_agents import (
     HARNESS_VERSION,
@@ -144,11 +145,23 @@ def research_artifacts(
     return ArtifactRepository(session, scope, store, owner=DESIGN_PROJECT_OWNER)
 
 
-def report_pdf_key(run_id: str, deep_research_run_id: str | None, docx_artifact_id: str) -> str:
+def report_pdf_key(
+    run_id: str,
+    deep_research_run_id: str | None,
+    docx_artifact_id: str,
+    *,
+    approved: bool = False,
+) -> str:
     """The idempotency key of the first PDF job for one stored report DOCX of one run and
     review (plan research-integrity-report chunk 3); a later job for the same DOCX, asked after
-    one failed, adds ``:again-<n>``, so every job of the DOCX shares this prefix."""
-    return f"{REPORT_PDF}:{run_id}:{deep_research_run_id or 'base'}:{docx_artifact_id}"
+    one failed, adds ``:again-<n>``, so every job of the DOCX shares this prefix.
+
+    The approved version's PDF renders its stamped export (D2) under a key of its own:
+    ``report_pdf:approved:…``, which no draft key's prefix matches (a lookup is a literal
+    ``startswith``, ``WorkflowRepository.list_runs``), so a draft PDF is never found as the
+    approved one. Draft keys are as they always were, so every stored draft PDF stays found."""
+    kind = f"{REPORT_PDF}:approved" if approved else REPORT_PDF
+    return f"{kind}:{run_id}:{deep_research_run_id or 'base'}:{docx_artifact_id}"
 
 
 class DesignNotReady(Exception):
@@ -927,9 +940,14 @@ class ResearchRuns:
         docx: Artifact,
         run_id: str,
         deep_research_run_id: str | None,
+        mark: ReviewMark,
         again: bool = False,
     ) -> StartedRun | None:
         """Ask the worker to render a stored report DOCX of ``run_id`` as PDF (``report_pdf``).
+
+        ``mark`` is the version's review as the caller read it (``report_export.review_mark``):
+        a draft's job renders the stored bytes, an approved version's its stamped export under
+        the approved key; the worker reads the mark again and refuses a job whose mark moved.
 
         Asking again while a job for the same DOCX is queued, running or done returns that job;
         after one failed, was cancelled or stopped for recovery (no converter, a conversion that
@@ -945,7 +963,10 @@ class ResearchRuns:
         self.get(run_id)
         if not self.scope.study_status.accepts_work:
             return None
-        base = report_pdf_key(run_id, deep_research_run_id, docx.artifact_id)
+        if (mark.artifact_id, mark.sha256) != (docx.artifact_id, docx.sha256):
+            raise ValueError("the review mark names another version")
+        approved = mark.state is ReviewState.APPROVED
+        base = report_pdf_key(run_id, deep_research_run_id, docx.artifact_id, approved=approved)
         # The round is the newest job's, never a count of a capped listing: past 100 jobs the
         # count named an existing key, and asking again silently returned the failed job.
         newest = self._workflows().list_runs(
@@ -975,6 +996,7 @@ class ResearchRuns:
                 "deep_research_run_id": deep_research_run_id,
                 "docx_artifact_id": docx.artifact_id,
                 "round": round_,
+                "review_state": mark.state.value,
             },
             step_inputs={
                 "pdf": {
@@ -982,6 +1004,8 @@ class ResearchRuns:
                     "docx_sha256": docx.sha256,
                     "run_id": run_id,
                     "deep_research_run_id": deep_research_run_id,
+                    "review_state": mark.state.value,
+                    "approved_on": mark.approved_on.isoformat() if mark.approved_on else None,
                 }
             },
             owner=DESIGN_PROJECT_OWNER,

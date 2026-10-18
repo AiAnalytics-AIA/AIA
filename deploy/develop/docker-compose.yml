@@ -136,10 +136,11 @@ services:
       AIA_AI_FICTIONAL_CLIENT_IDS: ${AIA_AI_FICTIONAL_CLIENT_IDS:-}
       # The API pins this deterministic engine and its report into newly queued runs.
       AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED: ${AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED:-false}
-      # A run that cannot answer every research question its design states starts only with a
-      # person's recorded acknowledgement (plan research-integrity-report chunk 1). Off until the
-      # owner turns it on (decision D1); readiness shows the gaps either way.
-      AIA_RESEARCH_ANSWERABILITY_GATE: ${AIA_RESEARCH_ANSWERABILITY_GATE:-false}
+      # A run that cannot answer every research question its design states starts only on a
+      # person's recorded choice to continue with limitations (plan research-integrity-report
+      # chunk 1, ADR 0025). On for develop by the owner's D1, 2026-10-17; an SSM value of false
+      # (aia_research_answerability_gate) turns it off. Off in code, tests and the workbench.
+      AIA_RESEARCH_ANSWERABILITY_GATE: ${AIA_RESEARCH_ANSWERABILITY_GATE:-true}
       # What the worker reserves per model request, read by the API too so it can say what a
       # run can cost at most before it starts (the spend confirmation, plan 5b.2). Unset means
       # the ceiling is unknown, and a study with a spend limit does not start such a run.

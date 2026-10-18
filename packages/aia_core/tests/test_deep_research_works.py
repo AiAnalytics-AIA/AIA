@@ -171,7 +171,7 @@ def _merge(status: Any) -> Any:
         work_status=status,
     )
     track = TrackEvidence(track_id="T1", evidence=(item,), sources={item.source_ref: facts})
-    return merge_evidence([track], questionnaire=(), table=SOURCE_TABLE_V1)
+    return merge_evidence([track], questionnaire=(), table=SOURCE_TABLE_V1, topics=None)
 
 
 def test_a_finding_on_a_retracted_work_is_quarantined_however_well_its_host_scores() -> None:

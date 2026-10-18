@@ -41,6 +41,7 @@ from aia_core.domain.deep_research.steps import (
     WorkStandingRecord,
     run_scoped,
 )
+from aia_core.domain.deep_research.topicality import topic_screen
 from aia_core.domain.deep_research.tracing import TraceSource, trace_findings
 from aia_core.domain.deep_research.triangulation import (
     IndependenceSource,
@@ -86,7 +87,8 @@ __all__ = ["MergeExecutor", "VerifyExecutor"]
 
 
 class MergeExecutor(_Step):
-    """Declared source scores, dedupe, confirmation, the leakage screen. No model."""
+    """Declared source scores, the topic gate, dedupe, confirmation, the leakage screen.
+    No model."""
 
     def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
         context.checkpoint()
@@ -98,8 +100,10 @@ class MergeExecutor(_Step):
             return loaded
         _plan_id, plan = loaded
         runtime = self._planned_runtime(plan)
-        if runtime.source_table.version != plan.versions.get("source_table"):
-            return _composition_changed("the source table")
+        # The whole composition, as verify checks it: a run planned under other merge rules
+        # (another topic screen, another source table) is not merged under these.
+        if runtime.versions() != plan.versions:
+            return _composition_changed("the composition's rules or policy")
         with context.transaction() as (session, workflow):
             repo = self._repo(session, context)
             investigation_id = upstream_artifact(workflow, step, "investigate")
@@ -142,6 +146,9 @@ class MergeExecutor(_Step):
                 ],
                 questionnaire=plan.request.questionnaire,
                 table=runtime.source_table,
+                # Every finding judged against the topic it was searched for (D4), profiled
+                # from the frozen request: the plan's subjects, crosses included.
+                topics=topic_screen(plan.subjects, client_terms=plan.request.client_terms),
             )
             record = MergeRecord(
                 kind="deep_research_merge",

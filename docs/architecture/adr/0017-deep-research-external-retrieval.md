@@ -1,7 +1,8 @@
 # ADR 0017 — Deep Research: AIA-owned web retrieval, tiered query egress, and grounding as the acceptance rule
 
 **Status:** Proposed — develop (data owner's DR-1, DR-3, DR-4, 2026-09-25; DR-2 route choice and
-DR-5 open). Amended 2026-09-27 by the recorded/offline implementation (§ Amendments).
+DR-5 open). Amended 2026-09-27 by the recorded/offline implementation (§ Amendments); decision 4
+amended 2026-10-18 by the topic gate and the student-thesis rule (D4).
 Builds on [ADR 0005](0005-llm-gateway.md) (one model call path), [ADR 0006](0006-langgraph-agent-execution.md)
 (a graph never outlives its attempt), [ADR 0007](0007-deterministic-tools.md) (models choose, code
 computes), [ADR 0008](0008-eu-data-residency.md) (the egress boundary), [ADR 0010](0010-bedrock-eu-inference-route.md)
@@ -46,6 +47,39 @@ Three facts decide the shape:
    occurs in the content-addressed snapshot of the page it cites (stored in `ArtifactStore`), and a
    critic agent judges the excerpt to support the claim. Source quality comes from declared tables,
    never from the agent's self-report; an unclassifiable source scores lowest.
+
+   *Amended 2026-10-18 (owner's D4 on evaluation finding F1,
+   [research-integrity-report](../../../.planning/plans/research-integrity-report.md) chunk 10):*
+   grounding, a credible host and the critic are not enough, because none of them reads the topic
+   a finding was searched for -- a mortgage thesis on an academic host was accepted for a
+   current-account topic. The merge therefore also applies a **topic gate**, after the source
+   score and before dedupe (`domain/deep_research/topicality.py`, `aia-dr-topicality-1`, carried
+   in `aia-merge-3`): an object's finding must name its object in the quote or source title, by
+   its distinguishing words together and never by one word of a longer name; a quote or title
+   naming a sibling concept of a declared family (retail-banking products; the run's tracked
+   objects) and none of the topic's own is set aside, unless it names a kind of the topic's (a
+   mortgage under a loan topic); a question's finding must share two of the topic's words (all of
+   them when it has fewer).
+   Deterministic, no model; the investigator's claim never decides the first two rules. A
+   finding that fails is quarantined `off_topic`, one whose topic leaves nothing to judge by
+   `topic_undetermined`, the evidence kept in the bundle either way.
+   Shared words are not shared meaning: population, place, period and what a sentence says
+   remain the reader's to check.
+
+   *Amended 2026-10-18 (D4, the same plan, chunk 11):* a credible host is not a credible document
+   -- a university's host scored a bachelor thesis in its information system as an academic
+   institution and the review accepted it. Before the source score (after a retraction), the
+   merge therefore types each web finding's source by declared rules
+   (`domain/deep_research/document_types.py`, `aia-document-types-1`, carried in `aia-merge-3`): a
+   whole host that is a thesis register, an archive prefix on a declared university host, a path
+   segment or a title segment that names the genre, on any host but an encyclopedia's
+   (`wikipedia.org`, whose article on a genre bears its name). A source so typed is a **student
+   thesis** (doctoral dissertations included in this version), and its finding is quarantined
+   `student_thesis`, the evidence kept. Client Knowledge is never typed. The source table, its
+   approval (ADR 0022) and every pin are unchanged: a thesis on an approved host is refused as a
+   retracted work on one is. A thesis no rule declares, whose title does not name its genre, is
+   still accepted; repository hosts (`dspace.*`, `.edu`) are not declared, and a DOI is no
+   document type.
 
 5. **The legacy anti-leakage quarantine is kept exactly** and re-run at fieldwork compile against
    the final questionnaire. Quarantined evidence never becomes respondent context; accepted

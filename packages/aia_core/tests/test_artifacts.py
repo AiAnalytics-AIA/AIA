@@ -11,6 +11,7 @@ Two things are being protected here:
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
@@ -941,6 +942,32 @@ def test_a_different_person_with_sign_off_authority_can_approve(
 
     reviewer = ArtifactRepository(session, scoped.scope(user="reviewer", study="primary"), store)
     assert reviewer.approve(artifact.artifact_id).is_approved is True
+
+
+def test_an_approval_is_read_back_from_the_ledger_when_it_was_recorded(
+    session: Session, scoped: Any, store: InMemoryArtifactStore, project: Any
+) -> None:
+    """D2: the date an approved report prints is its ledger row's; an artifact with no
+    approval row has none, and another study cannot read the row at all."""
+    reviewer = ArtifactRepository(session, scoped.scope(user="reviewer", study="primary"), store)
+    artifact, _ = reviewer.put_json(
+        project_id=project.project_id,
+        revision=1,
+        stage_type="REPORT",
+        artifact_type="CLIENT_REPORT",
+        payload={"draft": True},
+    )
+    assert reviewer.approval_of(artifact.artifact_id) is None
+    before = datetime.now(UTC)
+    reviewer.approve(artifact.artifact_id)
+    decided = reviewer.approval_of(artifact.artifact_id)
+    assert decided is not None and decided.tzinfo is not None
+    assert before - timedelta(seconds=5) <= decided <= datetime.now(UTC) + timedelta(seconds=5)
+    other = ArtifactRepository(
+        session, scoped.scope(user="other_lead", study="other_client"), store
+    )
+    with pytest.raises(ArtifactNotFound):
+        other.approval_of(artifact.artifact_id)
 
 
 def test_producer_is_taken_from_scope_not_from_an_argument(

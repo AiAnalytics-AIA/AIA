@@ -149,11 +149,7 @@ def compose_internal_report(
     Client deliverables have a separate admission and review contract; this
     function never upgrades internal claims to a client-facing surface.
     """
-    if (
-        meta.kind is not ReportKind.INTERNAL
-        or meta.classification is not Classification.INTERNAL
-        or meta.approvals
-    ):
+    if meta.kind is not ReportKind.INTERNAL or meta.classification is not Classification.INTERNAL:
         raise ReportCompositionRefused("composition makes an unapproved internal draft only")
     if not run.complete or set(run.modules) != set(AnalysisModuleId):
         raise ReportCompositionRefused("all eight analysis modules must be complete")
@@ -346,7 +342,8 @@ def compose_internal_report(
         if result.research_question_answers:
             blocks.append(Heading("Odpovědi na výzkumné otázky", 2))
         for answer in result.research_question_answers:
-            blocks.append(Paragraph((Text(answer.question, "strong"),)))
+            # Titles its answer: kept on the page with the qualification and answer below it.
+            blocks.append(Paragraph((Text(answer.question, "strong"),), ParagraphRole.LEAD_IN))
             folded = _folded(answer.question)
             if folded in gaps and folded not in marked:
                 # Why, once: at the first answer to it. Several modules answer the same

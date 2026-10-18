@@ -232,7 +232,14 @@ def test_a_browser_on_another_origin_reads_which_draft_a_report_download_is(
     exposed = {
         h.strip().lower() for h in response.headers["access-control-expose-headers"].split(",")
     }
-    assert {"x-request-id", "x-aia-artifact-id", "x-aia-review-state"} <= exposed
+    # D2: the version's SHA-256 and the file name the server gives it, read across origins too.
+    assert {
+        "x-request-id",
+        "x-aia-artifact-id",
+        "x-aia-artifact-sha256",
+        "x-aia-review-state",
+        "content-disposition",
+    } <= exposed
 
 
 def test_development_identity_provider_cannot_be_built_for_production() -> None:

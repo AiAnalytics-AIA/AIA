@@ -108,7 +108,7 @@ import { citedMeasure, untitled, compareObjects, type CompiledSpecification, mea
 import { FormattedText } from "./FormattedText";
 import { CompleteReport } from "./CompleteReport";
 import { AnswerabilityGate } from "./AnswerabilityGate";
-import { type AcknowledgementState, acknowledgementOf, acknowledges, hasGaps, refusalFor, NO_ACKNOWLEDGEMENT, needsAcknowledgement, unanswerableAsked } from "@/lib/answerability";
+import { type AcknowledgementState, acknowledgementOf, acknowledges, confirmedFor, fixHref, gapFixes, hasGaps, refusalFor, NO_ACKNOWLEDGEMENT, needsAcknowledgement, unanswerableAsked } from "@/lib/answerability";
 
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
@@ -453,8 +453,20 @@ function quarantineWords(code: string): string {
 /** A readiness check's tone: only a check that passed is good; a status this client does not know is not. */
 const checkTone = (status: string): Tone => (status === "PASS" ? "done" : status === "WARN" ? "you" : status === "FAIL" ? "fault" : "neutral");
 
-function ResearchTraceCard({ trace, outlook, design }: { trace: ResearchTrace; outlook: readonly QuestionOutlook[]; design: DesignEvidence | null }) {
+function ResearchTraceCard({ trace, outlook, answer, design }: {
+  trace: ResearchTrace;
+  outlook: readonly QuestionOutlook[];
+  /** Readiness's answerability: a research question that is a gap is fixed where the gap card says. */
+  answer: Answerability | null;
+  design: DesignEvidence | null;
+}) {
   const { stepHref } = useResearch();
+  // The gap card's first place for the research question, else Dotazník.
+  const fixOf = (rq: string) => {
+    const gap = answer?.gaps.find((g) => g.research_question === rq);
+    const first = gap ? gapFixes(gap, outlook)[0] : undefined;
+    return first ? fixHref(first, stepHref) : stepHref("questionnaire");
+  };
   // Stale links stay visible even when the plan states no research question any more.
   if (!trace.questions.length && !trace.dangling.length) return null;
   return (
@@ -488,7 +500,7 @@ function ResearchTraceCard({ trace, outlook, design }: { trace: ResearchTrace; o
                 ) : null}
               </div>
               {q.verdict !== "ANSWERABLE" ? (
-                <Link href={stepHref("questionnaire")} className="whitespace-nowrap text-xs text-signal no-underline hover:underline">
+                <Link href={fixOf(q.text)} className="whitespace-nowrap text-xs text-signal no-underline hover:underline">
                   {t("research.exec.fix")}
                 </Link>
               ) : null}
@@ -733,6 +745,10 @@ export function RunStep() {
     prepared.kind === "ready" && num(prepared.readiness.spend_confirm_usd) !== null && num(prepared.readiness.cost_ceiling_usd) === null;
   const unacknowledged =
     prepared.kind === "ready" && needsAcknowledgement(prepared.readiness.answerability) && !acknowledgementOf(prepared.readiness.answerability, ack);
+  // The start says what it does: with limitations once the person chose so for these very gaps
+  // (a choice made for other gaps, before the design changed, does not count).
+  const limited =
+    prepared.kind === "ready" && needsAcknowledgement(prepared.readiness.answerability) && confirmedFor(prepared.readiness.answerability, ack);
 
   return (
     <div className="flex max-w-4xl flex-col gap-4">
@@ -773,12 +789,20 @@ export function RunStep() {
               answer={prepared.readiness.answerability}
               value={ack}
               onChange={setAck}
-              fixHref={stepHref("questionnaire")}
+              outlook={prepared.readiness.question_outlook ?? []}
+              stepHref={stepHref}
               disabled={!frame.canEdit || starting}
               runnable={prepared.readiness.ready}
             />
           ) : null}
-          {prepared.readiness.research_trace ? <ResearchTraceCard trace={prepared.readiness.research_trace} outlook={prepared.readiness.question_outlook ?? []} design={design} /> : null}
+          {prepared.readiness.research_trace ? (
+            <ResearchTraceCard
+              trace={prepared.readiness.research_trace}
+              outlook={prepared.readiness.question_outlook ?? []}
+              answer={prepared.readiness.answerability ?? null}
+              design={design}
+            />
+          ) : null}
           <QuestionOutlookCard items={prepared.readiness.question_outlook ?? []} />
           <Receipt revision={prepared.revision} readiness={prepared.readiness} />
           <CostCard readiness={prepared.readiness} canEdit={frame.canEdit} onLimitSaved={() => void rereadReadiness()} />
@@ -822,7 +846,7 @@ export function RunStep() {
       >
         {prepared.kind === "ready" ? (
           <AiButton variant="primary" onClick={() => void start()} disabled={!prepared.readiness.ready || !frame.canEdit || starting || blocked || choosing || unacknowledged}>
-            {starting ? t("research.exec.starting") : t("research.exec.start")}
+            {starting ? t("research.exec.starting") : limited ? t("research.exec.answerability.startLimited") : t("research.exec.start")}
           </AiButton>
         ) : null}
       </ActionDock>
@@ -1133,7 +1157,8 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
       {gate ? (
         <>
           <p role="note" className="text-sm">{t("research.exec.answerability.retry")}</p>
-          <AnswerabilityGate answer={gate} value={ack} onChange={setAck} fixHref={stepHref("questionnaire")} disabled={busy} />
+          {/* The refusal carries no outlook: its links stop at a stage or a section. */}
+          <AnswerabilityGate answer={gate} value={ack} onChange={setAck} outlook={null} stepHref={stepHref} disabled={busy} />
           <div>
             <Button variant="primary" disabled={busy || !acknowledged} onClick={() => acknowledged && void retry(acknowledged)}>
               {t("research.exec.answerability.retryAction")}

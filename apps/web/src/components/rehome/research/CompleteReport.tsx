@@ -10,20 +10,24 @@
 import { useEffect, useState } from "react";
 import { approvalRefusal, reportStatus, reportStatusWords, reviewStatus } from "@/lib/report-status";
 
-import { t } from "@/i18n/t";
+import { t, tv } from "@/i18n/t";
 import { ApiError, deepResearch, type DeepResearchRun, type ReportVariant, type ResearchReport, type ResearchRun, research } from "@/lib/api";
 import { saveBlob } from "@/lib/download";
 import {
   currentVariant,
+  czechDate,
   downloadMismatch,
   literatureState,
   pdfAskable,
+  pdfStatesReview,
   pdfWhy,
   reportPdfPending,
+  reviewLine,
   reviewsFor,
   variantPdfAskable,
   variantPdfWhy,
   variantPending,
+  type VersionReview,
 } from "@/lib/report-variant";
 import { Button, Select } from "../ui";
 import { Icon } from "../icons";
@@ -121,8 +125,14 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
   const [status, setStatus] = useState<ResearchReport | null | "hidden">(null);
   const [version, setVersion] = useState<Version>("internal");
   const [format, setFormat] = useState<Format>("docx");
-  // The client draft the last download was: its artifact and whether it is approved.
-  const [client, setClient] = useState<{ artifactId: string; approved: boolean } | null>(null);
+  // The client version the last download was, as the server named it: its artifact and review
+  // (the approval's answer adds its date and whether its file states it).
+  const [client, setClient] = useState<{
+    artifactId: string;
+    reviewState: string | null;
+    approvedOn: string | null;
+    stamped: boolean | null;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const reportStep = run.steps.find((s) => s.kind === "research_report");
@@ -185,16 +195,38 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
   // Why PDF is not offered for the chosen version, in the one wording every PDF state has.
   const formatWhy = version === "client"
     ? "Klientská zpráva je zatím jen DOCX."
-    : withReview ? variantPdfWhy(current) : pdfWhy(report?.pdf);
+    : withReview ? variantPdfWhy(current) : pdfWhy(report?.pdf, reviewStatus(report?.review_state) === "APPROVED");
   const chosenFormat: Format = formatWhy ? "docx" : format;
   // A new rendering of the stored draft is offered exactly when the server would start one.
   const askable = version === "internal" && (withReview ? variantPdfAskable(current) : !!report && pdfAskable(report.pdf));
   const approved = version === "client"
-    ? client?.approved === true
+    ? reviewStatus(client?.reviewState) === "APPROVED"
     : reviewStatus(withReview ? current?.review_state : report?.review_state) === "APPROVED";
   const approvable = version === "client" ? client !== null : withReview ? Boolean(current?.artifact_id) : Boolean(report?.artifact_id);
   // The stored draft the chosen internal variant is: what its download must be and what is approved.
   const shown = withReview ? current?.artifact_id ?? null : report?.artifact_id ?? null;
+  const shownState = withReview ? current?.review_state : report?.review_state;
+  // The version shown and its review as the server last said it (D2): the card says what its file
+  // states only from that, never from a click here.
+  const seen: VersionReview | null = version === "client"
+    ? client && { version: client.artifactId, reviewState: client.reviewState, approvedOn: client.approvedOn, stamped: client.stamped }
+    : shown
+      ? {
+          version: shown,
+          reviewState: shownState,
+          approvedOn: withReview ? current?.approved_on : report?.approved_on,
+          stamped: withReview ? current?.stamped : report?.stamped,
+        }
+      : null;
+  // Whether this version's PDF states its review too: the client report is DOCX only; otherwise
+  // as the server said (F35, review 4: a PDF is promised only where one will be made, never read
+  // from a reason the server did not give).
+  const pdfToo = version === "internal" && pdfStatesReview(
+    shownState,
+    withReview ? current?.pdf : report?.pdf,
+    withReview ? current?.approval_renders_pdf : report?.approval_renders_pdf,
+  );
+  const fileLine = seen ? reviewLine(seen, pdfToo) : null;
 
   const run_ = async (work: () => Promise<void>) => {
     setBusy(true);
@@ -210,8 +242,8 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
   const download = () => run_(async () => {
     if (version === "client") {
       const got = await research.downloadClientReport(frame.studyId, run.run_id);
-      saveBlob(got.blob, `AIA-${frame.studyId}-klient.docx`);
-      setClient(got.artifactId ? { artifactId: got.artifactId, approved: reviewStatus(got.reviewState) === "APPROVED" } : null);
+      saveBlob(got.blob, got.filename ?? `AIA-${frame.studyId}-klient.docx`);
+      setClient(got.artifactId ? { artifactId: got.artifactId, reviewState: got.reviewState, approvedOn: null, stamped: null } : null);
     } else if (withReview && review !== null && !variantReady) {
       // Store the draft once and ask the worker for its PDF: both formats of one document.
       setVariant(await deepResearch.prepareContextReport(frame.studyId, run.run_id, review));
@@ -220,10 +252,14 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
       const got = withReview && review !== null
         ? await (chosenFormat === "pdf" ? deepResearch.downloadContextReportPdf : deepResearch.downloadContextReport)(frame.studyId, run.run_id, review)
         : await (chosenFormat === "pdf" ? research.downloadReportPdf : research.downloadReport)(frame.studyId, run.run_id);
-      // The file must be the draft this card shows and approves; any other is not handed over.
-      const why = downloadMismatch(got.artifactId, shown);
+      // The file must be the version this card shows and approves, in the review the card shows;
+      // any other is not handed over. Its name is the server's: the version and its review.
+      const why = downloadMismatch(
+        { artifactId: got.artifactId, reviewState: got.reviewState },
+        { artifactId: shown, reviewState: shownState },
+      );
       if (why) throw new Error(why);
-      saveBlob(got.blob, name);
+      saveBlob(got.blob, got.filename ?? name);
     }
   });
   // An earlier composition's draft prepared anew under today's: a new draft, which needs its
@@ -237,16 +273,19 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
     if (withReview && review !== null) setVariant(await deepResearch.askContextReportPdf(frame.studyId, run.run_id, review));
     else setStatus(await research.askReportPdf(frame.studyId, run.run_id));
   });
+  // Approving freezes the version and asks for its approved PDF (D2): the card reads the report
+  // again rather than patch what it showed, so the approved PDF's rendering is what it says.
+  // The client report has no status of its own: the approval's answer is the server's.
   const approve = () => run_(async () => {
     if (version === "client" && client) {
-      await research.approveReport(frame.studyId, run.run_id, client.artifactId);
-      setClient({ ...client, approved: true });
-    } else if (withReview && current?.artifact_id) {
-      const done = await research.approveReport(frame.studyId, run.run_id, current.artifact_id);
-      setVariant({ ...current, review_state: done.review_state });
+      const done = await research.approveReport(frame.studyId, run.run_id, client.artifactId);
+      setClient({ artifactId: done.artifact_id, reviewState: done.review_state, approvedOn: done.approved_on ?? null, stamped: done.stamped ?? null });
+    } else if (withReview && review !== null && current?.artifact_id) {
+      await research.approveReport(frame.studyId, run.run_id, current.artifact_id);
+      setVariant(await deepResearch.contextReport(frame.studyId, run.run_id, review));
     } else if (report?.artifact_id) {
-      const done = await research.approveReport(frame.studyId, run.run_id, report.artifact_id);
-      setStatus({ ...report, review_state: done.review_state });
+      await research.approveReport(frame.studyId, run.run_id, report.artifact_id);
+      setStatus(await research.report(frame.studyId, run.run_id));
     }
   });
 
@@ -258,14 +297,17 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
       // A PDF is promised only where one will be made: not on a closed study, not where this
       // deployment renders none (review 2).
       ? "Stav: zprávu s rešerší je třeba jednou připravit. Pak ji stáhnete jako DOCX; PDF se stejným obsahem vznikne, pokud ho toto prostředí a stav studie dovolí"
-      : `Stav: ${reportStatusWords(approved ? "APPROVED" : "DRAFT")}`
+      : fileLine ?? `Stav: ${reportStatusWords(approved ? "APPROVED" : "DRAFT")}`
     : internal === null
       ? t("research.loading")
       : !report
         ? `Stav: ${reportStatusWords(internal)}`
-        : version === "client" && !client
-          ? "Stav: klientská zpráva se složí při stažení; schvalujete právě tu, kterou stáhnete"
-          : `Stav: ${reportStatusWords(approved ? "APPROVED" : "DRAFT")}`;
+        : version === "client"
+          ? !client
+            ? "Stav: klientská zpráva se složí při stažení; schvalujete právě tu, kterou stáhnete"
+            // The file the client receives: approving signs it off for them, never "for internal use".
+            : fileLine ?? `Stav: ${t(`research.exec.report.review.${approved ? "clientApproved" : "clientDraft"}`)}`
+          : fileLine ?? `Stav: ${reportStatusWords(approved ? "APPROVED" : "DRAFT")}`;
   const chosenReview = reviews?.find((r) => r.run_id === review) ?? null;
   const limitation = report?.synthetic
     ? "Odpovídali syntetičtí respondenti: zpráva nepopisuje skutečné osoby."
@@ -373,12 +415,12 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
           ) : null}
           {askable && mayReview ? (
             <Button variant="quiet" className="justify-center" disabled={busy} onClick={() => void askPdf()}>
-              Vytvořit PDF znovu
+              {(withReview ? current?.pdf : report?.pdf)?.state === "NOT_REQUESTED" ? "Vytvořit PDF" : "Vytvořit PDF znovu"}
             </Button>
           ) : null}
           {approvable && !approved && mayReview ? (
             <Button className="!min-h-11 justify-center" disabled={busy} onClick={() => void approve()}>
-              {t("research.exec.results.reportApprove")}
+              {t(version === "client" ? "research.exec.results.reportApproveClient" : "research.exec.results.reportApprove")}
             </Button>
           ) : null}
           {/* What the downloaded file is, visible before it is downloaded: the same lines it prints. */}
@@ -387,13 +429,29 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
             <dt>Rešerše</dt><dd className="break-all font-mono">{withReview ? review : "žádná (základní zpráva)"}</dd>
             {chosenReview?.title ? <><dt>Název</dt><dd>{chosenReview.title}</dd></> : null}
             <dt>Literatura</dt><dd>{withReview ? (variantReady ? "kapitola s rešerší a zdroji" : "po přípravě zprávy") : "není součástí"}</dd>
-            {version === "internal" && shown ? <><dt>Koncept</dt><dd className="break-all font-mono">{shown}</dd></> : null}
-            {version === "internal" && shown ? <><dt>Schválení</dt><dd>{approved ? "schváleno v AIA" : "neschváleno"}</dd></> : null}
+            {version === "internal" && shown ? <><dt>Verze</dt><dd className="break-all font-mono">{shown}</dd></> : null}
+            {version === "internal" && shown ? (
+              <>
+                <dt>Schválení</dt>
+                <dd>
+                  {!approved
+                    ? t("research.exec.report.review.notApproved")
+                    : seen?.approvedOn
+                      ? tv("research.exec.report.review.approvedOn", { date: czechDate(seen.approvedOn) })
+                      : t("research.exec.report.review.approvedInAia")}
+                </dd>
+              </>
+            ) : null}
             {limitation ? <><dt>Omezení</dt><dd>{limitation}</dd></> : null}
           </dl>
-          {/* The file never changes once stored: an approval is AIA's record about it, so the file
-              keeps its draft footer (research-integrity-report D2). Said before it surprises anyone. */}
-          {approvable ? <p className="text-xs leading-4 text-ink-muted">Schválení se zaznamená v AIA u tohoto uloženého souboru. Soubor se tím nemění a v zápatí dál nese „KONCEPT — NESCHVÁLENO“.</p> : null}
+          {/* A version stored before its status moved to the footers (D2) is served as stored once
+              approved, never partly stamped: its file keeps its draft footer, said before it
+              surprises anyone. A version whose layout the server did not say gets no claim at all. */}
+          {approvable && seen?.stamped === false ? (
+            <p data-review-older className="text-xs leading-4 text-ink-muted">
+              {t(approved ? "research.exec.report.review.olderApproved" : "research.exec.report.review.older")}
+            </p>
+          ) : null}
           <a href="#res-literature" className="text-xs">Literární rešerše k výsledkům</a>
           {error ? <p role="alert" className="text-xs text-status-fault">{error}</p> : null}
         </div>

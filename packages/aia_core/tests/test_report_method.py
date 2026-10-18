@@ -144,8 +144,18 @@ def test_an_acknowledged_gap_is_printed_with_the_persons_reason() -> None:
     words = _words(meta, DataOrigin.SYNTHETIC_AI_FICTIONAL)
     assert "Předem nešlo ověřit, že běh zodpoví tuto výzkumnou otázku: " in words
     assert f"„{_RQ}“ (žádná otázka dotazníku neuvádí, na kterou výzkumnou otázku odpovídá)" in words
-    assert "„Test postupu.“" in words
+    # The choice by its name on the Run screen (research-integrity-report 14, D1).
+    assert (
+        "Výzkumník zvolil Pokračovat s omezeními s odůvodněním: „Test postupu.“. "
+        "Kdo volbu udělal, je v záznamu schválení."
+    ) in words
     assert "nemohl" not in words  # UNKNOWN is not UNANSWERABLE
+    inherited = _note(
+        acknowledgement={"reason": "Test postupu.", "by": "u1", "inherited_from": "RUN-1"}
+    )
+    assert "„Test postupu.“ (volba převzata z běhu RUN-1)." in _words(
+        {"answerability": inherited}, DataOrigin.SYNTHETIC_AI_FICTIONAL
+    )
     section = compose_method_section(meta, DataOrigin.SYNTHETIC_AI_FICTIONAL)
     table = next(
         b for b in section.blocks if isinstance(b, Table) and b.id == "tab-run-answerability"

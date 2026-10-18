@@ -15,12 +15,15 @@ from aia_core.application.contextual_report import (
     CONTEXT_REPORT_ARTIFACT_TYPE,
     CONTEXT_REPORT_CONTRACT,
 )
-from aia_core.application.research import ResearchRuns, research_artifacts
+from aia_core.application.research import ResearchRuns, report_pdf_key, research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+from aia_core.domain.report.review import ReviewMark, ReviewState
 from aia_core.domain.scope import StudyStatus
+from aia_core.domain.workflow_templates import REPORT_PDF
 from aia_core.infrastructure.db import create_session_factory
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.tables import WorkflowRunRow
+from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
@@ -92,7 +95,12 @@ def _prepared(
             },
         )
         if ask_pdf:
-            runs.request_report_pdf(docx=docx, run_id=run_id, deep_research_run_id=REVIEW)
+            runs.request_report_pdf(
+                docx=docx,
+                run_id=run_id,
+                deep_research_run_id=REVIEW,
+                mark=ReviewMark(ReviewState.DRAFT, docx.artifact_id, docx.sha256),
+            )
         session.commit()
     return run_id, docx.artifact_id
 
@@ -113,7 +121,11 @@ def test_the_status_names_the_prepared_draft_and_its_pdf_and_composes_nothing(
     body = status_.json()
     assert body["state"] == "READY" and body["artifact_id"] == artifact_id
     assert body["review_state"] == "DRAFT_UNAPPROVED"
+    # Fictional bytes without the record of the footer layout: never stamped (D2).
+    assert body["approved_on"] is None and body["stamped"] is False
     assert body["pdf"]["state"] == "RENDERING" and body["pdf"]["artifact_id"] is None
+    # Its PDF not made yet: whether approving gives the approved version one is not known.
+    assert body["approval_renders_pdf"] is False
     other = researcher.get(url, params={"deep_research_run_id": "RUN-abcabc"})
     assert other.json()["state"] == "NOT_PREPARED" and other.json()["pdf"] is None
     assert _jobs(app) == before
@@ -177,7 +189,8 @@ def test_the_docx_download_is_the_prepared_draft_and_the_pdf_waits_for_its_rende
     assert docx.content == b"PK fictional draft with literature"
     assert docx.headers["X-AIA-Artifact-Id"] == artifact_id
     assert docx.headers["X-AIA-Review-State"] == "DRAFT_UNAPPROVED"
-    assert f"{run_id}-{REVIEW}.docx" in docx.headers["Content-Disposition"]
+    # The file names the run, the review, the version and its review state (D2).
+    assert f"{run_id}-{REVIEW}-{artifact_id}-koncept.docx" in docx.headers["Content-Disposition"]
     pdf = researcher.get(f"{base}/pdf/download", params={"deep_research_run_id": REVIEW})
     assert pdf.status_code == 404  # asked for, not rendered yet: never another file instead
 
@@ -231,6 +244,7 @@ def test_a_closed_study_finds_its_draft_and_says_why_its_pdf_waits(
         "reason": "study_closed",
         "askable": False,
     }
+    assert body["approval_renders_pdf"] is False
     asked = researcher.post(f"{base}/pdf", params=params)
     assert asked.status_code == 200, asked.text
     assert asked.json()["pdf"]["reason"] == "study_closed"
@@ -296,3 +310,41 @@ def test_asking_for_a_pdf_before_preparing_is_refused_by_name(
     url = f"{_study(world)}/research/runs/{run_id}/report/context/pdf"
     refused = researcher.post(url, params={"deep_research_run_id": "RUN-abcabc"})
     assert refused.status_code == 409 and refused.json()["code"] == "context_report_not_prepared"
+
+
+def test_approving_a_prepared_variant_asks_for_its_approved_pdf_under_its_review(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """Review 4 of D2: approving a variant asks for its approved PDF under the review's own key
+    (the variant's ``deep_research_run_id``); asked under the base report's key, the variant's
+    status would read NOT_REQUESTED for ever, and no test said so."""
+    run_id, artifact_id = _prepared(app, researcher, world)
+    approved = researcher.post(
+        f"{_study(world)}/research/runs/{run_id}/report/approve",
+        json={"artifact_id": artifact_id, "note": ""},
+    )
+    assert approved.status_code == 200, approved.text
+    body = researcher.get(
+        f"{_study(world)}/research/runs/{run_id}/report/context",
+        params={"deep_research_run_id": REVIEW},
+    ).json()
+    assert body["review_state"] == "APPROVED_INTERNAL" and body["approved_on"] is not None
+    assert body["pdf"]["state"] == "RENDERING" and body["approval_renders_pdf"] is False
+    with create_session_factory(app.state.engine)() as session:
+        scope = _scope(session, world)
+        docx = research_artifacts(session, scope, app.state.artifact_store).get(artifact_id)
+        workflows = WorkflowRepository(session, scope)
+
+        def jobs(review: str | None) -> list[dict[str, Any]]:
+            return workflows.list_runs(
+                project_id=docx.project_id,
+                workflow_type=REPORT_PDF,
+                key_prefix=report_pdf_key(run_id, review, artifact_id, approved=True),
+                limit=10,
+            )
+
+        asked = jobs(REVIEW)
+        assert jobs(None) == []
+    assert len(asked) == 1
+    assert asked[0]["metadata"]["deep_research_run_id"] == REVIEW
+    assert asked[0]["metadata"]["review_state"] == "APPROVED_INTERNAL"

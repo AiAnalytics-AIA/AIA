@@ -9,22 +9,46 @@ missing permission inside a visible Study.
 
 from __future__ import annotations
 
+import hashlib
+import io
+import zipfile
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import pytest
+from aia_core.application.client_report import CLIENT_REPORT_ARTIFACT_TYPE
 from aia_core.application.report import (
     INTERNAL_REPORT_ARTIFACT_TYPE,
     INTERNAL_REPORT_MEDIA_TYPE,
     INTERNAL_REPORT_PDF_ARTIFACT_TYPE,
 )
-from aia_core.application.research import research_artifacts
+from aia_core.application.report_export import REVIEW_STAMP_RECORD
+from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFACT_TYPE
+from aia_core.domain.evidence import ClaimSurface
+from aia_core.domain.evidence.validation import METHOD_STATUS_PENDING
 from aia_core.domain.fieldwork import FieldworkSource
+from aia_core.domain.report.evidence import EvidenceLedger
+from aia_core.domain.report.model import (
+    Callout,
+    CalloutKind,
+    Classification,
+    Paragraph,
+    ReportDocument,
+    ReportKind,
+    ReportMeta,
+    Section,
+    text,
+)
 from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1
+from aia_core.domain.scope import StudyStatus
 from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.db import create_session_factory
+from aia_core.infrastructure.report_docx.renderer import DocxRenderer
+from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.tables import (
     ApprovalDecisionRow,
     ProjectArtifactRow,
@@ -38,9 +62,10 @@ from aia_worker.settings import WorkerSettings
 from aia_worker.worker import Worker
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, update
 
 from aia_api.config import Settings
+from aia_api.routers import research as research_router
 
 API = "/api/v1"
 
@@ -339,10 +364,11 @@ def _store_internal_report(
     *,
     pdf: bytes | None = None,
     pdf_of: str | None = None,
+    metadata: dict[str, Any] | None = None,
 ) -> str:
     """Drive the run's steps to the end, the report step storing ``document`` as the
-    researcher's internal report (and ``pdf`` as its rendering, of ``pdf_of`` when given);
-    return its artifact id."""
+    researcher's internal report (and ``pdf`` as its rendering, of ``pdf_of`` when given),
+    with ``metadata`` beside what it records; return its artifact id."""
     factory = create_session_factory(app.state.engine)
     with factory() as session:
         principal = AuthenticatedPrincipal(
@@ -370,6 +396,7 @@ def _store_internal_report(
                         "report_kind": "internal",
                         "review_state": "DRAFT_UNAPPROVED",
                         "synthetic": True,
+                        **(metadata or {}),
                     },
                 )
                 report_id = artifact.artifact_id
@@ -417,6 +444,8 @@ def test_internal_report_is_listed_and_downloaded_only_through_its_study_run(
     assert listed.status_code == 200, listed.text
     assert listed.json()["artifact_id"] == report_id
     assert listed.json()["review_state"] == "DRAFT_UNAPPROVED"
+    # Stored without the record of the footer layout: once approved, served unstamped (D2).
+    assert listed.json()["approved_on"] is None and listed.json()["stamped"] is False
     assert listed.json()["synthetic"] is True
     # Written before reports recorded data_origin: synthetic alone reads as simulated.
     assert listed.json()["data_origin_kind"] == "SIMULATED"
@@ -424,10 +453,14 @@ def test_internal_report_is_listed_and_downloaded_only_through_its_study_run(
     downloaded = researcher.get(f"{url}/download")
     assert downloaded.status_code == 200 and downloaded.content == document
     assert downloaded.headers["content-type"] == INTERNAL_REPORT_MEDIA_TYPE
-    assert "internal-draft.docx" in downloaded.headers["content-disposition"]
+    # Was "AIA-<study>-internal-draft.docx": the name now names the version and its review (D2).
+    assert downloaded.headers["content-disposition"] == (
+        f'attachment; filename="AIA-{world.study_id()}-{run_id}-zakladni-{report_id}-koncept.docx"'
+    )
     assert downloaded.headers["cache-control"] == "no-store"
     # The draft these bytes are, so the page approves the one it downloaded.
     assert downloaded.headers["X-AIA-Artifact-Id"] == report_id
+    assert downloaded.headers["X-AIA-Artifact-Sha256"] == hashlib.sha256(document).hexdigest()
     assert downloaded.headers["X-AIA-Review-State"] == "DRAFT_UNAPPROVED"
     assert outsider.get(url).status_code == 200  # ADR 0019: a member with no grant reads it too
     assert outsider.get(f"{url}/download").status_code == 200
@@ -455,7 +488,7 @@ def test_the_reports_pdf_is_read_only_as_the_rendering_of_its_stored_docx(
     downloaded = researcher.get(f"{url}/pdf/download")
     assert downloaded.status_code == 200 and downloaded.content == b"%PDF-1.7 test"
     assert downloaded.headers["content-type"] == "application/pdf"
-    assert "internal-draft.pdf" in downloaded.headers["content-disposition"]
+    assert downloaded.headers["content-disposition"].endswith('-koncept.pdf"')
     foreign = f"{_runs(world, 'other_client')}/{run_id}/report/pdf/download"
     assert other_client_lead.get(foreign).status_code == 404
 
@@ -629,11 +662,16 @@ def test_a_person_approves_a_runs_stored_report_once_and_only_that(
     assert own.status_code == 403 and own.json()["code"] == "separation_of_duties"
     assert researcher.get(url).json()["review_state"] == "DRAFT_UNAPPROVED"
 
+    before = _prague_today()
     approved = outsider.post(approve, json={"artifact_id": report_id, "note": "Přečteno."})
     assert approved.status_code == 200, approved.text
     assert approved.json()["review_state"] == "APPROVED_INTERNAL"
     assert approved.json()["internal_only"] is True
-    assert researcher.get(url).json()["review_state"] == "APPROVED_INTERNAL"
+    status_ = researcher.get(url).json()
+    assert status_["review_state"] == "APPROVED_INTERNAL"
+    assert status_["approved_on"] in {before, _prague_today()}
+    # D2: approving asks for the approved version's PDF; its fictional bytes take no stamp.
+    assert status_["pdf"]["state"] == "RENDERING" and status_["stamped"] is False
     again = outsider.post(approve, json={"artifact_id": report_id})
     assert again.status_code == 200
 
@@ -643,6 +681,318 @@ def test_a_person_approves_a_runs_stored_report_once_and_only_that(
             select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_id == report_id)
         ).all()
     assert [(d.decision, d.comment) for d in decisions] == [("APPROVED", "Přečteno.")]
+
+
+def _prague_today() -> str:
+    return datetime.now(ZoneInfo("Europe/Prague")).date().isoformat()
+
+
+_RENDERED: list[bytes] = []
+
+
+def _rendered_report() -> bytes:
+    """A real internal report as the renderer lays it out (its status in its footers only),
+    rendered once: a stamp needs that layout, which fictional bytes do not have."""
+    if not _RENDERED:
+        meta = ReportMeta(
+            ReportKind.INTERNAL,
+            "Interní analytická zpráva",
+            "Fiktivní data",
+            "Fiktivní klient",
+            "Fiktivní studie",
+            "STU-1",
+            date(2026, 10, 18),
+            1,
+            METHOD_STATUS_PENDING,
+            classification=Classification.INTERNAL,
+        )
+        ledger = EvidenceLedger.from_claims([], surface=ClaimSurface.INTERNAL)
+        section = Section("Shrnutí", (Paragraph(text("Fiktivní zpráva.")),))
+        _RENDERED.append(DocxRenderer().render(ReportDocument(meta, (section,), ledger)))
+    return _RENDERED[0]
+
+
+def _footers(docx: bytes) -> dict[str, bytes]:
+    with zipfile.ZipFile(io.BytesIO(docx)) as z:
+        return {n: z.read(n) for n in z.namelist() if n.startswith("word/footer")}
+
+
+def _part(docx: bytes, name: str) -> bytes:
+    with zipfile.ZipFile(io.BytesIO(docx)) as z:
+        return z.read(name)
+
+
+def test_a_draft_download_is_the_stored_bytes_and_names_their_sha(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    document = _rendered_report()
+    report_id = _store_internal_report(
+        app, world, run_id, document, metadata=dict(REVIEW_STAMP_RECORD)
+    )
+    url = f"{_runs(world)}/{run_id}/report"
+    status_ = researcher.get(url).json()
+    assert status_["review_state"] == "DRAFT_UNAPPROVED" and status_["approved_on"] is None
+    assert status_["stamped"] is True  # once approved, its file will say so
+    downloaded = researcher.get(f"{url}/download")
+    assert downloaded.status_code == 200 and downloaded.content == document
+    assert downloaded.headers["X-AIA-Artifact-Id"] == report_id
+    assert downloaded.headers["X-AIA-Artifact-Sha256"] == hashlib.sha256(document).hexdigest()
+    assert downloaded.headers["X-AIA-Review-State"] == "DRAFT_UNAPPROVED"
+    assert all(b"KONCEPT" in f for f in _footers(downloaded.content).values())
+
+
+def test_an_approved_versions_docx_says_approved_and_names_the_version(
+    app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any
+) -> None:
+    """Before D2, every download of an approved report printed "KONCEPT — NESCHVÁLENO" in
+    every footer and on its cover under an APPROVED_INTERNAL header and a "draft" file name.
+    The approved version's DOCX is its stored bytes with only the footers' status replaced."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    document = _rendered_report()
+    report_id = _store_internal_report(
+        app, world, run_id, document, metadata=dict(REVIEW_STAMP_RECORD)
+    )
+    url = f"{_runs(world)}/{run_id}/report"
+    approved = outsider.post(f"{url}/approve", json={"artifact_id": report_id})
+    assert approved.status_code == 200, approved.text
+    approved_on = approved.json()["approved_on"]
+    assert approved.json()["stamped"] is True
+    downloaded = researcher.get(f"{url}/download")
+    assert downloaded.status_code == 200
+    # The stored version it is (its id and SHA-256), approved, in its name too.
+    assert downloaded.headers["X-AIA-Artifact-Id"] == report_id
+    assert downloaded.headers["X-AIA-Artifact-Sha256"] == hashlib.sha256(document).hexdigest()
+    assert downloaded.headers["X-AIA-Review-State"] == "APPROVED_INTERNAL"
+    assert downloaded.headers["content-disposition"].endswith(f'-{report_id}-schvaleno.docx"')
+    year, month, day = (int(x) for x in approved_on.split("-"))
+    words = f"SCHVÁLENO {day}.\u00a0{month}.\u00a0{year} \u00b7 verze {report_id}".encode()
+    footers = _footers(downloaded.content)
+    assert footers and all(words in f and b"KONCEPT" not in f for f in footers.values())
+    # Everything else is the version a person approved, byte for byte.
+    assert _part(downloaded.content, "word/document.xml") == _part(document, "word/document.xml")
+    assert downloaded.content != document
+
+
+def test_an_approved_version_never_serves_its_draft_pdf(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    report_id = _store_internal_report(
+        app,
+        world,
+        run_id,
+        _rendered_report(),
+        pdf=b"%PDF-1.7 draft rendering",
+        metadata=dict(REVIEW_STAMP_RECORD),
+    )
+    url = f"{_runs(world)}/{run_id}/report"
+    assert researcher.get(f"{url}/pdf/download").content == b"%PDF-1.7 draft rendering"
+    assert researcher.post(f"{url}/approve", json={"artifact_id": report_id}).status_code == 200
+    # The step's PDF renders the draft: approved, the version's PDF is its approved rendering,
+    # asked for by the approval and not made yet -- never the draft's instead.
+    status_ = researcher.get(url).json()
+    assert status_["pdf"]["state"] == "RENDERING"
+    assert researcher.get(f"{url}/pdf/download").status_code == 404
+
+
+def _close_study(app: FastAPI, world: Any) -> None:
+    with create_session_factory(app.state.engine)() as session:
+        scope = ScopeResolver(session).study_context(
+            AuthenticatedPrincipal(
+                user_id=world.users["researcher"], organization_id=world.organization_id
+            ),
+            study_id=world.study_id(),
+        )
+        ScopeRepository(session).set_study_status(scope, StudyStatus.DELIVERED)
+        session.commit()
+
+
+def test_a_draft_promises_an_approved_pdf_only_where_approving_makes_one(
+    app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any
+) -> None:
+    """Review 4 of D2: the card promised "DOCX i PDF" after approval from the PDF's reason
+    alone, which a closed study's READY draft PDF and a deployment that rendered none do not
+    give. The status says it: approving asks for a PDF, and this draft's own PDF was rendered
+    here. Anything less is no promise."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    report_id = _store_internal_report(
+        app,
+        world,
+        run_id,
+        _rendered_report(),
+        pdf=b"%PDF-1.7 draft rendering",
+        metadata=dict(REVIEW_STAMP_RECORD),
+    )
+    url = f"{_runs(world)}/{run_id}/report"
+    status_ = researcher.get(url).json()
+    assert status_["pdf"]["state"] == "READY" and status_["approval_renders_pdf"] is True
+    _close_study(app, world)
+    status_ = researcher.get(url).json()
+    # The draft's PDF is still READY, and no reason is given; a closed study asks for nothing.
+    assert status_["pdf"]["state"] == "READY" and status_["pdf"].get("reason") is None
+    assert status_["approval_renders_pdf"] is False
+    assert outsider.post(f"{url}/approve", json={"artifact_id": report_id}).status_code == 200
+    status_ = researcher.get(url).json()
+    assert status_["pdf"]["state"] == "NOT_REQUESTED" and status_["pdf"]["reason"] == "study_closed"
+    assert status_["approval_renders_pdf"] is False
+
+
+def test_a_draft_whose_step_rendered_no_pdf_promises_none(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """A deployment without PDF (the code default): the step made none, nobody asked, and
+    whether approving would make one is not known. Unknown is never a promise."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    _store_internal_report(
+        app, world, run_id, _rendered_report(), metadata=dict(REVIEW_STAMP_RECORD)
+    )
+    status_ = researcher.get(f"{_runs(world)}/{run_id}/report").json()
+    assert status_["pdf"] == {"state": "NOT_REQUESTED", "reason": None, "askable": True}
+    assert status_["approval_renders_pdf"] is False
+
+
+def test_the_approved_client_report_downloads_stamped_and_is_read_once(
+    app: FastAPI,
+    researcher: TestClient,
+    outsider: TestClient,
+    world: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Review 4 of D2: the client report's approved download had no test of its own, and every
+    download read the stored DOCX twice -- once to find it, again to export it. Its composition
+    needs a population-grounded run (test_ai_fieldwork covers it); here the stored draft it finds
+    is a real client report, stored the way it stores one."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    meta = ReportMeta(
+        ReportKind.CLIENT,
+        "Výzkumná zpráva",
+        "Fiktivní data",
+        "Fiktivní klient",
+        "Fiktivní studie",
+        "STU-1",
+        date(2026, 10, 18),
+        1,
+        METHOD_STATUS_PENDING,
+        classification=Classification.CLIENT_CONFIDENTIAL,
+    )
+    ledger = EvidenceLedger.from_claims([], surface=ClaimSurface.CLIENT_FACING)
+    method = Callout(CalloutKind.METHOD, text("Fiktivní data."), title="Jak číst tuto zprávu")
+    section = Section("Shrnutí", (method, Paragraph(text("Fiktivní zpráva pro klienta."))))
+    document = DocxRenderer().render(ReportDocument(meta, (section,), ledger))
+    principal = AuthenticatedPrincipal(
+        user_id=world.users["researcher"], organization_id=world.organization_id
+    )
+    with create_session_factory(app.state.engine)() as session:
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        run = ResearchRuns(session, scope).get(run_id)
+        stored, _ = research_artifacts(session, scope, app.state.artifact_store).put(
+            project_id=run["project_id"],
+            revision=int(run["project_revision"]),
+            stage_type="REPORT",
+            artifact_type=CLIENT_REPORT_ARTIFACT_TYPE,
+            data=document,
+            content_type=INTERNAL_REPORT_MEDIA_TYPE,
+            input_fingerprint="fictional-client-report",
+            metadata={
+                "run_id": run_id,
+                "report_kind": "client",
+                "review_state": "DRAFT_UNAPPROVED",
+                **REVIEW_STAMP_RECORD,
+            },
+        )
+        session.commit()
+
+    def found(session: Any, scope: Any, store: Any, *, run_id: str, build: str = "") -> Any:
+        # stored_client_report's own path for a draft it finds: the artifact and its bytes, read.
+        artifacts = research_artifacts(session, scope, store)
+        return artifacts.get(stored.artifact_id), artifacts.read(stored.artifact_id)
+
+    monkeypatch.setattr(research_router, "stored_client_report", found)
+    reads: list[str] = []
+    real_get = app.state.artifact_store.get
+
+    def counted(key: str, **kw: Any) -> bytes:
+        reads.append(key)
+        return bytes(real_get(key, **kw))
+
+    monkeypatch.setattr(app.state.artifact_store, "get", counted)
+    url = f"{_runs(world)}/{run_id}/report"
+    draft = researcher.get(f"{url}/client/download")
+    assert draft.status_code == 200, draft.text
+    assert draft.content == document and len(reads) == 1
+    assert draft.headers["content-disposition"] == (
+        f'attachment; filename="AIA-{world.study_id()}-{run_id}-klient-{stored.artifact_id}'
+        '-koncept.docx"'
+    )
+    approved = outsider.post(f"{url}/approve", json={"artifact_id": stored.artifact_id})
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["stamped"] is True
+    reads.clear()
+    downloaded = researcher.get(f"{url}/client/download")
+    assert downloaded.status_code == 200 and len(reads) == 1
+    assert downloaded.headers["X-AIA-Review-State"] == "APPROVED_INTERNAL"
+    assert downloaded.headers["X-AIA-Artifact-Sha256"] == stored.sha256
+    assert downloaded.headers["content-disposition"].endswith(
+        f'-klient-{stored.artifact_id}-schvaleno.docx"'
+    )
+    year, month, day = (int(x) for x in approved.json()["approved_on"].split("-"))
+    words = f"SCHVÁLENO {day}.\u00a0{month}.\u00a0{year} \u00b7 verze {stored.artifact_id}"
+    footers = _footers(downloaded.content)
+    assert footers and all(words.encode() in f and b"KONCEPT" not in f for f in footers.values())
+    assert _part(downloaded.content, "word/document.xml") == _part(document, "word/document.xml")
+
+
+def test_an_older_version_approved_is_served_unstamped_and_says_so(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """A version stored before this layout (no record of it) is approved as it is: its DOCX is
+    the stored bytes, never partly stamped, and the status says it is not stamped."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    document = _rendered_report()
+    report_id = _store_internal_report(app, world, run_id, document)
+    url = f"{_runs(world)}/{run_id}/report"
+    assert researcher.post(f"{url}/approve", json={"artifact_id": report_id}).status_code == 200
+    status_ = researcher.get(url).json()
+    assert status_["review_state"] == "APPROVED_INTERNAL" and status_["stamped"] is False
+    downloaded = researcher.get(f"{url}/download")
+    assert downloaded.status_code == 200 and downloaded.content == document
+    assert downloaded.headers["X-AIA-Review-State"] == "APPROVED_INTERNAL"
+
+
+def test_an_approval_without_its_ledger_row_is_refused_by_name(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    report_id = _store_internal_report(
+        app, world, run_id, _rendered_report(), metadata=dict(REVIEW_STAMP_RECORD)
+    )
+    with create_session_factory(app.state.engine)() as session:
+        session.execute(
+            update(ProjectArtifactRow)
+            .where(ProjectArtifactRow.artifact_id == report_id)
+            .values(is_approved=True)
+        )
+        session.commit()
+    url = f"{_runs(world)}/{run_id}/report"
+    for got in (researcher.get(url), researcher.get(f"{url}/download")):
+        assert got.status_code == 409 and got.json()["code"] == "report_review_unrecorded"
 
 
 def test_experimental_sociomapping_is_read_and_downloaded_only_through_its_run(
