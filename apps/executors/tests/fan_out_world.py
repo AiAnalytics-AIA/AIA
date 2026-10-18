@@ -9,9 +9,11 @@ of every request, written ``O_APPEND`` so processes may share it). Nothing leave
 process.
 
 A subject ``i`` is "Jak se vyvíjí ukazatel i v Česku?"; its query is the subject itself
-(the recorded planner's default); its page says "Ukazatel i dosáhl v roce 2025 hodnoty i
-bodů." and the web investigator proposes that sentence as a finding. With the STANDARD
-preset each track is one search, one fetch and one investigator request.
+(the recorded planner's default); its page says "Ukazatel i dosáhl v Česku v roce 2025
+hodnoty i bodů." and the web investigator proposes that sentence as a finding. The sentence
+shares two of its subject's words (ukazatel, Česku), as the merge's topic gate asks; the
+index alone would not count, because a topic's digits are never its words. With the
+STANDARD preset each track is one search, one fetch and one investigator request.
 """
 
 from __future__ import annotations
@@ -60,7 +62,7 @@ def subject(i: int) -> str:
 
 
 def sentence(i: int) -> str:
-    return f"Ukazatel {i} dosáhl v roce 2025 hodnoty {i} bodů."
+    return f"Ukazatel {i} dosáhl v Česku v roce 2025 hodnoty {i} bodů."
 
 
 def host(i: int) -> str:
