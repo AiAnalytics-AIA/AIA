@@ -5,13 +5,14 @@ chunks:
   - "[ ] PC2. Results read the run's own verdicts: an answer to a research question the run recorded as a gap is marked as in the report, and a number the analysis refuses says so beside it"
   - "[ ] PC3. A run's analysis stays repairable after a harness change: a module completed under an earlier harness is asked again over the frozen data, never a paid fieldwork re-run"
   - "[ ] PC4. A run parked for the AI runtime can be resumed by a person once the runtime is on; no copy promises it continues by itself"
-  - "[ ] PC5. The stage track follows the run, and says when the design changed after the run it shows"
+  - "[ ] PC5. The stage track follows the run (done), and says when the design changed after the run it shows"
   - "[ ] PC6. Proposal review names what acceptance replaces; rewording a research question says which links it would orphan"
   - "[ ] PC7. Researcher copy agrees with the Sociomap register and ADR 0018: no D6 or 18.6.6 remedies, no stale report sentence"
-  - "[ ] PC8. The browser journeys pass on today's interface, and a label they wait for cannot drift unnoticed"
+  - "[ ] PC8. The browser journeys pass on today's interface, a label they wait for cannot drift unnoticed, and the coherence journey and report render are committed tools anyone can rerun"
   - "[ ] PC9. Report body and appendices flow: no page break before every chapter (owner D5, 2026-10-17)"
-  - "[ ] PC10. Product-level acceptance scenarios over the real start, worker and report"
-  - "[ ] PC11. Owner decisions recorded with a recommendation each; no code"
+  - "[x] PC10. Dimenze shows and saves only the dimensions a person chose: a new study chose none (owner, 2026-10-18; OI-54)"
+  - "[ ] PC11. Product-level acceptance scenarios over the real start, worker and report"
+  - "[ ] PC12. Owner decisions recorded with a recommendation each; no code"
 ---
 # Productization and system coherence
 
@@ -96,3 +97,32 @@ old track), stops reading once nothing can change, keeps reading a provider wait
 **Second half, open.** The track also calls Spuštění "done" and Výsledky "Revize N" when the design
 has changed since that run; saying "the design changed after this run" needs the working content's
 revision beside the run's (see the findings ledger, F-design-lane), not a browser guess.
+
+## PC10 — Dimenze shows and saves only what a person chose
+
+**Reported by the owner, 2026-10-18:** "when starting a new study, the dimenze are prefilled".
+
+**Problem.** A new study's Dimenze stage and its stage track read "4 dimenze · N=300" though nobody had
+chosen a dimension. The template stores none (`research_template.py:77 @ 20b24bb`: `approved: []`).
+The screen read the approval through the classic's `personaApproved` port (`withApproval`,
+`apps/web/src/research/persona.ts:117 @ 20b24bb`), which draws an empty approval as the recommended
+set (OI-54), and every save from the stage built on that refill: the sample size, "Další · kontrola",
+the AI suggestion's payload and a dimension request (`persona.ts:161, 166, 171, 188, 239`). So the
+first save on Dimenze stored four dimensions as chosen, while a study whose Dimenze was never
+touched ran with none -- an empty selection filters no persona topic
+(`domain/persona_topics.py:323-346`). The Run stage's receipt counted the refill too
+(`ExecutionSteps.tsx:388`). Screen and run disagreed either way.
+
+**Change.** `chosenDimensions` reads the approval as stored; every change on the stage saves only
+what was chosen; the track says "Bez dimenzí" for none; the receipt counts what the run will record.
+The recommended set is still drawn as a recommendation and applied by one action ("Použít
+doporučené"). `withApproval` stays as the classic's reading, the reference the parity suite pins.
+
+**Deviation from 18.6.6, recorded.** `persona.parity.test.ts` still runs every classic function; where
+the classic refilled (add, remove, the sample input, the AI suggestion's payload, a request's
+record), the test now asserts the classic's refill and AIA's chosen-only result side by side.
+`personaApproved` is not one of the 88 research functions of the UI ledger.
+
+**Tests.** lane "says a new study chose no dimension…" (fails on the old code); PersonaStep's four
+screen tests now assert the empty selection, its save and the one-click recommendation; the parity
+cases above. **Doc follow-up:** OI-54 decided by the owner (2026-10-18): an empty approval stays empty.

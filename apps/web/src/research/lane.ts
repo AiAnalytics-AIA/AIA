@@ -13,7 +13,7 @@ import { audienceReady } from "./audience";
 import type { ResearchProject } from "./model";
 import { trackedSets } from "./plan";
 import { proposalAnalysis } from "./plan-edit";
-import { withApproval } from "./persona";
+import { chosenDimensions } from "./persona";
 import { questionnaireHasQuestions, sections } from "./questionnaire";
 import type { ResearchState } from "./store";
 import type { StepKey } from "./steps";
@@ -74,9 +74,9 @@ export function audienceStage(p: ResearchProject): LaneStage {
 }
 
 export function personaStage(p: ResearchProject): LaneStage {
-  const { approved } = withApproval(p);
+  const approved = chosenDimensions(p);
   const n = Number(p.n) || 0;
-  const d = `${approved.length} ${plural(approved.length, "dimenze", "dimenze", "dimenzí")}`;
+  const d = approved.length ? `${approved.length} ${plural(approved.length, "dimenze", "dimenze", "dimenzí")}` : "Bez dimenzí";
   return n ? { tone: "done", line: `${d} · N=${n}` } : { tone: "idle", line: d };
 }
 

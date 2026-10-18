@@ -88,7 +88,7 @@ import type { Tone } from "@/lib/tone";
 import { CodedWords } from "./CodedWords";
 import { CONFLICT_MESSAGE } from "@/research/store";
 import { projectVariants, selectedVariant } from "@/research/plan";
-import { dimensionLabels, withApproval } from "@/research/persona";
+import { chosenDimensions, dimensionLabels } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
 import { ActionDock, Switch } from "../step";
 import { AiButton, Button, Chip, Field, TextArea, TextInput } from "../ui";
@@ -385,7 +385,7 @@ function Receipt({ revision, readiness }: { revision: number; readiness: Readine
     ["plan", clip(variant?.title || state.analysis?.problem_summary) || "—"],
     ["questionnaire", tv("research.exec.counts", { questions: readiness.questions, batteries: readiness.batteries, objects: readiness.objects, n: readiness.n ?? "—" })],
     ["audience", clip(p.audience?.description || p.audience?.dataset_name) || "—"],
-    ["persona", tv("research.exec.receiptDims", { d: withApproval(p).approved.length, n: readiness.n ?? "—" })],
+    ["persona", tv("research.exec.receiptDims", { d: chosenDimensions(p).length, n: readiness.n ?? "—" })],
   ];
   return (
     <Card title={tv("research.exec.revision", { revision })}>
