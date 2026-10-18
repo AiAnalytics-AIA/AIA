@@ -281,6 +281,15 @@ describe("the place a link names in Dotazník (review, 2026-10-18)", () => {
     expect(place("qedit_sec_brands_10")).toBe("qedit_\u0085");
     expect(place("qedit_q")).toBe("qedit_\ufeff");
     expect(place("qset_sekce_9")).toBe("qset_\u001f");
+    // Python's truthiness, not JavaScript's: an empty list or object is nothing to the server.
+    // A question typed [] or {} is its "vyber", so the ids after it move on; a link to the
+    // server's t1 opens the question it compiled as t1, never the next one.
+    expect(place("qedit_t1")).toBe("qedit_T1");
+    expect(place("qedit_t1_2")).toBe("qedit_t1");
+    expect(place("qedit_t2")).toBe("qedit_T2");
+    // A section typed [] or {} is questions to the server and a set to Dotazník: drawn nowhere.
+    expect(place("qedit_e1")).toBe("q-editor");
+    expect(place("qedit_e2")).toBe("q-editor");
     expect(place("qset_sada_bank")).toBe("qset_Sada bank");
     expect(place("qset_druha_sada")).toBe("qset_3");
     expect(place("qset_sekce_5")).toBe("qset_4");

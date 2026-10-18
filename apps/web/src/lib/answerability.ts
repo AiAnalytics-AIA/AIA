@@ -226,6 +226,16 @@ export function pythonCollapse(text: string): string {
 }
 
 /**
+ * Python's ``a or b`` over a design's JSON values: ``b`` when ``a`` is falsy to Python. Python's
+ * falsy is JavaScript's but for an empty list or object, which ``||`` keeps (review): a question
+ * typed ``[]`` is the server's ``"vyber"``, never skipped. JSON holds no NaN, which would part too.
+ */
+function pythonOr(a: unknown, b: unknown): unknown {
+  const empty = Array.isArray(a) ? a.length === 0 : isObject(a) ? Object.keys(a).length === 0 : !a;
+  return empty ? b : a;
+}
+
+/**
  * research_design.py ``_text``: whitespace collapsed and trimmed (Python's, ``pythonCollapse``),
  * nothing as "". Null for a value Python may write otherwise than JavaScript (anything but text
  * or a whole number): never guessed.
@@ -268,8 +278,9 @@ export type CompiledPlace = { anchor: string; element: string | null };
  * (``qedit_<id>``, ``qset_<id>``: a gap's measure is the outlook's id), beside the element
  * Dotazník draws for it. The server lower-cases and folds what the web wrote: the web's question
  * ``Q_lx3abc`` is the server's ``q_lx3abc``. A section the server reads as questions without
- * saying so is drawn as a set, so its questions have no element. An id the server may write
- * otherwise than this (neither text nor a whole number) ends the list: every later id is unknown.
+ * saying so is drawn as a set, so its questions have no element. Python's ``or`` is ported with
+ * Python's truthiness (``pythonOr``). An id the server may write otherwise than this (neither text
+ * nor a whole number) ends the list: every later id is unknown.
  */
 export function compiledPlaces(xs: readonly Section[]): CompiledPlace[] {
   const out: CompiledPlace[] = [];
@@ -277,9 +288,9 @@ export function compiledPlaces(xs: readonly Section[]): CompiledPlace[] {
   const questionIds = new Set<string>();
   for (const [si, sec] of xs.entries()) {
     if (!isObject(sec)) continue;
-    const kind = serverText(sec.type || "questions");
+    const kind = serverText(pythonOr(sec.type, "questions"));
     if (kind !== "questions" && kind !== "object_battery") continue;
-    const name = serverText(sec.id || sec.title);
+    const name = serverText(pythonOr(sec.id, sec.title));
     if (name === null) return out;
     const sid = unique(compiledSlug(name || `sekce_${si + 1}`, "sec"), sectionIds);
     if (kind === "object_battery") {
@@ -288,7 +299,7 @@ export function compiledPlaces(xs: readonly Section[]): CompiledPlace[] {
     }
     for (const [qi, q] of (Array.isArray(sec.questions) ? sec.questions : []).entries()) {
       // A question the server refuses takes no id (a design with one does not compile).
-      if (!isObject(q) || !QUESTION_TYPES.has(serverText(q.typ || "vyber") ?? "") || serverText(q.text) === "") continue;
+      if (!isObject(q) || !QUESTION_TYPES.has(serverText(pythonOr(q.typ, "vyber")) ?? "") || serverText(q.text) === "") continue;
       const id = serverText(q.id);
       if (id === null) return out;
       const qid = unique(compiledSlug(id || `${sid}_${qi + 1}`, "q"), questionIds);
