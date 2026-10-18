@@ -60,7 +60,7 @@ from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import ArtifactStore
 
 CLIENT_REPORT_ARTIFACT_TYPE = "research_client_docx"
-CLIENT_REPORT_CONTRACT = "aia-client-report-3"
+CLIENT_REPORT_CONTRACT = "aia-client-report-4"
 CLIENT_REPORT_STAGE = "REPORT"
 
 

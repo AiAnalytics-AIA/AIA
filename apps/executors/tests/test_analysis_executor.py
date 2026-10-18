@@ -409,7 +409,7 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
         < body.index("Výsledky jednotlivých otázek")
     )
     assert "smyšlení respondenti" in body
-    assert report.metadata["report_contract"] == "aia-internal-report-9"
+    assert report.metadata["report_contract"] == "aia-internal-report-10"
 
 
 @pytest.mark.parametrize(

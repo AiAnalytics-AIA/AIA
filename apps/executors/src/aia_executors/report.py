@@ -47,7 +47,7 @@ from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Suc
 from .research import upstream_artifact
 
 REPORT_ARTIFACT_TYPE = INTERNAL_REPORT_ARTIFACT_TYPE
-REPORT_CONTRACT_VERSION = "aia-internal-report-9"
+REPORT_CONTRACT_VERSION = "aia-internal-report-10"
 REPORT_PDF_ARTIFACT_TYPE = INTERNAL_REPORT_PDF_ARTIFACT_TYPE
 
 
