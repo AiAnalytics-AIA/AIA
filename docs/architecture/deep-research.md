@@ -77,7 +77,7 @@ writes a design or a deterministic artifact (`require_may_write`, a `layer_check
 |---|---|---|
 | plan | **code** picks the subjects and tracks; the planner model proposes sub-questions and queries for the web tracks it is shown; code refuses a plan that skips or invents a track | the plan: tracks, fingerprints, reuse, allowances |
 | investigate | **code** classifies and sends each query, fetches, snapshots; the investigator proposes findings with verbatim quotes; code grounds each | one artifact per track |
-| merge | **code**: declared source scores, dedupe, confirmation, the leakage rule | candidates, quarantine |
+| merge | **code**: declared source scores, the topic gate, dedupe, confirmation, the leakage rule | candidates, quarantine |
 | verify | the verifier model judges each candidate against its own excerpt | accepted / quarantined |
 | synthesize | the synthesizer writes a brief from accepted evidence only; **code** checks every citation and number | the brief, with exclusions |
 | publish | **code** | the sealed evidence bundle |
@@ -116,7 +116,8 @@ All closed (`extra="forbid"`) and frozen.
   `no_independent_confirmation`) and AIA's (`ungrounded_excerpt`,
   `citation_outside_track`, `number_not_in_quote`, `source_contains_instructions`,
   `unsupported_by_verifier`, `overstated_by_verifier`, `unverified`,
-  `questionnaire_leakage`).
+  `questionnaire_leakage`, `measure_not_in_source`, `measure_missing`, `superseded`,
+  `retracted_source`, `off_topic`, `topic_undetermined`).
 - **`StopReason`** — exactly one per track: `depth_target_met`, `saturated`,
   `queries_exhausted`, `budget_exhausted`, `all_queries_refused`,
   `no_knowledge_matched`, `single_pass`, `web_retrieval_unavailable`,
@@ -166,11 +167,20 @@ on every redirect hop (at most 3); kept types and their caps (`MAX_BODY_BYTES_BY
 `text/html`, `text/plain` and `application/xhtml+xml` at 2 MB, PDF at 20 MB, XLSX at 10 MB and
 CSV at 5 MB, the documents read in parts (`documents.py`).
 
-**Merge and verification** (`merge.py`, `aia-merge-1`). Declared score, then dedupe
-(same source, claim similarity ≥ the unit's 0.42), then independent confirmation
-from a different source as a confidence bonus (+0.1 each, at most two, capped at
-0.98) — never the gate. Only a verifier verdict of `supported` makes accepted
-evidence.
+**Merge and verification** (`merge.py`, `aia-merge-3`). A retracted work
+(`retracted_source`), then the declared score (`low_source_quality`), then the topic
+gate (`topicality.py`, `aia-dr-topicality-1`; D4, 2026-10-18): an object's finding
+names its object in the quote or source title by its distinguishing words together,
+never by one word of a longer name; a quote or title naming a sibling concept of a
+declared family and none of the topic's own is set aside, unless it names a kind of the
+topic's (a mortgage under a loan topic); a question's finding shares one word of its
+topic once the client's names, question words, an interpretation subject's framing and
+digits are out (`off_topic`; nothing to judge by, `topic_undetermined`).
+Then dedupe (same source, claim similarity ≥ the unit's 0.42), then independent
+confirmation from a different source as a confidence bonus (+0.1 each, at most two,
+capped at 0.98) — never the gate. Only a verifier verdict of `supported` makes
+accepted evidence. The merge step refuses a run planned under any other composition
+(`composition_changed`), as verify does.
 
 **The leakage rule** is the unit's, exactly (`legacy.py`, EXACT against captures of
 the vendored `research_context.py`; gate `research.design/deep-research-leakage-merge`).
@@ -436,13 +446,16 @@ cancel, retry, bundle, snapshot and provenance, a corrupt read answering 409 thr
 worker, gateway, Bedrock adapter, gate and executors over `fixtures/deep_research/web.json`
 and recorded agent answers (`agents.json`), for a fictional client with one FACT and one Class A
 DOCUMENT approved. Pass 1: 8 tracks; 13 model requests (planner 1, internal 3, web 4, verifier 4,
-synthesizer 1), 6 searches, 8 fetches, 7 findings accepted and 6 quarantined -- one per reason:
+synthesizer 1), 6 searches, 8 fetches, 7 findings accepted and 7 quarantined -- one per reason:
 a number not in its quote, an invented quote, a citation outside the track, a page carrying
-injected instructions, a forum source, an overstated claim; a client-named query (Class B) and
+injected instructions, a forum source, an overstated claim, and the approved oat fact as the
+almond track's knowledge retrieval brought it (`off_topic`: it names no almond drink, since
+2026-10-18); a client-named query (Class B) and
 one repeating the Class A plan refused before sending; a private address and (in pass 2) a
 metadata-service redirect refused mid-fetch; the survey's own answers accepted but barred from
 respondents. Pass 2 adds one object: 6 tracks reused, 5 model requests, 3 searches, 2 fetches,
-4 of 5 verification batches reused. Also: the production shape (fictional or not) sends nothing;
+4 of 5 verification batches reused, 8 accepted and 8 quarantined (the soy track's copy of the
+oat fact is off topic too). Also: the production shape (fictional or not) sends nothing;
 a real client's design writes no query; unconfigured parks; a foreign or altered request fails
 before anything is sent; cancellation between steps, and before a tool call leaves, stops it; a lost
 model answer waits for recovery and is not bought again; a changed composition is refused.

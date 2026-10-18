@@ -386,8 +386,12 @@ def test_pass_one_runs_every_phase_to_a_sealed_grounded_bundle(
         "U 22 % je důvodem ohled na životní prostředí.",
         "Průměrná cena ovesného nápoje byla v roce 2025 42 Kč za litr.",
     }
-    # The same approved fact, found by three tracks, is one finding that remembers the others.
-    assert len(accepted[FACT].merged_ids) == 2
+    # The same approved fact, found by three tracks, is one finding that remembers the other
+    # on-topic copy; the almond track's copy names no almond drink and is set aside (D4).
+    assert len(accepted[FACT].merged_ids) == 1
+    (off,) = [q for q in bundle.quarantined if q.reason is QuarantineReason.OFF_TOPIC]
+    assert off.claim == FACT and off.track_id == tid(OS, ALMOND, IN)
+    assert off.detail == "objekt: „Mandlový nápoj“; citace ani název zdroje ho nejmenuje"
     # Survey answers stay as alignment evidence and never reach respondents.
     excluded = {
         c: a.respondent_exclusion
@@ -406,6 +410,7 @@ def test_pass_one_runs_every_phase_to_a_sealed_grounded_bundle(
             QuarantineReason.CITATION_OUTSIDE_TRACK: 1,
             QuarantineReason.SOURCE_CONTAINS_INSTRUCTIONS: 1,
             QuarantineReason.LOW_SOURCE_QUALITY: 1,
+            QuarantineReason.OFF_TOPIC: 1,
             QuarantineReason.OVERSTATED_BY_VERIFIER: 1,
         }
     )
@@ -560,7 +565,12 @@ def test_a_second_pass_reuses_unchanged_tracks_and_measures_what_it_bought(
     assert second.counts["search_calls"] == 3 and second.counts["fetches"] == 2
     assert second.counts["verification_batches"] == 5
     assert second.counts["verification_batches_reused"] == 4
-    assert second.counts["accepted"] == 8 and second.counts["quarantined"] == 6
+    # Quarantined: pass one's six, and the approved oat fact as the almond and soy tracks'
+    # knowledge retrieval brought it -- neither names its object (D4).
+    assert second.counts["accepted"] == 8 and second.counts["quarantined"] == 8
+    assert sorted(
+        q.track_id for q in second.quarantined if q.reason.value == "off_topic"
+    ) == sorted([tid(OS, ALMOND, IN), tid(OS, SOY, IN)])
     # Both pages were requested; the redirect's second hop, to the metadata service, never was.
     assert pass_one.web_calls() == (searched + 3, fetched + 2)
 
@@ -1337,6 +1347,33 @@ def test_a_changed_composition_is_refused_mid_run(
         run = DeepResearchRuns(session, research.lead_scope(session)).get(run_id)
     assert run["steps"][1]["attempts"][0]["error"]["reason"] == "composition_changed"
     assert agents.roles() == Counter(planner=1)
+
+
+def test_a_run_planned_under_the_earlier_merge_rules_is_refused_at_merge(
+    research: ResearchWorld,
+    database_url: str,
+    store: InMemoryArtifactStore,
+    build: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A run planned before the topic rules (D4) is neither merged under them nor carried to
+    the verifier unscreened: the merge checks the whole composition, as verify does."""
+    approve_knowledge(research)
+    agents = RecordedAgents(ANSWERS)
+    run_id = start(research)
+    monkeypatch.setattr(
+        deep_research_runtime_module, "MERGE_RULES_VERSION", "aia-merge-2/aia-works-1"
+    )
+    earlier = worker(research, database_url, store, build, recorded(research, agents))
+    assert earlier.run_once() and earlier.run_once()  # plan, investigate
+    monkeypatch.undo()
+    drain(worker(research, database_url, store, build, recorded(research, agents)))
+    with research.sessions() as session:
+        run = DeepResearchRuns(session, research.lead_scope(session)).get(run_id)
+    steps = {s["node_key"]: s for s in run["steps"]}
+    assert steps["investigate"]["status"] is StepRunStatus.SUCCEEDED
+    assert steps["merge"]["attempts"][0]["error"]["reason"] == "composition_changed"
+    assert agents.roles()["verifier"] == 0
 
 
 # --------------------------------------------------------------------------- #

@@ -5,13 +5,19 @@ What decides acceptance, in order, each deterministic except the verifier's verd
 1. **Grounding** -- already decided per track (:mod:`.grounding`); only grounded
    findings arrive here.
 2. **Source quality** from the declared tables (:mod:`.sources`), never the agent's
-   own score: below :data:`~.sources.ACCEPT_THRESHOLD` is ``low_source_quality``.
-3. **Dedupe** -- the same source saying the same thing twice (claim similarity at
+   own score: below :data:`~.sources.ACCEPT_THRESHOLD` is ``low_source_quality``
+   (a work an index lists as retracted is ``retracted_source`` before it).
+3. **Topic** (:mod:`.topicality`, D4): the finding supports the topic it was searched
+   for -- its object named, no sibling concept named instead, a word of its topic
+   shared -- or it is ``off_topic``; a topic with nothing to judge by is
+   ``topic_undetermined``. Before dedupe, so an off-topic copy never stands in for an
+   on-topic twin, and before the verifier, so it costs no verifier call.
+4. **Dedupe** -- the same source saying the same thing twice (claim similarity at
    the legacy 0.42) is one candidate that remembers the others.
-4. **Independent confirmation** is a bonus to confidence, never the gate: a similar
+5. **Independent confirmation** is a bonus to confidence, never the gate: a similar
    claim from a *different* source raises it (ADR 0017: two agents can agree on the
    same invention, so agreement alone proves nothing).
-5. **The verifier** judges each candidate against its own excerpt; anything but
+6. **The verifier** judges each candidate against its own excerpt; anything but
    ``supported`` is quarantined, and a candidate the verifier did not answer for is
    ``unverified``.
 
@@ -46,6 +52,7 @@ from .contracts import (
 )
 from .legacy import canonical_url, deterministic_target_overlap, similarity
 from .sources import SourceScore, SourceTable, score_knowledge_source, score_web_source
+from .topicality import TOPICALITY_VERSION, TopicScreen, TopicVerdict
 from .works import WORKS_VERSION, WorkStatusRecord
 
 __all__ = [
@@ -66,8 +73,9 @@ __all__ = [
     "verification_batches",
 ]
 
-#: Carries the works rule's version: what a retraction quarantines (chunk 46).
-MERGE_RULES_VERSION: Final = f"aia-merge-2/{WORKS_VERSION}"
+#: Carries the rules the merge applies: what a retraction quarantines (chunk 46) and what
+#: is off topic (D4).
+MERGE_RULES_VERSION: Final = f"aia-merge-3/{WORKS_VERSION}/{TOPICALITY_VERSION}"
 #: The unit's claim-similarity threshold for "the same finding" (research_context.py:360).
 SIMILAR: Final = 0.42
 #: Confidence added per independent confirmation, for at most two.
@@ -201,8 +209,15 @@ def merge_evidence(
     *,
     questionnaire: Sequence[ScreenQuestion],
     table: SourceTable,
+    topics: TopicScreen | None,
 ) -> MergeResult:
-    """Score, screen and deduplicate every track's grounded findings, in track order."""
+    """Score, screen and deduplicate every track's grounded findings, in track order.
+
+    ``topics`` is the run's topic screen (:func:`.topicality.topic_screen`), and a run's
+    merge always has one: the merge step builds it from the plan. ``None`` -- said at the
+    call, never defaulted -- leaves the topic out, for a test of another rule; no
+    production caller passes it (``layer_check``).
+    """
     quarantined: list[QuarantinedEvidence] = []
     scored: list[tuple[EvidenceItem, SourceScore]] = []
     for track in tracks:
@@ -244,8 +259,26 @@ def merge_evidence(
                         evidence=item,
                     )
                 )
-            else:
-                scored.append((item, score))
+                continue
+            judgement = topics.judge(item) if topics is not None else None
+            if judgement is not None and judgement.verdict is not TopicVerdict.ON_TOPIC:
+                quarantined.append(
+                    QuarantinedEvidence(
+                        evidence_id=item.evidence_id,
+                        track_id=item.track_id,
+                        reason=(
+                            QuarantineReason.OFF_TOPIC
+                            if judgement.verdict is TopicVerdict.OFF_TOPIC
+                            else QuarantineReason.TOPIC_UNDETERMINED
+                        ),
+                        detail=judgement.detail[:2000],
+                        claim=item.claim,
+                        source_ref=item.source_ref,
+                        evidence=item,
+                    )
+                )
+                continue
+            scored.append((item, score))
 
     kept: list[tuple[EvidenceItem, SourceScore, list[str]]] = []
     for item, score in scored:

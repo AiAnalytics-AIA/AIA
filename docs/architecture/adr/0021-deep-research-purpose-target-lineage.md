@@ -146,6 +146,14 @@ Deep Research is a governed evidence service used at two checkpoints, not an eig
    deterministic confidence; and Evidence Bundle production. Lifecycle work integrates around it.
    Changing an internal needs a specific defect or evaluation finding.
 
+   *Noted 2026-10-18:* the merge's topic gate ([ADR 0017](0017-deep-research-external-retrieval.md)
+   decision 4, amended) is such a change. It rests on evaluation finding F1 -- a grounded quote
+   from a credible host accepted whatever its topic -- and on the owner's D4 of 2026-10-17
+   ("Check whether sources actually support the research topic … Start with a small, tested set of
+   rules"), recorded in [research-integrity-report](../../../.planning/plans/research-integrity-report.md).
+   It changes acceptance in the merge alone (`aia-merge-3`); the harness, grounding and the
+   verification keys do not move, so reused tracks are judged again by the run-scoped merge.
+
 **The methodological invariant.** Deep Research helps decide what to measure. Respondents
 determine what we observed. Deterministic analysis and Sociomapping determine the computed
 structure. Deep Research may then help us understand what that structure may mean. The report may

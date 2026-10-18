@@ -523,6 +523,15 @@ forbid "only the person's accept applies a Design Research proposal to a design"
 forbid "no executor, worker or route applies a Design Research proposal itself" \
   'apply_to_design' \
   apps
+# Every run's merge judges whether a finding supports its topic (D4, research-integrity-report
+# chunk 10). ``merge_evidence`` takes ``topics`` with no default, so no caller forgets it; its
+# ``None`` leaves the topic out for a test of another merge rule, and no source passes it.
+forbid "a merge always screens topic: no core source passes topics=None" \
+  'topics *= *None' \
+  "$CORE"
+forbid "a merge always screens topic: no executor passes topics=None" \
+  'topics *= *None' \
+  "$EXECUTORS"
 # The focused crawler (plan chunk 17) reaches the web only through the retrieval
 # gate it is given: classified, egress-checked, reserved, journaled, robots.txt and
 # pacing kept by the gate's transport. An import of infrastructure or of an HTTP

@@ -655,6 +655,12 @@ class QuarantineReason(StrEnum):
     SUPERSEDED = "superseded"
     #: The source is a work an index lists as retracted or withdrawn (chunk 46, ``works``).
     RETRACTED_SOURCE = "retracted_source"
+    #: The quote and source do not support the topic the finding was searched for: an object
+    #: not named, a sibling concept named instead, or no word of the topic (``topicality``, D4).
+    OFF_TOPIC = "off_topic"
+    #: The topic leaves nothing to judge the finding by, so its support is unknown, and
+    #: unknown is never accepted (``topicality``, D4).
+    TOPIC_UNDETERMINED = "topic_undetermined"
 
 
 class QuarantinedEvidence(_Closed):

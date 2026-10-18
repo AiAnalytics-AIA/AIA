@@ -166,7 +166,7 @@ def candidates(*items: EvidenceItem, published: date = date(2025, 6, 1)) -> list
             for i in items
         },
     )
-    merged = merge_evidence([track], questionnaire=(), table=TABLE)
+    merged = merge_evidence([track], questionnaire=(), table=TABLE, topics=None)
     assert not merged.quarantined
     return list(merged.candidates)
 

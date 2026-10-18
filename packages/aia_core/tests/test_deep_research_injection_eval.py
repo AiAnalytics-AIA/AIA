@@ -44,6 +44,7 @@ from aia_core.domain.deep_research.grounding import (
 )
 from aia_core.domain.deep_research.merge import SourceFacts, TrackEvidence, merge_evidence
 from aia_core.domain.deep_research.sources import SOURCE_TABLE_V1
+from aia_core.domain.deep_research.topicality import topic_screen
 from aia_core.domain.residency import DataClass
 
 SETS = Path(__file__).parent / "fixtures" / "deep_research_injection"
@@ -162,6 +163,9 @@ def test_a_hostile_page_the_detector_misses_still_yields_no_accepted_evidence() 
             for i in items
         },
     )
-    result = merge_evidence([track], questionnaire=(), table=SOURCE_TABLE_V1)
+    # Under a run's topic screen, as production merges: a source's score is judged before its
+    # topic, so an unknown host is refused for what it is, whatever it says.
+    screen = topic_screen((), client_terms=())
+    result = merge_evidence([track], questionnaire=(), table=SOURCE_TABLE_V1, topics=screen)
     assert result.candidates == ()
     assert {q.reason for q in result.quarantined} == {QuarantineReason.LOW_SOURCE_QUALITY}

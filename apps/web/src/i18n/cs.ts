@@ -2539,6 +2539,8 @@ export const cs = {
           measure_missing: "chybí měřená veličina",
           superseded: "nahrazeno novějším",
           retracted_source: "zdroj byl stažen",
+          off_topic: "netýká se tématu, pro které bylo hledáno",
+          topic_undetermined: "souvislost s tématem hledání nelze posoudit",
         },
         reason: {
           unmeasured: "Žádná otázka dotazníku na ni neodpovídá: analýza ji bude muset nechat bez odpovědi.",

@@ -23,6 +23,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -34,9 +35,15 @@ from aia_core.domain.deep_research.contracts import (
     Channel,
     ClientTerm,
     DeepResearchRequest,
+    EvidenceItem,
+    EvidenceType,
     FrozenKnowledge,
+    QuarantineReason,
+    RecommendedUse,
     ResearchSubject,
+    SourceKind,
     SubjectKind,
+    evidence_id,
     subject_key,
 )
 from aia_core.domain.deep_research.filters import FILTERS_VERSION
@@ -55,6 +62,7 @@ from aia_core.domain.deep_research.interpretation import (
     RESULT_FRAMING,
     interpretation_mission,
 )
+from aia_core.domain.deep_research.merge import SourceFacts, TrackEvidence, merge_evidence
 from aia_core.domain.deep_research.planning import (
     brief_digest,
     extract_subjects,
@@ -62,6 +70,7 @@ from aia_core.domain.deep_research.planning import (
     screen_questions,
     track_slots,
 )
+from aia_core.domain.deep_research.sources import SOURCE_TABLE_V1
 from aia_core.domain.deep_research.topicality import (
     CONCEPT_FAMILIES,
     CONCEPTS_VERSION,
@@ -76,6 +85,7 @@ from aia_core.domain.deep_research.topicality import (
     topic_screen,
 )
 from aia_core.domain.research_design import compile_design
+from aia_core.domain.residency import DataClass
 
 CORPUS = Path(__file__).parent / "fixtures" / "deep_research_filters" / "corpus.json"
 
@@ -153,6 +163,85 @@ def test_a_mortgage_thesis_does_not_support_a_current_account_topic() -> None:
         assert on.verdict is TopicVerdict.ON_TOPIC and on.rule is None
         both = _judge(screen, subject, "Klienti mají běžný účet i hypotéku u jedné banky.")
         assert both.verdict is TopicVerdict.ON_TOPIC
+
+
+def _finding(subject: ResearchSubject, url: str, title: str, quote: str, claim: str) -> Any:
+    ref = "SNP-" + hashlib.sha256(url.encode()).hexdigest()[:24]
+    return EvidenceItem(
+        evidence_id=evidence_id("f" * 64, ref, quote, claim),
+        track_id=f"DRT-W-{subject.key}",
+        subject_key=subject.key,
+        channel=Channel.WEB,
+        source_kind=SourceKind.WEB_PAGE,
+        source_ref=ref,
+        source_url=url,
+        source_title=title,
+        claim=claim,
+        quote=quote,
+        quote_span=(0, len(quote)),
+        evidence_type=EvidenceType.OTHER,
+        source_date=None,
+        geography="",
+        population="",
+        topics=(),
+        data_class=DataClass.CLASS_C_INTERNAL,
+        agent_outcome_overlap=False,
+        agent_recommended_use=RecommendedUse.CONTEXT_ONLY,
+        agent_source_quality=1.0,
+    )
+
+
+def test_the_merge_sets_the_mortgage_thesis_aside_and_keeps_the_account_findings() -> None:
+    """F1 reproduced at the engine, fictional: grounded quotes on a credible academic host,
+    each kept in the log with its reason, never a candidate the verifier is paid for."""
+    topic = _q(RESEARCH_QUESTION_FRAMING.format(question=TRUST))
+    thesis = "https://is.vse.cz/zp/fiktivni-prace-o-volbe-hypotecni-banky.pdf"
+    off = [
+        _finding(topic, thesis, THESIS, quote, quote)
+        for quote in (
+            "Důvěra v banku je pro klienty při výběru poskytovatele druhým faktorem.",
+            "Klienti, kteří bance důvěřují, se k ní při dalším rozhodování vracejí.",
+            "Klienti, kteří u banky již mají účet, si u ní častěji sjednají další produkt.",
+        )
+    ]
+    on = _finding(
+        topic,
+        "https://www.czso.cz/fiktivni-digitalni-bankovnictvi",
+        "Digitální bankovnictví v Česku (fiktivní)",
+        "Podíl klientů, kteří si běžný účet založili online, loni vzrostl.",
+        "Běžný účet si online založilo více klientů.",
+    )
+    items = (*off, on)
+    track = TrackEvidence(
+        track_id=f"DRT-W-{topic.key}",
+        evidence=items,
+        sources={
+            i.source_ref: SourceFacts(
+                ref=i.source_ref,
+                kind=SourceKind.WEB_PAGE,
+                url=i.source_url,
+                published=date(2025, 6, 1),
+                retrieved=date(2026, 10, 1),
+            )
+            for i in items
+        },
+    )
+    merged = merge_evidence(
+        [track],
+        questionnaire=(),
+        table=SOURCE_TABLE_V1,
+        topics=topic_screen((topic,), client_terms=CLIENT),
+    )
+    assert [c.evidence.evidence_id for c in merged.candidates] == [on.evidence_id]
+    assert [(q.evidence_id, q.reason, q.detail) for q in merged.quarantined] == [
+        (i.evidence_id, QuarantineReason.OFF_TOPIC, "téma: „běžný účet“; zdroj jmenuje: „hypotéka“")
+        for i in off
+    ]
+    assert [q.evidence for q in merged.quarantined] == off
+    # Without the topic, the host's score alone would have let all three through.
+    unscreened = merge_evidence([track], questionnaire=(), table=SOURCE_TABLE_V1, topics=None)
+    assert len(unscreened.candidates) == 4
+    assert {c.score.source_class for c in unscreened.candidates} >= {"ACADEMIC_INSTITUTION"}
 
 
 def test_a_topic_naming_no_concept_is_not_judged_by_its_family() -> None:

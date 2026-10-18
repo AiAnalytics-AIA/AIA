@@ -1,4 +1,5 @@
-"""Merge and verification: declared scores decide, leakage excludes from respondents only."""
+"""Merge and verification: declared scores decide, a finding off its topic is set aside,
+leakage excludes from respondents only."""
 
 from __future__ import annotations
 
@@ -14,11 +15,15 @@ from aia_core.domain.deep_research.contracts import (
     EvidenceType,
     QuarantineReason,
     RecommendedUse,
+    ResearchSubject,
     ScreenQuestion,
     SourceKind,
+    SubjectKind,
     evidence_id,
+    subject_key,
 )
 from aia_core.domain.deep_research.merge import (
+    MERGE_RULES_VERSION,
     RespondentUse,
     SourceFacts,
     TrackEvidence,
@@ -28,6 +33,8 @@ from aia_core.domain.deep_research.merge import (
     verification_batches,
 )
 from aia_core.domain.deep_research.sources import SOURCE_TABLE_V1
+from aia_core.domain.deep_research.topicality import TOPICALITY_VERSION, topic_screen
+from aia_core.domain.deep_research.works import WORKS_VERSION
 from aia_core.domain.residency import DataClass
 
 RETRIEVED = date(2026, 9, 27)
@@ -87,7 +94,9 @@ QUESTIONNAIRE = (
 
 def test_an_unknown_host_is_quarantined_whatever_the_agent_thought_of_it() -> None:
     blog = _item("T1", "https://someones-blog.example/post", "Trh roste.", agent_source_quality=1.0)
-    result = merge_evidence([_track("T1", blog)], questionnaire=(), table=SOURCE_TABLE_V1)
+    result = merge_evidence(
+        [_track("T1", blog)], questionnaire=(), table=SOURCE_TABLE_V1, topics=None
+    )
     assert result.candidates == ()
     (q,) = result.quarantined
     assert q.reason is QuarantineReason.LOW_SOURCE_QUALITY and "UNKNOWN" in q.detail
@@ -97,7 +106,10 @@ def test_approved_knowledge_and_official_sources_become_candidates() -> None:
     official = _item("T1", "https://www.czso.cz/a", "Spotřeba mléka klesá o dvě procenta.")
     internal = _item("T2", None, "Klient prodává v Brně.", ref="KNW-00000000000001@1")
     result = merge_evidence(
-        [_track("T1", official), _track("T2", internal)], questionnaire=(), table=SOURCE_TABLE_V1
+        [_track("T1", official), _track("T2", internal)],
+        questionnaire=(),
+        table=SOURCE_TABLE_V1,
+        topics=None,
     )
     assert {c.score.source_class for c in result.candidates} == {
         "OFFICIAL_STATISTICS",
@@ -121,6 +133,7 @@ def test_the_leakage_rule_excludes_from_respondents_without_discarding_the_findi
         [_track("T1", labelled, screened, clean)],
         questionnaire=QUESTIONNAIRE,
         table=SOURCE_TABLE_V1,
+        topics=None,
     )
     uses = {c.evidence.claim: (c.respondent_use, c.respondent_exclusion) for c in result.candidates}
     assert uses[labelled.claim] == (RespondentUse.EXCLUDED, QuarantineReason.TARGET_OUTCOME_OVERLAP)
@@ -141,7 +154,7 @@ def test_the_same_source_saying_the_same_thing_is_one_candidate() -> None:
         ref="SNP-" + "1" * 24,
     )
     result = merge_evidence(
-        [_track("T1", a), _track("T2", b)], questionnaire=(), table=SOURCE_TABLE_V1
+        [_track("T1", a), _track("T2", b)], questionnaire=(), table=SOURCE_TABLE_V1, topics=None
     )
     (only,) = result.candidates
     assert only.evidence.evidence_id == a.evidence_id and only.merged_ids == (b.evidence_id,)
@@ -151,14 +164,83 @@ def test_confirmation_from_another_source_raises_confidence_and_is_capped() -> N
     claim = "Spotřeba ovesných nápojů roste ve městech rychle."
     media = _item("T1", "https://www.idnes.cz/a", claim)
     stats = _item("T2", "https://www.czso.cz/a", claim + " Podle úřadu.", ref="SNP-" + "2" * 24)
-    alone = merge_evidence([_track("T1", media)], questionnaire=(), table=SOURCE_TABLE_V1)
+    alone = merge_evidence(
+        [_track("T1", media)], questionnaire=(), table=SOURCE_TABLE_V1, topics=None
+    )
     together = merge_evidence(
-        [_track("T1", media), _track("T2", stats)], questionnaire=(), table=SOURCE_TABLE_V1
+        [_track("T1", media), _track("T2", stats)],
+        questionnaire=(),
+        table=SOURCE_TABLE_V1,
+        topics=None,
     )
     confirmed = next(c for c in together.candidates if c.evidence.evidence_id == media.evidence_id)
     assert confirmed.confirmations == (stats.evidence_id,)
     assert confirmed.confidence > alone.candidates[0].confidence
     assert all(c.confidence <= 0.98 for c in together.candidates)
+
+
+OATS = ResearchSubject(
+    key=subject_key(SubjectKind.OBJECT, "Ovesný nápoj"),
+    kind=SubjectKind.OBJECT,
+    text="Ovesný nápoj",
+    origin="t",
+)
+ALMOND = ResearchSubject(
+    key=subject_key(SubjectKind.OBJECT, "Mandlový nápoj"),
+    kind=SubjectKind.OBJECT,
+    text="Mandlový nápoj",
+    origin="t",
+)
+FACT = "Ovesný nápoj tvořil v roce 2025 polovinu prodejů rostlinných nápojů v síti klienta."
+
+
+def test_an_off_topic_copy_is_set_aside_before_dedupe_and_never_stands_in_for_its_twin() -> None:
+    # One knowledge fact, found first by the almond track and then by the oat track.
+    ref = "KNW-00000000000001@1"
+    title = {"source_title": "Prodeje v síti klienta"}
+    by_almond = _item("T-almond", None, FACT[:-1] + " letos.", ref=ref, subject_key=ALMOND.key)
+    by_almond = by_almond.model_copy(update=title)
+    by_oats = _item("T-oats", None, FACT, ref=ref, subject_key=OATS.key).model_copy(update=title)
+    tracks = [_track("T-almond", by_almond), _track("T-oats", by_oats)]
+    unscreened = merge_evidence(tracks, questionnaire=(), table=SOURCE_TABLE_V1, topics=None)
+    # Without the screen the almond copy, first in track order, held the oat finding.
+    (held,) = unscreened.candidates
+    assert (held.evidence.evidence_id, held.merged_ids) == (
+        by_almond.evidence_id,
+        (by_oats.evidence_id,),
+    )
+    screen = topic_screen((OATS, ALMOND), client_terms=())
+    merged = merge_evidence(tracks, questionnaire=(), table=SOURCE_TABLE_V1, topics=screen)
+    (only,) = merged.candidates
+    assert (only.evidence.evidence_id, only.merged_ids) == (by_oats.evidence_id, ())
+    (q,) = merged.quarantined
+    assert (q.evidence_id, q.reason) == (by_almond.evidence_id, QuarantineReason.OFF_TOPIC)
+    assert q.evidence == by_almond
+    assert q.detail == "objekt: „Mandlový nápoj“; citace ani název zdroje ho nejmenuje"
+
+
+def test_a_source_is_scored_before_its_topic_and_unknown_topics_are_never_accepted() -> None:
+    blog = _item("T1", "https://someones-blog.example/post", FACT, subject_key=ALMOND.key)
+    official = _item("T2", "https://www.czso.cz/a", FACT, subject_key="o-ffffffffffff")
+    screen = topic_screen((OATS, ALMOND), client_terms=())
+    merged = merge_evidence(
+        [_track("T1", blog), _track("T2", official)],
+        questionnaire=(),
+        table=SOURCE_TABLE_V1,
+        topics=screen,
+    )
+    assert merged.candidates == ()
+    assert {q.evidence_id: q.reason for q in merged.quarantined} == {
+        blog.evidence_id: QuarantineReason.LOW_SOURCE_QUALITY,
+        # A topic the run's screen does not hold: unknown, set aside, kept.
+        official.evidence_id: QuarantineReason.TOPIC_UNDETERMINED,
+    }
+    assert all(q.evidence is not None for q in merged.quarantined)
+
+
+def test_the_merge_rules_carry_the_topic_rules() -> None:
+    assert MERGE_RULES_VERSION.startswith("aia-merge-3/")
+    assert WORKS_VERSION in MERGE_RULES_VERSION and TOPICALITY_VERSION in MERGE_RULES_VERSION
 
 
 def test_batches_follow_the_track_that_found_them() -> None:
@@ -167,7 +249,10 @@ def test_batches_follow_the_track_that_found_them() -> None:
     ]
     items.append(_item("T2", "https://www.czso.cz/t2", "Jiné tvrzení o regulaci trhu."))
     merged = merge_evidence(
-        [_track("T1", *items[:5]), _track("T2", items[5])], questionnaire=(), table=SOURCE_TABLE_V1
+        [_track("T1", *items[:5]), _track("T2", items[5])],
+        questionnaire=(),
+        table=SOURCE_TABLE_V1,
+        topics=None,
     )
     batches = verification_batches(merged.candidates, size=2)
     assert [[c.evidence.track_id for c in b] for b in batches] == [
@@ -184,7 +269,9 @@ def test_only_supported_candidates_are_accepted() -> None:
     items = [
         _item("T1", "https://www.czso.cz/v" + str(i), f"Tvrzení {i} o spotřebě.") for i in range(4)
     ]
-    merged = merge_evidence([_track("T1", *items)], questionnaire=(), table=SOURCE_TABLE_V1)
+    merged = merge_evidence(
+        [_track("T1", *items)], questionnaire=(), table=SOURCE_TABLE_V1, topics=None
+    )
     verdicts = {
         items[0].evidence_id: (Verdict.SUPPORTED, "citace to říká"),
         items[1].evidence_id: (Verdict.OVERSTATED, "citace říká méně"),
