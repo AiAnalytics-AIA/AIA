@@ -2,7 +2,7 @@
 
 **Status:** Proposed — develop (data owner's DR-1, DR-3, DR-4, 2026-09-25; DR-2 route choice and
 DR-5 open). Amended 2026-09-27 by the recorded/offline implementation (§ Amendments); decision 4
-amended 2026-10-18 by the topic gate (D4).
+amended 2026-10-18 by the topic gate and the student-thesis rule (D4).
 Builds on [ADR 0005](0005-llm-gateway.md) (one model call path), [ADR 0006](0006-langgraph-agent-execution.md)
 (a graph never outlives its attempt), [ADR 0007](0007-deterministic-tools.md) (models choose, code
 computes), [ADR 0008](0008-eu-data-residency.md) (the egress boundary), [ADR 0010](0010-bedrock-eu-inference-route.md)
@@ -64,6 +64,21 @@ Three facts decide the shape:
    `topic_undetermined`, the evidence kept in the bundle either way.
    Shared words are not shared meaning: population, place, period and what a sentence says
    remain the reader's to check.
+
+   *Amended 2026-10-18 (D4, the same plan, chunk 11):* a credible host is not a credible document
+   -- a university's host scored a bachelor thesis in its information system as an academic
+   institution and the review accepted it. Before the source score (after a retraction), the
+   merge therefore types each web finding's source by declared rules
+   (`domain/deep_research/document_types.py`, `aia-document-types-1`, carried in `aia-merge-3`): a
+   whole host that is a thesis register, an archive prefix on a declared university host, a path
+   segment or a title segment that names the genre, on any host but an encyclopedia's
+   (`wikipedia.org`, whose article on a genre bears its name). A source so typed is a **student
+   thesis** (doctoral dissertations included in this version), and its finding is quarantined
+   `student_thesis`, the evidence kept. Client Knowledge is never typed. The source table, its
+   approval (ADR 0022) and every pin are unchanged: a thesis on an approved host is refused as a
+   retracted work on one is. A thesis no rule declares, whose title does not name its genre, is
+   still accepted; repository hosts (`dspace.*`, `.edu`) are not declared, and a DOI is no
+   document type.
 
 5. **The legacy anti-leakage quarantine is kept exactly** and re-run at fieldwork compile against
    the final questionnaire. Quarantined evidence never becomes respondent context; accepted

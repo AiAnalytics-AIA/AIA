@@ -4,20 +4,22 @@ What decides acceptance, in order, each deterministic except the verifier's verd
 
 1. **Grounding** -- already decided per track (:mod:`.grounding`); only grounded
    findings arrive here.
-2. **Source quality** from the declared tables (:mod:`.sources`), never the agent's
-   own score: below :data:`~.sources.ACCEPT_THRESHOLD` is ``low_source_quality``
-   (a work an index lists as retracted is ``retracted_source`` before it).
-3. **Topic** (:mod:`.topicality`, D4): the finding supports the topic it was searched
+2. **The source itself**: a work an index lists as retracted is ``retracted_source``; then
+   a web finding from a student thesis (:mod:`.document_types`, D4) is ``student_thesis``.
+   Both whatever the host scores. Client Knowledge is never typed: a person approved it.
+3. **Source quality** from the declared tables (:mod:`.sources`), never the agent's
+   own score: below :data:`~.sources.ACCEPT_THRESHOLD` is ``low_source_quality``.
+4. **Topic** (:mod:`.topicality`, D4): the finding supports the topic it was searched
    for -- its object named, no sibling concept named instead, a word of its topic
    shared -- or it is ``off_topic``; a topic with nothing to judge by is
    ``topic_undetermined``. Before dedupe, so an off-topic copy never stands in for an
    on-topic twin, and before the verifier, so it costs no verifier call.
-4. **Dedupe** -- the same source saying the same thing twice (claim similarity at
+5. **Dedupe** -- the same source saying the same thing twice (claim similarity at
    the legacy 0.42) is one candidate that remembers the others.
-5. **Independent confirmation** is a bonus to confidence, never the gate: a similar
+6. **Independent confirmation** is a bonus to confidence, never the gate: a similar
    claim from a *different* source raises it (ADR 0017: two agents can agree on the
    same invention, so agreement alone proves nothing).
-6. **The verifier** judges each candidate against its own excerpt; anything but
+7. **The verifier** judges each candidate against its own excerpt; anything but
    ``supported`` is quarantined, and a candidate the verifier did not answer for is
    ``unverified``.
 
@@ -50,6 +52,12 @@ from .contracts import (
     ScreenQuestion,
     SourceKind,
 )
+from .document_types import (
+    DOCUMENT_RULES_VERSION,
+    DocumentType,
+    DocumentTyping,
+    document_type,
+)
 from .legacy import canonical_url, deterministic_target_overlap, similarity
 from .sources import SourceScore, SourceTable, score_knowledge_source, score_web_source
 from .topicality import TOPICALITY_VERSION, TopicScreen, TopicVerdict
@@ -73,9 +81,11 @@ __all__ = [
     "verification_batches",
 ]
 
-#: Carries the rules the merge applies: what a retraction quarantines (chunk 46) and what
-#: is off topic (D4).
-MERGE_RULES_VERSION: Final = f"aia-merge-3/{WORKS_VERSION}/{TOPICALITY_VERSION}"
+#: Carries the rules the merge applies: what a retraction quarantines (chunk 46), what is off
+#: topic and what is a student thesis (D4).
+MERGE_RULES_VERSION: Final = (
+    f"aia-merge-3/{WORKS_VERSION}/{TOPICALITY_VERSION}/{DOCUMENT_RULES_VERSION}"
+)
 #: The unit's claim-similarity threshold for "the same finding" (research_context.py:360).
 SIMILAR: Final = 0.42
 #: Confidence added per independent confirmation, for at most two.
@@ -198,6 +208,16 @@ def _score(item: EvidenceItem, facts: SourceFacts | None, table: SourceTable) ->
     )
 
 
+def _document(item: EvidenceItem, facts: SourceFacts | None) -> DocumentTyping:
+    """A web finding's source typed by the declared rules, at the address it was read from
+    (the final URL) and its title; Client Knowledge is never typed: a person approved it as
+    the client's own, whatever document it came from."""
+    if item.source_kind is not SourceKind.WEB_PAGE:
+        return DocumentTyping(DocumentType.UNDETERMINED)
+    url = (facts.url if facts is not None else None) or item.source_url
+    return document_type(url, item.source_title)
+
+
 def _same_source(a: EvidenceItem, b: EvidenceItem) -> bool:
     if a.source_url and b.source_url:
         return canonical_url(a.source_url) == canonical_url(b.source_url)
@@ -240,6 +260,22 @@ def merge_evidence(
                         )[:500],
                         claim=item.claim,
                         source_ref=item.source_ref,
+                    )
+                )
+                continue
+            typed = _document(item, facts)
+            if typed.type is DocumentType.STUDENT_THESIS:
+                # A student thesis is not evidence the review may rest on, whatever its host
+                # scores (D4); kept, so a researcher still sees it as a lead.
+                quarantined.append(
+                    QuarantinedEvidence(
+                        evidence_id=item.evidence_id,
+                        track_id=item.track_id,
+                        reason=QuarantineReason.STUDENT_THESIS,
+                        detail=f"{typed.words} (pravidla {DOCUMENT_RULES_VERSION})"[:2000],
+                        claim=item.claim,
+                        source_ref=item.source_ref,
+                        evidence=item,
                     )
                 )
                 continue

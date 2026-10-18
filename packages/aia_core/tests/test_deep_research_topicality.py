@@ -199,9 +199,13 @@ def _finding(subject: ResearchSubject, url: str, title: str, quote: str, claim: 
 
 def test_the_merge_sets_the_mortgage_thesis_aside_and_keeps_the_account_findings() -> None:
     """F1 reproduced at the engine, fictional: grounded quotes on a credible academic host,
-    each kept in the log with its reason, never a candidate the verifier is paid for."""
+    each kept in the log with its reason, never a candidate the verifier is paid for.
+
+    The thesis sits in a repository the document rules do not declare (their stated coverage
+    limit), so the topic gate is what sets it aside; in a declared thesis archive the
+    document rule names it first (``test_deep_research_merge``)."""
     topic = _q(RESEARCH_QUESTION_FRAMING.format(question=TRUST))
-    thesis = "https://is.vse.cz/zp/fiktivni-prace-o-volbe-hypotecni-banky.pdf"
+    thesis = "https://dspace.cuni.cz/fiktivni-prace-o-volbe-hypotecni-banky.pdf"
     off = [
         _finding(topic, thesis, THESIS, quote, quote)
         for quote in (

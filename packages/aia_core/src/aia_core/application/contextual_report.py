@@ -144,6 +144,7 @@ _QUARANTINE = {
     "retracted_source": "zdroj byl stažen",
     "off_topic": "netýká se tématu, pro které bylo hledáno",
     "topic_undetermined": "souvislost s tématem hledání nelze posoudit",
+    "student_thesis": "studentská kvalifikační práce",
 }
 _QUALITY = {
     QualityStatus.GROUNDED: "všechna plánovaná hledání doběhla",

@@ -661,6 +661,9 @@ class QuarantineReason(StrEnum):
     #: The topic leaves nothing to judge the finding by, so its support is unknown, and
     #: unknown is never accepted (``topicality``, D4).
     TOPIC_UNDETERMINED = "topic_undetermined"
+    #: The source is a student's qualification thesis, by a declared host, archive path, path
+    #: segment or title segment (``document_types``, D4); Client Knowledge is never typed.
+    STUDENT_THESIS = "student_thesis"
 
 
 class QuarantinedEvidence(_Closed):

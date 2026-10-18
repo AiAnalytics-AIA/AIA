@@ -49,8 +49,9 @@ from aia_core.domain.deep_research.contracts import (
     subject_key,
     track_id,
 )
+from aia_core.domain.deep_research.document_types import DOCUMENT_RULES_VERSION
 from aia_core.domain.deep_research.grounding import locate_quote, normalise_text
-from aia_core.domain.deep_research.merge import RespondentUse
+from aia_core.domain.deep_research.merge import MERGE_RULES_VERSION, RespondentUse
 from aia_core.domain.deep_research.quarantine import (
     RecordedEvidenceRefused,
     require_live_evidence,
@@ -62,6 +63,7 @@ from aia_core.domain.deep_research.request_limits import (
     RequestLimits,
     kind_of,
 )
+from aia_core.domain.deep_research.steps import MergeRecord
 from aia_core.domain.deep_research.synthesis import SynthesisStatus
 from aia_core.domain.deep_research.tooling import TOOL_EVENT_KINDS, ToolOutcome
 from aia_core.domain.deep_research.workflow import DEEP_RESEARCH, deep_research_steps
@@ -1394,6 +1396,61 @@ def test_a_run_planned_under_the_earlier_merge_rules_is_refused_at_merge(
     assert steps["investigate"]["status"] is StepRunStatus.SUCCEEDED
     assert steps["merge"]["attempts"][0]["error"]["reason"] == "composition_changed"
     assert agents.roles()["verifier"] == 0
+
+
+#: The market report as a thesis archive would serve it (fictional): its path names the genre.
+THESIS_PAGE = "https://trh.example/zaverecne-prace/zprava-2025"
+
+
+def test_a_finding_from_a_student_thesis_is_set_aside_by_name_and_kept(
+    research: ResearchWorld,
+    database_url: str,
+    store: InMemoryArtifactStore,
+    build: Any,
+    tmp_path: Path,
+) -> None:
+    """D4 through the production MergeExecutor: a page whose path names a thesis is not
+    accepted, however well its host scores; its finding is kept with its reason in words."""
+    report = "https://trh.example/zprava-2025"
+    web = json.loads(WEB.read_text(encoding="utf-8"))
+    (hit,) = [
+        h for h in web["search"]["trh rostlinných nápojů česko"]["hits"] if h["url"] == report
+    ]
+    hit["url"] = THESIS_PAGE
+    web["pages"][THESIS_PAGE] = web["pages"].pop(report)
+    fixture = tmp_path / "web.json"
+    fixture.write_text(json.dumps(web, ensure_ascii=False), encoding="utf-8")
+    agents = RecordedAgents(
+        {**ANSWERS, "web": {**ANSWERS["web"], THESIS_PAGE: ANSWERS["web"][report]}}
+    )
+    approve_knowledge(research)
+    run_id = start(research)
+    drain(worker(research, database_url, store, build, recorded(research, agents, fixture=fixture)))
+    run, bundle = read(research, run_id, store)
+    assert run["status"] is WorkflowRunStatus.COMPLETED and bundle.verify()
+
+    (thesis,) = [q for q in bundle.quarantined if q.reason is QuarantineReason.STUDENT_THESIS]
+    assert (
+        thesis.claim == "Tržby za rostlinné nápoje dosáhly v roce 2025 celkem 2,1 miliardy korun."
+    )
+    assert thesis.evidence is not None and thesis.evidence.source_url == THESIS_PAGE
+    assert thesis.detail == (
+        f"adresa obsahuje část „zaverecne-prace“ (pravidla {DOCUMENT_RULES_VERSION})"
+    )
+    assert THESIS_PAGE not in {a.evidence.source_url for a in bundle.accepted}
+    # The merge record, and the bundle after it, name the rules it applied.
+    with research.sessions() as session:
+        from aia_core.application.research import research_artifacts
+        from aia_core.infrastructure.tables import StepRunRow
+
+        merge_row = session.scalars(
+            select(StepRunRow).where(StepRunRow.run_id == run_id, StepRunRow.node_key == "merge")
+        ).one()
+        repo = research_artifacts(session, research.lead_scope(session), store)
+        record = MergeRecord.model_validate(repo.read_json(merge_row.output_json["artifact_id"]))
+    assert record.merge_rules_version == bundle.versions["merge"] == MERGE_RULES_VERSION
+    assert record.merge_rules_version.startswith("aia-merge-3/")
+    assert DOCUMENT_RULES_VERSION in record.merge_rules_version
 
 
 # --------------------------------------------------------------------------- #

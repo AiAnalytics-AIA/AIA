@@ -77,7 +77,7 @@ writes a design or a deterministic artifact (`require_may_write`, a `layer_check
 |---|---|---|
 | plan | **code** picks the subjects and tracks; the planner model proposes sub-questions and queries for the web tracks it is shown; code refuses a plan that skips or invents a track | the plan: tracks, fingerprints, reuse, allowances |
 | investigate | **code** classifies and sends each query, fetches, snapshots; the investigator proposes findings with verbatim quotes; code grounds each | one artifact per track |
-| merge | **code**: declared source scores, the topic gate, dedupe, confirmation, the leakage rule | candidates, quarantine |
+| merge | **code**: the student-thesis rule, declared source scores, the topic gate, dedupe, confirmation, the leakage rule | candidates, quarantine |
 | verify | the verifier model judges each candidate against its own excerpt | accepted / quarantined |
 | synthesize | the synthesizer writes a brief from accepted evidence only; **code** checks every citation and number | the brief, with exclusions |
 | publish | **code** | the sealed evidence bundle |
@@ -117,7 +117,7 @@ All closed (`extra="forbid"`) and frozen.
   `citation_outside_track`, `number_not_in_quote`, `source_contains_instructions`,
   `unsupported_by_verifier`, `overstated_by_verifier`, `unverified`,
   `questionnaire_leakage`, `measure_not_in_source`, `measure_missing`, `superseded`,
-  `retracted_source`, `off_topic`, `topic_undetermined`).
+  `retracted_source`, `off_topic`, `topic_undetermined`, `student_thesis`).
 - **`StopReason`** — exactly one per track: `depth_target_met`, `saturated`,
   `queries_exhausted`, `budget_exhausted`, `all_queries_refused`,
   `no_knowledge_matched`, `single_pass`, `web_retrieval_unavailable`,
@@ -168,7 +168,16 @@ on every redirect hop (at most 3); kept types and their caps (`MAX_BODY_BYTES_BY
 CSV at 5 MB, the documents read in parts (`documents.py`).
 
 **Merge and verification** (`merge.py`, `aia-merge-3`). A retracted work
-(`retracted_source`), then the declared score (`low_source_quality`), then the topic
+(`retracted_source`), then a student thesis (`document_types.py`,
+`aia-document-types-1`; D4, 2026-10-18): a web finding whose source is a whole thesis
+register (`theses.cz`, `vskp.vse.cz`), an archive prefix on a declared university host
+(`vse.cz` `/zp/`, `is.muni.cz` `/th/`, `is.cuni.cz` `/webapps/zzp/`, `vutbr.cz`
+`/studenti/zav-prace/`), a whole path segment (`zaverecne-prace`, `diplomova-prace`, …) or
+a whole title segment (`bakalářská práce`, `master's thesis`, …) that names the genre is
+`student_thesis`, whatever its host scores, doctoral dissertations included; no rule types
+a page of an encyclopedia (`wikipedia.org`), whose article on a genre bears its name; Client
+Knowledge is never typed, and a thesis no rule declares is still accepted. Then the
+declared score (`low_source_quality`), then the topic
 gate (`topicality.py`, `aia-dr-topicality-1`; D4, 2026-10-18): an object's finding
 names its object in the quote or source title by its distinguishing words together,
 never by one word of a longer name; a quote or title naming a sibling concept of a
@@ -458,7 +467,9 @@ respondents. Pass 2 adds one object: 6 tracks reused, 5 model requests, 3 search
 oat fact is off topic too). Also: the production shape (fictional or not) sends nothing;
 a real client's design writes no query; unconfigured parks; a foreign or altered request fails
 before anything is sent; cancellation between steps, and before a tool call leaves, stops it; a lost
-model answer waits for recovery and is not bought again; a changed composition is refused.
+model answer waits for recovery and is not bought again; a changed composition is refused; the
+market report served at a path that names a thesis (`/zaverecne-prace/`) is quarantined
+`student_thesis`, its finding kept and the merge record naming `aia-merge-3`.
 **Completion is recorded/offline**: no provider was called and no page was fetched.
 
 ## 12. Decisions live search needs
