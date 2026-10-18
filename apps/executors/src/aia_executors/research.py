@@ -741,7 +741,7 @@ class SociomapExecutor(_Step):
                     "methodology_status": result["methodology_status"],
                 },
             )
-        context.progress("Sociomapa spočtena (interní)", artifact_id=artifact.artifact_id)
+        context.progress("Sociomapa spočtena", artifact_id=artifact.artifact_id)
         return _produced(
             step,
             artifact,

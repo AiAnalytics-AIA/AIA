@@ -985,7 +985,7 @@ describe("Progress", () => {
       expect.stringContaining("Kontrola připravenosti"),
       expect.stringContaining("Sběr dat"),
       expect.stringContaining("Agregace"),
-      expect.stringContaining("Sociomapa (interní)"),
+      expect.stringContaining("Sociomapa"),
     ]);
     expect(within(steps[3]).getByText("Čeká na předchozí krok")).toBeTruthy();
     expect(screen.queryByRole("button", { name: t("research.exec.retry") })).toBeNull();

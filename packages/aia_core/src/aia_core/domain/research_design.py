@@ -896,7 +896,9 @@ def assess_readiness(
         check(
             "sociomap_input",
             CheckStatus.PASS,
-            f"{len(spec.batteries)} sad pro Sociomapu (interní, D6).",
+            # Whether a map may reach a client is the Sociomap register's, for the method that
+            # computed it, read when the map is read (domain/sociomap_register.py), never here.
+            f"{len(spec.batteries)} sad pro Sociomapu.",
         )
         # Structural readiness to collect answers is not support for a map: a pair needs
         # n_min respondents who rated both (audit F3), counted after missing answers and

@@ -7,7 +7,7 @@ chunks:
   - "[x] PC4. Work that waits for a person can go on: a run, Deep Research run or client-source proposals parked for the AI runtime resumes on a person's action once it is on, an agent job or Deep Research run stopped at the budget cap is lifted like a research run's step, and no copy promises it continues by itself"
   - "[ ] PC5. The stage track follows the run (done), and says when the design changed after the run it shows"
   - "[ ] PC6. Proposal review names what acceptance replaces; rewording a research question says which links it would orphan"
-  - "[ ] PC7. Researcher copy agrees with the Sociomap register and ADR 0018: no D6 or 18.6.6 remedies, no stale report sentence"
+  - "[x] PC7. Researcher copy agrees with the Sociomap register and ADR 0018: no D6 or 18.6.6 remedies, no stale report sentence"
   - "[x] PC8. The browser journeys pass on today's interface, a label they wait for cannot drift unnoticed, and the coherence journey and report render are committed tools anyone can rerun"
   - "[ ] PC9. Report body and appendices flow: no page break before every chapter (owner D5, 2026-10-17)"
   - "[x] PC10. Dimenze shows and saves only the dimensions a person chose: a new study chose none (owner, 2026-10-18; OI-54)"
@@ -97,6 +97,40 @@ old track), stops reading once nothing can change, keeps reading a provider wait
 **Second half, open.** The track also calls Spuštění "done" and Výsledky "Revize N" when the design
 has changed since that run; saying "the design changed after this run" needs the working content's
 revision beside the run's (see the findings ledger, F-design-lane), not a browser guess.
+
+## PC7 — the copy agrees with what was decided
+
+**Problem.** After the owner approved `aia-sociomap-3` for reports (D6, 2026-10-13, recorded in
+`domain/sociomap_register.py:52-57 @ 20b24bb`) and B4 put the register's approval on every map, several
+fixed strings still said every Sociomap is internal, so an approved map read "Metodika schválena pro
+zprávy" and "Interní · nesmí ke klientovi" on one screen: the readiness check "N sad pro Sociomapu
+(interní, D6)" (`domain/research_design.py:899`), the Metodika module note "Mapa je zatím jen interní
+(D6 otevřené)" (`domain/methodology/sociomap.py:817-822`, and four times in the web fixture), the map
+snapshot's caption and file name on every map (`ObjectMapView.tsx:270`, `cs.ts:2748-2749`), the
+Progress step "Sociomapa (interní)" and its progress line "Sociomapa spočtena (interní)"
+(`cs.ts:2358`, `aia_executors/research.py:743`), and project memory's "Interní: Sociomapa, analýza a
+zpráva nejsou pro klienta" (`cs.ts:666`). Results also said, for a run started without analysis,
+"Klientský report (DOCX) zatím v AIA není" (`cs.ts:2698`) under a card that offers the client report
+(`application/client_report.py`). Runtime finding R4/R5; sociomap and legacy audits.
+
+**Change.** Each sentence now says what is true: the readiness line names the batteries and leaves
+approval to the register, read where the map is read; the Metodika note says -3 is approved and an
+edited version in force is internal until the register approves it (fixture regenerated with
+`tools/methodology_fixture.py`); a snapshot's caption and file name follow the map's own approval
+(`snapshotNaming`); the step is "Sociomapa"; project memory names analysis and the internal report as
+internal and a Sociomap only when its method is not approved; the no-report sentence says why (the
+run was started without AI analysis) and where a client report is.
+
+**Invariants kept.** No gate moved: the client report's maps still pass `require_client_facing`; every
+change errs neither toward approval nor away from it, it follows the register.
+
+**Tests.** ObjectMapView "a map's snapshot is named by the map's own approval…"; the step label and
+Progress list assertions follow the new words; `test_methodology_api` holds the regenerated fixture.
+
+**Not changed.** The 18.6.6 notices ADR 0018 asks for ("V AIA zatím není" where a person meets it) stay:
+they are true. The Data Library notice stays (the shared-source library is not in AIA). Settings'
+"FAST_EXTRACTION nic nevolá" is latent while the client-source proposals switch is off; its fix needs
+the switch carried to the web through Compose and `/config`, so it is a finding below, not copy.
 
 ## PC2 — Results say what the run and the analysis already decided
 

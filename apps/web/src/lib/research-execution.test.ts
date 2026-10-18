@@ -43,7 +43,7 @@ describe("research execution", () => {
     expect(phaseTone("WAITING")).toBe("you");
     expect(phaseTone("FAILED")).toBe("fault");
     expect(phaseTone("COMPLETED")).toBe("done");
-    expect(stepLabel("sociomap")).toBe("Sociomapa (interní)");
+    expect(stepLabel("sociomap")).toBe("Sociomapa");
     expect(stepLabel("something_new")).toBe("something_new");
   });
 

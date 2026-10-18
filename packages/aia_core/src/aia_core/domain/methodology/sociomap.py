@@ -816,8 +816,10 @@ SOCIOMAP: Final = MethodModule(
     editable=True,
     note_cs=(
         "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne "
-        "aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapa je zatím jen interní "
-        "(D6 otevřené). aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které "
-        "-3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází."
+        "aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil "
+        "vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti "
+        "je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice "
+        "i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava "
+        "z něj vychází."
     ),
 )
