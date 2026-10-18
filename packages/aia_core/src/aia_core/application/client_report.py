@@ -187,9 +187,8 @@ def compose_client_report(
             ),
             Paragraph(
                 text(
-                    "Zpráva uvádí návrh studie, kdo odpovídal, výsledky jednotlivých otázek "
-                    "a mapy hodnocených objektů. Uvádí jen čísla s dostatečnou oporou a vždy "
-                    "s 95% intervalem."
+                    f"{intro_contents(questions=bool(tables.sections), maps=bool(maps))} "
+                    "Uvádí jen čísla s dostatečnou oporou a vždy s 95% intervalem."
                 )
             ),
         ),
@@ -229,6 +228,20 @@ def compose_client_report(
             mapped.artifact_id,
         ),
     )
+
+
+def intro_contents(*, questions: bool, maps: bool) -> str:
+    """What the introduction says the report holds: only the parts composed. The maps are
+    approved maps alone (``compose_map_sections(client=True)``), and a run without a tracked
+    set or an approved map has none, so the sentence named maps the report did not hold
+    (cross-review)."""
+    parts = [
+        "návrh studie",
+        "kdo odpovídal",
+        *(["výsledky jednotlivých otázek"] if questions else []),
+        *(["mapy hodnocených objektů"] if maps else []),
+    ]
+    return f"Zpráva uvádí {', '.join(parts[:-1])} a {parts[-1]}."
 
 
 def stored_client_report(
