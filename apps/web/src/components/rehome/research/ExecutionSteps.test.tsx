@@ -472,6 +472,21 @@ describe("Run: which questions the run will answer (run-recovery-and-truth 2b)",
     expect(fixes).toEqual(places.map((p) => p[0]));
   });
 
+  it("offers no linking in Dotazník for a design that states no research question", async () => {
+    // Review web#12: under "the design states no research question" the gate still offered to link
+    // items to research questions, where there is none to link to; Návrh is where it is fixed.
+    const none = {
+      rules: "aia-answerability-1", capable: false, digest: "d".repeat(64), acknowledgement_required: false,
+      gaps: [{ kind: "no_research_questions", research_question: null, verdict: "UNANSWERABLE", reasons: [], measures: [] }],
+    };
+    api({ "GET /api/v1/studies/STU-1/research/readiness": () => ({ ...OUTLOOK, answerability: none }) });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const gate = await screen.findByRole("region", { name: t("research.exec.answerability.title") });
+    expect(within(gate).getAllByRole("link").map((a) => [a.textContent, a.getAttribute("href")])).toEqual([
+      [t("research.exec.answerability.fixTo.plan"), `${stagePath("plan")}#plan-understanding`],
+    ]);
+  });
+
   it("shows what Design Research found per research question, a gap, and every rejection's reason", async () => {
     const traced = {
       ...OUTLOOK,
@@ -958,6 +973,14 @@ describe("Run: what a run can cost (5b.2)", () => {
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: t("research.exec.retry") }));
     const gate = await screen.findByRole("region", { name: t("research.exec.answerability.title") });
+    // A retry reruns the original's Design Revision: no edit closes its gaps, so no link offers
+    // one; a fix applies to a new run, started from Kontrola a spuštění (review web#8).
+    expect(within(gate).getAllByRole("link").map((a) => [a.textContent, a.getAttribute("href")])).toEqual([
+      [tv("research.exec.answerability.retryOpen", { stage: t("aia.stages.run") }), stagePath("run")],
+    ]);
+    expect(within(gate).getByText(tv("research.exec.answerability.retryFixes", { stage: t("aia.stages.run") }))).toBeTruthy();
+    expect(within(gate).getByText(t("research.exec.answerability.helpRetry"))).toBeTruthy();
+    expect(within(gate).queryByText(t("research.exec.answerability.help"))).toBeNull();
     const again = screen.getByRole("button", { name: t("research.exec.answerability.retryAction") }) as HTMLButtonElement;
     expect(again.disabled).toBe(true);
     fireEvent.click(within(gate).getByRole("checkbox", { name: t("research.exec.answerability.choice") }));

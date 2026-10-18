@@ -150,7 +150,7 @@ function fixFor(reason: string, gap: AnswerabilityGap, outlook: readonly Questio
     }
     case "measures_unanswerable":
     case "no_citable_measure": {
-      // Without an outlook (a refused retry), only the editor: nothing says what the measure is.
+      // Without an outlook, only the editor: nothing says what the measure is.
       if (!outlook) return { step: "questionnaire", anchor: EDITOR, words: t(`${FIX}.measure`) };
       // Measured only by items the run will not answer: of those the analysis may cite, as the
       // domain decides it. An open question beside them is answered and never cited, so editing
@@ -172,8 +172,8 @@ function fixFor(reason: string, gap: AnswerabilityGap, outlook: readonly Questio
 /**
  * Where each of a gap's reasons is fixed, one link per place, in the order of its reasons: no
  * research question in Návrh; links, comparisons, a set or a measure in Dotazník; a measure's
- * support on Dimenze. ``outlook`` is readiness's: without one (a refused retry), a stage and its
- * sections only.
+ * support on Dimenze. ``outlook`` is readiness's: without one, a stage and its sections only. A
+ * refused retry shows none of them: it reruns its original's Design Revision, which no edit changes.
  */
 export function gapFixes(gap: AnswerabilityGap, outlook: readonly QuestionOutlook[] | null): GapFix[] {
   if (gap.kind === "no_research_questions") return [{ step: "plan", anchor: "plan-understanding", words: t(`${FIX}.plan`) }];

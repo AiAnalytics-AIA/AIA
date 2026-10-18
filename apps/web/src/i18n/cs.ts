@@ -2496,6 +2496,10 @@ export const cs = {
         // Beside readiness that says the design cannot run yet: never called runnable there.
         titleNotReady: "Běh nemusí odpovědět na všechny výzkumné otázky",
         help: "Kontroly výše říkají, zda běh může proběhnout. Tato karta říká, zda dokáže odpovědět na to, na co se studie ptá. U těchto výzkumných otázek AIA odpověď doložit nedokáže; pod každou je, kde to opravit:",
+        // A refused retry (review web#8): it reruns the original's Design Revision, so no link to a fix.
+        helpRetry: "Tato karta říká, zda opakovaný běh dokáže odpovědět na to, na co se studie ptá. U těchto výzkumných otázek AIA odpověď doložit nedokáže:",
+        retryFixes: "Opakování spouští znovu revizi návrhu původního běhu, takže úpravy návrhu ani dotazníku tyto mezery u něj neodstraní; oprava platí pro nový běh spuštěný v kroku {stage}.",
+        retryOpen: "Otevřít krok {stage} →",
         none: "Návrh neuvádí žádnou výzkumnou otázku, takže modul výzkumných otázek nebude mít na co odpovědět.",
         wont: "Běh na ni neodpoví",
         unshown: "Nelze doložit, že na ni běh odpoví",
