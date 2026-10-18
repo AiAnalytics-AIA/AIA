@@ -16,7 +16,7 @@ import { useResearch } from "./context";
 import { canReview } from "./frame";
 import { FormattedText } from "./FormattedText";
 import { DeepResearchWaits } from "./DeepResearchWaits";
-import { SearchedNothing } from "./SearchedNothing";
+import { SearchedNothingNote, useSearchedNothing } from "./SearchedNothing";
 
 const message = (e: unknown) => e instanceof Error ? e.message : String(e);
 
@@ -47,6 +47,8 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
   const active = current ? deepResearchRunningStep(current.steps) : null;
   // The rešerše's feed, read live while one of its steps runs (lib/step-activity.ts).
   const feed = useStepActivity(current?.run_id ?? null, (since) => deepResearch.events(frame.studyId, current!.run_id, since), !!active);
+  // A finished review that sent no query is not one that searched and found nothing (PC18).
+  const nothingSearched = useSearchedNothing(frame.studyId, bundle && current ? current.run_id : null);
 
   useEffect(() => {
     let live = true;
@@ -158,8 +160,8 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
         <div><p className="text-xs text-ink-muted">Zachycené zdroje</p><p className="text-xl font-semibold">{bundle.snapshots.length}</p></div>
         <div><p className="text-xs text-ink-muted">Pokrytí podklady</p><p className="text-sm font-semibold">{coverageWords(bundle.quality_status)}</p></div>
       </div>
-      {current ? <SearchedNothing studyId={frame.studyId} runId={current.run_id} /> : null}
-      {bundle.accepted.length === 0 ? <p role="note" className="rounded-control border border-status-you-ink/40 bg-status-you-wash p-3 text-sm leading-6">Rešerše dokončila hledání, ale žádné externí tvrzení neprošlo ověřením. Zachycené zdroje si můžete prohlédnout níže; zpráva z nich nesmí vytvářet benchmark ani literární závěr.</p> : null}
+      {nothingSearched ? <SearchedNothingNote coverage={nothingSearched} /> : null}
+      {bundle.accepted.length === 0 && !nothingSearched ? <p role="note" className="rounded-control border border-status-you-ink/40 bg-status-you-wash p-3 text-sm leading-6">Rešerše dokončila hledání, ale žádné externí tvrzení neprošlo ověřením. Zachycené zdroje si můžete prohlédnout níže; zpráva z nich nesmí vytvářet benchmark ani literární závěr.</p> : null}
       <div className="rounded-control border border-signal/30 bg-signal-wash p-4">
         <p className="mb-2 text-sm font-semibold">Tato rešerše ve zprávě</p>
         <p className="mb-3 text-sm leading-6">{bundle.accepted.length

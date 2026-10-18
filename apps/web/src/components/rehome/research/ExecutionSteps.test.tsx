@@ -2310,6 +2310,38 @@ describe("Interpretation research", () => {
     expect(within(rejected).getByText("· shrnutí cituje číslo mimo podklady")).toBeTruthy();
   });
 
+  it.each([
+    ["no query left", 0, true],
+    ["queries left and nothing passed", 5, false],
+  ])("an interpretation review with no finding says one thing: %s (review, Codex on #479)", async (_, sent, nothingSent) => {
+    const completed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-questions" })] });
+    const review = { run_id: "RUN-deep", purpose: "INTERPRETATION_RESEARCH", target: { research_run_id: "RUN-1" },
+      preset: "QUICK", status: "COMPLETED", phase: "COMPLETED", is_terminal: true, retryable: false,
+      created_at: null, actual_cost_usd: 0, steps: [] };
+    api({ ...listed(completed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: true, modules: {}, pending: {} }),
+      "GET /api/v1/studies/STU-1/deep-research/runs": () => [review],
+      "GET /api/v1/studies/STU-1/deep-research/runs/RUN-deep/bundle": () => ({ quality_status: "INSUFFICIENT", accepted: [], snapshots: [], quarantined: [] }),
+      "GET /api/v1/studies/STU-1/deep-research/runs/RUN-deep/coverage": () => ({ tracks: 4, blocked_tracks: sent ? 0 : 4, queries_proposed: 6,
+        queries_sent: sent, queries_refused: 0, hits: 0, sources_captured: 0, findings_accepted: 0, findings_quarantined: 0 }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Rešerše a zpráva" }));
+    await screen.findByText("Přijatá zjištění");
+    const searchedEmpty = /Rešerše dokončila hledání, ale žádné externí tvrzení neprošlo ověřením/;
+    if (nothingSent) {
+      // A run that sent no query never also reads as one that searched and found nothing.
+      expect((await screen.findByText(tv("research.deep.searchedNothing", { blocked: 4, tracks: 4 }), { exact: false })).closest("[data-searched-nothing]")).toBeTruthy();
+      expect(screen.queryByText(searchedEmpty)).toBeNull();
+    } else {
+      expect(await screen.findByText(searchedEmpty)).toBeTruthy();
+      expect(document.querySelector("[data-searched-nothing]")).toBeNull();
+    }
+  });
+
   it("requires confirmation before cancelling an active interpretation review", async () => {
     const completed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
       step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-questions" })] });
