@@ -11,10 +11,12 @@ from aia_core.domain.deep_research.confidence import CONFIDENCE_WEIGHTS_V1
 from aia_core.domain.deep_research.contracts import (
     ClientTerm,
     ResearchSubject,
+    SourceKind,
     SubjectKind,
     digest,
     subject_key,
 )
+from aia_core.domain.deep_research.document_types import DOCUMENT_RULES_VERSION
 from aia_core.domain.deep_research.merge import MERGE_RULES_VERSION
 from aia_core.domain.deep_research.topicality import (
     TOPICALITY_VERSION,
@@ -295,8 +297,12 @@ def test_a_review_resting_on_one_source_says_so_and_shows_what_each_finding_rest
     written = prose(weak)
     assert "Všechna přijatá zjištění (3) pocházejí od jediného vydavatele (vse.cz)" in written
     assert "nenabízí nezávislé potvrzení" in written
-    # Credibility is the domain's, said as that, never as relevance.
-    assert "akademická instituce (může jít i o studentskou práci)" in written
+    # Credibility is the domain's, said as that, never as relevance; the thesis its web
+    # findings come from is named beside it, typed at composition (D4).
+    assert (
+        "is.vse.cz: akademická instituce; studentská kvalifikační práce (určeno při sestavení "
+        "zprávy)"
+    ) in written
     assert "jen podle domény, nikoli podle obsahu" in written
     assert "Autora, metodu a vzorek zdroje AIA nezaznamenává" in written
     # Every claim stands beside its verbatim passage and the topic it was searched for.
@@ -521,20 +527,24 @@ def test_an_older_review_labels_what_todays_topic_rules_would_not_accept() -> No
     older, screen = _older_current_account_review()
     stored = older.model_dump(mode="json")
     written = prose(older, topics=screen)
-    # One callout names the sources; each finding says why, with the rules' version.
-    assert "Zjištění, která by dnešní kontrola tématu nepřijala" in written
-    assert f"podle dnešních pravidel ({TOPICALITY_VERSION}) neprošla: 3, ze zdroje L1." in written
+    # One callout names the sources; each finding says why, with the rules' version. The
+    # thesis's two web findings are named as the merge would set them aside first (D4); the
+    # approved fact carrying its address is Client Knowledge, never typed, so its topic decides.
+    assert "Zjištění, která by dnešní pravidla nepřijala" in written
+    assert "Přijatá zjištění, která by podle nich neprošla: 3." in written
+    assert f"podle pravidel {DOCUMENT_RULES_VERSION}: 2, ze zdroje L1." in written
+    assert f"podle kontroly tématu {TOPICALITY_VERSION}: 1, ze zdroje L1." in written
     labelled = (
         f"Dnešní kontrola tématu ({TOPICALITY_VERSION}) by toto zjištění nepřijala: netýká se "
         "tématu, pro které bylo hledáno (téma: „běžný účet“; zdroj jmenuje: „hypotéka“)."
     )
-    assert written.count(labelled) == 3
+    assert written.count(labelled) == 1
+    assert written.count(f"Dnešní pravidla typů dokumentů ({DOCUMENT_RULES_VERSION})") == 2
     for a in older.accepted[:3]:
         assert f"{a.evidence.quote} [L1] Faktory výběru" in written
     # Labelled, never removed, re-scored or recounted: counts, citations and the seal as stored.
     unlabelled = prose(older)
     assert "Dnešní kontrola tématu" not in unlabelled
-    assert "nepřijala" not in unlabelled
     for line in (
         "Přijatá zjištění: 7, citované zdroje:",
         f"Pečeť ověřeného balíčku: {older.sha256}",
@@ -551,3 +561,76 @@ def test_a_review_merged_under_the_topic_rules_is_never_labelled_again() -> None
     judged = _merged_under(older, MERGE_RULES_VERSION)
     written = prose(judged, topics=screen)
     assert "Dnešní kontrola tématu" not in written and "nepřijala" not in written
+
+
+# --------------------------------------------------------------------------- the document (D4)
+
+THESIS_LABEL = (
+    f"Dnešní pravidla typů dokumentů ({DOCUMENT_RULES_VERSION}) by toto zjištění nepřijala"
+)
+
+
+def test_an_older_review_names_a_student_thesis_at_composition_among_its_web_sources_only() -> None:
+    """A review merged before the document rules is never typed again by the engine; the
+    composition types its accepted web sources at USD 0 and changes no acceptance."""
+    weak = _single_source()
+    stored = weak.model_dump(mode="json")
+    written = prose(weak)
+    assert "Zjištění, která by dnešní pravidla nepřijala" in written
+    assert (
+        "Přijatá zjištění, která by podle nich neprošla: 2. Studentská kvalifikační práce podle "
+        f"pravidel {DOCUMENT_RULES_VERSION}: 2, ze zdroje L1."
+    ) in written
+    assert "kontroly tématu" not in written  # no topic screen given: nothing said of the topic
+    # After each web finding's quote, the reason in words; never after the approved fact's.
+    topic = weak.subjects[0].text
+    for a in weak.accepted:
+        quoted = f"{a.evidence.quote} [L1] Volba poskytovatele hypotéky (fiktivní práce); "
+        quoted += f"hledáno k tématu: {topic}\n"
+        if a.evidence.source_kind is SourceKind.WEB_PAGE:
+            assert (
+                quoted + f"{THESIS_LABEL}: studentská kvalifikační práce (adresa vede do archivu "
+                "kvalifikačních prací vse.cz/zp/). Rešerše vznikla před nimi a zjištění přijala; "
+                "uvedeno je beze změny."
+            ) in written
+        else:
+            assert quoted in written and quoted + THESIS_LABEL not in written
+    assert written.count(THESIS_LABEL) == 2
+    assert (
+        "Rešerše vznikla před pravidly typů dokumentů; studentské kvalifikační práce mezi jejími "
+        f"zdroji rozpoznávají až při sestavení zprávy pravidla {DOCUMENT_RULES_VERSION}"
+    ) in written
+    # Labelled, never removed, re-scored or recounted, and the bundle as stored.
+    typed = prose(_merged_under(weak, MERGE_RULES_VERSION))
+    for line in ("Přijatá zjištění: 3, citované zdroje: 1.", "Odmítnutá zjištění: 6."):
+        assert line in written and line in typed
+    assert written.count("[L1]") == typed.count("[L1]")
+    assert weak.verify() and weak.model_dump(mode="json") == stored
+
+
+def test_a_review_merged_under_the_document_rules_is_never_typed_again() -> None:
+    weak = _single_source()
+    for merge, rules in (
+        (MERGE_RULES_VERSION, DOCUMENT_RULES_VERSION),
+        ("aia-merge-9/aia-works-3/aia-document-types-4", "aia-document-types-4"),
+    ):
+        written = prose(_merged_under(weak, merge))
+        assert "Dnešní pravidla" not in written and "nepřijala" not in written
+        assert "určeno při sestavení zprávy" not in written
+        # The note names the rules the review's own merge applied, and what they leave.
+        assert (
+            f"Studentské kvalifikační práce rešerše odmítla podle pravidel {rules}, a to jen "
+            "podle adresy a názvu zdroje; práci, kterou tato pravidla nepoznají, nevylučuje."
+        ) in written
+        # An academic host the rules left undetermined may still hold a thesis.
+        assert "is.vse.cz: akademická instituce (může jít i o studentskou práci)" in written
+
+
+def test_an_academic_host_the_rules_leave_undetermined_keeps_its_caveat() -> None:
+    data = _single_source().model_dump(mode="json")
+    for a in data["accepted"]:
+        a["evidence"]["source_url"] = "https://www.vse.cz/fiktivni-anotace"
+        a["evidence"]["source_title"] = "Fiktivní anotace"
+    written = prose(bundle(accepted=data["accepted"], synthesis=None))
+    assert "vse.cz: akademická instituce (může jít i o studentskou práci)" in written
+    assert "studentská kvalifikační práce" not in written and "nepřijala" not in written

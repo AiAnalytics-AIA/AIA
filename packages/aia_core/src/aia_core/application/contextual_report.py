@@ -25,8 +25,20 @@ from aia_core.application.report import (
 from aia_core.application.report_chapters import report_chapters
 from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.analysis import ANALYSIS_MODULES, AnalysisModuleId
-from aia_core.domain.deep_research.bundle import EvidenceBundle
-from aia_core.domain.deep_research.contracts import EvidenceOrigin, QualityStatus
+from aia_core.domain.deep_research.bundle import EvidenceBundle, SnapshotRef
+from aia_core.domain.deep_research.contracts import (
+    EvidenceItem,
+    EvidenceOrigin,
+    QualityStatus,
+    SourceKind,
+)
+from aia_core.domain.deep_research.document_types import (
+    DOCUMENT_RULES_VERSION,
+    DocumentType,
+    DocumentTyping,
+    document_rules_of,
+    document_type,
+)
 from aia_core.domain.deep_research.gaps import AcquisitionReason
 from aia_core.domain.deep_research.integration import DeepResearchPurpose, InterpretationLineage
 from aia_core.domain.deep_research.reputation import REPUTATION_REGISTER_V1
@@ -114,7 +126,7 @@ _SOURCE_CLASS = {
     "OFFICIAL_STATISTICS": "oficiální statistika",
     "GOVERNMENT_OR_REGULATOR": "státní instituce nebo regulátor",
     "PEER_REVIEWED": "recenzovaná publikace",
-    "ACADEMIC_INSTITUTION": "akademická instituce (může jít i o studentskou práci)",
+    "ACADEMIC_INSTITUTION": "akademická instituce",
     "PREPRINT": "preprint",
     "INDUSTRY_RESEARCH": "odborný průzkum z praxe",
     "MEDIA": "médium",
@@ -197,13 +209,29 @@ def literature_sections(
     unchanged target returns it); with ``topics``, today's rules over its frozen request, each
     accepted finding they would set aside is labelled with the reason and one callout names
     their sources -- never removed, re-scored or recounted, the bundle and its seal as stored.
+    The document rules (D4) likewise: a review merged before them has its accepted web sources
+    typed now, by their address and title (Client Knowledge never), and a student thesis is
+    named in its source's type cell, after each of its findings and in that one callout, ahead
+    of the topic as the merge would set it aside.
     """
     if not bundle.verify():
         raise ReportCompositionRefused("Deep Research bundle seal is invalid")
     topic_judged = judged_topic(bundle.versions.get("merge", ""))
+    documents_typed = document_rules_of(bundle.versions.get("merge", ""))
+    snapshots = {s.snapshot_id: s for s in bundle.snapshots}
+    # What today's merge would set aside first (merge.py's order): a student thesis, then a
+    # finding off its topic. Each for a review merged before those rules only.
+    theses: dict[str, DocumentTyping] = {}
+    if documents_typed is None:
+        for found in bundle.accepted:
+            typed = _composed_type(found.evidence, snapshots)
+            if typed.type is DocumentType.STUDENT_THESIS:
+                theses[found.evidence.evidence_id] = typed
     would_reject: dict[str, TopicJudgement] = {}
     if topics is not None and not topic_judged:
         for found in bundle.accepted:
+            if found.evidence.evidence_id in theses:
+                continue
             judgement = topics.judge(found.evidence)
             if judgement.verdict is not TopicVerdict.ON_TOPIC:
                 would_reject[found.evidence.evidence_id] = judgement
@@ -211,7 +239,6 @@ def literature_sections(
     labels: dict[str, str] = {}
     # url or ref -> (label, url, title, date, retrieved, host, source class, findings)
     sources: dict[str, dict[str, Any]] = {}
-    snapshots = {s.snapshot_id: s for s in bundle.snapshots}
     subjects = {s.key: s for s in bundle.subjects}
     for a in bundle.accepted:
         e = a.evidence
@@ -231,11 +258,13 @@ def literature_sections(
                 ),
                 "class": a.score.source_class,
                 "table": a.score.table_version,
+                "thesis": False,
                 "findings": 0,
                 "subjects": [],
             }
         source = sources[key]
         source["findings"] += 1
+        source["thesis"] = source["thesis"] or e.evidence_id in theses
         if e.subject_key not in source["subjects"]:
             source["subjects"].append(e.subject_key)
         labels[e.evidence_id] = source["label"]
@@ -339,20 +368,36 @@ def literature_sections(
                 title="Rešerše stojí na jednom vydavateli",
             )
         )
-    if would_reject:
-        flagged = list(dict.fromkeys(labels[i] for i in would_reject))
+    if theses or would_reject:
+
+        def named(ids: Mapping[str, object]) -> str:
+            flagged = list(dict.fromkeys(labels[i] for i in ids))
+            return f"{len(ids)}, {'ze zdroje' if len(flagged) == 1 else 'ze zdrojů'} " + ", ".join(
+                flagged
+            )
+
+        rules = []
+        if theses:
+            rules.append(
+                f"Studentská kvalifikační práce podle pravidel {DOCUMENT_RULES_VERSION}: "
+                f"{named(theses)}."
+            )
+        if would_reject:
+            rules.append(
+                "Nepodporuje téma, pro které bylo hledáno, nebo to nelze posoudit, podle kontroly "
+                f"tématu {TOPICALITY_VERSION}: {named(would_reject)}."
+            )
         blocks.append(
             Callout(
                 CalloutKind.LIMITATION,
                 text(
-                    "Rešerše vznikla před kontrolou, zda zjištění podporuje téma, pro které bylo "
-                    "hledáno. Přijatá zjištění, která by podle dnešních pravidel "
-                    f"({TOPICALITY_VERSION}) neprošla: {len(would_reject)}, "
-                    f"{'ze zdroje' if len(flagged) == 1 else 'ze zdrojů'} {', '.join(flagged)}. "
-                    "U každého je níže uveden důvod. Kapitola je uvádí tak, jak je rešerše "
+                    "Rešerše vznikla před dnešními pravidly pro přijetí zjištění. Přijatá "
+                    f"zjištění, která by podle nich neprošla: {len(theses) + len(would_reject)}. "
+                    + " ".join(rules)
+                    + " U každého je níže uveden důvod. Kapitola je uvádí tak, jak je rešerše "
                     "přijala, a nemění počty ani pečeť balíčku; čtěte je s touto výhradou."
                 ),
-                title="Zjištění, která by dnešní kontrola tématu nepřijala",
+                title="Zjištění, která by dnešní pravidla nepřijala",
             )
         )
 
@@ -379,6 +424,18 @@ def literature_sections(
                     synthetic=False,
                 )
             )
+            thesis = theses.get(e.evidence_id)
+            if thesis is not None:
+                blocks.append(
+                    Paragraph(
+                        text(
+                            f"Dnešní pravidla typů dokumentů ({DOCUMENT_RULES_VERSION}) by toto "
+                            f"zjištění nepřijala: {_QUARANTINE['student_thesis']} "
+                            f"({thesis.words}). Rešerše vznikla před nimi a zjištění přijala; "
+                            "uvedeno je beze změny."
+                        )
+                    )
+                )
             rejected_now = would_reject.get(e.evidence_id)
             if rejected_now is not None:
                 reason = (
@@ -431,7 +488,7 @@ def literature_sections(
                             TextCell(f"[{v['label']}] {v['title']}"),
                             TextCell(
                                 f"{v['host'] or 'bez webové adresy'}: "
-                                f"{_SOURCE_CLASS.get(str(v['class']), 'neurčený typ')}"
+                                f"{_source_type(str(v['class']), thesis=v['thesis'])}"
                             ),
                             TextCell(str(v["date"])),
                             TextCell(str(v["findings"])),
@@ -445,6 +502,7 @@ def literature_sections(
                         ", ".join(sorted({str(v["table"]) for v in sources.values()})),
                         tiers_approved,
                     )
+                    + _document_note(documents_typed)
                     + " Autora, metodu a vzorek zdroje AIA nezaznamenává; před srovnáním "
                     "s výsledky je ověřte ve zdroji.",
                 ),
@@ -553,6 +611,46 @@ def literature_sections(
         )
     )
     return (Section("Literární rešerše a externí kontext", tuple(blocks), id="literature"),)
+
+
+def _composed_type(evidence: EvidenceItem, snapshots: Mapping[str, SnapshotRef]) -> DocumentTyping:
+    """A web finding's source typed by today's document rules, by its title and the address the
+    chapter cites it by (a web finding's own is its page's final address, the one the merge
+    types). Client Knowledge is never typed: a person approved it as the client's own."""
+    if evidence.source_kind is not SourceKind.WEB_PAGE:
+        return DocumentTyping(DocumentType.UNDETERMINED)
+    snapshot = snapshots.get(evidence.source_ref)
+    url = evidence.source_url or (snapshot.final_url if snapshot else None)
+    return document_type(url, evidence.source_title)
+
+
+def _source_type(source_class: str, *, thesis: bool) -> str:
+    """What a source's domain says, and a student thesis typed at composition, in the one type
+    cell (a column of its own would narrow the date's). An academic host the document rules
+    leave undetermined may still hold one: they recognise declared registers, archives, path
+    segments and titles only."""
+    words = _SOURCE_CLASS.get(source_class, "neurčený typ")
+    if thesis:
+        return f"{words}; studentská kvalifikační práce (určeno při sestavení zprávy)"
+    if source_class == "ACADEMIC_INSTITUTION":
+        return f"{words} (může jít i o studentskou práci)"
+    return words
+
+
+def _document_note(typed_by: str | None) -> str:
+    """How the document type was decided: by the review's own merge, or only now, at
+    composition; neither reads the content, and neither excludes a thesis it does not
+    recognise."""
+    if typed_by is not None:
+        return (
+            f" Studentské kvalifikační práce rešerše odmítla podle pravidel {typed_by}, a to "
+            "jen podle adresy a názvu zdroje; práci, kterou tato pravidla nepoznají, nevylučuje."
+        )
+    return (
+        " Rešerše vznikla před pravidly typů dokumentů; studentské kvalifikační práce mezi "
+        f"jejími zdroji rozpoznávají až při sestavení zprávy pravidla {DOCUMENT_RULES_VERSION}, "
+        "a to jen podle adresy a názvu zdroje; práci, kterou nepoznají, nevylučují."
+    )
 
 
 def _relevance_sentence(topic_judged: bool) -> str:
@@ -851,8 +949,10 @@ def _compose(
             "analysis": [m.artifact_sha256 for m in modules],
             "sociomap": chapters.map_sha256,
             "bundle": provenance.evidence_bundle_artifact_sha256,
-            # The topic rules the chapter reads an older review by: a change composes afresh.
+            # The topic and document rules the chapter reads an older review by: a change of
+            # either composes afresh.
             "topicality": TOPICALITY_VERSION,
+            "documents": DOCUMENT_RULES_VERSION,
             "title": meta.title,
             "subtitle": meta.subtitle,
             "client": meta.client_name,
