@@ -2661,8 +2661,8 @@ export const cs = {
         review: {
           draft: "Stav: Koncept · verze {version} — soubor nese v zápatí „KONCEPT — NESCHVÁLENO“; po schválení ponese DOCX i PDF této verze „SCHVÁLENO“ s datem.",
           draftDocx: "Stav: Koncept · verze {version} — soubor nese v zápatí „KONCEPT — NESCHVÁLENO“; po schválení ponese DOCX této verze „SCHVÁLENO“ s datem.",
-          approved: "Schváleno {date} · verze {version} — DOCX i PDF této verze to nesou v zápatí",
-          approvedDocx: "Schváleno {date} · verze {version} — DOCX této verze to nese v zápatí",
+          approved: "Stav: Schváleno {date} · verze {version} — DOCX i PDF této verze to nesou v zápatí",
+          approvedDocx: "Stav: Schváleno {date} · verze {version} — DOCX této verze to nese v zápatí",
           older: "Schválení se zaznamená v AIA u tohoto uloženého souboru. Soubor se tím nemění a v zápatí dál nese „KONCEPT — NESCHVÁLENO“.",
           olderApproved: "Schválení je zaznamenané v AIA u tohoto uloženého souboru. Soubor se tím nezměnil a v zápatí dál nese „KONCEPT — NESCHVÁLENO“.",
           // The client report is the file the client receives: approving it signs it off for them.
@@ -2673,7 +2673,8 @@ export const cs = {
           notApproved: "neschváleno",
           pdfRendering: "PDF schválené verze se právě vytváří; zpráva je zatím k dispozici jako DOCX.",
           pdfNotRequested: "PDF schválené verze zatím nebylo vyžádáno.",
-          otherVersion: "Stažený soubor není koncept, který karta ukazuje (mezitím vznikl jiný). Obnovte stránku a stáhněte ho znovu.",
+          pdfNotRequestedDisabled: "PDF schválené verze nebylo vyžádáno: PDF jejího konceptu se nevytvořilo, protože toto nasazení PDF tehdy nevytvářelo; zpráva je k dispozici jako DOCX.",
+          otherVersion: "Stažený soubor není verze, kterou karta ukazuje (mezitím vznikla jiná). Obnovte stránku a stáhněte ho znovu.",
           otherState: "Stažený soubor nese jiný stav schválení, než karta ukazuje (mezitím se změnil). Obnovte stránku a stáhněte ho znovu.",
         },
       },
@@ -2760,7 +2761,9 @@ export const cs = {
         reportDownloading: "Stahuji…",
         reportDownloadPdf: "Stáhnout PDF",
         reportDownloadClient: "Stáhnout klientskou zprávu",
-        reportClientHint: "Klientská zpráva obsahuje jen čísla, která prošla pravidly pro klienta, každé označené jako modelované, a jen schválené mapy. Je to koncept: před předáním ji schvalte.",
+        reportClientHint: "Klientská zpráva obsahuje jen čísla, která prošla pravidly pro klienta, každé označené jako modelované, a jen schválené mapy.",
+        // Said only of a client report the card knows is a draft (its last download said so).
+        reportClientHintDraft: "Je to koncept: před předáním ji schvalte.",
         reportPdfFailed: "PDF se nepodařilo vytvořit; zpráva je k dispozici jako DOCX.",
         reportApprove: "Schválit pro interní použití",
         reportApproveClient: "Schválit k předání klientovi",

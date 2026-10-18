@@ -61,7 +61,7 @@ from ..domain.population import (
 )
 from ..domain.prompts import PromptPin
 from ..domain.question_outlook import QuestionOutlook, question_outlook
-from ..domain.report.review import ReviewMark, ReviewState
+from ..domain.report.review import ReviewMark
 from ..domain.research import phase_of, retryable
 from ..domain.research_agents import (
     HARNESS_VERSION,
@@ -110,6 +110,7 @@ from ..infrastructure.workflow_repository import (
 )
 from .analysis import MAX_REPAIRS
 from .population import child_binding, live_binding
+from .report_export import exports_stamped
 from .workflows import StartedRun, start_workflow
 
 __all__ = [
@@ -877,6 +878,9 @@ class ResearchRuns:
         ``mark`` is the version's review as the caller read it (``report_export.review_mark``):
         a draft's job renders the stored bytes, an approved version's its stamped export under
         the approved key; the worker reads the mark again and refuses a job whose mark moved.
+        An approved version stored before the stamp layout exports its stored bytes
+        (``report_export.exports_stamped``), so its job is asked under the draft's key, where
+        the rendering made while it was a draft already is its PDF.
 
         Asking again while a job for the same DOCX is queued, running or done returns that job;
         after one failed, was cancelled or stopped for recovery (no converter, a conversion that
@@ -894,8 +898,9 @@ class ResearchRuns:
             return None
         if (mark.artifact_id, mark.sha256) != (docx.artifact_id, docx.sha256):
             raise ValueError("the review mark names another version")
-        approved = mark.state is ReviewState.APPROVED
-        base = report_pdf_key(run_id, deep_research_run_id, docx.artifact_id, approved=approved)
+        base = report_pdf_key(
+            run_id, deep_research_run_id, docx.artifact_id, approved=exports_stamped(docx, mark)
+        )
         # The round is the newest job's, never a count of a capped listing: past 100 jobs the
         # count named an existing key, and asking again silently returned the failed job.
         newest = self._workflows().list_runs(

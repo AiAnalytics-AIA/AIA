@@ -35,12 +35,16 @@ const PDF_WHY: Record<ReportPdfState, string | null> = {
   RENDERING: "PDF se právě vytváří ze stejného konceptu jako DOCX.",
   READY: null,
   FAILED: "PDF se nepodařilo vytvořit; zpráva je k dispozici jako DOCX.",
-  INVALID: "Uložené PDF neodpovídá tomuto konceptu, a proto se nenabízí; zpráva je k dispozici jako DOCX.",
+  INVALID: "Uložené PDF neodpovídá této verzi zprávy, a proto se nenabízí; zpráva je k dispozici jako DOCX.",
 };
-/** A reason the server gives that changes what the person can do, in words. */
+/**
+ * A reason the server gives that changes what the person can do, in words. ``pdf_disabled`` says
+ * what AIA checked: the worker rendered nothing when it was asked -- never that it still renders
+ * nothing, which AIA does not know once an operator may have turned the converter on.
+ */
 const PDF_REASON: Record<string, string> = {
   study_closed: "Studie je uzavřená, a proto se PDF nevytváří; zpráva je k dispozici jako DOCX.",
-  pdf_disabled: "PDF není v tomto nasazení zapnuté; zpráva je k dispozici jako DOCX.",
+  pdf_disabled: "PDF se nevytvořilo, protože toto nasazení PDF tehdy nevytvářelo; zpráva je k dispozici jako DOCX.",
   pdf_corrupt: "Uložené PDF je poškozené, a proto se nenabízí; zpráva je k dispozici jako DOCX.",
   pdf_missing: "Uložené PDF chybí, a proto se nenabízí; zpráva je k dispozici jako DOCX.",
 };
@@ -49,6 +53,13 @@ const PDF_REASON: Record<string, string> = {
 const APPROVED_PDF_WHY: Partial<Record<ReportPdfState, string>> = {
   NOT_REQUESTED: "research.exec.report.review.pdfNotRequested",
   RENDERING: "research.exec.report.review.pdfRendering",
+};
+/**
+ * Why an approved version's PDF was never asked for, when the server says: nothing was asked
+ * because its draft's own PDF was refused (``pdf_disabled``), said of the draft.
+ */
+const APPROVED_NOT_REQUESTED_REASON: Record<string, string> = {
+  pdf_disabled: "research.exec.report.review.pdfNotRequestedDisabled",
 };
 
 /**
@@ -60,8 +71,12 @@ export function pdfWhy(pdf: ReportPdf | null | undefined, approved = false): str
   if (!pdf) return "Tento běh PDF nevytvořil.";
   if (pdf.state === "READY") return null;
   const approvedWords = approved ? APPROVED_PDF_WHY[pdf.state] : undefined;
+  const approvedReason = approved && pdf.state === "NOT_REQUESTED" && pdf.reason
+    ? APPROVED_NOT_REQUESTED_REASON[pdf.reason]
+    : undefined;
   // A state this page does not know is never offered as a download.
-  const words = (pdf.reason ? PDF_REASON[pdf.reason] : undefined)
+  const words = (approvedReason ? t(approvedReason) : undefined)
+    ?? (pdf.reason ? PDF_REASON[pdf.reason] : undefined)
     ?? (approvedWords ? t(approvedWords) : undefined)
     ?? (pdf.state in PDF_WHY ? PDF_WHY[pdf.state] : "Stav PDF nelze přečíst; zpráva je k dispozici jako DOCX.");
   // "Znovu" only for a PDF that was asked for before: one never asked for is made the first time.

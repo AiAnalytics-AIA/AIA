@@ -73,6 +73,7 @@ from aia_core.domain.evidence import AdmittedClaim, ClaimSurface, ViolationCode
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.pipeline import ProjectType
 from aia_core.domain.report.model import Callout
+from aia_core.domain.report.review import REVIEW_STAMP_CONTRACT
 from aia_core.domain.residency import DataClass
 from aia_core.domain.sociomap import SociomapArtifactV3, read_artifact
 from aia_core.domain.workflow import (
@@ -783,6 +784,10 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
     assert report.metadata["run_id"] == started.run_id
     assert report.metadata["review_state"] == "DRAFT_UNAPPROVED"
     assert report.metadata["synthetic"] is True and report.is_approved is False
+    # The step tried the stamp on the bytes it stored and recorded that it takes them: a
+    # template change the stamp refuses would leave every approved report unstamped, every
+    # path "correct" (cross-review of the stamp record).
+    assert report.metadata.get("review_stamp") == REVIEW_STAMP_CONTRACT
     assert {dep.artifact_id for dep in dependencies} == {
         *[steps[analysis_node_key(module)]["output"]["artifact_id"] for module in AnalysisModuleId],
         steps["sociomap"]["output"]["artifact_id"],
@@ -922,6 +927,8 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
                 assert again.artifact_id == stored.artifact_id and not stored.is_approved
                 assert stored.metadata["review_state"] == "DRAFT_UNAPPROVED"
                 assert stored.metadata["deep_research_run_id"] == interpreted.run_id
+                # The literature chapter is stampable too, as stored_contextual_report recorded.
+                assert stored.metadata.get("review_stamp") == REVIEW_STAMP_CONTRACT
                 # A newer draft of the same pair (the study renamed and prepared again), then the
                 # first sources once more: prepare stores its draft again so the draft it asks a
                 # PDF for is the one every read names (review 2: they were two drafts).
