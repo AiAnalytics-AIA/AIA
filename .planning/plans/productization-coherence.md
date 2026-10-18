@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] PC1. A closed study reads as closed: the frame says delivered / archived / cancelled, editors and work actions are read-only with the reason, downloads and approval stay, and every refusal is study_closed in Czech"
-  - "[ ] PC2. Results read the run's own verdicts: an answer to a research question the run recorded as a gap is marked as in the report, and a number the analysis refuses says so beside it"
+  - "[x] PC2. Results read the run's own verdicts: an answer to a research question the run recorded as a gap is marked as in the report, and a number the analysis refuses says so beside it"
   - "[x] PC3. A run's analysis stays repairable after a harness change: a module completed under an earlier harness is asked again over the frozen data, never a paid fieldwork re-run"
   - "[x] PC4. Work that waits for a person can go on: a run, Deep Research run or client-source proposals parked for the AI runtime resumes on a person's action once it is on, an agent job or Deep Research run stopped at the budget cap is lifted like a research run's step, and no copy promises it continues by itself"
   - "[ ] PC5. The stage track follows the run (done), and says when the design changed after the run it shows"
@@ -97,6 +97,45 @@ old track), stops reading once nothing can change, keeps reading a provider wait
 **Second half, open.** The track also calls Spuštění "done" and Výsledky "Revize N" when the design
 has changed since that run; saying "the design changed after this run" needs the working content's
 revision beside the run's (see the findings ledger, F-design-lane), not a browser guess.
+
+## PC2 — Results say what the run and the analysis already decided
+
+**Problem.** Two verdicts every governed surface applies were missing on Results, so the screen
+contradicted the report and the analysis below it.
+
+- *An answer to a research question the run recorded as a gap.* The run records its answerability at
+  start whether or not the gate is on (`application/research.py:404-417, 597-626 @ 20b24bb`); the
+  internal report marks every answer to such a question ("Při spuštění běh zaznamenal: …",
+  `application/report.py:168-175, 350-365`). `GET …/analysis` returned each answer as question, answer
+  and claims only (`routers/research.py:1583-1592`), and Results printed it unmarked
+  (`ExecutionSteps.tsx:1668`): an answer the run itself said it could not support read as measured.
+- *A number the aggregate's own rating refuses.* The aggregate stores each question's fidelity rating,
+  REFUSE for an absolute willingness to pay or market size (`domain/research_aggregate.py:279-293,
+  711`); the analysis drops every row of such a question (`domain/analysis/native.py:277-283, 372`),
+  the report prints only admitted cells and the Run stage's outlook says beforehand that nothing will
+  cite it. Results' Data card read only `support_status` and badged the number "Podložené v rámci
+  běhu" (`ExecutionSteps.tsx:1699-1703, 1845-1854`), with no sign of the refusal.
+
+**Change.** The analysis route projects, per answer, `gap`: the run's recorded words for that
+question (`report_method.research_question_gap`, the report's own match), and Results shows them
+above the answer in the report's words. The Data card reads the rating the aggregate stored beside the
+number (`fidelityRefusal`) and, for REFUSE, says "Analýza ani zpráva toto číslo necitují: …" with the
+stored reason. Both are read from what was stored; nothing is recomputed in the browser.
+
+**Invariants kept.** No evidence rule moves; the number is still shown (whether a refused number
+should be hidden on Results, as in the report, is the owner's call). Only an explicit REFUSE is
+named; a missing rating, which the analysis also refuses, is not guessed at on the card.
+
+**Tests.** The executor journey (`test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs`)
+now reads `run_analysis` and checks every answer to a recorded gap carries the report's words
+(fails on the old route: no `gap`); `test_each_recorded_gap_is_worded_for_the_answer_it_qualifies`
+covers the match; web: "marks an answer to a research question the run recorded as a gap…", "says
+beside a number the analysis and report never cite that they do not…", `fidelityRefusal`.
+
+**Not changed.** The analysis-support exclusion (`support_analysis_excluded`: shown on Results by
+design, not citable by the analysis) is not yet named on the card; it needs the API to project the
+analysis-support decision per measure rather than the browser re-deriving it (analysis audit,
+`interval-order-rule-browser-only` is the same shape and stays open).
 
 ## PC3 — an analysis an earlier harness built stays repairable
 

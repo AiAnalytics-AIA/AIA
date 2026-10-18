@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { QuestionOutlook, ResearchRun, ResearchStep } from "@/lib/api";
-import { aggregateDeviation, hasUnknownOrigin, isModelled, isSynthetic, mayRetryAnalysis, MODELLED_DISCLOSURE, needsRepair, originKind, outlookByVerdict, traceMeasures, outlookCounts, outlookFixStep, outlookReason, resultOriginKind, stepOriginKind, parkedForRuntime, phaseTone, populationNote, reportHolds, respondentReceipt, resultTable, pollMs, shouldPoll, storedPlaces, UNIT_PLACES, stepLabel, stepStatusLabel, stepTone, supportNote, topBoxWidth, verdictTone, waitingDetail } from "./research-execution";
+import { aggregateDeviation, fidelityRefusal, hasUnknownOrigin, isModelled, isSynthetic, mayRetryAnalysis, MODELLED_DISCLOSURE, needsRepair, originKind, outlookByVerdict, traceMeasures, outlookCounts, outlookFixStep, outlookReason, resultOriginKind, stepOriginKind, parkedForRuntime, phaseTone, populationNote, reportHolds, respondentReceipt, resultTable, pollMs, shouldPoll, storedPlaces, UNIT_PLACES, stepLabel, stepStatusLabel, stepTone, supportNote, topBoxWidth, verdictTone, waitingDetail } from "./research-execution";
 
 const run = (extra: Partial<ResearchRun>): ResearchRun =>
   ({ phase: "RUNNING", is_terminal: false, steps: [], fieldwork_source: "ai_runtime", ...extra }) as ResearchRun;
@@ -320,5 +320,16 @@ describe("respondentReceipt (run-recovery-and-truth 5b)", () => {
   it("names a mismatch, and an unknown origin is never a match", () => {
     expect(respondentReceipt({ persona_source: "panel", steps: [fieldwork("SYNTHETIC_AI_FICTIONAL")] }).mismatch).toBe(true);
     expect(respondentReceipt({ persona_source: "fictional_roster", steps: [fieldwork("SOMETHING_NEW")] })).toEqual({ pinned: "fictional_roster", observed: "UNKNOWN", mismatch: true });
+  });
+});
+
+describe("fidelityRefusal (PC2)", () => {
+  const q = (evidence: unknown) => ({ typ: "vyber", support_status: "REPORTABLE", n_platnych: 1, n_unique_layer_donors: 1, effective_n: 1, evidence }) as unknown as Parameters<typeof fidelityRefusal>[0];
+  it("reads the rating the aggregate stored: REFUSE with its reason, nothing for any other or none", () => {
+    expect(fidelityRefusal(q({ mode: "REFUSE", rating: "RED", reason: "Absolutní WTP." }))).toBe("Absolutní WTP.");
+    expect(fidelityRefusal(q({ mode: "REFUSE" }))).toBe("");
+    expect(fidelityRefusal(q({ mode: "JUST_SHOW", reason: "x" }))).toBeNull();
+    expect(fidelityRefusal(q(undefined))).toBeNull();
+    expect(fidelityRefusal(q("REFUSE"))).toBeNull();
   });
 });

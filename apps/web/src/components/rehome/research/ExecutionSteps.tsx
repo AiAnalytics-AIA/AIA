@@ -47,6 +47,7 @@ import {
   hasUnknownOrigin,
   isModelled,
   isSynthetic,
+  fidelityRefusal,
   mayRetryAnalysis,
   outlookByVerdict,
   outlookCounts,
@@ -1626,7 +1627,7 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
               </> : selected?.outcome === "COMPLETED" ? <>
                 {selected.summary ? <FormattedText text={selected.summary} className="mt-3" /> : null}
                 {selected.research_question_answers.length ? <div className="mt-5 space-y-4"><h4 className="text-sm font-semibold">Odpovědi na výzkumné otázky</h4>
-                  {selected.research_question_answers.map((answer, index) => <div key={index} className="rounded-md bg-surface-sunken p-3"><h5 className="text-sm font-medium">{answer.question}</h5><FormattedText text={answer.answer} className="mt-1" /><CitedNumbers ids={answer.claim_ids} outcome={selected} spec={spec} /></div>)}
+                  {selected.research_question_answers.map((answer, index) => <div key={index} className="rounded-md bg-surface-sunken p-3"><h5 className="text-sm font-medium">{answer.question}</h5>{answer.gap ? <p role="note" data-answer-gap className="mt-1 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-sm">{tv("research.exec.results.answerGap", { words: answer.gap })}</p> : null}<FormattedText text={answer.answer} className="mt-1" /><CitedNumbers ids={answer.claim_ids} outcome={selected} spec={spec} /></div>)}
                 </div> : null}
                 {selected.key_findings.length ? <div className="mt-5"><h4 className="text-sm font-semibold">Hlavní zjištění</h4><ul className="mt-2 flex flex-col gap-3">{selected.key_findings.map((finding, index) => <li key={index} className="border-l-2 border-signal pl-3"><FormattedText text={finding.text} /><CitedNumbers ids={finding.claim_ids} outcome={selected} spec={spec} /></li>)}</ul></div> : null}
                 {!selected.summary && !selected.research_question_answers.length && !selected.key_findings.length ? <p className="mt-3 text-sm text-ink-muted">Tato část nemá textový souhrn.</p> : null}
@@ -1814,6 +1815,7 @@ function AggregateView({ artifact, run, specification }: { artifact: Artifact; r
               <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${measure.table.suppressed ? "bg-status-fault-wash text-status-fault" : measure.table.support === "INDICATIVE" ? "bg-status-you-wash text-status-you-ink" : "bg-signal-wash text-signal"}`}>{supportLabel(measure.table.support)}</span>
             </div>
             <p className="mt-2 text-xs text-ink-muted">{supportNote(measure.table)}</p>
+            <FidelityRefusal reason={fidelityRefusal(measure.result)} />
             <details className="mt-3 border-t border-border pt-3 text-sm" open={focused === anchor ? true : undefined}>
               <summary className="cursor-pointer font-medium">Odpovědi, intervaly a původ otázky</summary>
               <div className="mt-3"><Table table={measure.table} showSupportNote={false} /></div>
@@ -1824,6 +1826,16 @@ function AggregateView({ artifact, run, specification }: { artifact: Artifact; r
       </div>
       <details className="text-xs text-ink-muted"><summary className="cursor-pointer">Původ agregace</summary><Provenance artifact={artifact} run={run} /></details>
     </div>
+  );
+}
+
+/** A number the aggregate's stored rating refuses: shown, and said that nothing governed cites it. */
+function FidelityRefusal({ reason }: { reason: string | null }) {
+  if (reason === null) return null;
+  return (
+    <p role="note" data-fidelity-refused className="mt-2 rounded-sm border border-status-fault/40 bg-status-fault-wash p-2 text-sm">
+      {reason ? tv("research.exec.results.fidelityRefused", { reason }) : t("research.exec.results.fidelityRefusedBare")}
+    </p>
   );
 }
 

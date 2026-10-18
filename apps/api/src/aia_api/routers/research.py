@@ -37,6 +37,7 @@ from aia_core.application.report import (
     ReportCompositionRefused,
 )
 from aia_core.application.report_approval import ReportNotApprovable, approve_report
+from aia_core.application.report_method import research_question_gap, research_question_gaps
 from aia_core.application.report_variants import (
     PdfState,
     VariantState,
@@ -1607,10 +1608,15 @@ def run_artifact(
 def run_analysis(
     run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
 ) -> dict[str, Any]:
-    """Recheck stored outcomes against the frozen sources before showing prose."""
+    """Recheck stored outcomes against the frozen sources before showing prose.
+
+    Each answer to a research question carries ``gap``: what the run recorded at start about that
+    question when it recorded it as a gap (its verdict and why), else ``None`` -- the same words
+    the internal report prints beside it, so Results never reads such an answer as measured."""
     try:
         scope.require(Permission.EDIT_STUDY)
         analysis = reconstruct_run(session, scope, store, run_id=run_id)
+        gaps = research_question_gaps(ResearchRuns(session, scope).get(run_id)["metadata"])
     except ScopeDenied as exc:
         raise _refused(exc) from exc
     except ReconstructionRefused as exc:
@@ -1644,6 +1650,7 @@ def run_analysis(
                         "question": answer.question,
                         "answer": answer.answer,
                         "claim_ids": answer.claim_ids,
+                        "gap": research_question_gap(gaps, answer.question),
                     }
                     for answer in outcome.result.research_question_answers
                 ]

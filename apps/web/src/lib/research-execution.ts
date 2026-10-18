@@ -339,6 +339,18 @@ export function topBoxWidth(deviation: AggregateDeviation | null): number {
 
 /** One question's aggregate as rows. A suppressed cell has rows but no values. `topBox` is how
  *  many top points its top box holds (2 unless the aggregate's methodology changed it). */
+/**
+ * Why the analysis and the report never cite this measure's number, from the rating the aggregate
+ * stored beside it (18.6.6's fidelity rating: REFUSE for an absolute willingness to pay or market
+ * size; domain/analysis/native.py _fidelity_refusal reads the same field), or null when the rating
+ * does not refuse it. Read, never recomputed: the browser only says what was stored (PC2).
+ */
+export function fidelityRefusal(result: QuestionResult): string | null {
+  const rating = result.evidence as { mode?: unknown; reason?: unknown } | null | undefined;
+  if (!rating || typeof rating !== "object" || rating.mode !== "REFUSE") return null;
+  return typeof rating.reason === "string" ? rating.reason : "";
+}
+
 export function resultTable(id: string, result: QuestionResult, topBox = 2, at: StoredPlaces = UNIT_PLACES): ResultTable {
   const suppressed = result.support_status === "SUPPRESS";
   const hide = (value: string | null) => (suppressed ? null : value);

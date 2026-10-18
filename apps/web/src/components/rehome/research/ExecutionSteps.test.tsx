@@ -1423,6 +1423,27 @@ describe("Results", () => {
     expect(screen.queryByText(/harness no longer match/)).toBeNull();
   });
 
+  it("marks an answer to a research question the run recorded as a gap, as the report does (PC2)", async () => {
+    const words = "běh na ni odpovědět nemohl (měří ji jen otázky, na které běh neodpoví)";
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6", analysis_outcome: "COMPLETED" }),
+    ] });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: {}, modules: {
+        executive: { outcome: "COMPLETED", summary: null, key_findings: [], claims: [], violations: [], research_question_answers: [
+          { question: "Kdo pije kávu?", answer: "Hlavně ráno.", claim_ids: [], gap: words },
+          { question: "Co lidé pijí?", answer: "Čaj a kávu.", claim_ids: [], gap: null },
+        ] },
+      } }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const marked = await screen.findByText(tv("research.exec.results.answerGap", { words }));
+    expect(marked.closest("div")?.textContent).toContain("Kdo pije kávu?");
+    expect(document.querySelectorAll("[data-answer-gap]")).toHaveLength(1);
+  });
+
   it("puts every module's key findings first, each with the numbers it cites, and keeps every word formatted", async () => {
     const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
       step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6" }),
@@ -1507,6 +1528,21 @@ describe("Results", () => {
     expect(within(note).getByText("Odchylka od 18.6.6")).toBeTruthy();
     expect(within(note).getByText("top_box: 2 v 18.6.6, zde 1")).toBeTruthy();
     expect(within(note).getByText("Nahrazený vzorec: agg.kish")).toBeTruthy();
+  });
+
+  it("says beside a number the analysis and report never cite that they do not, from the rating the aggregate stored (PC2)", async () => {
+    const reason = "Absolutní WTP/velikost trhu není validovaný claim.";
+    const rated = { ...AGGREGATE, payload: { aggregate: { ...AGGREGATE.payload.aggregate, questions: {
+      q2: { ...AGGREGATE.payload.aggregate.questions.q2, evidence: { rating: "RED", mode: "REFUSE", question_type: "absolute_value", reason } },
+      t1: { ...AGGREGATE.payload.aggregate.questions.t1, evidence: { rating: "AMBER", mode: "JUST_SHOW", question_type: "rating_scale", reason: "Bez holdoutu." } },
+    } } } };
+    api({ ...listed(COMPLETED), "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => rated });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
+    const q2 = await findMeasure("q2");
+    expect(within(q2).getByText(tv("research.exec.results.fidelityRefused", { reason }))).toBeTruthy();
+    const t1 = await findMeasure("t1");
+    expect(t1.querySelector("[data-fidelity-refused]")).toBeNull();
   });
 
   it("shows a fictional run's aggregates labelled as fiction, hides a suppressed cell, keeps the Sociomap internal", async () => {

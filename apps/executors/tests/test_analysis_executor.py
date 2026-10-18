@@ -800,6 +800,16 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
     assert "bez doložené odpovědi, viz kapitola Respondenti a výpočet" in body
     assert body.count("Bez doložené odpovědi") == len(recorded)
     assert "Ani tuto odpověď nečtěte jako doloženou" in body
+    # Results reads the same record (PC2): the analysis route marks every answer to a gap, in
+    # the words the report prints, so the screen never reads one as measured.
+    from aia_api.routers.research import run_analysis
+
+    with world.sessions() as session:
+        shown = run_analysis(started.run_id, world.lead_scope(session), session, store)
+    answers = [a for m in shown["modules"].values() for a in m["research_question_answers"]]
+    gapped = {" ".join(str(g["research_question"]).split()) for g in recorded}
+    to_gaps = [a for a in answers if " ".join(a["question"].split()) in gapped]
+    assert to_gaps and all(a["gap"] and a["gap"] in body for a in to_gaps)
     record_property("report_artifact_id", report_id)
     record_property("report_sha256", report.sha256)
     record_property("report_review_state", report.metadata["review_state"])

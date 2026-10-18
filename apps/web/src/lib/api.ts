@@ -1099,7 +1099,8 @@ export type ResearchAnalysis = {
     outcome: "COMPLETED" | "BLOCKED";
     artifact_id: string;
     summary: string | null;
-    research_question_answers: { question: string; answer: string; claim_ids: string[] }[];
+    /** `gap`: what the run recorded at start about the question when it recorded it as a gap, in words; null or absent: none. */
+    research_question_answers: { question: string; answer: string; claim_ids: string[]; gap?: string | null }[];
     key_findings: { text: string; claim_ids: string[] }[];
     claims: { claim_id: string; evidence_ref: string; value: number; decimals?: number; indicative: boolean; data_origin: string | null }[];
     violations: { code: string; subject: string; detail: string }[];

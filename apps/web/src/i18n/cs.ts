@@ -2684,6 +2684,9 @@ export const cs = {
       noResults: "Výsledky zatím nejsou.",
       noResultsParked: "Výsledky nevzniknou, dokud běh čeká u sběru dat.",
       results: {
+        answerGap: "Při spuštění běh zaznamenal: {words}. Odpověď proto čtěte jako nedoloženou, stejně jako ve zprávě.",
+        fidelityRefused: "Analýza ani zpráva toto číslo necitují: {reason}",
+        fidelityRefusedBare: "Analýza ani zpráva toto číslo necitují.",
         analysisStale:
           "Analýzu tohoto běhu sestavila starší verze AIA a dnešní ji nemůže znovu ověřit, proto se nezobrazí. Sebraná data platí: analýzu lze nechat sestavit znovu nad týmiž odpověďmi, bez nového sběru.",
         analysisStaleRepair: "Opravit analýzu na Průběhu",
