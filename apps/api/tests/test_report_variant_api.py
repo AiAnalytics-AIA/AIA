@@ -9,18 +9,34 @@ journey covers (test_analysis_executor.py).
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 from aia_core.application.contextual_report import (
     CONTEXT_REPORT_ARTIFACT_TYPE,
     CONTEXT_REPORT_CONTRACT,
 )
+from aia_core.application.report import INTERNAL_REPORT_PDF_ARTIFACT_TYPE
+from aia_core.application.report_export import REVIEW_STAMP_RECORD
 from aia_core.application.research import ResearchRuns, report_pdf_key, research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+from aia_core.domain.evidence import ClaimSurface
+from aia_core.domain.evidence.validation import METHOD_STATUS_PENDING
+from aia_core.domain.report.evidence import EvidenceLedger
+from aia_core.domain.report.model import (
+    Classification,
+    Paragraph,
+    ReportDocument,
+    ReportKind,
+    ReportMeta,
+    Section,
+    text,
+)
 from aia_core.domain.report.review import ReviewMark, ReviewState
 from aia_core.domain.scope import StudyStatus
-from aia_core.domain.workflow_templates import REPORT_PDF
+from aia_core.domain.workflow_templates import REPORT_PDF, REPORT_PDF_STEP_KIND
 from aia_core.infrastructure.db import create_session_factory
+from aia_core.infrastructure.report_docx.renderer import DocxRenderer
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.tables import WorkflowRunRow
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
@@ -62,10 +78,13 @@ def _prepared(
     *,
     ask_pdf: bool = True,
     contract: str = CONTEXT_REPORT_CONTRACT,
+    stampable: bool = False,
 ) -> tuple[str, str]:
     """A run, and the variant's draft stored and (``ask_pdf``) its PDF asked for, as the
     prepare does; without it, as a draft whose PDF nobody asked for yet. ``contract``: the
-    composition contract the draft was stored under."""
+    composition contract the draft was stored under. ``stampable``: a real report laid out
+    with its status in its footers, recorded so (D2); else fictional bytes, which a version
+    stored before that layout stands for."""
     made = researcher.post(
         f"{_study(world)}/design/revisions", json={"content": DESIGN, "source_stage": "run"}
     )
@@ -85,13 +104,14 @@ def _prepared(
             revision=made.json()["revision"],
             stage_type="REPORT",
             artifact_type=CONTEXT_REPORT_ARTIFACT_TYPE,
-            data=b"PK fictional draft with literature",
+            data=_rendered() if stampable else b"PK fictional draft with literature",
             input_fingerprint="fictional",
             metadata={
                 "run_id": run_id,
                 "deep_research_run_id": REVIEW,
                 "report_kind": "internal",
                 "report_contract": contract,
+                **(REVIEW_STAMP_RECORD if stampable else {}),
             },
         )
         if ask_pdf:
@@ -103,6 +123,30 @@ def _prepared(
             )
         session.commit()
     return run_id, docx.artifact_id
+
+
+_RENDERED: list[bytes] = []
+
+
+def _rendered() -> bytes:
+    """A real report with literature as the renderer lays it out, rendered once."""
+    if not _RENDERED:
+        meta = ReportMeta(
+            ReportKind.INTERNAL,
+            "Interní analytická zpráva",
+            "Fiktivní data",
+            "Fiktivní klient",
+            "Fiktivní studie",
+            "STU-1",
+            date(2026, 10, 18),
+            1,
+            METHOD_STATUS_PENDING,
+            classification=Classification.INTERNAL,
+        )
+        ledger = EvidenceLedger.from_claims([], surface=ClaimSurface.INTERNAL)
+        section = Section("Literatura", (Paragraph(text("Fiktivní rešerše.")),))
+        _RENDERED.append(DocxRenderer().render(ReportDocument(meta, (section,), ledger)))
+    return _RENDERED[0]
 
 
 def _jobs(app: FastAPI) -> int:
@@ -377,8 +421,9 @@ def test_approving_a_prepared_variant_asks_for_its_approved_pdf_under_its_review
 ) -> None:
     """Review 4 of D2: approving a variant asks for its approved PDF under the review's own key
     (the variant's ``deep_research_run_id``); asked under the base report's key, the variant's
-    status would read NOT_REQUESTED for ever, and no test said so."""
-    run_id, artifact_id = _prepared(app, researcher, world)
+    status would read NOT_REQUESTED for ever, and no test said so. A version whose approved
+    export is stamped: one that exports its stored bytes asks for nothing new (the next test)."""
+    run_id, artifact_id = _prepared(app, researcher, world, stampable=True)
     approved = researcher.post(
         f"{_study(world)}/research/runs/{run_id}/report/approve",
         json={"artifact_id": artifact_id, "note": ""},
@@ -408,3 +453,67 @@ def test_approving_a_prepared_variant_asks_for_its_approved_pdf_under_its_review
     assert len(asked) == 1
     assert asked[0]["metadata"]["deep_research_run_id"] == REVIEW
     assert asked[0]["metadata"]["review_state"] == "APPROVED_INTERNAL"
+
+
+def _render_pdfs(app: FastAPI, world: Any) -> list[str]:
+    """The worker's part, stood in for: every waiting PDF job renders the DOCX its payload
+    names and stores the rendering the way the report_pdf step stores one; returns the PDFs."""
+    made: list[str] = []
+    with create_session_factory(app.state.engine)() as session:
+        scope = _scope(session, world)
+        workflow = WorkflowRepository(session, scope)
+        repo = research_artifacts(session, scope, app.state.artifact_store)
+        while work := workflow.claim_next(worker_id="pdf-fixture", kinds={REPORT_PDF_STEP_KIND}):
+            docx = repo.get(str(work.payload["docx_artifact_id"]))
+            pdf, _ = repo.put(
+                project_id=work.project_id,
+                revision=work.project_revision,
+                stage_type="REPORT",
+                artifact_type=INTERNAL_REPORT_PDF_ARTIFACT_TYPE,
+                data=b"%PDF-1.7 rendering of " + docx.sha256.encode(),
+                content_type="application/pdf",
+                input_fingerprint=f"pdf-fixture-{work.attempt_id}",
+                metadata={
+                    "run_id": work.payload["run_id"],
+                    "deep_research_run_id": work.payload["deep_research_run_id"],
+                    "rendering_of": docx.artifact_id,
+                },
+                depends_on=[docx.artifact_id],
+            )
+            workflow.complete_attempt(
+                work.attempt_id,
+                worker_id="pdf-fixture",
+                output={"state": "READY", "artifact_id": pdf.artifact_id},
+            )
+            made.append(pdf.artifact_id)
+        session.commit()
+    return made
+
+
+def test_an_older_variant_approved_keeps_its_drafts_pdf_on_a_closed_study(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """Cross-review interactions#4 / web#3: a variant stored before the stamp layout exports
+    its stored bytes once approved, so the PDF rendered from them while it was a draft is its
+    approved PDF -- served on a closed study too, and never asked for again."""
+    run_id, artifact_id = _prepared(app, researcher, world)
+    (pdf_id,) = _render_pdfs(app, world)
+    approved = researcher.post(
+        f"{_study(world)}/research/runs/{run_id}/report/approve",
+        json={"artifact_id": artifact_id, "note": ""},
+    )
+    assert approved.status_code == 200 and approved.json()["stamped"] is False
+    with create_session_factory(app.state.engine)() as session:
+        ScopeRepository(session).set_study_status(_scope(session, world), StudyStatus.DELIVERED)
+        session.commit()
+    before = _jobs(app)
+    base = f"{_study(world)}/research/runs/{run_id}/report/context"
+    params = {"deep_research_run_id": REVIEW}
+    body = researcher.get(base, params=params).json()
+    assert body["review_state"] == "APPROVED_INTERNAL" and body["stamped"] is False
+    assert body["pdf"]["state"] == "READY" and body["pdf"]["artifact_id"] == pdf_id
+    pdf = researcher.get(f"{base}/pdf/download", params=params)
+    assert pdf.status_code == 200, pdf.text
+    assert pdf.headers["X-AIA-Artifact-Id"] == artifact_id
+    assert pdf.headers["X-AIA-Review-State"] == "APPROVED_INTERNAL"
+    assert _jobs(app) == before

@@ -17,7 +17,11 @@ still prepares and downloads its DOCX.
 
 Once a person approves a version (D2), its PDF is the rendering of its approved export -- the
 stamped DOCX -- asked for under a job key of its own (``report_pdf_key(approved=True)``); the
-draft's PDF is never served for it.
+draft's PDF is never served for it. A version stored before the stamp layout exports its stored
+bytes once approved (``report_export.exports_stamped``), so the PDF rendered from those bytes
+while it was a draft -- the report step's, or one a person asked for -- is its approved PDF:
+served as it is, and never asked for again (cross-review interactions#4: refusing it lost the
+PDF of every report approved before this release, for good on a closed Study).
 """
 
 from __future__ import annotations
@@ -41,7 +45,7 @@ from .contextual_report import (
     prepared_drafts,
 )
 from .report import INTERNAL_REPORT_ARTIFACT_TYPE, INTERNAL_REPORT_PDF_ARTIFACT_TYPE
-from .report_export import review_mark
+from .report_export import exports_stamped, review_mark, stampable
 from .research import ResearchRuns, report_pdf_key, research_artifacts
 
 __all__ = [
@@ -122,10 +126,12 @@ def _judged(scope: StudyContext, state: PdfState, **kw: Any) -> VariantPdf:
 
 def approval_asks_pdf(scope: StudyContext, docx: Artifact) -> bool:
     """Whether approving ``docx`` asks the worker for its approved version's PDF
-    (``report_approval.approve_report``): a report the worker renders, on a Study that still
-    starts work, approved by someone who may start it."""
+    (``report_approval.approve_report``): a report the worker renders whose approved export is
+    stamped (one that exports its stored bytes keeps its draft's rendering), on a Study that
+    still starts work, approved by someone who may start it."""
     return (
         docx.artifact_type in RENDERABLE_REPORTS
+        and stampable(docx)
         and scope.study_status.accepts_work
         and scope.has(Permission.RUN_WORKFLOW)
     )
@@ -138,9 +144,14 @@ def approval_renders_pdf(
     as AIA knows: the approval asks for one (:func:`approval_asks_pdf`) and this draft's own
     PDF is ready (``pdf_ready``), so this deployment converts. A closed Study, a
     deployment that rendered none, a PDF still being made or one that failed is no promise:
-    whether a PDF will be made is then unknown, never a yes (D2, review 4). False once approved:
-    approving again asks nothing."""
-    return mark.state is ReviewState.DRAFT and approval_asks_pdf(scope, docx) and pdf_ready
+    whether a PDF will be made is then unknown, never a yes (D2, review 4). A version whose
+    approved export is its stored bytes keeps that ready PDF, closed Study or not. False once
+    approved: approving again asks nothing."""
+    return (
+        mark.state is ReviewState.DRAFT
+        and pdf_ready
+        and (not stampable(docx) or approval_asks_pdf(scope, docx))
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -184,16 +195,15 @@ def variant_pdf(
 ) -> VariantPdf:
     """The PDF rendered from exactly ``docx`` by its newest job, verified as its rendering: of
     its stored bytes while it is a draft, of its approved export once it is approved (never the
-    draft's). Raises ``report_export.ReviewUnrecorded`` for an approval without its ledger row."""
+    draft's, when the two differ: ``report_export.exports_stamped``). Raises
+    ``report_export.ReviewUnrecorded`` for an approval without its ledger row."""
     mark = review_mark(research_artifacts(session, scope, store), docx)
-    approved = mark.state is ReviewState.APPROVED
+    stamped = exports_stamped(docx, mark)
     workflows = WorkflowRepository(session, scope)
     jobs = workflows.list_runs(
         project_id=docx.project_id,
         workflow_type=REPORT_PDF,
-        key_prefix=report_pdf_key(
-            run_id, deep_research_run_id, docx.artifact_id, approved=approved
-        ),
+        key_prefix=report_pdf_key(run_id, deep_research_run_id, docx.artifact_id, approved=stamped),
         limit=1,
     )
     if not jobs:
@@ -209,7 +219,7 @@ def variant_pdf(
         if (
             pdf.artifact_type != INTERNAL_REPORT_PDF_ARTIFACT_TYPE
             or pdf.metadata.get("rendering_of") != docx.artifact_id
-            or (approved and not _approved_rendering(pdf, mark))
+            or (stamped and not _approved_rendering(pdf, mark))
         ):
             return _judged(scope, PdfState.INVALID, reason="pdf_not_this_report")
         if pdf.status is not ArtifactStatus.VALID:

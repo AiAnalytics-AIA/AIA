@@ -671,8 +671,10 @@ def test_a_person_approves_a_runs_stored_report_once_and_only_that(
     status_ = researcher.get(url).json()
     assert status_["review_state"] == "APPROVED_INTERNAL"
     assert status_["approved_on"] in {before, _prague_today()}
-    # D2: approving asks for the approved version's PDF; its fictional bytes take no stamp.
-    assert status_["pdf"]["state"] == "RENDERING" and status_["stamped"] is False
+    # D2: its fictional bytes take no stamp, so its approved export is its stored bytes and
+    # approving asks for no new PDF (cross-review interactions#4); a person may ask for one.
+    assert status_["stamped"] is False
+    assert status_["pdf"] == {"state": "NOT_REQUESTED", "reason": None, "askable": True}
     again = outsider.post(approve, json={"artifact_id": report_id})
     assert again.status_code == 200
 
@@ -845,6 +847,38 @@ def test_a_draft_promises_an_approved_pdf_only_where_approving_makes_one(
     status_ = researcher.get(url).json()
     assert status_["pdf"]["state"] == "NOT_REQUESTED" and status_["pdf"]["reason"] == "study_closed"
     assert status_["approval_renders_pdf"] is False
+
+
+def test_a_version_approved_before_the_stamp_layout_keeps_its_pdf_on_a_closed_study(
+    app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any
+) -> None:
+    """Cross-review interactions#4 / web#3: an approved version's PDF was looked up only under
+    the approved key, so a report approved before this release -- stored without the stamp
+    layout, its step PDF ready -- read NOT_REQUESTED, study_closed, and its PDF download was a
+    404 for good on a delivered study. Its export is its stored bytes, which the step's PDF
+    renders exactly: that PDF is the approved version's, and approving asks for nothing."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    report_id = _store_internal_report(
+        app, world, run_id, _rendered_report(), pdf=b"%PDF-1.7 draft rendering"
+    )
+    url = f"{_runs(world)}/{run_id}/report"
+    before = _jobs_count(app)
+    approved = outsider.post(f"{url}/approve", json={"artifact_id": report_id})
+    assert approved.status_code == 200 and approved.json()["stamped"] is False
+    assert _jobs_count(app) == before  # nothing new to render
+    _close_study(app, world)
+    status_ = researcher.get(url).json()
+    assert status_["review_state"] == "APPROVED_INTERNAL"
+    assert status_["pdf"]["state"] == "READY" and status_["pdf"]["askable"] is False
+    pdf = researcher.get(f"{url}/pdf/download")
+    assert pdf.status_code == 200, pdf.text
+    assert pdf.content == b"%PDF-1.7 draft rendering"
+    assert pdf.headers["X-AIA-Artifact-Id"] == report_id
+    assert pdf.headers["X-AIA-Review-State"] == "APPROVED_INTERNAL"
+    docx = researcher.get(f"{url}/download")
+    assert docx.status_code == 200 and docx.content == _rendered_report()
 
 
 def test_a_draft_whose_step_rendered_no_pdf_promises_none(

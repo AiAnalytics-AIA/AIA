@@ -40,6 +40,7 @@ __all__ = [
     "Export",
     "ReviewUnrecorded",
     "export_docx",
+    "exports_stamped",
     "review_mark",
     "stampable",
 ]
@@ -73,6 +74,14 @@ def stampable(artifact: Artifact) -> bool:
     """Whether the version states its status in its footers alone, as its writer recorded:
     once approved, its export says so there. False for every report stored before."""
     return all(artifact.metadata.get(k) == v for k, v in REVIEW_STAMP_RECORD.items())
+
+
+def exports_stamped(artifact: Artifact, mark: ReviewMark) -> bool:
+    """Whether a download of the version is other bytes than it was stored as: approved, with
+    a layout that takes the stamp. Otherwise -- a draft, or an approved version stored before
+    the layout -- its export is its stored bytes, and the PDF rendered from those bytes renders
+    its export, whatever its review was when it was rendered."""
+    return mark.state is ReviewState.APPROVED and stampable(artifact)
 
 
 def review_mark(artifacts: ArtifactRepository, artifact: Artifact) -> ReviewMark:

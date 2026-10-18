@@ -656,13 +656,80 @@ def test_an_older_approved_version_renders_as_stored_and_says_so(
     world: Any, database_url: str, store: InMemoryArtifactStore, build: BuildIdentity
 ) -> None:
     """A version stored before the stamp layout has no record of it: approved, its DOCX and
-    PDF are its stored bytes, never partly stamped, and they say they are not stamped."""
+    PDF are its stored bytes, never partly stamped, and they say they are not stamped.
+
+    Changed on purpose (cross-review interactions#4): approving it asked for a new rendering
+    under the approved key. Its export is its stored bytes, so there is nothing new to render:
+    approving asks for nothing, and a person asking renders the stored bytes under the draft's
+    key, where a rendering made while it was a draft already is its PDF."""
     run_id, docx = _report(world, store, _rendered())
     _approve(world, store, run_id, docx)
     exported = _export(world, store, docx)
     assert exported.data == _rendered() and not exported.stamped
     assert exported.mark.state is ReviewState.APPROVED
+    assert _drain(_worker(world, database_url, store, build, _FakePdf())) == []
+    asked = _pdf_state(world, store, run_id, docx)
+    assert asked.state is PdfState.NOT_REQUESTED and asked.askable
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        request_pdf(
+            session,
+            scope,
+            store,
+            docx=research_artifacts(session, scope, store).get(docx.artifact_id),
+            run_id=run_id,
+            deep_research_run_id=None,
+        )
+        session.commit()
+    assert _jobs(world, docx, report_pdf_key(run_id, None, docx.artifact_id, approved=True)) == []
     assert _drain(_worker(world, database_url, store, build, _FakePdf())) == ["completed"]
+    found = _pdf_state(world, store, run_id, docx)
+    assert found.state is PdfState.READY and found.artifact is not None
+    assert found.artifact.metadata["stamped"] is False
+    with world.sessions() as session:
+        data = research_artifacts(session, world.lead_scope(session), store).read(
+            found.artifact.artifact_id
+        )
+    assert data == _rendering_of(_rendered())
+
+
+def test_an_older_version_keeps_the_pdf_its_draft_had_once_approved(
+    world: Any, database_url: str, store: InMemoryArtifactStore, build: BuildIdentity
+) -> None:
+    """Cross-review interactions#4 / web#3: every report approved before this release lost its
+    PDF -- for good on a closed Study, which asks for nothing -- although the PDF its draft had
+    renders exactly the file its approved export is. It stays its PDF, and nothing is asked."""
+    run_id, docx = _report(world, store, _rendered())
+    _ask(world, run_id, docx)
+    pdf = _FakePdf()
+    assert _drain(_worker(world, database_url, store, build, pdf)) == ["completed"]
+    drafted = _pdf_state(world, store, run_id, docx)
+    assert drafted.state is PdfState.READY and drafted.artifact is not None
+    _approve(world, store, run_id, docx)
+    with world.sessions() as session:
+        ScopeRepository(session).set_study_status(world.lead_scope(session), StudyStatus.DELIVERED)
+        session.commit()
+    found = _pdf_state(world, store, run_id, docx)
+    assert found.state is PdfState.READY and found.artifact is not None
+    assert found.artifact.artifact_id == drafted.artifact.artifact_id
+    assert _drain(_worker(world, database_url, store, build, pdf)) == [] and pdf.calls == 1
+
+
+def test_an_older_version_approved_while_its_draft_pdf_waited_still_gets_it(
+    world: Any, database_url: str, store: InMemoryArtifactStore, build: BuildIdentity
+) -> None:
+    """The draft's job of a version stored before the stamp layout, run after the version was
+    approved, renders it: its approved export is those bytes. Ending it superseded, as a
+    stamped version's is, would leave the version without a PDF and nothing asking for one."""
+    run_id, docx = _report(world, store, _rendered())
+    job = _ask(world, run_id, docx)
+    _approve(world, store, run_id, docx)
+    assert _drain(_worker(world, database_url, store, build, _FakePdf())) == ["completed"]
+    with world.sessions() as session:
+        (step,) = WorkflowRepository(session, world.lead_scope(session)).get_run(job.run_id)[
+            "steps"
+        ]
+    assert step["output"]["state"] == "READY"
     found = _pdf_state(world, store, run_id, docx)
     assert found.state is PdfState.READY and found.artifact is not None
     assert found.artifact.metadata["stamped"] is False

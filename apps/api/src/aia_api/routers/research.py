@@ -41,6 +41,7 @@ from aia_core.application.report_export import (
     Export,
     ReviewUnrecorded,
     export_docx,
+    exports_stamped,
     review_mark,
     stampable,
 )
@@ -1779,9 +1780,12 @@ def _base_pdf(
     for since (``report_pdf``, research-integrity-report review: a step that rendered none, or
     failed to, left no way to get one) -- and its state; the PDF only when it is ready.
 
-    Once the version is approved (D2) its PDF is only the rendering of its approved export:
-    the step's PDF renders the draft, and is never served under an approved header."""
-    if mark.state is ReviewState.APPROVED:
+    Once the version is approved (D2) its PDF is the rendering of its approved export: for a
+    stamped export only the rendering asked for it, never the step's (which renders the draft).
+    A version stored before the stamp layout exports its stored bytes, so the step's PDF, or one
+    asked for while it was a draft, renders exactly that export and stays its PDF
+    (``report_export.exports_stamped``; cross-review interactions#4)."""
+    if exports_stamped(report, mark):
         approved = variant_pdf(
             session, scope, store, docx=report, run_id=run_id, deep_research_run_id=None
         )
@@ -2259,7 +2263,8 @@ def download_contextual_report_pdf(
     found = _variant(run_id, deep_research_run_id, scope, session, store, export=True)
     if found.docx is None or found.mark is None:
         raise _not_prepared()
-    # The variant's PDF is the one its review allows: an approved draft's approved rendering.
+    # The variant's PDF is the one its review allows: an approved version's rendering of its
+    # export (report_variants.variant_pdf), never a draft's when the two differ.
     if found.pdf is None or found.pdf.artifact is None:
         raise _not_found("report_pdf")
     try:
