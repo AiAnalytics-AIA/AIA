@@ -128,7 +128,8 @@ class ReportExecutor:
         )
         context.checkpoint()
         with context.transaction() as (session, _workflow):
-            artifact, created = research_artifacts(session, context.scope, self._store).put(
+            repo = research_artifacts(session, context.scope, self._store)
+            artifact, created = repo.put(
                 project_id=step.project_id,
                 revision=step.project_revision,
                 stage_type=step.stage_type,
@@ -150,6 +151,11 @@ class ReportExecutor:
                 },
                 depends_on=[*[m.artifact_id for m in sources], chapters.map_artifact_id],
             )
+            if not created:
+                # The DOCX this step stored before (an attempt released after it was stored) is
+                # the report; rendering again may have given other bytes under the same
+                # fingerprint, which holds the inputs, never the renderer. Its PDF renders it.
+                data = repo.read(artifact.artifact_id)
         output: dict[str, object] = {
             "artifact_id": artifact.artifact_id,
             "artifact_type": REPORT_ARTIFACT_TYPE,
