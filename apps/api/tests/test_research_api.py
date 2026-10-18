@@ -18,6 +18,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 import pytest
+from aia_core.application import client_report
 from aia_core.application.client_report import CLIENT_REPORT_ARTIFACT_TYPE
 from aia_core.application.report import (
     INTERNAL_REPORT_ARTIFACT_TYPE,
@@ -953,6 +954,94 @@ def test_the_approved_client_report_downloads_stamped_and_is_read_once(
     footers = _footers(downloaded.content)
     assert footers and all(words.encode() in f and b"KONCEPT" not in f for f in footers.values())
     assert _part(downloaded.content, "word/document.xml") == _part(document, "word/document.xml")
+
+
+def _client_report_document() -> ReportDocument:
+    meta = ReportMeta(
+        ReportKind.CLIENT,
+        "Výzkumná zpráva",
+        "Fiktivní data",
+        "Fiktivní klient",
+        "Fiktivní studie",
+        "STU-1",
+        date(2026, 10, 18),
+        1,
+        METHOD_STATUS_PENDING,
+        classification=Classification.CLIENT_CONFIDENTIAL,
+    )
+    ledger = EvidenceLedger.from_claims([], surface=ClaimSurface.CLIENT_FACING)
+    method = Callout(CalloutKind.METHOD, text("Fiktivní data."), title="Jak číst tuto zprávu")
+    section = Section("Shrnutí", (method, Paragraph(text("Fiktivní zpráva pro klienta."))))
+    return ReportDocument(meta, (section,), ledger)
+
+
+def test_an_approved_client_report_stays_the_client_report_after_its_contract_changes(
+    app: FastAPI,
+    researcher: TestClient,
+    outsider: TestClient,
+    world: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cross-review interactions#1: the client download keyed its stored draft on the
+    fingerprint of what composing gives today, which carries the composition contract. A
+    contract bump (aia-client-report-2 -> -3 on this branch) composed and served a new draft
+    instead of the approved version, which no route served any more; composing refused under
+    the new rules, the download was a 409. The approved version is the client report (D2).
+
+    The real stored_client_report; composing is stubbed the way it reads the contract (at call
+    time), since a real composition needs a population-grounded run (test_ai_fieldwork)."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    composed: list[str] = []
+
+    def compose(session: Any, scope: Any, store: Any, *, run_id: str) -> Any:
+        composed.append(client_report.CLIENT_REPORT_CONTRACT)
+        return client_report.ComposedClientReport(
+            document=_client_report_document(),
+            sources={"contract": client_report.CLIENT_REPORT_CONTRACT, "run_id": run_id},
+            depends_on=(),
+        )
+
+    monkeypatch.setattr(client_report, "compose_client_report", compose)
+    monkeypatch.setattr(client_report, "CLIENT_REPORT_CONTRACT", "aia-client-report-2")
+    url = f"{_runs(world)}/{run_id}/report"
+    draft = researcher.get(f"{url}/client/download")
+    assert draft.status_code == 200, draft.text
+    version = draft.headers["X-AIA-Artifact-Id"]
+    assert draft.headers["X-AIA-Review-State"] == "DRAFT_UNAPPROVED"
+    approved = outsider.post(f"{url}/approve", json={"artifact_id": version})
+    assert approved.status_code == 200 and approved.json()["stamped"] is True
+
+    # The deploy: the contract moves on. The approved version is served, nothing composed.
+    monkeypatch.setattr(client_report, "CLIENT_REPORT_CONTRACT", "aia-client-report-3")
+    composed.clear()
+    after = researcher.get(f"{url}/client/download")
+    assert after.status_code == 200, after.text
+    assert after.headers["X-AIA-Artifact-Id"] == version
+    assert after.headers["X-AIA-Artifact-Sha256"] == draft.headers["X-AIA-Artifact-Sha256"]
+    assert after.headers["X-AIA-Review-State"] == "APPROVED_INTERNAL"
+    assert after.headers["content-disposition"].endswith(f'-klient-{version}-schvaleno.docx"')
+    year, month, day = (int(x) for x in approved.json()["approved_on"].split("-"))
+    words = f"SCHVÁLENO {day}.\u00a0{month}.\u00a0{year} \u00b7 verze {version}".encode()
+    footers = _footers(after.content)
+    assert footers and all(words in f and b"KONCEPT" not in f for f in footers.values())
+    assert composed == []
+
+    # Composing refused under today's rules refuses nothing a person approved.
+    def refused(*_a: Any, **_kw: Any) -> Any:
+        raise client_report.ClientReportRefused("not_modelled", "fiktivní odmítnutí")
+
+    monkeypatch.setattr(client_report, "compose_client_report", refused)
+    again = researcher.get(f"{url}/client/download")
+    assert again.status_code == 200 and again.headers["X-AIA-Artifact-Id"] == version
+    with create_session_factory(app.state.engine)() as session:
+        stored = session.scalars(
+            select(ProjectArtifactRow.artifact_id).where(
+                ProjectArtifactRow.artifact_type == CLIENT_REPORT_ARTIFACT_TYPE
+            )
+        ).all()
+    assert stored == [version]
 
 
 def test_an_older_version_approved_is_served_unstamped_and_says_so(

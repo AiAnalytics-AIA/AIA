@@ -2269,7 +2269,7 @@ def download_contextual_report_pdf(
 @router.get(
     "/research/runs/{run_id}/report/client/download",
     response_class=Response,
-    summary="The run's client report (modelled data, labelled; a stored, unapproved draft)",
+    summary="The run's client report (modelled data, labelled): its approved version, else a draft",
     responses={409: {"model": ErrorResponse}},
 )
 def download_client_report(
