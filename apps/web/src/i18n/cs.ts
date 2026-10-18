@@ -2642,6 +2642,26 @@ export const cs = {
           APPROVED: "Schváleno pouze pro interní použití.",
           UNKNOWN: "Stav zprávy se nepodařilo zjistit.",
         },
+        // A stored version's review as its file states it (research-integrity-report D2): only
+        // in its footers, KONCEPT while a draft, SCHVÁLENO with the date once approved.
+        review: {
+          draft: "Stav: Koncept · verze {version} — soubor nese v zápatí „KONCEPT — NESCHVÁLENO“; po schválení ponese DOCX i PDF této verze „SCHVÁLENO“ s datem.",
+          draftDocx: "Stav: Koncept · verze {version} — soubor nese v zápatí „KONCEPT — NESCHVÁLENO“; po schválení ponese DOCX této verze „SCHVÁLENO“ s datem.",
+          approved: "Schváleno {date} · verze {version} — DOCX i PDF této verze to nesou v zápatí",
+          approvedDocx: "Schváleno {date} · verze {version} — DOCX této verze to nese v zápatí",
+          older: "Schválení se zaznamená v AIA u tohoto uloženého souboru. Soubor se tím nemění a v zápatí dál nese „KONCEPT — NESCHVÁLENO“.",
+          olderApproved: "Schválení je zaznamenané v AIA u tohoto uloženého souboru. Soubor se tím nezměnil a v zápatí dál nese „KONCEPT — NESCHVÁLENO“.",
+          // The client report is the file the client receives: approving it signs it off for them.
+          clientDraft: "Koncept čeká na schválení k předání klientovi.",
+          clientApproved: "Schváleno k předání klientovi.",
+          approvedOn: "schváleno {date}",
+          approvedInAia: "schváleno v AIA",
+          notApproved: "neschváleno",
+          pdfRendering: "PDF schválené verze se právě vytváří; zpráva je zatím k dispozici jako DOCX.",
+          pdfNotRequested: "PDF schválené verze zatím nebylo vyžádáno.",
+          otherVersion: "Stažený soubor není koncept, který karta ukazuje (mezitím vznikl jiný). Obnovte stránku a stáhněte ho znovu.",
+          otherState: "Stažený soubor nese jiný stav schválení, než karta ukazuje (mezitím se změnil). Obnovte stránku a stáhněte ho znovu.",
+        },
       },
       budgetLine: {
         unknown: "Kolik z rozpočtu studie zbývá, AIA nyní neví.",
@@ -2729,6 +2749,7 @@ export const cs = {
         reportClientHint: "Klientská zpráva obsahuje jen čísla, která prošla pravidly pro klienta, každé označené jako modelované, a jen schválené mapy. Je to koncept: před předáním ji schvalte.",
         reportPdfFailed: "PDF se nepodařilo vytvořit; zpráva je k dispozici jako DOCX.",
         reportApprove: "Schválit pro interní použití",
+        reportApproveClient: "Schválit k předání klientovi",
         reportApproving: "Schvaluji…",
         reportActionsAbove: "Zprávu stáhnete a schválíte v kartě Kompletní zpráva studie nahoře.",
         reportApproveHint: "Schválením potvrzujete, že jste zprávu přečetli. Klientovi tím neodchází.",

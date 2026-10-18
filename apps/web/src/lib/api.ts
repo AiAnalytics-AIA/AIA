@@ -64,8 +64,22 @@ async function requestBlob(path: string): Promise<Blob> {
   return response.blob();
 }
 
-/** A stored report's bytes and the artifact they are (X-AIA-Artifact-Id), for its approval. */
-export type StoredDownload = { blob: Blob; artifactId: string | null; reviewState: string | null };
+/** A stored report's bytes, the version they are (X-AIA-Artifact-Id, -Sha256) and the review they
+ * state (X-AIA-Review-State), for its approval; and the file name the server gives it, which names
+ * the version and its review (research-integrity-report D2). A header not sent reads as null. */
+export type StoredDownload = {
+  blob: Blob;
+  artifactId: string | null;
+  sha256: string | null;
+  reviewState: string | null;
+  filename: string | null;
+};
+
+/** The file name a Content-Disposition header gives, or null. */
+export function attachmentName(disposition: string | null): string | null {
+  const m = disposition ? /filename="([^"]+)"/.exec(disposition) : null;
+  return m ? m[1] : null;
+}
 
 async function requestStored(path: string): Promise<StoredDownload> {
   const response = await send("GET", path);
@@ -73,7 +87,9 @@ async function requestStored(path: string): Promise<StoredDownload> {
   return {
     blob: await response.blob(),
     artifactId: response.headers.get("X-AIA-Artifact-Id"),
+    sha256: response.headers.get("X-AIA-Artifact-Sha256"),
     reviewState: response.headers.get("X-AIA-Review-State"),
+    filename: attachmentName(response.headers.get("Content-Disposition")),
   };
 }
 
@@ -1118,8 +1134,15 @@ export type ReportVariant = {
   artifact_id?: string | null;
   sha256?: string | null;
   review_state?: "DRAFT_UNAPPROVED" | "APPROVED_INTERNAL" | null;
+  /** The day the draft was approved (YYYY-MM-DD), and whether its file states its review in its
+   * footers (D2: approved, DOCX and PDF say SCHVÁLENO; false: stored before that layout). */
+  approved_on?: string | null;
+  stamped?: boolean | null;
   internal_only: true;
   pdf?: ReportPdf | null;
+  /** Whether approving the draft now gives its approved version a PDF too: approving asks for one
+   * and this draft's own PDF was rendered here (absent: an API that does not say, never a yes). */
+  approval_renders_pdf?: boolean;
   /** The composition contract the draft was stored under, and whether it is today's: an earlier
    * one stays the report (downloadable, approvable) until it is prepared anew. */
   contract?: string | null;
@@ -1131,6 +1154,9 @@ export type ResearchReport = {
   internal_only: true;
   reason?: string | null;
   review_state?: "DRAFT_UNAPPROVED" | "APPROVED_INTERNAL";
+  /** As ReportVariant's: the day it was approved, and whether its file states its review. */
+  approved_on?: string | null;
+  stamped?: boolean | null;
   artifact_id?: string;
   sha256?: string;
   size_bytes?: number;
@@ -1140,6 +1166,8 @@ export type ResearchReport = {
   /** The stored DOCX rendered as PDF (B3): by its report step, or since on request; null from an
    * older API when this run's worker made none. */
   pdf?: ReportPdf | null;
+  /** As ReportVariant's: whether approving the draft now gives its approved version a PDF too. */
+  approval_renders_pdf?: boolean;
 };
 
 const studyPath = (studyId: string) => `/api/v1/studies/${enc(studyId)}`;
@@ -1238,7 +1266,14 @@ export const research = {
     requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/pdf/download`),
   /** A person approves a stored report of the run (internal only; recorded in the ledger). */
   approveReport: (studyId: string, runId: string, artifactId: string, note = "") =>
-    request<{ run_id: string; artifact_id: string; review_state: "APPROVED_INTERNAL"; internal_only: true }>(
+    request<{
+      run_id: string;
+      artifact_id: string;
+      review_state: "DRAFT_UNAPPROVED" | "APPROVED_INTERNAL";
+      approved_on?: string | null;
+      stamped?: boolean | null;
+      internal_only: true;
+    }>(
       "POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/approve`, { artifact_id: artifactId, note },
     ),
   /** The experimental Sociomapping's internal draft: status, then the DOCX (plan sociomapping-engine I3). */
