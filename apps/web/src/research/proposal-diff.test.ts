@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { diffLists, proposalDiff } from "./proposal-diff";
+import { diffLists, proposalDiff, questionnaireReplacement } from "./proposal-diff";
 
 describe("diffLists", () => {
   it("names what was added and removed, ignoring case and spacing", () => {
@@ -40,5 +40,23 @@ describe("proposalDiff", () => {
 
   it("treats everything as new when there is no plan yet", () => {
     expect(proposalDiff(null, { objectives: ["A"] }).lists[0]).toMatchObject({ added: ["A"], kept: 0 });
+  });
+});
+
+describe("questionnaireReplacement (PC6)", () => {
+  const own = { id: "s1", type: "questions", questions: [{ id: "q1", text: "Jak často pijete kávu?" }, { id: "q2", text: "Kde kávu kupujete?" }] };
+  const battery = { id: "s2", type: "object_battery", objects: ["Káva", "Čaj"] };
+  const library = { id: "lib", type: "questions", metadata: { instrument_id: "nps" }, questions: [{ id: "n1", text: "Doporučil byste nás?" }] };
+  const intro = { id: "intro", type: "intro" };
+
+  it("names the own questions and items that go, what is new and what is kept; library and other sections stay", () => {
+    const proposed = { sections: [library, intro, { id: "ai_section_1", type: "questions", questions: [{ id: "ai_q_1_1", text: "jak často pijete  kávu?" }, { id: "ai_q_1_2", text: "Kolik šálků denně?" }] }] };
+    const r = questionnaireReplacement({ sections: [own, battery, library, intro] }, proposed);
+    expect(r).toEqual({ replaced: 2, preserved: 2, removed: ["Kde kávu kupujete?", "Káva", "Čaj"], added: ["Kolik šálků denně?"], kept: 1 });
+  });
+
+  it("says a questionnaire with no own blocks loses nothing", () => {
+    const r = questionnaireReplacement({ sections: [library] }, { sections: [library, own] });
+    expect(r).toEqual({ replaced: 0, preserved: 1, removed: [], added: ["Jak často pijete kávu?", "Kde kávu kupujete?"], kept: 0 });
   });
 });

@@ -6,7 +6,7 @@ chunks:
   - "[x] PC3. A run's analysis stays repairable after a harness change: a module completed under an earlier harness is asked again over the frozen data, never a paid fieldwork re-run"
   - "[x] PC4. Work that waits for a person can go on: a run, Deep Research run or client-source proposals parked for the AI runtime resumes on a person's action once it is on, an agent job or Deep Research run stopped at the budget cap is lifted like a research run's step, and no copy promises it continues by itself"
   - "[ ] PC5. The stage track follows the run (done), and says when the design changed after the run it shows"
-  - "[ ] PC6. Proposal review names what acceptance replaces; rewording a research question says which links it would orphan"
+  - "[x] PC6. Proposal review names what acceptance replaces"
   - "[x] PC7. Researcher copy agrees with the Sociomap register and ADR 0018: no D6 or 18.6.6 remedies, no stale report sentence"
   - "[x] PC8. The browser journeys pass on today's interface, a label they wait for cannot drift unnoticed, and the coherence journey and report render are committed tools anyone can rerun"
   - "[ ] PC9. Report body and appendices flow: no page break before every chapter (owner D5, 2026-10-17)"
@@ -15,6 +15,7 @@ chunks:
   - "[ ] PC12. Owner decisions recorded with a recommendation each; no code"
   - "[x] PC13. A start that finds the run a design already has says so, and an AI ask that ended without a proposal is asked again as a new round"
   - "[x] PC14. A finished run reads as finished: its untouched steps say they will not run, its report is not 'composing', a run waiting for a person beside steps still running is read, and a step stopped for recovery says why"
+  - "[ ] PC16. Rewording a research question carries its links to the questions that measure it, or names the ones it would orphan, before the change is saved"
 ---
 # Productization and system coherence
 
@@ -99,6 +100,31 @@ old track), stops reading once nothing can change, keeps reading a provider wait
 **Second half, open.** The track also calls Spuštění "done" and Výsledky "Revize N" when the design
 has changed since that run; saying "the design changed after this run" needs the working content's
 revision beside the run's (see the findings ledger, F-design-lane), not a browser guess.
+
+## PC6 — a proposal says what it replaces
+
+**Problem.** A questionnaire proposal (build or optimise) replaces every own question block and object
+battery of the design with its own and keeps only other sections and library instruments
+(`domain/research_agents.py:711-737 @ 20b24bb`; the optimise prompt asks for "úplnou náhradu vlastních
+sekcí", `:285`), and accepting it replaces the working content (`useResearchAgents.tsx:87-90`). The
+inline review listed research questions, sets and links, and its footer promised "Již vytvořený
+dotazník se nemění" (`ProposalReview.tsx`): a person accepting an optimisation lost their own
+questions with nothing saying so (design audit `proposal-review-hides-replacement`, P2).
+
+**Change.** `questionnaireReplacement` (pure, beside `proposalDiff`) reads the current and the proposed
+project by the agent's own rule and says how many own blocks are replaced and how many other sections
+stay, then lists each own question or battery item the proposal does not carry again (by wording),
+each new one, and how many are kept. The review shows it as "Co se stane s dotazníkem" and its footer
+says the own blocks are replaced; a proposal that does not touch the questionnaire keeps the old line.
+
+**Tests.** `proposal-diff.test.ts` "questionnaireReplacement"; `ProposalReview.test.tsx` "says what
+accepting a questionnaire proposal replaces…", "keeps the old promise for a proposal that does not
+touch the questionnaire".
+
+**Split off (PC16, open).** Research questions are identified by their wording: rewording one in the
+plan orphans every link a question or set declares to it (`domain/research_trace.py:140, 241-263`;
+design audit `rq-identity-by-text`). Carrying the links with the rewording, or naming what it would
+orphan before saving, is an editor change of its own.
 
 ## PC14 — a finished run reads as finished
 

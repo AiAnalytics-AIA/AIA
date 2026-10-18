@@ -47,4 +47,25 @@ describe("ProposalReview", () => {
     render(<ProposalReview result={analysis} state={state} onDecision={vi.fn()} />);
     expect(screen.queryByRole("heading", { name: t("research.questionnaire.proposed.title") })).toBeNull();
   });
+
+  it("says what accepting a questionnaire proposal replaces, before it is accepted (PC6)", () => {
+    const now = { ...state, project: { ...state.project, sections: [
+      { id: "s1", type: "questions", title: "Moje", questions: [{ id: "q1", text: "Kde kávu kupujete?" }] },
+      { id: "lib", type: "questions", metadata: { instrument_id: "nps" }, questions: [{ id: "n1", text: "Doporučil byste nás?" }] },
+    ] } } as unknown as Pick<ResearchState, "project" | "analysis">;
+    render(<ProposalReview result={result()} state={now} onDecision={vi.fn()} />);
+    const block = screen.getByRole("heading", { name: t("research.questionnaire.replacement.title") }).parentElement as HTMLElement;
+    expect(within(block).getByText(tv("research.questionnaire.replacement.summary", { replaced: 1, preserved: 1, kept: 0 }))).toBeTruthy();
+    expect(within(block).getByText("Kde kávu kupujete?")).toBeTruthy();
+    expect(screen.getByText(t("research.questionnaire.replacement.footer"))).toBeTruthy();
+    // The old promise is not made for a proposal that replaces the questionnaire.
+    expect(screen.queryByText(/Již vytvořený dotazník se nemění/)).toBeNull();
+  });
+
+  it("keeps the old promise for a proposal that does not touch the questionnaire", () => {
+    const analysis: ResearchAgentResult = { ...result(), result: { project, proposal: { research_questions: [RQ1] } } };
+    render(<ProposalReview result={analysis} state={state} onDecision={vi.fn()} />);
+    expect(screen.queryByRole("heading", { name: t("research.questionnaire.replacement.title") })).toBeNull();
+    expect(screen.getByText(/Již vytvořený dotazník se nemění/)).toBeTruthy();
+  });
 });

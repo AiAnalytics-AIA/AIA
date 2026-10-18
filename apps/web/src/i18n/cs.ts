@@ -2054,6 +2054,14 @@ export const cs = {
           ab_test: "Test A/B konceptů",
         },
       },
+      // productization PC6: what accepting a questionnaire proposal replaces.
+      replacement: {
+        title: "Co se stane s dotazníkem",
+        summary:
+          "Použití nahradí vaše vlastní bloky otázek a sady objektů ({replaced}) bloky z návrhu; ostatní sekce a nástroje z knihovny ({preserved}) zůstanou. Otázek a položek beze změny znění: {kept}.",
+        footer:
+          "Použití vytvoří novou revizi návrhu a nahradí vaše vlastní bloky dotazníku bloky z návrhu, jak je uvedeno výše; sekce a nástroje z knihovny zůstanou. Předchozí revize zůstane uložená.",
+      },
       // Plan run-recovery-and-truth 3e: the links a questionnaire proposal brings with it.
       proposed: {
         title: "Výzkumné otázky v návrhu",
