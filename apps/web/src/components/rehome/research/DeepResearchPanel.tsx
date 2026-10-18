@@ -12,6 +12,7 @@ import { AiButton, Button } from "../ui";
 import { phaseLabel } from "@/lib/research-execution";
 import { coverageWords, deepStepLabel, stepProblem } from "@/lib/reason-words";
 import { CodedWords } from "./CodedWords";
+import { DeepResearchWaits } from "./DeepResearchWaits";
 import { useResearch } from "./context";
 import { canReview } from "./frame";
 
@@ -126,6 +127,7 @@ export function DeepResearchPanel() {
           {current.steps.map((step) => ({ step, problem: stepProblem(step) })).filter((x) => x.problem !== null).map(({ step, problem }) => (
             <div key={step.node_key} className="text-status-fault">{deepStepLabel(step.node_key)}: <CodedWords coded={problem!} /></div>
           ))}
+          <DeepResearchWaits run={current} studyId={frame.studyId} canEdit={frame.canEdit} onChanged={() => void refresh().catch((e: unknown) => setError(message(e)))} onError={(e) => setError(message(e))} />
           {current.retryable && frame.canEdit ? <Button small variant="quiet" onClick={() => void retry(current.run_id)}>Opakovat běh</Button> : null}
           {!current.is_terminal && mayReview ? <Button small variant="quiet" onClick={() => void deepResearch.cancel(frame.studyId, current.run_id).then(refresh).catch((e: unknown) => setError(message(e)))}>Zrušit běh</Button> : null}
         </div>

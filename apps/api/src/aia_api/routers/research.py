@@ -1330,19 +1330,66 @@ def lift_budget_wait(
         raise _not_found("run") from exc
     except ResearchStepNotFound as exc:
         raise _not_found("step") from exc
-    except BudgetWaitNotLiftable as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={"code": "not_waiting_for_budget", "message": str(exc)},
-        ) from exc
-    except BudgetNotRaised as exc:
-        raise HTTPException(
+    except (BudgetWaitNotLiftable, BudgetNotRaised) as exc:
+        raise _budget_lift_refused(exc) from exc
+
+
+def _budget_lift_refused(exc: BudgetWaitNotLiftable | BudgetNotRaised) -> HTTPException:
+    """A refused lift, the same on every kind of a Study's work: nothing waits for budget
+    (409), or the budget offered would lower the cap (422)."""
+    if isinstance(exc, BudgetNotRaised):
+        return HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={
                 "code": "budget_not_raised",
                 "message": f"The study's budget is already {exc.current:.2f}; offer at least that.",
             },
-        ) from exc
+        )
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={"code": "not_waiting_for_budget", "message": str(exc)},
+    )
+
+
+def _runtime_park_refused(exc: RuntimeParkNotResumable) -> HTTPException:
+    """Nothing here waits for the AI runtime, or a step that does may not be offered again
+    (it sent a paid call, is being cancelled or has no attempt left): 409."""
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={"code": "runtime_park_not_resumable", "message": str(exc)},
+    )
+
+
+@router.post(
+    "/research/runs/{run_id}/resume",
+    response_model=ResearchRunResponse,
+    summary="Let a run parked for the AI runtime go on, once the runtime is on",
+    responses={
+        409: {
+            "model": ErrorResponse,
+            "description": "Nothing in the run waits for the AI runtime, or it may not go on",
+        },
+    },
+)
+def resume_run(run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep) -> ResearchRunResponse:
+    """Needs ``RUN_WORKFLOW`` on an open Study.
+
+    A step whose AI runtime is not deployed (fieldwork's AI respondents, an analysis module)
+    or whose gateway refused it before any call parks ``WAITING_PROVIDER`` /
+    ``ai_runtime_unavailable``, and no timer resumes it. Once the runtime is on, a person
+    offers the same run's parked steps to a worker again: same revision, pins and confirmed
+    ceiling, nothing re-chosen. A step that sent a paid call is never offered again here. If
+    the runtime is still off the step parks again, without spending an attempt.
+    """
+    runs = ResearchRuns(session, scope)
+    try:
+        return _run(runs.resume(run_id), scope)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ResearchRunNotFound as exc:
+        raise _not_found("run") from exc
+    except RuntimeParkNotResumable as exc:
+        raise _runtime_park_refused(exc) from exc
 
 
 @router.post(
@@ -2424,9 +2471,9 @@ def _agent_errors(session: SessionDep) -> Iterator[None]:
             status_code=409, detail={"code": exc.reason, "message": str(exc)}
         ) from exc
     except RuntimeParkNotResumable as exc:
-        raise HTTPException(
-            status_code=409, detail={"code": "runtime_park_not_resumable", "message": str(exc)}
-        ) from exc
+        raise _runtime_park_refused(exc) from exc
+    except (BudgetWaitNotLiftable, BudgetNotRaised) as exc:
+        raise _budget_lift_refused(exc) from exc
     except (IntegrityError, ObjectNotFound) as exc:
         # The proposal's bytes failed verification on read: keep its CORRUPT mark.
         raise artifact_corrupt(session) from exc
@@ -2506,6 +2553,29 @@ def resume_agent_job(
         jobs = ResearchAgentJobs(session, scope)
         jobs.resume_runtime_park(run_id)
         return _agent_response(jobs.get(run_id), scope)
+
+
+@router.post(
+    "/research/agent-jobs/{run_id}/budget",
+    response_model=AgentJobResponse,
+    summary="Raise the study's budget and let an agent job that stopped at the cap go on",
+    responses={
+        409: {"model": ErrorResponse, "description": "The job is not waiting for budget"},
+        422: {"model": ErrorResponse, "description": "The budget offered is below the current one"},
+    },
+)
+def lift_agent_job_budget(
+    run_id: RunIdPath, body: BudgetLiftRequest, scope: StudyScopeDep, session: SessionDep
+) -> AgentJobResponse:
+    """Needs ``APPROVE_BUDGET`` and ``MANAGE_STUDY_BUDGET`` on an open Study, as a research
+    run's lift: the person names the budget the study is raised to, the job is offered to a
+    worker again, and the decision is written to the approval ledger. Asking the same action
+    again returns this job, so without this a job stopped at the cap ends only by a cancel."""
+    with _agent_errors(session):
+        jobs = ResearchAgentJobs(session, scope)
+        return _agent_response(
+            jobs.lift_budget_wait(run_id, budget_usd=body.budget_usd, note=body.note), scope
+        )
 
 
 @router.get("/research/agent-jobs/{run_id}/result", response_model=dict[str, Any])

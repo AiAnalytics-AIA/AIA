@@ -4,7 +4,7 @@ chunks:
   - "[x] PC1. A closed study reads as closed: the frame says delivered / archived / cancelled, editors and work actions are read-only with the reason, downloads and approval stay, and every refusal is study_closed in Czech"
   - "[ ] PC2. Results read the run's own verdicts: an answer to a research question the run recorded as a gap is marked as in the report, and a number the analysis refuses says so beside it"
   - "[ ] PC3. A run's analysis stays repairable after a harness change: a module completed under an earlier harness is asked again over the frozen data, never a paid fieldwork re-run"
-  - "[ ] PC4. A run parked for the AI runtime can be resumed by a person once the runtime is on; no copy promises it continues by itself"
+  - "[x] PC4. Work that waits for a person can go on: a run, Deep Research run or client-source proposals parked for the AI runtime resumes on a person's action once it is on, an agent job or Deep Research run stopped at the budget cap is lifted like a research run's step, and no copy promises it continues by itself"
   - "[ ] PC5. The stage track follows the run (done), and says when the design changed after the run it shows"
   - "[ ] PC6. Proposal review names what acceptance replaces; rewording a research question says which links it would orphan"
   - "[ ] PC7. Researcher copy agrees with the Sociomap register and ADR 0018: no D6 or 18.6.6 remedies, no stale report sentence"
@@ -97,6 +97,71 @@ old track), stops reading once nothing can change, keeps reading a provider wait
 **Second half, open.** The track also calls Spuštění "done" and Výsledky "Revize N" when the design
 has changed since that run; saying "the design changed after this run" needs the working content's
 revision beside the run's (see the findings ledger, F-design-lane), not a browser guess.
+
+## PC4 — work that waits for a person can go on
+
+**Problem.** Two kinds of wait never clear by themselves, and for most of AIA's work nothing let a
+person clear them.
+
+- *A park for the AI runtime* (`WAITING_PROVIDER` / `ai_runtime_unavailable`: the runtime not
+  composed on the worker, or its gateway refusing before any call). `resume_due` never resumes it
+  (`domain/workflow.py:797-798 @ 20b24bb`), `retryable` refuses a waiting run
+  (`domain/research.py:56-63`), and a start on the same revision returns the same run
+  (`application/research.py:513`). Only agent jobs had a resume (`application/research.py:1340-1352`,
+  `routers/research.py:2500-2507`). So a research run parked at fieldwork or analysis, a Deep
+  Research run parked at its plan, and AI proposals from a client's document asked while they were
+  off (`application/source_proposals.py:148-152, 197-200`: asking again returned the parked run, and
+  the web hid the button, `source-proposals.ts:57-59`) waited for ever once the operator turned the
+  runtime on. The analysis park's own words promised the opposite ("modul čeká, dokud ji
+  provozovatel nezapne", `aia_executors/analysis.py:141`); the fieldwork park said "spusťte běh
+  znovu" (`ai_fieldwork.py:120`), which returned the same parked run. Verified by the runs, flags,
+  fieldwork, knowledge and analysis audits.
+- *A stop at the study's budget cap* (`AWAITING_BUDGET`). Only a research run's step could be lifted:
+  `ResearchRuns.lift_budget_wait` reads the run through `get`, which refuses any other workflow type
+  (`application/research.py:925-958, 1149-1154`). An agent job stopped at the cap (every UI-created
+  study starts at budget 0) waited until cancelled, and asking the same action again returned it; a
+  Deep Research step stopped at the cap had no lift either (webia audit, P1 once the agent and Deep
+  Research switches are on, their intended production state).
+
+**Change.** One rule each, shared by every kind of a Study's work:
+`application/research.py lift_study_budget_waits` (the research step's lift, generalised: the same
+permissions, the same refusals, one approval per step in the ledger) and `resume_runtime_parks`
+(every step of a run parked for the runtime through `WorkflowRepository.resume_runtime_park`, which
+already refuses a step that sent a paid call, is being cancelled or has no attempt left). Routes:
+`POST …/research/runs/{id}/resume`, `POST …/research/agent-jobs/{id}/budget`,
+`POST …/deep-research/runs/{id}/resume` and `…/budget`. Client-source proposals: asking again about
+a run parked for the runtime before it sent anything offers the same run again
+(`WorkflowRepository.resume_client_runtime_park`, the client-work twin, as `resume_client_budget_wait`
+is) and the API says `resumable`; a new run beside it would park the same way and leave the first
+waiting. The web: Průběh's parked banner says the run will not go on by itself and offers
+"Pokračovat v běhu"; the Deep Research panel and Interpretation Research offer the same and the
+budget lift (`DeepResearchWaits`); a stage lists an AI job stopped at the cap with the lift
+(`AgentBudgetWaits`); the source's "Pokračovat". One budget form (`BudgetLift.tsx`) serves all three.
+The park messages say to go on from Průběh once the runtime is on.
+
+**Invariants kept.** Nothing resumes by itself and nothing new starts: the same run keeps its
+revision, pins, frozen spec and confirmed ceiling. A step that dispatched a paid call is never
+offered again here. A step resumed while the runtime is still off parks again without spending an
+attempt. The cap stays hard; a lift is a person's approval (`APPROVE_BUDGET` +
+`MANAGE_STUDY_BUDGET`), which a worker's scope does not hold. A closed study refuses both
+(`study_closed`).
+
+**Tests.** API: `test_a_run_parked_for_the_runtime_goes_on_when_a_person_resumes_it` (park, resume,
+park again while off, go on when on: the same run, compile and preflight once),
+`test_resuming_a_run_refuses_one_that_waits_for_nothing_and_a_closed_study`,
+`test_a_job_stopped_at_the_budget_cap_goes_on_when_a_person_lifts_it`, Deep Research
+`test_a_run_parked_for_the_runtime_goes_on_when_a_person_resumes_it` and
+`test_a_run_stopped_at_the_budget_cap_goes_on_when_a_person_lifts_it`, client sources
+`test_a_run_parked_for_the_runtime_goes_on_when_asked_again`. Web: ExecutionSteps "lets a run parked
+for the AI runtime go on…", "offers no way on for a run parked on a study that may not change";
+`DeepResearchWaits.test.tsx` (five cases: resume, lift, nothing for a self-clearing wait, an ended
+run or a read-only study; an agent job's lift); source-proposals "asks again about a run parked for
+the AI runtime". Each fails on the code before this chunk (no route, no button, `mayAsk` false).
+
+**Not changed.** Materializations park the same way (`aia_executors/materialize.py:66-69`) and have no
+web caller at all (population audit); their resume waits for a screen that starts one. Whether AIA
+should tell the researcher that the runtime is on before they press "Pokračovat" needs the worker's
+configuration on the API, which it does not read (Settings shows it as configured, never verified).
 
 ## PC10 — Dimenze shows and saves only what a person chose
 

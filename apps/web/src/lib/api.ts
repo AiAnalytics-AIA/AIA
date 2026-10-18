@@ -371,6 +371,9 @@ export type ProposalsRun = {
   /** Whether asking again starts a new run: this one ended without a result and left no
    *  paid call of unknown outcome. */
   restartable: boolean;
+  /** Whether asking again offers this run to a worker again: it parked for the AI runtime
+   *  before it sent anything. Absent from an API older than PC4: not resumable. */
+  resumable?: boolean;
 };
 
 export type SourceLocator = {
@@ -1220,6 +1223,9 @@ export const research = {
       budget_usd: budgetUsd,
       note,
     }),
+  /** Offer the run's steps parked for the AI runtime to a worker again, once the runtime is on: the same run. */
+  resume: (studyId: string, runId: string) =>
+    request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/resume`),
   artifact: (studyId: string, runId: string, artifactId: string) =>
     request<Artifact>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/artifacts/${enc(artifactId)}`),
   analysis: (studyId: string, runId: string) =>
@@ -1320,6 +1326,11 @@ export const deepResearch = {
   designProposal: (studyId: string, runId: string) => request<DesignProposal>("GET", `${deepPath(studyId)}/${enc(runId)}/design-proposal`),
   cancel: (studyId: string, runId: string) => request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/cancel`),
   retry: (studyId: string, runId: string, confirmCostUsd?: number) => request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/retry`, confirmCostUsd === undefined ? undefined : { confirm_cost_usd: confirmCostUsd }),
+  /** The same run, its steps parked for the AI runtime offered to a worker again. */
+  resume: (studyId: string, runId: string) => request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/resume`),
+  /** Raise the Study's budget to `budgetUsd` (never below the current one) and let every step stopped at the cap go on. */
+  liftBudget: (studyId: string, runId: string, budgetUsd: number, note: string) =>
+    request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/budget`, { budget_usd: budgetUsd, note }),
 };
 
 export type ResearchAgentAction = "analyze_brief" | "build_questionnaire" | "optimize_questionnaire" | "propose_audience" | "suggest_dimensions" | "critique_design" | "design_copilot" | "answer_memory";
@@ -1355,6 +1366,9 @@ export const researchAgents = {
     request<RunEvent[]>("GET", `${agentsPath(studyId)}/${enc(jobId)}/events${eventsQuery(since)}`),
   cancel: (studyId: string, jobId: string) => request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/cancel`),
   resume: (studyId: string, jobId: string) => request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/resume`),
+  /** Raise the Study's budget to `budgetUsd` (never below the current one) and let the job stopped at the cap go on. */
+  liftBudget: (studyId: string, jobId: string, budgetUsd: number, note: string) =>
+    request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/budget`, { budget_usd: budgetUsd, note }),
   result: (studyId: string, jobId: string) => request<ResearchAgentResult>("GET", `${agentsPath(studyId)}/${enc(jobId)}/result`),
   accept: (studyId: string, jobId: string, revisionId: string) => request<DesignRevision>("POST", `${agentsPath(studyId)}/${enc(jobId)}/accept`, { expected_revision_id: revisionId }),
 };

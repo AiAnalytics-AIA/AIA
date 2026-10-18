@@ -93,7 +93,7 @@ from ..domain.respondent_behavior import AIA_RESPONSE_V1, ResponseProcessSpec
 from ..domain.run_cost import CeilingUnknown, RunCostCeiling, run_cost_ceiling
 from ..domain.scope import OrganizationRole, Permission, StudyContext
 from ..domain.support_forecast import SupportForecast, forecast_support, with_support_forecast
-from ..domain.workflow import StepRunStatus, WorkflowRunStatus
+from ..domain.workflow import RUNTIME_UNAVAILABLE_REASON, StepRunStatus, WorkflowRunStatus
 from ..domain.workflow_templates import REPORT_PDF, RESEARCH, RESEARCH_AGENT
 from ..infrastructure.artifact_repository import Artifact, ArtifactRepository
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
@@ -104,6 +104,7 @@ from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.study_design_repository import StudyDesignRepository
 from ..infrastructure.workflow_repository import (
     BudgetWaitNotLiftable,
+    RuntimeParkNotResumable,
     WorkflowNotFound,
     WorkflowRepository,
 )
@@ -222,6 +223,76 @@ class CostCeilingUnknown(Exception):
         self.limit_usd = limit_usd
         #: The kinds of call whose price is missing, when the ceiling names them.
         self.kinds = kinds
+
+
+def lift_study_budget_waits(
+    session: Session,
+    scope: StudyContext,
+    steps: Sequence[Mapping[str, Any]],
+    *,
+    budget_usd: float,
+    note: str = "",
+) -> None:
+    """Raise the study's budget to ``budget_usd`` and let each of ``steps`` waiting for it go on.
+
+    The one lift every kind of a Study's work shares: a research run's step, an agent job, a
+    Deep Research run. A step whose reservation would pass the study's budget stops in
+    ``AWAITING_BUDGET`` without spending an attempt, and only a person lifts it (plan 5b.1).
+    Needs ``APPROVE_BUDGET`` and ``MANAGE_STUDY_BUDGET`` on an open Study, which a worker's
+    scope does not hold. ``budget_usd`` equal to the current budget lifts the wait without
+    changing it (it was raised by hand); below it is refused: this lifts a cap, it does not
+    lower one. Each step's lift is its own approval in the ledger.
+
+    Checked before anything is written, so a refused lift changes nothing, not even the
+    budget; the budget change and the resumes share the caller's transaction. The callers
+    find ``steps`` through their own run, so a step of another Study never reaches here.
+    """
+    scope.require(Permission.APPROVE_BUDGET)
+    scope.require(Permission.MANAGE_STUDY_BUDGET)
+    scope.require_open_study()
+    waiting = [s for s in steps if s["status"] is StepRunStatus.AWAITING_BUDGET]
+    if not waiting:
+        raise BudgetWaitNotLiftable("only a step waiting for budget can be lifted")
+    scopes = ScopeRepository(session)
+    current = float(scopes.get_study(scope).budget_usd)
+    if budget_usd < current:
+        raise BudgetNotRaised(offered=budget_usd, current=current)
+    if budget_usd > current:
+        scopes.set_study_budget(scope, budget_usd)
+    workflows = WorkflowRepository(session, scope)
+    for step in waiting:
+        workflows.resume_budget_wait(
+            str(step["step_id"]), note=note, budget_before=current, budget_after=budget_usd
+        )
+
+
+def resume_runtime_parks(
+    session: Session, scope: StudyContext, steps: Sequence[Mapping[str, Any]]
+) -> int:
+    """Offer every step of ``steps`` parked for the AI runtime to a worker again; how many.
+
+    A step whose runtime is not deployed, or whose gateway refused it before any call, parks
+    ``WAITING_PROVIDER`` / ``ai_runtime_unavailable``, and no timer resumes it
+    (``domain.workflow.resume_due``): only a person's action does, after the runtime is on.
+    Each step goes through ``WorkflowRepository.resume_runtime_park``, which refuses a step
+    that dispatched a paid call, was asked to cancel or has no attempt left, so this can never
+    repeat a call that may have been billed. A step resumed while the runtime is still off
+    parks again at its next attempt, without spending one. Needs ``RUN_WORKFLOW`` on an open
+    Study. Refused (``RuntimeParkNotResumable``) when nothing in ``steps`` waits for the
+    runtime; one step refused refuses the whole action, in the caller's transaction.
+    """
+    scope.require(Permission.RUN_WORKFLOW)
+    scope.require_open_study()
+    parked = [
+        s
+        for s in steps
+        if s["status"] is StepRunStatus.WAITING_PROVIDER
+        and s["waiting_reason"] == RUNTIME_UNAVAILABLE_REASON
+    ]
+    if not parked:
+        raise RuntimeParkNotResumable("nothing here waits for the AI runtime")
+    workflows = WorkflowRepository(session, scope)
+    return sum(workflows.resume_runtime_park(str(step["step_id"])) for step in parked)
 
 
 @dataclass(frozen=True, slots=True)
@@ -925,18 +996,8 @@ class ResearchRuns:
     def lift_budget_wait(
         self, run_id: str, node_key: str, *, budget_usd: float, note: str = ""
     ) -> dict[str, Any]:
-        """Raise the study's budget to ``budget_usd`` and let the waiting step go on.
-
-        A step whose reservation would pass the budget stops in ``AWAITING_BUDGET``
-        without spending an attempt; until a person lifts the wait it stays there
-        (plan 5b.1). Needs ``APPROVE_BUDGET`` and ``MANAGE_STUDY_BUDGET`` on an open
-        Study, which a worker's scope does not hold. ``budget_usd`` equal to the current
-        budget lifts the wait without changing it (it was raised by hand), and below it
-        is refused: this lifts a cap, it does not lower one.
-
-        Checked before anything is written, so a refused lift changes nothing, not even
-        the budget; the budget change and the resume share the caller's transaction.
-        """
+        """Raise the study's budget to ``budget_usd`` and let the waiting step go on
+        (:func:`lift_study_budget_waits`, which states the rule)."""
         self.scope.require(Permission.APPROVE_BUDGET)
         self.scope.require(Permission.MANAGE_STUDY_BUDGET)
         self.scope.require_open_study()
@@ -944,17 +1005,18 @@ class ResearchRuns:
         step = next((s for s in run["steps"] if s["node_key"] == node_key), None)
         if step is None:
             raise ResearchStepNotFound(node_key)
-        if step["status"] is not StepRunStatus.AWAITING_BUDGET:
-            raise BudgetWaitNotLiftable("only a step waiting for budget can be lifted")
-        scopes = ScopeRepository(self.session)
-        current = float(scopes.get_study(self.scope).budget_usd)
-        if budget_usd < current:
-            raise BudgetNotRaised(offered=budget_usd, current=current)
-        if budget_usd > current:
-            scopes.set_study_budget(self.scope, budget_usd)
-        self._workflows().resume_budget_wait(
-            step["step_id"], note=note, budget_before=current, budget_after=budget_usd
-        )
+        lift_study_budget_waits(self.session, self.scope, [step], budget_usd=budget_usd, note=note)
+        return self.get(run_id)
+
+    def resume(self, run_id: str) -> dict[str, Any]:
+        """Offer this run's steps parked for the AI runtime to a worker again
+        (:func:`resume_runtime_parks`, which states the rule).
+
+        A run parked at fieldwork or at its analysis modules waits for a person once the
+        runtime is on; a retry would be a new run, and ``retryable`` refuses a waiting one.
+        Nothing is re-chosen: the run keeps its revision, pins and confirmed ceiling."""
+        run = self.get(run_id)
+        resume_runtime_parks(self.session, self.scope, run["steps"])
         return self.get(run_id)
 
     def readiness(
@@ -1350,6 +1412,16 @@ class ResearchAgentJobs:
         return WorkflowRepository(self.session, self.scope).resume_runtime_park(
             str(run["steps"][0]["step_id"])
         )
+
+    def lift_budget_wait(self, run_id: str, *, budget_usd: float, note: str = "") -> dict[str, Any]:
+        """Raise the study's budget and let this job, stopped at the cap, go on
+        (:func:`lift_study_budget_waits`). A job is one step; asking the same action again on
+        the same revision returns this job, so without the lift it never ends but by a cancel."""
+        run = self.get(run_id)
+        lift_study_budget_waits(
+            self.session, self.scope, run["steps"], budget_usd=budget_usd, note=note
+        )
+        return self.get(run_id)
 
     def result(self, run_id: str, *, store: ArtifactStore) -> dict[str, Any]:
         run = self.get(run_id)

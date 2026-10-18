@@ -180,6 +180,58 @@ def test_same_design_can_resume_an_unbilled_runtime_park_after_activation(
     assert researcher.post(f"{url}/{job_id}/resume").status_code == 409
 
 
+class _OverBudget:
+    def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
+        return Failed(FailureClass.BUDGET_EXCEEDED, error={"message": "over the study's budget"})
+
+
+def _budget(app: FastAPI, world: Any) -> float:
+    from aia_core.infrastructure.tables import StudyRow
+    from sqlalchemy import select
+
+    with create_session_factory(app.state.engine)() as session:
+        return float(
+            session.scalar(select(StudyRow.budget_usd).where(StudyRow.study_id == world.study_id()))
+        )
+
+
+def test_a_job_stopped_at_the_budget_cap_goes_on_when_a_person_lifts_it(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """PC4: only a research run's step could be lifted. A job stopped at the cap waited until
+    cancelled, and asking the same action again returned the same waiting job."""
+    rid = revision(researcher, world)
+    url = base(world)
+    job_id = researcher.post(
+        url, json={"design_revision_id": rid, "action": "analyze_brief"}
+    ).json()["run_id"]
+    assert _worker(app, _OverBudget()).run_once() is not None
+    waiting = researcher.get(f"{url}/{job_id}").json()
+    assert waiting["steps"][0]["status"] == "AWAITING_BUDGET"
+    before = _budget(app, world)
+
+    lower = researcher.post(f"{url}/{job_id}/budget", json={"budget_usd": before - 1.0})
+    assert lower.status_code == 422 and lower.json()["code"] == "budget_not_raised"
+    elsewhere = researcher.post(
+        f"{base(world, 'sibling')}/{job_id}/budget", json={"budget_usd": before + 5.0}
+    )
+    assert elsewhere.status_code == 404
+    assert _budget(app, world) == before
+
+    lifted = researcher.post(
+        f"{url}/{job_id}/budget", json={"budget_usd": before + 5.0, "note": "Schváleno"}
+    )
+    assert lifted.status_code == 200, lifted.text
+    assert lifted.json()["run_id"] == job_id
+    assert lifted.json()["steps"][0]["status"] == "RUNNABLE"
+    assert _budget(app, world) == before + 5.0
+    again = researcher.post(f"{url}/{job_id}/budget", json={"budget_usd": before + 9.0})
+    assert again.status_code == 409 and again.json()["code"] == "not_waiting_for_budget"
+
+    assert _worker(app).run_once() is not None
+    assert researcher.get(f"{url}/{job_id}").json()["status"] == "COMPLETED"
+
+
 class _Reports(_Proposes):
     """Reports progress as the real executor does, then proposes."""
 

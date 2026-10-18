@@ -432,6 +432,7 @@ export const cs = {
         action: "Navrhnout znalosti",
         title: "Spustí AI úlohu na pozadí · platí se z rozpočtu klienta",
         again: "Navrhnout znovu",
+        resume: "Pokračovat",
         asking: "Odesílám…",
         hint: "AI přečte dokument a navrhne fakta, zjištění, pojmy a subjekty, každý návrh s doslovnou citací. Platí rozpočet klienta. Nic se nestane znalostí, dokud to člověk nepřijme.",
         queued: "Návrhy čekají ve frontě.",
@@ -1719,6 +1720,11 @@ export const cs = {
     aiCopilot: "Zeptat se na návrh",
     aiMemory: "Zeptat se na klientské znalosti",
     aiSaved: "Uložené návrhy AI",
+    aiBudget: {
+      title: "AI úloha čeká na rozpočet studie",
+      help: "Úloha se zastavila, protože by překročila rozpočet studie, a sama nepokračuje. Po navýšení rozpočtu pokračuje tatáž úloha; nic dalšího se nespouští.",
+      job: "{action} · zadáno {when}",
+    },
     // Studio v3's shared step pieces (components/rehome/step.tsx).
     step: { optional: "volitelné", remove: "Odebrat", keep: "Ponechat" },
     brief: {
@@ -2620,6 +2626,9 @@ export const cs = {
       attempts: "Pokus {n} z {max}",
       parked: "Běh čeká u sběru dat: AI respondenti pro tuto studii nejsou dostupní nebo povolení. Další kroky se nespustí. Zkontrolujte důvod u kroku sběru dat.",
       parkedAt: "Běh čeká u kroku „{step}“: AI model pro tento krok není dostupný nebo povolený. Další kroky se nespustí. Důvod je uvedený u kroku.",
+      parkedResume:
+        "Sám od sebe nepokračuje. Až bude AI zapnutá nebo povolená, pokračujte v tomto běhu: nic se nespouští znovu a nic, co už proběhlo, se neplatí podruhé. Pokud AI dostupná stále nebude, běh počká znovu.",
+      resume: "Pokračovat v běhu",
       wait: {
         budget_exceeded: "Krok čeká, protože by překročil rozpočet studie.",
         provider_quota_exhausted: "Krok čeká, protože poskytovatel modelu vyčerpal kvótu. Pokračuje po jejím obnovení.",

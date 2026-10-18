@@ -1108,6 +1108,37 @@ describe("Progress", () => {
     expect(screen.getByText(message)).toBeTruthy();
   });
 
+  it("lets a run parked for the AI runtime go on, and says it will not by itself (PC4)", async () => {
+    const parked = () => parkedWith([
+      step("compile", "SUCCEEDED", { artifact_id: "ART-1" }),
+      step("preflight", "SUCCEEDED", { artifact_id: "ART-2" }),
+      step("run", "WAITING_PROVIDER", { waiting_reason: "ai_runtime_unavailable", failure_class: "RUNTIME_UNAVAILABLE" }),
+    ]);
+    const resumed = run({ steps: [step("compile", "SUCCEEDED"), step("preflight", "SUCCEEDED"), step("run", "RUNNABLE")] });
+    let going = false;
+    const RESUME = "/api/v1/studies/STU-1/research/runs/RUN-1/resume";
+    api({
+      ...listed(parked()),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1": () => (going ? resumed : parked()),
+      [`POST ${RESUME}`]: () => { going = true; return resumed; },
+    });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    expect(await screen.findByText(t("research.exec.parkedResume"))).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: t("research.exec.resume") }));
+    await waitFor(() => expect(called("POST", RESUME)).toHaveLength(1));
+    await waitFor(() => expect(screen.queryByText(t("research.exec.parkedResume"))).toBeNull());
+    // Nothing new was started: the same run, no start and no retry.
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/retry")).toHaveLength(0);
+    expect(calls.filter((c) => c.method === "POST" && c.url === "/api/v1/studies/STU-1/research/runs")).toHaveLength(0);
+  });
+
+  it("offers no way on for a run parked on a study that may not change", async () => {
+    api(listed(parkedWith([step("run", "WAITING_PROVIDER", { waiting_reason: "ai_runtime_unavailable" })])));
+    render(<ResearchScreen step="progress" frame={{ ...TEST_FRAME, canEdit: false, canReview: true }} />);
+    expect(await screen.findByText(t("research.exec.parkedResume"))).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("research.exec.resume") })).toBeNull();
+  });
+
   it("says why a step waits for budget, provider quota or a decision when it recorded no message", async () => {
     for (const [reason, status, words] of [
       ["budget_exceeded", "AWAITING_BUDGET", /překročil rozpočet studie/],

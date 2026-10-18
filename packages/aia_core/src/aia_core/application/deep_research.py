@@ -140,7 +140,9 @@ from .research import (
     CostConfirmationRequired,
     ResearchRunNotFound,
     ResearchRuns,
+    lift_study_budget_waits,
     research_artifacts,
+    resume_runtime_parks,
 )
 from .workflows import StartedRun
 
@@ -775,6 +777,27 @@ class DeepResearchRuns:
         self.scope.require(Permission.CANCEL_WORKFLOW)
         self.get(run_id)
         return self._workflows().request_cancel(run_id, reason=reason)
+
+    def resume(self, run_id: str) -> dict[str, Any]:
+        """Offer this run's steps parked for the AI runtime to a worker again
+        (``application.research.resume_runtime_parks``, which states the rule): a run whose
+        plan parked before Deep Research was composed, once it is. The run keeps its frozen
+        spec, settings pin and confirmed ceiling; nothing already bought is bought again."""
+        run = self.get(run_id)
+        resume_runtime_parks(self.session, self.scope, run["steps"])
+        return self.get(run_id)
+
+    def lift_budget_wait(self, run_id: str, *, budget_usd: float, note: str = "") -> dict[str, Any]:
+        """Raise the study's budget and let every step of this run stopped at the cap go on
+        (``application.research.lift_study_budget_waits``). A priced tool call or a model
+        request held against the study's budget stops its step in ``AWAITING_BUDGET``; a
+        fanned-out run may have several such steps, and one lift lets them all go on, each its
+        own approval in the ledger. The cap stays hard."""
+        run = self.get(run_id)
+        lift_study_budget_waits(
+            self.session, self.scope, run["steps"], budget_usd=budget_usd, note=note
+        )
+        return self.get(run_id)
 
     # -- read -------------------------------------------------------------------
 

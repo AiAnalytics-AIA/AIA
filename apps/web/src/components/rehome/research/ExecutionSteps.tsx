@@ -82,7 +82,7 @@ import {
 } from "@/lib/research-execution";
 import { runDestination, runState } from "@/lib/run-state";
 import { codedText, codeWords } from "@/lib/reason-words";
-import { budgetLine, type StudyBudget, withBudget } from "@/lib/budget-line";
+import { withBudget } from "@/lib/budget-line";
 import { reportStatus, reportStatusWords } from "@/lib/report-status";
 import type { Tone } from "@/lib/tone";
 import { CodedWords } from "./CodedWords";
@@ -91,7 +91,8 @@ import { projectVariants, selectedVariant } from "@/research/plan";
 import { chosenDimensions, dimensionLabels } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
 import { ActionDock, Switch } from "../step";
-import { AiButton, Button, Chip, Field, TextArea, TextInput } from "../ui";
+import { AiButton, Button, Chip } from "../ui";
+import { BudgetLift } from "./BudgetLift";
 import { canReview } from "./frame";
 import { useFrame } from "./frame-hook";
 import { InspectorSlot } from "./Inspector";
@@ -986,67 +987,6 @@ function useRun(): [ResearchRun | null | undefined, () => void, (r: ResearchRun)
   return [run, () => setVersion((v) => v + 1), follow, error];
 }
 
-/**
- * A step the study's budget stopped (AWAITING_BUDGET) can be let through by a person who may spend:
- * they name a new total, never lower than the budget now, and the cap stays hard -- the step stops
- * again if that is still not enough. The decision is recorded by the API; nothing here decides it.
- */
-function BudgetLift({ run, step, act, busy }: { run: ResearchRun; step: ResearchStep; act: (fn: () => Promise<ResearchRun>) => Promise<void>; busy: boolean }) {
-  const frame = useFrame();
-  const [current, setCurrent] = useState<{ budget: number; spent: number | null; study: StudyBudget } | null | undefined>(undefined);
-  const [amount, setAmount] = useState("");
-  const [note, setNote] = useState("");
-  useEffect(() => {
-    let live = true;
-    api.study(frame.studyId).then(
-      (s) => {
-        if (!live) return;
-        const budget = typeof s.budget_usd === "number" ? s.budget_usd : null;
-        // A spend the API did not report is unknown, never zero.
-        setCurrent(budget === null ? null : { budget, spent: typeof s.spent_usd === "number" ? s.spent_usd : null, study: s });
-        if (budget !== null) setAmount(String(budget));
-      },
-      () => live && setCurrent(null),
-    );
-    return () => {
-      live = false;
-    };
-  }, [frame.studyId, run.run_id]);
-  const total = amount.trim() === "" ? Number.NaN : Number(amount);
-  const valid = current != null && Number.isFinite(total) && total >= current.budget;
-  return (
-    <form
-      aria-label={t("research.exec.budget.title")}
-      className="mt-1 flex flex-col gap-2 rounded-sm border border-border bg-surface p-3"
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (valid) void act(() => research.liftBudget(frame.studyId, run.run_id, step.node_key, total, note.trim()));
-      }}
-    >
-      {current === undefined ? (
-        <p className="text-xs text-ink-muted">{t("research.loading")}</p>
-      ) : current === null ? (
-        <p role="alert" className="text-xs text-status-fault">{t("research.exec.budget.unknown")}</p>
-      ) : (
-        <p className="text-xs">
-          {current.spent === null ? tv("research.exec.budget.statusSpentUnknown", { budget: current.budget.toFixed(2) }) : tv("research.exec.budget.status", { budget: current.budget.toFixed(2), spent: current.spent.toFixed(2) })}{" "}
-          {budgetLine(current.study)}
-        </p>
-      )}
-      <div className="flex flex-wrap items-end gap-3">
-        <Field label={t("research.exec.budget.amount")} className="w-48">
-          <TextInput type="number" inputMode="decimal" min={current?.budget ?? 0} step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} disabled={current == null} />
-        </Field>
-        <Field label={t("research.exec.budget.note")} className="min-w-48 flex-1">
-          <TextArea rows={1} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} className="min-h-9 w-full" />
-        </Field>
-        <Button type="submit" variant="primary" disabled={!valid || busy}>{t("research.exec.budget.lift")}</Button>
-      </div>
-      <p className="text-xs text-ink-muted">{t("research.exec.budget.hardCap")}</p>
-    </form>
-  );
-}
-
 // ------------------------------------------------------------ Progress -------
 
 /**
@@ -1253,9 +1193,15 @@ export function ProgressStep() {
           </div>
         ) : null}
         {parked ? (
-          <p role="status" className="mt-3 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">
-            {parked.node_key === "run" ? t("research.exec.parked") : tv("research.exec.parkedAt", { step: stepLabel(parked.node_key) })}
-          </p>
+          <div role="status" className="mt-3 flex flex-col gap-2 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">
+            <p>{parked.node_key === "run" ? t("research.exec.parked") : tv("research.exec.parkedAt", { step: stepLabel(parked.node_key) })}</p>
+            <p>{t("research.exec.parkedResume")}</p>
+            {frame.canEdit && !run.is_terminal ? (
+              <div>
+                <Button variant="primary" disabled={busy} onClick={() => void act(() => research.resume(frame.studyId, run.run_id))}>{t("research.exec.resume")}</Button>
+              </div>
+            ) : null}
+          </div>
         ) : null}
         {failed ? (
           <p role="alert" className="mt-3 text-sm text-status-fault">
@@ -1288,7 +1234,7 @@ export function ProgressStep() {
               {waitingDetail(s) ? <span className="text-xs text-ink">{waitingDetail(s)}</span> : null}
               <StepActivityPanel orb={researchStepOrb(run, s)} activity={activityOf(activity, s.step_id)} startedAt={s.started_at} label={stepLabel(s.node_key)} />
               {frame.canEdit && s.status === "AWAITING_BUDGET" && !run.is_terminal ? (
-                <BudgetLift run={run} step={s} act={act} busy={busy} />
+                <BudgetLift studyId={frame.studyId} busy={busy} lift={(total, note) => void act(() => research.liftBudget(frame.studyId, run.run_id, s.node_key, total, note))} />
               ) : null}
             </li>
           ))}

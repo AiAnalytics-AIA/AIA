@@ -138,12 +138,12 @@ _REPAIR_TEXT_BYTES: Final = 8192
 _FRAMING_TOKENS: Final = 2048
 
 _UNCONFIGURED_MESSAGE: Final = (
-    "AI analýza není zapnutá. Výsledky běhu zůstávají uložené; modul čeká, dokud ji "
-    "provozovatel nezapne. Nic nebylo odesláno."
+    "AI analýza není zapnutá. Výsledky běhu zůstávají uložené a nic nebylo odesláno. Až ji "
+    "provozovatel zapne, pokračujte v běhu na Průběhu."
 )
 _PARK_MESSAGE: Final = (
     "AI analýza pro tento výzkum není povolena: {why}. Nic nebylo odesláno ani "
-    "vymyšleno; modul čeká na schválení trasy, licence nebo klienta."
+    "vymyšleno. Po schválení trasy, licence nebo klienta pokračujte v běhu na Průběhu."
 )
 
 

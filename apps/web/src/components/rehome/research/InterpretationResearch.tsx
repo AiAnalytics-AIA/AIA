@@ -14,6 +14,7 @@ import { AiButton, Button, Field, Select } from "../ui";
 import { useResearch } from "./context";
 import { canReview } from "./frame";
 import { FormattedText } from "./FormattedText";
+import { DeepResearchWaits } from "./DeepResearchWaits";
 
 const message = (e: unknown) => e instanceof Error ? e.message : String(e);
 
@@ -145,6 +146,7 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
       <details className="mt-2 text-xs text-ink-muted"><summary className="cursor-pointer">Identifikace rešerše</summary><p className="mt-1 break-all">{current.run_id}</p></details>
       {current.actual_cost_usd !== null ? <p className="mt-1 text-sm text-ink-muted">Skutečné náklady: {current.actual_cost_usd.toFixed(4)} USD</p> : null}
       {current.steps.map(s => ({ s, problem: stepProblem(s) })).filter(x => x.problem !== null).map(({ s, problem }) => <div key={s.node_key} className="mt-2 text-sm text-status-fault">{deepStepLabel(s.node_key)}: <CodedWords coded={problem!} /></div>)}
+      <DeepResearchWaits run={current} studyId={frame.studyId} canEdit={frame.canEdit} onChanged={() => setRefresh(n => n + 1)} onError={(e) => setError(message(e))} />
       {!current.is_terminal ? <Button small disabled={busy || !mayReview} onClick={() => control("cancel")}>Zrušit rešerši</Button> : null}
       {current.retryable ? <AiButton small disabled={busy || !frame.canEdit} onClick={() => control("retry")}>Zkusit znovu</AiButton> : null}
     </div> : null}

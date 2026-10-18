@@ -32,6 +32,7 @@ import { ACTIONS, ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { researchAgents, type ResearchAgentAction, type WorkingContent } from "@/lib/api";
 import { known } from "@/lib/reason-words";
 import Link from "next/link";
+import { AgentBudgetWaits } from "./AgentBudgetWaits";
 import { useResearchAgents } from "./useResearchAgents";
 import { type StudyFrame, useStudyFrame } from "./frame";
 import { DesignSourceNote } from "./DesignSourceNote";
@@ -292,6 +293,7 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
           </div>
         )}</InspectorProvider>
       {agents.notice ? <p role="status" className="my-3 text-sm text-ink-muted">{agents.notice}</p> : null}
+      <AgentBudgetWaits jobs={agents.recent} studyId={frame.studyId} canEdit={frame.canEdit} onChanged={agents.refresh} />
       {agents.recent.some((j) => j.status === "COMPLETED" && !isAdviceAction(j.action)) ? <section className="my-4 rounded-md border border-border p-4"><h2 className="mb-2 font-semibold">{t("research.aiSaved")}</h2>
         <div className="flex flex-wrap gap-2">
           {agents.recent.filter((j) => j.status === "COMPLETED" && !isAdviceAction(j.action)).slice(0, 5).map((j) => <Button key={j.run_id} disabled={agents.busy} onClick={() => void agents.open(j)}>{ACTION_LABELS[j.action]} · {j.created_at ? new Date(j.created_at).toLocaleString("cs-CZ") : ""}</Button>)}

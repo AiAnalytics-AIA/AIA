@@ -57,7 +57,9 @@ def retryable(status: WorkflowRunStatus) -> bool:
     """True when starting the run again could end differently.
 
     A failed or cancelled run may be retried, as a new run linked to it. A waiting
-    run may not: it resumes when what it waits for arrives, and a retry would wait
-    for the same thing.
+    run may not: a retry would wait for the same thing. Most waits clear by
+    themselves (a provider's quota, capacity); a wait for the budget or for the AI
+    runtime does not, and a person lets the same run go on instead
+    (``application.research.lift_study_budget_waits`` / ``resume_runtime_parks``).
     """
     return status in (WorkflowRunStatus.FAILED, WorkflowRunStatus.CANCELLED)

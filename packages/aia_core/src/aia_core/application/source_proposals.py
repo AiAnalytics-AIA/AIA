@@ -28,7 +28,7 @@ from sqlalchemy.orm import Session
 from aia_core.domain.client_sources import SourceFamily
 from aia_core.domain.scope import ClientContext, ClientPermission, ClientWorkContext, ScopeDenied
 from aia_core.domain.source_proposals import HARNESS_VERSION, NotExtractable
-from aia_core.domain.workflow import WorkflowRunStatus
+from aia_core.domain.workflow import RUNTIME_UNAVAILABLE_REASON, StepRunStatus, WorkflowRunStatus
 from aia_core.domain.workflow_templates import CLIENT_SOURCE_PROPOSALS
 from aia_core.infrastructure.client_source_repository import ClientSourceRepository, ReadingPin
 from aia_core.infrastructure.storage import ArtifactStore
@@ -79,6 +79,10 @@ class ProposalsRun:
     #: Whether asking again starts a new run: this one ended without a result and left no
     #: paid call with its outcome unknown. What it answered is replayed, not paid again.
     restartable: bool = False
+    #: Whether asking again offers this run to a worker again: it parked for the AI runtime
+    #: (not configured, or its gateway refused) before it sent anything. No timer resumes
+    #: such a park; a person asking again after the runtime is on does (``_resumable``).
+    resumable: bool = False
 
 
 def _same(client: ClientContext, work: ClientWorkContext) -> None:
@@ -152,6 +156,17 @@ def _restartable(run: dict[str, Any], step: dict[str, Any]) -> bool:
     return step["status"].value == "RECOVERY_REQUIRED" and not _uncertain(step)
 
 
+def _resumable(step: dict[str, Any]) -> bool:
+    """Whether the step parked for the AI runtime before any paid call: asking again offers it
+    to a worker again (``WorkflowRepository.resume_runtime_park`` decides it, under the run's
+    lock; this is what the person is told)."""
+    return (
+        step["status"] is StepRunStatus.WAITING_PROVIDER
+        and step["waiting_reason"] == RUNTIME_UNAVAILABLE_REASON
+        and not any(a["paid_call_dispatched"] for a in step["attempts"])
+    )
+
+
 def _follow(
     session: Session, work: ClientWorkContext, run_id: str, *, current: str | None, created: bool
 ) -> ProposalsRun:
@@ -171,6 +186,7 @@ def _follow(
         output=step["output"] if step["status"].value == "SUCCEEDED" else {},
         created=created,
         restartable=_restartable(run, step),
+        resumable=_resumable(step),
     )
 
 
@@ -196,6 +212,15 @@ def start_source_proposals(
     same_reading = _runs(session, work, prefix)
     for run in same_reading:
         followed = _follow(session, work, run["run_id"], current=reading_sha256, created=False)
+        if followed.resumable:
+            # The same run, offered again: a new one beside it would park the same way, and
+            # the parked one would wait for ever.
+            workflows = WorkflowRepository(session, work)
+            step = next(
+                s for s in workflows.get_run(run["run_id"])["steps"] if s["node_key"] == STEP
+            )
+            workflows.resume_client_runtime_park(str(step["step_id"]))
+            return _follow(session, work, run["run_id"], current=reading_sha256, created=False)
         if not followed.restartable:
             return followed
     started = start_client_work(

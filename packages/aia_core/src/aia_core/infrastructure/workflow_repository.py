@@ -2118,6 +2118,23 @@ class WorkflowRepository:
         uncertain or already billed attempt can never enter through this path.
         """
         self.scope.require(Permission.RUN_WORKFLOW)
+        return self._resume_runtime_park(step_id, actor_id=self.scope.actor_id)
+
+    def resume_client_runtime_park(self, step_id: str) -> bool:
+        """:meth:`resume_runtime_park` for the client's own work (client-budget).
+
+        The repository's scope is the client's work, issued to the person asking
+        (``ScopeResolver.client_work_context``, which needs ``RUN_CLIENT_WORK``); the
+        step is found only within it. The same rule decides: an unbilled runtime park,
+        never a step that sent a paid call.
+        """
+        scope = self._work_scope
+        if not isinstance(scope, ClientWorkContext):
+            raise ScopeDenied("not client work", reason="scope_mismatch")
+        scope.require(Permission.RUN_WORKFLOW)
+        return self._resume_runtime_park(step_id, actor_id=scope.actor_id)
+
+    def _resume_runtime_park(self, step_id: str, *, actor_id: str) -> bool:
         step = self._step(step_id)
         self._lock_run_for(step)
         if StepRunStatus(step.status) in (StepRunStatus.RUNNABLE, StepRunStatus.RUNNING):
@@ -2151,7 +2168,7 @@ class WorkflowRepository:
             step.run_id,
             event_type="STEP_RESUMED",
             message=f"{step.node_key}: runtime enabled; offered after user action",
-            payload={"from": StepRunStatus.WAITING_PROVIDER.value, "actor_id": self.scope.actor_id},
+            payload={"from": StepRunStatus.WAITING_PROVIDER.value, "actor_id": actor_id},
             step_id=step_id,
         )
         self._session.flush()

@@ -217,7 +217,7 @@ class _Stub:
         return Failed(self.failure, error={"message": "The AI runtime is not deployed."})
 
 
-def _worker(app: FastAPI, fieldwork: FailureClass) -> Worker:
+def _worker(app: FastAPI, fieldwork: FailureClass | None) -> Worker:
     settings = app.state.settings
     return Worker(
         session_factory=create_session_factory(app.state.engine),
@@ -838,6 +838,85 @@ def test_fieldwork_without_the_ai_runtime_waits_visibly_and_nothing_downstream_r
     # Waiting is not failure: it cannot be retried into a second run that waits for the same thing.
     refused = researcher.post(f"{_runs(world)}/{run_id}/retry")
     assert refused.status_code == 409 and refused.json()["code"] == "run_not_retryable"
+
+
+def _close_study(app: FastAPI, world: Any) -> None:
+    from aia_core.domain.scope import StudyStatus
+    from aia_core.infrastructure.scope_repository import ScopeRepository
+
+    with create_session_factory(app.state.engine)() as session:
+        principal = AuthenticatedPrincipal(
+            user_id=world.users["researcher"], organization_id=world.organization_id
+        )
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        ScopeRepository(session).set_study_status(scope, StudyStatus.DELIVERED)
+        session.commit()
+
+
+def test_a_run_parked_for_the_runtime_goes_on_when_a_person_resumes_it(
+    app: FastAPI, researcher: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    """PC4: no timer resumes a runtime park and a retry refuses a waiting run, so the run
+    waited for ever once the runtime was on. A person lets the same run go on."""
+    run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
+        "run_id"
+    ]
+    off = _worker(app, FailureClass.RUNTIME_UNAVAILABLE)
+    while off.run_once() is not None:
+        pass
+    url = f"{_runs(world)}/{run_id}/resume"
+    # Under another study's path the run is not there to resume, whoever asks.
+    elsewhere = other_client_lead.post(f"{_runs(world, 'other_client')}/{run_id}/resume")
+    assert elsewhere.status_code == 404
+
+    resumed = researcher.post(url)
+    assert resumed.status_code == 200, resumed.text
+    assert resumed.json()["run_id"] == run_id and resumed.json()["phase"] != "WAITING"
+    fieldwork = next(s for s in resumed.json()["steps"] if s["node_key"] == "run")
+    assert (fieldwork["status"], fieldwork["waiting_reason"]) == ("RUNNABLE", None)
+    # Nothing waits for the runtime any more: a second press is refused by name.
+    again = researcher.post(url)
+    assert again.status_code == 409 and again.json()["code"] == "runtime_park_not_resumable"
+
+    # Still off: the step parks again, without spending an attempt, and can be resumed again.
+    while off.run_once() is not None:
+        pass
+    parked = researcher.get(f"{_runs(world)}/{run_id}").json()
+    fieldwork = next(s for s in parked["steps"] if s["node_key"] == "run")
+    assert fieldwork["waiting_reason"] == "ai_runtime_unavailable"
+    assert researcher.post(url).status_code == 200
+
+    # On: the same run goes on from fieldwork; nothing before it ran twice, no second run.
+    on = _worker(app, None)
+    assert on.run_once() is not None
+    steps = {s["node_key"]: s for s in researcher.get(f"{_runs(world)}/{run_id}").json()["steps"]}
+    assert steps["run"]["status"] == "SUCCEEDED"
+    assert steps["compile"]["attempts_recorded"] == steps["preflight"]["attempts_recorded"] == 1
+    assert [r["run_id"] for r in researcher.get(_runs(world)).json()["items"]] == [run_id]
+
+
+def test_resuming_a_run_refuses_one_that_waits_for_nothing_and_a_closed_study(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
+        "run_id"
+    ]
+    url = f"{_runs(world)}/{run_id}/resume"
+    queued = researcher.post(url)
+    assert queued.status_code == 409 and queued.json()["code"] == "runtime_park_not_resumable"
+
+    off = _worker(app, FailureClass.RUNTIME_UNAVAILABLE)
+    while off.run_once() is not None:
+        pass
+    _close_study(app, world)
+    closed = researcher.post(url)
+    assert closed.status_code == 403 and closed.json()["code"] == "study_closed"
+    fieldwork = next(
+        s
+        for s in researcher.get(f"{_runs(world)}/{run_id}").json()["steps"]
+        if s["node_key"] == "run"
+    )
+    assert fieldwork["status"] == "WAITING_PROVIDER"
 
 
 def test_a_failed_run_is_retried_as_a_new_run_linked_to_it(
