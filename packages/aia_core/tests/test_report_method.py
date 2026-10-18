@@ -6,7 +6,11 @@ import re
 from pathlib import Path
 from typing import Any
 
-from aia_core.application.report_method import compose_method_section, research_question_gaps
+from aia_core.application.report_method import (
+    compose_method_section,
+    research_question_gap,
+    research_question_gaps,
+)
 from aia_core.domain.fieldwork import DataOrigin
 from aia_core.domain.report.model import Callout, Paragraph, Table, Text, TextCell
 
@@ -490,6 +494,9 @@ def test_each_recorded_gap_is_worded_for_the_answer_it_qualifies() -> None:
         "výzkumnou otázku "
         "odpovídá)"
     }
+    # Results reads an answer's gap by the same match (PC2): whitespace folded, else none.
+    assert research_question_gap(gaps, f"\n{_RQ}  ") == gaps[_RQ]
+    assert research_question_gap(gaps, "Jiná otázka?") is None
     # Nothing recorded, unreadable or capable: no answer is qualified.
     assert research_question_gaps({}) == {}
     assert research_question_gaps({"answerability": {"rules": "aia-answerability-1"}}) == {}

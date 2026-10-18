@@ -50,6 +50,8 @@ import {
   questionnaireCounts,
   questionnaireHasQuestions,
   questionnaireView,
+  questionCondition,
+  removeCondition,
   removeQuestion,
   removeSection,
   respondentPreview,
@@ -739,6 +741,12 @@ function QuestionCard({ n, q, si, qi, update }: { n: number; q: Question; si: nu
           <Icon name="you" size={12} />
           {t("research.questionnaire.unworded")}
         </p>
+      ) : null}
+      {questionCondition(q) !== null ? (
+        <div data-question-condition className="mt-2 flex flex-wrap items-center gap-2 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-xs">
+          <span className="flex-1">{tv("research.questionnaire.condition", { condition: questionCondition(q)! })}</span>
+          <Button small onClick={() => update((p) => removeCondition(p, si, qi))}>{t("research.questionnaire.removeCondition")}</Button>
+        </div>
       ) : null}
       {typ === "vyber" || typ === "multi" ? (
         <OptionRows key={(q.kategorie || []).join("\n")} multi={typ === "multi"} options={q.kategorie || []} onCommit={(raw) => update((p) => setQuestionOptions(p, si, qi, raw))} />

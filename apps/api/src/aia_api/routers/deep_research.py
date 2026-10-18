@@ -44,7 +44,12 @@ from aia_core.application.deep_research import (
     governed_record,
 )
 from aia_core.application.design_research import DesignResearchProposals
-from aia_core.application.research import CostCeilingUnknown, CostConfirmationRequired
+from aia_core.application.errors import BudgetWaitNotLiftable, RuntimeParkNotResumable
+from aia_core.application.research import (
+    BudgetNotRaised,
+    CostCeilingUnknown,
+    CostConfirmationRequired,
+)
 from aia_core.domain.deep_research.budgets import CallKind, ResearchMode
 from aia_core.domain.deep_research.common_crawl import MIN_SCAN_CUTOFF_BYTES, AthenaPricing
 from aia_core.domain.deep_research.contracts import Channel
@@ -386,6 +391,22 @@ def _errors(session: SessionDep) -> Iterator[None]:
         raise HTTPException(
             status_code=409, detail={"code": "run_not_retryable", "message": str(exc)}
         ) from exc
+    except RuntimeParkNotResumable as exc:
+        raise HTTPException(
+            status_code=409, detail={"code": "runtime_park_not_resumable", "message": str(exc)}
+        ) from exc
+    except BudgetWaitNotLiftable as exc:
+        raise HTTPException(
+            status_code=409, detail={"code": "not_waiting_for_budget", "message": str(exc)}
+        ) from exc
+    except BudgetNotRaised as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "budget_not_raised",
+                "message": f"The study's budget is already {exc.current:.2f}; offer at least that.",
+            },
+        ) from exc
     except (BundleNotReady, ValidationError) as exc:
         raise HTTPException(
             status_code=409, detail={"code": "bundle_not_ready", "message": str(exc)}
@@ -543,6 +564,42 @@ def cancel(run_id: RunId, scope: StudyScopeDep, session: SessionDep) -> DeepRese
         runs = DeepResearchRuns(session, scope)
         runs.cancel(run_id)
         return _response(runs.get(run_id), scope)
+    raise AssertionError("unreachable")
+
+
+@router.post("/runs/{run_id}/resume", response_model=DeepResearchRun)
+def resume(run_id: RunId, scope: StudyScopeDep, session: SessionDep) -> DeepResearchRun:
+    """Needs ``RUN_WORKFLOW`` on an open Study: a run parked for the AI runtime (Deep Research
+    not composed on the worker, or a gateway refusal before any call) offered to a worker
+    again once it is, the same run with its frozen spec, pin and ceiling. 409
+    ``runtime_park_not_resumable`` when nothing in it waits for the runtime."""
+    with _errors(session):
+        return _response(DeepResearchRuns(session, scope).resume(run_id), scope)
+    raise AssertionError("unreachable")
+
+
+class DeepResearchBudgetLift(BaseModel):
+    """The budget the study is raised to, and why. Never a lower one."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    budget_usd: float = Field(ge=0, le=1_000_000)
+    note: str = Field(default="", max_length=500)
+
+
+@router.post("/runs/{run_id}/budget", response_model=DeepResearchRun)
+def lift_budget(
+    run_id: RunId, body: DeepResearchBudgetLift, scope: StudyScopeDep, session: SessionDep
+) -> DeepResearchRun:
+    """Needs ``APPROVE_BUDGET`` and ``MANAGE_STUDY_BUDGET`` on an open Study: the study's
+    budget raised to ``budget_usd`` and every step of the run stopped at the cap offered to a
+    worker again, each lift an approval in the ledger. 409 ``not_waiting_for_budget`` when
+    none waits; 422 ``budget_not_raised`` below the current budget. The cap stays hard."""
+    with _errors(session):
+        runs = DeepResearchRuns(session, scope)
+        return _response(
+            runs.lift_budget_wait(run_id, budget_usd=body.budget_usd, note=body.note), scope
+        )
     raise AssertionError("unreachable")
 
 

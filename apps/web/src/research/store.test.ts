@@ -123,6 +123,33 @@ describe("ResearchStore", () => {
     expect(bodies).toHaveLength(1);
   });
 
+  it("never changes or saves content that may not change here, and says it is read-only", async () => {
+    const { bodies, save } = aia(() => saved(9));
+    const loaded = { ...newResearch(TEMPLATE), revision: 4 };
+    const store = new ResearchStore(loaded, "STU-1", { save, readOnly: true });
+    expect(store.get().save).toEqual({ kind: "readonly" });
+    store.update(({ project }) => ({ project: { ...project, goal: "edited" } }));
+    expect(store.get().project).toBe(loaded.project);
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS * 2);
+    await store.flush("run");
+    expect(bodies).toHaveLength(0);
+    expect(store.get()).toMatchObject({ revision: 4, save: { kind: "readonly" } });
+  });
+
+  it("stops saving a study closed after it was opened, and never offers a retry that cannot succeed", async () => {
+    const closed = new ApiError(403, "study_closed", "The study no longer accepts changes.", null, { reason: "study_closed" });
+    const { bodies, save } = aia(() => closed);
+    const store = new ResearchStore({ ...newResearch(TEMPLATE), revision: 2 }, "STU-1", { save });
+    store.update(({ project }) => ({ project: { ...project, goal: "late" } }));
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
+    expect(store.get().save).toEqual({ kind: "closed" });
+    store.update(({ project }) => ({ project: { ...project, goal: "later" } }));
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS * 2);
+    expect(bodies).toHaveLength(1);
+    await expect(store.flush()).rejects.toMatchObject({ code: "study_closed" });
+    expect(bodies).toHaveLength(1);
+  });
+
   it("keeps a change made during a save pending, and saves it after from the new revision", async () => {
     let release: () => void = () => {};
     const { bodies, save } = aia((_b, n) => (n === 1 ? new Promise<WorkingSave>((r) => (release = () => r(saved(1)))) : saved(2)));

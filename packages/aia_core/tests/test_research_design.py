@@ -138,6 +138,9 @@ def test_what_the_unit_does_and_aia_does_not_yet_is_refused_not_skipped() -> Non
     filtered["sections"][0]["questions"][2]["filtr"] = "q2 == 'Kávu'"
     _, r = prepare(filtered, pair_n_min=AUDIT_PROVISIONAL_N_MIN)
     assert not r.ready and _check(r, "conditional_questions").status is CheckStatus.FAIL
+    # The way out is in AIA (PC15): the classic interface it once named is gone (ADR 0018).
+    said = _check(r, "conditional_questions").message
+    assert "klasick" not in said and "Dotazníku" in said
     familiar = copy.deepcopy(DESIGN)
     familiar["sections"][1]["familiarity_required"] = True
     _, r = prepare(familiar, pair_n_min=AUDIT_PROVISIONAL_N_MIN)

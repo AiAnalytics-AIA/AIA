@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { t } from "@/i18n/t";
 import { research } from "@/lib/api";
+import { pollMs, shouldPoll } from "@/lib/research-execution";
 import { type LaneStage, type LaneTone, designLane, runLane } from "@/research/lane";
 import type { ResearchState } from "@/research/store";
 import type { StepKey } from "@/research/steps";
@@ -50,16 +51,34 @@ function Glyph({ tone }: { tone: LaneTone }) {
   );
 }
 
-/** The study's runs, read once per study and refreshed when the stage changes: the run stages' state. */
+/**
+ * The study's runs: the run stages' state. Read when the study or the stage changes, and read
+ * again while one of them can still change on its own, by the rule and at the pace Progress reads
+ * its run (`shouldPoll` / `pollMs`). Read once, the track said "běží" and "Zatím nic" beside a page
+ * whose run had finished, until a reload (productization-coherence PC5).
+ */
 function useRuns(studyId: string, current: StepKey) {
   const [runs, setRuns] = useState<Parameters<typeof runLane>[0]>(null);
   useEffect(() => {
     let live = true;
-    research.runs(studyId).then(
-      (items) => live && setRuns(Array.isArray(items) ? items : null),
-      () => live && setRuns(null),
-    );
-    return () => { live = false; };
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const read = () => {
+      research.runs(studyId).then(
+        (items) => {
+          if (!live) return;
+          const list = Array.isArray(items) ? items : null;
+          setRuns(list);
+          const moving = list?.find(shouldPoll);
+          if (moving) timer = setTimeout(read, pollMs(moving));
+        },
+        () => live && setRuns(null),
+      );
+    };
+    read();
+    return () => {
+      live = false;
+      if (timer) clearTimeout(timer);
+    };
   }, [studyId, current]);
   return runs;
 }

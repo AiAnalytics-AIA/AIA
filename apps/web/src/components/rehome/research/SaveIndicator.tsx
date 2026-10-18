@@ -20,6 +20,15 @@ export function SaveIndicator({ save, onRetry, onReload }: { save: SaveState; on
       </div>
     );
   }
+  if (save.kind === "closed") {
+    return (
+      <div role="alert" className="flex items-center gap-2 rounded-sm border border-status-fault/40 bg-status-fault-wash px-2.5 py-1 text-xs text-status-fault">
+        <Icon name="fault" size={12} />
+        <span className="font-semibold">{t("research.saveClosed")}</span>
+        {onReload ? <Button small variant="secondary" onClick={onReload}>{t("research.saveReload")}</Button> : null}
+      </div>
+    );
+  }
   if (save.kind === "failed") {
     return (
       <div role="alert" className="flex items-center gap-2 rounded-sm border border-status-fault/40 bg-status-fault-wash px-2.5 py-1 text-xs text-status-fault">
@@ -31,7 +40,8 @@ export function SaveIndicator({ save, onRetry, onReload }: { save: SaveState; on
     );
   }
   const label =
-    save.kind === "new" ? t("research.saveNew")
+    save.kind === "readonly" ? t("research.saveReadOnly")
+    : save.kind === "new" ? t("research.saveNew")
     : save.kind === "saved" ? t("research.saveSaved")
     : save.kind === "saving" ? t("research.saveSaving")
     : t("research.savePending");

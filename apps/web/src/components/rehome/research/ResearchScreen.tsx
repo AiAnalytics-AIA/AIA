@@ -23,13 +23,16 @@ import { AppShell } from "../../aia/AppShell";
 import { type Ask, AskDialog, Button, Toast } from "../ui";
 import { JobPanel } from "./JobPanel";
 import { StageTrack, TRACK_STEPS } from "./StageTrack";
-import { Blockers, InspectorProvider } from "./Inspector";
+import { Blockers, InspectorProvider, ReadOnly } from "./Inspector";
 import { ProposalReview } from "./ProposalReview";
 import { SaveIndicator } from "./SaveIndicator";
 import { StepPlaceholder } from "./StepPlaceholder";
 import { ResearchContext, type RunJob } from "./context";
 import { ACTIONS, ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { researchAgents, type ResearchAgentAction, type WorkingContent } from "@/lib/api";
+import { known } from "@/lib/reason-words";
+import Link from "next/link";
+import { AgentBudgetWaits } from "./AgentBudgetWaits";
 import { useResearchAgents } from "./useResearchAgents";
 import { type StudyFrame, useStudyFrame } from "./frame";
 import { DesignSourceNote } from "./DesignSourceNote";
@@ -75,7 +78,7 @@ export function ResearchSession({ studyId, initialContent, children }: { studyId
         if (!live) return;
         if (r.kind === "awaiting_migration") return setLoaded({ kind: "awaiting_migration" });
         if (r.kind === "unrecoverable") return setLoaded({ kind: "unrecoverable", template: r.template, canEdit: r.canEdit });
-        const s = new ResearchStore(r.state, studyId);
+        const s = new ResearchStore(r.state, studyId, { readOnly: !r.canEdit });
         store = s;
         setLoaded({ kind: "ready", store: s, template: r.template, origin: r.origin });
       },
@@ -98,6 +101,31 @@ export function ResearchSession({ studyId, initialContent, children }: { studyId
     [studyId, loaded, startAgain, memory],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
+}
+
+/** The stages a person edits the design on: read-only, as one, when the study may not change. */
+const DESIGN_STEPS: ReadonlySet<StepKey> = new Set<StepKey>(["brief", "plan", "questionnaire", "audience", "persona"]);
+
+/**
+ * A study that accepts no new work says so on every stage, once: what it is, what still works
+ * and where it is reopened. Without it, a delivered study looked editable and every save was
+ * refused as a role the person has (productization-coherence PC1).
+ */
+export function ClosedStudyNotice({ closed }: { closed: NonNullable<StudyFrame["closed"]> }) {
+  const when = closed.deliveredAt ? new Date(closed.deliveredAt).toLocaleDateString("cs-CZ") : null;
+  const title =
+    closed.status === "DELIVERED" && when
+      ? tv("aia.study.closed.DELIVERED_on", { when })
+      : known(`aia.study.closed.${closed.status}`) ?? t("aia.study.closed.other");
+  return (
+    <section role="status" data-study-closed={closed.status} className="mb-4 max-w-3xl rounded-sm border border-border-strong bg-surface-sunken p-3 text-sm leading-6 text-ink">
+      <p className="font-semibold">{title}</p>
+      <p>{t("aia.study.closed.help")}</p>
+      <p className="text-ink-muted">
+        <Link href={`${appRoutes.settings()}#studies`} className="text-signal underline">{t("aia.study.closed.reopen")}</Link>.
+      </p>
+    </section>
+  );
 }
 
 /** The AIA frame of one stage: client, study and stage in the breadcrumbs, the study's stages in its track. */
@@ -128,6 +156,7 @@ function StageChrome({ frame, step, state, status, help, children }: {
       {frame.notice ? (
         <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{frame.notice}</p>
       ) : null}
+      {frame.closed ? <ClosedStudyNotice closed={frame.closed} /> : null}
       {children}
     </AppShell>
   );
@@ -246,11 +275,17 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
       <StageChrome frame={frame} step={step} state={state} status={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} onReload={reload} />}>
         <DesignSourceNote clientId={frame.clientId} studyId={frame.studyId} />
         {origin ? <p role="status" data-content-origin="18.6.6" className="mb-4 max-w-3xl rounded-sm border border-border bg-surface-raised p-3 text-sm leading-6 text-ink">{origin}</p> : null}
-        <InspectorProvider>{(column) => (
+        <InspectorProvider disabled={!frame.canEdit && DESIGN_STEPS.has(step)}>{(column) => (
           <div data-research-workspace className="grid min-w-0 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
             <div className="flex min-w-0 flex-col gap-4">
-              {agents.proposalReview ? <ProposalReview result={agents.proposalReview.result} state={state} onDecision={agents.proposalReview.decide} /> : null}
-              {Screen ? <Screen /> : <StepPlaceholder step={step} />}
+              {/* An AI proposal can be opened from the saved list on any stage: on a closed study it is
+                  read and closed, never applied, whichever stage shows it. */}
+              {agents.proposalReview ? <ProposalReview result={agents.proposalReview.result} state={state} onDecision={agents.proposalReview.decide} canApply={frame.canEdit} /> : null}
+              {/* A design that may not change is read, never edited: every control of a design stage
+                  is disabled as one (the run stages decide their own actions). */}
+              <ReadOnly when={!frame.canEdit && DESIGN_STEPS.has(step)}>
+                {Screen ? <Screen /> : <StepPlaceholder step={step} />}
+              </ReadOnly>
             </div>
             {column(<>
               {expanded ? panel : card}
@@ -260,6 +295,7 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
           </div>
         )}</InspectorProvider>
       {agents.notice ? <p role="status" className="my-3 text-sm text-ink-muted">{agents.notice}</p> : null}
+      <AgentBudgetWaits jobs={agents.recent} studyId={frame.studyId} canEdit={frame.canEdit} onChanged={agents.refresh} />
       {agents.recent.some((j) => j.status === "COMPLETED" && !isAdviceAction(j.action)) ? <section className="my-4 rounded-md border border-border p-4"><h2 className="mb-2 font-semibold">{t("research.aiSaved")}</h2>
         <div className="flex flex-wrap gap-2">
           {agents.recent.filter((j) => j.status === "COMPLETED" && !isAdviceAction(j.action)).slice(0, 5).map((j) => <Button key={j.run_id} disabled={agents.busy} onClick={() => void agents.open(j)}>{ACTION_LABELS[j.action]} · {j.created_at ? new Date(j.created_at).toLocaleString("cs-CZ") : ""}</Button>)}

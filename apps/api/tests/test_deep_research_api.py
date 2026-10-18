@@ -310,3 +310,86 @@ def test_the_bundle_route_serves_the_sealed_bundle_with_the_rules_it_ran_under(
     assert asked == ["RUN-00000000000000b1"]
     assert got.json()["versions"] == sealed.versions
     assert got.json()["versions"]["merge"] == "aia-merge-1"
+
+
+def _park_plan(app: Any, world: Any, failure: Any) -> None:
+    """Claim the run's plan step as a worker would and end its attempt with ``failure``."""
+    from aia_core.infrastructure.workflow_repository import WorkflowRepository
+
+    with create_session_factory(app.state.engine)() as session:
+        principal = AuthenticatedPrincipal(
+            user_id=world.users["researcher"], organization_id=world.organization_id
+        )
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        workflow = WorkflowRepository(session, scope)
+        claimed = workflow.claim_next(worker_id="dr-park-fixture")
+        assert claimed is not None and claimed.node_key == "plan"
+        workflow.fail_attempt(claimed.attempt_id, worker_id="dr-park-fixture", failure=failure)
+        session.commit()
+
+
+def _started(researcher: TestClient, world: Any) -> str:
+    payload = {
+        "design_revision_id": _revision(researcher, world),
+        "preset_name": "QUICK",
+        "channels": ["WEB"],
+    }
+    started = researcher.post(_url(world), json=payload)
+    assert started.status_code == 201, started.text
+    return str(started.json()["run_id"])
+
+
+def _plan(run: dict[str, Any]) -> dict[str, Any]:
+    return next(s for s in run["steps"] if s["node_key"] == "plan")
+
+
+def test_a_run_parked_for_the_runtime_goes_on_when_a_person_resumes_it(
+    app: Any, researcher: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    """PC4: a run whose plan parked before Deep Research was composed waited for ever; its
+    retry refuses a waiting run, and a new start is the same run by idempotency."""
+    from aia_core.domain.workflow import FailureClass
+
+    run_id = _started(researcher, world)
+    _park_plan(app, world, FailureClass.RUNTIME_UNAVAILABLE)
+    run_url = f"{_url(world)}/{run_id}"
+    assert _plan(researcher.get(run_url).json())["status"] == "WAITING_PROVIDER"
+    assert researcher.post(f"{run_url}/retry").status_code == 409
+
+    elsewhere = other_client_lead.post(f"{_url(world, 'other_client')}/{run_id}/resume")
+    assert elsewhere.status_code == 404
+    resumed = researcher.post(f"{run_url}/resume")
+    assert resumed.status_code == 200, resumed.text
+    assert _plan(resumed.json())["status"] == "RUNNABLE"
+    again = researcher.post(f"{run_url}/resume")
+    assert again.status_code == 409 and again.json()["code"] == "runtime_park_not_resumable"
+
+
+def test_a_run_stopped_at_the_budget_cap_goes_on_when_a_person_lifts_it(
+    app: Any, researcher: TestClient, world: Any
+) -> None:
+    """PC4: a Deep Research step stopped at the study's cap had no lift; only a cancel, a
+    budget raised elsewhere and a retry got past it."""
+    from aia_core.domain.workflow import FailureClass
+
+    run_id = _started(researcher, world)
+    _park_plan(app, world, FailureClass.BUDGET_EXCEEDED)
+    run_url = f"{_url(world)}/{run_id}"
+    assert _plan(researcher.get(run_url).json())["status"] == "AWAITING_BUDGET"
+
+    from aia_core.infrastructure.tables import StudyRow
+    from sqlalchemy import select
+
+    with create_session_factory(app.state.engine)() as session:
+        before = float(
+            session.scalar(select(StudyRow.budget_usd).where(StudyRow.study_id == world.study_id()))
+        )
+    lower = researcher.post(f"{run_url}/budget", json={"budget_usd": before - 1.0})
+    assert lower.status_code == 422 and lower.json()["code"] == "budget_not_raised"
+    lifted = researcher.post(
+        f"{run_url}/budget", json={"budget_usd": before + 50.0, "note": "Klient souhlasil"}
+    )
+    assert lifted.status_code == 200, lifted.text
+    assert _plan(lifted.json())["status"] == "RUNNABLE"
+    again = researcher.post(f"{run_url}/budget", json={"budget_usd": before + 50.0})
+    assert again.status_code == 409 and again.json()["code"] == "not_waiting_for_budget"

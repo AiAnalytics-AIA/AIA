@@ -872,7 +872,7 @@ def assess_readiness(
             CheckStatus.FAIL,
             "Podmíněné otázky (filtr) AIA zatím neumí položit jen těm, kdo mají odpovídat: "
             + ", ".join(filtered)
-            + ". Spusťte tento návrh v klasickém rozhraní.",
+            + ". V Dotazníku u nich podmínku odeberte (otázku pak dostane každý), nebo je smažte.",
         )
     else:
         check("conditional_questions", CheckStatus.PASS, "Žádná podmíněná otázka.")
@@ -896,7 +896,9 @@ def assess_readiness(
         check(
             "sociomap_input",
             CheckStatus.PASS,
-            f"{len(spec.batteries)} sad pro Sociomapu (interní, D6).",
+            # Whether a map may reach a client is the Sociomap register's, for the method that
+            # computed it, read when the map is read (domain/sociomap_register.py), never here.
+            f"{len(spec.batteries)} sad pro Sociomapu.",
         )
         # Structural readiness to collect answers is not support for a map: a pair needs
         # n_min respondents who rated both (audit F3), counted after missing answers and

@@ -62,3 +62,32 @@ export function proposalDiff(current: Analysis | null, proposal: Record<string, 
     + sets.reduce((n, s) => n + (s.status === "new" || s.status === "removed" ? 1 : s.added.length + s.removed.length), 0);
   return { summary, lists, sets, changes };
 }
+
+/**
+ * What accepting a questionnaire proposal does to the questionnaire the person has now
+ * (productization PC6). The agent keeps every section that is not a question block or object
+ * battery, and every library instrument, and replaces all the rest -- the person's own blocks --
+ * with its own (domain/research_agents.py proposal_result). Accepting is one decision for the
+ * whole proposal, so the review says before it what goes: each own question or battery item that
+ * the proposal does not carry again (by its wording), what is new, and what is kept.
+ */
+export type QuestionnaireReplacement = { replaced: number; preserved: number; removed: string[]; added: string[]; kept: number };
+
+const OWN = new Set(["questions", "object_battery"]);
+const isOwn = (s: Record<string, unknown>): boolean => {
+  const meta = (s.metadata && typeof s.metadata === "object" ? s.metadata : {}) as Record<string, unknown>;
+  return OWN.has(String(s.type)) && !meta.standard_instrument && !meta.instrument_id;
+};
+const texts = (sections: Record<string, unknown>[]): string[] =>
+  sections.flatMap((s) => [
+    ...objects(s.questions).map((q) => String(q.text ?? "").trim()),
+    ...strings(s.objects),
+  ]).filter(Boolean);
+
+export function questionnaireReplacement(current: { sections?: unknown }, proposed: { sections?: unknown }): QuestionnaireReplacement {
+  const before = objects(current.sections);
+  const own = before.filter(isOwn);
+  const after = objects(proposed.sections).filter(isOwn);
+  const d = diffLists(texts(own), texts(after));
+  return { replaced: own.length, preserved: before.length - own.length, removed: d.removed, added: d.added, kept: d.kept };
+}

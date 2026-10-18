@@ -21,6 +21,13 @@ describe("designLane", () => {
     expect(lane.audience).toEqual({ tone: "idle", line: "Nevybráno" });
   });
 
+  it("says a new study chose no dimension, never the recommended set as if it had (OI-54)", () => {
+    // Reported by the owner on 2026-10-18: a new study's track read "4 dimenze · N=300".
+    expect(designLane({ project: project(), analysis: null }).persona).toEqual({ tone: "done", line: "Bez dimenzí · N=300" });
+    const chosen = project({ persona_dimensions: { approved: ["media", "cena"] } });
+    expect(designLane({ project: chosen, analysis: null }).persona).toEqual({ tone: "done", line: "2 dimenze · N=300" });
+  });
+
   it("marks the brief done once it has a goal", () => {
     expect(designLane({ project: project({ goal: "Jak nás vnímají" }), analysis: null }).brief.tone).toBe("done");
   });

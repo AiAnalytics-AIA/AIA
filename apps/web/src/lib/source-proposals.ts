@@ -51,11 +51,12 @@ export function proposalsPhase(run: ProposalsRun | null): ProposalsPhase {
 /** Whether the screen reads the run again: it is still moving on its own. */
 export const isMoving = (p: ProposalsPhase): boolean => p.phase === "queued" || p.phase === "running";
 
-/** Whether asking again would start a new run: none asked, the API says the last one may be
- *  restarted (it ended without a result and left no paid call of unknown outcome), or the
+/** Whether asking again would start a new run, or let the waiting one go on: none asked, the
+ *  API says the last one may be restarted (it ended without a result and left no paid call of
+ *  unknown outcome) or resumed (it parked for the AI runtime before it sent anything), or the
  *  document has been read again since. */
 export function mayAsk(run: ProposalsRun | null): boolean {
-  return run === null || run.restartable || !run.current;
+  return run === null || run.restartable || run.resumable === true || !run.current;
 }
 
 /** Whether AIA has words for a proposals reason. */

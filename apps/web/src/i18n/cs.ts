@@ -432,6 +432,7 @@ export const cs = {
         action: "Navrhnout znalosti",
         title: "Spustí AI úlohu na pozadí · platí se z rozpočtu klienta",
         again: "Navrhnout znovu",
+        resume: "Pokračovat",
         asking: "Odesílám…",
         hint: "AI přečte dokument a navrhne fakta, zjištění, pojmy a subjekty, každý návrh s doslovnou citací. Platí rozpočet klienta. Nic se nestane znalostí, dokud to člověk nepřijme.",
         queued: "Návrhy čekají ve frontě.",
@@ -663,7 +664,7 @@ export const cs = {
           approved_internal: "Zpráva: schválená pro interní použití",
           unknown: "Stav zprávy neznámý",
         },
-        internal: "Interní: Sociomapa, analýza a zpráva nejsou pro klienta",
+        internal: "Interní výstupy: analýza a interní zpráva nejsou pro klienta, Sociomapa jen tehdy, když registr schválil její metodu",
         reuse: {
           title: "Použít tento design",
           text: "Design se zkopíruje do nového výzkumu tohoto klienta, nebo do prázdného, a bude citovat svůj zdroj i jeho označení. Data zdroje se nekopírují a nikdy nejsou důkazem.",
@@ -1022,6 +1023,8 @@ export const cs = {
           editFrom: "Upravit z této verze",
           reset: "Vrátit na {preset} z kódu",
           activateTitle: "Uvést {name} v platnost",
+          sociomapInternal:
+            "Mapy spočtené touto verzí budou interní, dokud ji registr Sociomap neschválí pro zprávy: klientská zpráva běhů spuštěných pod ní mapy obsahovat nebude. Pro zprávy je schválená jen aia-sociomap-3 v podobě z kódu; návrat na ni je jedno tlačítko.",
           resetTitle: "Vrátit na {name} z kódu",
           reason: "Důvod (zapíše se do historie)",
           confirm: "Potvrdit",
@@ -1648,6 +1651,16 @@ export const cs = {
       phases: { design: "Návrh výzkumu", sample: "Vzorek", run: "Běh a výsledky" },
       bindFailed: "Rozpracovaný obsah se nepodařilo přiřadit k výzkumu: {message}",
       readOnly: "Tento výzkum můžete jen číst.",
+      // A study that accepts no new work (StudyStatus.accepts_work): said once, on every stage.
+      closed: {
+        DELIVERED: "Studie je předaná klientovi.",
+        DELIVERED_on: "Studie je předaná klientovi ({when}).",
+        ARCHIVED: "Studie je archivovaná.",
+        CANCELLED: "Studie je zrušená.",
+        other: "Studie nepřijímá novou práci.",
+        help: "Návrh už nejde upravit a nová práce (běh, AI pomoc, rešerše) se nespustí. Výsledky a zprávy zůstávají k přečtení, stažení a schválení.",
+        reopen: "Znovu otevřít ji lze v Nastavení → Studie a rozpočty",
+      },
     },
     time: {
       justNow: "právě teď",
@@ -1684,6 +1697,8 @@ export const cs = {
     saveFailed: "Neuloženo",
     saveRetry: "Zkusit znovu",
     saveConflict: "Uloženo jinde · změny zde neuloženy",
+    saveClosed: "Studie je mezitím uzavřená · změny zde neuloženy",
+    saveReadOnly: "Jen ke čtení",
     saveReload: "Načíst znovu",
     jobStarting: "Zakládám durable úlohu…",
     jobElapsed: "Běží",
@@ -1707,6 +1722,12 @@ export const cs = {
     aiCopilot: "Zeptat se na návrh",
     aiMemory: "Zeptat se na klientské znalosti",
     aiSaved: "Uložené návrhy AI",
+    proposalClosed: "Studie je uzavřená: návrh si můžete přečíst, ale nejde použít.",
+    aiBudget: {
+      title: "AI úloha čeká na rozpočet studie",
+      help: "Úloha se zastavila, protože by překročila rozpočet studie, a sama nepokračuje. Po navýšení rozpočtu pokračuje tatáž úloha; nic dalšího se nespouští.",
+      job: "{action} · zadáno {when}",
+    },
     // Studio v3's shared step pieces (components/rehome/step.tsx).
     step: { optional: "volitelné", remove: "Odebrat", keep: "Ponechat" },
     brief: {
@@ -2036,6 +2057,17 @@ export const cs = {
           ab_test: "Test A/B konceptů",
         },
       },
+      condition:
+        "Otázka má podmínku zobrazení převzatou z 18.6.6 („{condition}“). AIA zatím neumí položit otázku jen těm, kdo na ni mají odpovídat, a běh s podmínkou nespustí: podmínku odeberte (otázku pak dostane každý), nebo otázku smažte.",
+      removeCondition: "Odebrat podmínku",
+      // productization PC6: what accepting a questionnaire proposal replaces.
+      replacement: {
+        title: "Co se stane s dotazníkem",
+        summary:
+          "Použití nahradí vaše vlastní bloky otázek a sady objektů ({replaced}) bloky z návrhu; ostatní sekce a nástroje z knihovny ({preserved}) zůstanou. Otázek a položek beze změny znění: {kept}.",
+        footer:
+          "Použití vytvoří novou revizi návrhu a nahradí vaše vlastní bloky dotazníku bloky z návrhu, jak je uvedeno výše; sekce a nástroje z knihovny zůstanou. Předchozí revize zůstane uložená.",
+      },
       // Plan run-recovery-and-truth 3e: the links a questionnaire proposal brings with it.
       proposed: {
         title: "Výzkumné otázky v návrhu",
@@ -2218,6 +2250,9 @@ export const cs = {
       dockNote: "{d} dimenzí · N={n}",
     },
     deep: {
+      searchedNothing: "Tato rešerše nic nehledala: neodešel z ní žádný dotaz (zablokovaných stop: {blocked} z {tracks}).",
+      searchedNothingWhy:
+        "Prázdný výsledek proto neznamená, že zdroje nic neuvádějí. Obvykle v tomto prostředí není zapnutá vyhledávací trasa; to nastavuje provozovatel.",
       steps: {
         plan: "Plán rešerše",
         investigate: "Hledání zdrojů",
@@ -2383,7 +2418,7 @@ export const cs = {
         preflight: "Kontrola připravenosti",
         run: "Sběr dat",
         aggregate: "Agregace",
-        sociomap: "Sociomapa (interní)",
+        sociomap: "Sociomapa",
         sociomapping: "Sociomapping (experimentální metoda AIA)",
         sociomapping_report: "Zpráva Sociomappingu (interní koncept)",
         report: "Interní report AIA",
@@ -2457,6 +2492,8 @@ export const cs = {
         RECOVERY_REQUIRED: "Potřebuje zásah",
         // Not a workflow status: an analysis step that SUCCEEDED with a BLOCKED module.
         ANALYSIS_BLOCKED: "Potřebuje opravu",
+        // Not a workflow status: a step that had not started when its run ended.
+        WILL_NOT_RUN: "Nespustí se",
       },
       support: {
         REPORTABLE: "{donors} unikátních dárců, n = {n}.",
@@ -2632,6 +2669,7 @@ export const cs = {
       dockBlocked: "Strop nelze spočítat a studie má limit",
       dockAsk: "Před spuštěním se zeptám na potvrzení nákladů",
       readOnly: "Máte jen čtení: výzkum může spustit výzkumník nebo vedoucí studie.",
+      closed: "Studie je uzavřená: nový běh se nespustí.",
       aiRuntimeNotice: "Sběr dat pomocí AI respondentů je dostupný jen pro schválené studie. Před každým voláním se ověří licence, trasa a rozpočet. Pokud sběr není povolený, běh počká a výsledky nevzniknou.",
       fictional: "Fiktivní data",
       syntheticNotice: "Fiktivní data. Tento běh používá smyšlené respondenty pro vývoj a testy. Nic z něj není zjištění a nic z něj nesmí jít ke klientovi.",
@@ -2656,11 +2694,20 @@ export const cs = {
       attempts: "Pokus {n} z {max}",
       parked: "Běh čeká u sběru dat: AI respondenti pro tuto studii nejsou dostupní nebo povolení. Další kroky se nespustí. Zkontrolujte důvod u kroku sběru dat.",
       parkedAt: "Běh čeká u kroku „{step}“: AI model pro tento krok není dostupný nebo povolený. Další kroky se nespustí. Důvod je uvedený u kroku.",
+      parkedResume:
+        "Sám od sebe nepokračuje. Až bude AI zapnutá nebo povolená, pokračujte v tomto běhu: nic se nespouští znovu a nic, co už proběhlo, se neplatí podruhé. Pokud AI dostupná stále nebude, běh počká znovu.",
+      resume: "Pokračovat v běhu",
+      foundByStart:
+        "Tento návrh se stejným nastavením už běžel, a proto se nic nového nespustilo ani nezaplatilo: otevřel se tento běh. Chcete-li nový běh, upravte návrh; běh, který skončil chybou nebo byl zrušen, lze zde spustit znovu.",
       wait: {
         budget_exceeded: "Krok čeká, protože by překročil rozpočet studie.",
         provider_quota_exhausted: "Krok čeká, protože poskytovatel modelu vyčerpal kvótu. Pokračuje po jejím obnovení.",
         approval_required: "Krok čeká na rozhodnutí člověka.",
         ai_runtime_unavailable: "Krok čeká: AI model pro něj není dostupný nebo povolený.",
+        paid_call_uncertain:
+          "Krok se zastavil uprostřed placeného volání, jehož výsledek AIA nezná. Aby se nic nezaplatilo dvakrát, sám se neopakuje: běh lze zrušit a zopakovat, nebo nechat provozovatele volání dohledat.",
+        attempts_exhausted: "Krok vyčerpal všechny pokusy a sám se neopakuje; běh lze zrušit a zopakovat.",
+        recovery_required: "Krok se zastavil a sám se neopakuje; důvod AIA nezaznamenala. Běh lze zrušit a zopakovat.",
       },
       report: {
         status: {
@@ -2724,12 +2771,21 @@ export const cs = {
         how: "Oprava je nový běh nad týmiž odpověďmi respondentů: znovu se nic nesbírá, hotové moduly se převezmou zdarma a model dostane jen moduly výše.",
         action: "Zopakovat neúspěšné moduly",
         held: "Model modul nesestavil tak, aby každé číslo mělo oporu v datech; lze ho zopakovat nad týmiž daty.",
+        stale:
+          "Sebraná data jsou v pořádku. {n} z 8 modulů analýzy sestavila starší verze AIA a dnešní je nemůže znovu ověřit, proto se analýza tohoto běhu nezobrazí a nelze ji použít ve zprávě s rešerší.",
       },
       refresh: "Obnovit stav",
       retryOf: "Opakování běhu {run}",
       noResults: "Výsledky zatím nejsou.",
       noResultsParked: "Výsledky nevzniknou, dokud běh čeká u sběru dat.",
       results: {
+        noMaps: "Tento běh žádnou Sociomapu nespočetl.",
+        answerGap: "Při spuštění běh zaznamenal: {words}. Odpověď proto čtěte jako nedoloženou, stejně jako ve zprávě.",
+        fidelityRefused: "Analýza ani zpráva toto číslo necitují: {reason}",
+        fidelityRefusedBare: "Analýza ani zpráva toto číslo necitují.",
+        analysisStale:
+          "Analýzu tohoto běhu sestavila starší verze AIA a dnešní ji nemůže znovu ověřit, proto se nezobrazí. Sebraná data platí: analýzu lze nechat sestavit znovu nad týmiž odpověďmi, bez nového sběru.",
+        analysisStaleRepair: "Opravit analýzu na Průběhu",
         bar: "Hodnota a 95% interval",
         jumpLabel: "Oddíly výsledků",
         jumpAnalysis: "AI analýza",
@@ -2765,7 +2821,7 @@ export const cs = {
         position: "Poloha na mapě",
         provenance: "Původ",
         artifact: "Artefakt {id} · SHA256 {sha} · běh {run} · revize návrhu {revision}",
-        reportNotInAia: "Tento běh ještě nevytváří interní report. Klientský report (DOCX) zatím v AIA není.",
+        reportNotInAia: "Tento běh interní report nevytváří: byl spuštěn bez AI analýzy. Klientský report, pokud ho běh má, je na kartě zprávy výše.",
         report: "Interní report AIA",
         reportInternal: "Interní dokument pro kontrolu výzkumníkem. Není určen klientovi.",
         reportDraft: "Koncept čeká na schválení.",
@@ -2819,7 +2875,9 @@ export const cs = {
         detailsTitle: "Podrobnosti a původ",
         snapshot: "Uložit snímek (PNG)",
         snapshotLabel: "Interní · nesmí ke klientovi · {method} · otisk {fingerprint}",
+        snapshotLabelApproved: "Metodika schválena pro zprávy · {method} · otisk {fingerprint}",
         snapshotFile: "sociomapa-interni.png",
+        snapshotFileApproved: "sociomapa.png",
         hudSupport: "{placed} z {respondents} respondentů",
         internalChip: "Interní · nesmí ke klientovi",
         approvedChip: "Metodika schválena pro zprávy",

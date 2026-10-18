@@ -1209,11 +1209,12 @@ def test_a_panel_run_has_a_client_report_of_admitted_modelled_numbers_and_a_fict
     assert "modelováno: AI respondenti z populace" in body
     assert "13. 10. 2026 rozhodl zařadit je do klientské" in body
     assert "Výsledky jednotlivých otázek" in body
-    # The run tracks no set and has no map chapter, so its introduction names none (it said
-    # "a mapy hodnocených objektů" whatever was composed; cross-review).
+    # The run tracks no set and has no map chapter, so its introduction names none and says
+    # why not (it said "a mapy hodnocených objektů" whatever was composed; cross-review, PC17).
     assert not any((s.id or "").startswith("ch-native-map-") for s in document.sections)
     assert "Zpráva uvádí návrh studie, kdo odpovídal a výsledky jednotlivých otázek." in body
-    assert "mapy hodnocených objektů" not in body
+    assert "a mapy hodnocených objektů" not in body
+    assert "Mapy hodnocených objektů neobsahuje" in body
     # Nothing internal: no unapproved map, no pair table of raw r.
     assert "interním výstupem" not in body and "Směr a podpora vztahů" not in body
 

@@ -187,8 +187,17 @@ def compose_client_report(
             ),
             Paragraph(
                 text(
+                    # The maps only when a chapter of them was composed: none for a design with
+                    # no tracked set, a set that is not mappable, or a method the Sociomap
+                    # register does not approve (PC17; compose_map_sections returns none then).
                     f"{intro_contents(questions=bool(tables.sections), maps=bool(maps))} "
                     "Uvádí jen čísla s dostatečnou oporou a vždy s 95% intervalem."
+                    + (
+                        ""
+                        if maps
+                        else " Mapy hodnocených objektů neobsahuje: žádná mapa tohoto běhu není "
+                        "spočtena metodou schválenou pro zprávy nebo nevznikla."
+                    )
                 )
             ),
         ),

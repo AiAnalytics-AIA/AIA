@@ -134,6 +134,23 @@ describe("Dotazník", () => {
     expect(within(ready).getByRole("button", { name: /Otázky bez znění: 1/ })).toBeTruthy();
   });
 
+  it("shows a question's display condition from 18.6.6 and removes it, so the run can start (PC15)", async () => {
+    const sections = structuredClone(SECTIONS) as { questions?: Record<string, unknown>[] }[];
+    sections[0]!.questions![1]!.filtr = "Q1 == 'Denně'";
+    unitStub({ ...BRIEF, sections, ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByRole("heading", { name: "2 otázek · 1 sledovaných sad" });
+    const card = document.getElementById("qedit_Q2") as HTMLElement;
+    expect(within(card).getByText(/„Q1 == 'Denně'“/)).toBeTruthy();
+    expect(document.getElementById("qedit_Q1")!.querySelector("[data-question-condition]")).toBeNull();
+    fireEvent.click(within(card).getByRole("button", { name: "Odebrat podmínku" }));
+    expect(card.querySelector("[data-question-condition]")).toBeNull();
+    await saved();
+    const question = (lastSave().content.sections[0]!.questions as Record<string, unknown>[] | undefined)![1]!;
+    expect("filtr" in question).toBe(false);
+    expect(question.text).toBe("Jak moc?");
+  });
+
   it("edits a question as the classic editor does: type, options and a scale", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);

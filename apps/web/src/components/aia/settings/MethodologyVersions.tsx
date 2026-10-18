@@ -225,6 +225,13 @@ function Activate({ moduleId, version, name, onCancel, onDone }: { moduleId: str
     <div data-methodology-activate className="flex flex-col gap-2 rounded-sm border border-border p-3">
       <h4 className="text-sm font-semibold">{tv(version === null ? `${V}.resetTitle` : `${V}.activateTitle`, { name })}</h4>
       <p className="text-xs text-ink-muted">{t(`${V}.pinNote`)}</p>
+      {/* The Sociomap register approves one exact method (aia-sociomap-3 as the code has it): a map
+          computed by an edited version is internal until the register approves it, so the client
+          report of a run started under it has no maps. The rule is the register's; this says it
+          where it takes effect (PC17). */}
+      {moduleId === "sociomap" && version !== null ? (
+        <p role="note" data-sociomap-internal className="rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-xs">{t(`${V}.sociomapInternal`)}</p>
+      ) : null}
       <Field label={t(`${V}.reason`)}>
         <TextInput value={reason} maxLength={500} onChange={(e) => setReason(e.target.value)} />
       </Field>

@@ -117,7 +117,7 @@ def population_loader(source: PopulationAssetSource) -> PopulationLoader:
 #: Why a refused preflight parks the run: the gate's refusal is policy, not a defect.
 _PARK_MESSAGE = (
     "AI respondenti nejsou pro tento výzkum povoleni: {why}. Běh čeká u sběru dat; nic "
-    "nebylo odesláno ani vymyšleno. Po schválení trasy nebo licence spusťte běh znovu."
+    "nebylo odesláno ani vymyšleno. Po schválení trasy nebo licence pokračujte v běhu na Průběhu."
 )
 
 

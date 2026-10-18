@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import fixture from "@/lib/fixtures/object-map.json";
 import { type BatteryWithMaps, mapLinks, readObjectMap } from "@/lib/object-map-view";
 import { terraceLayers } from "@/lib/object-map-3d";
-import { ObjectMapView } from "./ObjectMapView";
+import { ObjectMapView, snapshotNaming } from "./ObjectMapView";
 
 const battery = fixture.sociomap.batteries[0] as unknown as BatteryWithMaps;
 const read = readObjectMap(battery);
@@ -338,5 +338,17 @@ describe("ObjectMapView", () => {
     render(<ObjectMapView battery={older} dataOrigin={null} />);
     expect(screen.getByText("Mapa objektů (aia-sociomap-2)")).toBeTruthy();
     expect(screen.getByTestId("object-map-svg")).toBeTruthy();
+  });
+});
+
+describe("a map's snapshot (PC7)", () => {
+  it("is named by the map's own approval: never internal when approved, never approved when not", () => {
+    const approved = snapshotNaming(true, "aia-sociomap-3", "e".repeat(64));
+    expect(approved.caption).toBe(`Metodika schválena pro zprávy · aia-sociomap-3 · otisk ${"e".repeat(12)}`);
+    expect(approved.file).toBe("sociomapa.png");
+    expect(approved.caption).not.toMatch(/Interní|nesmí/);
+    const internal = snapshotNaming(false, "aia-sociomap-1", "a".repeat(64));
+    expect(internal.caption).toMatch(/^Interní · nesmí ke klientovi · aia-sociomap-1/);
+    expect(internal.file).toBe("sociomapa-interni.png");
   });
 });

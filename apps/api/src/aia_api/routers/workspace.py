@@ -146,6 +146,8 @@ class WorkspaceStudy(BaseModel):
     kind: Literal["RESEARCH", "SIMULATION"]
     status: str
     accepts_work: bool
+    #: When the study was first marked delivered; ``None`` when it never was.
+    delivered_at: datetime | None = None
     last_stage: str | None = None
     has_working_content: bool = False
     #: Where the study's working content stands (``ContentState``), by name.
@@ -443,7 +445,12 @@ class StudyWorkspaceResponse(BaseModel):
     study: WorkspaceStudy
     client_name: str
     your_role: str
+    #: May change the study and start work on it now: ``EDIT_STUDY`` on a study that accepts work.
+    #: A delivered, archived or cancelled study is read-only (``study.accepts_work``).
     can_edit: bool
+    #: May read, download and approve what the study holds, and stop what runs, whatever its
+    #: status: what a closed study still allows.
+    can_review: bool
     content_state: str
 
 
@@ -624,9 +631,15 @@ def _not_found() -> HTTPException:
 
 
 def _forbidden(reason: str, message: str) -> HTTPException:
+    # A closed study refuses new work whoever asks: said as the closure, never as a role the
+    # person has (every member holds every permission, ADR 0019).
+    if reason == "study_closed":
+        code, message = "study_closed", "The study no longer accepts changes."
+    else:
+        code = "insufficient_role"
     return HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
-        detail={"code": "insufficient_role", "message": message, "details": {"reason": reason}},
+        detail={"code": code, "message": message, "details": {"reason": reason}},
     )
 
 
@@ -648,6 +661,7 @@ def _study(study: Study, workspace: StudyWorkspace | None) -> WorkspaceStudy:
         kind=study.kind.value,
         status=study.status.value,
         accepts_work=study.status.accepts_work,
+        delivered_at=study.delivered_at,
         last_stage=workspace.last_stage if workspace else None,
         has_working_content=state.has_content or state is ContentState.AWAITING_MIGRATION,
         content_state=state.value,
@@ -1973,7 +1987,8 @@ def _study_workspace(scope: Any, repo: Any, session: Any) -> StudyWorkspaceRespo
         study=_study(study, workspace),
         client_name=client.name,
         your_role=scope.role.value,
-        can_edit=scope.has(Permission.EDIT_STUDY),
+        can_edit=scope.has(Permission.EDIT_STUDY) and study.status.accepts_work,
+        can_review=scope.has(Permission.EDIT_STUDY),
         content_state=(workspace.state if workspace else ContentState.EMPTY).value,
     )
 
@@ -2001,7 +2016,11 @@ def _content_response(scope: Any, content: WorkingContent) -> WorkingContentResp
         template=research_template(),
         saved_at=content.saved_at,
         saved_by=content.saved_by,
-        can_edit=scope.has(Permission.EDIT_STUDY) and content.state.editable,
+        can_edit=(
+            scope.has(Permission.EDIT_STUDY)
+            and scope.study_status.accepts_work
+            and content.state.editable
+        ),
         lineage=content.lineage,
     )
 

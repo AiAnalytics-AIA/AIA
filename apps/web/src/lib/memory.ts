@@ -40,7 +40,8 @@ export type RunReportLabel = "none" | "draft" | "approved_internal" | "unknown";
 export type RunLabels = {
   data: RunDataLabel;
   report: RunReportLabel;
-  /** A Sociomap, an analysis or a report: each is internal only (PROGRESS D6, ADR 0016). */
+  /** A Sociomap, an analysis or a report: the analysis and the internal report are internal only
+   *  (ADR 0016); a Sociomap only when the register has not approved its method (D6, 2026-10-13). */
   internal: boolean;
 };
 

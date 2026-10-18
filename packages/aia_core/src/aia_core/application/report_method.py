@@ -166,6 +166,13 @@ def research_question_gaps(meta: Mapping[str, Any]) -> dict[str, str]:
     return gaps
 
 
+def research_question_gap(gaps: Mapping[str, str], question: str) -> str | None:
+    """What the run recorded at start about ``question`` (:func:`research_question_gaps`), or
+    ``None`` when it recorded no gap for it: matched as the report matches it, whitespace
+    folded, so every surface that shows an answer to it says the same (PC2)."""
+    return gaps.get(" ".join(question.split()))
+
+
 def _answerability_blocks(meta: Mapping[str, Any], *, client: bool = False) -> list[Block]:
     """What the run recorded at start about answering its research questions: each one with
     its measures and state, and the decision that let it start with gaps. From the run's frozen

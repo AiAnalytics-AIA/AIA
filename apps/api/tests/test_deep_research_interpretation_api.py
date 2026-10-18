@@ -163,6 +163,8 @@ def test_context_report_requires_explicit_completed_owned_research(
     params = {"deep_research_run_id": review.json()["run_id"]}
     pending = researcher.post(url, params=params)
     assert pending.status_code == 409 and pending.json()["code"] == "context_report_refused"
+    # A refusal that names no reason is given none (PC17): never one guessed for it.
+    assert "reason" not in (pending.json().get("details") or {})
     foreign = f"{_study(world, 'other_client')}/research/runs/{results['run_id']}/report/context"
     assert researcher.post(foreign, params=params).status_code == 404
     assert researcher.post(url, params={"deep_research_run_id": "RUN-000000"}).status_code == 404

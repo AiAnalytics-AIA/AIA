@@ -78,9 +78,11 @@ describe("Dimenze", () => {
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
     // Studio v3: the fixed base is the first, pinned row of the selection.
     expect(await screen.findByText("Sociodemografie · vždy zapnuto")).toBeTruthy();
-    // No approval yet: the recommended set is drawn (OI-54).
-    expect(screen.getByRole("button", { name: "Odebrat dimenzi Zdraví" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Odebrat dimenzi Média a informační chování" })).toBeTruthy();
+    // No approval yet: nothing is chosen, and the recommended set is offered, never drawn as
+    // chosen (OI-54, owner 2026-10-18: the classic refilled an empty approval as it drew).
+    expect(screen.getByText("Zatím není vybraná žádná volitelná dimenze.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Odebrat dimenzi Zdraví" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Odebrat dimenzi Média a informační chování" })).toBeNull();
     // The client's approved dimension arrives after the screen draws; other kinds do not.
     const row = await screen.findByRole("button", { name: /Vztah k AI/ });
     expect(row.textContent).toContain("Znalosti klienta");
@@ -106,7 +108,7 @@ describe("Dimenze", () => {
     expect(screen.queryByRole("button", { name: /Vztah k AI/ })).toBeNull();
   });
 
-  it("adds and removes a dimension; removing the last brings the recommended back (OI-54)", async () => {
+  it("adds and removes a dimension; removing the last leaves none chosen, and the recommended set is one click (OI-54)", async () => {
     aiaStub({ ...PLANNED, persona_dimensions: { approved: ["cena"] } });
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: /^Politické postoje/ }));
@@ -116,9 +118,9 @@ describe("Dimenze", () => {
     fireEvent.click(screen.getByRole("button", { name: "Odebrat dimenzi Cena / value for money" }));
     await savedWith("dimension_catalog_remove");
     expect(lastSave().content.persona_dimensions.approved).toEqual([]);
-    // The classic draws the refill at once, and the next change saves it.
-    expect(screen.getByRole("button", { name: "Odebrat dimenzi Zdraví" })).toBeTruthy();
-    expect(screen.queryByText("Zatím není vybraná žádná volitelná dimenze.")).toBeNull();
+    // Empty stays empty on screen (the classic drew the refill at once, and the next change saved it).
+    expect(screen.queryByRole("button", { name: "Odebrat dimenzi Zdraví" })).toBeNull();
+    expect(screen.getByText("Zatím není vybraná žádná volitelná dimenze.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Použít doporučené" }));
     await savedWith("persona_autofill");
     expect(lastSave().content.persona_dimensions.approved).toEqual(["zdravi", "media"]);
@@ -178,7 +180,8 @@ describe("Dimenze", () => {
     // The input clears on the render after the request resolves, not with the toast.
     await waitFor(() => expect((input as HTMLInputElement).value).toBe(""));
     await savedWith("requested_dimension_1793");
-    expect(lastSave().content).toMatchObject({ requested_dimensions: [{ label: "Vztah k AI ve zdravotnictví", proposal_id: "KNP-1", status: "needs_evidence" }], persona_dimensions: { approved: ["zdravi", "media"] } });
+    // The save carries what was chosen (none), never the recommended set as if chosen.
+    expect(lastSave().content).toMatchObject({ requested_dimensions: [{ label: "Vztah k AI ve zdravotnictví", proposal_id: "KNP-1", status: "needs_evidence" }], persona_dimensions: { approved: [] } });
     noUnitCalls();
   }, 20_000);
 
@@ -227,7 +230,7 @@ describe("Dimenze", () => {
     fireEvent.click(screen.getByRole("button", { name: "Další · kontrola" }));
     expect(push).toHaveBeenLastCalledWith(stagePath("run"));
     await savedWith("persona_done_1789");
-    expect(lastSave().content).toMatchObject({ persona_mode: "calibrated", persona_dimensions: { approved: ["zdravi", "media"] } });
+    expect(lastSave().content).toMatchObject({ persona_mode: "calibrated", persona_dimensions: { approved: [] } });
     noUnitCalls();
   }, 20_000);
 });

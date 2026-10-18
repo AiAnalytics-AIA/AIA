@@ -196,6 +196,26 @@ export function removeQuestion(p: ResearchProject, si: number, qi: number): Rese
   });
 }
 
+/**
+ * A question's display condition (`filtr`), carried over from 18.6.6: who is asked it. AIA cannot
+ * yet ask a question only of those it is meant for, so readiness refuses a run with one
+ * (domain/research_design.py conditional_questions); null when the question has none. The same
+ * test as the server's (`_text(raw.get("filtr"))`): a condition of only whitespace is none.
+ */
+export function questionCondition(q: Question): string | null {
+  const raw = q.filtr;
+  if (raw === null || raw === undefined) return null;
+  const text = (typeof raw === "string" ? raw : JSON.stringify(raw)).trim();
+  return text ? text : null;
+}
+
+/** The question asked of everyone: its condition removed, nothing else changed (PC15). */
+export function removeCondition(p: ResearchProject, si: number, qi: number): ResearchProject {
+  return edit(p, (xs) => {
+    delete (xs[si].questions || [])[qi].filtr;
+  });
+}
+
 /** changeQType: a choice gets Ano / Ne if it has no options; a scale gets 1–10 and its ends. */
 export function changeQType(p: ResearchProject, si: number, qi: number, t: string): ResearchProject {
   return edit(p, (xs) => {
