@@ -50,9 +50,9 @@ def approve_report(
     note: str = "",
 ) -> Artifact:
     """Approve ``artifact_id`` as ``run_id``'s report, freeze it and, where its draft's own PDF
-    is ready, ask for its approved PDF. A report already approved is returned as it is: one
-    decision per report, never a second ledger row, and nothing asked again (a person asks for
-    a PDF on the report itself)."""
+    is ready, ask for its approved PDF. A report already approved records no second decision
+    and asks for nothing again (a person asks for a PDF on the report itself); one approved
+    before approving froze is frozen now, so no approved version stays deletable."""
     scope.require(Permission.SIGN_OFF_DELIVERABLE)
     ResearchRuns(session, scope).get(run_id)
     artifacts = research_artifacts(session, scope, store)
@@ -64,7 +64,9 @@ def approve_report(
     ):
         raise ReportNotApprovable(artifact_id)
     if artifact.is_approved:
-        return artifact
+        # Approved before this release, which froze nothing: invalidate_stage and delete spare
+        # only a frozen artifact. Freezing is no decision, so the ledger keeps its one row.
+        return artifact if artifact.is_frozen else artifacts.freeze(artifact_id)
     # Read while it is still a draft: its own PDF, under the draft's key.
     ready = draft_pdf_ready(session, scope, store, docx=artifact, run_id=run_id)
     artifacts.approve(artifact_id, note=note)

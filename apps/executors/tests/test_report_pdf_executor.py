@@ -53,12 +53,17 @@ from aia_core.infrastructure.report_pdf import PdfConversionFailed
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
-from aia_core.infrastructure.tables import ProjectArtifactRow, StepRunRow, WorkflowRunRow
+from aia_core.infrastructure.tables import (
+    ApprovalDecisionRow,
+    ProjectArtifactRow,
+    StepRunRow,
+    WorkflowRunRow,
+)
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_executors.report import ReportPdfExecutor
 from aia_worker.settings import WorkerSettings
 from aia_worker.worker import Worker
-from sqlalchemy import update
+from sqlalchemy import func, select, update
 
 DESIGN = {
     "title": "Fiktivní studie",
@@ -791,6 +796,46 @@ def test_a_closed_study_approves_and_stamps_the_docx_and_says_why_no_pdf(
     found = _pdf_state(world, store, run_id, docx)
     assert found.state is PdfState.NOT_REQUESTED and found.reason == "study_closed"
     assert _export(world, store, docx).stamped
+
+
+def test_a_version_approved_before_approving_froze_is_frozen_without_a_second_decision(
+    world: Any, store: InMemoryArtifactStore
+) -> None:
+    """Codex review of PR #478: a version approved by the previous release is approved but not
+    frozen, and approving it again returned it as it was, so invalidate_stage and delete, which
+    spare only a frozen artifact, could still remove a signed version. Approving it now freezes
+    it; freezing is no decision, so the ledger keeps its one row and nothing is asked."""
+    run_id, docx = _report(world, store, _rendered(), metadata=dict(REVIEW_STAMP_RECORD))
+    with world.sessions() as session:
+        # What the previous release did: the ledger row and the flag, no freeze.
+        before = research_artifacts(session, world.lead_scope(session), store).approve(
+            docx.artifact_id
+        )
+        session.commit()
+    assert before.is_approved and not before.is_frozen
+
+    def decisions() -> int:
+        with world.sessions() as session:
+            return int(
+                session.scalar(
+                    select(func.count())
+                    .select_from(ApprovalDecisionRow)
+                    .where(
+                        ApprovalDecisionRow.subject_type == "artifact",
+                        ApprovalDecisionRow.subject_id == docx.artifact_id,
+                    )
+                )
+                or 0
+            )
+
+    assert decisions() == 1
+    approved = _approve(world, store, run_id, docx)
+    assert approved.is_approved and approved.is_frozen
+    assert decisions() == 1
+    assert _jobs(world, docx, report_pdf_key(run_id, None, docx.artifact_id, approved=True)) == []
+    with world.sessions() as session:
+        stored = research_artifacts(session, world.lead_scope(session), store).get(docx.artifact_id)
+    assert stored.is_frozen
 
 
 def test_approving_where_no_pdf_is_rendered_asks_for_none(
