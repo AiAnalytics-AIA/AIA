@@ -1,0 +1,28 @@
+{
+  "name": "aia-research-lead-v2-prototype",
+  "private": true,
+  "version": "0.2.0",
+  "description": "Isolated design-from-code prototype of the AIA Research Lead workbench. Not product code.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5174 --strictPort",
+    "build": "tsc --noEmit && vite build && node scripts/artifact.mjs",
+    "preview": "vite preview --port 5175 --strictPort",
+    "typecheck": "tsc --noEmit",
+    "verify": "node scripts/verify.mjs",
+    "docs": "node scripts/export-docs.mjs"
+  },
+  "dependencies": {
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "@vitejs/plugin-react": "4.3.4",
+    "playwright-core": "1.56.1",
+    "typescript": "5.6.3",
+    "vite": "5.4.21",
+    "vite-plugin-singlefile": "2.0.3"
+  }
+}
