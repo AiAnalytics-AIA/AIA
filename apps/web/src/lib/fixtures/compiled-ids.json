@@ -8,7 +8,10 @@
       {"id": "1a", "text": "Jak často?", "typ": "skala", "skala": [1, 10]},
       {"id": "Čí?", "text": "Jak často?", "typ": "skala", "skala": [1, 10]},
       {"id": "  ", "text": "Jak často?", "typ": "skala", "skala": [1, 10]},
-      {"id": 12, "text": "Jak často?", "typ": "skala", "skala": [1, 10]}
+      {"id": 12, "text": "Jak často?", "typ": "skala", "skala": [1, 10]},
+      {"id": "\u001c", "text": "Jak často?", "typ": "skala", "skala": [1, 10]},
+      {"id": "\u0085", "text": "Jak často?", "typ": "skala", "skala": [1, 10]},
+      {"id": "\ufeff", "text": "Jak často?", "typ": "skala", "skala": [1, 10]}
     ]},
     {"id": "intro", "type": "intro", "title": "Úvod"},
     {"id": "Sada bank", "type": "object_battery", "title": "S", "object_family": "banky", "object_question": "Jak hodnotíte {object}?", "objects": ["Fio", "ČSOB", "KB"], "scale": [1, 10]},
@@ -24,8 +27,10 @@
     ]},
     {"id": "notype", "title": "Bez typu", "questions": [
       {"id": "N1", "text": "Jak často?", "typ": "skala", "skala": [1, 10]}
-    ]}
+    ]},
+    {"id": "\u001f", "type": "object_battery", "title": "Bílá", "object_family": "banky", "object_question": "Jak hodnotíte {object}?", "objects": ["Fio", "ČSOB", "KB"], "scale": [1, 10]}
   ],
-  "questions": ["q_wb1", "q1", "q1_2", "sec_brands_4", "q_1a", "ci", "sec_brands_7", "q_12", "q1_3", "sec_5_2", "x1", "sada_bank_2_2", "n1"],
-  "sets": ["sada_bank", "druha_sada", "sekce_5"]
+  "questions": ["q_wb1", "q1", "q1_2", "sec_brands_4", "q_1a", "ci", "sec_brands_7", "q_12", "sec_brands_9", "sec_brands_10", "q", "q1_3", "sec_5_2", "x1", "sada_bank_2_2", "n1"],
+  "sets": ["sada_bank", "druha_sada", "sekce_5", "sekce_9"],
+  "whitespace": [9, 10, 11, 12, 13, 28, 29, 30, 31, 32, 133, 160, 5760, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8232, 8233, 8239, 8287, 12288]
 }

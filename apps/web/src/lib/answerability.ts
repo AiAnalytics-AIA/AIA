@@ -56,7 +56,8 @@ export function acknowledgementOf(
   state: AcknowledgementState,
 ): AnswerabilityAcknowledgement | null {
   if (!needsAcknowledgement(answer) || !confirmedFor(answer, state)) return null;
-  const reason = state.reason.split(/\s+/).filter(Boolean).join(" ");
+  // As the server normalizes it (Acknowledgement: " ".join(reason.split())), by Python's whitespace.
+  const reason = pythonCollapse(state.reason);
   if (reason.length < MIN_REASON || reason.length > MAX_REASON) return null;
   return { digest: answer.digest, reason };
 }
@@ -209,12 +210,26 @@ const isObject = (x: unknown): x is Record<string, unknown> => typeof x === "obj
 const QUESTION_TYPES: ReadonlySet<string> = new Set(["vyber", "multi", "skala", "otevrena"]);
 
 /**
- * research_design.py ``_text``: whitespace collapsed and trimmed, nothing as "". Null for a value
- * Python may write otherwise than JavaScript (anything but text or a whole number): never guessed.
+ * Python's whitespace (``str.isspace``, what ``re``'s ``\s`` and ``str.strip()`` take), which is
+ * not JavaScript's ``\s``: Python also takes U+001C–U+001F and U+0085, JavaScript also U+FEFF
+ * (review web#9). Listed whole, checked against Python 3.12 code point by code point.
+ */
+const PY_SPACE = "\t\n\v\f\r\x1c-\x20\x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000";
+const PY_SPACES = new RegExp(`[${PY_SPACE}]+`, "g");
+
+/** ``re.sub(r"\s+", " ", text).strip()`` as Python runs it: the same characters, never JavaScript's. */
+export function pythonCollapse(text: string): string {
+  return text.replace(PY_SPACES, " ").replace(/^ | $/g, "");
+}
+
+/**
+ * research_design.py ``_text``: whitespace collapsed and trimmed (Python's, ``pythonCollapse``),
+ * nothing as "". Null for a value Python may write otherwise than JavaScript (anything but text
+ * or a whole number): never guessed.
  */
 function serverText(v: unknown): string | null {
   if (v === null || v === undefined) return "";
-  if (typeof v === "string") return v.replace(/\s+/g, " ").trim();
+  if (typeof v === "string") return pythonCollapse(v);
   return typeof v === "number" && Number.isSafeInteger(v) ? String(v) : null;
 }
 
