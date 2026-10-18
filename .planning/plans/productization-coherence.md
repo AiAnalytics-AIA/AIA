@@ -15,6 +15,7 @@ chunks:
   - "[ ] PC12. Owner decisions recorded with a recommendation each; no code"
   - "[x] PC13. A start that finds the run a design already has says so, and an AI ask that ended without a proposal is asked again as a new round"
   - "[x] PC14. A finished run reads as finished: its untouched steps say they will not run, its report is not 'composing', a run waiting for a person beside steps still running is read, and a step stopped for recovery says why"
+  - "[x] PC15. A question carrying an 18.6.6 display condition says so in Dotazník and the condition can be removed there; readiness no longer sends anyone to the retired classic interface"
   - "[ ] PC16. Rewording a research question carries its links to the questions that measure it, or names the ones it would orphan, before the change is saved"
 ---
 # Productization and system coherence
@@ -125,6 +126,23 @@ touch the questionnaire".
 plan orphans every link a question or set declares to it (`domain/research_trace.py:140, 241-263`;
 design audit `rq-identity-by-text`). Carrying the links with the rewording, or naming what it would
 orphan before saving, is an editor change of its own.
+
+## PC15 — a conditional question has a way out in AIA
+
+**Problem.** A question carrying a display condition (`filtr`, from a study migrated from 18.6.6) fails
+readiness with "Spusťte tento návrh v klasickém rozhraní" (`domain/research_design.py:868-876 @ 20b24bb`),
+an interface ADR 0018 retired, and no AIA screen showed or removed a question's condition
+(`git grep filtr apps/web/src`: none): the study could never run (design audit
+`conditional-question-dead-end`, P2).
+
+**Change.** Dotazník marks a question with a condition, quotes it, says AIA cannot yet ask a question of
+only those it is meant for, and offers "Odebrat podmínku" (`questionCondition` / `removeCondition`, the
+server's own test of a condition); readiness's failure now says to remove it in Dotazník or delete the
+question. Asking a conditional question of only its respondents stays not in AIA.
+
+**Tests.** `test_what_the_unit_does_and_aia_does_not_yet_is_refused_not_skipped` (the message names
+Dotazník, never the classic interface); QuestionnaireStep "shows a question's display condition from
+18.6.6 and removes it…" (the saved question carries no condition and keeps its wording).
 
 ## PC14 — a finished run reads as finished
 

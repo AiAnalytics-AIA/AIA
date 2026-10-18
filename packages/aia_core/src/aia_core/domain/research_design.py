@@ -872,7 +872,7 @@ def assess_readiness(
             CheckStatus.FAIL,
             "Podmíněné otázky (filtr) AIA zatím neumí položit jen těm, kdo mají odpovídat: "
             + ", ".join(filtered)
-            + ". Spusťte tento návrh v klasickém rozhraní.",
+            + ". V Dotazníku u nich podmínku odeberte (otázku pak dostane každý), nebo je smažte.",
         )
     else:
         check("conditional_questions", CheckStatus.PASS, "Žádná podmíněná otázka.")

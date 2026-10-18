@@ -2054,6 +2054,9 @@ export const cs = {
           ab_test: "Test A/B konceptů",
         },
       },
+      condition:
+        "Otázka má podmínku zobrazení převzatou z 18.6.6 („{condition}“). AIA zatím neumí položit otázku jen těm, kdo na ni mají odpovídat, a běh s podmínkou nespustí: podmínku odeberte (otázku pak dostane každý), nebo otázku smažte.",
+      removeCondition: "Odebrat podmínku",
       // productization PC6: what accepting a questionnaire proposal replaces.
       replacement: {
         title: "Co se stane s dotazníkem",
