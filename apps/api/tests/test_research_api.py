@@ -1079,9 +1079,8 @@ def test_an_approved_client_report_stays_the_client_report_after_its_contract_ch
     assert after.headers["X-AIA-Review-State"] == "APPROVED_INTERNAL"
     assert after.headers["content-disposition"].endswith(f'-klient-{version}-schvaleno.docx"')
     year, month, day = (int(x) for x in approved.json()["approved_on"].split("-"))
-    words = f"SCHVÁLENO {day}.\u00a0{month}.\u00a0{year} \u00b7 verze {version}".encode()
-    footers = _footers(after.content)
-    assert footers and all(words in f and b"KONCEPT" not in f for f in footers.values())
+    status = f"SCHVÁLENO {day}.\u00a0{month}.\u00a0{year}"
+    assert _says_approved(_footers(after.content), status, f"verze {version}")
     assert composed == []
 
     # Composing refused under today's rules refuses nothing a person approved.
