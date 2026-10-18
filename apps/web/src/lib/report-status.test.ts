@@ -26,6 +26,15 @@ describe("reportStatus", () => {
     expect(reportStatus(r("SKIPPED"))).toBe("NOT_MADE");
   });
 
+  it("says a finished run's report step that never started makes no report, never composing (PC14)", () => {
+    for (const state of ["PENDING", "RUNNABLE", "BLOCKED"]) {
+      expect(reportStatus(r(state), true)).toBe("NOT_MADE");
+      expect(reportStatus(r(state), false)).toBe("COMPOSING");
+    }
+    // A step still running when its run failed may yet finish: still composing.
+    expect(reportStatus(r("RUNNING"), true)).toBe("COMPOSING");
+  });
+
   it("never reads an unread report or a state it does not know as composing or approved", () => {
     expect(reportStatus(null)).toBe("UNKNOWN");
     expect(reportStatus(r("SOMETHING_NEW"))).toBe("UNKNOWN");

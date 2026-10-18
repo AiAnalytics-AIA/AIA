@@ -252,7 +252,7 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
 
   // The report's state by the one rule (6e); a report still being read is said to be loading.
   // The variant with a review is its own draft: its state never waits on the run's own report.
-  const internal = !reportStep ? "NONE" : status === null ? null : reportStatus(status);
+  const internal = !reportStep ? "NONE" : status === null ? null : reportStatus(status, run.is_terminal);
   const stateLine = withReview
     ? !variantReady
       // A PDF is promised only where one will be made: not on a closed study, not where this

@@ -919,6 +919,53 @@ def test_resuming_a_run_refuses_one_that_waits_for_nothing_and_a_closed_study(
     assert fieldwork["status"] == "WAITING_PROVIDER"
 
 
+def _stop_for_recovery(app: FastAPI, run_id: str, node_key: str, *, uncertain: bool) -> None:
+    """A step stopped for recovery, as the engine leaves it; ``uncertain``: its attempt sent a
+    paid call whose outcome is unknown."""
+    from aia_core.domain.workflow import StepRunStatus
+    from aia_core.infrastructure.tables import StepAttemptRow, StepRunRow
+
+    with create_session_factory(app.state.engine)() as session:
+        step = session.scalars(
+            select(StepRunRow).where(StepRunRow.run_id == run_id, StepRunRow.node_key == node_key)
+        ).one()
+        step.status = StepRunStatus.RECOVERY_REQUIRED.value
+        step.attempts_recorded = 1
+        session.add(
+            StepAttemptRow(
+                attempt_id=f"ATT-{run_id[-12:]}",
+                step_id=step.step_id,
+                attempt_number=1,
+                status="FAILED",
+                paid_call_dispatched=uncertain,
+                paid_call_outcome_known=False,
+            )
+        )
+        session.commit()
+
+
+def test_a_step_stopped_for_recovery_says_why_where_its_attempts_are_read(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """PC14: RECOVERY_REQUIRED keeps no waiting reason, so Průběh said nothing about why a step
+    stopped and nothing repeated it. The run says it from its attempts; a listing, which reads
+    none, says nothing rather than guess."""
+    run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
+        "run_id"
+    ]
+    _stop_for_recovery(app, run_id, "compile", uncertain=True)
+    step = next(
+        s
+        for s in researcher.get(f"{_runs(world)}/{run_id}").json()["steps"]
+        if s["node_key"] == "compile"
+    )
+    assert (step["status"], step["recovery_reason"]) == ("RECOVERY_REQUIRED", "paid_call_uncertain")
+    others = researcher.get(f"{_runs(world)}/{run_id}").json()["steps"]
+    assert all(s["recovery_reason"] is None for s in others if s["node_key"] != "compile")
+    listed = researcher.get(f"{_runs(world)}?steps=true").json()["items"]
+    assert all(s.get("recovery_reason") is None for r in listed for s in r.get("steps") or [])
+
+
 def test_a_failed_run_is_retried_as_a_new_run_linked_to_it(
     app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any
 ) -> None:

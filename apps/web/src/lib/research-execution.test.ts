@@ -1,5 +1,6 @@
 // How a research run and its results read (ADR 0016): the rules the three
 // execution stages share, without React.
+import { t } from "@/i18n/t";
 import { describe, expect, it } from "vitest";
 
 import type { QuestionOutlook, ResearchRun, ResearchStep } from "@/lib/api";
@@ -29,6 +30,12 @@ describe("research execution", () => {
     expect(shouldPoll(waiting([parked, step("RUNNABLE")]))).toBe(true);
     expect(shouldPoll(waiting([parked, step("WAITING_CAPACITY", "capacity")]))).toBe(true);
     expect(shouldPoll(waiting([parked, step("SUCCEEDED"), step("BLOCKED")]))).toBe(false);
+    // A run that waits for a person while another of its steps still runs is read (PC14): the
+    // map beside a module stopped at the budget finishes, and the page shows it.
+    const attention = (steps: ResearchRun["steps"]) => run({ phase: "WAITING", status: "AWAITING_BUDGET", needs_attention: true, steps });
+    expect(shouldPoll(attention([step("AWAITING_BUDGET", "budget_exceeded"), step("RUNNING")]))).toBe(true);
+    expect(shouldPoll(attention([step("RECOVERY_REQUIRED"), step("RUNNABLE")]))).toBe(true);
+    expect(shouldPoll(attention([step("AWAITING_BUDGET", "budget_exceeded"), step("SUCCEEDED")]))).toBe(false);
     expect(pollMs(run({ phase: "WAITING", needs_attention: false }))).toBeGreaterThan(pollMs(run({ phase: "RUNNING" })));
     expect(shouldPoll(run({ phase: "COMPLETED", is_terminal: true }))).toBe(false);
   });
@@ -126,6 +133,15 @@ describe("waitingDetail", () => {
     expect(waitingDetail({ ...base, status: "AWAITING_GATE", waiting_reason: "gate:design" })).toMatch(/rozhodnutí/);
   });
 
+  it("says why a step stopped for recovery, a paid call of unknown outcome first (PC14)", () => {
+    const stopped = { ...base, status: "RECOVERY_REQUIRED" };
+    expect(waitingDetail({ ...stopped, recovery_reason: "paid_call_uncertain", error_message: "timeout" })).toBe(t("research.exec.wait.paid_call_uncertain"));
+    expect(waitingDetail({ ...stopped, recovery_reason: "attempts_exhausted", error_message: "Poslední chyba." })).toBe("Poslední chyba.");
+    expect(waitingDetail({ ...stopped, recovery_reason: "attempts_exhausted" })).toBe(t("research.exec.wait.attempts_exhausted"));
+    // Not read (a listing): unknown, said as such, never guessed to be either.
+    expect(waitingDetail({ ...stopped, recovery_reason: null })).toBe(t("research.exec.wait.recovery_required"));
+  });
+
   it("says nothing for a step that is not waiting, and guesses nothing for a reason it does not know", () => {
     expect(waitingDetail({ ...base, status: "SUCCEEDED", error_message: "stará chyba" })).toBeNull();
     expect(waitingDetail({ ...base, status: "FAILED", error_message: "x" })).toBeNull();
@@ -194,6 +210,18 @@ describe("an analysis module a model could not complete", () => {
     expect(stepStatusLabel(analysisStep({}))).toBe("Hotovo");
     expect(stepTone(analysisStep({}))).toBe("done");
     expect(needsRepair(analysisStep({ status: "RUNNING", analysis_outcome: null }))).toBe(false);
+  });
+
+  it("says a step that had not started when its run ended will not run, never ready (PC14)", () => {
+    for (const status of ["PENDING", "RUNNABLE", "BLOCKED"]) {
+      const untouched = analysisStep({ status, analysis_outcome: null });
+      expect(stepStatusLabel(untouched, true)).toBe(t("research.exec.stepStatus.WILL_NOT_RUN"));
+      expect(stepTone(untouched, true)).toBe("neutral");
+      expect(stepStatusLabel(untouched, false)).not.toBe(t("research.exec.stepStatus.WILL_NOT_RUN"));
+    }
+    // What ran is said as it ran, ended run or not.
+    expect(stepStatusLabel(analysisStep({ status: "RUNNING", analysis_outcome: null }), true)).toBe("Běží");
+    expect(stepStatusLabel(analysisStep({}), true)).toBe("Hotovo");
   });
 
   it("makes a finished run with analysis worth asking about a retry, and only a finished one", () => {

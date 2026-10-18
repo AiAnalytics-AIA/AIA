@@ -2447,6 +2447,8 @@ export const cs = {
         RECOVERY_REQUIRED: "Potřebuje zásah",
         // Not a workflow status: an analysis step that SUCCEEDED with a BLOCKED module.
         ANALYSIS_BLOCKED: "Potřebuje opravu",
+        // Not a workflow status: a step that had not started when its run ended.
+        WILL_NOT_RUN: "Nespustí se",
       },
       support: {
         REPORTABLE: "{donors} unikátních dárců, n = {n}.",
@@ -2636,6 +2638,10 @@ export const cs = {
         provider_quota_exhausted: "Krok čeká, protože poskytovatel modelu vyčerpal kvótu. Pokračuje po jejím obnovení.",
         approval_required: "Krok čeká na rozhodnutí člověka.",
         ai_runtime_unavailable: "Krok čeká: AI model pro něj není dostupný nebo povolený.",
+        paid_call_uncertain:
+          "Krok se zastavil uprostřed placeného volání, jehož výsledek AIA nezná. Aby se nic nezaplatilo dvakrát, sám se neopakuje: běh lze zrušit a zopakovat, nebo nechat provozovatele volání dohledat.",
+        attempts_exhausted: "Krok vyčerpal všechny pokusy a sám se neopakuje; běh lze zrušit a zopakovat.",
+        recovery_required: "Krok se zastavil a sám se neopakuje; důvod AIA nezaznamenala. Běh lze zrušit a zopakovat.",
       },
       report: {
         status: {

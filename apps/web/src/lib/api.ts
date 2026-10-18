@@ -990,6 +990,8 @@ export type ResearchStep = {
   data_origin: string | null;
   /** An analysis step's stored outcome: its step SUCCEEDED either way. `null` for other steps. */
   analysis_outcome?: "COMPLETED" | "BLOCKED" | null;
+  /** Why a step stopped for recovery; null or absent when it did not, or its attempts were not read. */
+  recovery_reason?: "paid_call_uncertain" | "attempts_exhausted" | null;
   /** How the API reads `data_origin`: SIMULATED, MODELLED or UNKNOWN; absent from an older API. */
   data_origin_kind?: string | null;
 };

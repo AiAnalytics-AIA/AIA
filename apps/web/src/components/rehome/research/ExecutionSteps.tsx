@@ -1232,7 +1232,7 @@ export function ProgressStep() {
           {listed.map((s) => (
             <li key={s.node_key} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
               <div className="flex flex-wrap items-center gap-2">
-                <Chip tone={stepTone(s)}>{stepStatusLabel(s)}</Chip>
+                <Chip tone={stepTone(s, run.is_terminal)}>{stepStatusLabel(s, run.is_terminal)}</Chip>
                 <span className="font-medium">{stepLabel(s.node_key)}</span>
                 {stepOriginKind(s) ? (
                   <span title={s.data_origin ?? undefined} data-origin-kind={stepOriginKind(s)}>
@@ -1470,7 +1470,7 @@ function InternalReport({ run, progressHref }: { run: ResearchRun; progressHref:
       {loaded.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{loaded.message}</p> : null}
       {status?.state === "READY" ? (
         <>
-          <p className="text-sm">{reportStatusWords(reportStatus(status))}</p>
+          <p className="text-sm">{reportStatusWords(reportStatus(status, run.is_terminal))}</p>
           {/* A ready report rests on data, so a kind it does not state is unknown, never neutral. */}
           <p data-origin-kind={reportKind} className={reportKind === "MODELLED" ? "mt-2 text-sm" : "mt-2 text-sm text-status-fault"}>
             {t(REPORT_ORIGIN[reportKind])}
@@ -1482,7 +1482,7 @@ function InternalReport({ run, progressHref }: { run: ResearchRun; progressHref:
           {canReview(frame) ? <p className="mt-2 text-xs text-ink-muted">{t("research.exec.results.reportActionsAbove")}</p> : null}
         </>
       ) : null}
-      {status && status.state !== "READY" ? <p className="text-sm text-ink-muted">{reportStatusWords(reportStatus(status))}</p> : null}
+      {status && status.state !== "READY" ? <p className="text-sm text-ink-muted">{reportStatusWords(reportStatus(status, run.is_terminal))}</p> : null}
       {status && status.state !== "READY" ? <ReportHolds run={run} progressHref={progressHref} /> : null}
     </Card>
   );
@@ -1526,7 +1526,7 @@ function ReportHolds({ run, progressHref }: { run: ResearchRun; progressHref: st
               <li key={step.node_key} data-hold={step.node_key} data-status={step.status}>
                 <span className="font-medium">{stepLabel(step.node_key)}</span>
                 {" · "}
-                {stepStatusLabel(step)}
+                {stepStatusLabel(step, run.is_terminal)}
                 {detail ? <span className="text-ink-muted">{`: ${detail}`}</span> : null}
               </li>
             ))}
@@ -1641,7 +1641,7 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
                 {selected.key_findings.length ? <div className="mt-5"><h4 className="text-sm font-semibold">Hlavní zjištění</h4><ul className="mt-2 flex flex-col gap-3">{selected.key_findings.map((finding, index) => <li key={index} className="border-l-2 border-signal pl-3"><FormattedText text={finding.text} /><CitedNumbers ids={finding.claim_ids} outcome={selected} spec={spec} /></li>)}</ul></div> : null}
                 {!selected.summary && !selected.research_question_answers.length && !selected.key_findings.length ? <p className="mt-3 text-sm text-ink-muted">Tato část nemá textový souhrn.</p> : null}
                 {selected.claims.length ? <details className="mt-5 border-t border-border pt-3 text-xs text-ink-muted"><summary className="cursor-pointer">{t("research.exec.results.analysisEvidence")} a technický původ tvrzení</summary><p className="mt-2 break-words">{selected.claims.map((claim) => `${claim.claim_id} → ${claim.evidence_ref}`).join(", ")}</p></details> : null}
-              </> : <div className="mt-3 text-sm text-ink-muted"><p>{selectedStep ? `Stav kroku: ${stepStatusLabel(selectedStep)}` : "Tato část zatím nemá uložený výstup."}</p>{selectedPending && !selectedStep ? <p className="mt-1">{t("research.exec.results.analysisPending")}: <CodedWords inline coded={codeWords("research.exec.stepStatus", selectedPending)} /></p> : null}{selectedStep && waitingDetail(selectedStep) ? <p className="mt-1">{waitingDetail(selectedStep)}</p> : null}</div>}
+              </> : <div className="mt-3 text-sm text-ink-muted"><p>{selectedStep ? `Stav kroku: ${stepStatusLabel(selectedStep, run.is_terminal)}` : "Tato část zatím nemá uložený výstup."}</p>{selectedPending && !selectedStep ? <p className="mt-1">{t("research.exec.results.analysisPending")}: <CodedWords inline coded={codeWords("research.exec.stepStatus", selectedPending)} /></p> : null}{selectedStep && waitingDetail(selectedStep) ? <p className="mt-1">{waitingDetail(selectedStep)}</p> : null}</div>}
             </section>
           </div>
         </div>

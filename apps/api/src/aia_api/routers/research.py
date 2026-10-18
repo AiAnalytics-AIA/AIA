@@ -300,6 +300,11 @@ class ResearchStepResponse(BaseModel):
     #: How a label reads ``data_origin``: ``SIMULATED``, ``MODELLED`` or ``UNKNOWN``; ``None``
     #: when the step stamped no origin.
     data_origin_kind: OriginKind | None = None
+    #: Why a step stopped for recovery (``RECOVERY_REQUIRED``, which keeps no waiting reason):
+    #: ``paid_call_uncertain`` (an attempt sent a paid call whose outcome is unknown, so nothing
+    #: repeats it) or ``attempts_exhausted``; ``None`` for any other step, or when its attempts
+    #: were not read (a listing) -- unknown, never guessed.
+    recovery_reason: Literal["paid_call_uncertain", "attempts_exhausted"] | None = None
 
 
 class ResearchRunPopulation(BaseModel):
@@ -852,6 +857,20 @@ def _fieldwork_source(request: Request) -> Any:
     return request.app.state.settings.research_fieldwork_source
 
 
+def _recovery_reason(
+    s: Mapping[str, Any],
+) -> Literal["paid_call_uncertain", "attempts_exhausted"] | None:
+    """Why a step stopped for recovery, from its attempts (PC14); ``None`` when it did not, or when
+    its attempts were not read."""
+    if s["status"] is not StepRunStatus.RECOVERY_REQUIRED or "attempts" not in s:
+        return None
+    if any(a["paid_call_dispatched"] and not a["paid_call_outcome_known"] for a in s["attempts"]):
+        return "paid_call_uncertain"
+    if s["attempts_recorded"] >= s["max_attempts"]:
+        return "attempts_exhausted"
+    return None
+
+
 def _step(s: dict[str, Any]) -> ResearchStepResponse:
     attempts = s.get("attempts") or []
     last = attempts[-1] if attempts else None
@@ -876,6 +895,7 @@ def _step(s: dict[str, Any]) -> ResearchStepResponse:
         analysis_outcome=str(output["outcome"])
         if s.get("kind") == ANALYSIS_STEP_KIND and output.get("outcome") in _ANALYSIS_OUTCOMES
         else None,
+        recovery_reason=_recovery_reason(s),
     )
 
 

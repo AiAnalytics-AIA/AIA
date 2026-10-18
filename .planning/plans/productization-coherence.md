@@ -14,6 +14,7 @@ chunks:
   - "[ ] PC11. Product-level acceptance scenarios over the real start, worker and report"
   - "[ ] PC12. Owner decisions recorded with a recommendation each; no code"
   - "[x] PC13. A start that finds the run a design already has says so, and an AI ask that ended without a proposal is asked again as a new round"
+  - "[x] PC14. A finished run reads as finished: its untouched steps say they will not run, its report is not 'composing', a run waiting for a person beside steps still running is read, and a step stopped for recovery says why"
 ---
 # Productization and system coherence
 
@@ -98,6 +99,48 @@ old track), stops reading once nothing can change, keeps reading a provider wait
 **Second half, open.** The track also calls Spuštění "done" and Výsledky "Revize N" when the design
 has changed since that run; saying "the design changed after this run" needs the working content's
 revision beside the run's (see the findings ledger, F-design-lane), not a browser guess.
+
+## PC14 — a finished run reads as finished
+
+**Problem.** Four readings of a run's state contradicted the run.
+
+- *Steps that will never run.* A run that fails while sibling steps wait keeps them RUNNABLE or
+  BLOCKED for good: FAILED outranks every other step state (`domain/workflow.py:853-861 @ 20b24bb`),
+  `claim_next` skips a failed run (`workflow_repository.py:921-929`) and nothing settles the rest.
+  Průběh still showed them "Připraveno" in the running tone, and the report card said "Zpráva se ještě
+  skládá" (runs audit `failed-run-leaves-live-steps`).
+- *A run that waits for a person while other steps run.* `shouldPoll` stopped reading any run with
+  `needs_attention` (`research-execution.ts:85`), so the map beside an analysis module stopped at the
+  budget, or the modules beside one stopped for recovery, finished unseen until a reload; the event
+  feed under the stale RUNNING row kept polling every 1.5 s regardless (runs audit
+  `polling-stops-on-attention-with-live-siblings`; F9/F43 had covered the self-clearing waits only).
+- *A step stopped for recovery.* RECOVERY_REQUIRED keeps no waiting reason
+  (`workflow_repository.py:1913`; `domain/workflow.py:225-231`), so a step stopped mid paid call --
+  realistic on develop, which redeploys on every green head -- read "Potřebuje zásah" with no reason
+  and no way on but a cancel (runs audit `recovery-required-unreadable-unrecoverable`).
+
+**Change.** `willNotRun`: a step that had not started (PENDING, RUNNABLE, BLOCKED) in a run that has
+ended reads "Nespustí se" in a neutral tone on Průběh, in the report's holds and on Results'
+module pane; `reportStatus(…, runEnded)` reads such a report step NOT_MADE. A run waiting for a
+person is read again while any of its steps runs or is runnable. The API projects each step's
+`recovery_reason` from its attempts (`paid_call_uncertain` first, then `attempts_exhausted`; none
+when the attempts were not read, as in a listing), and Průběh words it: a paid call of unknown
+outcome is why nothing repeats the step, and what a person decides on.
+
+**Invariants kept.** The engine's precedence and its refusal to repeat an uncertain paid call are
+untouched; this is how the run is read. A step still RUNNING after its run failed is said to run,
+and its report may still be composing: both can finish.
+
+**Tests.** `research-execution.test.ts` "says a step that had not started when its run ended will not
+run…", "says why a step stopped for recovery…", `shouldPoll` with live siblings under
+`needs_attention`; `report-status.test.ts` "says a finished run's report step that never started…";
+API `test_a_step_stopped_for_recovery_says_why_where_its_attempts_are_read`.
+
+**Not changed.** Settling a failed run's untouched steps in the engine (marking them SKIPPED) would
+make every reader agree by construction; it changes `_refresh_run`'s contract and is left for the
+engine's owner. A whole-run retry of a run that failed at aggregate, Sociomap or report still
+collects fieldwork again (runs audit `whole-retry-rebuys-fieldwork`): extending `FrozenDataset`
+to those steps is the fix, a chunk of its own.
 
 ## PC13 — asking again says what it found
 

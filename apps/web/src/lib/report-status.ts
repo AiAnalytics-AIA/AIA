@@ -24,8 +24,13 @@ const COMPOSING = /^(PENDING|RUNNABLE|RUNNING|BLOCKED|WAITING_.*|AWAITING_.*|REC
 export const reviewStatus = (reviewState: string | null | undefined): "DRAFT" | "APPROVED" =>
   reviewState === "APPROVED_INTERNAL" ? "APPROVED" : "DRAFT";
 
-export function reportStatus(report: Pick<ResearchReport, "state" | "reason" | "review_state"> | null | undefined): ReportStatus {
+/** The report step's states before it starts: once the run has ended, it never will (PC14). */
+const NOT_STARTED = /^(PENDING|RUNNABLE|BLOCKED)$/;
+
+export function reportStatus(report: Pick<ResearchReport, "state" | "reason" | "review_state"> | null | undefined, runEnded = false): ReportStatus {
   if (!report) return "UNKNOWN";
+  // A finished run's report step that never started makes no report: never "still composing".
+  if (runEnded && NOT_STARTED.test(report.state)) return "NOT_MADE";
   if (report.state === "READY") return reviewStatus(report.review_state);
   if (report.state === "NOT_IN_RUN") return "NONE";
   if (report.state === "FAILED") return report.reason === "report_inputs_refused" ? "REFUSED" : "FAILED";

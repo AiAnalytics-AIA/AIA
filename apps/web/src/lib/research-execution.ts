@@ -48,7 +48,14 @@ export function stepLabel(nodeKey: string): string {
 export const needsRepair = (step: ResearchStep): boolean =>
   step.status === "SUCCEEDED" && step.analysis_outcome === "BLOCKED";
 
-export function stepTone(step: ResearchStep): Tone {
+/** The states of a step that has not started. Once its run has ended it never will: the engine
+ *  claims no step of a finished run (PC14: a failed run's untouched modules read "Připraveno"). */
+const NOT_STARTED = new Set(["PENDING", "RUNNABLE", "BLOCKED"]);
+export const willNotRun = (step: Pick<ResearchStep, "status">, runEnded: boolean): boolean =>
+  runEnded && NOT_STARTED.has(step.status);
+
+export function stepTone(step: ResearchStep, runEnded = false): Tone {
+  if (willNotRun(step, runEnded)) return "neutral";
   if (needsRepair(step)) return "fault";
   if (step.status === "SUCCEEDED") return "done";
   if (step.status === "RUNNING" || step.status === "RUNNABLE") return "running";
@@ -57,7 +64,8 @@ export function stepTone(step: ResearchStep): Tone {
   return "neutral";
 }
 
-export function stepStatusLabel(step: ResearchStep): string {
+export function stepStatusLabel(step: ResearchStep, runEnded = false): string {
+  if (willNotRun(step, runEnded)) return t("research.exec.stepStatus.WILL_NOT_RUN");
   if (needsRepair(step)) return t("research.exec.stepStatus.ANALYSIS_BLOCKED");
   const label = t(`research.exec.stepStatus.${step.status}`);
   return label.startsWith("research.") ? step.status : label;
@@ -84,7 +92,11 @@ export function mayRetryAnalysis(run: ResearchRun): boolean {
 export function shouldPoll(run: ResearchRun): boolean {
   if (run.is_terminal) return false;
   if (run.phase === "QUEUED" || run.phase === "RUNNING") return true;
-  if (run.phase !== "WAITING" || run.needs_attention !== false) return false;
+  if (run.phase !== "WAITING") return false;
+  // A run waits for a person as soon as one step does, while its other steps may still run: the
+  // map beside a module stopped at the budget, modules beside one stopped for recovery. Those
+  // still change on their own and are read (PC14; F9 / F43 covered only the self-clearing waits).
+  if (run.needs_attention !== false) return run.steps.some((s) => s.status === "RUNNING" || s.status === "RUNNABLE");
   // A park for a runtime that is not deployed never resumes by itself, so a run held only by
   // one is not read every 10 s (review 2). One whose other steps still run, or wait on a provider
   // that clears by itself, still changes on its own and is read (review 3: a map step running
@@ -115,9 +127,15 @@ const WAITING_STATUS = /^(WAITING|AWAITING)_|^RECOVERY_REQUIRED$/;
  * -- budget, provider quota, a decision owed -- is told from its machine reason. It says only
  * what is known: that the step waits, and why. It promises no action the page cannot take.
  */
-export function waitingDetail(step: Pick<ResearchStep, "status" | "waiting_reason" | "error_message">): string | null {
+export function waitingDetail(step: Pick<ResearchStep, "status" | "waiting_reason" | "error_message" | "recovery_reason">): string | null {
   if (!WAITING_STATUS.test(step.status)) return null;
+  // A paid call whose outcome is unknown outranks whatever error came with it: it is why nothing
+  // repeats the step, and what a person decides on (PC14).
+  if (step.status === "RECOVERY_REQUIRED" && step.recovery_reason === "paid_call_uncertain") return t("research.exec.wait.paid_call_uncertain");
   if (step.error_message) return step.error_message;
+  if (step.status === "RECOVERY_REQUIRED") {
+    return t(step.recovery_reason === "attempts_exhausted" ? "research.exec.wait.attempts_exhausted" : "research.exec.wait.recovery_required");
+  }
   const reason = step.waiting_reason ?? "";
   if (reason === "budget_exceeded" || reason === "provider_quota_exhausted" || reason === "approval_required") {
     return t(`research.exec.wait.${reason}`);
