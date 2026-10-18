@@ -105,7 +105,7 @@ import { citedMeasure, untitled, compareObjects, type CompiledSpecification, mea
 import { FormattedText } from "./FormattedText";
 import { CompleteReport } from "./CompleteReport";
 import { AnswerabilityGate } from "./AnswerabilityGate";
-import { type AcknowledgementState, acknowledgementOf, acknowledges, fixHref, gapFixes, hasGaps, refusalFor, NO_ACKNOWLEDGEMENT, needsAcknowledgement, unanswerableAsked } from "@/lib/answerability";
+import { type AcknowledgementState, acknowledgementOf, acknowledges, confirmedFor, fixHref, gapFixes, hasGaps, refusalFor, NO_ACKNOWLEDGEMENT, needsAcknowledgement, unanswerableAsked } from "@/lib/answerability";
 
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
@@ -736,6 +736,10 @@ export function RunStep() {
     prepared.kind === "ready" && num(prepared.readiness.spend_confirm_usd) !== null && num(prepared.readiness.cost_ceiling_usd) === null;
   const unacknowledged =
     prepared.kind === "ready" && needsAcknowledgement(prepared.readiness.answerability) && !acknowledgementOf(prepared.readiness.answerability, ack);
+  // The start says what it does: with limitations once the person chose so for these very gaps
+  // (a choice made for other gaps, before the design changed, does not count).
+  const limited =
+    prepared.kind === "ready" && needsAcknowledgement(prepared.readiness.answerability) && confirmedFor(prepared.readiness.answerability, ack);
 
   return (
     <div className="flex max-w-4xl flex-col gap-4">
@@ -833,7 +837,7 @@ export function RunStep() {
       >
         {prepared.kind === "ready" ? (
           <AiButton variant="primary" onClick={() => void start()} disabled={!prepared.readiness.ready || !frame.canEdit || starting || blocked || choosing || unacknowledged}>
-            {starting ? t("research.exec.starting") : t("research.exec.start")}
+            {starting ? t("research.exec.starting") : limited ? t("research.exec.answerability.startLimited") : t("research.exec.start")}
           </AiButton>
         ) : null}
       </ActionDock>

@@ -596,7 +596,9 @@ describe("Run: what a run can cost (5b.2)", () => {
     expect(within(gate).getByText("Jak klienti důvěřují účtu?")).toBeTruthy();
     const start = screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement;
     expect(start.disabled).toBe(true); // runnable, not answerable: not started on a click
-    fireEvent.click(within(gate).getByRole("checkbox"));
+    fireEvent.click(within(gate).getByRole("checkbox", { name: t("research.exec.answerability.choice"), description: t("research.exec.answerability.choiceHelp") }));
+    // Chosen for these gaps: the same button now says it starts with limitations.
+    expect(screen.getByRole("button", { name: t("research.exec.answerability.startLimited") })).toBe(start);
     fireEvent.change(within(gate).getByRole("textbox"), { target: { value: reason } });
     await waitFor(() => expect(start.disabled).toBe(false));
     fireEvent.click(start);
@@ -606,6 +608,46 @@ describe("Run: what a run can cost (5b.2)", () => {
       acknowledge_research_questions: { digest, reason },
     });
     await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("progress")));
+  });
+
+  it("says Spustit s omezeními only while Pokračovat s omezeními is chosen for the gaps on screen", async () => {
+    // research-integrity-report 14 (D1): the choice is named, and the start says what it does. The
+    // gaps read again under another respondent source have another digest: the choice made for
+    // the first ones covers nothing, so the button says Spustit výzkum again and waits.
+    const READINESS = "/api/v1/studies/STU-1/research/readiness";
+    const sources = [
+      { source: "fictional_roster", offered: true, reason: null, default: true },
+      { source: "panel", offered: true, reason: null, default: false },
+    ];
+    api({
+      [`GET ${READINESS}`]: () => {
+        const source = new URL(called("GET", READINESS).at(-1)!.url, "http://x").searchParams.get("persona_source") ?? "fictional_roster";
+        const answerability = {
+          rules: "aia-answerability-1", capable: false, digest: (source === "panel" ? "b" : "a").repeat(64), acknowledgement_required: true,
+          gaps: [{ kind: "not_answerable", research_question: "Jak klienti důvěřují účtu?", verdict: "UNKNOWN", reasons: ["unlinked_design"], measures: [] }],
+        };
+        return { ...READY, persona_source: source, persona_sources: sources, answerability };
+      },
+    });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const gate = await screen.findByRole("region", { name: t("research.exec.answerability.title") });
+    const start = screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement;
+    expect(screen.getByText(t("research.exec.answerability.dock"))).toBeTruthy();
+    const choice = within(gate).getByRole("checkbox", { name: t("research.exec.answerability.choice") }) as HTMLInputElement;
+    fireEvent.click(choice);
+    // Named at once; started only with a reason (10-1000 characters, unchanged).
+    expect(start.textContent).toBe(t("research.exec.answerability.startLimited"));
+    expect(start.disabled).toBe(true);
+    fireEvent.change(within(gate).getByRole("textbox", { name: t("research.exec.answerability.why") }), { target: { value: "Ověřujeme jen postup na fiktivních datech." } });
+    await waitFor(() => expect(start.disabled).toBe(false));
+    const card = (await screen.findByRole("heading", { name: t("research.exec.respondents.title") })).closest("section") as HTMLElement;
+    fireEvent.click(within(card).getByRole("radio", { name: new RegExp(t("research.exec.respondents.panel")) }));
+    await waitFor(() => expect((within(card).getByRole("radio", { name: new RegExp(t("research.exec.respondents.panel")) }) as HTMLInputElement).checked).toBe(true));
+    await waitFor(() => expect(choice.checked).toBe(false));
+    expect(screen.getByRole("button", { name: t("research.exec.start") })).toBe(start);
+    expect(start.disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: t("research.exec.answerability.startLimited") })).toBeNull();
+    expect(called("POST", RUNS)).toHaveLength(0);
   });
 
   it("says nothing new started when the revision already had a run, and keeps the person here", async () => {
@@ -623,17 +665,17 @@ describe("Run: what a run can cost (5b.2)", () => {
     });
     render(<ResearchScreen step="run" frame={TEST_FRAME} />);
     const gate = await screen.findByRole("region", { name: t("research.exec.answerability.title") });
-    fireEvent.click(within(gate).getByRole("checkbox"));
+    fireEvent.click(within(gate).getByRole("checkbox", { name: t("research.exec.answerability.choice") }));
     fireEvent.change(within(gate).getByRole("textbox"), { target: { value: "Ověřujeme jen postup na fiktivních datech." } });
-    const start = screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement;
+    const start = screen.getByRole("button", { name: t("research.exec.answerability.startLimited") }) as HTMLButtonElement;
     await waitFor(() => expect(start.disabled).toBe(false));
     fireEvent.click(start);
     const said = await screen.findByText((_, el) => el?.getAttribute("role") === "alert" && !!el.textContent?.includes(t("research.exec.answerability.existing")));
     expect(within(said).getByRole("link").getAttribute("href")).toBe(`${stagePath("progress")}?run=RUN-old`);
     expect(push).not.toHaveBeenCalled();
     // Review 2: the page stayed on "Spouštím…" with every control disabled until it was left.
-    await waitFor(() => expect(start.textContent).toBe(t("research.exec.start")));
-    expect((within(gate).getByRole("checkbox") as HTMLInputElement).disabled).toBe(false);
+    await waitFor(() => expect(start.textContent).toBe(t("research.exec.answerability.startLimited")));
+    expect((within(gate).getByRole("checkbox", { name: t("research.exec.answerability.choice") }) as HTMLInputElement).disabled).toBe(false);
   });
 
   it("follows a run the start created, whatever it recorded", async () => {
@@ -650,9 +692,9 @@ describe("Run: what a run can cost (5b.2)", () => {
     });
     render(<ResearchScreen step="run" frame={TEST_FRAME} />);
     const gate = await screen.findByRole("region", { name: t("research.exec.answerability.title") });
-    fireEvent.click(within(gate).getByRole("checkbox"));
+    fireEvent.click(within(gate).getByRole("checkbox", { name: t("research.exec.answerability.choice") }));
     fireEvent.change(within(gate).getByRole("textbox"), { target: { value: "Ověřujeme jen postup na fiktivních datech." } });
-    const start = screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement;
+    const start = screen.getByRole("button", { name: t("research.exec.answerability.startLimited") }) as HTMLButtonElement;
     await waitFor(() => expect(start.disabled).toBe(false));
     fireEvent.click(start);
     await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("progress")));
@@ -674,9 +716,9 @@ describe("Run: what a run can cost (5b.2)", () => {
     });
     render(<ResearchScreen step="run" frame={TEST_FRAME} />);
     const gate = await screen.findByRole("region", { name: t("research.exec.answerability.title") });
-    fireEvent.click(within(gate).getByRole("checkbox"));
+    fireEvent.click(within(gate).getByRole("checkbox", { name: t("research.exec.answerability.choice") }));
     fireEvent.change(within(gate).getByRole("textbox"), { target: { value: reason } });
-    const start = screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement;
+    const start = screen.getByRole("button", { name: t("research.exec.answerability.startLimited") }) as HTMLButtonElement;
     await waitFor(() => expect(start.disabled).toBe(false));
     fireEvent.click(start);
     await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("progress")));
@@ -728,7 +770,7 @@ describe("Run: what a run can cost (5b.2)", () => {
     const said = await screen.findByText(t("research.exec.answerability.refused"));
     expect(said.getAttribute("role")).toBe("alert");
     expect(screen.queryByText(/cannot answer/)).toBeNull();
-    expect(await screen.findByRole("checkbox")).toBeTruthy();
+    expect(await screen.findByRole("checkbox", { name: t("research.exec.answerability.choice") })).toBeTruthy();
   });
 
   it("calls the gate runnable only where readiness lets the design run", async () => {
@@ -918,7 +960,7 @@ describe("Run: what a run can cost (5b.2)", () => {
     const gate = await screen.findByRole("region", { name: t("research.exec.answerability.title") });
     const again = screen.getByRole("button", { name: t("research.exec.answerability.retryAction") }) as HTMLButtonElement;
     expect(again.disabled).toBe(true);
-    fireEvent.click(within(gate).getByRole("checkbox"));
+    fireEvent.click(within(gate).getByRole("checkbox", { name: t("research.exec.answerability.choice") }));
     fireEvent.change(within(gate).getByRole("textbox"), { target: { value: "Opakujeme jen ověření postupu." } });
     await waitFor(() => expect(again.disabled).toBe(false));
     fireEvent.click(again);

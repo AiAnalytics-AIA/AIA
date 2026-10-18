@@ -5,11 +5,13 @@
  * answer to every research question its design states: which ones, whether the run will not or
  * may not answer each and why, and under each the links to where it is fixed (gapFixes: Návrh,
  * a place in Dotazník, Dimenze), with Dotazník itself below them all. Where the deployment
- * requires it (`acknowledgement_required`), the person's explicit acknowledgement with a reason,
- * given for exactly these gaps, which the run records and the report prints; elsewhere the gaps
- * alone.
+ * requires it (`acknowledgement_required`), the person's explicit choice to continue with
+ * limitations ("Pokračovat s omezeními", the owner's D1) with a reason, made for exactly these
+ * gaps, which the run records as its acknowledgement and the internal report prints; elsewhere
+ * the gaps alone.
  */
 import Link from "next/link";
+import { useId } from "react";
 import { t, tv } from "@/i18n/t";
 import type { Answerability, QuestionOutlook } from "@/lib/api";
 import { type AcknowledgementState, confirmedFor, fixHref, gapFixes, gapWords, MAX_REASON, needsAcknowledgement } from "@/lib/answerability";
@@ -38,6 +40,7 @@ export function AnswerabilityGate({
   runnable?: boolean;
 }) {
   const asks = needsAcknowledgement(answer);
+  const helpId = useId();
   // Given for other gaps (the design changed since): shown unchecked, asked again.
   const confirmed = confirmedFor(answer, value);
   const pending = answer.pending ?? [];
@@ -68,15 +71,19 @@ export function AnswerabilityGate({
       <Link href={stepHref("questionnaire")} className="text-sm text-signal no-underline hover:underline">{t("research.exec.answerability.fix")}</Link>
       {asks ? (
         <>
-          <label className="flex items-start gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={confirmed}
-              disabled={disabled}
-              onChange={(e) => onChange({ ...value, digest: answer.digest, confirmed: e.target.checked })}
-            />
-            <span>{t("research.exec.answerability.confirm")}</span>
-          </label>
+          <div className="flex flex-col gap-1">
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={confirmed}
+                disabled={disabled}
+                aria-describedby={helpId}
+                onChange={(e) => onChange({ ...value, digest: answer.digest, confirmed: e.target.checked })}
+              />
+              <span className="font-semibold">{t("research.exec.answerability.choice")}</span>
+            </label>
+            <p id={helpId} className="pl-6 text-[13px] text-ink-muted">{t("research.exec.answerability.choiceHelp")}</p>
+          </div>
           <Field label={t("research.exec.answerability.why")}>
             <TextArea
               value={value.reason}

@@ -2495,7 +2495,7 @@ export const cs = {
         title: "Běh je spustitelný, ale nemusí odpovědět na všechny výzkumné otázky",
         // Beside readiness that says the design cannot run yet: never called runnable there.
         titleNotReady: "Běh nemusí odpovědět na všechny výzkumné otázky",
-        help: "Kontroly výše říkají, zda běh může proběhnout. Tato karta říká, zda dokáže odpovědět na to, na co se studie ptá. U těchto výzkumných otázek AIA odpověď doložit nedokáže:",
+        help: "Kontroly výše říkají, zda běh může proběhnout. Tato karta říká, zda dokáže odpovědět na to, na co se studie ptá. U těchto výzkumných otázek AIA odpověď doložit nedokáže; pod každou je, kde to opravit:",
         none: "Návrh neuvádí žádnou výzkumnou otázku, takže modul výzkumných otázek nebude mít na co odpovědět.",
         wont: "Běh na ni neodpoví",
         unshown: "Nelze doložit, že na ni běh odpoví",
@@ -2512,7 +2512,7 @@ export const cs = {
         },
         reasonUnknown: "důvod, který tato verze stránky nezná",
         pending: "Zda běh odpoví i na tyto výzkumné otázky, rozhodne až podpora dat ze sběru: {list}",
-        notRequired: "Běh lze spustit i bez potvrzení. Zpráva tyto výzkumné otázky uvede mezi omezeními; interní zpráva navíc zaznamená, že spuštění nikdo nepotvrdil.",
+        notRequired: "Toto nasazení volbu Pokračovat s omezeními nevyžaduje, běh lze spustit i bez ní. Zpráva tyto výzkumné otázky uvede mezi omezeními; interní zpráva navíc zaznamená, že spuštění nikdo nepotvrdil.",
         fix: "Propojit otázky s výzkumnými otázkami v Dotazníku",
         // Where each gap is fixed (lib/answerability.ts gapFixes), one link per place.
         fixTo: {
@@ -2524,14 +2524,18 @@ export const cs = {
           support: "Upravit počet respondentů v Dimenzích →",
           questionnaire: "Otevřít Dotazník →",
         },
-        confirm: "Rozumím, že na tyto výzkumné otázky běh neodpoví nebo nelze předem doložit, že na ně odpoví, a chci ho přesto spustit.",
-        why: "Proč běh spustit i tak (uloží se s během a vytiskne ve zprávě)",
+        // The named choice (D1, 2026-10-17): recorded as the acknowledgement it always was.
+        choice: "Pokračovat s omezeními",
+        choiceHelp: "Běh spustíte, i když na výzkumné otázky výše neodpoví nebo nelze předem doložit, že na ně odpoví. Zpráva je uvede mezi omezeními; volba platí jen pro tyto mezery a uloží se s během spolu s důvodem.",
+        // The client report prints no reason (report_method.py): only the internal one does.
+        why: "Proč pokračujete s omezeními (uloží se s během a vytiskne v interní zprávě)",
         whyHint: "Alespoň 10 znaků, např. „ověřujeme jen postup na fiktivních respondentech“.",
-        dock: "Potvrďte, že běh spouštíte i přes výzkumné otázky bez měření.",
-        existing: "Tato revize návrhu už běh má, a proto se nic nového nespustilo a vaše potvrzení se nikam neuložilo. Chcete-li nový běh, upravte návrh; jinak otevřete průběh toho existujícího.",
-        retry: "Opakovaný běh by stejně nedokázal odpovědět na všechny výzkumné otázky a původní běh to nemá potvrzeno.",
-        retryAction: "Zopakovat s tímto potvrzením",
-        refused: "Server běh nespustil: u některých výzkumných otázek nelze doložit, že na ně běh odpoví, a k těmto mezerám chybí potvrzení. Mezery jsou uvedeny výše.",
+        dock: "Doplňte chybějící měření, nebo zvolte Pokračovat s omezeními a napište proč.",
+        startLimited: "Spustit s omezeními",
+        existing: "Tato revize návrhu už běh má, a proto se nic nového nespustilo a vaše volba Pokračovat s omezeními se nikam neuložila. Chcete-li nový běh, upravte návrh; jinak otevřete průběh toho existujícího.",
+        retry: "Opakovaný běh by stejně nedokázal odpovědět na všechny výzkumné otázky a původní běh nemá zaznamenanou volbu Pokračovat s omezeními.",
+        retryAction: "Zopakovat s omezeními",
+        refused: "Server běh nespustil: u některých výzkumných otázek nelze doložit, že na ně běh odpoví, a volba Pokračovat s omezeními k těmto mezerám není zaznamenaná. Mezery jsou uvedeny výše.",
       },
       trace: {
         title: "Výzkumné otázky a jejich měření",
