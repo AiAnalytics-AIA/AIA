@@ -139,10 +139,12 @@ def test_the_package_opens_and_renders_identically_twice(report_ledger: Any) -> 
     Document(io.BytesIO(first))  # python-docx reads it back
 
 
-def test_cover_front_matter_body_and_appendix_are_four_sections(
+def test_cover_front_matter_and_body_are_three_sections_and_a_portrait_appendix_flows_on(
     rendered: dict[str, bytes],
 ) -> None:
-    cover, front, body, appendix = _sections(rendered)
+    # Was four sections: a portrait appendix opened a section, and so a page, of its
+    # own. Chapters and appendices now flow (research-integrity-report D5).
+    cover, front, body = _sections(rendered)
     assert cover.find(f"{W}headerReference") is not None  # artwork only, no running text
     front_pg = front.find(f"{W}pgNumType")
     body_pg = body.find(f"{W}pgNumType")
@@ -150,12 +152,26 @@ def test_cover_front_matter_body_and_appendix_are_four_sections(
     assert front_pg.get(f"{W}start") == "1"
     assert body_pg is not None and body_pg.get(f"{W}fmt") == "decimal"
     assert body_pg.get(f"{W}start") == "1"
-    appendix_pg = appendix.find(f"{W}pgNumType")
-    assert appendix_pg is not None and appendix_pg.get(f"{W}start") is None  # continues
-    for sect in (cover, front, body, appendix):
+    for sect in (front, body):  # each opens a page: its numbering restarts
+        start = sect.find(f"{W}type")
+        assert start is not None and start.get(f"{W}val") == "nextPage"
+    for sect in (cover, front, body):
         assert in_schema_order(sect, SECTPR_ORDER)
         size = sect.find(f"{W}pgSz")
         assert size is not None and (size.get(f"{W}w"), size.get(f"{W}h")) == ("11906", "16838")
+    # Every section the document ends before a paragraph closes the cover or the
+    # front matter: the chapters and the appendix after them share the body's.
+    root = _xml(rendered, "word/document.xml")
+    paragraphs = list(root.iter(f"{W}p"))
+    ends = [i for i, p in enumerate(paragraphs) if p.find(f"{W}pPr/{W}sectPr") is not None]
+    levels = {
+        i: style.get(f"{W}val")
+        for i, p in enumerate(paragraphs)
+        if (style := p.find(f"{W}pPr/{W}pStyle")) is not None
+        and style.get(f"{W}val") in ("Heading1", "AIAAppendixHeading")
+    }
+    assert [levels[i] for i in sorted(levels)] == ["Heading1", "Heading1", "AIAAppendixHeading"]
+    assert len(ends) == 2 and max(ends) < min(levels)
 
 
 def _header_footer_text(parts: dict[str, bytes], kind: str) -> list[tuple[str, list[str]]]:
@@ -171,7 +187,7 @@ def test_running_heads_match_the_supplied_study_and_client_template(
 ) -> None:
     headers = _header_footer_text(rendered, "header")
     running = [text for text, _ in headers if text]
-    assert len(running) == 3
+    assert len(running) == 2  # front matter and body: the appendix flows on in the body
     assert all(text == "AIA · Důvěra 2026Klient a.s." for text in running)
     assert all("STYLEREF" not in " ".join(fields) for _, fields in headers)
     for n in rendered:
@@ -186,9 +202,9 @@ def test_running_heads_match_the_supplied_study_and_client_template(
 
 def test_an_unapproved_report_says_draft_in_every_footer(rendered: dict[str, bytes]) -> None:
     footers = _header_footer_text(rendered, "footer")
-    assert len(footers) == 4  # cover, front matter, body, appendix
+    assert len(footers) == 3  # cover, front matter, body (the appendix flows on in it)
     assert all(DRAFT in text for text, _ in footers)
-    assert sum("PAGE" in instr for _, instr in footers) == 3
+    assert sum("PAGE" in instr for _, instr in footers) == 2
     assert all("Důvěrné" in text for text, instr in footers if "PAGE" in instr)
 
 
@@ -196,8 +212,33 @@ def test_an_approved_report_drops_the_draft_notice(report_ledger: Any) -> None:
     doc = _doc(report_ledger(), approvals=(Approval("J. Nováková", date(2026, 9, 26)),))
     parts = _parts(DocxRenderer().render(doc))
     assert DRAFT not in _text(_xml(parts, "word/document.xml"))
-    assert len(_header_footer_text(parts, "footer")) == 3  # the cover has none
+    assert len(_header_footer_text(parts, "footer")) == 2  # front matter, body; the cover none
     assert all(DRAFT not in text for text, _ in _header_footer_text(parts, "footer"))
+
+
+def test_chapters_and_appendices_flow_and_only_furniture_breaks_the_page(
+    rendered: dict[str, bytes],
+) -> None:
+    root = _xml(rendered, "word/document.xml")
+    assert not [br for br in root.iter(f"{W}br") if br.get(f"{W}type") == "page"]
+    _cover, *rest = _sections(rendered)
+    assert len(rest) == 2  # the front matter and the body, each after a change of furniture
+    assert all(s.find(f"{W}type").get(f"{W}val") == "nextPage" for s in rest)
+    # The one style that breaks the page is the contents' heading, used once.
+    styles = _xml(rendered, "word/styles.xml")
+    breaking = {
+        s.get(f"{W}styleId")
+        for s in styles.iter(f"{W}style")
+        if (b := s.find(f"{W}pPr/{W}pageBreakBefore")) is not None
+        and b.get(f"{W}val") not in ("0", "false", "off")
+    }
+    assert breaking == {"AIAFrontHeadingPage"}
+    opened = [
+        _text(p)
+        for p in root.iter(f"{W}p")
+        if (st := p.find(f"{W}pPr/{W}pStyle")) is not None and st.get(f"{W}val") in breaking
+    ]
+    assert opened == ["Obsah"]
 
 
 def test_the_contents_lists_the_outline_with_a_pageref_per_entry_and_no_toc_field(

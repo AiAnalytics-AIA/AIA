@@ -145,6 +145,7 @@ class Para:
     color: str = "doc-ink"
     align: WD_ALIGN_PARAGRAPH | None = None
     keep_next: bool = False
+    keep_lines: bool = False  # never split across a page: a heading, a caption, a title
     page_break_before: bool = False
     outline: int | None = None  # 0 = level 1, for the TOC and the navigation pane
     indent_mm: float = 0.0
@@ -174,15 +175,19 @@ PARAGRAPHS: Final[dict[str, Para]] = {
     S.SUBTITLE: Para("doc-subtitle", color="doc-muted", keep_next=True),
     S.KICKER: Para("doc-kicker", color="doc-accent", keep_next=True),
     S.META: Para("doc-meta", color="doc-muted"),
-    S.H1: Para("doc-h1", keep_next=True, page_break_before=True, outline=0),
-    S.H2: Para("doc-h2", keep_next=True, outline=1),
-    S.H3: Para("doc-h3", keep_next=True, outline=2),
-    S.APPENDIX: Para("doc-h1", keep_next=True, page_break_before=True, outline=0),
-    S.FRONT_HEADING: Para("doc-h1", keep_next=True, page_break_before=False),
-    S.FRONT_HEADING_BREAK: Para("doc-h1", keep_next=True, page_break_before=True),
-    S.H2_FRONT: Para("doc-h2", keep_next=True),
+    # Chapters and appendices flow: a page breaks only where the furniture changes
+    # (renderer.py) and before the contents, which opens a page of its own.
+    S.H1: Para("doc-h1", keep_next=True, keep_lines=True, outline=0),
+    S.H2: Para("doc-h2", keep_next=True, keep_lines=True, outline=1),
+    S.H3: Para("doc-h3", keep_next=True, keep_lines=True, outline=2),
+    S.APPENDIX: Para("doc-h1", keep_next=True, keep_lines=True, outline=0),
+    S.FRONT_HEADING: Para("doc-h1", keep_next=True, keep_lines=True),
+    S.FRONT_HEADING_BREAK: Para("doc-h1", keep_next=True, keep_lines=True, page_break_before=True),
+    S.H2_FRONT: Para("doc-h2", keep_next=True, keep_lines=True),
     S.LEDE: Para("doc-lede"),
-    S.CAPTION: Para("doc-caption", keep_next=True, space_before_pt=10, space_after_pt=4),
+    S.CAPTION: Para(
+        "doc-caption", keep_next=True, keep_lines=True, space_before_pt=10, space_after_pt=4
+    ),
     S.SOURCE: Para("doc-caption", color="doc-muted", space_before_pt=3, space_after_pt=6),
     S.FOOTNOTE: Para("doc-footnote", color="doc-muted", indent_mm=4, hanging_mm=4),
     S.HEADER: Para(
@@ -240,6 +245,7 @@ PARAGRAPHS: Final[dict[str, Para]] = {
         "doc-table-head",
         color="doc-accent",
         keep_next=True,
+        keep_lines=True,
         space_before_pt=8,
         space_after_pt=2,
         indent_mm=3,
@@ -255,8 +261,10 @@ PARAGRAPHS: Final[dict[str, Para]] = {
         bar="doc-accent",
     ),
     S.FIGURE: Para("doc-body", keep_next=True, space_before_pt=2, space_after_pt=0, exact=False),
-    S.FINDING_TITLE: Para("doc-body", keep_next=True, space_before_pt=14),
-    S.FINDING_LABEL: Para("doc-table-head", color="doc-muted", keep_next=True, space_before_pt=4),
+    S.FINDING_TITLE: Para("doc-body", keep_next=True, keep_lines=True, space_before_pt=14),
+    S.FINDING_LABEL: Para(
+        "doc-table-head", color="doc-muted", keep_next=True, keep_lines=True, space_before_pt=4
+    ),
     S.COVER_RULE: Para("doc-meta", space_before_pt=0, space_after_pt=0),
     S.COVER_DETAILS: Para("doc-meta", color="doc-muted"),
     S.COVER_ACCENT: Para("doc-meta", space_before_pt=21, space_after_pt=21, keep_next=True),
@@ -357,8 +365,9 @@ def _apply_paragraph(style: ParagraphStyle, spec: Para) -> None:
         pf.line_spacing = Pt(ps.leading_pt)
     else:
         pf.line_spacing_rule = WD_LINE_SPACING.SINGLE
-    pf.widow_control = True
+    pf.widow_control = True  # no orphan or widow line, in every style
     pf.keep_with_next = spec.keep_next
+    pf.keep_together = spec.keep_lines
     pf.page_break_before = spec.page_break_before
     pf.alignment = spec.align if spec.align is not None else WD_ALIGN_PARAGRAPH.LEFT
     pf.left_indent = Mm(spec.indent_mm) if spec.indent_mm else None

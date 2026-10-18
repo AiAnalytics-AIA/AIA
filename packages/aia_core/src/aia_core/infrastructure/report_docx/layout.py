@@ -6,10 +6,15 @@ A report has three kinds of section, each a Word section of its own:
   notice in its footer: every footer of an unapproved report says so);
 * the **front matter** (document control, contents, lists), paged in lower-case
   roman numerals from i;
-* the **body**, paged in arabic numerals from 1, with the report title and the
-  client in the header and the classification and page
-  in the footer. Appendices and landscape pages are further sections of the body
-  that continue its numbering.
+* the **body**, paged in arabic numerals from 1, with the study and the client
+  in the header and the classification and page in the footer. Chapters and
+  appendices flow within it; only a landscape page is a further section of the
+  body, which continues its numbering, and the portrait page after it another.
+
+A section starts a new page, so a page breaks only where its furniture changes
+(research-integrity-report D5): after the cover, before the body (its numbering
+restarts) and at every change of orientation. The contents opens a page of its
+own through its heading's style, not a section.
 
 Word stores a section's properties in the ``w:sectPr`` of the paragraph that
 *ends* it, and the last section's in the body. :func:`end_section` therefore
@@ -131,7 +136,7 @@ def _draft(ctx: RenderContext) -> bool:
 
 
 def running(ctx: RenderContext, section: Section, *, wide: bool = False) -> None:
-    """The running heads of ``section``, from ``ctx.running``.
+    """The running heads of ``section``: the study and client, the classification and page.
 
     A landscape page has its own (``wide``) Header/Footer styles, whose right tab
     sits at the landscape text width, so a section after it sets them again.
