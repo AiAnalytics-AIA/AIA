@@ -32,6 +32,7 @@ from aia_core.domain.deep_research.contracts import (
     EvidenceOrigin,
     QualityStatus,
     SourceKind,
+    SubjectKind,
 )
 from aia_core.domain.deep_research.document_types import (
     DOCUMENT_RULES_VERSION,
@@ -290,7 +291,9 @@ def literature_sections(
                 "jsou proto vedeny odděleně od evidence studie."
             )
         ),
-        Paragraph(text(_relevance_sentence(topic_judged))),
+        Paragraph(
+            text(_relevance_sentence(topic_judged, frozenset(s.kind for s in bundle.subjects)))
+        ),
     ]
     if EvidenceOrigin.RECORDED_FIXTURE in bundle.origins:
         blocks.append(
@@ -655,9 +658,21 @@ def _document_note(typed_by: str | None) -> str:
     )
 
 
-def _relevance_sentence(topic_judged: bool) -> str:
+def _relevance_sentence(topic_judged: bool, kinds: frozenset[SubjectKind]) -> str:
     """What code checked of a finding's relevance, by the review's own record (D4): with the
-    topic rules, what they check and what they leave; without them, that nobody checked."""
+    topic rules, what they check and what they leave; without them, that nobody checked.
+
+    Each check is said of the topics it runs for (``topicality.TopicScreen.judge_text``), named
+    as the reader sees them in the chapter's list of topics, and only for the kinds of topic
+    the review holds (``kinds``, its subjects'): the object's own words (R1) for a topic that
+    is an object's name, and for a cross (another topic with an object after a dash); two
+    shared words (R3) for a question or a framed context -- in Interpretation Research every
+    such topic is a framing (``interpretation.FRAMINGS``) of a result, a research question, the
+    study's goal, a category or a pair of objects -- and for a cross's part before the dash;
+    the concept swap (R4) for any topic naming a concept of a family. Cross-review: the
+    sentence claimed the object check for "a question about it", which never runs for a framed
+    question about an object (a QUESTION, not a CROSS), and named the two-word check only for
+    research questions."""
     if not topic_judged:
         return (
             "U každého zjištění AIA ověřila, že citovaná pasáž je doslova v zachyceném zdroji "
@@ -667,19 +682,41 @@ def _relevance_sentence(topic_judged: bool) -> str:
             "uvedeno téma, pro které bylo hledáno, a doslovná citace, a u každého zdroje jeho "
             "typ podle domény."
         )
-    return (
+    checks = [
         "U každého zjištění AIA ověřila, že citovaná pasáž je doslova v zachyceném zdroji "
         "a že čísla tvrzení jsou v ní uvedena; ověřovací model posoudil, zda pasáž "
         "tvrzení podporuje. AIA také ověřila, že se zjištění týká tématu, pro které bylo "
-        "hledáno: u sledovaného objektu, že ho citace nebo název zdroje jmenuje; u tématu, "
-        "které jmenuje pojem z pevně dané skupiny (bankovní produkt, sledovaný objekt), že "
-        "zdroj nejmenuje místo něj jiný pojem téže skupiny; a že tvrzení, citace nebo název "
-        "zdroje sdílejí aspoň dvě slova tématu (má-li téma jediné slovo, to jedno). Neověřila "
-        "však, zda se zdroj týká stejné populace, území a období jako tato studie, ani zda "
-        "shoda slov znamená shodu významu. "
+        "hledáno, a to podle druhu tématu."
+    ]
+    if SubjectKind.OBJECT in kinds:
+        checks.append(
+            "U tématu, které je názvem objektu, ověřila, že citace nebo název zdroje obsahuje "
+            "ta slova jeho názvu, kterými se liší od ostatních objektů této rešerše (je-li "
+            "objekt v rešerši jediný, celý název)."
+        )
+    if SubjectKind.QUESTION in kinds:
+        checks.append(
+            "U tématu, které je otázkou nebo popisem hledaného kontextu (k výsledku otázky, "
+            "výzkumné otázce, cíli studie, kategorii nebo dvojici objektů), ověřila, že "
+            "tvrzení, citace a název zdroje dohromady sdílejí aspoň dvě jeho slova (zbývá-li "
+            "jediné, to jedno); nepočítají se přitom slova, kterými AIA téma uvozuje, jména "
+            "klienta, tázací slova a slova s číslicí."
+        )
+    if SubjectKind.CROSS in kinds:
+        checks.append(
+            "U tématu, které za pomlčkou připojuje název objektu, ověřila obojí: u objektu za "
+            "pomlčkou slova jeho názvu, u části před pomlčkou její slova jako u otázky."
+        )
+    checks.append(
+        "U každého tématu, které jmenuje pojem z pevně dané skupiny (druh bankovního "
+        "produktu; objekt této rešerše, je-li jich v ní víc), ověřila také, že citace ani "
+        "název zdroje nejmenují místo něj jiný pojem téže skupiny. "
+        "Neověřila však, zda se zdroj týká stejné populace, území a období jako tato studie, "
+        "ani zda shoda slov znamená shodu významu. "
         "To posuzuje čtenář: u každého zjištění je proto uvedeno téma, pro které bylo hledáno, "
         "a doslovná citace, a u každého zdroje jeho typ podle domény."
     )
+    return " ".join(checks)
 
 
 def _withheld(one: str, several: str, count: int) -> str:

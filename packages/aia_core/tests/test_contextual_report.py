@@ -17,10 +17,14 @@ from aia_core.domain.deep_research.contracts import (
     subject_key,
 )
 from aia_core.domain.deep_research.document_types import DOCUMENT_RULES_VERSION
+from aia_core.domain.deep_research.integration import ResultBatteryObjectTarget
+from aia_core.domain.deep_research.interpretation import interpretation_mission
 from aia_core.domain.deep_research.merge import MERGE_RULES_VERSION
 from aia_core.domain.deep_research.topicality import (
     TOPICALITY_VERSION,
+    TopicRule,
     TopicScreen,
+    TopicVerdict,
     topic_screen,
 )
 from aia_core.domain.fieldwork import OriginKind
@@ -35,6 +39,7 @@ from aia_core.domain.report.model import (
     Text,
     TextCell,
 )
+from aia_core.domain.research_design import compile_design
 
 
 def bundle(**updates: object) -> EvidenceBundle:
@@ -479,6 +484,29 @@ def test_three_withheld_sources_of_one_reason_are_three_in_the_plural() -> None:
 TRUST = "Do jaké míry klienti důvěřují založení běžného účtu online?"
 CHECKED = "AIA také ověřila, že se zjištění týká tématu, pro které bylo hledáno"
 UNCHECKED = "Neověřila však, zda se zdroj týká stejného jevu, populace, území a období"
+#: Each topic check as the chapter says it, of the topic the reader sees in its list.
+OBJECT_CHECK = (
+    "U tématu, které je názvem objektu, ověřila, že citace nebo název zdroje obsahuje ta slova "
+    "jeho názvu, kterými se liší od ostatních objektů této rešerše (je-li objekt v rešerši "
+    "jediný, celý název)."
+)
+QUESTION_CHECK = (
+    "U tématu, které je otázkou nebo popisem hledaného kontextu (k výsledku otázky, výzkumné "
+    "otázce, cíli studie, kategorii nebo dvojici objektů), ověřila, že tvrzení, citace a název "
+    "zdroje dohromady sdílejí aspoň dvě jeho slova (zbývá-li jediné, to jedno); nepočítají se "
+    "přitom slova, kterými AIA téma uvozuje, jména klienta, tázací slova a slova s číslicí."
+)
+CROSS_CHECK = (
+    "U tématu, které za pomlčkou připojuje název objektu, ověřila obojí: u objektu za pomlčkou "
+    "slova jeho názvu, u části před pomlčkou její slova jako u otázky."
+)
+#: R4 reads the quote and the source's title, never the rest of the source, so the sentence
+#: names those two: "zdroj nejmenuje" claimed the whole source was read (cross-review).
+CONCEPT_CHECK = (
+    "U každého tématu, které jmenuje pojem z pevně dané skupiny (druh bankovního produktu; "
+    "objekt této rešerše, je-li jich v ní víc), ověřila také, že citace ani název zdroje "
+    "nejmenují místo něj jiný pojem téže skupiny."
+)
 
 
 def _merged_under(value: EvidenceBundle, merge: str) -> EvidenceBundle:
@@ -502,6 +530,146 @@ def test_a_review_merged_under_the_topic_rules_says_what_they_check_and_what_the
     assert bundle().versions["merge"] == "aia-merge-1"
     written = prose(bundle())
     assert UNCHECKED in written and CHECKED not in written
+
+
+def test_each_topic_check_the_chapter_names_is_said_of_the_topics_it_runs_for() -> None:
+    """The paragraph says each rule of the topics it runs for, and the rules do run so: a
+    tracked object needs only the words that tell it from the others (R1), a research question
+    two of its words (R3), a question about an object both (cross-review: the chapter claimed
+    the two-word check for every finding, and an object's never had it). Extending R3 to
+    objects fails the first judgement here until the sentence says so."""
+    objects = [
+        ResearchSubject(
+            key=subject_key(SubjectKind.OBJECT, name),
+            kind=SubjectKind.OBJECT,
+            text=name,
+            origin="tracked_objects",
+        )
+        for name in ("Ovesný nápoj", "Mandlový nápoj", "Sójový nápoj")
+    ]
+    asked = "Proč lidé kupují rostlinné nápoje?"
+    question = ResearchSubject(
+        key=subject_key(SubjectKind.QUESTION, asked),
+        kind=SubjectKind.QUESTION,
+        text=asked,
+        origin="research_plan.research_questions[0]",
+    )
+    cross = ResearchSubject(
+        key="x-" + "0" * 12,
+        kind=SubjectKind.CROSS,
+        text=f"{asked} \u2014 {objects[0].text}",
+        origin=f"cross:{question.key}|{objects[0].key}",
+        question_key=question.key,
+        object_key=objects[0].key,
+    )
+    screen = topic_screen([*objects, question, cross], client_terms=())
+    flakes = "Ovesné vločky zdražily o 12 %."
+    one_word = {"claim": flakes, "quote": flakes, "source_title": "Ceny obilovin 2025"}
+    # A tracked object: its one distinguishing word is enough, no second word asked for.
+    assert screen.judge_text(objects[0].key, **one_word).verdict is TopicVerdict.ON_TOPIC
+    # A question about it: the object named, and still two of the question's words.
+    about = screen.judge_text(cross.key, **one_word)
+    assert (about.verdict, about.rule) == (TopicVerdict.OFF_TOPIC, TopicRule.TOPIC_WORDS)
+    # A research question: one shared word ("rostlinné") is not two.
+    oils = "Rostlinné oleje zdražily."
+    one = screen.judge_text(question.key, claim=oils, quote=oils, source_title="")
+    assert (one.verdict, one.rule) == (TopicVerdict.OFF_TOPIC, TopicRule.TOPIC_WORDS)
+    assert screen.profiles[objects[0].key].topic_terms == ()  # an object has no topic words
+    # The concept swap reads the quote and the source's title, never the claim or the rest of
+    # the source: a mortgage in the title sets a current-account finding aside, a mortgage in
+    # the claim alone is not what R4 decides on.
+    current = "Proč lidé zakládají běžný účet u banky?"
+    account = ResearchSubject(
+        key=subject_key(SubjectKind.QUESTION, current),
+        kind=SubjectKind.QUESTION,
+        text=current,
+        origin="research_plan.research_questions[1]",
+    )
+    banks = topic_screen([account], client_terms=())
+    said = "Lidé u banky zakládají účet podle poplatků."
+    titled = banks.judge_text(account.key, claim=said, quote=said, source_title="Ceny hypoték")
+    assert (titled.verdict, titled.rule) == (TopicVerdict.OFF_TOPIC, TopicRule.CONCEPT_SWAP)
+    claimed = banks.judge_text(
+        account.key, claim=f"{said} Hypotéky také.", quote=said, source_title="Poplatky bank"
+    )
+    assert claimed.rule is not TopicRule.CONCEPT_SWAP
+
+    # The fixture's review holds questions and objects, no cross: each said once, the cross's
+    # double check not at all, and the two-word check of no object.
+    written = prose(_merged_under(bundle(), MERGE_RULES_VERSION))
+    assert OBJECT_CHECK in written and QUESTION_CHECK in written and CONCEPT_CHECK in written
+    assert CROSS_CHECK not in written
+    assert written.count("aspoň dvě") == 1  # said of questions, nothing else
+
+
+def _with_subjects(*subjects: ResearchSubject) -> str:
+    """The chapter of a review merged under the topic rules over ``subjects``."""
+    held = bundle(subjects=[s.model_dump(mode="json") for s in subjects])
+    return prose(_merged_under(held, MERGE_RULES_VERSION))
+
+
+def test_an_interpretation_reviews_topics_are_each_said_with_the_checks_that_ran() -> None:
+    """Every report with literature is Interpretation Research (``_compose`` refuses any other
+    purpose), and its questions are framings: the result of one tracked object is the object
+    and a framed question about it, a QUESTION that R1 never reads. The chapter said that a
+    question about an object was checked for the object's name (cross-review): a finding filed
+    under the framed question and quoting another plant drink passes. Each sentence now says
+    its check of the topic the reader sees, and each is held to what the screen does."""
+    design = {
+        "title": "Rostlinné nápoje",
+        "sections": [
+            {
+                "type": "object_battery",
+                "id": "napoje",
+                "title": "Nápoje",
+                "object_family": "rostlinné nápoje",
+                "objects": ["Ovesný nápoj", "Mandlový nápoj", "Sójový nápoj"],
+                "object_question": "Jak hodnotíte {object}?",
+            }
+        ],
+    }
+    spec, problems = compile_design(design)
+    assert spec is not None, problems
+    (battery,) = spec.batteries
+    target = ResultBatteryObjectTarget(
+        kind="RESULT_BATTERY_OBJECT",
+        research_run_id="RUN-00000000000000a1",
+        aggregate_artifact_id="ART-00000000000000a3",
+        battery_id=battery.id,
+        object_id=battery.objects[0].id,
+    )
+    obj, framed = interpretation_mission(
+        target, specification=spec.model_dump(mode="json"), design=design
+    )
+    assert (obj.kind, obj.text) == (SubjectKind.OBJECT, "Ovesný nápoj")
+    assert framed.kind is SubjectKind.QUESTION and framed.text.startswith("Kontext a srovnání")
+    almond = "Spotřebitelé začali hodnotit mandlový nápoj výše než kravské mléko."
+    finding = {"claim": almond, "quote": almond, "source_title": ""}
+    screen = topic_screen([obj, framed], client_terms=())
+    # The object: its name is checked, and the quote does not name it.
+    judged = screen.judge_text(obj.key, **finding)
+    assert (judged.verdict, judged.rule) == (TopicVerdict.OFF_TOPIC, TopicRule.OBJECT_NAMED)
+    # The framed question about it: two of its words, not the object's name.
+    assert screen.judge_text(framed.key, **finding).verdict is TopicVerdict.ON_TOPIC
+    written = _with_subjects(obj, framed)
+    assert OBJECT_CHECK in written and QUESTION_CHECK in written
+    assert CROSS_CHECK not in written and "v otázce na něj" not in written
+    # A deeper preset opens the cross: there the object's name is checked too, and said so.
+    cross = ResearchSubject(
+        key="x-" + "1" * 12,
+        kind=SubjectKind.CROSS,
+        text=f"{framed.text} \u2014 {obj.text}",
+        origin=f"cross:{framed.key}|{obj.key}",
+        question_key=framed.key,
+        object_key=obj.key,
+    )
+    judged = topic_screen([obj, framed, cross], client_terms=()).judge_text(cross.key, **finding)
+    assert (judged.verdict, judged.rule) == (TopicVerdict.OFF_TOPIC, TopicRule.OBJECT_NAMED)
+    assert CROSS_CHECK in _with_subjects(obj, framed, cross)
+    # A review of one Sociomap object holds no question: no two-word check is claimed.
+    alone = _with_subjects(obj)
+    assert OBJECT_CHECK in alone and CONCEPT_CHECK in alone
+    assert QUESTION_CHECK not in alone and "aspoň dvě" not in alone
 
 
 def _older_current_account_review() -> tuple[EvidenceBundle, TopicScreen]:
