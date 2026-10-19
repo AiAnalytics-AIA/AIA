@@ -134,6 +134,8 @@ describe("automatic text edits (inline-decisions 2)", () => {
     { op: "set_text", field: "goal", value: "Nový cíl", why: "" },
     { op: "set_text", field: "briefing.situation", value: "Jinak", why: "" },
     { op: "list_replace", list: "plan.research_questions", old: "Proč klienti odcházejí?", value: "Proč odcházejí?", why: "" },
+    // Objectives are read as the research questions where a plan states none.
+    { op: "list_replace", list: "plan.objectives", old: "Snížit odchody", value: "Snížit odchody klientů", why: "" },
     { op: "list_add", list: "plan.objectives", value: "Cíl", why: "" },
     { op: "list_remove", list: "plan.hypotheses", old: "H", why: "" },
     { op: "question_add", section_id: null, text: "Kolik?", qtype: "otevrena", options: [], why: "" },

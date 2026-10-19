@@ -118,7 +118,6 @@ TEXT_EDITS = [
     {"op": "set_text", "field": "title", "value": "Nový název", "why": WHY},
     {"op": "set_text", "field": "plan.problem_summary", "value": "Shrnutí", "why": WHY},
     {"op": "list_replace", "list": "plan.hypotheses", "old": "A", "value": "B", "why": WHY},
-    {"op": "list_replace", "list": "plan.objectives", "old": "A", "value": "B", "why": WHY},
     {"op": "question_edit", "question_id": "q3", "text": "Jinak", "why": WHY},
 ]
 STRUCTURAL_EDITS = [
@@ -134,6 +133,8 @@ STRUCTURAL_EDITS = [
         "value": "Proč ne?",
         "why": WHY,
     },
+    # Where a plan states no research questions, its objectives are read as them, by text.
+    {"op": "list_replace", "list": "plan.objectives", "old": "A", "value": "B", "why": WHY},
     {"op": "list_add", "list": "plan.objectives", "value": "Cíl", "why": WHY},
     {"op": "list_remove", "list": "plan.research_questions", "old": "Proč?", "why": WHY},
     {"op": "question_add", "text": "Proč?", "qtype": "otevrena", "why": WHY},

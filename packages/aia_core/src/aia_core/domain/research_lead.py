@@ -307,16 +307,22 @@ TEXT_EDIT_OPS: Final = frozenset({"set_text", "question_edit", "list_replace"})
 TEXT_ONLY_FIELDS: Final = frozenset({"title", "plan.problem_summary"})
 #: The plan lists whose items are wording alone. ``plan.research_questions`` is not among them:
 #: the questionnaire's items and the plan's comparisons name a research question by its text
-#: (``domain/research_trace.py``), so renaming one unlinks what measures it.
-TEXT_ONLY_LISTS: Final = frozenset({"plan.objectives", "plan.hypotheses"})
+#: (``domain/research_trace.py``), so renaming one unlinks what measures it. Nor is
+#: ``plan.objectives``: where a plan states no research questions, its objectives are read as
+#: them (``analysis/native.py`` ``research_questions_of``), with the same links by text.
+TEXT_ONLY_LISTS: Final = frozenset({"plan.hypotheses"})
 
 
 def is_text_edit(edit: BaseModel) -> bool:
-    """Whether ``edit`` changes wording only, with no other effect: a ``set_text`` of the title
-    or the problem summary, a ``list_replace`` of an objective or a hypothesis, or a
-    ``question_edit`` that replaces the text and leaves the options as they are. Adding,
-    removing, re-optioning or re-typing anything, the sample size, a brief field (it clears the
-    analysis) and a research question (items and comparisons name it by its text) are not."""
+    """Whether ``edit`` changes wording and nothing the design links to it: a ``set_text`` of the
+    title or the problem summary, a ``list_replace`` of a hypothesis, or a ``question_edit`` that
+    replaces the text and leaves the options as they are. Adding, removing, re-optioning or
+    re-typing anything, the sample size, a brief field (it clears the analysis), a research
+    question or an objective (items and comparisons name them by their text) are not.
+
+    A question's new wording still decides how it is read after it: whether code answers it as
+    a fact (``respondent_facts``) and which persona topics it draws (``persona_topics``). That is
+    true of a clicked accept too; readiness and the question outlook show it before a run."""
     op = getattr(edit, "op", None)
     if op not in TEXT_EDIT_OPS:
         return False
