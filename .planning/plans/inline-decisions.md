@@ -1,9 +1,9 @@
 ---
-status: in-progress
+status: done
 chunks:
   - "[x] 1. Ověřeno, přidat zdroj: a person adds a Deep Research source to the client's knowledge with one inline click"
   - "[x] 2. Auto-accept the Lead's text edits: an opt-in per researcher, off by default, recorded in the ledger as auto"
-  - "[ ] 3. Tick the plan"
+  - "[x] 3. Tick the plan"
 ---
 # Inline decisions
 
@@ -53,9 +53,36 @@ that decision, so the gate stays the default and the choice is theirs alone.
   normal revision-checked save), and refuses when the text has changed since. The ledger's
   accept stays: decisions are made once, and the revert is a later edit by the person.
 
+## Where it landed
+
+- Chunk 1 @ ccbed0fd: `application/verified_sources.py` (`add_verified_source`),
+  `ClientKnowledgeRepository.add_source_once`, the route in `routers/deep_research.py`, the web's
+  `VerifiedSourceButton` on the three places a captured source is shown, and `?item=` on Znalosti.
+  Tests: `apps/api/tests/test_verified_sources_api.py`,
+  `test_client_knowledge.py::test_a_checked_source_is_added_once_per_client_and_url`,
+  `VerifiedSourceButton.test.tsx`.
+- Chunk 2: `TEXT_EDIT_OPS` / `is_text_edit` in `domain/research_lead.py`, the column (migration
+  `57eaa96a5538`, revises `7b3c32892aa9`), `ResearcherLeadRepository.set_preferences`,
+  `ResearchLead.decide_edits(auto=)`, `record_lead_edit_decision(auto=)`, `PUT /lead/preferences`,
+  the workbench's automatic accept and Vrátit, the toggle on Můj Vedoucí. Tests:
+  `test_research_lead.py::test_a_text_edit_changes_wording_only`,
+  `test_research_lead_api.py::test_an_automatic_accept_takes_text_edits_only_and_says_so_in_the_ledger`,
+  `Workbench.test.tsx`, `lead.test.ts`, `LeadProfile.test.tsx`, and `lead_journey.mjs` (run on a
+  local workbench, 12 checks, nothing paid).
+
+## Checks run (2026-10-19)
+
+- Migration on a private PostgreSQL 16: upgrade to head, `alembic check` clean, downgrade one and
+  upgrade again, `alembic check` clean.
+- The knowledge, Lead and verified-source tests on that PostgreSQL as well as on SQLite.
+
 ## Findings
 
-None yet.
+- `tools/ui_workbench/lead_journey.mjs` is not rerunnable on one workbench: its note's first 40
+  characters carry no timestamp, so a second run finds the first run's kept note
+  (`lead_journey.mjs:121 @ 2e5028cc`, unchanged from develop). Run it on `workbench.py up --fresh`.
+- `MethodologyVersions.test.tsx` "guided methodology editing" times out at 5 s on a loaded
+  machine, on `origin/develop` @ 6c5cd620 as on this branch (hypothesis: load, not a defect).
 
 ## Doc follow-up
 
