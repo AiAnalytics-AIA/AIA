@@ -106,7 +106,11 @@ class ClientSourceRepository:
     # ------------------------------------------------------------------ reading
 
     def _rows(
-        self, scope: ClientContext | ClientWorkContext, source_ids: list[str] | None = None
+        self,
+        scope: ClientContext | ClientWorkContext,
+        source_ids: list[str] | None = None,
+        *,
+        for_update: bool = False,
     ) -> list[ClientSourceRow]:
         query = select(ClientSourceRow).where(
             ClientSourceRow.organization_id == scope.organization_id,
@@ -114,10 +118,20 @@ class ClientSourceRepository:
         )
         if source_ids is not None:
             query = query.where(ClientSourceRow.source_id.in_(source_ids))
+        if for_update:
+            # Locked and read again from the database: a check made on this row holds until
+            # the transaction ends, never against a copy the session already had.
+            query = query.with_for_update().execution_options(populate_existing=True)
         return list(self._session.scalars(query).all())
 
-    def _row(self, scope: ClientContext | ClientWorkContext, source_id: str) -> ClientSourceRow:
-        rows = self._rows(scope, [source_id])
+    def _row(
+        self,
+        scope: ClientContext | ClientWorkContext,
+        source_id: str,
+        *,
+        for_update: bool = False,
+    ) -> ClientSourceRow:
+        rows = self._rows(scope, [source_id], for_update=for_update)
         if not rows:
             raise ScopeDenied("not found", reason="unknown_source")
         return rows[0]
@@ -229,6 +243,15 @@ class ClientSourceRepository:
             raise SourceReadingChanged(source_id)
         data = self._store.get(row.reading_key, expected_sha256=reading_sha256)
         return self._records([row])[0], SourceReading.model_validate_json(data)
+
+    def marked_internal(self, scope: ClientWorkContext, source_id: str) -> bool:
+        """Whether the source is marked "Interní dokument" now, as the worker reads it before
+        each request of the client's own work: a mark removed mid-run stops the run rather
+        than letting its later requests go out under the class it no longer has."""
+        if not isinstance(scope, ClientWorkContext):
+            raise ScopeDenied("client work requires a client work context", reason="forged_scope")
+        scope.require(Permission.RUN_WORKFLOW)
+        return self._row(scope, source_id).internal_marked_by is not None
 
     def original(self, scope: ClientContext, source_id: str) -> tuple[str, bytes]:
         """The original's bytes, verified, and the name it was last added under."""
@@ -430,7 +453,9 @@ class ClientSourceRepository:
         """
         scope = _client(scope)
         scope.require(ClientPermission.PROPOSE_CLIENT_KNOWLEDGE)
-        row = self._row(scope, source_id)
+        # The row is locked before it is checked: a mark and an unmark sent together are
+        # applied one after the other, so the answer each gets is the state it left.
+        row = self._row(scope, source_id, for_update=True)
         if (row.internal_marked_by is not None) == internal:
             return self._records([row])[0], False
         before = row.internal_marked_by

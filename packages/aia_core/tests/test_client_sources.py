@@ -361,6 +361,71 @@ def test_a_person_marks_a_source_internal_and_unmarks_it_with_who_when_and_audit
         sources.mark_internal(other, kept.source_id, internal=True)
 
 
+def test_a_mark_and_an_unmark_sent_together_end_in_the_state_the_later_one_answered(
+    scoped: Any, sources: ClientSourceRepository, session: Any, engine: Any, store: Any
+) -> None:
+    """Codex on #487: a mark is applied and not yet committed when an unmark arrives. The
+    unmark waits for the row, then sees the mark and removes it: the source ends unmarked, as
+    its answer said. Without the lock the unmark read the old unmarked row, answered
+    "nothing to change", and the mark committed after it.
+
+    PostgreSQL only: the guard is the row's lock, which SQLite does not take (it serialises
+    writers instead)."""
+    import threading
+    import time
+
+    from aia_core.infrastructure.db import create_session_factory
+
+    if engine.dialect.name != "postgresql":
+        pytest.skip("row locks are PostgreSQL's; SQLite serialises writers")
+    lead = client_scope(scoped, "lead")
+    kept, _ = sources.add(lead, filename="metodika.md", data=b"# Interni postup AIA")
+    session.commit()
+    factory = create_session_factory(engine)
+    marked, go = threading.Event(), threading.Event()
+    answers: list[bool] = []
+    errors: list[BaseException] = []
+
+    def mark() -> None:
+        try:
+            with factory() as own:
+                ClientSourceRepository(own, store).mark_internal(
+                    lead, kept.source_id, internal=True
+                )
+                marked.set()
+                assert go.wait(30)
+                own.commit()
+        except BaseException as exc:  # reported below, never swallowed
+            errors.append(exc)
+
+    def unmark() -> None:
+        try:
+            with factory() as own:
+                _, changed = ClientSourceRepository(own, store).mark_internal(
+                    lead, kept.source_id, internal=False
+                )
+                own.commit()
+                answers.append(changed)
+        except BaseException as exc:
+            errors.append(exc)
+
+    a = threading.Thread(target=mark)
+    a.start()
+    assert marked.wait(30)
+    b = threading.Thread(target=unmark)
+    b.start()
+    # Room for the unmark to finish if nothing holds it; with the lock it waits.
+    time.sleep(1.0)
+    assert answers == []
+    go.set()
+    a.join(30)
+    b.join(30)
+    assert not errors, errors
+    assert answers == [True]
+    session.expire_all()
+    assert sources.source(lead, kept.source_id).internal is None
+
+
 def test_marking_a_source_internal_needs_the_permission_adding_it_needs(
     scoped: Any, sources: ClientSourceRepository
 ) -> None:
