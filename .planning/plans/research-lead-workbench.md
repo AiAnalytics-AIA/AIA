@@ -100,10 +100,12 @@ The design is [ADR 0026](../../docs/architecture/adr/0026-research-lead-proposes
 ### 5. Inline proposal review (web)
 
 - **Scope.** `ProposalReview` is drawn as change blocks at the items they change, with a sticky
-  bar (accept, dismiss). It shows research-question coverage gained, lost and kept, from
-  `proposedTrace` / `trace.ts` and `proposalDiff`. A stale refusal says which items conflict and
-  offers rebuild.
-- **API.** Today's accept route, unchanged. The item-level rule arrives in chunk 7.
+  bar. The bar offers only what the API has today: accept, and keep the current design, which
+  stores nothing, as today. It shows research-question coverage gained, lost and kept, from
+  `proposedTrace` / `trace.ts` and `proposalDiff`. A stale refusal says so, and the action can be
+  asked again on the current design through today's start route.
+- **API.** Today's routes, unchanged. The item-level rule arrives in chunk 7. A stored dismissal
+  and a rebuild linked by `rebuild_of` arrive in chunk 9, with their controls.
 - **Verify.** `ProposalReview.test.tsx`, `make test-web`.
 
 ### 6. Workbench journey (web)
@@ -121,8 +123,14 @@ The design is [ADR 0026](../../docs/architecture/adr/0026-research-lead-proposes
 - **Scope.**
   - `aia_core/domain/design_items.py`: `design_items(before, after)`.
   - A shared case file used by both its pytest and `proposal-diff.test.ts`.
-  - `ResearchAgentJobs.start` records `base_workspace_revision`; the worker records
-    `touched_items` with the proposal.
+  - A design submit names its `workspace_revision`. The server checks the content against it and
+    stores it with the Design Revision.
+  - `ResearchAgentJobs.start` copies it as `base_workspace_revision`; the worker records
+    `touched_items` (content and analysis) with the proposal.
+  - Tests:
+    - a delayed enqueue: W1 produces D1, W2 edits a touched item, the job on D1 starts, and the
+      accept is refused;
+    - a revision without lineage: refused as `unknown_baseline`.
 - **Verify.** `make test`, `make typecheck`.
 
 ### 8. Atomic accept (ADR 0026 decision 6)
@@ -143,6 +151,7 @@ The design is [ADR 0026](../../docs/architecture/adr/0026-research-lead-proposes
 
 - **Scope.**
   - Dismiss writes `decision = "dismiss"`.
+  - Their routes, and the dismiss and rebuild controls on the proposal bar (moved here from chunk 5).
   - The acceptance check reads `"accept"` only.
   - Rebuild starts a job with `rebuild_of`.
   - A projection lists pending proposals.

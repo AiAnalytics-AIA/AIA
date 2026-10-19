@@ -189,23 +189,44 @@ An **item** is the unit a person edits and a proposal changes, with a stable key
 - a tracked set, by id;
 - a questionnaire section, question or battery, by id;
 - the audience, as one item;
-- the dimension selection and the sample size, as one item each.
+- the dimension selection and the sample size, as one item each;
+- in the working copy's separate `analysis` document, the research plan's fields, as the plan
+  stage edits them. A brief-analysis proposal returns its replacement analysis beside the project
+  (`domain/research_agents.py:705-709 @ 50547cdc`), and the working copy saves it as its own
+  argument (`study_workspace_repository.py:209-216 @ 50547cdc`), so both documents are diffed and
+  merged.
 
 A pure domain function, `design_items(before, after) -> frozenset[ItemKey]`, computes which items
 differ between two contents. It is the server's counterpart of `proposalDiff` and is tested
 against the same cases.
 
-**At enqueue**, the job records `base_workspace_revision` beside `design_revision_id`: the
-working-content revision its Design Revision was submitted from. It also records `touched_items`
-once the proposal exists. The worker computes those from the proposal against its baseline and
-stores them with the proposal artifact.
+**A Design Revision records the working revision it came from.** A Design Revision stores no
+working-copy revision today (`domain/design.py:98-113 @ 50547cdc`). Without one, a job started
+later on an older revision cannot know its real baseline. This is exactly the case of a decision
+card approved after the person kept editing. Take working copy W1 that produced design D1. The
+person then edits an item, making W2, and a job on D1 starts. If that job recorded W2 as its base,
+the accept would compare W2 with W2, find nothing, and overwrite the edit.
+
+So the submit names `workspace_revision`. The server checks that the submitted content and
+analysis are that working revision's, by canonical hash, refuses a mismatch
+(`422 design_not_from_workspace`), and stores the working revision with the Design Revision.
+
+**At enqueue**, the job copies that stored value as `base_workspace_revision`, never the working
+copy's current revision. It also records `touched_items` once the proposal exists. The worker
+computes those from the proposal (content and analysis) against its baseline and stores them with
+the proposal artifact.
+
+A Design Revision made before this rule has no working revision. A proposal on it cannot be checked
+item by item, so its accept is refused as stale (`unknown_baseline`) and the person rebuilds it. An
+unknown baseline is never read as "nothing changed".
 
 **At accept**, the proposal is refused (`409 stale_proposal`, details naming the conflicting
 items) when either of these holds:
 
 - the head Design Revision has moved (today's `submit_if_current` check, kept); or
 - some item in `touched_items` also appears in `design_items(working copy at
-  base_workspace_revision, working copy now)`.
+  base_workspace_revision, working copy now)`, content and analysis alike; or
+- the baseline is unknown (above).
 
 An edit to an item the proposal does not touch never makes it stale. A stale proposal is never
 accepted. **Rebuild** starts a new job on the current design; it accepts nothing and leaves the
@@ -219,12 +240,15 @@ stale one readable.
 under the Study row lock `submit_if_current` already takes:
 
 1. **Check the stale rule** (decision 5).
-2. **Merge.** Apply the proposal to the *current* working content item by item: each touched item
-   takes the proposal's value, and every other item keeps the person's.
+2. **Merge.** Apply the proposal to the *current* working content **and analysis**, item by item:
+   each touched item takes the proposal's value, and every other item keeps the person's. An
+   analysis the proposal does not change is kept as it is, never cleared. A brief-analysis
+   proposal installs its analysis, as the client does today (`useResearchAgents.tsx:87-90 @
+   50547cdc`).
 3. **Write the Design Revision.** `submit_if_current` writes the merged content, so the Design
    Revision and the working copy are the same design.
-4. **Write the working copy.** A new working-content revision, `reason = "ai_proposal_accepted"`,
-   based on the current working revision.
+4. **Write the working copy.** A new working-content revision of the merged content and analysis,
+   `reason = "ai_proposal_accepted"`, based on the current working revision.
 5. **Write the ledger.** The approval-ledger row, naming both new revisions.
 
 All of it commits or none of it does.
@@ -320,8 +344,10 @@ and one repair at the bounds.
 A message parks with its reason, and the pane says so. It never answers with something that is not
 the Lead.
 
-**Cost** is stated per turn as *reservation × (1 + repairs)*, the bound the gateway enforces. It is
-never quoted from a provider's price list. Calls per turn: one, plus at most one repair.
+**Cost** is bounded per turn by one reservation, which already covers the turn and its one repair.
+This follows the gateway's convention of one reservation per logical request. What a turn actually
+cost is the metered usage, reported separately. The cost is never quoted from a provider's price
+list. Calls per turn: one, plus at most one repair.
 Specialist jobs remain their own runs at their own reservation.
 
 Before the switch is turned on for develop, chunk 10 measures and states, in its commit body:
