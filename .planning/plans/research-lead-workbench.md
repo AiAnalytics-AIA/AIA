@@ -1,7 +1,7 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] 1. Split layout: pure width, keyboard and focus-mode rules with the prototype's bounds"
+  - "[x] 1. Split layout: pure width, keyboard and focus-mode rules with the prototype's bounds"
   - "[ ] 2. Inspector back stack: pure state and the item drawer, beside InspectorSlot"
   - "[ ] 3. Phase navigator: StageTrack's groups as a vertical navigator over the same lane"
   - "[ ] 4. Mount the workbench behind AIA_WEB_RESEARCH_WORKBENCH (off): the inspector column becomes the left pane"
