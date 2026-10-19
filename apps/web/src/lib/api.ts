@@ -6,6 +6,8 @@
 
 import type { RegisterEntry } from "@/lib/object-map-view";
 import { currentIdToken, loadConfig } from "@/lib/auth";
+import type { LeadState, LeadTurn, ResearcherLead } from "@/lib/lead";
+export type { ResearcherLead as ResearcherLeadView } from "@/lib/lead";
 
 export class ApiError extends Error {
   constructor(
@@ -1397,6 +1399,19 @@ export type ResearchAgentResult = {
   provenance: { agent_id: string; design_revision_id: string; context_sha256: string; status: string } & Record<string, unknown>;
 };
 const agentsPath = (studyId: string) => `${studyPath(studyId)}/research/agent-jobs`;
+/** The Research Lead's conversation on a study: the caller's own session (ADR 0026). */
+export const lead = {
+  state: (studyId: string) => request<LeadState>("GET", `${studyPath(studyId)}/lead`),
+  post: (studyId: string, body: { kind: "message" | "greeting"; text?: string; stage: string; focus?: { id: string; label: string } | null }) =>
+    request<{ turns: LeadTurn[] }>("POST", `${studyPath(studyId)}/lead/turns`, body),
+};
+
+/** The signed-in researcher's own Lead: its files, read only; hatched once (ADR 0026, Accepted with 6). */
+export const researcherLead = {
+  get: () => request<ResearcherLead>("GET", "/api/v1/lead"),
+  hatch: () => request<ResearcherLead>("POST", "/api/v1/lead"),
+};
+
 export const researchAgents = {
   design: (studyId: string, revisionId: string) => request<DesignRevision & { content: Record<string, unknown> }>("GET", `${studyPath(studyId)}/design/revisions/${enc(revisionId)}`),
   /** `promptVersion` runs a stored prompt version instead of the active one (organization administrators; ADR 0020). */

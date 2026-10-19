@@ -38,6 +38,9 @@ import { type StudyFrame, useStudyFrame } from "./frame";
 import { DesignSourceNote } from "./DesignSourceNote";
 import { STEP_SCREENS } from "./steps";
 import { ResearchAssistance, isAdviceAction } from "./ResearchAssistance";
+import { Workbench, useWideEnough } from "../../workbench/Workbench";
+import { loadConfig } from "@/lib/auth";
+import { ACTION_LABELS as AGENT_LABELS } from "@/lib/research-agent-jobs";
 
 // Contextual help keeps the same stage/action contract and native job boundaries.
 const AI_HELP: { action: ResearchAgentAction; label: string; title: string; rail: readonly number[] | "all" }[] = [
@@ -210,6 +213,19 @@ export function ResearchScreen({ step, frame: given }: { step: StepKey; frame?: 
   return <Ready store={loaded.store} template={loaded.template} origin={loaded.origin} memory={session.memory} step={step} frame={frame} reload={session.retry} />;
 }
 
+/** The research workbench is on for this deployment (/config's workbench); null while unknown. */
+function useWorkbenchSwitch(): boolean | null {
+  const [on, setOn] = useState<boolean | null>(null);
+  useEffect(() => {
+    let live = true;
+    loadConfig().then((c) => live && setOn(c.workbench === true), () => live && setOn(false));
+    return () => {
+      live = false;
+    };
+  }, []);
+  return on;
+}
+
 function Ready({ store, template, origin, memory, step, frame, reload }: {
   store: ResearchStore; template: Template; origin: string | null; memory: Map<string, unknown>; step: StepKey; frame: StudyFrame; reload: () => void;
 }) {
@@ -268,40 +284,83 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
   );
   const Screen = STEP_SCREENS[step];
   const aiHelp = aiHelpFor(step);
+  const workbench = useWorkbenchSwitch();
+  const wide = useWideEnough();
+  const onTrack = TRACK_STEPS.includes(step) && step !== "run" && step !== "progress" && step !== "results";
+  const savedProposals = agents.recent.filter((j) => j.status === "COMPLETED" && !isAdviceAction(j.action));
+  const startAgent = useCallback(
+    async (action: string) => {
+      const a = action as ResearchAgentAction;
+      if (!(a in AGENT_LABELS)) throw new Error(`Neznámá úloha: ${action}`);
+      await nativeRun(a, {}, AGENT_LABELS[a]);
+    },
+    [nativeRun],
+  );
+  if (workbench === null) return null;
 
   return (
     <ResearchAssistance step={step} studyName={frame.studyName} canEdit={frame.canEdit} memory={memory} actions={aiHelp} agents={agents} job={job} onCancel={onCancel} studyId={frame.studyId}>
     {({ card, panel, expanded, ask: askAssistance }) => <ResearchContext.Provider value={{ ...value, askAssistance }}>
-      <StageChrome frame={frame} step={step} state={state} status={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} onReload={reload} />}>
-        <DesignSourceNote clientId={frame.clientId} studyId={frame.studyId} />
-        {origin ? <p role="status" data-content-origin="18.6.6" className="mb-4 max-w-3xl rounded-sm border border-border bg-surface-raised p-3 text-sm leading-6 text-ink">{origin}</p> : null}
+      {workbench && wide ? (
         <InspectorProvider disabled={!frame.canEdit && DESIGN_STEPS.has(step)}>{(column) => (
-          <div data-research-workspace className="grid min-w-0 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
+          <Workbench frame={frame} step={step} store={store} onStartAgent={startAgent}
+            save={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} onReload={reload} />}
+            inspector={column(<>
+              {expanded ? panel : card}
+              {onTrack ? <Blockers state={state} stepHref={stepHref} /> : null}
+              {agents.notice ? <p role="status" className="text-sm text-ink-muted">{agents.notice}</p> : null}
+              <AgentBudgetWaits jobs={agents.recent} studyId={frame.studyId} canEdit={frame.canEdit} onChanged={agents.refresh} />
+              {savedProposals.length ? <section className="rounded-md border border-border p-3"><h2 className="mb-2 text-sm font-semibold">{t("research.aiSaved")}</h2>
+                <div className="flex flex-wrap gap-2">
+                  {savedProposals.slice(0, 5).map((j) => <Button key={j.run_id} disabled={agents.busy} onClick={() => void agents.open(j)}>{ACTION_LABELS[j.action]} · {j.created_at ? new Date(j.created_at).toLocaleString("cs-CZ") : ""}</Button>)}
+                </div>
+              </section> : null}
+            </>)}>
+            {frame.notice ? <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{frame.notice}</p> : null}
+            {frame.closed ? <ClosedStudyNotice closed={frame.closed} /> : null}
+            <DesignSourceNote clientId={frame.clientId} studyId={frame.studyId} />
+            {origin ? <p role="status" data-content-origin="18.6.6" className="mb-4 max-w-3xl rounded-sm border border-border bg-surface-raised p-3 text-sm leading-6 text-ink">{origin}</p> : null}
             <div className="flex min-w-0 flex-col gap-4">
-              {/* An AI proposal can be opened from the saved list on any stage: on a closed study it is
-                  read and closed, never applied, whichever stage shows it. */}
               {agents.proposalReview ? <ProposalReview result={agents.proposalReview.result} state={state} onDecision={agents.proposalReview.decide} canApply={frame.canEdit} /> : null}
-              {/* A design that may not change is read, never edited: every control of a design stage
-                  is disabled as one (the run stages decide their own actions). */}
               <ReadOnly when={!frame.canEdit && DESIGN_STEPS.has(step)}>
                 {Screen ? <Screen /> : <StepPlaceholder step={step} />}
               </ReadOnly>
             </div>
-            {column(<>
-              {expanded ? panel : card}
-              {TRACK_STEPS.includes(step) && step !== "run" && step !== "progress" && step !== "results" ? <Blockers state={state} stepHref={stepHref} /> : null}
-            </>)}
             {expanded ? null : panel}
-          </div>
+          </Workbench>
         )}</InspectorProvider>
-      {agents.notice ? <p role="status" className="my-3 text-sm text-ink-muted">{agents.notice}</p> : null}
-      <AgentBudgetWaits jobs={agents.recent} studyId={frame.studyId} canEdit={frame.canEdit} onChanged={agents.refresh} />
-      {agents.recent.some((j) => j.status === "COMPLETED" && !isAdviceAction(j.action)) ? <section className="my-4 rounded-md border border-border p-4"><h2 className="mb-2 font-semibold">{t("research.aiSaved")}</h2>
-        <div className="flex flex-wrap gap-2">
-          {agents.recent.filter((j) => j.status === "COMPLETED" && !isAdviceAction(j.action)).slice(0, 5).map((j) => <Button key={j.run_id} disabled={agents.busy} onClick={() => void agents.open(j)}>{ACTION_LABELS[j.action]} · {j.created_at ? new Date(j.created_at).toLocaleString("cs-CZ") : ""}</Button>)}
-        </div>
-      </section> : null}
-      </StageChrome>
+      ) : (
+      <StageChrome frame={frame} step={step} state={state} status={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} onReload={reload} />}>
+          <DesignSourceNote clientId={frame.clientId} studyId={frame.studyId} />
+          {origin ? <p role="status" data-content-origin="18.6.6" className="mb-4 max-w-3xl rounded-sm border border-border bg-surface-raised p-3 text-sm leading-6 text-ink">{origin}</p> : null}
+          <InspectorProvider disabled={!frame.canEdit && DESIGN_STEPS.has(step)}>{(column) => (
+            <div data-research-workspace className="grid min-w-0 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
+              <div className="flex min-w-0 flex-col gap-4">
+                {/* An AI proposal can be opened from the saved list on any stage: on a closed study it is
+                    read and closed, never applied, whichever stage shows it. */}
+                {agents.proposalReview ? <ProposalReview result={agents.proposalReview.result} state={state} onDecision={agents.proposalReview.decide} canApply={frame.canEdit} /> : null}
+                {/* A design that may not change is read, never edited: every control of a design stage
+                    is disabled as one (the run stages decide their own actions). */}
+                <ReadOnly when={!frame.canEdit && DESIGN_STEPS.has(step)}>
+                  {Screen ? <Screen /> : <StepPlaceholder step={step} />}
+                </ReadOnly>
+              </div>
+              {column(<>
+                {expanded ? panel : card}
+                {TRACK_STEPS.includes(step) && step !== "run" && step !== "progress" && step !== "results" ? <Blockers state={state} stepHref={stepHref} /> : null}
+              </>)}
+              {expanded ? null : panel}
+            </div>
+          )}</InspectorProvider>
+        {agents.notice ? <p role="status" className="my-3 text-sm text-ink-muted">{agents.notice}</p> : null}
+        <AgentBudgetWaits jobs={agents.recent} studyId={frame.studyId} canEdit={frame.canEdit} onChanged={agents.refresh} />
+        {agents.recent.some((j) => j.status === "COMPLETED" && !isAdviceAction(j.action)) ? <section className="my-4 rounded-md border border-border p-4"><h2 className="mb-2 font-semibold">{t("research.aiSaved")}</h2>
+          <div className="flex flex-wrap gap-2">
+            {agents.recent.filter((j) => j.status === "COMPLETED" && !isAdviceAction(j.action)).slice(0, 5).map((j) => <Button key={j.run_id} disabled={agents.busy} onClick={() => void agents.open(j)}>{ACTION_LABELS[j.action]} · {j.created_at ? new Date(j.created_at).toLocaleString("cs-CZ") : ""}</Button>)}
+          </div>
+        </section> : null}
+        </StageChrome>
+      )}
       {job && !isAdviceAction(agents.activeAction) ? <JobPanel job={job} onCancel={onCancel} studyId={frame.studyId} /> : null}
       {agents.dialog}
       <AskDialog ask={ask} onDone={() => setAsk(null)} />

@@ -111,6 +111,8 @@ services:
       # send events; unset, the browser loads nothing. AIA_ENV labels the events.
       AIA_WEB_ERROR_TRACKING_DSN: ${AIA_WEB_ERROR_TRACKING_DSN:-}
       AIA_ENV: develop
+      # The research workbench (ADR 0026, accepted 2026-10-19): on for develop.
+      AIA_WEB_RESEARCH_WORKBENCH: ${AIA_WEB_RESEARCH_WORKBENCH:-true}
     expose: ["3000"]
     networks: [internal]
     read_only: true

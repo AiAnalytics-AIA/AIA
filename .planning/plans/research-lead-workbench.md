@@ -9,7 +9,7 @@ chunks:
   - "[ ] 6. Lead pane: conversation, composer, greeting, view tools, edits as change blocks, decision cards"
   - "[ ] 6b. Personal Leads: researcher_leads and memories, hatching, the Můj Vedoucí page, per-researcher sessions"
   - "[ ] 7. Agent proposals inline in the artifact, with research-question coverage gained, lost and kept"
-  - "[ ] 8. design_items, the working revision on each Design Revision, the item-level stale rule"
+  - "[ ] 8. design_items, the working revision on each Design Revision and every web submit naming it, the item-level stale rule"
   - "[ ] 9. Accept in one transaction: merged Design Revision, working copy, ledger; the web reloads"
   - "[ ] 10. Dismiss and rebuild through the ledger and rebuild_of; the pending-proposals projection"
   - "[ ] 11. Lead-prepared paid work recorded in the ledger, with the spend limit, from the server's command registry"
@@ -50,14 +50,14 @@ The design is [ADR 0026](../../docs/architecture/adr/0026-research-lead-proposes
   back stack, shows one item's detail.
 - **D5. The workbench switch, `AIA_WEB_RESEARCH_WORKBENCH`,** is read by `/config`. It is on for
   develop and off by default, so a deployment that has not chosen it keeps today's layout.
-- **D6. Lead edits are the person's saves.** An accepted change block is applied to the working copy
-  in the browser through the same store, and saved with `reason = "lead_edit_accepted"` against the
-  revision it was shown on.
-- **D7. Lead decision cards start paid work through today's routes**, with today's gates:
-  - `researchAgents.start`, `research.start` and `deepResearch.start`;
-  - the interpretation start.
-
-  The ledger row for a Lead-prepared request arrives with chunk 11.
+- **D6. Lead edits pass the server's gate.** Accepting or dismissing a change block is
+  `POST …/lead/turns/{turn_id}/edits`, with the working revision it was shown on. The server applies
+  the edits, saves the working copy and writes the ledger rows in one transaction; the web then
+  reloads the working copy.
+- **D7. Lead decision cards start paid work only on the server's gate.** A design job is approved by
+  `POST …/lead/turns/{turn_id}/request`, which carries the spend limit, the ledger row and the start
+  in one transaction. A research run, Design Research and Interpretation Research open their stage,
+  whose own start carries its gates. Cards and their gates land in the same chunk (6).
 - **D8. PRs.** Each piece opens as a draft PR. It is marked ready so Codex reviews it, its findings
   are handled, and it merges once green (the product owner, 2026-10-19).
 

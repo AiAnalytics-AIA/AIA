@@ -130,9 +130,20 @@ A turn returns one structured object, validated with one schema repair at most, 
 
   Each edit names the item and why. Code grounds each one against the working content, and an
   edit naming an item that does not exist is dropped and said so. An edit is shown in the artifact
-  as a change block. It changes the working copy only when the person accepts it, as a save made
-  by that person (`reason = "lead_edit_accepted"`), so its stale rule is the working copy's own
-  (`stale_revision`).
+  as a change block.
+
+  It changes the working copy only through the server's gate,
+  `POST …/lead/turns/{turn_id}/edits`, which needs `APPROVE_GATE`. In one transaction, under the
+  lock the working copy's save takes, it:
+  - refuses a stale base (`stale_revision`);
+  - applies the accepted edits by the same rules the web shows (`domain/research_lead.py
+    apply_edit`);
+  - saves the working copy (`reason = "lead_edit_accepted"`);
+  - writes one approval-ledger row per decided edit (`subject_type = "lead_edit"`, accept or
+    dismiss).
+
+  A decision is made once, and the conversation reads it back from the ledger. An AI edit
+  therefore never reaches the study without gate 1's record.
 - **`requests`.** At most one prepared specialist job (action, instruction, the Design Revision
   it is asked on), or one prepared human action from decision 4's registry (start a run, lift a
   budget, approve a report). Each is shown as a decision card and does nothing until a person
@@ -381,15 +392,21 @@ The product owner's decisions of 2026-10-19 on accepting:
    edit is never applied without a person, because applying it silently is ruled out.
 3. **The Lead greets.** Opening a study with no Lead turn in the last eight hours starts one greeting
    turn: where the study stands, what waits on the person, and the next step. It is paid like any
-   turn.
+   turn. Every post locks the researcher's own Lead row first, so two tabs opening a study at once
+   start one greeting, not two.
 4. **The Lead may prepare all four kinds of paid work** as decision cards:
    - a design job;
    - Design Research;
    - a research run;
    - Interpretation Research.
 
-   Each starts only from the person's approval, through the route that starts it today, with that
-   route's own gates: readiness, answerability and the spend limit.
+   - **A design job** is approved on the server (`POST …/lead/turns/{turn_id}/request`). In one
+     transaction it checks the spend limit as a run's start does (`cost_confirmation_required`,
+     `cost_ceiling_unknown`), submits the working copy as a Design Revision, starts the job and
+     writes the ledger row (`subject_type = "lead_job_request"`). So F1 (an agent job ignores the
+     spend limit) does not apply to Lead-prepared work.
+   - **The other three** start nothing from the card. It opens the stage whose own start carries
+     that start's gates: readiness, answerability and the spend limit.
 5. **Live calls on develop, at a small cap.** The per-turn reservation is the smallest the gateway
    accepts. The route's approved data classes still decide which studies can be sent.
 6. **Each researcher has their own Lead** (the product owner, later the same day). The Lead is
