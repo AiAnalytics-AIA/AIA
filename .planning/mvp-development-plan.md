@@ -25,8 +25,37 @@ Five gates, each an observable test. A wave is done when its gate passes in CI o
 | **I-1 The Lead drives a study** | Brief to Sample worked through the Lead on recorded doubles: edit operations, per-change accept, a plan card inside an envelope, two researchers on one study | AC-01, 02, 03, 04, 05 (start), 07 |
 | **I-2 Results are seen** | respondent and segment maps, filters, the internal drill-down, the Lead reading results; map snapshots approvable | AC-05, 08 (QC), 09 |
 | **I-3 Evidence is complete** | every key finding cites an admitted claim; a client dataset graded client-reported beside modelled results; analysis and report artifacts with the approve and export panel | AC-08, 10, 13 |
+| **I-R Reach** (W1) | a Deep Research run on develop reaches every route family the build has, live, for a fictional client and a public topic; Settings → Deep Research lists each route and connector as ACTIVE or REFUSED with the reason (`deep-research-web-search` 52), so no document has to say what is on | AC-11 (first half) |
 | **I-4 Deep Research live** | a live run on the full design through the Class B provider; derived-query class decided; one-click source into knowledge | AC-11 |
 | **I-5 Acceptance** | tier A blocking in CI with all fifteen criteria; tier B once on develop within USD 25; production released | AC-01 to 15 |
+
+### Reach is not a late wave (owner, 2026-10-19)
+
+The owner: "we need to get rid of this limitation once and for all, i never want to hear that this
+limitation exists." The point of Deep Research is to look everywhere, the non-indexed web included.
+Checked against `develop` @ `769917f`: **every route family is built** (Brave; fetch from any public host
+with PDF, XLSX and CSV; the ČSÚ DataStat, open-data catalogue, Eurostat, OpenAlex, Wayback, ARES and
+procurement connectors; the focused crawler; Common Crawl's index and archive). **None is switched on by
+default, and every one is Class C only**, so a design-derived query (Class B by rule since 2026-10-19)
+can use none of them. "Only Wikipedia" was a stale status table (`deep-research.md`), not the code. Two
+doors have to open, then the switch has to be thrown, then the state has to be visible:
+
+| Step | Chunk | Wave | Owner |
+|---|---|---|---|
+| The owner starts the Linkup contract (EU processing, written answer on stored results) | `class-b-search-route` 0 | W0 | owner |
+| Sign-off: Brave's written terms, budgets, the light model, quotas | `deep-research-web-search` 1 | W0 | owner signs, S2 prepares |
+| **Switch on:** the Class C routes, the connector list and Common Crawl on develop for fictional and public-topic runs, inside ADR 0022's guards | `deep-research-web-search` 51 **New** | W0 | S2 |
+| **Class door:** the derived-query rule written as an ADR (Proposed: a person approves the planned query list once, and their approval sets its class), the data owner confirms | `class-b-search-route` 6 (ADR in W0, code in W1) | W0, W1 | S2 |
+| **Visibility:** Settings lists every route and connector as built, approved, active or refused by class, with the reason, read from the composition, never written by hand | `deep-research-web-search` 52 **New** | W1 | S2 |
+| **Contract door:** Linkup composed and approved for Class B, then the design's class by rule, the journey test and activation | `class-b-search-route` 1-2 (W1), 3-5 (W2) | W1, W2 | S2 |
+| Wider reach, in order of value: documents in parts, structured capture and records, then pages that need a browser | `deep-research-web-search` 6, 33-37, 38 | W2 to W4 | S2 |
+
+**What this does not loosen:** grounding (a quote must be in a captured source), adversarial
+verification, the evidence gate and EU residency for anything client-derived. Reach changes where the
+engine may look, not what it may claim. Retrieval, routes and connectors are **no longer frozen**
+for this work (a docs follow-up amends CLAUDE.md §2 and ADR 0021's wording); verification and grounding
+change only on a finding, as before. Deep Research moves from S3 to S2, whose W4 was empty and S3's the
+heaviest.
 
 ## 2. Three sessions and the surfaces they own
 
@@ -36,8 +65,8 @@ session that needs a change in it opens a small PR the owner reviews first (`mvp
 | Session | Builds | Owns these surfaces |
 |---|---|---|
 | **S1 Workbench and Lead** | the workbench frame and eleven artifacts, the Lead's commands, workers, plan card, the shared edit vocabulary, presence, per-change accept, the Lead's lifecycle | `domain/research_lead.py`, `domain/research_agents.py`, `domain/edit_ops.py` ◇, `apps/web/src/components/workbench/`, `lib/lead.ts`, `routers/lead.py`, `routers/settings.py`, `aia_executors/research_lead.py`, `research_agents.py` |
-| **S2 Population, maps, evidence** | population and respondents, the Sociomap (object, respondent, segment), filters and drill-down, evidence integrity, run QC, the client-data evidence | `domain/fieldwork.py`, `domain/evidence/`, `domain/sociomap/`, `sociomap_register.py`, `domain/population/`, `aia_executors/ai_fieldwork.py`, `analysis.py`, `research.py` (steps) |
-| **S3 Data, delivery, infrastructure, acceptance** | client knowledge and sources, client data and the contract, reports and approvals, Deep Research and the Class B route, Terraform, deployment, the acceptance harness | `application/client_report.py`, `report_*`, `client_*`, `infra/`, `deploy/`, `.github/workflows/`, `tests/acceptance/`, `domain/deep_research/` (defect only: the engine is frozen), `tables.py` migrations lane |
+| **S2 Population, maps, evidence, Deep Research** | population and respondents, the Sociomap (object, respondent, segment), filters and drill-down, evidence integrity, run QC, the client-data evidence, **Deep Research reach and the Class B route** | `domain/fieldwork.py`, `domain/evidence/`, `domain/sociomap/`, `sociomap_register.py`, `domain/population/`, `aia_executors/ai_fieldwork.py`, `analysis.py`, `research.py` (steps), `domain/deep_research/` and `deep_research_live.py` (retrieval and routes open for reach; verification and grounding by finding only), `deep-research-web-search`, `class-b-search-route` |
+| **S3 Data, delivery, infrastructure, acceptance** | client knowledge and sources, client data and the contract, reports and approvals, Terraform, deployment, the acceptance harness | `application/client_report.py`, `report_*`, `client_*`, `infra/`, `deploy/`, `.github/workflows/`, `tests/acceptance/`, `tables.py` migrations lane |
 
 S1 and S2 meet at the Lead's results context and the Sociomap artifact; S2 and S3 meet at the client
 dataset's evidence and the report's marks. Each meeting is a **contract** written first (below), not a
@@ -54,7 +83,7 @@ plan (or to a new plan from #497) before the wave starts.
 |---|---|
 | S3 | Merge #493, #494, #495, #491, #496, #497 in that order; apply the docs follow-ups; add `prototypes/` to the docs-only path list (`ci-skip-docs-only`); `mvp-acceptance-harness` 1-3 (budget table, inputs, harness with its CI step); `infra/production` skeleton and `develop-spend-attribution` 1-2 (tagged profiles); migration **M3** (all ledger subject types, §4) |
 | S1 | The spend-limit fix in `ResearchAgentJobs.start` (a fix, F5); the worker row (`research-lead-workbench` 11, first deliverable); ADRs for the edit vocabulary and the orchestration scope written and proposed |
-| S2 | `audience-catalogue-cpu` 4; `complete-study-report` B6 (the operator flag); `evidence-integrity` 1 (findings cite all) and 5 (one authority) |
+| S2 | `audience-catalogue-cpu` 4; `complete-study-report` B6 (the operator flag); `evidence-integrity` 1 (findings cite all) and 5 (one authority); **reach**: `deep-research-web-search` 1 and 51, the derived-query class ADR (`class-b-search-route` 6) |
 
 **Exit I-0:** `alembic heads` single; the acceptance tree collects and runs AC-01, 06, 07, 12, 14.
 
@@ -63,8 +92,8 @@ plan (or to a new plan from #497) before the wave starts.
 | S | Work |
 |---|---|
 | S1 | **New** shared edit vocabulary, `workspace_edit_ops` (M1) and `apply_edit_ops`; presence (M2) and the change feed; per-change accept (M6); `research-lead-workbench` 11 (command registry), 14-16 (view vocabulary, frame, pointing with id and revision), 17 (Questionnaire artifact, AI buttons removed), 18-19 (Brief, Design, Sample, Fieldwork); the envelope and plan card (M4, M5) behind `AIA_LEAD_PLANS_ENABLED` |
-| S2 | Population-built respondents as the default path and its screens; `evidence-integrity` 2-3 (run QC stored and shown) |
-| S3 | `client-budget` CB5; `client-knowledge-lifecycle` K2e, K2f, K3; `clients.envelope_ceiling_usd` (in M4); `class-b-search-route` 0-2 (provider, route, sign-off); **production applied**: RDS, Cognito, buckets, tagged Bedrock profiles, `deploy-production.yml` |
+| S2 | Population-built respondents as the default path and its screens; `evidence-integrity` 2-3 (run QC stored and shown); **reach**: `deep-research-web-search` 52, `class-b-search-route` 1-2 and the derived-query rule in code |
+| S3 | `client-budget` CB5; `client-knowledge-lifecycle` K2e, K2f, K3; `clients.envelope_ceiling_usd` (in M4); **production applied**: RDS, Cognito, buckets, tagged Bedrock profiles, `deploy-production.yml` |
 
 **Exit I-1:** two sessions edit one study in the acceptance run, the second edit merges or conflicts
 on one item only; a plan inside an envelope starts a run and a gate it does not cover parks.
@@ -73,7 +102,7 @@ on one item only; a plan inside an envelope starts a run and a gate it does not 
 
 | S | Work |
 |---|---|
-| S2 | `sociomap-formula-corrections` I0-I5, 3 (respondent map), 4d; `segment-maps-and-drilldown` 1-6; the results-context **provider** for maps |
+| S2 | `sociomap-formula-corrections` I0-I5, 3 (respondent map), 4d; `segment-maps-and-drilldown` 1-6; the results-context **provider** for maps; **reach**: `class-b-search-route` 3-5, `deep-research-web-search` 6 and 33-37 in order |
 | S1 | **New** the Lead's results context (contract first, F4); `research-lead-workbench` 20 (Results and Sociomap with filters and drill-down), 22 (Audience, Dimensions); the Lead's lifecycle (M7): signals, proposed updates, admin read |
 | S3 | `client-knowledge-lifecycle` K4, K5 (an owned child); own-dimension chips; map-snapshot approval (`two-roles-human-ai-gates` 5b.4, **New** chunk); the Report artifact's Approve and Export panel |
 
@@ -92,9 +121,9 @@ draft ids, QC, bounded and classified), owned by S1, with a provider function fr
 
 | S | Work |
 |---|---|
-| S3 | `class-b-search-route` 3-6 (design class by rule, journey test, activation, derived-query class once amended); `deep-research-web-search` 1, 27, 37; the report's research-context chapter |
+| S3 | the report's research-context chapter; Deep Research's sealed bundle into the report (`research-integrity-report`) |
 | S1 | Deep Research cards in the conversation (`research-lead-workbench` 23); Deep Research reachable from every stage (25) is **after** the MVP |
-| S2 | none planned: capacity for defects and the acceptance run's findings |
+| S2 | `deep-research-web-search` 27 (the live acceptance) and 38 (pages that need a browser); the acceptance run's findings |
 
 ### W5 · Acceptance (gate I-5)
 
@@ -143,7 +172,7 @@ access: `ARCHITECTURE.md` §7) and its `layer_check` rule in the same PR.
 | The working copy's operation log, merge and per-change accept | the vocabulary, the conflict rule, undo, presence, `proposal_change_decisions` | W1 |
 | The Lead over time and its files | proposed updates, signals, admin read, handover, privacy of turns; amends ADR 0026 decision 8 | W2 M7 |
 | Production environment | a separate environment on the one-host pattern with RDS, in the same AWS account with the mitigations of architecture §6.2; supersedes the "undecided" in ADR 0009 | W1 infra apply |
-| Derived-query class (amends ADR 0017 and 0008) | provenance-based lowering; the data owner's confirmation | W4 |
+| Derived-query class (amends ADR 0017 and 0008) | the person-approved query list (Proposed) or provenance-based lowering; the data owner's confirmation | W0 (written), W1 (code) |
 | Client data's evidence policy (amends ADR 0027) | the policy source for client columns | W3 |
 
 ## 7. Order inside the critical path

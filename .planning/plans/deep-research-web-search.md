@@ -54,6 +54,8 @@ chunks:
   - "[x] 48. Verifier calibration: a gold set of claims and excerpts, miss and false-alarm rates with thresholds, NOT_CALIBRATED until measured live"
   - "[x] 49. Search playbooks: where each kind of subject is best found, from the register, as hints the investigator may use"
   - "[x] 50. A commercial comparison arm in chunk 26: Gemini Deep Research on the public fictional topics only"
+  - "[ ] 51. Switch on now: the Class C routes, the connector list and Common Crawl on develop for fictional and public-topic runs, inside ADR 0022's guards (does not wait for 25-27)"
+  - "[ ] 52. Reach is stated by code: Settings lists every route and connector as built, approved, active or refused by class, with the reason, read from the composition"
 ---
 # Deep Research — wide, precise, and defensible
 
@@ -1620,3 +1622,25 @@ waits for chunk 1 as it said.* For the docs PR after chunk 0 merges:
   input against the original on the interpreter that has it, then across interpreters
   (`deep-research-web-search.md` § 13: 0 of 180,000 differ).
   ```
+
+## Reach (2026-10-19)
+
+The owner: "we need to get rid of this limitation once and for all, i never want to hear that this
+limitation exists." The build already has every route family (chunks 3-5, 10, 14-18) and none is on by
+default; the docs said otherwise because the status table was written by hand. Two chunks close that:
+
+- **51, switch on now.** Chunk 27 stays the last gate (live acceptance), but nothing in it needs
+  25-26 to *run* on a fictional client or a public topic. Activation on develop follows the deploy
+  README's recipe (`aia_deep_research_web_search`, the connector list, Common Crawl's keys), with ADR
+  0022's approvals recorded in Settings and the fictional-client and USD 20 guards unchanged. Needs 1
+  (sign-off) first. Test: a recorded run on develop reaches Brave, one connector, the crawler and the
+  archive, and `GET …/deep-research/runs/{id}` names each route it used.
+- **52, stated by code.** The Settings page lists each route and connector with a state (built,
+  approved, active, refused by class) and the reason, read from `deep_research_runtime` and the
+  settings store. No screen or document names a route set by hand again; `deep-research.md`'s status
+  table is replaced by a pointer to the page. Test: a composition without Brave shows it `built`, not
+  `active`; a Class B query shows every Class C route `refused: class`.
+
+Retrieval, routes and connectors are no longer frozen for this work; verification, grounding and the
+evidence gate change only on a finding. Class door and contract door are `class-b-search-route` 6 and
+0-2; the order is in `mvp-development-plan.md` § Reach.
