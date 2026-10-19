@@ -28,9 +28,12 @@ once (CLAUDE.md, Client Knowledge; ADR 0019 decision 3), through `ClientKnowledg
 - **Once per (client, URL).** The client's row is locked, an active `SOURCE` item or a pending
   proposal with the same URL answers `exists` (200) with its id, and nothing is written. The button
   then reads "Už je ve znalostech" and links to the item.
+- **Once per address.** A source's address is its URL or its final URL (where a redirect led), on
+  either side: the same page reached directly or through another short link is the same source.
 - **Permission.** The Study's `EDIT_STUDY` to read the run, the client's propose and approve
-  knowledge permissions to write (`add`). Where self-approval is off for the client, `add` files a
-  proposal instead, and the answer says `proposed`.
+  knowledge permissions to write (`add`). Where self-approval is off for the client or for the
+  Study (the click is made on the Study), `add` files a proposal instead, and the answer says
+  `proposed`.
 - **No model adds a source.** Nothing in the worker writes knowledge; the route is a person's.
 
 ## 2. Auto-accept the Lead's text edits
@@ -40,16 +43,25 @@ that decision, so the gate stays the default and the choice is theirs alone.
 
 - `researcher_leads.auto_accept_text_edits` (default false); `PUT /api/v1/lead/preferences`
   sets the caller's own row, audited; `GET /api/v1/lead` carries it.
-- **Text edits** are exactly `set_text`, `question_edit` with `text` and no `options`, and
-  `list_replace`: wording, never structure or the sample (`domain/research_lead.py`
-  `TEXT_EDIT_OPS`, `is_text_edit`).
+- **Text edits** change wording and nothing else: `set_text` of `title` or
+  `plan.problem_summary`, `list_replace` of `plan.objectives` or `plan.hypotheses`, and
+  `question_edit` with `text` and no `options` (`domain/research_lead.py` `TEXT_ONLY_FIELDS`,
+  `TEXT_ONLY_LISTS`, `is_text_edit`; the web's `isTextEdit` mirrors them). Not the brief's fields
+  (an edit of one clears the analysis) and not `plan.research_questions` (items and comparisons
+  name a research question by its text), never structure or the sample.
 - Applying stays on the server gate. When a turn completes with the preference on, the web pane
   calls `POST …/lead/turns/{turn_id}/edits` with `decision: "accept"`, the text-edit indices, the
   working revision and `auto: true`. The server refuses `auto` unless the caller's preference is
-  on (`auto_accept_off`), refuses any non-text edit in it by index (`not_a_text_edit`), and writes
-  `"auto": true` into each ledger row's comment. Structural edits wait as change blocks.
-- **Vrátit.** The browser keeps, for the edits it auto-accepted on this page, the wording each
-  replaced; Vrátit writes that wording back as the person's own edit of the working copy (the
+  on (`auto_accept_off`), refuses it whole when the turn's frozen working revision is not the
+  current one (409 `stale_turn`: someone saved while the Lead worked), refuses any non-text edit
+  in it by index (`not_a_text_edit`), and writes `"auto": true` into each ledger row's comment.
+  Structural edits wait as change blocks.
+- The web asks only over a copy with nothing waiting to be saved, and reads the accepted revision
+  into the same store in place (`ResearchStore.reload(…, { since })`): a change typed while the
+  gate answered stays on screen, the copy in conflict, nothing saved over it, and the person told.
+- **Vrátit.** The browser keeps, for the edits it auto-accepted in this study (the session's page
+  memory, so a stage change keeps them), the wording each replaced and the revision its accept
+  wrote; Vrátit is offered once the copy holds that revision, and writes that wording back as the person's own edit of the working copy (the
   normal revision-checked save), and refuses when the text has changed since. The ledger's
   accept stays: decisions are made once, and the revert is a later edit by the person.
 
@@ -72,9 +84,52 @@ that decision, so the gate stays the default and the choice is theirs alone.
 
 ## Checks run (2026-10-19)
 
+After the review fixes (@ 7c01686c): strict mypy over the four source trees (423 files, clean);
+ruff check and format on every Python file touched; the Lead, knowledge and verified-source tests
+on SQLite (235 passed, 1 skipped) and on PostgreSQL 16 (236 passed); `tsc --noEmit`; the web
+suite (1,837 of 1,838, the one failure above). `lead_journey.mjs` was not rerun.
+
+Before them:
+
 - Migration on a private PostgreSQL 16: upgrade to head, `alembic check` clean, downgrade one and
   upgrade again, `alembic check` clean.
 - The knowledge, Lead and verified-source tests on that PostgreSQL as well as on SQLite.
+
+## Findings (fixed)
+
+From an independent review of the branch @ 5a217aab, and Codex on #489:
+
+1. An automatic accept reloaded through the session, whose disposed store saved a change typed
+   during the call against the old base (409, unheard): the change was lost
+   (`Workbench.tsx:317 @ 5a217aab`). Fixed @ eced14ab; `Workbench.test.tsx` "keeps what the
+   person typed while the gate answered…", "accepts nothing over a copy with changes still
+   waiting…", `store.test.ts` "reload".
+2. Under `auto` only the browser's base revision was checked, so a person's save made while the
+   turn ran was overwritten without a click (`application/research_lead.py:545 @ 5a217aab`).
+   Fixed @ c6c67549 (`stale_turn`);
+   `test_research_lead_api.py::test_an_automatic_accept_leaves_a_save_made_while_the_lead_worked_and_says_why`,
+   `Workbench.test.tsx` "leaves a turn the person saved over for their click…".
+3. `is_text_edit` admitted brief fields (their edit clears the analysis) and research questions
+   (a rename unlinks the items and comparisons that name them)
+   (`domain/research_lead.py:304 @ 5a217aab`). Fixed @ 9854c02e, web and server;
+   `test_research_lead.py::test_a_text_edit_keeps_the_analysis_it_did_not_change`,
+   `test_an_edit_that_adds_removes_reoptions_or_resizes_is_no_text_edit`, `lead.test.ts`.
+4. "Přijato automaticky" lived in the stage screen's state and was lost on a stage change,
+   including the Lead's own `open_stage` (`Workbench.tsx:137 @ 5a217aab`). Fixed @ 2efffe74;
+   `Workbench.test.tsx` "keeps the bar across a stage change…".
+5. Vrátit was offered before the reload had read the accepted wording, so a quick click was
+   refused as "text changed" (Codex on #489, `Workbench.tsx:317 @ 5a217aab`). Fixed @ eced14ab
+   (offered once the copy holds the accept's revision); `Workbench.test.tsx` "offers Vrátit only
+   once the copy holds what the accept wrote…".
+6. The source-add ignored a Study's own `allow_self_approval=false`
+   (`routers/deep_research.py:830 @ 5a217aab`). Fixed @ a9ba317d;
+   `test_verified_sources_api.py::test_a_study_with_self_approval_off_files_the_source_as_a_proposal`.
+7. A source was the same source only by its exact URL, not its final URL
+   (`client_knowledge_repository.py:1120 @ 5a217aab`). Fixed @ d2b56f03;
+   `test_client_knowledge.py::test_a_checked_source_is_the_same_source_by_its_final_url_either_way`.
+8. The design panel's source button did not name `canReview` itself
+   (`DeepResearchPanel.tsx:152 @ 5a217aab`); unobservable, as the bundle is read only under it.
+   Stated @ 7c01686c.
 
 ## Findings
 
@@ -83,6 +138,19 @@ that decision, so the gate stays the default and the choice is theirs alone.
   (`lead_journey.mjs:121 @ 2e5028cc`, unchanged from develop). Run it on `workbench.py up --fresh`.
 - `MethodologyVersions.test.tsx` "guided methodology editing" times out at 5 s on a loaded
   machine, on `origin/develop` @ 6c5cd620 as on this branch (hypothesis: load, not a defect).
+  In the full web suite on 2026-10-19 (two runs @ 7c01686c, 1,838 tests) it failed once, and
+  `QuestionnaireStep.test.tsx` "offers the three paths…" failed once (its heading not found within
+  `findByRole`'s 1 s); both pass alone. QuestionnaireStep renders the classic layout in jsdom (no
+  `matchMedia`), never the workbench this branch changed (hypothesis: load, not a defect).
+- **Hypothesis** (not reproduced): a clicked accept has finding 1's race. `decide` flushes, asks
+  the gate, then `reload()` -- `session.retry`, which disposes the store
+  (`Workbench.tsx:429 @ 7c01686c`, `ResearchScreen.tsx:93 @ 7c01686c`); a change typed while the
+  gate answers would be saved by `dispose` against the old base, refused 409 with no listener,
+  and lost. Consequence: a researcher typing during a click on Přijmout loses what they typed.
+  Smallest fix: read the copy in place as the automatic accept now does,
+  `store.reload(undefined, { since })` with the copy as it was before the call. Test: a
+  `ResearchScreen` test that types while a deferred `/edits` answer is held, then expects the
+  text on screen and the save state `conflict`.
 
 ## Doc follow-up
 
