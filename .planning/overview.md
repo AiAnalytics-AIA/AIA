@@ -435,7 +435,9 @@ run in CI (`.github/workflows/ci.yml`). Plan archived:
 - [x] `docs/migration/parity-matrix.json` — all 78 capabilities, keyed by
       capability id; `test_parity_matrix.py`
 - [x] MVP acceptance test defined — `docs/migration/mvp-acceptance.md`
-      (`MVP-ACCEPT-1`, criteria AC-01…AC-14); release blocker ≡ named by a criterion
+      (`MVP-ACCEPT-1`, criteria AC-01…AC-14); release blocker ≡ named by a criterion.
+      *Replaced 2026-10-19 by `MVP-ACCEPT-2` (#495): fifteen criteria for the redefined MVP,
+      and no capability is a release blocker (parity is information, MVP-21)*
 - [x] Golden-fixture pins — `test_golden_fixtures.py`: the checkout is the pinned
       commit, every fixture hashes to its pin, every vendored copy (F1–F9, from
       `main`) is byte-identical to the reference; gates point at the engine's and
@@ -586,7 +588,7 @@ dimension into the shared LIVE population.
 | MVP-17 | Segments are **both** defined by the study's dimensions (default) and found by clustering respondents (an option; the algorithm is the method owner's) |
 | MVP-18 | Intake families in the MVP: documents, **datasets**, **web pages** and Deep Research findings |
 | MVP-19 | **A client's dataset may feed a study's analysis** (a new evidence origin, measured client data beside modelled respondents; needs an ADR before code). **Personal columns are dropped**: never stored for analysis, never sent to a model |
-| MVP-20 | The release acceptance study stays `MVP-ACCEPT-1`'s neutral library study, extended to the new scope, within **USD 25** on develop |
+| MVP-20 | The release acceptance study stays `MVP-ACCEPT-1`'s neutral library study, extended to the new scope, within **USD 25** on develop; the contract is now `MVP-ACCEPT-2` (`docs/migration/mvp-acceptance.md`, #495) |
 | MVP-21 | **Parity with 18.6.6 is no longer a release gate** (AC-14 goes with the rewrite, MVP-5); parity suites stay as information for the capabilities they cover |
 | MVP-22 | Review: every PR gets a **Claude review pass** (the code-review skill) before the owner merges; Codex reviews when it has credit |
 | MVP-23 | **Every key finding of an analysis module cites admitted evidence** (ANL-4, stricter than 18.6.6's 95 %): a finding without an admitted number behind it is refused, or shown as an unsupported hypothesis. No plan yet |
