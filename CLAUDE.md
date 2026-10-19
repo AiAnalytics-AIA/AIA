@@ -99,7 +99,10 @@ apps/
                             application/octet-stream attachment; POST …/{source_id}/reading reads a
                             source again with its format's current reader, OI-110; POST/GET …/{source_id}/proposals:
                             AI proposals from a document as the client's own work, one run per reading, asked again
-                            only when no paid call is uncertain (restartable); a table refused by name, 422; #446),
+                            only when no paid call is uncertain (restartable); a table refused by name, 422; #446;
+                            PUT …/{source_id}/internal ({internal: bool}): mark a source "Interní dokument" or
+                            unmark it, PROPOSE_CLIENT_KNOWLEDGE, audited; every source answers
+                            internal: {by, at} | null),
                             session (AIA's own session + the gate in front of /app: any active
                             member, ADR 0018), research (a study's Design Revisions, readiness, runs, their steps and
                             artifacts (ADR 0016; GET …/research/runs lists each run with its steps, without
@@ -131,15 +134,24 @@ apps/
                             ledger lead_job_request); POST …/turns/{turn_id}/self-update (what would
                             reach every client, on the researcher's yes; ledger lead_self_update);
                             GET/POST /lead: the researcher's own Lead, read-only files and notes,
-                            hatching),
+                            hatching; PUT /lead/preferences: auto_accept_text_edits, the caller's own,
+                            audited; …/edits takes auto: true (422 auto_accept_off unless the caller's
+                            preference is on; text edits only, any other refused not_a_text_edit;
+                            409 stale_turn when the working copy moved under the turn; ledger
+                            "auto": true)),
                             deep research (a Study's Deep Research
                             runs; Interpretation Research's start, POST …/deep-research/runs/
-                            interpretation, over a result of the Study's own run), scope
+                            interpretation, over a result of the Study's own run; POST …/runs/{id}/
+                            sources/{source_ref}/knowledge: "Ověřeno, přidat zdroj", a captured source
+                            a person checked added as a SOURCE item from the sealed bundle, once per
+                            client and URL or final URL (200 exists otherwise); a proposal where the
+                            client or the Study has self-approval off), scope
                             (PUT /studies/{id}/spend-confirm sets the limit; any member creates a
                             client, its status stays the Admin's),
                             settings (the read-only settings document: every control and how it is set;
                             the access group states membership_is_access and offers no grant;
-                            ai_runtime, what powers AIA's model calls from code; ai_history, the
+                            ai_runtime, what powers AIA's model calls from code (the study Lead an
+                            activity of its own, study_lead); ai_history, the
                             prototype's provider fields, readable and never offered),
                             methodology (the Metodika tab, ADR 0023: GET the catalogue, a module and
                             its versions, POST check and compare (any member); POST versions and PUT
@@ -165,7 +177,8 @@ apps/
                             clients/<client>/research/<study>/<stage>, clients/<client>/memory/<study>
                             (a past research, read-only), intelligence, memory, settings, lead
                             (Můj Vedoucí: the researcher's Lead, its SOUL, USER and notes, read only;
-                            they change only through chat)
+                            they change only through chat; the toggle that accepts its text edits
+                            automatically)
     src/app/classic/        The public page an old /classic link lands on: 18.6.6 is gone, the way in
     src/components/aia/     The client-first shell: AppShell (four global items, breadcrumbs, one
                             action, tabs; a `track` puts it in study mode: icon-only global
@@ -173,14 +186,16 @@ apps/
                             workspace and its areas (clients/: StudyList, Výzkumy and Simulace as a
                             table with status filters and two orders; KnowledgeArea, the library:
                             views, folders, labels, kinds and the open item, opened on
-                            ?view=review|unfiled|old and ?add=1, read with useSearchParams; its
+                            ?view=review|unfiled|old, ?add=1 and ?item=<id> (one item opened),
+                            read with useSearchParams; its
                             text form is Napsat znalost;
                             KnowledgeLibrary, its table, bulk bar and the open item with its
                             history; ClientOverview, Přehled opening on Čeká na vás; ProfileArea,
                             the details, contacts, brands and competitors as ENTITY knowledge, the
                             self-approval rule and the history; SourceFile: SourcePicker, one file
                             kept as the client's source with its reading in words, and
-                            SourceCard, a named file, what was read and the original; IntakeSheet:
+                            SourceCard, a named file, what was read and the original, and the
+                            "Interní dokument" toggle (what it does; who marked it, when); IntakeSheet:
                             Přidat podklady, the client's one way in for files, on every area via
                             IntakeButton or a drop anywhere on the client's page (ClientContext
                             holds intake / openIntake / added): each file kept and read at once,
@@ -228,7 +243,12 @@ apps/
                             researcher's own Lead: hatching, greeting, messages queued while it works and
                             held for "Zkusit znovu", edits accepted or dismissed through …/edits, a
                             prepared job approved through …/request, a cross-client change on "Pamatovat
-                            si"); SampleView (Vzorek, read only: links to where n, dimensions and audience
+                            si"; a waiting change saved before a message goes, beforeMessage); with the
+                            researcher's toggle on, a turn's text edits accepted through …/edits with
+                            auto: true and shown "Přijato automaticky" with Vrátit (the replaced wording
+                            written back as the person's own edit, once the copy holds the accept),
+                            structure still waiting); SampleView (Vzorek, read only: links to where n,
+                            dimensions and audience
                             are set); useStageWide keeps a stage's layout across a resize until another
                             stage opens
     src/lib/workbench-stages.ts  The eleven stages in six phases, each today's route (and on Výsledky
@@ -237,7 +257,8 @@ apps/
                             inspector-stack.ts: the item drawer's back stack, display state only;
                             guarded-navigation.ts: every way out of a stage is a link click, so a stage's
                             leave guard can stop it; lead.ts: the Lead's turns and closed output, the
-                            pure part of its edit tools, focus targets to and from the stages' data-aia ids
+                            pure part of its edit tools (isTextEdit, the server's is_text_edit), focus
+                            targets to and from the stages' data-aia ids
     src/components/rehome/  Primitives (token utilities only) and the research stages, re-homed
                             under the shell above
     src/research/           The research flow's logic ported from ui_app.html (parity-tested under
@@ -251,13 +272,16 @@ apps/
                             comparisonOf / setComparison ("Jak výzkumné otázky zodpovíme" in Dotazník);
                             proposedTrace (a proposal's links, read on the inline review);
                             proposal-items.ts: a stale_proposal refusal's conflicting items in Czech;
-                            the store's reload (after an accept), conflict(current) (a copy that moved
+                            the store's reload (after an accept; reload(read, { since }) reads an
+                            accepted revision in place, a change typed meanwhile kept, the copy in
+                            conflict), conflict(current) (a copy that moved
                             while an accept was in flight), completed (a copy the template's defaults
                             completed on load) and submitWorkingDesign (saves such a copy, then submits
                             the revision it names)
     src/testing/legacy.ts   Parity harness: a function's effective binding, run in a Node vm (reads
                             the vendored ui_app.html: reference only, never product code)
-    src/lib/app-routes.ts   Every /app URL, built in one place (stage slugs: `persona` is `dimensions`)
+    src/lib/app-routes.ts   Every /app URL, built in one place (stage slugs: `persona` is `dimensions`;
+                            knowledgeItem: one item opened on Znalosti)
     src/lib/api.ts          The API client; a stored report's download (requestStored) reads
                             X-AIA-Artifact-Id / X-AIA-Review-State, so the report approved is the
                             one downloaded; deepResearch.designProposal, deepResearch.runs(studyId, limit?),
@@ -280,7 +304,12 @@ apps/
                             findings with their source class, the sources, gaps and rejected
                             findings with their claims and reasons, and the unapproved draft by
                             section, each finding naming the accepted findings it rests on, then
-                            what the checker refused; FormattedText: a model's long text as
+                            what the checker refused; VerifiedSourceButton (lib/verified-source.ts,
+                            pure): "Ověřeno, přidat zdroj" beside a captured source on the Design
+                            Research panel, the Interpretation Research findings and each research
+                            question's design evidence, then what the server did (added, waiting
+                            for approval, already there) with a link to the item; FormattedText: a
+                            model's long text as
                             paragraphs and lists (result-reading.ts textBlocks); ProposalEditor and PlanStep edit the research narrative
                             and whole comparable measurements with live previews, preserving existing
                             questionnaires (PlanStep tests: direct proposal editing); ExecutionSteps.tsx: Run, Progress, Results (ADR 0016);
@@ -441,7 +470,7 @@ apps/
                             only under the same engine version and pins
     research_agents.py     Native proposal executor: frozen design/context, StepModelCaller,
                             provenance artifact; no automatic write or retry
-    research_lead.py        research_lead_turn: one RESEARCH_REASONING request and one repair over the
+    research_lead.py        research_lead_turn: one STUDY_LEAD request and one repair over the
                             frozen context; applies only what stays in the turn's client, the rest
                             waits for the researcher; parks research_lead_unconfigured without
                             AIA_AI_RESEARCH_LEAD_ENABLED, …_MAX_OUTPUT_TOKENS, …_RESERVATION_USD;
@@ -457,13 +486,16 @@ apps/
                             answer_plans: the request, draw and ledger loop over given plans, which
                             produce and the validation's arms share; require_binding= fails a
                             different resolved binding before any request; Answered.details: each
-                            draw's record
+                            draw's record; the run's design classified by rule (rule:design)
     client_source_proposals.py  The client_source_proposals step (lifecycle K2d): AI proposals
                             from a client's document as the client's own work, every request held against and charged
                             to the client's budget (AWAITING_BUDGET until lifted); each answered batch kept in
                             client_work_journal, so a resumed step never pays twice; AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED
                             (off, also off on develop), …_MAX_OUTPUT_TOKENS, …_RESERVATION_USD (at least two calls at the
-                            request window); unset, it parks client_source_proposals_unconfigured
+                            request window); unset, it parks client_source_proposals_unconfigured; a
+                            marked source's requests Class C, the mark read again before each request
+                            (an unmark mid-run stops it, source_class_changed), each proposal recording
+                            data_class and class_source
     analysis.py             research_analysis: one module per step over StepModelCaller; preflight
                             BLOCKED stored with 0 calls, turn checkpoints (a retry replays, never pays
                             twice), AnalysisConfig.from_settings; in the default registry: without
@@ -473,7 +505,8 @@ apps/
                             Harness 2: a schema failure is stored per failed field, and the repair
                             turn shows the model its own refused answer (a truncated one: asked for
                             less); analysis_round: a person's retry is a new round, in every turn
-                            key, and a model-BLOCKED outcome is not reused in a retry round
+                            key, and a model-BLOCKED outcome is not reused in a retry round; the
+                            run's design classified by rule (rule:design)
     report.py               research_report: the internal draft from the eight analysis modules and
                             the run's chapters (report_chapters: maps, question tables, design,
                             respondents); never approved here; with AIA_REPORT_PDF_ENABLED (off by
@@ -489,7 +522,16 @@ apps/
                             AIA_AI_STEP_EVENTS (off by default): a research agent's and an analysis
                             module's model requests write ai_request_sent / ai_request_answered to
                             the run's feed (StepModelCaller(announce=): counts, cost, latency, never
-                            text; two writes per request, ~1.3 ms measured)
+                            text; two writes per request, ~1.3 ms measured).
+                            STUDY_LEAD, the study Research Lead's turn (ADR 0026), is bound to the
+                            Lead's own model when AIA_AI_RESEARCH_LEAD_MODEL_ID is set
+                            (LeadModelSettings: a pinned EU profile, accepted as Bedrock lists it --
+                            the current family's ids carry no ":N" -- and an alias ending "latest"
+                            refused; its prices, limits and request profile from
+                            AIA_AI_RESEARCH_LEAD_*, no defaults, a wrong key stops the worker by
+                            name), a second policy entry on the same route pinned through
+                            PinnedModels; else to the route's model. The Lead's reservation is
+                            checked at that model's prices and window
     workbench.py            The ONLY composition with fictional fieldwork; refuses unless AIA_ENV is
                             local/test, and no deployment may name it (layer_check)
     deep_research/          The six Deep Research steps (in the default registry; a run parks
@@ -546,9 +588,18 @@ apps/
 
 packages/aia_core/src/aia_core/
   domain/                   Pure. No I/O. stdlib + Pydantic only.
-    ai_models.py            ModelCapability, catalog, ModelPolicy, ModelRegistry (fails closed)
+    ai_models.py            ModelCapability, catalog, ModelPolicy, ModelRegistry (fails closed);
+                            RequestProfile (a model's request shape, declared in its catalog entry);
+                            STUDY_LEAD (the study Lead), apart from RESEARCH_LEAD (Deep Research)
     ai_contracts.py         ModelRequest/Result, AIUsageEvent, 10-way error taxonomy,
                             structured-output validation, AgentDefinition, FallbackPolicy
+    material_rules.py       The class a study's material takes by rule (the product owner, 2026-10-19;
+                            ADR 0008 amendment): a design, the study's names and a researcher's
+                            messages, focus labels and job instructions Class B; the Lead's files and
+                            personal notes C; client notes, approved knowledge and a client's sources A;
+                            a source a person marked "Interní dokument" C. classify_by_rule: an
+                            operator's exact-bytes classification can only raise a rule (source
+                            rule:<name> or operator); material no rule names still refuses
     ai_execution.py         ModelGateway + ExecutionContext: the step-executor contract
     ai_tools.py             ToolRegistry — scope never from model arguments
     research_agents.py     Eight closed Research task contracts, prompt/harness versions,
@@ -558,12 +609,17 @@ packages/aia_core/src/aia_core/
                             keeps only links to stated research questions (dropped_links names the
                             rest); prompt_version_for: build/optimize at 3, the rest at 2;
                             proposal_state / ProposalState: pending, accepted, dismissed or
-                            superseded, a projection of the ledger and rebuild_of
+                            superseded, a projection of the ledger and rebuild_of; a design and a
+                            nonempty instruction classified by rule (design_classification,
+                            instruction_classification); prompt_class_source
     research_lead.py        The closed LeadOutput (reply, view, edits, request, follow, self_update),
                             lead_contract (numbers only from the context, sign included, exponents
                             refused), ground_edits, apply_edit, split_self_update, FOCUS_ID,
-                            freeze_context (96 KB, oldest turns first), lead_request (the design
-                            agents' data class rule)
+                            freeze_context (96 KB, oldest turns first), lead_request (STUDY_LEAD;
+                            context_classification: each part's class by rule, material_rules);
+                            TEXT_EDIT_OPS / is_text_edit (set_text of the title or problem summary,
+                            list_replace of a hypothesis, question_edit of the text alone: what an
+                            automatic accept may take)
     deep_research/          Deep Research (ADR 0017, ADR 0021), pure; the engine is frozen after #166:
       contracts.py          subjects, tracks, snapshots, knowledge sources, evidence, quarantine and
                             stop reasons, the request a run is frozen to; harness 3: the request's
@@ -805,11 +861,13 @@ packages/aia_core/src/aia_core/
     client_sources.py       A client's sources (lifecycle K2): family by suffix (the owner's format
                             list of 2026-10-13), Locator, Segment, ReadingNote, SourceReading (READ /
                             PARTIAL / UNREADABLE / UNSUPPORTED / REFUSED, never more than happened),
-                            display_name (the name as written)
+                            display_name (the name as written); InternalMark (who and when a person
+                            marked a source "Interní dokument")
     source_proposals.py     AI proposals from a client's document (lifecycle K2d): require_extractable
                             (documents only; dataset_not_extracted, no_text, nothing_read), batches bounded by
                             BATCH_MAX_BYTES (24,000), MAX_REQUESTS (42, else too_many_requests before any call),
-                            request_window_tokens (the hold's window), proposal_request (FAST_EXTRACTION, Class A), ground
+                            request_window_tokens (the hold's window), proposal_request (FAST_EXTRACTION; Class A, or
+                            C with internal= for a source marked "Interní dokument"), ground
                             (a quote literally in its segment; the segment's locator, never the model's)
     client_datasets.py      A dataset's preview (K2c): per column the header (row 1 when all text
                             over numbers or dates), kind, fill, distinct values (to 1,000) and five
@@ -1005,8 +1063,16 @@ packages/aia_core/src/aia_core/
                             stale rule (StaleProposal: design_moved, unknown_baseline, items_changed),
                             the merge into the working copy, the Design Revision naming that working
                             revision; the caller's ledger row commits with it
-    research_lead.py        ResearchLead (state, post under the researcher's lock, decide_edits,
-                            approve_request, decide_self_update) and LeadProfile (read, hatch)
+    research_lead.py        ResearchLead (state, post under the researcher's lock, decide_edits --
+                            auto=: the researcher's standing choice, text edits only, refused whole
+                            as stale_turn (LeadTurnStale) when the turn's frozen working revision is
+                            not the current one --, approve_request, decide_self_update) and
+                            LeadProfile (read, hatch, set_preferences)
+    verified_sources.py     add_verified_source: a captured source a person checked, from the run's
+                            verified sealed bundle (the snapshot and the accepted finding citing it;
+                            nothing from the browser), added to the Study's client's knowledge as a
+                            SOURCE item through add_source_once, or filed as a proposal where
+                            self-approval is off
     research.py             ResearchRuns: start/list/get/cancel/retry over a Design Revision,
                             found only through the Study; research_artifacts, the ONLY reader;
                             start/retry ask when the run's cost ceiling reaches the study's spend
@@ -1099,7 +1165,8 @@ packages/aia_core/src/aia_core/
                             stored working revision
     study_lead_repository.py  A researcher's Lead turns in a study (study_lead_turns), scoped in the query
     researcher_lead_repository.py  The researcher's Lead (researcher_leads), its revisions and notes; a
-                            client note only within that client's study
+                            client note only within that client's study; set_preferences
+                            (auto_accept_text_edits, default false, migration 57eaa96a5538)
     document_text.py        An attachment's text, read as the unit read it (pypdf, python-docx,
                             openpyxl: the `documents` extra), with the ZIP bounds the unit lacked;
                             a PDF's tables through pdfplumber, after pypdf, bounded
@@ -1125,14 +1192,19 @@ packages/aia_core/src/aia_core/
                             revision it was written from (base_revision), else
                             StaleKnowledgeProposal (409 knowledge_proposal_stale) unless the
                             reviewer names the current revision (reviewed_revision); propose_from_client_work: AI
-                            proposals filed once per run, authored ai, the run named
+                            proposals filed once per run, authored ai, the run named; add_source_once
+                            (client row locked): a SOURCE item once per client and URL or final URL,
+                            an active item or a pending proposal answering exists
     client_profile_repository.py  The ONLY reader/writer of client_contacts and the profile columns
                             of clients; history read from the audit, never naming an e-mail
     client_source_repository.py  The ONLY reader/writer of client_sources and
                             client_source_occurrences: kept once per client and SHA-256, bytes and
                             reading under org/<org>/client/<client>/sources/<sha256>/, verified on
                             every read; reread: a newer reader's reading beside the first; reading_pin /
-                            pinned_reading: the reading a client-work run pinned by SHA-256 (else SourceReadingChanged)
+                            pinned_reading: the reading a client-work run pinned by SHA-256 (else SourceReadingChanged);
+                            mark_internal: who and when on the row (internal_marked_by, internal_marked_at,
+                            migration c7e9a1b3d5f2, the row locked), each change audited
+                            (CLIENT_SOURCE_MARKED_INTERNAL / …_UNMARKED_INTERNAL); marked_internal
     client_work_journal.py  ClientWorkJournal: each answered request of the client's own work, kept
                             under the lease the moment it returns (client_work_journal, migration c5e7a9b1d3f6), keyed by
                             the client and a fingerprint of exactly what was sent; a resumed step replays it
@@ -1185,7 +1257,17 @@ packages/aia_core/src/aia_core/
                             the executor compositions imports model_adapters, an import contract)
     model_adapters/         Anthropic / OpenAI / Claude Code / Bedrock adapters, transports, recorded
                             doubles; live_transport.py (urllib3, no retries), aws_signing.py (SigV4,
-                            instance or container role only)
+                            instance or container role only). Each model's request shape is declared
+                            in its catalog entry (domain/ai_models.py RequestProfile: structured_output
+                            forced_tool | auto_tool, thinking budget | adaptive, sampling, effort),
+                            threaded into AdapterRequest. The Bedrock adapter sends an auto_tool model
+                            toolChoice: auto with the gateway's answer-through-the-tool instruction,
+                            never a thinking budget or temperature to a model that refuses them, and
+                            only a configured effort as additionalModelRequestFields.output_config;
+                            what a profile cannot carry is refused unsent. The other adapters refuse
+                            any non-default profile. A ledger row's system_prompt_sha256 is the system
+                            prompt as sent (with that instruction); input_fingerprint includes a
+                            configured effort
     storage.py              ArtifactStore: S3 / filesystem / memory; s3_client(), the one AWS SDK
                             import site
     storage_settings.py     AIA_STORAGE_*: one typed definition for every composition root
@@ -1379,7 +1461,9 @@ no global pool filtered afterwards. What a person writes in the client workspace
 knowledge at once; a study proposes and a person accepts (the proposer too, unless
 self-approval is turned off), and either writes a new revision with provenance; knowledge
 the AI wrote stays a proposal until a person accepts it. An approval never applies an edit
-written from an older revision unless the reviewer names the current one (F-K1, OI-111). Nothing changes knowledge otherwise. `make layer_check` keeps the rows inside the
+written from an older revision unless the reviewer names the current one (F-K1, OI-111). A source
+Deep Research captured and a person checked is that person's write ("Ověřeno, přidat zdroj"),
+once per client and address. Nothing changes knowledge otherwise. `make layer_check` keeps the rows inside the
 repository.
 
 **A research run executes a Design Revision** (ADR 0016). The browser submits the
@@ -1392,6 +1476,9 @@ runtime is configured and the gateway's gates pass; otherwise it **parks**
 its datasets say so (`SYNTHETIC_AI_FICTIONAL`); the fixture's invented respondents
 exist only in `aia_executors.workbench` and tests (`SYNTHETIC_FIXTURE`). The model
 returns one respondent's probabilities; code answers facts and draws the answer.
+What a run sends a model takes its class from `domain/material_rules.py` (a design is Class B by
+rule, an operator only raising it; ADR 0008, Amendment 2026-10-19), not from an operator's hash
+alone, so a route approved for Class C alone refuses it.
 Panel-derived data may reach only `bedrock-eu-primary` (OI-61, determined by the data
 owner 2026-10-12, `licence_determinations.py`); the licence gate stays beside residency
 and refuses it on any other route. A run pins its persona source at start
@@ -1427,7 +1514,10 @@ reference's recorded outputs, vendored under
 [deep-research.md](docs/architecture/deep-research.md)). Code picks the subjects and tracks,
 sends every query and fetch, and grounds every quote in a content-addressed snapshot of the same
 track; models only propose. A query's data class is inherited from what it was written from and
-never lowered by keywords. The 18.6.6 leakage rule is kept exactly and bars a finding from
+never lowered by keywords; a design's class is an operator's exact-bytes classification, never
+the design rule, so a run on an edited design parks until an operator classifies it (the product
+owner, 2026-10-19, OI-129). A captured source becomes Client Knowledge only by a person's click,
+"Ověřeno, přidat zdroj" (`application/verified_sources.py`). The 18.6.6 leakage rule is kept exactly and bars a finding from
 respondent context, which is re-screened against the final questionnaire. It runs through the
 worker as six steps whose every unit is an artifact with a fingerprint, so a later pass buys only
 what changed. Its executors are in the worker's default registry and its route in the API, but a
@@ -1533,7 +1623,7 @@ ungated fixture.
 | **Research UX regression** | After `make ui-fixtures` + `make ui-research`, `node tools/ui_workbench/ux_journey.mjs` (needs Playwright + Chromium): 17 AIA routes at 1440/1024/768/390, result sections, keyboard/hash navigation, client search and preserved 3D camera; real local APIs, fictional fieldwork, no paid calls; evidence → `tmp/ui-workbench/ux-journey/` |
 | **Proposal and prompt UX acceptance** | After `make ui-fixtures`, `node tools/ui_workbench/proposal_prompt_journey.mjs` (Playwright + Chromium): real local save/reload, rejected-save retry, unfinished-edit guards, native proposals without legacy analysis, downstream design equality, prompt save/activation/reset and four responsive widths. Local fictional identity only; asserts zero paid jobs. `--facade` and `--out` override the local URL/evidence directory; `AIA_CHROMIUM` selects an installed browser. |
 | **The research workbench, in a browser** | After `make ui-workbench` (with `AIA_WEB_RESEARCH_WORKBENCH=true`) + `make ui-fixtures`, `node tools/ui_workbench/workbench_journey.mjs` (Playwright + Chromium): the workbench at 1440, 1280 and 1100 px and the classic layout at 1024, no page overflow, the eleven stages in six phases, the separator by keyboard, the focus modes, the stage navigation (Výsledky's views by hash); zero paid jobs. `--facade` and `--out` as for the other journeys |
-| **The Research Lead, in a browser** | After `make ui-workbench` (with `AIA_WEB_RESEARCH_WORKBENCH=true`) + `make ui-fixtures`, `node tools/ui_workbench/lead_journey.mjs`: the scripted Lead (no model): hatch, greeting, message, an edit accepted through the gate, a job left unapproved, the cross-client note held until accepted, the note on Můj Vedoucí; zero paid jobs |
+| **The Research Lead, in a browser** | After `make ui-workbench` (with `AIA_WEB_RESEARCH_WORKBENCH=true`) + `make ui-fixtures`, `node tools/ui_workbench/lead_journey.mjs`: the scripted Lead (no model): hatch, greeting, message, an edit accepted through the gate, a job left unapproved, the cross-client note held until accepted, the note on Můj Vedoucí; automatic text edits turned on there, a text edit accepted when its turn finishes and marked automatic, Vrátit; zero paid jobs. Passes once per workbench: rerun it on `python tools/ui_workbench/workbench.py up --fresh` (OI-133) |
 | **The client intake sheet, in a browser** | `make ui-intake` (after `make ui-workbench` + `make ui-fixtures`; Playwright + Chromium): files kept and read, a table named, one item per file, a drop on the page, the sheet open within 400 ms |
 | **Client workspace acceptance** | After `make ui-workbench` + `make ui-fixtures`, `node tools/ui_workbench/client_journey.mjs` (Playwright + Chromium; `AIA_CHROMIUM` selects the browser): six client areas at four widths without overflow; fictional knowledge added, filed, labelled, edited and removed; the profile saved and read back after a reload; a contact added and removed with no e-mail in the history; zero paid jobs. After a migration that adds columns, start the workbench with `python tools/ui_workbench/workbench.py up --fresh` |
 | **Settings UX acceptance** | After `make ui-workbench`, `node tools/ui_workbench/settings_journey.mjs` (Playwright + Chromium): all eight tabs at 1440/1024/768/390; real local member/budget persistence, policy proposal/approval/withdrawal, methodology validation/compare/refused-save retry/separate activation, protected drafts and expanded technical details. Fictional local identity only, zero paid jobs. `--facade`, `--out` and `AIA_CHROMIUM` configure the local URL, evidence directory and browser. |
@@ -1854,6 +1944,8 @@ decision that has already been made.
 context, acceptance and activation. Fieldwork activation does not activate design
 jobs. The additional worker keys are `AIA_AI_RESEARCH_AGENTS_ENABLED`,
 `AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS` and `AIA_AI_RESEARCH_RESERVATION_USD`; the
-reservation covers primary plus one schema repair. Analysis/report execution and
+reservation covers primary plus one schema repair. The study Research Lead's own model takes the
+`AIA_AI_RESEARCH_LEAD_MODEL_*` keys and their prices and limits
+([`deploy/develop/README.md` § The Research Lead's own model](deploy/develop/README.md#the-research-leads-own-model)). Analysis/report execution and
 owned web retrieval remain in the complete-workflow plan, not delivered by the
 proposal executor. Do not describe model recollection as web research.
