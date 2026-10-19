@@ -659,6 +659,7 @@ class WorkflowRepository:
         key_prefix: str | None = None,
         steps: bool = False,
         run_ids: Sequence[str] | None = None,
+        exclude_workflow_types: Sequence[str] = (),
     ) -> list[dict[str, Any]]:
         """Return a project's runs, newest first, without their steps unless ``steps``.
 
@@ -667,11 +668,14 @@ class WorkflowRepository:
         ``steps`` adds each run's steps from one more query for the page, without their
         attempt history: no ``attempts`` key, so nothing read from attempts (a start
         time, an error, a cost) is guessed from an empty list. ``run_ids`` keeps only
-        those runs (still within the project and the scope).
+        those runs (still within the project and the scope). ``exclude_workflow_types``
+        leaves runs of those types out, in the query, so a page is never short of them.
         """
         filters = [WorkflowRunRow.project_id == project_id, *self._scope_filter()]
         if workflow_type is not None:
             filters.append(WorkflowRunRow.workflow_type == workflow_type)
+        if exclude_workflow_types:
+            filters.append(WorkflowRunRow.workflow_type.not_in(list(exclude_workflow_types)))
         if run_ids is not None:
             filters.append(WorkflowRunRow.run_id.in_(list(run_ids)))
         if key_prefix is not None:
@@ -3118,6 +3122,19 @@ class WorkflowRepository:
             )
         )
         return None if output is None else dict(output)
+
+    def workflow_type_of_attempt(self, attempt_id: str) -> str | None:
+        """The workflow type of the run an attempt belongs to, within this scope.
+
+        An artifact names the attempt that produced it (``produced_by_job_id``); this says
+        what kind of run that was. None when the attempt is not a run in this scope.
+        """
+        return self._session.scalar(
+            select(WorkflowRunRow.workflow_type)
+            .join(StepRunRow, StepRunRow.run_id == WorkflowRunRow.run_id)
+            .join(StepAttemptRow, StepAttemptRow.step_id == StepRunRow.step_id)
+            .where(StepAttemptRow.attempt_id == attempt_id, *self._scope_filter())
+        )
 
     def last_attempt_errors(self, step_ids: Sequence[str]) -> dict[str, dict[str, Any]]:
         """Each step's newest attempt's failure class and error, by step id, in one query.

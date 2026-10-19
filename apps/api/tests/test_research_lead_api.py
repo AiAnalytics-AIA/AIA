@@ -10,7 +10,9 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from aia_core.application.research import research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+from aia_core.domain.research_lead import ARTIFACT_TYPE
 from aia_core.domain.workflow_templates import RESEARCH_LEAD_TURN
 from aia_core.infrastructure.db import create_session_factory
 from aia_core.infrastructure.scope_repository import ScopeRepository
@@ -313,6 +315,77 @@ def test_someone_elses_turn_is_not_found(
         f"{lead_url(world)}/turns/{turn_id}/edits", json={"decision": "dismiss", "indices": [0]}
     )
     assert refused.status_code == 404 and refused.json()["code"] == "lead_turn_not_found"
+
+
+def test_the_generic_run_routes_never_serve_a_lead_turn(
+    researcher: TestClient, reviewer: TestClient, world: Any, app: FastAPI
+) -> None:
+    """A Lead turn's run sits in the Study's design project, where any member's generic run
+    routes would read it: its reply, notes and pending changes. Only ``/lead`` serves it."""
+    _hatched(researcher)
+    _save_content(app, world)
+    posted = researcher.post(
+        f"{lead_url(world)}/turns", json={"kind": "message", "stage": "brief", "text": "Co dál?"}
+    )
+    assert posted.status_code == 201, posted.text
+    run_id = posted.json()["turns"][-1]["run_id"]
+    secret = {"reply": "Tajná odpověď", "self_update": {"soul": "Klient X: tajné"}}
+    with create_session_factory(app.state.engine)() as session:
+        scope = _scope(app, world, session)
+        workflows = WorkflowRepository(session, scope)
+        work = workflows.claim_next(worker_id="w", kinds={RESEARCH_LEAD_TURN})
+        assert work is not None
+        project_id = workflows.get_run(run_id)["project_id"]
+        artifacts = research_artifacts(session, scope, app.state.artifact_store)
+        common: dict[str, Any] = {
+            "project_id": project_id,
+            "revision": work.project_revision,
+            "stage_type": work.stage_type,
+            "runtime_version": "",
+        }
+        # Found by its type, and by the run that produced it whatever its type says.
+        by_type, _ = artifacts.put_json(
+            payload={"result": secret},
+            artifact_type=ARTIFACT_TYPE,
+            input_fingerprint="lead-a",
+            produced_by_job_id=work.attempt_id,
+            **common,
+        )
+        by_run, _ = artifacts.put_json(
+            payload={"result": secret},
+            artifact_type="something_else",
+            input_fingerprint="lead-b",
+            produced_by_job_id=work.attempt_id,
+            **common,
+        )
+        workflows.complete_attempt(
+            work.attempt_id,
+            worker_id="w",
+            output={
+                "lead_output": secret,
+                "dropped": [],
+                "self_update_applied": None,
+                "self_update_pending": {"soul": "Klient X: tajné"},
+                "artifact_id": by_type.artifact_id,
+            },
+        )
+        session.commit()
+
+    base = f"/api/v1/studies/{world.study_id()}/projects/{project_id}"
+    for client in (reviewer, researcher):
+        listed = client.get(f"{base}/runs")
+        assert listed.status_code == 200
+        assert run_id not in {r["run_id"] for r in listed.json()["items"]}
+        for path in (f"runs/{run_id}", f"runs/{run_id}/events"):
+            got = client.get(f"{base}/{path}")
+            assert got.status_code == 404 and got.json()["code"] == "run_not_found", path
+        for artifact in (by_type, by_run):
+            got = client.get(f"{base}/artifacts/{artifact.artifact_id}")
+            assert got.status_code == 404 and got.json()["code"] == "artifact_not_found"
+    # The owner reads the turn where it is served; the other member's conversation is empty.
+    assert researcher.get(lead_url(world)).json()["turns"][-1]["output"] == secret
+    _hatched(reviewer)
+    assert reviewer.get(lead_url(world)).json()["turns"] == []
 
 
 def test_a_prepared_job_is_approved_under_the_spend_limit_once(

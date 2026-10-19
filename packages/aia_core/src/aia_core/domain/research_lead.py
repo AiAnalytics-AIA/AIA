@@ -48,6 +48,7 @@ from .research_agents import FIXED_PREFIX, ResearchAction, prompt_data_class
 from .residency import DataClass
 
 __all__ = [
+    "ARTIFACT_TYPE",
     "CONTEXT_MAX_BYTES",
     "DEFAULT_LEAD_NAME",
     "DEFAULT_SOUL",
@@ -88,6 +89,8 @@ LEAD_PROMPT_ID: Final = "aia.research.lead"
 LEAD_AGENT_ID: Final = LEAD_PROMPT_ID
 LEAD_PROMPT_VERSION: Final = "1"
 LEAD_HARNESS_VERSION: Final = "aia-research-lead-1"
+#: A turn's stored output. Served only by the Lead's own routes, never the generic ones.
+ARTIFACT_TYPE: Final = "research_lead_turn"
 
 #: The frozen context's bound, canonical JSON (ADR 0026 decision 2).
 CONTEXT_MAX_BYTES: Final = 96 * 1024

@@ -34,6 +34,7 @@ from aia_core.domain.ai_material import MaterialApproval
 from aia_core.domain.prompts import PromptPin
 from aia_core.domain.providers import Provider
 from aia_core.domain.research_lead import (
+    ARTIFACT_TYPE,
     LEAD_HARNESS_VERSION,
     LEAD_PROMPT_ID,
     LeadOutput,
@@ -68,7 +69,6 @@ __all__ = [
 ]
 
 KIND: Final = RESEARCH_LEAD_TURN
-ARTIFACT_TYPE: Final = "research_lead_turn"
 #: The park reason when the deployment has not configured the Lead's turns.
 LEAD_UNCONFIGURED: Final = "research_lead_unconfigured"
 
