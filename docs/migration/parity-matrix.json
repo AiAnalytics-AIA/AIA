@@ -558,8 +558,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-02)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-02); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -590,8 +590,8 @@
    ],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-02)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-02); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -624,7 +624,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+    "reason": "Off the MVP path; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -653,7 +653,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+    "reason": "Off the MVP path; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -682,7 +682,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+    "reason": "Off the MVP path; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -789,8 +789,8 @@
    ],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-02)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-02); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -823,7 +823,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+    "reason": "Off the MVP path; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -853,8 +853,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-02)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-02); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -883,7 +883,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "No parity required: Contradicts the no-silent-fallback and budget rules; intentionally retired"
+    "reason": "Off the MVP path; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -911,8 +911,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-02, AC-13)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-02, AC-15); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -992,8 +992,8 @@
    ],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-09)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-08); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": "The eight module definitions, draft checking and admitted-claim results are ported; a native run's artifacts map to evidence (instrument items internal only), with the harness, the stored-outcome contract, reconstruction by re-admission and the research_analysis executor (.planning/plans/evidence-backed-analysis.md). The draft gate is compared decision by decision with the unit's own evidence_validator.py: AIA refuses everything the unit refused except two cases that wait on decision ANL-4 (a finding that cites no evidence, a module with no finding). The executor is not registered in the production worker or added to the research template, and no module body calls a model in production."
   },
@@ -1025,8 +1025,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-09)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-08); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -1086,8 +1086,8 @@
    ],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-01)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-01); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": "Projects, scope, budget and health routes exist and are study-scoped; most capability routes do not. docs/migration/legacy-route-ledger.json tracks all 153 legacy routes (14 PORTING, 139 LEGACY as of the strangler plan's slice 1)."
   },
@@ -1115,8 +1115,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-08, AC-13)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-07, AC-15); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": "ArtifactRepository stores provenance and dependency edges, but no engine emits sub-artifacts yet, so registration from engine outputs is not started."
   },
@@ -1156,8 +1156,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-08)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-07); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -1192,8 +1192,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-05)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-05); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -1222,8 +1222,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-05)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-05); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -1257,8 +1257,8 @@
    ],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-12)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-14); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -1292,8 +1292,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-12)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-14); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": "Typed settings with production guards exist; recording the resolved configuration on each run does not."
   },
@@ -1321,8 +1321,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-03, AC-13)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-04, AC-15); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -1352,8 +1352,8 @@
    ],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-03)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-04); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": "Study-level reservations exist (cost.reservations); budget_guard's per-run hard cap is not ported (high-risk-behaviors R10)."
   },
@@ -1414,8 +1414,8 @@
    ],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-03)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-04); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -1446,7 +1446,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "Off the MVP path pending reference open decision D4 (demo library as product or fixture). Blocks the first release that ships demo seeding."
+    "reason": "Off the MVP path; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -1475,7 +1475,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "No parity required: Becomes an API plus worker path"
+    "reason": "Off the MVP path; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -1513,7 +1513,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+    "reason": "Off the MVP path; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -1545,7 +1545,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+    "reason": "Off the MVP path; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -1578,7 +1578,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+    "reason": "Off the MVP path; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -1609,8 +1609,8 @@
    ],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-09)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-08); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -1644,7 +1644,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+    "reason": "Off the MVP path; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -1672,8 +1672,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-11)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-13); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -1752,8 +1752,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-09)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-08); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": "Claim policy, the hash-bound joint certificate and AdmittedClaim admission are ported, fail closed (.planning/plans/done/evidence-governance-foundation.md). Decisions only the withheld legacy source states are OI-18. A second field-policy authority exists in domain.population (D8, OI-24)."
   },
@@ -1786,7 +1786,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "Off the MVP path: the MVP delivers with prediction validation stated as EXTERNAL_HOLDOUT_PENDING (governance.validation_state). The holdout protocol blocks any claim of external predictive validation, which the MVP does not make."
+    "reason": "Off the MVP path; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -1814,8 +1814,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-11)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-13); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -1881,8 +1881,8 @@
    ],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-09)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-08); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": "The field dictionary's claim rules (R5) and the CORE_JOINT_STATUS certificate gate (R6) are enforced as closed policy over the population. The wider methodology contract (PRODUCT_POLICY.json, DATA_CONTRACT_v17.json) is not ported. Two authorities implement it today, domain.population and domain.evidence, with different client measured-claim eligibility (287 vs 115 fields): D8, OI-24."
   },
@@ -1925,8 +1925,8 @@
    ],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-09)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-08); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": "Validation state bound to the system fingerprint, and smoke never unlocking holdout, are ported; no reference-backed gate compares the state machine's transitions."
   },
@@ -1960,7 +1960,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "No parity required: Replaced by CI, health endpoints and CloudWatch"
+    "reason": "Off the MVP path; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -2018,8 +2018,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-04)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-05); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": "Companion-set and hash integrity refuse a panel before it can be loaded. No gate yet runs it as the pre-live-run check the reference's diagnostika performed."
   },
@@ -2053,7 +2053,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "No parity required: Replaced by CI quality gates"
+    "reason": "Off the MVP path; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -2086,7 +2086,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "No parity required: Replaced by the production test suite"
+    "reason": "Off the MVP path; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -2115,7 +2115,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+    "reason": "Off the MVP path; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -2159,8 +2159,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-07)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-06); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": "API (apps/api) and worker (python -m aia_worker) entry points exist; the reference CLIs' research commands have no production equivalent yet."
   },
@@ -2267,8 +2267,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-02, AC-08)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-03); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -2297,7 +2297,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+    "reason": "Off the MVP path; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -2333,7 +2333,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "Off the MVP path: the MVP imports the published v17_4_0 panel and verifies its SHA256 (population.core). Re-running the builds is lineage reproducibility, required before the population is rebuilt, not before a study is delivered."
+    "reason": "Off the MVP path; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -2399,8 +2399,8 @@
    ],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-04)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-05); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": "STATIC/LIVE roles, content-addressed versions, promotion refusal and one injected population authority are ported (docs/architecture/population.md). Not yet consumed by any research step; project content still carries a free-text population identity (OI-6)."
   },
@@ -2468,8 +2468,8 @@
    ],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-04)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-05); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": "One loader with named BASE and ANALYSIS views. The ANALYSIS view refuses to load: the seven enrichment derivations exist only in the archive (OI-7)."
   },
@@ -2497,8 +2497,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-04)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-05); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -2565,8 +2565,8 @@
    ],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-04)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-05); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": "Weight resolution fails explicitly and the binding records the resolved weight. PARTIAL until research execution derives its fingerprints from the binding (OI-6), and because module-dispositions.json still records kalibrace.py and mrp.py as not started (OI-30)."
   },
@@ -2592,10 +2592,10 @@
    "intentional_difference": null,
    "documented_deviations": [],
    "high_risk": [],
-   "mvp_path": false,
+   "mvp_path": true,
    "release_blocker": {
     "blocking": false,
-    "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+    "reason": "On the MVP acceptance path (AC-12); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -2624,7 +2624,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "No parity required: One-off migration of the prototype's own SQLite store"
+    "reason": "Off the MVP path; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -2666,8 +2666,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-02, AC-08)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-03); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -2696,8 +2696,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-02)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-03); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -2727,8 +2727,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-02)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-03); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -2758,8 +2758,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-02)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-03); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -2792,8 +2792,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-11)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-13); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -2822,7 +2822,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "No parity required: Optional, closable assistant surface; no research output depends on it"
+    "reason": "Off the MVP path; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": "Optional assistant surface; not scheduled."
   },
@@ -2868,8 +2868,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-02)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-03); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": "PARTIAL for research_context.py only: its leakage screen (_deterministic_target_overlap), tokens/similarity, URL canonicalisation and _merge_agents are ported EXACT (domain/deep_research/legacy.py) against fixtures captured from the vendored unit by tools/deep_research_capture.py and pinned with its SHA256. AIA uses the leakage rule and replaces self-reported source_quality and two-agent lexical consensus as acceptance with grounding in captured snapshots and declared source tables (ADR 0017, docs/architecture/deep-research.md): an intentional difference of the Deep Research core, which is recorded/offline only. The capability count is fixed at the reference's 78, so Deep Research is not a row of its own. project_intake.py, research_designer.py and research_project.py are not recorded here."
   },
@@ -2898,8 +2898,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-06)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-05); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -2942,8 +2942,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-06)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-05); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": "The questionnaire respondent of dotaznik.py (probability per item, code draws) on AIA's fictional roster, through GovernedModelGateway. Not ported: panel-grounded personas and representative sampling (OI-61 blocks transmission), filtered questions, context injection, dispersion calibration."
   },
@@ -2997,8 +2997,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-06)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-05); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": "Explicit factual metadata resolves to the panel value (evidence/factual.py). The unit's automatic factual-question detection and choice mapping are ported for AI respondents (respondent_facts.py), compared with the unit's own module; harmonize_project_fact_choices is not (OI-20 narrowed)."
   },
@@ -3046,8 +3046,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-06)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-05); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": "behavior.adjust_probabilities and styly.prirad_styly/popis_stylu ported, 1e-12 / 1e-9 against captures of the unit (tools/respondent_capture.py, fixtures/response_process/, pinned with the unit sources). Not ported: dispozice, osobnost, biografie, persona_depth, persona_grounded, dimension_catalog; the dispersion temperature (no calibration: 1.0)."
   },
@@ -3076,7 +3076,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+    "reason": "Off the MVP path; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -3105,8 +3105,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-11)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-13); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -3136,8 +3136,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-09)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-08); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -3168,7 +3168,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "No parity required: Windows launchers replaced by containers on ECS"
+    "reason": "Off the MVP path; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -3224,7 +3224,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+    "reason": "Off the MVP path; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": "Deterministic core only (docs/architecture/simulation-deterministic-engine.md): world-model validation that rejects instead of clipping, seeds, correlation projection, calibrate-on-baseline inoculation, ensembles, variant deltas. Formula bodies are production-defined (fs-inoculation-v1) and no gate compares them with the reference: that needs F13 and decision D11. World-model generation, the respondent run and fullsim_learning are not started."
   },
@@ -3267,7 +3267,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "Off the MVP acceptance path; blocks the first release that ships it."
+    "reason": "Off the MVP path; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": "Scenario contract, approval bound to the contract hash, blind/scenario eligibility and write-once truth are implemented and tested against the rules the reference contract records; no gate runs the reference's own code. The LLM compile step and the truth log's persistence are not started."
   },
@@ -3464,7 +3464,7 @@
     {
      "id": "S1-S6",
      "summary": "the engine's recorded deviations from the reference",
-     "anchor": "docs/architecture/sociomapa-deterministic-engine.md §8",
+     "anchor": "docs/architecture/sociomapa-deterministic-engine.md \u00a78",
      "gate": null
     },
     {
@@ -3479,8 +3479,8 @@
    ],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-10)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-09); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": "Relations, metrics, terrain, an AIA-declared layout and the artifact/view contracts are ported (docs/architecture/sociomapa-deterministic-engine.md). Not at parity: the layout (F4 refused, OI-13; R branch refused, OI-15), the object-map base layout (F8 partial, OI-14), and the Sociomapa modes (segments, comparison, object manager). The AIA declarations await methodology sign-off (OI-16, D6). PR C chunk 6: sociomap.py derive_relation_matrix ported (domain/research_sociomap.py), exact against a capture of the unit (fixtures/research_sociomap); a research run's map is compute_sociomap under AIA_SOCIOMAP_V1 and INTERNAL_ONLY while D6 is open. Since #205 (2026-10-09) a research run also pins aia-sociomap-3, the audit's object map (contract 3) under AIA's Q5-Q7 decisions, computed beside aia-sociomap-1 and drawn on Results by #208; it is a documented deviation from the reference (SUB-SOCIO-AUDIT), gated by sociomapping.core/audit-object-map, and INTERNAL_ONLY until D6 approves it."
   },
@@ -3528,8 +3528,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-10)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-09); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": "Ipsatization only (relations.ipsatize). The study_* modules' contract, dataset, engine, validity and export are not ported."
   },
@@ -3561,8 +3561,8 @@
    ],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-06)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-05); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -3592,8 +3592,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-09)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-08); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -3665,8 +3665,8 @@
    ],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-09)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-08); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": "Effective-n SUPPRESS-by-default support and the allowed-metric enum are ported. PR C chunk 5 ports weights, Kish n, core donor support, the weighted summaries, the cluster bootstrap and the reportable core of dotaznik.agreguj_otazku (domain/research_aggregate.py): exact against captures of the unit (fixtures/research_aggregate, tools/aggregate_capture.py), interval bounds within the unit's own seed spread (D5, OI-62). Topic donor layers and segment tables are not started."
   },
@@ -3693,7 +3693,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "No parity required: Reference tests are characterization evidence, not a production capability"
+    "reason": "Off the MVP path; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -3723,8 +3723,8 @@
    ],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-03)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-04); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -3772,8 +3772,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-07)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-06); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": "PostgreSQL queue drained by the worker process (apps/worker). PARTIAL only because module-dispositions.json still records scheduler.py and worker_daemon.py as not started (OI-30)."
   },
@@ -3849,8 +3849,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-07)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-06); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -3894,8 +3894,8 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-07)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-06); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": "One executor: the worker's executor registry. There is no legacy fallback path to remove."
   },
@@ -3946,14 +3946,14 @@
    "high_risk": [],
    "mvp_path": true,
    "release_blocker": {
-    "blocking": true,
-    "reason": "On the MVP acceptance path (AC-07)."
+    "blocking": false,
+    "reason": "On the MVP acceptance path (AC-06); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": "The worker claims, executes, heartbeats, parks and completes durable steps with test executors. No research step body exists, and the 24-node DAG's gating has no reference-backed gate."
   }
  },
  "mvp_acceptance": {
-  "id": "MVP-ACCEPT-1",
+  "id": "MVP-ACCEPT-2",
   "definition": "docs/migration/mvp-acceptance.md",
   "test": null,
   "criteria": [
@@ -3966,14 +3966,8 @@
    },
    {
     "id": "AC-02",
-    "statement": "From a brief, the Research lifecycle produces Deep Research, Research Design and a Questionnaire through the ModelGateway: provider and policy resolved per stage, no model credential stored by AIA (the approved route signs with the deployment's role, ADR 0010; a keyed service's secret comes from a secret store, D8), every call on the immutable usage ledger, and no silent provider fallback.",
+    "statement": "The study is worked in the Research Lead workbench: the Lead's conversation beside the eleven V3 step artifacts, the stage navigator on top, the interface in Czech. Every AI action is started through the Lead (no manual AI button on any stage); a paid worker job starts only on a person's approval card, held to the study's spend limit and recorded in the approval ledger; the Lead's edits are proposals a person accepts, applied without a click only where the researcher chose (text edits, structural edits per stage). The Lead quotes no number its context does not hold.",
     "capabilities": [
-     "project.persistence",
-     "pipeline.stages",
-     "research.design",
-     "questionnaire.engine",
-     "questionnaire.instruments",
-     "questionnaire.conditionals",
      "ai.gateway",
      "ai.credentials",
      "ai.provider_policy",
@@ -3983,7 +3977,19 @@
    },
    {
     "id": "AC-03",
-    "statement": "Cost is estimated before any paid stage, reserved under the study-row lock, capped per run, and a deliberately exhausted budget parks the step in AWAITING_BUDGET without spending. Cost-mode presets match the reference.",
+    "statement": "From the brief, the Lead's workers produce the research design, questionnaire, audience and dimensions as proposals; each accepted proposal becomes a Design Revision. Every worker's system prompt is editable in Settings and pinned on the job that used it; no silent provider fallback.",
+    "capabilities": [
+     "project.persistence",
+     "pipeline.stages",
+     "research.design",
+     "questionnaire.engine",
+     "questionnaire.instruments",
+     "questionnaire.conditionals"
+    ]
+   },
+   {
+    "id": "AC-04",
+    "statement": "A run's cost ceiling is shown before it starts, reserved under the study-row lock and confirmed when it reaches the study's spend limit; a deliberately exhausted budget parks in AWAITING_BUDGET without spending.",
     "capabilities": [
      "cost.estimation",
      "cost.reservations",
@@ -3992,28 +3998,16 @@
     ]
    },
    {
-    "id": "AC-04",
-    "statement": "Fieldwork runs against population v17_4_0 imported losslessly with its SHA256 verified, through ONE canonical loader, after the panel integrity gate. The resolved population version and weight identity are recorded in provenance; removing the weight declaration fails the run instead of reweighting it.",
+    "id": "AC-05",
+    "statement": "Fieldwork draws AI respondents from LIVE v17_4_0 through the one canonical loader, after the integrity gate, as MODELLED_AI_PANEL: the audience filters and the selected dimensions reach the respondents, the weight is declared (removing it fails the run instead of reweighting), facts are answered by code, and the population version and weight identity are in provenance.",
     "capabilities": [
      "population.core",
      "population.panel_loader",
      "population.weighting",
      "population.readiness",
-     "operability.integrity"
-    ]
-   },
-   {
-    "id": "AC-05",
-    "statement": "The audience sufficiency and eligibility decision gates the run, and segment definitions reproduce the reference's numbers within tolerance.",
-    "capabilities": [
+     "operability.integrity",
      "audience.definition",
-     "audience.segments"
-    ]
-   },
-   {
-    "id": "AC-06",
-    "statement": "Respondents are generated with panel facts never re-invented by a model, no implicitly injected context, and representativeness raking within tolerance.",
-    "capabilities": [
+     "audience.segments",
      "respondents.engine",
      "respondents.factual_layer",
      "respondents.context",
@@ -4022,8 +4016,8 @@
     ]
    },
    {
-    "id": "AC-07",
-    "statement": "Killing the worker mid-stage loses no work: the stage resumes on the one executor, and a possibly-billed paid call moves to RECOVERY_REQUIRED instead of being retried.",
+    "id": "AC-06",
+    "statement": "Killing the worker mid-stage loses no work; a possibly-billed paid call goes to RECOVERY_REQUIRED rather than being retried.",
     "capabilities": [
      "workflow.engine",
      "workflow.step_execution",
@@ -4033,18 +4027,16 @@
     ]
    },
    {
-    "id": "AC-08",
-    "statement": "A content edit after fieldwork reopens exactly the stages the impact preview names, and reuses every unaffected stage's artifacts by fingerprint.",
+    "id": "AC-07",
+    "statement": "An edit after fieldwork reopens exactly the stages the impact preview names and reuses every other stage's artifacts.",
     "capabilities": [
-     "pipeline.stages",
-     "project.persistence",
      "artifacts.storage",
      "artifacts.registration"
     ]
    },
    {
-    "id": "AC-09",
-    "statement": "Validation and analysis fail closed: QC and diagnostics run, evidence gates decide, the validation state is bound to the system fingerprint, effective-n suppression applies to every client-facing number, and no claim exceeds the field policy or CORE_JOINT_STATUS.",
+    "id": "AC-08",
+    "statement": "Every number in a result is an admitted claim: effective-n suppression on every client-facing number, intervals required, one field-policy authority (the population contract's 115 client-measurable fields), RELIGION refused client-facing. Every key finding of an analysis module cites admitted evidence or is refused. 18.6.6's run QC is shown as warnings, never a gate.",
     "capabilities": [
      "analysis.qc",
      "statistics.diagnostics",
@@ -4058,16 +4050,33 @@
     ]
    },
    {
-    "id": "AC-10",
-    "statement": "The results include a Sociomapa computed deterministically under a declared algorithm; a manual drag changes the displayed layout and nothing else.",
+    "id": "AC-09",
+    "statement": "The results hold an object map, a respondent map and a segment map (segments defined by the study's dimensions, optionally clustered), each computed under the method pinned at run start and carrying the Sociomap register's status; the Sociomap artifact filters and drills down to one respondent's profile; a drag changes the displayed layout and nothing else.",
     "capabilities": [
      "sociomapping.core",
      "sociomapping.study_module"
     ]
    },
    {
+    "id": "AC-10",
+    "statement": "The client's document, dataset and public web page are taken in, read and proposed as knowledge a person accepts; a client dimension is materialized as that client's owned child population and used by a run. A client dataset is used in analysis only under a data contract a person accepted, its personal columns dropped, its numbers graded client-reported and shown beside the modelled results or as a benchmark, never mixed into one number (ADR 0027).",
+    "capabilities": []
+   },
+   {
     "id": "AC-11",
-    "statement": "The report is assembled from stored results, passes the evidence audit and the legal source-use gate, and is delivered only after a reviewer other than its producer approves it (unless study policy explicitly allows self-approval).",
+    "statement": "Design Research runs live on the full study design through the search route approved for Class B under an EU processing agreement; every finding is a quote grounded in a captured source; a person adds a checked source to the client's knowledge in one click; accepted findings appear as cited context in the report, never as respondent evidence, and the run's sources are kept as a dataset.",
+    "capabilities": []
+   },
+   {
+    "id": "AC-12",
+    "statement": "The same client's past study is found in project memory and its design reused in the new study with its citation and labels; another client's studies cannot be found.",
+    "capabilities": [
+     "project.memory"
+    ]
+   },
+   {
+    "id": "AC-13",
+    "statement": "The internal report and the client report (DOCX and PDF) pass the evidence audit and the legal source-use gate. The client report carries only approved maps and labelled modelled and client-reported numbers, no analysis prose; a client receives only approved exports, delivered after a reviewer other than the producer approves them.",
     "capabilities": [
      "reports.generation",
      "governance.evidence_audit",
@@ -4076,26 +4085,21 @@
     ]
    },
    {
-    "id": "AC-12",
-    "statement": "Configuration is typed and recorded on the run; a malformed edition file refuses to start rather than enabling every provider.",
+    "id": "AC-14",
+    "statement": "Configuration is typed and recorded on the run; a malformed edition file refuses to start.",
     "capabilities": [
      "config.environment",
      "config.edition"
     ]
    },
    {
-    "id": "AC-13",
-    "statement": "Every number in the delivered report traces to stored provenance -- input fingerprints, provider, model, population version and weight identity -- and the study's spend reconciles to the usage ledger within USD 0.01.",
+    "id": "AC-15",
+    "statement": "Every number in the report traces to provenance (fingerprints, provider, model, prompt version, population version, weight identity, data contract); spend reconciles to AIA's usage ledger within USD 0.01 and agrees with the develop-tagged AWS cost record.",
     "capabilities": [
      "artifacts.registration",
      "ai.usage_ledger",
      "cost.estimation"
     ]
-   },
-   {
-    "id": "AC-14",
-    "statement": "In the same CI run, every capability named above reports PASS from executed gates -- not skipped, not NOT_EXECUTED -- and is IMPLEMENTED.",
-    "capabilities": []
    }
   ]
  }
