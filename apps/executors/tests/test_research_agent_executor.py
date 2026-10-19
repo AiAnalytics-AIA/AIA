@@ -938,3 +938,28 @@ def test_a_dismissed_proposal_may_still_be_accepted_and_an_accepted_one_is_not_d
         assert refused.value.reason == "proposal_already_accepted"
         session.commit()
         assert [r.decision for r in ledger(session, run_id)] == ["dismiss", "accept"]
+
+
+def test_a_dismissal_takes_the_study_lock_before_it_reads_the_decision(
+    world: Any, database_url: str, store: Any, build: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A dismissal racing an accept must read the decision the accept committed: it locks the
+    Study row, as every accept does, before it reads the ledger or writes to it."""
+    d1 = design_on_working_copy(world)
+    run_id = job_on(world, database_url, store, build, d1)
+    order: list[str] = []
+    locking, deciding = StudyDesignRepository.lock, WorkflowRepository.ai_proposal_decisions
+
+    def lock(self: Any) -> None:
+        order.append("lock")
+        locking(self)
+
+    def decisions(self: Any, run_ids: Any) -> dict[str, str]:
+        order.append("decisions")
+        return deciding(self, run_ids)
+
+    monkeypatch.setattr(StudyDesignRepository, "lock", lock)
+    monkeypatch.setattr(WorkflowRepository, "ai_proposal_decisions", decisions)
+    with world.sessions() as session:
+        assert ResearchAgentJobs(session, world.lead_scope(session)).dismiss(run_id) is True
+    assert order[0] == "lock" and "decisions" in order

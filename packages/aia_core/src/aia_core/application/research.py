@@ -1493,6 +1493,9 @@ class ResearchAgentJobs:
         self.scope.require(Permission.EDIT_STUDY)
         self.scope.require(Permission.APPROVE_GATE)
         self.scope.require_open_study()
+        # The Study row lock every accept takes: a dismissal racing an accept reads the
+        # decision the other committed, never writes a row contradicting it.
+        StudyDesignRepository(self.session, self.scope).lock()
         run = self.get(run_id)
         action = str(run["metadata"].get("action"))
         state = self.proposal_states([run])[run_id]
