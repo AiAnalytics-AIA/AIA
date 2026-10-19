@@ -430,14 +430,19 @@ def test_every_ported_module_is_claimed_by_a_started_capability(
 # --------------------------------------------------------------------------- #
 
 
-def test_release_blocker_is_exactly_the_mvp_path(capabilities: dict[str, dict[str, Any]]) -> None:
+def test_parity_blocks_no_release(capabilities: dict[str, dict[str, Any]]) -> None:
+    """Parity with 18.6.6 is information, never a release gate (the owner, 2026-10-19, MVP-21):
+    a capability on the acceptance path has its parity reported, and blocks nothing."""
     for cid, cap in capabilities.items():
         blocker = cap["release_blocker"]
-        assert blocker["reason"].strip(), cid
-        assert blocker["blocking"] == cap["mvp_path"], (
-            f"{cid}: release_blocker must follow the MVP acceptance path, so a blocker "
-            "is something the acceptance test cannot pass without"
+        assert not blocker["blocking"], (
+            f"{cid}: parity is no release gate (MVP-21); release is decided by the "
+            "acceptance criteria, not by a capability's parity"
         )
+        assert "MVP-21" in blocker["reason"], cid
+        assert blocker["reason"].startswith(
+            "On the MVP acceptance path" if cap["mvp_path"] else "Off the MVP path"
+        ), cid
 
 
 def test_off_path_high_risk_capabilities_say_why(capabilities: dict[str, dict[str, Any]]) -> None:
