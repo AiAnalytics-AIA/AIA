@@ -82,6 +82,9 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
     kept.set(studyId, { draft, queued });
   }, [studyId, draft, queued]);
   const [sending, setSending] = useState(false);
+  // A message the server did not take goes back to the front of the queue, held until the person
+  // says to try again: never lost, never resent in a loop.
+  const [held, setHeld] = useState(false);
   // Every read, successful or not, moves this on, so a busy session is read again after a failed read.
   const [reads, setReads] = useState(0);
   const applied = useRef<string | null>(null);
@@ -125,17 +128,28 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
     if (!first && last.output?.view?.length) onView(last.output.view);
   }, [session, onView]);
 
-  const post = useCallback(async (body: Parameters<typeof leadApi.post>[1]) => {
+  const post = useCallback(async (body: Parameters<typeof leadApi.post>[1]): Promise<boolean> => {
     setSending(true);
     try {
       await leadApi.post(studyId, body);
-      await read();
     } catch (e) {
       setError(e instanceof ApiError ? reasonWords(e.code) : String(e));
+      setSending(false);
+      return false;
+    }
+    try {
+      await read();
     } finally {
       setSending(false);
     }
+    return true;
   }, [studyId, read]);
+
+  const message = useCallback(async (m: Queued) => {
+    if (await post({ kind: "message", text: m.text, stage: m.stage, focus: m.focus })) return;
+    setQueued((q) => [m, ...q]);
+    setHeld(true);
+  }, [post]);
 
   // The Lead greets a study it has not spoken in for eight hours (the server keeps the rule).
   useEffect(() => {
@@ -146,17 +160,17 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
 
   // A message written while the Lead works waits, then goes.
   useEffect(() => {
-    if (session?.busy || sending || !queued.length) return;
+    if (session?.busy || sending || held || !queued.length) return;
     const [next, ...rest] = queued;
     setQueued(rest);
-    if (next) void post({ kind: "message", text: next.text, stage: next.stage, focus: next.focus });
-  }, [session, sending, queued, post]);
+    if (next) void message(next);
+  }, [session, sending, held, queued, message]);
 
   const send = (text: string) => {
     const t = text.trim();
     if (!t) return;
-    if (session?.busy || sending) setQueued((q) => [...q, { text: t, stage, focus }]);
-    else void post({ kind: "message", text: t, stage, focus });
+    if (session?.busy || sending || held) setQueued((q) => [...q, { text: t, stage, focus }]);
+    else void message({ text: t, stage, focus });
     setDraft("");
     onClearFocus();
   };
@@ -187,6 +201,10 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
       </div>
       <Conversation turns={session?.turns ?? []} jobs={jobs} onOpenJob={onOpenJob} busy={!!session?.busy || sending} name={name} onFollow={send} onView={onView} onRequest={onRequest} canEdit={canEdit}>
         {error ? <div className="msg"><div className="notice"><Glyph tone="fault" size={11} />{error}</div></div> : null}
+        {held ? (
+          <div className="msg"><div className="notice"><Glyph tone="fault" size={11} />Zprávu se nepodařilo odeslat. Čeká ve frontě.
+            <button type="button" className="chip" onClick={() => { setError(null); setHeld(false); }}>Zkusit znovu</button></div></div>
+        ) : null}
         {me && !me.hatched ? <HatchCard onHatch={hatch} /> : null}
         {session && !session.available ? <div className="msg"><div className="notice"><Glyph tone="inert" size={11} />{reasonWords(session.unavailable_reason ?? "research_lead_unavailable")}</div></div> : null}
       </Conversation>

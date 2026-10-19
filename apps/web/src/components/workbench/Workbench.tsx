@@ -144,11 +144,12 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
     const t = setTimeout(() => void onRefreshJobs().finally(() => setJobPolls((n) => n + 1)), 3000);
     return () => clearTimeout(t);
   }, [moving, jobs, jobPolls, onRefreshJobs]);
-  // The budget meter is read again whenever a run or a design job changes state: both spend.
+  // The budget meter is read again whenever a run, a design job or a Lead turn changes state: all spend.
   const jobStates = jobs.map((j) => `${j.run_id}:${j.status}`).join(",");
+  const turnStates = turns.map((t) => `${t.turn_id}:${t.status}`).join(",");
   useEffect(() => {
     api.study(frame.studyId).then(setStudy, () => setStudy(null));
-  }, [frame.studyId, runs, jobStates]);
+  }, [frame.studyId, runs, jobStates, turnStates]);
 
 
   const go = useCallback((target: WorkbenchStage) => {
@@ -376,13 +377,18 @@ function EditsBar({ items, state, marks, canEdit, onAccept, onDismiss }: {
 function StudyHeader({ frame, study, pending, blocked, onPending }: { frame: StudyFrame; study: Study | null; pending: number; blocked: number; onPending: () => void }) {
   const router = useRouter();
   const [menu, setMenu] = useState(false);
+  // Leaving the study goes through a link's click too, so Návrh's leave guard can stop it.
+  const leave = (url: string) => {
+    setMenu(false);
+    guardedNavigate(url, (u) => router.push(u));
+  };
   const budget = study?.budget_usd ?? null;
   const spent = study?.spent_usd ?? null;
   const spentPct = budget && spent !== null ? Math.min(100, (spent / budget) * 100) : 0;
   return (
     <header className="shead">
       <span className="shead__band" aria-hidden="true" />
-      <button type="button" className="shead__home" onClick={() => router.push(appRoutes.client(frame.clientId))} aria-label={`Klienti › ${frame.clientName}`}>
+      <button type="button" className="shead__home" onClick={() => leave(appRoutes.client(frame.clientId))} aria-label={`Klienti › ${frame.clientName}`}>
         <span className="shead__mono" aria-hidden="true">{initials(frame.clientName)}</span>
         <span className="shead__title"><span className="shead__client">Klienti › {frame.clientName}</span><span className="shead__study">{frame.studyName}</span></span>
       </button>
@@ -400,10 +406,10 @@ function StudyHeader({ frame, study, pending, blocked, onPending }: { frame: Stu
           <>
             <div className="scrim" onClick={() => setMenu(false)} />
             <div className="pop menu" style={{ right: 0, top: 34, width: 280 }} role="menu">
-              <button type="button" role="menuitem" className="listbtn" onClick={() => router.push(appRoutes.lead())}>Můj Vedoucí výzkumu</button>
-              <button type="button" role="menuitem" className="listbtn" onClick={() => router.push(appRoutes.client(frame.clientId))}>Pracovní prostor klienta</button>
-              <button type="button" role="menuitem" className="listbtn" onClick={() => router.push(appRoutes.memory())}>Projektová paměť</button>
-              <button type="button" role="menuitem" className="listbtn" onClick={() => router.push(appRoutes.settings())}>Nastavení</button>
+              <button type="button" role="menuitem" className="listbtn" onClick={() => leave(appRoutes.lead())}>Můj Vedoucí výzkumu</button>
+              <button type="button" role="menuitem" className="listbtn" onClick={() => leave(appRoutes.client(frame.clientId))}>Pracovní prostor klienta</button>
+              <button type="button" role="menuitem" className="listbtn" onClick={() => leave(appRoutes.memory())}>Projektová paměť</button>
+              <button type="button" role="menuitem" className="listbtn" onClick={() => leave(appRoutes.settings())}>Nastavení</button>
             </div>
           </>
         ) : null}

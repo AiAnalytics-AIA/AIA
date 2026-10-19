@@ -295,6 +295,9 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
   const workbench = useWorkbenchSwitch();
   const wide = useWideEnough();
   const onTrack = TRACK_STEPS.includes(step) && step !== "run" && step !== "progress" && step !== "results";
+  // Stable across the editors' renders, so typing does not keep restarting the workbench's job poll.
+  const refreshAgents = agents.refresh;
+  const refreshJobs = useCallback(() => refreshAgents().catch(() => {}), [refreshAgents]);
   const savedProposals = agents.recent.filter((j) => j.status === "COMPLETED" && !isAdviceAction(j.action));
 
   return (
@@ -303,7 +306,7 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
       {workbench && wide ? (
         <InspectorProvider disabled={!frame.canEdit && DESIGN_STEPS.has(step)}>{(column) => (
           <Workbench frame={frame} step={step} store={store} reload={reload} confirm={confirm} onAgentStarted={() => void agents.refresh()}
-            jobs={agents.recent} onOpenJob={(j) => void agents.open(j)} onRefreshJobs={() => agents.refresh().catch(() => {})}
+            jobs={agents.recent} onOpenJob={(j) => void agents.open(j)} onRefreshJobs={refreshJobs}
             save={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} onReload={reload} />}
             inspector={column(<>
               {expanded ? panel : card}

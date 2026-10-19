@@ -20,6 +20,7 @@ const turn = (over: Partial<LeadTurn>): LeadTurn => ({
 let me: ResearcherLead;
 let state: LeadState;
 let posts: unknown[];
+let failPosts = 0;
 function api() {
   vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
     const u = String(url);
@@ -30,6 +31,10 @@ function api() {
     }
     if (u === "/api/v1/lead") return new Response(JSON.stringify(me));
     if (u.endsWith("/lead/turns")) {
+      if (failPosts > 0) {
+        failPosts -= 1;
+        return new Response(JSON.stringify({ code: "service_unavailable" }), { status: 503 });
+      }
       posts.push(JSON.parse(String(init?.body)));
       return new Response(JSON.stringify({ turns: [] }), { status: 201 });
     }
@@ -41,6 +46,7 @@ function api() {
 beforeEach(() => {
   sessionStorage.setItem("aia.session", JSON.stringify({ idToken: "tok", refreshToken: "r", expiresAt: Date.now() + 3_600_000, email: "a@example.test" }));
   posts = [];
+  failPosts = 0;
   me = hatched;
   state = { available: true, unavailable_reason: null, busy: false, turns: [] };
   api();
@@ -120,5 +126,19 @@ describe("LeadPane", () => {
     rerender(pane({ focus: null, stage: "design" }));
     state = { ...state, busy: false, turns: [turn({ output: { reply: "Hotovo." } })] };
     await waitFor(() => expect(posts.at(-1)).toEqual({ kind: "message", text: "Zkrať ji", stage: "brief", focus }), { timeout: 4000 });
+  });
+
+  it("keeps a message the server did not take, held until the researcher tries again", async () => {
+    state = { ...state, turns: [turn({ output: { reply: "Dobrý den." } })] };
+    render(pane());
+    await waitFor(() => expect(posts).toEqual([{ kind: "greeting", stage: "brief" }]));
+    failPosts = 1;
+    fireEvent.change(screen.getByLabelText("Napište Vedoucímu výzkumu"), { target: { value: "Je cíl dost konkrétní?" } });
+    fireEvent.keyDown(screen.getByLabelText("Napište Vedoucímu výzkumu"), { key: "Enter" });
+    expect(await screen.findByText("Je cíl dost konkrétní?")).toBeTruthy();
+    expect(screen.getByText(/Zprávu se nepodařilo odeslat/)).toBeTruthy();
+    expect(posts).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }));
+    await waitFor(() => expect(posts[1]).toEqual({ kind: "message", text: "Je cíl dost konkrétní?", stage: "brief", focus: null }));
   });
 });
