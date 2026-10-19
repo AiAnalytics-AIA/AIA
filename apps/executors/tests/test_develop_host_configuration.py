@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from aia_core.domain.residency import DataClass
 from aia_executors.ai_runtime import AIRuntimeSettings
 
 api_config: Any = pytest.importorskip(
@@ -124,6 +125,43 @@ def test_the_api_starts_with_the_develop_hosts_configuration(
 def test_the_worker_starts_its_ai_runtime_with_the_develop_hosts_configuration() -> None:
     settings = AIRuntimeSettings.from_env(_container("worker", HOST_ENV))
     assert settings is not None
+
+
+#: The route widened as deploy/develop/README.md § AI route classes sets it (ADR 0010,
+#: amendment 2026-10-19): Classes A, B and C, with the confirmed retention stated.
+WIDENED_ENV = {
+    **HOST_ENV,
+    "AIA_AI_ROUTE_APPROVED_FOR": (
+        "CLASS_A_CLIENT_CONFIDENTIAL,CLASS_B_DERIVED_CLIENT,CLASS_C_INTERNAL"
+    ),
+    "AIA_AI_ROUTE_RETENTION_DAYS": "0",
+}
+
+
+def test_the_route_widened_to_a_b_and_c_starts_both_and_carries_client_material(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    worker = _container("worker", WIDENED_ENV)
+    settings = AIRuntimeSettings.from_env(worker)
+    assert settings is not None
+    route = settings.route()
+    assert route.approved_for == frozenset(DataClass)
+    # What ADR 0008 asks of a route before Classes A and B may travel over it.
+    assert route.is_eu_processing and route.excluded_from_training
+    assert route.has_bounded_retention and route.retention_days == 0
+    # Settings shows the classes from the web container's environment (/config).
+    web = _container("web", WIDENED_ENV)
+    assert web["AIA_AI_ROUTE_APPROVED_FOR"] == WIDENED_ENV["AIA_AI_ROUTE_APPROVED_FOR"]
+    _api_settings(_container("api", WIDENED_ENV), monkeypatch).validate_for_production()
+
+
+def test_widened_without_its_retention_the_route_cannot_carry_client_material() -> None:
+    """The runbook's order: the retention is confirmed and set with the classes, never after.
+    Without it the worker starts, and the egress check refuses A and B on the route."""
+    unset = {k: v for k, v in WIDENED_ENV.items() if k != "AIA_AI_ROUTE_RETENTION_DAYS"}
+    settings = AIRuntimeSettings.from_env(_container("worker", unset))
+    assert settings is not None
+    assert not settings.route().has_bounded_retention
 
 
 def test_the_same_configuration_under_staging_is_refused_by_both(

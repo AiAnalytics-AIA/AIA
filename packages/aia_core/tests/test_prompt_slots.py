@@ -238,14 +238,18 @@ def test_the_codes_own_wording_needs_no_approval_and_is_class_c() -> None:
     for slot in slots():
         if slot.wired:
             assert prompt_data_class(slot.baseline_pin(), ()) is DataClass.CLASS_C_INTERNAL
+    # The request carries the design too: Class B by the owner's rule (2026-10-19), which the
+    # prompt's Class C does not lower.
     request = _request(ResearchAction.CRITIQUE)
-    assert request.data_classification is DataClass.CLASS_C_INTERNAL
+    assert request.data_classification is DataClass.CLASS_B_DERIVED_CLIENT
 
 
 def test_a_declared_edit_is_class_c_with_no_operator_step() -> None:
     """The author's recorded declaration classifies the version automatically."""
-    request = _request(ResearchAction.CRITIQUE, prompt=_stored("Zkritizuj návrh stručně."))
-    assert request.data_classification is DataClass.CLASS_C_INTERNAL
+    pin = _stored("Zkritizuj návrh stručně.")
+    assert prompt_data_class(pin, ()) is DataClass.CLASS_C_INTERNAL
+    request = _request(ResearchAction.CRITIQUE, prompt=pin)
+    assert request.data_classification is DataClass.CLASS_B_DERIVED_CLIENT  # the design's, by rule
 
 
 def test_a_version_with_no_declaration_is_never_sent() -> None:
@@ -258,8 +262,9 @@ def test_a_version_with_no_declaration_is_never_sent() -> None:
 def test_an_operator_can_classify_a_version_that_has_no_declaration() -> None:
     undeclared = _stored("Zkritizuj návrh stručně.", declared=False)
     approvals = (DESIGN_APPROVAL, _approve(undeclared.text))
+    assert prompt_data_class(undeclared, approvals) is DataClass.CLASS_C_INTERNAL
     request = _request(ResearchAction.CRITIQUE, prompt=undeclared, approvals=approvals)
-    assert request.data_classification is DataClass.CLASS_C_INTERNAL
+    assert request.data_classification is DataClass.CLASS_B_DERIVED_CLIENT  # the design's
     # One changed character is different material: the approval no longer applies.
     edited = _stored(undeclared.text + " ", declared=False)
     refused = _request(ResearchAction.CRITIQUE, prompt=edited, approvals=approvals)
@@ -271,8 +276,9 @@ def test_the_operators_stricter_class_beats_the_authors_declaration() -> None:
     pin = _stored(f"Zkritizuj návrh. Kontext: {CLIENT_MATERIAL}")
     # As declared, the text travels as Class C: that is the trust the declaration places in its
     # author, which is why it is recorded with their name.
+    assert prompt_data_class(pin, ()) is DataClass.CLASS_C_INTERNAL
     as_declared = _request(ResearchAction.CRITIQUE, prompt=pin)
-    assert as_declared.data_classification is DataClass.CLASS_C_INTERNAL
+    assert as_declared.data_classification is DataClass.CLASS_B_DERIVED_CLIENT  # the design's
     as_client = (DESIGN_APPROVAL, _approve(pin.text, DataClass.CLASS_A_CLIENT_CONFIDENTIAL))
     request = _request(ResearchAction.CRITIQUE, prompt=pin, approvals=as_client)
     assert request.data_classification is DataClass.CLASS_A_CLIENT_CONFIDENTIAL  # route refuses
@@ -281,9 +287,10 @@ def test_the_operators_stricter_class_beats_the_authors_declaration() -> None:
 def test_an_operator_and_a_declaration_that_agree_stay_class_c() -> None:
     pin = _stored("Zkritizuj návrh stručně.")
     approvals = (DESIGN_APPROVAL, _approve(pin.text))
+    assert prompt_data_class(pin, approvals) is DataClass.CLASS_C_INTERNAL
     assert _request(
         ResearchAction.CRITIQUE, prompt=pin, approvals=approvals
-    ).data_classification is (DataClass.CLASS_C_INTERNAL)
+    ).data_classification is (DataClass.CLASS_B_DERIVED_CLIENT)
 
 
 def test_a_declaration_is_all_or_nothing_and_never_on_the_codes_wording() -> None:

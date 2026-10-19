@@ -57,6 +57,7 @@ from aia_core.domain.ai_respondent import (
 )
 from aia_core.domain.fieldwork import Answer, PersonaSource, persona_source_of
 from aia_core.domain.licence import DataLineage
+from aia_core.domain.material_rules import MaterialRule, classify_by_rule
 from aia_core.domain.methodology.pins import is_units_process, read_response_pin
 from aia_core.domain.panel_persona import PersonaRefused
 from aia_core.domain.panel_source import (
@@ -422,16 +423,12 @@ class AIFieldwork:
             run = workflow.get_run(step.run_id)
             revision_id = str(run["metadata"]["design_revision_id"])
             design = StudyDesignRepository(session, context.scope).content(revision_id)
-        decision = classify_input(design, cfg.material_approvals)
+        # The run's design is Class B by the owner's rule (2026-10-19, ``material_rules``);
+        # an operator's classification of its exact bytes can only raise it, and the roster's
+        # or the panel's class can only raise it too.
+        decision = classify_by_rule(design, MaterialRule.DESIGN, cfg.material_approvals)
         classified = most_restrictive_material([data_class, decision.data_class])
-        if classified is None:
-            return Failed(
-                FailureClass.RUNTIME_UNAVAILABLE,
-                error={
-                    "reason": "egress_unclassified_material",
-                    "message": "Zadání nemá klasifikaci vstupních dat. Nic nebylo odesláno.",
-                },
-            )
+        assert classified is not None  # both are classes: the personas' and the design's
         data_class = classified
         try:
             plans = (

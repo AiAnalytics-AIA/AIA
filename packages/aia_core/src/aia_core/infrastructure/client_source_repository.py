@@ -12,7 +12,9 @@ deletion stays one prefix operation, as every artifact's key is laid out
 Adding the same bytes again keeps one source and records another occurrence.
 
 Reading the sources needs ``VIEW_CLIENT_KNOWLEDGE``; adding one needs
-``PROPOSE_CLIENT_KNOWLEDGE``: it brings material, and accepts nothing.
+``PROPOSE_CLIENT_KNOWLEDGE``: it brings material, and accepts nothing. Marking a source
+"Interní dokument", or unmarking it, needs the same, as re-reading does; who and when are on
+the row and every change is audited.
 """
 
 from __future__ import annotations
@@ -27,6 +29,7 @@ from sqlalchemy.orm import Session
 from ..domain.attachments import extension_of
 from ..domain.client_sources import (
     SOURCE_MAX_BYTES,
+    InternalMark,
     ReadingOutcome,
     SourceFamily,
     SourceOccurrence,
@@ -103,7 +106,11 @@ class ClientSourceRepository:
     # ------------------------------------------------------------------ reading
 
     def _rows(
-        self, scope: ClientContext | ClientWorkContext, source_ids: list[str] | None = None
+        self,
+        scope: ClientContext | ClientWorkContext,
+        source_ids: list[str] | None = None,
+        *,
+        for_update: bool = False,
     ) -> list[ClientSourceRow]:
         query = select(ClientSourceRow).where(
             ClientSourceRow.organization_id == scope.organization_id,
@@ -111,10 +118,20 @@ class ClientSourceRepository:
         )
         if source_ids is not None:
             query = query.where(ClientSourceRow.source_id.in_(source_ids))
+        if for_update:
+            # Locked and read again from the database: a check made on this row holds until
+            # the transaction ends, never against a copy the session already had.
+            query = query.with_for_update().execution_options(populate_existing=True)
         return list(self._session.scalars(query).all())
 
-    def _row(self, scope: ClientContext | ClientWorkContext, source_id: str) -> ClientSourceRow:
-        rows = self._rows(scope, [source_id])
+    def _row(
+        self,
+        scope: ClientContext | ClientWorkContext,
+        source_id: str,
+        *,
+        for_update: bool = False,
+    ) -> ClientSourceRow:
+        rows = self._rows(scope, [source_id], for_update=for_update)
         if not rows:
             raise ScopeDenied("not found", reason="unknown_source")
         return rows[0]
@@ -156,6 +173,13 @@ class ClientSourceRepository:
                 segments=r.segment_count,
                 occurrences=tuple(occurrences[r.source_id]),
                 created_at=as_utc(r.created_at),
+                internal=None
+                if r.internal_marked_by is None
+                else InternalMark(
+                    by=r.internal_marked_by,
+                    # Kept whole by the row's check: a mark has its time.
+                    at=as_utc(r.internal_marked_at) if r.internal_marked_at else None,
+                ),
             )
             for r in rows
         ]
@@ -219,6 +243,15 @@ class ClientSourceRepository:
             raise SourceReadingChanged(source_id)
         data = self._store.get(row.reading_key, expected_sha256=reading_sha256)
         return self._records([row])[0], SourceReading.model_validate_json(data)
+
+    def marked_internal(self, scope: ClientWorkContext, source_id: str) -> bool:
+        """Whether the source is marked "Interní dokument" now, as the worker reads it before
+        each request of the client's own work: a mark removed mid-run stops the run rather
+        than letting its later requests go out under the class it no longer has."""
+        if not isinstance(scope, ClientWorkContext):
+            raise ScopeDenied("client work requires a client work context", reason="forged_scope")
+        scope.require(Permission.RUN_WORKFLOW)
+        return self._row(scope, source_id).internal_marked_by is not None
 
     def original(self, scope: ClientContext, source_id: str) -> tuple[str, bytes]:
         """The original's bytes, verified, and the name it was last added under."""
@@ -404,6 +437,53 @@ class ClientSourceRepository:
         )
         self._session.flush()
         return True
+
+    # ------------------------------------------------------------- internal mark
+
+    def mark_internal(
+        self, scope: ClientContext, source_id: str, *, internal: bool
+    ) -> tuple[SourceRecord, bool]:
+        """Mark the source "Interní dokument" (``internal``) or unmark it; ``True`` when that
+        changed it.
+
+        Needs ``PROPOSE_CLIENT_KNOWLEDGE``, as adding and re-reading do. A marked source is
+        Class C by the owner's rule (``material_rules.source_rule``), an unmarked one Class
+        A. Who and when are kept on the row; each change is an ``access_audit`` row. Marking
+        a marked source, or unmarking an unmarked one, changes and audits nothing.
+        """
+        scope = _client(scope)
+        scope.require(ClientPermission.PROPOSE_CLIENT_KNOWLEDGE)
+        # The row is locked before it is checked: a mark and an unmark sent together are
+        # applied one after the other, so the answer each gets is the state it left.
+        row = self._row(scope, source_id, for_update=True)
+        if (row.internal_marked_by is not None) == internal:
+            return self._records([row])[0], False
+        before = row.internal_marked_by
+        if internal:
+            row.internal_marked_by, row.internal_marked_at = scope.actor_id, utcnow()
+        else:
+            row.internal_marked_by, row.internal_marked_at = None, None
+        self._session.add(
+            AccessAuditRow(
+                organization_id=scope.organization_id,
+                client_id=scope.client_id,
+                actor_id=scope.actor_id,
+                action="CLIENT_SOURCE_MARKED_INTERNAL"
+                if internal
+                else "CLIENT_SOURCE_UNMARKED_INTERNAL",
+                reason="",
+                payload={
+                    "source_id": row.source_id,
+                    "sha256": row.sha256,
+                    "internal": internal,
+                    # Who had marked it, when it is unmarked: the history keeps both people.
+                    "marked_by": before,
+                },
+                request_id=scope.request_id,
+            )
+        )
+        self._session.flush()
+        return self._records([row])[0], True
 
     def reread(self, scope: ClientContext, source_id: str) -> tuple[SourceRecord, bool]:
         """Read a source again with its format's current reader; ``True`` when it was.

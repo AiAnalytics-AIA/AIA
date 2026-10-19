@@ -40,6 +40,7 @@ from aia_core.domain.research_lead import (
     LEAD_HARNESS_VERSION,
     LEAD_PROMPT_ID,
     LeadOutput,
+    context_classification,
     context_sha256,
     ground_edits,
     ground_self_update,
@@ -215,6 +216,12 @@ class ResearchLeadExecutor:
                 "policy_version": result.provenance.policy_version,
                 "cost_usd": result.total_cost_usd,
                 "data_class": request.data_classification.value,
+                # Each part's class and who answered for it: a rule of the owner's
+                # (``rule:<name>``), an operator who raised it, the prompt's declaration or the
+                # code, an earlier reply's turn (``context_classification``).
+                "material_classification": context_classification(
+                    frozen, cfg.material_approvals, pin
+                ),
             },
         )
 

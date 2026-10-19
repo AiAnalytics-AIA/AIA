@@ -30,6 +30,7 @@ __all__ = [
     "NAME_MAX_CHARS",
     "SOURCE_MAX_BYTES",
     "SOURCE_TEXT_MAX_CHARS",
+    "InternalMark",
     "Locator",
     "ReadingNote",
     "ReadingOutcome",
@@ -323,6 +324,17 @@ class SourceOccurrence(BaseModel):
     added_at: datetime | None
 
 
+class InternalMark(BaseModel):
+    """A person marked the source "Interní dokument": an internal AIA document that holds
+    nothing of the client's. The product owner's rule of 2026-10-19 (``material_rules``)
+    then makes it Class C, where a client's source is Class A. Who marked it, and when."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    by: str
+    at: datetime | None
+
+
 class SourceRecord(BaseModel):
     """A client's source as listed: the original's identity and what reading produced.
 
@@ -345,6 +357,8 @@ class SourceRecord(BaseModel):
     segments: int
     occurrences: tuple[SourceOccurrence, ...]
     created_at: datetime | None
+    #: Marked "Interní dokument" by a person; ``None`` for a client's source (Class A).
+    internal: InternalMark | None = None
 
     @model_validator(mode="after")
     def _ids(self) -> SourceRecord:

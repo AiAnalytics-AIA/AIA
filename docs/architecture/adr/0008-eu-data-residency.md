@@ -1,7 +1,8 @@
 # ADR 0008 — EU data residency and the egress boundary
 
 **Status:** Accepted. Frozen invariant; enforcement implemented in
-`aia_core.domain.residency`.
+`aia_core.domain.residency`. Amended 2026-10-19 by the product owner: classes by rule
+(§ Amendment 2026-10-19).
 **Date:** 2026-09-22
 
 ## Context
@@ -134,3 +135,49 @@ residency answer and must be a separate, separately approved route.
 - The legal basis changes materially.
 - A new class of material appears that none of A, B or C describes — in which case
   the default is the most restrictive, and the burden is on the exception.
+
+## Amendment 2026-10-19 (product owner)
+
+**Context.** A model request classified a study's design, its name and a researcher's message
+to the Research Lead only by an operator's approval of their exact bytes
+(`AIA_AI_MATERIAL_CLASSIFICATIONS`, [ai-material-classification.md](../ai-material-classification.md)).
+An edited design is new bytes, and so is every chat message: the Research Lead and the AI design
+jobs could never run on an edited design (OI-126). The fail-closed rule was right; classifying
+nothing but exact bytes made it unusable.
+
+**Decision.** Some material takes its class *by rule*: a decision of the code and the product
+owner, written once (`packages/aia_core/src/aia_core/domain/material_rules.py`) and read by every
+model caller of that material.
+
+| Material | Class |
+| --- | --- |
+| Methodology texts, AIA's own prompts, public sources | C (unchanged) |
+| A study's design: brief, research questions, questionnaire, audience, the attachment excerpts the design carries; the study's and its client's names | **B by rule**: derived client information |
+| A researcher's chat message and focus label to the Research Lead, in a study (and their instruction to an AI design job) | **B by rule**: the study's class |
+| The Lead's personal notes, its SOUL and USER files and its name | **C by rule**: they change only on the researcher's explicit "Pamatovat si" |
+| The Lead's client-scoped notes | A (unchanged) |
+| Approved Client Knowledge | A (unchanged) |
+| A client's uploaded source or dataset | A (unchanged), **unless a person marks the source "Interní dokument"**, an internal AIA document holding nothing of the client's, which makes it C; who marked it and when are kept and audited |
+
+Three properties are load-bearing:
+
+- **Unknown material still refuses.** A rule is a decision of the code and the owner, never a
+  default: material no rule names is still unclassified and does not leave AIA
+  (`egress_unclassified_material`) -- an undeclared prompt edit, an earlier Lead reply of unknown
+  class, a Lead note of a scope no rule names. § Fail closed is unchanged.
+- **An operator can only make a class stricter.** An operator's exact-bytes classification still
+  applies beside a rule and the request takes the more restrictive of the two, as a prompt's class
+  already takes the stricter of its author's declaration and an operator's classification. An
+  operator who finds client material in a design raises it to A; an operator's Class C for a
+  design leaves it at B.
+- **A rule approves no route.** Class B still needs a route approved for B, with confirmed EU
+  processing, training exclusion and a specified retention period (§ Data classes); a route
+  approved for C alone refuses a design. The licence gate for panel-derived data is unchanged.
+
+**Consequences.** Every executor that sends such material records each part's class and who
+answered for it (`rule:<name>`, `operator`, a prompt's declaration or the code) beside the
+request. A deployment that wants the Research Lead and the design jobs to run approves its route
+for Class B (ADR 0010, amendment of the same date). Deep Research keeps its exact-bytes
+classification of a design for now: its web routes carry Class C only and a query inherits the
+class of what it was written from, so the rule would refuse every web track; that is a decision
+still to be made (plan `usable-classification`, Findings).

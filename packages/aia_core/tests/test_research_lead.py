@@ -17,6 +17,7 @@ from aia_core.domain.ai_contracts import (
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.ai_models import ModelCapability
 from aia_core.domain.prompt_slots import get_slot
+from aia_core.domain.prompts import PromptPin
 from aia_core.domain.research_agents import FIXED_PREFIX
 from aia_core.domain.research_lead import (
     CONTEXT_MAX_BYTES,
@@ -32,6 +33,7 @@ from aia_core.domain.research_lead import (
     SelfUpdate,
     apply_edit,
     context_bytes,
+    context_classification,
     freeze_context,
     ground_edits,
     ground_self_update,
@@ -780,51 +782,98 @@ def test_the_request_is_the_study_lead_capability_with_no_tools_and_one_repair()
     assert agent.capability is not ModelCapability.RESEARCH_LEAD
     assert agent.allowed_tools == frozenset() and agent.schema_repair_attempts == 1
     assert request.system == lead_prompt() and request.system.startswith(FIXED_PREFIX)
-    assert request.data_classification is DataClass.CLASS_C_INTERNAL
+    # The design and the study's names: Class B by the owner's rule (2026-10-19).
+    assert request.data_classification is DataClass.CLASS_B_DERIVED_CLIENT
 
 
-def test_unclassified_material_refuses_dispatch_whatever_else_is_known() -> None:
-    assert _request(_context(), IDENTITY).data_classification is None  # the design
-    assert _request(_context(), DESIGN_OK).data_classification is None  # the study's identity
+def _classes(context: dict[str, Any], *approvals: MaterialApproval) -> dict[str, list[Any]]:
+    """Each part's (class, source), by part."""
+    prompt = PromptPin(**layer(context, "prompt")["pin"])
+    parts: dict[str, list[Any]] = {}
+    for part in context_classification(context, approvals, prompt):
+        parts.setdefault(part["part"], []).append((part["data_class"], part["source"]))
+    return parts
+
+
+B = DataClass.CLASS_B_DERIVED_CLIENT.value
+C = DataClass.CLASS_C_INTERNAL.value
+A = DataClass.CLASS_A_CLIENT_CONFIDENTIAL.value
+
+
+def test_the_design_names_and_a_message_are_class_b_by_rule_with_no_operator_step() -> None:
+    """OI-126: before the owner's rule every turn on an edited design parked; a message is new
+    bytes every time. The design, the study's names and the message are now Class B."""
     message = _context(
         view={"kind": "message", "stage": "brief", "focus": None, "message": "Nová zpráva"}
     )
-    assert _request(message, IDENTITY, DESIGN_OK).data_classification is None
+    assert _request(message).data_classification is DataClass.CLASS_B_DERIVED_CLIENT
+    parts = _classes(message)
+    assert parts["design"] == [(B, "rule:design")]
+    assert parts["study_name"] == [(B, "rule:study_name")]
+    assert parts["message"] == [(B, "rule:lead_message")]
+    assert parts["prompt"] == [(C, "code")]
+    assert parts["lead_soul"] == [(C, "rule:lead_files")]
+    # An operator's Class C for the exact bytes does not lower the rule.
     assert (
         _request(message, IDENTITY, DESIGN_OK, _approve("Nová zpráva")).data_classification
-        is DataClass.CLASS_C_INTERNAL
+        is DataClass.CLASS_B_DERIVED_CLIENT
     )
+    # An operator's Class A for the message raises the turn, and says who did.
+    raised = _approve("Nová zpráva", DataClass.CLASS_A_CLIENT_CONFIDENTIAL)
+    assert _request(message, raised).data_classification is DataClass.CLASS_A_CLIENT_CONFIDENTIAL
+    assert _classes(message, raised)["message"] == [(A, "operator")]
+    # An earlier message of the researcher takes the study's class too.
+    earlier = _context(conversation=[{"actor": "person", "stage": "brief", "text": "Dříve"}])
+    assert _classes(earlier)["earlier_message"] == [(B, "rule:lead_message")]
 
 
-def test_an_unapproved_focus_label_refuses_dispatch_like_a_message() -> None:
+def test_material_no_rule_covers_still_refuses_dispatch() -> None:
+    """ADR 0008's fail-closed rule stays: an undeclared prompt edit, an earlier reply of unknown
+    class and a note of a scope no rule names have no class, and the whole turn refuses."""
+    reply = {"actor": "lead", "stage": "brief", "reply": "Ahoj.", "data_class": None}
+    assert _request(_context(conversation=[reply])).data_classification is None
+    undeclared = PromptPin.of(
+        prompt_id=LEAD_PROMPT_ID, version="e1", origin="stored", text="Buď stručný."
+    )
+    assert _request(_context(prompt=undeclared)).data_classification is None
+    assert _classes(_context(prompt=undeclared))["prompt"] == [(None, "unknown")]
+    stray = {
+        "name": DEFAULT_LEAD_NAME,
+        "soul": DEFAULT_SOUL,
+        "user": "",
+        "notes": [{"memory_id": "LMM-1", "scope": "team", "text": "Poznámka"}],
+        "first_conversation": False,
+    }
+    assert _request(_context(lead=stray)).data_classification is None
+
+
+def test_a_focus_label_takes_the_studys_class_like_a_message() -> None:
     """The review of baac33d5: the focus label is text from the browser that reached the
-    model unclassified."""
+    model unclassified. It is the researcher's, Class B by rule; an operator can raise it."""
     view = {
         "kind": "message",
         "stage": "brief",
         "focus": {"id": "question:q1", "label": "Acme: tajný plán"},
         "message": "Nová zpráva",
     }
-    message = _approve("Nová zpráva")
-    assert _request(_context(view=view), IDENTITY, DESIGN_OK, message).data_classification is None
+    assert _request(_context(view=view)).data_classification is DataClass.CLASS_B_DERIVED_CLIENT
+    assert _classes(_context(view=view))["focus_label"] == [(B, "rule:lead_message")]
     label = _approve("Acme: tajný plán", DataClass.CLASS_A_CLIENT_CONFIDENTIAL)
     assert (
-        _request(_context(view=view), IDENTITY, DESIGN_OK, message, label).data_classification
+        _request(_context(view=view), label).data_classification
         is DataClass.CLASS_A_CLIENT_CONFIDENTIAL
     )
     unlabelled = {**view, "focus": {"id": "question:q1", "label": ""}}
-    assert (
-        _request(_context(view=unlabelled), IDENTITY, DESIGN_OK, message).data_classification
-        is DataClass.CLASS_C_INTERNAL
-    )
+    assert "focus_label" not in _classes(_context(view=unlabelled))
 
 
 def test_knowledge_and_client_notes_make_the_turn_class_a() -> None:
     knowledge = [{"item_id": "K1", "revision": 1, "kind": "FACT", "title": "t", "summary": "s"}]
     assert (
-        _request(_context(knowledge=knowledge), IDENTITY, DESIGN_OK).data_classification
+        _request(_context(knowledge=knowledge)).data_classification
         is DataClass.CLASS_A_CLIENT_CONFIDENTIAL
     )
+    assert _classes(_context(knowledge=knowledge))["knowledge"] == [(A, "rule:knowledge")]
     note = {"memory_id": "LMM-1", "scope": "client", "text": "Klient chce rychle."}
     lead = {
         "name": DEFAULT_LEAD_NAME,
@@ -833,32 +882,50 @@ def test_knowledge_and_client_notes_make_the_turn_class_a() -> None:
         "notes": [note],
         "first_conversation": False,
     }
+    # A client note is Class A by rule, an operator's Class C for its bytes notwithstanding.
     approved_note = _approve("Klient chce rychle.")
     assert (
-        _request(_context(lead=lead), IDENTITY, DESIGN_OK, approved_note).data_classification
+        _request(_context(lead=lead), approved_note).data_classification
         is DataClass.CLASS_A_CLIENT_CONFIDENTIAL
     )
-    personal = {**lead, "notes": [{**note, "scope": "personal"}]}
+    assert _classes(_context(lead=lead))["client_note"] == [(A, "rule:client_note")]
+
+
+def test_the_leads_own_files_and_personal_notes_are_class_c_by_rule() -> None:
+    """They change only on the researcher's explicit "Pamatovat si": Class C, which the
+    design's Class B outranks in the turn; an operator can raise one."""
+    personal = {
+        "name": "Můj vedoucí",
+        "soul": "# Jiná povaha",
+        "user": "Pracuje ráno.",
+        "notes": [{"memory_id": "LMM-1", "scope": "personal", "text": "Má rád tabulky."}],
+        "first_conversation": False,
+    }
+    parts = _classes(_context(lead=personal))
+    for part in ("lead_name", "lead_soul", "lead_user", "personal_note"):
+        assert parts[part] == [(C, "rule:lead_files")], part
+    assert _request(_context(lead=personal)).data_classification is DataClass.CLASS_B_DERIVED_CLIENT
+    raised = _approve("Má rád tabulky.", DataClass.CLASS_A_CLIENT_CONFIDENTIAL)
     assert (
-        _request(_context(lead=personal), IDENTITY, DESIGN_OK, approved_note).data_classification
-        is DataClass.CLASS_C_INTERNAL
+        _request(_context(lead=personal), raised).data_classification
+        is DataClass.CLASS_A_CLIENT_CONFIDENTIAL
     )
-    # An unclassified note, or a changed SOUL, refuses like any unclassified material.
-    assert _request(_context(lead=personal), IDENTITY, DESIGN_OK).data_classification is None
-    souled = {**lead, "notes": [], "soul": "# Jiná povaha"}
-    assert _request(_context(lead=souled), IDENTITY, DESIGN_OK).data_classification is None
 
 
 def test_an_earlier_reply_carries_the_class_its_turn_was_sent_as() -> None:
-    reply = {"actor": "lead", "stage": "brief", "reply": "Ahoj.", "data_class": "CLASS_C_INTERNAL"}
+    reply = {
+        "actor": "lead",
+        "stage": "brief",
+        "reply": "Ahoj.",
+        "data_class": "CLASS_A_CLIENT_CONFIDENTIAL",
+    }
     assert (
-        _request(_context(conversation=[reply]), IDENTITY, DESIGN_OK).data_classification
-        is DataClass.CLASS_C_INTERNAL
+        _request(_context(conversation=[reply])).data_classification
+        is DataClass.CLASS_A_CLIENT_CONFIDENTIAL
     )
+    assert _classes(_context(conversation=[reply]))["earlier_reply"] == [(A, "turn")]
     unknown = {**reply, "data_class": None}
-    assert (
-        _request(_context(conversation=[unknown]), IDENTITY, DESIGN_OK).data_classification is None
-    )
+    assert _request(_context(conversation=[unknown])).data_classification is None
 
 
 def test_a_dataset_in_the_knowledge_declares_its_lineage() -> None:

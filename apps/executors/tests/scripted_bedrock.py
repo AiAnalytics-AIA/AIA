@@ -34,7 +34,8 @@ def runtime_env(
     """The worker's AI runtime as configuration, for one fictional client: the switches the
     analysis and AI fieldwork need, test prices (not Bedrock's: the real entry is dated
     configuration, ADR 0010), and each design in ``contents`` classified as Class C material
-    the test generated wholly. ``overrides`` replace any key."""
+    the test generated wholly; a design is Class B by the owner's rule (2026-10-19) all the
+    same, so the route carries B. ``overrides`` replace any key."""
     env = {
         "AIA_ENV": "test",
         "AIA_AI_RUNTIME_ENABLED": "true",
@@ -49,7 +50,9 @@ def runtime_env(
         "AIA_BEDROCK_CONTEXT_WINDOW_TOKENS": "200000",
         "AIA_AI_ROUTE_EU_PROCESSING_APPROVED": "true",
         "AIA_AI_ROUTE_EXCLUDED_FROM_TRAINING": "true",
-        "AIA_AI_ROUTE_APPROVED_FOR": "CLASS_C_INTERNAL",
+        "AIA_AI_ROUTE_APPROVED_FOR": "CLASS_C_INTERNAL,CLASS_B_DERIVED_CLIENT",
+        # Class B, like A, needs the provider's retention stated.
+        "AIA_AI_ROUTE_RETENTION_DAYS": "0",
         "AIA_AI_FIELDWORK_MAX_OUTPUT_TOKENS": "1024",
         "AIA_AI_FIELDWORK_RESERVATION_USD": "0.25",
         # Today RESEARCH_REASONING is bound only with the design agents' switch; the

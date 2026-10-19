@@ -11,6 +11,10 @@ stands in the original, and a dataset's columns. ``GET …/{source_id}/original`
 bytes, as ``application/octet-stream``, never rendered in AIA's origin.
 ``POST …/{source_id}/reading`` -- read a source again with its format's current reader,
 when a newer one has come (OI-110).
+``PUT …/{source_id}/internal`` -- mark a source "Interní dokument" (``{"internal": true}``), an
+internal AIA document holding nothing of the client's, or unmark it. A marked source's AI
+proposals are sent as Class C, an unmarked one's as Class A (the product owner's rule of
+2026-10-19). Every source answers ``internal``: who marked it and when, or null.
 
 ``POST …/{source_id}/proposals`` -- ask AI for knowledge proposals from a document, as the
 client's own work paid by its budget, one run per reading (lifecycle K2d4); ``GET`` the
@@ -75,6 +79,18 @@ class SourceUpload(_Model):
     data_b64: str = Field(min_length=1, max_length=_B64_MAX)
 
 
+class InternalMarkRequest(_Model):
+    #: True marks the source "Interní dokument"; false unmarks it.
+    internal: bool
+
+
+class InternalMarkResponse(_Model):
+    """Who marked the source "Interní dokument", and when."""
+
+    by: str
+    at: datetime | None
+
+
 class OccurrenceResponse(_Model):
     occurrence_id: str
     filename: str
@@ -99,6 +115,9 @@ class SourceResponse(_Model):
     segments: int
     occurrences: list[OccurrenceResponse]
     created_at: datetime | None
+    #: Marked "Interní dokument" (Class C for AI): who and when; null for the client's own
+    #: material (Class A).
+    internal: InternalMarkResponse | None = None
 
 
 class SourceAddedResponse(SourceResponse):
@@ -383,6 +402,34 @@ def reread_source(
     except (IntegrityError, ObjectNotFound) as exc:
         raise _corrupt() from exc
     return SourceDetailResponse(**_source(record), reading=_reading(reading))
+
+
+@router.put(
+    "/{source_id}/internal",
+    response_model=SourceResponse,
+    summary='Mark a source "Interní dokument", or unmark it',
+)
+def mark_internal(
+    client_id: ClientIdPath,
+    source_id: SourceIdPath,
+    body: InternalMarkRequest,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> SourceResponse:
+    """Needs ``PROPOSE_CLIENT_KNOWLEDGE``, as adding and re-reading a source do. A marked
+    source is an internal AIA document holding nothing of the client's: Class C for AI, where
+    a client's source is Class A. Who and when are kept and every change is audited; marking
+    a marked source changes nothing."""
+    scope = _scope(principal, resolver, client_id)
+    try:
+        record, _changed = ClientSourceRepository(session, store).mark_internal(
+            scope, source_id, internal=body.internal
+        )
+    except ScopeDenied as exc:
+        raise _denied(exc) from exc
+    return SourceResponse(**_source(record))
 
 
 # ---------------------------------------------------------------- AI proposals (K2d4)

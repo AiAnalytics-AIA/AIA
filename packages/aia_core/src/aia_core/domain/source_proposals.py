@@ -17,20 +17,22 @@ a column-aware slice does that cell by cell.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Final, Literal
+from typing import Any, Final, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from .ai_contracts import AgentDefinition, Message, ModelRequest, canonical_json
+from .ai_material import MaterialApproval
 from .ai_models import ModelCapability
 from .client_sources import Locator, ReadingOutcome, Segment, SourceFamily, SourceReading
 from .deep_research.grounding import locate_quote
 from .deep_research.request_limits import ANSWER_BYTES_PER_TOKEN, FRAMING_BYTES
 from .knowledge import KnowledgeKind
 from .licence import DataLineage
-from .residency import DataClass
+from .material_rules import RuledMaterial, classify_by_rule, source_rule
 
 __all__ = [
     "BATCH_MAX_BYTES",
@@ -209,8 +211,33 @@ Když dokument nic takového neobsahuje, vrať prázdný seznam. Navrhni nejvý�
 """
 
 
-def proposal_request(batch: Batch, *, policy_version: str, max_output_tokens: int) -> ModelRequest:
-    """The request for one batch: Class A client material, no tools, no fallback.
+def batch_material(batch: Batch) -> list[dict[str, Any]]:
+    """The client's material one request carries: its numbered segments, as sent."""
+    return [{"segment": n, "text": s.text} for n, s in batch.segments]
+
+
+def batch_classification(
+    batch: Batch, *, internal: bool, approvals: Sequence[MaterialApproval] = ()
+) -> RuledMaterial:
+    """One batch's class: the source's rule (A, or C when a person marked it "Interní
+    dokument"), raised -- never lowered -- by an operator's classification of exactly the
+    material it sends, as every other rule-classified request is."""
+    return classify_by_rule(batch_material(batch), source_rule(internal=internal), approvals)
+
+
+def proposal_request(
+    batch: Batch,
+    *,
+    policy_version: str,
+    max_output_tokens: int,
+    internal: bool = False,
+    approvals: Sequence[MaterialApproval] = (),
+) -> ModelRequest:
+    """The request for one batch: no tools, no fallback.
+
+    Class A, a client's own material (``rule:client_source``), unless a person marked the
+    source "Interní dokument" (``internal``): an internal AIA document, Class C by the
+    owner's rule of 2026-10-19 (``material_rules.source_rule``).
 
     The segments go numbered; their locators stay with AIA, so the model can neither
     see nor alter where a quote will be said to come from. No client, study or person
@@ -228,7 +255,9 @@ def proposal_request(batch: Batch, *, policy_version: str, max_output_tokens: in
             schema_repair_attempts=1,
         ),
         policy_version=policy_version,
-        data_classification=DataClass.CLASS_A_CLIENT_CONFIDENTIAL,
+        data_classification=batch_classification(
+            batch, internal=internal, approvals=approvals
+        ).data_class,
         data_lineage=DataLineage.none(),
         system=_SYSTEM,
         messages=(
@@ -237,7 +266,7 @@ def proposal_request(batch: Batch, *, policy_version: str, max_output_tokens: in
                 content=canonical_json(
                     {
                         "instruction": "Navrhni znalosti z těchto segmentů dokumentu.",
-                        "segments": [{"segment": n, "text": s.text} for n, s in batch.segments],
+                        "segments": batch_material(batch),
                     }
                 ),
             ),

@@ -22,6 +22,7 @@ from aia_core.application.research import research_artifacts
 from aia_core.domain.ai_contracts import ModelCallFailed, canonical_json
 from aia_core.domain.ai_material import MaterialApproval, classify_material
 from aia_core.domain.design_items import Documents
+from aia_core.domain.material_rules import MaterialRule, rule_class
 from aia_core.domain.prompt_slots import get_slot
 from aia_core.domain.prompts import PromptPin
 from aia_core.domain.providers import Provider
@@ -30,6 +31,9 @@ from aia_core.domain.research_agents import (
     HARNESS_VERSION,
     ResearchAction,
     agent_request,
+    design_classification,
+    instruction_classification,
+    prompt_class_source,
     prompt_data_class,
     prompt_for,
     proposal_result,
@@ -68,21 +72,6 @@ def _pin_of(payload: Mapping[str, Any], action: ResearchAction) -> PromptPin:
     if pin.prompt_id != prompt_id:
         raise ValueError(f"prompt pin {pin.prompt_id} is not {prompt_id}")
     return pin
-
-
-def _prompt_class_source(pin: PromptPin, approvals: tuple[MaterialApproval, ...]) -> str:
-    """Who answered for the class: code, declaration, operator or declaration+operator."""
-    if pin.origin == "baseline":
-        return "code"
-    operator = classify_material(pin.text, approvals).data_class is not None
-    declared = pin.declared_class is not None
-    return (
-        "declaration+operator"
-        if operator and declared
-        else "operator"
-        if operator
-        else "declaration"
-    )
 
 
 def _touched(
@@ -268,6 +257,9 @@ class ResearchAgentExecutor:
         # A request exists only if its prompt was classified: an unknown class refused above.
         prompt_class = prompt_data_class(pin, cfg.material_approvals)
         assert prompt_class is not None
+        instruction_rule = instruction_classification(
+            str(step.payload.get("instruction", "")), cfg.material_approvals
+        )
         provenance: dict[str, Any] = {
             "agent_id": request.agent.agent_id,
             "agent_version": request.agent.version,
@@ -294,12 +286,15 @@ class ResearchAgentExecutor:
             "status": "PROPOSED",
             "data_class": request.data_classification.value,
             "material_classification": {
-                "design": classify_material(snapshot["design"], cfg.material_approvals).model_dump(
+                # The design and a nonempty instruction: Class B by the owner's rule
+                # (``rule:design``, ``rule:job_instruction``), or an operator's stricter class
+                # of their exact bytes (``operator``); an empty instruction holds no material.
+                "design": design_classification(snapshot, cfg.material_approvals).model_dump(
                     mode="json"
                 ),
-                "instruction": classify_material(
-                    str(step.payload.get("instruction", "")), cfg.material_approvals
-                ).model_dump(mode="json"),
+                "instruction": None
+                if instruction_rule is None
+                else instruction_rule.model_dump(mode="json"),
                 # Where the prompt's class came from (prompt_data_class): the code's wording is
                 # reviewed with the code; a stored edit travels on its author's recorded
                 # declaration, an operator's classification of its exact text, or both (the
@@ -307,7 +302,7 @@ class ResearchAgentExecutor:
                 "prompt": {
                     "origin": pin.origin,
                     "data_class": prompt_class.value,
-                    "source": _prompt_class_source(pin, cfg.material_approvals),
+                    "source": prompt_class_source(pin, cfg.material_approvals),
                     "text_sha256": pin.text_sha256,
                     "material_sha256": None
                     if pin.origin == "baseline"
@@ -315,7 +310,7 @@ class ResearchAgentExecutor:
                     "declared_class": pin.declared_class,
                     "declared_by": pin.declared_by,
                 },
-                "knowledge_class": "CLASS_A_CLIENT_CONFIDENTIAL",
+                "knowledge_class": rule_class(MaterialRule.KNOWLEDGE).value,
             },
         }
         proposal["project"]["agent_provenance"] = {

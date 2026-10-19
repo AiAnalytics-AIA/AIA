@@ -196,12 +196,7 @@ def build_registry() -> dict[str, StepExecutor]:
             store=store,
             build=build,
             gateway=build_gateway(settings),
-            config=SourceProposalsConfig(
-                policy_version=settings.policy_version,
-                max_output_tokens=settings.client_source_max_output_tokens,
-                reservation_usd=settings.client_source_reservation_usd,
-                step_events=settings.step_events,
-            ),
+            config=SourceProposalsConfig.from_settings(settings),
         )
     analysis = None
     if settings is not None and settings.analysis_enabled:

@@ -401,6 +401,15 @@ export const cs = {
       personal: "osobní údaj, ukázka skryta",
       sheet: "List {name}",
       noFile: "Soubor nenalezen u tohoto klienta.",
+      // A source a person marks as AIA's own (the owner's rule of 2026-10-19: Class C for AI).
+      internal: {
+        toggle: "Interní dokument",
+        what: "Interní dokument AIA bez údajů klienta; smí jít i širší trasou AI",
+        marked: "Označeno {when} · {who}",
+        you: "vámi",
+        other: "uživatelem {id}",
+        failed: "Označení se neuložilo: {reason}",
+      },
       fileIsSaved: "Soubor se uloží jako nová revize.",
       readText: "Přečteno: {parts}, {chars} znaků",
       readRows: "Přečteno: {rows}",
@@ -458,6 +467,7 @@ export const cs = {
           egress_retention_unspecified: "u trasy k modelu není uvedena doba uchování dat",
           budget_exceeded: "rozpočet klienta nepokryje rezervaci",
           reading_changed: "dokument byl mezitím přečten znovu",
+          source_class_changed: "označení Interní dokument se během návrhů změnilo; co AI už odpověděla, se při novém spuštění nezaplatí znovu",
           dataset_not_extracted: "z tabulek AIA znalosti zatím nenavrhuje",
           no_text: "v souboru není text",
           nothing_read: "z dokumentu se nic nepřečetlo",

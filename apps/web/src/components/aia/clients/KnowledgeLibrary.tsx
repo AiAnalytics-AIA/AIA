@@ -351,7 +351,7 @@ function ItemPanel({
           {takesFile(item.kind) ? (
             <div className="flex flex-col gap-2" role="group" aria-label={t("aia.sources.file")}>
               <span className="text-xs font-medium text-ink-muted">{t("aia.sources.file")}</span>
-              {fileShown ? <SourceCard key={fileShown} clientId={clientId} sourceId={fileShown} ai={fileShown === named ? ai : undefined} /> : null}
+              {fileShown ? <SourceCard key={fileShown} clientId={clientId} sourceId={fileShown} ai={fileShown === named ? ai : undefined} mayMark={mayPropose} /> : null}
               <SourcePicker
                 clientId={clientId}
                 label={fileShown ? t("aia.sources.replace") : t("aia.sources.attach")}
@@ -370,7 +370,7 @@ function ItemPanel({
       ) : (
         <>
           {item.summary ? <p className="text-sm text-ink-muted">{item.summary}</p> : null}
-          {named ? <SourceCard clientId={clientId} sourceId={named} ai={ai} /> : null}
+          {named ? <SourceCard clientId={clientId} sourceId={named} ai={ai} mayMark={mayPropose} /> : null}
         </>
       )}
       {error ? <p role="alert" className="text-sm text-status-fault">{error}</p> : null}
