@@ -22,13 +22,14 @@ let state: LeadState;
 let posts: unknown[];
 let failPosts = 0;
 let selfUpdates: unknown[];
+let staleAnswer: string[];
 function api() {
   vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
     const u = String(url);
     if (u.endsWith("/self-update")) {
       selfUpdates.push(JSON.parse(String(init?.body)));
       state = { ...state, turns: state.turns.map((t) => ({ ...t, self_update_pending: false, self_update_decision: { status: "accepted" as const } })) };
-      return new Response(JSON.stringify({ status: "accepted", changes: { remembered: ["LMM-1"] } }));
+      return new Response(JSON.stringify({ status: "accepted", changes: { remembered: ["LMM-1"] }, stale: staleAnswer }));
     }
     if (u === "/config") return new Response(JSON.stringify({ apiBase: "", aiRuntime: null }));
     if (u === "/api/v1/lead" && init?.method === "POST") {
@@ -53,6 +54,7 @@ beforeEach(() => {
   sessionStorage.setItem("aia.session", JSON.stringify({ idToken: "tok", refreshToken: "r", expiresAt: Date.now() + 3_600_000, email: "a@example.test" }));
   posts = [];
   selfUpdates = [];
+  staleAnswer = [];
   failPosts = 0;
   me = hatched;
   state = { available: true, unavailable_reason: null, busy: false, turns: [] };
@@ -124,8 +126,21 @@ describe("LeadPane", () => {
     expect(screen.queryByRole("button", { name: "Pamatovat si" })).toBeNull();
   });
 
-  it("says when a file changed since the turn, and to ask the Lead again", async () => {
+  it("reads the files an accept left from its 200, and says to ask the Lead again", async () => {
     // The review of baac33d5: an older SOUL change is not put back over a newer one.
+    staleAnswer = ["soul"];
+    state.turns = [turn({
+      output: { reply: "Upravím se.", self_update: { soul: "# Starší" } },
+      self_update_pending: true, self_update_decision: null,
+      self_update_waiting: { name: null, soul: "# Starší", user: null, remember: [], forget: [] },
+    })];
+    render(pane());
+    fireEvent.click(await screen.findByRole("button", { name: "Pamatovat si" }));
+    await waitFor(() => expect(selfUpdates).toEqual([{ decision: "accept" }]));
+    expect(await screen.findByText("SOUL: Soubor se mezitím změnil, požádejte Vedoucího znovu.")).toBeTruthy();
+  });
+
+  it("keeps saying a file changed after a reload, from the turn's decision", async () => {
     state.turns = [turn({
       output: { reply: "Upravím se.", self_update: { soul: "# Starší" } },
       self_update_pending: false, self_update_decision: { status: "accepted", stale: ["soul"] },

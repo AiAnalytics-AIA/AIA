@@ -583,8 +583,8 @@ class ResearchLead:
 
         A file (SOUL, USER, the name) changed since the turn saw it is not replaced: accepting
         an older turn would put back what a newer one wrote. Its notes still apply (they have
-        no base), the decision is recorded with the stale files, and ``stale`` names them, which
-        the API answers as 409 ``stale_self_update``: ask the Lead again.
+        no base), the decision is recorded with the stale files, and ``stale`` names them: the
+        researcher asks the Lead again.
         """
         self.scope.require(Permission.EDIT_STUDY)
         self.scope.require(Permission.APPROVE_GATE)

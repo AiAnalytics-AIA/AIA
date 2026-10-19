@@ -100,7 +100,8 @@ export type SelfUpdateWaiting = {
   forget: { memory_id: string; text: string | null }[];
 };
 
-export type SelfUpdateDecision = { status: "accepted" | "dismissed"; changes: Record<string, unknown> | null };
+/** The answer to a decision; `stale`: files another turn changed since, left as they are. */
+export type SelfUpdateDecision = { status: "accepted" | "dismissed"; changes: Record<string, unknown> | null; stale: ("name" | "soul" | "user")[] };
 
 /**
  * What of a self-update waits for the researcher, in words: personal notes to keep, personal notes

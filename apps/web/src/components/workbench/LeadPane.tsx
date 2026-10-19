@@ -13,7 +13,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { lead as leadApi, researcherLead, ApiError, type ResearchAgentJob } from "@/lib/api";
 import { ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
-import type { LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead } from "@/lib/lead";
+import type { LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
 import { pendingSelfUpdate, targetLabel } from "@/lib/lead";
 import { STAGES, isWorkbenchStage, type WorkbenchStage } from "@/lib/workbench-stages";
 import { Glyph } from "./Glyph";
@@ -29,7 +29,8 @@ const POLL_MS = 1500;
 type Queued = { text: string; stage: WorkbenchStage; focus: { id: string; label: string } | null };
 const kept = new Map<string, { draft: string; queued: Queued[] }>();
 
-/** An accepted self-update left a file another turn changed since; its notes did apply. */
+/** An accepted self-update left a file another turn changed since; its notes did apply. The 200
+ * names it, and the turn's decision keeps it after a reload. */
 const STALE_SELF_UPDATE = "Soubor se mezitím změnil, požádejte Vedoucího znovu.";
 
 const REASON: Record<string, string> = {
@@ -44,7 +45,6 @@ const REASON: Record<string, string> = {
   lead_context_too_large: "Studie je pro jednu odpověď příliš velká. Zkuste se zeptat na konkrétní část.",
   lead_busy: "Vedoucí ještě odpovídá na předchozí zprávu.",
   lead_not_hatched: "Nejdřív si vylíhněte vlastního Vedoucího výzkumu.",
-  stale_self_update: STALE_SELF_UPDATE,
   AWAITING_BUDGET: "Vedoucí čeká na rozpočet studie.",
 };
 const reasonWords = (code: string | null) => (code ? REASON[code] ?? `Vedoucí se zastavil (${code}).` : "Vedoucí se zastavil.");
@@ -194,12 +194,14 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   };
 
   const decideSelfUpdate = useCallback(async (t: LeadTurn, decision: "accept" | "dismiss") => {
+    let decided: SelfUpdateDecision | null = null;
     try {
-      await leadApi.decideSelfUpdate(studyId, t.turn_id, decision);
+      decided = await leadApi.decideSelfUpdate(studyId, t.turn_id, decision);
     } catch (e) {
       setError(e instanceof ApiError ? reasonWords(e.code) : String(e));
     }
     await read();
+    return decided;
   }, [studyId, read]);
 
   const name = me?.lead?.name || "Vedoucí výzkumu";
@@ -249,7 +251,7 @@ function HatchCard({ onHatch }: { onHatch: () => void }) {
 function Conversation({ turns, jobs, onOpenJob, busy, name, onFollow, onView, onRequest, onSelfUpdate, canEdit, children }: {
   turns: LeadTurn[]; jobs: ResearchAgentJob[]; onOpenJob?: (job: ResearchAgentJob) => void; busy: boolean; name: string; canEdit: boolean;
   onFollow: (t: string) => void; onView: (ops: LeadView[]) => void; onRequest: (turn: LeadTurn, r: LeadRequest) => Promise<void>;
-  onSelfUpdate: (turn: LeadTurn, decision: "accept" | "dismiss") => Promise<void>;
+  onSelfUpdate: (turn: LeadTurn, decision: "accept" | "dismiss") => Promise<SelfUpdateDecision | null>;
   children: React.ReactNode;
 }) {
   const box = useRef<HTMLDivElement>(null);
@@ -314,7 +316,7 @@ const VIEW_LABEL = (v: LeadView) => (v.op === "open_stage" ? `Otevřít ${isWork
 function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, onSelfUpdate, canEdit, job, onOpenJob }: {
   t: LeadTurn; name: string; last: boolean; busy: boolean; canEdit: boolean; job: ResearchAgentJob | null; onOpenJob?: (job: ResearchAgentJob) => void;
   onFollow: (t: string) => void; onView: (ops: LeadView[]) => void; onRequest: (turn: LeadTurn, r: LeadRequest) => Promise<void>;
-  onSelfUpdate: (turn: LeadTurn, decision: "accept" | "dismiss") => Promise<void>;
+  onSelfUpdate: (turn: LeadTurn, decision: "accept" | "dismiss") => Promise<SelfUpdateDecision | null>;
 }) {
   if (t.status === "QUEUED" || t.status === "RUNNING") {
     return (
@@ -400,8 +402,9 @@ function ActivityCard({ job, onOpen }: { job: ResearchAgentJob; onOpen?: (job: R
  */
 const FILE_WORDS: Record<"name" | "soul" | "user", string> = { name: "Jméno", soul: "SOUL", user: "USER" };
 
-function SelfUpdate({ t, o, canEdit, onDecide }: { t: LeadTurn; o: LeadOutput; canEdit: boolean; onDecide: (d: "accept" | "dismiss") => Promise<void> }) {
+function SelfUpdate({ t, o, canEdit, onDecide }: { t: LeadTurn; o: LeadOutput; canEdit: boolean; onDecide: (d: "accept" | "dismiss") => Promise<SelfUpdateDecision | null> }) {
   const [busy, setBusy] = useState(false);
+  const [answered, setAnswered] = useState<SelfUpdateDecision["stale"]>([]);
   const u = o.self_update;
   if (!u) return null;
   const clientNotes = (u.remember ?? []).filter((m) => m.scope === "client").map((m) => m.text);
@@ -415,8 +418,9 @@ function SelfUpdate({ t, o, canEdit, onDecide }: { t: LeadTurn; o: LeadOutput; c
   const decided = t.self_update_decision?.status ?? null;
   const decide = (d: "accept" | "dismiss") => {
     setBusy(true);
-    void onDecide(d).finally(() => setBusy(false));
+    void onDecide(d).then((r) => setAnswered(r?.stale ?? [])).finally(() => setBusy(false));
   };
+  const stale = t.self_update_decision?.stale?.length ? t.self_update_decision.stale : answered;
   return (
     <>
       {applied.length ? <div className="notice" style={{ marginTop: 6 }}><Icon name="memory" size={12} />Upraveno: {applied.join(" · ")} · <Link href={appRoutes.lead()} className="linkbtn">Můj Vedoucí</Link></div> : null}
@@ -430,8 +434,8 @@ function SelfUpdate({ t, o, canEdit, onDecide }: { t: LeadTurn; o: LeadOutput; c
               {waiting.forget.map((n, i) => <li key={`f${i}`}>Zapomenout: {n}</li>)}
               {waiting.files.map((f) => <li key={f.file}>{f.file}: {f.text}</li>)}
             </ul>
-            {t.self_update_decision?.stale?.length ? (
-              <p className="cap" data-aia="lead.self_update.stale">{t.self_update_decision.stale.map((f) => FILE_WORDS[f]).join(", ")}: {STALE_SELF_UPDATE}</p>
+            {stale.length ? (
+              <p className="cap" data-aia="lead.self_update.stale">{stale.map((f) => FILE_WORDS[f]).join(", ")}: {STALE_SELF_UPDATE}</p>
             ) : null}
             {t.self_update_pending && !decided ? (
               <div className="dec__foot"><button type="button" className="btn btn--sm btn--quiet" disabled={!canEdit || busy} onClick={() => decide("dismiss")}>Zahodit</button><span className="grow" />

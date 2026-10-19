@@ -151,6 +151,9 @@ class SelfUpdateDecided(BaseModel):
     status: Literal["accepted", "dismissed"]
     #: What the accept applied (``null`` for a dismiss).
     changes: dict[str, Any] | None
+    #: Files the accept left because another turn changed them since this one saw them: the
+    #: researcher asks the Lead again. Notes have no base and applied regardless.
+    stale: list[Literal["name", "soul", "user"]]
 
 
 class LeadTurn(BaseModel):
@@ -410,21 +413,10 @@ def decide_self_update(
 ) -> SelfUpdateDecided:
     """Accept or dismiss what the caller's own Lead turn wants to keep for all of their work
     (a personal note, a SOUL, USER or name change): applied on accept, recorded in the approval
-    ledger either way, once."""
+    ledger either way, once. An accept leaves a file another turn changed since this one saw
+    it and names it in ``stale``; it is still an accept (its notes applied), so a 200."""
     with _lead_errors():
         decided = ResearchLead(session, scope).decide_self_update(turn_id, decision=body.decision)
-    stale = decided.pop("stale")
-    if stale:
-        # The notes applied and the decision is recorded; the stale files were left. That is
-        # kept (committed here, as the answer is an error) and said as a conflict.
-        session.commit()
-        raise _error(
-            409,
-            "stale_self_update",
-            "A file changed since this turn saw it; ask the Lead again.",
-            stale=stale,
-            changes=decided["changes"],
-        )
     return SelfUpdateDecided.model_validate(decided)
 
 

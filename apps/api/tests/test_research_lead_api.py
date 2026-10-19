@@ -524,10 +524,14 @@ def test_an_older_soul_change_never_overwrites_a_newer_one(
         url = f"{lead_url(world)}/turns/{turn_id}/self-update"
         return researcher.post(url, json={"decision": "accept"})
 
-    assert decide(second).status_code == 200
+    newer = decide(second)
+    assert newer.status_code == 200 and newer.json()["stale"] == []
     stale = decide(first)
-    assert stale.status_code == 409 and stale.json()["code"] == "stale_self_update"
-    assert stale.json()["details"]["stale"] == ["soul"]
+    # Still an accept: its note applied. The SOUL it would have put back is named, not written.
+    assert stale.status_code == 200, stale.text
+    assert stale.json()["status"] == "accepted" and stale.json()["stale"] == ["soul"]
+    assert stale.json()["changes"]["soul"] is False
+    assert len(stale.json()["changes"]["remembered"]) == 1
     lead = researcher.get("/api/v1/lead").json()["lead"]
     assert lead["files"]["soul"] == "# SOUL druhý"
     # Notes have no base: the older turn's note still applied, and its decision is recorded.
