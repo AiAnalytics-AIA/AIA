@@ -843,6 +843,9 @@ class ResearcherLeadRow(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
     )
+    #: The researcher's standing choice to have the Lead's text edits accepted without a click
+    #: (plan inline-decisions chunk 2). Off unless they turn it on.
+    auto_accept_text_edits: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     __table_args__ = (
         ForeignKeyConstraint(

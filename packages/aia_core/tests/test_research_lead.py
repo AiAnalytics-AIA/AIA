@@ -24,6 +24,7 @@ from aia_core.domain.research_lead import (
     DEFAULT_SOUL,
     LEAD_PROMPT_ID,
     STAGES,
+    TEXT_EDIT_OPS,
     LeadContextTooLarge,
     LeadOutput,
     QuestionAdd,
@@ -35,6 +36,7 @@ from aia_core.domain.research_lead import (
     freeze_context,
     ground_edits,
     ground_self_update,
+    is_text_edit,
     layer,
     lead_contract,
     lead_prompt,
@@ -109,6 +111,48 @@ def test_each_edit_op_is_accepted_in_its_closed_shape(edit: dict[str, Any]) -> N
 @pytest.mark.parametrize("edit", INVALID_EDITS)
 def test_an_edit_outside_its_shape_is_a_violation(edit: dict[str, Any]) -> None:
     assert not _valid(_output(edits=[edit])).ok
+
+
+#: Plan inline-decisions chunk 2: wording only, never structure or the sample.
+TEXT_EDITS = [
+    {"op": "set_text", "field": "goal", "value": "Nový cíl", "why": WHY},
+    {"op": "set_text", "field": "plan.problem_summary", "value": "Shrnutí", "why": WHY},
+    {"op": "list_replace", "list": "plan.hypotheses", "old": "A", "value": "B", "why": WHY},
+    {"op": "question_edit", "question_id": "q3", "text": "Jinak", "why": WHY},
+]
+STRUCTURAL_EDITS = [
+    {"op": "list_add", "list": "plan.objectives", "value": "Cíl", "why": WHY},
+    {"op": "list_remove", "list": "plan.research_questions", "old": "Proč?", "why": WHY},
+    {"op": "question_add", "text": "Proč?", "qtype": "otevrena", "why": WHY},
+    {"op": "question_edit", "question_id": "q3", "options": ["Ano", "Ne"], "why": WHY},
+    {
+        "op": "question_edit",
+        "question_id": "q3",
+        "text": "Jinak",
+        "options": ["A", "B"],
+        "why": WHY,
+    },
+    {"op": "question_remove", "question_id": "q3", "why": WHY},
+    {"op": "set_n", "value": 400, "why": WHY},
+]
+
+
+@pytest.mark.parametrize("edit", TEXT_EDITS)
+def test_a_text_edit_changes_wording_only(edit: dict[str, Any]) -> None:
+    [parsed] = LeadOutput.model_validate(_output(edits=[edit])).edits
+    assert parsed.op in TEXT_EDIT_OPS and is_text_edit(parsed)
+
+
+@pytest.mark.parametrize("edit", STRUCTURAL_EDITS)
+def test_an_edit_that_adds_removes_reoptions_or_resizes_is_no_text_edit(
+    edit: dict[str, Any],
+) -> None:
+    [parsed] = LeadOutput.model_validate(_output(edits=[edit])).edits
+    assert not is_text_edit(parsed)
+
+
+def test_the_text_edit_ops_are_exactly_three() -> None:
+    assert {"set_text", "question_edit", "list_replace"} == TEXT_EDIT_OPS
 
 
 @pytest.mark.parametrize("stage", STAGES)

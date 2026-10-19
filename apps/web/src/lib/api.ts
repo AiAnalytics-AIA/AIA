@@ -6,7 +6,7 @@
 
 import type { RegisterEntry } from "@/lib/object-map-view";
 import { currentIdToken, loadConfig } from "@/lib/auth";
-import type { EditDecisionResult, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
+import type { EditDecisionResult, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
 export type { ResearcherLead as ResearcherLeadView } from "@/lib/lead";
 
 export class ApiError extends Error {
@@ -1435,7 +1435,8 @@ export const lead = {
   post: (studyId: string, body: { kind: "message" | "greeting"; text?: string; stage: string; focus?: { id: string; label: string } | null }) =>
     request<{ turns: LeadTurn[] }>("POST", `${studyPath(studyId)}/lead/turns`, body),
   /** Accept or dismiss a turn's edits: the server applies, saves and records them (gate 1). */
-  decideEdits: (studyId: string, turnId: string, body: { decision: "accept" | "dismiss"; indices: number[]; base_revision: number | null }) =>
+  /** `auto`: the researcher's standing choice accepts the turn's text edits, not a click (inline-decisions 2). */
+  decideEdits: (studyId: string, turnId: string, body: { decision: "accept" | "dismiss"; indices: number[]; base_revision: number | null; auto?: boolean }) =>
     request<EditDecisionResult>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/edits`, body),
   /** Approve a turn's prepared design job: spend limit, ledger and start in one transaction. */
   approveRequest: (studyId: string, turnId: string, confirmCostUsd?: number) =>
@@ -1449,6 +1450,8 @@ export const lead = {
 export const researcherLead = {
   get: () => request<ResearcherLead>("GET", "/api/v1/lead"),
   hatch: () => request<ResearcherLead>("POST", "/api/v1/lead"),
+  /** The researcher's own choices for their Lead, audited: whether its text edits are accepted without a click. */
+  setPreferences: (preferences: LeadPreferences) => request<ResearcherLead>("PUT", "/api/v1/lead/preferences", preferences),
 };
 
 export const researchAgents = {

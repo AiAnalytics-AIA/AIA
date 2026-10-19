@@ -60,6 +60,7 @@ __all__ = [
     "MESSAGE_MAX_CHARS",
     "SELF_UPDATE_FILES",
     "STAGES",
+    "TEXT_EDIT_OPS",
     "Dropped",
     "LeadContextTooLarge",
     "LeadNote",
@@ -76,6 +77,7 @@ __all__ = [
     "freeze_context",
     "ground_edits",
     "ground_self_update",
+    "is_text_edit",
     "layer",
     "lead_contract",
     "lead_prompt",
@@ -292,6 +294,23 @@ EditOp = Annotated[
     | SetN,
     Field(discriminator="op"),
 ]
+
+#: The edits that change wording and never structure or the sample: what a researcher may let the
+#: Lead apply without a click (the preference ``auto_accept_text_edits``, plan inline-decisions
+#: chunk 2). A ``question_edit`` is one only when it changes the text alone (:func:`is_text_edit`).
+TEXT_EDIT_OPS: Final = frozenset({"set_text", "question_edit", "list_replace"})
+
+
+def is_text_edit(edit: BaseModel) -> bool:
+    """Whether ``edit`` changes wording only: a ``set_text``, a ``list_replace``, or a
+    ``question_edit`` that replaces the text and leaves the options as they are. Adding,
+    removing, re-optioning or re-typing anything, and the sample size, are structure."""
+    op = getattr(edit, "op", None)
+    if op not in TEXT_EDIT_OPS:
+        return False
+    if isinstance(edit, QuestionEdit):
+        return edit.text is not None and edit.options is None
+    return True
 
 
 # --------------------------------------------------------------------------- requests
@@ -973,6 +992,9 @@ class ResearcherLead(Closed):
     user: str
     hatched_at: datetime
     updated_at: datetime
+    #: The researcher's standing choice to have the Lead's text edits (:func:`is_text_edit`)
+    #: accepted without a click. Off unless they turn it on (plan inline-decisions chunk 2).
+    auto_accept_text_edits: bool = False
 
 
 class LeadNote(Closed):

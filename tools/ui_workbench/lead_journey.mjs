@@ -9,8 +9,9 @@
  * It hatches the researcher's own Lead (or finds it hatched), reads its greeting, sends a message
  * that asks it to remember something, accepts its edit through the server's gate and reads the
  * change back after a reload, sees the prepared job as a card it does not approve, and finds the
- * remembered note on Můj Vedoucí only after the researcher's "Pamatovat si", read only. Nothing
- * paid starts.
+ * remembered note on Můj Vedoucí only after the researcher's "Pamatovat si", read only. It then
+ * turns automatic text edits on, sees the next turn's text edit accepted as automatic, reverts it
+ * with Vrátit, and turns the choice off again. Nothing paid starts.
  */
 import assert from "node:assert/strict";
 import { execSync } from "node:child_process";
@@ -138,6 +139,43 @@ try {
   assert.equal(await page.locator("main textarea, main input[type=text]").count(), 0, "Můj Vedoucí is read only");
   check("Můj Vedoucí shows what the Lead remembered, and nothing on it is editable");
   await shot("1440-my-lead");
+
+  // Automatic text edits (plan inline-decisions chunk 2): off until the researcher turns it on on
+  // Můj Vedoucí; then the scripted Lead's edit -- a question's text alone -- is accepted through the
+  // same gate when its turn finishes, shown as such with Vrátit. Turned off again afterwards.
+  const toggle = page.getByRole("checkbox", { name: /Automaticky přijímat textové úpravy Vedoucího/ });
+  assert.equal(await toggle.isChecked(), false, "automatic text edits are off by default");
+  await Promise.all([
+    page.waitForResponse((r) => new URL(r.url()).pathname === "/api/v1/lead/preferences" && r.request().method() === "PUT", { timeout: 30000 }),
+    toggle.check(),
+  ]);
+  check("the researcher turns automatic text edits on, on Můj Vedoucí");
+  try {
+    await page.goto(base + stagePath("questionnaire"));
+    await page.locator("[data-workbench]").waitFor({ timeout: 30000 });
+    const again = page.getByLabel("Napište Vedoucímu výzkumu");
+    await page.waitForFunction(() => !document.querySelector("textarea[aria-label='Napište Vedoucímu výzkumu']")?.disabled, null, { timeout: 30000 });
+    const autoAccepted = page.waitForResponse(
+      (r) => /\/lead\/turns\/[^/]+\/edits$/.test(new URL(r.url()).pathname) && r.request().method() === "POST" && r.request().postDataJSON()?.auto === true,
+      { timeout: 60000 },
+    );
+    await again.fill("Uprav prosím znění otázky.");
+    await again.press("Enter");
+    await autoAccepted;
+    const applied = page.getByRole("region", { name: "Přijato automaticky" });
+    await applied.waitFor({ timeout: 30000 });
+    await applied.getByText("Přijato automaticky (vaše nastavení)", { exact: false }).first().waitFor();
+    await shot("1440-auto-accepted");
+    check("the Lead's text edit is accepted through the gate when its turn finishes, marked automatic");
+    await applied.getByRole("button", { name: "Vrátit" }).first().click();
+    await applied.waitFor({ state: "detached", timeout: 30000 });
+    check("Vrátit puts the wording back as the researcher's own edit");
+  } finally {
+    await page.goto(base + "/app/lead");
+    const off = page.getByRole("checkbox", { name: /Automaticky přijímat textové úpravy Vedoucího/ });
+    await off.waitFor({ timeout: 30000 });
+    if (await off.isChecked()) await off.uncheck();
+  }
 
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");

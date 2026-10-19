@@ -57,7 +57,7 @@ const time = (iso: string) => {
 /** The newest Lead turn that finished: the one whose view tools have been applied. */
 const newestCompleted = (turns: LeadTurn[]) => [...turns].reverse().find((t) => t.actor === "lead" && t.status === "COMPLETED") ?? null;
 
-export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onClearFocus, onView, onRequest, onTurns, onFocusMode, mode, epoch, jobs = [], onOpenJob }: {
+export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onClearFocus, onView, onRequest, onTurns, onFocusMode, mode, epoch, jobs = [], onOpenJob, onLead }: {
   studyId: string;
   stage: WorkbenchStage;
   canEdit: boolean;
@@ -77,6 +77,8 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   onOpenJob?: (job: ResearchAgentJob) => void;
   /** Every read of the session, so the artifact pane can show the newest edits. */
   onTurns: (turns: LeadTurn[]) => void;
+  /** The researcher's own Lead once read: its preferences decide what is accepted without a click. */
+  onLead?: (me: ResearcherLead) => void;
   onFocusMode: () => void;
   mode: "split" | "conversation" | "artifact";
 }) {
@@ -120,6 +122,9 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
     researcherLead.get().then(setMe, (e: unknown) => setError(e instanceof ApiError && e.status === 404 ? "Vedoucí výzkumu v této verzi AIA zatím není." : String(e)));
     void read();
   }, [read]);
+  useEffect(() => {
+    if (me) onLead?.(me);
+  }, [me, onLead]);
 
   // While a turn runs, read again; when it finishes, apply the newest turn's view tools once.
   useEffect(() => {

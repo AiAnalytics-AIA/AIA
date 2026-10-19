@@ -2,7 +2,10 @@
 // edit goes through the stages' own helpers, and one that no longer fits is refused, never bent.
 import { describe, expect, it } from "vitest";
 
-import { applyLeadEdit, describeEdit, editStage, pendingSelfUpdate, targetLabel, type LeadEdit } from "./lead";
+import {
+  applyLeadEdit, autoAcceptIndices, autoAcceptPlan, describeEdit, editStage, isTextEdit, pendingSelfUpdate, revertTextEdit, targetLabel, textEditInverse,
+  type LeadEdit, type LeadTurn,
+} from "./lead";
 import type { ResearchProject } from "@/research/model";
 
 const project = (over: Partial<ResearchProject> = {}): ResearchProject => ({
@@ -117,5 +120,58 @@ describe("pendingSelfUpdate", () => {
       files: [{ file: "Jméno", text: "Bára" }, { file: "USER", text: "U" }],
     });
     expect(pendingSelfUpdate(null)).toEqual({ notes: [], forget: [], files: [] });
+  });
+});
+
+describe("automatic text edits (inline-decisions 2)", () => {
+  const text: LeadEdit[] = [
+    { op: "set_text", field: "goal", value: "Nový cíl", why: "" },
+    { op: "list_replace", list: "plan.research_questions", old: "Proč klienti odcházejí?", value: "Proč odcházejí?", why: "" },
+    { op: "question_edit", question_id: "Q_1", text: "Jak jste spokojeni se službou?", options: null, why: "" },
+  ];
+  const structure: LeadEdit[] = [
+    { op: "list_add", list: "plan.objectives", value: "Cíl", why: "" },
+    { op: "list_remove", list: "plan.hypotheses", old: "H", why: "" },
+    { op: "question_add", section_id: null, text: "Kolik?", qtype: "otevrena", options: [], why: "" },
+    { op: "question_edit", question_id: "Q_1", text: null, options: ["A", "B"], why: "" },
+    { op: "question_edit", question_id: "Q_1", text: "Jinak", options: ["A", "B"], why: "" },
+    { op: "question_remove", question_id: "Q_1", why: "" },
+    { op: "set_n", value: 400, why: "" },
+  ];
+  const turn = (over: Partial<LeadTurn> = {}): LeadTurn => ({
+    turn_id: "LDT-1", sequence_no: 1, actor: "lead", kind: "message", stage: "brief", text: null, focus: null, status: "COMPLETED",
+    reason: null, output: { reply: "", edits: [...text, ...structure] }, run_id: "RUN-1", workspace_revision: 1, created_at: "", created_by: null, ...over,
+  });
+
+  it("names wording edits as the server's TEXT_EDIT_OPS do, and nothing structural", () => {
+    expect(text.map(isTextEdit)).toEqual([true, true, true]);
+    expect(structure.map(isTextEdit)).toEqual(structure.map(() => false));
+  });
+
+  it("asks only for a finished turn's undecided text edits", () => {
+    expect(autoAcceptIndices(turn())).toEqual([0, 1, 2]);
+    expect(autoAcceptIndices(turn({ edit_decisions: { "1": { status: "dismissed", reason: null } } }))).toEqual([0, 2]);
+    expect(autoAcceptIndices(turn({ status: "RUNNING" }))).toEqual([]);
+  });
+
+  it("is off unless chosen, and never replays a turn that had finished when the screen opened", () => {
+    const turns = [turn(), turn({ turn_id: "LDT-2" })];
+    expect(autoAcceptPlan(turns, false, new Set(), new Set())).toEqual([]);
+    expect(autoAcceptPlan(turns, true, new Set(["LDT-1"]), new Set())).toEqual([{ turnId: "LDT-2", indices: [0, 1, 2] }]);
+    expect(autoAcceptPlan(turns, true, new Set(["LDT-1"]), new Set(["LDT-2"]))).toEqual([]);
+  });
+
+  it("puts the replaced wording back, and refuses when the text changed since", () => {
+    const before = content();
+    for (const e of text) {
+      const inverse = textEditInverse(before, e)!;
+      const after = ok(applyLeadEdit(before, e));
+      const back = ok(revertTextEdit(after, e, inverse));
+      expect(describeEdit(back, e).before ?? "").toBe(describeEdit(before, e).before ?? "");
+    }
+    const e = text[2]!;
+    const inverse = textEditInverse(before, e)!;
+    const edited = ok(applyLeadEdit(before, { op: "question_edit", question_id: "Q_1", text: "Přepsáno výzkumníkem", options: null, why: "" }));
+    expect(revertTextEdit(edited, e, inverse)).toHaveProperty("refused");
   });
 });

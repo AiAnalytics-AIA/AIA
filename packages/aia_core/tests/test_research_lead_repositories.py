@@ -20,7 +20,7 @@ from aia_core.infrastructure.researcher_lead_repository import (
     ResearcherLeadRepository,
 )
 from aia_core.infrastructure.study_lead_repository import StudyLeadRepository
-from aia_core.infrastructure.tables import ResearcherLeadMemoryRow, StudyLeadTurnRow
+from aia_core.infrastructure.tables import AccessAuditRow, ResearcherLeadMemoryRow, StudyLeadTurnRow
 
 
 def _say(scope: Any, session: Any, text: str = "Ahoj") -> Any:
@@ -91,6 +91,31 @@ def test_a_runs_worker_actor_cannot_hatch(scoped: Any, session: Any) -> None:
     worker = dataclasses.replace(scoped.scope(), actor_id="worker:w1")
     with pytest.raises(ScopeDenied):
         ResearcherLeadRepository(session, worker).hatch()
+
+
+def test_the_auto_accept_preference_is_the_callers_own_and_off_until_set(
+    scoped: Any, session: Any
+) -> None:
+    """Plan inline-decisions chunk 2: off by default, set by the researcher alone, audited once
+    per change; a run's worker actor cannot set it, and an unhatched Lead has nothing to set."""
+    org = scoped.resolver.organization_context(scoped.principal(scoped.users["lead"]))
+    repo = ResearcherLeadRepository(session, org)
+    with pytest.raises(LeadNotHatched):
+        repo.set_preferences(auto_accept_text_edits=True)
+    assert repo.hatch().auto_accept_text_edits is False
+    assert repo.set_preferences(auto_accept_text_edits=True).auto_accept_text_edits is True
+    repo.set_preferences(auto_accept_text_edits=True)
+    assert repo.get() is not None and repo.get().auto_accept_text_edits is True  # type: ignore[union-attr]
+    theirs = scoped.resolver.organization_context(scoped.principal(scoped.users["researcher"]))
+    ResearcherLeadRepository(session, theirs).hatch()
+    assert ResearcherLeadRepository(session, theirs).get().auto_accept_text_edits is False  # type: ignore[union-attr]
+    audits = session.scalars(
+        select(AccessAuditRow).where(AccessAuditRow.action == "RESEARCH_LEAD_PREFERENCES_SET")
+    ).all()
+    assert [(a.actor_id, a.payload["previous"]) for a in audits] == [(scoped.users["lead"], False)]
+    worker = dataclasses.replace(scoped.scope(user="lead"), actor_id="worker:w1")
+    with pytest.raises(ScopeDenied):
+        ResearcherLeadRepository(session, worker).set_preferences(auto_accept_text_edits=False)
 
 
 def _hatched(scoped: Any, session: Any, user: str = "lead") -> None:

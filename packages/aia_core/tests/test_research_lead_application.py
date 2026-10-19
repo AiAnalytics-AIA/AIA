@@ -408,11 +408,13 @@ def test_accepting_edits_saves_the_working_copy_and_writes_one_row_each(
     assert StudyWorkspaceRepository(session).content(scope).revision == base + 1
 
     state = _lead(scope, session).state()["turns"][-1]
+    # A click is no automatic accept: "auto" is false (plan inline-decisions chunk 2).
     assert state["edit_decisions"] == {
-        "0": {"status": "accepted", "reason": None},
-        "1": {"status": "accepted", "reason": None},
-        "3": {"status": "dismissed", "reason": None},
+        "0": {"status": "accepted", "reason": None, "auto": False},
+        "1": {"status": "accepted", "reason": None, "auto": False},
+        "3": {"status": "dismissed", "reason": None, "auto": False},
     }
+    assert "auto" not in json.loads(rows[0].comment)
 
 
 def test_an_accept_shown_on_an_older_working_copy_is_refused_whole(
