@@ -479,6 +479,55 @@ Fieldwork start screen, the Audience population panel ("does not read it") and t
 (`kalibrované jádro`) are redrawn for the MVP path: who answers and the origin label are on every
 screen, and a screen never claims a population was read when it was not.
 
+### F16. Money on screen
+
+**Owner decision (2026-10-19): two meters, the rest on click.** The header shows "Study: spent of
+spend limit", with the envelope's remaining allowance **inside** it (the envelope is a slice of the
+spend limit, F13). A run or a job shows its own ceiling where the person approves it. The client's
+budget, the Deep Research allowance and the Lead's own turn costs are in a details drawer. Lead turns
+and workers all count toward the study's spend. The designs' four unlabelled numbers
+("Research 0,97/3,00", "study 1,12/12,00", "spend limit 5,00", "run ceiling 4,80") and the Fieldwork
+panel's "Rozpočet studie", which shows the run ceiling, are replaced. *Open:* the Czech name of each
+meter, written once with `domain/report/copy.py`'s discipline, so no screen invents its own.
+
+### F17. Report delivery and approval
+
+**Owner decision (2026-10-19): separate approvals, a second person for the client report.** The
+internal report is approved by any permitted member. The client report and each map snapshot are
+approved separately by a reviewer other than the person who produced them. DOCX and PDF become
+available only after approval. The Report artifact gains an Approve and Export panel showing what is
+approved and by whom.
+
+**Consequences not yet covered.** (1) Today report approval requires independence only where the
+scope's self-approval policy says so (`application/report_approval.py:4`). The decision asks for a
+second person on a client report: **unconditionally**, whatever a client's setting? Recommended: yes,
+for anything client-facing (the acceptance study has self-approval off anyway). (2) **Map snapshot
+approval does not exist**: the register approves a *method* (`domain/sociomap_register.py`) and the PNG
+snapshot is internal; an approved snapshot is a new approvable object. It belongs in
+`two-roles-human-ai-gates` 5b.4, which has no chunk for it. (3) A snapshot of a respondent or segment
+map needs that method registered first (`segment-maps-and-drilldown` chunk 4).
+
+### F18. Straight-liners: no pause
+
+**Owner decision (2026-10-19): no pause; a warning, then the worker proposes.** The run goes on to
+aggregation. Run QC flags straight-liners as a warning (MVP-24). The straight-liner worker (MVP-12)
+proposes keep or replace afterwards; **replace starts a new linked run with its own identity**. The
+designs' decision card between fieldwork and aggregation is dropped. The map leaves unplaceable
+respondents out and says "197 of 200 placed": that line **needs respondent placement**
+(`sociomap-formula-corrections` chunk 3, not built), so until then it is not shown (hypothesis: the
+object map today uses pair statistics, not placed respondents).
+
+### F19. Client data inside a study
+
+**Owner decision (2026-10-19): in the study, in Brief materials and Dimensions.** The Brief's
+Materials picks a dataset from the client's sources (the existing source picker) and opens the data
+contract in a drawer; accepting it is the person's recorded act (`client-data-in-analysis` chunk 2).
+An own dimension shows a status chip (waiting for approval, building, ready) with a link to the
+client's review queue, and becomes selectable for the next run when ready. *Open:* after approval,
+does the build start by itself or on a click? Today a person starts a materialization from a study
+(`POST /studies/{id}/population/materializations`) and it is a run with a cost; recommended: a click,
+inside the envelope.
+
 ---
 
 ## 3. The acceptance criteria, traced to work
@@ -549,6 +598,10 @@ dated, until the provider contract and the method owner have owners.
 | Q17 | F15: population-built respondents by default, invented ones for tests only | **decided 2026-10-19** |
 | Q18 | F14: the Lead proposes updates to its own files, the researcher approves each | **decided 2026-10-19** |
 | Q19 | F14: an organisation admin can read a researcher's Lead files and hand them on; turns and hand-over rules open | **decided 2026-10-19; amends ADR 0026 decision 8** |
+| Q20 | F16: two meters in the header, the rest on click; the envelope is a slice of the spend limit | **decided 2026-10-19** |
+| Q21 | F17: separate approvals, a second person for the client report and each map snapshot, exports after approval | **decided 2026-10-19; unconditional second person and snapshot approval open** |
+| Q22 | F18: no pause after fieldwork; a QC warning, the worker proposes, replace is a new linked run | **decided 2026-10-19** |
+| Q23 | F19: client datasets and own dimensions are handled in Brief materials and Dimensions | **decided 2026-10-19; whether the build starts by itself open** |
 
 ## 6. Follow-ups for a docs PR
 
@@ -570,4 +623,7 @@ dated, until the provider contract and the method owner have owners.
   of the autopilot is in the MVP); an **orchestration-scope ADR** (the Lead's plan card, the
   envelope, what each started job records) before chunk 24 or any envelope code; ADR 0026 decision 8
   amended for an admin's read of Lead files and the proposed updates (F14); the Fieldwork, Audience and
-  report-cover screens redrawn for population-built respondents (F15).
+  report-cover screens redrawn for population-built respondents (F15); the header's two meters (F16); the Report artifact's
+  Approve and Export panel and a chunk for map-snapshot approval in `two-roles-human-ai-gates` 5b.4
+  (F17); the straight-liner decision card dropped (F18); client data and the own-dimension chip in the
+  Brief and Dimensions artifacts (F19).
