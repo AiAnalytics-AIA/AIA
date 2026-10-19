@@ -203,21 +203,22 @@ def test_the_height_is_survey_weighted_and_the_relations_are_not() -> None:
     assert a.heights.values == v4.heights.values
 
 
-def test_a_secondary_object_raises_no_hill_but_stands_on_the_grid() -> None:
+def test_a_context_object_is_left_off_the_map() -> None:
     ids = [f"o{j}" for j in range(8)]
     roles = dict.fromkeys(ids, ObjectRole.PRIMARY.value) | {"o7": ObjectRole.SECONDARY.value}
-    artifact = compute_object_map(
+    with_context = compute_object_map(
         _inputs("complete", roles), AIA_SOCIOMAP_V5, connectedness_interval=False
     )
-    layout, heights, terrain = artifact.layout, artifact.heights, artifact.terrain
-    assert layout is not None and heights.relative is not None
-    assert isinstance(terrain, EnvelopeTerrain)
-    assert heights.relative[7] is None and "o7" not in terrain.source_ids
-    # The relative heights are the PRIMARY objects' own: the context object moves none.
-    alone = _relative_heights(heights.values[:7], [True] * 7, TERRAIN.relative_height_floor)
-    assert heights.relative[:7] == alone
-    # The frame covers every placed object, so the context object is drawn on the grid.
-    assert terrain.parameters.centre == fit_frame(layout.points, TERRAIN.frame_fill)[0]
+    # The map is the PRIMARY objects' own, as if the context object were not in the set.
+    primary = _inputs("complete").model_dump() | {
+        "object_ids": tuple(ids[:7]),
+        "object_items": tuple(ids[:7]),
+        "roles": dict.fromkeys(ids[:7], ObjectRole.PRIMARY.value),
+    }
+    alone = compute_object_map(
+        ObjectMapInputs.model_validate(primary), AIA_SOCIOMAP_V5, connectedness_interval=False
+    )
+    assert with_context.object_ids == tuple(ids[:7]) and with_context == alone
 
 
 def _with_terrain(**update: Any) -> SociomapSpecV3:

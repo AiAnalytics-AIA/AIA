@@ -86,6 +86,10 @@ and 0.68/2.5).
 - The false-close-pair test: a benchmark honesty test, not part of a map.
 - Groups without direction on the respondent map: deferred in the methodology.
 - Making `-5` the default.
+- Context (SECONDARY) objects: `-5` maps a set's PRIMARY objects only, as the AIA panel
+  shows a declared set; context objects are left off its map. How they should join it (the
+  panel places them afterwards with the PRIMARY map fixed, NPC's F17 rule) is an open
+  question for the methodology owner (2026-10-19).
 - Survey weights for the relations: the methodology computes them unweighted, so `-5`
   does too (`-3` weights them); its object height is survey-weighted, as the AIA panel
   draws it (methodology owner, 2026-10-19). Weighted relations: open question for the

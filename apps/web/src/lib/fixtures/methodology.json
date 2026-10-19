@@ -3411,7 +3411,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "9561a2e291e424733d34a348d49a54421cde77680d587608b3aaf7099464af5b",
+      "source_sha256": "382029e868916940931916cad0ccbd86f750f01a7a1ec13e6da808b727c54324",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -3440,7 +3440,7 @@
        "f3_status"
       ],
       "keeps_cs": [],
-      "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3. aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty bez párů (krok Volba rozložení podle počtu objektů).",
+      "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3. aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty bez párů (krok Volba rozložení podle počtu objektů). Mapuje jen PRIMARY objekty sady; kontextové objekty na jeho mapě nejsou (jak je ukáže, je otevřená otázka).",
       "reading_cs": "",
       "role_cs": "Rozhodne, zda se z rodiny objektů dá mapa nakreslit. Když ne, běh to řekne místo kreslení.",
       "source_cs": "",
@@ -6320,7 +6320,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "9561a2e291e424733d34a348d49a54421cde77680d587608b3aaf7099464af5b",
+      "source_sha256": "382029e868916940931916cad0ccbd86f750f01a7a1ec13e6da808b727c54324",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -6349,7 +6349,7 @@
        "f3_status"
       ],
       "keeps_cs": [],
-      "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3. aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty bez párů (krok Volba rozložení podle počtu objektů).",
+      "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3. aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty bez párů (krok Volba rozložení podle počtu objektů). Mapuje jen PRIMARY objekty sady; kontextové objekty na jeho mapě nejsou (jak je ukáže, je otevřená otázka).",
       "reading_cs": "",
       "role_cs": "Rozhodne, zda se z rodiny objektů dá mapa nakreslit. Když ne, běh to řekne místo kreslení.",
       "source_cs": "",
@@ -9229,7 +9229,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "9561a2e291e424733d34a348d49a54421cde77680d587608b3aaf7099464af5b",
+      "source_sha256": "382029e868916940931916cad0ccbd86f750f01a7a1ec13e6da808b727c54324",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -9258,7 +9258,7 @@
        "f3_status"
       ],
       "keeps_cs": [],
-      "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3. aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty bez párů (krok Volba rozložení podle počtu objektů).",
+      "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3. aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty bez párů (krok Volba rozložení podle počtu objektů). Mapuje jen PRIMARY objekty sady; kontextové objekty na jeho mapě nejsou (jak je ukáže, je otevřená otázka).",
       "reading_cs": "",
       "role_cs": "Rozhodne, zda se z rodiny objektů dá mapa nakreslit. Když ne, běh to řekne místo kreslení.",
       "source_cs": "",
@@ -12145,7 +12145,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "9561a2e291e424733d34a348d49a54421cde77680d587608b3aaf7099464af5b",
+      "source_sha256": "382029e868916940931916cad0ccbd86f750f01a7a1ec13e6da808b727c54324",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -12174,7 +12174,7 @@
        "f3_status"
       ],
       "keeps_cs": [],
-      "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3. aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty bez párů (krok Volba rozložení podle počtu objektů).",
+      "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3. aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty bez párů (krok Volba rozložení podle počtu objektů). Mapuje jen PRIMARY objekty sady; kontextové objekty na jeho mapě nejsou (jak je ukáže, je otevřená otázka).",
       "reading_cs": "",
       "role_cs": "Rozhodne, zda se z rodiny objektů dá mapa nakreslit. Když ne, běh to řekne místo kreslení.",
       "source_cs": "",

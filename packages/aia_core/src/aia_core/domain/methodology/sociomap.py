@@ -442,7 +442,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         title_cs="Síla vztahu a jeho směr",
         formula_latex=r"s_{ij} = |r_{ij}|,\qquad \operatorname{sgn} r_{ij} \text{ jako barva}",
         implements=f"{_S}.engine_v2:compute_object_map",
-        source_sha256="9561a2e291e424733d34a348d49a54421cde77680d587608b3aaf7099464af5b",
+        source_sha256="382029e868916940931916cad0ccbd86f750f01a7a1ec13e6da808b727c54324",
         evidence=(_rule("AUDIT-F4"),),
         tests=(
             f"{_T}/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input",
@@ -480,7 +480,8 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
             "(nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3. "
             "aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich "
             "cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty "
-            "bez párů (krok Volba rozložení podle počtu objektů)."
+            "bez párů (krok Volba rozložení podle počtu objektů). Mapuje jen PRIMARY objekty "
+            "sady; kontextové objekty na jeho mapě nejsou (jak je ukáže, je otevřená otázka)."
         ),
     ),
     MethodStep(

@@ -487,6 +487,26 @@ def _baseline_corrected(
     return pairs, excluded, sparse, prepared
 
 
+def _primary_only(inputs: ObjectMapInputs) -> ObjectMapInputs:
+    """``inputs`` with the context (SECONDARY) objects left out of the mapped objects."""
+    keep = [
+        k
+        for k, oid in enumerate(inputs.object_ids)
+        if inputs.roles[oid] == ObjectRole.PRIMARY.value
+    ]
+    if len(keep) == len(inputs.object_ids):
+        return inputs
+    ids = tuple(inputs.object_ids[k] for k in keep)
+    return ObjectMapInputs.model_validate(
+        inputs.model_dump()
+        | {
+            "object_ids": ids,
+            "object_items": tuple(inputs.object_items[k] for k in keep),
+            "roles": dict.fromkeys(ids, ObjectRole.PRIMARY.value),
+        }
+    )
+
+
 def _signed_off_layout(
     prepared: PreparedInputs, ids: Sequence[str], spec: SociomapSpecV3
 ) -> ObjectMapLayout | NotMappable:
@@ -554,6 +574,10 @@ def compute_object_map(
     one, bit for bit as before.
     """
     require_supported(spec)
+    if spec.relation.estimator == RelationEstimator.BASELINE_CORRECTED_PEARSON:
+        # The signed-off methodology maps a set's PRIMARY objects only, as the AIA panel
+        # shows them; how context objects join its map is an open question.
+        inputs = _primary_only(inputs)
     scaled = _scaled(inputs, slots)
     columns = inputs.object_columns()
     weights = list(inputs.weights)
