@@ -98,7 +98,10 @@ derived query is Class C only when code can **prove** its content comes from a C
 provenance (a template filled only from terms a person declared public, or a query set a person
 saw and marked public), never by a negative text test. A test that finds no client term, named
 entity or verbatim design text is not enough: a model can paraphrase a confidential question with
-none of those tokens (Codex review of #497, accepted). Everything else stays Class B. Recorded as
+none of those tokens (Codex review of #497, accepted). ADR 0017 decision 2 already says it:
+"keywords can only raise a class, so a paraphrase of a client's brief without the names is still the
+client's brief" (`docs/architecture/adr/0017-deep-research-external-retrieval.md:161-165 @ 085abe0`);
+the amendment must change that sentence, not work around it. Everything else stays Class B. Recorded as
 chunk 6 of `class-b-search-route` (#497).
 
 ### F2. The respondent drill-down contradicts the evidence rules
@@ -407,7 +410,7 @@ dated, until the provider contract and the method owner have owners.
 
 | Q | Decision | Recommended |
 |---|---|---|
-| Q1 | F1: **answered 2026-10-19: Deep Research uses the whole design, no operator step.** Open: whether derived queries may reach Class C routes (needs an ADR 0017 / 0008 amendment) | owner and data owner |
+| Q1 | F1: **decided 2026-10-19: Deep Research uses the whole design, no operator step, and queries derived from it may reach Class C routes.** Open prerequisites only: the ADR 0017 / 0008 amendment, the data owner's confirmation, and a provenance-based mechanism (not a text test) | decided; prerequisites open |
 | Q2 | F2: **decided 2026-10-19: yes, internal, the Lead may read it, never exported** | decided |
 | Q3 | F3: **decided 2026-10-19: later, in the ADR 0027 plan** (recommendation: the accepted data contract is the policy source) | decided |
 | Q4 | F7: **decided 2026-10-19: write the missing plans** (six files cover the eight pieces of work, see #497). Track owners are chat sessions, probably Opus 5.5; name each session when its track starts | decided; names open |
