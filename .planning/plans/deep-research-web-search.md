@@ -55,7 +55,8 @@ chunks:
   - "[x] 49. Search playbooks: where each kind of subject is best found, from the register, as hints the investigator may use"
   - "[x] 50. A commercial comparison arm in chunk 26: Gemini Deep Research on the public fictional topics only"
   - "[ ] 51. Switch on now: the Class C routes, the connector list and Common Crawl on develop for fictional and public-topic runs, inside ADR 0022's guards (does not wait for 25-27)"
-  - "[ ] 52. Reach is stated by code: Settings lists every route and connector as built, approved, active or refused by class, with the reason, read from the composition"
+  - "[ ] 52. Reach is stated by code: Settings lists every route and connector as built, approved, active or refused, with the reason, read from the composition"
+  - "[ ] 53. Open posture (owner, 2026-10-19): `clients.data_posture` OPEN or CLASSIFIED replaces classification for Deep Research in the MVP; a run pins it at enqueue"
 ---
 # Deep Research — wide, precise, and defensible
 
@@ -1646,3 +1647,26 @@ default; the docs said otherwise because the status table was written by hand. T
 Retrieval, routes and connectors are no longer frozen for this work; verification, grounding and the
 evidence gate change only on a finding. Class door and contract door are `class-b-search-route` 6 and
 0-2; the order is in `mvp-development-plan.md` § Reach.
+
+## Open posture (2026-10-19)
+
+The owner: "all these classifications, honestly lets get rid of them for now and build them later.
+theyre a huge blocker in general and we can better design it, once we have a fully functioning mvp."
+Classification is asked in six places for Deep Research (`plan.py:163`; five `classify_query` calls in
+`web_retrieval.py`). Chunk 53 replaces them, for the MVP, with one declared posture per client:
+
+- `clients.data_posture` is `CLASSIFIED` (default) or `OPEN` (migration M10). Only an organization
+  OWNER or ADMIN sets it; the change is audited with who and when and shown on the client's profile.
+- A run pins its client's posture in its request at enqueue (like ADR 0022's settings pin); a retry
+  keeps it; a client switched to OPEN mid-run changes nothing for that run.
+- OPEN: the plan step does not call `classify_material` (the design is treated as Class C) and the
+  retrieval gate treats every query as Class C, so any composed route may carry it.
+- CLASSIFIED: unchanged, `aia-query-classifier-1` untouched; the web tracks park
+  `egress_unclassified_material` for an edited design with no operator record, as today.
+- EU residency of models and storage, the model gateway and the evidence gates are not touched.
+- Tests: an OPEN client's edited design runs its web tracks without an operator record; a CLASSIFIED
+  client's still parks; a retry keeps the original's posture; a mid-run switch changes nothing for the
+  run; only OWNER or ADMIN may set it, and it is audited; the Reach panel (52) states each run's
+  posture. ADR 0008 (a frozen invariant) is amended by the owner in W0 to record this and the deferral.
+- Cost: an OPEN client's queries carry no confidentiality check, and Brave (US, logs up to 90 days)
+  can see them, names included. Marking a client OPEN is the only guard.

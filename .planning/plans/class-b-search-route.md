@@ -1,13 +1,13 @@
 ---
 status: planned
 chunks:
-  - "[ ] 0. The owner chooses and contracts the provider: an EU processing agreement and a written answer on storing results"
-  - "[ ] 1. The provider's route, composed beside Brave's and approved for Class B"
-  - "[ ] 2. The ADR 0022 live sign-off for the route"
-  - "[ ] 3. A design's class for Deep Research decided by rule once a Class B route exists (no operator step), Class C routes refusing it"
-  - "[ ] 4. A recorded double and a journey test: a Class B query reaches only the Class B route"
-  - "[ ] 5. Operator activation on develop (with deep-research-web-search 27)"
-  - "[ ] 6. The class of a derived query: content decides, not derivation (owner, 2026-10-19): aia-query-classifier-2, the ADR 0017 and 0008 amendment, then the rule enforced by code"
+  - "[ ] 0. (after the MVP) The owner chooses and contracts the provider: an EU processing agreement and a written answer on storing results"
+  - "[ ] 1. (after the MVP) The provider's route, composed beside Brave's and approved for Class B"
+  - "[ ] 2. (after the MVP) The ADR 0022 live sign-off for the route"
+  - "[ ] 3. (after the MVP) A design's class for Deep Research decided by rule once a Class B route exists (no operator step), Class C routes refusing it"
+  - "[ ] 4. (after the MVP) A recorded double and a journey test: a Class B query reaches only the Class B route"
+  - "[ ] 5. (after the MVP) Operator activation on develop (with deep-research-web-search 27)"
+  - "[ ] 6. (after the MVP) The class of a derived query: content decides, not derivation (owner, 2026-10-19): aia-query-classifier-2, the ADR 0017 and 0008 amendment, then the rule enforced by code"
 ---
 # A Class B search route for live Deep Research
 
@@ -119,9 +119,12 @@ integration gate I-4 (`mvp-cohesion.md` §4). `deep-research-web-search` 1 (sign
 `ARCHITECTURE.md` §4 (Deep Research's classification regime), ADR 0008 amendment, `overview.md`
 (MVP-27 beside OI-129).
 
-## Reordered (2026-10-19)
+## Deferred (2026-10-19)
 
-The owner decided to go with Brave, a Class C route, for live Deep Research. Chunk 6 is therefore
-**first**, with chunk 3 (the design by rule, which the plan step needs before any query is
-classified). Chunks 0-2, 4 and 5 (the Class B provider, its route, its journey and activation) are
-**optional and later**: they add a route for queries the content test of chunk 6 refuses. See `mvp-development-plan.md` § Reach.
+The owner: "all these classifications, honestly lets get rid of them for now and build them later."
+Every chunk here, the Class B provider and the classifier redesign alike, is **after the MVP**. The MVP
+uses one flag per client instead (`deep-research-web-search` 53, the open posture). Chunk 6's content
+rule (client terms and a five-word run shared with a text of its own effective class) and the two
+review findings it collected, that a paraphrase keeps its intent and that overlap buckets must use each
+text's own class, are kept as the **starting point** of the redesign, not as a contract.
+See `mvp-development-plan.md` § Reach.
