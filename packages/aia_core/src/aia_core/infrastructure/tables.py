@@ -1106,10 +1106,18 @@ class ClientSourceRow(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
     )
+    #: A person marked it "Interní dokument" (an internal AIA document, Class C by the owner's
+    #: rule of 2026-10-19): who and when, both null while it is the client's (Class A).
+    internal_marked_by: Mapped[str | None] = mapped_column(String(64))
+    internal_marked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (
         ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
         UniqueConstraint("client_id", "sha256", name="client_source_sha_unique"),
+        CheckConstraint(
+            "(internal_marked_by is null) = (internal_marked_at is null)",
+            name="internal_mark_whole",
+        ),
     )
 
 

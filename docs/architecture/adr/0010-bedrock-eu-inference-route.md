@@ -1,7 +1,7 @@
 # ADR 0010 — Amazon Bedrock, EU geography, as the first governed inference route
 
 **Status:** **Accepted for fictional Class C on develop only**, 2026-09-26. ModelGateway is on `main`; the adapter and recorded fixtures landed in PR #56 @ `0310091`. The authorised AIA operator explicitly approved the reviewed AWS/Anthropic terms, EU geography, unspecified retention and one isolated $2 Research test in this Codex conversation on 2026-09-26. Wider Class A/B and panel-derived transmission remain unapproved.
-**Date:** 2026-09-23 · **Updated:** 2026-09-26 (operator approval, verified EU prices, deployed adapter and audited IAM apply)
+**Date:** 2026-09-23 · **Updated:** 2026-09-26 (operator approval, verified EU prices, deployed adapter and audited IAM apply) · **Amended:** 2026-10-19 (the product owner: develop's EU route may carry Classes A, B and C, once an operator sets it and the retention is confirmed; § Amendment 2026-10-19)
 
 ## Context
 
@@ -154,3 +154,36 @@ primary calls and $0.2303301 recorded cost; see the dated activation evidence.
 ## Activation evidence
 
 [Bedrock develop activation — 2026-09-26](../bedrock-develop-activation-2026-09-26.md) records approval, reviewed sources, exact deployed SHA, six-region IAM verification, configuration and acceptance result. Approval covers fictional allowlist client `CLI-905099f4020045` only; OI-63’s general product policy remains open.
+
+## Amendment 2026-10-19 (product owner)
+
+**Decision.** The product owner decided that develop's EU route, `bedrock-eu-primary`, may carry
+Classes **A, B and C**, so the Research Lead, the AI design jobs, fieldwork, analysis and AI
+proposals from a client's documents can run on the classes ADR 0008's amendment of the same date
+gives their material.
+
+**It takes effect only when an operator does both of these, and not before:**
+
+1. **Confirms and states the provider-side retention.** ADR 0008 requires a specified retention
+   period for A and B, and `domain/residency.py` refuses either over a route whose retention is
+   unspecified (`retention_unspecified`). The value is the provider-side retention of model
+   inputs and outputs: what Bedrock and the model provider keep, under the account's
+   data-retention setting (which § Retention found `inherit` on 2026-09-26) and each model's
+   terms. Invocation logging is not that evidence: logging off says only that the account
+   publishes no payloads to its own destinations. An operator reads both the setting and the
+   terms, checks the logging configuration beside them, and records the result, the date and
+   the terms reference in the activation evidence. Until then the route's retention stays
+   unspecified, and only Class C travels over it.
+2. **Sets the route's parameters in Parameter Store**, as `deploy/develop/README.md` § AI route
+   classes lists them: `aia_ai_route_approved_for` =
+   `CLASS_A_CLIENT_CONFIDENTIAL,CLASS_B_DERIVED_CLIENT,CLASS_C_INTERNAL`,
+   `aia_ai_route_eu_processing_approved` and `aia_ai_route_excluded_from_training` = `true`, and
+   `aia_ai_route_retention_days` = the confirmed number; then rewrites the host's environment and
+   redeploys. The compose defaults stay operator-set: nothing in the repository widens the route.
+
+**What does not change.** One route, one pinned model, no fallback (§ What this route never
+does). The licence gate for panel-derived data (OI-61) is unchanged and sits beside residency.
+Approval stays per class: a deployment that sets C and B alone still refuses Class A material,
+such as approved Client Knowledge or a client's document. The § Status line above describes the
+2026-09-26 activation; this amendment widens what the route may be approved for, not what it is
+approved for today.

@@ -2,7 +2,9 @@
 
 Modelled on the design agents' executor (``research_agents``): ``StepModelCaller`` over the
 governed gateway, the prompt pinned at enqueue, the context frozen and hashed at enqueue,
-``ModelCapability.RESEARCH_REASONING`` and one schema repair. No tools; no automatic retry.
+``ModelCapability.STUDY_LEAD`` (bound to the Lead's own model when one is configured, else
+the route's; ADR 0026 amendment, 2026-10-19) and one schema repair. No tools; no automatic
+retry.
 
 What the turn produces is its step output -- the grounded :class:`LeadOutput`, what grounding
 dropped, what the Lead changed in its own files and the class the turn was sent as -- so the
@@ -38,6 +40,7 @@ from aia_core.domain.research_lead import (
     LEAD_HARNESS_VERSION,
     LEAD_PROMPT_ID,
     LeadOutput,
+    context_classification,
     context_sha256,
     ground_edits,
     ground_self_update,
@@ -213,6 +216,12 @@ class ResearchLeadExecutor:
                 "policy_version": result.provenance.policy_version,
                 "cost_usd": result.total_cost_usd,
                 "data_class": request.data_classification.value,
+                # Each part's class and who answered for it: a rule of the owner's
+                # (``rule:<name>``), an operator who raised it, the prompt's declaration or the
+                # code, an earlier reply's turn (``context_classification``).
+                "material_classification": context_classification(
+                    frozen, cfg.material_approvals, pin
+                ),
             },
         )
 

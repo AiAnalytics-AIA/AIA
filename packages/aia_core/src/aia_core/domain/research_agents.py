@@ -21,6 +21,7 @@ from .analysis.native import MAX_RESEARCH_QUESTIONS, research_questions_of
 from .design_items import Documents, ItemKey, brief_signature, design_items
 from .knowledge import KnowledgeItem
 from .licence import DataLineage
+from .material_rules import MaterialRule, RuledMaterial, classify_by_rule, rule_class
 from .prompts import PromptPin
 from .residency import DataClass
 
@@ -619,6 +620,39 @@ def prompt_data_class(
     return most_restrictive_material(known) if known else None
 
 
+def prompt_class_source(prompt: PromptPin | None, approvals: tuple[MaterialApproval, ...]) -> str:
+    """Who answered for the prompt's class (:func:`prompt_data_class`): ``code`` for the
+    code's own wording, else ``declaration``, ``operator`` or ``declaration+operator``; with
+    neither, ``unknown`` (and the class is unknown)."""
+    if prompt is None or prompt.origin == "baseline":
+        return "code"
+    operator = classify_material(prompt.text, approvals).data_class is not None
+    declared = prompt.declared_class is not None
+    if operator and declared:
+        return "declaration+operator"
+    if operator:
+        return "operator"
+    return "declaration" if declared else "unknown"
+
+
+def design_classification(
+    snapshot: dict[str, Any], approvals: tuple[MaterialApproval, ...]
+) -> RuledMaterial:
+    """The design a job is shown, Class B by the owner's rule (``material_rules``); an
+    operator's classification of its exact bytes can only raise it."""
+    return classify_by_rule(snapshot["design"], MaterialRule.DESIGN, approvals)
+
+
+def instruction_classification(
+    instruction: str, approvals: tuple[MaterialApproval, ...]
+) -> RuledMaterial | None:
+    """A researcher's instruction to the job, the study's class by rule; ``None`` for an empty
+    one, which holds no material (Class C)."""
+    if not instruction:
+        return None
+    return classify_by_rule(instruction, MaterialRule.JOB_INSTRUCTION, approvals)
+
+
 def agent_request(
     action: ResearchAction,
     snapshot: dict[str, Any],
@@ -635,21 +669,21 @@ def agent_request(
     prompt identity; without one the current code baseline version runs. A pin
     for another prompt is refused here, not trusted.
 
-    The copied design includes pasted text and attachment excerpts. Only a trusted
-    classification of these exact bytes can permit it. Approved knowledge remains
-    confidential independently; an unknown design or instruction refuses dispatch,
-    and so does a stored prompt edit nobody has declared or classified
+    The copied design includes pasted text and attachment excerpts: Class B by the owner's
+    rule (:data:`~aia_core.domain.material_rules.DESIGN_CLASS`), and so is a nonempty
+    instruction; an operator's classification of either's exact bytes can only raise it.
+    Approved knowledge is Class A by rule, whatever the design's class. A stored prompt edit
+    nobody has declared or classified is still unknown and refuses dispatch
     (:func:`prompt_data_class`).
     """
-    design = classify_material(snapshot["design"], material_approvals)
-    instruction_class = (
-        classify_material(instruction, material_approvals).data_class
-        if instruction
-        else DataClass.CLASS_C_INTERNAL
-    )
+    instruction_rule = instruction_classification(instruction, material_approvals)
     data_class = most_restrictive_material(
-        [design.data_class, instruction_class, prompt_data_class(prompt, material_approvals)]
-        + [DataClass.CLASS_A_CLIENT_CONFIDENTIAL for _ in snapshot["knowledge"]]
+        [
+            design_classification(snapshot, material_approvals).data_class,
+            DataClass.CLASS_C_INTERNAL if instruction_rule is None else instruction_rule.data_class,
+            prompt_data_class(prompt, material_approvals),
+        ]
+        + [rule_class(MaterialRule.KNOWLEDGE) for _ in snapshot["knowledge"]]
     )
     lineage = DataLineage.none()
     if any(k["kind"] in {"DATASET", "ARTIFACT", "FINDING"} for k in snapshot["knowledge"]):

@@ -64,6 +64,10 @@ APPROVAL = MaterialApproval(
 )
 
 
+#: The test route: Class C, and Class B, the class a study's design takes by rule.
+ROUTE = "CLASS_C_INTERNAL,CLASS_B_DERIVED_CLIENT"
+
+
 class Signer:
     def sign(self, *, method: str, url: str, headers: Any, body: bytes) -> dict[str, str]:
         return {**dict(headers), "authorization": "AWS4-HMAC-SHA256 test"}
@@ -119,7 +123,10 @@ def settings(client_id: str, **overrides: str) -> AIRuntimeSettings:
         "AIA_BEDROCK_CONTEXT_WINDOW_TOKENS": "200000",
         "AIA_AI_ROUTE_EU_PROCESSING_APPROVED": "true",
         "AIA_AI_ROUTE_EXCLUDED_FROM_TRAINING": "true",
-        "AIA_AI_ROUTE_APPROVED_FOR": "CLASS_C_INTERNAL",
+        # A study's design is Class B by the owner's rule (2026-10-19), so the route carries B;
+        # B, like A, needs the provider's retention stated.
+        "AIA_AI_ROUTE_APPROVED_FOR": ROUTE,
+        "AIA_AI_ROUTE_RETENTION_DAYS": "0",
         "AIA_AI_FIELDWORK_MAX_OUTPUT_TOKENS": "1024",
         "AIA_AI_FIELDWORK_RESERVATION_USD": "0.25",
         "AIA_AI_RESEARCH_AGENTS_ENABLED": "true",
@@ -160,8 +167,9 @@ def worker(
     fictional: bool = True,
     approvals: tuple[MaterialApproval, ...] = (),
     step_events: bool = False,
+    route: str = ROUTE,
 ) -> Worker:
-    cfg = settings(world.client_id if fictional else "")
+    cfg = settings(world.client_id if fictional else "", AIA_AI_ROUTE_APPROVED_FOR=route)
     executor = ResearchAgentExecutor(
         store=store,
         build=build,
@@ -172,7 +180,7 @@ def worker(
             context_window_tokens=cfg.context_window_tokens,
             reservation_usd=cfg.research_reservation_usd,
             fictional_client_ids=cfg.fictional_client_ids,
-            material_approvals=(APPROVAL, *approvals) if fictional else (),
+            material_approvals=(APPROVAL, *approvals) if fictional else approvals,
             step_events=step_events,
         )
         if enabled
@@ -369,18 +377,20 @@ def test_the_same_jobs_accept_is_recorded_once(
         assert len(ledger(session, run_id)) == 1
 
 
-@pytest.mark.parametrize("enabled,fictional", [(False, True), (True, False)])
-def test_unconfigured_or_confidential_design_never_calls_bedrock(
+@pytest.mark.parametrize("enabled,route", [(False, ROUTE), (True, "CLASS_C_INTERNAL")])
+def test_unconfigured_or_a_route_not_approved_for_the_design_never_calls_bedrock(
     world: Any,
     database_url: str,
     store: Any,
     build: Any,
     enabled: bool,
-    fictional: bool,
+    route: str,
 ) -> None:
+    """The design is Class B by rule: a route approved for Class C alone refuses it, as an
+    unconfigured runtime does. A rule classifies; it never approves a route."""
     run_id = start(world)
     transport = RecordedBedrock()
-    w = worker(world, database_url, store, build, transport, enabled=enabled, fictional=fictional)
+    w = worker(world, database_url, store, build, transport, enabled=enabled, route=route)
     assert w.run_once()
     assert not w.run_once()
     assert transport.requests == []
@@ -426,7 +436,7 @@ def test_unknown_delivery_waits_for_recovery_without_resending(
         (DESIGN, "New unclassified client instruction"),
     ],
 )
-def test_allowlisted_client_cannot_send_unclassified_text(
+def test_an_edited_design_or_instruction_is_sent_as_class_b_by_rule(
     world: Any,
     database_url: str,
     store: Any,
@@ -434,16 +444,62 @@ def test_allowlisted_client_cannot_send_unclassified_text(
     content: dict[str, Any],
     instruction: str,
 ) -> None:
+    """OI-126: before the owner's rule (2026-10-19) pasted text, an attachment excerpt or an
+    instruction nobody had classified parked the job. They are now Class B by rule, sent on a
+    route approved for B, and the record names the rule that classified each."""
     run_id = start(world, content=content, instruction=instruction)
     transport = RecordedBedrock()
-    w = worker(world, database_url, store, build, transport)
+    w = worker(world, database_url, store, build, transport, fictional=False)
     assert w.run_once()
-    assert not w.run_once()
-    assert transport.requests == []
+    assert len(transport.requests) == 1
     with world.sessions() as session:
-        run = ResearchAgentJobs(session, world.lead_scope(session)).get(run_id)
-        assert run["status"] is WorkflowRunStatus.WAITING_PROVIDER
-        assert run["steps"][0]["attempts"][-1]["error"]["reason"] == "egress_unclassified_material"
+        jobs = ResearchAgentJobs(session, world.lead_scope(session))
+        assert jobs.get(run_id)["status"] is WorkflowRunStatus.COMPLETED
+        provenance = jobs.result(run_id, store=store)["provenance"]
+    assert provenance["data_class"] == "CLASS_B_DERIVED_CLIENT"
+    classified = provenance["material_classification"]
+    assert (classified["design"]["data_class"], classified["design"]["source"]) == (
+        "CLASS_B_DERIVED_CLIENT",
+        "rule:design",
+    )
+    if instruction:
+        assert classified["instruction"]["source"] == "rule:job_instruction"
+        assert classified["instruction"]["data_class"] == "CLASS_B_DERIVED_CLIENT"
+    else:
+        assert classified["instruction"] is None
+    assert classified["knowledge_class"] == "CLASS_A_CLIENT_CONFIDENTIAL"
+
+
+def test_an_operator_can_only_raise_a_designs_class_and_is_recorded_for_it(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    run_id = start(world)
+    transport = RecordedBedrock()
+    raised = MaterialApproval(
+        sha256=material_sha256(DESIGN),
+        data_class=DataClass.CLASS_A_CLIENT_CONFIDENTIAL,
+        provenance="operator review: client material",
+    )
+    # The operator's Class A raises the job above the rule's B; a route approved for A takes it.
+    route = "CLASS_A_CLIENT_CONFIDENTIAL," + ROUTE
+    assert worker(
+        world,
+        database_url,
+        store,
+        build,
+        transport,
+        fictional=False,  # the test's own Class C approval of DESIGN is not composed
+        approvals=(raised,),
+        route=route,
+    ).run_once()
+    assert len(transport.requests) == 1
+    with world.sessions() as session:
+        provenance = ResearchAgentJobs(session, world.lead_scope(session)).result(
+            run_id, store=store
+        )["provenance"]
+    design = provenance["material_classification"]["design"]
+    assert (design["data_class"], design["source"]) == ("CLASS_A_CLIENT_CONFIDENTIAL", "operator")
+    assert provenance["data_class"] == "CLASS_A_CLIENT_CONFIDENTIAL"
 
 
 @pytest.mark.parametrize(

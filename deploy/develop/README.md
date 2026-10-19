@@ -390,22 +390,86 @@ the worker with the key named.
 | `aia_ai_policy_version` | a new name per change of model or price, e.g. `aia-bedrock-develop-2026-09` |
 | `aia_bedrock_input_usd_per_mtok`, `aia_bedrock_output_usd_per_mtok` | from the Bedrock pricing page, the date recorded in ADR 0010 |
 | `aia_bedrock_max_output_tokens`, `aia_bedrock_context_window_tokens` | the model's documented limits |
-| `aia_ai_route_eu_processing_approved`, `aia_ai_route_excluded_from_training` | `true` only once ADR 0010's review is recorded |
-| `aia_ai_route_approved_for` | `CLASS_C_INTERNAL` (ADR 0010: nothing wider without a reviewed change) |
-| `aia_ai_route_retention_days` | **leave unset** -- the account setting is `inherit`, not zero |
+| `aia_ai_route_eu_processing_approved`, `aia_ai_route_excluded_from_training` | `true` (ADR 0010's review, 2026-09-26; required for Classes A and B) |
+| `aia_ai_route_approved_for` | `CLASS_A_CLIENT_CONFIDENTIAL,CLASS_B_DERIVED_CLIENT,CLASS_C_INTERNAL` (ADR 0010, amendment 2026-10-19), only together with the retention below; until then `CLASS_C_INTERNAL` |
+| `aia_ai_route_retention_days` | the Bedrock account's provider-side retention, **once an operator has confirmed it** (§ AI route classes); unset until then, and then only Class C may travel |
 | `aia_ai_fieldwork_max_output_tokens` | the respondent agent's cap per call, e.g. `1024` |
 | `aia_ai_fieldwork_reservation_usd` | budget held per respondent request (primary + one repair); it must cover two calls' ceilings |
-| `aia_ai_fictional_client_ids` | the client ids of the seed's *(fiktivní)* clients: only their studies' designs are Class C |
+| `aia_ai_fictional_client_ids` | the client ids of the seed's *(fiktivní)* clients; kept for configuration compatibility, it classifies no material ([ai-material-classification.md](../../docs/architecture/ai-material-classification.md)) |
 
-With the route approved for Class C only, a study of any client **not** in
-`aia_ai_fictional_client_ids` parks with `egress_route_not_approved_for_class`,
-and anything derived from the population panel parks with `licence_undetermined`
-(OI-61), both before any request leaves. Inspect: usage in `ai_usage_events`
+A study's design, its names and a researcher's messages to the Research Lead are Class
+B by the product owner's rule of 2026-10-19 (ADR 0008 amendment); approved knowledge, a
+client's documents and the Lead's client notes are Class A. With the route approved for
+Class C only, each of those parks with `egress_route_not_approved_for_class`, before any
+request leaves; anything derived from the population panel needs its licence besides
+(OI-61). Inspect: usage in `ai_usage_events`
 (`provider`, `route_id`, `model`, `provider_request_id`, tokens, `cost_usd`,
 `cost_basis`, `runtime_version`), the reservation per request in
 `budget_reservations`, failure classification on the attempt row
 (`step_attempts.error_json`), and the dataset artifact's `provenance` (agent,
 prompt hash, class, lineage, every call).
+
+### AI route classes
+
+The product owner decided on 2026-10-19 that this route may carry Classes A, B and C
+(ADR 0010, amendment of that date). It takes effect only when an operator sets the four
+parameters below; the Compose defaults stay empty, so nothing in the repository widens the
+route by itself. ADR 0008 requires a specified retention for A and B, and the worker's
+egress check refuses either over a route whose retention is unset
+(`egress_retention_unspecified`).
+
+1. **Confirm the retention, then record it.** `aia_ai_route_retention_days` is the provider-side
+   retention of model inputs and outputs: how long Bedrock and the model provider keep them,
+   under the account's data-retention setting and the model's terms. It is **not** read from
+   invocation logging. Logging off only means AIA's account does not publish payloads to its
+   own CloudWatch or S3; it says nothing about what the provider keeps. Two pieces of evidence,
+   both required:
+
+   - the account's Bedrock **data-retention** setting, in the Bedrock console (Settings) for
+     `eu-central-1`, and the retention it states (AWS's "Data retention" page in the Bedrock
+     user guide describes the modes). ADR 0010 § Retention found it `inherit` on 2026-09-26;
+     read what it is now;
+   - the model's own terms for the models on the route (the route model and, when one is set,
+     the Lead's), from the model's page and end-user licence agreement in the console: whether
+     the provider keeps inputs or outputs, and for how long.
+
+   Invocation logging is checked as well, because a configured log is a retention of AIA's own
+   that the activation evidence names:
+
+   ```bash
+   aws bedrock get-model-invocation-logging-configuration --region eu-central-1
+   ```
+
+   Record the setting, the terms reference, the logging state, the number of days that follows
+   and the date in the activation evidence (ADR 0010 § Activation evidence) before setting the
+   parameter. If either piece cannot be confirmed, or the two disagree, stop here: the route
+   stays Class C only.
+2. **Set the parameters**, from CloudShell (`<days>` is the number confirmed in step 1):
+
+   ```bash
+   P=/aia/develop
+   aws ssm put-parameter --name $P/aia_ai_route_eu_processing_approved --type String --value true --overwrite
+   aws ssm put-parameter --name $P/aia_ai_route_excluded_from_training --type String --value true --overwrite
+   aws ssm put-parameter --name $P/aia_ai_route_retention_days --type String --value <days> --overwrite
+   aws ssm put-parameter --name $P/aia_ai_route_approved_for --type String --overwrite \
+     --value CLASS_A_CLIENT_CONFIDENTIAL,CLASS_B_DERIVED_CLIENT,CLASS_C_INTERNAL
+   ```
+
+   None of the four is a secret: `String`, not `SecureString`.
+3. **Write the host's environment and restart**, on the host:
+
+   ```bash
+   bin/write-env.sh && docker compose up -d worker web
+   ```
+
+   The worker reads the route; the web client shows its classes on Settings. The next deploy
+   (`bin/deploy.sh`) does the same. Check:
+   `docker compose exec worker printenv AIA_AI_ROUTE_APPROVED_FOR AIA_AI_ROUTE_RETENTION_DAYS`
+   prints both; Settings → AI shows the three classes. A value the worker refuses stops it at
+   start, with the key named in its log.
+
+To narrow it again, put `CLASS_C_INTERNAL` back into `aia_ai_route_approved_for` and repeat
+step 3; requests of Classes A and B then park before anything is sent.
 
 ### Model requests in a step's activity
 
@@ -418,6 +482,98 @@ reads it: after creating or changing the parameter, run `bin/write-env.sh` and
 `docker compose up -d worker`, then `docker compose exec worker printenv AIA_AI_STEP_EVENTS`
 prints `true`. Requests made before the restart are not in the feed. On develop since
 2026-10-13.
+
+### The Research Lead's own model
+
+The study's Research Lead (ADR 0026) can run on a model of its own while every other
+capability stays on `aia_bedrock_model_id` (the product owner, 2026-10-19; ADR 0026 §
+Amendment 2026-10-19). Its turns ask for `STUDY_LEAD`. With `aia_ai_research_lead_model_id`
+unset, `STUDY_LEAD` is bound to the route's model and the Lead runs exactly as before. Set, it
+is a second policy entry on the same route, `bedrock-eu-primary`: same egress, same approved
+classes, same retention. Nothing in the repository names the model or its price. Every value
+below is recorded by an operator from the Bedrock console and pricing page.
+
+**Before anything is set**, in the Bedrock console for `eu-central-1`:
+
+- model access is enabled for the model;
+- its EU cross-region inference profile id is written in full as Bedrock lists it (`eu.anthropic.…`,
+  with a `:N` suffix only if the id has one; the current model family's ids have none), never a
+  `latest` alias;
+- `aws bedrock get-inference-profile --inference-profile-identifier <id>` lists the same
+  destination regions as Terraform's `bedrock_destination_regions`. If they differ, stop: the
+  grant below covers those regions only, and changing them is a reviewed IAM change;
+- its input and output prices (and cache prices, if any) are read from the Bedrock pricing page
+  for the region, and the date is noted.
+
+**1. Grant it (Terraform).** In `infra/develop/terraform.tfvars` set
+`bedrock_lead_model_id = "<the profile id>"`, then `terraform plan` from `infra/develop`. The plan
+changes only `aws_iam_role_policy.instance`: the profile's ARN and its foundation model's ARN in
+each destination region are added to the `InvokeTheOneApprovedModel` statement. Then run
+`terraform apply`. `terraform output bedrock_model_arns_granted` lists everything the role may
+now invoke. Empty (the default), the policy is unchanged.
+
+**2. Configure it (Parameter Store).** Create these under `/aia/develop/`. Names are lower-case;
+`bin/write-env.sh` upper-cases them. Once the id is set, every row not marked optional is
+required. A missing or invalid one stops the worker with its key named.
+
+| Parameter | Value |
+|---|---|
+| `aia_ai_research_lead_model_id` | the profile id, the same as `bedrock_lead_model_id`; it must differ from `aia_bedrock_model_id` |
+| `aia_ai_research_lead_input_usd_per_mtok`, `aia_ai_research_lead_output_usd_per_mtok` | USD per million tokens, from the pricing page, dated |
+| `aia_ai_research_lead_cache_read_usd_per_mtok`, `aia_ai_research_lead_cache_write_usd_per_mtok` | optional; unset charges cache tokens at the input rate |
+| `aia_ai_research_lead_model_max_output_tokens` | the model's documented output ceiling |
+| `aia_ai_research_lead_context_window_tokens` | the model's documented context window |
+| `aia_ai_research_lead_structured_output` | `auto_tool` for a model that refuses a forced tool choice, else `forced_tool` |
+| `aia_ai_research_lead_thinking` | `adaptive` for a model that refuses a thinking budget, else `budget` |
+| `aia_ai_research_lead_effort` | optional, `adaptive` only: `low`, `medium`, `high`, `xhigh` or `max`; unset takes the model's default |
+| `aia_ai_research_lead_max_output_tokens` | **raise it** for a model with `adaptive` thinking: its thinking and its answer share this cap, and Compose's `1500` ends such a turn truncated before it answers (two calls paid, no answer). Pick it with the effort below; the reservation grows with it |
+| `aia_ai_research_lead_reservation_usd` | **re-size it** for the new prices (below) |
+| `aia_ai_policy_version` | a new name: a new binding is a policy change, recorded on every call |
+
+The Lead model's catalog entry declares no sampling setting. The Lead's turns send none, and one
+that ever did would be refused before it left.
+
+**3. Re-size the reservation.** `aia_ai_research_lead_reservation_usd` (Compose default `1.02`)
+was sized at the route model's prices. The worker checks it against the model the Lead runs on:
+two calls (a turn and its one repair), each at the Lead's whole window
+(`lead_request_window_tokens`: 117,630 tokens at Compose's output cap of 1,500, measured
+@ 5d775785) and its output
+cap, priced at the Lead model's dearest input rate and its output rate. A reservation below that
+stops the worker, and the refusal states the minimum:
+`AIA_AI_RESEARCH_LEAD_RESERVATION_USD: the Research Lead's reservation must cover two calls at
+the Lead model's prices, window and the Lead's output limit (at least N)`. Set the parameter to
+at least N. With adaptive thinking, the output cap (`aia_ai_research_lead_max_output_tokens`)
+covers the thinking and the answer together. A cap too small ends a turn truncated. Raising it
+raises N, and the worker states the new one.
+
+**4. Restart the worker.**
+
+```bash
+cd /opt/aia/develop && bin/write-env.sh && docker compose up -d worker
+```
+
+Only the worker reads these keys. The API and the web are not restarted.
+
+**5. Read its start-up.** `docker compose ps worker` shows it `Up`. A worker that refused its
+configuration is `Restarting`, and `docker compose logs --tail=50 worker` ends in
+`AIRuntimeConfigError:` with the key named (for the reservation, the minimum too). Fix the
+parameter and repeat steps 4 and 5. `docker compose exec worker printenv
+AIA_AI_RESEARCH_LEAD_MODEL_ID` prints the id the worker received.
+
+**6. Check one turn.** Send the Lead a message on a fictional study, then:
+
+```bash
+docker compose exec -T postgres psql -U aia -d aia -tAc \
+  "select capability, model, outcome, cost_usd from ai_usage_events
+   where capability = 'STUDY_LEAD' order by occurred_at desc limit 2"
+```
+
+The model is the Lead's profile, and the cost is priced at its rates.
+
+**Switching it off.** Delete `aia_ai_research_lead_model_id` (the other `aia_ai_research_lead_*`
+model keys are then not read), give `aia_ai_policy_version` a new name, and repeat step 4. The
+Lead returns to the route's model. To remove the grant, empty `bedrock_lead_model_id` and
+`terraform apply`.
 
 ### Deep Research on Brave search
 

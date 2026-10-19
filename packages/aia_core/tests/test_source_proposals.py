@@ -14,6 +14,7 @@ import json
 import pytest
 from pydantic import ValidationError
 
+from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.ai_models import ModelCapability
 from aia_core.domain.client_sources import (
     Locator,
@@ -32,6 +33,8 @@ from aia_core.domain.source_proposals import (
     NotExtractable,
     SourceProposal,
     SourceProposals,
+    batch_classification,
+    batch_material,
     batches,
     ground,
     proposal_request,
@@ -133,6 +136,51 @@ def test_a_reading_at_the_character_cap_of_czech_text_fits_the_request_cap() -> 
     made = batches(reading(*[page] * count))
     require_within_requests(made)
     assert len(made) <= MAX_REQUESTS
+
+
+def test_a_source_marked_internal_is_sent_as_class_c_and_nothing_else_changes() -> None:
+    """The owner's rule of 2026-10-19: a source a person marked "Interní dokument" is an
+    internal AIA document, Class C; the request is otherwise the same bytes."""
+    [batch] = batches(reading("Interní postup AIA.", "Druhý odstavec."))
+    client = proposal_request(batch, policy_version="p1", max_output_tokens=2000)
+    internal = proposal_request(batch, policy_version="p1", max_output_tokens=2000, internal=True)
+    assert internal.data_classification is DataClass.CLASS_C_INTERNAL
+    assert client.data_classification is DataClass.CLASS_A_CLIENT_CONFIDENTIAL
+    assert (internal.system, internal.messages) == (client.system, client.messages)
+
+
+def test_an_operator_classification_raises_a_marked_batch_and_never_lowers_one() -> None:
+    """Codex on #487: an operator's exact-bytes classification of what a batch sends raises a
+    marked source's batch above Class C, as it raises every other rule-classified request;
+    one that would lower an unmarked batch below Class A changes nothing."""
+    [batch] = batches(reading("Interní postup AIA.", "Druhý odstavec."))
+
+    def approval(data_class: DataClass) -> MaterialApproval:
+        return MaterialApproval(
+            sha256=material_sha256(batch_material(batch)),
+            data_class=data_class,
+            provenance="generated wholly by this test",
+        )
+
+    raised = batch_classification(
+        batch, internal=True, approvals=[approval(DataClass.CLASS_A_CLIENT_CONFIDENTIAL)]
+    )
+    assert (raised.data_class, raised.source) == (DataClass.CLASS_A_CLIENT_CONFIDENTIAL, "operator")
+    request = proposal_request(
+        batch,
+        policy_version="p1",
+        max_output_tokens=2000,
+        internal=True,
+        approvals=[approval(DataClass.CLASS_A_CLIENT_CONFIDENTIAL)],
+    )
+    assert request.data_classification is DataClass.CLASS_A_CLIENT_CONFIDENTIAL
+    kept = batch_classification(
+        batch, internal=False, approvals=[approval(DataClass.CLASS_C_INTERNAL)]
+    )
+    assert (kept.data_class, kept.source) == (
+        DataClass.CLASS_A_CLIENT_CONFIDENTIAL,
+        "rule:client_source",
+    )
 
 
 def test_the_request_is_class_a_closed_and_carries_no_locator() -> None:

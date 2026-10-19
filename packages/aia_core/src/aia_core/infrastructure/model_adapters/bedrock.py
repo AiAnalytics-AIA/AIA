@@ -26,6 +26,18 @@ takes no sampling setting, so a temperature with it is refused unsent, as is a
 budget the output limit does not exceed. The reasoning blocks of the answer
 (``reasoningContent``) are skipped: neither the text nor its signature is kept.
 
+**The model's request profile** (``AdapterRequest.request_profile``, declared in the
+resolved model's catalog entry, never guessed from its id) decides the rest. The
+default is everything above. A model family that refuses a forced tool choice, a
+thinking budget and a sampling temperature with a 400 declares ``auto_tool`` and
+``adaptive``: its single tool is offered with ``toolChoice.auto`` and the gateway's
+instruction, as for a thinking call; ``additionalModelRequestFields`` carries nothing
+about thinking (the model thinks adaptively when it is omitted) and only the declared
+``effort``, as ``output_config.effort``, when there is one. A request that asks such a
+model for what it cannot carry -- a thinking budget on an adaptive model, a
+temperature on one that takes no sampling setting -- is refused unsigned and unsent,
+by name, never quietly changed into a request nobody priced.
+
 Classification, from the service model's error shapes (``x-amzn-errortype`` header,
 else the body's ``__type`` / ``code``):
 
@@ -68,6 +80,7 @@ from aia_core.domain.ai_contracts import (
     ProviderError,
     ProviderErrorKind,
 )
+from aia_core.domain.ai_models import StructuredOutput, ThinkingMode
 from aia_core.domain.providers import Provider
 
 from ..http_transport import SigningUnavailable
@@ -187,8 +200,12 @@ class BedrockConverseAdapter:
         )
 
     def build_body(self, request: AdapterRequest) -> dict[str, Any]:
-        """The Converse request body for one call."""
+        """The Converse request body for one call, in the shape its profile declares."""
         thinking = request.thinking_budget_tokens
+        profile = request.request_profile
+        # Thinking allows only ``auto``, and an ``auto_tool`` model refuses anything
+        # else; the gateway's instruction does the rest.
+        offer_tool = thinking is not None or profile.structured_output is StructuredOutput.AUTO_TOOL
         inference: dict[str, Any] = {"maxTokens": request.max_output_tokens}
         if request.temperature is not None:
             inference["temperature"] = request.temperature
@@ -212,14 +229,31 @@ class BedrockConverseAdapter:
                         }
                     }
                 ],
-                # Thinking allows only ``auto``; the gateway's instruction does the rest.
-                "toolChoice": {"auto": {}} if thinking is not None else {"tool": {"name": name}},
+                "toolChoice": {"auto": {}} if offer_tool else {"tool": {"name": name}},
             }
+        additional: dict[str, Any] = {}
         if thinking is not None:
-            body["additionalModelRequestFields"] = {
-                "thinking": {"type": "enabled", "budget_tokens": thinking}
-            }
+            additional["thinking"] = {"type": "enabled", "budget_tokens": thinking}
+        if profile.effort is not None:
+            # The model's native field, passed through by Converse. Nothing else about
+            # thinking: an adaptive model thinks as it decides when it is omitted.
+            additional["output_config"] = {"effort": profile.effort.value}
+        if additional:
+            body["additionalModelRequestFields"] = additional
         return body
+
+    @staticmethod
+    def _profile_problem(request: AdapterRequest) -> str:
+        """What the request asks that its model's profile cannot carry; empty when nothing."""
+        profile = request.request_profile
+        if profile.thinking is ThinkingMode.ADAPTIVE and request.thinking_budget_tokens is not None:
+            return (
+                f"{request.model} thinks adaptively and takes no thinking budget "
+                f"({request.thinking_budget_tokens} asked)"
+            )
+        if not profile.accepts_sampling and request.temperature is not None:
+            return f"{request.model} takes no sampling setting (temperature {request.temperature})"
+        return ""
 
     @staticmethod
     def _thinking_problem(request: AdapterRequest) -> str:
@@ -254,7 +288,7 @@ class BedrockConverseAdapter:
                 kind=ProviderErrorKind.MODEL,
                 delivery=Delivery.NOT_SENT,
             )
-        problem = self._thinking_problem(request)
+        problem = self._profile_problem(request) or self._thinking_problem(request)
         if problem:
             # The provider would answer 400; refusing here keeps it unsigned and unsent.
             raise ProviderError(problem, kind=ProviderErrorKind.OTHER, delivery=Delivery.NOT_SENT)

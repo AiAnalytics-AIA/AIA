@@ -272,6 +272,21 @@ def refuse_thinking(adapter: str) -> ProviderError:
     )
 
 
+def refuse_profile(adapter: str) -> ProviderError:
+    """An adapter that sends only the default request shape refuses any other profile.
+
+    A model declared ``auto_tool``, ``adaptive``, without sampling or with an effort
+    is one only the Bedrock adapter knows how to ask. Sending it the default shape
+    instead would be the 400 the profile exists to avoid, or a different request than
+    the one priced and recorded. Unsent, and permanent.
+    """
+    return ProviderError(
+        f"the {adapter} adapter sends only the default request profile",
+        kind=ProviderErrorKind.OTHER,
+        delivery=Delivery.NOT_SENT,
+    )
+
+
 #: ``env:`` and the name of an AIA environment variable: ``env:AIA_DEEP_RESEARCH_BRAVE_API_KEY``.
 _ENV_REFERENCE: Final = re.compile(r"env:(AIA_[A-Z0-9_]+)")
 

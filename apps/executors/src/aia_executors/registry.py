@@ -183,7 +183,8 @@ def build_registry() -> dict[str, StepExecutor]:
             config=ResearchLeadConfig(
                 policy_version=settings.policy_version,
                 max_output_tokens=settings.study_lead_max_output_tokens,
-                context_window_tokens=settings.context_window_tokens,
+                # The Lead's own model's window when it has one (ADR 0026 amendment).
+                context_window_tokens=settings.study_lead_context_window_tokens,
                 reservation_usd=settings.study_lead_reservation_usd,
                 material_approvals=settings.material_approvals,
                 step_events=settings.step_events,
@@ -195,12 +196,7 @@ def build_registry() -> dict[str, StepExecutor]:
             store=store,
             build=build,
             gateway=build_gateway(settings),
-            config=SourceProposalsConfig(
-                policy_version=settings.policy_version,
-                max_output_tokens=settings.client_source_max_output_tokens,
-                reservation_usd=settings.client_source_reservation_usd,
-                step_events=settings.step_events,
-            ),
+            config=SourceProposalsConfig.from_settings(settings),
         )
     analysis = None
     if settings is not None and settings.analysis_enabled:

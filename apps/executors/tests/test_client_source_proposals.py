@@ -18,9 +18,11 @@ from aia_core.application.source_proposals import (
     latest_source_proposals,
     start_source_proposals,
 )
+from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.knowledge import ProposalStatus
+from aia_core.domain.residency import DataClass
 from aia_core.domain.scope import ClientContext, ClientWorkContext
-from aia_core.domain.source_proposals import HARNESS_VERSION
+from aia_core.domain.source_proposals import HARNESS_VERSION, batch_material, batches
 from aia_core.domain.workflow import StepRunStatus, WorkflowRunStatus
 from aia_core.domain.workflow_templates import CLIENT_SOURCE_PROPOSALS
 from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
@@ -159,13 +161,7 @@ def worker(
         store=store,
         build=build,
         gateway=build_gateway(cfg, transport=transport, signer=Signer()) if enabled else None,
-        config=SourceProposalsConfig(
-            policy_version=cfg.policy_version,
-            max_output_tokens=cfg.client_source_max_output_tokens,
-            reservation_usd=cfg.client_source_reservation_usd,
-        )
-        if enabled
-        else None,
+        config=SourceProposalsConfig.from_settings(cfg) if enabled else None,
     )
     return Worker(
         session_factory=world.sessions,
@@ -201,14 +197,20 @@ def start(
     budget: float = 10.0,
     filename: str = "lupinek.txt",
     data: bytes = DOCUMENT,
+    internal: bool = False,
 ) -> tuple[str, str]:
-    """Keep the document, set the client's budget and start the proposals: (run, source)."""
+    """Keep the document, set the client's budget and start the proposals: (run, source).
+    ``internal``: a person marked it "Interní dokument" first."""
     with world.sessions() as session:
         client = session.get(ClientRow, world.client_id)
         assert client is not None
         client.budget_usd, client.spent_usd = budget, 0.0
         sources = ClientSourceRepository(session, store)
         record, _ = sources.add(client_scope(world, session), filename=filename, data=data)
+        if internal:
+            record, _ = sources.mark_internal(
+                client_scope(world, session), record.source_id, internal=True
+            )
         if record.family.value == "DOCUMENT":
             # As a person asks: the API's start (lifecycle K2d4).
             run_id = start_source_proposals(
@@ -286,6 +288,9 @@ def test_grounded_proposals_are_filed_and_the_client_pays(
         "replayed": 0,
         "proposed": 2,
         "dropped": {"quote_not_found": 1, "unknown_segment": 1},
+        "data_class": "CLASS_A_CLIENT_CONFIDENTIAL",
+        "class_source": "rule:client_source",
+        "answer_classes": ["CLASS_A_CLIENT_CONFIDENTIAL"],
     }
 
     with world.sessions() as session:
@@ -356,6 +361,34 @@ def test_a_route_not_cleared_for_client_material_parks_before_any_call(
     assert step["attempts"][-1]["error"]["reason"] == reason
     assert transport.requests == []
     assert spent(world) == (0.0, 0.0)
+
+
+def test_a_source_marked_internal_is_sent_as_class_c_on_a_route_for_class_c(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """The owner's rule of 2026-10-19: a person marked the document "Interní dokument", an
+    internal AIA document, so it is Class C and a route approved for Class C alone takes it;
+    each proposal says which rule classified what it came from."""
+    run_id, source_id = start(world, store, internal=True)
+    transport = RecordedBedrock()
+    w = worker(
+        world, database_url, store, build, transport, AIA_AI_ROUTE_APPROVED_FOR="CLASS_C_INTERNAL"
+    )
+    assert w.run_once()
+    assert len(transport.requests) == 1
+    step = run_state(world, run_id)["steps"][0]
+    assert (step["output"]["data_class"], step["output"]["class_source"]) == (
+        "CLASS_C_INTERNAL",
+        "rule:internal_document",
+    )
+    with world.sessions() as session:
+        proposals = ClientKnowledgeRepository(session).proposals(client_scope(world, session))
+    assert proposals and all(
+        (p.provenance["data_class"], p.provenance["class_source"])
+        == ("CLASS_C_INTERNAL", "rule:internal_document")
+        for p in proposals
+    )
+    assert all(p.provenance["source_id"] == source_id for p in proposals)
 
 
 def test_a_dataset_is_refused_by_name_before_any_call(
@@ -478,3 +511,170 @@ def test_a_document_parked_between_batches_resumes_without_paying_twice(
     assert (output["batches"], output["sent"], output["replayed"]) == (2, 1, 1)
     # Charged for two requests, not three.
     assert spent(world)[0] == pytest.approx(2 * first_charge)
+
+
+def test_a_replayed_answer_keeps_the_class_it_was_sent_as_when_the_mark_changes(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """Codex on #487: the first batch is sent as Class C (the document marked "Interní
+    dokument"), the step parks at the budget, a person unmarks it, and the resumed step sends
+    the second batch as Class A. The first answer is replayed, and its proposals still say
+    Class C -- the class it was sent as, not the mark the source carries when replayed."""
+    # Each batch holds one segment the recorded answer quotes: the first batch segment 0,
+    # the second segment 1, so each batch files one proposal of its own.
+    first = ("Fiktivní pivovar Lupínek vaří od roku 1998 v Kolíně. " * 300).strip()
+    second = ("Podle průzkumu zná značku 41 % dospělých v kraji. " * 300).strip()
+    two_batches = f"{first}\n\n{second}".encode()
+    run_id, source_id = start(
+        world, store, budget=0.505, filename="dlouhy.txt", data=two_batches, internal=True
+    )
+    transport = RecordedBedrock()
+    w = worker(world, database_url, store, build, transport)
+    w.run_once()
+    assert run_state(world, run_id)["steps"][0]["status"] is StepRunStatus.AWAITING_BUDGET
+    assert len(transport.requests) == 1
+
+    with world.sessions() as session:
+        ClientSourceRepository(session, store).mark_internal(
+            client_scope(world, session), source_id, internal=False
+        )
+        lift_client_budget_wait(
+            session,
+            client_scope(world, session),
+            work_scope(world, session),
+            run_id,
+            "extract",
+            budget_usd=5.0,
+        )
+        session.commit()
+    assert w.run_once()
+    run = run_state(world, run_id)
+    assert run["status"] is WorkflowRunStatus.COMPLETED
+    output = run["steps"][0]["output"]
+    assert (output["sent"], output["replayed"]) == (1, 1)
+    assert (output["data_class"], output["class_source"]) == (
+        "CLASS_A_CLIENT_CONFIDENTIAL",
+        "rule:client_source",
+    )
+    assert output["answer_classes"] == ["CLASS_A_CLIENT_CONFIDENTIAL", "CLASS_C_INTERNAL"]
+    with world.sessions() as session:
+        proposals = ClientKnowledgeRepository(session).proposals(client_scope(world, session))
+    by_call: dict[str, set[tuple[str, str]]] = {}
+    for p in proposals:
+        by_call.setdefault(p.provenance["call_id"], set()).add(
+            (p.provenance["data_class"], p.provenance["class_source"])
+        )
+    assert sorted(by_call.values(), key=sorted) == sorted(
+        [
+            {("CLASS_A_CLIENT_CONFIDENTIAL", "rule:client_source")},
+            {("CLASS_C_INTERNAL", "rule:internal_document")},
+        ],
+        key=sorted,
+    )
+
+
+def test_unmarking_a_source_mid_run_stops_the_requests_not_yet_sent(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """Independent review of #487: a person unmarks "Interní dokument" while the run is
+    between its batches (here, while the first request is answered). The second request
+    was built as Class C; it is not sent. The step fails by name, the first answer stays
+    kept, and nothing more is charged."""
+    first = ("Fiktivní pivovar Lupínek vaří od roku 1998 v Kolíně. " * 300).strip()
+    second = ("Podle průzkumu zná značku 41 % dospělých v kraji. " * 300).strip()
+    run_id, source_id = start(
+        world, store, filename="dlouhy.txt", data=f"{first}\n\n{second}".encode(), internal=True
+    )
+
+    @dataclass
+    class UnmarkingBedrock(RecordedBedrock):
+        async def send(self, request: HttpRequest, *, timeout_s: float) -> HttpResponse:
+            if not self.requests:
+                with world.sessions() as session:
+                    ClientSourceRepository(session, store).mark_internal(
+                        client_scope(world, session), source_id, internal=False
+                    )
+                    session.commit()
+            return await super().send(request, timeout_s=timeout_s)
+
+    transport = UnmarkingBedrock()
+    w = worker(world, database_url, store, build, transport)
+    w.run_once()
+    step = run_state(world, run_id)["steps"][0]
+    assert len(transport.requests) == 1  # the second batch, built as Class C, was not sent
+    assert step["attempts"][-1]["error"]["reason"] == "source_class_changed"
+    assert step["status"] is not StepRunStatus.SUCCEEDED
+
+
+def test_an_operator_classification_keeps_a_marked_batch_off_a_route_for_class_c(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """Codex on #487: a person marked the document "Interní dokument", but an operator
+    classified exactly what its batch sends as Class A. The batch is Class A, raised, never
+    lowered; a route approved for Class C alone refuses it before anything is sent."""
+    run_id, source_id = start(world, store, internal=True)
+    with world.sessions() as session:
+        reading = ClientSourceRepository(session, store).reading(
+            client_scope(world, session), source_id
+        )
+    approvals = [
+        MaterialApproval(
+            sha256=material_sha256(batch_material(batch)),
+            data_class=DataClass.CLASS_A_CLIENT_CONFIDENTIAL,
+            provenance="generated wholly by this test",
+        ).model_dump_json()
+        for batch in batches(reading)
+    ]
+    transport = RecordedBedrock()
+    w = worker(
+        world,
+        database_url,
+        store,
+        build,
+        transport,
+        AIA_AI_ROUTE_APPROVED_FOR="CLASS_C_INTERNAL",
+        AIA_AI_MATERIAL_CLASSIFICATIONS="[" + ",".join(approvals) + "]",
+    )
+    w.run_once()
+    step = run_state(world, run_id)["steps"][0]
+    assert transport.requests == []
+    assert step["attempts"][-1]["error"]["reason"] == "egress_route_not_approved_for_class"
+
+
+def test_every_class_still_to_be_sent_is_asked_before_the_first_request_leaves(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """Codex on #487: a marked two-batch document whose second batch an operator raised to
+    Class A. On a route for Class C alone, the second batch's refusal is knowable before
+    anything is sent, so the first batch is not sent and paid for either."""
+    first = ("Fiktivní pivovar Lupínek vaří od roku 1998 v Kolíně. " * 300).strip()
+    second = ("Podle průzkumu zná značku 41 % dospělých v kraji. " * 300).strip()
+    run_id, source_id = start(
+        world, store, filename="dlouhy.txt", data=f"{first}\n\n{second}".encode(), internal=True
+    )
+    with world.sessions() as session:
+        reading = ClientSourceRepository(session, store).reading(
+            client_scope(world, session), source_id
+        )
+    made = batches(reading)
+    assert len(made) == 2
+    raised = MaterialApproval(
+        sha256=material_sha256(batch_material(made[1])),
+        data_class=DataClass.CLASS_A_CLIENT_CONFIDENTIAL,
+        provenance="generated wholly by this test",
+    ).model_dump_json()
+    transport = RecordedBedrock()
+    w = worker(
+        world,
+        database_url,
+        store,
+        build,
+        transport,
+        AIA_AI_ROUTE_APPROVED_FOR="CLASS_C_INTERNAL",
+        AIA_AI_MATERIAL_CLASSIFICATIONS=f"[{raised}]",
+    )
+    w.run_once()
+    step = run_state(world, run_id)["steps"][0]
+    assert transport.requests == []
+    assert spent(world) == (0.0, 0.0)
+    assert step["attempts"][-1]["error"]["reason"] == "egress_route_not_approved_for_class"

@@ -43,6 +43,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from .providers import Provider, is_paid
 
 __all__ = [
+    "DEFAULT_REQUEST_PROFILE",
+    "Effort",
     "ModelBinding",
     "ModelCapability",
     "ModelConfigError",
@@ -51,7 +53,10 @@ __all__ = [
     "ModelPricing",
     "ModelRegistry",
     "ModelResolution",
+    "RequestProfile",
     "ResolutionError",
+    "StructuredOutput",
+    "ThinkingMode",
     "parse_model_config",
 ]
 
@@ -82,6 +87,42 @@ class ModelCapability(StrEnum):
     #: ``deep-research-web-search.md`` chunk 20; its policy entry is proposed until
     #: chunk 1's sign-off).
     RESEARCH_TRIAGE = "RESEARCH_TRIAGE"
+    #: The study's Research Lead (ADR 0026): one conversational turn over a frozen
+    #: context. Its own policy entry, so it can be bound to a model of its own on the
+    #: route (ADR 0026 amendment, 2026-10-19). Not ``RESEARCH_LEAD``, which is Deep
+    #: Research's lead researcher.
+    STUDY_LEAD = "STUDY_LEAD"
+
+
+class StructuredOutput(StrEnum):
+    """How a model is asked for a structured answer through its one output tool."""
+
+    #: The tool is forced (``toolChoice.tool``): the answer can only come through it.
+    FORCED_TOOL = "forced_tool"
+    #: The tool is offered (``toolChoice.auto``) with the gateway's instruction to
+    #: answer through it; an answer in text takes the one schema repair. For a model
+    #: that refuses a forced tool choice.
+    AUTO_TOOL = "auto_tool"
+
+
+class ThinkingMode(StrEnum):
+    """How a model thinks, and so what a request may say about it."""
+
+    #: Thinking is off unless a request sets a budget (``thinking_budget_tokens``).
+    BUDGET = "budget"
+    #: The model decides how much to think; a request carries no budget, and nothing
+    #: about thinking is sent unless an effort is configured.
+    ADAPTIVE = "adaptive"
+
+
+class Effort(StrEnum):
+    """An adaptive model's effort, configured per model, never per call."""
+
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    XHIGH = "xhigh"
+    MAX = "max"
 
 
 class ModelConfigError(ValueError):
@@ -181,6 +222,42 @@ class ModelPricing:
 
 
 @dataclass(frozen=True, slots=True)
+class RequestProfile:
+    """What a model's requests may carry, declared in its catalog entry.
+
+    Model families differ in what they accept: an older one takes a forced output
+    tool, a thinking budget and a sampling temperature; a newer one refuses all
+    three with a 400 and thinks adaptively. The adapter reads the resolved model's
+    profile and sends the shape it declares -- never a shape guessed from the id --
+    and refuses, unsent, a request asking for what the profile cannot carry.
+
+    The defaults are the shape every model on the route was sent before profiles
+    existed, so a catalog entry that declares none sends the same bytes.
+    """
+
+    structured_output: StructuredOutput = StructuredOutput.FORCED_TOOL
+    thinking: ThinkingMode = ThinkingMode.BUDGET
+    #: False: the model refuses a non-default ``temperature`` (and other sampling).
+    accepts_sampling: bool = True
+    #: Sent only to an adaptive model; ``None`` sends nothing and takes its default.
+    effort: Effort | None = None
+
+    def __post_init__(self) -> None:
+        if self.effort is not None and self.thinking is not ThinkingMode.ADAPTIVE:
+            raise ModelConfigError("an effort is declared only for an adaptive-thinking model")
+
+    @property
+    def is_default(self) -> bool:
+        """True for the shape every model was sent before profiles existed."""
+        return self == DEFAULT_REQUEST_PROFILE
+
+
+#: The profile of a catalog entry that declares none: forced tool, budgeted thinking,
+#: sampling accepted, no effort.
+DEFAULT_REQUEST_PROFILE: Final = RequestProfile()
+
+
+@dataclass(frozen=True, slots=True)
 class ModelDescriptor:
     """One model in the catalog: what it can do and what it costs.
 
@@ -197,6 +274,8 @@ class ModelDescriptor:
     pricing: ModelPricing | None = None
     #: The provider can enforce a JSON Schema in strict mode for this model.
     supports_strict_schema: bool = False
+    #: What this model's requests may carry (:class:`RequestProfile`).
+    request_profile: RequestProfile = DEFAULT_REQUEST_PROFILE
 
     def __post_init__(self) -> None:
         if not self.model.strip():
@@ -562,6 +641,11 @@ class _ModelDoc(_Strict):
     context_window_tokens: int
     pricing: _PricingDoc | None = None
     supports_strict_schema: bool = False
+    # The request profile, flat as the entry is written; absent is today's shape.
+    structured_output: StructuredOutput = StructuredOutput.FORCED_TOOL
+    thinking: ThinkingMode = ThinkingMode.BUDGET
+    accepts_sampling: bool = True
+    effort: Effort | None = None
 
 
 class _BindingDoc(_Strict):
@@ -622,6 +706,12 @@ def parse_model_config(document: Mapping[str, Any]) -> ModelRegistry:
             context_window_tokens=m.context_window_tokens,
             pricing=ModelPricing(**m.pricing.model_dump()) if m.pricing else None,
             supports_strict_schema=m.supports_strict_schema,
+            request_profile=RequestProfile(
+                structured_output=m.structured_output,
+                thinking=m.thinking,
+                accepts_sampling=m.accepts_sampling,
+                effort=m.effort,
+            ),
         )
         for m in doc.models
     ]

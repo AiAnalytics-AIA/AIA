@@ -19,6 +19,7 @@ from typing import Any
 
 import pytest
 from pydantic import ValidationError
+from sqlalchemy import select
 
 from aia_core.domain.client_sources import (
     NAME_MAX_CHARS,
@@ -41,6 +42,7 @@ from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeR
 from aia_core.infrastructure.client_source_repository import ClientSourceRepository
 from aia_core.infrastructure.source_reading import read_source
 from aia_core.infrastructure.storage import InMemoryArtifactStore, IntegrityError
+from aia_core.infrastructure.tables import AccessAuditRow
 
 FIXTURES = Path(__file__).parent / "fixtures" / "attachment_text" / "inputs"
 
@@ -318,6 +320,126 @@ def test_adding_and_reading_need_their_permissions(
         sources.sources(without(ClientPermission.VIEW_CLIENT_KNOWLEDGE))
     with pytest.raises(ScopeDenied):
         sources.reading(without(ClientPermission.VIEW_CLIENT_KNOWLEDGE), kept.source_id)
+
+
+def test_a_person_marks_a_source_internal_and_unmarks_it_with_who_when_and_audit(
+    scoped: Any, sources: ClientSourceRepository, session: Any
+) -> None:
+    """The product owner's rule of 2026-10-19: a source marked "Interní dokument" is Class C
+    for AI. Who marked it and when are kept; each change is audited; a repeat changes
+    nothing; another client's source is not found."""
+    lead = client_scope(scoped, "lead")
+    kept, _ = sources.add(lead, filename="metodika.md", data=b"# Interni postup AIA")
+    assert kept.internal is None
+
+    marked, changed = sources.mark_internal(lead, kept.source_id, internal=True)
+    assert changed and marked.internal is not None
+    assert marked.internal.by == lead.actor_id and marked.internal.at is not None
+    assert sources.source(lead, kept.source_id).internal == marked.internal
+    assert [s.internal for s in sources.sources(lead)] == [marked.internal]
+
+    again, changed = sources.mark_internal(lead, kept.source_id, internal=True)
+    assert not changed and again.internal == marked.internal
+
+    unmarked, changed = sources.mark_internal(lead, kept.source_id, internal=False)
+    assert changed and unmarked.internal is None
+    assert sources.mark_internal(lead, kept.source_id, internal=False)[1] is False
+
+    audits = session.scalars(
+        select(AccessAuditRow)
+        .where(AccessAuditRow.action.like("CLIENT_SOURCE_%INTERNAL"))
+        .order_by(AccessAuditRow.event_id)
+    ).all()
+    assert [(a.action, a.actor_id, a.payload["source_id"]) for a in audits] == [
+        ("CLIENT_SOURCE_MARKED_INTERNAL", lead.actor_id, kept.source_id),
+        ("CLIENT_SOURCE_UNMARKED_INTERNAL", lead.actor_id, kept.source_id),
+    ]
+    assert audits[1].payload["marked_by"] == lead.actor_id
+
+    other = client_scope(scoped, "other_lead", "other")
+    with pytest.raises(ScopeDenied):
+        sources.mark_internal(other, kept.source_id, internal=True)
+
+
+def test_a_mark_and_an_unmark_sent_together_end_in_the_state_the_later_one_answered(
+    scoped: Any, sources: ClientSourceRepository, session: Any, engine: Any, store: Any
+) -> None:
+    """Codex on #487: a mark is applied and not yet committed when an unmark arrives. The
+    unmark waits for the row, then sees the mark and removes it: the source ends unmarked, as
+    its answer said. Without the lock the unmark read the old unmarked row, answered
+    "nothing to change", and the mark committed after it.
+
+    PostgreSQL only: the guard is the row's lock, which SQLite does not take (it serialises
+    writers instead)."""
+    import threading
+    import time
+
+    from aia_core.infrastructure.db import create_session_factory
+
+    if engine.dialect.name != "postgresql":
+        pytest.skip("row locks are PostgreSQL's; SQLite serialises writers")
+    lead = client_scope(scoped, "lead")
+    kept, _ = sources.add(lead, filename="metodika.md", data=b"# Interni postup AIA")
+    session.commit()
+    factory = create_session_factory(engine)
+    marked, go = threading.Event(), threading.Event()
+    answers: list[bool] = []
+    errors: list[BaseException] = []
+
+    def mark() -> None:
+        try:
+            with factory() as own:
+                ClientSourceRepository(own, store).mark_internal(
+                    lead, kept.source_id, internal=True
+                )
+                marked.set()
+                assert go.wait(30)
+                own.commit()
+        except BaseException as exc:  # reported below, never swallowed
+            errors.append(exc)
+
+    def unmark() -> None:
+        try:
+            with factory() as own:
+                _, changed = ClientSourceRepository(own, store).mark_internal(
+                    lead, kept.source_id, internal=False
+                )
+                own.commit()
+                answers.append(changed)
+        except BaseException as exc:
+            errors.append(exc)
+
+    a = threading.Thread(target=mark)
+    a.start()
+    assert marked.wait(30)
+    b = threading.Thread(target=unmark)
+    b.start()
+    # Room for the unmark to finish if nothing holds it; with the lock it waits.
+    time.sleep(1.0)
+    assert answers == []
+    go.set()
+    a.join(30)
+    b.join(30)
+    assert not errors, errors
+    assert answers == [True]
+    session.expire_all()
+    assert sources.source(lead, kept.source_id).internal is None
+
+
+def test_marking_a_source_internal_needs_the_permission_adding_it_needs(
+    scoped: Any, sources: ClientSourceRepository
+) -> None:
+    lead = client_scope(scoped, "lead")
+    kept, _ = sources.add(lead, filename="a.txt", data=b"Fakt.")
+    without = dataclasses.replace(
+        lead,
+        permissions=frozenset(
+            p for p in lead.permissions if p is not ClientPermission.PROPOSE_CLIENT_KNOWLEDGE
+        ),
+    )
+    with pytest.raises(ScopeDenied):
+        sources.mark_internal(without, kept.source_id, internal=True)
+    assert sources.source(lead, kept.source_id).internal is None
 
 
 def test_a_source_is_not_knowledge_and_no_study_reads_it(
