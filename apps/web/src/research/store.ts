@@ -269,8 +269,16 @@ export class ResearchStore {
    * Read the working copy again from AIA and replace this copy with it: after the server wrote it
    * (an accepted proposal, ADR 0026 decision 6), or after a conflict. A change still waiting for
    * its save is dropped, so the caller flushes first when it means to keep one.
+   *
+   * `since`: the copy as the caller held it when it asked AIA to write (a call that took time).
+   * A change the person made after it -- while AIA answered, or while it is read -- is not
+   * dropped: the copy stays on screen as it is, marked in conflict with the revision AIA holds,
+   * so nothing is saved over it and the person is told. Returns whether the copy was replaced.
    */
-  async reload(read: (studyId: string) => Promise<WorkingContent> = workspace.content): Promise<void> {
+  async reload(
+    read: (studyId: string) => Promise<WorkingContent> = workspace.content,
+    { since }: { since?: Pick<ResearchState, "project" | "analysis"> } = {},
+  ): Promise<boolean> {
     if (this.timer) {
       clearTimeout(this.timer);
       this.timer = null;
@@ -278,11 +286,16 @@ export class ResearchStore {
     if (this.inflight) await this.inflight.catch(() => {});
     const loaded = readWorkingContent(await read(this.studyId));
     if (loaded.kind !== "research") throw new Error("Pracovní obsah studie se nepodařilo znovu načíst.");
+    if (since && (this.state.project !== since.project || this.state.analysis !== since.analysis)) {
+      this.conflict(loaded.state.revision);
+      return false;
+    }
     this.set({
       ...loaded.state,
       save: this.opts.readOnly ? { kind: "readonly" } : loaded.state.save,
       checkEpoch: this.state.checkEpoch + 1,
     });
+    return true;
   }
 
   /**

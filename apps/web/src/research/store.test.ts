@@ -253,3 +253,39 @@ describe("conflict", () => {
     expect(bodies).toHaveLength(0);
   });
 });
+
+describe("reload", () => {
+  const ready = (save: ReturnType<typeof aia>["save"]) => {
+    const loaded = readWorkingContent(content({ content: defaultsMerge({ title: "Alfa" }, TEMPLATE) as unknown as Record<string, unknown> }));
+    if (loaded.kind !== "research") throw new Error("not research");
+    return new ResearchStore(loaded.state, "STU-1", { save });
+  };
+
+  it("replaces the copy with what AIA wrote when nothing changed since the caller's snapshot", async () => {
+    const { save } = aia(() => saved(9));
+    const store = ready(save);
+    const since = store.get();
+    const replaced = await store.reload(async () => content({ revision: 8, revision_id: "REV-8", content: { title: "Beta" } }), { since });
+    expect(replaced).toBe(true);
+    expect(store.get()).toMatchObject({ revision: 8, project: { title: "Beta" }, save: { kind: "saved" } });
+  });
+
+  it("keeps a change made after the snapshot: the copy in conflict with AIA's revision, nothing saved", async () => {
+    vi.useFakeTimers();
+    try {
+      const { bodies, save } = aia(() => saved(9));
+      const store = ready(save);
+      const since = store.get();
+      // Typed while AIA answered: the reload must not drop it, nor save it over revision 8.
+      store.update(({ project }) => ({ project: { ...project, goal: "Mine" } }));
+      const replaced = await store.reload(async () => content({ revision: 8, revision_id: "REV-8", content: { title: "Beta" } }), { since });
+      expect(replaced).toBe(false);
+      expect(store.get().project).toMatchObject({ title: "Alfa", goal: "Mine" });
+      expect(store.get().save).toEqual({ kind: "conflict", current: 8 });
+      await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS * 2);
+      expect(bodies).toHaveLength(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

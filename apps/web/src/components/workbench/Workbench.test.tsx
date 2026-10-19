@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 // The workbench's automatic text edits (plan inline-decisions chunk 2): off by default; on, a turn
 // that finishes has its wording edits accepted through the server's gate, marked automatic, shown
-// as "Přijato automaticky" with Vrátit, while its structural edits wait as change blocks.
+// as "Přijato automaticky" with Vrátit, while its structural edits wait as change blocks. The copy
+// is read again in place, asynchronously; a change the person makes meanwhile is never dropped.
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -33,6 +34,24 @@ let reads: number;
 let state: LeadState;
 let decided: unknown[];
 let saves: unknown[];
+/** What the working copy's GET answers: the server's own write after an accept. */
+let held: { project: ResearchProject; revision: number };
+let contentReads: number;
+/** Held open until released: the gate's answer, the working copy's read. */
+let editsGate: Promise<void> | null;
+let contentGate: Promise<void> | null;
+/** Run while the gate is answering: the person typing meanwhile. */
+let duringEdits: (() => void) | null;
+/** The gate's refusal, as the server words it. */
+let editsRefusal: { status: number; code: string; details?: Record<string, unknown> } | null;
+
+function deferred(): { promise: Promise<void>; release: () => void } {
+  let release = () => {};
+  const promise = new Promise<void>((r) => {
+    release = r;
+  });
+  return { promise, release };
+}
 
 function me(): ResearcherLead {
   return {
@@ -50,6 +69,12 @@ beforeEach(() => {
   reads = 0;
   decided = [];
   saves = [];
+  held = { project: project("Znáte?"), revision: 3 };
+  contentReads = 0;
+  editsGate = null;
+  contentGate = null;
+  duringEdits = null;
+  editsRefusal = null;
   let revision = 3;
   vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
     const u = String(url).split("?")[0]!;
@@ -61,10 +86,23 @@ beforeEach(() => {
       revision += 1;
       return new Response(JSON.stringify({ study_id: "STU-1", state: "NATIVE", revision, revision_id: `REV-${revision}`, deduplicated: false }));
     }
+    if (u.endsWith("/workspace/content")) {
+      contentReads += 1;
+      if (contentGate) await contentGate;
+      return new Response(JSON.stringify({
+        study_id: "STU-1", state: "NATIVE", revision: held.revision, revision_id: `REV-${held.revision}`, content: held.project, analysis: null,
+        template: EMPTY_PROJECT, saved_at: null, saved_by: null, can_edit: true, lineage: {},
+      }));
+    }
     if (u.endsWith("/lead/turns/LDT-1/edits")) {
       const body = JSON.parse(String(init?.body)) as { indices: number[]; auto?: boolean };
       decided.push(body);
+      duringEdits?.();
+      if (editsGate) await editsGate;
+      if (editsRefusal) return new Response(JSON.stringify({ code: editsRefusal.code, message: editsRefusal.code, details: editsRefusal.details ?? {} }), { status: editsRefusal.status });
       revision += 1;
+      // The server wrote the accepted wording into the working copy.
+      if (body.indices.includes(0)) held = { project: project("Znáte značku?"), revision };
       // The server's gate: only wording is taken automatically; the rest stays undecided.
       const results = body.indices.map((i) => (body.auto && i !== 0 ? { index: i, status: "refused", reason: "not_a_text_edit" } : { index: i, status: "accepted", reason: null }));
       const accepted = Object.fromEntries(results.filter((r) => r.status === "accepted").map((r) => [String(r.index), { status: "accepted" as const, reason: null, auto: !!body.auto }]));
@@ -91,17 +129,18 @@ afterEach(() => {
   sessionStorage.clear();
 });
 
-function bench() {
-  const store = new ResearchStore({ revision: 3, project: project("Znáte?"), analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
-  // The stage's reload reads the working copy the server wrote.
-  const reload = vi.fn(() => store.replace({ project: project("Znáte značku?") }));
-  render(
-    <Workbench frame={TEST_FRAME} step="questionnaire" store={store} save={null} inspector={null} reload={reload} confirm={vi.fn(async () => true)}
+type Bench = { store?: ResearchStore };
+function bench({ store }: Bench = {}) {
+  const s = store ?? new ResearchStore({ revision: 3, project: project("Znáte?"), analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
+  // The stage's reload after a click; an automatic accept reads the copy in place instead.
+  const reload = vi.fn();
+  const view = render(
+    <Workbench frame={TEST_FRAME} step="questionnaire" store={s} save={null} inspector={null} reload={reload} confirm={vi.fn(async () => true)}
       onAgentStarted={vi.fn()} jobs={[]} onOpenJob={vi.fn()} onRefreshJobs={vi.fn(async () => [])}>
       <div>Dotazník</div>
     </Workbench>,
   );
-  return { store, reload };
+  return { store: s, reload, unmount: view.unmount };
 }
 
 const questionText = (s: ResearchStore) => (s.get().project as unknown as { sections: { questions: { text: string }[] }[] }).sections[0]!.questions[0]!.text;
@@ -119,8 +158,11 @@ describe("automatic text edits", () => {
     auto = true;
     const { store, reload } = bench();
     const applied = await screen.findByRole("region", { name: "Přijato automaticky" }, { timeout: 4000 });
-    expect(decided).toEqual([{ decision: "accept", indices: [0], base_revision: 4, auto: true }]);
-    expect(reload).toHaveBeenCalled();
+    // Nothing was waiting to be saved: no save first, the accept names the copy's own revision.
+    expect(decided).toEqual([{ decision: "accept", indices: [0], base_revision: 3, auto: true }]);
+    expect(saves).toEqual([]);
+    expect(reload).not.toHaveBeenCalled();
+    await waitFor(() => expect(store.get().revision).toBe(4));
     expect(within(applied).getByText(/Dotazník · upravit otázku · Přijato automaticky \(vaše nastavení\)/)).toBeTruthy();
     expect(within(applied).getByText("Znáte?")).toBeTruthy();
     // The question added is structure: it waits for the researcher's click.
@@ -133,6 +175,76 @@ describe("automatic text edits", () => {
     expect(questionText(store)).toBe("Znáte?");
     expect(screen.queryByRole("region", { name: "Přijato automaticky" })).toBeNull();
     // The revert is the person's own edit, saved through the normal revision-checked save.
-    await waitFor(() => expect(saves.length).toBeGreaterThan(1), { timeout: 4000 });
+    await waitFor(() => expect(saves).toHaveLength(1), { timeout: 4000 });
+    expect(saves[0]).toMatchObject({ base_revision: 4 });
+  });
+
+  it("offers Vrátit only once the copy holds what the accept wrote: the read is asynchronous", async () => {
+    auto = true;
+    const read = deferred();
+    contentGate = read.promise;
+    const { store } = bench();
+    const applied = await screen.findByRole("region", { name: "Přijato automaticky" }, { timeout: 4000 });
+    await waitFor(() => expect(contentReads).toBe(1));
+    // The server has written revision 4; this copy is still revision 3 with the old wording.
+    const back = within(applied).getByRole("button", { name: "Vrátit" }) as HTMLButtonElement;
+    expect(back.disabled).toBe(true);
+    fireEvent.click(back);
+    expect(questionText(store)).toBe("Znáte?");
+    expect(screen.queryByText(/Text se mezitím změnil/)).toBeNull();
+
+    read.release();
+    await waitFor(() => expect(store.get().revision).toBe(4));
+    expect(back.disabled).toBe(false);
+    fireEvent.click(back);
+    expect(questionText(store)).toBe("Znáte?");
+    expect(screen.queryByRole("region", { name: "Přijato automaticky" })).toBeNull();
+    await waitFor(() => expect(saves).toHaveLength(1), { timeout: 4000 });
+  });
+
+  it("keeps what the person typed while the gate answered: no reload over it, nothing saved on the old base, and says so", async () => {
+    auto = true;
+    const gate = deferred();
+    editsGate = gate.promise;
+    const { store } = bench();
+    duringEdits = () => store.update(() => ({ project: project("Píšu vlastní znění") }));
+    await waitFor(() => expect(decided).toHaveLength(1), { timeout: 4000 });
+    gate.release();
+    await screen.findByText(/Vedoucí přijal textové úpravy, zatímco jste psali/, {}, { timeout: 4000 });
+    expect(questionText(store)).toBe("Píšu vlastní znění");
+    expect(store.get().save).toEqual({ kind: "conflict", current: 4 });
+    // The copy is not the accepted revision: Vrátit waits, and no save went out over revision 4.
+    const applied = screen.getByRole("region", { name: "Přijato automaticky" });
+    expect((within(applied).getByRole("button", { name: "Vrátit" }) as HTMLButtonElement).disabled).toBe(true);
+    await new Promise((r) => setTimeout(r, 2000));
+    expect(saves).toEqual([]);
+  });
+
+  it("accepts nothing over a copy with changes still waiting to be saved: every edit waits for a click", async () => {
+    auto = true;
+    // A save that has not answered: the person's change is in flight when the turn finishes.
+    const store = new ResearchStore({ revision: 3, project: project("Znáte?"), analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1", {
+      save: () => new Promise(() => {}),
+    });
+    store.update(() => ({ project: project("Znáte to?") }));
+    bench({ store });
+    const blocks = await screen.findByRole("region", { name: "Návrhy Vedoucího" }, { timeout: 4000 });
+    expect(within(blocks).getAllByRole("button", { name: "Přijmout" })).toHaveLength(2);
+    await screen.findByText(/čekají k přijetí: v pracovní kopii máte neuložené změny/);
+    expect(decided).toEqual([]);
+    expect(questionText(store)).toBe("Znáte to?");
+  });
+
+  it("leaves a turn the person saved over for their click when the server says stale_turn", async () => {
+    auto = true;
+    editsRefusal = { status: 409, code: "stale_turn", details: { current_revision: 4 } };
+    const { store } = bench();
+    await screen.findByText(/textové úpravy Vedoucího proto čekají k přijetí/, {}, { timeout: 4000 });
+    expect(decided).toEqual([{ decision: "accept", indices: [0], base_revision: 3, auto: true }]);
+    const blocks = await screen.findByRole("region", { name: "Návrhy Vedoucího" });
+    expect(within(blocks).getAllByRole("button", { name: "Přijmout" })).toHaveLength(2);
+    expect(screen.queryByRole("region", { name: "Přijato automaticky" })).toBeNull();
+    expect(contentReads).toBe(0);
+    expect(questionText(store)).toBe("Znáte?");
   });
 });

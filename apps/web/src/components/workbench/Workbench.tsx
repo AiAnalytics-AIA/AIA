@@ -93,8 +93,11 @@ const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2)
 const usd = (n: number | null | undefined) => (typeof n === "number" ? n.toLocaleString("cs-CZ", { maximumFractionDigits: 2 }) : "?");
 
 type EditMark = "accepted" | "dismissed" | { refused: string };
-/** A text edit accepted by the researcher's standing choice on this page, with the edit that puts its wording back. */
-type AutoApplied = { key: string; edit: LeadEdit; inverse: LeadEdit | null };
+/**
+ * A text edit accepted by the researcher's standing choice on this page, with the edit that puts
+ * its wording back and the working revision the accept wrote: Vrátit waits until the copy holds it.
+ */
+type AutoApplied = { key: string; edit: LeadEdit; inverse: LeadEdit | null; revision: number | null };
 
 export function Workbench({ frame, step, store, save, inspector, reload, confirm, onAgentStarted, jobs, onOpenJob, onRefreshJobs, children }: {
   frame: StudyFrame;
@@ -280,16 +283,17 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
 
   // The researcher's standing choice is their decision (ADR 0026): when a turn finishes, its text
   // edits are accepted through the same gate as a click, as that person, on the working revision,
-  // marked automatic in the ledger. The server refuses the call unless the choice is on, and any
-  // edit that is not wording; the inverse of each is kept from the content it was applied to.
+  // marked automatic in the ledger. The server refuses the call unless the choice is on, any edit
+  // that is not wording, and a turn written from an older working copy (stale_turn: someone saved
+  // while the Lead worked); the inverse of each is kept from the content it was applied to.
   const autoAccept = useCallback(async (plan: { turnId: string; indices: number[]; edits: LeadEdit[] }[]) => {
-    try {
-      await store.flush();
-    } catch {
-      setNotice("Textové úpravy Vedoucího čekají k přijetí: pracovní kopii se nepodařilo uložit.");
+    // Only over a copy with nothing waiting to be saved: a change still being typed is the person's,
+    // and the Lead's wording waits for their click beside it rather than racing it.
+    const now = store.get();
+    if (now.save.kind !== "saved" && now.save.kind !== "new") {
+      setNotice("Textové úpravy Vedoucího čekají k přijetí: v pracovní kopii máte neuložené změny.");
       return;
     }
-    const now = store.get();
     let base = now.revision;
     let content = { project: now.project, analysis: now.analysis };
     const applied: AutoApplied[] = [];
@@ -302,11 +306,11 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
           const inverse = textEditInverse(content, edit);
           const next = applyLeadEdit(content, edit);
           if ("content" in next) content = next.content;
-          applied.push({ key: `${turnId}:${x.index}`, edit, inverse });
+          applied.push({ key: `${turnId}:${x.index}`, edit, inverse, revision: r.workspace_revision });
         }
         if (r.workspace_revision !== null) base = r.workspace_revision;
       } catch (e) {
-        setNotice(e instanceof ApiError && e.code === "stale_revision"
+        setNotice(e instanceof ApiError && (e.code === "stale_revision" || e.code === "stale_turn")
           ? "Pracovní kopie se mezitím změnila, textové úpravy Vedoucího proto čekají k přijetí."
           : e instanceof ApiError ? e.message : String(e));
         break;
@@ -314,8 +318,18 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
     }
     if (applied.length) setAutoApplied((a) => [...a, ...applied]);
     setLeadEpoch((n) => n + 1);
-    if (applied.length) reload();
-  }, [store, frame.studyId, reload]);
+    if (!applied.length) return;
+    // AIA wrote a new revision: read it into this copy in place. A change the person made while the
+    // gate answered is not dropped (nor saved over the newer revision by a disposed copy): it stays
+    // on screen, the copy in conflict, and they are told.
+    try {
+      if (!(await store.reload(undefined, { since: now }))) {
+        setNotice("Vedoucí přijal textové úpravy, zatímco jste psali. Vaše změna zůstala na obrazovce, ale neuložila se: zkopírujte si ji a pracovní kopii načtěte znovu.");
+      }
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : String(e));
+    }
+  }, [store, frame.studyId]);
   useEffect(() => {
     if (!frame.canEdit || seen.current === null) return;
     const plan = autoAcceptPlan(turns, autoOn, seen.current, tried.current);
@@ -330,6 +344,8 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
     const item = autoApplied.find((x) => x.key === key);
     if (!item?.inverse) return;
     const s = store.get();
+    // Until the copy holds what the accept wrote, the wording to put back is not on screen yet.
+    if (!holds(s, item)) return;
     const r = revertTextEdit({ project: s.project, analysis: s.analysis }, item.edit, item.inverse);
     if ("refused" in r) {
       setNotice(r.refused);
@@ -481,18 +497,28 @@ function AutoBar({ items, state, canEdit, onRevert, onHide }: {
         <div className="artbar__grow"><b>Přijato automaticky (vaše nastavení)</b> · textové úpravy Vedoucího, struktura čeká na vás</div>
         <button type="button" className="btn btn--sm btn--quiet" onClick={onHide}>Skrýt</button>
       </div>
-      {items.map(({ key, edit, inverse }) => (
+      {items.map((item) => {
+        const { key, edit, inverse } = item;
+        const loaded = holds(state, item);
+        return (
         <div key={key} className="chg" data-aia={`lead-auto.${key}`}>
           <div className="chg__h">
             <span className="grow">{describeEdit(content, edit).where} · Přijato automaticky (vaše nastavení)</span>
-            <button type="button" className="btn btn--sm" disabled={!canEdit || !inverse} onClick={() => onRevert(key)}>Vrátit</button>
+            <button type="button" className="btn btn--sm" disabled={!canEdit || !inverse || !loaded}
+              title={loaded ? undefined : "Načítám pracovní kopii s přijatým zněním…"} onClick={() => onRevert(key)}>Vrátit</button>
           </div>
           {wording(inverse) !== null ? <div className="chg__before">{wording(inverse)}</div> : null}
           {wording(edit) !== null ? <div>{wording(edit)}</div> : null}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
+}
+
+/** Whether the working copy holds the revision an automatic accept wrote: only then is Vrátit's wording on screen. */
+function holds(state: ResearchState, item: AutoApplied): boolean {
+  return item.revision !== null && state.revision !== null && state.revision >= item.revision;
 }
 
 function StudyHeader({ frame, study, pending, blocked, onPending }: { frame: StudyFrame; study: Study | null; pending: number; blocked: number; onPending: () => void }) {
