@@ -31,7 +31,10 @@ A design is two documents, the working ``content`` and its separate ``analysis``
   above, and each other top-level field as a ``field``.
 
 A list that is not a list of what its items need (strings, objects) is one item, whole: a
-shape the rules do not know is compared as a value, never skipped. Pure: no I/O.
+shape the rules do not know is compared as a value, never skipped. Two entries of one list
+with the same key -- two sets titled alike, a repeated question id -- stay two items, the
+second keyed ``<key>#2`` (:func:`occurrence_keys`), so a merge never collapses them.
+Pure: no I/O.
 """
 
 from __future__ import annotations
@@ -49,6 +52,7 @@ __all__ = [
     "design_items",
     "item_values",
     "merge_items",
+    "occurrence_keys",
 ]
 
 Document = Literal["content", "analysis"]
@@ -130,18 +134,32 @@ def _canonical(value: Any) -> str:
 # -- items ------------------------------------------------------------------------------------
 
 
+def occurrence_keys(keys: Iterable[str]) -> list[str]:
+    """Each key as it is keyed in its list: the second ``a`` is ``a#2``, the third ``a#3``.
+
+    Two entries with one key -- two sets titled alike, a question id repeated -- stay two items,
+    so a merge never collapses them into one and drops the other with the person's edit in it.
+    """
+    used: set[str] = set()
+    counts: dict[str, int] = {}
+    out: list[str] = []
+    for k in keys:
+        n = counts.get(k, 0) + 1
+        candidate = k if n == 1 else f"{k}#{n}"
+        while candidate in used:
+            n += 1
+            candidate = f"{k}#{n}"
+        counts[k] = n
+        used.add(candidate)
+        out.append(candidate)
+    return out
+
+
 def _text_entries(value: Any) -> list[tuple[str, Any]] | None:
-    """A list of strings as ``(key, text)``, blank ones dropped; ``None`` for another shape."""
+    """A list of strings as ``(key, text)``; ``None`` for another shape."""
     if not isinstance(value, list) or not all(isinstance(x, str) for x in value):
         return None
-    out: list[tuple[str, Any]] = []
-    seen: set[str] = set()
-    for text in value:
-        k = normalise(text)
-        if k and k not in seen:
-            seen.add(k)
-            out.append((k, text))
-    return out
+    return list(zip(occurrence_keys(normalise(t) for t in value), value, strict=True))
 
 
 def _set_key(entry: Mapping[str, Any]) -> str:
@@ -156,14 +174,8 @@ def _set_entries(value: Any) -> list[tuple[str, Any]] | None:
     """Tracked sets as ``(key, set)``; ``None`` when the list holds anything but objects."""
     if not isinstance(value, list) or not all(isinstance(x, Mapping) for x in value):
         return None
-    out: list[tuple[str, Any]] = []
-    seen: set[str] = set()
-    for entry in value:
-        k = _set_key(entry)
-        if k not in seen:
-            seen.add(k)
-            out.append((k, dict(entry)))
-    return out
+    keys = occurrence_keys(_set_key(e) for e in value)
+    return [(k, dict(e)) for k, e in zip(keys, value, strict=True)]
 
 
 def _ident(entry: Mapping[str, Any], fallback: str) -> str:
@@ -171,38 +183,46 @@ def _ident(entry: Mapping[str, Any], fallback: str) -> str:
     return ident if isinstance(ident, str) and ident else fallback
 
 
-def _question_entries(section: Mapping[str, Any], section_key: str) -> list[tuple[str, Any]] | None:
-    questions = section.get("questions")
-    if not isinstance(questions, list) or not all(isinstance(q, Mapping) for q in questions):
-        return None
-    out: list[tuple[str, Any]] = []
-    seen: set[str] = set()
-    for j, q in enumerate(questions):
-        k = _ident(q, f"{section_key}#{j}")
-        if k not in seen:
-            seen.add(k)
-            out.append((k, dict(q)))
-    return out
-
-
 def _section_entries(value: Any) -> list[tuple[str, Mapping[str, Any]]] | None:
     if not isinstance(value, list) or not all(isinstance(s, Mapping) for s in value):
         return None
-    out: list[tuple[str, Mapping[str, Any]]] = []
-    seen: set[str] = set()
-    for i, section in enumerate(value):
-        k = _ident(section, f"#{i}")
-        if k not in seen:
-            seen.add(k)
-            out.append((k, section))
+    keys = occurrence_keys(_ident(sec, f"#{i}") for i, sec in enumerate(value))
+    return list(zip(keys, value, strict=True))
+
+
+def _section_questions(
+    sections: list[tuple[str, Mapping[str, Any]]],
+) -> dict[str, list[tuple[str, Any]] | None]:
+    """Each section's questions as ``(key, question)``, keyed across the whole questionnaire.
+
+    ``None`` for a battery or a section whose questions are not a list of objects: it is one
+    item, whole.
+    """
+    raw: list[tuple[str, int, Mapping[str, Any]]] = []
+    out: dict[str, list[tuple[str, Any]] | None] = {}
+    for key, section in sections:
+        questions = section.get("questions")
+        if section.get("type") == "object_battery" or (
+            not isinstance(questions, list) or not all(isinstance(q, Mapping) for q in questions)
+        ):
+            out[key] = None
+            continue
+        out[key] = []
+        raw.extend((key, j, q) for j, q in enumerate(questions))
+    keys = occurrence_keys(_ident(q, f"{key}#{j}") for key, j, q in raw)
+    for qk, (key, _, q) in zip(keys, raw, strict=True):
+        listed = out[key]
+        assert listed is not None
+        listed.append((qk, dict(q)))
     return out
 
 
-def _section_value(section: Mapping[str, Any], key: str) -> tuple[str, Any]:
+def _section_value(
+    section: Mapping[str, Any], questions: list[tuple[str, Any]] | None
+) -> tuple[str, Any]:
     """A section's own item: ``battery`` whole, or ``section`` with its questions as keys."""
     if section.get("type") == "object_battery":
         return "battery", dict(section)
-    questions = _question_entries(section, key)
     if questions is None:
         return "section", dict(section)
     own = {k: v for k, v in section.items() if k != "questions"}
@@ -241,12 +261,12 @@ def item_values(docs: Documents) -> dict[ItemKey, Any]:
         elif name == "research_plan" and isinstance(value, Mapping):
             _plan_items("content", value, out)
         elif name == "sections" and (sections := _section_entries(value)) is not None:
+            questions = _section_questions(sections)
             for k, section in sections:
-                kind, own = _section_value(section, k)
+                kind, own = _section_value(section, questions[k])
                 out[ItemKey("content", kind, k)] = own
-                if kind == "section":
-                    for qk, q in _question_entries(section, k) or []:
-                        out[ItemKey("content", "question", qk)] = q
+                for qk, q in questions[k] or []:
+                    out[ItemKey("content", "question", qk)] = q
         elif name in _SINGLE:
             out[ItemKey("content", _SINGLE[name], "")] = value
         else:
@@ -289,6 +309,7 @@ def _keyed_merge(
     """One keyed list, merged: a touched entry as proposed (or gone), every other as now.
 
     The proposal's order is kept for what it holds; what only the person has is kept after it.
+    Every entry keeps its own key, so nothing is collapsed into another.
     """
     now = dict(current)
     in_proposal = {k for k, _ in proposed}
@@ -336,33 +357,26 @@ def _merge_sections(
         return current
     p_sections = _section_entries(proposed) or []
     c_sections = _section_entries(current) or []
+    p_by, c_by = dict(p_sections), dict(c_sections)
+    p_questions, c_questions = _section_questions(p_sections), _section_questions(c_sections)
     section_keys = {t.key for t in mine if t.kind in ("section", "battery")}
     question_keys = {t.key for t in mine if t.kind == "question"}
-    p_questions = {qk: q for k, s in p_sections for qk, q in (_question_entries(s, k) or [])}
-    c_questions = {qk: q for k, s in c_sections for qk, q in (_question_entries(s, k) or [])}
-    chosen = (
-        _keyed_merge(
-            [(k, (k, s)) for k, s in p_sections],
-            [(k, (k, s)) for k, s in c_sections],
-            section_keys,
-        )
-        if section_keys
-        else [(k, s) for k, s in c_sections]
+    order = _keyed_merge(
+        [(k, k) for k, _ in p_sections], [(k, k) for k, _ in c_sections], section_keys
     )
     out: list[Any] = []
-    for key, section in chosen:
-        questions = _question_entries(section, key)
-        if section.get("type") == "object_battery" or questions is None:
+    for key in order:
+        section = p_by[key] if key in section_keys or key not in c_by else c_by[key]
+        mine_q, theirs_q = c_questions.get(key), p_questions.get(key)
+        if section.get("type") == "object_battery" or (mine_q is None and theirs_q is None):
             out.append(dict(section))
             continue
-        rebuilt: list[Any] = []
-        for qk, q in questions:
-            if qk in question_keys:
-                if qk in p_questions:
-                    rebuilt.append(p_questions[qk])
-            else:
-                rebuilt.append(c_questions.get(qk, q))
-        out.append({**section, "questions": rebuilt})
+        questions = (
+            _keyed_merge(theirs_q or [], mine_q, question_keys)
+            if key in c_by and mine_q is not None
+            else [q for _, q in theirs_q or []]
+        )
+        out.append({**section, "questions": questions})
     return out
 
 

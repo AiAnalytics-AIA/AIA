@@ -20,6 +20,7 @@ from aia_core.domain.design_items import (
     design_items,
     item_values,
     merge_items,
+    occurrence_keys,
 )
 
 CASES = json.loads(
@@ -155,3 +156,41 @@ def test_a_briefing_field_merges_alone() -> None:
     touched = design_items(base, proposed)
     merged = merge_items(proposed, current, touched)
     assert merged.content["briefing"] == {"situation": "z", "constraints": "mine"}
+
+
+def test_two_sets_of_one_title_are_both_kept_through_a_merge() -> None:
+    """Keyed by title, the second "Značky" collapsed into the first: a proposal adding "Ceny"
+    touched nothing the person edited, and the merge dropped the second set with its edit."""
+    case = next(c for c in CASES["cases"] if c["name"] == "duplicate_set_titles")
+    base = docs(case["before"])
+    current = docs(case["after"])  # the person edited the second "Značky kávy"
+    proposed = copy.deepcopy(case["before"])
+    ceny = {"title": "Ceny", "objects": ["50 Kč", "70 Kč", "90 Kč", "110 Kč"]}
+    proposed["content"]["research_plan"]["tracked_sets"].append(ceny)
+    touched = design_items(base, docs(proposed))
+    assert {str(k) for k in touched} == {"content:tracked_set:ceny"}
+    assert not touched & design_items(base, current)
+    merged = merge_items(docs(proposed), current, touched)
+    sets = merged.content["research_plan"]["tracked_sets"]
+    assert [s["title"] for s in sets] == ["Značky kávy", "Značky kávy", "Ceny"]
+    assert sets[1]["objects"][-1] == "Pellini"
+    assert design_items(current, merged) == touched
+
+
+def test_a_repeated_key_is_counted_never_collapsed() -> None:
+    assert occurrence_keys(["a", "b", "a", "a#2", "a"]) == ["a", "b", "a#2", "a#2#2", "a#3"]
+    values = item_values(
+        Documents(
+            content={
+                "research_plan": {"objectives": ["Cena", "cena "]},
+                "sections": [
+                    {"id": "s", "type": "questions", "questions": [{"id": "q"}, {"id": "q"}]},
+                    {"id": "s", "type": "questions", "questions": [{"id": "q"}]},
+                ],
+            }
+        )
+    )
+    keys = {str(k) for k in values}
+    assert {"content:objective:cena", "content:objective:cena#2"} <= keys
+    assert {"content:section:s", "content:section:s#2"} <= keys
+    assert {"content:question:q", "content:question:q#2", "content:question:q#3"} <= keys

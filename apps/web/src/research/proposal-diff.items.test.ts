@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { briefFingerprint, type ResearchProject } from "./model";
-import { proposalDiff, questionnaireReplacement } from "./proposal-diff";
+import { occurrenceKeys, proposalDiff, questionnaireReplacement } from "./proposal-diff";
 import type { Analysis } from "./store";
 
 type Doc = Record<string, unknown>;
@@ -27,8 +27,14 @@ const isObj = (x: unknown): x is Doc => !!x && typeof x === "object" && !Array.i
 function planItems(doc: "content" | "analysis", before: Doc, after: Doc): string[] {
   const d = proposalDiff(before as Analysis, after);
   const out: string[] = [];
-  for (const l of d.lists) for (const x of [...l.added, ...l.removed]) out.push(`${doc}:${KINDS[l.key]}:${key(x.trim())}`);
-  for (const s of d.sets) if (s.status !== "same") out.push(`${doc}:tracked_set:${key(s.title)}`);
+  // A repeated text is its own item (`text#2`), as design_items keys it.
+  for (const l of d.lists) {
+    const keys = (xs: unknown) => occurrenceKeys((Array.isArray(xs) ? xs : []).filter((x): x is string => typeof x === "string" && !!x.trim()).map((x) => key(x.trim())));
+    const kb = keys(before[l.key]); const ka = keys(after[l.key]);
+    for (const k of ka) if (!kb.includes(k)) out.push(`${doc}:${KINDS[l.key]}:${k}`);
+    for (const k of kb) if (!ka.includes(k)) out.push(`${doc}:${KINDS[l.key]}:${k}`);
+  }
+  for (const s of d.sets) if (s.status !== "same") out.push(`${doc}:tracked_set:${s.key}`);
   if (d.summary) out.push(doc === "content" ? "content:plan:problem_summary" : "analysis:field:problem_summary");
   return out;
 }

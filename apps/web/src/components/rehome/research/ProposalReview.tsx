@@ -94,7 +94,7 @@ export function ProposalReview({ result, state, onDecision, canApply = true, sta
             <h3 className="text-xs font-medium text-ink-muted">Porovnatelné sady</h3>
             <ul className="mt-1 flex flex-col gap-2">
               {changedSets.map((s) => (
-                <li key={s.title} className="text-[13px] leading-5">
+                <li key={s.key} className="text-[13px] leading-5">
                   <span className="font-semibold">{s.title}</span>{" "}
                   <span className="text-ink-muted">{s.status === "new" ? `· nová sada, ${s.size} položek` : s.status === "removed" ? "· sada odpadne" : `· ${s.size} položek`}</span>
                   {s.status === "changed" ? (
