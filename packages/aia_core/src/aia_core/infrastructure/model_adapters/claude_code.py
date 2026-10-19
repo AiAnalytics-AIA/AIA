@@ -56,6 +56,7 @@ from .transport import (
     CliRunner,
     TransportFailure,
     plausible_instant,
+    refuse_profile,
     refuse_thinking,
     render_transcript,
     token_count,
@@ -135,6 +136,8 @@ class ClaudeCodeCliAdapter:
     async def send(self, request: AdapterRequest) -> AdapterResponse:
         if request.thinking_budget_tokens is not None:
             raise refuse_thinking("Claude Code CLI")
+        if not request.request_profile.is_default:
+            raise refuse_profile("Claude Code CLI")
         argv, stdin = self.build_invocation(request)
         try:
             result = await self._runner.run(

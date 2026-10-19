@@ -947,7 +947,7 @@ def lead_request(
         agent=AgentDefinition(
             agent_id=LEAD_AGENT_ID,
             version="1",
-            capability=ModelCapability.RESEARCH_REASONING,
+            capability=ModelCapability.STUDY_LEAD,
             prompt_id=LEAD_PROMPT_ID,
             prompt_version=prompt.version,
             output_contract=lead_contract(system + "\n" + message),

@@ -66,11 +66,25 @@ def _bound(env: dict[str, str]) -> tuple[set[str], set[str]]:
     return providers, capabilities
 
 
+#: The study Lead's own model (ADR 0026 amendment): test prices and limits, not Bedrock's.
+_LEAD_MODEL = {
+    "AIA_AI_RESEARCH_LEAD_MODEL_ID": "eu.test-settings-lead-v1:0",
+    "AIA_AI_RESEARCH_LEAD_INPUT_USD_PER_MTOK": "5",
+    "AIA_AI_RESEARCH_LEAD_OUTPUT_USD_PER_MTOK": "25",
+    "AIA_AI_RESEARCH_LEAD_MODEL_MAX_OUTPUT_TOKENS": "32000",
+    "AIA_AI_RESEARCH_LEAD_CONTEXT_WINDOW_TOKENS": "200000",
+    "AIA_AI_RESEARCH_LEAD_STRUCTURED_OUTPUT": "auto_tool",
+    "AIA_AI_RESEARCH_LEAD_THINKING": "adaptive",
+}
+
+
+@pytest.mark.parametrize("lead", ["false", "true", "own_model"])
 @pytest.mark.parametrize("design", ["false", "true"])
 @pytest.mark.parametrize("analysis", ["false", "true"])
 def test_every_capability_the_worker_binds_belongs_to_an_activity_the_page_lists(
     design: str,
     analysis: str,
+    lead: str,
 ) -> None:
     env = {
         **_ENV,
@@ -78,6 +92,10 @@ def test_every_capability_the_worker_binds_belongs_to_an_activity_the_page_lists
         "AIA_AI_ANALYSIS_ENABLED": analysis,
         "AIA_AI_ANALYSIS_MAX_OUTPUT_TOKENS": "4096",
         "AIA_AI_ANALYSIS_RESERVATION_USD": "1",
+        "AIA_AI_RESEARCH_LEAD_ENABLED": "false" if lead == "false" else "true",
+        "AIA_AI_RESEARCH_LEAD_MAX_OUTPUT_TOKENS": "1500",
+        "AIA_AI_RESEARCH_LEAD_RESERVATION_USD": "10",
+        **(_LEAD_MODEL if lead == "own_model" else {}),
     }
     providers, bound = _bound(env)
     described = _described()
@@ -90,7 +108,12 @@ def test_every_capability_the_worker_binds_belongs_to_an_activity_the_page_lists
     assert providers == {p.id for p in described.providers}
     # What no switch turns on is said to be unused, never implied to be available.
     everything = _bound(
-        {**env, "AIA_AI_RESEARCH_AGENTS_ENABLED": "true", "AIA_AI_ANALYSIS_ENABLED": "true"}
+        {
+            **env,
+            "AIA_AI_RESEARCH_AGENTS_ENABLED": "true",
+            "AIA_AI_ANALYSIS_ENABLED": "true",
+            "AIA_AI_RESEARCH_LEAD_ENABLED": "true",
+        }
     )[1]
     assert not everything & set(described.unused_capabilities)
 

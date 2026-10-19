@@ -772,10 +772,13 @@ def _request(context: dict[str, Any], *approvals: MaterialApproval) -> Any:
     )
 
 
-def test_the_request_is_the_research_reasoning_capability_with_no_tools_and_one_repair() -> None:
+def test_the_request_is_the_study_lead_capability_with_no_tools_and_one_repair() -> None:
     request = _request(_context(), IDENTITY, DESIGN_OK)
     agent = request.agent
-    assert agent.capability is ModelCapability.RESEARCH_REASONING
+    # Its own capability, so it can run on its own model (ADR 0026 amendment, 2026-10-19);
+    # never the design agents' RESEARCH_REASONING nor Deep Research's RESEARCH_LEAD.
+    assert agent.capability is ModelCapability.STUDY_LEAD
+    assert agent.capability is not ModelCapability.RESEARCH_REASONING
     assert agent.capability is not ModelCapability.RESEARCH_LEAD
     assert agent.allowed_tools == frozenset() and agent.schema_repair_attempts == 1
     assert request.system == lead_prompt() and request.system.startswith(FIXED_PREFIX)
