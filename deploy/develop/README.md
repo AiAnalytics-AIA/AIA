@@ -419,18 +419,31 @@ egress check refuses either over a route whose retention is unset
 (`egress_retention_unspecified`).
 
 1. **Confirm the retention, then record it.** `aia_ai_route_retention_days` is the provider-side
-   retention of model inputs and outputs in the Bedrock account: with model invocation logging
-   off, it is `0`. Check it from CloudShell in `eu-central-1`:
+   retention of model inputs and outputs: how long Bedrock and the model provider keep them,
+   under the account's data-retention setting and the model's terms. It is **not** read from
+   invocation logging. Logging off only means AIA's account does not publish payloads to its
+   own CloudWatch or S3; it says nothing about what the provider keeps. Two pieces of evidence,
+   both required:
+
+   - the account's Bedrock **data-retention** setting, in the Bedrock console (Settings) for
+     `eu-central-1`, and the retention it states (AWS's "Data retention" page in the Bedrock
+     user guide describes the modes). ADR 0010 § Retention found it `inherit` on 2026-09-26;
+     read what it is now;
+   - the model's own terms for the models on the route (the route model and, when one is set,
+     the Lead's), from the model's page and end-user licence agreement in the console: whether
+     the provider keeps inputs or outputs, and for how long.
+
+   Invocation logging is checked as well, because a configured log is a retention of AIA's own
+   that the activation evidence names:
 
    ```bash
    aws bedrock get-model-invocation-logging-configuration --region eu-central-1
    ```
 
-   An empty `loggingConfig` means logging is off. ADR 0010 § Retention found the account's
-   data-retention setting `inherit` on 2026-09-26; confirm what it is now in the Bedrock
-   console. Record the value, the date and the terms reference in the activation evidence
-   (ADR 0010 § Activation evidence) before setting the parameter. If it cannot be confirmed,
-   stop here: the route stays Class C only.
+   Record the setting, the terms reference, the logging state, the number of days that follows
+   and the date in the activation evidence (ADR 0010 § Activation evidence) before setting the
+   parameter. If either piece cannot be confirmed, or the two disagree, stop here: the route
+   stays Class C only.
 2. **Set the parameters**, from CloudShell (`<days>` is the number confirmed in step 1):
 
    ```bash

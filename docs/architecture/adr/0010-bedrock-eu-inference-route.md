@@ -166,12 +166,14 @@ gives their material.
 
 1. **Confirms and states the provider-side retention.** ADR 0008 requires a specified retention
    period for A and B, and `domain/residency.py` refuses either over a route whose retention is
-   unspecified (`retention_unspecified`). The value is the Bedrock account's retention of model
-   inputs and outputs: with model invocation logging off it is `0`. An operator checks the
-   account setting (`aws bedrock get-model-invocation-logging-configuration`, and the account's
-   data-retention setting, which § Retention found `inherit` on 2026-09-26) and records the
-   result, the date and the terms reference in the activation evidence. Until then the route's
-   retention stays unspecified, and only Class C travels over it.
+   unspecified (`retention_unspecified`). The value is the provider-side retention of model
+   inputs and outputs: what Bedrock and the model provider keep, under the account's
+   data-retention setting (which § Retention found `inherit` on 2026-09-26) and each model's
+   terms. Invocation logging is not that evidence: logging off says only that the account
+   publishes no payloads to its own destinations. An operator reads both the setting and the
+   terms, checks the logging configuration beside them, and records the result, the date and
+   the terms reference in the activation evidence. Until then the route's retention stays
+   unspecified, and only Class C travels over it.
 2. **Sets the route's parameters in Parameter Store**, as `deploy/develop/README.md` § AI route
    classes lists them: `aia_ai_route_approved_for` =
    `CLASS_A_CLIENT_CONFIDENTIAL,CLASS_B_DERIVED_CLIENT,CLASS_C_INTERNAL`,
