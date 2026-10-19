@@ -13,6 +13,7 @@ import { type ReactNode, useCallback, useEffect, useMemo, useState, useSyncExter
 
 import { ApiError, api, lead as leadApi, type ResearchAgentJob, type Study } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
+import { guardedNavigate } from "@/lib/guarded-navigation";
 import { describeEdit, editStage, focusSelector, targetOfElement, type LeadEdit, type LeadRequest, type LeadTurn, type LeadView } from "@/lib/lead";
 import { type FocusMode, readSplit, writeSplit } from "@/lib/workbench-split";
 import { PHASES, STAGES, STAGE_ORDER, stageHref, stageOf, stageState, type WorkbenchStage } from "@/lib/workbench-stages";
@@ -92,7 +93,7 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
   jobs: ResearchAgentJob[];
   onOpenJob: (job: ResearchAgentJob) => void;
   /** Read the jobs again: done while one of them still moves. */
-  onRefreshJobs: () => void;
+  onRefreshJobs: () => Promise<unknown>;
   /** The stage's artifact body. */
   children: ReactNode;
 }) {
@@ -134,16 +135,20 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
   }, [picking]);
   const [notice, setNotice] = useState<string | null>(null);
   const [study, setStudy] = useState<Study | null>(null);
-  // A job that still moves is read again, so its card in the conversation follows it.
+  // A job that still moves is read again, so its card in the conversation follows it; every attempt,
+  // failed or not, moves the poll on, so one failed read does not freeze the card.
   const moving = jobs.some((j) => !j.is_terminal);
+  const [jobPolls, setJobPolls] = useState(0);
   useEffect(() => {
     if (!moving) return;
-    const t = setTimeout(onRefreshJobs, 3000);
+    const t = setTimeout(() => void onRefreshJobs().finally(() => setJobPolls((n) => n + 1)), 3000);
     return () => clearTimeout(t);
-  }, [moving, jobs, onRefreshJobs]);
+  }, [moving, jobs, jobPolls, onRefreshJobs]);
+  // The budget meter is read again whenever a run or a design job changes state: both spend.
+  const jobStates = jobs.map((j) => `${j.run_id}:${j.status}`).join(",");
   useEffect(() => {
     api.study(frame.studyId).then(setStudy, () => setStudy(null));
-  }, [frame.studyId, runs]);
+  }, [frame.studyId, runs, jobStates]);
 
 
   const go = useCallback((target: WorkbenchStage) => {
@@ -153,7 +158,8 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
       window.location.hash = s.view ?? "";
       return;
     }
-    router.push(stageHref(target, frame.stepHref));
+    // Through a link's click, so a stage's leave guard (Návrh's unsaved edits) can stop it.
+    guardedNavigate(stageHref(target, frame.stepHref), (url) => router.push(url));
   }, [router, step, frame.stepHref]);
 
   const onView = useCallback((ops: LeadView[]) => {

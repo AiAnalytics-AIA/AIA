@@ -20,6 +20,14 @@ import { Icon, Mark } from "./Icons";
 
 const POLL_MS = 1500;
 
+/**
+ * What the person is writing and what waits to be sent, per study, for as long as the page lives:
+ * the pane is unmounted when the window narrows to the classic layout, and comes back empty
+ * otherwise.
+ */
+type Queued = { text: string; stage: WorkbenchStage; focus: { id: string; label: string } | null };
+const kept = new Map<string, { draft: string; queued: Queued[] }>();
+
 const REASON: Record<string, string> = {
   research_lead_unavailable: "Vedoucí výzkumu není v tomto prostředí zapnutý.",
   research_lead_unconfigured: "Vedoucí výzkumu čeká: model AI není pro pracovníka nastavený.",
@@ -67,9 +75,12 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   const [me, setMe] = useState<ResearcherLead | null>(null);
   const [session, setSession] = useState<LeadState | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState(() => kept.get(studyId)?.draft ?? "");
   // A message written while the Lead works keeps the stage and the element it was written about.
-  const [queued, setQueued] = useState<{ text: string; stage: WorkbenchStage; focus: { id: string; label: string } | null }[]>([]);
+  const [queued, setQueued] = useState<Queued[]>(() => kept.get(studyId)?.queued ?? []);
+  useEffect(() => {
+    kept.set(studyId, { draft, queued });
+  }, [studyId, draft, queued]);
   const [sending, setSending] = useState(false);
   // Every read, successful or not, moves this on, so a busy session is read again after a failed read.
   const [reads, setReads] = useState(0);
