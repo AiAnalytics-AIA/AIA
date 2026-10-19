@@ -514,6 +514,7 @@ class GovernedModelGateway:
                 request,
                 context,
                 lane,
+                sent_system=system,
                 call_id=outbound.call_id,
                 input_fp=in_fp,
                 outcome=UsageOutcome.DISPATCHED,
@@ -539,6 +540,7 @@ class GovernedModelGateway:
                         request,
                         context,
                         lane,
+                        sent_system=system,
                         call_id=outbound.call_id,
                         input_fp=in_fp,
                         outcome=UsageOutcome.FAILED if known else UsageOutcome.UNCERTAIN,
@@ -578,6 +580,7 @@ class GovernedModelGateway:
                         request,
                         context,
                         lane,
+                        sent_system=system,
                         call_id=outbound.call_id,
                         input_fp=in_fp,
                         outcome=UsageOutcome.UNCERTAIN,
@@ -629,6 +632,7 @@ class GovernedModelGateway:
                     request,
                     context,
                     lane,
+                    sent_system=system,
                     call_id=outbound.call_id,
                     input_fp=in_fp,
                     outcome=UsageOutcome.FAILED if violations else UsageOutcome.SUCCEEDED,
@@ -834,6 +838,7 @@ class GovernedModelGateway:
         served_model: str = "",
         input_fp: str | None = None,
         note: str = "",
+        sent_system: str | None = None,
     ) -> AIUsageEvent:
         agent = request.agent
         decision = lane.egress
@@ -880,7 +885,11 @@ class GovernedModelGateway:
             latency_ms=_ms(started, at) if started is not None else None,
             ceiling_usd=ceiling_usd,
             input_fingerprint=input_fp,
-            system_prompt_sha256=prompt_sha256(request.system),
+            # The bytes sent: with the instruction to answer through the tool when the call
+            # carried it (a thinking call, an ``auto_tool`` model), not the agent's alone.
+            system_prompt_sha256=prompt_sha256(
+                sent_system if sent_system is not None else request.system
+            ),
             note=note,
         )
 

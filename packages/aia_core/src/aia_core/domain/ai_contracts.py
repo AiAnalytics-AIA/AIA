@@ -225,10 +225,13 @@ def input_fingerprint(request: AdapterRequest) -> str:
     if request.thinking_budget_tokens is not None:
         # The same rule: a call without thinking keeps the fingerprint it had.
         content["thinking_budget_tokens"] = request.thinking_budget_tokens
-    # ``request_profile`` is not content: it is the resolved model's, declared in its
-    # catalog entry, and travels with the model the ledger already records. What it
-    # changes in the content -- the instruction to answer through the tool -- is in
-    # ``system`` above.
+    # ``request_profile`` is the resolved model's, declared in its catalog entry, and travels
+    # with the model the ledger already records. What it changes in the content -- the
+    # instruction to answer through the tool -- is in ``system`` above. An effort is sent as
+    # a field of its own and can change between two calls to one model, so it is content,
+    # only when set: every fingerprint recorded without one is unchanged.
+    if request.request_profile.effort is not None:
+        content["effort"] = request.request_profile.effort.value
     return content_fingerprint(content)
 
 

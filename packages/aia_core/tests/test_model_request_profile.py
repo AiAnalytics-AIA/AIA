@@ -17,6 +17,7 @@ network.
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 from collections.abc import Sequence
 from typing import Any
 
@@ -57,6 +58,7 @@ from aia_core.domain.ai_models import (
 )
 from aia_core.domain.licence import DataLineage
 from aia_core.domain.licence_determinations import recorded_policy
+from aia_core.domain.prompts import prompt_sha256
 from aia_core.domain.providers import Provider
 from aia_core.domain.residency import DataClass, EgressPolicy, ProviderRoute, ResidencyZone
 from aia_core.domain.workflow import FailureClass
@@ -330,6 +332,8 @@ def test_an_auto_tool_adaptive_model_is_offered_the_tool_and_told_to_use_it(
     assert system["text"].startswith("Posuď tvrzení.\n\n")
     assert f"calling the tool {TOOL} exactly once" in system["text"]
     assert {e.note for e in result.usage_events} == {f"answer_prompt={TOOL_ANSWER_PROMPT_VERSION}"}
+    # The ledger's hash is of the bytes sent, the instruction included (Codex on #488).
+    assert {e.system_prompt_sha256 for e in result.usage_events} == {prompt_sha256(system["text"])}
 
 
 @pytest.mark.parametrize("effort", list(Effort))
@@ -414,6 +418,31 @@ def test_the_profile_is_the_models_and_leaves_the_content_fingerprint_alone() ->
 
     assert input_fingerprint(outbound(DEFAULT_REQUEST_PROFILE)) == input_fingerprint(
         outbound(ADAPTIVE)
+    )
+
+
+def test_an_effort_is_sent_as_a_field_and_so_is_part_of_the_fingerprint() -> None:
+    """Codex on #488: two calls to one model with different efforts send different requests,
+    so their fingerprints differ; a call without an effort keeps the fingerprint it had."""
+
+    def outbound(profile: RequestProfile) -> AdapterRequest:
+        return AdapterRequest(
+            call_id="c",
+            provider=Provider.AWS_BEDROCK,
+            model=MODEL,
+            system="s",
+            messages=(Message(role="user", content="m"),),
+            max_output_tokens=4096,
+            request_profile=profile,
+        )
+
+    fingerprints = {
+        input_fingerprint(outbound(dataclasses.replace(ADAPTIVE, effort=e))) for e in Effort
+    }
+    assert len(fingerprints) == len(Effort)
+    assert input_fingerprint(outbound(ADAPTIVE)) not in fingerprints
+    assert input_fingerprint(outbound(ADAPTIVE)) == input_fingerprint(
+        outbound(DEFAULT_REQUEST_PROFILE)
     )
 
 
