@@ -41,6 +41,16 @@ def test_the_shared_cases(case: dict[str, Any]) -> None:
     assert design_items(case["after"], case["before"]) == items
 
 
+@pytest.mark.parametrize("case", CASES["merges"], ids=lambda c: c["name"])
+def test_the_shared_merges(case: dict[str, Any]) -> None:
+    """Order is no item, so a merge keeps the person's order (a reorder was undone before)."""
+    base, current, proposed = docs(case["base"]), docs(case["current"]), docs(case["proposed"])
+    touched = design_items(base, proposed)
+    assert not touched & design_items(base, current), case["note"]
+    merged = merge_items(proposed, current, touched)
+    assert {"content": merged.content, "analysis": merged.analysis} == case["merged"]
+
+
 @pytest.mark.parametrize("sig", CASES["brief_signatures"], ids=lambda s: s["name"])
 def test_the_brief_signature_is_the_browsers(sig: dict[str, Any]) -> None:
     assert brief_signature(sig["content"]) == sig["signature"]

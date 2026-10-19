@@ -33,7 +33,8 @@ A design is two documents, the working ``content`` and its separate ``analysis``
 A list that is not a list of what its items need (strings, objects) is one item, whole: a
 shape the rules do not know is compared as a value, never skipped. Two entries of one list
 with the same key -- two sets titled alike, a repeated question id -- stay two items, the
-second keyed ``<key>#2`` (:func:`occurrence_keys`), so a merge never collapses them.
+second keyed ``<key>#2`` (:func:`occurrence_keys`), so a merge never collapses them. Order
+is no item: a merge keeps the person's order and slots in what only the proposal has.
 Pure: no I/O.
 """
 
@@ -308,19 +309,32 @@ def _keyed_merge(
 ) -> list[Any]:
     """One keyed list, merged: a touched entry as proposed (or gone), every other as now.
 
-    The proposal's order is kept for what it holds; what only the person has is kept after it.
-    Every entry keeps its own key, so nothing is collapsed into another.
+    The person's order is kept: order is no item, so a proposal never moves what is there. An
+    entry only the proposal has goes in after its predecessor in the proposal, or at the end when
+    it has none there. Every entry keeps its own key, so nothing is collapsed into another.
     """
-    now = dict(current)
-    in_proposal = {k for k, _ in proposed}
-    out: list[Any] = []
-    for k, v in proposed:
-        if k in touched:
-            out.append(v)
-        elif k in now:
-            out.append(now[k])
-    out.extend(v for k, v in current if k not in in_proposal and k not in touched)
-    return out
+    offered = dict(proposed)
+    keys: list[str] = []
+    values: dict[str, Any] = {}
+    for k, v in current:
+        if k not in touched:
+            keys.append(k)
+            values[k] = v
+        elif k in offered:
+            keys.append(k)
+            values[k] = offered[k]
+    order = [k for k, _ in proposed]
+    for i, k in enumerate(order):
+        if k not in touched or k in values:
+            continue
+        at = len(keys)
+        for before in reversed(order[:i]):
+            if before in values:
+                at = keys.index(before) + 1
+                break
+        keys.insert(at, k)
+        values[k] = offered[k]
+    return [values[k] for k in keys]
 
 
 def _merge_plan(
