@@ -156,6 +156,18 @@ reaches a gate no plan approval covers (a budget lift, a report approval, an unl
 confirmation when the run's ceiling reaches the limit) **parks** and waits for a person; it is never
 skipped. This is the content of the orchestration-scope ADR.
 
+**A run started by asking (owner, 2026-10-19).** Inside an open envelope a person's own request starts
+a job without a plan card: asking is authorising, one ledger row `chat_start` naming the person's
+message, the envelope charged by the job's ceiling. A Lead-initiated start still needs an approved
+plan. **Security condition, proposed:** the server, not the model, must establish that the *person*
+asked. A model's reading of a message is not enough, because text the Lead has read (a client
+document, a Deep Research source, a pasted brief) can carry instructions that make it "decide" the
+person asked. So the by-request path accepts only a **typed command** the web sends from the
+composer's quick action (for example `start_run` with the revision it names), which the server
+executes directly under the envelope; free text still goes to the Lead, which prepares a card. The
+request names the exact revision, never "the latest". The spend confirmation of ADR 0019 gate 2
+(a run whose ceiling reaches the spend limit) still needs its own confirmation.
+
 ### 3.5 Per-change accept: `proposal_change_decisions`
 
 `run_id` (the agent or Design Research job), `change_id`, `decision` (`ACCEPTED`, `REJECTED`,
@@ -182,7 +194,8 @@ signals exist or 30 days have passed. **Rule and test:** a signal and a personal
 name or number (personal files are Class C, client notes Class A: `domain/research_lead.py:18-30`).
 **Admin read and handover:** new `access_audit` actions `LEAD_FILES_READ` and `LEAD_HANDED_ON`, an
 organisation OWNER or ADMIN permission distinct from the one Researcher role (ADR 0019); conversation
-**turns stay private** unless the owner decides otherwise (open).
+**turns stay private** (decided: an admin reads files and notes only); a handed-on Lead is a copy and the departed
+researcher's Lead is archived, never reassigned.
 
 ### 3.7 Client data: `client_data_contracts`, `client_dataset_copies`
 
@@ -203,7 +216,7 @@ deferred decision of `client-data-in-analysis` chunk 0. **Repository:** `ClientD
 
 | Table | Change | Reason |
 |---|---|---|
-| `approval_decisions` | extend `approval_subject_type_known` (`tables.py @ 085abe0`) with `envelope`, `lead_plan`, `plan_step`, `data_contract`, `map_snapshot`, `sociomap_unlock` | each human act is one ledger row; **one early migration adds all six so later migrations do not collide** |
+| `approval_decisions` | extend `approval_subject_type_known` (`tables.py @ 085abe0`) with `envelope`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot`, `sociomap_unlock` | each human act is one ledger row; **one early migration adds all seven so later migrations do not collide** |
 | `clients` | add `envelope_ceiling_usd` NULL | §3.3 |
 | `researcher_leads` | add `archived_at`, `derived_from_lead_id` | §3.6 |
 | `ai_usage_events` | ◇ add `inference_profile_arn` if `model`/`served_model` do not carry it | reconcile the ledger with the tagged AWS cost (`develop-spend-attribution`) |
@@ -246,6 +259,7 @@ deployed worker and the panel path composed; the invented roster stays in tests 
 | `PUT/GET presence` | heartbeat and who is here | member |
 | `GET/PUT envelope`, `POST envelope/raise` | the envelope; raise up to the client ceiling | `EDIT_STUDY`; ceiling set by admin |
 | `POST lead/plans` (from a turn), `POST lead/plans/{id}/approve`, `…/stop` | the plan card | `APPROVE_GATE` |
+| `POST lead/commands` ◇ `{command: start_run, revision_id}` | a typed quick action starts a job inside the envelope; ledger `chat_start`; the model is not in the path | `APPROVE_GATE` |
 | `POST agent-jobs/{id}/accept` with `change_ids` | per-change accept (extends today's accept) | `APPROVE_GATE` |
 | `GET research/runs/{id}/respondents/{rid}` | the drill-down: one respondent, labelled modelled, never exported | `EDIT_STUDY` |
 | `GET research/runs/{id}/map/filters` | aggregates for a filter set, never rows | `EDIT_STUDY` |
@@ -286,10 +300,23 @@ buckets, Bedrock profiles and OIDC deploy role; a **manual approval gate** befor
 | Alarms | the three develop alarms plus RDS CPU, free storage and connections; an alarm on the oldest `QUEUED` step age (custom metric from `WorkQueue`) ◇ |
 | Budgets | AWS Budget with the `Environment` tag filter, alerting to the SNS topic |
 
-**Open and not decided here:** production in a **separate AWS account** (recommended: blast radius,
-billing and tag clarity) or the same account; the production hostname; retention periods for client
-data; whether `infra/production` is a copy of `infra/develop` or a shared root with two variable sets
-(the "one root, no modules" rule of ADR 0009 favours a copy with a documented diff).
+**Production shares develop's AWS account** (owner, 2026-10-19; a separate account was recommended, so
+the risk is written here, not left implicit). A mistake in an account-level setting, a leaked
+credential or a shared quota can reach production. What this design does about it, all in Terraform:
+separate subnets and security groups per environment; an IAM role per environment whose policies are
+conditioned on the `Environment` resource tag and carry a permission boundary, so a develop role cannot
+touch a production resource; the deploy role of each GitHub environment assumable only from that
+environment; a KMS key, a Cognito pool, an S3 bucket set, an RDS instance and a Terraform state
+(with its own lock) per environment; S3 bucket policies that deny the other environment's roles; AWS
+Budgets filtered by the tag; CloudTrail on for the account. **What it does not fix:** Bedrock quotas
+are account-wide, so a tier B run on develop and production use draw on the same limits (run tier B
+outside working hours and cap develop's concurrency), and an account-level IAM mistake still has no
+second boundary. Revisit the separate account at the first incident or the first client-facing
+release.
+
+**Still open:** the production hostname; whether `infra/production` is a copy of `infra/develop` or a
+shared root with two variable sets (the "one root, no modules" rule of ADR 0009 favours a copy with a
+documented diff).
 
 ### 6.3 Not added, on purpose
 
@@ -368,7 +395,7 @@ validate` in the docs-and-config job.
 
 | # | Open | Who | Blocks |
 |---|---|---|---|
-| 1 | Separate AWS account for production | owner | `infra/production` |
+| 1 | ~~Separate AWS account for production~~ **decided 2026-10-19: the same account**, with the mitigations in §6.2 | owner | none |
 | 2 | Production hostname, Cognito pool, Google Workspace callbacks | owner and an operator | production deploy |
 | 3 | RDS and host sizing (◇ measured on develop under the acceptance run) | an operator | production deploy |
 | 4 | Bedrock quota for the chosen models (about 10 users) | an operator | tier B |
@@ -376,9 +403,9 @@ validate` in the docs-and-config job.
 | 6 | The Class B provider and contract | owner | Deep Research live |
 | 7 | Derived-query class: amendment and data owner | owner, data owner | `class-b-search-route` 6 |
 | 8 | Evidence policy for client columns | owner | `client-data-in-analysis` 4-5 |
-| 9 | Orchestration-scope ADR: whether a plain chat request starts a run without a plan card | owner | envelope code |
-| 10 | Admin read: do turns stay private; what handover means | owner | Lead lifecycle code |
-| 11 | Retention of client data and the ops log | owner | production |
+| 9 | ~~Whether a plain chat request starts a run without a plan card~~ **decided 2026-10-19: yes**, through a typed command the server matches (§3.4 security condition, to confirm in the ADR) | owner | none |
+| 10 | ~~Admin read: do turns stay private; what handover means~~ **decided 2026-10-19: turns private; handover is a copy** | owner | none |
+| 11 | ~~Retention~~ **decided 2026-10-19: kept until a person deletes it; the log is kept with its study.** A documented **delete path** (database cascade, S3 prefixes, RDS snapshot retention of 14 days stated) is needed before production | owner | production release |
 
 **Risks.** The ops log makes every edit a write: volume is human-paced and small, but it needs an
 index plan and a test at 10 000 operations ◇. A plan authority is a new kind of capability: it is the

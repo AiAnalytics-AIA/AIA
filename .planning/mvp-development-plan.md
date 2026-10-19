@@ -100,7 +100,7 @@ draft ids, QC, bounded and classified), owned by S1, with a provider function fr
 
 S3 leads: every criterion wired in tier A (`mvp-acceptance-harness` 5-6); tier B on develop within USD
 25 with the AWS-tagged reconciliation (`develop-spend-attribution` 3, `mvp-acceptance-harness` 7);
-production released by the release PR after a restore test and a rollback rehearsal; runbooks. S1 and
+production released by the release PR after a restore test, a rollback rehearsal and the **delete path** (a client's or study's rows and S3 prefixes removed, the RDS snapshot window stated); runbooks. S1 and
 S2 fix what the runs find.
 
 ## 4. The migration lane
@@ -111,7 +111,7 @@ is rebased on `develop` immediately before merge, and migration PRs merge one at
 
 | # | Migration | Session | Wave |
 |---|---|---|---|
-| M3 | `approval_decisions.subject_type` check extended: `envelope`, `lead_plan`, `plan_step`, `data_contract`, `map_snapshot`, `sociomap_unlock` | S3 | W0 (first, so no later migration edits the same constraint) |
+| M3 | `approval_decisions.subject_type` check extended: `envelope`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot`, `sociomap_unlock` | S3 | W0 (first, so no later migration edits the same constraint) |
 | M1 | `workspace_edit_ops` | S1 | W1 |
 | M2 | `study_presence` | S1 | W1 |
 | M4 | `study_envelopes`, `study_envelope_raises`, `study_envelope_charges`, `clients.envelope_ceiling_usd` | S1 (ceiling column S3) | W1 |
@@ -139,10 +139,10 @@ access: `ARCHITECTURE.md` §7) and its `layer_check` rule in the same PR.
 
 | ADR | Decides | Before |
 |---|---|---|
-| Orchestration scope, the envelope and the plan card | the plan authority, what a plan may start, what parks, the ledger rows; supersedes MVP-13 | W1 plan code |
+| Orchestration scope, the envelope and the plan card | the plan authority, what a plan may start, what parks, the ledger rows; the typed `start_run` command for a by-request start and its security condition; supersedes MVP-13 | W1 plan code |
 | The working copy's operation log, merge and per-change accept | the vocabulary, the conflict rule, undo, presence, `proposal_change_decisions` | W1 |
 | The Lead over time and its files | proposed updates, signals, admin read, handover, privacy of turns; amends ADR 0026 decision 8 | W2 M7 |
-| Production environment | a separate environment on the one-host pattern with RDS; the account decision; supersedes the "undecided" in ADR 0009 | W1 infra apply |
+| Production environment | a separate environment on the one-host pattern with RDS, in the same AWS account with the mitigations of architecture §6.2; supersedes the "undecided" in ADR 0009 | W1 infra apply |
 | Derived-query class (amends ADR 0017 and 0008) | provenance-based lowering; the data owner's confirmation | W4 |
 | Client data's evidence policy (amends ADR 0027) | the policy source for client columns | W3 |
 
@@ -163,6 +163,7 @@ clustering (S2, waits on the method owner).
 | The Class B provider is not contracted | AC-11 cannot pass live | a recorded tier A pass proves the route; tier B waits on the contract; owner names a date |
 | The plan authority takes longer than planned | no autopilot-lite; every paid job needs a card (MVP-13 returns by default) | the envelope without plans is a smaller first step; cards stay as the fallback |
 | Migrations collide | blocked merges | one lane, one owner, rebase before merge, M3 first |
+| Production shares develop's AWS account | an account-level mistake or the shared Bedrock quota reaches production | tag-conditioned IAM with a permission boundary, per-environment state and KMS (architecture §6.2); tier B outside working hours; revisit at the first incident |
 | RDS or Cognito setup for production slips | no production at the date | develop carries tier B; production release can follow the acceptance without moving the gate |
 | The first acceptance run exceeds USD 25 | the budget table was wrong | the allocation is checked before the recorded run (`mvp-acceptance-harness` 1) |
 | One session is the whole critical path | a stall in S1 stalls the date | S2 and S3 take defects and review capacity once W3 starts |
