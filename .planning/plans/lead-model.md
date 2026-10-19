@@ -1,12 +1,12 @@
 ---
-status: in-progress
+status: done
 chunks:
   - "[x] 1. A model's request profile, declared in its catalog entry and read by the Bedrock adapter"
   - "[x] 2. The Lead's own capability (STUDY_LEAD) and its own pinned model, from configuration"
   - "[x] 3. Compose and env.example pass the Lead model's keys to the worker"
   - "[x] 4. The instance role may invoke the Lead model's profile when one is set"
   - "[x] 5. ADR 0026 amendment: the Lead's own model"
-  - "[ ] 6. Runbook: the Research Lead's own model"
+  - "[x] 6. Runbook: the Research Lead's own model"
 ---
 
 # The Research Lead's own model
@@ -59,7 +59,40 @@ a guess from its id.
 
 ## Doc follow-up
 
-(Filled in as chunks land.)
+For the docs PR (CLAUDE.md § 2, the map). No shared file is edited on this branch.
+
+- `apps/executors/src/aia_executors/ai_runtime.py`: add to its entry: "`STUDY_LEAD`, the study
+  Research Lead's turn (ADR 0026), is bound to the Lead's own model when
+  `AIA_AI_RESEARCH_LEAD_MODEL_ID` is set (`LeadModelSettings`: a pinned EU profile, its prices,
+  limits and request profile from `AIA_AI_RESEARCH_LEAD_*`, no defaults, a wrong key stops the
+  worker by name), a second policy entry on the same route pinned through `PinnedModels`; else
+  to the route's model. The Lead's reservation is checked at that model's prices and window."
+- `packages/aia_core/src/aia_core/infrastructure/model_adapters/`: add: "Each model's request
+  shape is declared in its catalog entry (`domain/ai_models.py` `RequestProfile`:
+  `structured_output` forced_tool | auto_tool, `thinking` budget | adaptive, sampling, effort),
+  threaded into `AdapterRequest`. The Bedrock adapter sends an `auto_tool` model
+  `toolChoice: auto` with the gateway's answer-through-the-tool instruction, never a thinking
+  budget or temperature to a model that refuses them, and only a configured effort as
+  `additionalModelRequestFields.output_config`; what a profile cannot carry is refused unsent.
+  The other adapters refuse any non-default profile."
+- `domain/ai_models.py` in the map (`ai_models.py ModelCapability, catalog, ...`): add
+  "`RequestProfile`; `STUDY_LEAD` (the study Lead), apart from `RESEARCH_LEAD` (Deep Research)".
+- CLAUDE.md's "Native Research agents" paragraph lists the worker keys; add the Lead model's
+  keys by reference to `deploy/develop/README.md` § The Research Lead's own model.
+- `ARCHITECTURE.md` § 2's AI-settings paragraph: unchanged until F1 is fixed (the settings page
+  does not yet list the study Lead).
+- `AGENTS.md` § The AI runtime: a gotcha worth recording: **a newer Bedrock model refuses the
+  request shapes an older one needed.**
+
+  ```python
+  # WRONG -- swap AIA_BEDROCK_MODEL_ID and send what the old model took: a 400 on every call
+  {"toolChoice": {"tool": {"name": tool}}}                                   # forced tool
+  {"additionalModelRequestFields": {"thinking": {"type": "enabled", "budget_tokens": n}}}
+  {"inferenceConfig": {"maxTokens": m, "temperature": 0.0}}                  # sampling
+  # RIGHT -- declare the model's request profile in its catalog entry; the adapter reads it
+  {"structured_output": "auto_tool", "thinking": "adaptive", "accepts_sampling": False}
+  # -> toolChoice auto + the gateway's instruction; nothing about thinking but an effort
+  ```
 
 ## Findings
 
