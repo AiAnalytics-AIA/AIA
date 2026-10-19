@@ -464,10 +464,13 @@ forbid "the API, worker and executors never touch the researcher Lead tables" \
 # A Study's design project is owned (projects.owner): a repository that does not
 # name the owner cannot see it. Naming it anywhere else would reopen the path by
 # which content that skipped validate_design became a Design Revision (ADR 0016).
+# A Research Lead turn's run is owned like an agent job (ADR 0026 decision 1): its use case
+# names the owner to start the run, and writes a design only through the design repository.
 forbid "only the design repository and the research runs name the design project's owner" \
   'DESIGN_PROJECT_OWNER' \
   "$CORE" \
-  "$CORE/domain/design.py" "$CORE/infrastructure/study_design_repository.py" "$CORE/application/research.py"
+  "$CORE/domain/design.py" "$CORE/infrastructure/study_design_repository.py" "$CORE/application/research.py" \
+  "$CORE/application/research_lead.py"
 forbid "the API, worker and executors never name the design project's owner" \
   'DESIGN_PROJECT_OWNER|study_design\b' \
   apps

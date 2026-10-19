@@ -120,6 +120,15 @@ class Settings(BaseSettings):
     # study with a spend limit does not start a run whose ceiling is unknown.
     ai_fieldwork_reservation_usd: float | None = None
     ai_analysis_reservation_usd: float | None = None
+    # The design job's reservation (``AIA_AI_RESEARCH_RESERVATION_USD``, the worker's key): the
+    # ceiling of a design job a Research Lead turn prepared, held to the study's spend limit when
+    # a person approves it (ADR 0026 decision 7). Unset: unknown, never zero.
+    ai_research_reservation_usd: float | None = None
+
+    # The Research Lead (ADR 0026, ``AIA_AI_RESEARCH_LEAD_ENABLED``, the worker's switch too):
+    # off, a message is refused (409 ``research_lead_unavailable``) and nothing is queued; the
+    # conversation already stored stays readable. Off by default; on for develop by Compose.
+    ai_research_lead_enabled: bool = False
 
     # What a Deep Research run can cost at most (plan deep-research-web-search.md chunk 22),
     # from the same keys the worker composes it from. Each kind of model request reserves
@@ -182,6 +191,7 @@ class Settings(BaseSettings):
     @field_validator(
         "ai_fieldwork_reservation_usd",
         "ai_analysis_reservation_usd",
+        "ai_research_reservation_usd",
         "bedrock_input_usd_per_mtok",
         "bedrock_output_usd_per_mtok",
         "bedrock_cache_read_usd_per_mtok",
