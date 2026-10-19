@@ -146,6 +146,13 @@ requests resolve to the same command. Each command declares:
 
 The registry calls the existing services. It adds no new path to the database.
 
+The prototype shows four capabilities as *proposed*: open-answer coding, audience-assumption
+evidence, semantic report edits and respondent replacement. AIA has none of them. The registry has
+**no command** for any of them, so neither a button nor a Lead request can reach one. Where a
+person meets one, the interface says *V AIA zatím není*. Each needs its own ADR and a deterministic
+admission rule first: a report is composed from admitted claims and frozen on approval, and
+respondents are drawn once per run.
+
 A human-only command is refused (`403 human_gate_required`) unless a person's request invokes it
 directly. A Lead turn can only create a *pending request* for it.
 
