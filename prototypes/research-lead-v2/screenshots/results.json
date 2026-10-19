@@ -1,0 +1,566 @@
+{
+  "when": "2026-10-18T23:17:20.391Z",
+  "results": [
+    {
+      "name": "all 11 stages reachable, no horizontal scroll @1280",
+      "ok": true,
+      "detail": "Zadání · Návrh · Dotazník · Cílová skupina · Dimenze · Vzorek · Sběr dat · Výsledky · Sociomapa · Analýza · Zpráva"
+    },
+    {
+      "name": "header, navigator, artifact header and composer do not overflow @1280",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "all 11 stages reachable, no horizontal scroll @1440",
+      "ok": true,
+      "detail": "Zadání · Návrh · Dotazník · Cílová skupina · Dimenze · Vzorek · Sběr dat · Výsledky · Sociomapa · Analýza · Zpráva"
+    },
+    {
+      "name": "header, navigator, artifact header and composer do not overflow @1440",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "all 11 stages reachable, no horizontal scroll @1920",
+      "ok": true,
+      "detail": "Zadání · Návrh · Dotazník · Cílová skupina · Dimenze · Vzorek · Sběr dat · Výsledky · Sociomapa · Analýza · Zpráva"
+    },
+    {
+      "name": "header, navigator, artifact header and composer do not overflow @1920",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "default split is 40/60",
+      "ok": true,
+      "detail": "40 %"
+    },
+    {
+      "name": "drag resizes the split",
+      "ok": true,
+      "detail": "50 %"
+    },
+    {
+      "name": "split persists across reload",
+      "ok": true,
+      "detail": "50 %"
+    },
+    {
+      "name": "ArrowRight widens the conversation by 2",
+      "ok": true,
+      "detail": "52 %"
+    },
+    {
+      "name": "Home resets to 40",
+      "ok": true,
+      "detail": "40 %"
+    },
+    {
+      "name": "double-click resets to 40",
+      "ok": true,
+      "detail": "40 %"
+    },
+    {
+      "name": "focused handle is visibly marked",
+      "ok": true,
+      "detail": "rgb(53, 87, 224)"
+    },
+    {
+      "name": "reading history: scrolled up away from the latest",
+      "ok": true,
+      "detail": "scrollTop 1626"
+    },
+    {
+      "name": "artifact focus shows the rail, hides the conversation",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "returning from artifact focus restores the saved split",
+      "ok": true,
+      "detail": "44 → 44"
+    },
+    {
+      "name": "conversation scroll position restored after artifact focus",
+      "ok": true,
+      "detail": "1626 → 1626"
+    },
+    {
+      "name": "conversation focus widens chat to 68 % without saving it",
+      "ok": true,
+      "detail": "68 % (saved 44)"
+    },
+    {
+      "name": "back to normal keeps the person's split",
+      "ok": true,
+      "detail": "44 %"
+    },
+    {
+      "name": "claim chip opens the inspector",
+      "ok": true,
+      "detail": "Nárok C1"
+    },
+    {
+      "name": "inspector stacks a source and offers back",
+      "ok": true,
+      "detail": "Agregace sady 1"
+    },
+    {
+      "name": "back returns to the claim",
+      "ok": true,
+      "detail": "Nárok C1"
+    },
+    {
+      "name": "Escape closes the inspector and returns focus to the opener",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "blocked claim explains why",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "questionnaire proposal appears inline beside items",
+      "ok": true,
+      "detail": "7 inline changes"
+    },
+    {
+      "name": "protected Set 1 and Q19 are marked kept",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Q16 kept as a separate construct",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "impact shows coverage gained, lost, kept and recompute",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "accepting creates revision 15",
+      "ok": true,
+      "detail": "revision 15"
+    },
+    {
+      "name": "after acceptance Q10 is gone, Q9 open reason stays with routing",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Q8 keeps the target-bank choice",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "duration agrees with the Lead: 8,5 min after acceptance",
+      "ok": true,
+      "detail": "13 položek≈ 8,5 minPokrytí: RQ1 1RQ2 2RQ3 2RQ4 2RQ5 1"
+    },
+    {
+      "name": "acceptance logged as a UI command",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "rejecting keeps the accepted questionnaire",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "accepting your edit makes the pending proposal stale",
+      "ok": true,
+      "detail": "Optimalizace dotazníku · Návrh vychází z revize 14, studie je na revizi 15. Použít ho nejde.Nové sestavení vytvoří nový návrh. Nic tím nepřijímáte.Sestavit znovu nad revizí 15Zahodit"
+    },
+    {
+      "name": "the accept command refuses a stale proposal",
+      "ok": true,
+      "detail": "Návrh vychází z revize 14, obsah je nyní z revize 15. Sestavte ho znovu."
+    },
+    {
+      "name": "the accept command refuses the Lead",
+      "ok": true,
+      "detail": "Návrh přijímá člověk (APPROVE_GATE). Vedoucí ani specialista ho přijmout nemohou."
+    },
+    {
+      "name": "rebuild makes a new proposal on revision 15, nothing accepted",
+      "ok": true,
+      "detail": "base 15, 6 changes"
+    },
+    {
+      "name": "rebuilt proposal leaves your Q5 alone",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "old proposal marked superseded",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a manual edit creates an autosaved working copy",
+      "ok": true,
+      "detail": "1 úprava v pracovní verzi · vychází z revize 14 · uloženo automatickyZahodit úpravyPřijmout jako revizi 15"
+    },
+    {
+      "name": "the Lead notices the edit once the person pauses",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "the working-copy bar says the Lead has seen it",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "an edit after the run advances the study to revision 17, the run stays on 16",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "fieldwork and results reopen",
+      "ok": true,
+      "detail": "fieldwork,results,sociomap,analysis,report"
+    },
+    {
+      "name": "results header separates run revision from study revision",
+      "ok": true,
+      "detail": "Běh RUN-16A · revize 16 · studie je na revizi 17"
+    },
+    {
+      "name": "research ran inside the envelope without a confirmation",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a query derived from class-A material was refused for public search",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "evidence lines sit on assumptions A1–A3",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A3 is \"unsupported\", not \"contradicted\"",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "assumption status unchanged until accepted",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "source inspector shows kind, class, admission and provenance",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "stopping research marks the run stopped and releases its reservation",
+      "ok": true,
+      "detail": "DR-41:stopped · reserved 0"
+    },
+    {
+      "name": "a message sent while the Lead works is queued",
+      "ok": true,
+      "detail": "Ve frontě · odešle se, až Vedoucí dokončí práciKde jsme?Odeslat hned"
+    },
+    {
+      "name": "Escape stops the Lead and says nothing was accepted",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "the queued message is sent after the stop",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Shift+Enter adds a line instead of sending",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "ArrowUp on an empty composer recalls the last message",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "@ lists elements of the current artifact",
+      "ok": true,
+      "detail": "Q1Kolik je vám let?Q10Ke které bance byste nejspíš přešli?Q1"
+    },
+    {
+      "name": "choosing an element makes a reference chip",
+      "ok": true,
+      "detail": "Dotazník · Q1"
+    },
+    {
+      "name": "return opens on the summary: changed, finished, attention, next",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "long history loads older messages on request",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "older messages are added above",
+      "ok": true,
+      "detail": "26 → 64"
+    },
+    {
+      "name": "scrolling up shows return-to-latest",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "historical answers are marked with their revision",
+      "ok": true,
+      "detail": "16 marks"
+    },
+    {
+      "name": "return-to-latest scrolls to the end",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "arrow keys move along the navigator, Enter opens",
+      "ok": true,
+      "detail": "Dotazník, Přijato"
+    },
+    {
+      "name": "focused control has a visible outline",
+      "ok": true,
+      "detail": "solid"
+    },
+    {
+      "name": "lifecycle overview lists all 11 stages with dependencies",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "results: Fio 6,8 z 10 [6,5; 7,1], 4. ze 7",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "results: Raiffeisenbank suppressed with reason",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Sociomap list ranks Fio 4th by height",
+      "ok": true,
+      "detail": "Air Bank > Revolut > Česká spořitelna > Fio banka > ČSOB > mBank > Komerční banka > Raiffeisenbank"
+    },
+    {
+      "name": "analysis ranks Fio 4th of 7",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "report: scale values never as percent",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "report figure says values are not percentages",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "report claims no calibrated population",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "synthetic disclosure in report head and footer",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "hiding weak relations keeps every position",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "the active filter is visible and says computation is unchanged",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "fit and heights unchanged by the filter",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "weak links leave the drawing only",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "filter recorded as a view command, artifact untouched",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "interpretation research attaches context to the pair",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "map computation untouched by research",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "removing weak relations from computation is refused and routed to methodology",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "run completes over the frozen revision",
+      "ok": true,
+      "detail": "completed"
+    },
+    {
+      "name": "provider wait recorded and recovered",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "constant responders asked about, replacement not offered",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "budget limit parks the run awaiting your decision",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "lifting from the artifact answers the open budget decision once",
+      "ok": true,
+      "detail": "limit 60 → 70"
+    },
+    {
+      "name": "lifting the budget resumes the run",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "provider failure parks the step with a retry for the person",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "retry continues the same operation: the Lead stays busy",
+      "ok": true,
+      "detail": "busy true, run running"
+    },
+    {
+      "name": "the run continues after the retry",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "failed analysis validation is shown as needing repair",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a new round fixes the module",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "client report for a fictional run refused with reason",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "continue stops at decisions that belong to you",
+      "ok": true,
+      "detail": "Přijetí návrhů a spuštění běhu patří vám."
+    },
+    {
+      "name": "nothing was accepted by the Lead",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "report edit appears as tracked changes with references kept",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "approval waits while changes are pending",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "approval waits while the report has unaccepted working edits",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "the approve command refuses a report with a working copy",
+      "ok": true,
+      "detail": "Ve zprávě jsou pracovní úpravy mimo koncept; nejprve je přijměte nebo zahoďte."
+    },
+    {
+      "name": "accepting report wording advances the draft, not the study revision",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a person approves the report internally",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "\"younger first\" is answered honestly (blocked claim), alternative proposed",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "overstatement check proposes a correction",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "\"where did this number come from\" opens its chain",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "proposed / unavailable / simulated capabilities are labelled in the artifacts",
+      "ok": true,
+      "detail": "7 labels"
+    },
+    {
+      "name": "Client → Study entry shows stage, attention and latest activity",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "opening the study returns to the workbench",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no page errors in any run",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "errors": []
+}
