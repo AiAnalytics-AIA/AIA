@@ -121,6 +121,14 @@ information") or keeps A is the owner's to confirm. Brief attachment excerpts (a
 file) are B as design, while the same bytes as a client source are A: consistent with the
 decision as written, to confirm with it.
 
+**F8. One batch may still leave as Class C when a source is unmarked as it is sent** (accepted
+by the product owner, 2026-10-19). The mark is read before each request, in a transaction that
+ends before the gateway sends it (`client_source_proposals.py`, the check before
+`caller.invoke` @ `9eaa1cee`); an unmark committed in those milliseconds lets that one batch
+go as Class C, and every later batch is stopped. Closing it would hold the source row's lock
+across each model call, so an unmark would wait for a request in flight. The owner chose the
+window over the wait (Codex on #487, thread on `client_source_proposals.py`).
+
 ## Doc follow-up
 
 For the docs PR (CLAUDE.md §1); anchors are on this branch's commits.

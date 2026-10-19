@@ -639,3 +639,42 @@ def test_an_operator_classification_keeps_a_marked_batch_off_a_route_for_class_c
     step = run_state(world, run_id)["steps"][0]
     assert transport.requests == []
     assert step["attempts"][-1]["error"]["reason"] == "egress_route_not_approved_for_class"
+
+
+def test_every_class_still_to_be_sent_is_asked_before_the_first_request_leaves(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """Codex on #487: a marked two-batch document whose second batch an operator raised to
+    Class A. On a route for Class C alone, the second batch's refusal is knowable before
+    anything is sent, so the first batch is not sent and paid for either."""
+    first = ("Fiktivní pivovar Lupínek vaří od roku 1998 v Kolíně. " * 300).strip()
+    second = ("Podle průzkumu zná značku 41 % dospělých v kraji. " * 300).strip()
+    run_id, source_id = start(
+        world, store, filename="dlouhy.txt", data=f"{first}\n\n{second}".encode(), internal=True
+    )
+    with world.sessions() as session:
+        reading = ClientSourceRepository(session, store).reading(
+            client_scope(world, session), source_id
+        )
+    made = batches(reading)
+    assert len(made) == 2
+    raised = MaterialApproval(
+        sha256=material_sha256(batch_material(made[1])),
+        data_class=DataClass.CLASS_A_CLIENT_CONFIDENTIAL,
+        provenance="generated wholly by this test",
+    ).model_dump_json()
+    transport = RecordedBedrock()
+    w = worker(
+        world,
+        database_url,
+        store,
+        build,
+        transport,
+        AIA_AI_ROUTE_APPROVED_FOR="CLASS_C_INTERNAL",
+        AIA_AI_MATERIAL_CLASSIFICATIONS=f"[{raised}]",
+    )
+    w.run_once()
+    step = run_state(world, run_id)["steps"][0]
+    assert transport.requests == []
+    assert spent(world) == (0.0, 0.0)
+    assert step["attempts"][-1]["error"]["reason"] == "egress_route_not_approved_for_class"

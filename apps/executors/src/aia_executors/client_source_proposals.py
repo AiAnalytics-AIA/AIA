@@ -29,6 +29,7 @@ from aia_core.domain.deep_research.request_limits import window_fits
 from aia_core.domain.knowledge import ProposalDraft
 from aia_core.domain.material_rules import OPERATOR_SOURCE, MaterialRule, rule_class, source_rule
 from aia_core.domain.providers import Provider
+from aia_core.domain.residency import DataClass
 from aia_core.domain.scope import ClientWorkContext
 from aia_core.domain.source_proposals import (
     HARNESS_VERSION,
@@ -239,9 +240,17 @@ class ClientSourceProposalsExecutor:
         with context.transaction() as (session, _):
             journal = ClientWorkJournal(session, scope)
             kept_answers = {k: journal.get(k) for k in keys}
-        if any(v is None for v in kept_answers.values()):
+        # Every class still to be sent is asked before the first request leaves: a batch an
+        # operator raised above the rest would otherwise be refused only after the earlier
+        # ones were sent and paid for.
+        unsent: dict[DataClass | None, ModelRequest] = {}
+        for request, key in zip(requests, keys, strict=True):
+            if kept_answers[key] is None:
+                unsent.setdefault(request.data_classification, request)
+        if unsent:
             try:
-                caller.preflight(requests[0])
+                for request in unsent.values():
+                    caller.preflight(request)
             except ModelCallFailed as exc:
                 return Failed(
                     FailureClass.RUNTIME_UNAVAILABLE,
