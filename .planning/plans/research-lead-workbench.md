@@ -9,9 +9,9 @@ chunks:
   - "[ ] 6. Lead pane: conversation, composer, greeting, view tools, edits as change blocks, decision cards"
   - "[ ] 6b. Personal Leads: researcher_leads and memories, hatching, the Můj Vedoucí page, per-researcher sessions"
   - "[ ] 7. Agent proposals inline in the artifact, with research-question coverage gained, lost and kept"
-  - "[ ] 8. design_items, the working revision on every Design Revision writer (web submit, reuse, accepts), the item-level stale rule"
-  - "[ ] 9. Accept in one transaction: merged Design Revision, working copy, ledger; the web reloads"
-  - "[ ] 10. Dismiss and rebuild through the ledger and rebuild_of; the pending-proposals projection"
+  - "[x] 8. design_items, the working revision on every Design Revision writer (web submit, reuse, accepts), the item-level stale rule"
+  - "[x] 9. Accept in one transaction: merged Design Revision, working copy, ledger; the web reloads"
+  - "[x] 10. Dismiss and rebuild through the ledger and rebuild_of; the pending-proposals projection"
   - "[ ] 11. Lead-prepared paid work recorded in the ledger, with the spend limit, from the server's command registry"
   - "[ ] 12. Workbench journey: four widths, keyboard, focus modes, a Lead turn on recorded answers, zero unintended paid jobs"
 ---
