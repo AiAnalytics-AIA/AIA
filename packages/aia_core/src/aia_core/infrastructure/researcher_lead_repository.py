@@ -188,8 +188,7 @@ class ResearcherLeadRepository:
         if lead is None:
             return []
         rows = self._session.scalars(
-            select(ResearcherLeadRevisionRow)
-            .where(
+            select(ResearcherLeadRevisionRow).where(
                 ResearcherLeadRevisionRow.lead_id == lead.lead_id,
                 ResearcherLeadRevisionRow.user_id == self._scope.actor_id,
             )
