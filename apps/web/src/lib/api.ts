@@ -6,6 +6,8 @@
 
 import type { RegisterEntry } from "@/lib/object-map-view";
 import { currentIdToken, loadConfig } from "@/lib/auth";
+import type { EditDecisionResult, LeadState, LeadTurn, RequestApproval, ResearcherLead } from "@/lib/lead";
+export type { ResearcherLead as ResearcherLeadView } from "@/lib/lead";
 
 export class ApiError extends Error {
   constructor(
@@ -1397,6 +1399,25 @@ export type ResearchAgentResult = {
   provenance: { agent_id: string; design_revision_id: string; context_sha256: string; status: string } & Record<string, unknown>;
 };
 const agentsPath = (studyId: string) => `${studyPath(studyId)}/research/agent-jobs`;
+/** The Research Lead's conversation on a study: the caller's own session (ADR 0026). */
+export const lead = {
+  state: (studyId: string) => request<LeadState>("GET", `${studyPath(studyId)}/lead`),
+  post: (studyId: string, body: { kind: "message" | "greeting"; text?: string; stage: string; focus?: { id: string; label: string } | null }) =>
+    request<{ turns: LeadTurn[] }>("POST", `${studyPath(studyId)}/lead/turns`, body),
+  /** Accept or dismiss a turn's edits: the server applies, saves and records them (gate 1). */
+  decideEdits: (studyId: string, turnId: string, body: { decision: "accept" | "dismiss"; indices: number[]; base_revision: number | null }) =>
+    request<EditDecisionResult>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/edits`, body),
+  /** Approve a turn's prepared design job: spend limit, ledger and start in one transaction. */
+  approveRequest: (studyId: string, turnId: string, confirmCostUsd?: number) =>
+    request<RequestApproval>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/request`, confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
+};
+
+/** The signed-in researcher's own Lead: its files, read only; hatched once (ADR 0026, Accepted with 6). */
+export const researcherLead = {
+  get: () => request<ResearcherLead>("GET", "/api/v1/lead"),
+  hatch: () => request<ResearcherLead>("POST", "/api/v1/lead"),
+};
+
 export const researchAgents = {
   design: (studyId: string, revisionId: string) => request<DesignRevision & { content: Record<string, unknown> }>("GET", `${studyPath(studyId)}/design/revisions/${enc(revisionId)}`),
   /** `promptVersion` runs a stored prompt version instead of the active one (organization administrators; ADR 0020). */

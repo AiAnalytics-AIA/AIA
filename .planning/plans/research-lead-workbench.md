@@ -1,10 +1,10 @@
 ---
 status: in-progress
 chunks:
-  - "[ ] 1. Split layout: pure width, keyboard and focus-mode rules with the prototype's bounds"
-  - "[ ] 2. Inspector back stack: pure state and the item drawer, beside InspectorSlot"
-  - "[ ] 3. Port the prototype's workbench frame: stylesheet, icons, study header, phase navigator over lane.ts, split, rail"
-  - "[ ] 4. Mount the workbench as the study screen behind AIA_WEB_RESEARCH_WORKBENCH (on for develop): artifact header and state bars over the existing stage screens"
+  - "[x] 1. Split layout: pure width, keyboard and focus-mode rules with the prototype's bounds"
+  - "[x] 2. Inspector back stack: pure state and the item drawer, beside InspectorSlot"
+  - "[x] 3. Port the prototype's workbench frame: stylesheet, icons, study header, phase navigator over lane.ts, split, rail"
+  - "[x] 4. Mount the workbench as the study screen behind AIA_WEB_RESEARCH_WORKBENCH (on for develop): artifact header and state bars over the existing stage screens"
   - "[ ] 5. Lead backend: study_lead_turns, StudyLeadRepository, ResearchLead, /lead routes, research_lead template and executor, settings"
   - "[ ] 6. Lead pane: conversation, composer, greeting, view tools, edits as change blocks, decision cards"
   - "[ ] 6b. Personal Leads: researcher_leads and memories, hatching, the Můj Vedoucí page, per-researcher sessions"
