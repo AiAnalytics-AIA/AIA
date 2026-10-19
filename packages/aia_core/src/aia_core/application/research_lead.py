@@ -93,6 +93,7 @@ __all__ = [
     "LeadSelfUpdateNone",
     "LeadTurnNotFound",
     "LeadTurnNotReady",
+    "LeadTurnStale",
     "LeadUnavailable",
     "NotAPaidRequest",
     "ResearchLead",
@@ -162,6 +163,18 @@ class LeadEditsStale(Exception):
     def __init__(self, current_revision: int | None) -> None:
         super().__init__("the working content changed since the edits were shown")
         self.current_revision = current_revision
+
+
+class LeadTurnStale(LeadEditsStale):
+    """An automatic accept of a turn whose frozen working revision is no longer the current one:
+    someone saved while the Lead was working, so its edits wait for a click."""
+
+    reason = "stale_turn"
+
+    def __init__(self, current_revision: int | None, turn_revision: int | None) -> None:
+        super().__init__(current_revision)
+        self.args = ("the working content changed while the Lead was working on this turn",)
+        self.turn_revision = turn_revision
 
 
 class LeadRejected(ValueError):
@@ -512,7 +525,10 @@ class ResearchLead:
         inline-decisions chunk 2). It is an accept, refused unless the caller's own Lead has
         ``auto_accept_text_edits`` on (``auto_accept_off``); an edit that is not a text edit
         (:func:`~aia_core.domain.research_lead.is_text_edit`) is ``refused`` as
-        ``not_a_text_edit`` and stays undecided; each row it writes says ``"auto": true``.
+        ``not_a_text_edit`` and stays undecided; each row it writes says ``"auto": true``. It
+        is refused whole (:class:`LeadTurnStale`, ``stale_turn``) unless the turn was written
+        from the current working revision: an edit made while the Lead worked is not
+        overwritten without a click.
         """
         self.scope.require(Permission.EDIT_STUDY)
         self.scope.require(Permission.APPROVE_GATE)
@@ -544,6 +560,10 @@ class ResearchLead:
         current = working.revision
         if decision == "accept" and base_revision != current:
             raise LeadEditsStale(current)
+        if auto and turn.workspace_revision != current:
+            # The turn was written from an older working copy: a person's save made while the
+            # Lead worked would be overwritten without a click. It waits for one.
+            raise LeadTurnStale(current, turn.workspace_revision)
         content: dict[str, Any] = (
             dict(working.content) if working.content is not None else research_template()
         )

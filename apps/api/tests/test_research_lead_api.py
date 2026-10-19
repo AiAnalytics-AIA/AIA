@@ -446,6 +446,47 @@ def test_an_automatic_accept_takes_text_edits_only_and_says_so_in_the_ledger(
     assert saved["content"]["title"] == "Nový název"
 
 
+def test_an_automatic_accept_leaves_a_save_made_while_the_lead_worked_and_says_why(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """The turn was written from revision 1; the person saved revision 2 while it ran. An
+    automatic accept would put the Lead's title over theirs without a click: it is refused by
+    name and nothing is written, so the edits wait for one."""
+    _hatched(researcher)
+    assert (
+        researcher.put(
+            "/api/v1/lead/preferences", json={"auto_accept_text_edits": True}
+        ).status_code
+        == 200
+    )
+    _save_content(app, world)
+    posted = researcher.post(
+        f"{lead_url(world)}/turns", json={"kind": "message", "stage": "brief", "text": "Co dál?"}
+    )
+    assert posted.status_code == 201, posted.text
+    turn_id = str(posted.json()["turns"][-1]["turn_id"])
+    content_url = f"/api/v1/studies/{world.study_id()}/workspace/content"
+    mine = researcher.put(
+        content_url, json={"content": {**CONTENT, "title": "Můj název"}, "base_revision": 1}
+    )
+    assert mine.status_code == 200, mine.text
+    _complete(app, world, TEXT_AND_STRUCTURE)
+
+    url = f"{lead_url(world)}/turns/{turn_id}/edits"
+    auto = researcher.post(
+        url, json={"decision": "accept", "indices": [0, 1], "base_revision": 2, "auto": True}
+    )
+    assert auto.status_code == 409 and auto.json()["code"] == "stale_turn", auto.text
+    assert auto.json()["details"]["current_revision"] == 2
+    saved = researcher.get(content_url).json()
+    assert saved["revision"] == 2 and saved["content"]["title"] == "Můj název"
+    assert researcher.get(lead_url(world)).json()["turns"][-1]["edit_decisions"] == {}
+    # A click is the person's own decision, made over what they now see.
+    clicked = researcher.post(url, json={"decision": "accept", "indices": [0], "base_revision": 2})
+    assert clicked.status_code == 200
+    assert clicked.json()["results"] == [{"index": 0, "status": "accepted", "reason": None}]
+
+
 def test_someone_elses_turn_is_not_found(
     researcher: TestClient, viewer: TestClient, world: Any, app: FastAPI
 ) -> None:
