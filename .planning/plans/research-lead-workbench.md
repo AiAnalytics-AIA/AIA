@@ -5,9 +5,9 @@ chunks:
   - "[x] 2. Inspector back stack: pure state and the item drawer, beside InspectorSlot"
   - "[x] 3. Port the prototype's workbench frame: stylesheet, icons, study header, phase navigator over lane.ts, split, rail"
   - "[x] 4. Mount the workbench as the study screen behind AIA_WEB_RESEARCH_WORKBENCH (on for develop): artifact header and state bars over the existing stage screens"
-  - "[ ] 5. Lead backend: study_lead_turns, StudyLeadRepository, ResearchLead, /lead routes, research_lead template and executor, settings"
-  - "[ ] 6. Lead pane: conversation, composer, greeting, view tools, edits as change blocks, decision cards"
-  - "[ ] 6b. Personal Leads: researcher_leads and memories, hatching, the Můj Vedoucí page, per-researcher sessions"
+  - "[x] 5. Lead backend: study_lead_turns, StudyLeadRepository, ResearchLead, /lead routes, research_lead template and executor, settings"
+  - "[x] 6. Lead pane: conversation, composer, greeting, view tools, edits as change blocks, decision cards"
+  - "[x] 6b. Personal Leads: researcher_leads and memories, hatching, the Můj Vedoucí page, per-researcher sessions"
   - "[ ] 7. Agent proposals inline in the artifact, with research-question coverage gained, lost and kept"
   - "[ ] 8. design_items, the working revision on every Design Revision writer (web submit, reuse, accepts), the item-level stale rule"
   - "[ ] 9. Accept in one transaction: merged Design Revision, working copy, ledger; the web reloads"
@@ -67,6 +67,12 @@ The design is [ADR 0026](../../docs/architecture/adr/0026-research-lead-proposes
 `ItemInspector.tsx`). They are ticked on that branch, so they read done when its code reaches `develop`, not before.
 3–4, 6 and 7 are web. 5 and 8–11 are backend; 9 changes the accept route and the web together.
 12 is the journey (`tools/ui_workbench/workbench_journey.mjs`).
+
+5, 6 and 6b are built in the Lead backend PR: the routes, the `research_lead_turn` executor, the
+researcher's own Lead with its revisions and notes, and `tools/ui_workbench/lead_journey.mjs`. The
+journey runs a Lead turn in a browser on the workbench's scripted Lead (`ScriptedLeadExecutor`),
+never a model: hatching, the greeting, a message, an edit accepted through the server's gate and
+read back after a reload, a prepared job left unapproved, the note on Můj Vedoucí.
 
 ## Findings
 

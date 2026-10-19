@@ -264,6 +264,27 @@ export function focusSelector(target: string): string {
   return `[data-aia="${css(target)}"], [id="${css(target)}"]`;
 }
 
+const PLAN_LABELS: Record<string, string> = {
+  sets: "Návrh: sledované sady",
+  tracked_sets: "Návrh: sledované sady",
+  comments: "Návrh: komentáře",
+  variants: "Návrh: varianty výzkumu",
+  questions: "Návrh: otázky k doplnění",
+  narrative: "Návrh: porozumění zadání",
+};
+
+/** A Lead target in words, for a link that shows it: never the raw code when its kind is known. */
+export function targetLabel(target: string): string {
+  const [kind, ...rest] = target.split(":");
+  const id = rest.join(":");
+  if (!id) return target;
+  if (kind === "question") return `Otázka ${id}`;
+  if (kind === "section") return `Oddíl ${id}`;
+  if (kind === "brief") return `Zadání: ${id}`;
+  if (kind === "plan") return PLAN_LABELS[id] ?? "Návrh";
+  return target;
+}
+
 /**
  * The Lead target an element of a stage screen stands for: the reverse of focusSelector, for the
  * person pointing at what they mean. Walks up from the clicked element to the nearest one the

@@ -14,6 +14,7 @@ import { lead as leadApi, researcherLead, ApiError, type ResearchAgentJob } from
 import { ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import type { LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead } from "@/lib/lead";
+import { targetLabel } from "@/lib/lead";
 import { STAGES, isWorkbenchStage, type WorkbenchStage } from "@/lib/workbench-stages";
 import { Glyph } from "./Glyph";
 import { Icon, Mark } from "./Icons";
@@ -30,9 +31,12 @@ const kept = new Map<string, { draft: string; queued: Queued[] }>();
 
 const REASON: Record<string, string> = {
   research_lead_unavailable: "Vedoucí výzkumu není v tomto prostředí zapnutý.",
+  research_lead_disabled: "Vedoucí výzkumu není v tomto prostředí zapnutý.",
+  egress_unclassified_material: "Tuto zprávu zatím nelze poslat modelu: materiál studie není klasifikovaný. Rozhoduje o tom správce AIA.",
+  egress_no_approved_route: "Vedoucí výzkumu čeká: pro model AI není schválená trasa.",
+  egress_route_not_approved_for_class: "Tuto studii nelze poslat modelu: trasa AI není schválena pro třídu jejích dat.",
   research_lead_unconfigured: "Vedoucí výzkumu čeká: model AI není pro pracovníka nastavený.",
   ai_runtime_unavailable: "Vedoucí výzkumu čeká: AI v tomto prostředí neběží.",
-  egress_route_not_approved_for_class: "Tuto studii nelze poslat modelu: trasa AI není schválena pro třídu jejích dat.",
   licence_undetermined: "Tuto studii nelze poslat modelu: licence dat panelu to neumožňuje.",
   lead_context_too_large: "Studie je pro jednu odpověď příliš velká. Zkuste se zeptat na konkrétní část.",
   lead_busy: "Vedoucí ještě odpovídá na předchozí zprávu.",
@@ -291,7 +295,7 @@ function Prose({ text }: { text: string }) {
   })}</>;
 }
 
-const VIEW_LABEL = (v: LeadView) => (v.op === "open_stage" ? `Otevřít ${isWorkbenchStage(v.stage) ? STAGES[v.stage].label : v.stage}` : `Ukázat ${v.target}`);
+const VIEW_LABEL = (v: LeadView) => (v.op === "open_stage" ? `Otevřít ${isWorkbenchStage(v.stage) ? STAGES[v.stage].label : v.stage}` : `Ukázat: ${targetLabel(v.target)}`);
 
 function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, canEdit, job, onOpenJob }: {
   t: LeadTurn; name: string; last: boolean; busy: boolean; canEdit: boolean; job: ResearchAgentJob | null; onOpenJob?: (job: ResearchAgentJob) => void;
@@ -404,7 +408,7 @@ function RequestCard({ r, approved, onApprove, canEdit }: { r: LeadRequest; appr
       <div className={`dec${state === "done" || state === "kept" ? " is-decided" : ""}`}>
         <div className="dec__head"><Glyph tone={state === "done" ? "done" : state === "kept" ? "inert" : "you"} size={11} />{state === "done" ? "Rozhodnuto" : state === "kept" ? "Ponecháno" : "Rozhodnutí patří vám"}</div>
         <div className="dec__body">
-          <p className="dec__title">{w.title}{r.kind === "agent_job" ? ` · ${r.action}` : ""}</p>
+          <p className="dec__title">{w.title}{r.kind === "agent_job" ? ` · ${ACTION_LABELS[r.action as keyof typeof ACTION_LABELS] ?? r.action}` : ""}</p>
           <p className="dec__reason">{r.why}</p>
           <p className="cap">{paid ? "Placená úloha: spustí se až vaším potvrzením a hradí se z rozpočtu studie." : "Nic se nespustí: otevře se krok, kde spuštění potvrdíte se všemi jeho kontrolami (připravenost, zodpověditelnost, limit útraty)."}</p>
           {state === "open" ? (
