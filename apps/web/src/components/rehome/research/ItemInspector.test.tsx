@@ -75,3 +75,20 @@ describe("ItemInspector", () => {
     expect(screen.queryByRole("complementary")).toBeNull();
   });
 });
+
+describe("ItemInspector, refreshed", () => {
+  it("keeps the focus where it is when only the open item's words change", async () => {
+    const { rerender } = render(
+      <ItemInspector stack={openEntry(emptyStack("q"), { id: "question:q1", title: "Otázka 1" })} onBack={() => {}} onClose={() => {}}>
+        {() => <button type="button">uvnitř</button>}
+      </ItemInspector>,
+    );
+    screen.getByText("uvnitř").focus();
+    rerender(
+      <ItemInspector stack={openEntry(emptyStack("q"), { id: "question:q1", title: "Otázka 1 (upravená)" })} onBack={() => {}} onClose={() => {}}>
+        {() => <button type="button">uvnitř</button>}
+      </ItemInspector>,
+    );
+    expect(document.activeElement).toBe(screen.getByText("uvnitř"));
+  });
+});

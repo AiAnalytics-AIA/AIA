@@ -34,7 +34,7 @@ export function ItemInspector({ stack, onBack, onClose, children }: {
       opener.current = null;
       if (back.isConnected) back.focus();
     }
-  }, [open, top]);
+  }, [open, top?.id]);
 
   useEffect(() => {
     if (!open) return;
