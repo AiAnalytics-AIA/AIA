@@ -431,11 +431,13 @@ told otherwise). The requirement that the agent evolve is F14.
    need me" after it) and needs the **orchestration-scope ADR** before any code: the Lead holds no
    `APPROVE_GATE` (`domain/scope.py:202-213`, per `mvp-consolidation.md` §6.2), so the person's
    approval is of the envelope and the plan, and each started job carries a ledger row naming the
-   plan. Budget lift, report approval and an unlock stay human-only (commands refuse the Lead). *Open:*
-   whether a plain chat request ("start fieldwork") also starts a run without a plan card (recommended:
-   yes, asking is authorising); expiry; whether a priced Deep Research route is inside (ADR 0022
-   requires approved settings for it; ADR 0019 gate 2 requires confirmation when a run's ceiling
-   reaches the spend limit, which stays).
+   plan. Budget lift, report approval and an unlock stay human-only (commands refuse the Lead). *Decided
+   later the same day:* a plain chat request ("start fieldwork") **does** start a run inside the
+   envelope without a plan card: asking is authorising, recorded as one ledger row naming the person's
+   own message; a Lead-initiated run still needs an approved plan. No expiry (the envelope closes with
+   the study) and priced Deep Research is inside it (ADR 0022 still requires approved settings for a
+   priced route; ADR 0019 gate 2 still requires confirmation when a run's ceiling reaches the spend
+   limit).
 4. **A hard lock with a recorded unlock.** Set 1 and the Sociomap rating question are blocked until
    the person chooses "Unlock for this revision", which warns that the map changes and writes an
    approval-ledger row. The Lead can never unlock. The lock text stops saying "methodology
@@ -460,10 +462,9 @@ nothing prompts either side to update them: left as built, a Lead barely evolves
 2. **An organisation admin can read a researcher's Lead (files and notes) and hand it on.** This
    weakens the privacy ADR 0026 decision 8 gives each researcher ("nobody reads another's turns");
    it needs its own permission (an organisation OWNER or ADMIN, not the one Researcher role of ADR
-   0019) and an amendment to ADR 0026. *Open:* the conversation **turns** (this decision names files
-   and notes only; recommended: they stay private); what "hand it on" means (a copy for the successor
-   with personal notes removed, or a reassignment); and that a handed-on personal note may contain a
-   departed person's details.
+   0019) and an amendment to ADR 0026. *Decided later the same day:* the conversation **turns stay
+   private** (an admin reads files and notes only), and "hand it on" gives the successor a **copy with
+   personal notes removed**; the departed researcher's Lead is archived, never reassigned.
 
 **Rules to write down.** What may be learned (style, working preferences) and what may not (client
 facts belong in a client-scoped note, Class A, visible only in that client's studies). A bound on
@@ -602,6 +603,10 @@ dated, until the provider contract and the method owner have owners.
 | Q21 | F17: separate approvals, a second person for the client report and each map snapshot, exports after approval | **decided 2026-10-19; unconditional second person and snapshot approval open** |
 | Q22 | F18: no pause after fieldwork; a QC warning, the worker proposes, replace is a new linked run | **decided 2026-10-19** |
 | Q23 | F19: client datasets and own dimensions are handled in Brief materials and Dimensions | **decided 2026-10-19; whether the build starts by itself open** |
+| Q24 | Production runs in the **same AWS account** as develop, in separate resources and tags (not a separate account, which was recommended) | **decided 2026-10-19; risks and mitigations in `mvp-target-architecture.md` §6.2** |
+| Q25 | A plain chat request starts a run inside the envelope without a plan card; a Lead-initiated run needs an approved plan | **decided 2026-10-19** |
+| Q26 | An admin's read of a Lead covers files and notes only; turns stay private; a handed-on Lead is a copy with personal notes removed | **decided 2026-10-19** |
+| Q27 | Client data is kept until a person deletes it; the operation log is kept with its study; a documented delete path is needed before production | **decided 2026-10-19** |
 
 ## 6. Follow-ups for a docs PR
 
