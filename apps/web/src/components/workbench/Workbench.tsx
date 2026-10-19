@@ -430,9 +430,10 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   };
 
   const blocked = blockers(state).length;
+  const flushBeforeMessage = useCallback(() => store.flush(), [store]);
   const leadPane = (
     <LeadPane studyId={frame.studyId} stage={stage} canEdit={frame.canEdit} focus={focus} picking={picking}
-      onPick={() => setPicking((p) => !p)} onClearFocus={() => setFocus(null)} jobs={[...jobs].reverse()} onOpenJob={onOpenJob} onView={onView} onRequest={onRequest} onTurns={onTurns} onLead={onLead} epoch={leadEpoch}
+      onPick={() => setPicking((p) => !p)} onClearFocus={() => setFocus(null)} jobs={[...jobs].reverse()} onOpenJob={onOpenJob} onView={onView} onRequest={onRequest} onTurns={onTurns} onLead={onLead} beforeMessage={flushBeforeMessage} epoch={leadEpoch}
       mode={mode} onFocusMode={() => setMode((m) => (m === "conversation" ? "split" : "conversation"))} />
   );
 

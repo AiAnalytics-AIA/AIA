@@ -44,7 +44,7 @@ that decision, so the gate stays the default and the choice is theirs alone.
 - `researcher_leads.auto_accept_text_edits` (default false); `PUT /api/v1/lead/preferences`
   sets the caller's own row, audited; `GET /api/v1/lead` carries it.
 - **Text edits** change wording and nothing else: `set_text` of `title` or
-  `plan.problem_summary`, `list_replace` of `plan.objectives` or `plan.hypotheses`, and
+  `plan.problem_summary`, `list_replace` of `plan.hypotheses`, and
   `question_edit` with `text` and no `options` (`domain/research_lead.py` `TEXT_ONLY_FIELDS`,
   `TEXT_ONLY_LISTS`, `is_text_edit`; the web's `isTextEdit` mirrors them). Not the brief's fields
   (an edit of one clears the analysis) and not `plan.research_questions` (items and comparisons
@@ -130,6 +130,25 @@ From an independent review of the branch @ 5a217aab, and Codex on #489:
 8. The design panel's source button did not name `canReview` itself
    (`DeepResearchPanel.tsx:152 @ 5a217aab`); unobservable, as the bundle is read only under it.
    Stated @ 7c01686c.
+
+- **Objectives are not wording only** (second independent review of #489). Where a plan states
+  no research questions, its objectives are read as them (`analysis/native.py`
+  `research_questions_of`, web `trace.ts` `researchQuestionsOf`), linked by text like research
+  questions; a `list_replace` of `plan.objectives` left items linking the old wording. Removed
+  from `TEXT_ONLY_LISTS` on both sides; tests: the objective rename among `STRUCTURAL_EDITS`
+  (`test_research_lead.py`) and `structure` (`lead.test.ts`).
+- **A message waits for the working copy's save** (same review). `LeadPane` now saves the
+  waiting change before a message (`beforeMessage`, `store.flush` from `Workbench`), so the Lead
+  reads it and its turn is frozen at the revision the person sees; before, a message within
+  1.8 s of typing made every automatic accept on that turn `stale_turn`. Test:
+  `LeadPane.test.tsx` "saves the working copy's waiting change before a message goes".
+- **A failed reload keeps the waiting save** (same review). `ResearchStore.reload` re-arms the
+  debounced save when its read fails. Test: `store.test.ts` "keeps a waiting change's save when
+  the read fails".
+- **A question's wording is not without effect** (same review; recorded, not changed). A
+  question's new text still decides whether code answers it as a fact and which persona topics
+  it draws, for a clicked accept as for an automatic one; readiness and the question outlook
+  show it before a run. `is_text_edit`'s docstring now says so.
 
 ## Findings
 

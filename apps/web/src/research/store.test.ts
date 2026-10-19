@@ -288,4 +288,18 @@ describe("reload", () => {
       vi.useRealTimers();
     }
   });
+
+  it("keeps a waiting change's save when the read fails", async () => {
+    vi.useFakeTimers();
+    try {
+      const { bodies, save } = aia(() => saved(9));
+      const store = ready(save);
+      store.update(({ project }) => ({ project: { ...project, goal: "Mine" } }));
+      await expect(store.reload(async () => { throw new Error("offline"); })).rejects.toThrow("offline");
+      await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS * 2);
+      expect(bodies).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

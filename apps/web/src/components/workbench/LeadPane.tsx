@@ -57,7 +57,7 @@ const time = (iso: string) => {
 /** The newest Lead turn that finished: the one whose view tools have been applied. */
 const newestCompleted = (turns: LeadTurn[]) => [...turns].reverse().find((t) => t.actor === "lead" && t.status === "COMPLETED") ?? null;
 
-export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onClearFocus, onView, onRequest, onTurns, onFocusMode, mode, epoch, jobs = [], onOpenJob, onLead }: {
+export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onClearFocus, onView, onRequest, onTurns, onFocusMode, mode, epoch, jobs = [], onOpenJob, onLead, beforeMessage }: {
   studyId: string;
   stage: WorkbenchStage;
   canEdit: boolean;
@@ -79,6 +79,9 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   onTurns: (turns: LeadTurn[]) => void;
   /** The researcher's own Lead once read: its preferences decide what is accepted without a click. */
   onLead?: (me: ResearcherLead) => void;
+  /** Before a message goes: the working copy's waiting change saved, so the Lead reads it and its
+   * turn is frozen at the revision the person sees (an automatic accept needs the two equal). */
+  beforeMessage?: () => Promise<void>;
   onFocusMode: () => void;
   mode: "split" | "conversation" | "artifact";
 }) {
@@ -159,10 +162,12 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   }, [studyId, read]);
 
   const message = useCallback(async (m: Queued) => {
+    // A save that fails does not hold the message: the Lead then reads the last stored revision.
+    await beforeMessage?.().catch(() => {});
     if (await post({ kind: "message", text: m.text, stage: m.stage, focus: m.focus })) return;
     setQueued((q) => [m, ...q]);
     setHeld(true);
-  }, [post]);
+  }, [post, beforeMessage]);
 
   // The Lead greets a study it has not spoken in for eight hours (the server keeps the rule).
   useEffect(() => {

@@ -284,7 +284,17 @@ export class ResearchStore {
       this.timer = null;
     }
     if (this.inflight) await this.inflight.catch(() => {});
-    const loaded = readWorkingContent(await read(this.studyId));
+    let raw: WorkingContent;
+    try {
+      raw = await read(this.studyId);
+    } catch (e) {
+      // The waiting change keeps its save: the timer cleared above is armed again.
+      if (this.state.save.kind === "pending" && !this.timer) {
+        this.timer = setTimeout(() => this.autosave(), SAVE_DEBOUNCE_MS);
+      }
+      throw e;
+    }
+    const loaded = readWorkingContent(raw);
     if (loaded.kind !== "research") throw new Error("Pracovní obsah studie se nepodařilo znovu načíst.");
     if (since && (this.state.project !== since.project || this.state.analysis !== since.analysis)) {
       this.conflict(loaded.state.revision);
