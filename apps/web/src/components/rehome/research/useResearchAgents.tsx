@@ -115,16 +115,27 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
       if (decision === "keep" || stale) throw new JobError("Návrh je uložený, současný návrh jste ponechali.", "cancelled", job.run_id);
       // A change still waiting for its save is saved first, so the server checks it too.
       await store.flush(); check(signal);
-      const revision = store.get().revision;
+      const sent = store.get();
+      const revision = sent.revision;
       if (revision === null) throw new JobError("Pracovní obsah studie ještě není uložený.", "error", job.run_id);
+      let accepted: Awaited<ReturnType<typeof researchAgents.accept>>;
       try {
-        await researchAgents.accept(studyId, job.run_id, job.design_revision_id, revision); check(signal);
+        accepted = await researchAgents.accept(studyId, job.run_id, job.design_revision_id, revision); check(signal);
       } catch (e) {
         const details = staleDetails(e);
         if (!details) throw e;
         stale = { message: staleMessage(details, store.get().project), items: details.conflicting_items };
         setNotice(stale.message);
         continue;
+      }
+      // An edit typed while the accept was on its way is not in what the server wrote: a reload
+      // would drop it unseen. Keep it on screen and stop saving, as a refused save does; the
+      // person copies it and reloads.
+      const now = store.get();
+      if (now.project !== sent.project || now.analysis !== sent.analysis) {
+        store.conflict(accepted.workspace_revision);
+        setNotice("Návrh je použitý a uložený v AIA. Úpravu, kterou jste mezitím napsali, jsme nepřepsali ani neuložili: zkopírujte si ji a načtěte studii znovu.");
+        return { ...result.result, native: true };
       }
       try { await store.reload(); }
       catch {

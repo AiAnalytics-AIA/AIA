@@ -238,3 +238,18 @@ describe("submitWorkingDesign (ADR 0026 decision 5)", () => {
     expect(submit).toHaveBeenCalledExactlyOnceWith("STU-1", loaded.state.project, "run", 3);
   });
 });
+
+describe("conflict", () => {
+  it("holds a copy with its own change against a newer revision: nothing saves over it", async () => {
+    const { bodies, save } = aia(() => saved(9));
+    const loaded = readWorkingContent(content({ content: defaultsMerge({ title: "Alfa" }, TEMPLATE) as unknown as Record<string, unknown> }));
+    if (loaded.kind !== "research") throw new Error("not research");
+    const store = new ResearchStore(loaded.state, "STU-1", { save });
+    store.update(({ project }) => ({ project: { ...project, goal: "Mine" } }));
+    store.conflict(8);
+    expect(store.get().save).toEqual({ kind: "conflict", current: 8 });
+    expect(store.get().project.goal).toBe("Mine");
+    await expect(store.flush()).rejects.toBeInstanceOf(ApiError);
+    expect(bodies).toHaveLength(0);
+  });
+});

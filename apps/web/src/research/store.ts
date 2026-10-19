@@ -253,6 +253,19 @@ export class ResearchStore {
   }
 
   /**
+   * AIA holds a newer revision (`current`) than this copy, and this copy holds a change of its
+   * own: keep the change on screen, save nothing over the newer one, and say so -- the person
+   * reloads, after copying what they typed. The same state a refused save leaves.
+   */
+  conflict(current: number | null): void {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    this.set({ ...this.state, save: { kind: "conflict", current } });
+  }
+
+  /**
    * Read the working copy again from AIA and replace this copy with it: after the server wrote it
    * (an accepted proposal, ADR 0026 decision 6), or after a conflict. A change still waiting for
    * its save is dropped, so the caller flushes first when it means to keep one.

@@ -26,6 +26,7 @@ let analysis: Record<string, unknown> | null;
 let store: ResearchStore;
 let flush: ReturnType<typeof vi.fn>;
 let reload: ReturnType<typeof vi.fn>;
+let conflict: ReturnType<typeof vi.fn>;
 /** The working revision the copy is at, as AIA saved it. */
 let revision: number;
 let onUpdate = vi.fn<(u: JobUpdate | null) => void>();
@@ -50,7 +51,8 @@ beforeEach(() => {
   reload = vi.fn().mockImplementation(async () => {
     project = { ...project, title: "Proposed" }; analysis = { objectives: ["A"] }; revision = 4;
   });
-  store = { get: () => ({ project, analysis, revision, save: { kind: "saved" } }), flush, reload,
+  conflict = vi.fn();
+  store = { get: () => ({ project, analysis, revision, save: { kind: "saved" } }), flush, reload, conflict,
     update: (fn: (state: { project: Record<string, unknown>; analysis: Record<string, unknown> | null }) => { project: Record<string, unknown>; analysis?: Record<string, unknown> }) => {
       const next = fn({ project, analysis }); project = next.project; analysis = next.analysis ?? analysis;
     },
@@ -232,4 +234,23 @@ it("rebuilds a stale proposal on the current design and reviews the new one", as
   fireEvent.click(screen.getByText("Apply"));
   await waitFor(() => expect(reload).toHaveBeenCalledOnce());
   expect(researchAgents.accept).toHaveBeenLastCalledWith("STU-1", "RUN-2", "REV-1", 3);
+});
+
+it("never drops an edit typed while the accept was on its way: the copy stops saving and says so", async () => {
+  let commit = () => {};
+  vi.mocked(researchAgents.accept).mockReturnValue(new Promise((resolve) => {
+    commit = () => resolve({ design_revision_id: "REV-2", workspace_revision: 4 } as Awaited<ReturnType<typeof researchAgents.accept>>);
+  }));
+  render(<Harness />); fireEvent.click(screen.getByText("Run"));
+  fireEvent.click(await screen.findByText("Použít návrh"));
+  await waitFor(() => expect(researchAgents.accept).toHaveBeenCalledOnce());
+  // The stage is still editable while the accept is in flight.
+  act(() => { store.update(({ project: p }) => ({ project: { ...p, goal: "Typed during the accept" } })); });
+  await act(async () => { commit(); await running; });
+  // Not reloaded over: the edit stays on screen, the copy is held in conflict at the accepted
+  // revision (nothing saves over it), and the person is told what to do.
+  expect(reload).not.toHaveBeenCalled();
+  expect(project.goal).toBe("Typed during the accept");
+  expect(conflict).toHaveBeenCalledExactlyOnceWith(4);
+  expect(screen.getByText(/Úpravu, kterou jste mezitím napsali, jsme nepřepsali/)).toBeTruthy();
 });
