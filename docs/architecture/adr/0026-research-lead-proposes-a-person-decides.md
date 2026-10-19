@@ -1,9 +1,8 @@
 # ADR 0026 — The Research Lead proposes; a person decides, and an accept updates the working copy on the server
 
-**Status:** Proposed — 2026-10-19, for the product owner's acceptance. Plan
-[research-lead-workbench](../../../.planning/plans/research-lead-workbench.md). Nothing in it is
-built until it is accepted, except the plan's web chunks that call no model and change no API
-(its chunks 1–6). **Builds on** [ADR 0005](0005-llm-gateway.md) (the one model call path),
+**Status:** Accepted — 2026-10-19, by the product owner, with the decisions under *Accepted with*
+below; proposed the same day. Plan
+[research-lead-workbench](../../../.planning/plans/research-lead-workbench.md). **Builds on** [ADR 0005](0005-llm-gateway.md) (the one model call path),
 [ADR 0016](0016-research-execution-and-model-transmission.md) (a run executes an immutable Design
 Revision), [ADR 0018](0018-aia-runs-without-18-6-6.md) (a Study's working content lives in AIA),
 [ADR 0019](0019-two-roles-and-human-ai-gates.md) (who decides what the AI produced) and
@@ -123,6 +122,17 @@ A turn returns one structured object, validated with one schema repair at most, 
   by its ref. A reply that writes any other number is refused by the validator, not by the prompt.
 - **`view`.** Visual commands only: open a stage, focus an item by its `data-aia` id, open the
   inspector, switch a result view. They change what the person sees and nothing stored.
+- **`edits`.** The Lead's tools on a stage's artifact, a closed set of item operations:
+  - set a brief field;
+  - add, replace or remove an objective, research question or hypothesis;
+  - add, edit or remove a questionnaire question;
+  - set the sample size.
+
+  Each edit names the item and why. Code grounds each one against the working content, and an
+  edit naming an item that does not exist is dropped and said so. An edit is shown in the artifact
+  as a change block. It changes the working copy only when the person accepts it, as a save made
+  by that person (`reason = "lead_edit_accepted"`), so its stale rule is the working copy's own
+  (`stale_revision`).
 - **`requests`.** At most one prepared specialist job (action, instruction, the Design Revision
   it is asked on), or one prepared human action from decision 4's registry (start a run, lift a
   budget, approve a report). Each is shown as a decision card and does nothing until a person
@@ -301,12 +311,13 @@ fit, like any step.
 - `stage`.
 - `workspace_revision` and `design_revision_id`: what the turn saw.
 - `run_id`: the Lead turn's run.
-- `text`, bounded: the person's message, or the Lead's reply once its step has finished.
+- `kind`: a message, or the greeting the Lead gives on opening a study.
+- `text`, bounded: the person's message.
 - `created_at`.
 
-The reply is copied once, from the step's artifact, so that listing a conversation reads no
-artifact. That is the one deliberate copy. The artifact keeps the full structured output and its
-provenance.
+The Lead's reply is not copied into the row. It is the output of the turn's single step, which
+listing a conversation reads in the same query as the runs (`list_runs(steps=True)`). So the reply
+has one source.
 
 There is **no conversation table**: one Study has one conversation, so `study_id` is its key. What
 the Lead last saw is the newest Lead turn's `workspace_revision`.
@@ -350,11 +361,39 @@ cost is the metered usage, reported separately. The cost is never quoted from a 
 list. Calls per turn: one, plus at most one repair.
 Specialist jobs remain their own runs at their own reservation.
 
-Before the switch is turned on for develop, chunk 10 measures and states, in its commit body:
+The first turns on develop are measured and stated in the plan file:
 
 - the input bytes per layer;
 - latency from enqueue to reply;
 - the metered cost of 20 turns on a fictional study.
+
+## Accepted with
+
+The product owner's decisions of 2026-10-19 on accepting:
+
+1. **The Lead is part of the workbench, not an option in it.** The chat-centric workbench is the
+   study screen on develop. The kill switch stays, because the repository's rules require one for
+   paid behaviour (`CLAUDE.md` § 8). On develop it is on. Where it is off, or a turn parks, the pane
+   says why, and the rest of the workbench works.
+2. **The Lead controls the artifacts through tools**, as a design tool controls its canvas. Its view
+   commands drive the artifact pane, and its edits arrive as change blocks in the artifact. An AI
+   edit is never applied without a person, because applying it silently is ruled out.
+3. **The Lead greets.** Opening a study with no Lead turn in the last eight hours starts one greeting
+   turn: where the study stands, what waits on the person, and the next step. It is paid like any
+   turn.
+4. **The Lead may prepare all four kinds of paid work** as decision cards:
+   - a design job;
+   - Design Research;
+   - a research run;
+   - Interpretation Research.
+
+   Each starts only from the person's approval, through the route that starts it today, with that
+   route's own gates: readiness, answerability and the spend limit.
+5. **Live calls on develop, at a small cap.** The per-turn reservation is the smallest the gateway
+   accepts. The route's approved data classes still decide which studies can be sent.
+6. **The visual target is the prototype** (`prototypes/research-lead-v2`, PR #481). Its layout and
+   components are ported into the web client and wired to AIA's working content, runs and routes.
+   The existing stage screens stay as the artifact bodies wherever they already do the work.
 
 ## Consequences
 
