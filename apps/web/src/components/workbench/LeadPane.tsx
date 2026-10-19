@@ -13,7 +13,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { lead as leadApi, researcherLead, ApiError, type ResearchAgentJob } from "@/lib/api";
 import { ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
-import type { LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead } from "@/lib/lead";
+import type { LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
+import { pendingSelfUpdate, targetLabel } from "@/lib/lead";
 import { STAGES, isWorkbenchStage, type WorkbenchStage } from "@/lib/workbench-stages";
 import { Glyph } from "./Glyph";
 import { Icon, Mark } from "./Icons";
@@ -28,11 +29,18 @@ const POLL_MS = 1500;
 type Queued = { text: string; stage: WorkbenchStage; focus: { id: string; label: string } | null };
 const kept = new Map<string, { draft: string; queued: Queued[] }>();
 
+/** An accepted self-update left a file another turn changed since; its notes did apply. The 200
+ * names it, and the turn's decision keeps it after a reload. */
+const STALE_SELF_UPDATE = "Soubor se mezitím změnil, požádejte Vedoucího znovu.";
+
 const REASON: Record<string, string> = {
   research_lead_unavailable: "Vedoucí výzkumu není v tomto prostředí zapnutý.",
+  research_lead_disabled: "Vedoucí výzkumu není v tomto prostředí zapnutý.",
+  egress_unclassified_material: "Tuto zprávu zatím nelze poslat modelu: materiál studie není klasifikovaný. Rozhoduje o tom správce AIA.",
+  egress_no_approved_route: "Vedoucí výzkumu čeká: pro model AI není schválená trasa.",
+  egress_route_not_approved_for_class: "Tuto studii nelze poslat modelu: trasa AI není schválena pro třídu jejích dat.",
   research_lead_unconfigured: "Vedoucí výzkumu čeká: model AI není pro pracovníka nastavený.",
   ai_runtime_unavailable: "Vedoucí výzkumu čeká: AI v tomto prostředí neběží.",
-  egress_route_not_approved_for_class: "Tuto studii nelze poslat modelu: trasa AI není schválena pro třídu jejích dat.",
   licence_undetermined: "Tuto studii nelze poslat modelu: licence dat panelu to neumožňuje.",
   lead_context_too_large: "Studie je pro jednu odpověď příliš velká. Zkuste se zeptat na konkrétní část.",
   lead_busy: "Vedoucí ještě odpovídá na předchozí zprávu.",
@@ -185,6 +193,17 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
     }
   };
 
+  const decideSelfUpdate = useCallback(async (t: LeadTurn, decision: "accept" | "dismiss") => {
+    let decided: SelfUpdateDecision | null = null;
+    try {
+      decided = await leadApi.decideSelfUpdate(studyId, t.turn_id, decision);
+    } catch (e) {
+      setError(e instanceof ApiError ? reasonWords(e.code) : String(e));
+    }
+    await read();
+    return decided;
+  }, [studyId, read]);
+
   const name = me?.lead?.name || "Vedoucí výzkumu";
   return (
     <div className="conv">
@@ -199,7 +218,7 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
           <Icon name={mode === "conversation" ? "normal" : "focusChat"} size={16} />
         </button>
       </div>
-      <Conversation turns={session?.turns ?? []} jobs={jobs} onOpenJob={onOpenJob} busy={!!session?.busy || sending} name={name} onFollow={send} onView={onView} onRequest={onRequest} canEdit={canEdit}>
+      <Conversation turns={session?.turns ?? []} jobs={jobs} onOpenJob={onOpenJob} busy={!!session?.busy || sending} name={name} onFollow={send} onView={onView} onRequest={onRequest} onSelfUpdate={decideSelfUpdate} canEdit={canEdit}>
         {error ? <div className="msg"><div className="notice"><Glyph tone="fault" size={11} />{error}</div></div> : null}
         {held ? (
           <div className="msg"><div className="notice"><Glyph tone="fault" size={11} />Zprávu se nepodařilo odeslat. Čeká ve frontě.
@@ -229,9 +248,10 @@ function HatchCard({ onHatch }: { onHatch: () => void }) {
   );
 }
 
-function Conversation({ turns, jobs, onOpenJob, busy, name, onFollow, onView, onRequest, canEdit, children }: {
+function Conversation({ turns, jobs, onOpenJob, busy, name, onFollow, onView, onRequest, onSelfUpdate, canEdit, children }: {
   turns: LeadTurn[]; jobs: ResearchAgentJob[]; onOpenJob?: (job: ResearchAgentJob) => void; busy: boolean; name: string; canEdit: boolean;
   onFollow: (t: string) => void; onView: (ops: LeadView[]) => void; onRequest: (turn: LeadTurn, r: LeadRequest) => Promise<void>;
+  onSelfUpdate: (turn: LeadTurn, decision: "accept" | "dismiss") => Promise<SelfUpdateDecision | null>;
   children: React.ReactNode;
 }) {
   const box = useRef<HTMLDivElement>(null);
@@ -258,7 +278,7 @@ function Conversation({ turns, jobs, onOpenJob, busy, name, onFollow, onView, on
             ? <ActivityCard key={x.job.run_id} job={x.job} onOpen={onOpenJob} />
             : x.turn.actor === "person"
               ? <PersonTurn key={x.turn.turn_id} t={x.turn} />
-              : <LeadTurnView key={x.turn.turn_id} t={x.turn} name={name} last={x.turn.turn_id === lastLead?.turn_id} busy={busy} onFollow={onFollow} onView={onView} onRequest={onRequest} canEdit={canEdit}
+              : <LeadTurnView key={x.turn.turn_id} t={x.turn} name={name} last={x.turn.turn_id === lastLead?.turn_id} busy={busy} onFollow={onFollow} onView={onView} onRequest={onRequest} onSelfUpdate={onSelfUpdate} canEdit={canEdit}
                   job={jobs.find((j) => j.run_id === x.turn.request_decision?.run_id) ?? null} onOpenJob={onOpenJob} />)}
           <div style={{ height: 8 }} />
         </div>
@@ -291,11 +311,12 @@ function Prose({ text }: { text: string }) {
   })}</>;
 }
 
-const VIEW_LABEL = (v: LeadView) => (v.op === "open_stage" ? `Otevřít ${isWorkbenchStage(v.stage) ? STAGES[v.stage].label : v.stage}` : `Ukázat ${v.target}`);
+const VIEW_LABEL = (v: LeadView) => (v.op === "open_stage" ? `Otevřít ${isWorkbenchStage(v.stage) ? STAGES[v.stage].label : v.stage}` : `Ukázat: ${targetLabel(v.target)}`);
 
-function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, canEdit, job, onOpenJob }: {
+function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, onSelfUpdate, canEdit, job, onOpenJob }: {
   t: LeadTurn; name: string; last: boolean; busy: boolean; canEdit: boolean; job: ResearchAgentJob | null; onOpenJob?: (job: ResearchAgentJob) => void;
   onFollow: (t: string) => void; onView: (ops: LeadView[]) => void; onRequest: (turn: LeadTurn, r: LeadRequest) => Promise<void>;
+  onSelfUpdate: (turn: LeadTurn, decision: "accept" | "dismiss") => Promise<SelfUpdateDecision | null>;
 }) {
   if (t.status === "QUEUED" || t.status === "RUNNING") {
     return (
@@ -320,7 +341,7 @@ function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, canEdi
             <div className="links"><button type="button" className="linkchip" onClick={() => onView([{ op: "open_stage", stage: t.stage && isWorkbenchStage(t.stage) ? t.stage : "brief" }])}><Icon name="pencil" size={12} />{edits.length === 1 ? "1 návrh změny v artefaktu" : `${edits.length} návrhů změn v artefaktu`}</button></div>
           ) : null}
           {o.view?.length ? <div className="links">{o.view.map((v, i) => <button key={i} type="button" className="linkchip" onClick={() => onView([v])}><Icon name="open" size={12} />{VIEW_LABEL(v)}</button>)}</div> : null}
-          <SelfUpdate o={o} />
+          <SelfUpdate t={t} o={o} canEdit={canEdit} onDecide={(d) => onSelfUpdate(t, d)} />
           {o.dropped?.length ? <div className="cap">{o.dropped.length === 1 ? "1 navržená změna se netýkala ničeho v pracovní kopii a byla vynechána." : `${o.dropped.length} navržené změny se netýkaly ničeho v pracovní kopii a byly vynechány.`}</div> : null}
         </div>
       </div>
@@ -374,18 +395,57 @@ function ActivityCard({ job, onOpen }: { job: ResearchAgentJob; onOpen?: (job: R
   );
 }
 
-function SelfUpdate({ o }: { o: LeadOutput }) {
+/**
+ * The Lead's changes to its own files and memory. What stays inside this study's client (a client
+ * note kept or forgotten) was applied with the turn. What would reach all of the researcher's work
+ * (a personal note kept or forgotten, SOUL, USER, the name) waits for the researcher's yes.
+ */
+const FILE_WORDS: Record<"name" | "soul" | "user", string> = { name: "Jméno", soul: "SOUL", user: "USER" };
+
+function SelfUpdate({ t, o, canEdit, onDecide }: { t: LeadTurn; o: LeadOutput; canEdit: boolean; onDecide: (d: "accept" | "dismiss") => Promise<SelfUpdateDecision | null> }) {
+  const [busy, setBusy] = useState(false);
+  const [answered, setAnswered] = useState<SelfUpdateDecision["stale"]>([]);
   const u = o.self_update;
   if (!u) return null;
-  const parts = [
-    u.name ? "jméno" : null,
-    u.soul ? "SOUL" : null,
-    u.user ? "USER" : null,
-    u.remember?.length ? `zapamatováno: ${u.remember.map((m) => m.text).join("; ")}` : null,
-    u.forget?.length ? `zapomenuto ${u.forget.length}×` : null,
+  const clientNotes = (u.remember ?? []).filter((m) => m.scope === "client").map((m) => m.text);
+  const forgotten = t.changes?.forgotten?.length ?? 0;
+  const applied = [
+    clientNotes.length ? `zapamatováno u klienta: ${clientNotes.join("; ")}` : null,
+    forgotten ? `zapomenuto u klienta ${forgotten}×` : null,
   ].filter(Boolean);
-  if (!parts.length) return null;
-  return <div className="notice" style={{ marginTop: 6 }}><Icon name="memory" size={12} />Upraveno: {parts.join(" · ")} · <Link href={appRoutes.lead()} className="linkbtn">Můj Vedoucí</Link></div>;
+  const waiting = pendingSelfUpdate(t.self_update_waiting);
+  const hasWaiting = waiting.notes.length > 0 || waiting.forget.length > 0 || waiting.files.length > 0;
+  const decided = t.self_update_decision?.status ?? null;
+  const decide = (d: "accept" | "dismiss") => {
+    setBusy(true);
+    void onDecide(d).then((r) => setAnswered(r?.stale ?? [])).finally(() => setBusy(false));
+  };
+  const stale = t.self_update_decision?.stale?.length ? t.self_update_decision.stale : answered;
+  return (
+    <>
+      {applied.length ? <div className="notice" style={{ marginTop: 6 }}><Icon name="memory" size={12} />Upraveno: {applied.join(" · ")} · <Link href={appRoutes.lead()} className="linkbtn">Můj Vedoucí</Link></div> : null}
+      {hasWaiting ? (
+        <div className={`dec${decided ? " is-decided" : ""}`} data-aia="lead.self_update" style={{ marginTop: 6 }}>
+          <div className="dec__head"><Glyph tone={decided === "accepted" ? "done" : decided === "dismissed" ? "inert" : "you"} size={11} />{decided === "accepted" ? "Zapamatováno pro všechnu vaši práci" : decided === "dismissed" ? "Zahozeno" : "Rozhodnutí patří vám"}</div>
+          <div className="dec__body">
+            <p className="dec__title">Vedoucí chce změnit pro všechnu vaši práci, u všech klientů:</p>
+            <ul>
+              {waiting.notes.map((n, i) => <li key={`n${i}`}>Poznámka: {n}</li>)}
+              {waiting.forget.map((n, i) => <li key={`f${i}`}>Zapomenout: {n}</li>)}
+              {waiting.files.map((f) => <li key={f.file}>{f.file}: {f.text}</li>)}
+            </ul>
+            {stale.length ? (
+              <p className="cap" data-aia="lead.self_update.stale">{stale.map((f) => FILE_WORDS[f]).join(", ")}: {STALE_SELF_UPDATE}</p>
+            ) : null}
+            {t.self_update_pending && !decided ? (
+              <div className="dec__foot"><button type="button" className="btn btn--sm btn--quiet" disabled={!canEdit || busy} onClick={() => decide("dismiss")}>Zahodit</button><span className="grow" />
+                <button type="button" className="btn btn--primary btn--sm" disabled={!canEdit || busy} onClick={() => decide("accept")}>Pamatovat si</button></div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
 }
 
 const REQUEST_WORDS: Record<LeadRequest["kind"], { title: string; action: string }> = {
@@ -404,7 +464,7 @@ function RequestCard({ r, approved, onApprove, canEdit }: { r: LeadRequest; appr
       <div className={`dec${state === "done" || state === "kept" ? " is-decided" : ""}`}>
         <div className="dec__head"><Glyph tone={state === "done" ? "done" : state === "kept" ? "inert" : "you"} size={11} />{state === "done" ? "Rozhodnuto" : state === "kept" ? "Ponecháno" : "Rozhodnutí patří vám"}</div>
         <div className="dec__body">
-          <p className="dec__title">{w.title}{r.kind === "agent_job" ? ` · ${r.action}` : ""}</p>
+          <p className="dec__title">{w.title}{r.kind === "agent_job" ? ` · ${ACTION_LABELS[r.action as keyof typeof ACTION_LABELS] ?? r.action}` : ""}</p>
           <p className="dec__reason">{r.why}</p>
           <p className="cap">{paid ? "Placená úloha: spustí se až vaším potvrzením a hradí se z rozpočtu studie." : "Nic se nespustí: otevře se krok, kde spuštění potvrdíte se všemi jeho kontrolami (připravenost, zodpověditelnost, limit útraty)."}</p>
           {state === "open" ? (

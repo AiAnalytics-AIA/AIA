@@ -28,7 +28,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, cast
 
-from sqlalchemy import CursorResult, func, select, update
+from sqlalchemy import CursorResult, func, or_, select, update
 from sqlalchemy.orm import Session
 
 from ..domain.population import (
@@ -658,6 +658,8 @@ class WorkflowRepository:
         workflow_type: str | None = None,
         key_prefix: str | None = None,
         steps: bool = False,
+        run_ids: Sequence[str] | None = None,
+        exclude_workflow_types: Sequence[str] = (),
     ) -> list[dict[str, Any]]:
         """Return a project's runs, newest first, without their steps unless ``steps``.
 
@@ -665,11 +667,17 @@ class WorkflowRepository:
         keeps the runs whose idempotency key starts with it (matched literally).
         ``steps`` adds each run's steps from one more query for the page, without their
         attempt history: no ``attempts`` key, so nothing read from attempts (a start
-        time, an error, a cost) is guessed from an empty list.
+        time, an error, a cost) is guessed from an empty list. ``run_ids`` keeps only
+        those runs (still within the project and the scope). ``exclude_workflow_types``
+        leaves runs of those types out, in the query, so a page is never short of them.
         """
         filters = [WorkflowRunRow.project_id == project_id, *self._scope_filter()]
         if workflow_type is not None:
             filters.append(WorkflowRunRow.workflow_type == workflow_type)
+        if exclude_workflow_types:
+            filters.append(WorkflowRunRow.workflow_type.not_in(list(exclude_workflow_types)))
+        if run_ids is not None:
+            filters.append(WorkflowRunRow.run_id.in_(list(run_ids)))
         if key_prefix is not None:
             filters.append(WorkflowRunRow.idempotency_key.startswith(key_prefix, autoescape=True))
         rows = self._session.scalars(
@@ -2545,6 +2553,241 @@ class WorkflowRepository:
                 out[str(subject)] = str(decision)
         return out
 
+    def record_lead_edit_decision(
+        self,
+        lead_run_id: str,
+        *,
+        turn_id: str,
+        index: int,
+        decision: str,
+        op: str,
+        workspace_revision: int | None,
+        workspace_revision_id: str | None,
+    ) -> bool:
+        """Write a person's accept or dismiss of one edit a Lead turn proposed, once.
+
+        ADR 0019 gate 1 for the Research Lead (ADR 0026): the subject is the edit,
+        ``"{turn_id}:{index}"``; the producer is whoever started the Lead's run. ``comment``
+        names the working revision the accept wrote (``None`` for a dismiss, or an accept that
+        changed nothing). Needs ``APPROVE_GATE``, which the worker's scope does not hold.
+        Returns ``False`` and writes nothing when this edit is already decided: an edit keeps
+        its first decision.
+        """
+        self.scope.require(Permission.APPROVE_GATE)
+        if decision not in ("accept", "dismiss"):
+            raise ValueError("a Lead edit is accepted or dismissed")
+        run = self._run(lead_run_id)
+        subject = f"{turn_id}:{index}"
+        recorded = self._session.scalar(
+            select(ApprovalDecisionRow.decision_id).where(
+                ApprovalDecisionRow.study_id == self.scope.study_id,
+                ApprovalDecisionRow.subject_type == "lead_edit",
+                ApprovalDecisionRow.subject_id == subject,
+            )
+        )
+        if recorded is not None:
+            return False
+        independence = observe_approval_independence(
+            producer_user_id=run.triggered_by,
+            approving_user_id=self.scope.actor_id,
+            policy=self.scope.self_approval,
+        )
+        self._session.add(
+            ApprovalDecisionRow(
+                organization_id=self.scope.organization_id,
+                client_id=self.scope.client_id,
+                study_id=self.scope.study_id,
+                subject_type="lead_edit",
+                subject_id=subject,
+                run_id=lead_run_id,
+                project_id=run.project_id,
+                project_revision=run.project_revision,
+                gate_type=op,
+                decision=decision,
+                comment=json.dumps(
+                    {
+                        "turn_id": turn_id,
+                        "index": index,
+                        "workspace_revision": workspace_revision,
+                        "workspace_revision_id": workspace_revision_id,
+                    },
+                    sort_keys=True,
+                ),
+                request_id=self.scope.request_id,
+                **independence.audit_fields(),
+            )
+        )
+        self._session.flush()
+        return True
+
+    def record_lead_job_approval(
+        self,
+        lead_run_id: str,
+        *,
+        turn_id: str,
+        agent_run_id: str,
+        design_revision_id: str,
+        action: str,
+        spend: dict[str, float] | None,
+    ) -> bool:
+        """Write a person's approval of the paid job a Lead turn prepared, once (ADR 0026
+        decision 7): the job started, the Design Revision it was asked on, and -- when the
+        study's spend limit asked -- the ceiling, the limit and what the person confirmed.
+        Needs ``APPROVE_GATE``. Returns ``False`` when this turn's request is already approved.
+        """
+        self.scope.require(Permission.APPROVE_GATE)
+        run = self._run(lead_run_id)
+        recorded = self._session.scalar(
+            select(ApprovalDecisionRow.decision_id).where(
+                ApprovalDecisionRow.study_id == self.scope.study_id,
+                ApprovalDecisionRow.subject_type == "lead_job_request",
+                ApprovalDecisionRow.subject_id == turn_id,
+            )
+        )
+        if recorded is not None:
+            return False
+        independence = observe_approval_independence(
+            producer_user_id=run.triggered_by,
+            approving_user_id=self.scope.actor_id,
+            policy=self.scope.self_approval,
+        )
+        self._session.add(
+            ApprovalDecisionRow(
+                organization_id=self.scope.organization_id,
+                client_id=self.scope.client_id,
+                study_id=self.scope.study_id,
+                subject_type="lead_job_request",
+                subject_id=turn_id,
+                run_id=lead_run_id,
+                project_id=run.project_id,
+                project_revision=run.project_revision,
+                gate_type=action,
+                decision="approve",
+                comment=json.dumps(
+                    {
+                        "agent_run_id": agent_run_id,
+                        "design_revision_id": design_revision_id,
+                        "spend": spend,
+                    },
+                    sort_keys=True,
+                ),
+                request_id=self.scope.request_id,
+                **independence.audit_fields(),
+            )
+        )
+        self._session.flush()
+        return True
+
+    def record_lead_self_update_decision(
+        self,
+        lead_run_id: str,
+        *,
+        turn_id: str,
+        decision: str,
+        applied: dict[str, Any] | None,
+        stale: Sequence[str] = (),
+    ) -> bool:
+        """Write a person's accept or dismiss of the self-update a Lead turn left waiting
+        (a personal note, a SOUL, USER or name change), once per turn. ``comment`` names what
+        the accept applied and the files it left because they changed since the turn
+        (``stale``). Needs ``APPROVE_GATE``. Returns ``False`` when already decided.
+        """
+        self.scope.require(Permission.APPROVE_GATE)
+        if decision not in ("accept", "dismiss"):
+            raise ValueError("a Lead's self-update is accepted or dismissed")
+        run = self._run(lead_run_id)
+        recorded = self._session.scalar(
+            select(ApprovalDecisionRow.decision_id).where(
+                ApprovalDecisionRow.study_id == self.scope.study_id,
+                ApprovalDecisionRow.subject_type == "lead_self_update",
+                ApprovalDecisionRow.subject_id == turn_id,
+            )
+        )
+        if recorded is not None:
+            return False
+        independence = observe_approval_independence(
+            producer_user_id=run.triggered_by,
+            approving_user_id=self.scope.actor_id,
+            policy=self.scope.self_approval,
+        )
+        self._session.add(
+            ApprovalDecisionRow(
+                organization_id=self.scope.organization_id,
+                client_id=self.scope.client_id,
+                study_id=self.scope.study_id,
+                subject_type="lead_self_update",
+                subject_id=turn_id,
+                run_id=lead_run_id,
+                project_id=run.project_id,
+                project_revision=run.project_revision,
+                gate_type="self_update",
+                decision=decision,
+                comment=json.dumps(
+                    {"turn_id": turn_id, "applied": applied, "stale": list(stale)}, sort_keys=True
+                ),
+                request_id=self.scope.request_id,
+                **independence.audit_fields(),
+            )
+        )
+        self._session.flush()
+        return True
+
+    def lead_decisions(self, turn_ids: Sequence[str]) -> dict[str, dict[str, Any]]:
+        """The ledger's decisions on these Lead turns, by turn id, in one query: each edit's
+        (``edits``: index -> ``accepted`` or ``dismissed``), the prepared job's (``request``:
+        the agent job's run id) and the waiting self-update's (``self_update``), so a screen
+        keeps no decision of its own."""
+        if not turn_ids:
+            return {}
+        subjects = or_(
+            ApprovalDecisionRow.subject_type.in_(("lead_job_request", "lead_self_update"))
+            & ApprovalDecisionRow.subject_id.in_(list(turn_ids)),
+            (ApprovalDecisionRow.subject_type == "lead_edit")
+            & or_(
+                *(
+                    ApprovalDecisionRow.subject_id.startswith(f"{t}:", autoescape=True)
+                    for t in turn_ids
+                )
+            ),
+        )
+        rows = self._session.scalars(
+            select(ApprovalDecisionRow)
+            .where(ApprovalDecisionRow.study_id == self.scope.study_id, subjects)
+            .order_by(ApprovalDecisionRow.decision_id)
+        ).all()
+        found: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            if row.subject_type == "lead_self_update":
+                entry = found.setdefault(row.subject_id, {"edits": {}, "request": None})
+                entry.setdefault(
+                    "self_update",
+                    {
+                        "status": "accepted" if row.decision == "accept" else "dismissed",
+                        "stale": list(json.loads(row.comment or "{}").get("stale") or []),
+                    },
+                )
+                continue
+            if row.subject_type == "lead_job_request":
+                entry = found.setdefault(row.subject_id, {"edits": {}, "request": None})
+                if entry["request"] is None:
+                    comment = json.loads(row.comment or "{}")
+                    entry["request"] = {
+                        "status": "approved",
+                        "run_id": comment.get("agent_run_id"),
+                        "design_revision_id": comment.get("design_revision_id"),
+                    }
+                continue
+            turn_id, _, index = row.subject_id.rpartition(":")
+            entry = found.setdefault(turn_id, {"edits": {}, "request": None})
+            entry["edits"].setdefault(
+                index,
+                {
+                    "status": "accepted" if row.decision == "accept" else "dismissed",
+                    "reason": None,
+                },
+            )
+        return found
+
     def record_design_research_acceptance(
         self,
         run_id: str,
@@ -2972,6 +3215,42 @@ class WorkflowRepository:
             )
         )
         return None if found is None else dict(found)
+
+    def workflow_type_of_attempt(self, attempt_id: str) -> str | None:
+        """The workflow type of the run an attempt belongs to, within this scope.
+
+        An artifact names the attempt that produced it (``produced_by_job_id``); this says
+        what kind of run that was. None when the attempt is not a run in this scope.
+        """
+        return self._session.scalar(
+            select(WorkflowRunRow.workflow_type)
+            .join(StepRunRow, StepRunRow.run_id == WorkflowRunRow.run_id)
+            .join(StepAttemptRow, StepAttemptRow.step_id == StepRunRow.step_id)
+            .where(StepAttemptRow.attempt_id == attempt_id, *self._scope_filter())
+        )
+
+    def last_attempt_errors(self, step_ids: Sequence[str]) -> dict[str, dict[str, Any]]:
+        """Each step's newest attempt's failure class and error, by step id, in one query.
+
+        For a listing that says why a step is waiting or failed without each step's whole
+        history. Only steps of runs in this scope are read; a step with no attempt is absent.
+        """
+        if not step_ids:
+            return {}
+        rows = self._session.execute(
+            select(StepAttemptRow)
+            .join(StepRunRow, StepRunRow.step_id == StepAttemptRow.step_id)
+            .join(WorkflowRunRow, WorkflowRunRow.run_id == StepRunRow.run_id)
+            .where(StepAttemptRow.step_id.in_(list(step_ids)), *self._scope_filter())
+            .order_by(StepAttemptRow.step_id, StepAttemptRow.attempt_number)
+        ).scalars()
+        last: dict[str, dict[str, Any]] = {}
+        for a in rows:
+            last[a.step_id] = {
+                "failure_class": FailureClass(a.failure_class) if a.failure_class else None,
+                "error": dict(a.error_json or {}),
+            }
+        return last
 
     def attempt_history(self, step_id: str) -> list[dict[str, Any]]:
         """Return every attempt for a step, oldest first.

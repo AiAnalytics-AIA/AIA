@@ -39,6 +39,8 @@ from .materialize import MaterializeExecutor
 from .report import report_registry
 from .research import AIDatasetProducer, research_registry
 from .research_agents import ResearchAgentConfig, ResearchAgentExecutor
+from .research_lead import KIND as RESEARCH_LEAD_KIND
+from .research_lead import ResearchLeadConfig, ResearchLeadExecutor
 from .snapshot import KIND as SNAPSHOT_KIND
 from .snapshot import SnapshotExecutor
 from .sociomapping_report import sociomapping_report_registry
@@ -81,6 +83,7 @@ def registry_for(
     build: BuildIdentity,
     ai_runtime: AIDatasetProducer | None = None,
     research_agent: StepExecutor | None = None,
+    research_lead: StepExecutor | None = None,
     client_source_proposals: StepExecutor | None = None,
     analysis: StepExecutor | None = None,
     deep_research: DeepResearchRuntime | None = None,
@@ -93,6 +96,8 @@ def registry_for(
         # Without a store and the shared population it parks (population-operations P4d3).
         MATERIALIZE_KIND: materialize or MaterializeExecutor(store=None, shared=None),
         "research_agent": research_agent or ResearchAgentExecutor(store=store, build=build),
+        # Without AIA_AI_RESEARCH_LEAD_ENABLED and its keys a turn parks (ADR 0026).
+        RESEARCH_LEAD_KIND: research_lead or ResearchLeadExecutor(store=store, build=build),
         # Without a gateway it parks (client-knowledge-lifecycle K2d3).
         CLIENT_SOURCE_PROPOSALS_KIND: client_source_proposals
         or ClientSourceProposalsExecutor(store=store, build=build),
@@ -169,6 +174,21 @@ def build_registry() -> dict[str, StepExecutor]:
                 step_events=settings.step_events,
             ),
         )
+    lead = None
+    if settings is not None and settings.study_lead_configured:
+        lead = ResearchLeadExecutor(
+            store=store,
+            build=build,
+            gateway=build_gateway(settings),
+            config=ResearchLeadConfig(
+                policy_version=settings.policy_version,
+                max_output_tokens=settings.study_lead_max_output_tokens,
+                context_window_tokens=settings.context_window_tokens,
+                reservation_usd=settings.study_lead_reservation_usd,
+                material_approvals=settings.material_approvals,
+                step_events=settings.step_events,
+            ),
+        )
     proposals = None
     if settings is not None and settings.client_source_proposals_enabled:
         proposals = ClientSourceProposalsExecutor(
@@ -197,6 +217,7 @@ def build_registry() -> dict[str, StepExecutor]:
         store=store,
         materialize=materialize_executor(os.environ, store=children),
         research_agent=agent,
+        research_lead=lead,
         client_source_proposals=proposals,
         analysis=analysis,
         deep_research=deep_research_runtime(settings),

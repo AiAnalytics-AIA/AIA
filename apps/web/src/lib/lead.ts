@@ -74,7 +74,48 @@ export type LeadTurn = {
   edit_decisions?: Record<string, { status: "accepted" | "dismissed" | "refused"; reason: string | null }>;
   /** The person's approval of this turn's paid request, when given. */
   request_decision?: { status: "approved"; run_id: string } | null;
+  /**
+   * The researcher's decision on what the turn wanted to keep for all of their work (a personal
+   * note, a SOUL, USER or name change), from the approval ledger. Only what stays inside the
+   * study's client applies with the turn; the rest waits for this (Codex on #484).
+   */
+  self_update_decision?: { status: "accepted" | "dismissed"; stale?: ("name" | "soul" | "user")[] } | null;
+  /** Whether such a self-update waits for the researcher's decision. */
+  self_update_pending?: boolean;
+  /** What waits (or waited) for that decision, as the server split it; null when nothing did. */
+  self_update_waiting?: SelfUpdateWaiting | null;
+  /** What the turn applied at once to the Lead's own files and notes (a client note, forgetting one). */
+  changes?: { name?: boolean; soul?: boolean; user?: boolean; remembered?: string[]; forgotten?: string[] } | null;
 };
+
+/**
+ * What a turn wants to keep or drop for all of the researcher's work: file changes, personal notes
+ * to keep, and personal notes to forget with the text the turn was shown.
+ */
+export type SelfUpdateWaiting = {
+  name: string | null;
+  soul: string | null;
+  user: string | null;
+  remember: string[];
+  forget: { memory_id: string; text: string | null }[];
+};
+
+/** The answer to a decision; `stale`: files another turn changed since, left as they are. */
+export type SelfUpdateDecision = { status: "accepted" | "dismissed"; changes: Record<string, unknown> | null; stale: ("name" | "soul" | "user")[] };
+
+/**
+ * What of a self-update waits for the researcher, in words: personal notes to keep, personal notes
+ * to forget, and file changes. Read from the server's split, never re-derived from the output: only
+ * the server knows which notes a forget names.
+ */
+export function pendingSelfUpdate(w: SelfUpdateWaiting | null | undefined): { notes: string[]; forget: string[]; files: { file: string; text: string }[] } {
+  if (!w) return { notes: [], forget: [], files: [] };
+  const files: { file: string; text: string }[] = [];
+  if (w.name) files.push({ file: "Jméno", text: w.name });
+  if (w.soul) files.push({ file: "SOUL", text: w.soul });
+  if (w.user) files.push({ file: "USER", text: w.user });
+  return { notes: [...w.remember], forget: w.forget.map((f) => f.text ?? `poznámka ${f.memory_id}`), files };
+}
 
 export type EditDecisionResult = { workspace_revision: number | null; results: { index: number; status: "accepted" | "dismissed" | "refused"; reason: string | null }[] };
 export type RequestApproval = { run_id: string; design_revision_id: string; status: string };
@@ -262,6 +303,27 @@ export function focusSelector(target: string): string {
     return `[id="${section[id] ?? "plan-understanding"}"]`;
   }
   return `[data-aia="${css(target)}"], [id="${css(target)}"]`;
+}
+
+const PLAN_LABELS: Record<string, string> = {
+  sets: "Návrh: sledované sady",
+  tracked_sets: "Návrh: sledované sady",
+  comments: "Návrh: komentáře",
+  variants: "Návrh: varianty výzkumu",
+  questions: "Návrh: otázky k doplnění",
+  narrative: "Návrh: porozumění zadání",
+};
+
+/** A Lead target in words, for a link that shows it: never the raw code when its kind is known. */
+export function targetLabel(target: string): string {
+  const [kind, ...rest] = target.split(":");
+  const id = rest.join(":");
+  if (!id) return target;
+  if (kind === "question") return `Otázka ${id}`;
+  if (kind === "section") return `Oddíl ${id}`;
+  if (kind === "brief") return `Zadání: ${id}`;
+  if (kind === "plan") return PLAN_LABELS[id] ?? "Návrh";
+  return target;
 }
 
 /**

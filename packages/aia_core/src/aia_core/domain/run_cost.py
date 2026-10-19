@@ -63,6 +63,8 @@ class CeilingUnknown(StrEnum):
     ANALYSIS_RESERVATION_MISSING = "analysis_reservation_missing"
     #: A Deep Research run would call a route (or a model) whose price is not configured.
     DEEP_RESEARCH_PRICE_MISSING = "deep_research_price_missing"
+    #: A design job (a Research Lead's prepared request) whose reservation is not configured.
+    RESEARCH_RESERVATION_MISSING = "research_reservation_missing"
 
 
 @dataclass(frozen=True, slots=True)

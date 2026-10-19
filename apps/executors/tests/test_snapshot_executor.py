@@ -20,6 +20,7 @@ from aia_core.domain.workflow_templates import (
     REPORT_STEP_KIND,
     RESEARCH_AGENT,
     RESEARCH_KINDS,
+    RESEARCH_LEAD_TURN,
     SOCIOMAPPING_REPORT_STEP_KIND,
     SOCIOMAPPING_STEP_KIND,
     UnknownWorkflowType,
@@ -32,6 +33,7 @@ from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_executors.registry import build_registry, registry_for
 from aia_executors.research_agents import ResearchAgentExecutor
+from aia_executors.research_lead import ResearchLeadExecutor
 from aia_executors.snapshot import ARTIFACT_TYPE, KIND, SnapshotExecutor
 from aia_worker.registry import load_executors
 from aia_worker.worker import Worker
@@ -83,6 +85,7 @@ def test_the_registry_offers_the_snapshot_kind_and_loads_through_the_worker(
     # Every closed production kind is registered, including disabled AI jobs.
     assert set(loaded) == {
         RESEARCH_AGENT,
+        RESEARCH_LEAD_TURN,
         CLIENT_SOURCE_PROPOSALS,
         ANALYSIS_STEP_KIND,
         *DEEP_RESEARCH_KINDS.values(),
@@ -99,6 +102,8 @@ def test_the_registry_offers_the_snapshot_kind_and_loads_through_the_worker(
     }
     assert isinstance(build_registry()[KIND], SnapshotExecutor)
     assert isinstance(loaded[RESEARCH_AGENT], ResearchAgentExecutor)
+    # The Research Lead's turn is registered and, without its switch and keys, parks.
+    assert type(loaded[RESEARCH_LEAD_TURN]) is ResearchLeadExecutor
 
 
 def test_the_worker_executes_a_snapshot_and_the_artifact_is_readable(
@@ -220,6 +225,7 @@ def test_registry_for_is_keyed_by_kind(store: InMemoryArtifactStore, build: Buil
     assert list(registry) == [
         POPULATION_MATERIALIZE,
         RESEARCH_AGENT,
+        RESEARCH_LEAD_TURN,
         CLIENT_SOURCE_PROPOSALS,
         ANALYSIS_STEP_KIND,
         *DEEP_RESEARCH_KINDS.values(),

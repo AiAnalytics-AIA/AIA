@@ -2,7 +2,7 @@
 // edit goes through the stages' own helpers, and one that no longer fits is refused, never bent.
 import { describe, expect, it } from "vitest";
 
-import { applyLeadEdit, describeEdit, editStage, type LeadEdit } from "./lead";
+import { applyLeadEdit, describeEdit, editStage, pendingSelfUpdate, targetLabel, type LeadEdit } from "./lead";
 import type { ResearchProject } from "@/research/model";
 
 const project = (over: Partial<ResearchProject> = {}): ResearchProject => ({
@@ -95,5 +95,27 @@ describe("targetOfElement", () => {
     expect(targetOfElement(document.getElementById("hit"))).toEqual({ id: "question:Q_1", label: "Otázka Q_1: Jak jste spokojeni?" });
     expect(targetOfElement(document.getElementById("g"))).toEqual({ id: "brief:goal", label: "Zadání: Co potřebujete zjistit" });
     expect(targetOfElement(document.getElementById("n"))).toBeNull();
+  });
+});
+
+describe("targetLabel", () => {
+  it("says a Lead target in words, never the raw code for a kind it knows", () => {
+    expect(targetLabel("question:Q_1")).toBe("Otázka Q_1");
+    expect(targetLabel("section:B1")).toBe("Oddíl B1");
+    expect(targetLabel("plan:variants")).toBe("Návrh: varianty výzkumu");
+    expect(targetLabel("plan:narrative")).toBe("Návrh: porozumění zadání");
+    expect(targetLabel("brief:goal")).toBe("Zadání: goal");
+    expect(targetLabel("somewhere")).toBe("somewhere");
+  });
+});
+
+describe("pendingSelfUpdate", () => {
+  it("lists what waits as the server split it: personal notes kept and forgotten, and files", () => {
+    expect(pendingSelfUpdate({ name: "Bára", soul: null, user: "U", remember: ["P"], forget: [{ memory_id: "LMM-1", text: "Stará osobní" }, { memory_id: "LMM-2", text: null }] })).toEqual({
+      notes: ["P"],
+      forget: ["Stará osobní", "poznámka LMM-2"],
+      files: [{ file: "Jméno", text: "Bára" }, { file: "USER", text: "U" }],
+    });
+    expect(pendingSelfUpdate(null)).toEqual({ notes: [], forget: [], files: [] });
   });
 });

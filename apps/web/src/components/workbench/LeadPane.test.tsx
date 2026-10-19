@@ -21,9 +21,16 @@ let me: ResearcherLead;
 let state: LeadState;
 let posts: unknown[];
 let failPosts = 0;
+let selfUpdates: unknown[];
+let staleAnswer: string[];
 function api() {
   vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
     const u = String(url);
+    if (u.endsWith("/self-update")) {
+      selfUpdates.push(JSON.parse(String(init?.body)));
+      state = { ...state, turns: state.turns.map((t) => ({ ...t, self_update_pending: false, self_update_decision: { status: "accepted" as const } })) };
+      return new Response(JSON.stringify({ status: "accepted", changes: { remembered: ["LMM-1"] }, stale: staleAnswer }));
+    }
     if (u === "/config") return new Response(JSON.stringify({ apiBase: "", aiRuntime: null }));
     if (u === "/api/v1/lead" && init?.method === "POST") {
       me = hatched;
@@ -46,6 +53,8 @@ function api() {
 beforeEach(() => {
   sessionStorage.setItem("aia.session", JSON.stringify({ idToken: "tok", refreshToken: "r", expiresAt: Date.now() + 3_600_000, email: "a@example.test" }));
   posts = [];
+  selfUpdates = [];
+  staleAnswer = [];
   failPosts = 0;
   me = hatched;
   state = { available: true, unavailable_reason: null, busy: false, turns: [] };
@@ -91,6 +100,55 @@ describe("LeadPane", () => {
     fireEvent.click(screen.getByRole("button", { name: "Spustit úlohu" }));
     await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-1" }), expect.objectContaining({ kind: "agent_job" })));
     expect(await screen.findByText("Rozhodnuto")).toBeTruthy();
+  });
+
+  it("keeps what the Lead wants for all of the researcher's work only on their yes", async () => {
+    // Codex P1 on #484: a personal note or a file change reaches every client's studies.
+    state.turns = [turn({
+      output: { reply: "Zapamatuji si to.", self_update: { user: "Chce tabulky.", remember: [{ scope: "personal", text: "Preferuje tabulky." }, { scope: "client", text: "Klient chce grafy." }], forget: ["LMM-p", "LMM-c"] } },
+      changes: { remembered: ["LMM-n"], forgotten: ["LMM-c"] },
+      self_update_pending: true, self_update_decision: null,
+      self_update_waiting: { name: null, soul: null, user: "Chce tabulky.", remember: ["Preferuje tabulky."], forget: [{ memory_id: "LMM-p", text: "Píše stručně." }] },
+    })];
+    render(pane());
+    expect(await screen.findByText("Poznámka: Preferuje tabulky.")).toBeTruthy();
+    expect(screen.getByText("USER: Chce tabulky.")).toBeTruthy();
+    // Forgetting a personal note waits too, named by its text.
+    expect(screen.getByText("Zapomenout: Píše stručně.")).toBeTruthy();
+    // What stays inside this study's client was applied with the turn, and says so.
+    expect(screen.getByText(/zapamatováno u klienta: Klient chce grafy\./)).toBeTruthy();
+    expect(screen.getByText(/zapomenuto u klienta 1×/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Zahodit" })).toBeTruthy();
+    expect(selfUpdates).toEqual([]);
+    fireEvent.click(screen.getByRole("button", { name: "Pamatovat si" }));
+    await waitFor(() => expect(selfUpdates).toEqual([{ decision: "accept" }]));
+    expect(await screen.findByText("Zapamatováno pro všechnu vaši práci")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Pamatovat si" })).toBeNull();
+  });
+
+  it("reads the files an accept left from its 200, and says to ask the Lead again", async () => {
+    // The review of baac33d5: an older SOUL change is not put back over a newer one.
+    staleAnswer = ["soul"];
+    state.turns = [turn({
+      output: { reply: "Upravím se.", self_update: { soul: "# Starší" } },
+      self_update_pending: true, self_update_decision: null,
+      self_update_waiting: { name: null, soul: "# Starší", user: null, remember: [], forget: [] },
+    })];
+    render(pane());
+    fireEvent.click(await screen.findByRole("button", { name: "Pamatovat si" }));
+    await waitFor(() => expect(selfUpdates).toEqual([{ decision: "accept" }]));
+    expect(await screen.findByText("SOUL: Soubor se mezitím změnil, požádejte Vedoucího znovu.")).toBeTruthy();
+  });
+
+  it("keeps saying a file changed after a reload, from the turn's decision", async () => {
+    state.turns = [turn({
+      output: { reply: "Upravím se.", self_update: { soul: "# Starší" } },
+      self_update_pending: false, self_update_decision: { status: "accepted", stale: ["soul"] },
+      self_update_waiting: { name: null, soul: "# Starší", user: null, remember: [], forget: [] },
+    })];
+    render(pane());
+    expect(await screen.findByText("SOUL: Soubor se mezitím změnil, požádejte Vedoucího znovu.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Pamatovat si" })).toBeNull();
   });
 
   it("says why the Lead is not answering, instead of answering for it", async () => {

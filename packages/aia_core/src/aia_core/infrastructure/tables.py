@@ -755,6 +755,183 @@ class StudyDesignSourceRow(Base):
     )
 
 
+class StudyLeadTurnRow(Base):
+    """One turn of a researcher's conversation with their Research Lead in a Study.
+    **Append-only.**
+
+    ADR 0026 decision 8, per researcher (the product owner, 2026-10-19): a Study has one
+    conversation per researcher, keyed by ``(study_id, user_id)``, numbered by
+    ``sequence_no``. A person's turn holds their message; a Lead turn names the
+    ``research_lead`` run that answers it, and its reply is read from that run's step
+    output, never copied here. Read and written only by ``StudyLeadRepository``, under an
+    issued ``StudyContext`` and always for the calling researcher.
+    """
+
+    __tablename__ = "study_lead_turns"
+
+    turn_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    study_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    #: The researcher whose conversation this is.
+    user_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    sequence_no: Mapped[int] = mapped_column(Integer, nullable=False)
+    actor: Mapped[str] = mapped_column(String(16), nullable=False)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    stage: Mapped[str] = mapped_column(String(32), nullable=False)
+    text: Mapped[str | None] = mapped_column(Text)
+    focus: Mapped[dict[str, Any] | None] = mapped_column(JSONType)
+    run_id: Mapped[str | None] = mapped_column(String(64))
+    workspace_revision: Mapped[int | None] = mapped_column(Integer)
+    design_revision_id: Mapped[str | None] = mapped_column(String(64))
+    created_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id"], ["organizations.organization_id"], ondelete="CASCADE"
+        ),
+        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["user_id"], ["users.user_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["run_id"], ["workflow_runs.run_id"], ondelete="CASCADE"),
+        UniqueConstraint("study_id", "user_id", "sequence_no", name="study_lead_turn_sequence"),
+        CheckConstraint("actor in ('person','lead')", name="study_lead_turn_actor_known"),
+        CheckConstraint("kind in ('message','greeting')", name="study_lead_turn_kind_known"),
+        CheckConstraint("sequence_no >= 1", name="study_lead_turn_sequence_positive"),
+        # A Lead turn is answered by its run; a person's turn names none.
+        CheckConstraint(
+            "(actor = 'lead') = (run_id IS NOT NULL)", name="study_lead_turn_run_iff_lead"
+        ),
+        CheckConstraint(
+            "text IS NULL OR length(text) <= 4000", name="study_lead_turn_text_bounded"
+        ),
+        Index("ix_study_lead_turns_actor", "organization_id", "user_id", "created_at"),
+    )
+
+
+@event.listens_for(StudyLeadTurnRow, "before_update")
+def _lead_turns_are_never_updated(_mapper: Any, _connection: Any, row: StudyLeadTurnRow) -> None:
+    """A turn is what was said; the conversation is append-only (ADR 0026 decision 8)."""
+    raise RuntimeError(f"lead turn {row.turn_id} is immutable; append a new one")
+
+
+class ResearcherLeadRow(Base):
+    """A researcher's own Research Lead, hatched once per organization and user.
+
+    The product owner, 2026-10-19: a personal agent attached to the account, OpenClaw-style
+    files -- ``name``, ``soul`` (its personality and working style, markdown) and
+    ``user_profile`` (what it knows of how this researcher works, markdown). The researcher
+    reads them; they change only through the Lead's ``self_update`` in chat, each change's
+    previous text kept in ``researcher_lead_revisions``. Read and written only by
+    ``ResearcherLeadRepository``, always for the calling researcher.
+    """
+
+    __tablename__ = "researcher_leads"
+
+    lead_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    user_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    name: Mapped[str] = mapped_column(String(40), nullable=False)
+    soul: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    user_profile: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    hatched_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id"], ["organizations.organization_id"], ondelete="CASCADE"
+        ),
+        ForeignKeyConstraint(["user_id"], ["users.user_id"], ondelete="CASCADE"),
+        UniqueConstraint("organization_id", "user_id", name="researcher_lead_once"),
+        CheckConstraint("length(soul) <= 2000", name="researcher_lead_soul_bounded"),
+        CheckConstraint("length(user_profile) <= 2000", name="researcher_lead_user_bounded"),
+    )
+
+
+class ResearcherLeadRevisionRow(Base):
+    """One change to a Lead's file, with the text it replaced. **Insert-once.**
+
+    So a change can be shown and reverted later, through chat. ``field`` is ``name``,
+    ``soul`` or ``user``; ``source_turn_id`` is the Lead turn that made it.
+    """
+
+    __tablename__ = "researcher_lead_revisions"
+
+    revision_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    lead_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    user_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    field: Mapped[str] = mapped_column(String(16), nullable=False)
+    previous: Mapped[str] = mapped_column(Text, nullable=False)
+    value: Mapped[str] = mapped_column(Text, nullable=False)
+    source_turn_id: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["lead_id"], ["researcher_leads.lead_id"], ondelete="CASCADE"),
+        CheckConstraint("field in ('name','soul','user')", name="researcher_lead_field_known"),
+        Index("ix_researcher_lead_revisions_lead", "lead_id", "created_at"),
+    )
+
+
+@event.listens_for(ResearcherLeadRevisionRow, "before_update")
+def _lead_revisions_are_never_updated(
+    _mapper: Any, _connection: Any, row: ResearcherLeadRevisionRow
+) -> None:
+    """The record of what a file said before; never rewritten."""
+    raise RuntimeError(f"lead revision {row.revision_id} is immutable")
+
+
+class ResearcherLeadMemoryRow(Base):
+    """One note in a Lead's memory. Append-only: forgetting sets ``forgotten_at``.
+
+    ``scope`` is ``personal`` (working style and preferences, loaded into every turn of
+    this researcher) or ``client`` (``client_id`` required: loaded only into a turn of that
+    client's study, by the query, never by the prompt). Written by the Lead's
+    ``self_update`` (``created_by = 'lead'``) through ``ResearcherLeadRepository``.
+    """
+
+    __tablename__ = "researcher_lead_memories"
+
+    memory_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    lead_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    user_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    scope: Mapped[str] = mapped_column(String(16), nullable=False)
+    client_id: Mapped[str | None] = mapped_column(String(64))
+    text: Mapped[str] = mapped_column(String(300), nullable=False)
+    source_turn_id: Mapped[str | None] = mapped_column(String(64))
+    created_by: Mapped[str] = mapped_column(String(16), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    forgotten_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        ForeignKeyConstraint(["lead_id"], ["researcher_leads.lead_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
+        CheckConstraint("scope in ('personal','client')", name="researcher_lead_memory_scope"),
+        # A client note names its client; a personal note names none.
+        CheckConstraint(
+            "(scope = 'client') = (client_id IS NOT NULL)",
+            name="researcher_lead_memory_client_iff_scope",
+        ),
+        CheckConstraint(
+            "created_by in ('lead','person')", name="researcher_lead_memory_author_known"
+        ),
+        Index("ix_researcher_lead_memories_lead", "lead_id", "created_at"),
+    )
+
+
 class HoldoutPreregistrationRow(Base):
     """A validation Study's preregistration (panel-grounded-respondents 7a, 7e2). **Insert-once.**
 
@@ -1483,7 +1660,10 @@ class ApprovalDecisionRow(Base):
     # What was decided on: a workflow gate, an artifact sign-off, a budget lift, a spend
     # confirmation, the accept of an AI proposal (subject_id = the agent job's run id), or the
     # accept of a Design Research proposal (subject_id = the selection's id, run_id = the run),
-    # or a run started over research questions it cannot all answer (subject_id = the run).
+    # or a run started over research questions it cannot all answer (subject_id = the run), or
+    # a Research Lead's proposed edit (subject_id = "<turn_id>:<index>") or prepared paid job
+    # (subject_id = the Lead turn) or the self-update it left waiting (subject_id = the Lead
+    # turn), each decided by a person (ADR 0026).
     subject_type: Mapped[str] = mapped_column(String(32), nullable=False)
     subject_id: Mapped[str] = mapped_column(String(64), nullable=False)
 
@@ -1516,7 +1696,8 @@ class ApprovalDecisionRow(Base):
         ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
         CheckConstraint(
             "subject_type in "
-            "('gate','artifact','budget','spend','ai_proposal','design_research','answerability')",
+            "('gate','artifact','budget','spend','ai_proposal','design_research','answerability',"
+            "'lead_edit','lead_job_request','lead_self_update')",
             name="approval_subject_type_known",
         ),
         CheckConstraint(

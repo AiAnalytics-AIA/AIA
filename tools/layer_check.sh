@@ -440,13 +440,37 @@ forbid "the design source table is touched only by the design repository" \
 forbid "the API, worker and executors never touch the design source table" \
   'StudyDesignSourceRow|study_design_sources' \
   apps
+# A researcher's conversation with their Research Lead is theirs alone (ADR 0026 decision 8,
+# the product owner 2026-10-19): its repository puts the Study's three scope columns and the
+# calling researcher in every query. The table used anywhere else could read another
+# researcher's turns, or another Study's.
+forbid "the Lead turn table is touched only by its repository" \
+  'StudyLeadTurnRow|study_lead_turns' \
+  "$CORE" \
+  "$CORE/infrastructure/tables.py" "$CORE/infrastructure/study_lead_repository.py"
+forbid "the API, worker and executors never touch the Lead turn table" \
+  'StudyLeadTurnRow|study_lead_turns' \
+  apps
+# Each researcher's own Lead, its file history and its notes (product owner, 2026-10-19): the
+# repository works only on the calling researcher's Lead, and loads a client note only into
+# its own client's Study, by the query. Elsewhere the rows could cross either line.
+forbid "the researcher Lead tables are touched only by their repository" \
+  'ResearcherLead(Memory|Revision)?Row|researcher_lead_(memories|revisions)|researcher_leads\b' \
+  "$CORE" \
+  "$CORE/infrastructure/tables.py" "$CORE/infrastructure/researcher_lead_repository.py"
+forbid "the API, worker and executors never touch the researcher Lead tables" \
+  'ResearcherLead(Memory|Revision)?Row|researcher_lead_(memories|revisions)|researcher_leads\b' \
+  apps
 # A Study's design project is owned (projects.owner): a repository that does not
 # name the owner cannot see it. Naming it anywhere else would reopen the path by
 # which content that skipped validate_design became a Design Revision (ADR 0016).
+# A Research Lead turn's run is owned like an agent job (ADR 0026 decision 1): its use case
+# names the owner to start the run, and writes a design only through the design repository.
 forbid "only the design repository and the research runs name the design project's owner" \
   'DESIGN_PROJECT_OWNER' \
   "$CORE" \
-  "$CORE/domain/design.py" "$CORE/infrastructure/study_design_repository.py" "$CORE/application/research.py"
+  "$CORE/domain/design.py" "$CORE/infrastructure/study_design_repository.py" "$CORE/application/research.py" \
+  "$CORE/application/research_lead.py"
 forbid "the API, worker and executors never name the design project's owner" \
   'DESIGN_PROJECT_OWNER|study_design\b' \
   apps

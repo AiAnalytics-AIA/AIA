@@ -531,17 +531,19 @@ def prompt_for(action: ResearchAction, task: str | None = None) -> str:
     return FIXED_PREFIX + (_TASKS[action] if task is None else task)
 
 
-def context_snapshot(content: dict[str, Any], knowledge: list[KnowledgeItem]) -> dict[str, Any]:
-    """Bounded, deterministic memory selection; never silently truncate the design.
-
-    Only approved titles and summaries enter this harness. Dataset/attachment
-    contents and raw trajectories are not a memory source. Repository retrieval
-    is itself limited to 200 entries; the selection window is explicit.
-    """
+def design_material(content: dict[str, Any]) -> dict[str, Any]:
+    """The design as a model is shown it: a copy without the working copy's historic
+    provider preferences, which are metadata, not model authority. The bytes a material
+    classification is checked against (``classify_material``)."""
     design = deepcopy(content)
-    # Historic provider preferences are working-copy metadata, not model authority.
     for key in ("run_policy", "model", "provider", "api_key"):
         design.pop(key, None)
+    return design
+
+
+def knowledge_entries(knowledge: list[KnowledgeItem]) -> tuple[list[dict[str, Any]], list[str]]:
+    """Approved knowledge as a model is shown it, by id, within ``KNOWLEDGE_MAX_BYTES``:
+    the entries kept and the ids left out (never silently)."""
     selected: list[dict[str, Any]] = []
     omitted: list[str] = []
     for item in sorted(knowledge, key=lambda k: k.item_id):
@@ -556,6 +558,18 @@ def context_snapshot(content: dict[str, Any], knowledge: list[KnowledgeItem]) ->
             selected.append(entry)
         else:
             omitted.append(item.item_id)
+    return selected, omitted
+
+
+def context_snapshot(content: dict[str, Any], knowledge: list[KnowledgeItem]) -> dict[str, Any]:
+    """Bounded, deterministic memory selection; never silently truncate the design.
+
+    Only approved titles and summaries enter this harness. Dataset/attachment
+    contents and raw trajectories are not a memory source. Repository retrieval
+    is itself limited to 200 entries; the selection window is explicit.
+    """
+    design = design_material(content)
+    selected, omitted = knowledge_entries(knowledge)
     snapshot = {
         "design": design,
         "knowledge": selected,

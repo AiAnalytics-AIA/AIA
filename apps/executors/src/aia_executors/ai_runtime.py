@@ -29,6 +29,10 @@ AIA_AI_FIELDWORK_RESERVATION_USD        budget held per request (primary + one r
 AIA_AI_FICTIONAL_CLIENT_IDS             optional; clients whose designs are Class C;
                                         refused outside local, test and develop
 AIA_BEDROCK_TIMEOUT_SECONDS             optional read timeout, default 300
+AIA_AI_RESEARCH_LEAD_ENABLED            optional, off: the Research Lead's turns (ADR 0026)
+AIA_AI_RESEARCH_LEAD_MAX_OUTPUT_TOKENS  a Lead turn's output cap
+AIA_AI_RESEARCH_LEAD_RESERVATION_USD    held per turn: a primary and one repair at the
+                                        Lead's window and output cap; unset, turns park
 ======================================  ============================================
 
 Retention is left unspecified unless configured, deliberately: the account's Bedrock
@@ -43,6 +47,7 @@ retries). Both are injectable for tests; nothing here makes a call.
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import os
 from collections.abc import Mapping
@@ -56,6 +61,7 @@ from aia_core.domain.deep_research.request_limits import ModelPrices, reservatio
 from aia_core.domain.deployment import fictional_material_problem, parse_environment
 from aia_core.domain.licence_determinations import recorded_policy
 from aia_core.domain.providers import Provider
+from aia_core.domain.research_lead import lead_request_window_tokens
 from aia_core.domain.residency import DataClass, EgressPolicy, ProviderRoute, ResidencyZone
 from aia_core.domain.source_proposals import request_window_tokens as source_request_window
 from aia_core.infrastructure.build_identity import BuildIdentity
@@ -253,6 +259,22 @@ class AIRuntimeSettings:
     #: ``AIA_POPULATION_ASSET_ROOT`` is required: the directory the population is read from.
     population_personas_enabled: bool = False
     population_asset_root: str | None = None
+    #: ``AIA_AI_RESEARCH_LEAD_ENABLED`` (off by default): the Research Lead's turns (ADR 0026),
+    #: bound to ``RESEARCH_REASONING`` -- not ``research_lead_enabled`` above, which is Deep
+    #: Research's lead researcher. On with its two keys unset, the switch is read and every
+    #: turn parks (``research_lead_unconfigured``); set, both are checked at start.
+    study_lead_enabled: bool = False
+    study_lead_max_output_tokens: int = 0
+    study_lead_reservation_usd: float = 0.0
+
+    @property
+    def study_lead_configured(self) -> bool:
+        """The Lead's switch and both its keys: a worker that can answer a turn."""
+        return (
+            self.study_lead_enabled
+            and self.study_lead_max_output_tokens > 0
+            and self.study_lead_reservation_usd > 0
+        )
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> AIRuntimeSettings | None:
@@ -375,6 +397,8 @@ class AIRuntimeSettings:
             if _flag(env, "AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED", required=False)
             else 0,
         )
+        if _flag(env, "AIA_AI_RESEARCH_LEAD_ENABLED", required=False):
+            settings = _with_study_lead(settings, env)
         if settings.population_personas_enabled and settings.population_asset_root is None:
             raise AIRuntimeConfigError(
                 "AIA_AI_POPULATION_PERSONAS_ENABLED needs AIA_POPULATION_ASSET_ROOT: the "
@@ -456,7 +480,7 @@ class AIRuntimeSettings:
             # The lead's own entry, on this route's model until a stronger one is
             # approved for it (plan deep-research-web-search.md chunk 1).
             capabilities.append(ModelCapability.RESEARCH_LEAD)
-        if self.research_agents_enabled or self.analysis_enabled:
+        if self.research_agents_enabled or self.analysis_enabled or self.study_lead_configured:
             capabilities.append(ModelCapability.RESEARCH_REASONING)
         if self.research_agents_enabled:
             capabilities.append(ModelCapability.CRITIC)
@@ -506,6 +530,43 @@ class AIRuntimeSettings:
             retention_days=self.retention_days,
             approved_for=self.approved_for,
         )
+
+
+def _with_study_lead(settings: AIRuntimeSettings, env: Mapping[str, str]) -> AIRuntimeSettings:
+    """``settings`` with the Research Lead switched on, and its keys when both are set.
+
+    Unset, the switch is on and every turn parks (``research_lead_unconfigured``): the API
+    may offer the conversation before the worker can answer it, and says why it waits. Set,
+    each is checked as the design jobs' are, and a wrong one stops the worker: the output cap
+    within the model's, a turn and its repair within the model's window, and the reservation
+    covering two calls at the Lead's own window (``lead_request_window_tokens``) and cap.
+    """
+    raw_tokens = (env.get("AIA_AI_RESEARCH_LEAD_MAX_OUTPUT_TOKENS") or "").strip()
+    raw_reservation = (env.get("AIA_AI_RESEARCH_LEAD_RESERVATION_USD") or "").strip()
+    if not raw_tokens or not raw_reservation:
+        return dataclasses.replace(settings, study_lead_enabled=True)
+    tokens = _positive_int(env, "AIA_AI_RESEARCH_LEAD_MAX_OUTPUT_TOKENS")
+    reservation = _number(env, "AIA_AI_RESEARCH_LEAD_RESERVATION_USD")
+    assert reservation is not None
+    if tokens > settings.max_output_tokens:
+        raise AIRuntimeConfigError("the Research Lead's output limit exceeds the model limit")
+    window = lead_request_window_tokens(tokens)
+    if window > settings.context_window_tokens:
+        raise AIRuntimeConfigError(
+            "a Research Lead turn and its repair do not fit the model's window"
+        )
+    worst = reservation_usd(settings.model_prices(), window_tokens=window, output_tokens=tokens)
+    if reservation < worst:
+        raise AIRuntimeConfigError(
+            "the Research Lead's reservation must cover two calls at the model ceilings "
+            f"(at least {worst:.4f})"
+        )
+    return dataclasses.replace(
+        settings,
+        study_lead_enabled=True,
+        study_lead_max_output_tokens=tokens,
+        study_lead_reservation_usd=reservation,
+    )
 
 
 def build_gateway(
