@@ -181,3 +181,21 @@ for Class B (ADR 0010, amendment of the same date). Deep Research keeps its exac
 classification of a design for now: its web routes carry Class C only and a query inherits the
 class of what it was written from, so the rule would refuse every web track; that is a decision
 still to be made (plan `usable-classification`, Findings).
+
+**Addendum (the product owner, the same day).** Three questions the implementation raised
+(plan `usable-classification`, Findings F1, F7, F8) were decided:
+
+1. **Deep Research keeps operator-only classification of a design** (OI-129). Its web routes
+   stay Class C only, and no class of its own is made for a query a model writes from a design;
+   a run on an edited design parks (`egress_unclassified_material`) until an operator classifies
+   its exact bytes (`apps/executors/src/aia_executors/deep_research/plan.py:163 @ 64cc1380`). The
+   decision still to be made above is made.
+2. **AI-written design text is design** (OI-130). What a design job or the Lead writes into the
+   study from Class A approved knowledge -- a brief analysis, an accepted questionnaire, an
+   accepted Lead edit -- is Class B once a person accepts it, chosen for usability. A brief's
+   attachment excerpts stay B as design, though the same bytes kept as a client source are A. An
+   operator may still raise a design's exact bytes.
+3. **The unmark window is accepted** (OI-131). A source's "Interní dokument" mark is read before
+   each request, not held across it, so a batch sent as an unmark commits may still leave as
+   Class C; every later batch stops (`source_class_changed`). Holding the row's lock across the
+   model call would make an unmark wait for a request in flight; the owner chose the window.

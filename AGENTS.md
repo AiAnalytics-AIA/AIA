@@ -729,6 +729,46 @@ goes into `/model/{modelId}/converse` as `…-v1%3A0` (botocore's non-greedy lab
 `AWSRequest`; `SigV4Auth` encodes the path once more for the canonical request
 (`%253A`), which is what the service expects. Do not decode it first.
 
+**A newer Bedrock model refuses the request shapes an older one needed** (the Research Lead's
+model, 2026-10-19). Swapping `AIA_BEDROCK_MODEL_ID` and sending what the old model took gives a
+400 on every call: the current family refuses a forced tool choice (`any` / `tool`), a thinking
+budget, and any non-default sampling value, and thinks adaptively when nothing is said.
+
+```python
+# WRONG -- swap the model id and send what the old model took: a 400 on every call
+{"toolChoice": {"tool": {"name": tool}}}                                   # forced tool
+{"additionalModelRequestFields": {"thinking": {"type": "enabled", "budget_tokens": n}}}
+{"inferenceConfig": {"maxTokens": m, "temperature": 0.0}}                  # sampling
+# RIGHT -- declare the model's request profile in its catalog entry; the adapter reads it
+{"structured_output": "auto_tool", "thinking": "adaptive", "accepts_sampling": False}
+# -> toolChoice auto + the gateway's instruction to answer through the tool; nothing about
+#    thinking but a configured effort (additionalModelRequestFields.output_config)
+```
+
+The shape is a declared property of the model (`domain/ai_models.py:225 @ 1648e6d5`,
+`RequestProfile`), never guessed from its id; what a profile cannot carry is refused before
+signing (`infrastructure/model_adapters/bedrock.py:202-256 @ 1648e6d5`;
+`test_model_request_profile.py::test_bedrock_refuses_what_the_profile_cannot_carry_before_signing`).
+**Its ids carry no `:N` either.** `eu.anthropic.claude-opus-5-5` names one fixed snapshot as
+Bedrock lists it; a rule that demands a version suffix, as the route's own model id check does,
+refuses the model, while an alias ending `latest` must still be refused
+(`apps/executors/src/aia_executors/ai_runtime.py:251-270 @ 1648e6d5`, `_pinned_eu_profile` beside `_lead_eu_profile`;
+`test_an_id_without_a_version_suffix_is_accepted_as_bedrock_lists_it`).
+
+**Invocation logging off is not a retention of 0** (review of #487). The route's
+`aia_ai_route_retention_days` is what Bedrock and the model provider keep, and logging off says
+only that the account publishes no payloads to its own CloudWatch or S3.
+
+```bash
+# WRONG -- an empty loggingConfig, so "retention 0", and client material is let onto the route
+aws bedrock get-model-invocation-logging-configuration --region eu-central-1
+# RIGHT -- read the account's Bedrock data-retention setting (console, Settings) and each
+# route model's terms; check logging beside them as a retention of AIA's own; either
+# unconfirmed, or the two disagreeing, the route stays Class C only
+```
+
+The runbook's steps: `deploy/develop/README.md` § AI route classes (`9031205f`).
+
 **botocore's credential chain takes whatever it finds first**, including an
 `AWS_ACCESS_KEY_ID` left in the environment or a shared credentials file. For a
 route approved on the host's role, check where the credential came from:
