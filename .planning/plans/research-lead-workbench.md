@@ -12,7 +12,7 @@ chunks:
   - "[x] 8. design_items, the working revision on every Design Revision writer (web submit, reuse, accepts), the item-level stale rule"
   - "[x] 9. Accept in one transaction: merged Design Revision, working copy, ledger; the web reloads"
   - "[x] 10. Dismiss and rebuild through the ledger and rebuild_of; the pending-proposals projection"
-  - "[ ] 11. Lead-prepared paid work recorded in the ledger, with the spend limit, from the server's command registry"
+  - "[ ] 11. The command registry: the workers the Lead may call, each with its prompt and price, behind approve_request (ledger and spend limit already built)"
   - "[ ] 12. Workbench journey: four widths, keyboard, focus modes, a Lead turn on recorded answers, zero unintended paid jobs"
   - "[x] 13. Design V3 in the repository (prototypes/research-lead-v3, its text) and its chunks in this plan"
   - "[ ] 14. The Lead's view vocabulary: a closed, per-artifact set of display operations the Lead may run on the artifact pane"
@@ -120,6 +120,17 @@ at an element (`lib/lead.ts:341`, `Workbench.tsx:185-207 @ 0b4e05e`).
   words ("V AIA zatím není", or the backend's own reason), never a placeholder that reads like data.
 - **D14. The journey grows with the artifacts.** Chunk 12 lands first, and each artifact PR adds its
   own steps to `workbench_journey.mjs` / `lead_journey.mjs`.
+- **D15. Every AI action goes through the Research Lead** (owner, 2026-10-19; `overview.md` MVP-8).
+  The manual AI buttons (AI pomoc, the stage cards' "Navrhnout", the job panel's starts) are removed.
+  The Lead calls smaller workers, each with its own system prompt (ADR 0020), as it prepares a design
+  job today (`AgentJobRequest`); a paid one starts only on a person's approval through
+  `approve_request`, which already holds the study's spend limit (`application/research_lead.py:678-760
+  @ 0b4e05e`). Removal goes **artifact by artifact**: each of 17-22 lands without its stage's buttons
+  and with the Lead able to call that stage's worker, so no AI action is ever without a way in. This
+  closes F1: no paid design job starts outside the Lead's path.
+- **D16. Release scope** (owner, 2026-10-19; MVP-3). The Lead and all eleven V3 artifacts are
+  release-blocking (12, 11, 14-23). The autopilot (24) and Deep Research from every stage (25) come
+  after the MVP; 24 needs an ADR for the Lead's own permission scope first.
 
 **The artifacts.** What V3 shows, what AIA has behind it, what is missing. "Backed by" names modules
 from the CLAUDE.md map; each chunk anchors its claims in its first commit, and until then an entry
@@ -139,9 +150,11 @@ is a **hypothesis**.
 | 22 | Audience (`FRAME 4`) | Source, population, target group with quotas, assumptions with Deep Research evidence, impact before saving | Audience stage, `/population` routes, Design Research | Cost and time of a new run (V3 itself says the backend lacks it); population size; own and special audiences |
 | 22 | Dimensions (`FRAME 5`) | Sociodemographics, recommended dimensions with what uses them, catalogue, own dimension proposed to client knowledge | Dimensions stage, `persona_topics`, materialize | "Used by" links to segments and hypotheses |
 
-**Order.** 12 (the journey), then 11 (paid work, needs F1 answered), then 14-16 (vocabulary, frame,
-pointing: every artifact needs them), then 17-22 (those AIA backs first, Audience and Dimensions last),
-then 23-25.
+**Order.** 12 (the journey), then 11 (the command registry: which workers the Lead may call, each
+with its prompt and price; most of the paid path is built, `mvp-consolidation.md` §6), then 14-16
+(vocabulary, frame, pointing: every artifact needs them), then 17-22 (those AIA backs first, Audience
+and Dimensions last; each removes its stage's AI buttons, D15), then 23. 24-25 after the MVP (D16).
+The backend each chunk needs is in `.planning/mvp-consolidation.md` §6.
 
 ## Findings
 
