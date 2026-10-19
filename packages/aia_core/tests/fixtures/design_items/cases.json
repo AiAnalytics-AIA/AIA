@@ -1,0 +1,4328 @@
+{
+ "description": "Shared cases for design_items (packages/aia_core/src/aia_core/domain/design_items.py) and the web's proposalDiff / questionnaireReplacement / briefFingerprint (apps/web/src/research/proposal-diff.items.test.ts). Each case's items are the keys design_items returns, as document:kind:key. Fictional content.",
+ "cases": [
+  {
+   "name": "unchanged",
+   "note": "Nothing differs: no item.",
+   "before": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "after": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "items": []
+  },
+  {
+   "name": "brief_goal",
+   "note": "A brief field is one item.",
+   "before": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "after": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv slevy",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "items": [
+    "content:brief:goal"
+   ]
+  },
+  {
+   "name": "briefing_field",
+   "note": "Each briefing field is its own item.",
+   "before": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "after": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh klesá",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "items": [
+    "content:brief:briefing.situation"
+   ]
+  },
+  {
+   "name": "objective_added_removed",
+   "note": "An objective added and one removed, in the plan and the analysis alike.",
+   "before": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "after": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Najít práh ceny"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Najít práh ceny"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "items": [
+    "analysis:objective:najít práh ceny",
+    "analysis:objective:popsat segmenty",
+    "content:objective:najít práh ceny",
+    "content:objective:popsat segmenty"
+   ]
+  },
+  {
+   "name": "respelled_question",
+   "note": "A research question respelled (case, whitespace) is not a change.",
+   "before": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "after": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "jak  cena mění ZÁJEM?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "jak  cena mění ZÁJEM?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "items": []
+  },
+  {
+   "name": "hypothesis_replaced",
+   "note": "A hypothesis replaced: the old one goes, the new one comes.",
+   "before": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "after": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva nezmění věrnost"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva nezmění věrnost"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "items": [
+    "analysis:hypothesis:sleva nezmění věrnost",
+    "analysis:hypothesis:sleva zvýší nákup",
+    "content:hypothesis:sleva nezmění věrnost",
+    "content:hypothesis:sleva zvýší nákup"
+   ]
+  },
+  {
+   "name": "tracked_set_objects",
+   "note": "A tracked set's objects changed: the set, keyed by its title, is the item.",
+   "before": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "after": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Illy"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Illy"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "items": [
+    "analysis:tracked_set:značky kávy",
+    "content:tracked_set:značky kávy"
+   ]
+  },
+  {
+   "name": "tracked_set_added",
+   "note": "A new tracked set is a new item.",
+   "before": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "after": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       },
+       {
+        "title": "Kavárny",
+        "objects": [
+         "Costa",
+         "Starbucks",
+         "Café Imperial",
+         "Místní"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      },
+      {
+       "title": "Kavárny",
+       "objects": [
+        "Costa",
+        "Starbucks",
+        "Café Imperial",
+        "Místní"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "items": [
+    "analysis:tracked_set:kavárny",
+    "content:tracked_set:kavárny"
+   ]
+  },
+  {
+   "name": "problem_summary",
+   "note": "The problem summary is one field of the plan and of the analysis.",
+   "before": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "after": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena, zájem a věrnost",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena, zájem a věrnost",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "items": [
+    "analysis:field:problem_summary",
+    "content:plan:problem_summary"
+   ]
+  },
+  {
+   "name": "question_text",
+   "note": "A question's wording changed: the question, by its id.",
+   "before": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "after": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často pijete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "items": [
+    "content:question:q1"
+   ]
+  },
+  {
+   "name": "question_added",
+   "note": "A question added to a section: the question and the section that now holds it.",
+   "before": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "after": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        },
+        {
+         "id": "q3",
+         "text": "Kde kávu kupujete?",
+         "typ": "vyber",
+         "kategorie": [
+          "Obchod",
+          "Online"
+         ]
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "items": [
+    "content:question:q3",
+    "content:section:s1"
+   ]
+  },
+  {
+   "name": "question_removed",
+   "note": "A question removed: the question and its section.",
+   "before": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "after": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "items": [
+    "content:question:q2",
+    "content:section:s1"
+   ]
+  },
+  {
+   "name": "battery_objects",
+   "note": "A battery's objects changed: the battery, whole.",
+   "before": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "after": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Illy"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "items": [
+    "content:battery:b1"
+   ]
+  },
+  {
+   "name": "audience",
+   "note": "The audience is one item.",
+   "before": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "after": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "Ženy 25-45",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "items": [
+    "content:audience:"
+   ]
+  },
+  {
+   "name": "dimensions",
+   "note": "The dimension selection is one item.",
+   "before": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "after": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": [
+       "ekologie"
+      ]
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "items": [
+    "content:dimensions:"
+   ]
+  },
+  {
+   "name": "sample_size",
+   "note": "The sample size is one item.",
+   "before": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "after": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 500,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "items": [
+    "content:n:"
+   ]
+  },
+  {
+   "name": "other_field",
+   "note": "Any other top-level field is an item of its own, so nothing falls between items.",
+   "before": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "after": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "custom"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "items": [
+    "content:field:ui_state"
+   ]
+  },
+  {
+   "name": "analysis_only_field",
+   "note": "An analysis field outside the plan's lists.",
+   "before": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "standard"
+    }
+   },
+   "after": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "decision_use": "Nastavení ceny",
+     "briefing": {
+      "product_description": "Káva",
+      "situation": "Trh roste",
+      "what_is_known": "",
+      "constraints": ""
+     },
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost",
+       "Popsat segmenty"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "tracked_sets": [
+       {
+        "title": "Značky kávy",
+        "objects": [
+         "Tchibo",
+         "Jacobs",
+         "Nescafé",
+         "Lavazza"
+        ]
+       }
+      ]
+     },
+     "audience": {
+      "description": "ČR 18+",
+      "filters": {}
+     },
+     "persona_dimensions": {
+      "approved": []
+     },
+     "n": 300,
+     "ui_state": {
+      "persona_path": "choose"
+     },
+     "sections": [
+      {
+       "id": "s1",
+       "type": "questions",
+       "title": "Nákup",
+       "questions": [
+        {
+         "id": "q1",
+         "text": "Jak často kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Denně",
+          "Týdně"
+         ]
+        },
+        {
+         "id": "q2",
+         "text": "Kolik utratíte?",
+         "typ": "skala"
+        }
+       ]
+      },
+      {
+       "id": "b1",
+       "type": "object_battery",
+       "title": "Značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "object_question": "Jak hodnotíte {object}?"
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ],
+     "complexity": "deep"
+    }
+   },
+   "items": [
+    "analysis:field:complexity"
+   ]
+  }
+ ],
+ "brief_signatures": [
+  {
+   "name": "base",
+   "content": {
+    "title": "Cenový test",
+    "goal": "Zjistit vliv ceny",
+    "decision_use": "Nastavení ceny",
+    "briefing": {
+     "product_description": "Káva",
+     "situation": "Trh roste",
+     "what_is_known": "",
+     "constraints": ""
+    },
+    "research_plan": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ]
+    },
+    "audience": {
+     "description": "ČR 18+",
+     "filters": {}
+    },
+    "persona_dimensions": {
+     "approved": []
+    },
+    "n": 300,
+    "ui_state": {
+     "persona_path": "choose"
+    },
+    "sections": [
+     {
+      "id": "s1",
+      "type": "questions",
+      "title": "Nákup",
+      "questions": [
+       {
+        "id": "q1",
+        "text": "Jak často kupujete kávu?",
+        "typ": "vyber",
+        "kategorie": [
+         "Denně",
+         "Týdně"
+        ]
+       },
+       {
+        "id": "q2",
+        "text": "Kolik utratíte?",
+        "typ": "skala"
+       }
+      ]
+     },
+     {
+      "id": "b1",
+      "type": "object_battery",
+      "title": "Značky",
+      "objects": [
+       "Tchibo",
+       "Jacobs",
+       "Nescafé",
+       "Lavazza"
+      ],
+      "object_question": "Jak hodnotíte {object}?"
+     }
+    ]
+   },
+   "signature": "{\"goal\":\"Zjistit vliv ceny\",\"decision_use\":\"Nastavení ceny\",\"product_description\":\"Káva\",\"situation\":\"Trh roste\",\"what_is_known\":\"\",\"constraints\":\"\",\"problem_types\":[],\"review_comments\":\"\",\"attachments\":[]}"
+  },
+  {
+   "name": "problem_types_and_attachments",
+   "content": {
+    "title": "Cenový test",
+    "goal": "Zjistit vliv ceny",
+    "decision_use": "Nastavení ceny",
+    "briefing": {
+     "product_description": "Káva",
+     "situation": "Trh roste",
+     "what_is_known": "",
+     "constraints": "",
+     "problem_types": [
+      "price",
+      "brand",
+      "nonsense",
+      "price"
+     ],
+     "review_comments": " ponechat ",
+     "attachments": [
+      {
+       "sha256": "ab12"
+      },
+      {
+       "filename": "zadání.pdf"
+      },
+      {}
+     ]
+    },
+    "research_plan": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost",
+      "Popsat segmenty"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "tracked_sets": [
+      {
+       "title": "Značky kávy",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ]
+      }
+     ]
+    },
+    "audience": {
+     "description": "ČR 18+",
+     "filters": {}
+    },
+    "persona_dimensions": {
+     "approved": []
+    },
+    "n": 300,
+    "ui_state": {
+     "persona_path": "choose"
+    },
+    "sections": [
+     {
+      "id": "s1",
+      "type": "questions",
+      "title": "Nákup",
+      "questions": [
+       {
+        "id": "q1",
+        "text": "Jak často kupujete kávu?",
+        "typ": "vyber",
+        "kategorie": [
+         "Denně",
+         "Týdně"
+        ]
+       },
+       {
+        "id": "q2",
+        "text": "Kolik utratíte?",
+        "typ": "skala"
+       }
+      ]
+     },
+     {
+      "id": "b1",
+      "type": "object_battery",
+      "title": "Značky",
+      "objects": [
+       "Tchibo",
+       "Jacobs",
+       "Nescafé",
+       "Lavazza"
+      ],
+      "object_question": "Jak hodnotíte {object}?"
+     }
+    ]
+   },
+   "signature": "{\"goal\":\"Zjistit vliv ceny\",\"decision_use\":\"Nastavení ceny\",\"product_description\":\"Káva\",\"situation\":\"Trh roste\",\"what_is_known\":\"\",\"constraints\":\"\",\"problem_types\":[\"brand\",\"price\"],\"review_comments\":\" ponechat \",\"attachments\":[\"ab12\",\"zadání.pdf\",null]}"
+  },
+  {
+   "name": "problem_type_fallback",
+   "content": {
+    "goal": "  Cíl \n",
+    "briefing": {
+     "problem_type": "tracking"
+    },
+    "ui_state": {}
+   },
+   "signature": "{\"goal\":\"Cíl\",\"decision_use\":\"\",\"product_description\":\"\",\"situation\":\"\",\"what_is_known\":\"\",\"constraints\":\"\",\"problem_types\":[\"tracking\"],\"review_comments\":\"\",\"attachments\":[]}"
+  },
+  {
+   "name": "empty",
+   "content": {},
+   "signature": "{\"goal\":\"\",\"decision_use\":\"\",\"product_description\":\"\",\"situation\":\"\",\"what_is_known\":\"\",\"constraints\":\"\",\"problem_types\":[],\"review_comments\":\"\",\"attachments\":[]}"
+  }
+ ]
+}
