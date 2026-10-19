@@ -2227,6 +2227,14 @@ and any production Class A/B route also need their own approval and proof.
 **Status.** Direction decided; implementation and production-route acceptance open. A local
 fixture's Class C path is not evidence that client work has an approved egress route.
 
+**2026-10-19 (#487).** The allowlist no longer lowers a design: fieldwork classifies the run's
+design Class B by the owner's rule, raised and never lowered by an operator's classification or
+the personas' class (`apps/executors/src/aia_executors/ai_fieldwork.py:418-432 @ 64cc1380`), so a
+listed client's respondent request is Class B and a route approved for Class C alone refuses it
+(`test_ai_fieldwork.py::test_an_unclassified_questionnaire_is_class_b_by_rule_and_a_class_c_route_refuses_it`).
+The downgrade in *Consequence* is gone; the route's Class B approval and its retention are
+ADR 0010's amendment of the same date. Production-route acceptance stays open.
+
 ---
 
 ## OI-64 · Follow-up · AI fieldwork restarts every respondent when an attempt is retried
@@ -2811,7 +2819,7 @@ until #83 put OI-76 on `develop` (`48bf3e2`, 22:45 UTC). #84 merged OI-77 at 23:
 
 ---
 
-## OI-79 · Direction recorded, engineering open · Classify actual design inputs before model egress
+## OI-79 · Direction recorded, engineering closed (#487) · Classify actual design inputs before model egress
 
 **Claim.** A native design job sends the brief's attachment text to the model, and classifies the
 request by only two things: the client allowlist and the approved knowledge. A study of an
@@ -2870,6 +2878,17 @@ refusal or a more restrictive request under the chosen implementation.
 jobs must remain off for studies with unclassified attachments or pasted material. Numbered
 OI-73 on this entry's earlier branch until #83 put OI-76 on `develop`; renumbered under the
 contract's concurrent-entry rule (§5). This is not a new approval for Class A/B egress.
+
+**2026-10-19 (#487).** The unsafe inheritance is gone: a design job's design, its pasted text and
+attachment excerpts included, is Class B by the owner's rule, a nonempty instruction too, and
+approved knowledge raises the request to A (`packages/aia_core/src/aia_core/domain/research_agents.py:638-686 @ 64cc1380`,
+`design_classification`, `agent_request`; no client flag is read). The reproduction above, without
+the `fictional_client` argument that no longer exists, prints `CLASS_B_DERIVED_CLIENT True` at
+`0b4e05e5`; such a request goes only on a route approved for Class B
+(`test_research_agent_executor.py::test_an_edited_design_or_instruction_is_sent_as_class_b_by_rule`).
+That the excerpts are B as design while the same bytes as a client source are A is the owner's
+decision (OI-130). The engineering fix is done; what remains is the route's Class B approval
+(ADR 0010, Amendment 2026-10-19).
 
 ---
 
@@ -4006,7 +4025,7 @@ unaffected (it is tagged when the request starts, `apps/api/tests/test_api_error
 
 ---
 
-## OI-126 · Question · How is Research Lead chat material classified on develop?
+## OI-126 · Question, answered · How is Research Lead chat material classified on develop?
 
 **Claim.** Every Research Lead turn on develop parks before any call with
 `egress_unclassified_material`: a turn's class follows the design agents' rule, which classifies
@@ -4031,7 +4050,18 @@ author declares a saved prompt Class C (`domain/prompts.py:49-51`, `:127 @ c7327
 material is Class A, sent only on a route approved for Class A. Either way, unknown stays a
 refusal.
 
-**Status.** Open. The product owner's decision.
+**Status.** Answered by the product owner, 2026-10-19 (ADR 0008, Amendment 2026-10-19; #487):
+neither option. A chat message and focus label take the study's class, B; the design and the
+study's and client's names are B; the Lead's name, SOUL, USER and personal notes C; its
+client-scoped notes A -- each by rule, an operator's exact-bytes classification only raising it
+(`packages/aia_core/src/aia_core/domain/material_rules.py:79-91` `RULE_CLASSES` @ `64cc1380`;
+`domain/research_lead.py:835` `context_classification` @ `64cc1380`; test
+`packages/aia_core/tests/test_research_lead.py::test_the_design_names_and_a_message_are_class_b_by_rule_with_no_operator_step`).
+Material no rule names still refuses. The Lead answers on develop once an operator approves the
+route for Class B with its retention stated (ADR 0010, Amendment 2026-10-19;
+`deploy/develop/README.md` § AI route classes); until then a route approved for Class C alone
+refuses a turn for its class, no longer for unclassified material (ADR 0008's amendment: a rule
+approves no route). Closed.
 
 ---
 
@@ -4085,3 +4115,171 @@ working revision the proposal's design names (`application/proposal_accept.py:92
 **Test.** `apps/executors/tests/test_research_agent_executor.py::test_a_job_started_after_an_edit_is_checked_against_its_designs_working_revision`.
 
 **Status.** Fixed by 5dff12a5 (#485).
+
+---
+
+## OI-129 · Decision · Deep Research keeps an operator's exact-bytes classification of a design
+
+**Claim.** Deep Research's plan step classifies a run's design by the operator's exact-bytes
+record alone and gives every web query that class; its web routes carry Class C only. Taking the
+owner's design rule (Class B, never lowered by an operator) there would refuse every web track of
+every run, the synthetic fixtures an operator classified Class C included.
+
+**Anchor.** `apps/executors/src/aia_executors/deep_research/plan.py:163` (`classify_material`,
+the operator's record only) and `:260` (`gate.refusal_for_class(dclass)`) @ `64cc1380`;
+`deep_research_live.py:115` and `deep_research_recorded.py:69`
+(`approved_for=frozenset({DataClass.CLASS_C_INTERNAL})`) @ `64cc1380`; the refusal itself,
+`packages/aia_core/src/aia_core/application/web_retrieval.py:618-632 @ 64cc1380`
+(`RetrievalGate.refusal_for_class`).
+
+**Reproduction.** Replace the plan step's `classify_material(...)` with
+`classify_by_rule(..., MaterialRule.DESIGN, ...)` and run
+`pytest apps/executors/tests/test_deep_research_journey.py`: the web tracks are refused
+(hypothesis on the exact count; the gate's rule above is not). Plan `usable-classification` F1.
+
+**Consequence.** A Deep Research run on an edited design parks (`egress_unclassified_material`,
+"Zadání nemá klasifikaci vstupních dat. Nic nebylo odesláno.") until an operator classifies its
+exact bytes (`AIA_AI_MATERIAL_CLASSIFICATIONS`), while the Lead and the design jobs run on the
+same design by rule.
+
+**Decision (the product owner, 2026-10-19).** Deep Research keeps operator-only classification of
+a design. Its web routes stay Class C only; no query class of its own is made for a query a model
+writes from a Class B design. A run on an edited design parks until an operator classifies its
+exact bytes. Recorded in ADR 0008, Amendment 2026-10-19, *Addendum*; it narrows DR-2b
+(`overview.md`, a digest of a design as Class B), which is not decided by it.
+
+**Test.** What holds the decision: `test_deep_research_journey.py` runs on designs an operator
+classified; a design classified by rule there would be the test of any later change.
+
+**Status.** Decided. Nothing to build.
+
+---
+
+## OI-130 · Decision · AI-written design text built from Class A knowledge is Class B once accepted
+
+**Claim.** A design job's request is Class A when the client has approved knowledge (its snapshot
+carries it), and what it writes into the study -- the brief analysis, an accepted questionnaire,
+an accepted Lead edit -- is then design, Class B by rule, in every later request.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/research_agents.py:679-686 @ 64cc1380`
+(knowledge raises the job's request to A); `domain/research_lead.py:871 @ 64cc1380`
+(`_part("design_analysis", …, MaterialRule.DESIGN)`); `apps/executors/src/aia_executors/ai_fieldwork.py:429`
+and `analysis.py:584` @ `64cc1380` (`classify_by_rule(design, MaterialRule.DESIGN, …)`).
+Plan `usable-classification` F7.
+
+**Reproduction.** `apps/executors/tests/test_research_lead_executor.py::test_a_turn_is_answered_once_and_its_reply_is_read_from_the_step`
+records the design part as `("design", "CLASS_B_DERIVED_CLIENT", "rule:design")`, whatever wrote
+it.
+
+**Consequence.** Text a model derived from Class A knowledge travels, once in the design, on a
+route approved for Class B.
+
+**Decision (the product owner, 2026-10-19).** Chosen for usability: AI-written design text built
+from Class A approved knowledge is design, Class B, once a person accepts it into the study.
+Brief attachment excerpts stay B as design, while the same bytes kept as a client source are A.
+An operator may still raise a design's exact bytes to A. Recorded in ADR 0008, Amendment
+2026-10-19, *Addendum*.
+
+**Test.** `packages/aia_core/tests/test_material_rules.py::test_every_rule_has_the_class_the_owner_decided`
+pins `rule:design` at B.
+
+**Status.** Decided. Nothing to build.
+
+---
+
+## OI-131 · Decision · One batch may leave as Class C when a source is unmarked as it is sent
+
+**Claim.** The "Interní dokument" mark is read before each request of a source's AI proposals, in
+a transaction that ends before the gateway sends it; an unmark committed in those milliseconds
+lets that one batch go as Class C, and every later batch is stopped (`source_class_changed`).
+
+**Anchor.** `apps/executors/src/aia_executors/client_source_proposals.py:279-292 @ 64cc1380`
+(`marked_internal`, then `caller.invoke`). Plan `usable-classification` F8.
+
+**Reproduction.** None in one command: the window is the time between that transaction's commit
+and the request leaving. A hypothesis on its width; its existence follows from the code.
+
+**Consequence.** At most one batch of a document a person has just unmarked leaves as Class C,
+the class its requests were built under.
+
+**Smallest fix (not taken).** Hold the source row's lock across each model call, so an unmark
+waits for the request in flight.
+
+**Decision (the product owner, 2026-10-19).** The window is accepted over the wait. Recorded in
+ADR 0008, Amendment 2026-10-19, *Addendum*.
+
+**Test.** `apps/executors/tests/test_client_source_proposals.py::test_a_replayed_answer_keeps_the_class_it_was_sent_as_when_the_mark_changes`
+(each answer keeps the class it was sent as).
+
+**Status.** Decided: accepted.
+
+---
+
+## OI-132 · Hypothesis · A clicked accept may lose what is typed while the gate answers
+
+**Claim.** A clicked accept of a Lead edit flushes, asks the gate, then reloads through the
+session, which disposes the store; a change typed while the gate answers would be saved by
+`dispose` against the old base, refused 409 with no listener, and lost.
+
+**Anchor.** `apps/web/src/components/workbench/Workbench.tsx:429 @ 0b4e05e5` (`reload()` after a
+decision), `apps/web/src/components/rehome/research/ResearchScreen.tsx:94 @ 0b4e05e5`
+(`store?.dispose()`), `:104` (`retry` is the reload). The automatic accept had this race and
+reads the copy in place instead (plan `inline-decisions`, Findings (fixed) 1, @ `eced14ab`).
+
+**Reproduction.** Not reproduced. A `ResearchScreen` test that types while a deferred `/edits`
+answer is held, then expects the text on screen and the save state `conflict`.
+
+**Consequence.** A researcher typing during a click on Přijmout would lose what they typed.
+
+**Smallest fix.** Read the copy in place as the automatic accept does:
+`store.reload(undefined, { since })` with the copy as it was before the call.
+
+**Test.** The reproduction above.
+
+**Status.** Hypothesis: reproduce or delete (CLAUDE.md §9).
+
+---
+
+## OI-133 · Finding · `lead_journey.mjs` passes once per workbench
+
+**Claim.** The Research Lead's browser journey checks that a personal note is absent from Můj
+Vedoucí by its first 40 characters, which carry no timestamp, so a second run on the same
+workbench finds the first run's kept note and fails.
+
+**Anchor.** `tools/ui_workbench/lead_journey.mjs:121 @ 0b4e05e5` (unchanged since `2e5028cc`).
+Plan `inline-decisions`, Findings.
+
+**Reproduction.** Run `node tools/ui_workbench/lead_journey.mjs` twice on one
+`make ui-workbench`: the second fails "a personal note waits for the researcher".
+
+**Consequence.** The journey is rerun only on `python tools/ui_workbench/workbench.py up --fresh`.
+
+**Smallest fix.** A run-unique marker at the start of the note.
+
+**Test.** The journey run twice on one workbench.
+
+**Status.** Open.
+
+---
+
+## OI-134 · Hypothesis · Two web tests time out under load and pass alone
+
+**Claim.** In the full web suite on a loaded machine `MethodologyVersions.test.tsx` › "guided
+methodology editing" exceeds its 5 s timeout, and `QuestionnaireStep.test.tsx` › "offers the three
+paths…" misses its heading within `findByRole`'s 1 s; each failed once in two runs of 1,838 tests
+@ `7c01686c` (2026-10-19), and both pass alone. The first fails the same way on `6c5cd620`.
+
+**Anchor.** `apps/web/src/components/aia/settings/MethodologyVersions.test.tsx:411` and
+`apps/web/src/components/rehome/research/QuestionnaireStep.test.tsx:96` @ `0b4e05e5`. Plan
+`inline-decisions`, Findings. Of a kind with OI-122.
+
+**Reproduction.** `make test-web` under load; not reproduced on demand.
+
+**Consequence.** A red web suite with no defect behind it.
+
+**Smallest fix.** Hypothesis: load, not a defect. If it recurs, give the waits room
+(CLAUDE.md §7: size timing assertions generously) rather than a retry.
+
+**Test.** The suite under load.
+
+**Status.** Hypothesis: reproduce or delete (CLAUDE.md §9).
