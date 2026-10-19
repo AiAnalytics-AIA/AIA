@@ -73,7 +73,8 @@ apps/
     observability.py        Structured logging, request correlation, secret redaction
                             (aia_core.infrastructure.redaction); tags every error report with the
                             request id; a 500 is reported (AIA_ERROR_TRACKING_DSN, off when unset)
-    routers/                health, projects, scope, runs (runs + artifacts under a project),
+    routers/                health, projects, scope, runs (runs + artifacts under a project; never a
+                            research_lead run, its events or artifacts),
                             workspace (clients, a client's workspace, its knowledge and proposals,
                             a study's frame and its working content in AIA, ADR 0015, ADR 0018;
                             GET /clients/{id}/memory/search: project memory, one client's studies;
@@ -111,7 +112,9 @@ apps/
                             question_outlook: every item's verdict before a run; research_trace: each
                             research question traced to its measures), and native
                             agent-jobs beneath each Study, with their event feed (…/agent-jobs/{id}/events?
-                            since=; a step names the step_id its events carry); GET …/design/source: where a reused design
+                            since=; a step names the step_id its events carry), each job's proposal_state
+                            and rebuild_of (?pending=true: only proposals still waiting), …/dismiss (a
+                            ledger row) and …/rebuild (asked again on the newest revision); GET …/design/source: where a reused design
                             came from; a run's reports: GET …/report, …/report/download,
                             …/report/pdf/download, …/report/context/download (stored, names its
                             artifact), …/report/client/download (a modelled run's client report;
@@ -121,6 +124,14 @@ apps/
                             an unoffered one is 409 persona_source_unavailable, never swapped) and a run its selection
                             (what its design selected and what reached its respondents: dimensions and filters await
                             a population draw; dimensions_unmatched: ids that name no persona topic; #439, #447),
+                            lead (the caller's Research Lead conversation in a study, ADR 0026:
+                            GET/POST /studies/{id}/lead[/turns]; POST …/turns/{turn_id}/edits (accept
+                            or dismiss under APPROVE_GATE, one transaction, ledger lead_edit);
+                            POST …/turns/{turn_id}/request (an agent job behind the spend limit,
+                            ledger lead_job_request); POST …/turns/{turn_id}/self-update (what would
+                            reach every client, on the researcher's yes; ledger lead_self_update);
+                            GET/POST /lead: the researcher's own Lead, read-only files and notes,
+                            hatching),
                             deep research (a Study's Deep Research
                             runs; Interpretation Research's start, POST …/deep-research/runs/
                             interpretation, over a result of the Study's own run), scope
@@ -152,7 +163,9 @@ apps/
     src/app/app/            AIA behind AIA's own gate (no switch): /app/clients (home),
                             clients/<client>/{research,simulations,knowledge,data,profile},
                             clients/<client>/research/<study>/<stage>, clients/<client>/memory/<study>
-                            (a past research, read-only), intelligence, memory, settings
+                            (a past research, read-only), intelligence, memory, settings, lead
+                            (Můj Vedoucí: the researcher's Lead, its SOUL, USER and notes, read only;
+                            they change only through chat)
     src/app/classic/        The public page an old /classic link lands on: 18.6.6 is gone, the way in
     src/components/aia/     The client-first shell: AppShell (four global items, breadcrumbs, one
                             action, tabs; a `track` puts it in study mode: icon-only global
@@ -205,6 +218,26 @@ apps/
                             LaunchFilm then plays public/skin/brand/aia-liftoff.{webm,mp4}
                             full-screen on `brand-stage`, takes over on its first frame, and its
                             end is the way in
+    src/components/workbench/  The research workbench (ADR 0026), the study screen behind
+                            AIA_WEB_RESEARCH_WORKBENCH (read by /config; off by default, on in the
+                            develop Compose file; off, or under 1100 px when a stage opens, the classic
+                            layout serves): the frame ported from the research-lead prototype
+                            (workbench.css scoped under .wb over tokens.css; study header, phase
+                            navigator, artifact header and bars) over AIA's own stage screens;
+                            Split (the conversation / artifact split); Glyph / Icons; LeadPane (the
+                            researcher's own Lead: hatching, greeting, messages queued while it works and
+                            held for "Zkusit znovu", edits accepted or dismissed through …/edits, a
+                            prepared job approved through …/request, a cross-client change on "Pamatovat
+                            si"); SampleView (Vzorek, read only: links to where n, dimensions and audience
+                            are set); useStageWide keeps a stage's layout across a resize until another
+                            stage opens
+    src/lib/workbench-stages.ts  The eleven stages in six phases, each today's route (and on Výsledky
+                            ResultsWorkspace's hash); a stage's tone is the lane's.
+                            workbench-split.ts: the split's rules (28-62 %, 2 % per arrow, focus modes);
+                            inspector-stack.ts: the item drawer's back stack, display state only;
+                            guarded-navigation.ts: every way out of a stage is a link click, so a stage's
+                            leave guard can stop it; lead.ts: the Lead's turns and closed output, the
+                            pure part of its edit tools, focus targets to and from the stages' data-aia ids
     src/components/rehome/  Primitives (token utilities only) and the research stages, re-homed
                             under the shell above
     src/research/           The research flow's logic ported from ui_app.html (parity-tested under
@@ -216,7 +249,12 @@ apps/
                             (researchQuestionsOf, as the server reads them; the link read and toggled),
                             "Odpovídá na výzkumné otázky" on every question and tracked set in Dotazník;
                             comparisonOf / setComparison ("Jak výzkumné otázky zodpovíme" in Dotazník);
-                            proposedTrace (a proposal's links, read on the inline review)
+                            proposedTrace (a proposal's links, read on the inline review);
+                            proposal-items.ts: a stale_proposal refusal's conflicting items in Czech;
+                            the store's reload (after an accept), conflict(current) (a copy that moved
+                            while an accept was in flight), completed (a copy the template's defaults
+                            completed on load) and submitWorkingDesign (saves such a copy, then submits
+                            the revision it names)
     src/testing/legacy.ts   Parity harness: a function's effective binding, run in a Node vm (reads
                             the vendored ui_app.html: reference only, never product code)
     src/lib/app-routes.ts   Every /app URL, built in one place (stage slugs: `persona` is `dimensions`)
@@ -231,7 +269,8 @@ apps/
                             shared brief analysis (useAnalysis), one screen per stage; ProposalReview
                             (a design proposal reviewed inline, its changes listed; a questionnaire
                             proposal's research questions, their measures and answers, before it is
-                            accepted); CompleteReport
+                            accepted; accepted on the server, then the working copy reloaded; "Zahodit"
+                            and "Navrhnout znovu"); CompleteReport
                             (the report card on Výsledky: a part claimed only when the run's steps
                             made it; the one place a run's report is downloaded -- internal or, for a
                             modelled run, client; DOCX or PDF -- and approved, the document approved
@@ -357,7 +396,8 @@ apps/
                             app/global-error.tsx + app/app/error.tsx boundaries report a render crash
     src/research/lane.ts    Each stage's state from the study's working content and runs (no new
                             rule: Kontrola's server readiness stays the authority); proposal-diff.ts:
-                            a proposal's changes against the working content
+                            a proposal's changes against the working content (occurrenceKeys, the
+                            server's occurrence_keys; held to it by proposal-diff.items.test.ts)
     src/lib/object-map-view.ts  The contract-3 object map read from its artifact: mapApproval (a map's
                             approval in the Sociomap register, by the method its run recorded; an
                             unread register is internal); ten display terraces
@@ -401,6 +441,11 @@ apps/
                             only under the same engine version and pins
     research_agents.py     Native proposal executor: frozen design/context, StepModelCaller,
                             provenance artifact; no automatic write or retry
+    research_lead.py        research_lead_turn: one RESEARCH_REASONING request and one repair over the
+                            frozen context; applies only what stays in the turn's client, the rest
+                            waits for the researcher; parks research_lead_unconfigured without
+                            AIA_AI_RESEARCH_LEAD_ENABLED, …_MAX_OUTPUT_TOKENS, …_RESERVATION_USD;
+                            the workbench's ScriptedLeadExecutor says it is scripted
     ai_fieldwork.py         The ai_runtime source: AI respondents, fictional or drawn from the run's
                             population as the run pinned (persona_source); class + lineage, gateway
                             preflight (a refusal parks), one request per respondent block, answers
@@ -511,7 +556,14 @@ packages/aia_core/src/aia_core/
                             contract (harness 3) proposes each item's research_questions, a set's
                             output_type and each research question's comparison; proposal_result
                             keeps only links to stated research questions (dropped_links names the
-                            rest); prompt_version_for: build/optimize at 3, the rest at 2
+                            rest); prompt_version_for: build/optimize at 3, the rest at 2;
+                            proposal_state / ProposalState: pending, accepted, dismissed or
+                            superseded, a projection of the ledger and rebuild_of
+    research_lead.py        The closed LeadOutput (reply, view, edits, request, follow, self_update),
+                            lead_contract (numbers only from the context, sign included, exponents
+                            refused), ground_edits, apply_edit, split_self_update, FOCUS_ID,
+                            freeze_context (96 KB, oldest turns first), lead_request (the design
+                            agents' data class rule)
     deep_research/          Deep Research (ADR 0017, ADR 0021), pure; the engine is frozen after #166:
       contracts.py          subjects, tracks, snapshots, knowledge sources, evidence, quarantine and
                             stop reasons, the request a run is frozen to; harness 3: the request's
@@ -599,7 +651,14 @@ packages/aia_core/src/aia_core/
                             LicencePolicy.authorise, LicenceDenied (ADR 0016 decision 5)
     licence_determinations.py  The determinations as data: panel sources APPROVED for
                             bedrock-eu-primary alone (OI-61, data owner 2026-10-12)
-    design.py               A Study's Design Revision: immutable content, provenance, the owner tag
+    design.py               A Study's Design Revision: immutable content, provenance, the owner tag;
+                            workspace_revision, the working revision it was made from, kept in its
+                            reason as design:<stage>@w<n> (no column)
+    design_items.py         A design's items (ADR 0026 decision 5): ItemKey, design_items, merge_items
+                            (item by item, keeping the person's order), occurrence_keys (a repeated
+                            key is <key>#2), brief_signature (= the web's briefFingerprint); shared
+                            cases in tests/fixtures/design_items/cases.json (cases, merges), read by
+                            proposal-diff.items.test.ts
     design_reuse.py         A reused design's labels (derive_source_labels: the union over every run of
                             the source revision, never chosen) and its citation (DesignSource)
     research_design.py      A revision -> ResearchSpecification (compile) + AIA's readiness rules;
@@ -941,6 +1000,13 @@ packages/aia_core/src/aia_core/
                             a new one only after a failed or cancelled run or one stopped for recovery with nothing
                             uncertain (restartable); latest_source_proposals: the newest, with the step's own reason
     workflows.py            start_workflow: a run from a template, idempotent per revision
+    proposal_accept.py      accept_into_working_copy: an AI proposal's accept (an agent job's, a Design
+                            Research run's) in one transaction under the Study lock -- the item-level
+                            stale rule (StaleProposal: design_moved, unknown_baseline, items_changed),
+                            the merge into the working copy, the Design Revision naming that working
+                            revision; the caller's ledger row commits with it
+    research_lead.py        ResearchLead (state, post under the researcher's lock, decide_edits,
+                            approve_request, decide_self_update) and LeadProfile (read, hatch)
     research.py             ResearchRuns: start/list/get/cancel/retry over a Design Revision,
                             found only through the Study; research_artifacts, the ONLY reader;
                             start/retry ask when the run's cost ceiling reaches the study's spend
@@ -1018,7 +1084,10 @@ packages/aia_core/src/aia_core/
                             for_update=) carries reserved_usd: the client's open holds that name no study
     study_design_repository.py  A Study's design project (owned: projects.owner) and its
                             Design Revisions; the ONLY writer of a Study's design (ADR 0016); a reused
-                            design's citation (study_design_sources, insert-once: record_source, source)
+                            design's citation (study_design_sources, insert-once: record_source, source);
+                            submit / submit_if_current name the working revision, checked by hash
+                            (design_not_from_workspace); submit_as_working_copy: a design the server
+                            authored, saved as the working copy first
     holdout_repository.py   A validation Study's preregistration (holdout_preregistrations): kept once
                             as its canonical bytes, re-hashed and re-checked on every read; found only
                             through the Study; the Study's confirmation (holdout_confirmations), once
@@ -1026,7 +1095,11 @@ packages/aia_core/src/aia_core/
     study_workspace_repository.py  A Study's working content in its owned working project
                             (projects.owner = study_workspace): load, save naming its base revision
                             (a stale one refused), history; the brief's attachments as artifacts of
-                            that project; found only through the Study (ADR 0018)
+                            that project; found only through the Study (ADR 0018); at_revision: one
+                            stored working revision
+    study_lead_repository.py  A researcher's Lead turns in a study (study_lead_turns), scoped in the query
+    researcher_lead_repository.py  The researcher's Lead (researcher_leads), its revisions and notes; a
+                            client note only within that client's study
     document_text.py        An attachment's text, read as the unit read it (pypdf, python-docx,
                             openpyxl: the `documents` extra), with the ZIP bounds the unit lacked;
                             a PDF's tables through pdfplumber, after pypdf, bounded
@@ -1459,6 +1532,8 @@ ungated fixture.
 | **See every screen** | `make ui-capture` (workbench running; needs Playwright + Chromium): every AIA screen, and, with `make ui-workbench-reference`, the unit's router routes and DEMO views as shipped, 1440/1024 → `tmp/ui-workbench/shots/<time>/index.html` + `report.json` (errors, overflow, off-palette colours) |
 | **Research UX regression** | After `make ui-fixtures` + `make ui-research`, `node tools/ui_workbench/ux_journey.mjs` (needs Playwright + Chromium): 17 AIA routes at 1440/1024/768/390, result sections, keyboard/hash navigation, client search and preserved 3D camera; real local APIs, fictional fieldwork, no paid calls; evidence → `tmp/ui-workbench/ux-journey/` |
 | **Proposal and prompt UX acceptance** | After `make ui-fixtures`, `node tools/ui_workbench/proposal_prompt_journey.mjs` (Playwright + Chromium): real local save/reload, rejected-save retry, unfinished-edit guards, native proposals without legacy analysis, downstream design equality, prompt save/activation/reset and four responsive widths. Local fictional identity only; asserts zero paid jobs. `--facade` and `--out` override the local URL/evidence directory; `AIA_CHROMIUM` selects an installed browser. |
+| **The research workbench, in a browser** | After `make ui-workbench` (with `AIA_WEB_RESEARCH_WORKBENCH=true`) + `make ui-fixtures`, `node tools/ui_workbench/workbench_journey.mjs` (Playwright + Chromium): the workbench at 1440, 1280 and 1100 px and the classic layout at 1024, no page overflow, the eleven stages in six phases, the separator by keyboard, the focus modes, the stage navigation (Výsledky's views by hash); zero paid jobs. `--facade` and `--out` as for the other journeys |
+| **The Research Lead, in a browser** | After `make ui-workbench` (with `AIA_WEB_RESEARCH_WORKBENCH=true`) + `make ui-fixtures`, `node tools/ui_workbench/lead_journey.mjs`: the scripted Lead (no model): hatch, greeting, message, an edit accepted through the gate, a job left unapproved, the cross-client note held until accepted, the note on Můj Vedoucí; zero paid jobs |
 | **The client intake sheet, in a browser** | `make ui-intake` (after `make ui-workbench` + `make ui-fixtures`; Playwright + Chromium): files kept and read, a table named, one item per file, a drop on the page, the sheet open within 400 ms |
 | **Client workspace acceptance** | After `make ui-workbench` + `make ui-fixtures`, `node tools/ui_workbench/client_journey.mjs` (Playwright + Chromium; `AIA_CHROMIUM` selects the browser): six client areas at four widths without overflow; fictional knowledge added, filed, labelled, edited and removed; the profile saved and read back after a reload; a contact added and removed with no e-mail in the history; zero paid jobs. After a migration that adds columns, start the workbench with `python tools/ui_workbench/workbench.py up --fresh` |
 | **Settings UX acceptance** | After `make ui-workbench`, `node tools/ui_workbench/settings_journey.mjs` (Playwright + Chromium): all eight tabs at 1440/1024/768/390; real local member/budget persistence, policy proposal/approval/withdrawal, methodology validation/compare/refused-save retry/separate activation, protected drafts and expanded technical details. Fictional local identity only, zero paid jobs. `--facade`, `--out` and `AIA_CHROMIUM` configure the local URL, evidence directory and browser. |

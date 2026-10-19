@@ -283,6 +283,36 @@ can grant approval or supply deployment prices.
   admitted report claim. Activation, budget and classification are independent
   of fieldwork; confidential knowledge cannot use the fictional Class C allowance.
   See [native Research agents](docs/architecture/research-agents.md).
+  An accept is one server transaction under the Study lock
+  (`application/proposal_accept.py:92 @ c7327072`, `accept_into_working_copy`; ADR 0026
+  decision 6): the item-level stale rule against the working revision the proposal's Design
+  Revision names, the merge into the working copy item by item (`domain/design_items.py`
+  `merge_items`: what the proposal touches takes its value, everything else keeps the person's),
+  the Design Revision naming that working revision, and the approval-ledger row; a failure at any
+  step writes none of them (`test_a_failure_at_the_ledger_leaves_no_revision_written`). A
+  stale proposal is refused, naming its items: 409 `stale_proposal`, `details.conflicting_items`,
+  why `design_moved`, `unknown_baseline` (refused, never presumed current), `items_changed` or
+  `lineage_changed`
+  (`test_a_job_started_after_an_edit_is_checked_against_its_designs_working_revision`). Every
+  Design Revision names the working revision it was made from, checked by canonical hash
+  (`study_design_repository.py:147-177 @ c7327072`, `design_not_from_workspace`). Design
+  Research's accept writes the working copy through the same function
+  (`application/design_research.py:135-142 @ c7327072`, reason `design_research_accepted`).
+- **The Research Lead proposes; a person decides**
+  ([ADR 0026](docs/architecture/adr/0026-research-lead-proposes-a-person-decides.md)). A Lead turn
+  is a `research_lead` worker step (`aia_executors.research_lead`); the API calls no model. Its
+  output is closed (`domain/research_lead.py:360 @ c7327072`, `LeadOutput`) and holds no tools.
+  Beside the agent-proposal accept, the Lead has its own human-only routes, each needing
+  `APPROVE_GATE` and writing its approval-ledger row in the same transaction
+  (`apps/api/src/aia_api/routers/lead.py:386-446 @ c7327072`):
+  `POST …/lead/turns/{turn_id}/edits` accepts or dismisses the turn's edits under the Study lock,
+  a stale `base_revision` refused with the current one (`subject_type = 'lead_edit'`);
+  `POST …/lead/turns/{turn_id}/request` starts the job a turn prepared, behind the study's spend
+  limit (`'lead_job_request'`); `POST …/lead/turns/{turn_id}/self-update` applies, on the
+  turn's own researcher's yes, what would reach every client (`'lead_self_update'`). The ledger's
+  `subject_type` check admits the three (`infrastructure/tables.py:1697-1701 @ c7327072`,
+  migration `7b3c32892aa9`). The generic run, events and artifact routes never serve a
+  `research_lead` run (`test_the_generic_run_routes_never_serve_a_lead_turn`).
 - **A Deep Research finding is a quote in a captured source, or it is nothing**
   ([ADR 0017](docs/architecture/adr/0017-deep-research-external-retrieval.md),
   [deep-research.md](docs/architecture/deep-research.md)). `domain/deep_research/` is pure: code
