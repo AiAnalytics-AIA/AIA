@@ -26,7 +26,7 @@ Five gates, each an observable test. A wave is done when its gate passes in CI o
 | **I-2 Results are seen** | respondent and segment maps, filters, the internal drill-down, the Lead reading results; map snapshots approvable | AC-05, 08 (QC), 09 |
 | **I-3 Evidence is complete** | every key finding cites an admitted claim; a client dataset graded client-reported beside modelled results; analysis and report artifacts with the approve and export panel | AC-08, 10, 13 |
 | **I-R Reach** (W1) | a Deep Research run on develop reaches every route family the build has, live, for a fictional client and a public topic; Settings → Deep Research lists each route and connector as ACTIVE or REFUSED with the reason (`deep-research-web-search` 52), so no document has to say what is on | AC-11 (first half) |
-| **I-4 Deep Research live** | a live run on the full design through Brave on a person-approved query list (or a Class B route once contracted); derived-query class decided; one-click source into knowledge | AC-11 |
+| **I-4 Deep Research live** | a live run on the full design through Brave, queries derived from it and free of client terms and verbatim client text (or a Class B route once contracted); one-click source into knowledge | AC-11 |
 | **I-5 Acceptance** | tier A blocking in CI with all fifteen criteria; tier B once on develop within USD 25; production released | AC-01 to 15 |
 
 ### Reach is not a late wave (owner, 2026-10-19)
@@ -44,7 +44,7 @@ doors have to open, then the switch has to be thrown, then the state has to be v
 |---|---|---|---|
 | Sign-off: Brave on a plan that allows AI use and storing results (plan, terms URL and date, price), budgets, the light model, quotas | `deep-research-web-search` 1 | W0 | owner signs, S2 prepares |
 | **Switch on:** the Class C routes, the connector list and Common Crawl on develop for fictional and public-topic runs, inside ADR 0022's guards | `deep-research-web-search` 51 **New** | W0 | S2 |
-| **Class door:** the derived-query rule written as an ADR (Proposed: a person approves the planned query list once, and their approval sets its class), the data owner confirms | `class-b-search-route` 6 (ADR in W0, code in W1) | W0, W1 | S2 |
+| **Class door:** the derived-query rule, the owner's decision of 2026-10-19 (below), written as an ADR and put in the classifier as `aia-query-classifier-2` | `class-b-search-route` 6 (ADR in W0, code in W1) | W0, W1 | S2 |
 | **Visibility:** Settings lists every route and connector as built, approved, active or refused by class, with the reason, read from the composition, never written by hand | `deep-research-web-search` 52 **New** | W1 | S2 |
 | **Contract door, optional and later:** a Class B route (Linkup is the candidate) composed and approved, for queries nobody approved one by one (the Lead's own lookups), then the design's class by rule, the journey test and activation | `class-b-search-route` 0-2 (W2), 3-5 (W3) | W2, W3 | S2 |
 | Wider reach, in order of value: documents in parts, structured capture and records, then pages that need a browser | `deep-research-web-search` 6, 33-37, 38 | W2 to W4 | S2 |
@@ -52,13 +52,23 @@ doors have to open, then the switch has to be thrown, then the state has to be v
 **Decided later the same day: go with Brave**, which is built and already the chosen Class C route.
 Brave cannot be approved for Class B (US-based, query logs kept up to 90 days, zero retention on
 Enterprise only: `deep-research-web-search.md:497`; ADR 0008 requires confirmed EU processing and
-retention controls for B, and it is a frozen invariant). So Brave reaches real-client work **through
-the class door**: the planned query list is shown, a person approves it, and the approved bytes are
-Class C. Without that approval a design-derived query still goes nowhere; that is what the optional
-contract door (Linkup) would add later. Doc follow-up: `MVP-27` and `AC-11` say the search route is
-"approved for Class B under an EU processing agreement"; they become "the route approved for the
-query's class: Brave on a person-approved query list, or a Class B route", once the data owner
-confirms the derived-query rule.
+retention controls for B, and it is a frozen invariant), and today the class of the context a query
+was written from is a floor under it (`classification.py`, `aia-query-classifier-1`: "nothing lowers a
+class"). **The owner's rule (2026-10-19): a query derived from client material is fine to send to
+Brave as long as no sensitive client data is pasted into it.** So the floor goes and content decides:
+a query is Class C unless it contains a client term (the client's and study's names and slugs, every
+non-public ENTITY or TERM, matched across case, diacritics, transliteration and spacing), or shares a
+run of five words with Class A *or B* text the run holds (the design, the client's documents and
+knowledge: a paraphrase passes, a paste does not). Every query sent is journaled and visible in the
+run. No approval step. This is `class-b-search-route` 6, now first. The optional contract door
+(Linkup) later only adds a route for queries the content test refuses.
+**Residual risk the owner accepts:** a paraphrase with every name removed still shows Brave (US-based,
+logs up to 90 days) which topics a client is researching. Brave's zero-retention Enterprise plan or a
+per-client switch to turn derived search off are available if a client's terms need either; neither
+is built. Doc follow-up: `MVP-27` and `AC-11` say the search route is "approved for Class B under an
+EU processing agreement"; they become "the route that accepts the query's class", and ADR 0017
+decision 2 and ADR 0008's class table are amended in the derived-query ADR. If the data-owner role is
+held by someone other than the owner, they confirm it before activation on a real client.
 
 **What this does not loosen:** grounding (a quote must be in a captured source), adversarial
 verification, the evidence gate and EU residency for anything client-derived. Reach changes where the
@@ -182,7 +192,7 @@ access: `ARCHITECTURE.md` §7) and its `layer_check` rule in the same PR.
 | The working copy's operation log, merge and per-change accept | the vocabulary, the conflict rule, undo, presence, `proposal_change_decisions` | W1 |
 | The Lead over time and its files | proposed updates, signals, admin read, handover, privacy of turns; amends ADR 0026 decision 8 | W2 M7 |
 | Production environment | a separate environment on the one-host pattern with RDS, in the same AWS account with the mitigations of architecture §6.2; supersedes the "undecided" in ADR 0009 | W1 infra apply |
-| Derived-query class (amends ADR 0017 and 0008) | the person-approved query list (Proposed) or provenance-based lowering; the data owner's confirmation | W0 (written), W1 (code) |
+| Derived-query class (amends ADR 0017 and 0008) | content decides, not derivation: client terms and shared five-word runs with Class A or B text, no approval step (the owner's rule, 2026-10-19); the data-owner confirmation if that is another person | W0 (written), W1 (code) |
 | Client data's evidence policy (amends ADR 0027) | the policy source for client columns | W3 |
 
 ## 7. Order inside the critical path

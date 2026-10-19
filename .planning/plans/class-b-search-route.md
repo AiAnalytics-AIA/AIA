@@ -88,8 +88,9 @@ integration gate I-4 (`mvp-cohesion.md` §4). `deep-research-web-search` 1 (sign
 
 ## Open
 
-- Which provenance chunk 6 uses (a template over declared-public terms, a person-approved query
-  set, or both), and who confirms it: the data owner.
+- ~~Which provenance chunk 6 uses~~ **decided 2026-10-19, the owner:** content decides, not
+  derivation (client terms, and a five-word run shared with Class A or B text); no approval step.
+  Who confirms it: the owner; the data owner too if that is another person.
 - Whether more than one Class B route is wanted ("as much data as possible").
 
 ## Doc follow-up
@@ -100,6 +101,9 @@ integration gate I-4 (`mvp-cohesion.md` §4). `deep-research-web-search` 1 (sign
 ## Reordered (2026-10-19)
 
 The owner decided to go with Brave, a Class C route, for live Deep Research. Chunk 6 (the class of a
-derived query: a person-approved query list, the data owner's confirmation) is therefore **first**, and
-chunks 0-5 (the Class B provider and its route) are **optional and later**: they add queries that no
-person approves one by one. See `mvp-development-plan.md` § Reach.
+derived query) is therefore **first**: `aia-query-classifier-2` drops the context-class floor of
+`classification.py` (the owner's rule: derived is fine, pasted is not) and adds Class B text to the
+five-word overlap check; the tests that encode "nothing lowers a class" are replaced by tests of the
+new rule, each citing this decision, and the old rule's cases that are still true (a client-named query,
+a verbatim paste) stay as they are. Chunks 0-5 (the Class B provider and its route) are **optional and
+later**: they add a route for queries the content test refuses. See `mvp-development-plan.md` § Reach.
