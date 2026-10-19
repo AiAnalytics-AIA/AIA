@@ -44,6 +44,7 @@ from aia_core.domain.research_lead import (
     number_tokens,
     question_add_problem,
     split_self_update,
+    unreadable_numbers,
 )
 from aia_core.domain.residency import DataClass
 
@@ -225,6 +226,35 @@ def test_a_reply_writes_only_numbers_the_context_holds() -> None:
     refused = _valid({"reply": "Doporučuji 350 respondentů."}, allowed)
     assert not refused.ok
     assert "350" in refused.violations[0]
+
+
+def test_a_sign_is_part_of_the_number() -> None:
+    """Codex P2 on #484: -5 passed when the context held 5."""
+    assert number_tokens("pokles o -5 a \u22122,5") == {"-5", "-2.5"}
+    # A hyphen joining words or numbers is not a sign: the digits after it are unsigned.
+    assert number_tokens("2026-10-19, q-3 a A-5") == {"2026", "10", "19", "3", "5"}
+    assert number_tokens("-0 a 0") == {"0"}
+    only_five = canonical_json({"change": 5})
+    refused = _valid({"reply": "Změna je -5."}, only_five)
+    assert not refused.ok and "-5" in refused.violations[0]
+    assert not _valid({"reply": "Změna je \u22125."}, only_five).ok
+    minus_five = canonical_json({"change": -5})
+    assert _valid({"reply": "Změna je -5."}, minus_five).ok
+    assert _valid({"reply": "Změna je \u22125."}, minus_five).ok
+    assert not _valid({"reply": "Změna je 5."}, minus_five).ok
+    # A hyphen between words or numbers is not a sign.
+    assert _valid({"reply": "Období 2026-10-19."}, canonical_json({"date": "2026-10-19"})).ok
+
+
+def test_a_number_the_guard_cannot_read_is_refused_not_guessed() -> None:
+    """Codex P2 on #484: 1e6 produced no token at all, so any exponent passed."""
+    allowed = canonical_json({"n": 1000000, "x": 1, "y": 6})
+    for reply in ("Je to 1e6 lidí.", "Asi 2,5E-3.", "Hodnota -1e6."):
+        refused = _valid({"reply": reply}, allowed)
+        assert not refused.ok, reply
+        assert "cannot be checked" in refused.violations[0]
+    assert unreadable_numbers("1e6 a 2,5E-3 a q1e6") == ["1e6", "2,5E-3"]
+    assert _valid({"reply": "Je to 1\u00a0000\u00a0000 lidí."}, allowed).ok
 
 
 def test_a_number_in_another_field_is_not_the_replys() -> None:

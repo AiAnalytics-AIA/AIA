@@ -81,6 +81,7 @@ __all__ = [
     "number_tokens",
     "question_add_problem",
     "split_self_update",
+    "unreadable_numbers",
 ]
 
 LEAD_PROMPT_ID: Final = "aia.research.lead"
@@ -360,23 +361,40 @@ class LeadOutput(Closed):
 
 #: A number as a person writes one: digits, thousands grouped by a space (also NBSP or a
 #: narrow NBSP), a decimal comma or point. Not inside a word: ``q3`` is an id, not a three.
-_NUMBER = re.compile(r"(?<![\w.,])\d+(?:[ \u00a0\u202f]\d{3})*(?:[.,]\d+)?(?![\w])")
+#: A leading minus (``-`` or U+2212) is the number's sign only where it does not join two
+#: words or numbers: in ``2026-10-19`` it is a hyphen, so ``10`` and ``19`` stay unsigned.
+_NUMBER = re.compile(
+    r"(?P<sign>(?<![\w.,])[-\u2212])?"
+    r"(?<![\w.,])(?P<num>\d+(?:[ \u00a0\u202f]\d{3})*(?:[.,]\d+)?)(?![\w])"
+)
+#: A number this guard cannot read exactly: one with an exponent (``1e6``, ``2,5E-3``). Its
+#: digits touch a letter, so ``_NUMBER`` sees nothing; a reply writing one is refused, never
+#: read as some other number (Codex on #484).
+_EXPONENT = re.compile(r"(?<![\w.,])[-\u2212+]?\d+(?:[.,]\d+)?[eE][-+\u2212]?\d+(?![\w])")
 
 
-def _canonical_number(token: str) -> str | None:
+def _canonical_number(sign: str | None, token: str) -> str | None:
     plain = re.sub(r"[ \u00a0\u202f]", "", token).replace(",", ".")
     try:
         value = Decimal(plain)
     except InvalidOperation:  # pragma: no cover - the pattern admits only numbers
         return None
     text = format(value.normalize(), "f")
-    return text if "." not in text else text.rstrip("0").rstrip(".")
+    text = text if "." not in text else text.rstrip("0").rstrip(".")
+    # A sign is part of the number: -5 is not 5. Zero has none to keep.
+    return f"-{text}" if sign and value != 0 else text
 
 
 def number_tokens(text: str) -> frozenset[str]:
-    """Every number written in ``text``, canonical: ``12,50`` and ``12.5`` are one number."""
-    found = (_canonical_number(m.group(0)) for m in _NUMBER.finditer(text))
+    """Every number written in ``text``, canonical and signed: ``12,50`` and ``12.5`` are one
+    number, ``-5`` (or ``\u22125``) another than ``5``."""
+    found = (_canonical_number(m.group("sign"), m.group("num")) for m in _NUMBER.finditer(text))
     return frozenset(n for n in found if n is not None)
+
+
+def unreadable_numbers(text: str) -> list[str]:
+    """The numbers in ``text`` written in a form the guard cannot read exactly (exponents)."""
+    return [m.group(0) for m in _EXPONENT.finditer(text)]
 
 
 def lead_contract(allowed_text: str) -> type[LeadOutput]:
@@ -392,6 +410,13 @@ def lead_contract(allowed_text: str) -> type[LeadOutput]:
 
         @model_validator(mode="after")
         def _numbers_from_the_context(self) -> CheckedLeadOutput:
+            unreadable = unreadable_numbers(self.reply)
+            if unreadable:
+                raise ValueError(
+                    "reply writes numbers in a form that cannot be checked: "
+                    + ", ".join(unreadable[:10])
+                    + "; write a number out in digits as the context holds it, or none"
+                )
             unknown = sorted(number_tokens(self.reply) - allowed)
             if unknown:
                 raise ValueError(
