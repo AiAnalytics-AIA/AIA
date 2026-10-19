@@ -61,8 +61,12 @@ def _floats(value: Any) -> np.ndarray[Any, np.dtype[np.float64]]:
 
 
 def _prepared(name: str) -> PreparedInputs:
+    return _prepare(_floats(STUDIES[name]["ratings"]))
+
+
+def _prepare(ratings: np.ndarray[Any, np.dtype[np.float64]]) -> PreparedInputs:
     return prepare(
-        _floats(STUDIES[name]["ratings"]),
+        ratings,
         n_min=10,
         layout_floor=5,
         layout_weight_full_at=20,
@@ -156,6 +160,31 @@ def test_the_object_map_records_the_baseline_corrected_relations_under_aia_socio
     # Earlier presets record no note: their stored maps read byte for byte as before.
     v4 = compute_object_map(_inputs(name), AIA_SOCIOMAP_V4, connectedness_interval=False)
     assert "sparse_design" not in v4.model_dump(mode="json")
+
+
+def test_a_pair_whose_two_halves_differ_in_the_last_bit_is_recorded_once() -> None:
+    # The methodology computes r~[i, j] and r~[j, i] separately: on ordinary complete data
+    # they differ in the last bit, and the map must still record one value a pair.
+    ratings = np.random.default_rng(0).integers(1, 11, size=(40, 7)).astype(float)
+    rt = _prepare(ratings).rt
+    assert (np.nan_to_num(rt) != np.nan_to_num(rt).T).any()
+    ids = tuple(f"o{j}" for j in range(7))
+    people = tuple(f"r{k}" for k in range(40))
+    inputs = ObjectMapInputs(
+        respondent_ids=people,
+        donor_ids=people,
+        items=tuple(RatingItem(item_id=i, scale_min=1, scale_max=10) for i in ids),
+        values=tuple(tuple(row) for row in ratings.tolist()),
+        weights=(1.0,) * 40,
+        object_ids=ids,
+        object_items=ids,
+        roles=dict.fromkeys(ids, ObjectRole.PRIMARY.value),
+    )
+    artifact = compute_object_map(inputs, AIA_SOCIOMAP_V5, connectedness_interval=False)
+    assert artifact.outcome == "MAPPED"
+    for i in range(7):
+        for j in range(i + 1, 7):
+            assert artifact.relations.r[i][j] == artifact.relations.r[j][i] == float(rt[i, j])
 
 
 def test_the_baseline_corrected_relation_is_declared_whole_and_only_by_itself() -> None:

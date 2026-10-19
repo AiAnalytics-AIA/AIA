@@ -79,6 +79,7 @@ __all__ = [
     "SPEC_CONTRACT_VERSION",
     "ConnectednessSpec",
     "DissimilarityTarget",
+    "IntervalMdsSpec",
     "KernelWidthBasis",
     "LayoutSpec",
     "MapFrameMethod",
@@ -103,6 +104,7 @@ __all__ = [
     "ScaleNormalization",
     "SociomapSpec",
     "SociomapSpecV3",
+    "SoftRankSpearmanSpec",
     "TerrainMethod",
     "TerrainSpec",
     "UnknownSpecContract",
@@ -422,6 +424,49 @@ class NoiseRuleSpec(_Frozen):
         return _not_boolean(v)
 
 
+class SoftRankSpearmanSpec(_Frozen):
+    """The signed-off layout's soft-rank Spearman with Coulomb repulsion: it places maps of
+    ``min_objects`` to ``max_objects`` objects (Interval MDS the others), with repulsion weight
+    ``repulsion_weight``, ``restarts_below_ten_objects`` restarts below ten objects and
+    ``restarts`` from ten on, random starts from ``seed``, at most ``max_passes`` passes each."""
+
+    min_objects: int
+    max_objects: int
+    repulsion_weight: float
+    restarts_below_ten_objects: int
+    restarts: int
+    seed: int
+    max_passes: int
+
+    @field_validator(
+        "min_objects",
+        "max_objects",
+        "repulsion_weight",
+        "restarts_below_ten_objects",
+        "restarts",
+        "seed",
+        "max_passes",
+        mode="before",
+    )
+    @classmethod
+    def _no_bool(cls, v: object) -> object:
+        return _not_boolean(v)
+
+
+class IntervalMdsSpec(_Frozen):
+    """The signed-off layout's Interval MDS: the classical start and ``random_starts`` random
+    starts; a pair below the layout floor is pushed apart only when drawn closer than
+    ``floor_fraction`` of the fitted distance of two unrelated objects."""
+
+    random_starts: int
+    floor_fraction: float
+
+    @field_validator("random_starts", "floor_fraction", mode="before")
+    @classmethod
+    def _no_bool(cls, v: object) -> object:
+        return _not_boolean(v)
+
+
 class PairEvidenceSpec(_Frozen):
     """How a pair's relation is estimated and what it can be said to be (F3)."""
 
@@ -480,6 +525,14 @@ class ObjectLayoutSpec(_Frozen):
     layout_floor: int | None = None
     sparse_share: float | None = None
     min_layout_partners: int | None = None
+    #: The signed-off layout (``aia-sociomap-5``): a layout pair's weight reaches 1 at
+    #: ``layout_weight_full_at`` co-raters; the precision weights are floored at the largest
+    #: over ``precision_weight_cap``; and its two methods. ``None`` under every other
+    #: algorithm, left out of the stored form.
+    layout_weight_full_at: int | None = None
+    precision_weight_cap: float | None = None
+    soft_rank_spearman: SoftRankSpearmanSpec | None = None
+    interval_mds: IntervalMdsSpec | None = None
 
     @field_validator(
         "max_iterations",
@@ -488,6 +541,8 @@ class ObjectLayoutSpec(_Frozen):
         "layout_floor",
         "sparse_share",
         "min_layout_partners",
+        "layout_weight_full_at",
+        "precision_weight_cap",
         mode="before",
     )
     @classmethod
@@ -508,9 +563,17 @@ class ObjectLayoutSpec(_Frozen):
         return body
 
 
-#: :class:`ObjectLayoutSpec`'s layout-pair fields, declared exactly under the
-#: baseline-corrected estimator.
-_LAYOUT_PAIR_FIELDS: Final = ("layout_floor", "sparse_share", "min_layout_partners")
+#: :class:`ObjectLayoutSpec`'s layout-pair and signed-off layout fields, declared exactly
+#: under the baseline-corrected estimator, which only the signed-off layout lays out.
+_LAYOUT_PAIR_FIELDS: Final = (
+    "layout_floor",
+    "sparse_share",
+    "min_layout_partners",
+    "layout_weight_full_at",
+    "precision_weight_cap",
+    "soft_rank_spearman",
+    "interval_mds",
+)
 
 
 class TerrainMethod(StrEnum):
@@ -655,10 +718,10 @@ def _require_supported_v3(spec: SociomapSpecV3) -> None:
     except LayoutUnavailable as exc:
         problems["layout.algorithm"] = exc.reason
     else:
-        if algorithm is not LayoutAlgorithm.AIA_SMACOF_OBJECTS_V1:
+        if algorithm not in _OBJECT_LAYOUTS:
             problems["layout.algorithm"] = (
                 f"{algorithm.value} places respondents and objects together (contract 2); "
-                "contract 3 maps the objects alone by aia_smacof_objects_v1"
+                "contract 3 maps the objects alone"
             )
     if layout.dissimilarity != DissimilarityTarget.CORRELATION_DISTANCE:
         problems["layout.dissimilarity"] = (
@@ -680,10 +743,15 @@ def _require_supported_v3(spec: SociomapSpecV3) -> None:
         )
     if not _member(ObjectHeightMetric, spec.scores.height):
         problems["scores.height"] = f"unknown height {spec.scores.height!r}"
-    if layout.min_objects is not None and layout.min_objects < LEGACY_MIN_OBJECTS:
+    least = (
+        _SIGNED_OFF_MIN_OBJECTS
+        if layout.algorithm == LayoutAlgorithm.SOFT_RANK_SPEARMAN_OR_INTERVAL_MDS
+        else LEGACY_MIN_OBJECTS
+    )
+    if layout.min_objects is not None and layout.min_objects < least:
         problems["layout.min_objects"] = (
-            f"a map needs at least {LEGACY_MIN_OBJECTS} objects: two points have no shape and "
-            f"the layout refuses fewer; got {layout.min_objects}"
+            f"a map needs at least {least} objects: SMACOF needs three, the signed-off layout "
+            f"draws two at their target distance and one has no map; got {layout.min_objects}"
         )
     if layout.stress_bands is not None:
         bands = layout.stress_bands
@@ -715,9 +783,21 @@ def _require_supported_v3(spec: SociomapSpecV3) -> None:
         raise UnsupportedMethodology(problems)
 
 
+#: The layouts contract 3 maps the objects alone by.
+_OBJECT_LAYOUTS: Final = (
+    LayoutAlgorithm.AIA_SMACOF_OBJECTS_V1,
+    LayoutAlgorithm.SOFT_RANK_SPEARMAN_OR_INTERVAL_MDS,
+)
+#: The fewest objects the signed-off layout maps: Interval MDS draws two at their distance.
+_SIGNED_OFF_MIN_OBJECTS: Final = 2
+
 #: ``relation.confidence`` under the baseline-corrected relation: required by the shape, read
 #: by nothing, so held at ``aia-sociomap-4``'s value.
 _UNREAD_CONFIDENCE: Final = 0.95
+#: SMACOF's ``layout.max_iterations`` and ``layout.tolerance`` under the signed-off layout:
+#: required by the shape, read by nothing, so held at ``aia-sociomap-4``'s values.
+_UNREAD_MAX_ITERATIONS: Final = 5000
+_UNREAD_TOLERANCE: Final = 1e-12
 
 
 def _baseline_corrected_problems(spec: SociomapSpecV3) -> dict[str, str]:
@@ -727,6 +807,13 @@ def _baseline_corrected_problems(spec: SociomapSpecV3) -> dict[str, str]:
     problems: dict[str, str] = {}
     rel, layout = spec.relation, spec.layout
     corrected = rel.estimator == RelationEstimator.BASELINE_CORRECTED_PEARSON
+    if corrected != (layout.algorithm == LayoutAlgorithm.SOFT_RANK_SPEARMAN_OR_INTERVAL_MDS):
+        problems["layout.algorithm"] = (
+            "the signed-off layout reads the baseline-corrected relation's layout pairs, and "
+            "that relation is laid out by nothing else: declare "
+            "aia_soft_rank_spearman_or_interval_mds_v1 with baseline_corrected_pearson, never "
+            "one without the other"
+        )
     if corrected != (spec.ratings.person_normalization == PersonNormalization.PERSON_MEAN_CENTRING):
         problems["ratings.person_normalization"] = (
             "the baseline-corrected relation reads each person's mean-centred ratings and "
@@ -784,6 +871,61 @@ def _baseline_corrected_problems(spec: SociomapSpecV3) -> dict[str, str]:
     partners = layout.min_layout_partners
     if partners is not None and partners < 0:
         problems["layout.min_layout_partners"] = f"a count of partners; got {partners}"
+    if layout.stress_bands is not None:
+        problems["layout.stress_bands"] = (
+            "the signed-off layout computes no Stress-1, so it has no bands; declare null"
+        )
+    if layout.max_iterations != _UNREAD_MAX_ITERATIONS:
+        problems["layout.max_iterations"] = (
+            f"the signed-off layout reads no SMACOF iterations; keep {_UNREAD_MAX_ITERATIONS} so "
+            "the unread value is never taken for an edit"
+        )
+    if layout.tolerance != _UNREAD_TOLERANCE:
+        problems["layout.tolerance"] = (
+            f"the signed-off layout reads no SMACOF tolerance; keep {_UNREAD_TOLERANCE} so the "
+            "unread value is never taken for an edit"
+        )
+    full_at = layout.layout_weight_full_at
+    if full_at is not None and full_at <= 3:
+        problems["layout.layout_weight_full_at"] = (
+            f"a layout weight is (n - 3) / (n_full - 3): n_full lies above 3; got {full_at}"
+        )
+    cap = layout.precision_weight_cap
+    if cap is not None and not (math.isfinite(cap) and cap >= 1.0):
+        problems["layout.precision_weight_cap"] = f"a cap is at least 1; got {cap!r}"
+    problems.update(_soft_rank_spearman_problems(layout.soft_rank_spearman))
+    imds = layout.interval_mds
+    if imds is not None and imds.random_starts < 0:
+        problems["layout.interval_mds.random_starts"] = (
+            f"a count of random starts; got {imds.random_starts}"
+        )
+    fraction = None if imds is None else imds.floor_fraction
+    if fraction is not None and not (math.isfinite(fraction) and 0 <= fraction <= 1):
+        problems["layout.interval_mds.floor_fraction"] = (
+            f"a fraction of the unrelated distance lies in [0, 1]; got {fraction!r}"
+        )
+    return problems
+
+
+def _soft_rank_spearman_problems(srs: SoftRankSpearmanSpec | None) -> dict[str, str]:
+    problems: dict[str, str] = {}
+    if srs is None:
+        return problems
+    path = "layout.soft_rank_spearman"
+    if not _SIGNED_OFF_MIN_OBJECTS <= srs.min_objects <= srs.max_objects:
+        problems[f"{path}.min_objects"] = (
+            f"{_SIGNED_OFF_MIN_OBJECTS} <= min_objects <= max_objects; got {srs.min_objects} and "
+            f"{srs.max_objects}"
+        )
+    if not (math.isfinite(srs.repulsion_weight) and srs.repulsion_weight >= 0):
+        problems[f"{path}.repulsion_weight"] = (
+            f"a repulsion weight is non-negative; got {srs.repulsion_weight!r}"
+        )
+    for key in ("restarts_below_ten_objects", "restarts", "max_passes"):
+        if getattr(srs, key) < 1:
+            problems[f"{path}.{key}"] = f"at least 1; got {getattr(srs, key)}"
+    if srs.seed < 0:
+        problems[f"{path}.seed"] = f"the generator's seed is a non-negative integer; got {srs.seed}"
     return problems
 
 
@@ -952,7 +1094,7 @@ def require_supported(spec: SociomapSpec | SociomapSpecV3) -> None:
     except LayoutUnavailable as exc:
         problems["layout.algorithm"] = exc.reason
     else:
-        if algorithm is LayoutAlgorithm.AIA_SMACOF_OBJECTS_V1:
+        if algorithm in _OBJECT_LAYOUTS:
             problems["layout.algorithm"] = _CONTRACT_3_ONLY
         if algorithm is LayoutAlgorithm.AIA_ROWCOND_UNFOLDING_V1:
             try:
@@ -1114,12 +1256,12 @@ AIA_SOCIOMAP_V4 = AIA_SOCIOMAP_V3.model_copy(
     }
 )
 
-# The signed-off AIA Sociomapa methodology's input stage (plan
-# ``signed-off-sociomap-method``): each person's raw ratings mean-centred, the unweighted
-# baseline-corrected relation with its status floor, Benjamini-Hochberg with the noise rule,
-# the layout pairs and the sparse-design note; every value the methodology's own. The objects
-# are still placed by ``aia-sociomap-4``'s SMACOF, on the corrected relations. Not pinned by
-# default and not in the register: a run gets it only through a methodology version.
+# The signed-off AIA Sociomapa methodology (plan ``signed-off-sociomap-method``): each person's
+# raw ratings mean-centred, the unweighted baseline-corrected relation with its status floor,
+# Benjamini-Hochberg with the noise rule, the layout pairs and the sparse-design note; the
+# objects placed by soft-rank Spearman with Coulomb repulsion or, by the fixed object-count
+# rule, Interval MDS; no Stress-1; every value the methodology's own. Not pinned by default
+# and not in the register: a run gets it only through a methodology version.
 AIA_SOCIOMAP_V5 = AIA_SOCIOMAP_V4.model_copy(
     update={
         "methodology_version": "aia-sociomap-5",
@@ -1138,9 +1280,24 @@ AIA_SOCIOMAP_V5 = AIA_SOCIOMAP_V4.model_copy(
         ),
         "layout": AIA_SOCIOMAP_V4.layout.model_copy(
             update={
+                "algorithm": LayoutAlgorithm.SOFT_RANK_SPEARMAN_OR_INTERVAL_MDS,
+                "min_objects": _SIGNED_OFF_MIN_OBJECTS,
+                "stress_bands": None,
                 "layout_floor": 5,
                 "sparse_share": 0.30,
                 "min_layout_partners": 3,
+                "layout_weight_full_at": 20,
+                "precision_weight_cap": 20.0,
+                "soft_rank_spearman": SoftRankSpearmanSpec(
+                    min_objects=4,
+                    max_objects=163,
+                    repulsion_weight=0.15,
+                    restarts_below_ten_objects=15,
+                    restarts=10,
+                    seed=1,
+                    max_passes=500,
+                ),
+                "interval_mds": IntervalMdsSpec(random_starts=2, floor_fraction=0.5),
             }
         ),
     }

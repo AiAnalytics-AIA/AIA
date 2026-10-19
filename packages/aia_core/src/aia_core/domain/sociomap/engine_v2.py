@@ -62,8 +62,17 @@ from .models_v3 import (
 )
 from .pairs import PairRelations, derive_pair_relations
 from .relations import PairStatus, person_minmax
-from .signed_off_inputs import LAYOUT_WEIGHT_FULL_AT, PRECISION_WEIGHT_CAP, prepare
+from .signed_off_inputs import PreparedInputs, prepare
+from .signed_off_layout import (
+    SMACOF_ITMAX,
+    PositionMethod,
+    choose_method,
+    interval_mds,
+    soft_rank_spearman,
+    to_ruler,
+)
 from .slots import (
+    DISTANCE,
     EFFECT_FLOOR,
     EFFECTIVE_N,
     HEIGHT,
@@ -165,8 +174,8 @@ CONNECTEDNESS_NOT_IN_METHOD: Final = {
         "relation; the baseline-corrected relation of this method has no such interval"
     ),
 }
-#: The formulas a version may replace that the baseline-corrected relation never reads: a
-#: replacement would be stored and silently do nothing, so it is refused.
+#: The formulas a version may replace that the baseline-corrected relation and its signed-off
+#: layout never read: a replacement would be stored and silently do nothing, so it is refused.
 _UNREAD_BY_BASELINE_CORRECTED: Final = (
     PERSON,
     EFFECTIVE_N,
@@ -174,6 +183,8 @@ _UNREAD_BY_BASELINE_CORRECTED: Final = (
     INTERVAL_HIGH,
     EFFECT_FLOOR,
     K100,
+    DISTANCE,
+    STRESS_1,
 )
 CONNECTEDNESS_OFF: Final = {
     "status": "not_computed",
@@ -332,12 +343,13 @@ def _evidence_policy(spec: SociomapSpecV3) -> dict[str, Any]:
 
 def _baseline_corrected(
     family: Sequence[Sequence[float | None]], ids: Sequence[str], spec: SociomapSpecV3
-) -> tuple[PairRelations, list[int], SparseDesign]:
+) -> tuple[PairRelations, list[int], SparseDesign, PreparedInputs]:
     """The signed-off methodology's relations (:func:`~.signed_off_inputs.prepare`) on the
     family's raw ratings, as the artifact records them: each known pair's ``r~`` and every
     pair's support ``n``; RELIABLE (Benjamini-Hochberg and the noise rule), WEAK (known, not
     reliable) or UNKNOWN (below the status floor or a column without spread: no ``r~``); no
-    interval. Also the respondents centring leaves out, and the sparse-design note."""
+    interval. Also the respondents centring leaves out, the sparse-design note and the layout
+    inputs."""
     rel, layout = spec.relation, spec.layout
     noise = rel.noise_rule
     if (
@@ -346,6 +358,8 @@ def _baseline_corrected(
         or layout.layout_floor is None
         or layout.sparse_share is None
         or layout.min_layout_partners is None
+        or layout.layout_weight_full_at is None
+        or layout.precision_weight_cap is None
     ):
         raise ValueError("the baseline-corrected relation is declared whole (require_supported)")
     m = len(ids)
@@ -356,16 +370,21 @@ def _baseline_corrected(
         ratings,
         n_min=rel.n_min,
         layout_floor=layout.layout_floor,
-        layout_weight_full_at=LAYOUT_WEIGHT_FULL_AT,
+        layout_weight_full_at=layout.layout_weight_full_at,
         false_discovery_rate=rel.false_discovery_rate,
         noise_rule=noise.enabled,
         noise_permutations=noise.permutations,
         noise_seed=noise.seed,
-        precision_weight_cap=PRECISION_WEIGHT_CAP,
+        precision_weight_cap=layout.precision_weight_cap,
         sparse_share=layout.sparse_share,
         min_layout_partners=layout.min_layout_partners,
     )
-    known, reliable = prepared.known, prepared.reliable
+    # Each pair read from its upper half: the methodology computes r~[i, j] and r~[j, i]
+    # separately, so they can differ in the last bit, and the artifact holds one value a pair.
+    upper = np.triu(np.ones((m, m), dtype=bool), 1)
+    known = np.where(upper, prepared.known, prepared.known.T)
+    reliable = np.where(upper, prepared.reliable, prepared.reliable.T)
+    rt = np.where(upper, prepared.rt, prepared.rt.T)
     status = tuple(
         tuple(
             None
@@ -381,8 +400,7 @@ def _baseline_corrected(
     )
     pairs = PairRelations(
         r=tuple(
-            tuple(float(prepared.rt[i, j]) if known[i, j] else None for j in range(m))
-            for i in range(m)
+            tuple(float(rt[i, j]) if known[i, j] else None for j in range(m)) for i in range(m)
         ),
         n=tuple(
             tuple(None if i == j else int(prepared.n[i, j]) for j in range(m)) for i in range(m)
@@ -398,7 +416,60 @@ def _baseline_corrected(
         share_below_layout_floor=prepared.sparse.share_below_layout_floor,
         weakly_connected=tuple(ids[k] for k in prepared.sparse.weakly_connected),
     )
-    return pairs, excluded, sparse
+    return pairs, excluded, sparse, prepared
+
+
+def _signed_off_layout(
+    prepared: PreparedInputs, ids: Sequence[str], spec: SociomapSpecV3
+) -> ObjectMapLayout | NotMappable:
+    """The signed-off methodology's positions: the fixed object-count rule picks soft-rank
+    Spearman with Coulomb repulsion or Interval MDS on the layout pairs, and one uniform scale
+    puts the map in ruler units. Stress-1 is not computed: it is SMACOF's measure, and the
+    methodology judges a map by its split-half check. ``converged`` is whether the kept run
+    stopped by its own rule before its cap. With no layout pair nothing places the objects:
+    not mappable."""
+    layout = spec.layout
+    srs, imds, partners = layout.soft_rank_spearman, layout.interval_mds, layout.min_layout_partners
+    if srs is None or imds is None or partners is None:
+        raise ValueError("the signed-off layout is declared whole (require_supported)")
+    m = len(ids)
+    fitted = ~prepared.unknown_layout & ~np.eye(m, dtype=bool)
+    if not fitted.any():
+        return NotMappable(
+            reason=NotMappableReason.NO_KNOWN_PAIR.value,
+            message=(
+                f"no pair reached the layout floor {layout.layout_floor}: every pair is masked, "
+                "so nothing places the objects"
+            ),
+            objects=tuple(ids),
+        )
+    method = choose_method(m, srs.min_objects, srs.max_objects)
+    if method is PositionMethod.SOFT_RANK_SPEARMAN_COULOMB:
+        run = soft_rank_spearman(
+            prepared,
+            repulsion_weight=srs.repulsion_weight,
+            seed=srs.seed,
+            restarts_below_ten_objects=srs.restarts_below_ten_objects,
+            restarts=srs.restarts,
+            max_passes=srs.max_passes,
+            min_partners=partners,
+        )
+        xy, iterations, converged = run.points, run.passes, run.passes < srs.max_passes
+    else:
+        xy, iterations = interval_mds(
+            prepared, starts=imds.random_starts, kappa=imds.floor_fraction
+        )
+        converged = iterations < SMACOF_ITMAX
+    ruler = to_ruler(xy, prepared.delta_layout, fitted)
+    return ObjectMapLayout(
+        points=tuple((float(x), float(y)) for x, y in ruler),
+        extent=layout.map_frame.extent,
+        known_pairs=int(fitted.sum()) // 2,
+        iterations=iterations,
+        converged=converged,
+        start_fill=None,
+        method=method.value,
+    )
 
 
 def compute_object_map(
@@ -422,18 +493,21 @@ def compute_object_map(
     ids = list(inputs.object_ids)
     m = len(ids)
     sparse: SparseDesign | None = None
+    prepared: PreparedInputs | None = None
     corrected = evidence.estimator == RelationEstimator.BASELINE_CORRECTED_PEARSON
     if corrected and (unread := [s for s in _UNREAD_BY_BASELINE_CORRECTED if s in slots]):
         raise UnsupportedMethodology(
             dict.fromkeys(
-                unread, "the baseline-corrected relation does not read this formula; remove it"
+                unread,
+                "the baseline-corrected relation and its layout do not read this formula; "
+                "remove it",
             )
         )
     if corrected:
         # The signed-off methodology reads the raw ratings of the mapped objects, unweighted.
         family = [[row[c] for c in columns] for row in inputs.values]
         policy: dict[str, Any] = {}
-        pairs, excluded, sparse = _baseline_corrected(family, ids, spec)
+        pairs, excluded, sparse, prepared = _baseline_corrected(family, ids, spec)
         not_placed = {inputs.respondent_ids[k]: NOT_PLACED_NO_SPREAD_OBJECTS for k in excluded}
     else:
         person = person_minmax(scaled, slots=slots)
@@ -464,6 +538,13 @@ def compute_object_map(
             message=f"an object map needs at least {needed} objects; the family has {m}",
             objects=tuple(ids),
         )
+    elif prepared is not None:
+        # The signed-off layout places every object, related or not: no known-pair check.
+        placed = _signed_off_layout(prepared, ids, spec)
+        if isinstance(placed, NotMappable):
+            not_mappable = placed
+        else:
+            layout = placed
     elif not any(any(row) for row in known):
         not_mappable = NotMappable(
             reason=NotMappableReason.NO_KNOWN_PAIR.value,

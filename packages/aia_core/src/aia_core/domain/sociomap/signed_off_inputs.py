@@ -28,15 +28,13 @@ Pure: no I/O; the only randomness is the noise rule's seeded generator.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Final
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
 from scipy.stats import norm
 
 __all__ = [
-    "LAYOUT_WEIGHT_FULL_AT",
-    "PRECISION_WEIGHT_CAP",
     "PreparedInputs",
     "SparseDesignNote",
     "bh",
@@ -52,12 +50,6 @@ __all__ = [
 
 Floats = NDArray[np.float64]
 Flags = NDArray[np.bool_]
-
-#: The methodology's layout weight reaches 1 at this many co-raters, and its precision weights
-#: are floored at the largest over this cap. They shape only the layout inputs, which no layout
-#: reads yet, so they become specification fields with the layout that reads them.
-LAYOUT_WEIGHT_FULL_AT: Final = 20
-PRECISION_WEIGHT_CAP: Final = 20.0
 
 
 def centre(ratings: Floats) -> Floats:

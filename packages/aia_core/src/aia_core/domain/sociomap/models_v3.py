@@ -233,13 +233,27 @@ class ObjectMapLayout(_Frozen):
 
     points: tuple[Point, ...]
     extent: float
-    stress_1: float
-    raw_stress: float
-    quality: str
+    #: The SMACOF fit and its band. ``None`` under the signed-off layout (``aia-sociomap-5``),
+    #: which does not compute Stress-1, and left out of the stored form.
+    stress_1: float | None = None
+    raw_stress: float | None = None
+    quality: str | None = None
     known_pairs: int
     iterations: int
     converged: bool
     start_fill: float | None
+    #: Which method placed the objects under the signed-off layout (``aia-sociomap-5``):
+    #: ``soft_rank_spearman_coulomb`` or ``interval_mds``. ``None`` (SMACOF) is left out of
+    #: the stored form, so every map stored before it reads, and recomputes, byte for byte.
+    method: str | None = None
+
+    @model_serializer(mode="wrap")
+    def _without_absent(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        body: dict[str, Any] = handler(self)
+        for key in ("stress_1", "raw_stress", "quality", "method"):
+            if body.get(key) is None:
+                body.pop(key, None)
+        return body
 
     @field_validator("points")
     @classmethod
@@ -248,6 +262,16 @@ class ObjectMapLayout(_Frozen):
             if not (math.isfinite(x) and math.isfinite(y)):
                 raise ValueError(f"points[{i}] must be finite")
         return v
+
+    @model_validator(mode="after")
+    def _stress_exactly_for_smacof(self) -> Self:
+        recorded = [v is not None for v in (self.stress_1, self.raw_stress, self.quality)]
+        if not (all(recorded) if self.method is None else not any(recorded)):
+            raise ValueError(
+                "a SMACOF layout records stress_1, raw_stress and quality; the signed-off "
+                "layout (a method) records none of them"
+            )
+        return self
 
 
 class NotComputed(_Frozen):

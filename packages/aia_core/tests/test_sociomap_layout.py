@@ -59,6 +59,7 @@ def test_the_implemented_algorithms_are_the_unfolding_and_the_object_map() -> No
     assert implemented == [
         LayoutAlgorithm.AIA_ROWCOND_UNFOLDING_V1,
         LayoutAlgorithm.AIA_SMACOF_OBJECTS_V1,
+        LayoutAlgorithm.SOFT_RANK_SPEARMAN_OR_INTERVAL_MDS,
     ]
     assert set(LAYOUT_ALGORITHMS) == set(LayoutAlgorithm)
 

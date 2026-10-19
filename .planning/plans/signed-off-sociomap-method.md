@@ -4,7 +4,7 @@ chunks:
   - "[x] 0. This plan; baseline on develop 64cc1380; the methodology's own self-test (60/60) as the reference"
   - "[x] 1. numpy, scipy and numba as aia-core dependencies; the domain numpy rule lifted"
   - "[x] 2. Input ratings and object relations: per-person centring, the unrelated baseline, pair floors, Benjamini–Hochberg with the noise rule, the sparse-design note; preset aia-sociomap-5 created"
-  - "[ ] 3. Object positions: soft-rank Spearman with Coulomb repulsion (BB1), Interval MDS for large maps by a fixed object-count rule"
+  - "[x] 3. Object positions: soft-rank Spearman with Coulomb repulsion (BB1), Interval MDS for large maps by a fixed object-count rule"
   - "[ ] 4. Height and terrain: mean rating, relative heights with a floor, ruler and frame scaling, the envelope terrain, node size and label note for large maps"
   - "[ ] 5. Map credibility: split-half agreement, the no-reliable-structure statement, one uncertainty radius per map"
   - "[ ] 6. Respondent map: vector-model placement, the chance test for placed / faded, the respondent terrain, the indicative note below six objects"
@@ -89,12 +89,23 @@ and 0.68/2.5).
 - Survey weights: the methodology computes relations and object height unweighted, so
   `-5` does too (`-3` weights them): relations from chunk 2, height from chunk 4. Open
   question for the methodology owner, to revisit.
+- A platform-independent BB1 map. With the same numpy/scipy/numba versions, macOS and
+  Linux give the same inputs and Interval MDS maps but can give different BB1 maps from
+  12 objects on (last-bit differences in the compiled kernel, amplified by the chaotic
+  criterion; both maps fit equally well). A given image is deterministic. The parity tests
+  are exact where the method is deterministic and statistical for full BB1 runs; open
+  question for the methodology owner.
 
 ## Doc follow-up
 
 - `ARCHITECTURE.md:50` "Stdlib + Pydantic only — numerical code included" → the domain may
   use numpy, scipy and numba (agreed 2026-10-19).
 - CLAUDE.md §2: the `aia-sociomap-5` preset, its modules and the new Metodika section.
+- Where the Python image's environment is described: `NUMBA_CACHE_DIR=/tmp/numba` (the
+  develop containers are read-only except `/tmp`; numba raises at import without it).
+- Where the object-map artifact is described: under `aia-sociomap-5` the layout records
+  `method` (`soft_rank_spearman_coulomb` or `interval_mds`) and no `stress_1`,
+  `raw_stress` or `quality`.
 
 ## Findings
 

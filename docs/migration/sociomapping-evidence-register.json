@@ -2327,7 +2327,7 @@
     }
    ],
    "formula": "c_ki = a_ki - mean_l a_kl (k left out when L_k < 2 or max |c_k| <= 1e-12); r_ij = clip(cov / sqrt(v_i v_j), +-0.999999) over the co-raters; r0_ij = -(1 / n_ij) sum_k 1 / (L_k - 1); r~_ij = (r_ij - r0_ij) / (1 - r0_ij); z = (atanh r_ij - atanh clip(r0_ij, +-0.999)) sqrt(max(n_ij - 3, 1e-9)), p = 2 (1 - Phi(|z|)); known iff n_ij >= n_min and v_i, v_j > 1e-12; RELIABLE iff BH(q) keeps the pair and |r~_ij| > the 95th percentile of the shuffled |r~|; WEAK if known and not reliable; UNKNOWN otherwise; layout weight min(1, max(0, (n - 3) / (n_full - 3))) for n >= n_L, else 0; sparse iff share(w_L = 0) > s or some object has fewer than p_min partners with w_L > 0",
-   "applies_to": "aia-sociomap-5's object map: its relations, pair statuses and sparse-design note (engine_v2.compute_object_map); the layout pairs, layout weights and precision weights are computed for the methodology's own layout, which reads them once it is ported.",
+   "applies_to": "aia-sociomap-5's object map: its relations, pair statuses and sparse-design note (engine_v2.compute_object_map), and the layout pairs, layout weights and precision weights its layout reads (rule AIA-SIGNED-OFF-LAYOUT).",
    "implementation": "aia_core.domain.sociomap.signed_off_inputs:prepare",
    "validation": [
     {
@@ -2341,7 +2341,54 @@
      "what": "the object map records r~, n, the three statuses and the sparse-design note the port computes"
     }
    ],
-   "uncertainty": "The methodology is AIA's own, signed off by its owner; no external source states it. It is unweighted and reads the raw ratings of the mapped objects on their own scale, so respondent weights and the other rating items do not enter the relations. The noise rule's complete-data path does not leave out respondents without spread (the methodology's own approximation), and on incomplete data it takes half the shuffles. Until the methodology's own layout is ported, aia-sociomap-5 places the objects by SMACOF on sqrt(2 (1 - r~)) over the known pairs.",
+   "uncertainty": "The methodology is AIA's own, signed off by its owner; no external source states it. It is unweighted and reads the raw ratings of the mapped objects on their own scale, so respondent weights and the other rating items do not enter the relations. The noise rule's complete-data path does not leave out respondents without spread (the methodology's own approximation), and on incomplete data it takes half the shuffles.",
+   "resolve_by": "plan signed-off-sociomap-method",
+   "question": null
+  },
+  {
+   "id": "AIA-SIGNED-OFF-LAYOUT",
+   "title": "Object positions: soft-rank Spearman with Coulomb repulsion or Interval MDS by a fixed object-count rule, scaled to the ruler",
+   "product": "AIA",
+   "label": "PROPOSED",
+   "sources": [
+    {
+     "document": "AIA_SOCIOMAPA_METHOD",
+     "page": null,
+     "section": "layout.py: choose_method, make_layout; srs_coulomb_bb1.py: srs_coulomb_bb1, bb1_fast and its compiled kernels; bb1_reference.py: prep_A, classical_start, soft_rank_rows; interval_mds.py: interval_mds, multistart, smacof (interval); sociomap_3d.py: to_ruler",
+     "states": "Maps of 4 to 163 objects are placed by soft-rank Spearman with Coulomb repulsion, the others by Interval MDS: below 4 objects the order term has no rows (each needs 3 layout partners), above 163 the soft-rank layout exceeds 30 s with the core count fixed at 10, so every machine picks the same method. Soft-rank Spearman: each row of the layout relations is min-max scaled into [1e-6, 1 - 1e-6] and compared with the row of map distances by a weighted Pearson of their soft ranks (temperature 1 / min(M, 50)^2) over the row's layout partners, rows with fewer than 3 partners left out; plus lambda = 0.15 times the Coulomb energy of the unrelated charge ((1 - r~) / 2)^2; optimised per object by Barzilai-Borwein steps with backtracking in the unit square, at most 500 passes, from a classical start and seeded random starts (seed 1; 15 restarts below 10 objects, 10 otherwise), the restart with the best hard-rank Spearman kept. Interval MDS: weighted SMACOF of the layout targets sqrt(2 (1 - r~)) with an interval transformation and precision weights 2n / ((1 - r~)(1 + r~)^2) capped 20:1, pairs below the layout floor pushed apart only when closer than half the fitted distance of two unrelated objects; the classical start and 2 random starts, the lowest normalised stress kept. The map is centred and scaled by one least-squares factor to the targets of the layout pairs."
+    }
+   ],
+   "formula": "method = soft_rank_spearman if M_min <= M <= M_max else interval_mds; soft rank: f(X) = 1/(2 N_A) sum_{i active} (1 + corr_{w_L,i}(SR_i(A), SR_i(D))) + lambda rho/P sum_{i<j} q_ij / d_ij, SR_i(v)_j = sum_{k != j} sigma((v_ij - v_ik) / tau), tau = 1/min(M,50)^2, q = ((1 - r~)/2)^2, rho = sqrt(mean d^2); X kept = argmax over restarts of the mean hard-rank Spearman; Interval MDS: min sum w_ij (c max(0, m_d + b (delta_ij - m_delta)) - d_ij)^2, w = max(pi, max pi / C) / mean, pi = 2n / ((1 - r~)(1 + r~)^2); n_ij < n_L: dhat = max(d_ij, kappa dhat(sqrt 2)), weight 1; ruler: X <- (X - mean X) sum_L d delta / sum_L d^2",
+   "applies_to": "aia-sociomap-5's object map: the coordinates on the ruler, and the method that placed them (layout.method); no Stress-1 (engine_v2.compute_object_map).",
+   "implementation": "aia_core.domain.sociomap.engine_v2:_signed_off_layout",
+   "validation": [
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_layout.py::test_the_deterministic_parts_match_the_methodologys_own_code_exactly",
+     "what": "the soft-rank layout's scaled relations, z-scored soft ranks, active rows and random starts of the methodology's own code on six seeded studies, to 1e-12"
+    },
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_layout.py::test_interval_mds_matches_the_methodologys_own_code",
+     "what": "Interval MDS maps of the methodology's own code on six studies (2 to 20 objects), to 1e-9"
+    },
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_layout.py::test_the_ruler_scale_matches_the_methodologys_own_code",
+     "what": "the ruler scale of the methodology's own maps, to 1e-12"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_layout.py::test_the_soft_rank_layout_recovers_the_planted_map",
+     "what": "a full soft-rank run orders the triplets of a planted 20-object map as its truth does (above 0.85, the methodology's own criterion), inside the unit square, its hard-rank Spearman within 0.01 of the methodology's own run"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_layout.py::test_the_object_map_records_the_signed_off_positions_under_aia_sociomap_5",
+     "what": "the object map records the ruler coordinates and the method the fixed object-count rule chose, and no Stress-1"
+    }
+   ],
+   "uncertainty": "The methodology is AIA's own, signed off by its owner; no external source states it. The soft-rank criterion is very rugged: with the same library versions macOS and Linux give the same inputs and Interval MDS maps but can give different soft-rank maps from about 12 objects on (last-bit differences in the compiled kernel), so full soft-rank runs are checked statistically, not number for number. Stress-1 and its band are not computed: they measure SMACOF's fit, and the methodology judges a map by its split-half check (ported with the map credibility). With no pair at or above the layout floor the map is not drawn, where the methodology would place the objects by the repulsion term alone.",
    "resolve_by": "plan signed-off-sociomap-method",
    "question": null
   }

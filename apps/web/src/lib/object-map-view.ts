@@ -42,7 +42,7 @@ export type ObjectMapArtifact = {
   status_counts: Record<PairState, number>;
   outcome: "MAPPED" | "NOT_MAPPABLE";
   not_mappable: { reason: string; message: string; objects: string[] } | null;
-  layout: { points: [number, number][]; extent: number; stress_1: number; quality: string; converged: boolean } | null;
+  layout: { points: [number, number][]; extent: number; stress_1?: number; quality?: string; converged: boolean } | null;
   heights: { metric: string; values: (number | null)[]; support_n: number[] };
   support: { respondents: number; placed: number; not_placed: number; effective_n: number | null; donors: number; weighting: string };
   terrain:

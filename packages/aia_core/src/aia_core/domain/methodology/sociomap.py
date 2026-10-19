@@ -80,6 +80,12 @@ _SIGNED_OFF_MAP_TEST: Final = (
     "test_the_object_map_records_the_baseline_corrected_relations_under_aia_sociomap_5"
 )
 
+_SIGNED_OFF_LAYOUT: Final = _rule("AIA-SIGNED-OFF-LAYOUT")
+_LAYOUT_TEST: Final = f"{_T}/test_sociomap_signed_off_layout.py::"
+_LAYOUT_MAP_TEST: Final = (
+    f"{_LAYOUT_TEST}test_the_object_map_records_the_signed_off_positions_under_aia_sociomap_5"
+)
+
 _CATALOGUE: Final[tuple[MethodStep, ...]] = (
     # ------------------------------------------------------------------ the method
     MethodStep(
@@ -385,20 +391,14 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         ),
         parameters=(
             ParameterRef("layout.layout_floor", "Práh páru pro rozložení n_L", "respondenti"),
-        ),
-        constants=(
-            ConstantRef(
-                f"{_S}.signed_off_inputs:LAYOUT_WEIGHT_FULL_AT",
-                "Plná váha páru od n (do specifikace přijde s rozložením, které ji čte)",
-                "respondenti",
-            ),
+            ParameterRef("layout.layout_weight_full_at", "Plná váha páru od n_plná", "respondenti"),
         ),
         evidence=(_SIGNED_OFF,),
-        tests=_SIGNED_OFF_TESTS,
+        tests=(*_SIGNED_OFF_TESTS, _LAYOUT_MAP_TEST),
         note_cs=(
             "Jen aia-sociomap-5. Páry pod prahem jsou pro rozložení maskované, ne "
-            "„nesouvisející“. Spočtou se pro rozložení metodiky, které v AIA zatím není: "
-            "SMACOF je nečte, zapisuje se z nich jen poznámka o řídkém designu."
+            "„nesouvisející“. Váhy w^L čte rozložení měkkých pořadí (BB1), cíle a váhy "
+            "přesnosti Interval MDS (kroky v části Rozložení na mapě)."
         ),
     ),
     MethodStep(
@@ -433,7 +433,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         title_cs="Síla vztahu a jeho směr",
         formula_latex=r"s_{ij} = |r_{ij}|,\qquad \operatorname{sgn} r_{ij} \text{ jako barva}",
         implements=f"{_S}.engine_v2:compute_object_map",
-        source_sha256="0cbacc42651100c5827c23bac35a6afc3d3a5c2515e7707d67d004c78247e847",
+        source_sha256="2f860868b6de5d86a98038e706c34f620e3f59aecb5fdae6636a19998823e0a2",
         evidence=(_rule("AUDIT-F4"),),
         tests=(
             f"{_T}/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input",
@@ -468,7 +468,10 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         ),
         note_cs=(
             "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 "
-            "(nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3."
+            "(nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3. "
+            "aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich "
+            "cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty "
+            "bez párů (krok Volba rozložení podle počtu objektů)."
         ),
     ),
     MethodStep(
@@ -486,6 +489,10 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         tests=(
             f"{_T}/test_sociomap_smacof_objects.py::test_the_ruler_is_the_distance_between_standardised_variables",
             f"{_T}/test_sociomap_smacof_objects.py::test_an_unknown_pair_pulls_nothing",
+        ),
+        note_cs=(
+            "aia-sociomap-5 tento vzorec nečte: cíle jeho rozložení jsou δ z r̃ nad prahem "
+            "rozložení (krok Páry pro rozložení), a náhradní vzorec proto odmítne."
         ),
     ),
     MethodStep(
@@ -522,7 +529,178 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         note_cs=(
             "Start: Torgerson (neznámému páru se jen pro start doplní průměr známých \u03b4²). "
             "Poté se mapa vycentruje, otočí do hlavních os a zrcadlí podle třetího momentu; "
-            "nikdy se nenatahuje na poloměr."
+            "nikdy se nenatahuje na poloměr. aia-sociomap-5 deklaruje algoritmus "
+            "aia_soft_rank_spearman_or_interval_mds_v1 (další kroky); iterace a toleranci "
+            "SMACOF nečte a drží je na hodnotách aia-sociomap-4."
+        ),
+    ),
+    MethodStep(
+        id="object_count_rule",
+        title_cs="Volba rozložení podle počtu objektů",
+        formula_latex=(
+            r"\text{rozložení} = \begin{cases}"
+            r"\text{Spearman měkkých pořadí s Coulombovým odpuzováním (BB1)}"
+            r" & M_{\min} \le M \le M_{\max} \\"
+            r"\text{Interval MDS} & \text{jinak} \end{cases},"
+            r"\qquad \nexists\, i < j : n_{ij} \ge n_L \;\Rightarrow\; \text{nelze zmapovat}"
+        ),
+        implements=f"{_S}.engine_v2:_signed_off_layout",
+        source_sha256="287f5dc1b6ecd888b5c5331412e3691f1ebf58f595a583d4d703bf09a34c17ca",
+        symbols=(
+            Symbol(r"M", "počet mapovaných objektů"),
+            Symbol(
+                r"M_{\min}, M_{\max}",
+                "nejméně a nejvýše objektů pro rozložení BB1 (hodnoty u dalšího kroku)",
+            ),
+        ),
+        evidence=(_SIGNED_OFF_LAYOUT,),
+        tests=(
+            f"{_LAYOUT_TEST}test_the_fixed_object_count_rule",
+            f"{_LAYOUT_TEST}test_no_pair_at_the_layout_floor_is_not_mappable",
+            _LAYOUT_MAP_TEST,
+        ),
+        note_cs=(
+            "Jen aia-sociomap-5. Pod 4 objekty nemá BB1 člen pořadí (objekt potřebuje 3 "
+            "partnery); nad 163 objektů je pomalé (odhad 1,07·10⁻³·M^2,46 s na jádro, 10 "
+            "restartů souběžně, nejvýše 30 s při pevně 10 jádrech). Pevné číslo dává stejnou "
+            "mapu na každém stroji. Která metoda mapu nakreslila, zapíše mapa (layout.method). "
+            "Bez jediného páru nad prahem rozložení nic objekty neumístí a mapa nevznikne."
+        ),
+    ),
+    MethodStep(
+        id="soft_rank_spearman_layout",
+        title_cs="Rozložení podle pořadí: Spearman měkkých pořadí s Coulombovým odpuzováním",
+        formula_latex=(
+            r"f(X) = \frac{1}{2 N_A} \sum_{i \in \mathcal{A}} \left(1 + "
+            r"\operatorname{corr}_{w^L_i}\!\left(\operatorname{SR}_i(A),"
+            r" \operatorname{SR}_i(D)\right)\right) + \lambda\, \frac{\rho}{P}"
+            r" \sum_{i<j} \frac{q_{ij}}{d_{ij}},\quad "
+            r"\operatorname{SR}_i(v)_j = \sum_{k \ne j} \sigma\!\left(\frac{v_{ij} - v_{ik}}"
+            r"{\tau}\right),\quad \tau = \frac{1}{\min(M, 50)^2},\quad "
+            r"\sigma(z) = 0 \text{ či } 1 \text{ pro } |z| \ge 40,\quad "
+            r"q_{ij} = \left(\tfrac{1 - \tilde r_{ij}}{2}\right)^2,\quad "
+            r"\rho = \sqrt{\tfrac{1}{P} \textstyle\sum_{i<j} d_{ij}^2};\quad "
+            r"x_k \leftarrow \operatorname{clip}_{[0,1]^2}\!\left(x_k - a_k"
+            r" \frac{g_k}{\lVert g_k \rVert}\right),\ "
+            r"a_k = \operatorname{clip}_{[10^{-6}, 1]}\!\left(c_k \frac{s^\top s}{s^\top y}"
+            r"\right),\ f_{\text{nový}} \le f - 10^{-4} a_k \lVert g_k \rVert"
+            r" \text{ (nejvýše 8 zkrácení)};\quad "
+            r"\hat X = \arg\max_{\text{restart}} \overline{\rho^{S}}"
+        ),
+        implements=f"{_S}.signed_off_layout:soft_rank_spearman",
+        source_sha256="72616a9efcd9c6019b0568bf680374deac82f0427ac86e544ca38f3fb44c8f5b",
+        symbols=(
+            Symbol(
+                r"A",
+                "vztahy r̃ párů pro rozložení (neznámý pár 0), v každém řádku min-max do "
+                "[10⁻⁶, 1 - 10⁻⁶]",
+            ),
+            Symbol(r"D", "vzdálenosti na mapě"),
+            Symbol(
+                r"\mathcal{A}, N_A",
+                "objekty s aspoň p_min partnery pro rozložení (krok Poznámka o řídkém "
+                "designu) a jejich počet; při plných vahách všechny",
+            ),
+            Symbol(r"w^L_i", "váhy páru pro rozložení v řádku i; nulová váha řádek nehodnotí"),
+            Symbol(r"P", "počet párů M(M - 1)/2"),
+            Symbol(r"\lambda", "váha Coulombova odpuzování"),
+            Symbol(r"s, y", "poslední krok objektu k a změna jeho gradientu (Barzilai-Borwein)"),
+            Symbol(r"c_k", "násobek kroku: 0,5 po 4 a více zkráceních, 1,1 po nejvýše jednom"),
+            Symbol(r"\overline{\rho^{S}}", "průměrný Spearman tvrdých pořadí A a D po řádcích"),
+        ),
+        parameters=(
+            ParameterRef("layout.soft_rank_spearman.min_objects", "BB1 od M_min objektů"),
+            ParameterRef("layout.soft_rank_spearman.max_objects", "BB1 do M_max objektů"),
+            ParameterRef("layout.soft_rank_spearman.repulsion_weight", "Váha odpuzování λ"),
+            ParameterRef(
+                "layout.soft_rank_spearman.restarts_below_ten_objects",
+                "Restartů pod 10 objekty",
+            ),
+            ParameterRef("layout.soft_rank_spearman.restarts", "Restartů od 10 objektů"),
+            ParameterRef("layout.soft_rank_spearman.seed", "Semínko náhodných startů"),
+            ParameterRef("layout.soft_rank_spearman.max_passes", "Nejvýše průchodů"),
+        ),
+        evidence=(_SIGNED_OFF_LAYOUT,),
+        tests=(
+            f"{_LAYOUT_TEST}test_the_deterministic_parts_match_the_methodologys_own_code_exactly",
+            f"{_LAYOUT_TEST}test_the_soft_rank_layout_recovers_the_planted_map",
+            f"{_LAYOUT_TEST}test_the_soft_rank_layout_is_deterministic_and_honours_its_restarts_and_seed",
+        ),
+        note_cs=(
+            "Jen aia-sociomap-5. První restart startuje z klasického škálování (1 - A)², "
+            "ostatní z náhodných bodů v jednotkovém čtverci; restarty běží souběžně a "
+            "výsledek na počtu vláken nezávisí. Průchod končí, když se žádný objekt nepohne "
+            "nebo když se f za 30 průchodů zlepší relativně o méně než 3·10⁻⁴. Kritérium je "
+            "velmi členité: na jednom stroji je mapa vždy stejná, mezi platformami se může "
+            "lišit v posledních bitech výpočtu a tím i výsledkem (shoda se ověřuje "
+            "statisticky)."
+        ),
+    ),
+    MethodStep(
+        id="interval_mds_layout",
+        title_cs="Rozložení podle vzdáleností: Interval MDS s jednostrannou podlahou",
+        formula_latex=(
+            r"\min_{X} \sum_{i<j} w_{ij} \left(\hat d_{ij} - d_{ij}(X)\right)^2,\quad "
+            r"\hat d_{ij} = c\, \max\!\left(0,\, m_d + b\,(\delta_{ij} - m_\delta)\right),\quad "
+            r"w_{ij} = \frac{\max\!\left(\pi_{ij}, \max \pi / C\right)}"
+            r"{\overline{w}},\ "
+            r"\pi_{ij} = \frac{2 n_{ij}}{(1 - \tilde r_{ij})(1 + \tilde r_{ij})^2};\quad "
+            r"n_{ij} < n_L:\ \hat d_{ij} = \max\!\left(d_{ij},\, \kappa\, \hat d(\sqrt 2)"
+            r"\right),\ w_{ij} = 1;\quad "
+            r"X \leftarrow V^{+} B(X)\, X \text{ (nejvýše 1500 iterací, stop při relativním "
+            r"zlepšení} < 10^{-8} \text{ po 5 iteracích)}"
+        ),
+        implements=f"{_S}.signed_off_layout:interval_mds",
+        source_sha256="e3acc16205487d887282faf9e3242e399ee3c06c67a17c29c16055c25f480baf",
+        symbols=(
+            Symbol(r"\delta_{ij}", "cíl √(2(1 - r̃)) páru pro rozložení"),
+            Symbol(r"m_d, m_\delta, b", "vážená regrese vzdáleností na cíle (b ≤ 0: konstanta)"),
+            Symbol(r"c", "normování, aby Σ w d̂² byl počet párů"),
+            Symbol(r"\tilde r_{ij}", "vztah páru, pro váhu oříznutý na ±0,95"),
+            Symbol(r"C", "strop poměru vah přesnosti"),
+            Symbol(r"\kappa", "podíl vzdálenosti nesouvisejících objektů, pod který pár nesmí"),
+        ),
+        parameters=(
+            ParameterRef("layout.interval_mds.random_starts", "Náhodných startů"),
+            ParameterRef("layout.interval_mds.floor_fraction", "Podlaha κ"),
+            ParameterRef("layout.precision_weight_cap", "Strop vah přesnosti C"),
+        ),
+        evidence=(_SIGNED_OFF_LAYOUT,),
+        tests=(
+            f"{_LAYOUT_TEST}test_interval_mds_matches_the_methodologys_own_code",
+            _LAYOUT_MAP_TEST,
+        ),
+        note_cs=(
+            "Jen aia-sociomap-5. Starty: Torgerson (nenapasovaný pár dostane průměrný cíl, "
+            "znaménka os podle třetího momentu, posun 10⁻⁶ z generátoru 0) a náhodné starty z "
+            "generátorů 1001, 1002, …; ponechá se start s nejnižším normovaným stresem. Pár "
+            "pod prahem rozložení netlačí, dokud není blíž než κ násobek vzdálenosti "
+            "nesouvisejících objektů."
+        ),
+    ),
+    MethodStep(
+        id="ruler_scale",
+        title_cs="Převod na pravítko: jedno společné měřítko",
+        formula_latex=(
+            r"X \leftarrow (X - \bar X)\, \frac{\sum_{(i,j) \in \mathcal{L}} d_{ij}\,\delta_{ij}}"
+            r"{\sum_{(i,j) \in \mathcal{L}} d_{ij}^2},\qquad "
+            r"\mathcal{L} = \emptyset \;\Rightarrow\; X \leftarrow (X - \bar X)\,"
+            r"\frac{\sqrt 2}{\sqrt{\overline{d^2}}}"
+        ),
+        implements=f"{_S}.signed_off_layout:to_ruler",
+        source_sha256="2fe04133d6db97dcb38dde6681e8dbbf6b36e120873418016dd2c618b3942d4e",
+        symbols=(
+            Symbol(r"\mathcal{L}", "páry pro rozložení"),
+            Symbol(r"\delta_{ij}", "cíl √(2(1 - r̃)) v jednotkách pravítka"),
+        ),
+        evidence=(_SIGNED_OFF_LAYOUT,),
+        tests=(
+            f"{_LAYOUT_TEST}test_the_ruler_scale_matches_the_methodologys_own_code",
+            _LAYOUT_MAP_TEST,
+        ),
+        note_cs=(
+            "Jen aia-sociomap-5. Jen posun a jedno měřítko, bez otočení: mapa se nenatahuje "
+            "do tvaru. Souřadnice v jednotkách pravítka zapíše mapa."
         ),
     ),
     # ------------------------------------------------------------------ F7
@@ -539,6 +717,11 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         evidence=(_rule("AUDIT-F7"),),
         tests=(
             f"{_T}/test_sociomap_smacof_objects.py::test_each_iteration_never_raises_the_stress",
+            _LAYOUT_MAP_TEST,
+        ),
+        note_cs=(
+            "aia-sociomap-5 Stress-1 nepočítá: je to míra SMACOF a metodika posuzuje mapu "
+            "kontrolou dělených polovin. Náhradní vzorec proto odmítne."
         ),
     ),
     MethodStep(
@@ -560,7 +743,10 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         tests=(
             f"{_T}/test_sociomap_alignment_quality.py::test_every_stress_carries_the_audits_label",
         ),
-        note_cs=("Zarovnání na referenční mapu (Procrustes) je pohled a výpočet mapy nemění."),
+        note_cs=(
+            "Zarovnání na referenční mapu (Procrustes) je pohled a výpočet mapy nemění. "
+            "aia-sociomap-5 pásma nemá (Stress-1 nepočítá)."
+        ),
     ),
     # ------------------------------------------------------------------ F8
     MethodStep(
@@ -668,7 +854,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
             r"{\sum_j \delta_{kj}^2}}"
         ),
         implements=f"{_S}.specification:_require_supported_v3",
-        source_sha256="10cb8cd72c2180160d935bb2b291c857c2cf7d4645444921b990f07ccefa4713",
+        source_sha256="e669b6c80a18559ac344fcefee924594143c213478d891d0138990aca0510f30",
         symbols=(
             Symbol(r"D", "průměr mapy (2 na pravítku F6)"),
             Symbol(r"e_k", "nesoulad respondenta: jak dobře jej mapa vystihne"),
@@ -874,6 +1060,30 @@ _CONTEXT: Final[dict[str, _Context]] = {
         inputs=("f6_distance", "f6_mappable"),
         audit="F6",
     ),
+    "object_count_rule": _Context(
+        role_cs="Podle počtu objektů vybere, která ze dvou metod mapu nakreslí, a ověří, že "
+        "ji vůbec nějaký pár tvaruje.",
+        inputs=("layout_pairs",),
+        audit=_SIGNED_OFF_POINT,
+    ),
+    "soft_rank_spearman_layout": _Context(
+        role_cs="Rozloží objekty tak, aby u každého pořadí vzdáleností co nejvíc odpovídalo "
+        "pořadí jeho vztahů; nesouvisející objekty od sebe odtlačí.",
+        inputs=("object_count_rule", "layout_pairs"),
+        audit=_SIGNED_OFF_POINT,
+    ),
+    "interval_mds_layout": _Context(
+        role_cs="Pro velmi malé a velmi velké mapy: rozloží objekty tak, aby vzdálenosti "
+        "lineárně sledovaly cílové vzdálenosti.",
+        inputs=("object_count_rule", "layout_pairs"),
+        audit=_SIGNED_OFF_POINT,
+    ),
+    "ruler_scale": _Context(
+        role_cs="Převede mapu na pravítko, aby vzdálenosti byly ve stejných jednotkách jako "
+        "cílové vzdálenosti. To jsou souřadnice na mapě.",
+        inputs=("soft_rank_spearman_layout", "interval_mds_layout"),
+        audit=_SIGNED_OFF_POINT,
+    ),
     "f7_stress": _Context(
         role_cs="Měří, kolik musela mapa vzdálenosti zkreslit, aby se vešla do roviny.",
         inputs=("f6_smacof", "f6_distance"),
@@ -911,7 +1121,7 @@ _CONTEXT: Final[dict[str, _Context]] = {
     ),
     "f12_envelope": _Context(
         role_cs="Krajina, kterou čtenář vidí: z poloh objektů a jejich výšek vytvoří kopce.",
-        inputs=("f6_smacof", "f8_height"),
+        inputs=("f6_smacof", "ruler_scale", "f8_height"),
         audit="F12-F13",
     ),
     "f10_placement": _Context(
@@ -969,7 +1179,15 @@ _GROUPS: Final = (
     StepGroup(
         "S3",
         "Rozložení na mapě",
-        ("f6_mappable", "f6_distance", "f6_smacof"),
+        (
+            "f6_mappable",
+            "f6_distance",
+            "f6_smacof",
+            "object_count_rule",
+            "soft_rank_spearman_layout",
+            "interval_mds_layout",
+            "ruler_scale",
+        ),
         "Ze vztahů se stanou vzdálenosti a z nich polohy objektů na mapě.",
     ),
     StepGroup(
@@ -1050,7 +1268,7 @@ SOCIOMAP: Final = MethodModule(
         "vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti "
         "je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice "
         "i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava "
-        "z něj vychází. aia-sociomap-5 počítá vstupy a vztahy podle schválené metodiky AIA "
-        "Sociomapa (kroky označené „Jen aia-sociomap-5“); objekty zatím rozkládá SMACOF."
+        "z něj vychází. aia-sociomap-5 počítá vstupy, vztahy a polohy objektů podle schválené "
+        "metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“)."
     ),
 )

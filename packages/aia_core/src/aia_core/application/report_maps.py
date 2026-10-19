@@ -66,6 +66,12 @@ def pair_status_means(relations: PairRelations) -> dict[PairStatus, str]:
     }
 
 
+#: The signed-off layout's methods (``layout.method``), which compute no Stress-1.
+POSITION_METHOD = {
+    "soft_rank_spearman_coulomb": "Spearman měkkých pořadí s Coulombovým odpuzováním",
+    "interval_mds": "Interval MDS",
+}
+
 QUALITY = {
     "good": "dobrá",
     "fair": "přijatelná",
@@ -156,11 +162,16 @@ def compose_map_sections(
                             "Vztahy vycházejí "
                             f"z {support.placed} použitelných profilů hodnocení z celkem "
                             f"{support.respondents} odpovědních profilů; počet nezávislých "
-                            f"donorů je {support.donors}. Stress-1 je "
-                            f"{number(round(layout.stress_1, 3), 3)} (uložená kvalita: "
-                            f"{QUALITY.get(layout.quality, layout.quality)}). Nižší Stress-1 "
-                            "znamená menší nesoulad mezi cílovými vztahy a vzdálenostmi na mapě. "
-                            "Shoda uspořádání není testem statistické významnosti vztahů."
+                            f"donorů je {support.donors}."
+                            + (
+                                f" Stress-1 je {number(round(layout.stress_1, 3), 3)} (uložená "
+                                f"kvalita: {QUALITY.get(layout.quality, layout.quality)}). Nižší "
+                                "Stress-1 znamená menší nesoulad mezi cílovými vztahy "
+                                "a vzdálenostmi na mapě. Shoda uspořádání není testem "
+                                "statistické významnosti vztahů."
+                                if layout.stress_1 is not None and layout.quality is not None
+                                else ""
+                            )
                         )
                     )
                 )
@@ -178,6 +189,10 @@ def compose_map_sections(
                         image_png=images[key],
                         methodology_status=map_status.value,
                         stress_1=layout.stress_1,
+                        fit_caption=None
+                        if layout.stress_1 is not None or layout.method is None
+                        else f"rozložení {POSITION_METHOD.get(layout.method, layout.method)}; "
+                        "Stress-1 se nepočítá",
                         source=source,
                         alt=f"{view_title} uložené mapy {battery['title']}. Číslované objekty "
                         "odpovídají legendě; barva a výška ukazují průměr hodnocení "
