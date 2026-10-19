@@ -28,7 +28,6 @@ export function GET() {
       approvedClasses: approvedClasses(process.env.AIA_AI_ROUTE_APPROVED_FOR),
       switches,
     },
-    workbench: runtimeSwitch(process.env.AIA_WEB_RESEARCH_WORKBENCH) === true,
     build,
     errorTracking: {
       dsn: errorTrackingDsn(process.env.AIA_WEB_ERROR_TRACKING_DSN),

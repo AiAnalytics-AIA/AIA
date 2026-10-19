@@ -57,7 +57,7 @@ function Glyph({ tone }: { tone: LaneTone }) {
  * its run (`shouldPoll` / `pollMs`). Read once, the track said "běží" and "Zatím nic" beside a page
  * whose run had finished, until a reload (productization-coherence PC5).
  */
-export function useRuns(studyId: string, current: StepKey) {
+function useRuns(studyId: string, current: StepKey) {
   const [runs, setRuns] = useState<Parameters<typeof runLane>[0]>(null);
   useEffect(() => {
     let live = true;

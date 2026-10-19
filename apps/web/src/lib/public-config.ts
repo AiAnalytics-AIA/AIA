@@ -30,9 +30,6 @@ export type PublicConfig = {
     // Each switch by its variable name, read with the worker's vocabulary.
     switches: Record<(typeof AI_SWITCHES)[number], boolean | null>;
   };
-  // The research workbench (ADR 0026): the study screen as conversation beside artifact.
-  // AIA_WEB_RESEARCH_WORKBENCH; unset or not a switch value, off.
-  workbench: boolean;
   build: { sha: string | null; built_at: string | null };
   // Where the browser reports an error it could not handle (GlitchTip; lib/error-tracking.ts).
   // A DSN's key is public by design: it can only send events. null: nothing is loaded.

@@ -26,6 +26,4 @@ export const appRoutes = {
   /** A past research of a client, read-only (project memory M2). */
   memoryStudy: (clientId: string, studyId: string) => `/app/clients/${e(clientId)}/memory/${e(studyId)}`,
   settings: () => "/app/settings",
-  /** The signed-in researcher's own Research Lead: its files and memory, read only (ADR 0026). */
-  lead: () => "/app/lead",
 };
