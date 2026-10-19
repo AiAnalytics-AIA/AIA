@@ -5,7 +5,7 @@ chunks:
   - "[x] 1. numpy, scipy and numba as aia-core dependencies; the domain numpy rule lifted"
   - "[x] 2. Input ratings and object relations: per-person centring, the unrelated baseline, pair floors, Benjamini–Hochberg with the noise rule, the sparse-design note; preset aia-sociomap-5 created"
   - "[x] 3. Object positions: soft-rank Spearman with Coulomb repulsion (BB1), Interval MDS for large maps by a fixed object-count rule"
-  - "[ ] 4. Height and terrain: mean rating, relative heights with a floor, ruler and frame scaling, the envelope terrain, node size and label note for large maps"
+  - "[x] 4. Height and terrain: mean rating, relative heights with a floor, ruler and frame scaling, the envelope terrain, node size and label note for large maps"
   - "[ ] 5. Map credibility: split-half agreement, the no-reliable-structure statement, one uncertainty radius per map"
   - "[ ] 6. Respondent map: vector-model placement, the chance test for placed / faded, the respondent terrain, the indicative note below six objects"
   - "[ ] 7. Taste segments: the mixture on slopes, the shuffle guard, the step-down, profiles, colour only for clearly placed respondents, borderline segments"
@@ -86,9 +86,10 @@ and 0.68/2.5).
 - The false-close-pair test: a benchmark honesty test, not part of a map.
 - Groups without direction on the respondent map: deferred in the methodology.
 - Making `-5` the default.
-- Survey weights: the methodology computes relations and object height unweighted, so
-  `-5` does too (`-3` weights them): relations from chunk 2, height from chunk 4. Open
-  question for the methodology owner, to revisit.
+- Survey weights for the relations: the methodology computes them unweighted, so `-5`
+  does too (`-3` weights them); its object height is survey-weighted, as the AIA panel
+  draws it (methodology owner, 2026-10-19). Weighted relations: open question for the
+  methodology owner, to revisit.
 - A platform-independent BB1 map. With the same numpy/scipy/numba versions, macOS and
   Linux give the same inputs and Interval MDS maps but can give different BB1 maps from
   12 objects on (last-bit differences in the compiled kernel, amplified by the chaotic
@@ -106,6 +107,25 @@ and 0.68/2.5).
 - Where the object-map artifact is described: under `aia-sociomap-5` the layout records
   `method` (`soft_rank_spearman_coulomb` or `interval_mds`) and no `stress_1`,
   `raw_stress` or `quality`.
+- Where the object-map artifact is described: under `aia-sociomap-5` the height metric is
+  `mean_rating_0_1` as before (survey-weighted, on the declared 0-1 scale; an object
+  nobody rated keeps a null height, which marks it unrated); `heights.relative` holds each
+  PRIMARY object's hill height (min-max onto [0.15, 1], an unrated object at 0.15, null for
+  SECONDARY); the terrain method is `framed_relative_envelope`, its `parameters` record the
+  fitted `centre` and `half_extent` and no `kernel_cutoff`, and every cell has a height. The
+  spec's `terrain` declares `frame_fill` (0.70) and `relative_height_floor` (0.15) and no
+  `half_extent` or `kernel_cutoff`. Earlier presets store none of the new keys.
+- CLAUDE.md §2, `terrain.py`: `fit_frame` (the framed grid) and `EnvelopeParameters.axes()`
+  (the grid's x and y coordinates about its centre; `axis()` is the offsets from the centre).
+- Web follow-up (drawing rules the methodology's renderer has, not ported here, owner
+  decision 2026-10-19): the 26x height exaggeration of the terrain; node size
+  x min(1, sqrt(30 / M)); the "k of M objects labelled" note for large maps; node colour from
+  the relative height and grey for an unrated object (`heights.values` null); the
+  methodology's colours and camera. Until then the web and the report draw a `-5` map's
+  framed terrain in their absolute 0-1 terraces, though its cells are relative heights, and
+  the report's top view keeps its axes at the fixed ruler (the framed grid can reach past
+  it). `OBJECT_MAP_METHODS` in `object-map-view.ts` does not name `aia-sociomap-5` (it is
+  read as an unnamed method).
 
 ## Findings
 

@@ -175,6 +175,11 @@ def compose_map_sections(
                         )
                     )
                 )
+            # The framed envelope draws relative heights and reaches every cell.
+            relative = (
+                isinstance(artifact.terrain, EnvelopeTerrain)
+                and artifact.terrain.method == "framed_relative_envelope"
+            )
             for view in (
                 ("top", "3d") if isinstance(artifact.terrain, EnvelopeTerrain) else ("top",)
             ):
@@ -195,8 +200,12 @@ def compose_map_sections(
                         "Stress-1 se nepočítá",
                         source=source,
                         alt=f"{view_title} uložené mapy {battery['title']}. Číslované objekty "
-                        "odpovídají legendě; barva a výška ukazují průměr hodnocení "
-                        "na škále 0\u20131.",
+                        "odpovídají legendě; barva a výška ukazují "
+                        + (
+                            "průměr hodnocení vůči ostatním objektům sady."
+                            if relative
+                            else "průměr hodnocení na škále 0\u20131."
+                        ),
                     )
                 )
             if isinstance(artifact.terrain, EnvelopeTerrain):
@@ -205,9 +214,15 @@ def compose_map_sections(
                         text(
                             "Prostorový pohled zobrazuje uloženou obálku objektových výšek. "
                             "Povrch mezi body je vizualizační konstrukce, nikoli další naměřená "
-                            "odpověď. Prázdné oblasti nemají povrch a neznamenají "
-                            "nulové hodnocení. "
-                            "Perspektiva mění zdánlivou vzdálenost; polohy proto porovnávejte "
+                            "odpověď. "
+                            + (
+                                "Daleko od objektů klesá povrch k nule, což neznamená "
+                                "nulové hodnocení. "
+                                if relative
+                                else "Prázdné oblasti nemají povrch a neznamenají "
+                                "nulové hodnocení. "
+                            )
+                            + "Perspektiva mění zdánlivou vzdálenost; polohy proto porovnávejte "
                             "v pohledu shora."
                         )
                     )

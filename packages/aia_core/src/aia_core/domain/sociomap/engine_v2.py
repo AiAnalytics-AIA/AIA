@@ -13,7 +13,8 @@ Plan ``sociomap-formula-corrections`` § 8.2, S2. One pure function from
     F7   SMACOF from a Torgerson start; Stress-1 and its band; never rescaled
     F8   PRIMARY alignment and connectedness, UNKNOWN left out; the mean rating as height
     F9   K100 with its respondent-bootstrap interval, when the caller asks for it
-    F12  the envelope terrain over the PRIMARY hills, when the spec declares one (4b)
+    F12  the envelope terrain over the PRIMARY hills, when the spec declares one (4b); the
+         framed envelope over their relative heights under ``aia-sociomap-5``
 
 Every step is a function another chunk already landed and tested (2a ``person_minmax``,
 1a ``derive_pair_relations``, 2b ``fit_smacof_objects``, 2c ``stress_quality``, 1b
@@ -92,10 +93,17 @@ from .specification import (
     PairEvidenceBasis,
     RelationEstimator,
     SociomapSpecV3,
+    TerrainMethod,
     UnsupportedMethodology,
     require_supported,
 )
-from .terrain import EnvelopeHill, EnvelopeParameters, EnvelopeTerrain, object_envelope
+from .terrain import (
+    EnvelopeHill,
+    EnvelopeParameters,
+    EnvelopeTerrain,
+    fit_frame,
+    object_envelope,
+)
 from .view import stress_quality
 
 __all__ = [
@@ -270,6 +278,39 @@ def _heights(
     )
 
 
+#: Every hill's relative height when the objects' heights do not differ: the signed-off
+#: methodology stands them all at the middle.
+EQUAL_RELATIVE_HEIGHT: Final = 0.5
+#: Below this spread the heights do not differ (the methodology's own tie threshold).
+_EQUAL_HEIGHTS: Final = 1e-15
+
+
+def _relative_heights(
+    values: Sequence[float | None], primary: Sequence[bool], floor: float
+) -> tuple[float | None, ...]:
+    """The framed envelope's hill heights: each PRIMARY object's height min-max scaled over
+    the PRIMARY objects onto ``[floor, 1]``. An object nobody rated stands at the lowest rated
+    height, and with none rated every object at 0; heights that do not differ all stand at
+    :data:`EQUAL_RELATIVE_HEIGHT`. A SECONDARY object raises no hill and has none."""
+    own = [v for v, p in zip(values, primary, strict=True) if p]
+    rated = [v for v in own if v is not None]
+    lowest = min(rated) if rated else 0.0
+    filled = [lowest if v is None else v for v in own]
+    lo, hi = (min(filled), max(filled)) if filled else (0.0, 0.0)
+    out: list[float | None] = []
+    for v, p in zip(values, primary, strict=True):
+        if not p:
+            out.append(None)
+            continue
+        h = lowest if v is None else v
+        out.append(
+            EQUAL_RELATIVE_HEIGHT
+            if hi - lo < _EQUAL_HEIGHTS
+            else floor + (1.0 - floor) * (h - lo) / (hi - lo)
+        )
+    return tuple(out)
+
+
 def _terrain(
     spec: SociomapSpecV3,
     layout: ObjectMapLayout | None,
@@ -281,12 +322,39 @@ def _terrain(
 
     A SECONDARY object raises no hill (F8: context objects never enter terrain), and an
     object nobody rated has no height and so no hill -- not a hill of 0.
+
+    The framed envelope stands each PRIMARY object's hill at its relative height (an object
+    nobody rated at the lowest) on a grid framed on every placed object, so every object drawn
+    stands on the grid, and lets every hill reach every cell.
     """
     declared = spec.terrain
     if declared is None:
         return TERRAIN_NOT_COMPUTED
     if layout is None:
         return TERRAIN_NOT_MAPPED
+    if declared.method == TerrainMethod.FRAMED_RELATIVE_ENVELOPE:
+        if declared.frame_fill is None or heights.relative is None:
+            raise ValueError("the framed envelope is declared whole (require_supported)")
+        centre, half = fit_frame(layout.points, declared.frame_fill)
+        return object_envelope(
+            [
+                EnvelopeHill(entity_id=oid, x=point[0], y=point[1], height=t)
+                for oid, point, t in zip(
+                    inputs.object_ids, layout.points, heights.relative, strict=True
+                )
+                if t is not None
+            ],
+            EnvelopeParameters(
+                grid_resolution=declared.grid_resolution,
+                half_extent=half,
+                sigma=declared.sigma,
+                centre=centre,
+            ),
+            slots=slots,
+            method="framed_relative_envelope",
+        )
+    if declared.half_extent is None or declared.kernel_cutoff is None:
+        raise ValueError("the envelope is declared whole (require_supported)")
     hills = [
         EnvelopeHill(entity_id=oid, x=point[0], y=point[1], height=h)
         for oid, point, h in zip(inputs.object_ids, layout.points, heights.values, strict=True)
@@ -594,6 +662,17 @@ def compute_object_map(
 
     scores = primary_scores(ids, pairs.r, pairs.status, inputs.roles, slots=slots)
     heights = _heights(scaled, weights, columns, slots)
+    terrain = spec.terrain
+    if layout is not None and terrain is not None and terrain.relative_height_floor is not None:
+        heights = heights.model_copy(
+            update={
+                "relative": _relative_heights(
+                    heights.values,
+                    [inputs.roles[oid] == ObjectRole.PRIMARY.value for oid in ids],
+                    terrain.relative_height_floor,
+                )
+            }
+        )
 
     connectedness: dict[str, Any] = dict(
         CONNECTEDNESS_NOT_IN_METHOD if corrected else CONNECTEDNESS_OFF

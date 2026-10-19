@@ -581,6 +581,10 @@ class TerrainMethod(StrEnum):
 
     #: ``z(q) = max_j h_j exp(-||q - y_j||^2 / 2 sigma^2)`` over the PRIMARY objects.
     OBJECT_ENVELOPE = "object_envelope"
+    #: The signed-off methodology's (``aia-sociomap-5``): the same envelope over the PRIMARY
+    #: objects' relative heights (min-max onto [floor, 1]; an object nobody rated at the
+    #: lowest), on a grid framed on the map, and with no cutoff, so every cell has a height.
+    FRAMED_RELATIVE_ENVELOPE = "framed_relative_envelope"
 
 
 class KernelWidthBasis(StrEnum):
@@ -590,22 +594,50 @@ class KernelWidthBasis(StrEnum):
     #: 5 % of its height at the correlation distance of r = 0.8, sqrt(2 (1 - 0.8)), so two
     #: objects less related than that never visibly raise each other's position.
     AIA_PROVISIONAL_R08_5PCT = "aia_provisional_r08_5pct"
+    #: The signed-off methodology's own hill width: 6.75 frame units at 27 frame units to the
+    #: ruler unit, so 0.25 on the ruler; the methodology states it without a derivation.
+    SIGNED_OFF_METHODOLOGY = "signed_off_methodology"
 
 
 class ObjectTerrainSpec(_Frozen):
-    """The object terrain (chunk 4b): the envelope, its kernel and grid on the fixed ruler."""
+    """The object terrain (chunk 4b): the envelope, its kernel and grid on the fixed ruler.
+
+    The framed envelope (``aia-sociomap-5``) fits its grid to the map rather than declaring
+    ``half_extent``, and has no ``kernel_cutoff``: both ``None``. It declares instead the share
+    of the grid's half-width the objects fill, ``frame_fill``, and the lowest relative height
+    of a hill, ``relative_height_floor``, which every other method leaves ``None``. A ``None``
+    is left out of the stored form, so earlier pins read unchanged.
+    """
 
     method: str
     sigma: float
     sigma_basis: str
     grid_resolution: int
-    half_extent: float
-    kernel_cutoff: float
+    half_extent: float | None = None
+    kernel_cutoff: float | None = None
+    frame_fill: float | None = None
+    relative_height_floor: float | None = None
 
-    @field_validator("sigma", "grid_resolution", "half_extent", "kernel_cutoff", mode="before")
+    @field_validator(
+        "sigma",
+        "grid_resolution",
+        "half_extent",
+        "kernel_cutoff",
+        "frame_fill",
+        "relative_height_floor",
+        mode="before",
+    )
     @classmethod
     def _no_bool(cls, v: object) -> object:
         return _not_boolean(v)
+
+    @model_serializer(mode="wrap")
+    def _without_undeclared(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        body: dict[str, Any] = handler(self)
+        for key in ("half_extent", "kernel_cutoff", "frame_fill", "relative_height_floor"):
+            if body.get(key) is None:
+                body.pop(key, None)
+        return body
 
 
 class ObjectScoresSpec(_Frozen):
@@ -945,14 +977,35 @@ def _terrain_problems(terrain: ObjectTerrainSpec) -> dict[str, str]:
         problems["terrain.grid_resolution"] = (
             f"grid_resolution must lie in 1..{_MAX_TERRAIN_GRID}; got {terrain.grid_resolution}"
         )
-    if not (math.isfinite(terrain.half_extent) and terrain.half_extent >= FIXED_RULER_EXTENT):
+    if terrain.method == TerrainMethod.FRAMED_RELATIVE_ENVELOPE:
+        for key in ("half_extent", "kernel_cutoff"):
+            if getattr(terrain, key) is not None:
+                problems[f"terrain.{key}"] = (
+                    "the framed envelope fits its grid to the map and lets every hill reach "
+                    "every cell; declare null"
+                )
+        fill, floor = terrain.frame_fill, terrain.relative_height_floor
+        if fill is None or not (math.isfinite(fill) and 0.0 < fill <= 1.0):
+            problems["terrain.frame_fill"] = (
+                f"the share of the grid the objects fill lies in (0, 1]; got {fill!r}"
+            )
+        if floor is None or not (math.isfinite(floor) and 0.0 <= floor < 1.0):
+            problems["terrain.relative_height_floor"] = (
+                f"the lowest relative height lies in [0, 1); got {floor!r}"
+            )
+        return problems
+    for key in ("frame_fill", "relative_height_floor"):
+        if getattr(terrain, key) is not None:
+            problems[f"terrain.{key}"] = "only the framed envelope reads it; declare null"
+    half, cutoff = terrain.half_extent, terrain.kernel_cutoff
+    if half is None or not (math.isfinite(half) and half >= FIXED_RULER_EXTENT):
         problems["terrain.half_extent"] = (
             f"the terrain must cover the fixed ruler, half_extent >= {FIXED_RULER_EXTENT}; "
-            f"got {terrain.half_extent!r}"
+            f"got {half!r}"
         )
-    if not (math.isfinite(terrain.kernel_cutoff) and 0.0 < terrain.kernel_cutoff < 1.0):
+    if cutoff is None or not (math.isfinite(cutoff) and 0.0 < cutoff < 1.0):
         problems["terrain.kernel_cutoff"] = (
-            f"kernel_cutoff must lie strictly between 0 and 1; got {terrain.kernel_cutoff!r}"
+            f"kernel_cutoff must lie strictly between 0 and 1; got {cutoff!r}"
         )
     return problems
 
@@ -1260,8 +1313,9 @@ AIA_SOCIOMAP_V4 = AIA_SOCIOMAP_V3.model_copy(
 # raw ratings mean-centred, the unweighted baseline-corrected relation with its status floor,
 # Benjamini-Hochberg with the noise rule, the layout pairs and the sparse-design note; the
 # objects placed by soft-rank Spearman with Coulomb repulsion or, by the fixed object-count
-# rule, Interval MDS; no Stress-1; every value the methodology's own. Not pinned by default
-# and not in the register: a run gets it only through a methodology version.
+# rule, Interval MDS; no Stress-1; the survey-weighted mean rating as height, and the envelope of
+# relative heights on a grid framed on the map; every value the methodology's own. Not pinned
+# by default and not in the register: a run gets it only through a methodology version.
 AIA_SOCIOMAP_V5 = AIA_SOCIOMAP_V4.model_copy(
     update={
         "methodology_version": "aia-sociomap-5",
@@ -1299,6 +1353,14 @@ AIA_SOCIOMAP_V5 = AIA_SOCIOMAP_V4.model_copy(
                 ),
                 "interval_mds": IntervalMdsSpec(random_starts=2, floor_fraction=0.5),
             }
+        ),
+        "terrain": ObjectTerrainSpec(
+            method=TerrainMethod.FRAMED_RELATIVE_ENVELOPE,
+            sigma=0.25,
+            sigma_basis=KernelWidthBasis.SIGNED_OFF_METHODOLOGY,
+            grid_resolution=84,
+            frame_fill=0.70,
+            relative_height_floor=0.15,
         ),
     }
 )

@@ -2205,6 +2205,8 @@
       "id": "S6",
       "note_cs": "Krajina kopců nad mapou, kterou vidí čtenář výsledků.",
       "step_ids": [
+       "relative_heights",
+       "terrain_frame",
        "f12_envelope"
       ],
       "title_cs": "Terén"
@@ -2245,7 +2247,7 @@
     ],
     "id": "sociomap",
     "in_force": "aia-sociomap-3",
-    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy a polohy objektů podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky a terén podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
     "preset": "aia-sociomap-2",
     "presets": [
      "aia-sociomap-4",
@@ -3409,7 +3411,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "2f860868b6de5d86a98038e706c34f620e3f59aecb5fdae6636a19998823e0a2",
+      "source_sha256": "9561a2e291e424733d34a348d49a54421cde77680d587608b3aaf7099464af5b",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -3988,6 +3990,7 @@
        }
       ],
       "feeds": [
+       "terrain_frame",
        "f12_envelope"
       ],
       "formula_latex": "X \\leftarrow (X - \\bar X)\\, \\frac{\\sum_{(i,j) \\in \\mathcal{L}} d_{ij}\\,\\delta_{ij}}{\\sum_{(i,j) \\in \\mathcal{L}} d_{ij}^2},\\qquad \\mathcal{L} = \\emptyset \\;\\Rightarrow\\; X \\leftarrow (X - \\bar X)\\,\\frac{\\sqrt 2}{\\sqrt{\\overline{d^2}}}",
@@ -4287,9 +4290,15 @@
         "kind": "aia_decision",
         "note_cs": "Výška objektu je jeho vážený průměr hodnocení na deklarované škále 0-1.",
         "ref": "sociomap-formula-corrections.md § 4a, Q7 (2026-10-09)"
+       },
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-TERRAIN"
        }
       ],
       "feeds": [
+       "relative_heights",
        "f12_envelope"
       ],
       "formula_latex": "h_j = \\frac{\\sum_k w_k \\tilde a_{kj}}{\\sum_k w_k}\\quad\\text{(F1, před F2)}",
@@ -4335,7 +4344,7 @@
        "f1_declared_scale"
       ],
       "keeps_cs": [],
-      "note_cs": "",
+      "note_cs": "aia-sociomap-5 počítá výšku stejně, s váhami respondentů, jako schválená metodika; vztahy a polohy objektů jsou u něj nevážené.",
       "reading_cs": "",
       "role_cs": "Průměrné hodnocení objektu; výška jeho kopce v terénu.",
       "source_cs": "",
@@ -4348,7 +4357,9 @@
        }
       ],
       "tests": [
-       "packages/aia_core/tests/test_sociomap_object_map.py::test_a_straight_liner_is_not_placed_but_their_ratings_count_in_the_heights"
+       "packages/aia_core/tests/test_sociomap_object_map.py::test_a_straight_liner_is_not_placed_but_their_ratings_count_in_the_heights",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_the_height_is_survey_weighted_and_the_relations_are_not",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_height_frame_and_terrain_match_the_methodologys_own_code"
       ],
       "title_cs": "Výška objektu",
       "values": [
@@ -4708,6 +4719,136 @@
       "values": []
      },
      {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-TERRAIN"
+       }
+      ],
+      "feeds": [
+       "f12_envelope"
+      ],
+      "formula_latex": "t_j = f + (1 - f)\\,\\frac{h_j - \\min_l h_l}{\\max_l h_l - \\min_l h_l},\\qquad \\max_l h_l - \\min_l h_l < 10^{-15} \\;\\Rightarrow\\; t_j = \\tfrac12,\\qquad h_j = \\varnothing \\;\\Rightarrow\\; h_j = \\min_{l:\\, h_l \\ne \\varnothing} h_l",
+      "formulas": [],
+      "id": "relative_heights",
+      "implements": "aia_core.domain.sociomap.engine_v2:_relative_heights",
+      "inputs": [
+       "f8_height"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5. Objekt, který nikdo nehodnotil, stojí na nejnižší výšce; jeho výška zůstane prázdná, takže ho mapa může ukázat šedě. Nehodnotil-li nikdo nic, stojí všechny kopce na 0,5. Kontextový (SEKUNDÁRNÍ) objekt kopec nemá a rozpětí výšek nemění. Relativní výšky zapíše mapa (heights.relative).",
+      "reading_cs": "",
+      "role_cs": "Převede výšky objektů na výšky kopců: nejnižší objekt stojí na prahu, nejvyšší na 1, aby byl terén čitelný i při malých rozdílech.",
+      "source_cs": "",
+      "source_sha256": "7ec4119557d8a0a85dd11cf36515a7fb902f08ef1a5af634ac5c73589f910879",
+      "symbols": [
+       {
+        "latex": "h_j",
+        "meaning_cs": "výška objektu j: průměr hodnocení na škále 0-1",
+        "unit": ""
+       },
+       {
+        "latex": "l",
+        "meaning_cs": "PRIMÁRNÍ objekty mapy",
+        "unit": ""
+       },
+       {
+        "latex": "f",
+        "meaning_cs": "nejnižší relativní výška (hodnota u kroku terénu)",
+        "unit": ""
+       },
+       {
+        "latex": "t_j",
+        "meaning_cs": "relativní výška kopce objektu j, v [f, 1]",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_height_frame_and_terrain_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_the_object_map_stores_the_framed_terrain_under_aia_sociomap_5"
+      ],
+      "title_cs": "Relativní výška kopce",
+      "values": [
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Výška kopců, když se výšky neliší",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.sociomap.engine_v2:EQUAL_RELATIVE_HEIGHT",
+        "unit": "",
+        "value": 0.5
+       }
+      ]
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-TERRAIN"
+       }
+      ],
+      "feeds": [
+       "f12_envelope"
+      ],
+      "formula_latex": "c = \\tfrac12\\left(\\min_j x_j + \\max_j x_j\\right),\\qquad H = \\frac{\\max_j \\lVert x_j - c\\rVert_\\infty}{v},\\qquad \\max_j \\lVert x_j - c\\rVert_\\infty \\le 10^{-12}/27 \\;\\Rightarrow\\; H = H_0",
+      "formulas": [],
+      "id": "terrain_frame",
+      "implements": "aia_core.domain.sociomap.terrain:fit_frame",
+      "inputs": [
+       "ruler_scale"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5. Střed je střed obdélníku kolem objektů, ne jejich průměr. Rám kryje všechny umístěné objekty, i kontextové, aby každý nakreslený objekt stál na mřížce; kopce dávají jen PRIMÁRNÍ objekty. Střed a poloviční šířku zapíše mapa (terrain.parameters.centre a half_extent). H₀ = 62/27 je rám metodiky v jejích kreslicích jednotkách (62 jednotek, 27 na jednotku pravítka).",
+      "reading_cs": "",
+      "role_cs": "Vybere čtverec, který terén pokryje: kolem objektů, s okrajem, aby se mapa vešla celá.",
+      "source_cs": "",
+      "source_sha256": "ef12f067a9941dde1a6a821f31dc40561f9128b9d2f1f0b8b2746c728f9a76b0",
+      "symbols": [
+       {
+        "latex": "x_j",
+        "meaning_cs": "poloha objektu j na pravítku (všechny umístěné objekty)",
+        "unit": ""
+       },
+       {
+        "latex": "c",
+        "meaning_cs": "střed mřížky terénu",
+        "unit": ""
+       },
+       {
+        "latex": "H",
+        "meaning_cs": "poloviční šířka mřížky",
+        "unit": "jednotky vzdálenosti"
+       },
+       {
+        "latex": "v",
+        "meaning_cs": "podíl poloviční šířky, který objekty vyplní (hodnota u kroku terénu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_height_frame_and_terrain_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_the_object_map_stores_the_framed_terrain_under_aia_sociomap_5"
+      ],
+      "title_cs": "Rám terénu podle mapy",
+      "values": [
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "H₀: poloviční šířka, stojí-li všechny objekty v jednom bodě",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.sociomap.terrain:ONE_POINT_HALF_EXTENT",
+        "unit": "jednotky vzdálenosti",
+        "value": 2.2962962962962963
+       }
+      ]
+     },
+     {
       "audit": "F12-F13",
       "effect_cs": "",
       "evidence": [
@@ -4787,14 +4928,16 @@
       "inputs": [
        "f6_smacof",
        "ruler_scale",
-       "f8_height"
+       "f8_height",
+       "relative_heights",
+       "terrain_frame"
       ],
       "keeps_cs": [],
-      "note_cs": "Buňka, kam žádný kopec nedosáhne (jádro pod prahem), nemá výšku, ne nulu. σ = 0,25 je prozatímní (√0,4 / √(2 ln 20), zaokrouhleno dolů).",
+      "note_cs": "Buňka, kam žádný kopec nedosáhne (jádro pod prahem), nemá výšku, ne nulu. σ = 0,25 je prozatímní (√0,4 / √(2 ln 20), zaokrouhleno dolů). aia-sociomap-5 (metoda framed_relative_envelope) staví kopce v relativních výškách t_j na mřížce g_t = c - H + t·2H/N z rámu mapy a práh jádra nemá: dosáhne každý kopec, každá buňka má výšku. Poloviční rozsah S a práh jádra proto nedeklaruje; σ = 0,25 je i šířka metodiky (6,75 k jejích jednotek při 27 k na jednotku pravítka).",
       "reading_cs": "",
       "role_cs": "Krajina, kterou čtenář vidí: z poloh objektů a jejich výšek vytvoří kopce.",
       "source_cs": "",
-      "source_sha256": "8672f6dc43b2c181319e75a62724dad7138ece866ec1628d6f1a29f2b755e254",
+      "source_sha256": "90f0abfb8e149f1e7c0ba9d8f799ad13d006df46a662dab4da0d66cc2382915f",
       "symbols": [
        {
         "latex": "\\sigma",
@@ -4867,11 +5010,29 @@
         "reference": "terrain.kernel_cutoff",
         "unit": "",
         "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Podíl rámu vyplněný objekty v",
+        "origin": "specification",
+        "reference": "terrain.frame_fill",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Nejnižší relativní výška f",
+        "origin": "specification",
+        "reference": "terrain.relative_height_floor",
+        "unit": "",
+        "value": null
        }
       ]
      }
     ],
-    "steps": 33,
+    "steps": 35,
     "title_cs": "Sociomapa: objektová mapa"
    },
    "aia-sociomap-3": {
@@ -4953,6 +5114,8 @@
       "id": "S6",
       "note_cs": "Krajina kopců nad mapou, kterou vidí čtenář výsledků.",
       "step_ids": [
+       "relative_heights",
+       "terrain_frame",
        "f12_envelope"
       ],
       "title_cs": "Terén"
@@ -4993,7 +5156,7 @@
     ],
     "id": "sociomap",
     "in_force": "aia-sociomap-3",
-    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy a polohy objektů podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky a terén podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
     "preset": "aia-sociomap-3",
     "presets": [
      "aia-sociomap-4",
@@ -6157,7 +6320,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "2f860868b6de5d86a98038e706c34f620e3f59aecb5fdae6636a19998823e0a2",
+      "source_sha256": "9561a2e291e424733d34a348d49a54421cde77680d587608b3aaf7099464af5b",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -6736,6 +6899,7 @@
        }
       ],
       "feeds": [
+       "terrain_frame",
        "f12_envelope"
       ],
       "formula_latex": "X \\leftarrow (X - \\bar X)\\, \\frac{\\sum_{(i,j) \\in \\mathcal{L}} d_{ij}\\,\\delta_{ij}}{\\sum_{(i,j) \\in \\mathcal{L}} d_{ij}^2},\\qquad \\mathcal{L} = \\emptyset \\;\\Rightarrow\\; X \\leftarrow (X - \\bar X)\\,\\frac{\\sqrt 2}{\\sqrt{\\overline{d^2}}}",
@@ -7035,9 +7199,15 @@
         "kind": "aia_decision",
         "note_cs": "Výška objektu je jeho vážený průměr hodnocení na deklarované škále 0-1.",
         "ref": "sociomap-formula-corrections.md § 4a, Q7 (2026-10-09)"
+       },
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-TERRAIN"
        }
       ],
       "feeds": [
+       "relative_heights",
        "f12_envelope"
       ],
       "formula_latex": "h_j = \\frac{\\sum_k w_k \\tilde a_{kj}}{\\sum_k w_k}\\quad\\text{(F1, před F2)}",
@@ -7083,7 +7253,7 @@
        "f1_declared_scale"
       ],
       "keeps_cs": [],
-      "note_cs": "",
+      "note_cs": "aia-sociomap-5 počítá výšku stejně, s váhami respondentů, jako schválená metodika; vztahy a polohy objektů jsou u něj nevážené.",
       "reading_cs": "",
       "role_cs": "Průměrné hodnocení objektu; výška jeho kopce v terénu.",
       "source_cs": "",
@@ -7096,7 +7266,9 @@
        }
       ],
       "tests": [
-       "packages/aia_core/tests/test_sociomap_object_map.py::test_a_straight_liner_is_not_placed_but_their_ratings_count_in_the_heights"
+       "packages/aia_core/tests/test_sociomap_object_map.py::test_a_straight_liner_is_not_placed_but_their_ratings_count_in_the_heights",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_the_height_is_survey_weighted_and_the_relations_are_not",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_height_frame_and_terrain_match_the_methodologys_own_code"
       ],
       "title_cs": "Výška objektu",
       "values": [
@@ -7456,6 +7628,136 @@
       "values": []
      },
      {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-TERRAIN"
+       }
+      ],
+      "feeds": [
+       "f12_envelope"
+      ],
+      "formula_latex": "t_j = f + (1 - f)\\,\\frac{h_j - \\min_l h_l}{\\max_l h_l - \\min_l h_l},\\qquad \\max_l h_l - \\min_l h_l < 10^{-15} \\;\\Rightarrow\\; t_j = \\tfrac12,\\qquad h_j = \\varnothing \\;\\Rightarrow\\; h_j = \\min_{l:\\, h_l \\ne \\varnothing} h_l",
+      "formulas": [],
+      "id": "relative_heights",
+      "implements": "aia_core.domain.sociomap.engine_v2:_relative_heights",
+      "inputs": [
+       "f8_height"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5. Objekt, který nikdo nehodnotil, stojí na nejnižší výšce; jeho výška zůstane prázdná, takže ho mapa může ukázat šedě. Nehodnotil-li nikdo nic, stojí všechny kopce na 0,5. Kontextový (SEKUNDÁRNÍ) objekt kopec nemá a rozpětí výšek nemění. Relativní výšky zapíše mapa (heights.relative).",
+      "reading_cs": "",
+      "role_cs": "Převede výšky objektů na výšky kopců: nejnižší objekt stojí na prahu, nejvyšší na 1, aby byl terén čitelný i při malých rozdílech.",
+      "source_cs": "",
+      "source_sha256": "7ec4119557d8a0a85dd11cf36515a7fb902f08ef1a5af634ac5c73589f910879",
+      "symbols": [
+       {
+        "latex": "h_j",
+        "meaning_cs": "výška objektu j: průměr hodnocení na škále 0-1",
+        "unit": ""
+       },
+       {
+        "latex": "l",
+        "meaning_cs": "PRIMÁRNÍ objekty mapy",
+        "unit": ""
+       },
+       {
+        "latex": "f",
+        "meaning_cs": "nejnižší relativní výška (hodnota u kroku terénu)",
+        "unit": ""
+       },
+       {
+        "latex": "t_j",
+        "meaning_cs": "relativní výška kopce objektu j, v [f, 1]",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_height_frame_and_terrain_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_the_object_map_stores_the_framed_terrain_under_aia_sociomap_5"
+      ],
+      "title_cs": "Relativní výška kopce",
+      "values": [
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Výška kopců, když se výšky neliší",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.sociomap.engine_v2:EQUAL_RELATIVE_HEIGHT",
+        "unit": "",
+        "value": 0.5
+       }
+      ]
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-TERRAIN"
+       }
+      ],
+      "feeds": [
+       "f12_envelope"
+      ],
+      "formula_latex": "c = \\tfrac12\\left(\\min_j x_j + \\max_j x_j\\right),\\qquad H = \\frac{\\max_j \\lVert x_j - c\\rVert_\\infty}{v},\\qquad \\max_j \\lVert x_j - c\\rVert_\\infty \\le 10^{-12}/27 \\;\\Rightarrow\\; H = H_0",
+      "formulas": [],
+      "id": "terrain_frame",
+      "implements": "aia_core.domain.sociomap.terrain:fit_frame",
+      "inputs": [
+       "ruler_scale"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5. Střed je střed obdélníku kolem objektů, ne jejich průměr. Rám kryje všechny umístěné objekty, i kontextové, aby každý nakreslený objekt stál na mřížce; kopce dávají jen PRIMÁRNÍ objekty. Střed a poloviční šířku zapíše mapa (terrain.parameters.centre a half_extent). H₀ = 62/27 je rám metodiky v jejích kreslicích jednotkách (62 jednotek, 27 na jednotku pravítka).",
+      "reading_cs": "",
+      "role_cs": "Vybere čtverec, který terén pokryje: kolem objektů, s okrajem, aby se mapa vešla celá.",
+      "source_cs": "",
+      "source_sha256": "ef12f067a9941dde1a6a821f31dc40561f9128b9d2f1f0b8b2746c728f9a76b0",
+      "symbols": [
+       {
+        "latex": "x_j",
+        "meaning_cs": "poloha objektu j na pravítku (všechny umístěné objekty)",
+        "unit": ""
+       },
+       {
+        "latex": "c",
+        "meaning_cs": "střed mřížky terénu",
+        "unit": ""
+       },
+       {
+        "latex": "H",
+        "meaning_cs": "poloviční šířka mřížky",
+        "unit": "jednotky vzdálenosti"
+       },
+       {
+        "latex": "v",
+        "meaning_cs": "podíl poloviční šířky, který objekty vyplní (hodnota u kroku terénu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_height_frame_and_terrain_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_the_object_map_stores_the_framed_terrain_under_aia_sociomap_5"
+      ],
+      "title_cs": "Rám terénu podle mapy",
+      "values": [
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "H₀: poloviční šířka, stojí-li všechny objekty v jednom bodě",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.sociomap.terrain:ONE_POINT_HALF_EXTENT",
+        "unit": "jednotky vzdálenosti",
+        "value": 2.2962962962962963
+       }
+      ]
+     },
+     {
       "audit": "F12-F13",
       "effect_cs": "",
       "evidence": [
@@ -7535,14 +7837,16 @@
       "inputs": [
        "f6_smacof",
        "ruler_scale",
-       "f8_height"
+       "f8_height",
+       "relative_heights",
+       "terrain_frame"
       ],
       "keeps_cs": [],
-      "note_cs": "Buňka, kam žádný kopec nedosáhne (jádro pod prahem), nemá výšku, ne nulu. σ = 0,25 je prozatímní (√0,4 / √(2 ln 20), zaokrouhleno dolů).",
+      "note_cs": "Buňka, kam žádný kopec nedosáhne (jádro pod prahem), nemá výšku, ne nulu. σ = 0,25 je prozatímní (√0,4 / √(2 ln 20), zaokrouhleno dolů). aia-sociomap-5 (metoda framed_relative_envelope) staví kopce v relativních výškách t_j na mřížce g_t = c - H + t·2H/N z rámu mapy a práh jádra nemá: dosáhne každý kopec, každá buňka má výšku. Poloviční rozsah S a práh jádra proto nedeklaruje; σ = 0,25 je i šířka metodiky (6,75 k jejích jednotek při 27 k na jednotku pravítka).",
       "reading_cs": "",
       "role_cs": "Krajina, kterou čtenář vidí: z poloh objektů a jejich výšek vytvoří kopce.",
       "source_cs": "",
-      "source_sha256": "8672f6dc43b2c181319e75a62724dad7138ece866ec1628d6f1a29f2b755e254",
+      "source_sha256": "90f0abfb8e149f1e7c0ba9d8f799ad13d006df46a662dab4da0d66cc2382915f",
       "symbols": [
        {
         "latex": "\\sigma",
@@ -7615,11 +7919,29 @@
         "reference": "terrain.kernel_cutoff",
         "unit": "",
         "value": 0.0005
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Podíl rámu vyplněný objekty v",
+        "origin": "specification",
+        "reference": "terrain.frame_fill",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Nejnižší relativní výška f",
+        "origin": "specification",
+        "reference": "terrain.relative_height_floor",
+        "unit": "",
+        "value": null
        }
       ]
      }
     ],
-    "steps": 33,
+    "steps": 35,
     "title_cs": "Sociomapa: objektová mapa"
    },
    "aia-sociomap-4": {
@@ -7701,6 +8023,8 @@
       "id": "S6",
       "note_cs": "Krajina kopců nad mapou, kterou vidí čtenář výsledků.",
       "step_ids": [
+       "relative_heights",
+       "terrain_frame",
        "f12_envelope"
       ],
       "title_cs": "Terén"
@@ -7741,7 +8065,7 @@
     ],
     "id": "sociomap",
     "in_force": "aia-sociomap-3",
-    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy a polohy objektů podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky a terén podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
     "preset": "aia-sociomap-4",
     "presets": [
      "aia-sociomap-4",
@@ -8905,7 +9229,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "2f860868b6de5d86a98038e706c34f620e3f59aecb5fdae6636a19998823e0a2",
+      "source_sha256": "9561a2e291e424733d34a348d49a54421cde77680d587608b3aaf7099464af5b",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -9484,6 +9808,7 @@
        }
       ],
       "feeds": [
+       "terrain_frame",
        "f12_envelope"
       ],
       "formula_latex": "X \\leftarrow (X - \\bar X)\\, \\frac{\\sum_{(i,j) \\in \\mathcal{L}} d_{ij}\\,\\delta_{ij}}{\\sum_{(i,j) \\in \\mathcal{L}} d_{ij}^2},\\qquad \\mathcal{L} = \\emptyset \\;\\Rightarrow\\; X \\leftarrow (X - \\bar X)\\,\\frac{\\sqrt 2}{\\sqrt{\\overline{d^2}}}",
@@ -9787,9 +10112,15 @@
         "kind": "aia_decision",
         "note_cs": "Výška objektu je jeho vážený průměr hodnocení na deklarované škále 0-1.",
         "ref": "sociomap-formula-corrections.md § 4a, Q7 (2026-10-09)"
+       },
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-TERRAIN"
        }
       ],
       "feeds": [
+       "relative_heights",
        "f12_envelope"
       ],
       "formula_latex": "h_j = \\frac{\\sum_k w_k \\tilde a_{kj}}{\\sum_k w_k}\\quad\\text{(F1, před F2)}",
@@ -9835,7 +10166,7 @@
        "f1_declared_scale"
       ],
       "keeps_cs": [],
-      "note_cs": "",
+      "note_cs": "aia-sociomap-5 počítá výšku stejně, s váhami respondentů, jako schválená metodika; vztahy a polohy objektů jsou u něj nevážené.",
       "reading_cs": "",
       "role_cs": "Průměrné hodnocení objektu; výška jeho kopce v terénu.",
       "source_cs": "",
@@ -9848,7 +10179,9 @@
        }
       ],
       "tests": [
-       "packages/aia_core/tests/test_sociomap_object_map.py::test_a_straight_liner_is_not_placed_but_their_ratings_count_in_the_heights"
+       "packages/aia_core/tests/test_sociomap_object_map.py::test_a_straight_liner_is_not_placed_but_their_ratings_count_in_the_heights",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_the_height_is_survey_weighted_and_the_relations_are_not",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_height_frame_and_terrain_match_the_methodologys_own_code"
       ],
       "title_cs": "Výška objektu",
       "values": [
@@ -10211,6 +10544,136 @@
       "values": []
      },
      {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-TERRAIN"
+       }
+      ],
+      "feeds": [
+       "f12_envelope"
+      ],
+      "formula_latex": "t_j = f + (1 - f)\\,\\frac{h_j - \\min_l h_l}{\\max_l h_l - \\min_l h_l},\\qquad \\max_l h_l - \\min_l h_l < 10^{-15} \\;\\Rightarrow\\; t_j = \\tfrac12,\\qquad h_j = \\varnothing \\;\\Rightarrow\\; h_j = \\min_{l:\\, h_l \\ne \\varnothing} h_l",
+      "formulas": [],
+      "id": "relative_heights",
+      "implements": "aia_core.domain.sociomap.engine_v2:_relative_heights",
+      "inputs": [
+       "f8_height"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5. Objekt, který nikdo nehodnotil, stojí na nejnižší výšce; jeho výška zůstane prázdná, takže ho mapa může ukázat šedě. Nehodnotil-li nikdo nic, stojí všechny kopce na 0,5. Kontextový (SEKUNDÁRNÍ) objekt kopec nemá a rozpětí výšek nemění. Relativní výšky zapíše mapa (heights.relative).",
+      "reading_cs": "",
+      "role_cs": "Převede výšky objektů na výšky kopců: nejnižší objekt stojí na prahu, nejvyšší na 1, aby byl terén čitelný i při malých rozdílech.",
+      "source_cs": "",
+      "source_sha256": "7ec4119557d8a0a85dd11cf36515a7fb902f08ef1a5af634ac5c73589f910879",
+      "symbols": [
+       {
+        "latex": "h_j",
+        "meaning_cs": "výška objektu j: průměr hodnocení na škále 0-1",
+        "unit": ""
+       },
+       {
+        "latex": "l",
+        "meaning_cs": "PRIMÁRNÍ objekty mapy",
+        "unit": ""
+       },
+       {
+        "latex": "f",
+        "meaning_cs": "nejnižší relativní výška (hodnota u kroku terénu)",
+        "unit": ""
+       },
+       {
+        "latex": "t_j",
+        "meaning_cs": "relativní výška kopce objektu j, v [f, 1]",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_height_frame_and_terrain_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_the_object_map_stores_the_framed_terrain_under_aia_sociomap_5"
+      ],
+      "title_cs": "Relativní výška kopce",
+      "values": [
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Výška kopců, když se výšky neliší",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.sociomap.engine_v2:EQUAL_RELATIVE_HEIGHT",
+        "unit": "",
+        "value": 0.5
+       }
+      ]
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-TERRAIN"
+       }
+      ],
+      "feeds": [
+       "f12_envelope"
+      ],
+      "formula_latex": "c = \\tfrac12\\left(\\min_j x_j + \\max_j x_j\\right),\\qquad H = \\frac{\\max_j \\lVert x_j - c\\rVert_\\infty}{v},\\qquad \\max_j \\lVert x_j - c\\rVert_\\infty \\le 10^{-12}/27 \\;\\Rightarrow\\; H = H_0",
+      "formulas": [],
+      "id": "terrain_frame",
+      "implements": "aia_core.domain.sociomap.terrain:fit_frame",
+      "inputs": [
+       "ruler_scale"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5. Střed je střed obdélníku kolem objektů, ne jejich průměr. Rám kryje všechny umístěné objekty, i kontextové, aby každý nakreslený objekt stál na mřížce; kopce dávají jen PRIMÁRNÍ objekty. Střed a poloviční šířku zapíše mapa (terrain.parameters.centre a half_extent). H₀ = 62/27 je rám metodiky v jejích kreslicích jednotkách (62 jednotek, 27 na jednotku pravítka).",
+      "reading_cs": "",
+      "role_cs": "Vybere čtverec, který terén pokryje: kolem objektů, s okrajem, aby se mapa vešla celá.",
+      "source_cs": "",
+      "source_sha256": "ef12f067a9941dde1a6a821f31dc40561f9128b9d2f1f0b8b2746c728f9a76b0",
+      "symbols": [
+       {
+        "latex": "x_j",
+        "meaning_cs": "poloha objektu j na pravítku (všechny umístěné objekty)",
+        "unit": ""
+       },
+       {
+        "latex": "c",
+        "meaning_cs": "střed mřížky terénu",
+        "unit": ""
+       },
+       {
+        "latex": "H",
+        "meaning_cs": "poloviční šířka mřížky",
+        "unit": "jednotky vzdálenosti"
+       },
+       {
+        "latex": "v",
+        "meaning_cs": "podíl poloviční šířky, který objekty vyplní (hodnota u kroku terénu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_height_frame_and_terrain_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_the_object_map_stores_the_framed_terrain_under_aia_sociomap_5"
+      ],
+      "title_cs": "Rám terénu podle mapy",
+      "values": [
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "H₀: poloviční šířka, stojí-li všechny objekty v jednom bodě",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.sociomap.terrain:ONE_POINT_HALF_EXTENT",
+        "unit": "jednotky vzdálenosti",
+        "value": 2.2962962962962963
+       }
+      ]
+     },
+     {
       "audit": "F12-F13",
       "effect_cs": "",
       "evidence": [
@@ -10290,14 +10753,16 @@
       "inputs": [
        "f6_smacof",
        "ruler_scale",
-       "f8_height"
+       "f8_height",
+       "relative_heights",
+       "terrain_frame"
       ],
       "keeps_cs": [],
-      "note_cs": "Buňka, kam žádný kopec nedosáhne (jádro pod prahem), nemá výšku, ne nulu. σ = 0,25 je prozatímní (√0,4 / √(2 ln 20), zaokrouhleno dolů).",
+      "note_cs": "Buňka, kam žádný kopec nedosáhne (jádro pod prahem), nemá výšku, ne nulu. σ = 0,25 je prozatímní (√0,4 / √(2 ln 20), zaokrouhleno dolů). aia-sociomap-5 (metoda framed_relative_envelope) staví kopce v relativních výškách t_j na mřížce g_t = c - H + t·2H/N z rámu mapy a práh jádra nemá: dosáhne každý kopec, každá buňka má výšku. Poloviční rozsah S a práh jádra proto nedeklaruje; σ = 0,25 je i šířka metodiky (6,75 k jejích jednotek při 27 k na jednotku pravítka).",
       "reading_cs": "",
       "role_cs": "Krajina, kterou čtenář vidí: z poloh objektů a jejich výšek vytvoří kopce.",
       "source_cs": "",
-      "source_sha256": "8672f6dc43b2c181319e75a62724dad7138ece866ec1628d6f1a29f2b755e254",
+      "source_sha256": "90f0abfb8e149f1e7c0ba9d8f799ad13d006df46a662dab4da0d66cc2382915f",
       "symbols": [
        {
         "latex": "\\sigma",
@@ -10370,11 +10835,29 @@
         "reference": "terrain.kernel_cutoff",
         "unit": "",
         "value": 0.0005
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Podíl rámu vyplněný objekty v",
+        "origin": "specification",
+        "reference": "terrain.frame_fill",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Nejnižší relativní výška f",
+        "origin": "specification",
+        "reference": "terrain.relative_height_floor",
+        "unit": "",
+        "value": null
        }
       ]
      }
     ],
-    "steps": 33,
+    "steps": 35,
     "title_cs": "Sociomapa: objektová mapa"
    },
    "aia-sociomap-5": {
@@ -10456,6 +10939,8 @@
       "id": "S6",
       "note_cs": "Krajina kopců nad mapou, kterou vidí čtenář výsledků.",
       "step_ids": [
+       "relative_heights",
+       "terrain_frame",
        "f12_envelope"
       ],
       "title_cs": "Terén"
@@ -10496,7 +10981,7 @@
     ],
     "id": "sociomap",
     "in_force": "aia-sociomap-3",
-    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy a polohy objektů podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky a terén podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
     "preset": "aia-sociomap-5",
     "presets": [
      "aia-sociomap-4",
@@ -11660,7 +12145,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "2f860868b6de5d86a98038e706c34f620e3f59aecb5fdae6636a19998823e0a2",
+      "source_sha256": "9561a2e291e424733d34a348d49a54421cde77680d587608b3aaf7099464af5b",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -12239,6 +12724,7 @@
        }
       ],
       "feeds": [
+       "terrain_frame",
        "f12_envelope"
       ],
       "formula_latex": "X \\leftarrow (X - \\bar X)\\, \\frac{\\sum_{(i,j) \\in \\mathcal{L}} d_{ij}\\,\\delta_{ij}}{\\sum_{(i,j) \\in \\mathcal{L}} d_{ij}^2},\\qquad \\mathcal{L} = \\emptyset \\;\\Rightarrow\\; X \\leftarrow (X - \\bar X)\\,\\frac{\\sqrt 2}{\\sqrt{\\overline{d^2}}}",
@@ -12538,9 +13024,15 @@
         "kind": "aia_decision",
         "note_cs": "Výška objektu je jeho vážený průměr hodnocení na deklarované škále 0-1.",
         "ref": "sociomap-formula-corrections.md § 4a, Q7 (2026-10-09)"
+       },
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-TERRAIN"
        }
       ],
       "feeds": [
+       "relative_heights",
        "f12_envelope"
       ],
       "formula_latex": "h_j = \\frac{\\sum_k w_k \\tilde a_{kj}}{\\sum_k w_k}\\quad\\text{(F1, před F2)}",
@@ -12586,7 +13078,7 @@
        "f1_declared_scale"
       ],
       "keeps_cs": [],
-      "note_cs": "",
+      "note_cs": "aia-sociomap-5 počítá výšku stejně, s váhami respondentů, jako schválená metodika; vztahy a polohy objektů jsou u něj nevážené.",
       "reading_cs": "",
       "role_cs": "Průměrné hodnocení objektu; výška jeho kopce v terénu.",
       "source_cs": "",
@@ -12599,7 +13091,9 @@
        }
       ],
       "tests": [
-       "packages/aia_core/tests/test_sociomap_object_map.py::test_a_straight_liner_is_not_placed_but_their_ratings_count_in_the_heights"
+       "packages/aia_core/tests/test_sociomap_object_map.py::test_a_straight_liner_is_not_placed_but_their_ratings_count_in_the_heights",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_the_height_is_survey_weighted_and_the_relations_are_not",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_height_frame_and_terrain_match_the_methodologys_own_code"
       ],
       "title_cs": "Výška objektu",
       "values": [
@@ -12962,6 +13456,136 @@
       "values": []
      },
      {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-TERRAIN"
+       }
+      ],
+      "feeds": [
+       "f12_envelope"
+      ],
+      "formula_latex": "t_j = f + (1 - f)\\,\\frac{h_j - \\min_l h_l}{\\max_l h_l - \\min_l h_l},\\qquad \\max_l h_l - \\min_l h_l < 10^{-15} \\;\\Rightarrow\\; t_j = \\tfrac12,\\qquad h_j = \\varnothing \\;\\Rightarrow\\; h_j = \\min_{l:\\, h_l \\ne \\varnothing} h_l",
+      "formulas": [],
+      "id": "relative_heights",
+      "implements": "aia_core.domain.sociomap.engine_v2:_relative_heights",
+      "inputs": [
+       "f8_height"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5. Objekt, který nikdo nehodnotil, stojí na nejnižší výšce; jeho výška zůstane prázdná, takže ho mapa může ukázat šedě. Nehodnotil-li nikdo nic, stojí všechny kopce na 0,5. Kontextový (SEKUNDÁRNÍ) objekt kopec nemá a rozpětí výšek nemění. Relativní výšky zapíše mapa (heights.relative).",
+      "reading_cs": "",
+      "role_cs": "Převede výšky objektů na výšky kopců: nejnižší objekt stojí na prahu, nejvyšší na 1, aby byl terén čitelný i při malých rozdílech.",
+      "source_cs": "",
+      "source_sha256": "7ec4119557d8a0a85dd11cf36515a7fb902f08ef1a5af634ac5c73589f910879",
+      "symbols": [
+       {
+        "latex": "h_j",
+        "meaning_cs": "výška objektu j: průměr hodnocení na škále 0-1",
+        "unit": ""
+       },
+       {
+        "latex": "l",
+        "meaning_cs": "PRIMÁRNÍ objekty mapy",
+        "unit": ""
+       },
+       {
+        "latex": "f",
+        "meaning_cs": "nejnižší relativní výška (hodnota u kroku terénu)",
+        "unit": ""
+       },
+       {
+        "latex": "t_j",
+        "meaning_cs": "relativní výška kopce objektu j, v [f, 1]",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_height_frame_and_terrain_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_the_object_map_stores_the_framed_terrain_under_aia_sociomap_5"
+      ],
+      "title_cs": "Relativní výška kopce",
+      "values": [
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Výška kopců, když se výšky neliší",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.sociomap.engine_v2:EQUAL_RELATIVE_HEIGHT",
+        "unit": "",
+        "value": 0.5
+       }
+      ]
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-TERRAIN"
+       }
+      ],
+      "feeds": [
+       "f12_envelope"
+      ],
+      "formula_latex": "c = \\tfrac12\\left(\\min_j x_j + \\max_j x_j\\right),\\qquad H = \\frac{\\max_j \\lVert x_j - c\\rVert_\\infty}{v},\\qquad \\max_j \\lVert x_j - c\\rVert_\\infty \\le 10^{-12}/27 \\;\\Rightarrow\\; H = H_0",
+      "formulas": [],
+      "id": "terrain_frame",
+      "implements": "aia_core.domain.sociomap.terrain:fit_frame",
+      "inputs": [
+       "ruler_scale"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5. Střed je střed obdélníku kolem objektů, ne jejich průměr. Rám kryje všechny umístěné objekty, i kontextové, aby každý nakreslený objekt stál na mřížce; kopce dávají jen PRIMÁRNÍ objekty. Střed a poloviční šířku zapíše mapa (terrain.parameters.centre a half_extent). H₀ = 62/27 je rám metodiky v jejích kreslicích jednotkách (62 jednotek, 27 na jednotku pravítka).",
+      "reading_cs": "",
+      "role_cs": "Vybere čtverec, který terén pokryje: kolem objektů, s okrajem, aby se mapa vešla celá.",
+      "source_cs": "",
+      "source_sha256": "ef12f067a9941dde1a6a821f31dc40561f9128b9d2f1f0b8b2746c728f9a76b0",
+      "symbols": [
+       {
+        "latex": "x_j",
+        "meaning_cs": "poloha objektu j na pravítku (všechny umístěné objekty)",
+        "unit": ""
+       },
+       {
+        "latex": "c",
+        "meaning_cs": "střed mřížky terénu",
+        "unit": ""
+       },
+       {
+        "latex": "H",
+        "meaning_cs": "poloviční šířka mřížky",
+        "unit": "jednotky vzdálenosti"
+       },
+       {
+        "latex": "v",
+        "meaning_cs": "podíl poloviční šířky, který objekty vyplní (hodnota u kroku terénu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_height_frame_and_terrain_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_the_object_map_stores_the_framed_terrain_under_aia_sociomap_5"
+      ],
+      "title_cs": "Rám terénu podle mapy",
+      "values": [
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "H₀: poloviční šířka, stojí-li všechny objekty v jednom bodě",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.sociomap.terrain:ONE_POINT_HALF_EXTENT",
+        "unit": "jednotky vzdálenosti",
+        "value": 2.2962962962962963
+       }
+      ]
+     },
+     {
       "audit": "F12-F13",
       "effect_cs": "",
       "evidence": [
@@ -13041,14 +13665,16 @@
       "inputs": [
        "f6_smacof",
        "ruler_scale",
-       "f8_height"
+       "f8_height",
+       "relative_heights",
+       "terrain_frame"
       ],
       "keeps_cs": [],
-      "note_cs": "Buňka, kam žádný kopec nedosáhne (jádro pod prahem), nemá výšku, ne nulu. σ = 0,25 je prozatímní (√0,4 / √(2 ln 20), zaokrouhleno dolů).",
+      "note_cs": "Buňka, kam žádný kopec nedosáhne (jádro pod prahem), nemá výšku, ne nulu. σ = 0,25 je prozatímní (√0,4 / √(2 ln 20), zaokrouhleno dolů). aia-sociomap-5 (metoda framed_relative_envelope) staví kopce v relativních výškách t_j na mřížce g_t = c - H + t·2H/N z rámu mapy a práh jádra nemá: dosáhne každý kopec, každá buňka má výšku. Poloviční rozsah S a práh jádra proto nedeklaruje; σ = 0,25 je i šířka metodiky (6,75 k jejích jednotek při 27 k na jednotku pravítka).",
       "reading_cs": "",
       "role_cs": "Krajina, kterou čtenář vidí: z poloh objektů a jejich výšek vytvoří kopce.",
       "source_cs": "",
-      "source_sha256": "8672f6dc43b2c181319e75a62724dad7138ece866ec1628d6f1a29f2b755e254",
+      "source_sha256": "90f0abfb8e149f1e7c0ba9d8f799ad13d006df46a662dab4da0d66cc2382915f",
       "symbols": [
        {
         "latex": "\\sigma",
@@ -13075,7 +13701,7 @@
         "origin": "specification",
         "reference": "terrain.method",
         "unit": "",
-        "value": "object_envelope"
+        "value": "framed_relative_envelope"
        },
        {
         "absent": false,
@@ -13093,7 +13719,7 @@
         "origin": "specification",
         "reference": "terrain.sigma_basis",
         "unit": "",
-        "value": "aia_provisional_r08_5pct"
+        "value": "signed_off_methodology"
        },
        {
         "absent": false,
@@ -13102,30 +13728,48 @@
         "origin": "specification",
         "reference": "terrain.grid_resolution",
         "unit": "",
-        "value": 64
+        "value": 84
        },
        {
-        "absent": false,
+        "absent": true,
         "effect": "",
         "label_cs": "Poloviční rozsah S",
         "origin": "specification",
         "reference": "terrain.half_extent",
         "unit": "jednotky vzdálenosti",
-        "value": 2.75
+        "value": null
        },
        {
-        "absent": false,
+        "absent": true,
         "effect": "",
         "label_cs": "Práh jádra",
         "origin": "specification",
         "reference": "terrain.kernel_cutoff",
         "unit": "",
-        "value": 0.0005
+        "value": null
+       },
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Podíl rámu vyplněný objekty v",
+        "origin": "specification",
+        "reference": "terrain.frame_fill",
+        "unit": "",
+        "value": 0.7
+       },
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Nejnižší relativní výška f",
+        "origin": "specification",
+        "reference": "terrain.relative_height_floor",
+        "unit": "",
+        "value": 0.15
        }
       ]
      }
     ],
-    "steps": 33,
+    "steps": 35,
     "title_cs": "Sociomapa: objektová mapa"
    }
   },
@@ -16489,6 +17133,8 @@
      "id": "S6",
      "note_cs": "Krajina kopců nad mapou, kterou vidí čtenář výsledků.",
      "step_ids": [
+      "relative_heights",
+      "terrain_frame",
       "f12_envelope"
      ],
      "title_cs": "Terén"
@@ -16529,7 +17175,7 @@
    ],
    "id": "sociomap",
    "in_force": "aia-sociomap-3",
-   "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy a polohy objektů podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+   "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky a terén podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
    "presets": [
     "aia-sociomap-4",
     "aia-sociomap-3",
@@ -16537,7 +17183,7 @@
     "aia-sociomap-5"
    ],
    "preview_title_cs": "",
-   "steps": 33,
+   "steps": 35,
    "title_cs": "Sociomapa: objektová mapa"
   },
   {
@@ -17239,12 +17885,12 @@
      "height": "mean_rating_0_1"
     },
     "terrain": {
-     "grid_resolution": 64,
-     "half_extent": 2.75,
-     "kernel_cutoff": 0.0005,
-     "method": "object_envelope",
+     "frame_fill": 0.7,
+     "grid_resolution": 84,
+     "method": "framed_relative_envelope",
+     "relative_height_floor": 0.15,
      "sigma": 0.25,
-     "sigma_basis": "aia_provisional_r08_5pct"
+     "sigma_basis": "signed_off_methodology"
     }
    }
   },

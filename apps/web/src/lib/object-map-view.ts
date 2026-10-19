@@ -43,14 +43,16 @@ export type ObjectMapArtifact = {
   outcome: "MAPPED" | "NOT_MAPPABLE";
   not_mappable: { reason: string; message: string; objects: string[] } | null;
   layout: { points: [number, number][]; extent: number; stress_1?: number; quality?: string; converged: boolean } | null;
-  heights: { metric: string; values: (number | null)[]; support_n: number[] };
+  // `relative`: each PRIMARY object's hill height under the framed envelope (aia-sociomap-5).
+  heights: { metric: string; values: (number | null)[]; support_n: number[]; relative?: (number | null)[] };
   support: { respondents: number; placed: number; not_placed: number; effective_n: number | null; donors: number; weighting: string };
   terrain:
     | { status: "not_computed"; reason: string }
     | {
         status: "computed";
         method: string;
-        parameters: { grid_resolution: number; half_extent: number; sigma: number; kernel_cutoff: number };
+        // `centre`: the framed envelope's grid is centred on the map (aia-sociomap-5), not on 0.
+        parameters: { grid_resolution: number; half_extent: number; sigma: number; kernel_cutoff?: number; centre?: [number, number] };
         source_ids: string[];
         height: (number | null)[][];
         governing: (number | null)[][];
@@ -205,18 +207,24 @@ export function belowFloor(map: ObjectMapArtifact): number {
 
 export type TerrainCell = { x: number; y: number; size: number; band: number; owner: string };
 
+/** The stored grid's first sample on each axis and its spacing: the grid spans its half-width
+ * about the stored centre, 0 unless the grid is framed on the map. */
+export function gridOrigin(parameters: { grid_resolution: number; half_extent: number; centre?: [number, number] }): { x0: number; y0: number; step: number } {
+  const [cx, cy] = parameters.centre ?? [0, 0];
+  return { x0: cx - parameters.half_extent, y0: cy - parameters.half_extent, step: (2 * parameters.half_extent) / parameters.grid_resolution };
+}
+
 /** The stored envelope's cells that have a height, at their map coordinates; none without one. */
 export function terrainCells(map: ObjectMapArtifact): TerrainCell[] {
   const terrain = map.terrain;
   if (terrain.status !== "computed") return [];
-  const { grid_resolution: n, half_extent: span } = terrain.parameters;
-  const step = (2 * span) / n;
+  const { x0, y0, step } = gridOrigin(terrain.parameters);
   const cells: TerrainCell[] = [];
   terrain.height.forEach((row, gy) =>
     row.forEach((h, gx) => {
       if (h === null) return;
       const owner = terrain.governing[gy][gx];
-      cells.push({ x: -span + gx * step, y: -span + gy * step, size: step, band: terraceBand(h), owner: owner === null ? "" : terrain.source_ids[owner] });
+      cells.push({ x: x0 + gx * step, y: y0 + gy * step, size: step, band: terraceBand(h), owner: owner === null ? "" : terrain.source_ids[owner] });
     }),
   );
   return cells;
@@ -256,9 +264,8 @@ export function mapFrame(map: ObjectMapArtifact, objects: { x: number; y: number
   const ys: number[] = objects.map((o) => o.y);
   const t = map.terrain;
   if (t.status === "computed") {
-    const { grid_resolution: n, half_extent: span } = t.parameters;
-    const step = (2 * span) / n;
-    t.height.forEach((row, gy) => row.forEach((h, gx) => { if (h !== null) { xs.push(-span + gx * step); ys.push(-span + gy * step); } }));
+    const { x0, y0, step } = gridOrigin(t.parameters);
+    t.height.forEach((row, gy) => row.forEach((h, gx) => { if (h !== null) { xs.push(x0 + gx * step); ys.push(y0 + gy * step); } }));
   }
   const limit = viewSpan(map);
   if (!xs.length) return { cx: 0, cy: 0, half: limit };
@@ -298,8 +305,7 @@ export type Segment = { x1: number; y1: number; x2: number; y2: number };
 export function terraceEdges(map: ObjectMapArtifact): Segment[] {
   const terrain = map.terrain;
   if (terrain.status !== "computed") return [];
-  const { grid_resolution: n, half_extent: span } = terrain.parameters;
-  const step = (2 * span) / n;
+  const { x0, y0, step } = gridOrigin(terrain.parameters);
   const half = step / 2;
   const at = (gy: number, gx: number) => {
     const h = terrain.height[gy]?.[gx];
@@ -310,8 +316,8 @@ export function terraceEdges(map: ObjectMapArtifact): Segment[] {
     row.forEach((_, gx) => {
       const here = at(gy, gx);
       if (here === null) return;
-      const x = -span + gx * step;
-      const y = -span + gy * step;
+      const x = x0 + gx * step;
+      const y = y0 + gy * step;
       const right = at(gy, gx + 1);
       if (right !== null && right !== here) out.push({ x1: x + half, y1: y - half, x2: x + half, y2: y + half });
       const up = at(gy + 1, gx);
@@ -325,9 +331,9 @@ export function terraceEdges(map: ObjectMapArtifact): Segment[] {
 export function terrainAt(map: ObjectMapArtifact, x: number, y: number): number | null {
   const terrain = map.terrain;
   if (terrain.status !== "computed") return null;
-  const { grid_resolution: n, half_extent: span } = terrain.parameters;
-  const gx = Math.round(((x + span) * n) / (2 * span));
-  const gy = Math.round(((y + span) * n) / (2 * span));
+  const { x0, y0, step } = gridOrigin(terrain.parameters);
+  const gx = Math.round((x - x0) / step);
+  const gy = Math.round((y - y0) / step);
   return terrain.height[gy]?.[gx] ?? null;
 }
 

@@ -86,6 +86,15 @@ _LAYOUT_MAP_TEST: Final = (
     f"{_LAYOUT_TEST}test_the_object_map_records_the_signed_off_positions_under_aia_sociomap_5"
 )
 
+_SIGNED_OFF_TERRAIN: Final = _rule("AIA-SIGNED-OFF-TERRAIN")
+_TERRAIN_TEST: Final = f"{_T}/test_sociomap_signed_off_terrain.py::"
+_TERRAIN_PARITY_TEST: Final = (
+    f"{_TERRAIN_TEST}test_height_frame_and_terrain_match_the_methodologys_own_code"
+)
+_TERRAIN_MAP_TEST: Final = (
+    f"{_TERRAIN_TEST}test_the_object_map_stores_the_framed_terrain_under_aia_sociomap_5"
+)
+
 _CATALOGUE: Final[tuple[MethodStep, ...]] = (
     # ------------------------------------------------------------------ the method
     MethodStep(
@@ -433,7 +442,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         title_cs="Síla vztahu a jeho směr",
         formula_latex=r"s_{ij} = |r_{ij}|,\qquad \operatorname{sgn} r_{ij} \text{ jako barva}",
         implements=f"{_S}.engine_v2:compute_object_map",
-        source_sha256="2f860868b6de5d86a98038e706c34f620e3f59aecb5fdae6636a19998823e0a2",
+        source_sha256="9561a2e291e424733d34a348d49a54421cde77680d587608b3aaf7099464af5b",
         evidence=(_rule("AUDIT-F4"),),
         tests=(
             f"{_T}/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input",
@@ -777,9 +786,15 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         source_sha256="b92511a1a55691a948eed0d03f1e4509a5d4bb2537edafb21e089e6e51494560",
         symbols=(Symbol(r"k", "všichni, kdo objekt hodnotili, i neumístění"),),
         parameters=(ParameterRef("scores.height", "Výška objektu"),),
-        evidence=(_rule("AUDIT-F8"), _Q7),
+        evidence=(_rule("AUDIT-F8"), _Q7, _SIGNED_OFF_TERRAIN),
         tests=(
             f"{_T}/test_sociomap_object_map.py::test_a_straight_liner_is_not_placed_but_their_ratings_count_in_the_heights",
+            f"{_TERRAIN_TEST}test_the_height_is_survey_weighted_and_the_relations_are_not",
+            _TERRAIN_PARITY_TEST,
+        ),
+        note_cs=(
+            "aia-sociomap-5 počítá výšku stejně, s váhami respondentů, jako schválená metodika; "
+            "vztahy a polohy objektů jsou u něj nevážené."
         ),
     ),
     # ------------------------------------------------------------------ F9
@@ -900,6 +915,69 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
     ),
     # ------------------------------------------------------------------ F12 / F13
     MethodStep(
+        id="relative_heights",
+        title_cs="Relativní výška kopce",
+        formula_latex=(
+            r"t_j = f + (1 - f)\,\frac{h_j - \min_l h_l}{\max_l h_l - \min_l h_l},\qquad "
+            r"\max_l h_l - \min_l h_l < 10^{-15} \;\Rightarrow\; t_j = \tfrac12,\qquad "
+            r"h_j = \varnothing \;\Rightarrow\; h_j = \min_{l:\, h_l \ne \varnothing} h_l"
+        ),
+        implements=f"{_S}.engine_v2:_relative_heights",
+        source_sha256="7ec4119557d8a0a85dd11cf36515a7fb902f08ef1a5af634ac5c73589f910879",
+        symbols=(
+            Symbol(r"h_j", "výška objektu j: průměr hodnocení na škále 0-1"),
+            Symbol(r"l", "PRIMÁRNÍ objekty mapy"),
+            Symbol(r"f", "nejnižší relativní výška (hodnota u kroku terénu)"),
+            Symbol(r"t_j", "relativní výška kopce objektu j, v [f, 1]"),
+        ),
+        constants=(
+            ConstantRef(
+                f"{_S}.engine_v2:EQUAL_RELATIVE_HEIGHT", "Výška kopců, když se výšky neliší"
+            ),
+        ),
+        evidence=(_SIGNED_OFF_TERRAIN,),
+        tests=(_TERRAIN_PARITY_TEST, _TERRAIN_MAP_TEST),
+        note_cs=(
+            "Jen aia-sociomap-5. Objekt, který nikdo nehodnotil, stojí na nejnižší výšce; jeho "
+            "výška zůstane prázdná, takže ho mapa může ukázat šedě. Nehodnotil-li nikdo nic, "
+            "stojí všechny kopce na 0,5. Kontextový (SEKUNDÁRNÍ) objekt kopec nemá a rozpětí "
+            "výšek nemění. Relativní výšky zapíše mapa (heights.relative)."
+        ),
+    ),
+    MethodStep(
+        id="terrain_frame",
+        title_cs="Rám terénu podle mapy",
+        formula_latex=(
+            r"c = \tfrac12\left(\min_j x_j + \max_j x_j\right),\qquad "
+            r"H = \frac{\max_j \lVert x_j - c\rVert_\infty}{v},\qquad "
+            r"\max_j \lVert x_j - c\rVert_\infty \le 10^{-12}/27 \;\Rightarrow\; H = H_0"
+        ),
+        implements=f"{_S}.terrain:fit_frame",
+        source_sha256="ef12f067a9941dde1a6a821f31dc40561f9128b9d2f1f0b8b2746c728f9a76b0",
+        symbols=(
+            Symbol(r"x_j", "poloha objektu j na pravítku (všechny umístěné objekty)"),
+            Symbol(r"c", "střed mřížky terénu"),
+            Symbol(r"H", "poloviční šířka mřížky", "jednotky vzdálenosti"),
+            Symbol(r"v", "podíl poloviční šířky, který objekty vyplní (hodnota u kroku terénu)"),
+        ),
+        constants=(
+            ConstantRef(
+                f"{_S}.terrain:ONE_POINT_HALF_EXTENT",
+                "H₀: poloviční šířka, stojí-li všechny objekty v jednom bodě",
+                "jednotky vzdálenosti",
+            ),
+        ),
+        evidence=(_SIGNED_OFF_TERRAIN,),
+        tests=(_TERRAIN_PARITY_TEST, _TERRAIN_MAP_TEST),
+        note_cs=(
+            "Jen aia-sociomap-5. Střed je střed obdélníku kolem objektů, ne jejich průměr. Rám "
+            "kryje všechny umístěné objekty, i kontextové, aby každý nakreslený objekt stál na "
+            "mřížce; kopce dávají jen PRIMÁRNÍ objekty. Střed a poloviční šířku zapíše mapa "
+            "(terrain.parameters.centre a half_extent). H₀ = 62/27 je rám metodiky v jejích "
+            "kreslicích jednotkách (62 jednotek, 27 na jednotku pravítka)."
+        ),
+    ),
+    MethodStep(
         id="f12_envelope",
         title_cs="Terén jako obálka kopců",
         formula_latex=(
@@ -908,7 +986,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
             r"\quad g_t = -S + t\,\frac{2S}{N},\; t = 0..N"
         ),
         implements=f"{_S}.terrain:envelope_at",
-        source_sha256="8672f6dc43b2c181319e75a62724dad7138ece866ec1628d6f1a29f2b755e254",
+        source_sha256="90f0abfb8e149f1e7c0ba9d8f799ad13d006df46a662dab4da0d66cc2382915f",
         symbols=(
             Symbol(r"\sigma", "šířka kopce", "jednotky vzdálenosti"),
             Symbol(r"S, N", "poloviční rozsah a rozlišení mřížky"),
@@ -920,6 +998,8 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
             ParameterRef("terrain.grid_resolution", "Rozlišení mřížky N"),
             ParameterRef("terrain.half_extent", "Poloviční rozsah S", "jednotky vzdálenosti"),
             ParameterRef("terrain.kernel_cutoff", "Práh jádra"),
+            ParameterRef("terrain.frame_fill", "Podíl rámu vyplněný objekty v"),
+            ParameterRef("terrain.relative_height_floor", "Nejnižší relativní výška f"),
         ),
         evidence=(_rule("AUDIT-F12"), _rule("AUDIT-F13")),
         tests=(
@@ -929,7 +1009,12 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         ),
         note_cs=(
             "Buňka, kam žádný kopec nedosáhne (jádro pod prahem), nemá výšku, ne nulu. "
-            "\u03c3 = 0,25 je prozatímní (√0,4 / √(2 ln 20), zaokrouhleno dolů)."
+            "\u03c3 = 0,25 je prozatímní (√0,4 / √(2 ln 20), zaokrouhleno dolů). "
+            "aia-sociomap-5 (metoda framed_relative_envelope) staví kopce v relativních výškách "
+            "t_j na mřížce g_t = c - H + t·2H/N z rámu mapy a práh jádra nemá: dosáhne každý "
+            "kopec, každá buňka má výšku. Poloviční rozsah S a práh jádra proto nedeklaruje; "
+            "\u03c3 = 0,25 je i šířka metodiky (6,75 k jejích jednotek při 27 k na jednotku "
+            "pravítka)."
         ),
     ),
 )
@@ -1119,9 +1204,21 @@ _CONTEXT: Final[dict[str, _Context]] = {
         inputs=("f9_quantile",),
         audit="F9",
     ),
+    "relative_heights": _Context(
+        role_cs="Převede výšky objektů na výšky kopců: nejnižší objekt stojí na prahu, "
+        "nejvyšší na 1, aby byl terén čitelný i při malých rozdílech.",
+        inputs=("f8_height",),
+        audit=_SIGNED_OFF_POINT,
+    ),
+    "terrain_frame": _Context(
+        role_cs="Vybere čtverec, který terén pokryje: kolem objektů, s okrajem, aby se mapa "
+        "vešla celá.",
+        inputs=("ruler_scale",),
+        audit=_SIGNED_OFF_POINT,
+    ),
     "f12_envelope": _Context(
         role_cs="Krajina, kterou čtenář vidí: z poloh objektů a jejich výšek vytvoří kopce.",
-        inputs=("f6_smacof", "ruler_scale", "f8_height"),
+        inputs=("f6_smacof", "ruler_scale", "f8_height", "relative_heights", "terrain_frame"),
         audit="F12-F13",
     ),
     "f10_placement": _Context(
@@ -1205,7 +1302,7 @@ _GROUPS: Final = (
     StepGroup(
         "S6",
         "Terén",
-        ("f12_envelope",),
+        ("relative_heights", "terrain_frame", "f12_envelope"),
         "Krajina kopců nad mapou, kterou vidí čtenář výsledků.",
     ),
     StepGroup(
@@ -1268,7 +1365,7 @@ SOCIOMAP: Final = MethodModule(
         "vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti "
         "je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice "
         "i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava "
-        "z něj vychází. aia-sociomap-5 počítá vstupy, vztahy a polohy objektů podle schválené "
-        "metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“)."
+        "z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky a "
+        "terén podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“)."
     ),
 )

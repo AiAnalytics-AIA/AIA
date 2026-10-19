@@ -282,11 +282,26 @@ class NotComputed(_Frozen):
 
 
 class ObjectHeights(_Frozen):
-    """Each mapped object's height (audit F8: the mean rating), with its support."""
+    """Each mapped object's height (audit F8: the mean rating), with its support.
+
+    A ``values`` entry is ``None`` exactly when nobody rated the object. ``relative`` is each
+    PRIMARY object's hill height under the framed envelope (``aia-sociomap-5``): its height
+    min-max scaled onto ``[floor, 1]``, an object nobody rated at the lowest; ``None`` for a
+    SECONDARY object. Under every other terrain ``relative`` is ``None`` and left out of the
+    stored form, so every map stored before it reads, and recomputes, byte for byte.
+    """
 
     metric: str
     values: tuple[float | None, ...]
     support_n: tuple[int, ...]
+    relative: tuple[float | None, ...] | None = None
+
+    @model_serializer(mode="wrap")
+    def _without_absent(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        body: dict[str, Any] = handler(self)
+        if body.get("relative") is None:
+            body.pop("relative", None)
+        return body
 
 
 class ObjectMapSupport(_Frozen):
@@ -390,6 +405,8 @@ class SociomapArtifactV3(_Frozen):
             raise ValueError(f"unknown outcome {self.outcome!r}")
         if len(self.heights.values) != m or len(self.heights.support_n) != m:
             raise ValueError("heights must align with the mapped objects")
+        if self.heights.relative is not None and len(self.heights.relative) != m:
+            raise ValueError("relative heights must align with the mapped objects")
         if isinstance(self.terrain, EnvelopeTerrain):
             if self.layout is None:
                 raise ValueError("a terrain stands on a layout; a NOT_MAPPABLE map has none")

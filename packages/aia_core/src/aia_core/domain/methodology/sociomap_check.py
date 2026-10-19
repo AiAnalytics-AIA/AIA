@@ -214,7 +214,7 @@ def _terrain_change(
     t0, t1 = before.terrain, after.terrain
     if not isinstance(t0, EnvelopeTerrain) or not isinstance(t1, EnvelopeTerrain):
         return None, "terén nemá jedna z map"
-    if t0.parameters.axis() != t1.parameters.axis():
+    if t0.parameters.axes() != t1.parameters.axes():
         return None, "mřížka terénu se liší, buňky nejde porovnat"
     largest = 0.0
     for row0, row1 in zip(t0.height, t1.height, strict=True):

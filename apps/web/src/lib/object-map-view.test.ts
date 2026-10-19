@@ -192,6 +192,18 @@ describe("the terrace steps of the top view", () => {
     expect(terrainAt(map, 0, 0)).toBe(t.height[t.parameters.grid_resolution / 2][t.parameters.grid_resolution / 2]);
     expect(terrainAt(edited((m) => (m.terrain = { status: "not_computed", reason: "x" })), 0, 0)).toBeNull();
   });
+
+  it("places a grid framed on the map about its stored centre", () => {
+    const framed = edited((m) => {
+      m.terrain = { status: "computed", method: "framed_relative_envelope", source_ids: ["a"], parameters: { grid_resolution: 2, half_extent: 1, sigma: 0.25, centre: [0.5, -0.25] },
+        height: [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]], governing: [[0, 0, 0], [0, 0, 0], [0, 0, 0]] };
+    });
+    const cells = terrainCells(framed);
+    expect(cells).toHaveLength(9);
+    expect(cells[0]).toMatchObject({ x: -0.5, y: -1.25, size: 1 });
+    expect(terrainAt(framed, 0.5, -0.25)).toBe(0.5);
+    expect(terrainAt(framed, 1.5, 0.75)).toBe(0.9);
+  });
 });
 
 describe("the ranked list", () => {

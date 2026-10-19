@@ -30,14 +30,22 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from enum import StrEnum
-from typing import Literal, Self
+from typing import Any, Final, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    SerializerFunctionWrapHandler,
+    field_validator,
+    model_serializer,
+    model_validator,
+)
 
 from .metrics import NormalizationMode, build_normalizer
 from .slots import KERNEL, NO_SLOTS, Slots
 
 __all__ = [
+    "ONE_POINT_HALF_EXTENT",
     "TERRAIN66_OBJECT",
     "TERRAIN66_RESPONDENT",
     "EnvelopeHill",
@@ -49,6 +57,7 @@ __all__ = [
     "TerrainSource",
     "compute_terrain",
     "envelope_at",
+    "fit_frame",
     "object_envelope",
 ]
 
@@ -296,20 +305,42 @@ def compute_terrain(
 
 
 class EnvelopeParameters(BaseModel):
-    """The envelope's grid and kernel, in the map's own units (the fixed ruler)."""
+    """The envelope's grid and kernel, in the map's own units (the fixed ruler).
+
+    The framed envelope (``aia-sociomap-5``) centres its grid on the map, at ``centre``, and
+    lets every hill reach every cell: ``kernel_cutoff`` ``None``. Both are left out of the
+    stored form when ``None``, so every terrain stored before them reads, and recomputes, byte
+    for byte.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     grid_resolution: int
     half_extent: float
     sigma: float
-    kernel_cutoff: float
+    kernel_cutoff: float | None = None
+    centre: tuple[float, float] | None = None
+
+    @model_serializer(mode="wrap")
+    def _without_absent(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        body: dict[str, Any] = handler(self)
+        for key in ("kernel_cutoff", "centre"):
+            if body.get(key) is None:
+                body.pop(key, None)
+        return body
 
     @field_validator("grid_resolution", "half_extent", "sigma", "kernel_cutoff", mode="before")
     @classmethod
     def _not_boolean(cls, v: object) -> object:
         if isinstance(v, bool):
             raise ValueError("envelope parameters must be numbers, not booleans")
+        return v
+
+    @field_validator("centre", mode="before")
+    @classmethod
+    def _centre_not_boolean(cls, v: object) -> object:
+        if isinstance(v, (list, tuple)) and any(isinstance(c, bool) for c in v):
+            raise ValueError("the grid's centre must be numbers, not booleans")
         return v
 
     @field_validator("grid_resolution")
@@ -328,16 +359,55 @@ class EnvelopeParameters(BaseModel):
 
     @field_validator("kernel_cutoff")
     @classmethod
-    def _cutoff(cls, v: float) -> float:
+    def _cutoff(cls, v: float | None) -> float | None:
+        if v is None:
+            return v
         if not (math.isfinite(v) and 0 < v < 1):
             raise ValueError("kernel_cutoff must lie strictly between 0 and 1")
         return float(v)
 
+    @field_validator("centre")
+    @classmethod
+    def _centre(cls, v: tuple[float, float] | None) -> tuple[float, float] | None:
+        if v is not None and not all(math.isfinite(c) for c in v):
+            raise ValueError("the grid's centre is finite")
+        return v
+
     def axis(self) -> tuple[float, ...]:
-        """Grid coordinates along one axis: ``-span + g * 2 span / N`` for ``g = 0..N``."""
+        """Grid offsets from the centre along one axis: ``-span + g * 2 span / N``, ``g = 0..N``."""
         n, span = self.grid_resolution, self.half_extent
         step = 2.0 * span / n
         return tuple(-span + g * step for g in range(n + 1))
+
+    def axes(self) -> tuple[tuple[float, ...], tuple[float, ...]]:
+        """The grid's x and y coordinates: :meth:`axis`, moved to the centre when it has one."""
+        offsets = self.axis()
+        if self.centre is None:
+            return offsets, offsets
+        cx, cy = self.centre
+        return tuple(cx + v for v in offsets), tuple(cy + v for v in offsets)
+
+
+#: The half-width of the framed grid when every object stands at one point, so there is no
+#: extent to frame: the signed-off methodology then draws its grid of 62 frame units at 27
+#: frame units to the ruler unit (``frame_fit`` with its scale 1), 62 / 27 ruler units.
+ONE_POINT_HALF_EXTENT: Final = 62.0 / 27.0
+#: The largest offset from the centre at or below which every object stands at one point: the
+#: methodology's 1e-12 on its 27-fold frame units, in ruler units.
+_NO_EXTENT: Final = 1e-12 / 27.0
+
+
+def fit_frame(
+    points: Sequence[tuple[float, float]], fill: float
+) -> tuple[tuple[float, float], float]:
+    """The square the framed envelope's grid covers: its centre, the middle of the objects'
+    bounding box (not their mean), and its half-width, the largest offset of an object from the
+    centre on either axis over ``fill``, so the objects span ``fill`` of the half-width. With
+    no extent, :data:`ONE_POINT_HALF_EXTENT`."""
+    xs, ys = [p[0] for p in points], [p[1] for p in points]
+    cx, cy = (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2
+    reach = max(max(abs(x - cx), abs(y - cy)) for x, y in points)
+    return (cx, cy), (reach / fill if reach > _NO_EXTENT else ONE_POINT_HALF_EXTENT)
 
 
 class EnvelopeHill(BaseModel):
@@ -380,12 +450,14 @@ class EnvelopeTerrain(BaseModel):
     ``height`` is ``z(q)``; ``None`` where no hill's kernel reaches the cutoff -- nothing
     is there, which is not a height of 0. ``governing`` is the index into ``source_ids``
     of the hill that sets each cell (the first of equals), ``None`` with the height.
+    ``framed_relative_envelope`` (``aia-sociomap-5``) has no cutoff: with a hill, every cell
+    has a height.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     status: Literal["computed"] = "computed"
-    method: Literal["object_envelope"] = "object_envelope"
+    method: Literal["object_envelope", "framed_relative_envelope"] = "object_envelope"
     parameters: EnvelopeParameters
     source_ids: tuple[str, ...]
     height: tuple[tuple[float | None, ...], ...]
@@ -412,12 +484,12 @@ def envelope_at(
     y: float,
     hills: Sequence[EnvelopeHill],
     sigma: float,
-    cutoff: float,
+    cutoff: float | None,
     *,
     slots: Slots = NO_SLOTS,
 ) -> tuple[float, int] | None:
     """``z`` at ``(x, y)`` and the index of the hill that sets it; ``None`` when no hill's
-    kernel reaches ``cutoff`` there.
+    kernel reaches ``cutoff`` there. ``cutoff`` ``None``: every hill reaches every point.
 
     ``slots`` may replace the kernel (``f12.kernel``, ADR 0023): a hill's ``z`` is then the
     replaced kernel at its height, and whether it reaches ``cutoff`` is the kernel at height
@@ -428,14 +500,14 @@ def envelope_at(
     for k, hill in enumerate(hills):
         if kernel is not None:
             d2 = (x - hill.x) ** 2 + (y - hill.y) ** 2
-            if float(kernel(h=1.0, d2=d2, sigma=sigma)) < cutoff:
+            if cutoff is not None and float(kernel(h=1.0, d2=d2, sigma=sigma)) < cutoff:
                 continue
             z = float(kernel(h=hill.height, d2=d2, sigma=sigma))
             if best is None or z > best[0]:
                 best = (z, k)
             continue
         w = math.exp(-((x - hill.x) ** 2 + (y - hill.y) ** 2) / two_sigma_sq)
-        if w < cutoff:
+        if cutoff is not None and w < cutoff:
             continue
         z = hill.height * w
         if best is None or z > best[0]:
@@ -444,23 +516,28 @@ def envelope_at(
 
 
 def object_envelope(
-    hills: Sequence[EnvelopeHill], params: EnvelopeParameters, *, slots: Slots = NO_SLOTS
+    hills: Sequence[EnvelopeHill],
+    params: EnvelopeParameters,
+    *,
+    slots: Slots = NO_SLOTS,
+    method: Literal["object_envelope", "framed_relative_envelope"] = "object_envelope",
 ) -> EnvelopeTerrain:
     """The F12 envelope of ``hills`` on ``params``' grid. See the section above; ``slots``
-    as :func:`envelope_at`'s."""
+    as :func:`envelope_at`'s; ``method`` names what the hills' heights and grid are."""
     ids = tuple(h.entity_id for h in hills)
     if len(set(ids)) != len(ids):
         raise ValueError("envelope hill ids must be unique")
-    axis = params.axis()
+    xs, ys = params.axes()
     height: list[tuple[float | None, ...]] = []
     governing: list[tuple[int | None, ...]] = []
-    for y in axis:
+    for y in ys:
         cells = [
-            envelope_at(x, y, hills, params.sigma, params.kernel_cutoff, slots=slots) for x in axis
+            envelope_at(x, y, hills, params.sigma, params.kernel_cutoff, slots=slots) for x in xs
         ]
         height.append(tuple(None if c is None else c[0] for c in cells))
         governing.append(tuple(None if c is None else c[1] for c in cells))
     return EnvelopeTerrain(
+        method=method,
         parameters=params,
         source_ids=ids,
         height=tuple(height),
