@@ -52,9 +52,7 @@ def _study(world: Any) -> str:
 
 
 def _revision(c: TestClient, world: Any, content: dict[str, Any] = UNLINKED) -> str:
-    made = c.post(
-        f"{_study(world)}/design/revisions", json={"content": content, "source_stage": "run"}
-    )
+    made = world.design(c, content)
     assert made.status_code in (200, 201), made.text
     return str(made.json()["revision_id"])
 

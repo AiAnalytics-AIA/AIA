@@ -2,15 +2,15 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useLayoutEffect, useState } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { research, researchAgents, type ResearchAgentJob, type ResearchAgentResult } from "@/lib/api";
+import { ApiError, research, researchAgents, type ResearchAgentJob, type ResearchAgentResult } from "@/lib/api";
 import type { JobUpdate } from "@/research/jobs";
 import type { ResearchStore } from "@/research/store";
-import { briefFingerprint } from "@/research/model";
-import { canonicalProject, useResearchAgents } from "./useResearchAgents";
+import { useResearchAgents } from "./useResearchAgents";
 
-vi.mock("@/lib/api", () => ({
+vi.mock("@/lib/api", async () => ({
+  ApiError: (await vi.importActual<typeof import("@/lib/api")>("@/lib/api")).ApiError,
   research: { submitDesign: vi.fn() },
-  researchAgents: { jobs: vi.fn(), job: vi.fn(), start: vi.fn(), result: vi.fn(), accept: vi.fn(), design: vi.fn(), cancel: vi.fn(), resume: vi.fn() },
+  researchAgents: { jobs: vi.fn(), job: vi.fn(), start: vi.fn(), result: vi.fn(), accept: vi.fn(), design: vi.fn(), cancel: vi.fn(), resume: vi.fn(), dismiss: vi.fn(), rebuild: vi.fn() },
 }));
 const job: ResearchAgentJob = {
   run_id: "RUN-1", design_revision_id: "REV-1", action: "analyze_brief", status: "COMPLETED",
@@ -25,6 +25,10 @@ let project: Record<string, unknown>;
 let analysis: Record<string, unknown> | null;
 let store: ResearchStore;
 let flush: ReturnType<typeof vi.fn>;
+let reload: ReturnType<typeof vi.fn>;
+let conflict: ReturnType<typeof vi.fn>;
+/** The working revision the copy is at, as AIA saved it. */
+let revision: number;
 let onUpdate = vi.fn<(u: JobUpdate | null) => void>();
 let running: Promise<unknown> | null;
 function Harness({ studyId = "STU-1" }: { studyId?: string }) {
@@ -42,7 +46,13 @@ beforeEach(() => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
   project = { goal: "Original" }; analysis = null; flush = vi.fn().mockResolvedValue(undefined); onUpdate = vi.fn(); running = null;
-  store = { get: () => ({ project, analysis }), flush,
+  revision = 3;
+  // The server wrote the working copy (ADR 0026 decision 6): a reload reads what it wrote.
+  reload = vi.fn().mockImplementation(async () => {
+    project = { ...project, title: "Proposed" }; analysis = { objectives: ["A"] }; revision = 4;
+  });
+  conflict = vi.fn();
+  store = { get: () => ({ project, analysis, revision, save: { kind: "saved" } }), flush, reload, conflict,
     update: (fn: (state: { project: Record<string, unknown>; analysis: Record<string, unknown> | null }) => { project: Record<string, unknown>; analysis?: Record<string, unknown> }) => {
       const next = fn({ project, analysis }); project = next.project; analysis = next.analysis ?? analysis;
     },
@@ -53,7 +63,7 @@ beforeEach(() => {
   vi.mocked(researchAgents.job).mockResolvedValue(job);
   vi.mocked(researchAgents.resume).mockResolvedValue({ ...job, status: "RUNNING", is_terminal: false });
   vi.mocked(researchAgents.result).mockResolvedValue(result);
-  vi.mocked(researchAgents.accept).mockResolvedValue({ revision_id: "REV-2" } as Awaited<ReturnType<typeof researchAgents.accept>>);
+  vi.mocked(researchAgents.accept).mockResolvedValue({ design_revision_id: "REV-2", workspace_revision: 4 } as Awaited<ReturnType<typeof researchAgents.accept>>);
   vi.mocked(researchAgents.design).mockResolvedValue({ content: { goal: "Original" } } as unknown as Awaited<ReturnType<typeof researchAgents.design>>);
 });
 afterEach(cleanup);
@@ -85,16 +95,18 @@ it("refreshes following of an uncertain running advice job without a resume muta
   await act(async () => { await running; }); expect(researchAgents.accept).not.toHaveBeenCalled();
 });
 
-it("freezes a Study revision, follows the job, and writes nothing until review", async () => {
+it("freezes a Study revision naming its working revision, follows the job, and writes nothing until review", async () => {
   render(<Harness />); fireEvent.click(screen.getByText("Run"));
   await screen.findByRole("dialog");
-  expect(research.submitDesign).toHaveBeenCalledWith("STU-1", { goal: "Original" }, "brief");
+  expect(research.submitDesign).toHaveBeenCalledWith("STU-1", { goal: "Original" }, "brief", 3);
   expect(researchAgents.start).toHaveBeenCalledWith("STU-1", "REV-1", "analyze_brief", "");
   expect(researchAgents.accept).not.toHaveBeenCalled(); expect(project).toEqual({ goal: "Original" });
   fireEvent.click(screen.getByText("Použít návrh"));
-  await waitFor(() => expect(project.title).toBe("Proposed"));
-  expect(researchAgents.accept).toHaveBeenCalledExactlyOnceWith("STU-1", "RUN-1", "REV-1");
-  expect(analysis).toMatchObject({ objectives: ["A"], _brief_signature: briefFingerprint(project as Parameters<typeof briefFingerprint>[0]) });
+  await waitFor(() => expect(reload).toHaveBeenCalledOnce());
+  // One server transaction with the working revision the person has; the browser then reloads
+  // what the server wrote and writes nothing back itself.
+  expect(researchAgents.accept).toHaveBeenCalledExactlyOnceWith("STU-1", "RUN-1", "REV-1", 3);
+  expect(project.title).toBe("Proposed"); expect(analysis).toEqual({ objectives: ["A"] });
 });
 it("keeps a run that started before the hook's mount effect ran", async () => {
   // A click can land between React's commit and its passive effects (QuestionnaireStep's
@@ -114,7 +126,7 @@ it("keeps a run that started before the hook's mount effect ran", async () => {
   await act(async () => { release(); });
   fireEvent.click(await screen.findByText("Použít návrh"));
   await act(async () => { await running; });
-  expect(researchAgents.accept).toHaveBeenCalledExactlyOnceWith("STU-1", "RUN-1", "REV-1");
+  expect(researchAgents.accept).toHaveBeenCalledExactlyOnceWith("STU-1", "RUN-1", "REV-1", 3);
   expect(screen.getByText("idle")).toBeTruthy();
 });
 it("a second click resumes the same unbilled runtime park without editing the brief", async () => {
@@ -135,11 +147,19 @@ it("keeping the current design leaves the saved proposal unapplied", async () =>
   await screen.findByText(/současný návrh jste ponechali/);
   expect(researchAgents.accept).not.toHaveBeenCalled(); expect(project).toEqual({ goal: "Original" });
 });
-it("edits during review block acceptance instead of overwriting them", async () => {
+it("a stale refusal names the items in Czech and never overwrites the person's edit", async () => {
+  vi.mocked(researchAgents.accept).mockRejectedValue(new ApiError(409, "stale_proposal", "stale", null, {
+    reason: "items_changed", conflicting_items: ["content:brief:goal", "content:objective:najít práh ceny", "analysis:objective:najít práh ceny"],
+  }));
   render(<Harness />); fireEvent.click(screen.getByText("Run"));
   await screen.findByRole("dialog"); fireEvent.click(screen.getByText("Edit")); fireEvent.click(screen.getByText("Použít návrh"));
-  await screen.findByText(/Zadání se během AI kroku změnilo/);
-  expect(researchAgents.accept).not.toHaveBeenCalled(); expect(project.goal).toBe("Edited");
+  await screen.findByText(/Cíl studie, Cíl „najít práh ceny“\./);
+  expect(flush).toHaveBeenCalled();
+  expect(researchAgents.accept).toHaveBeenCalledExactlyOnceWith("STU-1", "RUN-1", "REV-1", 3);
+  // The proposal stays open to read; it is not offered again, and nothing was reloaded.
+  fireEvent.click(await screen.findByText("Ponechat současný návrh"));
+  await screen.findByText(/současný návrh jste ponechali/);
+  expect(reload).not.toHaveBeenCalled(); expect(project.goal).toBe("Edited");
 });
 it("restores a running job without creating another job or automatically applying it", async () => {
   vi.mocked(researchAgents.jobs).mockResolvedValue([{ ...job, status: "RUNNING", is_terminal: false }]);
@@ -162,13 +182,75 @@ it("does not replace the original job error with a failed inbox refresh", async 
   expect(researchAgents.accept).not.toHaveBeenCalled();
   expect(researchAgents.resume).not.toHaveBeenCalled();
 });
-it("opens an older proposal for reading without allowing it to replace the current design", async () => {
+it("opens a stored proposal and leaves whether it still applies to the server", async () => {
   project = { goal: "Edited" }; render(<Harness />); fireEvent.click(screen.getByText("Open"));
-  await screen.findByRole("dialog"); expect(screen.queryByText("Použít návrh")).toBeNull();
-  fireEvent.click(screen.getByText("Zavřít")); await screen.findByText(/staršího zadání/);
-  expect(researchAgents.accept).not.toHaveBeenCalled();
+  fireEvent.click(await screen.findByText("Použít návrh"));
+  await waitFor(() => expect(reload).toHaveBeenCalledOnce());
+  expect(researchAgents.design).not.toHaveBeenCalled();
+  expect(researchAgents.accept).toHaveBeenCalledExactlyOnceWith("STU-1", "RUN-1", "REV-1", 3);
 });
-it("compares object keys independently of JSON ordering, retaining array order", () => {
-  expect(canonicalProject({ a: [1, 2], b: { d: 4, c: 3 } })).toBe(canonicalProject({ b: { c: 3, d: 4 }, a: [1, 2] }));
-  expect(canonicalProject([1, 2])).not.toBe(canonicalProject([2, 1]));
+
+/** The inline review (ProposalReview's decisions), driven by name. */
+function Inline() {
+  const [error, setError] = useState("");
+  const agents = useResearchAgents("STU-1", store, onUpdate, false, true);
+  const review = agents.proposalReview;
+  return <>
+    <button onClick={() => { running = agents.run("analyze_brief", {}, "Brief").catch((e: Error) => setError(e.message)); }}>Run</button>
+    {review ? <><p>{review.stale?.message ?? "fresh"}</p><p>{review.result.result.project.title as string}</p>
+      <button onClick={() => review.decide("apply")}>Apply</button><button onClick={() => review.decide("dismiss")}>Dismiss</button>
+      <button onClick={() => review.decide("rebuild")}>Rebuild</button></> : null}
+    <p>{error}</p>
+  </>;
+}
+const stale = new ApiError(409, "stale_proposal", "stale", null, { reason: "items_changed", conflicting_items: ["content:brief:goal"] });
+
+it("dismisses a proposal in the ledger and writes nothing to the design", async () => {
+  vi.mocked(researchAgents.dismiss).mockResolvedValue({ ...job, proposal_state: "dismissed" });
+  render(<Inline />); fireEvent.click(screen.getByText("Run"));
+  fireEvent.click(await screen.findByText("Dismiss"));
+  await screen.findByText(/Návrh jste zahodili/);
+  expect(researchAgents.dismiss).toHaveBeenCalledExactlyOnceWith("STU-1", "RUN-1");
+  expect(researchAgents.accept).not.toHaveBeenCalled(); expect(reload).not.toHaveBeenCalled();
+});
+
+it("rebuilds a stale proposal on the current design and reviews the new one", async () => {
+  const rebuilt: ResearchAgentJob = { ...job, run_id: "RUN-2", rebuild_of: "RUN-1" };
+  vi.mocked(researchAgents.accept).mockRejectedValueOnce(stale).mockResolvedValue({ design_revision_id: "REV-3", workspace_revision: 5 } as Awaited<ReturnType<typeof researchAgents.accept>>);
+  vi.mocked(researchAgents.rebuild).mockResolvedValue(rebuilt);
+  vi.mocked(researchAgents.job).mockImplementation(async (_s, id) => (id === "RUN-2" ? rebuilt : job));
+  vi.mocked(researchAgents.result).mockImplementation(async (_s, id) => (id === "RUN-2"
+    ? { ...result, result: { ...result.result, project: { goal: "Original", title: "Rebuilt" } } } : result));
+  render(<Inline />); fireEvent.click(screen.getByText("Run"));
+  fireEvent.click(await screen.findByText("Apply"));
+  // Refused by name: the review stays, saying why, and offers the rebuild.
+  await screen.findByText(/mezitím se změnilo, co návrh mění – Cíl studie/);
+  project = { ...project, goal: "Edited" };
+  fireEvent.click(screen.getByText("Rebuild"));
+  await screen.findByText("Rebuilt");
+  expect(screen.getByText("fresh")).toBeTruthy();
+  expect(research.submitDesign).toHaveBeenLastCalledWith("STU-1", { goal: "Edited" }, "brief", 3);
+  expect(researchAgents.rebuild).toHaveBeenCalledExactlyOnceWith("STU-1", "RUN-1", "REV-1");
+  fireEvent.click(screen.getByText("Apply"));
+  await waitFor(() => expect(reload).toHaveBeenCalledOnce());
+  expect(researchAgents.accept).toHaveBeenLastCalledWith("STU-1", "RUN-2", "REV-1", 3);
+});
+
+it("never drops an edit typed while the accept was on its way: the copy stops saving and says so", async () => {
+  let commit = () => {};
+  vi.mocked(researchAgents.accept).mockReturnValue(new Promise((resolve) => {
+    commit = () => resolve({ design_revision_id: "REV-2", workspace_revision: 4 } as Awaited<ReturnType<typeof researchAgents.accept>>);
+  }));
+  render(<Harness />); fireEvent.click(screen.getByText("Run"));
+  fireEvent.click(await screen.findByText("Použít návrh"));
+  await waitFor(() => expect(researchAgents.accept).toHaveBeenCalledOnce());
+  // The stage is still editable while the accept is in flight.
+  act(() => { store.update(({ project: p }) => ({ project: { ...p, goal: "Typed during the accept" } })); });
+  await act(async () => { commit(); await running; });
+  // Not reloaded over: the edit stays on screen, the copy is held in conflict at the accepted
+  // revision (nothing saves over it), and the person is told what to do.
+  expect(reload).not.toHaveBeenCalled();
+  expect(project.goal).toBe("Typed during the accept");
+  expect(conflict).toHaveBeenCalledExactlyOnceWith(4);
+  expect(screen.getByText(/Úpravu, kterou jste mezitím napsali, jsme nepřepsali/)).toBeTruthy();
 });

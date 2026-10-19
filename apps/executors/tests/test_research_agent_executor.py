@@ -8,6 +8,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import pytest
+from aia_core.application.errors import WorkspaceConflict
+from aia_core.application.proposal_accept import StaleProposal
 from aia_core.application.research import ResearchAgentJobs
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.design import DesignRejected
@@ -29,11 +31,12 @@ from aia_core.infrastructure.model_adapters.transport import (
 )
 from aia_core.infrastructure.prompt_repository import PromptRepository
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
+from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRepository
 from aia_core.infrastructure.tables import ApprovalDecisionRow, PromptVersionRow
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_executors.ai_runtime import AIRuntimeConfigError, AIRuntimeSettings, build_gateway
 from aia_executors.registry import registry_for
-from aia_executors.research_agents import ResearchAgentConfig, ResearchAgentExecutor
+from aia_executors.research_agents import ResearchAgentConfig, ResearchAgentExecutor, _touched
 from aia_worker.settings import WorkerSettings
 from aia_worker.worker import Worker
 from sqlalchemy import select, update
@@ -133,7 +136,7 @@ def settings(client_id: str, **overrides: str) -> AIRuntimeSettings:
 def start(world: Any, *, content: dict[str, Any] | None = None, instruction: str = "") -> str:
     with world.sessions() as session:
         scope = world.lead_scope(session)
-        revision, _ = StudyDesignRepository(session, scope).submit(
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content=DESIGN if content is None else content,
             source_stage="brief",
         )
@@ -210,14 +213,46 @@ def test_worker_stores_proposal_and_review_creates_a_new_revision(
         assert payload["provenance"]["provider_request_id"] == "design-request-1"
         assert payload["provenance"]["status"] == "PROPOSED"
         baseline = job["metadata"]["design_revision_id"]
-        designs = StudyDesignRepository(session, world.lead_scope(session))
+        scope = world.lead_scope(session)
+        designs = StudyDesignRepository(session, scope)
         assert designs.latest().revision_id == baseline
-        accepted, created = jobs.accept(run_id, store=store, expected_revision_id=baseline)
-        assert created and accepted.parent_revision == 1
+        # The job's baseline is the working revision its design came from, and the worker
+        # recorded what the proposal changes against it (ADR 0026 decision 5).
+        base = job["metadata"]["base_workspace_revision"]
+        assert base == designs.get(baseline).workspace_revision is not None
+        touched = job["steps"][0]["output"]["touched_items"]
+        assert "content:objective:test appeal" in touched
+        assert "analysis:objective:test appeal" in touched
+        assert "content:brief:goal" not in touched
+        workspaces = StudyWorkspaceRepository(session)
+        before = workspaces.content(scope)
+        accepted = jobs.accept(
+            run_id,
+            store=store,
+            expected_revision_id=baseline,
+            expected_workspace_revision=before.revision,
+        )
+        created = accepted.created
+        assert created and accepted.revision.parent_revision == 1
         assert designs.content(baseline).get("research_plan") is None
+        # The server wrote the working copy too: the same design as the new Design Revision,
+        # the brief's analysis installed and signed as the browser signs it.
+        after = workspaces.content(scope)
+        assert after.revision == accepted.working.revision == before.revision + 1
+        assert accepted.revision.workspace_revision == after.revision
+        assert after.content == designs.content(accepted.revision.revision_id)
+        assert after.content["research_plan"]["objectives"] == ["Test appeal"]
+        assert after.analysis is not None and after.analysis["objectives"] == ["Test appeal"]
+        assert after.analysis["_brief_signature"].startswith('{"goal":"Test concept"')
         with pytest.raises(DesignRejected):
-            jobs.accept(run_id, store=store, expected_revision_id=baseline)
+            jobs.accept(
+                run_id,
+                store=store,
+                expected_revision_id=baseline,
+                expected_workspace_revision=after.revision,
+            )
         session.commit()
+        accepted_revision = accepted.revision
 
         # The accept is one row in the approval ledger (ADR 0019 gate 1, plan 5b.3).
         rows = ledger(session, run_id)
@@ -226,11 +261,13 @@ def test_worker_stores_proposal_and_review_creates_a_new_revision(
         assert (row.decision, row.gate_type) == ("accept", ResearchAction.ANALYZE.value)
         assert row.artifact_type == "research_agent_proposal"
         assert row.producer_user_id == row.approver_user_id == world.lead_id
-        assert row.self_approved is True and row.project_revision == accepted.revision
+        assert row.self_approved is True and row.project_revision == accepted_revision.revision
         assert json.loads(row.comment) == {
-            "revision_id": accepted.revision_id,
+            "revision_id": accepted_revision.revision_id,
             "revision_created": True,
             "artifact_id": job["steps"][0]["output"]["artifact_id"],
+            "workspace_revision": accepted.working.revision,
+            "workspace_revision_id": accepted.working.revision_id,
         }
 
 
@@ -301,7 +338,10 @@ def test_a_workers_scope_cannot_accept_an_ai_proposal(
         baseline = ResearchAgentJobs(session, person).get(run_id)["metadata"]["design_revision_id"]
         with pytest.raises(ScopeDenied) as exc:
             ResearchAgentJobs(session, as_worker).accept(
-                run_id, store=store, expected_revision_id=baseline
+                run_id,
+                store=store,
+                expected_revision_id=baseline,
+                expected_workspace_revision=1,
             )
         assert exc.value.reason == "insufficient_role"
         assert StudyDesignRepository(session, person).latest().revision_id == baseline
@@ -439,7 +479,7 @@ def test_identical_model_context_does_not_reuse_a_different_revision_baseline(
         baseline = designs.content(designs.latest().revision_id)
         # Provider is deliberately absent from model context, but remains part
         # of the saved project baseline. An old full-project artifact is unsafe.
-        revision, _ = designs.submit(
+        revision, _ = designs.submit_as_working_copy(
             content={**baseline, "provider": "historical-selection"}, source_stage="brief"
         )
         second = ResearchAgentJobs(session, scope).start(
@@ -577,9 +617,9 @@ def test_a_draft_runs_only_when_an_administrator_asks_for_it(
         PromptRepository(session, admin).create_version(
             "aia.research.analyze_brief", CUSTOM_TASK, declares_no_client_data=True
         )
-        revision, _ = StudyDesignRepository(session, world.lead_scope(session)).submit(
-            content=DESIGN, source_stage="brief"
-        )
+        revision, _ = StudyDesignRepository(
+            session, world.lead_scope(session)
+        ).submit_as_working_copy(content=DESIGN, source_stage="brief")
         lead_jobs = ResearchAgentJobs(session, world.lead_scope(session))
         with pytest.raises(DesignRejected) as refused:
             lead_jobs.start(
@@ -711,3 +751,215 @@ def test_the_codes_own_wording_needs_no_operator_approval(
         None,
         None,
     )
+
+
+# -- the item-level stale rule and the one-transaction accept (ADR 0026 decisions 5-6) ----------
+
+
+ANALYZE = ResearchAction.ANALYZE
+
+
+def design_on_working_copy(world: Any) -> str:
+    """W1, and D1 submitted from it: the design a later job is asked on."""
+    with world.sessions() as session:
+        designs = StudyDesignRepository(session, world.lead_scope(session))
+        revision, _ = designs.submit_as_working_copy(content=DESIGN, source_stage="brief")
+        session.commit()
+        return revision.revision_id
+
+
+def edit_working_copy(world: Any, change: dict[str, Any]) -> int:
+    """The person's own save of the working copy, as the browser makes it."""
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        workspaces = StudyWorkspaceRepository(session)
+        now = workspaces.content(scope)
+        saved = workspaces.save(
+            scope, content={**(now.content or {}), **change}, base_revision=now.revision
+        )
+        session.commit()
+        return saved.revision
+
+
+def job_on(world: Any, database_url: str, store: Any, build: Any, revision_id: str) -> str:
+    with world.sessions() as session:
+        run_id = (
+            ResearchAgentJobs(session, world.lead_scope(session))
+            .start(design_revision_id=revision_id, action=ResearchAction.ANALYZE)
+            .run_id
+        )
+        session.commit()
+    assert worker(world, database_url, store, build, RecordedBedrock()).run_once()
+    return run_id
+
+
+def working_revision(session: Any, world: Any) -> int:
+    revision = StudyWorkspaceRepository(session).content(world.lead_scope(session)).revision
+    assert revision is not None
+    return revision
+
+
+def test_a_job_started_after_an_edit_is_checked_against_its_designs_working_revision(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """W1 produced D1; the person then edits an item the proposal changes (W2); only then is a
+    job on D1 started. Its baseline is W1, never W2, so the accept is refused naming the item
+    rather than comparing W2 with W2 and overwriting the edit (ADR 0026 decision 5, F2)."""
+    d1 = design_on_working_copy(world)
+    w2 = edit_working_copy(world, {"research_plan": {"problem_summary": "Moje shrnutí"}})
+    run_id = job_on(world, database_url, store, build, d1)
+    with world.sessions() as session:
+        jobs = ResearchAgentJobs(session, world.lead_scope(session))
+        assert jobs.get(run_id)["metadata"]["base_workspace_revision"] == w2 - 1
+        with pytest.raises(StaleProposal) as refused:
+            jobs.accept(
+                run_id, store=store, expected_revision_id=d1, expected_workspace_revision=w2
+            )
+        assert refused.value.reason == "stale_proposal"
+        assert refused.value.details() == {
+            "reason": "items_changed",
+            "conflicting_items": ["content:plan:problem_summary"],
+        }
+        # Nothing was written: the design and the working copy are as the person left them.
+        scope = world.lead_scope(session)
+        assert StudyDesignRepository(session, scope).latest().revision_id == d1
+        assert working_revision(session, world) == w2
+        assert ledger(session, run_id) == []
+
+
+def test_an_edit_to_an_item_the_proposal_does_not_touch_survives_the_accept(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    d1 = design_on_working_copy(world)
+    run_id = job_on(world, database_url, store, build, d1)
+    w2 = edit_working_copy(world, {"n": 500, "goal": "Test concept, edited"})
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        accepted = ResearchAgentJobs(session, scope).accept(
+            run_id, store=store, expected_revision_id=d1, expected_workspace_revision=w2
+        )
+        session.commit()
+        now = StudyWorkspaceRepository(session).content(scope)
+        assert now.revision == accepted.working.revision == w2 + 1
+        assert now.content is not None
+        assert (now.content["n"], now.content["goal"]) == (500, "Test concept, edited")
+        assert now.content["research_plan"]["objectives"] == ["Test appeal"]
+        designed = StudyDesignRepository(session, scope).content(accepted.revision.revision_id)
+        assert designed == now.content
+
+
+def test_an_older_working_copy_is_refused_as_stale(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    d1 = design_on_working_copy(world)
+    run_id = job_on(world, database_url, store, build, d1)
+    w2 = edit_working_copy(world, {"n": 500})
+    with world.sessions() as session:
+        with pytest.raises(WorkspaceConflict) as refused:
+            ResearchAgentJobs(session, world.lead_scope(session)).accept(
+                run_id, store=store, expected_revision_id=d1, expected_workspace_revision=w2 - 1
+            )
+        assert refused.value.reason == "stale_revision"
+        assert refused.value.current_revision == w2
+
+
+def test_a_job_with_no_known_baseline_records_no_touched_items(world: Any) -> None:
+    """A job whose design names no working revision (queued before the rule, or on a revision
+    written before it) records ``None``, never an empty list: unknown is not "touches nothing".
+    Its accept is refused as ``unknown_baseline`` (test_research_agents.py)."""
+    d1 = design_on_working_copy(world)
+    proposal = {"project": {**DESIGN, "n": 9}}
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        base = StudyDesignRepository(session, scope).get(d1).workspace_revision
+        known = _touched(session, scope, {"base_workspace_revision": base}, ANALYZE, proposal)
+        assert known == ["content:n:"]
+        for payload in ({}, {"base_workspace_revision": None}, {"base_workspace_revision": 99}):
+            assert _touched(session, scope, payload, ANALYZE, proposal) is None
+        assert (
+            _touched(
+                session,
+                scope,
+                {"base_workspace_revision": base},
+                ResearchAction.COPILOT,
+                proposal,
+            )
+            is None
+        )
+
+
+def test_a_failure_at_the_ledger_leaves_no_revision_written(
+    world: Any, database_url: str, store: Any, build: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The accept is one transaction: the ledger row failing takes both revisions with it."""
+    d1 = design_on_working_copy(world)
+    run_id = job_on(world, database_url, store, build, d1)
+
+    def broken(self: Any, *args: Any, **kwargs: Any) -> bool:
+        raise RuntimeError("ledger unavailable")
+
+    monkeypatch.setattr(WorkflowRepository, "record_ai_proposal_acceptance", broken)
+    with world.sessions() as session:
+        before = working_revision(session, world)
+        with pytest.raises(RuntimeError, match="ledger unavailable"):
+            ResearchAgentJobs(session, world.lead_scope(session)).accept(
+                run_id, store=store, expected_revision_id=d1, expected_workspace_revision=before
+            )
+        session.rollback()
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        assert StudyDesignRepository(session, scope).latest().revision_id == d1
+        assert working_revision(session, world) == before
+        assert ledger(session, run_id) == []
+
+
+def test_a_dismissed_proposal_may_still_be_accepted_and_an_accepted_one_is_not_dismissed(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """The acceptance check reads ``decision = "accept"`` only (ADR 0026 decision 8): a
+    dismissal is a decision too, but not the accept, so a person may change their mind; an
+    accepted proposal is in the design and is not dismissed after it."""
+    d1 = design_on_working_copy(world)
+    run_id = job_on(world, database_url, store, build, d1)
+    with world.sessions() as session:
+        jobs = ResearchAgentJobs(session, world.lead_scope(session))
+        assert jobs.dismiss(run_id) is True
+        assert jobs.dismiss(run_id) is False
+        assert jobs.proposal_states([jobs.get(run_id)])[run_id] == "dismissed"
+        jobs.accept(
+            run_id,
+            store=store,
+            expected_revision_id=d1,
+            expected_workspace_revision=working_revision(session, world),
+        )
+        assert jobs.proposal_states([jobs.get(run_id)])[run_id] == "accepted"
+        with pytest.raises(DesignRejected) as refused:
+            jobs.dismiss(run_id)
+        assert refused.value.reason == "proposal_already_accepted"
+        session.commit()
+        assert [r.decision for r in ledger(session, run_id)] == ["dismiss", "accept"]
+
+
+def test_a_dismissal_takes_the_study_lock_before_it_reads_the_decision(
+    world: Any, database_url: str, store: Any, build: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A dismissal racing an accept must read the decision the accept committed: it locks the
+    Study row, as every accept does, before it reads the ledger or writes to it."""
+    d1 = design_on_working_copy(world)
+    run_id = job_on(world, database_url, store, build, d1)
+    order: list[str] = []
+    locking, deciding = StudyDesignRepository.lock, WorkflowRepository.ai_proposal_decisions
+
+    def lock(self: Any) -> None:
+        order.append("lock")
+        locking(self)
+
+    def decisions(self: Any, run_ids: Any) -> dict[str, str]:
+        order.append("decisions")
+        return deciding(self, run_ids)
+
+    monkeypatch.setattr(StudyDesignRepository, "lock", lock)
+    monkeypatch.setattr(WorkflowRepository, "ai_proposal_decisions", decisions)
+    with world.sessions() as session:
+        assert ResearchAgentJobs(session, world.lead_scope(session)).dismiss(run_id) is True
+    assert order[0] == "lock" and "decisions" in order

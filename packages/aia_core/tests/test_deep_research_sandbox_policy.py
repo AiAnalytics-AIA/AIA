@@ -245,7 +245,7 @@ def test_a_run_carries_the_test_authority_receipt(scoped: Any, session: Any, san
 
     policy_id = _propose(scoped, session, sandbox)
     _approve(scoped, session, sandbox, policy_id)
-    revision, _ = StudyDesignRepository(session, sandbox).submit(
+    revision, _ = StudyDesignRepository(session, sandbox).submit_as_working_copy(
         content={
             "title": "Fictional drinks",
             "goal": "Explore plant drinks",
@@ -287,7 +287,7 @@ def test_paid_enqueue_rechecks_the_study_grant(scoped: Any, session: Any, sandbo
     routes[CallKind.FETCH] = RoutePrice.per_call(0.0)
     prices = DeepResearchPrices(routes)
     policy_id = _propose(scoped, session, sandbox)
-    revision, _ = StudyDesignRepository(session, sandbox).submit(
+    revision, _ = StudyDesignRepository(session, sandbox).submit_as_working_copy(
         content={
             "title": "Fictional drinks",
             "goal": "Explore plant drinks",

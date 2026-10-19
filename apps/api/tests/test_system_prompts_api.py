@@ -183,12 +183,8 @@ def test_every_change_is_in_the_access_audit(owner: TestClient) -> None:
 
 def _revision(client: TestClient, world: Any) -> str:
     return str(
-        client.post(
-            f"{API}/studies/{world.study_id()}/design/revisions",
-            json={
-                "content": {"title": "Fictional", "goal": "Test concept"},
-                "source_stage": "brief",
-            },
+        world.design(
+            client, {"title": "Fictional", "goal": "Test concept"}, source_stage="brief"
         ).json()["revision_id"]
     )
 

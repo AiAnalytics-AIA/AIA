@@ -164,7 +164,9 @@ def _runs(session: Any, scope: Any, world: dict[str, Any]) -> ResearchRuns:
 
 
 def _revision(session: Any, scope: Any) -> str:
-    created, _ = StudyDesignRepository(session, scope).submit(content=DESIGN, source_stage="run")
+    created, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
+        content=DESIGN, source_stage="run"
+    )
     return created.revision_id
 
 

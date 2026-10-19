@@ -6,7 +6,8 @@
 import type { Analysis } from "./store";
 
 export type ListDiff = { key: string; label: string; added: string[]; removed: string[]; kept: number };
-export type SetDiff = { title: string; status: "new" | "removed" | "changed" | "same"; added: string[]; removed: string[]; size: number };
+/** `key`: the set as design_items keys it -- its title, the second set of one title `<title>#2`. */
+export type SetDiff = { key: string; title: string; status: "new" | "removed" | "changed" | "same"; added: string[]; removed: string[]; size: number };
 export type ProposalDiff = { summary: { before: string; after: string } | null; lists: ListDiff[]; sets: SetDiff[]; changes: number };
 
 const LISTS: [string, string][] = [
@@ -19,13 +20,31 @@ const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is
 const objects = (v: unknown): Record<string, unknown>[] => (Array.isArray(v) ? v.filter((x): x is Record<string, unknown> => !!x && typeof x === "object") : []);
 const key = (s: string) => s.toLocaleLowerCase("cs").replace(/\s+/g, " ");
 
+/**
+ * Each key as its list keys it: the second `a` is `a#2` (domain/design_items.py occurrence_keys).
+ * Two entries of one key stay two, so neither side collapses them and loses one.
+ */
+export function occurrenceKeys(keys: readonly string[]): string[] {
+  const used = new Set<string>();
+  const counts = new Map<string, number>();
+  return keys.map((k) => {
+    let n = (counts.get(k) ?? 0) + 1;
+    let candidate = n === 1 ? k : `${k}#${n}`;
+    while (used.has(candidate)) { n += 1; candidate = `${k}#${n}`; }
+    counts.set(k, n); used.add(candidate);
+    return candidate;
+  });
+}
+
 export function diffLists(before: readonly string[], after: readonly string[]): { added: string[]; removed: string[]; kept: number } {
-  const b = new Set(before.map(key));
-  const a = new Set(after.map(key));
+  const kb = occurrenceKeys(before.map(key));
+  const ka = occurrenceKeys(after.map(key));
+  const b = new Set(kb);
+  const a = new Set(ka);
   return {
-    added: after.filter((x) => !b.has(key(x))),
-    removed: before.filter((x) => !a.has(key(x))),
-    kept: after.filter((x) => b.has(key(x))).length,
+    added: after.filter((_, i) => !b.has(ka[i])),
+    removed: before.filter((_, i) => !a.has(kb[i])),
+    kept: after.filter((_, i) => b.has(ka[i])).length,
   };
 }
 
@@ -40,19 +59,23 @@ export function proposalDiff(current: Analysis | null, proposal: Record<string, 
   }
   const sets: SetDiff[] = [];
   if (Array.isArray(proposal.tracked_sets)) {
-    const before = new Map(objects(now.tracked_sets).map((s) => [key(String(s.title || "")), s]));
+    // Keyed as design_items keys them: two sets of one title stay two (`<title>#2`), never one.
+    const keyed = (list: Record<string, unknown>[]) => {
+      const keys = occurrenceKeys(list.map((s) => key(String(s.title || ""))));
+      return list.map((s, i) => [keys[i], s] as const);
+    };
+    const before = new Map(keyed(objects(now.tracked_sets)));
     const seen = new Set<string>();
-    for (const s of objects(proposal.tracked_sets)) {
+    for (const [k, s] of keyed(objects(proposal.tracked_sets))) {
       const title = String(s.title || "Sada");
-      const k = key(title);
       seen.add(k);
       const old = before.get(k);
       const objs = strings(s.objects);
-      if (!old) { sets.push({ title, status: "new", added: objs, removed: [], size: objs.length }); continue; }
+      if (!old) { sets.push({ key: k, title, status: "new", added: objs, removed: [], size: objs.length }); continue; }
       const d = diffLists(strings(old.objects), objs);
-      sets.push({ title, status: d.added.length || d.removed.length ? "changed" : "same", added: d.added, removed: d.removed, size: objs.length });
+      sets.push({ key: k, title, status: d.added.length || d.removed.length ? "changed" : "same", added: d.added, removed: d.removed, size: objs.length });
     }
-    for (const [k, s] of before) if (!seen.has(k)) sets.push({ title: String(s.title || "Sada"), status: "removed", added: [], removed: strings(s.objects), size: 0 });
+    for (const [k, s] of before) if (!seen.has(k)) sets.push({ key: k, title: String(s.title || "Sada"), status: "removed", added: [], removed: strings(s.objects), size: 0 });
   }
   const after = typeof proposal.problem_summary === "string" ? proposal.problem_summary.trim() : "";
   const before = typeof now.problem_summary === "string" ? now.problem_summary.trim() : "";

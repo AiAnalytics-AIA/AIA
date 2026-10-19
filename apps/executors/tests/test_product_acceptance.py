@@ -207,8 +207,21 @@ def _run_url(world: Any, run_id: str) -> str:
 
 
 def _submit(api: TestClient, world: Any, design: dict[str, Any]) -> str:
+    """The design as the browser submits it (ADR 0026 decision 5): the working copy is saved
+    as it first, and the design names that working revision."""
+    now = api.get(f"{_study(world)}/workspace/content").json()
+    saved = api.put(
+        f"{_study(world)}/workspace/content",
+        json={"content": design, "base_revision": now.get("revision")},
+    )
+    assert saved.status_code == 200, saved.text
     made = api.post(
-        f"{_study(world)}/design/revisions", json={"content": design, "source_stage": "run"}
+        f"{_study(world)}/design/revisions",
+        json={
+            "content": design,
+            "source_stage": "run",
+            "workspace_revision": saved.json()["revision"],
+        },
     )
     assert made.status_code in (200, 201), made.text
     return str(made.json()["revision_id"])
@@ -519,7 +532,7 @@ def test_a_delivered_study_keeps_its_results_and_refuses_new_work_under_one_code
         "submit a design": (
             "post",
             f"{study}/design/revisions",
-            {"content": GAPPED, "source_stage": "run"},
+            {"content": GAPPED, "source_stage": "run", "workspace_revision": 1},
         ),
         "start a run": ("post", f"{study}/research/runs", {"design_revision_id": unstarted}),
         "retry the failed run": ("post", f"{_run_url(world, failed_id)}/retry", None),

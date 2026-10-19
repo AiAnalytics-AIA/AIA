@@ -607,15 +607,13 @@ def test_readiness_compare_lists_the_studies_whose_verdict_the_draft_moves(
     ]
     # The 450 study stays as it was; the other client's study has nothing to check.
     assert (impact["unchanged"], impact["not_assessed"]) == (1, 1)
-    # A study with no working content is checked on its latest Design Revision.
-    submitted = lead.post(
-        f"{API}/studies/{world.study_id('other_client')}/design/revisions",
-        json={"content": _readiness_draft(18, 5)["content"], "source_stage": "run"},
-    )
+    # A design is always submitted from a working revision now (ADR 0026 decision 5), so the
+    # study that submitted one is checked on that working copy, which holds the same design.
+    submitted = world.design(lead, _readiness_draft(18, 5)["content"], study="other_client")
     assert submitted.status_code == 201, submitted.text
     again = lead.post(f"{READINESS}/compare", json=_readiness_edit(sample_size__min=10)).json()
     by_id = {s["study_id"]: s for s in again["readiness"]["studies"]}
-    assert by_id[world.study_id("other_client")]["source"] == "design"
+    assert by_id[world.study_id("other_client")]["source"] == "draft"
     assert by_id[world.study_id("other_client")]["ready"] == [False, True]
     assert again["readiness"]["not_assessed"] == 0
     # Nothing was written: the study's content and the limits in force are as they were.

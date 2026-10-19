@@ -64,9 +64,7 @@ def _url(world: Any) -> str:
 
 
 def _revision(c: TestClient, world: Any) -> str:
-    made = c.post(
-        f"{_study(world)}/design/revisions", json={"content": DESIGN, "source_stage": "brief"}
-    )
+    made = world.design(c, DESIGN, source_stage="brief")
     assert made.status_code == 201, made.text
     return str(made.json()["revision_id"])
 

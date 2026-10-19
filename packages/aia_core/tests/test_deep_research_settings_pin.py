@@ -116,7 +116,7 @@ def start(session: Any, scoped: Any) -> Any:
 
     def go(preset: str = "QUICK", content: dict[str, Any] = DESIGN) -> Any:
         scope = scoped.scope(user="lead")
-        revision, _ = StudyDesignRepository(session, scope).submit(
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content=content, source_stage="brief"
         )
         return DeepResearchRuns(session, scope).start(

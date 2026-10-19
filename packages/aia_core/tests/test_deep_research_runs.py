@@ -99,7 +99,7 @@ def design(session: Any, scoped: Any) -> Any:
     def submit(content: dict[str, Any] = DESIGN, *, study: str = "primary") -> str:
         user = "other_lead" if study == "other_client" else "lead"
         repo = StudyDesignRepository(session, scoped.scope(user=user, study=study))
-        revision, _ = repo.submit(content=content, source_stage="brief")
+        revision, _ = repo.submit_as_working_copy(content=content, source_stage="brief")
         return revision.revision_id
 
     return submit

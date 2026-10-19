@@ -113,10 +113,7 @@ DESIGN = {
 
 
 def submit(c: TestClient, world: Any, content: Any = None, study: str = "primary") -> Any:
-    return c.post(
-        f"{API}/studies/{world.study_id(study)}/design/revisions",
-        json={"content": DESIGN if content is None else content, "source_stage": "run"},
-    )
+    return world.design(c, DESIGN if content is None else content, study=study)
 
 
 # --------------------------------------------------------------------------- #
@@ -141,6 +138,32 @@ def test_a_design_becomes_an_immutable_revision_and_resubmitting_it_changes_noth
     assert got.status_code == 200 and got.json()["content"] == DESIGN
     listed = viewer.get(f"{API}/studies/{world.study_id()}/design/revisions").json()["items"]
     assert [r["revision"] for r in listed] == [2, 1]
+
+
+def test_a_design_names_the_working_revision_it_is_and_is_refused_otherwise(
+    researcher: TestClient, world: Any
+) -> None:
+    """ADR 0026 decision 5: the submit names its working revision, which the server checks by
+    hash and records; without one, or with one whose content differs, it is refused."""
+    url = f"{API}/studies/{world.study_id()}"
+    made = submit(researcher, world)
+    assert made.status_code == 201, made.text
+    working = researcher.get(f"{url}/workspace/content").json()["revision"]
+    assert made.json()["workspace_revision"] == working
+    got = researcher.get(f"{url}/design/revisions/{made.json()['revision_id']}").json()
+    assert got["workspace_revision"] == working
+    for body in (
+        {"content": DESIGN, "source_stage": "run"},
+        {"content": DESIGN, "source_stage": "run", "workspace_revision": 0},
+    ):
+        assert researcher.post(f"{url}/design/revisions", json=body).status_code == 422
+    for content, number in (({**DESIGN, "n": 7}, working), (DESIGN, working + 5)):
+        refused = researcher.post(
+            f"{url}/design/revisions",
+            json={"content": content, "source_stage": "run", "workspace_revision": number},
+        )
+        assert refused.status_code == 422, refused.text
+        assert refused.json()["code"] == "design_not_from_workspace"
 
 
 def test_every_member_may_submit_a_design_with_or_without_a_grant_and_bad_ones_422(
@@ -213,7 +236,10 @@ def test_the_generic_project_routes_cannot_see_or_write_a_design(
     # The design project's id is never exposed; read it from the database, as an attacker
     # who guessed it would hold it, and try every write the generic routes offer.
     with create_session_factory(app.state.engine)() as session:
-        design_project = session.scalars(select(ProjectRow.project_id)).one()
+        # The working copy is owned too (study_workspace); the other owned project is the design.
+        design_project = session.scalars(
+            select(ProjectRow.project_id).where(ProjectRow.owner != "study_workspace")
+        ).one()
     base = f"{projects_url()}/{design_project}"
     assert researcher.get(base).status_code == 404
     put = researcher.put(f"{base}/content", json={"content": {**DESIGN, "client_id": "CLI-x"}})
@@ -1883,7 +1909,10 @@ def test_research_artifacts_are_read_only_through_the_run_that_produced_them(
             assert read.json()["payload"] is None
 
     with create_session_factory(app.state.engine)() as session:
-        design_project = session.scalars(select(ProjectRow.project_id)).one()
+        # The working copy is owned too (study_workspace); the other owned project is the design.
+        design_project = session.scalars(
+            select(ProjectRow.project_id).where(ProjectRow.owner != "study_workspace")
+        ).one()
     for artifact_id in (spec_id, dataset_id, aggregate_id, sociomap_id):
         generic = researcher.get(f"{projects_url()}/{design_project}/artifacts/{artifact_id}")
         assert generic.status_code == 404

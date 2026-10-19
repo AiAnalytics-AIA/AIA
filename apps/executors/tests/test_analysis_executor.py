@@ -184,7 +184,7 @@ def _start(
     with world.sessions() as session:
         scope = world.lead_scope(session)
         designs = StudyDesignRepository(session, scope)
-        revision, _ = designs.submit(content=design, source_stage="run")
+        revision, _ = designs.submit_as_working_copy(content=design, source_stage="run")
         project_id = designs.project_id()
         assert project_id is not None
         run_id = WorkflowRepository(session, scope).create_run(
@@ -360,7 +360,7 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
     """Exercise the application template, not a graph assembled by the test."""
     with world.sessions() as session:
         scope = world.lead_scope(session)
-        revision, _ = StudyDesignRepository(session, scope).submit(
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content=DESIGN, source_stage="run"
         )
         started = ResearchRuns(session, scope).start(
@@ -473,7 +473,7 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
     env = _env(world, AIA_AI_MATERIAL_CLASSIFICATIONS=f"[{approval.model_dump_json()}]")
     with world.sessions() as session:
         scope = world.lead_scope(session)
-        revision, _ = StudyDesignRepository(session, scope).submit(
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content=design, source_stage="run"
         )
         session.commit()
@@ -837,7 +837,7 @@ class _FakePdf:
 def _start_report_run(world: Any) -> str:
     with world.sessions() as session:
         scope = world.lead_scope(session)
-        revision, _ = StudyDesignRepository(session, scope).submit(
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content=DESIGN, source_stage="run"
         )
         started = ResearchRuns(session, scope).start(
@@ -945,7 +945,7 @@ def test_report_step_finishes_with_a_reason_when_an_analysis_module_is_blocked(
 ) -> None:
     with world.sessions() as session:
         scope = world.lead_scope(session)
-        revision, _ = StudyDesignRepository(session, scope).submit(
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content=DESIGN, source_stage="run"
         )
         started = ResearchRuns(session, scope).start(
@@ -971,7 +971,7 @@ def test_cancellation_during_report_render_does_not_store_a_document(
 ) -> None:
     with world.sessions() as session:
         scope = world.lead_scope(session)
-        revision, _ = StudyDesignRepository(session, scope).submit(
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content=DESIGN, source_stage="run"
         )
         started = ResearchRuns(session, scope).start(
@@ -1148,7 +1148,7 @@ def test_a_design_edited_and_edited_back_reuses_its_outcomes_and_reads_them_back
     first = _start(world)
     _drain(run_with(models))
     with world.sessions() as session:
-        StudyDesignRepository(session, world.lead_scope(session)).submit(
+        StudyDesignRepository(session, world.lead_scope(session)).submit_as_working_copy(
             content={**DESIGN, "title": "Mezitím jiný název"}, source_stage="run"
         )
         session.commit()
@@ -1198,7 +1198,7 @@ def test_a_module_whose_drafts_cite_nothing_is_blocked_after_three_calls_and_str
 def _started_with_analysis(world: Any) -> str:
     with world.sessions() as session:
         scope = world.lead_scope(session)
-        revision, _ = StudyDesignRepository(session, scope).submit(
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content=DESIGN, source_stage="run"
         )
         started = ResearchRuns(session, scope).start(

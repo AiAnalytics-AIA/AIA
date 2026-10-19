@@ -183,8 +183,14 @@ def reuse_design(
             "the study already has a design or working content", reason="target_not_empty"
         )
 
-    workspaces.save(target, content=content, base_revision=None, reason=REUSE_SAVE_REASON)
-    first, _ = target_designs.submit(content=content, source_stage=REUSE_SOURCE_STAGE)
+    saved = workspaces.save(target, content=content, base_revision=None, reason=REUSE_SAVE_REASON)
+    # The Design Revision names the working revision just written (ADR 0026 decision 5), and is
+    # its content exactly, as the first save stored it.
+    stored = workspaces.at_revision(target, saved.revision)
+    assert stored is not None  # save has just written it
+    first, _ = target_designs.submit(
+        content=stored.content, source_stage=REUSE_SOURCE_STAGE, workspace_revision=saved.revision
+    )
     cited = target_designs.record_source(
         revision_id=first.revision_id,
         source_study_id=source_scope.study_id,

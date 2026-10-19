@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError, type WorkingContent, type WorkingSave } from "@/lib/api";
 import { type Template, defaultsMerge } from "./model";
 import { t, tv } from "@/i18n/t";
-import { ResearchStore, SAVE_DEBOUNCE_MS, loadResearch, newResearch, originNotice, readWorkingContent, saveReason } from "./store";
+import { ResearchStore, SAVE_DEBOUNCE_MS, canonical, loadResearch, newResearch, originNotice, readWorkingContent, saveReason, submitWorkingDesign } from "./store";
 
 const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/research/fixtures/empty-project.json"), "utf8"));
 const TEMPLATE: Template = { empty_project: EMPTY };
@@ -200,5 +200,56 @@ describe("saveReason", () => {
     expect(saveReason("native_ai_proposal_accepted")).toBe("native_ai_proposal_accepted");
     expect(saveReason("Něco jiného")).toBe("autosave");
     expect(saveReason("")).toBe("autosave");
+  });
+});
+
+describe("submitWorkingDesign (ADR 0026 decision 5)", () => {
+  const submitted = () => vi.fn(async (_s: string, content: unknown, stage: string, revision: number) => ({ revision_id: "REV-D", content, stage, revision }) as never);
+
+  it("saves a copy the template completed on load before submitting it, so the design is a stored revision", async () => {
+    // Content AIA wrote itself (the template, a fixture, a migration) is not a fixpoint of defaultsMerge.
+    const stored = structuredClone(EMPTY) as Record<string, unknown>;
+    const loaded = readWorkingContent(content({ content: stored, revision: 3 }));
+    if (loaded.kind !== "research") throw new Error("not research");
+    expect(canonical(loaded.state.project)).not.toBe(canonical(stored));
+    expect(loaded.state.save).toEqual({ kind: "saved" });
+    expect(loaded.state.completed).toBe(true);
+    const { bodies, save } = aia(() => saved(4));
+    const store = new ResearchStore(loaded.state, "STU-1", { save });
+    const submit = submitted();
+    await submitWorkingDesign(store, "STU-1", "run", submit);
+    expect(bodies).toHaveLength(1);
+    expect(bodies[0].base_revision).toBe(3);
+    expect(canonical(bodies[0].content)).toBe(canonical(loaded.state.project));
+    // The design names the revision that save wrote, and is exactly what it stored.
+    expect(submit).toHaveBeenCalledExactlyOnceWith("STU-1", loaded.state.project, "run", 4);
+    expect(store.get().completed).toBe(false);
+  });
+
+  it("submits a copy AIA holds exactly as it is without saving it again", async () => {
+    const stored = defaultsMerge({ title: "Alfa" }, TEMPLATE) as unknown as Record<string, unknown>;
+    const loaded = readWorkingContent(content({ content: stored, revision: 3 }));
+    if (loaded.kind !== "research") throw new Error("not research");
+    expect(loaded.state.completed).toBe(false);
+    const { bodies, save } = aia(() => saved(4));
+    const submit = submitted();
+    await submitWorkingDesign(new ResearchStore(loaded.state, "STU-1", { save }), "STU-1", "run", submit);
+    expect(bodies).toHaveLength(0);
+    expect(submit).toHaveBeenCalledExactlyOnceWith("STU-1", loaded.state.project, "run", 3);
+  });
+});
+
+describe("conflict", () => {
+  it("holds a copy with its own change against a newer revision: nothing saves over it", async () => {
+    const { bodies, save } = aia(() => saved(9));
+    const loaded = readWorkingContent(content({ content: defaultsMerge({ title: "Alfa" }, TEMPLATE) as unknown as Record<string, unknown> }));
+    if (loaded.kind !== "research") throw new Error("not research");
+    const store = new ResearchStore(loaded.state, "STU-1", { save });
+    store.update(({ project }) => ({ project: { ...project, goal: "Mine" } }));
+    store.conflict(8);
+    expect(store.get().save).toEqual({ kind: "conflict", current: 8 });
+    expect(store.get().project.goal).toBe("Mine");
+    await expect(store.flush()).rejects.toBeInstanceOf(ApiError);
+    expect(bodies).toHaveLength(0);
   });
 });

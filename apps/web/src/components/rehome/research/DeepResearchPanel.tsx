@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { ApiError, deepResearch, research, type DeepResearchBundle, type DeepResearchRun } from "@/lib/api";
+import { ApiError, deepResearch, type DeepResearchBundle, type DeepResearchRun } from "@/lib/api";
+import { submitWorkingDesign } from "@/research/store";
 import { withBudget } from "@/lib/budget-line";
 import { deepResearchRunningStep } from "@/lib/activity-orb";
 import { activityOf } from "@/lib/step-activity";
@@ -83,7 +84,7 @@ export function DeepResearchPanel() {
     setBusy(true); setError(null);
     try {
       await store.flush("questionnaire");
-      const revision = await research.submitDesign(frame.studyId, store.get().project, "questionnaire");
+      const revision = await submitWorkingDesign(store, frame.studyId, "questionnaire");
       let job: DeepResearchRun;
       try {
         job = await deepResearch.start(frame.studyId, revision.revision_id);

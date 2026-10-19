@@ -26,10 +26,7 @@ DESIGN: dict[str, Any] = {
 
 
 def _submit(c: Any, world: Any, study: str = "primary") -> str:
-    r = c.post(
-        f"{API}/studies/{world.study_id(study)}/design/revisions",
-        json={"content": DESIGN, "source_stage": "run"},
-    )
+    r = world.design(c, DESIGN, study=study)
     assert r.status_code == 201, r.text
     return str(r.json()["revision_id"])
 

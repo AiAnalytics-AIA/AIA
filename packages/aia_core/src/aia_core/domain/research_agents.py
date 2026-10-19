@@ -18,6 +18,7 @@ from .ai_contracts import AgentDefinition, Message, ModelRequest, canonical_json
 from .ai_material import MaterialApproval, classify_material, most_restrictive_material
 from .ai_models import ModelCapability
 from .analysis.native import MAX_RESEARCH_QUESTIONS, research_questions_of
+from .design_items import Documents, ItemKey, brief_signature, design_items
 from .knowledge import KnowledgeItem
 from .licence import DataLineage
 from .prompts import PromptPin
@@ -778,3 +779,79 @@ def proposal_result(
         result.update(data)
     result["project"] = p
     return result
+
+
+#: The actions whose proposal changes the design; the rest are advice (``accept`` refuses them).
+DESIGN_ACTIONS: Final = frozenset(
+    {
+        ResearchAction.ANALYZE,
+        ResearchAction.BUILD,
+        ResearchAction.OPTIMIZE,
+        ResearchAction.AUDIENCE,
+        ResearchAction.DIMENSIONS,
+    }
+)
+
+
+def proposal_documents(
+    action: ResearchAction, baseline: Documents, result: dict[str, Any]
+) -> Documents:
+    """The design a proposal would make of its baseline: its content and its analysis.
+
+    The content is the proposal's project (:func:`proposal_result` built it from the baseline).
+    A brief analysis installs its analysis, signed with the brief it was made from as the
+    stages sign one (``_brief_signature``, :func:`~.design_items.brief_signature`); every other
+    action leaves the analysis as the baseline had it.
+    """
+    project = result.get("project")
+    content = dict(project) if isinstance(project, dict) else dict(baseline.content)
+    if action is ResearchAction.ANALYZE and isinstance(result.get("analysis"), dict):
+        return Documents(
+            content=content,
+            analysis={**result["analysis"], "_brief_signature": brief_signature(content)},
+        )
+    return Documents(content=content, analysis=baseline.analysis)
+
+
+def touched_items(
+    action: ResearchAction, baseline: Documents, result: dict[str, Any]
+) -> frozenset[ItemKey]:
+    """The items a proposal changes against its baseline (ADR 0026 decision 5)."""
+    return design_items(baseline, proposal_documents(action, baseline, result))
+
+
+class ProposalState(StrEnum):
+    """Where an agent job's design proposal stands (ADR 0026 decision 8): a projection, no column.
+
+    The proposal is the run and its artifact, its acceptance and dismissal are approval-ledger
+    rows, and a rebuild names what it supersedes in its own metadata (``rebuild_of``).
+    """
+
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    DISMISSED = "dismissed"
+    SUPERSEDED = "superseded"
+
+
+def proposal_state(
+    *, action: str, completed: bool, decision: str | None, superseded: bool
+) -> ProposalState | None:
+    """One job's :class:`ProposalState`, or ``None`` when it holds no design proposal to decide.
+
+    An accept is final over everything; a dismissal over a rebuild; a rebuilt proposal is
+    superseded only while nobody has decided it. Advice and a job without a proposal (running,
+    failed, cancelled) have no state: there is nothing pending, never "pending" by default.
+    """
+    try:
+        design = ResearchAction(action) in DESIGN_ACTIONS
+    except ValueError:
+        return None
+    if not design or not completed:
+        return None
+    if decision == "accept":
+        return ProposalState.ACCEPTED
+    if decision == "dismiss":
+        return ProposalState.DISMISSED
+    if superseded:
+        return ProposalState.SUPERSEDED
+    return ProposalState.PENDING

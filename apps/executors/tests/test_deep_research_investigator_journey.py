@@ -270,7 +270,7 @@ def directed(
 def start_web(world: ResearchWorld, content: dict[str, Any] = DESIGN) -> str:
     with world.sessions() as session:
         scope = world.lead_scope(session)
-        revision, _ = StudyDesignRepository(session, scope).submit(
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content=content, source_stage="brief"
         )
         run = DeepResearchRuns(session, scope).start(

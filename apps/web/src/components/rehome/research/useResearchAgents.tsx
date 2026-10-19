@@ -1,21 +1,27 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { research, researchAgents, type ResearchAgentAction, type ResearchAgentJob, type ResearchAgentResult } from "@/lib/api";
+import { researchAgents, type ResearchAgentAction, type ResearchAgentJob, type ResearchAgentResult } from "@/lib/api";
 import { followAgentJob } from "@/lib/research-agent-jobs";
 import { JobError, type JobUpdate } from "@/research/jobs";
-import type { ResearchProject } from "@/research/model";
-import { briefFingerprint } from "@/research/model";
-import type { Analysis, ResearchStore } from "@/research/store";
+import { staleDetails, staleMessage } from "@/research/proposal-items";
+import { submitWorkingDesign, type ResearchStore } from "@/research/store";
 import { AgentProposalDialog } from "./AgentProposalDialog";
 
+/**
+ * What a person decides on a proposal: `true` is "apply", `false` is "keep" (the dialog's two
+ * buttons). "dismiss" sets it aside in the ledger; "rebuild" asks it again on the current design
+ * (ADR 0026 decisions 5 and 8).
+ */
+export type ProposalDecision = "apply" | "keep" | "dismiss" | "rebuild";
+const decisionOf = (d: boolean | ProposalDecision): ProposalDecision => (d === true ? "apply" : d === false ? "keep" : d);
+/** A refused accept, in words: the proposal stays open to read, and may not be applied. */
+export type StaleNotice = { message: string; items: string[] };
+
 const adviceActions = new Set<ResearchAgentAction>(["critique_design", "design_copilot", "answer_memory"]);
+/** The stage a job's design is submitted from. */
+const sourceOf = (action: ResearchAgentAction) =>
+  action === "analyze_brief" ? "brief" : action === "propose_audience" ? "audience" : action === "suggest_dimensions" ? "persona" : "questionnaire";
 const message = (e: unknown) => e instanceof Error ? e.message : String(e);
-// Server JSON may use a different key order. Arrays retain their meaningful order.
-export function canonicalProject(value: unknown): string {
-  const normalize = (v: unknown): unknown => Array.isArray(v) ? v.map(normalize)
-    : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b)).map(([k, x]) => [k, normalize(x)])) : v;
-  return JSON.stringify(normalize(value));
-}
 function check(signal: AbortSignal) {
   if (signal.aborted) throw new JobError("Sledování přerušeno; běh zůstává uložený.", "cancelled", null);
 }
@@ -30,20 +36,20 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [activeAction, setActiveAction] = useState<ResearchAgentAction | null>(null);
-  const [review, setReview] = useState<{ result: ResearchAgentResult; advice: boolean; decide: (ok: boolean) => void } | null>(null);
+  const [review, setReview] = useState<{ result: ResearchAgentResult; advice: boolean; stale: StaleNotice | null; decide: (d: boolean | ProposalDecision) => void } | null>(null);
   const lifetime = useRef<AbortController | null>(null);
   const active = useRef<AbortController | null>(null);
-  const pendingDecision = useRef<((ok: boolean) => void) | null>(null);
+  const pendingDecision = useRef<((d: ProposalDecision) => void) | null>(null);
   const refresh = useCallback(async () => {
     const owner = lifetime.current;
     const jobs = await researchAgents.jobs(studyId);
     if (owner && owner === lifetime.current && !owner.signal.aborted) setRecent(jobs);
     return jobs;
   }, [studyId]);
-  const askReview = useCallback((result: ResearchAgentResult, advice: boolean) => new Promise<boolean>((resolve) => {
+  const askReview = useCallback((result: ResearchAgentResult, advice: boolean, stale: StaleNotice | null = null) => new Promise<ProposalDecision>((resolve) => {
     pendingDecision.current = resolve;
-    setReview({ result, advice, decide: (ok) => {
-      pendingDecision.current = null; setReview(null); resolve(ok);
+    setReview({ result, advice, stale, decide: (d) => {
+      pendingDecision.current = null; setReview(null); resolve(decisionOf(d));
     } });
   }), []);
 
@@ -71,29 +77,73 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
     }).catch((e: unknown) => { if (!owner.signal.aborted) setNotice(message(e)); });
     return () => {
       owner.abort(); active.current?.abort(); active.current = null;
-      pendingDecision.current?.(false); pendingDecision.current = null;
+      pendingDecision.current?.("keep"); pendingDecision.current = null;
       setRecent([]); setNotice(null); setReview(null); setBusy(false); setActiveAction(null);
     };
   }, [studyId, refresh, onUpdate]);
 
-  const apply = useCallback(async (job: ResearchAgentJob, baseline: string, signal: AbortSignal) => {
-    const result = await researchAgents.result(studyId, job.run_id); check(signal);
+  // Accepting is one server transaction (ADR 0026 decision 6): the proposal is merged into the
+  // working copy on the server, item by item, beside the new Design Revision and the ledger row.
+  // The browser writes nothing back; it reloads what the server wrote. A proposal whose items
+  // the person changed since its baseline is refused by name, and stays open to read.
+  const apply = useCallback(async (first: ResearchAgentJob, signal: AbortSignal): Promise<unknown> => {
+    let job = first;
+    let result = await researchAgents.result(studyId, job.run_id); check(signal);
     const advice = adviceActions.has(job.action);
-    const approved = await askReview(result, advice); check(signal);
-    if (advice) return { ...result.result, native: true };
-    if (!approved) throw new JobError("Návrh je uložený, současný návrh jste ponechali.", "cancelled", job.run_id);
-    if (canonicalProject(store.get().project) !== baseline) throw new JobError("Zadání se během AI kroku změnilo. Návrh je uložený; nejprve porovnejte změny.", "error", job.run_id);
-    await researchAgents.accept(studyId, job.run_id, job.design_revision_id); check(signal);
-    const project = result.result.project as ResearchProject;
-    const analysis = result.result.analysis as Analysis | undefined;
-    store.update(() => ({ project,
-      ...(analysis ? { analysis: { ...analysis, _brief_signature: briefFingerprint(project) } } : {}) }), { reason: "native_ai_proposal_accepted" });
-    try { await store.flush(); }
-    catch {
-      throw new JobError("Schválená revize je uložená v AIA, ale pracovní kopii se nepodařilo uložit. Opakujte uložení; AI krok nespouštějte znovu.", "error", job.run_id);
+    let stale: StaleNotice | null = null;
+    for (;;) {
+      const decision = await askReview(result, advice, stale); check(signal);
+      if (advice) return { ...result.result, native: true };
+      if (decision === "dismiss") {
+        await researchAgents.dismiss(studyId, job.run_id); check(signal);
+        await refresh().catch(() => []);
+        throw new JobError("Návrh jste zahodili. Zůstává uložený v historii AI kroků.", "cancelled", job.run_id);
+      }
+      if (decision === "rebuild") {
+        // The same ask on the design the person has now: submitted first, then a new job that
+        // supersedes this one. Nothing is accepted; the new proposal is reviewed as any other.
+        setNotice(null);
+        const revision = await submitWorkingDesign(store, studyId, sourceOf(job.action)); check(signal);
+        const next = await researchAgents.rebuild(studyId, job.run_id, revision.revision_id); check(signal);
+        await refresh().catch(() => []);
+        job = await followAgentJob(studyId, next.run_id, "Nový návrh nad současným zadáním", onUpdate, signal);
+        onUpdate(null);
+        result = await researchAgents.result(studyId, job.run_id); check(signal);
+        stale = null;
+        continue;
+      }
+      if (decision === "keep" || stale) throw new JobError("Návrh je uložený, současný návrh jste ponechali.", "cancelled", job.run_id);
+      // A change still waiting for its save is saved first, so the server checks it too.
+      await store.flush(); check(signal);
+      const sent = store.get();
+      const revision = sent.revision;
+      if (revision === null) throw new JobError("Pracovní obsah studie ještě není uložený.", "error", job.run_id);
+      let accepted: Awaited<ReturnType<typeof researchAgents.accept>>;
+      try {
+        accepted = await researchAgents.accept(studyId, job.run_id, job.design_revision_id, revision); check(signal);
+      } catch (e) {
+        const details = staleDetails(e);
+        if (!details) throw e;
+        stale = { message: staleMessage(details, store.get().project), items: details.conflicting_items };
+        setNotice(stale.message);
+        continue;
+      }
+      // An edit typed while the accept was on its way is not in what the server wrote: a reload
+      // would drop it unseen. Keep it on screen and stop saving, as a refused save does; the
+      // person copies it and reloads.
+      const now = store.get();
+      if (now.project !== sent.project || now.analysis !== sent.analysis) {
+        store.conflict(accepted.workspace_revision);
+        setNotice("Návrh je použitý a uložený v AIA. Úpravu, kterou jste mezitím napsali, jsme nepřepsali ani neuložili: zkopírujte si ji a načtěte studii znovu.");
+        return { ...result.result, native: true };
+      }
+      try { await store.reload(); }
+      catch {
+        throw new JobError("Návrh je použitý a uložený v AIA, ale pracovní kopii se nepodařilo znovu načíst. Načtěte studii znovu.", "error", job.run_id);
+      }
+      return { ...result.result, native: true };
     }
-    return { ...result.result, native: true };
-  }, [studyId, store, askReview]);
+  }, [studyId, store, askReview, refresh, onUpdate]);
 
   const finish = useCallback(async (controller: AbortController) => {
     if (active.current === controller) active.current = null;
@@ -108,12 +158,10 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
     if (active.current) throw new JobError("Jiný AI krok ještě běží.", "busy", null);
     const controller = new AbortController(); active.current = controller; setBusy(true); setActiveAction(action); setNotice(null);
     try {
-      if (action === "analyze_brief" && payload.briefing) store.update(({ project }) => ({ project: { ...project, briefing: payload.briefing } as ResearchProject }), { reason: "native_ai_context" });
+      if (action === "analyze_brief" && payload.briefing) store.update(({ project }) => ({ project: { ...project, briefing: payload.briefing } as typeof project }), { reason: "native_ai_context" });
       await store.flush(); check(controller.signal);
-      const content = store.get().project;
-      const baseline = canonicalProject(content);
-      const source = action === "analyze_brief" ? "brief" : action === "propose_audience" ? "audience" : action === "suggest_dimensions" ? "persona" : "questionnaire";
-      const revision = await research.submitDesign(studyId, content, source); check(controller.signal);
+      // The design names the working revision it is: the proposal's baseline (ADR 0026 decision 5).
+      const revision = await submitWorkingDesign(store, studyId, sourceOf(action)); check(controller.signal);
       let job = await researchAgents.start(studyId, revision.revision_id, action, String(payload.instruction || payload.popis || "")); check(controller.signal);
       // A repeated button press is an explicit request to continue a job that
       // parked before any provider call while the runtime was unavailable.
@@ -123,7 +171,7 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
       await refresh(); check(controller.signal);
       const finished = await followAgentJob(studyId, job.run_id, title, onUpdate, controller.signal);
       onUpdate(null);
-      return await apply(finished, baseline, controller.signal);
+      return await apply(finished, controller.signal);
     } finally { await finish(controller); }
   }, [store, studyId, refresh, onUpdate, apply, finish]);
 
@@ -131,16 +179,11 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
     if (active.current) { setNotice("Jiný AI krok ještě běží."); return; }
     const controller = new AbortController(); active.current = controller; setBusy(true); setActiveAction(job.action);
     try {
-      const response = await researchAgents.design(studyId, job.design_revision_id); check(controller.signal);
-      if (!adviceActions.has(job.action) && canonicalProject(response.content) !== canonicalProject(store.get().project)) {
-        const result = await researchAgents.result(studyId, job.run_id); check(controller.signal);
-        await askReview(result, true); check(controller.signal);
-        setNotice("Návrh vychází ze staršího zadání. Pro použití jej spusťte nad současným zadáním."); return;
-      }
-      await apply(job, canonicalProject(store.get().project), controller.signal);
+      // Whether it still applies is the server's to say, item by item, when it is accepted.
+      await apply(job, controller.signal);
     } catch (e) { if (!controller.signal.aborted) setNotice(message(e)); }
     finally { await finish(controller); }
-  }, [studyId, store, apply, askReview, finish]);
+  }, [apply, finish]);
   // Continue the same advice job. A status refresh never enqueues another paid call.
   const continueAdvice = useCallback(async (job: ResearchAgentJob) => {
     if (active.current) throw new JobError("Jiný AI krok ještě běží.", "busy", job.run_id);
@@ -152,9 +195,9 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
         await researchAgents.resume(studyId, job.run_id); check(controller.signal);
       }
       const finished = await followAgentJob(studyId, job.run_id, "Uložený AI krok", onUpdate, controller.signal);
-      await apply(finished, canonicalProject(store.get().project), controller.signal);
+      await apply(finished, controller.signal);
     } finally { await finish(controller); }
-  }, [studyId, store, onUpdate, apply, finish]);
+  }, [studyId, onUpdate, apply, finish]);
 
   return { run, recent, notice, busy, activeAction, open, refresh, continueAdvice,
     adviceReview: adviceInWorkspace && review?.advice ? review : null,

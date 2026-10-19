@@ -3,6 +3,11 @@
 One logical request (plus the gateway's bounded schema repair), one proposal
 artifact. No automatic retry: losing a known answer before artifact commit must
 not spend again. A saved artifact is checked before any model preflight/call.
+
+The step's output names the items the proposal changes against its baseline, the working
+revision its Design Revision came from (``touched_items``, ADR 0026 decision 5); a person's
+accept checks them against what changed in the working copy since. A job with no known
+baseline records ``None``, and its accept is refused as ``unknown_baseline``.
 """
 
 from __future__ import annotations
@@ -16,10 +21,12 @@ from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.application.research import research_artifacts
 from aia_core.domain.ai_contracts import ModelCallFailed, canonical_json
 from aia_core.domain.ai_material import MaterialApproval, classify_material
+from aia_core.domain.design_items import Documents
 from aia_core.domain.prompt_slots import get_slot
 from aia_core.domain.prompts import PromptPin
 from aia_core.domain.providers import Provider
 from aia_core.domain.research_agents import (
+    DESIGN_ACTIONS,
     HARNESS_VERSION,
     ResearchAction,
     agent_request,
@@ -27,13 +34,17 @@ from aia_core.domain.research_agents import (
     prompt_for,
     proposal_result,
     snapshot_hash,
+    touched_items,
 )
+from aia_core.domain.scope import StudyContext
 from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.storage import ArtifactStore
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
+from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRepository
 from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Succeeded
 from pydantic import ValidationError
+from sqlalchemy.orm import Session
 
 from .ai_step import StepModelCaller
 
@@ -72,6 +83,29 @@ def _prompt_class_source(pin: PromptPin, approvals: tuple[MaterialApproval, ...]
         if operator
         else "declaration"
     )
+
+
+def _touched(
+    session: Session,
+    scope: StudyContext,
+    payload: Mapping[str, Any],
+    action: ResearchAction,
+    proposal: Mapping[str, Any],
+) -> list[str] | None:
+    """The items ``proposal`` changes against the working revision the job's design came from.
+
+    ``None`` -- not an empty list -- when that baseline is unknown (a job queued before the
+    rule, a design that names no working revision, a revision the working copy does not hold)
+    or the job is advice: unknown is never read as "touches nothing".
+    """
+    base = payload.get("base_workspace_revision")
+    if action not in DESIGN_ACTIONS or not isinstance(base, int) or isinstance(base, bool):
+        return None
+    stored = StudyWorkspaceRepository(session).at_revision(scope, base)
+    if stored is None:
+        return None
+    baseline = Documents(content=dict(stored.content or {}), analysis=stored.analysis)
+    return sorted(str(k) for k in touched_items(action, baseline, dict(proposal)))
 
 
 @dataclass(frozen=True, slots=True)
@@ -171,8 +205,19 @@ class ResearchAgentExecutor:
                 input_fingerprint=digest,
             )
             if existing is not None:
-                artifacts.read(existing.artifact_id)  # verify bytes, not only existence
-                return Succeeded(output={"artifact_id": existing.artifact_id, "reused": True})
+                stored = artifacts.read_json(existing.artifact_id)  # verifies its bytes
+                kept = stored.get("result") if isinstance(stored, dict) else None
+                return Succeeded(
+                    output={
+                        "artifact_id": existing.artifact_id,
+                        "reused": True,
+                        "touched_items": _touched(
+                            session, context.scope, step.payload, action, kept or {}
+                        )
+                        if isinstance(kept, dict)
+                        else None,
+                    }
+                )
         request = agent_request(
             action,
             snapshot,
@@ -299,4 +344,11 @@ class ResearchAgentExecutor:
                     "context_sha256": snapshot_hash(snapshot),
                 },
             )
-        return Succeeded(output={"artifact_id": artifact.artifact_id, "reused": not created})
+            touched = _touched(session, context.scope, step.payload, action, proposal)
+        return Succeeded(
+            output={
+                "artifact_id": artifact.artifact_id,
+                "reused": not created,
+                "touched_items": touched,
+            }
+        )

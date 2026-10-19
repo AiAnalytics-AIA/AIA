@@ -272,7 +272,7 @@ def runs(session: Any, scoped: Any) -> Any:
 def design(session: Any, scoped: Any) -> Any:
     def submit(content: dict[str, Any]) -> str:
         repo = StudyDesignRepository(session, scoped.scope(user="lead"))
-        revision, _ = repo.submit(content=content, source_stage="run")
+        revision, _ = repo.submit_as_working_copy(content=content, source_stage="run")
         return revision.revision_id
 
     return submit

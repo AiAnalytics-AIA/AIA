@@ -912,6 +912,8 @@ export type DesignRevision = {
   created_by: string;
   created_at: string;
   created?: boolean;
+  /** The working revision the design came from (ADR 0026); null for one written before the rule. */
+  workspace_revision?: number | null;
 };
 
 export type CheckStatus = "PASS" | "WARN" | "FAIL";
@@ -1187,8 +1189,13 @@ export type ResearchReport = {
 const studyPath = (studyId: string) => `/api/v1/studies/${enc(studyId)}`;
 
 export const research = {
-  submitDesign: (studyId: string, content: unknown, sourceStage: string) =>
-    request<DesignRevision>("POST", `${studyPath(studyId)}/design/revisions`, { content, source_stage: sourceStage }),
+  /**
+   * Submit the design as a Design Revision. `workspaceRevision` is the working revision `content`
+   * is, exactly (ADR 0026): the API checks it by hash (422 design_not_from_workspace) and records
+   * it. Use submitWorkingDesign (research/store.ts), which saves the copy first and names it.
+   */
+  submitDesign: (studyId: string, content: unknown, sourceStage: string, workspaceRevision: number) =>
+    request<DesignRevision>("POST", `${studyPath(studyId)}/design/revisions`, { content, source_stage: sourceStage, workspace_revision: workspaceRevision }),
   revisions: (studyId: string) =>
     request<{ items: DesignRevision[] }>("GET", `${studyPath(studyId)}/design/revisions`).then((r) => r.items),
   /** Where the study's design came from, when it was reused (404: it was not). */
@@ -1393,11 +1400,25 @@ export type ResearchAgentJob = {
   /** The prompt the job was queued with: "1" (the code's wording) or "e<n>" (an edit). Null: queued before prompts were editable. */
   prompt_version?: string | null; prompt_origin?: "baseline" | "stored" | null;
   steps: ResearchStep[]; actual_cost_usd: number | null;
+  /** Where its design proposal stands (ADR 0026 decision 8); null: advice, or no proposal yet. */
+  proposal_state?: "pending" | "accepted" | "dismissed" | "superseded" | null;
+  /** The job this one rebuilt, which it supersedes. */
+  rebuild_of?: string | null;
 };
 export type ResearchAgentResult = {
   result: { project: Record<string, unknown>; proposal: Record<string, unknown>; analysis?: unknown } & Record<string, unknown>;
   provenance: { agent_id: string; design_revision_id: string; context_sha256: string; status: string } & Record<string, unknown>;
 };
+/** What an accept wrote in its one transaction (ADR 0026 decision 6): the Design Revision and the working copy. */
+export type AcceptedProposal = {
+  design_revision_id: string;
+  design_revision: DesignRevision;
+  created: boolean;
+  workspace_revision: number;
+  workspace_revision_id: string;
+};
+/** The details of a 409 stale_proposal: why, and each item (`document:kind:key`) both changed. */
+export type StaleProposalDetails = { reason: "design_moved" | "unknown_baseline" | "items_changed" | "lineage_changed" | string; conflicting_items: string[] };
 const agentsPath = (studyId: string) => `${studyPath(studyId)}/research/agent-jobs`;
 /** The Research Lead's conversation on a study: the caller's own session (ADR 0026). */
 export const lead = {
@@ -1441,7 +1462,18 @@ export const researchAgents = {
   liftBudget: (studyId: string, jobId: string, budgetUsd: number, note: string) =>
     request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/budget`, { budget_usd: budgetUsd, note }),
   result: (studyId: string, jobId: string) => request<ResearchAgentResult>("GET", `${agentsPath(studyId)}/${enc(jobId)}/result`),
-  accept: (studyId: string, jobId: string, revisionId: string) => request<DesignRevision>("POST", `${agentsPath(studyId)}/${enc(jobId)}/accept`, { expected_revision_id: revisionId }),
+  /**
+   * Accept a proposal (ADR 0026 decision 6): the server merges it into the working copy at
+   * `workspaceRevision`, writes the Design Revision and the ledger row in one transaction. The
+   * caller reloads the working copy; it writes nothing back. 409 stale_proposal names the items.
+   */
+  accept: (studyId: string, jobId: string, revisionId: string, workspaceRevision: number) =>
+    request<AcceptedProposal>("POST", `${agentsPath(studyId)}/${enc(jobId)}/accept`, { expected_revision_id: revisionId, expected_workspace_revision: workspaceRevision }),
+  /** Set a proposal aside: a ledger row, nothing written to the design (ADR 0026 decision 8). */
+  dismiss: (studyId: string, jobId: string) => request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/dismiss`),
+  /** Ask the same again on the Study's newest Design Revision (`revisionId`, just submitted): a new job that supersedes this one. */
+  rebuild: (studyId: string, jobId: string, revisionId: string) =>
+    request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/rebuild`, { design_revision_id: revisionId }),
 };
 
 // ---- the settings page: every control and how it is set -------------------

@@ -78,4 +78,17 @@ describe("ProposalReview", () => {
     expect(screen.queryByRole("heading", { name: t("research.questionnaire.replacement.title") })).toBeNull();
     expect(screen.getByText(/Již vytvořený dotazník se nemění/)).toBeTruthy();
   });
+
+  it("offers to dismiss a proposal, and after a stale refusal offers to rebuild it instead of applying (ADR 0026)", () => {
+    const decide = vi.fn();
+    const view = render(<ProposalReview result={result()} state={state} onDecision={decide} />);
+    fireEvent.click(screen.getByRole("button", { name: "Zahodit" }));
+    expect(decide).toHaveBeenLastCalledWith("dismiss");
+    view.unmount();
+    render(<ProposalReview result={result()} state={state} onDecision={decide} stale={{ message: "Návrh nejde použít: Cíl studie.", items: ["content:brief:goal"] }} />);
+    expect(screen.getByRole("alert").textContent).toContain("Cíl studie");
+    expect(screen.queryByRole("button", { name: "Použít návrh" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Navrhnout znovu" }));
+    expect(decide).toHaveBeenLastCalledWith("rebuild");
+  });
 });

@@ -107,9 +107,7 @@ def _worker(app: FastAPI) -> Worker:
 
 def _results(app: FastAPI, c: TestClient, world: Any) -> dict[str, Any]:
     """A completed research run of the primary study: its id and its steps' artifacts."""
-    revision = c.post(
-        f"{_study(world)}/design/revisions", json={"content": DESIGN, "source_stage": "run"}
-    )
+    revision = world.design(c, DESIGN)
     assert revision.status_code == 201, revision.text
     started = c.post(
         f"{_study(world)}/research/runs",
@@ -327,6 +325,10 @@ def test_the_design_proposal_route_refuses_an_interpretation_run(
     run_url = f"{_url(world)}/{job['run_id']}"
     proposal = researcher.get(f"{run_url}/design-proposal")
     assert proposal.status_code == 409 and proposal.json()["code"] == "not_design_research"
-    accept = {"item_ids": ["DRP-" + "0" * 24], "expected_revision_id": results["revision_id"]}
+    accept = {
+        "item_ids": ["DRP-" + "0" * 24],
+        "expected_revision_id": results["revision_id"],
+        "expected_workspace_revision": 1,
+    }
     refused = researcher.post(f"{run_url}/design-proposal/accept", json=accept)
     assert refused.status_code == 409 and refused.json()["code"] == "not_design_research"

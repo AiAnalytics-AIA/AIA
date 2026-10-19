@@ -25,8 +25,8 @@ describe("proposalDiff", () => {
     expect(d.summary).toEqual({ before: "Jak nás vnímají.", after: "Jak nás vnímají lidé 25–55." });
     expect(d.lists).toEqual([{ key: "research_questions", label: "Výzkumné otázky", added: ["Které sdělení zabírá?"], removed: [], kept: 1 }]);
     expect(d.sets).toEqual([
-      { title: "Banky", status: "changed", added: ["Revolut"], removed: [], size: 5 },
-      { title: "Sdělení", status: "new", added: ["A", "B", "C", "D"], removed: [], size: 4 },
+      { key: "banky", title: "Banky", status: "changed", added: ["Revolut"], removed: [], size: 5 },
+      { key: "sdělení", title: "Sdělení", status: "new", added: ["A", "B", "C", "D"], removed: [], size: 4 },
     ]);
     expect(d.changes).toBe(4);
   });
@@ -35,7 +35,7 @@ describe("proposalDiff", () => {
     const d = proposalDiff(current, { tracked_sets: [] });
     expect(d.lists).toEqual([]);
     expect(d.summary).toBeNull();
-    expect(d.sets).toEqual([{ title: "Banky", status: "removed", added: [], removed: ["Horizont", "ČSOB", "Fio", "Air Bank"], size: 0 }]);
+    expect(d.sets).toEqual([{ key: "banky", title: "Banky", status: "removed", added: [], removed: ["Horizont", "ČSOB", "Fio", "Air Bank"], size: 0 }]);
   });
 
   it("treats everything as new when there is no plan yet", () => {
@@ -58,5 +58,12 @@ describe("questionnaireReplacement (PC6)", () => {
   it("says a questionnaire with no own blocks loses nothing", () => {
     const r = questionnaireReplacement({ sections: [library] }, { sections: [library, own] });
     expect(r).toEqual({ replaced: 0, preserved: 1, removed: [], added: ["Jak často pijete kávu?", "Kde kávu kupujete?"], kept: 0 });
+  });
+
+  it("keeps two sets of one title apart, as design_items keys them (ADR 0026)", () => {
+    const two = { tracked_sets: [{ title: "Značky", objects: ["A", "B", "C", "D"] }, { title: "Značky", objects: ["E", "F", "G", "H"] }] };
+    const d = proposalDiff(two, { tracked_sets: [two.tracked_sets[0], { title: "Značky", objects: ["E", "F", "G", "X"] }] });
+    expect(d.sets.map((x) => [x.key, x.status])).toEqual([["značky", "same"], ["značky#2", "changed"]]);
+    expect(diffLists(["Cena", "cena"], ["Cena"])).toEqual({ added: [], removed: ["cena"], kept: 1 });
   });
 });

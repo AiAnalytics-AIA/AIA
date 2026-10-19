@@ -11,6 +11,12 @@ raises; nothing is wrapped or translated.
 from __future__ import annotations
 
 from ..infrastructure.repositories import ProjectNotFound
+from ..infrastructure.study_workspace_repository import WorkspaceConflict
 from ..infrastructure.workflow_repository import BudgetWaitNotLiftable, RuntimeParkNotResumable
 
-__all__ = ["BudgetWaitNotLiftable", "ProjectNotFound", "RuntimeParkNotResumable"]
+__all__ = [
+    "BudgetWaitNotLiftable",
+    "ProjectNotFound",
+    "RuntimeParkNotResumable",
+    "WorkspaceConflict",
+]

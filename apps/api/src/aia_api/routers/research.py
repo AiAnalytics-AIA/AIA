@@ -30,6 +30,8 @@ from aia_core.application.deep_research import (
     RunNotGoverned,
     RunSpecCorrupt,
 )
+from aia_core.application.errors import WorkspaceConflict
+from aia_core.application.proposal_accept import StaleProposal
 from aia_core.application.report import (
     INTERNAL_REPORT_ARTIFACT_TYPE,
     INTERNAL_REPORT_MEDIA_TYPE,
@@ -181,6 +183,9 @@ class DesignSubmission(BaseModel):
 
     content: dict[str, Any]
     source_stage: str = Field(max_length=32)
+    #: The working revision this design is (ADR 0026 decision 5): the server checks the content
+    #: is exactly that revision's and records it with the Design Revision. Required.
+    workspace_revision: int = Field(ge=1)
 
 
 class DesignRevisionResponse(BaseModel):
@@ -198,6 +203,9 @@ class DesignRevisionResponse(BaseModel):
     created_at: datetime
     created: bool | None = None
     content: dict[str, Any] | None = None
+    #: The working revision the design came from; null for a revision written before every
+    #: writer named one (ADR 0026 decision 5).
+    workspace_revision: int | None = None
 
 
 class DesignSourceLabels(BaseModel):
@@ -777,6 +785,7 @@ def _revision(
         created_at=r.created_at,
         created=created,
         content=content,
+        workspace_revision=r.workspace_revision,
     )
 
 
@@ -798,11 +807,15 @@ def submit_design(
     """Store the design as an immutable, Study-scoped revision (ADR 0016 decision 1).
 
     Needs ``EDIT_STUDY`` on an open research Study. Content identical to the
-    newest revision answers 200 with that revision; anything else is a new one.
+    newest revision answers 200 with that revision; anything else is a new one. The content
+    must be exactly the working revision ``workspace_revision`` names, else 422
+    ``design_not_from_workspace`` (ADR 0026 decision 5).
     """
     try:
         revision, created = StudyDesignRepository(session, scope).submit(
-            content=body.content, source_stage=body.source_stage
+            content=body.content,
+            source_stage=body.source_stage,
+            workspace_revision=body.workspace_revision,
         )
     except ScopeDenied as exc:
         raise _refused(exc) from exc
@@ -2583,8 +2596,24 @@ class AgentJobStart(BaseModel):
 
 
 class AgentProposalAccept(BaseModel):
+    """An accept names the Design Revision the proposal was made on and the working revision the
+    person has (ADR 0026 decision 6); both are required, so no client is served the old way."""
+
     model_config = ConfigDict(extra="forbid")
     expected_revision_id: str = Field(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")
+    expected_workspace_revision: int = Field(ge=1)
+
+
+class AgentProposalAccepted(BaseModel):
+    """What an accept wrote in its one transaction: the Design Revision and the working copy."""
+
+    model_config = ConfigDict(extra="forbid")
+    design_revision_id: str
+    design_revision: DesignRevisionResponse
+    #: False when the merged design was identical to the newest revision.
+    created: bool
+    workspace_revision: int
+    workspace_revision_id: str
 
 
 class AgentJobResponse(BaseModel):
@@ -2604,9 +2633,23 @@ class AgentJobResponse(BaseModel):
     created_at: datetime | None
     steps: list[ResearchStepResponse]
     actual_cost_usd: float | None
+    #: Where its design proposal stands (ADR 0026 decision 8): pending, accepted, dismissed or
+    #: superseded; null for advice or a job without a proposal.
+    proposal_state: Literal["pending", "accepted", "dismissed", "superseded"] | None = None
+    #: The job this one rebuilt, which it supersedes; null for a job a person asked first.
+    rebuild_of: str | None = None
 
 
-def _agent_response(run: dict[str, Any], scope: StudyContext) -> AgentJobResponse:
+class AgentProposalRebuild(BaseModel):
+    """A rebuild runs on the Study's newest Design Revision, which the browser just submitted."""
+
+    model_config = ConfigDict(extra="forbid")
+    design_revision_id: str = Field(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")
+
+
+def _agent_response(
+    run: dict[str, Any], scope: StudyContext, state: str | None = None
+) -> AgentJobResponse:
     meta = run["metadata"]
     return AgentJobResponse(
         run_id=run["run_id"],
@@ -2626,6 +2669,37 @@ def _agent_response(run: dict[str, Any], scope: StudyContext) -> AgentJobRespons
         )
         if scope.has(Permission.VIEW_COSTS)
         else None,
+        proposal_state=state,
+        rebuild_of=meta.get("rebuild_of"),
+    )
+
+
+def _agent_with_state(
+    jobs: ResearchAgentJobs, run_id: str, scope: StudyContext
+) -> AgentJobResponse:
+    run = jobs.get(run_id)
+    state = jobs.proposal_states([run])[run_id]
+    return _agent_response(run, scope, state.value if state else None)
+
+
+def stale_proposal(exc: StaleProposal) -> HTTPException:
+    """409 ``stale_proposal``: why (``design_moved``, ``unknown_baseline``, ``items_changed``,
+    ``lineage_changed``) and, for an edit, each item it touched that the proposal changes."""
+    return HTTPException(
+        status_code=409,
+        detail={"code": "stale_proposal", "message": str(exc), "details": exc.details()},
+    )
+
+
+def workspace_stale(exc: WorkspaceConflict) -> HTTPException:
+    """409 with the working copy's reason (``stale_revision``) and its current revision."""
+    return HTTPException(
+        status_code=409,
+        detail={
+            "code": exc.reason,
+            "message": str(exc),
+            "details": {"current_revision": exc.current_revision},
+        },
     )
 
 
@@ -2637,6 +2711,10 @@ def _agent_errors(session: SessionDep) -> Iterator[None]:
         raise _refused(exc) from exc
     except (ResearchRunNotFound, DesignRevisionNotFound) as exc:
         raise _not_found("agent_job") from exc
+    except StaleProposal as exc:
+        raise stale_proposal(exc) from exc
+    except WorkspaceConflict as exc:
+        raise workspace_stale(exc) from exc
     except DesignRejected as exc:
         raise HTTPException(
             status_code=409, detail={"code": exc.reason, "message": str(exc)}
@@ -2677,10 +2755,17 @@ def start_agent_job(
 
 
 @router.get("/research/agent-jobs", response_model=list[AgentJobResponse])
-def list_agent_jobs(scope: StudyScopeDep, session: SessionDep) -> list[AgentJobResponse]:
+def list_agent_jobs(
+    scope: StudyScopeDep, session: SessionDep, pending: Annotated[bool, Query()] = False
+) -> list[AgentJobResponse]:
+    """The Study's agent jobs, newest first, each with its proposal's state (ADR 0026 d8).
+    ``pending=true``: only the proposals a person has still to decide."""
     with _agent_errors(session):
         jobs = ResearchAgentJobs(session, scope)
-        return [_agent_response(jobs.get(r["run_id"]), scope) for r in jobs.jobs()]
+        runs = [jobs.get(r["run_id"]) for r in jobs.jobs()]
+        states = jobs.proposal_states(runs)
+        listed = [_agent_response(r, scope, (s := states[r["run_id"]]) and s.value) for r in runs]
+        return [j for j in listed if j.proposal_state == "pending"] if pending else listed
 
 
 @router.get("/research/agent-jobs/{run_id}", response_model=AgentJobResponse)
@@ -2688,7 +2773,7 @@ def read_agent_job(
     run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep
 ) -> AgentJobResponse:
     with _agent_errors(session):
-        return _agent_response(ResearchAgentJobs(session, scope).get(run_id), scope)
+        return _agent_with_state(ResearchAgentJobs(session, scope), run_id, scope)
 
 
 @router.get("/research/agent-jobs/{run_id}/events", response_model=list[RunEventResponse])
@@ -2760,16 +2845,74 @@ def read_agent_result(
         return result
 
 
-@router.post("/research/agent-jobs/{run_id}/accept", response_model=DesignRevisionResponse)
+@router.post(
+    "/research/agent-jobs/{run_id}/dismiss",
+    response_model=AgentJobResponse,
+    responses={409: {"model": ErrorResponse, "description": "Not a proposal, or accepted"}},
+)
+def dismiss_agent_result(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep
+) -> AgentJobResponse:
+    """A person sets the proposal aside: an approval-ledger row (``decision = "dismiss"``),
+    nothing written to the design (ADR 0026 decision 8). Needs ``APPROVE_GATE``."""
+    with _agent_errors(session):
+        jobs = ResearchAgentJobs(session, scope)
+        jobs.dismiss(run_id)
+        return _agent_with_state(jobs, run_id, scope)
+
+
+@router.post(
+    "/research/agent-jobs/{run_id}/rebuild",
+    response_model=AgentJobResponse,
+    status_code=201,
+    responses={409: {"model": ErrorResponse, "description": "Advice, or not the newest design"}},
+)
+def rebuild_agent_result(
+    run_id: RunIdPath,
+    body: AgentProposalRebuild,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    response: Response,
+) -> AgentJobResponse:
+    """Ask the same action and instruction again on the Study's newest Design Revision: a new
+    job, ``rebuild_of`` the old one, which it supersedes (ADR 0026 decision 5). Accepts
+    nothing; the old proposal stays readable."""
+    with _agent_errors(session):
+        jobs = ResearchAgentJobs(session, scope)
+        started = jobs.rebuild(run_id, design_revision_id=body.design_revision_id)
+        if not started.created:
+            response.status_code = 200
+        return _agent_with_state(jobs, started.run_id, scope)
+
+
+@router.post(
+    "/research/agent-jobs/{run_id}/accept",
+    response_model=AgentProposalAccepted,
+    responses={
+        409: {"model": ErrorResponse, "description": "stale_proposal or stale_revision"},
+    },
+)
 def accept_agent_result(
     run_id: RunIdPath,
     body: AgentProposalAccept,
     scope: StudyScopeDep,
     session: SessionDep,
     store: ArtifactStoreDep,
-) -> DesignRevisionResponse:
+) -> AgentProposalAccepted:
+    """Accept a proposal in one transaction (ADR 0026 decision 6): merged into the working copy,
+    submitted as the Design Revision, recorded in the ledger. The browser then reloads the
+    working copy; it writes nothing back itself."""
     with _agent_errors(session):
-        revision, created = ResearchAgentJobs(session, scope).accept(
-            run_id, store=store, expected_revision_id=body.expected_revision_id
+        accepted = ResearchAgentJobs(session, scope).accept(
+            run_id,
+            store=store,
+            expected_revision_id=body.expected_revision_id,
+            expected_workspace_revision=body.expected_workspace_revision,
         )
-        return _revision(revision, created=created)
+        return AgentProposalAccepted(
+            design_revision_id=accepted.revision.revision_id,
+            design_revision=_revision(accepted.revision, created=accepted.created),
+            created=accepted.created,
+            workspace_revision=accepted.working.revision,
+            workspace_revision_id=accepted.working.revision_id,
+        )

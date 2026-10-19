@@ -25,6 +25,7 @@ from aia_core.domain.research_agents import (
 from aia_core.domain.residency import DataClass
 from aia_core.domain.scope import ScopeRole
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
+from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRepository
 
 DESIGN = {"title": "Fictional", "goal": "Test concept", "sections": []}
 APPROVALS = (
@@ -121,7 +122,9 @@ def test_agent_cannot_cite_sources_outside_its_context_or_mutate_scope() -> None
 
 def test_jobs_are_idempotent_and_hidden_across_studies(session: Any, scoped: Any) -> None:
     scope = scoped.scope(user="lead")
-    revision, _ = StudyDesignRepository(session, scope).submit(content=DESIGN, source_stage="brief")
+    revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
+        content=DESIGN, source_stage="brief"
+    )
     jobs = ResearchAgentJobs(session, scope)
     first = jobs.start(design_revision_id=revision.revision_id, action=ResearchAction.ANALYZE)
     second = jobs.start(design_revision_id=revision.revision_id, action=ResearchAction.ANALYZE)
@@ -149,22 +152,34 @@ def test_jobs_are_idempotent_and_hidden_across_studies(session: Any, scoped: Any
 
 
 def test_reviewed_proposal_refuses_newer_design(session: Any, scoped: Any) -> None:
-    designs = StudyDesignRepository(session, scoped.scope(user="lead"))
-    first, _ = designs.submit(content=DESIGN, source_stage="brief")
-    second, _ = designs.submit(content={**DESIGN, "title": "Edited"}, source_stage="brief")
+    scope = scoped.scope(user="lead")
+    designs = StudyDesignRepository(session, scope)
+    first, _ = designs.submit_as_working_copy(content=DESIGN, source_stage="brief")
+    second, _ = designs.submit_as_working_copy(
+        content={**DESIGN, "title": "Edited"}, source_stage="brief"
+    )
+    assert second.workspace_revision is not None
+    reviewed = StudyWorkspaceRepository(session).save(
+        scope,
+        content={**DESIGN, "title": "Reviewed"},
+        base_revision=second.workspace_revision,
+    )
     with pytest.raises(DesignRejected) as error:
         designs.submit_if_current(
-            content={**DESIGN, "title": "Agent"},
+            content={**DESIGN, "title": "Reviewed"},
             source_stage="plan",
             expected_revision_id=first.revision_id,
+            workspace_revision=reviewed.revision,
         )
     assert error.value.reason == "stale_proposal"
     accepted, created = designs.submit_if_current(
         content={**DESIGN, "title": "Reviewed"},
         source_stage="plan",
         expected_revision_id=second.revision_id,
+        workspace_revision=reviewed.revision,
     )
     assert created and accepted.parent_revision == second.revision
+    assert accepted.workspace_revision == reviewed.revision
 
 
 def test_questionnaire_proposal_preserves_library_sections_and_unique_ids() -> None:
@@ -409,3 +424,66 @@ def test_a_malformed_plan_never_loses_the_paid_proposal(plan: Any, kept: bool) -
     else:
         assert project["research_plan"] == "not an object"
         assert {"item": "comparison", "research_question": RQ_HABIT} in result["dropped_links"]
+
+
+def test_a_proposal_on_a_design_with_no_working_revision_is_refused_as_unknown(
+    session: Any, scoped: Any
+) -> None:
+    """ADR 0026 decision 5: a Design Revision written before every writer named its working
+    revision cannot have its proposal checked item by item; the accept is refused as
+    ``unknown_baseline`` before anything is read or written, never read as "nothing changed"."""
+    from aia_core.application.proposal_accept import StaleProposal
+    from aia_core.infrastructure.repositories import ProjectRepository
+    from aia_core.infrastructure.storage import InMemoryArtifactStore
+
+    scope = scoped.scope(user="lead")
+    designs = StudyDesignRepository(session, scope)
+    designs.submit_as_working_copy(content=DESIGN, source_stage="brief")
+    project_id = designs.project_id()
+    assert project_id is not None
+    ProjectRepository(session, scope, owner="study_design").save(
+        project_id, content={**DESIGN, "n": 7}, reason="design:brief"
+    )
+    legacy = designs.latest()
+    assert legacy is not None and legacy.workspace_revision is None
+    jobs = ResearchAgentJobs(session, scope)
+    run_id = jobs.start(design_revision_id=legacy.revision_id, action=ResearchAction.ANALYZE).run_id
+    assert jobs.get(run_id)["metadata"]["base_workspace_revision"] is None
+    working = StudyWorkspaceRepository(session).content(scope).revision
+    assert working is not None
+    with pytest.raises(StaleProposal) as refused:
+        jobs.accept(
+            run_id,
+            store=InMemoryArtifactStore(),
+            expected_revision_id=legacy.revision_id,
+            expected_workspace_revision=working,
+        )
+    assert refused.value.reason == "stale_proposal"
+    assert refused.value.details() == {"reason": "unknown_baseline", "conflicting_items": []}
+    assert designs.latest() == legacy
+    assert StudyWorkspaceRepository(session).content(scope).revision == working
+
+
+@pytest.mark.parametrize(
+    ("action", "completed", "decision", "superseded", "state"),
+    [
+        ("analyze_brief", True, None, False, "pending"),
+        ("analyze_brief", True, "accept", True, "accepted"),
+        ("analyze_brief", True, "dismiss", True, "dismissed"),
+        ("build_questionnaire", True, None, True, "superseded"),
+        ("analyze_brief", False, None, False, None),
+        ("design_copilot", True, None, False, None),
+        ("not_an_action", True, None, False, None),
+    ],
+)
+def test_a_proposals_state_is_derived_never_stored(
+    action: str, completed: bool, decision: str | None, superseded: bool, state: str | None
+) -> None:
+    """ADR 0026 decision 8: accepted over dismissed over superseded over pending; advice and a
+    job with no proposal have no state at all, never "pending" by default."""
+    from aia_core.domain.research_agents import proposal_state
+
+    found = proposal_state(
+        action=action, completed=completed, decision=decision, superseded=superseded
+    )
+    assert (found.value if found else None) == state

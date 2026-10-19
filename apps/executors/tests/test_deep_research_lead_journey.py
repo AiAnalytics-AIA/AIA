@@ -461,7 +461,7 @@ def test_a_deep_run_plans_its_crosses_and_re_plans_within_its_limit(
     runtime = led(research, agents)
     with research.sessions() as session:
         scope = research.lead_scope(session)
-        revision, _ = StudyDesignRepository(session, scope).submit(
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content=DESIGN, source_stage="brief"
         )
         run_id = (

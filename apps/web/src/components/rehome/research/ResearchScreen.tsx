@@ -29,7 +29,7 @@ import { SaveIndicator } from "./SaveIndicator";
 import { StepPlaceholder } from "./StepPlaceholder";
 import { ResearchContext, type RunJob } from "./context";
 import { ACTIONS, ACTION_LABELS } from "@/lib/research-agent-jobs";
-import { researchAgents, type ResearchAgentAction, type WorkingContent } from "@/lib/api";
+import { researchAgents, type ResearchAgentAction, type ResearchAgentJob, type WorkingContent } from "@/lib/api";
 import { known } from "@/lib/reason-words";
 import Link from "next/link";
 import { AgentBudgetWaits } from "./AgentBudgetWaits";
@@ -65,6 +65,8 @@ type Session = { studyId: string; loaded: Loaded; retry: () => void; startAgain:
 const SessionContext = createContext<Session | null>(null);
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+/** A design proposal a person has still to decide, as the server projects it (ADR 0026 decision 8). */
+const pendingProposal = (j: ResearchAgentJob) => j.status === "COMPLETED" && !isAdviceAction(j.action) && j.proposal_state === "pending";
 
 /** The study's working content, loaded once and kept while the person stays in the study (its layout). */
 export function ResearchSession({ studyId, initialContent, children }: { studyId: string; initialContent?: WorkingContent; children: ReactNode }) {
@@ -298,7 +300,9 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
   // Stable across the editors' renders, so typing does not keep restarting the workbench's job poll.
   const refreshAgents = agents.refresh;
   const refreshJobs = useCallback(() => refreshAgents().catch(() => {}), [refreshAgents]);
-  const savedProposals = agents.recent.filter((j) => j.status === "COMPLETED" && !isAdviceAction(j.action));
+  // The proposals a person has still to decide (ADR 0026 decision 8): an accepted, dismissed or
+  // superseded one is not offered again.
+  const savedProposals = agents.recent.filter(pendingProposal);
 
   return (
     <ResearchAssistance step={step} studyName={frame.studyName} canEdit={frame.canEdit} memory={memory} actions={aiHelp} agents={agents} job={job} onCancel={onCancel} studyId={frame.studyId}>
@@ -324,7 +328,7 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
             <DesignSourceNote clientId={frame.clientId} studyId={frame.studyId} />
             {origin ? <p role="status" data-content-origin="18.6.6" className="mb-4 max-w-3xl rounded-sm border border-border bg-surface-raised p-3 text-sm leading-6 text-ink">{origin}</p> : null}
             <div className="flex min-w-0 flex-col gap-4">
-              {agents.proposalReview ? <ProposalReview result={agents.proposalReview.result} state={state} onDecision={agents.proposalReview.decide} canApply={frame.canEdit} /> : null}
+              {agents.proposalReview ? <ProposalReview result={agents.proposalReview.result} state={state} onDecision={agents.proposalReview.decide} canApply={frame.canEdit} stale={agents.proposalReview.stale} /> : null}
               <ReadOnly when={!frame.canEdit && DESIGN_STEPS.has(step)}>
                 {Screen ? <Screen /> : <StepPlaceholder step={step} />}
               </ReadOnly>
@@ -341,7 +345,7 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
               <div className="flex min-w-0 flex-col gap-4">
                 {/* An AI proposal can be opened from the saved list on any stage: on a closed study it is
                     read and closed, never applied, whichever stage shows it. */}
-                {agents.proposalReview ? <ProposalReview result={agents.proposalReview.result} state={state} onDecision={agents.proposalReview.decide} canApply={frame.canEdit} /> : null}
+                {agents.proposalReview ? <ProposalReview result={agents.proposalReview.result} state={state} onDecision={agents.proposalReview.decide} canApply={frame.canEdit} stale={agents.proposalReview.stale} /> : null}
                 {/* A design that may not change is read, never edited: every control of a design stage
                     is disabled as one (the run stages decide their own actions). */}
                 <ReadOnly when={!frame.canEdit && DESIGN_STEPS.has(step)}>
@@ -357,9 +361,9 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
           )}</InspectorProvider>
         {agents.notice ? <p role="status" className="my-3 text-sm text-ink-muted">{agents.notice}</p> : null}
         <AgentBudgetWaits jobs={agents.recent} studyId={frame.studyId} canEdit={frame.canEdit} onChanged={agents.refresh} />
-        {agents.recent.some((j) => j.status === "COMPLETED" && !isAdviceAction(j.action)) ? <section className="my-4 rounded-md border border-border p-4"><h2 className="mb-2 font-semibold">{t("research.aiSaved")}</h2>
+        {savedProposals.length ? <section className="my-4 rounded-md border border-border p-4"><h2 className="mb-2 font-semibold">{t("research.aiSaved")}</h2>
           <div className="flex flex-wrap gap-2">
-            {agents.recent.filter((j) => j.status === "COMPLETED" && !isAdviceAction(j.action)).slice(0, 5).map((j) => <Button key={j.run_id} disabled={agents.busy} onClick={() => void agents.open(j)}>{ACTION_LABELS[j.action]} · {j.created_at ? new Date(j.created_at).toLocaleString("cs-CZ") : ""}</Button>)}
+            {savedProposals.slice(0, 5).map((j) => <Button key={j.run_id} disabled={agents.busy} onClick={() => void agents.open(j)}>{ACTION_LABELS[j.action]} · {j.created_at ? new Date(j.created_at).toLocaleString("cs-CZ") : ""}</Button>)}
           </div>
         </section> : null}
         </StageChrome>

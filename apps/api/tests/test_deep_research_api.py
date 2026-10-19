@@ -43,10 +43,7 @@ def _url(world: Any, study: str = "primary") -> str:
 
 
 def _revision(client: TestClient, world: Any) -> str:
-    response = client.post(
-        f"{API}/studies/{world.study_id()}/design/revisions",
-        json={"content": DESIGN, "source_stage": "brief"},
-    )
+    response = world.design(client, DESIGN, source_stage="brief")
     assert response.status_code == 201, response.text
     return str(response.json()["revision_id"])
 
@@ -269,7 +266,11 @@ def test_a_design_proposal_waits_for_the_run_and_its_accept_is_validated(
     run_url = f"{_url(world)}/{started.json()['run_id']}"
     proposal = researcher.get(f"{run_url}/design-proposal")
     assert proposal.status_code == 409 and proposal.json()["code"] == ("proposal_not_ready")
-    accept = {"item_ids": ["DRP-" + "0" * 24], "expected_revision_id": revision}
+    accept = {
+        "item_ids": ["DRP-" + "0" * 24],
+        "expected_revision_id": revision,
+        "expected_workspace_revision": 1,
+    }
     refused = researcher.post(f"{run_url}/design-proposal/accept", json=accept)
     assert refused.status_code == 409, refused.text
     assert refused.json()["code"] == "proposal_not_ready"
@@ -278,6 +279,7 @@ def test_a_design_proposal_waits_for_the_run_and_its_accept_is_validated(
         {**accept, "item_ids": ["not-an-item"]},
         {**accept, "expected_revision_id": "latest"},
         {**accept, "extra": True},
+        {k: v for k, v in accept.items() if k != "expected_workspace_revision"},
     ):
         assert researcher.post(f"{run_url}/design-proposal/accept", json=body).status_code == 422
     wrong_study = f"{_url(world, 'other_client')}/{started.json()['run_id']}"

@@ -282,7 +282,18 @@ def research(product: Site, line: Any) -> None:
     sid = (study or {}).get("study_id", "")
     line(s == 201 and bool(sid), "POST /api/v1/clients/<client>/studies (RESEARCH)", f"{s} {sid}")
     base = f"/api/v1/studies/{sid}"
-    s, rev = call("POST", f"{base}/design/revisions", {"content": DESIGN, "source_stage": "run"})
+    # A design names the working revision it is (ADR 0026): the working copy is saved first.
+    s, saved = call("PUT", f"{base}/workspace/content", {"content": DESIGN, "base_revision": None})
+    line(s == 200, "PUT …/workspace/content", f"{s}")
+    s, rev = call(
+        "POST",
+        f"{base}/design/revisions",
+        {
+            "content": DESIGN,
+            "source_stage": "run",
+            "workspace_revision": (saved or {}).get("revision", 0),
+        },
+    )
     rid = (rev or {}).get("revision_id", "")
     line(s in (200, 201) and bool(rid), "POST …/design/revisions", f"{s} {rid}")
     s, ready = call("GET", f"{base}/research/readiness?design_revision_id={rid}")

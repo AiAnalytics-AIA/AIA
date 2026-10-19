@@ -125,7 +125,7 @@ class World:
 
     def start(self, design: dict[str, Any] = DESIGN) -> str:
         designs = StudyDesignRepository(self.session, self.scope)
-        revision, _ = designs.submit(content=design, source_stage="run")
+        revision, _ = designs.submit_as_working_copy(content=design, source_stage="run")
         project_id = designs.project_id()
         assert project_id is not None
         steps = [
@@ -400,8 +400,8 @@ def test_a_specification_reused_from_an_identical_revision_is_the_runs_own(
     """The compile step keys its artifact on the design's content, so a design edited and
     edited back runs on the earlier revision's specification. It is the run's own."""
     designs = StudyDesignRepository(world.session, world.scope)
-    first, _ = designs.submit(content=DESIGN, source_stage="run")
-    designs.submit(content={**DESIGN, "title": "Jiný nápoj"}, source_stage="run")
+    first, _ = designs.submit_as_working_copy(content=DESIGN, source_stage="run")
+    designs.submit_as_working_copy(content={**DESIGN, "title": "Jiný nápoj"}, source_stage="run")
     run_id = world.start()  # the same content again: a third revision
     world.upstream(spec_revision=first.revision_id)
     run_revision = world.run(run_id)["metadata"]["design_revision_id"]
@@ -449,7 +449,9 @@ def test_an_aggregate_of_another_questionnaire_is_refused(world: World) -> None:
 
 def test_a_specification_of_another_design_is_refused(world: World) -> None:
     designs = StudyDesignRepository(world.session, world.scope)
-    other, _ = designs.submit(content={**DESIGN, "title": "Jiný nápoj"}, source_stage="run")
+    other, _ = designs.submit_as_working_copy(
+        content={**DESIGN, "title": "Jiný nápoj"}, source_stage="run"
+    )
     run_id = world.start()
     world.upstream(spec_revision=other.revision_id)
     with pytest.raises(SourcesRefused) as refused:
@@ -528,7 +530,9 @@ def test_another_compilers_specification_is_held_to_the_revision_it_records(
     across a deploy must still be analysed: such a specification is held to the revision
     it records, which must be the run's (or an identical one's) as for any other."""
     designs = StudyDesignRepository(world.session, world.scope)
-    other, _ = designs.submit(content={**DESIGN, "title": "Jiný nápoj"}, source_stage="run")
+    other, _ = designs.submit_as_working_copy(
+        content={**DESIGN, "title": "Jiný nápoj"}, source_stage="run"
+    )
     run_id = world.start()
     spec, _ = compile_design(DESIGN)
     assert spec is not None

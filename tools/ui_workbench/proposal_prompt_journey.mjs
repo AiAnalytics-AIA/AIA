@@ -97,7 +97,7 @@ try {
   await page.getByText("Neuloženo", { exact: true }).waitFor(); await page.getByRole("button", { name: "Zkusit znovu", exact: true }).click();
   current = await saved(); assert.equal(current.content.research_plan.problem_summary, "Uložení po obnovení spojení.");
   await page.unroute("**" + contentPath); checks.push("A refused save keeps the edited content and succeeds on explicit retry");
-  const design = await page.request.post(base + `/api/v1/studies/${study}/design/revisions`, { headers, data: { content: current.content, source_stage: "plan" } });
+  const design = await page.request.post(base + `/api/v1/studies/${study}/design/revisions`, { headers, data: { content: current.content, source_stage: "plan", workspace_revision: current.revision } });
   assert(design.ok(), await design.text());
   const submitted = await design.json();
   const pinned = await get(`/api/v1/studies/${study}/design/revisions/${submitted.revision_id}`);
