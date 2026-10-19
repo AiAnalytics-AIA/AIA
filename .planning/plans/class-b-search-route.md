@@ -58,11 +58,14 @@ by **code**, never by a prompt or a model's own claim about a query.
    per request and held against the study's budget like any priced call.
 2. **Sign-off.** `sign_off_routes()` names it; Settings → Deep Research approves every live setting
    it needs (ADR 0022). Test: the route refuses to run without the pin.
-3. **Classification.** With a Class B route composed, the plan step classifies a design by
-   `MaterialRule.DESIGN` (Class B, raised and never lowered by an operator), exactly as
-   `ai_fieldwork.py` does. A design no rule can classify still parks. Test: an edited design runs
-   its web tracks without an operator record; this supersedes OI-129's second sentence and needs the
-   owner's recorded confirmation in OI-129 / ADR 0008 first.
+3. **Classification (mandatory: it does not wait for a Class B route).** The plan step classifies a
+   design by `MaterialRule.DESIGN` (Class B, raised and never lowered by an operator), exactly as
+   `ai_fieldwork.py` does, instead of by an operator's exact-bytes record alone. Today
+   `plan.py:163-174` returns `egress_unclassified_material` for an edited design with no record,
+   before any query reaches the classifier of chunk 6, so without this chunk no real-client design
+   can reach Brave. A design no rule can classify still parks. Test: an edited design runs its web
+   tracks without an operator record; this supersedes OI-129's second sentence (the owner's decision
+   of 2026-10-19, recorded in ADR 0008's amendment).
 4. **Journey.** `test_deep_research_journey.py` with a recorded Class B route: Class C routes refuse
    the Class B query, the Class B route accepts it, nothing is sent twice.
 5. **Activation.** The develop host's switches and the provider credential, an operator's act,
@@ -73,10 +76,14 @@ by **code**, never by a prompt or a model's own claim about a query.
    `aia-query-classifier-1` ("nothing lowers a class") is removed. A query's class is the most
    restrictive of: (1) a client term (the client's and study's names and slugs, every non-public
    ENTITY or TERM, matched across case, diacritics, transliteration and spacing) → at least B, as
-   today; (2) a run of five words shared with Class A text the run holds → A, as today, and an A query
-   never leaves; (3) **new:** a run of five words shared with Class B text the run holds (the design,
-   approved knowledge, the study's own messages) → B. A query that trips none is Class C and may go
-   to a Class C route. A paraphrase passes; a paste does not. The class is computed by code from the
+   today; (2) a run of five words shared with any text the run holds, which takes **that text's
+   effective class**: A for raw client knowledge (SOURCE, DOCUMENT, DATASET, ARTIFACT kinds, as
+   `knowledge_access.py` classes them) and for a design an operator raised to A, and an A query never
+   leaves, as today; B (**new**) for derived knowledge (FACT, FINDING, TERM, ENTITY, DIMENSION,
+   AUDIENCE), the design by rule and the study's own messages. The overlap buckets are built from each
+   frozen text's own class, never from a category's example, so a paste from raw client knowledge or
+   from an A-raised design is never downgraded to B. A query that trips none is Class C and may go to
+   a Class C route. A paraphrase passes; a paste does not. The class is computed by code from the
    query's text and the texts the run holds, never from anything the model declares.
    **Residual risk, accepted by the owner:** the Codex review of #497 was right that a model can
    paraphrase a confidential launch or pricing question with none of these tokens, and the paraphrase
@@ -85,7 +92,8 @@ by **code**, never by a prompt or a model's own claim about a query.
    switch to turn derived search off and a zero-retention plan are available and not built.
    **Tests:** a client-named query stays at least B and a Class C route refuses it; a verbatim run of
    five words from the design is B and refused by a Class C route; a verbatim run from a client
-   document is A and never leaves; a paraphrase with no checked token is Class C and reaches the Class
+   document, from raw client knowledge and from an operator-raised design is A and never leaves
+   (each case separately); a verbatim run from derived knowledge is B; a paraphrase with no checked token is Class C and reaches the Class
    C route; a model that declares its own query public changes nothing. The tests of
    `aia-query-classifier-1` that assert "a paraphrase keeps the class of what it was written from" are
    **replaced** by these, each citing this decision; the cases that are still true (the client-named
@@ -114,5 +122,6 @@ integration gate I-4 (`mvp-cohesion.md` §4). `deep-research-web-search` 1 (sign
 ## Reordered (2026-10-19)
 
 The owner decided to go with Brave, a Class C route, for live Deep Research. Chunk 6 is therefore
-**first**; chunks 0-5 (the Class B provider and its route) are **optional and later**: they add a route
-for queries the content test of chunk 6 refuses. See `mvp-development-plan.md` § Reach.
+**first**, with chunk 3 (the design by rule, which the plan step needs before any query is
+classified). Chunks 0-2, 4 and 5 (the Class B provider, its route, its journey and activation) are
+**optional and later**: they add a route for queries the content test of chunk 6 refuses. See `mvp-development-plan.md` § Reach.

@@ -44,9 +44,9 @@ doors have to open, then the switch has to be thrown, then the state has to be v
 |---|---|---|---|
 | Sign-off: Brave on a plan that allows AI use and storing results (plan, terms URL and date, price), budgets, the light model, quotas | `deep-research-web-search` 1 | W0 | owner signs, S2 prepares |
 | **Switch on:** the Class C routes, the connector list and Common Crawl on develop for fictional and public-topic runs, inside ADR 0022's guards | `deep-research-web-search` 51 **New** | W0 | S2 |
-| **Class door:** the derived-query rule, the owner's decision of 2026-10-19 (below), written as an ADR and put in the classifier as `aia-query-classifier-2` | `class-b-search-route` 6 (ADR in W0, code in W1) | W0, W1 | S2 |
+| **Class door:** the derived-query rule, the owner's decision of 2026-10-19 (below), written as an ADR and put in the classifier as `aia-query-classifier-2` | `class-b-search-route` 3 and 6 (ADR in W0, code in W1) | W0, W1 | S2 |
 | **Visibility:** Settings lists every route and connector as built, approved, active or refused by class, with the reason, read from the composition, never written by hand | `deep-research-web-search` 52 **New** | W1 | S2 |
-| **Contract door, optional and later:** a Class B route (Linkup is the candidate) composed and approved, for queries nobody approved one by one (the Lead's own lookups), then the design's class by rule, the journey test and activation | `class-b-search-route` 0-2 (W2), 3-5 (W3) | W2, W3 | S2 |
+| **Contract door, optional and later:** a Class B route (Linkup is the candidate) composed and approved, for queries nobody approved one by one (the Lead's own lookups), then the design's class by rule, the journey test and activation | `class-b-search-route` 0-2 (W2), 4-5 (W3) | W2, W3 | S2 |
 | Wider reach, in order of value: documents in parts, structured capture and records, then pages that need a browser | `deep-research-web-search` 6, 33-37, 38 | W2 to W4 | S2 |
 
 **Decided later the same day: go with Brave**, which is built and already the chosen Class C route.
@@ -60,7 +60,8 @@ a query is Class C unless it contains a client term (the client's and study's na
 non-public ENTITY or TERM, matched across case, diacritics, transliteration and spacing), or shares a
 run of five words with Class A *or B* text the run holds (the design, the client's documents and
 knowledge: a paraphrase passes, a paste does not). Every query sent is journaled and visible in the
-run. No approval step. This is `class-b-search-route` 6, now first. The optional contract door
+run. No approval step. This is `class-b-search-route` 6, now first, with 3 (the design classified by rule, without which
+an edited design never reaches the classifier). The optional contract door
 (Linkup) later only adds a route for queries the content test refuses.
 **Residual risk the owner accepts:** a paraphrase with every name removed still shows Brave (US-based,
 logs up to 90 days) which topics a client is researching. Brave's zero-retention Enterprise plan or a
@@ -103,7 +104,7 @@ plan (or to a new plan from #497) before the wave starts.
 |---|---|
 | S3 | Merge #493, #494, #495, #491, #496, #497 in that order; apply the docs follow-ups; add `prototypes/` to the docs-only path list (`ci-skip-docs-only`); `mvp-acceptance-harness` 1-3 (budget table, inputs, harness with its CI step); `infra/production` skeleton and `develop-spend-attribution` 1-2 (tagged profiles); migration **M3** (all ledger subject types, §4) |
 | S1 | The spend-limit fix in `ResearchAgentJobs.start` (a fix, F5); the worker row (`research-lead-workbench` 11, first deliverable); ADRs for the edit vocabulary and the orchestration scope written and proposed |
-| S2 | `audience-catalogue-cpu` 4; `complete-study-report` B6 (the operator flag); `evidence-integrity` 1 (findings cite all) and 5 (one authority); **reach**: `deep-research-web-search` 1 and 51, the derived-query class ADR (`class-b-search-route` 6) |
+| S2 | `audience-catalogue-cpu` 4; `complete-study-report` B6 (the operator flag); `evidence-integrity` 1 (findings cite all) and 5 (one authority); **reach**: `deep-research-web-search` 1 and 51, the derived-query class ADR (`class-b-search-route` 3 and 6) |
 
 **Exit I-0:** `alembic heads` single; the acceptance tree collects and runs AC-01, 06, 07, 12, 14.
 
@@ -112,7 +113,7 @@ plan (or to a new plan from #497) before the wave starts.
 | S | Work |
 |---|---|
 | S1 | **New** shared edit vocabulary, `workspace_edit_ops` (M1) and `apply_edit_ops`; presence (M2) and the change feed; per-change accept (M6); `research-lead-workbench` 11 (command registry), 14-16 (view vocabulary, frame, pointing with id and revision), 17 (Questionnaire artifact, AI buttons removed), 18-19 (Brief, Design, Sample, Fieldwork); the envelope and plan card (M4, M5) behind `AIA_LEAD_PLANS_ENABLED` |
-| S2 | Population-built respondents as the default path and its screens; `evidence-integrity` 2-3 (run QC stored and shown); **reach**: `deep-research-web-search` 52, the derived-query rule in code (`class-b-search-route` 6) |
+| S2 | Population-built respondents as the default path and its screens; `evidence-integrity` 2-3 (run QC stored and shown); **reach**: `deep-research-web-search` 52, the derived-query rule and the design by rule in code (`class-b-search-route` 3 and 6) |
 | S3 | `client-budget` CB5; `client-knowledge-lifecycle` K2e, K2f, K3; `clients.envelope_ceiling_usd` (in M4); **production applied**: RDS, Cognito, buckets, tagged Bedrock profiles, `deploy-production.yml` |
 
 **Exit I-1:** two sessions edit one study in the acceptance run, the second edit merges or conflicts
@@ -121,8 +122,8 @@ on one item only; a plan inside an envelope starts a run and a gate it does not 
 **Exit I-R:** on develop, a Deep Research run for a fictional client and a public topic reaches Brave,
 one connector, the focused crawler and the archive, each named in the run's record
 (`deep-research-web-search` 51); Settings → Deep Research lists every route and connector as active
-or refused by class, with the reason (52); a design-derived query without a client term or a shared
-five-word run is sent, and one with either is refused before it leaves (`class-b-search-route` 6).
+or refused by class, with the reason (52); an edited design with no operator record runs its web tracks (`class-b-search-route` 3); a design-derived query
+without a client term or a shared five-word run is sent, and one with either is refused before it leaves (6).
 W2 does not start until I-1 and I-R both hold.
 
 ### W2 · Results are seen (gate I-2)
@@ -140,7 +141,7 @@ draft ids, QC, bounded and classified), owned by S1, with a provider function fr
 
 | S | Work |
 |---|---|
-| S2 | `evidence-integrity` 4 (the straight-liner check, after the replace decision), the client-data evidence admission (`client-data-in-analysis` 4-5 once its policy is decided); **reach**: `class-b-search-route` 3-5 (optional, after its route exists) |
+| S2 | `evidence-integrity` 4 (the straight-liner check, after the replace decision), the client-data evidence admission (`client-data-in-analysis` 4-5 once its policy is decided); **reach**: `class-b-search-route` 4-5 (optional, after its route exists) |
 | S3 | `client-data-in-analysis` 0-3, 6-7 (M8); `research-integrity-report` 6-8; `two-roles-human-ai-gates` 5b.4 |
 | S1 | `research-lead-workbench` 21 (Analysis, Report), the three new workers (`interpret_map`, `polish_report`, `flag_straightliners`), `system-prompts-settings` 7 (every worker's prompt editable) |
 
