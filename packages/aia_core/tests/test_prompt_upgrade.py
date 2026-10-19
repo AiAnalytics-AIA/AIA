@@ -13,6 +13,7 @@ from aia_core.domain.deep_research.agents import AgentRole, agent_definition, pr
 from aia_core.domain.deep_research.synthesizer import BRIEF_TASK, BriefProposal
 from aia_core.domain.prompt_slots import get_slot, slots
 from aia_core.domain.research_agents import Advice, ResearchAction, baseline_task
+from aia_core.domain.research_lead import LEAD_PROMPT_ID
 
 
 @pytest.mark.parametrize("action", [ResearchAction.CRITIQUE, ResearchAction.MEMORY])
@@ -63,11 +64,15 @@ def test_catalogue_reports_the_actual_role_version(role: AgentRole) -> None:
 
 def test_every_live_editable_task_passes_the_same_store_validation() -> None:
     editable = [s for s in slots() if s.wired]
-    assert len(editable) == len(ResearchAction)
+    # The eight design actions and the Research Lead (ADR 0026), whose wording starts at 1.
+    assert len(editable) == len(ResearchAction) + 1
     # The questionnaire prompts name the research-question links and comparisons (plan 3e).
     moved = {"aia.research.build_questionnaire", "aia.research.optimize_questionnaire"}
     for slot in editable:
         assert slot.check(slot.baseline_text) == slot.baseline_text.strip()
+        if slot.prompt_id == LEAD_PROMPT_ID:
+            assert slot.baseline_version == "1"
+            continue
         assert slot.baseline_version == ("3" if slot.prompt_id in moved else "2")
 
 

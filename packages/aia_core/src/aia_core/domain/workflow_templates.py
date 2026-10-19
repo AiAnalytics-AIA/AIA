@@ -23,6 +23,9 @@ The templates:
   ``research-integrity-report`` chunk 3): the report with a chosen literature review is
   composed in the API, and only the worker holds the converter, so the same bytes reach both
   formats. No model call and no money.
+* ``research_lead`` -- one Research Lead turn (ADR 0026): a single ``research_lead_turn`` step
+  under the Study's design project, one model request and its one repair; never retried,
+  so a known answer is never paid for twice.
 * ``population_materialize`` -- one step that derives a client's materialized dimension over
   LIVE and registers the owned child version (population-operations P4d3); never promotes.
 """
@@ -45,6 +48,8 @@ __all__ = [
     "REPORT_STEP_KIND",
     "RESEARCH",
     "RESEARCH_KINDS",
+    "RESEARCH_LEAD",
+    "RESEARCH_LEAD_TURN",
     "SOCIOMAPPING_REPORT_STEP_KIND",
     "SOCIOMAPPING_STEP_KIND",
     "WORKFLOW_TYPES",
@@ -58,6 +63,9 @@ DEVELOP_SNAPSHOT: Final = "develop_snapshot"
 #: A research Study's run over one Design Revision (ADR 0016).
 RESEARCH: Final = "research"
 RESEARCH_AGENT: Final = "research_agent"
+#: A Research Lead turn (ADR 0026): one step, one model request and its one repair.
+RESEARCH_LEAD: Final = "research_lead"
+RESEARCH_LEAD_TURN: Final = "research_lead_turn"
 REPORT_STEP_KIND: Final = "research_report"
 #: The experimental Sociomapping and its internal draft report (plan sociomapping-engine I1, I2):
 #: in a run's graph only when the run was started with them.
@@ -82,6 +90,7 @@ WORKFLOW_TYPES: Final[frozenset[str]] = frozenset(
         DEVELOP_SNAPSHOT,
         RESEARCH,
         RESEARCH_AGENT,
+        RESEARCH_LEAD,
         POPULATION_MATERIALIZE,
         CLIENT_SOURCE_PROPOSALS,
         REPORT_PDF,
@@ -185,6 +194,19 @@ def steps_for_workflow(
                 kind=RESEARCH_AGENT,
                 stage_type="BRIEF",
                 artifact_target="research_agent_proposal",
+                max_attempts=1,
+            )
+        ]
+    if workflow_type == RESEARCH_LEAD:
+        if project_type is not ProjectType.RESEARCH:
+            raise UnknownWorkflowType(f"{RESEARCH_LEAD} needs a research project")
+        # One attempt, as a design job: a retry would ask, and pay for, the same turn again.
+        return [
+            StepDefinition(
+                node_key="turn",
+                kind=RESEARCH_LEAD_TURN,
+                stage_type="BRIEF",
+                artifact_target="research_lead_turn",
                 max_attempts=1,
             )
         ]

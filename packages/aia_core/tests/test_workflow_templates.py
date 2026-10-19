@@ -17,6 +17,8 @@ from aia_core.domain.workflow_templates import (
     REPORT_STEP_KIND,
     RESEARCH,
     RESEARCH_AGENT,
+    RESEARCH_LEAD,
+    RESEARCH_LEAD_TURN,
     WORKFLOW_TYPES,
     UnknownWorkflowType,
     steps_for_workflow,
@@ -30,6 +32,7 @@ def test_the_set_of_workflow_types_is_closed() -> None:
                 DEVELOP_SNAPSHOT,
                 RESEARCH,
                 RESEARCH_AGENT,
+                RESEARCH_LEAD,
                 POPULATION_MATERIALIZE,
                 CLIENT_SOURCE_PROPOSALS,
                 REPORT_PDF,
@@ -39,6 +42,15 @@ def test_the_set_of_workflow_types_is_closed() -> None:
     )
     with pytest.raises(UnknownWorkflowType):
         steps_for_workflow("anything_else", project_type=ProjectType.RESEARCH)
+
+
+def test_a_research_lead_turn_is_one_step_tried_once() -> None:
+    """ADR 0026: one model request and its one repair; a retry would pay for the turn again."""
+    (step,) = steps_for_workflow(RESEARCH_LEAD, project_type=ProjectType.RESEARCH)
+    assert (step.node_key, step.kind, step.max_attempts) == ("turn", RESEARCH_LEAD_TURN, 1)
+    assert step.depends_on == ()
+    with pytest.raises(UnknownWorkflowType):
+        steps_for_workflow(RESEARCH_LEAD, project_type=ProjectType.SIMULATION)
 
 
 @pytest.mark.parametrize("project_type", list(ProjectType))
