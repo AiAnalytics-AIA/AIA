@@ -346,7 +346,7 @@ def read_lead(scope: StudyScopeDep, session: SessionDep, settings: SettingsDep) 
 def _public(turns: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """A turn as the browser reads it: not the class it was sent as, nor the stored detail
     of what waits (the browser reads that from the turn's output)."""
-    hidden = {"data_class", "pending_self_update", "self_update_base"}
+    hidden = {"data_class", "pending_self_update", "self_update_base", "awaiting_budget"}
     return [{k: v for k, v in t.items() if k not in hidden} for t in turns]
 
 

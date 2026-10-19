@@ -206,6 +206,17 @@ def _lead_status(step: Mapping[str, Any], last: Mapping[str, Any] | None) -> tup
     return "CANCELLED", None
 
 
+def _holds(turn: Mapping[str, Any]) -> bool:
+    """Whether a Lead turn holds the conversation: queued, running, or parked on the study's
+    budget. A turn waiting for budget is paid for when the budget is lifted, so a message sent
+    meanwhile would queue a second paid turn behind it. A turn parked for any other reason
+    (the Lead not configured, the route refusing) does not hold it: nothing would ever free it.
+    """
+    return turn["actor"] == "lead" and (
+        turn["status"] in ("QUEUED", "RUNNING") or turn["awaiting_budget"]
+    )
+
+
 def _view(
     turn: LeadTurn,
     *,
@@ -241,6 +252,8 @@ def _view(
         "self_update_waiting": None,
         # The files the turn saw; read by decide_self_update, never sent to the browser.
         "self_update_base": None,
+        # Parked on the study's budget (see _holds); never sent to the browser.
+        "awaiting_budget": False,
         # What waits for the researcher's yes, as the step stored it; read by
         # decide_self_update, never sent to the browser.
         "pending_self_update": None,
@@ -259,7 +272,11 @@ def _view(
         return {**base, "status": "QUEUED"}
     step = run["steps"][0]
     status, reason = _lead_status(step, last)
-    base.update(status=status, reason=reason)
+    base.update(
+        status=status,
+        reason=reason,
+        awaiting_budget=step["status"] is StepRunStatus.AWAITING_BUDGET,
+    )
     out = step.get("output") or {}
     if status == "COMPLETED" and isinstance(out.get("lead_output"), dict):
         base.update(
@@ -335,7 +352,7 @@ class ResearchLead:
         """This researcher's conversation in the Study, oldest first, and whether a Lead turn
         is queued or running (``busy``)."""
         turns = self._annotated(self._turns().turns(limit=limit))
-        busy = any(t["actor"] == "lead" and t["status"] in ("QUEUED", "RUNNING") for t in turns)
+        busy = any(_holds(t) for t in turns)
         return {"busy": busy, "turns": turns}
 
     def _completed(self, turn_id: str) -> tuple[LeadTurn, LeadOutput]:
@@ -387,7 +404,7 @@ class ResearchLead:
             return []
         if latest is not None:
             current = self._annotated([latest])[0]
-            if current["status"] in ("QUEUED", "RUNNING"):
+            if _holds(current):
                 raise LeadBusy("the Lead is still answering your last message")
 
         history = self._annotated(turns.turns(limit=50))

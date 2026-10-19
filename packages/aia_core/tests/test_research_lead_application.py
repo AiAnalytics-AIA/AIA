@@ -219,6 +219,32 @@ def test_a_parked_turn_says_why_and_does_not_hold_the_conversation(
     assert len(_message(_lead(scope, session), "Jsi tam?")) == 2
 
 
+def test_a_turn_parked_on_the_budget_holds_the_conversation(scoped: Any, session: Any) -> None:
+    """The review of baac33d5 (a hypothesis): messages sent while a turn waits for budget
+    queued turns that would all pay once the budget was lifted. Such a turn holds the
+    conversation as a running one does; lifting the budget frees it."""
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    _message(_lead(scope, session))
+    workflows = WorkflowRepository(session, scope)
+    work = workflows.claim_next(worker_id="w", kinds={RESEARCH_LEAD_TURN})
+    assert work is not None
+    workflows.fail_attempt(work.attempt_id, worker_id="w", failure=FailureClass.BUDGET_EXCEEDED)
+    state = _lead(scope, session).state()
+    assert state["busy"] is True and state["turns"][-1]["status"] == "WAITING"
+    with pytest.raises(LeadBusy):
+        _message(_lead(scope, session), "Jsi tam?")
+    # A greeting is still a no-op, never a 409.
+    assert _lead(scope, session).post(kind="greeting", stage="brief") == []
+
+    budget = float(scoped.scope_repo.get_study(scope).budget_usd)
+    workflows.resume_budget_wait(work.step_id, budget_before=budget, budget_after=budget)
+    assert _lead(scope, session).state()["busy"] is True  # queued again: still answering
+    _complete(session, scope, {"reply": "Hotovo."})
+    assert _lead(scope, session).state()["busy"] is False
+    assert len(_message(_lead(scope, session), "Další")) == 2
+
+
 def test_the_state_reads_the_reply_from_the_step_output(scoped: Any, session: Any) -> None:
     output = {"reply": "Studie je ve fázi zadání.", "follow": ["Co dál?"]}
     scope, turn_id = _ready(scoped, session, output, user="lead")
