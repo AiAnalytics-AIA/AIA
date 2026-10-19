@@ -317,7 +317,9 @@ fit, like any step.
 `StudyLeadRepository` under a `StudyContext`, enforced by `make layer_check`. Its columns:
 
 - `turn_id`, `organization_id`, `client_id` and `study_id`.
-- `sequence_no`, unique per Study.
+- `user_id`: the researcher whose session it is. Every read and write of the conversation, and of
+  its runs' results, filters by it (*Accepted with* 6).
+- `sequence_no`, unique per Study and researcher.
 - `actor`: a person or the Lead.
 - `stage`.
 - `workspace_revision` and `design_revision_id`: what the turn saw.
