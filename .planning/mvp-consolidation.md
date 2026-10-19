@@ -123,9 +123,12 @@ Seven plans each end in a "deploy and verify live" chunk over the same path. The
 
 ### 4.5 Tooling
 
-`architecture-enforcement` 6, 7, 9, 10 · `ci-skip-docs-only` 1-3 (this very consolidation and the V3
-text ran the full suites: `prototypes/` is not in the docs path list) · `system-prompts-settings` 7 ·
-`ui-workbench` 3.
+`architecture-enforcement` 6, 7, 9, 10 · `system-prompts-settings` 7 · `ui-workbench` 3.
+
+`ci-skip-docs-only` belongs in §4.1: its chunk 1 is built. The `changes` job sends a change to
+`.planning/*`, `docs/architecture/adr/*`, `CLAUDE.md`, `AGENTS.md` or `ARCHITECTURE.md` to
+*Documentation checks* only (`.github/workflows/ci.yml:64 @ 0b4e05e`); this file's own PR ran that
+route. `prototypes/` is not on the list, so a change there (#491) runs every suite.
 
 ## 5. Order
 
