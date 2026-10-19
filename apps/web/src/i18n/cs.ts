@@ -1569,7 +1569,7 @@ export const cs = {
             study_lead: {
               title: "Vedoucí výzkumu",
               text: "Odpovídá výzkumníkovi v konverzaci u studie a připravuje návrhy úprav a úloh. Nic nezmění ani nespustí, dokud to člověk nepřijme. Může běžet na vlastním modelu, odděleně od ostatních činností.",
-              off: "Zprávy Vedoucímu počkají s důvodem; studii lze dál upravovat ručně.",
+              off: "Vedoucí výzkumu neodpovídá a modelu se nic neodešle; studii lze dál upravovat ručně a dosavadní konverzace zůstane k přečtení.",
             },
           },
           actions: "Akce",
@@ -1622,6 +1622,7 @@ export const cs = {
           FAST_EXTRACTION: "levná strukturovaná extrakce",
           RESEARCH_REASONING: "syntéza s dlouhým kontextem, návrh studie",
           RESEARCH_LEAD: "vedoucí výzkumu: plán, úsilí a úkoly (Deep Research)",
+          STUDY_LEAD: "vedoucí výzkumu studie: konverzace a návrhy změn",
           REPORT_WRITING: "dlouhý text v češtině",
           CRITIC: "adversariální revize",
           SIMULATION: "simulace respondentů a světa",
