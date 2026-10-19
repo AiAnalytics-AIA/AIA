@@ -38,7 +38,7 @@ import { type StudyFrame, useStudyFrame } from "./frame";
 import { DesignSourceNote } from "./DesignSourceNote";
 import { STEP_SCREENS } from "./steps";
 import { ResearchAssistance, isAdviceAction } from "./ResearchAssistance";
-import { Workbench, useWideEnough } from "../../workbench/Workbench";
+import { Workbench, useStageWide } from "../../workbench/Workbench";
 import { loadConfig } from "@/lib/auth";
 
 // Contextual help keeps the same stage/action contract and native job boundaries.
@@ -293,7 +293,7 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
   const Screen = STEP_SCREENS[step];
   const aiHelp = aiHelpFor(step);
   const workbench = useWorkbenchSwitch();
-  const wide = useWideEnough();
+  const wide = useStageWide(step);
   const onTrack = TRACK_STEPS.includes(step) && step !== "run" && step !== "progress" && step !== "results";
   // Stable across the editors' renders, so typing does not keep restarting the workbench's job poll.
   const refreshAgents = agents.refresh;

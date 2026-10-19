@@ -148,7 +148,17 @@ try {
     await noOverflow(`questionnaire @${width}`);
     await shot(`${width}-questionnaire`);
   }
+  // A resize across the breakpoint keeps the open stage in its layout (its editors' local drafts
+  // survive); the next stage opens in the layout the width allows.
   await page.setViewportSize({ width: 1024, height: 900 });
+  await page.waitForTimeout(300);
+  assert.equal(await page.locator("[data-workbench]").count(), 1, "the open stage keeps its layout across a resize");
+  await noOverflow("questionnaire @1024 kept");
+  await page.locator(".nav__stage", { hasText: "Cíl. skupina" }).click();
+  await page.waitForURL(`**${stagePath("audience")}`);
+  await page.locator("h1", { hasText: "Cílová skupina" }).waitFor();
+  assert.equal(await page.locator("[data-workbench]").count(), 0, "the next stage opens classic under 1100 px");
+  check("a resize keeps the open stage's layout; the next stage takes the width's");
   await page.goto(base + stagePath("questionnaire"));
   await page.locator("header h1").waitFor();
   assert.equal(await page.locator("[data-workbench]").count(), 0, "classic layout under 1100 px");

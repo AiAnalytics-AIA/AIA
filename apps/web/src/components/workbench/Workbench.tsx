@@ -55,6 +55,7 @@ function useHash(): string {
 
 /** Wide enough for the workbench: under 1100 px the classic layout serves (the prototype's rule). */
 const WIDE = "(min-width: 1100px)";
+const noSubscription = () => () => {};
 const canMatch = () => typeof window !== "undefined" && typeof window.matchMedia === "function";
 export function useWideEnough(): boolean {
   return useSyncExternalStore(
@@ -68,6 +69,19 @@ export function useWideEnough(): boolean {
     () => (canMatch() ? window.matchMedia(WIDE).matches : false),
     () => true,
   );
+}
+
+/** Whether this stage is shown in the workbench: the width when the stage opened, kept until another
+ * stage opens. A resize across the breakpoint would otherwise remount the stage's screen in the other
+ * layout and drop what its editors hold locally (Návrh's narrative, a measurement being edited)
+ * without their leave guard; the next stage opens in the layout the width then allows. */
+export function useStageWide(stage: string): boolean {
+  const live = useWideEnough();
+  // Hydration renders the server's guess first; only the browser's own answer is kept.
+  const inBrowser = useSyncExternalStore(noSubscription, () => true, () => false);
+  const [kept, setKept] = useState<{ stage: string; wide: boolean } | null>(null);
+  if (inBrowser && (kept === null || kept.stage !== stage)) setKept({ stage, wide: live });
+  return kept && kept.stage === stage ? kept.wide : live;
 }
 
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || "?";
