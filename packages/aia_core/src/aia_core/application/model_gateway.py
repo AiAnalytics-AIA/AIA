@@ -20,9 +20,10 @@ with cost or provenance consequences is made here, in this order, and recorded:
 4. **Journal the dispatch** -- durably -- before anything is sent.
 5. **Send** through the adapter bound to that route, and classify what comes back.
 6. **Validate** structured output deterministically, allowing the agent's one
-   same-model repair, recorded as its own call. A call with extended thinking on
-   cannot have its output tool forced, so it is told to answer through it, and
-   an answer in text instead is a violation like any other.
+   same-model repair, recorded as its own call. A call with extended thinking on,
+   or to a model whose request profile offers the output tool rather than forcing
+   it, is told to answer through it, and an answer in text instead is a violation
+   like any other.
 7. **Ledger** every call's terminal outcome, including failures and the
    uncertain case, with the provider request id wherever one exists.
 8. **Fall back** only when the request carries an explicitly authorised
@@ -70,7 +71,12 @@ from aia_core.domain.ai_contracts import (
     validate_structured_output,
 )
 from aia_core.domain.ai_execution import ExecutionContext
-from aia_core.domain.ai_models import ModelRegistry, ModelResolution, ResolutionError
+from aia_core.domain.ai_models import (
+    ModelRegistry,
+    ModelResolution,
+    ResolutionError,
+    StructuredOutput,
+)
 from aia_core.domain.licence import LicenceDenied, LicencePolicy
 from aia_core.domain.prompts import prompt_sha256
 from aia_core.domain.providers import check_budget
@@ -89,11 +95,14 @@ __all__ = [
 #: Identity of the runtime's own schema-repair instruction. It is a prompt, so
 #: it is versioned and recorded on every repair call like any other.
 REPAIR_PROMPT_VERSION: Final = "schema-repair-v1"
-#: The repair instruction of a thinking call, which must answer through the tool.
+#: The repair instruction of a call that must answer through the tool (a thinking
+#: call, or a call to an ``auto_tool`` model).
 REPAIR_TOOL_PROMPT_VERSION: Final = "schema-repair-tool-v1"
 #: Identity of the instruction a thinking call's system prompt ends with. With
 #: thinking on, the output tool cannot be forced (only ``auto`` is allowed), so
 #: the call is told to answer through it, and an answer in text is off-contract.
+#: A model whose request profile is ``auto_tool`` refuses a forced tool at all, and
+#: is told the same.
 TOOL_ANSWER_PROMPT_VERSION: Final = "tool-answer-v1"
 
 #: An answer that arrived as text when it had to come through the output tool.
@@ -437,9 +446,14 @@ class GovernedModelGateway:
         repairs_left = agent.schema_repair_attempts
         schema_name = _schema_name(agent.agent_id) if schema is not None else ""
         thinking = request.thinking_budget_tokens is not None
-        # A thinking call cannot be forced to use the tool, so it is told to; the
-        # instruction is part of what is sent, fingerprinted and bounded with it.
-        tool_answer = thinking and schema is not None
+        profile = descriptor.request_profile
+        # A thinking call cannot be forced to use the tool, and a model whose profile
+        # offers the tool rather than forcing it (``auto_tool``) never is: either way
+        # it is told to answer through it. The instruction is part of what is sent,
+        # fingerprinted and bounded with it.
+        tool_answer = schema is not None and (
+            thinking or profile.structured_output is StructuredOutput.AUTO_TOOL
+        )
         system = (
             f"{request.system}\n\n{_tool_answer_instruction(schema_name)}"
             if tool_answer
@@ -461,6 +475,7 @@ class GovernedModelGateway:
                 strict_schema=strict,
                 temperature=request.temperature,
                 thinking_budget_tokens=request.thinking_budget_tokens,
+                request_profile=profile,
             )
             in_fp = input_fingerprint(outbound)
             ceiling = 0.0
@@ -676,8 +691,9 @@ class GovernedModelGateway:
                 else canonical_json(response.structured)
             )
             if tool_answer and not answer.strip():
-                # A thinking call can end with its reasoning alone; the provider
-                # refuses an empty turn, so the repair says there was none.
+                # A thinking call (budgeted, or an adaptive model's) can end with its
+                # reasoning alone; the provider refuses an empty turn, so the repair
+                # says there was none.
                 answer = "(no answer)"
             messages = (
                 *messages,

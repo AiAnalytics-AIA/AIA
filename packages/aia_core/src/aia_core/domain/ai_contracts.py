@@ -39,7 +39,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ValidationError
 
-from .ai_models import ModelBinding, ModelCapability
+from .ai_models import DEFAULT_REQUEST_PROFILE, ModelBinding, ModelCapability, RequestProfile
 from .licence import DataLineage
 from .providers import Provider
 from .residency import DataClass
@@ -225,6 +225,10 @@ def input_fingerprint(request: AdapterRequest) -> str:
     if request.thinking_budget_tokens is not None:
         # The same rule: a call without thinking keeps the fingerprint it had.
         content["thinking_budget_tokens"] = request.thinking_budget_tokens
+    # ``request_profile`` is not content: it is the resolved model's, declared in its
+    # catalog entry, and travels with the model the ledger already records. What it
+    # changes in the content -- the instruction to answer through the tool -- is in
+    # ``system`` above.
     return content_fingerprint(content)
 
 
@@ -623,6 +627,11 @@ class AdapterRequest:
     #: Extended thinking's budget, within ``max_output_tokens``; ``None`` sends none.
     #: An adapter that cannot send it refuses the request unsent.
     thinking_budget_tokens: int | None = None
+    #: The resolved model's request profile, from its catalog entry: how the adapter
+    #: asks for structured output, what it may say about thinking and sampling. The
+    #: default is the shape every model was sent before profiles existed. An adapter
+    #: that cannot send a profile refuses the request unsent.
+    request_profile: RequestProfile = DEFAULT_REQUEST_PROFILE
 
 
 class FinishReason(StrEnum):

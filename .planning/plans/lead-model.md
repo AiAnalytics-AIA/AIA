@@ -1,7 +1,7 @@
 ---
 status: in-progress
 chunks:
-  - "[ ] 1. A model's request profile, declared in its catalog entry and read by the Bedrock adapter"
+  - "[x] 1. A model's request profile, declared in its catalog entry and read by the Bedrock adapter"
   - "[ ] 2. The Lead's own capability (STUDY_LEAD) and its own pinned model, from configuration"
   - "[ ] 3. Compose and env.example pass the Lead model's keys to the worker"
   - "[ ] 4. The instance role may invoke the Lead model's profile when one is set"
