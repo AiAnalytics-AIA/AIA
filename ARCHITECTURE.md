@@ -61,7 +61,9 @@ document's `ai_runtime` describes the native runtime from code: the providers th
 worker calls (`aia_core.domain.providers.NATIVE_PROVIDERS`), its role credential,
 and each native AI activity with its capabilities, versions and switches
 (`apps/executors/tests/test_settings_presentation.py` holds it to the worker's
-composition). The prototype's providers are marked `HISTORICAL` and its project
+composition); the study Research Lead is one of them, `study_lead` (capability `STUDY_LEAD`,
+switches `AIA_AI_RUNTIME_ENABLED` and `AIA_AI_RESEARCH_LEAD_ENABLED`;
+`apps/api/src/aia_api/routers/settings.py:521-529 @ 1648e6d5`). The prototype's providers are marked `HISTORICAL` and its project
 fields sit in `ai_history`: readable, never offered. The web `/config` endpoint
 may expose nonsecret runtime configuration for Settings (each switch by variable
 name, Bedrock model/profile, source region and approved data classes). Neither is
@@ -312,7 +314,14 @@ can grant approval or supply deployment prices.
   turn's own researcher's yes, what would reach every client (`'lead_self_update'`). The ledger's
   `subject_type` check admits the three (`infrastructure/tables.py:1697-1701 @ c7327072`,
   migration `7b3c32892aa9`). The generic run, events and artifact routes never serve a
-  `research_lead` run (`test_the_generic_run_routes_never_serve_a_lead_turn`).
+  `research_lead` run (`test_the_generic_run_routes_never_serve_a_lead_turn`). An accept may be
+  automatic only by the researcher's own standing choice (`researcher_leads.auto_accept_text_edits`,
+  off by default, `PUT /lead/preferences`): the same `…/edits` route with `auto: true`, refused
+  `auto_accept_off` without the choice, taking text edits only (`domain/research_lead.py:314-327
+  @ 0b4e05e5`, `is_text_edit`; anything else `not_a_text_edit`), refused whole as `stale_turn`
+  when the turn's frozen working revision is not the current one, and each ledger row says
+  `"auto": true` (`application/research_lead.py:541-566 @ 0b4e05e5`;
+  `test_research_lead_api.py::test_an_automatic_accept_takes_text_edits_only_and_says_so_in_the_ledger`).
 - **A Deep Research finding is a quote in a captured source, or it is nothing**
   ([ADR 0017](docs/architecture/adr/0017-deep-research-external-retrieval.md),
   [deep-research.md](docs/architecture/deep-research.md)). `domain/deep_research/` is pure: code
@@ -321,7 +330,15 @@ can grant approval or supply deployment prices.
   when its quote occurs in a content-addressed snapshot the same track retrieved and every number
   of its claim is in that quote; source quality comes from declared tables, never the agent's
   score. A query's data class is the most restrictive of its context, its client terms and any
-  Class A overlap, and nothing lowers it. The 18.6.6 leakage rule (EXACT) bars a finding from
+  Class A overlap, and nothing lowers it; a design's class there is an operator's exact-bytes
+  classification, not the design rule, so a run on an edited design parks until an operator
+  classifies it (`apps/executors/src/aia_executors/deep_research/plan.py:163 @ 64cc1380`; the
+  product owner, 2026-10-19, OI-129). A captured source reaches Client Knowledge only when a
+  person checked it and clicked "Ověřeno, přidat zdroj": `POST …/deep-research/runs/{id}/sources/
+  {source_ref}/knowledge` reads the URL, title and quote from the run's verified sealed bundle,
+  never from the browser, and writes a `SOURCE` item once per client and address, or a proposal
+  where self-approval is off (`application/verified_sources.py:47 @ 0b4e05e5`,
+  `apps/api/tests/test_verified_sources_api.py`). The 18.6.6 leakage rule (EXACT) bars a finding from
   respondent context; respondent context is re-screened against the final questionnaire. Tool
   calls follow the model-call bracket (reserve, durable dispatch, outcome, uncertain at its
   ceiling), and a priced tool route is refused until tool spend is held against the study budget.
@@ -362,10 +379,13 @@ can grant approval or supply deployment prices.
   outcomes are ledgered by `StepContext.record_usage`, unfenced, so a lost lease
   still records the provider's answer; an uncertain outcome is left for
   `RECOVERY_REQUIRED`. The heartbeat thread holds the lease through a blocking call.
-- **A respondent request is Class C only when nothing in it is client material**:
-  fictional personas *and* a client the operator declared fictional
-  (`AIA_AI_FICTIONAL_CLIENT_IDS`, refused in production). Any other questionnaire
-  is a client's design, Class A, and ADR 0010's route refuses it.
+- **A respondent request takes its design's class**: Class B by the owner's rule
+  (`domain/material_rules.py`, ADR 0008 Amendment 2026-10-19), raised and never lowered by an
+  operator's exact-bytes classification or the personas' class
+  (`apps/executors/src/aia_executors/ai_fieldwork.py:418-432 @ 64cc1380`). A client the operator
+  declared fictional (`AIA_AI_FICTIONAL_CLIENT_IDS`) no longer makes it Class C: a route approved
+  for Class C alone refuses it before anything is sent
+  (`test_an_unclassified_questionnaire_is_class_b_by_rule_and_a_class_c_route_refuses_it`).
 - **Two gates before any model call carries panel-derived data.** Residency
   (where the data may go) and licence eligibility (whether its source's licence
   permits that route) are separate refusals; `ModelRequest.data_lineage` has no
