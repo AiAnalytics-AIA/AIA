@@ -576,19 +576,31 @@ dimension into the shared LIVE population.
 | MVP-8 | **Every AI action goes through the Research Lead.** The manual AI buttons are removed, artifact by artifact as each V3 artifact lands; the Lead calls smaller workers, each with its own system prompt, and every paid one is approved by a person through the Lead's approve path (which already holds the spend limit; this closes research-lead-workbench F1) |
 | MVP-9 | Live Deep Research with Brave is release-blocking; the owner / data owner chase Brave's written answer on storing results (DR-2) |
 | MVP-10 | Client deliverables carry labelled modelled numbers and approved maps; analysis prose stays internal until `panel-grounded-respondents` 7f-7h |
+| MVP-11 | **Target: end of Q1 2027.** Order by dependency; a track at risk of the date is named in its row |
+| MVP-12 | The Lead's workers in the MVP: the eight existing (`analyze_brief`, `build_questionnaire`, `optimize_questionnaire`, `propose_audience`, `suggest_dimensions`, `critique_design`, `design_copilot`, `answer_memory`) and three new ones: a **map interpreter** (reads a frozen map, writes an unapproved interpretation), a **report writer** (wording and order of a draft; numbers stay references re-admitted), a **straight-liner check** (flags respondents with identical battery answers, proposes keep or replace) |
+| MVP-13 | A paid worker job is approved **one card at a time** in the chat (no standing budget in the MVP) |
+| MVP-14 | Structural edits (adding or removing questions, a battery) are proposals by default; the researcher may let the Lead apply them **without a click in stages they choose**, each change still a new working revision |
+| MVP-15 | The Lead sees **everything stored** about a study's results (aggregates, maps, module texts, report drafts), classified before any model reads it and fetched within its context bound |
+| MVP-16 | Map kinds in the MVP: **object, respondent and segment**; hybrid after. The Sociomap artifact has **filters and drill-down** to one respondent's profile and answers |
+| MVP-17 | Segments are **both** defined by the study's dimensions (default) and found by clustering respondents (an option; the algorithm is the method owner's) |
+| MVP-18 | Intake families in the MVP: documents, **datasets**, **web pages** and Deep Research findings |
+| MVP-19 | **A client's dataset may feed a study's analysis** (a new evidence origin, measured client data beside modelled respondents; needs an ADR before code). **Personal columns are dropped**: never stored for analysis, never sent to a model |
+| MVP-20 | The release acceptance study stays `MVP-ACCEPT-1`'s neutral library study, extended to the new scope, within **USD 25** on develop |
+| MVP-21 | **Parity with 18.6.6 is no longer a release gate** (AC-14 goes with the rewrite, MVP-5); parity suites stay as information for the capabilities they cover |
+| MVP-22 | Review: every PR gets a **Claude review pass** (the code-review skill) before the owner merges; Codex reviews when it has credit |
 
 **Working model (owner, 2026-10-19).** This section is the roadmap. Each track has one owner,
 named here when its work starts; no two agents edit the same plan. An agent marks its own PR ready
-and handles review; **the owner merges**. The method owner works in AIA sessions under CLAUDE.md.
+and handles review (MVP-22); **the owner merges**. The method owner works in AIA sessions under CLAUDE.md.
 
 **Tracks, in order within each.**
 
 | Track | Plans and chunks | Owner | Blocked by |
 |---|---|---|---|
-| **A. Release acceptance** (run once) | `mvp-acceptance.md` rewrite (MVP-5); then one recorded and one deployed run that ticks `ai-research-activation` 4, `connected-research-assurance` 5, `contextual-research-settings-ux` 5, `research-agent-workflows` 8, `research-integrity-report` 5, `mvp-workflow-assurance` A4/A5 | open | B-F |
-| **B. Workbench and Lead** | `research-lead-workbench` 12 → 11 (command registry) → 14-16 → 17-22, each removing its stage's AI buttons and adding the Lead's worker call (MVP-8) → 23 | open | C for the Results and Sociomap artifacts; D for the Brief's materials |
-| **C. Population → respondents → maps** | `audience-catalogue-cpu` 4 → `complete-study-report` B6 (operator flag) → `sociomap-formula-corrections` I0-I5, 0b, 3 (respondent map), 4d | open; method owner for 0b | the method owner's 0b answers |
-| **D. Data and evidence** | `client-budget` CB5 → `client-knowledge-lifecycle` K2e, K2f, K3, K4, K5 (to an owned child), K6, K7 → `client-workspace` C6-C9 | open | — |
+| **A. Release acceptance** (run once) | `mvp-acceptance.md` rewrite (MVP-5, MVP-20, MVP-21: the library study, USD 25, no parity gate); then one recorded and one deployed run that ticks `ai-research-activation` 4, `connected-research-assurance` 5, `contextual-research-settings-ux` 5, `research-agent-workflows` 8, `research-integrity-report` 5, `mvp-workflow-assurance` A4/A5 | open | B-F |
+| **B. Workbench and Lead** | `research-lead-workbench` 12 → 11 (command registry, the eleven workers of MVP-12) → 14-16 → the Lead's results context (MVP-15) → 17-22, each removing its stage's AI buttons and adding the Lead's worker call (MVP-8) → 23; three new worker contracts (MVP-12) | open | C for the Results and Sociomap artifacts; D for the Brief's materials |
+| **C. Population → respondents → maps** | `audience-catalogue-cpu` 4 → `complete-study-report` B6 (operator flag) → `sociomap-formula-corrections` I0-I5, 0b, 3 (respondent map), 4d → **segment map** and clustering (MVP-16/17: no plan yet; method owner's algorithm) → filters and drill-down in the Sociomap artifact (with B 20) | open; method owner for 0b and clustering | the method owner's answers |
+| **D. Data and evidence** | `client-budget` CB5 → `client-knowledge-lifecycle` K2e, K2f, K3, K4, K5 (to an owned child), K6, K7 → `client-workspace` C6-C9 → **client datasets in analysis** (MVP-19: ADR first, then a plan; personal columns dropped) | open | the MVP-19 ADR |
 | **E. Delivery and gates** | `research-integrity-report` 6-8 → `two-roles-human-ai-gates` 5b.1-5b.3; 5b.4 as approved exports (MVP-2) | open | — |
 | **F. Deep Research live** | `deep-research-web-search` 1 (sign-off) → 27 (develop activation); `deep-research` 4 (tool rows in the usage ledger) | open | Brave's answer (MVP-9) |
 
