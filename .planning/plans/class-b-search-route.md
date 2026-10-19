@@ -7,6 +7,7 @@ chunks:
   - "[ ] 3. A design's class for Deep Research decided by rule once a Class B route exists (no operator step), Class C routes refusing it"
   - "[ ] 4. A recorded double and a journey test: a Class B query reaches only the Class B route"
   - "[ ] 5. Operator activation on develop (with deep-research-web-search 27)"
+  - "[ ] 6. The class of a derived query: an ADR 0017 and 0008 amendment, the data owner's confirmation, then a rule enforced by code"
 ---
 # A Class B search route for live Deep Research
 
@@ -21,15 +22,17 @@ design, so they go only to a search provider **approved for Class B under an EU 
 agreement**, contracted before release. Brave and Wikipedia stay Class C. Candidate: Linkup.
 (MVP-9, Brave as the release route, is superseded.)
 
-## The owner's answer on breadth, and what it leaves open
+## The owner's answer on breadth, and what it requires
 
 On 2026-10-19 the owner answered `mvp-cohesion.md` F1: Deep Research "should take that whole design
 and use it to find as much relevant data as possible"; an operator step after each design edit is
-not wanted. **This plan builds only (a): one or more routes approved for Class B, so every query
-carries the design's class.** Whether *derived* queries may also reach Class C routes (Wikipedia,
-Brave, Common Crawl) is a separate decision: it needs a rule that lowers a derived query's class,
-which ADR 0017 forbids ("never lowered by keywords") and OI-129 declined on the same day. It is
-the owner's and the data owner's; until answered, Class C routes receive Class C queries only.
+not wanted; and **queries derived from the design may reach Class C routes** (Wikipedia, Brave,
+Common Crawl). Chunks 1-5 build the Class B route and classify the design itself by rule.
+**Chunk 6 is the part that reverses an existing rule**: ADR 0017 says a query's class is never
+lowered by keywords, and OI-129 declined a class of its own for a derived query on the same day. So
+chunk 6 starts with paper, not code (an amendment to ADR 0017 and ADR 0008, and the data owner's
+confirmation, because the licence and residency gates are theirs), and its mechanism is enforced
+by **code**, never by a prompt or a model's own claim about a query.
 
 ## What exists
 
@@ -65,15 +68,24 @@ the owner's and the data owner's; until answered, Class C routes receive Class C
 5. **Activation.** The develop host's switches and the provider credential, an operator's act,
    verified by the live Deep Research run of the acceptance study (`mvp-acceptance-harness`).
 
+6. **Derived-query class.** Hypothesis for the rule's shape, consistent with the rule that exists
+   (a query's class is the most restrictive of its context, its client terms and any Class A
+   overlap): a derived query is Class C only when code finds no overlap with the client's terms,
+   the brief's named entities or verbatim design text; otherwise it stays Class B and only a Class B
+   route may receive it. Tests: a query containing a client term stays Class B and a Class C route
+   refuses it; a generic topic query is Class C and reaches Wikipedia; a model cannot lower a
+   query's class below the code's. Nothing here ships until the amendment is accepted.
+
 ## Depends on / feeds
 
-Needs the provider contract (chunk 0, blocks 1-5 live) and chunk 3's confirmation. Feeds AC-11 and
+Needs the provider contract (chunk 0, blocks 1-5 live), chunk 3's confirmation and, for chunk 6, the amendment. Feeds AC-11 and
 integration gate I-4 (`mvp-cohesion.md` §4). `deep-research-web-search` 1 (sign-off) and 27
 (activation) are the same work from the other side: tick them from this plan's chunks 2 and 5.
 
 ## Open
 
-- Derived queries on Class C routes (above).
+- The exact overlap test in chunk 6 (client terms, named entities, verbatim text) and who confirms
+  it: the data owner.
 - Whether more than one Class B route is wanted ("as much data as possible").
 
 ## Doc follow-up
