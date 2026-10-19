@@ -1566,6 +1566,11 @@ export const cs = {
               text: "Plánuje výzkum řízený agenty: témata podle úsilí, úkoly ve vlnách a nové plánování po každé vlně. Má vlastní položku v politice modelů.",
               off: "Výzkum řízený agenty plánují stopy plánovače, jako dřív.",
             },
+            study_lead: {
+              title: "Vedoucí výzkumu",
+              text: "Odpovídá výzkumníkovi v konverzaci u studie a připravuje návrhy úprav a úloh. Nic nezmění ani nespustí, dokud to člověk nepřijme. Může běžet na vlastním modelu, odděleně od ostatních činností.",
+              off: "Zprávy Vedoucímu počkají s důvodem; studii lze dál upravovat ručně.",
+            },
           },
           actions: "Akce",
           action: {

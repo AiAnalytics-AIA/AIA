@@ -42,6 +42,7 @@ from aia_core.domain.providers import (
     ui_label,
 )
 from aia_core.domain.research_agents import HARNESS_VERSION, ResearchAction
+from aia_core.domain.research_lead import LEAD_HARNESS_VERSION
 from aia_core.domain.residency import DataClass
 from aia_core.domain.scope import (
     DEFAULT_SELF_APPROVAL_ALLOWED,
@@ -58,7 +59,7 @@ from aia_core.domain.workflow import (
     DEFAULT_MAX_ATTEMPTS,
     DEFAULT_QUOTA_FALLBACK_SECONDS,
 )
-from aia_core.domain.workflow_templates import RESEARCH_AGENT, RESEARCH_KINDS
+from aia_core.domain.workflow_templates import RESEARCH_AGENT, RESEARCH_KINDS, RESEARCH_LEAD_TURN
 from fastapi import APIRouter
 
 from ..config import Settings
@@ -101,6 +102,7 @@ _PROJECT_PATCH = "PATCH /api/v1/studies/{study_id}/projects/{project_id}"
 _RUNTIME_SWITCH = "AIA_AI_RUNTIME_ENABLED"
 _DESIGN_SWITCH = "AIA_AI_RESEARCH_AGENTS_ENABLED"
 _ANALYSIS_SWITCH = "AIA_AI_ANALYSIS_ENABLED"
+_STUDY_LEAD_SWITCH = "AIA_AI_RESEARCH_LEAD_ENABLED"
 # Deep Research's (apps/executors/src/aia_executors/deep_research_runtime.py). The worker
 # reads them whatever the runtime's switch says, and refuses to start when one is on
 # without what it needs -- so the page states them as strict switches.
@@ -514,7 +516,17 @@ def _native_runtime() -> NativeRuntime:
         ],
         actions=[],
     )
-    activities = [fieldwork, design, analysis, deep_research, deep_research_lead]
+    # The study's Research Lead (ADR 0026): its own capability, on its own model when one is
+    # configured (ai_runtime.LeadModelSettings), else on the route's.
+    study_lead = NativeActivity(
+        key="study_lead",
+        step_kind=RESEARCH_LEAD_TURN,
+        capabilities=[ModelCapability.STUDY_LEAD.value],
+        versions=[NamedValue(name="harness", value=LEAD_HARNESS_VERSION)],
+        switches=[_RUNTIME_SWITCH, _STUDY_LEAD_SWITCH],
+        actions=[],
+    )
+    activities = [fieldwork, design, analysis, deep_research, deep_research_lead, study_lead]
     used = {c for activity in activities for c in activity.capabilities}
     return NativeRuntime(
         providers=[_provider(p) for p in Provider if p in NATIVE_PROVIDERS],
