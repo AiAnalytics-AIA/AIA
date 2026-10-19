@@ -68,7 +68,8 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   const [session, setSession] = useState<LeadState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
-  const [queued, setQueued] = useState<string[]>([]);
+  // A message written while the Lead works keeps the stage and the element it was written about.
+  const [queued, setQueued] = useState<{ text: string; stage: WorkbenchStage; focus: { id: string; label: string } | null }[]>([]);
   const [sending, setSending] = useState(false);
   // Every read, successful or not, moves this on, so a busy session is read again after a failed read.
   const [reads, setReads] = useState(0);
@@ -137,13 +138,13 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
     if (session?.busy || sending || !queued.length) return;
     const [next, ...rest] = queued;
     setQueued(rest);
-    void post({ kind: "message", text: next, stage, focus });
-  }, [session, sending, queued, post, stage, focus]);
+    if (next) void post({ kind: "message", text: next.text, stage: next.stage, focus: next.focus });
+  }, [session, sending, queued, post]);
 
   const send = (text: string) => {
     const t = text.trim();
     if (!t) return;
-    if (session?.busy || sending) setQueued((q) => [...q, t]);
+    if (session?.busy || sending) setQueued((q) => [...q, { text: t, stage, focus }]);
     else void post({ kind: "message", text: t, stage, focus });
     setDraft("");
     onClearFocus();
@@ -178,7 +179,7 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
         {me && !me.hatched ? <HatchCard onHatch={hatch} /> : null}
         {session && !session.available ? <div className="msg"><div className="notice"><Glyph tone="inert" size={11} />{reasonWords(session.unavailable_reason ?? "research_lead_unavailable")}</div></div> : null}
       </Conversation>
-      <Composer draft={draft} setDraft={setDraft} onSend={send} busy={!!session?.busy || sending} queued={queued} onUnqueue={(i) => setQueued((q) => q.filter((_, j) => j !== i))}
+      <Composer draft={draft} setDraft={setDraft} onSend={send} busy={!!session?.busy || sending} queued={queued.map((q) => q.text)} onUnqueue={(i) => setQueued((q) => q.filter((_, j) => j !== i))}
         disabled={!canEdit || !me?.hatched || !session?.available} focus={focus} picking={picking} onPick={onPick} onClearFocus={onClearFocus} />
     </div>
   );

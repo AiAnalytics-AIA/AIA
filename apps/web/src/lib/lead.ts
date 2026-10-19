@@ -257,7 +257,10 @@ export function focusSelector(target: string): string {
   if (kind === "question" && id) return `[id="qedit_${css(id)}"]`;
   if (kind === "section" && id) return `[id="qblock_${css(id)}"]`;
   if (kind === "brief" && id) return `[id="brief-${css(id)}"]`;
-  if (kind === "plan" && id) return id === "sets" || id === "tracked_sets" ? `[id="plan-sets"]` : id === "comments" ? `[id="plan-comments"]` : `[id="plan-understanding"]`;
+  if (kind === "plan" && id) {
+    const section: Record<string, string> = { sets: "plan-sets", tracked_sets: "plan-sets", comments: "plan-comments", variants: "plan-variants", questions: "plan-questions" };
+    return `[id="${section[id] ?? "plan-understanding"}"]`;
+  }
   return `[data-aia="${css(target)}"], [id="${css(target)}"]`;
 }
 
@@ -279,9 +282,14 @@ export function targetOfElement(el: Element | null): { id: string; label: string
     }
     if ((m = id.match(/^qblock_(.+)$/))) return { id: `section:${m[1]}`, label: `Oddíl: ${label(at.querySelector("h3, h2")?.textContent?.trim() || m[1]!)}` };
     if ((m = id.match(/^brief-(.+)$/))) return { id: `brief:${m[1]}`, label: `Zadání: ${label(at.querySelector("h2, h3, label")?.textContent?.trim() || m[1]!)}` };
-    if (id === "plan-sets") return { id: "plan:sets", label: "Návrh: sledované sady" };
-    if (id === "plan-comments") return { id: "plan:comments", label: "Návrh: komentáře" };
-    if (id.startsWith("plan-")) return { id: "plan:narrative", label: "Návrh: porozumění zadání" };
+    const plan: Record<string, { id: string; label: string }> = {
+      "plan-sets": { id: "plan:sets", label: "Návrh: sledované sady" },
+      "plan-comments": { id: "plan:comments", label: "Návrh: komentáře" },
+      "plan-variants": { id: "plan:variants", label: "Návrh: varianty výzkumu" },
+      "plan-questions": { id: "plan:questions", label: "Návrh: otázky k doplnění" },
+      "plan-understanding": { id: "plan:narrative", label: "Návrh: porozumění zadání" },
+    };
+    if (plan[id]) return plan[id]!;
   }
   return null;
 }

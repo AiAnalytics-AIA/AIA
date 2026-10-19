@@ -79,6 +79,8 @@ describe("focusSelector", () => {
     expect(focusSelector("brief:goal")).toBe('[id="brief-goal"]');
     expect(focusSelector("plan:research_questions")).toBe('[id="plan-understanding"]');
     expect(focusSelector("plan:sets")).toBe('[id="plan-sets"]');
+    expect(focusSelector("plan:variants")).toBe('[id="plan-variants"]');
+    expect(focusSelector("plan:questions")).toBe('[id="plan-questions"]');
     expect(focusSelector("section:sec_1")).toBe('[id="qblock_sec_1"]');
     expect(focusSelector('odd"one')).toBe('[data-aia="odd\\"one"], [id="odd\\"one"]');
   });

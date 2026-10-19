@@ -108,4 +108,17 @@ describe("LeadPane", () => {
     fireEvent.click(screen.getByRole("button", { name: "Zkontrolovat" }));
     expect(onOpenJob).toHaveBeenCalledWith(expect.objectContaining({ run_id: "RUN-J" }));
   });
+
+  it("sends a message written while the Lead works with the stage and element it was written about", async () => {
+    state = { ...state, busy: true, turns: [turn({ status: "RUNNING", output: null })] };
+    const focus = { id: "question:Q_1", label: "Otázka Q_1" };
+    const { rerender } = render(pane({ focus }));
+    await screen.findByLabelText("Napište Vedoucímu výzkumu");
+    fireEvent.change(screen.getByLabelText("Napište Vedoucímu výzkumu"), { target: { value: "Zkrať ji" } });
+    fireEvent.keyDown(screen.getByLabelText("Napište Vedoucímu výzkumu"), { key: "Enter" });
+    expect(await screen.findByText("Zkrať ji")).toBeTruthy();
+    rerender(pane({ focus: null, stage: "design" }));
+    state = { ...state, busy: false, turns: [turn({ output: { reply: "Hotovo." } })] };
+    await waitFor(() => expect(posts.at(-1)).toEqual({ kind: "message", text: "Zkrať ji", stage: "brief", focus }), { timeout: 4000 });
+  });
 });
