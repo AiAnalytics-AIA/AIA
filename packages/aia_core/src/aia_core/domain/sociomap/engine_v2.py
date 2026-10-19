@@ -15,6 +15,7 @@ Plan ``sociomap-formula-corrections`` § 8.2, S2. One pure function from
     F9   K100 with its respondent-bootstrap interval, when the caller asks for it
     F12  the envelope terrain over the PRIMARY hills, when the spec declares one (4b); the
          framed envelope over their relative heights under ``aia-sociomap-5``
+         the split-half check and the uncertainty radius of a mapped ``aia-sociomap-5`` map
 
 Every step is a function another chunk already landed and tested (2a ``person_minmax``,
 1a ``derive_pair_relations``, 2b ``fit_smacof_objects``, 2c ``stress_quality``, 1b
@@ -38,6 +39,7 @@ from collections.abc import Sequence
 from typing import Any, Final
 
 import numpy as np
+from numpy.typing import NDArray
 
 from .layout import (
     UnfoldingDesignError,
@@ -49,6 +51,8 @@ from .metrics import ObjectRole, connectedness_100, primary_scores, rank_with_ti
 from .models_v3 import (
     OBJECT_MAP_IMPLEMENTATION,
     OBJECT_MAP_IMPLEMENTATION_VERSION,
+    CredibilityRule,
+    MapCredibility,
     MapOutcome,
     NotComputed,
     NotMappable,
@@ -63,6 +67,7 @@ from .models_v3 import (
 )
 from .pairs import PairRelations, derive_pair_relations
 from .relations import PairStatus, person_minmax
+from .signed_off_credibility import map_uncertainty, split_half_agreement
 from .signed_off_inputs import PreparedInputs, prepare
 from .signed_off_layout import (
     SMACOF_ITMAX,
@@ -409,15 +414,18 @@ def _evidence_policy(spec: SociomapSpecV3) -> dict[str, Any]:
     return {"basis": rel.basis, "effect_floor": rel.effect_floor}
 
 
-def _baseline_corrected(
-    family: Sequence[Sequence[float | None]], ids: Sequence[str], spec: SociomapSpecV3
-) -> tuple[PairRelations, list[int], SparseDesign, PreparedInputs]:
-    """The signed-off methodology's relations (:func:`~.signed_off_inputs.prepare`) on the
-    family's raw ratings, as the artifact records them: each known pair's ``r~`` and every
-    pair's support ``n``; RELIABLE (Benjamini-Hochberg and the noise rule), WEAK (known, not
-    reliable) or UNKNOWN (below the status floor or a column without spread: no ``r~``); no
-    interval. Also the respondents centring leaves out, the sparse-design note and the layout
-    inputs."""
+def _ratings(family: Sequence[Sequence[float | None]], m: int) -> NDArray[np.float64]:
+    """The family's raw ratings as the methodology reads them: NaN where not rated."""
+    return np.array(
+        [[math.nan if v is None else v for v in row] for row in family], dtype=float
+    ).reshape(len(family), m)
+
+
+def _prepare(
+    ratings: NDArray[np.float64], spec: SociomapSpecV3, *, noise_rule: bool = True
+) -> PreparedInputs:
+    """:func:`~.signed_off_inputs.prepare` under the spec; ``noise_rule`` false leaves the
+    noise rule out whatever the spec declares, as the methodology's credibility maps do."""
     rel, layout = spec.relation, spec.layout
     noise = rel.noise_rule
     if (
@@ -430,23 +438,32 @@ def _baseline_corrected(
         or layout.precision_weight_cap is None
     ):
         raise ValueError("the baseline-corrected relation is declared whole (require_supported)")
-    m = len(ids)
-    ratings = np.array(
-        [[math.nan if v is None else v for v in row] for row in family], dtype=float
-    ).reshape(len(family), m)
-    prepared = prepare(
+    return prepare(
         ratings,
         n_min=rel.n_min,
         layout_floor=layout.layout_floor,
         layout_weight_full_at=layout.layout_weight_full_at,
         false_discovery_rate=rel.false_discovery_rate,
-        noise_rule=noise.enabled,
+        noise_rule=noise_rule and noise.enabled,
         noise_permutations=noise.permutations,
         noise_seed=noise.seed,
         precision_weight_cap=layout.precision_weight_cap,
         sparse_share=layout.sparse_share,
         min_layout_partners=layout.min_layout_partners,
     )
+
+
+def _baseline_corrected(
+    family: Sequence[Sequence[float | None]], ids: Sequence[str], spec: SociomapSpecV3
+) -> tuple[PairRelations, list[int], SparseDesign, PreparedInputs]:
+    """The signed-off methodology's relations (:func:`~.signed_off_inputs.prepare`) on the
+    family's raw ratings, as the artifact records them: each known pair's ``r~`` and every
+    pair's support ``n``; RELIABLE (Benjamini-Hochberg and the noise rule), WEAK (known, not
+    reliable) or UNKNOWN (below the status floor or a column without spread: no ``r~``); no
+    interval. Also the respondents centring leaves out, the sparse-design note and the layout
+    inputs."""
+    m = len(ids)
+    prepared = _prepare(_ratings(family, m), spec)
     # Each pair read from its upper half: the methodology computes r~[i, j] and r~[j, i]
     # separately, so they can differ in the last bit, and the artifact holds one value a pair.
     upper = np.triu(np.ones((m, m), dtype=bool), 1)
@@ -475,8 +492,8 @@ def _baseline_corrected(
         ),
         interval=tuple(tuple(None for _ in range(m)) for _ in range(m)),
         status=status,
-        n_min=rel.n_min,
-        confidence=rel.confidence,
+        n_min=spec.relation.n_min,
+        confidence=spec.relation.confidence,
     )
     excluded = [k for k in range(len(family)) if not prepared.placed[k]]
     sparse = SparseDesign(
@@ -560,6 +577,64 @@ def _signed_off_layout(
     )
 
 
+#: What the signed-off Interval MDS raises on too little data: ``ZeroDivisionError`` when no
+#: pair reaches the layout floor, ``LinAlgError`` when the classical start of a near-empty
+#: design does not converge. Any other error is a defect and propagates.
+_TOO_LITTLE_DATA: Final = (ZeroDivisionError, np.linalg.LinAlgError)
+
+
+def _credibility(
+    family: Sequence[Sequence[float | None]], prepared: PreparedInputs, spec: SociomapSpecV3
+) -> MapCredibility:
+    """The signed-off methodology's map credibility, with the AIA panel's fallbacks. The
+    split-half check decides whether the map is weakly determined; when it has no score (a
+    half cannot be mapped, or two objects have no triplet) the map is weakly determined
+    exactly when no pair is RELIABLE. The uncertainty radius is ``None`` when a bootstrap map
+    cannot be computed. Every map here is Interval MDS of the input stage without the noise
+    rule, on the family's raw ratings, as the methodology computes them."""
+    cred, imds = spec.credibility, spec.layout.interval_mds
+    if cred is None or imds is None:
+        raise ValueError("the map credibility is declared whole (require_supported)")
+    m = len(prepared.n)
+    ratings = _ratings(family, m)
+
+    def map_of(part: NDArray[np.float64]) -> NDArray[np.float64]:
+        xy, _ = interval_mds(
+            _prepare(part, spec, noise_rule=False),
+            starts=imds.random_starts,
+            kappa=imds.floor_fraction,
+        )
+        return xy
+
+    try:
+        score = split_half_agreement(
+            ratings, splits=cred.split_half_splits, seed=cred.split_half_seed, map_of=map_of
+        )
+    except _TOO_LITTLE_DATA:
+        score = math.nan
+    reliable = int(prepared.reliable[np.triu_indices(m, 1)].sum())
+    try:
+        radius: float | None = map_uncertainty(
+            ratings,
+            resamples=cred.bootstrap_resamples,
+            seed=cred.bootstrap_seed,
+            safety=cred.safety_factor,
+            map_of=map_of,
+        ).radius
+    except _TOO_LITTLE_DATA:
+        radius = None
+    finite = math.isfinite(score)
+    return MapCredibility(
+        rule=(CredibilityRule.SPLIT_HALF if finite else CredibilityRule.NO_RELIABLE_PAIR).value,
+        split_half=score if finite else None,
+        threshold=cred.split_half_threshold,
+        weakly_determined=score < cred.split_half_threshold if finite else reliable == 0,
+        reliable_pairs=reliable,
+        # A reference map with every object on one point has no distance to measure by.
+        uncertainty_radius=radius if radius is not None and math.isfinite(radius) else None,
+    )
+
+
 def compute_object_map(
     inputs: ObjectMapInputs,
     spec: SociomapSpecV3,
@@ -621,6 +696,7 @@ def compute_object_map(
 
     not_mappable: NotMappable | None = None
     layout: ObjectMapLayout | None = None
+    credibility: MapCredibility | None = None
     declared = spec.layout.min_objects
     min_objects = LEGACY_MIN_OBJECTS if declared is None else declared
     if m < min_objects:
@@ -637,6 +713,7 @@ def compute_object_map(
             not_mappable = placed
         else:
             layout = placed
+            credibility = _credibility(family, prepared, spec)
     elif not any(any(row) for row in known):
         not_mappable = NotMappable(
             reason=NotMappableReason.NO_KNOWN_PAIR.value,
@@ -776,4 +853,5 @@ def compute_object_map(
             input_fingerprints=inputs.fingerprints(),
         ),
         sparse_design=sparse,
+        credibility=credibility,
     )

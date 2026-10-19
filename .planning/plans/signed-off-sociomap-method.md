@@ -73,6 +73,7 @@ audit code.
 | Where numerical code lives | `domain/sociomap/`, numpy/scipy/numba as `aia-core` dependencies (agreed with the codebase owner) | Pure-Python port: BB1 ~100× slower than the compiled 9 s at 40 objects, segment mixture infeasible on large samples, parity only statistical |
 | When Interval MDS replaces BB1 | A fixed object count: the methodology's time budget 1.07e-3·M^2.46/10 ≤ 30 s with the core count frozen at 10, i.e. BB1 for M ≤ 163 objects, Interval MDS above; the method used is recorded on every map | The budget as written reads the machine's core count, so for 65 ≤ M ≤ 164 two machines pick different methods; the repo forbids probing (`layout.py:1-14`) |
 | Replace `-3` or add `-5` | Add `-5` | Replacing changes results already approved by fingerprint and pinned by past runs |
+| Which failures of the split-half check and the uncertainty radius fall back | Only the two errors Interval MDS raises on too little data, `ZeroDivisionError` (no layout pair in a half) and `numpy.linalg.LinAlgError` (the classical start of a near-empty design); any other error propagates | Catching every exception, as the AIA panel does: a defect would silently become "weakly determined" or "no radius" |
 
 ### Library versions
 
@@ -130,6 +131,30 @@ and 0.68/2.5).
   the report's top view keeps its axes at the fixed ruler (the framed grid can reach past
   it). `OBJECT_MAP_METHODS` in `object-map-view.ts` does not name `aia-sociomap-5` (it is
   read as an unnamed method).
+
+- Where the object-map artifact is described: under `aia-sociomap-5` a MAPPED map records
+  `credibility` = {`rule` (`split_half` or `no_reliable_pair`), `split_half` (null without a
+  score), `threshold`, `weakly_determined`, `reliable_pairs`, `uncertainty_radius` (in units
+  of the map's RMS inter-object distance; null when a bootstrap map cannot be computed)}; a
+  NOT_MAPPABLE map and the earlier presets record none. The spec's top-level `credibility`
+  section (`split_half_threshold` 0.59, `split_half_splits` 2, `split_half_seed` 0,
+  `bootstrap_resamples` 20, `bootstrap_seed` 0, `safety_factor` 1.2) is declared under `-5`
+  only and left out of the earlier presets' stored form.
+- CLAUDE.md §2: `domain/sociomap/signed_off_credibility.py` (`split_half_agreement`,
+  `map_uncertainty`), wired in `engine_v2._credibility`; Metodika steps `split_half_check`,
+  `uncertainty_radius`, `map_credibility` (group "Věrohodnost mapy"); register rule
+  `AIA-SIGNED-OFF-CREDIBILITY`.
+- Web follow-up (map credibility, not drawn yet): the weakly-determined banner over a `-5` map
+  with `credibility.weakly_determined` (the panel's texts: "Dvě poloviny vzorku se shodnou jen
+  v s % srovnání „co je blíž“ (50 % = náhoda). Pozice na mapě nečtěte jako skupiny ani
+  vzdálenosti." and, without a score, "Žádný vztah mezi objekty se neliší od náhody. …"); the
+  split-half share in the HUD where Stress-1 stood; one uncertainty circle per object of
+  radius `uncertainty_radius` × the drawn map's RMS inter-object distance (ruler units), none
+  when null; the methodology comparison (Nastavení → Metodika, `sociomap_check.MapSummary`)
+  does not carry the credibility yet, so an edit of a credibility value shows no change there
+  until it reports the share, the flag and the radius. Until then the web shows a weakly determined `-5` map like any
+  other; the report
+  prints the warning and, for internal readers, the share and the radius.
 
 ## Findings
 

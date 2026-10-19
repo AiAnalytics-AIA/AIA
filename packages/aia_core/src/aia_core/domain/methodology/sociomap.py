@@ -95,6 +95,18 @@ _TERRAIN_MAP_TEST: Final = (
     f"{_TERRAIN_TEST}test_the_object_map_stores_the_framed_terrain_under_aia_sociomap_5"
 )
 
+_SIGNED_OFF_CREDIBILITY: Final = _rule("AIA-SIGNED-OFF-CREDIBILITY")
+_CREDIBILITY_TEST: Final = f"{_T}/test_sociomap_signed_off_credibility.py::"
+_CREDIBILITY_PARITY_TEST: Final = (
+    f"{_CREDIBILITY_TEST}test_the_split_half_check_and_the_radius_match_the_methodologys_own_code"
+)
+_CREDIBILITY_MAP_TEST: Final = (
+    f"{_CREDIBILITY_TEST}test_the_object_map_stores_the_credibility_under_aia_sociomap_5"
+)
+_CREDIBILITY_EDIT_TEST: Final = (
+    f"{_CREDIBILITY_TEST}test_every_value_of_the_stage_changes_the_map_when_edited"
+)
+
 _CATALOGUE: Final[tuple[MethodStep, ...]] = (
     # ------------------------------------------------------------------ the method
     MethodStep(
@@ -102,7 +114,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         title_cs="Pojmenování metody",
         formula_latex=r"\text{metoda} = \text{methodology\_version}",
         implements=f"{_S}.specification:SociomapSpecV3",
-        source_sha256="a6306dbbc93aa77f0908bd5321d83d90083487d6943d90282b40fe83c62896ee",
+        source_sha256="ffb9d7a30159084b1dae7fc1c31185ababf4c9e09d4725d1f0407a4db6de1132",
         parameters=(ParameterRef("methodology_version", "Verze metodiky"),),
         evidence=(
             Evidence(
@@ -442,7 +454,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         title_cs="Síla vztahu a jeho směr",
         formula_latex=r"s_{ij} = |r_{ij}|,\qquad \operatorname{sgn} r_{ij} \text{ jako barva}",
         implements=f"{_S}.engine_v2:compute_object_map",
-        source_sha256="382029e868916940931916cad0ccbd86f750f01a7a1ec13e6da808b727c54324",
+        source_sha256="f919aea31f913a71c26247837e7c947375655b4e85a63fbadd96138c33621bb1",
         evidence=(_rule("AUDIT-F4"),),
         tests=(
             f"{_T}/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input",
@@ -756,6 +768,122 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         note_cs=(
             "Zarovnání na referenční mapu (Procrustes) je pohled a výpočet mapy nemění. "
             "aia-sociomap-5 pásma nemá (Stress-1 nepočítá)."
+        ),
+    ),
+    MethodStep(
+        id="split_half_check",
+        title_cs="Kontrola dělených polovin: shoda dvou polovin vzorku",
+        formula_latex=(
+            r"s = \frac{1}{S} \sum_{t=1}^{S} \frac{1}{M \binom{M-1}{2}} \sum_{i}"
+            r" \sum_{\substack{j<k \\ j,k \ne i}} \mathbb{1}\!\left["
+            r"\operatorname{sgn}\!\left(d^{(1)}_{ij} - d^{(1)}_{ik}\right) = "
+            r"\operatorname{sgn}\!\left(d^{(2)}_{ij} - d^{(2)}_{ik}\right)\right],\qquad "
+            r"H_1 = \pi_t[1..\lfloor N/2 \rfloor],\ H_2 = \pi_t[\lfloor N/2 \rfloor + 1..N]"
+        ),
+        implements=f"{_S}.signed_off_credibility:split_half_agreement",
+        source_sha256="dd9fe299759b4e5a14c59daa2df900c4a19c0f23277676537076cf66af314cdc",
+        symbols=(
+            Symbol(r"S", "počet rozdělení (hodnota u kroku Věrohodnost mapy)"),
+            Symbol(
+                r"\pi_t",
+                "t-tá náhodná permutace respondentů (semínko u kroku Věrohodnost mapy)",
+            ),
+            Symbol(r"N, M", "počet respondentů a mapovaných objektů"),
+            Symbol(
+                r"d^{(h)}_{ij}",
+                "vzdálenost objektů i a j na mapě poloviny H_h: Interval MDS na vstupech "
+                "spočtených jen z této poloviny, bez pravidla šumu",
+            ),
+            Symbol(r"s", "shoda polovin: 0,5 = náhoda, 1 = stejné pořadí"),
+        ),
+        evidence=(_SIGNED_OFF_CREDIBILITY,),
+        tests=(_CREDIBILITY_PARITY_TEST, _CREDIBILITY_EDIT_TEST),
+        note_cs=(
+            "Jen aia-sociomap-5. Každá polovina dostane vlastní mapu metodou Interval MDS (ne "
+            "rozložením podle pořadí), se stejnými prahy a vahami jako celá mapa. Trojice "
+            "„i je blíž j než k“ se počítají pro každý objekt i. Se dvěma objekty žádná "
+            "trojice není a shoda nemá hodnotu. Shodu zapíše mapa (credibility.split_half)."
+        ),
+    ),
+    MethodStep(
+        id="uncertainty_radius",
+        title_cs="Poloměr nejistoty polohy",
+        formula_latex=(
+            r"Y^{(b)} = \operatorname{Procrustes}\!\left(X^{(b)} \to X\right) / \rho(X),"
+            r"\quad \rho(X) = \sqrt{\tfrac{1}{P} \textstyle\sum_{i<j} d_{ij}^2(X)},"
+            r"\quad \sigma_j = \sqrt{\tfrac{1}{B} \textstyle\sum_{b} \lVert Y^{(b)}_j - "
+            r"\bar Y_j \rVert^2},\quad R = c\, \operatorname{med}_j \sigma_j"
+        ),
+        implements=f"{_S}.signed_off_credibility:map_uncertainty",
+        source_sha256="699c788df4d4f127c966c2381646b1a956f7d5442f68212d5890746c1d4c8916",
+        symbols=(
+            Symbol(r"X", "Interval MDS celého vzorku bez pravidla šumu (referenční mapa)"),
+            Symbol(
+                r"X^{(b)}",
+                "Interval MDS b-tého převzorkování respondentů s opakováním, ze studeného startu",
+            ),
+            Symbol(
+                r"\operatorname{Procrustes}",
+                "otočení, zrcadlení, posun a jedno měřítko na referenční mapu",
+            ),
+            Symbol(r"P", "počet párů M(M - 1)/2"),
+            Symbol(r"\sigma_j", "rozptyl polohy objektu j"),
+            Symbol(
+                r"B, c", "počet převzorkování a bezpečnostní násobek (u kroku Věrohodnost mapy)"
+            ),
+            Symbol(r"R", "poloměr nejistoty mapy", "násobky \u03c1"),
+        ),
+        evidence=(_SIGNED_OFF_CREDIBILITY,),
+        tests=(_CREDIBILITY_PARITY_TEST, _CREDIBILITY_EDIT_TEST),
+        note_cs=(
+            "Jen aia-sociomap-5. Jak daleko se poloha objektu typicky posune, kdyby se studie "
+            "opakovala: jeden poloměr pro celou mapu, v jednotkách střední kvadratické "
+            "vzdálenosti objektů; ke kreslení se násobí touto vzdáleností nakreslené mapy "
+            "(platí pro obě metody rozložení). Rozptyly jednotlivých objektů se neukazují: "
+            "objekty neřadí lépe než náhoda. c = 1,2 vyrovnává, že převzorkování skutečný "
+            "rozptyl podceňuje."
+        ),
+    ),
+    MethodStep(
+        id="map_credibility",
+        title_cs="Věrohodnost mapy: slabě určená mapa a poloměr nejistoty",
+        formula_latex=(
+            r"\text{slabě určená} = \begin{cases} s < s_{\min} & s \text{ má hodnotu} \\"
+            r" \#\{i < j : \text{pár } ij \text{ SPOLEHLIVÝ}\} = 0 & \text{jinak}"
+            r" \end{cases},\qquad R = \varnothing \text{ bez převzorkovaných map}"
+        ),
+        implements=f"{_S}.engine_v2:_credibility",
+        source_sha256="e4b9207fc35e11e8ab4ba8d35c842920db885d579856cbeb2f5e153e0b529852",
+        symbols=(
+            Symbol(r"s, R", "shoda polovin a poloměr nejistoty (předchozí kroky)"),
+            Symbol(r"s_{\min}", "práh shody polovin"),
+        ),
+        parameters=(
+            ParameterRef("credibility.split_half_threshold", "Práh shody s_min"),
+            ParameterRef("credibility.split_half_splits", "Počet rozdělení S"),
+            ParameterRef("credibility.split_half_seed", "Semínko rozdělení"),
+            ParameterRef("credibility.bootstrap_resamples", "Převzorkování B"),
+            ParameterRef("credibility.bootstrap_seed", "Semínko převzorkování"),
+            ParameterRef("credibility.safety_factor", "Bezpečnostní násobek c"),
+        ),
+        evidence=(_SIGNED_OFF_CREDIBILITY,),
+        tests=(
+            f"{_CREDIBILITY_TEST}test_the_rule_and_the_flag_are_the_panels",
+            f"{_CREDIBILITY_TEST}test_a_half_with_no_layout_pair_falls_back_to_the_no_reliable_pair_rule",
+            f"{_CREDIBILITY_TEST}test_any_other_error_propagates",
+            _CREDIBILITY_MAP_TEST,
+            _CREDIBILITY_EDIT_TEST,
+        ),
+        note_cs=(
+            "Jen aia-sociomap-5, jen u nakreslené mapy. Shoda nemá hodnotu, když se polovina "
+            "nedá zmapovat (Interval MDS při příliš málo datech dělí nulou, nemá-li žádný pár "
+            "nad prahem rozložení, nebo nezkonverguje jeho klasický start) nebo když jsou "
+            "objekty jen dva; pak rozhodne, zda je nějaký pár SPOLEHLIVÝ. Stejně chybí poloměr, "
+            "nedá-li se některá převzorkovaná mapa spočítat. Jiná chyba je vada a výpočet "
+            "zastaví. Slabě určená mapa se ukáže se sdělením, že se dvě poloviny vzorku shodnou "
+            "jen v s % srovnání (50 % = náhoda), bez shody že se žádný vztah neliší od náhody, "
+            "a že pozice nejsou skupiny ani vzdálenosti. Mapa zapíše pravidlo, shodu, výsledek, "
+            "počet spolehlivých párů a poloměr (credibility)."
         ),
     ),
     # ------------------------------------------------------------------ F8
@@ -1180,6 +1308,24 @@ _CONTEXT: Final[dict[str, _Context]] = {
         inputs=("f7_stress",),
         audit="F7",
     ),
+    "split_half_check": _Context(
+        role_cs="Ověří, zda by dvě poloviny vzorku nakreslily mapu stejně: měří, jak moc "
+        "polohám věřit.",
+        inputs=("person_centring", "layout_pairs", "interval_mds_layout"),
+        audit=_SIGNED_OFF_POINT,
+    ),
+    "uncertainty_radius": _Context(
+        role_cs="Jak daleko se objekt na mapě typicky posune s jiným vzorkem; kruh kolem "
+        "každého objektu.",
+        inputs=("person_centring", "layout_pairs", "interval_mds_layout"),
+        audit=_SIGNED_OFF_POINT,
+    ),
+    "map_credibility": _Context(
+        role_cs="Rozhodne, zda je mapa slabě určená a čtenář nemá číst polohy jako skupiny "
+        "ani vzdálenosti, a zapíše poloměr nejistoty.",
+        inputs=("split_half_check", "uncertainty_radius", "reliable_by_fdr"),
+        audit=_SIGNED_OFF_POINT,
+    ),
     "f8_scores": _Context(
         role_cs="Jak objekt souvisí s ostatními; podklad pro propojenost 0-100.",
         inputs=("f3_correlation", "f3_status"),
@@ -1291,8 +1437,9 @@ _GROUPS: Final = (
     StepGroup(
         "S4",
         "Věrohodnost mapy",
-        ("f7_stress", "f7_quality"),
-        "Jak věrně mapa v rovině drží vzdálenosti, které měla dodržet.",
+        ("f7_stress", "f7_quality", "split_half_check", "uncertainty_radius", "map_credibility"),
+        "Jak věrně mapa v rovině drží vzdálenosti, které měla dodržet, a jak by obstála "
+        "s jiným vzorkem.",
     ),
     StepGroup(
         "S5",
@@ -1366,7 +1513,8 @@ SOCIOMAP: Final = MethodModule(
         "vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti "
         "je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice "
         "i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava "
-        "z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky a "
-        "terén podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“)."
+        "z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, "
+        "terén a věrohodnost mapy podle schválené metodiky AIA Sociomapa (kroky označené „Jen "
+        "aia-sociomap-5“)."
     ),
 )

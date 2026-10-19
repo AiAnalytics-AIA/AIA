@@ -2182,10 +2182,13 @@
      },
      {
       "id": "S4",
-      "note_cs": "Jak věrně mapa v rovině drží vzdálenosti, které měla dodržet.",
+      "note_cs": "Jak věrně mapa v rovině drží vzdálenosti, které měla dodržet, a jak by obstála s jiným vzorkem.",
       "step_ids": [
        "f7_stress",
-       "f7_quality"
+       "f7_quality",
+       "split_half_check",
+       "uncertainty_radius",
+       "map_credibility"
       ],
       "title_cs": "Věrohodnost mapy"
      },
@@ -2247,7 +2250,7 @@
     ],
     "id": "sociomap",
     "in_force": "aia-sociomap-3",
-    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky a terén podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén a věrohodnost mapy podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
     "preset": "aia-sociomap-2",
     "presets": [
      "aia-sociomap-4",
@@ -2278,7 +2281,7 @@
       "reading_cs": "",
       "role_cs": "Jméno a otisk metodiky, které si běh připne; podle nich je u každé mapy vidět, čím byla spočtena.",
       "source_cs": "metodika v platnosti při spuštění běhu",
-      "source_sha256": "a6306dbbc93aa77f0908bd5321d83d90083487d6943d90282b40fe83c62896ee",
+      "source_sha256": "ffb9d7a30159084b1dae7fc1c31185ababf4c9e09d4725d1f0407a4db6de1132",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_the_presets_fingerprints"
@@ -2535,7 +2538,9 @@
        }
       ],
       "feeds": [
-       "baseline_corrected_relation"
+       "baseline_corrected_relation",
+       "split_half_check",
+       "uncertainty_radius"
       ],
       "formula_latex": "\\tilde a_{ki} = a_{ki} - \\frac{1}{L_k}\\sum_{l} a_{kl},\\qquad L_k < 2 \\;\\lor\\; \\max_l |\\tilde a_{kl}| \\le 10^{-12} \\;\\Rightarrow\\; k \\text{ NEUMÍSTĚN}",
       "formulas": [],
@@ -3131,7 +3136,9 @@
         "ref": "AIA-SIGNED-OFF-INPUTS"
        }
       ],
-      "feeds": [],
+      "feeds": [
+       "map_credibility"
+      ],
       "formula_latex": "p_{(1)} \\le \\dots \\le p_{(m)},\\quad k^{*} = \\max\\left\\{k : p_{(k)} \\le \\tfrac{k}{m}\\, q\\right\\},\\qquad \\text{stav}_{ij} = \\begin{cases}\\text{RELIABLE} & \\text{pár mezi } (1) \\dots (k^{*}) \\;\\land\\; |\\tilde r_{ij}| > \\tau_{ij} \\\\\\text{WEAK} & \\text{známý, ale ne spolehlivý} \\\\\\text{UNKNOWN} & \\text{neznámý pár} \\end{cases}",
       "formulas": [],
       "id": "reliable_by_fdr",
@@ -3267,7 +3274,9 @@
        "sparse_design",
        "object_count_rule",
        "soft_rank_spearman_layout",
-       "interval_mds_layout"
+       "interval_mds_layout",
+       "split_half_check",
+       "uncertainty_radius"
       ],
       "formula_latex": "w^{L}_{ij} = \\begin{cases}\\min\\!\\left(1, \\max\\!\\left(0, \\dfrac{n_{ij} - 3}{n_{\\text{plná}} - 3}\\right)\\right) & n_{ij} \\ge n_L \\;\\land\\; v_i, v_j > 10^{-12} \\\\0 & \\text{jinak} \\end{cases}",
       "formulas": [],
@@ -3411,7 +3420,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "382029e868916940931916cad0ccbd86f750f01a7a1ec13e6da808b727c54324",
+      "source_sha256": "f919aea31f913a71c26247837e7c947375655b4e85a63fbadd96138c33621bb1",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -3896,7 +3905,9 @@
        }
       ],
       "feeds": [
-       "ruler_scale"
+       "ruler_scale",
+       "split_half_check",
+       "uncertainty_radius"
       ],
       "formula_latex": "\\min_{X} \\sum_{i<j} w_{ij} \\left(\\hat d_{ij} - d_{ij}(X)\\right)^2,\\quad \\hat d_{ij} = c\\, \\max\\!\\left(0,\\, m_d + b\\,(\\delta_{ij} - m_\\delta)\\right),\\quad w_{ij} = \\frac{\\max\\!\\left(\\pi_{ij}, \\max \\pi / C\\right)}{\\overline{w}},\\ \\pi_{ij} = \\frac{2 n_{ij}}{(1 - \\tilde r_{ij})(1 + \\tilde r_{ij})^2};\\quad n_{ij} < n_L:\\ \\hat d_{ij} = \\max\\!\\left(d_{ij},\\, \\kappa\\, \\hat d(\\sqrt 2)\\right),\\ w_{ij} = 1;\\quad X \\leftarrow V^{+} B(X)\\, X \\text{ (nejvýše 1500 iterací, stop při relativním zlepšení} < 10^{-8} \\text{ po 5 iteracích)}",
       "formulas": [],
@@ -4173,6 +4184,243 @@
           "weak"
          ]
         ]
+       }
+      ]
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-CREDIBILITY"
+       }
+      ],
+      "feeds": [
+       "map_credibility"
+      ],
+      "formula_latex": "s = \\frac{1}{S} \\sum_{t=1}^{S} \\frac{1}{M \\binom{M-1}{2}} \\sum_{i} \\sum_{\\substack{j<k \\\\ j,k \\ne i}} \\mathbb{1}\\!\\left[\\operatorname{sgn}\\!\\left(d^{(1)}_{ij} - d^{(1)}_{ik}\\right) = \\operatorname{sgn}\\!\\left(d^{(2)}_{ij} - d^{(2)}_{ik}\\right)\\right],\\qquad H_1 = \\pi_t[1..\\lfloor N/2 \\rfloor],\\ H_2 = \\pi_t[\\lfloor N/2 \\rfloor + 1..N]",
+      "formulas": [],
+      "id": "split_half_check",
+      "implements": "aia_core.domain.sociomap.signed_off_credibility:split_half_agreement",
+      "inputs": [
+       "person_centring",
+       "layout_pairs",
+       "interval_mds_layout"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5. Každá polovina dostane vlastní mapu metodou Interval MDS (ne rozložením podle pořadí), se stejnými prahy a vahami jako celá mapa. Trojice „i je blíž j než k“ se počítají pro každý objekt i. Se dvěma objekty žádná trojice není a shoda nemá hodnotu. Shodu zapíše mapa (credibility.split_half).",
+      "reading_cs": "",
+      "role_cs": "Ověří, zda by dvě poloviny vzorku nakreslily mapu stejně: měří, jak moc polohám věřit.",
+      "source_cs": "",
+      "source_sha256": "dd9fe299759b4e5a14c59daa2df900c4a19c0f23277676537076cf66af314cdc",
+      "symbols": [
+       {
+        "latex": "S",
+        "meaning_cs": "počet rozdělení (hodnota u kroku Věrohodnost mapy)",
+        "unit": ""
+       },
+       {
+        "latex": "\\pi_t",
+        "meaning_cs": "t-tá náhodná permutace respondentů (semínko u kroku Věrohodnost mapy)",
+        "unit": ""
+       },
+       {
+        "latex": "N, M",
+        "meaning_cs": "počet respondentů a mapovaných objektů",
+        "unit": ""
+       },
+       {
+        "latex": "d^{(h)}_{ij}",
+        "meaning_cs": "vzdálenost objektů i a j na mapě poloviny H_h: Interval MDS na vstupech spočtených jen z této poloviny, bez pravidla šumu",
+        "unit": ""
+       },
+       {
+        "latex": "s",
+        "meaning_cs": "shoda polovin: 0,5 = náhoda, 1 = stejné pořadí",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_the_split_half_check_and_the_radius_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_every_value_of_the_stage_changes_the_map_when_edited"
+      ],
+      "title_cs": "Kontrola dělených polovin: shoda dvou polovin vzorku",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-CREDIBILITY"
+       }
+      ],
+      "feeds": [
+       "map_credibility"
+      ],
+      "formula_latex": "Y^{(b)} = \\operatorname{Procrustes}\\!\\left(X^{(b)} \\to X\\right) / \\rho(X),\\quad \\rho(X) = \\sqrt{\\tfrac{1}{P} \\textstyle\\sum_{i<j} d_{ij}^2(X)},\\quad \\sigma_j = \\sqrt{\\tfrac{1}{B} \\textstyle\\sum_{b} \\lVert Y^{(b)}_j - \\bar Y_j \\rVert^2},\\quad R = c\\, \\operatorname{med}_j \\sigma_j",
+      "formulas": [],
+      "id": "uncertainty_radius",
+      "implements": "aia_core.domain.sociomap.signed_off_credibility:map_uncertainty",
+      "inputs": [
+       "person_centring",
+       "layout_pairs",
+       "interval_mds_layout"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5. Jak daleko se poloha objektu typicky posune, kdyby se studie opakovala: jeden poloměr pro celou mapu, v jednotkách střední kvadratické vzdálenosti objektů; ke kreslení se násobí touto vzdáleností nakreslené mapy (platí pro obě metody rozložení). Rozptyly jednotlivých objektů se neukazují: objekty neřadí lépe než náhoda. c = 1,2 vyrovnává, že převzorkování skutečný rozptyl podceňuje.",
+      "reading_cs": "",
+      "role_cs": "Jak daleko se objekt na mapě typicky posune s jiným vzorkem; kruh kolem každého objektu.",
+      "source_cs": "",
+      "source_sha256": "699c788df4d4f127c966c2381646b1a956f7d5442f68212d5890746c1d4c8916",
+      "symbols": [
+       {
+        "latex": "X",
+        "meaning_cs": "Interval MDS celého vzorku bez pravidla šumu (referenční mapa)",
+        "unit": ""
+       },
+       {
+        "latex": "X^{(b)}",
+        "meaning_cs": "Interval MDS b-tého převzorkování respondentů s opakováním, ze studeného startu",
+        "unit": ""
+       },
+       {
+        "latex": "\\operatorname{Procrustes}",
+        "meaning_cs": "otočení, zrcadlení, posun a jedno měřítko na referenční mapu",
+        "unit": ""
+       },
+       {
+        "latex": "P",
+        "meaning_cs": "počet párů M(M - 1)/2",
+        "unit": ""
+       },
+       {
+        "latex": "\\sigma_j",
+        "meaning_cs": "rozptyl polohy objektu j",
+        "unit": ""
+       },
+       {
+        "latex": "B, c",
+        "meaning_cs": "počet převzorkování a bezpečnostní násobek (u kroku Věrohodnost mapy)",
+        "unit": ""
+       },
+       {
+        "latex": "R",
+        "meaning_cs": "poloměr nejistoty mapy",
+        "unit": "násobky ρ"
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_the_split_half_check_and_the_radius_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_every_value_of_the_stage_changes_the_map_when_edited"
+      ],
+      "title_cs": "Poloměr nejistoty polohy",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-CREDIBILITY"
+       }
+      ],
+      "feeds": [],
+      "formula_latex": "\\text{slabě určená} = \\begin{cases} s < s_{\\min} & s \\text{ má hodnotu} \\\\ \\#\\{i < j : \\text{pár } ij \\text{ SPOLEHLIVÝ}\\} = 0 & \\text{jinak} \\end{cases},\\qquad R = \\varnothing \\text{ bez převzorkovaných map}",
+      "formulas": [],
+      "id": "map_credibility",
+      "implements": "aia_core.domain.sociomap.engine_v2:_credibility",
+      "inputs": [
+       "split_half_check",
+       "uncertainty_radius",
+       "reliable_by_fdr"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5, jen u nakreslené mapy. Shoda nemá hodnotu, když se polovina nedá zmapovat (Interval MDS při příliš málo datech dělí nulou, nemá-li žádný pár nad prahem rozložení, nebo nezkonverguje jeho klasický start) nebo když jsou objekty jen dva; pak rozhodne, zda je nějaký pár SPOLEHLIVÝ. Stejně chybí poloměr, nedá-li se některá převzorkovaná mapa spočítat. Jiná chyba je vada a výpočet zastaví. Slabě určená mapa se ukáže se sdělením, že se dvě poloviny vzorku shodnou jen v s % srovnání (50 % = náhoda), bez shody že se žádný vztah neliší od náhody, a že pozice nejsou skupiny ani vzdálenosti. Mapa zapíše pravidlo, shodu, výsledek, počet spolehlivých párů a poloměr (credibility).",
+      "reading_cs": "",
+      "role_cs": "Rozhodne, zda je mapa slabě určená a čtenář nemá číst polohy jako skupiny ani vzdálenosti, a zapíše poloměr nejistoty.",
+      "source_cs": "",
+      "source_sha256": "e4b9207fc35e11e8ab4ba8d35c842920db885d579856cbeb2f5e153e0b529852",
+      "symbols": [
+       {
+        "latex": "s, R",
+        "meaning_cs": "shoda polovin a poloměr nejistoty (předchozí kroky)",
+        "unit": ""
+       },
+       {
+        "latex": "s_{\\min}",
+        "meaning_cs": "práh shody polovin",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_the_rule_and_the_flag_are_the_panels",
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_a_half_with_no_layout_pair_falls_back_to_the_no_reliable_pair_rule",
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_any_other_error_propagates",
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_the_object_map_stores_the_credibility_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_every_value_of_the_stage_changes_the_map_when_edited"
+      ],
+      "title_cs": "Věrohodnost mapy: slabě určená mapa a poloměr nejistoty",
+      "values": [
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Práh shody s_min",
+        "origin": "specification",
+        "reference": "credibility.split_half_threshold",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Počet rozdělení S",
+        "origin": "specification",
+        "reference": "credibility.split_half_splits",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Semínko rozdělení",
+        "origin": "specification",
+        "reference": "credibility.split_half_seed",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Převzorkování B",
+        "origin": "specification",
+        "reference": "credibility.bootstrap_resamples",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Semínko převzorkování",
+        "origin": "specification",
+        "reference": "credibility.bootstrap_seed",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Bezpečnostní násobek c",
+        "origin": "specification",
+        "reference": "credibility.safety_factor",
+        "unit": "",
+        "value": null
        }
       ]
      },
@@ -5032,7 +5280,7 @@
       ]
      }
     ],
-    "steps": 35,
+    "steps": 38,
     "title_cs": "Sociomapa: objektová mapa"
    },
    "aia-sociomap-3": {
@@ -5091,10 +5339,13 @@
      },
      {
       "id": "S4",
-      "note_cs": "Jak věrně mapa v rovině drží vzdálenosti, které měla dodržet.",
+      "note_cs": "Jak věrně mapa v rovině drží vzdálenosti, které měla dodržet, a jak by obstála s jiným vzorkem.",
       "step_ids": [
        "f7_stress",
-       "f7_quality"
+       "f7_quality",
+       "split_half_check",
+       "uncertainty_radius",
+       "map_credibility"
       ],
       "title_cs": "Věrohodnost mapy"
      },
@@ -5156,7 +5407,7 @@
     ],
     "id": "sociomap",
     "in_force": "aia-sociomap-3",
-    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky a terén podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén a věrohodnost mapy podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
     "preset": "aia-sociomap-3",
     "presets": [
      "aia-sociomap-4",
@@ -5187,7 +5438,7 @@
       "reading_cs": "",
       "role_cs": "Jméno a otisk metodiky, které si běh připne; podle nich je u každé mapy vidět, čím byla spočtena.",
       "source_cs": "metodika v platnosti při spuštění běhu",
-      "source_sha256": "a6306dbbc93aa77f0908bd5321d83d90083487d6943d90282b40fe83c62896ee",
+      "source_sha256": "ffb9d7a30159084b1dae7fc1c31185ababf4c9e09d4725d1f0407a4db6de1132",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_the_presets_fingerprints"
@@ -5444,7 +5695,9 @@
        }
       ],
       "feeds": [
-       "baseline_corrected_relation"
+       "baseline_corrected_relation",
+       "split_half_check",
+       "uncertainty_radius"
       ],
       "formula_latex": "\\tilde a_{ki} = a_{ki} - \\frac{1}{L_k}\\sum_{l} a_{kl},\\qquad L_k < 2 \\;\\lor\\; \\max_l |\\tilde a_{kl}| \\le 10^{-12} \\;\\Rightarrow\\; k \\text{ NEUMÍSTĚN}",
       "formulas": [],
@@ -6040,7 +6293,9 @@
         "ref": "AIA-SIGNED-OFF-INPUTS"
        }
       ],
-      "feeds": [],
+      "feeds": [
+       "map_credibility"
+      ],
       "formula_latex": "p_{(1)} \\le \\dots \\le p_{(m)},\\quad k^{*} = \\max\\left\\{k : p_{(k)} \\le \\tfrac{k}{m}\\, q\\right\\},\\qquad \\text{stav}_{ij} = \\begin{cases}\\text{RELIABLE} & \\text{pár mezi } (1) \\dots (k^{*}) \\;\\land\\; |\\tilde r_{ij}| > \\tau_{ij} \\\\\\text{WEAK} & \\text{známý, ale ne spolehlivý} \\\\\\text{UNKNOWN} & \\text{neznámý pár} \\end{cases}",
       "formulas": [],
       "id": "reliable_by_fdr",
@@ -6176,7 +6431,9 @@
        "sparse_design",
        "object_count_rule",
        "soft_rank_spearman_layout",
-       "interval_mds_layout"
+       "interval_mds_layout",
+       "split_half_check",
+       "uncertainty_radius"
       ],
       "formula_latex": "w^{L}_{ij} = \\begin{cases}\\min\\!\\left(1, \\max\\!\\left(0, \\dfrac{n_{ij} - 3}{n_{\\text{plná}} - 3}\\right)\\right) & n_{ij} \\ge n_L \\;\\land\\; v_i, v_j > 10^{-12} \\\\0 & \\text{jinak} \\end{cases}",
       "formulas": [],
@@ -6320,7 +6577,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "382029e868916940931916cad0ccbd86f750f01a7a1ec13e6da808b727c54324",
+      "source_sha256": "f919aea31f913a71c26247837e7c947375655b4e85a63fbadd96138c33621bb1",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -6805,7 +7062,9 @@
        }
       ],
       "feeds": [
-       "ruler_scale"
+       "ruler_scale",
+       "split_half_check",
+       "uncertainty_radius"
       ],
       "formula_latex": "\\min_{X} \\sum_{i<j} w_{ij} \\left(\\hat d_{ij} - d_{ij}(X)\\right)^2,\\quad \\hat d_{ij} = c\\, \\max\\!\\left(0,\\, m_d + b\\,(\\delta_{ij} - m_\\delta)\\right),\\quad w_{ij} = \\frac{\\max\\!\\left(\\pi_{ij}, \\max \\pi / C\\right)}{\\overline{w}},\\ \\pi_{ij} = \\frac{2 n_{ij}}{(1 - \\tilde r_{ij})(1 + \\tilde r_{ij})^2};\\quad n_{ij} < n_L:\\ \\hat d_{ij} = \\max\\!\\left(d_{ij},\\, \\kappa\\, \\hat d(\\sqrt 2)\\right),\\ w_{ij} = 1;\\quad X \\leftarrow V^{+} B(X)\\, X \\text{ (nejvýše 1500 iterací, stop při relativním zlepšení} < 10^{-8} \\text{ po 5 iteracích)}",
       "formulas": [],
@@ -7082,6 +7341,243 @@
           "weak"
          ]
         ]
+       }
+      ]
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-CREDIBILITY"
+       }
+      ],
+      "feeds": [
+       "map_credibility"
+      ],
+      "formula_latex": "s = \\frac{1}{S} \\sum_{t=1}^{S} \\frac{1}{M \\binom{M-1}{2}} \\sum_{i} \\sum_{\\substack{j<k \\\\ j,k \\ne i}} \\mathbb{1}\\!\\left[\\operatorname{sgn}\\!\\left(d^{(1)}_{ij} - d^{(1)}_{ik}\\right) = \\operatorname{sgn}\\!\\left(d^{(2)}_{ij} - d^{(2)}_{ik}\\right)\\right],\\qquad H_1 = \\pi_t[1..\\lfloor N/2 \\rfloor],\\ H_2 = \\pi_t[\\lfloor N/2 \\rfloor + 1..N]",
+      "formulas": [],
+      "id": "split_half_check",
+      "implements": "aia_core.domain.sociomap.signed_off_credibility:split_half_agreement",
+      "inputs": [
+       "person_centring",
+       "layout_pairs",
+       "interval_mds_layout"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5. Každá polovina dostane vlastní mapu metodou Interval MDS (ne rozložením podle pořadí), se stejnými prahy a vahami jako celá mapa. Trojice „i je blíž j než k“ se počítají pro každý objekt i. Se dvěma objekty žádná trojice není a shoda nemá hodnotu. Shodu zapíše mapa (credibility.split_half).",
+      "reading_cs": "",
+      "role_cs": "Ověří, zda by dvě poloviny vzorku nakreslily mapu stejně: měří, jak moc polohám věřit.",
+      "source_cs": "",
+      "source_sha256": "dd9fe299759b4e5a14c59daa2df900c4a19c0f23277676537076cf66af314cdc",
+      "symbols": [
+       {
+        "latex": "S",
+        "meaning_cs": "počet rozdělení (hodnota u kroku Věrohodnost mapy)",
+        "unit": ""
+       },
+       {
+        "latex": "\\pi_t",
+        "meaning_cs": "t-tá náhodná permutace respondentů (semínko u kroku Věrohodnost mapy)",
+        "unit": ""
+       },
+       {
+        "latex": "N, M",
+        "meaning_cs": "počet respondentů a mapovaných objektů",
+        "unit": ""
+       },
+       {
+        "latex": "d^{(h)}_{ij}",
+        "meaning_cs": "vzdálenost objektů i a j na mapě poloviny H_h: Interval MDS na vstupech spočtených jen z této poloviny, bez pravidla šumu",
+        "unit": ""
+       },
+       {
+        "latex": "s",
+        "meaning_cs": "shoda polovin: 0,5 = náhoda, 1 = stejné pořadí",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_the_split_half_check_and_the_radius_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_every_value_of_the_stage_changes_the_map_when_edited"
+      ],
+      "title_cs": "Kontrola dělených polovin: shoda dvou polovin vzorku",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-CREDIBILITY"
+       }
+      ],
+      "feeds": [
+       "map_credibility"
+      ],
+      "formula_latex": "Y^{(b)} = \\operatorname{Procrustes}\\!\\left(X^{(b)} \\to X\\right) / \\rho(X),\\quad \\rho(X) = \\sqrt{\\tfrac{1}{P} \\textstyle\\sum_{i<j} d_{ij}^2(X)},\\quad \\sigma_j = \\sqrt{\\tfrac{1}{B} \\textstyle\\sum_{b} \\lVert Y^{(b)}_j - \\bar Y_j \\rVert^2},\\quad R = c\\, \\operatorname{med}_j \\sigma_j",
+      "formulas": [],
+      "id": "uncertainty_radius",
+      "implements": "aia_core.domain.sociomap.signed_off_credibility:map_uncertainty",
+      "inputs": [
+       "person_centring",
+       "layout_pairs",
+       "interval_mds_layout"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5. Jak daleko se poloha objektu typicky posune, kdyby se studie opakovala: jeden poloměr pro celou mapu, v jednotkách střední kvadratické vzdálenosti objektů; ke kreslení se násobí touto vzdáleností nakreslené mapy (platí pro obě metody rozložení). Rozptyly jednotlivých objektů se neukazují: objekty neřadí lépe než náhoda. c = 1,2 vyrovnává, že převzorkování skutečný rozptyl podceňuje.",
+      "reading_cs": "",
+      "role_cs": "Jak daleko se objekt na mapě typicky posune s jiným vzorkem; kruh kolem každého objektu.",
+      "source_cs": "",
+      "source_sha256": "699c788df4d4f127c966c2381646b1a956f7d5442f68212d5890746c1d4c8916",
+      "symbols": [
+       {
+        "latex": "X",
+        "meaning_cs": "Interval MDS celého vzorku bez pravidla šumu (referenční mapa)",
+        "unit": ""
+       },
+       {
+        "latex": "X^{(b)}",
+        "meaning_cs": "Interval MDS b-tého převzorkování respondentů s opakováním, ze studeného startu",
+        "unit": ""
+       },
+       {
+        "latex": "\\operatorname{Procrustes}",
+        "meaning_cs": "otočení, zrcadlení, posun a jedno měřítko na referenční mapu",
+        "unit": ""
+       },
+       {
+        "latex": "P",
+        "meaning_cs": "počet párů M(M - 1)/2",
+        "unit": ""
+       },
+       {
+        "latex": "\\sigma_j",
+        "meaning_cs": "rozptyl polohy objektu j",
+        "unit": ""
+       },
+       {
+        "latex": "B, c",
+        "meaning_cs": "počet převzorkování a bezpečnostní násobek (u kroku Věrohodnost mapy)",
+        "unit": ""
+       },
+       {
+        "latex": "R",
+        "meaning_cs": "poloměr nejistoty mapy",
+        "unit": "násobky ρ"
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_the_split_half_check_and_the_radius_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_every_value_of_the_stage_changes_the_map_when_edited"
+      ],
+      "title_cs": "Poloměr nejistoty polohy",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-CREDIBILITY"
+       }
+      ],
+      "feeds": [],
+      "formula_latex": "\\text{slabě určená} = \\begin{cases} s < s_{\\min} & s \\text{ má hodnotu} \\\\ \\#\\{i < j : \\text{pár } ij \\text{ SPOLEHLIVÝ}\\} = 0 & \\text{jinak} \\end{cases},\\qquad R = \\varnothing \\text{ bez převzorkovaných map}",
+      "formulas": [],
+      "id": "map_credibility",
+      "implements": "aia_core.domain.sociomap.engine_v2:_credibility",
+      "inputs": [
+       "split_half_check",
+       "uncertainty_radius",
+       "reliable_by_fdr"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5, jen u nakreslené mapy. Shoda nemá hodnotu, když se polovina nedá zmapovat (Interval MDS při příliš málo datech dělí nulou, nemá-li žádný pár nad prahem rozložení, nebo nezkonverguje jeho klasický start) nebo když jsou objekty jen dva; pak rozhodne, zda je nějaký pár SPOLEHLIVÝ. Stejně chybí poloměr, nedá-li se některá převzorkovaná mapa spočítat. Jiná chyba je vada a výpočet zastaví. Slabě určená mapa se ukáže se sdělením, že se dvě poloviny vzorku shodnou jen v s % srovnání (50 % = náhoda), bez shody že se žádný vztah neliší od náhody, a že pozice nejsou skupiny ani vzdálenosti. Mapa zapíše pravidlo, shodu, výsledek, počet spolehlivých párů a poloměr (credibility).",
+      "reading_cs": "",
+      "role_cs": "Rozhodne, zda je mapa slabě určená a čtenář nemá číst polohy jako skupiny ani vzdálenosti, a zapíše poloměr nejistoty.",
+      "source_cs": "",
+      "source_sha256": "e4b9207fc35e11e8ab4ba8d35c842920db885d579856cbeb2f5e153e0b529852",
+      "symbols": [
+       {
+        "latex": "s, R",
+        "meaning_cs": "shoda polovin a poloměr nejistoty (předchozí kroky)",
+        "unit": ""
+       },
+       {
+        "latex": "s_{\\min}",
+        "meaning_cs": "práh shody polovin",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_the_rule_and_the_flag_are_the_panels",
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_a_half_with_no_layout_pair_falls_back_to_the_no_reliable_pair_rule",
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_any_other_error_propagates",
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_the_object_map_stores_the_credibility_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_every_value_of_the_stage_changes_the_map_when_edited"
+      ],
+      "title_cs": "Věrohodnost mapy: slabě určená mapa a poloměr nejistoty",
+      "values": [
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Práh shody s_min",
+        "origin": "specification",
+        "reference": "credibility.split_half_threshold",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Počet rozdělení S",
+        "origin": "specification",
+        "reference": "credibility.split_half_splits",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Semínko rozdělení",
+        "origin": "specification",
+        "reference": "credibility.split_half_seed",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Převzorkování B",
+        "origin": "specification",
+        "reference": "credibility.bootstrap_resamples",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Semínko převzorkování",
+        "origin": "specification",
+        "reference": "credibility.bootstrap_seed",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Bezpečnostní násobek c",
+        "origin": "specification",
+        "reference": "credibility.safety_factor",
+        "unit": "",
+        "value": null
        }
       ]
      },
@@ -7941,7 +8437,7 @@
       ]
      }
     ],
-    "steps": 35,
+    "steps": 38,
     "title_cs": "Sociomapa: objektová mapa"
    },
    "aia-sociomap-4": {
@@ -8000,10 +8496,13 @@
      },
      {
       "id": "S4",
-      "note_cs": "Jak věrně mapa v rovině drží vzdálenosti, které měla dodržet.",
+      "note_cs": "Jak věrně mapa v rovině drží vzdálenosti, které měla dodržet, a jak by obstála s jiným vzorkem.",
       "step_ids": [
        "f7_stress",
-       "f7_quality"
+       "f7_quality",
+       "split_half_check",
+       "uncertainty_radius",
+       "map_credibility"
       ],
       "title_cs": "Věrohodnost mapy"
      },
@@ -8065,7 +8564,7 @@
     ],
     "id": "sociomap",
     "in_force": "aia-sociomap-3",
-    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky a terén podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén a věrohodnost mapy podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
     "preset": "aia-sociomap-4",
     "presets": [
      "aia-sociomap-4",
@@ -8096,7 +8595,7 @@
       "reading_cs": "",
       "role_cs": "Jméno a otisk metodiky, které si běh připne; podle nich je u každé mapy vidět, čím byla spočtena.",
       "source_cs": "metodika v platnosti při spuštění běhu",
-      "source_sha256": "a6306dbbc93aa77f0908bd5321d83d90083487d6943d90282b40fe83c62896ee",
+      "source_sha256": "ffb9d7a30159084b1dae7fc1c31185ababf4c9e09d4725d1f0407a4db6de1132",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_the_presets_fingerprints"
@@ -8353,7 +8852,9 @@
        }
       ],
       "feeds": [
-       "baseline_corrected_relation"
+       "baseline_corrected_relation",
+       "split_half_check",
+       "uncertainty_radius"
       ],
       "formula_latex": "\\tilde a_{ki} = a_{ki} - \\frac{1}{L_k}\\sum_{l} a_{kl},\\qquad L_k < 2 \\;\\lor\\; \\max_l |\\tilde a_{kl}| \\le 10^{-12} \\;\\Rightarrow\\; k \\text{ NEUMÍSTĚN}",
       "formulas": [],
@@ -8949,7 +9450,9 @@
         "ref": "AIA-SIGNED-OFF-INPUTS"
        }
       ],
-      "feeds": [],
+      "feeds": [
+       "map_credibility"
+      ],
       "formula_latex": "p_{(1)} \\le \\dots \\le p_{(m)},\\quad k^{*} = \\max\\left\\{k : p_{(k)} \\le \\tfrac{k}{m}\\, q\\right\\},\\qquad \\text{stav}_{ij} = \\begin{cases}\\text{RELIABLE} & \\text{pár mezi } (1) \\dots (k^{*}) \\;\\land\\; |\\tilde r_{ij}| > \\tau_{ij} \\\\\\text{WEAK} & \\text{známý, ale ne spolehlivý} \\\\\\text{UNKNOWN} & \\text{neznámý pár} \\end{cases}",
       "formulas": [],
       "id": "reliable_by_fdr",
@@ -9085,7 +9588,9 @@
        "sparse_design",
        "object_count_rule",
        "soft_rank_spearman_layout",
-       "interval_mds_layout"
+       "interval_mds_layout",
+       "split_half_check",
+       "uncertainty_radius"
       ],
       "formula_latex": "w^{L}_{ij} = \\begin{cases}\\min\\!\\left(1, \\max\\!\\left(0, \\dfrac{n_{ij} - 3}{n_{\\text{plná}} - 3}\\right)\\right) & n_{ij} \\ge n_L \\;\\land\\; v_i, v_j > 10^{-12} \\\\0 & \\text{jinak} \\end{cases}",
       "formulas": [],
@@ -9229,7 +9734,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "382029e868916940931916cad0ccbd86f750f01a7a1ec13e6da808b727c54324",
+      "source_sha256": "f919aea31f913a71c26247837e7c947375655b4e85a63fbadd96138c33621bb1",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -9714,7 +10219,9 @@
        }
       ],
       "feeds": [
-       "ruler_scale"
+       "ruler_scale",
+       "split_half_check",
+       "uncertainty_radius"
       ],
       "formula_latex": "\\min_{X} \\sum_{i<j} w_{ij} \\left(\\hat d_{ij} - d_{ij}(X)\\right)^2,\\quad \\hat d_{ij} = c\\, \\max\\!\\left(0,\\, m_d + b\\,(\\delta_{ij} - m_\\delta)\\right),\\quad w_{ij} = \\frac{\\max\\!\\left(\\pi_{ij}, \\max \\pi / C\\right)}{\\overline{w}},\\ \\pi_{ij} = \\frac{2 n_{ij}}{(1 - \\tilde r_{ij})(1 + \\tilde r_{ij})^2};\\quad n_{ij} < n_L:\\ \\hat d_{ij} = \\max\\!\\left(d_{ij},\\, \\kappa\\, \\hat d(\\sqrt 2)\\right),\\ w_{ij} = 1;\\quad X \\leftarrow V^{+} B(X)\\, X \\text{ (nejvýše 1500 iterací, stop při relativním zlepšení} < 10^{-8} \\text{ po 5 iteracích)}",
       "formulas": [],
@@ -9999,6 +10506,243 @@
       ]
      },
      {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-CREDIBILITY"
+       }
+      ],
+      "feeds": [
+       "map_credibility"
+      ],
+      "formula_latex": "s = \\frac{1}{S} \\sum_{t=1}^{S} \\frac{1}{M \\binom{M-1}{2}} \\sum_{i} \\sum_{\\substack{j<k \\\\ j,k \\ne i}} \\mathbb{1}\\!\\left[\\operatorname{sgn}\\!\\left(d^{(1)}_{ij} - d^{(1)}_{ik}\\right) = \\operatorname{sgn}\\!\\left(d^{(2)}_{ij} - d^{(2)}_{ik}\\right)\\right],\\qquad H_1 = \\pi_t[1..\\lfloor N/2 \\rfloor],\\ H_2 = \\pi_t[\\lfloor N/2 \\rfloor + 1..N]",
+      "formulas": [],
+      "id": "split_half_check",
+      "implements": "aia_core.domain.sociomap.signed_off_credibility:split_half_agreement",
+      "inputs": [
+       "person_centring",
+       "layout_pairs",
+       "interval_mds_layout"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5. Každá polovina dostane vlastní mapu metodou Interval MDS (ne rozložením podle pořadí), se stejnými prahy a vahami jako celá mapa. Trojice „i je blíž j než k“ se počítají pro každý objekt i. Se dvěma objekty žádná trojice není a shoda nemá hodnotu. Shodu zapíše mapa (credibility.split_half).",
+      "reading_cs": "",
+      "role_cs": "Ověří, zda by dvě poloviny vzorku nakreslily mapu stejně: měří, jak moc polohám věřit.",
+      "source_cs": "",
+      "source_sha256": "dd9fe299759b4e5a14c59daa2df900c4a19c0f23277676537076cf66af314cdc",
+      "symbols": [
+       {
+        "latex": "S",
+        "meaning_cs": "počet rozdělení (hodnota u kroku Věrohodnost mapy)",
+        "unit": ""
+       },
+       {
+        "latex": "\\pi_t",
+        "meaning_cs": "t-tá náhodná permutace respondentů (semínko u kroku Věrohodnost mapy)",
+        "unit": ""
+       },
+       {
+        "latex": "N, M",
+        "meaning_cs": "počet respondentů a mapovaných objektů",
+        "unit": ""
+       },
+       {
+        "latex": "d^{(h)}_{ij}",
+        "meaning_cs": "vzdálenost objektů i a j na mapě poloviny H_h: Interval MDS na vstupech spočtených jen z této poloviny, bez pravidla šumu",
+        "unit": ""
+       },
+       {
+        "latex": "s",
+        "meaning_cs": "shoda polovin: 0,5 = náhoda, 1 = stejné pořadí",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_the_split_half_check_and_the_radius_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_every_value_of_the_stage_changes_the_map_when_edited"
+      ],
+      "title_cs": "Kontrola dělených polovin: shoda dvou polovin vzorku",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-CREDIBILITY"
+       }
+      ],
+      "feeds": [
+       "map_credibility"
+      ],
+      "formula_latex": "Y^{(b)} = \\operatorname{Procrustes}\\!\\left(X^{(b)} \\to X\\right) / \\rho(X),\\quad \\rho(X) = \\sqrt{\\tfrac{1}{P} \\textstyle\\sum_{i<j} d_{ij}^2(X)},\\quad \\sigma_j = \\sqrt{\\tfrac{1}{B} \\textstyle\\sum_{b} \\lVert Y^{(b)}_j - \\bar Y_j \\rVert^2},\\quad R = c\\, \\operatorname{med}_j \\sigma_j",
+      "formulas": [],
+      "id": "uncertainty_radius",
+      "implements": "aia_core.domain.sociomap.signed_off_credibility:map_uncertainty",
+      "inputs": [
+       "person_centring",
+       "layout_pairs",
+       "interval_mds_layout"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5. Jak daleko se poloha objektu typicky posune, kdyby se studie opakovala: jeden poloměr pro celou mapu, v jednotkách střední kvadratické vzdálenosti objektů; ke kreslení se násobí touto vzdáleností nakreslené mapy (platí pro obě metody rozložení). Rozptyly jednotlivých objektů se neukazují: objekty neřadí lépe než náhoda. c = 1,2 vyrovnává, že převzorkování skutečný rozptyl podceňuje.",
+      "reading_cs": "",
+      "role_cs": "Jak daleko se objekt na mapě typicky posune s jiným vzorkem; kruh kolem každého objektu.",
+      "source_cs": "",
+      "source_sha256": "699c788df4d4f127c966c2381646b1a956f7d5442f68212d5890746c1d4c8916",
+      "symbols": [
+       {
+        "latex": "X",
+        "meaning_cs": "Interval MDS celého vzorku bez pravidla šumu (referenční mapa)",
+        "unit": ""
+       },
+       {
+        "latex": "X^{(b)}",
+        "meaning_cs": "Interval MDS b-tého převzorkování respondentů s opakováním, ze studeného startu",
+        "unit": ""
+       },
+       {
+        "latex": "\\operatorname{Procrustes}",
+        "meaning_cs": "otočení, zrcadlení, posun a jedno měřítko na referenční mapu",
+        "unit": ""
+       },
+       {
+        "latex": "P",
+        "meaning_cs": "počet párů M(M - 1)/2",
+        "unit": ""
+       },
+       {
+        "latex": "\\sigma_j",
+        "meaning_cs": "rozptyl polohy objektu j",
+        "unit": ""
+       },
+       {
+        "latex": "B, c",
+        "meaning_cs": "počet převzorkování a bezpečnostní násobek (u kroku Věrohodnost mapy)",
+        "unit": ""
+       },
+       {
+        "latex": "R",
+        "meaning_cs": "poloměr nejistoty mapy",
+        "unit": "násobky ρ"
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_the_split_half_check_and_the_radius_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_every_value_of_the_stage_changes_the_map_when_edited"
+      ],
+      "title_cs": "Poloměr nejistoty polohy",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-CREDIBILITY"
+       }
+      ],
+      "feeds": [],
+      "formula_latex": "\\text{slabě určená} = \\begin{cases} s < s_{\\min} & s \\text{ má hodnotu} \\\\ \\#\\{i < j : \\text{pár } ij \\text{ SPOLEHLIVÝ}\\} = 0 & \\text{jinak} \\end{cases},\\qquad R = \\varnothing \\text{ bez převzorkovaných map}",
+      "formulas": [],
+      "id": "map_credibility",
+      "implements": "aia_core.domain.sociomap.engine_v2:_credibility",
+      "inputs": [
+       "split_half_check",
+       "uncertainty_radius",
+       "reliable_by_fdr"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5, jen u nakreslené mapy. Shoda nemá hodnotu, když se polovina nedá zmapovat (Interval MDS při příliš málo datech dělí nulou, nemá-li žádný pár nad prahem rozložení, nebo nezkonverguje jeho klasický start) nebo když jsou objekty jen dva; pak rozhodne, zda je nějaký pár SPOLEHLIVÝ. Stejně chybí poloměr, nedá-li se některá převzorkovaná mapa spočítat. Jiná chyba je vada a výpočet zastaví. Slabě určená mapa se ukáže se sdělením, že se dvě poloviny vzorku shodnou jen v s % srovnání (50 % = náhoda), bez shody že se žádný vztah neliší od náhody, a že pozice nejsou skupiny ani vzdálenosti. Mapa zapíše pravidlo, shodu, výsledek, počet spolehlivých párů a poloměr (credibility).",
+      "reading_cs": "",
+      "role_cs": "Rozhodne, zda je mapa slabě určená a čtenář nemá číst polohy jako skupiny ani vzdálenosti, a zapíše poloměr nejistoty.",
+      "source_cs": "",
+      "source_sha256": "e4b9207fc35e11e8ab4ba8d35c842920db885d579856cbeb2f5e153e0b529852",
+      "symbols": [
+       {
+        "latex": "s, R",
+        "meaning_cs": "shoda polovin a poloměr nejistoty (předchozí kroky)",
+        "unit": ""
+       },
+       {
+        "latex": "s_{\\min}",
+        "meaning_cs": "práh shody polovin",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_the_rule_and_the_flag_are_the_panels",
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_a_half_with_no_layout_pair_falls_back_to_the_no_reliable_pair_rule",
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_any_other_error_propagates",
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_the_object_map_stores_the_credibility_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_every_value_of_the_stage_changes_the_map_when_edited"
+      ],
+      "title_cs": "Věrohodnost mapy: slabě určená mapa a poloměr nejistoty",
+      "values": [
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Práh shody s_min",
+        "origin": "specification",
+        "reference": "credibility.split_half_threshold",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Počet rozdělení S",
+        "origin": "specification",
+        "reference": "credibility.split_half_splits",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Semínko rozdělení",
+        "origin": "specification",
+        "reference": "credibility.split_half_seed",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Převzorkování B",
+        "origin": "specification",
+        "reference": "credibility.bootstrap_resamples",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Semínko převzorkování",
+        "origin": "specification",
+        "reference": "credibility.bootstrap_seed",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Bezpečnostní násobek c",
+        "origin": "specification",
+        "reference": "credibility.safety_factor",
+        "unit": "",
+        "value": null
+       }
+      ]
+     },
+     {
       "audit": "F8",
       "effect_cs": "",
       "evidence": [
@@ -10857,7 +11601,7 @@
       ]
      }
     ],
-    "steps": 35,
+    "steps": 38,
     "title_cs": "Sociomapa: objektová mapa"
    },
    "aia-sociomap-5": {
@@ -10916,10 +11660,13 @@
      },
      {
       "id": "S4",
-      "note_cs": "Jak věrně mapa v rovině drží vzdálenosti, které měla dodržet.",
+      "note_cs": "Jak věrně mapa v rovině drží vzdálenosti, které měla dodržet, a jak by obstála s jiným vzorkem.",
       "step_ids": [
        "f7_stress",
-       "f7_quality"
+       "f7_quality",
+       "split_half_check",
+       "uncertainty_radius",
+       "map_credibility"
       ],
       "title_cs": "Věrohodnost mapy"
      },
@@ -10981,7 +11728,7 @@
     ],
     "id": "sociomap",
     "in_force": "aia-sociomap-3",
-    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky a terén podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén a věrohodnost mapy podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
     "preset": "aia-sociomap-5",
     "presets": [
      "aia-sociomap-4",
@@ -11012,7 +11759,7 @@
       "reading_cs": "",
       "role_cs": "Jméno a otisk metodiky, které si běh připne; podle nich je u každé mapy vidět, čím byla spočtena.",
       "source_cs": "metodika v platnosti při spuštění běhu",
-      "source_sha256": "a6306dbbc93aa77f0908bd5321d83d90083487d6943d90282b40fe83c62896ee",
+      "source_sha256": "ffb9d7a30159084b1dae7fc1c31185ababf4c9e09d4725d1f0407a4db6de1132",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_the_presets_fingerprints"
@@ -11269,7 +12016,9 @@
        }
       ],
       "feeds": [
-       "baseline_corrected_relation"
+       "baseline_corrected_relation",
+       "split_half_check",
+       "uncertainty_radius"
       ],
       "formula_latex": "\\tilde a_{ki} = a_{ki} - \\frac{1}{L_k}\\sum_{l} a_{kl},\\qquad L_k < 2 \\;\\lor\\; \\max_l |\\tilde a_{kl}| \\le 10^{-12} \\;\\Rightarrow\\; k \\text{ NEUMÍSTĚN}",
       "formulas": [],
@@ -11865,7 +12614,9 @@
         "ref": "AIA-SIGNED-OFF-INPUTS"
        }
       ],
-      "feeds": [],
+      "feeds": [
+       "map_credibility"
+      ],
       "formula_latex": "p_{(1)} \\le \\dots \\le p_{(m)},\\quad k^{*} = \\max\\left\\{k : p_{(k)} \\le \\tfrac{k}{m}\\, q\\right\\},\\qquad \\text{stav}_{ij} = \\begin{cases}\\text{RELIABLE} & \\text{pár mezi } (1) \\dots (k^{*}) \\;\\land\\; |\\tilde r_{ij}| > \\tau_{ij} \\\\\\text{WEAK} & \\text{známý, ale ne spolehlivý} \\\\\\text{UNKNOWN} & \\text{neznámý pár} \\end{cases}",
       "formulas": [],
       "id": "reliable_by_fdr",
@@ -12001,7 +12752,9 @@
        "sparse_design",
        "object_count_rule",
        "soft_rank_spearman_layout",
-       "interval_mds_layout"
+       "interval_mds_layout",
+       "split_half_check",
+       "uncertainty_radius"
       ],
       "formula_latex": "w^{L}_{ij} = \\begin{cases}\\min\\!\\left(1, \\max\\!\\left(0, \\dfrac{n_{ij} - 3}{n_{\\text{plná}} - 3}\\right)\\right) & n_{ij} \\ge n_L \\;\\land\\; v_i, v_j > 10^{-12} \\\\0 & \\text{jinak} \\end{cases}",
       "formulas": [],
@@ -12145,7 +12898,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "382029e868916940931916cad0ccbd86f750f01a7a1ec13e6da808b727c54324",
+      "source_sha256": "f919aea31f913a71c26247837e7c947375655b4e85a63fbadd96138c33621bb1",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -12630,7 +13383,9 @@
        }
       ],
       "feeds": [
-       "ruler_scale"
+       "ruler_scale",
+       "split_half_check",
+       "uncertainty_radius"
       ],
       "formula_latex": "\\min_{X} \\sum_{i<j} w_{ij} \\left(\\hat d_{ij} - d_{ij}(X)\\right)^2,\\quad \\hat d_{ij} = c\\, \\max\\!\\left(0,\\, m_d + b\\,(\\delta_{ij} - m_\\delta)\\right),\\quad w_{ij} = \\frac{\\max\\!\\left(\\pi_{ij}, \\max \\pi / C\\right)}{\\overline{w}},\\ \\pi_{ij} = \\frac{2 n_{ij}}{(1 - \\tilde r_{ij})(1 + \\tilde r_{ij})^2};\\quad n_{ij} < n_L:\\ \\hat d_{ij} = \\max\\!\\left(d_{ij},\\, \\kappa\\, \\hat d(\\sqrt 2)\\right),\\ w_{ij} = 1;\\quad X \\leftarrow V^{+} B(X)\\, X \\text{ (nejvýše 1500 iterací, stop při relativním zlepšení} < 10^{-8} \\text{ po 5 iteracích)}",
       "formulas": [],
@@ -12907,6 +13662,243 @@
           "weak"
          ]
         ]
+       }
+      ]
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-CREDIBILITY"
+       }
+      ],
+      "feeds": [
+       "map_credibility"
+      ],
+      "formula_latex": "s = \\frac{1}{S} \\sum_{t=1}^{S} \\frac{1}{M \\binom{M-1}{2}} \\sum_{i} \\sum_{\\substack{j<k \\\\ j,k \\ne i}} \\mathbb{1}\\!\\left[\\operatorname{sgn}\\!\\left(d^{(1)}_{ij} - d^{(1)}_{ik}\\right) = \\operatorname{sgn}\\!\\left(d^{(2)}_{ij} - d^{(2)}_{ik}\\right)\\right],\\qquad H_1 = \\pi_t[1..\\lfloor N/2 \\rfloor],\\ H_2 = \\pi_t[\\lfloor N/2 \\rfloor + 1..N]",
+      "formulas": [],
+      "id": "split_half_check",
+      "implements": "aia_core.domain.sociomap.signed_off_credibility:split_half_agreement",
+      "inputs": [
+       "person_centring",
+       "layout_pairs",
+       "interval_mds_layout"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5. Každá polovina dostane vlastní mapu metodou Interval MDS (ne rozložením podle pořadí), se stejnými prahy a vahami jako celá mapa. Trojice „i je blíž j než k“ se počítají pro každý objekt i. Se dvěma objekty žádná trojice není a shoda nemá hodnotu. Shodu zapíše mapa (credibility.split_half).",
+      "reading_cs": "",
+      "role_cs": "Ověří, zda by dvě poloviny vzorku nakreslily mapu stejně: měří, jak moc polohám věřit.",
+      "source_cs": "",
+      "source_sha256": "dd9fe299759b4e5a14c59daa2df900c4a19c0f23277676537076cf66af314cdc",
+      "symbols": [
+       {
+        "latex": "S",
+        "meaning_cs": "počet rozdělení (hodnota u kroku Věrohodnost mapy)",
+        "unit": ""
+       },
+       {
+        "latex": "\\pi_t",
+        "meaning_cs": "t-tá náhodná permutace respondentů (semínko u kroku Věrohodnost mapy)",
+        "unit": ""
+       },
+       {
+        "latex": "N, M",
+        "meaning_cs": "počet respondentů a mapovaných objektů",
+        "unit": ""
+       },
+       {
+        "latex": "d^{(h)}_{ij}",
+        "meaning_cs": "vzdálenost objektů i a j na mapě poloviny H_h: Interval MDS na vstupech spočtených jen z této poloviny, bez pravidla šumu",
+        "unit": ""
+       },
+       {
+        "latex": "s",
+        "meaning_cs": "shoda polovin: 0,5 = náhoda, 1 = stejné pořadí",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_the_split_half_check_and_the_radius_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_every_value_of_the_stage_changes_the_map_when_edited"
+      ],
+      "title_cs": "Kontrola dělených polovin: shoda dvou polovin vzorku",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-CREDIBILITY"
+       }
+      ],
+      "feeds": [
+       "map_credibility"
+      ],
+      "formula_latex": "Y^{(b)} = \\operatorname{Procrustes}\\!\\left(X^{(b)} \\to X\\right) / \\rho(X),\\quad \\rho(X) = \\sqrt{\\tfrac{1}{P} \\textstyle\\sum_{i<j} d_{ij}^2(X)},\\quad \\sigma_j = \\sqrt{\\tfrac{1}{B} \\textstyle\\sum_{b} \\lVert Y^{(b)}_j - \\bar Y_j \\rVert^2},\\quad R = c\\, \\operatorname{med}_j \\sigma_j",
+      "formulas": [],
+      "id": "uncertainty_radius",
+      "implements": "aia_core.domain.sociomap.signed_off_credibility:map_uncertainty",
+      "inputs": [
+       "person_centring",
+       "layout_pairs",
+       "interval_mds_layout"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5. Jak daleko se poloha objektu typicky posune, kdyby se studie opakovala: jeden poloměr pro celou mapu, v jednotkách střední kvadratické vzdálenosti objektů; ke kreslení se násobí touto vzdáleností nakreslené mapy (platí pro obě metody rozložení). Rozptyly jednotlivých objektů se neukazují: objekty neřadí lépe než náhoda. c = 1,2 vyrovnává, že převzorkování skutečný rozptyl podceňuje.",
+      "reading_cs": "",
+      "role_cs": "Jak daleko se objekt na mapě typicky posune s jiným vzorkem; kruh kolem každého objektu.",
+      "source_cs": "",
+      "source_sha256": "699c788df4d4f127c966c2381646b1a956f7d5442f68212d5890746c1d4c8916",
+      "symbols": [
+       {
+        "latex": "X",
+        "meaning_cs": "Interval MDS celého vzorku bez pravidla šumu (referenční mapa)",
+        "unit": ""
+       },
+       {
+        "latex": "X^{(b)}",
+        "meaning_cs": "Interval MDS b-tého převzorkování respondentů s opakováním, ze studeného startu",
+        "unit": ""
+       },
+       {
+        "latex": "\\operatorname{Procrustes}",
+        "meaning_cs": "otočení, zrcadlení, posun a jedno měřítko na referenční mapu",
+        "unit": ""
+       },
+       {
+        "latex": "P",
+        "meaning_cs": "počet párů M(M - 1)/2",
+        "unit": ""
+       },
+       {
+        "latex": "\\sigma_j",
+        "meaning_cs": "rozptyl polohy objektu j",
+        "unit": ""
+       },
+       {
+        "latex": "B, c",
+        "meaning_cs": "počet převzorkování a bezpečnostní násobek (u kroku Věrohodnost mapy)",
+        "unit": ""
+       },
+       {
+        "latex": "R",
+        "meaning_cs": "poloměr nejistoty mapy",
+        "unit": "násobky ρ"
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_the_split_half_check_and_the_radius_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_every_value_of_the_stage_changes_the_map_when_edited"
+      ],
+      "title_cs": "Poloměr nejistoty polohy",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-CREDIBILITY"
+       }
+      ],
+      "feeds": [],
+      "formula_latex": "\\text{slabě určená} = \\begin{cases} s < s_{\\min} & s \\text{ má hodnotu} \\\\ \\#\\{i < j : \\text{pár } ij \\text{ SPOLEHLIVÝ}\\} = 0 & \\text{jinak} \\end{cases},\\qquad R = \\varnothing \\text{ bez převzorkovaných map}",
+      "formulas": [],
+      "id": "map_credibility",
+      "implements": "aia_core.domain.sociomap.engine_v2:_credibility",
+      "inputs": [
+       "split_half_check",
+       "uncertainty_radius",
+       "reliable_by_fdr"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5, jen u nakreslené mapy. Shoda nemá hodnotu, když se polovina nedá zmapovat (Interval MDS při příliš málo datech dělí nulou, nemá-li žádný pár nad prahem rozložení, nebo nezkonverguje jeho klasický start) nebo když jsou objekty jen dva; pak rozhodne, zda je nějaký pár SPOLEHLIVÝ. Stejně chybí poloměr, nedá-li se některá převzorkovaná mapa spočítat. Jiná chyba je vada a výpočet zastaví. Slabě určená mapa se ukáže se sdělením, že se dvě poloviny vzorku shodnou jen v s % srovnání (50 % = náhoda), bez shody že se žádný vztah neliší od náhody, a že pozice nejsou skupiny ani vzdálenosti. Mapa zapíše pravidlo, shodu, výsledek, počet spolehlivých párů a poloměr (credibility).",
+      "reading_cs": "",
+      "role_cs": "Rozhodne, zda je mapa slabě určená a čtenář nemá číst polohy jako skupiny ani vzdálenosti, a zapíše poloměr nejistoty.",
+      "source_cs": "",
+      "source_sha256": "e4b9207fc35e11e8ab4ba8d35c842920db885d579856cbeb2f5e153e0b529852",
+      "symbols": [
+       {
+        "latex": "s, R",
+        "meaning_cs": "shoda polovin a poloměr nejistoty (předchozí kroky)",
+        "unit": ""
+       },
+       {
+        "latex": "s_{\\min}",
+        "meaning_cs": "práh shody polovin",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_the_rule_and_the_flag_are_the_panels",
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_a_half_with_no_layout_pair_falls_back_to_the_no_reliable_pair_rule",
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_any_other_error_propagates",
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_the_object_map_stores_the_credibility_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_every_value_of_the_stage_changes_the_map_when_edited"
+      ],
+      "title_cs": "Věrohodnost mapy: slabě určená mapa a poloměr nejistoty",
+      "values": [
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Práh shody s_min",
+        "origin": "specification",
+        "reference": "credibility.split_half_threshold",
+        "unit": "",
+        "value": 0.59
+       },
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Počet rozdělení S",
+        "origin": "specification",
+        "reference": "credibility.split_half_splits",
+        "unit": "",
+        "value": 2
+       },
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Semínko rozdělení",
+        "origin": "specification",
+        "reference": "credibility.split_half_seed",
+        "unit": "",
+        "value": 0
+       },
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Převzorkování B",
+        "origin": "specification",
+        "reference": "credibility.bootstrap_resamples",
+        "unit": "",
+        "value": 20
+       },
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Semínko převzorkování",
+        "origin": "specification",
+        "reference": "credibility.bootstrap_seed",
+        "unit": "",
+        "value": 0
+       },
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Bezpečnostní násobek c",
+        "origin": "specification",
+        "reference": "credibility.safety_factor",
+        "unit": "",
+        "value": 1.2
        }
       ]
      },
@@ -13769,7 +14761,7 @@
       ]
      }
     ],
-    "steps": 35,
+    "steps": 38,
     "title_cs": "Sociomapa: objektová mapa"
    }
   },
@@ -17110,10 +18102,13 @@
     },
     {
      "id": "S4",
-     "note_cs": "Jak věrně mapa v rovině drží vzdálenosti, které měla dodržet.",
+     "note_cs": "Jak věrně mapa v rovině drží vzdálenosti, které měla dodržet, a jak by obstála s jiným vzorkem.",
      "step_ids": [
       "f7_stress",
-      "f7_quality"
+      "f7_quality",
+      "split_half_check",
+      "uncertainty_radius",
+      "map_credibility"
      ],
      "title_cs": "Věrohodnost mapy"
     },
@@ -17175,7 +18170,7 @@
    ],
    "id": "sociomap",
    "in_force": "aia-sociomap-3",
-   "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky a terén podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+   "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén a věrohodnost mapy podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
    "presets": [
     "aia-sociomap-4",
     "aia-sociomap-3",
@@ -17183,7 +18178,7 @@
     "aia-sociomap-5"
    ],
    "preview_title_cs": "",
-   "steps": 35,
+   "steps": 38,
    "title_cs": "Sociomapa: objektová mapa"
   },
   {
@@ -17833,6 +18828,14 @@
      ],
      "resamples": 500,
      "seed": 20261007
+    },
+    "credibility": {
+     "bootstrap_resamples": 20,
+     "bootstrap_seed": 0,
+     "safety_factor": 1.2,
+     "split_half_seed": 0,
+     "split_half_splits": 2,
+     "split_half_threshold": 0.59
     },
     "layout": {
      "algorithm": "aia_soft_rank_spearman_or_interval_mds_v1",

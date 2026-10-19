@@ -82,6 +82,7 @@ __all__ = [
     "IntervalMdsSpec",
     "KernelWidthBasis",
     "LayoutSpec",
+    "MapCredibilitySpec",
     "MapFrameMethod",
     "MapFrameSpec",
     "MetricsSpec",
@@ -672,13 +673,43 @@ class ConnectednessSpec(_Frozen):
         return body
 
 
+class MapCredibilitySpec(_Frozen):
+    """The signed-off methodology's map credibility (``aia-sociomap-5``): the split-half check
+    over ``split_half_splits`` random halvings of the respondents drawn from
+    ``split_half_seed``, the map weakly determined below ``split_half_threshold``; and the
+    uncertainty radius from ``bootstrap_resamples`` respondent bootstraps drawn from
+    ``bootstrap_seed``, ``safety_factor`` times the median object spread."""
+
+    split_half_threshold: float
+    split_half_splits: int
+    split_half_seed: int
+    bootstrap_resamples: int
+    bootstrap_seed: int
+    safety_factor: float
+
+    @field_validator(
+        "split_half_threshold",
+        "split_half_splits",
+        "split_half_seed",
+        "bootstrap_resamples",
+        "bootstrap_seed",
+        "safety_factor",
+        mode="before",
+    )
+    @classmethod
+    def _no_bool(cls, v: object) -> object:
+        return _not_boolean(v)
+
+
 class SociomapSpecV3(_Frozen):
     """Every methodology decision behind one contract-3 Sociomap (the audit's object map).
 
     ``respondent_placement`` is declared ``None``: no member is built (chunk 3 waits on a
     decision the audit leaves to its author), and a value is refused by
     :func:`require_supported` rather than ignored. ``terrain`` is the object envelope
-    (chunk 4b) or ``None``, which computes no terrain.
+    (chunk 4b) or ``None``, which computes no terrain. ``credibility`` is declared exactly
+    under the baseline-corrected relation (``aia-sociomap-5``); ``None`` is left out of the
+    stored form, so earlier pins read unchanged.
     """
 
     methodology_version: str
@@ -689,6 +720,7 @@ class SociomapSpecV3(_Frozen):
     connectedness: ConnectednessSpec
     respondent_placement: str | None
     terrain: ObjectTerrainSpec | None
+    credibility: MapCredibilitySpec | None = None
 
     @field_validator("methodology_version")
     @classmethod
@@ -696,6 +728,13 @@ class SociomapSpecV3(_Frozen):
         if not v.strip():
             raise ValueError("methodology_version must be stated; blank is not a default")
         return v
+
+    @model_serializer(mode="wrap")
+    def _without_undeclared(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        body: dict[str, Any] = handler(self)
+        if body.get("credibility") is None:
+            body.pop("credibility", None)
+        return body
 
     def fingerprint(self) -> str:
         """Stable SHA256 over the whole methodology, its contract included."""
@@ -856,6 +895,7 @@ def _baseline_corrected_problems(spec: SociomapSpecV3) -> dict[str, str]:
         "relation.false_discovery_rate": rel.false_discovery_rate,
         "relation.noise_rule": rel.noise_rule,
         **{f"layout.{key}": getattr(layout, key) for key in _LAYOUT_PAIR_FIELDS},
+        "credibility": spec.credibility,
     }
     if not corrected:
         for path, value in declared.items():
@@ -926,6 +966,7 @@ def _baseline_corrected_problems(spec: SociomapSpecV3) -> dict[str, str]:
     if cap is not None and not (math.isfinite(cap) and cap >= 1.0):
         problems["layout.precision_weight_cap"] = f"a cap is at least 1; got {cap!r}"
     problems.update(_soft_rank_spearman_problems(layout.soft_rank_spearman))
+    problems.update(_credibility_problems(spec.credibility))
     imds = layout.interval_mds
     if imds is not None and imds.random_starts < 0:
         problems["layout.interval_mds.random_starts"] = (
@@ -958,6 +999,34 @@ def _soft_rank_spearman_problems(srs: SoftRankSpearmanSpec | None) -> dict[str, 
             problems[f"{path}.{key}"] = f"at least 1; got {getattr(srs, key)}"
     if srs.seed < 0:
         problems[f"{path}.seed"] = f"the generator's seed is a non-negative integer; got {srs.seed}"
+    return problems
+
+
+def _credibility_problems(credibility: MapCredibilitySpec | None) -> dict[str, str]:
+    problems: dict[str, str] = {}
+    if credibility is None:
+        return problems
+    threshold = credibility.split_half_threshold
+    if not (math.isfinite(threshold) and 0.0 <= threshold <= 1.0):
+        problems["credibility.split_half_threshold"] = (
+            f"a share of triplets lies in [0, 1]; got {threshold!r}"
+        )
+    if credibility.split_half_splits < 1:
+        problems["credibility.split_half_splits"] = (
+            f"at least 1; got {credibility.split_half_splits}"
+        )
+    if credibility.bootstrap_resamples < 2:
+        problems["credibility.bootstrap_resamples"] = (
+            f"at least 2: one bootstrap map has no spread; got {credibility.bootstrap_resamples}"
+        )
+    for key in ("split_half_seed", "bootstrap_seed"):
+        if getattr(credibility, key) < 0:
+            problems[f"credibility.{key}"] = (
+                f"the generator's seed is a non-negative integer; got {getattr(credibility, key)}"
+            )
+    safety = credibility.safety_factor
+    if not (math.isfinite(safety) and safety > 0.0):
+        problems["credibility.safety_factor"] = f"a safety factor is positive; got {safety!r}"
     return problems
 
 
@@ -1314,7 +1383,8 @@ AIA_SOCIOMAP_V4 = AIA_SOCIOMAP_V3.model_copy(
 # Benjamini-Hochberg with the noise rule, the layout pairs and the sparse-design note; the
 # objects placed by soft-rank Spearman with Coulomb repulsion or, by the fixed object-count
 # rule, Interval MDS; no Stress-1; the survey-weighted mean rating as height, and the envelope of
-# relative heights on a grid framed on the map; every value the methodology's own. Not pinned
+# relative heights on a grid framed on the map; the split-half check and the uncertainty radius;
+# every value the methodology's own. Not pinned
 # by default and not in the register: a run gets it only through a methodology version.
 AIA_SOCIOMAP_V5 = AIA_SOCIOMAP_V4.model_copy(
     update={
@@ -1353,6 +1423,14 @@ AIA_SOCIOMAP_V5 = AIA_SOCIOMAP_V4.model_copy(
                 ),
                 "interval_mds": IntervalMdsSpec(random_starts=2, floor_fraction=0.5),
             }
+        ),
+        "credibility": MapCredibilitySpec(
+            split_half_threshold=0.59,
+            split_half_splits=2,
+            split_half_seed=0,
+            bootstrap_resamples=20,
+            bootstrap_seed=0,
+            safety_factor=1.2,
         ),
         "terrain": ObjectTerrainSpec(
             method=TerrainMethod.FRAMED_RELATIVE_ENVELOPE,

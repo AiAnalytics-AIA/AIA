@@ -57,6 +57,17 @@ export type ObjectMapArtifact = {
         height: (number | null)[][];
         governing: (number | null)[][];
       };
+  // aia-sociomap-5, a MAPPED map only: the split-half check (null without a score, when the
+  // no-reliable-pair rule decides) and the uncertainty radius in units of the map's RMS
+  // inter-object distance (null when the bootstrap maps cannot be computed). Not drawn yet.
+  credibility?: {
+    rule: "split_half" | "no_reliable_pair";
+    split_half: number | null;
+    threshold: number;
+    weakly_determined: boolean;
+    reliable_pairs: number;
+    uncertainty_radius: number | null;
+  };
 };
 
 type StoredMap = { artifact: ObjectMapArtifact; artifact_fingerprint: string; spec_fingerprint: string };

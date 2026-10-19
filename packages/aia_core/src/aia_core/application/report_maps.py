@@ -21,6 +21,7 @@ from aia_core.domain.report.model import (
 )
 from aia_core.domain.report.numbers import counted, effective_n, number
 from aia_core.domain.sociomap import read_object_maps
+from aia_core.domain.sociomap.models_v3 import MapCredibility
 from aia_core.domain.sociomap.pairs import PairRelations
 from aia_core.domain.sociomap.relations import PairStatus
 from aia_core.domain.sociomap.terrain import EnvelopeTerrain
@@ -71,6 +72,34 @@ POSITION_METHOD = {
     "soft_rank_spearman_coulomb": "Spearman měkkých pořadí s Coulombovým odpuzováním",
     "interval_mds": "Interval MDS",
 }
+
+
+def _credibility_note(credibility: MapCredibility) -> str:
+    """The signed-off methodology's split-half check and uncertainty radius, for internal
+    readers."""
+    agreement = (
+        " Shodu polovin vzorku nelze spočítat; mapa je slabě určená, právě když žádný vztah "
+        f"není spolehlivý (spolehlivých vztahů: {credibility.reliable_pairs})."
+        if credibility.split_half is None
+        else " Dvě poloviny vzorku se shodnou v "
+        f"{number(round(100 * credibility.split_half), 0)} % srovnání „co je blíž“ (50 % = "
+        f"náhoda; pod {number(round(100 * credibility.threshold), 0)} % je mapa slabě určená)."
+    )
+    verdict = (
+        " Mapa je slabě určená." if credibility.weakly_determined else (" Mapa slabě určená není.")
+    )
+    radius = credibility.uncertainty_radius
+    return (
+        agreement
+        + verdict
+        + (
+            " Poloměr nejistoty polohy nelze spočítat."
+            if radius is None
+            else f" Poloměr nejistoty polohy je {number(round(radius, 2), 2)}násobek střední "
+            "kvadratické vzdálenosti objektů."
+        )
+    )
+
 
 QUALITY = {
     "good": "dobrá",
@@ -152,6 +181,25 @@ def compose_map_sections(
                     ),
                 )
             )
+            credibility = artifact.credibility
+            if credibility is not None and credibility.weakly_determined:
+                # The signed-off methodology shows this instead of reading positions as structure.
+                blocks.append(
+                    Callout(
+                        CalloutKind.LIMITATION,
+                        text(
+                            (
+                                "Žádný vztah mezi objekty se neliší od náhody. "
+                                if credibility.split_half is None
+                                else "Dvě poloviny vzorku se shodnou jen v "
+                                f"{number(round(100 * credibility.split_half), 0)} % srovnání "
+                                "„co je blíž“ (50 % = náhoda). "
+                            )
+                            + "Pozice na mapě nečtěte jako skupiny ani vzdálenosti."
+                        ),
+                        title="Slabě určená mapa",
+                    )
+                )
             if not client:
                 # Support counts and the fit, as numbers outside the ledger: internal only.
                 blocks.append(
@@ -172,6 +220,7 @@ def compose_map_sections(
                                 if layout.stress_1 is not None and layout.quality is not None
                                 else ""
                             )
+                            + ("" if credibility is None else _credibility_note(credibility))
                         )
                     )
                 )

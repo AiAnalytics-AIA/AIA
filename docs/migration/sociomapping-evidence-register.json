@@ -2428,6 +2428,53 @@
    "uncertainty": "The methodology is AIA's own, signed off by its owner; no external source states it. It assumes every object is PRIMARY, and under aia-sociomap-5 every mapped object is: context objects are left off the map (open question); the code still raises hills and scales the relative heights over PRIMARY objects only, so it equals the methodology's. The height is survey-weighted and the relations unweighted, as the methodology is (and as the AIA panel draws it); whether the relations should carry survey weights is an open question for the methodology owner. The heights are stored on the declared 0-1 scale rather than the raw scale; the relative heights are the same, since min-max scaling ignores the scale's ends, except that the 1e-15 tie threshold is read on the 0-1 scale. Drawing (the height exaggeration, node size, label note, colours, camera) is the web client's.",
    "resolve_by": "plan signed-off-sociomap-method",
    "question": null
+  },
+  {
+   "id": "AIA-SIGNED-OFF-CREDIBILITY",
+   "title": "Map credibility: the split-half check, the weakly determined map with its no-reliable-pair fallback, and one uncertainty radius per map",
+   "product": "AIA",
+   "label": "PROPOSED",
+   "sources": [
+    {
+     "document": "AIA_SOCIOMAPA_METHOD",
+     "page": null,
+     "section": "map_checks.py: split_half_agreement, structure_statement, SPLIT_HALF_MIN, SPLIT_HALF_SPLITS; uncertainty.py: map_uncertainty, _procrustes, _rho, SAFETY; the AIA panel's object_map (aia_map.py) for the fallbacks",
+     "states": "The respondents are split at random into two halves (generator seed 0, the first floor(N/2) of a permutation and the rest), twice; each half is prepared without the noise rule and mapped by Interval MDS; the score is the share of triplets (i; j, k) whose order 'i closer to j than to k' the two half-maps agree on, averaged over the splits (0.5 chance, 1 identical). Below 0.59 the map is weakly determined: two halves of the sample agree on only s % of 'which is closer' comparisons, and positions are not to be read as groups or distances. Without a score the map is weakly determined when no pair is RELIABLE (BH 5 % and the noise rule). The uncertainty radius: 20 respondent bootstraps (seed 0), each prepared without the noise rule and mapped by Interval MDS from a cold start, Procrustes-aligned (rotation, reflection, translation, uniform scale) onto the Interval MDS map of the whole sample; each object's RMS deviation from its mean bootstrap position in units of that map's RMS inter-object distance; radius = 1.2 x the median over objects. One radius per map: per-object spreads rank the objects no better than chance. The AIA panel decides by the no-reliable-pair rule when the split-half check fails or has no score (two objects), and draws no radius when the bootstrap fails."
+    }
+   ],
+   "formula": "s = mean over S splits of mean over i and j < k (j, k != i) of [sgn(d1_ij - d1_ik) = sgn(d2_ij - d2_ik)], d_h the distances of the Interval MDS map of half h; weakly determined = s < s_min when s is defined, else #RELIABLE pairs = 0; Y_b = Procrustes(X_b onto X) / rho(X), rho = sqrt(mean_{i<j} d_ij(X)^2); sigma_j = sqrt(mean_b ||Y_bj - mean_b Y_bj||^2); R = c median_j sigma_j",
+   "applies_to": "aia-sociomap-5's MAPPED object map: credibility.split_half, rule, threshold, weakly_determined, reliable_pairs and uncertainty_radius (engine_v2.compute_object_map).",
+   "implementation": "aia_core.domain.sociomap.engine_v2:_credibility",
+   "validation": [
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_the_split_half_check_and_the_radius_match_the_methodologys_own_code",
+     "what": "the split-half agreement, the uncertainty radius and each object's spread of the methodology's own code on nine studies (2 to 20 objects; very sparse, halves that cannot be mapped, too few respondents to bootstrap, pure noise), to 1e-12, and the same LinAlgError where it fails"
+    },
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_the_rule_and_the_flag_are_the_panels",
+     "what": "which rule decides, whether the map is weakly determined, the RELIABLE pairs and the radius as the AIA panel computes them, on the nine studies"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_a_half_with_no_layout_pair_falls_back_to_the_no_reliable_pair_rule",
+     "what": "a half with no pair at the layout floor raises ZeroDivisionError, as the original does, and the no-reliable-pair rule decides"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_any_other_error_propagates",
+     "what": "only the two errors Interval MDS raises on too little data fall back; any other propagates"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_the_object_map_stores_the_credibility_under_aia_sociomap_5",
+     "what": "a MAPPED map stores the credibility and round-trips; a NOT_MAPPABLE map stores none"
+    }
+   ],
+   "uncertainty": "The split-half score compares the signs of distance differences, so on data full of ties a near-zero difference can change sign between macOS and Linux and move the score (as the methodology's own code does); radii differ at about 1e-11. The methodology is AIA's own, signed off by its owner; no external source states it. The half-maps, bootstrap maps and the reference map are Interval MDS even where the drawn map is the soft-rank layout; the methodology states the radius holds for both (their true spreads agree). The fallbacks are the AIA panel's, except that only the two errors Interval MDS raises on too little data (ZeroDivisionError, LinAlgError) fall back; the panel catches any error. A non-finite radius (a reference map with no distance) is stored as none. The radius is in units of the RMS inter-object distance; drawing the circle and the weakly-determined banner is the web client's.",
+   "resolve_by": "plan signed-off-sociomap-method",
+   "question": null
   }
  ]
 }

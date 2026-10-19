@@ -43,6 +43,8 @@ __all__ = [
     "ARTIFACT_CONTRACT_V3",
     "OBJECT_MAP_IMPLEMENTATION",
     "OBJECT_MAP_IMPLEMENTATION_VERSION",
+    "CredibilityRule",
+    "MapCredibility",
     "MapOutcome",
     "NotComputed",
     "NotMappable",
@@ -332,6 +334,50 @@ class SparseDesign(_Frozen):
     weakly_connected: tuple[str, ...]
 
 
+class CredibilityRule(StrEnum):
+    """Which rule decided whether a map is weakly determined (``aia-sociomap-5``)."""
+
+    #: The split-half check: weakly determined below the threshold.
+    SPLIT_HALF = "split_half"
+    #: Where the split-half check has no score (a half cannot be mapped, or two objects have
+    #: no triplet): weakly determined when no pair is RELIABLE.
+    NO_RELIABLE_PAIR = "no_reliable_pair"
+
+
+class MapCredibility(_Frozen):
+    """How far the signed-off methodology's map can be read (``aia-sociomap-5``).
+
+    ``split_half`` is the split-half agreement, ``None`` when it has no score; ``rule`` says
+    which rule decided ``weakly_determined``; ``reliable_pairs`` counts the RELIABLE pairs.
+    ``uncertainty_radius`` is how far an object typically moves if the study were re-run, in
+    units of the root-mean-square inter-object distance of the map; ``None`` when the
+    bootstrap maps cannot be computed.
+    """
+
+    rule: str
+    split_half: float | None
+    threshold: float
+    weakly_determined: bool
+    reliable_pairs: int
+    uncertainty_radius: float | None
+
+    @model_validator(mode="after")
+    def _decided_by_its_rule(self) -> Self:
+        if self.rule == CredibilityRule.SPLIT_HALF:
+            if self.split_half is None or not math.isfinite(self.split_half):
+                raise ValueError("the split-half rule decides on a split-half score")
+            if self.weakly_determined != (self.split_half < self.threshold):
+                raise ValueError("weakly determined exactly below the split-half threshold")
+        elif self.rule == CredibilityRule.NO_RELIABLE_PAIR:
+            if self.split_half is not None:
+                raise ValueError("the no-reliable-pair rule decides only without a score")
+            if self.weakly_determined != (self.reliable_pairs == 0):
+                raise ValueError("weakly determined exactly when no pair is RELIABLE")
+        else:
+            raise ValueError(f"unknown credibility rule {self.rule!r}")
+        return self
+
+
 class ObjectMapProvenance(_Frozen):
     implementation: str
     implementation_version: str
@@ -373,12 +419,16 @@ class SociomapArtifactV3(_Frozen):
     #: Recorded only under the baseline-corrected relation; ``None`` is left out of the
     #: stored form, so every map stored before it reads, and recomputes, byte for byte.
     sparse_design: SparseDesign | None = None
+    #: Recorded only on a MAPPED map under the baseline-corrected relation; ``None`` is left
+    #: out of the stored form, as ``sparse_design`` is.
+    credibility: MapCredibility | None = None
 
     @model_serializer(mode="wrap")
     def _without_absent_note(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
         body: dict[str, Any] = handler(self)
-        if body.get("sparse_design") is None:
-            body.pop("sparse_design", None)
+        for key in ("sparse_design", "credibility"):
+            if body.get(key) is None:
+                body.pop(key, None)
         return body
 
     @model_validator(mode="after")
@@ -403,6 +453,8 @@ class SociomapArtifactV3(_Frozen):
                 raise ValueError("a NOT_MAPPABLE artifact has a reason and no layout")
         else:
             raise ValueError(f"unknown outcome {self.outcome!r}")
+        if self.credibility is not None and self.layout is None:
+            raise ValueError("credibility judges a map; a NOT_MAPPABLE artifact has none")
         if len(self.heights.values) != m or len(self.heights.support_n) != m:
             raise ValueError("heights must align with the mapped objects")
         if self.heights.relative is not None and len(self.heights.relative) != m:
