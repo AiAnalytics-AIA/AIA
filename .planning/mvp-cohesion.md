@@ -41,6 +41,7 @@ different readings.
 | F8 | Nine open plans edit `tables.py`; five edit `ai_runtime.py`, `research_agents.py` and the settings router | all | no |
 | F9 | Parity is "information" in the new contract and "blocking on FAIL" in CI | AC (none) | no |
 | F10 | The USD 25 acceptance budget has no allocation | AC-04, AC-15 | no |
+| F11 | How a person works an artifact by hand and how the Lead points at it (questionnaire first) | AC-02, AC-03 | decided 2026-10-19 |
 
 ---
 
@@ -299,6 +300,62 @@ the full design and the report. `domain/run_cost.py` bounds fieldwork and analys
 and checked against 25 before the recorded run. If the sum exceeds 25, the owner chooses a smaller
 n or a larger budget, before the build, not after tier B.
 
+### F11. Working an artifact by hand, and pointing at it (the questionnaire first)
+
+**Read from.** The V2 prototype's source (`prototypes/research-lead-v2/src/components/Composer.tsx`,
+`components/ui.tsx` `Item`, `ChangeBlock`; #491), production's pointing code
+(`apps/web/src/lib/lead.ts` `focusSelector`, `targetOfElement`; `Workbench.tsx` picking) and the
+production questionnaire (`apps/web/src/research/questionnaire.ts`, `QuestionnaireStep.tsx`), all
+@ `085abe0`. The V3 questionnaire frame is text only, so its behaviour is inferred. Anything not
+checked in code is labelled a hypothesis.
+
+**How it works.** *Pointing:* V2 opens a list of the current stage's items (up to eight, filtered
+by id or text) after `@`; production arms click-to-pick and takes the nearest element with a known
+id (`qedit_`, `qblock_`, `brief-`, `plan-`); either gives one chip on the message. The Lead's focus
+kinds are `question`, `section`, `brief` and `plan`. *Editing by hand:* V2 has a pencil with an
+inline edit saved to the working copy, move up and down, remove, add, and a lock; an edited item
+says "your edit, not yet in a revision". Production has the fuller editor (type, options, routing
+condition, scale, blocks, tracked sets, comparisons). *The Lead* can add, edit (text, options) and
+remove a question, set N, and open or focus (`domain/research_lead.py:252-296`).
+
+**What was not thought through.** Pointing reaches a whole question or block only, never a tracked
+set, option, routing condition, scale, comparison, proposal change or coverage pill; the `@` list
+covers the current stage, so Results cannot point at Q14; one reference per message cannot say
+"merge Q21 and Q22". A pointer carries no revision, so Q8 is ambiguous while a proposal is pending.
+Manual edits run through client code (`research/questionnaire.ts`) and the Lead through server
+operations, with different powers (the Lead cannot move, merge or edit routing, scales, blocks or
+sets) and a lock rule living only in the prototype (hypothesis: production has none). A proposal is
+accepted whole; V2's change blocks have no controls. A manual edit has no undo. An auto-accepted Lead
+edit can land while a person has an unsaved inline edit open. Removing or moving a question gives no
+warning about routing, dimension use or Sociomap declarations. The "Build with AI" and "Optimise
+with AI" buttons contradict MVP-8. The lock text says a change "requires a new revision of the map's
+methodology", which confuses the design with the method version.
+
+**Checked.** Production question ids are stable: `Q_<time><random>`, not renumbered on removal
+(`research/questionnaire.ts:144, 186-196 @ 085abe0`); the displayed number is the position. A pointer
+that carries the id therefore survives a removal. The Lead's *written* replies do not: "Q9" in prose
+cannot be relabelled after items move.
+
+**Owner decisions (2026-10-19), all four recommended options except the buttons:**
+
+1. **One shared edit vocabulary, validated on the server.** A person's edits and the Lead's call
+   the same operations, so a lock, the text-only rule and validation are written once. The Lead
+   gains the missing operations (move, merge, section and set edits, routing, scale). The automatic
+   accept stays the Lead's, text edits only (MVP-14, ADR 0026).
+2. **Per-change accept and reject** inside a proposal. A stale change is flagged and can be
+   dropped or asked again. Needs the accept route to take a subset (`accept_into_working_copy`
+   already merges item by item, `domain/design_items.py`). *Open:* whether an unaccepted change
+   stays pending or is dismissed when the rest is accepted; default dismissed, the proposal marked
+   accepted in part.
+3. **A stable id, with the number only a label.** A pointer carries the id and the revision it was
+   made on. *Consequence the decision does not yet cover:* the Lead's prose must cite a question by
+   a chip that renders the current number ("Q9, now Q7"), not by typing the number.
+4. **The AI buttons are removed** from the questionnaire artifact (MVP-8): a person types a
+   request, or uses the chat. Removal is for each artifact as its V3 version lands.
+
+The rules apply to every artifact, not the questionnaire alone: a stable id, one shared edit
+vocabulary, per-change accept, a pointer with a revision.
+
 ---
 
 ## 3. The acceptance criteria, traced to work
@@ -357,6 +414,10 @@ dated, until the provider contract and the method owner have owners.
 | Q5 | The provider contract (MVP-27, owner) and the method owner's 0b answers, clustering algorithm and register entries: **no dates yet (2026-10-19)**; I-2 and I-4 stay undated until each has an owner | open |
 | Q6 | F4 and F5: the Lead's results context and the worker row | **adopted 2026-10-19** |
 | Q7 | F6, F8, F9: id namespaces, surface owners and migration lane, parity wording | **adopted 2026-10-19** |
+| Q8 | F11: one shared server-validated edit vocabulary for a person and the Lead | **decided 2026-10-19** |
+| Q9 | F11: per-change accept and reject inside a proposal | **decided 2026-10-19** |
+| Q10 | F11: a stable id, the number a label, a pointer carrying the revision | **decided 2026-10-19** |
+| Q11 | F11: the questionnaire's AI buttons removed (MVP-8) | **decided 2026-10-19** |
 
 ## 6. Follow-ups for a docs PR
 
@@ -369,3 +430,8 @@ dated, until the provider contract and the method owner have owners.
 - ADR 0027: the contract-as-policy decision (F3) before acceptance; ADR 0026: the Lead's results
   context and the worker row (F4, F5).
 - Plans: the front-matter chunks for F4, F5 and F7.
+- `research-lead-workbench.md`, once #491 merges: chunk 16 (a pointer with id and revision, any
+  element, several references), chunk 17 (the questionnaire's manual operations, per-change accept,
+  the AI buttons removed) and a chunk for the shared edit vocabulary (F11); ADR 0026 (the Lead's
+  edit vocabulary widened, per-change accept) and `ARCHITECTURE.md` §4 (a person and the Lead share
+  one set of server-validated edits).
