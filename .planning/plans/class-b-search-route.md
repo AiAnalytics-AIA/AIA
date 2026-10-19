@@ -7,7 +7,7 @@ chunks:
   - "[ ] 3. A design's class for Deep Research decided by rule once a Class B route exists (no operator step), Class C routes refusing it"
   - "[ ] 4. A recorded double and a journey test: a Class B query reaches only the Class B route"
   - "[ ] 5. Operator activation on develop (with deep-research-web-search 27)"
-  - "[ ] 6. The class of a derived query: an ADR 0017 and 0008 amendment, the data owner's confirmation, then a rule enforced by code"
+  - "[ ] 6. The class of a derived query: content decides, not derivation (owner, 2026-10-19): aia-query-classifier-2, the ADR 0017 and 0008 amendment, then the rule enforced by code"
 ---
 # A Class B search route for live Deep Research
 
@@ -68,17 +68,30 @@ by **code**, never by a prompt or a model's own claim about a query.
 5. **Activation.** The develop host's switches and the provider credential, an operator's act,
    verified by the live Deep Research run of the acceptance study (`mvp-acceptance-harness`).
 
-6. **Derived-query class: by provenance, never by a negative text test.** A query is Class C only
-   when code can **prove** its content comes from a Class C source. Two candidate provenances, to
-   be chosen in the amendment: (a) a fixed query template filled only from a list of public terms a
-   person has declared public; (b) a query set a person has seen and marked public before it is
-   sent (a card, consistent with MVP-13). Everything else stays Class B and only a Class B route may
-   receive it. **A test that finds no client term, named entity or verbatim design text is not
-   enough** (Codex review of #497, accepted): a model can paraphrase a confidential launch or
-   pricing question with none of those tokens, and the paraphrase is still Class B intent. Tests: a
-   paraphrase of a Class B question that keeps no checked token stays Class B and a Class C route
-   refuses it; a template over declared-public terms is Class C and reaches Wikipedia; a model
-   cannot lower its own query's class. Nothing here ships until the amendment is accepted.
+6. **Derived-query class: content decides, not derivation (the owner's decision, 2026-10-19).**
+   `aia-query-classifier-2` in `classification.py`. The context-class floor of
+   `aia-query-classifier-1` ("nothing lowers a class") is removed. A query's class is the most
+   restrictive of: (1) a client term (the client's and study's names and slugs, every non-public
+   ENTITY or TERM, matched across case, diacritics, transliteration and spacing) → at least B, as
+   today; (2) a run of five words shared with Class A text the run holds → A, as today, and an A query
+   never leaves; (3) **new:** a run of five words shared with Class B text the run holds (the design,
+   approved knowledge, the study's own messages) → B. A query that trips none is Class C and may go
+   to a Class C route. A paraphrase passes; a paste does not. The class is computed by code from the
+   query's text and the texts the run holds, never from anything the model declares.
+   **Residual risk, accepted by the owner:** the Codex review of #497 was right that a model can
+   paraphrase a confidential launch or pricing question with none of these tokens, and the paraphrase
+   is still Class B intent; Brave (US-based, query logs up to 90 days) will see which topics a client
+   is researching. Kept as mitigations: every query is journaled and visible in the run; a per-client
+   switch to turn derived search off and a zero-retention plan are available and not built.
+   **Tests:** a client-named query stays at least B and a Class C route refuses it; a verbatim run of
+   five words from the design is B and refused by a Class C route; a verbatim run from a client
+   document is A and never leaves; a paraphrase with no checked token is Class C and reaches the Class
+   C route; a model that declares its own query public changes nothing. The tests of
+   `aia-query-classifier-1` that assert "a paraphrase keeps the class of what it was written from" are
+   **replaced** by these, each citing this decision; the cases that are still true (the client-named
+   query, the verbatim paste) keep their assertions. Nothing ships until the amendment (ADR 0017
+   decision 2, ADR 0008's class table) is recorded in the docs PR; if the data-owner role is held by
+   someone other than the owner, they confirm it before activation on a real client.
 
 ## Depends on / feeds
 
@@ -100,10 +113,6 @@ integration gate I-4 (`mvp-cohesion.md` §4). `deep-research-web-search` 1 (sign
 
 ## Reordered (2026-10-19)
 
-The owner decided to go with Brave, a Class C route, for live Deep Research. Chunk 6 (the class of a
-derived query) is therefore **first**: `aia-query-classifier-2` drops the context-class floor of
-`classification.py` (the owner's rule: derived is fine, pasted is not) and adds Class B text to the
-five-word overlap check; the tests that encode "nothing lowers a class" are replaced by tests of the
-new rule, each citing this decision, and the old rule's cases that are still true (a client-named query,
-a verbatim paste) stay as they are. Chunks 0-5 (the Class B provider and its route) are **optional and
-later**: they add a route for queries the content test refuses. See `mvp-development-plan.md` § Reach.
+The owner decided to go with Brave, a Class C route, for live Deep Research. Chunk 6 is therefore
+**first**; chunks 0-5 (the Class B provider and its route) are **optional and later**: they add a route
+for queries the content test of chunk 6 refuses. See `mvp-development-plan.md` § Reach.

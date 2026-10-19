@@ -118,11 +118,18 @@ plan (or to a new plan from #497) before the wave starts.
 **Exit I-1:** two sessions edit one study in the acceptance run, the second edit merges or conflicts
 on one item only; a plan inside an envelope starts a run and a gate it does not cover parks.
 
+**Exit I-R:** on develop, a Deep Research run for a fictional client and a public topic reaches Brave,
+one connector, the focused crawler and the archive, each named in the run's record
+(`deep-research-web-search` 51); Settings → Deep Research lists every route and connector as active
+or refused by class, with the reason (52); a design-derived query without a client term or a shared
+five-word run is sent, and one with either is refused before it leaves (`class-b-search-route` 6).
+W2 does not start until I-1 and I-R both hold.
+
 ### W2 · Results are seen (gate I-2)
 
 | S | Work |
 |---|---|
-| S2 | `sociomap-formula-corrections` I0-I5, 3 (respondent map), 4d; `segment-maps-and-drilldown` 1-6; the results-context **provider** for maps; **reach**: `class-b-search-route` 0-5 (optional, the Class B route), `deep-research-web-search` 6 and 33-37 in order |
+| S2 | `sociomap-formula-corrections` I0-I5, 3 (respondent map), 4d; `segment-maps-and-drilldown` 1-6; the results-context **provider** for maps; **reach**: `class-b-search-route` 0-2 (optional, the Class B route), `deep-research-web-search` 6 and 33-37 in order |
 | S1 | **New** the Lead's results context (contract first, F4); `research-lead-workbench` 20 (Results and Sociomap with filters and drill-down), 22 (Audience, Dimensions); the Lead's lifecycle (M7): signals, proposed updates, admin read |
 | S3 | `client-knowledge-lifecycle` K4, K5 (an owned child); own-dimension chips; map-snapshot approval (`two-roles-human-ai-gates` 5b.4, **New** chunk); the Report artifact's Approve and Export panel |
 
@@ -133,7 +140,7 @@ draft ids, QC, bounded and classified), owned by S1, with a provider function fr
 
 | S | Work |
 |---|---|
-| S2 | `evidence-integrity` 4 (the straight-liner check, after the replace decision), the client-data evidence admission (`client-data-in-analysis` 4-5 once its policy is decided) |
+| S2 | `evidence-integrity` 4 (the straight-liner check, after the replace decision), the client-data evidence admission (`client-data-in-analysis` 4-5 once its policy is decided); **reach**: `class-b-search-route` 3-5 (optional, after its route exists) |
 | S3 | `client-data-in-analysis` 0-3, 6-7 (M8); `research-integrity-report` 6-8; `two-roles-human-ai-gates` 5b.4 |
 | S1 | `research-lead-workbench` 21 (Analysis, Report), the three new workers (`interpret_map`, `polish_report`, `flag_straightliners`), `system-prompts-settings` 7 (every worker's prompt editable) |
 
@@ -201,7 +208,7 @@ The longest chain, which sets the date: **edit vocabulary → operations log and
 and presence → the Questionnaire artifact → plan card → the Lead's results context → Results and
 Sociomap artifacts → Analysis and Report artifacts → tier A on all criteria → tier B → release**. Its
 owner is S1, which is why S1 carries the fewest side tasks. The chains that run beside it and can slip
-without moving the date, until W5: client data (S3), Deep Research live (S3), segment maps and
+without moving the date, until W5: client data (S3), Deep Research live (S2), segment maps and
 clustering (S2, waits on the method owner).
 
 ## 8. What can stop the plan
