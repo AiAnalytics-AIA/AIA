@@ -52,6 +52,7 @@ __all__ = [
     "CONTEXT_MAX_BYTES",
     "DEFAULT_LEAD_NAME",
     "DEFAULT_SOUL",
+    "FOCUS_ID",
     "LEAD_AGENT_ID",
     "LEAD_HARNESS_VERSION",
     "LEAD_PROMPT_ID",
@@ -153,6 +154,11 @@ QuestionType = Literal["vyber", "multi", "skala", "otevrena"]
 
 #: A ``data-aia`` id the interface focuses: ``question:q3``, ``brief:goal``.
 _TARGET = r"^[a-z_]+:[A-Za-z0-9_.\-]+$"
+#: What a person's message may say it is about: an element of a stage screen, in the forms the
+#: web's targetOfElement produces (``question:<id>``, ``section:<id>``, ``brief:<field>``,
+#: ``plan:<part>``). The id reaches the model unclassified, so it may be an identifier and
+#: nothing else; the free text beside it is the label, which is classified.
+FOCUS_ID: Final = re.compile(r"^(?:question|section|brief|plan):[A-Za-z0-9_.\-]{1,80}$")
 _MEMORY_ID = r"^LMM-[0-9a-f]{1,32}$"
 
 

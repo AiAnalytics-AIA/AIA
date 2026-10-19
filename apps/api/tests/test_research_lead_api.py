@@ -229,6 +229,25 @@ def test_off_the_conversation_reads_and_takes_no_message(
             {"kind": "greeting", "stage": "brief", "focus": {"id": "question:q1", "label": "x"}},
             "invalid_lead_turn",
         ),
+        # The focus id reaches the model unclassified: an element's identifier, nothing else.
+        *(
+            (
+                {
+                    "kind": "message",
+                    "stage": "brief",
+                    "text": "x",
+                    "focus": {"id": i, "label": "x"},
+                },
+                "invalid_lead_turn",
+            )
+            for i in (
+                "question:Acme chystá zdražení o deset procent",
+                "question:q1 a tajný plán",
+                "note:q1",
+                "question:",
+                "question:" + "q" * 81,
+            )
+        ),
     ],
 )
 def test_an_invalid_turn_is_422(
@@ -239,6 +258,23 @@ def test_an_invalid_turn_is_422(
     assert refused.status_code == 422
     if code:
         assert refused.json()["code"] == code
+
+
+@pytest.mark.parametrize(
+    "focus_id",
+    ["question:Q_1", "question:q-3.2", "section:B1", "brief:decision_use", "plan:narrative"],
+)
+def test_every_focus_the_web_names_is_accepted(
+    researcher: TestClient, world: Any, app: FastAPI, focus_id: str
+) -> None:
+    """The forms lib/lead.ts targetOfElement produces."""
+    _hatched(researcher)
+    _save_content(app, world)
+    posted = researcher.post(
+        f"{lead_url(world)}/turns",
+        json={"kind": "message", "stage": "brief", "text": "x", "focus": {"id": focus_id}},
+    )
+    assert posted.status_code == 201, posted.text
 
 
 def test_another_organizations_study_is_404(app: FastAPI, researcher: TestClient) -> None:

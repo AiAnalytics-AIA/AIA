@@ -36,6 +36,7 @@ from sqlalchemy.orm import Session
 from ..domain.design import DESIGN_PROJECT_OWNER
 from ..domain.research_agents import ResearchAction, design_material, knowledge_entries
 from ..domain.research_lead import (
+    FOCUS_ID,
     LEAD_HARNESS_VERSION,
     LEAD_PROMPT_ID,
     MESSAGE_MAX_CHARS,
@@ -733,8 +734,11 @@ class ResearchLead:
         focus_ = None
         if focus is not None:
             focus_ = {"id": str(focus.get("id") or ""), "label": str(focus.get("label") or "")}
-            if not focus_["id"]:
-                raise LeadRejected("a focus names an id", reason="invalid_lead_turn")
+            if not FOCUS_ID.fullmatch(focus_["id"]):
+                raise LeadRejected(
+                    "a focus names an element: question:, section:, brief: or plan: and an id",
+                    reason="invalid_lead_turn",
+                )
         return message, focus_
 
     def _working_content(self) -> tuple[dict[str, Any], dict[str, Any] | None, int | None]:
