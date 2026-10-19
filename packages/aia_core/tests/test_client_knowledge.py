@@ -759,3 +759,75 @@ def test_a_malformed_reference_is_refused_on_every_way_in_and_a_study_names_none
             content={"source_id": "SRC-0123456789abcdef"},
         )
     assert knowledge.proposals(lead) == []
+
+
+def test_a_checked_source_is_added_once_per_client_and_url(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    """Plan inline-decisions 1: the same URL again answers ``exists`` and writes nothing; another
+    client, or another URL, is its own source."""
+    researcher = client_scope(scoped, "researcher")
+    url = "https://stat.example/fiktivni"
+    first = knowledge.add_source_once(
+        researcher, url=url, title="Fiktivní statistika", content={"quote": "q"}, provenance={}
+    )
+    assert first.status == "added" and first.item_id is not None
+    again = knowledge.add_source_once(
+        researcher, url=url, title="Jiný název", content={}, provenance={}
+    )
+    assert (again.status, again.item_id, again.proposal_id) == ("exists", first.item_id, None)
+    [item] = knowledge.items(researcher)
+    assert item.content == {"quote": "q", "url": url} and item.kind is KnowledgeKind.SOURCE
+    other = knowledge.add_source_once(
+        researcher, url=f"{url}/2", title="Druhý", content={}, provenance={}
+    )
+    assert other.status == "added"
+    theirs = knowledge.add_source_once(
+        client_scope(scoped, "other_lead", "other"), url=url, title="B", content={}, provenance={}
+    )
+    assert theirs.status == "added" and theirs.item_id != first.item_id
+
+
+def test_a_checked_source_is_the_same_source_by_its_final_url_either_way(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    """A source is one source whether a run reached it by its address or through a redirect:
+    a URL that is another source's final URL, or a final URL that is another's URL, answers
+    ``exists`` and writes nothing."""
+    researcher = client_scope(scoped, "researcher")
+    short, final = "https://stat.example/s/1", "https://stat.example/fiktivni-statistika"
+    first = knowledge.add_source_once(
+        researcher, url=short, title="T", content={"final_url": final}, provenance={}
+    )
+    assert first.status == "added"
+    reached_directly = knowledge.add_source_once(
+        researcher, url=final, title="T", content={"final_url": final}, provenance={}
+    )
+    assert (reached_directly.status, reached_directly.item_id) == ("exists", first.item_id)
+    other = knowledge.add_source_once(
+        researcher, url="https://stat.example/s/2", title="T", content={}, provenance={}
+    )
+    via_redirect = knowledge.add_source_once(
+        researcher,
+        url="https://stat.example/s/3",
+        title="T",
+        content={"final_url": "https://stat.example/s/2"},
+        provenance={},
+    )
+    assert (via_redirect.status, via_redirect.item_id) == ("exists", other.item_id)
+    assert len(knowledge.items(researcher)) == 2
+
+
+def test_where_self_approval_is_off_a_checked_source_waits_and_is_not_proposed_twice(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    scoped.scope_repo.set_self_approval(
+        scoped.admin_context, allowed=False, client_id=scoped.clients["primary"].client_id
+    )
+    researcher = client_scope(scoped, "researcher")
+    url = "https://trh.example/fiktivni"
+    first = knowledge.add_source_once(researcher, url=url, title="T", content={}, provenance={})
+    assert first.status == "proposed" and first.item_id is None and first.proposal_id
+    again = knowledge.add_source_once(researcher, url=url, title="T", content={}, provenance={})
+    assert (again.status, again.proposal_id) == ("exists", first.proposal_id)
+    assert len(knowledge.proposals(researcher, status=ProposalStatus.PROPOSED)) == 1

@@ -52,6 +52,7 @@ from ..domain.research_lead import (
     apply_edit,
     context_sha256,
     freeze_context,
+    is_text_edit,
     new_turn_id,
     notes_layer,
     stale_files,
@@ -92,6 +93,7 @@ __all__ = [
     "LeadSelfUpdateNone",
     "LeadTurnNotFound",
     "LeadTurnNotReady",
+    "LeadTurnStale",
     "LeadUnavailable",
     "NotAPaidRequest",
     "ResearchLead",
@@ -161,6 +163,18 @@ class LeadEditsStale(Exception):
     def __init__(self, current_revision: int | None) -> None:
         super().__init__("the working content changed since the edits were shown")
         self.current_revision = current_revision
+
+
+class LeadTurnStale(LeadEditsStale):
+    """An automatic accept of a turn whose frozen working revision is no longer the current one:
+    someone saved while the Lead was working, so its edits wait for a click."""
+
+    reason = "stale_turn"
+
+    def __init__(self, current_revision: int | None, turn_revision: int | None) -> None:
+        super().__init__(current_revision)
+        self.args = ("the working content changed while the Lead was working on this turn",)
+        self.turn_revision = turn_revision
 
 
 class LeadRejected(ValueError):
@@ -488,7 +502,13 @@ class ResearchLead:
     # -- deciding on what a turn proposed --------------------------------------------
 
     def decide_edits(
-        self, turn_id: str, *, decision: str, indices: Sequence[int], base_revision: int | None
+        self,
+        turn_id: str,
+        *,
+        decision: str,
+        indices: Sequence[int],
+        base_revision: int | None,
+        auto: bool = False,
     ) -> dict[str, Any]:
         """A person accepts or dismisses edits a Lead turn proposed (ADR 0019 gate 1).
 
@@ -500,6 +520,15 @@ class ResearchLead:
         decided edit, all in one transaction under the Study's lock. An edit the content
         cannot take is ``refused`` with its reason and stays undecided. An edit already
         decided keeps its first decision. A dismiss writes the ledger rows only.
+
+        ``auto``: the accept is the researcher's standing choice, not a click (plan
+        inline-decisions chunk 2). It is an accept, refused unless the caller's own Lead has
+        ``auto_accept_text_edits`` on (``auto_accept_off``); an edit that is not a text edit
+        (:func:`~aia_core.domain.research_lead.is_text_edit`) is ``refused`` as
+        ``not_a_text_edit`` and stays undecided; each row it writes says ``"auto": true``. It
+        is refused whole (:class:`LeadTurnStale`, ``stale_turn``) unless the turn was written
+        from the current working revision: an edit made while the Lead worked is not
+        overwritten without a click.
         """
         self.scope.require(Permission.EDIT_STUDY)
         self.scope.require(Permission.APPROVE_GATE)
@@ -509,6 +538,15 @@ class ResearchLead:
         order = list(dict.fromkeys(int(i) for i in indices))
         if not order:
             raise LeadRejected("name the edits to decide", reason="invalid_decision")
+        if auto:
+            if decision != "accept":
+                raise LeadRejected("only an accept is automatic", reason="invalid_decision")
+            lead = ResearcherLeadRepository(self.session, self.scope).get()
+            if lead is None or not lead.auto_accept_text_edits:
+                raise LeadRejected(
+                    "the researcher has not chosen to accept text edits automatically",
+                    reason="auto_accept_off",
+                )
         turn, output = self._completed(turn_id)
         assert turn.run_id is not None  # a completed Lead turn has its run
         self._turns().lock()
@@ -522,6 +560,10 @@ class ResearchLead:
         current = working.revision
         if decision == "accept" and base_revision != current:
             raise LeadEditsStale(current)
+        if auto and turn.workspace_revision != current:
+            # The turn was written from an older working copy: a person's save made while the
+            # Lead worked would be overwritten without a click. It waits for one.
+            raise LeadTurnStale(current, turn.workspace_revision)
         content: dict[str, Any] = (
             dict(working.content) if working.content is not None else research_template()
         )
@@ -536,6 +578,9 @@ class ResearchLead:
                 continue
             if decision == "dismiss":
                 pending.append(index)
+                continue
+            if auto and not is_text_edit(output.edits[index]):
+                results[index] = {"index": index, "status": "refused", "reason": "not_a_text_edit"}
                 continue
             applied = apply_edit(content, analysis, output.edits[index])
             if isinstance(applied, Refused):
@@ -563,6 +608,7 @@ class ResearchLead:
                 op=output.edits[index].op,
                 workspace_revision=revision if decision == "accept" else None,
                 workspace_revision_id=revision_id if decision == "accept" else None,
+                auto=auto,
             )
             results[index] = {
                 "index": index,
@@ -886,6 +932,13 @@ class LeadProfile:
         lead = repo.hatch()
         return {"hatched": True, "lead": _profile(lead, repo.active_notes())}
 
+    def set_preferences(self, *, auto_accept_text_edits: bool) -> dict[str, Any]:
+        """The caller sets their own Lead's preferences (plan inline-decisions chunk 2): the
+        standing choice to have its text edits accepted without a click. Audited."""
+        repo = ResearcherLeadRepository(self.session, self.scope)
+        lead = repo.set_preferences(auto_accept_text_edits=auto_accept_text_edits)
+        return {"hatched": True, "lead": _profile(lead, repo.active_notes())}
+
 
 def _profile(lead: ResearcherLead, notes: Sequence[LeadNote]) -> dict[str, Any]:
     return {
@@ -894,6 +947,7 @@ def _profile(lead: ResearcherLead, notes: Sequence[LeadNote]) -> dict[str, Any]:
         "hatched_at": lead.hatched_at,
         "updated_at": lead.updated_at,
         "files": {"soul": lead.soul, "user": lead.user},
+        "preferences": {"auto_accept_text_edits": lead.auto_accept_text_edits},
         "memories": [
             {
                 "memory_id": n.memory_id,

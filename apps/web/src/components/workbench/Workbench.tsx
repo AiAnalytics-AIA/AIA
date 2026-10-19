@@ -6,15 +6,20 @@
 // Research Lead beside the stage's artifact -- over AIA's own stage screens, store and routes.
 // The artifact body is the stage screen the classic layout shows; the Lead's edits arrive above
 // it as change blocks the person accepts into the working copy; the stage's readiness and AI
-// help sit in the inspector over it.
+// help sit in the inspector over it. A researcher who chose to (Můj Vedoucí; plan inline-decisions
+// chunk 2) has the Lead's text edits accepted when its turn finishes -- through the same server
+// gate, recorded as automatic -- shown as "Přijato automaticky" with Vrátit; structure still waits.
 
 import { useRouter } from "next/navigation";
-import { type ReactNode, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { ApiError, api, lead as leadApi, type ResearchAgentJob, type Study } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
 import { guardedNavigate } from "@/lib/guarded-navigation";
-import { describeEdit, editStage, focusSelector, targetOfElement, type LeadEdit, type LeadRequest, type LeadTurn, type LeadView } from "@/lib/lead";
+import {
+  applyLeadEdit, autoAcceptPlan, describeEdit, editStage, focusSelector, revertTextEdit, targetOfElement, textEditInverse,
+  type LeadEdit, type LeadRequest, type LeadTurn, type LeadView, type ResearcherLead,
+} from "@/lib/lead";
 import { type FocusMode, readSplit, writeSplit } from "@/lib/workbench-split";
 import { PHASES, STAGES, STAGE_ORDER, stageHref, stageOf, stageState, type WorkbenchStage } from "@/lib/workbench-stages";
 import { blockers, designLane, runLane } from "@/research/lane";
@@ -88,11 +93,51 @@ const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2)
 const usd = (n: number | null | undefined) => (typeof n === "number" ? n.toLocaleString("cs-CZ", { maximumFractionDigits: 2 }) : "?");
 
 type EditMark = "accepted" | "dismissed" | { refused: string };
+/**
+ * A text edit accepted by the researcher's standing choice in this study, with the edit that puts
+ * its wording back and the working revision the accept wrote: Vrátit waits until the copy holds it.
+ */
+type AutoApplied = { key: string; edit: LeadEdit; inverse: LeadEdit | null; revision: number | null };
 
-export function Workbench({ frame, step, store, save, inspector, reload, confirm, onAgentStarted, jobs, onOpenJob, onRefreshJobs, children }: {
+/**
+ * The text edits accepted automatically in this study, kept in the study's page memory rather than
+ * in one stage's screen: a stage change -- the Lead's own open_stage among them -- mounts another
+ * screen, and the edits accepted on the way still show on their stage, with Vrátit.
+ */
+type AutoList = {
+  get: () => AutoApplied[];
+  set: (change: (items: AutoApplied[]) => AutoApplied[]) => void;
+  subscribe: (listener: () => void) => () => void;
+};
+const AUTO_KEY = "workbench:lead-auto-applied";
+function autoList(memory: Map<string, unknown>): AutoList {
+  const kept = memory.get(AUTO_KEY) as AutoList | undefined;
+  if (kept) return kept;
+  let items: AutoApplied[] = [];
+  const listeners = new Set<() => void>();
+  const list: AutoList = {
+    get: () => items,
+    set: (change) => {
+      items = change(items);
+      for (const l of listeners) l();
+    },
+    subscribe: (l) => {
+      listeners.add(l);
+      return () => {
+        listeners.delete(l);
+      };
+    },
+  };
+  memory.set(AUTO_KEY, list);
+  return list;
+}
+
+export function Workbench({ frame, step, store, memory, save, inspector, reload, confirm, onAgentStarted, jobs, onOpenJob, onRefreshJobs, children }: {
   frame: StudyFrame;
   step: StepKey;
   store: ResearchStore;
+  /** The study's page memory (ResearchSession): what outlives one stage's screen. */
+  memory?: Map<string, unknown>;
   /** The save state, as SaveIndicator draws it. */
   save: ReactNode;
   /** The inspector column the classic layout draws beside the stage: readiness, AI help, blockers. */
@@ -122,6 +167,19 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [turns, setTurns] = useState<LeadTurn[]>([]);
   const [leadEpoch, setLeadEpoch] = useState(0);
+  // Automatic text edits (inline-decisions 2): the researcher's choice, the turns already finished
+  // when the conversation was first read (never replayed), the turns already tried, what was applied.
+  const [autoOn, setAutoOn] = useState(false);
+  const seen = useRef<Set<string> | null>(null);
+  const tried = useRef(new Set<string>());
+  const [ownMemory] = useState(() => new Map<string, unknown>());
+  const autoStore = useMemo(() => autoList(memory ?? ownMemory), [memory, ownMemory]);
+  const autoApplied = useSyncExternalStore(autoStore.subscribe, autoStore.get, autoStore.get);
+  const onLead = useCallback((me: ResearcherLead) => setAutoOn(!!me.lead?.preferences?.auto_accept_text_edits), []);
+  const onTurns = useCallback((ts: LeadTurn[]) => {
+    if (seen.current === null) seen.current = new Set(ts.filter((t) => t.actor === "lead" && t.status === "COMPLETED").map((t) => t.turn_id));
+    setTurns(ts);
+  }, []);
   // Pointing at the artifact: "@" arms it, the next click on an element the Lead can name is the
   // focus of the next message. Escape, or a click on nothing nameable, disarms it.
   const [picking, setPicking] = useState(false);
@@ -258,6 +316,81 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
   }, [turns]);
   const open = edits.filter((x) => !marks[x.key] || typeof marks[x.key] === "object");
   const here = open.filter((x) => editStage(x.edit) === stage);
+  const autoHere = autoApplied.filter((x) => editStage(x.edit) === stage);
+
+  // The researcher's standing choice is their decision (ADR 0026): when a turn finishes, its text
+  // edits are accepted through the same gate as a click, as that person, on the working revision,
+  // marked automatic in the ledger. The server refuses the call unless the choice is on, any edit
+  // that is not wording, and a turn written from an older working copy (stale_turn: someone saved
+  // while the Lead worked); the inverse of each is kept from the content it was applied to.
+  const autoAccept = useCallback(async (plan: { turnId: string; indices: number[]; edits: LeadEdit[] }[]) => {
+    // Only over a copy with nothing waiting to be saved: a change still being typed is the person's,
+    // and the Lead's wording waits for their click beside it rather than racing it.
+    const now = store.get();
+    if (now.save.kind !== "saved" && now.save.kind !== "new") {
+      setNotice("Textové úpravy Vedoucího čekají k přijetí: v pracovní kopii máte neuložené změny.");
+      return;
+    }
+    let base = now.revision;
+    let content = { project: now.project, analysis: now.analysis };
+    const applied: AutoApplied[] = [];
+    for (const { turnId, indices, edits: turnEdits } of plan) {
+      try {
+        const r = await leadApi.decideEdits(frame.studyId, turnId, { decision: "accept", indices, base_revision: base, auto: true });
+        for (const x of r.results) {
+          const edit = turnEdits[x.index];
+          if (x.status !== "accepted" || !edit) continue;
+          const inverse = textEditInverse(content, edit);
+          const next = applyLeadEdit(content, edit);
+          if ("content" in next) content = next.content;
+          applied.push({ key: `${turnId}:${x.index}`, edit, inverse, revision: r.workspace_revision });
+        }
+        if (r.workspace_revision !== null) base = r.workspace_revision;
+      } catch (e) {
+        setNotice(e instanceof ApiError && (e.code === "stale_revision" || e.code === "stale_turn")
+          ? "Pracovní kopie se mezitím změnila, textové úpravy Vedoucího proto čekají k přijetí."
+          : e instanceof ApiError ? e.message : String(e));
+        break;
+      }
+    }
+    if (applied.length) autoStore.set((a) => [...a, ...applied]);
+    setLeadEpoch((n) => n + 1);
+    if (!applied.length) return;
+    // AIA wrote a new revision: read it into this copy in place. A change the person made while the
+    // gate answered is not dropped (nor saved over the newer revision by a disposed copy): it stays
+    // on screen, the copy in conflict, and they are told.
+    try {
+      if (!(await store.reload(undefined, { since: now }))) {
+        setNotice("Vedoucí přijal textové úpravy, zatímco jste psali. Vaše změna zůstala na obrazovce, ale neuložila se: zkopírujte si ji a pracovní kopii načtěte znovu.");
+      }
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : String(e));
+    }
+  }, [store, frame.studyId, autoStore]);
+  useEffect(() => {
+    if (!frame.canEdit || seen.current === null) return;
+    const plan = autoAcceptPlan(turns, autoOn, seen.current, tried.current);
+    if (!plan.length) return;
+    for (const p of plan) tried.current.add(p.turnId);
+    void autoAccept(plan.map((p) => ({ ...p, edits: turns.find((t) => t.turn_id === p.turnId)?.output?.edits ?? [] })));
+  }, [turns, autoOn, frame.canEdit, autoAccept]);
+
+  // Vrátit: the wording the edit replaced, written back as the person's own edit of the working copy
+  // (the normal, revision-checked save). The ledger's accept stands: a decision is made once.
+  const revert = (key: string) => {
+    const item = autoApplied.find((x) => x.key === key);
+    if (!item?.inverse) return;
+    const s = store.get();
+    // Until the copy holds what the accept wrote, the wording to put back is not on screen yet.
+    if (!holds(s, item)) return;
+    const r = revertTextEdit({ project: s.project, analysis: s.analysis }, item.edit, item.inverse);
+    if ("refused" in r) {
+      setNotice(r.refused);
+      return;
+    }
+    store.update(() => ({ project: r.content.project, analysis: r.content.analysis }));
+    autoStore.set((a) => a.filter((x) => x.key !== key));
+  };
 
   // Accepting or dismissing goes through the server's gate, one turn at a time: it applies the
   // edits to the working copy it holds, saves it and records each decision in the ledger.
@@ -297,9 +430,10 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
   };
 
   const blocked = blockers(state).length;
+  const flushBeforeMessage = useCallback(() => store.flush(), [store]);
   const leadPane = (
     <LeadPane studyId={frame.studyId} stage={stage} canEdit={frame.canEdit} focus={focus} picking={picking}
-      onPick={() => setPicking((p) => !p)} onClearFocus={() => setFocus(null)} jobs={[...jobs].reverse()} onOpenJob={onOpenJob} onView={onView} onRequest={onRequest} onTurns={setTurns} epoch={leadEpoch}
+      onPick={() => setPicking((p) => !p)} onClearFocus={() => setFocus(null)} jobs={[...jobs].reverse()} onOpenJob={onOpenJob} onView={onView} onRequest={onRequest} onTurns={onTurns} onLead={onLead} beforeMessage={flushBeforeMessage} epoch={leadEpoch}
       mode={mode} onFocusMode={() => setMode((m) => (m === "conversation" ? "split" : "conversation"))} />
   );
 
@@ -330,6 +464,7 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
               </div>
               {picking ? <div className="artbar artbar--op" role="status"><Icon name="at" size={13} /><div className="artbar__grow">Klikněte na otázku, oddíl nebo část zadání, o které chcete s Vedoucím mluvit. Esc zruší.</div></div> : null}
               {notice ? <div className="artbar artbar--stale" role="status"><Glyph tone="reopened" size={12} /><div className="artbar__grow">{notice}</div><button type="button" className="iconbtn" aria-label="Zavřít" onClick={() => setNotice(null)}><Icon name="close" size={14} /></button></div> : null}
+              {autoHere.length ? <AutoBar items={autoHere} state={state} canEdit={frame.canEdit} onRevert={revert} onHide={() => autoStore.set((a) => a.filter((x) => editStage(x.edit) !== stage))} /> : null}
               {here.length ? <EditsBar items={here} state={state} marks={marks} canEdit={frame.canEdit} onAccept={(keys) => void decide("accept", keys)} onDismiss={(keys) => void decide("dismiss", keys)} /> : null}
               <div className="artstage">
                 <div className="artbody" id="artbody"><div className="wb-stage">
@@ -386,6 +521,42 @@ function EditsBar({ items, state, marks, canEdit, onAccept, onDismiss }: {
       })}
     </div>
   );
+}
+
+function AutoBar({ items, state, canEdit, onRevert, onHide }: {
+  items: AutoApplied[]; state: ResearchState; canEdit: boolean; onRevert: (key: string) => void; onHide: () => void;
+}) {
+  const content = { project: state.project, analysis: state.analysis };
+  const wording = (e: LeadEdit | null) => (!e ? null : e.op === "set_text" || e.op === "list_replace" ? e.value : e.op === "question_edit" ? e.text : null);
+  return (
+    <div className="artbar artbar--op edits" role="region" aria-label="Přijato automaticky">
+      <div className="edits__head">
+        <Glyph tone="done" size={12} />
+        <div className="artbar__grow"><b>Přijato automaticky (vaše nastavení)</b> · textové úpravy Vedoucího, struktura čeká na vás</div>
+        <button type="button" className="btn btn--sm btn--quiet" onClick={onHide}>Skrýt</button>
+      </div>
+      {items.map((item) => {
+        const { key, edit, inverse } = item;
+        const loaded = holds(state, item);
+        return (
+        <div key={key} className="chg" data-aia={`lead-auto.${key}`}>
+          <div className="chg__h">
+            <span className="grow">{describeEdit(content, edit).where} · Přijato automaticky (vaše nastavení)</span>
+            <button type="button" className="btn btn--sm" disabled={!canEdit || !inverse || !loaded}
+              title={loaded ? undefined : "Načítám pracovní kopii s přijatým zněním…"} onClick={() => onRevert(key)}>Vrátit</button>
+          </div>
+          {wording(inverse) !== null ? <div className="chg__before">{wording(inverse)}</div> : null}
+          {wording(edit) !== null ? <div>{wording(edit)}</div> : null}
+        </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Whether the working copy holds the revision an automatic accept wrote: only then is Vrátit's wording on screen. */
+function holds(state: ResearchState, item: AutoApplied): boolean {
+  return item.revision !== null && state.revision !== null && state.revision >= item.revision;
 }
 
 function StudyHeader({ frame, study, pending, blocked, onPending }: { frame: StudyFrame; study: Study | null; pending: number; blocked: number; onPending: () => void }) {

@@ -4,8 +4,12 @@
 // read only. Its files -- SOUL (its manner) and USER (what it knows of how you work) -- and its
 // memory, personal or bound to one client. Nothing here edits them: the researcher shapes the
 // Lead by talking to it in a study, and the Lead changes its own files, saying so in the reply.
+// One choice is made here (plan inline-decisions chunk 2): whether the Lead's text edits are
+// accepted without a click. Off by default; structure always waits for the researcher.
 
-import { researcherLead, type ResearcherLeadView } from "@/lib/api";
+import { useState } from "react";
+
+import { ApiError, researcherLead, type ResearcherLeadView } from "@/lib/api";
 import type { LeadMemory } from "@/lib/lead";
 import { Button } from "../rehome/ui";
 import { AppShell } from "./AppShell";
@@ -25,6 +29,41 @@ function File({ name, title, text, empty }: { name: string; title: string; text:
         <span className="font-mono text-xs text-ink-faint">{name}.md · jen ke čtení</span>
       </div>
       {text.trim() ? <pre className="mt-2 whitespace-pre-wrap font-sans text-sm leading-6 text-ink">{text}</pre> : <p className="mt-2 text-sm text-ink-muted">{empty}</p>}
+    </section>
+  );
+}
+
+export const AUTO_ACCEPT_LABEL = "Automaticky přijímat textové úpravy Vedoucího (formulace, ne strukturu)";
+
+/** The researcher's standing choice: the Lead's wording edits are accepted when its turn finishes. */
+export function AutoAcceptToggle({ on, onChanged }: { on: boolean; onChanged: (me: ResearcherLeadView) => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  // The box shows the click at once; while the server answers it holds the asked value, and a
+  // refusal puts it back to what the server holds (`on`).
+  const [asked, setAsked] = useState<boolean | null>(null);
+  const set = async (next: boolean) => {
+    setBusy(true);
+    setError(null);
+    setAsked(next);
+    try {
+      onChanged(await researcherLead.setPreferences({ auto_accept_text_edits: next }));
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : String(e));
+    } finally {
+      setAsked(null);
+      setBusy(false);
+    }
+  };
+  return (
+    <section className={CARD} aria-labelledby="lead-preferences">
+      <h2 id="lead-preferences" className="text-base font-semibold">Nastavení</h2>
+      <label className="mt-2 flex items-start gap-2 text-sm leading-6">
+        <input type="checkbox" className="mt-1.5" checked={asked ?? on} disabled={busy} onChange={(e) => void set(e.target.checked)} />
+        <span>{AUTO_ACCEPT_LABEL}</span>
+      </label>
+      <p className="mt-1 text-xs text-ink-muted">Přijme se jen změna znění: textu zadání a plánu, položky seznamu, znění otázky. Nové a odebrané položky, možnosti otázek a velikost vzorku vždy čekají na vás. Každou automaticky přijatou úpravu uvidíte u artefaktu a můžete ji vrátit.</p>
+      {error ? <p role="alert" className="mt-1 text-sm text-status-fault">{error}</p> : null}
     </section>
   );
 }
@@ -59,6 +98,8 @@ function Memories({ items }: { items: LeadMemory[] }) {
 
 export function LeadProfilePage() {
   const [res, retry] = useResource(() => researcherLead.get(), []);
+  // What the last change answered, until the page is read again.
+  const [changed, setChanged] = useState<ResearcherLeadView | null>(null);
   return (
     <AppShell title="Můj Vedoucí výzkumu" sub="Váš vlastní Vedoucí, jeho soubory a paměť. Měníte je rozhovorem s ním, ne zde.">
       <Loaded res={res} retry={retry}>
@@ -73,7 +114,7 @@ export function LeadProfilePage() {
               </Empty>
             );
           }
-          const l = me.lead;
+          const l = changed?.lead ?? me.lead;
           return (
             <div className="flex max-w-3xl flex-col gap-4">
               <section className={CARD}>
@@ -83,6 +124,7 @@ export function LeadProfilePage() {
               </section>
               <File name="SOUL" title="Povaha a styl práce" text={l.files.soul} empty="Zatím výchozí." />
               <File name="USER" title="Co ví o tom, jak pracujete" text={l.files.user} empty="Zatím nic: naučí se to při práci s vámi." />
+              <AutoAcceptToggle on={!!l.preferences?.auto_accept_text_edits} onChanged={setChanged} />
               <Memories items={l.memories} />
             </div>
           );

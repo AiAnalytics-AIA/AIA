@@ -2563,6 +2563,7 @@ class WorkflowRepository:
         op: str,
         workspace_revision: int | None,
         workspace_revision_id: str | None,
+        auto: bool = False,
     ) -> bool:
         """Write a person's accept or dismiss of one edit a Lead turn proposed, once.
 
@@ -2571,7 +2572,9 @@ class WorkflowRepository:
         names the working revision the accept wrote (``None`` for a dismiss, or an accept that
         changed nothing). Needs ``APPROVE_GATE``, which the worker's scope does not hold.
         Returns ``False`` and writes nothing when this edit is already decided: an edit keeps
-        its first decision.
+        its first decision. ``auto``: the accept was the person's standing choice to accept
+        text edits, not a click; the comment then says ``"auto": true`` (plan
+        inline-decisions chunk 2), and says nothing of it otherwise, as before.
         """
         self.scope.require(Permission.APPROVE_GATE)
         if decision not in ("accept", "dismiss"):
@@ -2610,6 +2613,7 @@ class WorkflowRepository:
                         "index": index,
                         "workspace_revision": workspace_revision,
                         "workspace_revision_id": workspace_revision_id,
+                        **({"auto": True} if auto else {}),
                     },
                     sort_keys=True,
                 ),
@@ -2784,6 +2788,7 @@ class WorkflowRepository:
                 {
                     "status": "accepted" if row.decision == "accept" else "dismissed",
                     "reason": None,
+                    "auto": bool(json.loads(row.comment or "{}").get("auto")),
                 },
             )
         return found

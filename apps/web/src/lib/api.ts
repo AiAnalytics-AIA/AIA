@@ -6,7 +6,7 @@
 
 import type { RegisterEntry } from "@/lib/object-map-view";
 import { currentIdToken, loadConfig } from "@/lib/auth";
-import type { EditDecisionResult, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
+import type { EditDecisionResult, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
 export type { ResearcherLead as ResearcherLeadView } from "@/lib/lead";
 
 export class ApiError extends Error {
@@ -1345,6 +1345,11 @@ export type DeepResearchBundle = {
   synthesis?: { check: { summary: string | null; summary_withheld?: string | null; findings: { subject_key: string; text: string; evidence_ids: string[] }[]; excluded?: { subject_key: string; text: string; reason: string; detail?: string }[]; gaps: string[]; limitations: string[]; status: string }; brief?: { gaps: { need: string; reason: string }[] } | null } | null;
   origins?: string[];
 };
+/** What "Ověřeno, přidat zdroj" did: knowledge now, a proposal (self-approval off), or already there. */
+export type VerifiedSourceAdded = {
+  status: "added" | "proposed" | "exists";
+  item_id: string | null; proposal_id: string | null; client_id: string; url: string; title: string;
+};
 /** One accepted finding of a Design Research run, as its proposal cites it. */
 export type DesignFinding = { evidence_id: string; claim: string; quote: string; source_title: string; source: string; source_class: string; confidence: number };
 /** A Design Research run's proposal: per subject its findings (EVIDENCE) or none (GAP). */
@@ -1389,6 +1394,10 @@ export const deepResearch = {
   bundle: (studyId: string, runId: string) => request<DeepResearchBundle>("GET", `${deepPath(studyId)}/${enc(runId)}/bundle`),
   coverage: (studyId: string, runId: string) => request<DeepResearchCoverage>("GET", `${deepPath(studyId)}/${enc(runId)}/coverage`),
   designProposal: (studyId: string, runId: string) => request<DesignProposal>("GET", `${deepPath(studyId)}/${enc(runId)}/design-proposal`),
+  /** "Ověřeno, přidat zdroj": the person checked a captured source; the server writes it to the client's
+   *  knowledge from the run's sealed bundle (the URL, title and quote are the bundle's), once per URL. */
+  addSourceToKnowledge: (studyId: string, runId: string, snapshotId: string, evidenceId: string) =>
+    request<VerifiedSourceAdded>("POST", `${deepPath(studyId)}/${enc(runId)}/sources/${enc(snapshotId)}/knowledge`, { evidence_id: evidenceId }),
   cancel: (studyId: string, runId: string) => request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/cancel`),
   retry: (studyId: string, runId: string, confirmCostUsd?: number) => request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/retry`, confirmCostUsd === undefined ? undefined : { confirm_cost_usd: confirmCostUsd }),
   /** The same run, its steps parked for the AI runtime offered to a worker again. */
@@ -1432,7 +1441,8 @@ export const lead = {
   post: (studyId: string, body: { kind: "message" | "greeting"; text?: string; stage: string; focus?: { id: string; label: string } | null }) =>
     request<{ turns: LeadTurn[] }>("POST", `${studyPath(studyId)}/lead/turns`, body),
   /** Accept or dismiss a turn's edits: the server applies, saves and records them (gate 1). */
-  decideEdits: (studyId: string, turnId: string, body: { decision: "accept" | "dismiss"; indices: number[]; base_revision: number | null }) =>
+  /** `auto`: the researcher's standing choice accepts the turn's text edits, not a click (inline-decisions 2). */
+  decideEdits: (studyId: string, turnId: string, body: { decision: "accept" | "dismiss"; indices: number[]; base_revision: number | null; auto?: boolean }) =>
     request<EditDecisionResult>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/edits`, body),
   /** Approve a turn's prepared design job: spend limit, ledger and start in one transaction. */
   approveRequest: (studyId: string, turnId: string, confirmCostUsd?: number) =>
@@ -1446,6 +1456,8 @@ export const lead = {
 export const researcherLead = {
   get: () => request<ResearcherLead>("GET", "/api/v1/lead"),
   hatch: () => request<ResearcherLead>("POST", "/api/v1/lead"),
+  /** The researcher's own choices for their Lead, audited: whether its text edits are accepted without a click. */
+  setPreferences: (preferences: LeadPreferences) => request<ResearcherLead>("PUT", "/api/v1/lead/preferences", preferences),
 };
 
 export const researchAgents = {

@@ -7,6 +7,7 @@ repository, as a worker would.
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import pytest
@@ -17,9 +18,11 @@ from aia_core.domain.workflow_templates import RESEARCH_LEAD_TURN
 from aia_core.infrastructure.db import create_session_factory
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRepository
+from aia_core.infrastructure.tables import AccessAuditRow, ApprovalDecisionRow
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 from aia_api.config import Settings
 
@@ -98,7 +101,17 @@ def test_a_lead_is_hatched_once_and_read_only(researcher: TestClient) -> None:
     hatched = researcher.post("/api/v1/lead")
     assert hatched.status_code == 201
     lead = hatched.json()["lead"]
-    assert set(lead) == {"lead_id", "name", "hatched_at", "updated_at", "files", "memories"}
+    assert set(lead) == {
+        "lead_id",
+        "name",
+        "hatched_at",
+        "updated_at",
+        "files",
+        "memories",
+        "preferences",
+    }
+    # Off until the researcher turns it on (plan inline-decisions chunk 2).
+    assert lead["preferences"] == {"auto_accept_text_edits": False}
     assert lead["name"] == "Vedoucí výzkumu" and lead["memories"] == []
     assert set(lead["files"]) == {"soul", "user"} and lead["files"]["user"] == ""
     again = researcher.post("/api/v1/lead")
@@ -306,6 +319,7 @@ def test_every_lead_route_is_study_scoped_or_the_callers_own(app: FastAPI) -> No
         "/api/v1/studies/{study_id}/lead/turns/{turn_id}/request",
         "/api/v1/studies/{study_id}/lead/turns/{turn_id}/self-update",
         "/api/v1/lead",
+        "/api/v1/lead/preferences",
     }
 
 
@@ -343,8 +357,134 @@ def test_edits_are_decided_on_the_server_and_once(
     again = researcher.post(url, json={"decision": "dismiss", "indices": [0]})
     assert again.json()["results"] == [{"index": 0, "status": "accepted", "reason": None}]
     lead = researcher.get(lead_url(world)).json()["turns"][-1]
-    assert lead["edit_decisions"] == {"0": {"status": "accepted", "reason": None}}
+    assert lead["edit_decisions"] == {"0": {"status": "accepted", "reason": None, "auto": False}}
     assert researcher.post(url, json={"decision": "accept", "indices": []}).status_code == 422
+
+
+TEXT_AND_STRUCTURE = {
+    "reply": "Navrhuji změny.",
+    "edits": [
+        {"op": "set_text", "field": "title", "value": "Nový název", "why": WHY},
+        {"op": "question_edit", "question_id": "q1", "text": "Znáte značku?", "why": WHY},
+        {"op": "question_add", "text": "Kolik?", "qtype": "otevrena", "why": WHY},
+        {"op": "set_n", "value": 400, "why": WHY},
+    ],
+}
+
+
+def test_the_preference_is_the_researchers_own_off_by_default_and_audited(
+    researcher: TestClient, viewer: TestClient, app: FastAPI, world: Any
+) -> None:
+    url = "/api/v1/lead/preferences"
+    assert researcher.put(url, json={"auto_accept_text_edits": True}).status_code == 409
+    _hatched(researcher)
+    _hatched(viewer)
+    on = researcher.put(url, json={"auto_accept_text_edits": True})
+    assert on.status_code == 200, on.text
+    assert on.json()["lead"]["preferences"] == {"auto_accept_text_edits": True}
+    assert researcher.get("/api/v1/lead").json()["lead"]["preferences"]["auto_accept_text_edits"]
+    # Another researcher's Lead is untouched: the route takes no user, the scope says whose.
+    assert not viewer.get("/api/v1/lead").json()["lead"]["preferences"]["auto_accept_text_edits"]
+    assert researcher.put(url, json={"auto_accept_text_edits": True}).status_code == 200
+    assert researcher.put(url, json={"auto_accept_text_edits": "yes"}).status_code == 422
+    with create_session_factory(app.state.engine)() as session:
+        audits = session.scalars(
+            select(AccessAuditRow).where(AccessAuditRow.action == "RESEARCH_LEAD_PREFERENCES_SET")
+        ).all()
+    # Set once; the unchanged second set wrote nothing.
+    assert [(a.actor_id, a.payload["auto_accept_text_edits"]) for a in audits] == [
+        (world.users["researcher"], True)
+    ]
+
+
+def test_an_automatic_accept_takes_text_edits_only_and_says_so_in_the_ledger(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    turn_id = _turn(researcher, world, app, TEXT_AND_STRUCTURE)
+    url = f"{lead_url(world)}/turns/{turn_id}/edits"
+    body = {"decision": "accept", "indices": [0, 1, 2, 3], "base_revision": 1, "auto": True}
+    # Off by default: the server does not take the screen's word for the choice.
+    off = researcher.post(url, json=body)
+    assert off.status_code == 422 and off.json()["code"] == "auto_accept_off"
+    on = researcher.put("/api/v1/lead/preferences", json={"auto_accept_text_edits": True})
+    assert on.status_code == 200
+    dismiss = researcher.post(url, json={**body, "decision": "dismiss"})
+    assert dismiss.status_code == 422 and dismiss.json()["code"] == "invalid_decision"
+
+    decided = researcher.post(url, json=body)
+    assert decided.status_code == 200, decided.text
+    assert decided.json() == {
+        "workspace_revision": 2,
+        "results": [
+            {"index": 0, "status": "accepted", "reason": None},
+            {"index": 1, "status": "accepted", "reason": None},
+            {"index": 2, "status": "refused", "reason": "not_a_text_edit"},
+            {"index": 3, "status": "refused", "reason": "not_a_text_edit"},
+        ],
+    }
+    turn = researcher.get(lead_url(world)).json()["turns"][-1]
+    assert turn["edit_decisions"] == {
+        "0": {"status": "accepted", "reason": None, "auto": True},
+        "1": {"status": "accepted", "reason": None, "auto": True},
+    }
+    # The structural edits wait for a click, which is no automatic accept.
+    clicked = researcher.post(
+        url, json={"decision": "accept", "indices": [2, 3], "base_revision": 2}
+    )
+    assert [r["status"] for r in clicked.json()["results"]] == ["accepted", "accepted"]
+    with create_session_factory(app.state.engine)() as session:
+        rows = session.scalars(
+            select(ApprovalDecisionRow)
+            .where(ApprovalDecisionRow.subject_type == "lead_edit")
+            .order_by(ApprovalDecisionRow.decision_id)
+        ).all()
+        comments = {r.subject_id: json.loads(r.comment or "{}") for r in rows}
+    assert comments[f"{turn_id}:0"]["auto"] is True
+    assert comments[f"{turn_id}:1"]["auto"] is True
+    assert "auto" not in comments[f"{turn_id}:2"] and "auto" not in comments[f"{turn_id}:3"]
+    saved = researcher.get(f"/api/v1/studies/{world.study_id()}/workspace/content").json()
+    assert saved["content"]["title"] == "Nový název"
+
+
+def test_an_automatic_accept_leaves_a_save_made_while_the_lead_worked_and_says_why(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """The turn was written from revision 1; the person saved revision 2 while it ran. An
+    automatic accept would put the Lead's title over theirs without a click: it is refused by
+    name and nothing is written, so the edits wait for one."""
+    _hatched(researcher)
+    assert (
+        researcher.put(
+            "/api/v1/lead/preferences", json={"auto_accept_text_edits": True}
+        ).status_code
+        == 200
+    )
+    _save_content(app, world)
+    posted = researcher.post(
+        f"{lead_url(world)}/turns", json={"kind": "message", "stage": "brief", "text": "Co dál?"}
+    )
+    assert posted.status_code == 201, posted.text
+    turn_id = str(posted.json()["turns"][-1]["turn_id"])
+    content_url = f"/api/v1/studies/{world.study_id()}/workspace/content"
+    mine = researcher.put(
+        content_url, json={"content": {**CONTENT, "title": "Můj název"}, "base_revision": 1}
+    )
+    assert mine.status_code == 200, mine.text
+    _complete(app, world, TEXT_AND_STRUCTURE)
+
+    url = f"{lead_url(world)}/turns/{turn_id}/edits"
+    auto = researcher.post(
+        url, json={"decision": "accept", "indices": [0, 1], "base_revision": 2, "auto": True}
+    )
+    assert auto.status_code == 409 and auto.json()["code"] == "stale_turn", auto.text
+    assert auto.json()["details"]["current_revision"] == 2
+    saved = researcher.get(content_url).json()
+    assert saved["revision"] == 2 and saved["content"]["title"] == "Můj název"
+    assert researcher.get(lead_url(world)).json()["turns"][-1]["edit_decisions"] == {}
+    # A click is the person's own decision, made over what they now see.
+    clicked = researcher.post(url, json={"decision": "accept", "indices": [0], "base_revision": 2})
+    assert clicked.status_code == 200
+    assert clicked.json()["results"] == [{"index": 0, "status": "accepted", "reason": None}]
 
 
 def test_someone_elses_turn_is_not_found(

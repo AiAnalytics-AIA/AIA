@@ -8,8 +8,9 @@ owns every model call. Two routers:
   proposes changes nothing until the person decides here, on the server: edits through
   ``…/edits`` (the approval ledger, ADR 0019 gate 1), a prepared design job through
   ``…/request`` (the spend limit and the ledger, ADR 0026 decision 7).
-* ``/lead`` -- the caller's own Lead, read-only but for hatching it once; its files change
-  only through chat, by the Lead's ``self_update``.
+* ``/lead`` -- the caller's own Lead, read-only but for hatching it once and its preferences
+  (``PUT /lead/preferences``); its files change only through chat, by the Lead's
+  ``self_update``.
 
 No route takes a client, organization or user id: the scope says whose it is.
 """
@@ -43,7 +44,7 @@ from aia_core.domain.design import DesignRejected
 from aia_core.domain.scope import ScopeDenied
 from aia_core.domain.workspace import WorkspaceRejected
 from fastapi import APIRouter, HTTPException, Path, Response, status
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StrictBool
 
 from ..dependencies import OrganizationDep, SessionDep, SettingsDep, StudyScopeDep
 from ..schemas.projects import ErrorResponse
@@ -90,6 +91,10 @@ class EditDecision(BaseModel):
     decision: Literal["accept", "dismiss"]
     indices: list[Annotated[int, Field(ge=0, le=63)]] = Field(min_length=1, max_length=12)
     base_revision: int | None = Field(default=None, ge=1)
+    #: The accept is the researcher's standing choice to accept the Lead's text edits, sent by
+    #: their screen when a turn completes, not a click (plan inline-decisions chunk 2). Refused
+    #: (422 ``auto_accept_off``) unless their Lead has it on; a non-text edit is ``refused``.
+    auto: StrictBool = False
 
 
 class RequestApproval(BaseModel):
@@ -104,6 +109,8 @@ class EditStatus(BaseModel):
     model_config = ConfigDict(extra="forbid")
     status: Literal["accepted", "dismissed"]
     reason: str | None = None
+    #: Accepted by the researcher's standing choice, not a click (the ledger's ``"auto"``).
+    auto: bool = False
 
 
 class RequestDecision(BaseModel):
@@ -239,6 +246,14 @@ class LeadMemory(BaseModel):
     source_turn_id: str | None
 
 
+class LeadPreferences(BaseModel):
+    """The researcher's own choices for their Lead (plan inline-decisions chunk 2)."""
+
+    model_config = ConfigDict(extra="forbid")
+    #: Accept the Lead's text edits (wording, never structure or the sample) without a click.
+    auto_accept_text_edits: StrictBool
+
+
 class ResearcherLead(BaseModel):
     model_config = ConfigDict(extra="forbid")
     lead_id: str
@@ -247,6 +262,7 @@ class ResearcherLead(BaseModel):
     updated_at: datetime
     files: LeadFiles
     memories: list[LeadMemory]
+    preferences: LeadPreferences
 
 
 class LeadProfileResponse(BaseModel):
@@ -399,6 +415,7 @@ def decide_edits(
             decision=body.decision,
             indices=body.indices,
             base_revision=body.base_revision,
+            auto=body.auto,
         )
     return EditDecisions.model_validate(decided)
 
@@ -467,3 +484,22 @@ def hatch(org: OrganizationDep, session: SessionDep) -> LeadProfileResponse:
     chat, and the Lead changes its own files when asked."""
     with _lead_errors():
         return LeadProfileResponse.model_validate(LeadProfile(session, org).hatch())
+
+
+@profile_router.put(
+    "/preferences",
+    response_model=LeadProfileResponse,
+    responses={409: {"model": ErrorResponse, "description": "Not hatched"}},
+)
+def set_preferences(
+    body: LeadPreferences, org: OrganizationDep, session: SessionDep
+) -> LeadProfileResponse:
+    """Set the caller's own Lead's preferences, audited: whether its text edits are accepted
+    without a click (off by default; ADR 0026: the researcher's standing choice is their
+    decision). Nobody sets another researcher's."""
+    with _lead_errors():
+        return LeadProfileResponse.model_validate(
+            LeadProfile(session, org).set_preferences(
+                auto_accept_text_edits=body.auto_accept_text_edits
+            )
+        )

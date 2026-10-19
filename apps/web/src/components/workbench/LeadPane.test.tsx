@@ -86,6 +86,20 @@ describe("LeadPane", () => {
     await waitFor(() => expect(posts[1]).toEqual({ kind: "message", text: "Je cíl dost konkrétní?", stage: "brief", focus: null }));
   });
 
+  it("saves the working copy's waiting change before a message goes, so the Lead reads it", async () => {
+    const order: string[] = [];
+    const beforeMessage = vi.fn(async () => {
+      order.push(`flush with ${posts.length} posts`);
+    });
+    render(pane({ beforeMessage }));
+    await waitFor(() => expect(posts).toEqual([{ kind: "greeting", stage: "brief" }]));
+    fireEvent.change(screen.getByLabelText("Napište Vedoucímu výzkumu"), { target: { value: "Je cíl dost konkrétní?" } });
+    fireEvent.keyDown(screen.getByLabelText("Napište Vedoucímu výzkumu"), { key: "Enter" });
+    await waitFor(() => expect(posts).toHaveLength(2));
+    // Once, for the message, and before it was sent: the greeting does not save.
+    expect(order).toEqual(["flush with 1 posts"]);
+  });
+
   it("reads a Lead's reply, its edits and its request, which starts nothing until approved", async () => {
     state.turns = [
       turn({ turn_id: "LDT-0", actor: "person", text: "Pomoz mi", run_id: null }),

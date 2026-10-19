@@ -41,6 +41,7 @@ from ..domain.research_lead import (
 )
 from ..domain.scope import OrganizationContext, Permission, ScopeDenied, StudyContext
 from .tables import (
+    AccessAuditRow,
     ClientRow,
     ResearcherLeadMemoryRow,
     ResearcherLeadRevisionRow,
@@ -76,6 +77,7 @@ def _lead(row: ResearcherLeadRow) -> ResearcherLead:
         user=row.user_profile,
         hatched_at=as_utc(row.hatched_at),
         updated_at=as_utc(row.updated_at),
+        auto_accept_text_edits=bool(row.auto_accept_text_edits),
     )
 
 
@@ -237,6 +239,45 @@ class ResearcherLeadRepository:
                 self._session.flush()
         except IntegrityError as exc:
             raise LeadAlreadyHatched("the Lead is already hatched") from exc
+        return _lead(row)
+
+    def set_preferences(self, *, auto_accept_text_edits: bool) -> ResearcherLead:
+        """The calling researcher sets their own Lead's preferences; audited.
+
+        A person's act on their own row: a run's scope, whose actor may be a worker, cannot.
+        ``auto_accept_text_edits`` is their standing choice to have the Lead's text edits
+        accepted without a click (plan inline-decisions chunk 2). An unchanged value writes
+        nothing. Without a Lead, :class:`LeadNotHatched`.
+        """
+        s = self._scope
+        if s.actor_id.startswith("worker:"):
+            raise ScopeDenied(
+                "only a person sets their Lead's preferences", reason="insufficient_role"
+            )
+        row = self._row(for_update=True)
+        if row is None:
+            raise LeadNotHatched("the researcher has no Lead")
+        if bool(row.auto_accept_text_edits) != auto_accept_text_edits:
+            previous = bool(row.auto_accept_text_edits)
+            row.auto_accept_text_edits = auto_accept_text_edits
+            row.updated_at = utcnow()
+            self._session.add(
+                AccessAuditRow(
+                    organization_id=s.organization_id,
+                    client_id=s.client_id if isinstance(s, StudyContext) else None,
+                    study_id=s.study_id if isinstance(s, StudyContext) else None,
+                    actor_id=s.actor_id,
+                    action="RESEARCH_LEAD_PREFERENCES_SET",
+                    reason="",
+                    payload={
+                        "lead_id": row.lead_id,
+                        "auto_accept_text_edits": auto_accept_text_edits,
+                        "previous": previous,
+                    },
+                    request_id=s.request_id,
+                )
+            )
+            self._session.flush()
         return _lead(row)
 
     def apply_self_update(self, update_: SelfUpdate, *, source_turn_id: str) -> SelfUpdateApplied:

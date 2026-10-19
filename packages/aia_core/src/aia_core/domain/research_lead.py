@@ -69,6 +69,9 @@ __all__ = [
     "MESSAGE_MAX_CHARS",
     "SELF_UPDATE_FILES",
     "STAGES",
+    "TEXT_EDIT_OPS",
+    "TEXT_ONLY_FIELDS",
+    "TEXT_ONLY_LISTS",
     "Dropped",
     "LeadContextTooLarge",
     "LeadNote",
@@ -87,6 +90,7 @@ __all__ = [
     "freeze_context",
     "ground_edits",
     "ground_self_update",
+    "is_text_edit",
     "layer",
     "lead_contract",
     "lead_prompt",
@@ -303,6 +307,43 @@ EditOp = Annotated[
     | SetN,
     Field(discriminator="op"),
 ]
+
+#: The edits that change wording and never structure or the sample: what a researcher may let the
+#: Lead apply without a click (the preference ``auto_accept_text_edits``, plan inline-decisions
+#: chunk 2). A ``question_edit`` is one only when it changes the text alone (:func:`is_text_edit`).
+TEXT_EDIT_OPS: Final = frozenset({"set_text", "question_edit", "list_replace"})
+#: The ``set_text`` fields whose edit changes their wording and nothing else. The brief's fields
+#: (``goal``, ``decision_use``, ``briefing.*``) are not among them: ``apply_edit`` clears the
+#: analysis made of the brief when one changes.
+TEXT_ONLY_FIELDS: Final = frozenset({"title", "plan.problem_summary"})
+#: The plan lists whose items are wording alone. ``plan.research_questions`` is not among them:
+#: the questionnaire's items and the plan's comparisons name a research question by its text
+#: (``domain/research_trace.py``), so renaming one unlinks what measures it. Nor is
+#: ``plan.objectives``: where a plan states no research questions, its objectives are read as
+#: them (``analysis/native.py`` ``research_questions_of``), with the same links by text.
+TEXT_ONLY_LISTS: Final = frozenset({"plan.hypotheses"})
+
+
+def is_text_edit(edit: BaseModel) -> bool:
+    """Whether ``edit`` changes wording and nothing the design links to it: a ``set_text`` of the
+    title or the problem summary, a ``list_replace`` of a hypothesis, or a ``question_edit`` that
+    replaces the text and leaves the options as they are. Adding, removing, re-optioning or
+    re-typing anything, the sample size, a brief field (it clears the analysis), a research
+    question or an objective (items and comparisons name them by their text) are not.
+
+    A question's new wording still decides how it is read after it: whether code answers it as
+    a fact (``respondent_facts``) and which persona topics it draws (``persona_topics``). That is
+    true of a clicked accept too; readiness and the question outlook show it before a run."""
+    op = getattr(edit, "op", None)
+    if op not in TEXT_EDIT_OPS:
+        return False
+    if isinstance(edit, QuestionEdit):
+        return edit.text is not None and edit.options is None
+    if isinstance(edit, SetText):
+        return edit.field in TEXT_ONLY_FIELDS
+    if isinstance(edit, ListReplace):
+        return edit.list in TEXT_ONLY_LISTS
+    return False
 
 
 # --------------------------------------------------------------------------- requests
@@ -1040,6 +1081,9 @@ class ResearcherLead(Closed):
     user: str
     hatched_at: datetime
     updated_at: datetime
+    #: The researcher's standing choice to have the Lead's text edits (:func:`is_text_edit`)
+    #: accepted without a click. Off unless they turn it on (plan inline-decisions chunk 2).
+    auto_accept_text_edits: bool = False
 
 
 class LeadNote(Closed):

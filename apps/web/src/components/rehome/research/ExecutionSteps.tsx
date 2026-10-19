@@ -39,6 +39,7 @@ import {
 } from "@/lib/api";
 import { clientChildren, outcomeValue, targetVerdict } from "@/lib/population";
 import { latestDesignRun, questionEvidence } from "@/lib/design-evidence";
+import { citedSnapshot } from "@/lib/verified-source";
 import { researchStepOrb } from "@/lib/activity-orb";
 import { activityOf } from "@/lib/step-activity";
 import { type BatteryWithMaps, mapApproval, readObjectMap, type RecordedMethod, type RegisterEntry } from "@/lib/object-map-view";
@@ -95,7 +96,8 @@ import type { StepKey } from "@/research/steps";
 import { ActionDock, Switch } from "../step";
 import { AiButton, Button, Chip } from "../ui";
 import { BudgetLift } from "./BudgetLift";
-import { canReview } from "./frame";
+import { canReview, type StudyFrame } from "./frame";
+import { VerifiedSourceButton } from "./VerifiedSourceButton";
 import { useFrame } from "./frame-hook";
 import { InspectorSlot } from "./Inspector";
 import { ResearchContext, useResearch } from "./context";
@@ -409,6 +411,13 @@ function Receipt({ revision, readiness }: { revision: number; readiness: Readine
   );
 }
 
+/** "Ověřeno, přidat zdroj" under a design finding whose source the run captured as a web page. */
+function CheckedSource({ frame, design, evidenceId }: { frame: StudyFrame; design: DesignEvidence; evidenceId: string }) {
+  const cited = citedSnapshot(design.bundle, evidenceId);
+  if (!cited || !canReview(frame)) return null;
+  return <span className="mt-0.5 block"><VerifiedSourceButton studyId={frame.studyId} clientId={frame.clientId} runId={design.run.run_id} snapshotId={cited.snapshotId} evidenceId={evidenceId} /></span>;
+}
+
 /** "Výzkumné otázky a jejich měření": each research question of the plan, the questions that
  * measure it and what the run will make of them (plan run-recovery-and-truth 3b). */
 type DesignEvidence = { run: DeepResearchRun; proposal: DesignProposal; bundle: DeepResearchBundle };
@@ -416,6 +425,7 @@ type DesignEvidence = { run: DeepResearchRun; proposal: DesignProposal; bundle: 
 /** What the study's Design Research run found for one research question (3d): its accepted
  * findings with their sources, a gap, or that it never studied it; every rejection by reason. */
 function DesignEvidenceNote({ rq, design }: { rq: string; design: DesignEvidence }) {
+  const frame = useFrame();
   const found = questionEvidence(rq, design.proposal, design.bundle);
   if (!found.studied) return <p className="mt-1 text-[13px] text-ink-muted">{t("research.exec.trace.evidence.notStudied")}</p>;
   return (
@@ -428,6 +438,7 @@ function DesignEvidenceNote({ rq, design }: { rq: string; design: DesignEvidence
               <li key={f.evidence_id}>
                 <span>{f.claim}</span>
                 <span className="block text-ink-muted">„{f.quote}“ · {f.source_title || f.source}</span>
+                <CheckedSource frame={frame} design={design} evidenceId={f.evidence_id} />
               </li>
             ))}
           </ul>

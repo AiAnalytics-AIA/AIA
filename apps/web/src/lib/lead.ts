@@ -71,7 +71,7 @@ export type LeadTurn = {
   created_at: string;
   created_by: string | null;
   /** What the person decided on each of this turn's edits, from the approval ledger (by index). */
-  edit_decisions?: Record<string, { status: "accepted" | "dismissed" | "refused"; reason: string | null }>;
+  edit_decisions?: Record<string, { status: "accepted" | "dismissed" | "refused"; reason: string | null; auto?: boolean }>;
   /** The person's approval of this turn's paid request, when given. */
   request_decision?: { status: "approved"; run_id: string } | null;
   /**
@@ -125,8 +125,15 @@ export type LeadState = { available: boolean; unavailable_reason: string | null;
 export type LeadMemory = { memory_id: string; scope: "personal" | "client"; client_id: string | null; client_name?: string | null; text: string; created_at: string; source_turn_id: string | null };
 export type ResearcherLead = {
   hatched: boolean;
-  lead: { lead_id: string; name: string; hatched_at: string; updated_at: string; files: { soul: string; user: string }; memories: LeadMemory[] } | null;
+  lead: {
+    lead_id: string; name: string; hatched_at: string; updated_at: string; files: { soul: string; user: string }; memories: LeadMemory[];
+    /** The researcher's own choices (plan inline-decisions 2); absent from an older API: all off. */
+    preferences?: LeadPreferences;
+  } | null;
 };
+
+/** Accept the Lead's text edits (wording, never structure or the sample) without a click. Off by default. */
+export type LeadPreferences = { auto_accept_text_edits: boolean };
 
 type Content = { project: ResearchProject; analysis: Analysis | null };
 const norm = (s: string) => s.replace(/\s+/g, " ").trim().toLocaleLowerCase("cs");
@@ -354,4 +361,87 @@ export function targetOfElement(el: Element | null): { id: string; label: string
     if (plan[id]) return plan[id]!;
   }
   return null;
+}
+
+// --------------------------------------------------------------------------- automatic text edits
+
+/** The `set_text` fields whose edit changes their wording alone (the server's `TEXT_ONLY_FIELDS`). */
+export const TEXT_ONLY_FIELDS: ReadonlySet<TextField> = new Set<TextField>(["title", "plan.problem_summary"]);
+/** The plan lists whose items are wording alone (the server's `TEXT_ONLY_LISTS`): not research
+ * questions, nor objectives, which are read as research questions where a plan states none. */
+export const TEXT_ONLY_LISTS: ReadonlySet<PlanList> = new Set<PlanList>(["plan.hypotheses"]);
+
+/**
+ * The edits that change wording only, with no other effect, as the server's `is_text_edit` holds
+ * them (domain/research_lead.py): the title or the problem summary, a hypothesis replaced, a question's text with its options left as they are. Anything that adds, removes,
+ * re-options or resizes is structure; a brief field is not wording only (its edit drops the
+ * analysis), nor a research question or an objective (items and comparisons name them by text). The server
+ * refuses any other edit in an automatic accept; this only chooses what to ask.
+ */
+export function isTextEdit(e: LeadEdit): boolean {
+  if (e.op === "set_text") return TEXT_ONLY_FIELDS.has(e.field);
+  if (e.op === "list_replace") return TEXT_ONLY_LISTS.has(e.list);
+  return e.op === "question_edit" && e.text !== null && e.text !== undefined && (e.options === null || e.options === undefined);
+}
+
+/** A finished Lead turn's text edits nobody has decided yet: what an automatic accept asks for. */
+export function autoAcceptIndices(t: LeadTurn): number[] {
+  if (t.actor !== "lead" || t.status !== "COMPLETED") return [];
+  const decided = t.edit_decisions ?? {};
+  return (t.output?.edits ?? []).flatMap((e, i) => (isTextEdit(e) && !decided[String(i)] ? [i] : []));
+}
+
+/**
+ * The turns to accept automatically now: those that finished after the screen first read the
+ * conversation (`seen`: the turns already finished then, so opening a study replays nothing) and
+ * have not been tried (`tried`), each with its undecided text edits. Off: nothing.
+ */
+export function autoAcceptPlan(turns: LeadTurn[], on: boolean, seen: ReadonlySet<string>, tried: ReadonlySet<string>): { turnId: string; indices: number[] }[] {
+  if (!on) return [];
+  return turns.flatMap((t) => {
+    if (seen.has(t.turn_id) || tried.has(t.turn_id)) return [];
+    const indices = autoAcceptIndices(t);
+    return indices.length ? [{ turnId: t.turn_id, indices }] : [];
+  });
+}
+
+function textOf(c: Content, e: LeadEdit): string | null {
+  if (e.op === "question_edit") {
+    const at = findQuestion(c.project, e.question_id);
+    return at ? String(sections(c.project)[at.si]!.questions![at.qi]!.text ?? "") : null;
+  }
+  if (e.op === "set_text") return describeEdit(c, e).before ?? "";
+  if (e.op === "list_replace") {
+    const found = narrativeOf(c)[LIST_KEY[e.list]].find((x) => norm(x) === norm(e.old));
+    return found ?? null;
+  }
+  return null;
+}
+
+/**
+ * The edit that puts back the wording a text edit replaced, read from the content it was applied
+ * to; null when that content no longer held what the edit changes (nothing to put back).
+ */
+export function textEditInverse(before: Content, e: LeadEdit): LeadEdit | null {
+  const old = textOf(before, e);
+  if (old === null) return null;
+  const why = "Vráceno výzkumníkem: původní znění.";
+  if (e.op === "set_text") return { op: "set_text", field: e.field, value: old, why };
+  if (e.op === "list_replace") return { op: "list_replace", list: e.list, old: e.value, value: old, why };
+  if (e.op === "question_edit") return { op: "question_edit", question_id: e.question_id, text: old, options: null, why };
+  return null;
+}
+
+/**
+ * "Vrátit": the working content with an automatically accepted text edit undone, as the person's own
+ * edit -- or why not: the wording is no longer the one the edit wrote (it changed since), so nothing
+ * is put back over it.
+ */
+export function revertTextEdit(now: Content, e: LeadEdit, inverse: LeadEdit): { content: Content } | { refused: string } {
+  const current = textOf(now, e.op === "list_replace" ? { ...e, old: e.value } : e);
+  const wrote = e.op === "set_text" || e.op === "list_replace" ? e.value : e.op === "question_edit" ? e.text : null;
+  if (current === null || wrote === null || norm(current) !== norm(wrote)) {
+    return { refused: "Text se mezitím změnil, proto ho nevracím. Upravte ho přímo." };
+  }
+  return applyLeadEdit(now, inverse);
 }

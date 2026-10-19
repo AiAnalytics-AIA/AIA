@@ -269,7 +269,9 @@ export function KnowledgeArea() {
   // window.location is not yet the new URL when this first renders.
   const params = useSearchParams();
   const addRequested = params.get("add") === "1";
-  const asked = params.get("add") !== null || params.get("view") !== null;
+  const asked = params.get("add") !== null || params.get("view") !== null || params.get("item") !== null;
+  // An item another page linked to ("Ověřeno, přidat zdroj"), opened once in the library.
+  const [linkedItem] = useState(() => params.get("item"));
   const [view, setView] = useState<LibraryView>(() => viewRequested(new URLSearchParams(params.toString())) ?? "all");
   const [label, setLabel] = useState<string | null>(null);
   const [section, setSection] = useState<KnowledgeSection | "all">("all");
@@ -524,6 +526,7 @@ export function KnowledgeArea() {
                     ))}
                   </div>
                   <KnowledgeLibrary
+                    initialOpen={linkedItem}
                     clientId={clientId}
                     view={view}
                     label={label}

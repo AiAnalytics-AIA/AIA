@@ -70,12 +70,14 @@ type LibraryProps = {
   version: number;
   /** Something was filed, edited or retitled: folders, labels and the tabs' counts follow. */
   onChanged: () => void;
+  /** The item another page linked to (?item=…), open from the start. */
+  initialOpen?: string | null;
 };
 
-export function KnowledgeLibrary({ clientId, view, label, section, folders, labels, mayPropose, ai, version, onChanged }: LibraryProps) {
+export function KnowledgeLibrary({ clientId, view, label, section, folders, labels, mayPropose, ai, version, onChanged, initialOpen = null }: LibraryProps) {
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(initialOpen);
   const [error, setError] = useState<string | null>(null);
   // "A year ago" is fixed when the library opens, so a re-render never reshuffles the old view.
   const [now] = useState(() => Date.now());
