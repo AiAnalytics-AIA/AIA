@@ -1,15 +1,15 @@
 ---
-status: in-progress
+status: done
 chunks:
   - "[x] 1. Class rules in one module, read by the design agents and the Research Lead; provenance names each part's source"
   - "[x] 2. Fieldwork and analysis classify a run's design by the same rule (Deep Research and validation checked)"
   - "[x] 3. A client source marked \"Interní dokument\" (who, when, audited): Class C for its AI proposals; API and source card"
   - "[x] 4. ADR 0008 and ADR 0010 amendments: the owner's class rules; develop's EU route may carry A, B and C"
-  - "[ ] 5. Runbook: the AI route parameters for A, B and C, with the commands that set them"
+  - "[x] 5. Runbook: the AI route parameters for A, B and C, with the commands that set them"
 ---
 # Usable classification
 
-**Status:** in progress · **Drafted:** 2026-10-19 · **Branch:** `feature/usable-classification`
+**Status:** done · **Drafted:** 2026-10-19 · **Branch:** `feature/usable-classification`
 from `develop` @ `6c5cd620`
 
 ## Decision (the product owner, 2026-10-19)
@@ -93,4 +93,46 @@ there is a contract version of its own. A park's error carries `design_class` (`
 
 ## Doc follow-up
 
-(filled in as chunks land)
+For the docs PR (CLAUDE.md §1); anchors are on this branch's commits.
+
+**CLAUDE.md § 2, the map.**
+
+- Under `domain/`, after `ai_contracts.py`: "`material_rules.py` -- the class a study's material
+  takes by rule (the product owner, 2026-10-19; ADR 0008 amendment): a design, the study's names
+  and a researcher's messages, focus labels and job instructions Class B; the Lead's files and
+  personal notes C; client notes, approved knowledge and a client's sources A; a source a person
+  marked "Interní dokument" C. `classify_by_rule`: an operator's exact-bytes classification can
+  only raise a rule (source `rule:<name>` or `operator`); material no rule names still refuses."
+- `domain/research_agents.py`: append "a design and a nonempty instruction classified by rule
+  (`design_classification`, `instruction_classification`); `prompt_class_source`".
+- `domain/client_sources.py`: append "`InternalMark` (who and when a person marked a source
+  "Interní dokument")"; `domain/source_proposals.py`: "`proposal_request(…, internal=)`: Class C
+  for a marked source, else A".
+- `routers/` client_sources: add "PUT …/{source_id}/internal (`{internal: bool}`): mark a source
+  "Interní dokument" or unmark it, PROPOSE_CLIENT_KNOWLEDGE, audited; every source answers
+  `internal: {by, at} | null`".
+- `infrastructure/client_source_repository.py`: append "`mark_internal`: who and when on the row
+  (`internal_marked_by`, `internal_marked_at`, migration c7e9a1b3d5f2), each change audited
+  (`CLIENT_SOURCE_MARKED_INTERNAL` / `…_UNMARKED_INTERNAL`)".
+- `components/aia/clients/SourceFile.tsx`: "SourceCard: the "Interní dokument" toggle (what it
+  does; who marked it, when)".
+- `aia_executors/ai_fieldwork.py`, `analysis.py`: "the run's design classified by rule
+  (`rule:design`)"; `client_source_proposals.py`: "a marked source's requests Class C, each
+  proposal recording `data_class` and `class_source`".
+- § 2's "A research run executes a Design Revision" paragraph: the classes of its material come
+  from `material_rules.py`, not from an operator's hash alone.
+
+**`.planning/open-items.md`.**
+
+- **OI-126** (How is Research Lead chat material classified on develop?): **answered** by the
+  product owner, 2026-10-19: a chat message and focus label take the study's class (B), the
+  design and names are B, the Lead's files and personal notes C, client notes A
+  (`packages/aia_core/src/aia_core/domain/material_rules.py:78` @ `bc1cd3fc`,
+  `domain/research_lead.py:835` `context_classification` @ `bc1cd3fc`; test
+  `test_the_design_names_and_a_message_are_class_b_by_rule_with_no_operator_step`). The Lead
+  answers on develop once the route carries Class B with its retention stated
+  (`deploy/develop/README.md` § AI route classes). Close it.
+- New, from F1: "Deep Research's design classification under the owner's rules" (a question for
+  the product owner), with F1's six parts.
+
+**`docs/architecture/adr/README.md`.** ADR 0008 and ADR 0010: "amended 2026-10-19".

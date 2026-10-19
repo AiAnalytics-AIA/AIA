@@ -390,22 +390,73 @@ the worker with the key named.
 | `aia_ai_policy_version` | a new name per change of model or price, e.g. `aia-bedrock-develop-2026-09` |
 | `aia_bedrock_input_usd_per_mtok`, `aia_bedrock_output_usd_per_mtok` | from the Bedrock pricing page, the date recorded in ADR 0010 |
 | `aia_bedrock_max_output_tokens`, `aia_bedrock_context_window_tokens` | the model's documented limits |
-| `aia_ai_route_eu_processing_approved`, `aia_ai_route_excluded_from_training` | `true` only once ADR 0010's review is recorded |
-| `aia_ai_route_approved_for` | `CLASS_C_INTERNAL` (ADR 0010: nothing wider without a reviewed change) |
-| `aia_ai_route_retention_days` | **leave unset** -- the account setting is `inherit`, not zero |
+| `aia_ai_route_eu_processing_approved`, `aia_ai_route_excluded_from_training` | `true` (ADR 0010's review, 2026-09-26; required for Classes A and B) |
+| `aia_ai_route_approved_for` | `CLASS_A_CLIENT_CONFIDENTIAL,CLASS_B_DERIVED_CLIENT,CLASS_C_INTERNAL` (ADR 0010, amendment 2026-10-19), only together with the retention below; until then `CLASS_C_INTERNAL` |
+| `aia_ai_route_retention_days` | the Bedrock account's provider-side retention, **once an operator has confirmed it** (§ AI route classes); unset until then, and then only Class C may travel |
 | `aia_ai_fieldwork_max_output_tokens` | the respondent agent's cap per call, e.g. `1024` |
 | `aia_ai_fieldwork_reservation_usd` | budget held per respondent request (primary + one repair); it must cover two calls' ceilings |
-| `aia_ai_fictional_client_ids` | the client ids of the seed's *(fiktivní)* clients: only their studies' designs are Class C |
+| `aia_ai_fictional_client_ids` | the client ids of the seed's *(fiktivní)* clients; kept for configuration compatibility, it classifies no material ([ai-material-classification.md](../../docs/architecture/ai-material-classification.md)) |
 
-With the route approved for Class C only, a study of any client **not** in
-`aia_ai_fictional_client_ids` parks with `egress_route_not_approved_for_class`,
-and anything derived from the population panel parks with `licence_undetermined`
-(OI-61), both before any request leaves. Inspect: usage in `ai_usage_events`
+A study's design, its names and a researcher's messages to the Research Lead are Class
+B by the product owner's rule of 2026-10-19 (ADR 0008 amendment); approved knowledge, a
+client's documents and the Lead's client notes are Class A. With the route approved for
+Class C only, each of those parks with `egress_route_not_approved_for_class`, before any
+request leaves; anything derived from the population panel needs its licence besides
+(OI-61). Inspect: usage in `ai_usage_events`
 (`provider`, `route_id`, `model`, `provider_request_id`, tokens, `cost_usd`,
 `cost_basis`, `runtime_version`), the reservation per request in
 `budget_reservations`, failure classification on the attempt row
 (`step_attempts.error_json`), and the dataset artifact's `provenance` (agent,
 prompt hash, class, lineage, every call).
+
+### AI route classes
+
+The product owner decided on 2026-10-19 that this route may carry Classes A, B and C
+(ADR 0010, amendment of that date). It takes effect only when an operator sets the four
+parameters below; the Compose defaults stay empty, so nothing in the repository widens the
+route by itself. ADR 0008 requires a specified retention for A and B, and the worker's
+egress check refuses either over a route whose retention is unset
+(`egress_retention_unspecified`).
+
+1. **Confirm the retention, then record it.** `aia_ai_route_retention_days` is the provider-side
+   retention of model inputs and outputs in the Bedrock account: with model invocation logging
+   off, it is `0`. Check it from CloudShell in `eu-central-1`:
+
+   ```bash
+   aws bedrock get-model-invocation-logging-configuration --region eu-central-1
+   ```
+
+   An empty `loggingConfig` means logging is off. ADR 0010 § Retention found the account's
+   data-retention setting `inherit` on 2026-09-26; confirm what it is now in the Bedrock
+   console. Record the value, the date and the terms reference in the activation evidence
+   (ADR 0010 § Activation evidence) before setting the parameter. If it cannot be confirmed,
+   stop here: the route stays Class C only.
+2. **Set the parameters**, from CloudShell (`<days>` is the number confirmed in step 1):
+
+   ```bash
+   P=/aia/develop
+   aws ssm put-parameter --name $P/aia_ai_route_eu_processing_approved --type String --value true --overwrite
+   aws ssm put-parameter --name $P/aia_ai_route_excluded_from_training --type String --value true --overwrite
+   aws ssm put-parameter --name $P/aia_ai_route_retention_days --type String --value <days> --overwrite
+   aws ssm put-parameter --name $P/aia_ai_route_approved_for --type String --overwrite \
+     --value CLASS_A_CLIENT_CONFIDENTIAL,CLASS_B_DERIVED_CLIENT,CLASS_C_INTERNAL
+   ```
+
+   None of the four is a secret: `String`, not `SecureString`.
+3. **Write the host's environment and restart**, on the host:
+
+   ```bash
+   bin/write-env.sh && docker compose up -d worker web
+   ```
+
+   The worker reads the route; the web client shows its classes on Settings. The next deploy
+   (`bin/deploy.sh`) does the same. Check:
+   `docker compose exec worker printenv AIA_AI_ROUTE_APPROVED_FOR AIA_AI_ROUTE_RETENTION_DAYS`
+   prints both; Settings → AI shows the three classes. A value the worker refuses stops it at
+   start, with the key named in its log.
+
+To narrow it again, put `CLASS_C_INTERNAL` back into `aia_ai_route_approved_for` and repeat
+step 3; requests of Classes A and B then park before anything is sent.
 
 ### Model requests in a step's activity
 
