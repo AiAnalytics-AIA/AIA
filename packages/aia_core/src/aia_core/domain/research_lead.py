@@ -79,6 +79,7 @@ __all__ = [
     "lead_request",
     "lead_request_window_tokens",
     "number_tokens",
+    "question_add_problem",
     "split_self_update",
 ]
 
@@ -204,6 +205,20 @@ class ListRemove(Closed):
     why: Why
 
 
+def question_add_problem(qtype: str, options: Sequence[str]) -> str | None:
+    """Why a new question of ``qtype`` cannot carry ``options``, as ``apply_edit`` builds it;
+    ``None`` when it can. A selection question needs at least two options; an open question
+    has none; a scale has none (the default end labels) or exactly two (its end labels).
+    Anything else would be shown to the researcher and silently dropped (Codex on #484)."""
+    if qtype in ("vyber", "multi"):
+        return "too_few_options" if len(options) < 2 else None
+    if qtype == "otevrena":
+        return "options_on_open_question" if options else None
+    if qtype == "skala":
+        return None if len(options) in (0, 2) else "scale_labels_not_two"
+    return "unknown_question_type"
+
+
 class QuestionAdd(Closed):
     op: Literal["question_add"]
     section_id: str | None = Field(default=None, min_length=1, max_length=120)
@@ -214,8 +229,13 @@ class QuestionAdd(Closed):
 
     @model_validator(mode="after")
     def _coherent(self) -> QuestionAdd:
-        if self.qtype in ("vyber", "multi") and len(self.options) < 2:
+        problem = question_add_problem(self.qtype, self.options)
+        if problem == "too_few_options":
             raise ValueError("a selection question needs at least two options")
+        if problem == "options_on_open_question":
+            raise ValueError("an open question has no options")
+        if problem == "scale_labels_not_two":
+            raise ValueError("a scale's options are its two end labels, or none")
         return self
 
 
@@ -461,6 +481,8 @@ def ground_edits(
         elif isinstance(edit, QuestionAdd):
             if edit.section_id is not None and edit.section_id not in sections:
                 reason = "unknown_section"
+            else:
+                reason = question_add_problem(edit.qtype, edit.options)
         elif isinstance(edit, ListReplace | ListRemove):
             items = {_key(str(x)) for x in _plan_list(content, analysis, edit.list)}
             if _key(edit.old) not in items:
@@ -1024,6 +1046,10 @@ def apply_edit(
                 del items[at]
         return body, _write_narrative(body, plan, started, key, items)
     if isinstance(edit, QuestionAdd):
+        problem = question_add_problem(edit.qtype, edit.options)
+        if problem is not None:
+            # Never a question other than the one the researcher was shown and accepted.
+            return Refused(reason=problem)
         sections = body.get("sections")
         if sections is not None and not isinstance(sections, list):
             return Refused(reason="sections_not_a_list")

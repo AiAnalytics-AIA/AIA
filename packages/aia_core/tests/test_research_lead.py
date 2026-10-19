@@ -26,6 +26,7 @@ from aia_core.domain.research_lead import (
     STAGES,
     LeadContextTooLarge,
     LeadOutput,
+    QuestionAdd,
     QuestionEdit,
     Refused,
     SelfUpdate,
@@ -41,6 +42,7 @@ from aia_core.domain.research_lead import (
     lead_request_window_tokens,
     model_message,
     number_tokens,
+    question_add_problem,
     split_self_update,
 )
 from aia_core.domain.residency import DataClass
@@ -427,6 +429,46 @@ def test_question_add_writes_the_webs_question_shape(
     assert added["id"].startswith("Q_") and added["text"] == "Otázka"
     assert added["povolit_nevim"] is False
     assert {k: v for k, v in added.items() if k not in ("id", "text", "povolit_nevim")} == expected
+
+
+@pytest.mark.parametrize(
+    "qtype,options,reason",
+    [
+        ("otevrena", ["A"], "options_on_open_question"),
+        ("otevrena", ["A", "B"], "options_on_open_question"),
+        ("skala", ["jen jeden konec"], "scale_labels_not_two"),
+        ("skala", ["a", "b", "c"], "scale_labels_not_two"),
+        ("vyber", ["Jediná"], "too_few_options"),
+        ("multi", [], "too_few_options"),
+    ],
+)
+def test_a_new_question_carries_only_options_it_can_keep(
+    qtype: str, options: list[str], reason: str
+) -> None:
+    """Codex P2 on #484: options shown to the researcher and silently dropped on accept."""
+    edit = {"op": "question_add", "text": "Q", "qtype": qtype, "options": options, "why": WHY}
+    assert not _valid(_output(edits=[edit])).ok
+    assert question_add_problem(qtype, options) == reason
+    # An output stored before the contract said so: refused when applied, dropped when grounded.
+    stored = QuestionAdd.model_construct(
+        op="question_add", section_id=None, text="Q", qtype=qtype, options=options, why=WHY
+    )
+    assert apply_edit(CONTENT, None, stored) == Refused(reason=reason)
+    output = LeadOutput.model_construct(
+        reply="x", view=[], edits=[stored], request=None, follow=[], self_update=None
+    )
+    kept, dropped = ground_edits(output, CONTENT)
+    assert kept.edits == [] and [d.reason for d in dropped] == [reason]
+
+
+@pytest.mark.parametrize(
+    "qtype,options",
+    [("otevrena", []), ("skala", []), ("skala", ["málo", "hodně"]), ("vyber", ["A", "B"])],
+)
+def test_options_a_new_question_keeps_are_accepted(qtype: str, options: list[str]) -> None:
+    edit = {"op": "question_add", "text": "Q", "qtype": qtype, "options": options, "why": WHY}
+    assert _valid(_output(edits=[edit])).ok
+    assert question_add_problem(qtype, options) is None
 
 
 def test_question_add_goes_to_the_named_or_first_questions_section_or_a_new_one() -> None:
