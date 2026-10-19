@@ -319,8 +319,9 @@ The Lead's reply is not copied into the row. It is the output of the turn's sing
 listing a conversation reads in the same query as the runs (`list_runs(steps=True)`). So the reply
 has one source.
 
-There is **no conversation table**: one Study has one conversation, so `study_id` is its key. What
-the Lead last saw is the newest Lead turn's `workspace_revision`.
+There is **no conversation table**: a researcher has one conversation per Study, so `study_id` and
+`user_id` are its key (*Accepted with* 6). What the Lead last saw is the newest Lead turn's
+`workspace_revision`.
 
 There is **no proposals table**. A proposal's lifecycle is already held elsewhere:
 
@@ -391,7 +392,29 @@ The product owner's decisions of 2026-10-19 on accepting:
    route's own gates: readiness, answerability and the spend limit.
 5. **Live calls on develop, at a small cap.** The per-turn reservation is the smallest the gateway
    accepts. The route's approved data classes still decide which studies can be sent.
-6. **The visual target is the prototype** (`prototypes/research-lead-v2`, PR #481). Its layout and
+6. **Each researcher has their own Lead** (the product owner, later the same day). The Lead is
+   a personal agent attached to the account, hatched once and shaped by working with it, in the
+   manner of personal agents that keep a persona and a memory that evolves.
+   - **Sessions.** A study's conversation is per researcher (`study_lead_turns.user_id`). Nobody
+     reads another researcher's session.
+   - **The Lead itself.** `researcher_leads` holds one Lead per researcher: its name and its persona,
+     a closed set of tone, detail and focus choices plus the researcher's own words about how they
+     work.
+   - **Memory.** `researcher_lead_memories` holds notes. The Lead proposes at most two per turn as
+     `remember`. The person can add notes, and can forget any note; forgetting sets
+     `forgotten_at`, so nothing is deleted. A memory note is the researcher's own assistant memory,
+     not client knowledge and not research truth, so it takes no approval gate. It is shown in the
+     conversation the moment it is kept.
+   - **Client isolation decides what a note may carry** (ADR 0004).
+     - A `personal` note holds working style and preferences only, and goes with the researcher
+       into every study.
+     - A `client` note names its client and loads only into that client's studies. The query
+       enforces this, not the prompt.
+     - Memory text is classified like the design's, and a client note is Class A.
+     - The residual risk is a client fact written as a personal note. The prompt forbids it, and
+       the person sees every note as it is kept and can forget it. That risk is stated here rather
+       than hidden.
+7. **The visual target is the prototype** (`prototypes/research-lead-v2`, PR #481). Its layout and
    components are ported into the web client and wired to AIA's working content, runs and routes.
    The existing stage screens stay as the artifact bodies wherever they already do the work.
 

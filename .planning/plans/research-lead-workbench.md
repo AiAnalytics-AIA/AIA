@@ -7,6 +7,7 @@ chunks:
   - "[ ] 4. Mount the workbench as the study screen behind AIA_WEB_RESEARCH_WORKBENCH (on for develop): artifact header and state bars over the existing stage screens"
   - "[ ] 5. Lead backend: study_lead_turns, StudyLeadRepository, ResearchLead, /lead routes, research_lead template and executor, settings"
   - "[ ] 6. Lead pane: conversation, composer, greeting, view tools, edits as change blocks, decision cards"
+  - "[ ] 6b. Personal Leads: researcher_leads and memories, hatching, the Můj Vedoucí page, per-researcher sessions"
   - "[ ] 7. Agent proposals inline in the artifact, with research-question coverage gained, lost and kept"
   - "[ ] 8. design_items, the working revision on each Design Revision, the item-level stale rule"
   - "[ ] 9. Accept in one transaction: merged Design Revision, working copy, ledger; the web reloads"
