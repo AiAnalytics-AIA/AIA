@@ -2,7 +2,9 @@
 
 Modelled on the design agents' executor (``research_agents``): ``StepModelCaller`` over the
 governed gateway, the prompt pinned at enqueue, the context frozen and hashed at enqueue,
-``ModelCapability.RESEARCH_REASONING`` and one schema repair. No tools; no automatic retry.
+``ModelCapability.STUDY_LEAD`` (bound to the Lead's own model when one is configured, else
+the route's; ADR 0026 amendment, 2026-10-19) and one schema repair. No tools; no automatic
+retry.
 
 What the turn produces is its step output -- the grounded :class:`LeadOutput`, what grounding
 dropped, what the Lead changed in its own files and the class the turn was sent as -- so the

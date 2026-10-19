@@ -486,3 +486,59 @@ The product owner's decisions of 2026-10-19 on accepting:
   three sources would have to agree. Rejected for a projection.
 - **Keep the conversation in the browser,** as the prototype does. Not shared, not durable, and not
   auditable (ADR 0002). Only the split width stays per browser.
+
+## Amendment 2026-10-19: the Lead's own model
+
+*(The product owner, 2026-10-19.)* The Lead's turns run on a model of their own, a
+current-generation model on Bedrock, while every other capability stays on the route's
+existing model. This amends decision 1's capability; nothing else in this ADR changes.
+
+**A capability of its own.** A turn names `ModelCapability.STUDY_LEAD`
+(`packages/aia_core/src/aia_core/domain/ai_models.py:94 @ 5d775785`,
+`domain/research_lead.py:883 @ 5d775785`), not `RESEARCH_REASONING`. Decision 1 chose
+`RESEARCH_REASONING` because the design agents use it; that is exactly why the Lead could not be
+bound apart from them. `RESEARCH_LEAD` stays Deep Research's lead researcher.
+
+**Bound on ADR 0010's route.** `STUDY_LEAD` resolves to the Lead's own model when one is
+configured: an EU cross-region inference profile pinned to a version, a second policy entry on
+the same route (`bedrock-eu-primary`), as the light model is. The worker pins it beside the
+route's model through `PinnedModels`, each model behind its own route-bound adapter
+(`apps/executors/src/aia_executors/ai_runtime.py:258, 740, 854 @ 5d775785`). It is the same
+route, with the same egress, residency, licence and class approvals: a second model is not a
+second approval. Unconfigured, `STUDY_LEAD` resolves to the route's model, so a deployment
+without the keys runs the Lead exactly as before. The instance role is granted the profile only
+when Terraform's `bedrock_lead_model_id` names it (`infra/develop/main.tf @ 9ba6777b`).
+
+**The reservation follows the model.** Decision 9's per-turn reservation is checked at start
+against the Lead's own model's prices, output ceiling and window when one is configured, never
+the route's (`ai_runtime.py:765 @ 5d775785`). A hold sized at a cheaper model would let a turn
+start that its reservation cannot cover.
+
+**The request shape is declared, not guessed.** The model family the Lead runs on refuses, with
+a 400, both ways the Bedrock adapter asked for structured output: a forced tool choice, and a
+thinking budget beside an offered tool. It also refuses non-default sampling values, and it
+thinks adaptively when nothing is said. So each model's catalog entry declares a request profile
+(`RequestProfile`, `domain/ai_models.py:225 @ 5d775785`):
+
+- `structured_output`: `forced_tool` (the default) or `auto_tool`;
+- `thinking`: `budget` (the default) or `adaptive`;
+- whether it accepts sampling;
+- an optional effort, for an adaptive model only.
+
+For an `auto_tool`, `adaptive` model the adapter offers the single output tool with
+`toolChoice: auto`, and the gateway tells the model to answer through it, as it already did for a
+thinking call (`application/model_gateway.py:454 @ 5d775785`). An answer in text takes the
+gateway's one schema repair. The adapter sends no thinking budget and no temperature, and puts
+only a configured effort in `additionalModelRequestFields`
+(`infrastructure/model_adapters/bedrock.py:202-246 @ 5d775785`). A request the profile cannot
+carry is refused before it is signed, by name, never quietly changed. The defaults are the shape
+every model was sent before, byte for byte (`test_model_thinking.py`'s golden body).
+
+**No model name in code.** The Lead model's id, prices, limits and profile come only from
+configuration: `AIA_AI_RESEARCH_LEAD_MODEL_*` in the worker's environment, from Parameter Store on
+develop. They have no defaults, and a missing or invalid key stops the worker by name. They are
+recorded from the Bedrock console and pricing page by an operator
+(`deploy/develop/README.md` § The Research Lead's own model). Tests use fake ids.
+
+**Not changed.** The route, its approved data classes and retention; every evidence gate;
+decision 3's closed output; the one repair; and the rule that the API never calls a model.

@@ -30,9 +30,15 @@ from aia_core.domain.research_agents import (
     agent_request,
     context_snapshot,
 )
+from aia_core.domain.research_lead import LEAD_HARNESS_VERSION
 from aia_core.domain.scope import ROLE_PERMISSIONS, OrganizationRole, StudyStatus
 from aia_core.domain.workflow import DEFAULT_LEASE_SECONDS
-from aia_core.domain.workflow_templates import RESEARCH, RESEARCH_AGENT, steps_for_workflow
+from aia_core.domain.workflow_templates import (
+    RESEARCH,
+    RESEARCH_AGENT,
+    RESEARCH_LEAD_TURN,
+    steps_for_workflow,
+)
 from fastapi.testclient import TestClient
 
 from aia_api.routers.settings import _database_backend
@@ -298,6 +304,7 @@ def test_the_runtime_is_bedrock_from_code_and_claims_no_connection(owner: TestCl
         "AIA_AI_RUNTIME_ENABLED",
         "AIA_AI_RESEARCH_AGENTS_ENABLED",
         "AIA_AI_ANALYSIS_ENABLED",
+        "AIA_AI_RESEARCH_LEAD_ENABLED",
         "AIA_DEEP_RESEARCH_ENABLED",
         "AIA_DEEP_RESEARCH_AGENT_DIRECTED",
         "AIA_DEEP_RESEARCH_LEAD",
@@ -325,6 +332,7 @@ def test_each_activity_is_what_its_agents_ask_for(owner: TestClient) -> None:
         "research_analysis",
         "deep_research",
         "deep_research_lead",
+        "study_lead",
     ]
 
     fieldwork = activities["respondent_fieldwork"]
@@ -400,6 +408,13 @@ def test_each_activity_is_what_its_agents_ask_for(owner: TestClient) -> None:
         "AIA_DEEP_RESEARCH_AGENT_DIRECTED",
         "AIA_DEEP_RESEARCH_LEAD",
     ]
+
+    # The study's Research Lead (ADR 0026): the capability its turn asks for, on its own switch.
+    study_lead = activities["study_lead"]
+    assert study_lead["capabilities"] == [ModelCapability.STUDY_LEAD.value]
+    assert study_lead["step_kind"] == RESEARCH_LEAD_TURN
+    assert study_lead["versions"] == [{"name": "harness", "value": LEAD_HARNESS_VERSION}]
+    assert study_lead["switches"] == ["AIA_AI_RUNTIME_ENABLED", "AIA_AI_RESEARCH_LEAD_ENABLED"]
 
     used = {c for a in activities.values() for c in a["capabilities"]}
     unused = owner.get(f"{API}/settings").json()["ai_runtime"]["unused_capabilities"]

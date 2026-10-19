@@ -26,11 +26,21 @@ locals {
   # (var.bedrock_destination_regions, ADR 0010). eu-central-2 was granted here
   # until 2026-09-25 although the active profile does not route to it.
   bedrock_foundation_model = replace(var.bedrock_model_id, "/^eu\\./", "")
-  bedrock_model_arns = concat(
+  # The Research Lead's own model (ADR 0026 amendment, 2026-10-19), when one is set: its
+  # profile and its foundation model in the same destination regions, on the same route.
+  # Empty, nothing is added and the grant is exactly the one above.
+  bedrock_lead_foundation_model = replace(var.bedrock_lead_model_id, "/^eu\\./", "")
+  bedrock_lead_model_arns = var.bedrock_lead_model_id == "" ? [] : concat(
+    ["arn:${data.aws_partition.current.partition}:bedrock:${var.aws_region}:${local.account_id}:inference-profile/${var.bedrock_lead_model_id}"],
+    [for r in var.bedrock_destination_regions :
+    "arn:${data.aws_partition.current.partition}:bedrock:${r}::foundation-model/${local.bedrock_lead_foundation_model}"]
+  )
+  bedrock_model_arns = distinct(concat(
     ["arn:${data.aws_partition.current.partition}:bedrock:${var.aws_region}:${local.account_id}:inference-profile/${var.bedrock_model_id}"],
     [for r in var.bedrock_destination_regions :
-    "arn:${data.aws_partition.current.partition}:bedrock:${r}::foundation-model/${local.bedrock_foundation_model}"]
-  )
+    "arn:${data.aws_partition.current.partition}:bedrock:${r}::foundation-model/${local.bedrock_foundation_model}"],
+    local.bedrock_lead_model_arns,
+  ))
 }
 
 # ----------------------------------------------------------------------------- #
@@ -377,6 +387,8 @@ data "aws_iam_policy_document" "instance" {
     resources = ["arn:${data.aws_partition.current.partition}:ssm:${var.aws_region}:${local.account_id}:parameter${local.ssm_prefix}/*"]
   }
   statement {
+    # The route's model, and the Research Lead's own model only when bedrock_lead_model_id is
+    # set. The sid is kept so that, without it, the policy is byte for byte what it was.
     sid       = "InvokeTheOneApprovedModel"
     actions   = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
     resources = local.bedrock_model_arns

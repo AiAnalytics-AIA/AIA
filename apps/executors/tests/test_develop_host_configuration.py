@@ -212,3 +212,47 @@ def test_common_crawl_composes_from_the_hosts_env_file_and_the_api_prices_it(
     assert api.deep_research_common_crawl_max_scan_bytes == 1_000_000_000
     for service in ("api", "web"):
         assert "AIA_DEEP_RESEARCH_COMMON_CRAWL_WORKGROUP" not in _container(service, crawl_env)
+
+
+#: The Research Lead's own model as Parameter Store would carry it (ADR 0026 amendment,
+#: 2026-10-19): an obviously fake id and fake prices, dearer than the route's above.
+LEAD_MODEL_ENV = {
+    **HOST_ENV,
+    "AIA_AI_RESEARCH_LEAD_MODEL_ID": "eu.test.lead-model:1",
+    "AIA_AI_RESEARCH_LEAD_INPUT_USD_PER_MTOK": "7",
+    "AIA_AI_RESEARCH_LEAD_OUTPUT_USD_PER_MTOK": "11",
+    "AIA_AI_RESEARCH_LEAD_MODEL_MAX_OUTPUT_TOKENS": "64000",
+    "AIA_AI_RESEARCH_LEAD_CONTEXT_WINDOW_TOKENS": "1000000",
+    "AIA_AI_RESEARCH_LEAD_STRUCTURED_OUTPUT": "auto_tool",
+    "AIA_AI_RESEARCH_LEAD_THINKING": "adaptive",
+    "AIA_AI_RESEARCH_LEAD_EFFORT": "medium",
+}
+
+
+def test_with_the_lead_model_unset_the_lead_runs_on_the_route_model_as_before() -> None:
+    worker = _container("worker", HOST_ENV)
+    assert worker["AIA_AI_RESEARCH_LEAD_MODEL_ID"] == ""
+    settings = AIRuntimeSettings.from_env(worker)
+    assert settings is not None and settings.study_lead_configured
+    assert settings.lead_model is None
+    bindings = settings.model_document()["policies"][0]["bindings"]
+    assert bindings["STUDY_LEAD"]["model"] == HOST_ENV["AIA_BEDROCK_MODEL_ID"]
+
+
+def test_the_lead_models_keys_reach_the_worker_alone_and_its_reservation_must_be_resized() -> None:
+    worker = _container("worker", LEAD_MODEL_ENV)
+    for key, value in LEAD_MODEL_ENV.items():
+        if key.startswith("AIA_AI_RESEARCH_LEAD_"):
+            assert worker[key] == value
+    for service in ("api", "web"):
+        assert "AIA_AI_RESEARCH_LEAD_MODEL_ID" not in _container(service, LEAD_MODEL_ENV)
+    # Compose's default reservation is sized at the route's prices: at the dearer Lead model
+    # the worker refuses to start, names the key and states the minimum.
+    with pytest.raises(RuntimeError, match=r"AIA_AI_RESEARCH_LEAD_RESERVATION_USD.*at least"):
+        AIRuntimeSettings.from_env(worker)
+    resized = _container("worker", {**LEAD_MODEL_ENV, "AIA_AI_RESEARCH_LEAD_RESERVATION_USD": "2"})
+    settings = AIRuntimeSettings.from_env(resized)
+    assert settings is not None and settings.study_lead_model is not None
+    bindings = settings.model_document()["policies"][0]["bindings"]
+    assert bindings["STUDY_LEAD"]["model"] == "eu.test.lead-model:1"
+    assert bindings["SIMULATION"]["model"] == HOST_ENV["AIA_BEDROCK_MODEL_ID"]

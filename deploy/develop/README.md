@@ -419,6 +419,98 @@ reads it: after creating or changing the parameter, run `bin/write-env.sh` and
 prints `true`. Requests made before the restart are not in the feed. On develop since
 2026-10-13.
 
+### The Research Lead's own model
+
+The study's Research Lead (ADR 0026) can run on a model of its own while every other
+capability stays on `aia_bedrock_model_id` (the product owner, 2026-10-19; ADR 0026 §
+Amendment 2026-10-19). Its turns ask for `STUDY_LEAD`. With `aia_ai_research_lead_model_id`
+unset, `STUDY_LEAD` is bound to the route's model and the Lead runs exactly as before. Set, it
+is a second policy entry on the same route, `bedrock-eu-primary`: same egress, same approved
+classes, same retention. Nothing in the repository names the model or its price. Every value
+below is recorded by an operator from the Bedrock console and pricing page.
+
+**Before anything is set**, in the Bedrock console for `eu-central-1`:
+
+- model access is enabled for the model;
+- its EU cross-region inference profile id is written in full as Bedrock lists it (`eu.anthropic.…`,
+  with a `:N` suffix only if the id has one; the current model family's ids have none), never a
+  `latest` alias;
+- `aws bedrock get-inference-profile --inference-profile-identifier <id>` lists the same
+  destination regions as Terraform's `bedrock_destination_regions`. If they differ, stop: the
+  grant below covers those regions only, and changing them is a reviewed IAM change;
+- its input and output prices (and cache prices, if any) are read from the Bedrock pricing page
+  for the region, and the date is noted.
+
+**1. Grant it (Terraform).** In `infra/develop/terraform.tfvars` set
+`bedrock_lead_model_id = "<the profile id>"`, then `terraform plan` from `infra/develop`. The plan
+changes only `aws_iam_role_policy.instance`: the profile's ARN and its foundation model's ARN in
+each destination region are added to the `InvokeTheOneApprovedModel` statement. Then run
+`terraform apply`. `terraform output bedrock_model_arns_granted` lists everything the role may
+now invoke. Empty (the default), the policy is unchanged.
+
+**2. Configure it (Parameter Store).** Create these under `/aia/develop/`. Names are lower-case;
+`bin/write-env.sh` upper-cases them. Once the id is set, every row not marked optional is
+required. A missing or invalid one stops the worker with its key named.
+
+| Parameter | Value |
+|---|---|
+| `aia_ai_research_lead_model_id` | the profile id, the same as `bedrock_lead_model_id`; it must differ from `aia_bedrock_model_id` |
+| `aia_ai_research_lead_input_usd_per_mtok`, `aia_ai_research_lead_output_usd_per_mtok` | USD per million tokens, from the pricing page, dated |
+| `aia_ai_research_lead_cache_read_usd_per_mtok`, `aia_ai_research_lead_cache_write_usd_per_mtok` | optional; unset charges cache tokens at the input rate |
+| `aia_ai_research_lead_model_max_output_tokens` | the model's documented output ceiling |
+| `aia_ai_research_lead_context_window_tokens` | the model's documented context window |
+| `aia_ai_research_lead_structured_output` | `auto_tool` for a model that refuses a forced tool choice, else `forced_tool` |
+| `aia_ai_research_lead_thinking` | `adaptive` for a model that refuses a thinking budget, else `budget` |
+| `aia_ai_research_lead_effort` | optional, `adaptive` only: `low`, `medium`, `high`, `xhigh` or `max`; unset takes the model's default |
+| `aia_ai_research_lead_max_output_tokens` | **raise it** for a model with `adaptive` thinking: its thinking and its answer share this cap, and Compose's `1500` ends such a turn truncated before it answers (two calls paid, no answer). Pick it with the effort below; the reservation grows with it |
+| `aia_ai_research_lead_reservation_usd` | **re-size it** for the new prices (below) |
+| `aia_ai_policy_version` | a new name: a new binding is a policy change, recorded on every call |
+
+The Lead model's catalog entry declares no sampling setting. The Lead's turns send none, and one
+that ever did would be refused before it left.
+
+**3. Re-size the reservation.** `aia_ai_research_lead_reservation_usd` (Compose default `1.02`)
+was sized at the route model's prices. The worker checks it against the model the Lead runs on:
+two calls (a turn and its one repair), each at the Lead's whole window
+(`lead_request_window_tokens`: 117,630 tokens at Compose's output cap of 1,500, measured
+@ 5d775785) and its output
+cap, priced at the Lead model's dearest input rate and its output rate. A reservation below that
+stops the worker, and the refusal states the minimum:
+`AIA_AI_RESEARCH_LEAD_RESERVATION_USD: the Research Lead's reservation must cover two calls at
+the Lead model's prices, window and the Lead's output limit (at least N)`. Set the parameter to
+at least N. With adaptive thinking, the output cap (`aia_ai_research_lead_max_output_tokens`)
+covers the thinking and the answer together. A cap too small ends a turn truncated. Raising it
+raises N, and the worker states the new one.
+
+**4. Restart the worker.**
+
+```bash
+cd /opt/aia/develop && bin/write-env.sh && docker compose up -d worker
+```
+
+Only the worker reads these keys. The API and the web are not restarted.
+
+**5. Read its start-up.** `docker compose ps worker` shows it `Up`. A worker that refused its
+configuration is `Restarting`, and `docker compose logs --tail=50 worker` ends in
+`AIRuntimeConfigError:` with the key named (for the reservation, the minimum too). Fix the
+parameter and repeat steps 4 and 5. `docker compose exec worker printenv
+AIA_AI_RESEARCH_LEAD_MODEL_ID` prints the id the worker received.
+
+**6. Check one turn.** Send the Lead a message on a fictional study, then:
+
+```bash
+docker compose exec -T postgres psql -U aia -d aia -tAc \
+  "select capability, model, outcome, cost_usd from ai_usage_events
+   where capability = 'STUDY_LEAD' order by occurred_at desc limit 2"
+```
+
+The model is the Lead's profile, and the cost is priced at its rates.
+
+**Switching it off.** Delete `aia_ai_research_lead_model_id` (the other `aia_ai_research_lead_*`
+model keys are then not read), give `aia_ai_policy_version` a new name, and repeat step 4. The
+Lead returns to the route's model. To remove the grant, empty `bedrock_lead_model_id` and
+`terraform apply`.
+
 ### Deep Research on Brave search
 
 Brave's search is a priced, live route outside the EU, Class C only
