@@ -131,6 +131,24 @@ at an element (`lib/lead.ts:341`, `Workbench.tsx:185-207 @ 0b4e05e`).
 - **D16. Release scope** (owner, 2026-10-19; MVP-3). The Lead and all eleven V3 artifacts are
   release-blocking (12, 11, 14-23). The autopilot (24) and Deep Research from every stage (25) come
   after the MVP; 24 needs an ADR for the Lead's own permission scope first.
+- **D17. The workers** (owner, 2026-10-19; MVP-12, MVP-13). Chunk 11's registry holds the eight
+  existing `ResearchAgentAction`s (`domain/research_agents.py:37-44 @ 0b4e05e`) and three new contracts,
+  each closed and proposal-only with its own prompt (ADR 0020): a map interpreter (reads a frozen map,
+  writes an unapproved interpretation, never an input to the map), a report writer (wording and order
+  of a draft; numbers stay references re-admitted by the evidence gate), a straight-liner check (flags
+  respondents with identical battery answers, proposes keep or replace; replacing needs a new step).
+  Every paid job is one approval card.
+- **D18. Structural edits may auto-apply per stage** (owner, 2026-10-19; MVP-14). The researcher's
+  `auto_accept_text_edits` (`domain/research_lead.py`, `ResearcherLead`) gains a per-stage choice for
+  structural edits; off by default; every applied edit is still a working revision and a ledger row
+  marked auto, as the text edits are.
+- **D19. The Lead sees everything stored about results** (owner, 2026-10-19; MVP-15). Today its runs
+  layer is id, status and design revision (`application/research_lead.py:882-889 @ 0b4e05e`) within a
+  96 KB context (`domain/research_lead.py:116`). The design: a results layer that summarizes each
+  stored artifact (aggregates, maps, module texts, report drafts) by id, classified by
+  `context_classification` like every other layer, and a read tool the Lead names an artifact with to
+  have it in the next turn, so the bound holds. `lead_contract`'s rule (a number only from the
+  context) stays.
 
 **The artifacts.** What V3 shows, what AIA has behind it, what is missing. "Backed by" names modules
 from the CLAUDE.md map; each chunk anchors its claims in its first commit, and until then an entry
