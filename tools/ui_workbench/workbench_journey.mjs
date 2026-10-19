@@ -97,10 +97,10 @@ try {
   // Focus modes: the artifact takes the width (the conversation a rail), then the conversation 68 %.
   await page.getByRole("button", { name: "Soustředit se na artefakt" }).click();
   await page.locator(".split__rail").waitFor();
-  assert.equal(await page.locator(".split__left").count(), 0);
+  assert.equal(await page.locator(".split__left").isVisible(), false, "the conversation is hidden in artifact focus");
   await shot("1440-artifact-focus");
   await page.getByRole("button", { name: "Zpět na 40 / 60" }).first().click();
-  await page.locator(".split__left").waitFor();
+  await page.locator(".split__left").waitFor({ state: "visible" });
   await page.getByRole("button", { name: "Soustředit se na konverzaci" }).click();
   const leftShare = await page.evaluate(() => document.querySelector(".split__left").getBoundingClientRect().width / document.querySelector(".split").getBoundingClientRect().width);
   assert(Math.abs(leftShare - 0.68) < 0.02, `conversation focus is 68 %: ${leftShare}`);

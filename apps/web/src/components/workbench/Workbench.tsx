@@ -242,7 +242,15 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
   // edits to the working copy it holds, saves it and records each decision in the ledger.
   const decide = async (decision: "accept" | "dismiss", keys: string[]) => {
     setNotice(null);
-    await store.flush().catch(() => {});
+    // Unsaved edits are saved first; if they cannot be (a conflict), nothing is decided and the
+    // working copy's own conflict state stays as it is: reloading here would lose those edits.
+    try {
+      await store.flush();
+    } catch {
+      setNotice("Pracovní kopii se nepodařilo uložit. Nejdřív vyřešte uložení (vpravo nahoře), potom změny přijměte.");
+      return;
+    }
+    let base = store.get().revision;
     const byTurn = new Map<string, number[]>();
     for (const key of keys) {
       const [turnId, i] = key.split(":");
@@ -251,8 +259,10 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
     let changed = false;
     for (const [turnId, indices] of byTurn) {
       try {
-        const r = await leadApi.decideEdits(frame.studyId, turnId, { decision, indices, base_revision: store.get().revision });
+        const r = await leadApi.decideEdits(frame.studyId, turnId, { decision, indices, base_revision: base });
         if (r.results.some((x) => x.status === "accepted")) changed = true;
+        // The next turn's edits are decided on the revision this one wrote.
+        if (r.workspace_revision !== null) base = r.workspace_revision;
       } catch (e) {
         setNotice(e instanceof ApiError && e.code === "stale_revision"
           ? "Pracovní kopie se mezitím změnila. Načetl jsem ji znovu; zkuste změnu přijmout ještě jednou."

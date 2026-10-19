@@ -70,6 +70,8 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   const [draft, setDraft] = useState("");
   const [queued, setQueued] = useState<string[]>([]);
   const [sending, setSending] = useState(false);
+  // Every read, successful or not, moves this on, so a busy session is read again after a failed read.
+  const [reads, setReads] = useState(0);
   const applied = useRef<string | null>(null);
   const greeted = useRef(false);
 
@@ -83,6 +85,8 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
     } catch (e) {
       setError(e instanceof ApiError && e.status === 404 ? "Vedoucí výzkumu v této verzi AIA zatím není." : e instanceof Error ? e.message : String(e));
       return null;
+    } finally {
+      setReads((n) => n + 1);
     }
   }, [studyId, onTurns]);
 
@@ -99,7 +103,7 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
     if (!session?.busy) return;
     const t = setTimeout(() => void read(), POLL_MS);
     return () => clearTimeout(t);
-  }, [session, read]);
+  }, [session, reads, read]);
   useEffect(() => {
     const last = session ? newestCompleted(session.turns) : null;
     if (!last || applied.current === last.turn_id) return;
@@ -148,6 +152,8 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   const hatch = async () => {
     try {
       setMe(await researcherLead.hatch());
+      // The session read before hatching said the Lead was not hatched: read it again.
+      await read();
     } catch (e) {
       setError(e instanceof ApiError ? reasonWords(e.code) : String(e));
     }

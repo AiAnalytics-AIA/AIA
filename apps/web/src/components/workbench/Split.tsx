@@ -29,7 +29,9 @@ export function Split({ split, mode, onSplit, onCommit, left, right, rail }: {
   };
   return (
     <div className={`split split--${mode === "split" ? "normal" : mode}`} ref={box}>
-      {width === null ? <div className="split__rail">{rail}</div> : <div className="split__left" style={{ width: `${width}%` }}>{left}</div>}
+      {width === null ? <div className="split__rail">{rail}</div> : null}
+      {/* In artifact focus the conversation is hidden, not unmounted: its draft and queue survive. */}
+      <div className="split__left" hidden={width === null} style={width === null ? undefined : { width: `${width}%` }}>{left}</div>
       {mode === "split" ? (
         <div
           className={`split__handle${drag ? " is-drag" : ""}`}
