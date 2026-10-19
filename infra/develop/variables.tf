@@ -105,7 +105,7 @@ variable "bedrock_model_id" {
 variable "bedrock_lead_model_id" {
   description = <<-EOT
     Optional: the study Research Lead's own model (ADR 0026 amendment, 2026-10-19), an EU
-    cross-region inference profile id written in full with its version suffix, the same value
+    cross-region inference profile id written in full as Bedrock lists it, the same value
     as SSM aia_ai_research_lead_model_id. Set, the instance role may also invoke this profile
     and its foundation model in bedrock_destination_regions (verify the profile routes to
     exactly those regions first); empty (the default), the grant is unchanged. Verify model
@@ -118,9 +118,9 @@ variable "bedrock_lead_model_id" {
     condition = var.bedrock_lead_model_id == "" || (
       startswith(var.bedrock_lead_model_id, "eu.")
       && !endswith(var.bedrock_lead_model_id, "latest")
-      && strcontains(var.bedrock_lead_model_id, ":")
+      && length(var.bedrock_lead_model_id) > 3
     )
-    error_message = "bedrock_lead_model_id must be empty, or an EU inference profile id (eu.…:N) pinned to a version, never a floating alias."
+    error_message = "bedrock_lead_model_id must be empty, or an EU inference profile id (eu.…) as Bedrock lists it, never a floating alias."
   }
 }
 

@@ -31,7 +31,7 @@ bedrock_model_id = "eu.anthropic.claude-sonnet-4-5-20250929-v1:0"
 
 # Optional: the Research Lead's own pinned EU inference profile (ADR 0026 amendment), the
 # same id as SSM aia_ai_research_lead_model_id. Empty or absent: no further grant.
-# bedrock_lead_model_id = "eu.…:N"
+# bedrock_lead_model_id = "eu.anthropic.…"
 
 monthly_budget_usd    = 100
 backup_retention_days = 30

@@ -432,7 +432,9 @@ below is recorded by an operator from the Bedrock console and pricing page.
 **Before anything is set**, in the Bedrock console for `eu-central-1`:
 
 - model access is enabled for the model;
-- its EU cross-region inference profile id is written in full, with its version (`eu.…:N`);
+- its EU cross-region inference profile id is written in full as Bedrock lists it (`eu.anthropic.…`,
+  with a `:N` suffix only if the id has one; the current model family's ids have none), never a
+  `latest` alias;
 - `aws bedrock get-inference-profile --inference-profile-identifier <id>` lists the same
   destination regions as Terraform's `bedrock_destination_regions`. If they differ, stop: the
   grant below covers those regions only, and changing them is a reviewed IAM change;
@@ -460,6 +462,7 @@ required. A missing or invalid one stops the worker with its key named.
 | `aia_ai_research_lead_structured_output` | `auto_tool` for a model that refuses a forced tool choice, else `forced_tool` |
 | `aia_ai_research_lead_thinking` | `adaptive` for a model that refuses a thinking budget, else `budget` |
 | `aia_ai_research_lead_effort` | optional, `adaptive` only: `low`, `medium`, `high`, `xhigh` or `max`; unset takes the model's default |
+| `aia_ai_research_lead_max_output_tokens` | **raise it** for a model with `adaptive` thinking: its thinking and its answer share this cap, and Compose's `1500` ends such a turn truncated before it answers (two calls paid, no answer). Pick it with the effort below; the reservation grows with it |
 | `aia_ai_research_lead_reservation_usd` | **re-size it** for the new prices (below) |
 | `aia_ai_policy_version` | a new name: a new binding is a policy change, recorded on every call |
 

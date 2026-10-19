@@ -162,7 +162,7 @@ def test_a_missing_key_stops_the_worker_and_names_it(key: str) -> None:
     ("overrides", "match"),
     [
         ({"AIA_AI_RESEARCH_LEAD_MODEL_ID": "us.test.lead-model:1"}, "EU inference profile"),
-        ({"AIA_AI_RESEARCH_LEAD_MODEL_ID": "eu.test.lead-model"}, "pinned to a version"),
+        ({"AIA_AI_RESEARCH_LEAD_MODEL_ID": "eu."}, "EU inference profile"),
         ({"AIA_AI_RESEARCH_LEAD_MODEL_ID": "eu.test.lead-model:latest"}, "floating alias"),
         ({"AIA_AI_RESEARCH_LEAD_MODEL_ID": ROUTE_MODEL}, "route's own model"),
         ({"AIA_AI_RESEARCH_LEAD_INPUT_USD_PER_MTOK": "-1"}, "INPUT_USD_PER_MTOK"),
@@ -181,6 +181,14 @@ def test_an_invalid_key_stops_the_worker_and_names_it(
 ) -> None:
     with pytest.raises(AIRuntimeConfigError, match=match):
         _with_lead(**overrides)
+
+
+def test_an_id_without_a_version_suffix_is_accepted_as_bedrock_lists_it() -> None:
+    """The current model family's Bedrock ids have no ``:N`` (``eu.anthropic.<model>``)."""
+    unsuffixed = "eu.test.lead-model-unsuffixed"
+    settings = _settings(**{**LEAD, "AIA_AI_RESEARCH_LEAD_MODEL_ID": unsuffixed})
+    assert settings.lead_model is not None
+    assert settings.lead_model.model_id == unsuffixed
 
 
 def test_the_lead_models_entry_declares_its_profile_and_no_sampling() -> None:

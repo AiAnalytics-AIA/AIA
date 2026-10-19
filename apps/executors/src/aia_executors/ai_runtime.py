@@ -43,8 +43,8 @@ the Lead's turns run on the route's model, exactly as before.
 ============================================  ======================================
 key                                           meaning
 ============================================  ======================================
-AIA_AI_RESEARCH_LEAD_MODEL_ID                 the Lead's pinned EU inference profile,
-                                              ``eu.…:N``, not the route's model
+AIA_AI_RESEARCH_LEAD_MODEL_ID                 the Lead's EU inference profile, ``eu.…``
+                                              (``:N`` when the id has one), not the route's
 AIA_AI_RESEARCH_LEAD_INPUT_USD_PER_MTOK       price, from the Bedrock pricing page
 AIA_AI_RESEARCH_LEAD_OUTPUT_USD_PER_MTOK      price, from the Bedrock pricing page
 AIA_AI_RESEARCH_LEAD_CACHE_READ_USD_PER_MTOK  optional; absent charges reads as input
@@ -254,6 +254,22 @@ def _pinned_eu_profile(model_id: str) -> bool:
     return model_id.startswith("eu.") and not model_id.endswith("latest") and ":" in model_id
 
 
+def _lead_eu_profile(model_id: str) -> bool:
+    """The Lead model's id: an EU inference profile, never a floating alias.
+
+    The current model family's Bedrock ids carry no version suffix (``eu.anthropic.<model>``):
+    the id itself names one fixed snapshot, so requiring ``:N`` as the route's model does would
+    refuse the model the owner chose. An alias (``…latest``) is still refused.
+    """
+    model_id = model_id.strip()
+    return (
+        model_id.startswith("eu.")
+        and len(model_id) > len("eu.")
+        and not model_id.endswith("latest")
+        and not any(c.isspace() for c in model_id)
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class LeadModelSettings:
     """The study Research Lead's own model, beside the route's, for ``STUDY_LEAD`` only.
@@ -283,10 +299,11 @@ class LeadModelSettings:
     cache_write_usd_per_mtok: float | None = None
 
     def __post_init__(self) -> None:
-        if not _pinned_eu_profile(self.model_id):
+        if not _lead_eu_profile(self.model_id):
             raise AIRuntimeConfigError(
                 f"AIA_AI_RESEARCH_LEAD_MODEL_ID={self.model_id!r} must be an EU inference "
-                "profile id pinned to a version (eu.…:N), never a floating alias (ADR 0010)"
+                "profile id (eu.…, with its version suffix when the model has one), never a "
+                "floating alias (ADR 0010)"
             )
         prices = {
             "AIA_AI_RESEARCH_LEAD_INPUT_USD_PER_MTOK": self.input_usd_per_mtok,
