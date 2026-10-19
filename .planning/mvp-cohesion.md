@@ -31,7 +31,7 @@ different readings.
 
 | # | Finding | Hits | Needs the owner |
 |---|---|---|---|
-| F1 | Deep Research classification: OI-129 says operator-only and Class C routes; MVP-27 says the full design on a Class B route | AC-11 | answered 2026-10-19 (whole design, widest data); one sub-question open |
+| F1 | Deep Research classification: OI-129 says operator-only and Class C routes; MVP-27 says the full design on a Class B route | AC-11 | decided 2026-10-19: whole design, derived queries may reach Class C routes; the ADR amendment and the mechanism are open |
 | F2 | The Sociomap drill-down to one respondent contradicts "aggregate only" and "rows never sent to the browser" | AC-09, AC-13 | decided 2026-10-19: yes, the Lead may read it |
 | F3 | Client-reported data (ADR 0027) has no field policy; MVP-29's single authority covers population fields only | AC-08, AC-10 | decided 2026-10-19: later, in the ADR 0027 plan |
 | F4 | "The Lead sees everything stored about results" (MVP-15) has no contract, no owner and an unchecked data-class path | AC-02, AC-09 | no |
@@ -87,7 +87,16 @@ Crawl) may not receive Class B text, and a query's class is never lowered by key
 design's class; or (b) queries *derived* from the design that may reach Class C routes, which
 needs a rule that lowers a derived query's class, an amendment to ADR 0017 and ADR 0008 and a
 data-owner decision (the owner's 2026-10-19 OI-129 ruling said no class of its own is made for such
-a query). Until it is answered, the Class B provider plan (F7) builds (a) only.
+a query). **Owner answer (2026-10-19): (b), derived queries may reach Class C routes.** This reverses
+ADR 0017 ("never lowered by keywords") and the owner's own OI-129 ruling of the same day, so three
+things come before any code: an amendment to ADR 0017 and ADR 0008; the data owner's confirmation
+(the licence and residency gates are the data owner's, not engineering's); and a mechanism enforced
+by **code**, never by a prompt or a model's assertion (`ARCHITECTURE.md` §4: a prompt may state a
+rule, it is never the only thing enforcing it). Hypothesis for its shape, consistent with the rule
+that already exists (a query's class is the most restrictive of its context, its client terms and
+any Class A overlap): a derived query is Class C only when code finds no overlap with the client's
+terms, the brief's named entities or verbatim design text; otherwise it stays Class B and goes only
+to a Class B route. Recorded as chunk 6 of `class-b-search-route` (#497).
 
 ### F2. The respondent drill-down contradicts the evidence rules
 
@@ -176,6 +185,10 @@ refused panel-derived lineage unless it is the approved route.
 **Test that would have caught it.** `lead_contract` already refuses a number the context lacks;
 add one that a client-reported number is shown to the Lead only through its admitted claim.
 
+**Owner decision (2026-10-19): adopted.** Added as chunks to `research-lead-workbench.md` once #491
+merges (that file is also #491's): "the Lead's results context" before chunk 20, owned by the
+workbench track, with C, D and E supplying providers.
+
 ### F5. A removed button is not an enforced rule
 
 **Claim.** MVP-8 removes the manual AI buttons "artifact by artifact" and routes every AI action
@@ -199,6 +212,10 @@ data-class rule, capability, reservation, prompt id and pin, switch, card kind, 
 Chunk 11 builds the command registry; make this its first deliverable, so the three new workers
 (map interpreter, report writer, straight-liner check) are rows, not three designs.
 
+**Owner decision (2026-10-19): adopted, both halves.** The spend-limit check in
+`ResearchAgentJobs.start` is a fix, not a decision, and is the first code to take; the worker row is
+chunk 11's first deliverable. Neither is started: no code is written in #496 or #497.
+
 ### F6. Decision ids collide
 
 **Claim.** `D9` means three things: `overview.md` *Decisions needed* has two rows labelled D9 (who
@@ -211,6 +228,8 @@ plan will not know which.
 **Smallest fix.** Plan-local ids are written `<plan>#D9`; the overview's ids keep their `PROGRESS`
 prefix (already the convention for D6 and D11); the consolidation's `M1-M8` are retired in its
 prose now that MVP-1 to MVP-10 record the answers. One sentence in CLAUDE.md §4 (docs PR).
+
+**Owner decision (2026-10-19): adopted.**
 
 ### F7. Eight pieces of work have no plan
 
@@ -253,6 +272,8 @@ Two rules close the gap:
   owner merges migration PRs one at a time. A commit on this branch already had to chain one
   migration after another ("Chain the auto-accept migration after the internal-mark one").
 
+**Owner decision (2026-10-19): both rules adopted** (docs PR).
+
 ### F9. Parity: information or blocking?
 
 **Claim.** #495 makes parity information (MVP-21, every `release_blocker.blocking` false).
@@ -263,6 +284,8 @@ Two rules close the gap:
 any test (CLAUDE.md §5: never loosened to get green), and an intentional departure from 18.6.6 is
 recorded as such. What MVP-21 removes is parity as a **release criterion**. Add that sentence to
 §8's row in #495's doc follow-up.
+
+**Owner decision (2026-10-19): adopted.**
 
 ### F10. The budget
 
@@ -308,7 +331,8 @@ tier A.**
 
 The roadmap orders chunks inside tracks; nothing says when two tracks must meet. Five
 cross-track gates, each with an observable test, ordered by dependency. The target is the owner's
-(MVP-11, end of Q1 2027); the dates below are not set here.
+(MVP-11, end of Q1 2027). **No gate dates yet (owner, 2026-10-19):** the gates are ordered, not
+dated, until the provider contract and the method owner have owners.
 
 | Gate | Meets | Observable | Needs |
 |---|---|---|---|
@@ -328,7 +352,9 @@ cross-track gates, each with an observable test, ordered by dependency. The targ
 | Q2 | F2: **decided 2026-10-19: yes, internal, the Lead may read it, never exported** | decided |
 | Q3 | F3: **decided 2026-10-19: later, in the ADR 0027 plan** (recommendation: the accepted data contract is the policy source) | decided |
 | Q4 | F7: **decided 2026-10-19: write the missing plans** (six files cover the eight pieces of work, see #497). Track owners are chat sessions, probably Opus 5.5; name each session when its track starts | decided; names open |
-| Q5 | The provider contract (MVP-27, owner) and the method owner's 0b answers, clustering algorithm and register entries: dates, since I-2 and I-4 wait on them | owner |
+| Q5 | The provider contract (MVP-27, owner) and the method owner's 0b answers, clustering algorithm and register entries: **no dates yet (2026-10-19)**; I-2 and I-4 stay undated until each has an owner | open |
+| Q6 | F4 and F5: the Lead's results context and the worker row | **adopted 2026-10-19** |
+| Q7 | F6, F8, F9: id namespaces, surface owners and migration lane, parity wording | **adopted 2026-10-19** |
 
 ## 6. Follow-ups for a docs PR
 
