@@ -9,6 +9,7 @@ flags and counts exactly; ``aia-sociomap-5``'s object map must record what the p
 
 from __future__ import annotations
 
+import dataclasses
 import json
 from pathlib import Path
 from typing import Any
@@ -17,6 +18,7 @@ import numpy as np
 import pytest
 
 from aia_core.domain.research_sociomap import default_methods
+from aia_core.domain.sociomap import engine_v2
 from aia_core.domain.sociomap.engine_v2 import compute_object_map
 from aia_core.domain.sociomap.metrics import ObjectRole
 from aia_core.domain.sociomap.models_v3 import ObjectMapInputs, RatingItem, SociomapArtifactV3
@@ -162,12 +164,23 @@ def test_the_object_map_records_the_baseline_corrected_relations_under_aia_socio
     assert "sparse_design" not in v4.model_dump(mode="json")
 
 
-def test_a_pair_whose_two_halves_differ_in_the_last_bit_is_recorded_once() -> None:
-    # The methodology computes r~[i, j] and r~[j, i] separately: on ordinary complete data
-    # they differ in the last bit, and the map must still record one value a pair.
+def test_a_pair_whose_two_halves_differ_in_the_last_bit_is_recorded_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # The methodology computes r~[i, j] and r~[j, i] separately, so they can differ in the last
+    # bit (on macOS's BLAS for most data, on Linux's more rarely); the map must still record
+    # one value a pair. The lower half is nudged here so every platform sees the difference.
     ratings = np.random.default_rng(0).integers(1, 11, size=(40, 7)).astype(float)
     rt = _prepare(ratings).rt
-    assert (np.nan_to_num(rt) != np.nan_to_num(rt).T).any()
+
+    def nudged(*args: Any, **kwargs: Any) -> PreparedInputs:
+        prepared = prepare(*args, **kwargs)
+        lower = np.tril(np.ones_like(prepared.rt, dtype=bool), -1)
+        return dataclasses.replace(
+            prepared, rt=np.where(lower, np.nextafter(prepared.rt, 2.0), prepared.rt)
+        )
+
+    monkeypatch.setattr(engine_v2, "prepare", nudged)
     ids = tuple(f"o{j}" for j in range(7))
     people = tuple(f"r{k}" for k in range(40))
     inputs = ObjectMapInputs(
