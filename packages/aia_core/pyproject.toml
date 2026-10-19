@@ -11,6 +11,12 @@ dependencies = [
     "pydantic>=2.9,<3",
     "sqlalchemy>=2.0,<3",
     "alembic>=1.13,<2",
+    # The aia-sociomap-5 map (domain/sociomap): the methodology's own numerical code, pinned to
+    # the versions its evidence was produced with, because its layout is chaotic and borderline
+    # segment decisions move between numba/numpy releases.
+    "numpy>=2.5,<2.6",
+    "scipy>=1.18,<1.19",
+    "numba>=0.68,<0.69",
 ]
 
 [project.optional-dependencies]
