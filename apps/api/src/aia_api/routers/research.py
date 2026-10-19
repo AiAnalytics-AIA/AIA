@@ -2633,9 +2633,23 @@ class AgentJobResponse(BaseModel):
     created_at: datetime | None
     steps: list[ResearchStepResponse]
     actual_cost_usd: float | None
+    #: Where its design proposal stands (ADR 0026 decision 8): pending, accepted, dismissed or
+    #: superseded; null for advice or a job without a proposal.
+    proposal_state: Literal["pending", "accepted", "dismissed", "superseded"] | None = None
+    #: The job this one rebuilt, which it supersedes; null for a job a person asked first.
+    rebuild_of: str | None = None
 
 
-def _agent_response(run: dict[str, Any], scope: StudyContext) -> AgentJobResponse:
+class AgentProposalRebuild(BaseModel):
+    """A rebuild runs on the Study's newest Design Revision, which the browser just submitted."""
+
+    model_config = ConfigDict(extra="forbid")
+    design_revision_id: str = Field(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")
+
+
+def _agent_response(
+    run: dict[str, Any], scope: StudyContext, state: str | None = None
+) -> AgentJobResponse:
     meta = run["metadata"]
     return AgentJobResponse(
         run_id=run["run_id"],
@@ -2655,7 +2669,17 @@ def _agent_response(run: dict[str, Any], scope: StudyContext) -> AgentJobRespons
         )
         if scope.has(Permission.VIEW_COSTS)
         else None,
+        proposal_state=state,
+        rebuild_of=meta.get("rebuild_of"),
     )
+
+
+def _agent_with_state(
+    jobs: ResearchAgentJobs, run_id: str, scope: StudyContext
+) -> AgentJobResponse:
+    run = jobs.get(run_id)
+    state = jobs.proposal_states([run])[run_id]
+    return _agent_response(run, scope, state.value if state else None)
 
 
 def stale_proposal(exc: StaleProposal) -> HTTPException:
@@ -2731,10 +2755,17 @@ def start_agent_job(
 
 
 @router.get("/research/agent-jobs", response_model=list[AgentJobResponse])
-def list_agent_jobs(scope: StudyScopeDep, session: SessionDep) -> list[AgentJobResponse]:
+def list_agent_jobs(
+    scope: StudyScopeDep, session: SessionDep, pending: Annotated[bool, Query()] = False
+) -> list[AgentJobResponse]:
+    """The Study's agent jobs, newest first, each with its proposal's state (ADR 0026 d8).
+    ``pending=true``: only the proposals a person has still to decide."""
     with _agent_errors(session):
         jobs = ResearchAgentJobs(session, scope)
-        return [_agent_response(jobs.get(r["run_id"]), scope) for r in jobs.jobs()]
+        runs = [jobs.get(r["run_id"]) for r in jobs.jobs()]
+        states = jobs.proposal_states(runs)
+        listed = [_agent_response(r, scope, (s := states[r["run_id"]]) and s.value) for r in runs]
+        return [j for j in listed if j.proposal_state == "pending"] if pending else listed
 
 
 @router.get("/research/agent-jobs/{run_id}", response_model=AgentJobResponse)
@@ -2742,7 +2773,7 @@ def read_agent_job(
     run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep
 ) -> AgentJobResponse:
     with _agent_errors(session):
-        return _agent_response(ResearchAgentJobs(session, scope).get(run_id), scope)
+        return _agent_with_state(ResearchAgentJobs(session, scope), run_id, scope)
 
 
 @router.get("/research/agent-jobs/{run_id}/events", response_model=list[RunEventResponse])
@@ -2812,6 +2843,46 @@ def read_agent_result(
         if not scope.has(Permission.VIEW_COSTS):
             result["provenance"].pop("cost_usd", None)
         return result
+
+
+@router.post(
+    "/research/agent-jobs/{run_id}/dismiss",
+    response_model=AgentJobResponse,
+    responses={409: {"model": ErrorResponse, "description": "Not a proposal, or accepted"}},
+)
+def dismiss_agent_result(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep
+) -> AgentJobResponse:
+    """A person sets the proposal aside: an approval-ledger row (``decision = "dismiss"``),
+    nothing written to the design (ADR 0026 decision 8). Needs ``APPROVE_GATE``."""
+    with _agent_errors(session):
+        jobs = ResearchAgentJobs(session, scope)
+        jobs.dismiss(run_id)
+        return _agent_with_state(jobs, run_id, scope)
+
+
+@router.post(
+    "/research/agent-jobs/{run_id}/rebuild",
+    response_model=AgentJobResponse,
+    status_code=201,
+    responses={409: {"model": ErrorResponse, "description": "Advice, or not the newest design"}},
+)
+def rebuild_agent_result(
+    run_id: RunIdPath,
+    body: AgentProposalRebuild,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    response: Response,
+) -> AgentJobResponse:
+    """Ask the same action and instruction again on the Study's newest Design Revision: a new
+    job, ``rebuild_of`` the old one, which it supersedes (ADR 0026 decision 5). Accepts
+    nothing; the old proposal stays readable."""
+    with _agent_errors(session):
+        jobs = ResearchAgentJobs(session, scope)
+        started = jobs.rebuild(run_id, design_revision_id=body.design_revision_id)
+        if not started.created:
+            response.status_code = 200
+        return _agent_with_state(jobs, started.run_id, scope)
 
 
 @router.post(

@@ -20,7 +20,7 @@ import type { ResearchState } from "@/research/store";
 import { Sparkle } from "../icons";
 import { Button } from "../ui";
 import { AgentProposalContent } from "./AgentProposalDialog";
-import type { StaleNotice } from "./useResearchAgents";
+import type { ProposalDecision, StaleNotice } from "./useResearchAgents";
 
 function Item({ kind, children }: { kind: "add" | "del"; children: string }) {
   return (
@@ -39,7 +39,8 @@ function Item({ kind, children }: { kind: "add" | "del"; children: string }) {
 export function ProposalReview({ result, state, onDecision, canApply = true, stale = null }: {
   result: ResearchAgentResult;
   state: Pick<ResearchState, "project" | "analysis">;
-  onDecision: (apply: boolean) => void;
+  /** `true` applies, `false` keeps the current design; "dismiss" and "rebuild" as ProposalDecision says. */
+  onDecision: (decision: boolean | ProposalDecision) => void;
   /** The server refused the accept (ADR 0026 decision 5): why, in words. The proposal is read, never applied. */
   stale?: StaleNotice | null;
   /** False on a study that takes no new work: the proposal is read, never applied; keeping the
@@ -144,7 +145,11 @@ export function ProposalReview({ result, state, onDecision, canApply = true, sta
       <div className="flex flex-wrap items-center gap-2 border-t border-ai-edge px-4 py-2.5">
         <span className="flex-1 text-xs leading-4 text-ink-muted">{!canApply ? t("research.proposalClosed") : questionnaire ? t("research.questionnaire.replacement.footer") : "Použití vytvoří novou revizi návrhu. Již vytvořený dotazník se nemění. Nové dimenze jsou návrhy; filtry a proveditelnost audience zkontrolujte samostatně."}</span>
         <Button onClick={() => onDecision(false)}>Ponechat současný návrh</Button>
-        <Button variant="primary" disabled={!canApply || !!stale} onClick={() => onDecision(true)}>Použít návrh</Button>
+        {/* Set aside in the ledger, never applied; it stays readable in the job's history. */}
+        <Button disabled={!canApply} onClick={() => onDecision("dismiss")}>Zahodit</Button>
+        {stale
+          ? <Button variant="primary" disabled={!canApply} onClick={() => onDecision("rebuild")}>Navrhnout znovu</Button>
+          : <Button variant="primary" disabled={!canApply} onClick={() => onDecision(true)}>Použít návrh</Button>}
       </div>
     </section>
   );

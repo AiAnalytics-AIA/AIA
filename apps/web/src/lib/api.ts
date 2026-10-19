@@ -1398,6 +1398,10 @@ export type ResearchAgentJob = {
   /** The prompt the job was queued with: "1" (the code's wording) or "e<n>" (an edit). Null: queued before prompts were editable. */
   prompt_version?: string | null; prompt_origin?: "baseline" | "stored" | null;
   steps: ResearchStep[]; actual_cost_usd: number | null;
+  /** Where its design proposal stands (ADR 0026 decision 8); null: advice, or no proposal yet. */
+  proposal_state?: "pending" | "accepted" | "dismissed" | "superseded" | null;
+  /** The job this one rebuilt, which it supersedes. */
+  rebuild_of?: string | null;
 };
 export type ResearchAgentResult = {
   result: { project: Record<string, unknown>; proposal: Record<string, unknown>; analysis?: unknown } & Record<string, unknown>;
@@ -1444,6 +1448,11 @@ export const researchAgents = {
    */
   accept: (studyId: string, jobId: string, revisionId: string, workspaceRevision: number) =>
     request<AcceptedProposal>("POST", `${agentsPath(studyId)}/${enc(jobId)}/accept`, { expected_revision_id: revisionId, expected_workspace_revision: workspaceRevision }),
+  /** Set a proposal aside: a ledger row, nothing written to the design (ADR 0026 decision 8). */
+  dismiss: (studyId: string, jobId: string) => request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/dismiss`),
+  /** Ask the same again on the Study's newest Design Revision (`revisionId`, just submitted): a new job that supersedes this one. */
+  rebuild: (studyId: string, jobId: string, revisionId: string) =>
+    request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/rebuild`, { design_revision_id: revisionId }),
 };
 
 // ---- the settings page: every control and how it is set -------------------

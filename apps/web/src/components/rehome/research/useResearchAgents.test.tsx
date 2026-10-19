@@ -10,7 +10,7 @@ import { useResearchAgents } from "./useResearchAgents";
 vi.mock("@/lib/api", async () => ({
   ApiError: (await vi.importActual<typeof import("@/lib/api")>("@/lib/api")).ApiError,
   research: { submitDesign: vi.fn() },
-  researchAgents: { jobs: vi.fn(), job: vi.fn(), start: vi.fn(), result: vi.fn(), accept: vi.fn(), design: vi.fn(), cancel: vi.fn(), resume: vi.fn() },
+  researchAgents: { jobs: vi.fn(), job: vi.fn(), start: vi.fn(), result: vi.fn(), accept: vi.fn(), design: vi.fn(), cancel: vi.fn(), resume: vi.fn(), dismiss: vi.fn(), rebuild: vi.fn() },
 }));
 const job: ResearchAgentJob = {
   run_id: "RUN-1", design_revision_id: "REV-1", action: "analyze_brief", status: "COMPLETED",
@@ -186,4 +186,50 @@ it("opens a stored proposal and leaves whether it still applies to the server", 
   await waitFor(() => expect(reload).toHaveBeenCalledOnce());
   expect(researchAgents.design).not.toHaveBeenCalled();
   expect(researchAgents.accept).toHaveBeenCalledExactlyOnceWith("STU-1", "RUN-1", "REV-1", 3);
+});
+
+/** The inline review (ProposalReview's decisions), driven by name. */
+function Inline() {
+  const [error, setError] = useState("");
+  const agents = useResearchAgents("STU-1", store, onUpdate, false, true);
+  const review = agents.proposalReview;
+  return <>
+    <button onClick={() => { running = agents.run("analyze_brief", {}, "Brief").catch((e: Error) => setError(e.message)); }}>Run</button>
+    {review ? <><p>{review.stale?.message ?? "fresh"}</p><p>{review.result.result.project.title as string}</p>
+      <button onClick={() => review.decide("apply")}>Apply</button><button onClick={() => review.decide("dismiss")}>Dismiss</button>
+      <button onClick={() => review.decide("rebuild")}>Rebuild</button></> : null}
+    <p>{error}</p>
+  </>;
+}
+const stale = new ApiError(409, "stale_proposal", "stale", null, { reason: "items_changed", conflicting_items: ["content:brief:goal"] });
+
+it("dismisses a proposal in the ledger and writes nothing to the design", async () => {
+  vi.mocked(researchAgents.dismiss).mockResolvedValue({ ...job, proposal_state: "dismissed" });
+  render(<Inline />); fireEvent.click(screen.getByText("Run"));
+  fireEvent.click(await screen.findByText("Dismiss"));
+  await screen.findByText(/Návrh jste zahodili/);
+  expect(researchAgents.dismiss).toHaveBeenCalledExactlyOnceWith("STU-1", "RUN-1");
+  expect(researchAgents.accept).not.toHaveBeenCalled(); expect(reload).not.toHaveBeenCalled();
+});
+
+it("rebuilds a stale proposal on the current design and reviews the new one", async () => {
+  const rebuilt: ResearchAgentJob = { ...job, run_id: "RUN-2", rebuild_of: "RUN-1" };
+  vi.mocked(researchAgents.accept).mockRejectedValueOnce(stale).mockResolvedValue({ design_revision_id: "REV-3", workspace_revision: 5 } as Awaited<ReturnType<typeof researchAgents.accept>>);
+  vi.mocked(researchAgents.rebuild).mockResolvedValue(rebuilt);
+  vi.mocked(researchAgents.job).mockImplementation(async (_s, id) => (id === "RUN-2" ? rebuilt : job));
+  vi.mocked(researchAgents.result).mockImplementation(async (_s, id) => (id === "RUN-2"
+    ? { ...result, result: { ...result.result, project: { goal: "Original", title: "Rebuilt" } } } : result));
+  render(<Inline />); fireEvent.click(screen.getByText("Run"));
+  fireEvent.click(await screen.findByText("Apply"));
+  // Refused by name: the review stays, saying why, and offers the rebuild.
+  await screen.findByText(/mezitím se změnilo, co návrh mění – Cíl studie/);
+  project = { ...project, goal: "Edited" };
+  fireEvent.click(screen.getByText("Rebuild"));
+  await screen.findByText("Rebuilt");
+  expect(screen.getByText("fresh")).toBeTruthy();
+  expect(research.submitDesign).toHaveBeenLastCalledWith("STU-1", { goal: "Edited" }, "brief", 3);
+  expect(researchAgents.rebuild).toHaveBeenCalledExactlyOnceWith("STU-1", "RUN-1", "REV-1");
+  fireEvent.click(screen.getByText("Apply"));
+  await waitFor(() => expect(reload).toHaveBeenCalledOnce());
+  expect(researchAgents.accept).toHaveBeenLastCalledWith("STU-1", "RUN-2", "REV-1", 3);
 });

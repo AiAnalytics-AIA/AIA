@@ -462,3 +462,28 @@ def test_a_proposal_on_a_design_with_no_working_revision_is_refused_as_unknown(
     assert refused.value.details() == {"reason": "unknown_baseline", "conflicting_items": []}
     assert designs.latest() == legacy
     assert StudyWorkspaceRepository(session).content(scope).revision == working
+
+
+@pytest.mark.parametrize(
+    ("action", "completed", "decision", "superseded", "state"),
+    [
+        ("analyze_brief", True, None, False, "pending"),
+        ("analyze_brief", True, "accept", True, "accepted"),
+        ("analyze_brief", True, "dismiss", True, "dismissed"),
+        ("build_questionnaire", True, None, True, "superseded"),
+        ("analyze_brief", False, None, False, None),
+        ("design_copilot", True, None, False, None),
+        ("not_an_action", True, None, False, None),
+    ],
+)
+def test_a_proposals_state_is_derived_never_stored(
+    action: str, completed: bool, decision: str | None, superseded: bool, state: str | None
+) -> None:
+    """ADR 0026 decision 8: accepted over dismissed over superseded over pending; advice and a
+    job with no proposal have no state at all, never "pending" by default."""
+    from aia_core.domain.research_agents import proposal_state
+
+    found = proposal_state(
+        action=action, completed=completed, decision=decision, superseded=superseded
+    )
+    assert (found.value if found else None) == state

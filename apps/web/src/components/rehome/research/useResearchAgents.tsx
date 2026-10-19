@@ -7,13 +7,20 @@ import { staleDetails, staleMessage } from "@/research/proposal-items";
 import { submitWorkingDesign, type ResearchStore } from "@/research/store";
 import { AgentProposalDialog } from "./AgentProposalDialog";
 
-/** What a person decides on a proposal: `true` is "apply", `false` is "keep" (the dialog's two buttons). */
-export type ProposalDecision = "apply" | "keep";
+/**
+ * What a person decides on a proposal: `true` is "apply", `false` is "keep" (the dialog's two
+ * buttons). "dismiss" sets it aside in the ledger; "rebuild" asks it again on the current design
+ * (ADR 0026 decisions 5 and 8).
+ */
+export type ProposalDecision = "apply" | "keep" | "dismiss" | "rebuild";
 const decisionOf = (d: boolean | ProposalDecision): ProposalDecision => (d === true ? "apply" : d === false ? "keep" : d);
 /** A refused accept, in words: the proposal stays open to read, and may not be applied. */
 export type StaleNotice = { message: string; items: string[] };
 
 const adviceActions = new Set<ResearchAgentAction>(["critique_design", "design_copilot", "answer_memory"]);
+/** The stage a job's design is submitted from. */
+const sourceOf = (action: ResearchAgentAction) =>
+  action === "analyze_brief" ? "brief" : action === "propose_audience" ? "audience" : action === "suggest_dimensions" ? "persona" : "questionnaire";
 const message = (e: unknown) => e instanceof Error ? e.message : String(e);
 function check(signal: AbortSignal) {
   if (signal.aborted) throw new JobError("Sledování přerušeno; běh zůstává uložený.", "cancelled", null);
@@ -79,13 +86,32 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
   // working copy on the server, item by item, beside the new Design Revision and the ledger row.
   // The browser writes nothing back; it reloads what the server wrote. A proposal whose items
   // the person changed since its baseline is refused by name, and stays open to read.
-  const apply = useCallback(async (job: ResearchAgentJob, signal: AbortSignal) => {
-    const result = await researchAgents.result(studyId, job.run_id); check(signal);
+  const apply = useCallback(async (first: ResearchAgentJob, signal: AbortSignal): Promise<unknown> => {
+    let job = first;
+    let result = await researchAgents.result(studyId, job.run_id); check(signal);
     const advice = adviceActions.has(job.action);
     let stale: StaleNotice | null = null;
     for (;;) {
       const decision = await askReview(result, advice, stale); check(signal);
       if (advice) return { ...result.result, native: true };
+      if (decision === "dismiss") {
+        await researchAgents.dismiss(studyId, job.run_id); check(signal);
+        await refresh().catch(() => []);
+        throw new JobError("Návrh jste zahodili. Zůstává uložený v historii AI kroků.", "cancelled", job.run_id);
+      }
+      if (decision === "rebuild") {
+        // The same ask on the design the person has now: submitted first, then a new job that
+        // supersedes this one. Nothing is accepted; the new proposal is reviewed as any other.
+        setNotice(null);
+        const revision = await submitWorkingDesign(store, studyId, sourceOf(job.action)); check(signal);
+        const next = await researchAgents.rebuild(studyId, job.run_id, revision.revision_id); check(signal);
+        await refresh().catch(() => []);
+        job = await followAgentJob(studyId, next.run_id, "Nový návrh nad současným zadáním", onUpdate, signal);
+        onUpdate(null);
+        result = await researchAgents.result(studyId, job.run_id); check(signal);
+        stale = null;
+        continue;
+      }
       if (decision === "keep" || stale) throw new JobError("Návrh je uložený, současný návrh jste ponechali.", "cancelled", job.run_id);
       // A change still waiting for its save is saved first, so the server checks it too.
       await store.flush(); check(signal);
@@ -106,7 +132,7 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
       }
       return { ...result.result, native: true };
     }
-  }, [studyId, store, askReview]);
+  }, [studyId, store, askReview, refresh, onUpdate]);
 
   const finish = useCallback(async (controller: AbortController) => {
     if (active.current === controller) active.current = null;
@@ -123,9 +149,8 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
     try {
       if (action === "analyze_brief" && payload.briefing) store.update(({ project }) => ({ project: { ...project, briefing: payload.briefing } as typeof project }), { reason: "native_ai_context" });
       await store.flush(); check(controller.signal);
-      const source = action === "analyze_brief" ? "brief" : action === "propose_audience" ? "audience" : action === "suggest_dimensions" ? "persona" : "questionnaire";
       // The design names the working revision it is: the proposal's baseline (ADR 0026 decision 5).
-      const revision = await submitWorkingDesign(store, studyId, source); check(controller.signal);
+      const revision = await submitWorkingDesign(store, studyId, sourceOf(action)); check(controller.signal);
       let job = await researchAgents.start(studyId, revision.revision_id, action, String(payload.instruction || payload.popis || "")); check(controller.signal);
       // A repeated button press is an explicit request to continue a job that
       // parked before any provider call while the runtime was unavailable.

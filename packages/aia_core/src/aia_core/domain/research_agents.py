@@ -818,3 +818,40 @@ def touched_items(
 ) -> frozenset[ItemKey]:
     """The items a proposal changes against its baseline (ADR 0026 decision 5)."""
     return design_items(baseline, proposal_documents(action, baseline, result))
+
+
+class ProposalState(StrEnum):
+    """Where an agent job's design proposal stands (ADR 0026 decision 8): a projection, no column.
+
+    The proposal is the run and its artifact, its acceptance and dismissal are approval-ledger
+    rows, and a rebuild names what it supersedes in its own metadata (``rebuild_of``).
+    """
+
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    DISMISSED = "dismissed"
+    SUPERSEDED = "superseded"
+
+
+def proposal_state(
+    *, action: str, completed: bool, decision: str | None, superseded: bool
+) -> ProposalState | None:
+    """One job's :class:`ProposalState`, or ``None`` when it holds no design proposal to decide.
+
+    An accept is final over everything; a dismissal over a rebuild; a rebuilt proposal is
+    superseded only while nobody has decided it. Advice and a job without a proposal (running,
+    failed, cancelled) have no state: there is nothing pending, never "pending" by default.
+    """
+    try:
+        design = ResearchAction(action) in DESIGN_ACTIONS
+    except ValueError:
+        return None
+    if not design or not completed:
+        return None
+    if decision == "accept":
+        return ProposalState.ACCEPTED
+    if decision == "dismiss":
+        return ProposalState.DISMISSED
+    if superseded:
+        return ProposalState.SUPERSEDED
+    return ProposalState.PENDING

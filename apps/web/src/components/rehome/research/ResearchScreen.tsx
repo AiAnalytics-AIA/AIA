@@ -29,7 +29,7 @@ import { SaveIndicator } from "./SaveIndicator";
 import { StepPlaceholder } from "./StepPlaceholder";
 import { ResearchContext, type RunJob } from "./context";
 import { ACTIONS, ACTION_LABELS } from "@/lib/research-agent-jobs";
-import { researchAgents, type ResearchAgentAction, type WorkingContent } from "@/lib/api";
+import { researchAgents, type ResearchAgentAction, type ResearchAgentJob, type WorkingContent } from "@/lib/api";
 import { known } from "@/lib/reason-words";
 import Link from "next/link";
 import { AgentBudgetWaits } from "./AgentBudgetWaits";
@@ -63,6 +63,8 @@ type Session = { studyId: string; loaded: Loaded; retry: () => void; startAgain:
 const SessionContext = createContext<Session | null>(null);
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+/** A design proposal a person has still to decide, as the server projects it (ADR 0026 decision 8). */
+const pendingProposal = (j: ResearchAgentJob) => j.status === "COMPLETED" && !isAdviceAction(j.action) && j.proposal_state === "pending";
 
 /** The study's working content, loaded once and kept while the person stays in the study (its layout). */
 export function ResearchSession({ studyId, initialContent, children }: { studyId: string; initialContent?: WorkingContent; children: ReactNode }) {
@@ -296,9 +298,10 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
         )}</InspectorProvider>
       {agents.notice ? <p role="status" className="my-3 text-sm text-ink-muted">{agents.notice}</p> : null}
       <AgentBudgetWaits jobs={agents.recent} studyId={frame.studyId} canEdit={frame.canEdit} onChanged={agents.refresh} />
-      {agents.recent.some((j) => j.status === "COMPLETED" && !isAdviceAction(j.action)) ? <section className="my-4 rounded-md border border-border p-4"><h2 className="mb-2 font-semibold">{t("research.aiSaved")}</h2>
+      {/* The proposals a person has still to decide (ADR 0026 decision 8): an accepted, dismissed or superseded one is not offered again. */}
+      {agents.recent.some(pendingProposal) ? <section className="my-4 rounded-md border border-border p-4"><h2 className="mb-2 font-semibold">{t("research.aiSaved")}</h2>
         <div className="flex flex-wrap gap-2">
-          {agents.recent.filter((j) => j.status === "COMPLETED" && !isAdviceAction(j.action)).slice(0, 5).map((j) => <Button key={j.run_id} disabled={agents.busy} onClick={() => void agents.open(j)}>{ACTION_LABELS[j.action]} · {j.created_at ? new Date(j.created_at).toLocaleString("cs-CZ") : ""}</Button>)}
+          {agents.recent.filter(pendingProposal).slice(0, 5).map((j) => <Button key={j.run_id} disabled={agents.busy} onClick={() => void agents.open(j)}>{ACTION_LABELS[j.action]} · {j.created_at ? new Date(j.created_at).toLocaleString("cs-CZ") : ""}</Button>)}
         </div>
       </section> : null}
       </StageChrome>

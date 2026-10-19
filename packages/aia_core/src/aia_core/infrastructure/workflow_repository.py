@@ -2960,6 +2960,19 @@ class WorkflowRepository:
         )
         return None if output is None else dict(output)
 
+    def step_input(self, run_id: str, node_key: str) -> dict[str, Any] | None:
+        """The input the run's ``node_key`` step was created with; None when it has no such step.
+
+        What a job was asked, as it was frozen at enqueue: a rebuild asks the same again.
+        """
+        self._run(run_id)  # scope check: a run outside this study is not found
+        found = self._session.scalar(
+            select(StepRunRow.input_json).where(
+                StepRunRow.run_id == run_id, StepRunRow.node_key == node_key
+            )
+        )
+        return None if found is None else dict(found)
+
     def attempt_history(self, step_id: str) -> list[dict[str, Any]]:
         """Return every attempt for a step, oldest first.
 

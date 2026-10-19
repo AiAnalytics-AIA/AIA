@@ -143,7 +143,8 @@ describe("ResearchScreen", () => {
 
   it("reads an AI proposal on a closed study's run stage and closes it, never applies it (review, Codex on #479)", async () => {
     const job = { run_id: "RUN-J1", design_revision_id: "REV-2", action: "build_questionnaire", status: "COMPLETED", is_terminal: true,
-      needs_attention: false, context_sha256: "x", harness_version: "3", created_at: "2026-10-17T09:00:00Z", steps: [], actual_cost_usd: 0.1 };
+      needs_attention: false, context_sha256: "x", harness_version: "3", created_at: "2026-10-17T09:00:00Z", steps: [], actual_cost_usd: 0.1,
+      proposal_state: "pending" };
     const proposed = { title: "Alfa", sections: [{ id: "ai_section_1", type: "questions", title: "Zvyky", questions: [{ id: "ai_q_1_1", text: "Jak často pijete kávu?", typ: "skala" }] }] };
     api(() => content({ can_edit: false }), undefined, {
       "GET /api/v1/studies/STU-1/research/agent-jobs": () => [job],

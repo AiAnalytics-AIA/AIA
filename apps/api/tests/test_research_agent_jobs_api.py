@@ -381,3 +381,77 @@ def test_a_corrupt_proposal_is_a_409_and_stays_marked_corrupt(
         f"{url}/accept", json={"expected_revision_id": rid, "expected_workspace_revision": 1}
     )
     assert accepted.status_code == 409 and accepted.json()["code"] == "artifact_corrupt"
+
+
+# -- dismiss, rebuild and the pending-proposals projection (ADR 0026 decisions 5 and 8) ---------
+
+
+def _decisions(app: FastAPI, run_id: str) -> list[str]:
+    from aia_core.infrastructure.tables import ApprovalDecisionRow
+    from sqlalchemy import select
+
+    with create_session_factory(app.state.engine)() as session:
+        return list(
+            session.scalars(
+                select(ApprovalDecisionRow.decision)
+                .where(
+                    ApprovalDecisionRow.subject_type == "ai_proposal",
+                    ApprovalDecisionRow.subject_id == run_id,
+                )
+                .order_by(ApprovalDecisionRow.decision_id)
+            )
+        )
+
+
+def test_a_proposal_is_dismissed_in_the_ledger_and_rebuilt_as_a_new_job(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    rid = revision(researcher, world)
+    url = base(world)
+    asked = {"design_revision_id": rid, "action": "analyze_brief", "instruction": "Zkrátit"}
+    first = researcher.post(url, json=asked).json()["run_id"]
+    # Not yet a proposal: nothing to decide, and nothing pending.
+    assert researcher.get(f"{url}/{first}").json()["proposal_state"] is None
+    refused = researcher.post(f"{url}/{first}/dismiss")
+    assert refused.status_code == 409 and refused.json()["code"] == "proposal_not_ready"
+    assert _worker(app).run_once() is not None
+    assert researcher.get(f"{url}/{first}").json()["proposal_state"] == "pending"
+    assert [j["run_id"] for j in researcher.get(url, params={"pending": "true"}).json()] == [first]
+
+    # Dismissed: one ledger row, nothing written to the design, and no longer pending.
+    dismissed = researcher.post(f"{url}/{first}/dismiss")
+    assert dismissed.status_code == 200, dismissed.text
+    assert dismissed.json()["proposal_state"] == "dismissed"
+    assert researcher.post(f"{url}/{first}/dismiss").status_code == 200  # recorded once
+    assert _decisions(app, first) == ["dismiss"]
+    designs = researcher.get(f"/api/v1/studies/{world.study_id()}/design/revisions").json()
+    assert [r["revision_id"] for r in designs["items"]] == [rid]
+    assert researcher.get(url, params={"pending": "true"}).json() == []
+
+    # Rebuilt: the same action and instruction, on the newest design, naming the old job.
+    stale = researcher.post(f"{url}/{first}/rebuild", json={"design_revision_id": "REV-0"})
+    assert stale.status_code == 409 and stale.json()["code"] == "stale_design"  # not the newest
+    second = researcher.post(f"{url}/{first}/rebuild", json={"design_revision_id": rid})
+    assert second.status_code == 201, second.text
+    rebuilt = second.json()
+    assert rebuilt["run_id"] != first and rebuilt["rebuild_of"] == first
+    assert rebuilt["action"] == "analyze_brief" and rebuilt["proposal_state"] is None
+    assert _worker(app).run_once() is not None
+    listed = {j["run_id"]: j["proposal_state"] for j in researcher.get(url).json()}
+    # A dismissal stands over the rebuild; the new proposal waits for a person.
+    assert listed == {first: "dismissed", rebuilt["run_id"]: "pending"}
+
+    # A third job, rebuilt before anyone decided it, is superseded.
+    third = researcher.post(url, json={**asked, "instruction": "Jinak"}).json()["run_id"]
+    assert _worker(app).run_once() is not None
+    fourth = researcher.post(f"{url}/{third}/rebuild", json={"design_revision_id": rid}).json()
+    assert researcher.get(f"{url}/{third}").json()["proposal_state"] == "superseded"
+    assert fourth["rebuild_of"] == third
+
+    # A newer design: a rebuild on the old one is refused, never run on a design not current.
+    newer = world.design(
+        researcher, {"title": "Fictional", "goal": "Changed"}, source_stage="brief"
+    )
+    assert newer.status_code == 201
+    old = researcher.post(f"{url}/{third}/rebuild", json={"design_revision_id": rid})
+    assert old.status_code == 409 and old.json()["code"] == "stale_design"

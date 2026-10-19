@@ -911,3 +911,30 @@ def test_a_failure_at_the_ledger_leaves_no_revision_written(
         assert StudyDesignRepository(session, scope).latest().revision_id == d1
         assert working_revision(session, world) == before
         assert ledger(session, run_id) == []
+
+
+def test_a_dismissed_proposal_may_still_be_accepted_and_an_accepted_one_is_not_dismissed(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """The acceptance check reads ``decision = "accept"`` only (ADR 0026 decision 8): a
+    dismissal is a decision too, but not the accept, so a person may change their mind; an
+    accepted proposal is in the design and is not dismissed after it."""
+    d1 = design_on_working_copy(world)
+    run_id = job_on(world, database_url, store, build, d1)
+    with world.sessions() as session:
+        jobs = ResearchAgentJobs(session, world.lead_scope(session))
+        assert jobs.dismiss(run_id) is True
+        assert jobs.dismiss(run_id) is False
+        assert jobs.proposal_states([jobs.get(run_id)])[run_id] == "dismissed"
+        jobs.accept(
+            run_id,
+            store=store,
+            expected_revision_id=d1,
+            expected_workspace_revision=working_revision(session, world),
+        )
+        assert jobs.proposal_states([jobs.get(run_id)])[run_id] == "accepted"
+        with pytest.raises(DesignRejected) as refused:
+            jobs.dismiss(run_id)
+        assert refused.value.reason == "proposal_already_accepted"
+        session.commit()
+        assert [r.decision for r in ledger(session, run_id)] == ["dismiss", "accept"]
