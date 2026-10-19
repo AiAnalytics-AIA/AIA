@@ -218,6 +218,13 @@ services:
       AIA_AI_ROUTE_APPROVED_FOR: ${AIA_AI_ROUTE_APPROVED_FOR:-}
       AIA_AI_ROUTE_RETENTION_DAYS: ${AIA_AI_ROUTE_RETENTION_DAYS:-}
       AIA_AI_RESEARCH_AGENTS_ENABLED: ${AIA_AI_RESEARCH_AGENTS_ENABLED:-false}
+      # The Research Lead's turns (ADR 0026): on for develop. The reservation is the smallest
+      # the worker accepts for a turn and its one repair at 1,500 output tokens and the Lead's
+      # 96 KB context bound, at the route's recorded rates (aia_executors.ai_runtime checks it;
+      # the arithmetic is in the commit that set it). Unset in SSM, these defaults hold.
+      AIA_AI_RESEARCH_LEAD_ENABLED: ${AIA_AI_RESEARCH_LEAD_ENABLED:-true}
+      AIA_AI_RESEARCH_LEAD_MAX_OUTPUT_TOKENS: ${AIA_AI_RESEARCH_LEAD_MAX_OUTPUT_TOKENS:-1500}
+      AIA_AI_RESEARCH_LEAD_RESERVATION_USD: ${AIA_AI_RESEARCH_LEAD_RESERVATION_USD:-1.02}
       AIA_AI_ANALYSIS_ENABLED: ${AIA_AI_ANALYSIS_ENABLED:-false}
       AIA_AI_ANALYSIS_MAX_OUTPUT_TOKENS: ${AIA_AI_ANALYSIS_MAX_OUTPUT_TOKENS:-}
       AIA_AI_ANALYSIS_RESERVATION_USD: ${AIA_AI_ANALYSIS_RESERVATION_USD:-}
