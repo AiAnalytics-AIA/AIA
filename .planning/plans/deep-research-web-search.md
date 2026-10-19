@@ -1633,7 +1633,9 @@ default; the docs said otherwise because the status table was written by hand. T
   25-26 to *run* on a fictional client or a public topic. Activation on develop follows the deploy
   README's recipe (`aia_deep_research_web_search`, the connector list, Common Crawl's keys), with ADR
   0022's approvals recorded in Settings and the fictional-client and USD 20 guards unchanged. Needs 1
-  (sign-off) first. Test: a recorded run on develop reaches Brave, one connector, the crawler and the
+  (sign-off) first, on a Brave plan that allows AI use and storing results (the run stores each search's
+  hits in order, chunk 9): a Data for AI plan with storage rights, per Brave's own plan split, to be
+  read from Brave's terms and confirmed with Brave before signing. Test: a recorded run on develop reaches Brave, one connector, the crawler and the
   archive, and `GET …/deep-research/runs/{id}` names each route it used.
 - **52, stated by code.** The Settings page lists each route and connector with a state (built,
   approved, active, refused by class) and the reason, read from `deep_research_runtime` and the

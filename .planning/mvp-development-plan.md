@@ -26,7 +26,7 @@ Five gates, each an observable test. A wave is done when its gate passes in CI o
 | **I-2 Results are seen** | respondent and segment maps, filters, the internal drill-down, the Lead reading results; map snapshots approvable | AC-05, 08 (QC), 09 |
 | **I-3 Evidence is complete** | every key finding cites an admitted claim; a client dataset graded client-reported beside modelled results; analysis and report artifacts with the approve and export panel | AC-08, 10, 13 |
 | **I-R Reach** (W1) | a Deep Research run on develop reaches every route family the build has, live, for a fictional client and a public topic; Settings → Deep Research lists each route and connector as ACTIVE or REFUSED with the reason (`deep-research-web-search` 52), so no document has to say what is on | AC-11 (first half) |
-| **I-4 Deep Research live** | a live run on the full design through the Class B provider; derived-query class decided; one-click source into knowledge | AC-11 |
+| **I-4 Deep Research live** | a live run on the full design through Brave on a person-approved query list (or a Class B route once contracted); derived-query class decided; one-click source into knowledge | AC-11 |
 | **I-5 Acceptance** | tier A blocking in CI with all fifteen criteria; tier B once on develop within USD 25; production released | AC-01 to 15 |
 
 ### Reach is not a late wave (owner, 2026-10-19)
@@ -42,13 +42,23 @@ doors have to open, then the switch has to be thrown, then the state has to be v
 
 | Step | Chunk | Wave | Owner |
 |---|---|---|---|
-| The owner starts the Linkup contract (EU processing, written answer on stored results) | `class-b-search-route` 0 | W0 | owner |
-| Sign-off: Brave's written terms, budgets, the light model, quotas | `deep-research-web-search` 1 | W0 | owner signs, S2 prepares |
+| Sign-off: Brave on a plan that allows AI use and storing results (plan, terms URL and date, price), budgets, the light model, quotas | `deep-research-web-search` 1 | W0 | owner signs, S2 prepares |
 | **Switch on:** the Class C routes, the connector list and Common Crawl on develop for fictional and public-topic runs, inside ADR 0022's guards | `deep-research-web-search` 51 **New** | W0 | S2 |
 | **Class door:** the derived-query rule written as an ADR (Proposed: a person approves the planned query list once, and their approval sets its class), the data owner confirms | `class-b-search-route` 6 (ADR in W0, code in W1) | W0, W1 | S2 |
 | **Visibility:** Settings lists every route and connector as built, approved, active or refused by class, with the reason, read from the composition, never written by hand | `deep-research-web-search` 52 **New** | W1 | S2 |
-| **Contract door:** Linkup composed and approved for Class B, then the design's class by rule, the journey test and activation | `class-b-search-route` 1-2 (W1), 3-5 (W2) | W1, W2 | S2 |
+| **Contract door, optional and later:** a Class B route (Linkup is the candidate) composed and approved, for queries nobody approved one by one (the Lead's own lookups), then the design's class by rule, the journey test and activation | `class-b-search-route` 0-2 (W2), 3-5 (W3) | W2, W3 | S2 |
 | Wider reach, in order of value: documents in parts, structured capture and records, then pages that need a browser | `deep-research-web-search` 6, 33-37, 38 | W2 to W4 | S2 |
+
+**Decided later the same day: go with Brave**, which is built and already the chosen Class C route.
+Brave cannot be approved for Class B (US-based, query logs kept up to 90 days, zero retention on
+Enterprise only: `deep-research-web-search.md:497`; ADR 0008 requires confirmed EU processing and
+retention controls for B, and it is a frozen invariant). So Brave reaches real-client work **through
+the class door**: the planned query list is shown, a person approves it, and the approved bytes are
+Class C. Without that approval a design-derived query still goes nowhere; that is what the optional
+contract door (Linkup) would add later. Doc follow-up: `MVP-27` and `AC-11` say the search route is
+"approved for Class B under an EU processing agreement"; they become "the route approved for the
+query's class: Brave on a person-approved query list, or a Class B route", once the data owner
+confirms the derived-query rule.
 
 **What this does not loosen:** grounding (a quote must be in a captured source), adversarial
 verification, the evidence gate and EU residency for anything client-derived. Reach changes where the
@@ -92,7 +102,7 @@ plan (or to a new plan from #497) before the wave starts.
 | S | Work |
 |---|---|
 | S1 | **New** shared edit vocabulary, `workspace_edit_ops` (M1) and `apply_edit_ops`; presence (M2) and the change feed; per-change accept (M6); `research-lead-workbench` 11 (command registry), 14-16 (view vocabulary, frame, pointing with id and revision), 17 (Questionnaire artifact, AI buttons removed), 18-19 (Brief, Design, Sample, Fieldwork); the envelope and plan card (M4, M5) behind `AIA_LEAD_PLANS_ENABLED` |
-| S2 | Population-built respondents as the default path and its screens; `evidence-integrity` 2-3 (run QC stored and shown); **reach**: `deep-research-web-search` 52, `class-b-search-route` 1-2 and the derived-query rule in code |
+| S2 | Population-built respondents as the default path and its screens; `evidence-integrity` 2-3 (run QC stored and shown); **reach**: `deep-research-web-search` 52, the derived-query rule in code (`class-b-search-route` 6) |
 | S3 | `client-budget` CB5; `client-knowledge-lifecycle` K2e, K2f, K3; `clients.envelope_ceiling_usd` (in M4); **production applied**: RDS, Cognito, buckets, tagged Bedrock profiles, `deploy-production.yml` |
 
 **Exit I-1:** two sessions edit one study in the acceptance run, the second edit merges or conflicts
@@ -102,7 +112,7 @@ on one item only; a plan inside an envelope starts a run and a gate it does not 
 
 | S | Work |
 |---|---|
-| S2 | `sociomap-formula-corrections` I0-I5, 3 (respondent map), 4d; `segment-maps-and-drilldown` 1-6; the results-context **provider** for maps; **reach**: `class-b-search-route` 3-5, `deep-research-web-search` 6 and 33-37 in order |
+| S2 | `sociomap-formula-corrections` I0-I5, 3 (respondent map), 4d; `segment-maps-and-drilldown` 1-6; the results-context **provider** for maps; **reach**: `class-b-search-route` 0-5 (optional, the Class B route), `deep-research-web-search` 6 and 33-37 in order |
 | S1 | **New** the Lead's results context (contract first, F4); `research-lead-workbench` 20 (Results and Sociomap with filters and drill-down), 22 (Audience, Dimensions); the Lead's lifecycle (M7): signals, proposed updates, admin read |
 | S3 | `client-knowledge-lifecycle` K4, K5 (an owned child); own-dimension chips; map-snapshot approval (`two-roles-human-ai-gates` 5b.4, **New** chunk); the Report artifact's Approve and Export panel |
 
@@ -189,7 +199,7 @@ clustering (S2, waits on the method owner).
 | Risk | Effect | Mitigation |
 |---|---|---|
 | The method owner's answers (clustering, register entries) arrive late | no segment map in client output; AC-09 partial | segment maps ship internal-only first (the register defaults to `INTERNAL_ONLY`); a dated ask now |
-| The Class B provider is not contracted | AC-11 cannot pass live | a recorded tier A pass proves the route; tier B waits on the contract; owner names a date |
+| The derived-query rule is not confirmed by the data owner | Brave stays Class C only, so AC-11 cannot pass live on a real design | a fictional client and a public topic run live meanwhile (chunk 51); the owner names a date for the confirmation |
 | The plan authority takes longer than planned | no autopilot-lite; every paid job needs a card (MVP-13 returns by default) | the envelope without plans is a smaller first step; cards stay as the fallback |
 | Migrations collide | blocked merges | one lane, one owner, rebase before merge, M3 first |
 | Production shares develop's AWS account | an account-level mistake or the shared Bedrock quota reaches production | tag-conditioned IAM with a permission boundary, per-environment state and KMS (architecture §6.2); tier B outside working hours; revisit at the first incident |

@@ -96,3 +96,10 @@ integration gate I-4 (`mvp-cohesion.md` §4). `deep-research-web-search` 1 (sign
 
 `ARCHITECTURE.md` §4 (Deep Research's classification regime), ADR 0008 amendment, `overview.md`
 (MVP-27 beside OI-129).
+
+## Reordered (2026-10-19)
+
+The owner decided to go with Brave, a Class C route, for live Deep Research. Chunk 6 (the class of a
+derived query: a person-approved query list, the data owner's confirmation) is therefore **first**, and
+chunks 0-5 (the Class B provider and its route) are **optional and later**: they add queries that no
+person approves one by one. See `mvp-development-plan.md` § Reach.
