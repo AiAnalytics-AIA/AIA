@@ -1076,7 +1076,10 @@ def test_a_completed_run_is_interpreted_module_by_module_and_reads_back_by_readm
             world.client_id,
             world.study_id,
         )
-        assert e.data_class.value == "CLASS_C_INTERNAL" and e.agent_id == "aia.analysis.module"
+        # The design is Class B by the owner's rule (2026-10-19): the operator's Class C for
+        # its bytes does not lower it, and the fictional dataset's Class C does not either.
+        assert e.data_class.value == "CLASS_B_DERIVED_CLIENT"
+        assert e.agent_id == "aia.analysis.module"
         assert e.capability.value == "RESEARCH_REASONING"
     spent = sum(e.cost_usd for e in events if e.outcome is UsageOutcome.SUCCEEDED)
     assert spent == pytest.approx(8 * ANALYSIS_CALL_USD)
@@ -1539,7 +1542,8 @@ def test_unconfigured_analysis_parks_every_module_and_sends_nothing(
 def test_a_real_clients_design_is_class_a_and_parks_before_any_reservation(
     world: Any, run_with: Callable[..., Worker]
 ) -> None:
-    """A content-bound Class A declaration cannot use the Class C route."""
+    """A content-bound Class A declaration raises the design above its rule's Class B, and a
+    route approved for B and C refuses it; the park says who raised it."""
     models = ScriptedModels()
     run_id = _start(world)
     _drain(
@@ -1563,6 +1567,10 @@ def test_a_real_clients_design_is_class_a_and_parks_before_any_reservation(
         error = step["attempts"][-1]["error"]
         assert error["reason"] == "egress_route_not_approved_for_class"
         assert error["data_class"] == "CLASS_A_CLIENT_CONFIDENTIAL"
+        assert error["design_class"] == {
+            "data_class": "CLASS_A_CLIENT_CONFIDENTIAL",
+            "source": "operator",
+        }
     assert _ledger(world, run_id) == [] and _reservations(world, run_id) == []
 
 
@@ -1800,7 +1808,7 @@ def test_ai_respondents_answer_and_the_eight_modules_interpret_them_in_one_run(
     assert record.labels.simulated_respondents and record.labels.internal_only
     events = [e for e in _ledger(world, run_id) if e.agent_id == "aia.analysis.module"]
     assert len(events) == 16
-    assert {e.data_class.value for e in events} == {"CLASS_C_INTERNAL"}
+    assert {e.data_class.value for e in events} == {"CLASS_B_DERIVED_CLIENT"}  # the design's
 
 
 @pytest.mark.parametrize("n", [50, 150])

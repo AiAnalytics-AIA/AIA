@@ -62,11 +62,7 @@ from aia_core.application.analysis_results import (
 from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.application.research import research_artifacts
 from aia_core.domain.ai_contracts import ModelCallFailed, ModelRequest, canonical_json
-from aia_core.domain.ai_material import (
-    MaterialApproval,
-    classify_material,
-    most_restrictive_material,
-)
+from aia_core.domain.ai_material import MaterialApproval, most_restrictive_material
 from aia_core.domain.ai_models import ResolutionError, parse_model_config
 from aia_core.domain.analysis import AnalysisModuleId
 from aia_core.domain.analysis.artifact import (
@@ -92,6 +88,7 @@ from aia_core.domain.analysis.native import NativeEvidenceRefused
 from aia_core.domain.analysis.steps import ANALYSIS_STEP_KIND, module_of_node
 from aia_core.domain.evidence import ClaimSurface, InstrumentPolicyRefused, Violation
 from aia_core.domain.licence import DataLineage
+from aia_core.domain.material_rules import MaterialRule, RuledMaterial, classify_by_rule
 from aia_core.domain.providers import Provider
 from aia_core.domain.residency import DataClass
 from aia_core.domain.workflow import FailureClass
@@ -295,11 +292,13 @@ class _Turns:
         data_class: DataClass,
         lineage: DataLineage | None,
         analysis_round: int = 0,
+        design_class: RuledMaterial | None = None,
     ) -> None:
         self._executor, self._step, self._context = executor, step, context
         self._round = analysis_round
         self._prepared, self._caller, self._config = prepared, caller, config
         self._data_class, self._lineage = data_class, lineage
+        self._design_class = design_class
         self._frame = harness_frame(
             origin=prepared.evidence.origin, surface=prepared.inputs.surface
         )
@@ -398,6 +397,13 @@ class _Turns:
                     "reason": refused.reason,
                     "message": _PARK_MESSAGE.format(why=str(refused)),
                     "data_class": self._data_class.value,
+                    # The design's class and who answered for it: the rule, or an operator.
+                    "design_class": None
+                    if self._design_class is None
+                    else {
+                        "data_class": self._design_class.data_class.value,
+                        "source": self._design_class.source,
+                    },
                     "lineage": lineage,
                 },
             ) from refused
@@ -572,17 +578,12 @@ class AnalysisModuleExecutor:
             origin=prepared.evidence.origin,
             respondents_fictional=material.respondents_fictional,
         )
-        data_class = most_restrictive_material(
-            [dataset_class, classify_material(design, cfg.material_approvals).data_class]
-        )
-        if data_class is None:
-            return Failed(
-                FailureClass.RUNTIME_UNAVAILABLE,
-                error={
-                    "reason": "egress_unclassified_material",
-                    "message": "Zadání nemá klasifikaci vstupních dat. Nic nebylo odesláno.",
-                },
-            )
+        # The run's design is Class B by the owner's rule (2026-10-19, ``material_rules``);
+        # an operator's classification of its exact bytes, or the dataset's class, can only
+        # raise it.
+        design_class = classify_by_rule(design, MaterialRule.DESIGN, cfg.material_approvals)
+        data_class = most_restrictive_material([dataset_class, design_class.data_class])
+        assert data_class is not None  # both are classes: the dataset's and the design's
         caller = StepModelCaller(
             gateway=gateway,
             context=context,
@@ -599,6 +600,7 @@ class AnalysisModuleExecutor:
             caller=caller,
             config=cfg,
             data_class=data_class,
+            design_class=design_class,
             lineage=material.lineage,
             analysis_round=analysis_round,
         )

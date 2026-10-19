@@ -115,7 +115,10 @@ def _env(**overrides: str) -> dict[str, str]:
         "AIA_BEDROCK_CONTEXT_WINDOW_TOKENS": "200000",
         "AIA_AI_ROUTE_EU_PROCESSING_APPROVED": "true",
         "AIA_AI_ROUTE_EXCLUDED_FROM_TRAINING": "true",
-        "AIA_AI_ROUTE_APPROVED_FOR": "CLASS_C_INTERNAL",
+        # A run's design is Class B by the owner's rule (2026-10-19), so the route carries B;
+        # B, like A, needs the provider's retention stated.
+        "AIA_AI_ROUTE_APPROVED_FOR": "CLASS_C_INTERNAL,CLASS_B_DERIVED_CLIENT",
+        "AIA_AI_ROUTE_RETENTION_DAYS": "0",
         "AIA_AI_FIELDWORK_MAX_OUTPUT_TOKENS": "1024",
         "AIA_AI_FIELDWORK_RESERVATION_USD": "0.25",
         "AIA_AI_MATERIAL_CLASSIFICATIONS": "["
@@ -366,7 +369,15 @@ def test_ai_respondents_answer_and_the_run_continues_through_aggregate_and_socio
         provenance["prompt"]["id"] == "aia.respondent.block"
         and len(provenance["prompt"]["sha256"]) == 64
     )
-    assert provenance["data_class"] == "CLASS_C_INTERNAL"
+    # The fictional roster is Class C; the design is Class B by rule, the operator's Class C
+    # for its bytes notwithstanding: the run is sent as B, and says which rule decided.
+    assert provenance["data_class"] == "CLASS_B_DERIVED_CLIENT"
+    design_class = provenance["material_classification"]
+    assert (design_class["data_class"], design_class["source"]) == (
+        "CLASS_B_DERIVED_CLIENT",
+        "rule:design",
+    )
+    assert design_class["operator_class"] == "CLASS_C_INTERNAL"
     assert provenance["lineage"] == ["aia_synthetic_fixture"]
     # Answered under the response process the run pinned: with nothing stored, the unit's.
     assert run["metadata"]["response"] == AIA_RESPONSE_V1.model_dump(mode="json")
@@ -391,7 +402,7 @@ def test_ai_respondents_answer_and_the_run_continues_through_aggregate_and_socio
             world.client_id,
             world.study_id,
         )
-        assert e.route_id == "bedrock-eu-primary" and e.data_class.value == "CLASS_C_INTERNAL"
+        assert e.route_id == "bedrock-eu-primary" and e.data_class.value == "CLASS_B_DERIVED_CLIENT"
     assert by_outcome == {UsageOutcome.DISPATCHED: N * BLOCKS, UsageOutcome.SUCCEEDED: N * BLOCKS}
     ledgered = sum(e.cost_usd for e in events if e.outcome is UsageOutcome.SUCCEEDED)
     assert ledgered == pytest.approx(provenance["total_cost_usd"])
@@ -483,15 +494,22 @@ def test_a_real_clients_design_is_class_a_and_the_class_c_route_refuses_it(
     assert error["data_class"] == "CLASS_A_CLIENT_CONFIDENTIAL"
 
 
-def test_client_allowlist_does_not_classify_an_unknown_questionnaire(
+def test_an_unclassified_questionnaire_is_class_b_by_rule_and_a_class_c_route_refuses_it(
     world: Any, run_with: Callable[..., Worker]
 ) -> None:
+    """Before the owner's rule (2026-10-19) a questionnaire nobody had classified parked as
+    unknown. It is now Class B by rule; a fictional client still classifies nothing, and a
+    route approved for Class C alone refuses it before anything is sent."""
     bedrock = ScriptedBedrock()
     run_id = _start(world)
-    env = _fictional(world) | {"AIA_AI_MATERIAL_CLASSIFICATIONS": "[]"}
+    env = _fictional(world) | {
+        "AIA_AI_MATERIAL_CLASSIFICATIONS": "[]",
+        "AIA_AI_ROUTE_APPROVED_FOR": "CLASS_C_INTERNAL",
+    }
     assert _drain(run_with(bedrock, env=env)) == ["completed", "completed", "failed"]
     error = _assert_parked_before_network(world, run_id, bedrock)
-    assert error["reason"] == "egress_unclassified_material"
+    assert error["reason"] == "egress_route_not_approved_for_class"
+    assert error["data_class"] == "CLASS_B_DERIVED_CLIENT"
 
 
 def test_a_roster_run_given_population_built_personas_fails_before_any_call(
@@ -620,7 +638,9 @@ def test_missing_route_approval_keys_refuse_and_retention_is_never_assumed() -> 
     del env["AIA_AI_ROUTE_APPROVED_FOR"]
     with pytest.raises(AIRuntimeConfigError, match="APPROVED_FOR is required"):
         AIRuntimeSettings.from_env(env)
-    settings = AIRuntimeSettings.from_env(_env())
+    unset = _env()
+    del unset["AIA_AI_ROUTE_RETENTION_DAYS"]
+    settings = AIRuntimeSettings.from_env(unset)
     assert settings is not None and settings.route().retention_days is None
     assert AIRuntimeSettings.from_env({"AIA_AI_RUNTIME_ENABLED": "false"}) is None
 
