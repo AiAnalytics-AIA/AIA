@@ -80,6 +80,11 @@
    "title": "NPC Panel 18.6.6, the frozen unit's code (legacy/npc-panel-18.6.6/app, ADR 0011)",
    "pages": null,
    "product": "LEGACY_AIA"
+  },
+  "AIA_SOCIOMAPA_METHOD": {
+   "title": "AIA Sociomapa methodology signed off by its owner (A. Bahbouh, 2026-10): its formulas, code and self-test, kept outside this repository",
+   "pages": null,
+   "product": "AIA"
   }
  },
  "canonical": {
@@ -2307,6 +2312,38 @@
    "uncertainty": "The audit's checks covered the target defect only; the fitted map 'still needs a recovery test on data with known ideal points' (§ 12 F16). The tolerance between R and the Python fallback is engineering (plan § 4 item 5).",
    "resolve_by": "sociomap-formula-corrections chunk 4c",
    "question": "A6 and B10 -- what constitutes successful recovery (geometry, ideal-point ordering, generosity invariance, straight-liners excluded, no collapse, determinism within tolerance), and three layers for R/Python equivalence: fixture parity, property tests, recovery tests"
+  },
+  {
+   "id": "AIA-SIGNED-OFF-INPUTS",
+   "title": "Mean-centred ratings, the baseline-corrected relation, two pair floors, Benjamini-Hochberg with the noise rule, and the sparse-design note",
+   "product": "AIA",
+   "label": "PROPOSED",
+   "sources": [
+    {
+     "document": "AIA_SOCIOMAPA_METHOD",
+     "page": null,
+     "section": "aia_inputs.py: centre, pair_stats, bh, noise_q95, noise_q95_fast, precision_weights, layout_weights, sparse_design, prepare",
+     "states": "Each respondent's raw ratings minus their own mean (fewer than two ratings or no spread: left out); the unweighted pairwise Pearson r, the baseline r0 two unrelated objects get from centring alone and r~ = (r - r0) / (1 - r0); below the status floor (10) a pair is unknown; reliable by Benjamini-Hochberg at 0.05 on Fisher's p against r0 and the noise rule (|r~| above the 95th percentile of |r~| with one object shuffled, 100 shuffles per object, seed 0); layout pairs from 5 co-raters weighted min(1, (n - 3) / 17); precision weights capped at 20; the sparse-design note above 30 % of pairs below the layout floor or an object with fewer than 3 layout partners."
+    }
+   ],
+   "formula": "c_ki = a_ki - mean_l a_kl (k left out when L_k < 2 or max |c_k| <= 1e-12); r_ij = clip(cov / sqrt(v_i v_j), +-0.999999) over the co-raters; r0_ij = -(1 / n_ij) sum_k 1 / (L_k - 1); r~_ij = (r_ij - r0_ij) / (1 - r0_ij); z = (atanh r_ij - atanh clip(r0_ij, +-0.999)) sqrt(max(n_ij - 3, 1e-9)), p = 2 (1 - Phi(|z|)); known iff n_ij >= n_min and v_i, v_j > 1e-12; RELIABLE iff BH(q) keeps the pair and |r~_ij| > the 95th percentile of the shuffled |r~|; WEAK if known and not reliable; UNKNOWN otherwise; layout weight min(1, max(0, (n - 3) / (n_full - 3))) for n >= n_L, else 0; sparse iff share(w_L = 0) > s or some object has fewer than p_min partners with w_L > 0",
+   "applies_to": "aia-sociomap-5's object map: its relations, pair statuses and sparse-design note (engine_v2.compute_object_map); the layout pairs, layout weights and precision weights are computed for the methodology's own layout, which reads them once it is ported.",
+   "implementation": "aia_core.domain.sociomap.signed_off_inputs:prepare",
+   "validation": [
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_inputs.py::test_the_port_reproduces_every_output_of_the_methodologys_own_code",
+     "what": "every output of the methodology's own prepare on three seeded studies (complete, sparse, very sparse) to 1e-9, flags and counts exactly"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_inputs.py::test_the_object_map_records_the_baseline_corrected_relations_under_aia_sociomap_5",
+     "what": "the object map records r~, n, the three statuses and the sparse-design note the port computes"
+    }
+   ],
+   "uncertainty": "The methodology is AIA's own, signed off by its owner; no external source states it. It is unweighted and reads the raw ratings of the mapped objects on their own scale, so respondent weights and the other rating items do not enter the relations. The noise rule's complete-data path does not leave out respondents without spread (the methodology's own approximation), and on incomplete data it takes half the shuffles. Until the methodology's own layout is ported, aia-sociomap-5 places the objects by SMACOF on sqrt(2 (1 - r~)) over the known pairs.",
+   "resolve_by": "plan signed-off-sociomap-method",
+   "question": null
   }
  ]
 }

@@ -23,7 +23,14 @@ from collections.abc import Mapping
 from enum import StrEnum
 from typing import Any, Final, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    SerializerFunctionWrapHandler,
+    field_validator,
+    model_serializer,
+    model_validator,
+)
 
 from ..pipeline import fingerprint
 from .metrics import ObjectRole
@@ -47,6 +54,7 @@ __all__ = [
     "ObjectMapSupport",
     "RatingItem",
     "SociomapArtifactV3",
+    "SparseDesign",
     "read_artifact",
     "read_object_maps",
 ]
@@ -275,6 +283,16 @@ class ObjectMapSupport(_Frozen):
     weighting: str
 
 
+class SparseDesign(_Frozen):
+    """The sparse-design note of the signed-off methodology (``aia-sociomap-5``): set when
+    more than the declared share of pairs is below the layout floor, or some objects have
+    fewer layout partners than declared (``weakly_connected``, by object id)."""
+
+    flag: bool
+    share_below_layout_floor: float
+    weakly_connected: tuple[str, ...]
+
+
 class ObjectMapProvenance(_Frozen):
     implementation: str
     implementation_version: str
@@ -313,6 +331,16 @@ class SociomapArtifactV3(_Frozen):
     respondents: NotComputed
     terrain: NotComputed | EnvelopeTerrain
     provenance: ObjectMapProvenance
+    #: Recorded only under the baseline-corrected relation; ``None`` is left out of the
+    #: stored form, so every map stored before it reads, and recomputes, byte for byte.
+    sparse_design: SparseDesign | None = None
+
+    @model_serializer(mode="wrap")
+    def _without_absent_note(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        body: dict[str, Any] = handler(self)
+        if body.get("sparse_design") is None:
+            body.pop("sparse_design", None)
+        return body
 
     @model_validator(mode="after")
     def _coherent(self) -> Self:

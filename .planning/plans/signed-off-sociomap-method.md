@@ -3,7 +3,7 @@ status: in-progress
 chunks:
   - "[x] 0. This plan; baseline on develop 64cc1380; the methodology's own self-test (60/60) as the reference"
   - "[x] 1. numpy, scipy and numba as aia-core dependencies; the domain numpy rule lifted"
-  - "[ ] 2. Input ratings and object relations: per-person centring, the unrelated baseline, pair floors, Benjamini–Hochberg with the noise rule, the sparse-design note; preset aia-sociomap-5 created"
+  - "[x] 2. Input ratings and object relations: per-person centring, the unrelated baseline, pair floors, Benjamini–Hochberg with the noise rule, the sparse-design note; preset aia-sociomap-5 created"
   - "[ ] 3. Object positions: soft-rank Spearman with Coulomb repulsion (BB1), Interval MDS for large maps by a fixed object-count rule"
   - "[ ] 4. Height and terrain: mean rating, relative heights with a floor, ruler and frame scaling, the envelope terrain, node size and label note for large maps"
   - "[ ] 5. Map credibility: split-half agreement, the no-reliable-structure statement, one uncertainty radius per map"
@@ -86,6 +86,9 @@ and 0.68/2.5).
 - The false-close-pair test: a benchmark honesty test, not part of a map.
 - Groups without direction on the respondent map: deferred in the methodology.
 - Making `-5` the default.
+- Survey weights: the methodology computes relations and object height unweighted, so
+  `-5` does too (`-3` weights them): relations from chunk 2, height from chunk 4. Open
+  question for the methodology owner, to revisit.
 
 ## Doc follow-up
 

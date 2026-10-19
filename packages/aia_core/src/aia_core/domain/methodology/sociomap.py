@@ -25,6 +25,7 @@ from ..sociomap.specification import (
     AIA_SOCIOMAP_V2,
     AIA_SOCIOMAP_V3,
     AIA_SOCIOMAP_V4,
+    AIA_SOCIOMAP_V5,
     SociomapSpec,
     SociomapSpecV3,
     require_supported,
@@ -68,6 +69,15 @@ _Q7: Final = Evidence(
     EvidenceKind.AIA_DECISION,
     "sociomap-formula-corrections.md § 4a, Q7 (2026-10-09)",
     "Výška objektu je jeho vážený průměr hodnocení na deklarované škále 0-1.",
+)
+
+_SIGNED_OFF: Final = _rule("AIA-SIGNED-OFF-INPUTS")
+_SIGNED_OFF_TESTS: Final = (
+    f"{_T}/test_sociomap_signed_off_inputs.py::test_the_port_reproduces_every_output_of_the_methodologys_own_code",
+)
+_SIGNED_OFF_MAP_TEST: Final = (
+    f"{_T}/test_sociomap_signed_off_inputs.py::"
+    "test_the_object_map_records_the_baseline_corrected_relations_under_aia_sociomap_5"
 )
 
 _CATALOGUE: Final[tuple[MethodStep, ...]] = (
@@ -138,6 +148,28 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         ),
         note_cs="Štědrý a přísný hodnotitel, kteří mají rádi totéž, pak vypadají stejně.",
     ),
+    MethodStep(
+        id="person_centring",
+        title_cs="Hodnocení vztažená k průměru respondenta",
+        formula_latex=(
+            r"\tilde a_{ki} = a_{ki} - \frac{1}{L_k}\sum_{l} a_{kl},"
+            r"\qquad L_k < 2 \;\lor\; \max_l |\tilde a_{kl}| \le 10^{-12}"
+            r" \;\Rightarrow\; k \text{ NEUMÍSTĚN}"
+        ),
+        implements=f"{_S}.signed_off_inputs:centre",
+        source_sha256="82d0a21ac3d0abd73d9677c18462b3e302c04e85010ded26eded58456f75a995",
+        symbols=(
+            Symbol(r"a_{ki}", "surové hodnocení mapovaného objektu i respondentem k", "body škály"),
+            Symbol(r"L_k", "počet mapovaných objektů, které respondent k hodnotil"),
+            Symbol(r"\tilde a_{ki}", "hodnocení vztažené k průměru respondenta"),
+        ),
+        evidence=(_SIGNED_OFF,),
+        tests=(*_SIGNED_OFF_TESTS, _SIGNED_OFF_MAP_TEST),
+        note_cs=(
+            "Jen aia-sociomap-5 (normalizace na osobu person_mean_centring): čte surová "
+            "hodnocení mapovaných objektů na jejich vlastní škále, bez vah respondentů."
+        ),
+    ),
     # ------------------------------------------------------------------ F3
     MethodStep(
         id="f3_correlation",
@@ -203,7 +235,10 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
             f"{_T}/test_sociomap_relations.py::test_the_fisher_interval_needs_four_raters",
             f"{_T}/test_sociomap_relations.py::test_a_perfect_correlation_is_its_own_interval",
         ),
-        note_cs="Při |r| = 1 je interval bodem (r, r); pod čtyřmi hodnotiteli interval není.",
+        note_cs=(
+            "Při |r| = 1 je interval bodem (r, r); pod čtyřmi hodnotiteli interval není. "
+            "aia-sociomap-5 interval nečte: hladina zůstává 0,95 jako v aia-sociomap-4."
+        ),
     ),
     MethodStep(
         id="f3_status",
@@ -243,13 +278,162 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
             "velký a nejistý."
         ),
     ),
+    MethodStep(
+        id="baseline_corrected_relation",
+        title_cs="Korelace očištěná o úroveň nesouvisejících objektů",
+        formula_latex=(
+            r"r_{ij} = \operatorname{clip}_{[-0{,}999999,\,0{,}999999]}"
+            r"\frac{\operatorname{cov}(\tilde a_i, \tilde a_j)}{\sqrt{v_i v_j}},\quad "
+            r"r^0_{ij} = -\frac{1}{n_{ij}} \sum_{k} \frac{1}{L_k - 1},\quad "
+            r"\tilde r_{ij} = \frac{r_{ij} - r^0_{ij}}{1 - r^0_{ij}},\quad "
+            r"p_{ij} = 2\left(1 - \Phi\!\left(\left|\left(\operatorname{atanh} r_{ij}"
+            r" - \operatorname{atanh} \operatorname{clip}_{[-0{,}999,\,0{,}999]} r^0_{ij}\right)"
+            r"\sqrt{\max(n_{ij} - 3,\, 10^{-9})}\right|\right)\right)"
+        ),
+        implements=f"{_S}.signed_off_inputs:pair_stats",
+        source_sha256="b98912c0d589bd634ac6dcecad6783ade10863841b2e553ff47bda22b8b0faef",
+        symbols=(
+            Symbol(r"k", "respondenti, kteří hodnotili oba objekty (každý jednou, bez vah)"),
+            Symbol(r"n_{ij}", "počet těchto respondentů: podpora páru"),
+            Symbol(
+                r"r^0_{ij}", "korelace, kterou by dva nesouvisející objekty měly jen z centrování"
+            ),
+            Symbol(r"\tilde r_{ij}", "vztah objektů i a j očištěný o tuto úroveň"),
+            Symbol(r"p_{ij}", "Fisherovo p proti úrovni nesouvisejících objektů"),
+        ),
+        evidence=(_SIGNED_OFF,),
+        tests=(*_SIGNED_OFF_TESTS, _SIGNED_OFF_MAP_TEST),
+        note_cs=(
+            "Jen aia-sociomap-5 (odhad baseline_corrected_pearson). Pár je známý, když jej "
+            "hodnotilo aspoň n_min respondentů (práh stavu, krok Stav páru) a oba sloupce mají "
+            "rozptyl nad 10^-12; jinak je neznámý a nemá žádnou hodnotu."
+        ),
+    ),
+    MethodStep(
+        id="reliable_by_fdr",
+        title_cs="Spolehlivý pár: Benjaminiho-Hochbergova kontrola falešných objevů",
+        formula_latex=(
+            r"p_{(1)} \le \dots \le p_{(m)},\quad "
+            r"k^{*} = \max\left\{k : p_{(k)} \le \tfrac{k}{m}\, q\right\},\qquad "
+            r"\text{stav}_{ij} = \begin{cases}"
+            r"\text{RELIABLE} & \text{pár mezi } (1) \dots (k^{*}) \;\land\;"
+            r" |\tilde r_{ij}| > \tau_{ij} \\"
+            r"\text{WEAK} & \text{známý, ale ne spolehlivý} \\"
+            r"\text{UNKNOWN} & \text{neznámý pár} \end{cases}"
+        ),
+        implements=f"{_S}.signed_off_inputs:bh",
+        source_sha256="75c7c81904bf58099bfa11254f1ead3af33e70f89cd8893bb153670120a96c3a",
+        symbols=(
+            Symbol(r"m", "počet známých párů, každý jednou"),
+            Symbol(r"q", "míra falešných objevů"),
+            Symbol(r"\tau_{ij}", "práh pravidla šumu (další krok); bez pravidla šumu se nečte"),
+        ),
+        parameters=(ParameterRef("relation.false_discovery_rate", "Míra falešných objevů q"),),
+        evidence=(_SIGNED_OFF,),
+        tests=(*_SIGNED_OFF_TESTS, _SIGNED_OFF_MAP_TEST),
+        note_cs="Jen aia-sociomap-5. Neznámý pár se netestuje a do m se nepočítá.",
+    ),
+    MethodStep(
+        id="noise_rule",
+        title_cs="Pravidlo šumu: vztah silnější než po zamíchání objektu",
+        formula_latex=(
+            r"\tau_{ij} = Q_{0{,}95}\left(\left\{|\tilde r^{(b,t)}_{ij}| :"
+            r" b \in \{i, j\},\ t = 1 \dots T\right\}\right),"
+            r"\qquad \text{RELIABLE vyžaduje } |\tilde r_{ij}| > \tau_{ij}"
+        ),
+        implements=f"{_S}.signed_off_inputs:noise_q95_fast",
+        source_sha256="ca6a162c426eb14fbbe9ee890cd6f91ca67a8b5251aa2306cefcb851998b2a27",
+        symbols=(
+            Symbol(
+                r"\tilde r^{(b,t)}_{ij}",
+                "očištěný vztah po t-tém zamíchání objektu b mezi respondenty",
+            ),
+            Symbol(r"T", "počet zamíchání na objekt"),
+        ),
+        parameters=(
+            ParameterRef("relation.noise_rule.enabled", "Pravidlo šumu zapnuto"),
+            ParameterRef("relation.noise_rule.permutations", "Počet zamíchání na objekt T"),
+            ParameterRef("relation.noise_rule.seed", "Semínko generátoru"),
+        ),
+        evidence=(_SIGNED_OFF,),
+        tests=(*_SIGNED_OFF_TESTS, _SIGNED_OFF_MAP_TEST),
+        note_cs=(
+            "Jen aia-sociomap-5. Po každém zamíchání se hodnocení znovu vztáhnou k průměrům "
+            "respondentů a známé páry se určí podle prahu stavu n_min ze specifikace (původní "
+            "kód jej měl pevně 10; při výchozí hodnotě je výsledek stejný); kvantil je výchozí "
+            "lineární kvantil numpy. U úplných dat rychlý výpočet s T zamícháními a bez "
+            "minimálního počtu hodnot; u neúplných ⌊T/2⌋ zamíchání a práh jen tam, kde je aspoň "
+            "⌊T/2⌋ konečných hodnot."
+        ),
+    ),
+    MethodStep(
+        id="layout_pairs",
+        title_cs="Páry pro rozložení: nižší práh a váha podle počtu hodnotitelů",
+        formula_latex=(
+            r"w^{L}_{ij} = \begin{cases}"
+            r"\min\!\left(1, \max\!\left(0, \dfrac{n_{ij} - 3}{n_{\text{plná}} - 3}\right)\right)"
+            r" & n_{ij} \ge n_L \;\land\; v_i, v_j > 10^{-12} \\"
+            r"0 & \text{jinak} \end{cases}"
+        ),
+        implements=f"{_S}.signed_off_inputs:layout_weights",
+        source_sha256="e7584558e8d0322348789fc63092895555855296e9ace2da8fdf7e6fb3a06643",
+        symbols=(
+            Symbol(r"n_L", "práh páru pro rozložení", "respondenti"),
+            Symbol(
+                r"n_{\text{plná}}", "počet hodnotitelů, od kterého má pár plnou váhu", "respondenti"
+            ),
+        ),
+        parameters=(
+            ParameterRef("layout.layout_floor", "Práh páru pro rozložení n_L", "respondenti"),
+        ),
+        constants=(
+            ConstantRef(
+                f"{_S}.signed_off_inputs:LAYOUT_WEIGHT_FULL_AT",
+                "Plná váha páru od n (do specifikace přijde s rozložením, které ji čte)",
+                "respondenti",
+            ),
+        ),
+        evidence=(_SIGNED_OFF,),
+        tests=_SIGNED_OFF_TESTS,
+        note_cs=(
+            "Jen aia-sociomap-5. Páry pod prahem jsou pro rozložení maskované, ne "
+            "„nesouvisející“. Spočtou se pro rozložení metodiky, které v AIA zatím není: "
+            "SMACOF je nečte, zapisuje se z nich jen poznámka o řídkém designu."
+        ),
+    ),
+    MethodStep(
+        id="sparse_design",
+        title_cs="Poznámka o řídkém designu",
+        formula_latex=(
+            r"\text{řídký design} \Leftrightarrow "
+            r"\frac{\#\{i < j : w^{L}_{ij} = 0\}}{\binom{M}{2}} > s"
+            r" \;\lor\; \exists i : \#\{j : w^{L}_{ij} > 0\} < p_{\min}"
+        ),
+        implements=f"{_S}.signed_off_inputs:sparse_design",
+        source_sha256="2fc44816cbfa9cc1a52435caea85434f7479d686dd3792bdc885d49d5501fd88",
+        symbols=(
+            Symbol(r"M", "počet mapovaných objektů"),
+            Symbol(r"s", "nejvyšší podíl párů pod prahem rozložení"),
+            Symbol(r"p_{\min}", "nejmenší počet partnerů objektu pro rozložení"),
+        ),
+        parameters=(
+            ParameterRef("layout.sparse_share", "Podíl párů pod prahem s"),
+            ParameterRef("layout.min_layout_partners", "Nejmenší počet partnerů p_min"),
+        ),
+        evidence=(_SIGNED_OFF,),
+        tests=(*_SIGNED_OFF_TESTS, _SIGNED_OFF_MAP_TEST),
+        note_cs=(
+            "Jen aia-sociomap-5. Mapa ji zapíše (sparse_design) i s objekty, které mají málo "
+            "partnerů."
+        ),
+    ),
     # ------------------------------------------------------------------ F4
     MethodStep(
         id="f4_strength",
         title_cs="Síla vztahu a jeho směr",
         formula_latex=r"s_{ij} = |r_{ij}|,\qquad \operatorname{sgn} r_{ij} \text{ jako barva}",
         implements=f"{_S}.engine_v2:compute_object_map",
-        source_sha256="deb3c4c93cf57ca3ac2b4c7f3d537a89a19772d70ed442c2a23c2ace9505ce6e",
+        source_sha256="0cbacc42651100c5827c23bac35a6afc3d3a5c2515e7707d67d004c78247e847",
         evidence=(_rule("AUDIT-F4"),),
         tests=(
             f"{_T}/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input",
@@ -484,7 +668,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
             r"{\sum_j \delta_{kj}^2}}"
         ),
         implements=f"{_S}.specification:_require_supported_v3",
-        source_sha256="8250a494e70414dd677225cc2c3d3ed2b51dd96ebeaa27bf1e41b35a484ed70c",
+        source_sha256="10cb8cd72c2180160d935bb2b291c857c2cf7d4645444921b990f07ccefa4713",
         symbols=(
             Symbol(r"D", "průměr mapy (2 na pravítku F6)"),
             Symbol(r"e_k", "nesoulad respondenta: jak dobře jej mapa vystihne"),
@@ -576,6 +760,10 @@ class _Context:
     audit: str = ""
 
 
+#: The new method's steps implement no point of the audit: they are the signed-off AIA
+#: Sociomapa methodology's.
+_SIGNED_OFF_POINT: Final = "— schválená metodika AIA Sociomapa"
+
 _CONTEXT: Final[dict[str, _Context]] = {
     "method": _Context(
         role_cs="Jméno a otisk metodiky, které si běh připne; podle nich je u každé mapy "
@@ -593,6 +781,12 @@ _CONTEXT: Final[dict[str, _Context]] = {
         "podobně, ne jak přísně.",
         inputs=("f1_declared_scale",),
         audit="F2",
+    ),
+    "person_centring": _Context(
+        role_cs="Odečte od hodnocení každého respondenta jeho vlastní průměr, aby vztahy "
+        "zachytily, co lidé hodnotí podobně, ne jak štědře. Kdo nemá rozptyl, vypadne.",
+        source_cs="surová hodnocení mapovaných objektů, bez vah respondentů",
+        audit=_SIGNED_OFF_POINT,
     ),
     "f11_not_placed": _Context(
         role_cs="Kdo dal všem objektům stejné hodnocení, nenese informaci o vztazích: vypadne "
@@ -627,6 +821,35 @@ _CONTEXT: Final[dict[str, _Context]] = {
         role_cs="Označí páry s prakticky malým vztahem; stav páru nemění, ukáže se vedle něj.",
         inputs=("f3_correlation",),
         audit="F3",
+    ),
+    "baseline_corrected_relation": _Context(
+        role_cs="Jádro mapy podle schválené metodiky: jak podobně lidé hodnotí dva objekty, "
+        "očištěno o zápornou korelaci, kterou vytvoří samo centrování.",
+        inputs=("person_centring",),
+        audit=_SIGNED_OFF_POINT,
+    ),
+    "reliable_by_fdr": _Context(
+        role_cs="Třídí známé páry na spolehlivé a slabé tak, aby mezi spolehlivými bylo "
+        "falešných nanejvýš zhruba q.",
+        inputs=("baseline_corrected_relation", "noise_rule"),
+        audit=_SIGNED_OFF_POINT,
+    ),
+    "noise_rule": _Context(
+        role_cs="Spolehlivý pár musí být silnější, než co dá náhoda po zamíchání jednoho z "
+        "objektů.",
+        inputs=("baseline_corrected_relation",),
+        audit=_SIGNED_OFF_POINT,
+    ),
+    "layout_pairs": _Context(
+        role_cs="Které páry smějí tvarovat rozložení a jakou vahou: i řidčeji hodnocené, "
+        "s menší vahou.",
+        inputs=("baseline_corrected_relation",),
+        audit=_SIGNED_OFF_POINT,
+    ),
+    "sparse_design": _Context(
+        role_cs="Upozorní, když je hodnocení tak řídké, že rozložení stojí na málo párech.",
+        inputs=("layout_pairs",),
+        audit=_SIGNED_OFF_POINT,
     ),
     "f4_strength": _Context(
         role_cs="Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
@@ -722,7 +945,7 @@ _GROUPS: Final = (
     StepGroup(
         "S1",
         "Vstupní hodnocení",
-        ("f1_declared_scale", "f2_person_minmax", "f11_not_placed"),
+        ("f1_declared_scale", "f2_person_minmax", "person_centring", "f11_not_placed"),
         "Z odpovědí na škálách se stanou čísla 0-1, na kterých stojí vše další.",
     ),
     StepGroup(
@@ -734,6 +957,11 @@ _GROUPS: Final = (
             "f3_interval",
             "f3_status",
             "f3_effect_floor",
+            "baseline_corrected_relation",
+            "reliable_by_fdr",
+            "noise_rule",
+            "layout_pairs",
+            "sparse_design",
             "f4_strength",
         ),
         "Jak podobně lidé hodnotí každé dva objekty, a jak moc se tomu dá věřit.",
@@ -809,6 +1037,8 @@ SOCIOMAP: Final = MethodModule(
         Preset("aia-sociomap-4", AIA_SOCIOMAP_V4, _validate),
         Preset("aia-sociomap-3", AIA_SOCIOMAP_V3, _validate),
         Preset("aia-sociomap-2", AIA_SOCIOMAP_V2, _validate),
+        # Last, so an edit still starts from aia-sociomap-4 (the page offers the first preset).
+        Preset("aia-sociomap-5", AIA_SOCIOMAP_V5, _validate),
     ),
     in_force="aia-sociomap-3",
     groups=_GROUPS,
@@ -820,6 +1050,7 @@ SOCIOMAP: Final = MethodModule(
         "vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti "
         "je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice "
         "i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava "
-        "z něj vychází."
+        "z něj vychází. aia-sociomap-5 počítá vstupy a vztahy podle schválené metodiky AIA "
+        "Sociomapa (kroky označené „Jen aia-sociomap-5“); objekty zatím rozkládá SMACOF."
     ),
 )

@@ -50,7 +50,13 @@ def test_the_list_is_every_registered_module_in_order(owner: TestClient) -> None
     assert [m["id"] for m in body] == [m.id for m in MODULES]
     sociomap = body[0]
     assert sociomap["in_force"] == "aia-sociomap-3"
-    assert sociomap["presets"] == ["aia-sociomap-4", "aia-sociomap-3", "aia-sociomap-2"]
+    # aia-sociomap-5 is listed last: an edit starts from the first preset, still -4.
+    assert sociomap["presets"] == [
+        "aia-sociomap-4",
+        "aia-sociomap-3",
+        "aia-sociomap-2",
+        "aia-sociomap-5",
+    ]
     # The computation by its stages (product owner, 2026-10-14), no longer the audit's F1-F16.
     assert [g["id"] for g in sociomap["groups"]][:3] == ["M", "S1", "S2"]
 
@@ -284,7 +290,7 @@ def test_a_malformed_request_is_422_before_the_domain(owner: TestClient) -> None
 
 def test_an_edit_starts_from_a_preset_the_versions_route_serves_whole(owner: TestClient) -> None:
     presets = owner.get(f"{SOCIOMAP}/versions").json()["presets"]
-    assert set(presets) == {"aia-sociomap-4", "aia-sociomap-3", "aia-sociomap-2"}
+    assert set(presets) == {"aia-sociomap-5", "aia-sociomap-4", "aia-sociomap-3", "aia-sociomap-2"}
     assert presets["aia-sociomap-3"] == AIA_SOCIOMAP_V3.model_dump(mode="json")
     assert owner.get(f"{METHODOLOGY}/sociomap_reference/versions").json()["presets"] == {}
 

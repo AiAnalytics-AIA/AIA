@@ -67,6 +67,7 @@ __all__ = [
     "AIA_SOCIOMAP_V2",
     "AIA_SOCIOMAP_V3",
     "AIA_SOCIOMAP_V4",
+    "AIA_SOCIOMAP_V5",
     "EFFECT_FLOOR_AIA_Q6",
     "FIXED_RULER_EXTENT",
     "LEGACY_CONNECTEDNESS_QUANTILES",
@@ -83,6 +84,7 @@ __all__ = [
     "MapFrameMethod",
     "MapFrameSpec",
     "MetricsSpec",
+    "NoiseRuleSpec",
     "ObjectHeightMetric",
     "ObjectLayoutSpec",
     "ObjectScoresSpec",
@@ -364,6 +366,9 @@ class PersonNormalization(StrEnum):
     #: Lowest rating 0, highest 1, over every rating item the person rated; a person with
     #: no spread is not placed (F11).
     PERSON_MINMAX_ALL_RATED = "person_minmax_all_rated"
+    #: Each person's raw ratings of the mapped objects minus their own mean; fewer than two
+    #: ratings or no spread is not placed. The signed-off methodology's (``aia-sociomap-5``).
+    PERSON_MEAN_CENTRING = "person_mean_centring"
 
 
 class RelationEstimator(StrEnum):
@@ -372,6 +377,11 @@ class RelationEstimator(StrEnum):
     #: The unit's weighted Pearson correlation (the weighting is AIA's reading where the
     #: audit is silent, register AUDIT-F2), signed, never mapped onto 1-10.
     WEIGHTED_PEARSON = "weighted_pearson"
+    #: The signed-off methodology's (``aia-sociomap-5``): the unweighted pairwise Pearson of
+    #: the centred ratings, corrected for the unrelated baseline ``r0`` centring alone gives,
+    #: ``r~ = (r - r0) / (1 - r0)``; a pair is reliable by Benjamini-Hochberg on Fisher's p
+    #: against ``r0`` and, when declared, the noise rule.
+    BASELINE_CORRECTED_PEARSON = "baseline_corrected_pearson"
 
 
 class PairEvidenceBasis(StrEnum):
@@ -396,6 +406,22 @@ class RatingsSpecV3(_Frozen):
     person_normalization: str
 
 
+class NoiseRuleSpec(_Frozen):
+    """The noise rule of the signed-off methodology: a pair BH keeps stays reliable only when
+    its ``|r~|`` exceeds the 95th percentile of ``|r~|`` with one object shuffled, from
+    ``permutations`` shuffles per object (half of them on incomplete data) drawn from
+    ``seed``. ``enabled`` false declares the rule off."""
+
+    enabled: bool
+    permutations: int
+    seed: int
+
+    @field_validator("permutations", "seed", mode="before")
+    @classmethod
+    def _no_bool(cls, v: object) -> object:
+        return _not_boolean(v)
+
+
 class PairEvidenceSpec(_Frozen):
     """How a pair's relation is estimated and what it can be said to be (F3)."""
 
@@ -409,8 +435,13 @@ class PairEvidenceSpec(_Frozen):
     #: the key is then left out of the stored form, so that pin and its fingerprint read
     #: unchanged.
     effect_floor: float | None = None
+    #: The baseline-corrected relation's reliability (``aia-sociomap-5``): Benjamini-Hochberg's
+    #: false-discovery rate over the known pairs, and the noise rule. ``None`` under every
+    #: other estimator, left out of the stored form so earlier pins read unchanged.
+    false_discovery_rate: float | None = None
+    noise_rule: NoiseRuleSpec | None = None
 
-    @field_validator("n_min", "confidence", "effect_floor", mode="before")
+    @field_validator("n_min", "confidence", "effect_floor", "false_discovery_rate", mode="before")
     @classmethod
     def _no_bool(cls, v: object) -> object:
         return _not_boolean(v)
@@ -418,8 +449,9 @@ class PairEvidenceSpec(_Frozen):
     @model_serializer(mode="wrap")
     def _without_absent_gate(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
         body: dict[str, Any] = handler(self)
-        if body.get("effect_floor") is None:
-            body.pop("effect_floor", None)
+        for key in ("effect_floor", "false_discovery_rate", "noise_rule"):
+            if body.get(key) is None:
+                body.pop(key, None)
         return body
 
 
@@ -440,8 +472,24 @@ class ObjectLayoutSpec(_Frozen):
     map_frame: MapFrameSpec
     min_objects: int | None = None
     stress_bands: tuple[float, float, float] | None = None
+    #: The signed-off methodology's layout pairs (``aia-sociomap-5``): pairs with at least
+    #: ``layout_floor`` co-raters enter the layout; the sparse-design note is set when more
+    #: than ``sparse_share`` of the pairs is below the layout floor or an object has fewer
+    #: than ``min_layout_partners`` layout partners. ``None`` under every other estimator,
+    #: left out of the stored form.
+    layout_floor: int | None = None
+    sparse_share: float | None = None
+    min_layout_partners: int | None = None
 
-    @field_validator("max_iterations", "tolerance", "min_objects", mode="before")
+    @field_validator(
+        "max_iterations",
+        "tolerance",
+        "min_objects",
+        "layout_floor",
+        "sparse_share",
+        "min_layout_partners",
+        mode="before",
+    )
     @classmethod
     def _no_bool(cls, v: object) -> object:
         return _not_boolean(v)
@@ -454,10 +502,15 @@ class ObjectLayoutSpec(_Frozen):
     @model_serializer(mode="wrap")
     def _without_undeclared(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
         body: dict[str, Any] = handler(self)
-        for key in ("min_objects", "stress_bands"):
+        for key in ("min_objects", "stress_bands", *_LAYOUT_PAIR_FIELDS):
             if body.get(key) is None:
                 body.pop(key, None)
         return body
+
+
+#: :class:`ObjectLayoutSpec`'s layout-pair fields, declared exactly under the
+#: baseline-corrected estimator.
+_LAYOUT_PAIR_FIELDS: Final = ("layout_floor", "sparse_share", "min_layout_partners")
 
 
 class TerrainMethod(StrEnum):
@@ -657,8 +710,81 @@ def _require_supported_v3(spec: SociomapSpecV3) -> None:
         )
     if spec.terrain is not None:
         problems.update(_terrain_problems(spec.terrain))
+    problems.update(_baseline_corrected_problems(spec))
     if problems:
         raise UnsupportedMethodology(problems)
+
+
+#: ``relation.confidence`` under the baseline-corrected relation: required by the shape, read
+#: by nothing, so held at ``aia-sociomap-4``'s value.
+_UNREAD_CONFIDENCE: Final = 0.95
+
+
+def _baseline_corrected_problems(spec: SociomapSpecV3) -> dict[str, str]:
+    """The signed-off methodology's relation comes whole: mean-centred ratings, its own
+    reliability and layout-pair fields, all declared together and never under another
+    estimator."""
+    problems: dict[str, str] = {}
+    rel, layout = spec.relation, spec.layout
+    corrected = rel.estimator == RelationEstimator.BASELINE_CORRECTED_PEARSON
+    if corrected != (spec.ratings.person_normalization == PersonNormalization.PERSON_MEAN_CENTRING):
+        problems["ratings.person_normalization"] = (
+            "the baseline-corrected relation reads each person's mean-centred ratings and "
+            "nothing else does: declare person_mean_centring with baseline_corrected_pearson, "
+            "never one without the other"
+        )
+    declared: dict[str, object] = {
+        "relation.false_discovery_rate": rel.false_discovery_rate,
+        "relation.noise_rule": rel.noise_rule,
+        **{f"layout.{key}": getattr(layout, key) for key in _LAYOUT_PAIR_FIELDS},
+    }
+    if not corrected:
+        for path, value in declared.items():
+            if value is not None:
+                problems[path] = "only the baseline-corrected relation reads it; declare null"
+        return problems
+    for path, value in declared.items():
+        if value is None:
+            problems[path] = "the baseline-corrected relation reads it; declare it"
+    if rel.basis != PairEvidenceBasis.RESPONDENT_COUNT:
+        problems["relation.basis"] = (
+            "the baseline-corrected relation is unweighted: its n is the count of respondents "
+            "who rated both objects"
+        )
+    if rel.effect_floor is not None:
+        problems["relation.effect_floor"] = (
+            "the baseline-corrected relation has no effect floor; declare null"
+        )
+    rate = rel.false_discovery_rate
+    if rate is not None and not (math.isfinite(rate) and 0.0 < rate < 1.0):
+        problems["relation.false_discovery_rate"] = (
+            f"a false-discovery rate lies strictly between 0 and 1; got {rate!r}"
+        )
+    if rel.confidence != _UNREAD_CONFIDENCE:
+        problems["relation.confidence"] = (
+            f"the baseline-corrected relation reads no interval; keep {_UNREAD_CONFIDENCE} so "
+            "the unread value is never taken for an edit"
+        )
+    if rel.noise_rule is not None and rel.noise_rule.permutations < 2:
+        problems["relation.noise_rule.permutations"] = (
+            "at least 2 shuffles per object: incomplete data takes half of them"
+        )
+    if rel.noise_rule is not None and rel.noise_rule.seed < 0:
+        problems["relation.noise_rule.seed"] = (
+            f"the generator's seed is a non-negative integer; got {rel.noise_rule.seed}"
+        )
+    floor = layout.layout_floor
+    if floor is not None and not 1 <= floor <= rel.n_min:
+        problems["layout.layout_floor"] = (
+            f"the layout floor lies between 1 and the status floor n_min {rel.n_min}; got {floor}"
+        )
+    share = layout.sparse_share
+    if share is not None and not (math.isfinite(share) and 0.0 <= share < 1.0):
+        problems["layout.sparse_share"] = f"a share lies in [0, 1); got {share!r}"
+    partners = layout.min_layout_partners
+    if partners is not None and partners < 0:
+        problems["layout.min_layout_partners"] = f"a count of partners; got {partners}"
+    return problems
 
 
 #: The largest grid a terrain may declare: (N + 1)^2 cells are stored in the artifact.
@@ -984,6 +1110,38 @@ AIA_SOCIOMAP_V4 = AIA_SOCIOMAP_V3.model_copy(
         ),
         "connectedness": AIA_SOCIOMAP_V3.connectedness.model_copy(
             update={"quantiles": LEGACY_CONNECTEDNESS_QUANTILES}
+        ),
+    }
+)
+
+# The signed-off AIA Sociomapa methodology's input stage (plan
+# ``signed-off-sociomap-method``): each person's raw ratings mean-centred, the unweighted
+# baseline-corrected relation with its status floor, Benjamini-Hochberg with the noise rule,
+# the layout pairs and the sparse-design note; every value the methodology's own. The objects
+# are still placed by ``aia-sociomap-4``'s SMACOF, on the corrected relations. Not pinned by
+# default and not in the register: a run gets it only through a methodology version.
+AIA_SOCIOMAP_V5 = AIA_SOCIOMAP_V4.model_copy(
+    update={
+        "methodology_version": "aia-sociomap-5",
+        "ratings": AIA_SOCIOMAP_V4.ratings.model_copy(
+            update={"person_normalization": PersonNormalization.PERSON_MEAN_CENTRING}
+        ),
+        "relation": AIA_SOCIOMAP_V4.relation.model_copy(
+            update={
+                "estimator": RelationEstimator.BASELINE_CORRECTED_PEARSON,
+                "basis": PairEvidenceBasis.RESPONDENT_COUNT,
+                "n_min": 10,
+                "effect_floor": None,
+                "false_discovery_rate": 0.05,
+                "noise_rule": NoiseRuleSpec(enabled=True, permutations=100, seed=0),
+            }
+        ),
+        "layout": AIA_SOCIOMAP_V4.layout.model_copy(
+            update={
+                "layout_floor": 5,
+                "sparse_share": 0.30,
+                "min_layout_partners": 3,
+            }
         ),
     }
 )

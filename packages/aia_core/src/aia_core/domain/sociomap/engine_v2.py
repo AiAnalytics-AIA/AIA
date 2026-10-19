@@ -36,6 +36,8 @@ import math
 from collections.abc import Sequence
 from typing import Any, Final
 
+import numpy as np
+
 from .layout import (
     UnfoldingDesignError,
     correlation_distances,
@@ -56,15 +58,32 @@ from .models_v3 import (
     ObjectMapProvenance,
     ObjectMapSupport,
     SociomapArtifactV3,
+    SparseDesign,
 )
-from .pairs import derive_pair_relations
+from .pairs import PairRelations, derive_pair_relations
 from .relations import PairStatus, person_minmax
-from .slots import HEIGHT, NO_SLOTS, SCALE, STRESS_1, SUPPORT_EFFECTIVE_N, Slots
+from .signed_off_inputs import LAYOUT_WEIGHT_FULL_AT, PRECISION_WEIGHT_CAP, prepare
+from .slots import (
+    EFFECT_FLOOR,
+    EFFECTIVE_N,
+    HEIGHT,
+    INTERVAL_HIGH,
+    INTERVAL_LOW,
+    K100,
+    NO_SLOTS,
+    PERSON,
+    SCALE,
+    STRESS_1,
+    SUPPORT_EFFECTIVE_N,
+    Slots,
+)
 from .specification import (
     LEGACY_MIN_OBJECTS,
     ObjectHeightMetric,
     PairEvidenceBasis,
+    RelationEstimator,
     SociomapSpecV3,
+    UnsupportedMethodology,
     require_supported,
 )
 from .terrain import EnvelopeHill, EnvelopeParameters, EnvelopeTerrain, object_envelope
@@ -125,6 +144,36 @@ WEIGHTING_KISH: Final = (
     "how many times its respondent was drawn, and its Kish n reads the weights of the "
     "distinct respondents drawn; the heights are weighted means; nothing here is clustered "
     "on donors"
+)
+#: The same under the baseline-corrected relation (``aia-sociomap-5``), which is unweighted.
+WEIGHTING_UNWEIGHTED: Final = (
+    "the relations are unweighted: each pair's baseline-corrected r~, its n and its status read "
+    "every respondent who rated both objects once, whatever their weight; the heights are "
+    "weighted means on the declared 0-1 scale; nothing here is clustered on donors"
+)
+#: Why a respondent is not placed under the baseline-corrected relation: it centres each
+#: person's ratings of the mapped objects only.
+NOT_PLACED_NO_SPREAD_OBJECTS: Final = (
+    "no spread over the mapped objects: every object rated with one value, or fewer than two rated"
+)
+#: The connectedness score's bootstrap resamples the weighted Pearson relation; the
+#: baseline-corrected one has none.
+CONNECTEDNESS_NOT_IN_METHOD: Final = {
+    "status": "not_computed",
+    "reason": (
+        "the respondent bootstrap of the connectedness score resamples the weighted Pearson "
+        "relation; the baseline-corrected relation of this method has no such interval"
+    ),
+}
+#: The formulas a version may replace that the baseline-corrected relation never reads: a
+#: replacement would be stored and silently do nothing, so it is refused.
+_UNREAD_BY_BASELINE_CORRECTED: Final = (
+    PERSON,
+    EFFECTIVE_N,
+    INTERVAL_LOW,
+    INTERVAL_HIGH,
+    EFFECT_FLOOR,
+    K100,
 )
 CONNECTEDNESS_OFF: Final = {
     "status": "not_computed",
@@ -281,6 +330,77 @@ def _evidence_policy(spec: SociomapSpecV3) -> dict[str, Any]:
     return {"basis": rel.basis, "effect_floor": rel.effect_floor}
 
 
+def _baseline_corrected(
+    family: Sequence[Sequence[float | None]], ids: Sequence[str], spec: SociomapSpecV3
+) -> tuple[PairRelations, list[int], SparseDesign]:
+    """The signed-off methodology's relations (:func:`~.signed_off_inputs.prepare`) on the
+    family's raw ratings, as the artifact records them: each known pair's ``r~`` and every
+    pair's support ``n``; RELIABLE (Benjamini-Hochberg and the noise rule), WEAK (known, not
+    reliable) or UNKNOWN (below the status floor or a column without spread: no ``r~``); no
+    interval. Also the respondents centring leaves out, and the sparse-design note."""
+    rel, layout = spec.relation, spec.layout
+    noise = rel.noise_rule
+    if (
+        rel.false_discovery_rate is None
+        or noise is None
+        or layout.layout_floor is None
+        or layout.sparse_share is None
+        or layout.min_layout_partners is None
+    ):
+        raise ValueError("the baseline-corrected relation is declared whole (require_supported)")
+    m = len(ids)
+    ratings = np.array(
+        [[math.nan if v is None else v for v in row] for row in family], dtype=float
+    ).reshape(len(family), m)
+    prepared = prepare(
+        ratings,
+        n_min=rel.n_min,
+        layout_floor=layout.layout_floor,
+        layout_weight_full_at=LAYOUT_WEIGHT_FULL_AT,
+        false_discovery_rate=rel.false_discovery_rate,
+        noise_rule=noise.enabled,
+        noise_permutations=noise.permutations,
+        noise_seed=noise.seed,
+        precision_weight_cap=PRECISION_WEIGHT_CAP,
+        sparse_share=layout.sparse_share,
+        min_layout_partners=layout.min_layout_partners,
+    )
+    known, reliable = prepared.known, prepared.reliable
+    status = tuple(
+        tuple(
+            None
+            if i == j
+            else PairStatus.RELIABLE
+            if reliable[i, j]
+            else PairStatus.WEAK
+            if known[i, j]
+            else PairStatus.UNKNOWN
+            for j in range(m)
+        )
+        for i in range(m)
+    )
+    pairs = PairRelations(
+        r=tuple(
+            tuple(float(prepared.rt[i, j]) if known[i, j] else None for j in range(m))
+            for i in range(m)
+        ),
+        n=tuple(
+            tuple(None if i == j else int(prepared.n[i, j]) for j in range(m)) for i in range(m)
+        ),
+        interval=tuple(tuple(None for _ in range(m)) for _ in range(m)),
+        status=status,
+        n_min=rel.n_min,
+        confidence=rel.confidence,
+    )
+    excluded = [k for k in range(len(family)) if not prepared.placed[k]]
+    sparse = SparseDesign(
+        flag=prepared.sparse.flag,
+        share_below_layout_floor=prepared.sparse.share_below_layout_floor,
+        weakly_connected=tuple(ids[k] for k in prepared.sparse.weakly_connected),
+    )
+    return pairs, excluded, sparse
+
+
 def compute_object_map(
     inputs: ObjectMapInputs,
     spec: SociomapSpecV3,
@@ -296,23 +416,38 @@ def compute_object_map(
     """
     require_supported(spec)
     scaled = _scaled(inputs, slots)
-    person = person_minmax(scaled, slots=slots)
-    not_placed = {inputs.respondent_ids[k]: NOT_PLACED_NO_SPREAD for k in person.excluded}
     columns = inputs.object_columns()
-    family = [[row[c] for c in columns] for row in person.values]
     weights = list(inputs.weights)
     evidence = spec.relation
-    policy = _evidence_policy(spec)
-    pairs = derive_pair_relations(
-        family,
-        weights,
-        n_min=evidence.n_min,
-        confidence=evidence.confidence,
-        slots=slots,
-        **policy,
-    )
     ids = list(inputs.object_ids)
     m = len(ids)
+    sparse: SparseDesign | None = None
+    corrected = evidence.estimator == RelationEstimator.BASELINE_CORRECTED_PEARSON
+    if corrected and (unread := [s for s in _UNREAD_BY_BASELINE_CORRECTED if s in slots]):
+        raise UnsupportedMethodology(
+            dict.fromkeys(
+                unread, "the baseline-corrected relation does not read this formula; remove it"
+            )
+        )
+    if corrected:
+        # The signed-off methodology reads the raw ratings of the mapped objects, unweighted.
+        family = [[row[c] for c in columns] for row in inputs.values]
+        policy: dict[str, Any] = {}
+        pairs, excluded, sparse = _baseline_corrected(family, ids, spec)
+        not_placed = {inputs.respondent_ids[k]: NOT_PLACED_NO_SPREAD_OBJECTS for k in excluded}
+    else:
+        person = person_minmax(scaled, slots=slots)
+        not_placed = {inputs.respondent_ids[k]: NOT_PLACED_NO_SPREAD for k in person.excluded}
+        family = [[row[c] for c in columns] for row in person.values]
+        policy = _evidence_policy(spec)
+        pairs = derive_pair_relations(
+            family,
+            weights,
+            n_min=evidence.n_min,
+            confidence=evidence.confidence,
+            slots=slots,
+            **policy,
+        )
     known = [
         [i != j and pairs.status[i][j] in (PairStatus.RELIABLE, PairStatus.WEAK) for j in range(m)]
         for i in range(m)
@@ -379,8 +514,10 @@ def compute_object_map(
     scores = primary_scores(ids, pairs.r, pairs.status, inputs.roles, slots=slots)
     heights = _heights(scaled, weights, columns, slots)
 
-    connectedness: dict[str, Any] = dict(CONNECTEDNESS_OFF)
-    if connectedness_interval:
+    connectedness: dict[str, Any] = dict(
+        CONNECTEDNESS_NOT_IN_METHOD if corrected else CONNECTEDNESS_OFF
+    )
+    if connectedness_interval and not corrected:
 
         def correlate(
             multiplicities: Sequence[int],
@@ -440,7 +577,11 @@ def compute_object_map(
         support=_support(
             inputs,
             not_placed,
-            WEIGHTING_KISH if evidence.basis == PairEvidenceBasis.KISH_EFFECTIVE_N else WEIGHTING,
+            WEIGHTING_UNWEIGHTED
+            if corrected
+            else WEIGHTING_KISH
+            if evidence.basis == PairEvidenceBasis.KISH_EFFECTIVE_N
+            else WEIGHTING,
             slots,
         ),
         respondents=RESPONDENTS_NOT_COMPUTED,
@@ -450,4 +591,5 @@ def compute_object_map(
             implementation_version=OBJECT_MAP_IMPLEMENTATION_VERSION,
             input_fingerprints=inputs.fingerprints(),
         ),
+        sparse_design=sparse,
     )

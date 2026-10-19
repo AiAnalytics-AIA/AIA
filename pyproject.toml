@@ -94,6 +94,12 @@ ignore_missing_imports = true
 module = ["xlrd", "xlrd.*"]
 ignore_missing_imports = true
 
+# scipy ships no type stubs; one call reads it (scipy.stats.norm.sf in
+# aia_core.domain.sociomap.signed_off_inputs), and its result goes straight into numpy.
+[[tool.mypy.overrides]]
+module = ["scipy.stats"]
+ignore_missing_imports = true
+
 # Import contracts, checked by `lint-imports` from `make layer_check`
 # (tools/layer_check.sh is the grep half; this is the import-graph half, for a rule
 # a grep cannot state exactly). ARCHITECTURE.md §3.
