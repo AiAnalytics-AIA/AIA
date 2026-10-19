@@ -100,13 +100,14 @@ after the mark changed is recorded under its own class (test
 the row (test `test_a_mark_and_an_unmark_sent_together_end_in_the_state_the_later_one_answered`,
 PostgreSQL).
 
-**F6. An operator's exact-bytes classification is not read for a client source.**
-`proposal_request` takes the class from `source_rule` alone
-(`packages/aia_core/src/aia_core/domain/source_proposals.py:237 @ 6de30744`); the step has no
-operator record to consult. A source is already Class A unless a person marks it, so the gap is
-only a marked source whose bytes an operator classified A: a missing raise, never a lowering.
-Hypothesis on its reach (no operator classifies a client's file today); the fix is
-`classify_by_rule(batch, source_rule(...), approvals)` once the step is given the approvals.
+**F6. An operator's exact-bytes classification of a source batch raises it** (fixed on this
+branch; Codex and an independent review of #487). `batch_classification` classifies what a batch
+sends by the source's rule and the operator's record, the most restrictive winning, as every
+other rule-classified request; the step's configuration carries the worker's
+`material_approvals` (`SourceProposalsConfig.from_settings`, the one constructor the registry and
+the tests share). Tests:
+`test_an_operator_classification_raises_a_marked_batch_and_never_lowers_one`,
+`test_an_operator_classification_keeps_a_marked_batch_off_a_route_for_class_c`.
 
 **F7. AI output written into the design is Class B by the design rule** (a question for the
 product owner). A design job's request is Class A when the client has approved knowledge (its

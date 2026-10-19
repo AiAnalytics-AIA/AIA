@@ -24,9 +24,10 @@ from typing import Any, Final
 
 from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.domain.ai_contracts import ModelCallFailed, ModelRequest, canonical_json
+from aia_core.domain.ai_material import MaterialApproval, most_restrictive_material
 from aia_core.domain.deep_research.request_limits import window_fits
 from aia_core.domain.knowledge import ProposalDraft
-from aia_core.domain.material_rules import MaterialRule, rule_class, source_rule
+from aia_core.domain.material_rules import OPERATOR_SOURCE, MaterialRule, rule_class, source_rule
 from aia_core.domain.providers import Provider
 from aia_core.domain.scope import ClientWorkContext
 from aia_core.domain.source_proposals import (
@@ -35,6 +36,7 @@ from aia_core.domain.source_proposals import (
     PROMPT_VERSION,
     NotExtractable,
     SourceProposals,
+    batch_classification,
     batches,
     ground,
     proposal_request,
@@ -55,6 +57,7 @@ from aia_core.infrastructure.client_work_journal import ClientWorkJournal
 from aia_core.infrastructure.storage import ArtifactStore
 from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Succeeded
 
+from .ai_runtime import AIRuntimeSettings
 from .ai_step import StepModelCaller
 
 __all__ = ["KIND", "ClientSourceProposalsExecutor", "SourceProposalsConfig"]
@@ -70,12 +73,28 @@ class SourceProposalsConfig:
     reservation_usd: float
     #: Each model request writes a "sent" and an "answered" event (``AIA_AI_STEP_EVENTS``).
     step_events: bool = False
+    #: An operator's exact-bytes classifications: they raise a batch's class, never lower it.
+    material_approvals: tuple[MaterialApproval, ...] = ()
+
+    @classmethod
+    def from_settings(cls, settings: AIRuntimeSettings) -> SourceProposalsConfig:
+        """The step's configuration from the worker's AI runtime settings, in one place."""
+        return cls(
+            policy_version=settings.policy_version,
+            max_output_tokens=settings.client_source_max_output_tokens,
+            reservation_usd=settings.client_source_reservation_usd,
+            step_events=settings.step_events,
+            material_approvals=settings.material_approvals,
+        )
 
 
-def _answer_rule(answer: dict[str, Any]) -> MaterialRule:
-    """The rule a journaled answer was sent under. An answer kept before the rule existed
-    was sent as Class A, the client's source, which every request then declared."""
-    return MaterialRule(answer.get("class_source") or MaterialRule.CLIENT_SOURCE.value)
+def _answer_class(answer: dict[str, Any]) -> tuple[str, str]:
+    """The class a journaled answer was sent as, and what gave it (a rule, or ``operator``).
+    An answer kept before classes were journaled was sent as Class A, the client's source,
+    which every request then declared."""
+    source = answer.get("class_source") or MaterialRule.CLIENT_SOURCE.value
+    data_class = answer.get("data_class") or rule_class(MaterialRule(source)).value
+    return str(data_class), str(source)
 
 
 def _request_key(request: ModelRequest, cfg: SourceProposalsConfig) -> str:
@@ -178,14 +197,27 @@ class ClientSourceProposalsExecutor:
             announce=cfg.step_events,
         )
         # A client's source is Class A; one a person marked "Interní dokument" is Class C
-        # (the owner's rule, 2026-10-19). Read as it stands when the requests are built.
-        rule = source_rule(internal=record.internal is not None)
+        # (the owner's rule, 2026-10-19), raised by an operator's classification of a batch's
+        # exact material. Read as it stands when the requests are built.
+        internal = record.internal is not None
+        classes = [
+            batch_classification(batch, internal=internal, approvals=cfg.material_approvals)
+            for batch in work
+        ]
+        # The class the requests were built as: the most restrictive batch's, and what gave
+        # it -- the source's rule, or an operator who raised a batch above it.
+        built_class = most_restrictive_material([c.data_class for c in classes]) or rule_class(
+            source_rule(internal=internal)
+        )
+        raised = [c for c in classes if c.data_class is built_class and c.source == OPERATOR_SOURCE]
+        built_source = OPERATOR_SOURCE if raised else source_rule(internal=internal).value
         requests = [
             proposal_request(
                 batch,
                 policy_version=cfg.policy_version,
                 max_output_tokens=cfg.max_output_tokens,
-                internal=record.internal is not None,
+                internal=internal,
+                approvals=cfg.material_approvals,
             )
             for batch in work
         ]
@@ -222,8 +254,8 @@ class ClientSourceProposalsExecutor:
         drafts: list[ProposalDraft] = []
         dropped: dict[str, int] = {}
         sent = replayed = 0
-        answer_rules: set[MaterialRule] = set()
-        for batch, request, key in zip(work, requests, keys, strict=True):
+        answer_classes: set[str] = set()
+        for batch, request, key, ruled in zip(work, requests, keys, classes, strict=True):
             context.checkpoint()
             context.progress(
                 f"Čtu část {batch.index + 1} z {len(work)}",
@@ -258,7 +290,8 @@ class ClientSourceProposalsExecutor:
                     "policy_version": result.provenance.policy_version,
                     # The class this answer was sent as: a replay names it, not the mark the
                     # source carries when it is replayed.
-                    "class_source": rule.value,
+                    "data_class": ruled.data_class.value,
+                    "class_source": ruled.source,
                 }
                 # Kept the moment it returns, under the lease: a stop before the next
                 # batch resumes here rather than paying for this one again.
@@ -269,8 +302,8 @@ class ClientSourceProposalsExecutor:
                 sent += 1
             else:
                 replayed += 1
-            answer_rule = _answer_rule(answer)
-            answer_rules.add(answer_rule)
+            answer_class, answer_source = _answer_class(answer)
+            answer_classes.add(answer_class)
             output = SourceProposals.model_validate(answer["output"])
             grounding = ground(batch, output)
             for reason, count in grounding.dropped.items():
@@ -292,8 +325,8 @@ class ClientSourceProposalsExecutor:
                     "model": answer["model"],
                     "route_id": answer["route_id"],
                     "policy_version": answer["policy_version"],
-                    "data_class": rule_class(answer_rule).value,
-                    "class_source": answer_rule.value,
+                    "data_class": answer_class,
+                    "class_source": answer_source,
                 }
                 drafts.append(
                     ProposalDraft(
@@ -318,9 +351,9 @@ class ClientSourceProposalsExecutor:
                 "proposed": len(filed),
                 "dropped": dropped,
                 # The class the requests were built as, and the rule that gave it.
-                "data_class": rule_class(rule).value,
-                "class_source": rule.value,
+                "data_class": built_class.value,
+                "class_source": built_source,
                 # The classes the answers used were sent as: a replay keeps its own.
-                "answer_classes": sorted({rule_class(r).value for r in answer_rules}),
+                "answer_classes": sorted(answer_classes),
             }
         )

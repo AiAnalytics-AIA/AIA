@@ -18,9 +18,11 @@ from aia_core.application.source_proposals import (
     latest_source_proposals,
     start_source_proposals,
 )
+from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.knowledge import ProposalStatus
+from aia_core.domain.residency import DataClass
 from aia_core.domain.scope import ClientContext, ClientWorkContext
-from aia_core.domain.source_proposals import HARNESS_VERSION
+from aia_core.domain.source_proposals import HARNESS_VERSION, batch_material, batches
 from aia_core.domain.workflow import StepRunStatus, WorkflowRunStatus
 from aia_core.domain.workflow_templates import CLIENT_SOURCE_PROPOSALS
 from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
@@ -159,13 +161,7 @@ def worker(
         store=store,
         build=build,
         gateway=build_gateway(cfg, transport=transport, signer=Signer()) if enabled else None,
-        config=SourceProposalsConfig(
-            policy_version=cfg.policy_version,
-            max_output_tokens=cfg.client_source_max_output_tokens,
-            reservation_usd=cfg.client_source_reservation_usd,
-        )
-        if enabled
-        else None,
+        config=SourceProposalsConfig.from_settings(cfg) if enabled else None,
     )
     return Worker(
         session_factory=world.sessions,
@@ -608,3 +604,38 @@ def test_unmarking_a_source_mid_run_stops_the_requests_not_yet_sent(
     assert len(transport.requests) == 1  # the second batch, built as Class C, was not sent
     assert step["attempts"][-1]["error"]["reason"] == "source_class_changed"
     assert step["status"] is not StepRunStatus.SUCCEEDED
+
+
+def test_an_operator_classification_keeps_a_marked_batch_off_a_route_for_class_c(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """Codex on #487: a person marked the document "Interní dokument", but an operator
+    classified exactly what its batch sends as Class A. The batch is Class A, raised, never
+    lowered; a route approved for Class C alone refuses it before anything is sent."""
+    run_id, source_id = start(world, store, internal=True)
+    with world.sessions() as session:
+        reading = ClientSourceRepository(session, store).reading(
+            client_scope(world, session), source_id
+        )
+    approvals = [
+        MaterialApproval(
+            sha256=material_sha256(batch_material(batch)),
+            data_class=DataClass.CLASS_A_CLIENT_CONFIDENTIAL,
+            provenance="generated wholly by this test",
+        ).model_dump_json()
+        for batch in batches(reading)
+    ]
+    transport = RecordedBedrock()
+    w = worker(
+        world,
+        database_url,
+        store,
+        build,
+        transport,
+        AIA_AI_ROUTE_APPROVED_FOR="CLASS_C_INTERNAL",
+        AIA_AI_MATERIAL_CLASSIFICATIONS="[" + ",".join(approvals) + "]",
+    )
+    w.run_once()
+    step = run_state(world, run_id)["steps"][0]
+    assert transport.requests == []
+    assert step["attempts"][-1]["error"]["reason"] == "egress_route_not_approved_for_class"
