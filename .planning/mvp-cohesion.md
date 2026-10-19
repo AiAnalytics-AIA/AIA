@@ -403,6 +403,12 @@ gates.
 **Test that would have caught it.** Two sessions on one study edit different questions in turn: both
 edits survive; the same question: the second sees a conflict on that question only.
 
+**Owner answer (2026-10-19).** Each researcher goes into the study with **their own agent**, which
+develops over time; that confirms points 1 and 6. The rest of the shape (item-level merge, presence,
+change feed, proposals visible to the study) was not objected to and stands as the recommendation;
+who may accept another person's proposal is still open (any permitted member, as recommended, unless
+told otherwise). The requirement that the agent evolve is F14.
+
 ### F13. Stage meaning, order, paid work and locks
 
 **Owner decisions (2026-10-19):**
@@ -416,13 +422,62 @@ edits survive; the same question: the second sees a conflict on that question on
    the scenario; the V3 rail's Analysis-before-Sociomap is dropped.
 3. **A per-study envelope** for paid work: the Lead may start workers and Deep Research inside an
    allowance the owner approves, each job logged, stopping at the cap. **This supersedes MVP-13**
-   ("a card at a time, no standing budget"). Open, and asked next: who sets it, the cap, which jobs
-   are inside it, expiry, and whether priced Deep Research routes are inside it (ADR 0022 requires
-   approved settings for them; ADR 0019 gate 2 requires confirmation at the spend limit).
+   ("a card at a time, no standing budget"). **Answers (2026-10-19):** the **researcher sets it, up to a
+   ceiling the organisation owner sets for the client**, recorded in the approval ledger; the
+   study's spend limit stays the hard stop. **Everything is inside it, the fieldwork run included**,
+   but a run starts under a **plan card the researcher approves once** (the steps and the cost
+   ceiling), after which the Lead runs those steps; it is not a Lead-initiated run on its own.
+   This pulls a plan-scoped part of the autopilot into the MVP (MVP-3 had put "continue until you
+   need me" after it) and needs the **orchestration-scope ADR** before any code: the Lead holds no
+   `APPROVE_GATE` (`domain/scope.py:202-213`, per `mvp-consolidation.md` §6.2), so the person's
+   approval is of the envelope and the plan, and each started job carries a ledger row naming the
+   plan. Budget lift, report approval and an unlock stay human-only (commands refuse the Lead). *Open:*
+   whether a plain chat request ("start fieldwork") also starts a run without a plan card (recommended:
+   yes, asking is authorising); expiry; whether a priced Deep Research route is inside (ADR 0022
+   requires approved settings for it; ADR 0019 gate 2 requires confirmation when a run's ceiling
+   reaches the spend limit, which stays).
 4. **A hard lock with a recorded unlock.** Set 1 and the Sociomap rating question are blocked until
    the person chooses "Unlock for this revision", which warns that the map changes and writes an
    approval-ledger row. The Lead can never unlock. The lock text stops saying "methodology
    revision".
+
+### F14. Each researcher's own Lead: how it develops, and who can see it
+
+**What exists.** Each researcher has their own Lead: a name, a SOUL (working style, at most 2,000
+characters), a USER file (what it knows of how this researcher works) and notes (at most 300
+characters each, personal or one client's), all with revisions. The Lead changes them **only through
+`self_update`, when the researcher asks in chat** (`domain/research_lead.py:18-21, 384-412 @
+085abe0`). The Lead's own files and personal notes are Class C; client-scoped notes are Class A. So
+nothing prompts either side to update them: left as built, a Lead barely evolves.
+
+**Owner decisions (2026-10-19):**
+
+1. **The Lead proposes updates; the researcher approves each.** After a correction or a repeated
+   preference it prepares a "Remember this" card; the researcher accepts, edits or refuses. It also
+   offers a periodic review ("here is what I have learned about how you work"). Nothing changes
+   without a yes, and every change is a revision that can be rolled back. This extends
+   `self_update` from "on request" to "proposed".
+2. **An organisation admin can read a researcher's Lead (files and notes) and hand it on.** This
+   weakens the privacy ADR 0026 decision 8 gives each researcher ("nobody reads another's turns");
+   it needs its own permission (an organisation OWNER or ADMIN, not the one Researcher role of ADR
+   0019) and an amendment to ADR 0026. *Open:* the conversation **turns** (this decision names files
+   and notes only; recommended: they stay private); what "hand it on" means (a copy for the successor
+   with personal notes removed, or a reassignment); and that a handed-on personal note may contain a
+   departed person's details.
+
+**Rules to write down.** What may be learned (style, working preferences) and what may not (client
+facts belong in a client-scoped note, Class A, visible only in that client's studies). A bound on
+what a proposal may add. A test that no client name or number reaches a personal (Class C) file.
+
+### F15. Who answers in fieldwork
+
+**Owner decision (2026-10-19): population-built respondents by default; invented respondents only for
+tests and demos.** A study's respondents are AI personas built from the Czech population dataset
+(origin `MODELLED_AI_PANEL`, labelled modelled, able to reach the client report under the owner's
+2026-10-13 lift). The V3 boards draw only the invented path (`SYNTHETIC_AI_FICTIONAL`), so the
+Fieldwork start screen, the Audience population panel ("does not read it") and the report cover
+(`kalibrované jádro`) are redrawn for the MVP path: who answers and the origin label are on every
+screen, and a screen never claims a population was read when it was not.
 
 ---
 
@@ -488,9 +543,12 @@ dated, until the provider contract and the method owner have owners.
 | Q11 | F11: the questionnaire's AI buttons removed (MVP-8) | **decided 2026-10-19** |
 | Q12 | F13: the revision is the unit of acceptance; a stage is current, changed or re-check | **decided 2026-10-19** |
 | Q13 | F13: stage order Results, Sociomap, Analysis, Report | **decided 2026-10-19** |
-| Q14 | F13: a per-study envelope for paid work, superseding MVP-13; parameters open | **decided 2026-10-19; parameters open** |
+| Q14 | F13: a per-study envelope for paid work, superseding MVP-13: set by the researcher up to a client/organisation ceiling; everything inside it, a run through a plan card approved once | **decided 2026-10-19; orchestration-scope ADR first; expiry and chat-started runs open** |
 | Q15 | F13: a hard lock on Sociomap inputs with a recorded unlock | **decided 2026-10-19** |
-| Q16 | F12: two people on one study: one working copy, one Lead each, item-level merge, presence, shared proposals | recommendation; owner to confirm |
+| Q16 | F12: two people on one study: each researcher goes in with their own agent; one working copy; item-level merge, presence, shared proposals | **per-person agent decided 2026-10-19**; the rest stands as recommended |
+| Q17 | F15: population-built respondents by default, invented ones for tests only | **decided 2026-10-19** |
+| Q18 | F14: the Lead proposes updates to its own files, the researcher approves each | **decided 2026-10-19** |
+| Q19 | F14: an organisation admin can read a researcher's Lead files and hand them on; turns and hand-over rules open | **decided 2026-10-19; amends ADR 0026 decision 8** |
 
 ## 6. Follow-ups for a docs PR
 
@@ -508,3 +566,8 @@ dated, until the provider contract and the method owner have owners.
   the AI buttons removed) and a chunk for the shared edit vocabulary (F11); ADR 0026 (the Lead's
   edit vocabulary widened, per-change accept) and `ARCHITECTURE.md` §4 (a person and the Lead share
   one set of server-validated edits).
+- `overview.md`: MVP-13 superseded by the per-study envelope (F13) and MVP-3 amended (a plan-scoped part
+  of the autopilot is in the MVP); an **orchestration-scope ADR** (the Lead's plan card, the
+  envelope, what each started job records) before chunk 24 or any envelope code; ADR 0026 decision 8
+  amended for an admin's read of Lead files and the proposed updates (F14); the Fieldwork, Audience and
+  report-cover screens redrawn for population-built respondents (F15).
