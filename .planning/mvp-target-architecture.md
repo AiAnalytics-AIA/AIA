@@ -22,7 +22,7 @@ hypothesis: confirm it in the chunk that needs it, never build on it unread.
 | Hard lock on Sociomap inputs with a recorded unlock (F13) | §3.8 (ledger subject), §5 |
 | Each researcher's Lead proposes updates to its own files; an admin can read and hand them on (F14) | §3.6 |
 | Population-built respondents by default (F15) | §4 (no schema change) |
-| Two header meters, report and snapshot approvals by a second person, no pause after fieldwork, client data in the Brief and Dimensions (F16-F19) | §3.7, §3.8, §5 |
+| Two header meters, report and snapshot approvals as separate acts (independence follows self-approval; no unconditional second person), no pause after fieldwork, client data in the Brief and Dimensions (F16-F19) | §3.7, §3.8, §5 |
 | Production: a separate environment on the one-host pattern with RDS; about 10 users; no permanent staging; tier B runs on develop | §6 |
 | Models tiered by role, pinned, shown in Settings | §6.4 |
 | Two to three sessions build in parallel | `mvp-development-plan.md` §2 |
@@ -175,8 +175,13 @@ request names the exact revision, never "the latest". The spend confirmation of 
 change_id)`; insert-once. `proposal_state` (`domain/research_agents.py`) gains `ACCEPTED_IN_PART`;
 unaccepted changes are `REJECTED` or `DROPPED_STALE` by default (the owner's default, open to
 change). `accept_into_working_copy` takes `change_ids`, merges only those items
-(`domain/design_items.py` `merge_items`), and writes one revision, one ledger row and the ops of §3.1
-in one transaction under the study lock. **Repository:** `ProposalChangeRepository`.
+(`domain/design_items.py` `merge_items`), and in one transaction under the study lock writes the
+working revision (`workspaces.save`), **submits the Design Revision** that a run executes
+(`designs.submit_if_current`, as today at `application/proposal_accept.py:142-156 @ de6ded8`), one
+ledger row and the ops of §3.1. A partial accept that saved only the working revision would leave the
+immutable design head unchanged and a started run would execute the pre-accept design, so a test asserts
+that after any accept the head's content equals the working copy's. **Repository:**
+`ProposalChangeRepository`.
 
 ### 3.6 The Lead over time: `researcher_lead_signals`, handover columns
 
@@ -263,13 +268,19 @@ deployed worker and the panel path composed; the invented roster stays in tests 
 | `POST agent-jobs/{id}/accept` with `change_ids` | per-change accept (extends today's accept) | `APPROVE_GATE` |
 | `GET research/runs/{id}/respondents/{rid}` | the drill-down: one respondent, labelled modelled, never exported | `EDIT_STUDY` |
 | `GET research/runs/{id}/map/filters` | aggregates for a filter set, never rows | `EDIT_STUDY` |
-| `POST research/runs/{id}/snapshots/{sid}/approve` | approve a map snapshot, second person | `APPROVE_GATE` |
+| `POST research/runs/{id}/snapshots/{sid}/approve` | approve a map snapshot; independence follows the self-approval setting | `APPROVE_GATE` |
 | `POST …/sociomap-unlock` | "Unlock for this revision": warns, one ledger row `sociomap_unlock`; the Lead can never call it | `APPROVE_GATE` |
 | `PUT /clients/{id}/datasets/{source_id}/contract` | accept a data contract | `PROPOSE_CLIENT_KNOWLEDGE` ◇ |
 | `GET/PUT /organization/clients/{id}/envelope-ceiling` | the client ceiling | org OWNER or ADMIN |
 | `GET /admin/leads/{user_id}`, `POST /admin/leads/{user_id}/handover` | admin reads Lead files, hands one on | org OWNER or ADMIN |
 
-Every route is in `.github/workflows/ci.yml`'s `api-contract` list with the study-scoping assertion.
+Every route is in `.github/workflows/ci.yml`'s `api-contract` `required` list. Scope is asserted by
+what the route is: a project, run, artifact or agent-job route must sit under `/studies/{study_id}/`
+(`ci.yml:607-614 @ de6ded8`), so the routes above under `/studies/` pass that check; the client routes
+(`/clients/{id}/datasets/...`) need the client in the path and the organization and admin routes need
+the caller's organization role, and each has its own isolation test (a second organization's client or
+Lead answers 404). The chunk that adds them adds those assertions beside the existing "knowledge routes
+must sit under a client or a study" one (`ci.yml:616-625`); it never adds a meaningless study id.
 
 ## 6. AWS structure
 
@@ -343,9 +354,21 @@ measurement on the first acceptance runs (open).
 ### 6.5 Search and egress
 
 Class C routes (Wikipedia, Brave) as today; the Class B EU provider (candidate Linkup, owner's
-contract pending) is one more route behind `RetrievalGate`, credential by reference. The host's
-security group allows egress to Bedrock, the S3 and SSM endpoints and the named search hosts; the
-list is a Terraform variable, reviewed with the provider contract.
+contract pending) is one more route behind `RetrievalGate`, credential by reference.
+
+**Where the host allow-list is enforced.** Not in the security group: a security group's destinations
+are CIDR ranges, prefix lists or security-group ids, never hostnames, and a provider's addresses
+rotate. A group that allowed all HTTPS out would allow it everywhere. So the boundary has two layers
+that already exist or are small: (1) **the application**: nothing sends a query or a URL except through
+`RetrievalGate`, whose `WebFetcher` checks every hop and address and whose live routes are pinned by
+host (`infrastructure/web_retrieval_live.py`); a Class B search host is one more entry in that pinned
+set, and a route no operator has classified refuses; (2) **the network, for production**: the worker
+reaches search hosts only through a forward proxy on the host (a Squid or similar CONNECT allow-list by
+hostname, the list a Terraform variable reviewed with the provider contract), with the worker's
+security group allowing 443 only to the proxy and to the AWS service endpoints (Bedrock, S3, SSM, ECR,
+CloudWatch) as VPC endpoints or prefix lists. ◇ AWS Network Firewall does the same without a proxy at
+a recurring cost that is not justified at about 10 users; the proxy is the recommendation and an
+operator confirms it when sizing production (§9 #3). On develop only layer (1) exists, as today.
 
 ## 7. Sequences
 
@@ -400,11 +423,13 @@ validate` in the docs-and-config job.
 | 3 | RDS and host sizing (◇ measured on develop under the acceptance run) | an operator | production deploy |
 | 4 | Bedrock quota for the chosen models (about 10 users) | an operator | tier B |
 | 5 | Which model per tier | owner, by measurement | worker waves |
-| 6 | The Class B provider and contract | owner | Deep Research live |
+| 6 | ~~The Class B provider and contract~~ **decided 2026-10-19: Linkup is the candidate and the owner starts the contract now**; not used before the contract is signed and the data owner has classified the route | owner | Deep Research live (contract) |
 | 7 | Derived-query class: amendment and data owner | owner, data owner | `class-b-search-route` 6 |
 | 8 | Evidence policy for client columns | owner | `client-data-in-analysis` 4-5 |
 | 9 | ~~Whether a plain chat request starts a run without a plan card~~ **decided 2026-10-19: yes**, through a typed command the server matches (§3.4 security condition, to confirm in the ADR) | owner | none |
 | 10 | ~~Admin read: do turns stay private; what handover means~~ **decided 2026-10-19: turns private; handover is a copy** | owner | none |
+| 12 | ~~Whether parity blocks CI~~ **decided 2026-10-19: it runs and reports, never blocks** (`mvp-acceptance-harness` 8; the cost is stated in `mvp-cohesion.md` F9) | owner | none |
+| 13 | ~~Who may accept a proposal by another person; whether an own dimension builds by itself; whether a client report needs a second person~~ **decided 2026-10-19: any member with the accept permission; on a click inside the envelope; no unconditional second person** (`mvp-cohesion.md` F12, F17, F19) | owner | none |
 | 11 | ~~Retention~~ **decided 2026-10-19: kept until a person deletes it; the log is kept with its study.** A documented **delete path** (database cascade, S3 prefixes, RDS snapshot retention of 14 days stated) is needed before production | owner | production release |
 
 **Risks.** The ops log makes every edit a write: volume is human-paced and small, but it needs an
