@@ -57,6 +57,8 @@ def test_the_list_names_every_prompt_and_which_ones_an_edit_reaches(owner: TestC
             "critique_design",
             "design_copilot",
             "answer_memory",
+            # The Research Lead (ADR 0026): its own task wording, the same rails.
+            "lead",
         )
     )
     for row in rows:
