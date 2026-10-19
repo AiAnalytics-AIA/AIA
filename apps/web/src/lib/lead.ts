@@ -365,14 +365,22 @@ export function targetOfElement(el: Element | null): { id: string; label: string
 
 // --------------------------------------------------------------------------- automatic text edits
 
+/** The `set_text` fields whose edit changes their wording alone (the server's `TEXT_ONLY_FIELDS`). */
+export const TEXT_ONLY_FIELDS: ReadonlySet<TextField> = new Set<TextField>(["title", "plan.problem_summary"]);
+/** The plan lists whose items are wording alone (the server's `TEXT_ONLY_LISTS`). */
+export const TEXT_ONLY_LISTS: ReadonlySet<PlanList> = new Set<PlanList>(["plan.objectives", "plan.hypotheses"]);
+
 /**
- * The edits that change wording only, as the server's `TEXT_EDIT_OPS` / `is_text_edit` hold them
- * (domain/research_lead.py): a brief or plan text, a list item replaced, a question's text with its
- * options left as they are. Anything that adds, removes, re-options or resizes is structure. The
- * server refuses any other edit in an automatic accept; this only chooses what to ask.
+ * The edits that change wording only, with no other effect, as the server's `is_text_edit` holds
+ * them (domain/research_lead.py): the title or the problem summary, an objective or a hypothesis
+ * replaced, a question's text with its options left as they are. Anything that adds, removes,
+ * re-options or resizes is structure; a brief field is not wording only (its edit drops the
+ * analysis), nor a research question (items and comparisons name it by its text). The server
+ * refuses any other edit in an automatic accept; this only chooses what to ask.
  */
 export function isTextEdit(e: LeadEdit): boolean {
-  if (e.op === "set_text" || e.op === "list_replace") return true;
+  if (e.op === "set_text") return TEXT_ONLY_FIELDS.has(e.field);
+  if (e.op === "list_replace") return TEXT_ONLY_LISTS.has(e.list);
   return e.op === "question_edit" && e.text !== null && e.text !== undefined && (e.options === null || e.options === undefined);
 }
 

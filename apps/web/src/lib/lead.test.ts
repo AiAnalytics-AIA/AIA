@@ -125,11 +125,15 @@ describe("pendingSelfUpdate", () => {
 
 describe("automatic text edits (inline-decisions 2)", () => {
   const text: LeadEdit[] = [
-    { op: "set_text", field: "goal", value: "Nový cíl", why: "" },
-    { op: "list_replace", list: "plan.research_questions", old: "Proč klienti odcházejí?", value: "Proč odcházejí?", why: "" },
+    { op: "set_text", field: "title", value: "Nový název", why: "" },
+    { op: "list_replace", list: "plan.hypotheses", old: "Odcházejí kvůli cenám", value: "Odcházejí kvůli poplatkům", why: "" },
     { op: "question_edit", question_id: "Q_1", text: "Jak jste spokojeni se službou?", options: null, why: "" },
   ];
   const structure: LeadEdit[] = [
+    // A brief field's edit drops the analysis; a research question is named by its text.
+    { op: "set_text", field: "goal", value: "Nový cíl", why: "" },
+    { op: "set_text", field: "briefing.situation", value: "Jinak", why: "" },
+    { op: "list_replace", list: "plan.research_questions", old: "Proč klienti odcházejí?", value: "Proč odcházejí?", why: "" },
     { op: "list_add", list: "plan.objectives", value: "Cíl", why: "" },
     { op: "list_remove", list: "plan.hypotheses", old: "H", why: "" },
     { op: "question_add", section_id: null, text: "Kolik?", qtype: "otevrena", options: [], why: "" },
@@ -162,7 +166,7 @@ describe("automatic text edits (inline-decisions 2)", () => {
   });
 
   it("puts the replaced wording back, and refuses when the text changed since", () => {
-    const before = content();
+    const before = content(project({ research_plan: { research_questions: ["Proč klienti odcházejí?"], objectives: [], hypotheses: ["Odcházejí kvůli cenám"] } }));
     for (const e of text) {
       const inverse = textEditInverse(before, e)!;
       const after = ok(applyLeadEdit(before, e));

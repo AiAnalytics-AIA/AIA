@@ -115,12 +115,25 @@ def test_an_edit_outside_its_shape_is_a_violation(edit: dict[str, Any]) -> None:
 
 #: Plan inline-decisions chunk 2: wording only, never structure or the sample.
 TEXT_EDITS = [
-    {"op": "set_text", "field": "goal", "value": "Nový cíl", "why": WHY},
+    {"op": "set_text", "field": "title", "value": "Nový název", "why": WHY},
     {"op": "set_text", "field": "plan.problem_summary", "value": "Shrnutí", "why": WHY},
     {"op": "list_replace", "list": "plan.hypotheses", "old": "A", "value": "B", "why": WHY},
+    {"op": "list_replace", "list": "plan.objectives", "old": "A", "value": "B", "why": WHY},
     {"op": "question_edit", "question_id": "q3", "text": "Jinak", "why": WHY},
 ]
 STRUCTURAL_EDITS = [
+    # A brief field's edit clears the analysis made of the brief: more than its wording.
+    {"op": "set_text", "field": "goal", "value": "Nový cíl", "why": WHY},
+    {"op": "set_text", "field": "decision_use", "value": "Jinak", "why": WHY},
+    {"op": "set_text", "field": "briefing.situation", "value": "Jinak", "why": WHY},
+    # Items and comparisons name a research question by its text: a rename unlinks them.
+    {
+        "op": "list_replace",
+        "list": "plan.research_questions",
+        "old": "Proč?",
+        "value": "Proč ne?",
+        "why": WHY,
+    },
     {"op": "list_add", "list": "plan.objectives", "value": "Cíl", "why": WHY},
     {"op": "list_remove", "list": "plan.research_questions", "old": "Proč?", "why": WHY},
     {"op": "question_add", "text": "Proč?", "qtype": "otevrena", "why": WHY},
@@ -153,6 +166,28 @@ def test_an_edit_that_adds_removes_reoptions_or_resizes_is_no_text_edit(
 
 def test_the_text_edit_ops_are_exactly_three() -> None:
     assert {"set_text", "question_edit", "list_replace"} == TEXT_EDIT_OPS
+
+
+@pytest.mark.parametrize("edit", TEXT_EDITS)
+def test_a_text_edit_keeps_the_analysis_it_did_not_change(edit: dict[str, Any]) -> None:
+    """What ``is_text_edit`` admits has no effect beyond its wording: ``apply_edit`` leaves the
+    analysis in place (a brief field's edit, which clears it, is not a text edit)."""
+    [parsed] = LeadOutput.model_validate(_output(edits=[edit])).edits
+    content = {
+        "title": "Studie",
+        "research_plan": {"objectives": ["A"], "hypotheses": ["A"], "research_questions": []},
+        "sections": [
+            {
+                "id": "s1",
+                "type": "questions",
+                "questions": [{"id": "q3", "text": "Jak?", "type": "otevrena"}],
+            }
+        ],
+    }
+    analysis = {"objectives": ["A"], "hypotheses": ["A"], "research_questions": []}
+    applied = apply_edit(content, analysis, parsed)
+    assert not isinstance(applied, Refused), applied
+    assert applied[1] is not None
 
 
 @pytest.mark.parametrize("stage", STAGES)

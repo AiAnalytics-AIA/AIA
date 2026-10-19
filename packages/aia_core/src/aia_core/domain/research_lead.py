@@ -61,6 +61,8 @@ __all__ = [
     "SELF_UPDATE_FILES",
     "STAGES",
     "TEXT_EDIT_OPS",
+    "TEXT_ONLY_FIELDS",
+    "TEXT_ONLY_LISTS",
     "Dropped",
     "LeadContextTooLarge",
     "LeadNote",
@@ -299,18 +301,32 @@ EditOp = Annotated[
 #: Lead apply without a click (the preference ``auto_accept_text_edits``, plan inline-decisions
 #: chunk 2). A ``question_edit`` is one only when it changes the text alone (:func:`is_text_edit`).
 TEXT_EDIT_OPS: Final = frozenset({"set_text", "question_edit", "list_replace"})
+#: The ``set_text`` fields whose edit changes their wording and nothing else. The brief's fields
+#: (``goal``, ``decision_use``, ``briefing.*``) are not among them: ``apply_edit`` clears the
+#: analysis made of the brief when one changes.
+TEXT_ONLY_FIELDS: Final = frozenset({"title", "plan.problem_summary"})
+#: The plan lists whose items are wording alone. ``plan.research_questions`` is not among them:
+#: the questionnaire's items and the plan's comparisons name a research question by its text
+#: (``domain/research_trace.py``), so renaming one unlinks what measures it.
+TEXT_ONLY_LISTS: Final = frozenset({"plan.objectives", "plan.hypotheses"})
 
 
 def is_text_edit(edit: BaseModel) -> bool:
-    """Whether ``edit`` changes wording only: a ``set_text``, a ``list_replace``, or a
+    """Whether ``edit`` changes wording only, with no other effect: a ``set_text`` of the title
+    or the problem summary, a ``list_replace`` of an objective or a hypothesis, or a
     ``question_edit`` that replaces the text and leaves the options as they are. Adding,
-    removing, re-optioning or re-typing anything, and the sample size, are structure."""
+    removing, re-optioning or re-typing anything, the sample size, a brief field (it clears the
+    analysis) and a research question (items and comparisons name it by its text) are not."""
     op = getattr(edit, "op", None)
     if op not in TEXT_EDIT_OPS:
         return False
     if isinstance(edit, QuestionEdit):
         return edit.text is not None and edit.options is None
-    return True
+    if isinstance(edit, SetText):
+        return edit.field in TEXT_ONLY_FIELDS
+    if isinstance(edit, ListReplace):
+        return edit.list in TEXT_ONLY_LISTS
+    return False
 
 
 # --------------------------------------------------------------------------- requests
