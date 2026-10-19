@@ -37,7 +37,21 @@ export type ResearchState = {
   save: SaveState;
   /** Increments whenever a change invalidates the technical check (save(reason, true)). */
   checkEpoch: number;
+  /**
+   * True when this copy is not byte for byte the revision it names: the template's defaults
+   * completed what AIA stored (`defaultsMerge`) and nothing has been saved since. Nothing is lost
+   * and no save is shown as owed -- but a Design Revision must be exactly a stored revision
+   * (ADR 0026 decision 5), so `submitWorkingDesign` saves such a copy before it submits.
+   */
+  completed?: boolean;
 };
+
+/** A document as AIA fingerprints it: key order does not matter, array order does. */
+export function canonical(value: unknown): string {
+  const normalize = (v: unknown): unknown => Array.isArray(v) ? v.map(normalize)
+    : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([k, x]) => [k, normalize(x)])) : v;
+  return JSON.stringify(normalize(value));
+}
 
 export type LoadResult =
   | { kind: "research"; state: ResearchState; template: Template; contentState: ContentState; canEdit: boolean; origin: string | null }
@@ -86,6 +100,7 @@ export function readWorkingContent(r: WorkingContent): LoadResult {
   if (r.state === "EMPTY" || !r.content) {
     return { kind: "research", state: newResearch(template), template, contentState: r.state, canEdit: r.can_edit, origin };
   }
+  const project = defaultsMerge(r.content, template);
   return {
     kind: "research",
     template,
@@ -94,10 +109,11 @@ export function readWorkingContent(r: WorkingContent): LoadResult {
     origin,
     state: {
       revision: r.revision,
-      project: defaultsMerge(r.content, template),
+      project,
       analysis: isRecord(r.analysis) ? (r.analysis as Analysis) : null,
       save: { kind: "saved" },
       checkEpoch: 0,
+      completed: canonical(project) !== canonical(r.content),
     },
   };
 }
@@ -200,6 +216,8 @@ export class ResearchStore {
         this.set({
           ...this.state,
           revision: r.revision,
+          // What was sent is now stored as it is: no longer only the template's completion.
+          completed: this.state.project === s.project ? false : this.state.completed,
           // A change made while this save was in flight is still unsaved.
           save: this.state.project === s.project && this.state.analysis === s.analysis ? { kind: "saved" } : { kind: "pending" },
         });
@@ -285,8 +303,10 @@ export async function submitWorkingDesign(
   sourceStage: string,
   submit: typeof research.submitDesign = research.submitDesign,
 ): Promise<DesignRevision> {
-  // A copy AIA already holds as it is needs no save: its revision is what is submitted.
-  for (let i = 0; i < 2 && (store.get().revision === null || store.get().save.kind !== "saved"); i++) {
+  // A copy AIA already holds as it is needs no save: its revision is what is submitted. One the
+  // template completed on load is not what AIA holds, so it is saved first (its own revision).
+  const owed = () => store.get().revision === null || store.get().save.kind !== "saved" || !!store.get().completed;
+  for (let i = 0; i < 2 && owed(); i++) {
     await store.flush(sourceStage === "run" ? "run" : undefined);
   }
   const s = store.get();

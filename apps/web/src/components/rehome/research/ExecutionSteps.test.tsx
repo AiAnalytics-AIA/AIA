@@ -118,6 +118,9 @@ function api(overrides: Record<string, (body: unknown) => unknown> = {}) {
       const routes: Record<string, (b: unknown) => unknown> = {
         "GET /config": () => ({ cognitoDomain: "", cognitoClientId: "", publicOrigin: "http://localhost", apiBase: "", build: { sha: null } }),
         "GET /api/v1/studies/STU-1/workspace/content": () => workspaceFixture(PROJECT).answer(CONTENT_PATH, "GET", null),
+        // PROJECT is not what defaultsMerge makes of it: the stage saves its completed copy
+        // before submitting it as a design (ADR 0026 decision 5), as AIA stores it.
+        "PUT /api/v1/studies/STU-1/workspace/content": () => ({ study_id: "STU-1", state: "NATIVE", revision: 4, revision_id: "REV-4", deduplicated: false }),
         "POST /api/v1/studies/STU-1/design/revisions": () => ({ revision_id: "REV-a1", study_id: "STU-1", revision: 3, content_sha256: "x", parent_revision: 2, source_stage: "run", created_by: "USR-1", created_at: "2026-09-25T08:00:00Z", created: true }),
         "GET /api/v1/studies/STU-1/design/revisions": () => ({ items: [{ revision_id: "REV-old", revision: 2 }] }),
         "GET /api/v1/studies/STU-1/research/readiness": () => READY,
@@ -302,10 +305,12 @@ describe("Run", () => {
 
   it("submits nothing while an earlier save's conflict stands, and prepares the version AIA holds once it is reloaded", async () => {
     let served = workspaceFixture(PROJECT).answer(CONTENT_PATH, "GET", null) as Record<string, unknown>;
+    let refuse = true;
     api({
       "GET /api/v1/studies/STU-1/workspace/content": () => served,
-      "PUT /api/v1/studies/STU-1/workspace/content": () =>
-        new Response(JSON.stringify({ code: "stale_revision", message: "The working content changed.", details: { current_revision: 4 } }), { status: 409 }),
+      "PUT /api/v1/studies/STU-1/workspace/content": () => refuse
+        ? new Response(JSON.stringify({ code: "stale_revision", message: "The working content changed.", details: { current_revision: 4 } }), { status: 409 })
+        : { study_id: "STU-1", state: "NATIVE", revision: 5, revision_id: "REV-5", deduplicated: false },
     });
     const at = (step: "brief" | "run") => (
       <ResearchSession studyId="STU-1">
@@ -327,12 +332,18 @@ describe("Run", () => {
 
     // What the person can do: load the version AIA holds; Run then prepares that one.
     served = { ...served, revision: 4, revision_id: "REV-4", content: { ...PROJECT, goal: "Cíl, který uložil kolega" } };
+    refuse = false;
     fireEvent.click(screen.getByRole("button", { name: t("research.saveReload") }));
     expect(await screen.findByText("Revize návrhu 3")).toBeTruthy();
     const [submitted] = called("POST", "/api/v1/studies/STU-1/design/revisions");
     expect((submitted.body as { content: { goal: string } }).content.goal).toBe("Cíl, který uložil kolega");
     expect(called("GET", CONTENT_PATH)).toHaveLength(2);
-    expect(called("PUT", CONTENT_PATH)).toHaveLength(1);
+    // The refused save, then the reloaded copy saved as the template completed it, from
+    // revision 4, so the design names a stored revision (ADR 0026 decision 5).
+    const puts = called("PUT", CONTENT_PATH);
+    expect(puts).toHaveLength(2);
+    expect((puts[1].body as { base_revision: number }).base_revision).toBe(4);
+    expect((submitted.body as { workspace_revision: number }).workspace_revision).toBe(5);
     expect(called("POST", "/api/v1/studies/STU-1/research/runs")).toHaveLength(0);
   }, 15_000);
 
