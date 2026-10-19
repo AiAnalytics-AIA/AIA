@@ -31,8 +31,8 @@ different readings.
 
 | # | Finding | Hits | Needs the owner |
 |---|---|---|---|
-| F1 | Deep Research classification: OI-129 says operator-only and Class C routes; MVP-27 says the full design on a Class B route | AC-11 | **yes** |
-| F2 | The Sociomap drill-down to one respondent contradicts "aggregate only" and "rows never sent to the browser" | AC-09, AC-13 | **yes** |
+| F1 | Deep Research classification: OI-129 says operator-only and Class C routes; MVP-27 says the full design on a Class B route | AC-11 | answered 2026-10-19 (whole design, widest data); one sub-question open |
+| F2 | The Sociomap drill-down to one respondent contradicts "aggregate only" and "rows never sent to the browser" | AC-09, AC-13 | decided 2026-10-19: yes, the Lead may read it |
 | F3 | Client-reported data (ADR 0027) has no field policy; MVP-29's single authority covers population fields only | AC-08, AC-10 | decided 2026-10-19: later, in the ADR 0027 plan |
 | F4 | "The Lead sees everything stored about results" (MVP-15) has no contract, no owner and an unchecked data-class path | AC-02, AC-09 | no |
 | F5 | Removing the manual AI buttons (MVP-8) is a UI change; the spend limit and the worker contract are server rules | AC-02, AC-03, AC-04 | no |
@@ -76,7 +76,18 @@ rule can classify.
 **Test that would have caught it.** `test_deep_research_journey.py` with an edited design and a
 Class B recorded route: the web tracks run without an operator record.
 
-**Owner decision.** Confirm that MVP-27 supersedes OI-129's second sentence. Recommended: yes.
+**Owner answer (2026-10-19).** Neither an operator step after each edit nor a Class B-only
+route: "Deep Research should take that whole design and use it to find as much relevant data as
+possible." The manual operator classification is therefore not wanted. What replaces it is still
+open, because of one constraint the answer meets: a Class C route (Wikipedia, Brave, Common
+Crawl) may not receive Class B text, and a query's class is never lowered by keywords (ADR 0017).
+
+**Open sub-question.** "As much data as possible" means one of:
+(a) several routes approved for Class B under an EU agreement, so every query carries the
+design's class; or (b) queries *derived* from the design that may reach Class C routes, which
+needs a rule that lowers a derived query's class, an amendment to ADR 0017 and ADR 0008 and a
+data-owner decision (the owner's 2026-10-19 OI-129 ruling said no class of its own is made for such
+a query). Until it is answered, the Class B provider plan (F7) builds (a) only.
 
 ### F2. The respondent drill-down contradicts the evidence rules
 
@@ -103,7 +114,11 @@ so its identity: say whether that is a new run or a recorded exclusion (hypothes
 **Test that would have caught it.** An API test that the drill-down route is absent from the
 client-report path and answers 403 without `EDIT_STUDY`.
 
-**Owner decision.** Confirm the drill-down is internal only. Recommended: yes.
+**Owner decision (2026-10-19).** Yes: the researcher may drill down to one respondent, and **the
+Lead may read it**. Consequences, each a test: the exception above holds and the drill-down is
+never exported; one respondent's modelled answers derive from the panel, so the Lead's route must
+be the one the licence determination approves (`bedrock-eu-primary`, OI-61) or the gateway refuses
+it (the F4 data-class test); the Lead says "modelled" whenever it quotes one respondent.
 
 ### F3. Client-reported data has no field policy
 
@@ -309,10 +324,10 @@ cross-track gates, each with an observable test, ordered by dependency. The targ
 
 | Q | Decision | Recommended |
 |---|---|---|
-| Q1 | F1: Deep Research classifies a design by rule once a Class B route exists; supersedes OI-129's second sentence | yes |
-| Q2 | F2: the respondent drill-down is internal, under `EDIT_STUDY`, never in a client export | yes |
+| Q1 | F1: **answered 2026-10-19: Deep Research uses the whole design, no operator step.** Open: whether derived queries may reach Class C routes (needs an ADR 0017 / 0008 amendment) | owner and data owner |
+| Q2 | F2: **decided 2026-10-19: yes, internal, the Lead may read it, never exported** | decided |
 | Q3 | F3: **decided 2026-10-19: later, in the ADR 0027 plan** (recommendation: the accepted data contract is the policy source) | decided |
-| Q4 | F7: create the eight missing plans (§2 F7) before their tracks start; name each track's owner | yes |
+| Q4 | F7: **decided 2026-10-19: write the missing plans** (six files cover the eight pieces of work, see #497). Track owners are chat sessions, probably Opus 5.5; name each session when its track starts | decided; names open |
 | Q5 | The provider contract (MVP-27, owner) and the method owner's 0b answers, clustering algorithm and register entries: dates, since I-2 and I-4 wait on them | owner |
 
 ## 6. Follow-ups for a docs PR
