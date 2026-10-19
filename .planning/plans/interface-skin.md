@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done
 chunks:
   - "[x] 0. This plan and ADR 0013"
   - "[x] 1. Token foundation onto develop"
@@ -7,7 +7,7 @@ chunks:
   - "[x] 3. The variable layer (build-skin.mjs → skin.css)"
   - "[x] 4. Shared components (components.css)"
   - "[x] 5. Baseline, locally (replaced by the UI workbench)"
-  - "[ ] 6. Per-area passes, while an area waits for its React rebuild"
+  - "[x] 6. Per-area passes, while an area waits for its React rebuild — superseded, not built: ADR 0018 removed the 18.6.6 screens (mvp-consolidation 2026-10-19)"
   - "[x] 6a. Switched on for develop"
   - "[x] 7. Promote: ADR 0013 Accepted, 2026-09-24"
 ---

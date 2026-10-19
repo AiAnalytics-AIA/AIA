@@ -190,7 +190,7 @@ class CapabilityStatus:
     implementation_state: str
     parity_type: str
     verdict: str
-    release_blocker: bool
+    on_path: bool
     release_ready: bool
     high_risk: list[str]
     gates: list[GateResult] = field(default_factory=list)
@@ -260,7 +260,7 @@ def evaluate_capability(
         implementation_state=str(cap["implementation_state"]),
         parity_type=str(cap["parity_type"]),
         verdict=NOT_REQUIRED,
-        release_blocker=bool(cap["release_blocker"]["blocking"]),
+        on_path=bool(cap["mvp_path"]),
         release_ready=False,
         high_risk=list(cap["high_risk"]),
     )
@@ -306,7 +306,7 @@ def _risk_rank(high_risk: Sequence[str]) -> int:
 def rank_unverified(statuses: Iterable[CapabilityStatus]) -> list[CapabilityStatus]:
     """Order the capabilities that are not release-ready, riskiest first.
 
-    A failed gate outranks everything. Then release blockers. Then anything
+    A failed gate outranks everything. Then the MVP acceptance path. Then anything
     whose gates do not pass -- a capability whose existing gates all pass but
     whose implementation is unfinished is incomplete, not unverified. Then code
     that already exists -- an unverified port can ship; an unstarted one cannot.
@@ -318,7 +318,7 @@ def rank_unverified(statuses: Iterable[CapabilityStatus]) -> list[CapabilityStat
     def key(s: CapabilityStatus) -> tuple[int, int, int, int, int, int, str]:
         return (
             0 if s.verdict == FAIL else 1,
-            0 if s.release_blocker else 1,
+            0 if s.on_path else 1,
             1 if s.verdict == PASS else 0,
             0 if s.implementation_state in {"IMPLEMENTED", "PARTIAL"} else 1,
             _risk_rank(s.high_risk),
@@ -333,8 +333,8 @@ def why_risky(s: CapabilityStatus) -> str:
     parts = [f"{s.implementation_state}", f"{s.parity_type} parity", f"verdict {s.verdict}"]
     if s.high_risk:
         parts.append("high-risk " + "/".join(s.high_risk))
-    if s.release_blocker:
-        parts.append("MVP release blocker")
+    if s.on_path:
+        parts.append("on the MVP acceptance path")
     text = ", ".join(parts)
     return f"{text} -- {s.detail}" if s.detail else text
 
@@ -345,7 +345,7 @@ class Report:
     results_supplied: bool
     available: list[str] | None
     counts: dict[str, int]
-    blocking_counts: dict[str, int]
+    path_counts: dict[str, int]
     capabilities: list[CapabilityStatus]
     highest_risk_unverified: list[str]
     unowned: list[str]
@@ -373,7 +373,7 @@ def build_report(
     ranked = rank_unverified(statuses)
 
     acceptance = matrix["mvp_acceptance"]
-    on_path = sorted(s.id for s in statuses if s.release_blocker)
+    on_path = sorted(s.id for s in statuses if s.on_path)
     not_ready = [cid for cid in on_path if not by_id[cid].release_ready]
     acceptance_verdict = NOT_RUNNABLE if acceptance["test"] is None or not_ready else NOT_EXECUTED
 
@@ -400,7 +400,7 @@ def build_report(
         results_supplied=results is not None,
         available=sorted(available) if available is not None else None,
         counts=dict(Counter(s.verdict for s in statuses)),
-        blocking_counts=dict(Counter(s.verdict for s in statuses if s.release_blocker)),
+        path_counts=dict(Counter(s.verdict for s in statuses if s.on_path)),
         capabilities=statuses,
         highest_risk_unverified=[f"{s.id}: {why_risky(s)}" for s in ranked[:5]],
         unowned=sorted(s.id for s in statuses if not s.owner_confirmed),
@@ -432,11 +432,11 @@ def render_report_markdown(report: Report) -> str:
             "",
         ]
     lines += [f"Reference pinned at `{report.reference_commit}`.", ""]
-    lines += ["| Verdict | All | MVP blockers |", "| --- | ---: | ---: |"]
+    lines += ["| Verdict | All | On the MVP path |", "| --- | ---: | ---: |"]
     for verdict in VERDICTS:
         lines.append(
             f"| `{verdict}` | {report.counts.get(verdict, 0)} "
-            f"| {report.blocking_counts.get(verdict, 0)} |"
+            f"| {report.path_counts.get(verdict, 0)} |"
         )
     lines += ["", "### Highest-risk unverified capability", ""]
     if report.highest_risk_unverified:
@@ -477,14 +477,15 @@ def render_report_markdown(report: Report) -> str:
             continue
         passed = sum(1 for g in s.gates if g.verdict == PASS)
         owner = s.owner if s.owner_confirmed else f"{s.owner} *(unconfirmed)*"
-        blocker = " **B**" if s.release_blocker else ""
+        path = " **P**" if s.on_path else ""
         lines.append(
-            f"| `{s.id}`{blocker} | {owner} | {s.implementation_state} | {s.parity_type} "
+            f"| `{s.id}`{path} | {owner} | {s.implementation_state} | {s.parity_type} "
             f"| `{s.verdict}` | {passed}/{len(s.gates)} | {s.detail} |"
         )
     lines += [
         "",
-        f"**B** = MVP release blocker. {len(report.unowned)} capabilities have no confirmed owner.",
+        f"**P** = on the MVP acceptance path: its parity is reported as information, never a "
+        f"release gate (MVP-21). {len(report.unowned)} capabilities have no confirmed owner.",
         "",
     ]
     return "\n".join(lines)
@@ -496,7 +497,7 @@ def render_table(matrix: Mapping[str, Any]) -> str:
         TABLE_BEGIN,
         "",
         "| Capability | Owner | State | Parity | Tolerance | Fixtures | Gates | High risk "
-        "| MVP blocker |",
+        "| MVP path |",
         "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for cid, cap in sorted(matrix["capabilities"].items()):
@@ -510,7 +511,7 @@ def render_table(matrix: Mapping[str, Any]) -> str:
         lines.append(
             f"| `{cid}` | {owner} | {cap['implementation_state']} | {cap['parity_type']} "
             f"| {tol} | {fixtures} | {gates} | {', '.join(cap['high_risk']) or '—'} "
-            f"| {'yes' if cap['release_blocker']['blocking'] else 'no'} |"
+            f"| {'yes' if cap['mvp_path'] else 'no'} |"
         )
     lines += ["", TABLE_END]
     return "\n".join(lines)
@@ -586,7 +587,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     for verdict in VERDICTS:
         print(
             f"  {verdict:<13} {report.counts.get(verdict, 0):>3}"
-            f"   (MVP blockers {report.blocking_counts.get(verdict, 0)})"
+            f"   (on the MVP path {report.path_counts.get(verdict, 0)})"
         )
     if report.highest_risk_unverified:
         print(f"highest-risk unverified: {report.highest_risk_unverified[0]}")

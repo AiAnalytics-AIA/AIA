@@ -64,7 +64,8 @@ def capability(**overrides: Any) -> dict[str, Any]:
         "owner": {"workstream": "ws", "confirmed": True},
         "implementation_state": "IMPLEMENTED",
         "parity_type": "EXACT",
-        "release_blocker": {"blocking": True, "reason": "r"},
+        "release_blocker": {"blocking": False, "reason": "r"},
+        "mvp_path": True,
         "high_risk": [],
         "fixtures": [],
         "gates": [],
@@ -214,7 +215,7 @@ PASSING = {("tests/test_ref.py", "t"): "passed", ("tests/test_prod.py", "t"): "p
 
 
 def test_no_parity_required_is_not_required(tool: ModuleType) -> None:
-    cap = capability(parity_type="NO_PARITY_REQUIRED", release_blocker={"blocking": False})
+    cap = capability(parity_type="NO_PARITY_REQUIRED", mvp_path=False)
     assert tool.evaluate_capability("x.y", cap, {}, PASSING, None).verdict == "NOT_REQUIRED"
 
 
@@ -281,7 +282,7 @@ def _status(tool: ModuleType, cid: str, **kw: Any) -> Any:
         "implementation_state": "IMPLEMENTED",
         "parity_type": "EXACT",
         "verdict": "NOT_RUNNABLE",
-        "release_blocker": True,
+        "on_path": True,
         "release_ready": False,
         "high_risk": [],
     }
@@ -291,11 +292,11 @@ def _status(tool: ModuleType, cid: str, **kw: Any) -> Any:
 
 def test_ranking_puts_the_riskiest_unverified_capability_first(tool: ModuleType) -> None:
     statuses = [
-        _status(tool, "a.off_path", release_blocker=False, high_risk=["R1"]),
+        _status(tool, "a.off_path", on_path=False, high_risk=["R1"]),
         _status(tool, "b.unstarted_r1", implementation_state="NOT_STARTED", high_risk=["R1"]),
         _status(tool, "c.built_r10", high_risk=["R10"]),
         _status(tool, "d.built_r2_semantic", high_risk=["R2"], parity_type="SEMANTIC"),
-        _status(tool, "e.failed", release_blocker=False, verdict="FAIL"),
+        _status(tool, "e.failed", on_path=False, verdict="FAIL"),
         _status(tool, "f.ready", verdict="PASS", release_ready=True),
         _status(tool, "g.not_required", verdict="NOT_REQUIRED"),
         _status(
@@ -309,7 +310,7 @@ def test_ranking_puts_the_riskiest_unverified_capability_first(tool: ModuleType)
     ranked = [s.id for s in tool.rank_unverified(statuses)]
     assert ranked == [
         "e.failed",  # a failed gate outranks everything
-        "d.built_r2_semantic",  # built, blocker, R2 beats R10
+        "d.built_r2_semantic",  # built, on the path, R2 beats R10
         "c.built_r10",
         "b.unstarted_r1",  # not built yet: a risk for later, not unverified code
         "h.passing_partial",  # gates pass; incomplete, not unverified
@@ -336,6 +337,18 @@ def test_the_declared_picture_contains_no_pass(tool: ModuleType, matrix: dict[st
     assert sum(report.counts.values()) == 78
     assert report.highest_risk_unverified
     assert report.acceptance["verdict"] == "NOT_RUNNABLE"
+
+
+def test_the_acceptance_path_is_the_criteria_not_the_blocker_flag(
+    tool: ModuleType, matrix: dict[str, Any]
+) -> None:
+    """Parity blocks no release (MVP-21), so no capability is a blocker; the acceptance
+    report still counts every capability a criterion exercises (the review of 186766c)."""
+    report = tool.build_report(matrix, None, None)
+    on_path = {cid for cid, cap in matrix["capabilities"].items() if cap["mvp_path"]}
+    assert on_path
+    assert report.acceptance["capabilities_on_path"] == len(on_path)
+    assert {s.id for s in report.capabilities if s.on_path} == on_path
 
 
 def test_a_failed_gate_test_fails_the_cli(tool: ModuleType, tmp_path: Path) -> None:

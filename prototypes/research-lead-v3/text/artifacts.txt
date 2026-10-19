@@ -1,0 +1,855 @@
+
+
+######## FRAME 0
+AIA Research Lead Workbench
+Brief artifact
+Research design artifact
+Questionnaire artifact
+Audience artifact
+Dimensions artifact
+Sample artifact
+Fieldwork artifact
+Results artifact
+Analysis artifact
+Sociomap artifact
+Report artifact
+
+######## FRAME 1
+Brief artifact
+Working copy of Revision 14 · autosaved
+You and the Research Lead edit the same working copy. A Design Revision is created only when you accept it.
+01
+What do you need to find out and decide?
+224 characters
+02
+Problem type
+3 selected
+Pricing
+New product
+Finding the target group
+Communication
+Brand
+Market gap
+Portfolio
+Campaign
+Tracking
+Other
+03
+Materials
+Files are artifacts of this study, served only through it
+Client brief, young customers 2026 · PDF · 2,1 MB
+Excerpt read in AIA · never sent to external research
+Class A
+Brand tracking summary 2025 · XLSX · 340 KB
+3 facts proposed to client knowledge, accepted
+Class A
+Client knowledge, Fio banka · 3 facts, 1 audience note
+Read inside this client’s scope only
+Class B
+04
+Context
+Optional, used by every worker
+What exactly are we studying
+What decision will you make
+Situation and market
+What we already know
+Constraints
+Brief readiness
+Goal names a decision and a deadline
+Problem type chosen
+Materials read; classes recorded
+Constraints stated (length, timing)
+Audience assumption A1 unverified, carried to Audience
+
+######## FRAME 2
+Research design artifact
+01
+How broad should the study be?
+Chosen in Revision 12
+Focused
+Fio only, 1 tracked set · N 150
+Simple · misses the competitive frame
+Comparative
+Fio and five banks, 2 tracked sets · N 200
+Standard · enough for an object map
+Segment-led
+Comparative plus segmentation · N 400
+Deep · over the client's timing
+02
+Understanding
+Proposal by brief analysis, accepted by you
+Objectives
+Map how adults 18–35 position Fio banka among retail banks.
+Identify what drives consideration among non-customers.
+Find which attributes Fio owns, shares or lacks.
+Research questions
+Which banks are seen as alike, and where does Fio sit?
+Which attributes matter most when choosing a bank?
+How does consideration differ between 18–24 and 25–35?
+What stops non-customers from considering Fio?
+Hypotheses
+H1. Fio is grouped with app-first banks rather than incumbents.
+H2. Mobile app quality outweighs fees for under-25s.
+H3. Trust is the main barrier among non-customers 25–35.
+03
+Comparable sets
+4 to 15 objects each, one shared question
+Set 1
+Banks and anchors
+10 objects · scale 1–10
+How would you rate {object} as a bank for someone like you?
+Fio banka
+Incumbent A
+Incumbent B
+Incumbent C
+Digital bank D
+Neo-bank E
+Investing app F
+Payment app G
+My current bank
+Ideal bank for me
+1 = very poor · 10 = excellent · dashed objects are context anchors (secondary)
+Declared Sociomap input · locked against shortening
+Set 2
+What matters
+8 objects · scale 1–10
+How important is {object} when you choose a bank?
+No monthly fees
+Mobile app quality
+Trust
+Investing in the app
+Offer for young adults
+Branches
+Customer support
+Transparent pricing
+1 = not important · 10 = essential
+04
+What I still need to know
+Follow-up questions from brief analysis
+Should competitor names be shown to respondents or anonymised? Answered: shown, anonymised in reports
+Is the 25–35 investing segment in scope? Open, carried to Audience
+
+######## FRAME 3
+Questionnaire artifact
+Upload Excel
+Build manually
+Build with AI
+Edit
+Respondent preview
+Optimise with AI
+Proposal from Revision 14 · waiting for you
+24 → 17 items
+11½ → 7½ min
+7 removed, 2 of them merged · 2 reworded
+Sociomap inputs untouched
+Outline
+Screening
+4 of 4
+Banking behaviour
+5 of 6
+Banks and anchors
+2 of 3
+What matters
+1 of 1
+Fio banka
+4 of 6
+Attitudes
+1 of 4
+Total 17 items · about 7½ min
+Screening
+Who qualifies
+Q1
+How old are you?
+Single choice
+15 s
+Q2
+In which region do you live?
+Single choice
+12 s
+Q3
+Which bank do you use as your main bank?
+Single choice
+15 s
+Q4
+Do you have a current account in your own name?
+Single choice
+10 s
+Banking behaviour
+Objective 2
+Q5
+Which channels do you use to bank?
+Multiple choice
+25 s
+Q6
+How often do you use a mobile banking app?
+Single choice
+12 s
+Q7
+Which banking products do you hold?
+Multiple choice
+25 s
+Q8
+Have you switched your main bank in the last 3 years? If yes, what made you switch?
+Have you switched your main bank in the last 3 years?
+Single choice
+Reworded
+15 s
+Q9
+What was the main reason for your last switch?
+Open
+Merged into Q8
+60 s
+Q10
+Do you invest, for example in funds or shares?
+Single choice
+12 s
+Banks and anchors
+Objective 1 · Set 1
+Q11
+Which bank card design do you prefer?
+Single choice
+Removed · serves no objective
+20 s
+Q12
+How would you rate {object} as a bank for someone like you?
+Battery · scale 1–10
+Sociomap input (Set 1) · locked
+110 s
+Q13
+Which of these banks have you heard of?
+Multiple choice
+20 s
+What matters
+Objective 2 · Set 2
+Q14
+How important is {object} when you choose a bank?
+Battery · scale 1–10
+70 s
+Fio banka
+Objectives 1 and 3
+Q15
+How likely are you to consider Fio banka for your next account?
+Scale 1–10
+12 s
+Q16
+Which Fio banka products do you know?
+Multiple choice
+Removed · repeats Q13
+30 s
+Q17
+Do you recall any sponsorship by a bank?
+Open
+Removed · serves no objective
+60 s
+Q18
+What stops you from considering Fio banka?
+Multiple choice
+25 s
+Q19
+Overall, how would you rate Fio banka as a main bank?
+Scale 1–10
+Declared Sociomap rating · locked
+12 s
+Q20
+What three words come to mind about Fio banka?
+Open
+40 s
+Attitudes
+Dimensions
+Q21
+How confident are you managing your money and financial decisions?
+How confident are you about financial decisions?
+Scale 1–10
+Reworded
+20 s
+Q22
+How confident are you managing your money?
+Scale 1–10
+Merged into Q21
+20 s
+Q23
+How much do you still use cash?
+Scale 1–10
+Removed · serves no objective
+20 s
+Q24
+When do you prefer to be contacted by a bank?
+Single choice
+Removed · serves no objective
+30 s
+
+######## FRAME 4
+Audience artifact
+Proposed: keep 18–35, protect 18–24 (at least 60)
+From your decision · waiting for you
+Dopad úpravy — před uložením
+Upravujete: audience
+01
+02
+03
+04
+05
+06
+07
+08
+09
+10
+11
+12
+13
+Zůstane platné (4)
+Zadání
+Deep Research
+Výzkumný design
+Dotazník
+4 artefaktů zůstane
+Znovu se otevře (8)
+Dimenze
+Výběrový plán
+Respondenti
+Agregace
+Validace
+Analýza
+Report
+Předání
+Odhad nákladů nového běhu
+chybí Odhad zatím backend neposkytuje
+Odhad času
+chybí Odhad zatím backend neposkytuje
+Zahodit úpravu
+Uložit jako novou revizi
+⌘↵
+Deep Research stays valid: the linear rule reopens only what comes after Audience. Accept or reject in the conversation.
+01
+Where should respondents come from?
+Own audience
+A list or panel the client provides.
+Not in AIA yet
+AIA audience
+Drawn against AIA's population registry.
+02
+Which population?
+Czech population 18+
+LIVE v17_4_0
+Ready
+Czech population
+Extended version
+Coming
+Special audience
+Subpanels from 18.6.6
+Not in AIA yet
+The run records this population binding. This study's fieldwork uses fictional AI respondents and does not read it; the run says so.
+03
+Who should the results represent?
+Narrowed target group
+Age
+18–35
+Under review
+Quota 18–24
+noneAt least 60
+Keeps 18–24 above n 30 for map pairs
+Region
+Whole Czech Republic
+Gender
+All
+Banking
+Holds a current account
+Screening Q4
+Population size
+Not available
+Panel factors are not in AIA yet
+Assumptions behind this audience
+A1 ·
+Contradicted
+Fio's young customers are mostly students.
+EV-01 · sources 1, 2 ·
+View evidence
+A2 ·
+Weakened
+Young customers choose a bank on fees first.
+EV-04: free accounts read as a baseline, not a differentiator
+A3 ·
+Supported
+App-first banks are the main competitors under 25.
+EV-02 · sources 3, 5
+External findings inform the design. They never become respondent evidence and are re-screened against the final questionnaire.
+Summary
+Source
+AIA audience
+Population
+Czech 18+, LIVE v17_4_0
+Strategy
+Narrowed: 18–35, 18–24 at least 60
+Revision
+Revision 14 content · proposal waiting
+
+######## FRAME 5
+Dimensions artifact
+01
+Sociodemographics
+Always on
+Age
+Gender
+Region
+Education
+Household income band
+Size of place
+02
+What shapes the answers
+4 selected · accepted in Revision 14
+Recommended for this project
+Banking relationship
+Main bank and how long; separates customers from non-customers.
+Used by: segments, objects comparison
+Digital banking adoption
+App-first versus branch-first behaviour.
+Used by: segments, hypotheses H1, H2
+Financial confidence
+Self-rated confidence with money and decisions.
+Used by: hypothesis H3
+Life stage
+Student, first job, established, parent.
+Used by: audience, segments
+From the system catalogue
+Risk attitude
+General willingness to take financial risk.
+Media use
+Channels where banking communication reaches people.
+03
+Your own dimension
+Investing interest · proposed to Fio banka's client knowledge
+Waiting for approval · a dimension the AI suggests is never approved automatically
+Panel factors from 18.6.6 are not in AIA yet.
+
+######## FRAME 6
+Sample artifact
+01
+Sample size
+Recalculated in Revision 16
+N = 200
+Recommended for a 10-object map with two age groups
+02
+Quotas
+Computed by code from the audience · deterministic
+Cell	Target	Share	Why
+18–24	60	
+	Your quota, at least 60
+25–29	70	
+	Remaining, by population share
+30–35	70	
+	Remaining, by population share
+Women	100	
+	Population share
+Prague	28	
+	Population share
+03
+Will it support the methods?
+Sociomap: every Set 1 pair needs n ≥ 30. All respondents rate all 10 objects, so the smallest pair is expected near the full sample.
+Reporting: cells under 25 donors are suppressed; 25–49 are indicative. The 18–24 quota keeps that group reportable.
+Effective n: 200 expected. No weighting applies to fictional respondents.
+04
+Cost
+Run ceiling (server bound)
+4,80 USD
+Your spend limit for this study
+5,00 USD
+The ceiling counts every model request the run can make: 200 respondents in 4 blocks, plus 8 analysis modules with their repairs. It is an upper bound, never an estimate of zero.
+
+######## FRAME 7
+Fieldwork artifact
+Fictional data. This run uses invented respondents answered by AI (SYNTHETIC_AI_FICTIONAL). Results are for method and design work only and may not go to the client.
+Running
+run_7f3c2a
+Design Revision 16 · started today 10:31 by you · elapsed 1:31 · heartbeat 2 s ago
+Cancel run
+Target
+200
+respondents
+Completed
+146
+146 of 200 · 73 %
+In flight
+12
+one request per respondent block
+Not placed on the map
+2
+same rating for all of Set 1
+Quality
+Within checks
+schema repairs 4 · facts refused 0
+Respondents
+each square is one fictional respondent
+Completed
+In flight
+Not placed on the map
+Not started
+Quotas
+filled by code from the fictional roster
+Cell	Target	Completed
+18–24	60	44
+25–29	70	51
+30–35	70	51
+Run steps
+Běží
+run_7f3c2a
+Běží 1 min 31 s
+· poslední signál před 2 s
+2 / 7 kroků hotovo
+· 1 běží
+· 4 ve frontě
+Compile questionnaire from the design
+Dokončeno
+2 s
+Readiness checks
+Dokončeno
+1 s
+Fieldwork (AI respondents, fictional)
+Běží · 146 of 200
+1 min 31 s
+Aggregate
+Čeká na předchozí krok
+Sociomap (internal)
+Čeká na předchozí krok
+8 analysis modules
+Čeká na předchozí krok
+Internal report
+Čeká na předchozí krok
+Needs intervention
+None right now.
+Spend
+Rozpočet studie
+4,80 USD
+Utraceno
+1,98 USD
+Nejisté (SETTLED_UNCERTAIN)
+0,00 USD
+Rezervováno
+0,16 USD
+Zbývá
+2,66 USD
+Against the run ceiling of 4,80 USD. Every request is reserved before it leaves and settled once.
+Provenance
+Data origin
+SYNTHETIC_AI_FICTIONAL
+Respondent agent
+aia.research.respondent · prompt v1
+Runtime
+Bedrock, EU route, respondent model role (set by policy)
+Answers
+Model returns one respondent's probabilities; code answers facts and draws the answer
+Population
+LIVE v17_4_0 recorded; not read by this fieldwork
+Design
+Revision 16 · sha256:7f3c…e218
+
+######## FRAME 8
+Results artifact
+Fictional data. Every figure below comes from invented respondents. The evidence gate keeps it internal; marks show it as modelled.
+Run run_7f3c2a · completed
+Design Revision 16
+Actual cost 3,23 USD
+Computed by the aggregate step · deterministic
+Měřeno
+Kalibrované jádro
+Modelováno
+Validace čeká
+?
+Role neznámá
+Q14
+How important is each of these when you choose a bank?
+Reportable · 200 unique donors, n = 200 · mean on 1–10 with 95 % interval
+0 %
+Mobile app quality
+8,4 %
+Trust
+8,1 %
+No monthly fees
+7,9 %
+Transparent pricing
+7,6 %
+Investing in the app
+6,2 %
+Offer for young adults
+6,0 %
+Customer support
+5,8 %
+Branches
+3,9 %
+Q15
+How likely are you to consider Fio banka for your next account?
+Top two boxes (9–10) by age group · 95 % interval
+Group	n	Top two	Interval	Support
+All 18–35	200	
+30
+ %	
+24–37 %	Reportable
+18–24	60	
+38
+ %	
+31–45 %	Reportable
+25–29	70	
+29
+ %	
+22–36 %	Reportable
+30–35	70	
+25
+ %	
+19–32 %	Reportable
+Q18
+What stops you from considering Fio banka?
+Non-customers only · multiple answers · share of respondents
+Answer	Donors	Share	Support
+Happy with my current bank	71	
+52
+ %	Reportable
+App looks dated	39	
+29
+ %	Indicative · 25–49 donors
+Do not know the offer	33	
+24
+ %	Indicative · 25–49 donors
+Bad past experience	< 25	
+potlačeno
+under 25 donors
+	Suppressed
+A cell under 25 donors is suppressed: no number, interval or verbatim is shown.
+
+######## FRAME 9
+Analysis artifact
+Deterministic result
+Computed by code from respondents; enters only as an admitted claim.
+AI interpretation
+Written by an analysis module or the Lead. Not approved until a person approves it.
+External context
+Deep Research. A quote in a captured source; never respondent evidence.
+8 modules · run_7f3c2a
+Executive summary
+Completed
+Research questions
+Completed
+Objects comparison
+1 blocked
+Target group
+Completed
+Segments
+1 blocked
+Hypotheses
+Completed
+Implications for the decision
+Completed
+Limitations
+Completed
+Objects comparison
+How the ten objects of Set 1 compare. Positions on the map are in the Sociomap artifact.
+Ratings
+Deterministic result · admitted claim · fictional data
+Fio banka is rated 6,8 [6,5; 7,1] of 10 as a bank for someone like you, fourth of eight banks.
+C-11
+Deterministic result · admitted claim · fictional data
+Neo-bank E and Digital bank D are rated within the same interval as Fio.
+C-12
+C-13
+Reading
+AI interpretation · not approved
+Fio is judged alongside the app-first banks rather than the incumbents. That matches the map, where Fio sits in the app-first group.
+C-11
+SM-pair-07
+External context · Deep Research
+Public reviews compare Fio and app-only banks on the same app features.
+EV-05
+Interpretation research · reads frozen results
+Blocked by the evidence gate
+CROSS_BLOCK_NOT_SAME_PERSON
+A claim combined Set 1 ratings with Q18 barriers as if one person answered both blocks.
+
+######## FRAME 10
+Sociomap artifact
+Internal only · may not go to the client while methodology approval D6 is open
+Fictional respondents · demo values drawn for this prototype, not computed
+Top view
+3D terrain
+Names
+Relations
+Height emphasis
+Save snapshot (PNG)
+Object map · aia-sociomap-3
+Set 1 · 8 banks, 2 context anchors
+197 of 200 respondents placed
+fair fit · Stress-1 0,087
+Pairs: 31 reliable · 9 weak · 5 unknown
+band 1
+10 · grey: no data
+Top view is the default and the kill switch
+How to read this map
+Method aia-sociomap-3
+Objects that respondents rate alike sit close together. Height is the mean rating on an absolute 0–1 scale cut into ten display bands. A line joins the selected object to partners whose relation is reliable and above the 0,10 effect floor: solid when ratings move together, dashed when they move apart. Context anchors are diamonds, without a hill.
+Fio banka
+Primary object
+Mean rating
+6,8
+Display band
+6 / 10
+Support n
+197
+Ask the Lead about Fio banka
+Pairs with
+Fio banka
+r · status
+Neo-bank E
+0,41
+reliable
+Digital bank D
+0,36
+reliable
+Investing app F
+0,22
+reliable
+Payment app G
+0,18
+reliable
+Incumbent B
+−0,14
+reliable
+Incumbent A
+0,08
+weak
+Incumbent C
+—
+unknown
+Pair
+Fio banka – Neo-bank E
+r
+0,41
+95 % interval
+0,29; 0,52
+n · effective n
+197 · 197
+Effect floor 0,10
+met
+On the map
+Line drawn
+Ranked by mean rating
+1
+Fio banka
+6,8
+2
+Neo-bank E
+6,6
+3
+Digital bank D
+6,5
+4
+Incumbent A
+6,2
+5
+Payment app G
+5,8
+6
+Incumbent B
+5,7
+7
+Investing app F
+5,5
+8
+Incumbent C
+5,2
+Ties are not broken where intervals overlap.
+Method and provenance
+Method
+aia-sociomap-3 · contract 3 · organisation default in force
+Pinned
+At run start; its digest is part of the run's identity
+Engine
+Deterministic, Python numerical path; no model involved
+Input
+Set 1 ratings, run_7f3c2a, Revision 16
+Artifact
+sha256:c19a…4f07
+Outcome
+MAPPED · converged
+Status
+Internal only (D6 open)
+The Lead and its workers read this artifact; none can write it. A new method version applies to a new run.
+
+######## FRAME 11
+Report artifact
+Proposal on draft v1 · waiting for you
+Internal report · client_report_v2 order
+12 references · 6 numbers
+Clean
+Show changes
+1
+Executive summary
+2
+Answer for the decision
+3
+Research questions
+4
+What we found
+5
+Recommendations
+6
+How results fit external evidence
+7
+Confidence in the conclusions
+8
+Methodology
+9
+Limitations
+10
+Conclusion
+11
+Evidence appendix
+Status: drafted by the report worker, numbers verified by the evidence gate, approval for internal use by a person.
+Fio banka · Důvěrné
+Young Customer Perception
+2026
+Internal draft · fictional respondents · not for the client
+18 Oct 2026 · rev 16 · 24 stran
+Syntetická populace ČR, kalibrované jádro v17.4 · Schválil(a): Not approved
+Internal · draft v2 proposal
+CHAPTER 1
+1Executive summary
+
+Younger adults are Fio’s clearest opening. Among 18–24, 38 % [31; 45] would seriously consider Fio for their next account, against 25 % [19; 32] among 30–35.C-07C-08 
+
+Consideration (top-two box) is 38 % [31; 45] among 18–24 against 25 % [19; 32] among 30–35; Kish effective n equals n because no weighting applies.
+
+People judge Fio alongside the app-first banks, not the traditional ones,SM-07 and rate it 6,8 of 10 as a bank for someone like them, fourth of eight.C-11 
+
+Among 200 fictional respondents aged 18–35, Fio banka’s mean rating on the Set 1 battery is 6,8 [6,5; 7,1], fourth of eight banks. In the object map (aia-sociomap-3, Stress-1 0,087, fair fit) Fio is positioned within the app-first cluster, r = 0,41 to Neo-bank E.
+
+What they value most is a good mobile app, 8,4 of 10.C-02 Free accounts are now expected rather than a reason to choose.EV-04 
+
+Mobile app quality has the highest mean importance, 8,4 [8,1; 8,7]. Fees operate as a baseline expectation rather than a differentiator.
+Stress-1, the interval for the overall rating and the Kish note moved to chapter 8, Methodology.
+CHAPTER 4
+4What we found
+
+Respondents judge banks first on the app. Branches matter least. C-02C-03
+
+0 %
+Mobile app quality
+8,4 %
+Trust
+8,1 %
+No monthly fees
+7,9 %
+Branches
+3,9 %
+Figure 1 · Importance when choosing a bank, mean on 1–10 with 95 % interval · n = 200 · modelled (fictional respondents)
+Evidence on this page
+C-07
+Consideration 18–24, admitted claim · modelled
+C-08
+Consideration 30–35, admitted claim · modelled
+C-11
+Fio mean rating, admitted claim · modelled
+C-02
+App importance, admitted claim · modelled
+SM-07
+Map pair Fio – Neo-bank E · internal (D6)
+EV-04
+External context · Deep Research · not respondent evidence
+Rules this draft keeps
+Numbers are references, never retyped. A sentence prints the weakest grade of its claims. External evidence is cited as context and never as a respondent finding. Rendering fails closed when a rule breaks.

@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done
 chunks:
   - "[x] 1. Stage status as data: src/research/lane.ts derives each stage's state (done / needs you / running / not started) and one line from the working content; unit-tested"
   - "[x] 2. Study shell: AppShell `study` mode -- icon-only global navigation, one-row header (breadcrumbs, save state, AI pomoc), the stage track under it replacing ResearchRail; the stage title moves into the page"
@@ -10,12 +10,12 @@ chunks:
   - "[x] 7. Cílová skupina and Dimenze: one source/population/strategy card; dimensions as a checklist grid; sample beside them"
   - "[x] 8. Kontrola, Průběh, Výsledky: problems first with a fix link, the run's steps as one list, the complete-report card at the top of Výsledky"
   - "[x] 9. Browser pass on the workbench (ux_journey at 1440/1024/768/390), screenshots in the PR"
-  - "[ ] B1. Complete internal report: compose_internal_report gains the design summary, a method / AI-respondent provenance section, per-question aggregate tables and the questionnaire appendix; the Deep Research variant is stored as an artifact with a review_state"
-  - "[ ] B2. Approve a report: a researcher-only route over ArtifactRepository.approve and the button on Výsledky (APPROVED_INTERNAL)"
-  - "[ ] B3. PDF beside the DOCX: headless LibreOffice in the worker image, one artifact per report, its cost and time measured"
-  - "[ ] B4. Sociomap methodology registry (OI-17) replacing D6_OPEN: per (methodology version, spec fingerprint) status; the owner's 2026-10-13 decision recorded as its first row (aia-sociomap-3 as computed today); a client branch in compose_map_sections"
-  - "[ ] B5. Client report composer (client_report recipe, CLIENT_FACING ledger) admitting MODELLED_AI_PANEL evidence under the owner's 2026-10-13 decision, every modelled number labelled modelováno; after chunks 6-8 (owner's order)"
-  - "[ ] B6. Audience filters in a run: not new code -- AIA_AI_POPULATION_PERSONAS_ENABLED (operator call) and audience-catalogue-cpu chunk 4 (owned there); dimensions applied to respondents stay with sociomap-formula-corrections I0/I1"
+  - "[x] B1. Complete internal report: compose_internal_report gains the design summary, a method / AI-respondent provenance section, per-question aggregate tables and the questionnaire appendix; the Deep Research variant is stored as an artifact with a review_state — moved to complete-study-report B1a-B1d, built (mvp-consolidation 2026-10-19)"
+  - "[x] B2. Approve a report: a researcher-only route over ArtifactRepository.approve and the button on Výsledky (APPROVED_INTERNAL) — moved to complete-study-report B2, built (mvp-consolidation 2026-10-19)"
+  - "[x] B3. PDF beside the DOCX: headless LibreOffice in the worker image, one artifact per report, its cost and time measured — moved to complete-study-report B3, built (mvp-consolidation 2026-10-19)"
+  - "[x] B4. Sociomap methodology registry (OI-17) replacing D6_OPEN: per (methodology version, spec fingerprint) status; the owner's 2026-10-13 decision recorded as its first row (aia-sociomap-3 as computed today); a client branch in compose_map_sections — moved to complete-study-report B4, built (mvp-consolidation 2026-10-19)"
+  - "[x] B5. Client report composer (client_report recipe, CLIENT_FACING ledger) admitting MODELLED_AI_PANEL evidence under the owner's 2026-10-13 decision, every modelled number labelled modelováno; after chunks 6-8 (owner's order) — moved to complete-study-report B5a-B5c, built (mvp-consolidation 2026-10-19)"
+  - "[x] B6. Audience filters in a run: not new code -- AIA_AI_POPULATION_PERSONAS_ENABLED (operator call) and audience-catalogue-cpu chunk 4 (owned there); dimensions applied to respondents stay with sociomap-formula-corrections I0/I1 — moved to complete-study-report B6 (mvp-consolidation 2026-10-19)"
 ---
 # Research lane redesign
 

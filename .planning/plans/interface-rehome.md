@@ -1,12 +1,12 @@
 ---
-status: in-progress
+status: done
 chunks:
   - "[x] 0. ADR 0014, this plan, the screen ledger"
   - "[x] 1. Routing: /app gated; facade follows the Caddyfile"
-  - "[ ] 2. Foundation: unit client done; primitives and catalogue pending"
+  - "[x] 2. Foundation: unit client done; primitives and catalogue pending — superseded, not built: ADR 0018 and the workbench redesign (mvp-consolidation 2026-10-19)"
   - "[-] 3. A1 Shell (replaced by the client-first AppShell, ADR 0015)"
   - "[x] 4. A2 Projects"
-  - "[ ] 5+. A3–A8, one chunk per area, inside the client workspace"
+  - "[x] 5+. A3–A8, one chunk per area, inside the client workspace — superseded, not built: ADR 0015's client workspace and the workbench redesign (mvp-consolidation 2026-10-19)"
   - "[x] —. / moves to the rebuilt interface (done early, ADR 0015)"
 ---
 # Interface re-home — the screens rebuilt in React, area by area

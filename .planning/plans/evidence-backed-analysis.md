@@ -1,5 +1,5 @@
 ---
-status: in-progress        # all chunks done; PR A (#76) and PR B (#80) in review, released through #86
+status: done        # all chunks done; PR A (#76) and PR B (#80) in review, released through #86
 chunks:
   - "[x] 0. This plan"
   - "[x] 1. Instrument items as evidence fields"

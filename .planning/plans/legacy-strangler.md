@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done
 chunks:
   - "[x] 1.0. Slice 1: this plan"
   - "[x] 1.1. Slice 1: oracle endpoint contract"
@@ -13,7 +13,7 @@ chunks:
   - "[x] 2.2. Slice 2: web /login, /logout, no mock-up"
   - "[x] 2.3. Slice 2: develop host (Caddy)"
   - "[x] 2.4. Slice 2: documents"
-  - "[ ] 3. Slice 3: Projects, after the open question on where a request gets its study"
+  - "[x] 3. Slice 3: Projects, after the open question on where a request gets its study — superseded, not built: ADR 0018: AIA runs without 18.6.6 (mvp-consolidation 2026-10-19)"
 ---
 # Legacy strangler — 18.6.6 as the AIA product, behind the running oracle
 
