@@ -391,20 +391,21 @@ function ActivityCard({ job, onOpen }: { job: ResearchAgentJob; onOpen?: (job: R
 
 /**
  * The Lead's changes to its own files and memory. What stays inside this study's client (a client
- * note, a forget) was applied with the turn. What would reach all of the researcher's work (a
- * personal note, SOUL, USER, the name) waits for the researcher's yes (Codex on #484).
+ * note kept or forgotten) was applied with the turn. What would reach all of the researcher's work
+ * (a personal note kept or forgotten, SOUL, USER, the name) waits for the researcher's yes.
  */
 function SelfUpdate({ t, o, canEdit, onDecide }: { t: LeadTurn; o: LeadOutput; canEdit: boolean; onDecide: (d: "accept" | "dismiss") => Promise<void> }) {
   const [busy, setBusy] = useState(false);
   const u = o.self_update;
   if (!u) return null;
   const clientNotes = (u.remember ?? []).filter((m) => m.scope === "client").map((m) => m.text);
+  const forgotten = t.changes?.forgotten?.length ?? 0;
   const applied = [
     clientNotes.length ? `zapamatováno u klienta: ${clientNotes.join("; ")}` : null,
-    u.forget?.length ? `zapomenuto ${u.forget.length}×` : null,
+    forgotten ? `zapomenuto u klienta ${forgotten}×` : null,
   ].filter(Boolean);
-  const waiting = pendingSelfUpdate(u);
-  const hasWaiting = waiting.notes.length > 0 || waiting.files.length > 0;
+  const waiting = pendingSelfUpdate(t.self_update_waiting);
+  const hasWaiting = waiting.notes.length > 0 || waiting.forget.length > 0 || waiting.files.length > 0;
   const decided = t.self_update_decision?.status ?? null;
   const decide = (d: "accept" | "dismiss") => {
     setBusy(true);
@@ -417,9 +418,10 @@ function SelfUpdate({ t, o, canEdit, onDecide }: { t: LeadTurn; o: LeadOutput; c
         <div className={`dec${decided ? " is-decided" : ""}`} data-aia="lead.self_update" style={{ marginTop: 6 }}>
           <div className="dec__head"><Glyph tone={decided === "accepted" ? "done" : decided === "dismissed" ? "inert" : "you"} size={11} />{decided === "accepted" ? "Zapamatováno pro všechnu vaši práci" : decided === "dismissed" ? "Zahozeno" : "Rozhodnutí patří vám"}</div>
           <div className="dec__body">
-            <p className="dec__title">Vedoucí si chce ponechat pro všechnu vaši práci, u všech klientů:</p>
+            <p className="dec__title">Vedoucí chce změnit pro všechnu vaši práci, u všech klientů:</p>
             <ul>
               {waiting.notes.map((n, i) => <li key={`n${i}`}>Poznámka: {n}</li>)}
+              {waiting.forget.map((n, i) => <li key={`f${i}`}>Zapomenout: {n}</li>)}
               {waiting.files.map((f) => <li key={f.file}>{f.file}: {f.text}</li>)}
             </ul>
             {t.self_update_pending && !decided ? (

@@ -44,6 +44,7 @@ from aia_core.domain.research_lead import (
     layer,
     lead_request,
     split_self_update,
+    waiting_self_update,
 )
 from aia_core.domain.workflow import FailureClass
 from aia_core.domain.workflow_templates import RESEARCH_LEAD_TURN
@@ -271,12 +272,15 @@ class ResearchLeadExecutor:
         grounded, dropped = ground_edits(
             answer.output, design.get("content") or {}, design.get("analysis") or None
         )
-        shown = [str(n["memory_id"]) for n in layer(frozen, "lead").get("notes") or ()]
+        notes = list(layer(frozen, "lead").get("notes") or ())
+        shown = [str(n["memory_id"]) for n in notes]
         update, dropped_forgets = ground_self_update(grounded.self_update, shown)
         grounded = grounded.model_copy(update={"self_update": update})
         # What stays inside the turn's client applies now; anything that would reach every
-        # client's studies (a personal note, SOUL, USER, the name) waits for the researcher.
-        now, pending = split_self_update(update)
+        # client's studies (a personal note kept or forgotten, SOUL, USER, the name) waits for
+        # the researcher.
+        now, pending = split_self_update(update, notes)
+        pending_json = pending.model_dump(mode="json") if pending else None
 
         with context.transaction() as (session, _):
             applied = None
@@ -295,7 +299,9 @@ class ResearchLeadExecutor:
                 "lead_output": grounded.model_dump(mode="json"),
                 "dropped": dropped_all,
                 "self_update_applied": applied.model_dump(mode="json") if applied else None,
-                "self_update_pending": pending.model_dump(mode="json") if pending else None,
+                "self_update_pending": pending_json,
+                # The same, as the researcher reads it: each note to forget with its text.
+                "self_update_waiting": waiting_self_update(pending_json, notes),
                 "data_class": answer.data_class,
             }
             if answer.scripted:

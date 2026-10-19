@@ -82,18 +82,38 @@ export type LeadTurn = {
   self_update_decision?: { status: "accepted" | "dismissed" } | null;
   /** Whether such a self-update waits for the researcher's decision. */
   self_update_pending?: boolean;
+  /** What waits (or waited) for that decision, as the server split it; null when nothing did. */
+  self_update_waiting?: SelfUpdateWaiting | null;
+  /** What the turn applied at once to the Lead's own files and notes (a client note, forgetting one). */
+  changes?: { name?: boolean; soul?: boolean; user?: boolean; remembered?: string[]; forgotten?: string[] } | null;
+};
+
+/**
+ * What a turn wants to keep or drop for all of the researcher's work: file changes, personal notes
+ * to keep, and personal notes to forget with the text the turn was shown.
+ */
+export type SelfUpdateWaiting = {
+  name: string | null;
+  soul: string | null;
+  user: string | null;
+  remember: string[];
+  forget: { memory_id: string; text: string | null }[];
 };
 
 export type SelfUpdateDecision = { status: "accepted" | "dismissed"; changes: Record<string, unknown> | null };
 
-/** What of a self-update waits for the researcher: personal notes and file changes, in words. */
-export function pendingSelfUpdate(u: LeadSelfUpdate | null | undefined): { notes: string[]; files: { file: string; text: string }[] } {
-  if (!u) return { notes: [], files: [] };
+/**
+ * What of a self-update waits for the researcher, in words: personal notes to keep, personal notes
+ * to forget, and file changes. Read from the server's split, never re-derived from the output: only
+ * the server knows which notes a forget names.
+ */
+export function pendingSelfUpdate(w: SelfUpdateWaiting | null | undefined): { notes: string[]; forget: string[]; files: { file: string; text: string }[] } {
+  if (!w) return { notes: [], forget: [], files: [] };
   const files: { file: string; text: string }[] = [];
-  if (u.name) files.push({ file: "Jméno", text: u.name });
-  if (u.soul) files.push({ file: "SOUL", text: u.soul });
-  if (u.user) files.push({ file: "USER", text: u.user });
-  return { notes: (u.remember ?? []).filter((m) => m.scope === "personal").map((m) => m.text), files };
+  if (w.name) files.push({ file: "Jméno", text: w.name });
+  if (w.soul) files.push({ file: "SOUL", text: w.soul });
+  if (w.user) files.push({ file: "USER", text: w.user });
+  return { notes: [...w.remember], forget: w.forget.map((f) => f.text ?? `poznámka ${f.memory_id}`), files };
 }
 
 export type EditDecisionResult = { workspace_revision: number | null; results: { index: number; status: "accepted" | "dismissed" | "refused"; reason: string | null }[] };

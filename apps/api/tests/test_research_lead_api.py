@@ -162,6 +162,7 @@ def test_a_message_queues_a_turn_and_the_lead_answers_one_at_a_time(
         "request_decision",
         "self_update_decision",
         "self_update_pending",
+        "self_update_waiting",
         "run_id",
         "workspace_revision",
         "created_at",
@@ -454,9 +455,17 @@ def test_what_the_lead_wants_to_keep_everywhere_waits_for_the_researcher(
         world,
         {"reply": "Zapamatuji si to.", "self_update": waiting},
         self_update_pending=waiting,
+        self_update_waiting={
+            "name": None,
+            "soul": None,
+            "user": None,
+            "remember": ["Chce tabulky."],
+            "forget": [],
+        },
     )
     lead = researcher.get(lead_url(world)).json()["turns"][-1]
     assert (lead["self_update_pending"], lead["self_update_decision"]) == (True, None)
+    assert lead["self_update_waiting"]["remember"] == ["Chce tabulky."]
     assert "pending_self_update" not in lead
     assert researcher.get("/api/v1/lead").json()["lead"]["memories"] == []
 

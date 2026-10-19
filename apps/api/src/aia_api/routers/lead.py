@@ -117,6 +117,26 @@ class SelfUpdateDecision(BaseModel):
     status: Literal["accepted", "dismissed"]
 
 
+class ForgetWaiting(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    memory_id: str
+    #: The note as the turn was shown it (``null`` when the turn was not shown it).
+    text: str | None
+
+
+class SelfUpdateWaiting(BaseModel):
+    """What a turn wants to keep or drop for all of the researcher's work, in their words."""
+
+    model_config = ConfigDict(extra="forbid")
+    name: str | None
+    soul: str | None
+    user: str | None
+    #: Personal notes to keep.
+    remember: list[str]
+    #: Personal notes to forget.
+    forget: list[ForgetWaiting]
+
+
 class SelfUpdateDecide(BaseModel):
     """The researcher's decision on what a Lead turn wants to keep for all of their work."""
 
@@ -156,6 +176,8 @@ class LeadTurn(BaseModel):
     self_update_decision: SelfUpdateDecision | None
     #: Whether such a self-update waits for that decision (a personal note, SOUL, USER, name).
     self_update_pending: bool
+    #: What waits (or waited) for that decision; ``null`` when nothing did.
+    self_update_waiting: SelfUpdateWaiting | None
     run_id: str | None
     workspace_revision: int | None
     created_at: datetime

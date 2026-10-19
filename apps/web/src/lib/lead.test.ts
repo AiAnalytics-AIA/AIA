@@ -110,11 +110,12 @@ describe("targetLabel", () => {
 });
 
 describe("pendingSelfUpdate", () => {
-  it("lists only what would reach all of the researcher's work: personal notes and files", () => {
-    expect(pendingSelfUpdate({ name: "Bára", user: "U", remember: [{ scope: "client", text: "K" }, { scope: "personal", text: "P" }], forget: ["LMM-1"] })).toEqual({
+  it("lists what waits as the server split it: personal notes kept and forgotten, and files", () => {
+    expect(pendingSelfUpdate({ name: "Bára", soul: null, user: "U", remember: ["P"], forget: [{ memory_id: "LMM-1", text: "Stará osobní" }, { memory_id: "LMM-2", text: null }] })).toEqual({
       notes: ["P"],
+      forget: ["Stará osobní", "poznámka LMM-2"],
       files: [{ file: "Jméno", text: "Bára" }, { file: "USER", text: "U" }],
     });
-    expect(pendingSelfUpdate(null)).toEqual({ notes: [], files: [] });
+    expect(pendingSelfUpdate(null)).toEqual({ notes: [], forget: [], files: [] });
   });
 });

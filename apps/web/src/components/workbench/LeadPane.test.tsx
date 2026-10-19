@@ -103,14 +103,19 @@ describe("LeadPane", () => {
   it("keeps what the Lead wants for all of the researcher's work only on their yes", async () => {
     // Codex P1 on #484: a personal note or a file change reaches every client's studies.
     state.turns = [turn({
-      output: { reply: "Zapamatuji si to.", self_update: { user: "Chce tabulky.", remember: [{ scope: "personal", text: "Preferuje tabulky." }, { scope: "client", text: "Klient chce grafy." }] } },
+      output: { reply: "Zapamatuji si to.", self_update: { user: "Chce tabulky.", remember: [{ scope: "personal", text: "Preferuje tabulky." }, { scope: "client", text: "Klient chce grafy." }], forget: ["LMM-p", "LMM-c"] } },
+      changes: { remembered: ["LMM-n"], forgotten: ["LMM-c"] },
       self_update_pending: true, self_update_decision: null,
+      self_update_waiting: { name: null, soul: null, user: "Chce tabulky.", remember: ["Preferuje tabulky."], forget: [{ memory_id: "LMM-p", text: "Píše stručně." }] },
     })];
     render(pane());
     expect(await screen.findByText("Poznámka: Preferuje tabulky.")).toBeTruthy();
     expect(screen.getByText("USER: Chce tabulky.")).toBeTruthy();
+    // Forgetting a personal note waits too, named by its text.
+    expect(screen.getByText("Zapomenout: Píše stručně.")).toBeTruthy();
     // What stays inside this study's client was applied with the turn, and says so.
     expect(screen.getByText(/zapamatováno u klienta: Klient chce grafy\./)).toBeTruthy();
+    expect(screen.getByText(/zapomenuto u klienta 1×/)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Zahodit" })).toBeTruthy();
     expect(selfUpdates).toEqual([]);
     fireEvent.click(screen.getByRole("button", { name: "Pamatovat si" }));

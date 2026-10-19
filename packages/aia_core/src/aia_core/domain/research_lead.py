@@ -83,6 +83,7 @@ __all__ = [
     "question_add_problem",
     "split_self_update",
     "unreadable_numbers",
+    "waiting_self_update",
 ]
 
 LEAD_PROMPT_ID: Final = "aia.research.lead"
@@ -549,7 +550,7 @@ def ground_self_update(
 
 
 def split_self_update(
-    update: SelfUpdate | None,
+    update: SelfUpdate | None, shown_notes: Sequence[Mapping[str, Any]]
 ) -> tuple[SelfUpdate | None, SelfUpdate | None]:
     """``update`` as what applies now and what waits for the researcher's yes.
 
@@ -557,21 +558,47 @@ def split_self_update(
     note, or a SOUL, USER or name change, loads into every study of every client, so a client
     fact written there by mistake or by injection would leave its client. Only what stays
     inside the turn's own client applies at once: client notes (bound to the turn's client by
-    the repository) and forgets (which reach only notes the turn was shown). Everything else
-    waits until the researcher accepts it (ADR 0026: the Lead proposes, a person decides).
+    the repository) and forgetting a client note of this client. Forgetting a personal note
+    changes every client's studies too, so it waits like the rest; so does a forget whose note
+    ``shown_notes`` (the notes the turn was shown, by ``memory_id`` and ``scope``) does not
+    name as a client note. Everything that waits does so until the researcher accepts it
+    (ADR 0026: the Lead proposes, a person decides).
     """
     if update is None:
         return None, None
+    client_notes = {str(n.get("memory_id")) for n in shown_notes if n.get("scope") == "client"}
     now = SelfUpdate(
-        remember=[n for n in update.remember if n.scope == "client"], forget=list(update.forget)
+        remember=[n for n in update.remember if n.scope == "client"],
+        forget=[m for m in update.forget if m in client_notes],
     )
     waits = SelfUpdate(
         name=update.name,
         soul=update.soul,
         user=update.user,
         remember=[n for n in update.remember if n.scope == "personal"],
+        forget=[m for m in update.forget if m not in client_notes],
     )
     return (None if now.is_empty else now), (None if waits.is_empty else waits)
+
+
+def waiting_self_update(
+    pending: Mapping[str, Any] | None, shown_notes: Sequence[Mapping[str, Any]]
+) -> dict[str, Any] | None:
+    """What waits for the researcher, in the words the interface shows: the file changes, the
+    personal notes to keep, and each note to forget with the text the turn was shown (a note
+    the turn was not shown keeps its id and no text)."""
+    if not isinstance(pending, Mapping):
+        return None
+    texts = {str(n.get("memory_id")): str(n.get("text") or "") for n in shown_notes}
+    return {
+        "name": pending.get("name"),
+        "soul": pending.get("soul"),
+        "user": pending.get("user"),
+        "remember": [str(n.get("text")) for n in pending.get("remember") or ()],
+        "forget": [
+            {"memory_id": str(m), "text": texts.get(str(m))} for m in pending.get("forget") or ()
+        ],
+    }
 
 
 # --------------------------------------------------------------------------- the prompt

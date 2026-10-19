@@ -237,6 +237,7 @@ def _view(
         "request_decision": None,
         "self_update_decision": None,
         "self_update_pending": False,
+        "self_update_waiting": None,
         # What waits for the researcher's yes, as the step stored it; read by
         # decide_self_update, never sent to the browser.
         "pending_self_update": None,
@@ -268,6 +269,8 @@ def _view(
         if isinstance(pending, dict):
             base["pending_self_update"] = pending
             base["self_update_pending"] = base["self_update_decision"] is None
+            waiting = out.get("self_update_waiting")
+            base["self_update_waiting"] = dict(waiting) if isinstance(waiting, dict) else None
     return base
 
 

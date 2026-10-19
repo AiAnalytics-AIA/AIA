@@ -122,8 +122,14 @@ def worker(
     *,
     configured: bool = True,
     approvals: tuple[MaterialApproval, ...] = APPROVALS,
+    route_approved_for: str | None = None,
 ) -> Worker:
-    cfg = settings()
+    cfg = (
+        settings()
+        if route_approved_for is None
+        # Client-confidential material needs the route's retention stated, too.
+        else settings(AIA_AI_ROUTE_APPROVED_FOR=route_approved_for, AIA_AI_ROUTE_RETENTION_DAYS="0")
+    )
     executor = ResearchLeadExecutor(
         store=store,
         build=build,
@@ -303,17 +309,22 @@ def test_a_client_note_makes_the_turn_class_a_and_a_class_c_route_refuses_it(
 def test_the_turn_applies_only_what_stays_in_its_client_and_the_rest_waits(
     ready: Any, database_url: str, store: Any, build: Any
 ) -> None:
-    """Codex P1 on #484: client notes and forgets apply with the turn; a personal note and a
-    file change, which reach every client's studies, wait for the researcher's yes."""
+    """Codex P1 on #484: a client note and forgetting one apply with the turn; a personal
+    note, forgetting one, and a file change, which reach every client's studies, wait for the
+    researcher's yes (the review of baac33d5: a personal note stays active until then)."""
     kept = "Píše stručně a po bodech."
+    client_kept = "Acme chce výsledky do pátku."
     with ready.sessions() as session:
-        scope = ready.lead_scope(session)
-        seeded = ResearcherLeadRepository(session, scope).apply_self_update(
+        repo = ResearcherLeadRepository(session, ready.lead_scope(session))
+        (shown,) = repo.apply_self_update(
             SelfUpdate(remember=[RememberNote(scope="personal", text=kept)]),
             source_turn_id="LDT-seed",
-        )
+        ).remembered
+        (shown_client,) = repo.apply_self_update(
+            SelfUpdate(remember=[RememberNote(scope="client", text=client_kept)]),
+            source_turn_id="LDT-seed",
+        ).remembered
         session.commit()
-    (shown,) = seeded.remembered
     turn_id = post(ready)
     update = {
         "reply": "Upravil bych svůj USER a zapamatoval si preferenci.",
@@ -323,27 +334,47 @@ def test_the_turn_applies_only_what_stays_in_its_client_and_the_rest_waits(
                 {"scope": "personal", "text": "Preferuje tabulky."},
                 {"scope": "client", "text": "Tento klient chce grafy."},
             ],
-            "forget": [shown, "LMM-00000000000000000000"],
+            "forget": [shown, "LMM-00000000000000000000", shown_client],
         },
     }
     transport = RecordedBedrock([update])
-    approvals = (*APPROVALS, approve(kept))
-    assert worker(ready, database_url, store, build, transport, approvals=approvals).run_once()
+    approvals = (*APPROVALS, approve(kept), approve(client_kept))
+    assert worker(
+        ready,
+        database_url,
+        store,
+        build,
+        transport,
+        approvals=approvals,
+        route_approved_for="CLASS_A_CLIENT_CONFIDENTIAL,CLASS_C_INTERNAL",
+    ).run_once()
 
     turn = lead_turn(ready, turn_id)
-    assert turn["status"] == "COMPLETED"
+    assert turn["status"] == "COMPLETED", turn["reason"]
     changes = turn["changes"]
     assert (changes["user"], changes["soul"], changes["name"]) == (False, False, False)
-    assert len(changes["remembered"]) == 1 and changes["forgotten"] == [shown]
+    assert len(changes["remembered"]) == 1 and changes["forgotten"] == [shown_client]
     assert {"index": 1, "op": "forget", "reason": "unknown_memory"} in turn["dropped"]
     assert turn["self_update_pending"] is True
+    assert turn["self_update_waiting"] == {
+        "name": None,
+        "soul": None,
+        "user": "Chce tabulky.",
+        "remember": ["Preferuje tabulky."],
+        "forget": [{"memory_id": shown, "text": kept}],
+    }
     with ready.sessions() as session:
         repo = ResearcherLeadRepository(session, ready.lead_scope(session))
         lead = repo.get()
         assert lead is not None and lead.user == "" and repo.revisions() == []
         notes = repo.notes_for_study()
-        assert [(n.scope, n.text) for n in notes] == [("client", "Tento klient chce grafy.")]
-        assert notes[0].source_turn_id == turn_id and notes[0].created_by == "lead"
+        # The personal note it wants to forget is still active until the researcher says so.
+        assert sorted((n.scope, n.text) for n in notes) == [
+            ("client", "Tento klient chce grafy."),
+            ("personal", kept),
+        ]
+        added = next(n for n in notes if n.scope == "client")
+        assert added.source_turn_id == turn_id and added.created_by == "lead"
 
     with ready.sessions() as session:
         scope = ready.lead_scope(session)

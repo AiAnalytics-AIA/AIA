@@ -45,6 +45,7 @@ from aia_core.domain.research_lead import (
     question_add_problem,
     split_self_update,
     unreadable_numbers,
+    waiting_self_update,
 )
 from aia_core.domain.residency import DataClass
 
@@ -347,9 +348,16 @@ def test_a_forget_reaches_only_notes_the_turn_was_shown() -> None:
     assert ground_self_update(None, []) == (None, [])
 
 
+SHOWN_NOTES: list[dict[str, Any]] = [
+    {"memory_id": "LMM-aa", "scope": "client", "text": "Klientská stará"},
+    {"memory_id": "LMM-bb", "scope": "personal", "text": "Osobní stará"},
+]
+
+
 def test_only_what_stays_inside_the_turns_client_applies_at_once() -> None:
     """Codex P1 on #484: a personal note or a file change reaches every client's studies, so
-    it waits for the researcher; client notes and forgets apply with the turn."""
+    it waits for the researcher; client notes and forgetting a client note apply with the
+    turn."""
     update = SelfUpdate.model_validate(
         {
             "name": "Můj",
@@ -362,17 +370,40 @@ def test_only_what_stays_inside_the_turns_client_applies_at_once() -> None:
             "forget": ["LMM-aa"],
         }
     )
-    now, waits = split_self_update(update)
+    now, waits = split_self_update(update, SHOWN_NOTES)
     assert now is not None and waits is not None
     assert [(n.scope, n.text) for n in now.remember] == [("client", "Klientská")]
     assert now.forget == ["LMM-aa"] and (now.name, now.soul, now.user) == (None, None, None)
     assert [(n.scope, n.text) for n in waits.remember] == [("personal", "Osobní")]
     assert (waits.name, waits.soul, waits.user, waits.forget) == ("Můj", "# S", "U", [])
     only_client = SelfUpdate.model_validate({"remember": [{"scope": "client", "text": "K"}]})
-    assert split_self_update(only_client)[1] is None
+    assert split_self_update(only_client, SHOWN_NOTES)[1] is None
     only_personal = SelfUpdate.model_validate({"remember": [{"scope": "personal", "text": "P"}]})
-    assert split_self_update(only_personal)[0] is None
-    assert split_self_update(None) == (None, None)
+    assert split_self_update(only_personal, SHOWN_NOTES)[0] is None
+    assert split_self_update(None, SHOWN_NOTES) == (None, None)
+
+
+def test_forgetting_a_personal_note_waits_for_the_researcher() -> None:
+    """The review of baac33d5: a personal note loads into every client's studies, so dropping
+    it changes them all, as keeping one does; only a client note's forget applies now. A
+    forget the shown notes do not name as a client note waits too (unknown is not client)."""
+    update = SelfUpdate.model_validate({"forget": ["LMM-bb", "LMM-aa", "LMM-cc"]})
+    now, waits = split_self_update(update, SHOWN_NOTES)
+    assert now is not None and now.forget == ["LMM-aa"]
+    assert waits is not None and waits.forget == ["LMM-bb", "LMM-cc"]
+    only_personal = SelfUpdate.model_validate({"forget": ["LMM-bb"]})
+    assert split_self_update(only_personal, SHOWN_NOTES) == (None, only_personal)
+    assert waiting_self_update(waits.model_dump(mode="json"), SHOWN_NOTES) == {
+        "name": None,
+        "soul": None,
+        "user": None,
+        "remember": [],
+        "forget": [
+            {"memory_id": "LMM-bb", "text": "Osobní stará"},
+            {"memory_id": "LMM-cc", "text": None},
+        ],
+    }
+    assert waiting_self_update(None, SHOWN_NOTES) is None
 
 
 # --------------------------------------------------------------------------- applying an edit
