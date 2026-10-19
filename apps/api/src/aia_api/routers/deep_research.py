@@ -824,7 +824,7 @@ def add_source_to_knowledge(
     snapshot ``source_ref`` and the accepted finding ``evidence_id`` citing it must both be in
     it (404 ``source_not_in_run``). Once per client and URL: a second add answers 200
     ``exists`` with the item and writes nothing. Needs the client's knowledge permissions;
-    where the client turned self-approval off it answers 201 ``proposed``.
+    where the client or the Study turned self-approval off it answers 201 ``proposed``.
     """
     try:
         client = resolver.client_context(principal, client_id=scope.client_id)

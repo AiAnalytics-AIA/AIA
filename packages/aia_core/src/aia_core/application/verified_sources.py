@@ -13,7 +13,7 @@ finding citing it must both be in that bundle; the URL, title, quote and hash ar
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Final
 
 from sqlalchemy.orm import Session
@@ -58,7 +58,9 @@ def add_verified_source(
     Study's client's knowledge, as the person in ``client`` who checked it.
 
     Needs ``EDIT_STUDY`` on the Study (to read the run's evidence) and the client's knowledge
-    permissions (to write). ``client`` must be the Study's own client. Raises
+    permissions (to write). ``client`` must be the Study's own client. The click is made on
+    the Study, so the Study's self-approval rule holds as well as the client's: where either
+    turns it off, the source is filed as a proposal another person decides. Raises
     :class:`SourceNotInRun` when the snapshot is not in the run's sealed bundle, or no accepted
     finding with ``evidence_id`` cites it; a run of another Study is not found.
     """
@@ -78,6 +80,10 @@ def add_verified_source(
     if snapshot is None or finding is None or not snapshot.url:
         raise SourceNotInRun(snapshot_id)
     title = (snapshot.title.strip() or snapshot.url)[:_TITLE_MAX]
+    if not study.self_approval.allowed:
+        # Narrowed, never widened: the client's context carries its own rule, which a Study
+        # that turned self-approval off must not be able to get around from its own screen.
+        client = replace(client, self_approval=study.self_approval)
     added = ClientKnowledgeRepository(session).add_source_once(
         client,
         url=snapshot.url,

@@ -157,3 +157,24 @@ def test_another_studys_run_is_not_found_and_writes_nothing(
     )
     assert _sources(other_client_lead, world, other_client) == []
     assert _sources(researcher, world) == []
+
+
+def test_a_study_with_self_approval_off_files_the_source_as_a_proposal(
+    researcher: TestClient, owner: TestClient, world: Any, sealed: EvidenceBundle
+) -> None:
+    """The client allows self-approval; the Study turned it off. The Study's rule is the more
+    specific one, so the click files a proposal another person decides, never knowledge."""
+    configured = owner.put(
+        f"{API}/self-approval", json={"allowed": False, "study_id": world.study_id()}
+    )
+    assert configured.status_code == 200, configured.text
+    run_id = _run(researcher, world)
+    added = _add(researcher, world, run_id, SNAPSHOT, FINDING)
+    assert added.status_code == 201, added.text
+    body = added.json()
+    assert body["status"] == "proposed" and body["item_id"] is None and body["proposal_id"]
+    assert _sources(researcher, world) == []
+    # The pending proposal holds the URL: a second click writes nothing more.
+    again = _add(researcher, world, run_id, SNAPSHOT, FINDING)
+    assert again.status_code == 200 and again.json()["status"] == "exists"
+    assert again.json()["proposal_id"] == body["proposal_id"]
