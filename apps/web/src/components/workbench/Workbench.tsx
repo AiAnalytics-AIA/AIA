@@ -13,7 +13,7 @@ import { type ReactNode, useCallback, useEffect, useMemo, useState, useSyncExter
 
 import { ApiError, api, lead as leadApi, type Study } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
-import { describeEdit, editStage, focusSelector, type LeadEdit, type LeadRequest, type LeadTurn, type LeadView } from "@/lib/lead";
+import { describeEdit, editStage, focusSelector, targetOfElement, type LeadEdit, type LeadRequest, type LeadTurn, type LeadView } from "@/lib/lead";
 import { type FocusMode, readSplit, writeSplit } from "@/lib/workbench-split";
 import { PHASES, STAGES, STAGE_ORDER, stageHref, stageOf, stageState, type WorkbenchStage } from "@/lib/workbench-stages";
 import { blockers, designLane, runLane } from "@/research/lane";
@@ -101,6 +101,31 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [turns, setTurns] = useState<LeadTurn[]>([]);
   const [leadEpoch, setLeadEpoch] = useState(0);
+  // Pointing at the artifact: "@" arms it, the next click on an element the Lead can name is the
+  // focus of the next message. Escape, or a click on nothing nameable, disarms it.
+  const [picking, setPicking] = useState(false);
+  const [focus, setFocus] = useState<{ id: string; label: string } | null>(null);
+  useEffect(() => {
+    if (!picking) return;
+    const body = document.getElementById("artbody");
+    const onClick = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const t = targetOfElement(e.target as Element);
+      if (t) setFocus(t);
+      setPicking(false);
+      document.getElementById("composer")?.focus();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPicking(false);
+    };
+    body?.addEventListener("click", onClick, true);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      body?.removeEventListener("click", onClick, true);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [picking]);
   const [notice, setNotice] = useState<string | null>(null);
   const [study, setStudy] = useState<Study | null>(null);
   useEffect(() => {
@@ -228,12 +253,13 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
 
   const blocked = blockers(state).length;
   const leadPane = (
-    <LeadPane studyId={frame.studyId} stage={stage} canEdit={frame.canEdit} focus={null} onView={onView} onRequest={onRequest} onTurns={setTurns} epoch={leadEpoch}
+    <LeadPane studyId={frame.studyId} stage={stage} canEdit={frame.canEdit} focus={focus} picking={picking}
+      onPick={() => setPicking((p) => !p)} onClearFocus={() => setFocus(null)} onView={onView} onRequest={onRequest} onTurns={setTurns} epoch={leadEpoch}
       mode={mode} onFocusMode={() => setMode((m) => (m === "conversation" ? "split" : "conversation"))} />
   );
 
   return (
-    <div className="wb" data-workbench>
+    <div className={`wb${picking ? " wb-picking" : ""}`} data-workbench>
       <a href="#composer" className="skip">Přeskočit na zprávu</a>
       <StudyHeader frame={frame} study={study} pending={open.length} blocked={blocked} onPending={() => open[0] && go(editStage(open[0].edit))} />
       <StageNav stage={stage} lane={lane} onOpen={go} />
@@ -257,6 +283,7 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
                   </button>
                 </div>
               </div>
+              {picking ? <div className="artbar artbar--op" role="status"><Icon name="at" size={13} /><div className="artbar__grow">Klikněte na otázku, oddíl nebo část zadání, o které chcete s Vedoucím mluvit. Esc zruší.</div></div> : null}
               {notice ? <div className="artbar artbar--stale" role="status"><Glyph tone="reopened" size={12} /><div className="artbar__grow">{notice}</div><button type="button" className="iconbtn" aria-label="Zavřít" onClick={() => setNotice(null)}><Icon name="close" size={14} /></button></div> : null}
               {here.length ? <EditsBar items={here} state={state} marks={marks} canEdit={frame.canEdit} onAccept={(keys) => void decide("accept", keys)} onDismiss={(keys) => void decide("dismiss", keys)} /> : null}
               <div className="artstage">

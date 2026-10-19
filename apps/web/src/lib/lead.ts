@@ -260,3 +260,28 @@ export function focusSelector(target: string): string {
   if (kind === "plan" && id) return id === "sets" || id === "tracked_sets" ? `[id="plan-sets"]` : id === "comments" ? `[id="plan-comments"]` : `[id="plan-understanding"]`;
   return `[data-aia="${css(target)}"], [id="${css(target)}"]`;
 }
+
+/**
+ * The Lead target an element of a stage screen stands for: the reverse of focusSelector, for the
+ * person pointing at what they mean. Walks up from the clicked element to the nearest one the
+ * stage screens identify; null when the click was on nothing the Lead can name.
+ */
+export function targetOfElement(el: Element | null): { id: string; label: string } | null {
+  for (let at: Element | null = el; at; at = at.parentElement) {
+    const id = at.getAttribute("id") ?? "";
+    const text = (at.textContent ?? "").replace(/\s+/g, " ").trim();
+    const label = (s: string) => (s.length > 60 ? `${s.slice(0, 57)}…` : s);
+    let m: RegExpMatchArray | null;
+    if ((m = id.match(/^qedit_(.+)$/))) {
+      const field = at.querySelector("textarea, input");
+      const wording = field && "value" in field && typeof field.value === "string" && field.value.trim() ? field.value : text;
+      return { id: `question:${m[1]}`, label: `Otázka ${m[1]}: ${label(wording)}` };
+    }
+    if ((m = id.match(/^qblock_(.+)$/))) return { id: `section:${m[1]}`, label: `Oddíl: ${label(at.querySelector("h3, h2")?.textContent?.trim() || m[1]!)}` };
+    if ((m = id.match(/^brief-(.+)$/))) return { id: `brief:${m[1]}`, label: `Zadání: ${label(at.querySelector("h2, h3, label")?.textContent?.trim() || m[1]!)}` };
+    if (id === "plan-sets") return { id: "plan:sets", label: "Návrh: sledované sady" };
+    if (id === "plan-comments") return { id: "plan:comments", label: "Návrh: komentáře" };
+    if (id.startsWith("plan-")) return { id: "plan:narrative", label: "Návrh: porozumění zadání" };
+  }
+  return null;
+}

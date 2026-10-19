@@ -52,7 +52,7 @@ afterEach(() => {
 });
 
 const pane = (over: Partial<Parameters<typeof LeadPane>[0]> = {}) => (
-  <LeadPane studyId="STU-1" stage="brief" canEdit focus={null} onView={vi.fn()} onRequest={vi.fn(async () => {})} onTurns={vi.fn()} onFocusMode={vi.fn()} mode="split" epoch={0} {...over} />
+  <LeadPane studyId="STU-1" stage="brief" canEdit focus={null} picking={false} onPick={vi.fn()} onClearFocus={vi.fn()} onView={vi.fn()} onRequest={vi.fn(async () => {})} onTurns={vi.fn()} onFocusMode={vi.fn()} mode="split" epoch={0} {...over} />
 );
 
 describe("LeadPane", () => {

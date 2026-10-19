@@ -514,4 +514,6 @@ button { cursor: pointer; }
 .chg__before { color: var(--ink-muted); text-decoration: line-through; }
 .chg__why { font-size: 12px; line-height: 16px; color: var(--ink-muted); }
 .chg__refused { font-size: 12px; color: var(--status-fault); font-weight: 400; }
+.wb-picking .artbody { cursor: crosshair; }
+.wb-picking .artbody :is([id^="qedit_"], [id^="qblock_"], [id^="brief-"], [id^="plan-"]):hover { outline: 2px solid var(--signal); outline-offset: 2px; }
 }

@@ -40,12 +40,16 @@ const time = (iso: string) => {
 /** The newest Lead turn that finished: the one whose view tools have been applied. */
 const newestCompleted = (turns: LeadTurn[]) => [...turns].reverse().find((t) => t.actor === "lead" && t.status === "COMPLETED") ?? null;
 
-export function LeadPane({ studyId, stage, canEdit, focus, onView, onRequest, onTurns, onFocusMode, mode, epoch }: {
+export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onClearFocus, onView, onRequest, onTurns, onFocusMode, mode, epoch }: {
   studyId: string;
   stage: WorkbenchStage;
   canEdit: boolean;
   /** What the person has pointed at in the artifact, sent with the next message. */
   focus: { id: string; label: string } | null;
+  /** Pointing at the artifact is armed: the next click there is the focus. */
+  picking: boolean;
+  onPick: () => void;
+  onClearFocus: () => void;
   onView: (ops: LeadView[]) => void;
   onRequest: (turn: LeadTurn, r: LeadRequest) => Promise<void>;
   /** Changes when something outside the pane decided on a turn: read the session again. */
@@ -133,6 +137,7 @@ export function LeadPane({ studyId, stage, canEdit, focus, onView, onRequest, on
     if (session?.busy || sending) setQueued((q) => [...q, t]);
     else void post({ kind: "message", text: t, stage, focus });
     setDraft("");
+    onClearFocus();
   };
 
   const hatch = async () => {
@@ -163,7 +168,7 @@ export function LeadPane({ studyId, stage, canEdit, focus, onView, onRequest, on
         {session && !session.available ? <div className="msg"><div className="notice"><Glyph tone="inert" size={11} />{reasonWords(session.unavailable_reason ?? "research_lead_unavailable")}</div></div> : null}
       </Conversation>
       <Composer draft={draft} setDraft={setDraft} onSend={send} busy={!!session?.busy || sending} queued={queued} onUnqueue={(i) => setQueued((q) => q.filter((_, j) => j !== i))}
-        disabled={!canEdit || !me?.hatched || !session?.available} focus={focus} />
+        disabled={!canEdit || !me?.hatched || !session?.available} focus={focus} picking={picking} onPick={onPick} onClearFocus={onClearFocus} />
     </div>
   );
 }
@@ -326,9 +331,10 @@ function RequestCard({ r, approved, onApprove, canEdit }: { r: LeadRequest; appr
   );
 }
 
-function Composer({ draft, setDraft, onSend, busy, queued, onUnqueue, disabled, focus }: {
+function Composer({ draft, setDraft, onSend, busy, queued, onUnqueue, disabled, focus, picking, onPick, onClearFocus }: {
   draft: string; setDraft: (v: string) => void; onSend: (t: string) => void; busy: boolean;
   queued: string[]; onUnqueue: (i: number) => void; disabled: boolean; focus: { id: string; label: string } | null;
+  picking: boolean; onPick: () => void; onClearFocus: () => void;
 }) {
   const ta = useRef<HTMLTextAreaElement>(null);
   return (
@@ -342,7 +348,7 @@ function Composer({ draft, setDraft, onSend, busy, queued, onUnqueue, disabled, 
           ))}
         </div>
       ) : null}
-      {focus ? <div className="refchip"><Icon name="at" size={12} /><b>{focus.label}</b></div> : null}
+      {focus ? <div className="refchip"><Icon name="at" size={12} /><b>{focus.label}</b><button type="button" className="iconbtn" style={{ width: 20, height: 20 }} aria-label="Zrušit odkaz" onClick={onClearFocus}><Icon name="close" size={11} /></button></div> : null}
       <div className="composer">
         <label className="sr-only" htmlFor="composer">Napište Vedoucímu výzkumu</label>
         <textarea id="composer" ref={ta} rows={1} value={draft} disabled={disabled} placeholder={focus ? "Co se má změnit? Např. „kratší“, „přejmenovat na …“" : "Napište Vedoucímu výzkumu…"}
@@ -352,6 +358,7 @@ function Composer({ draft, setDraft, onSend, busy, queued, onUnqueue, disabled, 
             if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(draft); }
           }} />
         <div className="composer__bar">
+          <button type="button" className={`iconbtn${picking ? " is-on" : ""}`} aria-pressed={picking} aria-label="Ukázat na prvek artefaktu (@)" title="Ukázat na prvek artefaktu (@)" disabled={disabled} onClick={onPick}><Icon name="at" size={16} /></button>
           <button type="button" className="btn btn--sm btn--quiet" disabled={disabled} onClick={() => onSend("Kde jsme a co mám udělat dál?")}>Kde jsme?</button>
           <button type="button" className="btn btn--sm btn--quiet" disabled={disabled} onClick={() => onSend("Projdi tento krok a navrhni konkrétní úpravy.")}>Navrhni úpravy</button>
           <button type="button" className="composer__send" aria-label={busy ? "Zařadit do fronty" : "Odeslat"} title={busy ? "Zařadit do fronty" : "Odeslat"} disabled={disabled || !draft.trim()} onClick={() => onSend(draft)}><Icon name="send" size={16} /></button>
