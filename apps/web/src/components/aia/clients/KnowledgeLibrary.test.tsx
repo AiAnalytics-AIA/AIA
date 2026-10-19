@@ -362,10 +362,13 @@ describe("a source marked Interní dokument", () => {
     expect(panel.getByText(what)).toBeTruthy();
     expect(document.getElementById(toggle.getAttribute("aria-describedby") ?? "")?.textContent).toBe(what);
     expect(panel.queryByText(/Označeno/)).toBeNull();
+    // An unmarked source shows no marker, so it asks nobody's identity (Codex on #487).
+    expect(calls.some((c) => c.url.endsWith("/workspace/me"))).toBe(false);
 
     fireEvent.click(toggle);
     await waitFor(() => expect(toggle.getAttribute("aria-pressed")).toBe("true"));
-    expect(panel.getByText(/Označeno .* · vámi/)).toBeTruthy();
+    // Who marked it is read once the mark is shown.
+    expect(await panel.findByText(/Označeno .* · vámi/)).toBeTruthy();
     const puts = () => calls.filter((c) => c.method === "PUT" && c.url.endsWith(`/sources/${SRC}/internal`));
     expect(puts()[0].body).toEqual({ internal: true });
 

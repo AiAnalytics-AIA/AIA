@@ -172,14 +172,8 @@ function InternalMark({
 }) {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
-  const [me] = useResource(() => workspace.me(), []);
   const marked = !!internal;
   if (!marked && !mayMark) return null;
-  const who = internal
-    ? me.state === "ready" && me.data.user_id === internal.by
-      ? t("aia.sources.internal.you")
-      : tv("aia.sources.internal.other", { id: internal.by })
-    : "";
   const toggle = async () => {
     setBusy(true);
     setFailed(null);
@@ -211,13 +205,24 @@ function InternalMark({
       ) : (
         <span><Tag>{t("aia.sources.internal.toggle")}</Tag></span>
       )}
-      {internal ? (
-        <span className="text-ink-muted">
-          {tv("aia.sources.internal.marked", { when: (internal.at ? relative(internal.at) : null) ?? "", who })}
-        </span>
-      ) : null}
+      {internal ? <MarkedBy internal={internal} /> : null}
       {failed ? <p role="alert" className="text-status-fault">{failed}</p> : null}
     </div>
+  );
+}
+
+/** Who marked a source and when. Asks who the reader is only where a mark is shown, so a list of
+ * unmarked sources sends no identity request per card. */
+function MarkedBy({ internal }: { internal: NonNullable<ClientSource["internal"]> }) {
+  const [me] = useResource(() => workspace.me(), []);
+  const who =
+    me.state === "ready" && me.data.user_id === internal.by
+      ? t("aia.sources.internal.you")
+      : tv("aia.sources.internal.other", { id: internal.by });
+  return (
+    <span className="text-ink-muted">
+      {tv("aia.sources.internal.marked", { when: (internal.at ? relative(internal.at) : null) ?? "", who })}
+    </span>
   );
 }
 
