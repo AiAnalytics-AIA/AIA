@@ -707,6 +707,8 @@ class ResearchLead:
             raise LeadRejected("a message needs its text", reason="invalid_lead_turn")
         if kind == "greeting" and message is not None:
             raise LeadRejected("a greeting carries no text", reason="invalid_lead_turn")
+        if kind == "greeting" and focus is not None:
+            raise LeadRejected("a greeting carries no focus", reason="invalid_lead_turn")
         if message is not None and len(message) > MESSAGE_MAX_CHARS:
             raise LeadRejected(
                 f"a message is at most {MESSAGE_MAX_CHARS} characters", reason="invalid_lead_turn"

@@ -814,8 +814,9 @@ def context_data_class(
 ) -> DataClass | None:
     """The class a turn is sent as, by the design agents' rule (``agent_request``).
 
-    The design (its content and analysis), the study's identity, the message and every
-    earlier message are classified by their exact bytes; an earlier reply carries the class
+    The design (its content and analysis), the study's identity, the message, the focus's
+    label (text the browser sends beside it) and every earlier message are classified by
+    their exact bytes; an earlier reply carries the class
     its turn was sent as (unknown refuses); approved knowledge and client notes are Class A;
     the prompt is classified as the agents' is. The most restrictive wins; unknown refuses.
     """
@@ -834,6 +835,9 @@ def context_data_class(
         classes.append(_material_class(design["analysis"], approvals))
     if view.get("message"):
         classes.append(_material_class(view["message"], approvals))
+    focus = view.get("focus")
+    if isinstance(focus, Mapping) and focus.get("label"):
+        classes.append(_material_class(str(focus["label"]), approvals))
     for turn in layer(context, "conversation")["turns"]:
         if turn.get("actor") == "person":
             classes.append(_material_class(turn.get("text") or "", approvals))

@@ -793,6 +793,29 @@ def test_unclassified_material_refuses_dispatch_whatever_else_is_known() -> None
     )
 
 
+def test_an_unapproved_focus_label_refuses_dispatch_like_a_message() -> None:
+    """The review of baac33d5: the focus label is text from the browser that reached the
+    model unclassified."""
+    view = {
+        "kind": "message",
+        "stage": "brief",
+        "focus": {"id": "question:q1", "label": "Acme: tajný plán"},
+        "message": "Nová zpráva",
+    }
+    message = _approve("Nová zpráva")
+    assert _request(_context(view=view), IDENTITY, DESIGN_OK, message).data_classification is None
+    label = _approve("Acme: tajný plán", DataClass.CLASS_A_CLIENT_CONFIDENTIAL)
+    assert (
+        _request(_context(view=view), IDENTITY, DESIGN_OK, message, label).data_classification
+        is DataClass.CLASS_A_CLIENT_CONFIDENTIAL
+    )
+    unlabelled = {**view, "focus": {"id": "question:q1", "label": ""}}
+    assert (
+        _request(_context(view=unlabelled), IDENTITY, DESIGN_OK, message).data_classification
+        is DataClass.CLASS_C_INTERNAL
+    )
+
+
 def test_knowledge_and_client_notes_make_the_turn_class_a() -> None:
     knowledge = [{"item_id": "K1", "revision": 1, "kind": "FACT", "title": "t", "summary": "s"}]
     assert (

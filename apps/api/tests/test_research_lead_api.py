@@ -225,6 +225,10 @@ def test_off_the_conversation_reads_and_takes_no_message(
         ({"kind": "shout", "stage": "brief"}, None),
         ({"kind": "message", "stage": "nowhere", "text": "x"}, "invalid_lead_turn"),
         ({"kind": "greeting", "stage": "brief", "text": "x"}, "invalid_lead_turn"),
+        (
+            {"kind": "greeting", "stage": "brief", "focus": {"id": "question:q1", "label": "x"}},
+            "invalid_lead_turn",
+        ),
     ],
 )
 def test_an_invalid_turn_is_422(
