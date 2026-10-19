@@ -42,6 +42,8 @@ different readings.
 | F9 | Parity is "information" in the new contract and "blocking on FAIL" in CI | AC (none) | no |
 | F10 | The USD 25 acceptance budget has no allocation | AC-04, AC-15 | no |
 | F11 | How a person works an artifact by hand and how the Lead points at it (questionnaire first) | AC-02, AC-03 | decided 2026-10-19 |
+| F12 | Two people editing one study, each with their own Lead: the designs assume one person and one Lead | AC-02, AC-07 | recommendation made; owner to confirm |
+| F13 | Stage meaning and order: unit of acceptance, rail order, paid work without a card, locks | AC-02, AC-04, AC-05 | decided 2026-10-19 |
 
 ---
 
@@ -359,6 +361,69 @@ cannot be relabelled after items move.
 The rules apply to every artifact, not the questionnaire alone: a stable id, one shared edit
 vocabulary, per-change accept, a pointer with a revision.
 
+### F12. Two people, one study, two Leads
+
+**Claim.** None of the four designs shows more than one person. The V3 boards say "one session for
+the life of this study" and show one researcher. Production already differs: a researcher's Lead
+conversation is theirs alone, "nobody reads another's turns, even on the same Study"
+(`infrastructure/study_lead_repository.py:1-6 @ 085abe0`, ADR 0026 decision 8), while the working
+copy is one per study and a save naming a stale base revision is refused whole
+(`infrastructure/study_workspace_repository.py:234-271 @ 085abe0`, `stale_revision`).
+
+**Consequence.** Two researchers editing different questions at once: the second autosave is refused
+and the person is told, though nothing overlaps (hypothesis: the web does not merge on a refusal;
+not checked). Each Lead's proposals go stale when the other person accepts a revision. Neither Lead
+knows what the other person changed. Who may accept a proposal another person's Lead prepared is
+undefined.
+
+**Recommended shape** (owner to confirm; alternatives considered below):
+
+1. **One working copy per study** (the source of truth), **one Lead conversation per person**, as
+   built. A shared chat would interleave two people's requests, blur who approved a paid job, and
+   conflict with each researcher's own notes and "Sees" context.
+2. **Item-level merge, not whole-copy refusal.** With the shared edit vocabulary (F11) a manual save
+   is a set of operations applied on the server to the latest working copy; a conflict exists only
+   where the same item and field changed since the base, and is shown on that item.
+3. **Presence, advisory only.** Who else is in the study and which artifact or element they have open
+   or are editing ("Jana edits Q8"). It informs; it never blocks.
+4. **An attributed change feed to each Lead.** The Lead's context includes working-copy changes made
+   by other people since its last turn, each with its author, so it does not propose over them.
+5. **Proposals belong to the study, not to a conversation.** Visible to everyone in the artifact as
+   change blocks labelled with who asked; any member with `APPROVE_GATE` may accept, subject to the
+   scope's self-approval rule; the item-level stale rule already protects overlap
+   (`application/proposal_accept.py`). A revision names its author.
+6. **Spend is the study's.** Approval cards go to the person whose Lead prepared the job, and the
+   ledger names them; the budget and any envelope (F13) are shared.
+
+**Alternatives.** *One shared Lead:* simpler, but the accountability and privacy problems above.
+*One editor at a time (a lock per study or per stage):* safe and cheap, and it makes collaboration
+impossible. *Real-time co-editing of the working copy:* heavy, and at odds with revisions and
+gates.
+
+**Test that would have caught it.** Two sessions on one study edit different questions in turn: both
+edits survive; the same question: the second sees a conflict on that question only.
+
+### F13. Stage meaning, order, paid work and locks
+
+**Owner decisions (2026-10-19):**
+
+1. **The revision is the unit of acceptance.** Accepting always creates a whole revision. Each stage
+   shows "unchanged since the accepted revision", "changed since" or "proposal waiting"; the rail
+   count becomes "stages current with revision n". A reopened stage shows "re-check" and clears when
+   its content is confirmed unchanged on the next accept. The designs' "3 of 11 accepted" is
+   replaced.
+2. **Order: Results, Sociomap, Analysis, Report.** Matches the engine, the Fieldwork step list and
+   the scenario; the V3 rail's Analysis-before-Sociomap is dropped.
+3. **A per-study envelope** for paid work: the Lead may start workers and Deep Research inside an
+   allowance the owner approves, each job logged, stopping at the cap. **This supersedes MVP-13**
+   ("a card at a time, no standing budget"). Open, and asked next: who sets it, the cap, which jobs
+   are inside it, expiry, and whether priced Deep Research routes are inside it (ADR 0022 requires
+   approved settings for them; ADR 0019 gate 2 requires confirmation at the spend limit).
+4. **A hard lock with a recorded unlock.** Set 1 and the Sociomap rating question are blocked until
+   the person chooses "Unlock for this revision", which warns that the map changes and writes an
+   approval-ledger row. The Lead can never unlock. The lock text stops saying "methodology
+   revision".
+
 ---
 
 ## 3. The acceptance criteria, traced to work
@@ -421,6 +486,11 @@ dated, until the provider contract and the method owner have owners.
 | Q9 | F11: per-change accept and reject inside a proposal | **decided 2026-10-19** |
 | Q10 | F11: a stable id, the number a label, a pointer carrying the revision | **decided 2026-10-19** |
 | Q11 | F11: the questionnaire's AI buttons removed (MVP-8) | **decided 2026-10-19** |
+| Q12 | F13: the revision is the unit of acceptance; a stage is current, changed or re-check | **decided 2026-10-19** |
+| Q13 | F13: stage order Results, Sociomap, Analysis, Report | **decided 2026-10-19** |
+| Q14 | F13: a per-study envelope for paid work, superseding MVP-13; parameters open | **decided 2026-10-19; parameters open** |
+| Q15 | F13: a hard lock on Sociomap inputs with a recorded unlock | **decided 2026-10-19** |
+| Q16 | F12: two people on one study: one working copy, one Lead each, item-level merge, presence, shared proposals | recommendation; owner to confirm |
 
 ## 6. Follow-ups for a docs PR
 
