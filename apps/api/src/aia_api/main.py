@@ -27,6 +27,7 @@ from .routers import (
     deep_research,
     deep_research_settings,
     health,
+    lead,
     materialize,
     methodology,
     population,
@@ -148,6 +149,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(workspace.router, prefix=API_PREFIX)
     app.include_router(client_sources.router, prefix=API_PREFIX)
     app.include_router(research.router, prefix=API_PREFIX)
+    app.include_router(lead.router, prefix=API_PREFIX)
+    app.include_router(lead.profile_router, prefix=API_PREFIX)
     app.include_router(deep_research.router, prefix=API_PREFIX)
     app.include_router(deep_research_settings.router, prefix=API_PREFIX)
     app.include_router(settings_router.router, prefix=API_PREFIX)

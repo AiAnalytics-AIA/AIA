@@ -1,0 +1,151 @@
+#!/usr/bin/env node
+/** The Research Lead in a real browser (plan research-lead-workbench chunk 12, ADR 0026).
+ * The workbench answers the Lead by a script, never a model (aia_executors.workbench
+ * ScriptedLeadExecutor), so this costs nothing. Start the workbench with the switch on, write
+ * the fixtures, then run:
+ *   AIA_WEB_RESEARCH_WORKBENCH=true python3 tools/ui_workbench/workbench.py up
+ *   python3 tools/ui_workbench/fixture_project.py
+ *   node tools/ui_workbench/lead_journey.mjs [--facade http://127.0.0.1:8780] [--out DIR]
+ * It hatches the researcher's own Lead (or finds it hatched), reads its greeting, sends a message
+ * that asks it to remember something, accepts its edit through the server's gate and reads the
+ * change back after a reload, sees the prepared job as a card it does not approve, and finds the
+ * remembered note on Můj Vedoucí only after the researcher's "Pamatovat si", read only. Nothing
+ * paid starts.
+ */
+import assert from "node:assert/strict";
+import { execSync } from "node:child_process";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+const repo = join(dirname(fileURLToPath(import.meta.url)), "../..");
+const args = process.argv.slice(2);
+const arg = (name, fallback) => (args.includes(`--${name}`) ? args[args.indexOf(`--${name}`) + 1] : fallback);
+const base = arg("facade", "http://127.0.0.1:8780");
+assert(["127.0.0.1", "localhost"].includes(new URL(base).hostname), "This journey uses local fictional identity only");
+const out = arg("out", join(repo, "tmp/ui-workbench/lead-journey"));
+mkdirSync(out, { recursive: true });
+
+async function loadPlaywright() {
+  const require = createRequire(import.meta.url);
+  for (const from of [repo, join(repo, "apps/web")]) {
+    try {
+      return await import(pathToFileURL(require.resolve("playwright", { paths: [from] })).href);
+    } catch {
+      /* next */
+    }
+  }
+  const root = execSync("npm root -g", { encoding: "utf8" }).trim();
+  return await import(pathToFileURL(join(root, "playwright/index.mjs")).href);
+}
+const module = await loadPlaywright();
+const chromium = module.chromium ?? module.default.chromium;
+const browser = await chromium.launch({ executablePath: process.env.AIA_CHROMIUM || undefined });
+const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+await context.addInitScript(() =>
+  sessionStorage.setItem(
+    "aia.session",
+    JSON.stringify({ idToken: "workbench@example.invalid", refreshToken: "", expiresAt: 4102444800000, email: "workbench@example.invalid", subject: "workbench@example.invalid" }),
+  ),
+);
+const page = await context.newPage();
+const errors = [], writes = [], checks = [];
+page.on("pageerror", (e) => errors.push(String(e)));
+page.on("request", (r) => {
+  const path = new URL(r.url()).pathname;
+  if (!["GET", "HEAD", "OPTIONS"].includes(r.method()) && !path.startsWith("/_next/")) writes.push({ method: r.method(), path });
+});
+const check = (name) => checks.push(name);
+
+const fixtures = JSON.parse(readFileSync(join(repo, "tmp/ui-workbench/studies.json"), "utf8"));
+const { client, study } = fixtures.questionnaire;
+const stagePath = (slug) => `/app/clients/${client}/research/${study}/${slug}`;
+const shot = (name) => page.screenshot({ path: join(out, `${name}.png`) });
+const SCRIPTED = "[Workbench · bez modelu]";
+const note = `Pamatuj si, že preferuji krátké otázky (${Date.now()}).`;
+
+try {
+  await page.goto(base + stagePath("questionnaire"));
+  await page.locator("[data-workbench]").waitFor({ timeout: 30000 });
+  const conv = page.locator(".conv");
+  await conv.waitFor();
+
+  // One Lead per researcher: hatched on their click, or already theirs from an earlier run.
+  const hatch = page.getByRole("button", { name: "Vylíhnout mého Vedoucího" });
+  const composer = page.getByLabel("Napište Vedoucímu výzkumu");
+  await Promise.race([hatch.waitFor({ timeout: 20000 }), composer.and(page.locator(":enabled")).waitFor({ timeout: 20000 })]).catch(() => {});
+  if (await hatch.isVisible()) {
+    await hatch.click();
+    check("the researcher hatched their own Lead");
+  } else {
+    check("the researcher's Lead was already hatched");
+  }
+  await page.waitForFunction(() => !document.querySelector("textarea[aria-label='Napište Vedoucímu výzkumu']")?.disabled, null, { timeout: 30000 });
+
+  // The scripted Lead's answers say they are scripted, every time.
+  await conv.getByText(SCRIPTED, { exact: false }).first().waitFor({ timeout: 60000 });
+  check("the Lead's answers say they come from the workbench script, not a model");
+  await shot("1440-greeting");
+
+  const before = await page.locator(`text=${SCRIPTED}`).count();
+  await composer.fill(note);
+  await composer.press("Enter");
+  await conv.getByText(note).waitFor();
+  await page.waitForFunction((n) => document.querySelectorAll(".conv").length && document.body.innerText.split("[Workbench · bez modelu]").length - 1 > n, before, { timeout: 60000 });
+  await conv.getByText("Připravil jsem ukázkovou úpravu", { exact: false }).last().waitFor();
+  check("a message is answered in the conversation, with the stage it was written on");
+
+  // The edit is a change block: nothing changed until the person accepts it.
+  const bar = page.getByRole("region", { name: "Návrhy Vedoucího" });
+  await bar.waitFor({ timeout: 30000 });
+  await shot("1440-change-block");
+  const card = conv.locator(".dec").last();
+  await card.getByRole("button", { name: "Spustit úlohu" }).waitFor();
+  check("the prepared job is a decision card, and nothing starts until it is approved");
+  const acceptOne = bar.getByRole("button", { name: "Přijmout", exact: true }).first();
+  await acceptOne.click();
+  await page.waitForResponse((r) => /\/lead\/turns\/[^/]+\/edits$/.test(new URL(r.url()).pathname) && r.request().method() === "POST", { timeout: 30000 });
+  await page.waitForTimeout(1500);
+  await page.reload();
+  await page.locator("[data-workbench]").waitFor({ timeout: 30000 });
+  await page.waitForFunction(() => [...document.querySelectorAll("textarea, input")].some((e) => (e.value ?? "").includes("(upřesněno)")) || document.body.innerText.includes("(upřesněno)"), null, { timeout: 30000 });
+  check("an accepted edit passes the server's gate and is in the working copy after a reload");
+  await shot("1440-accepted");
+
+  // The note is personal: it would reach every client's studies, so it waits for the
+  // researcher's yes (Codex on #484), and is not on Můj Vedoucí before it.
+  await page.goto(base + "/app/lead");
+  await page.getByRole("heading", { name: "Paměť" }).waitFor({ timeout: 30000 });
+  assert.equal(await page.getByText(note.slice(0, 40), { exact: false }).count(), 0, "a personal note waits for the researcher");
+  check("a personal note the Lead proposed is not on Můj Vedoucí before the researcher says yes");
+  await page.goto(base + stagePath("questionnaire"));
+  await page.locator("[data-workbench]").waitFor({ timeout: 30000 });
+  const keep = page.locator(".conv").getByRole("button", { name: "Pamatovat si" }).last();
+  await keep.waitFor({ timeout: 30000 });
+  await shot("1440-self-update-waiting");
+  await Promise.all([
+    page.waitForResponse((r) => /\/lead\/turns\/[^/]+\/self-update$/.test(new URL(r.url()).pathname) && r.request().method() === "POST", { timeout: 30000 }),
+    keep.click(),
+  ]);
+  await page.locator(".conv").getByText("Zapamatováno pro všechnu vaši práci").last().waitFor({ timeout: 30000 });
+  check("the researcher keeps it with Pamatovat si, and the decision is shown");
+
+  // Můj Vedoucí: the note the Lead was asked to remember, read only.
+  await page.goto(base + "/app/lead");
+  await page.getByRole("heading", { name: "Paměť" }).waitFor({ timeout: 30000 });
+  await page.getByText(note.slice(0, 40), { exact: false }).first().waitFor({ timeout: 30000 });
+  assert.equal(await page.locator("main textarea, main input[type=text]").count(), 0, "Můj Vedoucí is read only");
+  check("Můj Vedoucí shows what the Lead remembered, and nothing on it is editable");
+  await shot("1440-my-lead");
+
+  const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
+  assert.deepEqual(paid, [], "nothing paid started");
+  check("nothing paid started");
+  assert.deepEqual(errors, [], `page errors: ${errors.join("\n")}`);
+} finally {
+  writeFileSync(join(out, "report.json"), JSON.stringify({ checks, errors, writes }, null, 2));
+  await browser.close();
+}
+console.log(checks.map((c) => `ok  ${c}`).join("\n"));
+console.log(`evidence: ${out}`);

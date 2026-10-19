@@ -12,9 +12,10 @@ from __future__ import annotations
 from typing import Annotated, Any
 
 from aia_core.application.workflows import start_workflow
+from aia_core.domain.research_lead import ARTIFACT_TYPE as LEAD_ARTIFACT_TYPE
 from aia_core.domain.scope import Permission, ScopeDenied, StudyContext
 from aia_core.domain.workflow import WorkflowRunStatus
-from aia_core.domain.workflow_templates import UnknownWorkflowType
+from aia_core.domain.workflow_templates import RESEARCH_LEAD, UnknownWorkflowType
 from aia_core.infrastructure.artifact_repository import (
     Artifact,
     ArtifactNotFound,
@@ -90,6 +91,24 @@ def _denied(exc: ScopeDenied) -> HTTPException:
     return _not_found("not_found", "resource")
 
 
+#: Runs these routes never serve. A Lead turn is one researcher's conversation (ADR 0026):
+#: only the Lead's own routes, which read it as that researcher's, may answer it. Its run
+#: lives in the Study's design project, so without this any member of the Study would read
+#: another's turns, notes and pending changes here.
+_PRIVATE_WORKFLOW_TYPES: tuple[str, ...] = (RESEARCH_LEAD,)
+
+
+def _served_run(repo: WorkflowRepository, run_id: str, project_id: str) -> dict[str, Any]:
+    """The run, when these routes may serve it; else ``run_not_found``, as for no run at all."""
+    try:
+        run = repo.get_run(run_id)
+    except WorkflowNotFound as exc:
+        raise _not_found("run_not_found", "run") from exc
+    if run["project_id"] != project_id or run["workflow_type"] in _PRIVATE_WORKFLOW_TYPES:
+        raise _not_found("run_not_found", "run")
+    return run
+
+
 def _summary(run: dict[str, Any]) -> dict[str, Any]:
     run_status = WorkflowRunStatus(run["status"])
     return {
@@ -145,6 +164,18 @@ def _run_response(run: dict[str, Any], *, created: bool | None = None) -> RunRes
             for s in run["steps"]
         ],
     )
+
+
+def _private_artifact(session: SessionDep, scope: StudyContext, artifact: Artifact) -> bool:
+    """A Lead turn's output: by its type, or because a Lead run's attempt produced it."""
+    if artifact.artifact_type == LEAD_ARTIFACT_TYPE:
+        return True
+    if artifact.produced_by_job_id is None:
+        return False
+    produced_by = WorkflowRepository(session, scope).workflow_type_of_attempt(
+        artifact.produced_by_job_id
+    )
+    return produced_by in _PRIVATE_WORKFLOW_TYPES
 
 
 def artifact_response(artifact: Artifact, payload: Any) -> ArtifactResponse:
@@ -248,8 +279,10 @@ def list_runs(
     session: SessionDep,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
 ) -> RunListResponse:
-    """Newest first, without steps."""
-    runs = WorkflowRepository(session, scope).list_runs(project_id=project_id, limit=limit)
+    """Newest first, without steps; a Lead turn's run is not listed (ADR 0026)."""
+    runs = WorkflowRepository(session, scope).list_runs(
+        project_id=project_id, limit=limit, exclude_workflow_types=_PRIVATE_WORKFLOW_TYPES
+    )
     return RunListResponse(items=[RunSummaryResponse(**_summary(r)) for r in runs])
 
 
@@ -262,13 +295,7 @@ def get_run(
     session: SessionDep,
 ) -> RunResponse:
     """The run, its steps, each step's output and append-only attempt history."""
-    try:
-        run = WorkflowRepository(session, scope).get_run(run_id)
-    except WorkflowNotFound as exc:
-        raise _not_found("run_not_found", "run") from exc
-    if run["project_id"] != project_id:
-        raise _not_found("run_not_found", "run")
-    return _run_response(run)
+    return _run_response(_served_run(WorkflowRepository(session, scope), run_id, project_id))
 
 
 @router.get(
@@ -287,10 +314,8 @@ def run_events(
 ) -> list[RunEventResponse]:
     """Events after ``since``, in order. Monotonic ids let a client resume without gaps."""
     repo = WorkflowRepository(session, scope)
+    _served_run(repo, run_id, project_id)
     try:
-        run = repo.get_run(run_id)
-        if run["project_id"] != project_id:
-            raise _not_found("run_not_found", "run")
         events = repo.events(run_id, since=since, limit=limit)
     except WorkflowNotFound as exc:
         raise _not_found("run_not_found", "run") from exc
@@ -338,7 +363,7 @@ def get_artifact(
         artifact = repo.get(artifact_id)
     except ArtifactNotFound as exc:
         raise _not_found("artifact_not_found", "artifact") from exc
-    if artifact.project_id != project_id:
+    if artifact.project_id != project_id or _private_artifact(session, scope, artifact):
         raise _not_found("artifact_not_found", "artifact")
 
     payload: Any = None

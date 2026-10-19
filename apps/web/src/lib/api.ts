@@ -6,7 +6,7 @@
 
 import type { RegisterEntry } from "@/lib/object-map-view";
 import { currentIdToken, loadConfig } from "@/lib/auth";
-import type { EditDecisionResult, LeadState, LeadTurn, RequestApproval, ResearcherLead } from "@/lib/lead";
+import type { EditDecisionResult, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
 export type { ResearcherLead as ResearcherLeadView } from "@/lib/lead";
 
 export class ApiError extends Error {
@@ -1431,6 +1431,9 @@ export const lead = {
   /** Approve a turn's prepared design job: spend limit, ledger and start in one transaction. */
   approveRequest: (studyId: string, turnId: string, confirmCostUsd?: number) =>
     request<RequestApproval>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/request`, confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
+  /** Keep or drop what a turn wants to remember for all of the researcher's work (once, in the ledger). */
+  decideSelfUpdate: (studyId: string, turnId: string, decision: "accept" | "dismiss") =>
+    request<SelfUpdateDecision>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/self-update`, { decision }),
 };
 
 /** The signed-in researcher's own Lead: its files, read only; hatched once (ADR 0026, Accepted with 6). */

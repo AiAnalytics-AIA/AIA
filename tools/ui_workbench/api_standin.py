@@ -63,6 +63,9 @@ def build(
         # The experimental Sociomapping (plan sociomapping-engine I1-I5) runs here: no model,
         # fictional fieldwork, and every result marked EXPERIMENTAL_AIA.
         sociomapping_experimental_enabled=True,
+        # The Research Lead (ADR 0026): the workbench's worker answers each turn by a script,
+        # without a model (aia_executors.workbench), and every reply says so.
+        ai_research_lead_enabled=True,
     )
     app = create_app(settings)
     return app, Base, seed_develop, Session

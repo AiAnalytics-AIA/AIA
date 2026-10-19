@@ -30,6 +30,7 @@ from aia_core.domain.research_agents import (
     prompt_for,
     prompt_version_for,
 )
+from aia_core.domain.research_lead import LEAD_PROMPT_ID, LEAD_PROMPT_VERSION, lead_prompt
 from aia_core.domain.residency import DataClass
 
 SNAPSHOT = {"design": {"title": "Fictional"}, "knowledge": [], "omitted_knowledge_ids": []}
@@ -84,9 +85,18 @@ def _approve(text: str, data_class: DataClass = DataClass.CLASS_C_INTERNAL) -> M
 
 
 def test_every_research_action_is_a_wired_slot() -> None:
-    expected = {f"aia.research.{a.value}" for a in ResearchAction}
+    expected = {f"aia.research.{a.value}" for a in ResearchAction} | {LEAD_PROMPT_ID}
     assert expected <= wired_prompt_ids()
     assert wired_prompt_ids() == expected  # nothing else claims to be editable yet
+
+
+def test_the_research_lead_is_a_wired_slot_whose_baseline_is_the_prompt_the_code_sends() -> None:
+    """ADR 0026: the Lead's prompt is pinned at enqueue through the same registry (ADR 0020)."""
+    slot = get_slot(LEAD_PROMPT_ID)
+    assert slot is not None and slot.wired
+    assert slot.assemble(slot.baseline_text) == lead_prompt()
+    assert slot.fixed_prefix == FIXED_PREFIX
+    assert slot.baseline_version == LEAD_PROMPT_VERSION
 
 
 def test_ids_are_unique() -> None:

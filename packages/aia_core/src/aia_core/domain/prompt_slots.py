@@ -35,6 +35,8 @@ from .research_agents import (
     baseline_task,
     prompt_version_for,
 )
+from .research_lead import LEAD_PROMPT_ID, LEAD_PROMPT_VERSION
+from .research_lead import baseline_task as lead_baseline_task
 
 __all__ = [
     "PromptSlot",
@@ -99,6 +101,15 @@ def _research_slots() -> list[PromptSlot]:
             required_literals=("{object}",) if action is ResearchAction.BUILD else (),
         )
         for action in ResearchAction
+    ] + [
+        # The Research Lead (ADR 0026): the same rails, its own task wording.
+        PromptSlot(
+            prompt_id=LEAD_PROMPT_ID,
+            family="research_agents",
+            baseline_version=LEAD_PROMPT_VERSION,
+            baseline_text=lead_baseline_task(),
+            fixed_prefix=RESEARCH_FIXED_PREFIX,
+        )
     ]
 
 
