@@ -43,6 +43,7 @@ from aia_core.domain.research_lead import (
     ground_self_update,
     layer,
     lead_request,
+    self_update_base,
     split_self_update,
     waiting_self_update,
 )
@@ -302,6 +303,10 @@ class ResearchLeadExecutor:
                 "self_update_pending": pending_json,
                 # The same, as the researcher reads it: each note to forget with its text.
                 "self_update_waiting": waiting_self_update(pending_json, notes),
+                # The files the turn saw: an accept refuses a file changed since.
+                "self_update_base": self_update_base(layer(frozen, "lead"))
+                if pending_json
+                else None,
                 "data_class": answer.data_class,
             }
             if answer.scripted:

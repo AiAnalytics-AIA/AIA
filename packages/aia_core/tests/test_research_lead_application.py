@@ -32,7 +32,7 @@ from aia_core.application.research_lead import (
     NotAPaidRequest,
     ResearchLead,
 )
-from aia_core.domain.research_lead import RememberNote, SelfUpdate, layer
+from aia_core.domain.research_lead import RememberNote, SelfUpdate, layer, self_update_base
 from aia_core.domain.scope import (
     WORKER_PERMISSIONS,
     Permission,
@@ -454,11 +454,13 @@ def _waiting_turn(scoped: Any, session: Any) -> tuple[Any, str]:
     _hatch(scoped, session)
     _save(acme, session)
     turns = _message(_lead(acme, session))
+    frozen = _step_input(session, acme, turns[-1]["run_id"])["context"]
     _complete(
         session,
         acme,
         {"reply": "Zapamatuji si to.", "self_update": WAITING},
         self_update_pending=WAITING,
+        self_update_base=self_update_base(layer(frozen, "lead")),
     )
     return acme, turns[-1]["turn_id"]
 
@@ -492,7 +494,7 @@ def test_a_personal_note_waits_and_reaches_no_other_client_until_accepted(
     assert (revision["field"], revision["source_turn_id"]) == ("user", turn_id)
     after = _lead(acme, session).state()["turns"][-1]
     assert after["self_update_pending"] is False
-    assert after["self_update_decision"] == {"status": "accepted"}
+    assert after["self_update_decision"] == {"status": "accepted", "stale": []}
     (row,) = _ledger(session, "lead_self_update")
     assert (row.subject_id, row.decision) == (turn_id, "accept")
 
@@ -504,7 +506,7 @@ def test_a_personal_note_waits_and_reaches_no_other_client_until_accepted(
 def test_dismissing_a_waiting_self_update_applies_nothing(scoped: Any, session: Any) -> None:
     acme, turn_id = _waiting_turn(scoped, session)
     decided = _lead(acme, session).decide_self_update(turn_id, decision="dismiss")
-    assert decided == {"status": "dismissed", "changes": None}
+    assert decided == {"status": "dismissed", "changes": None, "stale": []}
     assert _notes(acme, session) == []
     lead = ResearcherLeadRepository(session, acme).get()
     assert lead is not None and lead.user == ""

@@ -115,6 +115,8 @@ class RequestDecision(BaseModel):
 class SelfUpdateDecision(BaseModel):
     model_config = ConfigDict(extra="forbid")
     status: Literal["accepted", "dismissed"]
+    #: Files the accept left because they changed since the turn saw them.
+    stale: list[Literal["name", "soul", "user"]] = []
 
 
 class ForgetWaiting(BaseModel):
@@ -344,7 +346,7 @@ def read_lead(scope: StudyScopeDep, session: SessionDep, settings: SettingsDep) 
 def _public(turns: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """A turn as the browser reads it: not the class it was sent as, nor the stored detail
     of what waits (the browser reads that from the turn's output)."""
-    hidden = {"data_class", "pending_self_update"}
+    hidden = {"data_class", "pending_self_update", "self_update_base"}
     return [{k: v for k, v in t.items() if k not in hidden} for t in turns]
 
 
@@ -411,6 +413,18 @@ def decide_self_update(
     ledger either way, once."""
     with _lead_errors():
         decided = ResearchLead(session, scope).decide_self_update(turn_id, decision=body.decision)
+    stale = decided.pop("stale")
+    if stale:
+        # The notes applied and the decision is recorded; the stale files were left. That is
+        # kept (committed here, as the answer is an error) and said as a conflict.
+        session.commit()
+        raise _error(
+            409,
+            "stale_self_update",
+            "A file changed since this turn saw it; ask the Lead again.",
+            stale=stale,
+            changes=decided["changes"],
+        )
     return SelfUpdateDecided.model_validate(decided)
 
 

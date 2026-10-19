@@ -484,5 +484,53 @@ def test_what_the_lead_wants_to_keep_everywhere_waits_for_the_researcher(
     lead = researcher.get(lead_url(world)).json()["turns"][-1]
     assert (lead["self_update_pending"], lead["self_update_decision"]) == (
         False,
-        {"status": "accepted"},
+        {"status": "accepted", "stale": []},
     )
+
+
+def _soul_turn(client: TestClient, world: Any, app: FastAPI, soul: str) -> str:
+    """A completed turn whose Lead wants ``soul``, with the files it saw when it was posted."""
+    files = client.get("/api/v1/lead").json()["lead"]
+    seen = {"name": files["name"], "soul": files["files"]["soul"], "user": files["files"]["user"]}
+    posted = client.post(
+        f"{lead_url(world)}/turns", json={"kind": "message", "stage": "brief", "text": "Změň se"}
+    )
+    assert posted.status_code == 201, posted.text
+    waiting = {"soul": soul, "remember": [{"scope": "personal", "text": f"Pozn. {soul}"}]}
+    _complete(
+        app,
+        world,
+        {"reply": "Upravím se.", "self_update": waiting},
+        self_update_pending=waiting,
+        self_update_base=seen,
+    )
+    return str(posted.json()["turns"][-1]["turn_id"])
+
+
+def test_an_older_soul_change_never_overwrites_a_newer_one(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """The review of baac33d5: accepting T2 and then T1 silently put T1's SOUL back."""
+    _hatched(researcher)
+    _save_content(app, world)
+    first = _soul_turn(researcher, world, app, "# SOUL první")
+    second = _soul_turn(researcher, world, app, "# SOUL druhý")
+
+    def decide(turn_id: str) -> Any:
+        url = f"{lead_url(world)}/turns/{turn_id}/self-update"
+        return researcher.post(url, json={"decision": "accept"})
+
+    assert decide(second).status_code == 200
+    stale = decide(first)
+    assert stale.status_code == 409 and stale.json()["code"] == "stale_self_update"
+    assert stale.json()["details"]["stale"] == ["soul"]
+    lead = researcher.get("/api/v1/lead").json()["lead"]
+    assert lead["files"]["soul"] == "# SOUL druhý"
+    # Notes have no base: the older turn's note still applied, and its decision is recorded.
+    assert {m["text"] for m in lead["memories"]} == {"Pozn. # SOUL první", "Pozn. # SOUL druhý"}
+    turns = {t["turn_id"]: t for t in researcher.get(lead_url(world)).json()["turns"]}
+    assert turns[first]["self_update_decision"] == {"status": "accepted", "stale": ["soul"]}
+    assert turns[first]["self_update_pending"] is False
+    assert "self_update_base" not in turns[first]
+    again = decide(first)
+    assert again.status_code == 409 and again.json()["code"] == "lead_self_update_decided"

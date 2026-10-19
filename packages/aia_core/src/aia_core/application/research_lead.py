@@ -53,6 +53,7 @@ from ..domain.research_lead import (
     freeze_context,
     new_turn_id,
     notes_layer,
+    stale_files,
 )
 from ..domain.research_template import research_template
 from ..domain.run_cost import CeilingUnknown
@@ -238,6 +239,8 @@ def _view(
         "self_update_decision": None,
         "self_update_pending": False,
         "self_update_waiting": None,
+        # The files the turn saw; read by decide_self_update, never sent to the browser.
+        "self_update_base": None,
         # What waits for the researcher's yes, as the step stored it; read by
         # decide_self_update, never sent to the browser.
         "pending_self_update": None,
@@ -271,6 +274,8 @@ def _view(
             base["self_update_pending"] = base["self_update_decision"] is None
             waiting = out.get("self_update_waiting")
             base["self_update_waiting"] = dict(waiting) if isinstance(waiting, dict) else None
+            seen = out.get("self_update_base")
+            base["self_update_base"] = dict(seen) if isinstance(seen, dict) else None
     return base
 
 
@@ -558,6 +563,11 @@ class ResearchLead:
         self-update waiting. Under the researcher's Lead row lock, in one transaction: an
         accept applies it (each replaced file text kept as a revision), and either decision is
         written to the approval ledger once; a second is :class:`LeadSelfUpdateDecided`.
+
+        A file (SOUL, USER, the name) changed since the turn saw it is not replaced: accepting
+        an older turn would put back what a newer one wrote. Its notes still apply (they have
+        no base), the decision is recorded with the stale files, and ``stale`` names them, which
+        the API answers as 409 ``stale_self_update``: ask the Lead again.
         """
         self.scope.require(Permission.EDIT_STUDY)
         self.scope.require(Permission.APPROVE_GATE)
@@ -568,7 +578,8 @@ class ResearchLead:
         if turn is None or turn.actor != "lead" or turn.run_id is None:
             raise LeadTurnNotFound(turn_id)
         leads = ResearcherLeadRepository(self.session, self.scope)
-        if leads.lock() is None:
+        current = leads.lock()
+        if current is None:
             raise LeadNotHatched("hatch your Research Lead first")
         view = self._annotated([turn])[0]
         if view["status"] != "COMPLETED":
@@ -579,18 +590,25 @@ class ResearchLead:
         if not isinstance(pending, dict):
             raise LeadSelfUpdateNone("this turn left nothing waiting")
         applied = None
+        stale: list[str] = []
         if decision == "accept":
-            applied = leads.apply_self_update(
-                SelfUpdate.model_validate(pending), source_turn_id=turn_id
-            ).model_dump(mode="json")
+            files = {"name": current.name, "soul": current.soul, "user": current.user}
+            stale = stale_files(pending, view["self_update_base"], files)
+            update = SelfUpdate.model_validate(pending).model_copy(
+                update=dict.fromkeys(stale, None)
+            )
+            applied = leads.apply_self_update(update, source_turn_id=turn_id).model_dump(
+                mode="json"
+            )
         recorded = self._workflows().record_lead_self_update_decision(
-            turn.run_id, turn_id=turn_id, decision=decision, applied=applied
+            turn.run_id, turn_id=turn_id, decision=decision, applied=applied, stale=stale
         )
         if not recorded:  # pragma: no cover - the Lead row lock serialises deciders
             raise LeadSelfUpdateDecided("this turn's self-update is already decided")
         return {
             "status": "accepted" if decision == "accept" else "dismissed",
             "changes": applied,
+            "stale": stale,
         }
 
     def approve_request(

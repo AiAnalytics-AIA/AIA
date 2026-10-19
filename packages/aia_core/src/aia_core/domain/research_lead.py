@@ -57,6 +57,7 @@ __all__ = [
     "LEAD_PROMPT_ID",
     "LEAD_PROMPT_VERSION",
     "MESSAGE_MAX_CHARS",
+    "SELF_UPDATE_FILES",
     "STAGES",
     "Dropped",
     "LeadContextTooLarge",
@@ -81,7 +82,9 @@ __all__ = [
     "lead_request_window_tokens",
     "number_tokens",
     "question_add_problem",
+    "self_update_base",
     "split_self_update",
+    "stale_files",
     "unreadable_numbers",
     "waiting_self_update",
 ]
@@ -583,6 +586,30 @@ def split_self_update(
         forget=[m for m in update.forget if m not in client_notes],
     )
     return (None if now.is_empty else now), (None if waits.is_empty else waits)
+
+
+#: The Lead's files a self-update replaces, as the frozen ``lead`` layer names them.
+SELF_UPDATE_FILES: Final = ("name", "soul", "user")
+
+
+def self_update_base(lead: Mapping[str, Any]) -> dict[str, str]:
+    """The files a turn saw (its frozen ``lead`` layer): what a waiting change replaces."""
+    return {f: str(lead.get(f) or "") for f in SELF_UPDATE_FILES}
+
+
+def stale_files(
+    pending: Mapping[str, Any], base: Mapping[str, Any] | None, current: Mapping[str, str]
+) -> list[str]:
+    """The files ``pending`` would replace that changed since its turn saw them.
+
+    Accepting an older turn's change must not silently put back what a newer one wrote (the
+    review of baac33d5). A turn stored without a base cannot show it saw the current text, so
+    every file it changes counts as stale (unknown is not current). Notes have no base.
+    """
+    changed = [f for f in SELF_UPDATE_FILES if pending.get(f) is not None]
+    if not isinstance(base, Mapping):
+        return changed
+    return [f for f in changed if base.get(f) != current.get(f)]
 
 
 def waiting_self_update(

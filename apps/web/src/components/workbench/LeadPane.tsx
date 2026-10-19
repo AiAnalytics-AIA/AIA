@@ -29,6 +29,9 @@ const POLL_MS = 1500;
 type Queued = { text: string; stage: WorkbenchStage; focus: { id: string; label: string } | null };
 const kept = new Map<string, { draft: string; queued: Queued[] }>();
 
+/** An accepted self-update left a file another turn changed since; its notes did apply. */
+const STALE_SELF_UPDATE = "Soubor se mezitím změnil, požádejte Vedoucího znovu.";
+
 const REASON: Record<string, string> = {
   research_lead_unavailable: "Vedoucí výzkumu není v tomto prostředí zapnutý.",
   research_lead_disabled: "Vedoucí výzkumu není v tomto prostředí zapnutý.",
@@ -41,6 +44,7 @@ const REASON: Record<string, string> = {
   lead_context_too_large: "Studie je pro jednu odpověď příliš velká. Zkuste se zeptat na konkrétní část.",
   lead_busy: "Vedoucí ještě odpovídá na předchozí zprávu.",
   lead_not_hatched: "Nejdřív si vylíhněte vlastního Vedoucího výzkumu.",
+  stale_self_update: STALE_SELF_UPDATE,
   AWAITING_BUDGET: "Vedoucí čeká na rozpočet studie.",
 };
 const reasonWords = (code: string | null) => (code ? REASON[code] ?? `Vedoucí se zastavil (${code}).` : "Vedoucí se zastavil.");
@@ -394,6 +398,8 @@ function ActivityCard({ job, onOpen }: { job: ResearchAgentJob; onOpen?: (job: R
  * note kept or forgotten) was applied with the turn. What would reach all of the researcher's work
  * (a personal note kept or forgotten, SOUL, USER, the name) waits for the researcher's yes.
  */
+const FILE_WORDS: Record<"name" | "soul" | "user", string> = { name: "Jméno", soul: "SOUL", user: "USER" };
+
 function SelfUpdate({ t, o, canEdit, onDecide }: { t: LeadTurn; o: LeadOutput; canEdit: boolean; onDecide: (d: "accept" | "dismiss") => Promise<void> }) {
   const [busy, setBusy] = useState(false);
   const u = o.self_update;
@@ -424,6 +430,9 @@ function SelfUpdate({ t, o, canEdit, onDecide }: { t: LeadTurn; o: LeadOutput; c
               {waiting.forget.map((n, i) => <li key={`f${i}`}>Zapomenout: {n}</li>)}
               {waiting.files.map((f) => <li key={f.file}>{f.file}: {f.text}</li>)}
             </ul>
+            {t.self_update_decision?.stale?.length ? (
+              <p className="cap" data-aia="lead.self_update.stale">{t.self_update_decision.stale.map((f) => FILE_WORDS[f]).join(", ")}: {STALE_SELF_UPDATE}</p>
+            ) : null}
             {t.self_update_pending && !decided ? (
               <div className="dec__foot"><button type="button" className="btn btn--sm btn--quiet" disabled={!canEdit || busy} onClick={() => decide("dismiss")}>Zahodit</button><span className="grow" />
                 <button type="button" className="btn btn--primary btn--sm" disabled={!canEdit || busy} onClick={() => decide("accept")}>Pamatovat si</button></div>

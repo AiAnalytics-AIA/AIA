@@ -2612,10 +2612,12 @@ class WorkflowRepository:
         turn_id: str,
         decision: str,
         applied: dict[str, Any] | None,
+        stale: Sequence[str] = (),
     ) -> bool:
         """Write a person's accept or dismiss of the self-update a Lead turn left waiting
         (a personal note, a SOUL, USER or name change), once per turn. ``comment`` names what
-        the accept applied. Needs ``APPROVE_GATE``. Returns ``False`` when already decided.
+        the accept applied and the files it left because they changed since the turn
+        (``stale``). Needs ``APPROVE_GATE``. Returns ``False`` when already decided.
         """
         self.scope.require(Permission.APPROVE_GATE)
         if decision not in ("accept", "dismiss"):
@@ -2647,7 +2649,9 @@ class WorkflowRepository:
                 project_revision=run.project_revision,
                 gate_type="self_update",
                 decision=decision,
-                comment=json.dumps({"turn_id": turn_id, "applied": applied}, sort_keys=True),
+                comment=json.dumps(
+                    {"turn_id": turn_id, "applied": applied, "stale": list(stale)}, sort_keys=True
+                ),
                 request_id=self.scope.request_id,
                 **independence.audit_fields(),
             )
@@ -2684,7 +2688,10 @@ class WorkflowRepository:
                 entry = found.setdefault(row.subject_id, {"edits": {}, "request": None})
                 entry.setdefault(
                     "self_update",
-                    {"status": "accepted" if row.decision == "accept" else "dismissed"},
+                    {
+                        "status": "accepted" if row.decision == "accept" else "dismissed",
+                        "stale": list(json.loads(row.comment or "{}").get("stale") or []),
+                    },
                 )
                 continue
             if row.subject_type == "lead_job_request":

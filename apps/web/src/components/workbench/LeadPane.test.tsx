@@ -124,6 +124,18 @@ describe("LeadPane", () => {
     expect(screen.queryByRole("button", { name: "Pamatovat si" })).toBeNull();
   });
 
+  it("says when a file changed since the turn, and to ask the Lead again", async () => {
+    // The review of baac33d5: an older SOUL change is not put back over a newer one.
+    state.turns = [turn({
+      output: { reply: "Upravím se.", self_update: { soul: "# Starší" } },
+      self_update_pending: false, self_update_decision: { status: "accepted", stale: ["soul"] },
+      self_update_waiting: { name: null, soul: "# Starší", user: null, remember: [], forget: [] },
+    })];
+    render(pane());
+    expect(await screen.findByText("SOUL: Soubor se mezitím změnil, požádejte Vedoucího znovu.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Pamatovat si" })).toBeNull();
+  });
+
   it("says why the Lead is not answering, instead of answering for it", async () => {
     state = { available: false, unavailable_reason: "research_lead_unavailable", busy: false, turns: [turn({ status: "WAITING", reason: "research_lead_unconfigured" })] };
     render(pane());

@@ -79,7 +79,7 @@ export type LeadTurn = {
    * note, a SOUL, USER or name change), from the approval ledger. Only what stays inside the
    * study's client applies with the turn; the rest waits for this (Codex on #484).
    */
-  self_update_decision?: { status: "accepted" | "dismissed" } | null;
+  self_update_decision?: { status: "accepted" | "dismissed"; stale?: ("name" | "soul" | "user")[] } | null;
   /** Whether such a self-update waits for the researcher's decision. */
   self_update_pending?: boolean;
   /** What waits (or waited) for that decision, as the server split it; null when nothing did. */
