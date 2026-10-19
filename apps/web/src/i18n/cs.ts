@@ -467,6 +467,7 @@ export const cs = {
           egress_retention_unspecified: "u trasy k modelu není uvedena doba uchování dat",
           budget_exceeded: "rozpočet klienta nepokryje rezervaci",
           reading_changed: "dokument byl mezitím přečten znovu",
+          source_class_changed: "označení Interní dokument se během návrhů změnilo; co AI už odpověděla, se při novém spuštění nezaplatí znovu",
           dataset_not_extracted: "z tabulek AIA znalosti zatím nenavrhuje",
           no_text: "v souboru není text",
           nothing_read: "z dokumentu se nic nepřečetlo",

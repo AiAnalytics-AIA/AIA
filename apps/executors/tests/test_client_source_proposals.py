@@ -294,6 +294,7 @@ def test_grounded_proposals_are_filed_and_the_client_pays(
         "dropped": {"quote_not_found": 1, "unknown_segment": 1},
         "data_class": "CLASS_A_CLIENT_CONFIDENTIAL",
         "class_source": "rule:client_source",
+        "answer_classes": ["CLASS_A_CLIENT_CONFIDENTIAL"],
     }
 
     with world.sessions() as session:
@@ -514,3 +515,96 @@ def test_a_document_parked_between_batches_resumes_without_paying_twice(
     assert (output["batches"], output["sent"], output["replayed"]) == (2, 1, 1)
     # Charged for two requests, not three.
     assert spent(world)[0] == pytest.approx(2 * first_charge)
+
+
+def test_a_replayed_answer_keeps_the_class_it_was_sent_as_when_the_mark_changes(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """Codex on #487: the first batch is sent as Class C (the document marked "Interní
+    dokument"), the step parks at the budget, a person unmarks it, and the resumed step sends
+    the second batch as Class A. The first answer is replayed, and its proposals still say
+    Class C -- the class it was sent as, not the mark the source carries when replayed."""
+    # Each batch holds one segment the recorded answer quotes: the first batch segment 0,
+    # the second segment 1, so each batch files one proposal of its own.
+    first = ("Fiktivní pivovar Lupínek vaří od roku 1998 v Kolíně. " * 300).strip()
+    second = ("Podle průzkumu zná značku 41 % dospělých v kraji. " * 300).strip()
+    two_batches = f"{first}\n\n{second}".encode()
+    run_id, source_id = start(
+        world, store, budget=0.505, filename="dlouhy.txt", data=two_batches, internal=True
+    )
+    transport = RecordedBedrock()
+    w = worker(world, database_url, store, build, transport)
+    w.run_once()
+    assert run_state(world, run_id)["steps"][0]["status"] is StepRunStatus.AWAITING_BUDGET
+    assert len(transport.requests) == 1
+
+    with world.sessions() as session:
+        ClientSourceRepository(session, store).mark_internal(
+            client_scope(world, session), source_id, internal=False
+        )
+        lift_client_budget_wait(
+            session,
+            client_scope(world, session),
+            work_scope(world, session),
+            run_id,
+            "extract",
+            budget_usd=5.0,
+        )
+        session.commit()
+    assert w.run_once()
+    run = run_state(world, run_id)
+    assert run["status"] is WorkflowRunStatus.COMPLETED
+    output = run["steps"][0]["output"]
+    assert (output["sent"], output["replayed"]) == (1, 1)
+    assert (output["data_class"], output["class_source"]) == (
+        "CLASS_A_CLIENT_CONFIDENTIAL",
+        "rule:client_source",
+    )
+    assert output["answer_classes"] == ["CLASS_A_CLIENT_CONFIDENTIAL", "CLASS_C_INTERNAL"]
+    with world.sessions() as session:
+        proposals = ClientKnowledgeRepository(session).proposals(client_scope(world, session))
+    by_call: dict[str, set[tuple[str, str]]] = {}
+    for p in proposals:
+        by_call.setdefault(p.provenance["call_id"], set()).add(
+            (p.provenance["data_class"], p.provenance["class_source"])
+        )
+    assert sorted(by_call.values(), key=sorted) == sorted(
+        [
+            {("CLASS_A_CLIENT_CONFIDENTIAL", "rule:client_source")},
+            {("CLASS_C_INTERNAL", "rule:internal_document")},
+        ],
+        key=sorted,
+    )
+
+
+def test_unmarking_a_source_mid_run_stops_the_requests_not_yet_sent(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """Independent review of #487: a person unmarks "Interní dokument" while the run is
+    between its batches (here, while the first request is answered). The second request
+    was built as Class C; it is not sent. The step fails by name, the first answer stays
+    kept, and nothing more is charged."""
+    first = ("Fiktivní pivovar Lupínek vaří od roku 1998 v Kolíně. " * 300).strip()
+    second = ("Podle průzkumu zná značku 41 % dospělých v kraji. " * 300).strip()
+    run_id, source_id = start(
+        world, store, filename="dlouhy.txt", data=f"{first}\n\n{second}".encode(), internal=True
+    )
+
+    @dataclass
+    class UnmarkingBedrock(RecordedBedrock):
+        async def send(self, request: HttpRequest, *, timeout_s: float) -> HttpResponse:
+            if not self.requests:
+                with world.sessions() as session:
+                    ClientSourceRepository(session, store).mark_internal(
+                        client_scope(world, session), source_id, internal=False
+                    )
+                    session.commit()
+            return await super().send(request, timeout_s=timeout_s)
+
+    transport = UnmarkingBedrock()
+    w = worker(world, database_url, store, build, transport)
+    w.run_once()
+    step = run_state(world, run_id)["steps"][0]
+    assert len(transport.requests) == 1  # the second batch, built as Class C, was not sent
+    assert step["attempts"][-1]["error"]["reason"] == "source_class_changed"
+    assert step["status"] is not StepRunStatus.SUCCEEDED

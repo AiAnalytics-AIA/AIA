@@ -26,7 +26,7 @@ from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.domain.ai_contracts import ModelCallFailed, ModelRequest, canonical_json
 from aia_core.domain.deep_research.request_limits import window_fits
 from aia_core.domain.knowledge import ProposalDraft
-from aia_core.domain.material_rules import rule_class, source_rule
+from aia_core.domain.material_rules import MaterialRule, rule_class, source_rule
 from aia_core.domain.providers import Provider
 from aia_core.domain.scope import ClientWorkContext
 from aia_core.domain.source_proposals import (
@@ -70,6 +70,12 @@ class SourceProposalsConfig:
     reservation_usd: float
     #: Each model request writes a "sent" and an "answered" event (``AIA_AI_STEP_EVENTS``).
     step_events: bool = False
+
+
+def _answer_rule(answer: dict[str, Any]) -> MaterialRule:
+    """The rule a journaled answer was sent under. An answer kept before the rule existed
+    was sent as Class A, the client's source, which every request then declared."""
+    return MaterialRule(answer.get("class_source") or MaterialRule.CLIENT_SOURCE.value)
 
 
 def _request_key(request: ModelRequest, cfg: SourceProposalsConfig) -> str:
@@ -216,6 +222,7 @@ class ClientSourceProposalsExecutor:
         drafts: list[ProposalDraft] = []
         dropped: dict[str, int] = {}
         sent = replayed = 0
+        answer_rules: set[MaterialRule] = set()
         for batch, request, key in zip(work, requests, keys, strict=True):
             context.checkpoint()
             context.progress(
@@ -225,6 +232,22 @@ class ClientSourceProposalsExecutor:
             )
             answer = kept_answers[key]
             if answer is None:
+                # The mark the requests were built under must still hold when each one leaves:
+                # a person who unmarks a source mid-run stops what is not yet sent. What was
+                # answered is kept; a new start builds every request under the mark then.
+                with context.transaction() as (session, _):
+                    marked = ClientSourceRepository(session, self._store).marked_internal(
+                        scope, source_id
+                    )
+                if marked != (record.internal is not None):
+                    return Failed(
+                        FailureClass.SCHEMA_VIOLATION,
+                        error={
+                            "reason": "source_class_changed",
+                            "message": "označení Interní dokument se během návrhů změnilo; "
+                            "spusťte návrhy znovu",
+                        },
+                    )
                 result = caller.invoke(request)
                 assert isinstance(result.output, SourceProposals)
                 answer = {
@@ -233,6 +256,9 @@ class ClientSourceProposalsExecutor:
                     "model": result.resolved_model,
                     "route_id": result.provenance.route_id,
                     "policy_version": result.provenance.policy_version,
+                    # The class this answer was sent as: a replay names it, not the mark the
+                    # source carries when it is replayed.
+                    "class_source": rule.value,
                 }
                 # Kept the moment it returns, under the lease: a stop before the next
                 # batch resumes here rather than paying for this one again.
@@ -243,6 +269,8 @@ class ClientSourceProposalsExecutor:
                 sent += 1
             else:
                 replayed += 1
+            answer_rule = _answer_rule(answer)
+            answer_rules.add(answer_rule)
             output = SourceProposals.model_validate(answer["output"])
             grounding = ground(batch, output)
             for reason, count in grounding.dropped.items():
@@ -264,8 +292,8 @@ class ClientSourceProposalsExecutor:
                     "model": answer["model"],
                     "route_id": answer["route_id"],
                     "policy_version": answer["policy_version"],
-                    "data_class": rule_class(rule).value,
-                    "class_source": rule.value,
+                    "data_class": rule_class(answer_rule).value,
+                    "class_source": answer_rule.value,
                 }
                 drafts.append(
                     ProposalDraft(
@@ -292,5 +320,7 @@ class ClientSourceProposalsExecutor:
                 # The class the requests were built as, and the rule that gave it.
                 "data_class": rule_class(rule).value,
                 "class_source": rule.value,
+                # The classes the answers used were sent as: a replay keeps its own.
+                "answer_classes": sorted({rule_class(r).value for r in answer_rules}),
             }
         )

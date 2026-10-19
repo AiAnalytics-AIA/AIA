@@ -91,6 +91,35 @@ artifact is a closed contract (`domain/analysis/artifact.py:269 @ 6c5cd620`); ad
 there is a contract version of its own. A park's error carries `design_class` (`data_class`,
 `source`); a completed module's ledger rows carry the class.
 
+**F5. A marked source's mark is now checked per request and kept per answer** (fixed on this
+branch, after review of #487). A person who unmarks a source mid-run stops the requests not
+yet sent (`source_class_changed`; `ClientSourceRepository.marked_internal`, read before each
+request); each journaled answer keeps the class it was sent as (`class_source`), so a replay
+after the mark changed is recorded under its own class (test
+`test_a_replayed_answer_keeps_the_class_it_was_sent_as_when_the_mark_changes`); marking locks
+the row (test `test_a_mark_and_an_unmark_sent_together_end_in_the_state_the_later_one_answered`,
+PostgreSQL).
+
+**F6. An operator's exact-bytes classification is not read for a client source.**
+`proposal_request` takes the class from `source_rule` alone
+(`packages/aia_core/src/aia_core/domain/source_proposals.py:237 @ 6de30744`); the step has no
+operator record to consult. A source is already Class A unless a person marks it, so the gap is
+only a marked source whose bytes an operator classified A: a missing raise, never a lowering.
+Hypothesis on its reach (no operator classifies a client's file today); the fix is
+`classify_by_rule(batch, source_rule(...), approvals)` once the step is given the approvals.
+
+**F7. AI output written into the design is Class B by the design rule** (a question for the
+product owner). A design job's request is Class A when the client has approved knowledge (its
+snapshot carries it), and what it writes into the study -- the brief analysis, an accepted
+questionnaire -- is then design, Class B, in later requests
+(`domain/research_lead.py` `_part("design_analysis", …, MaterialRule.DESIGN)`;
+`ai_fieldwork.py`, `analysis.py` `classify_by_rule(design, MaterialRule.DESIGN)` @ `6de30744`).
+The owner's table names the brief, research questions, questionnaire, audience and attachment
+excerpts; whether AI-derived design text from Class A knowledge is B ("derived client
+information") or keeps A is the owner's to confirm. Brief attachment excerpts (a client's
+file) are B as design, while the same bytes as a client source are A: consistent with the
+decision as written, to confirm with it.
+
 ## Doc follow-up
 
 For the docs PR (CLAUDE.md §1); anchors are on this branch's commits.
