@@ -1649,6 +1649,13 @@ export const cs = {
       stagesLabel: "Fáze výzkumu",
       stepOf: "Krok {n} ze {total}",
       phases: { design: "Návrh výzkumu", sample: "Vzorek", run: "Běh a výsledky" },
+      // The research workbench (research-lead-workbench, ADR 0026): the split, its focus modes
+      // and the item inspector.
+      workbench: {
+        inspector: "Inspektor",
+        back: "Zpět",
+        close: "Zavřít inspektor (Esc)",
+      },
       bindFailed: "Rozpracovaný obsah se nepodařilo přiřadit k výzkumu: {message}",
       readOnly: "Tento výzkum můžete jen číst.",
       // A study that accepts no new work (StudyStatus.accepts_work): said once, on every stage.
