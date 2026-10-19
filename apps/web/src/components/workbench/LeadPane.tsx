@@ -10,7 +10,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { lead as leadApi, researcherLead, ApiError } from "@/lib/api";
+import { lead as leadApi, researcherLead, ApiError, type ResearchAgentJob } from "@/lib/api";
+import { ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import type { LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead } from "@/lib/lead";
 import { STAGES, isWorkbenchStage, type WorkbenchStage } from "@/lib/workbench-stages";
@@ -40,7 +41,7 @@ const time = (iso: string) => {
 /** The newest Lead turn that finished: the one whose view tools have been applied. */
 const newestCompleted = (turns: LeadTurn[]) => [...turns].reverse().find((t) => t.actor === "lead" && t.status === "COMPLETED") ?? null;
 
-export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onClearFocus, onView, onRequest, onTurns, onFocusMode, mode, epoch }: {
+export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onClearFocus, onView, onRequest, onTurns, onFocusMode, mode, epoch, jobs = [], onOpenJob }: {
   studyId: string;
   stage: WorkbenchStage;
   canEdit: boolean;
@@ -54,6 +55,10 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   onRequest: (turn: LeadTurn, r: LeadRequest) => Promise<void>;
   /** Changes when something outside the pane decided on a turn: read the session again. */
   epoch: number;
+  /** The study's design jobs, shown in the conversation as activity: the Lead's and the buttons'. */
+  jobs?: ResearchAgentJob[];
+  /** Open a finished job's proposal (or advice) for review. */
+  onOpenJob?: (job: ResearchAgentJob) => void;
   /** Every read of the session, so the artifact pane can show the newest edits. */
   onTurns: (turns: LeadTurn[]) => void;
   onFocusMode: () => void;
@@ -162,7 +167,7 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
           <Icon name={mode === "conversation" ? "normal" : "focusChat"} size={16} />
         </button>
       </div>
-      <Conversation turns={session?.turns ?? []} busy={!!session?.busy || sending} name={name} onFollow={send} onView={onView} onRequest={onRequest} canEdit={canEdit}>
+      <Conversation turns={session?.turns ?? []} jobs={jobs} onOpenJob={onOpenJob} busy={!!session?.busy || sending} name={name} onFollow={send} onView={onView} onRequest={onRequest} canEdit={canEdit}>
         {error ? <div className="msg"><div className="notice"><Glyph tone="fault" size={11} />{error}</div></div> : null}
         {me && !me.hatched ? <HatchCard onHatch={hatch} /> : null}
         {session && !session.available ? <div className="msg"><div className="notice"><Glyph tone="inert" size={11} />{reasonWords(session.unavailable_reason ?? "research_lead_unavailable")}</div></div> : null}
@@ -188,15 +193,15 @@ function HatchCard({ onHatch }: { onHatch: () => void }) {
   );
 }
 
-function Conversation({ turns, busy, name, onFollow, onView, onRequest, canEdit, children }: {
-  turns: LeadTurn[]; busy: boolean; name: string; canEdit: boolean;
+function Conversation({ turns, jobs, onOpenJob, busy, name, onFollow, onView, onRequest, canEdit, children }: {
+  turns: LeadTurn[]; jobs: ResearchAgentJob[]; onOpenJob?: (job: ResearchAgentJob) => void; busy: boolean; name: string; canEdit: boolean;
   onFollow: (t: string) => void; onView: (ops: LeadView[]) => void; onRequest: (turn: LeadTurn, r: LeadRequest) => Promise<void>;
   children: React.ReactNode;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const atBottom = useRef(true);
   const [away, setAway] = useState(false);
-  const sig = `${turns.length}:${turns.at(-1)?.status ?? ""}:${busy}`;
+  const sig = `${turns.length}:${turns.at(-1)?.status ?? ""}:${busy}:${jobs.map((j) => j.status).join(",")}`;
   useLayoutEffect(() => {
     const el = box.current;
     if (el && atBottom.current) el.scrollTop = el.scrollHeight;
@@ -213,9 +218,12 @@ function Conversation({ turns, busy, name, onFollow, onView, onRequest, canEdit,
       <div className="conv__scroll" ref={box} onScroll={onScroll} tabIndex={0} role="log" aria-label={`Konverzace: ${name}`} aria-live="polite" aria-relevant="additions">
         <div>
           {children}
-          {turns.map((t) => t.actor === "person"
-            ? <PersonTurn key={t.turn_id} t={t} />
-            : <LeadTurnView key={t.turn_id} t={t} name={name} last={t.turn_id === lastLead?.turn_id} busy={busy} onFollow={onFollow} onView={onView} onRequest={onRequest} canEdit={canEdit} />)}
+          {timeline(turns, jobs).map((x) => x.kind === "job"
+            ? <ActivityCard key={x.job.run_id} job={x.job} onOpen={onOpenJob} />
+            : x.turn.actor === "person"
+              ? <PersonTurn key={x.turn.turn_id} t={x.turn} />
+              : <LeadTurnView key={x.turn.turn_id} t={x.turn} name={name} last={x.turn.turn_id === lastLead?.turn_id} busy={busy} onFollow={onFollow} onView={onView} onRequest={onRequest} canEdit={canEdit}
+                  job={jobs.find((j) => j.run_id === x.turn.request_decision?.run_id) ?? null} onOpenJob={onOpenJob} />)}
           <div style={{ height: 8 }} />
         </div>
       </div>
@@ -249,8 +257,8 @@ function Prose({ text }: { text: string }) {
 
 const VIEW_LABEL = (v: LeadView) => (v.op === "open_stage" ? `Otevřít ${isWorkbenchStage(v.stage) ? STAGES[v.stage].label : v.stage}` : `Ukázat ${v.target}`);
 
-function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, canEdit }: {
-  t: LeadTurn; name: string; last: boolean; busy: boolean; canEdit: boolean;
+function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, canEdit, job, onOpenJob }: {
+  t: LeadTurn; name: string; last: boolean; busy: boolean; canEdit: boolean; job: ResearchAgentJob | null; onOpenJob?: (job: ResearchAgentJob) => void;
   onFollow: (t: string) => void; onView: (ops: LeadView[]) => void; onRequest: (turn: LeadTurn, r: LeadRequest) => Promise<void>;
 }) {
   if (t.status === "QUEUED" || t.status === "RUNNING") {
@@ -281,9 +289,51 @@ function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, canEdi
         </div>
       </div>
       {o.request ? <RequestCard r={o.request} approved={t.request_decision ?? null} onApprove={() => onRequest(t, o.request!)} canEdit={canEdit} /> : null}
+      {job ? <ActivityCard job={job} onOpen={onOpenJob} /> : null}
       {last && !busy && o.follow?.length ? (
         <div className="follow" aria-label="Navázat">{o.follow.map((f) => <button key={f} type="button" className="follow__btn" onClick={() => onFollow(f)}><Icon name="next" size={13} />{f}</button>)}</div>
       ) : null}
+    </div>
+  );
+}
+
+/** Turns and the jobs no turn started, in the order they happened. */
+function timeline(turns: LeadTurn[], jobs: ResearchAgentJob[]): ({ kind: "turn"; turn: LeadTurn; at: number } | { kind: "job"; job: ResearchAgentJob; at: number })[] {
+  const linked = new Set(turns.map((t) => t.request_decision?.run_id).filter(Boolean));
+  const at = (iso: string | null | undefined) => Date.parse(iso ?? "") || 0;
+  return [
+    ...turns.map((turn) => ({ kind: "turn" as const, turn, at: at(turn.created_at) })),
+    ...jobs.filter((j) => !linked.has(j.run_id)).map((job) => ({ kind: "job" as const, job, at: at(job.created_at) })),
+  ].sort((a, b) => a.at - b.at);
+}
+
+const ADVICE = new Set(["critique_design", "design_copilot", "answer_memory"]);
+const JOB_STATE: Record<string, { word: string; tone: "done" | "running" | "world" | "fault" | "cancelled" | "inert" }> = {
+  COMPLETED: { word: "hotovo", tone: "done" },
+  RUNNING: { word: "běží", tone: "running" },
+  QUEUED: { word: "ve frontě", tone: "running" },
+  FAILED: { word: "selhalo", tone: "fault" },
+  CANCELLED: { word: "zrušeno", tone: "cancelled" },
+};
+
+/** A design job in the conversation, as the prototype's activity card: what, how it stands, the way to its result. */
+function ActivityCard({ job, onOpen }: { job: ResearchAgentJob; onOpen?: (job: ResearchAgentJob) => void }) {
+  const s = JOB_STATE[job.status] ?? (job.status.startsWith("WAITING") || job.status.startsWith("AWAITING") ? { word: "čeká", tone: "world" as const } : { word: job.status.toLowerCase(), tone: "inert" as const });
+  const done = job.status === "COMPLETED";
+  const cost = typeof job.actual_cost_usd === "number" ? ` · ${job.actual_cost_usd.toLocaleString("cs-CZ", { maximumFractionDigits: 3 })} USD` : "";
+  return (
+    <div className="msg" data-aia={`activity.${job.run_id}`}>
+      <div className="act act--worker">
+        <div className="act__row">
+          <span className="act__type" title="Úloha AI"><Icon name="worker" size={13} /></span>
+          <span className="act__title">{ACTION_LABELS[job.action] ?? job.action}</span>
+          <span className="act__sum">· {s.word}{cost}</span>
+          <span className="act__right">
+            <Glyph tone={s.tone} size={12} title={s.word} />
+            {done && onOpen ? <button type="button" className="btn btn--sm" onClick={() => onOpen(job)}>{ADVICE.has(job.action) ? "Otevřít" : "Zkontrolovat"}</button> : null}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

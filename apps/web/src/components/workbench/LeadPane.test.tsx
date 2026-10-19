@@ -94,4 +94,18 @@ describe("LeadPane", () => {
     expect(screen.getByText(/model AI není pro pracovníka nastavený/)).toBeTruthy();
     expect((screen.getByLabelText("Napište Vedoucímu výzkumu") as HTMLTextAreaElement).disabled).toBe(true);
   });
+
+  it("shows design jobs in the conversation, under the card that started one, with the way to review it", async () => {
+    const job = { run_id: "RUN-J", design_revision_id: "REV-1", action: "build_questionnaire" as const, status: "COMPLETED", is_terminal: true, needs_attention: false, context_sha256: "x", harness_version: "3", created_at: "2026-10-19T08:01:00Z", steps: [], actual_cost_usd: 0.012 };
+    const other = { ...job, run_id: "RUN-K", action: "critique_design" as const, status: "RUNNING", is_terminal: false, created_at: "2026-10-19T07:00:00Z" };
+    state.turns = [turn({ output: { reply: "Navrhuji dotazník.", request: { kind: "agent_job", action: "build_questionnaire", why: "Chybí." } }, request_decision: { status: "approved", run_id: "RUN-J" } })];
+    const onOpenJob = vi.fn();
+    render(pane({ jobs: [other, job], onOpenJob }));
+    expect(await screen.findByText("Navrhuji dotazník.")).toBeTruthy();
+    expect(screen.getByText("Rozhodnuto")).toBeTruthy();
+    expect(screen.getByText("Kontrola návrhu")).toBeTruthy();
+    expect(screen.getByText(/· běží/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Zkontrolovat" }));
+    expect(onOpenJob).toHaveBeenCalledWith(expect.objectContaining({ run_id: "RUN-J" }));
+  });
 });

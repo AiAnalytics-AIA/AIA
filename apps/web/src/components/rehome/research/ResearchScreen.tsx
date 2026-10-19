@@ -303,6 +303,7 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
       {workbench && wide ? (
         <InspectorProvider disabled={!frame.canEdit && DESIGN_STEPS.has(step)}>{(column) => (
           <Workbench frame={frame} step={step} store={store} reload={reload} confirm={confirm} onAgentStarted={() => void agents.refresh()}
+            jobs={agents.recent} onOpenJob={(j) => void agents.open(j)} onRefreshJobs={() => void agents.refresh().catch(() => {})}
             save={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} onReload={reload} />}
             inspector={column(<>
               {expanded ? panel : card}

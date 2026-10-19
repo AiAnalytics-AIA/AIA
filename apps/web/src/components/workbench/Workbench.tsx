@@ -11,7 +11,7 @@
 import { useRouter } from "next/navigation";
 import { type ReactNode, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
-import { ApiError, api, lead as leadApi, type Study } from "@/lib/api";
+import { ApiError, api, lead as leadApi, type ResearchAgentJob, type Study } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
 import { describeEdit, editStage, focusSelector, targetOfElement, type LeadEdit, type LeadRequest, type LeadTurn, type LeadView } from "@/lib/lead";
 import { type FocusMode, readSplit, writeSplit } from "@/lib/workbench-split";
@@ -74,7 +74,7 @@ const usd = (n: number | null | undefined) => (typeof n === "number" ? n.toLocal
 
 type EditMark = "accepted" | "dismissed" | { refused: string };
 
-export function Workbench({ frame, step, store, save, inspector, reload, confirm, onAgentStarted, children }: {
+export function Workbench({ frame, step, store, save, inspector, reload, confirm, onAgentStarted, jobs, onOpenJob, onRefreshJobs, children }: {
   frame: StudyFrame;
   step: StepKey;
   store: ResearchStore;
@@ -88,6 +88,11 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
   confirm: (message: string) => Promise<boolean>;
   /** A design job the person approved on a Lead decision card has started. */
   onAgentStarted: (runId: string) => void;
+  /** The study's design jobs, newest first, as the AI help lists them; shown in the conversation. */
+  jobs: ResearchAgentJob[];
+  onOpenJob: (job: ResearchAgentJob) => void;
+  /** Read the jobs again: done while one of them still moves. */
+  onRefreshJobs: () => void;
   /** The stage's artifact body. */
   children: ReactNode;
 }) {
@@ -129,6 +134,13 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
   }, [picking]);
   const [notice, setNotice] = useState<string | null>(null);
   const [study, setStudy] = useState<Study | null>(null);
+  // A job that still moves is read again, so its card in the conversation follows it.
+  const moving = jobs.some((j) => !j.is_terminal);
+  useEffect(() => {
+    if (!moving) return;
+    const t = setTimeout(onRefreshJobs, 3000);
+    return () => clearTimeout(t);
+  }, [moving, jobs, onRefreshJobs]);
   useEffect(() => {
     api.study(frame.studyId).then(setStudy, () => setStudy(null));
   }, [frame.studyId, runs]);
@@ -256,7 +268,7 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
   const blocked = blockers(state).length;
   const leadPane = (
     <LeadPane studyId={frame.studyId} stage={stage} canEdit={frame.canEdit} focus={focus} picking={picking}
-      onPick={() => setPicking((p) => !p)} onClearFocus={() => setFocus(null)} onView={onView} onRequest={onRequest} onTurns={setTurns} epoch={leadEpoch}
+      onPick={() => setPicking((p) => !p)} onClearFocus={() => setFocus(null)} jobs={[...jobs].reverse()} onOpenJob={onOpenJob} onView={onView} onRequest={onRequest} onTurns={setTurns} epoch={leadEpoch}
       mode={mode} onFocusMode={() => setMode((m) => (m === "conversation" ? "split" : "conversation"))} />
   );
 
