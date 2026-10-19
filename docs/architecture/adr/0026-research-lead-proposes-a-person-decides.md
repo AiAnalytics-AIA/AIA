@@ -232,6 +232,19 @@ So the submit names `workspace_revision`. The server checks that the submitted c
 analysis are that working revision's, by canonical hash, refuses a mismatch
 (`422 design_not_from_workspace`), and stores the working revision with the Design Revision.
 
+Every writer of a Design Revision records it, not only the web's submit. Each one names the
+working revision that holds the same design:
+- **The web's submit**, `POST …/design/revisions`, names it, and the server checks it, as above.
+- **Reusing a past design** (`application/design_reuse.py:186-187 @ 50547cdc`) saves the working
+  copy and then submits the same content, so it records the revision that save wrote.
+- **An accepted proposal**, whether an agent job's or a Design Research proposal's
+  (`application/design_research.py:118-120 @ 50547cdc`), writes the working copy and the Design
+  Revision in one transaction (decision 6), so it records the working revision that transaction
+  wrote.
+
+`StudyDesignRepository.submit` and `submit_if_current` take the working revision as a required
+argument, so a new writer cannot leave it out.
+
 **At enqueue**, the job copies that stored value as `base_workspace_revision`, never the working
 copy's current revision. It also records `touched_items` once the proposal exists. The worker
 computes those from the proposal (content and analysis) against its baseline and stores them with

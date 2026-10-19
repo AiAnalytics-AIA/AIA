@@ -9,7 +9,7 @@ chunks:
   - "[ ] 6. Lead pane: conversation, composer, greeting, view tools, edits as change blocks, decision cards"
   - "[ ] 6b. Personal Leads: researcher_leads and memories, hatching, the Můj Vedoucí page, per-researcher sessions"
   - "[ ] 7. Agent proposals inline in the artifact, with research-question coverage gained, lost and kept"
-  - "[ ] 8. design_items, the working revision on each Design Revision and every web submit naming it, the item-level stale rule"
+  - "[ ] 8. design_items, the working revision on every Design Revision writer (web submit, reuse, accepts), the item-level stale rule"
   - "[ ] 9. Accept in one transaction: merged Design Revision, working copy, ledger; the web reloads"
   - "[ ] 10. Dismiss and rebuild through the ledger and rebuild_of; the pending-proposals projection"
   - "[ ] 11. Lead-prepared paid work recorded in the ledger, with the spend limit, from the server's command registry"
@@ -63,7 +63,8 @@ The design is [ADR 0026](../../docs/architecture/adr/0026-research-lead-proposes
 
 ## Chunks
 
-1–2 landed in PR #483: `lib/workbench-split.ts`, `lib/inspector-stack.ts` and `ItemInspector.tsx`.
+1–2 are built in PR #483 (`lib/workbench-split.ts`, `lib/inspector-stack.ts` and
+`ItemInspector.tsx`). They are ticked on that branch, so they read done when its code reaches `develop`, not before.
 3–4, 6 and 7 are web. 5 and 8–11 are backend; 9 changes the accept route and the web together.
 12 is the journey (`tools/ui_workbench/workbench_journey.mjs`).
 
