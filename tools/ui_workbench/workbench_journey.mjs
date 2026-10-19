@@ -120,6 +120,16 @@ try {
   }
   check("navigator opens Návrh, Dotazník, Cílová skupina and Dimenze on their routes");
 
+  // Vzorek is a read-only view over Dimenze and Kontrola, on Dimenze's route.
+  await page.locator(".nav__stage", { hasText: "Vzorek" }).click();
+  await page.waitForFunction(() => location.hash === "#sample");
+  await page.locator("[data-sample-view]").waitFor();
+  await shot("1440-sample");
+  await page.locator(".nav__stage", { hasText: "Dimenze" }).click();
+  await page.locator(".nav__stage.is-current", { hasText: "Dimenze" }).waitFor();
+  assert.equal(await page.locator("[data-sample-view]").count(), 0, "back on Dimenze, not Vzorek");
+  check("Vzorek shows the sample read only, and Dimenze is one click back");
+
   // Výsledky's views are the hash ResultsWorkspace reads.
   await page.locator(".nav__stage", { hasText: "Sociomapa" }).click();
   await page.waitForURL(`**${stagePath("results")}#maps`);

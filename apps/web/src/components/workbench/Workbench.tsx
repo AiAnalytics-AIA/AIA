@@ -24,6 +24,7 @@ import { useRuns } from "../rehome/research/StageTrack";
 import { Glyph, type GlyphTone } from "./Glyph";
 import { Icon, Mark } from "./Icons";
 import { LeadPane } from "./LeadPane";
+import { SampleView } from "./SampleView";
 import { Split } from "./Split";
 import "./workbench.css";
 
@@ -135,8 +136,9 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
 
   const go = useCallback((target: WorkbenchStage) => {
     const s = STAGES[target];
-    if (s.step === step && s.view) {
-      window.location.hash = s.view;
+    // Within one route the stage is its hash (a result view, or Vzorek on Dimenze's route).
+    if (s.step === step) {
+      window.location.hash = s.view ?? "";
       return;
     }
     router.push(stageHref(target, frame.stepHref));
@@ -287,7 +289,11 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
               {notice ? <div className="artbar artbar--stale" role="status"><Glyph tone="reopened" size={12} /><div className="artbar__grow">{notice}</div><button type="button" className="iconbtn" aria-label="Zavřít" onClick={() => setNotice(null)}><Icon name="close" size={14} /></button></div> : null}
               {here.length ? <EditsBar items={here} state={state} marks={marks} canEdit={frame.canEdit} onAccept={(keys) => void decide("accept", keys)} onDismiss={(keys) => void decide("dismiss", keys)} /> : null}
               <div className="artstage">
-                <div className="artbody" id="artbody"><div className="wb-stage">{children}</div></div>
+                <div className="artbody" id="artbody"><div className="wb-stage">
+                  {stage === "sample" ? <SampleView project={state.project} onOpen={go} /> : null}
+                  {/* Sample shows Dimenze's screen hidden, so its readiness still reaches the inspector. */}
+                  <div hidden={stage === "sample"}>{children}</div>
+                </div></div>
                 <aside className="insp" aria-label="Připravenost a pomoc" hidden={!inspectorOpen}>
                   <div className="insp__head">
                     <div style={{ minWidth: 0, flex: 1 }}><div className="insp__title">Připravenost a pomoc</div><div className="insp__sub">{STAGES[stage].label}</div></div>
