@@ -9,7 +9,11 @@ pass.** Not before, and not on the strength of green unit tests.
 Research Lead and its eleven step artifacts, maps include respondents and segments, a client's own
 data takes part, live Deep Research runs on the full design, and Simulation is out. **Parity with
 18.6.6 is no longer a release gate** (MVP-21): AC-14 of `MVP-ACCEPT-1` ("every capability above
-reports PASS") is gone, and the parity suites report as information.
+reports PASS") is gone, and no capability is a release blocker. The parity suites themselves are
+unchanged: they are regression tests of behaviour ported from 18.6.6, and like every test they fail
+a build when that behaviour changes (CLAUDE.md §5: a test is never loosened to get green). What
+MVP-21 removes is parity as a condition of the MVP release; a deliberate departure from 18.6.6 is
+recorded as an intentional difference in `parity-matrix.json`, as before.
 
 This document defines the test. It does not exist as code yet, because much of what it drives is
 not built. Its criteria are machine-readable in [`parity-matrix.json`](parity-matrix.json) under
