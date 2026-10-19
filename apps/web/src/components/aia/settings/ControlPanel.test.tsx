@@ -287,6 +287,39 @@ describe("what powers AIA", () => {
     expect(analysis.textContent).not.toContain("aia.settings.panel.runtime.activity");
   });
 
+  it("the study's Research Lead: its own card and capability, on or off by its own switch", async () => {
+    technicalOn();
+    const STUDY_LEAD = {
+      key: "study_lead", step_kind: "research_lead_turn", capabilities: ["STUDY_LEAD"],
+      versions: [{ name: "harness", value: "aia-research-lead-1" }],
+      switches: ["AIA_AI_RUNTIME_ENABLED", "AIA_AI_RESEARCH_LEAD_ENABLED"], actions: [],
+    };
+    const doc = DOC();
+    doc.ai_runtime = { ...AI_RUNTIME, activities: [...AI_RUNTIME.activities, STUDY_LEAD] };
+    api({ "GET /api/v1/settings": () => doc, "GET /config": () => CONFIG({ switches: { AIA_AI_RUNTIME_ENABLED: true, AIA_AI_RESEARCH_AGENTS_ENABLED: false, AIA_AI_RESEARCH_LEAD_ENABLED: true } }) });
+    render(<ControlPanel />);
+    await waitFor(() => expect(card("study_lead").getAttribute("data-state")).toBe("configured"));
+    await waitFor(() => expect(tab("AI běh").getAttribute("aria-selected")).toBe("true"));
+    const lead = card("study_lead");
+    expect(within(lead).getByRole("heading", { name: "Vedoucí výzkumu" })).toBeTruthy();
+    expect(within(lead).getByText(/Neověřeno: tato stránka nevolá model/)).toBeTruthy();
+    expect(within(lead).getByText("STUDY_LEAD").getAttribute("title")).toBe("vedoucí výzkumu studie: konverzace a návrhy změn");
+    expect(within(lead).getByText("aia-research-lead-1")).toBeTruthy();
+    // It runs with the design agents off: the Lead's switch is its own, not theirs.
+    expect(card("design_agents").getAttribute("data-state")).toBe("off");
+    expect(lead.textContent).not.toContain("aia.settings.panel.runtime.activity");
+    expect(section("ai").textContent).not.toMatch(OVERCLAIM);
+    cleanup();
+
+    api({ "GET /api/v1/settings": () => doc, "GET /config": () => CONFIG({ switches: { AIA_AI_RUNTIME_ENABLED: true, AIA_AI_RESEARCH_AGENTS_ENABLED: false, AIA_AI_RESEARCH_LEAD_ENABLED: false } }) });
+    render(<ControlPanel />);
+    await waitFor(() => expect(card("study_lead").getAttribute("data-state")).toBe("off"));
+    const off = card("study_lead");
+    expect(within(off).getByText(/^Vypnuto v konfiguraci nasazení\. Vedoucí výzkumu neodpovídá a modelu se nic neodešle; studii lze dál upravovat ručně/)).toBeTruthy();
+    expect(within(off).getByText("Přepínač: AIA_AI_RESEARCH_LEAD_ENABLED")).toBeTruthy();
+    expect(card("respondent_fieldwork").getAttribute("data-state")).toBe("configured");
+  });
+
   it("fieldwork on and design off: Bedrock, one switched on in configuration, one off by its own switch", async () => {
     technicalOn();
     api();
