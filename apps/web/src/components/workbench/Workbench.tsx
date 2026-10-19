@@ -94,15 +94,50 @@ const usd = (n: number | null | undefined) => (typeof n === "number" ? n.toLocal
 
 type EditMark = "accepted" | "dismissed" | { refused: string };
 /**
- * A text edit accepted by the researcher's standing choice on this page, with the edit that puts
+ * A text edit accepted by the researcher's standing choice in this study, with the edit that puts
  * its wording back and the working revision the accept wrote: Vrátit waits until the copy holds it.
  */
 type AutoApplied = { key: string; edit: LeadEdit; inverse: LeadEdit | null; revision: number | null };
 
-export function Workbench({ frame, step, store, save, inspector, reload, confirm, onAgentStarted, jobs, onOpenJob, onRefreshJobs, children }: {
+/**
+ * The text edits accepted automatically in this study, kept in the study's page memory rather than
+ * in one stage's screen: a stage change -- the Lead's own open_stage among them -- mounts another
+ * screen, and the edits accepted on the way still show on their stage, with Vrátit.
+ */
+type AutoList = {
+  get: () => AutoApplied[];
+  set: (change: (items: AutoApplied[]) => AutoApplied[]) => void;
+  subscribe: (listener: () => void) => () => void;
+};
+const AUTO_KEY = "workbench:lead-auto-applied";
+function autoList(memory: Map<string, unknown>): AutoList {
+  const kept = memory.get(AUTO_KEY) as AutoList | undefined;
+  if (kept) return kept;
+  let items: AutoApplied[] = [];
+  const listeners = new Set<() => void>();
+  const list: AutoList = {
+    get: () => items,
+    set: (change) => {
+      items = change(items);
+      for (const l of listeners) l();
+    },
+    subscribe: (l) => {
+      listeners.add(l);
+      return () => {
+        listeners.delete(l);
+      };
+    },
+  };
+  memory.set(AUTO_KEY, list);
+  return list;
+}
+
+export function Workbench({ frame, step, store, memory, save, inspector, reload, confirm, onAgentStarted, jobs, onOpenJob, onRefreshJobs, children }: {
   frame: StudyFrame;
   step: StepKey;
   store: ResearchStore;
+  /** The study's page memory (ResearchSession): what outlives one stage's screen. */
+  memory?: Map<string, unknown>;
   /** The save state, as SaveIndicator draws it. */
   save: ReactNode;
   /** The inspector column the classic layout draws beside the stage: readiness, AI help, blockers. */
@@ -137,7 +172,9 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
   const [autoOn, setAutoOn] = useState(false);
   const seen = useRef<Set<string> | null>(null);
   const tried = useRef(new Set<string>());
-  const [autoApplied, setAutoApplied] = useState<AutoApplied[]>([]);
+  const [ownMemory] = useState(() => new Map<string, unknown>());
+  const autoStore = useMemo(() => autoList(memory ?? ownMemory), [memory, ownMemory]);
+  const autoApplied = useSyncExternalStore(autoStore.subscribe, autoStore.get, autoStore.get);
   const onLead = useCallback((me: ResearcherLead) => setAutoOn(!!me.lead?.preferences?.auto_accept_text_edits), []);
   const onTurns = useCallback((ts: LeadTurn[]) => {
     if (seen.current === null) seen.current = new Set(ts.filter((t) => t.actor === "lead" && t.status === "COMPLETED").map((t) => t.turn_id));
@@ -316,7 +353,7 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
         break;
       }
     }
-    if (applied.length) setAutoApplied((a) => [...a, ...applied]);
+    if (applied.length) autoStore.set((a) => [...a, ...applied]);
     setLeadEpoch((n) => n + 1);
     if (!applied.length) return;
     // AIA wrote a new revision: read it into this copy in place. A change the person made while the
@@ -329,7 +366,7 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
     } catch (e) {
       setNotice(e instanceof Error ? e.message : String(e));
     }
-  }, [store, frame.studyId]);
+  }, [store, frame.studyId, autoStore]);
   useEffect(() => {
     if (!frame.canEdit || seen.current === null) return;
     const plan = autoAcceptPlan(turns, autoOn, seen.current, tried.current);
@@ -352,7 +389,7 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
       return;
     }
     store.update(() => ({ project: r.content.project, analysis: r.content.analysis }));
-    setAutoApplied((a) => a.filter((x) => x.key !== key));
+    autoStore.set((a) => a.filter((x) => x.key !== key));
   };
 
   // Accepting or dismissing goes through the server's gate, one turn at a time: it applies the
@@ -426,7 +463,7 @@ export function Workbench({ frame, step, store, save, inspector, reload, confirm
               </div>
               {picking ? <div className="artbar artbar--op" role="status"><Icon name="at" size={13} /><div className="artbar__grow">Klikněte na otázku, oddíl nebo část zadání, o které chcete s Vedoucím mluvit. Esc zruší.</div></div> : null}
               {notice ? <div className="artbar artbar--stale" role="status"><Glyph tone="reopened" size={12} /><div className="artbar__grow">{notice}</div><button type="button" className="iconbtn" aria-label="Zavřít" onClick={() => setNotice(null)}><Icon name="close" size={14} /></button></div> : null}
-              {autoHere.length ? <AutoBar items={autoHere} state={state} canEdit={frame.canEdit} onRevert={revert} onHide={() => setAutoApplied((a) => a.filter((x) => editStage(x.edit) !== stage))} /> : null}
+              {autoHere.length ? <AutoBar items={autoHere} state={state} canEdit={frame.canEdit} onRevert={revert} onHide={() => autoStore.set((a) => a.filter((x) => editStage(x.edit) !== stage))} /> : null}
               {here.length ? <EditsBar items={here} state={state} marks={marks} canEdit={frame.canEdit} onAccept={(keys) => void decide("accept", keys)} onDismiss={(keys) => void decide("dismiss", keys)} /> : null}
               <div className="artstage">
                 <div className="artbody" id="artbody"><div className="wb-stage">

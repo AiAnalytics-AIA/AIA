@@ -2,7 +2,8 @@
 // The workbench's automatic text edits (plan inline-decisions chunk 2): off by default; on, a turn
 // that finishes has its wording edits accepted through the server's gate, marked automatic, shown
 // as "Přijato automaticky" with Vrátit, while its structural edits wait as change blocks. The copy
-// is read again in place, asynchronously; a change the person makes meanwhile is never dropped.
+// is read again in place, asynchronously; a change the person makes meanwhile is never dropped, and
+// the bar lives in the study's page memory, so a stage change keeps it.
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -129,18 +130,18 @@ afterEach(() => {
   sessionStorage.clear();
 });
 
-type Bench = { store?: ResearchStore };
-function bench({ store }: Bench = {}) {
+type Bench = { store?: ResearchStore; memory?: Map<string, unknown>; step?: "questionnaire" | "brief" };
+function bench({ store, memory = new Map(), step = "questionnaire" }: Bench = {}) {
   const s = store ?? new ResearchStore({ revision: 3, project: project("Znáte?"), analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
   // The stage's reload after a click; an automatic accept reads the copy in place instead.
   const reload = vi.fn();
   const view = render(
-    <Workbench frame={TEST_FRAME} step="questionnaire" store={s} save={null} inspector={null} reload={reload} confirm={vi.fn(async () => true)}
+    <Workbench frame={TEST_FRAME} step={step} store={s} memory={memory} save={null} inspector={null} reload={reload} confirm={vi.fn(async () => true)}
       onAgentStarted={vi.fn()} jobs={[]} onOpenJob={vi.fn()} onRefreshJobs={vi.fn(async () => [])}>
       <div>Dotazník</div>
     </Workbench>,
   );
-  return { store: s, reload, unmount: view.unmount };
+  return { store: s, reload, memory, unmount: view.unmount };
 }
 
 const questionText = (s: ResearchStore) => (s.get().project as unknown as { sections: { questions: { text: string }[] }[] }).sections[0]!.questions[0]!.text;
@@ -246,5 +247,25 @@ describe("automatic text edits", () => {
     expect(screen.queryByRole("region", { name: "Přijato automaticky" })).toBeNull();
     expect(contentReads).toBe(0);
     expect(questionText(store)).toBe("Znáte?");
+  });
+
+  it("keeps the bar across a stage change, even one made before the gate answered", async () => {
+    auto = true;
+    const gate = deferred();
+    editsGate = gate.promise;
+    const first = bench();
+    await waitFor(() => expect(decided).toHaveLength(1), { timeout: 4000 });
+    // The Lead's open_stage moves the person to Zadání: this screen goes, the study's memory stays.
+    first.unmount();
+    gate.release();
+    await waitFor(() => expect(first.store.get().revision).toBe(4));
+    const brief = bench({ store: first.store, memory: first.memory, step: "brief" });
+    expect(screen.queryByRole("region", { name: "Přijato automaticky" })).toBeNull();
+    brief.unmount();
+    bench({ store: first.store, memory: first.memory });
+    const applied = await screen.findByRole("region", { name: "Přijato automaticky" });
+    fireEvent.click(within(applied).getByRole("button", { name: "Vrátit" }));
+    expect(questionText(first.store)).toBe("Znáte?");
+    await waitFor(() => expect(saves).toHaveLength(1), { timeout: 4000 });
   });
 });
