@@ -1,7 +1,7 @@
 ---
 status: in-progress
 chunks:
-  - "[ ] 1. Class rules in one module, read by the design agents and the Research Lead; provenance names each part's source"
+  - "[x] 1. Class rules in one module, read by the design agents and the Research Lead; provenance names each part's source"
   - "[ ] 2. Fieldwork and analysis classify a run's design by the same rule (Deep Research and validation checked)"
   - "[ ] 3. A client source marked \"Interní dokument\" (who, when, audited): Class C for its AI proposals; API and source card"
   - "[ ] 4. ADR 0008 and ADR 0010 amendments: the owner's class rules; develop's EU route may carry A, B and C"

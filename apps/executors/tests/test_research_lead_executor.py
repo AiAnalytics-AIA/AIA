@@ -1,8 +1,8 @@
 """The Research Lead's turn through the real worker, gateway, adapter and ledger (ADR 0026).
 
 The model is a recorded Bedrock: each request is answered from a script, and nothing leaves
-the process. The design, the study's identity and any message are classified here by their
-exact bytes, as an operator classifies real material.
+the process. The design, the study's identity and any message are Class B by the owner's rule
+(2026-10-19, ``material_rules``): no operator classifies them, and the test route carries B.
 """
 
 from __future__ import annotations
@@ -13,21 +13,26 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import pytest
+from aia_core.application.research import research_artifacts
 from aia_core.application.research_lead import ResearchLead
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.ai_models import ModelCapability
-from aia_core.domain.research_lead import RememberNote, SelfUpdate, lead_prompt
+from aia_core.domain.research_lead import LEAD_PROMPT_ID, RememberNote, SelfUpdate, lead_prompt
 from aia_core.domain.residency import DataClass
 from aia_core.infrastructure.ai_usage_repository import AIUsageRepository
 from aia_core.infrastructure.model_adapters.transport import HttpRequest, HttpResponse
+from aia_core.infrastructure.prompt_repository import PromptRepository
 from aia_core.infrastructure.researcher_lead_repository import ResearcherLeadRepository
 from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRepository
+from aia_core.infrastructure.tables import PromptVersionRow
+from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_executors.ai_runtime import AIRuntimeConfigError, AIRuntimeSettings, build_gateway
 from aia_executors.registry import registry_for
 from aia_executors.research_lead import ResearchLeadConfig, ResearchLeadExecutor
 from aia_worker.settings import WorkerSettings
 from aia_worker.worker import Worker
+from sqlalchemy import update
 
 CONTENT: dict[str, Any] = {
     "title": "Fiktivní koncept",
@@ -47,8 +52,11 @@ def approve(value: Any, data_class: DataClass = DataClass.CLASS_C_INTERNAL) -> M
     )
 
 
-#: The fictional study's identity (conftest: study "S" of client "Acme"), its design, a message.
-APPROVALS = (approve({"study": "S", "client": "Acme"}), approve(CONTENT), approve(MESSAGE))
+#: No operator classification: the owner's rules classify the design, the study's identity
+#: (conftest: study "S" of client "Acme") and the message.
+APPROVALS: tuple[MaterialApproval, ...] = ()
+#: The test route: Class C, and Class B, the class a study's material takes by rule.
+ROUTE = "CLASS_C_INTERNAL,CLASS_B_DERIVED_CLIENT"
 
 
 class Signer:
@@ -98,7 +106,9 @@ ENV = {
     "AIA_BEDROCK_CONTEXT_WINDOW_TOKENS": "200000",
     "AIA_AI_ROUTE_EU_PROCESSING_APPROVED": "true",
     "AIA_AI_ROUTE_EXCLUDED_FROM_TRAINING": "true",
-    "AIA_AI_ROUTE_APPROVED_FOR": "CLASS_C_INTERNAL",
+    "AIA_AI_ROUTE_APPROVED_FOR": ROUTE,
+    # Class B, like A, needs the provider's retention stated.
+    "AIA_AI_ROUTE_RETENTION_DAYS": "0",
     "AIA_AI_FIELDWORK_MAX_OUTPUT_TOKENS": "1024",
     "AIA_AI_FIELDWORK_RESERVATION_USD": "0.25",
     "AIA_AI_RESEARCH_LEAD_ENABLED": "true",
@@ -233,8 +243,24 @@ def test_a_turn_is_answered_once_and_its_reply_is_read_from_the_step(
     # Grounding: the edit naming a question the design does not hold is dropped and named.
     assert [e["op"] for e in output["edits"]] == ["set_text"]
     assert turn["dropped"] == [{"index": 1, "op": "question_remove", "reason": "unknown_question"}]
-    assert turn["data_class"] == "CLASS_C_INTERNAL"
+    # The design, the study's names and the message are Class B by rule: no operator step.
+    assert turn["data_class"] == "CLASS_B_DERIVED_CLIENT"
     assert state(ready)["busy"] is False
+    with ready.sessions() as session:
+        scope = ready.lead_scope(session)
+        run = WorkflowRepository(session, scope).get_run(turn["run_id"])
+        stored = research_artifacts(session, scope, store).read_json(
+            run["steps"][0]["output"]["artifact_id"]
+        )
+    sources = {
+        (p["part"], p["data_class"], p["source"])
+        for p in stored["provenance"]["material_classification"]
+    }
+    assert ("design", "CLASS_B_DERIVED_CLIENT", "rule:design") in sources
+    assert ("study_name", "CLASS_B_DERIVED_CLIENT", "rule:study_name") in sources
+    assert ("message", "CLASS_B_DERIVED_CLIENT", "rule:lead_message") in sources
+    assert ("prompt", "CLASS_C_INTERNAL", "code") in sources
+    assert ("lead_soul", "CLASS_C_INTERNAL", "rule:lead_files") in sources
 
     with ready.sessions() as session:
         events = AIUsageRepository(session, ready.lead_scope(session)).events(run_id=turn["run_id"])
@@ -280,7 +306,22 @@ def test_unconfigured_the_turn_parks_and_nothing_is_sent(
 def test_unclassified_material_parks_the_turn_before_any_call(
     ready: Any, database_url: str, store: Any, build: Any
 ) -> None:
-    turn_id = post(ready, message="Neklasifikovaný text klienta")
+    """Material no rule covers still refuses (ADR 0008): a stored edit of the Lead's prompt
+    saved before declarations existed has no class, whatever the message's."""
+    with ready.sessions() as session:
+        repo = PromptRepository(session, ready.admin_context(session))
+        version = repo.create_version(LEAD_PROMPT_ID, "Buď stručný.", declares_no_client_data=True)
+        session.execute(
+            update(PromptVersionRow)
+            .where(
+                PromptVersionRow.prompt_id == LEAD_PROMPT_ID,
+                PromptVersionRow.version_number == version.version_number,
+            )
+            .values(declared_class=None, declared_by=None, declared_at=None)
+        )
+        repo.activate(LEAD_PROMPT_ID, version.version_number, reason="test")
+        session.commit()
+    turn_id = post(ready, message="Text klienta")
     transport = RecordedBedrock([REPLY])
     assert worker(ready, database_url, store, build, transport).run_once()
     assert transport.requests == []
@@ -288,7 +329,7 @@ def test_unclassified_material_parks_the_turn_before_any_call(
     assert (turn["status"], turn["reason"]) == ("WAITING", "egress_unclassified_material")
 
 
-def test_a_client_note_makes_the_turn_class_a_and_a_class_c_route_refuses_it(
+def test_a_client_note_makes_the_turn_class_a_and_a_route_without_a_refuses_it(
     ready: Any, database_url: str, store: Any, build: Any
 ) -> None:
     note = "Acme chce výsledky do pátku."
@@ -300,9 +341,8 @@ def test_a_client_note_makes_the_turn_class_a_and_a_class_c_route_refuses_it(
         session.commit()
     turn_id = post(ready)
     transport = RecordedBedrock([REPLY])
-    approvals = (*APPROVALS, approve(note))
-    assert worker(ready, database_url, store, build, transport, approvals=approvals).run_once()
-    assert transport.requests == []  # the route is approved for Class C only
+    assert worker(ready, database_url, store, build, transport).run_once()
+    assert transport.requests == []  # the route is approved for Classes B and C only
     assert lead_turn(ready, turn_id)["status"] == "WAITING"
 
 
@@ -338,15 +378,13 @@ def test_the_turn_applies_only_what_stays_in_its_client_and_the_rest_waits(
         },
     }
     transport = RecordedBedrock([update])
-    approvals = (*APPROVALS, approve(kept), approve(client_kept))
     assert worker(
         ready,
         database_url,
         store,
         build,
         transport,
-        approvals=approvals,
-        route_approved_for="CLASS_A_CLIENT_CONFIDENTIAL,CLASS_C_INTERNAL",
+        route_approved_for="CLASS_A_CLIENT_CONFIDENTIAL," + ROUTE,
     ).run_once()
 
     turn = lead_turn(ready, turn_id)

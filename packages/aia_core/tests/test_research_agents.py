@@ -71,7 +71,8 @@ def test_every_contract_is_closed_and_has_no_tools_or_fallback() -> None:
         assert not request.agent.allowed_tools
         assert not request.fallback_policy.alternates
         assert request.requested_model is None and request.requested_provider is None
-        assert request.data_classification is DataClass.CLASS_C_INTERNAL
+        # The design is Class B by the owner's rule; the operator's Class C cannot lower it.
+        assert request.data_classification is DataClass.CLASS_B_DERIVED_CLIENT
     with pytest.raises(ValidationError):
         BriefAnalysis.model_validate({**analysis().model_dump(), "approved": True})
 

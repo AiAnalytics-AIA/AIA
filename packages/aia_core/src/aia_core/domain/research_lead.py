@@ -19,9 +19,12 @@ ADR 0026. A Lead turn is a durable worker step; this module is its pure half:
   personality and working style), a USER file (what it knows of how this researcher works)
   and notes. The Lead changes them only through ``self_update``, when the researcher asks
   in chat; a ``forget`` names only notes this turn was shown (:func:`ground_self_update`).
-* **Its data class** follows the design agents' rule (:func:`lead_request`): material is
-  classified by its exact bytes, any approved knowledge and any client-scoped note is
-  Class A, the most restrictive wins and an unknown class refuses dispatch.
+* **Its data class** follows the owner's rules of 2026-10-19 (:func:`context_classification`,
+  ``material_rules``): the design, the study's names and the researcher's messages are Class
+  B, the Lead's own files and personal notes Class C, approved knowledge and client-scoped
+  notes Class A; an operator's classification of exact bytes can only raise a part; the most
+  restrictive wins, and a part no rule covers (an undeclared prompt edit, an earlier reply of
+  unknown class) refuses dispatch.
 
 No I/O: stdlib and Pydantic only.
 """
@@ -40,11 +43,17 @@ from uuid import uuid4
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .ai_contracts import AgentDefinition, Message, ModelRequest, canonical_json
-from .ai_material import MaterialApproval, classify_material, most_restrictive_material
+from .ai_material import MaterialApproval, most_restrictive_material
 from .ai_models import ModelCapability
 from .licence import DataLineage
+from .material_rules import MaterialRule, classify_by_rule, rule_class
 from .prompts import PromptPin
-from .research_agents import FIXED_PREFIX, ResearchAction, prompt_data_class
+from .research_agents import (
+    FIXED_PREFIX,
+    ResearchAction,
+    prompt_class_source,
+    prompt_data_class,
+)
 from .residency import DataClass
 
 __all__ = [
@@ -72,6 +81,8 @@ __all__ = [
     "Stage",
     "apply_edit",
     "baseline_task",
+    "context_classification",
+    "context_data_class",
     "context_sha256",
     "freeze_context",
     "ground_edits",
@@ -786,31 +797,114 @@ def model_message(context: Mapping[str, Any]) -> str:
 # --------------------------------------------------------------------------- the request
 
 
-def _material_class(value: Any, approvals: tuple[MaterialApproval, ...]) -> DataClass | None:
-    return classify_material(value, approvals).data_class
+def _part(
+    part: str, value: Any, rule: MaterialRule, approvals: tuple[MaterialApproval, ...]
+) -> dict[str, Any]:
+    ruled = classify_by_rule(value, rule, approvals)
+    return {
+        "part": part,
+        "data_class": ruled.data_class.value,
+        "source": ruled.source,
+        "sha256": ruled.sha256,
+    }
 
 
-def lead_files_data_class(
+def _lead_files(
     lead: Mapping[str, Any], approvals: tuple[MaterialApproval, ...]
-) -> DataClass | None:
-    """The class of the Lead's files and notes: the hatch defaults are the code's wording
-    (Class C); anything else is classified by its exact text, a client note is Class A, and
-    the most restrictive wins (an unknown one refuses dispatch)."""
-    classes: list[DataClass | None] = [DataClass.CLASS_C_INTERNAL]
-    soul = str(lead.get("soul") or "")
-    user = str(lead.get("user") or "")
-    name = str(lead.get("name") or "")
-    if soul != DEFAULT_SOUL:
-        classes.append(_material_class(soul, approvals))
-    if user != DEFAULT_USER:
-        classes.append(_material_class(user, approvals))
-    if name != DEFAULT_LEAD_NAME:
-        classes.append(_material_class(name, approvals))
+) -> list[dict[str, Any]]:
+    """The Lead's files and notes: its name, SOUL, USER and personal notes are Class C by rule
+    (they change only when the researcher asks it to remember), a client-scoped note Class A;
+    a note of any other scope is covered by no rule and refuses."""
+    parts = [
+        _part("lead_name", str(lead.get("name") or ""), MaterialRule.LEAD_FILES, approvals),
+        _part("lead_soul", str(lead.get("soul") or ""), MaterialRule.LEAD_FILES, approvals),
+        _part("lead_user", str(lead.get("user") or ""), MaterialRule.LEAD_FILES, approvals),
+    ]
     for note in lead.get("notes") or ():
-        classes.append(_material_class(str(note["text"]), approvals))
-        if note.get("scope") == "client":
-            classes.append(DataClass.CLASS_A_CLIENT_CONFIDENTIAL)
-    return most_restrictive_material(classes)
+        text = str(note["text"])
+        scope = note.get("scope")
+        if scope == "client":
+            parts.append(_part("client_note", text, MaterialRule.CLIENT_NOTE, approvals))
+        elif scope == "personal":
+            parts.append(_part("personal_note", text, MaterialRule.LEAD_FILES, approvals))
+        else:
+            parts.append({"part": "note", "data_class": None, "source": "unknown"})
+    return parts
+
+
+def context_classification(
+    context: Mapping[str, Any],
+    approvals: tuple[MaterialApproval, ...],
+    prompt: PromptPin,
+) -> list[dict[str, Any]]:
+    """Each part of a turn's context with its class and who answered for it.
+
+    By the owner's rules (``material_rules``): the design (its content and analysis) and the
+    study's and client's names are Class B; the message, the focus's label (text the browser
+    sends beside it) and every earlier message of the researcher take the study's class (B);
+    the Lead's files and personal notes are Class C and a client note Class A; approved
+    knowledge is Class A. An operator's classification of a part's exact bytes can only raise
+    it. The prompt is classified as the agents' is (``prompt_data_class``); an earlier reply
+    carries the class its turn was sent as. A part's ``data_class`` is ``None`` when no rule
+    covers it, which refuses the turn.
+    """
+    design = layer(context, "design")
+    study = layer(context, "study")
+    view = layer(context, "view")
+    prompt_class = prompt_data_class(prompt, approvals)
+    parts: list[dict[str, Any]] = [
+        _part("design", design.get("content") or {}, MaterialRule.DESIGN, approvals),
+        {
+            "part": "prompt",
+            "data_class": None if prompt_class is None else prompt_class.value,
+            "source": prompt_class_source(prompt, approvals),
+        },
+        *_lead_files(layer(context, "lead"), approvals),
+        _part(
+            "study_name",
+            {"study": study.get("name"), "client": study.get("client_name")},
+            MaterialRule.STUDY_NAME,
+            approvals,
+        ),
+    ]
+    if design.get("analysis"):
+        parts.append(_part("design_analysis", design["analysis"], MaterialRule.DESIGN, approvals))
+    if view.get("message"):
+        parts.append(_part("message", view["message"], MaterialRule.LEAD_MESSAGE, approvals))
+    focus = view.get("focus")
+    if isinstance(focus, Mapping) and focus.get("label"):
+        parts.append(
+            _part("focus_label", str(focus["label"]), MaterialRule.LEAD_MESSAGE, approvals)
+        )
+    for turn in layer(context, "conversation")["turns"]:
+        if turn.get("actor") == "person":
+            parts.append(
+                _part(
+                    "earlier_message",
+                    turn.get("text") or "",
+                    MaterialRule.LEAD_MESSAGE,
+                    approvals,
+                )
+            )
+        else:
+            known = turn.get("data_class")
+            parts.append(
+                {
+                    "part": "earlier_reply",
+                    "data_class": known if known in DataClass._value2member_map_ else None,
+                    "source": "turn",
+                }
+            )
+    knowledge = layer(context, "knowledge")["items"]
+    parts.extend(
+        {
+            "part": "knowledge",
+            "data_class": rule_class(MaterialRule.KNOWLEDGE).value,
+            "source": MaterialRule.KNOWLEDGE.value,
+        }
+        for _ in knowledge
+    )
+    return parts
 
 
 def context_data_class(
@@ -818,41 +912,14 @@ def context_data_class(
     approvals: tuple[MaterialApproval, ...],
     prompt: PromptPin,
 ) -> DataClass | None:
-    """The class a turn is sent as, by the design agents' rule (``agent_request``).
-
-    The design (its content and analysis), the study's identity, the message, the focus's
-    label (text the browser sends beside it) and every earlier message are classified by
-    their exact bytes; an earlier reply carries the class
-    its turn was sent as (unknown refuses); approved knowledge and client notes are Class A;
-    the prompt is classified as the agents' is. The most restrictive wins; unknown refuses.
-    """
-    design = layer(context, "design")
-    study = layer(context, "study")
-    view = layer(context, "view")
-    classes: list[DataClass | None] = [
-        _material_class(design.get("content") or {}, approvals),
-        prompt_data_class(prompt, approvals),
-        lead_files_data_class(layer(context, "lead"), approvals),
-        _material_class(
-            {"study": study.get("name"), "client": study.get("client_name")}, approvals
-        ),
-    ]
-    if design.get("analysis"):
-        classes.append(_material_class(design["analysis"], approvals))
-    if view.get("message"):
-        classes.append(_material_class(view["message"], approvals))
-    focus = view.get("focus")
-    if isinstance(focus, Mapping) and focus.get("label"):
-        classes.append(_material_class(str(focus["label"]), approvals))
-    for turn in layer(context, "conversation")["turns"]:
-        if turn.get("actor") == "person":
-            classes.append(_material_class(turn.get("text") or "", approvals))
-        else:
-            known = turn.get("data_class")
-            classes.append(DataClass(known) if known in DataClass._value2member_map_ else None)
-    knowledge = layer(context, "knowledge")["items"]
-    classes.extend(DataClass.CLASS_A_CLIENT_CONFIDENTIAL for _ in knowledge)
-    return most_restrictive_material(classes)
+    """The class a turn is sent as: the most restrictive of its parts'
+    (:func:`context_classification`); a part of unknown class refuses."""
+    return most_restrictive_material(
+        [
+            None if p["data_class"] is None else DataClass(p["data_class"])
+            for p in context_classification(context, approvals, prompt)
+        ]
+    )
 
 
 def lead_request(
