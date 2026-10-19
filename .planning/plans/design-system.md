@@ -1,10 +1,10 @@
 ---
-status: in-progress
+status: done
 chunks:
-  - "[ ] 0. Vocabulary alignment (state not recorded in this plan)"
+  - "[x] 0. Vocabulary alignment (state not recorded in this plan) — superseded, not built: tokens and identity landed through interface-skin; the workbench redesign owns the screens (mvp-consolidation 2026-10-19)"
   - "[x] 1. Tokens, themes, identity (landed through interface-skin.md)"
-  - "[ ] 2. Domain enum binding (returns when areas are re-homed)"
-  - "[ ] 3. Primitives + Vitest (returns when areas are re-homed)"
+  - "[x] 2. Domain enum binding (returns when areas are re-homed) — superseded, not built: the re-home this waited for is the workbench redesign (mvp-consolidation 2026-10-19)"
+  - "[x] 3. Primitives + Vitest (returns when areas are re-homed) — superseded, not built: the re-home this waited for is the workbench redesign (mvp-consolidation 2026-10-19)"
   - "[-] V. First vertical slice (superseded 2026-09-23, ADR 0012)"
   - "[-] 4–11. Screen compositions (superseded 2026-09-23, ADR 0012)"
 ---

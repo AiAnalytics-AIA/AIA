@@ -43,6 +43,13 @@ perspectives, 120 dimensions, slide 16).
 
 ## 2. Decisions the owner needs to make
 
+**Answered by the owner on 2026-10-19:** M1 all scenarios out · M2 approved exports · M3 the
+redesign before release (autopilot and Deep Research from every stage after) · M4 the respondent
+map in · M5 rewrite `mvp-acceptance.md` · M6 depth tiers after · M7 an owned child is enough · M8
+superseded: every AI action goes through the Research Lead. Recorded as MVP-1 to MVP-10 in
+`overview.md` § MVP roadmap, which is now the cross-plan list; §4.1's front-matter corrections are
+applied in the same PR.
+
 Each one changes which plans are MVP-critical. They are listed before the plans because the plan
 map in §4 depends on them.
 

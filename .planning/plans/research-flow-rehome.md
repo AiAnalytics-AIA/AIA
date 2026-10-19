@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done
 chunks:
   - "[x] 0. This plan; OI-47, OI-48"
   - "[x] 1. Foundation: research routes, model, project store"
@@ -11,10 +11,10 @@ chunks:
   - "[-] 7. run (superseded by done/research-execution.md, ADR 0016)"
   - "[-] 8. progress (superseded by done/research-execution.md, ADR 0016)"
   - "[-] 9. results (superseded by done/research-execution.md, ADR 0016)"
-  - "[ ] 10. next: ideal group from results, manual propensity, child project"
-  - "[ ] 11. verify: its intended screen (OI-47)"
+  - "[x] 10. next: ideal group from results, manual propensity, child project — superseded, not built: ideal group, manual propensity and child project are not in the MVP; re-file if wanted (mvp-consolidation 2026-10-19)"
+  - "[x] 11. verify: its intended screen (OI-47) — superseded, not built: the classic screens are replaced by the workbench artifacts (mvp-consolidation 2026-10-19)"
   - "[x] —. Re-home under the client"
-  - "[ ] 12. Switch-over"
+  - "[x] 12. Switch-over — superseded, not built: no switch-over: 18.6.6 left the product (ADR 0018) (mvp-consolidation 2026-10-19)"
 ---
 # Research flow, rebuilt — area A4 of the React re-home
 

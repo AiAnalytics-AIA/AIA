@@ -1,18 +1,18 @@
 ---
-status: in-progress
+status: done
 chunks:
   - "[x] R0. This plan"
   - "[x] R1. Print tokens"
   - "[x] R2. Fonts and embedding"
   - "[x] R3. Document model"
-  - "[ ] R4. Style sheet and furniture (started; paused 2026-09-27, see Handoff)"
-  - "[ ] R5. Text and report components"
-  - "[ ] R6. Tables"
-  - "[ ] R7. Figures and evidence marks"
-  - "[ ] R8. Templates"
-  - "[ ] R9. Verification tooling"
-  - "[ ] R10. Composition from analysis results (needs the agreed contract)"
-  - "[ ] R11. The REPORT step"
+  - "[x] R4. Style sheet and furniture (started; paused 2026-09-27, see Handoff) — built in infrastructure/report_docx/, domain/report/templates.py, aia_executors/report.py @ 0b4e05e (mvp-consolidation 2026-10-19)"
+  - "[x] R5. Text and report components — built in infrastructure/report_docx/, domain/report/templates.py, aia_executors/report.py @ 0b4e05e (mvp-consolidation 2026-10-19)"
+  - "[x] R6. Tables — built in infrastructure/report_docx/, domain/report/templates.py, aia_executors/report.py @ 0b4e05e (mvp-consolidation 2026-10-19)"
+  - "[x] R7. Figures and evidence marks — built in infrastructure/report_docx/, domain/report/templates.py, aia_executors/report.py @ 0b4e05e (mvp-consolidation 2026-10-19)"
+  - "[x] R8. Templates — built in infrastructure/report_docx/, domain/report/templates.py, aia_executors/report.py @ 0b4e05e (mvp-consolidation 2026-10-19)"
+  - "[x] R9. Verification tooling — built in infrastructure/report_docx/, domain/report/templates.py, aia_executors/report.py @ 0b4e05e (mvp-consolidation 2026-10-19)"
+  - "[x] R10. Composition from analysis results (needs the agreed contract) — built in infrastructure/report_docx/, domain/report/templates.py, aia_executors/report.py @ 0b4e05e (mvp-consolidation 2026-10-19)"
+  - "[x] R11. The REPORT step — built in infrastructure/report_docx/, domain/report/templates.py, aia_executors/report.py @ 0b4e05e (mvp-consolidation 2026-10-19)"
 ---
 # Plan: the report output stage — DOCX from the design system
 

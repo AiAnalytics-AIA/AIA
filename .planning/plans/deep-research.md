@@ -11,8 +11,8 @@ chunks:
   - "[x] g. Executors and compositions"
   - "[x] h. Worker journey"
   - "[ ] 4. Tool usage in the ledger (migration)"
-  - "[ ] 12. API and the Deep Research stage screen"
-  - "[ ] 13. Live enablement (blocked on DR-2 and, for Class B, D6)"
+  - "[x] 12. API and the Deep Research stage screen — built at routers/deep_research.py, InterpretationResearch.tsx @ 0b4e05e (mvp-consolidation 2026-10-19)"
+  - "[x] 13. Live enablement (blocked on DR-2 and, for Class B, D6) — moved to deep-research-web-search 1 and 27 (mvp-consolidation 2026-10-19)"
 ---
 # Deep Research — a governed research swarm over Client Knowledge and the web
 

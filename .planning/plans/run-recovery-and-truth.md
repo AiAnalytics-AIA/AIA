@@ -14,7 +14,7 @@ chunks:
   - "[ ] 4. Deep Research: source diversity beyond Wikipedia, the exact supporting passage per claim, and every rejection's reason shown"
   - "[x] 5a. Population: a person chooses who answers a run (fictional roster or the population) before it starts; the deployment only says what it offers"
   - "[x] 5b. Population: the run receipt says who answered, from which population, and which selected dimensions and filters were applied"
-  - "[ ] 5c. Population: selected dimensions applied to panel respondents as 18.6.6 applied them, the topic allowlist (product owner, 2026-10-15)"
+  - "[x] 5c. Population: selected dimensions applied to panel respondents as 18.6.6 applied them, the topic allowlist (product owner, 2026-10-15) — built in bc61041, domain/panel_persona.py:72,136-138 @ 0b4e05e (mvp-consolidation 2026-10-19)"
   - "[x] 6a. Web: one run state (running, waiting, needs repair, evidence unavailable, results ready, report ready) read by every screen and the stage track"
   - "[x] 6b. Web: plain reasons, never a raw code: Deep Research and Interpretation Research steps, preflight checks, unknown keys"
   - "[x] 6c. Web: a measure, a trace and a citation name the question by its wording; the id only under technical details"

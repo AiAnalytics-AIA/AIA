@@ -11,7 +11,7 @@ name:** code, the interface, stored artifacts and older documents cite
 `PROGRESS D6`, `PROGRESS D11` and so on, and they mean the rows of *Decisions
 needed* below.
 
-**Updated:** 2026-10-12 · **Code of record:** `develop` @ `c1c8ec1e` (#315's merge) ·
+**Updated:** 2026-10-19 (MVP roadmap; header SHA below not re-measured) · **Code of record:** `develop` @ `c1c8ec1e` (#315's merge) ·
 **Release:** `main` @ `9cf1f58`, 1,187 commits behind it and none ahead
 (`git rev-list --count origin/main..origin/develop` / `origin/develop..origin/main`; ADR 0009).
 This header names `develop`, never a feature branch. Open pull requests are GitHub's list, not a
@@ -545,6 +545,57 @@ it is not answered. "The local agent said so" is not an anchor.
 | `REF-GAP-SIMULATION-WORLD-MODEL` | parity-quality + A7 simulation-engine — **open, OI-27.** Blocked on a credential, an ADR 0008 egress route **and** the withheld archive. The deterministic core is built without it (PR #27); the F13 scaffold `test_simulation_parity.py` skips until it lands; status in [simulation-deterministic-engine.md](../docs/architecture/simulation-deterministic-engine.md) §7 |
 | `REF-WITHHELD-REFERENCE-ARCHIVE` | data owner / population-data, after the licensing decision. Its destination must satisfy EU residency — [ADR 0008](../docs/architecture/adr/0008-eu-data-residency.md) |
 
+## MVP roadmap (2026-10-19)
+
+**The one cross-plan list of what stands between `develop` and the MVP.** Decided by the owner on
+2026-10-19 from [`mvp-consolidation.md`](mvp-consolidation.md), which holds the evidence (every
+open plan classified, anchored @ `0b4e05e`). Plans keep their own status; this section names the
+tracks, their order and their owners, and only docs PRs edit it.
+
+**The MVP.** The research lifecycle end to end in the **Research Lead workbench** (the Lead beside
+eleven V3 step artifacts, ADR 0026), on AI respondents drawn from the population; **Sociomapping**
+with the approved object map **and the respondent map**; the **data library** from a client's
+source to an accepted, materialized dimension owned by that client; **project memory** (design
+reuse, done); **delivery** as the approved internal and client reports and approved map snapshots;
+live **Deep Research** including the priced Brave route. *Out:* Simulation and every scenario,
+a client login, report depth tiers, client-facing analysis prose (it waits on the holdout
+validation), the Lead's autopilot, Deep Research from every stage, promotion of a client's
+dimension into the shared LIVE population.
+
+**Decisions of 2026-10-19 (owner).**
+
+| # | Decision |
+|---|---|
+| MVP-1 | All scenarios out, the deck's P0 Scenario engine included (also resolves D9) |
+| MVP-2 | Client View is the approved exports: the client report (DOCX/PDF) and approved map snapshots. No client login |
+| MVP-3 | The workbench redesign is release-blocking: the Lead and all eleven V3 artifacts before release. The autopilot ("continue until you need me") and Deep Research from every stage come after |
+| MVP-4 | The respondent map is in the MVP (`sociomap-formula-corrections` chunk 3); the method owner works in AIA sessions and answers 0b there |
+| MVP-5 | `docs/migration/mvp-acceptance.md` is rewritten as the one definition of done (its machine-readable criteria in `parity-matrix.json` with it) |
+| MVP-6 | Report depth tiers after the MVP |
+| MVP-7 | The data library ends at an owned child population; no promotion to shared LIVE |
+| MVP-8 | **Every AI action goes through the Research Lead.** The manual AI buttons are removed, artifact by artifact as each V3 artifact lands; the Lead calls smaller workers, each with its own system prompt, and every paid one is approved by a person through the Lead's approve path (which already holds the spend limit; this closes research-lead-workbench F1) |
+| MVP-9 | Live Deep Research with Brave is release-blocking; the owner / data owner chase Brave's written answer on storing results (DR-2) |
+| MVP-10 | Client deliverables carry labelled modelled numbers and approved maps; analysis prose stays internal until `panel-grounded-respondents` 7f-7h |
+
+**Working model (owner, 2026-10-19).** This section is the roadmap. Each track has one owner,
+named here when its work starts; no two agents edit the same plan. An agent marks its own PR ready
+and handles review; **the owner merges**. The method owner works in AIA sessions under CLAUDE.md.
+
+**Tracks, in order within each.**
+
+| Track | Plans and chunks | Owner | Blocked by |
+|---|---|---|---|
+| **A. Release acceptance** (run once) | `mvp-acceptance.md` rewrite (MVP-5); then one recorded and one deployed run that ticks `ai-research-activation` 4, `connected-research-assurance` 5, `contextual-research-settings-ux` 5, `research-agent-workflows` 8, `research-integrity-report` 5, `mvp-workflow-assurance` A4/A5 | open | B-F |
+| **B. Workbench and Lead** | `research-lead-workbench` 12 → 11 (command registry) → 14-16 → 17-22, each removing its stage's AI buttons and adding the Lead's worker call (MVP-8) → 23 | open | C for the Results and Sociomap artifacts; D for the Brief's materials |
+| **C. Population → respondents → maps** | `audience-catalogue-cpu` 4 → `complete-study-report` B6 (operator flag) → `sociomap-formula-corrections` I0-I5, 0b, 3 (respondent map), 4d | open; method owner for 0b | the method owner's 0b answers |
+| **D. Data and evidence** | `client-budget` CB5 → `client-knowledge-lifecycle` K2e, K2f, K3, K4, K5 (to an owned child), K6, K7 → `client-workspace` C6-C9 | open | — |
+| **E. Delivery and gates** | `research-integrity-report` 6-8 → `two-roles-human-ai-gates` 5b.1-5b.3; 5b.4 as approved exports (MVP-2) | open | — |
+| **F. Deep Research live** | `deep-research-web-search` 1 (sign-off) → 27 (develop activation); `deep-research` 4 (tool rows in the usage ledger) | open | Brave's answer (MVP-9) |
+
+After the MVP: `simulation-studio`, `sociomapping-engine` (SOMECS), `methodology-tab` S4d/W1c/X1,
+`panel-grounded-respondents` 7f-7h, `deep-research-web-search` 31-39, research-lead-workbench
+24-25. Tooling, any time: `architecture-enforcement`, `system-prompts-settings` 7.
+
 ## Next
 
 Take the next chunk `python tools/progress.py` names unless told otherwise, and **write the
@@ -780,7 +831,7 @@ with the topic until they are renumbered in one change with every reference.*
 | D6 | ~~**Approve `aia-sociomap-3` for client use.**~~ — **decided 2026-10-13 by the product owner: use the current methodology, `aia-sociomap-3`, in reports as it stands** ("just use the current unfinished sociomap version"). Carried by the Sociomap register (`domain/sociomap_register.py`, #385, B4), which replaced the global `D6_OPEN` switch: an entry approves a method id **at its exact spec fingerprint**, so an edited version or a changed preset is not approved by it, and a method absent from the register is `INTERNAL_ONLY`. `aia-sociomap-3` (`e16dc0d0…f241`) is its only entry; `aia-sociomap-1`'s four declarations stay unapproved and its map internal. Every map prints its status, and the client report shows only approved maps. The audit's Q5-Q7 decisions of 2026-10-09 stand as recorded in the method | — (later methods need their own entry) | `domain/sociomap_register.py` · [complete-study-report](plans/complete-study-report.md) · OI-16 · OI-17 |
 | D7 | **Is `RELIGION` a certified matched block?** It is donor-matched and dictionary-eligible, but absent from the certificate's `matched_blocks`, so the claim gate refuses it client-facing. Data owner | Client claims on the five religion fields | `.planning/open-items.md` OI-19 |
 | D8 | **One authority for field policy and the joint certificate.** `domain.evidence` and `domain.population` each implement both, with different eligibility (287 vs 115 client measured-claim fields). Pick one; the other consumes it | Consistent claim decisions between a run's recorded policy and the claims admitted from it | `.planning/open-items.md` OI-24 |
-| D9 | **Is the Simulation lifecycle in the MVP?** `MVP-ACCEPT-1` is scoped to one Research study. Bringing Simulation in adds `simulation.*` to the blockers and makes OI-27 release-blocking. **2026-10-10 (owner): left blocked for now**, so Simulation stays outside `MVP-ACCEPT-1` and `mvp-acceptance.md` stays research-only until it is decided; [`plans/simulation-studio.md`](plans/simulation-studio.md) S0 waits on it | MVP scope | `docs/migration/mvp-acceptance.md` §6 |
+| D9 | ~~**Is the Simulation lifecycle in the MVP?**~~ — **resolved 2026-10-19 (owner): no.** Simulation and every scenario / what-if (the deck's P0 Scenario engine included, MVP-1) are after the MVP; [`plans/simulation-studio.md`](plans/simulation-studio.md) stays planned | — | [MVP roadmap](#mvp-roadmap-2026-10-19) · [`mvp-consolidation.md`](mvp-consolidation.md) §2 |
 | PM-1 | ~~**Project memory: what is reused, how far it reaches, and from which sources.**~~ **Resolved 2026-10-10 (owner):** (1) the same client only, never another client or organization; (2) result reuse is out of the MVP, which reuses a past study's **design** (its Design Revision) and nothing it found; (3) draft and synthetic sources may be reused, their labels carried into the new design and enforced (design input, never evidence) | Project memory M1-M4 | [`plans/project-memory-reuse.md`](plans/project-memory-reuse.md) § M0 |
 | POP-1 | ~~**What a research run does with the population while fieldwork is fictional, and what of 18.6.6's population AIA carries.**~~ **Resolved 2026-10-10/11 (owner):** every new run records the LIVE binding while fieldwork stays fictional and says so (#244); 18.6.6's v17 data and characteristics are carried over, imported on develop 2026-10-11 with STATIC `v17_1_2` and LIVE `v17_4_0` (#252, #272); the 18 built-in subpanels (`BUILTIN_SUBPANELS_v17.json`) are adopted (P7) | Population on develop; P7 | [`plans/population-operations.md`](plans/population-operations.md) P3, P6, P6b, P7 |
 | D10 | **Minimum factors in a world model: 6 or 4.** The reference prompt asks for 6–12, its schema allows 4, and its code tops anything under 4 up to 6. Production declares **6** and rejects fewer. Data owner to confirm or change it; a change bumps `SIMULATION_CONSTANTS_VERSION` | Confirming the simulation bounds as final | `packages/aia_core/src/aia_core/domain/simulation/reference.py` `WorldModelBounds.min_factors` · `test_bounds_are_pinned_to_the_constants_version` |
