@@ -1085,8 +1085,10 @@ class ClientKnowledgeRepository:
         """A person adds a web source they checked, once per client and URL.
 
         The client's row is locked first, so two clicks at once are decided one after the
-        other. An active ``SOURCE`` item, or a pending ``SOURCE`` proposal, whose
-        ``content.url`` is ``url`` answers ``exists`` and writes nothing. Otherwise the source
+        other. An active ``SOURCE`` item, or a pending ``SOURCE`` proposal, that is the same
+        address answers ``exists`` and writes nothing: its ``content.url`` or
+        ``content.final_url`` (where a redirect led) is ``url`` or ``content["final_url"]``.
+        Otherwise the source
         is written through :meth:`add` -- knowledge at once, or a proposal where the client
         turned self-approval off -- with ``content.url`` set to ``url``. Needs what
         :meth:`add` needs.
@@ -1096,6 +1098,15 @@ class ClientKnowledgeRepository:
         scope.require(ClientPermission.APPROVE_CLIENT_KNOWLEDGE)
         if not url:
             raise ValueError("a source needs its URL")
+        final_url = content.get("final_url")
+        addresses = {url, final_url} if isinstance(final_url, str) and final_url else {url}
+
+        def same(held: object) -> bool:
+            return isinstance(held, dict) and any(
+                isinstance(held.get(key), str) and held.get(key) in addresses
+                for key in ("url", "final_url")
+            )
+
         self._session.scalar(
             select(ClientRow.client_id)
             .where(
@@ -1117,7 +1128,7 @@ class ClientKnowledgeRepository:
             .order_by(ClientKnowledgeItemRow.created_at)
         ).all()
         for item_id, held in items:
-            if isinstance(held, dict) and held.get("url") == url:
+            if same(held):
                 return SourceAdded(status="exists", item_id=str(item_id), proposal_id=None)
         pending = self._session.execute(
             select(ClientKnowledgeProposalRow.proposal_id, ClientKnowledgeProposalRow.content)
@@ -1131,7 +1142,7 @@ class ClientKnowledgeRepository:
             .order_by(ClientKnowledgeProposalRow.proposed_at)
         ).all()
         for proposal_id, held in pending:
-            if isinstance(held, dict) and held.get("url") == url:
+            if same(held):
                 return SourceAdded(status="exists", item_id=None, proposal_id=str(proposal_id))
         written = self.add(
             scope,

@@ -788,6 +788,36 @@ def test_a_checked_source_is_added_once_per_client_and_url(
     assert theirs.status == "added" and theirs.item_id != first.item_id
 
 
+def test_a_checked_source_is_the_same_source_by_its_final_url_either_way(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    """A source is one source whether a run reached it by its address or through a redirect:
+    a URL that is another source's final URL, or a final URL that is another's URL, answers
+    ``exists`` and writes nothing."""
+    researcher = client_scope(scoped, "researcher")
+    short, final = "https://stat.example/s/1", "https://stat.example/fiktivni-statistika"
+    first = knowledge.add_source_once(
+        researcher, url=short, title="T", content={"final_url": final}, provenance={}
+    )
+    assert first.status == "added"
+    reached_directly = knowledge.add_source_once(
+        researcher, url=final, title="T", content={"final_url": final}, provenance={}
+    )
+    assert (reached_directly.status, reached_directly.item_id) == ("exists", first.item_id)
+    other = knowledge.add_source_once(
+        researcher, url="https://stat.example/s/2", title="T", content={}, provenance={}
+    )
+    via_redirect = knowledge.add_source_once(
+        researcher,
+        url="https://stat.example/s/3",
+        title="T",
+        content={"final_url": "https://stat.example/s/2"},
+        provenance={},
+    )
+    assert (via_redirect.status, via_redirect.item_id) == ("exists", other.item_id)
+    assert len(knowledge.items(researcher)) == 2
+
+
 def test_where_self_approval_is_off_a_checked_source_waits_and_is_not_proposed_twice(
     scoped: Any, knowledge: ClientKnowledgeRepository
 ) -> None:
