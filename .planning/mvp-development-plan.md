@@ -69,8 +69,18 @@ client gets no web search in the MVP** until classification is redesigned, unles
 or ADMIN marks it OPEN, an audited act that is the organization's statement that the client's material
 may be used in public search queries. Operator-declared fictional clients behave as before.
 
-Not touched: EU residency of models and storage (the Bedrock EU route, EU S3), the model gateway and
-`material_rules` for model calls, the evidence gates. ADR 0008 is a frozen invariant, so the open
+Not touched in code: EU residency of models and storage (the Bedrock EU route, EU S3), the model
+gateway and `material_rules` for model calls, the evidence gates. **The model route's classes are widened
+by configuration, not code:** the owner decided on 2026-10-19 that `bedrock-eu-primary` may carry
+Classes A, B and C (ADR 0010 amendment), and it takes effect only when an operator confirms the Bedrock
+retention and sets four SSM parameters (`deploy/develop/README.md` § AI route classes). Until then the
+route is Class C only, and any design job whose study has approved knowledge (Class A by rule,
+`research_agents.py:675-686`) parks with `egress_route_not_approved_for_class`: the Dimenze "optimize
+with AI" button fails that way on develop today. It is a W0 item, below. **A second finding:** the stage's error ("AI návrh čeká na povolenou trasu nebo
+licenci: route … is not approved for CLASS_A_CLIENT_CONFIDENTIAL") says what is refused and not who can
+fix it. It should say the route is approved only for internal material, that an administrator widens it
+on Nastavení → AI, and link there (a small chunk in `research-lead-workbench`, with the Lead's command
+registry, chunk 11). ADR 0008 is a frozen invariant, so the open
 posture and the deferral are recorded as the owner's amendment to it (an ADR in W0). Post-MVP, the
 redesign starts from `class-b-search-route` 6's content rule, kept there as a design note with the
 review findings it collected.
@@ -113,7 +123,7 @@ plan (or to a new plan from #497) before the wave starts.
 
 | S | Work |
 |---|---|
-| S3 | Merge #493, #494, #495, #491, #496, #497 in that order; apply the docs follow-ups; add `prototypes/` to the docs-only path list (`ci-skip-docs-only`); `mvp-acceptance-harness` 1-3 (budget table, inputs, harness with its CI step); `infra/production` skeleton and `develop-spend-attribution` 1-2 (tagged profiles); migration **M3** (all ledger subject types, §4) |
+| S3 | Merge #493, #494, #495, #491, #496, #497 in that order; apply the docs follow-ups; add `prototypes/` to the docs-only path list (`ci-skip-docs-only`); `mvp-acceptance-harness` 1-3 (budget table, inputs, harness with its CI step); `infra/production` skeleton and `develop-spend-attribution` 1-2 (tagged profiles); migration **M3** (all ledger subject types, §4); **operator, first:** confirm the Bedrock retention evidence and set the four route parameters on develop (`deploy/develop/README.md` § AI route classes) so no AI step in any stage parks on `egress_route_not_approved_for_class`; and the stage error says who can fix it (below) |
 | S1 | The spend-limit fix in `ResearchAgentJobs.start` (a fix, F5); the worker row (`research-lead-workbench` 11, first deliverable); ADRs for the edit vocabulary and the orchestration scope written and proposed |
 | S2 | `audience-catalogue-cpu` 4; `complete-study-report` B6 (the operator flag); `evidence-integrity` 1 (findings cite all) and 5 (one authority); **reach**: `deep-research-web-search` 1, 51 and 53, the ADR 0008 amendment (open posture) |
 
