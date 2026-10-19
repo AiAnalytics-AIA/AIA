@@ -300,9 +300,11 @@ def test_a_client_note_makes_the_turn_class_a_and_a_class_c_route_refuses_it(
     assert lead_turn(ready, turn_id)["status"] == "WAITING"
 
 
-def test_the_leads_self_update_is_applied_under_the_turn_with_a_revision(
+def test_the_turn_applies_only_what_stays_in_its_client_and_the_rest_waits(
     ready: Any, database_url: str, store: Any, build: Any
 ) -> None:
+    """Codex P1 on #484: client notes and forgets apply with the turn; a personal note and a
+    file change, which reach every client's studies, wait for the researcher's yes."""
     kept = "Píše stručně a po bodech."
     with ready.sessions() as session:
         scope = ready.lead_scope(session)
@@ -314,10 +316,13 @@ def test_the_leads_self_update_is_applied_under_the_turn_with_a_revision(
     (shown,) = seeded.remembered
     turn_id = post(ready)
     update = {
-        "reply": "Upravil jsem svůj USER a zapamatoval si preferenci.",
+        "reply": "Upravil bych svůj USER a zapamatoval si preferenci.",
         "self_update": {
             "user": "Chce tabulky.",
-            "remember": [{"scope": "personal", "text": "Preferuje tabulky."}],
+            "remember": [
+                {"scope": "personal", "text": "Preferuje tabulky."},
+                {"scope": "client", "text": "Tento klient chce grafy."},
+            ],
             "forget": [shown, "LMM-00000000000000000000"],
         },
     }
@@ -328,9 +333,25 @@ def test_the_leads_self_update_is_applied_under_the_turn_with_a_revision(
     turn = lead_turn(ready, turn_id)
     assert turn["status"] == "COMPLETED"
     changes = turn["changes"]
-    assert changes["user"] is True and changes["soul"] is False
+    assert (changes["user"], changes["soul"], changes["name"]) == (False, False, False)
     assert len(changes["remembered"]) == 1 and changes["forgotten"] == [shown]
     assert {"index": 1, "op": "forget", "reason": "unknown_memory"} in turn["dropped"]
+    assert turn["self_update_pending"] is True
+    with ready.sessions() as session:
+        repo = ResearcherLeadRepository(session, ready.lead_scope(session))
+        lead = repo.get()
+        assert lead is not None and lead.user == "" and repo.revisions() == []
+        notes = repo.notes_for_study()
+        assert [(n.scope, n.text) for n in notes] == [("client", "Tento klient chce grafy.")]
+        assert notes[0].source_turn_id == turn_id and notes[0].created_by == "lead"
+
+    with ready.sessions() as session:
+        scope = ready.lead_scope(session)
+        decided = ResearchLead(session, scope, enabled=True).decide_self_update(
+            turn_id, decision="accept"
+        )
+        session.commit()
+    assert decided["status"] == "accepted"
     with ready.sessions() as session:
         repo = ResearcherLeadRepository(session, ready.lead_scope(session))
         lead = repo.get()
@@ -342,9 +363,10 @@ def test_the_leads_self_update_is_applied_under_the_turn_with_a_revision(
             "Chce tabulky.",
         )
         assert revision["source_turn_id"] == turn_id
-        notes = repo.notes_for_study()
-        assert [n.text for n in notes] == ["Preferuje tabulky."]
-        assert notes[0].source_turn_id == turn_id and notes[0].created_by == "lead"
+        assert {n.text for n in repo.notes_for_study()} == {
+            "Tento klient chce grafy.",
+            "Preferuje tabulky.",
+        }
 
 
 def test_a_turn_of_another_researcher_is_refused_by_the_worker(

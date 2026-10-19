@@ -74,7 +74,27 @@ export type LeadTurn = {
   edit_decisions?: Record<string, { status: "accepted" | "dismissed" | "refused"; reason: string | null }>;
   /** The person's approval of this turn's paid request, when given. */
   request_decision?: { status: "approved"; run_id: string } | null;
+  /**
+   * The researcher's decision on what the turn wanted to keep for all of their work (a personal
+   * note, a SOUL, USER or name change), from the approval ledger. Only what stays inside the
+   * study's client applies with the turn; the rest waits for this (Codex on #484).
+   */
+  self_update_decision?: { status: "accepted" | "dismissed" } | null;
+  /** Whether such a self-update waits for the researcher's decision. */
+  self_update_pending?: boolean;
 };
+
+export type SelfUpdateDecision = { status: "accepted" | "dismissed"; changes: Record<string, unknown> | null };
+
+/** What of a self-update waits for the researcher: personal notes and file changes, in words. */
+export function pendingSelfUpdate(u: LeadSelfUpdate | null | undefined): { notes: string[]; files: { file: string; text: string }[] } {
+  if (!u) return { notes: [], files: [] };
+  const files: { file: string; text: string }[] = [];
+  if (u.name) files.push({ file: "Jméno", text: u.name });
+  if (u.soul) files.push({ file: "SOUL", text: u.soul });
+  if (u.user) files.push({ file: "USER", text: u.user });
+  return { notes: (u.remember ?? []).filter((m) => m.scope === "personal").map((m) => m.text), files };
+}
 
 export type EditDecisionResult = { workspace_revision: number | null; results: { index: number; status: "accepted" | "dismissed" | "refused"; reason: string | null }[] };
 export type RequestApproval = { run_id: string; design_revision_id: string; status: string };

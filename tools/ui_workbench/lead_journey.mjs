@@ -9,7 +9,8 @@
  * It hatches the researcher's own Lead (or finds it hatched), reads its greeting, sends a message
  * that asks it to remember something, accepts its edit through the server's gate and reads the
  * change back after a reload, sees the prepared job as a card it does not approve, and finds the
- * remembered note on Můj Vedoucí, read only. Nothing paid starts.
+ * remembered note on Můj Vedoucí only after the researcher's "Pamatovat si", read only. Nothing
+ * paid starts.
  */
 import assert from "node:assert/strict";
 import { execSync } from "node:child_process";
@@ -111,6 +112,24 @@ try {
   await page.waitForFunction(() => [...document.querySelectorAll("textarea, input")].some((e) => (e.value ?? "").includes("(upřesněno)")) || document.body.innerText.includes("(upřesněno)"), null, { timeout: 30000 });
   check("an accepted edit passes the server's gate and is in the working copy after a reload");
   await shot("1440-accepted");
+
+  // The note is personal: it would reach every client's studies, so it waits for the
+  // researcher's yes (Codex on #484), and is not on Můj Vedoucí before it.
+  await page.goto(base + "/app/lead");
+  await page.getByRole("heading", { name: "Paměť" }).waitFor({ timeout: 30000 });
+  assert.equal(await page.getByText(note.slice(0, 40), { exact: false }).count(), 0, "a personal note waits for the researcher");
+  check("a personal note the Lead proposed is not on Můj Vedoucí before the researcher says yes");
+  await page.goto(base + stagePath("questionnaire"));
+  await page.locator("[data-workbench]").waitFor({ timeout: 30000 });
+  const keep = page.locator(".conv").getByRole("button", { name: "Pamatovat si" }).last();
+  await keep.waitFor({ timeout: 30000 });
+  await shot("1440-self-update-waiting");
+  await Promise.all([
+    page.waitForResponse((r) => /\/lead\/turns\/[^/]+\/self-update$/.test(new URL(r.url()).pathname) && r.request().method() === "POST", { timeout: 30000 }),
+    keep.click(),
+  ]);
+  await page.locator(".conv").getByText("Zapamatováno pro všechnu vaši práci").last().waitFor({ timeout: 30000 });
+  check("the researcher keeps it with Pamatovat si, and the decision is shown");
 
   // Můj Vedoucí: the note the Lead was asked to remember, read only.
   await page.goto(base + "/app/lead");

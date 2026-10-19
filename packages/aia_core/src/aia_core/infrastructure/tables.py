@@ -1662,7 +1662,8 @@ class ApprovalDecisionRow(Base):
     # accept of a Design Research proposal (subject_id = the selection's id, run_id = the run),
     # or a run started over research questions it cannot all answer (subject_id = the run), or
     # a Research Lead's proposed edit (subject_id = "<turn_id>:<index>") or prepared paid job
-    # (subject_id = the Lead turn), each decided by a person (ADR 0026).
+    # (subject_id = the Lead turn) or the self-update it left waiting (subject_id = the Lead
+    # turn), each decided by a person (ADR 0026).
     subject_type: Mapped[str] = mapped_column(String(32), nullable=False)
     subject_id: Mapped[str] = mapped_column(String(64), nullable=False)
 
@@ -1696,7 +1697,7 @@ class ApprovalDecisionRow(Base):
         CheckConstraint(
             "subject_type in "
             "('gate','artifact','budget','spend','ai_proposal','design_research','answerability',"
-            "'lead_edit','lead_job_request')",
+            "'lead_edit','lead_job_request','lead_self_update')",
             name="approval_subject_type_known",
         ),
         CheckConstraint(

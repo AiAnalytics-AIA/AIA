@@ -2601,14 +2601,65 @@ class WorkflowRepository:
         self._session.flush()
         return True
 
+    def record_lead_self_update_decision(
+        self,
+        lead_run_id: str,
+        *,
+        turn_id: str,
+        decision: str,
+        applied: dict[str, Any] | None,
+    ) -> bool:
+        """Write a person's accept or dismiss of the self-update a Lead turn left waiting
+        (a personal note, a SOUL, USER or name change), once per turn. ``comment`` names what
+        the accept applied. Needs ``APPROVE_GATE``. Returns ``False`` when already decided.
+        """
+        self.scope.require(Permission.APPROVE_GATE)
+        if decision not in ("accept", "dismiss"):
+            raise ValueError("a Lead's self-update is accepted or dismissed")
+        run = self._run(lead_run_id)
+        recorded = self._session.scalar(
+            select(ApprovalDecisionRow.decision_id).where(
+                ApprovalDecisionRow.study_id == self.scope.study_id,
+                ApprovalDecisionRow.subject_type == "lead_self_update",
+                ApprovalDecisionRow.subject_id == turn_id,
+            )
+        )
+        if recorded is not None:
+            return False
+        independence = observe_approval_independence(
+            producer_user_id=run.triggered_by,
+            approving_user_id=self.scope.actor_id,
+            policy=self.scope.self_approval,
+        )
+        self._session.add(
+            ApprovalDecisionRow(
+                organization_id=self.scope.organization_id,
+                client_id=self.scope.client_id,
+                study_id=self.scope.study_id,
+                subject_type="lead_self_update",
+                subject_id=turn_id,
+                run_id=lead_run_id,
+                project_id=run.project_id,
+                project_revision=run.project_revision,
+                gate_type="self_update",
+                decision=decision,
+                comment=json.dumps({"turn_id": turn_id, "applied": applied}, sort_keys=True),
+                request_id=self.scope.request_id,
+                **independence.audit_fields(),
+            )
+        )
+        self._session.flush()
+        return True
+
     def lead_decisions(self, turn_ids: Sequence[str]) -> dict[str, dict[str, Any]]:
         """The ledger's decisions on these Lead turns, by turn id, in one query: each edit's
-        (``edits``: index -> ``accepted`` or ``dismissed``) and the prepared job's
-        (``request``: the agent job's run id), so a screen keeps no decision of its own."""
+        (``edits``: index -> ``accepted`` or ``dismissed``), the prepared job's (``request``:
+        the agent job's run id) and the waiting self-update's (``self_update``), so a screen
+        keeps no decision of its own."""
         if not turn_ids:
             return {}
         subjects = or_(
-            (ApprovalDecisionRow.subject_type == "lead_job_request")
+            ApprovalDecisionRow.subject_type.in_(("lead_job_request", "lead_self_update"))
             & ApprovalDecisionRow.subject_id.in_(list(turn_ids)),
             (ApprovalDecisionRow.subject_type == "lead_edit")
             & or_(
@@ -2625,6 +2676,13 @@ class WorkflowRepository:
         ).all()
         found: dict[str, dict[str, Any]] = {}
         for row in rows:
+            if row.subject_type == "lead_self_update":
+                entry = found.setdefault(row.subject_id, {"edits": {}, "request": None})
+                entry.setdefault(
+                    "self_update",
+                    {"status": "accepted" if row.decision == "accept" else "dismissed"},
+                )
+                continue
             if row.subject_type == "lead_job_request":
                 entry = found.setdefault(row.subject_id, {"edits": {}, "request": None})
                 if entry["request"] is None:

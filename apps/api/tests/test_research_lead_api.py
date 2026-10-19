@@ -55,7 +55,7 @@ def _save_content(app: FastAPI, world: Any) -> int:
         return saved.revision
 
 
-def _complete(app: FastAPI, world: Any, output: dict[str, Any]) -> None:
+def _complete(app: FastAPI, world: Any, output: dict[str, Any], **extra: Any) -> None:
     with create_session_factory(app.state.engine)() as session:
         workflows = WorkflowRepository(session, _scope(app, world, session))
         work = workflows.claim_next(worker_id="w", kinds={RESEARCH_LEAD_TURN})
@@ -63,7 +63,12 @@ def _complete(app: FastAPI, world: Any, output: dict[str, Any]) -> None:
         workflows.complete_attempt(
             work.attempt_id,
             worker_id="w",
-            output={"lead_output": output, "dropped": [], "self_update_applied": None},
+            output={
+                "lead_output": output,
+                "dropped": [],
+                "self_update_applied": None,
+                **extra,
+            },
         )
         session.commit()
 
@@ -153,6 +158,8 @@ def test_a_message_queues_a_turn_and_the_lead_answers_one_at_a_time(
         "dropped",
         "edit_decisions",
         "request_decision",
+        "self_update_decision",
+        "self_update_pending",
         "run_id",
         "workspace_revision",
         "created_at",
@@ -254,6 +261,7 @@ def test_every_lead_route_is_study_scoped_or_the_callers_own(app: FastAPI) -> No
         "/api/v1/studies/{study_id}/lead/turns",
         "/api/v1/studies/{study_id}/lead/turns/{turn_id}/edits",
         "/api/v1/studies/{study_id}/lead/turns/{turn_id}/request",
+        "/api/v1/studies/{study_id}/lead/turns/{turn_id}/self-update",
         "/api/v1/lead",
     }
 
@@ -354,3 +362,45 @@ def test_without_a_reservation_a_limited_study_does_not_start_the_job(
         session.commit()
     refused = researcher.post(f"{lead_url(world)}/turns/{turn_id}/request", json={})
     assert refused.status_code == 409 and refused.json()["code"] == "cost_ceiling_unknown"
+
+
+def test_what_the_lead_wants_to_keep_everywhere_waits_for_the_researcher(
+    researcher: TestClient, viewer: TestClient, world: Any, app: FastAPI
+) -> None:
+    """Codex P1 on #484: a personal note is decided by the researcher, once, never by the
+    model's choice of scope."""
+    waiting = {"remember": [{"scope": "personal", "text": "Chce tabulky."}]}
+    _hatched(researcher)
+    _save_content(app, world)
+    posted = researcher.post(
+        f"{lead_url(world)}/turns", json={"kind": "message", "stage": "brief", "text": "Pamatuj"}
+    )
+    turn_id = posted.json()["turns"][-1]["turn_id"]
+    _complete(
+        app,
+        world,
+        {"reply": "Zapamatuji si to.", "self_update": waiting},
+        self_update_pending=waiting,
+    )
+    lead = researcher.get(lead_url(world)).json()["turns"][-1]
+    assert (lead["self_update_pending"], lead["self_update_decision"]) == (True, None)
+    assert "pending_self_update" not in lead
+    assert researcher.get("/api/v1/lead").json()["lead"]["memories"] == []
+
+    url = f"{lead_url(world)}/turns/{turn_id}/self-update"
+    _hatched(viewer)
+    assert viewer.post(url, json={"decision": "accept"}).status_code == 404
+    assert researcher.post(url, json={"decision": "maybe"}).status_code == 422
+    accepted = researcher.post(url, json={"decision": "accept"})
+    assert accepted.status_code == 200, accepted.text
+    assert accepted.json()["status"] == "accepted"
+    assert len(accepted.json()["changes"]["remembered"]) == 1
+    memories = researcher.get("/api/v1/lead").json()["lead"]["memories"]
+    assert [(m["scope"], m["text"]) for m in memories] == [("personal", "Chce tabulky.")]
+    again = researcher.post(url, json={"decision": "dismiss"})
+    assert again.status_code == 409 and again.json()["code"] == "lead_self_update_decided"
+    lead = researcher.get(lead_url(world)).json()["turns"][-1]
+    assert (lead["self_update_pending"], lead["self_update_decision"]) == (
+        False,
+        {"status": "accepted"},
+    )

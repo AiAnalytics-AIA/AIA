@@ -13,8 +13,9 @@ these tables hold what is not a run:
   sets ``forgotten_at`` and deletes nothing.
 
 ``approval_decisions.subject_type`` also admits ``'lead_edit'`` (a person's accept or dismiss
-of one edit a Lead turn proposed) and ``'lead_job_request'`` (a person's approval of the paid
-job a Lead turn prepared). The constraint is named with ``op.f`` on drop and on create
+of one edit a Lead turn proposed), ``'lead_job_request'`` (a person's approval of the paid
+job a Lead turn prepared) and ``'lead_self_update'`` (a person's accept or dismiss of what a
+Lead turn wanted to keep for all of the researcher's work). The constraint is named with ``op.f`` on drop and on create
 (AGENTS.md § Alembic).
 
 Downgrade drops the four tables and what they hold, and refuses while the append-only ledger
@@ -40,7 +41,7 @@ _LEDGER = "ck_approval_decisions_approval_subject_type_known"
 _BEFORE = "('gate','artifact','budget','spend','ai_proposal','design_research','answerability')"
 _AFTER = (
     "('gate','artifact','budget','spend','ai_proposal','design_research','answerability',"
-    "'lead_edit','lead_job_request')"
+    "'lead_edit','lead_job_request','lead_self_update')"
 )
 
 
@@ -237,7 +238,7 @@ def downgrade() -> None:
         op.get_bind()
         .exec_driver_sql(
             "SELECT count(*) FROM approval_decisions "
-            "WHERE subject_type IN ('lead_edit','lead_job_request')"
+            "WHERE subject_type IN ('lead_edit','lead_job_request','lead_self_update')"
         )
         .scalar()
     )

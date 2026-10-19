@@ -79,6 +79,7 @@ __all__ = [
     "lead_request",
     "lead_request_window_tokens",
     "number_tokens",
+    "split_self_update",
 ]
 
 LEAD_PROMPT_ID: Final = "aia.research.lead"
@@ -495,6 +496,32 @@ def ground_self_update(
             dropped.append(Dropped(index=i, op="forget", reason="unknown_memory"))
     grounded = update.model_copy(update={"forget": kept})
     return (None if grounded.is_empty else grounded), dropped
+
+
+def split_self_update(
+    update: SelfUpdate | None,
+) -> tuple[SelfUpdate | None, SelfUpdate | None]:
+    """``update`` as what applies now and what waits for the researcher's yes.
+
+    The model's choice of scope is not an isolation boundary (Codex on #484): a "personal"
+    note, or a SOUL, USER or name change, loads into every study of every client, so a client
+    fact written there by mistake or by injection would leave its client. Only what stays
+    inside the turn's own client applies at once: client notes (bound to the turn's client by
+    the repository) and forgets (which reach only notes the turn was shown). Everything else
+    waits until the researcher accepts it (ADR 0026: the Lead proposes, a person decides).
+    """
+    if update is None:
+        return None, None
+    now = SelfUpdate(
+        remember=[n for n in update.remember if n.scope == "client"], forget=list(update.forget)
+    )
+    waits = SelfUpdate(
+        name=update.name,
+        soul=update.soul,
+        user=update.user,
+        remember=[n for n in update.remember if n.scope == "personal"],
+    )
+    return (None if now.is_empty else now), (None if waits.is_empty else waits)
 
 
 # --------------------------------------------------------------------------- the prompt

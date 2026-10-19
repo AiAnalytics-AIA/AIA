@@ -110,7 +110,8 @@ def test_a_scripted_greeting_and_message_go_through_the_real_gates(
         "action": "optimize_questionnaire",
         "why": "Ukázka rozhodnutí",
     }
-    assert len(turn["changes"]["remembered"]) == 1
+    # A personal note reaches every client's studies: it waits for the researcher's yes.
+    assert turn["changes"] is None and turn["self_update_pending"] is True
 
     with world.sessions() as session:
         scope = world.lead_scope(session)
@@ -121,6 +122,8 @@ def test_a_scripted_greeting_and_message_go_through_the_real_gates(
         approved = lead.approve_request(
             turn["turn_id"], confirm_cost_usd=None, reservation_usd=None
         )
+        assert ResearcherLeadRepository(session, scope).notes_for_study() == []
+        lead.decide_self_update(turn["turn_id"], decision="accept")
         notes = ResearcherLeadRepository(session, scope).notes_for_study()
         working = StudyWorkspaceRepository(session).content(scope)
         session.commit()

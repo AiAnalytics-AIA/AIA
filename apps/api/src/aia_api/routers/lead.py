@@ -30,6 +30,8 @@ from aia_core.application.research_lead import (
     LeadNotHatched,
     LeadProfile,
     LeadRejected,
+    LeadSelfUpdateDecided,
+    LeadSelfUpdateNone,
     LeadTurnNotFound,
     LeadTurnNotReady,
     LeadUnavailable,
@@ -110,6 +112,25 @@ class RequestDecision(BaseModel):
     run_id: str | None
 
 
+class SelfUpdateDecision(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    status: Literal["accepted", "dismissed"]
+
+
+class SelfUpdateDecide(BaseModel):
+    """The researcher's decision on what a Lead turn wants to keep for all of their work."""
+
+    model_config = ConfigDict(extra="forbid")
+    decision: Literal["accept", "dismiss"]
+
+
+class SelfUpdateDecided(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    status: Literal["accepted", "dismissed"]
+    #: What the accept applied (``null`` for a dismiss).
+    changes: dict[str, Any] | None
+
+
 class LeadTurn(BaseModel):
     """One turn. A person's is ``COMPLETED`` with no output; a Lead turn carries its run's
     status (QUEUED, RUNNING, COMPLETED, FAILED, WAITING with its reason code, CANCELLED), its
@@ -131,6 +152,10 @@ class LeadTurn(BaseModel):
     dropped: list[dict[str, Any]]
     edit_decisions: dict[str, EditStatus]
     request_decision: RequestDecision | None
+    #: The researcher's decision on what the turn wanted to keep for all of their work.
+    self_update_decision: SelfUpdateDecision | None
+    #: Whether such a self-update waits for that decision (a personal note, SOUL, USER, name).
+    self_update_pending: bool
     run_id: str | None
     workspace_revision: int | None
     created_at: datetime
@@ -234,6 +259,10 @@ def _lead_errors() -> Iterator[None]:
         raise _error(409, exc.reason, "The Lead is still answering your last message.") from exc
     except LeadTurnNotReady as exc:
         raise _error(409, exc.reason, "The Lead has not finished this turn.") from exc
+    except LeadSelfUpdateDecided as exc:
+        raise _error(409, exc.reason, "This turn's self-update is already decided.") from exc
+    except LeadSelfUpdateNone as exc:
+        raise _error(409, exc.reason, "This turn left nothing waiting for you.") from exc
     except LeadEditsStale as exc:
         raise _error(
             409,
@@ -291,8 +320,10 @@ def read_lead(scope: StudyScopeDep, session: SessionDep, settings: SettingsDep) 
 
 
 def _public(turns: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """A turn as the browser reads it: everything but the class it was sent as."""
-    return [{k: v for k, v in t.items() if k != "data_class"} for t in turns]
+    """A turn as the browser reads it: not the class it was sent as, nor the stored detail
+    of what waits (the browser reads that from the turn's output)."""
+    hidden = {"data_class", "pending_self_update"}
+    return [{k: v for k, v in t.items() if k not in hidden} for t in turns]
 
 
 @router.post(
@@ -343,6 +374,22 @@ def decide_edits(
             base_revision=body.base_revision,
         )
     return EditDecisions.model_validate(decided)
+
+
+@router.post(
+    "/lead/turns/{turn_id}/self-update",
+    response_model=SelfUpdateDecided,
+    responses={409: {"model": ErrorResponse, "description": "Already decided, or nothing waits"}},
+)
+def decide_self_update(
+    turn_id: TurnIdPath, body: SelfUpdateDecide, scope: StudyScopeDep, session: SessionDep
+) -> SelfUpdateDecided:
+    """Accept or dismiss what the caller's own Lead turn wants to keep for all of their work
+    (a personal note, a SOUL, USER or name change): applied on accept, recorded in the approval
+    ledger either way, once."""
+    with _lead_errors():
+        decided = ResearchLead(session, scope).decide_self_update(turn_id, decision=body.decision)
+    return SelfUpdateDecided.model_validate(decided)
 
 
 @router.post(

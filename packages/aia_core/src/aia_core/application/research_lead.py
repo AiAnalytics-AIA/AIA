@@ -12,6 +12,9 @@ What the Lead proposes changes nothing until a person decides, on the server:
   are applied to the current working copy by the domain's rules
   (:func:`~aia_core.domain.research_lead.apply_edit`), saved, and each decision written to the
   approval ledger, in one transaction (ADR 0019 gate 1).
+* **What the Lead wants to keep for all of the researcher's work** -- a personal note, a SOUL,
+  USER or name change -- waits for :meth:`ResearchLead.decide_self_update`; only what stays
+  inside the turn's client is applied by the turn itself (Codex on #484).
 * **A prepared paid job** starts only through :meth:`ResearchLead.approve_request`, which
   holds it to the study's spend limit and writes the ledger row in the transaction that starts
   it (ADR 0026 decision 7).
@@ -44,6 +47,7 @@ from ..domain.research_lead import (
     LeadTurn,
     Refused,
     ResearcherLead,
+    SelfUpdate,
     apply_edit,
     context_sha256,
     freeze_context,
@@ -82,6 +86,8 @@ __all__ = [
     "LeadNotHatched",
     "LeadProfile",
     "LeadRejected",
+    "LeadSelfUpdateDecided",
+    "LeadSelfUpdateNone",
     "LeadTurnNotFound",
     "LeadTurnNotReady",
     "LeadUnavailable",
@@ -131,6 +137,18 @@ class NotAPaidRequest(Exception):
     """The turn prepared no paid job: its request only opens a stage, whose own start gates it."""
 
     reason = "not_a_paid_request"
+
+
+class LeadSelfUpdateDecided(Exception):
+    """The researcher has already accepted or dismissed this turn's waiting self-update."""
+
+    reason = "lead_self_update_decided"
+
+
+class LeadSelfUpdateNone(Exception):
+    """The turn left no self-update waiting for the researcher."""
+
+    reason = "lead_self_update_none"
 
 
 class LeadEditsStale(Exception):
@@ -217,6 +235,11 @@ def _view(
         "data_class": None,
         "edit_decisions": {},
         "request_decision": None,
+        "self_update_decision": None,
+        "self_update_pending": False,
+        # What waits for the researcher's yes, as the step stored it; read by
+        # decide_self_update, never sent to the browser.
+        "pending_self_update": None,
     }
     if turn.actor == "person":
         return base
@@ -225,6 +248,8 @@ def _view(
         request = decisions.get("request")
         if request:
             base["request_decision"] = {"status": "approved", "run_id": request.get("run_id")}
+        if decisions.get("self_update"):
+            base["self_update_decision"] = dict(decisions["self_update"])
     if run is None or not run.get("steps"):
         # A run this listing could not read is not reported as anything it did.
         return {**base, "status": "QUEUED"}
@@ -239,6 +264,10 @@ def _view(
             dropped=list(out.get("dropped") or []),
             data_class=out.get("data_class"),
         )
+        pending = out.get("self_update_pending")
+        if isinstance(pending, dict):
+            base["pending_self_update"] = pending
+            base["self_update_pending"] = base["self_update_decision"] is None
     return base
 
 
@@ -515,6 +544,51 @@ class ResearchLead:
                 "reason": None,
             }
         return {"workspace_revision": revision, "results": [results[i] for i in order]}
+
+    def decide_self_update(self, turn_id: str, *, decision: str) -> dict[str, Any]:
+        """The researcher accepts or dismisses what a Lead turn wanted to keep for all of
+        their work: personal notes, and changes to SOUL, USER or the name (Codex on #484).
+
+        These load into every client's studies, so the Lead's choice of scope is not trusted
+        to keep a client's facts inside its client: they wait for this. Needs ``EDIT_STUDY``
+        and ``APPROVE_GATE`` on an open Study and the caller's own completed Lead turn with a
+        self-update waiting. Under the researcher's Lead row lock, in one transaction: an
+        accept applies it (each replaced file text kept as a revision), and either decision is
+        written to the approval ledger once; a second is :class:`LeadSelfUpdateDecided`.
+        """
+        self.scope.require(Permission.EDIT_STUDY)
+        self.scope.require(Permission.APPROVE_GATE)
+        self.scope.require_open_study()
+        if decision not in ("accept", "dismiss"):
+            raise LeadRejected("a self-update is accepted or dismissed", reason="invalid_decision")
+        turn = self._turns().get(turn_id)
+        if turn is None or turn.actor != "lead" or turn.run_id is None:
+            raise LeadTurnNotFound(turn_id)
+        leads = ResearcherLeadRepository(self.session, self.scope)
+        if leads.lock() is None:
+            raise LeadNotHatched("hatch your Research Lead first")
+        view = self._annotated([turn])[0]
+        if view["status"] != "COMPLETED":
+            raise LeadTurnNotReady("the Lead has not finished this turn")
+        if view["self_update_decision"] is not None:
+            raise LeadSelfUpdateDecided("this turn's self-update is already decided")
+        pending = view["pending_self_update"]
+        if not isinstance(pending, dict):
+            raise LeadSelfUpdateNone("this turn left nothing waiting")
+        applied = None
+        if decision == "accept":
+            applied = leads.apply_self_update(
+                SelfUpdate.model_validate(pending), source_turn_id=turn_id
+            ).model_dump(mode="json")
+        recorded = self._workflows().record_lead_self_update_decision(
+            turn.run_id, turn_id=turn_id, decision=decision, applied=applied
+        )
+        if not recorded:  # pragma: no cover - the Lead row lock serialises deciders
+            raise LeadSelfUpdateDecided("this turn's self-update is already decided")
+        return {
+            "status": "accepted" if decision == "accept" else "dismissed",
+            "changes": applied,
+        }
 
     def approve_request(
         self,

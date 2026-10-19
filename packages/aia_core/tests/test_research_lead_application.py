@@ -24,6 +24,8 @@ from aia_core.application.research_lead import (
     LeadEditsStale,
     LeadNotHatched,
     LeadRejected,
+    LeadSelfUpdateDecided,
+    LeadSelfUpdateNone,
     LeadTurnNotFound,
     LeadTurnNotReady,
     LeadUnavailable,
@@ -438,6 +440,99 @@ def test_only_a_person_decides_on_their_own_completed_turn(scoped: Any, session:
         _lead(scope, session).decide_edits(
             pending, decision="dismiss", indices=[0], base_revision=None
         )
+
+
+# --------------------------------------------------------------------------- the Lead's own files
+
+PERSONAL = "Klient Acme chystá zdražení o deset procent."  # a client fact the model called personal
+WAITING = {"remember": [{"scope": "personal", "text": PERSONAL}], "user": "Chce tabulky."}
+
+
+def _waiting_turn(scoped: Any, session: Any) -> tuple[Any, str]:
+    """A completed Acme turn whose Lead wants to keep a "personal" note and a USER change."""
+    acme = scoped.scope(user="lead", study="primary")
+    _hatch(scoped, session)
+    _save(acme, session)
+    turns = _message(_lead(acme, session))
+    _complete(
+        session,
+        acme,
+        {"reply": "Zapamatuji si to.", "self_update": WAITING},
+        self_update_pending=WAITING,
+    )
+    return acme, turns[-1]["turn_id"]
+
+
+def _notes(scope: Any, session: Any) -> list[str]:
+    return [n.text for n in ResearcherLeadRepository(session, scope).notes_for_study()]
+
+
+def test_a_personal_note_waits_and_reaches_no_other_client_until_accepted(
+    scoped: Any, session: Any
+) -> None:
+    """Codex P1 on #484: the model's choice of scope is not an isolation boundary."""
+    acme, turn_id = _waiting_turn(scoped, session)
+    globex = scoped.scope(user="lead", study="other_client")
+    lead_turn = _lead(acme, session).state()["turns"][-1]
+    assert lead_turn["self_update_pending"] is True and lead_turn["self_update_decision"] is None
+    assert _notes(globex, session) == [] and _notes(acme, session) == []
+    lead = ResearcherLeadRepository(session, acme).get()
+    assert lead is not None and lead.user == ""
+    # Nor does it reach a Globex turn's context while it waits.
+    (turn,) = _lead(globex, session).post(kind="greeting", stage="brief")
+    assert layer(_step_input(session, globex, turn["run_id"])["context"], "lead")["notes"] == []
+
+    decided = _lead(acme, session).decide_self_update(turn_id, decision="accept")
+    assert decided["status"] == "accepted"
+    assert decided["changes"]["user"] is True and len(decided["changes"]["remembered"]) == 1
+    assert _notes(globex, session) == [PERSONAL]
+    lead = ResearcherLeadRepository(session, acme).get()
+    assert lead is not None and lead.user == "Chce tabulky."
+    (revision,) = ResearcherLeadRepository(session, acme).revisions()
+    assert (revision["field"], revision["source_turn_id"]) == ("user", turn_id)
+    after = _lead(acme, session).state()["turns"][-1]
+    assert after["self_update_pending"] is False
+    assert after["self_update_decision"] == {"status": "accepted"}
+    (row,) = _ledger(session, "lead_self_update")
+    assert (row.subject_id, row.decision) == (turn_id, "accept")
+
+    with pytest.raises(LeadSelfUpdateDecided):
+        _lead(acme, session).decide_self_update(turn_id, decision="dismiss")
+    assert len(_ledger(session, "lead_self_update")) == 1
+
+
+def test_dismissing_a_waiting_self_update_applies_nothing(scoped: Any, session: Any) -> None:
+    acme, turn_id = _waiting_turn(scoped, session)
+    decided = _lead(acme, session).decide_self_update(turn_id, decision="dismiss")
+    assert decided == {"status": "dismissed", "changes": None}
+    assert _notes(acme, session) == []
+    lead = ResearcherLeadRepository(session, acme).get()
+    assert lead is not None and lead.user == ""
+    assert ResearcherLeadRepository(session, acme).revisions() == []
+    assert [r.decision for r in _ledger(session, "lead_self_update")] == ["dismiss"]
+    with pytest.raises(LeadSelfUpdateDecided):
+        _lead(acme, session).decide_self_update(turn_id, decision="accept")
+
+
+def test_only_the_turns_researcher_decides_and_only_when_something_waits(
+    scoped: Any, session: Any
+) -> None:
+    acme, turn_id = _waiting_turn(scoped, session)
+    narrowed = dataclasses.replace(acme, permissions=acme.permissions - {Permission.APPROVE_GATE})
+    with pytest.raises(ScopeDenied):
+        _lead(narrowed, session).decide_self_update(turn_id, decision="accept")
+    _hatch(scoped, session, "researcher")
+    with pytest.raises(LeadTurnNotFound):
+        _lead(scoped.scope(user="researcher"), session).decide_self_update(
+            turn_id, decision="accept"
+        )
+    with pytest.raises(LeadRejected):
+        _lead(acme, session).decide_self_update(turn_id, decision="maybe")
+    _message(_lead(acme, session), "Další")
+    _complete(session, acme, {"reply": "Nic si nepamatuji."})
+    plain = _lead(acme, session).state()["turns"][-1]["turn_id"]
+    with pytest.raises(LeadSelfUpdateNone):
+        _lead(acme, session).decide_self_update(plain, decision="accept")
 
 
 # --------------------------------------------------------------------------- a prepared job

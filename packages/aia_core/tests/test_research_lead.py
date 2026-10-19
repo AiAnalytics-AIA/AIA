@@ -41,6 +41,7 @@ from aia_core.domain.research_lead import (
     lead_request_window_tokens,
     model_message,
     number_tokens,
+    split_self_update,
 )
 from aia_core.domain.residency import DataClass
 
@@ -312,6 +313,34 @@ def test_a_forget_reaches_only_notes_the_turn_was_shown() -> None:
     nothing, _ = ground_self_update(SelfUpdate(forget=["LMM-cc"]), [])
     assert nothing is None  # an update with nothing left is no update
     assert ground_self_update(None, []) == (None, [])
+
+
+def test_only_what_stays_inside_the_turns_client_applies_at_once() -> None:
+    """Codex P1 on #484: a personal note or a file change reaches every client's studies, so
+    it waits for the researcher; client notes and forgets apply with the turn."""
+    update = SelfUpdate.model_validate(
+        {
+            "name": "Můj",
+            "soul": "# S",
+            "user": "U",
+            "remember": [
+                {"scope": "client", "text": "Klientská"},
+                {"scope": "personal", "text": "Osobní"},
+            ],
+            "forget": ["LMM-aa"],
+        }
+    )
+    now, waits = split_self_update(update)
+    assert now is not None and waits is not None
+    assert [(n.scope, n.text) for n in now.remember] == [("client", "Klientská")]
+    assert now.forget == ["LMM-aa"] and (now.name, now.soul, now.user) == (None, None, None)
+    assert [(n.scope, n.text) for n in waits.remember] == [("personal", "Osobní")]
+    assert (waits.name, waits.soul, waits.user, waits.forget) == ("Můj", "# S", "U", [])
+    only_client = SelfUpdate.model_validate({"remember": [{"scope": "client", "text": "K"}]})
+    assert split_self_update(only_client)[1] is None
+    only_personal = SelfUpdate.model_validate({"remember": [{"scope": "personal", "text": "P"}]})
+    assert split_self_update(only_personal)[0] is None
+    assert split_self_update(None) == (None, None)
 
 
 # --------------------------------------------------------------------------- applying an edit

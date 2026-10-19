@@ -2,7 +2,7 @@
 // edit goes through the stages' own helpers, and one that no longer fits is refused, never bent.
 import { describe, expect, it } from "vitest";
 
-import { applyLeadEdit, describeEdit, editStage, targetLabel, type LeadEdit } from "./lead";
+import { applyLeadEdit, describeEdit, editStage, pendingSelfUpdate, targetLabel, type LeadEdit } from "./lead";
 import type { ResearchProject } from "@/research/model";
 
 const project = (over: Partial<ResearchProject> = {}): ResearchProject => ({
@@ -106,5 +106,15 @@ describe("targetLabel", () => {
     expect(targetLabel("plan:narrative")).toBe("Návrh: porozumění zadání");
     expect(targetLabel("brief:goal")).toBe("Zadání: goal");
     expect(targetLabel("somewhere")).toBe("somewhere");
+  });
+});
+
+describe("pendingSelfUpdate", () => {
+  it("lists only what would reach all of the researcher's work: personal notes and files", () => {
+    expect(pendingSelfUpdate({ name: "Bára", user: "U", remember: [{ scope: "client", text: "K" }, { scope: "personal", text: "P" }], forget: ["LMM-1"] })).toEqual({
+      notes: ["P"],
+      files: [{ file: "Jméno", text: "Bára" }, { file: "USER", text: "U" }],
+    });
+    expect(pendingSelfUpdate(null)).toEqual({ notes: [], files: [] });
   });
 });

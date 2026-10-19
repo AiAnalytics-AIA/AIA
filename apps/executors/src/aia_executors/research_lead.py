@@ -9,10 +9,12 @@ dropped, what the Lead changed in its own files and the class the turn was sent 
 conversation reads it without an artifact (the product owner, 2026-10-19). The same output is
 also stored as an artifact with its provenance, as a design job's is.
 
-The Lead's own ``self_update`` is applied here, under the turn's lease and the run's scope:
-the researcher asked for it in chat, so it is their edit (the product owner, 2026-10-19). It is
-applied in the transaction that stores the artifact, so a turn found again after a crash finds
-both or neither and never applies an update twice.
+The part of the Lead's own ``self_update`` that stays inside the turn's client -- client
+notes and forgets -- is applied here, under the turn's lease and the run's scope, in the
+transaction that stores the artifact, so a turn found again after a crash never applies it
+twice. A personal note or a change to SOUL, USER or the name would load into every client's
+studies, so it waits in the step output (``self_update_pending``) for the researcher's yes
+(``ResearchLead.decide_self_update``; Codex on #484).
 
 Without ``AIA_AI_RESEARCH_LEAD_ENABLED`` and its two keys the turn parks
 (``research_lead_unconfigured``), as analysis parks unconfigured; nothing is sent.
@@ -40,6 +42,7 @@ from aia_core.domain.research_lead import (
     ground_self_update,
     layer,
     lead_request,
+    split_self_update,
 )
 from aia_core.domain.workflow import FailureClass
 from aia_core.domain.workflow_templates import RESEARCH_LEAD_TURN
@@ -271,14 +274,17 @@ class ResearchLeadExecutor:
         shown = [str(n["memory_id"]) for n in layer(frozen, "lead").get("notes") or ()]
         update, dropped_forgets = ground_self_update(grounded.self_update, shown)
         grounded = grounded.model_copy(update={"self_update": update})
+        # What stays inside the turn's client applies now; anything that would reach every
+        # client's studies (a personal note, SOUL, USER, the name) waits for the researcher.
+        now, pending = split_self_update(update)
 
         with context.transaction() as (session, _):
             applied = None
             dropped_all = [d.model_dump() for d in [*dropped, *dropped_forgets]]
-            if update is not None:
+            if now is not None:
                 try:
                     applied = ResearcherLeadRepository(session, context.scope).apply_self_update(
-                        update, source_turn_id=str(payload.get("turn_id"))
+                        now, source_turn_id=str(payload.get("turn_id"))
                     )
                 except LeadNotHatched:
                     dropped_all.append(
@@ -289,6 +295,7 @@ class ResearchLeadExecutor:
                 "lead_output": grounded.model_dump(mode="json"),
                 "dropped": dropped_all,
                 "self_update_applied": applied.model_dump(mode="json") if applied else None,
+                "self_update_pending": pending.model_dump(mode="json") if pending else None,
                 "data_class": answer.data_class,
             }
             if answer.scripted:
