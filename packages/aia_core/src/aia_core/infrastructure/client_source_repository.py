@@ -12,7 +12,9 @@ deletion stays one prefix operation, as every artifact's key is laid out
 Adding the same bytes again keeps one source and records another occurrence.
 
 Reading the sources needs ``VIEW_CLIENT_KNOWLEDGE``; adding one needs
-``PROPOSE_CLIENT_KNOWLEDGE``: it brings material, and accepts nothing.
+``PROPOSE_CLIENT_KNOWLEDGE``: it brings material, and accepts nothing. Marking a source
+"Interní dokument", or unmarking it, needs the same, as re-reading does; who and when are on
+the row and every change is audited.
 """
 
 from __future__ import annotations
@@ -27,6 +29,7 @@ from sqlalchemy.orm import Session
 from ..domain.attachments import extension_of
 from ..domain.client_sources import (
     SOURCE_MAX_BYTES,
+    InternalMark,
     ReadingOutcome,
     SourceFamily,
     SourceOccurrence,
@@ -156,6 +159,13 @@ class ClientSourceRepository:
                 segments=r.segment_count,
                 occurrences=tuple(occurrences[r.source_id]),
                 created_at=as_utc(r.created_at),
+                internal=None
+                if r.internal_marked_by is None
+                else InternalMark(
+                    by=r.internal_marked_by,
+                    # Kept whole by the row's check: a mark has its time.
+                    at=as_utc(r.internal_marked_at) if r.internal_marked_at else None,
+                ),
             )
             for r in rows
         ]
@@ -404,6 +414,51 @@ class ClientSourceRepository:
         )
         self._session.flush()
         return True
+
+    # ------------------------------------------------------------- internal mark
+
+    def mark_internal(
+        self, scope: ClientContext, source_id: str, *, internal: bool
+    ) -> tuple[SourceRecord, bool]:
+        """Mark the source "Interní dokument" (``internal``) or unmark it; ``True`` when that
+        changed it.
+
+        Needs ``PROPOSE_CLIENT_KNOWLEDGE``, as adding and re-reading do. A marked source is
+        Class C by the owner's rule (``material_rules.source_rule``), an unmarked one Class
+        A. Who and when are kept on the row; each change is an ``access_audit`` row. Marking
+        a marked source, or unmarking an unmarked one, changes and audits nothing.
+        """
+        scope = _client(scope)
+        scope.require(ClientPermission.PROPOSE_CLIENT_KNOWLEDGE)
+        row = self._row(scope, source_id)
+        if (row.internal_marked_by is not None) == internal:
+            return self._records([row])[0], False
+        before = row.internal_marked_by
+        if internal:
+            row.internal_marked_by, row.internal_marked_at = scope.actor_id, utcnow()
+        else:
+            row.internal_marked_by, row.internal_marked_at = None, None
+        self._session.add(
+            AccessAuditRow(
+                organization_id=scope.organization_id,
+                client_id=scope.client_id,
+                actor_id=scope.actor_id,
+                action="CLIENT_SOURCE_MARKED_INTERNAL"
+                if internal
+                else "CLIENT_SOURCE_UNMARKED_INTERNAL",
+                reason="",
+                payload={
+                    "source_id": row.source_id,
+                    "sha256": row.sha256,
+                    "internal": internal,
+                    # Who had marked it, when it is unmarked: the history keeps both people.
+                    "marked_by": before,
+                },
+                request_id=scope.request_id,
+            )
+        )
+        self._session.flush()
+        return self._records([row])[0], True
 
     def reread(self, scope: ClientContext, source_id: str) -> tuple[SourceRecord, bool]:
         """Read a source again with its format's current reader; ``True`` when it was.

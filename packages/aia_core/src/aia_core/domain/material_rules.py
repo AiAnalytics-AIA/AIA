@@ -52,6 +52,7 @@ __all__ = [
     "RuledMaterial",
     "classify_by_rule",
     "rule_class",
+    "source_rule",
 ]
 
 
@@ -96,6 +97,12 @@ OPERATOR_SOURCE: Final = "operator"
 def rule_class(rule: MaterialRule) -> DataClass:
     """The class ``rule`` gives its material, before any operator's classification."""
     return RULE_CLASSES[rule]
+
+
+def source_rule(*, internal: bool) -> MaterialRule:
+    """The rule for a client's source: an internal AIA document a person marked
+    "Interní dokument" (Class C), else the client's own material (Class A)."""
+    return MaterialRule.INTERNAL_DOCUMENT if internal else MaterialRule.CLIENT_SOURCE
 
 
 class RuledMaterial(BaseModel):

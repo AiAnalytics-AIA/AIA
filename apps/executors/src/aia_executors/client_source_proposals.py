@@ -26,6 +26,7 @@ from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.domain.ai_contracts import ModelCallFailed, ModelRequest, canonical_json
 from aia_core.domain.deep_research.request_limits import window_fits
 from aia_core.domain.knowledge import ProposalDraft
+from aia_core.domain.material_rules import rule_class, source_rule
 from aia_core.domain.providers import Provider
 from aia_core.domain.scope import ClientWorkContext
 from aia_core.domain.source_proposals import (
@@ -170,9 +171,15 @@ class ClientSourceProposalsExecutor:
             reservation_usd=cfg.reservation_usd,
             announce=cfg.step_events,
         )
+        # A client's source is Class A; one a person marked "Interní dokument" is Class C
+        # (the owner's rule, 2026-10-19). Read as it stands when the requests are built.
+        rule = source_rule(internal=record.internal is not None)
         requests = [
             proposal_request(
-                batch, policy_version=cfg.policy_version, max_output_tokens=cfg.max_output_tokens
+                batch,
+                policy_version=cfg.policy_version,
+                max_output_tokens=cfg.max_output_tokens,
+                internal=record.internal is not None,
             )
             for batch in work
         ]
@@ -257,6 +264,8 @@ class ClientSourceProposalsExecutor:
                     "model": answer["model"],
                     "route_id": answer["route_id"],
                     "policy_version": answer["policy_version"],
+                    "data_class": rule_class(rule).value,
+                    "class_source": rule.value,
                 }
                 drafts.append(
                     ProposalDraft(
@@ -280,5 +289,8 @@ class ClientSourceProposalsExecutor:
                 "replayed": replayed,
                 "proposed": len(filed),
                 "dropped": dropped,
+                # The class the requests were built as, and the rule that gave it.
+                "data_class": rule_class(rule).value,
+                "class_source": rule.value,
             }
         )

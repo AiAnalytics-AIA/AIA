@@ -266,7 +266,7 @@ const source = (id: string, filename: string, extra: Record<string, unknown> = {
   source_id: id, sha256: "a".repeat(64), size_bytes: 2048, media_type: "application/pdf", family: "DOCUMENT", filename,
   outcome: "READ", reason: null, reader: "pdf/1", characters: 1200, segments: 2,
   occurrences: [{ occurrence_id: "SOC-1", filename, origin: "upload", added_by: "USR-1", added_at: "2026-10-14T08:00:00Z" }],
-  created_at: "2026-10-14T08:00:00Z", ...extra,
+  created_at: "2026-10-14T08:00:00Z", internal: null, ...extra,
 });
 const detail = (id: string, filename: string) => ({
   ...source(id, filename),
@@ -333,6 +333,61 @@ describe("a document's file", () => {
         kind: "DOCUMENT", title: "Brief", summary: "", content: { note: "od klienta", source_id: NEWER }, item_id: "KNW-4", base_revision: 1,
       }),
     );
+  });
+});
+
+describe("a source marked Interní dokument", () => {
+  const MARK = { by: "USR-1", at: "2026-10-19T08:00:00Z" };
+  const docItem = item("KNW-4", "Brief", { kind: "DOCUMENT", content: { source_id: SRC } });
+
+  it("is marked and unmarked from the open item, saying what it does, who marked it and when", async () => {
+    let internal: typeof MARK | null = null;
+    api({
+      "GET /api/v1/clients/CLI-a/knowledge": () => [...ITEMS, docItem],
+      "GET /api/v1/clients/CLI-a/knowledge/items/KNW-4/revisions": () => [],
+      "GET /api/v1/workspace/me": () => ({ user_id: "USR-1", email: null, organization_role: "MEMBER", may_administer: false }),
+      [`GET ${SOURCES}/${SRC}`]: () => ({ ...detail(SRC, "Metodika.pdf"), internal }),
+      [`PUT ${SOURCES}/${SRC}/internal`]: (b) => {
+        internal = (b as { internal: boolean }).internal ? MARK : null;
+        return { ...source(SRC, "Metodika.pdf"), internal };
+      },
+    });
+    open();
+    fireEvent.click(await screen.findByRole("button", { name: /Brief/ }));
+    const panel = within(await screen.findByRole("complementary", { name: "Otevřená znalost" }));
+    const toggle = (await panel.findByRole("button", { name: "Interní dokument" })) as HTMLButtonElement;
+    // The toggle says what it does, beside it and as its description.
+    expect(toggle.getAttribute("aria-pressed")).toBe("false");
+    const what = "Interní dokument AIA bez údajů klienta; smí jít i širší trasou AI";
+    expect(panel.getByText(what)).toBeTruthy();
+    expect(document.getElementById(toggle.getAttribute("aria-describedby") ?? "")?.textContent).toBe(what);
+    expect(panel.queryByText(/Označeno/)).toBeNull();
+
+    fireEvent.click(toggle);
+    await waitFor(() => expect(toggle.getAttribute("aria-pressed")).toBe("true"));
+    expect(panel.getByText(/Označeno .* · vámi/)).toBeTruthy();
+    const puts = () => calls.filter((c) => c.method === "PUT" && c.url.endsWith(`/sources/${SRC}/internal`));
+    expect(puts()[0].body).toEqual({ internal: true });
+
+    fireEvent.click(toggle);
+    await waitFor(() => expect(toggle.getAttribute("aria-pressed")).toBe("false"));
+    expect(panel.queryByText(/Označeno/)).toBeNull();
+    expect(puts()[1].body).toEqual({ internal: false });
+  });
+
+  it("shows who marked it to a person who may not change it, with no toggle", async () => {
+    api({
+      "GET /api/v1/clients/CLI-a/knowledge": () => [...ITEMS, docItem],
+      "GET /api/v1/clients/CLI-a/knowledge/items/KNW-4/revisions": () => [],
+      [`GET ${SOURCES}/${SRC}`]: () => ({ ...detail(SRC, "Metodika.pdf"), internal: { ...MARK, by: "USR-2" } }),
+    });
+    open({ ...CLIENT, permissions: ["VIEW_CLIENT", "VIEW_CLIENT_KNOWLEDGE"] });
+    fireEvent.click(await screen.findByRole("button", { name: /Brief/ }));
+    const panel = within(await screen.findByRole("complementary", { name: "Otevřená znalost" }));
+    expect(await panel.findByText(/Označeno .* · uživatelem USR-2/)).toBeTruthy();
+    expect(panel.getByText("Interní dokument")).toBeTruthy();
+    expect(panel.queryByRole("button", { name: "Interní dokument" })).toBeNull();
+    expect(calls.some((c) => c.method === "PUT" && c.url.endsWith("/internal"))).toBe(false);
   });
 });
 

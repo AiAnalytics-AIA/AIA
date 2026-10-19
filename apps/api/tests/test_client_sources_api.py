@@ -153,6 +153,47 @@ def test_reading_a_source_again_answers_it_as_read_now(lead: TestClient, world: 
     )
 
 
+def test_a_source_is_marked_internal_and_unmarked_with_who_and_when(
+    lead: TestClient, world: Any
+) -> None:
+    """``PUT …/internal``: an internal AIA document, Class C for AI (the owner, 2026-10-19).
+    Every source answers ``internal``: who marked it and when, or null."""
+    client = world.client_id("primary")
+    kept = upload(lead, client, "metodika.md", b"# Interni postup").json()
+    assert kept["internal"] is None
+    path = f"{API}/clients/{client}/sources/{kept['source_id']}/internal"
+
+    marked = lead.put(path, json={"internal": True})
+    assert marked.status_code == 200, marked.text
+    mark = marked.json()["internal"]
+    assert mark["by"] and mark["at"]
+    detail = lead.get(f"{API}/clients/{client}/sources/{kept['source_id']}").json()
+    assert detail["internal"] == mark
+    assert lead.get(f"{API}/clients/{client}/sources").json()[0]["internal"] == mark
+    # Marking it again changes nothing: the same person and time.
+    assert lead.put(path, json={"internal": True}).json()["internal"] == mark
+
+    unmarked = lead.put(path, json={"internal": False})
+    assert unmarked.status_code == 200 and unmarked.json()["internal"] is None
+
+    assert lead.put(path, json={}).status_code == 422
+    assert lead.put(path, json={"internal": True, "by": "someone"}).status_code == 422
+    other = world.client_id("other")
+    assert (
+        lead.put(
+            f"{API}/clients/{other}/sources/{kept['source_id']}/internal", json={"internal": True}
+        ).status_code
+        == 404
+    )
+    assert (
+        lead.put(
+            f"{API}/clients/{client}/sources/SRC-0000000000000000/internal",
+            json={"internal": True},
+        ).status_code
+        == 404
+    )
+
+
 # ---- a document item carries its file (client-workspace C7a) ---------------------------
 
 

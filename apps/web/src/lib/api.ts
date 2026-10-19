@@ -366,6 +366,9 @@ export type ClientSource = {
   segments: number;
   occurrences: SourceOccurrence[];
   created_at: string | null;
+  /** Marked "Interní dokument" (Class C for AI, the owner's rule of 2026-10-19): who and when;
+   * null for the client's own material (Class A). Absent from an older API. */
+  internal?: { by: string; at: string | null } | null;
 };
 
 export type SourceAdded = ClientSource & { created: boolean };
@@ -853,6 +856,9 @@ export const workspace = {
     request<SourceAdded>("POST", `/api/v1/clients/${enc(clientId)}/sources`, body),
   source: (clientId: string, sourceId: string) =>
     request<SourceDetail>("GET", `/api/v1/clients/${enc(clientId)}/sources/${enc(sourceId)}`),
+  /** Mark a source "Interní dokument" (an internal AIA document, Class C for AI), or unmark it. */
+  markSourceInternal: (clientId: string, sourceId: string, internal: boolean) =>
+    request<ClientSource>("PUT", `/api/v1/clients/${enc(clientId)}/sources/${enc(sourceId)}/internal`, { internal }),
   sourceOriginal: (clientId: string, sourceId: string) =>
     requestBlob(`/api/v1/clients/${enc(clientId)}/sources/${enc(sourceId)}/original`),
   /** The newest AI proposals run about a source; null when nobody has asked. */

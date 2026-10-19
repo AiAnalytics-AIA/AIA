@@ -15,6 +15,7 @@ from aia_core.domain.material_rules import (
     MaterialRule,
     classify_by_rule,
     rule_class,
+    source_rule,
 )
 from aia_core.domain.prompts import PromptPin
 from aia_core.domain.research_agents import (
@@ -95,6 +96,13 @@ def test_an_operator_who_agrees_with_the_rule_leaves_the_rule_as_the_source() ->
 def test_a_duplicate_operator_classification_is_still_refused() -> None:
     with pytest.raises(ValueError, match="duplicate"):
         classify_by_rule("x", MaterialRule.DESIGN, (approval("x", A), approval("x", A)))
+
+
+def test_a_client_source_is_class_a_unless_a_person_marked_it_internal() -> None:
+    assert source_rule(internal=False) is MaterialRule.CLIENT_SOURCE
+    assert rule_class(source_rule(internal=False)) is A
+    assert source_rule(internal=True) is MaterialRule.INTERNAL_DOCUMENT
+    assert rule_class(source_rule(internal=True)) is C
 
 
 def test_a_jobs_design_and_instruction_are_classified_by_rule() -> None:

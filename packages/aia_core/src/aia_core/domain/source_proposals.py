@@ -30,7 +30,7 @@ from .deep_research.grounding import locate_quote
 from .deep_research.request_limits import ANSWER_BYTES_PER_TOKEN, FRAMING_BYTES
 from .knowledge import KnowledgeKind
 from .licence import DataLineage
-from .residency import DataClass
+from .material_rules import rule_class, source_rule
 
 __all__ = [
     "BATCH_MAX_BYTES",
@@ -209,8 +209,14 @@ Když dokument nic takového neobsahuje, vrať prázdný seznam. Navrhni nejvý�
 """
 
 
-def proposal_request(batch: Batch, *, policy_version: str, max_output_tokens: int) -> ModelRequest:
-    """The request for one batch: Class A client material, no tools, no fallback.
+def proposal_request(
+    batch: Batch, *, policy_version: str, max_output_tokens: int, internal: bool = False
+) -> ModelRequest:
+    """The request for one batch: no tools, no fallback.
+
+    Class A, a client's own material (``rule:client_source``), unless a person marked the
+    source "Interní dokument" (``internal``): an internal AIA document, Class C by the
+    owner's rule of 2026-10-19 (``material_rules.source_rule``).
 
     The segments go numbered; their locators stay with AIA, so the model can neither
     see nor alter where a quote will be said to come from. No client, study or person
@@ -228,7 +234,7 @@ def proposal_request(batch: Batch, *, policy_version: str, max_output_tokens: in
             schema_repair_attempts=1,
         ),
         policy_version=policy_version,
-        data_classification=DataClass.CLASS_A_CLIENT_CONFIDENTIAL,
+        data_classification=rule_class(source_rule(internal=internal)),
         data_lineage=DataLineage.none(),
         system=_SYSTEM,
         messages=(

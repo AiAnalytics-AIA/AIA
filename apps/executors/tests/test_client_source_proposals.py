@@ -201,14 +201,20 @@ def start(
     budget: float = 10.0,
     filename: str = "lupinek.txt",
     data: bytes = DOCUMENT,
+    internal: bool = False,
 ) -> tuple[str, str]:
-    """Keep the document, set the client's budget and start the proposals: (run, source)."""
+    """Keep the document, set the client's budget and start the proposals: (run, source).
+    ``internal``: a person marked it "Interní dokument" first."""
     with world.sessions() as session:
         client = session.get(ClientRow, world.client_id)
         assert client is not None
         client.budget_usd, client.spent_usd = budget, 0.0
         sources = ClientSourceRepository(session, store)
         record, _ = sources.add(client_scope(world, session), filename=filename, data=data)
+        if internal:
+            record, _ = sources.mark_internal(
+                client_scope(world, session), record.source_id, internal=True
+            )
         if record.family.value == "DOCUMENT":
             # As a person asks: the API's start (lifecycle K2d4).
             run_id = start_source_proposals(
@@ -286,6 +292,8 @@ def test_grounded_proposals_are_filed_and_the_client_pays(
         "replayed": 0,
         "proposed": 2,
         "dropped": {"quote_not_found": 1, "unknown_segment": 1},
+        "data_class": "CLASS_A_CLIENT_CONFIDENTIAL",
+        "class_source": "rule:client_source",
     }
 
     with world.sessions() as session:
@@ -356,6 +364,34 @@ def test_a_route_not_cleared_for_client_material_parks_before_any_call(
     assert step["attempts"][-1]["error"]["reason"] == reason
     assert transport.requests == []
     assert spent(world) == (0.0, 0.0)
+
+
+def test_a_source_marked_internal_is_sent_as_class_c_on_a_route_for_class_c(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """The owner's rule of 2026-10-19: a person marked the document "Interní dokument", an
+    internal AIA document, so it is Class C and a route approved for Class C alone takes it;
+    each proposal says which rule classified what it came from."""
+    run_id, source_id = start(world, store, internal=True)
+    transport = RecordedBedrock()
+    w = worker(
+        world, database_url, store, build, transport, AIA_AI_ROUTE_APPROVED_FOR="CLASS_C_INTERNAL"
+    )
+    assert w.run_once()
+    assert len(transport.requests) == 1
+    step = run_state(world, run_id)["steps"][0]
+    assert (step["output"]["data_class"], step["output"]["class_source"]) == (
+        "CLASS_C_INTERNAL",
+        "rule:internal_document",
+    )
+    with world.sessions() as session:
+        proposals = ClientKnowledgeRepository(session).proposals(client_scope(world, session))
+    assert proposals and all(
+        (p.provenance["data_class"], p.provenance["class_source"])
+        == ("CLASS_C_INTERNAL", "rule:internal_document")
+        for p in proposals
+    )
+    assert all(p.provenance["source_id"] == source_id for p in proposals)
 
 
 def test_a_dataset_is_refused_by_name_before_any_call(

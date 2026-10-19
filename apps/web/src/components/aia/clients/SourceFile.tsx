@@ -4,18 +4,19 @@
 // client's source (lifecycle K2: POST /clients/{id}/sources), read at once, and the item
 // names it by id. SourcePicker stores one file and says what reading produced; SourceCard
 // shows a named file: its name, size, the reading in words, what was read, the original,
-// and, for a document, Navrhnout znalosti (lifecycle K2d5).
+// whether a person marked it "Interní dokument" (Class C for AI, the owner's rule of
+// 2026-10-19) and, for a document, Navrhnout znalosti (lifecycle K2d5).
 
 import { useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
-import { ApiError, type SourceAdded, type SourceDetail, workspace } from "@/lib/api";
+import { ApiError, type ClientSource, type SourceAdded, type SourceDetail, workspace } from "@/lib/api";
 import { FILE_ACCEPT, FILE_MAX_BYTES, locatorWords, readingLine, reasonKnown, reasonWords, sizeWords } from "@/lib/client-sources";
 import { saveBlob } from "@/lib/download";
 import { canPropose } from "@/lib/source-proposals";
 import { plural, relative } from "@/lib/format";
 import { fileToBase64 } from "@/research/brief";
-import { Button, Chip } from "../../rehome/ui";
+import { Button, Chip, Tag } from "../../rehome/ui";
 import { useResource } from "../useResource";
 import { type AiRights, SourceProposals } from "./SourceProposals";
 
@@ -96,15 +97,20 @@ export function SourceCard({
   sourceId,
   compact = false,
   ai,
+  mayMark = false,
 }: {
   clientId: string;
   sourceId: string;
   compact?: boolean;
   /** Offer AI proposals from the file (lifecycle K2d5), with what the person may do. */
   ai?: AiRights;
+  /** PROPOSE_CLIENT_KNOWLEDGE: the person may mark the file "Interní dokument" or unmark it. */
+  mayMark?: boolean;
 }) {
   const [res, retry] = useResource(() => workspace.source(clientId, sourceId), [clientId, sourceId]);
   const [error, setError] = useState<string | null>(null);
+  // The mark as the API last answered it; null until the person changes it here.
+  const [mark, setMark] = useState<ClientSource["internal"] | undefined>(undefined);
   if (res.state === "loading") return <p className="text-xs text-ink-muted">{t("aia.loading")}</p>;
   if (res.state === "not-found") return <p className="text-xs text-ink-muted">{t("aia.sources.noFile")}</p>;
   if (res.state === "failed") {
@@ -136,9 +142,81 @@ export function SourceCard({
         <Button small variant="quiet" icon="download" onClick={() => void download()}>{t("aia.sources.download")}</Button>
       </div>
       <span><Chip tone={line.tone}>{line.text}</Chip></span>
+      <InternalMark
+        clientId={clientId}
+        sourceId={s.source_id}
+        internal={mark === undefined ? (s.internal ?? null) : mark}
+        mayMark={mayMark && !compact}
+        onMarked={setMark}
+      />
       {error ? <p role="alert" className="text-xs text-status-fault">{error}</p> : null}
       {compact ? null : <WhatWasRead source={s} />}
       {!compact && ai && canPropose(s) ? <SourceProposals clientId={clientId} source={s} rights={ai} /> : null}
+    </div>
+  );
+}
+
+/** "Interní dokument": a toggle that says what it does, and who marked the file and when. */
+function InternalMark({
+  clientId,
+  sourceId,
+  internal,
+  mayMark,
+  onMarked,
+}: {
+  clientId: string;
+  sourceId: string;
+  internal: ClientSource["internal"] | null;
+  mayMark: boolean;
+  onMarked: (internal: ClientSource["internal"] | null) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
+  const [me] = useResource(() => workspace.me(), []);
+  const marked = !!internal;
+  if (!marked && !mayMark) return null;
+  const who = internal
+    ? me.state === "ready" && me.data.user_id === internal.by
+      ? t("aia.sources.internal.you")
+      : tv("aia.sources.internal.other", { id: internal.by })
+    : "";
+  const toggle = async () => {
+    setBusy(true);
+    setFailed(null);
+    try {
+      const saved = await workspace.markSourceInternal(clientId, sourceId, !marked);
+      onMarked(saved.internal ?? null);
+    } catch (e) {
+      setFailed(tv("aia.sources.internal.failed", { reason: e instanceof Error ? e.message : String(e) }));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="flex flex-col gap-1 text-xs" data-internal={marked ? "true" : "false"}>
+      {mayMark ? (
+        <span className="flex flex-wrap items-center gap-2">
+          <Button
+            small
+            variant={marked ? "primary" : "secondary"}
+            aria-pressed={marked}
+            aria-describedby={`internal-${sourceId}`}
+            disabled={busy}
+            onClick={() => void toggle()}
+          >
+            {t("aia.sources.internal.toggle")}
+          </Button>
+          <span id={`internal-${sourceId}`} className="text-ink-faint">{t("aia.sources.internal.what")}</span>
+        </span>
+      ) : (
+        <span><Tag>{t("aia.sources.internal.toggle")}</Tag></span>
+      )}
+      {internal ? (
+        <span className="text-ink-muted">
+          {tv("aia.sources.internal.marked", { when: (internal.at ? relative(internal.at) : null) ?? "", who })}
+        </span>
+      ) : null}
+      {failed ? <p role="alert" className="text-status-fault">{failed}</p> : null}
     </div>
   );
 }

@@ -401,6 +401,15 @@ export const cs = {
       personal: "osobní údaj, ukázka skryta",
       sheet: "List {name}",
       noFile: "Soubor nenalezen u tohoto klienta.",
+      // A source a person marks as AIA's own (the owner's rule of 2026-10-19: Class C for AI).
+      internal: {
+        toggle: "Interní dokument",
+        what: "Interní dokument AIA bez údajů klienta; smí jít i širší trasou AI",
+        marked: "Označeno {when} · {who}",
+        you: "vámi",
+        other: "uživatelem {id}",
+        failed: "Označení se neuložilo: {reason}",
+      },
       fileIsSaved: "Soubor se uloží jako nová revize.",
       readText: "Přečteno: {parts}, {chars} znaků",
       readRows: "Přečteno: {rows}",

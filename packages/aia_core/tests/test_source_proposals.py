@@ -135,6 +135,17 @@ def test_a_reading_at_the_character_cap_of_czech_text_fits_the_request_cap() -> 
     assert len(made) <= MAX_REQUESTS
 
 
+def test_a_source_marked_internal_is_sent_as_class_c_and_nothing_else_changes() -> None:
+    """The owner's rule of 2026-10-19: a source a person marked "Interní dokument" is an
+    internal AIA document, Class C; the request is otherwise the same bytes."""
+    [batch] = batches(reading("Interní postup AIA.", "Druhý odstavec."))
+    client = proposal_request(batch, policy_version="p1", max_output_tokens=2000)
+    internal = proposal_request(batch, policy_version="p1", max_output_tokens=2000, internal=True)
+    assert internal.data_classification is DataClass.CLASS_C_INTERNAL
+    assert client.data_classification is DataClass.CLASS_A_CLIENT_CONFIDENTIAL
+    assert (internal.system, internal.messages) == (client.system, client.messages)
+
+
 def test_the_request_is_class_a_closed_and_carries_no_locator() -> None:
     [batch] = batches(reading("Klient vede trh.", "Druhý odstavec."))
     request = proposal_request(batch, policy_version="p1", max_output_tokens=2000)
