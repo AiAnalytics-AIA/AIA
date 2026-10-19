@@ -1,196 +1,70 @@
 ---
-status: planned
+status: in-progress
 chunks:
   - "[ ] 1. Split layout: pure width, keyboard and focus-mode rules with the prototype's bounds"
   - "[ ] 2. Inspector back stack: pure state and the item drawer, beside InspectorSlot"
-  - "[ ] 3. Phase navigator: StageTrack's groups as a vertical navigator over the same lane"
-  - "[ ] 4. Mount the workbench behind AIA_WEB_RESEARCH_WORKBENCH (off): the inspector column becomes the left pane"
-  - "[ ] 5. Inline proposal review: change blocks in the artifact, research-question coverage gained, lost and kept"
-  - "[ ] 6. Workbench journey: four widths, keyboard, focus modes, both switch states, zero paid jobs"
-  - "[ ] 7. (ADR 0026) design_items and the item-level stale rule, with cases shared with proposalDiff"
-  - "[ ] 8. (ADR 0026) Accept in one transaction: merged Design Revision, working copy, ledger; the web reloads"
-  - "[ ] 9. (ADR 0026) Dismiss and rebuild through the ledger and rebuild_of; the pending-proposals projection"
-  - "[ ] 10. (ADR 0026) study_lead_turns, StudyLeadRepository and the conversation routes, no model"
-  - "[ ] 11. (ADR 0026) The research_lead_turn executor behind AIA_AI_RESEARCH_LEAD_ENABLED, measured"
-  - "[ ] 12. (ADR 0026) Command registry, stage contracts, human-only refusal and Lead-prepared job approval"
-  - "[ ] 13. (ADR 0026) The conversation in the left pane: turns, decision cards, the event feed"
+  - "[ ] 3. Port the prototype's workbench frame: stylesheet, icons, study header, phase navigator over lane.ts, split, rail"
+  - "[ ] 4. Mount the workbench as the study screen behind AIA_WEB_RESEARCH_WORKBENCH (on for develop): artifact header and state bars over the existing stage screens"
+  - "[ ] 5. Lead backend: study_lead_turns, StudyLeadRepository, ResearchLead, /lead routes, research_lead template and executor, settings"
+  - "[ ] 6. Lead pane: conversation, composer, greeting, view tools, edits as change blocks, decision cards"
+  - "[ ] 7. Agent proposals inline in the artifact, with research-question coverage gained, lost and kept"
+  - "[ ] 8. design_items, the working revision on each Design Revision, the item-level stale rule"
+  - "[ ] 9. Accept in one transaction: merged Design Revision, working copy, ledger; the web reloads"
+  - "[ ] 10. Dismiss and rebuild through the ledger and rebuild_of; the pending-proposals projection"
+  - "[ ] 11. Lead-prepared paid work recorded in the ledger, with the spend limit, from the server's command registry"
+  - "[ ] 12. Workbench journey: four widths, keyboard, focus modes, a Lead turn on recorded answers, zero unintended paid jobs"
 ---
 # Research Lead workbench
 
-Make the research-lead prototype (`prototypes/research-lead-v2`, PR #481 @ 9b50963f) AIA's study
-workspace. On the left (40 %) is the conversation with the Research Lead; on the right (60 %) is
-the stage's artifact. Proposals land inline, and every decision is a person's.
+The study screen becomes the research-lead prototype (`prototypes/research-lead-v2`, PR #481 @
+9b50963f). On the left is the conversation with the Research Lead (Vedoucí výzkumu); on the right is
+the stage's artifact. The Lead reads the study, explains it, steers the artifact pane, proposes edits
+as change blocks the person accepts, and prepares paid work as decision cards the person approves.
 
 The design is [ADR 0026](../../docs/architecture/adr/0026-research-lead-proposes-a-person-decides.md),
-**Proposed**. The plan has two parts:
-
-- **Chunks 1–6** call no model and change no API. They can land before the ADR is accepted, and
-  each leaves `develop` green and deployable.
-- **Chunks 7–13** carry out the ADR and start only after the product owner accepts it.
+**Accepted** on 2026-10-19 with the product owner's decisions in its *Accepted with* section.
 
 ## Decisions taken in this plan
 
-- **D1. Today's stages and slugs stay.**
-  - The navigator groups the existing `STEP_KEYS` (`apps/web/src/research/steps.ts:16 @ 50547cdc`).
-    These are ten keys, eight of them on the track. It does not invent a second list.
-  - Phases are `StageTrack`'s groups (`StageTrack.tsx:21-25 @ 50547cdc`): design, sample, run.
-  - Each stage's state is `designLane` / `runLane` (`apps/web/src/research/lane.ts @ 50547cdc`).
-    Nothing new decides a stage's tone.
-  - The prototype's Sample stage is a read-only view over Dimenze (`persona`, slug `dimensions`)
-    and Kontrola (`run`). It is not a new stage.
-  - The prototype's result sub-stages (data, maps, analysis, report) are `ResultsWorkspace`'s
-    views on `results`.
-- **D2. The split uses the prototype's bounds** (`prototypes/research-lead-v2/src/components/Split.tsx:10-11,
-  21, 48-52 @ 9b50963f`).
+- **D1. The prototype is the visual target, and AIA's code does the work.**
+  - The prototype's frame is ported into `apps/web`: header, navigator, split, conversation,
+    composer, artifact header, state bars and inspector. Its stylesheet already reads AIA's
+    `src/app/tokens.css`.
+  - The prototype's fixture-driven artifacts are **not** ported. The artifact bodies are AIA's
+    stage screens (`STEP_SCREENS`), which already load, edit and save the real working content.
+- **D2. The navigator shows the prototype's eleven stages in six phases, over today's routes.**
+  - Brief → `brief`, Design → `plan`, Questionnaire → `questionnaire`, Audience → `audience`,
+    Dimensions → `persona` (slug `dimensions`).
+  - Sample is a read-only projection over Dimenze and Kontrola.
+  - Fieldwork → `run` and `progress`.
+  - Results, Sociomap, Analysis and Report → `results`, with `ResultsWorkspace`'s view.
+  - Each stage's state comes from `designLane` / `runLane` (`apps/web/src/research/lane.ts @
+    50547cdc`). Nothing new decides a tone.
+- **D3. The split uses the prototype's bounds** (`Split.tsx:10-11, 21, 48-52 @ 9b50963f`).
   - The left pane is 28–62 %, adjusted in steps of 2 %.
   - Home, Enter or a double-click resets it to 40 %.
   - Artifact focus collapses the conversation to a rail; conversation focus is a temporary 68 %.
-  - Focus modes never overwrite the saved width, which is kept per browser (`localStorage`,
-    wrapped in try/catch, the default without it).
-- **D3. Two inspectors, not one.**
-  - `InspectorProvider` / `InspectorSlot` (`Inspector.tsx:65-90 @ 50547cdc`) stay: the stage's
-    readiness, portalled beside it. In the workbench, that column becomes the left pane's lower
-    part.
-  - The new item inspector is a drawer in the artifact pane, opened on an item's `data-aia` id,
-    with a back stack. Escape closes it and returns focus to the opener.
-  - Neither replaces the other: one is the stage's state, the other is an item's detail.
-- **D4. The layout ships behind a web switch**, `AIA_WEB_RESEARCH_WORKBENCH`, read by `/config`
-  (`apps/web/src/lib/public-config.ts @ 50547cdc`). It is off by default, so `develop` keeps
-  today's layout until the product owner turns it on. Both states are journey-tested.
-- **D5. Strings go into `apps/web/src/i18n/cs.ts`**, in the sections the research stages already
-  use (`aia.study.*`, `research.*`). The file is never rewritten.
-- **D6. The Lead's backend waits for ADR 0026.** Chunks 7–13 change an API route, add a table,
-  add a worker step and spend money. None of them starts before acceptance.
+  - The width is kept per browser.
+- **D4. Two inspectors.** `InspectorSlot` keeps the stage's readiness. The item drawer, with its
+  back stack, shows one item's detail.
+- **D5. The workbench switch, `AIA_WEB_RESEARCH_WORKBENCH`,** is read by `/config`. It is on for
+  develop and off by default, so a deployment that has not chosen it keeps today's layout.
+- **D6. Lead edits are the person's saves.** An accepted change block is applied to the working copy
+  in the browser through the same store, and saved with `reason = "lead_edit_accepted"` against the
+  revision it was shown on.
+- **D7. Lead decision cards start paid work through today's routes**, with today's gates:
+  - `researchAgents.start`, `research.start` and `deepResearch.start`;
+  - the interpretation start.
+
+  The ledger row for a Lead-prepared request arrives with chunk 11.
+- **D8. PRs.** Each piece opens as a draft PR. It is marked ready so Codex reviews it, its findings
+  are handled, and it merges once green (the product owner, 2026-10-19).
 
 ## Chunks
 
-### 1. Split layout (web, pure)
-
-- **Files.** `apps/web/src/lib/workbench-split.ts` and its tests. The tests cover clamp, step,
-  reset, pointer to percentage, focus-mode width, and the stored value read and refused.
-- **Verify.** `make test-web`, `npx tsc --noEmit`.
-
-### 2. Inspector back stack (web)
-
-- **Files.**
-  - `apps/web/src/lib/inspector-stack.ts`: open, back, close, and reset on a stage change. Pure,
-    with tests.
-  - `components/rehome/research/ItemInspector.tsx`: the drawer, Escape, focus return. Tested.
-- **Verify.** `make test-web`.
-
-### 3. Phase navigator (web)
-
-- **Scope.** `StageTrack.tsx` gains a vertical variant for the workbench, fed by the same `GROUPS`,
-  `designLane` and `runLane`, with roving arrow-key focus.
-- **Tests.** `StageTrack.test.tsx` gains cases showing that both variants read the same tones.
-- **Verify.** `make test-web`.
-
-### 4. Mount the workbench (web)
-
-- **Scope.**
-  - With `AIA_WEB_RESEARCH_WORKBENCH` on, `ResearchScreen.tsx`'s workspace grid
-    (`ResearchScreen.tsx:279 @ 50547cdc`) becomes the split.
-  - The left pane holds what the inspector column holds today: the stage's readiness slot, AI help
-    (`ResearchAssistance`), the job panel, budget waits, saved proposals, and *Do spuštění zbývá*.
-  - The navigator moves into the left pane's head, and the artifact fills the right.
-  - Off, nothing changes.
-- **Verify.** `make test-web`, `make web_design`, `npx tsc --noEmit`, and the existing journeys
-  with the switch off.
-
-### 5. Inline proposal review (web)
-
-- **Scope.** `ProposalReview` is drawn as change blocks at the items they change, with a sticky
-  bar. The bar offers only what the API has today: accept, and keep the current design, which
-  stores nothing, as today. It shows research-question coverage gained, lost and kept, from
-  `proposedTrace` / `trace.ts` and `proposalDiff`. A stale refusal says so, and the action can be
-  asked again on the current design through today's start route.
-- **API.** Today's routes, unchanged. The item-level rule arrives in chunk 7. A stored dismissal
-  and a rebuild linked by `rebuild_of` arrive in chunk 9, with their controls.
-- **Verify.** `ProposalReview.test.tsx`, `make test-web`.
-
-### 6. Workbench journey (web)
-
-- **Scope.** `tools/ui_workbench/workbench_journey.mjs`, run with the switch on and off:
-  - 1440, 1280, 1024 and 768 wide, with no horizontal page scroll;
-  - the separator, by keyboard and by pointer;
-  - the focus modes;
-  - the item drawer's back stack and focus return;
-  - zero paid jobs.
-- **Verify.** The journey after `make ui-workbench` + `make ui-fixtures`.
-
-### 7. Item-level stale rule (ADR 0026 decision 5)
-
-- **Scope.**
-  - `aia_core/domain/design_items.py`: `design_items(before, after)`.
-  - A shared case file used by both its pytest and `proposal-diff.test.ts`.
-  - A design submit names its `workspace_revision`. The server checks the content against it and
-    stores it with the Design Revision.
-  - `ResearchAgentJobs.start` copies it as `base_workspace_revision`; the worker records
-    `touched_items` (content and analysis) with the proposal.
-  - Tests:
-    - a delayed enqueue: W1 produces D1, W2 edits a touched item, the job on D1 starts, and the
-      accept is refused;
-    - a revision without lineage: refused as `unknown_baseline`.
-- **Verify.** `make test`, `make typecheck`.
-
-### 8. Atomic accept (ADR 0026 decision 6)
-
-- **Scope.**
-  - `ResearchAgentJobs.accept` performs the stale check, merge, `submit_if_current`, working-copy
-    save and ledger row in one transaction, under the Study lock.
-  - The route takes `expected_workspace_revision` and returns both revisions.
-  - `useResearchAgents.apply` reloads instead of writing back.
-  - Web and API change in this one PR.
-- **Tests.**
-  - Every refusal: design moved, an overlapping edit, a request without the field.
-  - A non-overlapping edit survives.
-  - A failure at each step leaves nothing written.
-- **Verify.** `make verify`.
-
-### 9. Dismiss, rebuild, pending proposals (ADR 0026 decision 8)
-
-- **Scope.**
-  - Dismiss writes `decision = "dismiss"`.
-  - Their routes, and the dismiss and rebuild controls on the proposal bar (moved here from chunk 5).
-  - The acceptance check reads `"accept"` only.
-  - Rebuild starts a job with `rebuild_of`.
-  - A projection lists pending proposals.
-
-### 10. The conversation table (ADR 0026 decision 8)
-
-- **Scope.**
-  - The `study_lead_turns` migration.
-  - `StudyLeadRepository` (StudyContext only, a `layer_check` rule).
-  - `GET /studies/{id}/lead` and `POST /studies/{id}/lead/turns`. With the switch off, a turn is
-    stored and parks; it never fakes a reply.
-- **Verify.** `alembic upgrade head`, downgrade then upgrade, `make test`, `make layer_check`,
-  `make openapi`.
-
-### 11. The Lead turn executor (ADR 0026 decisions 1–3, 9)
-
-- **Scope.**
-  - The `research_lead` template and the `aia.research.lead` prompt.
-  - Context assembly with byte bounds.
-  - The closed output contract with the number validator.
-  - `aia_executors/research_lead.py` over `StepModelCaller`.
-  - The switch and its two keys.
-- **Measured before develop turns it on:** input bytes per layer, latency, and the metered cost of
-  20 turns on a fictional study.
-
-### 12. Command registry and Lead-prepared jobs (ADR 0026 decisions 4, 7)
-
-- **Scope.**
-  - `aia_core/application/lead_commands.py`, with the stage contracts.
-  - `403 human_gate_required`.
-  - Approval of a prepared job: the ledger row, the spend limit, and the API setting
-    `ai_research_reservation_usd`.
-
-### 13. The conversation in the left pane
-
-- **Scope.**
-  - Turns, the Lead's reply, decision cards for prepared requests, and the activity feed.
-  - Visual commands applied, every one revertible.
-  - Switched off: the left pane is chunk 4's.
+1–2 landed in PR #483: `lib/workbench-split.ts`, `lib/inspector-stack.ts` and `ItemInspector.tsx`.
+3–4, 6 and 7 are web. 5 and 8–11 are backend; 9 changes the accept route and the web together.
+12 is the journey (`tools/ui_workbench/workbench_journey.mjs`).
 
 ## Findings
 
