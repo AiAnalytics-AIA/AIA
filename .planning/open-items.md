@@ -4003,3 +4003,85 @@ unaffected (it is tagged when the request starts, `apps/api/tests/test_api_error
 **Smallest fix.** Read the id before the reset (keep it on `request.state`) and use that in `_error`.
 
 **Status.** Hypothesis: reproduce or delete (CLAUDE.md §9).
+
+---
+
+## OI-126 · Question · How is Research Lead chat material classified on develop?
+
+**Claim.** Every Research Lead turn on develop parks before any call with
+`egress_unclassified_material`: a turn's class follows the design agents' rule, which classifies
+the design, the study's and client's names, every message, the focus label and any changed SOUL,
+USER or note by their exact bytes only, and a chat message is new bytes every time.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/research_lead.py:858` `lead_request` @
+`c7327072` (its `data_classification` at `:897`, from `context_data_class`, `:816-855`);
+`deploy/develop/env.example:78-83 @ c7327072` (client ids do not classify material;
+`AIA_AI_MATERIAL_CLASSIFICATIONS=[]`).
+
+**Reproduction.** `apps/executors/tests/test_research_lead_executor.py::test_unclassified_material_parks_the_turn_before_any_call`;
+on develop, any message in the Lead pane, which says why in Czech
+(`apps/web/src/components/workbench/LeadPane.tsx:39 @ c7327072`).
+
+**Consequence.** The Lead (#484, ADR 0026) is switched on for develop but answers nothing there;
+its cost per turn (plan `research-lead-workbench` chunk 10) cannot be measured until this is
+decided.
+
+**Options.** (a) A researcher's per-message declaration, recorded with the turn, as a prompt
+author declares a saved prompt Class C (`domain/prompts.py:49-51`, `:127 @ c7327072`). (b) Lead
+material is Class A, sent only on a route approved for Class A. Either way, unknown stays a
+refusal.
+
+**Status.** Open. The product owner's decision.
+
+---
+
+## OI-127 · Question · A person's own design job is not held to the study's spend limit
+
+**Claim.** `ResearchAgentJobs.start` holds a reservation but never reads the study's
+`spend_confirm_usd`, so a design job a person starts from a stage's AI help never asks for the
+confirmation a research run's start, or a Lead-prepared job's approval, asks for.
+
+**Anchor.** `packages/aia_core/src/aia_core/application/research.py:1311-1408 @ c7327072`
+(`ResearchAgentJobs.start`; called by `POST …/research/agent-jobs`,
+`apps/api/src/aia_api/routers/research.py:2735-2754`). Beside it the limit is applied by
+`ResearchRuns.start` (`research.py:725-741`) and by the Lead's `approve_request`
+(`application/research_lead.py:675-684`;
+`apps/api/tests/test_research_lead_api.py::test_a_prepared_job_is_approved_under_the_spend_limit_once`).
+
+**Reproduction.** Set a study's spend limit below `AIA_AI_RESEARCH_RESERVATION_USD`, then start
+any design job from a stage: no confirmation is asked (plan `research-lead-workbench.md` F1).
+
+**Consequence.** A study's spend limit stops a run and a Lead-prepared job but not a job a person
+starts directly.
+
+**Smallest fix.** If the owner wants the limit there too: the same reservation check as
+`approve_request`, 409 `cost_confirmation_required` before the job is queued, the yes recorded.
+
+**Test.** A start under a limit below the reservation is refused without `confirm_cost_usd`.
+
+**Status.** Open: whether a person's own button is held to the limit is the product owner's call
+(ADR 0026 decision 7 applies it to Lead-prepared jobs only). Still true at `c7327072`.
+
+---
+
+## OI-128 · Finding, closed · Accepting an AI proposal could overwrite an edit made in another tab
+
+**Claim.** The browser's guard compared only its own store and the server compared only Design
+Revisions, so a proposal made from one working copy was applied over a newer one that had changed
+the very items the proposal changes (or was refused whole for an unrelated change).
+
+**Anchor.** `apps/web/src/components/rehome/research/useResearchAgents.tsx:85` and
+`packages/aia_core/src/aia_core/infrastructure/study_design_repository.py:180-183` @ `50547cdc`
+(plan `research-lead-workbench.md` F2).
+
+**Reproduction.** Accept a proposal after a second session saved the working copy with a change
+to an item the proposal changes.
+
+**Consequence.** A person's edit silently lost on accept.
+
+**Smallest fix.** The accept on the server, in one transaction, checked item by item against the
+working revision the proposal's design names (`application/proposal_accept.py:92-157 @ c7327072`).
+
+**Test.** `apps/executors/tests/test_research_agent_executor.py::test_a_job_started_after_an_edit_is_checked_against_its_designs_working_revision`.
+
+**Status.** Fixed by 5dff12a5 (#485).

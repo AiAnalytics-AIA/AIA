@@ -1642,6 +1642,23 @@ const add = new URLSearchParams(window.location.search).get("add");
 const add = useSearchParams().get("add");
 ```
 
+**The research template is not a fixpoint of `defaultsMerge`, so "saved" is not "what AIA holds".**
+A working copy the server wrote (a reuse, a seed, an accept) loads through the template's
+defaults, which add fields the stored revision lacks. The store shows it as saved, and it is: nothing
+the person typed is owed. But a Design Revision must name a working revision whose content is the
+submitted design byte for byte (canonical hash, `StudyDesignRepository.submit`), so submitting that
+copy is refused 422 `design_not_from_workspace` (#485, 384bc3c2). The store marks such a copy
+`completed` (`apps/web/src/research/store.ts:116 @ c7327072`), and `submitWorkingDesign` saves it
+first (`store.ts:313-330`; `store.test.ts` › "saves a copy the template completed on load before
+submitting it, so the design is a stored revision").
+
+```ts
+// WRONG: the save state says "saved", but this copy is the template's completion, not a stored revision
+await research.submitDesign(studyId, store.get().project, stage, store.get().revision!);
+// RIGHT: a completed (or unsaved) copy is saved first; the revision named is exactly what is sent
+await submitWorkingDesign(store, studyId, stage);
+```
+
 ## The 18.6.6 unit, run outside its container
 
 **It registers its population files at import, not at first request.**
