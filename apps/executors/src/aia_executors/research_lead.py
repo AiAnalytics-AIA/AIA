@@ -59,6 +59,7 @@ __all__ = [
     "ARTIFACT_TYPE",
     "KIND",
     "LEAD_UNCONFIGURED",
+    "LeadAnswer",
     "ResearchLeadConfig",
     "ResearchLeadExecutor",
 ]
@@ -86,8 +87,26 @@ def _schema_violation(message: str) -> Failed:
     return Failed(FailureClass.SCHEMA_VIOLATION, error={"message": message})
 
 
+@dataclass(frozen=True, slots=True)
+class LeadAnswer:
+    """What answered a turn: the output, the class the turn was sent as (``None`` when no
+    model was asked) and the provenance to store beside it."""
+
+    output: LeadOutput
+    data_class: str | None
+    provenance: dict[str, Any]
+    #: True only for a composition that answers without a model (the local workbench).
+    scripted: bool = False
+
+
 class ResearchLeadExecutor:
-    """Answers one Lead turn. Built without a gateway or config, it parks every turn."""
+    """Answers one Lead turn. Built without a gateway or config, it parks every turn.
+
+    The answer comes from :meth:`_answer`; everything around it -- the frozen context's
+    checks, reuse, grounding, the Lead's own ``self_update`` and the stored result -- is the
+    same for any answer, so a local composition that answers without a model
+    (``aia_executors.workbench``) exercises the rest of the pipeline for real.
+    """
 
     def __init__(
         self,
@@ -100,10 +119,11 @@ class ResearchLeadExecutor:
         self._store, self._build = store, build
         self._gateway, self._config = gateway, config
 
-    def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
-        context.checkpoint()
-        cfg = self._config
-        if cfg is None or self._gateway is None:
+    # -- what a composition provides ----------------------------------------------------
+
+    def _unconfigured(self) -> Failed | None:
+        """The park when this composition cannot answer a turn."""
+        if self._config is None or self._gateway is None:
             return Failed(
                 FailureClass.RUNTIME_UNAVAILABLE,
                 error={
@@ -111,6 +131,93 @@ class ResearchLeadExecutor:
                     "message": "Vedoucí výzkumu není zapnutý. Zpráva zůstává uložená.",
                 },
             )
+        return None
+
+    def _identity(self) -> dict[str, Any]:
+        """What else, beside the turn and its context, makes a stored answer this one's."""
+        cfg = self._config
+        assert cfg is not None
+        return {"policy": cfg.policy_version, "output_budget": cfg.max_output_tokens}
+
+    def _answer(
+        self,
+        step: StepInput,
+        context: StepContext,
+        frozen: Mapping[str, Any],
+        pin: PromptPin,
+    ) -> LeadAnswer | Failed:
+        """One model request over the frozen context, and its one repair."""
+        cfg, gateway = self._config, self._gateway
+        assert cfg is not None and gateway is not None
+        payload = step.payload
+        try:
+            request = lead_request(
+                frozen,
+                policy_version=cfg.policy_version,
+                max_output_tokens=cfg.max_output_tokens,
+                material_approvals=cfg.material_approvals,
+            )
+        except (KeyError, ValueError, TypeError) as exc:
+            return _schema_violation(f"the turn's context cannot be sent: {exc}")
+        # UTF-8 bytes bound tokens; a turn and its one repair must fit the model's window.
+        # Fail before reserving or sending, never trim.
+        request_bytes = len(
+            (
+                request.system + request.messages[0].content + canonical_json(request.agent.schema)
+            ).encode()
+        )
+        if request_bytes + 5 * cfg.max_output_tokens + 2048 > cfg.context_window_tokens:
+            return _schema_violation("the turn's context exceeds the configured model window")
+        caller = StepModelCaller(
+            gateway=gateway,
+            context=context,
+            runtime_version=self._build.sha or "",
+            provider=Provider.AWS_BEDROCK,
+            reservation_usd=cfg.reservation_usd,
+            announce=cfg.step_events,
+        )
+        try:
+            caller.preflight(request)
+        except ModelCallFailed as exc:
+            return Failed(
+                FailureClass.RUNTIME_UNAVAILABLE,
+                error={
+                    "reason": exc.reason,
+                    "message": f"Vedoucí výzkumu čeká na povolenou trasu nebo licenci: {exc}",
+                },
+            )
+        context.progress("Vedoucí výzkumu odpovídá", turn=str(payload.get("turn_id")))
+        result = caller.invoke(request)
+        assert result.output is not None
+        assert request.data_classification is not None  # an unknown class refused above
+        return LeadAnswer(
+            output=LeadOutput.model_validate(result.output.model_dump(mode="json")),
+            data_class=request.data_classification.value,
+            provenance={
+                "agent_id": request.agent.agent_id,
+                "agent_version": request.agent.version,
+                "prompt_version": request.agent.prompt_version,
+                "prompt_sha256": hashlib.sha256(request.system.encode()).hexdigest(),
+                "prompt_origin": pin.origin,
+                "prompt_text_sha256": pin.text_sha256,
+                "schema_fingerprint": result.provenance.schema_fingerprint,
+                "call_id": result.call_id,
+                "provider_request_id": result.provider_request_id,
+                "model": result.resolved_model,
+                "route_id": result.provenance.route_id,
+                "policy_version": result.provenance.policy_version,
+                "cost_usd": result.total_cost_usd,
+                "data_class": request.data_classification.value,
+            },
+        )
+
+    # -- the turn ---------------------------------------------------------------------
+
+    def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
+        context.checkpoint()
+        refused = self._unconfigured()
+        if refused is not None:
+            return refused
         payload: Mapping[str, Any] = step.payload
         if payload.get("harness_version") != LEAD_HARNESS_VERSION:
             return _schema_violation("the Lead's harness changed; send the message again")
@@ -133,8 +240,7 @@ class ResearchLeadExecutor:
                 {
                     "turn": payload.get("turn_id"),
                     "context": payload["context_sha256"],
-                    "policy": cfg.policy_version,
-                    "output_budget": cfg.max_output_tokens,
+                    **self._identity(),
                 }
             ).encode()
         ).hexdigest()
@@ -155,55 +261,16 @@ class ResearchLeadExecutor:
                         output={**stored["result"], "artifact_id": existing.artifact_id}
                     )
 
-        try:
-            request = lead_request(
-                frozen,
-                policy_version=cfg.policy_version,
-                max_output_tokens=cfg.max_output_tokens,
-                material_approvals=cfg.material_approvals,
-            )
-        except (KeyError, ValueError, TypeError) as exc:
-            return _schema_violation(f"the turn's context cannot be sent: {exc}")
-        # UTF-8 bytes bound tokens; a turn and its one repair must fit the model's window.
-        # Fail before reserving or sending, never trim.
-        request_bytes = len(
-            (
-                request.system + request.messages[0].content + canonical_json(request.agent.schema)
-            ).encode()
-        )
-        if request_bytes + 5 * cfg.max_output_tokens + 2048 > cfg.context_window_tokens:
-            return _schema_violation("the turn's context exceeds the configured model window")
-        caller = StepModelCaller(
-            gateway=self._gateway,
-            context=context,
-            runtime_version=self._build.sha or "",
-            provider=Provider.AWS_BEDROCK,
-            reservation_usd=cfg.reservation_usd,
-            announce=cfg.step_events,
-        )
-        try:
-            caller.preflight(request)
-        except ModelCallFailed as exc:
-            return Failed(
-                FailureClass.RUNTIME_UNAVAILABLE,
-                error={
-                    "reason": exc.reason,
-                    "message": f"Vedoucí výzkumu čeká na povolenou trasu nebo licenci: {exc}",
-                },
-            )
-        context.progress("Vedoucí výzkumu odpovídá", turn=str(payload.get("turn_id")))
-        result = caller.invoke(request)
-        assert result.output is not None
-        output = LeadOutput.model_validate(result.output.model_dump(mode="json"))
-
+        answer = self._answer(step, context, frozen, pin)
+        if isinstance(answer, Failed):
+            return answer
         design = layer(frozen, "design")
         grounded, dropped = ground_edits(
-            output, design.get("content") or {}, design.get("analysis") or None
+            answer.output, design.get("content") or {}, design.get("analysis") or None
         )
         shown = [str(n["memory_id"]) for n in layer(frozen, "lead").get("notes") or ()]
         update, dropped_forgets = ground_self_update(grounded.self_update, shown)
         grounded = grounded.model_copy(update={"self_update": update})
-        assert request.data_classification is not None  # an unknown class refused above
 
         with context.transaction() as (session, _):
             applied = None
@@ -222,30 +289,19 @@ class ResearchLeadExecutor:
                 "lead_output": grounded.model_dump(mode="json"),
                 "dropped": dropped_all,
                 "self_update_applied": applied.model_dump(mode="json") if applied else None,
-                "data_class": request.data_classification.value,
+                "data_class": answer.data_class,
             }
+            if answer.scripted:
+                step_output["scripted"] = True
             provenance = {
-                "agent_id": request.agent.agent_id,
-                "agent_version": request.agent.version,
+                **answer.provenance,
                 "harness_version": LEAD_HARNESS_VERSION,
-                "prompt_version": request.agent.prompt_version,
-                "prompt_sha256": hashlib.sha256(request.system.encode()).hexdigest(),
-                "prompt_origin": pin.origin,
-                "prompt_text_sha256": pin.text_sha256,
-                "schema_fingerprint": result.provenance.schema_fingerprint,
                 "context_sha256": payload["context_sha256"],
                 "design_revision_id": payload.get("design_revision_id"),
                 "knowledge_revisions": [
                     {"item_id": k["item_id"], "revision": k["revision"]}
                     for k in layer(frozen, "knowledge")["items"]
                 ],
-                "call_id": result.call_id,
-                "provider_request_id": result.provider_request_id,
-                "model": result.resolved_model,
-                "route_id": result.provenance.route_id,
-                "policy_version": result.provenance.policy_version,
-                "cost_usd": result.total_cost_usd,
-                "data_class": request.data_classification.value,
                 "status": "PROPOSED",
             }
             artifact, _created = research_artifacts(session, context.scope, self._store).put_json(
