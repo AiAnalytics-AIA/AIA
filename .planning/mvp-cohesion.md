@@ -92,11 +92,13 @@ ADR 0017 ("never lowered by keywords") and the owner's own OI-129 ruling of the 
 things come before any code: an amendment to ADR 0017 and ADR 0008; the data owner's confirmation
 (the licence and residency gates are the data owner's, not engineering's); and a mechanism enforced
 by **code**, never by a prompt or a model's assertion (`ARCHITECTURE.md` §4: a prompt may state a
-rule, it is never the only thing enforcing it). Hypothesis for its shape, consistent with the rule
-that already exists (a query's class is the most restrictive of its context, its client terms and
-any Class A overlap): a derived query is Class C only when code finds no overlap with the client's
-terms, the brief's named entities or verbatim design text; otherwise it stays Class B and goes only
-to a Class B route. Recorded as chunk 6 of `class-b-search-route` (#497).
+rule, it is never the only thing enforcing it). Hypothesis for its shape: a
+derived query is Class C only when code can **prove** its content comes from a Class C source, by
+provenance (a template filled only from terms a person declared public, or a query set a person
+saw and marked public), never by a negative text test. A test that finds no client term, named
+entity or verbatim design text is not enough: a model can paraphrase a confidential question with
+none of those tokens (Codex review of #497, accepted). Everything else stays Class B. Recorded as
+chunk 6 of `class-b-search-route` (#497).
 
 ### F2. The respondent drill-down contradicts the evidence rules
 
