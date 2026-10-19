@@ -25,7 +25,7 @@ Five gates, each an observable test. A wave is done when its gate passes in CI o
 | **I-1 The Lead drives a study** | Brief to Sample worked through the Lead on recorded doubles: edit operations, per-change accept, a plan card inside an envelope, two researchers on one study | AC-01, 02, 03, 04, 05 (start), 07 |
 | **I-2 Results are seen** | respondent and segment maps, filters, the internal drill-down, the Lead reading results; map snapshots approvable | AC-05, 08 (QC), 09 |
 | **I-3 Evidence is complete** | every key finding cites an admitted claim; a client dataset graded client-reported beside modelled results; analysis and report artifacts with the approve and export panel | AC-08, 10, 13 |
-| **I-R Reach** (W1) | a Deep Research run for an OPEN client on develop reaches every route family the build has, live; Settings → Deep Research lists each route and connector as active or refused with the reason (`deep-research-web-search` 52), so no document has to say what is on | AC-11 (first half) |
+| **I-R Reach** (W1) | a Deep Research run for an OPEN client on develop reaches the routes the build can run, live (Brave, public fetch, the connectors probed live, the archive); Settings → Deep Research lists each route and connector as active or refused with the reason (`deep-research-web-search` 52), so no document has to say what is on | AC-11 (first half) |
 | **I-4 Deep Research live** | a live run on the full design of an OPEN client through Brave; one-click source into knowledge | AC-11 |
 | **I-5 Acceptance** | tier A blocking in CI with all fifteen criteria; tier B once on develop within USD 25; production released | AC-01 to 15 |
 
@@ -33,11 +33,16 @@ Five gates, each an observable test. A wave is done when its gate passes in CI o
 
 The owner: "we need to get rid of this limitation once and for all, i never want to hear that this
 limitation exists." The point of Deep Research is to look everywhere, the non-indexed web included.
-Checked against `develop` @ `769917f`: **every route family is built** (Brave; fetch from any public host
-with PDF, XLSX and CSV; the ČSÚ DataStat, open-data catalogue, Eurostat, OpenAlex, Wayback, ARES and
-procurement connectors; the focused crawler; Common Crawl's index and archive). **None is switched on by
-default, and every one is Class C only**, so a design-derived query (Class B by rule since 2026-10-19)
-could use none of them. "Only Wikipedia" was a stale status table (`deep-research.md`), not the code.
+Checked against `develop` @ `769917f` and traced end to end (`mvp-master-plan.md` §7), **more is built
+than the owner was told and less than I first said.** Built: Wikipedia, Brave, and fetch from any public
+host (HTML, text, PDF, XLSX, CSV). Built but never run live, their interfaces labelled UNVERIFIED: the ČSÚ
+DataStat, open-data catalogue, Eurostat, OpenAlex, Wayback and ARES connectors, and Common Crawl's index and
+archive (no AWS side in Terraform); the connectors, Wayback and Common Crawl run only when
+`AIA_DEEP_RESEARCH_AGENT_DIRECTED=true`, which defaults false and no MVP document named. Not usable: the
+procurement connector has no live source (`deep_research_live.py:364-366`), the focused crawler `SiteCrawl`
+has no caller, and the triage readers have no caller and no key that builds the light model. **None is
+switched on by default, and every one is Class C only**, so a design-derived query (Class B by rule since
+2026-10-19) could use none of them. "Only Wikipedia" was a stale status table (`deep-research.md`), not the code.
 The classification is what blocked it, and the owner has deferred it (below). So: one flag replaces
 it, the switch is thrown, and the state is made visible:
 
@@ -46,6 +51,7 @@ it, the switch is thrown, and the state is made visible:
 | Sign-off: Brave on a plan that allows AI use and storing results (plan, terms URL and date, price), budgets, the light model, quotas | `deep-research-web-search` 1 | W0 | owner signs, S2 prepares |
 | **Switch on:** the Class C routes, the connector list and Common Crawl on develop for fictional and public-topic runs, inside ADR 0022's guards | `deep-research-web-search` 51 **New** | W0 | S2 |
 | **Open posture:** one flag per client replaces classification in the MVP (decision below) | `deep-research-web-search` 53 **New**; migration M10 | W0, W1 | S2 (column S3) |
+| **Probe and name the switch:** each connector run live once, `aia_deep_research_agent_directed` named in the activation matrix, Common Crawl's AWS side in Terraform or kept out of the first activation | `deep-research-web-search` 54 **New** | W0 | S2 (infra S3) |
 | **Visibility:** Settings lists every route and connector as built, approved, active or refused by class, with the reason, read from the composition, never written by hand | `deep-research-web-search` 52 **New** | W1 | S2 |
 | **Contract door, after the MVP:** a Class B route (Linkup is the candidate), the design's class by rule, the derived-query content rule, all part of the classification redesign | `class-b-search-route` 0-6 | after the MVP | S2 |
 | Wider reach, in order of value: documents in parts, structured capture and records, then pages that need a browser | `deep-research-web-search` 6, 33-37, 38 | W2 to W4 | S2 |
@@ -74,13 +80,16 @@ gateway and `material_rules` for model calls, the evidence gates. **The model ro
 by configuration, not code:** the owner decided on 2026-10-19 that `bedrock-eu-primary` may carry
 Classes A, B and C (ADR 0010 amendment), and it takes effect only when an operator confirms the Bedrock
 retention and sets four SSM parameters (`deploy/develop/README.md` § AI route classes). Until then the
-route is Class C only, and any design job whose study has approved knowledge (Class A by rule,
-`research_agents.py:675-686`) parks with `egress_route_not_approved_for_class`: the Dimenze "optimize
-with AI" button fails that way on develop today. It is a W0 item, below. **A second finding:** the stage's error ("AI návrh čeká na povolenou trasu nebo
+route is Class C only, and **every** design job and Lead turn parks with
+`egress_route_not_approved_for_class` (a design is Class B by rule and approved knowledge Class A,
+`research_agents.py:675-686`), as do panel fieldwork (Class A, `ai_fieldwork.py:418-432`) and a modelled
+run's analysis (`harness.py:192-203`): the Dimenze "optimize with AI" button fails that way on develop
+today. It is a W0 item, below. **A second finding:** the stage's error ("AI návrh čeká na povolenou trasu nebo
 licenci: route … is not approved for CLASS_A_CLIENT_CONFIDENTIAL") says what is refused and not who can
-fix it. It should say the route is approved only for internal material, that an administrator widens it
-on Nastavení → AI, and link there (a small chunk in `research-lead-workbench`, with the Lead's command
-registry, chunk 11). ADR 0008 is a frozen invariant, so the open
+fix it. It should say the route is approved only for internal material and that an operator widens it
+(the runbook), with a link; Settings → AI is read-only and shows the classes (`routers/settings.py`), it
+widens nothing. The chunk for that message is not yet in `research-lead-workbench` 11's text and has to
+be added. ADR 0008 is a frozen invariant, so the open
 posture and the deferral are recorded as the owner's amendment to it (an ADR in W0). Post-MVP, the
 redesign starts from `class-b-search-route` 6's content rule, kept there as a design note with the
 review findings it collected.
@@ -140,8 +149,9 @@ plan (or to a new plan from #497) before the wave starts.
 **Exit I-1:** two sessions edit one study in the acceptance run, the second edit merges or conflicts
 on one item only; a plan inside an envelope starts a run and a gate it does not cover parks.
 
-**Exit I-R:** on develop, a Deep Research run for an OPEN client reaches Brave, one connector, the
-focused crawler and the archive, each named in the run's record (`deep-research-web-search` 51);
+**Exit I-R:** on develop, with `aia_deep_research_agent_directed` on, a Deep Research run for an OPEN
+client reaches Brave, one connector that has been probed live, and the archive, each named in the run's
+record (`deep-research-web-search` 51, 54); the crawler joins when chunk 36 wires it;
 Settings → Deep Research lists every route and connector as active or refused, with the reason (52);
 an edited design with no operator record runs its web tracks for an OPEN client and still parks
 `egress_unclassified_material` for a CLASSIFIED one, and a run keeps the posture it pinned (53).

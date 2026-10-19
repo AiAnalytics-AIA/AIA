@@ -17,11 +17,11 @@ chunks:
   - "[x] 13. Confidence by code, gaps, acquisition gaps, the brief"
   - "[x] 14. Connectors I: ČSÚ DataStat and the national open-data catalogue"
   - "[x] 15. Connectors II: Eurostat, OpenAlex, Wayback CDX"
-  - "[x] 16. Connectors III: ARES (legal entities), public procurement"
+  - "[ ] 16. Connectors III: ARES (legal entities), public procurement (ARES done; procurement has no live source, deep_research_live.py:364-366)"
   - "[x] 17. Focused crawler for authoritative hosts"
   - "[x] 18. Common Crawl URL index and archived pages"
   - "[x] 19. Code filters: near-duplicates, language, relevance"
-  - "[x] 20. Triage readers on the light model"
+  - "[ ] 20. Triage readers on the light model (built, no caller and no env key builds the light model: ai_runtime.py:187-198)"
   - "[x] 21. Fan-out: parallel tracks, per-host politeness, model concurrency"
   - "[x] 22. Presets, budgets and the run's cost ceiling"
   - "[x] 23. Composition, switches, prices (per-kind reservations first); Settings after the purpose model"
@@ -56,7 +56,8 @@ chunks:
   - "[x] 50. A commercial comparison arm in chunk 26: Gemini Deep Research on the public fictional topics only"
   - "[ ] 51. Switch on now: the Class C routes, the connector list and Common Crawl on develop for fictional and public-topic runs, inside ADR 0022's guards (does not wait for 25-27)"
   - "[ ] 52. Reach is stated by code: Settings lists every route and connector as built, approved, active or refused, with the reason, read from the composition"
-  - "[ ] 53. Open posture (owner, 2026-10-19): `clients.data_posture` OPEN or CLASSIFIED replaces classification for Deep Research in the MVP; a run pins it at enqueue"
+  - "[ ] 53. Open posture (owner, 2026-10-19): `clients.data_posture` OPEN or CLASSIFIED replaces classification for Deep Research in the MVP; a run pins it at enqueue, a retry copies it"
+  - "[ ] 54. Before the first activation: each connector probed live once (every interface is UNVERIFIED), AIA_DEEP_RESEARCH_AGENT_DIRECTED named in the activation matrix, Common Crawl's AWS side (workgroup, results bucket, grants, us-east-1 exception) in Terraform or kept out of the first activation"
 ---
 # Deep Research — wide, precise, and defensible
 
@@ -1627,8 +1628,11 @@ waits for chunk 1 as it said.* For the docs PR after chunk 0 merges:
 ## Reach (2026-10-19)
 
 The owner: "we need to get rid of this limitation once and for all, i never want to hear that this
-limitation exists." The build already has every route family (chunks 3-5, 10, 14-18) and none is on by
-default; the docs said otherwise because the status table was written by hand. Two chunks close that:
+limitation exists." Most route families are built (chunks 3-5, 10, 14-15, 18) and none is on by default;
+the docs said otherwise because the status table was written by hand. **Traced end to end, three things
+are not usable yet** (procurement has no live source, the crawler and the triage readers have no caller),
+and the connectors, Wayback and Common Crawl run only when `AIA_DEEP_RESEARCH_AGENT_DIRECTED=true`, which
+defaults false (`docker-compose.yml:102`). Chunks 51, 52 and 54 close that:
 
 - **51, switch on now.** Chunk 27 stays the last gate (live acceptance), but nothing in it needs
   25-26 to *run* on a fictional client or a public topic. Activation on develop follows the deploy
@@ -1636,8 +1640,9 @@ default; the docs said otherwise because the status table was written by hand. T
   0022's approvals recorded in Settings and the fictional-client and USD 20 guards unchanged. Needs 1
   (sign-off) first, on a Brave plan that allows AI use and storing results (the run stores each search's
   hits in order, chunk 9): a Data for AI plan with storage rights, per Brave's own plan split, to be
-  read from Brave's terms and confirmed with Brave before signing. Test: a recorded run on develop reaches Brave, one connector, the crawler and the
-  archive, and `GET …/deep-research/runs/{id}` names each route it used.
+  read from Brave's terms and confirmed with Brave before signing. Also `aia_deep_research_agent_directed=true`, without which the ladder, hence the connectors,
+  Wayback and Common Crawl, never runs. Test: a recorded run on develop reaches Brave, one connector
+  probed live, and the archive, and `GET …/deep-research/runs/{id}` names each route it used.
 - **52, stated by code.** The Settings page lists each route and connector with a state (built,
   approved, active, refused by class) and the reason, read from `deep_research_runtime` and the
   settings store. No screen or document names a route set by hand again; `deep-research.md`'s status
@@ -1657,12 +1662,22 @@ Classification is asked in six places for Deep Research (`plan.py:163`; five `cl
 
 - `clients.data_posture` is `CLASSIFIED` (default) or `OPEN` (migration M10). Only an organization
   OWNER or ADMIN sets it; the change is audited with who and when and shown on the client's profile.
-- A run pins its client's posture in its request at enqueue (like ADR 0022's settings pin); a retry
-  keeps it; a client switched to OPEN mid-run changes nothing for that run.
-- OPEN: the plan step does not call `classify_material` (the design is treated as Class C) and the
-  retrieval gate treats every query as Class C, so any composed route may carry it.
-- CLASSIFIED: unchanged, `aia-query-classifier-1` untouched; the web tracks park
-  `egress_unclassified_material` for an edited design with no operator record, as today.
+- **Setter:** `PUT /clients/{id}/data-posture` (an organization OWNER or ADMIN), audited with who and
+  when, shown on the client's profile, in the `api-contract` list with a cross-organization 404 test.
+- A run pins its client's posture in its request at enqueue (the request is what a retry re-freezes
+  from, so the posture is stored in it, not re-read from the client row: `application/deep_research.py:617,
+  716-725` re-pins settings on a retry today); a retry **copies the original's posture**; a client
+  switched to OPEN mid-run changes nothing for that run.
+- OPEN lowers the class of the **search queries and of the plan step's web gate only**. One
+  `design_class` field serves both search egress and model requests today (`plan.py:302`,
+  `investigate.py:548`), so the chunk splits it: queries Class C, model requests keep the design's rule
+  class (B), which is what the dev plan means by "`material_rules` for model calls not touched".
+- `fictional_client` is derived from the operator's record (or `AIA_AI_FICTIONAL_CLIENT_IDS`), never
+  from the design's class: under OPEN it stays what it was, so `quarantine.require_live_evidence` and
+  `design_proposals.admissible` do not flip (`plan.py:175-178`).
+- CLASSIFIED: unchanged, `aia-query-classifier-1` untouched; **a Deep Research run for an edited design
+  with no operator record fails whole** with `egress_unclassified_material` (`plan.py:166-174`), as
+  today, not just its web tracks.
 - EU residency of models and storage, the model gateway and the evidence gates are not touched.
 - Tests: an OPEN client's edited design runs its web tracks without an operator record; a CLASSIFIED
   client's still parks; a retry keeps the original's posture; a mid-run switch changes nothing for the
