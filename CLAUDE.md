@@ -1793,9 +1793,11 @@ Hard rules:
 - **One logical change per commit.** Do not bundle unrelated changes.
 - **Each commit builds and passes tests on its own.** A bisect that lands on a
   broken commit wastes the next person's afternoon.
-- Author: `nigelblount <nigelblount@art-chain.io>`. Agent-assisted commits keep
-  the `Co-Authored-By:` and `Claude-Session:` trailers, consistent with all
-  existing history.
+- Author: the person whose account the work comes from, never another person's
+  name: `nigelblount <nigelblount@art-chain.io>`, or
+  `Aram Bahbouh <aram.bahbouh@art-chain.io>` for work from Aram's account.
+  Agent-assisted commits keep the `Co-Authored-By:` and `Claude-Session:`
+  trailers, consistent with all existing history.
 
 ### Pull requests
 
