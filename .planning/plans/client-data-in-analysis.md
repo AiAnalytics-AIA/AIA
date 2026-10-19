@@ -4,7 +4,7 @@ chunks:
   - "[ ] 0. Decide the evidence policy for a client's dataset columns (deferred by the owner, 2026-10-19), and settle ADR 0027's three open questions"
   - "[ ] 1. The origin CLIENT_REPORTED and its fourth reading in origin_kind, every label reading it"
   - "[ ] 2. The data contract as a type, and the route a person accepts it through (approval ledger)"
-  - "[ ] 3. The analysis copy without personal columns; nothing personal stored for analysis or sent to a model"
+  - "[ ] 3. The analysis copy holds only the columns the accepted contract names, each classified by a person; nothing personal stored for analysis or sent to a model"
   - "[ ] 4. Deterministic computations per shape: descriptive tables and benchmark gaps"
   - "[ ] 5. Admission and the client-reported grade in domain/evidence, and the report's marks"
   - "[ ] 6. A client's own survey: its own Sociomap through the existing engine, never merged"
@@ -52,9 +52,17 @@ chunk order below (its §Consequences).
    row in the same transaction (the Lead's routes are the pattern, `ARCHITECTURE.md` §4). A dataset
    is not usable on upload alone (ADR 0027, accepted trade-off). Test: analysis refuses a dataset
    with no accepted contract, by name.
-3. **Analysis copy.** Personal columns dropped from the copy used for analysis; the original stays
-   as the client's source, scoped to the client (`ClientSourceRepository`). Test: no personal column
-   in the stored copy, in an artifact or in a model request.
+3. **Analysis copy: an allowlist, not a blocklist.** The copy holds **only** the columns the
+   accepted contract names as used, and acceptance requires the person to classify each one
+   (personal or not); a column classified personal is refused. The preview's personal hints
+   (`domain/client_datasets.py:9-14 @ 085abe0`) only warn: they recognise a few header names and
+   e-mail, phone and Czech birth-number values, "err towards flagging" and are hints, so an
+   identifier under an unrecognised header (`customer_id`, an account number, an IP address, a name)
+   would pass a rule that drops only what they flag. Fail closed: a column the contract does not
+   name is never copied. The original stays as the client's source, scoped to the client
+   (`ClientSourceRepository`). Tests: a dataset whose `customer_id` column no hint flags is absent
+   from the copy unless the contract names it, and naming it as not personal is the person's recorded
+   act; no unnamed column appears in the stored copy, in an artifact or in a model request.
 4. **Computation.** Code computes (descriptive tables, benchmark gaps); no model reads a row.
 5. **Admission and grade.** The new grade through `admit_numeric_claims`; each number labelled
    *z dat klienta* with its period and source dataset; shown **beside** the modelled results or as a

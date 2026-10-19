@@ -3,7 +3,7 @@ status: planned
 chunks:
   - "[ ] 1. The USD 25 allocation: a ceiling per category, summed and checked before any recorded run"
   - "[ ] 2. The study's fixed inputs, fictional and committed: brief, client document, dataset with one personal column, a web page, a past study"
-  - "[ ] 3. The harness: tests/acceptance driven over HTTP, reusing the scripted-provider fixture of test_product_acceptance.py"
+  - "[ ] 3. The harness: tests/acceptance driven over HTTP, reusing the scripted-provider fixture of test_product_acceptance.py, and its CI step (collected, writing JUnit)"
   - "[ ] 4. Recorded doubles behind the gateway and the retrieval gate for the Lead, every worker, respondents, analysis and Deep Research"
   - "[ ] 5. Criteria wired one by one as each becomes runnable, the built ones first (AC-01, 06, 07, 12, 14)"
   - "[ ] 6. The acceptance record: one PASS/FAIL line per criterion, stored as an artifact, with the parity report beside it"
@@ -15,6 +15,11 @@ Track A of the MVP roadmap (`overview.md` § MVP roadmap, #493). Written 2026-10
 `docs/migration/mvp-acceptance.md` (`MVP-ACCEPT-2`, #495) and `mvp-cohesion.md` F7 and F10 (#496).
 **Owner: a chat session, named when chunk 1 starts.** This plan builds the test the document
 defines; the document stays the definition.
+
+**Depends on [#495](https://github.com/AiAnalytics-AIA/AIA/pull/495) merging first.** The
+criterion ids below are `MVP-ACCEPT-2`'s. The checked-in `MVP-ACCEPT-1` numbers them differently
+(its AC-07 is the worker kill and its AC-12 is configuration; its AC-14 is the parity gate that
+MVP-21 removes), so this plan is wrong against `develop` until #495 lands.
 
 ## What the document defines (not repeated here)
 
@@ -46,9 +51,16 @@ repository, domain function or table is touched directly.
    annual summary, a fictional visits dataset with one personal column the contract must drop, one
    public page, one past fictional study; all pinned by SHA-256 like the golden fixtures. No client
    data, no client names (`tools/exposure_check.sh` must pass).
-3. **Harness.** `tests/acceptance/test_mvp_acceptance.py`, marked `acceptance`, never
-   runtime-skipped as a placeholder. Decide here whether it shares `conftest` fixtures with the
-   executors' tests or has its own; either way one provider double.
+3. **Harness and its CI step.** `tests/acceptance/test_mvp_acceptance.py`, marked `acceptance`,
+   never runtime-skipped as a placeholder. Decide here whether it shares `conftest` fixtures with
+   the executors' tests or has its own; either way one provider double. **No CI command collects
+   `tests/acceptance` today**: the collect-only pass and every pytest step name only
+   `packages/aia_core`, `apps/api`, `apps/worker` and `apps/executors`
+   (`.github/workflows/ci.yml:200, 208-251 @ 085abe0`), so a green CI would say nothing about it.
+   This chunk adds the tree to the collect-only pass and gives it a step of its own that writes
+   `--junit-xml … -o junit_family=xunit1`, which `parity_status.py` reads and
+   `test_parity_matrix.py` requires of every pytest step (`AGENTS.md:248-251 @ 085abe0`). Test: a deliberately
+   failing acceptance test turns CI red, and a skipped one reports `NOT_EXECUTED`, not green.
 4. **Doubles.** One recorded exchange per model call kind and one per retrieval, deterministic,
    each stating that it is a recording, behind `GovernedModelGateway` and `RetrievalGate`, never
    around them.

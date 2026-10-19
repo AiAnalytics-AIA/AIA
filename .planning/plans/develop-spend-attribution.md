@@ -1,7 +1,7 @@
 ---
 status: planned
 chunks:
-  - "[ ] 1. Terraform: application inference profiles for the main and the Lead's models, tagged Environment=develop"
+  - "[ ] 1. Terraform: an application inference profile, tagged Environment=develop, for every live model the acceptance run uses (main, the Lead's, the light model)"
   - "[ ] 2. IAM and the model policy follow the profiles; the cost-allocation tag is activated (a billing action)"
   - "[ ] 3. A reconciliation: AIA's usage ledger against the AWS cost record for the tag over a window"
   - "[ ] 4. The runbook states the check, its lag and its tolerance"
@@ -32,10 +32,16 @@ cost record.
 
 ## Chunks
 
-1. **Profiles.** Application inference profiles over the system EU profiles for the main and the
-   Lead's model, each tagged `Environment=develop`; their ARNs replace the ids in the settings the
-   worker reads (`AIA_BEDROCK_*`, `AIA_AI_RESEARCH_LEAD_MODEL_ID`). One Terraform change.
-2. **IAM and policy.** The role's invoke grants point at the application profiles; the model
+1. **Profiles.** Application inference profiles over the system EU profiles for **every live
+   model the acceptance run can call**, each tagged `Environment=develop`: the main model, the
+   Lead's model and, when live Deep Research enables it, the light model that serves
+   `RESEARCH_TRIAGE` through its own profile (`LightModelSettings`,
+   `apps/executors/src/aia_executors/ai_runtime.py:187 @ 085abe0`, marked *Proposed* there). A
+   model left untagged still enters AIA's ledger but not the tagged AWS cost, so chunk 3's
+   reconciliation would disagree by design. Their ARNs replace the ids in the settings the worker
+   reads (`AIA_BEDROCK_*`, `AIA_AI_RESEARCH_LEAD_MODEL_ID`, the light model's). One Terraform
+   change. List the models in use from the registry, not from memory.
+2. **IAM and policy.** The role's invoke grants point at every application profile above; the model
    policy's profile ids follow (`ModelRegistry` fails closed on an unknown id, so a mismatch
    refuses before a call). The `Environment` cost-allocation tag is activated in billing: a human
    action, named in the runbook, not Terraform.

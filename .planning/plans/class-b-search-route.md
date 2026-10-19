@@ -68,13 +68,17 @@ by **code**, never by a prompt or a model's own claim about a query.
 5. **Activation.** The develop host's switches and the provider credential, an operator's act,
    verified by the live Deep Research run of the acceptance study (`mvp-acceptance-harness`).
 
-6. **Derived-query class.** Hypothesis for the rule's shape, consistent with the rule that exists
-   (a query's class is the most restrictive of its context, its client terms and any Class A
-   overlap): a derived query is Class C only when code finds no overlap with the client's terms,
-   the brief's named entities or verbatim design text; otherwise it stays Class B and only a Class B
-   route may receive it. Tests: a query containing a client term stays Class B and a Class C route
-   refuses it; a generic topic query is Class C and reaches Wikipedia; a model cannot lower a
-   query's class below the code's. Nothing here ships until the amendment is accepted.
+6. **Derived-query class: by provenance, never by a negative text test.** A query is Class C only
+   when code can **prove** its content comes from a Class C source. Two candidate provenances, to
+   be chosen in the amendment: (a) a fixed query template filled only from a list of public terms a
+   person has declared public; (b) a query set a person has seen and marked public before it is
+   sent (a card, consistent with MVP-13). Everything else stays Class B and only a Class B route may
+   receive it. **A test that finds no client term, named entity or verbatim design text is not
+   enough** (Codex review of #497, accepted): a model can paraphrase a confidential launch or
+   pricing question with none of those tokens, and the paraphrase is still Class B intent. Tests: a
+   paraphrase of a Class B question that keeps no checked token stays Class B and a Class C route
+   refuses it; a template over declared-public terms is Class C and reaches Wikipedia; a model
+   cannot lower its own query's class. Nothing here ships until the amendment is accepted.
 
 ## Depends on / feeds
 
@@ -84,8 +88,8 @@ integration gate I-4 (`mvp-cohesion.md` §4). `deep-research-web-search` 1 (sign
 
 ## Open
 
-- The exact overlap test in chunk 6 (client terms, named entities, verbatim text) and who confirms
-  it: the data owner.
+- Which provenance chunk 6 uses (a template over declared-public terms, a person-approved query
+  set, or both), and who confirms it: the data owner.
 - Whether more than one Class B route is wanted ("as much data as possible").
 
 ## Doc follow-up
