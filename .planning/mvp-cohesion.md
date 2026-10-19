@@ -295,6 +295,17 @@ recorded as such. What MVP-21 removes is parity as a **release criterion**. Add 
 
 **Owner decision (2026-10-19): adopted.**
 
+**Owner decision (2026-10-19, later): parity runs and reports but never blocks.** This goes further
+than the resolution above, and it is a CI change, not only a wording one. Read as: every check that
+compares AIA with 18.6.6 (the `parity` job, `oracle-parity`, and the reference-repository checks of
+`golden-fixtures`) reports `PASS` / `FAIL` / `NOT_EXECUTED` in the step summary and the acceptance
+record, and none of them stops a merge or a deploy. Three things stay blocking because they test AIA
+and not the comparison: the matrix's own consistency (`test_parity_matrix.py`), the vendored Sociomap
+golden fixtures F1-F9 (CLAUDE.md: never edited to go green) and every non-parity test. **Cost, stated:**
+a regression against 18.6.6 can now merge; the only protection is that someone reads the report. The
+chunk is `mvp-acceptance-harness` 8; `ARCHITECTURE.md` §8's "blocking" cells for those rows change in
+the docs PR.
+
 ### F10. The budget
 
 **Claim.** MVP-20 fixes the acceptance study at USD 25. The run includes n = 300 AI respondents,
@@ -406,8 +417,9 @@ edits survive; the same question: the second sees a conflict on that question on
 **Owner answer (2026-10-19).** Each researcher goes into the study with **their own agent**, which
 develops over time; that confirms points 1 and 6. The rest of the shape (item-level merge, presence,
 change feed, proposals visible to the study) was not objected to and stands as the recommendation;
-who may accept another person's proposal is still open (any permitted member, as recommended, unless
-told otherwise). The requirement that the agent evolve is F14.
+**who may accept another person's proposal: decided 2026-10-19, any member who holds the accept
+permission, subject to the study's and the client's self-approval setting** (a proposal's author may
+accept their own only where self-approval allows it, as today). The requirement that the agent evolve is F14.
 
 ### F13. Stage meaning, order, paid work and locks
 
@@ -493,16 +505,20 @@ meter, written once with `domain/report/copy.py`'s discipline, so no screen inve
 
 ### F17. Report delivery and approval
 
-**Owner decision (2026-10-19): separate approvals, a second person for the client report.** The
-internal report is approved by any permitted member. The client report and each map snapshot are
-approved separately by a reviewer other than the person who produced them. DOCX and PDF become
-available only after approval. The Report artifact gains an Approve and Export panel showing what is
+**Owner decision (2026-10-19): separate approvals.** The internal report, the client report and each
+map snapshot are approved separately. DOCX and PDF become available only after approval.
+**Revised by the owner (2026-10-19, later): no second person is required.** Clients are not users of
+AIA (they receive an exported file and have no access to the software), so there is no reviewer on
+the client's side to design for; whether the person who produced a client report may also approve it
+follows the client's existing self-approval setting, an internal AIA setting
+(`application/report_approval.py:4`). The first wording ("a reviewer other than the person who
+produced them") is withdrawn. The Report artifact gains an Approve and Export panel showing what is
 approved and by whom.
 
-**Consequences not yet covered.** (1) Today report approval requires independence only where the
-scope's self-approval policy says so (`application/report_approval.py:4`). The decision asks for a
-second person on a client report: **unconditionally**, whatever a client's setting? Recommended: yes,
-for anything client-facing (the acceptance study has self-approval off anyway). (2) **Map snapshot
+**Consequences.** (1) Nothing changes in `report_approval.py`: independence stays where the scope's
+self-approval policy says so. `AC-13`'s phrase "a reviewer other than the producer"
+(`docs/migration/mvp-acceptance.md:88`) is still true in the acceptance run, because the acceptance
+study sets self-approval off; the docs PR should say "where self-approval is off" there. (2) **Map snapshot
 approval does not exist**: the register approves a *method* (`domain/sociomap_register.py`) and the PNG
 snapshot is internal; an approved snapshot is a new approvable object. It belongs in
 `two-roles-human-ai-gates` 5b.4, which has no chunk for it. (3) A snapshot of a respondent or segment
@@ -525,9 +541,10 @@ Materials picks a dataset from the client's sources (the existing source picker)
 contract in a drawer; accepting it is the person's recorded act (`client-data-in-analysis` chunk 2).
 An own dimension shows a status chip (waiting for approval, building, ready) with a link to the
 client's review queue, and becomes selectable for the next run when ready. *Open:* after approval,
-does the build start by itself or on a click? Today a person starts a materialization from a study
-(`POST /studies/{id}/population/materializations`) and it is a run with a cost; recommended: a click,
-inside the envelope.
+does the build start by itself or on a click? **Decided 2026-10-19: on a click, inside the study's
+envelope.** Today a person starts a materialization from a study
+(`POST /studies/{id}/population/materializations`) and it is a run with a cost; the chip's "Build"
+button is that call, and it is refused when the envelope has no room.
 
 ---
 
@@ -595,18 +612,20 @@ dated, until the provider contract and the method owner have owners.
 | Q13 | F13: stage order Results, Sociomap, Analysis, Report | **decided 2026-10-19** |
 | Q14 | F13: a per-study envelope for paid work, superseding MVP-13: set by the researcher up to a client/organisation ceiling; everything inside it, a run through a plan card approved once | **decided 2026-10-19; orchestration-scope ADR first; expiry and chat-started runs open** |
 | Q15 | F13: a hard lock on Sociomap inputs with a recorded unlock | **decided 2026-10-19** |
-| Q16 | F12: two people on one study: each researcher goes in with their own agent; one working copy; item-level merge, presence, shared proposals | **per-person agent decided 2026-10-19**; the rest stands as recommended |
+| Q16 | F12: two people on one study: each researcher goes in with their own agent; one working copy; item-level merge, presence, shared proposals | **decided 2026-10-19**: each researcher's own agent; any member with the accept permission may accept another's proposal; the rest as recommended |
 | Q17 | F15: population-built respondents by default, invented ones for tests only | **decided 2026-10-19** |
 | Q18 | F14: the Lead proposes updates to its own files, the researcher approves each | **decided 2026-10-19** |
 | Q19 | F14: an organisation admin can read a researcher's Lead files and hand them on; turns and hand-over rules open | **decided 2026-10-19; amends ADR 0026 decision 8** |
 | Q20 | F16: two meters in the header, the rest on click; the envelope is a slice of the spend limit | **decided 2026-10-19** |
-| Q21 | F17: separate approvals, a second person for the client report and each map snapshot, exports after approval | **decided 2026-10-19; unconditional second person and snapshot approval open** |
+| Q21 | F17: separate approvals, a second person for the client report and each map snapshot, exports after approval | **decided 2026-10-19; second person withdrawn the same day (clients are not users): independence follows self-approval; snapshot approval is still its own approval** |
 | Q22 | F18: no pause after fieldwork; a QC warning, the worker proposes, replace is a new linked run | **decided 2026-10-19** |
-| Q23 | F19: client datasets and own dimensions are handled in Brief materials and Dimensions | **decided 2026-10-19; whether the build starts by itself open** |
+| Q23 | F19: client datasets and own dimensions are handled in Brief materials and Dimensions | **decided 2026-10-19; the own-dimension build starts on a click inside the envelope** |
 | Q24 | Production runs in the **same AWS account** as develop, in separate resources and tags (not a separate account, which was recommended) | **decided 2026-10-19; risks and mitigations in `mvp-target-architecture.md` §6.2** |
 | Q25 | A plain chat request starts a run inside the envelope without a plan card; a Lead-initiated run needs an approved plan | **decided 2026-10-19** |
 | Q26 | An admin's read of a Lead covers files and notes only; turns stay private; a handed-on Lead is a copy with personal notes removed | **decided 2026-10-19** |
 | Q27 | Client data is kept until a person deletes it; the operation log is kept with its study; a documented delete path is needed before production | **decided 2026-10-19** |
+| Q28 | F9: parity with 18.6.6 runs and reports, never blocks a merge or a deploy; the matrix's consistency, the vendored golden fixtures F1-F9 and every non-parity test stay blocking | **decided 2026-10-19; CI change is `mvp-acceptance-harness` 8** |
+| Q29 | The Class B search provider: **Linkup** as the candidate; the owner starts the contract now. Not used until the contract is signed and the data owner has classified the route | **decided 2026-10-19** |
 
 ## 6. Follow-ups for a docs PR
 

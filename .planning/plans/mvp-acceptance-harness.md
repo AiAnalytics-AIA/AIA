@@ -8,6 +8,7 @@ chunks:
   - "[ ] 5. Criteria wired one by one as each becomes runnable, the built ones first (AC-01, 06, 07, 12, 14)"
   - "[ ] 6. The acceptance record: one PASS/FAIL line per criterion, stored as an artifact, with the parity report beside it"
   - "[ ] 7. Tier B: the live run on develop, its runbook and its record"
+  - "[ ] 8. Parity reports, never blocks (owner, 2026-10-19): the 18.6.6 comparison jobs stop gating merges and deploys and report in the step summary and the record"
 ---
 # The MVP acceptance harness
 
@@ -85,3 +86,25 @@ chunks the consolidation lists (`mvp-consolidation.md` §4.3, #493).
 
 `CLAUDE.md` §3 (the command for the acceptance suite, once it exists), `docs/migration/mvp-acceptance.md`
 §5 (the location, once chosen).
+
+## Chunk 8: parity reports and never blocks
+
+**Decision.** The owner decided on 2026-10-19 that parity runs and reports but never blocks
+(`mvp-cohesion.md` F9, Q28). Written against `develop` @ `de6ded8`.
+
+**What changes.** Every job that compares AIA with 18.6.6 (`parity`, `oracle-parity`, and the
+reference-repository steps of `golden-fixtures`, `.github/workflows/ci.yml`) is non-gating: its failure
+is written to the step summary and to the JUnit artifact, `tools/parity_status.py` still prints
+`FAIL`, and it exits 0 in CI (a `--report-only` flag, not a changed default, so a person running it
+locally still sees a failing exit). `dispatch-develop`'s condition drops those jobs. A parity `FAIL`
+also appears as one line in the acceptance record (chunk 6).
+
+**What does not change.** `test_parity_matrix.py` (the matrix describes itself correctly), the vendored
+Sociomap golden fixtures F1-F9 and every non-parity test stay blocking. Nothing is skipped or loosened:
+the tests still run and still fail loudly in their own job.
+
+**Cost, stated.** A regression against 18.6.6 can now merge and deploy; the protection is that the
+report is read. The record's parity line and the PR summary are the only places it shows.
+
+**Test.** A CI-script test feeds `parity_status.py --report-only` a JUnit file with a failing parity test
+and asserts exit 0 and a `FAIL` line, and a matrix-consistency failure still exits 1.
