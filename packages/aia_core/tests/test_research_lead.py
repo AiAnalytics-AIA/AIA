@@ -26,6 +26,7 @@ from aia_core.domain.research_lead import (
     STAGES,
     LeadContextTooLarge,
     LeadOutput,
+    QuestionEdit,
     Refused,
     SelfUpdate,
     apply_edit,
@@ -436,15 +437,68 @@ def test_question_edit_sets_text_and_options_only_for_selection_questions() -> N
         "typ": "vyber",
         "kategorie": ["1", "2"],
     }
-    edited, _ = apply_edit(
-        content, None, _edit(op="question_edit", question_id="o", text="c", options=["1", "2"])
-    )
+    edited, _ = apply_edit(content, None, _edit(op="question_edit", question_id="o", text="c"))
     assert edited["sections"][0]["questions"][1] == {"id": "o", "text": "c", "typ": "otevrena"}
     removed, _ = apply_edit(content, None, _edit(op="question_remove", question_id="o"))
     assert [q["id"] for q in removed["sections"][0]["questions"]] == ["v"]
     assert apply_edit(content, None, _edit(op="question_remove", question_id="z")) == Refused(
         reason="unknown_question"
     )
+
+
+@pytest.mark.parametrize("typ", ["otevrena", "skala", None])
+def test_options_on_a_question_that_has_none_are_refused_not_accepted_as_nothing(
+    typ: str | None,
+) -> None:
+    """Codex P2 on #484: an options-only edit of an open or scale question changed nothing
+    and was recorded as accepted."""
+    question: dict[str, Any] = {"id": "o", "text": "b"}
+    if typ is not None:
+        question["typ"] = typ
+    content = {"sections": [{"id": "s1", "type": "questions", "questions": [question]}]}
+    for edit in (
+        _edit(op="question_edit", question_id="o", options=["1", "2"]),
+        _edit(op="question_edit", question_id="o", text="nový", options=["1", "2"]),
+    ):
+        assert apply_edit(content, None, edit) == Refused(reason="options_on_non_selection")
+        output = LeadOutput.model_validate(_output(edits=[edit.model_dump()]))
+        kept, dropped = ground_edits(output, content)
+        assert kept.edits == [] and [d.reason for d in dropped] == ["options_on_non_selection"]
+
+
+def test_a_selection_question_keeps_at_least_two_options() -> None:
+    """Codex P2 on #484: a replacement with fewer than two options left no real choice."""
+    for options in ([], ["Jen jedna"]):
+        assert not _valid(
+            _output(
+                edits=[{"op": "question_edit", "question_id": "v", "options": options, "why": WHY}]
+            )
+        ).ok
+    content = {
+        "sections": [
+            {
+                "id": "s1",
+                "type": "questions",
+                "questions": [{"id": "v", "text": "a", "typ": "multi", "kategorie": ["x", "y"]}],
+            }
+        ]
+    }
+    # An output stored before the contract said so is refused when applied, too.
+    stored = QuestionEdit.model_construct(
+        op="question_edit", question_id="v", text=None, options=["Jen jedna"], why=WHY
+    )
+    assert apply_edit(content, None, stored) == Refused(reason="too_few_options")
+    kept, dropped = ground_edits(
+        LeadOutput.model_validate(
+            _output(
+                edits=[
+                    {"op": "question_edit", "question_id": "v", "options": ["1", "2"], "why": WHY}
+                ]
+            )
+        ),
+        content,
+    )
+    assert len(kept.edits) == 1 and dropped == []
 
 
 def test_set_n_sets_the_sample_size() -> None:

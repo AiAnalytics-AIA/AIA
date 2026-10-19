@@ -229,6 +229,8 @@ class QuestionEdit(Closed):
     def _changes_something(self) -> QuestionEdit:
         if self.text is None and self.options is None:
             raise ValueError("a question edit changes its text, its options or both")
+        if self.options is not None and len(self.options) < 2:
+            raise ValueError("a selection question's replacement options are at least two")
         return self
 
 
@@ -409,9 +411,14 @@ def _plan_list(
     return []
 
 
-def _question_ids(content: Mapping[str, Any]) -> tuple[set[str], set[str]]:
+#: The question types whose options (``kategorie``) an edit may replace.
+_SELECTION: Final = frozenset({"vyber", "multi"})
+
+
+def _question_ids(content: Mapping[str, Any]) -> tuple[set[str], dict[str, Any]]:
+    """The questions sections' ids, and each question's id with its type."""
     sections: set[str] = set()
-    questions: set[str] = set()
+    questions: dict[str, Any] = {}
     for section in content.get("sections") or ():
         if not isinstance(section, Mapping) or section.get("type") != "questions":
             continue
@@ -419,7 +426,7 @@ def _question_ids(content: Mapping[str, Any]) -> tuple[set[str], set[str]]:
             sections.add(str(section["id"]))
         for question in section.get("questions") or ():
             if isinstance(question, Mapping) and question.get("id"):
-                questions.add(str(question["id"]))
+                questions[str(question["id"])] = question.get("typ")
     return sections, questions
 
 
@@ -444,6 +451,12 @@ def ground_edits(
         if isinstance(edit, QuestionEdit | QuestionRemove):
             if edit.question_id not in questions:
                 reason = "unknown_question"
+            elif (
+                isinstance(edit, QuestionEdit)
+                and edit.options is not None
+                and questions[edit.question_id] not in _SELECTION
+            ):
+                reason = "options_on_non_selection"
         elif isinstance(edit, QuestionAdd):
             if edit.section_id is not None and edit.section_id not in sections:
                 reason = "unknown_section"
@@ -935,7 +948,9 @@ def apply_edit(
 
     Returns the new content and analysis (copies; the inputs are not changed), or why the edit
     cannot be applied. A brief edit (``goal``, ``decision_use``, any ``briefing.*``) clears
-    the analysis, which was made of the brief as it was; a title edit keeps it. The plan
+    the analysis, which was made of the brief as it was; a title edit keeps it. A question
+    edit's options replace only a selection question's categories, at least two of them;
+    options on any other question are refused, never accepted as a change of nothing. The plan
     narrative (``plan.problem_summary`` and the plan lists) is written to both
     ``content.research_plan`` and the analysis (started from the plan when there is none),
     and marks ``ui_state.plan_manual_changed``.
@@ -1026,10 +1041,16 @@ def apply_edit(
             del questions[i]
         else:
             question = dict(questions[i])
+            if edit.options is not None:
+                # Options replace a selection question's categories, and only with a real
+                # choice; on any other question they would change nothing yet be accepted.
+                if question.get("typ") not in _SELECTION:
+                    return Refused(reason="options_on_non_selection")
+                if len(edit.options) < 2:
+                    return Refused(reason="too_few_options")
+                question["kategorie"] = list(edit.options)
             if edit.text is not None:
                 question["text"] = edit.text
-            if edit.options is not None and question.get("typ") in ("vyber", "multi"):
-                question["kategorie"] = list(edit.options)
             questions[i] = question
         section["questions"] = questions
         return body, working
