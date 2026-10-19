@@ -238,7 +238,7 @@ def test_a_turn_is_answered_once_and_its_reply_is_read_from_the_step(
 
     with ready.sessions() as session:
         events = AIUsageRepository(session, ready.lead_scope(session)).events(run_id=turn["run_id"])
-    assert {e.capability for e in events} == {ModelCapability.RESEARCH_REASONING.value}
+    assert {e.capability for e in events} == {ModelCapability.STUDY_LEAD.value}
 
 
 def test_a_reply_with_a_number_outside_the_context_gets_its_one_repair(
@@ -427,11 +427,13 @@ def test_the_lead_is_off_unless_switched_on() -> None:
     on = settings()
     assert on.study_lead_configured
     assert (on.study_lead_max_output_tokens, on.study_lead_reservation_usd) == (1500, 1.0)
-    # The Lead's turns bind RESEARCH_REASONING, never Deep Research's RESEARCH_LEAD.
+    # The Lead's turns bind STUDY_LEAD -- never Deep Research's RESEARCH_LEAD, and not the
+    # design agents' RESEARCH_REASONING, which nothing else here switches on.
     bound = {c for p in on.model_document()["policies"] for c in p["bindings"]}
-    assert ModelCapability.RESEARCH_REASONING.value in bound
+    assert ModelCapability.STUDY_LEAD.value in bound
     assert ModelCapability.RESEARCH_LEAD.value not in bound
-    assert ModelCapability.RESEARCH_REASONING.value not in {
+    assert ModelCapability.RESEARCH_REASONING.value not in bound
+    assert ModelCapability.STUDY_LEAD.value not in {
         c for p in off.model_document()["policies"] for c in p["bindings"]
     }
 

@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] 1. A model's request profile, declared in its catalog entry and read by the Bedrock adapter"
-  - "[ ] 2. The Lead's own capability (STUDY_LEAD) and its own pinned model, from configuration"
+  - "[x] 2. The Lead's own capability (STUDY_LEAD) and its own pinned model, from configuration"
   - "[ ] 3. Compose and env.example pass the Lead model's keys to the worker"
   - "[ ] 4. The instance role may invoke the Lead model's profile when one is set"
   - "[ ] 5. ADR 0026 amendment: the Lead's own model"
@@ -63,4 +63,21 @@ a guess from its id.
 
 ## Findings
 
-None yet.
+- **F1. The settings page does not list the study Research Lead as an AI activity.**
+  1. `_native_runtime` lists fieldwork, design agents, analysis, Deep Research and Deep
+     Research's lead, and nothing for the study Lead; with `STUDY_LEAD` it now names that
+     capability under `unused_capabilities` while develop binds it
+     (`apps/api/src/aia_api/routers/settings.py:448-526 @ 6c5cd620`). Before this plan the Lead
+     bound `RESEARCH_REASONING`, which the page attributes to the design agents and analysis,
+     so it was already misdescribed.
+  2. Anchor above; the worker's binding is `AIRuntimeSettings.model_document`
+     (`apps/executors/src/aia_executors/ai_runtime.py`, `STUDY_LEAD`).
+  3. Reproduction: `test_every_capability_the_worker_binds_belongs_to_an_activity_the_page_lists`
+     in `apps/executors/tests/test_settings_presentation.py` parametrised with
+     `AIA_AI_RESEARCH_LEAD_ENABLED=true` and its two keys fails.
+  4. Consequence: Settings says an AI capability is unused while every Lead turn calls it.
+  5. Smallest fix: a `study_lead` `NativeActivity` (capability `STUDY_LEAD`, switches runtime +
+     `AIA_AI_RESEARCH_LEAD_ENABLED`); the switch test then needs `AIA_AI_RESEARCH_LEAD_ENABLED`
+     in the web's `AI_SWITCHES` and the web service's Compose environment, so it is a web change
+     and is left out of this plan (no web change here).
+  6. Test: the parametrisation in 3.

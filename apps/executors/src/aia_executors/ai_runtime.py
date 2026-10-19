@@ -35,6 +35,28 @@ AIA_AI_RESEARCH_LEAD_RESERVATION_USD    held per turn: a primary and one repair 
                                         Lead's window and output cap; unset, turns park
 ======================================  ============================================
 
+The Research Lead's own model (ADR 0026 amendment, 2026-10-19) is read only when
+``AIA_AI_RESEARCH_LEAD_MODEL_ID`` is set; then every key below without "optional" is
+required, has no default, and a missing or invalid one stops the worker by name. Unset,
+the Lead's turns run on the route's model, exactly as before.
+
+============================================  ======================================
+key                                           meaning
+============================================  ======================================
+AIA_AI_RESEARCH_LEAD_MODEL_ID                 the Lead's pinned EU inference profile,
+                                              ``eu.…:N``, not the route's model
+AIA_AI_RESEARCH_LEAD_INPUT_USD_PER_MTOK       price, from the Bedrock pricing page
+AIA_AI_RESEARCH_LEAD_OUTPUT_USD_PER_MTOK      price, from the Bedrock pricing page
+AIA_AI_RESEARCH_LEAD_CACHE_READ_USD_PER_MTOK  optional; absent charges reads as input
+AIA_AI_RESEARCH_LEAD_CACHE_WRITE_USD_PER_MTOK optional; absent charges writes as input
+AIA_AI_RESEARCH_LEAD_MODEL_MAX_OUTPUT_TOKENS  the model's output ceiling
+AIA_AI_RESEARCH_LEAD_CONTEXT_WINDOW_TOKENS    the model's context window
+AIA_AI_RESEARCH_LEAD_STRUCTURED_OUTPUT        ``forced_tool`` or ``auto_tool``
+AIA_AI_RESEARCH_LEAD_THINKING                 ``budget`` or ``adaptive``
+AIA_AI_RESEARCH_LEAD_EFFORT                   optional, adaptive only: low, medium,
+                                              high, xhigh or max
+============================================  ======================================
+
 Retention is left unspecified unless configured, deliberately: the account's Bedrock
 data-retention setting is ``inherit``, which is not an explicit zero-retention policy,
 and ADR 0008 lets only Class C travel over a route with unspecified retention. The
@@ -52,11 +74,20 @@ import json
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any, Final
 
 from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.domain.ai_material import MaterialApproval
-from aia_core.domain.ai_models import ModelCapability, parse_model_config
+from aia_core.domain.ai_models import (
+    Effort,
+    ModelCapability,
+    ModelConfigError,
+    RequestProfile,
+    StructuredOutput,
+    ThinkingMode,
+    parse_model_config,
+)
 from aia_core.domain.deep_research.request_limits import ModelPrices, reservation_usd
 from aia_core.domain.deployment import fictional_material_problem, parse_environment
 from aia_core.domain.licence_determinations import recorded_policy
@@ -84,6 +115,7 @@ from .ai_fieldwork import AIFieldwork, AIFieldworkConfig, PopulationLoader, popu
 __all__ = [
     "AIRuntimeConfigError",
     "AIRuntimeSettings",
+    "LeadModelSettings",
     "LightModelSettings",
     "build_ai_fieldwork",
     "build_gateway",
@@ -112,19 +144,25 @@ def _flag(env: Mapping[str, str], key: str, *, required: bool) -> bool:
     raise AIRuntimeConfigError(f"{key}={raw!r} is not true or false")
 
 
-def _text(env: Mapping[str, str], key: str) -> str:
+_RUNTIME_ON: Final = "the AI runtime is enabled"
+_LEAD_MODEL_ON: Final = "AIA_AI_RESEARCH_LEAD_MODEL_ID is set"
+
+
+def _text(env: Mapping[str, str], key: str, *, when: str = _RUNTIME_ON) -> str:
     value = (env.get(key) or "").strip()
     if not value:
-        raise AIRuntimeConfigError(f"{key} is required when the AI runtime is enabled")
+        raise AIRuntimeConfigError(f"{key} is required when {when}")
     return value
 
 
-def _number(env: Mapping[str, str], key: str, *, optional: bool = False) -> float | None:
+def _number(
+    env: Mapping[str, str], key: str, *, optional: bool = False, when: str = _RUNTIME_ON
+) -> float | None:
     raw = (env.get(key) or "").strip()
     if not raw:
         if optional:
             return None
-        raise AIRuntimeConfigError(f"{key} is required when the AI runtime is enabled")
+        raise AIRuntimeConfigError(f"{key} is required when {when}")
     try:
         value = float(raw)
     except ValueError as exc:
@@ -134,8 +172,8 @@ def _number(env: Mapping[str, str], key: str, *, optional: bool = False) -> floa
     return value
 
 
-def _positive_int(env: Mapping[str, str], key: str) -> int:
-    raw = _text(env, key)
+def _positive_int(env: Mapping[str, str], key: str, *, when: str = _RUNTIME_ON) -> int:
+    raw = _text(env, key, when=when)
     try:
         value = int(raw)
     except ValueError as exc:
@@ -170,8 +208,7 @@ class LightModelSettings:
     cache_write_usd_per_mtok: float | None = None
 
     def __post_init__(self) -> None:
-        model_id = self.model_id.strip()
-        if not model_id.startswith("eu.") or model_id.endswith("latest") or ":" not in model_id:
+        if not _pinned_eu_profile(self.model_id):
             raise AIRuntimeConfigError(
                 f"the light model {self.model_id!r} must be an EU inference profile id "
                 "pinned to a version (eu.…:N), never a floating alias (ADR 0010)"
@@ -209,6 +246,162 @@ class LightModelSettings:
             "pricing": pricing,
             "supports_strict_schema": False,
         }
+
+
+def _pinned_eu_profile(model_id: str) -> bool:
+    """An EU cross-region inference profile id pinned to a version (``eu.…:N``, ADR 0010)."""
+    model_id = model_id.strip()
+    return model_id.startswith("eu.") and not model_id.endswith("latest") and ":" in model_id
+
+
+@dataclass(frozen=True, slots=True)
+class LeadModelSettings:
+    """The study Research Lead's own model, beside the route's, for ``STUDY_LEAD`` only.
+
+    The product owner's decision of 2026-10-19 (ADR 0026 amendment): the Lead's turns run on a
+    model of their own while every other capability stays on the route's. It is a second
+    policy entry on ADR 0010's route, held to the route model's rules -- an EU cross-region
+    inference profile pinned to a version, its prices and limits stated -- and it declares its
+    request profile (``structured_output``, ``thinking``, ``effort``), because the model family
+    it is chosen from refuses a forced tool and a thinking budget. No default for any of them:
+    the id, prices and profile are read from the Bedrock console and pricing page by an
+    operator and set in configuration, never written here.
+
+    Its catalog entry declares no sampling accepted: a Lead turn sends no temperature, and one
+    that ever did is refused before it leaves rather than tested against the provider.
+    """
+
+    model_id: str
+    input_usd_per_mtok: float
+    output_usd_per_mtok: float
+    max_output_tokens: int
+    context_window_tokens: int
+    structured_output: StructuredOutput
+    thinking: ThinkingMode
+    effort: Effort | None = None
+    cache_read_usd_per_mtok: float | None = None
+    cache_write_usd_per_mtok: float | None = None
+
+    def __post_init__(self) -> None:
+        if not _pinned_eu_profile(self.model_id):
+            raise AIRuntimeConfigError(
+                f"AIA_AI_RESEARCH_LEAD_MODEL_ID={self.model_id!r} must be an EU inference "
+                "profile id pinned to a version (eu.…:N), never a floating alias (ADR 0010)"
+            )
+        prices = {
+            "AIA_AI_RESEARCH_LEAD_INPUT_USD_PER_MTOK": self.input_usd_per_mtok,
+            "AIA_AI_RESEARCH_LEAD_OUTPUT_USD_PER_MTOK": self.output_usd_per_mtok,
+            "AIA_AI_RESEARCH_LEAD_CACHE_READ_USD_PER_MTOK": self.cache_read_usd_per_mtok,
+            "AIA_AI_RESEARCH_LEAD_CACHE_WRITE_USD_PER_MTOK": self.cache_write_usd_per_mtok,
+        }
+        for key, value in prices.items():
+            if value is None and "_CACHE_" in key:
+                continue
+            if value is None or not 0 <= value < float("inf"):
+                raise AIRuntimeConfigError(f"{key} must be a finite, non-negative price")
+        if self.max_output_tokens <= 0:
+            raise AIRuntimeConfigError(
+                "AIA_AI_RESEARCH_LEAD_MODEL_MAX_OUTPUT_TOKENS must be positive"
+            )
+        if self.context_window_tokens <= 0:
+            raise AIRuntimeConfigError(
+                "AIA_AI_RESEARCH_LEAD_CONTEXT_WINDOW_TOKENS must be positive"
+            )
+        try:
+            self.request_profile()
+        except ModelConfigError as exc:
+            raise AIRuntimeConfigError(
+                f"AIA_AI_RESEARCH_LEAD_EFFORT is set, but {exc} "
+                "(AIA_AI_RESEARCH_LEAD_THINKING=adaptive)"
+            ) from exc
+
+    @classmethod
+    def from_env(cls, env: Mapping[str, str]) -> LeadModelSettings | None:
+        """``None`` without ``AIA_AI_RESEARCH_LEAD_MODEL_ID``; else every key, checked by name."""
+        model_id = (env.get("AIA_AI_RESEARCH_LEAD_MODEL_ID") or "").strip()
+        if not model_id:
+            return None
+        input_price = _number(env, "AIA_AI_RESEARCH_LEAD_INPUT_USD_PER_MTOK", when=_LEAD_MODEL_ON)
+        output_price = _number(env, "AIA_AI_RESEARCH_LEAD_OUTPUT_USD_PER_MTOK", when=_LEAD_MODEL_ON)
+        assert input_price is not None and output_price is not None
+        effort_raw = (env.get("AIA_AI_RESEARCH_LEAD_EFFORT") or "").strip()
+        return cls(
+            model_id=model_id,
+            input_usd_per_mtok=input_price,
+            output_usd_per_mtok=output_price,
+            cache_read_usd_per_mtok=_number(
+                env, "AIA_AI_RESEARCH_LEAD_CACHE_READ_USD_PER_MTOK", optional=True
+            ),
+            cache_write_usd_per_mtok=_number(
+                env, "AIA_AI_RESEARCH_LEAD_CACHE_WRITE_USD_PER_MTOK", optional=True
+            ),
+            max_output_tokens=_positive_int(
+                env, "AIA_AI_RESEARCH_LEAD_MODEL_MAX_OUTPUT_TOKENS", when=_LEAD_MODEL_ON
+            ),
+            context_window_tokens=_positive_int(
+                env, "AIA_AI_RESEARCH_LEAD_CONTEXT_WINDOW_TOKENS", when=_LEAD_MODEL_ON
+            ),
+            structured_output=_choice(
+                env, "AIA_AI_RESEARCH_LEAD_STRUCTURED_OUTPUT", StructuredOutput
+            ),
+            thinking=_choice(env, "AIA_AI_RESEARCH_LEAD_THINKING", ThinkingMode),
+            effort=_choice(env, "AIA_AI_RESEARCH_LEAD_EFFORT", Effort) if effort_raw else None,
+        )
+
+    def request_profile(self) -> RequestProfile:
+        """What the Lead model's requests may carry (raises ``ModelConfigError`` if invalid)."""
+        return RequestProfile(
+            structured_output=self.structured_output,
+            thinking=self.thinking,
+            accepts_sampling=False,
+            effort=self.effort,
+        )
+
+    def model_prices(self) -> ModelPrices:
+        """The Lead model's prices, as its turn's reservation is derived."""
+        return ModelPrices(
+            input_usd_per_mtok=self.input_usd_per_mtok,
+            output_usd_per_mtok=self.output_usd_per_mtok,
+            cache_read_usd_per_mtok=self.cache_read_usd_per_mtok,
+            cache_write_usd_per_mtok=self.cache_write_usd_per_mtok,
+        )
+
+    def catalog_entry(self) -> dict[str, Any]:
+        """The Lead model's catalog entry: ``STUDY_LEAD`` and nothing else, with its profile."""
+        pricing: dict[str, Any] = {
+            "input_usd_per_mtok": self.input_usd_per_mtok,
+            "output_usd_per_mtok": self.output_usd_per_mtok,
+        }
+        if self.cache_read_usd_per_mtok is not None:
+            pricing["cache_read_usd_per_mtok"] = self.cache_read_usd_per_mtok
+        if self.cache_write_usd_per_mtok is not None:
+            pricing["cache_write_usd_per_mtok"] = self.cache_write_usd_per_mtok
+        profile = self.request_profile()
+        entry: dict[str, Any] = {
+            "provider": Provider.AWS_BEDROCK.value,
+            "model": self.model_id,
+            "capabilities": [ModelCapability.STUDY_LEAD.value],
+            "max_output_tokens": self.max_output_tokens,
+            "context_window_tokens": self.context_window_tokens,
+            "pricing": pricing,
+            "supports_strict_schema": False,
+            "structured_output": profile.structured_output.value,
+            "thinking": profile.thinking.value,
+            "accepts_sampling": profile.accepts_sampling,
+        }
+        if profile.effort is not None:
+            entry["effort"] = profile.effort.value
+        return entry
+
+
+def _choice[E: StrEnum](env: Mapping[str, str], key: str, kind: type[E]) -> E:
+    """One of ``kind``'s values, required; anything else names the key and what it takes."""
+    raw = _text(env, key, when=_LEAD_MODEL_ON)
+    try:
+        return kind(raw.lower())
+    except ValueError as exc:
+        allowed = ", ".join(member.value for member in kind)
+        raise AIRuntimeConfigError(f"{key}={raw!r} is not one of {allowed}") from exc
 
 
 @dataclass(frozen=True, slots=True)
@@ -260,12 +453,16 @@ class AIRuntimeSettings:
     population_personas_enabled: bool = False
     population_asset_root: str | None = None
     #: ``AIA_AI_RESEARCH_LEAD_ENABLED`` (off by default): the Research Lead's turns (ADR 0026),
-    #: bound to ``RESEARCH_REASONING`` -- not ``research_lead_enabled`` above, which is Deep
-    #: Research's lead researcher. On with its two keys unset, the switch is read and every
-    #: turn parks (``research_lead_unconfigured``); set, both are checked at start.
+    #: bound to ``STUDY_LEAD`` -- not ``research_lead_enabled`` above, which is Deep Research's
+    #: lead researcher. On with its two keys unset, the switch is read and every turn parks
+    #: (``research_lead_unconfigured``); set, both are checked at start.
     study_lead_enabled: bool = False
     study_lead_max_output_tokens: int = 0
     study_lead_reservation_usd: float = 0.0
+    #: ``AIA_AI_RESEARCH_LEAD_MODEL_*`` (ADR 0026 amendment, 2026-10-19): the Lead's own model,
+    #: read and checked whenever its id is set; ``STUDY_LEAD`` is bound to it only while the
+    #: Lead can answer a turn (:attr:`study_lead_model`). ``None``: the route's model.
+    lead_model: LeadModelSettings | None = None
 
     @property
     def study_lead_configured(self) -> bool:
@@ -275,6 +472,17 @@ class AIRuntimeSettings:
             and self.study_lead_max_output_tokens > 0
             and self.study_lead_reservation_usd > 0
         )
+
+    @property
+    def study_lead_model(self) -> LeadModelSettings | None:
+        """The Lead's own model while the Lead can answer a turn; ``None``: the route's model."""
+        return self.lead_model if self.study_lead_configured else None
+
+    @property
+    def study_lead_context_window_tokens(self) -> int:
+        """The window a Lead turn and its repair must fit: its own model's, else the route's."""
+        lead = self.lead_model
+        return lead.context_window_tokens if lead is not None else self.context_window_tokens
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> AIRuntimeSettings | None:
@@ -396,7 +604,13 @@ class AIRuntimeSettings:
             )
             if _flag(env, "AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED", required=False)
             else 0,
+            lead_model=LeadModelSettings.from_env(env),
         )
+        if settings.lead_model is not None and settings.lead_model.model_id == model_id:
+            raise AIRuntimeConfigError(
+                "AIA_AI_RESEARCH_LEAD_MODEL_ID names the route's own model "
+                "(AIA_BEDROCK_MODEL_ID); leave it unset to run the Lead on the route's model"
+            )
         if _flag(env, "AIA_AI_RESEARCH_LEAD_ENABLED", required=False):
             settings = _with_study_lead(settings, env)
         if settings.population_personas_enabled and settings.population_asset_root is None:
@@ -457,10 +671,19 @@ class AIRuntimeSettings:
         ``light`` adds the light model to the catalog and binds ``RESEARCH_TRIAGE`` to
         it on this route. Without it nothing binds ``RESEARCH_TRIAGE``, and a triage
         request is refused at resolution (``capability_not_configured``).
+
+        While the Research Lead can answer a turn, ``STUDY_LEAD`` is bound: to the Lead's own
+        model (:attr:`study_lead_model`), a further entry on this same route, when one is
+        configured; else to this route's model, exactly as the Lead's turns ran before.
         """
         if light is not None and light.model_id == self.model_id:
             raise AIRuntimeConfigError(
                 "the light model must be a different profile from AIA_BEDROCK_MODEL_ID"
+            )
+        lead = self.study_lead_model
+        if lead is not None and light is not None and lead.model_id == light.model_id:
+            raise AIRuntimeConfigError(
+                "AIA_AI_RESEARCH_LEAD_MODEL_ID must be a different profile from the light model"
             )
         pricing: dict[str, Any] = {
             "input_usd_per_mtok": self.input_usd_per_mtok,
@@ -480,8 +703,10 @@ class AIRuntimeSettings:
             # The lead's own entry, on this route's model until a stronger one is
             # approved for it (plan deep-research-web-search.md chunk 1).
             capabilities.append(ModelCapability.RESEARCH_LEAD)
-        if self.research_agents_enabled or self.analysis_enabled or self.study_lead_configured:
+        if self.research_agents_enabled or self.analysis_enabled:
             capabilities.append(ModelCapability.RESEARCH_REASONING)
+        if self.study_lead_configured and lead is None:
+            capabilities.append(ModelCapability.STUDY_LEAD)
         if self.research_agents_enabled:
             capabilities.append(ModelCapability.CRITIC)
         if self.client_source_proposals_enabled:
@@ -508,6 +733,11 @@ class AIRuntimeSettings:
                 **binding,
                 "model": light.model_id,
             }
+        if lead is not None:
+            models.append(lead.catalog_entry())
+            # The same route, as the light model: the Lead's own policy entry, never a
+            # second route.
+            bindings[ModelCapability.STUDY_LEAD.value] = {**binding, "model": lead.model_id}
         return {
             "models": models,
             "policies": [
@@ -540,6 +770,9 @@ def _with_study_lead(settings: AIRuntimeSettings, env: Mapping[str, str]) -> AIR
     each is checked as the design jobs' are, and a wrong one stops the worker: the output cap
     within the model's, a turn and its repair within the model's window, and the reservation
     covering two calls at the Lead's own window (``lead_request_window_tokens``) and cap.
+
+    "The model" is the one the Lead's turns run on: its own (``AIA_AI_RESEARCH_LEAD_MODEL_*``)
+    when one is configured -- its output ceiling, its window, its prices -- else the route's.
     """
     raw_tokens = (env.get("AIA_AI_RESEARCH_LEAD_MAX_OUTPUT_TOKENS") or "").strip()
     raw_reservation = (env.get("AIA_AI_RESEARCH_LEAD_RESERVATION_USD") or "").strip()
@@ -548,17 +781,32 @@ def _with_study_lead(settings: AIRuntimeSettings, env: Mapping[str, str]) -> AIR
     tokens = _positive_int(env, "AIA_AI_RESEARCH_LEAD_MAX_OUTPUT_TOKENS")
     reservation = _number(env, "AIA_AI_RESEARCH_LEAD_RESERVATION_USD")
     assert reservation is not None
-    if tokens > settings.max_output_tokens:
-        raise AIRuntimeConfigError("the Research Lead's output limit exceeds the model limit")
-    window = lead_request_window_tokens(tokens)
-    if window > settings.context_window_tokens:
+    lead = settings.lead_model
+    if lead is not None:
+        model = "the Lead model's"
+        model_output, prices = lead.max_output_tokens, lead.model_prices()
+        output_key = "AIA_AI_RESEARCH_LEAD_MODEL_MAX_OUTPUT_TOKENS"
+        window_key = "AIA_AI_RESEARCH_LEAD_CONTEXT_WINDOW_TOKENS"
+    else:
+        model = "the route model's"
+        model_output, prices = settings.max_output_tokens, settings.model_prices()
+        output_key = "AIA_BEDROCK_MAX_OUTPUT_TOKENS"
+        window_key = "AIA_BEDROCK_CONTEXT_WINDOW_TOKENS"
+    if tokens > model_output:
         raise AIRuntimeConfigError(
-            "a Research Lead turn and its repair do not fit the model's window"
+            f"the Research Lead's output limit exceeds the model limit ({output_key})"
         )
-    worst = reservation_usd(settings.model_prices(), window_tokens=window, output_tokens=tokens)
+    window = lead_request_window_tokens(tokens)
+    if window > settings.study_lead_context_window_tokens:
+        raise AIRuntimeConfigError(
+            f"a Research Lead turn and its repair ({window} tokens) do not fit the model's "
+            f"window ({window_key})"
+        )
+    worst = reservation_usd(prices, window_tokens=window, output_tokens=tokens)
     if reservation < worst:
         raise AIRuntimeConfigError(
-            "the Research Lead's reservation must cover two calls at the model ceilings "
+            "AIA_AI_RESEARCH_LEAD_RESERVATION_USD: the Research Lead's reservation must cover "
+            f"two calls at {model} prices, window and the Lead's output limit "
             f"(at least {worst:.4f})"
         )
     return dataclasses.replace(
@@ -578,9 +826,10 @@ def build_gateway(
 ) -> GovernedModelGateway:
     """The one gateway, over one route, one adapter, the recorded licence determinations.
 
-    With ``light``, the route carries two pinned models, each through its own
+    With ``light``, or with the Research Lead's own model (:attr:`AIRuntimeSettings.
+    study_lead_model`), the route carries each further pinned model through its own
     single-model adapter (:class:`~aia_core.infrastructure.model_adapters.PinnedModels`);
-    without it, exactly what it built before the light model existed.
+    without either, exactly what it built before the light model existed.
     """
     if transport is None:
         from aia_core.infrastructure.model_adapters.live_transport import Urllib3Transport
@@ -602,8 +851,10 @@ def build_gateway(
 
     main = pinned(settings.model_id)
     adapter: BedrockConverseAdapter | PinnedModels = main
-    if light is not None:
-        route_models: list[ModelPinnedAdapter] = [main, pinned(light.model_id)]
+    lead = settings.study_lead_model
+    others = [m.model_id for m in (light, lead) if m is not None]
+    if others:
+        route_models: list[ModelPinnedAdapter] = [main, *(pinned(m) for m in others)]
         adapter = PinnedModels(route_models)
     return GovernedModelGateway(
         registry=parse_model_config(settings.model_document(light)),

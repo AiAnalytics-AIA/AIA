@@ -87,6 +87,11 @@ class ModelCapability(StrEnum):
     #: ``deep-research-web-search.md`` chunk 20; its policy entry is proposed until
     #: chunk 1's sign-off).
     RESEARCH_TRIAGE = "RESEARCH_TRIAGE"
+    #: The study's Research Lead (ADR 0026): one conversational turn over a frozen
+    #: context. Its own policy entry, so it can be bound to a model of its own on the
+    #: route (ADR 0026 amendment, 2026-10-19). Not ``RESEARCH_LEAD``, which is Deep
+    #: Research's lead researcher.
+    STUDY_LEAD = "STUDY_LEAD"
 
 
 class StructuredOutput(StrEnum):
