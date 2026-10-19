@@ -11,7 +11,9 @@ This is the one place Deep Research meets a design writer, and it is deliberatel
 ``application/deep_research.py``, which ``layer_check`` keeps from naming one: the run is read
 through :class:`~aia_core.application.deep_research.DeepResearchRuns` (found only through the
 Study, its bundle verified against its seal, its lineage re-resolved), and the revision is
-written through :meth:`StudyDesignRepository.submit_if_current`, as an agent job's accept is.
+written through :func:`~.proposal_accept.accept_into_working_copy`, as an agent job's accept is:
+the working copy takes the items too, in the same transaction, and the Design Revision names the
+working revision it wrote (ADR 0026 decisions 5-6).
 """
 
 from __future__ import annotations
@@ -29,7 +31,8 @@ from ..domain.deep_research.design_proposals import (
     design_research_proposal,
     selection_id,
 )
-from ..domain.design import DesignRejected, DesignRevision
+from ..domain.design import DesignRejected
+from ..domain.design_items import Documents
 from ..domain.research_agents import context_snapshot
 from ..domain.scope import Permission, StudyContext
 from ..domain.workflow import WorkflowRunStatus
@@ -38,6 +41,12 @@ from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.study_design_repository import StudyDesignRepository
 from ..infrastructure.workflow_repository import WorkflowRepository
 from .deep_research import DeepResearchRuns, LineageChanged
+from .proposal_accept import (
+    AcceptedProposal,
+    StaleProposal,
+    accept_into_working_copy,
+    proposal_baseline,
+)
 
 __all__ = ["DesignResearchProposals"]
 
@@ -84,40 +93,55 @@ class DesignResearchProposals:
         *,
         item_ids: Sequence[str],
         expected_revision_id: str,
+        expected_workspace_revision: int,
         store: ArtifactStore,
-    ) -> tuple[DesignRevision, bool, dict[str, Any]]:
+    ) -> AcceptedProposal:
         """A person takes the items they chose: a new Design Revision, and its record.
 
         Needs ``EDIT_STUDY`` and ``APPROVE_GATE`` on an open Study; the worker's scope holds
         no ``APPROVE_GATE`` (ADR 0019 decision 6). The run's lineage must still resolve and
         ``expected_revision_id`` must be both the revision the run researched and the
-        Study's newest (``stale_proposal``). Returns the revision, whether it is new, and its
-        content, for the client's working copy. An accept that changes nothing writes no
-        revision and no ledger row.
+        Study's newest (``stale_proposal``). The items go into the working copy at
+        ``expected_workspace_revision`` too, item by item, in the same transaction, and the
+        Design Revision names the working revision written (ADR 0026 decisions 5-6); an edit of
+        the person's to an item the items change refuses it (``stale_proposal``,
+        ``items_changed``). An accept that changes no design writes no ledger row.
         """
         self.scope.require(Permission.EDIT_STUDY)
         self.scope.require(Permission.APPROVE_GATE)
         self.scope.require_open_study()
         proposal = self.proposal(run_id, store=store)
         if expected_revision_id != proposal.design_revision_id:
-            raise DesignRejected(
-                "the proposal was researched from another Design Revision",
-                reason="stale_proposal",
+            raise StaleProposal(
+                "the proposal was researched from another Design Revision", why="design_moved"
             )
         try:
             DeepResearchRuns(self.session, self.scope).resolve_lineage(run_id, store=store)
         except LineageChanged as exc:
-            raise DesignRejected(str(exc), reason="stale_proposal") from exc
+            raise StaleProposal(str(exc), why="lineage_changed") from exc
         designs = StudyDesignRepository(self.session, self.scope)
-        baseline = designs.content(proposal.design_revision_id)
+        design = designs.get(proposal.design_revision_id)
+        baseline = proposal_baseline(self.session, self.scope, design)
+        if baseline is None:
+            raise StaleProposal(
+                "the proposal's design names no working revision to check it against",
+                why="unknown_baseline",
+            )
         try:
-            content = apply_to_design(baseline, proposal, item_ids)
+            content = apply_to_design(baseline.content, proposal, item_ids)
         except DesignProposalRefused as exc:
             raise DesignRejected(str(exc), reason=exc.reason) from exc
-        self._require_design_jobs_keep_working(baseline, content)
-        revision, created = designs.submit_if_current(
-            content=content, source_stage=SOURCE_STAGE, expected_revision_id=expected_revision_id
+        self._require_design_jobs_keep_working(baseline.content, content)
+        accepted = accept_into_working_copy(
+            self.session,
+            self.scope,
+            design_revision_id=expected_revision_id,
+            proposed=Documents(content=content, analysis=baseline.analysis),
+            expected_workspace_revision=expected_workspace_revision,
+            source_stage=SOURCE_STAGE,
+            reason="design_research_accepted",
         )
+        revision, created = accepted.revision, accepted.created
         if created:
             project_id = designs.project_id()
             assert project_id is not None  # submit_if_current has just written to it
@@ -130,7 +154,7 @@ class DesignResearchProposals:
                 project_revision=revision.revision,
                 artifact_id=proposal.evidence_bundle_artifact_id,
             )
-        return revision, created, content
+        return accepted
 
     def _require_design_jobs_keep_working(
         self, baseline: dict[str, Any], content: dict[str, Any]

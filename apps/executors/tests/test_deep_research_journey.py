@@ -269,7 +269,7 @@ def drain(w: Worker, *, limit: int = 20) -> int:
 def start(world: ResearchWorld, content: dict[str, Any] = DESIGN, **kwargs: Any) -> str:
     with world.sessions() as session:
         scope = world.lead_scope(session)
-        revision, _ = StudyDesignRepository(session, scope).submit(
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content=content, source_stage="brief"
         )
         run = DeepResearchRuns(session, scope).start(
@@ -1163,7 +1163,7 @@ def _enqueue(world: ResearchWorld, request: Any, *, fingerprint: str) -> str:
         scope = world.lead_scope(session)
         designs = StudyDesignRepository(session, scope)
         if designs.project_id() is None:
-            designs.submit(content=DESIGN, source_stage="brief")
+            designs.submit_as_working_copy(content=DESIGN, source_stage="brief")
         project_id = designs.project_id()
         assert project_id is not None
         steps = deep_research_steps()
@@ -1185,7 +1185,7 @@ def test_a_run_cannot_research_another_clients_design(
 ) -> None:
     with research.sessions() as session:
         other = research.other_scope(session)
-        revision, _ = StudyDesignRepository(session, other).submit(
+        revision, _ = StudyDesignRepository(session, other).submit_as_working_copy(
             content=DESIGN, source_stage="brief"
         )
         foreign = DeepResearchRuns(session, other).freeze(
@@ -1207,7 +1207,7 @@ def test_an_altered_request_is_refused(
 ) -> None:
     with research.sessions() as session:
         scope = research.lead_scope(session)
-        revision, _ = StudyDesignRepository(session, scope).submit(
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content=DESIGN, source_stage="brief"
         )
         request = DeepResearchRuns(session, scope).freeze(

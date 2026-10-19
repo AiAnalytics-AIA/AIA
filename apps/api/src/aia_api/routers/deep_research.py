@@ -44,7 +44,12 @@ from aia_core.application.deep_research import (
     governed_record,
 )
 from aia_core.application.design_research import DesignResearchProposals
-from aia_core.application.errors import BudgetWaitNotLiftable, RuntimeParkNotResumable
+from aia_core.application.errors import (
+    BudgetWaitNotLiftable,
+    RuntimeParkNotResumable,
+    WorkspaceConflict,
+)
+from aia_core.application.proposal_accept import StaleProposal
 from aia_core.application.research import (
     BudgetNotRaised,
     CostCeilingUnknown,
@@ -83,7 +88,13 @@ from ..config import Settings
 from ..dependencies import ArtifactStoreDep, SessionDep, StudyScopeDep
 from ..schemas.projects import ErrorResponse
 from ..schemas.runs import RunEventResponse
-from .research import DesignRevisionResponse, _cost_refused, _revision
+from .research import (
+    DesignRevisionResponse,
+    _cost_refused,
+    _revision,
+    stale_proposal,
+    workspace_stale,
+)
 from .runs import artifact_corrupt
 
 router = APIRouter(
@@ -157,6 +168,8 @@ class DesignProposalAccept(BaseModel):
         min_length=1, max_length=500
     )
     expected_revision_id: str = Field(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")
+    #: The working revision the person has: the items go into it too (ADR 0026 decision 6).
+    expected_workspace_revision: int = Field(ge=1)
 
 
 class DeepResearchStep(BaseModel):
@@ -367,6 +380,10 @@ def _errors(session: SessionDep) -> Iterator[None]:
         raise HTTPException(
             status_code=422, detail={"code": "research_input", "message": str(exc)}
         ) from exc
+    except StaleProposal as exc:
+        raise stale_proposal(exc) from exc
+    except WorkspaceConflict as exc:
+        raise workspace_stale(exc) from exc
     except DesignRejected as exc:
         raise HTTPException(
             status_code=409, detail={"code": exc.reason, "message": str(exc)}
@@ -729,18 +746,24 @@ def accept_design_proposal(
 ) -> DesignRevisionResponse:
     """A person takes the chosen items into a new Design Revision (ADR 0019 gate 1).
 
-    Answers the revision with its content, for the working copy. 409 ``stale_proposal`` when
-    the expected revision is not the one the run researched or not the Study's newest,
-    ``inadmissible``, ``unknown_item``, ``block_too_large``; 403 without gate authority.
+    The items go into the working copy at ``expected_workspace_revision`` in the same
+    transaction (ADR 0026 decision 6); the revision answers with its content and the working
+    revision it names. 409 ``stale_proposal`` (with ``details.reason`` and the conflicting
+    items) when the expected revision is not the one the run researched or not the Study's
+    newest, or an item changed in the working copy; ``stale_revision`` for an older working
+    copy; ``inadmissible``, ``unknown_item``, ``block_too_large``; 403 without gate authority.
     """
     with _errors(session):
-        revision, created, content = DesignResearchProposals(session, scope).accept(
+        accepted = DesignResearchProposals(session, scope).accept(
             run_id,
             item_ids=body.item_ids,
             expected_revision_id=body.expected_revision_id,
+            expected_workspace_revision=body.expected_workspace_revision,
             store=store,
         )
-        return _revision(revision, created=created, content=content)
+        return _revision(
+            accepted.revision, created=accepted.created, content=accepted.merged.content
+        )
     raise AssertionError("unreachable")
 
 

@@ -2,6 +2,7 @@
 // in useResearchAgents.test.tsx; reference pure-function parity is unchanged.
 import type { ResearchAgentAction } from "@/lib/api";
 import { resetConfigCache } from "@/lib/auth";
+import { briefFingerprint, type ResearchProject } from "@/research/model";
 import { fireEvent, screen } from "@testing-library/react";
 import { onTestFinished } from "vitest";
 
@@ -9,9 +10,17 @@ export const AGENTS_PATH = "/api/v1/studies/STU-1/research/agent-jobs";
 export const DESIGN_PATH = "/api/v1/studies/STU-1/design/revisions";
 export const PARK_MESSAGE = "AI návrhy výzkumu nejsou zapnuté. Zadání zůstává uložené.";
 
+/**
+ * The working copy an accept writes on the server (ADR 0026 decision 6): `workspaceFixture`'s
+ * `write`. With no concurrent edit in a screen test, the merge is the proposal's design; a brief
+ * analysis is installed signed with its brief, as the server signs it.
+ */
+export type ServerWrite = (content: Record<string, unknown>, analysis?: unknown) => number;
+
 export function nativeAgentFixture(
   output: (action: ResearchAgentAction, baseline: Record<string, unknown>, instruction: string) => Record<string, unknown>,
   overrides: Record<string, (body: unknown) => unknown> = {},
+  serverWrite?: ServerWrite,
 ) {
   let baseline: Record<string, unknown> = {};
   let action: ResearchAgentAction = "analyze_brief";
@@ -47,7 +56,14 @@ export function nativeAgentFixture(
       return { result: proposal, provenance: { agent_id: "research", design_revision_id: "REV-A", context_sha256: "sha", status: "PROPOSED" } };
     }
     if (path === `${AGENTS_PATH}/RUN-A/accept`) {
-      if (!created) throw new Error("No job created"); return { revision_id: "REV-B", revision: 2 };
+      if (!created) throw new Error("No job created");
+      const proposal = output(action, baseline, instruction);
+      const project = proposal.project as Record<string, unknown>;
+      const analysis = proposal.analysis && typeof proposal.analysis === "object"
+        ? { ...(proposal.analysis as object), _brief_signature: briefFingerprint(project as ResearchProject) }
+        : undefined;
+      const workspace = serverWrite ? (analysis === undefined ? serverWrite(project) : serverWrite(project, analysis)) : 4;
+      return { design_revision_id: "REV-B", design_revision: { revision_id: "REV-B", revision: 2 }, created: true, workspace_revision: workspace, workspace_revision_id: `REV-${workspace}` };
     }
     return undefined;
   };

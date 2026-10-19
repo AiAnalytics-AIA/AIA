@@ -1324,11 +1324,26 @@ def test_two_reviewed_design_proposals_cannot_overwrite_each_other(
     """Two connections accept the same baseline; only one may create its child."""
     from aia_core.domain.design import DesignRejected
     from aia_core.infrastructure.study_design_repository import StudyDesignRepository
+    from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRepository
 
     session, workflows = _repo_in_new_session(pg_sessions, world)
     try:
         design = StudyDesignRepository(session, workflows.scope)
-        revision, _ = design.submit(content={"goal": "Original"}, source_stage="brief")
+        revision, _ = design.submit_as_working_copy(
+            content={"goal": "Original"}, source_stage="brief"
+        )
+        # Each accept names a working revision holding exactly its design (ADR 0026 decision 5).
+        workspaces = StudyWorkspaceRepository(session)
+        working: dict[int, int] = {}
+        for index in range(2):
+            base = workspaces.content(workflows.scope).revision
+            content = workspaces.content(workflows.scope).content or {}
+            saved = workspaces.save(
+                workflows.scope,
+                content={**content, "goal": f"Reviewed proposal {index}"},
+                base_revision=base,
+            )
+            working[index] = saved.revision
         session.commit()
     finally:
         session.close()
@@ -1341,10 +1356,15 @@ def test_two_reviewed_design_proposals_cannot_overwrite_each_other(
             session.get(StudyRow, world["study_id"])
             repository = StudyDesignRepository(session, workflows.scope)
             try:
+                stored = StudyWorkspaceRepository(session).at_revision(
+                    workflows.scope, working[index]
+                )
+                assert stored is not None
                 repository.submit_if_current(
-                    content={"goal": f"Reviewed proposal {index}"},
+                    content=stored.content,
                     source_stage="plan",
                     expected_revision_id=revision.revision_id,
+                    workspace_revision=working[index],
                 )
                 session.commit()
                 return "accepted"

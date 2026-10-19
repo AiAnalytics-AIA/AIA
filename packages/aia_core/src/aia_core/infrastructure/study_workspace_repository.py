@@ -184,6 +184,31 @@ class StudyWorkspaceRepository:
             lineage=dict(row.lineage or {}),
         )
 
+    def at_revision(self, scope: StudyContext, revision: int) -> WorkingContent | None:
+        """The Study's working content as revision ``revision`` saved it, or ``None``.
+
+        A revision of this Study's working project only: a number its project never wrote is
+        ``None``, never another project's revision. What a Design Revision came from, and the
+        baseline an AI proposal is checked against (ADR 0026 decision 5), is read here.
+        """
+        row = self._row(scope)
+        if row is None or row.project_id is None or revision < 1:
+            return None
+        found = self._session.get(ProjectRevisionRow, (row.project_id, revision))
+        if found is None:
+            return None
+        return WorkingContent(
+            study_id=scope.study_id,
+            state=ContentState(row.content_state),
+            revision=found.revision,
+            revision_id=found.revision_id,
+            content=dict(found.content or {}),
+            analysis=dict(found.analysis) if found.analysis else None,
+            saved_at=as_utc(found.created_at),
+            saved_by=found.created_by,
+            lineage=dict(row.lineage or {}),
+        )
+
     def revisions(self, scope: StudyContext, *, limit: int = 100) -> list[WorkingRevision]:
         """The Study's saved revisions, newest first."""
         row = self._row(scope)

@@ -114,7 +114,7 @@ def runs(session: Any, scoped: Any, population: Any) -> Any:
 @pytest.fixture
 def revision(session: Any, scoped: Any) -> str:
     repo = StudyDesignRepository(session, scoped.scope(user="lead"))
-    created, _ = repo.submit(content=DESIGN, source_stage="run")
+    created, _ = repo.submit_as_working_copy(content=DESIGN, source_stage="run")
     return created.revision_id
 
 
@@ -260,7 +260,7 @@ def test_a_panel_run_with_selected_dimensions_is_its_own_run_and_records_them(
 
     population.establish()
     repo = StudyDesignRepository(session, scoped.scope(user="lead"))
-    chosen, _ = repo.submit(
+    chosen, _ = repo.submit_as_working_copy(
         content={**DESIGN, "persona_dimensions": {"approved": ["media", "nakup"]}},
         source_stage="run",
     )

@@ -25,9 +25,10 @@ from ..domain.design import (
     validate_design,
 )
 from ..domain.design_reuse import DesignSource, SourceLabels
-from ..domain.pipeline import ProjectType
+from ..domain.pipeline import ProjectType, fingerprint
 from ..domain.scope import Permission, ScopeDenied, StudyContext, StudyKind
 from .repositories import ProjectRepository
+from .study_workspace_repository import StudyWorkspaceRepository
 from .tables import (
     ProjectRevisionRow,
     StudyDesignRow,
@@ -36,20 +37,33 @@ from .tables import (
     as_utc,
 )
 
-__all__ = ["DesignRevisionNotFound", "StudyDesignRepository"]
+__all__ = ["AUTHORED_REASON", "DesignRevisionNotFound", "StudyDesignRepository"]
 
 #: ``project_revisions.reason`` for a design submitted from a stage: the provenance
 #: of a Design Revision without a column of its own.
 _REASON_PREFIX: Final = "design:"
+#: What follows the stage in ``reason``: the working revision the design came from.
+_WORKSPACE_MARK: Final = "@w"
+#: ``project_revisions.reason`` of the working revision a server-side author writes
+#: (:meth:`StudyDesignRepository.submit_as_working_copy`).
+AUTHORED_REASON: Final = "design_authored"
 
 
 class DesignRevisionNotFound(LookupError):
     """No Design Revision with this id in the Study in scope."""
 
 
+def _provenance(reason: str) -> tuple[str, int | None]:
+    """The stage and the working revision a Design Revision's ``reason`` records."""
+    body = reason[len(_REASON_PREFIX) :] if reason.startswith(_REASON_PREFIX) else reason
+    stage, mark, number = body.partition(_WORKSPACE_MARK)
+    if mark and number.isdigit():
+        return stage, int(number)
+    return body, None
+
+
 def _to_domain(row: ProjectRevisionRow, study_id: str) -> DesignRevision:
-    reason = row.reason or ""
-    stage = reason[len(_REASON_PREFIX) :] if reason.startswith(_REASON_PREFIX) else reason
+    stage, workspace_revision = _provenance(row.reason or "")
     return DesignRevision(
         revision_id=row.revision_id,
         study_id=study_id,
@@ -59,6 +73,7 @@ def _to_domain(row: ProjectRevisionRow, study_id: str) -> DesignRevision:
         source_stage=stage,
         created_by=row.created_by,
         created_at=as_utc(row.created_at),
+        workspace_revision=workspace_revision,
     )
 
 
@@ -121,12 +136,29 @@ class StudyDesignRepository:
 
     # -- writes -------------------------------------------------------------
 
-    def submit(self, *, content: Any, source_stage: str) -> tuple[DesignRevision, bool]:
+    def lock(self) -> None:
+        """Lock the Study row, as every design and working-copy writer does. The caller commits.
+
+        A writer that reads before it writes -- an accept that checks the working copy, merges
+        and then writes both -- takes it first, so nothing moves between its read and its writes.
+        """
+        self._require_research(lock=True)
+
+    def submit(
+        self, *, content: Any, source_stage: str, workspace_revision: int
+    ) -> tuple[DesignRevision, bool]:
         """Store ``content`` as the Study's newest Design Revision.
 
         Returns the revision and whether it is new: content identical to the
         newest revision is not a new revision. Needs ``EDIT_STUDY`` on an open
         research Study. The first design creates the Study's design project.
+
+        ``workspace_revision`` is the working revision the design came from (ADR 0026 decision
+        5). ``content`` must be exactly its content, by canonical hash; anything else, or a
+        revision the Study's working copy never wrote, is refused (``design_not_from_workspace``).
+        Content identical to a newest revision that names no working revision (one written
+        before the rule) is written again as a new revision that names this one: a revision
+        without a baseline is never handed to a submit that has one.
         """
         s = self._scope
         s.require(Permission.EDIT_STUDY)
@@ -135,8 +167,14 @@ class StudyDesignRepository:
             raise DesignRejected("unknown source stage", reason="unknown_source_stage")
         design = validate_design(content)
         study = self._require_research(lock=True)
+        working = StudyWorkspaceRepository(self._session).at_revision(s, workspace_revision)
+        if working is None or fingerprint(working.content or {}) != fingerprint(design):
+            raise DesignRejected(
+                "the design is not the working revision it names",
+                reason="design_not_from_workspace",
+            )
         projects = ProjectRepository(self._session, s, owner=DESIGN_PROJECT_OWNER)
-        reason = _REASON_PREFIX + source_stage
+        reason = f"{_REASON_PREFIX}{source_stage}{_WORKSPACE_MARK}{workspace_revision}"
 
         row = self._design()
         if row is None:
@@ -160,17 +198,53 @@ class StudyDesignRepository:
             self._session.flush()
             return _to_domain(first, s.study_id), True
 
-        outcome = projects.save(row.project_id, content=design, reason=reason, actor_id=s.actor_id)
+        newest = self.latest()
+        outcome = projects.save(
+            row.project_id,
+            content=design,
+            reason=reason,
+            actor_id=s.actor_id,
+            force_new_revision=newest is not None and newest.workspace_revision is None,
+        )
         revision = self._revision_row(row.project_id, outcome.revision)
         return _to_domain(revision, s.study_id), not outcome.deduplicated
 
+    def submit_as_working_copy(
+        self, *, content: Any, source_stage: str, reason: str = AUTHORED_REASON
+    ) -> tuple[DesignRevision, bool]:
+        """A design the server authored itself: saved as the working copy, then submitted.
+
+        For a writer that is the design's author -- a reused design written into an empty study
+        (``design_reuse``), an operator's seed, a test -- not for a person's edit, which the
+        browser saves and submits itself. The working copy's newest revision becomes ``content``
+        (a new revision, so nothing earlier is lost, and a browser holding an older copy is
+        refused its next save as stale, never overwritten), and the Design Revision names it.
+        """
+        workspaces = StudyWorkspaceRepository(self._session)
+        self._require_research(lock=True)
+        current = workspaces.content(self._scope)
+        saved = workspaces.save(
+            self._scope, content=content, base_revision=current.revision, reason=reason
+        )
+        stored = workspaces.at_revision(self._scope, saved.revision)
+        assert stored is not None  # save has just written or found it
+        return self.submit(
+            content=stored.content, source_stage=source_stage, workspace_revision=saved.revision
+        )
+
     def submit_if_current(
-        self, *, content: Any, source_stage: str, expected_revision_id: str
+        self,
+        *,
+        content: Any,
+        source_stage: str,
+        expected_revision_id: str,
+        workspace_revision: int,
     ) -> tuple[DesignRevision, bool]:
         """Apply a reviewed proposal only against its unchanged baseline.
 
         The same Study row lock serializes ordinary submit() and proposal
-        acceptance, including first-design creation. The caller commits.
+        acceptance, including first-design creation. ``workspace_revision`` is the working
+        revision the accept wrote, as :meth:`submit` requires. The caller commits.
         """
         self._scope.require(Permission.EDIT_STUDY)
         self._scope.require_open_study()
@@ -181,7 +255,9 @@ class StudyDesignRepository:
             raise DesignRejected(
                 "the proposal's design baseline has changed", reason="stale_proposal"
             )
-        return self.submit(content=content, source_stage=source_stage)
+        return self.submit(
+            content=content, source_stage=source_stage, workspace_revision=workspace_revision
+        )
 
     def record_source(
         self,

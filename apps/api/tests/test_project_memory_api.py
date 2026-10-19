@@ -37,10 +37,7 @@ DESIGN: dict[str, Any] = {
 
 
 def submit(c: Any, world: Any, content: Any, study: str = "primary") -> Any:
-    return c.post(
-        f"{API}/studies/{world.study_id(study)}/design/revisions",
-        json={"content": content, "source_stage": "run"},
-    )
+    return world.design(c, content, study=study)
 
 
 def _design(title: str, dimensions: list[str] | None = None) -> dict[str, Any]:

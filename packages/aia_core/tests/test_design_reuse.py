@@ -54,7 +54,7 @@ class _World:
 def world(session: Any, scoped: Any) -> Any:
     """The primary study's design, run once on the fictional fixture."""
     source = StudyDesignRepository(session, scoped.scope(study="primary"))
-    revision, _ = source.submit(content=DESIGN, source_stage="run")
+    revision, _ = source.submit_as_working_copy(content=DESIGN, source_stage="run")
     run = ResearchRuns(session, scoped.scope(study="primary")).start(
         design_revision_id=revision.revision_id,
         fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
@@ -93,6 +93,10 @@ def test_a_new_study_starts_from_the_design_with_its_citation_and_labels(
     assert [r.revision_id for r in designs.revisions()] == [reused.revision.revision_id]
     assert reused.revision.source_stage == "memory"
     assert designs.content(reused.revision.revision_id) == DESIGN
+    # The reused design names the working revision the reuse wrote (ADR 0026 decision 5).
+    working = StudyWorkspaceRepository(session).content(target)
+    assert reused.revision.workspace_revision is not None
+    assert reused.revision.workspace_revision == working.revision
     cited = designs.source()
     assert cited == reused.source
     assert (cited.source_study_id, cited.source_revision_id) == (
@@ -150,7 +154,7 @@ def test_nothing_crosses_the_client(world: Any, session: Any) -> None:
         _reuse(world, session, target_study_id=other)
     # A source of another client, named under this one.
     theirs = StudyDesignRepository(session, world.scope(user="other_lead", study="other_client"))
-    revision, _ = theirs.submit(content=DESIGN, source_stage="run")
+    revision, _ = theirs.submit_as_working_copy(content=DESIGN, source_stage="run")
     with pytest.raises(ScopeDenied):
         _reuse(
             world,
@@ -166,7 +170,7 @@ def test_nothing_crosses_the_client(world: Any, session: Any) -> None:
 
 def test_a_source_never_run_is_cited_as_never_run(world: Any, session: Any) -> None:
     edited = StudyDesignRepository(session, world.scope(study="primary"))
-    second, _ = edited.submit(content={**DESIGN, "n": 300}, source_stage="run")
+    second, _ = edited.submit_as_working_copy(content={**DESIGN, "n": 300}, source_stage="run")
     reused = _reuse(world, session, source_revision_id=second.revision_id, new_study=("z", "Z"))
     labels = reused.source.labels
     assert (labels.never_run, labels.synthetic, labels.run_ids) == (True, False, ())

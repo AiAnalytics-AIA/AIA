@@ -33,7 +33,8 @@ from ..domain.answerability import (
     read_answerability_note,
     with_answerability,
 )
-from ..domain.design import DESIGN_PROJECT_OWNER, DesignRejected, DesignRevision
+from ..domain.design import DESIGN_PROJECT_OWNER, DesignRejected
+from ..domain.design_items import ItemKey
 from ..domain.evidence import ClaimSurface
 from ..domain.evidence.support import AIA_SUPPORT_V1, SupportSpec
 from ..domain.fieldwork import FieldworkSource, PersonaSource, persona_source_of
@@ -64,10 +65,12 @@ from ..domain.question_outlook import QuestionOutlook, question_outlook
 from ..domain.report.review import ReviewMark
 from ..domain.research import phase_of, retryable
 from ..domain.research_agents import (
+    DESIGN_ACTIONS,
     HARNESS_VERSION,
     ResearchAction,
     context_snapshot,
     prompt_for,
+    proposal_documents,
     snapshot_hash,
 )
 from ..domain.research_design import (
@@ -111,6 +114,12 @@ from ..infrastructure.workflow_repository import (
 )
 from .analysis import MAX_REPAIRS
 from .population import child_binding, live_binding
+from .proposal_accept import (
+    AcceptedProposal,
+    StaleProposal,
+    accept_into_working_copy,
+    proposal_baseline,
+)
 from .report_export import exports_stamped
 from .workflows import StartedRun, start_workflow
 
@@ -1304,8 +1313,14 @@ class ResearchAgentJobs:
         action: ResearchAction,
         instruction: str = "",
         prompt_version: int | None = None,
+        rebuild_of: str | None = None,
     ) -> StartedRun:
         """Queue one proposal. The prompt it runs is chosen here and frozen into the job.
+
+        The job records the working revision its Design Revision came from as
+        ``base_workspace_revision`` (ADR 0026 decision 5): never the working copy's revision now,
+        which may hold edits the design does not. ``rebuild_of`` names the job this one rebuilds
+        (:meth:`rebuild`), which it supersedes.
 
         ``prompt_version`` names a stored version to run instead of the active one --
         how a draft is tested before it is put live (ADR 0020). Only an organization
@@ -1341,6 +1356,7 @@ class ResearchAgentJobs:
         ).hexdigest()
         payload = {
             "design_revision_id": design_revision_id,
+            "base_workspace_revision": revision.workspace_revision,
             "action": action.value,
             "instruction": instruction,
             "snapshot": snapshot,
@@ -1356,6 +1372,9 @@ class ResearchAgentJobs:
         # report's PDF is (request_report_pdf) and a source's proposals are (OI-121). Before
         # this, a cancelled job answered every later ask, and the stage could only say so.
         base = f"{RESEARCH_AGENT}:{design_revision_id}:{digest}"
+        if rebuild_of is not None:
+            # A rebuild is a person's explicit ask for a new proposal: its own job, always.
+            base = f"{base}:rebuild-of:{rebuild_of}"
         workflows = WorkflowRepository(self.session, self.scope)
         newest = workflows.list_runs(
             project_id=project_id, workflow_type=RESEARCH_AGENT, key_prefix=base, limit=1
@@ -1378,6 +1397,8 @@ class ResearchAgentJobs:
                 "prompt_version": prompt.version,
                 "prompt_origin": prompt.origin,
                 "round": round_,
+                "base_workspace_revision": revision.workspace_revision,
+                "rebuild_of": rebuild_of,
             },
             step_inputs={"agent": payload},
             owner=DESIGN_PROJECT_OWNER,
@@ -1481,49 +1502,78 @@ class ResearchAgentJobs:
         return result
 
     def accept(
-        self, run_id: str, *, store: ArtifactStore, expected_revision_id: str
-    ) -> tuple[DesignRevision, bool]:
-        """A person applies what the agent job proposed: a new Design Revision, and its record.
+        self,
+        run_id: str,
+        *,
+        store: ArtifactStore,
+        expected_revision_id: str,
+        expected_workspace_revision: int,
+    ) -> AcceptedProposal:
+        """A person applies what the agent job proposed: the working copy, the design, the record.
 
-        ADR 0019 gate 1. Needs ``APPROVE_GATE`` beside ``EDIT_STUDY``: the worker's scope holds
-        the second and not the first (decision 6), so only a person accepts. The accept is
-        written to the approval ledger in the same transaction as the revision (plan 5b.3).
+        ADR 0019 gate 1, ADR 0026 decision 6. Needs ``APPROVE_GATE`` beside ``EDIT_STUDY``: the
+        worker's scope holds the second and not the first, so only a person accepts. In one
+        transaction (:func:`~.proposal_accept.accept_into_working_copy`): the stale rule, the
+        merge into the working copy at ``expected_workspace_revision``, the working revision, the
+        Design Revision naming it, and the approval-ledger row naming both. Refused as
+        :class:`~.proposal_accept.StaleProposal` when the head moved, the baseline is unknown or
+        an item it changes was edited since.
         """
         self.scope.require(Permission.EDIT_STUDY)
         self.scope.require(Permission.APPROVE_GATE)
         self.scope.require_open_study()
         run = self.get(run_id)
         if expected_revision_id != run["metadata"]["design_revision_id"]:
-            raise DesignRejected("proposal baseline does not match", reason="stale_proposal")
-        result = self.result(run_id, store=store)
+            raise StaleProposal("proposal baseline does not match", why="design_moved")
         action = ResearchAction(run["metadata"]["action"])
-        stages = {
-            ResearchAction.ANALYZE: "plan",
-            ResearchAction.BUILD: "questionnaire",
-            ResearchAction.OPTIMIZE: "questionnaire",
-            ResearchAction.AUDIENCE: "audience",
-            ResearchAction.DIMENSIONS: "persona",
-        }
-        if action not in stages:
+        if action not in DESIGN_ACTIONS:
             raise DesignRejected("an advice answer is not a design mutation", reason="advice_only")
-        designs = StudyDesignRepository(self.session, self.scope)
-        revision, created = designs.submit_if_current(
-            content=result["result"]["project"],
-            source_stage=stages[action],
-            expected_revision_id=expected_revision_id,
+        design = StudyDesignRepository(self.session, self.scope).get(expected_revision_id)
+        baseline = proposal_baseline(self.session, self.scope, design)
+        if baseline is None or run["metadata"].get("base_workspace_revision") is None:
+            raise StaleProposal(
+                "the proposal's design names no working revision to check it against",
+                why="unknown_baseline",
+            )
+        result = self.result(run_id, store=store)
+        output = run["steps"][0]["output"] or {}
+        recorded = output.get("touched_items")
+        accepted = accept_into_working_copy(
+            self.session,
+            self.scope,
+            design_revision_id=expected_revision_id,
+            proposed=proposal_documents(action, baseline, result["result"]),
+            expected_workspace_revision=expected_workspace_revision,
+            source_stage=_ACCEPT_STAGES[action],
+            reason="ai_proposal_accepted",
+            touched=[ItemKey.parse(str(k)) for k in recorded]
+            if isinstance(recorded, list)
+            else None,
         )
-        project_id = designs.project_id()
-        assert project_id is not None  # submit_if_current has just written to it
+        project_id = StudyDesignRepository(self.session, self.scope).project_id()
+        assert project_id is not None  # the accept has just written to it
         WorkflowRepository(self.session, self.scope).record_ai_proposal_acceptance(
             run_id,
             action=action.value,
-            revision_id=revision.revision_id,
+            revision_id=accepted.revision.revision_id,
             project_id=project_id,
-            project_revision=revision.revision,
-            created=created,
-            artifact_id=str(run["steps"][0]["output"]["artifact_id"]),
+            project_revision=accepted.revision.revision,
+            created=accepted.created,
+            artifact_id=str(output["artifact_id"]),
+            workspace_revision=accepted.working.revision,
+            workspace_revision_id=accepted.working.revision_id,
         )
-        return revision, created
+        return accepted
+
+
+#: The stage an accepted proposal's Design Revision is recorded as submitted from.
+_ACCEPT_STAGES: dict[ResearchAction, str] = {
+    ResearchAction.ANALYZE: "plan",
+    ResearchAction.BUILD: "questionnaire",
+    ResearchAction.OPTIMIZE: "questionnaire",
+    ResearchAction.AUDIENCE: "audience",
+    ResearchAction.DIMENSIONS: "persona",
+}
 
 
 def _ended_without_result(run: Mapping[str, Any]) -> bool:

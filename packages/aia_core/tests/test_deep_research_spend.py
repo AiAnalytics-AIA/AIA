@@ -66,7 +66,7 @@ def runs(session: Any, scoped: Any) -> Any:
 @pytest.fixture
 def revision(session: Any, scoped: Any) -> str:
     repo = StudyDesignRepository(session, scoped.scope(user="lead"))
-    made, _ = repo.submit(content=DESIGN, source_stage="brief")
+    made, _ = repo.submit_as_working_copy(content=DESIGN, source_stage="brief")
     return made.revision_id
 
 

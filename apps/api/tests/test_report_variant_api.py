@@ -86,9 +86,7 @@ def _prepared(
     composition contract the draft was stored under. ``stampable``: a real report laid out
     with its status in its footers, recorded so (D2); else fictional bytes, which a version
     stored before that layout stands for."""
-    made = researcher.post(
-        f"{_study(world)}/design/revisions", json={"content": DESIGN, "source_stage": "run"}
-    )
+    made = world.design(researcher, DESIGN)
     assert made.status_code in (200, 201), made.text
     started = researcher.post(
         f"{_study(world)}/research/runs", json={"design_revision_id": made.json()["revision_id"]}

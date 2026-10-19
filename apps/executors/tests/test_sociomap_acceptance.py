@@ -137,7 +137,7 @@ def worker(
 def _start(world: Any, design: dict[str, Any]) -> str:
     with world.sessions() as session:
         scope = world.lead_scope(session)
-        revision, _ = StudyDesignRepository(session, scope).submit(
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content=design, source_stage="run"
         )
         started = ResearchRuns(session, scope).start(

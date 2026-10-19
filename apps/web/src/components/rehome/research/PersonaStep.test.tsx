@@ -33,12 +33,15 @@ const CONTEXT = {
 type Call = { url: string; body: Record<string, unknown> | null };
 let calls: Call[] = [];
 let saves: SavedBody[] = [];
+/** The working copy the server wrote on an accept (ADR 0026 decision 6). */
+let writes: { content: Record<string, unknown>; analysis: unknown }[] = [];
 /** AIA, answering by path: the working content, the study's context and proposals, the native jobs. */
 function aiaStub(project: Record<string, unknown>, over: Record<string, (b: unknown) => unknown> = {}) {
   calls = [];
   const ws = workspaceFixture(project, { analysis: null });
   saves = ws.saves;
-  const native = nativeAgentFixture((_action, baseline) => ({ project: baseline, proposal: { ...SUGGESTION, new_dimension_suggestions: SUGGESTION.new_dimension_suggestions.map((s) => ({ ...s, evidence_needed: [s.evidence_needed] })) }, dimensions: [], new_dimension_suggestions: SUGGESTION.new_dimension_suggestions }), over);
+  writes = ws.writes;
+  const native = nativeAgentFixture((_action, baseline) => ({ project: baseline, proposal: { ...SUGGESTION, new_dimension_suggestions: SUGGESTION.new_dimension_suggestions.map((s) => ({ ...s, evidence_needed: [s.evidence_needed] })) }, dimensions: [], new_dimension_suggestions: SUGGESTION.new_dimension_suggestions }), over, ws.write);
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
@@ -134,9 +137,10 @@ describe("Dimenze", () => {
     await approveProposal();
     expect(await screen.findByRole("heading", { name: "AI navrhuje doplnit nové dimenze" }, NATIVE_JOB_WAIT)).toBeTruthy();
     expect(posted(AGENTS_PATH)[0].body).toMatchObject({ action: "suggest_dimensions" });
-    await savedWith("native_ai_proposal_accepted");
+    // The server wrote the accepted proposal into the working copy (ADR 0026 decision 6).
+    await waitFor(() => expect(writes).toHaveLength(1));
     // Existing researcher choices survive; unsupported dimensions are proposals.
-    expect(lastSave().content.persona_dimensions.approved).toEqual(["cena"]);
+    expect((writes[0].content.persona_dimensions as { approved: string[] }).approved).toEqual(["cena"]);
     expect(screen.queryByRole("button", { name: "Odebrat dimenzi uplne_nova_vec" })).toBeNull();
     expect(screen.getByText("Mění ochotu · evidence: průzkum")).toBeTruthy();
     // No Deep Research hand-off: AIA has none, and the card says so.

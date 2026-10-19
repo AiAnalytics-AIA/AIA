@@ -10,6 +10,7 @@ import { describe, expect, it } from "vitest";
 
 import { briefFingerprint, type ResearchProject } from "./model";
 import { proposalDiff, questionnaireReplacement } from "./proposal-diff";
+import type { Analysis } from "./store";
 
 type Doc = Record<string, unknown>;
 type Case = { name: string; note: string; before: { content: Doc; analysis: Doc | null }; after: { content: Doc; analysis: Doc | null }; items: string[] };
@@ -24,7 +25,7 @@ const isObj = (x: unknown): x is Doc => !!x && typeof x === "object" && !Array.i
 
 /** The items the web's diff names for one document's plan (the research plan, or the analysis). */
 function planItems(doc: "content" | "analysis", before: Doc, after: Doc): string[] {
-  const d = proposalDiff(before, after);
+  const d = proposalDiff(before as Analysis, after);
   const out: string[] = [];
   for (const l of d.lists) for (const x of [...l.added, ...l.removed]) out.push(`${doc}:${KINDS[l.key]}:${key(x.trim())}`);
   for (const s of d.sets) if (s.status !== "same") out.push(`${doc}:tracked_set:${key(s.title)}`);

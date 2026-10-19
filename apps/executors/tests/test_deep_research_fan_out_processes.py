@@ -140,7 +140,7 @@ def _wait_for(condition: Callable[[], bool], *, what: str, timeout: float = WAIT
 def _start(world: ResearchWorld, n: int) -> str:
     with world.sessions() as session:
         scope = world.lead_scope(session)
-        revision, _ = StudyDesignRepository(session, scope).submit(
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content=fw.design(n), source_stage="brief"
         )
         run = DeepResearchRuns(session, scope).start(

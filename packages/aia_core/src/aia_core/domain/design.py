@@ -112,3 +112,7 @@ class DesignRevision(BaseModel):
     source_stage: str
     created_by: str | None
     created_at: datetime
+    #: The working revision the design came from (ADR 0026 decision 5); ``None`` for a
+    #: revision written before every writer named one. A proposal on such a revision cannot
+    #: be checked item by item, so its accept is refused (``unknown_baseline``).
+    workspace_revision: int | None = None

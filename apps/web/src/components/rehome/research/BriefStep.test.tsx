@@ -34,7 +34,7 @@ let ws: ReturnType<typeof workspaceFixture>;
 function unitStub(project: Record<string, unknown> | null, over: Record<string, (body: unknown) => unknown> = {}, analysis: unknown = null) {
   calls = [];
   ws = workspaceFixture(project, { analysis });
-  const native = nativeAgentFixture((_action, baseline) => ({ project: { ...baseline, research_plan: { status: "analyzed", objectives: ["Změřit zájem"] } }, proposal: { objectives: ["Změřit zájem"] }, analysis: { objectives: ["Změřit zájem"] } }), over);
+  const native = nativeAgentFixture((_action, baseline) => ({ project: { ...baseline, research_plan: { status: "analyzed", objectives: ["Změřit zájem"] } }, proposal: { objectives: ["Změřit zájem"] }, analysis: { objectives: ["Změřit zájem"] } }), over, ws.write);
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {

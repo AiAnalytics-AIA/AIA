@@ -272,7 +272,7 @@ def run_with(
 def _start(world: Any, response: ResponseProcessSpec | None = None) -> str:
     with world.sessions() as session:
         scope = world.lead_scope(session)
-        revision, _ = StudyDesignRepository(session, scope).submit(
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content=DESIGN, source_stage="run"
         )
         started = ResearchRuns(session, scope).start(
@@ -1091,7 +1091,7 @@ def _start_grounded(
 
     with world.sessions() as session:
         scope = world.lead_scope(session)
-        revision, _ = StudyDesignRepository(session, scope).submit(
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content=design, source_stage="run"
         )
         started = ResearchRuns(

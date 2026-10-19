@@ -112,7 +112,7 @@ def test_a_fictional_source_reused_stays_untouched_cites_its_labels_and_never_cr
     # -- the source: one design, one run on the fictional fixture, every step done ------------
     with sessions() as session:
         scope = world.lead_scope(session)
-        revision, _ = StudyDesignRepository(session, scope).submit(
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content=DESIGN, source_stage="run"
         )
         run_id = (

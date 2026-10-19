@@ -27,6 +27,7 @@ import {
   type DeepResearchBundle,
   type DeepResearchRun,
   type DesignProposal,
+  type DesignRevision,
   deepResearch,
   type ResearchRun,
   type ResearchRunSummary,
@@ -87,7 +88,7 @@ import { withBudget } from "@/lib/budget-line";
 import { reportStatus, reportStatusWords } from "@/lib/report-status";
 import type { Tone } from "@/lib/tone";
 import { CodedWords } from "./CodedWords";
-import { CONFLICT_MESSAGE } from "@/research/store";
+import { CONFLICT_MESSAGE, submitWorkingDesign } from "@/research/store";
 import { projectVariants, selectedVariant } from "@/research/plan";
 import { chosenDimensions, dimensionLabels } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
@@ -638,15 +639,12 @@ export function RunStep() {
         // The design the person sees, once per visit -- but only as AIA holds it: a
         // change still waiting for its save is saved first, and a copy whose save was
         // refused (someone saved a newer one) never becomes a revision a run executes.
-        const s = store.get();
-        if (s.revision === null || s.save.kind !== "saved") {
-          try {
-            await store.flush("run");
-          } catch (e) {
-            throw store.get().save.kind === "conflict" ? new Error(CONFLICT_MESSAGE) : e;
-          }
+        let r: DesignRevision;
+        try {
+          r = await submitWorkingDesign(store, frame.studyId, "run");
+        } catch (e) {
+          throw store.get().save.kind === "conflict" ? new Error(CONFLICT_MESSAGE) : e;
         }
-        const r = await research.submitDesign(frame.studyId, store.get().project, "run");
         revisionId = r.revision_id;
         revision = r.revision;
       } else {

@@ -83,7 +83,7 @@ def _approve(scoped: Any, session: Any, keys: tuple[str, ...], admin: Any = None
 def start(session: Any, scoped: Any) -> Any:
     def go(prices: DeepResearchPrices | None, title: str = "Rostlinné nápoje") -> Any:
         scope = scoped.scope(user="lead")
-        revision, _ = StudyDesignRepository(session, scope).submit(
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content={**DESIGN, "title": title}, source_stage="brief"
         )
         return DeepResearchRuns(session, scope).start(

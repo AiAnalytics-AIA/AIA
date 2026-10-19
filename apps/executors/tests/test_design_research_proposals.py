@@ -32,6 +32,7 @@ from aia_core.domain.design import DesignRejected
 from aia_core.domain.scope import WORKER_PERMISSIONS, ScopeDenied
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
+from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRepository
 from aia_core.infrastructure.tables import ApprovalDecisionRow
 from deep_research_fixtures import (
     DESIGN,
@@ -88,14 +89,17 @@ def _accept(
     world = journey.world
     with world.sessions() as session:
         person = world.lead_scope(session)
+        # The person's working copy as it is now: the items go into it too (ADR 0026 d6).
+        working = StudyWorkspaceRepository(session).content(person).revision or 1
         result = DesignResearchProposals(session, scope(person) if scope else person).accept(
             journey.run_id,
             item_ids=item_ids,
             expected_revision_id=expected or _baseline(journey),
+            expected_workspace_revision=working,
             store=store,
         )
         session.commit()
-        return result
+        return result.revision, result.created, result.merged.content
 
 
 def test_the_proposal_is_the_runs_own_bundle_by_subject_with_its_gaps(
@@ -138,6 +142,12 @@ def test_an_accept_writes_one_revision_changing_only_the_design_research_key(
         before = designs.content(baseline)
     assert stored == content
     assert {k: v for k, v in stored.items() if k != DESIGN_RESEARCH_KEY} == before == DESIGN
+    # The working copy took the items in the same transaction, and the revision names it.
+    with world.sessions() as session:
+        working = StudyWorkspaceRepository(session).content(world.lead_scope(session))
+    assert revision.workspace_revision is not None
+    assert revision.workspace_revision == working.revision
+    assert working.content == stored
     block = stored[DESIGN_RESEARCH_KEY]
     assert block["contract_version"] == DESIGN_PROPOSAL_CONTRACT
     assert list(block["items"]) == taken
@@ -179,9 +189,9 @@ def test_a_design_edited_after_the_run_is_never_written_over(
 ) -> None:
     world = pass_one.world
     with world.sessions() as session:
-        edited, _ = StudyDesignRepository(session, world.lead_scope(session)).submit(
-            content={**DESIGN, "goal": "Jiný cíl"}, source_stage="brief"
-        )
+        edited, _ = StudyDesignRepository(
+            session, world.lead_scope(session)
+        ).submit_as_working_copy(content={**DESIGN, "goal": "Jiný cíl"}, source_stage="brief")
         session.commit()
     items = [i.item_id for i in _proposal(pass_one, store).items]
     with pytest.raises(DesignRejected) as refused:
@@ -234,7 +244,13 @@ def test_another_studys_scope_finds_no_such_run(
         with pytest.raises(DeepResearchRunNotFound):
             other.proposal(pass_one.run_id, store=store)
         with pytest.raises(DeepResearchRunNotFound):
-            other.accept(pass_one.run_id, item_ids=["x"], expected_revision_id="REV-1", store=store)
+            other.accept(
+                pass_one.run_id,
+                item_ids=["x"],
+                expected_revision_id="REV-1",
+                expected_workspace_revision=1,
+                store=store,
+            )
     assert _ledger(world) == []
 
 

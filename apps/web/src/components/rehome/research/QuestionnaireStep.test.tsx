@@ -36,7 +36,7 @@ function unitStub(project: Record<string, unknown>, analysis: unknown = null, ov
   calls = [];
   const ws = workspaceFixture(project, { analysis: analysis });
   saves = ws.saves;
-  const native = nativeAgentFixture((action, baseline) => action === "analyze_brief" ? { project: baseline, proposal: { objectives: ["O"] }, analysis: { objectives: ["O"] } } : { project: { ...baseline, sections: SECTIONS }, proposal: { sections: SECTIONS } }, over);
+  const native = nativeAgentFixture((action, baseline) => action === "analyze_brief" ? { project: baseline, proposal: { objectives: ["O"] }, analysis: { objectives: ["O"] } } : { project: { ...baseline, sections: SECTIONS }, proposal: { sections: SECTIONS } }, over, ws.write);
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {

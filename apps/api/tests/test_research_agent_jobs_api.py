@@ -30,9 +30,8 @@ def base(world: Any, study: str = "primary") -> str:
 
 
 def revision(client: TestClient, world: Any) -> str:
-    response = client.post(
-        f"/api/v1/studies/{world.study_id()}/design/revisions",
-        json={"content": {"title": "Fictional", "goal": "Test concept"}, "source_stage": "brief"},
+    response = world.design(
+        client, {"title": "Fictional", "goal": "Test concept"}, source_stage="brief"
     )
     assert response.status_code == 201
     return str(response.json()["revision_id"])
@@ -378,5 +377,7 @@ def test_a_corrupt_proposal_is_a_409_and_stays_marked_corrupt(
     assert refused.status_code == 409, refused.text
     assert refused.json()["code"] == "artifact_corrupt"
     assert artifact_status(step["artifact_id"]) == "CORRUPT"
-    accepted = researcher.post(f"{url}/accept", json={"expected_revision_id": rid})
+    accepted = researcher.post(
+        f"{url}/accept", json={"expected_revision_id": rid, "expected_workspace_revision": 1}
+    )
     assert accepted.status_code == 409 and accepted.json()["code"] == "artifact_corrupt"

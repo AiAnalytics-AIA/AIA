@@ -190,7 +190,9 @@ describe("Run", () => {
     expect(await screen.findByText("Revize návrhu 3")).toBeTruthy();
     const [submitted] = called("POST", "/api/v1/studies/STU-1/design/revisions");
     expect(submitted.body).toMatchObject({ source_stage: "run", content: { title: "Ranní nápoj", n: 450 } });
-    expect(Object.keys(submitted.body as object).sort()).toEqual(["content", "source_stage"]); // no client, org or unit id
+    // No client, org or unit id; the working revision the design is (ADR 0026), and nothing else.
+    expect(Object.keys(submitted.body as object).sort()).toEqual(["content", "source_stage", "workspace_revision"]);
+    expect((submitted.body as { workspace_revision: unknown }).workspace_revision).toEqual(expect.any(Number));
     expect(called("GET", "/api/v1/studies/STU-1/research/readiness")[0].url).toContain("design_revision_id=REV-a1");
     expect(screen.getByText("n = 450.")).toBeTruthy();
     expect(screen.getByText(/AIA zatím nepoužije filtry/)).toBeTruthy();

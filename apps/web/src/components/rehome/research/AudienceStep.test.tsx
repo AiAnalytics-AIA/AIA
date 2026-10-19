@@ -20,12 +20,15 @@ const ANALYTICS = { audience_entry: "analytics", analytics_choice: "cz18" };
 type Call = { url: string; body: Record<string, unknown> | null };
 let calls: Call[] = [];
 let saves: SavedBody[] = [];
+/** The working copy the server wrote on an accept (ADR 0026 decision 6). */
+let writes: { content: Record<string, unknown>; analysis: unknown }[] = [];
 /** AIA, answering by path: the study's working content and the native agent jobs; nothing else. */
 function aiaStub(project: Record<string, unknown>, over: Record<string, (b: unknown) => unknown> = {}) {
   calls = [];
   const ws = workspaceFixture(project, { analysis: null });
   saves = ws.saves;
-  const native = nativeAgentFixture((_action, baseline, instruction) => ({ project: { ...baseline, audience: { ...(baseline.audience as object), description: instruction } }, proposal: { description: instruction, inclusion_criteria: ["Sportují"], limitations: ["Ověřte filtry"] } }), over);
+  writes = ws.writes;
+  const native = nativeAgentFixture((_action, baseline, instruction) => ({ project: { ...baseline, audience: { ...(baseline.audience as object), description: instruction } }, proposal: { description: instruction, inclusion_criteria: ["Sportují"], limitations: ["Ověřte filtry"] } }), over, ws.write);
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
@@ -126,8 +129,10 @@ describe("Audience", () => {
     expect(lastSave().content.audience.filters).toEqual({ kraj: ["A"] });
     await approveProposal();
     expect(posted(AGENTS_PATH)[0].body).toMatchObject({ action: "propose_audience", instruction: "Mladí sportovci" });
-    await saved();
-    expect(lastSave().content.audience).toMatchObject({ filters: { kraj: ["A"] }, description: "Mladí sportovci", strategy: "filters" });
+    // The server writes the accepted proposal into the working copy; the stage reloads it.
+    await waitFor(() => expect(writes).toHaveLength(1));
+    expect(writes[0].content.audience).toMatchObject({ filters: { kraj: ["A"] }, description: "Mladí sportovci", strategy: "filters" });
+    expect(saves.some((s) => s.reason === "native_ai_proposal_accepted")).toBe(false);
     noUnitCalls();
   });
 

@@ -42,15 +42,15 @@ def world(session: Any, scoped: Any) -> Any:
     )
     own = ClientKnowledgeRepository(session).items(client, kinds=(KnowledgeKind.DIMENSION,))
     own_id = own[0].item_id
-    StudyDesignRepository(session, scoped.scope(study="primary")).submit(
+    StudyDesignRepository(session, scoped.scope(study="primary")).submit_as_working_copy(
         content=_design("Ranní káva", dimensions=("zdravi", own_id)), source_stage="run"
     )
     StudyWorkspaceRepository(session).save(
         scoped.scope(study="sibling"), content=_design("Kávové ceny"), base_revision=None
     )
-    StudyDesignRepository(session, scoped.scope(user="other_lead", study="other_client")).submit(
-        content=_design("Ranní káva u Globexu"), source_stage="run"
-    )
+    StudyDesignRepository(
+        session, scoped.scope(user="other_lead", study="other_client")
+    ).submit_as_working_copy(content=_design("Ranní káva u Globexu"), source_stage="run")
     session.flush()
     return scoped
 

@@ -62,9 +62,7 @@ def _study(world: Any) -> str:
 
 
 def _revision(c: TestClient, world: Any) -> str:
-    made = c.post(
-        f"{_study(world)}/design/revisions", json={"content": DESIGN, "source_stage": "run"}
-    )
+    made = world.design(c, DESIGN)
     assert made.status_code in (200, 201), made.text
     return str(made.json()["revision_id"])
 

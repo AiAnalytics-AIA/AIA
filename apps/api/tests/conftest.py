@@ -100,6 +100,30 @@ class World:
     def client_id(self, name: str = "primary") -> str:
         return self.clients[name].client_id
 
+    def design(
+        self, c: Any, content: Any, *, study: str = "primary", source_stage: str = "run"
+    ) -> Any:
+        """Submit ``content`` as a Design Revision the way the browser does (ADR 0026 d5).
+
+        The working copy is saved as ``content`` first and the design names that working
+        revision; a save the caller may not make leaves the design route to refuse it, with the
+        status it answers. Returns the design route's response.
+        """
+        base = f"/api/v1/studies/{self.study_id(study)}"
+        number = 1
+        if isinstance(content, dict) and content:
+            now = c.get(f"{base}/workspace/content")
+            current = now.json().get("revision") if now.status_code == 200 else None
+            saved = c.put(
+                f"{base}/workspace/content", json={"content": content, "base_revision": current}
+            )
+            if saved.status_code == 200:
+                number = saved.json()["revision"]
+        return c.post(
+            f"{base}/design/revisions",
+            json={"content": content, "source_stage": source_stage, "workspace_revision": number},
+        )
+
 
 @pytest.fixture
 def world(app: FastAPI) -> World:

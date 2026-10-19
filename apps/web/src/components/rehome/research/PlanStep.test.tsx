@@ -38,7 +38,7 @@ let calls: Call[] = [];
 function unitStub(analysis: unknown = ANALYSIS, over: Record<string, (b: unknown) => unknown> = {}, project: Record<string, unknown> = PROJECT) {
   calls = [];
   const ws = workspaceFixture(project, { analysis: analysis });
-  const native = nativeAgentFixture((_action, baseline) => ({ project: { ...baseline, research_plan: { ...ANALYSIS, problem_summary: "Nové shrnutí." } }, proposal: { ...ANALYSIS, problem_summary: "Nové shrnutí." }, analysis: { ...ANALYSIS, problem_summary: "Nové shrnutí." } }), over);
+  const native = nativeAgentFixture((_action, baseline) => ({ project: { ...baseline, research_plan: { ...ANALYSIS, problem_summary: "Nové shrnutí." } }, proposal: { ...ANALYSIS, problem_summary: "Nové shrnutí." }, analysis: { ...ANALYSIS, problem_summary: "Nové shrnutí." } }), over, ws.write);
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {

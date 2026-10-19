@@ -2413,6 +2413,8 @@ class WorkflowRepository:
         project_revision: int,
         created: bool,
         artifact_id: str,
+        workspace_revision: int | None = None,
+        workspace_revision_id: str | None = None,
     ) -> bool:
         """Write a person's accept of what an agent job proposed, once, in the approval ledger.
 
@@ -2427,6 +2429,10 @@ class WorkflowRepository:
         unchanged proposal can be accepted again, and that is not a second decision. The caller
         holds the Study row lock (``StudyDesignRepository.submit_if_current``), so two accepts
         cannot both pass the check.
+
+        ``workspace_revision`` and ``workspace_revision_id`` name the working revision the accept
+        wrote beside the Design Revision (ADR 0026 decision 6). Only an ``accept`` row counts as
+        the accept: a dismissal before it is a decision too, not this one.
         """
         self.scope.require(Permission.APPROVE_GATE)
         run = self._run(run_id)
@@ -2435,6 +2441,7 @@ class WorkflowRepository:
                 ApprovalDecisionRow.study_id == self.scope.study_id,
                 ApprovalDecisionRow.subject_type == "ai_proposal",
                 ApprovalDecisionRow.subject_id == run_id,
+                ApprovalDecisionRow.decision == "accept",
             )
         )
         if recorded is not None:
@@ -2462,6 +2469,8 @@ class WorkflowRepository:
                         "revision_id": revision_id,
                         "revision_created": created,
                         "artifact_id": artifact_id,
+                        "workspace_revision": workspace_revision,
+                        "workspace_revision_id": workspace_revision_id,
                     },
                     sort_keys=True,
                 ),
@@ -2471,6 +2480,70 @@ class WorkflowRepository:
         )
         self._session.flush()
         return True
+
+    def record_ai_proposal_dismissal(self, run_id: str, *, action: str, artifact_id: str) -> bool:
+        """Write a person's dismissal of what an agent job proposed, in the approval ledger.
+
+        ADR 0026 decision 8: dismissing AI output is a decision about it, recorded where its
+        accept would be (``subject_type = "ai_proposal"``, ``decision = "dismiss"``). Needs
+        ``APPROVE_GATE``. Returns ``False`` and writes nothing when the job already has a
+        decision -- dismissed before, or accepted (an accepted proposal is in the design; there
+        is nothing left to dismiss, and the caller says so).
+        """
+        self.scope.require(Permission.APPROVE_GATE)
+        run = self._run(run_id)
+        recorded = self._session.scalar(
+            select(ApprovalDecisionRow.decision_id).where(
+                ApprovalDecisionRow.study_id == self.scope.study_id,
+                ApprovalDecisionRow.subject_type == "ai_proposal",
+                ApprovalDecisionRow.subject_id == run_id,
+                ApprovalDecisionRow.decision.in_(("accept", "dismiss")),
+            )
+        )
+        if recorded is not None:
+            return False
+        independence = observe_approval_independence(
+            producer_user_id=run.triggered_by,
+            approving_user_id=self.scope.actor_id,
+            policy=self.scope.self_approval,
+        )
+        self._session.add(
+            ApprovalDecisionRow(
+                organization_id=self.scope.organization_id,
+                client_id=self.scope.client_id,
+                study_id=self.scope.study_id,
+                subject_type="ai_proposal",
+                subject_id=run_id,
+                run_id=run_id,
+                project_id=run.project_id,
+                project_revision=run.project_revision,
+                artifact_type="research_agent_proposal",
+                gate_type=action,
+                decision="dismiss",
+                comment=json.dumps({"artifact_id": artifact_id}, sort_keys=True),
+                request_id=self.scope.request_id,
+                **independence.audit_fields(),
+            )
+        )
+        self._session.flush()
+        return True
+
+    def ai_proposal_decisions(self, run_ids: Sequence[str]) -> dict[str, str]:
+        """Each of these agent jobs' recorded decision, ``accept`` over ``dismiss``; none absent."""
+        if not run_ids:
+            return {}
+        rows = self._session.execute(
+            select(ApprovalDecisionRow.subject_id, ApprovalDecisionRow.decision).where(
+                ApprovalDecisionRow.study_id == self.scope.study_id,
+                ApprovalDecisionRow.subject_type == "ai_proposal",
+                ApprovalDecisionRow.subject_id.in_(list(run_ids)),
+            )
+        ).all()
+        out: dict[str, str] = {}
+        for subject, decision in rows:
+            if decision == "accept" or subject not in out:
+                out[str(subject)] = str(decision)
+        return out
 
     def record_design_research_acceptance(
         self,

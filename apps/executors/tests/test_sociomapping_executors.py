@@ -71,7 +71,7 @@ def worker_with(
 def _start(world: Any, *, sociomapping: bool) -> str:
     with world.sessions() as session:
         scope = world.lead_scope(session)
-        revision, _ = StudyDesignRepository(session, scope).submit(
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content=DESIGN, source_stage="run"
         )
         started = ResearchRuns(session, scope).start(

@@ -8,7 +8,7 @@
 // (409 stale_revision) and the store says so, instead of overwriting their work.
 
 import { t, tv } from "@/i18n/t";
-import { ApiError, type ContentState, type WorkingContent, workspace } from "@/lib/api";
+import { ApiError, type ContentState, type DesignRevision, type WorkingContent, research, workspace } from "@/lib/api";
 import { type Json, type ResearchProject, type Template, defaultsMerge } from "./model";
 
 export const SAVE_DEBOUNCE_MS = 1800;
@@ -235,6 +235,26 @@ export class ResearchStore {
   }
 
   /**
+   * Read the working copy again from AIA and replace this copy with it: after the server wrote it
+   * (an accepted proposal, ADR 0026 decision 6), or after a conflict. A change still waiting for
+   * its save is dropped, so the caller flushes first when it means to keep one.
+   */
+  async reload(read: (studyId: string) => Promise<WorkingContent> = workspace.content): Promise<void> {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    if (this.inflight) await this.inflight.catch(() => {});
+    const loaded = readWorkingContent(await read(this.studyId));
+    if (loaded.kind !== "research") throw new Error("Pracovní obsah studie se nepodařilo znovu načíst.");
+    this.set({
+      ...loaded.state,
+      save: this.opts.readOnly ? { kind: "readonly" } : loaded.state.save,
+      checkEpoch: this.state.checkEpoch + 1,
+    });
+  }
+
+  /**
    * The person left the study: a change still waiting for its debounced save is
    * saved now (flush clears the timer) rather than dropped. Nothing is listening
    * any more, so if that save fails, no one is told; the next load shows the last
@@ -252,4 +272,24 @@ export const CLOSED_MESSAGE = "Studie je uzavřená a změny nepřijímá. Načt
 /** The API's save reason: the classic reasons are already this shape; anything else is `autosave`. */
 export function saveReason(reason: string): string {
   return /^[a-z0-9_:.-]{1,64}$/.test(reason) ? reason : "autosave";
+}
+
+/**
+ * Submit the design this copy holds as a Design Revision, naming the working revision it is
+ * (ADR 0026 decision 5): saved first, so the revision named is exactly what is submitted. A change
+ * typed while the save was in flight is saved too before anything is submitted.
+ */
+export async function submitWorkingDesign(
+  store: ResearchStore,
+  studyId: string,
+  sourceStage: string,
+  submit: typeof research.submitDesign = research.submitDesign,
+): Promise<DesignRevision> {
+  // A copy AIA already holds as it is needs no save: its revision is what is submitted.
+  for (let i = 0; i < 2 && (store.get().revision === null || store.get().save.kind !== "saved"); i++) {
+    await store.flush(sourceStage === "run" ? "run" : undefined);
+  }
+  const s = store.get();
+  if (s.revision === null) throw new Error("Pracovní obsah studie ještě není uložený.");
+  return submit(studyId, s.project, sourceStage, s.revision);
 }

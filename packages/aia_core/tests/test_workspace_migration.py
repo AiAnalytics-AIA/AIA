@@ -614,13 +614,20 @@ def test_a_project_missing_from_the_copy_waits_until_the_copy_is_said_complete(
     unit_store: Any,
 ) -> None:
     unit.save("PRJ-somethingelse", unit_store.brief("Jiný", "G"))
-    designed = _bind(session, scoped, unit_project="PRJ-gone0000000001")
-    nothing = _bind(session, scoped, study="sibling", unit_project="PRJ-gone0000000002")
     design = {"title": "Ranní nápoj", "goal": "Zjistit zájem", "sections": []}
-    revision, _ = StudyDesignRepository(session, scoped.scope()).submit(
+    # A Design Revision submitted while the study's content lived in 18.6.6: a design names a
+    # working revision now (ADR 0026), so the study is put back as migration 5b1d0f3e9a21 left
+    # it, bound and waiting, with the design and no working project of its own.
+    revision, _ = StudyDesignRepository(session, scoped.scope()).submit_as_working_copy(
         content=design, source_stage="run"
     )
+    row = session.get(StudyWorkspaceRow, scoped.studies["primary"].study_id)
+    row.content_state = ContentState.AWAITING_MIGRATION.value
+    row.project_id = None
+    row.unit_project_id = "PRJ-gone0000000001"
     session.commit()
+    designed = str(scoped.studies["primary"].study_id)
+    nothing = _bind(session, scoped, study="sibling", unit_project="PRJ-gone0000000002")
 
     waiting = _migrate(sessions, store, unit, apply=True)
     assert [(s.outcome, s.applied) for s in waiting.studies] == [

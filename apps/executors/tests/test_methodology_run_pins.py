@@ -101,7 +101,7 @@ def _reset(world: Any) -> None:
 def _start(world: Any) -> str:
     with world.sessions() as session:
         scope = world.lead_scope(session)
-        revision, _ = StudyDesignRepository(session, scope).submit(
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content=DESIGN, source_stage="run"
         )
         started = ResearchRuns(session, scope).start(
@@ -241,7 +241,7 @@ def _support(readiness: Any) -> dict[str, Any]:
 def _readiness(world: Any) -> Any:
     with world.sessions() as session:
         scope = world.lead_scope(session)
-        revision, _ = StudyDesignRepository(session, scope).submit(
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content=DESIGN, source_stage="run"
         )
         _spec, readiness = ResearchRuns(session, scope).readiness(revision.revision_id)
@@ -292,7 +292,7 @@ def test_the_preflight_step_reads_the_runs_pin_not_what_is_in_force_later(
 def _start_with(world: Any, support: Any) -> str:
     with world.sessions() as session:
         scope = world.lead_scope(session)
-        revision, _ = StudyDesignRepository(session, scope).submit(
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content=DESIGN, source_stage="run"
         )
         started = ResearchRuns(session, scope).start(
@@ -379,7 +379,7 @@ def test_a_retry_keeps_the_response_process_its_run_pinned(world: Any) -> None:
     )
     with world.sessions() as session:
         scope = world.lead_scope(session)
-        revision, _ = StudyDesignRepository(session, scope).submit(
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content=DESIGN, source_stage="run"
         )
         runs = ResearchRuns(session, scope)
@@ -426,7 +426,7 @@ def test_a_run_pins_the_response_version_in_force_and_one_started_before_keeps_t
 def _start_aggregation(world: Any, aggregation: Any) -> str:
     with world.sessions() as session:
         scope = world.lead_scope(session)
-        revision, _ = StudyDesignRepository(session, scope).submit(
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content=DESIGN, source_stage="run"
         )
         started = ResearchRuns(session, scope).start(
@@ -608,7 +608,7 @@ def _reset_limits(world: Any) -> None:
 def _start_design(world: Any, design: dict[str, Any]) -> str:
     with world.sessions() as session:
         scope = world.lead_scope(session)
-        revision, _ = StudyDesignRepository(session, scope).submit(
+        revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content=design, source_stage="run"
         )
         started = ResearchRuns(session, scope).start(
@@ -691,7 +691,7 @@ def test_a_start_that_finds_its_run_returns_it_under_stricter_limits(world: Any)
     with world.sessions() as session:
         scope = world.lead_scope(session)
         designs = StudyDesignRepository(session, scope)
-        revision, _ = designs.submit(content=small, source_stage="run")
+        revision, _ = designs.submit_as_working_copy(content=small, source_stage="run")
         again = ResearchRuns(session, scope).start(
             design_revision_id=revision.revision_id,
             fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
@@ -702,7 +702,7 @@ def test_a_start_that_finds_its_run_returns_it_under_stricter_limits(world: Any)
     # A revision with no run is still held to the limits in force.
     with world.sessions() as session, pytest.raises(DesignNotReady):
         scope = world.lead_scope(session)
-        other, _ = StudyDesignRepository(session, scope).submit(
+        other, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
             content={**small, "title": "Jiný nápoj"}, source_stage="run"
         )
         ResearchRuns(session, scope).start(
