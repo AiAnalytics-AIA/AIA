@@ -1,5 +1,5 @@
 ---
-status: in-progress        # all 12 chunks done; the one cutover remains (§ One cutover)
+status: done        # all 12 chunks done; no 18.6.6 content migration is needed (owner, 2026-10-19, overview MVP-33)
 chunks:
   - "[x] 1. Working content in AIA"
   - "[x] 2. Web: the research flow's logic out of src/unit/research"

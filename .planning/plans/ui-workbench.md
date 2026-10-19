@@ -1,10 +1,10 @@
 ---
-status: in-progress
+status: done
 chunks:
   - "[x] 0. This plan"
   - "[x] 1. tools/ui_workbench/: up / down / status"
   - "[x] 2. capture.mjs: every classic screen, bare and skinned"
-  - "[ ] 3. Docs, PR into develop, first capture published (docs for chunk 1 done)"
+  - "[x] 3. Docs, PR into develop, first capture published (docs for chunk 1 done) — built the workbench is in use (tools/ui_workbench, make ui-workbench) (mvp-consolidation 2026-10-19)"
   - "[x] 4. The capture covers the rebuilt React screens too"
 ---
 # UI workbench — see every screen, change the skin in seconds

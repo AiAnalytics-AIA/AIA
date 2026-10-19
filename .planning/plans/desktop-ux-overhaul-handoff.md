@@ -3,7 +3,7 @@ status: in-progress
 chunks:
   - "[x] 1. Record the user's desktop regression and preserve the corrective code already written"
   - "[ ] 2. Establish a desktop journey baseline and a coherent interaction model"
-  - "[ ] 3. Complete Research flow, including editable Návrh and contextual AI"
+  - "[x] 3. Complete Research flow, including editable Návrh and contextual AI — moved to research-lead-workbench chunks 14-22 (V3 artifacts) (mvp-consolidation 2026-10-19)"
   - "[ ] 4. Complete all Settings tabs, especially Methodology"
   - "[ ] 5. Verify complete desktop journeys, release and inspect the deployed result"
 ---

@@ -1,12 +1,12 @@
 ---
-status: in-progress
+status: done
 chunks:
   - "[x] 1. Resume a pre-dispatch research proposal after runtime activation"
-  - "[ ] 2. Make material review usable without host configuration edits"
-  - "[ ] 3. Verify respondents and admitted analysis in a recorded full Study run"
-  - "[ ] 4. Compose an internal branded report from admitted analysis"
-  - "[ ] 5. Store and retrieve the report through the Study with explicit review state"
-  - "[ ] 6. Deploy and complete bounded live acceptance"
+  - "[x] 2. Make material review usable without host configuration edits — moved to usable-classification (#487), built (mvp-consolidation 2026-10-19)"
+  - "[x] 3. Verify respondents and admitted analysis in a recorded full Study run — moved to complete-study-report and evidence-backed-analysis, built (mvp-consolidation 2026-10-19)"
+  - "[x] 4. Compose an internal branded report from admitted analysis — moved to complete-study-report B1, built (mvp-consolidation 2026-10-19)"
+  - "[x] 5. Store and retrieve the report through the Study with explicit review state — moved to complete-study-report B1d/B2, built (mvp-consolidation 2026-10-19)"
+  - "[x] 6. Deploy and complete bounded live acceptance — moved to the MVP release acceptance (overview.md, MVP roadmap) (mvp-consolidation 2026-10-19)"
 ---
 # Complete the AIA research workflow
 

@@ -1,9 +1,9 @@
 ---
-status: in-progress
+status: done
 chunks:
-  - "[ ] 1. Skip the suites for a plans-and-ADRs-only pull request; run cheap documentation checks instead"
-  - "[ ] 2. Run the SQLite domain suite on pushes to main and develop, not on pull requests"
-  - "[ ] 3. Prove the docs-only skip on the next docs-only pull request, then widen or leave the list"
+  - "[x] 1. Skip the suites for a plans-and-ADRs-only pull request; run cheap documentation checks instead — built at .github/workflows/ci.yml:64 @ 0b4e05e (mvp-consolidation 2026-10-19)"
+  - "[x] 2. Run the SQLite domain suite on pushes to main and develop, not on pull requests — built at .github/workflows/ci.yml:248 @ 0b4e05e (mvp-consolidation 2026-10-19)"
+  - "[x] 3. Prove the docs-only skip on the next docs-only pull request, then widen or leave the list — built proven by #493, which took the Documentation checks route (mvp-consolidation 2026-10-19)"
 ---
 # CI: do not run the suites for a change that cannot affect them
 

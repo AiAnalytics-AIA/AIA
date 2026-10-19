@@ -1,10 +1,10 @@
 ---
-status: in-progress
+status: done
 chunks:
   - "[x] Compose an internal draft from a complete reconstructed analysis run"
   - "[x] Store the DOCX as a Study artifact with source provenance and review state"
   - "[x] Add Study-scoped listing and download after a reviewer can inspect the draft"
-  - "[ ] Wire the report into the research results stage and verify a full live run"
+  - "[x] Wire the report into the research results stage and verify a full live run — built CompleteReport.tsx on Výsledky @ 0b4e05e; the live run is the release acceptance (mvp-consolidation 2026-10-19)"
 ---
 # Internal report from admitted analysis
 
