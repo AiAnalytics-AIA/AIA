@@ -9,6 +9,8 @@ chunks:
   - "[ ] 5. Admission and the client-reported grade in domain/evidence, and the report's marks"
   - "[ ] 6. A client's own survey: its own Sociomap through the existing engine, never merged"
   - "[ ] 7. The Lead and the analysis modules see only admitted client-reported results, never rows"
+  - "[ ] 8. Brief materials pick a client dataset; `brief_signature` and `design_material` carry the source id and the contract version, with one fixture for Python and TypeScript"
+  - "[ ] 9. The client-data steps placed in the run: a graph node, a contract-version pin on the run, an impact root, and which run's report prints them; class and lineage for client-reported numbers sent to a model"
 ---
 # A client's own data in a study's analysis
 
@@ -84,3 +86,15 @@ Chunk 1 edits `domain/fieldwork.py` and `domain/evidence/`: hand-off, not a seco
 
 `ARCHITECTURE.md` §4 (the origin set and the fourth reading), ADR 0027 (chunk 0's amendment),
 `overview.md` track D ("ADR first" becomes ADR 0027).
+
+## Added by the master plan (2026-10-19)
+
+- **8.** The Brief's materials are where a person picks a dataset (F19). `briefing.attachments`, the Python
+  and TypeScript `brief_signature` and `design_material` are written once. Interfaces I10, gap G25.
+- **9.** Nothing places the client-data steps in a run today (T3 A11-A12): no node, no pin, no impact root.
+  Client-reported numbers going to a model need a class and a lineage (`MaterialRule` has none), shared
+  with `lead-orchestration#LO8`. Gap G35.
+- **Permission.** Chunk 2 says the contract is accepted under `APPROVE_GATE`; `mvp-target-architecture.md`
+  §5 says `PROPOSE_CLIENT_KNOWLEDGE`. One is chosen in chunk 2 and the other document is corrected. ADR 0027
+  decision 3 (a blocklist of flagged personal columns) and chunk 3 (an allowlist the contract names) are
+  reconciled in chunk 0.

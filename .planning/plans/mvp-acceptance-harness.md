@@ -1,7 +1,7 @@
 ---
 status: planned
 chunks:
-  - "[ ] 1. The USD 25 allocation: a ceiling per category, summed and checked before any recorded run"
+  - "[ ] 1. The USD 25 allocation: a ceiling per category, summed and checked before any recorded run, covering fieldwork, analysis and its repairs, the Lead's turns, Deep Research search and tool spend and the second (Interpretation) run, a retry round"
   - "[ ] 2. The study's fixed inputs, fictional and committed: brief, client document, dataset with one personal column, a web page, a past study"
   - "[ ] 3. The harness: tests/acceptance driven over HTTP, reusing the scripted-provider fixture of test_product_acceptance.py, and its CI step (collected, writing JUnit)"
   - "[ ] 4. Recorded doubles behind the gateway and the retrieval gate for the Lead, every worker, respondents, analysis and Deep Research"
@@ -9,6 +9,11 @@ chunks:
   - "[ ] 6. The acceptance record: one PASS/FAIL line per criterion, stored as an artifact, with the parity report beside it"
   - "[ ] 7. Tier B: the live run on develop, its runbook and its record"
   - "[ ] 8. Parity reports, never blocks (owner, 2026-10-19): the 18.6.6 comparison jobs stop gating merges and deploys and report in the step summary and the record"
+  - "[ ] 9. The `acceptance` marker registered (`pyproject.toml` runs `--strict-markers`) and the tree collected by CI"
+  - "[ ] 10. Browser evidence kept distinct from HTTP evidence: the Playwright journeys are recorded as their own line in the record and never counted as HTTP"
+  - "[ ] 11. The Deep Research evaluations 25, 26 and 39 before the final live chunk 27, and the second live Interpretation run, are in the tier B record and its allocation"
+  - "[ ] 12. Production release is a blocker: the record states I-5 as not passed until the production release checklist is done, whatever tier B showed on develop"
+  - "[ ] 13. Every prototype scenario (A to M, X1 to X7) is an acceptance journey on recorded doubles; X2 (missing evidence) and X6 (a methodology change refused) stay as negative cases"
 ---
 # The MVP acceptance harness
 
@@ -108,3 +113,25 @@ report is read. The record's parity line and the PR summary are the only places 
 
 **Test.** A CI-script test feeds `parity_status.py --report-only` a JUnit file with a failing parity test
 and asserts exit 0 and a `FAIL` line, and a matrix-consistency failure still exits 1.
+
+## Added by the master plan (2026-10-19)
+
+- **9.** The `acceptance` marker is unregistered under `--strict-markers` (`pyproject.toml:276-282`), so the
+  tree would not collect. Gap G10.
+- **10.** Tier A is "over HTTP". The workbench, Lead and artifact journeys run in a browser
+  (`tools/ui_workbench/*_journey.mjs`); the record keeps them as a separate line so a browser pass is never
+  read as an HTTP pass and the reverse.
+- **11.** Chunk 7 (tier B) depends on the Deep Research route: the first release's route is Brave for an
+  OPEN client (`deep-research-web-search` 53). Evaluations 25, 26 and 39 run before chunk 27
+  (`deep-research-web-search`, "Evaluations before the final live run"); the second live run that "cited
+  context in the report" needs (`contextual_report.py:985`) is added to AC-11's allocation. Gap G38.
+- **12.** `mvp-development-plan.md` §8 said a production release "can follow the acceptance without moving
+  the gate"; gate I-5 says "production released". I-5 stands: production is a blocker.
+- **13.** The twenty scenarios of `prototypes/research-lead-v2` are the behaviour spec. X2 and X6 are
+  central invariants (evidence that is missing says so; a methodology change is refused in place and
+  routed to Metodika) and cheap to test on doubles, so they are not deferred. The scenario order is a
+  build order, not a release scope.
+- **Wording to reconcile, in a PR that runs the tests** (`docs/migration/` and `parity-matrix.json` are
+  outside the docs-only path list and `test_parity_matrix.py` reads the matrix): AC-02 "a paid worker job
+  starts only on an approval card" against the envelope and the plan card; AC-11 "approved for Class B"
+  against the OPEN posture; AC-13 "a reviewer other than the producer" against F17 (withdrawn).

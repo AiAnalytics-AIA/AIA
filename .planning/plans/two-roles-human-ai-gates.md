@@ -10,7 +10,7 @@ chunks:
   - "[x] 5b.1 A person can lift a budget wait and the run goes on (today it is a dead end)"
   - "[x] 5b.2 Confirm the cost of a run above a threshold, recorded"
   - "[x] 5b.3 One ledger entry for every acceptance of an AI proposal"
-  - "[ ] 5b.4 Client-facing release (blocked: the client-facing report contract does not exist)"
+  - "[ ] 5b.4 Client-facing release: separate approvals for the client report and each map snapshot, exports after approval (F17); built in report-delivery RD2-RD4, closed when they land"
   - "[x] 6. Retire the grants (tables, routes, UI) after one deploy without them"
   - "[x] 7. Any Researcher starts a client (the owner, 2026-10-05); its status stays with the Admin"
 ---
@@ -248,12 +248,11 @@ The worker keeps no such authority (`WORKER_PERMISSIONS`). Nothing else changes:
 behaviour is unchanged; only the record is added. The pilot chatbot's proposed actions are in the
 ADR's gate 1; I found no chatbot in the code and have not designed for one.
 
-**5b.4: client-facing release.** Not designed here. It cannot be built before a client-facing report
-exists, and that needs its own admission contract (which claims may reach a client, the licence
-gate OI-61, and synthetic or internal-only claims refused, as `compose_internal_report` already
-refuses them). The mechanism it will use is the one that exists: `approve` then `download_url`,
-recorded in the same ledger. Until then no route serves a client-facing report, so there is nothing
-to gate.
+**5b.4: client-facing release.** Superseded (2026-10-19): a client report now exists
+(`application/client_report.py`) with its own admission under the owner's lift, so this chunk is the
+approval side only. The client report and each map snapshot are approved separately from the internal
+report (F17); no unconditional second person: independence follows the client's self-approval setting;
+exports follow approval. The work is `report-delivery` RD2-RD4, recorded in the same ledger.
 
 ### Chunk 6 plan (2026-10-05; the owner approved starting it on 2026-10-03)
 

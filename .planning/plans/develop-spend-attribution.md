@@ -5,6 +5,7 @@ chunks:
   - "[ ] 2. IAM and the model policy follow the profiles; the cost-allocation tag is activated (a billing action)"
   - "[ ] 3. A reconciliation: AIA's usage ledger against the AWS cost record for the tag over a window"
   - "[ ] 4. The runbook states the check, its lag and its tolerance"
+  - "[ ] 5. The worker accepts what the plan creates: a tagged profile ARN or an `eu.` id, decided; and the statement "no Environment tag" corrected"
 ---
 # Spend proven twice: AIA's ledger and an AWS cost record
 
@@ -68,3 +69,11 @@ Independent of the other tracks until tier B. Feeds AC-15 and the budget table i
 ## Doc follow-up
 
 `deploy/develop/README.md` (runbook), `infra/develop/README.md` (the tag and the profiles).
+
+## Added by the master plan (2026-10-19)
+
+**5.** The worker refuses a model id that is not an `eu.` profile id (`ai_runtime.py:254, 516`), so the
+ARNs chunk 1 creates would stop the worker at start; and the plan's "no Environment tag" is wrong
+(`infra/develop/versions.tf:34-40`, `main.tf:597-607` set one). Tool spend (Brave, Athena) is not in the
+usage ledger, so AC-15 as written reconciles model spend only: `deep-research` 4 ("tool usage in the
+ledger") is the chunk that closes that and is scheduled with this plan. Gap G9.

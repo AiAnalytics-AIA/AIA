@@ -12,11 +12,11 @@ chunks:
   - "[x] 8. design_items, the working revision on every Design Revision writer (web submit, reuse, accepts), the item-level stale rule"
   - "[x] 9. Accept in one transaction: merged Design Revision, working copy, ledger; the web reloads"
   - "[x] 10. Dismiss and rebuild through the ledger and rebuild_of; the pending-proposals projection"
-  - "[ ] 11. The command registry: the workers the Lead may call, each with its prompt and price, behind approve_request (ledger and spend limit already built)"
+  - "[ ] 11. The command registry: the workers the Lead may call, each with its prompt and price, behind approve_request (ledger and spend limit already built); the route-class refusal says who fixes it (lead-orchestration LO12)"
   - "[ ] 12. Workbench journey: four widths, keyboard, focus modes, a Lead turn on recorded answers, zero unintended paid jobs"
   - "[x] 13. Design V3 in the repository (prototypes/research-lead-v3, its text) and its chunks in this plan"
   - "[ ] 14. The Lead's view vocabulary: a closed, per-artifact set of display operations the Lead may run on the artifact pane"
-  - "[ ] 15. The artifact frame: header (inputs, feeds, readiness, workers), Pracovní kopie / Historie / Původ, the revision stepper"
+  - "[ ] 15. The artifact frame: title, state pill, one version line and at most one state bar; inputs, feeds, workers and provenance in the inspector (the V2 prototype's D5, a proposed override of the V3 header strip: owner confirms), Pracovní kopie / Historie / Původ, the revision stepper"
   - "[ ] 16. Pointing at the artifact: the Vidí chip, the target button and @ over every artifact's elements"
   - "[ ] 17. Questionnaire artifact, its proposal shown in it (where chunk 7 lands)"
   - "[ ] 18. Brief and Research design artifacts"
@@ -25,7 +25,7 @@ chunks:
   - "[ ] 21. Analysis and Report artifacts"
   - "[ ] 22. Audience and Dimensions artifacts"
   - "[ ] 23. Worker and Deep Research cards in the conversation, each opening the artifact it changes"
-  - "[ ] 24. 'Continue until you need me' over chunk 11's command registry, stopping at every gate"
+  - "[ ] 24. A standing 'continue until you need me' beyond an approved plan's steps, over chunk 11's command registry, stopping at every gate (after the MVP: the plan-scoped part is lead-orchestration LO3-LO5)"
   - "[ ] 25. Deep Research reachable from every stage as a capability"
 ---
 # Research Lead workbench
@@ -129,8 +129,11 @@ at an element (`lib/lead.ts:341`, `Workbench.tsx:185-207 @ 0b4e05e`).
   and with the Lead able to call that stage's worker, so no AI action is ever without a way in. This
   closes F1: no paid design job starts outside the Lead's path.
 - **D16. Release scope** (owner, 2026-10-19; MVP-3). The Lead and all eleven V3 artifacts are
-  release-blocking (12, 11, 14-23). The autopilot (24) and Deep Research from every stage (25) come
-  after the MVP; 24 needs an ADR for the Lead's own permission scope first.
+  release-blocking (12, 11, 14-23). **The plan-scoped part of the autopilot is in the MVP** (an approved
+  plan the Lead runs, and a person's chat start: `lead-orchestration` LO3-LO5; MVP-3 amended and MVP-13
+  superseded by the per-study envelope, 2026-10-19). Chunk 24, a standing "continue" beyond a plan's
+  steps, and chunk 25, Deep Research from every stage, come after the MVP; 24 needs an ADR for the Lead's
+  own permission scope first.
 - **D17. The workers** (owner, 2026-10-19; MVP-12, MVP-13). Chunk 11's registry holds the eight
   existing `ResearchAgentAction`s (`domain/research_agents.py:37-44 @ 0b4e05e`) and three new contracts,
   each closed and proposal-only with its own prompt (ADR 0020): a map interpreter (reads a frozen map,
@@ -207,3 +210,13 @@ The backend each chunk needs is in `.planning/mvp-consolidation.md` §6.
   design the workbench's artifacts follow (2026-10-19); the navigator stays on top.
 - **ADR 0026**, under *Accepted with*: the Lead steers the artifact pane through a closed set of
   display operations (D10); its gates are unchanged.
+
+## Child plans (added by the master plan, 2026-10-19)
+
+The orchestration and edit work this plan's artifacts stand on is in six plans, each chunk in exactly one
+place: `working-copy-edit-ops` (the shared vocabulary, merge, per-change accept, presence, the Sociomap
+lock), `lead-orchestration` (the envelope, the plan card, the chat start, the continuation turn,
+`ResultsContext`, the Lead over time), `run-qc-and-checkpoint`, `report-delivery`, `study-data-lifecycle`
+and `production-environment`. Chunks 14-22 here build the screens over them. **Proposed override for the
+owner:** chunk 15 follows the V2 prototype's decision that inputs, feeds, workers and provenance live in
+the inspector and a state bar appears only when it applies, instead of the V3 header strip.

@@ -7,12 +7,13 @@ chunks:
   - "[x] 4. Storage: immutable prompt versions + append-only activations + audit, repository"
   - "[x] 5. Authorised create / activate / reset / history (in the repository, like the other admin acts)"
   - "[x] 6. Resolution and pinning: research agents (resolve at enqueue, executor runs the pin)"
-  - "[ ] 7. Resolution and pinning: respondent, analysis, Deep Research (listed read-only; see 'What was not built')"
+  - "[ ] 7. Resolution and pinning: the eight analysis modules editable and pinned per run (MVP-32); the respondent and Deep Research prompts stay read-only (method) but their pin is recorded on the run"
   - "[x] 8. API: /api/v1/system-prompts; agent jobs accept prompt_version and report the prompt they ran"
   - "[x] 9. Settings restructured into tabs (read-only material to Reference)"
   - "[x] 10. System prompts tab: list, editor, compare, activate, reset, history"
   - "[x] 11. Test a draft: a pinned job on a study, from the tab"
   - "[x] 12. Doc follow-up written (below)"
+  - "[ ] 13. The analysis and Deep Research executors take a prompt pin, so the slots `prompt_slots.py:121-140` marks "not run by any composition" are run"
 ---
 # System prompts, editable from Settings, and a Settings page that can be used
 
@@ -293,3 +294,12 @@ Trade-off: a prompt's class rests on a trusted, recorded statement rather than a
 Doc follow-up: ADR 0020 decision 8 rewritten here (the ADR is part of this feature). `research-agents.md`: the
 provenance `material_classification.prompt` fields. `AGENTS.md`: a stored prompt is classified by declaration at
 save, tightened only by the operator.
+
+## Added by the master plan (2026-10-19)
+
+**7, restated against MVP-32.** Editable and pinned: the eleven Lead workers and the eight analysis modules.
+Read-only because they are method: the respondent and Deep Research prompts, whose pin is still recorded on
+the run. **13.** `registry.py:100-109` registers the analysis and Deep Research executors, while
+`prompt_slots.py:121-140` calls their slots "not run by any composition"; the executors need to resolve a
+pin. S2 owns the executor half, S1 the slots. Interfaces I25. Settings also shows `FAST_EXTRACTION` as
+unused (`settings.py:529`) though the worker uses it (`ai_runtime.py:729-730`): corrected here.

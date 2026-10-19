@@ -1,11 +1,14 @@
 ---
 status: planned
 chunks:
-  - "[ ] 1. Every key finding cites an admitted claim: raise the gate from 95 % to all (MVP-23)"
+  - "[ ] 1. Every key finding cites an admitted claim (MVP-23): a new rule, not a tightening, since AIA has no 95 % threshold (that is the unit's)"
   - "[ ] 2. Run QC as a pure function over a run's stored dataset, EXACT against the unit's qc.kontrola (MVP-24)"
   - "[ ] 3. A run's QC stored beside it and shown as warnings on Fieldwork and Results, never a gate"
-  - "[ ] 4. The straight-liner check: flags by code, keep or replace proposed; settle what replacing means"
+  - "[ ] 4. The straight-liner check: flags by code, no pause, the worker proposes keep or flag; replace is a new linked run (F18, settled); the one definition is run-qc-and-checkpoint RQC1"
   - "[ ] 5. One field-policy authority per evidence source: the population contract's list for panel respondents (MVP-29)"
+  - "[ ] 6. Results serves admitted claims: an API over the evidence table with suppression decided server-side, so the screen no longer reads raw aggregates"
+  - "[ ] 7. External context reaches the analysis modules, or the unused path is retired: wire `analysis_context` into `AnalysisInputs` (a fingerprint change for all eight modules) and say which in the docs"
+  - "[ ] 8. A two-origin analysis input and its fingerprint, designed before client-data-in-analysis 5"
 ---
 # Evidence integrity: findings cite evidence, run QC warns, one policy authority
 
@@ -77,3 +80,19 @@ name: this plan owns the edit, they review it (`mvp-cohesion.md` F8).
 ## Doc follow-up
 
 `ARCHITECTURE.md` §4 (a finding cites an admitted claim; QC is a warning, never a gate).
+
+## Added by the master plan (2026-10-19)
+
+- **6.** `ResultsContext` and the Results artifact need the admitted evidence: today Results reads the raw
+  aggregate artifact and decides suppression in the browser (`research-execution.ts:373`); no API serves
+  `PrintGrade` or the evidence table (T3 A4). Gap G31. Test: a suppressed object's number is absent from
+  the response, not hidden in the page.
+- **7.** `analysis_context` (`quarantine.py:251`) has no caller outside tests and `AnalysisInputs` carries
+  no `external_context`, though `deep-research.md:260` and `research-journey.md:265` say it does (T3 A5).
+  Gap G33. The owner decides wire or retire; either way the documents agree with the code.
+- **8.** `AnalysisInputs` holds one origin; client-reported numbers (`client-data-in-analysis`) need a
+  second table and a fingerprint that names it. Interfaces I21.
+- **1, settled and open.** MVP-23 flips the parity cases `finding-without-evidence` and
+  `no-finding-at-all`, and the report needs all eight modules complete, so one module with no citable
+  finding blocks the internal report. What such a module does (state "no finding, and why" and let the
+  report proceed with the gap named, or block) is the owner's clarification; the rule itself is settled.

@@ -22,6 +22,7 @@ chunks:
   - "[ ] K5. Define and materialize executable dimensions through the existing population authority"
   - "[ ] K6. Implement correction, retirement, conflicts and dependent-study change visibility"
   - "[ ] K7. Prove all four consumers and reconcile the shared documentation after landing"
+  - "[ ] K8. One semantics for Deep Research evidence entering client knowledge (an item or a proposal), and a document item's text visible to Deep Research"
 ---
 # Client knowledge that studies can use correctly
 
@@ -721,3 +722,11 @@ Draft prepared for authorized publication with code anchors and two reproduced g
 The publication base is develop `4d8f07d934e88a9d15b9da47c78c42a1b01ca019` (PR 194's
 documentation follow-up); the audited runtime code remains the baseline above.
 No production redesign, migration, independent review or client acceptance has occurred.
+
+## Added by the master plan (2026-10-19)
+
+**K8.** Three plans own evidence into knowledge today: `verified_sources.py` ("Ověřeno, přidat zdroj"),
+K2e here and `deep-research-web-search` 37. They disagree on whether the result is an item or a proposal,
+and a document item holds only `source_id`, so Deep Research never sees the file text
+(`knowledge_access.py:75-90`). K8 decides once and gives `freeze_knowledge` the text snapshot. This plan
+owns the knowledge side; S2 supplies the bundle reader. Gap G36; interface I19.
