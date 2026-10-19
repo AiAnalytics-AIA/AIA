@@ -1,7 +1,7 @@
 ---
 status: planned
 chunks:
-  - "[ ] 1. The USD 25 allocation: a ceiling per category, summed and checked before any recorded run, covering fieldwork, analysis and its repairs, the Lead's turns, Deep Research search and tool spend and the second (Interpretation) run, a retry round"
+  - "[ ] 1. The USD 25 allocation: a ceiling per category, summed and checked before any recorded run, covering fieldwork, analysis and its repairs, the Lead's turns, Deep Research search and tool spend and the second (Interpretation) run, a retry round; the evaluation allowance stated apart"
   - "[ ] 2. The study's fixed inputs, fictional and committed: brief, client document, dataset with one personal column, a web page, a past study"
   - "[ ] 3. The harness: tests/acceptance driven over HTTP, reusing the scripted-provider fixture of test_product_acceptance.py, and its CI step (collected, writing JUnit)"
   - "[ ] 4. Recorded doubles behind the gateway and the retrieval gate for the Lead, every worker, respondents, analysis and Deep Research"
@@ -10,10 +10,11 @@ chunks:
   - "[ ] 7. Tier B: the live run on develop, its runbook and its record"
   - "[ ] 8. Parity reports, never blocks (owner, 2026-10-19): the 18.6.6 comparison jobs stop gating merges and deploys and report in the step summary and the record"
   - "[ ] 9. The `acceptance` marker registered (`pyproject.toml` runs `--strict-markers`) and the tree collected by CI"
-  - "[ ] 10. Browser evidence kept distinct from HTTP evidence: the Playwright journeys are recorded as their own line in the record and never counted as HTTP"
+  - "[ ] 10. Browser evidence kept distinct from HTTP evidence: real browser journeys (hand edits, pointing, proposals, keyboard and focus, stale states, all eleven stages, map view-only operations) are their own line in the record and never counted as HTTP"
   - "[ ] 11. The Deep Research evaluations 25, 26 and 39 before the final live chunk 27, and the second live Interpretation run, are in the tier B record and its allocation"
   - "[ ] 12. Production release is a blocker: the record states I-5 as not passed until the production release checklist is done, whatever tier B showed on develop"
   - "[ ] 13. Every prototype scenario (A to M, X1 to X7) is an acceptance journey on recorded doubles; X2 (missing evidence) and X6 (a methodology change refused) stay as negative cases"
+  - "[ ] 14. The acceptance wording reconciled in the acceptance document and `parity-matrix.json` together, in a PR that runs the tests: AC-02 (approval card and plan), AC-11 (OPEN posture), AC-13 (F17), AC-15 (separate model, tool, reservation, uncertain and billing-lag lines; the USD 0.01 tolerance kept unless the owner changes it)"
 ---
 # The MVP acceptance harness
 
@@ -135,3 +136,9 @@ and asserts exit 0 and a `FAIL` line, and a matrix-consistency failure still exi
   outside the docs-only path list and `test_parity_matrix.py` reads the matrix): AC-02 "a paid worker job
   starts only on an approval card" against the envelope and the plan card; AC-11 "approved for Class B"
   against the OPEN posture; AC-13 "a reviewer other than the producer" against F17 (withdrawn).
+
+- **14.** The wording that disagrees with settled decisions is changed in the acceptance document and the
+  machine criteria in one pull request that runs `test_parity_matrix.py` (those files are outside the
+  docs-only path list). **AC-15's reconciliation is stated as separate lines**: model usage in the ledger,
+  tool and search spend, reservations, uncertain calls, cloud-billing lag and non-provider infrastructure
+  charges; a number never reads as zero because it is unknown. The edit is on `chore/acceptance-reconcile`.

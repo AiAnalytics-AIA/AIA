@@ -38,7 +38,7 @@ Every chunk below is **open**; a chunk is built from this file, not from the mas
 Supersedes MVP-13 in the ADR text. Corrects the architecture and cohesion statements that call the spend limit a hard stop. Test: a document check that the word "hard stop" is not applied to `spend_confirm_usd`. Interfaces I4.
 
 **LO1. The envelope (M4): `study_envelopes`, `_raises`, `_charges` and `clients.envelope_ceiling_usd`; charges for paid work including Deep Research**  
-The data for the two meters: spent against `budget_usd`, and the envelope remaining on click. Test: a raise needs the researcher inside the ceiling and an approver above it; a charge above the envelope parks, never fails.
+The data for the two meters: spent against `budget_usd`, and the envelope remaining on click, with Czech labels distinct from the confirmation threshold's. Server-computed ceilings, holds, settlement and concurrent accounting are preserved (a start never exceeds the cap; an unknown cost counts as its ceiling). Test: a raise needs the researcher inside the ceiling and an approver above it; a charge above the envelope parks, never fails.
 
 **LO2. A typed `start_run` with no `confirm_cost_usd`, and an import rule that a plan step cannot reach the confirming start**  
 `ResearchRuns.start` takes the confirmation as a function argument (`research.py:724-742`), so "a plan authority holds no `APPROVE_GATE`" does not protect it. The Run stage button, the plan card and the chat start all call the one start with their pins (persona source, child, acknowledgement). Interfaces I3.

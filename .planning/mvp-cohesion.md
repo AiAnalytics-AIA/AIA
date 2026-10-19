@@ -436,7 +436,9 @@ accept their own only where self-approval allows it, as today). The requirement 
    allowance the owner approves, each job logged, stopping at the cap. **This supersedes MVP-13**
    ("a card at a time, no standing budget"). **Answers (2026-10-19):** the **researcher sets it, up to a
    ceiling the organisation owner sets for the client**, recorded in the approval ledger; the
-   study's spend limit stays the hard stop. **Everything is inside it, the fieldwork run included**,
+   study's `budget_usd` stays the cap (the "spend limit", `spend_confirm_usd`, is a per-start confirmation
+threshold, not a stop: corrected 2026-10-19 after the code traces, `research.py:452-454`).
+**Everything is inside it, the fieldwork run included**,
    but a run starts under a **plan card the researcher approves once** (the steps and the cost
    ceiling), after which the Lead runs those steps; it is not a Lead-initiated run on its own.
    This pulls a plan-scoped part of the autopilot into the MVP (MVP-3 had put "continue until you
@@ -494,9 +496,9 @@ screen, and a screen never claims a population was read when it was not.
 
 ### F16. Money on screen
 
-**Owner decision (2026-10-19): two meters, the rest on click.** The header shows "Study: spent of
-spend limit", with the envelope's remaining allowance **inside** it (the envelope is a slice of the
-spend limit, F13). A run or a job shows its own ceiling where the person approves it. The client's
+**Owner decision (2026-10-19): two meters, the rest on click.** The header shows "Study: spent of the
+study budget" (`budget_usd`), with the envelope's remaining allowance **inside** it (the envelope is a
+slice of the budget, F13; the confirmation threshold is a separate, differently labelled figure). A run or a job shows its own ceiling where the person approves it. The client's
 budget, the Deep Research allowance and the Lead's own turn costs are in a details drawer. Lead turns
 and workers all count toward the study's spend. The designs' four unlabelled numbers
 ("Research 0,97/3,00", "study 1,12/12,00", "spend limit 5,00", "run ceiling 4,80") and the Fieldwork
@@ -616,7 +618,7 @@ dated, until the provider contract and the method owner have owners.
 | Q17 | F15: population-built respondents by default, invented ones for tests only | **decided 2026-10-19** |
 | Q18 | F14: the Lead proposes updates to its own files, the researcher approves each | **decided 2026-10-19** |
 | Q19 | F14: an organisation admin can read a researcher's Lead files and hand them on; turns and hand-over rules open | **decided 2026-10-19; amends ADR 0026 decision 8** |
-| Q20 | F16: two meters in the header, the rest on click; the envelope is a slice of the spend limit | **decided 2026-10-19** |
+| Q20 | F16: two meters in the header, the rest on click; the envelope is a slice of the study budget (`budget_usd`), not of the confirmation threshold | **decided 2026-10-19** |
 | Q21 | F17: separate approvals, a second person for the client report and each map snapshot, exports after approval | **decided 2026-10-19; second person withdrawn the same day (clients are not users): independence follows self-approval; snapshot approval is still its own approval** |
 | Q22 | F18: no pause after fieldwork; a QC warning, the worker proposes, replace is a new linked run | **decided 2026-10-19** |
 | Q23 | F19: client datasets and own dimensions are handled in Brief materials and Dimensions | **decided 2026-10-19; the own-dimension build starts on a click inside the envelope** |

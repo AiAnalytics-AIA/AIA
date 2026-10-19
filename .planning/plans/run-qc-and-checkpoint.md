@@ -1,7 +1,7 @@
 ---
 status: planned
 chunks:
-  - "[ ] RQC0. A per-respondent checkpoint (OI-64): each answered respondent is stored under the lease, a retry resumes, a whole-run retry reuses the stored respondents"
+  - "[ ] RQC0. A per-respondent checkpoint (OI-64): each answered respondent and its paid-call identity are stored under the lease; a retry resumes; a possibly-billed uncertain call requires recovery and never triggers an automatic paid replay"
   - "[ ] RQC1. One straight-liner definition in `domain/`, called by the Sociomap engine, the run QC and the worker"
   - "[ ] RQC2. The QC node wired into the run: template node, step kind, registry, `AIA_RUN_QC_ENABLED`, the run-key identity"
   - "[ ] RQC3. A `MaterialRule` and lineage for run-derived material sent to a model (QC flags, the map interpreter)"
@@ -28,8 +28,8 @@ Every chunk below is **open**; a chunk is built from this file, not from the mas
 
 ## Chunks
 
-**RQC0. A per-respondent checkpoint (OI-64): each answered respondent is stored under the lease, a retry resumes, a whole-run retry reuses the stored respondents**  
-Each attempt starts at the first respondent and stores the dataset only at the end (`ai_fieldwork.py:283-326`), `max_attempts=3`, a clean shutdown is a RETRY (`workflow.py:660-686`) and a whole-run retry repays fieldwork (`research.py:834-895`). Shape: the `client_work_journal` pattern. Test: kill the worker mid-fieldwork; the retry spends nothing for respondents already answered. **First S2 item in W1, before any step that runs after fieldwork.**
+**RQC0. A per-respondent checkpoint (OI-64): each answered respondent and its paid-call identity are stored under the lease; a retry resumes; a possibly-billed uncertain call requires recovery and never triggers an automatic paid replay**  
+Each attempt starts at the first respondent and stores the dataset only at the end (`ai_fieldwork.py:283-326`), `max_attempts=3`, a clean shutdown is a RETRY (`workflow.py:660-686`), and the plain whole-run `retry` of a failed or cancelled run "spends again" (`research.py:835-862`). **Narrowed after the independent review: `retry_analysis` reuses the frozen dataset and never recollects fieldwork (`research.py:865-895`), so the claim covers interrupted fieldwork and the plain retry, not an analysis retry.** Shape: the `client_work_journal` pattern. Test: kill the worker mid-fieldwork; the retry spends nothing for respondents already answered. **First S2 item in W1, before any step that runs after fieldwork.**
 
 **RQC1. One straight-liner definition in `domain/`, called by the Sociomap engine, the run QC and the worker**  
 There are three definitions today (`sociomap/engine.py:84-109`, the unit QC `qc.py:200-207`, the workbench D17). Interfaces I6.

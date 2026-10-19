@@ -119,6 +119,17 @@ session that needs a change in it opens a small PR the owner reviews first (`mvp
 | **S2 Population, maps, evidence, Deep Research** | population and respondents, the Sociomap (object, respondent, segment), filters and drill-down, evidence integrity, run QC, the client-data evidence, **Deep Research reach** | `domain/fieldwork.py`, `domain/evidence/`, `domain/sociomap/`, `sociomap_register.py`, `domain/population/`, `aia_executors/ai_fieldwork.py`, `analysis.py`, `research.py` (steps), `domain/deep_research/` and `deep_research_live.py` (retrieval and routes open for reach; verification and grounding by finding only), `deep-research-web-search`, `class-b-search-route` |
 | **S3 Data, delivery, infrastructure, acceptance** | client knowledge and sources, client data and the contract, reports and approvals, Terraform, deployment, the acceptance harness | `application/client_report.py`, `report_*`, `client_*`, `infra/`, `deploy/`, `.github/workflows/`, `tests/acceptance/`, `tables.py` migrations lane |
 
+**Shared surfaces that three sessions edit, and who owns them** (`mvp-master-plan.md` §5, I16, I17, I24):
+
+| Surface | Owner | Rule for the others |
+|---|---|---|
+| `domain/material_rules.py`, `domain/residency.py` | S1 | a small PR S1 reviews first |
+| the classification code in `web_retrieval.py`, `application/deep_research.py`, `aia_executors/deep_research/*` | S2 | the same |
+| `workflow_repository.py` (ledger writers) | S3, the lane owner | the same |
+| `domain/workflow_templates.py`, `aia_executors/registry.py` | S3 reviews | each session registers its own kind |
+| `apps/web/src/lib/api.ts`, `i18n/cs.ts` | S1 for refusal wording | others edit their own area only |
+| `routers/settings.py` | S1 | the Reach panel is S2's, behind a worker-published record the API reads |
+
 S1 and S2 meet at the Lead's results context and the Sociomap artifact; S2 and S3 meet at the client
 dataset's evidence and the report's marks. Each meeting is a **contract** written first (below), not a
 shared edit.
@@ -134,7 +145,7 @@ plan (or to a new plan from #497) before the wave starts.
 |---|---|
 | S3 | Merge #493, #494, #495, #491, #496, #497 in that order; apply the docs follow-ups; add `prototypes/` to the docs-only path list (`ci-skip-docs-only`); `mvp-acceptance-harness` 1-3 (budget table, inputs, harness with its CI step); `infra/production` skeleton and `develop-spend-attribution` 1-2 (tagged profiles); migration **M3** (all ledger subject types, §4); **operator, first:** confirm the Bedrock retention evidence and set the four route parameters on develop (`deploy/develop/README.md` § AI route classes) so no AI step in any stage parks on `egress_route_not_approved_for_class`; and the stage error says who can fix it (below) |
 | S1 | The spend-limit fix in `ResearchAgentJobs.start` (a fix, F5); the worker row (`research-lead-workbench` 11, first deliverable); ADRs for the edit vocabulary and the orchestration scope written and proposed |
-| S2 | `audience-catalogue-cpu` 4; `complete-study-report` B6 (the operator flag); `evidence-integrity` 1 (findings cite all) and 5 (one authority); **reach**: `deep-research-web-search` 1, 51 and 53, the ADR 0008 amendment (open posture) |
+| S2 | `audience-catalogue-cpu` 4; `complete-study-report` B6 (the operator flag); `evidence-integrity` 1 (findings cite all) and 5 (one authority); **reach**: `deep-research-web-search` 1, 51, 53, 54 and 55, the ADR 0008 amendment (open posture) |
 
 **Exit I-0:** `alembic heads` single; the acceptance tree collects and runs AC-01, 06, 07, 12, 14.
 
@@ -241,7 +252,9 @@ The longest chain, which sets the date: **edit vocabulary → operations log and
 and presence → the Questionnaire artifact → plan card → the Lead's results context → Results and
 Sociomap artifacts → Analysis and Report artifacts → tier A on all criteria → tier B → release**. Its
 owner is S1, which is why S1 carries the fewest side tasks. The chains that run beside it and can slip
-without moving the date, until W5: client data (S3), Deep Research live (S2), segment maps and
+without moving the date, until W5: client data (S3), the **live acceptance** of Deep Research
+(`deep-research-web-search` 27, after the evaluations 25, 26 and 39; **Deep Research reach is not one of
+them: gate I-R blocks W2**), segment maps and
 clustering (S2, waits on the method owner).
 
 ## 8. What can stop the plan
@@ -253,7 +266,7 @@ clustering (S2, waits on the method owner).
 | The plan authority takes longer than planned | no autopilot-lite; every paid job needs a card (MVP-13 returns by default) | the envelope without plans is a smaller first step; cards stay as the fallback |
 | Migrations collide | blocked merges | one lane, one owner, rebase before merge, M3 first |
 | Production shares develop's AWS account | an account-level mistake or the shared Bedrock quota reaches production | tag-conditioned IAM with a permission boundary, per-environment state and KMS (architecture §6.2); tier B outside working hours; revisit at the first incident |
-| RDS or Cognito setup for production slips | no production at the date | develop carries tier B; production release can follow the acceptance without moving the gate |
+| RDS or Cognito setup for production slips | no production at the date, and **no release**: gate I-5 reads "production released" and a passing tier B on develop does not release | production is a blocker, not a follow-up: restore, rollback, delete path and the activation profile are evidenced first (`production-environment` PE9, `mvp-acceptance-harness` 12); the date moves, the gate does not |
 | The first acceptance run exceeds USD 25 | the budget table was wrong | the allocation is checked before the recorded run (`mvp-acceptance-harness` 1) |
 | One session is the whole critical path | a stall in S1 stalls the date | S2 and S3 take defects and review capacity once W3 starts |
 

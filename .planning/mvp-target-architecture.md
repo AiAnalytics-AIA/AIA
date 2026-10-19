@@ -126,12 +126,17 @@ client's ceiling when it was set); `set_by`; `created_at`; `closed_at` NULL; `cl
 `study_envelope_charges`: `run_id` PK (FK `workflow_runs`), `envelope_id`, `plan_id` NULL,
 `decision_id` (the `approval_decisions` row that authorised it), `ceiling_usd` Float, `created_at`;
 insert-once. **Accounting is by cost ceiling, not by settled spend**: remaining = `cap_usd` minus the
-sum of `ceiling_usd` over the envelope's charges, checked under the study row lock like a spend
-confirmation, so a start never exceeds the cap and an unknown cost counts as its ceiling, never zero
+sum of `ceiling_usd` over the envelope's charges, checked under the study row lock (a lock
+`ResearchRuns.start` does not take today: the confirmation is a function argument, `research.py:724-742`),
+so a start never exceeds the cap and an unknown cost counts as its ceiling, never zero
 (`ARCHITECTURE.md` §10). Settled spend is read from the usage ledger for display.
 **Client ceiling:** a nullable column `clients.envelope_ceiling_usd`, set only by an organisation
-OWNER or ADMIN; null means the envelope may not exceed the study's spend limit. The spend limit
-(`PUT /studies/{id}/spend-confirm`) stays the hard stop for everything. **Repository:**
+OWNER or ADMIN; null means the envelope may not exceed the study's budget. **The cap that stops spending
+is the study's `budget_usd`** (`workflow_repository.py:1240-1244`). The "spend limit" set by
+`PUT /studies/{id}/spend-confirm` is `spend_confirm_usd`, a per-start **confirmation threshold** (null means
+never ask: `research.py:452-454`, ADR 0019); it stays a threshold, beside the envelope, with its own Czech
+label. The envelope is defined against `budget_usd` and never against the threshold (the owner,
+2026-10-19). **Repository:**
 `StudyEnvelopeRepository`; it is the only code that writes the three tables.
 
 ### 3.4 The plan card: `lead_plans`, `lead_plan_steps`
@@ -166,7 +171,7 @@ person asked. So the by-request path accepts only a **typed command** the web se
 composer's quick action (for example `start_run` with the revision it names), which the server
 executes directly under the envelope; free text still goes to the Lead, which prepares a card. The
 request names the exact revision, never "the latest". The spend confirmation of ADR 0019 gate 2
-(a run whose ceiling reaches the spend limit) still needs its own confirmation.
+(a run whose ceiling reaches the confirmation threshold) still needs its own confirmation.
 
 ### 3.5 Per-change accept: `proposal_change_decisions`
 

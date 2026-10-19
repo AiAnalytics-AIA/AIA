@@ -95,4 +95,4 @@ only id, donor, weight and answers (`fieldwork.py:172-181`; the persona profile 
 not stored). Segment maps, filters and the drill-down have nothing to read until one record per respondent
 holds the segmentation variables. The owner and the method owner state the variable (the proposed default
 is the quota-cell fields sampling already uses: age group, sex, region, education from n 700); this chunk
-then stores it, classes it and says who may read it. Gap G30; interface I5.
+then stores it, classes it and says who may read it: the producer, the lineage, the storage, the allowed descriptor set, the support and suppression rules and the consumer contract. An approved own dimension needs an actual consumer (a segmentation or filter), not only a child file (gap G28, `client-knowledge-lifecycle` K5). Gap G30; interface I5.
