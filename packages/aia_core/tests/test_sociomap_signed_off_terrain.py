@@ -274,6 +274,8 @@ def test_objects_nobody_rated_are_listed_on_a_map_that_cannot_be_drawn() -> None
     )
     assert artifact.layout is None and artifact.object_ids == ("o0",)
     assert artifact.objects_not_placed == ("o1", "o2")
+    assert artifact.not_mappable is not None
+    assert artifact.not_mappable.message.endswith("the family has 1 (o1, o2 nobody rated)")
     assert SociomapArtifactV3.from_payload(artifact.to_payload()) == artifact
 
 

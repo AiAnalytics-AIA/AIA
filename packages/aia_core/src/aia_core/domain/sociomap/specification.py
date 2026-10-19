@@ -102,6 +102,7 @@ __all__ = [
     "RelationMissingPolicy",
     "RelationScaleCoercion",
     "RelationSpec",
+    "RespondentMapSpec",
     "ScaleNormalization",
     "SociomapSpec",
     "SociomapSpecV3",
@@ -702,15 +703,35 @@ class MapCredibilitySpec(_Frozen):
         return _not_boolean(v)
 
 
+class RespondentMapSpec(_Frozen):
+    """The signed-off methodology's respondent map (``aia-sociomap-5``): each respondent with
+    at least ``min_ratings`` ratings of the mapped objects placed by the vector model, PLACED
+    when the chance test's p-value is at most ``chance_level`` and FADED otherwise; the map
+    informative from ``informative_min_objects`` objects; the density of the PLACED
+    respondents with a kernel ``density_sigma`` ruler units wide."""
+
+    chance_level: float
+    min_ratings: int
+    informative_min_objects: int
+    density_sigma: float
+
+    @field_validator(
+        "chance_level", "min_ratings", "informative_min_objects", "density_sigma", mode="before"
+    )
+    @classmethod
+    def _no_bool(cls, v: object) -> object:
+        return _not_boolean(v)
+
+
 class SociomapSpecV3(_Frozen):
     """Every methodology decision behind one contract-3 Sociomap (the audit's object map).
 
     ``respondent_placement`` is declared ``None``: no member is built (chunk 3 waits on a
     decision the audit leaves to its author), and a value is refused by
     :func:`require_supported` rather than ignored. ``terrain`` is the object envelope
-    (chunk 4b) or ``None``, which computes no terrain. ``credibility`` is declared exactly
-    under the baseline-corrected relation (``aia-sociomap-5``); ``None`` is left out of the
-    stored form, so earlier pins read unchanged.
+    (chunk 4b) or ``None``, which computes no terrain. ``credibility`` and ``respondent_map``
+    are declared exactly under the baseline-corrected relation (``aia-sociomap-5``); ``None``
+    is left out of the stored form, so earlier pins read unchanged.
     """
 
     methodology_version: str
@@ -722,6 +743,7 @@ class SociomapSpecV3(_Frozen):
     respondent_placement: str | None
     terrain: ObjectTerrainSpec | None
     credibility: MapCredibilitySpec | None = None
+    respondent_map: RespondentMapSpec | None = None
 
     @field_validator("methodology_version")
     @classmethod
@@ -733,8 +755,9 @@ class SociomapSpecV3(_Frozen):
     @model_serializer(mode="wrap")
     def _without_undeclared(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
         body: dict[str, Any] = handler(self)
-        if body.get("credibility") is None:
-            body.pop("credibility", None)
+        for key in ("credibility", "respondent_map"):
+            if body.get(key) is None:
+                body.pop(key, None)
         return body
 
     def fingerprint(self) -> str:
@@ -897,6 +920,7 @@ def _baseline_corrected_problems(spec: SociomapSpecV3) -> dict[str, str]:
         "relation.noise_rule": rel.noise_rule,
         **{f"layout.{key}": getattr(layout, key) for key in _LAYOUT_PAIR_FIELDS},
         "credibility": spec.credibility,
+        "respondent_map": spec.respondent_map,
     }
     if not corrected:
         for path, value in declared.items():
@@ -968,6 +992,7 @@ def _baseline_corrected_problems(spec: SociomapSpecV3) -> dict[str, str]:
         problems["layout.precision_weight_cap"] = f"a cap is at least 1; got {cap!r}"
     problems.update(_soft_rank_spearman_problems(layout.soft_rank_spearman))
     problems.update(_credibility_problems(spec.credibility))
+    problems.update(_respondent_map_problems(spec))
     imds = layout.interval_mds
     if imds is not None and imds.random_starts < 0:
         problems["layout.interval_mds.random_starts"] = (
@@ -1028,6 +1053,43 @@ def _credibility_problems(credibility: MapCredibilitySpec | None) -> dict[str, s
     safety = credibility.safety_factor
     if not (math.isfinite(safety) and safety > 0.0):
         problems["credibility.safety_factor"] = f"a safety factor is positive; got {safety!r}"
+    return problems
+
+
+#: The vector model's parameters per respondent (an intercept and two slopes): fewer ratings
+#: than this cannot be fitted, and exactly this many fit any ratings.
+_VECTOR_MODEL_PARAMETERS: Final = 3
+
+
+def _respondent_map_problems(spec: SociomapSpecV3) -> dict[str, str]:
+    problems: dict[str, str] = {}
+    declared = spec.respondent_map
+    if declared is None:
+        return problems
+    if spec.terrain is None or spec.terrain.method != TerrainMethod.FRAMED_RELATIVE_ENVELOPE:
+        problems["respondent_map"] = (
+            "the respondent density is drawn on the framed terrain's grid: declare the terrain "
+            "framed_relative_envelope"
+        )
+    level = declared.chance_level
+    if not (math.isfinite(level) and 0.0 < level < 1.0):
+        problems["respondent_map.chance_level"] = (
+            f"a chance-test level lies strictly between 0 and 1; got {level!r}"
+        )
+    if declared.min_ratings < _VECTOR_MODEL_PARAMETERS:
+        problems["respondent_map.min_ratings"] = (
+            f"at least {_VECTOR_MODEL_PARAMETERS}: the vector model fits an intercept and two "
+            f"slopes; got {declared.min_ratings}"
+        )
+    if declared.informative_min_objects < 1:
+        problems["respondent_map.informative_min_objects"] = (
+            f"a count of objects, at least 1; got {declared.informative_min_objects}"
+        )
+    sigma = declared.density_sigma
+    if not (math.isfinite(sigma) and sigma > 0.0):
+        problems["respondent_map.density_sigma"] = (
+            f"a kernel width is positive and finite; got {sigma!r}"
+        )
     return problems
 
 
@@ -1385,7 +1447,8 @@ AIA_SOCIOMAP_V4 = AIA_SOCIOMAP_V3.model_copy(
 # objects placed by soft-rank Spearman with Coulomb repulsion or, by the fixed object-count
 # rule, Interval MDS; no Stress-1; the survey-weighted mean rating as height, and the envelope of
 # relative heights on a grid framed on the map; the split-half check and the uncertainty radius;
-# every value the methodology's own. Not pinned
+# the respondents placed by the vector model with the chance test, and their density on the
+# map's frame; every value the methodology's own. Not pinned
 # by default and not in the register: a run gets it only through a methodology version.
 AIA_SOCIOMAP_V5 = AIA_SOCIOMAP_V4.model_copy(
     update={
@@ -1432,6 +1495,9 @@ AIA_SOCIOMAP_V5 = AIA_SOCIOMAP_V4.model_copy(
             bootstrap_resamples=20,
             bootstrap_seed=0,
             safety_factor=1.2,
+        ),
+        "respondent_map": RespondentMapSpec(
+            chance_level=0.10, min_ratings=3, informative_min_objects=6, density_sigma=0.35
         ),
         "terrain": ObjectTerrainSpec(
             method=TerrainMethod.FRAMED_RELATIVE_ENVELOPE,

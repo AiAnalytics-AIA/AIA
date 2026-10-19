@@ -16,11 +16,14 @@ Plan ``sociomap-formula-corrections`` § 8.2, S2. One pure function from
     F12  the envelope terrain over the PRIMARY hills, when the spec declares one (4b); the
          framed envelope over their relative heights under ``aia-sociomap-5``
          the split-half check and the uncertainty radius of a mapped ``aia-sociomap-5`` map
+         the respondent map of a mapped ``aia-sociomap-5`` map: the vector model with the
+         chance test, and the density of the PLACED respondents on the terrain's frame
 
 Every step is a function another chunk already landed and tested (2a ``person_minmax``,
 1a ``derive_pair_relations``, 2b ``fit_smacof_objects``, 2c ``stress_quality``, 1b
 ``primary_scores``, 4a ``connectedness_100``); this module composes them and records what
-it composed. Respondent placement (chunk 3) is not computed and the artifact says so; so is
+it composed. Respondent placement (chunk 3) is not computed, outside a mapped
+``aia-sociomap-5`` map, and the artifact says so; so is
 the terrain where the spec declares none (``aia-sociomap-2``) or the family is not mapped.
 A family the data cannot map is :data:`~.models_v3.MapOutcome.NOT_MAPPABLE` with its reason,
 never an exception and never a picture.
@@ -62,6 +65,9 @@ from .models_v3 import (
     ObjectMapLayout,
     ObjectMapProvenance,
     ObjectMapSupport,
+    RespondentDensity,
+    RespondentMap,
+    RespondentStatus,
     SociomapArtifactV3,
     SparseDesign,
 )
@@ -77,6 +83,7 @@ from .signed_off_layout import (
     soft_rank_spearman,
     to_ruler,
 )
+from .signed_off_respondents import place_respondents, respondent_density
 from .slots import (
     DISTANCE,
     EFFECT_FLOOR,
@@ -115,6 +122,8 @@ __all__ = [
     "CONNECTEDNESS_OFF",
     "NOT_PLACED_NO_SPREAD",
     "RESPONDENTS_NOT_COMPUTED",
+    "RESPONDENTS_NOT_MAPPED",
+    "RESPONDENT_DECIMALS",
     "TERRAIN_NOT_COMPUTED",
     "TERRAIN_NOT_MAPPED",
     "WEIGHTING",
@@ -134,6 +143,15 @@ RESPONDENTS_NOT_COMPUTED: Final = NotComputed(
         "respondent placement is chunk 3 (ideal points against this object map, audit F10); "
         "its misfit threshold is open (plan sociomap-formula-corrections § 4a, 0b)"
     ),
+)
+#: Decimal places of each respondent's stored position, misfit and p-value (1e-5 ruler units
+#: is far below anything drawn).
+RESPONDENT_DECIMALS: Final = 5
+#: Why an unmappable object set's respondents are not placed under ``aia-sociomap-5``: there
+#: is no map to place them on.
+RESPONDENTS_NOT_MAPPED: Final = NotComputed(
+    status="not_computed",
+    reason="the objects are not mappable, so there is no map to place the respondents on",
 )
 TERRAIN_NOT_COMPUTED: Final = NotComputed(
     status="not_computed",
@@ -552,6 +570,11 @@ def _rated_only(inputs: ObjectMapInputs) -> tuple[ObjectMapInputs, tuple[str, ..
     ), tuple(oid for oid, r in zip(inputs.object_ids, rated, strict=True) if not r)
 
 
+def _scales(inputs: ObjectMapInputs) -> set[tuple[float, float]]:
+    """The declared scales of the mapped objects' items."""
+    return {(inputs.items[c].scale_min, inputs.items[c].scale_max) for c in inputs.object_columns()}
+
+
 def _signed_off_layout(
     prepared: PreparedInputs, ids: Sequence[str], spec: SociomapSpecV3
 ) -> ObjectMapLayout | NotMappable:
@@ -663,6 +686,61 @@ def _credibility(
     )
 
 
+def _respondents(
+    scaled: Sequence[Sequence[float | None]],
+    columns: Sequence[int],
+    layout: ObjectMapLayout,
+    terrain: NotComputed | EnvelopeTerrain,
+    spec: SociomapSpecV3,
+) -> RespondentMap:
+    """The signed-off methodology's respondent map on a mapped map, with the AIA panel's
+    caller rules: every respondent placed by the vector model from their ratings of the mapped
+    objects on the declared 0-1 scale, unweighted; informative from the declared number of
+    objects; the density of the PLACED respondents on the object terrain's own grid, so a
+    respondent can stand outside it."""
+    declared = spec.respondent_map
+    if declared is None or not isinstance(terrain, EnvelopeTerrain):
+        raise ValueError("the respondent map is declared on the framed terrain (require_supported)")
+    ratings = np.array(
+        [[math.nan if (v := row[c]) is None else v for c in columns] for row in scaled],
+        dtype=float,
+    ).reshape(len(scaled), len(columns))
+    placed = place_respondents(
+        np.array(layout.points, dtype=float),
+        ratings,
+        chance_level=declared.chance_level,
+        min_ratings=declared.min_ratings,
+    )
+    grid = EnvelopeParameters(
+        grid_resolution=terrain.parameters.grid_resolution,
+        half_extent=terrain.parameters.half_extent,
+        sigma=declared.density_sigma,
+        centre=terrain.parameters.centre,
+    )
+    height = respondent_density(placed.x, placed.status, grid.axes(), declared.density_sigma)
+
+    # Stored to RESPONDENT_DECIMALS places: one entry per respondent makes this the largest
+    # part of the artifact; statuses and the density were decided at full precision.
+    def column(values: NDArray[np.float64]) -> tuple[float | None, ...]:
+        return tuple(
+            round(float(v), RESPONDENT_DECIMALS) if math.isfinite(v) else None for v in values
+        )
+
+    return RespondentMap(
+        x=column(placed.x[:, 0]),
+        y=column(placed.x[:, 1]),
+        placement=placed.status,
+        misfit=column(placed.misfit),
+        p_value=column(placed.p_value),
+        counts={s.value: placed.status.count(s.value) for s in RespondentStatus},
+        informative=len(columns) >= declared.informative_min_objects,
+        min_objects=declared.informative_min_objects,
+        density=RespondentDensity(
+            parameters=grid, height=tuple(tuple(float(h) for h in row) for row in height)
+        ),
+    )
+
+
 def compute_object_map(
     inputs: ObjectMapInputs,
     spec: SociomapSpecV3,
@@ -734,7 +812,18 @@ def compute_object_map(
         needed = "three" if min_objects == LEGACY_MIN_OBJECTS else str(min_objects)
         not_mappable = NotMappable(
             reason=NotMappableReason.TOO_FEW_OBJECTS.value,
-            message=f"an object map needs at least {needed} objects; the family has {m}",
+            message=f"an object map needs at least {needed} objects; the family has {m}"
+            + (f" ({', '.join(unrated)} nobody rated)" if unrated else ""),
+            objects=tuple(ids),
+        )
+    elif prepared is not None and len(scales := _scales(inputs)) > 1:
+        not_mappable = NotMappable(
+            reason=NotMappableReason.MIXED_SCALES.value,
+            message=(
+                "the objects are rated on different scales ("
+                + ", ".join(f"{lo:g}-{hi:g}" for lo, hi in sorted(scales))
+                + "); the signed-off methodology maps one scale per set"
+            ),
             objects=tuple(ids),
         )
     elif prepared is not None:
@@ -849,6 +938,15 @@ def compute_object_map(
             "ranking": rank_with_ties(k100.intervals()).to_payload(),
         }
 
+    drawn = _terrain(spec, layout, heights, inputs, _frame_objects(heights.values, known), slots)
+    respondents: NotComputed | RespondentMap = RESPONDENTS_NOT_COMPUTED
+    if spec.respondent_map is not None:
+        respondents = (
+            RESPONDENTS_NOT_MAPPED
+            if layout is None
+            else _respondents(scaled, columns, layout, drawn, spec)
+        )
+
     return SociomapArtifactV3(
         spec=spec,
         respondent_ids=inputs.respondent_ids,
@@ -876,10 +974,8 @@ def compute_object_map(
             else WEIGHTING,
             slots,
         ),
-        respondents=RESPONDENTS_NOT_COMPUTED,
-        terrain=_terrain(
-            spec, layout, heights, inputs, _frame_objects(heights.values, known), slots
-        ),
+        respondents=respondents,
+        terrain=drawn,
         provenance=ObjectMapProvenance(
             implementation=OBJECT_MAP_IMPLEMENTATION,
             implementation_version=OBJECT_MAP_IMPLEMENTATION_VERSION,

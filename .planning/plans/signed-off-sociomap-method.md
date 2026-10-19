@@ -7,7 +7,7 @@ chunks:
   - "[x] 3. Object positions: soft-rank Spearman with Coulomb repulsion (BB1), Interval MDS for large maps by a fixed object-count rule"
   - "[x] 4. Height and terrain: mean rating, relative heights with a floor, ruler and frame scaling, the envelope terrain, node size and label note for large maps"
   - "[x] 5. Map credibility: split-half agreement, the no-reliable-structure statement, one uncertainty radius per map"
-  - "[ ] 6. Respondent map: vector-model placement, the chance test for placed / faded, the respondent terrain, the indicative note below six objects"
+  - "[x] 6. Respondent map: vector-model placement, the chance test for placed / faded, the respondent terrain, the indicative note below six objects"
   - "[ ] 7. Taste segments: the mixture on slopes, the shuffle guard, the step-down, profiles, colour only for clearly placed respondents, borderline segments"
 ---
 # aia-sociomap-5 — the signed-off AIA Sociomapa methodology as a method
@@ -74,6 +74,7 @@ audit code.
 | When Interval MDS replaces BB1 | A fixed object count: the methodology's time budget 1.07e-3·M^2.46/10 ≤ 30 s with the core count frozen at 10, i.e. BB1 for M ≤ 163 objects, Interval MDS above; the method used is recorded on every map | The budget as written reads the machine's core count, so for 65 ≤ M ≤ 164 two machines pick different methods; the repo forbids probing (`layout.py:1-14`) |
 | Replace `-3` or add `-5` | Add `-5` | Replacing changes results already approved by fingerprint and pinned by past runs |
 | An object nobody in the set rated | Not placed: left out of the set before anything is computed, as a context object is, and listed in `objects_not_placed`; the map is the rated objects' own | Laying it out with the rest and hiding it afterwards (the AIA panel today): with no data it gets the unrelated charge to every object (soft-rank Coulomb term, Interval MDS floor) and pushes the others (up to 1.70 ruler units on an 8-object study); standing it at the set's lowest height with a grey node (the methodology's renderer before 2026-10-19). The panel takes the rule at its next sync |
+| A set whose objects declare different scales | Not mappable (`MIXED_SCALES`): the methodology and the AIA panel read one scale per set | Rescaling every item to 0-1 first: the relations read raw ratings, so relations and respondent map would read the data differently (on a demo 25 of 200 respondent statuses changed) |
 | What the terrain's frame is fitted over | The rated objects with at least one known (RELIABLE or WEAK) pair, as the AIA panel fits its map; nothing fitted when there is none. The panel also fits over the context objects it shows; `-5` maps the PRIMARY objects only, so the frames agree when no context object is shown | Every placed object (the methodology's renderer before 2026-10-19): an object resting on a handful of raters set the zoom |
 | Which failures of the split-half check and the uncertainty radius fall back | Only the two errors Interval MDS raises on too little data, `ZeroDivisionError` (no layout pair in a half) and `numpy.linalg.LinAlgError` (the classical start of a near-empty design); any other error propagates | Catching every exception, as the AIA panel does: a defect would silently become "weakly determined" or "no radius" |
 
@@ -127,6 +128,12 @@ and 0.68/2.5).
   `half_extent` or `kernel_cutoff`. Earlier presets store none of the new keys.
 - CLAUDE.md §2, `terrain.py`: `fit_frame` (the framed grid) and `EnvelopeParameters.axes()`
   (the grid's x and y coordinates about its centre; `axis()` is the offsets from the centre).
+- Web follow-up, standing rule (methodology owner, 2026-10-19): every visual decision about the
+  Sociomap visualisation panel, wherever it appears (research view, Metodika comparison, the
+  report's map figure, the respondent map), follows the current AIA panel's drawing
+  (`ui_app.html`: terrain, colour ramp, frame, x26, nodes, lines, dots, notes, legends), not the
+  repository's existing map drawing; the rest of the website (layout, navigation, components
+  around the panel) stays as it is.
 - Web follow-up (drawing rules the methodology's renderer has, not ported here, owner
   decision 2026-10-19): the 26x height exaggeration of the terrain; node size
   x min(1, sqrt(30 / M)); the "k of M objects labelled" note for large maps; node colour from
@@ -161,6 +168,38 @@ and 0.68/2.5).
   until it reports the share, the flag and the radius. Until then the web shows a weakly determined `-5` map like any
   other; the report
   prints the warning and, for internal readers, the share and the radius.
+
+- Where the object-map artifact is described: under `aia-sociomap-5` a MAPPED map records
+  `respondents` = {`status` "computed", one entry per respondent in `respondent_ids` order in
+  `x`, `y` (ruler units), `placement` (`PLACED`, `FADED` or `NOT_PLACED`), `misfit` (1 − R²)
+  and `p_value` (the chance test), each null when NOT_PLACED; `counts` of each placement;
+  `informative` and `min_objects`; `density` = {`parameters` (`grid_resolution`,
+  `half_extent`, `centre` of the object terrain's grid, and the density's own `sigma`),
+  `height` [gy][gx], divided by its maximum, 0 everywhere when nobody is PLACED}}. A respondent
+  can stand outside the grid. A NOT_MAPPABLE `-5` map records `respondents` not computed with
+  the reason that there is no map; the earlier presets record the chunk-3 statement as before.
+  The spec's top-level `respondent_map` section (`chance_level` 0.10, `min_ratings` 3,
+  `informative_min_objects` 6, `density_sigma` 0.35) is declared under `-5` only, requires the
+  framed terrain, and is left out of the earlier presets' stored form; the legacy
+  `respondent_placement` stays null.
+- CLAUDE.md §2: `domain/sociomap/signed_off_respondents.py` (`place_respondents`,
+  `respondent_density`), wired in `engine_v2._respondents`; Metodika steps
+  `vector_model_placement`, `respondent_density`, `respondent_map` (the four values; group
+  "Respondenti a podpora mapy", beside the audit's `f10_placement`, which stays the proposal
+  for the earlier presets); register rule `AIA-SIGNED-OFF-RESPONDENTS`.
+- Web follow-up (respondent map, not drawn yet): a respondent map view for `-5` from
+  `respondents` on the object map's frame: PLACED respondents as dots, FADED ones fainter
+  (alpha 0.3), NOT_PLACED ones not drawn; the density as terrain at the methodology's 26x height
+  exaggeration; below `min_objects` the note „Sada má n objektů: mapa respondentů je jen
+  orientační (spolehlivá od 6)“ and, below 3 objects, „Sada má n objektů: respondenty nelze
+  umístit (potřeba aspoň 3 hodnocení)“ (the panel's texts, with its objekty / objektů
+  agreement; the minimum, 3 in the panel's text, is printed from `spec.respondent_map.min_ratings`
+  so the note stays true when the value is edited in Metodika, methodology owner 2026-10-19);
+  the panel's option to raise the terrain from a filtered group of respondents
+  only (computed in the client from the stored positions, the same kernel and grid). The
+  methodology comparison (`sociomap_check.MapSummary`) does not carry the respondent map yet,
+  so an edit of a `respondent_map` value shows no change there. Until then the web and the
+  report show no respondents for a `-5` map.
 
 ## Findings
 

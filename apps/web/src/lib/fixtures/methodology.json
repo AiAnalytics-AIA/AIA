@@ -2216,9 +2216,12 @@
      },
      {
       "id": "S7",
-      "note_cs": "Kde by leželi respondenti a na kolika lidech mapa stojí.",
+      "note_cs": "Kde na mapě leží respondenti a na kolika lidech mapa stojí.",
       "step_ids": [
        "f10_placement",
+       "vector_model_placement",
+       "respondent_density",
+       "respondent_map",
        "support"
       ],
       "title_cs": "Respondenti a podpora mapy"
@@ -2250,7 +2253,7 @@
     ],
     "id": "sociomap",
     "in_force": "aia-sociomap-3",
-    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén a věrohodnost mapy podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy a mapu respondentů podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
     "preset": "aia-sociomap-2",
     "presets": [
      "aia-sociomap-4",
@@ -2281,7 +2284,7 @@
       "reading_cs": "",
       "role_cs": "Jméno a otisk metodiky, které si běh připne; podle nich je u každé mapy vidět, čím byla spočtena.",
       "source_cs": "metodika v platnosti při spuštění běhu",
-      "source_sha256": "ffb9d7a30159084b1dae7fc1c31185ababf4c9e09d4725d1f0407a4db6de1132",
+      "source_sha256": "57f3a17a2dececbdbfa688181651aa247bf7e34b0e1d2ae6f9c36db56272c6d0",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_the_presets_fingerprints"
@@ -2312,6 +2315,7 @@
       "feeds": [
        "f2_person_minmax",
        "f8_height",
+       "vector_model_placement",
        "f11_not_placed"
       ],
       "formula_latex": "\\tilde a_{kc} = \\frac{a_{kc} - s^{\\min}_c}{s^{\\max}_c - s^{\\min}_c} \\in [0, 1],\\qquad a_{kc} \\notin [s^{\\min}_c, s^{\\max}_c] \\Rightarrow \\text{odmítnuto}",
@@ -3420,7 +3424,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "729f413f18887932646473f537bb59a12dcb45b88ae0b99720f9b7065f50e0b5",
+      "source_sha256": "f0412a1ce0190f244faf4adb676f031b700b4a40a1841c0df0da6d84d68cd2d6",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -3449,7 +3453,7 @@
        "f3_status"
       ],
       "keeps_cs": [],
-      "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3. aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty bez párů (krok Volba rozložení podle počtu objektů). Mapuje jen PRIMARY objekty sady; kontextové objekty na jeho mapě nejsou (jak je ukáže, je otevřená otázka). Objekty, které nikdo nehodnotil, vynechá a uvede v objects_not_placed; počet objektů je počet hodnocených.",
+      "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3. aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty bez párů (krok Volba rozložení podle počtu objektů). Mapuje jen PRIMARY objekty sady; kontextové objekty na jeho mapě nejsou (jak je ukáže, je otevřená otázka). Objekty, které nikdo nehodnotil, vynechá a uvede v objects_not_placed; počet objektů je počet hodnocených. Objekty hodnocené na různých škálách mapu nedají: metodika čte jednu škálu na sadu.",
       "reading_cs": "",
       "role_cs": "Rozhodne, zda se z rodiny objektů dá mapa nakreslit. Když ne, běh to řekne místo kreslení.",
       "source_cs": "",
@@ -4001,6 +4005,7 @@
        }
       ],
       "feeds": [
+       "vector_model_placement",
        "terrain_frame",
        "f12_envelope"
       ],
@@ -4834,9 +4839,9 @@
        "f2_person_minmax"
       ],
       "keeps_cs": [],
-      "note_cs": "V AIA zatím není: specifikace musí uvést null a jinou hodnotu odmítne. Vzorec je návrh auditu; práh nesouladu je otevřený (sociomap-formula-corrections.md, krok 3).",
+      "note_cs": "V AIA zatím není: specifikace musí uvést null a jinou hodnotu odmítne. Vzorec je návrh auditu; práh nesouladu je otevřený (sociomap-formula-corrections.md, krok 3). aia-sociomap-5 umisťuje respondenty jinak, vektorovým modelem schválené metodiky (následující kroky); toto pole nechává null i on.",
       "reading_cs": "",
-      "role_cs": "Návrh: kde by na mapě ležel každý respondent. Zatím se nepočítá.",
+      "role_cs": "Návrh auditu: kde by na mapě ležel každý respondent. Zatím se nepočítá.",
       "source_cs": "",
       "source_sha256": "e669b6c80a18559ac344fcefee924594143c213478d891d0138990aca0510f30",
       "symbols": [
@@ -4854,7 +4859,7 @@
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_contract_3_refuses_what_it_cannot_compute_by_name"
       ],
-      "title_cs": "Umístění respondentů (navrženo, zatím se nepočítá)",
+      "title_cs": "Umístění respondentů podle auditu (navrženo, zatím se nepočítá)",
       "values": [
        {
         "absent": false,
@@ -4863,6 +4868,231 @@
         "origin": "specification",
         "reference": "respondent_placement",
         "unit": "",
+        "value": null
+       }
+      ]
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-RESPONDENTS"
+       }
+      ],
+      "feeds": [
+       "respondent_density",
+       "respondent_map"
+      ],
+      "formula_latex": "\\tilde a_{kj} = c_k + \\boldsymbol\\beta_k^{\\top} y_j + \\varepsilon_{kj},\\ j \\in J_k,\\qquad R_k^2 = 1 - \\frac{\\sum_{j \\in J_k} (\\tilde a_{kj} - \\hat c_k - \\hat{\\boldsymbol\\beta}_k^{\\top} y_j)^2}{\\sum_{j \\in J_k} (\\tilde a_{kj} - \\bar a_k)^2},\\qquad x_k = \\bar y + R_{\\max} \\sqrt{R_k^2}\\,\\frac{\\hat{\\boldsymbol\\beta}_k}{\\lVert \\hat{\\boldsymbol\\beta}_k \\rVert},\\qquad e_k = 1 - R_k^2,\\qquad p_k = (1 - R_k^2)^{(n_k - 3)/2},\\qquad \\text{jasný směr} \\iff p_k \\le \\alpha",
+      "formulas": [],
+      "id": "vector_model_placement",
+      "implements": "aia_core.domain.sociomap.signed_off_respondents:place_respondents",
+      "inputs": [
+       "f1_declared_scale",
+       "ruler_scale"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5, jen u nakreslené mapy. Respondent leží ve směru, kterým jeho hodnocení rostou, tím dál od středu, čím jasněji tomu směru odpovídají; kdo směr nemá, leží u středu. Jasný směr (PLACED) má, je-li p_k nanejvýš α; jinak slabý směr (FADED, kreslí se světle). Kdo hodnotil méně než n_min objektů mapy nebo dal všem stejné hodnocení, není umístěn (NOT_PLACED). Respondent bez preference tak vypadá jako jasně umístěný se stejnou šancí α při jakémkoli počtu hodnocení. Mapa zapíše polohu, stav, nesoulad a p_k každého respondenta a počty stavů (respondents).",
+      "reading_cs": "",
+      "role_cs": "Kde na mapě objektů leží každý respondent: ve směru objektů, které hodnotí výš, a zda je ten směr silnější než náhoda.",
+      "source_cs": "",
+      "source_sha256": "1ef191f7b466db2beabf3d5832375116273d619eadc00f1b7188aa42a25c4cfb",
+      "symbols": [
+       {
+        "latex": "\\tilde a_{kj}",
+        "meaning_cs": "hodnocení objektu j respondentem k na deklarované škále 0-1, bez vah",
+        "unit": ""
+       },
+       {
+        "latex": "J_k, n_k",
+        "meaning_cs": "objekty mapy, které respondent k hodnotil, a jejich počet",
+        "unit": ""
+       },
+       {
+        "latex": "y_j",
+        "meaning_cs": "poloha objektu j na pravítku (mapa objektů je pevná)",
+        "unit": ""
+       },
+       {
+        "latex": "\\hat c_k, \\hat{\\boldsymbol\\beta}_k",
+        "meaning_cs": "posun a sklon respondenta k (nejmenší čtverce, pseudoinverze)",
+        "unit": ""
+       },
+       {
+        "latex": "\\bar y, R_{\\max}",
+        "meaning_cs": "střed objektů a největší vzdálenost objektu od něj",
+        "unit": ""
+       },
+       {
+        "latex": "x_k",
+        "meaning_cs": "poloha respondenta k na pravítku",
+        "unit": ""
+       },
+       {
+        "latex": "e_k",
+        "meaning_cs": "nesoulad respondenta k",
+        "unit": ""
+       },
+       {
+        "latex": "p_k",
+        "meaning_cs": "šance, že by tak dobře seděl i respondent bez preference; při n_k = 3 vždy 1",
+        "unit": ""
+       },
+       {
+        "latex": "\\alpha, n_{\\min}",
+        "meaning_cs": "hladina testu náhody a nejmenší počet hodnocení (hodnoty u kroku Mapa respondentů)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_placement_matches_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_object_map_stores_the_respondent_map_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_survey_weights_do_not_enter_the_respondent_map",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_every_value_of_the_stage_changes_the_map_when_edited"
+      ],
+      "title_cs": "Umístění respondentů vektorovým modelem a test náhody",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-RESPONDENTS"
+       }
+      ],
+      "feeds": [
+       "respondent_map"
+      ],
+      "formula_latex": "T(q) = \\frac{\\sum_{k \\in \\mathcal{P}} \\exp\\!\\left(-\\frac{\\lVert q - x_k \\rVert^2}{2\\sigma_R^2}\\right)}{\\max_{q'} \\sum_{k \\in \\mathcal{P}} \\exp\\!\\left(-\\frac{\\lVert q' - x_k \\rVert^2}{2\\sigma_R^2}\\right)},\\qquad \\mathcal{P} = \\varnothing \\;\\Rightarrow\\; T = 0",
+      "formulas": [],
+      "id": "respondent_density",
+      "implements": "aia_core.domain.sociomap.signed_off_respondents:respondent_density",
+      "inputs": [
+       "vector_model_placement",
+       "terrain_frame"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5. Respondenti se slabým směrem se kreslí světle, ale do výšky se nepočítají: vektorový model je klade ke středu a jejich započtení dávalo jeden široký kopec uprostřed. Mřížka je rám terénu objektů, takže respondent může stát mimo ni. σ_R je v jednotkách pravítka (výchozí 0,35 = 9,45 k jednotek metodiky). Mapa zapíše mřížku a výšky (respondents.density).",
+      "reading_cs": "",
+      "role_cs": "Krajina mapy respondentů: kopec tam, kde je hodně jasně umístěných lidí.",
+      "source_cs": "",
+      "source_sha256": "3c6f975fb609f136bc535781640da27a5e9e125ddde2d393cffa6ef8814f479e",
+      "symbols": [
+       {
+        "latex": "\\mathcal{P}",
+        "meaning_cs": "respondenti s jasným směrem (PLACED)",
+        "unit": ""
+       },
+       {
+        "latex": "x_k",
+        "meaning_cs": "poloha respondenta k na pravítku",
+        "unit": ""
+       },
+       {
+        "latex": "q, q'",
+        "meaning_cs": "body mřížky terénu objektů: tentýž střed, poloviční šířka a rozlišení",
+        "unit": ""
+       },
+       {
+        "latex": "\\sigma_R",
+        "meaning_cs": "šířka jádra hustoty (hodnota u kroku Mapa respondentů)",
+        "unit": "jednotky vzdálenosti"
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_density_matches_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_object_map_stores_the_respondent_map_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_every_value_of_the_stage_changes_the_map_when_edited"
+      ],
+      "title_cs": "Terén respondentů: hustota jasně umístěných",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-RESPONDENTS"
+       }
+      ],
+      "feeds": [],
+      "formula_latex": "\\text{spolehlivá} \\iff M \\ge M_{\\min}",
+      "formulas": [],
+      "id": "respondent_map",
+      "implements": "aia_core.domain.sociomap.engine_v2:_respondents",
+      "inputs": [
+       "vector_model_placement",
+       "respondent_density"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5, jen u nakreslené mapy; u mapy, kterou nelze nakreslit, zapíše, že respondenty není kam umístit. Mapa respondentů se nakreslí vždy; pod M_min objekty s poznámkou, že je jen orientační: s méně objekty má i jasně umístěný respondent jen o málo větší šanci být skutečný než náhodný. Pod třemi objekty nelze umístit nikoho (potřeba aspoň tří hodnocení). Umístění samo se nemění. Mapa zapíše, zda je spolehlivá, a M_min (respondents.informative a min_objects).",
+      "reading_cs": "",
+      "role_cs": "Zapíše mapu respondentů k mapě objektů a řekne, zda má sada dost objektů, aby jí šlo věřit, nebo je jen orientační.",
+      "source_cs": "",
+      "source_sha256": "e8b8ec932bcda9600c03da563ee480a0c1164453fa1622e9ed4eac8dddfd6367",
+      "symbols": [
+       {
+        "latex": "M",
+        "meaning_cs": "počet objektů mapy",
+        "unit": ""
+       },
+       {
+        "latex": "M_{\\min}",
+        "meaning_cs": "počet objektů, od kterého je mapa respondentů spolehlivá",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_studies_cover_the_edge_cases",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_a_map_that_cannot_be_drawn_places_nobody",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_respondent_map_is_declared_exactly_under_the_signed_off_methodology",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_object_map_stores_the_respondent_map_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_every_value_of_the_stage_changes_the_map_when_edited"
+      ],
+      "title_cs": "Mapa respondentů: spolehlivá od daného počtu objektů",
+      "values": [
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Hladina testu náhody α",
+        "origin": "specification",
+        "reference": "respondent_map.chance_level",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Nejmenší počet hodnocení n_min",
+        "origin": "specification",
+        "reference": "respondent_map.min_ratings",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Spolehlivá od M_min objektů",
+        "origin": "specification",
+        "reference": "respondent_map.informative_min_objects",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Šířka jádra hustoty σ_R",
+        "origin": "specification",
+        "reference": "respondent_map.density_sigma",
+        "unit": "jednotky vzdálenosti",
         "value": null
        }
       ]
@@ -5042,6 +5272,7 @@
        }
       ],
       "feeds": [
+       "respondent_density",
        "f12_envelope"
       ],
       "formula_latex": "c = \\tfrac12\\left(\\min_{j \\in K} x_j + \\max_{j \\in K} x_j\\right),\\qquad H = \\frac{\\max_{j \\in K} \\lVert x_j - c\\rVert_\\infty}{v},\\qquad \\max_{j \\in K} \\lVert x_j - c\\rVert_\\infty \\le 10^{-12}/27 \\;\\Rightarrow\\; H = H_0,\\qquad K = \\varnothing \\;\\Rightarrow\\; c = 0,\\; H = H_0",
@@ -5285,7 +5516,7 @@
       ]
      }
     ],
-    "steps": 38,
+    "steps": 41,
     "title_cs": "Sociomapa: objektová mapa"
    },
    "aia-sociomap-3": {
@@ -5378,9 +5609,12 @@
      },
      {
       "id": "S7",
-      "note_cs": "Kde by leželi respondenti a na kolika lidech mapa stojí.",
+      "note_cs": "Kde na mapě leží respondenti a na kolika lidech mapa stojí.",
       "step_ids": [
        "f10_placement",
+       "vector_model_placement",
+       "respondent_density",
+       "respondent_map",
        "support"
       ],
       "title_cs": "Respondenti a podpora mapy"
@@ -5412,7 +5646,7 @@
     ],
     "id": "sociomap",
     "in_force": "aia-sociomap-3",
-    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén a věrohodnost mapy podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy a mapu respondentů podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
     "preset": "aia-sociomap-3",
     "presets": [
      "aia-sociomap-4",
@@ -5443,7 +5677,7 @@
       "reading_cs": "",
       "role_cs": "Jméno a otisk metodiky, které si běh připne; podle nich je u každé mapy vidět, čím byla spočtena.",
       "source_cs": "metodika v platnosti při spuštění běhu",
-      "source_sha256": "ffb9d7a30159084b1dae7fc1c31185ababf4c9e09d4725d1f0407a4db6de1132",
+      "source_sha256": "57f3a17a2dececbdbfa688181651aa247bf7e34b0e1d2ae6f9c36db56272c6d0",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_the_presets_fingerprints"
@@ -5474,6 +5708,7 @@
       "feeds": [
        "f2_person_minmax",
        "f8_height",
+       "vector_model_placement",
        "f11_not_placed"
       ],
       "formula_latex": "\\tilde a_{kc} = \\frac{a_{kc} - s^{\\min}_c}{s^{\\max}_c - s^{\\min}_c} \\in [0, 1],\\qquad a_{kc} \\notin [s^{\\min}_c, s^{\\max}_c] \\Rightarrow \\text{odmítnuto}",
@@ -6582,7 +6817,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "729f413f18887932646473f537bb59a12dcb45b88ae0b99720f9b7065f50e0b5",
+      "source_sha256": "f0412a1ce0190f244faf4adb676f031b700b4a40a1841c0df0da6d84d68cd2d6",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -6611,7 +6846,7 @@
        "f3_status"
       ],
       "keeps_cs": [],
-      "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3. aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty bez párů (krok Volba rozložení podle počtu objektů). Mapuje jen PRIMARY objekty sady; kontextové objekty na jeho mapě nejsou (jak je ukáže, je otevřená otázka). Objekty, které nikdo nehodnotil, vynechá a uvede v objects_not_placed; počet objektů je počet hodnocených.",
+      "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3. aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty bez párů (krok Volba rozložení podle počtu objektů). Mapuje jen PRIMARY objekty sady; kontextové objekty na jeho mapě nejsou (jak je ukáže, je otevřená otázka). Objekty, které nikdo nehodnotil, vynechá a uvede v objects_not_placed; počet objektů je počet hodnocených. Objekty hodnocené na různých škálách mapu nedají: metodika čte jednu škálu na sadu.",
       "reading_cs": "",
       "role_cs": "Rozhodne, zda se z rodiny objektů dá mapa nakreslit. Když ne, běh to řekne místo kreslení.",
       "source_cs": "",
@@ -7163,6 +7398,7 @@
        }
       ],
       "feeds": [
+       "vector_model_placement",
        "terrain_frame",
        "f12_envelope"
       ],
@@ -7996,9 +8232,9 @@
        "f2_person_minmax"
       ],
       "keeps_cs": [],
-      "note_cs": "V AIA zatím není: specifikace musí uvést null a jinou hodnotu odmítne. Vzorec je návrh auditu; práh nesouladu je otevřený (sociomap-formula-corrections.md, krok 3).",
+      "note_cs": "V AIA zatím není: specifikace musí uvést null a jinou hodnotu odmítne. Vzorec je návrh auditu; práh nesouladu je otevřený (sociomap-formula-corrections.md, krok 3). aia-sociomap-5 umisťuje respondenty jinak, vektorovým modelem schválené metodiky (následující kroky); toto pole nechává null i on.",
       "reading_cs": "",
-      "role_cs": "Návrh: kde by na mapě ležel každý respondent. Zatím se nepočítá.",
+      "role_cs": "Návrh auditu: kde by na mapě ležel každý respondent. Zatím se nepočítá.",
       "source_cs": "",
       "source_sha256": "e669b6c80a18559ac344fcefee924594143c213478d891d0138990aca0510f30",
       "symbols": [
@@ -8016,7 +8252,7 @@
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_contract_3_refuses_what_it_cannot_compute_by_name"
       ],
-      "title_cs": "Umístění respondentů (navrženo, zatím se nepočítá)",
+      "title_cs": "Umístění respondentů podle auditu (navrženo, zatím se nepočítá)",
       "values": [
        {
         "absent": false,
@@ -8025,6 +8261,231 @@
         "origin": "specification",
         "reference": "respondent_placement",
         "unit": "",
+        "value": null
+       }
+      ]
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-RESPONDENTS"
+       }
+      ],
+      "feeds": [
+       "respondent_density",
+       "respondent_map"
+      ],
+      "formula_latex": "\\tilde a_{kj} = c_k + \\boldsymbol\\beta_k^{\\top} y_j + \\varepsilon_{kj},\\ j \\in J_k,\\qquad R_k^2 = 1 - \\frac{\\sum_{j \\in J_k} (\\tilde a_{kj} - \\hat c_k - \\hat{\\boldsymbol\\beta}_k^{\\top} y_j)^2}{\\sum_{j \\in J_k} (\\tilde a_{kj} - \\bar a_k)^2},\\qquad x_k = \\bar y + R_{\\max} \\sqrt{R_k^2}\\,\\frac{\\hat{\\boldsymbol\\beta}_k}{\\lVert \\hat{\\boldsymbol\\beta}_k \\rVert},\\qquad e_k = 1 - R_k^2,\\qquad p_k = (1 - R_k^2)^{(n_k - 3)/2},\\qquad \\text{jasný směr} \\iff p_k \\le \\alpha",
+      "formulas": [],
+      "id": "vector_model_placement",
+      "implements": "aia_core.domain.sociomap.signed_off_respondents:place_respondents",
+      "inputs": [
+       "f1_declared_scale",
+       "ruler_scale"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5, jen u nakreslené mapy. Respondent leží ve směru, kterým jeho hodnocení rostou, tím dál od středu, čím jasněji tomu směru odpovídají; kdo směr nemá, leží u středu. Jasný směr (PLACED) má, je-li p_k nanejvýš α; jinak slabý směr (FADED, kreslí se světle). Kdo hodnotil méně než n_min objektů mapy nebo dal všem stejné hodnocení, není umístěn (NOT_PLACED). Respondent bez preference tak vypadá jako jasně umístěný se stejnou šancí α při jakémkoli počtu hodnocení. Mapa zapíše polohu, stav, nesoulad a p_k každého respondenta a počty stavů (respondents).",
+      "reading_cs": "",
+      "role_cs": "Kde na mapě objektů leží každý respondent: ve směru objektů, které hodnotí výš, a zda je ten směr silnější než náhoda.",
+      "source_cs": "",
+      "source_sha256": "1ef191f7b466db2beabf3d5832375116273d619eadc00f1b7188aa42a25c4cfb",
+      "symbols": [
+       {
+        "latex": "\\tilde a_{kj}",
+        "meaning_cs": "hodnocení objektu j respondentem k na deklarované škále 0-1, bez vah",
+        "unit": ""
+       },
+       {
+        "latex": "J_k, n_k",
+        "meaning_cs": "objekty mapy, které respondent k hodnotil, a jejich počet",
+        "unit": ""
+       },
+       {
+        "latex": "y_j",
+        "meaning_cs": "poloha objektu j na pravítku (mapa objektů je pevná)",
+        "unit": ""
+       },
+       {
+        "latex": "\\hat c_k, \\hat{\\boldsymbol\\beta}_k",
+        "meaning_cs": "posun a sklon respondenta k (nejmenší čtverce, pseudoinverze)",
+        "unit": ""
+       },
+       {
+        "latex": "\\bar y, R_{\\max}",
+        "meaning_cs": "střed objektů a největší vzdálenost objektu od něj",
+        "unit": ""
+       },
+       {
+        "latex": "x_k",
+        "meaning_cs": "poloha respondenta k na pravítku",
+        "unit": ""
+       },
+       {
+        "latex": "e_k",
+        "meaning_cs": "nesoulad respondenta k",
+        "unit": ""
+       },
+       {
+        "latex": "p_k",
+        "meaning_cs": "šance, že by tak dobře seděl i respondent bez preference; při n_k = 3 vždy 1",
+        "unit": ""
+       },
+       {
+        "latex": "\\alpha, n_{\\min}",
+        "meaning_cs": "hladina testu náhody a nejmenší počet hodnocení (hodnoty u kroku Mapa respondentů)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_placement_matches_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_object_map_stores_the_respondent_map_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_survey_weights_do_not_enter_the_respondent_map",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_every_value_of_the_stage_changes_the_map_when_edited"
+      ],
+      "title_cs": "Umístění respondentů vektorovým modelem a test náhody",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-RESPONDENTS"
+       }
+      ],
+      "feeds": [
+       "respondent_map"
+      ],
+      "formula_latex": "T(q) = \\frac{\\sum_{k \\in \\mathcal{P}} \\exp\\!\\left(-\\frac{\\lVert q - x_k \\rVert^2}{2\\sigma_R^2}\\right)}{\\max_{q'} \\sum_{k \\in \\mathcal{P}} \\exp\\!\\left(-\\frac{\\lVert q' - x_k \\rVert^2}{2\\sigma_R^2}\\right)},\\qquad \\mathcal{P} = \\varnothing \\;\\Rightarrow\\; T = 0",
+      "formulas": [],
+      "id": "respondent_density",
+      "implements": "aia_core.domain.sociomap.signed_off_respondents:respondent_density",
+      "inputs": [
+       "vector_model_placement",
+       "terrain_frame"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5. Respondenti se slabým směrem se kreslí světle, ale do výšky se nepočítají: vektorový model je klade ke středu a jejich započtení dávalo jeden široký kopec uprostřed. Mřížka je rám terénu objektů, takže respondent může stát mimo ni. σ_R je v jednotkách pravítka (výchozí 0,35 = 9,45 k jednotek metodiky). Mapa zapíše mřížku a výšky (respondents.density).",
+      "reading_cs": "",
+      "role_cs": "Krajina mapy respondentů: kopec tam, kde je hodně jasně umístěných lidí.",
+      "source_cs": "",
+      "source_sha256": "3c6f975fb609f136bc535781640da27a5e9e125ddde2d393cffa6ef8814f479e",
+      "symbols": [
+       {
+        "latex": "\\mathcal{P}",
+        "meaning_cs": "respondenti s jasným směrem (PLACED)",
+        "unit": ""
+       },
+       {
+        "latex": "x_k",
+        "meaning_cs": "poloha respondenta k na pravítku",
+        "unit": ""
+       },
+       {
+        "latex": "q, q'",
+        "meaning_cs": "body mřížky terénu objektů: tentýž střed, poloviční šířka a rozlišení",
+        "unit": ""
+       },
+       {
+        "latex": "\\sigma_R",
+        "meaning_cs": "šířka jádra hustoty (hodnota u kroku Mapa respondentů)",
+        "unit": "jednotky vzdálenosti"
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_density_matches_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_object_map_stores_the_respondent_map_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_every_value_of_the_stage_changes_the_map_when_edited"
+      ],
+      "title_cs": "Terén respondentů: hustota jasně umístěných",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-RESPONDENTS"
+       }
+      ],
+      "feeds": [],
+      "formula_latex": "\\text{spolehlivá} \\iff M \\ge M_{\\min}",
+      "formulas": [],
+      "id": "respondent_map",
+      "implements": "aia_core.domain.sociomap.engine_v2:_respondents",
+      "inputs": [
+       "vector_model_placement",
+       "respondent_density"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5, jen u nakreslené mapy; u mapy, kterou nelze nakreslit, zapíše, že respondenty není kam umístit. Mapa respondentů se nakreslí vždy; pod M_min objekty s poznámkou, že je jen orientační: s méně objekty má i jasně umístěný respondent jen o málo větší šanci být skutečný než náhodný. Pod třemi objekty nelze umístit nikoho (potřeba aspoň tří hodnocení). Umístění samo se nemění. Mapa zapíše, zda je spolehlivá, a M_min (respondents.informative a min_objects).",
+      "reading_cs": "",
+      "role_cs": "Zapíše mapu respondentů k mapě objektů a řekne, zda má sada dost objektů, aby jí šlo věřit, nebo je jen orientační.",
+      "source_cs": "",
+      "source_sha256": "e8b8ec932bcda9600c03da563ee480a0c1164453fa1622e9ed4eac8dddfd6367",
+      "symbols": [
+       {
+        "latex": "M",
+        "meaning_cs": "počet objektů mapy",
+        "unit": ""
+       },
+       {
+        "latex": "M_{\\min}",
+        "meaning_cs": "počet objektů, od kterého je mapa respondentů spolehlivá",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_studies_cover_the_edge_cases",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_a_map_that_cannot_be_drawn_places_nobody",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_respondent_map_is_declared_exactly_under_the_signed_off_methodology",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_object_map_stores_the_respondent_map_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_every_value_of_the_stage_changes_the_map_when_edited"
+      ],
+      "title_cs": "Mapa respondentů: spolehlivá od daného počtu objektů",
+      "values": [
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Hladina testu náhody α",
+        "origin": "specification",
+        "reference": "respondent_map.chance_level",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Nejmenší počet hodnocení n_min",
+        "origin": "specification",
+        "reference": "respondent_map.min_ratings",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Spolehlivá od M_min objektů",
+        "origin": "specification",
+        "reference": "respondent_map.informative_min_objects",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Šířka jádra hustoty σ_R",
+        "origin": "specification",
+        "reference": "respondent_map.density_sigma",
+        "unit": "jednotky vzdálenosti",
         "value": null
        }
       ]
@@ -8204,6 +8665,7 @@
        }
       ],
       "feeds": [
+       "respondent_density",
        "f12_envelope"
       ],
       "formula_latex": "c = \\tfrac12\\left(\\min_{j \\in K} x_j + \\max_{j \\in K} x_j\\right),\\qquad H = \\frac{\\max_{j \\in K} \\lVert x_j - c\\rVert_\\infty}{v},\\qquad \\max_{j \\in K} \\lVert x_j - c\\rVert_\\infty \\le 10^{-12}/27 \\;\\Rightarrow\\; H = H_0,\\qquad K = \\varnothing \\;\\Rightarrow\\; c = 0,\\; H = H_0",
@@ -8447,7 +8909,7 @@
       ]
      }
     ],
-    "steps": 38,
+    "steps": 41,
     "title_cs": "Sociomapa: objektová mapa"
    },
    "aia-sociomap-4": {
@@ -8540,9 +9002,12 @@
      },
      {
       "id": "S7",
-      "note_cs": "Kde by leželi respondenti a na kolika lidech mapa stojí.",
+      "note_cs": "Kde na mapě leží respondenti a na kolika lidech mapa stojí.",
       "step_ids": [
        "f10_placement",
+       "vector_model_placement",
+       "respondent_density",
+       "respondent_map",
        "support"
       ],
       "title_cs": "Respondenti a podpora mapy"
@@ -8574,7 +9039,7 @@
     ],
     "id": "sociomap",
     "in_force": "aia-sociomap-3",
-    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén a věrohodnost mapy podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy a mapu respondentů podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
     "preset": "aia-sociomap-4",
     "presets": [
      "aia-sociomap-4",
@@ -8605,7 +9070,7 @@
       "reading_cs": "",
       "role_cs": "Jméno a otisk metodiky, které si běh připne; podle nich je u každé mapy vidět, čím byla spočtena.",
       "source_cs": "metodika v platnosti při spuštění běhu",
-      "source_sha256": "ffb9d7a30159084b1dae7fc1c31185ababf4c9e09d4725d1f0407a4db6de1132",
+      "source_sha256": "57f3a17a2dececbdbfa688181651aa247bf7e34b0e1d2ae6f9c36db56272c6d0",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_the_presets_fingerprints"
@@ -8636,6 +9101,7 @@
       "feeds": [
        "f2_person_minmax",
        "f8_height",
+       "vector_model_placement",
        "f11_not_placed"
       ],
       "formula_latex": "\\tilde a_{kc} = \\frac{a_{kc} - s^{\\min}_c}{s^{\\max}_c - s^{\\min}_c} \\in [0, 1],\\qquad a_{kc} \\notin [s^{\\min}_c, s^{\\max}_c] \\Rightarrow \\text{odmítnuto}",
@@ -9744,7 +10210,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "729f413f18887932646473f537bb59a12dcb45b88ae0b99720f9b7065f50e0b5",
+      "source_sha256": "f0412a1ce0190f244faf4adb676f031b700b4a40a1841c0df0da6d84d68cd2d6",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -9773,7 +10239,7 @@
        "f3_status"
       ],
       "keeps_cs": [],
-      "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3. aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty bez párů (krok Volba rozložení podle počtu objektů). Mapuje jen PRIMARY objekty sady; kontextové objekty na jeho mapě nejsou (jak je ukáže, je otevřená otázka). Objekty, které nikdo nehodnotil, vynechá a uvede v objects_not_placed; počet objektů je počet hodnocených.",
+      "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3. aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty bez párů (krok Volba rozložení podle počtu objektů). Mapuje jen PRIMARY objekty sady; kontextové objekty na jeho mapě nejsou (jak je ukáže, je otevřená otázka). Objekty, které nikdo nehodnotil, vynechá a uvede v objects_not_placed; počet objektů je počet hodnocených. Objekty hodnocené na různých škálách mapu nedají: metodika čte jednu škálu na sadu.",
       "reading_cs": "",
       "role_cs": "Rozhodne, zda se z rodiny objektů dá mapa nakreslit. Když ne, běh to řekne místo kreslení.",
       "source_cs": "",
@@ -10325,6 +10791,7 @@
        }
       ],
       "feeds": [
+       "vector_model_placement",
        "terrain_frame",
        "f12_envelope"
       ],
@@ -11165,9 +11632,9 @@
        "f2_person_minmax"
       ],
       "keeps_cs": [],
-      "note_cs": "V AIA zatím není: specifikace musí uvést null a jinou hodnotu odmítne. Vzorec je návrh auditu; práh nesouladu je otevřený (sociomap-formula-corrections.md, krok 3).",
+      "note_cs": "V AIA zatím není: specifikace musí uvést null a jinou hodnotu odmítne. Vzorec je návrh auditu; práh nesouladu je otevřený (sociomap-formula-corrections.md, krok 3). aia-sociomap-5 umisťuje respondenty jinak, vektorovým modelem schválené metodiky (následující kroky); toto pole nechává null i on.",
       "reading_cs": "",
-      "role_cs": "Návrh: kde by na mapě ležel každý respondent. Zatím se nepočítá.",
+      "role_cs": "Návrh auditu: kde by na mapě ležel každý respondent. Zatím se nepočítá.",
       "source_cs": "",
       "source_sha256": "e669b6c80a18559ac344fcefee924594143c213478d891d0138990aca0510f30",
       "symbols": [
@@ -11185,7 +11652,7 @@
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_contract_3_refuses_what_it_cannot_compute_by_name"
       ],
-      "title_cs": "Umístění respondentů (navrženo, zatím se nepočítá)",
+      "title_cs": "Umístění respondentů podle auditu (navrženo, zatím se nepočítá)",
       "values": [
        {
         "absent": false,
@@ -11194,6 +11661,231 @@
         "origin": "specification",
         "reference": "respondent_placement",
         "unit": "",
+        "value": null
+       }
+      ]
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-RESPONDENTS"
+       }
+      ],
+      "feeds": [
+       "respondent_density",
+       "respondent_map"
+      ],
+      "formula_latex": "\\tilde a_{kj} = c_k + \\boldsymbol\\beta_k^{\\top} y_j + \\varepsilon_{kj},\\ j \\in J_k,\\qquad R_k^2 = 1 - \\frac{\\sum_{j \\in J_k} (\\tilde a_{kj} - \\hat c_k - \\hat{\\boldsymbol\\beta}_k^{\\top} y_j)^2}{\\sum_{j \\in J_k} (\\tilde a_{kj} - \\bar a_k)^2},\\qquad x_k = \\bar y + R_{\\max} \\sqrt{R_k^2}\\,\\frac{\\hat{\\boldsymbol\\beta}_k}{\\lVert \\hat{\\boldsymbol\\beta}_k \\rVert},\\qquad e_k = 1 - R_k^2,\\qquad p_k = (1 - R_k^2)^{(n_k - 3)/2},\\qquad \\text{jasný směr} \\iff p_k \\le \\alpha",
+      "formulas": [],
+      "id": "vector_model_placement",
+      "implements": "aia_core.domain.sociomap.signed_off_respondents:place_respondents",
+      "inputs": [
+       "f1_declared_scale",
+       "ruler_scale"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5, jen u nakreslené mapy. Respondent leží ve směru, kterým jeho hodnocení rostou, tím dál od středu, čím jasněji tomu směru odpovídají; kdo směr nemá, leží u středu. Jasný směr (PLACED) má, je-li p_k nanejvýš α; jinak slabý směr (FADED, kreslí se světle). Kdo hodnotil méně než n_min objektů mapy nebo dal všem stejné hodnocení, není umístěn (NOT_PLACED). Respondent bez preference tak vypadá jako jasně umístěný se stejnou šancí α při jakémkoli počtu hodnocení. Mapa zapíše polohu, stav, nesoulad a p_k každého respondenta a počty stavů (respondents).",
+      "reading_cs": "",
+      "role_cs": "Kde na mapě objektů leží každý respondent: ve směru objektů, které hodnotí výš, a zda je ten směr silnější než náhoda.",
+      "source_cs": "",
+      "source_sha256": "1ef191f7b466db2beabf3d5832375116273d619eadc00f1b7188aa42a25c4cfb",
+      "symbols": [
+       {
+        "latex": "\\tilde a_{kj}",
+        "meaning_cs": "hodnocení objektu j respondentem k na deklarované škále 0-1, bez vah",
+        "unit": ""
+       },
+       {
+        "latex": "J_k, n_k",
+        "meaning_cs": "objekty mapy, které respondent k hodnotil, a jejich počet",
+        "unit": ""
+       },
+       {
+        "latex": "y_j",
+        "meaning_cs": "poloha objektu j na pravítku (mapa objektů je pevná)",
+        "unit": ""
+       },
+       {
+        "latex": "\\hat c_k, \\hat{\\boldsymbol\\beta}_k",
+        "meaning_cs": "posun a sklon respondenta k (nejmenší čtverce, pseudoinverze)",
+        "unit": ""
+       },
+       {
+        "latex": "\\bar y, R_{\\max}",
+        "meaning_cs": "střed objektů a největší vzdálenost objektu od něj",
+        "unit": ""
+       },
+       {
+        "latex": "x_k",
+        "meaning_cs": "poloha respondenta k na pravítku",
+        "unit": ""
+       },
+       {
+        "latex": "e_k",
+        "meaning_cs": "nesoulad respondenta k",
+        "unit": ""
+       },
+       {
+        "latex": "p_k",
+        "meaning_cs": "šance, že by tak dobře seděl i respondent bez preference; při n_k = 3 vždy 1",
+        "unit": ""
+       },
+       {
+        "latex": "\\alpha, n_{\\min}",
+        "meaning_cs": "hladina testu náhody a nejmenší počet hodnocení (hodnoty u kroku Mapa respondentů)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_placement_matches_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_object_map_stores_the_respondent_map_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_survey_weights_do_not_enter_the_respondent_map",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_every_value_of_the_stage_changes_the_map_when_edited"
+      ],
+      "title_cs": "Umístění respondentů vektorovým modelem a test náhody",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-RESPONDENTS"
+       }
+      ],
+      "feeds": [
+       "respondent_map"
+      ],
+      "formula_latex": "T(q) = \\frac{\\sum_{k \\in \\mathcal{P}} \\exp\\!\\left(-\\frac{\\lVert q - x_k \\rVert^2}{2\\sigma_R^2}\\right)}{\\max_{q'} \\sum_{k \\in \\mathcal{P}} \\exp\\!\\left(-\\frac{\\lVert q' - x_k \\rVert^2}{2\\sigma_R^2}\\right)},\\qquad \\mathcal{P} = \\varnothing \\;\\Rightarrow\\; T = 0",
+      "formulas": [],
+      "id": "respondent_density",
+      "implements": "aia_core.domain.sociomap.signed_off_respondents:respondent_density",
+      "inputs": [
+       "vector_model_placement",
+       "terrain_frame"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5. Respondenti se slabým směrem se kreslí světle, ale do výšky se nepočítají: vektorový model je klade ke středu a jejich započtení dávalo jeden široký kopec uprostřed. Mřížka je rám terénu objektů, takže respondent může stát mimo ni. σ_R je v jednotkách pravítka (výchozí 0,35 = 9,45 k jednotek metodiky). Mapa zapíše mřížku a výšky (respondents.density).",
+      "reading_cs": "",
+      "role_cs": "Krajina mapy respondentů: kopec tam, kde je hodně jasně umístěných lidí.",
+      "source_cs": "",
+      "source_sha256": "3c6f975fb609f136bc535781640da27a5e9e125ddde2d393cffa6ef8814f479e",
+      "symbols": [
+       {
+        "latex": "\\mathcal{P}",
+        "meaning_cs": "respondenti s jasným směrem (PLACED)",
+        "unit": ""
+       },
+       {
+        "latex": "x_k",
+        "meaning_cs": "poloha respondenta k na pravítku",
+        "unit": ""
+       },
+       {
+        "latex": "q, q'",
+        "meaning_cs": "body mřížky terénu objektů: tentýž střed, poloviční šířka a rozlišení",
+        "unit": ""
+       },
+       {
+        "latex": "\\sigma_R",
+        "meaning_cs": "šířka jádra hustoty (hodnota u kroku Mapa respondentů)",
+        "unit": "jednotky vzdálenosti"
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_density_matches_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_object_map_stores_the_respondent_map_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_every_value_of_the_stage_changes_the_map_when_edited"
+      ],
+      "title_cs": "Terén respondentů: hustota jasně umístěných",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-RESPONDENTS"
+       }
+      ],
+      "feeds": [],
+      "formula_latex": "\\text{spolehlivá} \\iff M \\ge M_{\\min}",
+      "formulas": [],
+      "id": "respondent_map",
+      "implements": "aia_core.domain.sociomap.engine_v2:_respondents",
+      "inputs": [
+       "vector_model_placement",
+       "respondent_density"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5, jen u nakreslené mapy; u mapy, kterou nelze nakreslit, zapíše, že respondenty není kam umístit. Mapa respondentů se nakreslí vždy; pod M_min objekty s poznámkou, že je jen orientační: s méně objekty má i jasně umístěný respondent jen o málo větší šanci být skutečný než náhodný. Pod třemi objekty nelze umístit nikoho (potřeba aspoň tří hodnocení). Umístění samo se nemění. Mapa zapíše, zda je spolehlivá, a M_min (respondents.informative a min_objects).",
+      "reading_cs": "",
+      "role_cs": "Zapíše mapu respondentů k mapě objektů a řekne, zda má sada dost objektů, aby jí šlo věřit, nebo je jen orientační.",
+      "source_cs": "",
+      "source_sha256": "e8b8ec932bcda9600c03da563ee480a0c1164453fa1622e9ed4eac8dddfd6367",
+      "symbols": [
+       {
+        "latex": "M",
+        "meaning_cs": "počet objektů mapy",
+        "unit": ""
+       },
+       {
+        "latex": "M_{\\min}",
+        "meaning_cs": "počet objektů, od kterého je mapa respondentů spolehlivá",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_studies_cover_the_edge_cases",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_a_map_that_cannot_be_drawn_places_nobody",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_respondent_map_is_declared_exactly_under_the_signed_off_methodology",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_object_map_stores_the_respondent_map_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_every_value_of_the_stage_changes_the_map_when_edited"
+      ],
+      "title_cs": "Mapa respondentů: spolehlivá od daného počtu objektů",
+      "values": [
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Hladina testu náhody α",
+        "origin": "specification",
+        "reference": "respondent_map.chance_level",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Nejmenší počet hodnocení n_min",
+        "origin": "specification",
+        "reference": "respondent_map.min_ratings",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Spolehlivá od M_min objektů",
+        "origin": "specification",
+        "reference": "respondent_map.informative_min_objects",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Šířka jádra hustoty σ_R",
+        "origin": "specification",
+        "reference": "respondent_map.density_sigma",
+        "unit": "jednotky vzdálenosti",
         "value": null
        }
       ]
@@ -11373,6 +12065,7 @@
        }
       ],
       "feeds": [
+       "respondent_density",
        "f12_envelope"
       ],
       "formula_latex": "c = \\tfrac12\\left(\\min_{j \\in K} x_j + \\max_{j \\in K} x_j\\right),\\qquad H = \\frac{\\max_{j \\in K} \\lVert x_j - c\\rVert_\\infty}{v},\\qquad \\max_{j \\in K} \\lVert x_j - c\\rVert_\\infty \\le 10^{-12}/27 \\;\\Rightarrow\\; H = H_0,\\qquad K = \\varnothing \\;\\Rightarrow\\; c = 0,\\; H = H_0",
@@ -11616,7 +12309,7 @@
       ]
      }
     ],
-    "steps": 38,
+    "steps": 41,
     "title_cs": "Sociomapa: objektová mapa"
    },
    "aia-sociomap-5": {
@@ -11709,9 +12402,12 @@
      },
      {
       "id": "S7",
-      "note_cs": "Kde by leželi respondenti a na kolika lidech mapa stojí.",
+      "note_cs": "Kde na mapě leží respondenti a na kolika lidech mapa stojí.",
       "step_ids": [
        "f10_placement",
+       "vector_model_placement",
+       "respondent_density",
+       "respondent_map",
        "support"
       ],
       "title_cs": "Respondenti a podpora mapy"
@@ -11743,7 +12439,7 @@
     ],
     "id": "sociomap",
     "in_force": "aia-sociomap-3",
-    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén a věrohodnost mapy podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy a mapu respondentů podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
     "preset": "aia-sociomap-5",
     "presets": [
      "aia-sociomap-4",
@@ -11774,7 +12470,7 @@
       "reading_cs": "",
       "role_cs": "Jméno a otisk metodiky, které si běh připne; podle nich je u každé mapy vidět, čím byla spočtena.",
       "source_cs": "metodika v platnosti při spuštění běhu",
-      "source_sha256": "ffb9d7a30159084b1dae7fc1c31185ababf4c9e09d4725d1f0407a4db6de1132",
+      "source_sha256": "57f3a17a2dececbdbfa688181651aa247bf7e34b0e1d2ae6f9c36db56272c6d0",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_the_presets_fingerprints"
@@ -11805,6 +12501,7 @@
       "feeds": [
        "f2_person_minmax",
        "f8_height",
+       "vector_model_placement",
        "f11_not_placed"
       ],
       "formula_latex": "\\tilde a_{kc} = \\frac{a_{kc} - s^{\\min}_c}{s^{\\max}_c - s^{\\min}_c} \\in [0, 1],\\qquad a_{kc} \\notin [s^{\\min}_c, s^{\\max}_c] \\Rightarrow \\text{odmítnuto}",
@@ -12913,7 +13610,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "729f413f18887932646473f537bb59a12dcb45b88ae0b99720f9b7065f50e0b5",
+      "source_sha256": "f0412a1ce0190f244faf4adb676f031b700b4a40a1841c0df0da6d84d68cd2d6",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -12942,7 +13639,7 @@
        "f3_status"
       ],
       "keeps_cs": [],
-      "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3. aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty bez párů (krok Volba rozložení podle počtu objektů). Mapuje jen PRIMARY objekty sady; kontextové objekty na jeho mapě nejsou (jak je ukáže, je otevřená otázka). Objekty, které nikdo nehodnotil, vynechá a uvede v objects_not_placed; počet objektů je počet hodnocených.",
+      "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3. aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty bez párů (krok Volba rozložení podle počtu objektů). Mapuje jen PRIMARY objekty sady; kontextové objekty na jeho mapě nejsou (jak je ukáže, je otevřená otázka). Objekty, které nikdo nehodnotil, vynechá a uvede v objects_not_placed; počet objektů je počet hodnocených. Objekty hodnocené na různých škálách mapu nedají: metodika čte jednu škálu na sadu.",
       "reading_cs": "",
       "role_cs": "Rozhodne, zda se z rodiny objektů dá mapa nakreslit. Když ne, běh to řekne místo kreslení.",
       "source_cs": "",
@@ -13494,6 +14191,7 @@
        }
       ],
       "feeds": [
+       "vector_model_placement",
        "terrain_frame",
        "f12_envelope"
       ],
@@ -14330,9 +15028,9 @@
        "f2_person_minmax"
       ],
       "keeps_cs": [],
-      "note_cs": "V AIA zatím není: specifikace musí uvést null a jinou hodnotu odmítne. Vzorec je návrh auditu; práh nesouladu je otevřený (sociomap-formula-corrections.md, krok 3).",
+      "note_cs": "V AIA zatím není: specifikace musí uvést null a jinou hodnotu odmítne. Vzorec je návrh auditu; práh nesouladu je otevřený (sociomap-formula-corrections.md, krok 3). aia-sociomap-5 umisťuje respondenty jinak, vektorovým modelem schválené metodiky (následující kroky); toto pole nechává null i on.",
       "reading_cs": "",
-      "role_cs": "Návrh: kde by na mapě ležel každý respondent. Zatím se nepočítá.",
+      "role_cs": "Návrh auditu: kde by na mapě ležel každý respondent. Zatím se nepočítá.",
       "source_cs": "",
       "source_sha256": "e669b6c80a18559ac344fcefee924594143c213478d891d0138990aca0510f30",
       "symbols": [
@@ -14350,7 +15048,7 @@
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_contract_3_refuses_what_it_cannot_compute_by_name"
       ],
-      "title_cs": "Umístění respondentů (navrženo, zatím se nepočítá)",
+      "title_cs": "Umístění respondentů podle auditu (navrženo, zatím se nepočítá)",
       "values": [
        {
         "absent": false,
@@ -14360,6 +15058,231 @@
         "reference": "respondent_placement",
         "unit": "",
         "value": null
+       }
+      ]
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-RESPONDENTS"
+       }
+      ],
+      "feeds": [
+       "respondent_density",
+       "respondent_map"
+      ],
+      "formula_latex": "\\tilde a_{kj} = c_k + \\boldsymbol\\beta_k^{\\top} y_j + \\varepsilon_{kj},\\ j \\in J_k,\\qquad R_k^2 = 1 - \\frac{\\sum_{j \\in J_k} (\\tilde a_{kj} - \\hat c_k - \\hat{\\boldsymbol\\beta}_k^{\\top} y_j)^2}{\\sum_{j \\in J_k} (\\tilde a_{kj} - \\bar a_k)^2},\\qquad x_k = \\bar y + R_{\\max} \\sqrt{R_k^2}\\,\\frac{\\hat{\\boldsymbol\\beta}_k}{\\lVert \\hat{\\boldsymbol\\beta}_k \\rVert},\\qquad e_k = 1 - R_k^2,\\qquad p_k = (1 - R_k^2)^{(n_k - 3)/2},\\qquad \\text{jasný směr} \\iff p_k \\le \\alpha",
+      "formulas": [],
+      "id": "vector_model_placement",
+      "implements": "aia_core.domain.sociomap.signed_off_respondents:place_respondents",
+      "inputs": [
+       "f1_declared_scale",
+       "ruler_scale"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5, jen u nakreslené mapy. Respondent leží ve směru, kterým jeho hodnocení rostou, tím dál od středu, čím jasněji tomu směru odpovídají; kdo směr nemá, leží u středu. Jasný směr (PLACED) má, je-li p_k nanejvýš α; jinak slabý směr (FADED, kreslí se světle). Kdo hodnotil méně než n_min objektů mapy nebo dal všem stejné hodnocení, není umístěn (NOT_PLACED). Respondent bez preference tak vypadá jako jasně umístěný se stejnou šancí α při jakémkoli počtu hodnocení. Mapa zapíše polohu, stav, nesoulad a p_k každého respondenta a počty stavů (respondents).",
+      "reading_cs": "",
+      "role_cs": "Kde na mapě objektů leží každý respondent: ve směru objektů, které hodnotí výš, a zda je ten směr silnější než náhoda.",
+      "source_cs": "",
+      "source_sha256": "1ef191f7b466db2beabf3d5832375116273d619eadc00f1b7188aa42a25c4cfb",
+      "symbols": [
+       {
+        "latex": "\\tilde a_{kj}",
+        "meaning_cs": "hodnocení objektu j respondentem k na deklarované škále 0-1, bez vah",
+        "unit": ""
+       },
+       {
+        "latex": "J_k, n_k",
+        "meaning_cs": "objekty mapy, které respondent k hodnotil, a jejich počet",
+        "unit": ""
+       },
+       {
+        "latex": "y_j",
+        "meaning_cs": "poloha objektu j na pravítku (mapa objektů je pevná)",
+        "unit": ""
+       },
+       {
+        "latex": "\\hat c_k, \\hat{\\boldsymbol\\beta}_k",
+        "meaning_cs": "posun a sklon respondenta k (nejmenší čtverce, pseudoinverze)",
+        "unit": ""
+       },
+       {
+        "latex": "\\bar y, R_{\\max}",
+        "meaning_cs": "střed objektů a největší vzdálenost objektu od něj",
+        "unit": ""
+       },
+       {
+        "latex": "x_k",
+        "meaning_cs": "poloha respondenta k na pravítku",
+        "unit": ""
+       },
+       {
+        "latex": "e_k",
+        "meaning_cs": "nesoulad respondenta k",
+        "unit": ""
+       },
+       {
+        "latex": "p_k",
+        "meaning_cs": "šance, že by tak dobře seděl i respondent bez preference; při n_k = 3 vždy 1",
+        "unit": ""
+       },
+       {
+        "latex": "\\alpha, n_{\\min}",
+        "meaning_cs": "hladina testu náhody a nejmenší počet hodnocení (hodnoty u kroku Mapa respondentů)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_placement_matches_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_object_map_stores_the_respondent_map_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_survey_weights_do_not_enter_the_respondent_map",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_every_value_of_the_stage_changes_the_map_when_edited"
+      ],
+      "title_cs": "Umístění respondentů vektorovým modelem a test náhody",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-RESPONDENTS"
+       }
+      ],
+      "feeds": [
+       "respondent_map"
+      ],
+      "formula_latex": "T(q) = \\frac{\\sum_{k \\in \\mathcal{P}} \\exp\\!\\left(-\\frac{\\lVert q - x_k \\rVert^2}{2\\sigma_R^2}\\right)}{\\max_{q'} \\sum_{k \\in \\mathcal{P}} \\exp\\!\\left(-\\frac{\\lVert q' - x_k \\rVert^2}{2\\sigma_R^2}\\right)},\\qquad \\mathcal{P} = \\varnothing \\;\\Rightarrow\\; T = 0",
+      "formulas": [],
+      "id": "respondent_density",
+      "implements": "aia_core.domain.sociomap.signed_off_respondents:respondent_density",
+      "inputs": [
+       "vector_model_placement",
+       "terrain_frame"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5. Respondenti se slabým směrem se kreslí světle, ale do výšky se nepočítají: vektorový model je klade ke středu a jejich započtení dávalo jeden široký kopec uprostřed. Mřížka je rám terénu objektů, takže respondent může stát mimo ni. σ_R je v jednotkách pravítka (výchozí 0,35 = 9,45 k jednotek metodiky). Mapa zapíše mřížku a výšky (respondents.density).",
+      "reading_cs": "",
+      "role_cs": "Krajina mapy respondentů: kopec tam, kde je hodně jasně umístěných lidí.",
+      "source_cs": "",
+      "source_sha256": "3c6f975fb609f136bc535781640da27a5e9e125ddde2d393cffa6ef8814f479e",
+      "symbols": [
+       {
+        "latex": "\\mathcal{P}",
+        "meaning_cs": "respondenti s jasným směrem (PLACED)",
+        "unit": ""
+       },
+       {
+        "latex": "x_k",
+        "meaning_cs": "poloha respondenta k na pravítku",
+        "unit": ""
+       },
+       {
+        "latex": "q, q'",
+        "meaning_cs": "body mřížky terénu objektů: tentýž střed, poloviční šířka a rozlišení",
+        "unit": ""
+       },
+       {
+        "latex": "\\sigma_R",
+        "meaning_cs": "šířka jádra hustoty (hodnota u kroku Mapa respondentů)",
+        "unit": "jednotky vzdálenosti"
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_density_matches_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_object_map_stores_the_respondent_map_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_every_value_of_the_stage_changes_the_map_when_edited"
+      ],
+      "title_cs": "Terén respondentů: hustota jasně umístěných",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-RESPONDENTS"
+       }
+      ],
+      "feeds": [],
+      "formula_latex": "\\text{spolehlivá} \\iff M \\ge M_{\\min}",
+      "formulas": [],
+      "id": "respondent_map",
+      "implements": "aia_core.domain.sociomap.engine_v2:_respondents",
+      "inputs": [
+       "vector_model_placement",
+       "respondent_density"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5, jen u nakreslené mapy; u mapy, kterou nelze nakreslit, zapíše, že respondenty není kam umístit. Mapa respondentů se nakreslí vždy; pod M_min objekty s poznámkou, že je jen orientační: s méně objekty má i jasně umístěný respondent jen o málo větší šanci být skutečný než náhodný. Pod třemi objekty nelze umístit nikoho (potřeba aspoň tří hodnocení). Umístění samo se nemění. Mapa zapíše, zda je spolehlivá, a M_min (respondents.informative a min_objects).",
+      "reading_cs": "",
+      "role_cs": "Zapíše mapu respondentů k mapě objektů a řekne, zda má sada dost objektů, aby jí šlo věřit, nebo je jen orientační.",
+      "source_cs": "",
+      "source_sha256": "e8b8ec932bcda9600c03da563ee480a0c1164453fa1622e9ed4eac8dddfd6367",
+      "symbols": [
+       {
+        "latex": "M",
+        "meaning_cs": "počet objektů mapy",
+        "unit": ""
+       },
+       {
+        "latex": "M_{\\min}",
+        "meaning_cs": "počet objektů, od kterého je mapa respondentů spolehlivá",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_studies_cover_the_edge_cases",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_a_map_that_cannot_be_drawn_places_nobody",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_respondent_map_is_declared_exactly_under_the_signed_off_methodology",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_object_map_stores_the_respondent_map_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_every_value_of_the_stage_changes_the_map_when_edited"
+      ],
+      "title_cs": "Mapa respondentů: spolehlivá od daného počtu objektů",
+      "values": [
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Hladina testu náhody α",
+        "origin": "specification",
+        "reference": "respondent_map.chance_level",
+        "unit": "",
+        "value": 0.1
+       },
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Nejmenší počet hodnocení n_min",
+        "origin": "specification",
+        "reference": "respondent_map.min_ratings",
+        "unit": "",
+        "value": 3
+       },
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Spolehlivá od M_min objektů",
+        "origin": "specification",
+        "reference": "respondent_map.informative_min_objects",
+        "unit": "",
+        "value": 6
+       },
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Šířka jádra hustoty σ_R",
+        "origin": "specification",
+        "reference": "respondent_map.density_sigma",
+        "unit": "jednotky vzdálenosti",
+        "value": 0.35
        }
       ]
      },
@@ -14538,6 +15461,7 @@
        }
       ],
       "feeds": [
+       "respondent_density",
        "f12_envelope"
       ],
       "formula_latex": "c = \\tfrac12\\left(\\min_{j \\in K} x_j + \\max_{j \\in K} x_j\\right),\\qquad H = \\frac{\\max_{j \\in K} \\lVert x_j - c\\rVert_\\infty}{v},\\qquad \\max_{j \\in K} \\lVert x_j - c\\rVert_\\infty \\le 10^{-12}/27 \\;\\Rightarrow\\; H = H_0,\\qquad K = \\varnothing \\;\\Rightarrow\\; c = 0,\\; H = H_0",
@@ -14781,7 +15705,7 @@
       ]
      }
     ],
-    "steps": 38,
+    "steps": 41,
     "title_cs": "Sociomapa: objektová mapa"
    }
   },
@@ -18156,9 +19080,12 @@
     },
     {
      "id": "S7",
-     "note_cs": "Kde by leželi respondenti a na kolika lidech mapa stojí.",
+     "note_cs": "Kde na mapě leží respondenti a na kolika lidech mapa stojí.",
      "step_ids": [
       "f10_placement",
+      "vector_model_placement",
+      "respondent_density",
+      "respondent_map",
       "support"
      ],
      "title_cs": "Respondenti a podpora mapy"
@@ -18190,7 +19117,7 @@
    ],
    "id": "sociomap",
    "in_force": "aia-sociomap-3",
-   "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén a věrohodnost mapy podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+   "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy a mapu respondentů podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
    "presets": [
     "aia-sociomap-4",
     "aia-sociomap-3",
@@ -18198,7 +19125,7 @@
     "aia-sociomap-5"
    ],
    "preview_title_cs": "",
-   "steps": 38,
+   "steps": 41,
    "title_cs": "Sociomapa: objektová mapa"
   },
   {
@@ -18902,6 +19829,12 @@
       "permutations": 100,
       "seed": 0
      }
+    },
+    "respondent_map": {
+     "chance_level": 0.1,
+     "density_sigma": 0.35,
+     "informative_min_objects": 6,
+     "min_ratings": 3
     },
     "respondent_placement": null,
     "scores": {

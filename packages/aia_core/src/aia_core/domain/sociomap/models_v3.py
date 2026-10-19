@@ -8,10 +8,10 @@ respondents' weights, and the family being mapped with each object's role.
 
 Beside the contract-2 artifact (:class:`~.models.SociomapArtifact`), never instead of it:
 a stored contract-2 payload is read exactly as before, and :func:`read_artifact` reads each
-payload under the contract it names. What contract 3 does not compute yet -- respondent
-placement (chunk 3), and the terrain where the spec declares none or nothing is mapped -- is a
-:class:`NotComputed` block with its reason, never an empty list a reader could take for
-"nobody" or "flat".
+payload under the contract it names. What contract 3 does not compute -- respondent
+placement (chunk 3) outside a mapped ``aia-sociomap-5`` map, and the terrain where the spec
+declares none or nothing is mapped -- is a :class:`NotComputed` block with its reason, never
+an empty list a reader could take for "nobody" or "flat".
 
 Pure: stdlib and Pydantic only.
 """
@@ -37,7 +37,7 @@ from .metrics import ObjectRole
 from .models import ArtifactIntegrityError, SociomapArtifact
 from .pairs import PairRelations
 from .specification import SociomapSpecV3
-from .terrain import EnvelopeTerrain
+from .terrain import EnvelopeParameters, EnvelopeTerrain
 
 __all__ = [
     "ARTIFACT_CONTRACT_V3",
@@ -55,6 +55,9 @@ __all__ = [
     "ObjectMapProvenance",
     "ObjectMapSupport",
     "RatingItem",
+    "RespondentDensity",
+    "RespondentMap",
+    "RespondentStatus",
     "SociomapArtifactV3",
     "SparseDesign",
     "read_artifact",
@@ -222,6 +225,9 @@ class NotMappableReason(StrEnum):
     DISCONNECTED = "DISCONNECTED"
     #: The known-pair weights leave the configuration undetermined.
     SINGULAR = "SINGULAR"
+    #: The objects are rated on different scales: the signed-off methodology reads one scale
+    #: per set, in its relations and its respondent map alike.
+    MIXED_SCALES = "MIXED_SCALES"
 
 
 class NotMappable(_Frozen):
@@ -379,6 +385,77 @@ class MapCredibility(_Frozen):
         return self
 
 
+class RespondentStatus(StrEnum):
+    """Where a respondent stands on the respondent map (``aia-sociomap-5``)."""
+
+    #: Their ratings follow a direction beyond chance: drawn, and counted in the density.
+    PLACED = "PLACED"
+    #: Drawn faintly: the direction could be chance. Not counted in the density.
+    FADED = "FADED"
+    #: Fewer ratings than the minimum, or all equal: no direction to draw.
+    NOT_PLACED = "NOT_PLACED"
+
+
+class RespondentDensity(_Frozen):
+    """The density of the PLACED respondents, divided by its maximum (0 everywhere when
+    nobody is PLACED), indexed ``[gy][gx]`` on the object terrain's grid: ``parameters``
+    are its ``centre``, ``half_extent`` and ``grid_resolution``, with the density's own
+    kernel width ``sigma``. A respondent can stand outside the grid."""
+
+    parameters: EnvelopeParameters
+    height: tuple[tuple[float, ...], ...]
+
+    @model_validator(mode="after")
+    def _shape(self) -> Self:
+        size = self.parameters.grid_resolution + 1
+        if len(self.height) != size or any(len(row) != size for row in self.height):
+            raise ValueError(f"the density must be a {size} x {size} grid")
+        if not all(math.isfinite(h) and 0.0 <= h <= 1.0 for row in self.height for h in row):
+            raise ValueError("a density divided by its maximum lies in [0, 1]")
+        return self
+
+
+class RespondentMap(_Frozen):
+    """The signed-off methodology's respondent map (``aia-sociomap-5``), one entry per
+    respondent in the map's ``respondent_ids`` order.
+
+    ``x``, ``y`` are the position on the ruler and ``misfit`` (``1 - R2``) and ``p_value``
+    (the chance test) the fit, each rounded to five decimals (the status was decided before);
+    each is ``None`` exactly when the respondent is NOT_PLACED.
+    ``counts`` counts each status. ``informative`` is false when the map has fewer than
+    ``min_objects`` objects: it is still drawn, with a note that it is only indicative.
+    """
+
+    status: Literal["computed"] = "computed"
+    x: tuple[float | None, ...]
+    y: tuple[float | None, ...]
+    placement: tuple[str, ...]
+    misfit: tuple[float | None, ...]
+    p_value: tuple[float | None, ...]
+    counts: dict[str, int]
+    informative: bool
+    min_objects: int
+    density: RespondentDensity
+
+    @model_validator(mode="after")
+    def _coherent(self) -> Self:
+        n = len(self.placement)
+        if any(len(column) != n for column in (self.x, self.y, self.misfit, self.p_value)):
+            raise ValueError("every column has one entry per respondent")
+        known = {s.value for s in RespondentStatus}
+        if set(self.placement) - known:
+            raise ValueError(f"a placement is one of {sorted(known)}")
+        for status, *values in zip(
+            self.placement, self.x, self.y, self.misfit, self.p_value, strict=True
+        ):
+            placed = status != RespondentStatus.NOT_PLACED
+            if any((v is not None) != placed for v in values):
+                raise ValueError("a respondent has a position and a fit exactly when placed")
+        if self.counts != {s.value: self.placement.count(s) for s in RespondentStatus}:
+            raise ValueError("counts must count each placement")
+        return self
+
+
 class ObjectMapProvenance(_Frozen):
     implementation: str
     implementation_version: str
@@ -414,7 +491,8 @@ class SociomapArtifactV3(_Frozen):
     heights: ObjectHeights
     connectedness_100: dict[str, Any]
     support: ObjectMapSupport
-    respondents: NotComputed
+    #: The respondent map of a MAPPED ``aia-sociomap-5`` map; :class:`NotComputed` otherwise.
+    respondents: NotComputed | RespondentMap
     terrain: NotComputed | EnvelopeTerrain
     provenance: ObjectMapProvenance
     #: Recorded only under the baseline-corrected relation; ``None`` is left out of the
@@ -464,6 +542,13 @@ class SociomapArtifactV3(_Frozen):
             raise ValueError(f"unknown outcome {self.outcome!r}")
         if self.credibility is not None and self.layout is None:
             raise ValueError("credibility judges a map; a NOT_MAPPABLE artifact has none")
+        if isinstance(self.respondents, RespondentMap):
+            if self.layout is None:
+                raise ValueError("respondents stand on a map; a NOT_MAPPABLE artifact has none")
+            if len(self.respondents.placement) != len(self.respondent_ids):
+                raise ValueError("the respondent map places every respondent of the map")
+            if self.respondents.informative != (m >= self.respondents.min_objects):
+                raise ValueError("the respondent map is informative from its minimum of objects")
         if len(self.heights.values) != m or len(self.heights.support_n) != m:
             raise ValueError("heights must align with the mapped objects")
         if self.heights.relative is not None and len(self.heights.relative) != m:

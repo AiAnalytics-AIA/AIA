@@ -107,6 +107,15 @@ _CREDIBILITY_EDIT_TEST: Final = (
     f"{_CREDIBILITY_TEST}test_every_value_of_the_stage_changes_the_map_when_edited"
 )
 
+_SIGNED_OFF_RESPONDENTS: Final = _rule("AIA-SIGNED-OFF-RESPONDENTS")
+_RESPONDENTS_TEST: Final = f"{_T}/test_sociomap_signed_off_respondents.py::"
+_RESPONDENTS_MAP_TEST: Final = (
+    f"{_RESPONDENTS_TEST}test_the_object_map_stores_the_respondent_map_under_aia_sociomap_5"
+)
+_RESPONDENTS_EDIT_TEST: Final = (
+    f"{_RESPONDENTS_TEST}test_every_value_of_the_stage_changes_the_map_when_edited"
+)
+
 _CATALOGUE: Final[tuple[MethodStep, ...]] = (
     # ------------------------------------------------------------------ the method
     MethodStep(
@@ -114,7 +123,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         title_cs="Pojmenování metody",
         formula_latex=r"\text{metoda} = \text{methodology\_version}",
         implements=f"{_S}.specification:SociomapSpecV3",
-        source_sha256="ffb9d7a30159084b1dae7fc1c31185ababf4c9e09d4725d1f0407a4db6de1132",
+        source_sha256="57f3a17a2dececbdbfa688181651aa247bf7e34b0e1d2ae6f9c36db56272c6d0",
         parameters=(ParameterRef("methodology_version", "Verze metodiky"),),
         evidence=(
             Evidence(
@@ -454,7 +463,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         title_cs="Síla vztahu a jeho směr",
         formula_latex=r"s_{ij} = |r_{ij}|,\qquad \operatorname{sgn} r_{ij} \text{ jako barva}",
         implements=f"{_S}.engine_v2:compute_object_map",
-        source_sha256="729f413f18887932646473f537bb59a12dcb45b88ae0b99720f9b7065f50e0b5",
+        source_sha256="f0412a1ce0190f244faf4adb676f031b700b4a40a1841c0df0da6d84d68cd2d6",
         evidence=(_rule("AUDIT-F4"),),
         tests=(
             f"{_T}/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input",
@@ -495,7 +504,8 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
             "bez párů (krok Volba rozložení podle počtu objektů). Mapuje jen PRIMARY objekty "
             "sady; kontextové objekty na jeho mapě nejsou (jak je ukáže, je otevřená otázka). "
             "Objekty, které nikdo nehodnotil, vynechá a uvede v objects_not_placed; počet "
-            "objektů je počet hodnocených."
+            "objektů je počet hodnocených. Objekty hodnocené na různých škálách mapu nedají: "
+            "metodika čte jednu škálu na sadu."
         ),
     ),
     MethodStep(
@@ -991,7 +1001,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
     # ------------------------------------------------------------------ F10
     MethodStep(
         id="f10_placement",
-        title_cs="Umístění respondentů (navrženo, zatím se nepočítá)",
+        title_cs="Umístění respondentů podle auditu (navrženo, zatím se nepočítá)",
         formula_latex=(
             r"x_k = \arg\min_x \sum_{j \in \mathcal{P}}"
             r" \left(\lVert x - y_j\rVert - \delta_{kj}\right)^2,"
@@ -1012,7 +1022,140 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         ),
         note_cs=(
             "V AIA zatím není: specifikace musí uvést null a jinou hodnotu odmítne. Vzorec je "
-            "návrh auditu; práh nesouladu je otevřený (sociomap-formula-corrections.md, krok 3)."
+            "návrh auditu; práh nesouladu je otevřený (sociomap-formula-corrections.md, krok 3). "
+            "aia-sociomap-5 umisťuje respondenty jinak, vektorovým modelem schválené metodiky "
+            "(následující kroky); toto pole nechává null i on."
+        ),
+    ),
+    MethodStep(
+        id="vector_model_placement",
+        title_cs="Umístění respondentů vektorovým modelem a test náhody",
+        formula_latex=(
+            r"\tilde a_{kj} = c_k + \boldsymbol\beta_k^{\top} y_j + \varepsilon_{kj},\ "
+            r"j \in J_k,\qquad R_k^2 = 1 - \frac{\sum_{j \in J_k} (\tilde a_{kj} - \hat c_k - "
+            r"\hat{\boldsymbol\beta}_k^{\top} y_j)^2}{\sum_{j \in J_k} (\tilde a_{kj} - "
+            r"\bar a_k)^2},\qquad x_k = \bar y + R_{\max} \sqrt{R_k^2}\,"
+            r"\frac{\hat{\boldsymbol\beta}_k}{\lVert \hat{\boldsymbol\beta}_k \rVert},"
+            r"\qquad e_k = 1 - R_k^2,\qquad p_k = (1 - R_k^2)^{(n_k - 3)/2},\qquad "
+            r"\text{jasný směr} \iff p_k \le \alpha"
+        ),
+        implements=f"{_S}.signed_off_respondents:place_respondents",
+        source_sha256="1ef191f7b466db2beabf3d5832375116273d619eadc00f1b7188aa42a25c4cfb",
+        symbols=(
+            Symbol(
+                r"\tilde a_{kj}",
+                "hodnocení objektu j respondentem k na deklarované škále 0-1, bez vah",
+            ),
+            Symbol(r"J_k, n_k", "objekty mapy, které respondent k hodnotil, a jejich počet"),
+            Symbol(r"y_j", "poloha objektu j na pravítku (mapa objektů je pevná)"),
+            Symbol(
+                r"\hat c_k, \hat{\boldsymbol\beta}_k",
+                "posun a sklon respondenta k (nejmenší čtverce, pseudoinverze)",
+            ),
+            Symbol(r"\bar y, R_{\max}", "střed objektů a největší vzdálenost objektu od něj"),
+            Symbol(r"x_k", "poloha respondenta k na pravítku"),
+            Symbol(r"e_k", "nesoulad respondenta k"),
+            Symbol(
+                r"p_k",
+                "šance, že by tak dobře seděl i respondent bez preference; při n_k = 3 vždy 1",
+            ),
+            Symbol(
+                r"\alpha, n_{\min}",
+                "hladina testu náhody a nejmenší počet hodnocení (hodnoty u kroku Mapa "
+                "respondentů)",
+            ),
+        ),
+        evidence=(_SIGNED_OFF_RESPONDENTS,),
+        tests=(
+            f"{_RESPONDENTS_TEST}test_the_placement_matches_the_methodologys_own_code",
+            _RESPONDENTS_MAP_TEST,
+            f"{_RESPONDENTS_TEST}test_survey_weights_do_not_enter_the_respondent_map",
+            _RESPONDENTS_EDIT_TEST,
+        ),
+        note_cs=(
+            "Jen aia-sociomap-5, jen u nakreslené mapy. Respondent leží ve směru, kterým jeho "
+            "hodnocení rostou, tím dál od středu, čím jasněji tomu směru odpovídají; kdo směr "
+            "nemá, leží u středu. Jasný směr (PLACED) má, je-li p_k nanejvýš \u03b1; jinak slabý "
+            "směr (FADED, kreslí se světle). Kdo hodnotil méně než n_min objektů mapy nebo dal "
+            "všem stejné hodnocení, není umístěn (NOT_PLACED). Respondent bez preference tak "
+            "vypadá jako jasně umístěný se stejnou šancí \u03b1 při jakémkoli počtu hodnocení. "
+            "Mapa zapíše polohu, stav, nesoulad a p_k každého respondenta a počty stavů "
+            "(respondents)."
+        ),
+    ),
+    MethodStep(
+        id="respondent_density",
+        title_cs="Terén respondentů: hustota jasně umístěných",
+        formula_latex=(
+            r"T(q) = \frac{\sum_{k \in \mathcal{P}} \exp\!\left(-\frac{\lVert q - x_k "
+            r"\rVert^2}{2\sigma_R^2}\right)}{\max_{q'} \sum_{k \in \mathcal{P}} "
+            r"\exp\!\left(-\frac{\lVert q' - x_k \rVert^2}{2\sigma_R^2}\right)},\qquad "
+            r"\mathcal{P} = \varnothing \;\Rightarrow\; T = 0"
+        ),
+        implements=f"{_S}.signed_off_respondents:respondent_density",
+        source_sha256="3c6f975fb609f136bc535781640da27a5e9e125ddde2d393cffa6ef8814f479e",
+        symbols=(
+            Symbol(r"\mathcal{P}", "respondenti s jasným směrem (PLACED)"),
+            Symbol(r"x_k", "poloha respondenta k na pravítku"),
+            Symbol(
+                r"q, q'",
+                "body mřížky terénu objektů: tentýž střed, poloviční šířka a rozlišení",
+            ),
+            Symbol(
+                r"\sigma_R",
+                "šířka jádra hustoty (hodnota u kroku Mapa respondentů)",
+                "jednotky vzdálenosti",
+            ),
+        ),
+        evidence=(_SIGNED_OFF_RESPONDENTS,),
+        tests=(
+            f"{_RESPONDENTS_TEST}test_the_density_matches_the_methodologys_own_code",
+            _RESPONDENTS_MAP_TEST,
+            _RESPONDENTS_EDIT_TEST,
+        ),
+        note_cs=(
+            "Jen aia-sociomap-5. Respondenti se slabým směrem se kreslí světle, ale do výšky se "
+            "nepočítají: vektorový model je klade ke středu a jejich započtení dávalo jeden "
+            "široký kopec uprostřed. Mřížka je rám terénu objektů, takže respondent může stát "
+            "mimo ni. \u03c3_R je v jednotkách pravítka (výchozí 0,35 = 9,45 k jednotek "
+            "metodiky). Mapa zapíše mřížku a výšky (respondents.density)."
+        ),
+    ),
+    MethodStep(
+        id="respondent_map",
+        title_cs="Mapa respondentů: spolehlivá od daného počtu objektů",
+        formula_latex=r"\text{spolehlivá} \iff M \ge M_{\min}",
+        implements=f"{_S}.engine_v2:_respondents",
+        source_sha256="e8b8ec932bcda9600c03da563ee480a0c1164453fa1622e9ed4eac8dddfd6367",
+        symbols=(
+            Symbol(r"M", "počet objektů mapy"),
+            Symbol(r"M_{\min}", "počet objektů, od kterého je mapa respondentů spolehlivá"),
+        ),
+        parameters=(
+            ParameterRef("respondent_map.chance_level", "Hladina testu náhody \u03b1"),
+            ParameterRef("respondent_map.min_ratings", "Nejmenší počet hodnocení n_min"),
+            ParameterRef("respondent_map.informative_min_objects", "Spolehlivá od M_min objektů"),
+            ParameterRef(
+                "respondent_map.density_sigma",
+                "Šířka jádra hustoty \u03c3_R",
+                "jednotky vzdálenosti",
+            ),
+        ),
+        evidence=(_SIGNED_OFF_RESPONDENTS,),
+        tests=(
+            f"{_RESPONDENTS_TEST}test_the_studies_cover_the_edge_cases",
+            f"{_RESPONDENTS_TEST}test_a_map_that_cannot_be_drawn_places_nobody",
+            f"{_RESPONDENTS_TEST}test_the_respondent_map_is_declared_exactly_under_the_signed_off_methodology",
+            _RESPONDENTS_MAP_TEST,
+            _RESPONDENTS_EDIT_TEST,
+        ),
+        note_cs=(
+            "Jen aia-sociomap-5, jen u nakreslené mapy; u mapy, kterou nelze nakreslit, zapíše, "
+            "že respondenty není kam umístit. Mapa respondentů se nakreslí vždy; pod M_min "
+            "objekty s poznámkou, že je jen orientační: s méně objekty má i jasně umístěný "
+            "respondent jen o málo větší šanci být skutečný než náhodný. Pod třemi objekty nelze "
+            "umístit nikoho (potřeba aspoň tří hodnocení). Umístění samo se nemění. Mapa zapíše, "
+            "zda je spolehlivá, a M_min (respondents.informative a min_objects)."
         ),
     ),
     # ------------------------------------------------------------------ F11
@@ -1376,9 +1519,26 @@ _CONTEXT: Final[dict[str, _Context]] = {
         audit="F12-F13",
     ),
     "f10_placement": _Context(
-        role_cs="Návrh: kde by na mapě ležel každý respondent. Zatím se nepočítá.",
+        role_cs="Návrh auditu: kde by na mapě ležel každý respondent. Zatím se nepočítá.",
         inputs=("f6_smacof", "f2_person_minmax"),
         audit="F10",
+    ),
+    "vector_model_placement": _Context(
+        role_cs="Kde na mapě objektů leží každý respondent: ve směru objektů, které hodnotí "
+        "výš, a zda je ten směr silnější než náhoda.",
+        inputs=("f1_declared_scale", "ruler_scale"),
+        audit=_SIGNED_OFF_POINT,
+    ),
+    "respondent_density": _Context(
+        role_cs="Krajina mapy respondentů: kopec tam, kde je hodně jasně umístěných lidí.",
+        inputs=("vector_model_placement", "terrain_frame"),
+        audit=_SIGNED_OFF_POINT,
+    ),
+    "respondent_map": _Context(
+        role_cs="Zapíše mapu respondentů k mapě objektů a řekne, zda má sada dost objektů, aby "
+        "jí šlo věřit, nebo je jen orientační.",
+        inputs=("vector_model_placement", "respondent_density"),
+        audit=_SIGNED_OFF_POINT,
     ),
     "support": _Context(
         role_cs="Počty, které mapa uvádí: kdo ji nese, kdo vypadl a jaké je efektivní n.",
@@ -1463,8 +1623,14 @@ _GROUPS: Final = (
     StepGroup(
         "S7",
         "Respondenti a podpora mapy",
-        ("f10_placement", "support"),
-        "Kde by leželi respondenti a na kolika lidech mapa stojí.",
+        (
+            "f10_placement",
+            "vector_model_placement",
+            "respondent_density",
+            "respondent_map",
+            "support",
+        ),
+        "Kde na mapě leží respondenti a na kolika lidech mapa stojí.",
     ),
     StepGroup(
         "F5",
@@ -1521,7 +1687,7 @@ SOCIOMAP: Final = MethodModule(
         "je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice "
         "i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava "
         "z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, "
-        "terén a věrohodnost mapy podle schválené metodiky AIA Sociomapa (kroky označené „Jen "
-        "aia-sociomap-5“)."
+        "terén, věrohodnost mapy a mapu respondentů podle schválené metodiky AIA Sociomapa "
+        "(kroky označené „Jen aia-sociomap-5“)."
     ),
 )

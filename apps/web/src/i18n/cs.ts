@@ -1093,6 +1093,7 @@ export const cs = {
               NO_KNOWN_PAIR: "žádný pár není spolehlivý ani slabý",
               DISCONNECTED: "některé objekty nemají řetěz známých párů ke zbytku",
               SINGULAR: "známé páry rozložení neurčují",
+              MIXED_SCALES: "objekty jsou hodnocené na různých škálách",
             },
             statusChanges: "Páry, jimž se mění stav",
             noStatusChange: "Žádnému páru se stav nemění.",
