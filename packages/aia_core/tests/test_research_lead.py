@@ -258,6 +258,29 @@ def test_a_number_the_guard_cannot_read_is_refused_not_guessed() -> None:
     assert _valid({"reply": "Je to 1\u00a0000\u00a0000 lidí."}, allowed).ok
 
 
+@pytest.mark.parametrize(
+    ("reply", "number"),
+    [
+        ("Zvyšte to 7x.", 7),
+        ("Zeptejte se 3krát.", 3),
+        ("Cílíme na 18letých.", 18),
+        ("Vzorek 1\u00a0200respondentů.", 1200),
+        ("Podíl 2,5násobný.", 2.5),
+    ],
+)
+def test_a_number_glued_to_its_word_is_still_read(reply: str, number: float) -> None:
+    """The review of baac33d5: ``(?![\\w])`` let a number touching a letter pass unread."""
+    refused = _valid({"reply": reply}, canonical_json({"n": 999}))
+    assert not refused.ok, reply
+    assert _valid({"reply": reply}, canonical_json({"n": number})).ok, reply
+
+
+def test_an_identifiers_digits_are_still_no_number() -> None:
+    """The digits of ``Q1``, ``B2`` or ``goal2`` belong to the identifier, before and after."""
+    assert number_tokens("Q1, B2, q3 a brief:goal2, s1.q12") == frozenset()
+    assert _valid({"reply": "Otázka Q1 a blok B2 platí."}, canonical_json({"ids": ["Q1"]})).ok
+
+
 def test_a_number_in_another_field_is_not_the_replys() -> None:
     """The rule reads the reply; an edit's value is a proposal a person accepts."""
     assert _valid(_output(edits=[{"op": "set_n", "value": 300, "why": WHY}]), "").ok

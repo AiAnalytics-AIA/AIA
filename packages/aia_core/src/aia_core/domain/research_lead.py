@@ -367,13 +367,17 @@ class LeadOutput(Closed):
 #: narrow NBSP), a decimal comma or point. Not inside a word: ``q3`` is an id, not a three.
 #: A leading minus (``-`` or U+2212) is the number's sign only where it does not join two
 #: words or numbers: in ``2026-10-19`` it is a hyphen, so ``10`` and ``19`` stay unsigned.
+#: A number starts where no word, digit or decimal mark precedes it, so ``Q1``, ``B2`` or
+#: ``goal2`` hold none: those digits belong to an identifier. It ends where no digit follows,
+#: whatever does: ``7x``, ``3krát`` and ``18letých`` write 7, 3 and 18 (the review of
+#: baac33d5: a number glued to its word passed the guard unread).
 _NUMBER = re.compile(
     r"(?P<sign>(?<![\w.,])[-\u2212])?"
-    r"(?<![\w.,])(?P<num>\d+(?:[ \u00a0\u202f]\d{3})*(?:[.,]\d+)?)(?![\w])"
+    r"(?<![\w.,])(?P<num>\d+(?:[ \u00a0\u202f]\d{3})*(?:[.,]\d+)?)(?!\d)"
 )
-#: A number this guard cannot read exactly: one with an exponent (``1e6``, ``2,5E-3``). Its
-#: digits touch a letter, so ``_NUMBER`` sees nothing; a reply writing one is refused, never
-#: read as some other number (Codex on #484).
+#: A number this guard cannot read exactly: one with an exponent (``1e6``, ``2,5E-3``).
+#: ``_NUMBER`` would read only its mantissa; a reply writing one is refused, never read as
+#: some other number (Codex on #484).
 _EXPONENT = re.compile(r"(?<![\w.,])[-\u2212+]?\d+(?:[.,]\d+)?[eE][-+\u2212]?\d+(?![\w])")
 
 
