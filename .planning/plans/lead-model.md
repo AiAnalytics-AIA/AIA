@@ -79,8 +79,8 @@ For the docs PR (CLAUDE.md § 2, the map). No shared file is edited on this bran
   "`RequestProfile`; `STUDY_LEAD` (the study Lead), apart from `RESEARCH_LEAD` (Deep Research)".
 - CLAUDE.md's "Native Research agents" paragraph lists the worker keys; add the Lead model's
   keys by reference to `deploy/develop/README.md` § The Research Lead's own model.
-- `ARCHITECTURE.md` § 2's AI-settings paragraph: unchanged until F1 is fixed (the settings page
-  does not yet list the study Lead).
+- `ARCHITECTURE.md` § 2's AI-settings paragraph: the settings document lists the study Lead
+  (`study_lead`: `STUDY_LEAD`, switches `AIA_AI_RUNTIME_ENABLED` + `AIA_AI_RESEARCH_LEAD_ENABLED`).
 - `AGENTS.md` § The AI runtime: a gotcha worth recording: **a newer Bedrock model refuses the
   request shapes an older one needed.**
 
@@ -96,7 +96,9 @@ For the docs PR (CLAUDE.md § 2, the map). No shared file is edited on this bran
 
 ## Findings
 
-- **F1. The settings page does not list the study Research Lead as an AI activity.**
+- **F1. The settings page does not list the study Research Lead as an AI activity.** *Fixed on this
+  branch* (`study_lead` activity, the switch handed to the web's `/config`; Codex on #488).
+  Originally:
   1. `_native_runtime` lists fieldwork, design agents, analysis, Deep Research and Deep
      Research's lead, and nothing for the study Lead; with `STUDY_LEAD` it now names that
      capability under `unused_capabilities` while develop binds it
