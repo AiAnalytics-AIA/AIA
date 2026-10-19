@@ -1,0 +1,328 @@
+# MVP cohesion — the seams between the plans (2026-10-19)
+
+**What this is.** A cross-track review requested by the product owner on 2026-10-19, after the
+MVP was redefined (`overview.md` § MVP roadmap, MVP-1 to MVP-33; `mvp-consolidation.md`;
+`docs/migration/mvp-acceptance.md`, `MVP-ACCEPT-2`). `mvp-consolidation.md` classified each plan.
+This file looks **between** them: where two decisions contradict, where a criterion has no plan,
+and which code several plans edit at once. It is not a backlog. A feature's status stays in its
+plan's front-matter (CLAUDE.md §4); where a plan disagrees with this file, the plan wins and this
+file is stale.
+
+**Reviewed state.** `origin/develop` @ `085abe0` with #491, #493, #494 and #495 merged in a
+scratch tree (all four merge without conflict). Code anchors are `file:line @ 085abe0`; a claim
+about a document in one of the four PRs names the PR. An unanchored claim is a **hypothesis** and
+is labelled as one.
+
+**Inputs read.** `CLAUDE.md`, `ARCHITECTURE.md` (all of §1-§10), ADR 0026 and 0027, the four PR
+bodies, `mvp-consolidation.md`, the overview roadmap, `mvp-acceptance.md`, and the code listed in
+each finding. `AGENTS.md` was skimmed by heading only (framework gotchas, no product decisions).
+The other ~35 plan files were **not** read in full: findings about them rest on their
+front-matter and on file-mention counts (§3), which is a weaker kind of evidence.
+
+---
+
+## 1. Verdict
+
+The tracks are well ordered inside themselves and the decisions MVP-1 to MVP-33 are coherent as a
+list. Five of the fifteen acceptance criteria cannot pass as the documents stand, because two
+decisions contradict each other or no plan builds the thing (F1-F4, F7). The rest are orphan or
+overlap problems that are cheap to fix now and expensive after three agents have built to
+different readings.
+
+| # | Finding | Hits | Needs the owner |
+|---|---|---|---|
+| F1 | Deep Research classification: OI-129 says operator-only and Class C routes; MVP-27 says the full design on a Class B route | AC-11 | **yes** |
+| F2 | The Sociomap drill-down to one respondent contradicts "aggregate only" and "rows never sent to the browser" | AC-09, AC-13 | **yes** |
+| F3 | Client-reported data (ADR 0027) has no field policy; MVP-29's single authority covers population fields only | AC-08, AC-10 | decided 2026-10-19: later, in the ADR 0027 plan |
+| F4 | "The Lead sees everything stored about results" (MVP-15) has no contract, no owner and an unchecked data-class path | AC-02, AC-09 | no |
+| F5 | Removing the manual AI buttons (MVP-8) is a UI change; the spend limit and the worker contract are server rules | AC-02, AC-03, AC-04 | no |
+| F6 | Decision ids collide (D9 three times, M6 twice) | all | no |
+| F7 | Eight pieces of work have no plan (§2) | AC-08..11, AC-15 | no |
+| F8 | Nine open plans edit `tables.py`; five edit `ai_runtime.py`, `research_agents.py` and the settings router | all | no |
+| F9 | Parity is "information" in the new contract and "blocking on FAIL" in CI | AC (none) | no |
+| F10 | The USD 25 acceptance budget has no allocation | AC-04, AC-15 | no |
+
+---
+
+## 2. Findings
+
+### F1. Deep Research cannot run on an edited design under both decisions
+
+**Claim.** The owner decided on 2026-10-19 (OI-129) that Deep Research classifies a design by an
+operator's exact-bytes record alone, that its web routes stay Class C only, and that a run on an
+edited design parks until an operator classifies those bytes. The same day MVP-27 decided that
+live Deep Research uses the full design on a provider approved for Class B. The Research Lead
+edits the design continuously (MVP-14).
+
+**Anchor.** `.planning/open-items.md:4121` (OI-129) and `apps/executors/src/aia_executors/deep_research/plan.py:163`
+(`classify_material`, the operator's record only) @ `085abe0`; `ARCHITECTURE.md` §4 states both
+regimes: Deep Research "operator's exact-bytes classification" and, a few bullets later, "a
+respondent request takes its design's class … by the owner's rule (`domain/material_rules.py`)".
+
+**Reproduction.** Hypothesis, not yet run: with a Class B route composed, start Deep Research on a
+design edited since the last operator classification; `egress_unclassified_material` parks it
+(the message is quoted in OI-129).
+
+**Consequence.** AC-11 ("Design Research runs live on the full design") can only pass if an
+operator edits `AIA_AI_MATERIAL_CLASSIFICATIONS` after every design change. The Lead, the design
+jobs and the respondents all classify the same design by rule; only Deep Research does not.
+
+**Smallest fix.** Once a Class B route exists, Deep Research classifies a design by
+`MaterialRule.DESIGN` (Class B, raised and never lowered by an operator), exactly as
+`ai_fieldwork.py` does. The routes' own `approved_for` then decides: the Class C routes (Wikipedia,
+Brave) refuse a Class B query, the Class B provider accepts it. OI-129's park stays for a design no
+rule can classify.
+
+**Test that would have caught it.** `test_deep_research_journey.py` with an edited design and a
+Class B recorded route: the web tracks run without an operator record.
+
+**Owner decision.** Confirm that MVP-27 supersedes OI-129's second sentence. Recommended: yes.
+
+### F2. The respondent drill-down contradicts the evidence rules
+
+**Claim.** MVP-16 puts "filters and drill-down to one respondent's profile and answers" in the
+Sociomap artifact. The evidence layer treats a panel answer as `AGGREGATE_ONLY` and
+`PERSON_VALUE_MODELED`: "meaningful only in aggregate", "never one person's"
+(`packages/aia_core/src/aia_core/domain/evidence/instrument.py:31, 43` @ `085abe0`).
+`ARCHITECTURE.md` §4: "Respondent rows are never sent to the browser; the Sociomap artifact is
+served only with `EDIT_STUDY`".
+
+**Consequence.** Either the drill-down breaks the rule, or it is built as an unmarked exception
+that the next reader removes as a bug. It also reaches the client report if "approved map
+snapshots" (MVP-2) are drawn from the same view.
+
+**Smallest fix.** Write the exception once, in `ARCHITECTURE.md` §4 (docs PR) and in the workbench
+plan's chunk 20: the drill-down is a read-only **internal** display of the run's stored dataset,
+served by one named route under `EDIT_STUDY`, labelled modelled, never an `AdmittedClaim`, never in
+a client export (approved snapshots carry maps only, by the register), with its own API test.
+
+**Related.** The straight-liner worker (MVP-12) must be computed by code (run QC, MVP-24); the
+model sees only the flags, never rows. Replacing a flagged respondent changes the run's dataset and
+so its identity: say whether that is a new run or a recorded exclusion (hypothesis: a new run).
+
+**Test that would have caught it.** An API test that the drill-down route is absent from the
+client-report path and answers 403 without `EDIT_STUDY`.
+
+**Owner decision.** Confirm the drill-down is internal only. Recommended: yes.
+
+### F3. Client-reported data has no field policy
+
+**Claim.** ADR 0027 (#494) adds the origin `CLIENT_REPORTED`, a fourth `origin_kind`, a data
+contract and a "client-reported" grade. It says numbers pass "field policy, support, interval and
+tier" but gives no policy for a client's columns. MVP-29 makes the population contract's 115
+client-measurable fields the one authority; a client's dataset columns are not population fields.
+Today `instrument.py` refuses any origin but the simulated and `MODELLED_AI_PANEL` ones (`-1`,
+`-2`).
+
+**Anchor.** `domain/fieldwork.py:88` (`CLIENT_ADMISSIBLE_ORIGINS`) and `:152` ("no fourth kind"),
+`domain/evidence/instrument.py:112-121` @ `085abe0`; ADR 0027 §Consequences (#494).
+
+**Consequence.** The first client-data number meets a gate that has no rule for it and refuses it
+(fail closed, correct), so AC-10 cannot pass, and whoever builds it invents the policy.
+
+**Smallest fix.** Add to ADR 0027, before it is accepted, a decision: a contract-accepted column's
+policy comes from the **data contract** a person accepted (use, unit, period, rights), compiled by
+code into a third instrument policy (`aia-instrument-evidence-3`, client-reported, not
+`AGGREGATE_ONLY` for aggregates the client already aggregated). MVP-29 then reads: one authority
+*per evidence source*, the population contract for panel respondents, the data contract for a
+client's data. Also state one rule for personal columns: K2c **masks** them in the preview,
+the analysis copy **drops** them, no model sees either (ADR 0027 decision 3 and
+`domain/client_datasets.py:70, 144` @ `085abe0`).
+
+**Test that would have caught it.** `test_every_origin_is_decided_once` extended, plus a gate test:
+a `CLIENT_REPORTED` number with no accepted contract is refused by name.
+
+**Owner decision (2026-10-19).** Decide later, in the ADR 0027 plan. The gap stays recorded here and
+in that plan's first chunk; no client-data number may be built to admission before it is settled.
+The contract-as-policy fix above is the recommendation, not adopted.
+
+### F4. "The Lead sees all results" has no contract
+
+**Claim.** MVP-15 and `mvp-consolidation.md` §6.2 size the Lead's results layer "M, design first".
+No plan chunk carries it: the workbench plan's chunk 20 reads "re-layout" for Results and "asking
+the Lead about an object or pair" for the Sociomap (#491). Today the Lead's context holds a run's
+id, status and design revision only (`application/research_lead.py:858-891`, per
+`mvp-consolidation.md` §6.1).
+
+**Why it is a cohesion problem, not a task.** The layer reads from three tracks: C (maps, pair
+statuses), D (client-reported results, once ADR 0027 lands) and E (admitted claims, module texts,
+report drafts). It is also classified: ADR 0026 classifies the design and message as material, and
+panel-derived aggregates carry a licence lineage that only `bedrock-eu-primary` may receive (OI-61,
+`ARCHITECTURE.md` §4). The Lead has its own model since #488 (`AIA_AI_RESEARCH_LEAD_MODEL_ID`).
+Whether that profile is the route the licence determination names is **unverified** (hypothesis).
+
+**Smallest fix.** One contract, written before chunks 20 and 21:
+`ResultsContext` = admitted claims only (each with `origin_kind`), map pair statuses, module texts
+as unapproved text, report draft ids, bounded and classified before any model reads them. Track B
+owns the type; C, D and E each supply a provider function. Add a chunk "Lead results context" to
+`research-lead-workbench.md` before 20, and a data-class test: the Lead's configured route is
+refused panel-derived lineage unless it is the approved route.
+
+**Test that would have caught it.** `lead_contract` already refuses a number the context lacks;
+add one that a client-reported number is shown to the Lead only through its admitted claim.
+
+### F5. A removed button is not an enforced rule
+
+**Claim.** MVP-8 removes the manual AI buttons "artifact by artifact" and routes every AI action
+through the Lead; MVP-13 approves a paid job one card at a time. `research-lead-workbench` F1
+records that `ResearchAgentJobs.start` reads no spend limit while the Lead's approve path does
+(`application/research_lead.py:678-760`, per `mvp-consolidation.md` §6). The API route stays after
+the button goes.
+
+**Consequence.** Until the last artifact lands the start route is reachable around the Lead, and
+AC-02 ("no manual AI button") passes as a UI observation while a direct call still skips the card
+and the limit.
+
+**Smallest fix.** Put the spend-limit check inside `ResearchAgentJobs.start` now (it is F1, a fix
+not a decision), and make the Lead's approve path its only caller by an import-contract or route
+test. Then the buttons' removal is cosmetic and order-independent.
+
+**Related: the worker contract.** MVP-12 (eleven workers), MVP-32 (every prompt editable and
+pinned), the card kinds of chunk 23 and Settings' `ai_runtime` document each describe a worker
+separately. Define the row once in `domain/research_agents.py`: id, closed task, context layer,
+data-class rule, capability, reservation, prompt id and pin, switch, card kind, result kind.
+Chunk 11 builds the command registry; make this its first deliverable, so the three new workers
+(map interpreter, report writer, straight-liner check) are rows, not three designs.
+
+### F6. Decision ids collide
+
+**Claim.** `D9` means three things: `overview.md` *Decisions needed* has two rows labelled D9 (who
+publishes the model catalog; whether Simulation is in the MVP), and `research-lead-workbench.md`
+adds a third (the navigator stays at the top, #491). `M6` is both "report depth tiers"
+(`mvp-consolidation.md`) and "the fit level below which a map is not delivered"
+(`sociomap-formula-corrections.md`). MVP-1 says "also resolves D9"; a reader of the workbench
+plan will not know which.
+
+**Smallest fix.** Plan-local ids are written `<plan>#D9`; the overview's ids keep their `PROGRESS`
+prefix (already the convention for D6 and D11); the consolidation's `M1-M8` are retired in its
+prose now that MVP-1 to MVP-10 record the answers. One sentence in CLAUDE.md §4 (docs PR).
+
+### F7. Eight pieces of work have no plan
+
+| Decision | What is missing | Track | Natural home |
+|---|---|---|---|
+| MVP-23 findings cite admitted evidence | A plan; the stricter rule against `evidence-backed-analysis` (9/9, done) | E | new plan, or one chunk in `research-integrity-report` |
+| MVP-24 run QC as warnings | A plan; pairs with the straight-liner worker (F2) | E | with MVP-23 |
+| MVP-29 one field-policy authority | A plan; now two authorities by source (F3) | E | with MVP-23 |
+| MVP-16/17 segment maps, clustering, filters, drill-down | A plan; the algorithm is the method owner's; **each new map method needs its own Sociomap-register entry** before any client-facing snapshot (`domain/sociomap_register.py`, D6) | C | new plan |
+| MVP-19 client data in analysis | The plan ADR 0027's Consequences calls for; its build order is in the ADR | D | new plan after #494 |
+| MVP-27 Class B provider | The provider route's code (composed beside Brave), its contract and processing agreement | F | `deep-research-web-search` |
+| MVP-30 AWS inference profile and tag | One Terraform + IAM + model-policy change | A | `infra/develop` plan |
+| MVP-ACCEPT-2 tier A | The harness: recorded doubles behind the gateway and the retrieval gate for the Lead, every worker, respondents, analysis and Deep Research, driven over HTTP | A | new plan |
+
+An orphan decision is where silos start: its work gets done inside whichever plan is nearest, in
+that plan's idiom. Create the plans before the tracks start, as CLAUDE.md §4 already requires.
+
+### F8. Shared surfaces
+
+File-mention counts across open plans (a proxy, hypothesis for how often each is edited):
+
+| Surface | Open plans naming it | Proposed surface owner |
+|---|---|---|
+| `infrastructure/tables.py` (and so migrations) | 9: `architecture-enforcement`, `client-budget`, `client-workspace`, `complete-study-report`, `panel-grounded-respondents`, `productization-coherence`, `research-integrity-report`, `system-prompts-settings`, `two-roles-human-ai-gates` | the track whose PR is first; **a migration lane** (below) |
+| `aia_executors/ai_runtime.py` | 5 | B (worker registry, F5) |
+| `domain/research_agents.py` | 5 | B |
+| `routers/settings.py` | 5 | B |
+| `domain/fieldwork.py`, `domain/evidence/` | 3 (`complete-study-report`, `panel-grounded-respondents`, `sociomap-formula-corrections`) | C; **D's ADR 0027 changes land here too**: hand-off, not a second edit |
+| `application/client_report.py` | 3 | E |
+| `domain/research_lead.py`, `lib/lead.ts`, `Workbench.tsx` | 1 each (`research-lead-workbench`) | B; C, D, E supply providers, never edit it |
+
+The roadmap's "one owner per track, no two agents edit the same plan" covers plan files, not code.
+Two rules close the gap:
+
+- **A surface has one owner.** A track needing a change in another track's surface opens it as a
+  small PR the surface's owner reviews first, and names it in its plan.
+- **Migration lane.** `migrations/versions` has a single head today
+  (`20261019_57eaa96a5538_lead_auto_accept_text_edits.py` @ `085abe0`). A PR with a migration says
+  its `down_revision` in the description, is rebased on `develop` immediately before merge, and the
+  owner merges migration PRs one at a time. A commit on this branch already had to chain one
+  migration after another ("Chain the auto-accept migration after the internal-mark one").
+
+### F9. Parity: information or blocking?
+
+**Claim.** #495 makes parity information (MVP-21, every `release_blocker.blocking` false).
+`tools/parity_status.py` still exits 1 when any capability is `FAIL` (`:30` @ `085abe0`) and
+`ARCHITECTURE.md` §8 lists it "blocking on `FAIL`".
+
+**Resolution, not a decision.** Both are right if stated: a failing parity test fails the PR like
+any test (CLAUDE.md §5: never loosened to get green), and an intentional departure from 18.6.6 is
+recorded as such. What MVP-21 removes is parity as a **release criterion**. Add that sentence to
+§8's row in #495's doc follow-up.
+
+### F10. The budget
+
+**Claim.** MVP-20 fixes the acceptance study at USD 25. The run includes n = 300 AI respondents,
+the Lead's turns, up to eleven workers, eight analysis modules with repairs, live Deep Research on
+the full design and the report. `domain/run_cost.py` bounds fieldwork and analysis only
+(CLAUDE.md §2 map); Deep Research has its own pinned allowance. Nothing allocates the USD 25.
+**Smallest fix:** a table in the acceptance plan's first chunk: each category's ceiling, summed,
+and checked against 25 before the recorded run. If the sum exceeds 25, the owner chooses a smaller
+n or a larger budget, before the build, not after tier B.
+
+---
+
+## 3. The acceptance criteria, traced to work
+
+Every criterion needs an owner and every chunk a criterion. `●` the chunk exists in a plan; `○`
+built, needs only the release run; `✗` no plan (F7).
+
+| AC | Passes when | Built by | State |
+|---|---|---|---|
+| 01 identity, scope, 404 | `ScopeResolver`, ADR 0019 | done | ○ |
+| 02 workbench, Lead, approvals | `research-lead-workbench` 11-16, 23; F5 server rule | B | ● + F5 |
+| 03 workers, prompts pinned | workbench 11; `system-prompts-settings` 7; worker row (F5) | B | ● + F5 |
+| 04 cost shown, parks at limit | `research.py` ceiling, budget park; Audience artifact 22 | done + B 22 | ○ / ● |
+| 05 respondents from LIVE | `audience-catalogue-cpu` 4, `complete-study-report` B6 (operator flag) | C | ● |
+| 06 worker killed, no loss | `run-recovery-and-truth` | done | ○ |
+| 07 impact preview | `pipeline.py` impact | done | ○ |
+| 08 admitted, findings cite, QC warns | MVP-23, 24, 29 | E | ✗ |
+| 09 three maps, filters, drill-down | `sociomap-formula-corrections` 3, 4d; segments, register entries, F2 | C, B | ● / ✗ |
+| 10 client data in and used | `client-knowledge-lifecycle` K2e-K7, `client-workspace` C6-C9, ADR 0027 build, F3 | D | ● / ✗ |
+| 11 Deep Research live, full design | provider route, F1, `deep-research-web-search` 1 to 27, 37 | F | ✗ / ● |
+| 12 project memory | PM-1 | done | ○ |
+| 13 reports and approved exports | `research-integrity-report` 6-8, `two-roles-human-ai-gates` 5b.4, report-writer worker | E, B | ● |
+| 14 typed config | `Settings.validate_for_production` | done | ○ |
+| 15 provenance, spend reconciles | `research-integrity-report`; MVP-30 Terraform | E, A | ● / ✗ |
+
+Five criteria rest on `✗` rows (08, 09, 10, 11, 15). **Those five plans are the critical path to
+tier A.**
+
+---
+
+## 4. Integration milestones
+
+The roadmap orders chunks inside tracks; nothing says when two tracks must meet. Five
+cross-track gates, each with an observable test, ordered by dependency. The target is the owner's
+(MVP-11, end of Q1 2027); the dates below are not set here.
+
+| Gate | Meets | Observable | Needs |
+|---|---|---|---|
+| **I-1 Lead drives a study** | B 11-16, 18, 19 + C `audience-catalogue-cpu` 4, B6 + D CB5 + A harness skeleton | Brief to Sample worked through the Lead on recorded doubles, tier A, one criterion (AC-02) passing | worker row, F5 server rule |
+| **I-2 Results are seen** | C I0-I5, respondent map + B results context (F4), 20 | The Lead explains a map pair from admitted evidence; drill-down internal only (F2) | F2, F4 decided |
+| **I-3 Evidence is complete** | E MVP-23/24/29 + D ADR 0027 build + B 21 | A client dataset beside the modelled results, graded client-reported; every finding cites a claim | F3 decided, plans created |
+| **I-4 Deep Research live** | F provider route + F1 + `deep-research-web-search` 1, 27, 37 | A live run on the full design, quotes grounded, one-click source into knowledge | provider contracted (owner) |
+| **I-5 Acceptance** | all | Tier A blocking in CI, then tier B once on develop within USD 25 | F10 allocation |
+
+---
+
+## 5. What the owner decides to finalise this
+
+| Q | Decision | Recommended |
+|---|---|---|
+| Q1 | F1: Deep Research classifies a design by rule once a Class B route exists; supersedes OI-129's second sentence | yes |
+| Q2 | F2: the respondent drill-down is internal, under `EDIT_STUDY`, never in a client export | yes |
+| Q3 | F3: **decided 2026-10-19: later, in the ADR 0027 plan** (recommendation: the accepted data contract is the policy source) | decided |
+| Q4 | F7: create the eight missing plans (§2 F7) before their tracks start; name each track's owner | yes |
+| Q5 | The provider contract (MVP-27, owner) and the method owner's 0b answers, clustering algorithm and register entries: dates, since I-2 and I-4 wait on them | owner |
+
+## 6. Follow-ups for a docs PR
+
+- `ARCHITECTURE.md` §4: the drill-down exception (F2); the Deep Research classification regime if
+  Q1 is yes (F1); §8's parity row (F9). One sentence on the origin set when ADR 0027 is accepted.
+- `CLAUDE.md` §2: `parity-matrix.json` "blockers" wording (#495's follow-up); the V3 prototype
+  note (#491's); §4: the id-namespace rule (F6); the surface-owner and migration-lane rules (F8).
+- `overview.md`: MVP-27 beside OI-129; the five integration gates (§4); track owners when named;
+  MVP-20 "now MVP-ACCEPT-2" (#495's follow-up).
+- ADR 0027: the contract-as-policy decision (F3) before acceptance; ADR 0026: the Lead's results
+  context and the worker row (F4, F5).
+- Plans: the front-matter chunks for F4, F5 and F7.
