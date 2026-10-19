@@ -288,9 +288,10 @@ class ObjectHeights(_Frozen):
 
     A ``values`` entry is ``None`` exactly when nobody rated the object. ``relative`` is each
     PRIMARY object's hill height under the framed envelope (``aia-sociomap-5``): its height
-    min-max scaled onto ``[floor, 1]``, an object nobody rated at the lowest; ``None`` for a
-    SECONDARY object. Under every other terrain ``relative`` is ``None`` and left out of the
-    stored form, so every map stored before it reads, and recomputes, byte for byte.
+    min-max scaled over the rated ones onto ``[floor, 1]``; ``None`` for an object nobody
+    rated (not placed) and for a SECONDARY object. Under every other terrain ``relative`` is
+    ``None`` and left out of the stored form, so every map stored before it reads, and
+    recomputes, byte for byte.
     """
 
     metric: str
@@ -422,6 +423,10 @@ class SociomapArtifactV3(_Frozen):
     #: Recorded only on a MAPPED map under the baseline-corrected relation; ``None`` is left
     #: out of the stored form, as ``sparse_design`` is.
     credibility: MapCredibility | None = None
+    #: The set's objects the signed-off map (``aia-sociomap-5``) does not place because nobody
+    #: rated them: left out of ``object_ids`` and of every computation. Empty is left out of
+    #: the stored form, so every map stored before it reads, and recomputes, byte for byte.
+    objects_not_placed: tuple[str, ...] = ()
 
     @model_serializer(mode="wrap")
     def _without_absent_note(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
@@ -429,6 +434,8 @@ class SociomapArtifactV3(_Frozen):
         for key in ("sparse_design", "credibility"):
             if body.get(key) is None:
                 body.pop(key, None)
+        if not body.get("objects_not_placed"):
+            body.pop("objects_not_placed", None)
         return body
 
     @model_validator(mode="after")
@@ -443,6 +450,8 @@ class SociomapArtifactV3(_Frozen):
             raise ValueError("abs_r must be |r| of the relations")
         if set(self.not_placed) - set(self.respondent_ids):
             raise ValueError("not_placed names respondents the map does not have")
+        if set(self.objects_not_placed) & set(self.object_ids):
+            raise ValueError("an object not placed is not a mapped object")
         if self.outcome == MapOutcome.MAPPED:
             if self.layout is None or self.not_mappable is not None:
                 raise ValueError("a MAPPED artifact has a layout and no not-mappable reason")

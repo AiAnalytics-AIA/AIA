@@ -403,7 +403,10 @@ def fit_frame(
     """The square the framed envelope's grid covers: its centre, the middle of the objects'
     bounding box (not their mean), and its half-width, the largest offset of an object from the
     centre on either axis over ``fill``, so the objects span ``fill`` of the half-width. With
-    no extent, :data:`ONE_POINT_HALF_EXTENT`."""
+    no extent, :data:`ONE_POINT_HALF_EXTENT`; with no object to fit, nothing is fitted: that
+    half-width about the ruler's origin."""
+    if not points:
+        return (0.0, 0.0), ONE_POINT_HALF_EXTENT
     xs, ys = [p[0] for p in points], [p[1] for p in points]
     cx, cy = (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2
     reach = max(max(abs(x - cx), abs(y - cy)) for x, y in points)

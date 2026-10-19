@@ -454,7 +454,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         title_cs="Síla vztahu a jeho směr",
         formula_latex=r"s_{ij} = |r_{ij}|,\qquad \operatorname{sgn} r_{ij} \text{ jako barva}",
         implements=f"{_S}.engine_v2:compute_object_map",
-        source_sha256="f919aea31f913a71c26247837e7c947375655b4e85a63fbadd96138c33621bb1",
+        source_sha256="729f413f18887932646473f537bb59a12dcb45b88ae0b99720f9b7065f50e0b5",
         evidence=(_rule("AUDIT-F4"),),
         tests=(
             f"{_T}/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input",
@@ -493,7 +493,9 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
             "aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich "
             "cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty "
             "bez párů (krok Volba rozložení podle počtu objektů). Mapuje jen PRIMARY objekty "
-            "sady; kontextové objekty na jeho mapě nejsou (jak je ukáže, je otevřená otázka)."
+            "sady; kontextové objekty na jeho mapě nejsou (jak je ukáže, je otevřená otázka). "
+            "Objekty, které nikdo nehodnotil, vynechá a uvede v objects_not_placed; počet "
+            "objektů je počet hodnocených."
         ),
     ),
     MethodStep(
@@ -1049,13 +1051,13 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         formula_latex=(
             r"t_j = f + (1 - f)\,\frac{h_j - \min_l h_l}{\max_l h_l - \min_l h_l},\qquad "
             r"\max_l h_l - \min_l h_l < 10^{-15} \;\Rightarrow\; t_j = \tfrac12,\qquad "
-            r"h_j = \varnothing \;\Rightarrow\; h_j = \min_{l:\, h_l \ne \varnothing} h_l"
+            r"h_j = \varnothing \;\Rightarrow\; t_j = \varnothing"
         ),
         implements=f"{_S}.engine_v2:_relative_heights",
-        source_sha256="7ec4119557d8a0a85dd11cf36515a7fb902f08ef1a5af634ac5c73589f910879",
+        source_sha256="2ab4a0b1814a0eefffe65da45daa0147c5427e598aa42cc51456efc2f948dde1",
         symbols=(
             Symbol(r"h_j", "výška objektu j: průměr hodnocení na škále 0-1"),
-            Symbol(r"l", "PRIMÁRNÍ objekty mapy"),
+            Symbol(r"l", "PRIMÁRNÍ objekty mapy, které někdo hodnotil"),
             Symbol(r"f", "nejnižší relativní výška (hodnota u kroku terénu)"),
             Symbol(r"t_j", "relativní výška kopce objektu j, v [f, 1]"),
         ),
@@ -1067,24 +1069,28 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         evidence=(_SIGNED_OFF_TERRAIN,),
         tests=(_TERRAIN_PARITY_TEST, _TERRAIN_MAP_TEST),
         note_cs=(
-            "Jen aia-sociomap-5. Objekt, který nikdo nehodnotil, stojí na nejnižší výšce; jeho "
-            "výška zůstane prázdná, takže ho mapa může ukázat šedě. Nehodnotil-li nikdo nic, "
-            "stojí všechny kopce na 0,5. Kontextový (SEKUNDÁRNÍ) objekt kopec nemá a rozpětí "
-            "výšek nemění. Relativní výšky zapíše mapa (heights.relative)."
+            "Jen aia-sociomap-5. Objekt, který v sadě nikdo nehodnotil, se neumístí: vynechá "
+            "se ještě před výpočtem vztahů a rozložení (jinak by ho rozložení bralo jako "
+            "nesouvisející se všemi a odtlačovalo ostatní) a mapa ho uvede v "
+            "objects_not_placed. Kontextový "
+            "(SEKUNDÁRNÍ) objekt kopec nemá a rozpětí výšek nemění. Relativní výšky zapíše mapa "
+            "(heights.relative)."
         ),
     ),
     MethodStep(
         id="terrain_frame",
         title_cs="Rám terénu podle mapy",
         formula_latex=(
-            r"c = \tfrac12\left(\min_j x_j + \max_j x_j\right),\qquad "
-            r"H = \frac{\max_j \lVert x_j - c\rVert_\infty}{v},\qquad "
-            r"\max_j \lVert x_j - c\rVert_\infty \le 10^{-12}/27 \;\Rightarrow\; H = H_0"
+            r"c = \tfrac12\left(\min_{j \in K} x_j + \max_{j \in K} x_j\right),\qquad "
+            r"H = \frac{\max_{j \in K} \lVert x_j - c\rVert_\infty}{v},\qquad "
+            r"\max_{j \in K} \lVert x_j - c\rVert_\infty \le 10^{-12}/27 \;\Rightarrow\; H = H_0,"
+            r"\qquad K = \varnothing \;\Rightarrow\; c = 0,\; H = H_0"
         ),
         implements=f"{_S}.terrain:fit_frame",
-        source_sha256="ef12f067a9941dde1a6a821f31dc40561f9128b9d2f1f0b8b2746c728f9a76b0",
+        source_sha256="9489702bac63cf978877e2fd1e59060fbbb085eb3e7b35b400b86b6055249ad6",
         symbols=(
-            Symbol(r"x_j", "poloha objektu j na pravítku (všechny umístěné objekty)"),
+            Symbol(r"x_j", "poloha objektu j na pravítku"),
+            Symbol(r"K", "hodnocené objekty s aspoň jedním známým vztahem (SPOLEHLIVÝ nebo SLABÝ)"),
             Symbol(r"c", "střed mřížky terénu"),
             Symbol(r"H", "poloviční šířka mřížky", "jednotky vzdálenosti"),
             Symbol(r"v", "podíl poloviční šířky, který objekty vyplní (hodnota u kroku terénu)"),
@@ -1100,8 +1106,9 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         tests=(_TERRAIN_PARITY_TEST, _TERRAIN_MAP_TEST),
         note_cs=(
             "Jen aia-sociomap-5. Střed je střed obdélníku kolem objektů, ne jejich průměr. Rám "
-            "kryje všechny umístěné objekty, i kontextové, aby každý nakreslený objekt stál na "
-            "mřížce; kopce dávají jen PRIMÁRNÍ objekty. Střed a poloviční šířku zapíše mapa "
+            "se přizpůsobí jen objektům se známým vztahem, jako v panelu AIA; objekt bez něj se "
+            "nakreslí, ale může stát mimo rám. Bez takového objektu se nic nepřizpůsobí. Střed a "
+            "poloviční šířku zapíše mapa "
             "(terrain.parameters.centre a half_extent). H₀ = 62/27 je rám metodiky v jejích "
             "kreslicích jednotkách (62 jednotek, 27 na jednotku pravítka)."
         ),

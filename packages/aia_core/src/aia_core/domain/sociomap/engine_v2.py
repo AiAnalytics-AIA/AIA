@@ -293,27 +293,32 @@ _EQUAL_HEIGHTS: Final = 1e-15
 def _relative_heights(
     values: Sequence[float | None], primary: Sequence[bool], floor: float
 ) -> tuple[float | None, ...]:
-    """The framed envelope's hill heights: each PRIMARY object's height min-max scaled over
-    the PRIMARY objects onto ``[floor, 1]``. An object nobody rated stands at the lowest rated
-    height, and with none rated every object at 0; heights that do not differ all stand at
-    :data:`EQUAL_RELATIVE_HEIGHT`. A SECONDARY object raises no hill and has none."""
-    own = [v for v, p in zip(values, primary, strict=True) if p]
-    rated = [v for v in own if v is not None]
-    lowest = min(rated) if rated else 0.0
-    filled = [lowest if v is None else v for v in own]
-    lo, hi = (min(filled), max(filled)) if filled else (0.0, 0.0)
+    """The framed envelope's hill heights: each rated PRIMARY object's height min-max scaled
+    over the rated PRIMARY objects onto ``[floor, 1]``; heights that do not differ all stand
+    at :data:`EQUAL_RELATIVE_HEIGHT`. An object nobody rated is not placed and a SECONDARY
+    object raises no hill: neither has one."""
+    rated = [v for v, p in zip(values, primary, strict=True) if p and v is not None]
+    lo, hi = (min(rated), max(rated)) if rated else (0.0, 0.0)
     out: list[float | None] = []
     for v, p in zip(values, primary, strict=True):
-        if not p:
+        if not p or v is None:
             out.append(None)
             continue
-        h = lowest if v is None else v
         out.append(
             EQUAL_RELATIVE_HEIGHT
             if hi - lo < _EQUAL_HEIGHTS
-            else floor + (1.0 - floor) * (h - lo) / (hi - lo)
+            else floor + (1.0 - floor) * (v - lo) / (hi - lo)
         )
     return tuple(out)
+
+
+def _frame_objects(
+    values: Sequence[float | None], known: Sequence[Sequence[bool]]
+) -> tuple[bool, ...]:
+    """Which objects the framed envelope's frame is fitted over: the rated objects with at
+    least one known (RELIABLE or WEAK) pair, as the AIA panel fits its map. An object without
+    one is still drawn, and may stand outside the frame."""
+    return tuple(v is not None and any(row) for v, row in zip(values, known, strict=True))
 
 
 def _terrain(
@@ -321,6 +326,7 @@ def _terrain(
     layout: ObjectMapLayout | None,
     heights: ObjectHeights,
     inputs: ObjectMapInputs,
+    framing: Sequence[bool],
     slots: Slots = NO_SLOTS,
 ) -> NotComputed | EnvelopeTerrain:
     """F12's envelope over the PRIMARY objects' hills, each exactly its F8 height.
@@ -328,9 +334,9 @@ def _terrain(
     A SECONDARY object raises no hill (F8: context objects never enter terrain), and an
     object nobody rated has no height and so no hill -- not a hill of 0.
 
-    The framed envelope stands each PRIMARY object's hill at its relative height (an object
-    nobody rated at the lowest) on a grid framed on every placed object, so every object drawn
-    stands on the grid, and lets every hill reach every cell.
+    The framed envelope stands each rated PRIMARY object's hill at its relative height on a
+    grid framed on the objects ``framing`` marks (:func:`_frame_objects`), and lets every hill
+    reach every cell.
     """
     declared = spec.terrain
     if declared is None:
@@ -340,7 +346,9 @@ def _terrain(
     if declared.method == TerrainMethod.FRAMED_RELATIVE_ENVELOPE:
         if declared.frame_fill is None or heights.relative is None:
             raise ValueError("the framed envelope is declared whole (require_supported)")
-        centre, half = fit_frame(layout.points, declared.frame_fill)
+        centre, half = fit_frame(
+            [p for p, f in zip(layout.points, framing, strict=True) if f], declared.frame_fill
+        )
         return object_envelope(
             [
                 EnvelopeHill(entity_id=oid, x=point[0], y=point[1], height=t)
@@ -524,6 +532,26 @@ def _primary_only(inputs: ObjectMapInputs) -> ObjectMapInputs:
     )
 
 
+def _rated_only(inputs: ObjectMapInputs) -> tuple[ObjectMapInputs, tuple[str, ...]]:
+    """``inputs`` with the objects nobody rated left out of the mapped objects, and those
+    objects. They have no relation to anything; left in, the layout would treat them as
+    unrelated to every object and push the others. With nothing rated there is no map to keep
+    them off: the set stays as it is, and no pair reaching the layout floor says why."""
+    rated = [any(row[c] is not None for row in inputs.values) for c in inputs.object_columns()]
+    if all(rated) or not any(rated):
+        return inputs, ()
+    keep = [k for k, r in enumerate(rated) if r]
+    ids = tuple(inputs.object_ids[k] for k in keep)
+    return ObjectMapInputs.model_validate(
+        inputs.model_dump()
+        | {
+            "object_ids": ids,
+            "object_items": tuple(inputs.object_items[k] for k in keep),
+            "roles": {oid: inputs.roles[oid] for oid in ids},
+        }
+    ), tuple(oid for oid, r in zip(inputs.object_ids, rated, strict=True) if not r)
+
+
 def _signed_off_layout(
     prepared: PreparedInputs, ids: Sequence[str], spec: SociomapSpecV3
 ) -> ObjectMapLayout | NotMappable:
@@ -651,8 +679,11 @@ def compute_object_map(
     require_supported(spec)
     if spec.relation.estimator == RelationEstimator.BASELINE_CORRECTED_PEARSON:
         # The signed-off methodology maps a set's PRIMARY objects only, as the AIA panel
-        # shows them; how context objects join its map is an open question.
-        inputs = _primary_only(inputs)
+        # shows them; how context objects join its map is an open question. An object nobody
+        # rated is not placed: it is left out before anything is computed.
+        inputs, unrated = _rated_only(_primary_only(inputs))
+    else:
+        unrated = ()
     scaled = _scaled(inputs, slots)
     columns = inputs.object_columns()
     weights = list(inputs.weights)
@@ -846,7 +877,9 @@ def compute_object_map(
             slots,
         ),
         respondents=RESPONDENTS_NOT_COMPUTED,
-        terrain=_terrain(spec, layout, heights, inputs, slots),
+        terrain=_terrain(
+            spec, layout, heights, inputs, _frame_objects(heights.values, known), slots
+        ),
         provenance=ObjectMapProvenance(
             implementation=OBJECT_MAP_IMPLEMENTATION,
             implementation_version=OBJECT_MAP_IMPLEMENTATION_VERSION,
@@ -854,4 +887,5 @@ def compute_object_map(
         ),
         sparse_design=sparse,
         credibility=credibility,
+        objects_not_placed=unrated,
     )

@@ -3420,7 +3420,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "f919aea31f913a71c26247837e7c947375655b4e85a63fbadd96138c33621bb1",
+      "source_sha256": "729f413f18887932646473f537bb59a12dcb45b88ae0b99720f9b7065f50e0b5",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -3449,7 +3449,7 @@
        "f3_status"
       ],
       "keeps_cs": [],
-      "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3. aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty bez párů (krok Volba rozložení podle počtu objektů). Mapuje jen PRIMARY objekty sady; kontextové objekty na jeho mapě nejsou (jak je ukáže, je otevřená otázka).",
+      "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3. aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty bez párů (krok Volba rozložení podle počtu objektů). Mapuje jen PRIMARY objekty sady; kontextové objekty na jeho mapě nejsou (jak je ukáže, je otevřená otázka). Objekty, které nikdo nehodnotil, vynechá a uvede v objects_not_placed; počet objektů je počet hodnocených.",
       "reading_cs": "",
       "role_cs": "Rozhodne, zda se z rodiny objektů dá mapa nakreslit. Když ne, běh to řekne místo kreslení.",
       "source_cs": "",
@@ -4979,7 +4979,7 @@
       "feeds": [
        "f12_envelope"
       ],
-      "formula_latex": "t_j = f + (1 - f)\\,\\frac{h_j - \\min_l h_l}{\\max_l h_l - \\min_l h_l},\\qquad \\max_l h_l - \\min_l h_l < 10^{-15} \\;\\Rightarrow\\; t_j = \\tfrac12,\\qquad h_j = \\varnothing \\;\\Rightarrow\\; h_j = \\min_{l:\\, h_l \\ne \\varnothing} h_l",
+      "formula_latex": "t_j = f + (1 - f)\\,\\frac{h_j - \\min_l h_l}{\\max_l h_l - \\min_l h_l},\\qquad \\max_l h_l - \\min_l h_l < 10^{-15} \\;\\Rightarrow\\; t_j = \\tfrac12,\\qquad h_j = \\varnothing \\;\\Rightarrow\\; t_j = \\varnothing",
       "formulas": [],
       "id": "relative_heights",
       "implements": "aia_core.domain.sociomap.engine_v2:_relative_heights",
@@ -4987,11 +4987,11 @@
        "f8_height"
       ],
       "keeps_cs": [],
-      "note_cs": "Jen aia-sociomap-5. Objekt, který nikdo nehodnotil, stojí na nejnižší výšce; jeho výška zůstane prázdná, takže ho mapa může ukázat šedě. Nehodnotil-li nikdo nic, stojí všechny kopce na 0,5. Kontextový (SEKUNDÁRNÍ) objekt kopec nemá a rozpětí výšek nemění. Relativní výšky zapíše mapa (heights.relative).",
+      "note_cs": "Jen aia-sociomap-5. Objekt, který v sadě nikdo nehodnotil, se neumístí: vynechá se ještě před výpočtem vztahů a rozložení (jinak by ho rozložení bralo jako nesouvisející se všemi a odtlačovalo ostatní) a mapa ho uvede v objects_not_placed. Kontextový (SEKUNDÁRNÍ) objekt kopec nemá a rozpětí výšek nemění. Relativní výšky zapíše mapa (heights.relative).",
       "reading_cs": "",
       "role_cs": "Převede výšky objektů na výšky kopců: nejnižší objekt stojí na prahu, nejvyšší na 1, aby byl terén čitelný i při malých rozdílech.",
       "source_cs": "",
-      "source_sha256": "7ec4119557d8a0a85dd11cf36515a7fb902f08ef1a5af634ac5c73589f910879",
+      "source_sha256": "2ab4a0b1814a0eefffe65da45daa0147c5427e598aa42cc51456efc2f948dde1",
       "symbols": [
        {
         "latex": "h_j",
@@ -5000,7 +5000,7 @@
        },
        {
         "latex": "l",
-        "meaning_cs": "PRIMÁRNÍ objekty mapy",
+        "meaning_cs": "PRIMÁRNÍ objekty mapy, které někdo hodnotil",
         "unit": ""
        },
        {
@@ -5044,7 +5044,7 @@
       "feeds": [
        "f12_envelope"
       ],
-      "formula_latex": "c = \\tfrac12\\left(\\min_j x_j + \\max_j x_j\\right),\\qquad H = \\frac{\\max_j \\lVert x_j - c\\rVert_\\infty}{v},\\qquad \\max_j \\lVert x_j - c\\rVert_\\infty \\le 10^{-12}/27 \\;\\Rightarrow\\; H = H_0",
+      "formula_latex": "c = \\tfrac12\\left(\\min_{j \\in K} x_j + \\max_{j \\in K} x_j\\right),\\qquad H = \\frac{\\max_{j \\in K} \\lVert x_j - c\\rVert_\\infty}{v},\\qquad \\max_{j \\in K} \\lVert x_j - c\\rVert_\\infty \\le 10^{-12}/27 \\;\\Rightarrow\\; H = H_0,\\qquad K = \\varnothing \\;\\Rightarrow\\; c = 0,\\; H = H_0",
       "formulas": [],
       "id": "terrain_frame",
       "implements": "aia_core.domain.sociomap.terrain:fit_frame",
@@ -5052,15 +5052,20 @@
        "ruler_scale"
       ],
       "keeps_cs": [],
-      "note_cs": "Jen aia-sociomap-5. Střed je střed obdélníku kolem objektů, ne jejich průměr. Rám kryje všechny umístěné objekty, i kontextové, aby každý nakreslený objekt stál na mřížce; kopce dávají jen PRIMÁRNÍ objekty. Střed a poloviční šířku zapíše mapa (terrain.parameters.centre a half_extent). H₀ = 62/27 je rám metodiky v jejích kreslicích jednotkách (62 jednotek, 27 na jednotku pravítka).",
+      "note_cs": "Jen aia-sociomap-5. Střed je střed obdélníku kolem objektů, ne jejich průměr. Rám se přizpůsobí jen objektům se známým vztahem, jako v panelu AIA; objekt bez něj se nakreslí, ale může stát mimo rám. Bez takového objektu se nic nepřizpůsobí. Střed a poloviční šířku zapíše mapa (terrain.parameters.centre a half_extent). H₀ = 62/27 je rám metodiky v jejích kreslicích jednotkách (62 jednotek, 27 na jednotku pravítka).",
       "reading_cs": "",
       "role_cs": "Vybere čtverec, který terén pokryje: kolem objektů, s okrajem, aby se mapa vešla celá.",
       "source_cs": "",
-      "source_sha256": "ef12f067a9941dde1a6a821f31dc40561f9128b9d2f1f0b8b2746c728f9a76b0",
+      "source_sha256": "9489702bac63cf978877e2fd1e59060fbbb085eb3e7b35b400b86b6055249ad6",
       "symbols": [
        {
         "latex": "x_j",
-        "meaning_cs": "poloha objektu j na pravítku (všechny umístěné objekty)",
+        "meaning_cs": "poloha objektu j na pravítku",
+        "unit": ""
+       },
+       {
+        "latex": "K",
+        "meaning_cs": "hodnocené objekty s aspoň jedním známým vztahem (SPOLEHLIVÝ nebo SLABÝ)",
         "unit": ""
        },
        {
@@ -6577,7 +6582,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "f919aea31f913a71c26247837e7c947375655b4e85a63fbadd96138c33621bb1",
+      "source_sha256": "729f413f18887932646473f537bb59a12dcb45b88ae0b99720f9b7065f50e0b5",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -6606,7 +6611,7 @@
        "f3_status"
       ],
       "keeps_cs": [],
-      "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3. aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty bez párů (krok Volba rozložení podle počtu objektů). Mapuje jen PRIMARY objekty sady; kontextové objekty na jeho mapě nejsou (jak je ukáže, je otevřená otázka).",
+      "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3. aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty bez párů (krok Volba rozložení podle počtu objektů). Mapuje jen PRIMARY objekty sady; kontextové objekty na jeho mapě nejsou (jak je ukáže, je otevřená otázka). Objekty, které nikdo nehodnotil, vynechá a uvede v objects_not_placed; počet objektů je počet hodnocených.",
       "reading_cs": "",
       "role_cs": "Rozhodne, zda se z rodiny objektů dá mapa nakreslit. Když ne, běh to řekne místo kreslení.",
       "source_cs": "",
@@ -8136,7 +8141,7 @@
       "feeds": [
        "f12_envelope"
       ],
-      "formula_latex": "t_j = f + (1 - f)\\,\\frac{h_j - \\min_l h_l}{\\max_l h_l - \\min_l h_l},\\qquad \\max_l h_l - \\min_l h_l < 10^{-15} \\;\\Rightarrow\\; t_j = \\tfrac12,\\qquad h_j = \\varnothing \\;\\Rightarrow\\; h_j = \\min_{l:\\, h_l \\ne \\varnothing} h_l",
+      "formula_latex": "t_j = f + (1 - f)\\,\\frac{h_j - \\min_l h_l}{\\max_l h_l - \\min_l h_l},\\qquad \\max_l h_l - \\min_l h_l < 10^{-15} \\;\\Rightarrow\\; t_j = \\tfrac12,\\qquad h_j = \\varnothing \\;\\Rightarrow\\; t_j = \\varnothing",
       "formulas": [],
       "id": "relative_heights",
       "implements": "aia_core.domain.sociomap.engine_v2:_relative_heights",
@@ -8144,11 +8149,11 @@
        "f8_height"
       ],
       "keeps_cs": [],
-      "note_cs": "Jen aia-sociomap-5. Objekt, který nikdo nehodnotil, stojí na nejnižší výšce; jeho výška zůstane prázdná, takže ho mapa může ukázat šedě. Nehodnotil-li nikdo nic, stojí všechny kopce na 0,5. Kontextový (SEKUNDÁRNÍ) objekt kopec nemá a rozpětí výšek nemění. Relativní výšky zapíše mapa (heights.relative).",
+      "note_cs": "Jen aia-sociomap-5. Objekt, který v sadě nikdo nehodnotil, se neumístí: vynechá se ještě před výpočtem vztahů a rozložení (jinak by ho rozložení bralo jako nesouvisející se všemi a odtlačovalo ostatní) a mapa ho uvede v objects_not_placed. Kontextový (SEKUNDÁRNÍ) objekt kopec nemá a rozpětí výšek nemění. Relativní výšky zapíše mapa (heights.relative).",
       "reading_cs": "",
       "role_cs": "Převede výšky objektů na výšky kopců: nejnižší objekt stojí na prahu, nejvyšší na 1, aby byl terén čitelný i při malých rozdílech.",
       "source_cs": "",
-      "source_sha256": "7ec4119557d8a0a85dd11cf36515a7fb902f08ef1a5af634ac5c73589f910879",
+      "source_sha256": "2ab4a0b1814a0eefffe65da45daa0147c5427e598aa42cc51456efc2f948dde1",
       "symbols": [
        {
         "latex": "h_j",
@@ -8157,7 +8162,7 @@
        },
        {
         "latex": "l",
-        "meaning_cs": "PRIMÁRNÍ objekty mapy",
+        "meaning_cs": "PRIMÁRNÍ objekty mapy, které někdo hodnotil",
         "unit": ""
        },
        {
@@ -8201,7 +8206,7 @@
       "feeds": [
        "f12_envelope"
       ],
-      "formula_latex": "c = \\tfrac12\\left(\\min_j x_j + \\max_j x_j\\right),\\qquad H = \\frac{\\max_j \\lVert x_j - c\\rVert_\\infty}{v},\\qquad \\max_j \\lVert x_j - c\\rVert_\\infty \\le 10^{-12}/27 \\;\\Rightarrow\\; H = H_0",
+      "formula_latex": "c = \\tfrac12\\left(\\min_{j \\in K} x_j + \\max_{j \\in K} x_j\\right),\\qquad H = \\frac{\\max_{j \\in K} \\lVert x_j - c\\rVert_\\infty}{v},\\qquad \\max_{j \\in K} \\lVert x_j - c\\rVert_\\infty \\le 10^{-12}/27 \\;\\Rightarrow\\; H = H_0,\\qquad K = \\varnothing \\;\\Rightarrow\\; c = 0,\\; H = H_0",
       "formulas": [],
       "id": "terrain_frame",
       "implements": "aia_core.domain.sociomap.terrain:fit_frame",
@@ -8209,15 +8214,20 @@
        "ruler_scale"
       ],
       "keeps_cs": [],
-      "note_cs": "Jen aia-sociomap-5. Střed je střed obdélníku kolem objektů, ne jejich průměr. Rám kryje všechny umístěné objekty, i kontextové, aby každý nakreslený objekt stál na mřížce; kopce dávají jen PRIMÁRNÍ objekty. Střed a poloviční šířku zapíše mapa (terrain.parameters.centre a half_extent). H₀ = 62/27 je rám metodiky v jejích kreslicích jednotkách (62 jednotek, 27 na jednotku pravítka).",
+      "note_cs": "Jen aia-sociomap-5. Střed je střed obdélníku kolem objektů, ne jejich průměr. Rám se přizpůsobí jen objektům se známým vztahem, jako v panelu AIA; objekt bez něj se nakreslí, ale může stát mimo rám. Bez takového objektu se nic nepřizpůsobí. Střed a poloviční šířku zapíše mapa (terrain.parameters.centre a half_extent). H₀ = 62/27 je rám metodiky v jejích kreslicích jednotkách (62 jednotek, 27 na jednotku pravítka).",
       "reading_cs": "",
       "role_cs": "Vybere čtverec, který terén pokryje: kolem objektů, s okrajem, aby se mapa vešla celá.",
       "source_cs": "",
-      "source_sha256": "ef12f067a9941dde1a6a821f31dc40561f9128b9d2f1f0b8b2746c728f9a76b0",
+      "source_sha256": "9489702bac63cf978877e2fd1e59060fbbb085eb3e7b35b400b86b6055249ad6",
       "symbols": [
        {
         "latex": "x_j",
-        "meaning_cs": "poloha objektu j na pravítku (všechny umístěné objekty)",
+        "meaning_cs": "poloha objektu j na pravítku",
+        "unit": ""
+       },
+       {
+        "latex": "K",
+        "meaning_cs": "hodnocené objekty s aspoň jedním známým vztahem (SPOLEHLIVÝ nebo SLABÝ)",
         "unit": ""
        },
        {
@@ -9734,7 +9744,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "f919aea31f913a71c26247837e7c947375655b4e85a63fbadd96138c33621bb1",
+      "source_sha256": "729f413f18887932646473f537bb59a12dcb45b88ae0b99720f9b7065f50e0b5",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -9763,7 +9773,7 @@
        "f3_status"
       ],
       "keeps_cs": [],
-      "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3. aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty bez párů (krok Volba rozložení podle počtu objektů). Mapuje jen PRIMARY objekty sady; kontextové objekty na jeho mapě nejsou (jak je ukáže, je otevřená otázka).",
+      "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3. aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty bez párů (krok Volba rozložení podle počtu objektů). Mapuje jen PRIMARY objekty sady; kontextové objekty na jeho mapě nejsou (jak je ukáže, je otevřená otázka). Objekty, které nikdo nehodnotil, vynechá a uvede v objects_not_placed; počet objektů je počet hodnocených.",
       "reading_cs": "",
       "role_cs": "Rozhodne, zda se z rodiny objektů dá mapa nakreslit. Když ne, běh to řekne místo kreslení.",
       "source_cs": "",
@@ -11300,7 +11310,7 @@
       "feeds": [
        "f12_envelope"
       ],
-      "formula_latex": "t_j = f + (1 - f)\\,\\frac{h_j - \\min_l h_l}{\\max_l h_l - \\min_l h_l},\\qquad \\max_l h_l - \\min_l h_l < 10^{-15} \\;\\Rightarrow\\; t_j = \\tfrac12,\\qquad h_j = \\varnothing \\;\\Rightarrow\\; h_j = \\min_{l:\\, h_l \\ne \\varnothing} h_l",
+      "formula_latex": "t_j = f + (1 - f)\\,\\frac{h_j - \\min_l h_l}{\\max_l h_l - \\min_l h_l},\\qquad \\max_l h_l - \\min_l h_l < 10^{-15} \\;\\Rightarrow\\; t_j = \\tfrac12,\\qquad h_j = \\varnothing \\;\\Rightarrow\\; t_j = \\varnothing",
       "formulas": [],
       "id": "relative_heights",
       "implements": "aia_core.domain.sociomap.engine_v2:_relative_heights",
@@ -11308,11 +11318,11 @@
        "f8_height"
       ],
       "keeps_cs": [],
-      "note_cs": "Jen aia-sociomap-5. Objekt, který nikdo nehodnotil, stojí na nejnižší výšce; jeho výška zůstane prázdná, takže ho mapa může ukázat šedě. Nehodnotil-li nikdo nic, stojí všechny kopce na 0,5. Kontextový (SEKUNDÁRNÍ) objekt kopec nemá a rozpětí výšek nemění. Relativní výšky zapíše mapa (heights.relative).",
+      "note_cs": "Jen aia-sociomap-5. Objekt, který v sadě nikdo nehodnotil, se neumístí: vynechá se ještě před výpočtem vztahů a rozložení (jinak by ho rozložení bralo jako nesouvisející se všemi a odtlačovalo ostatní) a mapa ho uvede v objects_not_placed. Kontextový (SEKUNDÁRNÍ) objekt kopec nemá a rozpětí výšek nemění. Relativní výšky zapíše mapa (heights.relative).",
       "reading_cs": "",
       "role_cs": "Převede výšky objektů na výšky kopců: nejnižší objekt stojí na prahu, nejvyšší na 1, aby byl terén čitelný i při malých rozdílech.",
       "source_cs": "",
-      "source_sha256": "7ec4119557d8a0a85dd11cf36515a7fb902f08ef1a5af634ac5c73589f910879",
+      "source_sha256": "2ab4a0b1814a0eefffe65da45daa0147c5427e598aa42cc51456efc2f948dde1",
       "symbols": [
        {
         "latex": "h_j",
@@ -11321,7 +11331,7 @@
        },
        {
         "latex": "l",
-        "meaning_cs": "PRIMÁRNÍ objekty mapy",
+        "meaning_cs": "PRIMÁRNÍ objekty mapy, které někdo hodnotil",
         "unit": ""
        },
        {
@@ -11365,7 +11375,7 @@
       "feeds": [
        "f12_envelope"
       ],
-      "formula_latex": "c = \\tfrac12\\left(\\min_j x_j + \\max_j x_j\\right),\\qquad H = \\frac{\\max_j \\lVert x_j - c\\rVert_\\infty}{v},\\qquad \\max_j \\lVert x_j - c\\rVert_\\infty \\le 10^{-12}/27 \\;\\Rightarrow\\; H = H_0",
+      "formula_latex": "c = \\tfrac12\\left(\\min_{j \\in K} x_j + \\max_{j \\in K} x_j\\right),\\qquad H = \\frac{\\max_{j \\in K} \\lVert x_j - c\\rVert_\\infty}{v},\\qquad \\max_{j \\in K} \\lVert x_j - c\\rVert_\\infty \\le 10^{-12}/27 \\;\\Rightarrow\\; H = H_0,\\qquad K = \\varnothing \\;\\Rightarrow\\; c = 0,\\; H = H_0",
       "formulas": [],
       "id": "terrain_frame",
       "implements": "aia_core.domain.sociomap.terrain:fit_frame",
@@ -11373,15 +11383,20 @@
        "ruler_scale"
       ],
       "keeps_cs": [],
-      "note_cs": "Jen aia-sociomap-5. Střed je střed obdélníku kolem objektů, ne jejich průměr. Rám kryje všechny umístěné objekty, i kontextové, aby každý nakreslený objekt stál na mřížce; kopce dávají jen PRIMÁRNÍ objekty. Střed a poloviční šířku zapíše mapa (terrain.parameters.centre a half_extent). H₀ = 62/27 je rám metodiky v jejích kreslicích jednotkách (62 jednotek, 27 na jednotku pravítka).",
+      "note_cs": "Jen aia-sociomap-5. Střed je střed obdélníku kolem objektů, ne jejich průměr. Rám se přizpůsobí jen objektům se známým vztahem, jako v panelu AIA; objekt bez něj se nakreslí, ale může stát mimo rám. Bez takového objektu se nic nepřizpůsobí. Střed a poloviční šířku zapíše mapa (terrain.parameters.centre a half_extent). H₀ = 62/27 je rám metodiky v jejích kreslicích jednotkách (62 jednotek, 27 na jednotku pravítka).",
       "reading_cs": "",
       "role_cs": "Vybere čtverec, který terén pokryje: kolem objektů, s okrajem, aby se mapa vešla celá.",
       "source_cs": "",
-      "source_sha256": "ef12f067a9941dde1a6a821f31dc40561f9128b9d2f1f0b8b2746c728f9a76b0",
+      "source_sha256": "9489702bac63cf978877e2fd1e59060fbbb085eb3e7b35b400b86b6055249ad6",
       "symbols": [
        {
         "latex": "x_j",
-        "meaning_cs": "poloha objektu j na pravítku (všechny umístěné objekty)",
+        "meaning_cs": "poloha objektu j na pravítku",
+        "unit": ""
+       },
+       {
+        "latex": "K",
+        "meaning_cs": "hodnocené objekty s aspoň jedním známým vztahem (SPOLEHLIVÝ nebo SLABÝ)",
         "unit": ""
        },
        {
@@ -12898,7 +12913,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "f919aea31f913a71c26247837e7c947375655b4e85a63fbadd96138c33621bb1",
+      "source_sha256": "729f413f18887932646473f537bb59a12dcb45b88ae0b99720f9b7065f50e0b5",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -12927,7 +12942,7 @@
        "f3_status"
       ],
       "keeps_cs": [],
-      "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3. aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty bez párů (krok Volba rozložení podle počtu objektů). Mapuje jen PRIMARY objekty sady; kontextové objekty na jeho mapě nejsou (jak je ukáže, je otevřená otázka).",
+      "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3. aia-sociomap-5 deklaruje nejméně 2 objekty (Interval MDS nakreslí dva v jejich cílové vzdálenosti) a známý pár ani souvislost nežádá: rozložení umístí i objekty bez párů (krok Volba rozložení podle počtu objektů). Mapuje jen PRIMARY objekty sady; kontextové objekty na jeho mapě nejsou (jak je ukáže, je otevřená otázka). Objekty, které nikdo nehodnotil, vynechá a uvede v objects_not_placed; počet objektů je počet hodnocených.",
       "reading_cs": "",
       "role_cs": "Rozhodne, zda se z rodiny objektů dá mapa nakreslit. Když ne, běh to řekne místo kreslení.",
       "source_cs": "",
@@ -14460,7 +14475,7 @@
       "feeds": [
        "f12_envelope"
       ],
-      "formula_latex": "t_j = f + (1 - f)\\,\\frac{h_j - \\min_l h_l}{\\max_l h_l - \\min_l h_l},\\qquad \\max_l h_l - \\min_l h_l < 10^{-15} \\;\\Rightarrow\\; t_j = \\tfrac12,\\qquad h_j = \\varnothing \\;\\Rightarrow\\; h_j = \\min_{l:\\, h_l \\ne \\varnothing} h_l",
+      "formula_latex": "t_j = f + (1 - f)\\,\\frac{h_j - \\min_l h_l}{\\max_l h_l - \\min_l h_l},\\qquad \\max_l h_l - \\min_l h_l < 10^{-15} \\;\\Rightarrow\\; t_j = \\tfrac12,\\qquad h_j = \\varnothing \\;\\Rightarrow\\; t_j = \\varnothing",
       "formulas": [],
       "id": "relative_heights",
       "implements": "aia_core.domain.sociomap.engine_v2:_relative_heights",
@@ -14468,11 +14483,11 @@
        "f8_height"
       ],
       "keeps_cs": [],
-      "note_cs": "Jen aia-sociomap-5. Objekt, který nikdo nehodnotil, stojí na nejnižší výšce; jeho výška zůstane prázdná, takže ho mapa může ukázat šedě. Nehodnotil-li nikdo nic, stojí všechny kopce na 0,5. Kontextový (SEKUNDÁRNÍ) objekt kopec nemá a rozpětí výšek nemění. Relativní výšky zapíše mapa (heights.relative).",
+      "note_cs": "Jen aia-sociomap-5. Objekt, který v sadě nikdo nehodnotil, se neumístí: vynechá se ještě před výpočtem vztahů a rozložení (jinak by ho rozložení bralo jako nesouvisející se všemi a odtlačovalo ostatní) a mapa ho uvede v objects_not_placed. Kontextový (SEKUNDÁRNÍ) objekt kopec nemá a rozpětí výšek nemění. Relativní výšky zapíše mapa (heights.relative).",
       "reading_cs": "",
       "role_cs": "Převede výšky objektů na výšky kopců: nejnižší objekt stojí na prahu, nejvyšší na 1, aby byl terén čitelný i při malých rozdílech.",
       "source_cs": "",
-      "source_sha256": "7ec4119557d8a0a85dd11cf36515a7fb902f08ef1a5af634ac5c73589f910879",
+      "source_sha256": "2ab4a0b1814a0eefffe65da45daa0147c5427e598aa42cc51456efc2f948dde1",
       "symbols": [
        {
         "latex": "h_j",
@@ -14481,7 +14496,7 @@
        },
        {
         "latex": "l",
-        "meaning_cs": "PRIMÁRNÍ objekty mapy",
+        "meaning_cs": "PRIMÁRNÍ objekty mapy, které někdo hodnotil",
         "unit": ""
        },
        {
@@ -14525,7 +14540,7 @@
       "feeds": [
        "f12_envelope"
       ],
-      "formula_latex": "c = \\tfrac12\\left(\\min_j x_j + \\max_j x_j\\right),\\qquad H = \\frac{\\max_j \\lVert x_j - c\\rVert_\\infty}{v},\\qquad \\max_j \\lVert x_j - c\\rVert_\\infty \\le 10^{-12}/27 \\;\\Rightarrow\\; H = H_0",
+      "formula_latex": "c = \\tfrac12\\left(\\min_{j \\in K} x_j + \\max_{j \\in K} x_j\\right),\\qquad H = \\frac{\\max_{j \\in K} \\lVert x_j - c\\rVert_\\infty}{v},\\qquad \\max_{j \\in K} \\lVert x_j - c\\rVert_\\infty \\le 10^{-12}/27 \\;\\Rightarrow\\; H = H_0,\\qquad K = \\varnothing \\;\\Rightarrow\\; c = 0,\\; H = H_0",
       "formulas": [],
       "id": "terrain_frame",
       "implements": "aia_core.domain.sociomap.terrain:fit_frame",
@@ -14533,15 +14548,20 @@
        "ruler_scale"
       ],
       "keeps_cs": [],
-      "note_cs": "Jen aia-sociomap-5. Střed je střed obdélníku kolem objektů, ne jejich průměr. Rám kryje všechny umístěné objekty, i kontextové, aby každý nakreslený objekt stál na mřížce; kopce dávají jen PRIMÁRNÍ objekty. Střed a poloviční šířku zapíše mapa (terrain.parameters.centre a half_extent). H₀ = 62/27 je rám metodiky v jejích kreslicích jednotkách (62 jednotek, 27 na jednotku pravítka).",
+      "note_cs": "Jen aia-sociomap-5. Střed je střed obdélníku kolem objektů, ne jejich průměr. Rám se přizpůsobí jen objektům se známým vztahem, jako v panelu AIA; objekt bez něj se nakreslí, ale může stát mimo rám. Bez takového objektu se nic nepřizpůsobí. Střed a poloviční šířku zapíše mapa (terrain.parameters.centre a half_extent). H₀ = 62/27 je rám metodiky v jejích kreslicích jednotkách (62 jednotek, 27 na jednotku pravítka).",
       "reading_cs": "",
       "role_cs": "Vybere čtverec, který terén pokryje: kolem objektů, s okrajem, aby se mapa vešla celá.",
       "source_cs": "",
-      "source_sha256": "ef12f067a9941dde1a6a821f31dc40561f9128b9d2f1f0b8b2746c728f9a76b0",
+      "source_sha256": "9489702bac63cf978877e2fd1e59060fbbb085eb3e7b35b400b86b6055249ad6",
       "symbols": [
        {
         "latex": "x_j",
-        "meaning_cs": "poloha objektu j na pravítku (všechny umístěné objekty)",
+        "meaning_cs": "poloha objektu j na pravítku",
+        "unit": ""
+       },
+       {
+        "latex": "K",
+        "meaning_cs": "hodnocené objekty s aspoň jedním známým vztahem (SPOLEHLIVÝ nebo SLABÝ)",
         "unit": ""
        },
        {

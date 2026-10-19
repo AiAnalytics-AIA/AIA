@@ -2401,23 +2401,23 @@
     {
      "document": "AIA_SOCIOMAPA_METHOD",
      "page": null,
-     "section": "aia_inputs.py: prepare (mean_rating); sociomap_3d.py: frame_fit, normalise_rel, terrain, and render's handling of objects without ratings",
-     "states": "An object's height is the survey-weighted mean of its ratings over everyone who rated it (the relations stay unweighted); an object nobody rated stands at the set's lowest height (all at 0 when nothing is rated) and is drawn grey. The hill heights are the heights min-max scaled onto [0.15, 1], all 0.5 when the heights do not differ (spread below 1e-15). The positions, scaled by 27, are centred on the middle of their bounding box and scaled so the largest offset on either axis is 0.70 of the grid's half-width of 62 (scale 1 when that offset is at most 1e-12). The terrain is the maximum over the objects of t_j exp(-||q - x_j||^2 / (2 (6.75 k)^2)) on an 85 x 85 grid over [-62, 62], with no cut-off."
+     "section": "aia_inputs.py: prepare (mean_rating); aia_inputs.py: rated_objects; sociomap_3d.py: frame_fit, frame_objects, normalise_rel, terrain, and render's handling of objects without ratings",
+     "states": "An object's height is the survey-weighted mean of its ratings over everyone who rated it (the relations stay unweighted); an object nobody rated is left out of the set before anything is computed (aia_inputs.rated_objects) and listed as not placed; left in, the layout would give it the unrelated charge to every object and push the others. The hill heights are the rated objects' heights min-max scaled onto [0.15, 1], all 0.5 when the heights do not differ (spread below 1e-15). The positions, scaled by 27, are centred on the middle of the bounding box of the rated objects with at least one known pair and scaled so their largest offset on either axis is 0.70 of the grid's half-width of 62 (scale 1 when that offset is at most 1e-12; no shift and scale 1 when no object has a known pair); an object without a known pair may fall outside the frame. The terrain is the maximum over the objects of t_j exp(-||q - x_j||^2 / (2 (6.75 k)^2)) on an 85 x 85 grid over [-62, 62], with no cut-off."
     }
    ],
-   "formula": "h_j = mean of a_kj over the raters of j on the declared 0-1 scale, weighted by the respondents' survey weights w_k; h_j = min of the rated h when nobody rated j, 0 when nobody rated anything; t_j = f + (1 - f) (h_j - min h) / (max h - min h), t_j = 0.5 when max h - min h < 1e-15, over the PRIMARY objects; c = (min x + max x) / 2 over every placed object; H = max_j ||x_j - c||_inf / v, H = 62/27 when that maximum is at most 1e-12/27; grid c - H + t 2H/N, t = 0..N; z(q) = max over PRIMARY j of t_j exp(-||q - x_j||^2 / (2 sigma^2)), sigma = 0.25, every cell",
-   "applies_to": "aia-sociomap-5's object map: its heights (heights.values, survey-weighted), the relative heights (heights.relative) and the framed terrain grid (terrain.parameters.centre and half_extent, terrain.height) (engine_v2.compute_object_map).",
+   "formula": "h_j = mean of a_kj over the raters of j on the declared 0-1 scale, weighted by the respondents' survey weights w_k; an object nobody rated is left out of the set before the relations, the layout and the terrain (listed in objects_not_placed); t_j = f + (1 - f) (h_j - min h) / (max h - min h), t_j = 0.5 when max h - min h < 1e-15, over the rated PRIMARY objects; K = the rated objects with at least one RELIABLE or WEAK pair; c = (min x + max x) / 2 over K; H = max over K of ||x_j - c||_inf / v, H = 62/27 when that maximum is at most 1e-12/27, c = 0 and H = 62/27 when K is empty; grid c - H + t 2H/N, t = 0..N; z(q) = max over PRIMARY j of t_j exp(-||q - x_j||^2 / (2 sigma^2)), sigma = 0.25, every cell",
+   "applies_to": "aia-sociomap-5's object map: its heights (heights.values, survey-weighted), the relative heights (heights.relative), the objects not placed (objects_not_placed) and the framed terrain grid (terrain.parameters.centre and half_extent, terrain.height) (engine_v2.compute_object_map).",
    "implementation": "aia_core.domain.sociomap.engine_v2:_terrain",
    "validation": [
     {
      "kind": "SOURCE_EXAMPLE",
      "test": "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_height_frame_and_terrain_match_the_methodologys_own_code",
-     "what": "the mean ratings, unrated objects, relative heights, frame and terrain grid of the methodology's own code on nine studies (2 to 20 objects; an object nobody rated, equal heights, nothing rated, two objects at one point), to 1e-12"
+     "what": "the mean ratings, objects not placed, relative heights, objects the frame is fitted over, frame and terrain grid of the methodology's own code on ten studies (2 to 20 objects; an object nobody rated, equal heights, nothing rated, two objects at one point, the object that sets the frame without a known pair), to 1e-12"
     },
     {
      "kind": "OWN_TEST",
      "test": "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_the_object_map_stores_the_framed_terrain_under_aia_sociomap_5",
-     "what": "the object map stores the survey-weighted heights, the relative heights and the framed terrain with a height in every cell"
+     "what": "the object map stores the survey-weighted heights, the relative heights, the object nobody rated left out of the map (the map equals the rated objects' own) and listed as not placed and the terrain framed on the objects with a known pair, with a height in every cell"
     },
     {
      "kind": "OWN_TEST",

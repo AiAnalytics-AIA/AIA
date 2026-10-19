@@ -6,7 +6,7 @@ chunks:
   - "[x] 2. Input ratings and object relations: per-person centring, the unrelated baseline, pair floors, Benjamini–Hochberg with the noise rule, the sparse-design note; preset aia-sociomap-5 created"
   - "[x] 3. Object positions: soft-rank Spearman with Coulomb repulsion (BB1), Interval MDS for large maps by a fixed object-count rule"
   - "[x] 4. Height and terrain: mean rating, relative heights with a floor, ruler and frame scaling, the envelope terrain, node size and label note for large maps"
-  - "[ ] 5. Map credibility: split-half agreement, the no-reliable-structure statement, one uncertainty radius per map"
+  - "[x] 5. Map credibility: split-half agreement, the no-reliable-structure statement, one uncertainty radius per map"
   - "[ ] 6. Respondent map: vector-model placement, the chance test for placed / faded, the respondent terrain, the indicative note below six objects"
   - "[ ] 7. Taste segments: the mixture on slopes, the shuffle guard, the step-down, profiles, colour only for clearly placed respondents, borderline segments"
 ---
@@ -73,6 +73,8 @@ audit code.
 | Where numerical code lives | `domain/sociomap/`, numpy/scipy/numba as `aia-core` dependencies (agreed with the codebase owner) | Pure-Python port: BB1 ~100× slower than the compiled 9 s at 40 objects, segment mixture infeasible on large samples, parity only statistical |
 | When Interval MDS replaces BB1 | A fixed object count: the methodology's time budget 1.07e-3·M^2.46/10 ≤ 30 s with the core count frozen at 10, i.e. BB1 for M ≤ 163 objects, Interval MDS above; the method used is recorded on every map | The budget as written reads the machine's core count, so for 65 ≤ M ≤ 164 two machines pick different methods; the repo forbids probing (`layout.py:1-14`) |
 | Replace `-3` or add `-5` | Add `-5` | Replacing changes results already approved by fingerprint and pinned by past runs |
+| An object nobody in the set rated | Not placed: left out of the set before anything is computed, as a context object is, and listed in `objects_not_placed`; the map is the rated objects' own | Laying it out with the rest and hiding it afterwards (the AIA panel today): with no data it gets the unrelated charge to every object (soft-rank Coulomb term, Interval MDS floor) and pushes the others (up to 1.70 ruler units on an 8-object study); standing it at the set's lowest height with a grey node (the methodology's renderer before 2026-10-19). The panel takes the rule at its next sync |
+| What the terrain's frame is fitted over | The rated objects with at least one known (RELIABLE or WEAK) pair, as the AIA panel fits its map; nothing fitted when there is none. The panel also fits over the context objects it shows; `-5` maps the PRIMARY objects only, so the frames agree when no context object is shown | Every placed object (the methodology's renderer before 2026-10-19): an object resting on a handful of raters set the zoom |
 | Which failures of the split-half check and the uncertainty radius fall back | Only the two errors Interval MDS raises on too little data, `ZeroDivisionError` (no layout pair in a half) and `numpy.linalg.LinAlgError` (the classical start of a near-empty design); any other error propagates | Catching every exception, as the AIA panel does: a defect would silently become "weakly determined" or "no radius" |
 
 ### Library versions
@@ -114,10 +116,13 @@ and 0.68/2.5).
   `raw_stress` or `quality`.
 - Where the object-map artifact is described: under `aia-sociomap-5` the height metric is
   `mean_rating_0_1` as before (survey-weighted, on the declared 0-1 scale; an object
-  nobody rated keeps a null height, which marks it unrated); `heights.relative` holds each
-  PRIMARY object's hill height (min-max onto [0.15, 1], an unrated object at 0.15, null for
-  SECONDARY); the terrain method is `framed_relative_envelope`, its `parameters` record the
-  fitted `centre` and `half_extent` and no `kernel_cutoff`, and every cell has a height. The
+  nobody rated is not mapped at all, see below); `heights.relative` holds each
+  PRIMARY object's hill height (min-max onto [0.15, 1], null for
+  SECONDARY); `objects_not_placed` lists the set's objects nobody rated, which are left out of
+  `object_ids` and of every computation (left out of the stored form when empty); the terrain method is
+  `framed_relative_envelope`, its `parameters` record the `centre` and `half_extent` fitted over
+  the rated objects with a known pair (an object without one can stand outside the grid) and no
+  `kernel_cutoff`, and every cell has a height. The
   spec's `terrain` declares `frame_fill` (0.70) and `relative_height_floor` (0.15) and no
   `half_extent` or `kernel_cutoff`. Earlier presets store none of the new keys.
 - CLAUDE.md §2, `terrain.py`: `fit_frame` (the framed grid) and `EnvelopeParameters.axes()`
@@ -125,9 +130,10 @@ and 0.68/2.5).
 - Web follow-up (drawing rules the methodology's renderer has, not ported here, owner
   decision 2026-10-19): the 26x height exaggeration of the terrain; node size
   x min(1, sqrt(30 / M)); the "k of M objects labelled" note for large maps; node colour from
-  the relative height and grey for an unrated object (`heights.values` null); the
-  methodology's colours and camera. Until then the web and the report draw a `-5` map's
-  framed terrain in their absolute 0-1 terraces, though its cells are relative heights, and
+  the relative height; the objects in `objects_not_placed` (nobody rated them) listed under the
+  map as the panel does ("Neumístěno …"); the methodology's colours and camera. Until then the
+  web and the report leave those objects out without saying so, and draw a `-5` map's framed
+  terrain in their absolute 0-1 terraces, though its cells are relative heights, and
   the report's top view keeps its axes at the fixed ruler (the framed grid can reach past
   it). `OBJECT_MAP_METHODS` in `object-map-view.ts` does not name `aia-sociomap-5` (it is
   read as an unnamed method).

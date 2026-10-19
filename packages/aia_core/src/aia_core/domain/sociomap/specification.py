@@ -583,8 +583,9 @@ class TerrainMethod(StrEnum):
     #: ``z(q) = max_j h_j exp(-||q - y_j||^2 / 2 sigma^2)`` over the PRIMARY objects.
     OBJECT_ENVELOPE = "object_envelope"
     #: The signed-off methodology's (``aia-sociomap-5``): the same envelope over the PRIMARY
-    #: objects' relative heights (min-max onto [floor, 1]; an object nobody rated at the
-    #: lowest), on a grid framed on the map, and with no cutoff, so every cell has a height.
+    #: objects' relative heights (min-max onto [floor, 1]; an object nobody rated is not
+    #: placed), on a grid framed on the objects with a known pair, and with no cutoff, so
+    #: every cell has a height.
     FRAMED_RELATIVE_ENVELOPE = "framed_relative_envelope"
 
 
