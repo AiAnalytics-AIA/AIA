@@ -74,7 +74,7 @@ that decision, so the gate stays the default and the choice is theirs alone.
   `test_client_knowledge.py::test_a_checked_source_is_added_once_per_client_and_url`,
   `VerifiedSourceButton.test.tsx`.
 - Chunk 2: `TEXT_EDIT_OPS` / `is_text_edit` in `domain/research_lead.py`, the column (migration
-  `57eaa96a5538`, revises `7b3c32892aa9`), `ResearcherLeadRepository.set_preferences`,
+  `57eaa96a5538`, revises `c7e9a1b3d5f2`, #487's, re-chained after it merged), `ResearcherLeadRepository.set_preferences`,
   `ResearchLead.decide_edits(auto=)`, `record_lead_edit_decision(auto=)`, `PUT /lead/preferences`,
   the workbench's automatic accept and Vrátit, the toggle on Můj Vedoucí. Tests:
   `test_research_lead.py::test_a_text_edit_changes_wording_only`,
