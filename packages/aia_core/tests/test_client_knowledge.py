@@ -759,3 +759,45 @@ def test_a_malformed_reference_is_refused_on_every_way_in_and_a_study_names_none
             content={"source_id": "SRC-0123456789abcdef"},
         )
     assert knowledge.proposals(lead) == []
+
+
+def test_a_checked_source_is_added_once_per_client_and_url(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    """Plan inline-decisions 1: the same URL again answers ``exists`` and writes nothing; another
+    client, or another URL, is its own source."""
+    researcher = client_scope(scoped, "researcher")
+    url = "https://stat.example/fiktivni"
+    first = knowledge.add_source_once(
+        researcher, url=url, title="Fiktivní statistika", content={"quote": "q"}, provenance={}
+    )
+    assert first.status == "added" and first.item_id is not None
+    again = knowledge.add_source_once(
+        researcher, url=url, title="Jiný název", content={}, provenance={}
+    )
+    assert (again.status, again.item_id, again.proposal_id) == ("exists", first.item_id, None)
+    [item] = knowledge.items(researcher)
+    assert item.content == {"quote": "q", "url": url} and item.kind is KnowledgeKind.SOURCE
+    other = knowledge.add_source_once(
+        researcher, url=f"{url}/2", title="Druhý", content={}, provenance={}
+    )
+    assert other.status == "added"
+    theirs = knowledge.add_source_once(
+        client_scope(scoped, "other_lead", "other"), url=url, title="B", content={}, provenance={}
+    )
+    assert theirs.status == "added" and theirs.item_id != first.item_id
+
+
+def test_where_self_approval_is_off_a_checked_source_waits_and_is_not_proposed_twice(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    scoped.scope_repo.set_self_approval(
+        scoped.admin_context, allowed=False, client_id=scoped.clients["primary"].client_id
+    )
+    researcher = client_scope(scoped, "researcher")
+    url = "https://trh.example/fiktivni"
+    first = knowledge.add_source_once(researcher, url=url, title="T", content={}, provenance={})
+    assert first.status == "proposed" and first.item_id is None and first.proposal_id
+    again = knowledge.add_source_once(researcher, url=url, title="T", content={}, provenance={})
+    assert (again.status, again.proposal_id) == ("exists", first.proposal_id)
+    assert len(knowledge.proposals(researcher, status=ProposalStatus.PROPOSED)) == 1

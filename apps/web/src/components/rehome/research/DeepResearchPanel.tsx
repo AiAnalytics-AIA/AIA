@@ -15,6 +15,7 @@ import { coverageWords, deepStepLabel, stepProblem } from "@/lib/reason-words";
 import { CodedWords } from "./CodedWords";
 import { DeepResearchWaits } from "./DeepResearchWaits";
 import { SearchedNothing } from "./SearchedNothing";
+import { VerifiedSourceButton } from "./VerifiedSourceButton";
 import { isDesignRun } from "@/lib/design-evidence";
 import { useResearch } from "./context";
 import { canReview } from "./frame";
@@ -148,6 +149,7 @@ export function DeepResearchPanel() {
               <p className="font-medium">{item.evidence.claim}</p>
               <blockquote className="mt-2 border-l-2 border-border-strong pl-3 text-ink-muted">{item.evidence.quote}</blockquote>
               <p className="mt-2 text-xs text-ink-muted">Zdroj: {source ? <a href={source.url} target="_blank" rel="noopener noreferrer" className="underline">{source.title}</a> : item.evidence.source_ref} · hodnocení {item.score.score}</p>
+              {source && current && item.evidence.evidence_id ? <div className="mt-2"><VerifiedSourceButton studyId={frame.studyId} clientId={frame.clientId} runId={current.run_id} snapshotId={source.snapshot_id} evidenceId={item.evidence.evidence_id} /></div> : null}
             </article>;
           })}
           <p className="text-xs text-ink-muted">Důkazy jsou zapečetěné otiskem {bundle.sha256.slice(0, 12)}. Před použitím mimo AIA je zkontrolujte.</p>

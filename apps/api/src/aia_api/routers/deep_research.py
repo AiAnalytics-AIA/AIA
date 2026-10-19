@@ -55,6 +55,7 @@ from aia_core.application.research import (
     CostCeilingUnknown,
     CostConfirmationRequired,
 )
+from aia_core.application.verified_sources import SourceNotInRun, add_verified_source
 from aia_core.domain.deep_research.budgets import CallKind, ResearchMode
 from aia_core.domain.deep_research.common_crawl import MIN_SCAN_CUTOFF_BYTES, AthenaPricing
 from aia_core.domain.deep_research.contracts import Channel
@@ -85,7 +86,13 @@ from fastapi import APIRouter, HTTPException, Path, Query, Request, Response
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from ..config import Settings
-from ..dependencies import ArtifactStoreDep, SessionDep, StudyScopeDep
+from ..dependencies import (
+    ArtifactStoreDep,
+    PrincipalDep,
+    ResolverDep,
+    SessionDep,
+    StudyScopeDep,
+)
 from ..schemas.projects import ErrorResponse
 from ..schemas.runs import RunEventResponse
 from .research import (
@@ -170,6 +177,28 @@ class DesignProposalAccept(BaseModel):
     expected_revision_id: str = Field(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")
     #: The working revision the person has: the items go into it too (ADR 0026 decision 6).
     expected_workspace_revision: int = Field(ge=1)
+
+
+class VerifiedSourceAdd(BaseModel):
+    """A person checked a captured source: the accepted finding of the run that cites it."""
+
+    model_config = ConfigDict(extra="forbid")
+    evidence_id: str = Field(max_length=64, pattern=r"^EV-[0-9a-f]{16}$")
+
+
+class VerifiedSourceAdded(BaseModel):
+    """What the click did. ``added``: knowledge now; ``proposed``: the client turned
+    self-approval off, so it waits for someone else; ``exists``: the client already holds or
+    awaits a source at this URL, and nothing was written. ``item_id`` is the item, when one
+    exists."""
+
+    model_config = ConfigDict(extra="forbid")
+    status: Literal["added", "proposed", "exists"]
+    item_id: str | None
+    proposal_id: str | None
+    client_id: str
+    url: str
+    title: str
 
 
 class DeepResearchStep(BaseModel):
@@ -763,6 +792,72 @@ def accept_design_proposal(
         )
         return _revision(
             accepted.revision, created=accepted.created, content=accepted.merged.content
+        )
+    raise AssertionError("unreachable")
+
+
+@router.post(
+    "/runs/{run_id}/sources/{source_ref}/knowledge",
+    response_model=VerifiedSourceAdded,
+    status_code=201,
+    responses={
+        200: {"model": VerifiedSourceAdded, "description": "Already in the client's knowledge"},
+        404: {"model": ErrorResponse, "description": "No such run, or the source is not in it"},
+        409: {"model": ErrorResponse, "description": "The run has published no bundle"},
+    },
+)
+def add_source_to_knowledge(
+    run_id: RunId,
+    source_ref: SnapshotId,
+    body: VerifiedSourceAdd,
+    scope: StudyScopeDep,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    response: Response,
+) -> VerifiedSourceAdded:
+    """ "Ověřeno, přidat zdroj": a person who checked a source the run captured adds it to the
+    Study's client's knowledge as a ``SOURCE`` item (plan inline-decisions chunk 1).
+
+    The URL, title, quote and hash are the run's sealed bundle's, never the request's: the
+    snapshot ``source_ref`` and the accepted finding ``evidence_id`` citing it must both be in
+    it (404 ``source_not_in_run``). Once per client and URL: a second add answers 200
+    ``exists`` with the item and writes nothing. Needs the client's knowledge permissions;
+    where the client turned self-approval off it answers 201 ``proposed``.
+    """
+    try:
+        client = resolver.client_context(principal, client_id=scope.client_id)
+    except ScopeDenied as exc:
+        raise _not_found() from exc
+    with _errors(session):
+        try:
+            verified = add_verified_source(
+                session,
+                scope,
+                client,
+                run_id=run_id,
+                snapshot_id=source_ref,
+                evidence_id=body.evidence_id,
+                store=store,
+            )
+        except SourceNotInRun as exc:
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "code": exc.reason,
+                    "message": "The run's evidence holds no such source.",
+                },
+            ) from exc
+        if verified.added.status == "exists":
+            response.status_code = 200
+        return VerifiedSourceAdded(
+            status=verified.added.status,
+            item_id=verified.added.item_id,
+            proposal_id=verified.added.proposal_id,
+            client_id=client.client_id,
+            url=verified.url,
+            title=verified.title,
         )
     raise AssertionError("unreachable")
 

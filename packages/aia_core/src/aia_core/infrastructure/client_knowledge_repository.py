@@ -10,8 +10,9 @@ afterwards: retrieval resolves the client first.
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Final, cast
+from typing import Any, Final, Literal, cast
 
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
@@ -58,11 +59,12 @@ from .tables import (
     ClientKnowledgeLabelRow,
     ClientKnowledgeProposalRow,
     ClientKnowledgeRevisionRow,
+    ClientRow,
     as_utc,
     utcnow,
 )
 
-__all__ = ["KEEP_FOLDER", "ClientKnowledgeRepository"]
+__all__ = ["KEEP_FOLDER", "ClientKnowledgeRepository", "SourceAdded"]
 
 _MAX_RESULTS = 200
 #: The most items one placement may move or label at once.
@@ -77,6 +79,17 @@ class _KeepFolder:
 
 
 KEEP_FOLDER: Final = _KeepFolder()
+
+
+@dataclass(frozen=True, slots=True)
+class SourceAdded:
+    """What one "add this checked source" did: ``added`` (knowledge now), ``proposed`` (the
+    client turned self-approval off) or ``exists`` (the client already holds or awaits a
+    source at that URL; nothing was written). ``item_id`` is the item, when there is one."""
+
+    status: Literal["added", "proposed", "exists"]
+    item_id: str | None
+    proposal_id: str | None
 
 
 def _client(scope: object) -> ClientContext:
@@ -1057,6 +1070,81 @@ class ClientKnowledgeRepository:
             approve=True,
             note="written by a person",
             action="CLIENT_KNOWLEDGE_AUTHORED",
+        )
+
+    def add_source_once(
+        self,
+        scope: ClientContext,
+        *,
+        url: str,
+        title: str,
+        summary: str = "",
+        content: dict[str, Any],
+        provenance: dict[str, Any],
+    ) -> SourceAdded:
+        """A person adds a web source they checked, once per client and URL.
+
+        The client's row is locked first, so two clicks at once are decided one after the
+        other. An active ``SOURCE`` item, or a pending ``SOURCE`` proposal, whose
+        ``content.url`` is ``url`` answers ``exists`` and writes nothing. Otherwise the source
+        is written through :meth:`add` -- knowledge at once, or a proposal where the client
+        turned self-approval off -- with ``content.url`` set to ``url``. Needs what
+        :meth:`add` needs.
+        """
+        scope = _client(scope)
+        scope.require(ClientPermission.PROPOSE_CLIENT_KNOWLEDGE)
+        scope.require(ClientPermission.APPROVE_CLIENT_KNOWLEDGE)
+        if not url:
+            raise ValueError("a source needs its URL")
+        self._session.scalar(
+            select(ClientRow.client_id)
+            .where(
+                ClientRow.client_id == scope.client_id,
+                ClientRow.organization_id == scope.organization_id,
+            )
+            .with_for_update()
+        )
+        # Filtered in Python, not by a JSON path: the same on SQLite and PostgreSQL, and a
+        # client's sources are a short list read only on this click.
+        items = self._session.execute(
+            select(ClientKnowledgeItemRow.item_id, ClientKnowledgeItemRow.content)
+            .where(
+                ClientKnowledgeItemRow.organization_id == scope.organization_id,
+                ClientKnowledgeItemRow.client_id == scope.client_id,
+                ClientKnowledgeItemRow.kind == KnowledgeKind.SOURCE.value,
+                ClientKnowledgeItemRow.status == "ACTIVE",
+            )
+            .order_by(ClientKnowledgeItemRow.created_at)
+        ).all()
+        for item_id, held in items:
+            if isinstance(held, dict) and held.get("url") == url:
+                return SourceAdded(status="exists", item_id=str(item_id), proposal_id=None)
+        pending = self._session.execute(
+            select(ClientKnowledgeProposalRow.proposal_id, ClientKnowledgeProposalRow.content)
+            .where(
+                ClientKnowledgeProposalRow.organization_id == scope.organization_id,
+                ClientKnowledgeProposalRow.client_id == scope.client_id,
+                ClientKnowledgeProposalRow.kind == KnowledgeKind.SOURCE.value,
+                ClientKnowledgeProposalRow.status == ProposalStatus.PROPOSED.value,
+                ClientKnowledgeProposalRow.item_id.is_(None),
+            )
+            .order_by(ClientKnowledgeProposalRow.proposed_at)
+        ).all()
+        for proposal_id, held in pending:
+            if isinstance(held, dict) and held.get("url") == url:
+                return SourceAdded(status="exists", item_id=None, proposal_id=str(proposal_id))
+        written = self.add(
+            scope,
+            kind=KnowledgeKind.SOURCE,
+            title=title,
+            summary=summary,
+            content={**content, "url": url},
+            provenance=provenance,
+        )
+        return SourceAdded(
+            status="added" if written.status is ProposalStatus.APPROVED else "proposed",
+            item_id=written.item_id,
+            proposal_id=written.proposal_id,
         )
 
     def _settle(

@@ -21,6 +21,8 @@ export const appRoutes = {
       : `/app/clients/${e(clientId)}/research/${e(studyId)}`,
   stage: (clientId: string, studyId: string, step: StepKey) =>
     `/app/clients/${e(clientId)}/research/${e(studyId)}/${stepSlug(step)}`,
+  /** One item of a client's knowledge, opened in the library (Znalosti). */
+  knowledgeItem: (clientId: string, itemId: string) => `/app/clients/${e(clientId)}/knowledge?item=${e(itemId)}`,
   intelligence: () => "/app/intelligence",
   memory: () => "/app/memory",
   /** A past research of a client, read-only (project memory M2). */

@@ -1339,6 +1339,11 @@ export type DeepResearchBundle = {
   synthesis?: { check: { summary: string | null; summary_withheld?: string | null; findings: { subject_key: string; text: string; evidence_ids: string[] }[]; excluded?: { subject_key: string; text: string; reason: string; detail?: string }[]; gaps: string[]; limitations: string[]; status: string }; brief?: { gaps: { need: string; reason: string }[] } | null } | null;
   origins?: string[];
 };
+/** What "Ověřeno, přidat zdroj" did: knowledge now, a proposal (self-approval off), or already there. */
+export type VerifiedSourceAdded = {
+  status: "added" | "proposed" | "exists";
+  item_id: string | null; proposal_id: string | null; client_id: string; url: string; title: string;
+};
 /** One accepted finding of a Design Research run, as its proposal cites it. */
 export type DesignFinding = { evidence_id: string; claim: string; quote: string; source_title: string; source: string; source_class: string; confidence: number };
 /** A Design Research run's proposal: per subject its findings (EVIDENCE) or none (GAP). */
@@ -1383,6 +1388,10 @@ export const deepResearch = {
   bundle: (studyId: string, runId: string) => request<DeepResearchBundle>("GET", `${deepPath(studyId)}/${enc(runId)}/bundle`),
   coverage: (studyId: string, runId: string) => request<DeepResearchCoverage>("GET", `${deepPath(studyId)}/${enc(runId)}/coverage`),
   designProposal: (studyId: string, runId: string) => request<DesignProposal>("GET", `${deepPath(studyId)}/${enc(runId)}/design-proposal`),
+  /** "Ověřeno, přidat zdroj": the person checked a captured source; the server writes it to the client's
+   *  knowledge from the run's sealed bundle (the URL, title and quote are the bundle's), once per URL. */
+  addSourceToKnowledge: (studyId: string, runId: string, snapshotId: string, evidenceId: string) =>
+    request<VerifiedSourceAdded>("POST", `${deepPath(studyId)}/${enc(runId)}/sources/${enc(snapshotId)}/knowledge`, { evidence_id: evidenceId }),
   cancel: (studyId: string, runId: string) => request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/cancel`),
   retry: (studyId: string, runId: string, confirmCostUsd?: number) => request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/retry`, confirmCostUsd === undefined ? undefined : { confirm_cost_usd: confirmCostUsd }),
   /** The same run, its steps parked for the AI runtime offered to a worker again. */

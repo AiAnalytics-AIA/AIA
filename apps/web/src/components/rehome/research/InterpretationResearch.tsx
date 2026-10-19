@@ -18,6 +18,7 @@ import { canReview } from "./frame";
 import { FormattedText } from "./FormattedText";
 import { DeepResearchWaits } from "./DeepResearchWaits";
 import { SearchedNothingNote, useSearchedNothing } from "./SearchedNothing";
+import { VerifiedSourceButton } from "./VerifiedSourceButton";
 
 const message = (e: unknown) => e instanceof Error ? e.message : String(e);
 
@@ -196,6 +197,7 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
           <FormattedText text={a.evidence.claim} className="mt-1" />
           <p className="mt-2 break-words text-xs text-ink-muted">Zdroj: {source ? <a href={source.url} target="_blank" rel="noreferrer" className="underline">{source.title || source.url}</a> : a.evidence.source_ref}{a.score?.source_class ? <>{" · typ zdroje podle domény: "}<CodedWords inline coded={codeWords("research.deep.sourceClass", a.score.source_class, "research.deep.sourceClass.other")} /></> : null}</p>
           {a.evidence.quote ? <details className="mt-2 text-xs"><summary className="cursor-pointer text-ink-muted">Citovaný podklad</summary><blockquote className="mt-2 whitespace-pre-wrap border-l-2 border-border pl-3 leading-5 text-ink-muted">{a.evidence.quote}</blockquote></details> : null}
+          {source && current && a.evidence.evidence_id && mayReview ? <div className="mt-2"><VerifiedSourceButton studyId={frame.studyId} clientId={frame.clientId} runId={current.run_id} snapshotId={source.snapshot_id} evidenceId={a.evidence.evidence_id} /></div> : null}
         </li>;
       })}</ol>
       <details><summary className="cursor-pointer text-sm font-medium">Zachycené zdroje ({bundle.snapshots.length})</summary>

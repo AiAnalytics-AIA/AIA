@@ -1,7 +1,7 @@
 ---
 status: in-progress
 chunks:
-  - "[ ] 1. Ověřeno, přidat zdroj: a person adds a Deep Research source to the client's knowledge with one inline click"
+  - "[x] 1. Ověřeno, přidat zdroj: a person adds a Deep Research source to the client's knowledge with one inline click"
   - "[ ] 2. Auto-accept the Lead's text edits: an opt-in per researcher, off by default, recorded in the ledger as auto"
   - "[ ] 3. Tick the plan"
 ---
