@@ -4,7 +4,7 @@ chunks:
   - "[x] 1. A model's request profile, declared in its catalog entry and read by the Bedrock adapter"
   - "[x] 2. The Lead's own capability (STUDY_LEAD) and its own pinned model, from configuration"
   - "[x] 3. Compose and env.example pass the Lead model's keys to the worker"
-  - "[ ] 4. The instance role may invoke the Lead model's profile when one is set"
+  - "[x] 4. The instance role may invoke the Lead model's profile when one is set"
   - "[ ] 5. ADR 0026 amendment: the Lead's own model"
   - "[ ] 6. Runbook: the Research Lead's own model"
 ---
