@@ -110,3 +110,16 @@ describe("public AI configuration", () => {
     errorLog.mockRestore();
   });
 });
+
+describe("the research workbench switch", () => {
+  it("is on only for a switch value that reads true, and off when unset or malformed", async () => {
+    vi.stubEnv("AIA_WEB_RESEARCH_WORKBENCH", undefined);
+    expect((await GET().json()).workbench).toBe(false);
+    vi.stubEnv("AIA_WEB_RESEARCH_WORKBENCH", "true");
+    expect((await GET().json()).workbench).toBe(true);
+    vi.stubEnv("AIA_WEB_RESEARCH_WORKBENCH", "maybe");
+    expect((await GET().json()).workbench).toBe(false);
+    vi.stubEnv("AIA_WEB_RESEARCH_WORKBENCH", "false");
+    expect((await GET().json()).workbench).toBe(false);
+  });
+});
