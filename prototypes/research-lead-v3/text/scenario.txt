@@ -1,0 +1,2916 @@
+
+
+######## FRAME 0
+AIA Research Lead Workbench
+A · Study opening, Brief
+B · Questionnaire proposal
+C · Audience, Deep Research self-activated
+D · Fieldwork
+E · Sociomapping
+F · Analysis
+G · Report composition
+PM · Where are we, continue until you need me
+
+######## FRAME 1
+A · Study opening, Brief
+FB
+Fio banka
+/
+Young Customer Perception 2026
+Aktivní
+revize 14
+Vaše role: Výzkumník
+Demo
+AIA Research Lead
+Fio banka / Young Customer Perception 2026 · one session for the life of this study
+External research · approved
+Study context
+Rev 14 · Design Revision
+Brief · Research design
+Class B study · Class C external
+Research 0,74 / 3,00 USD
+No active run
+2 Oct · Study opened · Research Lead session started · Revision 1
+Turn the brief into a design. Keep it tight, the client wants fieldwork before December.
+9 Oct, 14:02
+Research Lead
+9 Oct, 14:03
+Refers to Revision 12 · current is 14
+
+Accepted by you as Revision 12: three objectives, four research questions and two tracked sets. I left the age band open until we see the questionnaire.
+
+Design accepted by you → Revision 12
+Open Design
+15 Oct · Revision 14 · Design and Dimensions accepted by you
+Research Lead
+Today, 09:12
+
+Good morning. Here is where Young Customer Perception 2026 stands.
+
+Objective
+How Czech adults 18–35 see Fio banka against five other banks, and what drives consideration among people who are not customers.
+Known context
+Client brief and 2025 tracking summary (Class A, internal only) · 3 facts in client knowledge
+Accepted
+Brief, Design, Dimensions in Revision 14
+Unresolved
+The questionnaire runs about 11½ minutes; the client asked for under 8.
+Audience rests on one weak assumption: that Fio’s young customers are mostly students.
+The age band 18–35 has not been checked against the competitive picture.
+
+Recommended next: shorten the questionnaire without touching the Sociomap battery, then test the audience assumption. I can do both and stop when I need you.
+
+I can also edit any section or element on the right. Point at it with the target button, or type @ and pick it, then tell me what to change.
+
+Follow up
+↳
+Analyse the brief again and tell me if the design should change.
+↳
+Change the constraints to “Questionnaire under 8 minutes. Fieldwork before 1 December.”
+↳
+Check the questionnaire, research anything you’re uncertain about, and continue until you need me.
+↳
+Make the questionnaire shorter but preserve everything required for Sociomapping.
+Sees:
+Brief
+·
+r14 · accepted
+Enter to send · @ or the target button names an element · Esc stops
+Lead edits
+go to the working copy
+ask me first
+Brief
+Research artifact · Zadání · Research design
+Accepted · r14
+r14 · accepted (1 of 1)
+Workspace
+History
+Provenance
+Inputs Client brief, 2 attachments (Class A)
+Feeds Design
+Readiness 5 of 5
+Workers Brief analysis
+Working copy of Revision 14 · autosaved
+You and the Research Lead edit the same working copy. A Design Revision is created only when you accept it.
+01
+What do you need to find out and decide?
+224 characters
+02
+Problem type
+3 selected
+Pricing
+New product
+Finding the target group
+Communication
+Brand
+Market gap
+Portfolio
+Campaign
+Tracking
+Other
+03
+Materials
+Files are artifacts of this study, served only through it
+Client brief, young customers 2026 · PDF · 2,1 MB
+Excerpt read in AIA · never sent to external research
+Class A
+Brand tracking summary 2025 · XLSX · 340 KB
+3 facts proposed to client knowledge, accepted
+Class A
+Client knowledge, Fio banka · 3 facts, 1 audience note
+Read inside this client’s scope only
+Class B
+04
+Context
+Optional, used by every worker
+What exactly are we studying
+What decision will you make
+Situation and market
+What we already know
+Constraints
+Brief readiness
+Goal names a decision and a deadline
+Problem type chosen
+Materials read; classes recorded
+Constraints stated (length, timing)
+Audience assumption A1 unverified, carried to Audience
+Study lifecycle
+3 of 11 accepted · nothing waiting on you
+Capability, not a stage: External research
+[ and ] step between stages
+Research design
+01
+Brief
+r14
+02
+Design
+r14 · 3 objectives
+03
+Questionnaire
+24 items · 11½ min
+Sample
+04
+Audience
+18–35 · 1 weak assumption
+05
+Dimensions
+r14 · 4 dimensions
+06
+Sample
+N 200
+Execution
+07
+Fieldwork
+Needs an accepted design
+Interpretation
+08
+Results
+—
+09
+Analysis
+—
+10
+Sociomap
+—
+Delivery
+11
+Report
+—
+
+######## FRAME 2
+B · Questionnaire proposal
+FB
+Fio banka
+/
+Young Customer Perception 2026
+Aktivní
+revize 14
+Vaše role: Výzkumník
+Demo
+AIA Research Lead
+Fio banka / Young Customer Perception 2026 · one session for the life of this study
+External research · approved
+Study context
+Rev 14 · Design Revision
+Questionnaire · Research design
+Class B study · Class C external
+Research 0,74 / 3,00 USD
+No active run
+2 Oct · Study opened · Research Lead session started · Revision 1
+Turn the brief into a design. Keep it tight, the client wants fieldwork before December.
+9 Oct, 14:02
+Research Lead
+9 Oct, 14:03
+Refers to Revision 12 · current is 14
+
+Accepted by you as Revision 12: three objectives, four research questions and two tracked sets. I left the age band open until we see the questionnaire.
+
+Design accepted by you → Revision 12
+Open Design
+15 Oct · Revision 14 · Design and Dimensions accepted by you
+Research Lead
+Today, 09:12
+
+Good morning. Here is where Young Customer Perception 2026 stands.
+
+Objective
+How Czech adults 18–35 see Fio banka against five other banks, and what drives consideration among people who are not customers.
+Known context
+Client brief and 2025 tracking summary (Class A, internal only) · 3 facts in client knowledge
+Accepted
+Brief, Design, Dimensions in Revision 14
+Unresolved
+The questionnaire runs about 11½ minutes; the client asked for under 8.
+Audience rests on one weak assumption: that Fio’s young customers are mostly students.
+The age band 18–35 has not been checked against the competitive picture.
+
+Recommended next: shorten the questionnaire without touching the Sociomap battery, then test the audience assumption. I can do both and stop when I need you.
+
+I can also edit any section or element on the right. Point at it with the target button, or type @ and pick it, then tell me what to change.
+
+Make this shorter but preserve everything required for Sociomapping.
+Today, 09:21
+Read 24 items, 2 tracked sets, 2 Sociomap declarations
+1,1 s
+Research Lead
+Today, 09:23
+
+I’ll ask the design worker for a shorter version. Two things stay fixed: Set 1 (ten banks and anchors, one question, 1–10 scale) is the Sociomap input, and Q19 is declared as a Sociomap rating. Neither will be touched.
+
+Questionnaire optimisation
+Done
+Design worker · optimize_questionnaire · typed command on frozen r14 context
+24 items reviewed against 3 objectives and 4 research questions
+Sociomap inputs locked: Set 1 (10 objects, 1–10 scale), Q19
+4 dimensions preserved: banking relationship, digital adoption, financial confidence, life stage
+3 redundant items: Q8 overlaps Q9, Q21 overlaps Q22, Q16 repeats Q13
+4 items serve no objective: Q11, Q17, Q23, Q24
+1 model request · 0,03 USD settled
+View details
+Proposed questionnaire
+from Revision 14
+Waiting for you
+Items
+24
+→
+17
+Estimated duration
+11½ min
+→
+7½ min
+Sociomap battery (Set 1)
+10 objects
+→
+10 objects, unchanged
+Dimensions covered
+4 of 4
+→
+4 of 4
+Methodology dependency. The object map needs at least 30 respondents behind every object pair. Shortening keeps that; dropping any Set 1 object or changing its scale would not, so the worker was not allowed to.
+Impact
+Questionnaire
+New Revision 15
+Audience
+Reopens for re-check (linear rule), content unchanged
+Dimensions, Sample
+Reopen for re-check, content unchanged
+Brief, Design
+Stay valid · Deep Research stays valid
+Review changes
+Reject
+Accept as Revision 15
+Research Lead
+Today, 09:26
+
+The proposal is on the right with every change marked: seven items go, two are merged, and nothing in Set 1 or Q19 moves. It becomes Revision 15 only when you accept it.
+
+Sees:
+Questionnaire
+·
+Proposal · working copy
+Enter to send · @ or the target button names an element · Esc stops
+Lead edits
+go to the working copy
+ask me first
+Questionnaire
+Research artifact · Dotazník · Research design
+Proposal waiting for you · Proposal · 17 items
+Proposal · working copy (2 of 2)
+Workspace
+History
+Provenance
+Inputs Design r14
+Feeds Audience, Dimensions, Sample, Fieldwork, Sociomap
+Sociomap declarations 2 of 2 intact
+Workers Design worker
+Upload Excel
+Build manually
+Build with AI
+Edit
+Respondent preview
+Optimise with AI
+Proposal from Revision 14 · waiting for you
+24 → 17 items
+11½ → 7½ min
+7 removed, 2 of them merged · 2 reworded
+Sociomap inputs untouched
+Outline
+Screening
+4 of 4
+Banking behaviour
+5 of 6
+Banks and anchors
+2 of 3
+What matters
+1 of 1
+Fio banka
+4 of 6
+Attitudes
+1 of 4
+Total 17 items · about 7½ min
+Screening
+Who qualifies
+Q1
+How old are you?
+Single choice
+15 s
+Q2
+In which region do you live?
+Single choice
+12 s
+Q3
+Which bank do you use as your main bank?
+Single choice
+15 s
+Q4
+Do you have a current account in your own name?
+Single choice
+10 s
+Banking behaviour
+Objective 2
+Q5
+Which channels do you use to bank?
+Multiple choice
+25 s
+Q6
+How often do you use a mobile banking app?
+Single choice
+12 s
+Q7
+Which banking products do you hold?
+Multiple choice
+25 s
+Q8
+Have you switched your main bank in the last 3 years? If yes, what made you switch?
+Have you switched your main bank in the last 3 years?
+Single choice
+Reworded
+15 s
+Q9
+What was the main reason for your last switch?
+Open
+Merged into Q8
+60 s
+Q10
+Do you invest, for example in funds or shares?
+Single choice
+12 s
+Banks and anchors
+Objective 1 · Set 1
+Q11
+Which bank card design do you prefer?
+Single choice
+Removed · serves no objective
+20 s
+Q12
+How would you rate {object} as a bank for someone like you?
+Battery · scale 1–10
+Sociomap input (Set 1) · locked
+110 s
+Q13
+Which of these banks have you heard of?
+Multiple choice
+20 s
+What matters
+Objective 2 · Set 2
+Q14
+How important is {object} when you choose a bank?
+Battery · scale 1–10
+70 s
+Fio banka
+Objectives 1 and 3
+Q15
+How likely are you to consider Fio banka for your next account?
+Scale 1–10
+12 s
+Q16
+Which Fio banka products do you know?
+Multiple choice
+Removed · repeats Q13
+30 s
+Q17
+Do you recall any sponsorship by a bank?
+Open
+Removed · serves no objective
+60 s
+Q18
+What stops you from considering Fio banka?
+Multiple choice
+25 s
+Q19
+Overall, how would you rate Fio banka as a main bank?
+Scale 1–10
+Declared Sociomap rating · locked
+12 s
+Q20
+What three words come to mind about Fio banka?
+Open
+40 s
+Attitudes
+Dimensions
+Q21
+How confident are you managing your money and financial decisions?
+How confident are you about financial decisions?
+Scale 1–10
+Reworded
+20 s
+Q22
+How confident are you managing your money?
+Scale 1–10
+Merged into Q21
+20 s
+Q23
+How much do you still use cash?
+Scale 1–10
+Removed · serves no objective
+20 s
+Q24
+When do you prefer to be contacted by a bank?
+Single choice
+Removed · serves no objective
+30 s
+Study lifecycle
+3 of 11 accepted · 1 waiting on you
+Capability, not a stage: External research
+[ and ] step between stages
+Research design
+01
+Brief
+r14
+02
+Design
+r14 · 3 objectives
+03
+Questionnaire
+Proposal · 17 items
+Sample
+04
+Audience
+18–35 · 1 weak assumption
+05
+Dimensions
+r14 · 4 dimensions
+06
+Sample
+N 200
+Execution
+07
+Fieldwork
+Needs an accepted design
+Interpretation
+08
+Results
+—
+09
+Analysis
+—
+10
+Sociomap
+—
+Delivery
+11
+Report
+—
+
+######## FRAME 3
+C · Audience, Deep Research self-activated
+FB
+Fio banka
+/
+Young Customer Perception 2026
+Aktivní
+revize 15
+Vaše role: Výzkumník
+Demo
+AIA Research Lead
+Fio banka / Young Customer Perception 2026 · one session for the life of this study
+External research · approved
+Study context
+Rev 15 · Design Revision
+Audience · Sample
+Class B study · Class C external
+Research 0,97 / 3,00 USD
+No active run
+2 Oct · Study opened · Research Lead session started · Revision 1
+Turn the brief into a design. Keep it tight, the client wants fieldwork before December.
+9 Oct, 14:02
+Research Lead
+9 Oct, 14:03
+Refers to Revision 12 · current is 15
+
+Accepted by you as Revision 12: three objectives, four research questions and two tracked sets. I left the age band open until we see the questionnaire.
+
+Design accepted by you → Revision 12
+Open Design
+15 Oct · Revision 14 · Design and Dimensions accepted by you
+Research Lead
+Today, 09:12
+Refers to Revision 14 · current is 15
+
+Good morning. Here is where Young Customer Perception 2026 stands.
+
+Objective
+How Czech adults 18–35 see Fio banka against five other banks, and what drives consideration among people who are not customers.
+Known context
+Client brief and 2025 tracking summary (Class A, internal only) · 3 facts in client knowledge
+Accepted
+Brief, Design, Dimensions in Revision 14
+Unresolved
+The questionnaire runs about 11½ minutes; the client asked for under 8.
+Audience rests on one weak assumption: that Fio’s young customers are mostly students.
+The age band 18–35 has not been checked against the competitive picture.
+
+Recommended next: shorten the questionnaire without touching the Sociomap battery, then test the audience assumption. I can do both and stop when I need you.
+
+I can also edit any section or element on the right. Point at it with the target button, or type @ and pick it, then tell me what to change.
+
+Make this shorter but preserve everything required for Sociomapping.
+Today, 09:21
+Read 24 items, 2 tracked sets, 2 Sociomap declarations
+1,1 s
+Research Lead
+Today, 09:23
+Refers to Revision 14 · current is 15
+
+I’ll ask the design worker for a shorter version. Two things stay fixed: Set 1 (ten banks and anchors, one question, 1–10 scale) is the Sociomap input, and Q19 is declared as a Sociomap rating. Neither will be touched.
+
+Questionnaire optimisation
+Done
+Design worker · optimize_questionnaire · typed command on frozen r14 context
+24 items reviewed against 3 objectives and 4 research questions
+Sociomap inputs locked: Set 1 (10 objects, 1–10 scale), Q19
+4 dimensions preserved: banking relationship, digital adoption, financial confidence, life stage
+3 redundant items: Q8 overlaps Q9, Q21 overlaps Q22, Q16 repeats Q13
+4 items serve no objective: Q11, Q17, Q23, Q24
+1 model request · 0,03 USD settled
+View details
+Proposed questionnaire
+from Revision 14
+Accepted
+Items
+24
+→
+17
+Estimated duration
+11½ min
+→
+7½ min
+Sociomap battery (Set 1)
+10 objects
+→
+10 objects, unchanged
+Dimensions covered
+4 of 4
+→
+4 of 4
+Methodology dependency. The object map needs at least 30 respondents behind every object pair. Shortening keeps that; dropping any Set 1 object or changing its scale would not, so the worker was not allowed to.
+Impact
+Questionnaire
+New Revision 15
+Audience
+Reopens for re-check (linear rule), content unchanged
+Dimensions, Sample
+Reopen for re-check, content unchanged
+Brief, Design
+Stay valid · Deep Research stays valid
+Accepted by you → Revision 15. Recorded in the approval ledger.
+Research Lead
+Today, 09:26
+Refers to Revision 14 · current is 15
+
+The proposal is on the right with every change marked: seven items go, two are merged, and nothing in Set 1 or Q19 moves. It becomes Revision 15 only when you accept it.
+
+Questionnaire accepted by you → Revision 15 · Audience, Dimensions, Sample reopened for re-check · Deep Research kept
+Open Questionnaire
+Research Lead
+Today, 09:28
+
+Before we freeze the audience: assumption A1 says Fio’s young customers are mostly students. Nothing in the brief or client knowledge supports it, and the 18–35 band leans on it.
+
+Research Lead
+Today, 09:29
+
+I’m missing reliable external evidence for this audience assumption. Researching within the approved envelope:
+
+Fio customer positioning
+Younger retail banking segments
+Current product communication
+Deep Research
+· Design research · Audience assumption A1
+complete
+Within the approved envelope
+Class C public sources
+Advisory: proposes, never writes
+Budget 0,97 / 3,00 USD
+plan
+investigate
+merge
+verify
+synthesize
+publish
+Fio customer positioning web
+5 sources · depth met
+Younger retail banking segments web
+5 sources · saturated
+Current product communication web
+4 sources · depth met
+Client knowledge internal, Class B
+2 facts matched
+14
+sources reviewed
+4
+findings admitted
+1
+assumption contradicted
+3
+quarantined
+View evidence
+Sealed evidence bundle · advisory only
+Research Lead
+Today, 09:31
+
+What the evidence says. These are demo findings with synthetic sources:
+
+A1 is contradicted. Public material positions the young-adult offer around the first salary and investing, not student status [1][2].
+Competition from app-only banks is described as most intense among 18–24 [3].
+Current communication speaks to people in their late twenties who start investing [4].
+
+This doesn’t settle the age band, it sharpens it. Narrowing to 18–30 focuses on the competitive pressure; keeping 18–35 covers the investing segment the client is already talking to. That is a scope decision for you.
+
+1
+2
+3
+4
+I
+A
+M
+14
+sources
+Needs your decision · Audience
+Which age band should the next revision freeze?
+18–30
+Focus where app-only competition is strongest. Smaller population; Sample is recalculated, N 200 stays.
+18–35 with an 18–24 quota of at least 60
+Lead's suggestion · not approved
+Keep the investing segment. The quota keeps 18–24 above n 30 for its Sociomap pairs.
+The Lead does not pick for you. Your choice becomes a proposal you accept.
+Sees:
+Audience
+·
+r14 · accepted
+Enter to send · @ or the target button names an element · Esc stops
+Lead edits
+go to the working copy
+ask me first
+Audience
+Research artifact · Cílová skupina · Sample
+Needs your decision · Age band · your call
+r14 · accepted (1 of 1)
+Workspace
+History
+Provenance
+Inputs Questionnaire, Client knowledge
+Feeds Dimensions, Sample, Fieldwork
+1 weak assumption
+Workers Audience worker, Deep Research
+01
+Where should respondents come from?
+Own audience
+A list or panel the client provides.
+Not in AIA yet
+AIA audience
+Drawn against AIA's population registry.
+02
+Which population?
+Czech population 18+
+LIVE v17_4_0
+Ready
+Czech population
+Extended version
+Coming
+Special audience
+Subpanels from 18.6.6
+Not in AIA yet
+The run records this population binding. This study's fieldwork uses fictional AI respondents and does not read it; the run says so.
+03
+Who should the results represent?
+Narrowed target group
+Age
+18–35
+Under review
+Quota 18–24
+None
+Region
+Whole Czech Republic
+Gender
+All
+Banking
+Holds a current account
+Screening Q4
+Population size
+Not available
+Panel factors are not in AIA yet
+Assumptions behind this audience
+A1 ·
+Contradicted
+Fio's young customers are mostly students.
+EV-01 · sources 1, 2 ·
+View evidence
+A2 ·
+Weakened
+Young customers choose a bank on fees first.
+EV-04: free accounts read as a baseline, not a differentiator
+A3 ·
+Supported
+App-first banks are the main competitors under 25.
+EV-02 · sources 3, 5
+External findings inform the design. They never become respondent evidence and are re-screened against the final questionnaire.
+Summary
+Source
+AIA audience
+Population
+Czech 18+, LIVE v17_4_0
+Strategy
+Narrowed: 18–35
+Revision
+Revision 14 content
+Study lifecycle
+3 of 11 accepted · 1 waiting on you · 2 reopened
+Capability, not a stage: External research
+[ and ] step between stages
+Research design
+01
+Brief
+r14
+02
+Design
+r14 · 3 objectives
+03
+Questionnaire
+r15 · 17 items · 7½ min
+Sample
+04
+Audience
+Age band · your call
+05
+Dimensions
+Reopened by r15
+06
+Sample
+Reopened by r15
+Execution
+07
+Fieldwork
+Needs an accepted design
+Interpretation
+08
+Results
+—
+09
+Analysis
+—
+10
+Sociomap
+—
+Delivery
+11
+Report
+—
+
+######## FRAME 4
+D · Fieldwork
+FB
+Fio banka
+/
+Young Customer Perception 2026
+Aktivní
+revize 16
+Vaše role: Výzkumník
+Demo
+AIA Research Lead
+Fio banka / Young Customer Perception 2026 · one session for the life of this study
+External research · approved
+Study context
+Rev 16 · Design Revision
+Fieldwork · Execution
+Class B study · Class C external
+Research 0,97 / 3,00 USD
+Run run_7f3c2a · 146 / 200
+2 Oct · Study opened · Research Lead session started · Revision 1
+Turn the brief into a design. Keep it tight, the client wants fieldwork before December.
+9 Oct, 14:02
+Research Lead
+9 Oct, 14:03
+Refers to Revision 12 · current is 16
+
+Accepted by you as Revision 12: three objectives, four research questions and two tracked sets. I left the age band open until we see the questionnaire.
+
+Design accepted by you → Revision 12
+Open Design
+15 Oct · Revision 14 · Design and Dimensions accepted by you
+Research Lead
+Today, 09:12
+Refers to Revision 14 · current is 16
+
+Good morning. Here is where Young Customer Perception 2026 stands.
+
+Objective
+How Czech adults 18–35 see Fio banka against five other banks, and what drives consideration among people who are not customers.
+Known context
+Client brief and 2025 tracking summary (Class A, internal only) · 3 facts in client knowledge
+Accepted
+Brief, Design, Dimensions in Revision 14
+Unresolved
+The questionnaire runs about 11½ minutes; the client asked for under 8.
+Audience rests on one weak assumption: that Fio’s young customers are mostly students.
+The age band 18–35 has not been checked against the competitive picture.
+
+Recommended next: shorten the questionnaire without touching the Sociomap battery, then test the audience assumption. I can do both and stop when I need you.
+
+I can also edit any section or element on the right. Point at it with the target button, or type @ and pick it, then tell me what to change.
+
+Make this shorter but preserve everything required for Sociomapping.
+Today, 09:21
+Read 24 items, 2 tracked sets, 2 Sociomap declarations
+1,1 s
+Research Lead
+Today, 09:23
+Refers to Revision 14 · current is 16
+
+I’ll ask the design worker for a shorter version. Two things stay fixed: Set 1 (ten banks and anchors, one question, 1–10 scale) is the Sociomap input, and Q19 is declared as a Sociomap rating. Neither will be touched.
+
+Questionnaire optimisation
+Done
+Design worker · optimize_questionnaire · typed command on frozen r14 context
+24 items reviewed against 3 objectives and 4 research questions
+Sociomap inputs locked: Set 1 (10 objects, 1–10 scale), Q19
+4 dimensions preserved: banking relationship, digital adoption, financial confidence, life stage
+3 redundant items: Q8 overlaps Q9, Q21 overlaps Q22, Q16 repeats Q13
+4 items serve no objective: Q11, Q17, Q23, Q24
+1 model request · 0,03 USD settled
+View details
+Proposed questionnaire
+from Revision 14
+Accepted
+Items
+24
+→
+17
+Estimated duration
+11½ min
+→
+7½ min
+Sociomap battery (Set 1)
+10 objects
+→
+10 objects, unchanged
+Dimensions covered
+4 of 4
+→
+4 of 4
+Methodology dependency. The object map needs at least 30 respondents behind every object pair. Shortening keeps that; dropping any Set 1 object or changing its scale would not, so the worker was not allowed to.
+Impact
+Questionnaire
+New Revision 15
+Audience
+Reopens for re-check (linear rule), content unchanged
+Dimensions, Sample
+Reopen for re-check, content unchanged
+Brief, Design
+Stay valid · Deep Research stays valid
+Accepted by you → Revision 15. Recorded in the approval ledger.
+Research Lead
+Today, 09:26
+Refers to Revision 14 · current is 16
+
+The proposal is on the right with every change marked: seven items go, two are merged, and nothing in Set 1 or Q19 moves. It becomes Revision 15 only when you accept it.
+
+Questionnaire accepted by you → Revision 15 · Audience, Dimensions, Sample reopened for re-check · Deep Research kept
+Open Questionnaire
+Research Lead
+Today, 09:28
+Refers to Revision 15 · current is 16
+
+Before we freeze the audience: assumption A1 says Fio’s young customers are mostly students. Nothing in the brief or client knowledge supports it, and the 18–35 band leans on it.
+
+Research Lead
+Today, 09:29
+Refers to Revision 15 · current is 16
+
+I’m missing reliable external evidence for this audience assumption. Researching within the approved envelope:
+
+Fio customer positioning
+Younger retail banking segments
+Current product communication
+Deep Research
+· Design research · Audience assumption A1
+complete
+Within the approved envelope
+Class C public sources
+Advisory: proposes, never writes
+Budget 0,97 / 3,00 USD
+plan
+investigate
+merge
+verify
+synthesize
+publish
+Fio customer positioning web
+5 sources · depth met
+Younger retail banking segments web
+5 sources · saturated
+Current product communication web
+4 sources · depth met
+Client knowledge internal, Class B
+2 facts matched
+14
+sources reviewed
+4
+findings admitted
+1
+assumption contradicted
+3
+quarantined
+View evidence
+Sealed evidence bundle · advisory only
+Research Lead
+Today, 09:31
+Refers to Revision 15 · current is 16
+
+What the evidence says. These are demo findings with synthetic sources:
+
+A1 is contradicted. Public material positions the young-adult offer around the first salary and investing, not student status [1][2].
+Competition from app-only banks is described as most intense among 18–24 [3].
+Current communication speaks to people in their late twenties who start investing [4].
+
+This doesn’t settle the age band, it sharpens it. Narrowing to 18–30 focuses on the competitive pressure; keeping 18–35 covers the investing segment the client is already talking to. That is a scope decision for you.
+
+1
+2
+3
+4
+I
+A
+M
+14
+sources
+Needs your decision · Audience
+Which age band should the next revision freeze?
+18–30
+Focus where app-only competition is strongest. Smaller population; Sample is recalculated, N 200 stays.
+18–35 with an 18–24 quota of at least 60
+Lead's suggestion · not approved
+Keep the investing segment. The quota keeps 18–24 above n 30 for its Sociomap pairs.
+Decided by you: 18–35 with an 18–24 quota of at least 60
+Go with 18–35.
+Today, 09:33
+Research Lead
+Today, 09:34
+Refers to Revision 15 · current is 16
+
+Prepared the change: the band stays, with a protected 18–24 quota. The impact preview is on the Audience artifact.
+
+Proposed Audience change
+from Revision 15
+Accepted
+Age
+18–35
+→
+18–35
+Quota 18–24
+none
+→
+at least 60
+Assumption A1
+weak
+→
+replaced by EV-01
+Impact
+Questionnaire
+Remains valid
+Dimensions
+Re-confirmed unchanged on accept
+Sample
+Recalculated (quotas)
+Fieldwork
+Must use the new revision
+Analysis, Report
+Downstream, nothing computed yet
+Accepted by you → Revision 16. Recorded in the approval ledger.
+Audience accepted by you → Revision 16 · Sample recalculated · Fieldwork will use r16
+Open Audience
+Research Lead
+Today, 09:37
+
+Revision 16 is frozen and runnable. Everything upstream is accepted.
+
+Needs your authorisation · Fieldwork
+Start fieldwork on Revision 16?
+Start fieldwork
+200 AI respondents (fictional personas) · cost ceiling 4,80 USD, under your 5,00 USD spend limit · about 2 min.
+Not yet
+The design stays frozen and ready.
+Decided by you: Start fieldwork
+Start fieldwork.
+Today, 09:39
+Run run_7f3c2a started on Revision 16 · authorised by you · ceiling 4,80 USD
+Open Fieldwork
+Research Lead
+Today, 09:41
+
+Fieldwork is running on Revision 16. The dashboard on the right is the live record; I’ll check in at milestones and only interrupt you for a decision.
+
+Fieldwork
+146 of 200 complete · 12 in flight
+Quality
+Within checks · 2 respondents not placed
+Spend
+1,98 of 4,80 USD ceiling
+Needs you
+Nothing right now
+Sees:
+Fieldwork
+·
+r14 · accepted
+Enter to send · @ or the target button names an element · Esc stops
+Lead edits
+go to the working copy
+ask me first
+Fieldwork
+Research artifact · Respondenti · Execution
+Running · 146 / 200
+r14 · accepted (1 of 1)
+Workspace
+History
+Provenance
+Inputs Design Revision (frozen)
+Feeds Results, Sociomap, Analysis
+Run readiness checks
+Workers AI respondents (fictional)
+Fictional data. This run uses invented respondents answered by AI (SYNTHETIC_AI_FICTIONAL). Results are for method and design work only and may not go to the client.
+Running
+run_7f3c2a
+Design Revision 16 · started today 10:31 by you · elapsed 1:31 · heartbeat 2 s ago
+Cancel run
+Target
+200
+respondents
+Completed
+146
+146 of 200 · 73 %
+In flight
+12
+one request per respondent block
+Not placed on the map
+2
+same rating for all of Set 1
+Quality
+Within checks
+schema repairs 4 · facts refused 0
+Respondents
+each square is one fictional respondent
+Completed
+In flight
+Not placed on the map
+Not started
+Quotas
+filled by code from the fictional roster
+Cell	Target	Completed
+18–24	60	44
+25–29	70	51
+30–35	70	51
+Run steps
+Běží
+run_7f3c2a
+Běží 1 min 31 s
+· poslední signál před 2 s
+2 / 7 kroků hotovo
+· 1 běží
+· 4 ve frontě
+Compile questionnaire from the design
+Dokončeno
+2 s
+Readiness checks
+Dokončeno
+1 s
+Fieldwork (AI respondents, fictional)
+Běží · 146 of 200
+1 min 31 s
+Aggregate
+Čeká na předchozí krok
+Sociomap (internal)
+Čeká na předchozí krok
+8 analysis modules
+Čeká na předchozí krok
+Internal report
+Čeká na předchozí krok
+Needs intervention
+None right now.
+Spend
+Rozpočet studie
+4,80 USD
+Utraceno
+1,98 USD
+Nejisté (SETTLED_UNCERTAIN)
+0,00 USD
+Rezervováno
+0,16 USD
+Zbývá
+2,66 USD
+Against the run ceiling of 4,80 USD. Every request is reserved before it leaves and settled once.
+Provenance
+Data origin
+SYNTHETIC_AI_FICTIONAL
+Respondent agent
+aia.research.respondent · prompt v1
+Runtime
+Bedrock, EU route, respondent model role (set by policy)
+Answers
+Model returns one respondent's probabilities; code answers facts and draws the answer
+Population
+LIVE v17_4_0 recorded; not read by this fieldwork
+Design
+Revision 16 · sha256:7f3c…e218
+Study lifecycle
+6 of 11 accepted · nothing waiting on you
+Capability, not a stage: External research
+[ and ] step between stages
+Research design
+01
+Brief
+r14
+02
+Design
+r14 · 3 objectives
+03
+Questionnaire
+r15 · 17 items · 7½ min
+Sample
+04
+Audience
+r16 · 18–35, 18–24 ≥ 60
+05
+Dimensions
+r16 · re-confirmed
+06
+Sample
+r16 · N 200 recalculated
+Execution
+07
+Fieldwork
+146 / 200
+Interpretation
+08
+Results
+Waits on fieldwork
+09
+Analysis
+Waits on fieldwork
+10
+Sociomap
+Waits on fieldwork
+Delivery
+11
+Report
+Waits on fieldwork
+
+######## FRAME 5
+E · Sociomapping
+FB
+Fio banka
+/
+Young Customer Perception 2026
+Aktivní
+revize 16
+Vaše role: Výzkumník
+Demo
+AIA Research Lead
+Fio banka / Young Customer Perception 2026 · one session for the life of this study
+External research · approved
+Study context
+Rev 16 · Design Revision
+Sociomap · Interpretation
+Class B study · Class C external
+Research 0,97 / 3,00 USD
+Run run_7f3c2a · complete
+2 Oct · Study opened · Research Lead session started · Revision 1
+Turn the brief into a design. Keep it tight, the client wants fieldwork before December.
+9 Oct, 14:02
+Research Lead
+9 Oct, 14:03
+Refers to Revision 12 · current is 16
+
+Accepted by you as Revision 12: three objectives, four research questions and two tracked sets. I left the age band open until we see the questionnaire.
+
+Design accepted by you → Revision 12
+Open Design
+15 Oct · Revision 14 · Design and Dimensions accepted by you
+Research Lead
+Today, 09:12
+Refers to Revision 14 · current is 16
+
+Good morning. Here is where Young Customer Perception 2026 stands.
+
+Objective
+How Czech adults 18–35 see Fio banka against five other banks, and what drives consideration among people who are not customers.
+Known context
+Client brief and 2025 tracking summary (Class A, internal only) · 3 facts in client knowledge
+Accepted
+Brief, Design, Dimensions in Revision 14
+Unresolved
+The questionnaire runs about 11½ minutes; the client asked for under 8.
+Audience rests on one weak assumption: that Fio’s young customers are mostly students.
+The age band 18–35 has not been checked against the competitive picture.
+
+Recommended next: shorten the questionnaire without touching the Sociomap battery, then test the audience assumption. I can do both and stop when I need you.
+
+I can also edit any section or element on the right. Point at it with the target button, or type @ and pick it, then tell me what to change.
+
+Make this shorter but preserve everything required for Sociomapping.
+Today, 09:21
+Read 24 items, 2 tracked sets, 2 Sociomap declarations
+1,1 s
+Research Lead
+Today, 09:23
+Refers to Revision 14 · current is 16
+
+I’ll ask the design worker for a shorter version. Two things stay fixed: Set 1 (ten banks and anchors, one question, 1–10 scale) is the Sociomap input, and Q19 is declared as a Sociomap rating. Neither will be touched.
+
+Questionnaire optimisation
+Done
+Design worker · optimize_questionnaire · typed command on frozen r14 context
+24 items reviewed against 3 objectives and 4 research questions
+Sociomap inputs locked: Set 1 (10 objects, 1–10 scale), Q19
+4 dimensions preserved: banking relationship, digital adoption, financial confidence, life stage
+3 redundant items: Q8 overlaps Q9, Q21 overlaps Q22, Q16 repeats Q13
+4 items serve no objective: Q11, Q17, Q23, Q24
+1 model request · 0,03 USD settled
+View details
+Proposed questionnaire
+from Revision 14
+Accepted
+Items
+24
+→
+17
+Estimated duration
+11½ min
+→
+7½ min
+Sociomap battery (Set 1)
+10 objects
+→
+10 objects, unchanged
+Dimensions covered
+4 of 4
+→
+4 of 4
+Methodology dependency. The object map needs at least 30 respondents behind every object pair. Shortening keeps that; dropping any Set 1 object or changing its scale would not, so the worker was not allowed to.
+Impact
+Questionnaire
+New Revision 15
+Audience
+Reopens for re-check (linear rule), content unchanged
+Dimensions, Sample
+Reopen for re-check, content unchanged
+Brief, Design
+Stay valid · Deep Research stays valid
+Accepted by you → Revision 15. Recorded in the approval ledger.
+Research Lead
+Today, 09:26
+Refers to Revision 14 · current is 16
+
+The proposal is on the right with every change marked: seven items go, two are merged, and nothing in Set 1 or Q19 moves. It becomes Revision 15 only when you accept it.
+
+Questionnaire accepted by you → Revision 15 · Audience, Dimensions, Sample reopened for re-check · Deep Research kept
+Open Questionnaire
+Research Lead
+Today, 09:28
+Refers to Revision 15 · current is 16
+
+Before we freeze the audience: assumption A1 says Fio’s young customers are mostly students. Nothing in the brief or client knowledge supports it, and the 18–35 band leans on it.
+
+Research Lead
+Today, 09:29
+Refers to Revision 15 · current is 16
+
+I’m missing reliable external evidence for this audience assumption. Researching within the approved envelope:
+
+Fio customer positioning
+Younger retail banking segments
+Current product communication
+Deep Research
+· Design research · Audience assumption A1
+complete
+Within the approved envelope
+Class C public sources
+Advisory: proposes, never writes
+Budget 0,97 / 3,00 USD
+plan
+investigate
+merge
+verify
+synthesize
+publish
+Fio customer positioning web
+5 sources · depth met
+Younger retail banking segments web
+5 sources · saturated
+Current product communication web
+4 sources · depth met
+Client knowledge internal, Class B
+2 facts matched
+14
+sources reviewed
+4
+findings admitted
+1
+assumption contradicted
+3
+quarantined
+View evidence
+Sealed evidence bundle · advisory only
+Research Lead
+Today, 09:31
+Refers to Revision 15 · current is 16
+
+What the evidence says. These are demo findings with synthetic sources:
+
+A1 is contradicted. Public material positions the young-adult offer around the first salary and investing, not student status [1][2].
+Competition from app-only banks is described as most intense among 18–24 [3].
+Current communication speaks to people in their late twenties who start investing [4].
+
+This doesn’t settle the age band, it sharpens it. Narrowing to 18–30 focuses on the competitive pressure; keeping 18–35 covers the investing segment the client is already talking to. That is a scope decision for you.
+
+1
+2
+3
+4
+I
+A
+M
+14
+sources
+Needs your decision · Audience
+Which age band should the next revision freeze?
+18–30
+Focus where app-only competition is strongest. Smaller population; Sample is recalculated, N 200 stays.
+18–35 with an 18–24 quota of at least 60
+Lead's suggestion · not approved
+Keep the investing segment. The quota keeps 18–24 above n 30 for its Sociomap pairs.
+Decided by you: 18–35 with an 18–24 quota of at least 60
+Go with 18–35.
+Today, 09:33
+Research Lead
+Today, 09:34
+Refers to Revision 15 · current is 16
+
+Prepared the change: the band stays, with a protected 18–24 quota. The impact preview is on the Audience artifact.
+
+Proposed Audience change
+from Revision 15
+Accepted
+Age
+18–35
+→
+18–35
+Quota 18–24
+none
+→
+at least 60
+Assumption A1
+weak
+→
+replaced by EV-01
+Impact
+Questionnaire
+Remains valid
+Dimensions
+Re-confirmed unchanged on accept
+Sample
+Recalculated (quotas)
+Fieldwork
+Must use the new revision
+Analysis, Report
+Downstream, nothing computed yet
+Accepted by you → Revision 16. Recorded in the approval ledger.
+Audience accepted by you → Revision 16 · Sample recalculated · Fieldwork will use r16
+Open Audience
+Research Lead
+Today, 09:37
+
+Revision 16 is frozen and runnable. Everything upstream is accepted.
+
+Needs your authorisation · Fieldwork
+Start fieldwork on Revision 16?
+Start fieldwork
+200 AI respondents (fictional personas) · cost ceiling 4,80 USD, under your 5,00 USD spend limit · about 2 min.
+Not yet
+The design stays frozen and ready.
+Decided by you: Start fieldwork
+Start fieldwork.
+Today, 09:39
+Run run_7f3c2a started on Revision 16 · authorised by you · ceiling 4,80 USD
+Open Fieldwork
+Research Lead
+Today, 09:41
+
+Fieldwork is running on Revision 16. The dashboard on the right is the live record; I’ll check in at milestones and only interrupt you for a decision.
+
+Fieldwork
+146 of 200 complete · 12 in flight
+Quality
+Within checks · 2 respondents not placed
+Spend
+1,98 of 4,80 USD ceiling
+Needs you
+Nothing right now
+Research Lead
+Today, 09:43
+
+Fieldwork is complete: 200 of 200, 2,71 USD spent. Three respondents gave the same rating to every bank in Set 1, so the object map can’t place them. That’s a data decision, so it’s yours.
+
+Needs your decision · Fieldwork
+Three straight-liners in Set 1. Keep or replace?
+Keep 197 placed for the map
+Lead's suggestion · not approved
+No cost. They stay in every other result; the map reports 197 of 200 placed.
+Replace the 3
+About 0,07 USD and 1 minute. Three new fictional respondents.
+Decided by you: Keep 197 placed for the map
+Keep them, map 197.
+Today, 09:45
+Run steps after fieldwork
+Done
+Workflow engine · run_7f3c2a · deterministic steps, then 8 analysis modules
+Aggregate: 31 questions, 2 suppressed cells (under 25 donors)
+Sociomap aia-sociomap-3: MAPPED, Stress-1 0,087 (fair), 31 reliable pairs
+Analysis: 8 modules completed, 2 claims blocked by the evidence gate
+Report: internal draft v1 from the 8 modules
+Analysis 0,52 USD · aggregate and map cost nothing
+View details
+Research Lead
+Today, 09:47
+
+Results, the object map and all eight analysis modules are ready. Everything is internal: the respondents are fictional, so no claim can reach the client. Want to start with the map?
+
+Why does Fio sit closer to the neo-banks than to the incumbents?
+Today, 09:48
+Read 10 objects, 45 pairs: 31 reliable, 9 weak, 5 unknown
+0,8 s
+Pattern reading
+Done
+Interpretation worker · interpret_relationship · read-only retrieval of the frozen map
+Pair Fio banka – Neo-bank E: reliable
+Pair Fio banka – Incumbent A: weak
+Fio’s nearest neighbours on the map: Neo-bank E, Digital bank D
+1 model request · 0,02 USD
+View details
+Research Lead
+Today, 09:51
+
+Three different kinds of statement, kept apart:
+
+Computed by the engine · deterministic · fictional data
+r(Fio banka, Neo-bank E) = 0,41 [0,29; 0,52], reliable, n = 197. r(Fio banka, Incumbent A) = 0,08, weak: below the 0,10 effect floor.
+?
+Interpretation · Lead suggestion, not approved
+Respondents who rate one app-first bank highly tend to rate the other highly too. In how these respondents judge banks, Fio sits with the app-first group, not with the incumbents.
+?
+Not established
+Why. The map shows co-rating, not a reason. External context could help interpret it; it cannot change the map.
+Research external context for this pair
+Follow up
+↳
+Why does Fio sit closer to the neo-banks than to the incumbents?
+↳
+Make the how to read this map text simpler
+↳
+Remove the weak pairs and recompute the map.
+↳
+Where are we?
+Sees:
+Sociomap
+·
+r14 · accepted
+Enter to send · @ or the target button names an element · Esc stops
+Lead edits
+go to the working copy
+ask me first
+Sociomap
+Research artifact · Sociomapa · Interpretation
+Complete · Mapped · fair fit
+r14 · accepted (1 of 1)
+Workspace
+History
+Provenance
+Inputs Fieldwork dataset, pinned method
+Feeds Analysis, Report (internal)
+Deterministic engine, fingerprinted
+Workers none (deterministic), interpretation reads only
+Internal only · may not go to the client while methodology approval D6 is open
+Fictional respondents · demo values drawn for this prototype, not computed
+Top view
+3D terrain
+Names
+Relations
+Height emphasis
+Save snapshot (PNG)
+Object map · aia-sociomap-3
+Set 1 · 8 banks, 2 context anchors
+197 of 200 respondents placed
+fair fit · Stress-1 0,087
+Pairs: 31 reliable · 9 weak · 5 unknown
+band 1
+10 · grey: no data
+Top view is the default and the kill switch
+How to read this map
+Method aia-sociomap-3
+Objects that respondents rate alike sit close together. Height is the mean rating on an absolute 0–1 scale cut into ten display bands. A line joins the selected object to partners whose relation is reliable and above the 0,10 effect floor: solid when ratings move together, dashed when they move apart. Context anchors are diamonds, without a hill.
+Fio banka
+Primary object
+Mean rating
+6,8
+Display band
+6 / 10
+Support n
+197
+Ask the Lead about Fio banka
+Pairs with
+Fio banka
+r · status
+Neo-bank E
+0,41
+reliable
+Digital bank D
+0,36
+reliable
+Investing app F
+0,22
+reliable
+Payment app G
+0,18
+reliable
+Incumbent B
+−0,14
+reliable
+Incumbent A
+0,08
+weak
+Incumbent C
+—
+unknown
+Pair
+Fio banka – Neo-bank E
+r
+0,41
+95 % interval
+0,29; 0,52
+n · effective n
+197 · 197
+Effect floor 0,10
+met
+On the map
+Line drawn
+Ranked by mean rating
+1
+Fio banka
+6,8
+2
+Neo-bank E
+6,6
+3
+Digital bank D
+6,5
+4
+Incumbent A
+6,2
+5
+Payment app G
+5,8
+6
+Incumbent B
+5,7
+7
+Investing app F
+5,5
+8
+Incumbent C
+5,2
+Ties are not broken where intervals overlap.
+Method and provenance
+Method
+aia-sociomap-3 · contract 3 · organisation default in force
+Pinned
+At run start; its digest is part of the run's identity
+Engine
+Deterministic, Python numerical path; no model involved
+Input
+Set 1 ratings, run_7f3c2a, Revision 16
+Artifact
+sha256:c19a…4f07
+Outcome
+MAPPED · converged
+Status
+Internal only (D6 open)
+The Lead and its workers read this artifact; none can write it. A new method version applies to a new run.
+Study lifecycle
+10 of 11 accepted · nothing waiting on you
+Capability, not a stage: External research
+[ and ] step between stages
+Research design
+01
+Brief
+r14
+02
+Design
+r14 · 3 objectives
+03
+Questionnaire
+r15 · 17 items · 7½ min
+Sample
+04
+Audience
+r16 · 18–35, 18–24 ≥ 60
+05
+Dimensions
+r16 · re-confirmed
+06
+Sample
+r16 · N 200 recalculated
+Execution
+07
+Fieldwork
+200 · 197 placed
+Interpretation
+08
+Results
+Aggregated · n 200
+09
+Analysis
+8 modules · 2 claims blocked
+10
+Sociomap
+Mapped · fair fit
+Delivery
+11
+Report
+Draft v1 · internal
+
+######## FRAME 6
+F · Analysis
+FB
+Fio banka
+/
+Young Customer Perception 2026
+Aktivní
+revize 16
+Vaše role: Výzkumník
+Demo
+AIA Research Lead
+Fio banka / Young Customer Perception 2026 · one session for the life of this study
+External research · approved
+Study context
+Rev 16 · Design Revision
+Analysis · Interpretation
+Class B study · Class C external
+Research 0,97 / 3,00 USD
+Run run_7f3c2a · complete
+2 Oct · Study opened · Research Lead session started · Revision 1
+Turn the brief into a design. Keep it tight, the client wants fieldwork before December.
+9 Oct, 14:02
+Research Lead
+9 Oct, 14:03
+Refers to Revision 12 · current is 16
+
+Accepted by you as Revision 12: three objectives, four research questions and two tracked sets. I left the age band open until we see the questionnaire.
+
+Design accepted by you → Revision 12
+Open Design
+15 Oct · Revision 14 · Design and Dimensions accepted by you
+Research Lead
+Today, 09:12
+Refers to Revision 14 · current is 16
+
+Good morning. Here is where Young Customer Perception 2026 stands.
+
+Objective
+How Czech adults 18–35 see Fio banka against five other banks, and what drives consideration among people who are not customers.
+Known context
+Client brief and 2025 tracking summary (Class A, internal only) · 3 facts in client knowledge
+Accepted
+Brief, Design, Dimensions in Revision 14
+Unresolved
+The questionnaire runs about 11½ minutes; the client asked for under 8.
+Audience rests on one weak assumption: that Fio’s young customers are mostly students.
+The age band 18–35 has not been checked against the competitive picture.
+
+Recommended next: shorten the questionnaire without touching the Sociomap battery, then test the audience assumption. I can do both and stop when I need you.
+
+I can also edit any section or element on the right. Point at it with the target button, or type @ and pick it, then tell me what to change.
+
+Make this shorter but preserve everything required for Sociomapping.
+Today, 09:21
+Read 24 items, 2 tracked sets, 2 Sociomap declarations
+1,1 s
+Research Lead
+Today, 09:23
+Refers to Revision 14 · current is 16
+
+I’ll ask the design worker for a shorter version. Two things stay fixed: Set 1 (ten banks and anchors, one question, 1–10 scale) is the Sociomap input, and Q19 is declared as a Sociomap rating. Neither will be touched.
+
+Questionnaire optimisation
+Done
+Design worker · optimize_questionnaire · typed command on frozen r14 context
+24 items reviewed against 3 objectives and 4 research questions
+Sociomap inputs locked: Set 1 (10 objects, 1–10 scale), Q19
+4 dimensions preserved: banking relationship, digital adoption, financial confidence, life stage
+3 redundant items: Q8 overlaps Q9, Q21 overlaps Q22, Q16 repeats Q13
+4 items serve no objective: Q11, Q17, Q23, Q24
+1 model request · 0,03 USD settled
+View details
+Proposed questionnaire
+from Revision 14
+Accepted
+Items
+24
+→
+17
+Estimated duration
+11½ min
+→
+7½ min
+Sociomap battery (Set 1)
+10 objects
+→
+10 objects, unchanged
+Dimensions covered
+4 of 4
+→
+4 of 4
+Methodology dependency. The object map needs at least 30 respondents behind every object pair. Shortening keeps that; dropping any Set 1 object or changing its scale would not, so the worker was not allowed to.
+Impact
+Questionnaire
+New Revision 15
+Audience
+Reopens for re-check (linear rule), content unchanged
+Dimensions, Sample
+Reopen for re-check, content unchanged
+Brief, Design
+Stay valid · Deep Research stays valid
+Accepted by you → Revision 15. Recorded in the approval ledger.
+Research Lead
+Today, 09:26
+Refers to Revision 14 · current is 16
+
+The proposal is on the right with every change marked: seven items go, two are merged, and nothing in Set 1 or Q19 moves. It becomes Revision 15 only when you accept it.
+
+Questionnaire accepted by you → Revision 15 · Audience, Dimensions, Sample reopened for re-check · Deep Research kept
+Open Questionnaire
+Research Lead
+Today, 09:28
+Refers to Revision 15 · current is 16
+
+Before we freeze the audience: assumption A1 says Fio’s young customers are mostly students. Nothing in the brief or client knowledge supports it, and the 18–35 band leans on it.
+
+Research Lead
+Today, 09:29
+Refers to Revision 15 · current is 16
+
+I’m missing reliable external evidence for this audience assumption. Researching within the approved envelope:
+
+Fio customer positioning
+Younger retail banking segments
+Current product communication
+Deep Research
+· Design research · Audience assumption A1
+complete
+Within the approved envelope
+Class C public sources
+Advisory: proposes, never writes
+Budget 0,97 / 3,00 USD
+plan
+investigate
+merge
+verify
+synthesize
+publish
+Fio customer positioning web
+5 sources · depth met
+Younger retail banking segments web
+5 sources · saturated
+Current product communication web
+4 sources · depth met
+Client knowledge internal, Class B
+2 facts matched
+14
+sources reviewed
+4
+findings admitted
+1
+assumption contradicted
+3
+quarantined
+View evidence
+Sealed evidence bundle · advisory only
+Research Lead
+Today, 09:31
+Refers to Revision 15 · current is 16
+
+What the evidence says. These are demo findings with synthetic sources:
+
+A1 is contradicted. Public material positions the young-adult offer around the first salary and investing, not student status [1][2].
+Competition from app-only banks is described as most intense among 18–24 [3].
+Current communication speaks to people in their late twenties who start investing [4].
+
+This doesn’t settle the age band, it sharpens it. Narrowing to 18–30 focuses on the competitive pressure; keeping 18–35 covers the investing segment the client is already talking to. That is a scope decision for you.
+
+1
+2
+3
+4
+I
+A
+M
+14
+sources
+Needs your decision · Audience
+Which age band should the next revision freeze?
+18–30
+Focus where app-only competition is strongest. Smaller population; Sample is recalculated, N 200 stays.
+18–35 with an 18–24 quota of at least 60
+Lead's suggestion · not approved
+Keep the investing segment. The quota keeps 18–24 above n 30 for its Sociomap pairs.
+Decided by you: 18–35 with an 18–24 quota of at least 60
+Go with 18–35.
+Today, 09:33
+Research Lead
+Today, 09:34
+Refers to Revision 15 · current is 16
+
+Prepared the change: the band stays, with a protected 18–24 quota. The impact preview is on the Audience artifact.
+
+Proposed Audience change
+from Revision 15
+Accepted
+Age
+18–35
+→
+18–35
+Quota 18–24
+none
+→
+at least 60
+Assumption A1
+weak
+→
+replaced by EV-01
+Impact
+Questionnaire
+Remains valid
+Dimensions
+Re-confirmed unchanged on accept
+Sample
+Recalculated (quotas)
+Fieldwork
+Must use the new revision
+Analysis, Report
+Downstream, nothing computed yet
+Accepted by you → Revision 16. Recorded in the approval ledger.
+Audience accepted by you → Revision 16 · Sample recalculated · Fieldwork will use r16
+Open Audience
+Research Lead
+Today, 09:37
+
+Revision 16 is frozen and runnable. Everything upstream is accepted.
+
+Needs your authorisation · Fieldwork
+Start fieldwork on Revision 16?
+Start fieldwork
+200 AI respondents (fictional personas) · cost ceiling 4,80 USD, under your 5,00 USD spend limit · about 2 min.
+Not yet
+The design stays frozen and ready.
+Decided by you: Start fieldwork
+Start fieldwork.
+Today, 09:39
+Run run_7f3c2a started on Revision 16 · authorised by you · ceiling 4,80 USD
+Open Fieldwork
+Research Lead
+Today, 09:41
+
+Fieldwork is running on Revision 16. The dashboard on the right is the live record; I’ll check in at milestones and only interrupt you for a decision.
+
+Fieldwork
+146 of 200 complete · 12 in flight
+Quality
+Within checks · 2 respondents not placed
+Spend
+1,98 of 4,80 USD ceiling
+Needs you
+Nothing right now
+Research Lead
+Today, 09:43
+
+Fieldwork is complete: 200 of 200, 2,71 USD spent. Three respondents gave the same rating to every bank in Set 1, so the object map can’t place them. That’s a data decision, so it’s yours.
+
+Needs your decision · Fieldwork
+Three straight-liners in Set 1. Keep or replace?
+Keep 197 placed for the map
+Lead's suggestion · not approved
+No cost. They stay in every other result; the map reports 197 of 200 placed.
+Replace the 3
+About 0,07 USD and 1 minute. Three new fictional respondents.
+Decided by you: Keep 197 placed for the map
+Keep them, map 197.
+Today, 09:45
+Run steps after fieldwork
+Done
+Workflow engine · run_7f3c2a · deterministic steps, then 8 analysis modules
+Aggregate: 31 questions, 2 suppressed cells (under 25 donors)
+Sociomap aia-sociomap-3: MAPPED, Stress-1 0,087 (fair), 31 reliable pairs
+Analysis: 8 modules completed, 2 claims blocked by the evidence gate
+Report: internal draft v1 from the 8 modules
+Analysis 0,52 USD · aggregate and map cost nothing
+View details
+Research Lead
+Today, 09:47
+
+Results, the object map and all eight analysis modules are ready. Everything is internal: the respondents are fictional, so no claim can reach the client. Want to start with the map?
+
+Which findings are strong enough for the executive summary?
+Today, 09:48
+Research Lead
+Today, 09:49
+
+For the client: none yet. This run’s respondents are fictional, so the evidence gate keeps every claim internal (SYNTHETIC_DATA_ORIGIN). For the internal draft, three qualify:
+
+Deterministic result · admitted claim
+Consideration of Fio banka is 38 % [31; 45] among 18–24 and 25 % [19; 32] among 30–35 (n = 200, fictional).
+Deterministic result · admitted claim
+Mobile app quality is the most important attribute: mean 8,4 of 10 [8,1; 8,7].
+?
+AI interpretation · analysis module, not approved
+Younger respondents put Fio closer to app-first banks than older ones do. Worth leading with.
+
+Two claims were blocked and stay out: one combined two blocks not answered by the same person, one lacked a modelled-data disclosure.
+
+Open the report draft
+Follow up
+↳
+Which findings are strong enough for the executive summary?
+↳
+Make the AI interpretation in Objects comparison shorter
+↳
+Why does Fio sit closer to the neo-banks than to the incumbents?
+↳
+Where are we?
+Sees:
+Analysis
+·
+r14 · accepted
+Enter to send · @ or the target button names an element · Esc stops
+Lead edits
+go to the working copy
+ask me first
+Analysis
+Research artifact · Analýza · Interpretation
+Complete · 8 modules · 2 claims blocked
+r14 · accepted (1 of 1)
+Workspace
+History
+Provenance
+Inputs Aggregates
+Feeds Report
+Evidence gate re-admits every claim
+Workers 8 analysis modules, interpretation
+Deterministic result
+Computed by code from respondents; enters only as an admitted claim.
+AI interpretation
+Written by an analysis module or the Lead. Not approved until a person approves it.
+External context
+Deep Research. A quote in a captured source; never respondent evidence.
+8 modules · run_7f3c2a
+Executive summary
+Completed
+Research questions
+Completed
+Objects comparison
+1 blocked
+Target group
+Completed
+Segments
+1 blocked
+Hypotheses
+Completed
+Implications for the decision
+Completed
+Limitations
+Completed
+Objects comparison
+How the ten objects of Set 1 compare. Positions on the map are in the Sociomap artifact.
+Ratings
+Deterministic result · admitted claim · fictional data
+Fio banka is rated 6,8 [6,5; 7,1] of 10 as a bank for someone like you, fourth of eight banks.
+C-11
+Deterministic result · admitted claim · fictional data
+Neo-bank E and Digital bank D are rated within the same interval as Fio.
+C-12
+C-13
+Reading
+AI interpretation · not approved
+Fio is judged alongside the app-first banks rather than the incumbents. That matches the map, where Fio sits in the app-first group.
+C-11
+SM-pair-07
+External context · Deep Research
+Public reviews compare Fio and app-only banks on the same app features.
+EV-05
+Interpretation research · reads frozen results
+Blocked by the evidence gate
+CROSS_BLOCK_NOT_SAME_PERSON
+A claim combined Set 1 ratings with Q18 barriers as if one person answered both blocks.
+Study lifecycle
+10 of 11 accepted · nothing waiting on you
+Capability, not a stage: External research
+[ and ] step between stages
+Research design
+01
+Brief
+r14
+02
+Design
+r14 · 3 objectives
+03
+Questionnaire
+r15 · 17 items · 7½ min
+Sample
+04
+Audience
+r16 · 18–35, 18–24 ≥ 60
+05
+Dimensions
+r16 · re-confirmed
+06
+Sample
+r16 · N 200 recalculated
+Execution
+07
+Fieldwork
+200 · 197 placed
+Interpretation
+08
+Results
+Aggregated · n 200
+09
+Analysis
+8 modules · 2 claims blocked
+10
+Sociomap
+Mapped · fair fit
+Delivery
+11
+Report
+Draft v1 · internal
+
+######## FRAME 7
+G · Report composition
+FB
+Fio banka
+/
+Young Customer Perception 2026
+Aktivní
+revize 16
+Vaše role: Výzkumník
+Demo
+AIA Research Lead
+Fio banka / Young Customer Perception 2026 · one session for the life of this study
+External research · approved
+Study context
+Rev 16 · Design Revision
+Report · Delivery
+Class B study · Class C external
+Research 0,97 / 3,00 USD
+Run run_7f3c2a · complete
+2 Oct · Study opened · Research Lead session started · Revision 1
+Turn the brief into a design. Keep it tight, the client wants fieldwork before December.
+9 Oct, 14:02
+Research Lead
+9 Oct, 14:03
+Refers to Revision 12 · current is 16
+
+Accepted by you as Revision 12: three objectives, four research questions and two tracked sets. I left the age band open until we see the questionnaire.
+
+Design accepted by you → Revision 12
+Open Design
+15 Oct · Revision 14 · Design and Dimensions accepted by you
+Research Lead
+Today, 09:12
+Refers to Revision 14 · current is 16
+
+Good morning. Here is where Young Customer Perception 2026 stands.
+
+Objective
+How Czech adults 18–35 see Fio banka against five other banks, and what drives consideration among people who are not customers.
+Known context
+Client brief and 2025 tracking summary (Class A, internal only) · 3 facts in client knowledge
+Accepted
+Brief, Design, Dimensions in Revision 14
+Unresolved
+The questionnaire runs about 11½ minutes; the client asked for under 8.
+Audience rests on one weak assumption: that Fio’s young customers are mostly students.
+The age band 18–35 has not been checked against the competitive picture.
+
+Recommended next: shorten the questionnaire without touching the Sociomap battery, then test the audience assumption. I can do both and stop when I need you.
+
+I can also edit any section or element on the right. Point at it with the target button, or type @ and pick it, then tell me what to change.
+
+Make this shorter but preserve everything required for Sociomapping.
+Today, 09:21
+Read 24 items, 2 tracked sets, 2 Sociomap declarations
+1,1 s
+Research Lead
+Today, 09:23
+Refers to Revision 14 · current is 16
+
+I’ll ask the design worker for a shorter version. Two things stay fixed: Set 1 (ten banks and anchors, one question, 1–10 scale) is the Sociomap input, and Q19 is declared as a Sociomap rating. Neither will be touched.
+
+Questionnaire optimisation
+Done
+Design worker · optimize_questionnaire · typed command on frozen r14 context
+24 items reviewed against 3 objectives and 4 research questions
+Sociomap inputs locked: Set 1 (10 objects, 1–10 scale), Q19
+4 dimensions preserved: banking relationship, digital adoption, financial confidence, life stage
+3 redundant items: Q8 overlaps Q9, Q21 overlaps Q22, Q16 repeats Q13
+4 items serve no objective: Q11, Q17, Q23, Q24
+1 model request · 0,03 USD settled
+View details
+Proposed questionnaire
+from Revision 14
+Accepted
+Items
+24
+→
+17
+Estimated duration
+11½ min
+→
+7½ min
+Sociomap battery (Set 1)
+10 objects
+→
+10 objects, unchanged
+Dimensions covered
+4 of 4
+→
+4 of 4
+Methodology dependency. The object map needs at least 30 respondents behind every object pair. Shortening keeps that; dropping any Set 1 object or changing its scale would not, so the worker was not allowed to.
+Impact
+Questionnaire
+New Revision 15
+Audience
+Reopens for re-check (linear rule), content unchanged
+Dimensions, Sample
+Reopen for re-check, content unchanged
+Brief, Design
+Stay valid · Deep Research stays valid
+Accepted by you → Revision 15. Recorded in the approval ledger.
+Research Lead
+Today, 09:26
+Refers to Revision 14 · current is 16
+
+The proposal is on the right with every change marked: seven items go, two are merged, and nothing in Set 1 or Q19 moves. It becomes Revision 15 only when you accept it.
+
+Questionnaire accepted by you → Revision 15 · Audience, Dimensions, Sample reopened for re-check · Deep Research kept
+Open Questionnaire
+Research Lead
+Today, 09:28
+Refers to Revision 15 · current is 16
+
+Before we freeze the audience: assumption A1 says Fio’s young customers are mostly students. Nothing in the brief or client knowledge supports it, and the 18–35 band leans on it.
+
+Research Lead
+Today, 09:29
+Refers to Revision 15 · current is 16
+
+I’m missing reliable external evidence for this audience assumption. Researching within the approved envelope:
+
+Fio customer positioning
+Younger retail banking segments
+Current product communication
+Deep Research
+· Design research · Audience assumption A1
+complete
+Within the approved envelope
+Class C public sources
+Advisory: proposes, never writes
+Budget 0,97 / 3,00 USD
+plan
+investigate
+merge
+verify
+synthesize
+publish
+Fio customer positioning web
+5 sources · depth met
+Younger retail banking segments web
+5 sources · saturated
+Current product communication web
+4 sources · depth met
+Client knowledge internal, Class B
+2 facts matched
+14
+sources reviewed
+4
+findings admitted
+1
+assumption contradicted
+3
+quarantined
+View evidence
+Sealed evidence bundle · advisory only
+Research Lead
+Today, 09:31
+Refers to Revision 15 · current is 16
+
+What the evidence says. These are demo findings with synthetic sources:
+
+A1 is contradicted. Public material positions the young-adult offer around the first salary and investing, not student status [1][2].
+Competition from app-only banks is described as most intense among 18–24 [3].
+Current communication speaks to people in their late twenties who start investing [4].
+
+This doesn’t settle the age band, it sharpens it. Narrowing to 18–30 focuses on the competitive pressure; keeping 18–35 covers the investing segment the client is already talking to. That is a scope decision for you.
+
+1
+2
+3
+4
+I
+A
+M
+14
+sources
+Needs your decision · Audience
+Which age band should the next revision freeze?
+18–30
+Focus where app-only competition is strongest. Smaller population; Sample is recalculated, N 200 stays.
+18–35 with an 18–24 quota of at least 60
+Lead's suggestion · not approved
+Keep the investing segment. The quota keeps 18–24 above n 30 for its Sociomap pairs.
+Decided by you: 18–35 with an 18–24 quota of at least 60
+Go with 18–35.
+Today, 09:33
+Research Lead
+Today, 09:34
+Refers to Revision 15 · current is 16
+
+Prepared the change: the band stays, with a protected 18–24 quota. The impact preview is on the Audience artifact.
+
+Proposed Audience change
+from Revision 15
+Accepted
+Age
+18–35
+→
+18–35
+Quota 18–24
+none
+→
+at least 60
+Assumption A1
+weak
+→
+replaced by EV-01
+Impact
+Questionnaire
+Remains valid
+Dimensions
+Re-confirmed unchanged on accept
+Sample
+Recalculated (quotas)
+Fieldwork
+Must use the new revision
+Analysis, Report
+Downstream, nothing computed yet
+Accepted by you → Revision 16. Recorded in the approval ledger.
+Audience accepted by you → Revision 16 · Sample recalculated · Fieldwork will use r16
+Open Audience
+Research Lead
+Today, 09:37
+
+Revision 16 is frozen and runnable. Everything upstream is accepted.
+
+Needs your authorisation · Fieldwork
+Start fieldwork on Revision 16?
+Start fieldwork
+200 AI respondents (fictional personas) · cost ceiling 4,80 USD, under your 5,00 USD spend limit · about 2 min.
+Not yet
+The design stays frozen and ready.
+Decided by you: Start fieldwork
+Start fieldwork.
+Today, 09:39
+Run run_7f3c2a started on Revision 16 · authorised by you · ceiling 4,80 USD
+Open Fieldwork
+Research Lead
+Today, 09:41
+
+Fieldwork is running on Revision 16. The dashboard on the right is the live record; I’ll check in at milestones and only interrupt you for a decision.
+
+Fieldwork
+146 of 200 complete · 12 in flight
+Quality
+Within checks · 2 respondents not placed
+Spend
+1,98 of 4,80 USD ceiling
+Needs you
+Nothing right now
+Research Lead
+Today, 09:43
+
+Fieldwork is complete: 200 of 200, 2,71 USD spent. Three respondents gave the same rating to every bank in Set 1, so the object map can’t place them. That’s a data decision, so it’s yours.
+
+Needs your decision · Fieldwork
+Three straight-liners in Set 1. Keep or replace?
+Keep 197 placed for the map
+Lead's suggestion · not approved
+No cost. They stay in every other result; the map reports 197 of 200 placed.
+Replace the 3
+About 0,07 USD and 1 minute. Three new fictional respondents.
+Decided by you: Keep 197 placed for the map
+Keep them, map 197.
+Today, 09:45
+Run steps after fieldwork
+Done
+Workflow engine · run_7f3c2a · deterministic steps, then 8 analysis modules
+Aggregate: 31 questions, 2 suppressed cells (under 25 donors)
+Sociomap aia-sociomap-3: MAPPED, Stress-1 0,087 (fair), 31 reliable pairs
+Analysis: 8 modules completed, 2 claims blocked by the evidence gate
+Report: internal draft v1 from the 8 modules
+Analysis 0,52 USD · aggregate and map cost nothing
+View details
+Research Lead
+Today, 09:47
+
+Results, the object map and all eight analysis modules are ready. Everything is internal: the respondents are fictional, so no claim can reach the client. Want to start with the map?
+
+Make the executive summary less technical and bring the younger-customer finding forward.
+Today, 09:48
+Read draft v1: 11 sections, 6 numbers, 12 references
+0,8 s
+Research Lead
+Today, 09:50
+
+The report worker rewrites wording and order only; an evidence check then re-admits every number. No new external evidence is needed for this, so I won’t start Deep Research.
+
+Executive summary rewrite
+Done
+Report worker · report_polish · operates the report editor you see
+Rewritten for a non-technical reader: 142 → 118 words
+Younger-customer finding moved from third to first
+Stress-1 and Kish n moved to Methodology
+1 model request · 0,06 USD
+View details
+Evidence check
+Done
+Evidence gate · admit_numeric_claims · deterministic, typed command
+6 numbers, all traced to admitted claims, 0 changed
+12 references preserved, weakest grade per sentence kept
+Internal surface only: fictional data
+No model call
+View details
+Proposed executive summary
+from draft v1
+Waiting for you
+Reading level
+Technical, 142 words
+→
+Plain, 118 words
+Younger-customer finding
+3rd
+→
+1st
+Numbers
+6
+→
+6, unchanged
+References
+12
+→
+12, preserved
+Impact
+Report
+Draft v2, presentation only
+Everything upstream
+Stays valid: nothing reopens
+Review changes
+Reject
+Accept as draft v2
+Follow up
+↳
+Why does Fio sit closer to the neo-banks than to the incumbents?
+↳
+Make the second paragraph of the executive summary shorter
+↳
+Where are we?
+Sees:
+Report
+·
+Proposal · working copy
+Enter to send · @ or the target button names an element · Esc stops
+Lead edits
+go to the working copy
+ask me first
+Report
+Research artifact · Report · Delivery
+Proposal waiting for you · Summary rewrite waiting
+Proposal · working copy (2 of 2)
+Workspace
+History
+Provenance
+Inputs Analysis, Sociomap (internal), evidence bundle
+Feeds Delivery
+Report rules fail closed
+Workers Report worker, evidence check
+Proposal on draft v1 · waiting for you
+Internal report · client_report_v2 order
+12 references · 6 numbers
+Clean
+Show changes
+1
+Executive summary
+2
+Answer for the decision
+3
+Research questions
+4
+What we found
+5
+Recommendations
+6
+How results fit external evidence
+7
+Confidence in the conclusions
+8
+Methodology
+9
+Limitations
+10
+Conclusion
+11
+Evidence appendix
+Status: drafted by the report worker, numbers verified by the evidence gate, approval for internal use by a person.
+Fio banka · Důvěrné
+Young Customer Perception
+2026
+Internal draft · fictional respondents · not for the client
+18 Oct 2026 · rev 16 · 24 stran
+Syntetická populace ČR, kalibrované jádro v17.4 · Schválil(a): Not approved
+Internal · draft v2 proposal
+CHAPTER 1
+1Executive summary
+
+Younger adults are Fio’s clearest opening. Among 18–24, 38 % [31; 45] would seriously consider Fio for their next account, against 25 % [19; 32] among 30–35.C-07C-08 
+
+Consideration (top-two box) is 38 % [31; 45] among 18–24 against 25 % [19; 32] among 30–35; Kish effective n equals n because no weighting applies.
+
+People judge Fio alongside the app-first banks, not the traditional ones,SM-07 and rate it 6,8 of 10 as a bank for someone like them, fourth of eight.C-11 
+
+Among 200 fictional respondents aged 18–35, Fio banka’s mean rating on the Set 1 battery is 6,8 [6,5; 7,1], fourth of eight banks. In the object map (aia-sociomap-3, Stress-1 0,087, fair fit) Fio is positioned within the app-first cluster, r = 0,41 to Neo-bank E.
+
+What they value most is a good mobile app, 8,4 of 10.C-02 Free accounts are now expected rather than a reason to choose.EV-04 
+
+Mobile app quality has the highest mean importance, 8,4 [8,1; 8,7]. Fees operate as a baseline expectation rather than a differentiator.
+Stress-1, the interval for the overall rating and the Kish note moved to chapter 8, Methodology.
+CHAPTER 4
+4What we found
+
+Respondents judge banks first on the app. Branches matter least. C-02C-03
+
+0 %
+Mobile app quality
+8,4 %
+Trust
+8,1 %
+No monthly fees
+7,9 %
+Branches
+3,9 %
+Figure 1 · Importance when choosing a bank, mean on 1–10 with 95 % interval · n = 200 · modelled (fictional respondents)
+Evidence on this page
+C-07
+Consideration 18–24, admitted claim · modelled
+C-08
+Consideration 30–35, admitted claim · modelled
+C-11
+Fio mean rating, admitted claim · modelled
+C-02
+App importance, admitted claim · modelled
+SM-07
+Map pair Fio – Neo-bank E · internal (D6)
+EV-04
+External context · Deep Research · not respondent evidence
+Rules this draft keeps
+Numbers are references, never retyped. A sentence prints the weakest grade of its claims. External evidence is cited as context and never as a respondent finding. Rendering fails closed when a rule breaks.
+Study lifecycle
+10 of 11 accepted · 1 waiting on you
+Capability, not a stage: External research
+[ and ] step between stages
+Research design
+01
+Brief
+r14
+02
+Design
+r14 · 3 objectives
+03
+Questionnaire
+r15 · 17 items · 7½ min
+Sample
+04
+Audience
+r16 · 18–35, 18–24 ≥ 60
+05
+Dimensions
+r16 · re-confirmed
+06
+Sample
+r16 · N 200 recalculated
+Execution
+07
+Fieldwork
+200 · 197 placed
+Interpretation
+08
+Results
+Aggregated · n 200
+09
+Analysis
+8 modules · 2 claims blocked
+10
+Sociomap
+Mapped · fair fit
+Delivery
+11
+Report
+Summary rewrite waiting
+
+######## FRAME 8
+PM · Where are we, continue until you need me
+FB
+Fio banka
+/
+Young Customer Perception 2026
+Aktivní
+revize 14
+Vaše role: Výzkumník
+Demo
+AIA Research Lead
+Fio banka / Young Customer Perception 2026 · one session for the life of this study
+External research · approved
+Study context
+Rev 14 · Design Revision
+Audience · Sample
+Class B study · Class C external
+Research 0,97 / 3,00 USD
+No active run
+2 Oct · Study opened · Research Lead session started · Revision 1
+Turn the brief into a design. Keep it tight, the client wants fieldwork before December.
+9 Oct, 14:02
+Research Lead
+9 Oct, 14:03
+Refers to Revision 12 · current is 14
+
+Accepted by you as Revision 12: three objectives, four research questions and two tracked sets. I left the age band open until we see the questionnaire.
+
+Design accepted by you → Revision 12
+Open Design
+15 Oct · Revision 14 · Design and Dimensions accepted by you
+Research Lead
+Today, 09:12
+
+Good morning. Here is where Young Customer Perception 2026 stands.
+
+Objective
+How Czech adults 18–35 see Fio banka against five other banks, and what drives consideration among people who are not customers.
+Known context
+Client brief and 2025 tracking summary (Class A, internal only) · 3 facts in client knowledge
+Accepted
+Brief, Design, Dimensions in Revision 14
+Unresolved
+The questionnaire runs about 11½ minutes; the client asked for under 8.
+Audience rests on one weak assumption: that Fio’s young customers are mostly students.
+The age band 18–35 has not been checked against the competitive picture.
+
+Recommended next: shorten the questionnaire without touching the Sociomap battery, then test the audience assumption. I can do both and stop when I need you.
+
+I can also edit any section or element on the right. Point at it with the target button, or type @ and pick it, then tell me what to change.
+
+Where are we?
+Today, 09:21
+Research Lead
+Today, 09:22
+
+Here is the project in one view.
+
+Research design
+Brief and Design complete · Brief, Design, Dimensions accepted
+Current
+Brief · accepted
+Next
+Questionnaire
+Needs your decision
+Age range 18–30 vs 18–35
+Blocked
+Nothing
+Fieldwork
+Ready after audience approval
+Spend
+External research 0,74 of 3,00 USD · study 1,12 of 12,00 USD
+Check the questionnaire, research anything you’re uncertain about, and continue until you need me.
+Today, 09:24
+Research Lead
+Today, 09:25
+
+Understood. I’ll work through what I’m allowed to do on my own and stop at the first thing only you can decide. Accepting revisions and starting paid runs stay with you.
+
+Read 24 items, 2 tracked sets, 2 Sociomap declarations
+1,1 s
+Research Lead
+Today, 09:27
+
+I’ll ask the design worker for a shorter version. Two things stay fixed: Set 1 (ten banks and anchors, one question, 1–10 scale) is the Sociomap input, and Q19 is declared as a Sociomap rating. Neither will be touched.
+
+Questionnaire optimisation
+Done
+Design worker · optimize_questionnaire · typed command on frozen r14 context
+24 items reviewed against 3 objectives and 4 research questions
+Sociomap inputs locked: Set 1 (10 objects, 1–10 scale), Q19
+4 dimensions preserved: banking relationship, digital adoption, financial confidence, life stage
+3 redundant items: Q8 overlaps Q9, Q21 overlaps Q22, Q16 repeats Q13
+4 items serve no objective: Q11, Q17, Q23, Q24
+1 model request · 0,03 USD settled
+View details
+Proposed questionnaire
+from Revision 14
+Waiting for you
+Items
+24
+→
+17
+Estimated duration
+11½ min
+→
+7½ min
+Sociomap battery (Set 1)
+10 objects
+→
+10 objects, unchanged
+Dimensions covered
+4 of 4
+→
+4 of 4
+Methodology dependency. The object map needs at least 30 respondents behind every object pair. Shortening keeps that; dropping any Set 1 object or changing its scale would not, so the worker was not allowed to.
+Impact
+Questionnaire
+New Revision 15
+Audience
+Reopens for re-check (linear rule), content unchanged
+Dimensions, Sample
+Reopen for re-check, content unchanged
+Brief, Design
+Stay valid · Deep Research stays valid
+Review changes
+Reject
+Accept as Revision 15
+Research Lead
+Today, 09:30
+
+The proposal is on the right with every change marked. Accepting it creates Revision 15, which is your call; I’ll carry on with the audience meanwhile.
+
+Research Lead
+Today, 09:31
+
+Before we freeze the audience: assumption A1 says Fio’s young customers are mostly students. Nothing in the brief or client knowledge supports it, and the 18–35 band leans on it.
+
+Research Lead
+Today, 09:32
+
+I’m missing reliable external evidence for this audience assumption. Researching within the approved envelope:
+
+Fio customer positioning
+Younger retail banking segments
+Current product communication
+Deep Research
+· Design research · Audience assumption A1
+complete
+Within the approved envelope
+Class C public sources
+Advisory: proposes, never writes
+Budget 0,97 / 3,00 USD
+plan
+investigate
+merge
+verify
+synthesize
+publish
+Fio customer positioning web
+5 sources · depth met
+Younger retail banking segments web
+5 sources · saturated
+Current product communication web
+4 sources · depth met
+Client knowledge internal, Class B
+2 facts matched
+14
+sources reviewed
+4
+findings admitted
+1
+assumption contradicted
+3
+quarantined
+View evidence
+Sealed evidence bundle · advisory only
+Research Lead
+Today, 09:34
+
+What the evidence says. These are demo findings with synthetic sources:
+
+A1 is contradicted. Public material positions the young-adult offer around the first salary and investing, not student status [1][2].
+Competition from app-only banks is described as most intense among 18–24 [3].
+Current communication speaks to people in their late twenties who start investing [4].
+
+This doesn’t settle the age band, it sharpens it. Narrowing to 18–30 focuses on the competitive pressure; keeping 18–35 covers the investing segment the client is already talking to. That is a scope decision for you.
+
+1
+2
+3
+4
+I
+A
+M
+14
+sources
+Needs your decision · Audience
+Which age band should the next revision freeze?
+18–30
+Focus where app-only competition is strongest. Smaller population; Sample is recalculated, N 200 stays.
+18–35 with an 18–24 quota of at least 60
+Lead's suggestion · not approved
+Keep the investing segment. The quota keeps 18–24 above n 30 for its Sociomap pairs.
+The Lead does not pick for you. Your choice becomes a proposal you accept.
+Research Lead
+Today, 09:36
+
+I’ve stopped. Two things need you:
+
+Accept or reject the questionnaire proposal. Accepting creates Revision 15.
+Choose the age band. That freezes the audience in the next revision.
+
+Nothing else is blocked. Fieldwork is ready once both are done; starting it is yours to authorise (ceiling 4,80 USD).
+
+Follow up
+↳
+Where are we?
+↳
+Change assumption A2 to “Young customers choose on the app first, fees second.”
+Sees:
+Audience
+·
+r14 · accepted
+Enter to send · @ or the target button names an element · Esc stops
+Lead edits
+go to the working copy
+ask me first
+Audience
+Research artifact · Cílová skupina · Sample
+Needs your decision · Age band · your call
+r14 · accepted (1 of 1)
+Workspace
+History
+Provenance
+Inputs Questionnaire, Client knowledge
+Feeds Dimensions, Sample, Fieldwork
+1 weak assumption
+Workers Audience worker, Deep Research
+01
+Where should respondents come from?
+Own audience
+A list or panel the client provides.
+Not in AIA yet
+AIA audience
+Drawn against AIA's population registry.
+02
+Which population?
+Czech population 18+
+LIVE v17_4_0
+Ready
+Czech population
+Extended version
+Coming
+Special audience
+Subpanels from 18.6.6
+Not in AIA yet
+The run records this population binding. This study's fieldwork uses fictional AI respondents and does not read it; the run says so.
+03
+Who should the results represent?
+Narrowed target group
+Age
+18–35
+Under review
+Quota 18–24
+None
+Region
+Whole Czech Republic
+Gender
+All
+Banking
+Holds a current account
+Screening Q4
+Population size
+Not available
+Panel factors are not in AIA yet
+Assumptions behind this audience
+A1 ·
+Contradicted
+Fio's young customers are mostly students.
+EV-01 · sources 1, 2 ·
+View evidence
+A2 ·
+Weakened
+Young customers choose a bank on fees first.
+EV-04: free accounts read as a baseline, not a differentiator
+A3 ·
+Supported
+App-first banks are the main competitors under 25.
+EV-02 · sources 3, 5
+External findings inform the design. They never become respondent evidence and are re-screened against the final questionnaire.
+Summary
+Source
+AIA audience
+Population
+Czech 18+, LIVE v17_4_0
+Strategy
+Narrowed: 18–35
+Revision
+Revision 14 content
+Study lifecycle
+3 of 11 accepted · 2 waiting on you
+Capability, not a stage: External research
+[ and ] step between stages
+Research design
+01
+Brief
+r14
+02
+Design
+r14 · 3 objectives
+03
+Questionnaire
+Proposal · 17 items
+Sample
+04
+Audience
+Age band · your call
+05
+Dimensions
+r14 · 4 dimensions
+06
+Sample
+N 200
+Execution
+07
+Fieldwork
+Needs an accepted design
+Interpretation
+08
+Results
+—
+09
+Analysis
+—
+10
+Sociomap
+—
+Delivery
+11
+Report
+—

@@ -1,0 +1,79 @@
+
+
+######## FRAME 0
+Reuse and boundaries
+AIA · prototype notes · 18 Oct 2026 · Open WebUI dev 5c9865a (v0.12.3) · AIA develop 5d545eb
+One Research Lead, real research software
+
+The prototype takes Open WebUI's chat-native interaction grammar and puts it in service of AIA. The conversation is the one persistent Research Lead of a study. The right-hand side stays AIA's stage artifacts. Domain rules, revisions, workers and deterministic engines stay authoritative.
+
+One Lead per study
+A single conversation for the life of the study. Changing stage changes the artifact, never the chat.
+Workers are subordinate
+Bounded jobs appear as cards inside the Lead's conversation: contract, mechanism, checks, cost.
+Deep Research is a capability
+Self-activated inside an approved envelope, from any stage. Not a stage on the rail.
+Sociomapping is methodology
+A stage and an artifact. Computed by the engine with a pinned method; the Lead reads it and cannot alter it.
+Nothing silent
+Every change is a proposal on a base revision. A person accepts it; a stale one is refused.
+What came from Open WebUI, and what changed
+Pattern	Open WebUI source	In the prototype	Carry to production
+Chat left, side surface right, resizable	common/ResizableSidePanel.svelte; ChatControls.svelte:319-327	Kept: pointer drag, keyboard nudge, saved width, hairline divider with a wide hit area. Changed: 40 / 60 by default in percent, double-click resets, the right side dominates.	Pattern
+Message column	Messages/Message.svelte:59-63	Kept: max 58 rem, hover reveal on a message group.	Pattern
+User bubble, unbubbled assistant prose	UserMessage.svelte; ResponseMessage.svelte:687-700; app.css:119 .markdown-prose	Kept: right bubble, 15 px prose, avatar and name row. Changed: AIA radii and type; avatar is the AIA mark; name is "Research Lead", never a model.	Pattern
+Streaming caret	ResponseMessage.svelte, animate-cursor-pulse	Kept; removed under reduced motion.	Pattern
+Status history	ResponseMessage/StatusHistory.svelte, StatusItem.svelte	Kept: latest line, expandable timeline. Changed: no shimmer (the AIA design system forbids it); a status glyph, real elapsed time and counts instead.	Pattern
+Tool call display	common/ToolCallDisplay.svelte	Became the worker card: worker, closed task contract, mechanism, each check as it lands, cost, View details.	Pattern, reshaped
+Sources pill and inline citations	Citations.svelte; SourceToken.svelte; CitationModal	Kept: "N sources" pill with stacked marks, inline [n] chips. Changed: the modal became an evidence drawer over the artifact pane, so the artifact stays in view; source class, quality score and quarantine reason added.	Pattern
+Message action bar	ResponseMessage.svelte action bar	Kept: copy, good and bad. Replaced regenerate, read aloud, fork and model info with "Why this answer" (provenance) and "Open in artifact".	Pattern
+Follow-ups	FollowUps.svelte	Kept the "Follow up" list; suggestions follow the study's state.	Pattern
+Queued messages	MessageInput.svelte:1910-1926; QueuedMessageItem	Kept: messages typed while the Lead works wait in a tray, with send now and remove.	Pattern
+Composer and keys	MessageInput.svelte:2006-2013, 2224-2298, 2342+	Kept: plus button, divider, send circle, stop while working; Enter, Shift+Enter, Esc stops, Up recalls the last message. Removed: model selector, integrations, mic, voice. Added: a "Sees" chip naming the artifact the Lead reads.	Pattern
+Artifact pane header	Artifacts.svelte:133-236	Kept: previous and next version, fullscreen. Changed: versions are Design Revisions and proposals; tabs for Workspace, History, Provenance; the iframe is replaced by AIA's real stage artifact.	Pattern
+Navbar	Navbar.svelte	Replaced: Research Lead identity, study, Study context and External research buttons, a one-line context strip.	Replaced
+Collapsed sidebar rail	layout/Sidebar.svelte:950	Became AIA's graphite global nav: Klienti, Společenská inteligence, Projektová paměť, Nastavení. No chat history list: one session per study.	Replaced
+Removed on purpose
+Model and provider switching, temperature and other model settings. Routing is AIA runtime policy (Bedrock, EU) and is shown, never chosen, in chat.
+Workspace tools, MCP servers, code interpreter and Run, generic knowledge collections, RAG toggles, model personas.
+New chat and chat history. A study has one Research Lead; earlier messages carry the revision they refer to.
+Purely AIA
+The study lifecycle rail: five phases, eleven artifacts, AIA status glyphs (amber only when a person is needed), reopened stages hatched, current stage underlined.
+Proposals on a base revision with impact, Accept as Revision n, Reject, and the stale-proposal refusal when the study has moved on.
+Decision and authorisation cards; revision dividers and "refers to Revision n" tags; the operator ribbon on the artifact.
+Three evidence registers kept apart: deterministic result, AI interpretation, external context.
+Mounted from the AIA Design System: ScopeBar, StatusGlyph, StatusChip, BudgetMeter, ImpactPreview, RevisionBanner, RunTimeline, EvidenceMark, EvidenceLegend, Value, GradedBars, ReportCover, Mark, Icon, Lattice.
+Architecture boundaries, per interaction
+Browser operator (GUI)
+Typed AIA command
+Specialist worker
+Deterministic engine
+Deep Research capability
+Read-only retrieval
+Human decision
+Interaction	Production mechanism	Notes and AIA anchors
+Switch stage, open an artifact from chat, highlight what a worker reads	Browser operator	Human-visible state only. The operator works the same page the person sees.
+"Where are we?"	Read-only retrieval	Stage statuses, runs, ledger. Composed by the Lead; never computed by it.
+Shorten the questionnaire	Typed command → Worker	Enqueue optimize_questionnaire (domain/research_agents.py:32-40) on frozen context; output is a stored proposal, never applied.
+Accept or reject a proposal	Human + Typed command	ResearchAgentJobs.accept (application/research.py:709-760): APPROVE_GATE, expected revision, 409 stale_proposal, recorded in the approval ledger.
+Impact preview	Deterministic engine	Linear invalidation rule, pipeline.py:462-513. The Lead shows it, never computes it.
+Check an audience assumption	Deep Research	DESIGN_RESEARCH with a frozen request (application/deep_research.py); priced calls reserved against the study budget; live routes only under approved settings (ADR 0022). Proposes only.
+Choose the age band	Human	Then a typed command writes the proposal; accepting it creates the Design Revision.
+Start fieldwork	Human + Typed command	ResearchRuns.start on a frozen revision; spend confirmation when the ceiling reaches the limit (ADR 0019 gate 2).
+Fieldwork progress, provider waits	Read-only retrieval	Run and step state from the worker loop (heartbeat, WAITING_PROVIDER). The Lead summarises at milestones.
+Keep or replace straight-liners	Human + Typed command	Proposed capability: AIA has no replacement step today.
+Aggregate, object map	Deterministic engine	research_aggregate.py; Sociomap engine with the method pinned at run start. Internal only while D6 is open.
+Explain the map	Read-only retrieval + Worker	Proposed interpretation worker: reads the frozen artifact, writes nothing.
+External context for a map pair	Deep Research	INTERPRETATION_RESEARCH, target SOCIOMAP_RELATIONSHIP (domain/deep_research/integration.py). Never an input to the map.
+"Remove the weak pairs and recompute"	Refused	Method versions belong to Settings, Methodology (ADR 0023), set by an administrator, and apply to a new run. The Lead can only change a view setting.
+Analysis findings	8 analysis modules + Evidence gate	A number enters only as an AdmittedClaim (domain/evidence/admission.py); synthetic origin keeps it internal.
+Rewrite the executive summary	Operator + Report worker + Evidence gate	Wording and order only; numbers are references, re-admitted; presentation-only, nothing reopens.
+"Continue until you need me"	Lead orchestration	May enqueue workers and Deep Research inside the envelope. Stops at every gate, spend and data decision. Its scope matches WORKER_PERMISSIONS: no APPROVE_GATE (domain/scope.py:186-209).
+What should not carry into production
+Open WebUI's code. Its licence (clause 4) forbids altering its branding above 50 users without permission, it is Svelte where AIA's client is Next.js and React, and adopting it needs its own licensing and architecture decision. Also not for production: the Demo control, the scripted replies, the drawn terrain on the map (the product draws the engine's stored artifact), the fictional sources and quotes, English copy (AIA's UI is Czech), and the split width stored only in the browser.
+What production would need
+A Research Lead session store per study, keyed to Design Revisions, so earlier messages keep the revision they refer to. New.
+An orchestration scope for the Lead: it can enqueue and read, never approve or spend. Close to the worker's permission set.
+Deep Research reachable from any stage as a capability. Today it is a panel in the Questionnaire step plus interpretation research in Results.
+A browser operator for human-visible work, behind typed commands for anything that changes state.
+Two proposed capabilities: straight-liner replacement, and a read-only map interpretation worker.
