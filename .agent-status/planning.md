@@ -2,8 +2,8 @@
 
 Current state, rewritten each update. Observed state only. No secrets.
 
-**Handoff.** Written 2026-10-20 ~21:45 UTC by session_01RxUnHwTXGVFYjwzfpKi9kT ("AIA planning 2"), at
-73% context, for "AIA planning 3".
+**Session.** "AIA planning 3" (session_011zQKG9WLH8Ex7dmjwZxWwB), successor of planning 2
+(session_01RxUnHwTXGVFYjwzfpKi9kT). Updated 2026-10-20 ~22:05 UTC. Subscribed to #516 #522 #523.
 
 **Reporting line.** The session works under coordinator 3, session_01MycSLqSRMw4g32SZwa9s7G (it was
 coordinator 2, session_01YEVg53K5fKSGUfcKPTdrRk, before that). Nigel may also talk to the session
@@ -28,7 +28,7 @@ It does not:
 |---|---|---|---|
 | #516 | `chore/scope-decision-list` | `c7d5bbe` | The 48 freeze decisions. Codex raised 3 threads, all answered and resolved. Kept as the text Nigel answered against: don't edit it |
 | #522 | `chore/scope-proposed-edits` | `049413c` | Part 1b: 102 proposed edits, deduplicated and tagged. Written before the answers. Codex found nothing. Its S-13 wording on segments is superseded by #523 |
-| #523 | `chore/scope-baseline` | `1ba4bc0` | Part 2: master § The scope baseline (In / Out / answers tables / Open / signature line), MP16, 20+ child plans, waves, and `.planning/evidence/scope-freeze/answers-2026-10-20.md` (four tables: D-01..48, Q1-8, page Q10-12, page Q13-18) |
+| #523 | `chore/scope-baseline` | `4067f36` | Part 2: master § The scope baseline (In / Out / answers tables / Open / signature line), MP16, 20+ child plans, waves, and `.planning/evidence/scope-freeze/answers-2026-10-20.md` (four tables: D-01..48, Q1-8, page Q10-12, page Q13-18) |
 
 The baseline links `decision-list.md` (#516) and `proposed-edits.md` (#522). That is why #523 merges
 last.
@@ -80,43 +80,19 @@ last.
 - **`master_check`:** ok at `1ba4bc0` (263 chunks with a wave, 0 unscheduled). `progress --check`:
   105 of 105.
 
-## To apply first (planning 3): Nigel's answers Q19-Q21 (relayed by coordinator 3, 21:41 UTC)
+## Applied by planning 3 (4067f36)
 
-None of these is in #523 yet. Apply them to #523 (head `1ba4bc0`), which closes Open items Q19 and
-Q20 there.
-
-- **Q19 (a): evaluate the editor before adopting one.** Add a W1 spike chunk, best placed in
-  `research-lead-workbench` with a wave row, comparing Word- or LibreOffice-like editors for the
-  study context file and reports.
-  - The candidates:
-    - Wordcraft (MIT/Apache, Rust/WASM, MCP server, alpha);
-    - ONLYOFFICE Docs (AGPL, Word-like, track changes, JS API);
-    - Collabora Online (LibreOffice-based, MPL, WOPI).
-  - Tiptap is the baseline Nigel dislikes. His note: "maybe suggest alternatives, maybe tiptap, but
-    even that had a terrible UX; I want as close to Microsoft Word or LibreOffice as possible".
-  - The criteria: a Word-like UX; tracked changes and comments; the Lead driving the edits; ledger
-    refs surviving a round trip; DOCX fidelity; the licence; EU self-hosting.
-  - The outcome is a go/no-go to Nigel.
-  - Replace the baseline's "editor: Wordcraft?" Open row with this chunk.
-- **Q20 (b): Brave may receive Class B (design-derived) queries for every client, CLASSIFIED
-  included.**
-  - Record it as the owner's determination of 2026-10-20, in the style of OI-61, in
-    `deep-research-web-search#53` and the baseline. It changes MVP-27's "CLASSIFIED tracks stay
-    parked" for Class B queries.
-  - His note: "maybe even class A, depends how the query is constructed. I like to implement google
-    search hacking into the workflows, to create highly specific and reputable sources".
-  - Class A stays refused until page Q22 is answered. Search operators (site:, filetype:, intitle:)
-    are page Q23. Mark both Open.
-  - This touches the ADR 0032 / ADR 0008 class rule: note it in the Doc follow-up, and tell scope 3
-    (session_01Qg43kRfsZ97FjA8XenP28x) that ADR 0032 changes.
-- **Q21 (a): the coordinator keeps merging reviewed, green PRs.** No plan edit is needed.
+- Q19 (a): `research-lead-workbench#33`, W1 editor spike (Wordcraft, ONLYOFFICE Docs, Collabora
+  Online vs Tiptap), go/no-go to Nigel.
+- Q20 (b): `deep-research-web-search#57`, W2, the owner's determination: Brave gets Class B queries
+  for every client incl. CLASSIFIED; Class A refused (Q22), operators open (Q23). Scope 3 told
+  (ADR 0032). PR body Doc follow-up updated (MVP-27, ADR 0008/0032, CLAUDE.md).
+- Q21 (a): no edit. Coordinator told. master_check ok (265 waved, 0 unscheduled).
 
 ## Still open (in the baseline's Open table, or due next)
 
-- **Page Q19:** the editor for Lead edits. Nigel named Wordcraft (github.com/storytold/wordcraft);
-  the coordinator is asking whether AIA adopts it.
-- **Page Q20:** Brave for Class B queries too. Until it is confirmed, CLASSIFIED clients' web tracks
-  stay parked.
+- **Page Q22/Q23** (Class A in Brave queries; search operators) and maybe **Q24** (Lead lookup for
+  CLASSIFIED; LO20 stays OPEN-only until then): apply to `deep-research-web-search#57` / LO20.
 - **The MP16 signature.** The ticks on the status page are **not** the signature; the coordinator
   gets an explicit one. When it comes, record it on the baseline's signature line (a one-line docs
   commit in #523, or after merge as decided).
