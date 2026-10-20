@@ -13,6 +13,8 @@
 // pair's stored evidence explained, and screen-space label placement. None of them changes a
 // stored number, a position or which pairs are drawn.
 
+import type { SignedOffRespondents, SignedOffRespondentSpec } from "./object-map-signed-off";
+
 /** The code's object maps, newest first; a run that pinned `aia-sociomap-2` reads it. A run
  *  started under an edited methodology (ADR 0023) pins its map under the version's own name,
  *  `aia-sociomap-3+e<n>`, and is read as well: the map is whichever contract-3 map the run
@@ -23,7 +25,10 @@ export type PairState = "reliable" | "weak" | "unknown";
 
 export type ObjectMapArtifact = {
   contract_version: "3";
-  spec: { methodology_version: string; relation: { basis: string; n_min: number; confidence: number; effect_floor?: number }; terrain: { sigma: number; sigma_basis: string } | null };
+  // `estimator` and the respondent sections: the signed-off methodology's (aia-sociomap-5 and the
+  // versions edited from it), read by object-map-signed-off.ts.
+  spec: { methodology_version: string; relation: { basis: string; n_min: number; confidence: number; effect_floor?: number; estimator?: string }; terrain: { sigma: number; sigma_basis: string; method?: string } | null; respondent_map?: SignedOffRespondentSpec };
+  respondent_ids?: string[];
   object_ids: string[];
   roles: Record<string, string>;
   not_placed: Record<string, string>;
@@ -42,7 +47,7 @@ export type ObjectMapArtifact = {
   status_counts: Record<PairState, number>;
   outcome: "MAPPED" | "NOT_MAPPABLE";
   not_mappable: { reason: string; message: string; objects: string[] } | null;
-  layout: { points: [number, number][]; extent: number; stress_1?: number; quality?: string; converged: boolean } | null;
+  layout: { points: [number, number][]; extent: number; stress_1?: number; quality?: string; converged: boolean; method?: string } | null;
   // `relative`: each PRIMARY object's hill height under the framed envelope (aia-sociomap-5).
   heights: { metric: string; values: (number | null)[]; support_n: number[]; relative?: (number | null)[] };
   support: { respondents: number; placed: number; not_placed: number; effective_n: number | null; donors: number; weighting: string };
@@ -68,6 +73,11 @@ export type ObjectMapArtifact = {
     reliable_pairs: number;
     uncertainty_radius: number | null;
   };
+  // aia-sociomap-5: the set's objects nobody rated (left out of `object_ids`), the sparse-design
+  // note and the respondent map with its taste segments.
+  objects_not_placed?: string[];
+  sparse_design?: { flag: boolean; share_below_layout_floor: number; weakly_connected: string[] };
+  respondents?: { status: "not_computed"; reason: string } | SignedOffRespondents;
 };
 
 type StoredMap = { artifact: ObjectMapArtifact; artifact_fingerprint: string; spec_fingerprint: string };
