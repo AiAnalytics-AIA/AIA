@@ -5,7 +5,7 @@ chunks:
   - "[ ] LC1. The layer table and the manifest: freeze_context as a pipeline over declared layers (order, floor, ceiling, over-policy, class rule), today's values first, a manifest stored per turn"
   - "[ ] LC2. Co Vedoucí vidí: the Vidí chip opens the last turn's manifest in words, layer by layer, with what was left out and why"
   - "[ ] LC3. The decision digest: a code-built record of what this conversation decided (edits, cards, notes, self-updates, lookups) in the conversation-memory layer, never dropped"
-  - "[ ] LC4. Budgets enforced: ADR 0041's floors and ceilings, the design layer's outline fallback, spare bytes to the verbatim conversation, every omission named"
+  - "[ ] LC4. Budgets enforced: ADR 0041's floors, ceilings and two-pass global allocation, the design layer's outline fallback, spare bytes to the verbatim conversation, every omission named"
   - "[ ] LC5. Queued messages stored on the server: immutable rows, queued / answered / withdrawn derived (answers_through, a withdrawal row), bounded in bytes and count, a follow-on turn for what layer 9 cannot hold, LeadBusy retired for messages, visible in every tab"
   - "[ ] LC6. Cost, model and class on every Lead turn, from the usage ledger and the composition digest"
   - "[ ] LC7. Grounded hierarchical compaction: research_lead_compact after the reply, block summaries of eight turns with a turn reference on every sentence, episode roll-ups (three levels at most), the preservation check, STUDY_LEAD_SUMMARY, AIA_AI_RESEARCH_LEAD_COMPACTION_ENABLED and its two keys, summary_lag"
@@ -15,7 +15,7 @@ chunks:
   - "[ ] LC10. Regenerate, edit-and-resend and retry as replacement turns: parent_turn_id, replaces_turn_id, superseded_turn refusals"
   - "[ ] LC11. Pins: a turn, knowledge item, note or artifact element pinned to the conversation, its own layer, refused when made if it cannot fit"
   - "[ ] LC12. Feedback: pomohlo / nepomohlo with a closed reason per Lead turn, private, an evaluation export by prompt version, an ADR 0030 signal by id"
-  - "[ ] LC13. The long-conversation journey and the recall test: 60 recorded turns, every kept fact in turn 61's context and every digest decision in it or listed by ledger id, a summarised subject's turns retrieved verbatim, the manifest naming omissions, a queued message from a second tab, a regenerate, zero unintended paid jobs"
+  - "[ ] LC13. The long-conversation journey and the recall test: 60 recorded turns, every kept fact in turn 61's context and every digest decision in it or reachable through the manifest's ledger range, a summarised subject's turns retrieved verbatim, the manifest naming omissions, a queued message from a second tab, a regenerate, zero unintended paid jobs"
   - "[ ] LC14. After the MVP: one's own conversations listed on Můj Vedoucí and a lexical search over one's own turns"
   - "[ ] LC15. After the MVP: export of one's own conversation as Markdown, each turn's class shown, audited"
   - "[ ] LC16. After the MVP: branch navigation over replaced turns, and Začít od čistého stolu"
@@ -83,14 +83,15 @@ amendments to ADR 0026 decisions 2 and 8 are recorded in the docs PR. Test: none
 **LC1. The layer table and the manifest.** `domain/research_lead.py`: a `LeadLayer` table and
 `freeze_context` as a pipeline over it, carrying today's bounds unchanged (12 turns, 20 KB knowledge,
 40 / 16 KB notes, 5 runs); a `ContextManifest` (per layer bytes, floor, ceiling, included ids,
-omitted ids with reason, class and class source; totals; context file version and summary id when
+omitted ids with reason (at most 50 each per layer, beyond that counts and a source range), allocation, class and class source; totals; context file version and summary id when
 they exist) stored in the step input beside the context and hashed with it. Tests: the same inputs
-give the same manifest; every omitted id is listed with a reason; today's turns freeze byte-identical
+give the same manifest; every omitted id is listed with a reason or lies in the stored range; a
+manifest after 1,000 decisions is the same size as after 100; today's turns freeze byte-identical
 contexts (a regression fixture).
 
 **LC2. Co Vedoucí vidí.** `GET /studies/{id}/lead/turns/{turn_id}/manifest` (the caller's own turn
 only); the pane's Vidí line becomes the chip that opens it inline in the pane, in Czech, layer by
-layer. Tests: another researcher's turn is 404; the panel names an omitted knowledge item; it renders
+layer. Omitted items beyond the first 50 page from the source through the stored range (`GET …/manifest/omitted?layer=&after=`). Tests: another researcher's turn is 404; the panel names an omitted knowledge item; it renders
 in the compact drawer.
 
 **LC3. The decision digest.** A pure projection over the ledger rows and turns of this conversation
@@ -102,18 +103,22 @@ and in ADR 0041 decision 4's order:
 3. the latest decision per item;
 4. counts.
 
-The rest is counted, and listed in the manifest by ledger id.
+The rest is counted, with its ledger range in the manifest (ADR 0041 decision 3), and pages from it.
 
 Tests:
 - the same ledger gives the same digest;
 - a dismissed edit from turn 3 is in turn 40's context when its item is named;
-- 500 decisions stay within 8 KB, and every omitted one is listed by id;
+- 500 decisions stay within 8 KB, the stored manifest stays bounded (counts and a range), and every
+  omitted decision pages from that range;
 - no line is rewritten.
 
-**LC4. Budgets enforced.** ADR 0041 decision 2's floors and ceilings; the design layer's outline
+**LC4. Budgets enforced.** ADR 0041 decision 2's floors, ceilings and two-pass allocation (floors,
+then the remainder in the declared priority order, each layer's over-policy applied to its
+allocation); the design layer's outline
 fallback (focused stage verbatim, others as ids and titles); spare bytes to the verbatim
 conversation. Tests: a 60 KB questionnaire leaves the conversation its floor; the outline names the
-sections it shortened; floors sum within 96 KB.
+sections it shortened; floors sum within 96 KB; every layer at 90 % of its ceiling at once still
+freezes within 96 KB, with the conversation at its floor and each shortened layer named.
 
 **LC5. Queued messages on the server.** The migration adds `parent_turn_id` and `answers_through`
 (nullable, set on insert, never updated) and a `withdrawal` turn kind. Rows stay immutable under the
@@ -133,7 +138,9 @@ Tests:
 - a withdrawn message is not answered;
 - no turn row is ever updated;
 - 4,000 four-byte characters are refused by bytes;
-- five 8 KB messages are answered across two turns, the second named in the first's manifest;
+- five 8 KB messages are answered by a chain of five turns (one 8 KB message fits layer 9's
+  12 KB, two do not), each turn naming the rest as `queued_deferred`, no message cut, each turn
+  paid and shown; smaller messages pack into one turn while they fit;
 - a sixth queued message is refused;
 - a greeting still waits.
 
@@ -209,8 +216,8 @@ is refused; the export holds no text; a sealed Lead's feedback is unreadable.
 **LC13. The long-conversation journey and the recall test.** Extends
 `tools/ui_workbench/lead_journey.mjs` with a scripted Lead (no model) over 60 turns:
 - recorded compactions: blocks, one roll-up and kept facts;
-- every kept fact in turn 61's context, and every digest decision in it or listed by ledger id in its
-  manifest and retrieved when its item is named;
+- every kept fact in turn 61's context, and every digest decision in it or reachable through its
+  manifest's ledger range and retrieved when its item is named;
 - a message naming a summarised subject retrieves that sentence's turns verbatim;
 - the manifest opened;
 - a queued message from a second tab;

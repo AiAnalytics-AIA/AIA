@@ -90,8 +90,27 @@ its values are proposed here, to be set from LO14's measurement:
 | 7 | Runs and results (LO8 `ResultsContext`) | 4 KB | 16 KB | LO8's own bound |
 | 8 | Pinned items (decision 6) | 0 | 8 KB | refuse the pin when it is made, never at the turn |
 | 9 | View and the message(s) | as written | 12 KB | queued messages oldest first while they fit; the rest answered by a follow-on turn, named (decision 7) |
-| 10 | Conversation memory (M3): digest, kept facts, summaries | 6 KB | 16 KB | the digest within its 8 KB share by decision 4's order, older decisions counted and named by ledger id; oldest blocks rolled up; oldest unpinned facts to retrieval; all named |
+| 10 | Conversation memory (M3): digest, kept facts, summaries | 6 KB | 16 KB | the digest within its 8 KB share by decision 4's order, older decisions counted with their ledger range (decision 3); oldest blocks rolled up; oldest unpinned facts to retrieval; all named |
 | 11 | Conversation, verbatim | 8 KB | what is left | oldest first, **only turns a summary covers**, else decision 4's fallback |
+
+**The allocation is global, in two passes, so the total cannot exceed 96 KB.** The ceilings sum to
+more than 96 KB on purpose, because most layers are small most of the time. `freeze_context`
+therefore never adds layers up and checks afterwards. It allocates:
+
+1. **Floors first.** Each layer gets the smaller of its content and its floor. The floors sum to at
+   most 78 KB: prompt 12, files 6, notes 4, study file 8, knowledge 6, design 12, results 4, pins 0,
+   message 12, memory 6, verbatim 8. That leaves at least 18 KB.
+2. **The remainder in a fixed priority order.** Each layer in turn takes what it still needs, up to
+   its ceiling, until the 96 KB is spent:
+   design (6) → study file (4) → results (7) → pins (8) → conversation memory (10) → knowledge (5)
+   → notes (3) → verbatim conversation (11), which takes whatever is left.
+
+A layer whose content exceeds its allocation applies its own over-ceiling policy to that
+allocation, not to its nominal ceiling. A layer is therefore shortened by its own named rule, never
+by another layer's growth. The conversation never falls below its floor while it has content, and a
+context of individually valid layers is never refused. The order is the proposed default and is
+recorded in the manifest beside each layer's allocation. It is tuned with the budget values after
+LO14.
 
 **Results enter once, then as references.** A continuation turn's typed results (LO6) and a
 lookup's captured texts (ADR 0040) are verbatim in the turn that answers them; later turns carry
@@ -110,6 +129,14 @@ per layer, its bytes, floor and ceiling, the ids included, the ids omitted and w
 (`over_budget`, `not_relevant`, `forgotten`, `class_refused`), its class and the source of the
 class (a rule or an operator); and the turn's total, its class, the study context file's version,
 the summary's id and the turns it covers.
+
+**The manifest is bounded by the number of layers, never by the length of the history.** Per layer
+it lists at most 50 included and 50 omitted ids. Beyond that it stores counts, by reason, and a
+**range**: the source (ledger, turns, knowledge, notes) and the first and last id or sequence
+number, as of the revisions the turn froze. "Co Vedoucí vidí" pages the omitted items from the
+source table through that range (`GET …/manifest/omitted?layer=&after=`), under the caller's own
+scope. A turn's stored manifest stays a few kilobytes however long the study runs, and nothing it
+summarises by count is unreachable.
 
 The pane's one-line *Vidí* becomes a chip that opens **"Co Vedoucí vidí"**: the manifest of the
 last turn in words, layer by layer, with what was left out. It reads stored data and costs nothing.
@@ -138,8 +165,9 @@ parts, from exact to approximate:
      2. every undecided proposal, as a one-line pointer to the turn holding it;
      3. the latest decision per item, newest first;
      4. then counts per kind ("14 older edit decisions, 3 cards").
-   - **Nothing is rewritten.** A decision that does not fit is left out, counted and listed in the
-     manifest by its ledger row id. Retrieval (decision 5) brings it back exactly when its item is
+   - **Nothing is rewritten.** A decision that does not fit is left out and counted. The manifest
+     records the ledger range it came from (decision 3), so each one can be paged by its ledger
+     row id. Retrieval (decision 5) brings it back exactly when its item is
      named.
 2. **Kept facts (*Držená fakta*), grounded.** Statements the conversation established that are not
    ledger decisions: "the client wants the report in English", "region is not a quota", "the
@@ -191,7 +219,7 @@ refused or switched-off summary loses no decision.
   light model where one is configured. Off, the digest, the kept facts already accepted and the named
   drop are what remains.
 - **Measured:** the chunk's PR reports a recall test on a recorded 60-turn conversation (every
-  kept fact in turn 61's context, every digest decision in it or listed by ledger id and retrieved
+  kept fact in turn 61's context, every digest decision in it or reachable through the manifest's ledger range and retrieved
   when its item is named; the turns behind a summary
   sentence retrieved when the message names its subject), and the cost per block.
 - **"Začít od čistého stolu"** (after the MVP): the researcher sets a boundary; turns before it enter
@@ -367,13 +395,14 @@ completes (a polite live region), never per token.
   an unreferenced turn, is refused; a kept fact whose quote does not locate in its named turn is
   refused; a roll-up keeps its children's references.
 - The recall test (decision 4, *Measured*): on a recorded 60-turn conversation, turn 61's context
-  holds every kept fact and every digest decision, either in context or listed by ledger id in the
-  manifest and retrieved exactly when its item is named; a message naming a summarised subject
+  holds every kept fact and every digest decision, either in context or reachable through the
+  manifest's ledger range and retrieved exactly when its item is named; a message naming a summarised subject
   brings back the referenced turns verbatim.
 - Application tests: no `study_lead_turns` row is ever updated (the `before_update` guard stays);
   a message over 8 KB of UTF-8 is refused; a sixth queued message is refused; queued messages over
   layer 9 are answered by a follow-on turn named in the manifest; the digest of 500 decisions stays
-  within its 8 KB share with every omitted decision listed by ledger id; a queued message posted
+  within its 8 KB share, its manifest stays bounded (counts and a range), and every omitted decision
+  pages from that range; a queued message posted
   from a second tab is answered by the next turn; a
   regenerate after a decided edit is refused; a superseded turn's card is refused; the manifest
   lists every omitted id; feedback by another researcher is refused; a sealed Lead refuses every
