@@ -11,7 +11,9 @@ frozen invariant, for Deep Research's web egress only, and its addendum of 2026-
 `domain/material_rules.py` for every model call, the licence gate, grounding, verification and
 every evidence gate.
 **Date:** 2026-10-20. **Amended 2026-10-20** with the product owner's recorded answers D-08 and D-17
-(`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`); still Proposed.
+(`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`), and Q16 (a) and Q20 (b) on
+the PM status page (relayed by the coordinator): Brave at release, and Brave may carry Class B
+queries for every client. Still Proposed.
 **Plan:** [deep-research-web-search](../../../.planning/plans/deep-research-web-search.md) 53 (§ Open
 posture), 51, 52; migration M10
 
@@ -63,17 +65,36 @@ The one `design_class` field that today serves both search egress and model requ
 model route approved for C alone still refuses it. `fictional_client` stays derived from the
 operator's record, never from the posture (`plan.py:175-178 @ 854c209`).
 
-### 4. CLASSIFIED is exactly today
+### 4. CLASSIFIED: Brave carries Class B queries; Class A stays refused
 
-`aia-query-classifier-1` is untouched. A run on an edited design with no operator record fails
-whole with `egress_unclassified_material` (`plan.py:166-174 @ 854c209`). **A real, confidential
-client left CLASSIFIED gets no web search in the MVP.** Operator-declared fictional clients behave as
-before.
+The release route is Brave (the product owner, 2026-10-20, Q16 a). **Brave may receive Class B
+queries, those derived from a study's design, for every client, CLASSIFIED included** (Q20 b). This
+is the owner's recorded determination about one route, kept as data beside the route's definition,
+as the panel licence determinations are (OI-61, `domain/licence_determinations.py`): Brave is
+`NON_EU`, and ADR 0008 approves a Class B route only with confirmed EU processing, so the
+determination is an explicit, dated exception to that condition for this route alone, never a
+default other routes inherit.
+
+For a CLASSIFIED client:
+
+- a query derived from the design takes the design's class **by rule** (Class B, `material_rules.py`),
+  not an operator's exact-bytes record, for search egress only; a run on an edited design no longer
+  fails `egress_unclassified_material` for want of an operator record (this replaces ADR 0008's
+  addendum item 1 for search queries; model requests keep it);
+- such a query may go to Brave; every other composed route (the connectors, Common Crawl, the
+  crawler) stays Class C only;
+- a query that carries Class A material (written from approved client knowledge, a client source, a
+  client note) is refused, and the track parks by name, as today;
+- fetching a page Brave returned sends no client material and is governed as today.
+
+Search operators in a query (`site:`, quotes, `-term` and the like) are not decided here (*Open for
+Nigel*, 2). Operator-declared fictional clients behave as before. OPEN behaves as decision 3.
 
 ### 5. The deferral and the redesign note
 
 Classification of search material is redesigned after the MVP, starting from `class-b-search-route`
-6's content rule and the review findings it collected. Until then, this flag is the only control.
+6's content rule and the review findings it collected. Until then, the posture and Brave's Class B
+determination are the controls.
 
 ## Alternatives considered
 
@@ -93,12 +114,18 @@ Classification of search material is redesigned after the MVP, starting from `cl
 - **What it does not loosen:** grounding (a quote must be in a captured source), adversarial
   verification, the evidence gate, and the residency of models and storage. Reach changes where the
   engine may look, not what it may claim.
-- A real client's web research waits for the redesign unless an OWNER or ADMIN marks it OPEN.
+- **Also costs, stated (Q20):** Brave, a US provider logging queries up to 90 days, sees the
+  design-derived queries of every client, CLASSIFIED ones included: research questions and object
+  names, though no Class A material. The owner accepted this as a determination about that route.
+- A CLASSIFIED client's web research runs through Brave alone; the connectors, Common Crawl and the
+  crawler need OPEN.
 
 ## What enforces it
 
 - Tests (chunk 53): an OPEN client's edited design runs its web tracks with no operator record; a
-  CLASSIFIED client's still fails `egress_unclassified_material`; a retry keeps the original's
+  CLASSIFIED client's edited design sends its Class B queries to Brave and to no other route; a
+  CLASSIFIED query carrying Class A material is refused and its track parks; Brave's Class B
+  determination is read from its recorded data, and a route without one stays Class C; a retry keeps the original's
   posture; a mid-run switch changes nothing for the run; a model request in an OPEN run still carries
   the design's rule class; only OWNER or ADMIN may set the posture, audited, a second organization's
   client 404.
@@ -112,11 +139,16 @@ I-R, and AC-11's first half.
 
 ## Open for Nigel
 
-1. **Which route is the release route.** `overview.md` MVP-27 says live Deep Research uses "a search
-   provider approved for Class B under an EU processing agreement, contracted before release" (Linkup
-   the candidate); `mvp-development-plan.md` §1 says the route is Brave for an OPEN client and the
-   Class B route is after the MVP. Both are dated 2026-10-19. This ADR follows the development plan;
-   MVP-27 and AC-11's wording would change (its Doc follow-up already proposes it).
+1. ~~Which route is the release route.~~ Brave (Q16, a); it carries Class B queries for every
+   client, Class A refused (Q20, b). Decision 4. MVP-27 and AC-11's wording change (Doc follow-up).
 2. ~~"Frozen" retrieval.~~ Yes: CLAUDE.md §2's and ADR 0021's wording changes, as a docs follow-up,
    when this ADR is accepted (D-08, a).
 3. ~~Amending ADR 0008.~~ Yes, recorded in ADR 0008's amendments when this ADR is accepted (D-08, a).
+
+Still open:
+
+1. **Class A in a query.** A query written from approved knowledge or a client source is Class A
+   and stays refused for every CLASSIFIED client (Q20). Confirm that, including for the Lead's lookup
+   (ADR 0040), whose context usually holds approved knowledge.
+2. **Search operators** (`site:`, quoted phrases, exclusions): whether a query may use them, and
+   what a `site:` naming a client's own domain reveals. Waits on the owner's follow-ups Q22 and Q23.
