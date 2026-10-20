@@ -200,6 +200,13 @@ Proceeds: everything else.
 
 ### MQ-05. What `-5` leaves open of the audit: the F8/F9 scores and connectedness, and the misfit (MVPQ-12)
 
+**Answered in code by the methodology owner in #517, to confirm with him when the packet goes.**
+(i) The object detail shows connectedness (100 × the stored score) and the alignment, except where the
+alignment says nothing: ratings mean-centred and every object PRIMARY, when it is near zero by
+construction (`apps/web/src/lib/object-map-signed-off.ts:201-220 @ ef485c9`, commit `e98a372`). (ii) The
+respondent detail shows the misfit as the share the map explains, 1 − misfit (`:260-275 @ ef485c9`, `e98a372`).
+Read as (i)(b) and (ii)(b); B8's denominator and K100 (MQ-22) are not decided by it.
+
 **Recorded: settled by `-5` (canonical), not asked.** The formula audit's open questions and its
 provisional 2026-10-09 answers (the product owner's, for `-3`, `sociomap-formula-corrections.md:1008-1020`)
 are superseded where `-5` decides:
@@ -287,6 +294,11 @@ test (Kish). (b) is a new spec value and fingerprint.
 
 ### MQ-08. The relative-height legend (MVPQ-12 Q7)
 
+**Answered in code by the methodology owner in #517, to confirm with him when the packet goes.** The map
+offers Relativní and Absolutní, as the AIA panel does; the engine stores the absolute terrain beside the
+relative one (`terrain.absolute_height`, `packages/aia_core/src/aia_core/domain/sociomap/engine_v2.py:407 @ ef485c9`,
+commit `6642099`), and a map stored without it offers Relativní only.
+
 **(1)** Since `-5`'s heights are relative (the lowest object at 0.15, the highest at 1), what does the
 legend say, and is the absolute mean rating shown beside it?
 
@@ -360,6 +372,11 @@ own map?
 **(6)** Blocks the own-dimension consumer only.
 
 ### MQ-13. The register's granularity for segment maps, and whether a client sees respondent points
+
+**Second half answered in code by the methodology owner in #517, to confirm with him when the packet
+goes.** The respondent map is drawn in the internal report only; the client report carries neither dots
+nor density (`packages/aia_core/src/aia_core/application/report_maps.py:255 @ ef485c9`, commit `23ac1b4`). The
+register's granularity (the first half) stays open.
 
 **(1)** Under MQ-01, does a segment map need one entry per method, or one per segment definition; and
 does a client snapshot print respondent dots, or only the density?
@@ -528,18 +545,18 @@ description.
 - **E-2. Metodika's method in force and its base.** `in_force="aia-sociomap-3"`
   (`domain/methodology/sociomap.py:2014`); the presets list `-4` first so an edit starts from it
   (`:2007-2013`); the module note says every run pins `-3`.
-- **E-3. The web does not draw `-5`.** `OBJECT_MAP_METHODS` names `-4`, `-3`, `-2`
-  (`apps/web/src/lib/object-map-view.ts:20`), so `-5` is read as an unnamed method; its relative
-  heights are drawn on absolute terraces; no credibility banner, split-half share, uncertainty
-  circles, respondent map, taste segments, "Neumístěno" list or 26x height exaggeration. The standing
-  rule: the panel follows `ui_app.html`'s drawing (`signed-off-sociomap-method.md`, Doc follow-up).
-- **E-4. The report's respondent and segment figures.** The object-map chapter already reads a `-5` map:
-  no Stress-1 (its fit caption says Stress-1 is not computed, `application/report_maps.py:245-250`), the
-  credibility note for internal readers (`:77-90`, `:223`), the weakly-determined warning (`:185-200`) and
-  relative heights (`:228-231`). What is missing is the respondent map and the taste segments:
-  `object_map_snapshots` and `compose_map_sections` draw only object maps
-  (`infrastructure/report_docx/object_map_figure.py:110`, `domain/sociomap/models_v3.py:801`); those
-  figures are `segment-maps-and-drilldown` 9.
+- **E-3. The web draws `-5`: delivered by #517** (not merged at the time of writing; commits `1c646c6`,
+  `72627bf`, `c77b6eb`, `c00ecf9`, `f126602`, `e98a372`). The map is drawn as the AIA panel draws it:
+  terrain, Relativní / Absolutní, the credibility banner and uncertainty circle, the objects nobody
+  rated, the respondent map and the taste segments, the detail on click. `readObjectMap` reads a
+  signed-off map first, recognised by its stored estimator, so `aia-sociomap-5+e<n>` maps are drawn and a
+  `-5` map is shown in preference to a `-3` one (`apps/web/src/lib/object-map-view.ts:133-140 @ ef485c9`).
+- **E-4. The report's figures: mostly delivered by #517** (commit `23ac1b4`). The `-5` map is drawn in
+  the panel's look (`infrastructure/report_docx/signed_off_map_figure.py @ ef485c9`) and the internal report
+  adds the respondent map (`application/report_maps.py:255 @ ef485c9`). The object-map chapter already read a
+  `-5` map before it (no Stress-1, the credibility note and warning, relative heights,
+  `report_maps.py:77-90, 185-200, 245-250 @ 854c209`). What remains is any segment figure beyond the
+  coloured respondent map, which `segment-maps-and-drilldown` 9 decides.
 - **E-5. Metodika's comparison cannot show `-5`'s changes.** `sociomap_check.MapSummary` (`domain/methodology/sociomap_check.py:136`) carries no
   credibility, respondent map or segments, so an edit of those values shows no difference there.
 - **E-6. The worker image.** numba needs `NUMBA_CACHE_DIR=/tmp/numba` in the read-only containers
