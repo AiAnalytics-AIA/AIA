@@ -102,7 +102,8 @@ AC-15), as amended below; the core plans of §3.1 with their open chunks and wav
   its map is from an older method (Q2).
 - Export of a client's data and erasing one person as features: an operator procedure in the
   runbook for about ten users (D-29).
-- As before the freeze: Simulation (§3.2 `simulation-studio`), the Class B search route (§3.3),
+- As before the freeze: Simulation (§3.2 `simulation-studio`), the Class B search route (§3.3; an EU
+  processor of its own, apart from Brave's Class B queries under page Q20),
   SOMECS (`sociomapping-engine`), the holdout validation and client-facing analysis prose
   (`panel-grounded-respondents`), and every POST row of §3.2.
 
@@ -148,12 +149,24 @@ Relayed by the coordinator from the PM status page; recorded in
 | Q17 | Approved old-method reports stay downloadable; an old-method retry is refused with a link to a new `-5` run | `signed-off-sociomap-method#8`, `report-delivery#RD3` |
 | Q18 | A Lead web lookup needs no card: 3 queries, 5 pages and 2 lookups per turn, a wallet hold, OPEN clients only | `lead-orchestration#LO20` |
 
+### The owner's answers relayed at 21:41 UTC (page Q19 to Q21)
+
+Relayed by the coordinator from the PM status page; recorded in
+[`answers-2026-10-20.md`](../evidence/scope-freeze/answers-2026-10-20.md) (fifth table).
+
+| Page | Answer | Chunks |
+|---|---|---|
+| Q19 | Evaluate before adopting: a W1 spike compares Wordcraft, ONLYOFFICE Docs and Collabora Online against Tiptap, a go/no-go to the owner | `research-lead-workbench#33` |
+| Q20 | The owner's determination: Brave may receive Class B (design-derived) queries for every client, CLASSIFIED included; Class A stays refused (Q22), operators open (Q23) | `deep-research-web-search#57` |
+| Q21 | The coordinator keeps merging reviewed, green PRs | — (no plan edit) |
+
 ### Open: signing does not answer these
 
 | # | Question | Who answers | Waits on it |
 |---|---|---|---|
-| — | The editor for tracked-change and direct Lead edits (page Q13): the owner names Wordcraft (`github.com/storytold/wordcraft`, open-source Rust/WASM, MCP server, alpha); whether AIA adopts it is being asked | the owner | `lead-orchestration#LO19`, `report-delivery#RD6` |
-| — | Brave for Class B queries too (page Q16's note): a CLASSIFIED client's design queries to Brave; being confirmed | the owner | `deep-research-web-search#53` |
+| — | The editor's go/no-go after the spike (page Q19): Wordcraft, ONLYOFFICE Docs or Collabora Online, against Tiptap | the owner | `research-lead-workbench#33`, `lead-orchestration#LO19`, `report-delivery#RD6` |
+| — | Class A in Brave queries (page Q22): refused until answered | the owner | `deep-research-web-search#57` |
+| — | Search operators (`site:`, `filetype:`, `intitle:`) in queries (page Q23) | the owner | `deep-research-web-search#57` |
 | — | The performance budget values for `mvp-acceptance-harness#18` (D-48); planning proposes them in that chunk's PR, the owner approves | the owner | `mvp-acceptance-harness#18` |
 | — | The methodology owner's decisions MQ-01 to MQ-24, MQ-01 (the `-5` register entry) first | A. Bahbouh | `mvp-methodology-packet.md` (#510); §11.4 |
 | — | The Deep Research evaluation tasks and thresholds (MVPQ-06, rest) | the owner | `deep-research-web-search#27` |

@@ -33,6 +33,7 @@ chunks:
   - "[ ] 30. The conversation's UI for LO18: streamed text, a file from the composer, unprompted comments marked as paid turns (D-39)"
   - "[ ] 31. Results: charts on the result views and a CSV/XLSX export of the per-question tables from admitted claims (report-delivery RD12) (D-41)"
   - "[ ] 32. The Lead pane's web results: inline citations with links and quotes, the result list as it arrives, each search's cost, and Kontext studie (the study's context file) readable with its version (Q5, Q6)"
+  - "[ ] 33. Editor spike (Q19): Wordcraft, ONLYOFFICE Docs and Collabora Online compared against Tiptap for the study context file and reports, on Word-like UX, tracked changes and comments, Lead-driven edits, ledger refs through a round trip, DOCX fidelity, licence and EU self-hosting; a go/no-go to the owner"
 ---
 # Research Lead workbench
 
@@ -302,3 +303,23 @@ branch.
 **Chunk 20 does not build the `-5` layers again.** It hosts #517's panel in the Results and Sociomap
 artifacts and in project memory, and its credibility test is met by #517's work. Chunk 20 keeps the
 artifact frame, routing and the old-method panel text (Q2).
+
+### After the editor answer (the owner's answers on the PM status page, 2026-10-20, relayed by the coordinator at 21:41 UTC (page ids Q19 to Q21; `.planning/evidence/scope-freeze/answers-2026-10-20.md`, fifth table))
+
+- **33 (W1, page Q19: (a)).** Evaluate before adopting. A time-boxed spike compares editors for the
+  study context file (`lead-orchestration#LO19`) and the report documents (`report-delivery#RD6`),
+  each researcher's tracked-change or direct mode (page Q13) included. Its outcome is a written
+  go/no-go to the owner; nothing is adopted in this chunk.
+  - **Candidates:** Wordcraft (`github.com/storytold/wordcraft`; MIT/Apache, Rust/WASM, an MCP
+    server, alpha); ONLYOFFICE Docs (AGPL, Word-like, track changes, a JS API); Collabora Online
+    (LibreOffice-based, MPL, WOPI). Tiptap is the baseline: the owner finds its UX poor ("I want as
+    close to Microsoft Word or LibreOffice as possible") and asks for alternatives.
+  - **Criteria:** a Word-like UX; tracked changes and comments; the Lead driving edits (suggestion
+    and direct modes); every report number staying a ledger ref through an edit and a DOCX round trip
+    (`report-delivery#RD6`); DOCX fidelity against `infrastructure/report_docx`; the licence (AGPL's
+    obligations named for a hosted product); EU self-hosting with no outside service.
+  - **Evidence:** each candidate run locally on one fictional study context file and one sample
+    report, the round trip's ledger refs counted before and after, a screenshot set, the licence
+    reading. Zero paid jobs.
+  - LO19 and RD6 build against the editor the owner chooses; until then they keep a plain editor
+    behind the same edit operations, so the choice changes the surface, not the rules.

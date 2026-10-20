@@ -183,6 +183,8 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `study-data-lifecycle#SDL4b` | W4 | scope freeze, D-29: with SDL3 |
 | `architecture-enforcement#12` | W3 | scope freeze, D-24 (a SUPPORT plan) |
 | `client-data-in-analysis#10` | W3 | scope freeze, D-37: with 2 and 2a (E17) |
+| `research-lead-workbench#33` | W1 | owner, page Q19: the editor spike before LO19 and RD6 build their surface |
+| `deep-research-web-search#57` | W2 | owner determination 2026-10-20, page Q20: with chunk 53 (E12) |
 | `research-lead-workbench#24` | POST | development plan D16: after the MVP |
 | `research-lead-workbench#25` | POST | development plan D16: after the MVP |
 

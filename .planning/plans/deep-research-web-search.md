@@ -61,6 +61,7 @@ chunks:
   - "[ ] 55. The start's cost ceiling function moves from the API router to the application layer, so a plan step in the worker and the router use one"
   - "[ ] 51a. A run's routes on its record: by_route in CoverageLedger (sent, succeeded, refused) and composed_routes from the plan artifact (G67)"
   - "[ ] 56. A quick single-track lookup for the Lead's Hledat na webu: several search hits and parallel fetches of the top pages through RetrievalGate, captured snapshots, per-call cost against the wallet, OPEN posture only (Q6)"
+  - "[ ] 57. Brave for Class B queries (owner determination 2026-10-20, Q20): a query written from a design reaches Brave at Class B for every client, CLASSIFIED included; Class A stays refused (Q22 open); recorded as data beside OI-61"
 ---
 # Deep Research — wide, precise, and defensible
 
@@ -1752,3 +1753,32 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
   it. The owner's note asks for Brave for **Class B** queries too (a CLASSIFIED client's design
   queries); that is being confirmed and is **open** in the baseline. Until it is answered, a
   CLASSIFIED client's web tracks stay parked as today.
+
+### After the Class B answer (the owner's answers on the PM status page, 2026-10-20, relayed by the coordinator at 21:41 UTC (page ids Q19 to Q21; `.planning/evidence/scope-freeze/answers-2026-10-20.md`, fifth table))
+
+- **57 (W2, page Q20: (b)). The owner's determination of 2026-10-20**, recorded in the style of
+  OI-61 (`licence_determinations.py`): the Brave route may receive **Class B** (design-derived)
+  queries for **every client, CLASSIFIED included**.
+  - It changes MVP-27 (amended 2026-10-19) for Class B: a CLASSIFIED client's design-derived queries
+    no longer leave its web tracks parked. A query takes the class of what it was written from
+    (`deep_research/classification.py`, never lowered by keywords); Brave admits B and C, and the
+    route's admitted classes come from the recorded determination, not from code defaults.
+  - **Class A stays refused** on Brave (client notes, approved knowledge, a client's sources, by
+    `material_rules`) until page Q22 is answered. **Search operators** (`site:`, `filetype:`,
+    `intitle:`) are page Q23, open; nothing here adds them. The owner's note: "maybe even class A,
+    depends how the query is constructed. I like to implement google search hacking into the
+    workflows, to create highly specific and reputable sources".
+  - Chunk 53's OPEN posture is unchanged: OPEN still lowers an OPEN client's queries to Class C.
+    What changes is the CLASSIFIED path: its edited design no longer needs an operator record to run
+    its web tracks when every query it sends is Class B or C; a query from Class A material is
+    refused by name and sends nothing.
+  - Cost, stated plainly: Brave is NON_EU and keeps logs up to 90 days, so a CLASSIFIED client's
+    design wording (names included) can reach it. The determination is the guard, and it is recorded.
+  - ADR 0008 (residency and classes) and ADR 0032 (#512) record the route's admitted classes; both
+    change with this (Doc follow-up).
+  - Tests: a CLASSIFIED client's design-derived query reaches the recorded Brave double at Class B; a
+    query built from a Class A knowledge item is refused before anything is sent; the determination
+    record is the only source of Brave's admitted classes (removing it refuses Class B); an OPEN
+    client's behaviour is unchanged.
+  - The Lead's lookup (`lead-orchestration#LO20`, chunk 56) stays OPEN-only (page Q18) unless the
+    owner decides otherwise.
