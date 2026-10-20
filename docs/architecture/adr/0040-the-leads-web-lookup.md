@@ -11,7 +11,8 @@ scope to a second caller of AIA's web retrieval. **Builds on** [ADR 0028](0028-o
 evidence). **Leaves unchanged** the Deep Research engine and its steps, grounding, and every
 evidence gate.
 **Date:** 2026-10-20. **Amended 2026-10-20** with the product owner's answer Q18 (a) on the PM status page
-(20:50-21:04 UTC, relayed by the coordinator): no card, within fixed bounds. Still Proposed.
+(20:50-21:04 UTC, relayed by the coordinator): no card, within fixed bounds; and Q20 (b): Brave may
+carry Class B queries for every client. Still Proposed.
 **Plan:** [lead-orchestration](../../../.planning/plans/lead-orchestration.md) LO20 (#523);
 `deep-research-web-search` 56; `research-lead-workbench` 32
 
@@ -56,12 +57,22 @@ Each citation is labelled *externí zdroj*; it is never respondent evidence and 
 claim. A captured page becomes Client Knowledge only by a person's "Ověřeno, přidat zdroj"
 (`application/verified_sources.py`), as today.
 
-### 3. Who may search: OPEN clients only, pinned
+### 3. Who may search, pinned
 
-A lookup pins the client's posture when it starts (ADR 0032). For an OPEN client the queries go to
-any composed search route; for a CLASSIFIED client nothing is sent, and the Lead says it may not
-search and why; for a fictional client, as for Deep Research. A query's class is otherwise as ADR
-0032 sets it. The routes, prices and live approvals are Deep Research's (ADR 0022).
+A lookup pins the client's posture when it starts (ADR 0032), and each query takes its class from
+what it was written from (ADR 0017): a Lead turn's query inherits the class of the turn's frozen
+context, which is Class A whenever it carries approved client knowledge (ADR 0026 decision 2).
+
+- **OPEN client:** the queries go to any composed search route.
+- **CLASSIFIED client:** a query of Class B or lower may go to Brave alone, under the owner's
+  determination that Brave carries Class B for every client (ADR 0032 decision 4, Q20 b); a Class A
+  query sends nothing, and the Lead says it may not search with that material and why.
+- **Fictional client:** as for Deep Research.
+
+The owner's Q18 answer read "OPEN clients only"; his later Q20 answer widens the route. How the two
+combine for the Lead's lookup is *Open for Nigel*, 1; until it is answered, the narrower reading
+(OPEN only) is the one a build ships. The routes, prices and live approvals are Deep Research's (ADR
+0022).
 
 ### 4. Paid from the wallet, without a card, inside a bound
 
@@ -136,5 +147,10 @@ Answered by the product owner on 2026-10-20 (Q18, a, on the PM status page):
 
 Still open:
 
-1. **Amending ADR 0026 decision 3, which is Accepted**, needs the owner's explicit yes (D-08 named
+1. **A CLASSIFIED client's lookup.** Q18 said OPEN clients only; Q20 lets Brave carry Class B
+   queries for every client. Does a CLASSIFIED client's Lead lookup run when its query is Class B,
+   given that a turn whose context holds approved knowledge makes the query Class A (and so refused)?
+   Until answered, OPEN only.
+2. **Search operators** in a query (Q22, Q23), as in ADR 0032.
+3. **Amending ADR 0026 decision 3, which is Accepted**, needs the owner's explicit yes (D-08 named
    the other amendments, not this one).
