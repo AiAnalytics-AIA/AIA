@@ -938,13 +938,23 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      # The runner's own pip is installed in the same environment and audited with
+      # everything else; the image's is old enough to carry advisories of its own.
       - name: Install scanners
-        run: pip install pip-audit
+        run: |
+          python -m pip install --upgrade pip
+          pip install pip-audit
 
+      # Blocking on any known advisory: pip-audit has no severity filter. An exception
+      # is a dated, individually justified --ignore-vuln with a comment (ARCHITECTURE.md §8).
+      # AIA's own packages are not on PyPI, so --strict would fail on them, and
+      # --skip-editable counts each skip as a failure under --strict; the audit reads
+      # every installed third-party distribution, frozen, instead.
       - name: Audit Python dependencies
         run: |
           pip install -e "packages/aia_core[postgres,s3,report,bedrock,documents]" -e "apps/worker" -e "apps/executors" -e "apps/api"
-          pip-audit --strict --ignore-vuln GHSA-0000-0000-0000 || true
+          pip freeze --all --exclude-editable > "$RUNNER_TEMP/third-party.txt"
+          pip-audit --strict --no-deps --disable-pip -r "$RUNNER_TEMP/third-party.txt"
 
       - uses: actions/setup-node@v4
         with:
