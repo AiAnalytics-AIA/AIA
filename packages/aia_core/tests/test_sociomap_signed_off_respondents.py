@@ -1,6 +1,6 @@
 """The signed-off methodology's respondent map, number for number against its code.
 
-``fixtures/sociomap/aia/signed_off_respondents.json`` holds ten studies -- five from the layout
+``fixtures/sociomap/aia/signed_off_placement.json`` holds ten studies -- five from the layout
 fixture (8, 12, 20, 3 and 2 objects, their ratings taken from ``signed_off_layout.json``), one
 with clear tastes on 12 objects, and four edge cases on the first (an object nobody rated, five
 objects, respondents with two ratings or all ratings equal, nobody placed) -- and what the
@@ -56,7 +56,7 @@ from aia_core.domain.sociomap.specification import (
 from aia_core.domain.sociomap.terrain import EnvelopeParameters, EnvelopeTerrain, fit_frame
 
 _HERE = Path(__file__).parent / "fixtures/sociomap/aia"
-FIXTURE = json.loads((_HERE / "signed_off_respondents.json").read_text("utf-8"))
+FIXTURE = json.loads((_HERE / "signed_off_placement.json").read_text("utf-8"))
 LAYOUT = {
     study["name"]: study
     for study in json.loads((_HERE / "signed_off_layout.json").read_text("utf-8"))["studies"]

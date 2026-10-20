@@ -1,6 +1,6 @@
 """The signed-off methodology's taste segments, number for number against its code.
 
-``fixtures/sociomap/aia/signed_off_segments.json`` holds eleven studies -- clear segments (300
+``fixtures/sociomap/aia/signed_off_tastes.json`` holds eleven studies -- clear segments (300
 respondents, 12 objects), none, a borderline near-tie, too few respondents (25), four objects
 (too few for slopes and for jittered maps), a step-down (3,000 respondents, 24 objects, the
 fit's four segments shown as three), a shown map rejected by the shuffle guard (with and
@@ -67,7 +67,7 @@ from aia_core.domain.sociomap.specification import (
 )
 
 FIXTURE = json.loads(
-    (Path(__file__).parent / "fixtures/sociomap/aia/signed_off_segments.json").read_text("utf-8")
+    (Path(__file__).parent / "fixtures/sociomap/aia/signed_off_tastes.json").read_text("utf-8")
 )
 STUDIES = {study["name"]: study for study in FIXTURE["studies"]}
 RULES = AIA_SOCIOMAP_V5.segments
