@@ -19,6 +19,12 @@ session_019bYPVpsShVq3LCtWDT5Kr8 (archived 16:35 at 73% context). Nigel talks to
 - This container can't reach aia-develop.art-chain.io (proxy 403); deploy evidence = workflow smoke + infra session (CloudWatch).
 
 ## Decisions recorded today (Nigel) — don't re-ask
+19:37-19:47 on the PM status page (db answers): Q1 a (merge -5 when built), Q2 a (keep data, explain), Q3 a (product only;
+engine+fixtures stay), Q4 a ('Metodik' mark, store+activate), Q5 c (NO study assignment; each researcher's own Lead in every study;
+NEW: a per-study context md file the Lead reads, kept updated), Q6 a (free edits + governed 'Hledat na webu'; he wants rich, fast UX),
+Q7 a (GlitchTip monitor, Nigel recipient), Q8 a (Metodika compares ALL -5 outputs; against rec), Q9 a (/pmstatus PR + CLAUDE.md
+recommendation via docs follow-up). Relayed to planning 2 at ~19:50; MP16 signature still to be given EXPLICITLY (the 'done' tick
+is not the signature). Standalone explainer artifacts deleted on his word.
 ~19:40 standing rules: (1) /pmstatus page (https://claude.ai/artifact/Fuc4xiyeNEze1L6QdyGpuW) ALWAYS carries interactive multiple-choice
 questions (recommendation + rationale + practical example); read answers from its db (collections answers/actions) and act on them
 (delegate or ask follow-ups); give each session a full-width card. (2) Sessions publish animated explainer artifacts for complex
