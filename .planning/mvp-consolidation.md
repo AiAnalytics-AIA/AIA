@@ -185,7 +185,7 @@ chunks 14-25), across the layers.
 | Item duration in the Questionnaire outline | 17 | no duration anywhere in the design domain (searched `research_design.py`, `questionnaire_import.py`) | A deterministic estimate by item type, code not a model (product rule "No LLM for deterministic computation") | S |
 | Assumptions carried across stages (A1 …) | 18, 22 | no domain concept | Part of the working content (a list on the brief), so no table; accepted like any edit | M |
 | A respondent map | 20 | not built (`domain/sociomap/engine_v2.py:93`) | `sociomap-formula-corrections` 3 (M4) | L, method owner |
-| "Continue until you need me" | 24 | a person's `APPROVE_GATE` starts every paid job; `WORKER_PERMISSIONS` holds `RUN_WORKFLOW` but no `APPROVE_GATE` (`domain/scope.py:202-213`) | An orchestration scope for the Lead (enqueue and read, never approve or spend beyond a standing, recorded envelope), and the envelope itself | **ADR** |
+| "Continue until you need me" | 24 | a person's `APPROVE_GATE` starts every paid job; `WORKER_PERMISSIONS` holds `RUN_WORKFLOW` but no `APPROVE_GATE` (`domain/scope.py:202-213`) | An orchestration scope for the Lead (enqueue and read, never approve or spend beyond a standing, recorded wallet), and the wallet itself | **ADR** |
 | Deep Research from every stage | 25 | Design Research from the design stages, Interpretation Research from Results | The enqueue boundary already freezes purpose and target (`application/deep_research.py`); what is new is a target per stage | M, ADR 0021 amendment |
 | Map interpretation and report wording workers | 21 | none | New closed tasks on a results-worker job keyed on a run and a target (`lead-orchestration#LO9c`), not today's design-keyed job (corrected 2026-10-20) | M each |
 

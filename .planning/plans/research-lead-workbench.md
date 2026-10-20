@@ -28,7 +28,7 @@ chunks:
   - "[ ] 24. A standing 'continue until you need me' beyond an approved plan's steps, over chunk 11's command registry, stopping at every gate (after the MVP: the plan-scoped part is lead-orchestration LO3-LO5)"
   - "[ ] 25. Deep Research reachable from every stage as a capability"
   - "[ ] 26. The Lead stays accessible at every width (D20, MVPQ-11): the workbench serves under 1100 px with the Lead as a compact drawer or a stacked layout, the manual AI starts are removed in every layout, tested at 1099, 1100, 768 and 390 px, by keyboard, focus and Escape with a return to the targeted artifact, with a stale card refused, and by a direct request"
-  - "[ ] 27. Switch-off and rollback (D20): actual availability is stated; the compact Lead stays reachable while its backend is enabled, a genuinely disabled backend stays disabled and says so, with no alternate AI start and no bypass of a kill switch; every layout uses the same card, plan, envelope and server-confirmation paths"
+  - "[ ] 27. Switch-off and rollback (D20): actual availability is stated; the compact Lead stays reachable while its backend is enabled, a genuinely disabled backend stays disabled and says so, with no alternate AI start and no bypass of a kill switch; every layout uses the same card, plan, wallet and server-confirmation paths"
 ---
 # Research Lead workbench
 
@@ -131,7 +131,7 @@ at an element (`lib/lead.ts:341`, `Workbench.tsx:185-207 @ 0b4e05e`).
   Under 1100 px the workbench still serves, with the Lead as a compact drawer or a stacked layout beside the
   artifact, consistent with the canonical V2 workspace; the exact composition is an engineering and design
   choice. The manual AI starts are removed in every layout (the stage components are shared), so no alternate
-  start exists, and every layout uses the same revision-bound card, approved-plan, envelope and
+  start exists, and every layout uses the same revision-bound card, approved-plan, wallet and
   `lead-orchestration#LO15` server-confirmation paths: the container adds no authority and weakens no
   privacy. **On switch-off or rollback** the actual availability is stated: the compact Lead stays reachable
   while its backend is enabled, a genuinely disabled backend stays disabled and says so, and a kill switch is
@@ -142,7 +142,7 @@ at an element (`lib/lead.ts:341`, `Workbench.tsx:185-207 @ 0b4e05e`).
 - **D16. Release scope** (owner, 2026-10-19; MVP-3). The Lead and all eleven stage artifacts following V2 are
   release-blocking (12, 11, 14-23). **The plan-scoped part of the autopilot is in the MVP** (an approved
   plan the Lead runs, and a person's chat start: `lead-orchestration` LO3-LO5; MVP-3 amended and MVP-13
-  superseded by the per-study envelope, 2026-10-19). Chunk 24, a standing "continue" beyond a plan's
+  superseded by the per-study wallet, 2026-10-19). Chunk 24, a standing "continue" beyond a plan's
   steps, and chunk 25, Deep Research from every stage, come after the MVP; 24 needs an ADR for the Lead's
   own permission scope first.
 - **D17. The workers** (owner, 2026-10-19; MVP-12, MVP-13). Chunk 11's registry holds the eight
@@ -235,7 +235,7 @@ The backend each chunk needs is in `.planning/mvp-consolidation.md` §6.
 
 The orchestration and edit work this plan's artifacts stand on is in six plans, each chunk in exactly one
 place: `working-copy-edit-ops` (the shared vocabulary, merge, per-change accept, presence, the Sociomap
-lock), `lead-orchestration` (the envelope, the plan card, the chat start, the continuation turn,
+lock), `lead-orchestration` (the wallet, the plan card, the chat start, the continuation turn,
 `ResultsContext`, the Lead over time), `run-qc-and-checkpoint`, `report-delivery`, `study-data-lifecycle`
 and `production-environment`. Chunks 14-22 here build the screens over them. Chunk 15
 follows the owner-selected V2: inputs, feeds, workers and provenance live in the inspector,

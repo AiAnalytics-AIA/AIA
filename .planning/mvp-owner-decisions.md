@@ -231,7 +231,7 @@ canonical V2 workspace. This supersedes the recommendation to remove study AI
 below 1100 px and does not authorize fallback manual AI-start buttons.
 
 Every supported study layout uses the same revision-bound human authority,
-approved-plan, budget/envelope and LO15 server-confirmation paths. The responsive
+approved-plan, budget/wallet and LO15 server-confirmation paths. The responsive
 container does not add authority, weaken privacy or alter deterministic results.
 Test 1099/1100 px, smaller supported widths, keyboard/focus/Escape and return to
 the targeted artifact, stale cards and direct HTTP starts. On switch-off/rollback,

@@ -21,7 +21,7 @@ Each gate names observable evidence. I-0 is planning/tooling readiness; I-1 to I
 | Gate | Holds when | Criteria (`MVP-ACCEPT-2`, #495) |
 |---|---|---|
 | **I-0 Ready to build** | the open PRs are merged; one migration head; the acceptance tree runs in CI; the surface owners are named | none yet |
-| **I-1 The Lead drives a study** | Brief to Sample worked through the Lead on recorded doubles: edit operations, per-change accept, a plan card inside an envelope, two researchers on one study | AC-01, 02, 03, 04, 05 (start), 07 |
+| **I-1 The Lead drives a study** | Brief to Sample worked through the Lead on recorded doubles: edit operations, per-change accept, a plan card inside a wallet, two researchers on one study | AC-01, 02, 03, 04, 05 (start), 07 |
 | **I-2 Results are seen** | respondent and segment maps, filters, the internal drill-down, the Lead reading results; map snapshots approvable | AC-05, 08 (QC), 09 |
 | **I-3 Evidence is complete** | every key finding cites an admitted claim; a client dataset graded client-reported beside modelled results; analysis and report artifacts with the approve and export panel | AC-08, 10, 13 |
 | **I-R Reach** (W1) | a Deep Research run for an OPEN client on develop reaches the routes the build can run, live (Brave, public fetch, the connectors probed live, the archive); Settings → Deep Research lists each route and connector as active or refused with the reason (`deep-research-web-search` 52), so no document has to say what is on | AC-11 (first half) |
@@ -152,12 +152,12 @@ plan (or to a new plan from #497) before the wave starts.
 
 | S | Work |
 |---|---|
-| S1 | **New** shared edit vocabulary, `workspace_edit_ops` (M1) and `apply_edit_ops`; presence (M2) and the change feed; per-change accept (M6); `research-lead-workbench` 11 (command registry), 14-16 (view vocabulary, frame, pointing with id and revision), 17 (Questionnaire artifact, AI buttons removed), 18-19 (Brief, Design, Sample, Fieldwork); the envelope and plan card (M4, M5) behind `AIA_LEAD_PLANS_ENABLED`; `assumptions-and-open-answer-coding` AOC1 (the assumption item kind on the shared vocabulary, status values after AOC0); `research-lead-workbench` 26-27 (the Lead reachable at 1099, 768 and 390 px, the honest fallback with the switch or the kill switch off: MVPQ-11) |
+| S1 | **New** shared edit vocabulary, `workspace_edit_ops` (M1) and `apply_edit_ops`; presence (M2) and the change feed; per-change accept (M6); `research-lead-workbench` 11 (command registry), 14-16 (view vocabulary, frame, pointing with id and revision), 17 (Questionnaire artifact, AI buttons removed), 18-19 (Brief, Design, Sample, Fieldwork); the wallet and plan card (M4, M5) behind `AIA_LEAD_PLANS_ENABLED`; `assumptions-and-open-answer-coding` AOC1 (the assumption item kind on the shared vocabulary, status values after AOC0); `research-lead-workbench` 26-27 (the Lead reachable at 1099, 768 and 390 px, the honest fallback with the switch or the kill switch off: MVPQ-11) |
 | S2 | `run-qc-and-checkpoint` RQC0 first, then RQC1-RQC3, RQC4a and RQC6-RQC8 (QC contracts/node, cost/support outlook and Fieldwork events before the UI); population-built respondents as the default path and its screens; `evidence-integrity` 2-3 (run QC stored and shown); **reach**: `deep-research-web-search` 52 and 53 in code, and `lead-orchestration` LO12b (the composition record the Lead pane and Settings read, with 52); `assumptions-and-open-answer-coding` AOC0 (the assumptions contract) and AOC4 (the coding method, written for the methodology owner's approval: `MVPQ-02b`), with `evidence-integrity` 9a (a module with no supported finding stores a diagnostic; its composition, approval and export refusal 9b is W3: MVPQ-04) |
-| S3 | `client-budget` CB5; `client-knowledge-lifecycle` K2e, K2f, K3, K4, K8; `clients.envelope_ceiling_usd` (in M4); **production applied**: RDS, Cognito, buckets, tagged Bedrock profiles, `deploy-production.yml` |
+| S3 | `client-budget` CB5; `client-knowledge-lifecycle` K2e, K2f, K3, K4, K8; `clients.wallet_ceiling_usd` (in M4); **production applied**: RDS, Cognito, buckets, tagged Bedrock profiles, `deploy-production.yml` |
 
 **Exit I-1:** W1 checks the available design workers and existing prompt pins, not all eleven workers or the eight analysis pins (full AC-03 is W3/W5). `lead-orchestration` LO10 binds approval to the card revision; LO13 records the client-level exception if accepted; LO14 provides the turn-cost/budget line. `working-copy-edit-ops` WCE10 supplies Audience/Dimensions/Sample operations and WCE12 the two-person journey. Two sessions edit one study in the acceptance run, the second edit merges or conflicts
-on one item only; a plan inside an envelope starts a run and a gate it does not cover parks.
+on one item only; a plan inside a wallet starts a run and a gate it does not cover parks.
 
 **Exit I-R:** on develop, with `aia_deep_research_agent_directed` on, a Deep Research run for an OPEN
 client reaches Brave, one connector that has been probed live, and the archive, each named in the run's
@@ -209,10 +209,10 @@ is rebased on `develop` immediately before merge, and migration PRs merge one at
 
 | # | Migration | Session | Wave |
 |---|---|---|---|
-| M3 | `approval_decisions.subject_type` check extended: `envelope`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot`, `sociomap_unlock` | S3 | W0 (first, so no later migration edits the same constraint) |
+| M3 | `approval_decisions.subject_type` check extended: `wallet`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot`, `sociomap_unlock` | S3 | W0 (first, so no later migration edits the same constraint) |
 | M1 | `workspace_edit_ops` | S1 | W1 |
 | M2 | `study_presence` | S1 | W1 |
-| M4 | `study_envelopes`, `study_envelope_raises`, `study_envelope_charges`, `clients.envelope_ceiling_usd` | S1 (ceiling column S3) | W1 |
+| M4 | `study_wallets`, `study_wallet_raises`, `study_wallet_charges`, `clients.wallet_ceiling_usd` | S1 (ceiling column S3) | W1 |
 | M5 | `lead_plans`, `lead_plan_steps` | S1 | W1 |
 | M6 | `proposal_change_decisions` | S1 | W1 |
 | M7 | `researcher_lead_signals`, `researcher_leads.archived_at`, `derived_from_lead_id` | S1 | W2 |
@@ -240,7 +240,7 @@ access: `ARCHITECTURE.md` §7) and its `layer_check` rule in the same PR.
 
 | ADR | Decides | Before |
 |---|---|---|
-| Orchestration scope, the envelope and the plan card | the plan authority, what a plan may start, what parks, the ledger rows; the typed `start_run` command for a by-request start and its security condition; supersedes MVP-13 | W1 plan code |
+| Orchestration scope, the wallet and the plan card | the plan authority, what a plan may start, what parks, the ledger rows; the typed `start_run` command for a by-request start and its security condition; supersedes MVP-13 | W1 plan code |
 | The working copy's operation log, merge and per-change accept | the vocabulary, the conflict rule, undo, presence, `proposal_change_decisions` | W1 |
 | The Lead over time and its files | proposed updates, signals, admin read, handover, privacy of turns; amends ADR 0026 decision 8 | W2 M7 |
 | Production environment | a separate environment on the one-host pattern with RDS, in the same AWS account with the mitigations of architecture §6.2; supersedes the "undecided" in ADR 0009 | W1 infra apply |
@@ -265,7 +265,7 @@ clustering (S2, waits on the method owner).
 |---|---|---|
 | The method owner's answers (clustering, register entries) arrive late | no segment map in client output; AC-09 partial | segment maps ship internal-only first (the register defaults to `INTERNAL_ONLY`); a dated ask now |
 | A real, confidential client is CLASSIFIED and gets no web search in the MVP | AC-11 runs for a fictional or an OPEN client only | the owner marks the clients that may use search OPEN; real-client search returns with the classification redesign after the MVP |
-| The plan authority takes longer than planned | no autopilot-lite; every paid job needs a card (MVP-13 returns by default) | the envelope without plans is a smaller first step; cards stay as the fallback |
+| The plan authority takes longer than planned | no autopilot-lite; every paid job needs a card (MVP-13 returns by default) | the wallet without plans is a smaller first step; cards stay as the fallback |
 | Migrations collide | blocked merges | one lane, one owner, rebase before merge, M3 first |
 | Production shares develop's AWS account | an account-level mistake or the shared Bedrock quota reaches production | tag-conditioned IAM with a permission boundary, per-environment state and KMS (architecture §6.2); tier B outside working hours; revisit at the first incident |
 | RDS or Cognito setup for production slips | no production at the date, and **no release**: gate I-5 reads "production released" and a passing tier B on develop does not release | production is a blocker, not a follow-up: restore, rollback, delete path and the activation profile are evidenced first (`production-environment` PE9, `mvp-acceptance-harness` 12); the date moves, the gate does not |

@@ -478,7 +478,7 @@ truncated). Right: wrap the full name in `op.f(...)` on both calls.
 ### Current decision disposition (2026-10-20)
 
 The earlier questions below this heading were superseded: 5b.2's per-study confirmation
-threshold is implemented and the researcher chooses its value; envelope/budget/threshold
+threshold is implemented and the researcher chooses its value; wallet/budget/threshold
 remain distinct. F17 settles separate report/snapshot approvals and approval before export;
 5b.4 is required, not deferred. Its gate definitions are MVPQ-09 in the owner decision packet.
 Server design-job confirmation is LO15, before all paid-start UI paths.

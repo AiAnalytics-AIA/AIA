@@ -1,8 +1,8 @@
 ---
 status: planned
 chunks:
-  - "[ ] LO0. The contract ADR and the money vocabulary: envelope cap, `budget_usd`, `spend_confirm_usd`, the client ceiling, `clients.budget_usd`, OI-64, one precedence"
-  - "[ ] LO1. The envelope (M4): `study_envelopes`, `_raises`, `_charges` and `clients.envelope_ceiling_usd`; charges for paid work including Deep Research"
+  - "[ ] LO0. The contract ADR and the money vocabulary: wallet cap, `budget_usd`, `spend_confirm_usd`, the client ceiling, `clients.budget_usd`, OI-64, one precedence"
+  - "[ ] LO1. The wallet (M4): `study_wallets`, `_raises`, `_charges` and `clients.wallet_ceiling_usd`; charges for paid work including Deep Research"
   - "[ ] LO2. A typed `start_run` with no `confirm_cost_usd`, and an import rule that a plan step cannot reach the confirming start"
   - "[ ] LO3. `lead_plans` and `lead_plan_steps` (M5), the plan authority capability issued by `ScopeResolver`, the `lead_plan` workflow type, behind `AIA_LEAD_PLANS_ENABLED`"
   - "[ ] LO4. The plan card: the steps (including "start fieldwork, ceiling X USD"), approved once, stopping at every gate it does not cover"
@@ -19,31 +19,31 @@ chunks:
   - "[ ] LO12b. A pre-flight read of the AI route (W1): the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`), and the new refusal reasons"
   - "[ ] LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02"
   - "[ ] LO14. The Lead's cost per turn measured, and an `AIA_LEAD_*` kill switch and budget line"
-  - "[ ] LO16. The approval ledger's subject types (lane migration M3, W0, the first migration): `approval_decisions.subject_type` extended with `envelope`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot` and `sociomap_unlock`; S3 writes it"
+  - "[ ] LO16. The approval ledger's subject types (lane migration M3, W0, the first migration): `approval_decisions.subject_type` extended with `wallet`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot` and `sociomap_unlock`; S3 writes it"
   - "[ ] LO15. Server spend enforcement (W0): `ResearchAgentJobs.start` and `rebuild` apply `spend_confirm_usd` as `ResearchRuns.start` does, and record the confirmation in the ledger; tested through direct HTTP start and rebuild and through the Lead's approve path"
 ---
-# Lead orchestration: the envelope, the plan card, the continuation turn and the Lead over time
+# Lead orchestration: the wallet, the plan card, the continuation turn and the Lead over time
 
-The orchestration the prototype and the owner describe: a per-study envelope, a plan approved once, a chat start, a continuation turn that returns typed results to the Lead, its context layers, its workers and its lifecycle. Written 2026-10-19 from `.planning/evidence/mvp-master-traces/trace-4-lead-governance.md` and `trace-2-sample-execution.md`.
+The orchestration the prototype and the owner describe: a per-study wallet, a plan approved once, a chat start, a continuation turn that returns typed results to the Lead, its context layers, its workers and its lifecycle. Written 2026-10-19 from `.planning/evidence/mvp-master-traces/trace-4-lead-governance.md` and `trace-2-sample-execution.md`.
 
 **Owner: S1.** Takes the gap rows G1, G11, G12, G13, G15, G16, G17, G20, G39, G43 and interfaces I1, I3, I4, I22, I23 of `mvp-master-plan.md` §6.1 and serves AC-02, AC-03, AC-04, AC-15 and gate I-1.
 Every chunk below is **open**; a chunk is built from this file, not from the master plan.
 
 ## Decisions this plan carries (settled by the owner; not re-asked)
 
-- A per-study envelope for paid work, set by the researcher up to a client or organization ceiling; everything inside it, including the fieldwork run, no expiry until the study closes, priced Deep Research inside it (F13, Q14).
-- The researcher approves a plan once and the Lead runs its steps; a plain chat request from a person starts a run inside the envelope without a plan card; a Lead-initiated run needs an approved plan (Q14, Q25).
+- A per-study wallet for paid work, set by the researcher up to a client or organization ceiling; everything inside it, including the fieldwork run, no expiry until the study closes, priced Deep Research inside it (F13, Q14).
+- The researcher approves a plan once and the Lead runs its steps; a plain chat request from a person starts a run inside the wallet without a plan card; a Lead-initiated run needs an approved plan (Q14, Q25).
 - Each researcher has their own Lead, private to them; an organization admin can read its files and notes, never its turns, and hand it on as a copy with personal notes removed; the Lead proposes updates to its own files and the researcher approves each (Q18, Q19, Q26).
 - Two meters in the header, the rest on click (Q20); two to three parallel jobs (target architecture).
-- The spend limit is a **confirmation threshold** (`spend_confirm_usd`, null means never ask) and the cap is `budget_usd`; the envelope is defined against `budget_usd` and never against the threshold (the owner, 2026-10-19, after the traces).
+- The spend limit is a **confirmation threshold** (`spend_confirm_usd`, null means never ask) and the cap is `budget_usd`; the wallet is defined against `budget_usd` and never against the threshold (the owner, 2026-10-19, after the traces).
 
 ## Chunks
 
-**LO0. The contract ADR and the money vocabulary: envelope cap, `budget_usd`, `spend_confirm_usd`, the client ceiling, `clients.budget_usd`, OI-64, one precedence**  
-Supersedes MVP-13 in the ADR text. Corrects the architecture and cohesion statements that call the spend limit a hard stop. Test: a document check that the word "hard stop" is not applied to `spend_confirm_usd`. Interfaces I4.
+**LO0. The contract ADR and the money vocabulary: wallet cap, `budget_usd`, `spend_confirm_usd`, the client ceiling, `clients.budget_usd`, OI-64, one precedence**  
+Supersedes MVP-13 in the ADR text. **The name (the product owner, 2026-10-20):** the study's spending cap that an approved plan runs inside is the **wallet** in code and plans (`study_wallets`, `study_wallet_raises`, `study_wallet_charges`, `clients.wallet_ceiling_usd`, "wallet cap") and **Peněženka** in the Czech UI; it was called the envelope until then. `budget_usd` and `spend_confirm_usd` keep their names. The other envelopes (the Sociomap terrain envelope, Deep Research's orchestration envelope, the error-tracking envelope, the investigator's output envelope) are different things and keep theirs. Corrects the architecture and cohesion statements that call the spend limit a hard stop. Test: a document check that the word "hard stop" is not applied to `spend_confirm_usd`. Interfaces I4.
 
-**LO1. The envelope (M4): `study_envelopes`, `_raises`, `_charges` and `clients.envelope_ceiling_usd`; charges for paid work including Deep Research**  
-The data for the two meters: spent against `budget_usd`, and the envelope remaining on click, with Czech labels distinct from the confirmation threshold's. Server-computed ceilings, holds, settlement and concurrent accounting are preserved (a start never exceeds the cap; an unknown cost counts as its ceiling). Test: a raise needs the researcher inside the ceiling and an approver above it; a charge above the envelope parks, never fails.
+**LO1. The wallet (M4): `study_wallets`, `_raises`, `_charges` and `clients.wallet_ceiling_usd`; charges for paid work including Deep Research**  
+The data for the two meters: spent against `budget_usd`, and the wallet remaining on click, with Czech labels distinct from the confirmation threshold's. Server-computed ceilings, holds, settlement and concurrent accounting are preserved (a start never exceeds the cap; an unknown cost counts as its ceiling). Test: a raise needs the researcher inside the ceiling and an approver above it; a charge above the wallet parks, never fails.
 
 **LO2. A typed `start_run` with no `confirm_cost_usd`, and an import rule that a plan step cannot reach the confirming start**  
 `ResearchRuns.start` takes the confirmation as a function argument (`research.py:724-742`), so "a plan authority holds no `APPROVE_GATE`" does not protect it. The Run stage button, the plan card and the chat start all call the one start with their pins (persona source, child, acknowledgement). Interfaces I3.
@@ -55,7 +55,7 @@ The riskiest piece: the most tests and a kill switch. A step that reaches a gate
 The prototype's decision card for a run start is this card with one item. The minimum usable plan card lands with LO4 in W1 inside the current Lead pane; it is part of I-1. `research-lead-workbench` 23 adds the richer worker/Deep Research cards in W4 and is not the first UI for plan approval. This chunk owns the contract and ledger rows (`lead_plan`, `plan_step`, M3).
 
 **LO5. Direct human chat start: the typed command the server matches, ledger `chat_start`, the model not in the path**  
-The security condition: a start is authorised by a person's own typed command matched by the server, never by a model's interpretation of text. Inside the envelope only.
+The security condition: a start is authorised by a person's own typed command matched by the server, never by a model's interpretation of text. Inside the wallet only.
 
 **LO6. The continuation turn: a finished step enqueues a Lead turn with typed results; no polling**  
 Turns are person-started only today (`research_lead.py:763-790`). A result reaches the Lead as an artifact reference plus fields code has validated, never a worker's free text (a summary derived from web text is an injection path). Test: a step finishing wakes one turn with its results; a failed step wakes one with the park reason.
@@ -76,7 +76,7 @@ The three workers (map interpreter, report writer, straight-liner check) have no
 `approval_decisions.subject_type` is a check constraint; every later migration and consumer (`LO1`, `LO3`, `LO5`, `working-copy-edit-ops#WCE8`, `report-delivery#RD4`, `client-data-in-analysis#2`) writes one of these subjects, so one migration extends it once and no later migration edits the same constraint. S3 owns the lane and writes it; the consumers write only their rows. It lands with its repository change, a round-trip test, an isolation test and its `layer_check` rule. Gap G43.
 
 **LO15. Server spend enforcement (W0): `ResearchAgentJobs.start` and `rebuild` apply `spend_confirm_usd` as `ResearchRuns.start` does, and record the confirmation in the ledger**  
-`ResearchAgentJobs.start` (`application/research.py:1311-1407`) reads no `spend_confirm_usd`, while `ResearchRuns.start` does (`:739`); the only check on a design job today is in the Lead's approve path (`application/research_lead.py:678-760`). Removing the manual buttons (D15) is a UI change and does not enforce a server rule: `mvp-cohesion.md` F5 adopts this check as the first code change, and `research-lead-workbench` F1 is no longer an owner decision. `budget_usd` is the cap; the envelope and the `spend_confirm_usd` confirmation are distinct. Test: a direct HTTP start and a rebuild above the threshold are refused without a covering confirmation and write the ledger row with one; the Lead's approve path still passes; a start under the threshold is unchanged. Interfaces I4.
+`ResearchAgentJobs.start` (`application/research.py:1311-1407`) reads no `spend_confirm_usd`, while `ResearchRuns.start` does (`:739`); the only check on a design job today is in the Lead's approve path (`application/research_lead.py:678-760`). Removing the manual buttons (D15) is a UI change and does not enforce a server rule: `mvp-cohesion.md` F5 adopts this check as the first code change, and `research-lead-workbench` F1 is no longer an owner decision. `budget_usd` is the cap; the wallet and the `spend_confirm_usd` confirmation are distinct. Test: a direct HTTP start and a rebuild above the threshold are refused without a covering confirmation and write the ledger row with one; the Lead's approve path still passes; a start under the threshold is unchanged. Interfaces I4.
 
 **LO10. `approve_request` bound to the revision shown on its card, and a clean error where the 96 KB Lead context meets the 64 KB agent limit**  
 `approve_request` submits whatever the working copy is at approval time, unlike `decide_edits`, which needs `base_revision`. Test: approving a card whose revision moved is refused with a message, not a 500.
@@ -98,7 +98,7 @@ The prototype's own documentation lists the unmeasured cost per turn as a gap to
 
 ## Open: owner clarifications
 
-None here. The envelope sits beside `spend_confirm_usd`, which stays a per-start confirmation (settled; `mvp-master-plan.md` §11.2).
+None here. The wallet sits beside `spend_confirm_usd`, which stays a per-start confirmation (settled; `mvp-master-plan.md` §11.2).
 
 
 ## Execution predecessors (2026-10-20)
