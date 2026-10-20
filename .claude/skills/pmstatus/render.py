@@ -10,6 +10,7 @@ Stdlib only. Every string from the JSON is escaped: session text is untrusted.
 from __future__ import annotations
 
 import json
+import re
 import sys
 from datetime import datetime
 from html import escape
@@ -300,6 +301,32 @@ def safe_url(value: object) -> str | None:
     return text if text.lower().startswith(("https://", "http://")) else None
 
 
+# Explainers are untrusted HTML. The sandbox (scripts only, no same-origin) keeps them from this page and
+# its db; this policy, the first thing in their <head>, keeps them off the network: no fetch, beacon,
+# image, font or frame from anywhere but the document itself.
+EXPLAINER_CSP = (
+    '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; '
+    "script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; "
+    "media-src data: blob:; connect-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'\">"
+)
+REFRESH = re.compile(r"<meta[^>]+http-equiv\s*=\s*[\"']?refresh", re.I)
+HEAD_OPEN = re.compile(r"<head(\s[^>]*)?>", re.I)
+DOCTYPE = re.compile(r"^\s*<!doctype[^>]*>", re.I)
+
+
+def contained(src: str) -> str | None:
+    """The explainer with the network policy first in its head; None for one that redirects itself."""
+    if REFRESH.search(src):
+        return None
+    m = HEAD_OPEN.search(src)
+    if m:
+        return src[: m.end()] + EXPLAINER_CSP + src[m.end() :]
+    m = DOCTYPE.match(src)
+    if m:
+        return src[: m.end()] + "<head>" + EXPLAINER_CSP + "</head>" + src[m.end() :]
+    return "<head>" + EXPLAINER_CSP + "</head>" + src
+
+
 def explainer_row(items: list) -> str:
     """Each explainer embedded in a sandboxed srcdoc iframe (scripts only, no same-origin:
     the untrusted code cannot reach this page or its db); a link when no html was fetched."""
@@ -316,13 +343,22 @@ def explainer_row(items: list) -> str:
             else ""
         )
         html_src = x.get("html")
+        html_src = contained(html_src) if isinstance(html_src, str) and html_src.strip() else None
+        eid = (
+            re.sub(r"[^a-z0-9-]+", "-", str(x.get("id") or title).lower()).strip("-")[:120]
+            or "explainer"
+        )
+        seen_btn = (
+            f' <button type="button" class="btn ghost seen-toggle" data-eid="ex-{e(eid)}" aria-pressed="false" disabled>'
+            f'Mark as seen</button><span class="savemsg" role="status" aria-live="polite"></span>'
+        )
         h = num(x.get("height"))
         height = int(max(160, min(900, h))) if h is not None else 360
         if isinstance(html_src, str) and html_src.strip():
             out.append(
                 f'<figure class="explf"><iframe sandbox="allow-scripts" srcdoc="{escape(html_src, quote=True)}" '
                 f'title="{e(title)}" loading="lazy" referrerpolicy="no-referrer" style="--h:{height}px"></iframe>'
-                f"<figcaption>▶ {e(title)}{fn}{link}</figcaption></figure>"
+                f"<figcaption>▶ {e(title)}{fn}{link}{seen_btn}</figcaption></figure>"
             )
         elif url:
             out.append(
@@ -606,6 +642,10 @@ ul.recent time{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nu
 .explf iframe{display:block;width:100%;height:var(--h,360px);border:1px solid var(--line);border-radius:10px;background:#fff}
 .explf figcaption{font-size:13px;color:var(--muted);margin-top:6px}
 .explf a,.expl{color:var(--active)}
+.explf figcaption{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.seen-toggle{padding:4px 12px;font-size:12px}
+.explf.is-seen iframe{display:none}
+.explf.is-seen figcaption::after{content:"Seen. It leaves the next status update.";color:var(--done);font-weight:600}
 /* decisions */
 .decwrap{border:2px solid var(--you);border-radius:18px;padding:18px;background:var(--you-bg)}
 .decwrap>h2{margin-top:0}
@@ -791,6 +831,35 @@ JS = r"""
     paint(card);
   });
 
+  var seenState = {};
+  var seens = Array.prototype.slice.call(document.querySelectorAll(".seen-toggle[data-eid]"));
+  function paintSeen(btn) {
+    var id = btn.getAttribute("data-eid"), d = seenState[id], on = !!(d && d.seen);
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    btn.textContent = on ? "Seen ✓ (undo)" : "Mark as seen";
+    btn.disabled = !(db && writable);
+    var fig = btn.closest(".explf");
+    if (fig) fig.classList.toggle("is-seen", on);
+  }
+  seens.forEach(function (btn) {
+    var id = btn.getAttribute("data-eid");
+    var out = btn.nextElementSibling;
+    btn.addEventListener("click", function () {
+      if (!db || !SAFE.test(id)) return;
+      var fig = btn.closest(".explf"), iframe = fig && fig.querySelector("iframe");
+      var next = !(seenState[id] && seenState[id].seen);
+      var body = { seen: next, at: new Date().toISOString(), title: iframe ? (iframe.getAttribute("title") || "") : "" };
+      if (uid) body.by = uid;
+      btn.disabled = true; if (out) { out.className = "savemsg"; out.textContent = "Saving…"; }
+      retryOnce(function () { return db.collection("seen").doc(id).set(body); }).then(function () {
+        seenState[id] = body; if (out) out.textContent = ""; paintSeen(btn);
+      }, function (err) {
+        if (err && err.code === "invalid_argument") writable = false;
+        if (out) { out.className = "savemsg bad"; out.textContent = errText(err); } paintSeen(btn);
+      });
+    });
+  });
+
   var doneState = {};
   var toggles = Array.prototype.slice.call(document.querySelectorAll(".done-toggle[data-aid]"));
   function paintToggle(btn) {
@@ -825,7 +894,7 @@ JS = r"""
     db = null;
     say(text, true);
     if (countEl) countEl.textContent = "Answers can't be loaded in this view";
-    cards.forEach(paint); toggles.forEach(paintToggle);
+    cards.forEach(paint); toggles.forEach(paintToggle); seens.forEach(paintSeen);
   }
 
   var claude = window.claude;
@@ -845,7 +914,8 @@ JS = r"""
       .then(function () {
         return Promise.all([
           retryOnce(function () { return db.collection("answers").get(); }),
-          retryOnce(function () { return db.collection("actions").get(); })
+          retryOnce(function () { return db.collection("actions").get(); }),
+          retryOnce(function () { return db.collection("seen").get(); })
         ]);
       })
       .then(function (snaps) {
@@ -855,9 +925,15 @@ JS = r"""
         });
         snaps[1].docs.forEach(function (d) {
           var v = d.exists ? d.data() : null;
-          if (v && typeof v === "object") doneState[d.id] = v;
+          var a = ACTS.filter(function (x) { return x.id === d.id; })[0];
+          // A retired id must never mark a new action done: the stored title has to match.
+          if (v && typeof v === "object" && a && v.title === a.title) doneState[d.id] = v;
         });
-        say("", false); counter(); cards.forEach(paint); toggles.forEach(paintToggle);
+        snaps[2].docs.forEach(function (d) {
+          var v = d.exists ? d.data() : null;
+          if (v && typeof v === "object") seenState[d.id] = v;
+        });
+        say("", false); counter(); cards.forEach(paint); toggles.forEach(paintToggle); seens.forEach(paintSeen);
       });
   }).catch(function (err) {
     offline("Answers could not be loaded (" + ((err && err.code) || "error") + "). Everything stays readable; reload to try again.");

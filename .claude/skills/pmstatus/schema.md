@@ -67,7 +67,9 @@ Published with `capabilities: {"db": {}, "user": {}}` (default rules: Contributo
 - `answers/<question id>`: `{choice, option_label, note, at (ISO), title, by?}` -- `by` is the viewer's
   opaque `user.id()`, present only when the user capability gives one. One doc per question,
   last write wins (a "Change" overwrites it).
-- `actions/<needs_nigel id>`: `{done: true|false, at, title, by?}` -- the "I've done this" toggle.
+- `actions/<needs_nigel id>`: `{done: true|false, at, title, by?}` -- the "I've done this" toggle. Counted only while
+  `title` matches the action's, so a retired id never marks a new action done.
+- `seen/ex-<explainer id>`: `{seen: true|false, at, title, by?}` -- the explainer's "Mark as seen" toggle.
 
 Explainers are embedded as `<iframe sandbox="allow-scripts" srcdoc=...>` (no allow-same-origin), so
 their code cannot reach the page or its db. There is one artifact only: explainers have no artifact of
