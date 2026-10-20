@@ -8,7 +8,8 @@ before any command reaches *respondent replacement*. **Builds on** [ADR 0016](00
 [ADR 0019](0019-two-roles-and-human-ai-gates.md) gates 1 and 2, and
 [ADR 0028](0028-orchestration-scope-wallet-and-plan-card.md) (the typed start). **Leaves unchanged**
 the original run, its dataset, its results and its report.
-**Date:** 2026-10-20
+**Date:** 2026-10-20. **Amended 2026-10-20** with the product owner's recorded answer D-36
+(`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`); still Proposed.
 **Plan:** [run-qc-and-checkpoint](../../../.planning/plans/run-qc-and-checkpoint.md) RQC4, RQC4a, RQC5
 
 ## Context
@@ -83,7 +84,7 @@ renormalised; the two runs can be compared because both are kept whole.
 - A command, a start path from a finished run, an exclusion record and a lineage field; no new
   table.
 - Two runs per replacement in every list; the newer is the one a report and the Lead read by
-  default, and both are named.
+  default, and both are named (the product owner, 2026-10-20, D-36).
 
 ## What enforces it
 
@@ -103,5 +104,4 @@ and its executable behaviour once MVPQ-10 is answered.
 ## Open for Nigel
 
 1. **MVPQ-10, the method**, is the methodology owner's (A. Bahbouh).
-2. **Which run a report reads by default** after a replacement: this ADR reads the newer and names
-   both; the alternative is that a person chooses each time.
+2. ~~Which run a report reads by default.~~ The newer, naming both (D-36, a), as written.
