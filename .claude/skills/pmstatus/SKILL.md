@@ -19,6 +19,16 @@ in `.agent-status/pm-coordinator.md` on the `coordination/agent-status` branch (
 exception; a separate worktree, never the main checkout). Copy the skill files into the scratchpad and
 work there; keep the output path the same every run (`$SCRATCH/pmstatus/out.html`).
 
+**Every update, not only a full /pmstatus run (the owner's rule, 2026-10-20):**
+- **Rebuild "Actions only you can take" from scratch** each time the page is published. Check every item
+  against its primary source (the PR, the branch, the session's reply); drop what is done, add what is new.
+  A tick on the page is a claim to verify, not proof: when it doesn't verify, reissue the action under a
+  **new id and a new title** (the page counts a stored row only for its exact title), saying why.
+- **Drop stale decisions.** Once an answered question has been applied by the owning session, it leaves the
+  page entirely (`decided` empty or only the answers not yet applied); its record lives in the coordinator
+  state file. Never let `decided` grow into a history.
+- Refresh the session cards, workstreams, next actions and "recent" (last 24 h) in the same pass.
+
 0. **Read the owner's answers first.** Load `ArtifactData` (ToolSearch `select:ArtifactData`) and `list`
    the collections `answers`, `actions` and `seen` of the artifact above.
    `answers/<Qid>` = `{choice, option_label, note, at, title, by?}`; `actions/<Nid>` = `{done, at, title, by?}`.
