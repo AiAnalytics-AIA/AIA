@@ -37,7 +37,7 @@ person accepts (`assumption_add`, `assumption_edit`, `assumption_link`, `assumpt
 | Status | Needs |
 |---|---|
 | `UNTESTED` | nothing: tracking what is not yet known is the core use |
-| `SUPPORTED`, `CONTRADICTED` | at least one admissible attachment (decision 3) and a person's accept |
+| `SUPPORTED`, `CONTRADICTED` | at least one admitted **respondent** claim attached (decision 3) and a person's accept; external findings may sit beside it as context but never count toward it (the product owner, 2026-10-20, D-16) |
 | `RETIRED` | a person's accept; kept, never deleted |
 
 The set is closed: these four and no other (the product owner, 2026-10-20, Q11 b; there is no
@@ -71,13 +71,15 @@ as established; the composer refuses it by name.
 - **Let the Lead or a Design Research run set a status.** Ruled out by gate 1 and the owner.
 - **Attach findings by their text.** A model's paraphrase of a finding is not the finding; code
   copies from the bundle.
-- **One status for both bases.** It would print an assumption "supported" by web text the same way
-  as one supported by respondents; ADR 0021 forbids reading the two as one.
+- **`SUPPORTED` on external findings alone, its basis printed as external** (this ADR's draft).
+  Rejected by the product owner (D-16): web text is context, and ADR 0021 forbids reading it as
+  respondent evidence.
 
 ## Consequences
 
 - A new item kind, five operations, one ledger subject reused (the design accept), and one chapter.
-- An assumption supported only externally reads so, everywhere it is shown.
+- An assumption cannot be marked supported or contradicted on web evidence alone; until a run of the
+  study produces a respondent claim it stays `UNTESTED`, with any external findings shown as context.
 
 ## What enforces it
 
@@ -85,7 +87,8 @@ as established; the composer refuses it by name.
 - Tests: an attachment whose quote is not in a captured snapshot is refused; a rejected or
   quarantined finding is not attachable; a claim ref from another study is refused; a status change
   without a person's accept is refused; accepting an attachment leaves the status unchanged; the
-  composer refuses a `SUPPORTED` assumption with no admissible attachment; an `UNTESTED` assumption
+  composer refuses a `SUPPORTED` or `CONTRADICTED` assumption with no attached respondent claim, and
+  one whose only attachments are external findings; an `UNTESTED` assumption
   with none is accepted and printed as untested.
 
 ## Unblocks
@@ -94,10 +97,11 @@ AOC1 (W1, the item and `UNTESTED` tracking), AOC2 (W2, attachments), AOC3 and RD
 
 ## Open for Nigel
 
-1. **May `SUPPORTED` rest on external findings alone?** The plan says both "Deep Research evidence
+1. ~~**May `SUPPORTED` rest on external findings alone?**~~ Answered 2026-10-20 by the product owner
+   (D-16, b): no; `SUPPORTED` and `CONTRADICTED` need at least one admitted respondent claim, and an
+   external finding is context only. Decision 2 reads so. The question as it was put: the plan says both "Deep Research evidence
    … cannot by itself mark one supported" (its *Decisions*) and "only an evidence-backed assertion
-   needs support, … cited Deep Research findings as external context" (AOC0). This ADR lets a person
-   set `SUPPORTED` on external attachments alone **and** prints its basis as external; the stricter
-   reading needs at least one respondent claim for `SUPPORTED` and `CONTRADICTED`.
+   needs support, … cited Deep Research findings as external context" (AOC0). The draft let a person
+   set `SUPPORTED` on external attachments alone; the owner chose the stricter reading.
 2. ~~**The status set.**~~ Answered 2026-10-20 by the product owner (Q11 b): `UNTESTED`,
    `SUPPORTED`, `CONTRADICTED` and `RETIRED`; there is no `UNVERIFIED`. Decision 2 reads so.
