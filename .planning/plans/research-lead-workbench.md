@@ -16,7 +16,7 @@ chunks:
   - "[ ] 12. Workbench journey: four widths, keyboard, focus modes, a Lead turn on recorded answers, zero unintended paid jobs"
   - "[x] 13. Design V3 in the repository (prototypes/research-lead-v3, its text) and its chunks in this plan"
   - "[ ] 14. The Lead's view vocabulary: a closed, per-artifact set of display operations the Lead may run on the artifact pane"
-  - "[ ] 15. The artifact frame: title, state pill, one version line and at most one state bar; inputs, feeds, workers and provenance in the inspector (the V2 prototype's D5, a proposed override of the V3 header strip: owner confirms), Pracovní kopie / Historie / Původ, the revision stepper"
+  - "[ ] 15. The artifact frame: title, state pill, one version line and at most one state bar; inputs, feeds, workers and provenance in the inspector (the canonical V2 prototype's D5, owner confirmed in MVPQ-01 on 2026-10-20), Pracovní kopie / Historie / Původ, the revision stepper"
   - "[ ] 16. Pointing at the artifact: the Vidí chip, the target button and @ over every artifact's elements"
   - "[ ] 17. Questionnaire artifact, its proposal shown in it (where chunk 7 lands)"
   - "[ ] 18. Brief and Research design artifacts"
@@ -88,12 +88,9 @@ journey runs a Lead turn in a browser on the workbench's scripted Lead (`Scripte
 never a model: hatching, the greeting, a message, an edit accepted through the server's gate and
 read back after a reload, a prepared job left unapproved, the note on Můj Vedoucí.
 
-## Design V3: an artifact per step, steered by the Lead (chunks 13-25)
+## Stage artifacts, steered by the Lead (chunks 13-25; V2 canonical, V3 supporting)
 
-The product owner's V3 design ([`prototypes/research-lead-v3`](../../prototypes/research-lead-v3/README.md),
-2026-10-19) keeps the split and the Lead and changes the right side: each research step becomes
-**its own artifact**, designed for the step, and the Lead **controls that 60 %**. The design's
-visible text is under `prototypes/research-lead-v3/text/`, cited here as `artifacts.txt FRAME n`.
+The earlier V3 designs ([`prototypes/research-lead-v3`](../../prototypes/research-lead-v3/README.md)) remain a supporting inventory of stage capabilities; their visible text is under `prototypes/research-lead-v3/text/`, cited as `artifacts.txt FRAME n`. **The owner's later MVPQ-01 decision (2026-10-20) selects the Czech V2 clickable build as the visual and interaction reference for the shell and all eleven artifact bodies.** Each step remains its own purpose-built artifact. A V3 frame reference below names coverage to reconcile, not authority to replace the corresponding V2 layout.
 
 Today the workbench mounts the classic stage screens as the artifact (`Workbench.tsx:473 @
 0b4e05e` renders `{children}`, passed in by `ResearchScreen.tsx`), as D1 chose. The Lead steers
@@ -114,8 +111,7 @@ at an element (`lib/lead.ts:341`, `Workbench.tsx:185-207 @ 0b4e05e`).
   command behind its existing gate (D6, D7).
 - **D11. The interface is Czech.** The design's English gives structure and meaning: "Workspace /
   History / Provenance" are **Pracovní kopie / Historie / Původ**, the "Sees" chip is **Vidí**.
-- **D12. Supersedes D1 for the artifact bodies.** Each step's artifact is rebuilt to V3 inside the
-  workbench, one or two per PR, over AIA's own data and routes (never the design's fixtures). The
+- **D12. Supersedes D1 for the artifact bodies; amended by MVPQ-01, 2026-10-20.** Each step's artifact follows the canonical V2 build inside the workbench, one or two per PR, over AIA's own data and routes (never the design's fixtures). V3 contributes a supporting coverage checklist only. The
   classic layout (switch off, or under 1100 px) keeps today's screens.
 - **D13. AIA's data only.** Where AIA has nothing behind a part of an artifact, the part says so in
   words ("V AIA zatím není", or the backend's own reason), never a placeholder that reads like data.
@@ -138,7 +134,7 @@ at an element (`lib/lead.ts:341`, `Workbench.tsx:185-207 @ 0b4e05e`).
   server rule (`lead-orchestration#LO15`), so a direct request is not a way around the Lead's gates.
   Client Knowledge extraction is the separately recorded client-level exception (`lead-orchestration#LO13`).
   Test (chunk 26): 1099 px and 1100 px, the switch off, and a direct HTTP start.
-- **D16. Release scope** (owner, 2026-10-19; MVP-3). The Lead and all eleven V3 artifacts are
+- **D16. Release scope** (owner, 2026-10-19; MVP-3). The Lead and all eleven stage artifacts following V2 are
   release-blocking (12, 11, 14-23). **The plan-scoped part of the autopilot is in the MVP** (an approved
   plan the Lead runs, and a person's chat start: `lead-orchestration` LO3-LO5; MVP-3 amended and MVP-13
   superseded by the per-study envelope, 2026-10-19). Chunk 24, a standing "continue" beyond a plan's
@@ -231,3 +227,13 @@ lock), `lead-orchestration` (the envelope, the plan card, the chat start, the co
 and `production-environment`. Chunks 14-22 here build the screens over them. **Proposed override for the
 owner:** chunk 15 follows the V2 prototype's decision that inputs, feeds, workers and provenance live in
 the inspector and a state bar appears only when it applies, instead of the V3 header strip.
+
+## Owner decision MVPQ-01 (2026-10-20)
+
+After the side-by-side review, the owner selected the prototype open in the browser:
+the Czech AIA Vedoucí výzkumu / Research Lead V2 build. This settles prototype precedence
+for the full workspace and all eleven artifact bodies. It supersedes the recommendation
+to take V3 bodies by default. Implement the selected compact layout; expose complexity
+through its contextual controls. Preserve existing domain/methodology, scope, budget,
+approval and privacy decisions. M12 records necessary conformance deltas; implementation
+chunks remain open. See `../mvp-owner-decisions.md` MVPQ-01; do not re-ask this question.

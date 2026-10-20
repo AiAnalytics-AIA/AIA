@@ -1,6 +1,6 @@
 # MVP owner decision packet
 
-2026-10-20. These questions remain OPEN until the named owner answers. A session,
+2026-10-20. MVPQ-01 is SETTLED by the product owner below. The other questions remain OPEN until the named owner answers. A session,
 question widget or usage limit ending is not an answer. Recommendations below
 are proposals, not approvals. The master plan §11.4 is the index; the settled
 decisions remain in §11.1 and the cohesion register.
@@ -11,14 +11,25 @@ acceptance changes; then the master and every affected child are updated togethe
 If a newer recorded decision already answers an item, cite it and close the item
 without asking again. Do not tick implementation because a decision is answered.
 
-## MVPQ-01 — Which prototype controls which part?
+## MVPQ-01 — Canonical prototype: SETTLED, 2026-10-20
 
-**Product owner.** May V2 control interaction/detail and V3 the eleven artifact
-bodies where compatible, with recorded newer scope and methodology taking precedence?
+**Product owner decision:** “the one in the browser is the correct one,” after viewing
+the V2 and V3 Questionnaire designs. The browser displayed the Czech **AIA Vedoucí výzkumu /
+Research Lead V2** clickable build (`prototypes/research-lead-v2`, source baseline
+`9b50963f`; supplied export *AIA Vedoucí výzkumu.html*).
 
-**Recommendation:** yes; keep an explicit delta list instead of treating mock
-text/fixtures as product data. Blocks final workbench 17–22 layout conformance and
-master M12; current real-data routes and shared contracts can continue.
+**Disposition:** V2 is the canonical visual and interaction reference for the complete
+workspace **and all eleven artifact bodies**. Retain its top stage navigator, Lead on the
+left, artifact on the right, compact headers/state bars and contextual details.
+V3 is supporting capability/design reference only; do not replace V2 layouts with V3
+screens or import V3-only controls automatically. The earlier recommendation to use
+V3 artifact bodies by default is superseded.
+
+Existing explicit methodology, private-Lead, budget, approval and real-data decisions
+still govern. Prototype mock text/data do not approve conflicting domain behavior.
+Workbench 15 and 17–22 follow V2; M12 still checks and records any necessary differences
+from the existing domain decisions. This question is answered, not an implementation
+completion. Do not ask it again.
 
 ## MVPQ-02 — Are assumptions and open-answer coding new MVP features?
 

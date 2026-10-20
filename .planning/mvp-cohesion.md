@@ -663,3 +663,20 @@ not implementation completion. Q14's earlier expiry/chat-open status is correcte
 same-day decision; no settled decision is reopened. Canonical Sociomap Q5/Q6/Q7 and the audit's
 remaining parameter decisions stay in their existing methodology decision sheets and must be
 resolved before the affected method is treated as approved.
+
+## Owner decision MVPQ-01 — canonical prototype (2026-10-20)
+
+The owner reviewed the actual V2/V3 Questionnaire designs and answered: “the one in the
+browser is the correct one.” The browser displayed the Czech **AIA Vedoucí výzkumu /
+Research Lead V2** clickable prototype (`prototypes/research-lead-v2`, source baseline
+`9b50963f`; supplied export *AIA Vedoucí výzkumu.html*).
+
+V2 controls the workspace interactions and all eleven artifact bodies. V3 is supporting
+capability/design reference only, and cannot silently replace V2's selected layout.
+The previous recommendation to combine V2 interactions with V3 bodies is superseded.
+Existing explicit domain/methodology, private-Lead, budget and approval decisions remain
+in force; necessary differences from the prototype are listed in master M12.
+
+Disposition: MVPQ-01 SETTLED; workbench 15/17–22 and master §11.1/§11.4 reconciled.
+No implementation, scientific parameter, configuration or other owner decision is approved
+by this design-reference choice. The other MVPQ questions remain open.
