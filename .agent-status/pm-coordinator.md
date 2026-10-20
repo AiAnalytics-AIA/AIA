@@ -28,6 +28,11 @@ of the change (19:55). Nigel talks to coordinator 3 directly. Tools: .agent-stat
 4. Explainers: sessions send self-contained HTML (<40 KB) BY MESSAGE ("EXPLAINER <title> — <function>"); save to
    pmstatus/explainers/<session-id>/<slug>.html; embedded in the card via sandboxed srcdoc iframe. Sessions NEVER publish their
    own artifacts (two were deleted on Nigel's word 19:50). Tell every new session this rule at start.
+5. Retiring explainers (Nigel 20:10, a standing rule): an explainer is retired when Nigel presses "Mark as seen" on the page
+   (db `seen/ex-<slug>`) or when its work is finished (PR merged + deployed, cutover done). Retired: files to
+   explainers/_retired/, left out of the next build; a standalone artifact a session published for it is deleted then.
+6. Codex review: marking a draft PR ready starts a Codex review (ready_for_review does not re-run CI). Nigel 20:08: the open
+   PRs should be open for Codex review -> all 11 open PRs marked ready (20:09); owners told to handle Codex's findings.
 
 ## Decisions recorded 2026-10-20 (don't re-ask)
 X1/X8/X10; wallet = Peněženka (#511); MVP ships aia-sociomap-5 only (D-13); only the methodologist edits methodology (D-14);
@@ -92,6 +97,6 @@ Arigamaru; #512 ADR decisions; design feedback (optional).
 - Dependabot ~112 alerts mostly on main (556 commits behind develop): suggest a develop->main release sometime.
 - braces npm exception expires 2026-11-20 (CI fails from 11-21 until rechecked).
 - make ui-capture crashes in the cloud image (capture.mjs ESM import of CJS playwright; #514 F-1).
-- Docker session's earlier self-published explainer artifact https://claude.ai/artifact/5HtdSPoHoCvYitirfEfj2U (before the
-  no-artifacts rule; its content is now embedded in the page). Not deleted: ask Nigel before deleting (unless it was one of the two
-  he already had deleted).
+- Standalone explainer artifacts published before the no-artifacts rule: Docker 5HtdSPoHoCvYitirfEfj2U (retire when #524 is
+  merged and deployed), infra TGD4M1kWyChDQMg4uBw8DU (retire after the cutover). Delete each then, under rule 5.
+- #517 feature/aia-sociomap-5-web (opened 16:04, feature code, owner session unknown to me): ask Nigel/locate owner; scope freeze.

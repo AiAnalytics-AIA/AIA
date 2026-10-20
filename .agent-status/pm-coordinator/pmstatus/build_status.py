@@ -116,7 +116,7 @@ def load_explainers(session_id):
                 function = meta.get("function") or function
                 if isinstance(meta.get("height"), (int, float)):
                     height = int(meta["height"])
-        item = dict(title=title, function=function, html=raw)
+        item = dict(id=slug, title=title, function=function, html=raw)
         if height:
             item["height"] = height
         out.append(item)
