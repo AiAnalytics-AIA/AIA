@@ -12,11 +12,11 @@ chunks:
   - "[x] 8. design_items, the working revision on every Design Revision writer (web submit, reuse, accepts), the item-level stale rule"
   - "[x] 9. Accept in one transaction: merged Design Revision, working copy, ledger; the web reloads"
   - "[x] 10. Dismiss and rebuild through the ledger and rebuild_of; the pending-proposals projection"
-  - "[ ] 11. The command registry: the workers the Lead may call, each with its prompt and price, behind approve_request (ledger and spend limit already built)"
+  - "[ ] 11. The command registry: the workers the Lead may call, each with its prompt and price, behind approve_request (ledger and spend limit already built); the route-class refusal says who fixes it (lead-orchestration LO12a, then LO12b); first deliverable: the worker row (lead-orchestration LO9a)"
   - "[ ] 12. Workbench journey: four widths, keyboard, focus modes, a Lead turn on recorded answers, zero unintended paid jobs"
   - "[x] 13. Design V3 in the repository (prototypes/research-lead-v3, its text) and its chunks in this plan"
   - "[ ] 14. The Lead's view vocabulary: a closed, per-artifact set of display operations the Lead may run on the artifact pane"
-  - "[ ] 15. The artifact frame: header (inputs, feeds, readiness, workers), Pracovní kopie / Historie / Původ, the revision stepper"
+  - "[ ] 15. The artifact frame: title, state pill, one version line and at most one state bar; inputs, feeds, workers and provenance in the inspector (the canonical V2 prototype's D5, owner confirmed in MVPQ-01 on 2026-10-20), Pracovní kopie / Historie / Původ, the revision stepper"
   - "[ ] 16. Pointing at the artifact: the Vidí chip, the target button and @ over every artifact's elements"
   - "[ ] 17. Questionnaire artifact, its proposal shown in it (where chunk 7 lands)"
   - "[ ] 18. Brief and Research design artifacts"
@@ -25,8 +25,10 @@ chunks:
   - "[ ] 21. Analysis and Report artifacts"
   - "[ ] 22. Audience and Dimensions artifacts"
   - "[ ] 23. Worker and Deep Research cards in the conversation, each opening the artifact it changes"
-  - "[ ] 24. 'Continue until you need me' over chunk 11's command registry, stopping at every gate"
+  - "[ ] 24. A standing 'continue until you need me' beyond an approved plan's steps, over chunk 11's command registry, stopping at every gate (after the MVP: the plan-scoped part is lead-orchestration LO3-LO5)"
   - "[ ] 25. Deep Research reachable from every stage as a capability"
+  - "[ ] 26. The Lead stays accessible at every width (D20, MVPQ-11): the workbench serves under 1100 px with the Lead as a compact drawer or a stacked layout, the manual AI starts are removed in every layout, tested at 1099, 1100, 768 and 390 px, by keyboard, focus and Escape with a return to the targeted artifact, with a stale card refused, and by a direct request"
+  - "[ ] 27. Switch-off and rollback (D20): actual availability is stated; the compact Lead stays reachable while its backend is enabled, a genuinely disabled backend stays disabled and says so, with no alternate AI start and no bypass of a kill switch; every layout uses the same card, plan, envelope and server-confirmation paths"
 ---
 # Research Lead workbench
 
@@ -87,12 +89,9 @@ journey runs a Lead turn in a browser on the workbench's scripted Lead (`Scripte
 never a model: hatching, the greeting, a message, an edit accepted through the server's gate and
 read back after a reload, a prepared job left unapproved, the note on Můj Vedoucí.
 
-## Design V3: an artifact per step, steered by the Lead (chunks 13-25)
+## Stage artifacts, steered by the Lead (chunks 13-25; V2 canonical, V3 supporting)
 
-The product owner's V3 design ([`prototypes/research-lead-v3`](../../prototypes/research-lead-v3/README.md),
-2026-10-19) keeps the split and the Lead and changes the right side: each research step becomes
-**its own artifact**, designed for the step, and the Lead **controls that 60 %**. The design's
-visible text is under `prototypes/research-lead-v3/text/`, cited here as `artifacts.txt FRAME n`.
+The earlier V3 designs ([`prototypes/research-lead-v3`](../../prototypes/research-lead-v3/README.md)) remain a supporting inventory of stage capabilities; their visible text is under `prototypes/research-lead-v3/text/`, cited as `artifacts.txt FRAME n`. **The owner's later MVPQ-01 decision (2026-10-20) selects the Czech V2 clickable build as the visual and interaction reference for the shell and all eleven artifact bodies.** Each step remains its own purpose-built artifact. A V3 frame reference below names coverage to reconcile, not authority to replace the corresponding V2 layout.
 
 Today the workbench mounts the classic stage screens as the artifact (`Workbench.tsx:473 @
 0b4e05e` renders `{children}`, passed in by `ResearchScreen.tsx`), as D1 chose. The Lead steers
@@ -113,9 +112,8 @@ at an element (`lib/lead.ts:341`, `Workbench.tsx:185-207 @ 0b4e05e`).
   command behind its existing gate (D6, D7).
 - **D11. The interface is Czech.** The design's English gives structure and meaning: "Workspace /
   History / Provenance" are **Pracovní kopie / Historie / Původ**, the "Sees" chip is **Vidí**.
-- **D12. Supersedes D1 for the artifact bodies.** Each step's artifact is rebuilt to V3 inside the
-  workbench, one or two per PR, over AIA's own data and routes (never the design's fixtures). The
-  classic layout (switch off, or under 1100 px) keeps today's screens.
+- **D12. Supersedes D1 for the artifact bodies; amended by MVPQ-01, 2026-10-20.** Each step's artifact follows the canonical V2 build inside the workbench, one or two per PR, over AIA's own data and routes (never the design's fixtures). V3 contributes a supporting coverage checklist only. The
+  classic layout (switch off) keeps today's screens; under 1100 px the workbench still serves, with the Lead as a compact drawer or a stacked layout (D20, MVPQ-11); on switch-off the compact Lead stays reachable while its backend is enabled.
 - **D13. AIA's data only.** Where AIA has nothing behind a part of an artifact, the part says so in
   words ("V AIA zatím není", or the backend's own reason), never a placeholder that reads like data.
 - **D14. The journey grows with the artifacts.** Chunk 12 lands first, and each artifact PR adds its
@@ -127,10 +125,26 @@ at an element (`lib/lead.ts:341`, `Workbench.tsx:185-207 @ 0b4e05e`).
   `approve_request`, which already holds the study's spend limit (`application/research_lead.py:678-760
   @ 0b4e05e`). Removal goes **artifact by artifact**: each of 17-22 lands without its stage's buttons
   and with the Lead able to call that stage's worker, so no AI action is ever without a way in. This
-  closes F1: no paid design job starts outside the Lead's path.
-- **D16. Release scope** (owner, 2026-10-19; MVP-3). The Lead and all eleven V3 artifacts are
-  release-blocking (12, 11, 14-23). The autopilot (24) and Deep Research from every stage (25) come
-  after the MVP; 24 needs an ADR for the Lead's own permission scope first.
+  removes the way in from the interface only; it does not enforce the spend limit, which is a server
+  rule (`lead-orchestration#LO15`).
+- **D20. The Lead stays accessible at every width (owner, MVPQ-11, 2026-10-20; reconciles D12 and D15).**
+  Under 1100 px the workbench still serves, with the Lead as a compact drawer or a stacked layout beside the
+  artifact, consistent with the canonical V2 workspace; the exact composition is an engineering and design
+  choice. The manual AI starts are removed in every layout (the stage components are shared), so no alternate
+  start exists, and every layout uses the same revision-bound card, approved-plan, envelope and
+  `lead-orchestration#LO15` server-confirmation paths: the container adds no authority and weakens no
+  privacy. **On switch-off or rollback** the actual availability is stated: the compact Lead stays reachable
+  while its backend is enabled, a genuinely disabled backend stays disabled and says so, and a kill switch is
+  never bypassed. A direct request is held by the same server gates. Client Knowledge extraction is the
+  separately recorded client-level exception (`lead-orchestration#LO13`, MVPQ-08). Tests (chunks 26, 27):
+  1099, 1100, 768 and 390 px, keyboard, focus and Escape with a return to the targeted artifact, a stale card,
+  the switch off, the kill switch off, and a direct HTTP start.
+- **D16. Release scope** (owner, 2026-10-19; MVP-3). The Lead and all eleven stage artifacts following V2 are
+  release-blocking (12, 11, 14-23). **The plan-scoped part of the autopilot is in the MVP** (an approved
+  plan the Lead runs, and a person's chat start: `lead-orchestration` LO3-LO5; MVP-3 amended and MVP-13
+  superseded by the per-study envelope, 2026-10-19). Chunk 24, a standing "continue" beyond a plan's
+  steps, and chunk 25, Deep Research from every stage, come after the MVP; 24 needs an ADR for the Lead's
+  own permission scope first.
 - **D17. The workers** (owner, 2026-10-19; MVP-12, MVP-13). Chunk 11's registry holds the eight
   existing `ResearchAgentAction`s (`domain/research_agents.py:37-44 @ 0b4e05e`) and three new contracts,
   each closed and proposal-only with its own prompt (ADR 0020): a map interpreter (reads a frozen map,
@@ -150,23 +164,31 @@ at an element (`lib/lead.ts:341`, `Workbench.tsx:185-207 @ 0b4e05e`).
   have it in the next turn, so the bound holds. `lead_contract`'s rule (a number only from the
   context) stays.
 
-**The artifacts.** What V3 shows, what AIA has behind it, what is missing. "Backed by" names modules
-from the CLAUDE.md map; each chunk anchors its claims in its first commit, and until then an entry
-is a **hypothesis**.
+**The artifacts.** The canonical V2 build governs all eleven bodies (MVPQ-01,
+settled 2026-10-20). The complete stage-by-stage producer/consumer and required-delta
+matrix is [the current conformance disposition](../evidence/mvp-prototype-v2/current-disposition.md).
+The older V3 frame inventory is supporting reference.
 
-| Chunk | Artifact (V3) | What it shows | Backed by in AIA | Missing |
-|---|---|---|---|---|
-| 17 | Questionnaire (`FRAME 3`) | Outline by section, counts and minutes; each item's type, time, objective; a proposal inline: removed with reason, merged, reworded, locked Sociomap inputs | Questionnaire stage, agent jobs, `proposal-diff.ts`, `research_trace`, questionnaire import | Per-item time estimate; "serves no objective" as a reason the proposal carries |
-| 18 | Brief (`FRAME 1`) | Goal, problem type, materials with data class, context, readiness with an assumption carried on | Brief stage, attachments, client knowledge, classification (#487) | Assumptions (A1…) tracked across stages |
-| 18 | Research design (`FRAME 2`) | Breadth options with N and trade-off; objectives, research questions, hypotheses; comparable sets, locked Sociomap input; follow-up questions | Plan stage, `research_plan`, tracked sets, Sociomap declarations | Breadth as a choice the design records |
-| 19 | Sample (`FRAME 6`) | N with reason, quotas by code, method support, run ceiling against the spend limit | `SampleView`, `support_forecast`, `run_cost`, readiness | Quotas before a run |
-| 19 | Fieldwork (`FRAME 7`) | Origin banner, run state and heartbeat, counts, respondent grid, quota fill, steps, spend, provenance | Progress, step activity, budget line, `respondentReceipt` | Per-respondent and quota fill from the fieldwork step's events |
-| 20 | Results (`FRAME 8`) | Each question with support and intervals, evidence marks, suppression said | Results Data, `result-reading.ts` | — (re-layout) |
-| 20 | Sociomap (`FRAME 10`) | Top view / 3D, object and pair detail, ranked list with ties, method and provenance, "Zeptat se Vedoucího na …" | `ObjectMapView`, `object-map-view.ts`, Sociomap register | Asking the Lead about an object or pair (chunk 16) |
-| 21 | Analysis (`FRAME 9`) | Three registers apart (deterministic, AI interpretation, external context); modules with state; a gate refusal shown | Analysis view, `needsRepair`, admitted claims, Interpretation Research | A Lead interpretation as an unapproved register entry |
-| 21 | Report (`FRAME 11`) | Outline, a proposal on a draft with Clean / Show changes, evidence on the page | `CompleteReport`, `report-status.ts`, report approval | A report wording proposal (a report worker) |
-| 22 | Audience (`FRAME 4`) | Source, population, target group with quotas, assumptions with Deep Research evidence, impact before saving | Audience stage, `/population` routes, Design Research | Cost and time of a new run (V3 itself says the backend lacks it); population size; own and special audiences |
-| 22 | Dimensions (`FRAME 5`) | Sociodemographics, recommended dimensions with what uses them, catalogue, own dimension proposed to client knowledge | Dimensions stage, `persona_topics`, materialize | "Used by" links to segments and hypotheses |
+| Chunk | Canonical V2 artifacts | Production contract |
+|---|---|---|
+| 17 | Questionnaire | Sections, routing, time/coverage, inline proposals and protected map inputs; WCE writer/merge/lock contracts |
+| 18 | Brief; Research design | Stable classified materials and question/decision/measurement/analysis/report links; unsupported coverage remains a gap |
+| 19 | Sample; Fieldwork | Actual quota/support/readiness, typed progress/receipt/QC and cost; pinned population/method and checkpoint events |
+| 20 | Results; Sociomap | Admitted results, stored map output and exact register status; object/pair controls, filters and internal drill-down |
+| 21 | Analysis; Report | Finding/claim/source chain, blocked reasons and same-data retry; draft changes and exact-version approvals |
+| 22 | Audience; Dimensions | LIVE counts and source pins; own dimensions materialize and feed a real consumer despite the prototype's simulated panel |
+
+Chunks 15/20/21 explicitly retain the four-way distinction: deterministic frozen result,
+display-only operation, labelled AI interpretation and external context. Display and
+context never mutate numeric outputs or acquire admitted-result status.
+
+Chunk 15 also owns the V2 message-origin/context inspector and return summary UI;
+chunk 12 verifies copy, older-message paging, queue, stop/edit keyboard controls and
+return to the last read position. Origin means permitted captured context/prompt/
+worker references, not hidden reasoning or another researcher's turns. The last-read
+cursor is researcher-scoped; LO7 provides the real event/context summary and LO11
+its personal lifecycle. Agree the minimal context/origin/cursor contract in W1 before
+the W4 UI, alongside LO7/LO8 and the privacy tests. No new shared-chat store is implied.
 
 **Order.** 12 (the journey), then 11 (the command registry: which workers the Lead may call, each
 with its prompt and price; most of the paid path is built, `mvp-consolidation.md` §6), then 14-16
@@ -176,12 +198,13 @@ The backend each chunk needs is in `.planning/mvp-consolidation.md` §6.
 
 ## Findings
 
-- **F1. An agent job ignores the study's spend limit** *(observation, not yet a defect)*.
+- **F1. An agent job ignores the study's spend limit** *(a defect to fix now, `lead-orchestration#LO15`)*.
   - `ResearchAgentJobs.start` (`research.py:1300-1384 @ 50547cdc`) holds a reservation but never
     reads `spend_confirm_usd`, which `ResearchRuns.start` applies (`research.py:716-729 @
     50547cdc`).
-  - ADR 0026 decision 7 applies the limit to Lead-prepared jobs. Whether a person's own button
-    should be held to it too is the product owner's call.
+  - ADR 0026 decision 7 applies the limit to Lead-prepared jobs. `mvp-cohesion.md` F5 adopts the
+    check inside `ResearchAgentJobs.start` as the first code change (`lead-orchestration#LO15`), so no
+    path is held to a different rule.
   - Reproduction: set a spend limit below `AIA_AI_RESEARCH_RESERVATION_USD`, then start any design
     job; no confirmation is asked.
 - **F2. Today's accept can silently overwrite an edit made in another tab.**
@@ -203,7 +226,31 @@ The backend each chunk needs is in `.planning/mvp-consolidation.md` §6.
 - **`ARCHITECTURE.md`.** The accept route's new shape, and one more human-only gate source (a
   Lead-prepared job).
 - **`.planning/open-items.md`.** F1 and F2 above.
-- **`CLAUDE.md` § 2**, beside `src/components/workbench/`: `prototypes/research-lead-v3/` is the
-  design the workbench's artifacts follow (2026-10-19); the navigator stays on top.
+- **`CLAUDE.md` § 2**, beside `src/components/workbench/`: `prototypes/research-lead-v2/` is the
+  canonical workspace and artifact reference (MVPQ-01, 2026-10-20); V3 is supporting reference.
 - **ADR 0026**, under *Accepted with*: the Lead steers the artifact pane through a closed set of
   display operations (D10); its gates are unchanged.
+
+## Child plans (added by the master plan, 2026-10-19)
+
+The orchestration and edit work this plan's artifacts stand on is in six plans, each chunk in exactly one
+place: `working-copy-edit-ops` (the shared vocabulary, merge, per-change accept, presence, the Sociomap
+lock), `lead-orchestration` (the envelope, the plan card, the chat start, the continuation turn,
+`ResultsContext`, the Lead over time), `run-qc-and-checkpoint`, `report-delivery`, `study-data-lifecycle`
+and `production-environment`. Chunks 14-22 here build the screens over them. Chunk 15
+follows the owner-selected V2: inputs, feeds, workers and provenance live in the inspector,
+and a state bar appears only when it applies. MVPQ-01 settles this decision.
+
+## Owner decision MVPQ-01 (2026-10-20)
+
+After the side-by-side review, the owner selected the prototype open in the browser:
+the Czech AIA Vedoucí výzkumu / Research Lead V2 build. This settles prototype precedence
+for the full workspace and all eleven artifact bodies. It supersedes the recommendation
+to take V3 bodies by default. Implement the selected compact layout; expose complexity
+through its contextual controls. Preserve existing domain/methodology, scope, budget,
+approval and privacy decisions. MP12 (the master plan's chunk) records necessary conformance deltas; implementation
+chunks remain open. See `../mvp-owner-decisions.md` MVPQ-01; do not re-ask this question.
+
+## Assumption panel (2026-10-20, MVPQ-02)
+
+Tracked assumptions are shown and edited in the Design artifact (18) and in Audience (22, where the canonical V2 places the assumption and evidence panel), both from the one item contract of `assumptions-and-open-answer-coding#AOC1`; there is no second store and no panel-local state.

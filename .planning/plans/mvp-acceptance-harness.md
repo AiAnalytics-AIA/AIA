@@ -1,7 +1,7 @@
 ---
 status: planned
 chunks:
-  - "[ ] 1. The USD 25 allocation: a ceiling per category, summed and checked before any recorded run"
+  - "[ ] 1. The USD 25 allocation: a ceiling per category, summed and checked before any recorded run, covering fieldwork, analysis and its repairs, the Lead's turns, Deep Research search and tool spend and the second (Interpretation) run, a retry round; the evaluation allowance stated apart"
   - "[ ] 2. The study's fixed inputs, fictional and committed: brief, client document, dataset with one personal column, a web page, a past study"
   - "[ ] 3. The harness: tests/acceptance driven over HTTP, reusing the scripted-provider fixture of test_product_acceptance.py, and its CI step (collected, writing JUnit)"
   - "[ ] 4. Recorded doubles behind the gateway and the retrieval gate for the Lead, every worker, respondents, analysis and Deep Research"
@@ -9,6 +9,13 @@ chunks:
   - "[ ] 6. The acceptance record: one PASS/FAIL line per criterion, stored as an artifact, with the parity report beside it"
   - "[ ] 7. Tier B: the live run on develop, its runbook and its record"
   - "[ ] 8. Parity reports, never blocks (owner, 2026-10-19): the 18.6.6 comparison jobs stop gating merges and deploys and report in the step summary and the record"
+  - "[ ] 9. The `acceptance` marker registered (`pyproject.toml` runs `--strict-markers`) and the tree collected by CI"
+  - "[ ] 10. Browser evidence kept distinct from HTTP evidence: real browser journeys (hand edits, pointing, proposals, keyboard and focus, stale states, all eleven stages, map view-only operations) are their own line in the record and never counted as HTTP"
+  - "[ ] 11. The Deep Research evaluations 25, 26 and 39 before the final live chunk 27, and the second live Interpretation run, are in the tier B record and its allocation"
+  - "[ ] 12. Production release is a blocker: the record states I-5 as not passed until the production release checklist is done, whatever tier B showed on develop"
+  - "[ ] 13. Every prototype scenario (A to M, X1 to X7) is an acceptance journey on recorded doubles; X2 (missing evidence) and X6 (a methodology change refused) stay as negative cases"
+  - "[ ] 15. The assumptions and open-answer coding journey (W5, MVPQ-02) with its refusals, over recorded doubles: `assumptions-and-open-answer-coding#AOC9`"
+  - "[ ] 14. The acceptance wording reconciled in the acceptance document and `parity-matrix.json` together, in a PR that runs the tests: AC-02 (approval card and plan), AC-11 (OPEN posture), AC-13 (F17), AC-15 (separate model, tool, reservation, uncertain and billing-lag lines; the USD 0.01 tolerance kept unless the owner changes it)"
 ---
 # The MVP acceptance harness
 
@@ -65,9 +72,7 @@ repository, domain function or table is touched directly.
 4. **Doubles.** One recorded exchange per model call kind and one per retrieval, deterministic,
    each stating that it is a recording, behind `GovernedModelGateway` and `RetrievalGate`, never
    around them.
-5. **Wiring.** A criterion lands when its work does. The first batch rests on built work: AC-01
-   (scope, 404), AC-06 (worker killed), AC-07 (impact preview), AC-12 (project memory), AC-14 (typed
-   config). Each later criterion arrives with the integration gate that makes it runnable
+5. **Wiring.** A criterion lands when its work does. The first batch exercises existing paths for AC-01 (scope, 404), AC-12 (project memory) and AC-14 (typed config). AC-06 requires RQC0's fieldwork checkpoint/kill proof and AC-07 requires WCE7's working-revision impact path; collecting older tests for them does not prove the stronger MVP obligations. Each later criterion arrives with the integration gate that makes it runnable
    (`mvp-cohesion.md` §4: I-1 to I-4).
 6. **Record.** One line per criterion, `PASS` / `FAIL` with the observation that decided it, stored
    as an artifact of the study with the reports, approved map snapshots and their approval records,
@@ -108,3 +113,51 @@ report is read. The record's parity line and the PR summary are the only places 
 
 **Test.** A CI-script test feeds `parity_status.py --report-only` a JUnit file with a failing parity test
 and asserts exit 0 and a `FAIL` line, and a matrix-consistency failure still exits 1.
+
+## Added by the master plan (2026-10-19)
+
+- **9.** The `acceptance` marker is unregistered under `--strict-markers` (`pyproject.toml:276-282`), so the
+  tree would not collect. Gap G10.
+- **10.** Tier A is "over HTTP". The workbench, Lead and artifact journeys run in a browser
+  (`tools/ui_workbench/*_journey.mjs`); the record keeps them as a separate line so a browser pass is never
+  read as an HTTP pass and the reverse.
+- **11.** Chunk 7 (tier B) depends on the Deep Research route: the first release's route is Brave for an
+  OPEN client (`deep-research-web-search` 53). Evaluations 25, 26 and 39 run before chunk 27
+  (`deep-research-web-search`, "Evaluations before the final live run"); the second live run that "cited
+  context in the report" needs (`contextual_report.py:985`) is added to AC-11's allocation. Gap G38.
+- **12.** `mvp-development-plan.md` §8 said a production release "can follow the acceptance without moving
+  the gate"; gate I-5 says "production released". I-5 stands: production is a blocker.
+- **13.** The twenty scenarios of `prototypes/research-lead-v2` are the behaviour spec. X2 and X6 are
+  central invariants (evidence that is missing says so; a methodology change is refused in place and
+  routed to Metodika) and cheap to test on doubles, so they are not deferred. The scenario order is a
+  build order, not a release scope.
+- **Wording to reconcile, in a PR that runs the tests** (`docs/migration/` and `parity-matrix.json` are
+  outside the docs-only path list and `test_parity_matrix.py` reads the matrix): AC-02 "a paid worker job
+  starts only on an approval card" against the envelope and the plan card; AC-11 "approved for Class B"
+  against the OPEN posture; AC-13 "a reviewer other than the producer" against F17 (withdrawn).
+
+- **14.** The wording that disagrees with settled decisions is changed in the acceptance document and the
+  machine criteria in one pull request that runs `test_parity_matrix.py` (those files are outside the
+  docs-only path list). **AC-15's reconciliation is stated as separate lines**: model usage in the ledger,
+  tool and search spend, reservations, uncertain calls, cloud-billing lag and non-provider infrastructure
+  charges; a number never reads as zero because it is unknown. The edit is on `chore/acceptance-reconcile`.
+
+
+## Incremental gates and full acceptance (2026-10-20)
+
+W0 builds 1-4, 8-9 and 14. W1-W4 extend 5, 10 and 13. W5 finishes 6-7 and 11-12.
+RQC10's population double lands before the W1 HTTP path. Do not give an unimplemented criterion
+a passing placeholder: record PASS / FAIL / NOT_EXECUTED / BLOCKED with reason and evidence.
+
+I-1 covers the available design workers, not all eleven workers; I-3/W3 adds LO9b and the eight
+analysis prompt pins. Only final tier A can report AC-03 PASS for all of them. Browser proof grows
+per artifact, and all eleven artifacts must pass before the release record. W0 tree collection,
+partial I-1 coverage, live I-R probes, final tier B and production are distinct evidence classes.
+
+The record pins the tested application SHA, plan/acceptance versions, fixture hashes, model and
+prompt identities, deployment/composition and effective policy. It includes criterion/negative-case
+id, expected/actual behavior, evidence artifact ref and cost/reservation/uncertainty lines. For a
+changed input, method, contract, prompt or deployment, identify which evidence must be repeated;
+do not carry a green release decision from an older SHA. Paid reruns still require their allowance.
+
+**15. (2026-10-20)** The journey and refusals of `assumptions-and-open-answer-coding#AOC9` join the acceptance tree: an assumption created, evidence attached, status set by a person, shown in the report; open answers coded, counts admitted, shown in Results and the report; a status without support refused, counts never produced from prose, a codebook change that leaves fieldwork untouched. It runs on recorded doubles in tier A; the model coder, if any, is a recorded double.

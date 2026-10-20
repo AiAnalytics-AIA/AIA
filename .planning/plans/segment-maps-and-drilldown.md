@@ -10,6 +10,7 @@ chunks:
   - "[ ] 6. The respondent drill-down route: one respondent's profile and answers, internal, never exported"
   - "[ ] 7. The Lead reads filters and the drill-down, labelled modelled, on the approved route only"
   - "[ ] 8. The Sociomap artifact shows filters and drill-down (with research-lead-workbench chunk 20)"
+  - "[ ] 0a. What a segment is, and the respondent attributes stored per respondent: their class and who may read them; before chunk 1"
 ---
 # Segment maps, map filters and the respondent drill-down
 
@@ -85,3 +86,13 @@ wait on a person outside engineering.
 ## Doc follow-up
 
 `ARCHITECTURE.md` §4: the drill-down exception and that it is internal and never exported.
+
+## Added by the master plan (2026-10-19)
+
+**0a.** Chunk 1 defines a segment as a cell of the study's selected dimensions (`DIMENSION_TOPICS`), but a
+dimension in AIA is a persona-topic allowlist (`persona_topics.py:313-320`) and a stored respondent holds
+only id, donor, weight and answers (`fieldwork.py:172-181`; the persona profile and each draw's record are
+not stored). Segment maps, filters and the drill-down have nothing to read until one record per respondent
+holds the segmentation variables. The owner and the method owner state the variable (the proposed default
+is the quota-cell fields sampling already uses: age group, sex, region, education from n 700); this chunk
+then stores it, classes it and says who may read it: the producer, the lineage, the storage, the allowed descriptor set, the support and suppression rules and the consumer contract. An approved own dimension needs an actual consumer (a segmentation or filter), not only a child file (gap G28, `client-knowledge-lifecycle` K5). Gap G30; interface I5.

@@ -16,8 +16,7 @@ No dates are set here: the waves are ordered by dependency, and a wave ends when
 
 ## 1. The gates
 
-Five gates, each an observable test. A wave is done when its gate passes in CI over HTTP (tier A,
-`mvp-acceptance-harness`), not when its chunks are ticked.
+Each gate names observable evidence. I-0 is planning/tooling readiness; I-1 to I-3 are incremental integration gates, not a PASS for an entire acceptance criterion. I-R and I-4 also need live evidence; I-5 needs full tier A, tier B and production release. A checkbox or an HTTP result cannot substitute for browser or live evidence. The predecessor table is [mvp-execution-contracts.md](mvp-execution-contracts.md).
 
 | Gate | Holds when | Criteria (`MVP-ACCEPT-2`, #495) |
 |---|---|---|
@@ -119,6 +118,17 @@ session that needs a change in it opens a small PR the owner reviews first (`mvp
 | **S2 Population, maps, evidence, Deep Research** | population and respondents, the Sociomap (object, respondent, segment), filters and drill-down, evidence integrity, run QC, the client-data evidence, **Deep Research reach** | `domain/fieldwork.py`, `domain/evidence/`, `domain/sociomap/`, `sociomap_register.py`, `domain/population/`, `aia_executors/ai_fieldwork.py`, `analysis.py`, `research.py` (steps), `domain/deep_research/` and `deep_research_live.py` (retrieval and routes open for reach; verification and grounding by finding only), `deep-research-web-search`, `class-b-search-route` |
 | **S3 Data, delivery, infrastructure, acceptance** | client knowledge and sources, client data and the contract, reports and approvals, Terraform, deployment, the acceptance harness | `application/client_report.py`, `report_*`, `client_*`, `infra/`, `deploy/`, `.github/workflows/`, `tests/acceptance/`, `tables.py` migrations lane |
 
+**Shared surfaces that three sessions edit, and who owns them** (`mvp-master-plan.md` §5, I16, I17, I24):
+
+| Surface | Owner | Rule for the others |
+|---|---|---|
+| `domain/material_rules.py`, `domain/residency.py` | S1 | a small PR S1 reviews first |
+| the classification code in `web_retrieval.py`, `application/deep_research.py`, `aia_executors/deep_research/*` | S2 | the same |
+| `workflow_repository.py` (ledger writers) | S3, the lane owner | the same |
+| `domain/workflow_templates.py`, `aia_executors/registry.py` | S3 reviews | each session registers its own kind |
+| `apps/web/src/lib/api.ts`, `i18n/cs.ts` | S1 for refusal wording | others edit their own area only |
+| `routers/settings.py` | S1 | the Reach panel is S2's, behind a worker-published record the API reads |
+
 S1 and S2 meet at the Lead's results context and the Sociomap artifact; S2 and S3 meet at the client
 dataset's evidence and the report's marks. Each meeting is a **contract** written first (below), not a
 shared edit.
@@ -132,21 +142,21 @@ plan (or to a new plan from #497) before the wave starts.
 
 | S | Work |
 |---|---|
-| S3 | Merge #493, #494, #495, #491, #496, #497 in that order; apply the docs follow-ups; add `prototypes/` to the docs-only path list (`ci-skip-docs-only`); `mvp-acceptance-harness` 1-3 (budget table, inputs, harness with its CI step); `infra/production` skeleton and `develop-spend-attribution` 1-2 (tagged profiles); migration **M3** (all ledger subject types, §4); **operator, first:** confirm the Bedrock retention evidence and set the four route parameters on develop (`deploy/develop/README.md` § AI route classes) so no AI step in any stage parks on `egress_route_not_approved_for_class`; and the stage error says who can fix it (below) |
-| S1 | The spend-limit fix in `ResearchAgentJobs.start` (a fix, F5); the worker row (`research-lead-workbench` 11, first deliverable); ADRs for the edit vocabulary and the orchestration scope written and proposed |
-| S2 | `audience-catalogue-cpu` 4; `complete-study-report` B6 (the operator flag); `evidence-integrity` 1 (findings cite all) and 5 (one authority); **reach**: `deep-research-web-search` 1, 51 and 53, the ADR 0008 amendment (open posture) |
+| S3 | Merge #493, #494, #495, #491, #496, #497 in that order; apply the docs follow-ups; add `prototypes/` to the docs-only path list (`ci-skip-docs-only`); `mvp-acceptance-harness` 1-4, 8-9 and 14 (budget, inputs, harness, shared doubles, parity reporting, marker, acceptance reconciliation); `infra/production` skeleton and `develop-spend-attribution` 5 compatibility contract before 1-2 (tagged profiles); migration **M3** (all ledger subject types, §4); **operator, first:** confirm the Bedrock retention evidence and set the four route parameters on develop (`deploy/develop/README.md` § AI route classes) so no AI step in any stage parks on `egress_route_not_approved_for_class`; and the stage error says who can fix it (`lead-orchestration` LO12a, static copy; below) |
+| S1 | The spend-limit fix in `ResearchAgentJobs.start` and `rebuild` (`lead-orchestration` LO15; a fix, F5); the worker row (`lead-orchestration` LO9a, `research-lead-workbench` 11's first deliverable, which W1 depends on); `lead-orchestration` LO0 (money and orchestration ADR), `working-copy-edit-ops` WCE0 (full edit contract, including structural operations with text-only automatic default); ADRs written and proposed, and accepted before dependent behavior |
+| S2 | `run-qc-and-checkpoint` RQC9-RQC10 (one n authority, population double); `audience-catalogue-cpu` 4; `complete-study-report` B6 (the operator flag); `evidence-integrity` 1 (findings cite all) and 5 (one authority); **reach**: `deep-research-web-search` 1, 51, 53, 54 and 55, the ADR 0008 amendment (open posture) |
 
-**Exit I-0:** `alembic heads` single; the acceptance tree collects and runs AC-01, 06, 07, 12, 14.
+**Exit I-0:** one Alembic head; named lane/surface owners; the acceptance tree and registered marker collect in CI using shared recorded doubles; existing runnable cases execute. AC-06 remains FAIL/NOT_EXECUTED until the W1 checkpoint and kill/recovery proof; AC-07 remains incomplete until the W1 working-revision path. Merely collecting a criterion is never its PASS.
 
 ### W1 · The Lead drives a study (gate I-1)
 
 | S | Work |
 |---|---|
-| S1 | **New** shared edit vocabulary, `workspace_edit_ops` (M1) and `apply_edit_ops`; presence (M2) and the change feed; per-change accept (M6); `research-lead-workbench` 11 (command registry), 14-16 (view vocabulary, frame, pointing with id and revision), 17 (Questionnaire artifact, AI buttons removed), 18-19 (Brief, Design, Sample, Fieldwork); the envelope and plan card (M4, M5) behind `AIA_LEAD_PLANS_ENABLED` |
-| S2 | Population-built respondents as the default path and its screens; `evidence-integrity` 2-3 (run QC stored and shown); **reach**: `deep-research-web-search` 52 and 53 in code |
-| S3 | `client-budget` CB5; `client-knowledge-lifecycle` K2e, K2f, K3; `clients.envelope_ceiling_usd` (in M4); **production applied**: RDS, Cognito, buckets, tagged Bedrock profiles, `deploy-production.yml` |
+| S1 | **New** shared edit vocabulary, `workspace_edit_ops` (M1) and `apply_edit_ops`; presence (M2) and the change feed; per-change accept (M6); `research-lead-workbench` 11 (command registry), 14-16 (view vocabulary, frame, pointing with id and revision), 17 (Questionnaire artifact, AI buttons removed), 18-19 (Brief, Design, Sample, Fieldwork); the envelope and plan card (M4, M5) behind `AIA_LEAD_PLANS_ENABLED`; `assumptions-and-open-answer-coding` AOC1 (the assumption item kind on the shared vocabulary, status values after AOC0); `research-lead-workbench` 26-27 (the Lead reachable at 1099, 768 and 390 px, the honest fallback with the switch or the kill switch off: MVPQ-11) |
+| S2 | `run-qc-and-checkpoint` RQC0 first, then RQC1-RQC3, RQC4a and RQC6-RQC8 (QC contracts/node, cost/support outlook and Fieldwork events before the UI); population-built respondents as the default path and its screens; `evidence-integrity` 2-3 (run QC stored and shown); **reach**: `deep-research-web-search` 52 and 53 in code, and `lead-orchestration` LO12b (the composition record the Lead pane and Settings read, with 52); `assumptions-and-open-answer-coding` AOC0 (the assumptions contract) and AOC4 (the coding method, written for the methodology owner's approval: `MVPQ-02b`), with `evidence-integrity` 9a (a module with no supported finding stores a diagnostic; its composition, approval and export refusal 9b is W3: MVPQ-04) |
+| S3 | `client-budget` CB5; `client-knowledge-lifecycle` K2e, K2f, K3, K4, K8; `clients.envelope_ceiling_usd` (in M4); **production applied**: RDS, Cognito, buckets, tagged Bedrock profiles, `deploy-production.yml` |
 
-**Exit I-1:** two sessions edit one study in the acceptance run, the second edit merges or conflicts
+**Exit I-1:** W1 checks the available design workers and existing prompt pins, not all eleven workers or the eight analysis pins (full AC-03 is W3/W5). `lead-orchestration` LO10 binds approval to the card revision; LO13 records the client-level exception if accepted; LO14 provides the turn-cost/budget line. `working-copy-edit-ops` WCE10 supplies Audience/Dimensions/Sample operations and WCE12 the two-person journey. Two sessions edit one study in the acceptance run, the second edit merges or conflicts
 on one item only; a plan inside an envelope starts a run and a gate it does not cover parks.
 
 **Exit I-R:** on develop, with `aia_deep_research_agent_directed` on, a Deep Research run for an OPEN
@@ -161,9 +171,9 @@ W2 does not start until I-1 and I-R both hold.
 
 | S | Work |
 |---|---|
-| S2 | `sociomap-formula-corrections` I0-I5, 3 (respondent map), 4d; `segment-maps-and-drilldown` 1-6; the results-context **provider** for maps; **reach**: `deep-research-web-search` 6 and 33-37 in order |
-| S1 | **New** the Lead's results context (contract first, F4); `research-lead-workbench` 20 (Results and Sociomap with filters and drill-down), 22 (Audience, Dimensions); the Lead's lifecycle (M7): signals, proposed updates, admin read |
-| S3 | `client-knowledge-lifecycle` K4, K5 (an owned child); own-dimension chips; map-snapshot approval (`two-roles-human-ai-gates` 5b.4, **New** chunk); the Report artifact's Approve and Export panel |
+| S2 | `sociomap-formula-corrections` I0-I5, 3 (respondent map), 4d; `segment-maps-and-drilldown` 1-6; the results-context **provider** for maps; **reach**: `deep-research-web-search` 6 and 33-37 in order; `assumptions-and-open-answer-coding` AOC2 (assumption evidence) and AOC5 (coding storage and node), each after its ADR |
+| S1 | The Lead's results-context consumers (LO8 contract already W1, F4); `research-lead-workbench` 20 (Results and Sociomap with filters and drill-down), 22 (Audience, Dimensions); the Lead's lifecycle (M7): signals, proposed updates, admin read |
+| S3 | `client-knowledge-lifecycle` K5 (an owned child; K4 frozen context already W1); own-dimension chips; map-snapshot approval (`two-roles-human-ai-gates` 5b.4, **New** chunk); the Report artifact's Approve and Export panel |
 
 **Contract before W2 work starts:** `ResultsContext` (admitted claims, pair statuses, module text, report
 draft ids, QC, bounded and classified), owned by S1, with a provider function from each of S2 and S3.
@@ -172,9 +182,9 @@ draft ids, QC, bounded and classified), owned by S1, with a provider function fr
 
 | S | Work |
 |---|---|
-| S2 | `evidence-integrity` 4 (the straight-liner check, after the replace decision), the client-data evidence admission (`client-data-in-analysis` 4-5 once its policy is decided) |
-| S3 | `client-data-in-analysis` 0-3, 6-7 (M8); `research-integrity-report` 6-8; `two-roles-human-ai-gates` 5b.4 |
-| S1 | `research-lead-workbench` 21 (Analysis, Report), the three new workers (`interpret_map`, `polish_report`, `flag_straightliners`), `system-prompts-settings` 7 (every worker's prompt editable) |
+| S2 | `run-qc-and-checkpoint` RQC4-RQC5 (worker flag/accept path, then linked replacement after its methodology decision and ADR); `evidence-integrity` 4, the client-data evidence admission (`client-data-in-analysis` 4-5 once its policy is decided); `assumptions-and-open-answer-coding` AOC6 (coded counts as admitted claims), AOC8 (their Results and analysis consumers) |
+| S3 | `client-data-in-analysis` 0-9 (4-5 with S2, 8a contract already W0, M8); `client-knowledge-lifecycle` K6 (correction/retirement); `deep-research` 4 with S2 (tool ledger, M11); `research-integrity-report` 6-8; `two-roles-human-ai-gates` 5b.4 closes with `report-delivery` RD2-RD4 in W2 (not W3); `report-delivery` RD9 and RD10 (the assumptions and open-answer coding chapters) |
+| S1 | `research-lead-workbench` 21 (Analysis, Report), the three new workers (`interpret_map`, `polish_report`, `flag_straightliners`), `system-prompts-settings` 7 and 13 (the eight analysis pins; method slots read-only); `lead-orchestration` LO9b after RD6's accept contracts; `assumptions-and-open-answer-coding` AOC3 (assumption consumers) and AOC7 (the coder, only if the method permits one: a twelfth worker row) |
 
 ### W4 · Deep Research live (gate I-4)
 
@@ -186,7 +196,7 @@ draft ids, QC, bounded and classified), owned by S1, with a provider function fr
 
 ### W5 · Acceptance (gate I-5)
 
-S3 leads: every criterion wired in tier A (`mvp-acceptance-harness` 5-6); tier B on develop within USD
+S3 leads: every criterion wired in tier A (`mvp-acceptance-harness` 5-6, 15: the assumptions and open-answer coding journey); tier B on develop within USD
 25 with the AWS-tagged reconciliation (`develop-spend-attribution` 3, `mvp-acceptance-harness` 7);
 production released by the release PR after a restore test, a rollback rehearsal and the **delete path** (a client's or study's rows and S3 prefixes removed, the RDS snapshot window stated); runbooks. S1 and
 S2 fix what the runs find.
@@ -207,8 +217,10 @@ is rebased on `develop` immediately before merge, and migration PRs merge one at
 | M6 | `proposal_change_decisions` | S1 | W1 |
 | M7 | `researcher_lead_signals`, `researcher_leads.archived_at`, `derived_from_lead_id` | S1 | W2 |
 | M8 | `client_data_contracts`, `client_dataset_copies` | S3 | W3 |
-| M9 | ◇ `ai_usage_events.inference_profile_arn` (only if the model fields do not carry it) | S3 | W1 |
+| M9 | ◇ `ai_usage_events.inference_profile_arn` (only if `develop-spend-attribution` 5a finds the model fields do not carry it) | S3 | W0, after M3 and before profiles 1-2 are configured |
 | M10 | `clients.data_posture` (`CLASSIFIED` default, `OPEN`), audited by who and when | S3 | W1 |
+| M11 | Tool-usage ledger storage, only the schema `deep-research#4` actually needs; no duplicate charge | S2 producer, S3 migration review | W3 before final AC-15 |
+| M12 | Deletion FK rules, only after `study-data-lifecycle#SDL0` settles the ledger/audit disposition | S3 | before W5 |
 
 Each migration lands with its repository, its tests (round-trip, isolation predicate, concurrent
 access: `ARCHITECTURE.md` §7) and its `layer_check` rule in the same PR.
@@ -217,7 +229,7 @@ access: `ARCHITECTURE.md` §7) and its `layer_check` rule in the same PR.
 
 | Contract | Written by | Needed by | Content |
 |---|---|---|---|
-| Edit vocabulary (`domain/edit_ops.py` ◇) | S1, W0 | S1, S2 (QC, locks), S3 (client data) | the closed operations, their validation, the lock rule, text-only |
+| Edit vocabulary (`domain/edit_ops.py` ◇) | S1, W0 | S1, S2 (QC, locks), S3 (client data) | the closed text and structural operations, validation and lock rule; text-only automatic acceptance is the default, not a limit on manual edits |
 | `LeadWorkerSpec` row | S1, W0 | S1, S2 (straight-liner), S3 (report writer) | the worker row of `mvp-cohesion.md` F5 |
 | `ResultsContext` | S1, before W2 | S2, S3 | what the Lead may read of results, classified |
 | Plan authority capability | S1 with S3's ledger, before W1 plan code | S1 | issued by `ScopeResolver`, no `APPROVE_GATE` |
@@ -233,6 +245,7 @@ access: `ARCHITECTURE.md` §7) and its `layer_check` rule in the same PR.
 | The Lead over time and its files | proposed updates, signals, admin read, handover, privacy of turns; amends ADR 0026 decision 8 | W2 M7 |
 | Production environment | a separate environment on the one-host pattern with RDS, in the same AWS account with the mitigations of architecture §6.2; supersedes the "undecided" in ADR 0009 | W1 infra apply |
 | Open posture, classification deferred (amends ADR 0008) | one flag per client in place of classification for Deep Research in the MVP; what CLASSIFIED means for web tracks; the post-MVP redesign note | W0 |
+| Assumption evidence; open-answer coding; semantic report edits; respondent replacement (ADR 0026 decision 4 requires each) | the deterministic admission rule for each, before a command exists | before `report-delivery` RD6 and `run-qc-and-checkpoint` RQC5 |
 | Client data's evidence policy (amends ADR 0027) | the policy source for client columns | W3 |
 
 ## 7. Order inside the critical path
@@ -241,7 +254,9 @@ The longest chain, which sets the date: **edit vocabulary → operations log and
 and presence → the Questionnaire artifact → plan card → the Lead's results context → Results and
 Sociomap artifacts → Analysis and Report artifacts → tier A on all criteria → tier B → release**. Its
 owner is S1, which is why S1 carries the fewest side tasks. The chains that run beside it and can slip
-without moving the date, until W5: client data (S3), Deep Research live (S2), segment maps and
+without moving the date, until W5: client data (S3), the **live acceptance** of Deep Research
+(`deep-research-web-search` 27, after the evaluations 25, 26 and 39; **Deep Research reach is not one of
+them: gate I-R blocks W2**), segment maps and
 clustering (S2, waits on the method owner).
 
 ## 8. What can stop the plan
@@ -253,12 +268,15 @@ clustering (S2, waits on the method owner).
 | The plan authority takes longer than planned | no autopilot-lite; every paid job needs a card (MVP-13 returns by default) | the envelope without plans is a smaller first step; cards stay as the fallback |
 | Migrations collide | blocked merges | one lane, one owner, rebase before merge, M3 first |
 | Production shares develop's AWS account | an account-level mistake or the shared Bedrock quota reaches production | tag-conditioned IAM with a permission boundary, per-environment state and KMS (architecture §6.2); tier B outside working hours; revisit at the first incident |
-| RDS or Cognito setup for production slips | no production at the date | develop carries tier B; production release can follow the acceptance without moving the gate |
+| RDS or Cognito setup for production slips | no production at the date, and **no release**: gate I-5 reads "production released" and a passing tier B on develop does not release | production is a blocker, not a follow-up: restore, rollback, delete path and the activation profile are evidenced first (`production-environment` PE9, `mvp-acceptance-harness` 12); the date moves, the gate does not |
 | The first acceptance run exceeds USD 25 | the budget table was wrong | the allocation is checked before the recorded run (`mvp-acceptance-harness` 1) |
 | One session is the whole critical path | a stall in S1 stalls the date | S2 and S3 take defects and review capacity once W3 starts |
 
 ## 9. What this plan does not do
 
+The wave table is amended by the exact predecessors in `mvp-execution-contracts.md`; the master and child plans carry the same wave changes. Prototype choices and methodology decisions are tracked in `mvp-owner-decisions.md`. A blocked decision stops its dependent behavior, not unrelated contract, fixture or infrastructure preparation.
+
 It does not name the sessions' people or dates, does not decide the open items in
 `mvp-target-architecture.md` §9, does not change a plan file, and does not start any chunk. The
 follow-ups are in `mvp-cohesion.md` §6.
+

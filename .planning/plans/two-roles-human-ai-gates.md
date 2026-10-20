@@ -10,7 +10,7 @@ chunks:
   - "[x] 5b.1 A person can lift a budget wait and the run goes on (today it is a dead end)"
   - "[x] 5b.2 Confirm the cost of a run above a threshold, recorded"
   - "[x] 5b.3 One ledger entry for every acceptance of an AI proposal"
-  - "[ ] 5b.4 Client-facing release (blocked: the client-facing report contract does not exist)"
+  - "[ ] 5b.4 Client-facing release: separate approvals for the client report and each map snapshot, exports after approval (F17); built in report-delivery RD2-RD4, closed when they land"
   - "[x] 6. Retire the grants (tables, routes, UI) after one deploy without them"
   - "[x] 7. Any Researcher starts a client (the owner, 2026-10-05); its status stays with the Admin"
 ---
@@ -118,8 +118,7 @@ that demands independent review can turn it back on.
 - Human-authored Knowledge writes a revision directly; only AI-authored changes go through a
   proposal and an accept (**confirmed by the owner, 2026-10-01**).
 - The spend threshold for gate 2 is a number someone must choose.
-- Class A/B transmission is unchanged and still unapproved (ADR 0010). Widening who can see a
-  client does not widen what may be sent to a model.
+- The owner approved widening the existing EU model route to A/B/C on 2026-10-19; effective configuration still waits for operator retention evidence and M7. Membership alone never widens model egress.
 
 ## Chunk 3 (landed)
 
@@ -248,12 +247,11 @@ The worker keeps no such authority (`WORKER_PERMISSIONS`). Nothing else changes:
 behaviour is unchanged; only the record is added. The pilot chatbot's proposed actions are in the
 ADR's gate 1; I found no chatbot in the code and have not designed for one.
 
-**5b.4: client-facing release.** Not designed here. It cannot be built before a client-facing report
-exists, and that needs its own admission contract (which claims may reach a client, the licence
-gate OI-61, and synthetic or internal-only claims refused, as `compose_internal_report` already
-refuses them). The mechanism it will use is the one that exists: `approve` then `download_url`,
-recorded in the same ledger. Until then no route serves a client-facing report, so there is nothing
-to gate.
+**5b.4: client-facing release.** Superseded (2026-10-19): a client report now exists
+(`application/client_report.py`) with its own admission under the owner's lift, so this chunk is the
+approval side only. The client report and each map snapshot are approved separately from the internal
+report (F17); no unconditional second person: independence follows the client's self-approval setting;
+exports follow approval. The work is `report-delivery` RD2-RD4, recorded in the same ledger.
 
 ### Chunk 6 plan (2026-10-05; the owner approved starting it on 2026-10-03)
 
@@ -477,22 +475,14 @@ constraint already created as `ck_approval_decisions_approval_subject_type_known
 "ck_approval_decisions_ck_approval_decisions_approval_su_956c" ... does not exist` (double prefix,
 truncated). Right: wrap the full name in `op.f(...)` on both calls.
 
-### Decisions needed from the owner
+### Current decision disposition (2026-10-20)
 
-1. **The threshold (5b.2).** The value is yours to set. I will not guess a dollar figure: the ceiling
-   function can print it for the fictional acceptance run, and a threshold of about twice that is a
-   reasonable start. Is a confirm-above-threshold on the start request the right shape, or do you
-   want it on every run?
-2. **5b.4 deferred** until a client-facing report is designed: agreed?
-3. **Order:** 5b.1 first, because it fixes a dead end that exists today; then 5b.2; 5b.3 any time.
+The earlier questions below this heading were superseded: 5b.2's per-study confirmation
+threshold is implemented and the researcher chooses its value; envelope/budget/threshold
+remain distinct. F17 settles separate report/snapshot approvals and approval before export;
+5b.4 is required, not deferred. Its gate definitions are MVPQ-09 in the owner decision packet.
+Server design-job confirmation is LO15, before all paid-start UI paths.
 
-### Trade-offs accepted
-
-- The ceiling can be far above what a run really costs; it protects against surprise, not
-  against waste. Its precision improves when the reservation settings do.
-- A confirmation on the start request is a click, not a second person. Per ADR 0019 that is the
-  point; the ledger records it.
-- The hard cap stays hard: a run past its budget still stops until a person lifts it.
 
 ## Findings
 
@@ -570,3 +560,4 @@ the follow-ups of #112, #113, #114, #117 and #122; findings filed as OI-82 to OI
   ADR 0019 chunk 6 retires them)" becomes "(the grant tables are dropped, ADR 0019 chunk 6)";
   `docs/architecture/adr/0004-client-study-isolation.md` and the ADR index: grants no longer exist
   in the schema, the audit rows of past grants remain.
+

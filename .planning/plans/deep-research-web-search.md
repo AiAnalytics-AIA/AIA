@@ -58,6 +58,7 @@ chunks:
   - "[ ] 52. Reach is stated by code: Settings lists every route and connector as built, approved, active or refused, with the reason, read from the composition"
   - "[ ] 53. Open posture (owner, 2026-10-19): `clients.data_posture` OPEN or CLASSIFIED replaces classification for Deep Research in the MVP; a run pins it at enqueue, a retry copies it"
   - "[ ] 54. Before the first activation: each connector probed live once (every interface is UNVERIFIED), AIA_DEEP_RESEARCH_AGENT_DIRECTED named in the activation matrix, Common Crawl's AWS side (workgroup, results bucket, grants, us-east-1 exception) in Terraform or kept out of the first activation"
+  - "[ ] 55. The start's cost ceiling function moves from the API router to the application layer, so a plan step in the worker and the router use one"
 ---
 # Deep Research — wide, precise, and defensible
 
@@ -1685,3 +1686,26 @@ Classification is asked in six places for Deep Research (`plan.py:163`; five `cl
   posture. ADR 0008 (a frozen invariant) is amended by the owner in W0 to record this and the deferral.
 - Cost: an OPEN client's queries carry no confidentiality check, and Brave (US, logs up to 90 days)
   can see them, names included. Marking a client OPEN is the only guard.
+
+## Added by the master plan (2026-10-19)
+
+- **55.** `routers/deep_research.py:292-340` prices a start from the API's own environment copy; a Lead plan
+  step in the worker must apply the same ceiling. Interfaces I22.
+- **Evaluations before the final live run (disposition).** Chunks 25 (accuracy on a truth set), 26 (quality,
+  three arms) and 39 (extraction accuracy) **stay before chunk 27**: 27 is the live acceptance of AC-11 and
+  rests on them. Chunk 51's early activation, on a fictional client or a public topic, produces no
+  acceptance evidence. The commercial comparison arm of 26 (chunk 50) spends outside tier B's USD 25 and is
+  named in the harness's allocation (`mvp-acceptance-harness` 1). Waiving any of 25, 26 or 39 for the first
+  release is an explicit owner override, recorded in `mvp-cohesion.md`, never an omission.
+
+## Scheduling (2026-10-20): chunks 8, 16, 20, 24, 31, 32
+
+These were in no wave. They are engineering sequencing of MVP scope already required (G5 for 16 and 20,
+AC-11 and AC-15 for 31-32, the plan's own order for 8 and 24), not new owner choices. In
+`mvp-execution-contracts.md`: **8, 20, 16** with 6 and 33-37 are W2 (row E27: the register built and shipped
+off until the owner approves it; 20 before 35, which uses the light model, through the model-identity contract
+of `develop-spend-attribution#5a`; 16 built against the interface the chunk 54 probes found, or closed with
+the probe's evidence that no procurement interface is reachable, which then records G5's exclusion); **31,
+32** are W3 (row E28, after the Results and Sociomap artifact and the report pieces they cite; the Lens never
+changes a canonical coordinate); **24** is W4 (before the evaluations 25, 26, 39 and the live run 27, which
+the plan's order already requires).

@@ -1,0 +1,80 @@
+---
+status: planned
+chunks:
+  - "[ ] RD0. Define the "evidence audit" and the "legal source-use gate" as testable checks (the owner states what each checks)"
+  - "[ ] RD1. The client report PDF: extend `RENDERABLE_REPORTS`, the PDF is approved with its DOCX"
+  - "[ ] RD2. A reader for the approval ledger: "approved by whom, when" for a report and a snapshot"
+  - "[ ] RD3. The Approve and Export panel: what is approved and by whom; exports after approval; the slot in the Report artifact"
+  - "[ ] RD4. The map snapshot: an approvable object rendered server-side from the stored map and camera parameters, never browser bytes; one ledger shape"
+  - "[ ] RD5. Report draft revisions: a separate draft counter, tracked changes per paragraph; a report edit never reopens fieldwork"
+  - "[ ] RD6. The accept destinations for the report writer, the map interpreter and the straight-liner flags: an artifact type, the composer input and its fingerprint; and, before any semantic report edit exists, the ADR with its deterministic admission rule that ADR 0026 decision 4 requires"
+  - "[ ] RD7. A sentence-level claim check: a sentence that claims a comparison with no admitted claim is flagged"
+  - "[ ] RD8. The producer of a client report is the run that composed it, not whoever first downloaded it"
+  - "[ ] RD9. The report's assumptions chapter (W3, MVPQ-02): each tracked assumption with its status and its admitted or cited support, and nothing else"
+  - "[ ] RD10. The report's open-answer coding chapter (W3, MVPQ-02): the codebook version, the coded counts as admitted claims with suppression named, and the method's limits"
+---
+# Report delivery: approval, export and the map snapshot
+
+What makes a report deliverable: the approvals, the export panel, the client PDF, the snapshot and the worker accept paths. Written 2026-10-19 from `.planning/evidence/mvp-master-traces/trace-3-evidence.md`.
+
+**Owner: S3.** Takes the gap rows G34, G35 (accept paths), G16 (accept destinations) and interfaces I12, I13, I14 of `mvp-master-plan.md` §6.1 and serves AC-13, AC-08 and gate I-3.
+Every chunk below is **open**; a chunk is built from this file, not from the master plan.
+
+## Decisions this plan carries (settled by the owner; not re-asked)
+
+- Separate approvals for the internal report, the client report and each map snapshot; DOCX and PDF become available only after approval (F17).
+- No unconditional second person: whether the producer may approve follows the client's existing self-approval setting (F17, withdrawn 2026-10-19).
+- AC-13 stands as written: the client report is **DOCX and PDF**, passes the evidence audit and the legal source-use gate, carries only approved maps and labelled modelled and client-reported numbers and no analysis prose. Dropping the PDF or weakening a gate is a scope override and needs the owner's explicit yes.
+
+## Chunks
+
+**RD0. Define the "evidence audit" and the "legal source-use gate" as testable checks (the owner states what each checks)**  
+Both are NOT_STARTED in the parity matrix with no plan. The checks are the owner's to define; this chunk records them and builds them. Not replaced by a weaker check without the owner's override.
+
+**RD1. The client report PDF: extend `RENDERABLE_REPORTS`, the PDF is approved with its DOCX**  
+The client report is DOCX only today (`report_variants.py:78`).
+
+**RD2. A reader for the approval ledger: "approved by whom, when" for a report and a snapshot**  
+
+
+**RD3. The Approve and Export panel: what is approved and by whom; exports after approval; the slot in the Report artifact**  
+S1 hosts the slot (`research-lead-workbench` 21), same wave. Tests: approvals name the exact artifact fingerprint; a stale-version download is refused; both self-approval settings; an unauthorised download is refused. Today drafts download freely and approval follows the download (`research.py:2395-2449`); the panel makes the client export follow approval. Interfaces I12.
+
+**RD4. The map snapshot: an approvable object rendered server-side from the stored map and camera parameters, never browser bytes; one ledger shape**  
+The existing approval writes subject `artifact` (`artifact_repository.py:568`) and M3 names `map_snapshot`; one is chosen and the other removed. S2 supplies the deterministic figure function. Interfaces I13.
+
+**RD5. Report draft revisions: a separate draft counter, tracked changes per paragraph; a report edit never reopens fieldwork**  
+The prototype's D6. The counter against ADR 0016's revision semantics is an owner clarification below.
+
+**RD6. The accept destinations for the report writer, the map interpreter and the straight-liner flags: an artifact type, the composer input and its fingerprint**  
+S3 defines the type, S1 writes the worker against it (`lead-orchestration#LO9b`). Interfaces I14.
+
+**Prerequisite (ADR 0026 decision 4, Accepted):** semantic report edits get no command until their own ADR and a deterministic admission rule exist (a report is composed from admitted claims and frozen on approval). That the feature is wanted is settled (MVP-12); writing the ADR and the rule is this chunk's first step, and a wording edit never reopens completed fieldwork (an invariant, `RD5`).
+
+**RD7. A sentence-level claim check: a sentence that claims a comparison with no admitted claim is flagged**  
+The prototype shows it (scenario M); the evidence validation checks numbers only. A new rule; the owner confirms its strictness.
+
+**RD8. The producer of a client report is the run that composed it, not whoever first downloaded it**  
+With self-approval off, the reviewer who opens it first cannot approve it today ◇.
+
+**RD9. The report's assumptions chapter (W3)**  
+Each assumption of `assumptions-and-open-answer-coding#AOC1` with its status, the person's accept that set it, and its support: admitted claims by reference, cited Deep Research findings as context labelled external. A status with no accepted decision or no support is not printed as established. Test: a report built from an assumption set to supported without support is refused by the composer.
+
+**RD10. The report's open-answer coding chapter (W3)**  
+The codebook version, each code's count as an admitted claim with its suppression stated, and the method's limits (`AOC4`); modelled answers are labelled modelled. Raw answer text is not printed as evidence. Test: a count not in the claim ledger cannot be composed.
+
+## Open: owner clarifications
+
+- What the evidence audit and the legal source-use gate check (RD0).
+- Settled by requirement, not asked: the report draft counter is separate from the Design Revision, and a report edit never reopens fieldwork (immutable runs, RD5).
+
+
+## Execution predecessors (2026-10-20)
+
+RD0-RD4 are W2; RD5-RD8 are W3. RD3's approval/export component and contract can land in W2;
+the full Report artifact hosts it with workbench 21 in W3. A panel tested alone does not prove
+the full artifact. RD6's semantic-edit ADR, immutable accept-result type and composer fingerprint
+land before LO9b's report binding and any executable report-wording command. The snapshot
+renderer must use the pinned methodology and stored numerical artifact; a camera edit is a view.
+F17 settles approval before a deliverable download; master item 9 asks about check definitions,
+not a choice to approve after download. Do not introduce an unapproved internal-draft exception.

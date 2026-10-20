@@ -436,7 +436,9 @@ accept their own only where self-approval allows it, as today). The requirement 
    allowance the owner approves, each job logged, stopping at the cap. **This supersedes MVP-13**
    ("a card at a time, no standing budget"). **Answers (2026-10-19):** the **researcher sets it, up to a
    ceiling the organisation owner sets for the client**, recorded in the approval ledger; the
-   study's spend limit stays the hard stop. **Everything is inside it, the fieldwork run included**,
+   study's `budget_usd` stays the cap (the "spend limit", `spend_confirm_usd`, is a per-start confirmation
+threshold, not a stop: corrected 2026-10-19 after the code traces, `research.py:452-454`).
+**Everything is inside it, the fieldwork run included**,
    but a run starts under a **plan card the researcher approves once** (the steps and the cost
    ceiling), after which the Lead runs those steps; it is not a Lead-initiated run on its own.
    This pulls a plan-scoped part of the autopilot into the MVP (MVP-3 had put "continue until you
@@ -494,9 +496,9 @@ screen, and a screen never claims a population was read when it was not.
 
 ### F16. Money on screen
 
-**Owner decision (2026-10-19): two meters, the rest on click.** The header shows "Study: spent of
-spend limit", with the envelope's remaining allowance **inside** it (the envelope is a slice of the
-spend limit, F13). A run or a job shows its own ceiling where the person approves it. The client's
+**Owner decision (2026-10-19): two meters, the rest on click.** The header shows "Study: spent of the
+study budget" (`budget_usd`), with the envelope's remaining allowance **inside** it (the envelope is a
+slice of the budget, F13; the confirmation threshold is a separate, differently labelled figure). A run or a job shows its own ceiling where the person approves it. The client's
 budget, the Deep Research allowance and the Lead's own turn costs are in a details drawer. Lead turns
 and workers all count toward the study's spend. The designs' four unlabelled numbers
 ("Research 0,97/3,00", "study 1,12/12,00", "spend limit 5,00", "run ceiling 4,80") and the Fieldwork
@@ -610,13 +612,13 @@ dated, until the provider contract and the method owner have owners.
 | Q11 | F11: the questionnaire's AI buttons removed (MVP-8) | **decided 2026-10-19** |
 | Q12 | F13: the revision is the unit of acceptance; a stage is current, changed or re-check | **decided 2026-10-19** |
 | Q13 | F13: stage order Results, Sociomap, Analysis, Report | **decided 2026-10-19** |
-| Q14 | F13: a per-study envelope for paid work, superseding MVP-13: set by the researcher up to a client/organisation ceiling; everything inside it, a run through a plan card approved once | **decided 2026-10-19; orchestration-scope ADR first; expiry and chat-started runs open** |
+| Q14 | F13: a per-study envelope for paid work, superseding MVP-13: set by the researcher up to a client/organisation ceiling; everything inside it, a run through a plan card approved once | **decided 2026-10-19; orchestration-scope ADR first; later F13 resolves no expiry until closure and direct human chat starts (Q25)** |
 | Q15 | F13: a hard lock on Sociomap inputs with a recorded unlock | **decided 2026-10-19** |
 | Q16 | F12: two people on one study: each researcher goes in with their own agent; one working copy; item-level merge, presence, shared proposals | **decided 2026-10-19**: each researcher's own agent; any member with the accept permission may accept another's proposal; the rest as recommended |
 | Q17 | F15: population-built respondents by default, invented ones for tests only | **decided 2026-10-19** |
 | Q18 | F14: the Lead proposes updates to its own files, the researcher approves each | **decided 2026-10-19** |
 | Q19 | F14: an organisation admin can read a researcher's Lead files and hand them on; turns and hand-over rules open | **decided 2026-10-19; amends ADR 0026 decision 8** |
-| Q20 | F16: two meters in the header, the rest on click; the envelope is a slice of the spend limit | **decided 2026-10-19** |
+| Q20 | F16: two meters in the header, the rest on click; the envelope is a slice of the study budget (`budget_usd`), not of the confirmation threshold | **decided 2026-10-19** |
 | Q21 | F17: separate approvals, a second person for the client report and each map snapshot, exports after approval | **decided 2026-10-19; second person withdrawn the same day (clients are not users): independence follows self-approval; snapshot approval is still its own approval** |
 | Q22 | F18: no pause after fieldwork; a QC warning, the worker proposes, replace is a new linked run | **decided 2026-10-19** |
 | Q23 | F19: client datasets and own dimensions are handled in Brief materials and Dimensions | **decided 2026-10-19; the own-dimension build starts on a click inside the envelope** |
@@ -651,3 +653,55 @@ dated, until the provider contract and the method owner have owners.
   Approve and Export panel and a chunk for map-snapshot approval in `two-roles-human-ai-gates` 5b.4
   (F17); the straight-liner decision card dropped (F18); client data and the own-dimension chip in the
   Brief and Dimensions artifacts (F19).
+
+
+## Execution reconciliation (2026-10-20)
+
+The predecessor view is `mvp-execution-contracts.md`; unanswered questions have stable ids and
+answer-ready wording in `mvp-owner-decisions.md`, indexed by master §11.4. Planning ownership is
+not implementation completion. Q14's earlier expiry/chat-open status is corrected to its later
+same-day decision; no settled decision is reopened. Canonical Sociomap Q5/Q6/Q7 and the audit's
+remaining parameter decisions stay in their existing methodology decision sheets and must be
+resolved before the affected method is treated as approved.
+
+## Owner decision MVPQ-01 — canonical prototype (2026-10-20)
+
+The owner reviewed the actual V2/V3 Questionnaire designs and answered: “the one in the
+browser is the correct one.” The browser displayed the Czech **AIA Vedoucí výzkumu /
+Research Lead V2** clickable prototype (`prototypes/research-lead-v2`, source baseline
+`9b50963f`; supplied export *AIA Vedoucí výzkumu.html*).
+
+V2 controls the workspace interactions and all eleven artifact bodies. V3 is supporting
+capability/design reference only, and cannot silently replace V2's selected layout.
+The previous recommendation to combine V2 interactions with V3 bodies is superseded.
+Existing explicit domain/methodology, private-Lead, budget and approval decisions remain
+in force; necessary differences from the prototype are listed in master MP12.
+
+Disposition: MVPQ-01 SETTLED; workbench 15/17–22 and master §11.1/§11.4 reconciled.
+No implementation, scientific parameter, configuration or other owner decision is approved
+by this design-reference choice. Other MVPQ decisions are recorded in the later dated entries below; this entry settles only prototype precedence.
+
+
+## Owner answers MVPQ-02, MVPQ-04 and MVPQ-11 (2026-10-20)
+
+Recorded from the product owner's answers to the decision cards in this session.
+These are decisions, not recommendations; implementation remains open.
+
+| Id | Exact answer | Required disposition |
+|---|---|---|
+| MVPQ-02 | “Both” | Tracked assumptions AND qualitative open-answer coding are first-release scope. Provide real stable assumption items/evidence/status and stored versioned per-answer coding with deterministic counts, Analysis/Report consumers and explicit worker/prompt/price/pin coverage. Coding methodology/admission still requires the methodology owner; scope is not re-asked |
+| MVPQ-04 | “Block the report until resolved” | A module without a supported finding blocks report composition/approval/export. Diagnostic no-finding/gap output is retained, but does not satisfy a required module or unblock the report; no invented finding or silent module omission |
+| MVPQ-11 | “Keep the Lead accessible through a compact drawer or stacked layout” | Narrow supported layouts retain the Lead and the same authority, revision, budget and server gates. Workbench 26 implements/tests the responsive container; no fallback manual AI-start exception. A disabled backend remains disabled and availability is explicit |
+
+Affected work: master §11 settled/open lists and MP12 disposition; assumption/edit
+contracts and Audience/Design/Lead consumers; coding method/producer/admission and
+Analysis/Report consumers; evidence-integrity's module gate; workbench 12/21/22/26;
+worker/prompt registry if expanded; execution graph and release proof; acceptance
+harness and #503's MD/JSON together. Name executable chunks for each new contract
+before implementation. The new scientific coding policy is a named prerequisite,
+not approval inferred from this feature choice.
+
+MVPQ-01, 02, 04 and 11 are now settled. MVPQ-03, 05–10 and 12 remain open.
+Canonical Sociomap Q5/Q6/Q7, replacement weights, client evidence, source-use and
+retention decisions are unchanged. No paid run, infrastructure change, merge or
+release is authorized by recording these answers.

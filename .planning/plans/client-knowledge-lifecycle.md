@@ -22,6 +22,8 @@ chunks:
   - "[ ] K5. Define and materialize executable dimensions through the existing population authority"
   - "[ ] K6. Implement correction, retirement, conflicts and dependent-study change visibility"
   - "[ ] K7. Prove all four consumers and reconcile the shared documentation after landing"
+  - "[ ] K8. One semantics for Deep Research evidence entering client knowledge (an item or a proposal), and a document item's text visible to Deep Research"
+  - "[ ] K7a. W5 MVP research consumer proof: intake, reviewed/frozen knowledge, executable dimension, admitted report and same-client reuse; Simulation extension stays in K7 after MVP"
 ---
 # Client knowledge that studies can use correctly
 
@@ -212,14 +214,13 @@ require it. Keep parsing/extraction in the worker, rules in domain/application a
 K4 extends existing research context freezing instead of introducing a second context loader.
 K5 owns knowledge-to-dimension definitions/materialization, delegates population loading and
 promotion to existing authority, and coordinates feature-plan I0/I1/I3. K6 proves corrections
-and reuse decisions. K7 consumes the four-area journey in mvp-workflow-assurance A4 rather than
-inventing another release gate. Each bounded slice uses existing storage, jobs and provenance.
+and reuse decisions. K7 uses the current MVP research journey and AC-10/12/13. The older four-area journey in mvp-workflow-assurance A4 includes Simulation, which is post-MVP; keep that extension open without making Simulation a hidden MVP prerequisite. Each bounded slice uses existing storage, jobs and provenance.
 
 Required connected acceptance fixture: add fictional client documents/notes, a small dataset
 and captured web/Deep Research sources; extract source-backed proposals from all three input
 families; accept selected knowledge; define/validate a dimension; use
 its eligible values in a frozen study; produce stored map/analysis artifacts; reuse an accepted
-finding in a new study and run a scenario over the same bound baseline. Correct one source,
+finding in a new study. The scenario over the same bound baseline remains the explicit post-MVP Simulation extension. Correct one source,
 then show affected consumers while preserving the original results. The all-four path is a
 future acceptance requirement, not code claimed to exist today.
 
@@ -706,8 +707,7 @@ Do not mark this plan's proposal as an approved product decision in those docume
 
 ## Decisions still open
 
-- Concrete supported formats within all three required input families. Their inclusion is
-  confirmed by the user; the remaining question is format support, not whether to defer a family.
+- Supported formats are settled by the 2026-10-13 decisions in K2 slicing above; they are not asked again. Unreadable image/video outcomes remain explicit.
 - Representative client/study example for review of the proposed structure and use roles.
 - Where individual dimensions may be materialized, with licensed/data/methodology restrictions
   resolved through their existing owners rather than by a generic knowledge accept.
@@ -721,3 +721,20 @@ Draft prepared for authorized publication with code anchors and two reproduced g
 The publication base is develop `4d8f07d934e88a9d15b9da47c78c42a1b01ca019` (PR 194's
 documentation follow-up); the audited runtime code remains the baseline above.
 No production redesign, migration, independent review or client acceptance has occurred.
+
+## Added by the master plan (2026-10-19)
+
+**K8.** Three plans own evidence into knowledge today: `verified_sources.py` ("Ověřeno, přidat zdroj"),
+K2e here and `deep-research-web-search` 37. They disagree on whether the result is an item or a proposal,
+and a document item holds only `source_id`, so Deep Research never sees the file text
+(`knowledge_access.py:75-90`). K8 decides once and gives `freeze_knowledge` the text snapshot. This plan
+owns the knowledge side; S2 supplies the bundle reader. Gap G36; interface I19.
+
+
+## Execution predecessors (2026-10-20)
+
+K2e/K2f, K3, K4 and K8 are W1. K4 extends the existing immutable context loader before the
+Lead/run consumes reviewed knowledge; K8's capture/import semantics precede the web/Deep Research
+intake consumers. K5 is W2 with an actual own-dimension consumer; K6 is W3, and K7a's research
+acceptance is W5. K7 cannot be completely ticked while its separately retained Simulation coverage
+is open; K7a records the MVP subset evidence and leave the remaining extension visible.

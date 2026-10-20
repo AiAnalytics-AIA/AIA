@@ -5,6 +5,8 @@ chunks:
   - "[ ] 2. IAM and the model policy follow the profiles; the cost-allocation tag is activated (a billing action)"
   - "[ ] 3. A reconciliation: AIA's usage ledger against the AWS cost record for the tag over a window"
   - "[ ] 4. The runbook states the check, its lag and its tolerance"
+  - "[ ] 5a. The worker accepts what the plan creates (W0): a tagged profile ARN or an `eu.` id, decided as a model identity versus an invocation target; and the statement "no Environment tag" corrected"
+  - "[ ] 5b. The reconciliation's lines (W3): model usage, tool and search spend, open reservations and uncertain calls, each separate, after `deep-research` 4; billing lag recorded, never zero"
 ---
 # Spend proven twice: AIA's ledger and an AWS cost record
 
@@ -68,3 +70,28 @@ Independent of the other tracks until tier B. Feeds AC-15 and the budget table i
 ## Doc follow-up
 
 `deploy/develop/README.md` (runbook), `infra/develop/README.md` (the tag and the profiles).
+
+## Added by the master plan (2026-10-19)
+
+**5a.** The worker refuses a model id that is not an `eu.` profile id (`ai_runtime.py:254, 516`), so the
+ARNs chunk 1 creates would stop the worker at start; and the plan's "no Environment tag" is wrong
+(`infra/develop/versions.tf:34-40`, `main.tf:597-607` set one). Tool spend (Brave, Athena) is not in the
+usage ledger, so AC-15 as written reconciles model spend only: `deep-research` 4 ("tool usage in the
+ledger") is the chunk that closes that and is scheduled with this plan (**5b** is the reconciliation
+that reads it). Gap G9.
+
+
+## Execution prerequisite (2026-10-20)
+
+Chunk 5a's semantic-model-id versus invocation-target contract is W0, before chunks 1-2
+configure profiles. Implement compatibility before passing an application-profile ARN to a
+validator requiring `eu.` ids; do not loosen arbitrary model identity. Reuse the same contract in
+production PE7 before PE1's live model configuration. Chunks 5b, 3 and 4 are final reconciliation (5b W3, 3-4 W5):
+model usage to its ledger within AC-15's USD 0.01, tool/search separately, tagged AWS billing in
+its stated window with lag and a stated billing tolerance. Unknown billing is never zero.
+
+## Migration (lane M9, only if needed)
+
+If 5a finds the model fields cannot carry the application inference profile, the lane's **M9**
+(`ai_usage_events.inference_profile_arn`) is added under 5a, **W0**, after lane M3 and before 1-2 configure profiles; if they can, M9 is
+removed from the lane in the same PR. Gap G43.

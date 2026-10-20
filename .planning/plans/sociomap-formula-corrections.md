@@ -1632,3 +1632,14 @@ on this change), `make layer_check` (100 rules), `make exposure_check` (7 rules)
 register test (544 passed, 5 skipped: archive-backed parity), and on Python 3.12 the core suite
 (5,090 passed, 205 skipped), API + worker (400 passed, 8 skipped), executors (308 passed, 2
 skipped); 0 failed. `make web_design` and `make test-web` not run: no web file changed.
+
+## Scheduling (2026-10-20): chunks 2d, 4c, 5b
+
+In `mvp-execution-contracts.md`: **2d** is W2 (row E29), after I0, I2 and I4, which the plan already says
+gate its integration; the method stays `INTERNAL_ONLY`. **4c** is W2 but gated by the owner's F16 and
+R-adapter disposition (`MVPQ-12`): it is the research module's preference map, a separate product from the
+respondent map (chunk 3), so AC-09 does not wait on it; it is built or retired with its reason recorded, never
+dropped silently. **5b** (row E30) is W2 verification: `report_maps.py:159-180` and
+`infrastructure/report_docx/figures.py:76-95` already print Stress-1 and the internal status, so it is ticked
+with a test that the internal report's map figure carries both through `report-delivery#RD4`'s snapshot path,
+or the gap it closes is listed. No method is approved by being scheduled.

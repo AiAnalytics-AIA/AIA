@@ -1,11 +1,17 @@
 ---
 status: planned
 chunks:
-  - "[ ] 1. Every key finding cites an admitted claim: raise the gate from 95 % to all (MVP-23)"
+  - "[ ] 1. Every key finding cites an admitted claim (MVP-23): a new rule, not a tightening, since AIA has no 95 % threshold (that is the unit's)"
   - "[ ] 2. Run QC as a pure function over a run's stored dataset, EXACT against the unit's qc.kontrola (MVP-24)"
   - "[ ] 3. A run's QC stored beside it and shown as warnings on Fieldwork and Results, never a gate"
-  - "[ ] 4. The straight-liner check: flags by code, keep or replace proposed; settle what replacing means"
+  - "[ ] 4. The straight-liner check: flags by code, no pause, the worker proposes keep or flag; replace is a new linked run (F18, settled); the one definition is run-qc-and-checkpoint RQC1"
   - "[ ] 5. One field-policy authority per evidence source: the population contract's list for panel respondents (MVP-29)"
+  - "[ ] 6. Results serves admitted claims: an API over the evidence table with suppression decided server-side, so the screen no longer reads raw aggregates"
+  - "[ ] 7. Wire the sealed-bundle external-context producer into module preparation and the Lead; preserve the existing prompt/fingerprint context field and context-not-evidence boundary"
+  - "[ ] 9a. A module with no supported finding (MVPQ-04, W1): stored as a structured diagnostic that is not a finding, shown on Analysis and Results, with its resolution paths named"
+  - "[ ] 9b. The refusal (MVPQ-04, W3): report composition, approval and every export refuse while any of the eight modules is blocked or has no supported finding, until it is resolved; the diagnostic cannot satisfy the gate"
+  - "[ ] 8a. A two-origin analysis input and its fingerprint, designed (W1) and reviewed with S3 before client-data-in-analysis 5"
+  - "[ ] 8b. The two-origin input wired (W3): the production constructor supplies the client-reported table and the sealed-bundle context, and a changed context or origin changes the module's input fingerprint and payload"
 ---
 # Evidence integrity: findings cite evidence, run QC warns, one policy authority
 
@@ -26,8 +32,10 @@ named when chunk 1 starts.**
 
 - A draft's key findings must cite claims: `FindingDraft` carries `claim_ids`, the gate checks
   each (`packages/aia_core/src/aia_core/domain/analysis/draft.py:116, 272 @ 085abe0`), and the
-  module's docstring says the draft passes "when 95 % of the findings cited" (`:9`). **MVP-23 is a
-  tightening of that threshold, not a new rule.** Hypothesis until chunk 1 reads the whole check:
+  module's docstring says the draft passes "when 95 % of the findings cited" (`:9`), but the check
+  rejects only uncovered numbers and dangling references (`:254-282`), so a finding with no `claim_ids`
+  passes. **MVP-23 is a new rule, not a tightening: AIA has no 95 % threshold to tighten (that is the
+  unit's).** Hypothesis until chunk 1 reads the whole check:
   whether a refused finding triggers a repair turn today as a refused claim does.
 - 18.6.6's QC: `legacy/npc-panel-18.6.6/app/qc.py:70` (`kontrola(v, prahy)`), thresholds in
   `PRAHY` (`:31`, `straightline_max` 0.15, which the file calls "my calibration, not an industry
@@ -41,7 +49,7 @@ named when chunk 1 starts.**
 
 ## Chunks
 
-1. **Findings cite all.** Read the gate, set the threshold to every key finding, make the repair
+1. **Findings cite all.** Read the gate, **add** the rule that every key finding names at least one admitted claim (a new validation, not a changed threshold), make the repair
    turn name the uncited finding, store a still-failing draft `BLOCKED` as today. Test: a draft
    with one uncited finding is refused; a draft with all cited passes; `test_analysis_executor.py`
    stays green. Decide here whether "shown as an unsupported hypothesis" is built or only refusal
@@ -71,9 +79,36 @@ name: this plan owns the edit, they review it (`mvp-cohesion.md` F8).
 
 ## Open
 
-- Unsupported hypothesis shown or refused only (chunk 1).
-- What replacing a flagged respondent means for the run's identity (chunk 4).
+- **Empty-module behavior is settled (MVPQ-04, owner 2026-10-20): block the report until the module's lack of supported findings is resolved.** Chunks 9a (diagnostic, W1) and 9b (refusal, W3) build it; no diagnostic may be patched with an invented finding.
+- Replacement identity is settled (F18): a new linked run. Only weighting/effective-n/support semantics remain open in master §11.4 item 10; mechanism and ADR are `run-qc-and-checkpoint#RQC5`.
 
 ## Doc follow-up
 
 `ARCHITECTURE.md` §4 (a finding cites an admitted claim; QC is a warning, never a gate).
+
+## Added by the master plan (2026-10-19)
+
+- **6.** `ResultsContext` and the Results artifact need the admitted evidence: today Results reads the raw
+  aggregate artifact and decides suppression in the browser (`research-execution.ts:373`); no API serves
+  `PrintGrade` or the evidence table (T3 A4). Gap G31. Test: a suppressed object's number is absent from
+  the response, not hidden in the page.
+- **7, corrected at 0d525bc8.** `AnalysisInputs.external_context` already exists (`application/analysis.py:101`) and reaches its fingerprint (:138) and prompt (:176). The missing connection is the production constructor in `application/analysis_results.py:570-579`, which supplies no external context. Trace the sealed-bundle provider into that constructor and the Lead, then test stored source lineage and payload. Reuse the existing field; do not build a second context type or claim its absence. External context remains context, never respondent evidence. Retiring it would change the integrated MVP scope and needs an explicit override.
+- **8a, 8b.** `AnalysisInputs` holds one origin; client-reported numbers (`client-data-in-analysis`) need a
+  second table and a fingerprint that names it. Interfaces I21.
+- **1, settled and open.** MVP-23 flips the parity cases `finding-without-evidence` and
+  `no-finding-at-all`, and the report needs all eight modules complete, so one module with no citable
+  finding blocks the internal report. **The owner decided on 2026-10-20 that it blocks** until the lack of
+  supported findings is resolved: by a same-data retry, a changed design or more data, never by an invented
+  finding (chunks 9a, 9b).
+
+
+## Execution predecessors (2026-10-20)
+
+Chunks 1 and 5 are W0 rule/authority work; 2-3 and 6 are W1 QC/admitted-result producers;
+8a is the W1 proposed two-origin contract reviewed with S3 before client-data admission code;
+4 and 8b (the implemented two-origin path) are W3. Chunk 7's external-context producer/consumer
+contract is W1 and its wiring is W3 before Interpretation evidence is consumed. Keep this
+requirement visible: integrating Deep Research context is MVP work, not an unrecorded removal.
+MVPQ-04 is settled (block), so the diagnostic of chunk 9a is W1 and the composer's refusal 9b is W3; citation validators and missing-evidence negative tests never waited. No provisional finding is evidence.
+
+**9a and 9b, added 2026-10-20 (MVPQ-04).** A module that cannot state a supported finding stores a diagnostic: the module, reason codes and what would resolve it (a same-data retry through `retry_analysis`, a changed design, more data). It is not a finding, is not counted as admitted, and appears on Analysis and Results. The composer of the internal report and the exports (internal DOCX and PDF, with literature, client) refuse while any of the eight modules is BLOCKED or empty; the existing "all eight modules complete" rule is the same rule stated once. Test: a module with no finding blocks composition and export, shows its diagnostic, and a patched finding with no claim id is refused by the citation gate.
