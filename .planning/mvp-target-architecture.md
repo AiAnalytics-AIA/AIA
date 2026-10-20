@@ -18,7 +18,7 @@ hypothesis: confirm it in the chunk that needs it, never build on it unread.
 | One shared, server-validated edit vocabulary; every operation stored (F11) | §3.1, §5 |
 | Per-change accept and reject inside a proposal (F11) | §3.5, §5 |
 | Two researchers, each with their own Lead, one working copy; item-level merge; presence by polling (F12) | §3.1, §3.2 |
-| Per-study envelope, set by the researcher up to a client ceiling, no expiry until the study closes, priced Deep Research inside, a fieldwork run through a plan card approved once (F13) | §3.3, §3.4 |
+| Per-study wallet, set by the researcher up to a client ceiling, no expiry until the study closes, priced Deep Research inside, a fieldwork run through a plan card approved once (F13) | §3.3, §3.4 |
 | Hard lock on Sociomap inputs with a recorded unlock (F13) | §3.8 (ledger subject), §5 |
 | Each researcher's Lead proposes updates to its own files; an admin can read and hand them on (F14) | §3.6 |
 | Population-built respondents by default (F15) | §4 (no schema change) |
@@ -115,33 +115,33 @@ the web sends every 5 s; a row older than 20 s is not read. Never audited, never
 foreign-key chain to the ops log. **Repository:** `StudyPresenceRepository`. The change feed is a read
 of §3.1 `GET …/workspace/ops?since=<revision>`; both poll (decision: no push service).
 
-### 3.3 The envelope: `study_envelopes`, `study_envelope_raises`, `study_envelope_charges`
+### 3.3 The wallet: `study_wallets`, `study_wallet_raises`, `study_wallet_charges`
 
-`study_envelopes`: `envelope_id` PK; scope; `cap_usd` Float > 0; `ceiling_usd` Float NULL (the
+`study_wallets`: `wallet_id` PK; scope; `cap_usd` Float > 0; `ceiling_usd` Float NULL (the
 client's ceiling when it was set); `set_by`; `created_at`; `closed_at` NULL; `closed_reason`. A
-**partial unique index** allows one open envelope per study (`WHERE closed_at IS NULL`). No expiry
+**partial unique index** allows one open wallet per study (`WHERE closed_at IS NULL`). No expiry
 (decision): it closes with the study.
-`study_envelope_raises`: `raise_id`, `envelope_id`, `from_cap_usd`, `to_cap_usd`, `raised_by`,
+`study_wallet_raises`: `raise_id`, `wallet_id`, `from_cap_usd`, `to_cap_usd`, `raised_by`,
 `created_at`; insert-once. A raise above the client's ceiling is refused.
-`study_envelope_charges`: `run_id` PK (FK `workflow_runs`), `envelope_id`, `plan_id` NULL,
+`study_wallet_charges`: `run_id` PK (FK `workflow_runs`), `wallet_id`, `plan_id` NULL,
 `decision_id` (the `approval_decisions` row that authorised it), `ceiling_usd` Float, `created_at`;
 insert-once. **Accounting is by cost ceiling, not by settled spend**: remaining = `cap_usd` minus the
-sum of `ceiling_usd` over the envelope's charges, checked under the study row lock (a lock
+sum of `ceiling_usd` over the wallet's charges, checked under the study row lock (a lock
 `ResearchRuns.start` does not take today: the confirmation is a function argument, `research.py:724-742`),
 so a start never exceeds the cap and an unknown cost counts as its ceiling, never zero
 (`ARCHITECTURE.md` §10). Settled spend is read from the usage ledger for display.
-**Client ceiling:** a nullable column `clients.envelope_ceiling_usd`, set only by an organisation
-OWNER or ADMIN; null means the envelope may not exceed the study's budget. **The cap that stops spending
+**Client ceiling:** a nullable column `clients.wallet_ceiling_usd`, set only by an organisation
+OWNER or ADMIN; null means the wallet may not exceed the study's budget. **The cap that stops spending
 is the study's `budget_usd`** (`workflow_repository.py:1240-1244`). The "spend limit" set by
 `PUT /studies/{id}/spend-confirm` is `spend_confirm_usd`, a per-start **confirmation threshold** (null means
-never ask: `research.py:452-454`, ADR 0019); it stays a threshold, beside the envelope, with its own Czech
-label. The envelope is defined against `budget_usd` and never against the threshold (the owner,
+never ask: `research.py:452-454`, ADR 0019); it stays a threshold, beside the wallet, with its own Czech
+label. The wallet is defined against `budget_usd` and never against the threshold (the owner,
 2026-10-19). **Repository:**
-`StudyEnvelopeRepository`; it is the only code that writes the three tables.
+`StudyWalletRepository`; it is the only code that writes the three tables.
 
 ### 3.4 The plan card: `lead_plans`, `lead_plan_steps`
 
-`lead_plans`: `plan_id` PK; scope; `user_id` (whose Lead prepared it); `turn_id`; `envelope_id` FK;
+`lead_plans`: `plan_id` PK; scope; `user_id` (whose Lead prepared it); `turn_id`; `wallet_id` FK;
 `design_revision_id`; `workspace_revision`; `steps` JSONType (frozen at proposal, at most 12, each a
 typed step: `agent_job`, `research_run`, `deep_research`, `interpretation_research`, with its own
 `ceiling_usd`); `cost_ceiling_usd`; `status` (`PROPOSED`, `APPROVED`, `RUNNING`, `DONE`, `STOPPED`,
@@ -156,20 +156,20 @@ types are defined), one step kind `lead_plan_step` per plan step, each depending
 executor starts the child (an agent job, a run, a Deep Research run) through the application layer
 under a **plan authority**: a capability `ScopeResolver` issues only against a held lease and an
 `APPROVED` plan row, which can start what the frozen step names and nothing else, holds no
-`APPROVE_GATE`, and writes `study_envelope_charges` and a ledger row naming the plan. A step that
+`APPROVE_GATE`, and writes `study_wallet_charges` and a ledger row naming the plan. A step that
 reaches a gate no plan approval covers (a budget lift, a report approval, an unlock, a spend
 confirmation when the run's ceiling reaches the limit) **parks** and waits for a person; it is never
 skipped. This is the content of the orchestration-scope ADR.
 
-**A run started by asking (owner, 2026-10-19).** Inside an open envelope a person's own request starts
+**A run started by asking (owner, 2026-10-19).** Inside an open wallet a person's own request starts
 a job without a plan card: asking is authorising, one ledger row `chat_start` naming the person's
-message, the envelope charged by the job's ceiling. A Lead-initiated start still needs an approved
+message, the wallet charged by the job's ceiling. A Lead-initiated start still needs an approved
 plan. **Security condition, proposed:** the server, not the model, must establish that the *person*
 asked. A model's reading of a message is not enough, because text the Lead has read (a client
 document, a Deep Research source, a pasted brief) can carry instructions that make it "decide" the
 person asked. So the by-request path accepts only a **typed command** the web sends from the
 composer's quick action (for example `start_run` with the revision it names), which the server
-executes directly under the envelope; free text still goes to the Lead, which prepares a card. The
+executes directly under the wallet; free text still goes to the Lead, which prepares a card. The
 request names the exact revision, never "the latest". The spend confirmation of ADR 0019 gate 2
 (a run whose ceiling reaches the confirmation threshold) still needs its own confirmation.
 
@@ -226,8 +226,8 @@ deferred decision of `client-data-in-analysis` chunk 0. **Repository:** `ClientD
 
 | Table | Change | Reason |
 |---|---|---|
-| `approval_decisions` | extend `approval_subject_type_known` (`tables.py @ 085abe0`) with `envelope`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot`, `sociomap_unlock` | each human act is one ledger row; **one early migration adds all seven so later migrations do not collide** |
-| `clients` | add `envelope_ceiling_usd` NULL | §3.3 |
+| `approval_decisions` | extend `approval_subject_type_known` (`tables.py @ 085abe0`) with `wallet`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot`, `sociomap_unlock` | each human act is one ledger row; **one early migration adds all seven so later migrations do not collide** |
+| `clients` | add `wallet_ceiling_usd` NULL | §3.3 |
 | `researcher_leads` | add `archived_at`, `derived_from_lead_id` | §3.6 |
 | `ai_usage_events` | ◇ add `inference_profile_arn` if `model`/`served_model` do not carry it | reconcile the ledger with the tagged AWS cost (`develop-spend-attribution`) |
 | `workflow_runs` | none: a `lead_plan` is a new workflow type, not a column | closed set of types |
@@ -267,16 +267,16 @@ deployed worker and the panel path composed; the invented roster stays in tests 
 | `POST workspace/ops` | apply a batch of operations on a base revision; `merged` or `409 edit_conflict` | `EDIT_STUDY` |
 | `GET workspace/ops?since=` | the change feed with authors | member |
 | `PUT/GET presence` | heartbeat and who is here | member |
-| `GET/PUT envelope`, `POST envelope/raise` | the envelope; raise up to the client ceiling | `EDIT_STUDY`; ceiling set by admin |
+| `GET/PUT wallet`, `POST wallet/raise` | the wallet; raise up to the client ceiling | `EDIT_STUDY`; ceiling set by admin |
 | `POST lead/plans` (from a turn), `POST lead/plans/{id}/approve`, `…/stop` | the plan card | `APPROVE_GATE` |
-| `POST lead/commands` ◇ `{command: start_run, revision_id}` | a typed quick action starts a job inside the envelope; ledger `chat_start`; the model is not in the path | `APPROVE_GATE` |
+| `POST lead/commands` ◇ `{command: start_run, revision_id}` | a typed quick action starts a job inside the wallet; ledger `chat_start`; the model is not in the path | `APPROVE_GATE` |
 | `POST agent-jobs/{id}/accept` with `change_ids` | per-change accept (extends today's accept) | `APPROVE_GATE` |
 | `GET research/runs/{id}/respondents/{rid}` | the drill-down: one respondent, labelled modelled, never exported | `EDIT_STUDY` |
 | `GET research/runs/{id}/map/filters` | aggregates for a filter set, never rows | `EDIT_STUDY` |
 | `POST research/runs/{id}/snapshots/{sid}/approve` | approve a map snapshot; independence follows the self-approval setting | `APPROVE_GATE` |
 | `POST …/sociomap-unlock` | "Unlock for this revision": warns, one ledger row `sociomap_unlock`; the Lead can never call it | `APPROVE_GATE` |
 | `PUT /clients/{id}/datasets/{source_id}/contract` | accept a data contract | `PROPOSE_CLIENT_KNOWLEDGE` ◇ |
-| `GET/PUT /organization/clients/{id}/envelope-ceiling` | the client ceiling | org OWNER or ADMIN |
+| `GET/PUT /organization/clients/{id}/wallet-ceiling` | the client ceiling | org OWNER or ADMIN |
 | `GET /admin/leads/{user_id}`, `POST /admin/leads/{user_id}/handover` | admin reads Lead files, hands one on | org OWNER or ADMIN |
 
 Every route is in `.github/workflows/ci.yml`'s `api-contract` `required` list. Scope is asserted by
@@ -391,9 +391,9 @@ the person accepts three of five → `POST accept {change_ids}` → under the st
 item, merge those items, one revision, `proposal_change_decisions` rows, one ledger row, ops with
 `source=proposal_accept` → the other changes are `REJECTED` or `DROPPED_STALE`.
 
-**A plan card.** The Lead's turn proposes a plan inside the envelope → the card shows steps and the
+**A plan card.** The Lead's turn proposes a plan inside the wallet → the card shows steps and the
 cost ceiling → the person approves (`lead_plan` ledger row) → a `lead_plan` workflow starts → each
-`lead_plan_step` starts its child under the plan authority, charging the envelope by ceiling → a gate
+`lead_plan_step` starts its child under the plan authority, charging the wallet by ceiling → a gate
 the plan does not cover parks the step and shows a card → on the last step the plan is `DONE`.
 
 **The Lead learns.** A person undoes a Lead edit → a `researcher_lead_signals` row (ids only) → the
@@ -412,7 +412,7 @@ unconditional for client-facing) → DOCX and PDF become downloadable only after
 ## 8. Layering and CI additions
 
 New `layer_check` rules, each added once it passes (`ARCHITECTURE.md` §3 ratchet): the ops log, presence,
-envelope, plan, proposal-change, lead-signal and data-contract tables are reached only through their
+wallet, plan, proposal-change, lead-signal and data-contract tables are reached only through their
 repositories; the working copy is written only by `apply_edit_ops`; the plan authority is issued only
 by `ScopeResolver` and never carries `APPROVE_GATE`; the API never starts a plan step. CI additions:
 `tests/acceptance` in the collect-only pass and a JUnit step (`mvp-acceptance-harness` chunk 3);
@@ -434,7 +434,7 @@ validate` in the docs-and-config job.
 | 9 | ~~Whether a plain chat request starts a run without a plan card~~ **decided 2026-10-19: yes**, through a typed command the server matches (§3.4 security condition, to confirm in the ADR) | owner | none |
 | 10 | ~~Admin read: do turns stay private; what handover means~~ **decided 2026-10-19: turns private; handover is a copy** | owner | none |
 | 12 | ~~Whether parity blocks CI~~ **decided 2026-10-19: it runs and reports, never blocks** (`mvp-acceptance-harness` 8; the cost is stated in `mvp-cohesion.md` F9) | owner | none |
-| 13 | ~~Who may accept a proposal by another person; whether an own dimension builds by itself; whether a client report needs a second person~~ **decided 2026-10-19: any member with the accept permission; on a click inside the envelope; no unconditional second person** (`mvp-cohesion.md` F12, F17, F19) | owner | none |
+| 13 | ~~Who may accept a proposal by another person; whether an own dimension builds by itself; whether a client report needs a second person~~ **decided 2026-10-19: any member with the accept permission; on a click inside the wallet; no unconditional second person** (`mvp-cohesion.md` F12, F17, F19) | owner | none |
 | 11 | ~~Retention~~ **decided 2026-10-19: kept until a person deletes it; the log is kept with its study.** A documented **delete path** (database cascade, S3 prefixes, RDS snapshot retention of 14 days stated) is needed before production | owner | production release |
 
 **Risks.** The ops log makes every edit a write: volume is human-paced and small, but it needs an
