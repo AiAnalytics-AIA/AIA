@@ -1,0 +1,3 @@
+Regenerate: from a checkout of `develop`, `python3 extract.py <repo-root> data.json`, then fill template.html's `__DATA__` (data.json), `__XCHECK__` (xcheck.json, the cross-check result), `__SHA__` and `__DATE__`, escaping `</` as `<\/` (the build step is the short Python snippet in this session's history: read template, replace the four placeholders, write aia-mvp-plan.html).
+Check: `node look.mjs` renders it at 1440 px and 390 px (Playwright + Chromium) and reports overflow and script errors; fix the paths at the top of look.mjs to your checkout.
+Republish: Artifact tool, publish aia-mvp-plan.html to url https://claude.ai/artifact/RAYF6NZ1ctrAxo8qEYFWqR (private; read it first from a new conversation). No secrets in any of these files.

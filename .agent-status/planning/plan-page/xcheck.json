@@ -1,0 +1,244 @@
+{
+ "held": 16,
+ "refuted": 85,
+ "rows": [
+  {
+   "id": "X1",
+   "gap": "MVPQ-04 blocks the report while any of the eight modules has no supported finding, and `segment-maps-and-drilldown` 5 says segment filters are 'never an AdmittedClaim'. No chunk produces SEGMENT-level admitted evidence, so the Segments module can never state a finding and, as planned, no report can be composed, approved or exported. Hypotheses and Objects may have the same shape when a design declares nothing; that part is not checked.",
+   "anchors": "git show 085abe0:packages/aia_core/src/aia_core/domain/analysis/modules.py (lines 91-96, 'Without segment evidence, say segmentation cannot be assessed'); git show 085abe0:packages/aia_core/src/aia_core/domain/research_aggregate.py (docstring: no segment tables); git show 085abe0:packages/aia_core/src/aia_core/domain/evidence/claims.py (line 81 ClaimLevel.SEGMENT defined, no producer; grep SEGMENT in domain/evidence and domain/analysis finds no other use); plans/segment-maps-and-drilldown.md:64 ('never an AdmittedClaim'); plans/evidence-integrity.md:114 (9a/9b); .planning/mvp-owner-decisions.md MVPQ-04; evidence/mvp-prototype-v2/conformance.md:77 ('Segments module stay blocked')",
+   "blocks": "AC-08, AC-13 (and the report path of AC-09); decision: follow-up to MVPQ-04",
+   "chunk": "Add owner question MVPQ-04b to master plan 11.4 (what resolves the gate for a module whose evidence the design does not declare) and add `evidence-integrity#9c`, a short decision chunk that 9b waits on. If the owner chooses a producer, add `segment-maps-and-drilldown#9`: per-segment aggregates over the 0a descriptors (Kish n, support, suppression) and SEGMENT-level AdmittedClaims through admit_numeric_claims. If the owner chooses 'not applicable when no segmentation is declared', 9a/9b record that rule by name. Tests: 'thin segment suppressed'; 'RELIGION refused client-facing'; 'report composes when no segmentation is declared'.",
+   "session": "S2",
+   "severity": "blocks_acceptance",
+   "from_items": [
+    "C.16"
+   ]
+  },
+  {
+   "id": "X2",
+   "gap": "The map interpreter, report writer and straight-liner check cannot be `research_agent` actions. A research_agent job is keyed on a Design Revision and carries a design snapshot, so it cannot take a run, a map target or a report section. LO9a/LO9b make the workers 'rows, not three designs' and cover binding, price and accept destination, but no chunk builds the second job shape (workflow type, step kind, context builder, executor) they need.",
+   "anchors": "git show 085abe0:packages/aia_core/src/aia_core/application/research.py (lines 1311-1356: start takes design_revision_id, action, instruction; payload = design snapshot + fingerprint); git show 085abe0:apps/executors/src/aia_executors/research_agents.py (line ~150: reads only payload['snapshot']); git show 085abe0:packages/aia_core/src/aia_core/domain/research_agents.py (lines 35-43 closed 8-member ResearchAction; CONTRACTS keyed by it); grep -n 'REPORT_WRITING' domain/ai_models.py (no non-test consumer); evidence/mvp-master-traces/trace-4-lead-governance.md:107 says 'NONE in plan files'",
+   "blocks": "AC-03 (LO9b calls the eleven workers 'the baseline of AC-03'), AC-02",
+   "chunk": "Add `lead-orchestration#LO9c` (after LO9a, before LO9b, W1-W2): a results-worker job shape. A workflow type and step kind keyed on (run_id, target) with a frozen-input payload (artifact ids + SHA-256, as FrozenLineage does), its own context builder, a service under the design/results project found only through the Study, and an executor registered behind its own `AIA_AI_RESEARCH_WORKERS_*` switch. It shares the LeadWorkerSpec row, the prompt pin and the usage ledger. LO9b then adds only rows. Test: a job for run R and a map target is refused for another Study's run, and its payload hash is verified by the executor.",
+   "session": "S1",
+   "severity": "blocks_acceptance",
+   "from_items": [
+    "B1.9"
+   ]
+  },
+  {
+   "id": "X3",
+   "gap": "No chunk changes the questionnaire proposal contract to keep protected inputs or item identity. `proposal_result` discards every non-library `object_battery` and `questions` section and gives each proposed section/question a fresh `ai_section_N` / `ai_q_N_M` id, and the closed output models cannot carry `context_objects` or `sociomap_rating`. Once WCE8 makes the declarations settable and WCE2 locks them, a build/optimise accept on a map study is either refused by the lock or silently drops them, and per-change accept sees every item removed and re-added.",
+   "anchors": "git show 085abe0:packages/aia_core/src/aia_core/domain/research_agents.py (lines 748-787: preserved filter, ids reassigned; QuestionnaireProposal at :155-159 has no id or disposition field); domain/design_items.py keys sections/questions/batteries by id; grep -rn 'object_battery' .planning finds no chunk touching the proposal contract; working-copy-edit-ops.md:44 (WCE2) and :68-69 (WCE8) test only the whole-copy route",
+   "blocks": "AC-09 (map inputs protected), AC-03, AC-02 (per-change accept)",
+   "chunk": "Add `working-copy-edit-ops#WCE8b` (W2, with WCE8, before `research-lead-workbench#7` and `#17`): proposal_result copies a battery with context_objects, a tracked set and a sociomap_rating question from the baseline byte for byte under their ids and never from model output (the context marks them fixed). QuestionnaireProposal sections and questions gain an optional baseline id, kept by proposal_result; ai_* ids only for genuinely new items; an omitted baseline item is a remove. Bump the harness and prompt_version_for for build/optimise, add a shared fixture case. WCE6 and workbench 17 depend on it. Tests: an optimise accept over a battery with context_objects leaves both declarations in the working copy and does not trip the lock; rewording one of five questions yields one changed item in design_items and can be accepted alone.",
+   "session": "S1",
+   "severity": "weakens_acceptance",
+   "from_items": [
+    "B2.7",
+    "B2.8"
+   ]
+  },
+  {
+   "id": "X4",
+   "gap": "No chunk stores or serves a report's document model (sections, paragraph ids, claim references, ledger summary). The report steps store DOCX bytes only and discard the ReportDocument, and Paragraph.id is optional. RD5 (tracked changes per paragraph), RD7 (sentence-level claim check) and LO8's 'report text' context therefore have no data to operate on, and the V2 document-first draft with claim chips has no source.",
+   "anchors": "git show 085abe0:apps/executors/src/aia_executors/report.py (lines 140-157: repo.put with data=DOCX bytes, content_type=DocxRenderer.media_type); git show 085abe0:packages/aia_core/src/aia_core/application/report.py (line 422: ReportDocument built, rendered, discarded; same in client_report.py:218 and contextual_report.py); git show 085abe0:packages/aia_core/src/aia_core/domain/report/model.py (line 87 `id: str | None = None`); report-delivery.md:37-52 (RD2-RD7); evidence/mvp-prototype-v2/current-disposition.md:41 assigns 'document-first draft, claim chips' to RD0-RD8 + workbench 21",
+   "blocks": "AC-13 (V2 Report body, MVPQ-01), AC-08 (evidence on every sentence); workbench 21 and LO8 depend on it",
+   "chunk": "Amend `report-delivery#RD5` with a first step (call it RD5a, before RD7, W2/W3): the report step stores the ReportDocument as JSON (outline, stable paragraph ids, claim refs, ledger summary) beside each DOCX under the same fingerprint, for the internal, client and with-literature variants; a VIEW_RESULTS route (for example GET .../report/document?variant=) reads it; RD5 paragraph changes, RD7 and LO8's report-text provider use that stored model. Test: the stored document renders to the same DOCX bytes, and paragraph ids are stable across a rerun with the same fingerprint.",
+   "session": "S3",
+   "severity": "weakens_acceptance",
+   "from_items": [
+    "B2.16"
+   ]
+  },
+  {
+   "id": "X5",
+   "gap": "No chunk or ADR 0027 decision says how a client aggregate meets the evidence layer's support, interval and metric vocabulary. A client number has no respondent n or effective n, so `assess_support` suppresses it ('support unknown: n or effective n missing'), and MetricKind/MetricUnit have no count, amount or rate kind. The AC-10 dataset (visits by branch and month) would be suppressed or refused by name whatever policy source chunk 0 picks.",
+   "anchors": "git show 085abe0:packages/aia_core/src/aia_core/domain/evidence/support.py (lines 194-201 _decide: SUPPRESS when n or effective n is None; REFERENCE_THRESHOLDS min_cell 50 / n_guard 25); git show 085abe0:packages/aia_core/src/aia_core/domain/evidence/metrics.py (lines 32-45: MetricKind mean/top2box_pct/n/effective_n/pct; MetricUnit %, respondents, scale_mean); domain/evidence/admission.py (METRIC_NOT_ALLOWED, INTERVAL_MISSING); client-data-in-analysis.md:43-50 (chunk 0 settles only policy source, Q1, Q2, Q3); ADR 0027 decisions 2 and 4 declare the unit in the contract but not how it maps to MetricUnit; docs/migration/mvp-acceptance.md AC-10 dataset",
+   "blocks": "AC-10, AC-08, MVP-19",
+   "chunk": "Amend `client-data-in-analysis#0` (and the ADR 0027 amendment it produces) to decide: (a) the support a client aggregate or record count carries (exact counts or row count as n, or an explicit 'not a sample' status instead of an invented effective n); (b) the metric/unit set a client number may take beyond mean/pct/n; (c) when an interval is required. Name it in chunk 5's exact scope and in `evidence-integrity#8b`. Test: the AC-10 dataset is admitted client-reported, and a row with no declared support is refused by name.",
+   "session": "S2",
+   "severity": "weakens_acceptance",
+   "from_items": [
+    "D.18"
+   ]
+  },
+  {
+   "id": "X6",
+   "gap": "ADR 0027 decision 4 makes code's data quality report (missing values, duplicates, out-of-range) part of what the person accepts, and the target architecture has a `quality_report` column, but no chunk computes it. Chunk 2 is only 'a frozen type and an accept route', and the only reader that sees every row (chunk 3's analysis copy) comes after the accept route.",
+   "anchors": "docs/architecture/adr/0027-client-data-is-client-reported-evidence.md:53-56 (decision 4); .planning/mvp-target-architecture.md:215 (`quality_report` JSONType, no producer); grep -rn -i 'quality report\\|quality_report\\|duplicates' .planning/plans/client-data-in-analysis.md .planning/plans/mvp-master-plan.md finds nothing else; client-knowledge-lifecycle.md:97 names 'quality results' with no chunk; git show 085abe0:packages/aia_core/src/aia_core/infrastructure/source_reading.py (lines 550-551 _csv through read_csv; 574-579 rows_bound note on a truncated grid)",
+   "blocks": "AC-10 ('only under an accepted data contract'), MVP-24",
+   "chunk": "Add `client-data-in-analysis#2a`: a pure `client_data.quality_report(contract, rows)` (missing, duplicate and out-of-range counts per used column, QUALITY_VERSION, canonical SHA-256) stored in `client_data_contracts.quality_report` and shown before accept. It reads every row, so it needs the full-data reader of X7 before the accept route. A source whose reading carries rows_bound or sheets_bound is refused by name, never reported as complete. Test: duplicates, blanks and an out-of-range value are counted over a dataset larger than the preview, and a truncated reading cannot be accepted.",
+   "session": "S3",
+   "severity": "weakens_acceptance",
+   "from_items": [
+    "D.22"
+   ]
+  },
+  {
+   "id": "X7",
+   "gap": "No chunk says where the analysis copy's rows come from or under what scope a study run reads them. The only stored dataset rows sit in a reading cut at 250,000 characters (PARTIAL, text_bound), the grid reader is itself bounded, and ClientSourceRepository reads only through a ClientContext (a StudyContext is a separate class), so a copy built from the reading silently totals a truncated dataset and `client_data_prepare` has no accessor.",
+   "anchors": "git show 085abe0:packages/aia_core/src/aia_core/domain/client_sources.py (line 55 SOURCE_TEXT_MAX_CHARS = 250_000; reading_of_segments drops later rows); git show 085abe0:packages/aia_core/src/aia_core/domain/deep_research/documents.py (lines 97-101 MAX_GRID_*); git show 085abe0:packages/aia_core/src/aia_core/infrastructure/client_source_repository.py (lines 89-92 _client accepts only ClientContext; original() at :256 takes ClientContext; pinned_reading only ClientWorkContext); domain/scope.py classes StudyContext :690, ClientWorkContext :773, ClientContext :830; client-data-in-analysis.md:58-68 (chunk 3 states the allowlist, not the reader or scope); mvp-target-architecture.md:252 (`client_data_prepare` names neither input nor scope)",
+   "blocks": "AC-10, AC-08 (every number admitted), ADR 0027 decisions 5 and 9",
+   "chunk": "Split `client-data-in-analysis#3` into 3a and 3b. 3a: a full-grid reader over the kept original bytes (not the stored reading) under stated analysis bounds, refusing by name above them and never keeping a partial copy. 3b: the hash-verified accessor and the scope `client_data_prepare` runs under (the ClientWorkContext pattern, or a StudyContext read of the client's copy). Test: a CSV over 250,000 characters is copied whole or refused with a named reason, never totalled partial. 3a is a predecessor of X6.",
+   "session": "S3",
+   "severity": "weakens_acceptance",
+   "from_items": [
+    "D.23"
+   ]
+  },
+  {
+   "id": "X8",
+   "gap": "The plans give the Questionnaire a routing vocabulary (`route_set`, chunk 17 'routing') and V2 Results a filtered base, but the code cannot execute a routing condition. Readiness FAILs any conditional question, the outlook marks it UNANSWERABLE and fieldwork asks every respondent every question. No plan records that setting a condition and filtered bases are 'V AIA zatím není', so a route_set operation would write a condition that readiness then refuses.",
+   "anchors": "git show 085abe0:packages/aia_core/src/aia_core/domain/research_design.py (lines 868-878 conditional_questions FAIL); git show 085abe0:packages/aia_core/src/aia_core/domain/question_outlook.py (CONDITIONAL -> UNANSWERABLE); git show 085abe0:apps/executors/src/aia_executors/ai_fieldwork.py (lines 283-325, no condition); mvp-target-architecture.md:93 (`route_set`); research-lead-workbench.md:174 (chunk 17 'routing'); mvp-cohesion.md:333-359; prototypes/research-lead-v2/src/model/fixture.ts:112-113 (V2 reference uses routing)",
+   "blocks": "AC-08, AC-02/AC-03 (one vocabulary), D13",
+   "chunk": "Amend `working-copy-edit-ops#WCE0` and `research-lead-workbench#17` and `#20`: route_set may only show or remove an existing condition; setting one is refused with readiness's conditional_questions reason; Results prints no filtered base ('V AIA zatím není'). Add one owner question to 11.4: execute routing and a conditional base end to end, or accept this limit against the V2 reference. No execution chunk until answered. Test: route_set that sets a condition is refused with the readiness reason.",
+   "session": "S1",
+   "severity": "weakens_acceptance",
+   "from_items": [
+    "B2.13"
+   ]
+  },
+  {
+   "id": "X9",
+   "gap": "No chunk draws a respondent-map or segment-map figure or writes their report chapters. `object_map_snapshots` and `compose_map_sections` read only contract-3 object maps via read_object_maps, RD4 says 'S2 supplies the deterministic figure function' but 5b/E30 is only a verification of the object map, and the run graph has no segment-map node or report depends_on edge (trace 3 names the need but assigns no chunk).",
+   "anchors": "git show 085abe0:packages/aia_core/src/aia_core/infrastructure/report_docx/object_map_figure.py (lines 110-125: loops read_object_maps(battery), keys (battery, method, 'top'|'3d')); git show 085abe0:packages/aia_core/src/aia_core/application/report_maps.py (line 77 compose_map_sections); git show 085abe0:packages/aia_core/src/aia_core/domain/sociomap/models_v3.py (line 313 `respondents: NotComputed`); git show 085abe0:packages/aia_core/src/aia_core/domain/workflow_templates.py (lines 231-242 report depends_on eight modules + sociomap only); report-delivery.md:44 (RD4); mvp-execution-contracts.md:57 (E30); evidence/mvp-master-traces/trace-3-evidence.md:61,236",
+   "blocks": "AC-09 (respondent and segment map), AC-13 (approved map snapshots), gate I-2 snapshot proof",
+   "chunk": "Add `segment-maps-and-drilldown#9`, a predecessor of `report-delivery#RD4` in E15: draw_respondent_map_snapshot and draw_segment_map_snapshot beside draw_object_map_snapshot; object_map_snapshots and compose_map_sections keyed (battery, method, kind) with the register status and the suppressed or not-mappable segment named; the research_segment_maps artifact in the report's depends_on. State whether a client snapshot prints respondent points or only the aggregate terrain. Tests: deterministic bytes; client=True refuses an unregistered kind.",
+   "session": "S2",
+   "severity": "weakens_acceptance",
+   "from_items": [
+    "C.23"
+   ]
+  },
+  {
+   "id": "X10",
+   "gap": "Settings' 'test a draft' is a manual paid AI start outside the Lead: a Run button calls researchAgents.start with a pinned prompt version and creates no Lead card. AC-02 says every AI action is started through the Lead (no manual AI button) and MVPQ-11 says no manual AI start in any layout. LO13 records only the client-level exception, so the criterion as worded would be false or an AiButton sweep would flag the panel.",
+   "anchors": "git show 085abe0:apps/web/src/components/aia/settings/SystemPromptsPanel.tsx (line 775: researchAgents.start(studyId, revisionId, action, \"\", version)); docs/migration/mvp-acceptance.md:83 (AC-02); lead-orchestration.md:92-93 (LO13); grep -rn 'SystemPromptsPanel\\|draft test' .planning/plans/lead-orchestration.md .planning/plans/research-lead-workbench.md finds nothing; system-prompts-settings.md chunk 11 [x]",
+   "blocks": "AC-02, MVP-8",
+   "chunk": "Amend `lead-orchestration#LO13` and add one owner question to 11.4: keep the administrator's pinned-prompt draft test (ADR 0020 decision 7: administrator only, fictional client only, spend held by LO15) as a second recorded exception to AC-02, or route it through the Lead on a fictional study. If kept, reword AC-02 with LO13 and exempt SystemPromptsPanel by name from the 'no manual AI start' sweep. Test: the sweep passes with the named exception and a direct start above the threshold is still refused by LO15.",
+   "session": "S1",
+   "severity": "weakens_acceptance",
+   "from_items": [
+    "B1.20"
+   ]
+  },
+  {
+   "id": "X11",
+   "gap": "WCE11 does not say who performs a structural auto-apply, where the per-stage choice is set, or what happens after fieldwork exists. Today an automatic accept is an act of the signed-in browser after it sees a turn finish, and decide_edits needs the caller's APPROVE_GATE and own completed turn, so a continuation turn (LO6) finishing with no browser open applies nothing.",
+   "anchors": "git show 085abe0:apps/web/src/lib/lead.ts (line 399 autoAcceptPlan, triggered by a finished turn the screen sees); git show 085abe0:packages/aia_core/src/aia_core/application/research_lead.py (lines 504-566 decide_edits: EDIT_STUDY + APPROVE_GATE, caller's own turn, auto only a flag); apps/web/src/components/aia/LeadProfile.tsx:127 (only toggle, text edits); working-copy-edit-ops.md:77-78 (WCE11); lead-orchestration.md:59-60 (LO6)",
+   "blocks": "MVP-14 / D18, AC-02, AC-07",
+   "chunk": "Amend `working-copy-edit-ops#WCE11`: state that auto-apply is performed by the researcher's browser session (or a named server path under the person's standing authority, coordinated with G42), where the per-stage choice lives (Můj Vedoucí or the artifact header), and the rule once fieldwork exists (a structural auto-apply is refused or announced in the conversation). Test: with a stage on and no browser open, a continuation turn's structural edit stays pending; after fieldwork exists it is not applied silently.",
+   "session": "S1",
+   "severity": "minor",
+   "from_items": [
+    "B1.16"
+   ]
+  },
+  {
+   "id": "X12",
+   "gap": "No chunk says which analysis prompt pin a `retry_analysis` or whole-run retry carries, the original run's or a freshly resolved one. `_restart` copies every other pin from the original's metadata and has no prompt parameter, and a retry is the only way to re-ask a BLOCKED module, so a person who fixes and activates a prompt cannot tell whether the retry uses it.",
+   "anchors": "git show 085abe0:packages/aia_core/src/aia_core/application/research.py (lines 865-935: retry_analysis -> _restart -> start with sociomap_methods, support, aggregation, response, readiness and kept{} methodology keys, no prompt); system-prompts-settings.md:10 (chunk 7) and :303-314 list assembly, fingerprint, calls, executor, provenance but not retry; evidence-integrity.md:114 (9a names 'a same-data retry through retry_analysis' as a resolution)",
+   "blocks": "AC-03 (prompt pinned on the job that used it), AC-08 (retry as resolution of a blocked module)",
+   "chunk": "Amend `system-prompts-settings#7` with one decision: retry_analysis resolves the analysis pins afresh and records them (a changed pin changes the module fingerprint so that module reruns; completed modules under an unchanged pin are reused), while a plain whole-run retry keeps the original's pin. Test: edit and activate a prompt after a run, retry_analysis: the failed module runs the new pin, a completed one is reused.",
+   "session": "S1",
+   "severity": "minor",
+   "from_items": [
+    "B1.18"
+   ]
+  }
+ ],
+ "corrections": [
+  {
+   "where": ".planning/mvp-target-architecture.md:254 and .planning/mvp-consolidation.md:190 (the workers row)",
+   "says": "The map interpreter, report writer and straight-liner check are `research_agent` actions (`interpret_map`, `polish_report`, `flag_straightliners`), 'each a job like today's'.",
+   "true_is": "A research_agent job is keyed on a Design Revision and carries a design snapshot; ResearchAction is a closed 8-member enum. The three workers need a different job shape keyed on (run_id, target). Fix both rows and add a master-plan 6.2 row; the chunk is X2.",
+   "anchor": "git show 085abe0:packages/aia_core/src/aia_core/application/research.py (lines 1311-1356); git show 085abe0:packages/aia_core/src/aia_core/domain/research_agents.py (lines 35-43)"
+  },
+  {
+   "where": ".planning/plans/mvp-master-plan.md:329 (6.2 row 'Structural edits may auto-apply per stage (D18, MVP-14)')",
+   "says": "Where: `research-lead-workbench.md:141-144`; fix: 'owner decision (§11 Q9)'.",
+   "true_is": "Lines 141-144 hold D16 text; D18 is at research-lead-workbench.md:155-158. §11 Q9 is the withdrawn text-only vocabulary recommendation (11.6) and the item-9 row at :548 is the AC-13 gates. The question is settled in 11.1 (:483) with `working-copy-edit-ops#WCE11`. Reword the fix column to 'settled, §11.1: off by default, text-only is the only automatic accept until a researcher turns a stage on; WCE11'.",
+   "anchor": "grep -n 'D18\\.' .planning/plans/research-lead-workbench.md (:155); sed -n 141,144p .planning/plans/research-lead-workbench.md; sed -n 483p and 561,564p .planning/plans/mvp-master-plan.md"
+  },
+  {
+   "where": ".planning/plans/mvp-master-plan.md:156 (3.4 AC-09 row)",
+   "says": "AC-09 is built by sociomap-formula-corrections#I0, segment-maps-and-drilldown#0a, #5, #6, working-copy-edit-ops#WCE8, mvp-acceptance-harness#10.",
+   "true_is": "AC-09 requires an object, a respondent and a segment map, each under the pinned method with the register's status. The respondent block is still NotComputed (built by sociomap-formula-corrections#3, open), and the segment map, its filters, register entry and artifact are segment-maps-and-drilldown#1, #2, #4, #8 with research-lead-workbench#20. The row omits all of them, so the harness wiring 'one by one' from this table points at the wrong subset. Add them.",
+   "anchor": "git show 085abe0:packages/aia_core/src/aia_core/domain/sociomap/models_v3.py (line 313 `respondents: NotComputed`); docs/migration/mvp-acceptance.md:90; plans/sociomap-formula-corrections.md chunk 3 '[ ]'"
+  },
+  {
+   "where": ".planning/plans/client-data-in-analysis.md:36 and .planning/mvp-cohesion.md:150 (F3 anchor)",
+   "says": "Any other origin is refused at `domain/evidence/instrument.py:112-121 @ 085abe0`.",
+   "true_is": "Lines 112-125 are the simulated use string and the -2 policy constants (MODELLED_INSTRUMENT_POLICY_VERSION at :117). The refusal is `_declared` at instrument.py:184-196 @ 085abe0 (raise InstrumentPolicyRefused). trace-3-evidence.md:158 already cites the correct range.",
+   "anchor": "git show 085abe0:packages/aia_core/src/aia_core/domain/evidence/instrument.py | sed -n 112,125p; sed -n 184,196p"
+  },
+  {
+   "where": ".planning/plans/system-prompts-settings.md chunk 8 ([x]) and Finding F4 (:166-167 'Fix: chunk 8')",
+   "says": "Chunk 8 is built: 'the settings document lists the active version per activity and fills the missing `research_analysis` versions'.",
+   "true_is": "The settings document still gives research_analysis no version: `NativeActivity(key=\"research_analysis\", ..., versions=[])` at routers/settings.py:486-492 @ 085abe0, and neither chunk 7 nor 13 nor the master plan takes it over. Add it to chunk 7 (test: test_settings_api asserts research_analysis versions is non-empty after chunk 7) and note in Findings that chunk 8's settings-document part was not delivered.",
+   "anchor": "git show 085abe0:apps/api/src/aia_api/routers/settings.py | sed -n 486,492p"
+  }
+ ],
+ "summary": "Twelve gap rows and five corrections survive after merging 15 findings (B2.7 and B2.8 became X3; the two instrument.py anchor findings became one correction; the verifier's note on B1.16 became a correction plus a minor row). Two rows block acceptance: X1, where MVPQ-04 plus 'never an AdmittedClaim' leaves the Segments module unable to ever pass, and X2, where the three new workers cannot use the research_agent job shape. Each row was checked against the code at 085abe0 and against the plan files in wt-master, and none repeats a G1-G46 row or a plan chunk. Chunk text, severities and session assignments (S1/S2/S3) are my own judgement. X1, X8 and X10 each need an owner answer before their chunk can be written. The prototype-v2 conformance table is cited as evidence only.",
+ "map_errors": [
+  "B1 B1.1-B1.9: B1.5 backend_changes: 'context_classification adds the request's instruction as JOB_INSTRUCTION' is at the wrong layer. A Lead request is the Lead's output, not part of its input context; the instruction is classified where it is used, by instruction_classification (packages/aia_core/src/aia_core/domain/research_agents.py:646-653 @ 085abe0, rule JOB_INSTRUCTION at material_rules.py:65), and the Lead's conversation layer keeps only `reply`, not the request (application/research_lead.py:932-945 @ 085abe0).",
+  "B1 B1.1-B1.9: B1.8 missing[0] ('an owner decision: MVP-8 versus ADR 0026 Accepted-with 4 / D7') is already settled in the plan documents: AC-02 allows a typed human start, mvp-target-architecture.md:148-149 types plan steps deep_research and interpretation_research, and LO2 keeps the Run stage button as the human start. What is stale is research-lead-workbench.md D7 (:72-75), which still says runs and Deep Research only open their stage. It is a stale decision text, not an open question.",
+  "B1 B1.1-B1.9: B1.4 open question about budget.lift and report.approve as Lead-preparable human cards: JobRequest has no kind for either (research_lead.py:352-378 @ 085abe0), and ADR 0026 decision 3 lists them as 'requests'. This is a vocabulary gap, not a registry question, and belongs with the request-vocabulary finding.",
+  "B1 B1.1-B1.9: B1.7 missing[1] ('rebuild reachable only as a Lead request') assumes a rebuild request kind that does not exist; LO15 chooses 'held to the limit', and ADR 0026 decision 4 marks proposal.rebuild human-only, so the missing item is moot.",
+  "B1 B1.1-B1.9: B1.2 and B1.3 anchors and claims were otherwise checked and hold at 085abe0: routers/lead.py:76-83 (TurnPost: kind, text, stage, focus), application/research_lead.py:780-789 and :890, lead.ts:341-366, LeadPane.tsx:224 and :517 (only the @ button arms picking), research_lead.py:918-919 (the focus label as LEAD_MESSAGE).",
+  "B1 B1.10-B1.17: B1.11 depends_on says the MVP-24 run-QC port has 'no plan yet'; plans now exist (evidence-integrity#2/#3, run-qc-and-checkpoint RQC1/RQC2/RQC4a), so that dependency is stale.",
+  "B1 B1.10-B1.17: B1.10 and B1.11 anchor ADR 0026 decision 4 at :166-172; at 085abe0 the 'no command until their own ADR and a deterministic admission rule' text is at :169-174 (the admission-rule sentence is at :174, outside the cited range).",
+  "B1 B1.10-B1.17: B1.16 'missing' lists an artifact-header toggle 'Úpravy Vedoucího ... per stage' as a V3 element; the canonical V2 prototype (MVPQ-01) has no such control (grep of prototypes/research-lead-v2/src), so that item is not a V2 requirement.",
+  "B1 B1.10-B1.17: B1.13 treats the report's text as readable once B1.10's model exists; the plan's ResultsContext carries only 'report draft ids' (mvp-cohesion.md F4, mvp-development-plan.md W2 contract), so MVP-15's 'report drafts' is narrower in the plan than in the map.",
+  "B1 B1.18-B1.25: B1.20 risk 'removing the brief button breaks the path to Návrh if it needs the analysis' is wrong: PlanStep.tsx:169-182 @ 085abe0 renders an empty state with 'createManual', 'openBrief' and 'skipToQuestionnaire' when there is no analysis, so Návrh works without the brief analysis.",
+  "B1 B1.18-B1.25: B1.20 open question 'budget lifts and resume of a parked job: human gates or Lead-prepared cards?' is already decided: mvp-cohesion.md:448 says budget lift, report approval and an unlock stay human-only (commands refuse the Lead).",
+  "B1 B1.18-B1.25: B1.22 'missing: a home for advice' is overstated: the Lead pane's ActivityCard already opens advice through onOpenJob and, when the workspace panel is not used, useResearchAgents returns a dialog (AgentProposalDialog) for it; 'source ids as knowledge links' is an enhancement, today they are a plain 'Zdroje' text list (AgentProposalDialog.tsx:57), not MVP-required.",
+  "B1 B1.18-B1.25: B1.18 says pins must be 'kept by retry and retry_analysis': keeping blindly would stop an edited prompt from ever reaching the retry of a blocked module (retry_analysis is the one way to rerun it), so the item's wording should be 'resolved by a decision', see the first B1.18 finding.",
+  "B1 B1.18-B1.25: B1.21 depends_on research-lead-workbench 12 and 15 and B1.9 while chunk 23 is W4 (E22): consistent with the waves, no missing dependency found in B1.18 to B1.25.",
+  "B2 B2.1-B2.11: B2.1: the map says the paid-write filter matches 'POSTs'; workbench_journey.mjs:169 matches any non-GET write path (collected at lines 53-55). Cosmetic.",
+  "B2 B2.1-B2.11: B2.1: the map does not know OI-133 is already registered (open-items.md:4243); its OI-133 fix is not in any chunk, so it is reported once as minor.",
+  "B2 B2.1-B2.11: B2.3: the map's 'approval_decisions ... nothing reads' reading is slightly off: artifact_repository.py:586-597 selects created_at for subject 'artifact'. No reader returns who or what, so the finding stands.",
+  "B2 B2.1-B2.11: B2.9: the map cites workspace.py:2302 for the knowledge-proposals route; the decorator is at :2303. Cosmetic.",
+  "B2 B2.1-B2.11: B2.7: the map's hypothesis that an accepted AI questionnaire proposal drops a person-declared battery is confirmed. proposal_result (research_agents.py:748-787) replaces the battery and the rating-question section and gives the replacements no context_objects.",
+  "B2 B2.12-B2.22: B2.12 tables.py anchor: triggered_by is at tables.py:1387 @ 085abe0, not :1386 (heartbeat_at :1516 is right)",
+  "B2 B2.12-B2.22: B2.19 owning_plan 'NEW:lead-artifact-edits' is unnecessary: working-copy-edit-ops#WCE0/#WCE10 (written after the map) own the Lead's and the person's shared edit vocabulary",
+  "B2 B2.12-B2.22: B2.22 first missing item (cost_ceiling_usd on ResearchRunResponse) is not required by the owner's money decision: mvp-cohesion.md F16 (:497-506) shows a run's ceiling where the person approves it, and the envelope design (mvp-target-architecture.md:127-131, LO1) already computes and stores a ceiling on every charged start",
+  "B2 B2.12-B2.22: B2.12 and B2.18 list V3-only elements (started by you, in-flight count, Used by links, recommended catalogue dimensions, problem types, variant choice) as MVP missing; the canonical V2 build (MVPQ-01) shows none of them, so they are not MVP scope",
+  "B2 B2.12-B2.22: B2.17 'protected minimum quota' is not in V2 (SampleStages.tsx shows share and n per cell only), so it is a method-owner question, not an MVP gap",
+  "B2 B2.23-B2.32: B2.29 exists/needs_adr: 'ADR 0016 forbids respondent-level data reaching the browser' is wrong. ADR 0016 (docs/architecture/adr/0016-research-execution-and-model-transmission.md @ 085abe0) contains no such rule; the rule is ARCHITECTURE.md:272 ('Respondent rows are never sent to the browser') and the code comment at apps/api/src/aia_api/routers/research.py:154-156 @ 085abe0. The plans record the drill-down exception against ARCHITECTURE section 4 (segment-maps-and-drilldown.md Doc follow-up, mvp-cohesion.md F2), so no ADR 0016 amendment is needed.",
+  "B2 B2.23-B2.32: B2.23: the claim that Navrh's variants are a missing MVP feature rests on the V3 board; the V2 prototype that MVPQ-01 selected has no breadth-options card, and the web's variant logic (apps/web/src/research/plan.ts:133-165 @ 085abe0) is the ported 18.6.6 behaviour (studio-v3.md:76, research-flow-rehome.md:154), so the item is not a gap against the plan of record.",
+  "B2 B2.23-B2.32: B2.30: its 'missing' assumes the population must be a design field; sociomap-formula-corrections.md#I0 (:509-516) deliberately freezes the population binding on the run, and persona_source is likewise a start pin, so the design-field change is a choice, not a requirement; only the preview-over-child part survives (reported).",
+  "C C.1-C.11: C.3: the run's seed is read at apps/executors/src/aia_executors/ai_fieldwork.py:362, and fieldwork_seed is defined in packages/aia_core/src/aia_core/domain/ai_respondent.py:263 (not ai_fieldwork.py:361); the claim itself holds.",
+  "C C.1-C.11: C.5: run-recovery-and-truth 5c is already ticked at plan commit 129a800e (front-matter line 17, citing bc61041); only the Doc follow-up text at line 668 still says 5c is open, so the stale-front-matter claim for 5c no longer holds. sociomap-formula-corrections 2d and 5b are still unticked there.",
+  "C C.1-C.11: C.5: the map treats 5b (contract-3 map as a DOCX figure) as built by branded-narrative-map-reports; the plans instead schedule it as E30, a verification chunk (report_maps.py:159-180, figures.py:76-95), so it is covered and not a stale tick.",
+  "C C.1-C.11: C.6/C.11: 'segment point on the map' is presented as an unanswered method question, but mvp-target-architecture.md:251 and segment-maps-and-drilldown.md chunk 2 already decide one object map per segment through the existing engine; the open part is filter semantics and the pin/register identity.",
+  "C C.1-C.11: C.9: the map proposes extending contract 3 with a segments block; mvp-target-architecture.md:235-251 already makes segment maps a separate research_segment_maps artifact, so only the respondent block touches the contract-3 body.",
+  "C C.1-C.11: C.10: the map treats Metodika entries for the new method as an MVP chunk (MVP-4, MVP-17, MVP-32); MVP-32 is the editable worker system prompts (overview.md:603) and has no bearing on the Sociomap parameters, and MVP-4 only says the method owner answers 0b in AIA sessions.",
+  "C C.12-C.22: C.18 says ADR 0016 has a decision that rows are never inlined (routers/research.py:154-156). ADR 0016 (docs/architecture/adr/0016-research-execution-and-model-transmission.md) contains no such decision (grep for inline and browser finds only the design-submission text). The rule is ARCHITECTURE.md:272 ('Respondent rows are never sent to the browser; the Sociomap artifact is served only with EDIT_STUDY') plus a router comment that cites ADR 0016. The ADR-amendment need is overstated: the exception belongs in ARCHITECTURE.md, as the plan already says.",
+  "C C.12-C.22: C.18 says ADR 0024 section 3 forbids a researcher inspecting one respondent. Section 3 (ADR 0024 lines 77-87) refuses an individual-level claim, meaning an AdmittedClaim, on every surface. A read-only internal display that is never a claim is not contradicted by it, which is exactly the plan's design (segment-maps-and-drilldown.md:62-66, 'never an AdmittedClaim').",
+  "C C.12-C.22: C.22 anchors the workbench chunk 20 row and the V3 frames at SHA 38b99149 (not 085abe0). At 129a800e the chunk 20 row (research-lead-workbench.md:177) no longer lists 'asking the Lead about an object or pair' as the only missing piece; it now names admitted results, filters and internal drill-down.",
+  "C C.12-C.22: C.20 treats a respondent-listing route that returns ids as needed. segment-maps-and-drilldown.md:60-61 deliberately forbids any respondent id in the filter route's body. Respondent points and ids come from the contract-3 map artifact (research_sociomap, EDIT_STUDY, inlined) once chunk 3 lands, so the two designs differ rather than one being missing.",
+  "C C.12-C.22: C.21 and the master trace 3 disagree: the map is right that apply_view_overrides takes only the contract-2 SociomapArtifact (view.py:170) and has no product caller, and the trace's 'EXISTS' for 'drag changes the view only' is wrong for contract-3 maps (reported as a finding).",
+  "C C.23-C.33: C.26: the anchor research.py:649-652 @ 085abe0 is the run-key construction for an analysis retry (key += ':analysis-retry:...'), not retry_analysis; retry_analysis is at research.py:865-894 and _restart at :896-935",
+  "C C.23-C.33: C.23: client_report.py:98,159 -- the compose_map_sections call is at client_report.py:158 @ 085abe0 (:98 is not the call)",
+  "C C.23-C.33: C.33: item says the switch is 'a worker key' registered at registry.py:59; true, but also read by research.py:684 composition, and no Results screen reads K100 or the stored ranking, so its open question about 'V3's ranked list' is moot (V3 text prototypes/research-lead-v3/text/scenario.txt:1595,1620 ranks by mean rating, with ties from the aggregate's intervals, which result-reading.ts already does)",
+  "C C.23-C.33: C.30: depends_on 'research-lead-workbench 11 (the worker and its approval card)' is actually lead-orchestration#LO9a/LO9b in the plan of record (master section 6.1 G16); and the 'NEW:straight-liner-replacement' owning plan does not exist, run-qc-and-checkpoint#RQC5 is the owner",
+  "C C.23-C.33: C.24: owning_plan 'sociomap-formula-corrections.md 6 (ledgers)' is already ticked [x] (sociomap-formula-corrections.md:21) so it cannot carry the new-method ledgers; segment-maps-and-drilldown#4 does",
+  "D D.1-D.11: D.4 cites docs/migration/mvp-acceptance.md:85 @ de6ded87 for AC-10; in the plan-of-record file at 129a800e AC-10 is line 91 (line 85 is AC-04). The content quoted is right, the anchor is from another revision.",
+  "D D.1-D.11: D.6 and the cross-cutting note present the segments exposure as a leak to the browser; the same member can already download the unmasked original through GET .../original with the same VIEW_CLIENT_KNOWLEDGE permission (client_source_repository.py:201-207 @ 085abe0), so it is a masking inconsistency and an exposure through logs/caches, not a new access path.",
+  "D D.1-D.11: D.2 lists 'the intake sheet's link entry' as web-only work; it also sits behind the disabled flag only in cs.ts:323-324 and IntakeSheet, which is correct, but the claim that the study-scoped route needs no ADR overlooks that mvp-master-plan.md Q8 (:547) and client-budget.md:5-9 name 'a link captured' as client-level work, so the plan documents themselves disagree on whether K2e is study-scoped (K2e text) or client work (client-budget) -- the map's open question is real but unresolved, not an error.",
+  "D D.1-D.11: D.9 says the Lead 'reads for_study on each turn' at research_lead.py:846; confirmed, but it omits that the same 200-item cap (client_knowledge_repository.py:69,198) applies to all four consumers, which the map listed only as an open question.",
+  "D D.12-D.22: D.14 lists the freeze points as research.py:1341, deep_research.py:317 and research_lead.py:846. It misses application/design_research.py:170 @ 085abe0, which also calls ClientKnowledgeRepository.for_study. research.py:1343 is the actual line for the first.",
+  "D D.12-D.22: D.13 risk 'changing the respondent-system fingerprint invalidates validation' is overstated. RESPONDENT_SYSTEM_COMPONENTS already binds population_version (domain/evidence/validation.py:100-108; domain/panel_source.py:143-150 @ 085abe0), so a run pinned to a child already has a different fingerprint. Only reading the child's field into personas would need a persona_builder version bump. The 'ADR 0024 amendment likely' follows only for that second change.",
+  "D D.12-D.22: D.13 treats the consumer as persona text. In 18.6.6 an approved evidence dimension becomes a panel column merged by attach_evidence_overlays and exposed as a runtime audience factor (legacy/npc-panel-18.6.6/app/audience_dimensions.py:189-210; test_audience_dimensions_1793.py:110). AIA's enrichment.py:6 says the port adds nothing for it. The unit's own consumer is a filter/factor, not the persona profile, which bears on the open question about what 'used by a run' means.",
+  "D D.12-D.22: D.12 asks for a start naming {knowledge_item_id, revision}, but the existing body already carries evidence.knowledge_item_id and revision (apps/api/src/aia_api/routers/materialize.py:60-64 @ 085abe0). The missing piece is only deriving target and predictors from the accepted item (K5's definition step), not a new reference field.",
+  "D D.12-D.22: D.12 open question 'start by itself or on a click' is already answered: cohesion Q23 (mvp-cohesion.md:624) decides a click inside the study's envelope. D.12's second open question (F19 'a run with a cost' against the template's 'no money') is recorded as master G28.",
+  "D D.12-D.22: D.21 and D.15 depend on the plan being a core plan. client-workspace is section 3.2 (FOLD), which tools/master_check.py:210 does not check for waves, so those chunks are silently unscheduled; the map did not record the plan's disposition.",
+  "D D.12-D.22: D.16 cites docs/migration/mvp-acceptance.md:38, 85 @ de6ded87. At 129a800e the AC-10 criterion is at :91 and the client-material row at :38.",
+  "D D.23-D.33: D.33: the map's 'exists' says materialization exists (materialize.py:215), true for the API only; apps/web/src has no call to /population/materializations @ 085abe0 (consistent with master plan G28), so the copy's 'materializace dimenzí' is accurate for the web and only the intake and proposals clauses are stale.",
+  "D D.23-D.33: D.23: the map names the repository ClientDatasetRepository; the plan documents name it ClientDataContractRepository (mvp-target-architecture.md:224). Same intent, two names, one to settle in chunk 2.",
+  "D D.23-D.33: D.23/D.26 anchors are off by one or two lines (analysis_results.py NativeSources starts at :188 and native_sources at :288, not :189 and :290; storage.py:202 is the ArtifactStore Protocol stub, the S3 store has no delete_prefix, which the plans already record as G8)."
+ ],
+ "disposition": "Recorded in #507: master plan G47-G57 and five §6.2 corrections; the owner answered X1 (build segment evidence), X8 (build routing end to end) and X10 (remove the draft test)."
+}

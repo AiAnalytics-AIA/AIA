@@ -1,0 +1,432 @@
+<title>AIA MVP Plan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+/* Layout: a working plan read top to bottom — a sticky section rail, then feature areas, the dependency graph by wave, and the registers. AIA's own tokens (Paper / Graphite). */
+:root {
+  --surface: #eef0f4; --raised: #ffffff; --sunken: #e5e8ee; --border: #dde1e8; --border-strong: #7d8490;
+  --ink: #151a20; --ink-muted: #43484f; --ink-faint: #5c6167;
+  --signal: #3557e0; --signal-wash: #e8edfd;
+  --ai: #a3319a; --ai-wash: #f7ecf6;
+  --you: #97570d; --you-wash: #feeed3; --you-mark: #f5ae39;
+  --fault: #b52524; --fault-wash: #ffe8e6;
+  --world: #576574; --world-wash: #e3e8ee;
+  --done: #1f7a4d; --done-wash: #e2f2e9;
+  --sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --surface: #0d1015; --raised: #151a21; --sunken: #0a0c10; --border: #252c36; --border-strong: #6d7684;
+  --ink: #ece9e4; --ink-muted: #bdbab5; --ink-faint: #9e9b96;
+  --signal: #8aa2ff; --signal-wash: #1a2242; --ai: #e07ad6; --ai-wash: #31273a;
+  --you: #f4bd62; --you-wash: #3c2a0e; --you-mark: #f7b746; --fault: #f47b74; --fault-wash: #431f1d;
+  --world: #97a7b7; --world-wash: #21272d; --done: #6fd3a0; --done-wash: #15291f; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --surface: #0d1015; --raised: #151a21; --sunken: #0a0c10; --border: #252c36; --border-strong: #6d7684;
+  --ink: #ece9e4; --ink-muted: #bdbab5; --ink-faint: #9e9b96;
+  --signal: #8aa2ff; --signal-wash: #1a2242; --ai: #e07ad6; --ai-wash: #31273a;
+  --you: #f4bd62; --you-wash: #3c2a0e; --you-mark: #f7b746; --fault: #f47b74; --fault-wash: #431f1d;
+  --world: #97a7b7; --world-wash: #21272d; --done: #6fd3a0; --done-wash: #15291f; color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--surface); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.55; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--raised); }
+.wrap { max-width: 1240px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--serif); font-weight: 600; text-wrap: balance; margin: 0 }
+h1 { font-size: clamp(30px, 4.4vw, 44px); line-height: 1.12; letter-spacing: -0.01em }
+h2 { font-size: 26px; line-height: 1.2 }
+h3 { font-size: 18px; line-height: 1.3 }
+p { margin: 0; max-width: 72ch }
+a { color: var(--signal) }
+code, .mono { font-family: var(--mono); font-size: 0.88em }
+.eyebrow { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint) }
+.muted { color: var(--ink-muted) } .faint { color: var(--ink-faint) }
+.num { font-variant-numeric: tabular-nums }
+:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px }
+
+/* masthead */
+header.mast { background: var(--raised); border-bottom: 1px solid var(--border); padding-block: 36px 28px }
+.mast .grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 32px; align-items: end }
+.mast .goal { margin-top: 14px; font-size: 17px; color: var(--ink-muted); max-width: 64ch }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border) }
+.stats div { background: var(--raised); padding: 12px 14px }
+.stats b { display: block; font-family: var(--serif); font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums }
+.stats span { font-size: 12.5px; color: var(--ink-muted) }
+
+nav.rail { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 9; background: var(--surface); border-bottom: 1px solid var(--border) }
+nav.rail .wrap { display: flex; gap: 4px; overflow-x: auto; padding-block: 8px; scrollbar-width: thin }
+nav.rail a { flex: none; text-decoration: none; color: var(--ink-muted); font-size: 13.5px; padding: 6px 10px; border-radius: 6px; white-space: nowrap }
+nav.rail a:hover { background: var(--sunken); color: var(--ink) }
+nav.rail a.on { background: var(--signal-wash); color: var(--ink) }
+
+section.block { padding-block: 44px 8px }
+.lede { display: grid; gap: 8px; margin-bottom: 22px }
+.lede p { color: var(--ink-muted) }
+
+/* status chips */
+.chip { display: inline-flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 11.5px; padding: 1px 7px; border-radius: 4px; border: 1px solid var(--border); background: var(--sunken); color: var(--ink-muted); white-space: nowrap }
+.chip.s1 { background: var(--signal-wash); border-color: transparent; color: var(--ink) }
+.chip.s2 { background: var(--ai-wash); border-color: transparent; color: var(--ink) }
+.chip.s3 { background: var(--world-wash); border-color: transparent; color: var(--ink) }
+.chip.done { background: var(--done-wash); border-color: transparent; color: var(--done) }
+.chip.open { background: var(--you-wash); border-color: transparent; color: var(--you) }
+.chip.fault { background: var(--fault-wash); border-color: transparent; color: var(--fault) }
+.chip.wave { background: transparent; border-color: var(--border-strong); color: var(--ink) }
+
+/* feature areas */
+.areas { display: grid; gap: 28px }
+.area { display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr); gap: 24px; border-top: 1px solid var(--border); padding-top: 22px }
+.area .intro p { color: var(--ink-muted); font-size: 14px; margin-top: 8px }
+.plans { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 12px }
+.plan { background: var(--raised); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; display: grid; gap: 8px; align-content: start; min-width: 0 }
+.plan .top { display: flex; gap: 8px; justify-content: space-between; align-items: baseline }
+.plan h4 { margin: 0; font-size: 15px; font-weight: 600 }
+.plan .what { font-size: 13.5px; color: var(--ink-muted) }
+.bar { height: 6px; background: var(--sunken); border-radius: 3px; overflow: hidden }
+.bar i { display: block; height: 100%; background: var(--done) }
+.plan .meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12.5px; color: var(--ink-faint) }
+details.chunks summary { cursor: pointer; font-size: 13px; color: var(--signal); list-style: none }
+details.chunks summary::-webkit-details-marker { display: none }
+details.chunks summary::before { content: "▸ "; } details.chunks[open] summary::before { content: "▾ " }
+.chunklist { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px }
+.chunklist li { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 8px; font-size: 13px; align-items: baseline }
+.chunklist .tick { font-family: var(--mono); color: var(--done) } .chunklist .tick.o { color: var(--ink-faint) }
+.chunklist .cid { font-family: var(--mono); font-size: 11.5px; color: var(--ink-faint); margin-right: 4px }
+.chunklist li.isdone .t { color: var(--ink-faint) }
+
+/* graph */
+.graphbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px }
+.btn { font: inherit; font-size: 13px; border: 1px solid var(--border-strong); background: var(--raised); color: var(--ink); border-radius: 6px; padding: 5px 11px; cursor: pointer }
+.btn[aria-pressed="true"] { background: var(--signal-wash); border-color: var(--signal) }
+.graphwrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 340px); gap: 16px; align-items: start }
+.graphscroll { overflow-x: auto; background: var(--raised); border: 1px solid var(--border); border-radius: 8px }
+svg text { font-family: var(--sans) }
+.node rect { fill: var(--raised); stroke: var(--border-strong); stroke-width: 1 }
+.node text.t { fill: var(--ink); font-size: 12px }
+.node text.id { fill: var(--ink-faint); font-family: var(--mono); font-size: 10.5px }
+.node { cursor: pointer }
+.node.dim { opacity: 0.25 } .edge.dim { opacity: 0.08 }
+.node.sel rect { stroke: var(--signal); stroke-width: 2.5; fill: var(--signal-wash) }
+.node.up rect { stroke: var(--you-mark); stroke-width: 2 }
+.node.down rect { stroke: var(--ai); stroke-width: 2 }
+.node.crit rect { stroke: var(--fault); stroke-width: 2 }
+.edge { fill: none; stroke: var(--border-strong); stroke-width: 1.1; opacity: 0.55 }
+.edge.up { stroke: var(--you-mark); opacity: 1; stroke-width: 1.8 }
+.edge.down { stroke: var(--ai); opacity: 1; stroke-width: 1.8 }
+.edge.crit { stroke: var(--fault); opacity: 1; stroke-width: 2 }
+.colhead { fill: var(--ink); font-family: var(--serif); font-size: 15px; font-weight: 600 }
+.colsub { fill: var(--ink-faint); font-size: 11.5px }
+.colband { fill: var(--sunken); opacity: 0.55 }
+.panel { background: var(--raised); border: 1px solid var(--border); border-radius: 8px; padding: 16px; display: grid; gap: 10px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 60px); max-height: calc(100vh - 80px); overflow: auto; min-width: 0 }
+.panel .lab { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint) }
+.panel ul { margin: 0; padding-left: 18px; font-size: 13px; display: grid; gap: 4px }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px; color: var(--ink-muted) }
+.legend i { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 5px }
+
+/* tables */
+.tablewrap { overflow-x: auto; background: var(--raised); border: 1px solid var(--border); border-radius: 8px }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--border) }
+th { background: var(--sunken); font-weight: 500; color: var(--ink-muted); font-size: 12.5px; position: sticky; top: 0 }
+tr:last-child td { border-bottom: 0 }
+td .chips { display: flex; flex-wrap: wrap; gap: 4px }
+.acrow td:first-child { font-family: var(--mono); white-space: nowrap }
+
+/* waves */
+.waves { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 10px }
+.wave { background: var(--raised); border: 1px solid var(--border); border-radius: 8px; padding: 14px; display: grid; gap: 8px; align-content: start }
+.wave .gate { font-family: var(--mono); font-size: 12px; color: var(--signal) }
+.wave ul { margin: 0; padding-left: 16px; font-size: 13px; display: grid; gap: 3px }
+.wave .count { font-size: 12.5px; color: var(--ink-faint) }
+
+.cols2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 16px }
+.card { background: var(--raised); border: 1px solid var(--border); border-radius: 8px; padding: 16px; display: grid; gap: 10px; align-content: start; min-width: 0 }
+.note { border-left: 3px solid var(--you-mark); background: var(--you-wash); padding: 12px 14px; border-radius: 0 6px 6px 0; font-size: 14px }
+.note.info { border-left-color: var(--signal); background: var(--signal-wash) }
+.xrow { display: grid; gap: 4px; padding: 12px 0; border-bottom: 1px solid var(--border) }
+.xrow, .xrow > *, .card > *, .panel > *, .plan > *, td { min-width: 0; overflow-wrap: anywhere }
+.xrow:last-child { border-bottom: 0 }
+footer { padding-block: 40px 60px; color: var(--ink-faint); font-size: 13px }
+input.search { font: inherit; font-size: 14px; padding: 7px 10px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--raised); color: var(--ink); width: min(100%, 320px) }
+
+@media (max-width: 880px) {
+  .mast .grid, .area, .graphwrap { grid-template-columns: minmax(0, 1fr) }
+  .panel { position: static; max-height: none }
+}
+@media (prefers-reduced-motion: no-preference) { .node rect, .edge { transition: opacity .15s, stroke .15s } }
+</style>
+
+<header class="mast"><div class="wrap grid">
+  <div>
+    <div class="eyebrow">AIA · plan of record · __DATE__</div>
+    <h1>The MVP, end to end</h1>
+    <p class="goal">A researcher, with their own Lead, takes a study from brief to an approved client deliverable: respondents built from the population, Deep Research reaching the open web, the client's own data in the analysis, every number and quote traceable to its origin, inside a spend limit the researcher set. Done when MVP-ACCEPT-2's fifteen criteria pass in CI, once live on develop within USD 25, and the system is released to production. Target: end of Q1 2027.</p>
+  </div>
+  <div class="stats" id="stats"></div>
+</div></header>
+
+<nav class="rail" aria-label="Sections"><div class="wrap">
+  <a href="#features">Features</a><a href="#graph">Interdependencies</a><a href="#waves">Waves and gates</a><a href="#criteria">Acceptance</a><a href="#switches">Switches</a><a href="#decisions">Decisions</a><a href="#crosscheck">Cross-check</a><a href="#gaps">Gaps</a><a href="#sources">Sources</a>
+</div></nav>
+
+<main class="wrap">
+
+<section class="block" id="features">
+  <div class="lede"><div class="eyebrow">What gets built</div><h2>Features, and the functions inside them</h2>
+  <p>Each feature area is one or more plan files; each plan's chunks are the functions it delivers. A tick means the chunk is built on <code>develop</code>; the tag says which wave it lands in. S1, S2 and S3 are the three build sessions: S1 the workbench and the Lead, S2 population, maps, evidence and Deep Research, S3 data, delivery, infrastructure and acceptance.</p></div>
+  <div class="areas" id="areas"></div>
+</section>
+
+<section class="block" id="graph">
+  <div class="lede"><div class="eyebrow">How it depends on itself</div><h2>The integration graph</h2>
+  <p>Thirty-four integration rows (E01 to E34) from <code>mvp-execution-contracts.md</code>, placed in the earliest wave they can land. An arrow means "needs": a row cannot merge before the rows pointing into it. Select a row to see what it needs, what it unblocks, and the chunks it delivers.</p></div>
+  <div class="graphbar">
+    <button class="btn" id="critBtn" aria-pressed="false" type="button">Show the critical path</button>
+    <button class="btn" id="clearBtn" type="button">Clear selection</button>
+    <div class="legend"><span><i style="background:var(--you-mark)"></i>needs (upstream)</span><span><i style="background:var(--ai)"></i>unblocks (downstream)</span><span><i style="background:var(--fault)"></i>critical path</span></div>
+  </div>
+  <div class="graphwrap">
+    <div class="graphscroll"><svg id="g" role="img" aria-label="Integration rows by wave with their dependencies"></svg></div>
+    <aside class="panel" id="panel" aria-live="polite"></aside>
+  </div>
+</section>
+
+<section class="block" id="waves">
+  <div class="lede"><div class="eyebrow">Order</div><h2>Waves and the gates that close them</h2>
+  <p>Waves are ordered by dependency, not dated: no date is set until the provider contract and the method owner's answers have owners. A gate passes only when every open chunk assigned to its wave is ticked or has a recorded disposition. Three states stay separate: tier A passed (CI over HTTP plus browser journeys), tier B passed (live on develop within USD 25), released (production).</p></div>
+  <div class="waves" id="wavecards"></div>
+  <div class="tablewrap" style="margin-top:16px"><table id="gatetable"></table></div>
+</section>
+
+<section class="block" id="criteria">
+  <div class="lede"><div class="eyebrow">Definition of done</div><h2>MVP-ACCEPT-2: fifteen criteria and what builds each</h2>
+  <p>The criteria as they stand on this branch (with #503 and #506). Parity with 18.6.6 is information, never a release gate. Progress counts the named chunks already built.</p></div>
+  <div class="tablewrap"><table id="actable"></table></div>
+</section>
+
+<section class="block" id="switches">
+  <div class="lede"><div class="eyebrow">Built is not on</div><h2>What has to be switched on, and who throws it</h2>
+  <p>A feature that is built and not switched on does not exist for the owner. Until an operator widens the AI route beyond Class C, every design job, Lead turn, panel fieldwork request and modelled analysis parks.</p></div>
+  <div class="tablewrap"><table id="acttable"></table></div>
+</section>
+
+<section class="block" id="decisions">
+  <div class="lede"><div class="eyebrow">Settled and open</div><h2>Decisions</h2></div>
+  <div class="cols2">
+    <div class="card"><h3>Open, with what each blocks</h3><div id="openq"></div></div>
+    <div class="card"><h3>Scope overrides on offer</h3><p class="muted" style="font-size:13.5px">Only if you want them; each moves the named work.</p><div id="overrides"></div></div>
+  </div>
+  <div class="tablewrap" style="margin-top:16px"><table id="settled"></table></div>
+</section>
+
+<section class="block" id="crosscheck">
+  <div class="lede"><div class="eyebrow">Independent check</div><h2>The cross-check against the code</h2>
+  <p>Four track maps built from the code before the master plan existed (the Lead, the eleven artifacts, population and maps, client data) were compared, slice by slice, with the plan at <code>129a800e</code>. Every difference went to a verifier told to refute it against the code and every plan file. The plan is ready for implementation only once these have a disposition (<code>mvp-execution-contracts.md</code>, Planning readiness).</p></div>
+  <div id="xcheck"></div>
+</section>
+
+<section class="block" id="gaps">
+  <div class="lede"><div class="eyebrow">Register</div><h2>The gap register (G1 to G46)</h2>
+  <p>Every link the traces found missing, each tied to the chunks that close it. A row is closed when they are built and tested, never because it has a destination.</p>
+  <input class="search" id="gapq" type="search" placeholder="Filter gaps, e.g. envelope, delete, segment" aria-label="Filter gaps"></div>
+  <div class="tablewrap"><table id="gaptable"></table></div>
+</section>
+
+<section class="block" id="sources">
+  <div class="lede"><div class="eyebrow">Where this comes from</div><h2>Sources</h2>
+  <p>Generated from the repository, not written by hand: <code>.planning/plans/mvp-master-plan.md</code> (register, activation, gaps, decisions), <code>.planning/mvp-execution-contracts.md</code> (the graph and every chunk's wave), <code>.planning/mvp-development-plan.md</code> (gates), each core plan's front-matter (chunks and status) and <code>docs/migration/parity-matrix.json</code> (criteria), at <code>__SHA__</code> on <code>chore/crosscheck-dispositions</code> (develop plus #503, #506 and #507). Where this page and a plan file disagree, the plan file wins.</p></div>
+</section>
+</main>
+<footer><div class="wrap">AIA MVP plan · generated __DATE__ from <span class="mono">__SHA__</span></div></footer>
+
+<script type="application/json" id="data">__DATA__</script>
+<script type="application/json" id="xdata">__XCHECK__</script>
+<script>
+(function () {
+const D = JSON.parse(document.getElementById('data').textContent);
+const X = JSON.parse(document.getElementById('xdata').textContent);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const md = s => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+const $ = id => document.getElementById(id);
+
+// chunk index
+const chunkIx = {};
+D.core.forEach(p => p.chunks.forEach(c => { chunkIx[p.plan + '#' + c.id] = { ...c, plan: p.plan }; }));
+const waveOf = ref => (D.waves[ref] || {}).wave || '';
+const sessChip = s => (s.match(/S[123]/g) || []).filter((v, i, a) => a.indexOf(v) === i).map(x => `<span class="chip ${x.toLowerCase()}">${x}</span>`).join(' ');
+const chunkChip = ref => {
+  const c = chunkIx[ref];
+  const st = c ? (c.done ? 'done' : 'open') : '';
+  const title = c ? esc(c.title) : '';
+  return `<span class="chip ${st}" title="${title}">${esc(ref)}${c && c.done ? ' ✓' : ''}</span>`;
+};
+
+// stats
+const total = D.core.reduce((n, p) => n + p.chunks.length, 0);
+const done = D.core.reduce((n, p) => n + p.chunks.filter(c => c.done).length, 0);
+$('stats').innerHTML = [
+  [D.core.length, 'core plans'], [total, 'chunks'], [done, 'built'],
+  [D.erows.length, 'integration rows'], [D.gaps.length, 'gaps tracked'], [D.acs.length, 'acceptance criteria']
+].map(([n, l]) => `<div><b>${n}</b><span>${l}</span></div>`).join('');
+
+// feature areas
+const AREAS = [
+  { name: 'The Research Lead and the workbench', intro: 'The study screen: the Lead’s conversation beside eleven step artifacts, the navigator on top, in Czech. The Lead proposes, a person decides; paid work starts inside an envelope the researcher set, through a plan approved once or a typed start. Two researchers share one working copy, each with their own Lead.', plans: ['research-lead-workbench', 'lead-orchestration', 'working-copy-edit-ops', 'system-prompts-settings'] },
+  { name: 'Respondents and fieldwork', intro: 'AI respondents built from the population (LIVE v17_4_0) by default, the audience and dimensions reaching them, one authority for the sample size, a checkpoint so a restart never repays, and run QC shown as warnings.', plans: ['audience-catalogue-cpu', 'complete-study-report', 'run-qc-and-checkpoint'] },
+  { name: 'Evidence and analysis', intro: 'Every number an admitted claim; every key finding cites one or is refused; a module with no supported finding blocks the report. Tracked assumptions and open answers coded under a versioned method.', plans: ['evidence-integrity', 'assumptions-and-open-answer-coding'] },
+  { name: 'Sociomapping', intro: 'Object, respondent and segment maps under the method pinned at run start, with the register’s status; filters and an internal drill-down to one respondent’s stored attributes and answers. The method owner’s aia-sociomap-5 (#504) carries the respondent map and clustered segments.', plans: ['sociomap-formula-corrections', 'segment-maps-and-drilldown'] },
+  { name: 'Client knowledge and client data', intro: 'From a client’s documents, datasets, web pages and Deep Research findings to accepted knowledge and an owned dimension; a client dataset in the analysis under an accepted data contract, labelled “z dat klienta”, never mixed with modelled numbers; the client’s own budget.', plans: ['client-knowledge-lifecycle', 'client-data-in-analysis', 'client-budget'] },
+  { name: 'Deep Research', intro: 'Reach everywhere the build can run (Brave, public fetch, the connectors, the archive) for an OPEN client; every finding a quote in a captured source; evaluations before the final live run.', plans: ['deep-research-web-search', 'deep-research'] },
+  { name: 'Reports and delivery', intro: 'Internal and client reports, DOCX and PDF; the report and each map snapshot approved separately; the client deliverable’s gate refuses an internal source, drill-down content or an unadmitted number.', plans: ['report-delivery', 'research-integrity-report', 'two-roles-human-ai-gates'] },
+  { name: 'Acceptance, money and release', intro: 'The acceptance harness (tier A in CI, tier B on develop within USD 25), spend proven by AIA’s ledger and the tagged AWS record, the delete path, and the production environment.', plans: ['mvp-acceptance-harness', 'develop-spend-attribution', 'study-data-lifecycle', 'production-environment'] },
+];
+const byName = Object.fromEntries(D.core.map(p => [p.plan, p]));
+const waveRank = w => { const m = /W(\d)/.exec(w || ''); return m ? +m[1] : 9; };
+$('areas').innerHTML = AREAS.map(a => {
+  const cards = a.plans.map(n => byName[n]).filter(Boolean).map(p => {
+    const t = p.chunks.length, d = p.chunks.filter(c => c.done).length;
+    const items = p.chunks.slice().sort((x, y) => (x.done - y.done) || (waveRank(waveOf(p.plan + '#' + x.id)) - waveRank(waveOf(p.plan + '#' + y.id)))).map(c => {
+      const w = waveOf(p.plan + '#' + c.id);
+      return `<li class="${c.done ? 'isdone' : ''}"><span class="tick ${c.done ? '' : 'o'}">${c.done ? '✓' : '○'}</span><span class="t"><span class="cid">${esc(c.id)}</span>${md(c.title)}</span>${c.done ? '' : (w ? `<span class="chip wave">${esc(w)}</span>` : '')}</li>`;
+    }).join('');
+    return `<article class="plan"><div class="top"><h4>${esc(p.heading.replace(/^#\s*/, ''))}</h4><span class="num faint" style="font-size:12.5px">${d}/${t}</span></div>
+      <div class="bar" aria-hidden="true"><i style="width:${t ? Math.round(100 * d / t) : 0}%"></i></div>
+      <div class="meta">${sessChip(p.session)}<span>gate ${esc(p.gates)}</span><code>${esc(p.plan)}</code></div>
+      <div class="what">Needs first: ${md(p.needs)}</div>
+      <details class="chunks"><summary>${t - d} open, ${d} built</summary><ul class="chunklist">${items}</ul></details></article>`;
+  }).join('');
+  return `<div class="area"><div class="intro"><h3>${esc(a.name)}</h3><p>${esc(a.intro)}</p></div><div class="plans">${cards}</div></div>`;
+}).join('');
+
+// graph
+const TITLES = {E01:'Acceptance harness and the USD 25 allocation',E02:'Money, authority and edit-vocabulary contracts',E03:'Worker rows and the server spend check',E04:'One n authority, population double, client-material contract',E05:'Readiness profile and live-route probes',E06:'Stable ids, one writer, item merge',E07:'Envelope, issued authority, card revision',E08:'Fieldwork checkpoint and run QC',E09:'Knowledge revisions, extraction exception',E10:'Plan card, typed start, continuation, two people',E11:'The Lead’s results context, admitted results',E12:'Composition record and OPEN posture',E13:'Method-owner decisions, descriptor contract',E14:'Population and own dimensions reach maps',E15:'Lock, undo, auto-accept; Results, Sociomap, Audience, Dimensions; snapshots',E16:'Lead files: history and handover',E17:'Client data contract and analysis copy',E18:'Report-edit and replacement ADRs, new workers',E19:'Prompt pins for analysis and every worker',E20:'Admitted findings, Report artifact, approval',E21:'Tool-spend ledger, profile accounting',E22:'Deep Research evaluations, final live run',E23:'Deletion policy, delete and restore',E24:'Full tier A acceptance',E25:'Tier B on develop, production release',E26:'V2 frame and the first artifacts',E27:'Wider Deep Research reach',E28:'The Lens and the report evidence graph',E29:'Sociomap preset and artifact contract',E30:'Internal report map figure check',E31:'F16 research product disposition',E32:'Assumptions contract, coding method',E33:'Assumption evidence, coding node',E34:'Assumptions and coded counts reach the report'};
+const GATE_OF = {W0:'I-0',W1:'I-1 · I-R',W2:'I-2',W3:'I-3',W4:'I-4',W5:'I-5'};
+const rows = D.erows.map(e => ({ ...e, w: waveRank(e.wave) }));
+const ix = Object.fromEntries(rows.map(r => [r.id, r]));
+const kids = {}; rows.forEach(r => r.needs.forEach(n => (kids[n] = kids[n] || []).push(r.id)));
+const cols = [0,1,2,3,4,5].map(w => rows.filter(r => r.w === w).sort((a, b) => +a.id.slice(1) - +b.id.slice(1)));
+// order within column by mean parent position to reduce crossings
+const pos = {};
+cols.forEach((c, ci) => {
+  if (ci > 0) c.sort((a, b) => {
+    const m = r => r.needs.length ? r.needs.reduce((s, n) => s + (pos[n] ?? 0), 0) / r.needs.length : 99;
+    return m(a) - m(b);
+  });
+  c.forEach((r, i) => pos[r.id] = i);
+});
+const NW = 214, NH = 46, CG = 64, RG = 14, TOP = 58, LEFT = 14;
+const maxRows = Math.max(...cols.map(c => c.length));
+const W = LEFT * 2 + cols.length * NW + (cols.length - 1) * CG, H = TOP + maxRows * (NH + RG) + 10;
+const svg = $('g'); svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('width', W); svg.setAttribute('height', H);
+const xy = {};
+cols.forEach((c, ci) => c.forEach((r, i) => xy[r.id] = { x: LEFT + ci * (NW + CG), y: TOP + i * (NH + RG) }));
+const wrapText = (t, n) => { const w = t.split(' '); const lines = ['']; w.forEach(x => { if ((lines[lines.length - 1] + ' ' + x).trim().length > n && lines.length < 2) lines.push(x); else lines[lines.length - 1] = (lines[lines.length - 1] + ' ' + x).trim(); }); if (lines[1] && lines[1].length > n) lines[1] = lines[1].slice(0, n - 1) + '…'; return lines; };
+let html = '';
+cols.forEach((c, ci) => {
+  const x = LEFT + ci * (NW + CG);
+  html += `<rect class="colband" x="${x - 6}" y="6" width="${NW + 12}" height="${H - 10}" rx="6"></rect>`;
+  html += `<text class="colhead" x="${x}" y="28">W${ci}</text><text class="colsub" x="${x + 30}" y="28">gate ${GATE_OF['W' + ci]} · ${c.length} rows</text>`;
+});
+rows.forEach(r => r.needs.forEach(n => {
+  if (!xy[n]) return; const a = xy[n], b = xy[r.id];
+  const x1 = a.x + NW, y1 = a.y + NH / 2, x2 = b.x, y2 = b.y + NH / 2;
+  const back = x2 <= x1; const mx = back ? x1 + 30 : (x1 + x2) / 2;
+  const d = back ? `M${x1},${y1} C${x1 + 40},${y1} ${x2 - 40},${y2} ${x2},${y2}` : `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
+  html += `<path class="edge" data-from="${n}" data-to="${r.id}" d="${d}"></path>`;
+}));
+rows.forEach(r => {
+  const { x, y } = xy[r.id]; const L = wrapText(TITLES[r.id] || r.id, 26);
+  html += `<g class="node" data-id="${r.id}" tabindex="0" role="button" aria-label="${r.id} ${esc(TITLES[r.id] || '')}"><rect x="${x}" y="${y}" width="${NW}" height="${NH}" rx="6"></rect>
+    <text class="id" x="${x + 8}" y="${y + 15}">${r.id}</text>
+    <text class="t" x="${x + 40}" y="${y + 16}">${esc(L[0])}</text>${L[1] ? `<text class="t" x="${x + 40}" y="${y + 32}">${esc(L[1])}</text>` : ''}</g>`;
+});
+svg.innerHTML = html;
+// critical path: longest chain (by node count) ending at E25
+const memo = {};
+const longest = id => { if (memo[id]) return memo[id]; const r = ix[id]; let best = [id]; (r.needs || []).forEach(n => { if (!ix[n]) return; const p = longest(n); if (p.length + 1 > best.length) best = [...p, id]; }); return (memo[id] = best); };
+const crit = longest('E25');
+const ancestors = id => { const s = new Set(); const go = i => (ix[i].needs || []).forEach(n => { if (ix[n] && !s.has(n)) { s.add(n); go(n); } }); go(id); return s; };
+const descendants = id => { const s = new Set(); const go = i => (kids[i] || []).forEach(n => { if (!s.has(n)) { s.add(n); go(n); } }); go(id); return s; };
+const nodes = [...svg.querySelectorAll('.node')], edges = [...svg.querySelectorAll('.edge')];
+const reset = () => { nodes.forEach(n => n.setAttribute('class', 'node')); edges.forEach(e => e.setAttribute('class', 'edge')); };
+const panelDefault = () => {
+  $('panel').innerHTML = `<div class="lab">Select a row</div><p class="muted" style="font-size:14px">Each box is an integration row: one deliverable owned by a session, which merges only after the rows it needs. The longest chain runs ${crit.length} rows: ${crit.join(' → ')}.</p>
+  <div class="lab">Starts with no predecessor</div><ul>${rows.filter(r => !r.needs.length).map(r => `<li><b>${r.id}</b> ${esc(TITLES[r.id])}</li>`).join('')}</ul>`;
+};
+const select = id => {
+  reset(); const up = ancestors(id), dn = descendants(id);
+  nodes.forEach(n => { const i = n.dataset.id; n.setAttribute('class', 'node ' + (i === id ? 'sel' : up.has(i) ? 'up' : dn.has(i) ? 'down' : 'dim')); });
+  edges.forEach(e => { const f = e.dataset.from, t = e.dataset.to; const cls = (t === id || up.has(t)) && (up.has(f)) ? 'up' : (f === id || dn.has(f)) && dn.has(t) ? 'down' : 'dim'; e.setAttribute('class', 'edge ' + cls); });
+  const r = ix[id];
+  const chunks = r.chunks.map(c => { const k = chunkIx[c]; return `<li>${chunkChip(c)} ${k ? md(k.title) : ''}</li>`; }).join('');
+  $('panel').innerHTML = `<div class="lab">${r.id} · ${esc(r.wave)} · gate ${GATE_OF[r.wave] || ''}</div><h3>${esc(TITLES[id])}</h3>
+    <div>${sessChip(r.deliverable)}</div>
+    <div class="lab">Proves</div><p style="font-size:13.5px">${md(r.proof)}</p>
+    <div class="lab">Needs (${up.size} upstream)</div><p style="font-size:13.5px">${r.needs.length ? r.needs.map(n => `<b>${n}</b> ${esc(TITLES[n] || '')}`).join('<br>') : 'Nothing: can start now.'}</p>
+    <div class="lab">Unblocks (${dn.size} downstream)</div><p style="font-size:13.5px">${(kids[id] || []).length ? kids[id].map(n => `<b>${n}</b> ${esc(TITLES[n] || '')}`).join('<br>') : 'Nothing directly.'}</p>
+    <div class="lab">Delivers ${r.chunks.length} chunks</div><ul>${chunks}</ul>`;
+};
+nodes.forEach(n => { n.addEventListener('click', () => select(n.dataset.id)); n.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(n.dataset.id); } }); });
+$('clearBtn').addEventListener('click', () => { reset(); $('critBtn').setAttribute('aria-pressed', 'false'); panelDefault(); });
+$('critBtn').addEventListener('click', () => {
+  const on = $('critBtn').getAttribute('aria-pressed') !== 'true'; $('critBtn').setAttribute('aria-pressed', String(on)); reset();
+  if (!on) return panelDefault();
+  const cs = new Set(crit);
+  nodes.forEach(n => n.setAttribute('class', 'node ' + (cs.has(n.dataset.id) ? 'crit' : 'dim')));
+  edges.forEach(e => { const i = crit.indexOf(e.dataset.to); e.setAttribute('class', 'edge ' + (i > 0 && crit[i - 1] === e.dataset.from ? 'crit' : 'dim')); });
+  $('panel').innerHTML = `<div class="lab">Critical path · ${crit.length} rows</div><p class="muted" style="font-size:14px">The longest chain of "needs" that ends in the release. A slip on any of these moves the date; work off it can slip until W5.</p><ul>${crit.map(i => `<li><b>${i}</b> ${esc(TITLES[i])} <span class="faint">${ix[i].wave}</span></li>`).join('')}</ul>`;
+});
+panelDefault();
+
+// waves
+const chunkCount = {}; Object.entries(D.waves).forEach(([ref, v]) => { if (chunkIx[ref] && !chunkIx[ref].done) chunkCount[v.wave] = (chunkCount[v.wave] || 0) + 1; });
+const GM = D.gate_meaning;
+$('wavecards').innerHTML = cols.map((c, ci) => {
+  const w = 'W' + ci, g = GATE_OF[w];
+  const gm = GM[g.split(' ')[0]] || {};
+  return `<div class="wave"><div class="eyebrow">${w}</div><div class="gate">gate ${g}</div><p style="font-size:13.5px">${md(gm.holds || '')}</p><div class="count">${chunkCount[w] || 0} open chunks · ${c.length} integration rows</div><ul>${c.map(r => `<li><b>${r.id}</b> ${esc(TITLES[r.id])}</li>`).join('')}</ul></div>`;
+}).join('');
+$('gatetable').innerHTML = `<thead><tr><th>Gate</th><th>Criteria</th><th>Required evidence</th><th>Does not establish</th></tr></thead><tbody>${D.gates.map(g => { const k = g.gate.replace(/\*/g, ''); return `<tr><td class="mono">${esc(k)}</td><td>${md((GM[k] || {}).criteria || '')}</td><td>${md(g.evidence)}</td><td class="muted">${md(g.not)}</td></tr>`; }).join('')}</tbody>`;
+
+// criteria
+$('actable').innerHTML = `<thead><tr><th>Id</th><th>The acceptance run must show</th><th>Built by</th></tr></thead><tbody>${D.acs.map(a => {
+  const d = a.built_by.filter(r => chunkIx[r] && chunkIx[r].done).length;
+  return `<tr class="acrow"><td>${a.id}<div class="faint num" style="font-size:12px">${d}/${a.built_by.length} built</div></td><td style="min-width:320px">${md(a.statement)}</td><td style="min-width:260px"><div class="chips">${a.built_by.map(chunkChip).join('')}</div></td></tr>`;
+}).join('')}</tbody>`;
+
+// switches
+$('acttable').innerHTML = `<thead><tr><th>Switch or parameter</th><th>Needed by</th><th>Set by</th><th>Evidence it is on</th></tr></thead><tbody>${D.activation.map(r => `<tr><td style="min-width:220px">${md(r.switch)}</td><td style="min-width:260px">${md(r.needed_by)}</td><td>${md(r.set_by)}</td><td>${md(r.evidence)}</td></tr>`).join('')}</tbody>`;
+
+// decisions
+$('openq').innerHTML = D.open.map(q => `<div class="xrow"><div><span class="chip open">${esc(q.id)}</span></div><div style="font-size:14px">${md(q.q)}</div><div class="faint" style="font-size:12.5px">Blocks ${md(q.blocks)} · ${md(q.rec)}</div></div>`).join('');
+$('overrides').innerHTML = D.overrides.map(o => `<div class="xrow"><div><span class="chip">${esc(o.id)}</span> <span class="muted" style="font-size:13px">${md(o.plans)}</span></div><div style="font-size:14px">${md(o.override)}</div><div class="faint" style="font-size:12.5px">Moves ${md(o.moves)}</div></div>`).join('');
+$('settled').innerHTML = `<thead><tr><th>Settled, not asked again</th><th>By</th><th>Built in</th></tr></thead><tbody>${D.settled.map(s => `<tr><td style="min-width:340px">${md(s.decision)}</td><td style="white-space:nowrap">${md(s.by)}</td><td><div class="chips">${(s.where.match(/`([^`]+)`/g) || []).map(x => chunkChip(x.replace(/`/g, ''))).join('')}</div></td></tr>`).join('')}</tbody>`;
+
+// cross-check
+const xc = $('xcheck');
+if (!X || X.pending) {
+  xc.innerHTML = `<div class="note info">The cross-check is still merging its last results. ${X && X.held != null ? `<b>${X.held}</b> findings held after verification and <b>${X.refuted}</b> were refuted (the plan already covers them, or the code does not say what was claimed).` : ''} This section fills in when it finishes.</div>`;
+} else {
+  const sev = s => s === 'blocks_acceptance' ? 'fault' : s === 'weakens_acceptance' ? 'open' : '';
+  xc.innerHTML = `<div class="note info" style="margin-bottom:14px"><b>${X.held}</b> findings held after adversarial verification; <b>${X.refuted}</b> were refuted. Below, the held findings merged into ${X.rows.length} proposed gap rows and ${X.corrections.length} corrections.${X.disposition ? ' <b>Disposition:</b> ' + md(X.disposition) : ''}</div>
+  <div class="cols2"><div class="card"><h3>Proposed gap rows</h3>${X.rows.map(r => `<div class="xrow"><div><span class="chip ${sev(r.severity)}">${esc(r.id)}</span> ${sessChip(r.session)} <span class="faint" style="font-size:12.5px">${md(r.blocks)}</span></div><div style="font-size:14px">${md(r.gap)}</div><div class="faint" style="font-size:12.5px">${md(r.chunk)}</div><div class="faint mono" style="font-size:11.5px">${md(r.anchors)}</div></div>`).join('') || '<p class="muted">None.</p>'}</div>
+  <div class="card"><h3>Corrections to plan text</h3>${X.corrections.map(c => `<div class="xrow"><div class="faint" style="font-size:12.5px">${md(c.where)}</div><div style="font-size:14px"><b>Says</b> ${md(c.says)}</div><div style="font-size:14px"><b>True</b> ${md(c.true_is)}</div><div class="faint mono" style="font-size:11.5px">${md(c.anchor)}</div></div>`).join('') || '<p class="muted">None.</p>'}</div></div>`;
+}
+
+// gaps
+const renderGaps = q => {
+  q = (q || '').toLowerCase();
+  $('gaptable').innerHTML = `<thead><tr><th>#</th><th>Gap</th><th>Closed by</th></tr></thead><tbody>${D.gaps.filter(g => !q || (g.id + ' ' + g.gap + ' ' + g.chunks.join(' ')).toLowerCase().includes(q)).map(g => `<tr><td class="mono">${esc(g.id)}</td><td style="min-width:360px">${md(g.gap)}</td><td style="min-width:220px"><div class="chips">${g.chunks.map(chunkChip).join('')}</div></td></tr>`).join('')}</tbody>`;
+};
+renderGaps(''); $('gapq').addEventListener('input', e => renderGaps(e.target.value));
+
+// rail highlight
+const links = [...document.querySelectorAll('nav.rail a')];
+const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + e.target.id)); }), { rootMargin: '-40% 0px -55% 0px' });
+document.querySelectorAll('section.block').forEach(s => io.observe(s));
+const h = location.hash.slice(1); if (h && document.getElementById(h)) document.getElementById(h).scrollIntoView();
+})();
+</script>
