@@ -1,105 +1,127 @@
 # planning — AIA planning session (master plan, decisions, docs PRs)
 
 Current state, rewritten each update. Observed state only. No secrets.
-Updated: 2026-10-20 ~15:50 UTC by session_01RxUnHwTXGVFYjwzfpKi9kT ("AIA planning 2"), which took
-over from session_01Y7frLAETBEYvez3sW7FbGF (retired at ~70% context). Works under the PM coordinator
-(now session_01YEVg53K5fKSGUfcKPTdrRk "AIA PM: coordinator 2"; was session_019bYPVpsShVq3LCtWDT5Kr8, `.agent-status/pm-coordinator.md`); Nigel also talks to this
-session directly.
+
+**Handoff.** Written 2026-10-20 ~21:45 UTC by session_01RxUnHwTXGVFYjwzfpKi9kT ("AIA planning 2"), at
+73% context, for "AIA planning 3".
+
+**Reporting line.** The session works under coordinator 3, session_01MycSLqSRMw4g32SZwa9s7G (it was
+coordinator 2, session_01YEVg53K5fKSGUfcKPTdrRk, before that). Nigel may also talk to the session
+directly.
 
 ## Role
-Planner/worker for the MVP plan: puts open decisions to Nigel interactively (one card per question,
-**each with a worked example**: he asks for "context with an example" when a question is abstract),
-records his answers in the plan files, writes docs-only PRs for doc follow-ups, cross-checks plans
-against the code. It does **not** start sessions or workflows (the coordinator does) and does **not**
-merge (the coordinator merges reviewed green PRs; Nigel merges when he says so).
 
-## Open PRs this session owns
-| PR | Branch | Head | State | Left |
-|---|---|---|---|---|
-| #522 | `chore/scope-proposed-edits` | `049413c` | draft, docs-only | freeze part 1b: 102 proposed edits deduplicated and tagged (written before the answers) |
-| #523 | `chore/scope-baseline` | `5107edc` | draft, docs-only | freeze part 2: the 48 answers applied; master § The scope baseline (In/Out/Open Q1-Q8, signature line); 20 child plans; waves; merge after #516 and #522; awaits Nigel's signature |
-| #516 | `chore/scope-decision-list` | `c7d5bbe` | draft, docs-only | freeze step 4 part 1: 48 decisions for Nigel (one new file, `.planning/evidence/scope-freeze/decision-list.md`) + 35 no-decision edits; sent to coordinator, who presents it. Part 2 (apply answers, write baseline) waits on his answers |
+The session is the planner for the MVP plan. It:
+- writes docs-only PRs;
+- applies the owner's answers to the plan files;
+- cross-checks the plans against the code.
 
-Subscribed to PR activity on #511: session_01RxUnHwTXGVFYjwzfpKi9kT (planning 2), 15:50 UTC. CI at that
-time: backend + frontend running, every other check green.
+It does not:
+- start sessions or workflows;
+- merge (the coordinator merges);
+- ask Nigel directly. The coordinator asks him on the PM status page (`/pmstatus`) and relays the
+  answers.
 
-## Scope freeze (Nigel, 2026-10-20 ~15:25 UTC)
-No feature code until Nigel signs a dated scope baseline in mvp-master-plan.md. Inputs from sessions
-1a (crosscheck-tracks-5-7.md), 1b (reverse-scope-audit.md), 1c (client-and-settings-impact.md), 2
-(mvp-methodology-packet.md, #510), 3 (Proposed ADRs 0028+), each a docs-only draft PR with "Proposed
-master-plan edits". **Step 4 is this session's, when the coordinator asks:** apply the accepted
-proposals and write the baseline (in / out / open decisions) for Nigel to sign. Until then
-mvp-master-plan.md is not edited except by #511. Decided: the MVP ships `aia-sociomap-5` (MVPQ-13 in #510).
+## Open PRs (all docs-only, ready for review, green; merge in this order, after Nigel signs MP16)
 
-## Merged today from this session
-#520 (doc follow-ups of #509/#511/#518), merged 18:24 UTC. #511 (wallet rename), merged 17:17 UTC. #508 (doc follow-ups of #499-#507, OI-135..138, `signed-off-sociomap-method` registered; plus 2fa78b50 for Codex's three findings), merged by the coordinator as 86ec0cdd. Earlier: #491, #493, #494, #495 (2026-10-19); #506 (owner answers MVPQ-03/05/06/07/08/09 into packet,
-cohesion register, master §11, child plans and AC-02/09/13; carried #503), #507 (cross-check
-dispositions G47-G57 + 5 corrections + X1/X8/X10 answers).
+| PR | Branch | Head | What it is |
+|---|---|---|---|
+| #516 | `chore/scope-decision-list` | `c7d5bbe` | The 48 freeze decisions. Codex raised 3 threads, all answered and resolved. Kept as the text Nigel answered against: don't edit it |
+| #522 | `chore/scope-proposed-edits` | `049413c` | Part 1b: 102 proposed edits, deduplicated and tagged. Written before the answers. Codex found nothing. Its S-13 wording on segments is superseded by #523 |
+| #523 | `chore/scope-baseline` | `1ba4bc0` | Part 2: master § The scope baseline (In / Out / answers tables / Open / signature line), MP16, 20+ child plans, waves, and `.planning/evidence/scope-freeze/answers-2026-10-20.md` (four tables: D-01..48, Q1-8, page Q10-12, page Q13-18) |
 
-## Commitments to Nigel not yet done
-- None outstanding beyond keeping the open PRs above green and handled through review.
-- Standing: when he asks for decisions, ask interactively with a worked example per question.
+The baseline links `decision-list.md` (#516) and `proposed-edits.md` (#522). That is why #523 merges
+last.
 
-## Owner questions still open (as of develop @ 86ec0cdd)
-Index: `.planning/plans/mvp-master-plan.md` §11.4; wording: `.planning/mvp-owner-decisions.md`;
-answers recorded in `.planning/mvp-cohesion.md` (dated entries at the end).
-- **MVPQ-03 (rest)**, methodology owner: segment combinations, support, own dimensions, clustering,
-  register entry; reconcile `segment-maps-and-drilldown` 1/9/10 and `sociomap-formula-corrections#3`
-  with `aia-sociomap-5` (#504, merged) before building.
-- **MVPQ-05 (rest)**, methodology owner: benchmark interval; whether a client survey may ground AI
-  respondents; and ADR 0027 **Q4** (a client number's support/metric/interval, master G51,
-  `client-data-in-analysis#0`).
-- **MVPQ-06 (rest)**, Nigel: Deep Research evaluation tasks, metrics and thresholds (25, 26, 39);
-  he owns them, USD 50 allowance.
-- **MVPQ-09 (rest)**, methodology owner: any scientific check beyond admitted support.
-- **MVPQ-10**, methodology owner: replacement weights and support (`run-qc-and-checkpoint#RQC5`).
-- **MVPQ-12**, methodology owner: canonical Sociomap Q5/Q6/Q7, kernel widths, F10, F16.
-- **MVPQ-02b**, methodology owner: the open-answer coding method.
-- Scope overrides on offer (master §11.3): S2 one meter vs two, S3 shared Lead conversation, S4 strict
-  class text for every client, S5 client DOCX only. Not asked; only if Nigel wants them.
-The methodology owner is A. Bahbouh (GitHub `Arigamaru`), working in his own AIA sessions (#504).
+## Applied in #523
 
-## Decisions recorded today (don't re-ask)
-MVPQ-01, 02, 04, 11 (earlier sessions); MVPQ-03/05/06/09 product parts, 07, 08 (#506); X1 build
-segment evidence, X8 build routing end to end, X10 remove Settings' draft-prompt test (#507); wallet
-name (wallet PR). AC-13's gate is the minimal one (no "Interní dokument" source, no drill-down content,
-no unadmitted number; an unsupported claim blocks approval; no legal review).
+- **The 48 answers** (D-01 to D-48).
+- **Q1-Q8:**
+  - Q1-Q3: `-5` is the only method of new runs. It merges when built and stays internal until
+    MQ-01. Old runs show "Mapa ze starší metody; spusťte běh znovu". The old engine and fixtures
+    stay as reference.
+  - Q4: the Metodik mark gates storing and activating methodology versions.
+  - Q5: no study assignment, plus the study context file (LO19).
+  - Q6: free report edits with every number still a ledger ref, and "Hledat na webu" (LO20, DR#56,
+    RLW#32; needs a new ADR).
+  - Q7: a GlitchTip uptime monitor alerting Nigel.
+  - Q8: Metodika's full `-5` comparison (`signed-off#11`).
+- **Page Q10:** LO19 also carries "Poznámky ke studii", which any researcher's Lead proposes and a
+  person accepts.
+- **Page Q11:** assumption statuses are UNTESTED, SUPPORTED, CONTRADICTED and RETIRED. Scope 3
+  (session_01Qg43kRfsZ97FjA8XenP28x) was told that ADR 0033 drops UNVERIFIED.
+- **Page Q12, the stage handoff:**
+  - new LO9d: each stage worker's declared inputs;
+  - AOC3: hypotheses reach the analysis payload;
+  - WCE7: a map of what each stage reads, and staleness on pending proposals;
+  - LO7: a pending-proposals layer in the Lead's context;
+  - LO6: its test covers a job started through `approve_request`.
+- **Page Q13-Q18:**
+  - Q13: tracked-change suggestions (the default) or direct, undoable Lead edits, per researcher.
+  - Q14: a departed member's Lead is sealed, then deleted at the 30-day retention end.
+  - Q15: the production hostname is `app.ai-analytics.ai`.
+  - Q16: Brave serves OPEN clients at release.
+  - Q17: an old-method retry is refused with a link to a new `-5` run; approved old-method reports
+    stay downloadable.
+  - Q18: a Lead lookup needs no card; at most 3 queries, 5 pages and 2 lookups per turn, with a
+    wallet hold, OPEN clients only.
+- **Codex's findings:**
+  - LO11, E16 and G17 no longer require a handover or an admin read.
+  - WCE5 and E06 compare conflicts per `(item_key, field)`.
+- **The coordinator's findings:**
+  - segments stay defined by descriptors (MVPQ-03), `-5` is only the engine, and chunk 10 waits on
+    nothing (MVPQ-04);
+  - G75 is folded into `mvp-acceptance-harness#3` (chunk 17 removed);
+  - posture belongs to `deep-research-web-search#53`, K11 holds the wallet ceiling only, and I15
+    is corrected. The Settings prototype session (session_01Ku9CwQRUsBdPUbqWy6zYj7) was told.
+  - The `-5` web layers and the report figure point at Aram's #517 and its `sociomap-5-web` plan
+    (his own lane). RLW#20 hosts the panel, and `signed-off#9` keeps the chapter text.
+  - The WCE4 feed is named `workspace/ops?since=`.
+- **`master_check`:** ok at `1ba4bc0` (263 chunks with a wave, 0 unscheduled). `progress --check`:
+  105 of 105.
 
-## Tools and how this session used them
-- `python tools/master_check.py` (register vs plans and `mvp-execution-contracts.md`; fails on a dangling
-  `plan#ID`, a plan missing from §3, an AC/G/I row without a resolving chunk, an open core chunk with no
-  wave). Run with `python tools/progress.py --check` and `bash tools/exposure_check.sh` before any
-  planning push; `python3 -m pytest -q packages/aia_core/tests/test_parity_matrix.py` when
-  `docs/migration/` changes (the JSON is rewritten with `json.dumps(m, indent=1, ensure_ascii=True)+"\n"`,
-  which round-trips the file byte for byte).
-- A new chunk in a core plan needs a front-matter line **and** a wave row in `mvp-execution-contracts.md`
-  (§ "Every other open chunk"), or master_check fails.
-- Docs-only PRs (only `.planning/`, ADRs, CLAUDE/AGENTS/ARCHITECTURE) run just Documentation checks;
-  touching `docs/migration/` runs the full suites (~35 min backend).
-- Shared files (CLAUDE.md, ARCHITECTURE.md, AGENTS.md, overview.md, open-items.md, plans/README.md,
-  adr/README.md, migration/status.md) change only in docs PRs; a feature PR lists a Doc follow-up.
-- Don't push a docs-only commit to `develop` while its CI run is deploying (it cancels the deploy).
-- Stacked PRs: base the PR on `develop`, never on another feature branch (#503 was merged into its
-  stacked base and never reached develop until #506 carried it).
-- The MVP plan page (private artifact, generated from the plan files):
-  https://claude.ai/artifact/RAYF6NZ1ctrAxo8qEYFWqR. Its generator lives only in this session's scratch
-  (extract.py + template.html), not in the repo; a successor regenerates by re-extracting from
-  `mvp-master-plan.md`, `mvp-execution-contracts.md`, the core plans' front-matter and
-  `parity-matrix.json`, or republishes from a fresh build.
-- The design artifact (design session, renamed to Peněženka): https://claude.ai/artifact/JrWZXosJtKVLckHhArngeV
+## Still open (in the baseline's Open table, or due next)
 
-## Worth knowing
-- The cross-check (four code-built track maps vs the master plan; 16 of 101 findings held) is fully
-  dispositioned in #507; nothing of it is pending.
-- `research-lead-workbench` chunk 26 (Lead at every width) and the wallet/plan card (`lead-orchestration`
-  LO1-LO6) are decided and not built.
-- Unapplied doc follow-ups, deliberately: #499's ARCHITECTURE §3/§4 and CLAUDE §2 items wait on their
-  ADRs being accepted; #504's Web follow-ups are build work.
+- **Page Q19:** the editor for Lead edits. Nigel named Wordcraft (github.com/storytold/wordcraft);
+  the coordinator is asking whether AIA adopts it.
+- **Page Q20:** Brave for Class B queries too. Until it is confirmed, CLASSIFIED clients' web tracks
+  stay parked.
+- **The MP16 signature.** The ticks on the status page are **not** the signature; the coordinator
+  gets an explicit one. When it comes, record it on the baseline's signature line (a one-line docs
+  commit in #523, or after merge as decided).
+- **The input-interactions plan.** Session session_01BmmpzanxvKFquk44nLP4qu ("AIA design: input
+  interactions audit") will propose `.planning/plans/input-interactions.md`. Fold it into #523, or
+  into a follow-up if #523 has merged:
+  - a §3 row;
+  - waves in the contracts;
+  - the ownership overlap with settings, client-workspace and research-lead-workbench.
+- **The §3 row for `sociomap-5-web` when #517 merges** (suggested: core, S2 plus the methodology
+  owner, I-2). Until then, never reference `sociomap-5-web#N` in backticks: master_check fails on a
+  plan that is not on develop.
+- **Still open from before:** the performance budget values (`mvp-acceptance-harness#18`), MQ-01 to
+  MQ-24 (Aram, packet #510), MVPQ-06's evaluation thresholds, S2-S5, and accepting ADRs 0028-0038
+  (#512) plus a new ADR for the Lead's lookup.
 
-## Freeze state (17:50 UTC)
-The owner's 48 answers are in (page DB, collection answers; copied to
-`.planning/evidence/scope-freeze/answers-2026-10-20.md` in #523). Open questions Q1-Q8 (in #523's baseline) were sent to the
-coordinator, who asks Nigel directly (~19:30 UTC). When answered: apply each to the plans #523 names, then Nigel signs.
+## Merged today from these sessions
 
-## 19:55 UTC
-Q1-Q8 answered by Nigel (relayed by coordinator 2) and applied to #523 (5107edc). One new question Q9 (who writes a study context file's prose; recommended (b) Lead-proposed notes a person accepts) sent to the coordinator. Next: apply Q9; then Nigel's explicit signature on MP16 (the status-page tick is not it).
+- #511, the wallet rename (`125db46d`).
+- #520, the doc follow-ups of #509, #511 and #518.
+
+## Only this session knows
+
+- **Where the answers come from.** The 48 D-answers came from artifact
+  https://claude.ai/artifact/WdXcN8nQnQX3rW36hF8iVd, collection `answers`, every one by user
+  `u_lDmchBNgQRXZ1nH5Fyv9hQ` (no display name is returned). Read them with `ArtifactData list`. The
+  later Q answers were relayed by the coordinator from the `/pmstatus` page; the session never read
+  that page itself.
+- **The scripts used** for #523 are in this session's scratchpad (`apply_plans.py`,
+  `apply_master.py`, `apply_q*.py`). They will be gone with the container. The pattern: insert
+  front-matter lines before the closing `---`, append a "### After …" section to the plan body, and
+  add wave rows to the contracts' "Every other open chunk" table before the
+  `research-lead-workbench#24` row.
+- **Every new open chunk of a core plan needs a wave row**, or master_check fails.
+- **No embedded double quotes** inside a front-matter chunk string.
+- **Docs-only PRs** run only the Documentation checks.
+- **Don't push a docs-only change to develop while develop is deploying.**
+- **`.agent-status` pushes** to this branch can 403 or reject non-fast-forward. Pull with rebase,
+  then retry.
