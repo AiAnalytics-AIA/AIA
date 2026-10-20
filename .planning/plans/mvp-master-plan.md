@@ -127,6 +127,7 @@ of **In** and **Out** above.
 | # | Question | Who answers | Waits on it |
 |---|---|---|---|
 | Q9 | Who may write the prose part of a study's context file (Q5's new scope): code only, code plus study notes a researcher's Lead proposes and a person accepts, or Leads freely. Sent to the coordinator with a recommendation | the owner | `lead-orchestration#LO19` |
+| — | An assumption's status set (D-16's second part; D-16 was answered (b), which settles only who may set SUPPORTED and CONTRADICTED): UNTESTED / SUPPORTED / CONTRADICTED, or the same plus RETIRED, or plus UNVERIFIED and RETIRED (ADR 0033). Recommended: the first plus RETIRED, so a dropped assumption stays visible | the owner | `assumptions-and-open-answer-coding#AOC0` |
 | — | Production's new domain name (D-20: "i will be changing to a new domain") | the owner | `production-environment#PE1`, Cognito callbacks |
 | — | The performance budget values for `mvp-acceptance-harness#18` (D-48); planning proposes them in that chunk's PR, the owner approves | the owner | `mvp-acceptance-harness#18` |
 | — | The methodology owner's decisions MQ-01 to MQ-24, MQ-01 (the `-5` register entry) first | A. Bahbouh | `mvp-methodology-packet.md` (#510); §11.4 |
