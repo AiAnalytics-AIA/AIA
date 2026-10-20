@@ -226,9 +226,11 @@ register's `completeness` states for `-5`. Proceeds: I0-I5.
 shuffle guard (and the consensus maps) be bounded, e.g. by fewer shuffles or a cap on the respondents the
 mixture is fitted on?
 
-**(2) Why it matters.** The figure 70-90 s per set at 20,000 respondents is the coordinator's;
-**it is not measured in this repository** (no commit, plan or test records it), and E-9 asks for it to be
-measured on the worker. The cost drivers are declared spec values: up to 20 shuffles, each a full
+**(2) Why it matters.** The figure is yours, from #504's description: "a set with 1,000 respondents
+takes 2–18 s; with 20,000 respondents and real segments about 70–90 s, almost all of it the
+methodology's shuffle guard on 5 maps". It was measured on your machine (macOS, where #504's other
+local checks ran), **not in this repository** (no commit, plan or test records it) and not in the
+develop worker's image, so E-9 asks for it to be measured there. The cost drivers are declared spec values: up to 20 shuffles, each a full
 mixture fit (`specification.py:1605`; fitted 4 at a time, stopping after the first batch where a shuffle
 matches the real gain, `signed_off_segments.py:15-18, 106-109`), and the decision taken on 5 maps, the
 shown one and 4 jittered ones each laid out again (`:1615-1616`). So the worst case is a set *with* real
@@ -522,9 +524,10 @@ description.
 - **E-8. Plans that name `-3` as the MVP method.** `mvp-master-plan.md:126`, `:337`;
   `segment-maps-and-drilldown` 0, 1, 3, 9; `sociomap-formula-corrections` 3, 5b; AC-09's wording is
   method-neutral and stays.
-- **E-9. Runtime unmeasured.** No measurement of a `-5` map with respondents and segments at large n
-  exists in the repository; measure on the develop worker at 1,500, 5,000 and 20,000 respondents before
-  MQ-06 is answered.
+- **E-9. Runtime unmeasured on the worker.** The only figure is the methodology owner's own (#504:
+  2-18 s at 1,000 respondents, about 70-90 s at 20,000 with real segments), measured on his machine;
+  nothing in the repository or on the develop worker's image records it. Measure there at 1,500, 5,000
+  and 20,000 respondents before MQ-06 is answered.
 
 ## Not asked, and why
 
