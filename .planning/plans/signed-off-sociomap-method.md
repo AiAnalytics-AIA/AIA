@@ -278,3 +278,10 @@ Chunk 8 supersedes this plan's § Not in this plan where it puts making `-5` the
 **Measurement before MQ-06** (packet E-9): a `-5` map with respondents and segments on the develop
 worker image at 1,500, 5,000 and 20,000 respondents, recorded in this plan before the methodology
 owner answers MQ-06.
+
+### After the old-method answer (the owner's answers on the PM status page, 2026-10-20 20:50-21:04 UTC, relayed by the coordinator (page ids Q13 to Q18; `.planning/evidence/scope-freeze/answers-2026-10-20.md`, fourth table))
+
+- **8 (page Q17: (a)).** A retry of a run that pinned `-1` or `-3` is **refused**, worded with a link
+  that starts a new run on `-5` from the same Design Revision. Approved reports of such runs stay
+  downloadable (`report-delivery#RD3`). Test: a retry of a `-3` run returns the refusal and the new
+  run link, and starts nothing.

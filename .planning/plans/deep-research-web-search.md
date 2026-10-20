@@ -1745,3 +1745,10 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
   first results to the Lead within the route's own response time, measured in the PR. Tests: a
   CLASSIFIED client's lookup sends nothing; a lookup's spend is held against the wallet before it
   leaves; a quote not in a captured snapshot is refused.
+
+### After the release-route answer (the owner's answers on the PM status page, 2026-10-20 20:50-21:04 UTC, relayed by the coordinator (page ids Q13 to Q18; `.planning/evidence/scope-freeze/answers-2026-10-20.md`, fourth table))
+
+- **53 (page Q16: (a)).** At release, Brave serves OPEN clients' web research, as MVP-27 amended has
+  it. The owner's note asks for Brave for **Class B** queries too (a CLASSIFIED client's design
+  queries); that is being confirmed and is **open** in the baseline. Until it is answered, a
+  CLASSIFIED client's web tracks stay parked as today.

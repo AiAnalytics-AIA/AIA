@@ -108,3 +108,11 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
   accepted. The exact edited version is what a person approves. ADR 0035 is amended in this chunk's PR
   (ref-set equality per paragraph becomes "every number a ref"; `section_move` allowed on every
   chapter).
+
+### After the editing and old-method answers (the owner's answers on the PM status page, 2026-10-20 20:50-21:04 UTC, relayed by the coordinator (page ids Q13 to Q18; `.planning/evidence/scope-freeze/answers-2026-10-20.md`, fourth table))
+
+- **RD6 (page Q13: (a)).** A Lead's report edit reaches the document as the researcher has chosen:
+  tracked-change suggestions by default, or direct, undoable rewrites (`lead-orchestration` § After
+  the editing, departure and lookup answers). The editor is open (Wordcraft is being asked about).
+- **Old-method reports (page Q17: (a)).** A report already **approved** from a `-1`/`-3` run stays
+  downloadable as approved, unchanged.

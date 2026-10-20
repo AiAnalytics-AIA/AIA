@@ -84,7 +84,8 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
 **Existing chunks, changed by the owner's answers.**
 
 - **PE0-PE3 (D-20).** The proposed sizes are accepted (`t3a.large`, `db.t4g.medium`, measured on
-  develop first). Production moves to a **new domain**, not yet named: open in the baseline.
+  develop first). Production's hostname is **`app.ai-analytics.ai`** (page Q15: (a)): its Cognito and Google
+  callbacks and the certificate are for that name.
 - **PE1.** A content security policy.
 - **PE4 (D-19).** The proxy blocks private and metadata ranges only; the application's per-hop checks
   are the boundary.

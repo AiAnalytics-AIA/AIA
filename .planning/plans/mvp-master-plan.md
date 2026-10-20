@@ -95,8 +95,8 @@ AC-15), as amended below; the core plans of §3.1 with their open chunks and wav
 - A locked attention-check question (D-43); MVP-24's QC warnings stay.
 - The question chain: the Brief's decisions, expected answers and done-when (D-44).
 - Known-truth anchors, an instrument library, schedules and pause, "society insights" (D-46).
-- Handing a Lead over, a departure trigger, an admin reading another researcher's Lead files
-  (D-32 to D-34), and assigning a study to one researcher's Lead (Q5); ADR 0030 is narrowed to the
+- Handing a Lead over and an admin reading another researcher's Lead files (D-32 to D-34; a departed
+  member's Lead is sealed, then deleted, Q14), and assigning a study to one researcher's Lead (Q5); ADR 0030 is narrowed to the
   Lead's own file history.
 - `aia-sociomap-1` to `-4` in any product path (D-13, Q3); a stored older run keeps its data and says
   its map is from an older method (Q2).
@@ -134,12 +134,26 @@ Answered on the PM status page (page ids in brackets), relayed by the coordinato
 | Status set (page Q11) | An assumption is UNTESTED, SUPPORTED, CONTRADICTED or RETIRED; no UNVERIFIED | `assumptions-and-open-answer-coding#AOC0` |
 | Stage handoff (page Q12) | (a) all five gaps closed: every stage worker gets its declared upstream inputs, hypotheses reach the analysis, staleness reaches pending proposals, the Lead sees pending proposals, a card-started job returns to the Lead | `lead-orchestration#LO9d`, `assumptions-and-open-answer-coding#AOC3`, `working-copy-edit-ops#WCE7`, `lead-orchestration#LO7`, `lead-orchestration#LO6` |
 
+### The owner's answers of 20:50-21:04 UTC (page Q13 to Q18)
+
+Relayed by the coordinator from the PM status page; recorded in
+[`answers-2026-10-20.md`](../evidence/scope-freeze/answers-2026-10-20.md) (fourth table).
+
+| Page | Answer | Chunks |
+|---|---|---|
+| Q13 | A Lead's edits reach the study context file and reports as each researcher chooses: tracked-change suggestions (default) or direct, undoable rewrites; the editor is open (Wordcraft?) | `lead-orchestration#LO19`, `report-delivery#RD6` |
+| Q14 | A departed member's Lead is sealed, then deleted at MVPQ-07's retention end | `lead-orchestration#LO11` |
+| Q15 | Production's hostname is `app.ai-analytics.ai` | `production-environment#PE1` |
+| Q16 | Brave at release for OPEN clients; Brave for Class B queries is being confirmed (Open) | `deep-research-web-search#53` |
+| Q17 | Approved old-method reports stay downloadable; an old-method retry is refused with a link to a new `-5` run | `signed-off-sociomap-method#8`, `report-delivery#RD3` |
+| Q18 | A Lead web lookup needs no card: 3 queries, 5 pages and 2 lookups per turn, a wallet hold, OPEN clients only | `lead-orchestration#LO20` |
+
 ### Open: signing does not answer these
 
 | # | Question | Who answers | Waits on it |
 |---|---|---|---|
-| — | The owner's note on the Lead live-editing documents ("integrate wordcraft"), with page Q10: which document, and what it means; the coordinator is asking | the owner | not planned yet |
-| — | Production's new domain name (D-20: "i will be changing to a new domain") | the owner | `production-environment#PE1`, Cognito callbacks |
+| — | The editor for tracked-change and direct Lead edits (page Q13): the owner names Wordcraft (`github.com/storytold/wordcraft`, open-source Rust/WASM, MCP server, alpha); whether AIA adopts it is being asked | the owner | `lead-orchestration#LO19`, `report-delivery#RD6` |
+| — | Brave for Class B queries too (page Q16's note): a CLASSIFIED client's design queries to Brave; being confirmed | the owner | `deep-research-web-search#53` |
 | — | The performance budget values for `mvp-acceptance-harness#18` (D-48); planning proposes them in that chunk's PR, the owner approves | the owner | `mvp-acceptance-harness#18` |
 | — | The methodology owner's decisions MQ-01 to MQ-24, MQ-01 (the `-5` register entry) first | A. Bahbouh | `mvp-methodology-packet.md` (#510); §11.4 |
 | — | The Deep Research evaluation tasks and thresholds (MVPQ-06, rest) | the owner | `deep-research-web-search#27` |
@@ -357,7 +371,7 @@ These rows preserve the original findings; assigning chunks resolves planning ow
 | G39 | **No chunk enforces the spend limit on the server.** `ResearchAgentJobs.start` reads no `spend_confirm_usd` (`application/research.py:1311-1407`, against `ResearchRuns.start` at `:739`); cohesion F5 adopts the check as the first code change, the development plan's W0 names it, but no child chunk did, and workbench D15 said removing the buttons closed F1. `budget_usd` is the cap; the wallet and the confirmation are distinct (review of 2026-10-20, item 1) | `lead-orchestration#LO15` |
 | G40 | **D12 and D15 disagreed below 1100 px or with the switch off**; settled by MVPQ-11 (2026-10-20): the Lead stays accessible at every width (a compact drawer or stacked layout), no manual AI start in any layout, and an honest fallback with the workbench or the Lead's kill switch off | `research-lead-workbench#26`, `research-lead-workbench#27`, `lead-orchestration#LO15` |
 | G16 | **The three new workers have no binding, accept path, price or `MaterialRule`**: no `REPORT_WRITING` binding, no result kind for interpretation, wording or flags, no rule for results, module text, maps or report text (T4 A5, T3 A9, A10, T2 A5) | `lead-orchestration#LO9a`, `lead-orchestration#LO9b`, `report-delivery#RD6`, `run-qc-and-checkpoint#RQC3` |
-| G17 | **Lead files cannot be rolled back** (`revisions()` has no caller); admin read, handover and a departure trigger are out (D-32 to D-34); (T4 A6, A7, A12); turns stay private (Q26), and shared proposals are G42, not this row | `lead-orchestration#LO11` |
+| G17 | **Lead files cannot be rolled back** (`revisions()` has no caller); admin read and handover are out (D-32 to D-34); a departed member's Lead is sealed, then deleted (Q14); (T4 A6, A7, A12); turns stay private (Q26), and shared proposals are G42, not this row | `lead-orchestration#LO11` |
 
 **Working copy and design stages**
 
@@ -597,8 +611,8 @@ tagged profiles. AC-15 reconciles model usage to the usage ledger within USD 0.0
 has its own stated window, lag and tolerance and must not be called that exact model-ledger check.
 Also required are the cutover rollback
 rehearsed on develop, the Cognito and Google callbacks for the production hostname, and the
-activation profile of §4 `READY` on the production host. The proposed sizes are accepted (D-20); production moves to a new domain the owner has
-not yet named, and the Bedrock quota is an operator's (`mvp-target-architecture.md` §9).
+activation profile of §4 `READY` on the production host. The proposed sizes are accepted (D-20); production's hostname is `app.ai-analytics.ai`
+(page Q15), and the Bedrock quota is an operator's (`mvp-target-architecture.md` §9).
 
 ## 10. Risks of the whole
 
@@ -717,7 +731,7 @@ Q8) are in § The scope baseline; the methodology owner's are MQ-01 to MQ-24 in
 
 ### 11.5 Operator and owner checklist (not methodology, not yet done)
 
-The Brave plan and sign-off; the production domain (new, not yet named: D-20), Cognito and Google callbacks; RDS sizing; Bedrock
+The Brave plan and sign-off; the production hostname `app.ai-analytics.ai` (page Q15), Cognito and Google callbacks; RDS sizing; Bedrock
 quota and the model per tier; the Bedrock retention evidence that lets the four route parameters be set
 (`MP7`); the Lead's cost per turn, measured on develop; provider terms. None is portrayed as performed. The
 activation profile (`MP6`) makes each READY or NOT_READY.

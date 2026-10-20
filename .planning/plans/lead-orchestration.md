@@ -14,7 +14,7 @@ chunks:
   - "[ ] LO9c. A results-worker job shape (W2, before LO9b): a workflow type and step kind keyed on (run_id, target), frozen inputs by artifact id and SHA-256, its own context builder and executor behind its own switch, sharing the worker row, prompt pin and usage ledger"
   - "[ ] LO9b. The three new workers as rows (W3): a `REPORT_WRITING` binding, result kinds and accept destinations, per-worker price and keys"
   - "[ ] LO10. `approve_request` bound to the revision shown on its card, and a clean error where the 96 KB Lead context meets the 64 KB agent limit"
-  - "[ ] LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions; no handover, departure trigger or admin read (D-32 to D-34)"
+  - "[ ] LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions; no handover or admin read (D-32 to D-34); a departed member's Lead sealed, then deleted at the retention end (Q14)"
   - "[ ] LO12a. The route-class refusal says who fixes it (W0): on the job error, the Lead pane, source proposals and Progress, from the refusal codes that exist today, with a link to the runbook; static copy, no read of the route"
   - "[ ] LO12b. A pre-flight read of the AI route (W1): the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`), and the new refusal reasons"
   - "[ ] LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02"
@@ -88,7 +88,7 @@ The three workers (map interpreter, report writer, straight-liner check) have no
 **LO10. `approve_request` bound to the revision shown on its card, and a clean error where the 96 KB Lead context meets the 64 KB agent limit**  
 `approve_request` submits whatever the working copy is at approval time, unlike `decide_edits`, which needs `base_revision`. Test: approving a card whose revision moved is refused with a message, not a 500.
 
-**LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions; no handover, departure trigger or admin read (D-32 to D-34)**  
+**LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions; no handover or admin read (D-32 to D-34); a departed member's Lead sealed, then deleted at the retention end (Q14)**  
 File revisions have no reader today (`revisions()` has no caller). Turns stay private (Q26). A Lead is never handed over and no admin reads another researcher's Lead files (the owner, 2026-10-20, D-32 to D-34; the earlier "admin read and handover" is withdrawn). Another member's ability to accept a proposal is **not** a Lead-lifecycle matter and is not decided here: Q16 makes proposals shared, and `working-copy-edit-ops#WCE6` builds it (gap G42).
 
 **LO12a. The route-class refusal says who fixes it (W0): static copy on the four surfaces**  
@@ -161,7 +161,7 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
 - **LO4 / LO9a (D-02).** The card shows each step's ceiling against the threshold; the plan's approval
   records a confirmation for each shown ceiling; a step whose ceiling grew since parks. AC-04 follows.
 - **LO11 (D-32, D-33, D-34).** Each researcher has their own Lead, built and named by them (free
-  text), never transferred: the handover, the departure trigger and an admin's reading of another
+  text), never transferred: the handover, a handover-starting departure trigger and an admin's reading of another
   researcher's Lead files are **out**. LO11 keeps the Lead's file history (readable, restorable
   revisions) and F14's learning rules. No study is assigned to one researcher's Lead (Q5, below). ADR 0030 is narrowed in its
   own PR accordingly.
@@ -240,3 +240,24 @@ the chunks named below.
   will depend if they revize the text as a comment or rewrite it directly, that will be up to each
   researcher." That live-editing part is **not planned yet**: the coordinator is asking which
   document and what "wordcraft" means.
+
+### After the editing, departure and lookup answers (the owner's answers on the PM status page, 2026-10-20 20:50-21:04 UTC, relayed by the coordinator (page ids Q13 to Q18; `.planning/evidence/scope-freeze/answers-2026-10-20.md`, fourth table))
+
+- **LO19 and the reports (page Q13: (a)).** How a Lead's edit reaches a document is each
+  researcher's own setting: **tracked-change suggestions** the researcher accepts or rejects (the
+  default), or **direct rewrites** that stay undoable. It applies to the study context file's notes
+  (LO19) and to report documents (`report-delivery#RD6`), on top of their existing rules (every
+  number a ledger ref in a report). The editor itself is open: the owner names Wordcraft
+  (`github.com/storytold/wordcraft`, an open-source Rust/WASM Word reimplementation with an MCP
+  server, alpha), and whether AIA adopts it is being asked; nothing here depends on that choice.
+- **LO11 (page Q14: (a)).** A departed member's Lead is **sealed** when the member is deactivated
+  (`two-roles-human-ai-gates#8`): no turn runs, nothing is read by anyone, its files and notes stay
+  as they were. It is deleted at the end of MVPQ-07's retention (30 days), through
+  `study-data-lifecycle`'s delete path, with the content-free usage and audit rows kept. Still no
+  handover and no admin read (D-32 to D-34). Test: a deactivated member's Lead refuses a turn and an
+  admin read, and is gone after the retention end.
+- **LO20 (page Q18: (a)).** A Lead web lookup needs **no plan card or approval**: it runs inside the
+  turn, bounded to **3 queries, 5 fetched pages and 2 lookups per turn**, with a hold on the wallet
+  before it leaves (the hold refuses it when the wallet cannot cover it). OPEN clients only. Tests:
+  a fourth query in one turn is refused by name; a lookup with too little wallet is refused before
+  anything is sent.
