@@ -181,8 +181,7 @@ written into the decisions above:
    choice, switched per stage on Můj Vedoucí, off by default (D-31, rec: (a) with (i)). Decision 9.
 6. ~~Amending ADR 0026.~~ Yes, as this ADR is accepted (D-08, a).
 
-Still open:
+3. ~~The route names.~~ `POST/GET …/workspace/ops?since=`, as this ADR has it (the coordinator,
+   2026-10-20; the planning session aligns WCE4's wording).
 
-3. **The route names.** `POST/GET …/workspace/ops?since=` (target architecture §5) and
-   `GET changes?since=` (WCE4) name the same feed; this ADR uses the first. An engineering naming
-   choice, listed only because the two documents disagree.
+Nothing remains open in this ADR but its acceptance.

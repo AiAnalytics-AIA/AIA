@@ -133,7 +133,5 @@ Still open:
 1. **Does the researcher's automatic accept apply to report edits?** ADR 0029 decision 9 lets text
    edits apply without a click when the researcher turns it on; Q10 applies the toggle to the study
    context file. This ADR has every report edit accepted by a person; whether the toggle extends to
-   reports is not recorded.
-2. **The Lead's web search (Q6, "Hledat na webu"),** decided the same day, is not a report-edit
-   rule; the scope baseline names a new ADR for it (`lead-orchestration#LO20`). Not written in this
-   PR.
+   reports waits for the owner's pending Q13 (per researcher: suggestions or direct edits).
+2. ~~The Lead's web search.~~ Written as [ADR 0040](0040-the-leads-web-lookup.md).
