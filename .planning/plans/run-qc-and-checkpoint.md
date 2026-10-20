@@ -54,7 +54,7 @@ The preview drops the composition and readiness does not call the previewer for 
 Written first by S2; consumed by the Fieldwork artifact (`research-lead-workbench` 19). Interfaces I7.
 
 **RQC8. Readiness reads the worker's egress: a run whose route cannot carry Class A is flagged before it parks**  
-The panel default needs the route widened and the API reads no egress key. Shares the composition record of `lead-orchestration#LO12`.
+The panel default needs the route widened and the API reads no egress key. Shares the composition record of `lead-orchestration#LO12b`.
 
 **RQC9. One authority for the valid n: the domain readiness limits, read by the web and the Lead**  
 Four ranges today: web 50-5000, Lead 30-40,000, readiness 20-10,000, the sampler.
