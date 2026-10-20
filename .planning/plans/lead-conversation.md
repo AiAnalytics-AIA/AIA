@@ -56,6 +56,7 @@ is and gains an acceptance condition from ADR 0041:
 | `research-lead-workbench#12` workbench journey | the four widths and keyboard | ADR 0041 decision 11's keyboard map is in its assertions |
 | `research-lead-workbench#16` pointing and `@` | the chip, target button and `@` | the Vidí chip opens LC2; `@` can pin (LC11) |
 | `research-lead-workbench#26` compact Lead | every width | LC2 and LC5 work in the drawer |
+| `research-lead-workbench#29` conversation controls (D-38; plan @ `ec1265a`, #523) | the UI: older-message paging, copy, edit and resend, ArrowUp to edit the last message, a queued message's send-now and edit | its edit and resend creates replacement turns under LC10's rule (refused once the replaced turn's output is decided); its queue is LC5's server queue, so a queued message is edited or withdrawn on the server and visible in every tab; send-now stops the running turn (LO17) and starts one that answers the queue. LC5 and LC10 own the server side |
 
 ## Waves
 

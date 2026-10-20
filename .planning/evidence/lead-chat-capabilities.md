@@ -73,12 +73,13 @@ forgets its beginning, named but lost. This is the largest single gap and the re
 | Compact Lead at every width | `research-lead-workbench#26`, `#27` | Drawer or stacked layout under 1,100 px; switch-off stated |
 | Cost per turn, kill switch | `lead-orchestration#LO14` | Measured cost per turn and an `AIA_LEAD_*` budget line |
 | Workbench journey incl. keyboard | `research-lead-workbench#12` | Four widths, keyboard, focus modes |
+| Conversation controls | `research-lead-workbench#29` (D-38; plan @ `ec1265a`) | The UI for older-message paging, copy, edit and resend, ArrowUp to edit the last message, and a queued message's send-now and edit; no server rule for a replaced turn or a stored queue |
 
 Nothing planned covers: summarisation or compaction of the conversation, retrieval over a long
 conversation or over knowledge beyond 20 KB of titles, a per-layer budget table, a
-"what the Lead can see" panel beyond one line, regenerate, edit-and-resend, branching, server-side
-queueing, conversation search or export, threads within a study, a prompt or template library,
-slash commands, per-turn feedback, and per-turn usage display.
+"what the Lead can see" panel beyond one line, regenerate, the server side of edit-and-resend and
+of the queue (#29 plans their UI), branching, conversation search or export, threads within a
+study, a prompt or template library, slash commands, per-turn feedback, and per-turn usage display.
 
 ---
 
@@ -218,9 +219,9 @@ What goes wrong in practice, and which part of AIA's design answers each failure
 | Stop mid-generation | `POST /api/tasks/chat/{id}/stop`; Esc | None | LO17 (W1) | $: the reservation settles | **MVP**, LO17. Partial text is kept as *Zastaveno vámi* and does not count as a turn |
 | Retry on error | Error saved on the message; the user regenerates | "Zkusit znovu" for a message the server refused; a parked turn shows its reason | — | An uncertain call is never replayed | **MVP**, LC10: a replacement turn |
 | Regenerate | A sibling answer | None | — | PD: decided output stays decided; $ | **MVP**, LC10: refused once any of the turn's output is decided |
-| Edit and resend | A new branch | None | — | IN: edited in place in the thread | **MVP**, LC10 |
+| Edit and resend | A new branch | None | `research-lead-workbench#29` (the UI, D-38) | IN: edited in place in the thread | **MVP**: #29's UI over LC10's replacement turns |
 | Branch / fork navigation | Sibling switcher; fork copies the history | None | — | Append-only | **After**, LC16. The data comes in the MVP (`parent_turn_id`, `replaces_turn_id`) |
-| Queued messages | Queued in the browser, merged into one prompt, lost on reload | Queued in one tab's memory; the server refuses with `LeadBusy` | — | PRIV; visible in every tab | **MVP**, LC5: stored on the server, kept as separate turns, answered together |
+| Queued messages | Queued in the browser, merged into one prompt, lost on reload | Queued in one tab's memory; the server refuses with `LeadBusy` | `research-lead-workbench#29` (send-now and edit, the UI) | PRIV; visible in every tab | **MVP**: #29's UI over LC5: stored on the server, kept as separate turns, answered together |
 | Continue a cut-off answer | `continueResponse` | — | — | Closed output | **Never**: the output is validated whole |
 | Resume after reload | Reloads from the database; no mid-stream replay | The turn is durable; the poll resumes | — | — | **MVP** with LO18: SSE resumes from its cursor |
 
