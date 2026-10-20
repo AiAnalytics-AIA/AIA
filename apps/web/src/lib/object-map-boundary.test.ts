@@ -38,11 +38,11 @@ describe("the object map's browser code computes no methodology", () => {
   }
 });
 
-// The signed-off map's port of the AIA panel's drawing (plan sociomap-5-web, chunk 2) may use exactly
-// two of these, both the panel's display: the Gaussian of the Absolutni envelope (`terrainEnvelope`,
-// the one reader of the stored kernel width, in `absoluteGrid`) and the node size for large sets
-// (`nodeScale`); and sqrt once more for the RMS distance of the drawn objects, the screen unit of the
-// stored uncertainty radius (`rmsDistance`, as `drawAiaOverlay66`). Everything else stays out, as above.
+// The signed-off map's port of the AIA panel's drawing (plan sociomap-5-web, chunks 2 and 3) evaluates
+// no kernel and reads no kernel width: the engine stores both its surfaces (Relativni and Absolutni).
+// It may take a square root twice, both the panel's display: the node size for large sets (`nodeScale`)
+// and the RMS distance of the drawn objects, the screen unit of the stored uncertainty radius
+// (`rmsDistance`, as `drawAiaOverlay66`). Everything else stays out, as above.
 describe("the panel port computes only the panel's display", () => {
   const source = code("lib/object-map-panel.ts");
   /** The body of one exported function: from its declaration to the next top-level one. */
@@ -52,19 +52,15 @@ describe("the panel port computes only the panel's display", () => {
     return source.slice(start, next < 0 ? undefined : start + 1 + next);
   };
 
-  it("uses exp only in the envelope and sqrt only in the node size and the drawn RMS distance", () => {
-    expect(source.match(/Math\.exp\b/g)).toHaveLength(1);
-    expect(body("terrainEnvelope")).toMatch(/Math\.exp\b/);
+  it("evaluates no kernel, and takes a square root only for the node size and the drawn RMS distance", () => {
+    expect(source).not.toMatch(/Math\.(exp|expm1|log|log1p|log2|log10|atanh|tanh|cbrt)\b/);
     expect(source.match(/Math\.sqrt\b/g)).toHaveLength(2);
     expect(body("nodeScale")).toMatch(/Math\.sqrt\b/);
     expect(body("rmsDistance")).toMatch(/Math\.sqrt\b/);
-    expect(source).not.toMatch(/Math\.(expm1|log|log1p|log2|log10|atanh|tanh|cbrt)\b/);
     expect(source).not.toMatch(/\bsmacof|\bpearson|\bfisher|\bkish/i);
   });
 
-  it("reads the stored kernel width only for the Absolutni envelope", () => {
-    expect(source.match(/\.sigma\b/g)).toHaveLength(1);
-    expect(body("absoluteGrid")).toMatch(/parameters\.sigma\b/);
-    expect(source).not.toMatch(/kernel_cutoff/);
+  it("reads no kernel width", () => {
+    expect(source).not.toMatch(/\.sigma\b|kernel_cutoff/);
   });
 });

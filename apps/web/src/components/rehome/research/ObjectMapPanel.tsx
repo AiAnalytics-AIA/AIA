@@ -40,7 +40,7 @@ const RELATION_MODES: { mode: RelationMode; label: string; help?: string }[] = [
 ];
 
 const PRESSED = "aria-pressed:!border-signal aria-pressed:!bg-signal-wash aria-pressed:font-semibold aria-pressed:text-signal";
-const SWITCH = `inline-flex min-h-7 items-center rounded-sm border border-border-strong bg-surface-raised px-2 text-xs text-ink hover:border-signal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${PRESSED}`;
+const SWITCH = `inline-flex min-h-7 items-center disabled:cursor-not-allowed disabled:opacity-50 rounded-sm border border-border-strong bg-surface-raised px-2 text-xs text-ink hover:border-signal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${PRESSED}`;
 
 export function ObjectMapPanel({ battery, map, facts }: { battery: BatteryWithMaps; map: ObjectMapArtifact; facts: ReactNode }) {
   if (storedFrame(map) && map.terrain.status === "computed") return <PanelView battery={battery} map={map} facts={facts} />;
@@ -103,8 +103,9 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   const [hovered, setHovered] = useState(-1);
   const [size, setSize] = useState(DEFAULT_SIZE);
   const [ratio, setRatio] = useState(() => (typeof window === "undefined" ? 1 : Math.min(2, window.devicePixelRatio || 1)));
-  // Absolutni redraws the envelope on the absolute means; only computed once it is asked for.
-  const absolute = useMemo(() => (norm === "absolute" ? absoluteGrid(map, nodes) : null), [norm, map, nodes]);
+  // Absolutni draws the stored envelope of the absolute means; a map that stores none offers only Relativni.
+  const stored = useMemo(() => absoluteGrid(map), [map]);
+  const absolute = norm === "absolute" ? stored : null;
   const grid = absolute ?? relativeGrid;
   const tones = useMemo(() => nodeTones(nodes, norm), [nodes, norm]);
   const pairs = useMemo(() => relationPairs(map, mode, selected).map((p) => ({ ...p, k: relationStrength(p.v, norm, strongest) })), [map, mode, selected, norm, strongest]);
@@ -236,7 +237,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2" role="toolbar" aria-label={t("research.exec.objectMap.controls")}>
         <div className="flex items-center gap-1.5" role="group" aria-label={t("research.exec.objectMap.panel.norm")}>
           <span className="text-[10px] uppercase tracking-[.06em] text-ink-muted">{t("research.exec.objectMap.panel.norm")}</span>
-          <button type="button" className={SWITCH} aria-pressed={norm === "absolute"} title={t("research.exec.objectMap.panel.absoluteHelp")} onClick={() => setNorm("absolute")}>{t("research.exec.objectMap.panel.absolute")}</button>
+          <button type="button" className={SWITCH} aria-pressed={norm === "absolute"} disabled={!stored} title={t("research.exec.objectMap.panel.absoluteHelp")} onClick={() => setNorm("absolute")}>{t("research.exec.objectMap.panel.absolute")}</button>
           <button type="button" className={SWITCH} aria-pressed={norm === "range"} title={t("research.exec.objectMap.panel.rangeHelp")} onClick={() => setNorm("range")}>{t("research.exec.objectMap.panel.range")}</button>
         </div>
         <div className="flex items-center gap-1.5" role="group" aria-label={t("research.exec.objectMap.panel.relations")}>

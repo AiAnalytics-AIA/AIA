@@ -37,6 +37,7 @@ the current AIA panel (`NPC_Panel/ui_app.html`); the website around it stays as 
 | Numbers inside the map panel (2026-10-20) | Czech decimal comma, at the panel's precision |
 | A run storing a `-5` map and the register-approved `-3` (2026-10-20) | The `-5` map is shown |
 | Mouse wheel and full screen (2026-10-20, revised the same day) | As the panel embedded in a page: the wheel zooms while the pointer is over the map and the page scrolls elsewhere; ⛶ opens the map in the browser's full screen (the panel's `socioFullscreen66`). Replaces the Ctrl/⌘-only zoom first chosen |
+| The Absolutní terrain (2026-10-20) | Stored by the engine (`terrain.absolute_height`, the same envelope with each PRIMARY hill at its 0–1 mean); the web reads it and evaluates no kernel. A map that stores none offers only Relativní |
 | PNG snapshot of the `-5` map (2026-10-20) | With its legend, in chunk 7; none before |
 
 **How.** The panel's drawing (`color66`, `normalizer66`, `density66`, `projection66`, the terrain triangles, `drawObjects66`,

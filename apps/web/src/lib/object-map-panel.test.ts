@@ -35,7 +35,6 @@ import {
   storedGrid,
   strongestRelation,
   terrainAt,
-  terrainEnvelope,
   toFrame,
   toFrameLength,
   topCamera,
@@ -55,6 +54,28 @@ const battery = fixture.batteries[0] as unknown as BatteryWithMaps;
 const map: ObjectMapArtifact = battery.maps!["aia-sociomap-5"].artifact;
 const frame = storedFrame(map)!;
 const nodes = panelNodes(battery, map, frame);
+
+/**
+ * The panel's envelope (`terrainEnvelope66`), kept in the tests only: the web never evaluates a
+ * kernel (the engine stores both surfaces), but the tests hold the stored ones to the panel's and
+ * build the synthetic maps with it.
+ */
+function terrainEnvelope(points: [number, number][], heights: number[], xs: number[], ys: number[], sigma: number): { z: number[][]; top: number[][] } {
+  const z: number[][] = [], top: number[][] = [];
+  for (const y of ys) {
+    const zr: number[] = [], tr: number[] = [];
+    for (const x of xs) {
+      let best = 0, arg = -1;
+      for (let j = 0; j < points.length; j++) {
+        const v = heights[j] * Math.exp(-((x - points[j][0]) ** 2 + (y - points[j][1]) ** 2) / (2 * sigma * sigma));
+        if (v > best) { best = v; arg = j; }
+      }
+      zr.push(best); tr.push(arg);
+    }
+    z.push(zr); top.push(tr);
+  }
+  return { z, top };
+}
 
 /** Deep equality with numbers to 1e-9 and everything else (colour strings, fonts) exact. */
 function close(actual: unknown, expected: unknown, path = "$"): void {
@@ -143,20 +164,33 @@ describe("frame and terrain", () => {
     }
   });
 
-  it("draws Absolutni as the panel's envelope of the stored means, with the stored kernel width", () => {
+  it("holds the engine's stored Absolutni terrain to the panel's own envelope of the stored means", () => {
+    // The panel computes this surface in the browser (`terrainEnvelope66`); here the engine stores it
+    // and the web only reads it, so the stored grid must be the panel's to the last digit.
     const sigma = toFrameLength(map.terrain.status === "computed" ? map.terrain.parameters.sigma : NaN, frame);
     expect(Math.abs(sigma - golden.envelope.sigma)).toBeLessThanOrEqual(1e-9);
     const xs = storedGrid(map)!.xs;
     const env = terrainEnvelope(nodes.map((n) => [n.x, n.y]), nodes.map((n) => n.value!), xs, xs, sigma);
-    const grid = absoluteGrid(map, nodes)!;
+    const grid = absoluteGrid(map)!;
     for (const [gy, gx, z, top] of golden.envelope.cells) {
       close([env.z[gy][gx], grid.ht[gy][gx]], [z, z]);
       expect(env.top[gy][gx]).toBe(top);
     }
+    for (const b of fixture.batteries as unknown as BatteryWithMaps[]) {
+      const m = b.maps!["aia-sociomap-5"].artifact, f = storedFrame(m)!, ns = panelNodes(b, m, f);
+      const e = terrainEnvelope(ns.map((n) => [n.x, n.y]), ns.map((n) => n.value!), xs, xs, toFrameLength(m.terrain.status === "computed" ? m.terrain.parameters.sigma : NaN, f)).z;
+      close(absoluteGrid(m)!.ht, e);
+    }
+  });
+
+  it("has no Absolutni terrain when the map stores none", () => {
+    const terrain = map.terrain as Extract<ObjectMapArtifact["terrain"], { status: "computed" }>;
+    expect(absoluteGrid({ ...map, terrain: { ...terrain, absolute_height: undefined } })).toBeNull();
+    expect(absoluteGrid({ ...map, terrain: { status: "not_computed", reason: "x" } })).toBeNull();
   });
 
   it("reads the drawn elevation under a point as the panel does", () => {
-    const relative = storedGrid(map)!, absolute = absoluteGrid(map, nodes)!;
+    const relative = storedGrid(map)!, absolute = absoluteGrid(map)!;
     for (const [x, y, z] of golden.terrainAt.relative) close(terrainAt(relative, x, y), z);
     for (const [x, y, z] of golden.terrainAt.absolute) close(terrainAt(absolute, x, y), z);
   });
@@ -247,7 +281,7 @@ describe("a whole frame", () => {
       const strongest = strongestRelation(map);
       const pairs = relationPairs(map, scene.relMode as RelationMode, scene.selected).map((p) => ({ ...p, k: relationStrength(p.v, norm, strongest) }));
       const { ctx, ops } = recorder();
-      const grid = norm === "absolute" ? absoluteGrid(map, nodes)! : storedGrid(map)!;
+      const grid = norm === "absolute" ? absoluteGrid(map)! : storedGrid(map)!;
       const result = drawObjectMap(ctx, { width: W, height: H, camera, grid, nodes, tones: nodeTones(nodes, norm), pairs, selected: scene.selected, hovered: scene.hovered, nodeScale: nodeScale(13) });
       close(summarise(ops), scene.summary);
       close(result.hits.map((h) => [h.index, h.x, h.y, h.r]), scene.hits);
@@ -288,7 +322,9 @@ function bigBattery(): BatteryWithMaps {
   const relative = values.map((v) => rel.t(v));
   const f = { cx, cy, half };
   const axis = gridAxis(84);
-  const height = terrainEnvelope(points.map((p) => { const q = toFrame(p[0], p[1], f); return [q.x, q.y] as [number, number]; }), relative, axis, axis, toFrameLength(0.25, f)).z;
+  const framed = points.map((p) => { const q = toFrame(p[0], p[1], f); return [q.x, q.y] as [number, number]; });
+  const height = terrainEnvelope(framed, relative, axis, axis, toFrameLength(0.25, f)).z;
+  const absolute_height = terrainEnvelope(framed, values, axis, axis, toFrameLength(0.25, f)).z;
   const empty = () => ids.map(() => ids.map(() => null));
   const artifact: ObjectMapArtifact = {
     ...structuredClone(map),
@@ -297,7 +333,7 @@ function bigBattery(): BatteryWithMaps {
     status_counts: { reliable: 0, weak: 0, unknown: 630 },
     layout: { ...map.layout!, points },
     heights: { metric: "mean_rating_0_1", values, support_n: ids.map(() => 100), relative },
-    terrain: { ...(map.terrain as Extract<ObjectMapArtifact["terrain"], { status: "computed" }>), parameters: { grid_resolution: 84, half_extent: half, sigma: 0.25, centre: [cx, cy] }, height },
+    terrain: { ...(map.terrain as Extract<ObjectMapArtifact["terrain"], { status: "computed" }>), parameters: { grid_resolution: 84, half_extent: half, sigma: 0.25, centre: [cx, cy] }, height, absolute_height },
     credibility: { rule: "split_half", split_half: 0.7, threshold: 0.59, weakly_determined: false, reliable_pairs: 0, uncertainty_radius: 0.12 },
     objects_not_placed: [], sparse_design: { flag: false, share_below_layout_floor: 0, weakly_connected: [] },
   };
@@ -321,7 +357,7 @@ describe("what the map says about itself", () => {
       const strongest = strongestRelation(m);
       const pairs = relationPairs(m, scene.relMode as RelationMode, scene.selected).map((p) => ({ ...p, k: relationStrength(p.v, norm, strongest) }));
       const { ctx, ops } = recorder();
-      const grid = norm === "absolute" ? absoluteGrid(m, ns)! : storedGrid(m)!;
+      const grid = norm === "absolute" ? absoluteGrid(m)! : storedGrid(m)!;
       const result = drawObjectMap(ctx, {
         width: W, height: H, camera, grid, nodes: ns, tones: nodeTones(ns, norm), pairs, selected: scene.selected, hovered: scene.hovered,
         nodeScale: nodeScale(m.object_ids.length + (m.objects_not_placed?.length ?? 0)), statements: mapStatements(m, TEXTS),

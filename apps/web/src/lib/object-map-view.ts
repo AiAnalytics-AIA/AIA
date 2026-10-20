@@ -61,6 +61,8 @@ export type ObjectMapArtifact = {
         source_ids: string[];
         height: (number | null)[][];
         governing: (number | null)[][];
+        // aia-sociomap-5: the same envelope of the PRIMARY hills at their 0-1 means, for the Absolutni view.
+        absolute_height?: (number | null)[][];
       };
   // aia-sociomap-5, a MAPPED map only: the split-half check (null without a score, when the
   // no-reliable-pair rule decides) and the uncertainty radius in units of the map's RMS

@@ -1,22 +1,21 @@
 // The signed-off map (aia-sociomap-5) drawn as the AIA panel draws it (plan sociomap-5-web,
 // chunk 2): a port of the panel's own drawing in NPC_Panel/ui_app.html (`color66`, `blend66`,
-// `normalizer66`, `terrainEnvelope66`, `terrainAt66`, `projection66`, `drawSlab66`, the terrain
+// `normalizer66`, `terrainAt66`, `projection66`, `drawSlab66`, the terrain
 // triangles of `draw66`, `drawContours66`, the relation curves of `relationGeometry66` and
 // `relationLine66`, `topRelationPairs66` / `relationPairs66`, `drawObjects66`, `placeLabels66`, the
 // camera of `socioCam66` and the pointer handlers). Each function keeps the panel's constants and
 // order of operations, so the same stored map draws the same picture; the unit tests pin them to
 // values the panel's own functions return.
 //
-// The renderer computes no methodological number. It draws the STORED map: the objects' ruler
-// positions, the stored framed terrain grid (relative heights) and the stored relative heights
-// for the node colours. Ruler units become the panel's frame units exactly as the panel's frame
-// does, frame = (ruler - centre) * 62 / half_extent, so the stored grid spans the panel's +-62.
-// What the browser does compute is only the panel's display: the colour ramp and its
-// normalisation, the x26 relief, the projection, label placement, and -- for the Absolutni view
-// only -- the panel's envelope of the objects' absolute heights (the stored 0-1 means on the
-// declared scale) on the same stored grid with the stored kernel width, as `terrainEnvelope66`.
+// The renderer computes no methodological number and no surface. It draws the STORED map: the
+// objects' ruler positions, the two stored framed terrain grids (Relativni: the relative hill
+// heights; Absolutni: the 0-1 means on the declared scale) and the stored relative heights for the
+// node colours. Ruler units become the panel's frame units exactly as the panel's frame does,
+// frame = (ruler - centre) * 62 / half_extent, so the stored grids span the panel's +-62. What the
+// browser computes is only the panel's display: the colour ramp and its normalisation, the x26
+// relief, the projection, label placement and the screen size of the stored uncertainty radius.
 
-import { panelObjects, storedFrame } from "./object-map-signed-off";
+import { panelObjects } from "./object-map-signed-off";
 import { type BatteryWithMaps, type Frame, type ObjectMapArtifact, mapLinks } from "./object-map-view";
 
 /** The panel's frame: the stored grid spans +-62 frame units (`terrain66`, `FRAME_SPAN66`). */
@@ -156,49 +155,28 @@ export function gridAxis(N: number, span = FRAME_SPAN): number[] {
   return Array.from({ length: N + 1 }, (_, k) => -span + (2 * span * k) / N);
 }
 
-/**
- * The stored framed terrain as the panel's grid: the stored relative heights on the stored
- * resolution. The stored grid's square is the frame, so its samples sit on the panel's axis.
- * A cell the artifact leaves without a height draws as level ground (the envelope's 0).
- */
+/** A stored grid as the panel's: the stored square is the frame, so its samples sit on the panel's
+ *  axis. A cell the artifact leaves without a height draws as level ground (the envelope's 0). */
+function panelGrid(N: number, height: (number | null)[][]): PanelGrid {
+  return { N, span: FRAME_SPAN, xs: gridAxis(N), ht: height.map((row) => row.map((h) => h ?? 0)) };
+}
+
+/** The Relativni terrain: the stored framed envelope of the relative hill heights. */
 export function storedGrid(map: ObjectMapArtifact): PanelGrid | null {
   const terrain = map.terrain;
   if (terrain.status !== "computed") return null;
-  const N = terrain.parameters.grid_resolution;
-  return { N, span: FRAME_SPAN, xs: gridAxis(N), ht: terrain.height.map((row) => row.map((h) => h ?? 0)) };
-}
-
-/** The panel's envelope: at each sample the highest of the objects' Gaussian hills (`terrainEnvelope66`). */
-export function terrainEnvelope(points: [number, number][], heights: number[], xs: number[], ys: number[], sigma: number): { z: number[][]; top: number[][] } {
-  const z: number[][] = [], top: number[][] = [];
-  for (const y of ys) {
-    const zr: number[] = [], tr: number[] = [];
-    for (const x of xs) {
-      let best = 0, arg = -1;
-      for (let j = 0; j < points.length; j++) {
-        const v = heights[j] * Math.exp(-((x - points[j][0]) ** 2 + (y - points[j][1]) ** 2) / (2 * sigma * sigma));
-        if (v > best) { best = v; arg = j; }
-      }
-      zr.push(best); tr.push(arg);
-    }
-    z.push(zr); top.push(tr);
-  }
-  return { z, top };
+  return panelGrid(terrain.parameters.grid_resolution, terrain.height);
 }
 
 /**
- * The Absolutni terrain: the panel's envelope of the PRIMARY objects' stored 0-1 means (read on
- * the declared scale, so t is the stored value) on the stored grid's samples, with the stored
- * kernel width in frame units. Relativni never comes here: it draws the stored grid.
+ * The Absolutni terrain: the stored envelope of the PRIMARY objects' 0-1 means on the same grid.
+ * The panel normalises Absolutni on the declared scale's bounds, so on the stored 0-1 scale the
+ * stored heights are its colour positions unchanged. Null when the map stores none.
  */
-export function absoluteGrid(map: ObjectMapArtifact, nodes: PanelNode[]): PanelGrid | null {
-  const terrain = map.terrain, frame = storedFrame(map);
-  if (terrain.status !== "computed" || !frame) return null;
-  const hills = nodes.filter((n) => n.primary && n.value !== null);
-  const scale = normalizer(hills.map((n) => n.value!), "absolute", [0, 1]);
-  const xs = gridAxis(terrain.parameters.grid_resolution);
-  const { z } = terrainEnvelope(hills.map((n) => [n.x, n.y]), hills.map((n) => scale.t(n.value!)), xs, xs, toFrameLength(terrain.parameters.sigma, frame));
-  return { N: terrain.parameters.grid_resolution, span: FRAME_SPAN, xs, ht: z };
+export function absoluteGrid(map: ObjectMapArtifact): PanelGrid | null {
+  const terrain = map.terrain;
+  if (terrain.status !== "computed" || !terrain.absolute_height) return null;
+  return panelGrid(terrain.parameters.grid_resolution, terrain.absolute_height);
 }
 
 /** The drawn elevation under a frame point, bilinear between the grid's samples (`terrainAt66`). */

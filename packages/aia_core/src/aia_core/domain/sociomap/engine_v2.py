@@ -377,23 +377,34 @@ def _terrain(
         centre, half = fit_frame(
             [p for p, f in zip(layout.points, framing, strict=True) if f], declared.frame_fill
         )
-        return object_envelope(
-            [
-                EnvelopeHill(entity_id=oid, x=point[0], y=point[1], height=t)
-                for oid, point, t in zip(
-                    inputs.object_ids, layout.points, heights.relative, strict=True
-                )
-                if t is not None
-            ],
-            EnvelopeParameters(
-                grid_resolution=declared.grid_resolution,
-                half_extent=half,
-                sigma=declared.sigma,
-                centre=centre,
-            ),
+        grid = EnvelopeParameters(
+            grid_resolution=declared.grid_resolution,
+            half_extent=half,
+            sigma=declared.sigma,
+            centre=centre,
+        )
+        hilled = [
+            (oid, point, t, h)
+            for oid, point, t, h in zip(
+                inputs.object_ids, layout.points, heights.relative, heights.values, strict=True
+            )
+            if t is not None and h is not None
+        ]
+        relative = object_envelope(
+            [EnvelopeHill(entity_id=o, x=p[0], y=p[1], height=t) for o, p, t, _ in hilled],
+            grid,
             slots=slots,
             method="framed_relative_envelope",
         )
+        # The panel's Absolutní view: the same hills at their heights on the declared 0-1 scale,
+        # stored so that no reader evaluates a kernel of its own.
+        absolute = object_envelope(
+            [EnvelopeHill(entity_id=o, x=p[0], y=p[1], height=h) for o, p, _, h in hilled],
+            grid,
+            slots=slots,
+            method="framed_relative_envelope",
+        )
+        return relative.model_copy(update={"absolute_height": absolute.height})
     if declared.half_extent is None or declared.kernel_cutoff is None:
         raise ValueError("the envelope is declared whole (require_supported)")
     hills = [

@@ -116,6 +116,16 @@ describe("the panel's controls", () => {
     expect(drawn()).toEqual([]); // nothing selected: no object's relations to show
   });
 
+  it("offers Absolutni only for a map that stores its absolute terrain", () => {
+    const old = structuredClone(hudba);
+    delete (old.maps!["aia-sociomap-5"].artifact.terrain as { absolute_height?: unknown }).absolute_height;
+    render(<ObjectMapView battery={old} dataOrigin={null} />);
+    expect((screen.getByRole("button", { name: "Absolutní" }) as HTMLButtonElement).disabled).toBe(true);
+    cleanup();
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    expect((screen.getByRole("button", { name: "Absolutní" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
   it("selects an object from the list: its relations, highlighted; again clears it", () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
     const list = within(screen.getByTestId("object-map-panel-list"));
