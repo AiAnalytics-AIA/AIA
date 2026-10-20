@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import sys
 from collections.abc import Callable, Iterable, Iterator
 from pathlib import Path
 from typing import Any
@@ -411,10 +412,20 @@ def test_earlier_presets_store_exactly_what_they_stored() -> None:
     ):
         assert spec.segments is None and "segments" not in spec_payload(spec)["spec"]
         assert spec.fingerprint() == expected
-    for spec, expected in (
-        (AIA_SOCIOMAP_V3, "cc70932a8128f9c379518c32863cca342d634be064e3f3a9a3ce36f70e2f7dc3"),
-        (AIA_SOCIOMAP_V4, "61228f037e6f462219e4a50d8aaf50f4cac43b25d11c9f3ef7f8631ef3fa6745"),
-    ):
+    # A computed map's last float digits differ between macOS and Linux (CI), so each
+    # platform pins what develop's own code stores there.
+    maps = {
+        "darwin": (
+            (AIA_SOCIOMAP_V3, "cc70932a8128f9c379518c32863cca342d634be064e3f3a9a3ce36f70e2f7dc3"),
+            (AIA_SOCIOMAP_V4, "61228f037e6f462219e4a50d8aaf50f4cac43b25d11c9f3ef7f8631ef3fa6745"),
+        ),
+        "linux": (
+            (AIA_SOCIOMAP_V3, "bfe7d6b00e6cb8ce8cd8e02dbf6ea2525bd4ea572fd6372496740d672985f8ad"),
+            (AIA_SOCIOMAP_V4, "10479eb63fb6699c7a06db0c8fb655b229160372ba680990815854592f54d225"),
+        ),
+    }
+    assert sys.platform in maps, f"no stored maps pinned for {sys.platform}"
+    for spec, expected in maps[sys.platform]:
         artifact = compute_object_map(_inputs("none"), spec, connectedness_interval=False)
         assert artifact.fingerprint() == expected
         assert fingerprint(artifact.model_dump(mode="json")) == expected
