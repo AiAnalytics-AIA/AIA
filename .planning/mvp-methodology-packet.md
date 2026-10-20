@@ -12,14 +12,18 @@ an approval; where the plans have none, the packet says so.
 **Already settled, not asked.** MVPQ-13 below; the product owner's parts of MVPQ-03, 05 and 09
 (2026-10-20, `mvp-owner-decisions.md`); the scope of open-answer coding and of respondent
 replacement (MVPQ-02, F18); segments both defined and clustered (MVP-17); object, respondent and
-segment maps in the MVP (MVP-16, AC-09); the canonical audit's settled answers
-(`sociomap-formula-corrections.md` § 4); your own 2026-10-19 decisions in
-`signed-off-sociomap-method.md` ("Decisions taken").
+segment maps in the MVP (MVP-16, AC-09); your own 2026-10-19 decisions in
+`signed-off-sociomap-method.md` ("Decisions taken"); and every point `-5` decides (MQ-05's record).
+
+**One canonical source.** Your `aia-sociomap-5` is canonical. The formula audit
+(`sociomap-formula-corrections`, "NPC Sociomapa: faulty formulas in the code") was written for `-3`:
+where `-5` decides a point, `-5`'s answer is the MVP's, and the audit's answers (§ 4 there) stand only
+where `-5` is silent. Nothing in this packet asks you to re-confirm your own method.
 
 | Tier | Ids | What the answers unblock |
 |---|---|---|
 | Recorded | MVPQ-13 | -- |
-| 1. What must be true for `-5` to ship | MQ-01 – MQ-06 | The register entry and `require_client_facing`; which segments the MVP shows and their evidence; the stored map's status; what `sociomap-formula-corrections` still owes; runtime |
+| 1. What must be true for `-5` to ship | MQ-01 – MQ-06 | The register entry and `require_client_facing`; which segments the MVP shows and their evidence; the stored map's status; what `-5` leaves open of the audit; runtime |
 | 2. The `-5` map's remaining meaning (MVPQ-12) | MQ-07 – MQ-10 | Weighted relations, the relative-height legend, context objects, F16 |
 | 3. Segments (MVPQ-03) | MQ-11 – MQ-13 | `segment-maps-and-drilldown` 1, 4, 9, 10 (W2) |
 | 4. Open answers (MVPQ-02b) | MQ-14 | `assumptions-and-open-answer-coding` AOC4 → AOC5-AOC8, `report-delivery#RD10` |
@@ -27,7 +31,7 @@ segment maps in the MVP (MVP-16, AC-09); the canonical audit's settled answers
 | 6. Client data (MVPQ-05) | MQ-16 – MQ-18 | `client-data-in-analysis` 0, 4, 5, 6; ADR 0027's amendment |
 | 7. Report checks (MVPQ-09, D-18) | MQ-19, MQ-20 | `report-delivery#RD0`, `#RD7`; the analysis prose rule |
 | 8. Housekeeping (D-18) | MQ-21 – MQ-24 | Small rules split between web and server |
-| Request | R-1 | The audit's evidence script (not a decision) |
+| Request | R-1 | The audit's evidence script, for the earlier presets (not a decision) |
 | Not his | E-1 – E-9 | Engineering gaps the `-5` decision creates |
 
 Total for the methodology owner: **24 decisions (MQ-01 – MQ-24) and one evidence request (R-1)**.
@@ -38,7 +42,9 @@ Total for the methodology owner: **24 decisions (MQ-01 – MQ-24) and one eviden
 
 **Decision.** The MVP's Sociomap is the methodology owner's signed-off `aia-sociomap-5`
 (`domain/sociomap/specification.py:1553-1630`, #504), not `aia-sociomap-3`. Decided by Nigel Blount,
-product owner, 2026-10-20, relayed by the coordinator. Not asked again.
+product owner, 2026-10-20, relayed by the coordinator. Not asked again. `-5` is canonical: where it
+decides a point, its answer is the MVP's; the formula audit written for `-3` stands only where `-5` is
+silent.
 
 **What it replaces.** The plans and the register assumed `-3`: `mvp-master-plan.md:126` ("the MVP uses
 `aia-sociomap-3`"), the register's only entry (`domain/sociomap_register.py:52-69`, CLIENT_FACING,
@@ -164,10 +170,10 @@ suppressed and said so, never ordered (the plan's invariant); `RELIGION` stays r
 **(6) Blocks / proceeds.** Blocks segment 10, the Segments module's finding and so the report gate
 for any study with segments. Proceeds: the admission plumbing with a declared floor.
 
-### MQ-04. BB1's platform dependence: is a map computed in the production image final? (MVPQ-12)
+### MQ-04. BB1's platform dependence: is the map computed in the production worker image the record? (MVPQ-12)
 
-**(1) The decision.** Is the `-5` map stored by the run, computed in the worker's image, the record,
-never recomputed for a client; and does a different (equally good) map from another platform matter?
+**(1) The decision.** Given `-5` as signed off, is the map the run computed and stored in the production
+worker image the record, and how is a map of the same data computed on another platform treated?
 
 **(2) Why it matters.** Your plan leaves it open: from 12 objects on, macOS and Linux can give
 different BB1 maps under the same library versions (`signed-off-sociomap-method.md`, Not in this plan;
@@ -182,43 +188,53 @@ recomputed on a macOS laptop, *Horská* sits right of *Pramen*, the map rotated,
 well. The client report printed the first; a reviewer re-running locally sees the second.
 
 **(4) Options.** (a) The stored map is the record; every re-derivation compares statuses and decisions,
-not coordinates (what your parity tests do); (b) one image is canonical and any other platform's map is
-labelled non-canonical; (c) make BB1 platform-independent (a method change).
+not coordinates (what your parity tests do); (b) the production worker image is the reference
+platform, and a map computed elsewhere is labelled as such and never shown to a client; (c) your rule.
+If you want BB1 itself changed, say so; the packet does not propose it.
 
 **(5) Recommendation.** None in the plans.
 
 **(6) Blocks / proceeds.** Blocks E-7 (how the report verifies a `-5` map) and I5's replay test.
 Proceeds: everything else.
 
-### MQ-05. Which open items of `sociomap-formula-corrections` does `-5` make moot? (MVPQ-12)
+### MQ-05. What `-5` leaves open of the audit: the F8/F9 scores and connectedness, and the misfit (MVPQ-12)
 
-**(1) The decision.** Confirm, item by item, that the MVP's answers are `-5`'s own and the open audit
-items below are closed for the MVP (or say which stay open).
+**Recorded: settled by `-5` (canonical), not asked.** The formula audit's open questions and its
+provisional 2026-10-09 answers (the product owner's, for `-3`, `sociomap-formula-corrections.md:1008-1020`)
+are superseded where `-5` decides:
 
-**(2) Why it matters.** The plan's open chunks and questions were written for `-3`. The product owner's
-provisional 2026-10-09 answers to Q5-Q7 (`sociomap-formula-corrections.md:1008-1020`) are AIA's, not
-yours, and `-5` answers several differently. Without a confirmation, the plan's chunks stay open
-against a method the MVP no longer ships.
-
-**(3)-(4) The proposed reading, for you to confirm or correct:**
-
-| Item | What `-5` does | Proposed status for the MVP |
+| Audit item | `-5`'s answer, the MVP's | Superseded |
 |---|---|---|
-| Q5, proximity (A1) | Per-person mean-centring, then the baseline-corrected relation: co-movement; level shown as height | Answered by `-5` (co-movement, level apart) |
-| Q6, pair evidence (A2, B7, B9) | `n_min` 10 on the respondent count, Benjamini-Hochberg q 0.05 with the noise rule, no practical floor, unweighted | Answered by `-5`, replacing the 2026-10-09 provisional Kish / 30 / 0.10; weighting asked separately (MQ-07) |
-| Q7, height (A3) | Survey-weighted mean rating as relative heights on [0.15, 1] | Answered by `-5`; the legend asked in MQ-08 |
-| A5, kernel widths | Object σ 0.25 on the framed grid, declared `SIGNED_OFF_METHODOLOGY`; density σ 0.35 (`specification.py:1599-1601, 1621-1628`) | Answered by `-5`; F12 moves from `PENDING_PARAMETER` to specified for `-5` |
-| A4, F10 misfit threshold; chunk 3 | Vector-model placement, PLACED / FADED by the chance test at p ≤ 0.10; misfit 1 − R² recorded | Chunk 3 superseded for the MVP by `-5`'s respondent map; is the recorded misfit also shown? |
-| B8, score denominator | `-5`'s spec keeps `-4`'s scores and connectedness sections (it copies `AIA_SOCIOMAP_V4`, `:1553`) | Open: do the F8/F9 scores apply to `-5` at all? |
-| B11, SECONDARY boundary | Maps PRIMARY objects only | Asked in MQ-09 |
-| 4c, F16 preference map (A6, B10) | Not part of `-5` | Not moot: a separate product, MQ-10 |
-| 0b | The record of the canonical rule and the questions above | Closes with this packet's answers |
-| I0-I5 | Input contracts (dimensions, population, item roles, method selection), pins on run and retry | Not moot: engineering, method-independent |
+| Q5, proximity (A1) | Co-movement: each person's ratings mean-centred, then the baseline-corrected relation; level shown as height (`specification.py:1556-1567`) | The 2026-10-09 provisional (c), the same meaning, and the per-person min-max (F2) it rested on |
+| Q6, pair evidence (A2) | `n_min` 10 on the respondent count, Benjamini-Hochberg q 0.05 with the noise rule (100 permutations), no practical floor (`:1559-1567`) | Kish n, `n_min` 30, Fisher 95 %, the 0.10 floor (`-3`, `:1516-1526`); weighting stays your own "to revisit", MQ-07 |
+| Q7, height (A3) | The survey-weighted mean rating as relative heights on [0.15, 1] (`:1621-1628`) | Mean rating on absolute terraces |
+| A5, kernel widths | Object σ 0.25 on the framed grid (`SIGNED_OFF_METHODOLOGY`), respondent density σ 0.35 (`:1599-1601, 1621-1628`) | `-3`'s provisional σ 0.25 (`AIA_PROVISIONAL_R08_5PCT`); F12's `PENDING_PARAMETER` |
+| A4 and chunk 3, respondent placement | The vector model, PLACED / FADED by the chance test at p ≤ 0.10 (`:1599-1601`) | F10's ideal points and its misfit threshold; `sociomap-formula-corrections` 3 for the MVP |
 
-**(5) Recommendation.** The table is this packet's reading, not an approval.
+Not superseded by `-5`, and not asked here: F16 (MQ-10), the SECONDARY boundary (MQ-09), the input
+contracts I0-I5 (engineering, method-independent).
 
-**(6) Blocks / proceeds.** Blocks closing `sociomap-formula-corrections` 0b and 3 and the evidence
-register's `completeness` states for `-5`. Proceeds: I0-I5.
+**(1) The decision.** Two points `-5` leaves open: (i) do the F8/F9 object scores (alignment,
+connectedness, B8's denominator) and K100 apply to a `-5` map at all; (ii) is the misfit 1 − R² that `-5`
+records for each respondent shown anywhere?
+
+**(2) Why it matters.** `-5`'s spec is a copy of `-4` with new values (`specification.py:1553`), so it
+still carries `-4`'s `scores` and `connectedness` sections; nothing in your plan says whether they are
+part of your method or inherited by construction. If they are not, they must not print beside a `-5`
+map. The misfit is stored on every placed respondent but nothing reads it.
+
+**(3) Worked example.** A `-5` map of 8 brands: is "Horská: konektivita 62 (54-70)" printed beside it,
+computed by the audit's F9 over `-5`'s relations? A respondent with R² 0.35 is FADED by the chance test;
+is "nesoulad 0,65" shown in the drill-down?
+
+**(4) Options.** (i) (a) not part of `-5`: not computed or shown for a `-5` map; (b) part of `-5`, with
+B8's denominator (known PRIMARY pairs, the count shown). (ii) (a) not shown; (b) shown in the internal
+drill-down only; (c) shown on the respondent map.
+
+**(5) Recommendation.** None.
+
+**(6) Blocks / proceeds.** (i) blocks MQ-22 and what the report prints beside a `-5` map; (ii) blocks
+only the display. Closing `sociomap-formula-corrections` 0b and 3 for the MVP needs no further answer.
 
 ### MQ-06. Runtime: is 70-90 s per set at 20,000 respondents acceptable, and can the shuffle guard be bounded?
 
@@ -275,8 +291,8 @@ legend say, and is the absolute mean rating shown beside it?
 
 **(2)** A relative hill makes a 0.8-point difference look like the whole range.
 
-**(3)** Means 6.1-6.9 on 1-10: `-5` draws 0.15 for 6.1 and 1.0 for 6.9; `-3` would have drawn
-0.567 and 0.656 on absolute terraces.
+**(3)** Means 6.1-6.9 on 1-10: `-5` draws 0.15 for 6.1 and 1.0 for 6.9, so a 0.8-point difference
+spans the whole height range.
 
 **(4)** (a) "Relativní výška: průměrné hodnocení, nejnižší a nejvyšší objekt sady" plus each object's
 mean on hover and in the report table; (b) your wording.
@@ -296,17 +312,19 @@ fixed, NPC's F17 rule) or stay off, and may they ever affect the PRIMARY map?
 
 **(5)** None. **(6)** Blocks the context-object display only.
 
-### MQ-10. F16, the research module's preference map: build or retire for the MVP (MVPQ-12; audit A6, B10)
+### MQ-10. F16, the audit's preference map: does the MVP need it beside `-5`'s respondent map? (MVPQ-12; audit A6, B10)
 
-**(1)** Is F16 (row-conditional unfolding, R `smacof` as reference) built for the MVP, or retired with
-its reason recorded, now that `-5`'s respondent map places people on the map?
+**(1)** `-5` has no preference map of the audit's F16 kind (row-conditional unfolding, R `smacof` as
+reference); its respondent map places people. Does the MVP need F16 at all, or is
+`sociomap-formula-corrections` 4c closed with that reason?
 
 **(2)** `sociomap-formula-corrections` 4c waits on it (`:1636-1645`); AC-09 does not.
 
 **(3)** On 300 planted ideal points, a Python fit recovering object order with Kendall τ 0.94 against
 R's 0.95: the same method (B10's three layers)?
 
-**(4)** (a) Retire for the MVP; (b) build, with A6's recovery properties and B10's tolerance.
+**(4)** (a) Closed for the MVP: `-5`'s respondent map is the canonical way people are placed; (b) a
+separate research-module product you still want, with A6's recovery properties and B10's tolerance.
 
 **(5)** None. **(6)** Blocks 4c only.
 
@@ -454,16 +472,17 @@ the report, with intervals given to the model?
 
 ### MQ-21. The tracked-set size rule (F058)
 
-**(1)** 4-15 objects (18.6.6, which the web enforces and silently cuts to 15) or 3-40 hard with 4-15
-recommended (the server, `domain/research_design.py:84-86`)? Under `-5`, BB1 runs to 163 objects and
-`-5` declares its own minimum (`specification.py:1572`). **(3)** A 22-brand set is cut to 15 in the
-browser and accepted at 22 by the server. **(4)** (a) 4-15; (b) 3-40, 4-15 a warning; (c) `-5`'s own
-limits. **(6)** Blocks the web fix only.
+**(1)** `-5` declares its own minimum (`specification.py:1572`) and runs BB1 to 163 objects, Interval
+MDS above. Does it set a maximum or a recommended size for a tracked set, or do the readiness limits
+stand (3-40 hard, 4-15 recommended, `domain/research_design.py:84-86`)? Today the web enforces 18.6.6's
+4-15 and silently cuts to 15. **(3)** A 22-brand set is cut to 15 in the browser and accepted at 22 by
+the server. **(4)** (a) `-5`'s limits, stated by you; (b) the readiness limits, 4-15 a warning.
+**(6)** Blocks the web fix only.
 
 ### MQ-22. Connectedness (K100) and its interval under `-5` (F084)
 
-**(1)** `-5` keeps `-4`'s connectedness section. Is K100 with its bootstrap interval part of the MVP
-method (pinned on the run, reachable on develop), or not shown for `-5`? **(3)** Today it is behind a
+**(1)** Only if MQ-05 (i) says connectedness is part of `-5`: is K100's bootstrap interval part of it
+too (pinned on the run, reachable on develop)? **(3)** Today it is behind a
 switch the develop worker cannot reach and its values are editable in Metodika. **(4)** (a) Part of the
 method; (b) not shown under `-5`. **(6)** Blocks F9's display.
 
@@ -471,7 +490,8 @@ method; (b) not shown under `-5`. **(6)** Blocks F9's display.
 
 **(1)** With `-5` in force, should an edit start from `-5` (today `-4` is offered first,
 `domain/methodology/sociomap.py:2007-2013`), and should `-2`, `-3`, `-4` still be offered at all?
-**(4)** (a) `-5` only; (b) `-5` first, the rest for comparison. **(6)** A one-line change.
+**(4)** (a) `-5` only; (b) `-5` first, the earlier presets kept only to read old runs. **(6)** A
+one-line change.
 
 ### MQ-24. Analysis modules that never receive their inputs (F062)
 
@@ -483,11 +503,13 @@ not a missing finding. **(6)** Blocks those modules' contracts; MVPQ-04 stands.
 
 ---
 
-## R-1. Evidence request (not a decision): the audit's check script
+## R-1. Evidence request (not a decision): the audit's check script, for the earlier presets only
 
 `NPC/analysis/code_formula_checks.py`, its printed `[C*]`/`[P*]` output and its inputs or seeds
-(`sociomap-formula-corrections` 0a, C12-C15; `methodology-tab` S4d). With it, if convenient, F5's
-transform from a declared 1-10 strength matrix (`SPECIFICATION_REQUIRED`, refused today).
+(`sociomap-formula-corrections` 0a, C12-C15; `methodology-tab` S4d). It checks the audit's formulas,
+which the earlier presets (`-2` to `-4`) compute; `-5` is checked against your own code and self-test.
+If the MVP no longer needs the earlier presets checked, say so and the request is withdrawn. Likewise
+F5's transform from a declared 1-10 strength matrix (`SPECIFICATION_REQUIRED`, refused today).
 
 ---
 
