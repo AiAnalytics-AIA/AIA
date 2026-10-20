@@ -7,7 +7,8 @@
 # first apply, with versioning, SSE-S3, public access blocked, and TLS enforced.
 
 terraform {
-  required_version = ">= 1.6"
+  # 1.10 is the first release whose S3 backend takes `use_lockfile` (below).
+  required_version = ">= 1.10"
 
   required_providers {
     aws = {
