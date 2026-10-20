@@ -4064,7 +4064,7 @@
    },
    {
     "id": "AC-11",
-    "statement": "Design Research runs live on the full study design through the approved search routes (Brave, public fetch and the connectors) under the client's data posture: an OPEN client's run proceeds, a CLASSIFIED client's run is refused whole, the posture is pinned when the run is enqueued and a retry copies it; every finding is a quote grounded in a captured source; a person adds a checked source to the client's knowledge in one click; accepted findings appear as cited context in the report (through an Interpretation Research run, budgeted with the Design Research run), never as respondent evidence, and the run's sources are kept as a dataset.",
+    "statement": "Design Research runs live on the full study design through the approved search routes (Brave, public fetch, a connector probed live and the archive route, each named in the run's record) under the client's data posture: an OPEN client's run proceeds, a CLASSIFIED client's run is refused whole, the posture is pinned when the run is enqueued and a retry copies it; every finding is a quote grounded in a captured source; a person adds a checked source to the client's knowledge in one click; accepted findings appear as cited context in the report (through an Interpretation Research run, budgeted with the Design Research run), never as respondent evidence, and the run's sources are kept as a dataset.",
     "capabilities": []
    },
    {
@@ -4094,7 +4094,7 @@
    },
    {
     "id": "AC-15",
-    "statement": "Every number in the report traces to provenance (fingerprints, provider, model, prompt version, population version, weight identity, data contract); model spend reconciles to AIA's usage ledger within USD 0.01 and agrees with the develop-tagged AWS cost record; tool and search spend, open reservations and uncertain calls are reported on their own lines, and cloud billing lag is recorded, never read as zero.",
+    "statement": "Every number in the report traces to provenance (fingerprints, provider, model, prompt version, population version, weight identity, data contract); model spend reconciles to AIA's usage ledger within USD 0.01 and agrees with the develop-tagged AWS cost record; tool and search spend, open reservations, uncertain calls and non-provider infrastructure charges (compute, storage, database) are reported on their own lines, and cloud billing lag is recorded, never read as zero.",
     "capabilities": [
      "artifacts.registration",
      "ai.usage_ledger",
