@@ -126,6 +126,7 @@ The waves of every chunk are in `.planning/mvp-execution-contracts.md` (the pred
 | `panel-grounded-respondents` | POST | 7f-7h are the holdout validation that lifts client-facing analysis prose; the MVP's client report carries none (AC-13) | none |
 | `sociomapping-engine` | POST | the SOMECS engine depends on the method owner's exports and decisions; the MVP uses `aia-sociomap-3` | none |
 | `simulation-studio` | POST | Simulation is out of the MVP (`mvp-acceptance.md`) | S0 recorded as deferred |
+| `input-interactions` | ◇ for the scope baseline (`MP16`) | the product owner's request of 2026-10-20: every input edited in place, counted or chosen, no modal text box; overlaps `research-lead-workbench` 7 and 14-22, `client-workspace` C6-C9, `desktop-ux-overhaul-handoff` 2 and 4 | planning decides CORE, SUPPORT, FOLD or POST at `MP16`; no chunk is scheduled until then |
 
 ### 3.3 In the development plan and after the MVP, by decision
 

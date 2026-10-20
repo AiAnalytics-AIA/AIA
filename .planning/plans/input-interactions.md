@@ -4,11 +4,11 @@ chunks:
   - "[ ] 0. Audit, standard and this plan (docs only; .planning/evidence/input-interactions-audit.md)"
   - "[ ] 1. Shared primitives with tests: InlineText, Stepper, ChoiceChips (+ Segmented and Switch adopted everywhere), InlineCreateRow, SwatchPicker, MenuButton, UndoToast, SpendDialog; retire AskDialog's prompt form"
   - "[ ] 2. Knowledge library: folders and labels created in the list, renamed in place, recoloured by swatch; bulk and item filing by menu; search debounced (audit D1-D13)"
-  - "[ ] 3. Questionnaire: questions, options, blocks and sets created and edited in place; scale ends as steppers or presets; comparisons as segmented; deletes with undo (audit A1-A21)"
+  - "[ ] 3. Questionnaire: questions, options, blocks and sets created and edited in place; scale ends as steppers or presets, and the domain refusing a non-integer end; comparisons as segmented; deletes with undo (audit A1-A21)"
   - "[ ] 4. Brief and plan: the narrative's questions, objectives and hypotheses as items edited in place; the measurement folded into the set card; autosave replaces the explicit editors (audit A22-A36)"
   - "[ ] 5. Sample and audience: one n stepper 50-5000 with the recommendation, no silent clamp; factor ranges as bounded steppers; subpanels and values as chips or combobox (audit B1-B11)"
   - "[ ] 6. Run, spend and results: one SpendDialog for every money confirmation; cancels as inline confirms; report approval as a modal naming the document; JobPanel non-modal (audit B12-B28, C1-C8)"
-  - "[ ] 7. Clients and studies: new client and new study as inline rows; client and study rename in place (API: rename routes); intake sheet non-modal, creating folders and labels inline (audit D14-D26, E9)"
+  - "[ ] 7. Clients and studies: new client and new study as inline rows; study rename in place (API: a rename route), client rename once its permission is decided; intake sheet non-modal, creating folders and labels inline (audit D14-D26, E9)"
   - "[ ] 8. Client profile: fields edited in place, contacts as an inline table with undo, brands and competitors as list rows, self-approval three-way, budget stepper (audit E1-E12)"
   - "[ ] 9. Settings: money and rule numbers as steppers, known sets as segmented, rows edited in place; methodology parameters typed by their bounds (API: bounds and enums per parameter) (audit F1-F16)"
   - "[ ] 10. Verify: a Playwright input journey at 1440/1024/768/390 (keyboard only, Esc, undo, field errors, zero modal prompts); ux, client, settings and workbench journeys green"
@@ -30,7 +30,7 @@ owner's request. Evidence: [`../evidence/input-interactions-audit.md`](../eviden
 AIA asks for a name or a list through `AskDialog`'s prompt, a full-screen modal holding one text
 field (`apps/web/src/components/rehome/ui.tsx:140 @ 44b66ef`), 11 times: new, renamed folder and
 label, new client, new study, and four questionnaire quick-adds, two of which take a list as a
-comma string. Numbers are plain fields, two of them silently clamp or accept min > max (IA-1, IA-2).
+comma string. Numbers are plain fields, two of them silently clamp or accept min > max (IA-1, IA-2; the server then truncates a decimal scale end).
 Known sets are typed (industry, market) or chosen from dropdowns that fire on change. The same
 screen creates a label inline and a folder in a modal.
 
@@ -125,10 +125,11 @@ deleted in the chunk that removes its last caller.
 (the owner's own example), questionnaire, brief and plan, sample and audience, run and results,
 clients and studies, profile, Settings. Each chunk's PR lists the audit rows it closes.
 
-**API changes** (audit §5), each inside the chunk that needs it: rename a client and rename a study
-(chunk 7, `PUT` routes, audited); methodology parameter bounds, steps and enumerations in the
-catalogue response (chunk 9); the industry/market list read from the organization's own clients
-(chunk 8). Everything else is web-only.
+**API and domain changes** (audit §5), each inside the chunk that needs it: rename a study, and a
+client once its permission is decided (chunk 7, `PUT` routes, audited); the domain refusing a
+non-integer scale end, which today `int()` truncates (chunk 3, with a readiness test); methodology
+parameter bounds, steps and enumerations in the catalogue response (chunk 9); the industry/market
+list read from the organization's own clients (chunk 8). Everything else is web-only.
 
 ## Decisions for the owner
 
@@ -138,6 +139,9 @@ catalogue response (chunk 9); the industry/market list read from the organizatio
    the steppers. Recommended: presets first; 18.6.6 allowed 0–11.
 3. **Report approval as a modal** (I7b): today a single click. Recommended: a modal naming the
    document, since it cannot be undone.
+4. **Who may rename a client** (audit §5.1): no permission covers it today
+   (`EDIT_CLIENT_PROFILE` excludes the name). A profile edit (any member) or a lifecycle change
+   (administrator only). Recommended: administrator only, like the client's status.
 
 ## Where this touches other plans
 
@@ -161,8 +165,9 @@ Planning should fold these together rather than build twice:
 
 ## What this does not do
 
-No visual redesign beyond the controls; no change to what is saved or to any rule the server
-enforces; no soft delete (C9 owns it); no new route except the three named.
+No visual redesign beyond the controls; no soft delete (C9 owns it). The server's rules change in
+two places only: a non-integer scale end is refused, and a client rename takes whichever permission
+the owner decides. No new route except the three named.
 
 ## Findings
 

@@ -91,7 +91,9 @@ the client workspace or the questionnaire.
      typing nothing stores the recommendation.
    - A scale question's Minimum/Maximum (`rs/QuestionnaireStep.tsx:777`, `:779`) are uncontrolled
      `type=number` with `min=0 max=11`, no `step`, saved on blur through `setScaleEnd` with `+raw`:
-     min > max, a decimal or an empty field (stored as 0) are all accepted.
+     min > max, a decimal or an empty field (stored as 0) are all saved. Compile refuses
+     min ≥ max as `invalid_scale`, but `_scale` truncates a decimal with `int()`
+     (`packages/aia_core/src/aia_core/domain/research_design.py:405`), so 2.5 runs as 2.
    - Audience factor ranges (`rs/AudienceStep.tsx:379`, `:382`) state the population's range in a
      hint but set no bounds on the field.
    - Deep Research numeric rules (`st/DeepResearchSettingsPanel.tsx:422-426`) and methodology
@@ -147,7 +149,7 @@ an endpoint or field (listed in §5).
 | A6 | `rs/QuestionnaireStep.tsx:500` (P6, P7) | Quick add Škála / Otevřená: the wording | free text | **AskDialog prompt** | F2 | I5 inline new question row in the outline, type preset, wording focused | ✓ |
 | A7 | `rs/QuestionnaireStep.tsx:500`+`:502` (P8) | Quick add Jedna odpověď: wording, then options as "Ano, Ne" | free text + list | **2 chained AskDialog prompts**, comma string | F2 | I5 inline new question row; options as I5 rows (default Ano / Ne) | ✓ |
 | A8 | `rs/QuestionnaireStep.tsx:509`+`:511` (P9) | Sledovaná sada: type, then 4–15 items as a comma string | short name + list 4–15 | **2 chained AskDialog prompts**; count error by toast | F2 | I5 inline new set card: name (I1) + `ChipInput` items with "4–15" counter at the field (I9) | ✓ |
-| A9 | `rs/QuestionnaireStep.tsx:777`, `:779` | Škála: Minimum / Maximum | integers, min < max; today 0–11 | uncontrolled `type=number`, no step, blur; **min>max, decimals, empty→0 accepted** | F2 | I2 two steppers bounded by each other (min ≤ max−1), or I3 presets 1–5 / 1–7 / 0–10 / 1–10 | ✓ (validation is web-side) |
+| A9 | `rs/QuestionnaireStep.tsx:777`, `:779` | Škála: Minimum / Maximum | integers, min < max; today 0–11 | uncontrolled `type=number`, no step, blur; **min>max, decimals, empty→0 accepted** | F2 | I2 two steppers bounded by each other (min ≤ max−1), or I3 presets 1–5 / 1–7 / 0–10 / 1–10 | **new**: the domain refuses a non-integer end (§5.7) |
 | A10 | `rs/QuestionnaireStep.tsx:757`, `:767`, `:973`, `:977` | Scale end labels, per question / per set | short labels | uncontrolled input, blur | F2 | I1 on the scale preview's end labels, where they are shown | ✓ |
 | A11 | `rs/QuestionnaireStep.tsx:615` | "Jak výzkumné otázky zodpovíme", per research question | one of 5 (Neurčeno, Popis, Pořadí, Segmenty, A/B) | raw `<select>` | F2 | I3 `Segmented` (or chips at phone width); disable with reason where the measures can't serve it | ✓ |
 | A12 | `rs/QuestionnaireStep.tsx:808`, `:819` | Odpovídá na výzkumné otázky, per question/set | several of N | pressed pills | F2 | I3 toggle chips (keep; adopt the shared component) | ✓ |
@@ -376,7 +378,12 @@ Most fixes are web-only: the routes already take the value the new control would
 These need a server change, and each is a chunk of its own in the plan:
 
 1. **Rename a client** (E9): there is no route; `cl/ProfileArea.tsx` says the name is fixed. Needs
-   `PUT /api/v1/clients/{id}` `{name}`, audited, `MANAGE_CLIENTS`.
+   `PUT /api/v1/clients/{id}` `{name}`, audited. **No permission covers it today**:
+   `ClientPermission.EDIT_CLIENT_PROFILE` excludes the name by its own comment
+   (`packages/aia_core/src/aia_core/domain/scope.py:234-235`), and the client's status is an
+   administrator's (ADR 0019). Owner decision: a rename is a profile edit (extend
+   `EDIT_CLIENT_PROFILE`, any member) or a lifecycle change (administrator only). Until it is
+   decided, E9 is out of the plan's build.
 2. **Rename a study**: no route takes a Study's `name` after creation (`scope.py` has status and
    budget only, `routers/scope.py:457-503`). Inline rename of a study in Výzkumy (I1) needs one.
 3. **Methodology parameter bounds and enumerations** (F10): the catalogue sends each parameter's
@@ -394,6 +401,10 @@ These need a server change, and each is a chunk of its own in the plan:
 6. **Undo of server deletes** (D3, D7, E6): undo by re-create is possible today but leaves two
    audit entries and new ids. Acceptable for the MVP; a soft delete with restore is out of scope
    (client-workspace C9 / lifecycle K6 own retirement).
+7. **A non-integer scale end** (A9, IA-2): a stepper stops the web from sending 2.5, but a stored
+   revision or a stale client still can, and `_scale` truncates it with `int()`
+   (`packages/aia_core/src/aia_core/domain/research_design.py:405`). The domain must refuse a
+   non-integer end as `invalid_scale` (a readiness FAIL), with a test, in the same chunk.
 
 ## 6. Findings
 
@@ -406,10 +417,14 @@ Six-part findings for the docs PR to number (CLAUDE.md §9). Each reproduces in 
   Consequence: the researcher believes n is what they typed. Fix: refuse out-of-range at the field
   (I2, I9). Test: the stepper's unit test asserting 20 is shown as an error and not stored.
 - **IA-2. Scale min/max accept nonsense.** `rs/QuestionnaireStep.tsx:777,779 @ 44b66ef`
-  (`setScaleEnd` with `+raw`): min 8, max 3; 2.5; and an empty field (stored 0) are all saved.
-  Repro: set Minimum 8 and Maximum 3 on a scale question; the preview clamps, the stored design
-  keeps 8–3. Consequence: a broken scale reaches readiness and fieldwork. Fix: bounded steppers
-  (A9). Test: a Vitest on `setScaleEnd` refusing min ≥ max and non-integers.
+  (`setScaleEnd` with `+raw`): min 8, max 3; 2.5; and an empty field (stored 0) are all saved
+  to the working copy. Compile refuses min ≥ max (`invalid_scale`), so that one is caught late at
+  readiness; but `_scale` turns 2.5 into 2 with `int()` (`packages/aia_core/src/aia_core/domain/
+  research_design.py:405 @ 44b66ef`), and an empty Minimum becomes a 0–10 scale. Repro: a unit
+  test compiling a scale question with `skala: [2.5, 10]` gets `(2, 10)` and no problem.
+  Consequence: fieldwork asks a scale the researcher did not set. Fix: bounded steppers (A9) and
+  the domain refusing a non-integer end (§5.7). Tests: a Vitest on `setScaleEnd`; a domain test
+  that `[2.5, 10]` is `invalid_scale`.
 - **IA-3. The n slider cannot reach the field's range.** `rs/PersonaStep.tsx:380` (200–2000) vs
   `:407` (50–5000): a stored n of 3000 puts the slider at its end, misrepresenting the value.
   Repro: type 3000. Fix: one stepper (B1). Test: as IA-1.
