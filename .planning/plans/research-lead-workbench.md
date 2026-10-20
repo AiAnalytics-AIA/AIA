@@ -21,7 +21,7 @@ chunks:
   - "[ ] 17. Questionnaire artifact, its proposal shown in it (where chunk 7 lands)"
   - "[ ] 18. Brief and Research design artifacts"
   - "[ ] 19. Sample and Fieldwork artifacts"
-  - "[ ] 20. Results and Sociomap artifacts"
+  - "[ ] 20. Results and Sociomap artifacts, drawing aia-sociomap-5 in full: credibility, uncertainty circles, the respondent map, taste segments, unplaced objects, in Results and project memory alike (D-13)"
   - "[ ] 21. Analysis and Report artifacts"
   - "[ ] 22. Audience and Dimensions artifacts"
   - "[ ] 23. Worker and Deep Research cards in the conversation, each opening the artifact it changes"
@@ -270,7 +270,10 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
 
 - **20 (D-13).** The map views draw `aia-sociomap-5` only: the method named, relative-height terraces,
   the credibility banner, split-half share and uncertainty circles, "Neumístěno", the respondent map
-  and taste segments, following `ui_app.html`'s drawing (packet E-3, the owner's standing rule). The
+  and taste segments, following `ui_app.html`'s drawing (packet E-3, the owner's standing rule). Today `ObjectMapView` reads only `support` (`ObjectMapView.tsx:296, 568 @ 7975ff6`, #514), so a weakly
+  determined `-5` map looks as confident as any other. Project memory's past runs draw through the same
+  `RunResults`, so they get the same layers. Test: a `-5` map with a low split-half share shows its
+  credibility banner and uncertainty circles in Results and in project memory. The
   `-1`/`-3` drawing leaves the product; what a stored older run shows is baseline Q2.
 - **15.** Mount `ItemInspector` (imported only by its own test) and fix provider waits reading as
   inert (`research/lane.ts:134 @ 854c209`).
