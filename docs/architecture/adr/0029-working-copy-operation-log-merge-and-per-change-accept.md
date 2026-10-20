@@ -7,7 +7,9 @@ changes, and a Lead edit's accept submits the Design Revision too). **Builds on*
 [ADR 0018](0018-aia-runs-without-18-6-6.md) (a Study's working content lives in AIA) and
 [ADR 0019](0019-two-roles-and-human-ai-gates.md) gate 1. **Leaves unchanged** the Design Revision as
 what a run executes (ADR 0016), the evidence gates and every run's pins.
-**Date:** 2026-10-20
+**Date:** 2026-10-20. **Amended 2026-10-20** with the product owner's recorded answers D-06, D-07,
+D-08, D-30 and D-31 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`);
+still Proposed.
 **Plan:** [working-copy-edit-ops](../../../.planning/plans/working-copy-edit-ops.md) WCE0-WCE13
 
 ## Context
@@ -70,7 +72,8 @@ become recorded **whole-copy operations** through it; none may skip the log or c
 A batch names `base_revision`. The server reads the operations after it that touch the same
 `(item_key, field)`. None: the batch applies to the **latest** working copy and answers
 `merged: true`. Some: `409 edit_conflict`, naming those operations, so the screen marks that item
-alone. A whole-copy write keeps today's whole-copy stale rule.
+alone. Conflicts are per field, not per item (the product owner, 2026-10-20, D-06): two people
+editing a question's wording and its options both merge. A whole-copy write keeps today's whole-copy stale rule.
 
 ### 5. A proposal goes stale only when an item it touches changed
 
@@ -86,7 +89,8 @@ agent-job accept, Design Research's `item_ids` and the Lead's `indices` become o
 questionnaire links that name it), accepted or rejected together; a split that would leave the copy
 invalid is refused by validation. `proposal_change_decisions` (M6, insert-once) records each
 decision: `ACCEPTED`, `REJECTED`, `DROPPED_STALE`; a proposal is `ACCEPTED_IN_PART` when some were
-taken.
+taken. A change the person did not accept is `REJECTED` by default, and `DROPPED_STALE` when it
+conflicted (the product owner, 2026-10-20, D-07).
 
 **Every accept writes the working revision and submits the Design Revision in one transaction**
 under the study lock, with the ledger row and the operations, so the head equals the working copy
@@ -106,7 +110,8 @@ service (ADR 0002).
 ### 8. The Sociomap inputs are locked; the unlock is a person's recorded act
 
 The declared Sociomap inputs (`sociomap_rating` questions and `context_objects` on a battery, with
-the tracked sets they rate) are locked once declared. An operation that changes one is refused
+the tracked sets they rate) are locked once declared: the declared inputs and the sets they rate,
+the union, so nothing a map reads can move under it (the product owner, 2026-10-20, D-30). An operation that changes one is refused
 unless the batch carries an unlock: `POST …/sociomap-unlock`, a person's act under `APPROVE_GATE`,
 warned, one ledger row `sociomap_unlock`, valid for one working revision. **The Lead can never call
 it**: it is not in the Lead's output schema and the command is human-only (ADR 0026 decision 4). A
@@ -119,6 +124,15 @@ Undo writes the stored inverse as a new operation (`source = undo`) and is subje
 rule. A researcher's automatic accept takes text edits only by default; a per-stage structural
 choice (MVP-14) is off by default, and cannot be turned on before undo exists. After fieldwork, a
 structural automatic accept is refused, never applied silently.
+
+**Who performs a structural automatic accept, and where it is switched on** (the product owner,
+2026-10-20, D-31): a **named server path** applies it under the person's standing choice, so a
+change a continuation turn or a plan step proposes with no browser open is not left waiting
+overnight. It runs in the application layer as that person, with their `EDIT_STUDY` and
+`APPROVE_GATE` read from their membership at the moment it applies, never from the worker's
+context, and only for the stages that person switched on. The ledger row is marked automatic and
+names the person and their setting ("automaticky, podle vašeho nastavení"). The switch is on Můj
+Vedoucí, one per stage, off by default.
 
 ## Alternatives considered
 
@@ -156,17 +170,19 @@ structural automatic accept is refused, never applied silently.
 
 ## Open for Nigel
 
-1. **Conflict granularity.** The target architecture conflicts on `(item_key, field)`
-   (`mvp-target-architecture.md` §3.1); WCE5 speaks of item-level conflict. This ADR takes the field,
-   so two people editing a question's wording and its options both merge; confirm.
-2. **What an unaccepted change becomes.** `REJECTED` by default, `DROPPED_STALE` when it conflicted,
-   is recorded as "the owner's default, open to change" (§3.5). Confirm the default.
+Answered by the product owner on 2026-10-20 (`answers-2026-10-20.md`, #523 @ `ee21982`), and
+written into the decisions above:
+
+1. ~~Conflict granularity.~~ Per field, `(item_key, field)` (D-06, a). Decision 4.
+2. ~~What an unaccepted change becomes.~~ `REJECTED` by default, `DROPPED_STALE` on conflict (D-07,
+   a). Decision 6.
+4. ~~What the lock covers.~~ The declared inputs and the sets they rate (D-30, a). Decision 8.
+5. ~~Who performs a structural automatic accept.~~ A named server path under the person's standing
+   choice, switched per stage on Můj Vedoucí, off by default (D-31, rec: (a) with (i)). Decision 9.
+6. ~~Amending ADR 0026.~~ Yes, as this ADR is accepted (D-08, a).
+
+Still open:
+
 3. **The route names.** `POST/GET …/workspace/ops?since=` (target architecture §5) and
-   `GET changes?since=` (WCE4) name the same feed; this ADR uses the first.
-4. **What the lock covers.** The target architecture names "Set 1 and the declared Sociomap rating
-   question"; WCE8 names `sociomap_rating` and `context_objects`. This ADR locks the declared inputs
-   and the sets they rate; confirm.
-5. **Who performs a structural automatic accept with no browser open** (WCE11 amended, G56): the
-   researcher's session, or a named server path under the person's standing choice. Undecided here;
-   until decided, it stays pending.
-6. **Amending ADR 0026, which is Accepted**, in decisions 5 and 6, needs the owner's explicit yes.
+   `GET changes?since=` (WCE4) name the same feed; this ADR uses the first. An engineering naming
+   choice, listed only because the two documents disagree.
