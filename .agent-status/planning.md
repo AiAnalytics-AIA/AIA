@@ -3,7 +3,7 @@
 Current state, rewritten each update. Observed state only. No secrets.
 Updated: 2026-10-20 ~15:50 UTC by session_01RxUnHwTXGVFYjwzfpKi9kT ("AIA planning 2"), which took
 over from session_01Y7frLAETBEYvez3sW7FbGF (retired at ~70% context). Works under the PM coordinator
-(session_019bYPVpsShVq3LCtWDT5Kr8, `.agent-status/pm-coordinator.md`); Nigel also talks to this
+(now session_01YEVg53K5fKSGUfcKPTdrRk "AIA PM: coordinator 2"; was session_019bYPVpsShVq3LCtWDT5Kr8, `.agent-status/pm-coordinator.md`); Nigel also talks to this
 session directly.
 
 ## Role
@@ -16,6 +16,9 @@ merge (the coordinator merges reviewed green PRs; Nigel merges when he says so).
 ## Open PRs this session owns
 | PR | Branch | Head | State | Left |
 |---|---|---|---|---|
+| #520 | `chore/docs-followups-509-511-518` | `f734332` | draft, docs-only, green | ARCHITECTURE §8 audit rows blocking, AGENTS #509 gotchas, overview MVP-3/13 wallet; merge after develop's 47e55368 deploy |
+| #522 | `chore/scope-proposed-edits` | `049413c` | draft, docs-only | freeze part 1b: 102 proposed edits deduplicated and tagged (written before the answers) |
+| #523 | `chore/scope-baseline` | `ed03730` | draft, docs-only | freeze part 2: the 48 answers applied; master § The scope baseline (In/Out/Open Q1-Q8, signature line); 20 child plans; waves; merge after #516 and #522; awaits Nigel's signature |
 | #516 | `chore/scope-decision-list` | `c7d5bbe` | draft, docs-only | freeze step 4 part 1: 48 decisions for Nigel (one new file, `.planning/evidence/scope-freeze/decision-list.md`) + 35 no-decision edits; sent to coordinator, who presents it. Part 2 (apply answers, write baseline) waits on his answers |
 
 Subscribed to PR activity on #511: session_01RxUnHwTXGVFYjwzfpKi9kT (planning 2), 15:50 UTC. CI at that
@@ -93,3 +96,8 @@ no unadmitted number; an unsupported claim blocks approval; no legal review).
   LO1-LO6) are decided and not built.
 - Unapplied doc follow-ups, deliberately: #499's ARCHITECTURE §3/§4 and CLAUDE §2 items wait on their
   ADRs being accepted; #504's Web follow-ups are build work.
+
+## Freeze state (17:50 UTC)
+The owner's 48 answers are in (page DB, collection answers; copied to
+`.planning/evidence/scope-freeze/answers-2026-10-20.md` in #523). Open questions Q1-Q8 (in #523's baseline) were sent to the
+coordinator, who asks Nigel directly (~19:30 UTC). When answered: apply each to the plans #523 names, then Nigel signs.
