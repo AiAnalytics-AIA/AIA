@@ -88,7 +88,7 @@ its values are proposed here, to be set from LO14's measurement:
 | 5 | Client Knowledge | 6 KB | 16 KB | titles of all, bodies of the retrieved (decision 5); omitted ids named |
 | 6 | Design and stage state (LO7) | 12 KB | 32 KB | the focused stage verbatim, the others as an outline of item ids and titles, named |
 | 7 | Runs and results (LO8 `ResultsContext`) | 4 KB | 16 KB | LO8's own bound |
-| 8 | Pinned items (decision 6) | 0 | 8 KB | refuse the pin when it is made, never at the turn |
+| 8 | Pinned items (decision 6) | the accepted pins' bytes | 8 KB | refuse the pin when it is made; an accepted pin is reserved in the floor pass, never dropped at a turn |
 | 9 | View and the message(s) | as written | 12 KB | queued messages oldest first while they fit; the rest answered by a follow-on turn, named (decision 7) |
 | 10 | Conversation memory (M3): digest, kept facts, summaries | 6 KB | 16 KB | the digest within its 8 KB share by decision 4's order, older decisions counted with their ledger range (decision 3); oldest blocks rolled up; oldest unpinned facts to retrieval; all named |
 | 11 | Conversation, verbatim | 8 KB | what is left | oldest first, **only turns a summary covers**, else decision 4's fallback |
@@ -98,8 +98,9 @@ more than 96 KB on purpose, because most layers are small most of the time. `fre
 therefore never adds layers up and checks afterwards. It allocates:
 
 1. **Floors first.** Each layer gets the smaller of its content and its floor. The floors sum to at
-   most 78 KB: prompt 12, files 6, notes 4, study file 8, knowledge 6, design 12, results 4, pins 0,
-   message 12, memory 6, verbatim 8. That leaves at least 18 KB.
+   most 86 KB: prompt 12, files 6, notes 4, study file 8, knowledge 6, design 12, results 4, pins
+   up to 8 (every accepted pin, reserved), message 12, memory 6, verbatim 8. That leaves at least
+   10 KB.
 2. **The remainder in a fixed priority order.** Each layer in turn takes what it still needs, up to
    its ceiling, until the 96 KB is spent:
    design (6) → study file (4) → results (7) → pins (8) → conversation memory (10) → knowledge (5)
@@ -207,6 +208,26 @@ A summary that fails is refused, the previous level stays in force, and the mani
 `summary_lag` with the uncovered turns. The digest and kept facts do not depend on a model, so a
 refused or switched-off summary loses no decision.
 
+**What a summary dropped is indexed, not trusted away.** No check can prove that a model kept every
+preference or constraint a person stated, and the kept-fact proposals come from the same model. So
+compaction makes no such claim. Instead, code records what each summary left out, and makes
+exactly that the first thing retrieval looks for:
+
+- **The uncovered-terms index.** When a summary is accepted, code computes each covered person
+  message's *uncovered terms*: its content words that appear neither in the summary sentences
+  referencing that turn nor in its kept facts. Words are accent-folded and stemmed by the
+  project-memory matcher, `domain/project_memory.py`. The index is stored with the summary
+  artifact. This is deterministic, needs no model and costs nothing.
+- **Retrieval keyed on the gaps.** When a new message, its focus or a pin matches a turn's uncovered
+  term, that turn comes back verbatim, ahead of every other retrieval (decision 5, step 0). A
+  constraint the summary dropped therefore returns the moment the conversation touches it again.
+- **Coverage is measured and floored.** The manifest reports each summary's coverage, the share of
+  its person-message content words it kept. A summary below 60 % is refused like any other failure
+  (`summary_lag`). The threshold is tuned by LC13's recall test.
+- **Covered turns are never unreachable.** A covered turn leaves layer 11, never the store or the
+  index. The researcher can see its uncovered terms in "Co Vedoucí vidí" and promote any to a kept
+  fact in place.
+
 **Its other rules.**
 
 - **Not research truth:** labelled *shrnutí konverzace*; never a source of the study context file,
@@ -236,8 +257,10 @@ the person, and reversible through their references.
 The Lead calls no tool (ADR 0026 decision 3), so retrieval happens where the context is frozen.
 At enqueue, code ranks with the accent-folded matcher project memory already uses
 (`domain/project_memory.py:76,169 @ 237fd0a`) against the message, the focus, the queued messages
-and the stage:
+and the stage, in this order:
 
+- **step 0: turns whose uncovered terms match** (decision 4), verbatim, ahead of everything else;
+- **step 1: the turns behind a matching summary sentence**, following its references;
 - **past turns** of this conversation that a summary covers (layer 11's spare bytes);
 - **Client Knowledge bodies** beyond the titles (layer 5);
 - **notes** (layer 3), instead of the newest 40.
@@ -252,7 +275,11 @@ coarse; it is not built now.
 
 A researcher pins a turn, a knowledge item, a note or an artifact element (through the `@` of
 `research-lead-workbench#16`) to the conversation. A pin is the researcher's own (M2 privacy), goes
-into layer 8 on every turn until unpinned, and is refused when made if layer 8 cannot hold it. A
+into layer 8 on every turn until unpinned, and is refused when made if layer 8 cannot hold it.
+Accepted pins are reserved in the floor pass (decision 2), so no higher-priority layer can take
+their bytes and a pin that was accepted is never dropped at a turn. A pinned item that grows (a
+knowledge item revised) is re-checked against layer 8 when it changes. If it no longer fits, the
+researcher is told and the pin stays at its pinned revision. A
 pinned item keeps its own class; a pin never copies text between clients.
 
 ### 7. Message operations are new turns; history is never rewritten
@@ -265,8 +292,12 @@ row is inserted and never after:
 - `answers_through`: on a Lead turn, the `sequence_no` of the newest person message it answers.
 
 A message's state is derived, never stored:
-- **queued:** a person message that no Lead turn's `answers_through` covers yet;
-- **answered:** a person message that one does cover;
+- **queued:** a person message that no Lead turn's `answers_through` covers yet, that no later row
+  names by `replaces_turn_id` (an edited message is replaced by its edit, which takes its place in
+  the queue) and that no `withdrawal` names;
+- **answered:** a queued message that a Lead turn's `answers_through` covers. A replaced or
+  withdrawn message is never sent to the model, and is never marked answered by a range it falls
+  inside;
 - **withdrawn:** a person message named by a later row of kind `withdrawal` (`parent_turn_id` = the
   message).
 
@@ -393,7 +424,10 @@ completes (a polite live region), never per token.
   same for the same ledger; a summary with a number not in its covered turns is refused; its class is
   the covered turns' most restrictive; a summary sentence without a turn reference, or a range with
   an unreferenced turn, is refused; a kept fact whose quote does not locate in its named turn is
-  refused; a roll-up keeps its children's references.
+  refused; a roll-up keeps its children's references; a constraint a summary left out is in its
+  turn's uncovered terms and brings that turn back verbatim when named; a summary under the
+  coverage floor is refused; with every layer at its ceiling an accepted pin is still whole; an
+  edited queued message sends only its edit, and its original is never marked answered.
 - The recall test (decision 4, *Measured*): on a recorded 60-turn conversation, turn 61's context
   holds every kept fact and every digest decision, either in context or reachable through the
   manifest's ledger range and retrieved exactly when its item is named; a message naming a summarised subject

@@ -8,7 +8,7 @@ chunks:
   - "[ ] LC4. Budgets enforced: ADR 0041's floors, ceilings and two-pass global allocation, the design layer's outline fallback, spare bytes to the verbatim conversation, every omission named"
   - "[ ] LC5. Queued messages stored on the server: immutable rows, queued / answered / withdrawn derived (answers_through, a withdrawal row), bounded in bytes and count, a follow-on turn for what layer 9 cannot hold, LeadBusy retired for messages, visible in every tab"
   - "[ ] LC6. Cost, model and class on every Lead turn, from the usage ledger and the composition digest"
-  - "[ ] LC7. Grounded hierarchical compaction: research_lead_compact after the reply, block summaries of eight turns with a turn reference on every sentence, episode roll-ups (three levels at most), the preservation check, STUDY_LEAD_SUMMARY, AIA_AI_RESEARCH_LEAD_COMPACTION_ENABLED and its two keys, summary_lag"
+  - "[ ] LC7. Grounded hierarchical compaction: research_lead_compact after the reply, block summaries of eight turns with a turn reference on every sentence, episode roll-ups (three levels at most), the preservation check, the coverage floor and the uncovered-terms index, STUDY_LEAD_SUMMARY, AIA_AI_RESEARCH_LEAD_COMPACTION_ENABLED and its two keys, summary_lag"
   - "[ ] LC7a. Kept facts (Držená fakta): proposed by the compaction step, each with a quote located verbatim in its named turn, never compacted, superseded only by name, 40 x 300 characters"
   - "[ ] LC8. Summaries and kept facts corrected, pinned or retired in place by the researcher; a person's revision later roll-ups build on"
   - "[ ] LC9. Retrieval at enqueue: the turns behind a matching summary sentence first, then covered turns, knowledge bodies and notes ranked by the project-memory matcher, recorded in the manifest"
@@ -142,6 +142,9 @@ Tests:
   12 KB, two do not), each turn naming the rest as `queued_deferred`, no message cut, each turn
   paid and shown; smaller messages pack into one turn while they fit;
 - a sixth queued message is refused;
+- a queued message edited before its turn starts: only the edit is sent, the original is neither
+  sent nor marked answered;
+- a withdrawn message inside an answered range is not shown as answered;
 - a greeting still waits.
 
 **LC6. Cost, model and class per turn.** The turn's usage rows (model, tokens, USD) and class in
@@ -158,7 +161,12 @@ and cost. The **preservation check** is pure code in `domain/`:
 - every turn of the range is referenced by a sentence or a digest line;
 - numbers pass `lead_contract` over the referenced text;
 - the class is the strictest of the covered turns;
-- no sentence restates a digest decision without its turn.
+- no sentence restates a digest decision without its turn;
+- coverage of the person messages' content words is at least 60 %.
+
+On acceptance, code stores the **uncovered-terms index** beside the summary: each covered person
+message's content words that neither its referencing sentences nor its kept facts contain, folded
+and stemmed by the project-memory matcher. LC9 retrieves on it first.
 
 The switches: `ModelCapability.STUDY_LEAD_SUMMARY`; `AIA_AI_RESEARCH_LEAD_COMPACTION_ENABLED` (off by
 default), with `…_MAX_OUTPUT_TOKENS` and `…_RESERVATION_USD`, charged to the wallet. The manifest
@@ -169,6 +177,9 @@ cost (burst, latency, USD per block). Tests:
 - a foreign number is refused;
 - a Class A turn makes a Class A summary, which a Class-C route refuses;
 - a roll-up keeps its children's references;
+- a constraint stated in turn 5 and left out of the summary is in turn 5's uncovered terms, and a
+  later message naming it brings turn 5 back verbatim;
+- a summary under 60 % coverage is refused with `summary_lag`;
 - with the switch off, the turn freezes with `summary_lag`;
 - a failed compaction does not fail the reply.
 
@@ -189,6 +200,7 @@ audited, and later roll-ups build on it. Tests:
 - numbers in a correction follow the same rule.
 
 **LC9. Retrieval at enqueue.** The order is fixed:
+0. turns whose uncovered terms (LC7's index) the message, focus or a pin matches, verbatim;
 1. the turns referenced by a summary sentence the message matches, verbatim;
 2. then, with the project-memory matcher (`domain/project_memory.py`): the other covered turns,
    knowledge bodies and notes.
@@ -204,9 +216,12 @@ undecided output refused `superseded_turn`. The web edits the message in place a
 replaced turn. Tests: regenerate after an accepted edit is refused; a superseded card's approve is
 refused; history keeps both turns.
 
-**LC11. Pins.** `study_lead_pins` (researcher, study, kind, ref, created_at, removed_at); layer 8.
-Tests: a pin over layer 8's ceiling is refused when made; a removed pin leaves the next context; a
-pin is not visible to another researcher.
+**LC11. Pins.** `study_lead_pins` (researcher, study, kind, ref, pinned revision, created_at,
+removed_at); layer 8, its floor the accepted pins' bytes, reserved in the floor pass. Tests: a pin
+over layer 8's ceiling is refused when made; with every other layer at its ceiling an accepted pin
+is still in the context whole; a pinned item revised past the bound stays at its pinned revision
+and the researcher is told; a removed pin leaves the next context; a pin is not visible to another
+researcher.
 
 **LC12. Feedback.** `lead_turn_feedback` (turn, researcher, rating, reason, optional text, prompt
 pin); an evaluation export by prompt version (counts by reason, no text); *nepomohlo* writes a
