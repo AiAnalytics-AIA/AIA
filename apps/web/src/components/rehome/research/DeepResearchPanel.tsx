@@ -72,6 +72,7 @@ export function DeepResearchPanel() {
 
   useEffect(() => {
     let live = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- another run's bundle is cleared before this one is read
     setBundle(null);
     if (mayReview && current?.phase === "COMPLETED") {
       deepResearch.bundle(frame.studyId, current.run_id).then((result) => {

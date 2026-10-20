@@ -171,6 +171,7 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
   const current = currentVariant(variant, run.run_id, review);
   const pending = variantPending(current);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- a review left or not permitted shows no variant
     if (review === null || !mayReview) { setVariant(null); return; }
     let live = true;
     const read = () => deepResearch.contextReport(frame.studyId, run.run_id, review).then(
