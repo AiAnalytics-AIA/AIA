@@ -8,9 +8,10 @@
 // reader) and the facts.
 //
 // The map draws the stored artifact and computes nothing methodological; camera, scale mode,
-// relation display, selection and hover are presentation state. Seams for the later chunks:
-// the map's statements about itself draw at the end of `drawObjectMap` (chunk 3), Objekty /
-// Respondenti switches the scene drawn on the same canvas (chunk 4), and a selected object's
+// relation display, selection and hover are presentation state. What the map says about itself
+// (the weakly determined banner, the uncertainty circle, the notes) is drawn over it from the
+// stored credibility, and the objects nobody rated are listed beside it. Seams for the later
+// chunks: Objekty / Respondenti switches the scene drawn on the same canvas (chunk 4), and a selected object's
 // detail card goes beside the list (chunk 6), and the PNG snapshot with the legend comes with the
 // report's figure (chunk 7).
 //
@@ -21,11 +22,11 @@ import { type PointerEvent, type ReactNode, useEffect, useId, useMemo, useRef, u
 import { t, tv } from "@/i18n/t";
 import { num } from "@/lib/sociomapping-view";
 import { type BatteryWithMaps, type ObjectMapArtifact, originalRating } from "@/lib/object-map-view";
-import { panelObjects, storedFrame } from "@/lib/object-map-signed-off";
+import { objectsNotPlaced, panelObjects, storedFrame } from "@/lib/object-map-signed-off";
 import {
   CLICK_SLOP, COOL, INITIAL_CAMERA, SECONDARY, TOP_PITCH, WARM, ZOOM_IN, ZOOM_OUT,
   type Hit, type Norm, type PanelCamera, type RelationMode,
-  REL_FLOOR, absoluteGrid, camera3d, color66, dragCamera, drawObjectMap, hitTest, nodeScale, nodeTones, normalizer,
+  REL_FLOOR, absoluteGrid, mapStatements, camera3d, color66, dragCamera, drawObjectMap, hitTest, nodeScale, nodeTones, normalizer,
   panelNodes, relationPairs, relationStrength, storedGrid, strongestRelation, topCamera, wheelCamera, zoomCamera,
 } from "@/lib/object-map-panel";
 
@@ -51,7 +52,8 @@ export function ObjectMapPanel({ battery, map, facts }: { battery: BatteryWithMa
       <p className="min-w-0 flex-[999_1_560px] text-xs text-ink-muted" data-testid="object-map-no-terrain">
         {tv("research.exec.objectMap.noTerrain", { reason: map.terrain.status === "not_computed" ? map.terrain.reason : "—" })}
       </p>
-      <Aside battery={battery} facts={facts} items={objects.map((o) => ({ id: o.id, label: o.label, value: o.height, colour: color66(o.relative ?? REL_FLOOR) }))} selected={-1} />
+      <Aside battery={battery} facts={facts} items={objects.map((o) => ({ id: o.id, label: o.label, value: o.height, colour: color66(o.relative ?? REL_FLOOR) }))} selected={-1}
+        notPlaced={objectsNotPlaced(battery, map)} />
     </div>
   );
 }
@@ -59,8 +61,8 @@ export function ObjectMapPanel({ battery, map, facts }: { battery: BatteryWithMa
 type ListItem = { id: string; label: string; value: number | null; colour: string };
 
 /** Beside the map: every object as a button (keyboard and screen-reader access to the map), then the facts. */
-function Aside({ battery, facts, items, selected, onChoose, onHover }: {
-  battery: BatteryWithMaps; facts: ReactNode; items: ListItem[]; selected: number; onChoose?: (k: number) => void; onHover?: (k: number) => void;
+function Aside({ battery, facts, items, selected, notPlaced, onChoose, onHover }: {
+  battery: BatteryWithMaps; facts: ReactNode; items: ListItem[]; selected: number; notPlaced: string[]; onChoose?: (k: number) => void; onHover?: (k: number) => void;
 }) {
   return (
     <aside className="flex min-w-0 flex-[1_1_260px] flex-col gap-3">
@@ -79,6 +81,10 @@ function Aside({ battery, facts, items, selected, onChoose, onHover }: {
             </li>
           ))}
         </ul>
+        {/* The set's objects nobody rated have no place on the map; the panel names them under it. */}
+        {notPlaced.length ? (
+          <p className="text-xs leading-[17px] text-ink-muted" data-testid="object-map-unplaced-objects">{tv("research.exec.objectMap.panel.notPlaced", { labels: notPlaced.join(", ") })}</p>
+        ) : null}
       </div>
       <div className="flex flex-col gap-2 rounded-[10px] border border-border bg-surface-raised p-4">{facts}</div>
     </aside>
@@ -104,6 +110,15 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   const pairs = useMemo(() => relationPairs(map, mode, selected).map((p) => ({ ...p, k: relationStrength(p.v, norm, strongest) })), [map, mode, selected, norm, strongest]);
   // The node size follows the whole set, an object nobody rated included, as the panel's backend counts it.
   const scale = nodeScale(map.object_ids.length + (map.objects_not_placed?.length ?? 0));
+  const statements = useMemo(() => mapStatements(map, {
+    caption: t("research.exec.objectMap.panel.uncertaintyCaption"),
+    weakTitle: t("research.exec.objectMap.panel.weakTitle"),
+    weakBody: (percent) => tv("research.exec.objectMap.panel.weakBody", { percent }),
+    noStructureTitle: t("research.exec.objectMap.panel.noStructureTitle"),
+    noStructureBody: t("research.exec.objectMap.panel.noStructureBody"),
+    sparse: t("research.exec.objectMap.panel.sparseNote"),
+    labelled: (shown, total) => tv("research.exec.objectMap.panel.labelledNote", { shown, total }),
+  }), [map]);
   const canvas = useRef<HTMLCanvasElement>(null);
   const hits = useRef<Hit[]>([]);
   const pointer = useRef<{ lastX: number; lastY: number; mode: "select" | "rotate"; hit: Hit | null; moved: number } | null>(null);
@@ -134,7 +149,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   const latest = useRef<Parameters<typeof drawObjectMap>[1] | null>(null);
   const pending = useRef(0);
   useEffect(() => {
-    latest.current = { width: size.width, height: size.height, camera, grid, nodes, tones, pairs, selected, hovered, nodeScale: scale };
+    latest.current = { width: size.width, height: size.height, camera, grid, nodes, tones, pairs, selected, hovered, nodeScale: scale, statements };
     const draw = () => {
       pending.current = 0;
       const node = canvas.current;
@@ -149,7 +164,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
     };
     if (typeof window.requestAnimationFrame !== "function") { draw(); return; }
     if (!pending.current) pending.current = window.requestAnimationFrame(draw);
-  }, [size, camera, grid, nodes, tones, pairs, selected, hovered, scale, ratio]);
+  }, [size, camera, grid, nodes, tones, pairs, selected, hovered, scale, statements, ratio]);
   // Cleared on unmount, so a remount (React's development double mount included) schedules again.
   useEffect(() => () => { if (pending.current) window.cancelAnimationFrame(pending.current); pending.current = 0; }, []);
 
@@ -213,6 +228,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
       className={`h-[29px] w-[29px] cursor-pointer rounded-[5px] border-0 text-[13px] text-[#e8edf0] hover:bg-white/[.14] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e8edf0] ${pressed ? "bg-white/[.14]" : "bg-transparent"}`}>{short}</button>
   );
   const fromAbove = camera.pitch < TOP_PITCH;
+  const notPlaced = objectsNotPlaced(battery, map);
   const choose = (k: number) => setSelected((s) => (s === k ? -1 : k));
 
   return (
@@ -248,7 +264,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
           </div>
           <Legend battery={battery} values={nodes.map((n) => (n.primary ? n.value : null))} norm={norm} strongest={strongest} />
         </div>
-        <Aside battery={battery} facts={facts} selected={selected} onChoose={choose} onHover={setHovered}
+        <Aside battery={battery} facts={facts} selected={selected} onChoose={choose} onHover={setHovered} notPlaced={notPlaced}
           items={nodes.map((n, k) => ({ id: n.id, label: n.label, value: n.value, colour: n.primary ? color66(tones[k]) : SECONDARY }))} />
       </div>
     </div>

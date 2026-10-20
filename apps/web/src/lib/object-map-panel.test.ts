@@ -1,5 +1,5 @@
 // The port of the AIA panel's drawing (plan sociomap-5-web, chunk 2) against values the panel's OWN
-// functions return. `fixtures/object-map-panel-golden.json` was written outside the repository by a
+// functions return. `fixtures/object-map-draw-golden.json` was written outside the repository by a
 // Node script that cuts the used functions verbatim out of NPC_Panel/ui_app.html (the line numbers are
 // in its `source` field), stubs the panel state and page, feeds them the stored hudba map of
 // `object-map-signed-off.json` in frame units, and records what they return and paint on a recording
@@ -7,11 +7,18 @@
 // backend. The port must match to 1e-9, colour strings exactly.
 import { describe, expect, it } from "vitest";
 
-import golden from "./fixtures/object-map-panel-golden.json";
+import { t, tv } from "@/i18n/t";
+import golden from "./fixtures/object-map-draw-golden.json";
 import fixture from "./fixtures/object-map-signed-off.json";
 import {
   FRAME_SPAN,
   absoluteGrid,
+  bannerBox,
+  gridAxis,
+  mapStatements,
+  statementNotes,
+  uncertaintyCircle,
+  wrapWords,
   blend66,
   camera3d,
   color66,
@@ -181,10 +188,10 @@ describe("relations, nodes, labels", () => {
 
 /** A context that records the fills, strokes and texts painted; text widths as the golden run's. */
 function recorder() {
-  type Op = { op: string; path: unknown[][]; style?: string; alpha?: number; width?: number; text?: string; x?: number; y?: number; font?: string; w?: number; h?: number; fill?: string };
+  type Op = { op: string; path: unknown[][]; style?: string; alpha?: number; width?: number; dash?: string; text?: string; x?: number; y?: number; font?: string; align?: string; baseline?: string; w?: number; h?: number; fill?: string };
   const ops: Op[] = [];
   let path: unknown[][] = [];
-  let state = { fillStyle: "#000", strokeStyle: "#000", lineWidth: 1, globalAlpha: 1, font: "10px sans-serif" };
+  let state = { fillStyle: "#000", strokeStyle: "#000", lineWidth: 1, globalAlpha: 1, font: "10px sans-serif", dash: [] as number[], textAlign: "start", textBaseline: "alphabetic" };
   const stack: (typeof state)[] = [];
   const measure = (text: string, font: string) => text.length * (font.startsWith("800") ? 6.9 : 6.2);
   const ctx = {
@@ -193,7 +200,11 @@ function recorder() {
     get lineWidth() { return state.lineWidth; }, set lineWidth(v) { state.lineWidth = v; },
     get globalAlpha() { return state.globalAlpha; }, set globalAlpha(v) { state.globalAlpha = v; },
     get font() { return state.font; }, set font(v) { state.font = v; },
-    lineCap: "butt", textAlign: "start", shadowColor: "", shadowBlur: 0,
+    get textAlign() { return state.textAlign; }, set textAlign(v) { state.textAlign = v; },
+    get textBaseline() { return state.textBaseline; }, set textBaseline(v) { state.textBaseline = v; },
+    lineCap: "butt", shadowColor: "", shadowBlur: 0,
+    setLineDash(d: number[]) { state.dash = [...d]; },
+    roundRect(x: number, y: number, w: number, h: number, r: number) { path.push(["R", x, y, w, h, r]); },
     save() { stack.push({ ...state }); }, restore() { state = stack.pop() ?? state; },
     fillRect(x: number, y: number, w: number, h: number) { ops.push({ op: "rect", path: [], x, y, w, h, fill: state.fillStyle }); },
     beginPath() { path = []; }, closePath() { path.push(["Z"]); },
@@ -201,8 +212,8 @@ function recorder() {
     quadraticCurveTo(cx: number, cy: number, x: number, y: number) { path.push(["Q", cx, cy, x, y]); },
     arc(x: number, y: number, r: number) { path.push(["A", x, y, r]); },
     fill() { ops.push({ op: "fill", path, style: state.fillStyle, alpha: state.globalAlpha }); },
-    stroke() { ops.push({ op: "stroke", path, style: state.strokeStyle, alpha: state.globalAlpha, width: state.lineWidth }); },
-    fillText(text: string, x: number, y: number) { ops.push({ op: "text", path: [], text, x, y, font: state.font }); },
+    stroke() { ops.push({ op: "stroke", path, style: state.strokeStyle, alpha: state.globalAlpha, width: state.lineWidth, dash: state.dash.join(",") }); },
+    fillText(text: string, x: number, y: number) { ops.push({ op: "text", path: [], text, x, y, font: state.font, style: state.fillStyle, align: state.textAlign, baseline: state.textBaseline }); },
     measureText(text: string) { return { width: measure(text, state.font) }; },
   };
   return { ctx: ctx as unknown as CanvasRenderingContext2D, ops };
@@ -221,7 +232,10 @@ function summarise(ops: ReturnType<typeof recorder>["ops"]) {
     contours: ops.filter((o) => o.op === "stroke" && o.style === "rgba(5,10,12,.30)").map((o) => ({ segments: o.path.filter((s) => s[0] === "M").length, first: o.path.slice(0, 2), last: o.path.slice(-2), width: o.width })),
     lines: ops.filter((o) => o.op === "stroke" && o.path.some((s) => s[0] === "Q")).map((o) => ({ style: o.style, alpha: o.alpha, width: o.width, path: o.path })),
     discs: ops.filter((o) => o.op === "fill" && o.path.some((s) => s[0] === "A")).map((o) => ({ style: o.style, path: o.path })),
-    texts: ops.filter((o) => o.op === "text").map((o) => ({ text: o.text, x: o.x, y: o.y, font: o.font })),
+    texts: ops.filter((o) => o.op === "text").map((o) => ({ text: o.text, x: o.x, y: o.y, font: o.font, style: o.style, align: o.align, baseline: o.baseline })),
+    rects: ops.filter((o) => o.op === "rect").map((o) => ({ x: o.x, y: o.y, w: o.w, h: o.h, fill: o.fill })),
+    statements: ops.filter((o) => (o.op === "stroke" && (o.dash || o.path.some((p) => p[0] === "R"))) || (o.op === "fill" && o.path.some((p) => p[0] === "R")))
+      .map((o) => ({ op: o.op, style: o.style, width: o.width ?? null, dash: o.dash ?? null, path: o.path })),
   };
 }
 
@@ -240,4 +254,106 @@ describe("a whole frame", () => {
       expect(result.labels.shown).toBe(scene.summary.texts.length);
     });
   }
+});
+
+// ---------------------------------------------------------------- what the map says about itself
+
+const TEXTS = {
+  caption: t("research.exec.objectMap.panel.uncertaintyCaption"),
+  weakTitle: t("research.exec.objectMap.panel.weakTitle"),
+  weakBody: (percent: number) => tv("research.exec.objectMap.panel.weakBody", { percent }),
+  noStructureTitle: t("research.exec.objectMap.panel.noStructureTitle"),
+  noStructureBody: t("research.exec.objectMap.panel.noStructureBody"),
+  sparse: t("research.exec.objectMap.panel.sparseNote"),
+  labelled: (shown: number, total: number) => tv("research.exec.objectMap.panel.labelledNote", { shown, total }),
+};
+
+/** The stored hudba map with part of its artifact replaced, as another stored map would be. */
+function variant(patch: Partial<ObjectMapArtifact>): BatteryWithMaps {
+  const b = structuredClone(battery);
+  Object.assign(b.maps!["aia-sociomap-5"].artifact, structuredClone(patch));
+  return b;
+}
+
+/** 36 objects at fixed pseudo-random ruler positions, no known pair, the terrain as the stored frame's
+ *  envelope: a large map whose labels cannot all fit (the golden run builds the same one). */
+function bigBattery(): BatteryWithMaps {
+  const ids = Array.from({ length: 36 }, (_, k) => `big-o${k}`);
+  const points = ids.map((_, k) => [Math.round(900 * Math.sin(k * 1.7 + 0.3)) / 1000, Math.round(900 * Math.cos(k * 2.3)) / 1000] as [number, number]);
+  const values = ids.map((_, k) => 0.4 + (0.3 * ((k * 37) % 11)) / 10);
+  const xs = points.map((p) => p[0]), ys = points.map((p) => p[1]);
+  const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+  const half = Math.max(...points.map((p) => Math.max(Math.abs(p[0] - cx), Math.abs(p[1] - cy)))) / 0.7;
+  const rel = normalizer(values, "range");
+  const relative = values.map((v) => rel.t(v));
+  const f = { cx, cy, half };
+  const axis = gridAxis(84);
+  const height = terrainEnvelope(points.map((p) => { const q = toFrame(p[0], p[1], f); return [q.x, q.y] as [number, number]; }), relative, axis, axis, toFrameLength(0.25, f)).z;
+  const empty = () => ids.map(() => ids.map(() => null));
+  const artifact: ObjectMapArtifact = {
+    ...structuredClone(map),
+    object_ids: ids, roles: Object.fromEntries(ids.map((id) => [id, "primary"])),
+    relations: { r: empty(), n: empty(), status: empty(), n_min: 10 },
+    status_counts: { reliable: 0, weak: 0, unknown: 630 },
+    layout: { ...map.layout!, points },
+    heights: { metric: "mean_rating_0_1", values, support_n: ids.map(() => 100), relative },
+    terrain: { ...(map.terrain as Extract<ObjectMapArtifact["terrain"], { status: "computed" }>), parameters: { grid_resolution: 84, half_extent: half, sigma: 0.25, centre: [cx, cy] }, height },
+    credibility: { rule: "split_half", split_half: 0.7, threshold: 0.59, weakly_determined: false, reliable_pairs: 0, uncertainty_radius: 0.12 },
+    objects_not_placed: [], sparse_design: { flag: false, share_below_layout_floor: 0, weakly_connected: [] },
+  };
+  return { ...structuredClone(battery), battery_id: "big", objects: ids.map((id, k) => ({ id, label: `Žánr číslo ${k + 1}` })), maps: { "aia-sociomap-5": { ...battery.maps!["aia-sociomap-5"], artifact } } };
+}
+
+const SOURCES: Record<string, BatteryWithMaps> = {
+  hudba: battery,
+  sum: (fixture.batteries as unknown as BatteryWithMaps[])[1],
+  noStructure: variant(golden.patches.noStructure as Partial<ObjectMapArtifact>),
+  sparse: variant(golden.patches.sparse as Partial<ObjectMapArtifact>),
+  big: bigBattery(),
+};
+
+describe("what the map says about itself", () => {
+  for (const [name, scene] of Object.entries(golden.statementScenes)) {
+    it(`draws ${name} as the panel's drawAiaOverlay66`, () => {
+      const b = SOURCES[scene.source], m = b.maps!["aia-sociomap-5"].artifact, f = storedFrame(m)!, ns = panelNodes(b, m, f);
+      const { W, H, ...camera } = scene.camera as PanelCamera & { W: number; H: number };
+      const norm = scene.norm as Norm;
+      const strongest = strongestRelation(m);
+      const pairs = relationPairs(m, scene.relMode as RelationMode, scene.selected).map((p) => ({ ...p, k: relationStrength(p.v, norm, strongest) }));
+      const { ctx, ops } = recorder();
+      const grid = norm === "absolute" ? absoluteGrid(m, ns)! : storedGrid(m)!;
+      const result = drawObjectMap(ctx, {
+        width: W, height: H, camera, grid, nodes: ns, tones: nodeTones(ns, norm), pairs, selected: scene.selected, hovered: scene.hovered,
+        nodeScale: nodeScale(m.object_ids.length + (m.objects_not_placed?.length ?? 0)), statements: mapStatements(m, TEXTS),
+      });
+      close(summarise(ops), scene.summary);
+      close({ ...result.labels, objects: ns.length }, scene.labelCount);
+    });
+  }
+
+  it("reads the statements as stored, and draws none the artifact does not make", () => {
+    const sum = SOURCES.sum.maps!["aia-sociomap-5"].artifact;
+    expect(mapStatements(sum, TEXTS)).toMatchObject({ weak: true, splitHalf: sum.credibility!.split_half, radius: sum.credibility!.uncertainty_radius, sparse: false });
+    expect(mapStatements({ ...map, credibility: undefined, sparse_design: undefined }, TEXTS)).toMatchObject({ weak: false, splitHalf: null, radius: null, sparse: false });
+    // The sparse note gives way to the banner, which says more.
+    const both = mapStatements({ ...sum, sparse_design: { flag: true, share_below_layout_floor: 0.5, weakly_connected: [] } }, TEXTS);
+    expect(statementNotes(both, { shown: 3, wanted: 3 }, 8)).toEqual([]);
+    expect(statementNotes({ ...both, weak: false }, { shown: 30, wanted: 31 }, 31).map((n) => n.text)).toEqual([TEXTS.sparse, "30 z 31 objektů popsáno"]);
+    expect(statementNotes({ ...both, weak: false }, { shown: 29, wanted: 30 }, 30).map((n) => n.text)).toEqual([TEXTS.sparse]);
+  });
+
+  it("wraps the banner's text as the panel does, and sizes the circle only within its bounds", () => {
+    expect(wrapWords("aa bb cc dd", 5, (l) => l.length)).toEqual(["aa bb", "cc dd"]);
+    expect(wrapWords("aaaaaaa bb", 5, (l) => l.length)).toEqual(["", "aaaaaaa", "bb"]);
+    const P = projection(INITIAL_CAMERA, 900, 700);
+    const pts = [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 0, y: 10 }];
+    expect(uncertaintyCircle(P, pts.slice(0, 2), 1)).toBeNull(); // fewer than three objects
+    expect(uncertaintyCircle(P, pts, null)).toBeNull();
+    expect(uncertaintyCircle(P, pts, 0.001)).toBeNull(); // under 2 px
+    expect(uncertaintyCircle(P, pts, 100)).toBeNull(); // a quarter of the view or more
+    const c = uncertaintyCircle(P, pts, 1)!;
+    expect(c.x).toBeCloseTo(900 - 96 - c.r, 12);
+    expect(c.y).toBeCloseTo(72 + c.r, 12);
+    expect(bannerBox(1000, 700)).toEqual({ x: 280, y: 266, w: 440, h: 84 });
+  });
 });

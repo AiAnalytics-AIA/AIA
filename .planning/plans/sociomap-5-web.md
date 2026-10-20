@@ -4,7 +4,7 @@ chunks:
   - "[x] 0. This plan"
   - "[x] 1. Read -5 maps in the web: the stored fields typed, pure readers for the panel renderer, a stored -5 fixture; nothing drawn changes"
   - "[x] 2. The object map as the AIA panel draws it: terrain, colour ramp, relief, frame, nodes, labels, relation lines, legend, camera; a -5 map read first and routed to it"
-  - "[ ] 3. Map credibility on the map: the weakly-determined banner, the uncertainty circle, the sparse and label notes, objects not placed"
+  - "[x] 3. Map credibility on the map: the weakly-determined banner, the uncertainty circle, the sparse and label notes, objects not placed"
   - "[ ] 4. The respondent map: Objekty | Respondenti, dots, faint dots, the density terrain, object markers, the notes below six and three objects"
   - "[ ] 5. Taste segments on the respondent map: colours, legend, borderline hint"
   - "[ ] 6. Detail on click: an object's and a respondent's detail, in the panel's content"
@@ -79,8 +79,22 @@ independent review; the owner's look at screenshots before each commit.
   Relativní colours only 0.15–1; `relationKeyHtml66`'s comment says width 1+3k, its code draws 1+5k (2144); the backend
   rounds `node_scale` to four decimals (`visualization_lab.py:149`), the methodology does not (the same up to 30 objects).
 
+- Chunk 3 (the map's statements): the port of `drawAiaOverlay66`'s object-map part matches the panel's own function op
+  for op on six scenes (the stored weakly determined `sum`, and `hudba` with the no-reliable-pair verdict, a sparse design,
+  and a synthetic 36-object map whose labels do not all fit) and pixel for pixel at 900×700 on five. In a real browser the
+  uncertainty circle sits left of the tool column (the panel's `W − 96 − r`), clear of it. As in the panel, the
+  bottom-centre notes can run under the legend on a map narrower than about 1000 px, the circle's caption can cover an
+  object's label, and the veil dims the circle under the banner.
+- For chunk 4 (review of chunk 3): when the respondent map shares the canvas, the uncertainty circle and the label note
+  must be limited to the object map, as the panel's `drawAiaOverlay66` limits them; the banner and the sparse note show on
+  both maps. A map without `credibility` can still draw the label note, where the panel skips its whole overlay without a
+  layout fit (harmless: every mapped `-5` map stores credibility).
+- Decided (methodology owner, 2026-10-20): the list of objects nobody rated reads „Neumístěno (nikdo je nehodnotil,
+  proto bez polohy na mapě): …“ — the cause, not the panel's „žádný známý vztah“ (true of them, but its consequence).
+
 ## Doc follow-up (chunk 2)
 
-- `apps/web/src/lib/fixtures/object-map-panel-golden.json` holds values returned by the panel's own functions (whole lines
-  of `ui_app.html`, listed in its `source` field, run in Node against a stub of the panel state) on the hudba map, for
+- `apps/web/src/lib/fixtures/object-map-draw-golden.json` holds values returned by the panel's own functions (whole lines
+  of `ui_app.html`, listed in its `source` field, run in Node against a stub of the panel state) on the hudba and sum
+  maps and synthetic variants of them (no reliable pair, sparse design, 36 objects), for
   `object-map-panel.test.ts`; regenerate it from the panel whenever the panel's drawing changes.

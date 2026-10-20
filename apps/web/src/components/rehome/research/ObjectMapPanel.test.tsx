@@ -20,13 +20,17 @@ const map = hudba.maps!["aia-sociomap-5"].artifact;
 
 let frames = 0;
 let radii: number[] = [];
+let texts: string[] = [];
 beforeEach(() => {
   frames = 0;
   radii = [];
+  texts = [];
   // Enough of a 2D context for the drawing to run; every frame starts with the background.
   const context = new Proxy({ measureText: (s: string) => ({ width: s.length * 6.2 }) } as Record<string, unknown>, {
     get: (target, key) => (key in target ? target[key as string]
-      : key === "fillRect" ? () => { frames++; radii = []; }
+      // A frame starts with the background; the veil of a weakly determined map is a later fill.
+      : key === "fillRect" ? () => { if (target.fillStyle === "#07090c") { frames++; radii = []; texts = []; } }
+      : key === "fillText" ? (text: string) => { texts.push(text); }
       : key === "arc" ? (_x: number, _y: number, r: number) => { radii.push(r); } : () => {}),
     set: (target, key, value) => { target[key as string] = value; return true; },
   });
@@ -232,6 +236,7 @@ describe("accessibility", () => {
     const stored = big.maps!["aia-sociomap-5"].artifact;
     // 12 mapped + 38 nobody rated = 50 objects: nodes at sqrt(30 / 50) of their size.
     stored.objects_not_placed = Array.from({ length: 38 }, (_, k) => `extra-${k}`);
+    stored.credibility = undefined; // no uncertainty circle among the measured discs
     render(<ObjectMapView battery={big} dataOrigin={null} />);
     await nextFrame(0);
     const scale = Math.sqrt(30 / 50);
@@ -253,5 +258,40 @@ describe("accessibility", () => {
     render(<ObjectMapView battery={sum} dataOrigin={null} />);
     expect(screen.getByTestId("object-map-panel")).toBeTruthy();
     expect(drawn()).toEqual([]); // no reliable pair
+  });
+});
+
+describe("what the map says about itself", () => {
+  it("veils a weakly determined map behind the panel's statement, with its split-half score", async () => {
+    render(<ObjectMapView battery={sum} dataOrigin={null} />);
+    await nextFrame(0);
+    expect(texts).toContain("Slabě určená mapa");
+    expect(texts.join(" ")).toContain("Dvě poloviny vzorku se shodnou jen v 54 % srovnání „co je blíž“ (50 % = náhoda).");
+    expect(texts).toContain("typická nejistota polohy objektu");
+  });
+
+  it("says when no relation differs from chance, and notes a sparse design on a map that is not weak", async () => {
+    const none = structuredClone(hudba);
+    Object.assign(none.maps!["aia-sociomap-5"].artifact.credibility!, { split_half: null, rule: "no_reliable_pair", weakly_determined: true });
+    render(<ObjectMapView battery={none} dataOrigin={null} />);
+    await nextFrame(0);
+    expect(texts).toContain("Žádná spolehlivá struktura");
+    expect(texts).not.toContain("Slabě určená mapa");
+    cleanup();
+    const sparse = structuredClone(hudba);
+    sparse.maps!["aia-sociomap-5"].artifact.sparse_design = { flag: true, share_below_layout_floor: 0.4, weakly_connected: [] };
+    const before = frames;
+    render(<ObjectMapView battery={sparse} dataOrigin={null} />);
+    await nextFrame(before);
+    expect(texts).toContain("Řídký design: polohy málokdy společně hodnocených objektů jsou určeny slabě");
+    expect(texts).not.toContain("Slabě určená mapa");
+  });
+
+  it("names the objects nobody rated beside the map, in the panel's words", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    expect(screen.getByTestId("object-map-unplaced-objects").textContent).toBe("Neumístěno (nikdo je nehodnotil, proto bez polohy na mapě): Reggae.");
+    cleanup();
+    render(<ObjectMapView battery={sum} dataOrigin={null} />);
+    expect(screen.queryByTestId("object-map-unplaced-objects")).toBeNull();
   });
 });

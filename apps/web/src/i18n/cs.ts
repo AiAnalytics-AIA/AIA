@@ -3048,6 +3048,15 @@ export const cs = {
           keyStrengthAbsolute: "síla vztahu |r|: 0,1 → 0,5 a víc",
           keySign: "souhlasně · opačně; čára nemá směr",
           listTitle: "Objekty · Průměrné hodnocení",
+          // What the map says about itself, drawn over it (the panel's map statements).
+          uncertaintyCaption: "typická nejistota polohy objektu",
+          weakTitle: "Slabě určená mapa",
+          weakBody: "Dvě poloviny vzorku se shodnou jen v {percent} % srovnání „co je blíž“ (50 % = náhoda). Pozice na mapě nečtěte jako skupiny ani vzdálenosti.",
+          noStructureTitle: "Žádná spolehlivá struktura",
+          noStructureBody: "Žádný vztah mezi objekty se neliší od náhody. Pozice na mapě nečtěte jako skupiny ani vzdálenosti.",
+          sparseNote: "Řídký design: polohy málokdy společně hodnocených objektů jsou určeny slabě",
+          labelledNote: "{shown} z {total} objektů popsáno",
+          notPlaced: "Neumístěno (nikdo je nehodnotil, proto bez polohy na mapě): {labels}.",
         },
       },
       sociomapping: {

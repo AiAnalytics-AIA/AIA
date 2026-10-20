@@ -413,6 +413,7 @@ export type MapScene = {
   selected: number; // -1: none
   hovered: number; // -1: none
   nodeScale: number;
+  statements?: MapStatements; // what the map says about itself, drawn over it
 };
 
 export type Hit = { index: number; x: number; y: number; r: number };
@@ -459,8 +460,7 @@ export function drawObjectMap(ctx: CanvasRenderingContext2D, scene: MapScene): D
   ctx.globalAlpha = 1;
   drawContours(ctx, P, grid);
   const result = drawObjects(ctx, P, scene);
-  // The map's statements about itself (banner, uncertainty circle, notes) draw here, over the
-  // map, as the panel's `drawAiaOverlay66` (plan sociomap-5-web, chunk 3).
+  if (scene.statements) drawStatements(ctx, P, scene, result.labels);
   return result;
 }
 
@@ -554,5 +554,137 @@ function relationLine(ctx: CanvasRenderingContext2D, a: XY, b: XY, k: number, co
   ctx.strokeStyle = color;
   path();
   ctx.stroke();
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------- what the map says about itself
+
+/** The panel's words for the map's statements, from cs.ts (the drawing takes no text of its own). */
+export type StatementTexts = {
+  caption: string;
+  weakTitle: string;
+  weakBody: (percent: number) => string;
+  noStructureTitle: string;
+  noStructureBody: string;
+  sparse: string;
+  labelled: (shown: number, total: number) => string;
+};
+
+/** The stored statements the object map draws: the uncertainty radius (in RMS inter-object
+ *  distances), the weakly determined verdict with its split-half score (null under the
+ *  no-reliable-pair rule), and the sparse-design flag. */
+export type MapStatements = { radius: number | null; weak: boolean; splitHalf: number | null; sparse: boolean; texts: StatementTexts };
+
+/** The statements as the artifact stores them; none where it stores none. */
+export function mapStatements(map: ObjectMapArtifact, texts: StatementTexts): MapStatements {
+  const c = map.credibility;
+  return { radius: c?.uncertainty_radius ?? null, weak: c?.weakly_determined === true, splitHalf: c?.split_half ?? null, sparse: map.sparse_design?.flag === true, texts };
+}
+
+/** The root mean square of the distances between the drawn objects (frame units), the unit the
+ *  stored uncertainty radius is given in. */
+export function rmsDistance(points: { x: number; y: number }[]): number {
+  let sum = 0, count = 0;
+  for (let a = 0; a < points.length; a++) {
+    for (let b = a + 1; b < points.length; b++) { sum += (points[a].x - points[b].x) ** 2 + (points[a].y - points[b].y) ** 2; count++; }
+  }
+  return Math.sqrt(sum / Math.max(1, count));
+}
+
+/**
+ * The reference circle of the map's typical position uncertainty (`drawAiaOverlay66`): the stored
+ * radius times the RMS distance of the drawn PRIMARY objects, in screen pixels along the longer
+ * projected axis; top right, left of the tools. Only with three such objects or more, and only
+ * when it is at least 2 px and under a quarter of the view.
+ */
+export function uncertaintyCircle(P: Projection, points: { x: number; y: number }[], radius: number | null): { x: number; y: number; r: number; captionX: number; captionY: number } | null {
+  if (radius === null || points.length < 3) return null;
+  const c0 = P.project(0, 0, 0), c1 = P.project(1, 0, 0), c2 = P.project(0, 1, 0);
+  const sc = Math.max(Math.hypot(c1.x - c0.x, c1.y - c0.y), Math.hypot(c2.x - c0.x, c2.y - c0.y));
+  const r = radius * rmsDistance(points) * sc;
+  if (!(r >= 2 && r < Math.min(P.W, P.H) / 4)) return null;
+  const x = P.W - 96 - r, y = 72 + r;
+  return { x, y, r, captionX: Math.min(x, P.W - 180), captionY: y + r + 5 };
+}
+
+/** The banner's box over a weakly determined map: at most 440 px wide, 84 tall, at 38 % of the height. */
+export function bannerBox(W: number, H: number): { x: number; y: number; w: number; h: number } {
+  const w = Math.min(W - 40, 440);
+  return { x: W / 2 - w / 2, y: H * 0.38, w, h: 84 };
+}
+
+/** The banner's body in lines as the panel wraps it: word by word, a line full past `width`. */
+export function wrapWords(text: string, width: number, measure: (line: string) => number): string[] {
+  const lines: string[] = [];
+  let line = "";
+  for (const w of text.split(" ")) {
+    const next = line ? `${line} ${w}` : w;
+    if (measure(next) > width) { lines.push(line); line = w; } else line = next;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+/** The notes at the bottom centre, top to bottom: the sparse design (not under the banner, which
+ *  says more), then how many objects are labelled when a large map had to drop labels. */
+export function statementNotes(st: MapStatements, labels: { shown: number; wanted: number }, objects: number): { colour: string; text: string }[] {
+  const notes: { colour: string; text: string }[] = [];
+  if (st.sparse && !st.weak) notes.push({ colour: "#ffd27a", text: st.texts.sparse });
+  if (labels.shown < labels.wanted && objects > 30) notes.push({ colour: "#8b96a3", text: st.texts.labelled(labels.shown, objects) });
+  // The respondent map's note below its minimum number of objects joins these (plan sociomap-5-web, chunk 4).
+  return notes;
+}
+
+/** The panel's `drawAiaOverlay66` on the object map: the circle, the veil and banner, the notes. */
+function drawStatements(ctx: CanvasRenderingContext2D, P: Projection, scene: MapScene, labels: { shown: number; wanted: number }): void {
+  const st = scene.statements!;
+  const { W, H } = P;
+  ctx.save();
+  ctx.font = "600 11px system-ui";
+  ctx.textBaseline = "top";
+  const circle = uncertaintyCircle(P, scene.nodes.filter((n) => n.primary), st.radius);
+  if (circle) {
+    ctx.setLineDash([4, 3]);
+    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = "rgba(255,255,255,.9)";
+    ctx.beginPath();
+    ctx.arc(circle.x, circle.y, circle.r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.arc(circle.x, circle.y, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#cfd6de";
+    ctx.fillText(st.texts.caption, circle.captionX, circle.captionY);
+  }
+  ctx.textAlign = "left";
+  if (st.weak) {
+    ctx.fillStyle = "rgba(7,9,12,.62)";
+    ctx.fillRect(0, 0, W, H);
+    const box = bannerBox(W, H);
+    const none = st.splitHalf === null;
+    ctx.fillStyle = "rgba(7,9,12,.92)";
+    ctx.strokeStyle = "rgba(255,255,255,.25)";
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(box.x, box.y, box.w, box.h, 8); else ctx.rect(box.x, box.y, box.w, box.h);
+    ctx.fill();
+    ctx.stroke();
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#fff";
+    ctx.font = "700 15px system-ui";
+    ctx.fillText(none ? st.texts.noStructureTitle : st.texts.weakTitle, W / 2, box.y + 12);
+    ctx.font = "500 11.5px system-ui";
+    ctx.fillStyle = "#cfd6de";
+    const body = none ? st.texts.noStructureBody : st.texts.weakBody(Math.round(100 * st.splitHalf!));
+    wrapWords(body, box.w - 28, (line) => ctx.measureText(line).width).forEach((line, k) => ctx.fillText(line, W / 2, box.y + 38 + 15 * k));
+  }
+  const notes = statementNotes(st, labels, scene.nodes.length);
+  ctx.font = "600 11px system-ui";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  notes.forEach((note, k) => { ctx.fillStyle = note.colour; ctx.fillText(note.text, W / 2, H - 14 - 16 * (notes.length - 1 - k)); });
   ctx.restore();
 }

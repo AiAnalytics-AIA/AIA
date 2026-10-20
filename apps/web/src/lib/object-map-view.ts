@@ -64,7 +64,8 @@ export type ObjectMapArtifact = {
       };
   // aia-sociomap-5, a MAPPED map only: the split-half check (null without a score, when the
   // no-reliable-pair rule decides) and the uncertainty radius in units of the map's RMS
-  // inter-object distance (null when the bootstrap maps cannot be computed). Not drawn yet.
+  // inter-object distance (null when the bootstrap maps cannot be computed). Drawn on the map by
+  // object-map-panel.ts as the panel does (the banner, the uncertainty circle).
   credibility?: {
     rule: "split_half" | "no_reliable_pair";
     split_half: number | null;
