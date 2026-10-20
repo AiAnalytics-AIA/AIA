@@ -518,7 +518,8 @@ function RespondentCounts({ map, segments }: { map: ObjectMapArtifact; segments:
   return (
     <div className="flex flex-col gap-1 rounded-[10px] border border-border bg-surface-raised p-4 text-xs" data-testid="object-map-respondent-counts">
       <h4 className="font-semibold">{t("research.exec.objectMap.panel.mapRespondents")}</h4>
-      {note ? row("countIndicative", tv("research.exec.objectMap.panel.countIndicativeValue", { n: note.objects, min: note.minObjects }), t("research.exec.objectMap.panel.countIndicativeHelp")) : null}
+      {/* Only a map whose respondents can be placed is "indicative"; otherwise the map's own note says nobody is. */}
+      {note?.placeable ? row("countIndicative", tv("research.exec.objectMap.panel.countIndicativeValue", { n: note.objects, min: note.minObjects }), t("research.exec.objectMap.panel.countIndicativeHelp")) : null}
       {row("countPlaced", tv("research.exec.objectMap.panel.countPlacedValue", { share: share(c.PLACED), n: count(c.PLACED) }), t("research.exec.objectMap.panel.countPlacedHelp"))}
       {row("countFaded", tv("research.exec.objectMap.panel.countFadedValue", { share: share(c.FADED), n: count(c.FADED) }), t("research.exec.objectMap.panel.countFadedHelp"))}
       {c.NOT_PLACED ? row("countNotPlaced", count(c.NOT_PLACED), tv("research.exec.objectMap.panel.countNotPlacedHelp", { ratings })) : null}

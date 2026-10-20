@@ -380,6 +380,7 @@ describe("the respondent map", () => {
     show();
     await nextFrame(before);
     expect(texts).toContain("Sada má 4 objekty: respondenty nelze umístit (potřeba aspoň 5 hodnocení)");
+    expect(screen.getByTestId("object-map-respondent-counts").textContent).not.toContain("orientační");
   });
 
   it("veils a weakly determined respondent map too, and offers no switch without a stored respondent map", async () => {
