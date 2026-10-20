@@ -148,6 +148,50 @@ A step never starts on a revision other than the one frozen in it.
 executor. Off, the wallet still exists and every paid job is a card again (MVP-13's behaviour, the
 fallback). `chat_start` needs only the wallet.
 
+### 7. Approval cards: one path, every kind listed
+
+With Q24 the owner asked "how many different cards do we have, i want to know more about how we
+plan to systematically create these cards". Every card is built on **one path**:
+
+1. **prepare**, bound to the revision it was prepared on (LO10; decision 5);
+2. **price**, through one cost-ceiling function shared by the API and the worker
+   (`deep-research-web-search` 55);
+3. **approve**, through `approve_request` or the plan path (LO4; decision 4);
+4. **record**, one row in the approval ledger (ADR 0019).
+
+A new kind of card is a new entry on this path, never a new path. The kinds (planning 3's inventory,
+2026-10-20; chunks as at #523 @ `ec1265a`):
+
+| # | Card | State | Where it is decided or planned |
+|---|---|---|---|
+| 1 | Change block | built | ADR 0026; `research-lead-workbench` 6 |
+| 2 | Decision / request card | built | ADR 0026 d7; `research-lead-workbench` 6, `approve_request` |
+| 3 | Spend confirmation, *Náklady běhu* | built | ADR 0019 gate 2 |
+| 4 | Study budget lift, *Zvýšit rozpočet a pokračovat* | built | ADR 0019 |
+| 5 | Client budget lift | built | `client-budget` CB4, `client-knowledge-lifecycle` K2d5 |
+| 6 | *Pamatovat si* | built | ADR 0026 d6 |
+| 7 | Design proposal accept | built | ADR 0026; `research-lead-workbench` 7 (inline, 17) |
+| 8 | *Ke schválení* | built | ADR 0019 gate 1; `client-knowledge-lifecycle` K2f |
+| 9 | *Ověřeno, přidat zdroj* | built | `application/verified_sources.py` |
+| 10 | Report approval | built | ADR 0019 gate 3; `report-delivery` RD3, RD4 |
+| 11 | Prompt / methodology version activation | built | ADR 0020, ADR 0023; the Metodik mark (`signed-off-sociomap-method` 10, ADR 0038) |
+| 12 | Plan card | planned | `lead-orchestration` LO4, LO17; decision 4 |
+| 13 | CLASSIFIED web lookup card | planned | `lead-orchestration` LO20; ADR 0040 decision 3 |
+| 14 | Revision binding on every card | planned | `lead-orchestration` LO10; decision 5 |
+| 15 | Per-change accept and undo | planned | `working-copy-edit-ops` WCE6; ADR 0029 |
+| 16 | Worker and Deep Research result cards | planned | `research-lead-workbench` 23, `lead-orchestration` LO9a |
+| 17 | *Peněženka* raise | planned | `lead-orchestration` LO1, K11; decision 2 |
+| 18 | Proposed Lead updates | planned | `lead-orchestration` LO11; ADR 0030 |
+| 19 | *Poznámky ke studii* and report suggestions | planned | `lead-orchestration` LO19, `report-delivery` RD6, `research-lead-workbench` 33; ADR 0035, ADR 0039 |
+| 20 | QC keep-or-flag | planned | `run-qc-and-checkpoint` RQC4 |
+| 21 | Sociomap unlock | planned | `working-copy-edit-ops` WCE8; ADR 0029 decision 8 |
+| 22 | Typed chat start: **not a card** | planned | `lead-orchestration` LO5; decision 3 |
+
+Three overlaps are folded, not built twice: (a) a run start is one card, not three (the decision card,
+LO4's one-item plan card and `research-lead-workbench` 23); (b) the four money prompts (3, 4, 5, 17)
+share one budget component and keep D-01's names; (c) the accepts (1, 7, 8, 15, 19) share one accept
+path with five bodies.
+
 ## Alternatives considered
 
 - **Keep MVP-13, one card per job.** The owner superseded it; it is the fallback when the switch is
