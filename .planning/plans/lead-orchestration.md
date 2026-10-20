@@ -1,5 +1,5 @@
 ---
-status: planned
+status: in-progress
 chunks:
   - "[ ] LO0. The contract ADR and the money vocabulary: wallet cap, `budget_usd`, `spend_confirm_usd`, the client ceiling, `clients.budget_usd`, OI-64, one precedence"
   - "[ ] LO1. The wallet (M4): `study_wallets`, `_raises`, `_charges` and `clients.wallet_ceiling_usd`; charges for paid work including Deep Research"
@@ -19,7 +19,7 @@ chunks:
   - "[ ] LO12b. A pre-flight read of the AI route (W1): the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`), and the new refusal reasons"
   - "[ ] LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02"
   - "[ ] LO14. The Lead's cost per turn measured, and an `AIA_LEAD_*` kill switch and budget line"
-  - "[ ] LO16. The approval ledger's subject types (lane migration M3, W0, the first migration): `approval_decisions.subject_type` extended with `wallet`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot` and `sociomap_unlock`; S3 writes it"
+  - "[x] LO16. The approval ledger's subject types (lane migration M3, W0, the first migration): `approval_decisions.subject_type` extended with `wallet`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot` and `sociomap_unlock`; S3 writes it"
   - "[ ] LO15. Server spend enforcement (W0): `ResearchAgentJobs.start` and `rebuild` apply `spend_confirm_usd` as `ResearchRuns.start` does, and record the confirmation in the ledger; tested through direct HTTP start and rebuild and through the Lead's approve path"
   - "[ ] LO5a. Deep Research from the Lead: a plan-step kind and a typed chat start, priced by deep-research-web-search 55's ceiling (D-12)"
   - "[ ] LO12c. The composition digest stored on each run and served over HTTP (D-09; the record #513 called MP6b)"
@@ -303,4 +303,18 @@ unless stated.
   rows an existing writer already records, e.g. `knowledge_revision` in the knowledge repository's
   revisions, `budget_lift` in `resume_budget_wait`'s ledger row) is decided in LO16's PR, by S3 and
   the owner; until then LO16's list is unchanged.
+
+## LO16 delivered (2026-10-21)
+
+Migration M3, `5054d4d610c2` (down revision `57eaa96a5538`), admits the seven subjects; the
+closed set is `domain/approval_ledger.py` `ApprovalSubject`, from which `tables.py` builds the
+CHECK; every writer names its subject through the enum; `WorkflowRepository.ledger` reads a
+study's rows under all three scope columns. Tests: `packages/aia_core/tests/test_approval_ledger.py`
+(round trip of every subject, isolation across study, client and a forged organization column,
+the upgrade and the refusing downgrade on PostgreSQL). Two `layer_check` rules: the ledger table
+is touched only by its two repositories, and a subject is never a string of its own. The design's
+proposed extra subjects (`qc_decision`, `study_note`, `report_edit`, `knowledge_revision`,
+`budget_lift`) are **not** admitted: LO16's list is unchanged until the owner and S3 decide, and
+admitting any of them later is a new migration on the same constraint, which M3 exists to avoid
+(`budget_lift` is already `budget`; `knowledge_revision` is the knowledge repository's revisions).
 

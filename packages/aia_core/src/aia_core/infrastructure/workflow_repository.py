@@ -31,6 +31,7 @@ from typing import Any, cast
 from sqlalchemy import CursorResult, func, or_, select, update
 from sqlalchemy.orm import Session
 
+from ..domain.approval_ledger import ApprovalSubject, LedgerEntry
 from ..domain.population import (
     JointState,
     PopulationBinding,
@@ -2279,7 +2280,7 @@ class WorkflowRepository:
                 organization_id=run.organization_id,
                 client_id=run.client_id,
                 study_id=study_id,
-                subject_type="budget",
+                subject_type=ApprovalSubject.BUDGET,
                 subject_id=step_id,
                 run_id=step.run_id,
                 step_id=step_id,
@@ -2339,7 +2340,7 @@ class WorkflowRepository:
                 organization_id=self.scope.organization_id,
                 client_id=self.scope.client_id,
                 study_id=self.scope.study_id,
-                subject_type="spend",
+                subject_type=ApprovalSubject.SPEND,
                 subject_id=run_id,
                 run_id=run_id,
                 gate_type="spend",
@@ -2389,7 +2390,7 @@ class WorkflowRepository:
                 organization_id=self.scope.organization_id,
                 client_id=self.scope.client_id,
                 study_id=self.scope.study_id,
-                subject_type="answerability",
+                subject_type=ApprovalSubject.ANSWERABILITY,
                 subject_id=run_id,
                 run_id=run_id,
                 gate_type="answerability",
@@ -2447,7 +2448,7 @@ class WorkflowRepository:
         recorded = self._session.scalar(
             select(ApprovalDecisionRow.decision_id).where(
                 ApprovalDecisionRow.study_id == self.scope.study_id,
-                ApprovalDecisionRow.subject_type == "ai_proposal",
+                ApprovalDecisionRow.subject_type == ApprovalSubject.AI_PROPOSAL,
                 ApprovalDecisionRow.subject_id == run_id,
                 ApprovalDecisionRow.decision == "accept",
             )
@@ -2464,7 +2465,7 @@ class WorkflowRepository:
                 organization_id=self.scope.organization_id,
                 client_id=self.scope.client_id,
                 study_id=self.scope.study_id,
-                subject_type="ai_proposal",
+                subject_type=ApprovalSubject.AI_PROPOSAL,
                 subject_id=run_id,
                 run_id=run_id,
                 project_id=project_id,
@@ -2503,7 +2504,7 @@ class WorkflowRepository:
         recorded = self._session.scalar(
             select(ApprovalDecisionRow.decision_id).where(
                 ApprovalDecisionRow.study_id == self.scope.study_id,
-                ApprovalDecisionRow.subject_type == "ai_proposal",
+                ApprovalDecisionRow.subject_type == ApprovalSubject.AI_PROPOSAL,
                 ApprovalDecisionRow.subject_id == run_id,
                 ApprovalDecisionRow.decision.in_(("accept", "dismiss")),
             )
@@ -2520,7 +2521,7 @@ class WorkflowRepository:
                 organization_id=self.scope.organization_id,
                 client_id=self.scope.client_id,
                 study_id=self.scope.study_id,
-                subject_type="ai_proposal",
+                subject_type=ApprovalSubject.AI_PROPOSAL,
                 subject_id=run_id,
                 run_id=run_id,
                 project_id=run.project_id,
@@ -2543,7 +2544,7 @@ class WorkflowRepository:
         rows = self._session.execute(
             select(ApprovalDecisionRow.subject_id, ApprovalDecisionRow.decision).where(
                 ApprovalDecisionRow.study_id == self.scope.study_id,
-                ApprovalDecisionRow.subject_type == "ai_proposal",
+                ApprovalDecisionRow.subject_type == ApprovalSubject.AI_PROPOSAL,
                 ApprovalDecisionRow.subject_id.in_(list(run_ids)),
             )
         ).all()
@@ -2584,7 +2585,7 @@ class WorkflowRepository:
         recorded = self._session.scalar(
             select(ApprovalDecisionRow.decision_id).where(
                 ApprovalDecisionRow.study_id == self.scope.study_id,
-                ApprovalDecisionRow.subject_type == "lead_edit",
+                ApprovalDecisionRow.subject_type == ApprovalSubject.LEAD_EDIT,
                 ApprovalDecisionRow.subject_id == subject,
             )
         )
@@ -2600,7 +2601,7 @@ class WorkflowRepository:
                 organization_id=self.scope.organization_id,
                 client_id=self.scope.client_id,
                 study_id=self.scope.study_id,
-                subject_type="lead_edit",
+                subject_type=ApprovalSubject.LEAD_EDIT,
                 subject_id=subject,
                 run_id=lead_run_id,
                 project_id=run.project_id,
@@ -2644,7 +2645,7 @@ class WorkflowRepository:
         recorded = self._session.scalar(
             select(ApprovalDecisionRow.decision_id).where(
                 ApprovalDecisionRow.study_id == self.scope.study_id,
-                ApprovalDecisionRow.subject_type == "lead_job_request",
+                ApprovalDecisionRow.subject_type == ApprovalSubject.LEAD_JOB_REQUEST,
                 ApprovalDecisionRow.subject_id == turn_id,
             )
         )
@@ -2660,7 +2661,7 @@ class WorkflowRepository:
                 organization_id=self.scope.organization_id,
                 client_id=self.scope.client_id,
                 study_id=self.scope.study_id,
-                subject_type="lead_job_request",
+                subject_type=ApprovalSubject.LEAD_JOB_REQUEST,
                 subject_id=turn_id,
                 run_id=lead_run_id,
                 project_id=run.project_id,
@@ -2703,7 +2704,7 @@ class WorkflowRepository:
         recorded = self._session.scalar(
             select(ApprovalDecisionRow.decision_id).where(
                 ApprovalDecisionRow.study_id == self.scope.study_id,
-                ApprovalDecisionRow.subject_type == "lead_self_update",
+                ApprovalDecisionRow.subject_type == ApprovalSubject.LEAD_SELF_UPDATE,
                 ApprovalDecisionRow.subject_id == turn_id,
             )
         )
@@ -2719,7 +2720,7 @@ class WorkflowRepository:
                 organization_id=self.scope.organization_id,
                 client_id=self.scope.client_id,
                 study_id=self.scope.study_id,
-                subject_type="lead_self_update",
+                subject_type=ApprovalSubject.LEAD_SELF_UPDATE,
                 subject_id=turn_id,
                 run_id=lead_run_id,
                 project_id=run.project_id,
@@ -2744,9 +2745,11 @@ class WorkflowRepository:
         if not turn_ids:
             return {}
         subjects = or_(
-            ApprovalDecisionRow.subject_type.in_(("lead_job_request", "lead_self_update"))
+            ApprovalDecisionRow.subject_type.in_(
+                (ApprovalSubject.LEAD_JOB_REQUEST, ApprovalSubject.LEAD_SELF_UPDATE)
+            )
             & ApprovalDecisionRow.subject_id.in_(list(turn_ids)),
-            (ApprovalDecisionRow.subject_type == "lead_edit")
+            (ApprovalDecisionRow.subject_type == ApprovalSubject.LEAD_EDIT)
             & or_(
                 *(
                     ApprovalDecisionRow.subject_id.startswith(f"{t}:", autoescape=True)
@@ -2761,7 +2764,7 @@ class WorkflowRepository:
         ).all()
         found: dict[str, dict[str, Any]] = {}
         for row in rows:
-            if row.subject_type == "lead_self_update":
+            if row.subject_type == ApprovalSubject.LEAD_SELF_UPDATE:
                 entry = found.setdefault(row.subject_id, {"edits": {}, "request": None})
                 entry.setdefault(
                     "self_update",
@@ -2771,7 +2774,7 @@ class WorkflowRepository:
                     },
                 )
                 continue
-            if row.subject_type == "lead_job_request":
+            if row.subject_type == ApprovalSubject.LEAD_JOB_REQUEST:
                 entry = found.setdefault(row.subject_id, {"edits": {}, "request": None})
                 if entry["request"] is None:
                     comment = json.loads(row.comment or "{}")
@@ -2792,6 +2795,42 @@ class WorkflowRepository:
                 },
             )
         return found
+
+    def ledger(self, subjects: Collection[ApprovalSubject] | None = None) -> list[LedgerEntry]:
+        """This study's approval-ledger rows, oldest first, of ``subjects`` (every subject by
+        default): what was decided, on what, by whom, and whether by the producer themself.
+
+        The rows are read under all three of the scope's columns (organization, client,
+        study), so another study's decisions, or another organization's, are never in it. A
+        stored subject no :class:`ApprovalSubject` names cannot be (the CHECK constraint holds
+        the same set); one would raise here rather than be read as something it is not.
+        """
+        where = [
+            ApprovalDecisionRow.organization_id == self.scope.organization_id,
+            ApprovalDecisionRow.client_id == self.scope.client_id,
+            ApprovalDecisionRow.study_id == self.scope.study_id,
+        ]
+        if subjects is not None:
+            if not subjects:
+                return []
+            where.append(ApprovalDecisionRow.subject_type.in_(sorted(subjects)))
+        rows = self._session.scalars(
+            select(ApprovalDecisionRow).where(*where).order_by(ApprovalDecisionRow.decision_id)
+        ).all()
+        return [
+            LedgerEntry(
+                decision_id=row.decision_id,
+                subject=ApprovalSubject(row.subject_type),
+                subject_id=row.subject_id,
+                run_id=row.run_id,
+                decision=row.decision,
+                approver_user_id=row.approver_user_id,
+                self_approved=row.self_approved,
+                comment=row.comment,
+                created_at=as_utc(row.created_at),
+            )
+            for row in rows
+        ]
 
     def record_design_research_acceptance(
         self,
@@ -2822,7 +2861,7 @@ class WorkflowRepository:
         recorded = self._session.scalar(
             select(ApprovalDecisionRow.decision_id).where(
                 ApprovalDecisionRow.study_id == self.scope.study_id,
-                ApprovalDecisionRow.subject_type == "design_research",
+                ApprovalDecisionRow.subject_type == ApprovalSubject.DESIGN_RESEARCH,
                 ApprovalDecisionRow.subject_id == selection_id,
             )
         )
@@ -2838,7 +2877,7 @@ class WorkflowRepository:
                 organization_id=self.scope.organization_id,
                 client_id=self.scope.client_id,
                 study_id=self.scope.study_id,
-                subject_type="design_research",
+                subject_type=ApprovalSubject.DESIGN_RESEARCH,
                 subject_id=selection_id,
                 run_id=run_id,
                 project_id=project_id,
@@ -3074,7 +3113,7 @@ class WorkflowRepository:
                 organization_id=self.scope.organization_id,
                 client_id=self.scope.client_id,
                 study_id=self.scope.study_id,
-                subject_type="gate",
+                subject_type=ApprovalSubject.GATE,
                 subject_id=gate_id,
                 run_id=gate.run_id,
                 step_id=gate.step_id,
