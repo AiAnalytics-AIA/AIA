@@ -8,7 +8,8 @@ index's *Not decided anywhere* list. ECS Fargate is **not** chosen for the MVP. 
 [ADR 0003](0003-cognito-identity-boundary.md), [ADR 0008](0008-eu-data-residency.md) and
 [ADR 0010](0010-bedrock-eu-inference-route.md). **Leaves unchanged** develop, its host and its
 deploy, and every application guard of `AIA_ENV=production`.
-**Date:** 2026-10-20
+**Date:** 2026-10-20. **Amended 2026-10-20** with the product owner's recorded answers D-19, D-20
+and D-21 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`); still Proposed.
 **Plan:** [production-environment](../../../.planning/plans/production-environment.md) PE0-PE9b
 
 ## Context
@@ -97,8 +98,27 @@ to ADR 0010 (retention confirmed, the route parameters set), recorded for produc
 route approved on develop is not approved in production by inheritance. `AIA_AI_ROUTE_ID` equals
 `bedrock-eu-primary`, the only route panel lineage may reach
 (`domain/licence_determinations.py:40 @ 854c209`). Deep Research's settings are approved per
-organization in production (ADR 0022). Outbound web traffic keeps `RetrievalGate`'s per-hop checks;
-the network layer is decided by PE4 (*Open for Nigel*, 2).
+organization in production (ADR 0022).
+
+**Egress** (the product owner, 2026-10-20, D-19): the worker's outbound traffic goes through a proxy
+that blocks private, link-local and cloud metadata ranges only, with no hostname allow-list, so
+Deep Research keeps its decided reach (fetch from any public host). The boundary is the
+application's: `RetrievalGate` and its fetcher check every hop and every address, as they do on
+develop (`infrastructure/web_retrieval.py`). The proxy is defence in depth for a bug in those
+checks, not a list of permitted publishers.
+
+### 7. Sizing, hostname and cost attribution
+
+The proposed sizes are accepted (the product owner, 2026-10-20, D-20): `t3a.large` for the host and
+`db.t4g.medium` for RDS, confirmed by a measurement on develop under the acceptance run before the
+first apply; the Bedrock quota is raised before the first client run. The production hostname is on
+a new domain the owner will name ("i will be changing to a new domain"); nothing in `infra/production`
+hard-codes one, and the Cognito callbacks and Caddy hostname are variables.
+
+Production uses **tagged application inference profiles** (the product owner, 2026-10-20, D-21), one
+per model in use, tagged `Environment=production`, so its Bedrock spend is attributable from the
+first run and reconciles with AIA's ledger (AC-15). The worker accepts a profile ARN where it
+accepts an `eu.` id today (`ai_runtime.py:254, 516`, PE7, after `develop-spend-attribution` 5a).
 
 ## Alternatives considered
 
@@ -115,11 +135,13 @@ the network layer is decided by PE4 (*Open for Nigel*, 2).
 - One host is a single point of failure: RDS protects the data, not availability. Accepted for an
   internal tool at about ten users.
 - A second Cognito pool means a second set of Google callbacks and a second user list.
-- The worker must accept a tagged profile (PE7, after `develop-spend-attribution` 5a), or the plan
-  uses `eu.` ids and gives up per-environment cost attribution.
+- The worker must accept a tagged profile ARN before production's first run (PE7, after
+  `develop-spend-attribution` 5a).
 
 ## What enforces it
 
+- An egress test on the production host: a fetch to a private, link-local or metadata address is
+  refused by the application and again by the proxy; a fetch to an unlisted public host succeeds.
 - PE3: `terraform fmt -check`, `validate` and `plan` on every pull request that touches `infra/`
   (a separate PR, since `ci.yml` is outside the docs-only path list).
 - A Terraform test or plan check: neither `infra/develop` nor `infra/production` declares an
@@ -136,13 +158,15 @@ the network layer is decided by PE4 (*Open for Nigel*, 2).
 
 ## Open for Nigel
 
-1. **The production hostname, RDS and host sizing and the Bedrock quota** (owner and operator;
-   `t3a.large` and `db.t4g.medium` are proposals to measure on develop first).
-2. **Egress in production.** PE4 proposes a forward proxy with a hostname allow-list; the decided
-   reach is fetch from any public host (`deep-research-web-search`, the owner's 2026-10-19
-   "never hear that this limitation exists"). A proxy with a list contradicts that. This ADR keeps
-   the application's per-hop checks as the boundary and leaves the network layer to PE4; the
-   choice is the owner's: an allow-list (narrower reach) or a proxy that only blocks private and
-   metadata ranges.
-3. **Tagged profiles or `eu.` ids** (PE7, MVP-30): whether production needs per-environment cost
-   attribution at release.
+Answered by the product owner on 2026-10-20 (`answers-2026-10-20.md`, #523 @ `ee21982`), and
+written into decisions 6 and 7:
+
+1. ~~Hostname, sizing and quota.~~ The proposed sizes accepted; a new domain (D-20).
+2. ~~Egress in production.~~ A proxy that blocks private and metadata ranges only; the application's
+   checks are the boundary (D-19, b).
+3. ~~Tagged profiles or `eu.` ids.~~ Tagged profiles (D-21, a).
+
+Still open:
+
+1. **The production hostname itself**: the new domain's name, needed before the Cognito pool and the
+   Google callbacks are created (owner and operator).
