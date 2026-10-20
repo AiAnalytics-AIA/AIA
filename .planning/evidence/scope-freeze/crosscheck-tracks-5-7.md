@@ -141,8 +141,14 @@ still assumes `-3` is a finding. The decision itself is recorded nowhere in the 
   - E30's "carries Stress-1" (a wording problem only: `report_maps.py:243-250` already handles a `-5` map with no Stress-1).
 - *Reproduction.* `grep -n "sociomap-formula-corrections#3" .planning/plans/mvp-master-plan.md .planning/mvp-execution-contracts.md` → the AC-09 row and E14.
 - *Consequence.* Two respondent maps and two segmentations under different methods. Or W2 waits on an F10 threshold the MVP no longer needs.
-- *Smallest fix.* `segment-maps-and-drilldown#0` records the disposition: respondent and segment maps are `-5`'s stored `respondents` and `respondents.segments`. `sociomap-formula-corrections#3` becomes POST, or gets a stated reason. Segment#2 and #3 are re-scoped to consume `-5`. The AC-09 row and E14, E29, E30 and E31 are rewritten.
-- *Test.* An AC-09 acceptance case asserts that the map artifact's `respondents.status == "computed"` and its segments come from the pinned `-5` method.
+- *Smallest fix.* `segment-maps-and-drilldown#0` records the disposition. Respondents and segments are treated differently:
+  - **Respondent map.** It is `-5`'s stored `respondents`. `sociomap-formula-corrections#3` becomes POST, or gets a stated reason.
+  - **Segments.** Defined segments stay the default (MVP-17, `segment-maps-and-drilldown.md:28`; MVPQ-03, the sampler's descriptors, `mvp-cohesion.md:716`; chunks 1-2). Chunk 2 keeps its scope and computes each defined segment's map under the pinned `-5` method rather than "the existing contract-3 engine". `-5`'s `respondents.segments` (taste clusters) is a candidate for chunk 3's clustering *option*, and the methodology owner decides it under chunk 0. It is never a replacement for the defined segments. (Corrected after review, 2026-10-20: the first version re-scoped chunks 2 and 3 to consume `-5` outright.)
+  - **Register and contracts.** The AC-09 row and E14, E29, E30 and E31 are rewritten.
+- *Test.* An AC-09 acceptance case asserts three things:
+  - the map artifact's `respondents.status == "computed"` under the pinned `-5` method;
+  - each defined segment's map is computed from the sampler's descriptors;
+  - any clustered segments are labelled "found by clustering".
 - *Owner.* `segment-maps-and-drilldown#0`, plus the master §3.4 AC-09 row.
 - *Wave.* W1 (E13), before any W2 numerical work.
 
@@ -439,9 +445,10 @@ still assumes `-3` is a finding. The decision itself is recorded nowhere in the 
 - *Claim.* The verdict is `NOT_RUNNABLE` while any of the 53 on-path capabilities is not PASS + IMPLEMENTED, and `NOT_EXECUTED` otherwise (`tools/parity_status.py:297, 375-378`; pinned by `packages/aia_core/tests/test_parity_status_tool.py:339`). It never reads the acceptance test's JUnit, so parity still gates the acceptance line, against MVP-21 (`mvp-acceptance.md:20-22`). Three on-path capabilities can never become ready as declared: `config.edition`, `artifacts.registration`, and `project.memory` (`parity-matrix.json:2573`, NOT_STARTED with no gates, although `core/application/project_memory.py` and its API tests exist). Harness#8 changes only the exit code (`mvp-acceptance-harness.md:95-114`).
 - *Reproduction.* `python3 tools/parity_status.py | tail -1` (run here).
 - *Consequence.* The record's "parity report as information" line (harness#6) contradicts the record's own PASS lines for ever.
+- *Narrowed after review (2026-10-20).* `mvp-acceptance-harness#3` already owns the acceptance step's JUnit (`--junit-xml … -o junit_family=xunit1`, "which `parity_status.py` reads", `mvp-acceptance-harness.md:6, 68-70`). What no chunk says is that `parity_status.py` must *compute MVP-ACCEPT-2's verdict* from that JUnit. Today it reads JUnit only for capability gates, and the acceptance verdict is still `NOT_RUNNABLE`/`NOT_EXECUTED` by construction. So this is an added acceptance line on harness#3, not a new chunk.
 - *Smallest fix.* Compute the acceptance verdict from the acceptance JUnit and report path parity beside it, never in it. Correct the `project.memory` row.
 - *Test.* In `test_parity_status_tool.py`, a passing acceptance JUnit gives PASS while the path capabilities stay NOT_RUNNABLE.
-- *Owner.* New chunk `mvp-acceptance-harness#17`.
+- *Owner.* `mvp-acceptance-harness#3` (an added test line; it already owns the JUnit). No new chunk.
 - *Wave.* W0 (E01).
 
 **A5. The representative study cannot be provisioned over HTTP, and the fixture the harness says to extend is a back door** (G76)
@@ -475,7 +482,13 @@ still assumes `-3` is a finding. The decision itself is recorded nowhere in the 
 **A9. Weight identity, required by AC-05 and AC-15, is not observable over HTTP** (narrowed; G78)
 - *Claim.* The weight is recorded but not served:
   - The run's population note (`core/application/research.py:375-388`) has no weight.
-  - A panel run's fieldwork provenance records `weight_role` (`core/domain/panel_source.py:64-74`, embedded by `exec/ai_fieldwork.py:461-475`), but `ArtifactResponse` has no provenance field (`api/schemas/runs.py:108-135`).
+  - A panel run's fieldwork provenance records `weight_role` (`core/domain/panel_source.py:64-74`, embedded by `exec/ai_fieldwork.py:461-475`), in the payload of the `research_fieldwork_dataset` artifact (`exec/research.py:445-450`). That payload is not served by either route:
+    - The run's artifact route never inlines that type, "whatever its size" (`api/routers/research.py:154-156, 1634-1638`).
+    - The generic project artifact route (`api/routers/runs.py:342-375`) cannot see a research artifact at all: the design project is owned, and only `research_artifacts` reaches it (`core/application/research.py:148-157`).
+    - `ArtifactResponse` has no provenance field (`api/schemas/runs.py:108-135`).
+    - No route reads that artifact type otherwise (`grep -rn research_fieldwork_dataset apps/api/src` → only the `_NEVER_INLINED` line).
+
+    (Checked against review, 2026-10-20.)
   - `weight_column` exists only on the binding row (`core/domain/population/binding.py:108-109`).
   - The report prints the version label only (`core/application/report_method.py:463-468`).
 
