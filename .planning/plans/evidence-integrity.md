@@ -8,6 +8,7 @@ chunks:
   - "[ ] 5. One field-policy authority per evidence source: the population contract's list for panel respondents (MVP-29)"
   - "[ ] 6. Results serves admitted claims: an API over the evidence table with suppression decided server-side, so the screen no longer reads raw aggregates"
   - "[ ] 7. Wire the sealed-bundle external-context producer into module preparation and the Lead; preserve the existing prompt/fingerprint context field and context-not-evidence boundary"
+  - "[ ] 9. A module with no supported finding (MVPQ-04, W1): stored as a structured diagnostic that is not a finding; the report composer and every export refuse while any of the eight modules is blocked or has no supported finding, until it is resolved"
   - "[ ] 8a. A two-origin analysis input and its fingerprint, designed (W1) and reviewed with S3 before client-data-in-analysis 5"
   - "[ ] 8b. The two-origin input wired (W3): the production constructor supplies the client-reported table and the sealed-bundle context, and a changed context or origin changes the module's input fingerprint and payload"
 ---
@@ -75,7 +76,7 @@ name: this plan owns the edit, they review it (`mvp-cohesion.md` F8).
 
 ## Open
 
-- Empty-module behavior is master §11.4 item 4 (decision packet MVPQ-04); this is not permission to print an unsupported hypothesis as a finding.
+- **Empty-module behavior is settled (MVPQ-04, owner 2026-10-20): block the report until the module's lack of supported findings is resolved.** Chunk 9 builds it; no diagnostic may be patched with an invented finding.
 - Replacement identity is settled (F18): a new linked run. Only weighting/effective-n/support semantics remain open in master §11.4 item 10; mechanism and ADR are `run-qc-and-checkpoint#RQC5`.
 
 ## Doc follow-up
@@ -93,8 +94,9 @@ name: this plan owns the edit, they review it (`mvp-cohesion.md` F8).
   second table and a fingerprint that names it. Interfaces I21.
 - **1, settled and open.** MVP-23 flips the parity cases `finding-without-evidence` and
   `no-finding-at-all`, and the report needs all eight modules complete, so one module with no citable
-  finding blocks the internal report. What such a module does (state "no finding, and why" and let the
-  report proceed with the gap named, or block) is the owner's clarification; the rule itself is settled.
+  finding blocks the internal report. **The owner decided on 2026-10-20 that it blocks** until the lack of
+  supported findings is resolved: by a same-data retry, a changed design or more data, never by an invented
+  finding (chunk 9).
 
 
 ## Execution predecessors (2026-10-20)
@@ -104,5 +106,6 @@ Chunks 1 and 5 are W0 rule/authority work; 2-3 and 6 are W1 QC/admitted-result p
 4 and 8b (the implemented two-origin path) are W3. Chunk 7's external-context producer/consumer
 contract is W1 and its wiring is W3 before Interpretation evidence is consumed. Keep this
 requirement visible: integrating Deep Research context is MVP work, not an unrecorded removal.
-The owner decision about a module with no finding blocks its final admission/composer behavior,
-not citation validators or missing-evidence negative tests. No provisional finding is evidence.
+MVPQ-04 is settled (block), so the diagnostic of chunk 9 is W1 and the composer's refusal W3; citation validators and missing-evidence negative tests never waited. No provisional finding is evidence.
+
+**9, added 2026-10-20 (MVPQ-04).** A module that cannot state a supported finding stores a diagnostic: the module, reason codes and what would resolve it (a same-data retry through `retry_analysis`, a changed design, more data). It is not a finding, is not counted as admitted, and appears on Analysis and Results. The composer of the internal report and the exports (internal DOCX and PDF, with literature, client) refuse while any of the eight modules is BLOCKED or empty; the existing "all eight modules complete" rule is the same rule stated once. Test: a module with no finding blocks composition and export, shows its diagnostic, and a patched finding with no claim id is refused by the citation gate.

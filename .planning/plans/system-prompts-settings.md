@@ -316,3 +316,4 @@ executor, and the usage provenance (`system_prompt_sha256` of what was sent). Te
 activation keeps its pin and its identity after it; work started after gets a new identity and so does not
 reuse the old result; a repair call uses the same pin as its initial call. Interfaces I25.
 
+**Coder worker (2026-10-20).** If `assumptions-and-open-answer-coding#AOC7` adds a worker, its prompt is editable and pinned like the eleven (chunks 7 and 13 cover its slot); if the coding method forbids a model coder, nothing is added.

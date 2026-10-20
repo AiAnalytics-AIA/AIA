@@ -93,3 +93,7 @@ Sociomap fields before W1 so WCE2 can enforce protected writes from its first im
 WCE1-WCE7, WCE10 and WCE12 are W1; WCE8-WCE9 and WCE11 are W2. WCE10 consumes RQC9's
 single n authority. The W1 locked-write negative test uses the existing lock contract; WCE8 adds
 the complete declaration/unlock editor. WCE11 cannot turn on before WCE9's recorded undo exists.
+
+## Assumption item kind (2026-10-20, MVPQ-02)
+
+Tracked assumptions are a design-item kind with a stable id, extending `WCE0`'s vocabulary and `WCE1`'s identity; `assumptions-and-open-answer-coding#AOC1` owns it. Their status changes are proposals a person accepts through `WCE6`; text edits of the statement are text edits, a status change is structural.

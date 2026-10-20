@@ -14,6 +14,7 @@ chunks:
   - "[ ] 11. The Deep Research evaluations 25, 26 and 39 before the final live chunk 27, and the second live Interpretation run, are in the tier B record and its allocation"
   - "[ ] 12. Production release is a blocker: the record states I-5 as not passed until the production release checklist is done, whatever tier B showed on develop"
   - "[ ] 13. Every prototype scenario (A to M, X1 to X7) is an acceptance journey on recorded doubles; X2 (missing evidence) and X6 (a methodology change refused) stay as negative cases"
+  - "[ ] 15. The assumptions and open-answer coding journey (W5, MVPQ-02) with its refusals, over recorded doubles: `assumptions-and-open-answer-coding#AOC9`"
   - "[ ] 14. The acceptance wording reconciled in the acceptance document and `parity-matrix.json` together, in a PR that runs the tests: AC-02 (approval card and plan), AC-11 (OPEN posture), AC-13 (F17), AC-15 (separate model, tool, reservation, uncertain and billing-lag lines; the USD 0.01 tolerance kept unless the owner changes it)"
 ---
 # The MVP acceptance harness
@@ -158,3 +159,5 @@ prompt identities, deployment/composition and effective policy. It includes crit
 id, expected/actual behavior, evidence artifact ref and cost/reservation/uncertainty lines. For a
 changed input, method, contract, prompt or deployment, identify which evidence must be repeated;
 do not carry a green release decision from an older SHA. Paid reruns still require their allowance.
+
+**15. (2026-10-20)** The journey and refusals of `assumptions-and-open-answer-coding#AOC9` join the acceptance tree: an assumption created, evidence attached, status set by a person, shown in the report; open answers coded, counts admitted, shown in Results and the report; a status without support refused, counts never produced from prose, a codebook change that leaves fieldwork untouched. It runs on recorded doubles in tier A; the model coder, if any, is a recorded double.

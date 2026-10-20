@@ -152,8 +152,8 @@ plan (or to a new plan from #497) before the wave starts.
 
 | S | Work |
 |---|---|
-| S1 | **New** shared edit vocabulary, `workspace_edit_ops` (M1) and `apply_edit_ops`; presence (M2) and the change feed; per-change accept (M6); `research-lead-workbench` 11 (command registry), 14-16 (view vocabulary, frame, pointing with id and revision), 17 (Questionnaire artifact, AI buttons removed), 18-19 (Brief, Design, Sample, Fieldwork); the envelope and plan card (M4, M5) behind `AIA_LEAD_PLANS_ENABLED` |
-| S2 | `run-qc-and-checkpoint` RQC0 first, then RQC1-RQC3, RQC4a and RQC6-RQC8 (QC contracts/node, cost/support outlook and Fieldwork events before the UI); population-built respondents as the default path and its screens; `evidence-integrity` 2-3 (run QC stored and shown); **reach**: `deep-research-web-search` 52 and 53 in code, and `lead-orchestration` LO12b (the composition record the Lead pane and Settings read, with 52) |
+| S1 | **New** shared edit vocabulary, `workspace_edit_ops` (M1) and `apply_edit_ops`; presence (M2) and the change feed; per-change accept (M6); `research-lead-workbench` 11 (command registry), 14-16 (view vocabulary, frame, pointing with id and revision), 17 (Questionnaire artifact, AI buttons removed), 18-19 (Brief, Design, Sample, Fieldwork); the envelope and plan card (M4, M5) behind `AIA_LEAD_PLANS_ENABLED`; `assumptions-and-open-answer-coding` AOC1 (the assumption item kind on the shared vocabulary, status values after AOC0); `research-lead-workbench` 26-27 (the Lead reachable at 1099, 768 and 390 px, the honest fallback with the switch or the kill switch off: MVPQ-11) |
+| S2 | `run-qc-and-checkpoint` RQC0 first, then RQC1-RQC3, RQC4a and RQC6-RQC8 (QC contracts/node, cost/support outlook and Fieldwork events before the UI); population-built respondents as the default path and its screens; `evidence-integrity` 2-3 (run QC stored and shown); **reach**: `deep-research-web-search` 52 and 53 in code, and `lead-orchestration` LO12b (the composition record the Lead pane and Settings read, with 52); `assumptions-and-open-answer-coding` AOC0 and AOC4 written for the methodology owner's approval (`MVPQ-13`, `MVPQ-14`), with `evidence-integrity` 9 (a module with no supported finding stores a diagnostic and blocks composition: MVPQ-04) |
 | S3 | `client-budget` CB5; `client-knowledge-lifecycle` K2e, K2f, K3, K4, K8; `clients.envelope_ceiling_usd` (in M4); **production applied**: RDS, Cognito, buckets, tagged Bedrock profiles, `deploy-production.yml` |
 
 **Exit I-1:** W1 checks the available design workers and existing prompt pins, not all eleven workers or the eight analysis pins (full AC-03 is W3/W5). `lead-orchestration` LO10 binds approval to the card revision; LO13 records the client-level exception if accepted; LO14 provides the turn-cost/budget line. `working-copy-edit-ops` WCE10 supplies Audience/Dimensions/Sample operations and WCE12 the two-person journey. Two sessions edit one study in the acceptance run, the second edit merges or conflicts
@@ -171,7 +171,7 @@ W2 does not start until I-1 and I-R both hold.
 
 | S | Work |
 |---|---|
-| S2 | `sociomap-formula-corrections` I0-I5, 3 (respondent map), 4d; `segment-maps-and-drilldown` 1-6; the results-context **provider** for maps; **reach**: `deep-research-web-search` 6 and 33-37 in order |
+| S2 | `sociomap-formula-corrections` I0-I5, 3 (respondent map), 4d; `segment-maps-and-drilldown` 1-6; the results-context **provider** for maps; **reach**: `deep-research-web-search` 6 and 33-37 in order; `assumptions-and-open-answer-coding` AOC2 (assumption evidence) and AOC5 (coding storage and node), each after its ADR |
 | S1 | The Lead's results-context consumers (LO8 contract already W1, F4); `research-lead-workbench` 20 (Results and Sociomap with filters and drill-down), 22 (Audience, Dimensions); the Lead's lifecycle (M7): signals, proposed updates, admin read |
 | S3 | `client-knowledge-lifecycle` K5 (an owned child; K4 frozen context already W1); own-dimension chips; map-snapshot approval (`two-roles-human-ai-gates` 5b.4, **New** chunk); the Report artifact's Approve and Export panel |
 
@@ -182,9 +182,9 @@ draft ids, QC, bounded and classified), owned by S1, with a provider function fr
 
 | S | Work |
 |---|---|
-| S2 | `run-qc-and-checkpoint` RQC4-RQC5 (worker flag/accept path, then linked replacement after its methodology decision and ADR); `evidence-integrity` 4, the client-data evidence admission (`client-data-in-analysis` 4-5 once its policy is decided) |
-| S3 | `client-data-in-analysis` 0-9 (4-5 with S2, 8a contract already W0, M8); `client-knowledge-lifecycle` K6 (correction/retirement); `deep-research` 4 with S2 (tool ledger, M11); `research-integrity-report` 6-8; `two-roles-human-ai-gates` 5b.4 closes with `report-delivery` RD2-RD4 in W2 (not W3) |
-| S1 | `research-lead-workbench` 21 (Analysis, Report), the three new workers (`interpret_map`, `polish_report`, `flag_straightliners`), `system-prompts-settings` 7 and 13 (the eight analysis pins; method slots read-only); `lead-orchestration` LO9b after RD6's accept contracts |
+| S2 | `run-qc-and-checkpoint` RQC4-RQC5 (worker flag/accept path, then linked replacement after its methodology decision and ADR); `evidence-integrity` 4, the client-data evidence admission (`client-data-in-analysis` 4-5 once its policy is decided); `assumptions-and-open-answer-coding` AOC6 (coded counts as admitted claims), AOC8 (their Results and analysis consumers) |
+| S3 | `client-data-in-analysis` 0-9 (4-5 with S2, 8a contract already W0, M8); `client-knowledge-lifecycle` K6 (correction/retirement); `deep-research` 4 with S2 (tool ledger, M11); `research-integrity-report` 6-8; `two-roles-human-ai-gates` 5b.4 closes with `report-delivery` RD2-RD4 in W2 (not W3); `report-delivery` RD9 and RD10 (the assumptions and open-answer coding chapters) |
+| S1 | `research-lead-workbench` 21 (Analysis, Report), the three new workers (`interpret_map`, `polish_report`, `flag_straightliners`), `system-prompts-settings` 7 and 13 (the eight analysis pins; method slots read-only); `lead-orchestration` LO9b after RD6's accept contracts; `assumptions-and-open-answer-coding` AOC3 (assumption consumers) and AOC7 (the coder, only if the method permits one: a twelfth worker row) |
 
 ### W4 · Deep Research live (gate I-4)
 
@@ -196,7 +196,7 @@ draft ids, QC, bounded and classified), owned by S1, with a provider function fr
 
 ### W5 · Acceptance (gate I-5)
 
-S3 leads: every criterion wired in tier A (`mvp-acceptance-harness` 5-6); tier B on develop within USD
+S3 leads: every criterion wired in tier A (`mvp-acceptance-harness` 5-6, 15: the assumptions and open-answer coding journey); tier B on develop within USD
 25 with the AWS-tagged reconciliation (`develop-spend-attribution` 3, `mvp-acceptance-harness` 7);
 production released by the release PR after a restore test, a rollback rehearsal and the **delete path** (a client's or study's rows and S3 prefixes removed, the RDS snapshot window stated); runbooks. S1 and
 S2 fix what the runs find.
@@ -245,7 +245,7 @@ access: `ARCHITECTURE.md` §7) and its `layer_check` rule in the same PR.
 | The Lead over time and its files | proposed updates, signals, admin read, handover, privacy of turns; amends ADR 0026 decision 8 | W2 M7 |
 | Production environment | a separate environment on the one-host pattern with RDS, in the same AWS account with the mitigations of architecture §6.2; supersedes the "undecided" in ADR 0009 | W1 infra apply |
 | Open posture, classification deferred (amends ADR 0008) | one flag per client in place of classification for Deep Research in the MVP; what CLASSIFIED means for web tracks; the post-MVP redesign note | W0 |
-| Semantic report edits; respondent replacement (ADR 0026 decision 4 requires each) | the deterministic admission rule for each, before a command exists | before `report-delivery` RD6 and `run-qc-and-checkpoint` RQC5 |
+| Assumption evidence; open-answer coding; semantic report edits; respondent replacement (ADR 0026 decision 4 requires each) | the deterministic admission rule for each, before a command exists | before `report-delivery` RD6 and `run-qc-and-checkpoint` RQC5 |
 | Client data's evidence policy (amends ADR 0027) | the policy source for client columns | W3 |
 
 ## 7. Order inside the critical path
