@@ -679,4 +679,29 @@ in force; necessary differences from the prototype are listed in master MP12.
 
 Disposition: MVPQ-01 SETTLED; workbench 15/17–22 and master §11.1/§11.4 reconciled.
 No implementation, scientific parameter, configuration or other owner decision is approved
-by this design-reference choice. The other MVPQ questions remain open.
+by this design-reference choice. Other MVPQ decisions are recorded in the later dated entries below; this entry settles only prototype precedence.
+
+
+## Owner answers MVPQ-02, MVPQ-04 and MVPQ-11 (2026-10-20)
+
+Recorded from the product owner's answers to the decision cards in this session.
+These are decisions, not recommendations; implementation remains open.
+
+| Id | Exact answer | Required disposition |
+|---|---|---|
+| MVPQ-02 | “Both” | Tracked assumptions AND qualitative open-answer coding are first-release scope. Provide real stable assumption items/evidence/status and stored versioned per-answer coding with deterministic counts, Analysis/Report consumers and explicit worker/prompt/price/pin coverage. Coding methodology/admission still requires the methodology owner; scope is not re-asked |
+| MVPQ-04 | “Block the report until resolved” | A module without a supported finding blocks report composition/approval/export. Diagnostic no-finding/gap output is retained, but does not satisfy a required module or unblock the report; no invented finding or silent module omission |
+| MVPQ-11 | “Keep the Lead accessible through a compact drawer or stacked layout” | Narrow supported layouts retain the Lead and the same authority, revision, budget and server gates. Workbench 26 implements/tests the responsive container; no fallback manual AI-start exception. A disabled backend remains disabled and availability is explicit |
+
+Affected work: master §11 settled/open lists and MP12 disposition; assumption/edit
+contracts and Audience/Design/Lead consumers; coding method/producer/admission and
+Analysis/Report consumers; evidence-integrity's module gate; workbench 12/21/22/26;
+worker/prompt registry if expanded; execution graph and release proof; acceptance
+harness and #503's MD/JSON together. Name executable chunks for each new contract
+before implementation. The new scientific coding policy is a named prerequisite,
+not approval inferred from this feature choice.
+
+MVPQ-01, 02, 04 and 11 are now settled. MVPQ-03, 05–10 and 12 remain open.
+Canonical Sociomap Q5/Q6/Q7, replacement weights, client evidence, source-use and
+retention decisions are unchanged. No paid run, infrastructure change, merge or
+release is authorized by recording these answers.

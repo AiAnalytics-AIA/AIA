@@ -1,6 +1,6 @@
 # MVP owner decision packet
 
-2026-10-20. MVPQ-01 is SETTLED by the product owner below. The other questions remain OPEN until the named owner answers. A session,
+2026-10-20. MVPQ-01, MVPQ-02, MVPQ-04 and MVPQ-11 are SETTLED by the product owner below. MVPQ-03, MVPQ-05–10 and MVPQ-12 remain OPEN until the named owner answers. The coding feature's scope is settled; its methodology specification and admission rules still require the methodology owner's approval. A session,
 question widget or usage limit ending is not an answer. Recommendations below
 are proposals, not approvals. The master plan §11.4 is the index; the settled
 decisions remain in §11.1 and the cohesion register.
@@ -31,20 +31,30 @@ Workbench 15 and 17–22 follow V2; MP12 still checks and records any necessary 
 from the existing domain decisions. This question is answered, not an implementation
 completion. Do not ask it again.
 
-## MVPQ-02 — Are assumptions and open-answer coding new MVP features?
+## MVPQ-02 — Assumptions and open-answer coding: SETTLED, 2026-10-20
 
-**Product owner, methodology owner for coding.** Please decide separately:
+**Product owner answer:** “Both.” Tracked assumptions and qualitative coding of open
+answers are required at first release. This closes the feature-scope question; do
+not offer either as optional/post-MVP or re-ask whether it is included.
 
-- Are tracked assumptions required as editable, traceable design items at first release?
-- Is qualitative coding of open answers required at first release, or is displaying
-  the stored open answers sufficient until a separately approved coding method exists?
+**Required planning/implementation:** assumptions are stable, editable, traceable
+items with status, supporting evidence and human-approved updates, connected to
+the design/coverage/Lead context and working-copy vocabulary. Coding has a real
+producer: stored, versioned per-answer assignments over the frozen run's open
+answers, with deterministic theme counts and traceable examples. Connect the
+result to Analysis, Report, claim admission and exact input fingerprints. A
+prototype panel or generated prose is not a coded result.
 
-**Recommendation:** a small explicit assumptions contract if required; treat coding
-as an explicit scope/methodology decision, never infer it from a prototype panel.
-The researcher's private return summary follows LO7's existing context/change-feed
-work; it is not a request to drop that agreed behavior. Existing stable item ids
-and the rest of WCE1 do not wait for a decision about adding an assumption item kind.
-Blocks only those new item/processing contracts, not all manual editing.
+**Still requiring methodology specification:** the codebook/rules, permitted labels
+and multi-label semantics, denominator/missing-answer treatment, review/acceptance
+and scientific admission. Approval of the feature does not choose those rules.
+Name their methodology-owner prerequisite in the coding chunk and gate; do not
+reopen the settled scope. If this creates an additional worker/prompt, update the
+registry, price/pins, harness and acceptance statements explicitly alongside the
+eleven baseline workers. Stable ids and unrelated manual editing can proceed.
+
+The researcher's private return summary remains existing LO7 work; it is not
+removed or made conditional on the new assumptions feature.
 
 ## MVPQ-03 — What defines a segment and what may drill-down expose?
 
@@ -60,16 +70,20 @@ clustering thresholds. Blocks segment 0/0a/1–4 and affected Sociomap I0/I3;
 type/storage proposals and explicit-unavailable UI can proceed. Drill-down remains
 internal and never exported regardless of this answer.
 
-## MVPQ-04 — What happens when a module finds no supported finding?
+## MVPQ-04 — No supported finding: SETTLED, 2026-10-20
 
-**Product owner, with evidence-policy review.** May a module return a structured
-“no supported finding, reason and coverage gap” and let the report proceed,
-or must that module block the report?
+**Product owner answer:** “Block the report until resolved.” If an analysis module
+has no supported finding, report composition/approval/export stays blocked until
+that gap is resolved under the actual evidence/method contract. A structured
+“no finding, reason and coverage gap” is useful diagnostic output and cannot
+satisfy the gate. Do not invent a finding, admit unsupported prose, silently drop
+a required module or count an unavailable module as complete to unblock a report.
 
-**Recommendation:** allow the explicit gap result, without an invented finding or
-admitted claim. Every actual finding still needs admitted support. Blocks the
-final evidence-integrity 1/composer behavior; validators and refusal tests can proceed.
-This does not authorize an unsupported hypothesis to print as an accepted finding.
+Apply this to evidence-integrity 1, its module completion contract, the report
+composer/delivery gates and the acceptance harness/MD/JSON together. The existing
+all-eight-modules rule remains; this answer is not permission to bypass it with a
+coverage note. Preserve same-data analysis retry and frozen numeric outputs. No
+implementation checkbox is completed by this answer.
 
 ## MVPQ-05 — Client-data evidence policy
 
@@ -155,19 +169,26 @@ respondents; do not silently renormalize weights or approve a numerical replacem
 policy. Blocks RQC5's executable replacement behavior and its ADR; lineage/storage
 and refusal contracts can be prepared. This does not reopen whether replacement is MVP.
 
-## MVPQ-11 — AI access in the narrow or switch-off layout
+## MVPQ-11 — Narrow-screen Lead access: SETTLED, 2026-10-20
 
-**Product owner.** Which layout rule should workbench 26 implement?
+**Product owner answer:** “Keep the Lead accessible through a compact drawer or
+stacked layout.” Workbench 26 must retain usable Lead access on narrow screens;
+implementation may choose a compact drawer or stacked view consistent with the
+canonical V2 workspace. This supersedes the recommendation to remove study AI
+below 1100 px and does not authorize fallback manual AI-start buttons.
 
-| Option | Behavior | Consequence |
-|---|---|---|
-| A, current recommendation in master | Remove manual AI starts everywhere; show why the Lead needs the wider workbench | Literal MVP-8; narrow/switch-off fallback loses study-stage AI |
-| B, explicit exception | Fallback keeps manual starts with the same server confirmation/budget checks | Usable fallback but an exception to “every study AI action through the Lead” |
-| C, proposed alternative | Retain Lead access as a compact drawer or stacked view and route every study AI start through it | Preserves authority and access; adds responsive design work and requires explicit agreement on fallback behavior |
+Every supported study layout uses the same revision-bound human authority,
+approved-plan, budget/envelope and LO15 server-confirmation paths. The responsive
+container does not add authority, weaken privacy or alter deterministic results.
+Test 1099/1100 px, smaller supported widths, keyboard/focus/Escape and return to
+the targeted artifact, stale cards and direct HTTP starts. On switch-off/rollback,
+make actual availability explicit; retain compact Lead access when its backend
+is enabled, and keep a genuinely disabled backend disabled. Do not bypass a kill
+switch or restore alternate AI starts to disguise unavailable Lead execution.
 
-No option removes the LO15 server check. Test 1099/1100 px, switch-off entry,
-keyboard/focus and direct HTTP starts. Contract/confirmation work can proceed
-while this layout choice is open; do not block LO15 on a viewport decision.
+This settles the product behavior; the exact responsive composition is an
+engineering/design choice, not another owner question. The separately open
+client-level extraction exception is still MVPQ-08.
 
 ## MVPQ-12 — Canonical Sociomap questions still requiring sign-off
 
@@ -192,7 +213,7 @@ an approved R seam and measured tolerance, not a different scientific method.
 
 Production hostname/callbacks, RDS sizing, quotas, model tiers/prices, Brave plan
 and terms, retention evidence, secrets and measured Lead turn cost are not answered
-by these product questions. M6/M7 and PE5 record the actual operator evidence;
+by these product questions. MP6/MP7 and PE5 record the actual operator evidence;
 unknown stays NOT_READY. No credential, provider sign-off, paid allowance or
 deployment is implied by this document.
 
