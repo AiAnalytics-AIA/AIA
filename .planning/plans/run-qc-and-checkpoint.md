@@ -14,6 +14,8 @@ chunks:
   - "[ ] RQC10. A population double composed in both the API and the worker over HTTP, for tier A's AC-05"
   - "[ ] RQC11. Routing in fieldwork (W1, after working-copy-edit-ops WCE13): a conditional question is asked only of respondents whose earlier answer meets its condition, and the dataset records who was not asked"
   - "[ ] RQC4a. W1 flag contract: deterministic QC flags, ids, lineage and accept-target schema before the W3 model-worker proposal"
+  - "[ ] RQC12. Weight identity over HTTP: weight_role and weight_column in the run's population note and in the report's method section (G78)"
+  - "[ ] RQC13. Fieldwork shows a question's stimulus to each respondent before the question, recorded in the answer's provenance (D-45)"
 ---
 # Run QC and a fieldwork checkpoint
 
@@ -85,3 +87,18 @@ effective-n and support semantics; preparing storage/refusal tests does not appr
 From the independent cross-check of the master plan against the code (`mvp-master-plan.md` §6.1, G47-G57). Anchors are `@ 085abe0`.
 
 **RQC11. Routing in fieldwork (G53, X8; the owner, 2026-10-20: build routing end to end).** Fieldwork today asks every respondent every question, and readiness refuses a conditional one. With `working-copy-edit-ops#WCE13` storing valid conditions, this chunk evaluates each condition on the respondent's own earlier answer, in questionnaire order, asks the question only when it holds, and records "not asked" distinctly from a missing answer, so the filtered base is computable. The checkpoint (RQC0) keeps routing state per respondent. Tests: Q7 is asked only of respondents who answered "never" to Q2; the dataset distinguishes not asked from not answered; a resumed run routes the same way.
+
+## Scope freeze (2026-10-20)
+
+Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
+
+**New chunks.** RQC12 (W1). RQC13 (W2, after `working-copy-edit-ops#WCE14`); a stimulus changes the
+respondent's input, so its prompt part is pinned with the run like the rest of the respondent system.
+
+**Existing chunks, changed.**
+
+- **RQC4 / RQC5 (D-36).** After a replacement the report and the Lead read the newer run and name
+  both.
+- **RQC9.** The valid-n authority is the organization's readiness methodology in force, not a code
+  constant.
+- The attention check (D-43) is **out**.

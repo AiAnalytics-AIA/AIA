@@ -13,6 +13,7 @@ chunks:
   - "[ ] 5b.4 Client-facing release: separate approvals for the client report and each map snapshot, exports after approval (F17); built in report-delivery RD2-RD4, closed when they land"
   - "[x] 6. Retire the grants (tables, routes, UI) after one deploy without them"
   - "[x] 7. Any Researcher starts a client (the owner, 2026-10-05); its status stays with the Admin"
+  - "[ ] 8. Deactivating a member from Settings → Přístup: access ends at once, audited (D-27)"
 ---
 # Two roles, human-with-AI gates
 
@@ -561,3 +562,8 @@ the follow-ups of #112, #113, #114, #117 and #122; findings filed as OI-82 to OI
   `docs/architecture/adr/0004-client-study-isolation.md` and the ADR index: grants no longer exist
   in the schema, the audit rows of past grants remain.
 
+## Scope freeze (2026-10-20)
+
+Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
+
+**New chunk.** 8 (W2), D-27. Membership is the access (ADR 0019), so removal is its only control.

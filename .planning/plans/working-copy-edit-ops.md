@@ -18,6 +18,7 @@ chunks:
   - "[ ] WCE11. Auto-apply per stage (MVP-14, D18): the researcher's `auto_accept_text_edits` gains a per-stage structural choice, off by default"
   - "[ ] WCE12. Journey: two researchers, one study, recorded doubles (the I-1 exit)"
   - "[ ] WCE13. Routing in the questionnaire (W1, with research-lead-workbench 17): route_set sets, edits and removes a display condition, validated by the domain (the condition names an earlier question and an option it has), and readiness accepts a valid conditional question"
+  - "[ ] WCE14. A stimulus item: content shown to respondents before a question (respondents.context), in the edit vocabulary and the design (D-45)"
 ---
 # Working-copy edit operations, merge and the Sociomap lock
 
@@ -109,3 +110,19 @@ From the independent cross-check of the master plan against the code (`mvp-maste
 **WCE13. Routing in the questionnaire (G53, X8; the owner, 2026-10-20: build routing end to end).** Today the code cannot run a condition: readiness FAILs any conditional question, the outlook marks it UNANSWERABLE and fieldwork asks every respondent every question. This chunk makes `route_set` set, edit and remove a display condition through the shared vocabulary, validated by the domain (the condition names an earlier question and one of its options; a cycle or a forward reference is refused by name), and readiness accepts a valid conditional question instead of failing it. Fieldwork is `run-qc-and-checkpoint#RQC11`, the filtered base `evidence-integrity#10`. Test: a condition on Q7 for those who answered "never" to Q2 is stored, passes readiness, and a condition naming a later question is refused.
 
 **WCE11, amended (G56, X11).** The chunk states who performs a structural auto-apply (the researcher's browser session, or a named server path under the person's standing authority, coordinated with G42), where the per-stage choice lives (Můj Vedoucí or the artifact header), and the rule once fieldwork exists (a structural auto-apply is refused or announced in the conversation, never applied silently). Today an automatic accept is an act of the signed-in browser after it sees a turn finish, and `decide_edits` needs the caller's `APPROVE_GATE` and own completed turn, so a continuation turn (LO6) finishing with no browser open applies nothing. Test: with a stage on and no browser open, a continuation turn's structural edit stays pending; after fieldwork exists it is not applied silently.
+
+## Scope freeze (2026-10-20)
+
+Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
+
+**New chunk.** WCE14 (W2), D-45 in; fieldwork carries it (`run-qc-and-checkpoint#RQC13`).
+
+**Existing chunks, changed by the owner's answers.**
+
+- **WCE0 / WCE5 (D-06).** Conflicts are per `(item_key, field)`.
+- **WCE7 / WCE9 (D-07).** An unaccepted change is `REJECTED`; `DROPPED_STALE` when it conflicted.
+- **WCE4.** One feed name, `…/workspace/ops?since=`.
+- **WCE8 (D-30).** The lock covers the declared inputs and the sets they rate.
+- **WCE11 (D-31).** A named server path accepts a structural change under the person's standing
+  choice; the switch is per stage on Můj Vedoucí, off by default.
+- **WCE1** gains no decision, expected-answer or done-when kinds: the question chain is **out** (D-44).

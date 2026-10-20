@@ -7,6 +7,7 @@ chunks:
   - "[ ] 4. The runbook states the check, its lag and its tolerance"
   - "[ ] 5a. The worker accepts what the plan creates (W0): a tagged profile ARN or an `eu.` id, decided as a model identity versus an invocation target; and the statement "no Environment tag" corrected"
   - "[ ] 5b. The reconciliation's lines (W3): model usage, tool and search spend, open reservations and uncertain calls, each separate, after `deep-research` 4; billing lag recorded, never zero"
+  - "[ ] 6. An organization's monthly spend, read-only for OWNER and ADMIN in Settings: model, Brave and other tool spend across clients, from the content-free rows MVPQ-07 keeps (D-47)"
 ---
 # Spend proven twice: AIA's ledger and an AWS cost record
 
@@ -95,3 +96,9 @@ its stated window with lag and a stated billing tolerance. Unknown billing is ne
 If 5a finds the model fields cannot carry the application inference profile, the lane's **M9**
 (`ai_usage_events.inference_profile_arn`) is added under 5a, **W0**, after lane M3 and before 1-2 configure profiles; if they can, M9 is
 removed from the lane in the same PR. Gap G43.
+
+## Scope freeze (2026-10-20)
+
+Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
+
+**New chunk.** 6 (W3), D-47 in. **5b** gains the infrastructure-charges line.

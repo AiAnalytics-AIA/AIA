@@ -747,3 +747,31 @@ Three rows needed the owner. Each was asked with a worked example; the answers a
 With these dispositions, the cross-check's verified findings meet the planning-readiness condition
 in `mvp-execution-contracts.md`. No paid run, infrastructure change, merge or release is authorized
 by recording them.
+
+## The scope freeze: the owner's 48 answers (2026-10-20)
+
+On 2026-10-20 the owner froze scope. Five inputs collected every open question:
+- #510, the methodology packet;
+- #512, ADRs 0028 to 0038;
+- #513, the reverse scope audit;
+- #514, the client pages and Settings;
+- #515, the cross-check of tracks 5 to 7.
+
+The planning session consolidated them into 48 decisions
+(`.planning/evidence/scope-freeze/decision-list.md`, #516). The owner answered all 48 on a decisions
+page between 16:08 and 17:09 UTC. The answers are recorded word for word in
+`.planning/evidence/scope-freeze/answers-2026-10-20.md`. They are decisions, and are not re-asked.
+
+How they are applied:
+- **The plans.** The master plan's § The scope baseline lists what is in, what is out and what is
+  open. Each child plan's "Scope freeze (2026-10-20)" section lists its new chunks and its amended
+  ones. Each new chunk has a wave in `mvp-execution-contracts.md`.
+- **Scope added.** Five answers moved scope:
+  - D-13: `aia-sociomap-5` is the only method;
+  - D-14: only the methodologist edits methodology;
+  - D-38, D-39, D-41, D-42, D-45, D-47 and D-48 were answered **in**;
+  - D-32 to D-34: a Lead is never transferred;
+  - D-35: the Lead edits documents and searches the web.
+- **Still open.** Their remaining parts are the baseline's open questions Q1 to Q8, for the owner.
+
+No paid run, infrastructure change, merge or release is authorized by recording them.

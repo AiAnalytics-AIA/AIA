@@ -1643,3 +1643,12 @@ dropped silently. **5b** (row E30) is W2 verification: `report_maps.py:159-180` 
 `infrastructure/report_docx/figures.py:76-95` already print Stress-1 and the internal status, so it is ticked
 with a test that the internal report's map figure carries both through `report-delivery#RD4`'s snapshot path,
 or the gap it closes is listed. No method is approved by being scheduled.
+
+## Scope freeze (2026-10-20)
+
+Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
+
+**Existing chunks, changed.** D-13 makes `aia-sociomap-5` the only method, so 3 (the respondent map
+on the contract-3 route) is superseded by `-5`'s respondent map once the methodology owner confirms
+which of this plan's open items `-5` makes moot (packet MQ-05). Until then nothing here is built
+against `-3`.

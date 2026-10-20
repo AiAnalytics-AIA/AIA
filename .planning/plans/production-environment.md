@@ -12,6 +12,8 @@ chunks:
   - "[ ] PE8. A freeze of auto-deploys during a tier B run"
   - "[ ] PE9a. Restore and the delete path exercised once on develop (W4): a restore after a deletion does not resurrect it (`study-data-lifecycle#SDL6`)"
   - "[ ] PE9b. The rest of the release checklist evidenced (W5): rollback, alarms, the activation profile `READY` on the production host"
+  - "[ ] PE10. An audited operator command that creates the first organization and its owner; production starts empty (D-22)"
+  - "[ ] PE11. An external security review of the production hostname before the first client (D-23)"
 ---
 # The production environment
 
@@ -72,3 +74,24 @@ production startup. PE4 must preserve the decided public-host retrieval scope an
 private-address safeguards; a proxy cannot silently reduce the product to a fixed publisher list.
 PE5/PE6 and the effective activation profile are evidenced before live production work. PE8 freezes
 the tested candidate during tier B; PE9a consumes SDL6 and PE9b closes the checklist; both are prerequisites to final manual release.
+
+## Scope freeze (2026-10-20)
+
+Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
+
+**New chunks.** PE10 (W1), PE11 (W4).
+
+**Existing chunks, changed by the owner's answers.**
+
+- **PE0-PE3 (D-20).** The proposed sizes are accepted (`t3a.large`, `db.t4g.medium`, measured on
+  develop first). Production moves to a **new domain**, not yet named: open in the baseline.
+- **PE1.** A content security policy.
+- **PE4 (D-19).** The proxy blocks private and metadata ranges only; the application's per-hop checks
+  are the boundary.
+- **PE7 (D-21).** Tagged application inference profiles in production.
+- **PE9a (D-25).** RPO 24 h and RTO 4 h, the database and S3 restored together, proved once.
+- **PE9b (D-26).** GlitchTip already runs for errors (the owner, "i have glitchtip implemented");
+  an uptime probe and a named on-call recipient are open (baseline Q7).
+- **The release checklist (D-28).** Terms, a privacy notice, a client DPA and the data owner's
+  confirmation that the panel licence covers paid deliverables, all before the first client; the
+  first-sign-in notice is the only screen.

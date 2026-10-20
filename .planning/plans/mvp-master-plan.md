@@ -17,6 +17,7 @@ chunks:
   - "[x] MP13. The seven child plans written and registered (each session reviews its plan before its wave)"
   - "[ ] MP14. tools/master_check.py wired into the Documentation checks job (a ci.yml change, in its own pull request)"
   - "[x] MP15. Execution dependencies, partial wave checks and the owner decision packet reconciled; implementation remains open"
+  - "[ ] MP16. The scope baseline signed by the owner (§ The scope baseline); its open items answered or carried, each answer applied to the plans it moves"
 ---
 # The MVP master plan
 
@@ -53,6 +54,76 @@ kind wins, and the others are stale until fixed.
 | Which plan is in play, what links to what, what is missing, how sessions work | **this plan** | `mvp-master-plan.md` |
 | How a chunk is built | each feature plan | `.planning/plans/<feature>.md` |
 | Why a rule is what it is | ADRs | `docs/architecture/adr/` |
+
+## The scope baseline (2026-10-20), for the owner's signature
+
+**Status: not signed.** The scope freeze (the owner, 2026-10-20, about 15:25 UTC) holds every feature
+chunk until the owner signs below; security fixes are exempt. The baseline is written against
+`develop` @ `47e5536`, from the owner's 48 answers of the same day, recorded word for word in
+[`answers-2026-10-20.md`](../evidence/scope-freeze/answers-2026-10-20.md) (decision ids from
+[`decision-list.md`](../evidence/scope-freeze/decision-list.md), #516), and the inputs' proposed
+edits, consolidated in [`proposed-edits.md`](../evidence/scope-freeze/proposed-edits.md) (#522).
+Signing settles **In** and **Out**; it does not answer **Open**, whose items each name who answers and
+what waits on them.
+
+### In
+
+**The MVP as already planned.** The goal of §1; the fifteen criteria of `MVP-ACCEPT-2` (AC-01 to
+AC-15), as amended below; the core plans of §3.1 with their open chunks and waves
+(`mvp-execution-contracts.md`); every settled decision of §11.1.
+
+**Added or settled by the freeze** (D-nn is the decision's id):
+
+| Area | What is in | Chunks |
+|---|---|---|
+| Money | The four names: Rozpočet klienta, Rozpočet studie (renaming "Strop rozpočtu"), Peněženka, Práh potvrzení (D-01). A plan's approval confirms each step ceiling it showed; a grown ceiling parks (D-02). No raise above the client's wallet ceiling; only the ceiling moves (D-03). A plan finishes the steps tied to its revision when the design moves (D-04). Deep Research charged at its ceiling until M11 (D-05) | `lead-orchestration#LO0`, `lead-orchestration#LO1`, `lead-orchestration#LO4`, `lead-orchestration#LO10` |
+| Working copy | Conflicts per field (D-06); an unaccepted change `REJECTED`, `DROPPED_STALE` on conflict (D-07); the lock covers the declared inputs and the sets they rate (D-30); structural auto-accept by a named server path under the person's standing choice, switched per stage on Můj Vedoucí, off by default (D-31) | `working-copy-edit-ops#WCE5`, `working-copy-edit-ops#WCE7`, `working-copy-edit-ops#WCE8`, `working-copy-edit-ops#WCE11` |
+| The Lead | Each researcher builds and names their own Lead, never transferred (D-32 to D-34); Deep Research from the Lead (D-12); stopping a turn and an approved plan (D-18); conversation controls (D-38); streaming, a file from the composer, unprompted comments as paid turns in the wallet (D-39) | `lead-orchestration#LO5a`, `lead-orchestration#LO17`, `lead-orchestration#LO18`, `research-lead-workbench#29`, `research-lead-workbench#30`, `lead-orchestration#LO11` |
+| Sociomap | `aia-sociomap-5` is the only method of new runs; the old methods leave every product path; maps are drawn from `-5` (D-13). Only the methodologist edits methodology (D-14). Matrix and comparison modes (D-42) | `signed-off-sociomap-method#8`, `signed-off-sociomap-method#9`, `signed-off-sociomap-method#10`, `research-lead-workbench#20`, `segment-maps-and-drilldown#11` |
+| Evidence and reports | An assumption is supported or contradicted only with an admitted respondent claim (D-16); after a replacement the newer run is read, both named (D-36); results charts and a CSV/XLSX export (D-41); Deep Research context in the client report (MVP-26); stimuli shown to respondents (D-45) | `assumptions-and-open-answer-coding#AOC0`, `run-qc-and-checkpoint#RQC5`, `report-delivery#RD12`, `research-lead-workbench#31`, `report-delivery#RD11`, `working-copy-edit-ops#WCE14`, `run-qc-and-checkpoint#RQC13` |
+| Deep Research | A refused run fails, worded by cause, retryable under fresh pins (D-10); the acceptance study cites one known dead URL for the archive (D-11); a run's routes on its record | `deep-research-web-search#53`, `deep-research-web-search#54`, `deep-research-web-search#51a` |
+| Client pages and Settings | Posture and wallet ceiling on Profil → Pravidla (D-17); the data contract accepted in the Brief drawer, the Data tab read-only (D-37); delete: a client by an admin, a source by a researcher, knowledge retired (D-29); deactivating a member (D-27); a cross-client portfolio, project memory over approved reports, an organization's monthly spend (D-47); Simulace hidden (MVP-31); no paid start outside the Lead over HTTP (D-15) | `client-knowledge-lifecycle#K11`, `client-data-in-analysis#10`, `study-data-lifecycle#SDL3`, `study-data-lifecycle#SDL4b`, `two-roles-human-ai-gates#8`, `client-knowledge-lifecycle#K9`, `client-knowledge-lifecycle#K10`, `develop-spend-attribution#6`, `client-knowledge-lifecycle#K12`, `system-prompts-settings#14` |
+| Acceptance | AC-14 reads typed settings plus a composition digest on each run (D-09); AC-01's 404 is for another organization (ADR 0019); accessibility (axe) and performance budgets are release gates (D-48) | `lead-orchestration#LO12c`, `mvp-acceptance-harness#14`, `mvp-acceptance-harness#10`, `mvp-acceptance-harness#18` |
+| Production and release | Egress blocks private and metadata ranges only (D-19); the proposed sizes (D-20); tagged inference profiles (D-21); production starts empty, bootstrapped by an operator command (D-22); an external security review (D-23); per-member rate limits (D-24); RPO 24 h, RTO 4 h (D-25); GlitchTip for errors (D-26); terms, privacy notice, client DPA and the panel-licence confirmation before the first client (D-28) | `production-environment#PE4`, `production-environment#PE7`, `production-environment#PE10`, `production-environment#PE11`, `architecture-enforcement#12`, `production-environment#PE9a`, `production-environment#PE9b` |
+| Proposals | The ADRs 0028 to 0038 (#512) as Proposed; the owner's yes to amend ADR 0026 and ADR 0008 as each is accepted, including the "frozen retrieval" wording (D-08) | `mvp-master-plan#MP5` |
+
+### Out
+
+- Map node drag as a stored view override; camera-only operations satisfy AC-09 (D-40).
+- A locked attention-check question (D-43); MVP-24's QC warnings stay.
+- The question chain: the Brief's decisions, expected answers and done-when (D-44).
+- Known-truth anchors, an instrument library, schedules and pause, "society insights" (D-46).
+- Handing a Lead over, a departure trigger, and an admin reading another researcher's Lead files
+  (D-32 to D-34); ADR 0030 is narrowed to the Lead's own file history.
+- `aia-sociomap-1` to `-4` in any product path (D-13); what a stored older run shows is Q2 below.
+- Export of a client's data and erasing one person as features: an operator procedure in the
+  runbook for about ten users (D-29).
+- As before the freeze: Simulation (§3.2 `simulation-studio`), the Class B search route (§3.3),
+  SOMECS (`sociomapping-engine`), the holdout validation and client-facing analysis prose
+  (`panel-grounded-respondents`), and every POST row of §3.2.
+
+### Open: signing does not answer these
+
+| # | Question | Who answers | Waits on it |
+|---|---|---|---|
+| Q1 | When the switch to `-5` merges: as soon as it is built (every `-5` map internal until the methodology owner's register entry; no map reaches a client meanwhile), or only together with the entry. Recommended: as soon as built; no real client receives a report before production | the owner | `signed-off-sociomap-method#8` |
+| Q2 | What a stored `-1`/`-3` run shows once the old drawing is gone: its data with "an older method's map; run again", a "recompute with `-5`" action as a new linked map, or deletion. Recommended: the first; every stored run on develop is fictional | the owner | `signed-off-sociomap-method#8`, `research-lead-workbench#20` |
+| Q3 | Whether "get rid of the old ones" deletes the old engine code and its golden fixtures F1-F9, or removes it from every product path and keeps it as tested reference. Recommended: the second now, deletion once `-5` has golden fixtures of its own | the owner | `signed-off-sociomap-method#8` |
+| Q4 | The form of "only the mathematician edits the methodology": a methodologist mark an OWNER grants (held today by A. Bahbouh) gating storing and activating, the same with activation left to OWNER/ADMIN, or one named account. Recommended: the first | the owner | `signed-off-sociomap-method#10` |
+| Q5 | Whether a study has one assigned lead researcher an admin can change ("an admin can change the research lead"), whose Lead prepares the plans that spend the study's wallet while others' Leads may chat and propose, or no assignment. Today none exists | the owner | `lead-orchestration#LO4`, `lead-orchestration#LO11` |
+| Q6 | The Lead's document editing and web search (D-35, "edit the documents as they see fit … a web search … like ChatGPT or Claude"): whether every number in an edited report stays an admitted ledger ref (ADR 0035, AC-13), and whether the Lead's search runs through `RetrievalGate` under the client's posture with quotes cited as external context (ADR 0017, ADR 0021) or as a provider's own browsing. Recommended: the number rule kept, the search through `RetrievalGate`; either needs an ADR | the owner | `report-delivery#RD6`, a Lead lookup chunk not yet written |
+| Q7 | Whether production gets an uptime probe (GlitchTip's own monitors) and a named recipient, beside GlitchTip's errors | the owner | `production-environment#PE9b` |
+| Q8 | Whether Metodika's comparison shows `-5`'s credibility, respondent map and segments in the MVP (packet E-5); under D-14 the methodologist is its only user | the owner | `signed-off-sociomap-method#10` |
+| — | Production's new domain name (D-20: "i will be changing to a new domain") | the owner | `production-environment#PE1`, Cognito callbacks |
+| — | The performance budget values for `mvp-acceptance-harness#18` (D-48); planning proposes them in that chunk's PR, the owner approves | the owner | `mvp-acceptance-harness#18` |
+| — | The methodology owner's decisions MQ-01 to MQ-24, MQ-01 (the `-5` register entry) first | A. Bahbouh | `mvp-methodology-packet.md` (#510); §11.4 |
+| — | The Deep Research evaluation tasks and thresholds (MVPQ-06, rest) | the owner | `deep-research-web-search#27` |
+| — | The scope overrides S2 to S5, only if wanted (§11.3) | the owner | §11.3 |
+| — | Each ADR 0028 to 0038 accepted (the owner; A. Bahbouh on the method parts) | the owner | `mvp-master-plan#MP5` |
+
+### Signature
+
+Signed: ______________________ (Nigel Blount, product owner)   Date: ____________
 
 ## 2. The three failures this plan exists to prevent
 
@@ -106,6 +177,7 @@ plan. `POST`: after the MVP, by decision. The dispositions of plans outside the 
 | `report-delivery` | S3 | I-2, I-3 | a client-report contract, the evidence gate definitions (§11.4) |
 | `study-data-lifecycle` | S3 | I-5 | the deletion horizons (§11.4) |
 | `production-environment` | S3 | I-5 | operator items (§11.5) |
+| `signed-off-sociomap-method` | S2 and the methodology owner | I-2 | the owner's D-13 (`-5` the only method); the methodology owner's register entry (MQ-01) before a `-5` map reaches a client |
 
 The waves of every chunk are in `.planning/mvp-execution-contracts.md` (the predecessor graph and the table of every other open chunk); this table no longer repeats them, so there is one place to keep true. `tools/master_check.py` fails on an open chunk of these plans with no wave.
 
@@ -121,10 +193,9 @@ The waves of every chunk are in `.planning/mvp-execution-contracts.md` (the pred
 | `research-agent-workflows` | FOLD | 5-8 are covered by D17's workers, Interpretation Research (30) and `evidence-integrity`, its I4 (OI-64, a per-respondent checkpoint) is now owned by `run-qc-and-checkpoint#RQC0` (§6, G26); **the transfer is done in this plan** | close with a pointer to RQC0 once `MP3` is run; no checkpoint work stays in the old plan |
 | `mvp-workflow-assurance` | CLOSE A4, A5; keep A3 optional | A4-A5 define an older four-area MVP including Simulation; `mvp-acceptance-harness` replaces them | owner re-scopes, A3 is measured simplification |
 | `connected-research-assurance`, `contextual-research-settings-ux`, `desktop-ux-overhaul-handoff` | CLOSE (verify) | housekeeping chunks ("release checks, deploy, reconcile documentation") of finished work | owners verify against `develop`, close |
-| `signed-off-sociomap-method` | SUPPORT (S2, the methodology owner) | `aia-sociomap-5` (#504, merged 2026-10-20): the methodology owner's signed-off method with the respondent map (MVP-4) and clustered taste segments (MVP-17), not the default and `INTERNAL_ONLY` until registered; `segment-maps-and-drilldown` 1, 9, 10 and `sociomap-formula-corrections#3` are to be reconciled with it before they are built (MVPQ-03) | the methodology owner and S2 decide whether it replaces `sociomap-formula-corrections#3` as the respondent map; its web drawing is its own Web follow-up |
 | `methodology-tab` | POST | S4d waits on the audit's author, W1c on panel source weighting, X1 is Simulation | none |
 | `panel-grounded-respondents` | POST | 7f-7h are the holdout validation that lifts client-facing analysis prose; the MVP's client report carries none (AC-13) | none |
-| `sociomapping-engine` | POST | the SOMECS engine depends on the method owner's exports and decisions; the MVP uses `aia-sociomap-3` | none |
+| `sociomapping-engine` | POST | the SOMECS engine depends on the method owner's exports and decisions; the MVP uses `aia-sociomap-5` (MVPQ-13, D-13) | none |
 | `simulation-studio` | POST | Simulation is out of the MVP (`mvp-acceptance.md`) | S0 recorded as deferred |
 
 ### 3.3 In the development plan and after the MVP, by decision
@@ -146,21 +217,21 @@ register check fails on a criterion with no resolvable chunk.
 
 | AC | Built by |
 |---|---|
-| AC-01 | `mvp-acceptance-harness#5`, `lead-orchestration#LO11` |
-| AC-02 | `research-lead-workbench#11`, `research-lead-workbench#14`, `research-lead-workbench#15`, `research-lead-workbench#16`, `working-copy-edit-ops#WCE2`, `working-copy-edit-ops#WCE6`, `lead-orchestration#LO3`, `lead-orchestration#LO4`, `lead-orchestration#LO5`, `lead-orchestration#LO13`, `mvp-acceptance-harness#10`, `lead-orchestration#LO15`, `research-lead-workbench#26`, `research-lead-workbench#27` |
+| AC-01 | `mvp-acceptance-harness#5`, `mvp-acceptance-harness#14`, `lead-orchestration#LO11` |
+| AC-02 | `research-lead-workbench#11`, `research-lead-workbench#14`, `research-lead-workbench#15`, `research-lead-workbench#16`, `working-copy-edit-ops#WCE2`, `working-copy-edit-ops#WCE6`, `lead-orchestration#LO3`, `lead-orchestration#LO4`, `lead-orchestration#LO5`, `lead-orchestration#LO13`, `mvp-acceptance-harness#10`, `lead-orchestration#LO15`, `research-lead-workbench#26`, `research-lead-workbench#27`, `lead-orchestration#LO5a`, `lead-orchestration#LO17` |
 | AC-03 | `research-lead-workbench#11`, `system-prompts-settings#7`, `system-prompts-settings#13`, `lead-orchestration#LO9a`, `lead-orchestration#LO9b`, `assumptions-and-open-answer-coding#AOC0`, `assumptions-and-open-answer-coding#AOC1`, `assumptions-and-open-answer-coding#AOC2`, `assumptions-and-open-answer-coding#AOC3`, `assumptions-and-open-answer-coding#AOC7` |
 | AC-04 | `lead-orchestration#LO0`, `lead-orchestration#LO1`, `client-budget#CB5`, `lead-orchestration#LO15` |
 | AC-05 | `audience-catalogue-cpu#4`, `complete-study-report#B6`, `run-qc-and-checkpoint#RQC6`, `run-qc-and-checkpoint#RQC8`, `run-qc-and-checkpoint#RQC10`, `sociomap-formula-corrections#I1` |
 | AC-06 | `run-qc-and-checkpoint#RQC0` |
 | AC-07 | `working-copy-edit-ops#WCE7` |
-| AC-08 | `evidence-integrity#1`, `evidence-integrity#2`, `evidence-integrity#3`, `evidence-integrity#6`, `run-qc-and-checkpoint#RQC2`, `evidence-integrity#9a`, `evidence-integrity#9b`, `assumptions-and-open-answer-coding#AOC4`, `assumptions-and-open-answer-coding#AOC5`, `assumptions-and-open-answer-coding#AOC6`, `assumptions-and-open-answer-coding#AOC8`, `assumptions-and-open-answer-coding#AOC9` |
-| AC-09 | `sociomap-formula-corrections#I0`, `sociomap-formula-corrections#3`, `segment-maps-and-drilldown#0a`, `segment-maps-and-drilldown#1`, `segment-maps-and-drilldown#2`, `segment-maps-and-drilldown#4`, `segment-maps-and-drilldown#5`, `segment-maps-and-drilldown#6`, `segment-maps-and-drilldown#8`, `segment-maps-and-drilldown#9`, `research-lead-workbench#20`, `working-copy-edit-ops#WCE8`, `mvp-acceptance-harness#10` |
+| AC-08 | `evidence-integrity#1`, `evidence-integrity#2`, `evidence-integrity#3`, `evidence-integrity#6`, `run-qc-and-checkpoint#RQC2`, `evidence-integrity#9a`, `evidence-integrity#9b`, `assumptions-and-open-answer-coding#AOC4`, `assumptions-and-open-answer-coding#AOC5`, `assumptions-and-open-answer-coding#AOC6`, `assumptions-and-open-answer-coding#AOC8`, `assumptions-and-open-answer-coding#AOC9`, `evidence-integrity#5`, `segment-maps-and-drilldown#10` |
+| AC-09 | `sociomap-formula-corrections#I0`, `sociomap-formula-corrections#3`, `segment-maps-and-drilldown#0a`, `segment-maps-and-drilldown#1`, `segment-maps-and-drilldown#2`, `segment-maps-and-drilldown#4`, `segment-maps-and-drilldown#5`, `segment-maps-and-drilldown#6`, `segment-maps-and-drilldown#8`, `segment-maps-and-drilldown#9`, `research-lead-workbench#20`, `working-copy-edit-ops#WCE8`, `mvp-acceptance-harness#10`, `signed-off-sociomap-method#8`, `signed-off-sociomap-method#9` |
 | AC-10 | `client-knowledge-lifecycle#K2`, `client-knowledge-lifecycle#K5`, `client-data-in-analysis#2`, `client-data-in-analysis#3`, `client-data-in-analysis#9` |
-| AC-11 | `deep-research-web-search#51`, `deep-research-web-search#52`, `deep-research-web-search#53`, `deep-research-web-search#54`, `deep-research-web-search#27`, `mvp-acceptance-harness#11` |
+| AC-11 | `deep-research-web-search#51`, `deep-research-web-search#52`, `deep-research-web-search#53`, `deep-research-web-search#54`, `deep-research-web-search#27`, `mvp-acceptance-harness#11`, `deep-research-web-search#36`, `deep-research-web-search#37`, `deep-research-web-search#51a` |
 | AC-12 | `mvp-acceptance-harness#5`, `client-knowledge-lifecycle#K7a` |
-| AC-13 | `report-delivery#RD0`, `report-delivery#RD1`, `report-delivery#RD3`, `report-delivery#RD4`, `research-integrity-report#6`, `report-delivery#RD9`, `report-delivery#RD10` |
-| AC-14 | `mvp-master-plan#MP6`, `mvp-acceptance-harness#5` |
-| AC-15 | `develop-spend-attribution#1`, `develop-spend-attribution#3`, `develop-spend-attribution#5a`, `develop-spend-attribution#5b`, `deep-research#4`, `production-environment#PE7` |
+| AC-13 | `report-delivery#RD0`, `report-delivery#RD1`, `report-delivery#RD3`, `report-delivery#RD4`, `research-integrity-report#6`, `report-delivery#RD9`, `report-delivery#RD10`, `report-delivery#RD11`, `signed-off-sociomap-method#8`, `signed-off-sociomap-method#9` |
+| AC-14 | `mvp-master-plan#MP6`, `mvp-acceptance-harness#5`, `lead-orchestration#LO12c`, `mvp-acceptance-harness#14` |
+| AC-15 | `develop-spend-attribution#1`, `develop-spend-attribution#3`, `develop-spend-attribution#5a`, `develop-spend-attribution#5b`, `deep-research#4`, `production-environment#PE7`, `mvp-acceptance-harness#16`, `run-qc-and-checkpoint#RQC12` |
 
 ## 4. The activation matrix: what must be switched on, and who throws it
 
@@ -178,6 +249,7 @@ gate that needs it, who sets it, and the evidence that it is on. **`MP6` declare
 | `aia_ai_client_source_proposals_enabled` | AI proposals from a client document (AC-10) | operator | `client_source_proposals_unconfigured` gone |
 | `aia_deep_research_enabled`, `..._web_search=brave`, key, price, `..._connectors`, Common Crawl keys | Deep Research reach (AC-11) | operator, owner signs the Brave plan | Settings → Deep Research lists each route active |
 | **`aia_deep_research_agent_directed=true`** | the ladder, hence every connector, Wayback and Common Crawl (`agent_directed.py:466-528`); default false (`docker-compose.yml:102`) | operator | a run's record names a connector |
+| `aia_deep_research_lead=true` (needs agent-directed mode) | the run's sources kept as a dataset, AC-11 (`deep-research-web-search#36`, `#37` are marked by the lead: `deep_research_runtime.py:459-461`); default false | operator | the run's plan records `versions.lead` |
 | ADR 0022 approvals on Nastavení → Deep Research | any priced route | an organization approver | `live_settings_unapproved` gone |
 | `aia_web_research_workbench` | the workbench (AC-02) | operator | `/config` |
 | `AIA_LEAD_PLANS_ENABLED` (new, off) | the plan card and wallet (AC-04) | S1 on develop when built | the I-1 exit passes |
@@ -327,6 +399,32 @@ Four track maps built from the code before this plan existed were compared with 
 | G56 | **Structural auto-apply has no actor, setting place or post-fieldwork rule.** A continuation turn finishing with no browser open applies nothing today (X11) | `working-copy-edit-ops#WCE11` |
 | G57 | **A retry's analysis prompt pin is undecided.** `_restart` has no prompt parameter, so a person who fixes a prompt cannot tell whether `retry_analysis` uses it (X12) | `system-prompts-settings#7` |
 
+**From the scope freeze's cross-check of tracks 5-7 (2026-10-20, #515)**
+
+| # | Gap | Chunks |
+|---|---|---|
+| G58 | **The shipped method, `aia-sociomap-5`, can be neither pinned nor approved.** A new run pins `-1` + `-3` (`research_sociomap.py:323-330 @ 854c209`); a stored version is always `<base>+e<n>` (`pins.py:84-95`, `versions.py:71-75`); the register approves `-3` only (`sociomap_register.py:51-69`). D-13 makes `-5` the only method | `signed-off-sociomap-method#8` |
+| G59 | **AC-09's respondent and segment maps are scheduled on the contract-3 route**, building what `-5` already stores (`models_v3.py:424-557`); E14, E29, E30, E31 are `-3`-shaped | `segment-maps-and-drilldown#1`, `segment-maps-and-drilldown#2`, `sociomap-formula-corrections#3` |
+| G60 | **The report's map figure misdraws a `-5` map**: nodes at `heights.values` over a relative terrain, a fixed caption, `objects_not_placed` dropped (`object_map_figure.py:39, 64-104`; the figure is a hypothesis, not rendered) | `signed-off-sociomap-method#9`, `segment-maps-and-drilldown#9` |
+| G61 | **AC-08's authority and RELIGION clauses are missing from its row**, and chunk 5's test cannot hold over `instrument:` fields (`policy.py:310-311`) | `evidence-integrity#5`, `segment-maps-and-drilldown#10` |
+| G62 | **`evidence-integrity#1` sat in W3 (E20), after its W1 consumer 9a (E32)**; moved to E32 by the freeze | `evidence-integrity#1`, `mvp-master-plan#MP8` |
+| G63 | **RD0's "no number without an admitted claim" has no number classes**: the client report's fixed text has design and method numbers (`client_report.py:194`, `report_design.py:62-68, 122-124, 141`) | `report-delivery#RD0` |
+| G64 | **The "Interní dokument" gate has nothing to read**: the frozen `KnowledgeSource` carries no mark (`contracts.py:206-225`) | `report-delivery#RD0`, `client-knowledge-lifecycle#K8` |
+| G65 | **AC-15's per-number provenance walk has no chunk** | `mvp-acceptance-harness#16` |
+| G66 | **A client-report approval is answered on the wire as internal** (`research.py:2500-2506`, `review.py:46-50`) | `report-delivery#RD3` |
+| G67 | **No response names the routes a run used** (`coverage.py:42-56, 102-125`) | `deep-research-web-search#51a` |
+| G68 | **A run refused for its class or approval parks as `ai_runtime_unavailable`**, with a Resume that parks it again (`plan.py:127-137, 166-174`; `workflow.py:601-607`); D-10: it fails | `deep-research-web-search#53`, `lead-orchestration#LO12a` |
+| G69 | **From W1 to W4 Deep Research had no Lead start**; D-12 | `lead-orchestration#LO5a`, `research-lead-workbench#26` |
+| G70 | **The required archive route is reached only by chance** (`archive.py:159-188`); D-11 | `deep-research-web-search#54`, `mvp-acceptance-harness#11` |
+| G71 | **AC-11's dataset clause needs `AIA_DEEP_RESEARCH_LEAD`** (`deep_research_runtime.py:459-461`), which §4 did not name | `mvp-master-plan#MP6`, `deep-research-web-search#36`, `deep-research-web-search#37` |
+| G72 | **AOC2 names no producer**: subjects are QUESTION, OBJECT or CROSS only (`contracts.py:138-144`) | `assumptions-and-open-answer-coding#AOC2` |
+| G73 | **AC-01's "another client's user gets 404" contradicts ADR 0019** (`scope.py:244-247`, `test_scope_isolation.py:209`) | `mvp-acceptance-harness#14` |
+| G74 | **AC-14 had no subject**: no edition file by design (`module-inventory.md:321`), no configuration recorded on a run; D-09 | `mvp-acceptance-harness#14`, `lead-orchestration#LO12c` |
+| G75 | **`parity_status.py` ties the acceptance verdict to parity readiness** (`:375-378`) | `mvp-acceptance-harness#17` |
+| G76 | **The study cannot be provisioned over HTTP**: no route creates the organization or its owner (`scope_repository.py:103`) | `mvp-acceptance-harness#3`, `production-environment#PE10` |
+| G77 | **No tier-A projection of each criterion is written**; the record is per criterion, not per tier | `mvp-acceptance-harness#6`, `mvp-acceptance-harness#14` |
+| G78 | **Weight identity is recorded but not served over HTTP** (`research.py:375-388`) | `run-qc-and-checkpoint#RQC12` |
+
 ### 6.2 Statements that are wrong or stale: fix the document, not the code
 
 | Statement | Where | What is true | Fix |
@@ -357,6 +455,11 @@ Four track maps built from the code before this plan existed were compared with 
 | "Segments by the study's dimensions" | `segment-maps-and-drilldown` 1 | a dimension does not partition respondents | G30 |
 | Chunks 16, 20, 23 ticked | `deep-research-web-search.md` | procurement, triage, the light-model key not built | 16 and 20 reopened in #500 |
 | `class-b-search-route.md:61` "mandatory" | the plan | deferred | fixed in #500 |
+| "The MVP uses `aia-sociomap-3`" | §3.2 (`sociomapping-engine` row) | the owner chose `-5` (MVPQ-13), the only method (D-13) | corrected by the freeze |
+| #504 "open" | `mvp-owner-decisions.md:69-71` | merged as `18d59ea` | the owner packet, with MVPQ-13 |
+| "The built ones first (AC-01, 06, 07, 12, 14)" | `mvp-acceptance-harness.md:8` (chunk 5) | only AC-12 has an existing path | `mvp-acceptance-harness#5` |
+| `sociomapping.core`: `-3` "INTERNAL_ONLY while D6 is open"; `project.memory` NOT_STARTED | `parity-matrix.json:3485`, `:2573` | approved 2026-10-13; built and tested | `mvp-acceptance-harness#17` (a full-suite PR) |
+| E30 "the map figure carries Stress-1" | `mvp-execution-contracts.md` E30 | `-5` computes no Stress-1 | noted in the contracts by the freeze |
 
 ### 6.3 New plan files these gaps need
 
@@ -469,8 +572,8 @@ tagged profiles. AC-15 reconciles model usage to the usage ledger within USD 0.0
 has its own stated window, lag and tolerance and must not be called that exact model-ledger check.
 Also required are the cutover rollback
 rehearsed on develop, the Cognito and Google callbacks for the production hostname, and the
-activation profile of §4 `READY` on the production host. The hostname, RDS sizing and Bedrock quota are
-still the owner's and an operator's (`mvp-target-architecture.md` §9).
+activation profile of §4 `READY` on the production host. The proposed sizes are accepted (D-20); production moves to a new domain the owner has
+not yet named, and the Bedrock quota is an operator's (`mvp-target-architecture.md` §9).
 
 ## 10. Risks of the whole
 
@@ -509,7 +612,7 @@ MVPQ-01 was answered on 2026-10-20: the browser's Czech Research Lead V2 build i
 | Questionnaire routing is built end to end: conditions set and validated, fieldwork routes, results on the filtered base | X8, owner 2026-10-20 | `working-copy-edit-ops#WCE13`, `run-qc-and-checkpoint#RQC11`, `evidence-integrity#10` |
 | Settings' draft-prompt test is removed; no paid AI start outside the Lead, no exception for it in AC-02 | X10, owner 2026-10-20 | `system-prompts-settings#14` |
 | The study's spending cap is the **wallet** in code and plans (`study_wallets`, `study_wallet_raises`, `study_wallet_charges`, `clients.wallet_ceiling_usd`, "wallet cap"; a plan card runs inside the study's wallet) and **Peněženka** in the Czech UI; formerly "the envelope". `budget_usd` and `spend_confirm_usd` unchanged; the Sociomap, Deep Research and error-tracking envelopes are other things | the product owner, 2026-10-20 | `lead-orchestration#LO0`, `lead-orchestration#LO1` |
-| Each researcher has their own private Lead | F12, Q26 | `lead-orchestration#LO0`, `lead-orchestration#LO11` |
+| Each researcher has their own private Lead, built and named by them, never transferred | F12, Q26; D-32 to D-34, owner 2026-10-20 | `lead-orchestration#LO0`, `lead-orchestration#LO11` |
 | The Deep Research open posture replaces classification for the MVP; the posture is pinned at enqueue and a retry copies it | #500, owner 2026-10-19 | `deep-research-web-search#53` |
 | Respondent replacement is a new linked run, never an edit of a completed one | F18 | `run-qc-and-checkpoint#RQC5` |
 | The report wording worker exists | MVP-12 | `report-delivery#RD6` |
@@ -520,6 +623,12 @@ MVPQ-01 was answered on 2026-10-20: the browser's Czech Research Lead V2 build i
 | The negative cases X2 (missing evidence) and X6 (methodology refusal) are release tests | prototype review | `mvp-acceptance-harness#13` |
 | OI-64 (fieldwork repays every respondent) is an engineering prerequisite, not a product question | G26 | `run-qc-and-checkpoint#RQC0` |
 | The delete path is required before release | MVP-30 | `study-data-lifecycle#SDL1`, `study-data-lifecycle#SDL3` |
+| The MVP ships `aia-sociomap-5`; it is the only method of new runs, the old methods leave every product path, maps are drawn from `-5` | MVPQ-13 and D-13, owner 2026-10-20 | `signed-off-sociomap-method#8`, `signed-off-sociomap-method#9`, `research-lead-workbench#20` |
+| Only the methodologist edits the methodology | D-14, owner 2026-10-20 | `signed-off-sociomap-method#10` |
+| The money vocabulary, the plan card's confirmations, ceiling raises, revision moves and Deep Research charging | D-01 to D-05, owner 2026-10-20 | `lead-orchestration#LO0`, `lead-orchestration#LO1`, `lead-orchestration#LO4`, `lead-orchestration#LO10` |
+| Conflicts per field; unaccepted changes rejected; the lock's reach; structural auto-accept's actor and switch | D-06, D-07, D-30, D-31, owner 2026-10-20 | `working-copy-edit-ops#WCE5`, `working-copy-edit-ops#WCE7`, `working-copy-edit-ops#WCE8`, `working-copy-edit-ops#WCE11` |
+| Yes to amending ADR 0026 and ADR 0008 as each new ADR is accepted | D-08, owner 2026-10-20 | `mvp-master-plan#MP5` |
+| The rest of the 48 answers: In, Out and Open in § The scope baseline | owner 2026-10-20 (`answers-2026-10-20.md`) | the chunks that section names |
 
 ### 11.2 Implementation fixes, no answer needed
 
@@ -563,13 +672,15 @@ The earlier S1 (draw the V3 header strip) is closed by MVPQ-01: the canonical V2
 |---|---|---|---|
 | S2 | Two meters (wallet and spend) | One meter, as the prototype shows | `lead-orchestration#LO1`, `research-lead-workbench#15` |
 | S3 | One private Lead per researcher | One conversation per study, as the prototype has it | storage, retention, the return summary; reopens F12/Q26 |
-| S4 | The permission panel shows the client's posture (OPEN or CLASSIFIED) and the strict class text applies to CLASSIFIED | Show the strict text for every client | `deep-research-web-search#54`; contradicts the open posture's intent |
+| S4 | The permission panel shows the client's posture (OPEN or CLASSIFIED) and the strict class text applies to CLASSIFIED | Show the strict text for every client | `deep-research-web-search#53`; contradicts the open posture's intent |
 | S5 | Client PDF in the MVP | Client report DOCX only; amend AC-13 | `report-delivery#RD1`, `docs/migration/mvp-acceptance.md` |
 
 ### 11.4 Open, with the chunks each blocks
 
 Answer-ready wording, stable decision ids, decision owner and permitted independent work are in
-[the owner decision packet](../mvp-owner-decisions.md). These are unanswered choices, not expired questions.
+[the owner decision packet](../mvp-owner-decisions.md). These are unanswered choices, not expired questions. The scope freeze's own open questions (Q1 to
+Q8) are in § The scope baseline; the methodology owner's are MQ-01 to MQ-24 in
+[the methodology packet](../mvp-methodology-packet.md) (#510).
 
 | # | Question | Blocks | Recommendation |
 |---|---|---|---|
@@ -581,7 +692,7 @@ Answer-ready wording, stable decision ids, decision owner and permitted independ
 
 ### 11.5 Operator and owner checklist (not methodology, not yet done)
 
-The Brave plan and sign-off; the production hostname, Cognito and Google callbacks; RDS sizing; Bedrock
+The Brave plan and sign-off; the production domain (new, not yet named: D-20), Cognito and Google callbacks; RDS sizing; Bedrock
 quota and the model per tier; the Bedrock retention evidence that lets the four route parameters be set
 (`MP7`); the Lead's cost per turn, measured on develop; provider terms. None is portrayed as performed. The
 activation profile (`MP6`) makes each READY or NOT_READY.

@@ -21,6 +21,10 @@ chunks:
   - "[ ] LO14. The Lead's cost per turn measured, and an `AIA_LEAD_*` kill switch and budget line"
   - "[ ] LO16. The approval ledger's subject types (lane migration M3, W0, the first migration): `approval_decisions.subject_type` extended with `wallet`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot` and `sociomap_unlock`; S3 writes it"
   - "[ ] LO15. Server spend enforcement (W0): `ResearchAgentJobs.start` and `rebuild` apply `spend_confirm_usd` as `ResearchRuns.start` does, and record the confirmation in the ledger; tested through direct HTTP start and rebuild and through the Lead's approve path"
+  - "[ ] LO5a. Deep Research from the Lead: a plan-step kind and a typed chat start, priced by deep-research-web-search 55's ceiling (D-12)"
+  - "[ ] LO12c. The composition digest stored on each run and served over HTTP (D-09; the record #513 called MP6b)"
+  - "[ ] LO17. Stopping the Lead: cancel a running turn, withdraw an approved plan (the current step finishes or is cancelled, nothing after it starts), with the workbench build line (D-18)"
+  - "[ ] LO18. The Lead's turns stream, take a file from the composer, and comment unprompted after the researcher pauses editing, each such comment a paid turn inside the wallet (D-39)"
 ---
 # Lead orchestration: the wallet, the plan card, the continuation turn and the Lead over time
 
@@ -116,3 +120,48 @@ See `../mvp-execution-contracts.md`; no implementation checkbox changes here.
 From the independent cross-check of the master plan against the code (`mvp-master-plan.md` §6.1, G47-G57). Anchors are `@ 085abe0`.
 
 **LO9c. A results-worker job shape (G47, X2).** The map interpreter, the report writer and the straight-liner check cannot be `research_agent` actions: a `research_agent` job is keyed on a Design Revision and carries a design snapshot (`application/research.py:1311-1356`), and `ResearchAction` is a closed eight-member enum (`domain/research_agents.py:35-43`). This chunk builds the second shape: a workflow type and step kind keyed on (run_id, target), a frozen-input payload (artifact ids and SHA-256, as `FrozenLineage` does), its own context builder, a service found only through the Study, and an executor behind its own `AIA_AI_RESEARCH_WORKERS_*` switch. It shares `LeadWorkerSpec`, the prompt pin and the usage ledger; LO9b then adds only rows. Test: a job for run R and a map target is refused for another Study's run, and the executor verifies the payload hash.
+
+## Scope freeze (2026-10-20)
+
+Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
+
+**New chunks.**
+
+- **LO5a (W1, in E26 with E12).** D-12: Deep Research starts as a plan-step kind and as a typed chat
+  start, with `deep-research-web-search#55`'s ceiling; `research-lead-workbench#26` keeps no Deep
+  Research button as an exception. I22 names it. Test: after #26, at 1440 and 390 px, Deep Research is
+  startable through the Lead only.
+- **LO12c (W1, after LO12b).** D-09: AC-14 is reworded to typed settings plus a composition digest
+  (AI runtime, model binding, switches) stored on each run and returned by
+  `GET …/research/runs/{id}`. Test: the digest is present over HTTP; a worker on malformed settings
+  exits non-zero by name.
+- **LO17 (W1).** D-18: Esc during a turn stops it ("Zastaveno vámi. Nic nebylo přijato za vás.");
+  "Zastavit plán" on a running plan's card. Tests: a cancelled turn applies nothing and its
+  reservation settles; a withdrawn plan starts no further step.
+- **LO18 (W3).** D-39, IN: streaming text (ADR 0026 left streaming "not decided"; this answer decides
+  it), a file from the composer kept as the client's source or the brief's attachment by the existing
+  paths, and unprompted comments after a pause, **each a paid turn charged to the wallet, shown as
+  such**. Needs an ADR 0026 amendment in its PR. Test: an unprompted comment never fires when the
+  wallet cannot cover a turn.
+
+**Existing chunks, changed by the owner's answers.**
+
+- **LO0 (D-01).** The money names: Rozpočet klienta (`clients.budget_usd`), Rozpočet studie
+  (`budget_usd`; Settings' "Strop rozpočtu" is renamed), Peněženka (the wallet), Práh potvrzení
+  (`spend_confirm_usd`), written once in the copy module.
+- **LO1 (D-03, D-05).** A raise above the client's wallet ceiling is refused, naming who can raise
+  the ceiling (OWNER or ADMIN on Profil → Pravidla, `client-knowledge-lifecycle#K11`); there is no
+  approver queue. A Deep Research run is charged at its ceiling until migration M11 reconciles tool
+  spend.
+- **LO3 / LO10 (D-04).** On a Design Revision move a plan finishes the steps tied to its immutable
+  revision and stops only the steps that would start from the working copy.
+- **LO4 / LO9a (D-02).** The card shows each step's ceiling against the threshold; the plan's approval
+  records a confirmation for each shown ceiling; a step whose ceiling grew since parks. AC-04 follows.
+- **LO11 (D-32, D-33, D-34).** Each researcher has their own Lead, built and named by them (free
+  text), never transferred: the handover, the departure trigger and an admin's reading of another
+  researcher's Lead files are **out**. LO11 keeps the Lead's file history (readable, restorable
+  revisions) and F14's learning rules. Whether a study has one assigned lead researcher an admin can
+  change ("an admin can change the research lead") is open (baseline Q5). ADR 0030 is narrowed in its
+  own PR accordingly.
+- **LO12a (D-10).** Every API error in Czech with a no-leak test and a native copy review; the words
+  for a refused Deep Research run (terminal, by cause).

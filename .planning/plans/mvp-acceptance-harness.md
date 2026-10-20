@@ -16,6 +16,9 @@ chunks:
   - "[ ] 13. Every prototype scenario (A to M, X1 to X7) is an acceptance journey on recorded doubles; X2 (missing evidence) and X6 (a methodology change refused) stay as negative cases"
   - "[ ] 15. The assumptions and open-answer coding journey (W5, MVPQ-02) with its refusals, over recorded doubles: `assumptions-and-open-answer-coding#AOC9`"
   - "[ ] 14. The acceptance wording reconciled in the acceptance document and `parity-matrix.json` together, in a PR that runs the tests: AC-02 (approval card and plan), AC-11 (OPEN posture), AC-13 (F17), AC-15 (separate model, tool, reservation, uncertain and billing-lag lines; the USD 0.01 tolerance kept unless the owner changes it)"
+  - "[ ] 16. The per-number provenance walk for AC-15: every ledger ref of both reports resolves to its model binding, prompt pin, population version and weight role (G65)"
+  - "[ ] 17. The acceptance verdict computed from its own JUnit, path parity beside it and never in it; parity-matrix project.memory corrected (G75)"
+  - "[ ] 18. Performance budgets as a release gate: page and API latency budgets per journey (D-48; the numbers are open)"
 ---
 # The MVP acceptance harness
 
@@ -161,3 +164,26 @@ changed input, method, contract, prompt or deployment, identify which evidence m
 do not carry a green release decision from an older SHA. Paid reruns still require their allowance.
 
 **15. (2026-10-20)** The journey and refusals of `assumptions-and-open-answer-coding#AOC9` join the acceptance tree: an assumption created, evidence attached, status set by a person, shown in the report; open answers coded, counts admitted, shown in Results and the report; a status without support refused, counts never produced from prose, a codebook change that leaves fieldwork untouched. It runs on recorded doubles in tier A; the model coder, if any, is a recorded double.
+
+## Scope freeze (2026-10-20)
+
+Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
+
+**New chunks.** 16 (W3), 17 (W0, E01), 18 (W4; D-48 in, its budget values open in the baseline).
+
+**Existing chunks, changed.**
+
+- **3 (G76).** A declared operator bootstrap (`aia_executors.seed`, or production's
+  `production-environment#PE10`), named in the record; everything after it over HTTP, the worker as a
+  subprocess; an import-linter contract that `tests/acceptance` imports no application or
+  infrastructure module.
+- **5.** Its front matter's "the built ones first (AC-01, 06, 07, 12, 14)": only AC-12 is an existing
+  path. Its wave: W5 (E24) governs.
+- **6 (G77).** The record is per criterion per tier; each criterion carries its tier-A and tier-B
+  projection, AC-15's AWS clause included.
+- **10 (D-48).** Axe in every browser journey: a serious or critical violation fails it.
+- **11 (D-11).** The acceptance study cites one known dead URL.
+- **14.** AC-01 reads "a user of another organization gets 404, not 403, on every study route"
+  (ADR 0019; G73). AC-14 reads "typed settings refuse a malformed value by name; each run records its
+  composition digest" (D-09, `lead-orchestration#LO12c`). The three 18.6.6 ledgers are refreshed and
+  the L-04 / L-29 contradiction removed.

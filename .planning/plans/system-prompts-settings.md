@@ -328,3 +328,11 @@ From the independent cross-check of the master plan against the code (`mvp-maste
 **Chunk 7, amended (G57, X12).** `retry_analysis` resolves the analysis prompt pins afresh and records them: a changed pin changes the module fingerprint, so that module reruns; completed modules under an unchanged pin are reused. A plain whole-run retry keeps the original's pin (`_restart` copies every other pin from the original's metadata and has no prompt parameter today). Test: edit and activate a prompt after a run, then `retry_analysis`: the failed module runs the new pin and a completed one is reused.
 
 **Chunk 8, correction.** Chunk 8 is ticked, but its settings-document half was not delivered: `research_analysis` still lists no version (`NativeActivity(key="research_analysis", ..., versions=[])`, `apps/api/src/aia_api/routers/settings.py:486-492 @ 085abe0`). Chunk 7 takes it over. Test: `test_settings_api` asserts `research_analysis` lists its versions after chunk 7.
+
+## Scope freeze (2026-10-20)
+
+Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
+
+**Existing chunk, changed.** 14 (D-15) also removes `prompt_version` and its two refusals from
+`POST …/agent-jobs` (`apps/api/src/aia_api/routers/research.py:2588-2595 @ 854c209`): no paid start
+outside the Lead stays reachable over HTTP.

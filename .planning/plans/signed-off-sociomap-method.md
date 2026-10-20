@@ -9,6 +9,9 @@ chunks:
   - "[x] 5. Map credibility: split-half agreement, the no-reliable-structure statement, one uncertainty radius per map"
   - "[x] 6. Respondent map: vector-model placement, the chance test for placed / faded, the respondent terrain, the indicative note below six objects"
   - "[x] 7. Taste segments: the mixture on slopes, the shuffle guard, the step-down, profiles, colour only for clearly placed respondents, borderline segments"
+  - "[ ] 8. aia-sociomap-5 the only method of new runs: the code's default pins -5 by its own name, -1 to -4 leave every product path (run pins, Metodika presets and in-force, the web, the report), Metodika's in force is -5 (D-13)"
+  - "[ ] 9. The report draws -5: object-map figure from heights.relative and the terrain method, objects_not_placed listed, credibility in place of Stress-1, the respondent-map and taste-segment figures (D-13)"
+  - "[ ] 10. Methodology is edited only by the methodologist: storing and activating a methodology version needs the methodologist's permission (D-14; its exact form is open, master § The scope baseline, Q4)"
 ---
 # aia-sociomap-5 — the signed-off AIA Sociomapa methodology as a method
 
@@ -228,3 +231,39 @@ and 0.68/2.5).
 ## Findings
 
 None yet.
+
+## Scope freeze (2026-10-20)
+
+Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
+
+Chunk 8 supersedes this plan's § Not in this plan where it puts making `-5` the default out of scope.
+
+**New chunks.**
+
+- **8 (W1).** The product owner's D-13: "make aia 5 the only version … get rid of any functionality
+  of the old ones. maps are drawn according to the current 5." A new run pins `aia-sociomap-5` by its
+  own name (not `+e<n>`), at its spec fingerprint, alone: `default_methods()` stops returning `-1` and
+  `-3` (`domain/research_sociomap.py:323-330 @ 854c209`). Metodika's `in_force` becomes `-5`, its
+  presets offer `-5` only, and an edit starts from the version in force (today `presets[0]`, `-4`:
+  `MethodologyVersions.tsx:79-86 @ 854c209`; its test `MethodologyVersions.test.tsx:258` changes with
+  it). The worker image's `NUMBA_CACHE_DIR` and library versions are recorded with each map (packet
+  E-6). Tests: a new run pins exactly `aia-sociomap-5` at `8b0b4864…`; no product path offers `-1` to
+  `-4`; `require_client_facing` passes for a `-5` map once the register entry exists and refuses
+  `-5+e1`. **Open, recorded in the master plan's baseline:** when the switch merges relative to the
+  methodology owner's register entry (Q1), what a stored `-1`/`-3` run shows once the old drawing is
+  gone (Q2), and whether the old engine code and its golden fixtures are deleted or kept as reference
+  (Q3). The register entry itself is the methodology owner's (packet MQ-01).
+- **9 (W2, before E15).** The report's map chapter and figures for `-5`: z from `heights.relative`,
+  the caption from the terrain method, `objects_not_placed` listed (today dropped:
+  `object_map_figure.py:39, 64-104 @ 854c209`), credibility in place of Stress-1
+  (`report_maps.py:215-220`), and the respondent-map and taste-segment figures
+  (`segment-maps-and-drilldown#9`). How the report re-derives a `-5` map follows MQ-04 (E-7).
+- **10 (W1).** D-14: "only the mathematician can edit the methodology." Storing and activating a
+  methodology version (today OWNER or ADMIN, ADR 0023) needs the methodologist's permission. Its
+  form (a member mark an OWNER grants, whether activation is included, or a named account) is open
+  (baseline Q4); the chunk builds the permission check and its refusal, and changes ADR 0023's role
+  table in its PR's Doc follow-up.
+
+**Measurement before MQ-06** (packet E-9): a `-5` map with respondents and segments on the develop
+worker image at 1,500, 5,000 and 20,000 respondents, recorded in this plan before the methodology
+owner answers MQ-06.

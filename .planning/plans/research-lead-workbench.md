@@ -29,6 +29,9 @@ chunks:
   - "[ ] 25. Deep Research reachable from every stage as a capability"
   - "[ ] 26. The Lead stays accessible at every width (D20, MVPQ-11): the workbench serves under 1100 px with the Lead as a compact drawer or a stacked layout, the manual AI starts are removed in every layout, tested at 1099, 1100, 768 and 390 px, by keyboard, focus and Escape with a return to the targeted artifact, with a stale card refused, and by a direct request"
   - "[ ] 27. Switch-off and rollback (D20): actual availability is stated; the compact Lead stays reachable while its backend is enabled, a genuinely disabled backend stays disabled and says so, with no alternate AI start and no bypass of a kill switch; every layout uses the same card, plan, wallet and server-confirmation paths"
+  - "[ ] 29. Conversation controls: older-message paging (with its route), copy, edit and resend, ArrowUp to edit the last message, send-now and edit for a queued message (D-38)"
+  - "[ ] 30. The conversation's UI for LO18: streamed text, a file from the composer, unprompted comments marked as paid turns (D-39)"
+  - "[ ] 31. Results: charts on the result views and a CSV/XLSX export of the per-question tables from admitted claims (report-delivery RD12) (D-41)"
 ---
 # Research Lead workbench
 
@@ -254,3 +257,22 @@ chunks remain open. See `../mvp-owner-decisions.md` MVPQ-01; do not re-ask this 
 ## Assumption panel (2026-10-20, MVPQ-02)
 
 Tracked assumptions are shown and edited in the Design artifact (18) and in Audience (22, where the canonical V2 places the assumption and evidence panel), both from the one item contract of `assumptions-and-open-answer-coding#AOC1`; there is no second store and no panel-local state.
+
+## Scope freeze (2026-10-20)
+
+Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
+
+**New chunks.** 29 (W2), 30 (W3, with `lead-orchestration#LO18`), 31 (W3, with
+`report-delivery#RD12`). D-38, D-39 and D-41 were answered **in** whole.
+
+**Existing chunks, changed by the owner's answers.**
+
+- **20 (D-13).** The map views draw `aia-sociomap-5` only: the method named, relative-height terraces,
+  the credibility banner, split-half share and uncertainty circles, "Neumístěno", the respondent map
+  and taste segments, following `ui_app.html`'s drawing (packet E-3, the owner's standing rule). The
+  `-1`/`-3` drawing leaves the product; what a stored older run shows is baseline Q2.
+- **15.** Mount `ItemInspector` (imported only by its own test) and fix provider waits reading as
+  inert (`research/lane.ts:134 @ 854c209`).
+- **26 (D-12).** No Deep Research button survives as an exception; Deep Research starts through the
+  Lead (`lead-orchestration#LO5a`).
+- **Map node drag** (D-40) is **out**: camera-only view operations satisfy AC-09.

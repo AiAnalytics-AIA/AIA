@@ -13,6 +13,7 @@ chunks:
   - "[ ] 9. Respondent-map and segment-map figures and report chapters (W2, before report-delivery RD4): drawn beside the object map, keyed by battery, method and kind with the register status"
   - "[ ] 10. Segment evidence (W2, after 1; the owner, 2026-10-20): per-segment aggregates as SEGMENT-level admitted claims, thin segments suppressed, so the Segments module can state a finding"
   - "[ ] 0a. What a segment is, and the respondent attributes stored per respondent: their class and who may read them; before chunk 1"
+  - "[ ] 11. Sociomapa matrix and comparison modes: two maps side by side, over aia-sociomap-5's maps (D-42)"
 ---
 # Segment maps, map filters and the respondent drill-down
 
@@ -111,3 +112,14 @@ From the independent cross-check of the master plan against the code (`mvp-maste
 **9. Respondent-map and segment-map figures and report chapters (G54, X9).** `object_map_snapshots` and `compose_map_sections` read only contract-3 object maps through `read_object_maps`, `report-delivery#RD4` says S2 supplies the figure function, and the run graph has no segment-map node or report `depends_on` edge. This chunk draws `draw_respondent_map_snapshot` and `draw_segment_map_snapshot` beside `draw_object_map_snapshot`, keys `object_map_snapshots` and `compose_map_sections` by (battery, method, kind) with the register status and any suppressed or not-mappable segment named, and puts the segment-map artifact in the report's `depends_on`. It states whether a client snapshot prints respondent points or only the aggregate terrain. Reconcile with the methodology owner's `aia-sociomap-5` (#504) first. Tests: deterministic bytes; `client=True` refuses an unregistered kind.
 
 **10. Segment evidence (G48, X1; the owner, 2026-10-20: build segment evidence).** MVPQ-04 blocks the report while any of the eight modules has no supported finding, and chunk 5 says segment filters are never an `AdmittedClaim`; nothing produces SEGMENT-level admitted evidence (`ClaimLevel.SEGMENT` is defined at `domain/evidence/claims.py:81` and has no producer; `domain/analysis/modules.py:91-96` tells the module to say segmentation cannot be assessed). So the Segments module could never state a finding and no report could be composed. This chunk computes per-segment aggregates over chunk 1's descriptors (Kish effective n, support, suppression) and admits them as SEGMENT-level claims through `admit_numeric_claims`, so the module states a finding from them. Filters (chunk 5) stay aggregates only. Tests: a thin segment is suppressed and named; `RELIGION` is refused client-facing; the Segments module of the library study states a finding that cites a SEGMENT claim, and the report composes.
+
+## Scope freeze (2026-10-20)
+
+Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
+
+**New chunk.** 11 (W3), D-42 in.
+
+**Existing chunks, changed.** D-13 makes `aia-sociomap-5` the only method: 1-3 build on `-5`'s stored
+respondent map and taste segments rather than the contract-3 route (G59); how descriptor segments and
+`-5`'s taste segments relate is the methodology owner's (MQ-02, MQ-05), and these chunks wait on it.
+9 and 10 name `-5`'s fields; 9's figures are `signed-off-sociomap-method#9`'s.

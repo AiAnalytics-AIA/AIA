@@ -59,6 +59,7 @@ chunks:
   - "[ ] 53. Open posture (owner, 2026-10-19): `clients.data_posture` OPEN or CLASSIFIED replaces classification for Deep Research in the MVP; a run pins it at enqueue, a retry copies it"
   - "[ ] 54. Before the first activation: each connector probed live once (every interface is UNVERIFIED), AIA_DEEP_RESEARCH_AGENT_DIRECTED named in the activation matrix, Common Crawl's AWS side (workgroup, results bucket, grants, us-east-1 exception) in Terraform or kept out of the first activation"
   - "[ ] 55. The start's cost ceiling function moves from the API router to the application layer, so a plan step in the worker and the router use one"
+  - "[ ] 51a. A run's routes on its record: by_route in CoverageLedger (sent, succeeded, refused) and composed_routes from the plan artifact (G67)"
 ---
 # Deep Research — wide, precise, and defensible
 
@@ -1709,3 +1710,25 @@ the probe's evidence that no procurement interface is reachable, which then reco
 32** are W3 (row E28, after the Results and Sociomap artifact and the report pieces they cite; the Lens never
 changes a canonical coordinate); **24** is W4 (before the evaluations 25, 26, 39 and the live run 27, which
 the plan's order already requires).
+
+## Scope freeze (2026-10-20)
+
+Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
+
+**New chunk.**
+
+- **51a (W1, E12).** No response names the routes a run used (`coverage.py:42-56, 102-125 @ 854c209`),
+  which chunk 51's test, I-R and AC-11 require. `by_route` in `CoverageLedger` and `composed_routes`
+  read from the plan artifact; a reused track counts under its original run. Test: a recorded run
+  through `public-web-fetch`, one connector and the Wayback lookup lists exactly those route ids.
+
+**Existing chunks, changed by the owner's answers.**
+
+- **53 (D-10).** One refusal behaviour: a run refused for an unclassified design or an unapproved
+  live setting **fails** as a terminal failure worded by its cause, retryable under fresh pins after
+  the approval; no "Pokračovat v běhu" on it. The chunk's contradictory "still parks" test line is
+  replaced; AC-11's negative case and I-R read "refused whole, retryable".
+- **54 and `mvp-acceptance-harness#11` (D-11).** The acceptance study cites one known dead URL, so a
+  real run meets the archive and the run's record names `archive_lookup` / `archive_fetch`.
+- **Deep Research from the Lead (D-12)** is `lead-orchestration#LO5a`; its ceiling is chunk 55's.
+- **The Lead's own web search** (D-35) is not this plan's until the owner answers baseline Q6.

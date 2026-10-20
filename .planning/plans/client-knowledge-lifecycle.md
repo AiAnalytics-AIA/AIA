@@ -24,6 +24,10 @@ chunks:
   - "[ ] K7. Prove all four consumers and reconcile the shared documentation after landing"
   - "[ ] K8. One semantics for Deep Research evidence entering client knowledge (an item or a proposal), and a document item's text visible to Deep Research"
   - "[ ] K7a. W5 MVP research consumer proof: intake, reviewed/frozen knowledge, executable dimension, admitted report and same-client reuse; Simulation extension stays in K7 after MVP"
+  - "[ ] K9. A cross-client what-needs-me portfolio: every study waiting for the signed-in researcher, across clients (D-47)"
+  - "[ ] K10. Project memory searches approved reports too, beside designs (D-47)"
+  - "[ ] K11. Profil → Pravidla: the client's data posture and wallet ceiling, set by an OWNER or ADMIN, listed read-only in Settings (D-17)"
+  - "[ ] K12. The Simulace tab and its new-simulation button hidden until simulation is built (MVP-31)"
 ---
 # Client knowledge that studies can use correctly
 
@@ -738,3 +742,15 @@ Lead/run consumes reviewed knowledge; K8's capture/import semantics precede the 
 intake consumers. K5 is W2 with an actual own-dimension consumer; K6 is W3, and K7a's research
 acceptance is W5. K7 cannot be completely ticked while its separately retained Simulation coverage
 is open; K7a records the MVP subset evidence and leave the remaining extension visible.
+
+## Scope freeze (2026-10-20)
+
+Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
+
+**New chunks.** K9 (W3), K10 (W3), K11 (W1, with `deep-research-web-search#53` and
+`lead-orchestration#LO1`; part of I15), K12 (W1; #513 proposed `client-workspace#C10`, which is taken).
+
+**Existing chunks, changed.** K8 freezes the "Interní dokument" mark on the frozen `KnowledgeSource`
+at enqueue (G64; a bundle-contract change needing ADR 0021's defect note). The fold of
+`client-workspace` C6-C9 lands here: C6 → K2f/K3, C8 → `client-data-in-analysis#2/2a/3` with its UI
+chunk `client-data-in-analysis#10`, C9 → K6; C7 is closed as superseded by `client-budget`.

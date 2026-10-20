@@ -13,6 +13,8 @@ chunks:
   - "[ ] RD8. The producer of a client report is the run that composed it, not whoever first downloaded it"
   - "[ ] RD9. The report's assumptions chapter (W3, MVPQ-02): each tracked assumption with its status and its admitted or cited support, and nothing else"
   - "[ ] RD10. The report's open-answer coding chapter (W3, MVPQ-02): the codebook version, the coded counts as admitted claims with suppression named, and the method's limits"
+  - "[ ] RD11. Deep Research context in the client report: accepted findings as cited context in its research-context chapter, labelled external, never respondent evidence (MVP-26)"
+  - "[ ] RD12. Export of a run's per-question tables as CSV and XLSX, every cell an admitted claim for the surface (D-41)"
 ---
 # Report delivery: approval, export and the map snapshot
 
@@ -85,3 +87,21 @@ not a choice to approve after download. Do not introduce an unapproved internal-
 From the independent cross-check of the master plan against the code (`mvp-master-plan.md` §6.1, G47-G57). Anchors are `@ 085abe0`.
 
 **RD5a. The report's document model stored and served (G50, X4).** The report steps store DOCX bytes only and discard the `ReportDocument` (`apps/executors/src/aia_executors/report.py:140-157`; `application/report.py:422`, likewise `client_report.py` and `contextual_report.py`), and `Paragraph.id` is optional (`domain/report/model.py:87`). RD5 (tracked changes per paragraph), RD7 (the sentence-level claim check), LO8's report-text context and the V2 document-first draft with claim chips have nothing to read. This chunk stores the `ReportDocument` as JSON (outline, stable paragraph ids, claim refs, ledger summary) beside each DOCX under the same fingerprint, for the internal, client and with-literature variants, and a `VIEW_RESULTS` route reads it. Test: the stored document renders to the same DOCX bytes, and paragraph ids are stable across a rerun with the same fingerprint.
+
+## Scope freeze (2026-10-20)
+
+Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
+
+**New chunks.** RD11 (W3), already decided by MVP-26 and missing a chunk. RD12 (W3), D-41 in.
+
+**Existing chunks, changed.**
+
+- **RD0 (G63, G64).** Result numbers are ledger refs; design and method facts (the planned n, scale
+  ends, filter bounds) are typed blocks fed from the specification and exempt; the validator checks
+  every other prose number. The "Interní dokument" mark is read from the frozen `KnowledgeSource`
+  (`client-knowledge-lifecycle#K8`), and RD0 checks both deliverables.
+- **RD3 (G66).** The approve response and review state carry the report's kind; `internal_only` is
+  false for `research_client_docx`.
+- **RD6.** D-35's answer ("the lead agent can help change" the documents, joining paragraphs, copy)
+  widens what a report edit may do; how far, and whether the number rule still binds it, is
+  baseline Q6. Until answered, RD6 is built to ADR 0035 with merging allowed (refs unioned).
