@@ -1,7 +1,7 @@
 # pm-coordinator — the AIA PM session
 
 Current state, rewritten each update. Observed state only. No secrets.
-Updated: 2026-10-20 ~15:00 UTC by session_019bYPVpsShVq3LCtWDT5Kr8 ("AIA PM: coordinator").
+Updated: 2026-10-20 ~15:30 UTC by session_019bYPVpsShVq3LCtWDT5Kr8 ("AIA PM: coordinator").
 
 ## Mandate (from Nigel, 2026-10-20)
 - This session is the PM for every AIA session. Other sessions are workers.
@@ -10,8 +10,11 @@ Updated: 2026-10-20 ~15:00 UTC by session_019bYPVpsShVq3LCtWDT5Kr8 ("AIA PM: coo
 - Context rule: when a session reaches ~70% of its context, have it write a handoff, start a
   successor seeded with that handoff, and archive the old one. The same applies to this session:
   its successor starts from this file.
-- **Not yet authorized:** the W0 build lanes (S1/S2/S3, mvp-development-plan.md §2-3). Nigel said
-  "not yet" at 13:4x UTC; wait for his go.
+- **SCOPE FREEZE (Nigel, 15:2x UTC):** no feature code until Nigel signs a dated scope baseline in the
+  master plan. Steps: 1 complete cross-check + reverse scope audit + client/Settings impact; 2 methodology
+  packet for Arigamaru; 3 Proposed ADRs; 4 freeze baseline (only step 4 edits mvp-master-plan.md; the
+  others write their own new files and propose edits in PR bodies). Security fixes may proceed (Nigel: keep
+  the Next.js upgrade). W0 lanes stay unstarted.
 - AWS writes are Nigel's: the infra session proposes, Nigel approves (master plan §8).
 
 ## Sessions
@@ -20,6 +23,12 @@ Updated: 2026-10-20 ~15:00 UTC by session_019bYPVpsShVq3LCtWDT5Kr8 ("AIA PM: coo
 | session_01Y7frLAETBEYvez3sW7FbGF | AIA planning: master plan + docs PRs | planner/worker; Nigel also chats with it directly | ~68% context; task: wallet rename PR (chore/wallet-rename, built on #508); due for rotation after that |
 | session_01End3azGdHNr1MtxRjUqqZ8 | AIA design: MVP workbench artifact | design artifact https://claude.ai/artifact/JrWZXosJtKVLckHhArngeV | idle; renamed Obálka→Peněženka |
 | session_01LBR1SyjXK8uYR5VdBjGAEJ | AIA infra audit | read-only AWS audit (env "AIA infra", view-only IAM user aia-claude-infra, SigV4 proxy secret; plan with -lock=false) | running since 14:53 |
+| session_01QzemVrHfQp8jsVEqXb9W6x | AIA fix: Next.js 16.4 security upgrade | next 16.4.x + make CI audits blocking (2 commits, one PR) | running |
+| session_01FskpgUny4pDAMYFBLvAj4S | AIA scope 1a: cross-check tracks 5-7 | evidence, Deep Research, acceptance -> .planning/evidence/scope-freeze/crosscheck-tracks-5-7.md | running |
+| session_01EWprA36RBr7HAF58DTxTNn | AIA scope 1b: reverse scope audit | product/V2/18.6.6 -> plan -> .planning/evidence/scope-freeze/reverse-scope-audit.md | running |
+| session_01Hv8Phz319H6u3HLQ2BgF6C | AIA scope 1c: client pages + Settings impact | -> .planning/evidence/scope-freeze/client-and-settings-impact.md | running |
+| session_015hqQ6KEtJb864UHuU74ypp | AIA scope 2: methodology packet for Arigamaru | -> .planning/mvp-methodology-packet.md (incl. -3 vs -5 for the MVP) | running |
+| session_01Qg43kRfsZ97FjA8XenP28x | AIA scope 3: MVP ADR drafts | ADR 0028+ Proposed (wallet terminology) | running |
 | session_01RrejghM5i8fKCMZVsVrnpV | AIA #504 review (done, merged) | — | archived |
 
 ## PRs (AiAnalytics-AIA/AIA)
@@ -37,6 +46,9 @@ Updated: 2026-10-20 ~15:00 UTC by session_019bYPVpsShVq3LCtWDT5Kr8 ("AIA PM: coo
   error-tracking envelope are different things and keep their names.
 
 ## Open items
+- Dependabot: develop's real exposure was apps/web npm (next 16.3.6 etc., 8 high); Python 0/88 vulnerable; the
+  112 alerts are mostly main (618 commits behind develop) + legacy/. CI audits were `|| true` (advisory).
+- Optional for Nigel: add "Security and dependency scan" to required checks in branch protection.
 - Verify the first deploy carrying numpy/scipy/numba (854c2092) and the site's health.
 - Process hazard (unconfirmed): with fast successive merges to develop, a code change can merge without
   being deployed. Not yet investigated.
