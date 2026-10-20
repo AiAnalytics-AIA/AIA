@@ -15,13 +15,14 @@ import {
   storedFrame,
   storedRespondents,
 } from "./object-map-signed-off";
-import type { BatteryWithMaps, ObjectMapArtifact } from "./object-map-view";
+import { type BatteryWithMaps, type ObjectMapArtifact, readObjectMap } from "./object-map-view";
 
 const [clear, noise] = fixture.batteries as unknown as BatteryWithMaps[];
 const mapOf = (b: BatteryWithMaps): ObjectMapArtifact => b.maps!["aia-sociomap-5"].artifact;
 const CLEAR = mapOf(clear);
 const NOISE = mapOf(noise);
-const LEGACY = (legacy.sociomap.batteries[0] as unknown as BatteryWithMaps).maps!["aia-sociomap-3"].artifact;
+const legacyBattery = legacy.sociomap.batteries[0] as unknown as BatteryWithMaps;
+const LEGACY = legacyBattery.maps!["aia-sociomap-3"].artifact;
 
 describe("which maps the panel renderer draws", () => {
   it("knows a signed-off map by its stored estimator, not by its name", () => {
@@ -29,6 +30,18 @@ describe("which maps the panel renderer draws", () => {
     expect(isSignedOffMap(LEGACY)).toBe(false);
     const edited = { ...CLEAR, spec: { ...CLEAR.spec, methodology_version: "aia-sociomap-5+e1" } };
     expect(isSignedOffMap(edited)).toBe(true);
+  });
+
+  it("reads a signed-off map before the earlier methods, under whatever name it is stored", () => {
+    const legacy = legacyBattery.maps!["aia-sociomap-3"];
+    const stored = clear.maps!["aia-sociomap-5"];
+    const both = { ...clear, maps: { "aia-sociomap-3": legacy, "aia-sociomap-5+e2": stored } };
+    const read = readObjectMap(both);
+    expect(read.ok && read.methodId).toBe("aia-sociomap-5+e2");
+    expect(read.ok && read.map).toBe(stored.artifact);
+    // Without one, the known methods are read as before.
+    const only = readObjectMap({ ...clear, maps: { "aia-sociomap-3": legacy } });
+    expect(only.ok && only.methodId).toBe("aia-sociomap-3");
   });
 });
 

@@ -13,7 +13,7 @@
 // pair's stored evidence explained, and screen-space label placement. None of them changes a
 // stored number, a position or which pairs are drawn.
 
-import type { SignedOffRespondents, SignedOffRespondentSpec } from "./object-map-signed-off";
+import { type SignedOffRespondents, type SignedOffRespondentSpec, isSignedOffMap } from "./object-map-signed-off";
 
 /** The code's object maps, newest first; a run that pinned `aia-sociomap-2` reads it. A run
  *  started under an edited methodology (ADR 0023) pins its map under the version's own name,
@@ -125,7 +125,10 @@ export function mapApproval(
 export function readObjectMap(battery: BatteryWithMaps): ReadMap {
   const maps = battery.maps ?? {};
   const known: string[] = [...OBJECT_MAP_METHODS];
-  const methodId = known.find((m) => m in maps) ?? Object.keys(maps).find((m) => !known.includes(m));
+  // A signed-off map is read first, known by its stored estimator, not its name: an edited
+  // version stores it under its own name (plan sociomap-5-web, chunk 2).
+  const signedOff = Object.keys(maps).find((m) => maps[m]?.artifact?.contract_version === "3" && isSignedOffMap(maps[m].artifact));
+  const methodId = signedOff ?? known.find((m) => m in maps) ?? Object.keys(maps).find((m) => !known.includes(m));
   if (!methodId) return { ok: false, reason: "none" };
   const stored = maps[methodId];
   if (stored?.artifact?.contract_version !== "3") return { ok: false, reason: "contract" };
