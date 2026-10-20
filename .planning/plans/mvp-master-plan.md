@@ -13,7 +13,7 @@ chunks:
   - "[ ] M9. The production release checklist exercised once on develop: delete path, backups and restore, alarms, rollback"
   - "[ ] M10. This plan re-verified at each gate (I-0 to I-5), its register and gap list brought up to date"
   - "[ ] M11. The owner answers §11.4's questions; each answer is recorded in mvp-cohesion.md's register and the plans it moves are edited"
-  - "[ ] M12. Canonical V2 precedence recorded (MVPQ-01 settled); verify each artifact against that build and list required deltas from recorded domain decisions"
+  - "[x] M12. Canonical V2 precedence and eleven-artifact / 34-row planning conformance inventory recorded; implementation and owner/methodology questions remain open"
   - "[x] M13. The six child plans written and registered (each session reviews its plan before its wave)"
   - "[ ] M14. tools/master_check.py wired into the Documentation checks job (a ci.yml change, in its own pull request)"
   - "[x] M15. Execution dependencies, partial wave checks and the owner decision packet reconciled; implementation remains open"
@@ -258,7 +258,7 @@ These rows preserve the original findings; assigning chunks resolves planning ow
 | G39 | **No chunk enforces the spend limit on the server.** `ResearchAgentJobs.start` reads no `spend_confirm_usd` (`application/research.py:1311-1407`, against `ResearchRuns.start` at `:739`); cohesion F5 adopts the check as the first code change, the development plan's W0 names it, but no child chunk did, and workbench D15 said removing the buttons closed F1. `budget_usd` is the cap; the envelope and the confirmation are distinct (review of 2026-10-20, item 1) | `lead-orchestration#LO15` |
 | G40 | **D12 and D15 disagree below 1100 px or with the switch off**: today's screens keep their AI starts, D15 removes them; no rule covers every layout and every server path (review item 5) | `research-lead-workbench#26`, `lead-orchestration#LO15` |
 | G16 | **The three new workers have no binding, accept path, price or `MaterialRule`**: no `REPORT_WRITING` binding, no result kind for interpretation, wording or flags, no rule for results, module text, maps or report text (T4 A5, T3 A9, A10, T2 A5) | `lead-orchestration#LO9a`, `lead-orchestration#LO9b`, `report-delivery#RD6`, `run-qc-and-checkpoint#RQC3` |
-| G17 | **Lead files cannot be rolled back** (`revisions()` has no caller); admin read and handover, the USER file's handover rule and a departure trigger are unplanned; a second researcher cannot accept the first Lead's edit blocks (turns are private) (T4 A6, A7, A12) | `lead-orchestration#LO11` |
+| G17 | **Lead files cannot be rolled back** (`revisions()` has no caller); admin read and handover, the USER file's handover rule and a departure trigger are unplanned; (T4 A6, A7, A12); turns stay private (Q26), and shared proposals are G42, not this row | `lead-orchestration#LO11` |
 
 **Working copy and design stages**
 
@@ -294,6 +294,7 @@ These rows preserve the original findings; assigning chunks resolves planning ow
 | G35 | **Client-data steps are not placed in the run**: no graph node, no contract-version pin, no impact root; no class or lineage for client-reported numbers going to a model; no accept target for the three new workers (T3 A9, A11, A12) | `client-data-in-analysis#9`, `report-delivery#RD6` |
 | G36 | **Evidence into knowledge has three semantics** and a document item holds only `source_id`, so Deep Research never sees the file text (`knowledge_access.py:75-90`); the data-contract permission differs between plans (`APPROVE_GATE` against `PROPOSE_CLIENT_KNOWLEDGE`); ADR 0027 decision 3 uses a blocklist, the plans an allowlist (T5 #8, B10; T3 B8) | `client-knowledge-lifecycle#K8`, `client-data-in-analysis#2` |
 | G41 | **Two settled features have no ADR yet.** ADR 0026 decision 4 (Accepted) gives semantic report edits and respondent replacement no command until each has its own ADR and a deterministic admission rule; the report-wording worker and replacement chunks did not name that prerequisite (review item 4) | `report-delivery#RD6`, `run-qc-and-checkpoint#RQC5` |
+| G42 | **A proposal one researcher's Lead prepared cannot be accepted by another member.** Q16 (decided 2026-10-19): any member with the accept permission may accept another's proposal; the chat stays private (Q26). Today `decide_edits` takes the caller's own completed turn (`application/research_lead.py:515-518`; `study_lead_repository.py:60-76` reads only the caller's turns), so an edit block is reachable only through its author's private turn. A proposal must be a shared artifact-level item identified by its change identity, with no chat text (review of 2026-10-20) | `working-copy-edit-ops#WCE6`, `working-copy-edit-ops#WCE4`, `working-copy-edit-ops#WCE12` |
 
 **Deep Research and the open posture**
 
@@ -585,3 +586,21 @@ Readiness conditions 1 to 7 of that review: 1 and 2 are the tables of §3.4, §5
 6 is that ADRs awaiting owner decisions stay Proposed and every implementation chunk stays open; 7 is that
 no calendar is promised: capacity and external decisions (§11.4 1, 3, 5, 6, 7) are the dependency risk.
 
+
+
+## M12 conformance inventory (2026-10-20)
+
+[Canonical V2 disposition](../evidence/mvp-prototype-v2/current-disposition.md)
+compares every artifact and all 34 historical walk rows with the recorded decisions
+and executable child chunks. It records private-Lead/shared-proposal, budget,
+own-dimension, replacement, permission and evidence deltas. The historical audit is
+preserved with a supersession notice. Workbench 15/20/21 explicitly own message
+origin/return UI and the four-way result/display/interpretation/context distinction;
+their minimal context/cursor contract is W1, their complete UI W4.
+
+M12 is complete as a planning inventory only. It does not pass any acceptance
+criterion or close UI implementation, MVPQ-02–12, scientific approvals or the
+parallel crosscheck's not-yet-received final output. Segment-map/filter work is not
+proof that compare_segments supplies admitted comparative analysis; until a named
+producer/method passes admission, the capability and affected coverage remain
+explicitly unavailable. Apply the owner's empty-module/report policy when answered.

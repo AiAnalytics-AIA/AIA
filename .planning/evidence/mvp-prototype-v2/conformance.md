@@ -1,4 +1,10 @@
-# The V2 prototype against AIA: what is built, what is planned, what conflicts
+# The V2 prototype against AIA: historical walk
+
+**Historical snapshot, 2026-10-19.** The statuses, question numbers and count below
+describe the original audit. For the current authority, all 34 dispositions and
+eleven-artifact mapping, use [current-disposition.md](current-disposition.md)
+(2026-10-20). That disposition supersedes this file's planning conclusions; it does
+not claim implementation completion.
 
 Written 2026-10-19 for `mvp-master-plan.md` chunk 12. The owner calls the prototype "the desired state,
 with our real code and engines powering it". This file compares it, row by row, with what AIA has and what

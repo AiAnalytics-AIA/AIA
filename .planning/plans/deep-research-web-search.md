@@ -1697,3 +1697,15 @@ Classification is asked in six places for Deep Research (`plan.py:163`; five `cl
   acceptance evidence. The commercial comparison arm of 26 (chunk 50) spends outside tier B's USD 25 and is
   named in the harness's allocation (`mvp-acceptance-harness` 1). Waiving any of 25, 26 or 39 for the first
   release is an explicit owner override, recorded in `mvp-cohesion.md`, never an omission.
+
+## Scheduling (2026-10-20): chunks 8, 16, 20, 24, 31, 32
+
+These were in no wave. They are engineering sequencing of MVP scope already required (G5 for 16 and 20,
+AC-11 and AC-15 for 31-32, the plan's own order for 8 and 24), not new owner choices. In
+`mvp-execution-contracts.md`: **8, 20, 16** with 6 and 33-37 are W2 (row E27: the register built and shipped
+off until the owner approves it; 20 before 35, which uses the light model, through the model-identity contract
+of `develop-spend-attribution#5a`; 16 built against the interface the chunk 54 probes found, or closed with
+the probe's evidence that no procurement interface is reachable, which then records G5's exclusion); **31,
+32** are W3 (row E28, after the Results and Sociomap artifact and the report pieces they cite; the Lens never
+changes a canonical coordinate); **24** is W4 (before the evaluations 25, 26, 39 and the live run 27, which
+the plan's order already requires).

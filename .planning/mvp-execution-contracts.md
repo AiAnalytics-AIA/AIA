@@ -42,11 +42,15 @@ producer implemented. Wave numbers are earliest integration waves, not dates.
 | E19 | W3 | S1/S2: `system-prompts-settings#7`, `system-prompts-settings#13` | E03, E11, E18 | Eight analysis pins reach assembly, reuse identity, repairs and usage; all eleven worker slots wired; queued work keeps its pin, new activation changes new work only |
 | E20 | W3 | S2/S3: `evidence-integrity#1`, `evidence-integrity#7`, `client-data-in-analysis#5`, `report-delivery#RD0`, `report-delivery#RD1`, `report-delivery#RD5`, `research-lead-workbench#21` | E15, E17, E18, E19 | Admitted findings plus separately labelled external/client context; full Report artifact hosts approval/export; revised wording invalidates approval without recollecting fieldwork; no-finding behavior follows MVPQ-04 |
 | E21 | W3 | S2/S3: `deep-research#4`, `develop-spend-attribution#5b`, `production-environment#PE7` | E02, E12 | Tool ledger/migration M11 and profile accounting complete before final accounting; E03 already supplies model identity versus invocation-target compatibility before early configuration; legacy reservations stay explicit and no call is charged twice |
-| E22 | W4 | S2/S3: `deep-research-web-search#25`, `deep-research-web-search#26`, `deep-research-web-search#39`, `deep-research-web-search#27`; S1: `research-lead-workbench#23` | E12, E20, E21 | Approved evaluation metrics/thresholds and separate allowance precede final live 27; Design and Interpretation paths use captured sources and budget; mature conversation cards consume working contracts |
+| E22 | W4 | S2/S3: `deep-research-web-search#24`, `deep-research-web-search#25`, `deep-research-web-search#26`, `deep-research-web-search#39`, `deep-research-web-search#27`; S1: `research-lead-workbench#23` | E12, E20, E21, E27, E28 | The operator screen for both purposes (24) comes first; approved evaluation metrics/thresholds and separate allowance precede final live 27; Design and Interpretation paths use captured sources and budget; mature conversation cards consume working contracts |
 | E23 | W4 | S3: `study-data-lifecycle#SDL0`, `study-data-lifecycle#SDL1`, `study-data-lifecycle#SDL5`, `study-data-lifecycle#SDL6`, `production-environment#PE9a` | E21 | Accepted residual-retention/audit policy before M12; delete/restore exercise proves the independent journal is replayed before serving restored traffic |
 | E24 | W5 | S3/all: `mvp-acceptance-harness#5`, `mvp-acceptance-harness#10`, `mvp-acceptance-harness#13`, `client-knowledge-lifecycle#K7a` | E10, E15, E16, E20, E22, E23, E26 | All fifteen full criteria, all eleven browser artifacts and negative cases at one pinned release candidate; research intake→knowledge→dimension→report→reuse proven without a hidden Simulation prerequisite |
 | E25 | W5 | S3/operator: `mvp-acceptance-harness#1`, `mvp-acceptance-harness#6`, `mvp-acceptance-harness#7`, `mvp-acceptance-harness#11`, `mvp-acceptance-harness#12`, `production-environment#PE8`, `production-environment#PE9b` | E24 | Budget approved before paid dispatch, candidate held stable for tier B, costs/unknowns reconciled and production checklist evidenced; production release remains a separate recorded act |
 | E26 | W1 | S1: `research-lead-workbench#7`, `research-lead-workbench#11`, `research-lead-workbench#12`, `research-lead-workbench#14`, `research-lead-workbench#15`, `research-lead-workbench#16`, `research-lead-workbench#17`, `research-lead-workbench#18`, `research-lead-workbench#19`, `research-lead-workbench#26`, `working-copy-edit-ops#WCE3a`, `working-copy-edit-ops#WCE3b`, `working-copy-edit-ops#WCE3c`, `working-copy-edit-ops#WCE7` | E03, E06 | The canonical V2 frame and the first six artifacts (Brief, Design, Questionnaire, Sample, Fieldwork, with Audience and Dimensions in E15), the command registry on the worker row, the layout rule, the web store on the server vocabulary and readiness on a working revision; each removes its stage's manual AI starts only with the Lead able to call that stage's worker; browser journey at 1099/1100 px, switch off and by a direct request |
+| E27 | W2 | S2, in this order: `deep-research-web-search#8`, `deep-research-web-search#20`, `deep-research-web-search#16`, `deep-research-web-search#6`, `deep-research-web-search#33`, `deep-research-web-search#34`, `deep-research-web-search#35`, `deep-research-web-search#36`, `deep-research-web-search#37` | E03, E12 | Source tiers and the register, built and shipped off until the owner approves it, before any quality rate is measured; the light model's key and `RESEARCH_TRIAGE` (20) before the extractors that use it (35), through E03's model-identity contract; procurement built against the interface E05's probes found, or closed with the probe's evidence that none is reachable (16: G5's exclusion is then recorded, never silent); documents, structured capture, records, extractors, inventory subjects and the sealed dataset in the plan's order; recorded exchanges, nothing live beyond I-R's approved routes |
+| E28 | W3 | S2: `deep-research-web-search#31`, `deep-research-web-search#32` | E15, E20, E27 | The Lens as an annotation sidecar that never changes a canonical coordinate (a view operation preserves the map's numerical hash), then the report evidence graph over the five evidence families, each claim's support resolving to an admitted claim, a captured source or a knowledge item; Interpretation Research reads and never writes; before the evaluations and the final live run |
+| E29 | W2 | S2 and the method owner: `sociomap-formula-corrections#2d`, `sociomap-formula-corrections#4c` | E13 | 2d after I0, I2 and I4 of the second table: the preset and artifact contract, `methodology_status` stays INTERNAL_ONLY; 4c is gated by MVPQ-12's F16 and R-adapter disposition, is a separate research product and not the respondent map, and is built or retired with its reason recorded; approving a method stays the owner's |
+| E30 | W2 | S2/S3: `sociomap-formula-corrections#5b` | E15 | Verified, not assumed: `report_maps.py:159-180` and `figures.py:76-95` already print Stress-1 and the internal status, so 5b is ticked with a test that the internal report's map figure carries both on RD4's snapshot path, or the gap it closes is listed |
 
 The table names the earliest contract and consumer waves. W0 cost planning and
 record schema work in E25's chunks begin earlier; E25 is the final combined proof.
@@ -73,9 +77,6 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `sociomap-formula-corrections#I4` | W2 | development plan §3 (I0-I5) |
 | `sociomap-formula-corrections#I5` | W2 | development plan §3 (I0-I5) |
 | `sociomap-formula-corrections#4d` | W2 | development plan §3 |
-| `sociomap-formula-corrections#2d` | UNSCHEDULED | not in the development plan; the MVP uses `aia-sociomap-3`; the method owner and S2 say: build in W2, or after the MVP |
-| `sociomap-formula-corrections#4c` | UNSCHEDULED | build or retire behind F6 + F10: a method-owner decision (`MVPQ-12`); not in any wave |
-| `sociomap-formula-corrections#5b` | UNSCHEDULED | the contract-3 map as a DOCX figure; S2 confirms whether `report-delivery#RD4` subsumes it |
 | `segment-maps-and-drilldown#0` | W1 | method-owner decisions (`MVPQ-03`); blocks W2 numerical behavior (E13) |
 | `segment-maps-and-drilldown#2` | W2 | development plan §3 (1-6) |
 | `segment-maps-and-drilldown#3` | W2 | development plan §3 (1-6); AC-09 says "optionally clustered" |
@@ -86,19 +87,7 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `audience-catalogue-cpu#4` | W0 | development plan §3 |
 | `complete-study-report#B6` | W0 | development plan §3 |
 | `deep-research-web-search#1` | W0 | development plan §3 |
-| `deep-research-web-search#6` | W2 | development plan §3 |
-| `deep-research-web-search#33` | W2 | development plan §3 (33-37 in order) |
-| `deep-research-web-search#34` | W2 | development plan §3 (33-37 in order) |
-| `deep-research-web-search#35` | W2 | development plan §3 (33-37 in order) |
-| `deep-research-web-search#36` | W2 | development plan §3 (33-37 in order) |
-| `deep-research-web-search#37` | W2 | development plan §3 (33-37 in order) |
 | `deep-research-web-search#38` | W4 | development plan §3 |
-| `deep-research-web-search#8` | UNSCHEDULED | source tiers and the reputation register: in no wave; S2 and the owner say whether the MVP needs it |
-| `deep-research-web-search#16` | UNSCHEDULED | reopened in #500: procurement has no live source (`deep_research_live.py:364-366`); in or out of the MVP is a scope call, not an omission |
-| `deep-research-web-search#20` | UNSCHEDULED | reopened in #500: triage readers have no caller and no key builds the light model; same call |
-| `deep-research-web-search#24` | UNSCHEDULED | the operator surface, after 29-32, which are in no wave |
-| `deep-research-web-search#31` | UNSCHEDULED | the Sociomap Research Lens (an annotation sidecar): in no wave; Interpretation Research reads the canonical map without it |
-| `deep-research-web-search#32` | UNSCHEDULED | the report evidence graph: in no wave; overlaps `evidence-integrity#7` and `report-delivery#RD0` |
 | `client-budget#CB5` | W1 | development plan §3 |
 | `client-knowledge-lifecycle#K2` | W1 | umbrella: ticks when K2e and K2f do |
 | `client-knowledge-lifecycle#K2e` | W1 | development plan §3 |

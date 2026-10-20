@@ -76,7 +76,7 @@ The three workers (map interpreter, report writer, straight-liner check) have no
 `approve_request` submits whatever the working copy is at approval time, unlike `decide_edits`, which needs `base_revision`. Test: approving a card whose revision moved is refused with a message, not a 500.
 
 **LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions, the admin read and handover, a departure trigger**  
-File revisions have no reader today (`revisions()` has no caller). A second researcher cannot accept the first Lead's edit blocks (turns are private): the rule is stated here and tested.
+File revisions have no reader today (`revisions()` has no caller). Turns stay private (Q26: an admin's read covers files and notes only; a handed-on Lead is a copy without personal notes). Another member's ability to accept a proposal is **not** a Lead-lifecycle matter and is not decided here: Q16 makes proposals shared, and `working-copy-edit-ops#WCE6` builds it (gap G42).
 
 **LO12. The route-class refusal says who fixes it: a pre-flight read of the AI route and a message with a link**  
 The refusal surfaces in the job error, the Lead pane, source proposals and Progress, and none says an operator fixes it. The API cannot evaluate class, so the worker publishes a composition record the API and Settings read (shared with `deep-research-web-search#52`). The Lead pane gains `retention_unspecified`, `residency_violation` and `training_exclusion_missing`. Settings is read-only and stays so. Interfaces I15, I24.
