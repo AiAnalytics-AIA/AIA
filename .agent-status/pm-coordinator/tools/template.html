@@ -1,0 +1,232 @@
+<title>AIA Scope Decisions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a working ballot. Sticky progress bar, a filter row, then one decision card per question,
+   read top to bottom; each card ends in its own save. AIA's Paper / Graphite neutrals, cyan signal. */
+:root {
+  --bg: #f6f7f8; --surface: #ffffff; --ink: #14181d; --muted: #5b6570; --line: #dde2e7;
+  --signal: #0b7a8f; --signal-soft: #e3f3f6; --ok: #1f7a4d; --ok-soft: #e4f3ea; --warn: #9a5b00;
+  --code-bg: #eef1f4;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111418; --surface: #191d22; --ink: #e7ebef; --muted: #9aa5b1; --line: #2c333b;
+  --signal: #4cc3d6; --signal-soft: #15323a; --ok: #5fcf95; --ok-soft: #173326; --warn: #e3a64a;
+  --code-bg: #232931; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #111418; --surface: #191d22; --ink: #e7ebef; --muted: #9aa5b1; --line: #2c333b;
+  --signal: #4cc3d6; --signal-soft: #15323a; --ok: #5fcf95; --ok-soft: #173326; --warn: #e3a64a;
+  --code-bg: #232931; color-scheme: dark }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--font-body); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+.wrap { max-width: 860px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); }
+header.top .wrap { padding-block: 12px; display: grid; gap: 8px; }
+.titlerow { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline; justify-content: space-between; }
+h1 { font-size: 19px; font-weight: 600; margin: 0; letter-spacing: -0.005em; }
+.count { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; }
+.bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.bar > i { display: block; height: 100%; width: 0; background: var(--signal); transition: width .3s; }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 3px 11px; font: 500 12.5px var(--font-body); cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.chip:focus-visible, button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+main .wrap { padding-block: 20px 64px; display: grid; gap: 18px; }
+.intro { color: var(--muted); font-size: 14px; max-width: 68ch; display: grid; gap: 6px; }
+.intro p { margin: 0; }
+.status-line { font-size: 13px; color: var(--warn); }
+.part-h { margin: 14px 0 -4px; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+article { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 12px; min-width: 0; }
+article.done { border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); }
+.head { display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+.head h2 { margin: 0; font-size: 16.5px; font-weight: 600; line-height: 1.35; text-wrap: balance; flex: 1 1 320px; min-width: 0; }
+.id { font: 500 12px var(--font-mono); color: var(--signal); display: block; margin-bottom: 2px; }
+.pill { font-size: 12px; border-radius: 999px; padding: 2px 10px; white-space: nowrap; background: var(--code-bg); color: var(--muted); }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.q { margin: 0; max-width: 72ch; }
+.ex { background: var(--code-bg); border-radius: 8px; padding: 10px 12px; font-size: 14px; max-width: 72ch; }
+.ex b { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 2px; font-weight: 600; }
+fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; min-width: 0; }
+legend { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 6px; padding: 0; }
+.opt { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; cursor: pointer; min-width: 0; }
+.opt:hover { border-color: var(--signal); }
+.opt input { margin-top: 4px; accent-color: var(--signal); }
+.opt .k { font: 500 12.5px var(--font-mono); color: var(--signal); margin-right: 6px; }
+.opt.rec { box-shadow: inset 3px 0 0 var(--signal); }
+.opt .rectag { font-size: 11px; color: var(--signal); font-weight: 600; margin-left: 6px; white-space: nowrap; }
+.opt:has(input:checked) { background: var(--signal-soft); border-color: var(--signal); }
+.changes { font-size: 13px; color: var(--muted); margin: 0; padding-left: 18px; }
+.recbox { font-size: 14px; border-left: 3px solid var(--signal); padding: 2px 0 2px 12px; max-width: 72ch; }
+.recbox b { color: var(--signal); }
+.src { font-size: 12.5px; color: var(--muted); }
+textarea { width: 100%; min-height: 64px; resize: vertical; font: 14px/1.45 var(--font-body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+label.small { font-size: 12.5px; color: var(--muted); display: grid; gap: 4px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+button.save { background: var(--signal); color: #fff; border: 0; border-radius: 8px; padding: 8px 16px; font: 600 14px var(--font-body); cursor: pointer; }
+:root[data-theme="dark"] button.save { color: #06272d; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) button.save { color: #06272d; } }
+button.save[disabled] { opacity: .5; cursor: not-allowed; }
+.saved { font-size: 13px; color: var(--muted); }
+.saved.err { color: var(--warn); }
+code { font: 0.86em var(--font-mono); background: var(--code-bg); border-radius: 4px; padding: 0 3px; overflow-wrap: anywhere; }
+.empty { color: var(--muted); text-align: center; padding: 30px 0; }
+@media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
+</style>
+
+<header class="top"><div class="wrap">
+  <div class="titlerow"><h1>AIA scope decisions</h1><span class="count" id="count">0 of 0 answered</span></div>
+  <div class="bar" aria-hidden="true"><i id="barfill"></i></div>
+  <div class="filters" id="filters" role="group" aria-label="Show"></div>
+</div></header>
+
+<main><div class="wrap">
+  <div class="intro">
+    <p>The MVP's scope freeze needs these 48 answers before any feature is built. Each card gives the question, a worked example, the options and the planning session's recommendation. Pick an option, or write your own answer, and save. A note is optional.</p>
+    <p>Answers are saved for everyone who opens this page, with who answered and when. The coordinator reads them back into the plan.</p>
+    <p class="status-line" id="status" hidden></p>
+  </div>
+  <div id="list"></div>
+</div></main>
+
+<script>
+const DATA = __DATA__;
+const PART_TITLES = {A:"Part A · W0 contracts", B:"Part B · First build wave (W1)", C:"Part C · Production", D:"Part D · Later waves (W2–W3)", E:"Part E · Scope: in or out"};
+const answers = {};          // id -> stored answer
+let filter = "all", db = null, user = null, myId = null, canWrite = true;
+
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function md(s){
+  let t = esc(s || "");
+  t = t.replace(/`([^`]+)`/g, "<code>$1</code>");
+  t = t.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  t = t.replace(/(^|[\s(])\*([^*\s][^*]*)\*/g, "$1<em>$2</em>");
+  return t;
+}
+
+function renderFilters(){
+  const el = document.getElementById("filters");
+  const opts = [["all","All"],["open","Unanswered"],["A","A · W0"],["B","B · W1"],["C","C · Production"],["D","D · W2–W3"],["E","E · Scope"]];
+  el.innerHTML = opts.map(([k,l]) => `<button class="chip" type="button" data-f="${k}" aria-pressed="${filter===k}">${l}</button>`).join("");
+  el.querySelectorAll("button").forEach(b => b.onclick = () => { filter = b.dataset.f; renderFilters(); renderList(); });
+}
+
+function updateCount(){
+  const n = DATA.items.filter(x => answers[x.id]).length;
+  document.getElementById("count").textContent = `${n} of ${DATA.items.length} answered`;
+  document.getElementById("barfill").style.width = (100 * n / DATA.items.length) + "%";
+}
+
+function cardHTML(x){
+  const a = answers[x.id];
+  const opts = x.options.map(o => `
+    <label class="opt${x.reckey===o.key?" rec":""}">
+      <input type="radio" name="c-${x.id}" value="${o.key}" ${a && a.choice===o.key?"checked":""}>
+      <span><span class="k">${x.part==="E"?"":"("+o.key+")"}</span>${md(o.text)}${x.reckey===o.key?'<span class="rectag">recommended</span>':""}</span>
+    </label>`).join("");
+  const other = `
+    <label class="opt">
+      <input type="radio" name="c-${x.id}" value="other" ${a && a.choice==="other"?"checked":""}>
+      <span>${x.options.length ? "Other: my own answer" : "My answer"}</span>
+    </label>`;
+  const recOnly = !x.reckey ? `
+    <label class="opt rec">
+      <input type="radio" name="c-${x.id}" value="rec" ${a && a.choice==="rec"?"checked":""}>
+      <span>Take the recommendation as written<span class="rectag">recommended</span></span>
+    </label>` : "";
+  const changes = (x.changes||[]).length ? `<ul class="changes">${x.changes.map(c=>`<li>${md(c)}</li>`).join("")}</ul>` : "";
+  const ex = x.part==="E"
+    ? `<div class="ex"><b>Example</b>${md(x.example)}</div>`
+    : `<div class="ex"><b>Example</b>${md(x.example)}</div>`;
+  return `
+  <article id="${x.id}" class="${a?"done":""}">
+    <div class="head">
+      <h2><span class="id">${x.id}</span>${md(x.title)}</h2>
+      <span class="pill ${a?"ok":""}" data-who="${x.id}">${a ? "Answered" : "Unanswered"}</span>
+    </div>
+    ${x.part!=="E" ? `<p class="q">${md(x.question)}</p>` : ""}
+    ${ex}
+    <fieldset>
+      <legend>${x.preface ? md(x.preface) : (x.options.length ? "Options" : "Choices")}</legend>
+      ${x.options.length ? "" : changes}
+      ${opts}${recOnly}${other}
+    </fieldset>
+    ${x.options.length ? changes : ""}
+    <div class="recbox"><b>Recommendation.</b> ${md(x.rec)}</div>
+    <label class="small">Your answer or note (required for "${x.options.length ? "Other" : "My answer"}", optional otherwise)
+      <textarea id="t-${x.id}" placeholder="Write your answer or a note">${esc(a && a.text || "")}</textarea></label>
+    <div class="actions">
+      <button class="save" type="button" data-save="${x.id}" ${canWrite?"":"disabled"}>${a?"Update answer":"Save answer"}</button>
+      <span class="saved" id="s-${x.id}"></span>
+    </div>
+    <div class="src">Sources: ${md(x.sources)}</div>
+  </article>`;
+}
+
+function renderList(){
+  const list = document.getElementById("list");
+  const shown = DATA.items.filter(x => filter==="all" || (filter==="open" ? !answers[x.id] : x.part===filter));
+  if (!shown.length) { list.innerHTML = `<p class="empty">Nothing here: every decision in this view is answered.</p>`; return; }
+  let html = "", lastPart = null;
+  for (const x of shown) {
+    if (x.part !== lastPart) { html += `<h3 class="part-h">${PART_TITLES[x.part]}</h3>`; lastPart = x.part; }
+    html += cardHTML(x);
+  }
+  list.innerHTML = html;
+  list.querySelectorAll("button[data-save]").forEach(b => b.onclick = () => save(b.dataset.save));
+  renderWho();
+}
+
+async function renderWho(){
+  for (const x of DATA.items) {
+    const a = answers[x.id]; const pill = document.querySelector(`[data-who="${x.id}"]`);
+    if (!pill || !a) continue;
+    let name = "";
+    if (user && a.by) { try { const ps = await user.profiles([a.by]); name = (ps[a.by] && ps[a.by].name) || ""; } catch(e) {} }
+    const when = a.at ? new Date(a.at).toLocaleString([], {day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"}) : "";
+    pill.textContent = `Answered${name ? " by " + name : ""}${when ? " · " + when : ""}`;
+  }
+}
+
+async function save(id){
+  const x = DATA.items.find(i => i.id === id);
+  const sel = document.querySelector(`input[name="c-${id}"]:checked`);
+  const text = document.getElementById("t-" + id).value.trim();
+  const s = document.getElementById("s-" + id);
+  s.classList.remove("err");
+  if (!sel) { s.textContent = "Pick an option first."; s.classList.add("err"); return; }
+  if (sel.value === "other" && !text) { s.textContent = "Write your answer in the box above, then save."; s.classList.add("err"); return; }
+  if (!db) { s.textContent = "Can't save: this view isn't connected to the answer store. Open the page signed in to claude.ai."; s.classList.add("err"); return; }
+  const body = { choice: sel.value, text, by: myId || "", at: new Date().toISOString(), title: x.title };
+  if (sel.value !== "other" && sel.value !== "rec") body.option_text = (x.options.find(o => o.key === sel.value) || {}).text || "";
+  if (sel.value === "rec") body.option_text = x.rec;
+  s.textContent = "Saving…";
+  try { await db.collection("answers").doc(id).set(body); s.textContent = "Saved."; }
+  catch (e) {
+    s.classList.add("err");
+    s.textContent = (e && (e.code === "permission_denied" || e.code === "not_granted"))
+      ? "You can read but not save here. Ask Nigel to give you edit access to this page."
+      : "Not saved: " + ((e && e.message) || "unknown error") + ". Try again.";
+  }
+}
+
+renderFilters(); renderList(); updateCount();
+
+(async () => {
+  try { user = await claude.use("user"); if (user) myId = await user.id(); } catch(e) {}
+  try { db = await claude.use("db"); } catch(e) { db = null; }
+  const st = document.getElementById("status");
+  if (!db) { st.hidden = false; st.textContent = "This view isn't connected to the answer store, so answers can't be saved or shown. Open the page signed in to claude.ai."; return; }
+  if (user) { try { const c = await user.can("data.write"); if (c === false) { canWrite = false; st.hidden = false; st.textContent = "You can read the answers here but not save them. Ask Nigel for edit access to this page."; } } catch(e) {} }
+  db.collection("answers").onSnapshot(snap => {
+    for (const k of Object.keys(answers)) delete answers[k];
+    snap.docs.forEach(d => { if (d.exists) answers[d.id] = d.data(); });
+    const focused = document.activeElement && document.activeElement.tagName === "TEXTAREA" ? document.activeElement.id : null;
+    if (!focused) renderList(); else renderWho();
+    updateCount();
+  }, err => { st.hidden = false; st.textContent = "Lost the connection to the answer store (" + (err && err.code || "error") + "). Reload the page."; });
+})();
+</script>
