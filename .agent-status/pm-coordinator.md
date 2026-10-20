@@ -1,8 +1,9 @@
 # pm-coordinator — the AIA PM session
 
 Current state. Observed state only. No secrets.
-Updated: 2026-10-20 ~19:58 UTC by session_01YEVg53K5fKSGUfcKPTdrRk ("AIA PM: coordinator 2") at ~65% context, HANDING OFF to
-"AIA PM: coordinator 3". Tools: .agent-status/pm-coordinator/tools/ (PDF builder, decisions page) and
+Updated: 2026-10-20 ~20:08 UTC by session_01MycSLqSRMw4g32SZwa9s7G ("AIA PM: coordinator 3"), successor of
+coordinator 2 (session_01YEVg53K5fKSGUfcKPTdrRk, archived 19:55). Subscribed to #510 #512 #513 #514 #515 #525; all 10 workers told
+of the change (19:55). Nigel talks to coordinator 3 directly. Tools: .agent-status/pm-coordinator/tools/ (PDF builder, decisions page) and
 .agent-status/pm-coordinator/pmstatus/ (the /pmstatus skill, renderer, last status.json, questions.py, explainers/).
 
 ## Mandate (Nigel, 2026-10-20)
@@ -40,14 +41,17 @@ assignment; every researcher's own Lead in every study; NEW scope: a per-study c
 (free report edits, numbers stay ledger refs + governed 'Hledat na webu' via RetrievalGate, OPEN clients; rich fast UX), Q7 a
 (GlitchTip uptime monitor, Nigel recipient), Q8 a (Metodika compares ALL -5 outputs — against rec), Q9 a (/pmstatus PR #525 +
 CLAUDE.md "§12 Coordinating sessions" via the next docs PR). All relayed to planning 2 at ~19:50.
-N1 "answer Q1-Q8 then sign" ticked done — NOT the MP16 signature; get it explicitly once #523 is updated.
+N1 "answer Q1-Q8 then sign" ticked done — NOT the MP16 signature. #523 @ 5107edc now carries Q1-Q8 (planning 2, master_check ok).
+Q9 note: add a CLAUDE.md line recommending the structured workflow + /pmstatus (docs PR backlog).
+Q10 (new, on the page 20:05): who writes the per-study context file's prose? a code only / b code + "Poznámky ke studii", any Lead
+proposes, a person accepts (auto-accept toggle applies) [rec] / c Leads write freely. Then ask for the explicit MP16 signature.
 
 ## Sessions (all AIA, env env_01LejvX3bRx1ymPXYZUjjSep unless noted)
 | Session | Title | State at 19:58 |
 |---|---|---|
 | session_01RxUnHwTXGVFYjwzfpKi9kT | AIA planning 2 | applying Q1-Q8 to #523; owns #516 #522 #523; ctx ~56% (rotate soon) |
 | session_01LBR1SyjXK8uYR5VdBjGAEJ | AIA infra audit (env "AIA infra") | cutover plan + runbook ready; IdP fix awaits Nigel's "commit and push the IdP fix" |
-| session_01AXkfBjA7hUPZipWXSoHzEc | Docker dependency layer | #524 draft, CI running; watching it |
+| session_01AXkfBjA7hUPZipWXSoHzEc | Docker dependency layer | #524 draft @ 2b057d8, CI running; it reports CI to me |
 | session_015hqQ6KEtJb864UHuU74ypp | scope 2: methodology packet | #510 holds for Nigel's review, then send to Arigamaru |
 | session_01Qg43kRfsZ97FjA8XenP28x | scope 3: ADRs 0028-0038 | #512 waits Nigel accept/amend |
 | session_01EWprA36RBr7HAF58DTxTNn / 01Hv8P… / 01Fskp… | scope 1b / 1c / 1a | #513 #514 #515 evidence, merge with baseline |
@@ -81,10 +85,13 @@ Small code PR still to do: USER_AGENT in web_retrieval_brave.py:95 and web_retri
 Documentation". Emoji render fine in Docs (only Drive text export garbles them).
 
 ## Waiting on Nigel
-Webglobe confirm + dig; "commit and push the IdP fix" (infra session); MP16 signature after #523 update; #510 packet review ->
+Webglobe confirm + dig; "commit and push the IdP fix" (infra session); Q10, then the MP16 signature on #523 @ 5107edc; #510 packet review ->
 Arigamaru; #512 ADR decisions; design feedback (optional).
 
 ## Open items
 - Dependabot ~112 alerts mostly on main (556 commits behind develop): suggest a develop->main release sometime.
 - braces npm exception expires 2026-11-20 (CI fails from 11-21 until rechecked).
 - make ui-capture crashes in the cloud image (capture.mjs ESM import of CJS playwright; #514 F-1).
+- Docker session's earlier self-published explainer artifact https://claude.ai/artifact/5HtdSPoHoCvYitirfEfj2U (before the
+  no-artifacts rule; its content is now embedded in the page). Not deleted: ask Nigel before deleting (unless it was one of the two
+  he already had deleted).

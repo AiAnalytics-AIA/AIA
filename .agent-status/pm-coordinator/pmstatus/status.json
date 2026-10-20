@@ -1,20 +1,20 @@
 {
- "generated_at": "2026-10-20T19:25:00Z",
+ "generated_at": "2026-10-20T20:05:00Z",
  "develop_sha": "7878bad",
- "headline": "Ten sessions report. Nothing is broken; nine wait on you. Two quick 'commit and push' words and the Webglobe confirmation unblock the infra work; Q1-Q8 plus your signature unblock the whole MVP build.",
+ "headline": "Coordinator 3 has taken over. Your Q1-Q9 answers are applied (#523 @ 5107edc). One new question (Q10) and then your explicit MP16 signature unblock the MVP build; the Webglobe confirmation and the IdP 'commit and push' unblock the domain move. #524 and #525 merge when CI is green.",
  "needs_nigel": [
   {
-   "id": "N1",
-   "title": "Answer Q1-Q8, then sign the scope baseline (#523)",
-   "why": "Scope freeze: no MVP feature code starts until you sign. 7 sessions' work merges with it.",
-   "example": "Q1: does the switch to -5 merge as soon as it's built (maps internal until Arigamaru's register entry), or wait for the entry?",
-   "recommendation": "Answer Q1-Q8 under 'Your decisions' on this page; I'll apply them, then you sign in planning 2.",
+   "id": "N7",
+   "title": "Sign the scope baseline (MP16) on #523 @ 5107edc",
+   "why": "#523 now carries your Q1-Q8 answers (master_check ok). The scope freeze holds all MVP feature code until you sign; ticking 'done' on the page is not a signature.",
+   "example": "Type here: \"I sign MP16 on #523 at 5107edc\" (after answering Q10, or say Q10 stays open in the baseline).",
+   "recommendation": "Answer Q10 first, then sign; I merge #516 → #522 → #523 and start the W0/W1 lanes.",
    "unblocks": [
     "planning",
     "scope-inputs",
     "build"
    ],
-   "where": "Your decisions (this page), then planning 2"
+   "where": "This chat (coordinator 3)"
   },
   {
    "id": "N2",
@@ -41,17 +41,6 @@
    "where": "AIA infra audit session"
   },
   {
-   "id": "N6",
-   "title": "'commit and push' the Docker layer fix",
-   "why": "Stops ~1 GB of host disk per deploy and cuts rebuilds from 4.5 min to under a minute.",
-   "example": "Type: commit and push",
-   "recommendation": "Yes: equivalence is proven (68 packages, 10,157 files identical).",
-   "unblocks": [
-    "k2"
-   ],
-   "where": "AIA fix: Docker dependency layer session"
-  },
-  {
    "id": "N3",
    "title": "Review the methodology packet (#510)",
    "why": "Arigamaru's 24 MQ answers gate the numerical MVP chunks; nothing goes to him before you review.",
@@ -76,18 +65,18 @@
  ],
  "sessions": [
   {
-   "id": "session_01YEVg53K5fKSGUfcKPTdrRk",
-   "title": "AIA PM: coordinator 2",
+   "id": "session_01MycSLqSRMw4g32SZwa9s7G",
+   "title": "AIA PM: coordinator 3",
    "category": "PM",
    "state": "working",
-   "doing": "Running /pmstatus; watching develop CI for #519-#521 and the domain move.",
+   "doing": "Took over from coordinator 2; watching #510 #512-#515 #525, and #524 CI.",
    "plan": null,
    "prs": [],
    "needs": null,
    "blocked_by": [],
-   "next": "Put Q1-Q8 to you when you ask; merge #516→#522→#523 after your signature.",
-   "context_pct": 60,
-   "last_update": "2026-10-20T19:20:00Z",
+   "next": "Q10 and your MP16 signature, then merge #516→#522→#523; merge #524/#525 when green.",
+   "context_pct": 3,
+   "last_update": "2026-10-20T20:05:00Z",
    "reply": "received"
   },
   {
@@ -294,22 +283,27 @@
    "id": "session_01AXkfBjA7hUPZipWXSoHzEc",
    "title": "AIA fix: Docker dependency layer",
    "category": "Infra",
-   "state": "waiting-on-nigel",
-   "doing": "Fix done and verified locally: same image, a small change adds 6.6 MB instead of 250 MB, rebuild 52 s instead of 4.5 min.",
+   "state": "review",
+   "doing": "Draft PR #524 open; CI running.",
    "plan": {
     "path": ".planning/plans/image-build-layers.md",
     "chunk": "3 — the layer check",
     "done": 3,
     "total": 3
    },
-   "prs": [],
-   "needs": "Your own 'commit and push' in its session (the permission classifier blocked it).",
-   "blocked_by": [
-    "N6"
+   "prs": [
+    {
+     "number": 524,
+     "title": "Docker dependency layer",
+     "state": "draft",
+     "ci": "pending"
+    }
    ],
-   "next": "Open the draft PR; the first develop deploy proves the PDF image variant.",
+   "needs": null,
+   "blocked_by": [],
+   "next": "Coordinator reviews and merges when green; the first deploy proves the PDF variant.",
    "context_pct": 27,
-   "last_update": "2026-10-20T19:18:11Z",
+   "last_update": "2026-10-20T19:55:00Z",
    "reply": "received",
    "explainers": [
     {
@@ -660,246 +654,108 @@
  ],
  "questions": [
   {
-   "id": "Q1",
-   "title": "When does the switch to aia-sociomap-5 land?",
-   "context": "D-13 settled that -5 becomes the only method. Open: timing. Until Arigamaru's register entry exists, a -5 map is internal only, and with -3 gone no map can go to a client.",
-   "example": "The switch is built on 2 Nov; Aram's entry arrives on 20 Nov. Under (a), runs from 2-20 Nov show 'Interní' maps and the client report has no map figure.",
+   "id": "Q10",
+   "title": "Who writes the prose in a study's context file?",
+   "context": "From your Q5 answer: every researcher's own Lead works in every study, and each study gets a context .md file the Lead reads, kept up to date. Code can fill the facts (stage, design revision, runs, budget). Open: who may write the free-text part, which every researcher's Lead in that study will read.",
+   "example": "Jana's Lead learns the client wants Prague results reported separately. Under (b) it proposes the note 'Klient chce Prahu zvlášť' in 'Poznámky ke studii'; Jana accepts it, and next day Petr's Lead reads it when he opens the study.",
    "options": [
     {
      "key": "a",
-     "label": "Merge when built",
-     "detail": "Maps stay internal until the register entry"
+     "label": "Code only, no prose",
+     "detail": "Facts generated from the study; nothing written by a Lead"
     },
     {
      "key": "b",
-     "label": "Merge together with the entry",
-     "detail": "Runs keep -1/-3 until then"
-    }
-   ],
-   "rec": "a",
-   "rationale": "No real client gets a report before production (W5), and AC-09/AC-13 need Aram's entry for release anyway. The gap only touches develop's fictional clients.",
-   "unblocks": [
-    "MVP build: -5 wiring"
-   ],
-   "where": "Answer here"
-  },
-  {
-   "id": "Q2",
-   "title": "What do stored runs with -1/-3 maps show?",
-   "context": "ADR 0038: stored maps are never recomputed. Once the old drawing code is gone, those maps can't be drawn.",
-   "example": "A June fictional study, Results → Mapy.",
-   "options": [
-    {
-     "key": "a",
-     "label": "Keep data, explain",
-     "detail": "Numbers stay; the map panel says 'Mapa ze starší metody; spusťte běh znovu'"
-    },
-    {
-     "key": "b",
-     "label": "Add 'Přepočítat s -5'",
-     "detail": "A new linked map from the frozen dataset (new scope)"
+     "label": "Code + 'Poznámky ke studii'",
+     "detail": "Any researcher's Lead proposes a note, a person accepts it (your auto-accept text toggle applies)"
     },
     {
      "key": "c",
-     "label": "Delete old maps",
-     "detail": ""
-    }
-   ],
-   "rec": "a",
-   "rationale": "Every stored run on develop is fictional, so nothing is lost, and (b) adds scope.",
-   "unblocks": [
-    "MVP build: -5 wiring"
-   ],
-   "where": "Answer here"
-  },
-  {
-   "id": "Q3",
-   "title": "'Get rid of the old ones': the product, or the code too?",
-   "context": "The -1 engine is what golden fixtures F1-F9 and the parity gates test. Deleting the engine deletes those gates.",
-   "example": "Under (a), Metodika stops listing -1..-4 and nothing draws them, but engine.py stays behind tests.",
-   "options": [
-    {
-     "key": "a",
-     "label": "Remove from the product",
-     "detail": "Run pins, Metodika presets, web, report; engine and fixtures stay as reference"
-    },
-    {
-     "key": "b",
-     "label": "Delete the code too",
-     "detail": "Engine, fixtures, parity rows"
-    }
-   ],
-   "rec": "a",
-   "rationale": "Keeps the safety net until -5 has its own golden fixtures; (b) can follow as cleanup.",
-   "unblocks": [
-    "MVP build: -5 wiring"
-   ],
-   "where": "Answer here"
-  },
-  {
-   "id": "Q4",
-   "title": "'Only the mathematician edits methodology': what is the permission?",
-   "context": "Today OWNER and ADMIN store and activate methodology versions (ADR 0023).",
-   "example": "Aram stores and activates an edit of -5, and an admin's Metodika tab is read-only.",
-   "options": [
-    {
-     "key": "a",
-     "label": "'Metodik' mark, store + activate",
-     "detail": "Granted by an OWNER; held today by A. Bahbouh"
-    },
-    {
-     "key": "b",
-     "label": "Mark to store; admins activate",
-     "detail": ""
-    },
-    {
-     "key": "c",
-     "label": "Hard-wire Aram's account",
-     "detail": ""
-    }
-   ],
-   "rec": "a",
-   "rationale": "A named role survives staff changes; hard-wiring an account doesn't. Prompts, budgets and Deep Research stay with admins.",
-   "unblocks": [
-    "Settings / Metodika chunks"
-   ],
-   "where": "Answer here"
-  },
-  {
-   "id": "Q5",
-   "title": "What does 'an admin can change the research lead' mean?",
-   "context": "Each researcher has their own Lead (never transferred). You said a Lead is 'assigned to lead a specific study'; today no study has an assigned lead.",
-   "example": "Jana leads study X; an admin reassigns X to Petr. From then on Petr's Lead prepares the plans that spend X's wallet; Jana can still chat with her own Lead in X.",
-   "options": [
-    {
-     "key": "a",
-     "label": "One assigned lead per study",
-     "detail": "Only that researcher's Lead spends the wallet; others may chat and propose"
-    },
-    {
-     "key": "b",
-     "label": "Assigned lead only",
-     "detail": "Other researchers can't use their Lead in that study"
-    },
-    {
-     "key": "c",
-     "label": "No assignment",
-     "detail": "Every Lead is equal in every study"
-    }
-   ],
-   "rec": "a",
-   "rationale": "Clear accountability for spend, without locking colleagues out.",
-   "unblocks": [
-    "Lead orchestration chunks"
-   ],
-   "where": "Answer here"
-  },
-  {
-   "id": "Q6",
-   "title": "The Lead edits reports freely and searches the web: how?",
-   "context": "Two collisions. Reports: every number must stay an admitted ledger reference (ADR 0035). Web: external evidence must be a quote in a captured source via RetrievalGate (ADR 0017/0021); a provider's 'browse' tool bypasses that.",
-   "example": "'najdi aktuální podíl mobilního bankovnictví v ČR': under (a) the Lead calls 'Hledat na webu', code fetches the ČSÚ page, and it answers with the quote and link marked 'externí zdroj'. For a CLASSIFIED client it says it may not search.",
-   "options": [
-    {
-     "key": "a",
-     "label": "Free edits + governed search",
-     "detail": "Numbers stay ledger refs; 'Hledat na webu' through RetrievalGate, OPEN clients only, cost charged to the wallet"
-    },
-    {
-     "key": "b",
-     "label": "Free edits + provider browse",
-     "detail": "The model browses itself, unchecked"
-    },
-    {
-     "key": "c",
-     "label": "Free edits, no web search in the MVP",
-     "detail": ""
-    }
-   ],
-   "rec": "a",
-   "rationale": "You get the ChatGPT-like experience, while every figure in a client report stays traceable and classified clients stay protected.",
-   "unblocks": [
-    "Lead + report chunks; new ADR"
-   ],
-   "where": "Answer here"
-  },
-  {
-   "id": "Q7",
-   "title": "Production uptime probe and on-call",
-   "context": "GlitchTip already has uptime monitors, so no new service is needed.",
-   "example": "A GlitchTip monitor on https://<prod domain>/health every minute that e-mails you after 5 minutes down.",
-   "options": [
-    {
-     "key": "a",
-     "label": "GlitchTip monitor + named recipient",
-     "detail": "Name the recipient in the note"
-    },
-    {
-     "key": "b",
-     "label": "Errors only, no probe",
-     "detail": ""
-    },
-    {
-     "key": "c",
-     "label": "Decide after release",
-     "detail": ""
-    }
-   ],
-   "rec": "a",
-   "rationale": "It costs nothing extra and tells you about an outage before a client does.",
-   "unblocks": [
-    "Production plan PE items"
-   ],
-   "where": "Answer here"
-  },
-  {
-   "id": "Q8",
-   "title": "Does Metodika's comparison show -5's new outputs in the MVP?",
-   "context": "Under D-14 the methodologist is the comparison's only user. -5 adds credibility, respondents and segments.",
-   "example": "Aram compares a draft edit with what's in force: (b) shows object positions only, with one sentence saying the other outputs aren't compared.",
-   "options": [
-    {
-     "key": "a",
-     "label": "Yes, all outputs",
-     "detail": "Larger build"
-    },
-    {
-     "key": "b",
-     "label": "Positions only, said on screen",
-     "detail": ""
+     "label": "Leads write notes freely",
+     "detail": "No acceptance step"
     }
    ],
    "rec": "b",
-   "rationale": "It keeps the MVP smaller, and Aram can check the rest on a real run.",
+   "rationale": "A note every colleague's Lead will read should pass a person once, like every other Lead edit; with your auto-accept toggle on it costs no clicks. (c) lets one Lead's mistake mislead everyone's.",
    "unblocks": [
-    "Metodika chunks"
-   ],
-   "where": "Answer here"
-  },
-  {
-   "id": "Q9",
-   "title": "Make /pmstatus part of the repo?",
-   "context": "The skill is saved in my coordinator tools. For every session to have it, it must be committed to develop as .claude/skills/pmstatus/.",
-   "example": "Any new coordinator types /pmstatus and gets this page.",
-   "options": [
-    {
-     "key": "a",
-     "label": "Yes, open a small PR",
-     "detail": "I'll merge it when green"
-    },
-    {
-     "key": "b",
-     "label": "No, keep it in coordinator tools",
-     "detail": ""
-    }
-   ],
-   "rec": "a",
-   "rationale": "The skill survives coordinator handoffs, at zero runtime cost.",
-   "unblocks": [
-    "/pmstatus for every session"
+    "Lead orchestration chunks",
+    "MP16 signature"
    ],
    "where": "Answer here"
   }
  ],
- "decided": []
+ "decided": [
+  {
+   "id": "Q1",
+   "title": "When does the switch to aia-sociomap-5 land?",
+   "choice": "a",
+   "choice_label": "Merge when built",
+   "note": "",
+   "at": "2026-10-20T19:37:39.344Z"
+  },
+  {
+   "id": "Q2",
+   "title": "What do stored runs with -1/-3 maps show?",
+   "choice": "a",
+   "choice_label": "Keep data, explain",
+   "note": "",
+   "at": "2026-10-20T19:38:05.994Z"
+  },
+  {
+   "id": "Q3",
+   "title": "'Get rid of the old ones': the product, or the code too?",
+   "choice": "a",
+   "choice_label": "Remove from the product",
+   "note": "",
+   "at": "2026-10-20T19:38:31.078Z"
+  },
+  {
+   "id": "Q4",
+   "title": "'Only the mathematician edits methodology': what is the permission?",
+   "choice": "a",
+   "choice_label": "'Metodik' mark, store + activate",
+   "note": "",
+   "at": "2026-10-20T19:39:09.577Z"
+  },
+  {
+   "id": "Q5",
+   "title": "What does 'an admin can change the research lead' mean?",
+   "choice": "c",
+   "choice_label": "No assignment",
+   "note": "this is an edge cas i know, but the reality is this, there are three researches. each researcher has an assigned LEadAgent, which is an llm (probably opus5.5) and this iseach real persons research assistant that they curate and develop themselves. opening a study, just shows their own agent within that studies artifacts, and now their ai agent can interact with the artifacts of that study and control the functions and valves in them. it is basically the analytical execution layer on this step by step research methodology. he carries his own files, but also the context of each study session. maybe we need to have an md file attached to each study session so the researches ai can get the context of hte study, this should be updated regularly within each study.",
+   "at": "2026-10-20T19:44:34.840Z"
+  },
+  {
+   "id": "Q6",
+   "title": "The Lead edits reports freely and searches the web: how?",
+   "choice": "a",
+   "choice_label": "Free edits + governed search",
+   "note": "ok i really want to preserve a good UX here, and not have limited results.",
+   "at": "2026-10-20T19:45:41.322Z"
+  },
+  {
+   "id": "Q7",
+   "title": "Production uptime probe and on-call",
+   "choice": "a",
+   "choice_label": "GlitchTip monitor + named recipient",
+   "note": "",
+   "at": "2026-10-20T19:45:52.009Z"
+  },
+  {
+   "id": "Q8",
+   "title": "Does Metodika's comparison show -5's new outputs in the MVP?",
+   "choice": "a",
+   "choice_label": "Yes, all outputs",
+   "note": "",
+   "at": "2026-10-20T19:46:14.035Z"
+  },
+  {
+   "id": "Q9",
+   "title": "Make /pmstatus part of the repo?",
+   "choice": "a",
+   "choice_label": "Yes, open a small PR",
+   "note": "add this to the claude.md file, reccomending the structured workflow and using the PM status skill for this repo",
+   "at": "2026-10-20T19:47:08.775Z"
+  }
+ ]
 }
