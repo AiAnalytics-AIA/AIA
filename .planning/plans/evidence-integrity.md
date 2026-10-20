@@ -7,7 +7,7 @@ chunks:
   - "[ ] 4. The straight-liner check: flags by code, no pause, the worker proposes keep or flag; replace is a new linked run (F18, settled); the one definition is run-qc-and-checkpoint RQC1"
   - "[ ] 5. One field-policy authority per evidence source: the population contract's list for panel respondents (MVP-29)"
   - "[ ] 6. Results serves admitted claims: an API over the evidence table with suppression decided server-side, so the screen no longer reads raw aggregates"
-  - "[ ] 7. External context reaches the analysis modules, or the unused path is retired: wire `analysis_context` into `AnalysisInputs` (a fingerprint change for all eight modules) and say which in the docs"
+  - "[ ] 7. Wire the sealed-bundle external-context producer into module preparation and the Lead; preserve the existing prompt/fingerprint context field and context-not-evidence boundary"
   - "[ ] 8. A two-origin analysis input and its fingerprint, designed before client-data-in-analysis 5"
 ---
 # Evidence integrity: findings cite evidence, run QC warns, one policy authority
@@ -74,8 +74,8 @@ name: this plan owns the edit, they review it (`mvp-cohesion.md` F8).
 
 ## Open
 
-- Unsupported hypothesis shown or refused only (chunk 1).
-- What replacing a flagged respondent means for the run's identity (chunk 4).
+- Empty-module behavior is master §11.4 item 4 (decision packet MVPQ-04); this is not permission to print an unsupported hypothesis as a finding.
+- Replacement identity is settled (F18): a new linked run. Only weighting/effective-n/support semantics remain open in master §11.4 item 10; mechanism and ADR are `run-qc-and-checkpoint#RQC5`.
 
 ## Doc follow-up
 
@@ -87,12 +87,21 @@ name: this plan owns the edit, they review it (`mvp-cohesion.md` F8).
   aggregate artifact and decides suppression in the browser (`research-execution.ts:373`); no API serves
   `PrintGrade` or the evidence table (T3 A4). Gap G31. Test: a suppressed object's number is absent from
   the response, not hidden in the page.
-- **7.** `analysis_context` (`quarantine.py:251`) has no caller outside tests and `AnalysisInputs` carries
-  no `external_context`, though `deep-research.md:260` and `research-journey.md:265` say it does (T3 A5).
-  Gap G33. The owner decides wire or retire; either way the documents agree with the code.
+- **7, corrected at 0d525bc8.** `AnalysisInputs.external_context` already exists (`application/analysis.py:101`) and reaches its fingerprint (:138) and prompt (:176). The missing connection is the production constructor in `application/analysis_results.py:570-579`, which supplies no external context. Trace the sealed-bundle provider into that constructor and the Lead, then test stored source lineage and payload. Reuse the existing field; do not build a second context type or claim its absence. External context remains context, never respondent evidence. Retiring it would change the integrated MVP scope and needs an explicit override.
 - **8.** `AnalysisInputs` holds one origin; client-reported numbers (`client-data-in-analysis`) need a
   second table and a fingerprint that names it. Interfaces I21.
 - **1, settled and open.** MVP-23 flips the parity cases `finding-without-evidence` and
   `no-finding-at-all`, and the report needs all eight modules complete, so one module with no citable
   finding blocks the internal report. What such a module does (state "no finding, and why" and let the
   report proceed with the gap named, or block) is the owner's clarification; the rule itself is settled.
+
+
+## Execution predecessors (2026-10-20)
+
+Chunks 1 and 5 are W0 rule/authority work; 2-3 and 6 are W1 QC/admitted-result producers;
+8 is the W1 proposed two-origin contract reviewed with S3 before client-data admission code;
+4 and the implemented two-origin path are W3. Chunk 7's external-context producer/consumer
+contract is W1 and its wiring is W3 before Interpretation evidence is consumed. Keep this
+requirement visible: integrating Deep Research context is MVP work, not an unrecorded removal.
+The owner decision about a module with no finding blocks its final admission/composer behavior,
+not citation validators or missing-evidence negative tests. No provisional finding is evidence.

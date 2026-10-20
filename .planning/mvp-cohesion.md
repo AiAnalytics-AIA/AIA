@@ -612,7 +612,7 @@ dated, until the provider contract and the method owner have owners.
 | Q11 | F11: the questionnaire's AI buttons removed (MVP-8) | **decided 2026-10-19** |
 | Q12 | F13: the revision is the unit of acceptance; a stage is current, changed or re-check | **decided 2026-10-19** |
 | Q13 | F13: stage order Results, Sociomap, Analysis, Report | **decided 2026-10-19** |
-| Q14 | F13: a per-study envelope for paid work, superseding MVP-13: set by the researcher up to a client/organisation ceiling; everything inside it, a run through a plan card approved once | **decided 2026-10-19; orchestration-scope ADR first; expiry and chat-started runs open** |
+| Q14 | F13: a per-study envelope for paid work, superseding MVP-13: set by the researcher up to a client/organisation ceiling; everything inside it, a run through a plan card approved once | **decided 2026-10-19; orchestration-scope ADR first; later F13 resolves no expiry until closure and direct human chat starts (Q25)** |
 | Q15 | F13: a hard lock on Sociomap inputs with a recorded unlock | **decided 2026-10-19** |
 | Q16 | F12: two people on one study: each researcher goes in with their own agent; one working copy; item-level merge, presence, shared proposals | **decided 2026-10-19**: each researcher's own agent; any member with the accept permission may accept another's proposal; the rest as recommended |
 | Q17 | F15: population-built respondents by default, invented ones for tests only | **decided 2026-10-19** |
@@ -653,3 +653,13 @@ dated, until the provider contract and the method owner have owners.
   Approve and Export panel and a chunk for map-snapshot approval in `two-roles-human-ai-gates` 5b.4
   (F17); the straight-liner decision card dropped (F18); client data and the own-dimension chip in the
   Brief and Dimensions artifacts (F19).
+
+
+## Execution reconciliation (2026-10-20)
+
+The predecessor view is `mvp-execution-contracts.md`; unanswered questions have stable ids and
+answer-ready wording in `mvp-owner-decisions.md`, indexed by master §11.4. Planning ownership is
+not implementation completion. Q14's earlier expiry/chat-open status is corrected to its later
+same-day decision; no settled decision is reopened. Canonical Sociomap Q5/Q6/Q7 and the audit's
+remaining parameter decisions stay in their existing methodology decision sheets and must be
+resolved before the affected method is treated as approved.

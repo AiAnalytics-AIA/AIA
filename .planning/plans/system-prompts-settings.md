@@ -80,16 +80,16 @@ test on a fictional client, activate and roll back without a deploy; a Settings 
   editor says prompts are sent to the model as written and must hold no client material, and the
   data-class gate still applies to whatever the call carries. A real detector is out of scope.
 
-## Open questions for the owner
+## Current scope and earlier questions (2026-10-20)
 
-1. ~~May the author of a version also activate it?~~ Decided by `develop`'s ADR 0019: yes by default;
-   the self-approval setting still lets an organization require independent review.
-2. Is a pinned run on a fictional client enough as the "playground", or is a one-off
-   side-by-side of two versions on the same fixed input needed in the first release?
-3. Should prompt scope ever be per client? Proposed: organization-wide only. A per-client override
-   means per-client reproducibility questions we do not need yet.
-4. Show the full text of each prompt to every member, or to OWNER/ADMIN only? Proposed:
-   OWNER/ADMIN only (prompts are the product's method).
+The implemented baseline is organization-scoped prompts, OWNER/ADMIN-only prompt reading and
+administration, and a pinned draft job on an operator-declared fictional client. The router
+`apps/api/src/aia_api/routers/system_prompts.py:1-6,251-266 @ 0d525bc8` and ADR 0020 decisions
+5, 7 and 9 describe it. ADR 0020 remains Proposed; this planning update does not accept it.
+Per-client overrides, public-to-member prompt text and a new side-by-side playground are
+additional scope, not unanswered prerequisites for wiring the already specified MVP slots.
+Self-approval continues to follow the existing setting. Editable/read-only slot scope is
+MVP-32 and the amended chunks 7/13; it is not reopened by the historical questions.
 
 ## Chunks
 
@@ -315,3 +315,4 @@ assembly that resolves the pin, the module's result fingerprint, the initial and
 executor, and the usage provenance (`system_prompt_sha256` of what was sent). Tests: work queued before an
 activation keeps its pin and its identity after it; work started after gets a new identity and so does not
 reuse the old result; a repair call uses the same pin as its initial call. Interfaces I25.
+

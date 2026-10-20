@@ -118,8 +118,7 @@ that demands independent review can turn it back on.
 - Human-authored Knowledge writes a revision directly; only AI-authored changes go through a
   proposal and an accept (**confirmed by the owner, 2026-10-01**).
 - The spend threshold for gate 2 is a number someone must choose.
-- Class A/B transmission is unchanged and still unapproved (ADR 0010). Widening who can see a
-  client does not widen what may be sent to a model.
+- The owner approved widening the existing EU model route to A/B/C on 2026-10-19; effective configuration still waits for operator retention evidence and M7. Membership alone never widens model egress.
 
 ## Chunk 3 (landed)
 
@@ -476,22 +475,14 @@ constraint already created as `ck_approval_decisions_approval_subject_type_known
 "ck_approval_decisions_ck_approval_decisions_approval_su_956c" ... does not exist` (double prefix,
 truncated). Right: wrap the full name in `op.f(...)` on both calls.
 
-### Decisions needed from the owner
+### Current decision disposition (2026-10-20)
 
-1. **The threshold (5b.2).** The value is yours to set. I will not guess a dollar figure: the ceiling
-   function can print it for the fictional acceptance run, and a threshold of about twice that is a
-   reasonable start. Is a confirm-above-threshold on the start request the right shape, or do you
-   want it on every run?
-2. **5b.4 deferred** until a client-facing report is designed: agreed?
-3. **Order:** 5b.1 first, because it fixes a dead end that exists today; then 5b.2; 5b.3 any time.
+The earlier questions below this heading were superseded: 5b.2's per-study confirmation
+threshold is implemented and the researcher chooses its value; envelope/budget/threshold
+remain distinct. F17 settles separate report/snapshot approvals and approval before export;
+5b.4 is required, not deferred. Its gate definitions are MVPQ-09 in the owner decision packet.
+Server design-job confirmation is LO15, before all paid-start UI paths.
 
-### Trade-offs accepted
-
-- The ceiling can be far above what a run really costs; it protects against surprise, not
-  against waste. Its precision improves when the reservation settings do.
-- A confirmation on the start request is a click, not a second person. Per ADR 0019 that is the
-  point; the ledger records it.
-- The hard cap stays hard: a run past its budget still stops until a person lifts it.
 
 ## Findings
 
@@ -569,3 +560,4 @@ the follow-ups of #112, #113, #114, #117 and #122; findings filed as OI-82 to OI
   ADR 0019 chunk 6 retires them)" becomes "(the grant tables are dropped, ADR 0019 chunk 6)";
   `docs/architecture/adr/0004-client-study-isolation.md` and the ADR index: grants no longer exist
   in the schema, the audit rows of past grants remain.
+

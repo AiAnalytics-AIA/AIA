@@ -59,3 +59,14 @@ With self-approval off, the reviewer who opens it first cannot approve it today 
 
 - What the evidence audit and the legal source-use gate check (RD0).
 - Settled by requirement, not asked: the report draft counter is separate from the Design Revision, and a report edit never reopens fieldwork (immutable runs, RD5).
+
+
+## Execution predecessors (2026-10-20)
+
+RD0-RD4 are W2; RD5-RD8 are W3. RD3's approval/export component and contract can land in W2;
+the full Report artifact hosts it with workbench 21 in W3. A panel tested alone does not prove
+the full artifact. RD6's semantic-edit ADR, immutable accept-result type and composer fingerprint
+land before LO9b's report binding and any executable report-wording command. The snapshot
+renderer must use the pinned methodology and stored numerical artifact; a camera edit is a view.
+F17 settles approval before a deliverable download; master item 9 asks about check definitions,
+not a choice to approve after download. Do not introduce an unapproved internal-draft exception.

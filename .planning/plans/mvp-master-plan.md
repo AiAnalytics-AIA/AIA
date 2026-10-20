@@ -16,6 +16,7 @@ chunks:
   - "[ ] M12. Prototype precedence recorded once the owner answers question 1: the V2 build against the V3 boards, deltas listed"
   - "[x] M13. The six child plans written and registered (each session reviews its plan before its wave)"
   - "[ ] M14. tools/master_check.py wired into the Documentation checks job (a ci.yml change, in its own pull request)"
+  - "[x] M15. Execution dependencies, partial wave checks and the owner decision packet reconciled; implementation remains open"
 ---
 # The MVP master plan
 
@@ -83,24 +84,24 @@ plan. `POST`: after the MVP, by decision. The dispositions of plans outside the 
 | Plan | Session | Waves | Gate | Needs first |
 |---|---|---|---|---|
 | `research-lead-workbench` | S1 | W0 (11), W1 (11, 14-19, 26), W2 (20, 22), W3 (21), W4 (23) | I-1 to I-4 | edit vocabulary, `LeadWorkerSpec` |
-| `evidence-integrity` | S2 | W0 (1, 5), W1 (2-3), W3 (4) | I-3 | none |
+| `evidence-integrity` | S2 | W0 (1, 5), W1 (2-3, 6 and 7-8 contracts), W3 (4 and 7-8 wiring) | I-1, I-3 | D04 before final empty-module policy; external-context producer/consumer contract |
 | `sociomap-formula-corrections` | S2 | W2 | I-2 | method owner (0b is open; 0a is done) |
 | `segment-maps-and-drilldown` | S2 | W2 | I-2 | method owner, register entries |
 | `audience-catalogue-cpu` | S2 | W0 (4) | I-0 | none |
 | `complete-study-report` | S2 | W0 (B6) | I-0 | the AI route widened for Class A and B (§4), audience 4 |
 | `deep-research-web-search` | S2 | W0 (1, 51, 53, 54, 55), W1 (52), W2 (6, 33-37), W4 (27, 38) | I-R, I-4 | Brave sign-off (owner) |
-| `deep-research` | S2 | with the above | I-4 | `deep-research#4` (tool usage in the ledger, a migration) is in no wave and not in the lane (§6, G9) |
+| `deep-research` | S2; migration reviewed by S3 | W3 (4) | I-4, I-5 | tool-spend contract and serial migration lane; before AC-15 reconciliation |
 | `client-budget` | S3 | W1 (CB5) | I-1 | none |
-| `client-knowledge-lifecycle` | S3 | W1 (K2e, K2f, K3), W2 (K4, K5) | I-3 | none |
-| `client-data-in-analysis` | S3 (4-5 S2) | W3 | I-3 | ADR 0027 policy decision |
+| `client-knowledge-lifecycle` | S3 | W1 (K2e, K2f, K3, K4, K8), W2 (K5), W3 (K6), W5 (K7a research subset) | I-1, I-3, I-5 | reviewed-source contract; K7 Simulation coverage remains post-MVP |
+| `client-data-in-analysis` | S3 (4-5 S2) | W0 (8a proposed interface), W3 (0-9 runtime) | I-3 | accepted ADR 0027 before runtime; the early interface proposal does not admit data |
 | `research-integrity-report` | S3 | W3 (6-8) | I-3 | none |
 | `two-roles-human-ai-gates` | S3 | W2, W3 (5b.4) | I-2, I-3 | a client-report contract |
-| `develop-spend-attribution` | S3 | W0 (1-2) | I-0 | none |
-| `mvp-acceptance-harness` | S3 | W0 (1-3), then every wave | I-0, I-5 | #495 merged |
+| `develop-spend-attribution` | S3 | W0 (5 compatibility contract, 1-2), W5 (3-4) | I-0, I-5 | semantic model identity versus invocation target resolved before profile configuration |
+| `mvp-acceptance-harness` | S3 | W0 (1-4, 8-9, 14), W1-W4 (5, 10, 13 incrementally), W5 (6-7, 11-12) | I-0, I-5 | #503 acceptance reconciliation and one shared provider fixture |
 | `system-prompts-settings` | S1 | W3 (7, 13) | I-3 | worker row |
-| `working-copy-edit-ops` | S1 | W1 (WCE0-WCE7), W2 (WCE8-WCE10) | I-1, I-2 | the edit vocabulary (I2) |
-| `lead-orchestration` | S1 | W0 (LO9a, LO15), W1 (LO0-LO8, LO12), W3 (LO9b, LO10, LO11, LO13) | I-1, I-3 | the money vocabulary (I4), `ResultsContext` (I1) |
-| `run-qc-and-checkpoint` | S2 | W1 (RQC0-RQC5), W2 (RQC6-RQC8), W3 (RQC9-RQC10) | I-1, I-2 | none; RQC0 comes before any step that follows fieldwork |
+| `working-copy-edit-ops` | S1 | W0 (WCE0 contract), W1 (WCE1-WCE7, WCE10, WCE12), W2 (WCE8-WCE9, WCE11) | I-1, I-2 | WCE0 covers structural operations and text-only default; S2 supplies lock fields before W1 writers |
+| `lead-orchestration` | S1 | W0 (LO0, LO9a, LO15), W1 (LO1-LO8, LO10, LO12-LO14), W2 (LO11), W3 (LO9b) | I-1, I-3 | money/authority and early worker contracts; card revision binding before the first card |
+| `run-qc-and-checkpoint` | S2 | W0 (RQC9-RQC10), W1 (RQC0-RQC3, RQC4a, RQC6-RQC8), W3 (RQC4-RQC5) | I-1, I-2, I-3 | checkpoint before resumed fieldwork; event payload before Fieldwork UI; replacement method decision before RQC5 |
 | `report-delivery` | S3 | W2 (RD0-RD4), W3 (RD5-RD8) | I-2, I-3 | a client-report contract, the evidence gate definitions (§11.4) |
 | `study-data-lifecycle` | S3 | before W5 | I-5 | the deletion horizons (§11.4) |
 | `production-environment` | S3 | W1 (infra apply), W5 | I-5 | operator items (§11.5) |
@@ -152,7 +153,7 @@ register check fails on a criterion with no resolvable chunk.
 | AC-09 | `sociomap-formula-corrections#I0`, `segment-maps-and-drilldown#0a`, `segment-maps-and-drilldown#5`, `segment-maps-and-drilldown#6`, `working-copy-edit-ops#WCE8`, `mvp-acceptance-harness#10` |
 | AC-10 | `client-knowledge-lifecycle#K2`, `client-knowledge-lifecycle#K5`, `client-data-in-analysis#2`, `client-data-in-analysis#3`, `client-data-in-analysis#9` |
 | AC-11 | `deep-research-web-search#51`, `deep-research-web-search#52`, `deep-research-web-search#53`, `deep-research-web-search#54`, `deep-research-web-search#27`, `mvp-acceptance-harness#11` |
-| AC-12 | `mvp-acceptance-harness#5` |
+| AC-12 | `mvp-acceptance-harness#5`, `client-knowledge-lifecycle#K7a` |
 | AC-13 | `report-delivery#RD0`, `report-delivery#RD1`, `report-delivery#RD3`, `report-delivery#RD4`, `research-integrity-report#6` |
 | AC-14 | `mvp-master-plan#M6`, `mvp-acceptance-harness#5` |
 | AC-15 | `develop-spend-attribution#1`, `develop-spend-attribution#3`, `develop-spend-attribution#5`, `deep-research#4`, `production-environment#PE7` |
@@ -203,8 +204,8 @@ trace that found each (`.planning/evidence/mvp-master-traces/`).
 | I7 | **Fieldwork events to the Fieldwork artifact**: heartbeat, quota-cell fill, respondent grid, park reason | S2 produces, S1 consumes (T2 C9) | S2 writes the payload first | W1 | `run-qc-and-checkpoint#RQC7` |
 | I8 | **The working copy's writers**: `apply_edit_ops` against the PUT, import, reuse, migration, Design Research accept, the web's whole-content autosave. A lock held in one writer is bypassed by the others | S1, S3 (T1 C7, T4 C9) | S1, with a test that no writer changes a locked item | W1 | `working-copy-edit-ops#WCE2` |
 | I9 | **Per-change identity** across three accept routes (agent job, Design Research `item_ids`, Lead `indices`) | S1, S2 (T1 C1) | S1 | W1 | `working-copy-edit-ops#WCE6` |
-| I10 | **Brief materials, client sources and the data contract**: `briefing.attachments`, `brief_signature` in Python and TypeScript, `design_material` | S1, S3 (T1 C3) | S3 writes the contract, S1 adopts it | W1 | `client-data-in-analysis#8` |
-| I11 | **Sociomap declarations, lock and unlock**: the editor, the lock rule and the ledger row | S1, S2, S3 (T1 C5, T3 C9) | S1 builds the editor against S2's fields | W1 | `working-copy-edit-ops#WCE8` |
+| I10 | **Brief materials, client sources and the data contract**: `briefing.attachments`, `brief_signature` in Python and TypeScript, `design_material` | S1, S3 (T1 C3) | S3 writes the contract, S1 adopts it | W1 | `client-data-in-analysis#8a` |
+| I11 | **Sociomap declarations, lock and unlock**: the editor, the lock rule and the ledger row | S1, S2, S3 (T1 C5, T3 C9) | S1 builds the editor against S2's fields | W0 lock contract; W2 editor | `working-copy-edit-ops#WCE0`, `working-copy-edit-ops#WCE8` |
 | I12 | **Approve and Export panel** inside the Report artifact | S3 panel, S1 slot (T3 C2) | S1 hosts a slot, same wave | W2 | `report-delivery#RD3` |
 | I13 | **Map snapshot**: the renderer, the approvable object, the ledger shape | S2 figure, S3 approval (T3 C5) | S3 owns the object, S2 the deterministic function with camera parameters | W2 | `report-delivery#RD4` |
 | I14 | **Accepted report wording, map readings, flags**: an artifact type and the composer input that carries them into a report's fingerprint | S1 workers, S3 composer (T3 C7) | S3 defines the type, S1 writes the worker against it | W3 | `report-delivery#RD6` |
@@ -224,9 +225,9 @@ trace that found each (`.planning/evidence/mvp-master-traces/`).
 
 ## 6. The gap register
 
-### 6.1 Gaps: a link is missing and no plan builds it
+### 6.1 Gaps and their implementation owners
 
-Grouped by what they block. **Chunks** are the named chunks (written plan, then #, then the chunk ID) that close the row; a row is closed when they are built and tested, never because it has a destination plan.
+These rows preserve the original findings; assigning chunks resolves planning ownership, not the implementation gap. Grouped by what they block. **Chunks** are the named chunks (written plan, then #, then the chunk ID) that close the row; a row is closed when they are built and tested, never because it has a destination plan.
 
 **Activation and operations**
 
@@ -286,7 +287,7 @@ Grouped by what they block. **Chunks** are the named chunks (written plan, then 
 | G30 | **No respondent attributes are stored** (`FieldworkRespondent` holds id, donor, weight, answers: `fieldwork.py:172-181`), so segment maps, filters and the drill-down have nothing to read; "segments by the study's dimensions" has no variable (a dimension is a persona-topic allowlist) (T3 A1, A2; T2 B6) | `segment-maps-and-drilldown#0a` |
 | G31 | **Results shows raw aggregates, not admitted claims**, with suppression decided in the browser (`research-execution.ts:373`); no API serves the evidence table or `PrintGrade`; workbench chunk 20 lists "Missing: —" (T3 A4, B15) | `evidence-integrity#6` |
 | G32 | **MVP-23 is a new rule, not a tightening.** AIA has no 95 % threshold (that is the unit's); it checks numbers in prose only, a finding with no claim ids passes, and the report needs all eight modules complete, so one uncitable module blocks the whole internal report; two parity cases flip (T3 #1) | `evidence-integrity#1` |
-| G33 | **External context never reaches the analysis modules**: `analysis_context` has no caller outside tests and `AnalysisInputs` carries none; the Lead has no Deep Research provider (T3 A5, T5 A15) | `evidence-integrity#7`, `lead-orchestration#LO8` |
+| G33 | **The live external-context producer is not wired**: `AnalysisInputs.external_context` already exists and participates in the prompt/fingerprint (`application/analysis.py:101,138,176`); `application/analysis_results.py:570-579 @ 0d525bc8` constructs it without external context. Trace the sealed-bundle provider into preparation and the Lead, preserving the existing context-not-evidence boundary (corrected T3 A5, T5 A15) | `evidence-integrity#7`, `lead-orchestration#LO8` |
 | G34 | **AC-13 asks for what does not exist**: no client report PDF (`report_variants.py:78`); "evidence audit" and "legal source-use gate" are NOT_STARTED with no plan; "exports only after approval" contradicts the code (drafts download freely, approval follows: `research.py:2395-2449`); no map-snapshot object, route or renderer; two ledger shapes for it; no reader of the approval ledger for "approved by whom" (T3 A6-A8, A13, B3, B4, B9) | `report-delivery#RD0`, `report-delivery#RD1`, `report-delivery#RD2`, `report-delivery#RD3`, `report-delivery#RD4` |
 | G35 | **Client-data steps are not placed in the run**: no graph node, no contract-version pin, no impact root; no class or lineage for client-reported numbers going to a model; no accept target for the three new workers (T3 A9, A11, A12) | `client-data-in-analysis#9`, `report-delivery#RD6` |
 | G36 | **Evidence into knowledge has three semantics** and a document item holds only `source_id`, so Deep Research never sees the file text (`knowledge_access.py:75-90`); the data-contract permission differs between plans (`APPROVE_GATE` against `PROPOSE_CLIENT_KNOWLEDGE`); ADR 0027 decision 3 uses a blocklist, the plans an allowlist (T5 #8, B10; T3 B8) | `client-knowledge-lifecycle#K8`, `client-data-in-analysis#2` |
@@ -363,6 +364,9 @@ browser, all twenty scenarios and the panels, and compared row by row with AIA i
 
 ## 8. The execution protocol
 
+The cross-plan predecessor table and gate evidence rules are in
+[execution contracts](../mvp-execution-contracts.md). This is a schedule/contract view, not another progress store.
+
 **Environments.** `local` (the UI workbench, SQLite, fictional respondents, USD 0) → **CI tier A** (every
 PR; `ci.yml` jobs: What changed, Backend, Frontend, API contract, Application starts, Security and
 dependency scan, Documentation checks on a docs-only PR, and the parity jobs, informational by the
@@ -427,9 +431,11 @@ unless the owner changes I-R.
 
 ### Before the first production release
 
-Before the first release: the delete path (database cascade, S3 prefixes, backups, with RDS snapshot
-retention of 14 days stated), backups and a restore exercised once, the cost alarms and the tagged
-Bedrock profiles reconciling to the usage ledger within USD 0.01 (AC-15), the cutover rollback
+Before the first release: the delete path and approved backup/object-version deletion horizons
+(14/30 days remain infrastructure defaults until decided), an exercised restore, cost alarms and
+tagged profiles. AC-15 reconciles model usage to the usage ledger within USD 0.01; tagged cloud billing
+has its own stated window, lag and tolerance and must not be called that exact model-ledger check.
+Also required are the cutover rollback
 rehearsed on develop, the Cognito and Google callbacks for the production hostname, and the
 activation profile of §4 `READY` on the production host. The hostname, RDS sizing and Bedrock quota are
 still the owner's and an operator's (`mvp-target-architecture.md` §9).
@@ -513,19 +519,24 @@ The plans are corrected, with the owner told in the pull request:
 
 ### 11.4 Open, with the chunks each blocks
 
+Answer-ready wording, stable decision ids, decision owner and permitted independent work are in
+[the owner decision packet](../mvp-owner-decisions.md). These are unanswered choices, not expired questions.
+
 | # | Question | Blocks | Recommendation |
 |---|---|---|---|
 | 1 | **Prototype precedence.** The V2 build for interaction and detail, V3 for the eleven artifact bodies where compatible? | `research-lead-workbench#17` to `#22`, `M12` | Yes; list the deltas, keep recorded decisions, never let mock copy overwrite methodology |
-| 2 | **New prototype scope.** Tracked assumptions, open-answer coding, a return summary: first release or after? | `working-copy-edit-ops#WCE1`, `lead-orchestration#LO7` | Assumptions only if a small design-item contract is accepted; coding is a separate methodology feature; the return summary follows the researcher's own turns plus the change feed |
-| 3 | **What is a segment?** Which stored descriptors, and how do approved own dimensions take part? | `segment-maps-and-drilldown#0a`, `segment-maps-and-drilldown#1` | Start from the sampler's existing descriptors; the method owner defines support, clustering and register entries |
+| 2 | **New prototype scope.** Tracked assumptions and open-answer coding: first release or after? The private return summary stays in LO7's existing context/change-feed work. | `working-copy-edit-ops#WCE1`, `lead-orchestration#LO7` | Assumptions only if a small design-item contract is accepted; coding is a separate methodology feature; the return summary follows the researcher's own turns plus the change feed |
+| 3 | **What is a segment?** Which stored descriptors, how do approved own dimensions take part, and may internal drill-down show generated profile prose? | `segment-maps-and-drilldown#0a`, `segment-maps-and-drilldown#1` | Start from the sampler's existing descriptors; the method owner defines support, clustering and register entries |
 | 4 | **An analysis module with no supported finding.** May it return a structured "no finding, and why" that lets the report proceed? | `evidence-integrity#1` | Yes, with no invented finding and never admitted as evidence |
 | 5 | **Client dataset policy.** Is the accepted data contract the evidence-policy source? ADR 0027's benchmark interval, grounding permission and label decisions | `client-data-in-analysis#2`, `client-data-in-analysis#9` | Owner and methodologist decide before the dependent code; the population field list is not a blanket fit |
 | 6 | **Deep Research reach.** Is the archive (Common Crawl) required for I-R, or deferred with a revised exit? Which measured thresholds and owner for evaluations 25, 26, 39, and what allowance apart from the USD 25? | `deep-research-web-search#25`, `#26`, `#39`, `#27`, `mvp-acceptance-harness#11` | Keep I-R as it is until you change it; a W0 smoke without the archive reports I-R BLOCKED |
 | 7 | **Deletion semantics.** The deletion horizon for backups and bucket versions, and how a deleted subject stays deleted after a restore | `study-data-lifecycle#SDL0`, `study-data-lifecycle#SDL5` | Document the horizons you approve and a deletion journal replayed after restore; 14 and 30 days are infrastructure defaults, not an approval |
 | 8 | **Paid work outside a study.** Client-level source extraction stays in Client Knowledge under the client budget while every study-stage AI action goes through the Lead? | `client-knowledge-lifecycle#K8` | Yes, as a recorded exception to AC-02 with client isolation, approval and a budget |
-| 9 | **The two AC-13 gates.** What is the "evidence audit" and the "legal source-use gate"? Exports only after approval, or approved after download? | `report-delivery#RD0`, `report-delivery#RD1`, `report-delivery#RD3` | Evidence audit = the existing report validation plus the admitted-claim check; legal gate = the source-class check; client exports after approval, internal drafts downloadable |
+| 9 | **The two AC-13 gates.** Which exact evidence and source-use checks must pass? Export after the exact version is approved is settled by F17 and is not asked again. | `report-delivery#RD0`, `report-delivery#RD1`, `report-delivery#RD3`, `report-delivery#RD7` | Evidence audit = the existing report validation plus the admitted-claim check; legal gate = the source-class check; preserve exact-version approval before all deliverable downloads; an unapproved-draft exception would need an explicit scope override |
 | 10 | **Replacement weighting and support.** What a replaced respondent does to the weights, the effective n and the support rules (a methodology dependency; the feature itself is settled, F18) | `run-qc-and-checkpoint#RQC5` | The method owner defines it; until then the chunk builds the mechanism and labels the limit |
 | 11 | **The AI starts below 1100 px or with the workbench off.** Rule A (proposed): removed in every layout, the stage says the Lead needs the wider workbench (literal MVP-8, no exception). Rule B: the fallback keeps its buttons under the server's spend rule, a recorded exception to MVP-8 | `research-lead-workbench#26`, `lead-orchestration#LO15` | A: it needs no exception, and develop has the workbench on. Rollback by switching it off then loses AI, which is the cost |
+
+| 12 | **Canonical Sociomap decisions.** Confirm the still-open Q5/Q6/Q7 meaning and evidence policy, fixed-ruler kernel widths, F10 misfit threshold and F16 disposition with the methodology owner; use the existing decision sheets, not new invented defaults | `sociomap-formula-corrections#0b`, `sociomap-formula-corrections#I0`, `sociomap-formula-corrections#3`, `sociomap-formula-corrections#4c` | Canonical F1-F16 remain the baseline; checked implementation chunks do not approve the audit's provisional parameters |
 
 ### 11.5 Operator and owner checklist (not methodology, not yet done)
 
@@ -544,10 +555,9 @@ questions, and X2 and X6 stay release tests.
 
 ## 12. The independent review (2026-10-20): where each finding is closed
 
-`.planning/evidence/mvp-master-review/codex-coordination.md` lists fifteen findings. Each is closed by
-named chunks, not by a note.
+`.planning/evidence/mvp-master-review/codex-coordination.md` lists fifteen findings. The table names their implementation owners. They are planned, not closed: each remains open until its chunks are built and tested.
 
-| Finding | Closed by |
+| Finding | Implementation owners |
 |---|---|
 | CR-01 executable chunks | the six child plans (`M13`); §5 and §6.1 name a chunk per row |
 | CR-02 threshold against budget | `lead-orchestration#LO1`, `develop-spend-attribution#5`, §11.2 |
@@ -569,3 +579,4 @@ Readiness conditions 1 to 7 of that review: 1 and 2 are the tables of §3.4, §5
 `tools/master_check.py`; 4 is the settled list of §11.1 and the acceptance follow-up; 5 is §11.3 and §11.4;
 6 is that ADRs awaiting owner decisions stay Proposed and every implementation chunk stays open; 7 is that
 no calendar is promised: capacity and external decisions (§11.4 1, 3, 5, 6, 7) are the dependency risk.
+

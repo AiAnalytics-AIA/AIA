@@ -83,3 +83,13 @@ The second edit merges or conflicts on one item only; a locked item refuses; pre
 ## Open: owner clarifications
 
 - None for the owner. A research-question reword with a dependent questionnaire change is one group, accepted or rejected together, and a split that would leave the copy invalid is refused by the server's validation (`WCE6`); "content from revision n" is computed from where an item last changed, never stored (`WCE7`).
+
+
+## Execution predecessors (2026-10-20)
+
+WCE0 is the W0 contract for text and structural operations; its text-only marker limits the
+default automatic acceptance, not the available manual edit vocabulary. S2 supplies the declared
+Sociomap fields before W1 so WCE2 can enforce protected writes from its first implementation.
+WCE1-WCE7, WCE10 and WCE12 are W1; WCE8-WCE9 and WCE11 are W2. WCE10 consumes RQC9's
+single n authority. The W1 locked-write negative test uses the existing lock contract; WCE8 adds
+the complete declaration/unlock editor. WCE11 cannot turn on before WCE9's recorded undo exists.

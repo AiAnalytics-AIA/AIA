@@ -24,7 +24,7 @@ Every chunk below is **open**; a chunk is built from this file, not from the mas
 ## Chunks
 
 **SDL0. Decide the deletion horizons, tombstones and backup-resurrection semantics**  
-The delete path is decided; what is open is how long deleted data survives in backups (RDS snapshots, 14 days) and in bucket versions (30 days), whether a tombstone is kept so a restore cannot resurrect deleted data, and what the audit rows keep. The owner states them here.
+The delete path is decided; what is open is the approved residual retention in backups and bucket versions (14 and 30 days are infrastructure defaults, not an owner approval), and what non-content ledger/audit facts remain. Restore must reapply deletions before the environment serves traffic; a durable deletion journal/tombstone is the mechanism, not permission to resurrect data. The owner states them here.
 
 **SDL1. Foreign keys and the ledger: `ai_usage_events.study_id` and `population_dataset_versions.owner_client_id` get an `ondelete` rule**  
 Neither has one (`tables.py:1833, 1938-1939`). The usage ledger must still reconcile to spend (AC-15) after a deletion: the rule is anonymise or cascade, decided in SDL0.
@@ -47,3 +47,12 @@ A production release checklist item (`production-environment#PE9`).
 ## Open: owner clarifications
 
 - The deletion horizons, the tombstone and the backup semantics (SDL0).
+
+
+## Release ordering (2026-10-20)
+
+SDL0 precedes the deletion FK migration M12 and destructive lifecycle settings. SDL1-SDL4 then
+implement the accepted policy; SDL5 specifies restore ordering and SDL6 exercises it on disposable
+test data. The original tombstone/journal must survive independently of the restored snapshot;
+its scope ids/cutoff and replay result are evidenced before restored traffic is enabled. Retain
+only the non-content identifiers the owner accepts. PE9 cannot pass without SDL6's actual proof.

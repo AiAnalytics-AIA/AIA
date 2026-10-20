@@ -77,3 +77,13 @@ ARNs chunk 1 creates would stop the worker at start; and the plan's "no Environm
 (`infra/develop/versions.tf:34-40`, `main.tf:597-607` set one). Tool spend (Brave, Athena) is not in the
 usage ledger, so AC-15 as written reconciles model spend only: `deep-research` 4 ("tool usage in the
 ledger") is the chunk that closes that and is scheduled with this plan. Gap G9.
+
+
+## Execution prerequisite (2026-10-20)
+
+Chunk 5's semantic-model-id versus invocation-target contract is W0, before chunks 1-2
+configure profiles. Implement compatibility before passing an application-profile ARN to a
+validator requiring `eu.` ids; do not loosen arbitrary model identity. Reuse the same contract in
+production PE7 before PE1's live model configuration. Chunks 3-4 are final W5 reconciliation:
+model usage to its ledger within AC-15's USD 0.01, tool/search separately, tagged AWS billing in
+its stated window with lag and a stated billing tolerance. Unknown billing is never zero.

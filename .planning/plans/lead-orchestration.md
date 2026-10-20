@@ -49,7 +49,7 @@ The data for the two meters: spent against `budget_usd`, and the envelope remain
 The riskiest piece: the most tests and a kill switch. A step that reaches a gate the plan does not cover parks.
 
 **LO4. The plan card: the steps (including "start fieldwork, ceiling X USD"), approved once, stopping at every gate it does not cover**  
-The prototype's decision card for a run start is this card with one item. The UI is `research-lead-workbench` 23; this chunk is the contract and the ledger rows (`lead_plan`, `plan_step`, M3).
+The prototype's decision card for a run start is this card with one item. The minimum usable plan card lands with LO4 in W1 inside the current Lead pane; it is part of I-1. `research-lead-workbench` 23 adds the richer worker/Deep Research cards in W4 and is not the first UI for plan approval. This chunk owns the contract and ledger rows (`lead_plan`, `plan_step`, M3).
 
 **LO5. Direct human chat start: the typed command the server matches, ledger `chat_start`, the model not in the path**  
 The security condition: a start is authorised by a person's own typed command matched by the server, never by a model's interpretation of text. Inside the envelope only.
@@ -90,3 +90,14 @@ The prototype's own documentation lists the unmeasured cost per turn as a gap to
 ## Open: owner clarifications
 
 None here. The envelope sits beside `spend_confirm_usd`, which stays a per-start confirmation (settled; `mvp-master-plan.md` §11.2).
+
+
+## Execution predecessors (2026-10-20)
+
+LO0, LO9a and LO15 are W0; LO1-LO8, LO10 and LO12-LO14 are W1; LO11 is W2;
+LO9b is W3. LO10's card-revision check precedes the first actionable card, not the final workers.
+LO7 uses WCE4's change feed and RQC7's events; unavailable result providers are typed unavailable,
+never guessed. LO11's persistent personal lifecycle is later work; basic per-researcher turn privacy
+must already pass AC-01 in W1. LO14's measured turn cost requires approved live activation; the
+zero-cost composition/limit tests can precede it. LO13 records only the exception the owner accepts.
+See `../mvp-execution-contracts.md`; no implementation checkbox changes here.
