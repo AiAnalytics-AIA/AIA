@@ -159,23 +159,31 @@ at an element (`lib/lead.ts:341`, `Workbench.tsx:185-207 @ 0b4e05e`).
   have it in the next turn, so the bound holds. `lead_contract`'s rule (a number only from the
   context) stays.
 
-**The artifacts.** What V3 shows, what AIA has behind it, what is missing. "Backed by" names modules
-from the CLAUDE.md map; each chunk anchors its claims in its first commit, and until then an entry
-is a **hypothesis**.
+**The artifacts.** The canonical V2 build governs all eleven bodies (MVPQ-01,
+settled 2026-10-20). The complete stage-by-stage producer/consumer and required-delta
+matrix is [the current conformance disposition](../evidence/mvp-prototype-v2/current-disposition.md).
+The older V3 frame inventory is supporting reference.
 
-| Chunk | Artifact (V3) | What it shows | Backed by in AIA | Missing |
-|---|---|---|---|---|
-| 17 | Questionnaire (`FRAME 3`) | Outline by section, counts and minutes; each item's type, time, objective; a proposal inline: removed with reason, merged, reworded, locked Sociomap inputs | Questionnaire stage, agent jobs, `proposal-diff.ts`, `research_trace`, questionnaire import | Per-item time estimate; "serves no objective" as a reason the proposal carries |
-| 18 | Brief (`FRAME 1`) | Goal, problem type, materials with data class, context, readiness with an assumption carried on | Brief stage, attachments, client knowledge, classification (#487) | Assumptions (A1…) tracked across stages |
-| 18 | Research design (`FRAME 2`) | Breadth options with N and trade-off; objectives, research questions, hypotheses; comparable sets, locked Sociomap input; follow-up questions | Plan stage, `research_plan`, tracked sets, Sociomap declarations | Breadth as a choice the design records |
-| 19 | Sample (`FRAME 6`) | N with reason, quotas by code, method support, run ceiling against the spend limit | `SampleView`, `support_forecast`, `run_cost`, readiness | Quotas before a run |
-| 19 | Fieldwork (`FRAME 7`) | Origin banner, run state and heartbeat, counts, respondent grid, quota fill, steps, spend, provenance | Progress, step activity, budget line, `respondentReceipt` | Per-respondent and quota fill from the fieldwork step's events |
-| 20 | Results (`FRAME 8`) | Each question with support and intervals, evidence marks, suppression said | Results Data, `result-reading.ts` | — (re-layout) |
-| 20 | Sociomap (`FRAME 10`) | Top view / 3D, object and pair detail, ranked list with ties, method and provenance, "Zeptat se Vedoucího na …" | `ObjectMapView`, `object-map-view.ts`, Sociomap register | Asking the Lead about an object or pair (chunk 16) |
-| 21 | Analysis (`FRAME 9`) | Three registers apart (deterministic, AI interpretation, external context); modules with state; a gate refusal shown | Analysis view, `needsRepair`, admitted claims, Interpretation Research | A Lead interpretation as an unapproved register entry |
-| 21 | Report (`FRAME 11`) | Outline, a proposal on a draft with Clean / Show changes, evidence on the page | `CompleteReport`, `report-status.ts`, report approval | A report wording proposal (a report worker) |
-| 22 | Audience (`FRAME 4`) | Source, population, target group with quotas, assumptions with Deep Research evidence, impact before saving | Audience stage, `/population` routes, Design Research | Cost and time of a new run (V3 itself says the backend lacks it); population size; own and special audiences |
-| 22 | Dimensions (`FRAME 5`) | Sociodemographics, recommended dimensions with what uses them, catalogue, own dimension proposed to client knowledge | Dimensions stage, `persona_topics`, materialize | "Used by" links to segments and hypotheses |
+| Chunk | Canonical V2 artifacts | Production contract |
+|---|---|---|
+| 17 | Questionnaire | Sections, routing, time/coverage, inline proposals and protected map inputs; WCE writer/merge/lock contracts |
+| 18 | Brief; Research design | Stable classified materials and question/decision/measurement/analysis/report links; unsupported coverage remains a gap |
+| 19 | Sample; Fieldwork | Actual quota/support/readiness, typed progress/receipt/QC and cost; pinned population/method and checkpoint events |
+| 20 | Results; Sociomap | Admitted results, stored map output and exact register status; object/pair controls, filters and internal drill-down |
+| 21 | Analysis; Report | Finding/claim/source chain, blocked reasons and same-data retry; draft changes and exact-version approvals |
+| 22 | Audience; Dimensions | LIVE counts and source pins; own dimensions materialize and feed a real consumer despite the prototype's simulated panel |
+
+Chunks 15/20/21 explicitly retain the four-way distinction: deterministic frozen result,
+display-only operation, labelled AI interpretation and external context. Display and
+context never mutate numeric outputs or acquire admitted-result status.
+
+Chunk 15 also owns the V2 message-origin/context inspector and return summary UI;
+chunk 12 verifies copy, older-message paging, queue, stop/edit keyboard controls and
+return to the last read position. Origin means permitted captured context/prompt/
+worker references, not hidden reasoning or another researcher's turns. The last-read
+cursor is researcher-scoped; LO7 provides the real event/context summary and LO11
+its personal lifecycle. Agree the minimal context/origin/cursor contract in W1 before
+the W4 UI, alongside LO7/LO8 and the privacy tests. No new shared-chat store is implied.
 
 **Order.** 12 (the journey), then 11 (the command registry: which workers the Lead may call, each
 with its prompt and price; most of the paid path is built, `mvp-consolidation.md` §6), then 14-16
@@ -213,8 +221,8 @@ The backend each chunk needs is in `.planning/mvp-consolidation.md` §6.
 - **`ARCHITECTURE.md`.** The accept route's new shape, and one more human-only gate source (a
   Lead-prepared job).
 - **`.planning/open-items.md`.** F1 and F2 above.
-- **`CLAUDE.md` § 2**, beside `src/components/workbench/`: `prototypes/research-lead-v3/` is the
-  design the workbench's artifacts follow (2026-10-19); the navigator stays on top.
+- **`CLAUDE.md` § 2**, beside `src/components/workbench/`: `prototypes/research-lead-v2/` is the
+  canonical workspace and artifact reference (MVPQ-01, 2026-10-20); V3 is supporting reference.
 - **ADR 0026**, under *Accepted with*: the Lead steers the artifact pane through a closed set of
   display operations (D10); its gates are unchanged.
 
@@ -224,9 +232,9 @@ The orchestration and edit work this plan's artifacts stand on is in six plans, 
 place: `working-copy-edit-ops` (the shared vocabulary, merge, per-change accept, presence, the Sociomap
 lock), `lead-orchestration` (the envelope, the plan card, the chat start, the continuation turn,
 `ResultsContext`, the Lead over time), `run-qc-and-checkpoint`, `report-delivery`, `study-data-lifecycle`
-and `production-environment`. Chunks 14-22 here build the screens over them. **Proposed override for the
-owner:** chunk 15 follows the V2 prototype's decision that inputs, feeds, workers and provenance live in
-the inspector and a state bar appears only when it applies, instead of the V3 header strip.
+and `production-environment`. Chunks 14-22 here build the screens over them. Chunk 15
+follows the owner-selected V2: inputs, feeds, workers and provenance live in the inspector,
+and a state bar appears only when it applies. MVPQ-01 settles this decision.
 
 ## Owner decision MVPQ-01 (2026-10-20)
 
