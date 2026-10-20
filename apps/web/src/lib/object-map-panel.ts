@@ -15,7 +15,7 @@
 // browser computes is only the panel's display: the colour ramp and its normalisation, the x26
 // relief, the projection, label placement and the screen size of the stored uncertainty radius.
 
-import { panelObjects } from "./object-map-signed-off";
+import { panelObjects, panelRespondents } from "./object-map-signed-off";
 import { type BatteryWithMaps, type Frame, type ObjectMapArtifact, mapLinks } from "./object-map-view";
 
 /** The panel's frame: the stored grid spans +-62 frame units (`terrain66`, `FRAME_SPAN66`). */
@@ -392,9 +392,13 @@ export type MapScene = {
   hovered: number; // -1: none
   nodeScale: number;
   statements?: MapStatements; // what the map says about itself, drawn over it
+  // Present on the respondent map: its dots, and the clicked one (-1: none). The objects then draw
+  // as the panel's markers and no relation is drawn.
+  respondents?: { dots: PanelDot[]; selected: number };
 };
 
-export type Hit = { index: number; x: number; y: number; r: number };
+/** What a click can land on: an object (on either map) or a respondent's dot. */
+export type Hit = { index: number; x: number; y: number; r: number; kind: "object" | "respondent" };
 export type DrawResult = { hits: Hit[]; labels: { shown: number; wanted: number } };
 
 /** The object under a screen point, nearest first, within its hit radius (`hit66`). */
@@ -408,10 +412,12 @@ export function hitTest(hits: Hit[], x: number, y: number): Hit | null {
 }
 
 /**
- * One frame of the object map, in the panel's order (`draw66`): background, the slab under the
- * square (when tilted), the terrain triangles far first, the contours, the relation lines, the
- * nodes far first, the labels. Returns where each node is (for clicks) and how many labels fit.
- * Draws in CSS pixels: the caller sets the device-pixel transform.
+ * One frame of the map, in the panel's order (`draw66`): background, the slab under the square
+ * (when tilted), the terrain triangles far first, the contours, then on the object map the
+ * relation lines, the nodes far first and the labels, on the respondent map the dots far first and
+ * the objects' markers with their labels; last what the map says about itself. Returns where each
+ * object and dot is (for clicks) and how many object labels fit. Draws in CSS pixels: the caller
+ * sets the device-pixel transform.
  */
 export function drawObjectMap(ctx: CanvasRenderingContext2D, scene: MapScene): DrawResult {
   const { width: W, height: H, camera, grid } = scene;
@@ -437,7 +443,7 @@ export function drawObjectMap(ctx: CanvasRenderingContext2D, scene: MapScene): D
   }
   ctx.globalAlpha = 1;
   drawContours(ctx, P, grid);
-  const result = drawObjects(ctx, P, scene);
+  const result = scene.respondents ? drawRespondents(ctx, P, scene, scene.respondents) : drawObjects(ctx, P, scene);
   if (scene.statements) drawStatements(ctx, P, scene, result.labels);
   return result;
 }
@@ -500,7 +506,7 @@ function drawObjects(ctx: CanvasRenderingContext2D, P: Projection, scene: MapSce
     ctx.fill();
     // The panel's default labels ("important"): every PRIMARY object, the selected and the hovered one.
     if (sel || !sec || hov) labels.push({ text: nodes[i].label, x: q[i].x, y: q[i].y - 12, font: labelFont(sel || hov), prio: sel ? 3 : hov ? 2 : (sec ? 0 : 1) + tones[i] * 0.5 });
-    hits.push({ index: i, x: q[i].x, y: q[i].y, r: 14 });
+    hits.push({ index: i, x: q[i].x, y: q[i].y, r: 14, kind: "object" });
   }
   ctx.save();
   ctx.textAlign = "center";
@@ -551,7 +557,7 @@ export type StatementTexts = {
 /** The stored statements the object map draws: the uncertainty radius (in RMS inter-object
  *  distances), the weakly determined verdict with its split-half score (null under the
  *  no-reliable-pair rule), and the sparse-design flag. */
-export type MapStatements = { radius: number | null; weak: boolean; splitHalf: number | null; sparse: boolean; texts: StatementTexts };
+export type MapStatements = { radius: number | null; weak: boolean; splitHalf: number | null; sparse: boolean; texts: StatementTexts; respondentNote?: string | null };
 
 /** The statements as the artifact stores them; none where it stores none. */
 export function mapStatements(map: ObjectMapArtifact, texts: StatementTexts): MapStatements {
@@ -603,13 +609,14 @@ export function wrapWords(text: string, width: number, measure: (line: string) =
   return lines;
 }
 
-/** The notes at the bottom centre, top to bottom: the sparse design (not under the banner, which
- *  says more), then how many objects are labelled when a large map had to drop labels. */
-export function statementNotes(st: MapStatements, labels: { shown: number; wanted: number }, objects: number): { colour: string; text: string }[] {
+/** The notes at the bottom centre, top to bottom: the sparse design (on both maps, not under the
+ *  banner, which says more); on the object map how many objects are labelled when a large map had
+ *  to drop labels; on the respondent map its note below the minimum number of objects. */
+export function statementNotes(st: MapStatements, labels: { shown: number; wanted: number }, objects: number, respondentMap = false): { colour: string; text: string }[] {
   const notes: { colour: string; text: string }[] = [];
   if (st.sparse && !st.weak) notes.push({ colour: "#ffd27a", text: st.texts.sparse });
-  if (labels.shown < labels.wanted && objects > 30) notes.push({ colour: "#8b96a3", text: st.texts.labelled(labels.shown, objects) });
-  // The respondent map's note below its minimum number of objects joins these (plan sociomap-5-web, chunk 4).
+  if (!respondentMap && labels.shown < labels.wanted && objects > 30) notes.push({ colour: "#8b96a3", text: st.texts.labelled(labels.shown, objects) });
+  if (respondentMap && st.respondentNote) notes.push({ colour: "#ffd27a", text: st.respondentNote });
   return notes;
 }
 
@@ -620,7 +627,8 @@ function drawStatements(ctx: CanvasRenderingContext2D, P: Projection, scene: Map
   ctx.save();
   ctx.font = "600 11px system-ui";
   ctx.textBaseline = "top";
-  const circle = uncertaintyCircle(P, scene.nodes.filter((n) => n.primary), st.radius);
+  // The uncertainty is the objects' positions: drawn on the object map only.
+  const circle = scene.respondents ? null : uncertaintyCircle(P, scene.nodes.filter((n) => n.primary), st.radius);
   if (circle) {
     ctx.setLineDash([4, 3]);
     ctx.lineWidth = 1.2;
@@ -659,10 +667,108 @@ function drawStatements(ctx: CanvasRenderingContext2D, P: Projection, scene: Map
     const body = none ? st.texts.noStructureBody : st.texts.weakBody(Math.round(100 * st.splitHalf!));
     wrapWords(body, box.w - 28, (line) => ctx.measureText(line).width).forEach((line, k) => ctx.fillText(line, W / 2, box.y + 38 + 15 * k));
   }
-  const notes = statementNotes(st, labels, scene.nodes.length);
+  const notes = statementNotes(st, labels, scene.nodes.length, Boolean(scene.respondents));
   ctx.font = "600 11px system-ui";
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
   notes.forEach((note, k) => { ctx.fillStyle = note.colour; ctx.fillText(note.text, W / 2, H - 14 - 16 * (notes.length - 1 - k)); });
   ctx.restore();
+}
+
+// ---------------------------------------------------------------- the respondent map
+
+/** A respondent's dot: its stored position in frame units with the panel's display offset. */
+export type PanelDot = { id: string; x: number; y: number; faded: boolean; segment: number; coloured: boolean };
+
+/**
+ * The panel's display offset of a respondent's dot (applied as it loads the map): up to 1.1 frame
+ * units in a direction, both from a hash of the respondent's id, so dots of identical answers do not
+ * hide each other. Display only; the stored position is unchanged.
+ */
+export function dotOffset(id: string): { dx: number; dy: number } {
+  let h = 0;
+  for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  const a = (h % 6283) / 1000, j = (((h >>> 8) % 1000) / 1000) * 1.1;
+  return { dx: Math.cos(a) * j, dy: Math.sin(a) * j };
+}
+
+/** The PLACED and FADED respondents as dots on the frame; NOT_PLACED ones have no position. */
+export function panelDots(map: ObjectMapArtifact, frame: Frame): PanelDot[] {
+  return panelRespondents(map).map((r) => {
+    const p = toFrame(r.x, r.y, frame), o = dotOffset(r.id);
+    return { id: r.id, x: p.x + o.dx, y: p.y + o.dy, faded: r.placement === "FADED", segment: r.segment, coloured: r.coloured };
+  });
+}
+
+/** The respondent map's terrain: the stored density of the clearly placed respondents over its
+ *  maximum, on the object map's frame. Null without a stored respondent map. */
+export function densityGrid(map: ObjectMapArtifact): PanelGrid | null {
+  const r = map.respondents;
+  if (r?.status !== "computed") return null;
+  return panelGrid(r.density.parameters.grid_resolution, r.density.height);
+}
+
+/**
+ * A dot's colour (`segColor66`): none of its own while the set shows no taste segments, so the dot
+ * is the panel's white. The segment colours, their legend and the borderline hint come with
+ * plan sociomap-5-web chunk 5.
+ */
+export function dotColour(dot: PanelDot): string | null {
+  void dot;
+  return null;
+}
+
+/** The panel's `drawRespondents66`: the dots far first (a weakly placed one faint), then each
+ *  object as a white rotated square with its label. */
+function drawRespondents(ctx: CanvasRenderingContext2D, P: Projection, scene: MapScene, people: { dots: PanelDot[]; selected: number }): DrawResult {
+  const { grid, nodes, hovered } = scene;
+  const hits: Hit[] = [];
+  const proj = people.dots.map((d, i) => ({ i, d, q: P.project(d.x, d.y, terrainAt(grid, d.x, d.y) + 0.65) }));
+  proj.sort((a, b) => a.q.depth - b.q.depth);
+  for (const { i, d, q } of proj) {
+    ctx.globalAlpha = d.faded ? 0.3 : 1;
+    drawPerson(ctx, q.x, q.y, i === people.selected, dotColour(d));
+    ctx.globalAlpha = 1;
+    hits.push({ index: i, x: q.x, y: q.y, r: 8, kind: "respondent" });
+  }
+  const labels: LabelItem[] = [];
+  nodes.forEach((n, i) => {
+    const q = P.project(n.x, n.y, terrainAt(grid, n.x, n.y) + 1.8);
+    ctx.save();
+    ctx.translate(q.x, q.y);
+    ctx.rotate(Math.PI / 4);
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(-5.5, -5.5, 11, 11);
+    ctx.fillStyle = "#15242e";
+    ctx.fillRect(-3.7, -3.7, 7.4, 7.4);
+    ctx.restore();
+    const hov = i === hovered;
+    labels.push({ text: n.label, x: q.x, y: q.y - 12, font: `${hov ? "800 " : "700 "}10px system-ui`, prio: hov ? 2 : 1 });
+    hits.push({ index: i, x: q.x, y: q.y, r: 12, kind: "object" });
+  });
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#fff";
+  ctx.shadowColor = "#000";
+  ctx.shadowBlur = 5;
+  const placed = placeLabels(labels, (text, font) => { ctx.font = font; return ctx.measureText(text).width; });
+  for (const it of placed) { ctx.font = it.font; ctx.fillText(it.text, it.x, it.y); }
+  ctx.restore();
+  return { hits, labels: { shown: placed.length, wanted: labels.length } };
+}
+
+/** One respondent's dot (`drawPerson66`, no filter): white, the clicked one ringed. */
+function drawPerson(ctx: CanvasRenderingContext2D, x: number, y: number, selected: boolean, colour: string | null): void {
+  const r = 2.6;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = colour || "rgba(255,255,255,.85)";
+  ctx.fill();
+  if (selected) {
+    ctx.beginPath();
+    ctx.arc(x, y, r + 4, 0, Math.PI * 2);
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 1.7;
+    ctx.stroke();
+  }
 }

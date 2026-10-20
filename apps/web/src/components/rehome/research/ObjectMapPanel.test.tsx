@@ -10,8 +10,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import signedOff from "@/lib/fixtures/object-map-signed-off.json";
 import legacy from "@/lib/fixtures/object-map.json";
 import { type BatteryWithMaps, mapLinks } from "@/lib/object-map-view";
-import { INITIAL_CAMERA, panelNodes, projection, storedGrid, terrainAt } from "@/lib/object-map-panel";
-import { storedFrame } from "@/lib/object-map-signed-off";
+import { INITIAL_CAMERA, densityGrid, panelDots, panelNodes, projection, storedGrid, terrainAt } from "@/lib/object-map-panel";
+import { type SignedOffRespondents, storedFrame } from "@/lib/object-map-signed-off";
 import { ObjectMapView } from "./ObjectMapView";
 
 const [hudba, sum] = signedOff.batteries as unknown as BatteryWithMaps[];
@@ -305,3 +305,91 @@ describe("what the map says about itself", () => {
     expect(screen.queryByTestId("object-map-unplaced-objects")).toBeNull();
   });
 });
+
+describe("the respondent map", () => {
+  const show = () => fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
+
+  it("switches to the respondent map: dots, markers, its legend and counts, no relations", async () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    await nextFrame(0);
+    const before = frames;
+    show();
+    await nextFrame(before);
+    expect(canvas().getAttribute("data-map")).toBe("respondents");
+    expect(canvas().getAttribute("data-relations")).toBe("");
+    expect(screen.getByRole("button", { name: "Respondenti" }).getAttribute("aria-pressed")).toBe("true");
+    // 219 clearly and 75 weakly placed dots, one marker per object (two squares each), no circle.
+    expect(radii.filter((r) => r === 2.6)).toHaveLength(219 + 75);
+    expect(texts).not.toContain("typická nejistota polohy objektu");
+    expect(screen.queryByRole("group", { name: "Vztahy" })).toBeNull();
+    expect(screen.queryByRole("group", { name: "Normalizace" })).toBeNull();
+    expect(screen.getByTestId("object-map-legend-scale").textContent).toBe("0,00hustota1,00");
+    expect(screen.getByTestId("object-map-legend-info").textContent).toContain("hustota jasně umístěných respondentů");
+    const counts = screen.getByTestId("object-map-respondent-counts").textContent!;
+    expect(counts).toContain("Jasný směr: 73 % (219) · tvoří výšku");
+    expect(counts).toContain("Slabý směr: 25 % (75) · světlé body");
+    expect(counts).toContain("Bez polohy: 6");
+    expect(counts).not.toContain("orientační");
+    fireEvent.click(screen.getByRole("button", { name: "Objekty" }));
+    expect(canvas().getAttribute("data-map")).toBe("objects");
+    expect(screen.queryByTestId("object-map-respondent-counts")).toBeNull();
+  });
+
+  it("rings a clicked respondent and clears it on free ground", async () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    show();
+    await nextFrame(0);
+    const dots = panelDots(map, storedFrame(map)!);
+    const grid = densityGrid(map)!;
+    const P = projection(INITIAL_CAMERA, 900, 700);
+    // A dot no other dot or marker sits within a hit radius of: the click must land on it alone.
+    const at = dots.map((d) => P.project(d.x, d.y, terrainAt(grid, d.x, d.y) + 0.65));
+    const lone = at.findIndex((q, k) => at.every((o, j) => j === k || Math.hypot(o.x - q.x, o.y - q.y) > 16));
+    fireEvent.pointerDown(canvas(), { clientX: at[lone].x, clientY: at[lone].y, pointerId: 1 });
+    fireEvent.pointerUp(canvas(), { clientX: at[lone].x, clientY: at[lone].y, pointerId: 1 });
+    expect(canvas().getAttribute("data-person")).toBe(dots[lone].id);
+    await nextFrame();
+    fireEvent.pointerDown(canvas(), { clientX: 2, clientY: 2, pointerId: 1 });
+    fireEvent.pointerUp(canvas(), { clientX: 2, clientY: 2, pointerId: 1 });
+    expect(canvas().getAttribute("data-person")).toBe("");
+  });
+
+  it("notes a set under the declared minimum of objects, and one under the minimum ratings", async () => {
+    const small = (k: number) => {
+      const b = structuredClone(hudba), m = b.maps!["aia-sociomap-5"].artifact;
+      m.object_ids = m.object_ids.slice(0, k);
+      m.layout = { ...m.layout!, points: m.layout!.points.slice(0, k) };
+      const r = m.respondents as SignedOffRespondents;
+      r.informative = false;
+      return b;
+    };
+    render(<ObjectMapView battery={small(5)} dataOrigin={null} />);
+    show();
+    await nextFrame(0);
+    expect(texts).toContain("Sada má 5 objektů: mapa respondentů je jen orientační (spolehlivá od 6)");
+    expect(screen.getByTestId("object-map-respondent-counts").textContent).toContain("Mapa respondentů: jen orientační · 5 obj. (spolehlivá od 6)");
+    cleanup();
+    // An edited version may declare more ratings than the set has objects: the number is the declared one.
+    const strict = small(4);
+    strict.maps!["aia-sociomap-5"].artifact.spec.respondent_map!.min_ratings = 5;
+    const before = frames;
+    render(<ObjectMapView battery={strict} dataOrigin={null} />);
+    show();
+    await nextFrame(before);
+    expect(texts).toContain("Sada má 4 objekty: respondenty nelze umístit (potřeba aspoň 5 hodnocení)");
+  });
+
+  it("veils a weakly determined respondent map too, and offers no switch without a stored respondent map", async () => {
+    render(<ObjectMapView battery={sum} dataOrigin={null} />);
+    show();
+    await nextFrame(0);
+    expect(canvas().getAttribute("data-map")).toBe("respondents");
+    expect(texts).toContain("Slabě určená mapa");
+    cleanup();
+    const none = structuredClone(hudba);
+    none.maps!["aia-sociomap-5"].artifact.respondents = { status: "not_computed", reason: "test" };
+    render(<ObjectMapView battery={none} dataOrigin={null} />);
+    expect(screen.queryByRole("button", { name: "Respondenti" })).toBeNull();
+  });
+});
+

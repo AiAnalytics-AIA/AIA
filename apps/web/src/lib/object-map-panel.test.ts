@@ -14,6 +14,9 @@ import {
   FRAME_SPAN,
   absoluteGrid,
   bannerBox,
+  densityGrid,
+  dotOffset,
+  panelDots,
   gridAxis,
   mapStatements,
   statementNotes,
@@ -47,7 +50,7 @@ import {
   type PanelCamera,
   type RelationMode,
 } from "./object-map-panel";
-import { storedFrame } from "./object-map-signed-off";
+import { type SignedOffRespondents, respondentNote, storedFrame } from "./object-map-signed-off";
 import type { BatteryWithMaps, ObjectMapArtifact } from "./object-map-view";
 
 const battery = fixture.batteries[0] as unknown as BatteryWithMaps;
@@ -222,10 +225,10 @@ describe("relations, nodes, labels", () => {
 
 /** A context that records the fills, strokes and texts painted; text widths as the golden run's. */
 function recorder() {
-  type Op = { op: string; path: unknown[][]; style?: string; alpha?: number; width?: number; dash?: string; text?: string; x?: number; y?: number; font?: string; align?: string; baseline?: string; w?: number; h?: number; fill?: string };
+  type Op = { op: string; path: unknown[][]; style?: string; alpha?: number; width?: number; dash?: string; text?: string; x?: number; y?: number; font?: string; align?: string; baseline?: string; w?: number; h?: number; fill?: string; tx?: number; ty?: number; rot?: number };
   const ops: Op[] = [];
   let path: unknown[][] = [];
-  let state = { fillStyle: "#000", strokeStyle: "#000", lineWidth: 1, globalAlpha: 1, font: "10px sans-serif", dash: [] as number[], textAlign: "start", textBaseline: "alphabetic" };
+  let state = { fillStyle: "#000", strokeStyle: "#000", lineWidth: 1, globalAlpha: 1, font: "10px sans-serif", dash: [] as number[], textAlign: "start", textBaseline: "alphabetic", tx: 0, ty: 0, rot: 0 };
   const stack: (typeof state)[] = [];
   const measure = (text: string, font: string) => text.length * (font.startsWith("800") ? 6.9 : 6.2);
   const ctx = {
@@ -238,9 +241,11 @@ function recorder() {
     get textBaseline() { return state.textBaseline; }, set textBaseline(v) { state.textBaseline = v; },
     lineCap: "butt", shadowColor: "", shadowBlur: 0,
     setLineDash(d: number[]) { state.dash = [...d]; },
+    translate(x: number, y: number) { state.tx += x; state.ty += y; },
+    rotate(a: number) { state.rot += a; },
     roundRect(x: number, y: number, w: number, h: number, r: number) { path.push(["R", x, y, w, h, r]); },
     save() { stack.push({ ...state }); }, restore() { state = stack.pop() ?? state; },
-    fillRect(x: number, y: number, w: number, h: number) { ops.push({ op: "rect", path: [], x, y, w, h, fill: state.fillStyle }); },
+    fillRect(x: number, y: number, w: number, h: number) { ops.push({ op: "rect", path: [], x, y, w, h, fill: state.fillStyle, tx: state.tx, ty: state.ty, rot: state.rot }); },
     beginPath() { path = []; }, closePath() { path.push(["Z"]); },
     moveTo(x: number, y: number) { path.push(["M", x, y]); }, lineTo(x: number, y: number) { path.push(["L", x, y]); },
     quadraticCurveTo(cx: number, cy: number, x: number, y: number) { path.push(["Q", cx, cy, x, y]); },
@@ -265,9 +270,10 @@ function summarise(ops: ReturnType<typeof recorder>["ops"]) {
     triangles: { count: tri.length, samples: pick.map((k) => ({ k, style: tri[k].style, path: tri[k].path })), hairline: ops.find((o) => o.op === "stroke" && o.style === "rgba(255,255,255,.025)")?.width ?? null },
     contours: ops.filter((o) => o.op === "stroke" && o.style === "rgba(5,10,12,.30)").map((o) => ({ segments: o.path.filter((s) => s[0] === "M").length, first: o.path.slice(0, 2), last: o.path.slice(-2), width: o.width })),
     lines: ops.filter((o) => o.op === "stroke" && o.path.some((s) => s[0] === "Q")).map((o) => ({ style: o.style, alpha: o.alpha, width: o.width, path: o.path })),
-    discs: ops.filter((o) => o.op === "fill" && o.path.some((s) => s[0] === "A")).map((o) => ({ style: o.style, path: o.path })),
+    discs: ops.filter((o) => o.op === "fill" && o.path.some((s) => s[0] === "A")).map((o) => ({ style: o.style, alpha: o.alpha, path: o.path })),
+    rings: ops.filter((o) => o.op === "stroke" && !o.dash && o.path.length === 1 && o.path[0][0] === "A").map((o) => ({ style: o.style, alpha: o.alpha, width: o.width, path: o.path })),
     texts: ops.filter((o) => o.op === "text").map((o) => ({ text: o.text, x: o.x, y: o.y, font: o.font, style: o.style, align: o.align, baseline: o.baseline })),
-    rects: ops.filter((o) => o.op === "rect").map((o) => ({ x: o.x, y: o.y, w: o.w, h: o.h, fill: o.fill })),
+    rects: ops.filter((o) => o.op === "rect").map((o) => ({ x: o.x, y: o.y, w: o.w, h: o.h, fill: o.fill, tx: o.tx, ty: o.ty, rot: o.rot })),
     statements: ops.filter((o) => (o.op === "stroke" && (o.dash || o.path.some((p) => p[0] === "R"))) || (o.op === "fill" && o.path.some((p) => p[0] === "R")))
       .map((o) => ({ op: o.op, style: o.style, width: o.width ?? null, dash: o.dash ?? null, path: o.path })),
   };
@@ -376,6 +382,11 @@ describe("what the map says about itself", () => {
     expect(statementNotes(both, { shown: 3, wanted: 3 }, 8)).toEqual([]);
     expect(statementNotes({ ...both, weak: false }, { shown: 30, wanted: 31 }, 31).map((n) => n.text)).toEqual([TEXTS.sparse, "30 z 31 objektů popsáno"]);
     expect(statementNotes({ ...both, weak: false }, { shown: 29, wanted: 30 }, 30).map((n) => n.text)).toEqual([TEXTS.sparse]);
+    // Each map's own notes: the label note on the object map only, the respondent note on the respondent
+    // map only, the sparse note on both.
+    const small = { ...both, weak: false, respondentNote: "jen orientační" };
+    expect(statementNotes(small, { shown: 30, wanted: 31 }, 31, true).map((n) => n.text)).toEqual([TEXTS.sparse, "jen orientační"]);
+    expect(statementNotes(small, { shown: 3, wanted: 3 }, 5).map((n) => n.text)).toEqual([TEXTS.sparse]);
   });
 
   it("wraps the banner's text as the panel does, and sizes the circle only within its bounds", () => {
@@ -391,5 +402,81 @@ describe("what the map says about itself", () => {
     expect(c.x).toBeCloseTo(900 - 96 - c.r, 12);
     expect(c.y).toBeCloseTo(72 + c.r, 12);
     expect(bannerBox(1000, 700)).toEqual({ x: 280, y: 266, w: 440, h: 84 });
+  });
+});
+
+// ---------------------------------------------------------------- the respondent map
+
+/** The stored hudba map cut to its first k objects, as a small set stores it (the golden run builds
+ *  the same): under the declared minimum of objects the respondent map is only indicative; under the
+ *  minimum ratings nobody is placed and the stored density is flat. */
+function smallBattery(k: number): BatteryWithMaps {
+  const b = structuredClone(battery), m = b.maps!["aia-sociomap-5"].artifact;
+  const keep = m.object_ids.slice(0, k);
+  const cut = <T,>(rows: T[][]) => rows.slice(0, k).map((row) => row.slice(0, k));
+  m.object_ids = keep;
+  m.roles = Object.fromEntries(keep.map((id) => [id, "primary"]));
+  m.layout = { ...m.layout!, points: m.layout!.points.slice(0, k) };
+  m.heights = { ...m.heights, values: m.heights.values.slice(0, k), support_n: m.heights.support_n.slice(0, k), relative: m.heights.relative!.slice(0, k) };
+  m.relations = { ...m.relations, r: cut(m.relations.r), n: cut(m.relations.n), status: cut(m.relations.status), interval: cut(m.relations.interval!) };
+  m.objects_not_placed = [];
+  const r = m.respondents as SignedOffRespondents;
+  r.informative = false;
+  if (k < (m.spec.respondent_map?.min_ratings ?? 3)) {
+    const n = m.respondent_ids!.length;
+    r.x = Array(n).fill(null); r.y = Array(n).fill(null); r.placement = Array(n).fill("NOT_PLACED");
+    r.counts = { PLACED: 0, FADED: 0, NOT_PLACED: n };
+    r.density = { ...r.density, height: r.density.height.map((row) => row.map(() => 0)) };
+  }
+  return { ...b, battery_id: `${battery.battery_id}-${k}` };
+}
+
+const RSOURCES: Record<string, BatteryWithMaps> = { hudba: battery, sum: SOURCES.sum, small5: smallBattery(5), small2: smallBattery(2) };
+
+/** The respondent map's note as the component words it (the panel's plural: 2-4 "objekty"). */
+function noteOf(m: ObjectMapArtifact): string | null {
+  const note = respondentNote(m);
+  if (!note) return null;
+  const objects = t(`research.exec.objectMap.panel.${note.objects >= 2 && note.objects <= 4 ? "objectsFew" : "objectsMany"}`);
+  return tv(`research.exec.objectMap.panel.${note.placeable ? "respondentIndicative" : "respondentUnplaceable"}`, { n: note.objects, objects, min: note.minObjects, ratings: note.minRatings });
+}
+
+describe("the respondent map", () => {
+  for (const [name, scene] of Object.entries(golden.respondentScenes)) {
+    it(`draws ${name} as the panel's respondent scene`, () => {
+      const b = RSOURCES[scene.source], m = b.maps!["aia-sociomap-5"].artifact, f = storedFrame(m)!, ns = panelNodes(b, m, f);
+      const dots = panelDots(m, f);
+      const { W, H, ...camera } = scene.camera as PanelCamera & { W: number; H: number };
+      const { ctx, ops } = recorder();
+      const result = drawObjectMap(ctx, {
+        width: W, height: H, camera, grid: densityGrid(m)!, nodes: ns, tones: nodeTones(ns, "range"), pairs: [], selected: -1, hovered: scene.hovered,
+        nodeScale: nodeScale(m.object_ids.length + (m.objects_not_placed?.length ?? 0)),
+        statements: { ...mapStatements(m, TEXTS), respondentNote: noteOf(m) },
+        respondents: { dots, selected: scene.person ?? -1 },
+      });
+      close(summarise(ops), scene.summary);
+      close(result.hits.map((h) => [h.kind === "respondent" ? "respondent" : "respondent_object", h.kind === "respondent" ? dots[h.index].id : ns[h.index].id, h.x, h.y, h.r]), scene.hits);
+    });
+  }
+
+  it("offsets each dot as the panel does, up to 1.1 frame units, and only for display", () => {
+    const f = storedFrame(map)!;
+    const dots = panelDots(map, f);
+    const r = map.respondents as SignedOffRespondents;
+    expect(dots).toHaveLength(r.counts.PLACED + r.counts.FADED);
+    for (const d of dots) {
+      const k = map.respondent_ids!.indexOf(d.id), p = toFrame(r.x[k]!, r.y[k]!, f);
+      expect(Math.hypot(d.x - p.x, d.y - p.y)).toBeLessThanOrEqual(1.1);
+      expect(d.faded).toBe(r.placement[k] === "FADED");
+    }
+    expect(dotOffset("hudba-r17")).toEqual(dotOffset("hudba-r17"));
+  });
+
+  it("reads the stored density on the object map's frame", () => {
+    const g = densityGrid(map)!, d = (map.respondents as SignedOffRespondents).density;
+    expect(g.N).toBe(d.parameters.grid_resolution);
+    expect(d.parameters.centre).toEqual((map.terrain as Extract<ObjectMapArtifact["terrain"], { status: "computed" }>).parameters.centre);
+    expect(Math.max(...g.ht.flat())).toBe(1);
+    expect(densityGrid({ ...map, respondents: undefined })).toBeNull();
   });
 });

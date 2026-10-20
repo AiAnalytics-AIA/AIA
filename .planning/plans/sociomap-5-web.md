@@ -5,7 +5,7 @@ chunks:
   - "[x] 1. Read -5 maps in the web: the stored fields typed, pure readers for the panel renderer, a stored -5 fixture; nothing drawn changes"
   - "[x] 2. The object map as the AIA panel draws it: terrain, colour ramp, relief, frame, nodes, labels, relation lines, legend, camera; a -5 map read first and routed to it"
   - "[x] 3. Map credibility on the map: the weakly-determined banner, the uncertainty circle, the sparse and label notes, objects not placed"
-  - "[ ] 4. The respondent map: Objekty | Respondenti, dots, faint dots, the density terrain, object markers, the notes below six and three objects"
+  - "[x] 4. The respondent map: Objekty | Respondenti, dots, faint dots, the density terrain, object markers, the notes below six and three objects"
   - "[ ] 5. Taste segments on the respondent map: colours, legend, borderline hint"
   - "[ ] 6. Detail on click: an object's and a respondent's detail, in the panel's content"
   - "[ ] 7. The Word report's -5 map figure in the panel's look; the web map's PNG snapshot, with its legend"
@@ -93,9 +93,34 @@ independent review; the owner's look at screenshots before each commit.
 - Decided (methodology owner, 2026-10-20): the list of objects nobody rated reads „Neumístěno (nikdo je nehodnotil,
   proto bez polohy na mapě): …“ — the cause, not the panel's „žádný známý vztah“ (true of them, but its consequence).
 
+- Chunk 4 (the respondent map): the port of the panel's respondent scene (its terrain on the stored density,
+  `drawRespondents66`, `drawPerson66`, the respondent parts of `drawAiaOverlay66`, the dots' display offset from its map
+  loading) matches the panel's own functions op for op on five scenes and pixel for pixel at 900×700 (`hudba` from the
+  opening camera and from above with a ringed respondent, the weakly determined `sum`, sets cut to five and two objects).
+  The panel builds its density from the dots after their display offset (up to 1.1 frame units, `ui_app.html:2449`);
+  the stored density is from the unshifted positions, so the panel's own surface differs from the stored one by at most
+  0.0011 of its maximum. The web draws the stored one.
+- To confirm (owner), chunk 4:
+  - the map switch follows the panel's dock („Mapa: Respondenti | Objekty“, Respondenti first), and the page still
+    opens on Objekty;
+  - Normalizace and Vztahy are hidden on Respondenti, as in the running panel (its Normalizace lives in Nastavení mapy,
+    which hides it on Respondenti, `settingsHtml27`; corrected after the review — first built as disabled);
+  - the density legend reads „0,00 · hustota · 1,00“: the stored density is over its maximum, and the panel's top number
+    (the raw maximum) is not stored;
+  - the counts card follows the panel's map info („Jasný směr“, „Slabý směr“, „Neumístěno“); its „Neumístěno“ help
+    names the declared minimum of ratings instead of the panel's fixed 3, and the indicative row's help drops the panel's
+    trailing decision reference;
+  - the facts card's existing „Nezařazení respondenti: 0“ (`support.not_placed`) now sits beside the respondent
+    map's „Neumístěno: 6“ (respondents with too few or all-equal ratings): two different stored counts with similar
+    names;
+  - a click on a dot rings that respondent; a click on an object's marker on the respondent map does nothing yet (its
+    detail comes with chunk 6).
+
 ## Doc follow-up (chunk 2)
 
 - `apps/web/src/lib/fixtures/object-map-draw-golden.json` holds values returned by the panel's own functions (whole lines
   of `ui_app.html`, listed in its `source` field, run in Node against a stub of the panel state) on the hudba and sum
   maps and synthetic variants of them (no reliable pair, sparse design, 36 objects), for
   `object-map-panel.test.ts`; regenerate it from the panel whenever the panel's drawing changes.
+- Decided (methodology owner, 2026-10-20): the respondent card counts respondents without a position as „Bez polohy“, so „Neumístěno“ names only the objects nobody rated; the facts line „Nezařazení respondenti“ (all ratings equal) stays.
+- Known difference (review of chunk 4): with a respondent ringed on a tilted view, the panel strokes the slab's outline at 1.7 px (its `drawPerson66` leaves `lineWidth` set for the next frame); the port keeps 0.28. A panel artefact, not copied.
