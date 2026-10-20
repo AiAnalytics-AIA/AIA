@@ -157,16 +157,25 @@ Relayed by the coordinator from the PM status page; recorded in
 | Page | Answer | Chunks |
 |---|---|---|
 | Q19 | Evaluate before adopting: a W1 spike compares Wordcraft, ONLYOFFICE Docs and Collabora Online against Tiptap, a go/no-go to the owner | `research-lead-workbench#33` |
-| Q20 | The owner's determination: Brave may receive Class B (design-derived) queries for every client, CLASSIFIED included; Class A stays refused (Q22), operators open (Q23) | `deep-research-web-search#57` |
+| Q20 | The owner's determination: Brave may receive Class B (design-derived) queries for every client, CLASSIFIED included; Class A only as code-extracted fields (Q22), operators in (Q23) | `deep-research-web-search#57` |
 | Q21 | The coordinator keeps merging reviewed, green PRs | — (no plan edit) |
+
+### The owner's answers of 21:55-21:57 UTC (page Q22 to Q24)
+
+Relayed by the coordinator from the PM status page; recorded in
+[`answers-2026-10-20.md`](../evidence/scope-freeze/answers-2026-10-20.md) (sixth table).
+
+| Page | Answer | Chunks |
+|---|---|---|
+| Q22 | Class A reaches a query only as fields code extracts from approved knowledge (category, market, named competitors); never free text or documents; code picks the fields | `deep-research-web-search#57a` |
+| Q23 | Search operators (`site:`, `filetype:`, `intitle:`) are in the MVP, written by the model; RetrievalGate checks every URL and hop | `deep-research-web-search#58` |
+| Q24 | The Lead's lookup works for CLASSIFIED clients behind a plan card; OPEN clients need none | `lead-orchestration#LO20`, `deep-research-web-search#56` |
 
 ### Open: signing does not answer these
 
 | # | Question | Who answers | Waits on it |
 |---|---|---|---|
 | — | The editor's go/no-go after the spike (page Q19): Wordcraft, ONLYOFFICE Docs or Collabora Online, against Tiptap | the owner | `research-lead-workbench#33`, `lead-orchestration#LO19`, `report-delivery#RD6` |
-| — | Class A in Brave queries (page Q22): refused until answered | the owner | `deep-research-web-search#57` |
-| — | Search operators (`site:`, `filetype:`, `intitle:`) in queries (page Q23) | the owner | `deep-research-web-search#57` |
 | — | The performance budget values for `mvp-acceptance-harness#18` (D-48); planning proposes them in that chunk's PR, the owner approves | the owner | `mvp-acceptance-harness#18` |
 | — | The methodology owner's decisions MQ-01 to MQ-24, MQ-01 (the `-5` register entry) first | A. Bahbouh | `mvp-methodology-packet.md` (#510); §11.4 |
 | — | The Deep Research evaluation tasks and thresholds (MVPQ-06, rest) | the owner | `deep-research-web-search#27` |

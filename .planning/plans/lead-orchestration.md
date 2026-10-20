@@ -26,7 +26,7 @@ chunks:
   - "[ ] LO17. Stopping the Lead: cancel a running turn, withdraw an approved plan (the current step finishes or is cancelled, nothing after it starts), with the workbench build line (D-18)"
   - "[ ] LO18. The Lead's turns stream, take a file from the composer, and comment unprompted after the researcher pauses editing, each such comment a paid turn inside the wallet (D-39)"
   - "[ ] LO19. A study's context file: a Markdown file per study, built by code from the study's shared state and refreshed on every change, read by every researcher's Lead in that study as its study layer (Q5)"
-  - "[ ] LO20. Hledat na webu: the Lead's governed web search through RetrievalGate, several results with inline citations in the turn, OPEN clients only, each search charged to the wallet (Q6)"
+  - "[ ] LO20. Hledat na webu: the Lead's governed web search through RetrievalGate, several results with inline citations in the turn, OPEN clients without a card and CLASSIFIED clients behind a plan card, each search charged to the wallet (Q6, Q24)"
   - "[ ] LO9d. Every stage worker gets its declared inputs: the upstream accepted items, readiness, question outlook, research trace, earlier proposals' reasons and dismissals, and the newest sealed Deep Research bundle's findings by reference, labelled external context (Q12)"
 ---
 # Lead orchestration: the wallet, the plan card, the continuation turn and the Lead over time
@@ -261,3 +261,15 @@ the chunks named below.
   before it leaves (the hold refuses it when the wallet cannot cover it). OPEN clients only. Tests:
   a fourth query in one turn is refused by name; a lookup with too little wallet is refused before
   anything is sent.
+
+### After the lookup-for-CLASSIFIED answer (the owner's answers on the PM status page, 2026-10-20 21:55-21:57 UTC, relayed by the coordinator (page ids Q22 to Q24; `.planning/evidence/scope-freeze/answers-2026-10-20.md`, sixth table))
+
+- **LO20 (page Q24: (c)).** The lookup works for **CLASSIFIED** clients too, **behind a plan card**:
+  the Lead prepares the lookup (its queries as they will be sent, the route, the bound and the wallet
+  hold) and the person approves it, through the same card path as LO4's minimum plan card. An OPEN
+  client's lookup still needs no card (page Q18's bounds: 3 queries, 5 pages, 2 lookups per turn).
+  A CLASSIFIED lookup's queries are Class B by rule or `deep-research-web-search#57a`'s
+  code-extracted fields, to Brave alone; search operators as `deep-research-web-search#58`. The
+  owner asked how cards are made systematically; the card inventory goes to him as an explainer
+  through the coordinator. Tests: a CLASSIFIED client's lookup sends nothing before its card is
+  approved, and runs within the same bounds after; a stale card is refused.

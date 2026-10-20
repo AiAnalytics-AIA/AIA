@@ -60,8 +60,10 @@ chunks:
   - "[ ] 54. Before the first activation: each connector probed live once (every interface is UNVERIFIED), AIA_DEEP_RESEARCH_AGENT_DIRECTED named in the activation matrix, Common Crawl's AWS side (workgroup, results bucket, grants, us-east-1 exception) in Terraform or kept out of the first activation"
   - "[ ] 55. The start's cost ceiling function moves from the API router to the application layer, so a plan step in the worker and the router use one"
   - "[ ] 51a. A run's routes on its record: by_route in CoverageLedger (sent, succeeded, refused) and composed_routes from the plan artifact (G67)"
-  - "[ ] 56. A quick single-track lookup for the Lead's Hledat na webu: several search hits and parallel fetches of the top pages through RetrievalGate, captured snapshots, per-call cost against the wallet, OPEN posture only (Q6)"
-  - "[ ] 57. Brave for Class B queries (owner determination 2026-10-20, Q20): a query written from a design reaches Brave at Class B for every client, CLASSIFIED included; Class A stays refused (Q22 open); recorded as data beside OI-61"
+  - "[ ] 56. A quick single-track lookup for the Lead's Hledat na webu: several search hits and parallel fetches of the top pages through RetrievalGate, captured snapshots, per-call cost against the wallet; OPEN without a card, CLASSIFIED behind a plan card (Q6, Q24)"
+  - "[ ] 57. Brave for Class B queries (owner determination 2026-10-20, Q20): a query written from a design reaches Brave at Class B for every client, CLASSIFIED included; Class A only as chunk 57a's code-extracted fields (Q22); recorded as data beside OI-61"
+  - "[ ] 57a. Class A in queries only as code-extracted fields (Q22): category, market and named competitors from approved knowledge, picked by code, never the client's free text or documents"
+  - "[ ] 58. Search operators (Q23): site:, filetype: and intitle: written by the model, passed to routes that support them, RetrievalGate checking every URL and hop as today"
 ---
 # Deep Research — wide, precise, and defensible
 
@@ -1767,23 +1769,48 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
     client, so a Class B query to it is refused by name. Brave's admitted classes come from the
     recorded determination, not from code defaults. ADR 0032 decision 4 (#512 @ 4502017) records it
     as an explicit exception to ADR 0008's EU-processing condition, for Brave alone.
-  - **Class A stays refused** on Brave (client notes, approved knowledge, a client's sources, by
-    `material_rules`) until page Q22 is answered. **Search operators** (`site:`, `filetype:`,
-    `intitle:`) are page Q23, open; nothing here adds them. The owner's note: "maybe even class A,
+  - **Class A is refused** on Brave (client notes, approved knowledge, a client's sources, by
+    `material_rules`) except the code-extracted fields of chunk 57a (page Q22). **Search operators**
+    (`site:`, `filetype:`, `intitle:`) are chunk 58 (page Q23). The owner's note: "maybe even class A,
     depends how the query is constructed. I like to implement google search hacking into the
     workflows, to create highly specific and reputable sources".
   - Chunk 53's OPEN posture is unchanged: OPEN still lowers an OPEN client's queries to Class C.
     What changes is the CLASSIFIED path: its edited design no longer needs an operator record to run
-    its web tracks when every query it sends is Class B or C; a query from Class A material is
-    refused by name and sends nothing.
+    its web tracks when every query it sends is Class B or C (or 57a's fields); a query from other
+    Class A material is refused by name and sends nothing.
   - Cost, stated plainly: Brave is NON_EU and keeps logs up to 90 days, so a CLASSIFIED client's
     design wording (names included) can reach it. The determination is the guard, and it is recorded.
   - ADR 0008 (residency and classes) and ADR 0032 (#512) record the route's admitted classes; both
     change with this (Doc follow-up).
   - Tests: a CLASSIFIED client's design-derived query reaches the recorded Brave double at Class B; a
-    query built from a Class A knowledge item is refused before anything is sent; the same Class B
+    query built from a Class A knowledge item's text is refused before anything is sent; the same Class B
     query to a Class C route (Wikipedia, Common Crawl) is refused by name; the determination
     record is the only source of Brave's admitted classes (removing it refuses Class B); an OPEN
     client's behaviour is unchanged.
-  - The Lead's lookup (`lead-orchestration#LO20`, chunk 56) stays OPEN-only (page Q18) unless the
-    owner decides otherwise.
+  - The Lead's lookup (`lead-orchestration#LO20`, chunk 56) serves CLASSIFIED clients behind a plan
+    card (page Q24), under the same class rule.
+
+### After the Class A, operators and lookup answers (the owner's answers on the PM status page, 2026-10-20 21:55-21:57 UTC, relayed by the coordinator (page ids Q22 to Q24; `.planning/evidence/scope-freeze/answers-2026-10-20.md`, sixth table))
+
+- **57a (W2, page Q22: (b)).** Class A reaches a search query **only as fields code extracts from
+  approved knowledge**: the client's category, market and named competitors (the ENTITY knowledge of
+  the client's profile, `knowledge.py`). **Code picks the fields, not the model**: the query writer
+  is handed them as a closed list of terms, and a query is checked before it leaves that every Class
+  A term in it is one of them. The client's free text, notes, documents and sources never reach a
+  query. Those terms go to Brave alone (chunk 57; ADR 0032 decision 4); every other route still
+  refuses Class A. Tests: a query carrying a named competitor from approved knowledge reaches the
+  recorded Brave double; a query carrying a phrase from a client document or a pending (unapproved)
+  item is refused before anything is sent; the same competitor to a Class C route is refused.
+- **58 (W2, page Q23: (b)).** Search operators (`site:`, `filetype:`, `intitle:`) are **in the
+  MVP**, written by the model freely (the owner chose this over a curated domain list). An operator
+  is query text: it does not change the query's class, and a route that does not support it (the
+  Wikipedia route) receives the query without it, said in the track's record. `RetrievalGate`
+  checks every URL and every hop as today (`domain/deep_research/web.py`); nothing new is fetched
+  because of an operator. Tests: a `site:` query reaches the recorded Brave double verbatim; the
+  same query to Wikipedia is sent without the operator and the record says so; a result URL on a
+  private address is still refused.
+- **56 (page Q24: (c)).** The lookup serves CLASSIFIED clients too: an OPEN client's lookup runs
+  without a card (Q18's bounds); a CLASSIFIED client's lookup runs only after the person approves a
+  plan card (`lead-orchestration#LO20`), and its queries are Class B or 57a's fields, to Brave alone.
+  The test "a CLASSIFIED client's lookup sends nothing" becomes "sends nothing until its card is
+  approved".
