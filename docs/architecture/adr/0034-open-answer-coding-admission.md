@@ -1,6 +1,7 @@
 # ADR 0034 — Open-answer coding: a frozen, reviewed assignment artifact, counts by a pure function, admitted like every number; the method awaits the methodology owner
 
-**Status:** Proposed — 2026-10-20. Not accepted until the product owner says so; **the coding
+**Status:** Proposed — 2026-10-20; **held for the methodology owner's answers** (the product
+owner, 2026-10-20: "accept 0028-0033, 0035, 0038-0040; hold 0034, 0036, 0037"). **The coding
 method (decision 6) is awaiting the methodology owner** (MVPQ-02b) and is not chosen here. The
 admission rule [ADR 0026](0026-research-lead-proposes-a-person-decides.md) decision 4 requires
 before any command reaches *open-answer coding*. **Builds on** [ADR 0007](0007-deterministic-tools.md)

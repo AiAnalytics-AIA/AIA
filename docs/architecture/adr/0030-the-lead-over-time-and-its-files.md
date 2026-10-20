@@ -1,6 +1,7 @@
 # ADR 0030 — The Lead over time: it proposes updates to its own files, the researcher approves each, and a Lead belongs to its researcher alone
 
-**Status:** Proposed — 2026-10-20. Not accepted until the product owner says so. **Amends**
+**Status:** Accepted — 2026-10-20 (the product owner, in his words: "accept 0028-0033, 0035, 0038-0040; hold 0034, 0036, 0037").
+Proposed the same day. **Amends**
 [ADR 0026](0026-research-lead-proposes-a-person-decides.md) *Accepted with* 6 (the Lead proposes
 updates to its own files on what it observes, not only when asked; revisions become readable and
 restorable). **Builds on** [ADR 0004](0004-client-study-isolation.md) (client isolation decides
@@ -11,7 +12,7 @@ researcher's turns, and now also their Lead's files and notes, are read by nobod
 **Date:** 2026-10-20. **Amended 2026-10-20** with the product owner's recorded answers D-32, D-33,
 D-34 and Q5 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`): no admin
 read, no handover, no departure trigger; and Q14 (a) on the PM status page (20:50-21:04 UTC, relayed
-by the coordinator): a departed member's Lead is sealed, then deleted. Still Proposed.
+by the coordinator): a departed member's Lead is sealed, then deleted.
 **Plan:** [lead-orchestration](../../../.planning/plans/lead-orchestration.md) LO11 (migration M7)
 
 ## Context
@@ -133,4 +134,4 @@ Answered by the product owner on 2026-10-20 (`answers-2026-10-20.md`, #523 @ `ee
   accepted study notes stay with the study (Q14, a). Decision 5.
 - ~~The per-study context file.~~ Its own ADR, [0039](0039-the-study-context-file.md).
 
-Nothing remains open in this ADR but its acceptance.
+Nothing remains open in this ADR.

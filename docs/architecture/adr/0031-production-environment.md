@@ -1,6 +1,7 @@
 # ADR 0031 — Production is a second one-host environment with RDS, in the same AWS account, separated by tags, roles and state
 
-**Status:** Proposed — 2026-10-20. Not accepted until the product owner says so. **Supersedes** the
+**Status:** Accepted — 2026-10-20 (the product owner, in his words: "accept 0028-0033, 0035, 0038-0040; hold 0034, 0036, 0037").
+Proposed the same day. **Supersedes** the
 "production compute remains undecided" of [ADR 0009](0009-single-host-develop-environment.md) (its
 status line, *What this ADR does not decide* and *Migration path*) and the matching item of the ADR
 index's *Not decided anywhere* list. ECS Fargate is **not** chosen for the MVP. **Builds on**
@@ -10,7 +11,7 @@ index's *Not decided anywhere* list. ECS Fargate is **not** chosen for the MVP. 
 deploy, and every application guard of `AIA_ENV=production`.
 **Date:** 2026-10-20. **Amended 2026-10-20** with the product owner's recorded answers D-19, D-20
 and D-21 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`), and Q15 (a) on
-the PM status page (20:50-21:04 UTC, relayed by the coordinator): the hostname. Still Proposed.
+the PM status page (20:50-21:04 UTC, relayed by the coordinator): the hostname.
 **Plan:** [production-environment](../../../.planning/plans/production-environment.md) PE0-PE9b
 
 ## Context
@@ -170,4 +171,4 @@ written into decisions 6 and 7:
 
 - ~~The production hostname itself.~~ `app.ai-analytics.ai` (Q15, a). Decision 7.
 
-Nothing remains open in this ADR but its acceptance.
+Nothing remains open in this ADR.

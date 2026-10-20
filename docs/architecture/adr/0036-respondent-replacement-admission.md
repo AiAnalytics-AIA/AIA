@@ -1,6 +1,7 @@
 # ADR 0036 — Replacing respondents is a new linked run: the original stays as it is, an exclusion is pinned, kept answers are reused by hash; the weighting awaits the methodology owner
 
-**Status:** Proposed — 2026-10-20. Not accepted until the product owner says so; **the replacement
+**Status:** Proposed — 2026-10-20; **held for the methodology owner's answers** (the product
+owner, 2026-10-20: "accept 0028-0033, 0035, 0038-0040; hold 0034, 0036, 0037"). **The replacement
 method (decision 5) is awaiting the methodology owner** (MVPQ-10) and is not chosen here. The
 admission rule [ADR 0026](0026-research-lead-proposes-a-person-decides.md) decision 4 requires
 before any command reaches *respondent replacement*. **Builds on** [ADR 0016](0016-research-execution-and-model-transmission.md)

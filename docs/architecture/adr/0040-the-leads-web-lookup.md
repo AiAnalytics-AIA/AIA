@@ -1,8 +1,8 @@
 # ADR 0040 — The Lead looks things up on the web: it asks, code searches through `RetrievalGate`, and a continuation turn answers with grounded, cited results
 
-**Status:** Proposed — 2026-10-20, from the product owner's answer Q6 (a) of the same day
-(`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`). Not accepted until the
-product owner says so. **Amends** [ADR 0026](0026-research-lead-proposes-a-person-decides.md)
+**Status:** Accepted — 2026-10-20 (the product owner, in his words: "accept 0028-0033, 0035, 0038-0040; hold 0034, 0036, 0037").
+Proposed the same day, from the product owner's answer Q6 (a) of the same day
+(`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`). **Amends** [ADR 0026](0026-research-lead-proposes-a-person-decides.md)
 decision 3 ("the Lead calls no tool … makes no HTTP request"): the Lead may *request* a lookup in its
 closed output, which code performs. **Widens** [ADR 0017](0017-deep-research-external-retrieval.md)'s
 scope to a second caller of AIA's web retrieval. **Builds on** [ADR 0028](0028-orchestration-scope-wallet-and-plan-card.md)
@@ -13,7 +13,7 @@ evidence gate.
 **Date:** 2026-10-20. **Amended 2026-10-20** with the product owner's answer Q18 (a) on the PM status page
 (20:50-21:04 UTC, relayed by the coordinator): no card, within fixed bounds; and Q20 (b): Brave may
 carry Class B queries for every client; and Q22 (b), Q23 (b) and Q24 (c) (21:55-21:57 UTC): a
-CLASSIFIED client's lookup behind a plan card. Still Proposed.
+CLASSIFIED client's lookup behind a plan card.
 **Plan:** [lead-orchestration](../../../.planning/plans/lead-orchestration.md) LO20 (#523);
 `deep-research-web-search` 56; `research-lead-workbench` 32
 
@@ -157,12 +157,7 @@ Answered by the product owner on 2026-10-20 (Q18, a, on the PM status page):
   to Brave alone (Q24 c, Q22 b). Decision 3.
 - ~~Search operators.~~ As in ADR 0032 (Q23, b).
 
-Still open:
+- ~~Amending ADR 0026 decision 3.~~ Approved with this ADR's acceptance (2026-10-20).
+- ~~The cards themselves.~~ Listed, with their one path, in [ADR 0028](0028-orchestration-scope-wallet-and-plan-card.md) decision 7.
 
-1. **Amending ADR 0026 decision 3, which is Accepted**, needs the owner's explicit yes (D-08 named
-   the other amendments, not this one).
-2. **The cards themselves.** With Q24 the owner asked: "how many different cards do we have, i want
-   to know more about how we plan to systematically create these cards". A catalogue of every
-   decision card (plan step, lookup, budget lift, unlock, approval), with one way to build them, is
-   not written in any ADR; it belongs with ADR 0028's plan card and the command registry of ADR 0026
-   decision 4.
+Nothing remains open in this ADR.

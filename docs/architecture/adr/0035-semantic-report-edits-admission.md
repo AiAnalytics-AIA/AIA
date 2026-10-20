@@ -1,6 +1,7 @@
 # ADR 0035 — The Lead edits a report freely; the evidence does not move: every number a ledger ref, every claim admitted, a draft of its own, approval of the exact version
 
-**Status:** Proposed — 2026-10-20. Not accepted until the product owner says so. The admission rule
+**Status:** Accepted — 2026-10-20 (the product owner, in his words: "accept 0028-0033, 0035, 0038-0040; hold 0034, 0036, 0037").
+Proposed the same day. The admission rule
 [ADR 0026](0026-research-lead-proposes-a-person-decides.md) decision 4 requires before any command
 reaches *semantic report edits*. **Builds on** [ADR 0016](0016-research-execution-and-model-transmission.md)
 (a run is immutable), [ADR 0019](0019-two-roles-and-human-ai-gates.md) gates 1 and 3 and the report
@@ -10,7 +11,7 @@ approval of a stored report.
 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`): free edits, numbers as
 ledger refs; the draft's closed operations and per-paragraph ref equality are withdrawn; and Q13 (a)
 and Q19 (a) on the PM status page (relayed by the coordinator): the Lead live-edits, per researcher;
-the editor by an evaluation spike. Still Proposed.
+the editor by an evaluation spike.
 **Plan:** [report-delivery](../../../.planning/plans/report-delivery.md) RD5, RD5a, RD6, RD7;
 `lead-orchestration` LO9b, LO9c
 
@@ -147,6 +148,6 @@ Answered by the product owner on 2026-10-20 (D-35 and Q6 in `answers-2026-10-20.
 Still open:
 
 1. **The editor** that shows a report's tracked changes is chosen by an evaluation spike before
-   adoption (Q19, a): Wordcraft, ONLYOFFICE Docs or Collabora Online, Tiptap rejected. The editing
+   adoption (Q19, a; `research-lead-workbench` 33): Wordcraft, ONLYOFFICE Docs or Collabora Online, Tiptap rejected. The editing
    rule of decision 5 holds whichever wins; see [ADR 0039](0039-the-study-context-file.md)'s open
    item 1.

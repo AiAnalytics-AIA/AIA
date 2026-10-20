@@ -1,6 +1,7 @@
 # ADR 0033 — An assumption's status is a person's decision, and its evidence is an attachment code verifies: an admitted claim or a grounded Deep Research finding
 
-**Status:** Proposed — 2026-10-20. Not accepted until the product owner says so. The admission rule
+**Status:** Accepted — 2026-10-20 (the product owner, in his words: "accept 0028-0033, 0035, 0038-0040; hold 0034, 0036, 0037").
+Proposed the same day. The admission rule
 [ADR 0026](0026-research-lead-proposes-a-person-decides.md) decision 4 requires before any command
 reaches *audience-assumption evidence*. **Builds on** [ADR 0019](0019-two-roles-and-human-ai-gates.md)
 gate 1, [ADR 0021](0021-deep-research-purpose-target-lineage.md) (Deep Research is external context,

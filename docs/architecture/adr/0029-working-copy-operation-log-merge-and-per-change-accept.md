@@ -1,6 +1,7 @@
 # ADR 0029 — The working copy changes only through one operation vocabulary: an append-only log, an item-level merge, per-change accept and a hard lock on Sociomap inputs
 
-**Status:** Proposed — 2026-10-20. Not accepted until the product owner says so. **Amends**
+**Status:** Accepted — 2026-10-20 (the product owner, in his words: "accept 0028-0033, 0035, 0038-0040; hold 0034, 0036, 0037").
+Proposed the same day. **Amends**
 [ADR 0026](0026-research-lead-proposes-a-person-decides.md) decision 5 (an item is keyed by a stable
 id, no longer by its normalised text) and decision 6 (an accept may take some of a proposal's
 changes, and a Lead edit's accept submits the Design Revision too). **Builds on**
@@ -8,8 +9,7 @@ changes, and a Lead edit's accept submits the Design Revision too). **Builds on*
 [ADR 0019](0019-two-roles-and-human-ai-gates.md) gate 1. **Leaves unchanged** the Design Revision as
 what a run executes (ADR 0016), the evidence gates and every run's pins.
 **Date:** 2026-10-20. **Amended 2026-10-20** with the product owner's recorded answers D-06, D-07,
-D-08, D-30 and D-31 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`);
-still Proposed.
+D-08, D-30 and D-31 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`).
 **Plan:** [working-copy-edit-ops](../../../.planning/plans/working-copy-edit-ops.md) WCE0-WCE13
 
 ## Context
@@ -184,4 +184,4 @@ written into the decisions above:
 3. ~~The route names.~~ `POST/GET …/workspace/ops?since=`, as this ADR has it (the coordinator,
    2026-10-20; the planning session aligns WCE4's wording).
 
-Nothing remains open in this ADR but its acceptance.
+Nothing remains open in this ADR.

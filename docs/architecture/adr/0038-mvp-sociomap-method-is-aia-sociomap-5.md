@@ -1,8 +1,8 @@
 # ADR 0038 — The MVP's Sociomap method is `aia-sociomap-5`, and the only one: new runs pin it by its own name, it stays internal until the register approves it, the old methods leave every product path, and stored maps are never recomputed
 
-**Status:** Proposed — 2026-10-20, recording the product owner's decision of the same day
-(MVPQ-13: "the MVP ships `aia-sociomap-5`", #504, relayed by the coordinator). Not accepted until the
-product owner says so; **every method question is the methodology owner's** and lives in the
+**Status:** Accepted — 2026-10-20 (the product owner, in his words: "accept 0028-0033, 0035, 0038-0040; hold 0034, 0036, 0037").
+Proposed the same day, recording the product owner's decision of the same day
+(MVPQ-13: "the MVP ships `aia-sociomap-5`", #504, relayed by the coordinator). **Every method question is the methodology owner's** and lives in the
 methodology packet (`.planning/mvp-methodology-packet.md`, #510, MQ-01 to MQ-24), not here. **Builds
 on** [ADR 0023](0023-methodology-is-data-the-methodologist-owns.md) (a run pins the methodology in
 force; versions are immutable) and the Sociomap register (`domain/sociomap_register.py`; D6 is the
@@ -14,7 +14,7 @@ golden fixtures as tested reference.
 Q1 to Q4 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`): `-5` the only
 method, the old methods out of every product path, the Metodik mark; and Q17 (a) on the PM status
 page (20:50-21:04 UTC, relayed by the coordinator): approved older reports stay downloadable, an
-older-method retry refused. Still Proposed.
+older-method retry refused.
 **Plan:** [signed-off-sociomap-method](../../../.planning/plans/signed-off-sociomap-method.md);
 packet E-1 to E-9
 

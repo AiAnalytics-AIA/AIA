@@ -1,8 +1,8 @@
 # ADR 0039 — Every study has a context file every researcher's Lead reads: code-built facts plus "Poznámky ke studii", versioned, frozen into each turn
 
-**Status:** Proposed — 2026-10-20, from the product owner's answers Q5 (c) and Q10 (b) of the same
-day (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`). Not accepted until
-the product owner says so. **Amends** [ADR 0026](0026-research-lead-proposes-a-person-decides.md)
+**Status:** Accepted — 2026-10-20 (the product owner, in his words: "accept 0028-0033, 0035, 0038-0040; hold 0034, 0036, 0037").
+Proposed the same day, from the product owner's answers Q5 (c) and Q10 (b) of the same
+day (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`). **Amends** [ADR 0026](0026-research-lead-proposes-a-person-decides.md)
 decision 2 (the Lead's *Study's state* layer becomes the study context file). **Builds on**
 [ADR 0029](0029-working-copy-operation-log-merge-and-per-change-accept.md) (the operation log, per-change
 accept and the automatic text accept) and [ADR 0030](0030-the-lead-over-time-and-its-files.md) (a
@@ -10,7 +10,7 @@ Lead is its researcher's alone). **Leaves unchanged** the privacy of every resea
 Lead's closed output and the 96 KB context bound.
 **Date:** 2026-10-20. **Amended 2026-10-20** with the product owner's answer Q13 (a) on the PM status page
 (20:50-21:04 UTC, relayed by the coordinator): the Lead live-edits documents, per researcher; and
-Q19 (a): the editor is chosen by an evaluation spike. Still Proposed.
+Q19 (a): the editor is chosen by an evaluation spike.
 **Plan:** [lead-orchestration](../../../.planning/plans/lead-orchestration.md) LO19 (#523);
 `research-lead-workbench` 32
 
@@ -135,13 +135,12 @@ who opens the study.
 
 Still open:
 
-1. **The editor, pending an evaluation spike** (the product owner, 2026-10-20, Q19 a). The editor
-   is chosen by a spike with a go/no-go before any adoption. The candidates are Wordcraft
+1. **The editor, pending an evaluation spike** (the product owner, 2026-10-20, Q19 a;
+   `research-lead-workbench` 33). The editor is chosen by a spike with a go/no-go before any adoption. The candidates are Wordcraft
    (`github.com/storytold/wordcraft`: a Rust reimplementation of Word with WASM, an MCP server and
    track changes; MIT/Apache, alpha), ONLYOFFICE Docs and Collabora Online; Tiptap is rejected for
    its UX, the owner wanting "as close to Microsoft Word or LibreOffice as possible". The spike
    checks each against decision 2 (tracked changes a person resolves, direct edits marked and
    undoable, numbers kept as refs it cannot retype), EU hosting of anything server-side, licence,
    and the cost of running it. Decision 2 holds whichever wins.
-2. **Amending ADR 0026, which is Accepted**, in decision 2's study layer, needs the owner's explicit
-   yes (D-08 named the other amendments, not this one).
+- ~~Amending ADR 0026 decision 2.~~ Approved with this ADR's acceptance (2026-10-20).

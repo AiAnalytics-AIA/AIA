@@ -1,6 +1,7 @@
 # ADR 0037 — A client dataset's evidence policy is compiled from its accepted data contract, and nothing else
 
-**Status:** Proposed — 2026-10-20. Not accepted until the product owner says so; **the support,
+**Status:** Proposed — 2026-10-20; **held for the methodology owner's answers** (the product
+owner, 2026-10-20: "accept 0028-0033, 0035, 0038-0040; hold 0034, 0036, 0037"). **The support,
 metric and benchmark rules (decision 4) are awaiting the methodology owner** (ADR 0027 Q1, Q2, Q4).
 **Amends** [ADR 0027](0027-client-data-is-client-reported-evidence.md), as that ADR reads after the
 open docs PR #508 (the allowlist copy, *z dat klienta* per number with source and period once,

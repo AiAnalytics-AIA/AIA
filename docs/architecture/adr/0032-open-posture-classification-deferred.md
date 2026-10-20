@@ -1,7 +1,8 @@
 # ADR 0032 — Open posture: one declared flag per client replaces classification for Deep Research's web in the MVP
 
-**Status:** Proposed — 2026-10-20, recording the product owner's decision of 2026-10-19 (#500).
-Not accepted until the product owner says so. **Amends** [ADR 0008](0008-eu-data-residency.md), a
+**Status:** Accepted — 2026-10-20 (the product owner, in his words: "accept 0028-0033, 0035, 0038-0040; hold 0034, 0036, 0037").
+Proposed the same day, recording the product owner's decision of 2026-10-19 (#500).
+**Amends** [ADR 0008](0008-eu-data-residency.md), a
 frozen invariant, for Deep Research's web egress only, and its addendum of 2026-10-19 item 1
 (operator-only classification of a design, OI-129) for an OPEN client. **Builds on**
 [ADR 0017](0017-deep-research-external-retrieval.md) (a query inherits its class),
@@ -14,7 +15,7 @@ every evidence gate.
 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`), and Q16 (a) and Q20 (b) on
 the PM status page (relayed by the coordinator): Brave at release, and Brave may carry Class B
 queries for every client; and Q22 (b) and Q23 (b) (21:55-21:57 UTC): Class A only as fields code
-extracts, and search operators. Still Proposed.
+extracts, and search operators.
 **Plan:** [deep-research-web-search](../../../.planning/plans/deep-research-web-search.md) 53 (§ Open
 posture), 51, 52; migration M10
 
@@ -166,4 +167,4 @@ I-R, and AC-11's first half.
 - ~~Search operators.~~ `site:`, `filetype:`, `intitle:`, written freely; class unchanged; dropped
   and recorded where a route lacks them (Q23, b). Decision 4.
 
-Nothing remains open in this ADR but its acceptance.
+Nothing remains open in this ADR.

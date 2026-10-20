@@ -1,6 +1,7 @@
 # ADR 0028 — The Lead orchestrates inside a wallet: a plan approved once, a typed start a person asks for, and every uncovered gate parks
 
-**Status:** Proposed — 2026-10-20. Not accepted until the product owner says so. **Supersedes**
+**Status:** Accepted — 2026-10-20 (the product owner, in his words: "accept 0028-0033, 0035, 0038-0040; hold 0034, 0036, 0037").
+Proposed the same day. **Supersedes**
 MVP-13 ("a paid worker job is approved one card at a time", `overview.md`). **Amends**
 [ADR 0026](0026-research-lead-proposes-a-person-decides.md) decision 7 and *Accepted with* 4 (a
 job the Lead prepares inside an approved plan starts without its own card; a run, Design Research
@@ -10,7 +11,7 @@ ledger and the queue are PostgreSQL). **Leaves unchanged** `budget_usd` as the c
 spending, `spend_confirm_usd` as a per-start confirmation threshold, every evidence gate and every
 run's pins.
 **Date:** 2026-10-20. **Amended 2026-10-20** with the product owner's recorded answers D-01 to D-05
-and D-08 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`); still Proposed.
+and D-08 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`).
 **Plan:** [lead-orchestration](../../../.planning/plans/lead-orchestration.md) LO0-LO5, LO10, LO15, LO16
 
 **Terminology** (the product owner, 2026-10-20). The per-study spending allowance is the **wallet**
@@ -255,4 +256,4 @@ written into the decisions above:
    (D-05, a), as decision 2 and this item already said.
 5. ~~Amending ADR 0026, which is Accepted.~~ Yes, to each amendment as its ADR is accepted (D-08, a).
 
-Nothing remains open in this ADR but its acceptance.
+Nothing remains open in this ADR.
