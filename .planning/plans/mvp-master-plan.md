@@ -13,7 +13,7 @@ chunks:
   - "[ ] M9. The production release checklist exercised once on develop: delete path, backups and restore, alarms, rollback"
   - "[ ] M10. This plan re-verified at each gate (I-0 to I-5), its register and gap list brought up to date"
   - "[ ] M11. The owner answers §11.4's questions; each answer is recorded in mvp-cohesion.md's register and the plans it moves are edited"
-  - "[ ] M12. Prototype precedence recorded once the owner answers question 1: the V2 build against the V3 boards, deltas listed"
+  - "[ ] M12. Canonical V2 precedence recorded (MVPQ-01 settled); verify each artifact against that build and list required deltas from recorded domain decisions"
   - "[x] M13. The six child plans written and registered (each session reviews its plan before its wave)"
   - "[ ] M14. tools/master_check.py wired into the Documentation checks job (a ci.yml change, in its own pull request)"
   - "[x] M15. Execution dependencies, partial wave checks and the owner decision packet reconciled; implementation remains open"
@@ -459,8 +459,11 @@ work it moves. Each answer is recorded in `mvp-cohesion.md`'s register (`M11`). 
 
 ### 11.1 Settled, not asked again
 
+MVPQ-01 was answered on 2026-10-20: the browser's Czech Research Lead V2 build is the canonical reference for both the workspace and all eleven artifact bodies; V3 is supporting reference only. Preserve newer recorded domain/methodology decisions; verify deltas in M12.
+
 | Decision | Settled by | Where it is built |
 |---|---|---|
+| Canonical design is the browser's Czech V2 build, including its artifact bodies; the earlier V2/V3 blend recommendation is superseded | MVPQ-01, owner 2026-10-20 | `research-lead-workbench#15`, `research-lead-workbench#17`, `research-lead-workbench#22`, `mvp-master-plan#M12` |
 | Each researcher has their own private Lead | F12, Q26 | `lead-orchestration#LO0`, `lead-orchestration#LO11` |
 | The Deep Research open posture replaces classification for the MVP; the posture is pinned at enqueue and a retry copies it | #500, owner 2026-10-19 | `deep-research-web-search#53` |
 | Respondent replacement is a new linked run, never an edit of a completed one | F18 | `run-qc-and-checkpoint#RQC5` |
@@ -509,9 +512,10 @@ The plans are corrected, with the owner told in the pull request:
 
 ### 11.3 Proposed scope overrides: only if you want them
 
+The earlier S1 (draw the V3 header strip) is closed by MVPQ-01: the canonical V2 build's compact header is the reference, which is what `research-lead-workbench#15` plans. S2 and S3 stay labelled overrides because the recorded budget and private-Lead decisions govern where the prototype shows otherwise.
+
 | # | The plans say | The override | What it moves |
 |---|---|---|---|
-| S1 | The workbench plan's chunk 15 shows readiness, outlook and spend in the inspector only; the V3 boards draw a header strip | Draw the strip as the V3 boards do | `research-lead-workbench#15`; one more surface in I-1 |
 | S2 | Two meters (envelope and spend) | One meter, as the prototype shows | `lead-orchestration#LO1`, `research-lead-workbench#15` |
 | S3 | One private Lead per researcher | One conversation per study, as the prototype has it | storage, retention, the return summary; reopens F12/Q26 |
 | S4 | The permission panel shows the client's posture (OPEN or CLASSIFIED) and the strict class text applies to CLASSIFIED | Show the strict text for every client | `deep-research-web-search#54`; contradicts the open posture's intent |
@@ -524,7 +528,6 @@ Answer-ready wording, stable decision ids, decision owner and permitted independ
 
 | # | Question | Blocks | Recommendation |
 |---|---|---|---|
-| 1 | **Prototype precedence.** The V2 build for interaction and detail, V3 for the eleven artifact bodies where compatible? | `research-lead-workbench#17` to `#22`, `M12` | Yes; list the deltas, keep recorded decisions, never let mock copy overwrite methodology |
 | 2 | **New prototype scope.** Tracked assumptions and open-answer coding: first release or after? The private return summary stays in LO7's existing context/change-feed work. | `working-copy-edit-ops#WCE1`, `lead-orchestration#LO7` | Assumptions only if a small design-item contract is accepted; coding is a separate methodology feature; the return summary follows the researcher's own turns plus the change feed |
 | 3 | **What is a segment?** Which stored descriptors, how do approved own dimensions take part, and may internal drill-down show generated profile prose? | `segment-maps-and-drilldown#0a`, `segment-maps-and-drilldown#1` | Start from the sampler's existing descriptors; the method owner defines support, clustering and register entries |
 | 4 | **An analysis module with no supported finding.** May it return a structured "no finding, and why" that lets the report proceed? | `evidence-integrity#1` | Yes, with no invented finding and never admitted as evidence |
