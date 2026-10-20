@@ -72,6 +72,11 @@ Results shows the codes and counts per open question with their support and supp
 Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
 
 **Existing chunks, changed.** AOC0 / AOC2 (D-16): SUPPORTED and CONTRADICTED need at least one
-admitted respondent claim; an external finding is context, labelled. The status set itself is still open
-(D-16's second part, master § The scope baseline, Open): AOC0 is not built until it is answered. AOC2 names its producer (G72):
+admitted respondent claim; an external finding is context, labelled. The status set (page Q11: (b)) is
+UNTESTED, SUPPORTED, CONTRADICTED and RETIRED; there is no UNVERIFIED, so ADR 0033 decision 2 drops it.
+- **AOC3 (Q12).** The analysis payload carries `research_plan.hypotheses` and `decision_use`: today
+  `AnalysisInputs` holds the research questions only (`application/analysis_results.py:570-578 @
+  7878bad`), so the HYPOTHESES module always says they cannot be assessed
+  (`domain/analysis/modules.py:99-102`). Test: a study with two stated hypotheses gets a HYPOTHESES
+  module that evaluates both against admitted evidence. AOC2 names its producer (G72):
 an assumption inherits its linked research question's EVIDENCE items, with no engine change.

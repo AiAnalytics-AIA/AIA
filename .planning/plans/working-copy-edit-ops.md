@@ -126,3 +126,13 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
 - **WCE11 (D-31).** A named server path accepts a structural change under the person's standing
   choice; the switch is per stage on Můj Vedoucí, off by default.
 - **WCE1** gains no decision, expected-answer or done-when kinds: the question chain is **out** (D-44).
+
+### After the stage-handoff answer (the owner's answers on the PM status page, 2026-10-20 about 20:35 UTC, relayed by the coordinator (page ids Q10, Q11, Q12; `.planning/evidence/scope-freeze/answers-2026-10-20.md`, third table))
+
+- **WCE7 (Q12).** A declared map of what each stage reads (its upstream stages and items), the one
+  source for "current / changed / re-check", for `lead-orchestration#LO9d`'s worker inputs and for
+  staleness. A **pending proposal** built on an older upstream item is flagged "postaveno na starší
+  verzi …", not only a run: today the lane marks a run's staleness only (`apps/web/src/research/
+  lane.ts:34-96 @ 7878bad`). Test: accepting a brief change flags a pending questionnaire proposal
+  built before it.
+

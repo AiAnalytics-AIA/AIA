@@ -151,6 +151,7 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `signed-off-sociomap-method#9` | W2 | scope freeze, D-13: the report draws `-5`; before E15 |
 | `signed-off-sociomap-method#10` | W1 | scope freeze, D-14 and Q4: the Metodik mark gates storing and activating |
 | `signed-off-sociomap-method#11` | W2 | scope freeze, Q8: Metodika's comparison shows all of `-5`'s outputs; after 8 |
+| `lead-orchestration#LO9d` | W2 | scope freeze, Q12: after LO9a and `working-copy-edit-ops#WCE7` |
 | `lead-orchestration#LO19` | W2 | scope freeze, Q5: the study's context file; after LO8 and `working-copy-edit-ops#WCE4` |
 | `lead-orchestration#LO20` | W3 | scope freeze, Q6: Hledat na webu; after `deep-research-web-search#56`; an ADR first |
 | `deep-research-web-search#56` | W3 | scope freeze, Q6: the Lead's quick lookup through RetrievalGate |

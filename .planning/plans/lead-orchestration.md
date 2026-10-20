@@ -27,6 +27,7 @@ chunks:
   - "[ ] LO18. The Lead's turns stream, take a file from the composer, and comment unprompted after the researcher pauses editing, each such comment a paid turn inside the wallet (D-39)"
   - "[ ] LO19. A study's context file: a Markdown file per study, built by code from the study's shared state and refreshed on every change, read by every researcher's Lead in that study as its study layer (Q5)"
   - "[ ] LO20. Hledat na webu: the Lead's governed web search through RetrievalGate, several results with inline citations in the turn, OPEN clients only, each search charged to the wallet (Q6)"
+  - "[ ] LO9d. Every stage worker gets its declared inputs: the upstream accepted items, readiness, question outlook, research trace, earlier proposals' reasons and dismissals, and the newest sealed Deep Research bundle's findings by reference, labelled external context (Q12)"
 ---
 # Lead orchestration: the wallet, the plan card, the continuation turn and the Lead over time
 
@@ -207,3 +208,35 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
   shown with its cost. A captured page can be added to Client Knowledge by the existing "Ověřeno,
   přidat zdroj". **Needs an ADR first** (a new ADR after 0038 for the Lead's lookup tool, and ADR
   0017's scope widened to it); the chunk's PR carries it Proposed.
+
+### After the stage-handoff and context-file answers (the owner's answers on the PM status page, 2026-10-20 about 20:35 UTC, relayed by the coordinator (page ids Q10, Q11, Q12; `.planning/evidence/scope-freeze/answers-2026-10-20.md`, third table))
+
+The owner, on Q12: "we need the highest degree of integration, this needs to be cohesive to produce a
+high quality report." All five gaps of the coordinator's stage-handoff audit are closed here and in
+the chunks named below.
+
+- **LO9d (W2, after LO9a and `working-copy-edit-ops#WCE7`).** A stage worker today sees the design
+  and approved knowledge titles only (`context_snapshot`, `domain/research_agents.py:565-583 @
+  7878bad`), so each stage works in a silo and the previous stage's output is not its input. Each
+  worker's `LeadWorkerSpec` row declares the inputs it reads, and its context carries them:
+  - the upstream stages' accepted items, from WCE7's map of what each stage reads;
+  - readiness, the question outlook and the research trace;
+  - earlier proposals' reasons and dismissals for the same stage;
+  - the newest sealed Deep Research bundle's findings, by reference and labelled external context
+    (ADR 0021: never respondent evidence).
+  The context stays bounded (the worker's own byte limit), with omissions named. Test: a
+  questionnaire worker started after an accepted brief and a Design Research run reads both, and a
+  dismissed proposal's reason, by id.
+- **LO7.** The Lead's context gains a pending-proposals layer: every proposal still waiting on the
+  study, with its stage, proposer and base revision (`application/research_lead.py:858-889 @
+  7878bad` builds the layers today without it).
+- **LO6's test** also covers a job started through `approve_request`, so a job the Lead's card started
+  returns its typed result to the Lead like any other.
+- **LO19, the prose part (page Q10: (b)).** Besides the code-built state, the study context file has
+  "Poznámky ke studii": any researcher's Lead proposes a note and a person accepts it through the
+  existing accept path, with the auto-accept text toggle applying. A note is study material, classed
+  by `material_rules.py` like the design. The owner also wrote: "i do want to kinda integrate wordcraft
+  and have the lead research be able to live edit the document, once the user is editing the document
+  will depend if they revize the text as a comment or rewrite it directly, that will be up to each
+  researcher." That live-editing part is **not planned yet**: the coordinator is asking which
+  document and what "wordcraft" means.

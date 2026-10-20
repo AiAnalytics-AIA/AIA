@@ -85,6 +85,7 @@ AC-15), as amended below; the core plans of §3.1 with their open chunks and wav
 | Client pages and Settings | Posture (built by `deep-research-web-search#53`) and wallet ceiling on Profil → Pravidla, listed read-only in Settings (D-17); the data contract accepted in the Brief drawer, the Data tab read-only (D-37); delete: a client by an admin, a source by a researcher, knowledge retired (D-29); deactivating a member (D-27); a cross-client portfolio, project memory over approved reports, an organization's monthly spend (D-47); Simulace hidden (MVP-31); no paid start outside the Lead over HTTP (D-15) | `client-knowledge-lifecycle#K11`, `client-data-in-analysis#10`, `study-data-lifecycle#SDL3`, `study-data-lifecycle#SDL4b`, `two-roles-human-ai-gates#8`, `client-knowledge-lifecycle#K9`, `client-knowledge-lifecycle#K10`, `develop-spend-attribution#6`, `client-knowledge-lifecycle#K12`, `system-prompts-settings#14` |
 | Acceptance | AC-14 reads typed settings plus a composition digest on each run (D-09); AC-01's 404 is for another organization (ADR 0019); accessibility (axe) and performance budgets are release gates (D-48) | `lead-orchestration#LO12c`, `mvp-acceptance-harness#14`, `mvp-acceptance-harness#10`, `mvp-acceptance-harness#18` |
 | Production and release | Egress blocks private and metadata ranges only (D-19); the proposed sizes (D-20); tagged inference profiles (D-21); production starts empty, bootstrapped by an operator command (D-22); an external security review (D-23); per-member rate limits (D-24); RPO 24 h, RTO 4 h (D-25); GlitchTip for errors (D-26); terms, privacy notice, client DPA and the panel-licence confirmation before the first client (D-28) | `production-environment#PE4`, `production-environment#PE7`, `production-environment#PE10`, `production-environment#PE11`, `architecture-enforcement#12`, `production-environment#PE9a`, `production-environment#PE9b` |
+| Added by the follow-ups | Stage-to-stage handoff: every stage worker's declared inputs, hypotheses in the analysis, staleness on pending proposals, pending proposals in the Lead's context (Q12); Lead-proposed study notes (page Q10); the RETIRED status (page Q11) | `lead-orchestration#LO9d`, `assumptions-and-open-answer-coding#AOC3`, `working-copy-edit-ops#WCE7`, `lead-orchestration#LO7`, `lead-orchestration#LO19`, `assumptions-and-open-answer-coding#AOC0` |
 | Added by Q1-Q8 | The Metodik mark (Q4); Metodika's full `-5` comparison (Q8); the study's context file (Q5); free report edits with every number a ref, and the Lead's governed web search (Q6); a GlitchTip uptime monitor (Q7) | `signed-off-sociomap-method#10`, `signed-off-sociomap-method#11`, `lead-orchestration#LO19`, `report-delivery#RD6`, `lead-orchestration#LO20`, `deep-research-web-search#56`, `research-lead-workbench#32`, `production-environment#PE9b` |
 | Proposals | The ADRs 0028 to 0038 (#512) as Proposed; the owner's yes to amend ADR 0026 and ADR 0008 as each is accepted, including the "frozen retrieval" wording (D-08) | `mvp-master-plan#MP5` |
 
@@ -122,12 +123,22 @@ of **In** and **Out** above.
 | Q7 | GlitchTip stays the error tracker; production adds a GlitchTip uptime monitor alerting Nigel Blount | `production-environment#PE9b` |
 | Q8 | Metodika's comparison shows all of `-5`'s outputs in the MVP (against the recommendation) | `signed-off-sociomap-method#11` |
 
+### The owner's answers to the questions those raised (2026-10-20, about 20:35 UTC)
+
+Answered on the PM status page (page ids in brackets), relayed by the coordinator, and recorded in
+[`answers-2026-10-20.md`](../evidence/scope-freeze/answers-2026-10-20.md) (third table).
+
+| # | Answer | Chunks |
+|---|---|---|
+| Q9 (page Q10) | The study context file is code-built plus "Poznámky ke studii" that any researcher's Lead proposes and a person accepts; the auto-accept toggle applies. His note on live-editing documents is being clarified and is not planned yet | `lead-orchestration#LO19` |
+| Status set (page Q11) | An assumption is UNTESTED, SUPPORTED, CONTRADICTED or RETIRED; no UNVERIFIED | `assumptions-and-open-answer-coding#AOC0` |
+| Stage handoff (page Q12) | (a) all five gaps closed: every stage worker gets its declared upstream inputs, hypotheses reach the analysis, staleness reaches pending proposals, the Lead sees pending proposals, a card-started job returns to the Lead | `lead-orchestration#LO9d`, `assumptions-and-open-answer-coding#AOC3`, `working-copy-edit-ops#WCE7`, `lead-orchestration#LO7`, `lead-orchestration#LO6` |
+
 ### Open: signing does not answer these
 
 | # | Question | Who answers | Waits on it |
 |---|---|---|---|
-| Q9 | Who may write the prose part of a study's context file (Q5's new scope): code only, code plus study notes a researcher's Lead proposes and a person accepts, or Leads freely. Sent to the coordinator with a recommendation | the owner | `lead-orchestration#LO19` |
-| — | An assumption's status set (D-16's second part; D-16 was answered (b), which settles only who may set SUPPORTED and CONTRADICTED): UNTESTED / SUPPORTED / CONTRADICTED, or the same plus RETIRED, or plus UNVERIFIED and RETIRED (ADR 0033). Recommended: the first plus RETIRED, so a dropped assumption stays visible | the owner | `assumptions-and-open-answer-coding#AOC0` |
+| — | The owner's note on the Lead live-editing documents ("integrate wordcraft"), with page Q10: which document, and what it means; the coordinator is asking | the owner | not planned yet |
 | — | Production's new domain name (D-20: "i will be changing to a new domain") | the owner | `production-environment#PE1`, Cognito callbacks |
 | — | The performance budget values for `mvp-acceptance-harness#18` (D-48); planning proposes them in that chunk's PR, the owner approves | the owner | `mvp-acceptance-harness#18` |
 | — | The methodology owner's decisions MQ-01 to MQ-24, MQ-01 (the `-5` register entry) first | A. Bahbouh | `mvp-methodology-packet.md` (#510); §11.4 |
