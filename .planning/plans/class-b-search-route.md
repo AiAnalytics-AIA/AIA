@@ -1,13 +1,13 @@
 ---
 status: planned
 chunks:
-  - "[ ] 0. The owner chooses and contracts the provider: an EU processing agreement and a written answer on storing results"
-  - "[ ] 1. The provider's route, composed beside Brave's and approved for Class B"
-  - "[ ] 2. The ADR 0022 live sign-off for the route"
-  - "[ ] 3. A design's class for Deep Research decided by rule once a Class B route exists (no operator step), Class C routes refusing it"
-  - "[ ] 4. A recorded double and a journey test: a Class B query reaches only the Class B route"
-  - "[ ] 5. Operator activation on develop (with deep-research-web-search 27)"
-  - "[ ] 6. The class of a derived query: an ADR 0017 and 0008 amendment, the data owner's confirmation, then a rule enforced by code"
+  - "[ ] 0. (after the MVP) The owner chooses and contracts the provider: an EU processing agreement and a written answer on storing results"
+  - "[ ] 1. (after the MVP) The provider's route, composed beside Brave's and approved for Class B"
+  - "[ ] 2. (after the MVP) The ADR 0022 live sign-off for the route"
+  - "[ ] 3. (after the MVP) A design's class for Deep Research decided by rule once a Class B route exists (no operator step), Class C routes refusing it"
+  - "[ ] 4. (after the MVP) A recorded double and a journey test: a Class B query reaches only the Class B route"
+  - "[ ] 5. (after the MVP) Operator activation on develop (with deep-research-web-search 27)"
+  - "[ ] 6. (after the MVP) The class of a derived query: content decides, not derivation (owner, 2026-10-19): aia-query-classifier-2, the ADR 0017 and 0008 amendment, then the rule enforced by code"
 ---
 # A Class B search route for live Deep Research
 
@@ -58,27 +58,48 @@ by **code**, never by a prompt or a model's own claim about a query.
    per request and held against the study's budget like any priced call.
 2. **Sign-off.** `sign_off_routes()` names it; Settings → Deep Research approves every live setting
    it needs (ADR 0022). Test: the route refuses to run without the pin.
-3. **Classification.** With a Class B route composed, the plan step classifies a design by
-   `MaterialRule.DESIGN` (Class B, raised and never lowered by an operator), exactly as
-   `ai_fieldwork.py` does. A design no rule can classify still parks. Test: an edited design runs
-   its web tracks without an operator record; this supersedes OI-129's second sentence and needs the
-   owner's recorded confirmation in OI-129 / ADR 0008 first.
+3. **Classification (mandatory: it does not wait for a Class B route).** The plan step classifies a
+   design by `MaterialRule.DESIGN` (Class B, raised and never lowered by an operator), exactly as
+   `ai_fieldwork.py` does, instead of by an operator's exact-bytes record alone. Today
+   `plan.py:163-174` returns `egress_unclassified_material` for an edited design with no record,
+   before any query reaches the classifier of chunk 6, so without this chunk no real-client design
+   can reach Brave. A design no rule can classify still parks. Test: an edited design runs its web
+   tracks without an operator record; this supersedes OI-129's second sentence (the owner's decision
+   of 2026-10-19, recorded in ADR 0008's amendment).
 4. **Journey.** `test_deep_research_journey.py` with a recorded Class B route: Class C routes refuse
    the Class B query, the Class B route accepts it, nothing is sent twice.
 5. **Activation.** The develop host's switches and the provider credential, an operator's act,
    verified by the live Deep Research run of the acceptance study (`mvp-acceptance-harness`).
 
-6. **Derived-query class: by provenance, never by a negative text test.** A query is Class C only
-   when code can **prove** its content comes from a Class C source. Two candidate provenances, to
-   be chosen in the amendment: (a) a fixed query template filled only from a list of public terms a
-   person has declared public; (b) a query set a person has seen and marked public before it is
-   sent (a card, consistent with MVP-13). Everything else stays Class B and only a Class B route may
-   receive it. **A test that finds no client term, named entity or verbatim design text is not
-   enough** (Codex review of #497, accepted): a model can paraphrase a confidential launch or
-   pricing question with none of those tokens, and the paraphrase is still Class B intent. Tests: a
-   paraphrase of a Class B question that keeps no checked token stays Class B and a Class C route
-   refuses it; a template over declared-public terms is Class C and reaches Wikipedia; a model
-   cannot lower its own query's class. Nothing here ships until the amendment is accepted.
+6. **Derived-query class: content decides, not derivation (the owner's decision, 2026-10-19).**
+   `aia-query-classifier-2` in `classification.py`. The context-class floor of
+   `aia-query-classifier-1` ("nothing lowers a class") is removed. A query's class is the most
+   restrictive of: (1) a client term (the client's and study's names and slugs, every non-public
+   ENTITY or TERM, matched across case, diacritics, transliteration and spacing) → at least B, as
+   today; (2) a run of five words shared with any text the run holds, which takes **that text's
+   effective class**: A for raw client knowledge (SOURCE, DOCUMENT, DATASET, ARTIFACT kinds, as
+   `knowledge_access.py` classes them) and for a design an operator raised to A, and an A query never
+   leaves, as today; B (**new**) for derived knowledge (FACT, FINDING, TERM, ENTITY, DIMENSION,
+   AUDIENCE), the design by rule and the study's own messages. The overlap buckets are built from each
+   frozen text's own class, never from a category's example, so a paste from raw client knowledge or
+   from an A-raised design is never downgraded to B. A query that trips none is Class C and may go to
+   a Class C route. A paraphrase passes; a paste does not. The class is computed by code from the
+   query's text and the texts the run holds, never from anything the model declares.
+   **Residual risk, accepted by the owner:** the Codex review of #497 was right that a model can
+   paraphrase a confidential launch or pricing question with none of these tokens, and the paraphrase
+   is still Class B intent; Brave (US-based, query logs up to 90 days) will see which topics a client
+   is researching. Kept as mitigations: every query is journaled and visible in the run; a per-client
+   switch to turn derived search off and a zero-retention plan are available and not built.
+   **Tests:** a client-named query stays at least B and a Class C route refuses it; a verbatim run of
+   five words from the design is B and refused by a Class C route; a verbatim run from a client
+   document, from raw client knowledge and from an operator-raised design is A and never leaves
+   (each case separately); a verbatim run from derived knowledge is B; a paraphrase with no checked token is Class C and reaches the Class
+   C route; a model that declares its own query public changes nothing. The tests of
+   `aia-query-classifier-1` that assert "a paraphrase keeps the class of what it was written from" are
+   **replaced** by these, each citing this decision; the cases that are still true (the client-named
+   query, the verbatim paste) keep their assertions. Nothing ships until the amendment (ADR 0017
+   decision 2, ADR 0008's class table) is recorded in the docs PR; if the data-owner role is held by
+   someone other than the owner, they confirm it before activation on a real client.
 
 ## Depends on / feeds
 
@@ -88,11 +109,22 @@ integration gate I-4 (`mvp-cohesion.md` §4). `deep-research-web-search` 1 (sign
 
 ## Open
 
-- Which provenance chunk 6 uses (a template over declared-public terms, a person-approved query
-  set, or both), and who confirms it: the data owner.
+- ~~Which provenance chunk 6 uses~~ **decided 2026-10-19, the owner:** content decides, not
+  derivation (client terms, and a five-word run shared with Class A or B text); no approval step.
+  Who confirms it: the owner; the data owner too if that is another person.
 - Whether more than one Class B route is wanted ("as much data as possible").
 
 ## Doc follow-up
 
 `ARCHITECTURE.md` §4 (Deep Research's classification regime), ADR 0008 amendment, `overview.md`
 (MVP-27 beside OI-129).
+
+## Deferred (2026-10-19)
+
+The owner: "all these classifications, honestly lets get rid of them for now and build them later."
+Every chunk here, the Class B provider and the classifier redesign alike, is **after the MVP**. The MVP
+uses one flag per client instead (`deep-research-web-search` 53, the open posture). Chunk 6's content
+rule (client terms and a five-word run shared with a text of its own effective class) and the two
+review findings it collected, that a paraphrase keeps its intent and that overlap buckets must use each
+text's own class, are kept as the **starting point** of the redesign, not as a contract.
+See `mvp-development-plan.md` § Reach.

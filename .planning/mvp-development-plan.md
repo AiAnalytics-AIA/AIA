@@ -25,8 +25,88 @@ Five gates, each an observable test. A wave is done when its gate passes in CI o
 | **I-1 The Lead drives a study** | Brief to Sample worked through the Lead on recorded doubles: edit operations, per-change accept, a plan card inside an envelope, two researchers on one study | AC-01, 02, 03, 04, 05 (start), 07 |
 | **I-2 Results are seen** | respondent and segment maps, filters, the internal drill-down, the Lead reading results; map snapshots approvable | AC-05, 08 (QC), 09 |
 | **I-3 Evidence is complete** | every key finding cites an admitted claim; a client dataset graded client-reported beside modelled results; analysis and report artifacts with the approve and export panel | AC-08, 10, 13 |
-| **I-4 Deep Research live** | a live run on the full design through the Class B provider; derived-query class decided; one-click source into knowledge | AC-11 |
+| **I-R Reach** (W1) | a Deep Research run for an OPEN client on develop reaches the routes the build can run, live (Brave, public fetch, the connectors probed live, the archive); Settings → Deep Research lists each route and connector as active or refused with the reason (`deep-research-web-search` 52), so no document has to say what is on | AC-11 (first half) |
+| **I-4 Deep Research live** | a live run on the full design of an OPEN client through Brave; one-click source into knowledge | AC-11 |
 | **I-5 Acceptance** | tier A blocking in CI with all fifteen criteria; tier B once on develop within USD 25; production released | AC-01 to 15 |
+
+### Reach is not a late wave (owner, 2026-10-19)
+
+The owner: "we need to get rid of this limitation once and for all, i never want to hear that this
+limitation exists." The point of Deep Research is to look everywhere, the non-indexed web included.
+Checked against `develop` @ `769917f` and traced end to end (`mvp-master-plan.md` §7), **more is built
+than the owner was told and less than I first said.** Built: Wikipedia, Brave, and fetch from any public
+host (HTML, text, PDF, XLSX, CSV). Built but never run live, their interfaces labelled UNVERIFIED: the ČSÚ
+DataStat, open-data catalogue, Eurostat, OpenAlex, Wayback and ARES connectors, and Common Crawl's index and
+archive (no AWS side in Terraform); the connectors, Wayback and Common Crawl run only when
+`AIA_DEEP_RESEARCH_AGENT_DIRECTED=true`, which defaults false and no MVP document named. Not usable: the
+procurement connector has no live source (`deep_research_live.py:364-366`), the focused crawler `SiteCrawl`
+has no caller, and the triage readers have no caller and no key that builds the light model. **None is
+switched on by default, and every one is Class C only**, so a design-derived query (Class B by rule since
+2026-10-19) could use none of them. "Only Wikipedia" was a stale status table (`deep-research.md`), not the code.
+The classification is what blocked it, and the owner has deferred it (below). So: one flag replaces
+it, the switch is thrown, and the state is made visible:
+
+| Step | Chunk | Wave | Owner |
+|---|---|---|---|
+| Sign-off: Brave on a plan that allows AI use and storing results (plan, terms URL and date, price), budgets, the light model, quotas | `deep-research-web-search` 1 | W0 | owner signs, S2 prepares |
+| **Switch on:** the Class C routes, the connector list and Common Crawl on develop for fictional and public-topic runs, inside ADR 0022's guards | `deep-research-web-search` 51 **New** | W0 | S2 |
+| **Open posture:** one flag per client replaces classification in the MVP (decision below) | `deep-research-web-search` 53 **New**; migration M10 | W0, W1 | S2 (column S3) |
+| **Probe and name the switch:** each connector run live once, `aia_deep_research_agent_directed` named in the activation matrix, Common Crawl's AWS side in Terraform or kept out of the first activation | `deep-research-web-search` 54 **New** | W0 | S2 (infra S3) |
+| **Visibility:** Settings lists every route and connector as built, approved, active or refused by class, with the reason, read from the composition, never written by hand | `deep-research-web-search` 52 **New** | W1 | S2 |
+| **Contract door, after the MVP:** a Class B route (Linkup is the candidate), the design's class by rule, the derived-query content rule, all part of the classification redesign | `class-b-search-route` 0-6 | after the MVP | S2 |
+| Wider reach, in order of value: documents in parts, structured capture and records, then pages that need a browser | `deep-research-web-search` 6, 33-37, 38 | W2 to W4 | S2 |
+
+**Decided later the same day (owner, 2026-10-19): go with Brave, and classification leaves the MVP's
+path.** In the owner's words: "all these classifications, honestly lets get rid of them for now and
+build them later. theyre a huge blocker in general and we can better design it, once we have a fully
+functioning mvp." Brave stays a Class C route (US-based, query logs up to 90 days:
+`deep-research-web-search.md:497`), and the earlier plan to change the classifier first
+(`aia-query-classifier-2`, a content rule, three review rounds of findings) is **deferred**, not built.
+
+Scope, as read: Deep Research and its search routes, where classification is asked in six places (the
+plan step's `classify_material`, `plan.py:163`, and five `classify_query` calls in the retrieval gate,
+`web_retrieval.py:788, 882, 1177, 1275, 1365`). In the MVP they are replaced by **one declared posture
+per client**, `OPEN` or `CLASSIFIED` (the default). A run pins its client's posture in its request at
+enqueue, like ADR 0022's settings pin, so a run never changes posture mid-flight and a retry keeps it.
+An OPEN client's design and queries are not classified and may go to any composed route (Brave, the
+connectors, Common Crawl, the crawler). A CLASSIFIED client behaves exactly as today, with
+`aia-query-classifier-1` untouched, which means **its web tracks stay parked: a real, confidential
+client gets no web search in the MVP** until classification is redesigned, unless an organization OWNER
+or ADMIN marks it OPEN, an audited act that is the organization's statement that the client's material
+may be used in public search queries. Operator-declared fictional clients behave as before.
+
+Not touched in code: EU residency of models and storage (the Bedrock EU route, EU S3), the model
+gateway and `material_rules` for model calls, the evidence gates. **The model route's classes are widened
+by configuration, not code:** the owner decided on 2026-10-19 that `bedrock-eu-primary` may carry
+Classes A, B and C (ADR 0010 amendment), and it takes effect only when an operator confirms the Bedrock
+retention and sets four SSM parameters (`deploy/develop/README.md` § AI route classes). Until then the
+route is Class C only, and **every** design job and Lead turn parks with
+`egress_route_not_approved_for_class` (a design is Class B by rule and approved knowledge Class A,
+`research_agents.py:675-686`), as do panel fieldwork (Class A, `ai_fieldwork.py:418-432`) and a modelled
+run's analysis (`harness.py:192-203`): the Dimenze "optimize with AI" button fails that way on develop
+today. It is a W0 item, below. **A second finding:** the stage's error ("AI návrh čeká na povolenou trasu nebo
+licenci: route … is not approved for CLASS_A_CLIENT_CONFIDENTIAL") says what is refused and not who can
+fix it. It should say the route is approved only for internal material and that an operator widens it
+(the runbook), with a link; Settings → AI is read-only and shows the classes (`routers/settings.py`), it
+widens nothing. The chunk for that message is not yet in `research-lead-workbench` 11's text and has to
+be added. ADR 0008 is a frozen invariant, so the open
+posture and the deferral are recorded as the owner's amendment to it (an ADR in W0). Post-MVP, the
+redesign starts from `class-b-search-route` 6's content rule, kept there as a design note with the
+review findings it collected.
+
+**What this costs, stated:** an OPEN client's queries and fetches carry no confidentiality check, and
+Brave can see everything an OPEN client's design makes a researcher search for, names included.
+Marking a client OPEN is the only guard. A real client left CLASSIFIED cannot use Deep Research's web
+tracks in the MVP. Doc follow-up: `MVP-27` and `AC-11` say the route is "approved for Class B under an
+EU processing agreement"; they become "for an OPEN client, the route is Brave, and the run's queries
+are the ones the Lead's design makes".
+
+**What this does not loosen:** grounding (a quote must be in a captured source), adversarial
+verification, the evidence gate and the EU residency of models and storage. Reach changes where the
+engine may look, not what it may claim. Retrieval, routes and connectors are **no longer frozen**
+for this work (a docs follow-up amends CLAUDE.md §2 and ADR 0021's wording); verification and grounding
+change only on a finding, as before. Deep Research moves from S3 to S2, whose W4 was empty and S3's the
+heaviest.
 
 ## 2. Three sessions and the surfaces they own
 
@@ -36,8 +116,8 @@ session that needs a change in it opens a small PR the owner reviews first (`mvp
 | Session | Builds | Owns these surfaces |
 |---|---|---|
 | **S1 Workbench and Lead** | the workbench frame and eleven artifacts, the Lead's commands, workers, plan card, the shared edit vocabulary, presence, per-change accept, the Lead's lifecycle | `domain/research_lead.py`, `domain/research_agents.py`, `domain/edit_ops.py` ◇, `apps/web/src/components/workbench/`, `lib/lead.ts`, `routers/lead.py`, `routers/settings.py`, `aia_executors/research_lead.py`, `research_agents.py` |
-| **S2 Population, maps, evidence** | population and respondents, the Sociomap (object, respondent, segment), filters and drill-down, evidence integrity, run QC, the client-data evidence | `domain/fieldwork.py`, `domain/evidence/`, `domain/sociomap/`, `sociomap_register.py`, `domain/population/`, `aia_executors/ai_fieldwork.py`, `analysis.py`, `research.py` (steps) |
-| **S3 Data, delivery, infrastructure, acceptance** | client knowledge and sources, client data and the contract, reports and approvals, Deep Research and the Class B route, Terraform, deployment, the acceptance harness | `application/client_report.py`, `report_*`, `client_*`, `infra/`, `deploy/`, `.github/workflows/`, `tests/acceptance/`, `domain/deep_research/` (defect only: the engine is frozen), `tables.py` migrations lane |
+| **S2 Population, maps, evidence, Deep Research** | population and respondents, the Sociomap (object, respondent, segment), filters and drill-down, evidence integrity, run QC, the client-data evidence, **Deep Research reach** | `domain/fieldwork.py`, `domain/evidence/`, `domain/sociomap/`, `sociomap_register.py`, `domain/population/`, `aia_executors/ai_fieldwork.py`, `analysis.py`, `research.py` (steps), `domain/deep_research/` and `deep_research_live.py` (retrieval and routes open for reach; verification and grounding by finding only), `deep-research-web-search`, `class-b-search-route` |
+| **S3 Data, delivery, infrastructure, acceptance** | client knowledge and sources, client data and the contract, reports and approvals, Terraform, deployment, the acceptance harness | `application/client_report.py`, `report_*`, `client_*`, `infra/`, `deploy/`, `.github/workflows/`, `tests/acceptance/`, `tables.py` migrations lane |
 
 S1 and S2 meet at the Lead's results context and the Sociomap artifact; S2 and S3 meet at the client
 dataset's evidence and the report's marks. Each meeting is a **contract** written first (below), not a
@@ -52,9 +132,9 @@ plan (or to a new plan from #497) before the wave starts.
 
 | S | Work |
 |---|---|
-| S3 | Merge #493, #494, #495, #491, #496, #497 in that order; apply the docs follow-ups; add `prototypes/` to the docs-only path list (`ci-skip-docs-only`); `mvp-acceptance-harness` 1-3 (budget table, inputs, harness with its CI step); `infra/production` skeleton and `develop-spend-attribution` 1-2 (tagged profiles); migration **M3** (all ledger subject types, §4) |
+| S3 | Merge #493, #494, #495, #491, #496, #497 in that order; apply the docs follow-ups; add `prototypes/` to the docs-only path list (`ci-skip-docs-only`); `mvp-acceptance-harness` 1-3 (budget table, inputs, harness with its CI step); `infra/production` skeleton and `develop-spend-attribution` 1-2 (tagged profiles); migration **M3** (all ledger subject types, §4); **operator, first:** confirm the Bedrock retention evidence and set the four route parameters on develop (`deploy/develop/README.md` § AI route classes) so no AI step in any stage parks on `egress_route_not_approved_for_class`; and the stage error says who can fix it (below) |
 | S1 | The spend-limit fix in `ResearchAgentJobs.start` (a fix, F5); the worker row (`research-lead-workbench` 11, first deliverable); ADRs for the edit vocabulary and the orchestration scope written and proposed |
-| S2 | `audience-catalogue-cpu` 4; `complete-study-report` B6 (the operator flag); `evidence-integrity` 1 (findings cite all) and 5 (one authority) |
+| S2 | `audience-catalogue-cpu` 4; `complete-study-report` B6 (the operator flag); `evidence-integrity` 1 (findings cite all) and 5 (one authority); **reach**: `deep-research-web-search` 1, 51 and 53, the ADR 0008 amendment (open posture) |
 
 **Exit I-0:** `alembic heads` single; the acceptance tree collects and runs AC-01, 06, 07, 12, 14.
 
@@ -63,17 +143,25 @@ plan (or to a new plan from #497) before the wave starts.
 | S | Work |
 |---|---|
 | S1 | **New** shared edit vocabulary, `workspace_edit_ops` (M1) and `apply_edit_ops`; presence (M2) and the change feed; per-change accept (M6); `research-lead-workbench` 11 (command registry), 14-16 (view vocabulary, frame, pointing with id and revision), 17 (Questionnaire artifact, AI buttons removed), 18-19 (Brief, Design, Sample, Fieldwork); the envelope and plan card (M4, M5) behind `AIA_LEAD_PLANS_ENABLED` |
-| S2 | Population-built respondents as the default path and its screens; `evidence-integrity` 2-3 (run QC stored and shown) |
-| S3 | `client-budget` CB5; `client-knowledge-lifecycle` K2e, K2f, K3; `clients.envelope_ceiling_usd` (in M4); `class-b-search-route` 0-2 (provider, route, sign-off); **production applied**: RDS, Cognito, buckets, tagged Bedrock profiles, `deploy-production.yml` |
+| S2 | Population-built respondents as the default path and its screens; `evidence-integrity` 2-3 (run QC stored and shown); **reach**: `deep-research-web-search` 52 and 53 in code |
+| S3 | `client-budget` CB5; `client-knowledge-lifecycle` K2e, K2f, K3; `clients.envelope_ceiling_usd` (in M4); **production applied**: RDS, Cognito, buckets, tagged Bedrock profiles, `deploy-production.yml` |
 
 **Exit I-1:** two sessions edit one study in the acceptance run, the second edit merges or conflicts
 on one item only; a plan inside an envelope starts a run and a gate it does not cover parks.
+
+**Exit I-R:** on develop, with `aia_deep_research_agent_directed` on, a Deep Research run for an OPEN
+client reaches Brave, one connector that has been probed live, and the archive, each named in the run's
+record (`deep-research-web-search` 51, 54); the crawler joins when chunk 36 wires it;
+Settings → Deep Research lists every route and connector as active or refused, with the reason (52);
+an edited design with no operator record runs its web tracks for an OPEN client and still parks
+`egress_unclassified_material` for a CLASSIFIED one, and a run keeps the posture it pinned (53).
+W2 does not start until I-1 and I-R both hold.
 
 ### W2 · Results are seen (gate I-2)
 
 | S | Work |
 |---|---|
-| S2 | `sociomap-formula-corrections` I0-I5, 3 (respondent map), 4d; `segment-maps-and-drilldown` 1-6; the results-context **provider** for maps |
+| S2 | `sociomap-formula-corrections` I0-I5, 3 (respondent map), 4d; `segment-maps-and-drilldown` 1-6; the results-context **provider** for maps; **reach**: `deep-research-web-search` 6 and 33-37 in order |
 | S1 | **New** the Lead's results context (contract first, F4); `research-lead-workbench` 20 (Results and Sociomap with filters and drill-down), 22 (Audience, Dimensions); the Lead's lifecycle (M7): signals, proposed updates, admin read |
 | S3 | `client-knowledge-lifecycle` K4, K5 (an owned child); own-dimension chips; map-snapshot approval (`two-roles-human-ai-gates` 5b.4, **New** chunk); the Report artifact's Approve and Export panel |
 
@@ -92,9 +180,9 @@ draft ids, QC, bounded and classified), owned by S1, with a provider function fr
 
 | S | Work |
 |---|---|
-| S3 | `class-b-search-route` 3-6 (design class by rule, journey test, activation, derived-query class once amended); `deep-research-web-search` 1, 27, 37; the report's research-context chapter |
+| S3 | the report's research-context chapter; Deep Research's sealed bundle into the report (`research-integrity-report`) |
 | S1 | Deep Research cards in the conversation (`research-lead-workbench` 23); Deep Research reachable from every stage (25) is **after** the MVP |
-| S2 | none planned: capacity for defects and the acceptance run's findings |
+| S2 | `deep-research-web-search` 27 (the live acceptance) and 38 (pages that need a browser); the acceptance run's findings |
 
 ### W5 · Acceptance (gate I-5)
 
@@ -120,6 +208,7 @@ is rebased on `develop` immediately before merge, and migration PRs merge one at
 | M7 | `researcher_lead_signals`, `researcher_leads.archived_at`, `derived_from_lead_id` | S1 | W2 |
 | M8 | `client_data_contracts`, `client_dataset_copies` | S3 | W3 |
 | M9 | ◇ `ai_usage_events.inference_profile_arn` (only if the model fields do not carry it) | S3 | W1 |
+| M10 | `clients.data_posture` (`CLASSIFIED` default, `OPEN`), audited by who and when | S3 | W1 |
 
 Each migration lands with its repository, its tests (round-trip, isolation predicate, concurrent
 access: `ARCHITECTURE.md` §7) and its `layer_check` rule in the same PR.
@@ -143,7 +232,7 @@ access: `ARCHITECTURE.md` §7) and its `layer_check` rule in the same PR.
 | The working copy's operation log, merge and per-change accept | the vocabulary, the conflict rule, undo, presence, `proposal_change_decisions` | W1 |
 | The Lead over time and its files | proposed updates, signals, admin read, handover, privacy of turns; amends ADR 0026 decision 8 | W2 M7 |
 | Production environment | a separate environment on the one-host pattern with RDS, in the same AWS account with the mitigations of architecture §6.2; supersedes the "undecided" in ADR 0009 | W1 infra apply |
-| Derived-query class (amends ADR 0017 and 0008) | provenance-based lowering; the data owner's confirmation | W4 |
+| Open posture, classification deferred (amends ADR 0008) | one flag per client in place of classification for Deep Research in the MVP; what CLASSIFIED means for web tracks; the post-MVP redesign note | W0 |
 | Client data's evidence policy (amends ADR 0027) | the policy source for client columns | W3 |
 
 ## 7. Order inside the critical path
@@ -152,7 +241,7 @@ The longest chain, which sets the date: **edit vocabulary → operations log and
 and presence → the Questionnaire artifact → plan card → the Lead's results context → Results and
 Sociomap artifacts → Analysis and Report artifacts → tier A on all criteria → tier B → release**. Its
 owner is S1, which is why S1 carries the fewest side tasks. The chains that run beside it and can slip
-without moving the date, until W5: client data (S3), Deep Research live (S3), segment maps and
+without moving the date, until W5: client data (S3), Deep Research live (S2), segment maps and
 clustering (S2, waits on the method owner).
 
 ## 8. What can stop the plan
@@ -160,7 +249,7 @@ clustering (S2, waits on the method owner).
 | Risk | Effect | Mitigation |
 |---|---|---|
 | The method owner's answers (clustering, register entries) arrive late | no segment map in client output; AC-09 partial | segment maps ship internal-only first (the register defaults to `INTERNAL_ONLY`); a dated ask now |
-| The Class B provider is not contracted | AC-11 cannot pass live | a recorded tier A pass proves the route; tier B waits on the contract; owner names a date |
+| A real, confidential client is CLASSIFIED and gets no web search in the MVP | AC-11 runs for a fictional or an OPEN client only | the owner marks the clients that may use search OPEN; real-client search returns with the classification redesign after the MVP |
 | The plan authority takes longer than planned | no autopilot-lite; every paid job needs a card (MVP-13 returns by default) | the envelope without plans is a smaller first step; cards stay as the fallback |
 | Migrations collide | blocked merges | one lane, one owner, rebase before merge, M3 first |
 | Production shares develop's AWS account | an account-level mistake or the shared Bedrock quota reaches production | tag-conditioned IAM with a permission boundary, per-environment state and KMS (architecture §6.2); tier B outside working hours; revisit at the first incident |
