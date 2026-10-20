@@ -115,7 +115,7 @@ last.
   later Q answers were relayed by the coordinator from the `/pmstatus` page; the session never read
   that page itself.
 - **The scripts used** for #523 are in this session's scratchpad (`apply_plans.py`,
-  `apply_master.py`, `apply_q*.py`). They will be gone with the container. The pattern: insert
+  `apply_master.py`, `apply_q*.py`). Copies are in `.agent-status/planning/scripts/` on this branch (one-off, already applied; for reference). The pattern: insert
   front-matter lines before the closing `---`, append a "### After …" section to the plan body, and
   add wave rows to the contracts' "Every other open chunk" table before the
   `research-lead-workbench#24` row.
