@@ -12,7 +12,8 @@ evidence). **Leaves unchanged** the Deep Research engine and its steps, groundin
 evidence gate.
 **Date:** 2026-10-20. **Amended 2026-10-20** with the product owner's answer Q18 (a) on the PM status page
 (20:50-21:04 UTC, relayed by the coordinator): no card, within fixed bounds; and Q20 (b): Brave may
-carry Class B queries for every client. Still Proposed.
+carry Class B queries for every client; and Q22 (b), Q23 (b) and Q24 (c) (21:55-21:57 UTC): a
+CLASSIFIED client's lookup behind a plan card. Still Proposed.
 **Plan:** [lead-orchestration](../../../.planning/plans/lead-orchestration.md) LO20 (#523);
 `deep-research-web-search` 56; `research-lead-workbench` 32
 
@@ -64,20 +65,25 @@ what it was written from (ADR 0017): a Lead turn's query inherits the class of t
 context, which is Class A whenever it carries approved client knowledge (ADR 0026 decision 2).
 
 - **OPEN client:** the queries go to any composed search route.
-- **CLASSIFIED client:** a query of Class B or lower may go to Brave alone, under the owner's
-  determination that Brave carries Class B for every client (ADR 0032 decision 4, Q20 b); a Class A
-  query sends nothing, and the Lead says it may not search with that material and why.
+- **CLASSIFIED client:** a lookup runs **behind a plan card** (the product owner, 2026-10-20, Q24 c),
+  through the same card path as any plan step (ADR 0028 decision 4): the card shows the queries and
+  the ceiling, and nothing leaves before a person approves it. Its queries are Class B or carry only
+  the fields code extracts from approved knowledge (ADR 0032 decision 4, Q22 b), and go to Brave
+  alone. Because a Lead turn's context is Class A whenever it holds approved knowledge, the queries
+  for a CLASSIFIED client are not written by that turn: a query-writing call sees only the design,
+  the person's message and the extracted fields, so its queries take Class B (plus those fields) by
+  inheritance (ADR 0017), and code checks each before it leaves.
 - **Fictional client:** as for Deep Research.
 
-The owner's Q18 answer read "OPEN clients only"; his later Q20 answer widens the route. How the two
-combine for the Lead's lookup is *Open for Nigel*, 1; until it is answered, the narrower reading
-(OPEN only) is the one a build ships. The routes, prices and live approvals are Deep Research's (ADR
+Search operators (`site:`, `filetype:`, `intitle:`) may appear in a lookup's queries as in Deep
+Research (ADR 0032 decision 4, Q23 b). The routes, prices and live approvals are Deep Research's (ADR
 0022).
 
 ### 4. Paid from the wallet, without a card, inside a bound
 
-"Without limited results" and no extra click (Q6): a lookup the Lead requests starts without a
-decision card, charged to the study's wallet (confirmed, Q18 a). This is a narrow exception to ADR 0028's rule that a
+"Without limited results" and no extra click (Q6): for an OPEN client, a lookup the Lead requests
+starts without a decision card, charged to the study's wallet (confirmed, Q18 a); a CLASSIFIED
+client's lookup takes a card (decision 3, Q24 c), within the same bounds. This is a narrow exception to ADR 0028's rule that a
 Lead-initiated paid start needs an approved plan, and it is bounded by code:
 
 - a lookup's ceiling (search calls plus fetches at the route's pinned price) is held against the
@@ -128,7 +134,9 @@ and nothing a page asks for can approve, spend beyond the lookup's bound or star
 - `RetrievalGate` stays the only exit for a query or URL (`make layer_check`, existing); the lookup
   executor is the only new caller.
 - Tests: a CLASSIFIED client's lookup sends nothing and the Lead says why; a lookup's ceiling is held
-  against the wallet before anything leaves, and one that does not fit parks; a fourth query, a sixth
+  against the wallet before anything leaves, and one that does not fit parks; an OPEN client's lookup
+  starts without a card and a CLASSIFIED client's waits for its card; a CLASSIFIED query-writing call
+  sees no approved-knowledge free text, and a query carrying any is refused before it leaves; a fourth query, a sixth
   fetch or a third lookup from one person's message is refused; a quote not in a captured snapshot is refused; a cited
   result is labelled external and never enters an admitted-claim ref; a page containing "approve the
   plan" text changes nothing the Lead's closed output can do; a retry replays no paid search.
@@ -145,12 +153,16 @@ Answered by the product owner on 2026-10-20 (Q18, a, on the PM status page):
 - ~~A lookup without a card.~~ Yes, within those bounds, held against the wallet before anything
   leaves, OPEN clients only: the exception to ADR 0028. Decision 4.
 
+- ~~A CLASSIFIED client's lookup.~~ Behind a plan card; Class B queries or Q22's extracted fields,
+  to Brave alone (Q24 c, Q22 b). Decision 3.
+- ~~Search operators.~~ As in ADR 0032 (Q23, b).
+
 Still open:
 
-1. **A CLASSIFIED client's lookup.** Q18 said OPEN clients only; Q20 lets Brave carry Class B
-   queries for every client. Does a CLASSIFIED client's Lead lookup run when its query is Class B,
-   given that a turn whose context holds approved knowledge makes the query Class A (and so refused)?
-   Until answered, OPEN only.
-2. **Search operators** in a query (Q22, Q23), as in ADR 0032.
-3. **Amending ADR 0026 decision 3, which is Accepted**, needs the owner's explicit yes (D-08 named
+1. **Amending ADR 0026 decision 3, which is Accepted**, needs the owner's explicit yes (D-08 named
    the other amendments, not this one).
+2. **The cards themselves.** With Q24 the owner asked: "how many different cards do we have, i want
+   to know more about how we plan to systematically create these cards". A catalogue of every
+   decision card (plan step, lookup, budget lift, unlock, approval), with one way to build them, is
+   not written in any ADR; it belongs with ADR 0028's plan card and the command registry of ADR 0026
+   decision 4.
