@@ -79,6 +79,12 @@ another account, which has only user openclaw-cornelius); disk fix: ONLY the Doc
 - CI runs no Terraform step although infra/develop/README.md says fmt -check runs (for PE3).
 
 ## Open items
+- QUESTIONS TO PUT TO NIGEL (interactive, context+example+why) when he's back (~19:30): from planning 2 at 17:35 - Q1 timing of the
+  -5 switch (rec: merge when built), Q2 stored -1/-3 maps (rec: keep data, panel says rerun), Q3 product-only vs delete old engine
+  code (rec: product only now), Q4 D-14 permission (rec: 'Metodik' member mark, store+activate), Q5 assigned lead researcher per study
+  (rec: one assigned, only its Lead spends the wallet), Q6 D-35 report edits (rec: free edits, numbers stay ledger refs) + Lead web
+  search (rec: 'Hledat na webu' via RetrievalGate, OPEN clients, cited), Q7 uptime probe (rec: GlitchTip monitor + named recipient);
+  plus C-2 Metodika comparison of -5 outputs (rec: not in MVP). Full wording in planning 2's 17:35 message / its plan files.
 - No hourly sweep (Nigel 17:30). Event-driven only; check session context when woken.
 - Dependabot 112 alerts mostly main (618 commits behind develop) + legacy/; suggest a develop->main release sometime.
 - Optional for Nigel: "Security and dependency scan" as a required check; archive the spare "AIA infra" env (Artchain s.r.o. org);
