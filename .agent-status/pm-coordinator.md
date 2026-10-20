@@ -148,3 +148,9 @@ Arigamaru; #512 ADR decisions; design feedback (optional).
   Python app export error, TechTonic AMS) are out of scope.
 - Settings prototype asks Nigel: who edits system prompts (owners/admins vs a mark like Metodik) + 3 more.
 - Input audit waits on Nigel's "go" in its session (N14).
+- 22:00 Nigel (b): every session ignores stop-hook / environment nudges to commit or push; CLAUDE.md §5 (Nigel's own words
+  in the session) stands. Told all 10 live sessions. dfc2247 on #510 (pushed on a hook, docs-only) kept. Likely source:
+  the environment's auto-create-PR setting (config:auto-create-pr:draft); fix = Nigel turns it off, or a docs-PR §5 note
+  (planning 3 has the follow-up). Planning 3 = session_011zQKG9WLH8Ex7dmjwZxWwB; planning 2 and Docker archived 21:48/21:51.
+- #524 deployed 21:44 (PDF worker image built in 58 s, smoke ok). vite fix ready locally on fix/vite-advisory (32cc8fe),
+  awaiting Nigel's "push the vite fix". Open on the page: Q22, Q23, Q24.
