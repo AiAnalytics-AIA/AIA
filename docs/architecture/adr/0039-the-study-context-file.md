@@ -8,7 +8,9 @@ decision 2 (the Lead's *Study's state* layer becomes the study context file). **
 accept and the automatic text accept) and [ADR 0030](0030-the-lead-over-time-and-its-files.md) (a
 Lead is its researcher's alone). **Leaves unchanged** the privacy of every researcher's turns, the
 Lead's closed output and the 96 KB context bound.
-**Date:** 2026-10-20
+**Date:** 2026-10-20. **Amended 2026-10-20** with the product owner's answer Q13 (a) on the PM status page
+(20:50-21:04 UTC, relayed by the coordinator): the Lead live-edits documents, per researcher. Still
+Proposed.
 **Plan:** [lead-orchestration](../../../.planning/plans/lead-orchestration.md) LO19 (#523);
 `research-lead-workbench` 32
 
@@ -40,11 +42,29 @@ study each see only their own conversation.
 - **Poznámky ke studii** are short prose notes about the study: what was agreed with the client,
   why a choice was made, what to watch. Any researcher's Lead may propose one, as a change in its
   turn's closed output (a new `study_note` edit); a person accepts or rejects it through ADR 0029's
-  per-change accept, and the researcher's automatic text accept applies to it when that researcher
-  has it on (Q10). A person may write, edit or retire a note directly. Notes are kept with their
+  per-change accept, or it applies at once when that researcher has chosen direct rewrites
+  (decision 2; Q10, Q13). A person may write, edit or retire a note directly. Notes are kept with their
   revisions in the study, attributed to who proposed and who accepted, never deleted (retired).
 
-### 2. Always current, without a write on every change
+### 2. The Lead edits the notes live, as each researcher chooses
+
+The Lead edits a study's notes the way the researcher has chosen (the product owner, 2026-10-20,
+Q13 a), a setting of each researcher's own, on Můj Vedoucí, applying wherever that researcher's Lead
+edits a document (these notes and a report, ADR 0035):
+
+- **Suggestions** (the default): each Lead edit appears as a tracked change in the text; the person
+  accepts or rejects it, and only an accepted change enters the file.
+- **Direct rewrites**: the Lead's edit is applied at once, marked *upraveno Vedoucím* with the turn
+  that made it, and undoable by the person (ADR 0029 decision 9). Each applied edit is a revision
+  and a ledger row marked automatic under the researcher's standing choice, as an automatic text
+  accept is today.
+
+In both, a number is never typed into a note; it stays a ledger ref. The setting is the
+researcher's alone and never another researcher's: a direct rewrite by A's Lead is marked as A's,
+and B sees and can undo it like any change. The editor that shows tracked changes is not chosen
+here (*Open for Nigel*, 1); the rule is the same whichever editor renders it.
+
+### 3. Always current, without a write on every change
 
 The file is computed when it is read, from the state at that moment, not stored after every change:
 the notes are rows; the facts are read from the tables that already hold them. Its **version** is the
@@ -52,14 +72,14 @@ SHA-256 of its canonical text together with the revisions it was built from (wor
 Design Revision, latest ledger row, latest run event). Two reads of the same state give the same
 file and version.
 
-### 3. A turn freezes the version it read
+### 4. A turn freezes the version it read
 
 At enqueue, `freeze_context` takes the file as the study layer, with a byte budget of its own inside
 the 96 KB. Over budget, the oldest history lines of the facts go first, then the oldest notes, and
 the omission is named in the file; it is never cut silently. The turn records the file's version,
 so a turn stays reproducible and "what did the Lead know" has one answer.
 
-### 4. Class and privacy
+### 5. Class and privacy
 
 The file takes the most restrictive class of what it holds by `domain/material_rules.py`: Class B
 for a design and study notes (study material, as a design is, ADR 0008 amendment 2026-10-19), Class A
@@ -67,7 +87,7 @@ when it carries approved client knowledge. It is sent only to a route approved f
 turn text, no researcher's Lead files or personal notes, and no unaccepted proposal's text appear in
 it; a proposed note's text becomes study material only once a person accepts it.
 
-### 5. Readable in the study
+### 6. Readable in the study
 
 The Lead pane shows it as *Kontext studie*, with its version and each line's source, to every member
 who opens the study.
@@ -98,7 +118,9 @@ who opens the study.
 - Tests: two researchers' Leads in one study read the same file and version; no turn text, Lead file
   or unaccepted proposal appears in it; a run event or an accepted change changes the version; a turn
   records the version it read; over budget, the omission is named; a proposed note is not in the file
-  until accepted; the file is refused by a route not approved for its class.
+  until accepted; the file is refused by a route not approved for its class; in suggestion mode a Lead edit enters
+  the file only once accepted, in direct mode it applies at once, is marked *upraveno Vedoucím* and
+  can be undone; a typed number in a note is refused.
 - `make layer_check`: the notes table only through its repository.
 
 ## Unblocks
@@ -108,8 +130,14 @@ who opens the study.
 
 ## Open for Nigel
 
-1. **Live editing** (Q10's note: "integrate wordcraft … revize the text as a comment or rewrite it
-   directly"): which document, and what "wordcraft" means. The coordinator is asking; this ADR covers
-   the notes only.
+- ~~Live editing: which mode.~~ Per researcher: tracked-change suggestions by default, or direct,
+  undoable rewrites marked *upraveno Vedoucím*; numbers stay ledger refs (Q13, a). Decision 2.
+
+Still open:
+
+1. **The editor.** The owner's note names Wordcraft (`github.com/storytold/wordcraft`: a Rust
+   reimplementation of Word with WASM, an MCP server and track changes; MIT/Apache, alpha). Whether
+   and how to adopt it is a follow-up the coordinator is asking; decision 2 is written for any editor
+   that can show and resolve tracked changes.
 2. **Amending ADR 0026, which is Accepted**, in decision 2's study layer, needs the owner's explicit
    yes (D-08 named the other amendments, not this one).
