@@ -1,7 +1,7 @@
 # pm-coordinator — the AIA PM session
 
 Current state, rewritten each update. Observed state only. No secrets.
-Updated: 2026-10-20 ~15:30 UTC by session_019bYPVpsShVq3LCtWDT5Kr8 ("AIA PM: coordinator").
+Updated: 2026-10-20 ~15:40 UTC by session_019bYPVpsShVq3LCtWDT5Kr8 ("AIA PM: coordinator").
 
 ## Mandate (from Nigel, 2026-10-20)
 - This session is the PM for every AIA session. Other sessions are workers.
@@ -20,7 +20,8 @@ Updated: 2026-10-20 ~15:30 UTC by session_019bYPVpsShVq3LCtWDT5Kr8 ("AIA PM: coo
 ## Sessions
 | Session | Title | Role | State |
 |---|---|---|---|
-| session_01Y7frLAETBEYvez3sW7FbGF | AIA planning: master plan + docs PRs | planner/worker; Nigel also chats with it directly | ~68% context; task: wallet rename PR (chore/wallet-rename, built on #508); due for rotation after that |
+| session_01Y7frLAETBEYvez3sW7FbGF | AIA planning: master plan + docs PRs | — | **archived** 15:37 at 75% context; handoff .agent-status/planning.md, plan-page generator .agent-status/planning/plan-page/ |
+| session_01RxUnHwTXGVFYjwzfpKi9kT | AIA planning 2: master plan + docs PRs | planner; owns #511; does freeze step 4 when asked; Nigel chats here now | starting |
 | session_01End3azGdHNr1MtxRjUqqZ8 | AIA design: MVP workbench artifact | design artifact https://claude.ai/artifact/JrWZXosJtKVLckHhArngeV | idle; renamed Obálka→Peněženka |
 | session_01LBR1SyjXK8uYR5VdBjGAEJ | AIA infra audit | read-only AWS audit (env "AIA infra", view-only IAM user aia-claude-infra, SigV4 proxy secret; plan with -lock=false) | running since 14:53 |
 | session_01QzemVrHfQp8jsVEqXb9W6x | AIA fix: Next.js 16.4 security upgrade | next 16.4.x + make CI audits blocking (2 commits, one PR) | running |
@@ -37,7 +38,9 @@ Updated: 2026-10-20 ~15:30 UTC by session_019bYPVpsShVq3LCtWDT5Kr8 ("AIA PM: coo
 - #508 docs follow-ups of #499-#507 (head 9d7e3c5c): reviewed and approved. **Merge only after develop CI
   run 39438021422 on 854c2092 has finished and dispatched the deploy**: a docs-only push cancels the
   in-progress run and skips the deploy (that's how the 18d59ea6 run got cancelled).
-- Coming: chore/wallet-rename (planning session).
+- #508 merged 86ec0cdd (after Codex's 3 fixes). #510 methodology packet (draft, being reworked for -5). #511 wallet
+  rename (reviewed OK: only the money envelope renamed; merge when CI green). #509 Next.js (npm gate decision pending).
+- Deploy develop run 39449232101 (854c2092, first with numpy/scipy/numba) started 15:31; verify result.
 
 ## Decisions recorded today (Nigel)
 - X1 build segment evidence; X8 build questionnaire routing end to end; X10 remove Settings' draft test (#507).
