@@ -10,7 +10,8 @@ scope to a second caller of AIA's web retrieval. **Builds on** [ADR 0028](0028-o
 [ADR 0021](0021-deep-research-purpose-target-lineage.md) (external evidence is never respondent
 evidence). **Leaves unchanged** the Deep Research engine and its steps, grounding, and every
 evidence gate.
-**Date:** 2026-10-20
+**Date:** 2026-10-20. **Amended 2026-10-20** with the product owner's answer Q18 (a) on the PM status page
+(20:50-21:04 UTC, relayed by the coordinator): no card, within fixed bounds. Still Proposed.
 **Plan:** [lead-orchestration](../../../.planning/plans/lead-orchestration.md) LO20 (#523);
 `deep-research-web-search` 56; `research-lead-workbench` 32
 
@@ -65,13 +66,14 @@ search and why; for a fictional client, as for Deep Research. A query's class is
 ### 4. Paid from the wallet, without a card, inside a bound
 
 "Without limited results" and no extra click (Q6): a lookup the Lead requests starts without a
-decision card, charged to the study's wallet. This is a narrow exception to ADR 0028's rule that a
+decision card, charged to the study's wallet (confirmed, Q18 a). This is a narrow exception to ADR 0028's rule that a
 Lead-initiated paid start needs an approved plan, and it is bounded by code:
 
 - a lookup's ceiling (search calls plus fetches at the route's pinned price) is held against the
   wallet before anything leaves, under the study lock; an unknown price refuses, never counts as zero;
-- at most a fixed number of queries and fetches per lookup and of lookups per turn, set as
-  configuration, no defaults;
+- fixed bounds, in code (the product owner, 2026-10-20, Q18 a): at most **3 queries** and **5 pages
+  fetched** per lookup, and **2 lookups per turn**, counted from a person's message across the
+  continuation turns it leads to, so a Lead cannot chain lookups without the person writing again;
 - a lookup that does not fit the wallet parks and asks the person, like any uncovered spend;
 - each search and fetch is shown in the turn with its cost.
 
@@ -115,8 +117,8 @@ and nothing a page asks for can approve, spend beyond the lookup's bound or star
 - `RetrievalGate` stays the only exit for a query or URL (`make layer_check`, existing); the lookup
   executor is the only new caller.
 - Tests: a CLASSIFIED client's lookup sends nothing and the Lead says why; a lookup's ceiling is held
-  against the wallet before anything leaves, and one that does not fit parks; the per-lookup and
-  per-turn bounds refuse an extra query; a quote not in a captured snapshot is refused; a cited
+  against the wallet before anything leaves, and one that does not fit parks; a fourth query, a sixth
+  fetch or a third lookup from one person's message is refused; a quote not in a captured snapshot is refused; a cited
   result is labelled external and never enters an admitted-claim ref; a page containing "approve the
   plan" text changes nothing the Lead's closed output can do; a retry replays no paid search.
 
@@ -126,10 +128,13 @@ and nothing a page asks for can approve, spend beyond the lookup's bound or star
 
 ## Open for Nigel
 
-1. **The bound values**: queries per lookup, pages fetched per lookup, lookups per turn. This ADR
-   requires them as configuration; the owner's "not have limited results" suggests generous values,
-   to be measured on develop against cost.
-2. **A lookup without a card** is an exception to ADR 0028's "a Lead-initiated paid start needs an
-   approved plan". Q6's "charged to the wallet" and no extra click read as yes; confirm.
-3. **Amending ADR 0026 decision 3, which is Accepted**, needs the owner's explicit yes (D-08 named
+Answered by the product owner on 2026-10-20 (Q18, a, on the PM status page):
+
+- ~~The bound values.~~ 3 queries per lookup, 5 pages fetched, 2 lookups per turn. Decision 4.
+- ~~A lookup without a card.~~ Yes, within those bounds, held against the wallet before anything
+  leaves, OPEN clients only: the exception to ADR 0028. Decision 4.
+
+Still open:
+
+1. **Amending ADR 0026 decision 3, which is Accepted**, needs the owner's explicit yes (D-08 named
    the other amendments, not this one).
