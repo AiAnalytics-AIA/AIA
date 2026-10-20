@@ -31,7 +31,7 @@ the research side. This note looks at the two areas he has seen less of: the **c
   - **the client's data posture** (OPEN or CLASSIFIED): it decides whether Deep Research may search the web freely for this client;
   - **the client's wallet ceiling**: the most any study wallet for this client may hold;
   - **the data contract** that makes a client's dataset usable in an analysis.
-- The plans build the database columns and routes for all three. **None of them builds the screen.** Two plans also disagree on whether posture and ceiling belong on Profil or in Settings.
+- The plans build the database columns and routes for all three. Only the posture has a screen: deep-research-web-search #53 shows it on the client's profile. **No chunk builds the screen for the ceiling or for the contract.** The master plan's Settings interface (I15) still lists posture and the ceiling as Settings items, which contradicts #53 for the posture and leaves the ceiling with no settled home.
 - The **Data tab** is promised two incompatible futures:
   - the old client-workspace plan says "use in a study: not in AIA yet";
   - the client-data plan builds exactly that use.
@@ -65,7 +65,7 @@ Each comes with a one-line example of what the answer looks like.
 
 | # | Decision | Example answer |
 |---|---|---|
-| N1 | **Where the client's data posture (OPEN/CLASSIFIED) is set and shown.** #53 says Profil (`deep-research-web-search.md:1662-1665`). I15 says Settings (`mvp-master-plan.md:215`). | "On the client's Profil, in the Pravidla card next to self-approval; admins only." |
+| N1 | **Confirm the client's data posture lives on Profil, and correct I15.** #53 already owns the setter route and the profile UI (`deep-research-web-search.md:1662-1667`; master G37, `mvp-master-plan.md:308`). I15 still says Settings (`mvp-master-plan.md:215`). | "On the client's Profil, in the Pravidla card next to self-approval; admins only." |
 | N2 | **Where the wallet ceiling is set**, and **who approves a raise above it, on which screen**. LO1 needs "an approver above it" (`lead-orchestration.md:45-46`); no screen exists. | "Profil → Pravidla, admins only; a raise above the ceiling shows in Přehled → Čeká na vás for an admin." |
 | N3 | **The Czech names of the four money numbers.** The client budget (`clients.budget_usd`), the study budget (`budget_usd`, today "Strop rozpočtu"), the study wallet (Peněženka), and the confirmation threshold (`spend_confirm_usd`). F16 is still open (`mvp-cohesion.md:505-506`). Also: rename the schema to `wallet` before M3/M4? | "Rozpočet klienta / Rozpočet studie / Peněženka / Práh potvrzení; the tables become `study_wallets*` and `clients.wallet_ceiling_usd`." |
 | N4 | **Where a client dataset's data contract is accepted**: the Data tab (client-workspace C8) or the study's Brief drawer (F19, `mvp-cohesion.md:541-543`). Plus who may accept it: `APPROVE_GATE` or `PROPOSE_CLIENT_KNOWLEDGE` (`client-data-in-analysis.md:101-104`). | "In the Brief drawer when a study first uses it; the Data tab shows the contract read-only; any researcher may accept." |
@@ -212,7 +212,8 @@ A shorthand for the code paths:
   | `two-roles-human-ai-gates#5b.4` via `report-delivery#RD2`-`RD4` | W2 | The client's self-approval switch now also governs client-report and map-snapshot approval. |
 
 - **Conflicts:**
-  - **Posture and ceiling have three possible homes:** Profil (#53; `mvp-master-plan.md:185`), Settings (I15, `mvp-master-plan.md:215`), and "Settings is read-only and stays so" (`lead-orchestration.md:91`). See N1 and N2.
+  - **Posture:** #53 owns the profile UI (G37, `mvp-master-plan.md:308`; `deep-research-web-search.md:1665,1667`), as does the activation matrix (`mvp-master-plan.md:185`). Only I15 (`mvp-master-plan.md:215`) puts it in Settings, so the fix is a correction to I15, not a new chunk (N1).
+  - **Ceiling:** it has no home. I15 says Settings, LO1 names only a route, and "Settings is read-only and stays so" (`lead-orchestration.md:91`). See N2.
   - **Permissions split on one card stack:** posture and ceiling are OWNER/ADMIN, while the client budget beside them is any researcher's (`client-budget.md:62`).
 - **Gaps:**
   - No chunk builds the ceiling's setter **UI**, its audit display or its test.
@@ -268,7 +269,7 @@ A shorthand for the code paths:
   | `client-knowledge-lifecycle#K7a` | W5 | Proves same-client reuse (AC-12). |
 
   `project-memory-reuse` is done and not in the master register.
-- **Note on `-5` (§5):** MemoryStudy renders past runs' maps. A run pinned to `-3` stays `-3`, and new runs show `-5`'s map, credibility and respondent layer. So memory will show two map kinds side by side.
+- **Note on `-5` (§5):** MemoryStudy renders past runs' object maps. A run pinned to `-3` stays `-3`, and a new run shows `-5`'s object map. It does **not** show `-5`'s credibility (split-half share, weakly-determined banner, uncertainty circles) or its respondent map. `ObjectMapView` draws neither: it reads only the map's `support` (`apps/web/src/components/rehome/research/ObjectMapView.tsx:296,568 @ 854c209`). The `credibility` type exists in `apps/web/src/lib/object-map-view.ts:63-69` but nothing renders it, and `signed-off-sociomap-method.md:160,190` list both as "not drawn yet" web follow-ups.
 
 ### 3.11 Money: the client budget and the wallet
 - **Today:** one client money number, `clients.budget_usd` and `spent_usd` (`packages/aia_core/src/aia_core/infrastructure/tables.py:503-509 @ 854c209`).
@@ -484,6 +485,7 @@ A shorthand for the code paths:
 - No client tab draws a map today.
 - Maps reach a client page only through **project memory's** read-only run results (`W/components/aia/MemoryStudy.tsx:318-330`) and the **client report's figures** (`application/client_report.py`, approved maps only).
 - Both read the register by method (`apps/web/src/lib/object-map-view.ts`, `mapApproval`), so they follow item 1 automatically.
+- What they draw of `-5` is the object map only. The credibility layer and the respondent map are web follow-ups of `signed-off-sociomap-method` (`:160-167`, `:190-200`). No MVP chunk names them (hypothesis: `research-lead-workbench#20` or `segment-maps-and-drilldown` may take them, but neither says `-5`). Until they land, a `-5` map that the methodology marks weakly determined will look as confident as any other on Results and in project memory.
 - Hypothesis, unverified: the respondent layer and segments of `-5` are internal material under MVPQ-03 and MVPQ-09 ("no drill-down content"). Whether the client report may show the respondent map at all is `segment-maps-and-drilldown`'s and RD0's question, not this note's.
 
 **Plan impact:** no chunk schedules items 1 to 3. See "Proposed master-plan edits".
@@ -551,7 +553,7 @@ Confirmed by replacing the resolved path with `index.mjs` in a temporary copy, w
 
 **F-2 to F-6** are planning gaps already stated above (§3.5, §3.6, §3.7, §4.2, §5). They are hypotheses about the plan, not defects in code, so they carry no reproduction:
 - **F-2:** the W1 gate depends on chunks with no wave.
-- **F-3:** no UI chunk for posture, ceiling or contract.
+- **F-3:** no UI chunk for the ceiling or the contract; posture's profile UI is #53's, and only I15 disagrees.
 - **F-4:** the draft-test server path.
 - **F-5:** `-5` has no scheduled register entry, default or editor start.
 - **F-6:** no delete UI.
@@ -563,13 +565,12 @@ Confirmed by replacing the resolved path with `index.mjs` in a temporary copy, w
 These are proposals only. No plan file is edited by this PR (CLAUDE.md §1). They are repeated in the PR body.
 
 1. **§3.2 / MP3:** execute the client-workspace FOLD now. Name the target of C6 (K2f, K3), C7 (close: superseded by client-budget), C8 (client-data-in-analysis 2, 2a, 3 plus a UI chunk) and C9 (K6). Remove "[C6, C7, C8]" from K2's completion line, or give those chunks a wave.
-2. **New UI chunks, S3, W1:**
-   - posture setter UI (with #53);
-   - ceiling setter and above-ceiling approval UI (with LO1);
-   - add both to I15's contract chunks, and settle Profil against Settings (N1, N2).
+2. **I15 and the ceiling, S3, W1:**
+   - correct I15: posture is on Profil, owned by #53 (G37); no new posture chunk;
+   - a new ceiling setter and above-ceiling approval UI chunk (with LO1), placed where N2 decides, and listed under I15's contract chunks.
 3. **New UI chunk, S3, W3:** data-contract acceptance and quality-report UI, placed in the Brief drawer (design artifact), with the Data tab read-only (N4).
 4. **LO0 (W0):** adopt "wallet / Peněženka" and the four Czech money names before M3/M4 fixes `envelope` in schema. Rename `study_envelopes*` and `clients.envelope_ceiling_usd` in the target architecture and development plan (N3).
-5. **§3.2:** move `signed-off-sociomap-method` into the register. Add chunks for the `-5` register entry (method owner), the code default `-1`+`-5`, and the Metodika editor's start in force. Correct `mvp-master-plan.md:126` "the MVP uses `aia-sociomap-3`".
+5. **§3.2:** move `signed-off-sociomap-method` into the register. Add chunks for the `-5` register entry (method owner), the code default `-1`+`-5`, the Metodika editor's start in force, and the `-5` web follow-ups the MVP needs (the credibility layer on Results and in project memory, the respondent map view) or an explicit decision that they wait. Correct `mvp-master-plan.md:126` "the MVP uses `aia-sociomap-3`".
 6. **`system-prompts-settings#14`:** state that `prompt_version` on `POST …/agent-jobs` and its two refusals are removed too (N8).
 7. **`run-qc-and-checkpoint#RQC9`:** the valid-n authority is the organization's readiness methodology in force, not a code constant.
 8. **The W2 engine chunks** (`sociomap-formula-corrections`, `segment-maps-and-drilldown`, RQC1): each must name its Metodika catalogue re-pin.
