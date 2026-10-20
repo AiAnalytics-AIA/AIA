@@ -133,7 +133,7 @@ and asserts exit 0 and a `FAIL` line, and a matrix-consistency failure still exi
   build order, not a release scope.
 - **Wording to reconcile, in a PR that runs the tests** (`docs/migration/` and `parity-matrix.json` are
   outside the docs-only path list and `test_parity_matrix.py` reads the matrix): AC-02 "a paid worker job
-  starts only on an approval card" against the envelope and the plan card; AC-11 "approved for Class B"
+  starts only on an approval card" against the wallet and the plan card; AC-11 "approved for Class B"
   against the OPEN posture; AC-13 "a reviewer other than the producer" against F17 (withdrawn).
 
 - **14.** The wording that disagrees with settled decisions is changed in the acceptance document and the

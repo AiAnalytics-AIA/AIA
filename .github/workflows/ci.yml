@@ -962,11 +962,13 @@ jobs:
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
 
+      # Blocking on every high or critical advisory, production and dev, except one
+      # audit-allowlist.json names by GHSA id until its recheck date (ARCHITECTURE.md §8).
       - name: Audit npm dependencies
         working-directory: apps/web
         run: |
           npm ci
-          npm audit --audit-level=high || true
+          node scripts/audit-gate.mjs
 
       - name: No secrets committed
         run: |

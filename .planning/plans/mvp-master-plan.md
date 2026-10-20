@@ -180,7 +180,7 @@ gate that needs it, who sets it, and the evidence that it is on. **`MP6` declare
 | **`aia_deep_research_agent_directed=true`** | the ladder, hence every connector, Wayback and Common Crawl (`agent_directed.py:466-528`); default false (`docker-compose.yml:102`) | operator | a run's record names a connector |
 | ADR 0022 approvals on Nastavení → Deep Research | any priced route | an organization approver | `live_settings_unapproved` gone |
 | `aia_web_research_workbench` | the workbench (AC-02) | operator | `/config` |
-| `AIA_LEAD_PLANS_ENABLED` (new, off) | the plan card and envelope (AC-04) | S1 on develop when built | the I-1 exit passes |
+| `AIA_LEAD_PLANS_ENABLED` (new, off) | the plan card and wallet (AC-04) | S1 on develop when built | the I-1 exit passes |
 | `aia_report_pdf_enabled` | the PDF beside the internal DOCX (AC-13); the client report is DOCX only today (`report_variants.py:78`, G35) | operator, on for develop | an internal report has a PDF artifact |
 | `AIA_RUN_QC_ENABLED` (new, off) | the run QC node (AC-08) | S2 when built | a run's QC artifact exists |
 | `clients.data_posture` per client | web search for a real client (AC-11) | an organization OWNER or ADMIN | the client's profile |
@@ -202,7 +202,7 @@ trace that found each (`.planning/evidence/mvp-master-traces/`).
 | I1 | **`ResultsContext`**: type, classes, lineage, bound, an external-evidence slot (labelled L, never respondent evidence) | S1 type; S2 and S3 providers; Deep Research bundle (T3 C1, T5 C5) | S1, **in W1**, as an ADR addendum with a `MaterialRule` and a lineage test | before any results layer | `lead-orchestration#LO8` |
 | I2 | **Stage and item vocabulary**: `pipeline.RESEARCH_STAGES`, `StepKey`, the workbench stages, the Lead's `Stage`, `IMPACT_ROOTS`, `design_items` kinds. No Sociomap stage in the pipeline | S1, S2, S3 (T1 C2, T3 C8) | S1, one table beside `domain/edit_ops.py` | W1 | `working-copy-edit-ops#WCE0` |
 | I3 | **Three ways to start a run** (Run button, plan card, typed `start_run`) over one `ResearchRuns.start`: which pins and confirmations each passes. The confirmation is a function argument, so a plan authority without `APPROVE_GATE` does not protect it | S1, S2, S3 (T2 C2, T4 A4) | S1 in the orchestration ADR, with a typed start API that has no `confirm_cost_usd` and an import rule | W1 | `lead-orchestration#LO2` |
-| I4 | **The money vocabulary**: envelope cap, `budget_usd`, `spend_confirm_usd`, client ceiling, `clients.budget_usd`, OI-64. The spend limit is a confirmation threshold and `None` means never; the cap is `budget_usd` | S1 envelope, S3 ledger (T2 B1, T4 B1 and B15) | S1 in the orchestration ADR, defined against `budget_usd` | W1 | `lead-orchestration#LO0`, `lead-orchestration#LO15` |
+| I4 | **The money vocabulary**: wallet cap, `budget_usd`, `spend_confirm_usd`, client ceiling, `clients.budget_usd`, OI-64. The spend limit is a confirmation threshold and `None` means never; the cap is `budget_usd` | S1 wallet, S3 ledger (T2 B1, T4 B1 and B15) | S1 in the orchestration ADR, defined against `budget_usd` | W1 | `lead-orchestration#LO0`, `lead-orchestration#LO15` |
 | I5 | **What a "dimension" is**: a persona topic, a materialized column, or a segment descriptor | S2 (segments, personas), S3 (K5 materialization) (T2 C1, T3 A2) | S2, in `sociomap-formula-corrections` I0 | W2 | `segment-maps-and-drilldown#0a` |
 | I6 | **Straight-liner**: the engine's, the unit QC's and the worker's definition; one flag artifact; what "replace" means | S1 worker, S2 engine and QC (T2 C5, T3 C3) | S2, one definition in `domain/` | W1 | `run-qc-and-checkpoint#RQC1` |
 | I7 | **Fieldwork events to the Fieldwork artifact**: heartbeat, quota-cell fill, respondent grid, park reason | S2 produces, S1 consumes (T2 C9) | S2 writes the payload first | W1 | `run-qc-and-checkpoint#RQC7` |
@@ -252,12 +252,12 @@ These rows preserve the original findings; assigning chunks resolves planning ow
 
 | # | Gap | Chunks |
 |---|---|---|
-| G11 | **The envelope is defined against the wrong quantity.** The architecture and F13/F16 call the spend limit "the hard stop"; in code it is a confirmation threshold (null means never ask) and the cap is `budget_usd`, defaulting to 0 for a new study (T2 B1, T4 B1; `routers/scope.py:95`) | `lead-orchestration#LO0`, `lead-orchestration#LO1` |
-| G12 | **The envelope, plan card and typed `start_run` are in no plan file.** The workbench plan puts "continue until you need me" after the MVP (D16, chunk 24) and MVP-13 says "one card at a time" (T2 B3, T4 B3) | `lead-orchestration#LO2`, `lead-orchestration#LO3`, `lead-orchestration#LO4`, `lead-orchestration#LO5` |
+| G11 | **The wallet is defined against the wrong quantity.** The architecture and F13/F16 call the spend limit "the hard stop"; in code it is a confirmation threshold (null means never ask) and the cap is `budget_usd`, defaulting to 0 for a new study (T2 B1, T4 B1; `routers/scope.py:95`) | `lead-orchestration#LO0`, `lead-orchestration#LO1` |
+| G12 | **The wallet, plan card and typed `start_run` are in no plan file.** The workbench plan puts "continue until you need me" after the MVP (D16, chunk 24) and MVP-13 says "one card at a time" (T2 B3, T4 B3) | `lead-orchestration#LO2`, `lead-orchestration#LO3`, `lead-orchestration#LO4`, `lead-orchestration#LO5` |
 | G13 | **There is no continuation turn**: turns are person-started only; the Lead sees run id and status, not park reasons or spend (T4 A1, T2 C3) | `lead-orchestration#LO6` |
 | G14 | **A plan's own steps defeat its stale rule**: `proposal_accept.py:117-118` refuses on "head moved" before comparing items, and any job start, rebuild, Lead approval or a visit to the Run stage submits a Design Revision, killing every other pending proposal; a second researcher's action kills the first's (T1 #2, T4 B7) | `working-copy-edit-ops#WCE5` |
 | G15 | **`approve_request` is not bound to the card's revision**; the Lead's 96 KB context against the agents' 64 KB likely returns a 500 on approval ◇ (T4 A10) | `lead-orchestration#LO10` |
-| G39 | **No chunk enforces the spend limit on the server.** `ResearchAgentJobs.start` reads no `spend_confirm_usd` (`application/research.py:1311-1407`, against `ResearchRuns.start` at `:739`); cohesion F5 adopts the check as the first code change, the development plan's W0 names it, but no child chunk did, and workbench D15 said removing the buttons closed F1. `budget_usd` is the cap; the envelope and the confirmation are distinct (review of 2026-10-20, item 1) | `lead-orchestration#LO15` |
+| G39 | **No chunk enforces the spend limit on the server.** `ResearchAgentJobs.start` reads no `spend_confirm_usd` (`application/research.py:1311-1407`, against `ResearchRuns.start` at `:739`); cohesion F5 adopts the check as the first code change, the development plan's W0 names it, but no child chunk did, and workbench D15 said removing the buttons closed F1. `budget_usd` is the cap; the wallet and the confirmation are distinct (review of 2026-10-20, item 1) | `lead-orchestration#LO15` |
 | G40 | **D12 and D15 disagreed below 1100 px or with the switch off**; settled by MVPQ-11 (2026-10-20): the Lead stays accessible at every width (a compact drawer or stacked layout), no manual AI start in any layout, and an honest fallback with the workbench or the Lead's kill switch off | `research-lead-workbench#26`, `research-lead-workbench#27`, `lead-orchestration#LO15` |
 | G16 | **The three new workers have no binding, accept path, price or `MaterialRule`**: no `REPORT_WRITING` binding, no result kind for interpretation, wording or flags, no rule for results, module text, maps or report text (T4 A5, T3 A9, A10, T2 A5) | `lead-orchestration#LO9a`, `lead-orchestration#LO9b`, `report-delivery#RD6`, `run-qc-and-checkpoint#RQC3` |
 | G17 | **Lead files cannot be rolled back** (`revisions()` has no caller); admin read and handover, the USER file's handover rule and a departure trigger are unplanned; (T4 A6, A7, A12); turns stay private (Q26), and shared proposals are G42, not this row | `lead-orchestration#LO11` |
@@ -281,7 +281,7 @@ These rows preserve the original findings; assigning chunks resolves planning ow
 |---|---|---|
 | G26 | **Fieldwork repays every respondent on every attempt (OI-64, open) and AC-06 is marked built.** Each attempt starts at the first respondent and stores the dataset at the end (`ai_fieldwork.py:283-326`), `max_attempts=3`, a clean shutdown is a RETRY, and the plain whole-run `retry` of a failed or cancelled run "spends again" (`research.py:835-862`). **An analysis-only retry does not: `retry_analysis` reuses the frozen dataset (`research.py:865-895`).** So the claim covers interrupted fieldwork and the plain retry, and each post-fieldwork step the MVP adds is another way to repay unless the checkpoint exists (T2 #1, A2, A3, B2; narrowed by the independent review, CR-11) | `run-qc-and-checkpoint#RQC0` |
 | G27 | **QC is not wired**: no template node, step kind, `AIA_RUN_QC_ENABLED` switch or run-key identity; three definitions of straight-liner; no "replace" path from a completed run; no `MaterialRule` for run-derived data (T2 A4-A6, B7, T3 A15) | `run-qc-and-checkpoint#RQC1`, `run-qc-and-checkpoint#RQC2`, `run-qc-and-checkpoint#RQC3`, `run-qc-and-checkpoint#RQC4`, `run-qc-and-checkpoint#RQC5` |
-| G28 | **An own dimension is built but read by nothing**: K5 (the definition step) is open, no web code calls the materialize route, personas read a fixed column list so a run over a child draws the same respondents; and building costs no money, so "refused when the envelope has no room" has nothing to refuse (T2 #3, A8, B4, B11) | `client-knowledge-lifecycle#K5`, `research-lead-workbench#22` |
+| G28 | **An own dimension is built but read by nothing**: K5 (the definition step) is open, no web code calls the materialize route, personas read a fixed column list so a run over a child draws the same respondents; and building costs no money, so "refused when the wallet has no room" has nothing to refuse (T2 #3, A8, B4, B11) | `client-knowledge-lifecycle#K5`, `research-lead-workbench#22` |
 | G29 | **Quotas and a panel support forecast before a run** do not exist; the Fieldwork artifact's feeds (heartbeat, quota fill, respondent grid, park reason) are unspecified (T2 A9, A10) | `run-qc-and-checkpoint#RQC6`, `run-qc-and-checkpoint#RQC7` |
 
 **Evidence and delivery**
@@ -350,7 +350,7 @@ Four track maps built from the code before this plan existed were compared with 
 | AC-09 is built by six chunks | §3.4's AC-09 row | the respondent map is `sociomap-formula-corrections#3` (open) and the segment map, register entry, artifact and figures are `segment-maps-and-drilldown` 1, 2, 4, 8, 9 with `research-lead-workbench#20` | row completed 2026-10-20 |
 | Any other origin is refused at `instrument.py:112-121` | `client-data-in-analysis.md`, `mvp-cohesion.md` F3 | those lines are constants; the refusal is `_declared` at `instrument.py:184-196 @ 085abe0` | anchors corrected 2026-10-20 |
 | `system-prompts-settings` chunk 8 is built, including the settings document's versions | that plan's chunk 8 `[x]` | `research_analysis` still lists no version (`routers/settings.py:486-492 @ 085abe0`) | `system-prompts-settings#7` takes it over |
-| MVP-13 "one card at a time" | `overview.md:584`, AC-02 | superseded by the envelope (F13) | docs PR |
+| MVP-13 "one card at a time" | `overview.md:584`, AC-02 | superseded by the wallet (F13) | docs PR |
 | "A client report is produced by whoever first downloads it" | `research.py:2478-2485` | with self-approval off, the reviewer who opens it first cannot approve it ◇ | `report-delivery` |
 | Settings "FAST_EXTRACTION unused", analysis and Deep Research prompt slots "not run" | `settings.py:529`, `prompt_slots.py:121-140` | both are registered and run | `system-prompts-settings` |
 | "No Environment tag" | `develop-spend-attribution.md:28` | `versions.tf:34-40`, `main.tf:597-607` | G9 |
@@ -508,6 +508,7 @@ MVPQ-01 was answered on 2026-10-20: the browser's Czech Research Lead V2 build i
 | Segment evidence is built: per-segment admitted claims, so the Segments module can state a finding and the report composes | X1, owner 2026-10-20 | `segment-maps-and-drilldown#10` |
 | Questionnaire routing is built end to end: conditions set and validated, fieldwork routes, results on the filtered base | X8, owner 2026-10-20 | `working-copy-edit-ops#WCE13`, `run-qc-and-checkpoint#RQC11`, `evidence-integrity#10` |
 | Settings' draft-prompt test is removed; no paid AI start outside the Lead, no exception for it in AC-02 | X10, owner 2026-10-20 | `system-prompts-settings#14` |
+| The study's spending cap is the **wallet** in code and plans (`study_wallets`, `study_wallet_raises`, `study_wallet_charges`, `clients.wallet_ceiling_usd`, "wallet cap"; a plan card runs inside the study's wallet) and **Peněženka** in the Czech UI; formerly "the envelope". `budget_usd` and `spend_confirm_usd` unchanged; the Sociomap, Deep Research and error-tracking envelopes are other things | the product owner, 2026-10-20 | `lead-orchestration#LO0`, `lead-orchestration#LO1` |
 | Each researcher has their own private Lead | F12, Q26 | `lead-orchestration#LO0`, `lead-orchestration#LO11` |
 | The Deep Research open posture replaces classification for the MVP; the posture is pinned at enqueue and a retry copies it | #500, owner 2026-10-19 | `deep-research-web-search#53` |
 | Respondent replacement is a new linked run, never an edit of a completed one | F18 | `run-qc-and-checkpoint#RQC5` |
@@ -525,7 +526,7 @@ MVPQ-01 was answered on 2026-10-20: the browser's Czech Research Lead V2 build i
 The plans are corrected, with the owner told in the pull request:
 
 - The spend limit is a **confirmation threshold** (`spend_confirm_usd`, null means never ask); the cap is
-  `budget_usd`. The envelope is defined against `budget_usd` and never against the threshold
+  `budget_usd`. The wallet is defined against `budget_usd` and never against the threshold
   (`lead-orchestration#LO1`; G11; `application/research.py:452-454`, `:724-742`).
 - `retry_analysis` reuses the frozen dataset (`research.py:865-895`), so G26 covers interrupted fieldwork
   and the plain whole-run retry only (`run-qc-and-checkpoint#RQC0`).
@@ -560,7 +561,7 @@ The earlier S1 (draw the V3 header strip) is closed by MVPQ-01: the canonical V2
 
 | # | The plans say | The override | What it moves |
 |---|---|---|---|
-| S2 | Two meters (envelope and spend) | One meter, as the prototype shows | `lead-orchestration#LO1`, `research-lead-workbench#15` |
+| S2 | Two meters (wallet and spend) | One meter, as the prototype shows | `lead-orchestration#LO1`, `research-lead-workbench#15` |
 | S3 | One private Lead per researcher | One conversation per study, as the prototype has it | storage, retention, the return summary; reopens F12/Q26 |
 | S4 | The permission panel shows the client's posture (OPEN or CLASSIFIED) and the strict class text applies to CLASSIFIED | Show the strict text for every client | `deep-research-web-search#54`; contradicts the open posture's intent |
 | S5 | Client PDF in the MVP | Client report DOCX only; amend AC-13 | `report-delivery#RD1`, `docs/migration/mvp-acceptance.md` |

@@ -3966,7 +3966,7 @@
    },
    {
     "id": "AC-02",
-    "statement": "The study is worked in the Research Lead workbench: the Lead's conversation beside the eleven step artifacts of the canonical V2 prototype, the stage navigator on top, the interface in Czech; the Lead stays reachable at every screen width (a compact drawer or a stacked layout, never an alternate AI start). Every AI action is started through the Lead (no manual AI button on any stage), except a client-level source extraction in Client Knowledge, held to its client budget and approval (MVPQ-08); a paid step starts only inside what a person approved: an approval card, an approved plan whose steps the Lead runs inside the study's envelope, or a typed start by a person (the model never supplies a person's confirmation, and a gate the plan does not cover parks); every start is held to the study's budget and recorded in the approval ledger, and the spend limit stays a separate per-start confirmation threshold; the Lead's edits are proposals a person accepts, applied without a click only where the researcher chose (text edits, structural edits per stage). The Lead quotes no number its context does not hold.",
+    "statement": "The study is worked in the Research Lead workbench: the Lead's conversation beside the eleven step artifacts of the canonical V2 prototype, the stage navigator on top, the interface in Czech; the Lead stays reachable at every screen width (a compact drawer or a stacked layout, never an alternate AI start). Every AI action is started through the Lead (no manual AI button on any stage), except a client-level source extraction in Client Knowledge, held to its client budget and approval (MVPQ-08); a paid step starts only inside what a person approved: an approval card, an approved plan whose steps the Lead runs inside the study's wallet, or a typed start by a person (the model never supplies a person's confirmation, and a gate the plan does not cover parks); every start is held to the study's budget and recorded in the approval ledger, and the spend limit stays a separate per-start confirmation threshold; the Lead's edits are proposals a person accepts, applied without a click only where the researcher chose (text edits, structural edits per stage). The Lead quotes no number its context does not hold.",
     "capabilities": [
      "ai.gateway",
      "ai.credentials",
@@ -3989,7 +3989,7 @@
    },
    {
     "id": "AC-04",
-    "statement": "A run's cost ceiling is shown before it starts, reserved against the study's budget (budget_usd) under the study-row lock, held to the envelope when an approved plan starts it, and confirmed by a person when it reaches the spend limit (spend_confirm_usd: a confirmation threshold, never the cap); a deliberately exhausted budget parks in AWAITING_BUDGET without spending, and concurrent starts cannot exceed it.",
+    "statement": "A run's cost ceiling is shown before it starts, reserved against the study's budget (budget_usd) under the study-row lock, held to the wallet when an approved plan starts it, and confirmed by a person when it reaches the spend limit (spend_confirm_usd: a confirmation threshold, never the cap); a deliberately exhausted budget parks in AWAITING_BUDGET without spending, and concurrent starts cannot exceed it.",
     "capabilities": [
      "cost.estimation",
      "cost.reservations",

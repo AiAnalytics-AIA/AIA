@@ -444,9 +444,12 @@ resource "aws_instance" "host" {
   }
 
   # The host is a pet by design at this size; a hardware failure is recovered
-  # in place (alarm below) rather than by replacement.
+  # in place (alarm below) rather than by replacement. user_data runs once, at
+  # first boot (cloud-init), so a later template change does nothing to this
+  # host; applying it would only make the provider stop and start the instance.
+  # A rebuilt host still boots with the current template.
   lifecycle {
-    ignore_changes = [ami]
+    ignore_changes = [ami, user_data]
   }
 
   tags = { Name = local.name }
