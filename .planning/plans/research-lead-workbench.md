@@ -27,7 +27,8 @@ chunks:
   - "[ ] 23. Worker and Deep Research cards in the conversation, each opening the artifact it changes"
   - "[ ] 24. A standing 'continue until you need me' beyond an approved plan's steps, over chunk 11's command registry, stopping at every gate (after the MVP: the plan-scoped part is lead-orchestration LO3-LO5)"
   - "[ ] 25. Deep Research reachable from every stage as a capability"
-  - "[ ] 26. The layout rule (D17): the AI starts are removed in every layout the same way, and tested at 1099 and 1100 px, with the switch off and by a direct request"
+  - "[ ] 26. The Lead stays accessible at every width (D20, MVPQ-11): the workbench serves under 1100 px with the Lead as a compact drawer or a stacked layout, the manual AI starts are removed in every layout, tested at 1099, 1100, 768 and 390 px, by keyboard, focus and Escape with a return to the targeted artifact, with a stale card refused, and by a direct request"
+  - "[ ] 27. Switch-off and rollback (D20): actual availability is stated; the compact Lead stays reachable while its backend is enabled, a genuinely disabled backend stays disabled and says so, with no alternate AI start and no bypass of a kill switch; every layout uses the same card, plan, envelope and server-confirmation paths"
 ---
 # Research Lead workbench
 
@@ -112,7 +113,7 @@ at an element (`lib/lead.ts:341`, `Workbench.tsx:185-207 @ 0b4e05e`).
 - **D11. The interface is Czech.** The design's English gives structure and meaning: "Workspace /
   History / Provenance" are **Pracovní kopie / Historie / Původ**, the "Sees" chip is **Vidí**.
 - **D12. Supersedes D1 for the artifact bodies; amended by MVPQ-01, 2026-10-20.** Each step's artifact follows the canonical V2 build inside the workbench, one or two per PR, over AIA's own data and routes (never the design's fixtures). V3 contributes a supporting coverage checklist only. The
-  classic layout (switch off, or under 1100 px) keeps today's screens.
+  classic layout (switch off) keeps today's screens; under 1100 px the workbench still serves, with the Lead as a compact drawer or a stacked layout (D20, MVPQ-11); on switch-off the compact Lead stays reachable while its backend is enabled.
 - **D13. AIA's data only.** Where AIA has nothing behind a part of an artifact, the part says so in
   words ("V AIA zatím není", or the backend's own reason), never a placeholder that reads like data.
 - **D14. The journey grows with the artifacts.** Chunk 12 lands first, and each artifact PR adds its
@@ -126,14 +127,18 @@ at an element (`lib/lead.ts:341`, `Workbench.tsx:185-207 @ 0b4e05e`).
   and with the Lead able to call that stage's worker, so no AI action is ever without a way in. This
   removes the way in from the interface only; it does not enforce the spend limit, which is a server
   rule (`lead-orchestration#LO15`).
-- **D17. The layout rule (reconciles D12 and D15; proposed, an owner choice is recorded in
-  `mvp-master-plan.md` §11.4).** D12 keeps today's screens under 1100 px or with the switch off, and
-  D15 removes the manual AI starts. The consistent rule: the starts are removed in **every** layout
-  (the stage components are shared), and where the Lead is not offered the stage says *"AI se spouští
-  přes Vedoucího; ten potřebuje pracovní stůl (od 1100 px)"* instead. Every server path is held by the
-  server rule (`lead-orchestration#LO15`), so a direct request is not a way around the Lead's gates.
-  Client Knowledge extraction is the separately recorded client-level exception (`lead-orchestration#LO13`).
-  Test (chunk 26): 1099 px and 1100 px, the switch off, and a direct HTTP start.
+- **D20. The Lead stays accessible at every width (owner, MVPQ-11, 2026-10-20; reconciles D12 and D15).**
+  Under 1100 px the workbench still serves, with the Lead as a compact drawer or a stacked layout beside the
+  artifact, consistent with the canonical V2 workspace; the exact composition is an engineering and design
+  choice. The manual AI starts are removed in every layout (the stage components are shared), so no alternate
+  start exists, and every layout uses the same revision-bound card, approved-plan, envelope and
+  `lead-orchestration#LO15` server-confirmation paths: the container adds no authority and weakens no
+  privacy. **On switch-off or rollback** the actual availability is stated: the compact Lead stays reachable
+  while its backend is enabled, a genuinely disabled backend stays disabled and says so, and a kill switch is
+  never bypassed. A direct request is held by the same server gates. Client Knowledge extraction is the
+  separately recorded client-level exception (`lead-orchestration#LO13`, MVPQ-08). Tests (chunks 26, 27):
+  1099, 1100, 768 and 390 px, keyboard, focus and Escape with a return to the targeted artifact, a stale card,
+  the switch off, the kill switch off, and a direct HTTP start.
 - **D16. Release scope** (owner, 2026-10-19; MVP-3). The Lead and all eleven stage artifacts following V2 are
   release-blocking (12, 11, 14-23). **The plan-scoped part of the autopilot is in the MVP** (an approved
   plan the Lead runs, and a person's chat start: `lead-orchestration` LO3-LO5; MVP-3 amended and MVP-13

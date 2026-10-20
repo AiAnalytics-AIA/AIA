@@ -10,6 +10,8 @@ chunks:
   - "[ ] RD6. The accept destinations for the report writer, the map interpreter and the straight-liner flags: an artifact type, the composer input and its fingerprint; and, before any semantic report edit exists, the ADR with its deterministic admission rule that ADR 0026 decision 4 requires"
   - "[ ] RD7. A sentence-level claim check: a sentence that claims a comparison with no admitted claim is flagged"
   - "[ ] RD8. The producer of a client report is the run that composed it, not whoever first downloaded it"
+  - "[ ] RD9. The report's assumptions chapter (W3, MVPQ-02): each tracked assumption with its status and its admitted or cited support, and nothing else"
+  - "[ ] RD10. The report's open-answer coding chapter (W3, MVPQ-02): the codebook version, the coded counts as admitted claims with suppression named, and the method's limits"
 ---
 # Report delivery: approval, export and the map snapshot
 
@@ -54,6 +56,12 @@ The prototype shows it (scenario M); the evidence validation checks numbers only
 
 **RD8. The producer of a client report is the run that composed it, not whoever first downloaded it**  
 With self-approval off, the reviewer who opens it first cannot approve it today ◇.
+
+**RD9. The report's assumptions chapter (W3)**  
+Each assumption of `assumptions-and-open-answer-coding#AOC1` with its status, the person's accept that set it, and its support: admitted claims by reference, cited Deep Research findings as context labelled external. A status with no accepted decision or no support is not printed as established. Test: a report built from an assumption set to supported without support is refused by the composer.
+
+**RD10. The report's open-answer coding chapter (W3)**  
+The codebook version, each code's count as an admitted claim with its suppression stated, and the method's limits (`AOC4`); modelled answers are labelled modelled. Raw answer text is not printed as evidence. Test: a count not in the claim ledger cannot be composed.
 
 ## Open: owner clarifications
 

@@ -29,15 +29,15 @@ question numbers in the historical walk.
 | V2 artifact | Retain from the selected build | Required production delta and owning work |
 |---|---|---|
 | Brief | Objectives, decisions, context, classified material chips; item targeting | Stable item ids and real client-material references, not fixture text: `working-copy-edit-ops#WCE1`, `research-lead-workbench#18`, `client-data-in-analysis#8a` |
-| Research design | Question → decision → measure → analysis → report chain, expanded coverage details, explicit gaps | Real trace/admitted evidence graph: `deep-research-web-search#32`, workbench 18. Do not mark unavailable comparisons covered; assumptions are MVPQ-02 |
+| Research design | Question → decision → measure → analysis → report chain, expanded coverage details, explicit gaps | Real trace/admitted evidence graph: `deep-research-web-search#32`, workbench 18. Do not mark unavailable comparisons covered; tracked assumptions are required at first release (MVPQ-02 settled): `assumptions-and-open-answer-coding#AOC1`, method `MVPQ-02a` open |
 | Questionnaire | Sections, routing, type/time/coverage, locked map inputs, inline changes | Typed writer/merge, explicit time-estimate provenance, protected declarations: workbench 7/17, WCE0–WCE8. No model can bypass locks or accept its own proposal |
-| Audience | LIVE count-only preview; definition, filters, evidence attached as proposal | Actual LIVE/source pins and permissions; new assumption item kind waits MVPQ-02. Unsupported panels remain explicitly unavailable, not fabricated. Workbench 22, `client-knowledge-lifecycle#K4` |
+| Audience | LIVE count-only preview; definition, filters, evidence attached as proposal | Actual LIVE/source pins and permissions; the assumption item kind is `assumptions-and-open-answer-coding#AOC1`, its status method `MVPQ-02a` open. Unsupported panels remain explicitly unavailable, not fabricated. Workbench 22, `client-knowledge-lifecycle#K4` |
 | Dimensions | Source, use, persona topic or named unmatched state | Approved own dimensions must materialize and feed an actual consumer; V2's simulated description is extended by settled scope: workbench 22, knowledge K5, `segment-maps-and-drilldown#0a` |
 | Sample | Quota composition, forecast apart from observed support, readiness, respondent origin | Compute from pinned sampler/method contracts and real population availability. Never hardcode fixture n≈430 or claim quota guarantees pair support. `run-qc-and-checkpoint#RQC6`, RQC9/RQC10, workbench 19 |
 | Fieldwork | Typed steps, progress, cost, selection receipt, quality/intervention state | Stored checkpoint/events and actual receipt/QC data: RQC0–RQC5/RQC7, workbench 19. Replacement creates a new linked run and waits approved weights/support; no edit of frozen rows |
 | Results | Units, intervals, support, suppression reasons, open answers labelled data | Server admitted-result API is authoritative: `evidence-integrity#6`, workbench 20. A fixture's rank or interval display cannot define a new statistical test |
 | Sociomap | Display controls, object/pair inspector, fit/provenance, unplaced reasons, four-way distinction | Stored deterministic outputs and pinned method/register status, actual respondent/segment maps and internal drill-down: formula-corrections, segment 0–8, workbench 20. Audit Q5/Q6/Q7 and parameters remain MVPQ-12; fixture “approved” is no approval |
-| Analysis | Coverage, finding/claim/source links, blocked reasons, module states, same-data retry | Real admitted graph, external-context provider and all eight pinned modules: evidence 1/7, prompt settings 7/13, workbench 21. Coding is MVPQ-02; empty-module policy is MVPQ-04; segment comparisons stay unavailable until their own admitted producer exists |
+| Analysis | Coverage, finding/claim/source links, blocked reasons, module states, same-data retry | Real admitted graph, external-context provider and all eight pinned modules: evidence 1/7, prompt settings 7/13, workbench 21. Coding is required (MVPQ-02 settled; `assumptions-and-open-answer-coding#AOC5`-`AOC8`, method `MVPQ-02b` open); a module with no supported finding blocks the report (MVPQ-04 settled, `evidence-integrity#9`); segment comparisons stay unavailable until their own admitted producer exists |
 | Report | Document-first draft, claim chips, paragraph changes, coverage record and refusal reasons | Separate draft counter, semantic-edit ADR/admission, exact-version report and snapshot approvals, client PDF: `report-delivery#RD0`–RD8, workbench 21. Source-use/qualitative-check policy remains MVPQ-09. Fictional output cannot become client evidence |
 
 ## Disposition of all 34 historical rows
@@ -62,7 +62,7 @@ row contains both settled behavior and a new proposal, only the proposal waits.
 | 13 Dismiss / rebuild | Existing path plus open merge/revision hardening | WCE5, LO10/LO15; rebuild also obeys confirmation and budget |
 | 14 Protected map items | Assigned with the same lock on every writer, including manual and auto-applied edits | WCE8, WCE2/WCE10/WCE11; method changes require the recorded authority |
 | 15 Full question chain | Assigned beyond current research_trace | deep-research-web-search 32, workbench 18/21; unsupported edges remain gaps |
-| 16 Assumptions | Proposed scope, still OPEN | MVPQ-02; adding an item kind is not implied by selecting V2 visuals |
+| 16 Assumptions | **Required at first release** (MVPQ-02, owner 2026-10-20); the method is open | `assumptions-and-open-answer-coding#AOC0`-`AOC3`, `report-delivery#RD9`; method `MVPQ-02a`. A stable id, a status, cited evidence and a person's accept are real; the V2 panel is not the contract |
 | 17 LIVE counts | Retain count-only preview; actual availability/lineage and run selection must agree | workbench 22, RQC10; no invented population counts |
 | 18 Dimensions | Required delta: own dimensions are MVP despite V2's simulated panel | knowledge K5, segment 0a, workbench 22; descriptor/support decisions MVPQ-03 |
 | 19 Sample | Assigned; real quota/support authority and deterministic readiness | RQC6/RQC9/RQC10, workbench 19; configured method, not fixture arithmetic |
@@ -73,7 +73,7 @@ row contains both settled behavior and a new proposal, only the proposal waits.
 | 24 Pair interpretation / research | Assigned; labelled proposal and source context, never numeric map input | LO8/LO9b, evidence 7, deep-research-web-search 30/31, workbench 23 |
 | 25 Four-way legend | Assigned explicitly in workbench 20/21: frozen result, display, AI interpretation, external context | Stable labels/links, actual lineage and no cross-origin promotion |
 | 26 Analysis / segments | Assigned coverage/admission/retry UI; segment comparison remains a named gap until admitted producer/method exists | evidence 1/6/7, workbench 21; segment maps/filters alone do not implement compare_segments; MVPQ-03/04 |
-| 27 Open-answer coding | Proposed scope/method, still OPEN | MVPQ-02; do not generate theme counts from prose or call raw text admitted evidence |
+| 27 Open-answer coding | **Required at first release** (MVPQ-02, owner 2026-10-20); the method is open | `assumptions-and-open-answer-coding#AOC4`-`AOC8`, `report-delivery#RD10`; method `MVPQ-02b`. Per-answer codes under a versioned method, counts as admitted claims; never theme counts from prose, raw text never admitted evidence |
 | 28 Report wording | Settled feature; ADR, draft semantics, deterministic admission and source-use gate are explicit work | RD0/RD5/RD6/RD7, MVPQ-09; edits never reopen fieldwork or change stored numbers |
 | 29 Return summary / read position | Assigned explicitly in workbench 12/15 and LO7/LO11 | Researcher-scoped last-read cursor; changed/finished/attention/next from permitted events; private chats excluded from shared feeds |
 | 30 Research permission | Required delta: recorded OPEN derived-query posture supersedes the prototype's stricter search copy | deep-research-web-search 53, LO12; route/composition, origin, licensing and budget rules still enforced; future strict policy cannot be enabled silently |
@@ -89,8 +89,9 @@ four widths, keyboard/focus/inspector return, reload and two researchers. Record
 which chunks/providers are real, unavailable or decision-blocked. Check no unintended
 paid job; stale card/proposal refusal, shared authorized acceptance with private chat,
 two meters, locked inputs, same-data analysis retry, exact-version approvals and
-client-export refusals. Narrow layout/switch-off behavior follows MVPQ-11 and
-workbench 26; do not assume a hidden drawer or retain alternate AI starts silently.
+client-export refusals. Narrow layout follows MVPQ-11 (settled): the Lead stays reachable under 1100 px as a compact drawer or a stacked
+layout (workbench 26), with an honest fallback when the switch or the Lead's kill switch is off (workbench 27); no
+alternate AI start is retained.
 
 Full AC-02/03/07/09/13 wait for their complete implementations and gates; this
 inventory and the prototype script cannot pass them. MP12 closes only the planning
