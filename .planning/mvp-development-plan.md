@@ -183,7 +183,7 @@ draft ids, QC, bounded and classified), owned by S1, with a provider function fr
 | S | Work |
 |---|---|
 | S2 | `run-qc-and-checkpoint` RQC4-RQC5 (worker flag/accept path, then linked replacement after its methodology decision and ADR); `evidence-integrity` 4, the client-data evidence admission (`client-data-in-analysis` 4-5 once its policy is decided) |
-| S3 | `client-data-in-analysis` 0-9 (4-5 with S2, 8a contract already W0, M8); `client-knowledge-lifecycle` K6 (correction/retirement); `deep-research` 4 with S2 (tool ledger, M11); `research-integrity-report` 6-8; `two-roles-human-ai-gates` 5b.4 |
+| S3 | `client-data-in-analysis` 0-9 (4-5 with S2, 8a contract already W0, M8); `client-knowledge-lifecycle` K6 (correction/retirement); `deep-research` 4 with S2 (tool ledger, M11); `research-integrity-report` 6-8; `two-roles-human-ai-gates` 5b.4 closes with `report-delivery` RD2-RD4 in W2 (not W3) |
 | S1 | `research-lead-workbench` 21 (Analysis, Report), the three new workers (`interpret_map`, `polish_report`, `flag_straightliners`), `system-prompts-settings` 7 and 13 (the eight analysis pins; method slots read-only); `lead-orchestration` LO9b after RD6's accept contracts |
 
 ### W4 · Deep Research live (gate I-4)

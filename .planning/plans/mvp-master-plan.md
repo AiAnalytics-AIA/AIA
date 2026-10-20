@@ -81,30 +81,32 @@ plan. `POST`: after the MVP, by decision. The dispositions of plans outside the 
 
 ### 3.1 Core: carry an MVP gate
 
-| Plan | Session | Waves | Gate | Needs first |
-|---|---|---|---|---|
-| `research-lead-workbench` | S1 | W0 (11), W1 (11, 14-19, 26), W2 (20, 22), W3 (21), W4 (23) | I-1 to I-4 | edit vocabulary, `LeadWorkerSpec` |
-| `evidence-integrity` | S2 | W0 (1, 5), W1 (2-3, 6 and 7-8 contracts), W3 (4 and 7-8 wiring) | I-1, I-3 | D04 before final empty-module policy; external-context producer/consumer contract |
-| `sociomap-formula-corrections` | S2 | W2 | I-2 | method owner (0b is open; 0a is done) |
-| `segment-maps-and-drilldown` | S2 | W2 | I-2 | method owner, register entries |
-| `audience-catalogue-cpu` | S2 | W0 (4) | I-0 | none |
-| `complete-study-report` | S2 | W0 (B6) | I-0 | the AI route widened for Class A and B (§4), audience 4 |
-| `deep-research-web-search` | S2 | W0 (1, 51, 53, 54, 55), W1 (52), W2 (6, 33-37), W4 (27, 38) | I-R, I-4 | Brave sign-off (owner) |
-| `deep-research` | S2; migration reviewed by S3 | W3 (4) | I-4, I-5 | tool-spend contract and serial migration lane; before AC-15 reconciliation |
-| `client-budget` | S3 | W1 (CB5) | I-1 | none |
-| `client-knowledge-lifecycle` | S3 | W1 (K2e, K2f, K3, K4, K8), W2 (K5), W3 (K6), W5 (K7a research subset) | I-1, I-3, I-5 | reviewed-source contract; K7 Simulation coverage remains post-MVP |
-| `client-data-in-analysis` | S3 (4-5 S2) | W0 (8a proposed interface), W3 (0-9 runtime) | I-3 | accepted ADR 0027 before runtime; the early interface proposal does not admit data |
-| `research-integrity-report` | S3 | W3 (6-8) | I-3 | none |
-| `two-roles-human-ai-gates` | S3 | W2, W3 (5b.4) | I-2, I-3 | a client-report contract |
-| `develop-spend-attribution` | S3 | W0 (5 compatibility contract, 1-2), W5 (3-4) | I-0, I-5 | semantic model identity versus invocation target resolved before profile configuration |
-| `mvp-acceptance-harness` | S3 | W0 (1-4, 8-9, 14), W1-W4 (5, 10, 13 incrementally), W5 (6-7, 11-12) | I-0, I-5 | #503 acceptance reconciliation and one shared provider fixture |
-| `system-prompts-settings` | S1 | W3 (7, 13) | I-3 | worker row |
-| `working-copy-edit-ops` | S1 | W0 (WCE0 contract), W1 (WCE1-WCE7, WCE10, WCE12), W2 (WCE8-WCE9, WCE11) | I-1, I-2 | WCE0 covers structural operations and text-only default; S2 supplies lock fields before W1 writers |
-| `lead-orchestration` | S1 | W0 (LO0, LO9a, LO15), W1 (LO1-LO8, LO10, LO12-LO14), W2 (LO11), W3 (LO9b) | I-1, I-3 | money/authority and early worker contracts; card revision binding before the first card |
-| `run-qc-and-checkpoint` | S2 | W0 (RQC9-RQC10), W1 (RQC0-RQC3, RQC4a, RQC6-RQC8), W3 (RQC4-RQC5) | I-1, I-2, I-3 | checkpoint before resumed fieldwork; event payload before Fieldwork UI; replacement method decision before RQC5 |
-| `report-delivery` | S3 | W2 (RD0-RD4), W3 (RD5-RD8) | I-2, I-3 | a client-report contract, the evidence gate definitions (§11.4) |
-| `study-data-lifecycle` | S3 | before W5 | I-5 | the deletion horizons (§11.4) |
-| `production-environment` | S3 | W1 (infra apply), W5 | I-5 | operator items (§11.5) |
+| Plan | Session | Gate | Needs first |
+|---|---|---|---|
+| `research-lead-workbench` | S1 | I-1 to I-4 | edit vocabulary, `LeadWorkerSpec` |
+| `evidence-integrity` | S2 | I-1, I-3 | D04 before final empty-module policy; external-context producer/consumer contract |
+| `sociomap-formula-corrections` | S2 | I-2 | method owner (0b is open; 0a is done) |
+| `segment-maps-and-drilldown` | S2 | I-2 | method owner, register entries |
+| `audience-catalogue-cpu` | S2 | I-0 | none |
+| `complete-study-report` | S2 | I-0 | the AI route widened for Class A and B (§4), audience 4 |
+| `deep-research-web-search` | S2 | I-R, I-4 | Brave sign-off (owner) |
+| `deep-research` | S2; migration reviewed by S3 | I-4, I-5 | tool-spend contract and serial migration lane; before AC-15 reconciliation |
+| `client-budget` | S3 | I-1 | none |
+| `client-knowledge-lifecycle` | S3 | I-1, I-3, I-5 | reviewed-source contract; K7 Simulation coverage remains post-MVP |
+| `client-data-in-analysis` | S3 (4-5 S2) | I-3 | accepted ADR 0027 before runtime; the early interface proposal does not admit data |
+| `research-integrity-report` | S3 | I-3 | none |
+| `two-roles-human-ai-gates` | S3 | I-2, I-3 | a client-report contract |
+| `develop-spend-attribution` | S3 | I-0, I-5 | semantic model identity versus invocation target resolved before profile configuration |
+| `mvp-acceptance-harness` | S3 | I-0, I-5 | #503 acceptance reconciliation and one shared provider fixture |
+| `system-prompts-settings` | S1 | I-3 | worker row |
+| `working-copy-edit-ops` | S1 | I-1, I-2 | WCE0 covers structural operations and text-only default; S2 supplies lock fields before W1 writers |
+| `lead-orchestration` | S1 | I-1, I-3 | money/authority and early worker contracts; card revision binding before the first card |
+| `run-qc-and-checkpoint` | S2 | I-1, I-2, I-3 | checkpoint before resumed fieldwork; event payload before Fieldwork UI; replacement method decision before RQC5 |
+| `report-delivery` | S3 | I-2, I-3 | a client-report contract, the evidence gate definitions (§11.4) |
+| `study-data-lifecycle` | S3 | I-5 | the deletion horizons (§11.4) |
+| `production-environment` | S3 | I-5 | operator items (§11.5) |
+
+The waves of every chunk are in `.planning/mvp-execution-contracts.md` (the predecessor graph and the table of every other open chunk); this table no longer repeats them, so there is one place to keep true. `tools/master_check.py` fails on an open chunk of these plans with no wave.
 
 ### 3.2 Outside the development plan: proposed disposition
 
@@ -156,7 +158,7 @@ register check fails on a criterion with no resolvable chunk.
 | AC-12 | `mvp-acceptance-harness#5`, `client-knowledge-lifecycle#K7a` |
 | AC-13 | `report-delivery#RD0`, `report-delivery#RD1`, `report-delivery#RD3`, `report-delivery#RD4`, `research-integrity-report#6` |
 | AC-14 | `mvp-master-plan#M6`, `mvp-acceptance-harness#5` |
-| AC-15 | `develop-spend-attribution#1`, `develop-spend-attribution#3`, `develop-spend-attribution#5`, `deep-research#4`, `production-environment#PE7` |
+| AC-15 | `develop-spend-attribution#1`, `develop-spend-attribution#3`, `develop-spend-attribution#5a`, `develop-spend-attribution#5b`, `deep-research#4`, `production-environment#PE7` |
 
 ## 4. The activation matrix: what must be switched on, and who throws it
 
@@ -215,7 +217,7 @@ trace that found each (`.planning/evidence/mvp-master-traces/`).
 | I18 | **Population in production**: provisioning, the licence route id, the tier A double for AC-05 | S2, S3 (T2 C10, T4 C7) | S3 | W1 | `production-environment#PE6`, `run-qc-and-checkpoint#RQC10` |
 | I19 | **Evidence into Client Knowledge**: three plans (`verified_sources`, K2e, deep-research chunk 37), three semantics (item or proposal) | S2, S3 (T5 C3, C6) | S3 decides once; S2 supplies the bundle reader | W2 | `client-knowledge-lifecycle#K8` |
 | I20 | **Tool spend, the ledger and AC-15**: Brave and Athena spend is in `budget_reservations`, not the usage ledger | S2 ledger, S3 reconciliation (T5 C9) | S3 | W3 | `deep-research#4` |
-| I21 | **A single-origin analysis input** against client-reported numbers | S2, S3 (T3 C4) | S2 designs a two-origin input and its fingerprint before S3's client-data chunk 5 | W3 | `evidence-integrity#8` |
+| I21 | **A single-origin analysis input** against client-reported numbers | S2, S3 (T3 C4) | S2 designs a two-origin input and its fingerprint before S3's client-data chunk 5 | W3 | `evidence-integrity#8a`, `evidence-integrity#8b` |
 | I22 | **The cost function for a Deep Research start** lives in `routers/deep_research.py:292-340` on the API's env copy; a plan step in the worker needs the same ceiling | S1, S2 (T5 C4) | S2 moves it to the application layer | W1 | `deep-research-web-search#55` |
 | I23 | **Client-level paid AI** (source proposals, `clients.budget_usd`) against "every AI action goes through the Lead" | S3, S1 (T4 C10) | S3, with an explicit exception recorded in AC-02 | W1 | `lead-orchestration#LO13` |
 | I24 | **`apps/web/src/lib/api.ts` and `i18n/cs.ts`**: one large file each, edited by every session, carrying every refusal message | S1, S2, S3 (T4 C8) | S1 for refusal wording; others by area | W0 | `lead-orchestration#LO12` |
@@ -241,7 +243,7 @@ These rows preserve the original findings; assigning chunks resolves planning ow
 | G6 | **No Terraform validation in CI**; two documents assume it; no freeze of auto-deploys during a tier B run; production needs its own ADR 0022 approvals (T5 A10, A11, A17, B9) | `production-environment#PE3`, `production-environment#PE5`, `production-environment#PE8` |
 | G7 | **Production environment has no plan file**: `infra/production`, the workflow, RDS, Cognito, the egress proxy (which contradicts fetch from any public host), tag-conditioned IAM (T5 A8, A9, B14) | `production-environment#PE0`, `production-environment#PE1`, `production-environment#PE2`, `production-environment#PE4` |
 | G8 | **The delete path is blocked four ways**: `ai_usage_events.study_id` and `population_dataset_versions.owner_client_id` have no `ondelete` (`tables.py:1833, 1938-1939`); IAM grants no delete on population children (`main.tf:364-368`); `delete_prefix` exists only on the filesystem store (`storage.py:366`); versioned buckets keep deleted objects 30 days with no `DeleteObjectVersion` grant (T5 A7, B12) | `study-data-lifecycle#SDL1`, `study-data-lifecycle#SDL2`, `study-data-lifecycle#SDL3`, `study-data-lifecycle#SDL5` |
-| G9 | **The tagged-profile plan conflicts with the code**: its ARNs would be refused at worker start (`ai_runtime.py:254, 516` need an `eu.` id), "no Environment tag" is wrong (`versions.tf:34-40`), tool spend is not in the usage ledger so AC-15 reconciles model spend only (T5 A12, B8) | `develop-spend-attribution#5`, `deep-research#4`, `production-environment#PE7` |
+| G9 | **The tagged-profile plan conflicts with the code**: its ARNs would be refused at worker start (`ai_runtime.py:254, 516` need an `eu.` id), "no Environment tag" is wrong (`versions.tf:34-40`), tool spend is not in the usage ledger so AC-15 reconciles model spend only (T5 A12, B8) | `develop-spend-attribution#5a`, `develop-spend-attribution#5b`, `deep-research#4`, `production-environment#PE7` |
 | G10 | **The harness is not scheduled**: chunks 4 (doubles for the Lead and workers) and 8 (parity never blocks) are in no wave, the `acceptance` marker is unregistered under `--strict-markers` (`pyproject.toml:276-282`), tier B depends on the deferred `class-b-search-route`; tier A has no population double so cannot prove AC-05 (T5 A13, B6; T2 A11) | `mvp-acceptance-harness#4`, `mvp-acceptance-harness#8`, `mvp-acceptance-harness#9`, `run-qc-and-checkpoint#RQC10` |
 
 **Money and orchestration**
@@ -420,7 +422,7 @@ Deep Research search and tool spend (priced search, the archive), the Interpreta
 The Deep Research evaluations (25, 26, 39) and the commercial comparison arm (50) have an allowance stated
 apart. Model usage, tool and search spend, open reservations and uncertain calls are separate lines;
 AC-15's tolerance (USD 0.01 against the usage ledger) applies to what the ledger holds, and tool spend
-reconciles against `budget_reservations` until `deep-research#4` moves it (`develop-spend-attribution#5`).
+reconciles against `budget_reservations` until `deep-research#4` moves it (`develop-spend-attribution#5b`).
 Cloud billing lag is recorded, never read as zero.
 
 **Deep Research order.** Early activation (`deep-research-web-search#51`) on a fictional client or a public
@@ -488,7 +490,7 @@ The plans are corrected, with the owner told in the pull request:
 - The evidence rule is a new rule that every finding cites admitted claims, not "a 95 % tightening"
   (`evidence-integrity#1`).
 - "No Environment tag" is wrong (`versions.tf:34-40`); the tagged profile must account for the `eu.`
-  identifier the worker validates (`develop-spend-attribution#5`).
+  identifier the worker validates (`develop-spend-attribution#5a`).
 - `two-roles-human-ai-gates#5b.4` no longer says no client report exists.
 - The Deep Research evaluations and the USD 25 allocation are in the harness and in §9.
 - Production release is a blocker (§9, §10).
@@ -563,7 +565,7 @@ questions, and X2 and X6 stay release tests.
 | Finding | Implementation owners |
 |---|---|
 | CR-01 executable chunks | the six child plans (`M13`); §5 and §6.1 name a chunk per row |
-| CR-02 threshold against budget | `lead-orchestration#LO1`, `develop-spend-attribution#5`, §11.2 |
+| CR-02 threshold against budget | `lead-orchestration#LO1`, `develop-spend-attribution#5a`, §11.2 |
 | CR-03 plan authority and AC-02 | `lead-orchestration#LO3`, `lead-orchestration#LO4`, `lead-orchestration#LO5`, `mvp-acceptance-harness#14` |
 | CR-04 OPEN posture in the harness | `deep-research-web-search#53`, `mvp-acceptance-harness#11` |
 | CR-05 reach is not a side chain | `mvp-development-plan.md` § Reach, `deep-research-web-search#54`, §9 |
@@ -574,9 +576,9 @@ questions, and X2 and X6 stay release tests.
 | CR-10 segment descriptors | `segment-maps-and-drilldown#0a`, `client-knowledge-lifecycle#K5` |
 | CR-11 checkpoint | `run-qc-and-checkpoint#RQC0` |
 | CR-12 browser journeys | `mvp-acceptance-harness#10` |
-| CR-13 tier A, tier B, release | §9, `production-environment#PE9`, `mvp-acceptance-harness#12` |
+| CR-13 tier A, tier B, release | §9, `production-environment#PE9a`, `production-environment#PE9b`, `mvp-acceptance-harness#12` |
 | CR-14 evaluations 25, 26, 39 | `deep-research-web-search#27`, `mvp-acceptance-harness#11`, §9 |
-| CR-15 spend reconciliation | `develop-spend-attribution#5`, `deep-research#4`, §9 |
+| CR-15 spend reconciliation | `develop-spend-attribution#5b`, `deep-research#4`, §9 |
 
 Readiness conditions 1 to 7 of that review: 1 and 2 are the tables of §3.4, §5 and §6.1; 3 is
 `tools/master_check.py`; 4 is the settled list of §11.1 and the acceptance follow-up; 5 is §11.3 and §11.4;

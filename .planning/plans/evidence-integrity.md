@@ -8,7 +8,8 @@ chunks:
   - "[ ] 5. One field-policy authority per evidence source: the population contract's list for panel respondents (MVP-29)"
   - "[ ] 6. Results serves admitted claims: an API over the evidence table with suppression decided server-side, so the screen no longer reads raw aggregates"
   - "[ ] 7. Wire the sealed-bundle external-context producer into module preparation and the Lead; preserve the existing prompt/fingerprint context field and context-not-evidence boundary"
-  - "[ ] 8. A two-origin analysis input and its fingerprint, designed before client-data-in-analysis 5"
+  - "[ ] 8a. A two-origin analysis input and its fingerprint, designed (W1) and reviewed with S3 before client-data-in-analysis 5"
+  - "[ ] 8b. The two-origin input wired (W3): the production constructor supplies the client-reported table and the sealed-bundle context, and a changed context or origin changes the module's input fingerprint and payload"
 ---
 # Evidence integrity: findings cite evidence, run QC warns, one policy authority
 
@@ -88,7 +89,7 @@ name: this plan owns the edit, they review it (`mvp-cohesion.md` F8).
   `PrintGrade` or the evidence table (T3 A4). Gap G31. Test: a suppressed object's number is absent from
   the response, not hidden in the page.
 - **7, corrected at 0d525bc8.** `AnalysisInputs.external_context` already exists (`application/analysis.py:101`) and reaches its fingerprint (:138) and prompt (:176). The missing connection is the production constructor in `application/analysis_results.py:570-579`, which supplies no external context. Trace the sealed-bundle provider into that constructor and the Lead, then test stored source lineage and payload. Reuse the existing field; do not build a second context type or claim its absence. External context remains context, never respondent evidence. Retiring it would change the integrated MVP scope and needs an explicit override.
-- **8.** `AnalysisInputs` holds one origin; client-reported numbers (`client-data-in-analysis`) need a
+- **8a, 8b.** `AnalysisInputs` holds one origin; client-reported numbers (`client-data-in-analysis`) need a
   second table and a fingerprint that names it. Interfaces I21.
 - **1, settled and open.** MVP-23 flips the parity cases `finding-without-evidence` and
   `no-finding-at-all`, and the report needs all eight modules complete, so one module with no citable
@@ -99,8 +100,8 @@ name: this plan owns the edit, they review it (`mvp-cohesion.md` F8).
 ## Execution predecessors (2026-10-20)
 
 Chunks 1 and 5 are W0 rule/authority work; 2-3 and 6 are W1 QC/admitted-result producers;
-8 is the W1 proposed two-origin contract reviewed with S3 before client-data admission code;
-4 and the implemented two-origin path are W3. Chunk 7's external-context producer/consumer
+8a is the W1 proposed two-origin contract reviewed with S3 before client-data admission code;
+4 and 8b (the implemented two-origin path) are W3. Chunk 7's external-context producer/consumer
 contract is W1 and its wiring is W3 before Interpretation evidence is consumed. Keep this
 requirement visible: integrating Deep Research context is MVP work, not an unrecorded removal.
 The owner decision about a module with no finding blocks its final admission/composer behavior,
