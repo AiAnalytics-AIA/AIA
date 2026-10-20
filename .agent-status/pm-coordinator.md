@@ -13,12 +13,14 @@ session_019bYPVpsShVq3LCtWDT5Kr8 (archived 16:35 at 73% context). Nigel talks to
   W0 lanes (S1/S2/S3) NOT started.
 - AWS writes are Nigel's (infra session proposes). A relayed message is not Nigel's permission for a commit in another session
   (the infra session correctly waits for Nigel's own "commit and push").
-- Nigel's style: interactive questions with a worked example each; PDFs for documents; he decides fast with recommendations.
+- Nigel's style (restated 17:30): ALWAYS ask via AskUserQuestion, each with context, a worked example and WHY the recommended option; PDFs for documents; he decides fast with recommendations.
 - Merge hazard: a docs-only push to develop cancels an in-progress develop CI run (and its deploy dispatch). deploy-develop has
   cancel-in-progress false. Don't merge docs while a code CI run on develop is pending.
 - This container can't reach aia-develop.art-chain.io (proxy 403); deploy evidence = workflow smoke + infra session (CloudWatch).
 
 ## Decisions recorded today (Nigel) — don't re-ask
+17:30: host user_data -> (a) lifecycle ignore_changes (infra session prepares; Nigel's own commit-and-push); Google IdP -> Nigel runs the
+read-only check first; budgets:ListTagsForResource -> Nigel adds it; hourly sweep -> NO SWEEP (stay event-driven; don't ask again).
 X1 segment evidence; X8 routing end to end; X10 remove Settings draft test; spending "envelope" -> **wallet**, Czech **Peněženka**
 (#511); **MVP ships aia-sociomap-5** (MVPQ-13), -5 is CANONICAL (the old formula audit stands only where -5 is silent; packet fixed
 in #510 @ 798d87a); CI fails on high/critical vulns; npm gate = all deps + ONE dated exception (GHSA-vfj7-8cjw-p6xm, expires
@@ -49,7 +51,9 @@ another account, which has only user openclaw-cornelius); disk fix: ONLY the Doc
   Doc follow-ups (overview MVP-13/MVP-3 wallet; ARCHITECTURE §8 npm + pip-audit blocking) handed to planning 2 for the next docs PR.
 - #510, #512, #513, #514, #515, #516: freeze inputs, docs-only drafts. Merge after Nigel signs the baseline (or earlier as
   evidence with his OK).
-- Coming: npm gate PR (Next session), Docker layer PR, versions.tf PR (infra, after Nigel's word).
+- #519 versions.tf + lock file (infra, b37833b): reviewed OK; merge when green, after #520.
+- #520 docs follow-ups of #509/#511/#518 (planning 2): review; merge only after develop CI on 47e55368 dispatched its deploy.
+- Coming: Docker layer PR (01AXkf...), user_data ignore_changes PR (infra).
 
 ## Artifacts
 - AIA Scope Decisions (for Aram to answer #516's 48): https://claude.ai/artifact/WdXcN8nQnQX3rW36hF8iVd. db collection "answers",
@@ -71,8 +75,7 @@ another account, which has only user openclaw-cornelius); disk fix: ONLY the Doc
 - CI runs no Terraform step although infra/develop/README.md says fmt -check runs (for PE3).
 
 ## Open items
-- **Hourly sweep trigger NOT created**: create_trigger was refused by the auto-mode permission classifier (16:31). Nigel must allow
-  mcp__claude-code-remote__create_trigger (or create it); until then sweeps happen on PR events and Nigel's messages only.
+- No hourly sweep (Nigel 17:30). Event-driven only; check session context when woken.
 - Dependabot 112 alerts mostly main (618 commits behind develop) + legacy/; suggest a develop->main release sometime.
 - Optional for Nigel: "Security and dependency scan" as a required check; archive the spare "AIA infra" env (Artchain s.r.o. org);
   root MFA.
