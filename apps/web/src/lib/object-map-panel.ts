@@ -678,7 +678,7 @@ function drawStatements(ctx: CanvasRenderingContext2D, P: Projection, scene: Map
 // ---------------------------------------------------------------- the respondent map
 
 /** A respondent's dot: its stored position in frame units with the panel's display offset. */
-export type PanelDot = { id: string; x: number; y: number; faded: boolean; segment: number; coloured: boolean };
+export type PanelDot = { id: string; x: number; y: number; faded: boolean; segmented: boolean; segment: number; coloured: boolean };
 
 /**
  * The panel's display offset of a respondent's dot (applied as it loads the map): up to 1.1 frame
@@ -696,7 +696,7 @@ export function dotOffset(id: string): { dx: number; dy: number } {
 export function panelDots(map: ObjectMapArtifact, frame: Frame): PanelDot[] {
   return panelRespondents(map).map((r) => {
     const p = toFrame(r.x, r.y, frame), o = dotOffset(r.id);
-    return { id: r.id, x: p.x + o.dx, y: p.y + o.dy, faded: r.placement === "FADED", segment: r.segment, coloured: r.coloured };
+    return { id: r.id, x: p.x + o.dx, y: p.y + o.dy, faded: r.placement === "FADED", segmented: r.segmented, segment: r.segment, coloured: r.coloured };
   });
 }
 
@@ -708,14 +708,18 @@ export function densityGrid(map: ObjectMapArtifact): PanelGrid | null {
   return panelGrid(r.density.parameters.grid_resolution, r.density.height);
 }
 
+/** The taste segments' colours, light on the dark terrain, and the grey of a dot not clearly in one (`SEG_COLORS66`). */
+export const SEGMENT_COLOURS = ["#7fd3ff", "#ffc46b", "#ff8fb1", "#b9f27c"];
+export const SEGMENT_GREY = "#9aa3ad";
+
 /**
- * A dot's colour (`segColor66`): none of its own while the set shows no taste segments, so the dot
- * is the panel's white. The segment colours, their legend and the borderline hint come with
- * plan sociomap-5-web chunk 5.
+ * A dot's colour (`segColor66`): while the set shows taste segments, a respondent the artifact
+ * colours takes its segment's colour and every other dot is grey; without segments (none found,
+ * or only a borderline hint) the dot has no colour of its own and is the panel's white.
  */
 export function dotColour(dot: PanelDot): string | null {
-  void dot;
-  return null;
+  if (!dot.segmented) return null;
+  return dot.coloured && dot.segment >= 0 ? SEGMENT_COLOURS[dot.segment % SEGMENT_COLOURS.length] : SEGMENT_GREY;
 }
 
 /** The panel's `drawRespondents66`: the dots far first (a weakly placed one faint), then each

@@ -9,9 +9,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import signedOff from "@/lib/fixtures/object-map-signed-off.json";
 import legacy from "@/lib/fixtures/object-map.json";
+import golden from "@/lib/fixtures/object-map-draw-golden.json";
 import { type BatteryWithMaps, mapLinks } from "@/lib/object-map-view";
 import { INITIAL_CAMERA, densityGrid, panelDots, panelNodes, projection, storedGrid, terrainAt } from "@/lib/object-map-panel";
 import { type SignedOffRespondents, storedFrame } from "@/lib/object-map-signed-off";
+import { sharePercent } from "./ObjectMapPanel";
 import { ObjectMapView } from "./ObjectMapView";
 
 const [hudba, sum] = signedOff.batteries as unknown as BatteryWithMaps[];
@@ -390,6 +392,60 @@ describe("the respondent map", () => {
     none.maps!["aia-sociomap-5"].artifact.respondents = { status: "not_computed", reason: "test" };
     render(<ObjectMapView battery={none} dataOrigin={null} />);
     expect(screen.queryByRole("button", { name: "Respondenti" })).toBeNull();
+  });
+});
+
+describe("taste segments", () => {
+  /** The stored hudba map with its taste segments replaced, as the golden run's variants. */
+  const variant = (name: string): BatteryWithMaps => {
+    const b = structuredClone(hudba);
+    const seg = (b.maps!["aia-sociomap-5"].artifact.respondents as SignedOffRespondents).segments!;
+    const patch = structuredClone((golden.segmentPatches as Record<string, object>)[name]) as Partial<NonNullable<SignedOffRespondents["segments"]>>;
+    if (name === "borderline") patch.hint = { k: 2, shares: [0.58, 0.42], profiles: seg.profiles.slice(0, 2) };
+    Object.assign(seg, patch);
+    return b;
+  };
+  const sources: Record<string, BatteryWithMaps> = { hudba, sum, ...Object.fromEntries(Object.keys(golden.segmentPatches).map((k) => [k, variant(k)])) };
+
+  for (const [name, scene] of Object.entries(golden.segmentScenes)) {
+    it(`says what the panel says about the segments of ${name}, under the legend and in the map info`, () => {
+      render(<ObjectMapView battery={sources[name]} dataOrigin={null} />);
+      fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
+      expect(screen.getByTestId("object-map-segments").textContent).toBe(scene.legend);
+      const row = screen.getByTestId("object-map-segments-row");
+      expect(row.textContent).toBe(`Segmenty: ${scene.row!.value}`);
+      expect(row.firstElementChild!.getAttribute("title")).toBe(scene.row!.help);
+    });
+  }
+
+  it("colours a segment's swatch in the legend as its dots", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
+    const swatches = [...screen.getByTestId("object-map-segments").querySelectorAll("span[aria-hidden]")].map((s) => (s as HTMLElement).style.background);
+    expect(swatches).toEqual(["rgb(127, 211, 255)", "rgb(255, 196, 107)", "rgb(255, 143, 177)", "rgb(154, 163, 173)"]);
+  });
+
+  it("quotes the declared thresholds, not fixed ones", () => {
+    const b = variant("tooFew");
+    b.maps!["aia-sociomap-5"].artifact.spec.segments = { min_respondents: 40, min_ratings: 6, colour_membership: 0.9 };
+    render(<ObjectMapView battery={b} dataOrigin={null} />);
+    fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
+    expect(screen.getByTestId("object-map-segments-row").firstElementChild!.getAttribute("title")).toBe("Segmenty potřebují alespoň 40 lidí s alespoň 6 hodnocenými objekty.");
+  });
+
+  it("quotes the declared membership for the colours, not a fixed 80 %", () => {
+    const b = structuredClone(hudba);
+    b.maps!["aia-sociomap-5"].artifact.spec.segments = { min_respondents: 30, min_ratings: 5, colour_membership: 0.9 };
+    render(<ObjectMapView battery={b} dataOrigin={null} />);
+    fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
+    expect(screen.getByTestId("object-map-segments-row").firstElementChild!.getAttribute("title")).toContain("(≥ 90 %)");
+  });
+
+  it("prints a share as the panel does: rounded to 4 decimals first", () => {
+    // The panel's payload rounds shares to 4 decimals; on these edges a direct rounding differs by a point.
+    expect(sharePercent(23 / 107)).toBe("22 %");
+    expect(sharePercent(0.285047)).toBe("28 %");
+    expect(sharePercent(0.46598639455782315)).toBe("47 %");
   });
 });
 

@@ -15,7 +15,10 @@ import {
   absoluteGrid,
   bannerBox,
   densityGrid,
+  dotColour,
   dotOffset,
+  SEGMENT_COLOURS,
+  SEGMENT_GREY,
   panelDots,
   gridAxis,
   mapStatements,
@@ -478,5 +481,47 @@ describe("the respondent map", () => {
     expect(d.parameters.centre).toEqual((map.terrain as Extract<ObjectMapArtifact["terrain"], { status: "computed" }>).parameters.centre);
     expect(Math.max(...g.ht.flat())).toBe(1);
     expect(densityGrid({ ...map, respondents: undefined })).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------- taste segments
+
+/** The stored hudba map with its taste segments replaced (the golden run builds the same). */
+function segmentVariant(name: string): BatteryWithMaps {
+  const b = structuredClone(battery);
+  const seg = (b.maps!["aia-sociomap-5"].artifact.respondents as SignedOffRespondents).segments!;
+  const patch = structuredClone((golden.segmentPatches as Record<string, object>)[name]) as Partial<NonNullable<SignedOffRespondents["segments"]>>;
+  // The borderline hint names the likely split: the stored segments' first two profiles at 58 / 42 %.
+  if (name === "borderline") patch.hint = { k: 2, shares: [0.58, 0.42], profiles: seg.profiles.slice(0, 2) };
+  Object.assign(seg, patch);
+  return { ...b, battery_id: `${battery.battery_id}-${name}` };
+}
+const SEGMENT_SOURCES = (): Record<string, BatteryWithMaps> => ({
+  hudba: battery, sum: SOURCES.sum, ...Object.fromEntries(Object.keys(golden.segmentPatches).map((k) => [k, segmentVariant(k)])),
+});
+
+describe("taste segments on the respondent map", () => {
+  const sources = SEGMENT_SOURCES();
+  for (const [name, scene] of Object.entries(golden.segmentScenes)) {
+    it(`colours the dots of ${name} as the panel's segColor66`, () => {
+      const b = sources[name], m = b.maps!["aia-sociomap-5"].artifact, f = storedFrame(m)!, ns = panelNodes(b, m, f);
+      const { ctx, ops } = recorder();
+      drawObjectMap(ctx, {
+        width: 900, height: 700, camera: INITIAL_CAMERA, grid: densityGrid(m)!, nodes: ns, tones: nodeTones(ns, "range"), pairs: [], selected: -1, hovered: -1,
+        nodeScale: nodeScale(m.object_ids.length + (m.objects_not_placed?.length ?? 0)), respondents: { dots: panelDots(m, f), selected: -1 },
+      });
+      expect(summarise(ops).discs.map((d) => `${d.style}@${d.alpha}`)).toEqual(scene.dots);
+    });
+  }
+
+  it("greys a respondent with a segment the artifact does not colour, and leaves every dot white without segments", () => {
+    const dot = { id: "x", x: 0, y: 0, faded: false, segmented: true, segment: 2, coloured: true };
+    expect(dotColour(dot)).toBe(SEGMENT_COLOURS[2]);
+    expect(dotColour({ ...dot, coloured: false })).toBe(SEGMENT_GREY);
+    expect(dotColour({ ...dot, segment: -1 })).toBe(SEGMENT_GREY);
+    expect(dotColour({ ...dot, segment: 5 })).toBe(SEGMENT_COLOURS[1]);
+    // As the panel's segColor66: the colour follows the stored flag alone, a faint dot included (drawn at 30 %).
+    expect(dotColour({ ...dot, faded: true })).toBe(SEGMENT_COLOURS[2]);
+    expect(dotColour({ ...dot, segmented: false })).toBeNull();
   });
 });

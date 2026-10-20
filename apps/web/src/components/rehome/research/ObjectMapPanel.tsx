@@ -25,9 +25,9 @@ import { type PointerEvent, type ReactNode, useEffect, useId, useMemo, useRef, u
 import { t, tv } from "@/i18n/t";
 import { num } from "@/lib/sociomapping-view";
 import { type BatteryWithMaps, type ObjectMapArtifact, originalRating } from "@/lib/object-map-view";
-import { objectsNotPlaced, panelObjects, respondentNote, storedFrame, storedRespondents } from "@/lib/object-map-signed-off";
+import { type SegmentLegend, objectsNotPlaced, panelObjects, respondentNote, segmentLegend, storedFrame, storedRespondents } from "@/lib/object-map-signed-off";
 import {
-  CLICK_SLOP, COOL, INITIAL_CAMERA, SECONDARY, TOP_PITCH, WARM, ZOOM_IN, ZOOM_OUT,
+  CLICK_SLOP, COOL, INITIAL_CAMERA, SECONDARY, SEGMENT_COLOURS, SEGMENT_GREY, TOP_PITCH, WARM, ZOOM_IN, ZOOM_OUT,
   type Hit, type Norm, type PanelCamera, type RelationMode,
   REL_FLOOR, absoluteGrid, densityGrid, mapStatements, panelDots, camera3d, color66, dragCamera, drawObjectMap, hitTest, nodeScale, nodeTones, normalizer,
   panelNodes, relationPairs, relationStrength, storedGrid, strongestRelation, topCamera, wheelCamera, zoomCamera,
@@ -109,6 +109,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   const [person, setPerson] = useState(-1);
   const density = useMemo(() => densityGrid(map), [map]);
   const dots = useMemo(() => panelDots(map, frame), [map, frame]);
+  const segments = useMemo(() => segmentLegend(battery, map), [battery, map]);
   const people = useMemo(() => (view === "respondents" && density ? { dots, selected: person } : undefined), [view, density, dots, person]);
   const [hovered, setHovered] = useState(-1);
   const [size, setSize] = useState(DEFAULT_SIZE);
@@ -302,10 +303,10 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
             {tool(t("research.exec.objectMap.panel.center"), "◎", () => setCamera(INITIAL_CAMERA))}
             {tool(t("research.exec.objectMap.panel.fullscreen"), "⛶", toggleFull, full)}
           </div>
-          {people ? <DensityLegend /> : <Legend battery={battery} values={nodes.map((n) => (n.primary ? n.value : null))} norm={norm} strongest={strongest} />}
+          {people ? <DensityLegend segments={segments} /> : <Legend battery={battery} values={nodes.map((n) => (n.primary ? n.value : null))} norm={norm} strongest={strongest} />}
         </div>
         <Aside battery={battery} facts={facts} selected={selected} onChoose={choose} onHover={setHovered} notPlaced={notPlaced}
-          counts={people ? <RespondentCounts map={map} /> : null}
+          counts={people ? <RespondentCounts map={map} segments={segments} /> : null}
           items={nodes.map((n, k) => ({ id: n.id, label: n.label, value: n.value, colour: n.primary ? color66(tones[k]) : SECONDARY }))} />
       </div>
     </div>
@@ -383,7 +384,7 @@ function KeyRow({ lines, text }: { lines: [number, number, number, string][]; te
 
 /** The respondent map's legend (`updateLegend66` on Respondenti): the density scale, its meaning
  *  behind an ⓘ, and the colour note folded out. */
-function DensityLegend() {
+function DensityLegend({ segments }: { segments: SegmentLegend | null }) {
   const [open, setOpen] = useState(false);
   const row = (k: string, v: string) => <div><span className="font-semibold">{t(`research.exec.objectMap.panel.${k}`)}</span> {t(`research.exec.objectMap.panel.${v}`)}</div>;
   return (
@@ -412,13 +413,87 @@ function DensityLegend() {
       <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} className="mt-1.5 cursor-pointer border-0 bg-transparent p-0 text-[10px] text-[#9cc7da] underline">
         {t(open ? "research.exec.objectMap.panel.legendLess" : "research.exec.objectMap.panel.legendMoreRespondents")}
       </button>
+      {/* The taste segments stay in view under the key, as the panel's legend shows them. */}
+      {segments ? <SegmentNote lines={segmentLines(segments)} /> : null}
     </div>
   );
 }
 
+export type SegmentLines = { title: string | null; rows: { colour: string; text: string }[]; foot: string | null };
+
+/**
+ * What the panel's legend says about the taste segments (`updateLegend66` on Respondenti): with
+ * segments, each one's colour, share and the objects its people rate above and below the rest,
+ * the overlap when they are not distinct, and the grey of a dot not clearly in one; with a
+ * borderline split, the likely groups in grey and that nobody is coloured; otherwise why none is shown.
+ */
+/** A segment's share as the panel prints it: the panel rounds a share to 4 decimals before it prints
+ *  the percentage (its payload does), so 23/107 reads 22 %, not 21 %. */
+export function sharePercent(x: number): string {
+  return `${Math.round(100 * Number(x.toFixed(4)))} %`;
+}
+
+export function segmentLines(legend: SegmentLegend): SegmentLines {
+  const pct = sharePercent;
+  const named = (g: SegmentLegend["segments"][number]) =>
+    (g.likes.length ? ` · ${tv("research.exec.objectMap.panel.segmentLikes", { labels: g.likes.join(", ") })}` : "")
+    + (g.dislikes.length ? ` · ${tv("research.exec.objectMap.panel.segmentDislikes", { labels: g.dislikes.join(", ") })}` : "");
+  if (legend.decision === "SEGMENTS") {
+    return {
+      title: t("research.exec.objectMap.panel.segmentsTitle") + (legend.distinct ? "" : ` · ${t("research.exec.objectMap.panel.segmentsOverlap")}`),
+      rows: [
+        ...legend.segments.map((g, j) => ({ colour: SEGMENT_COLOURS[j % SEGMENT_COLOURS.length], text: tv("research.exec.objectMap.panel.segmentRow", { n: j + 1, share: pct(g.share) }) + named(g) })),
+        { colour: SEGMENT_GREY, text: t("research.exec.objectMap.panel.segmentGrey") },
+      ],
+      foot: null,
+    };
+  }
+  if (legend.decision === "BORDERLINE") {
+    return {
+      title: tv("research.exec.objectMap.panel.hintTitle", { k: legend.segments.length }),
+      rows: legend.segments.map((g) => ({ colour: SEGMENT_GREY, text: pct(g.share) + named(g) })),
+      foot: t("research.exec.objectMap.panel.hintNote"),
+    };
+  }
+  // The panel singles out too few respondents; every other reason reads as no clear segments.
+  return { title: null, rows: [], foot: t(`research.exec.objectMap.panel.${legend.reason === "TOO_FEW_RESPONDENTS" ? "segmentsTooFew" : "segmentsNone"}`) };
+}
+
+function SegmentNote({ lines }: { lines: SegmentLines }) {
+  return (
+    <div className="mt-1.5 text-[9.5px] leading-[1.4] text-white/[.58]" data-testid="object-map-segments">
+      {lines.title ? <b className="text-[10.5px] uppercase tracking-[.05em] text-white/70">{lines.title}</b> : null}
+      {lines.rows.map((row, j) => (
+        <div key={j}><span aria-hidden className="mr-[5px] inline-block h-[9px] w-[9px] rounded-full" style={{ background: row.colour }} />{row.text}</div>
+      ))}
+      {lines.foot ? <div>{lines.foot}</div> : null}
+    </div>
+  );
+}
+
+/** The map info's „Segmenty“ row: how many, their shares and overlap; the borderline hint; or why none.
+ *  The thresholds it quotes are the declared ones. */
+export function segmentsRow(legend: SegmentLegend, map: ObjectMapArtifact): { value: string; help: string } {
+  const rules = map.spec.segments ?? {};
+  const pct = sharePercent;
+  const shares = legend.segments.map((g) => pct(g.share)).join(" / ");
+  if (legend.decision === "BORDERLINE") {
+    return { value: tv("research.exec.objectMap.panel.countHint", { k: legend.segments.length, shares }), help: t("research.exec.objectMap.panel.countHintHelp") };
+  }
+  if (legend.decision === "SEGMENTS") {
+    return {
+      value: `${legend.segments.length} · ${shares}${legend.distinct ? "" : ` · ${t("research.exec.objectMap.panel.segmentsOverlap")}`}`,
+      help: tv("research.exec.objectMap.panel.countSegmentsHelp", { membership: Math.round(100 * (rules.colour_membership ?? 0.8)) }),
+    };
+  }
+  return legend.reason === "TOO_FEW_RESPONDENTS"
+    ? { value: t("research.exec.objectMap.panel.countTooFew"), help: tv("research.exec.objectMap.panel.countTooFewHelp", { people: rules.min_respondents ?? 30, ratings: rules.min_ratings ?? 5 }) }
+    : { value: t("research.exec.objectMap.panel.countNone"), help: t("research.exec.objectMap.panel.countNoneHelp") };
+}
+
 /** How the set's respondents sit on the map, as the panel's map info on Respondenti: the share
  *  and number clearly placed (they build the terrain), weakly placed (faint dots) and not placed. */
-function RespondentCounts({ map }: { map: ObjectMapArtifact }) {
+function RespondentCounts({ map, segments }: { map: ObjectMapArtifact; segments: SegmentLegend | null }) {
   const r = storedRespondents(map);
   if (!r) return null;
   const c = r.counts, all = Math.max(c.PLACED + c.FADED + c.NOT_PLACED, 1);
@@ -436,6 +511,7 @@ function RespondentCounts({ map }: { map: ObjectMapArtifact }) {
       {row("countPlaced", tv("research.exec.objectMap.panel.countPlacedValue", { share: share(c.PLACED), n: count(c.PLACED) }), t("research.exec.objectMap.panel.countPlacedHelp"))}
       {row("countFaded", tv("research.exec.objectMap.panel.countFadedValue", { share: share(c.FADED), n: count(c.FADED) }), t("research.exec.objectMap.panel.countFadedHelp"))}
       {c.NOT_PLACED ? row("countNotPlaced", count(c.NOT_PLACED), tv("research.exec.objectMap.panel.countNotPlacedHelp", { ratings })) : null}
+      {segments ? (() => { const s = segmentsRow(segments, map); return <div data-testid="object-map-segments-row">{row("countSegments", s.value, s.help)}</div>; })() : null}
     </div>
   );
 }

@@ -6,7 +6,7 @@ chunks:
   - "[x] 2. The object map as the AIA panel draws it: terrain, colour ramp, relief, frame, nodes, labels, relation lines, legend, camera; a -5 map read first and routed to it"
   - "[x] 3. Map credibility on the map: the weakly-determined banner, the uncertainty circle, the sparse and label notes, objects not placed"
   - "[x] 4. The respondent map: Objekty | Respondenti, dots, faint dots, the density terrain, object markers, the notes below six and three objects"
-  - "[ ] 5. Taste segments on the respondent map: colours, legend, borderline hint"
+  - "[x] 5. Taste segments on the respondent map: colours, legend, borderline hint"
   - "[ ] 6. Detail on click: an object's and a respondent's detail, in the panel's content"
   - "[ ] 7. The Word report's -5 map figure in the panel's look; the web map's PNG snapshot, with its legend"
 ---
@@ -115,6 +115,21 @@ independent review; the owner's look at screenshots before each commit.
     names;
   - a click on a dot rings that respondent; a click on an object's marker on the respondent map does nothing yet (its
     detail comes with chunk 6).
+
+- Chunk 5 (taste segments): the dots take the panel's `segColor66` colours (a coloured respondent in its segment's
+  colour, every other dot grey while the set shows segments, white otherwise) and match the panel's own drawing op for op
+  and pixel for pixel (0 px on hudba's three segments, sum's none, a borderline hint, too few respondents). The segment
+  note under the respondent legend and the map info's „Segmenty“ row are the texts the panel's own `updateLegend66` and
+  map info return for six stored and synthetic cases (segments overlapping and distinct, borderline, none for too few
+  respondents, none otherwise, none as not stable).
+- To confirm (owner), chunk 5:
+  - the panel words every reason other than too few respondents as „žádné zřetelné“ / „Data žádné skupiny chutí silnější
+    než náhoda neukazují.“, so a set whose segments were found but were not stable reads as if nothing beat chance;
+  - the map info's thresholds are the declared ones (`spec.segments`: people, ratings, colouring membership) instead of
+    the panel's fixed 30, 5 and 80 %, as for the respondents' minimum ratings; the borderline help drops the panel's
+    trailing decision reference;
+  - the segment note sits under the legend's key, always in view, as in the panel; with three segments it covers the
+    bottom-left of the map.
 
 ## Doc follow-up (chunk 2)
 
