@@ -22,7 +22,9 @@ It does not:
 - ask Nigel directly. The coordinator asks him on the PM status page (`/pmstatus`) and relays the
   answers.
 
-## Open PRs (all docs-only, ready for review, green; merge in this order, after Nigel signs MP16)
+## PRs: #516, #522 and #523 all MERGED 2026-10-20 (23:13, 23:13, 23:30). MP16 signed 23:10. No open PR of this session.
+
+### (history) the three PRs
 
 | PR | Branch | Head | What it is |
 |---|---|---|---|
