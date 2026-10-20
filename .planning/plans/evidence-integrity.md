@@ -32,8 +32,10 @@ named when chunk 1 starts.**
 
 - A draft's key findings must cite claims: `FindingDraft` carries `claim_ids`, the gate checks
   each (`packages/aia_core/src/aia_core/domain/analysis/draft.py:116, 272 @ 085abe0`), and the
-  module's docstring says the draft passes "when 95 % of the findings cited" (`:9`). **MVP-23 is a
-  tightening of that threshold, not a new rule.** Hypothesis until chunk 1 reads the whole check:
+  module's docstring says the draft passes "when 95 % of the findings cited" (`:9`), but the check
+  rejects only uncovered numbers and dangling references (`:254-282`), so a finding with no `claim_ids`
+  passes. **MVP-23 is a new rule, not a tightening: AIA has no 95 % threshold to tighten (that is the
+  unit's).** Hypothesis until chunk 1 reads the whole check:
   whether a refused finding triggers a repair turn today as a refused claim does.
 - 18.6.6's QC: `legacy/npc-panel-18.6.6/app/qc.py:70` (`kontrola(v, prahy)`), thresholds in
   `PRAHY` (`:31`, `straightline_max` 0.15, which the file calls "my calibration, not an industry
@@ -47,7 +49,7 @@ named when chunk 1 starts.**
 
 ## Chunks
 
-1. **Findings cite all.** Read the gate, set the threshold to every key finding, make the repair
+1. **Findings cite all.** Read the gate, **add** the rule that every key finding names at least one admitted claim (a new validation, not a changed threshold), make the repair
    turn name the uncited finding, store a still-failing draft `BLOCKED` as today. Test: a draft
    with one uncited finding is refused; a draft with all cited passes; `test_analysis_executor.py`
    stays green. Decide here whether "shown as an unsupported hypothesis" is built or only refusal
