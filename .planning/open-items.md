@@ -4283,3 +4283,103 @@ paths…" misses its heading within `findByRole`'s 1 s; each failed once in two 
 **Test.** The suite under load.
 
 **Status.** Hypothesis: reproduce or delete (CLAUDE.md §9).
+
+---
+
+## OI-135 · Finding · A design agent job ignores the study's spend limit
+
+**Claim.** `ResearchAgentJobs.start` holds a reservation but never reads `spend_confirm_usd`, the
+per-start confirmation threshold `ResearchRuns.start` applies, so a direct agent-job start (and a
+rebuild) is never asked to confirm a cost that reaches the limit.
+
+**Anchor.** `packages/aia_core/src/aia_core/application/research.py:1311-1407 @ 854c2092` (no read of
+`spend_confirm_usd` in `start`); `ResearchRuns.start` applies it at `research.py:454` and `:826 @
+854c2092`. Plan `research-lead-workbench`, Findings F1; confirmed by the cross-check (`mvp-master-plan.md`
+§11.2, `lead-orchestration#LO15`).
+
+**Reproduction.** Set a study's spend limit below `AIA_AI_RESEARCH_RESERVATION_USD`, then start any
+design job: no confirmation is asked.
+
+**Consequence.** Removing the stage's AI buttons does not close it: the start and rebuild routes stay
+reachable, so the limit binds a research run and not a design job.
+
+**Smallest fix.** The same check `ResearchRuns.start` has, inside `ResearchAgentJobs.start` and
+`rebuild` (`lead-orchestration#LO15`, W0).
+
+**Test.** A start whose reservation reaches the limit without a confirmation is refused, and with one
+it is recorded in the approval ledger.
+
+**Status.** Open.
+
+---
+
+## OI-136 · Finding · An accept could overwrite an edit made in another tab
+
+**Claim.** An agent proposal's accept compared only Design Revisions on the server and only the
+browser's own store in the web, so a working-copy save from a second session on an item the
+proposal changes was overwritten by the accept.
+
+**Anchor.** Before: `useResearchAgents.tsx:85` and `study_design_repository.py:180-183 @ 50547cdc`.
+After: `application/proposal_accept.py:118-140 @ 854c2092` (`StaleProposal`: `design_moved`,
+`unknown_baseline`, `items_changed`). Plan `research-lead-workbench`, Findings F2, closed by its chunk 8.
+
+**Reproduction.** Before the fix: accept a proposal after another session saved a change to an item
+the proposal touches; the other session's change is lost.
+
+**Consequence.** Silent loss of a person's edit.
+
+**Smallest fix.** Done: the item-level stale rule in one transaction under the study lock (chunk 8).
+
+**Test.** `test_two_reviewed_design_proposals_cannot_overwrite_each_other`
+(`test_workflow_concurrency.py`) and
+`test_a_proposal_on_a_design_with_no_working_revision_is_refused_as_unknown`
+(`test_research_agents.py`). No test is named for the exact second-session save; the plan names that
+as the test that would have caught it.
+
+**Status.** Closed (chunk 8).
+
+---
+
+## OI-137 · Finding · Settings lists no prompt version for the analysis modules
+
+**Claim.** The settings document gives `research_analysis` an empty version list, so Settings cannot
+say which analysis prompt a run used, although `system-prompts-settings` chunk 8 is ticked as having
+filled it.
+
+**Anchor.** `apps/api/src/aia_api/routers/settings.py:486-492 @ 854c2092`
+(`NativeActivity(key="research_analysis", …, versions=[])`). Plan `system-prompts-settings`, Findings
+F4 and its cross-check correction (master plan §6.2).
+
+**Reproduction.** `GET /api/v1/settings` as any member: the `research_analysis` activity has
+`versions: []`.
+
+**Consequence.** AC-03 ("every worker's prompt editable and pinned") cannot be shown for the eight
+analysis modules from Settings.
+
+**Smallest fix.** `system-prompts-settings#7` lists the analysis harness and its prompt id and version.
+
+**Test.** `test_settings_api` asserts `research_analysis` lists its versions after chunk 7.
+
+**Status.** Open.
+
+---
+
+## OI-138 · Finding · The migration chain does not run on SQLite
+
+**Claim.** `alembic upgrade head` fails on SQLite, while the tests build SQLite schemas with
+`create_all`, so a migration is verified only on PostgreSQL.
+
+**Anchor.** Plan `system-prompts-settings`, Findings F5 (`NotImplementedError: No support for ALTER of
+constraints in SQLite`).
+
+**Reproduction.** `DATABASE_URL=sqlite:///x.db alembic upgrade head`.
+
+**Consequence.** None for the product, which runs PostgreSQL; a drift between the models and the
+migrations shows only on PostgreSQL.
+
+**Smallest fix.** None needed for the product. CI already runs `alembic upgrade head` / `alembic check`
+on PostgreSQL (`ARCHITECTURE.md` §8); `AGENTS.md` § Alembic says to verify migrations there.
+
+**Test.** CI's `alembic check` on PostgreSQL.
+
+**Status.** Open; accepted as a property of the test setup, not a defect.

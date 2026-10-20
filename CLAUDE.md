@@ -31,6 +31,10 @@ they order everything below.
 | **CLAUDE.md** (this file) | The project map, the commands, the working rules | What exists, where, and how work is done here. |
 | [AGENTS.md](AGENTS.md) | Framework-level gotchas — FastAPI, SQLAlchemy, Alembic, Pydantic, pytest, Next.js | Tool-agnostic. Anyone's agent can use it. |
 
+For the MVP, `.planning/plans/mvp-master-plan.md` is the entry point beside the triad: it says
+which plans are the MVP, in what order, who owns which surface and what must be switched on, and
+its document map says which file owns which kind of question.
+
 **Keeping them in sync is mandatory — through a docs PR, never inside a feature
 PR.** When you add, rename or remove anything they describe — a module, a table,
 a route, a job, a config key, a command — the document must change. The feature
@@ -236,7 +240,9 @@ apps/
     src/components/workbench/  The research workbench (ADR 0026), the study screen behind
                             AIA_WEB_RESEARCH_WORKBENCH (read by /config; off by default, on in the
                             develop Compose file; off, or under 1100 px when a stage opens, the classic
-                            layout serves): the frame ported from the research-lead prototype
+                            layout serves today; decided, not built (MVPQ-11, research-lead-workbench
+                            26): the Lead stays reachable at every width, a compact drawer or a stacked
+                            layout, never an alternate AI start): the frame ported from the research-lead prototype
                             (workbench.css scoped under .wb over tokens.css; study header, phase
                             navigator, artifact header and bars) over AIA's own stage screens;
                             Split (the conversation / artifact split); Glyph / Icons; LeadPane (the
@@ -587,7 +593,8 @@ apps/
                             and promote also keep for the version they move to
 
 packages/aia_core/src/aia_core/
-  domain/                   Pure. No I/O. stdlib + Pydantic only.
+  domain/                   Pure. No I/O. stdlib + Pydantic, and numpy / scipy / numba for numerical
+                            code (aia-sociomap-5, #504; pinned 2.5 / 1.18 / 0.68)
     ai_models.py            ModelCapability, catalog, ModelPolicy, ModelRegistry (fails closed);
                             RequestProfile (a model's request shape, declared in its catalog entry);
                             STUDY_LEAD (the study Lead), apart from RESEARCH_LEAD (Deep Research)
@@ -922,7 +929,27 @@ packages/aia_core/src/aia_core/
                             rank_with_ties (F9: an order only where intervals part)
       terrain.py            respondent density / object weighted mean         F7-F8;
                             object_envelope (audit F12/F13: max of hills, each its own height; a
-                            cell no hill reaches is null; nothing outside the engine computes one)
+                            cell no hill reaches is null; nothing outside the engine computes one);
+                            fit_frame (the framed grid) and EnvelopeParameters.axes() (the grid's x
+                            and y about its centre; axis() is the offsets from the centre)
+      signed_off_*.py       aia-sociomap-5 (AIA_SOCIOMAP_V5, #504): the methodology owner's signed-off
+                            Sociomapa, ported as written (numpy/scipy/numba), not the default and
+                            INTERNAL_ONLY until registered; earlier presets byte-identical.
+                            signed_off_inputs (per-person centring, the unrelated baseline, pair
+                            floors 10 / 5, Benjamini-Hochberg with the noise rule, the sparse design);
+                            signed_off_layout (soft-rank Spearman with Coulomb, BB1, for 4-163
+                            objects, Interval MDS above, choose_method; platform-dependent from ~12
+                            objects); signed_off_credibility (split_half_agreement, map_uncertainty;
+                            engine_v2._credibility); signed_off_respondents (place_respondents,
+                            respondent_density; engine_v2._respondents); signed_off_segments
+                            (respondent_slopes, map_decision, taste_segments, consensus_state,
+                            segment_profiles, jittered_ratings; engine_v2._segments). Under -5 the
+                            artifact records layout.method (no stress_1), heights.relative,
+                            objects_not_placed, the framed_relative_envelope terrain, credibility,
+                            respondents (placement, density) and segments; register rules
+                            AIA-SIGNED-OFF-CREDIBILITY, -RESPONDENTS, -SEGMENTS; Metodika groups
+                            "Věrohodnost mapy", "Respondenti a podpora mapy" and S7 (segments).
+                            The web does not draw -5 yet (plan signed-off-sociomap-method)
       engine.py, models.py  the pipeline and the v2 artifact
       engine_v2.py, models_v3.py  compute_object_map -> SociomapArtifactV3 (MAPPED / NOT_MAPPABLE,
                             support); read_artifact reads either contract, refuses any other;
@@ -1286,8 +1313,9 @@ packages/aia_core/src/aia_core/
 
 migrations/                 Alembic
 deploy/docker/              python.Dockerfile (api + worker targets; the worker build arg AIA_WORKER_PDF
-                            installs LibreOffice Writer, ~300 MB, on for develop); apps/web/Dockerfile
-                            is the client
+                            installs LibreOffice Writer, ~300 MB, on for develop; NUMBA_CACHE_DIR=/tmp/numba,
+                            because numba writes its cache at import and the containers are read-only
+                            but /tmp); apps/web/Dockerfile is the client
 deploy/develop/             The develop host: Compose, Caddyfile, deploy/backup/restore/smoke, runbook.
                             AIA only: no unit image, service, volume, hostname, credential, data sync
                             or health check (ADR 0018 decision 5); the first deploy without the unit
@@ -1318,7 +1346,8 @@ design-system/              The AIA Design System artifact as a static reference
                             enums), three no-build HTML pages, the artifact verbatim. Not imported by apps/web,
                             whose token source stays apps/web/src/design/tokens.json
 docs/migration/             Plan, status, legacy map, MVP acceptance test
-  parity-matrix.json        THE parity tracker: 78 capabilities, gates, blockers
+  parity-matrix.json        THE parity tracker: 78 capabilities, gates, and MVP-ACCEPT-2's criteria
+                            (mvp_acceptance); parity is information, no release blocker (MVP-21)
   legacy-route-ledger.json  The strangler's route ledger: 153 legacy routes, LEGACY/PORTING/PORTED/RETIRED
   interface-screens.json    Every classic screen (router routes + DEMO views) and its React rebuild state (ADR 0014)
   legacy-ui-functions.json  The 88 research functions of ui_app.html (+ recorded additions), hash-pinned
@@ -1333,6 +1362,11 @@ tools/report_preview.py     A report as a reader sees it: DOCX -> PDF -> PNG via
                             lint, greyscale, +35 % Czech stress (manual)
 tools/parity_status.py      Parity verdict per capability, from JUnit XML
 tools/progress.py           Every plan's status from its front-matter; `--check` validates it
+tools/master_check.py       The MVP master plan's register against the plan files: every plan#ID resolves,
+                            every gap, interface and criterion has a chunk, every open core chunk a wave
+                            (not in CI yet, mvp-master-plan MP14)
+prototypes/research-lead-v2/  The canonical design reference for the workbench and all eleven artifact
+                            bodies (MVPQ-01, 2026-10-20); research-lead-v3/text is supporting reference only
 tools/legacy_oracle.py      Reach the running 18.6.6 unit: probe / record / compare (stdlib)
 tools/aggregate_capture.py  Research fixtures from the unit's own functions: `cases`, `capture` (in
                             the unit's venv), `self` (AIA's pinned bounds)
@@ -1599,6 +1633,7 @@ ungated fixture.
 | **Parity vs the running unit** | `make test-oracle` (needs `AIA_LEGACY_REFERENCE_URL` + `_USER` / `_PASSWORD`; skips cleanly without) |
 | Capture UI function fixtures | `python tools/ui_function_capture.py capture` (needs Node); `verify` re-runs and compares |
 | **Plan status** | `python tools/progress.py`; `--check` validates every plan's front-matter |
+| **MVP register** | `python tools/master_check.py` (the master plan against every plan file and `mvp-execution-contracts.md`) |
 | **Report PDFs** | The worker renders each report's PDF with `AIA_REPORT_PDF_ENABLED=true`, in an image built with `AIA_WORKER_PDF=true` (both on for develop: `.github/workflows/deploy-develop.yml`, `deploy/develop/docker-compose.yml`); on without `soffice` the worker stops at start |
 | **Report preview** | `make report-preview` — the four sample reports as pages, in colour, greyscale and +35 % stress (needs `libreoffice-writer`, `poppler-utils`) |
 | **Parity verdicts** | `make parity-status` — `PASS` / `FAIL` / `NOT_EXECUTED` / `NOT_RUNNABLE` per capability |
@@ -1647,6 +1682,10 @@ Progress and design live in the repository, not in the chat log.
 ```
 .planning/
 ├── overview.md        roadmap, decisions (ids `PROGRESS D<n>`), parity status, history
+├── mvp-*.md           the MVP: consolidation, cohesion (findings F1-F19 and the decision register),
+│                      the owner decision packet, target architecture, development plan (gates, waves,
+│                      sessions) and execution contracts (the dependency graph, every chunk's wave)
+├── evidence/          read-only traces and reviews the MVP plans cite
 ├── plans/             one file per feature, broken into chunks; its status on top
 │   └── done/          plans archived before 2026-09-28; nothing new moves here
 └── open-items.md      the live defect and question register
