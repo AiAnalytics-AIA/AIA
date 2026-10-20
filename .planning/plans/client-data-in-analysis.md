@@ -141,3 +141,22 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
 
 **Existing chunks, changed.** 0 (G51): the methodology owner decides a client number's support,
 metric and interval (packet MQ-18).
+
+## Findings (the coordinator's card review, 2026-10-20)
+
+Found on the UI workbench at develop `237fd0a` (screenshots by the coordinator), anchored at
+`242523e`. For the docs PR to number in `open-items.md`. Reproduction: `make ui-workbench` with
+in-process scripted model answers and `AIA_AI_ANALYSIS_ENABLED=true`, then `make ui-fixtures`,
+unless stated.
+
+- **CR-4. A client with DATASET or FINDING knowledge cannot run any AI design job.**
+  Anchor: `domain/research_agents.py:688-690` (the placeholder lineage
+  `unclassified-client-knowledge`), `domain/licence.py:158-164`, no such entry in
+  `domain/licence_determinations.py @ 242523e`; `knowledge_entries` (`research_agents.py:545-562`)
+  carries no lineage. Reproduce: `make seed-develop`, then any design job for Horizont Mobility:
+  refused `licence_dataset_unknown`. Consequence: the seeded client, and any real client with a
+  dataset or finding, gets no AI help, though only titles and summaries reach the model. Smallest
+  fix: the lineage is the union of the items' recorded datasets (`provenance.datasets`), the
+  placeholder only when one is unrecorded; the seed records `aia_synthetic_fixture`. Test: a design
+  job over a seeded client with DATASET knowledge passes the licence gate; one over an item with no
+  recorded dataset is still refused by name.

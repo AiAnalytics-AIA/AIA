@@ -116,3 +116,18 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
   the editing, departure and lookup answers). The editor is open (Wordcraft is being asked about).
 - **Old-method reports (page Q17: (a)).** A report already **approved** from a `-1`/`-3` run stays
   downloadable as approved, unchanged.
+
+## Findings (the coordinator's card review, 2026-10-20)
+
+Found on the UI workbench at develop `237fd0a` (screenshots by the coordinator), anchored at
+`242523e`. For the docs PR to number in `open-items.md`. Reproduction: `make ui-workbench` with
+in-process scripted model answers and `AIA_AI_ANALYSIS_ENABLED=true`, then `make ui-fixtures`,
+unless stated.
+
+- **CR-5. The report card says "Modelovaná data" for a run of fictional respondents.**
+  Anchor: `apps/web/src/components/rehome/research/CompleteReport.tsx:66 @ 242523e`, a static string
+  in `reportParts` that never reads `runOriginKinds` (`lib/research-execution.ts:186-205`). Reproduce:
+  `make ui-research` (fictional fieldwork), then Výsledky's report card. Consequence: a fictional run
+  is labelled modelled, against the rule that every label reads the origin. Smallest fix: pass the
+  run's origin kinds into `reportParts` and word the part by them (fictional, modelled, unknown or
+  mixed). Test: a SIMULATED run's report card never shows "Modelovaná data".

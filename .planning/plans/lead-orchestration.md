@@ -273,3 +273,34 @@ the chunks named below.
   owner asked how cards are made systematically; the card inventory goes to him as an explainer
   through the coordinator. Tests: a CLASSIFIED client's lookup sends nothing before its card is
   approved, and runs within the same bounds after; a stale card is refused.
+
+## Findings (the coordinator's card review, 2026-10-20)
+
+Found on the UI workbench at develop `237fd0a` (screenshots by the coordinator), anchored at
+`242523e`. For the docs PR to number in `open-items.md`. Reproduction: `make ui-workbench` with
+in-process scripted model answers and `AIA_AI_ANALYSIS_ENABLED=true`, then `make ui-fixtures`,
+unless stated.
+
+- **CR-1. The Lead's request card shows no cost and starts the job on one click.**
+  Anchor: `apps/web/src/components/workbench/LeadPane.tsx:471-488`, `Workbench.tsx:258-279`,
+  `apps/api/src/aia_api/routers/lead.py:458-462`, `application/research_lead.py:720-734 @ 242523e`.
+  The only ceiling is the flat `AIA_AI_RESEARCH_RESERVATION_USD`, raised only as a 409 when it reaches
+  the study's limit; the turn returns no cost. Reproduce: a Lead turn proposing an agent job, then
+  "Spustit úlohu". Consequence: a person approves paid work without seeing its price. Smallest fix:
+  the card path's price step (LO4, LO10): the turn returns `ceiling_usd`, the card shows "až X USD"
+  and sends `confirm_cost_usd`. Test: a request card renders its ceiling, and approving it without
+  `confirm_cost_usd` at or above the limit is refused.
+
+### The card system's design reference (2026-10-20, relayed by the coordinator)
+
+- The card path (LO4, LO10, LO16) and the fixes of CR-1, CR-2, CR-3 (`two-roles-human-ai-gates`) and
+  CR-5 (`report-delivery`) take the published card-system design as their visual reference: the
+  workbench design artifact, version 5, screen 14 (the design session's artifact
+  `JrWZXosJtKVLckHhArngeV`). Behaviour stays this plan's and ADR 0026's / ADR 0019's.
+- **Open, not adopted:** the design names ledger subject types beyond LO16's list: `qc_decision`,
+  `study_note`, `report_edit`, `knowledge_revision` and `budget_lift`. They are proposals only.
+  Whether LO16's migration M3 takes them (and which of them are new approval subjects rather than
+  rows an existing writer already records, e.g. `knowledge_revision` in the knowledge repository's
+  revisions, `budget_lift` in `resume_budget_wait`'s ledger row) is decided in LO16's PR, by S3 and
+  the owner; until then LO16's list is unchanged.
+

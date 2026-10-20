@@ -567,3 +567,27 @@ the follow-ups of #112, #113, #114, #117 and #122; findings filed as OI-82 to OI
 Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
 
 **New chunk.** 8 (W2), D-27. Membership is the access (ADR 0019), so removal is its only control.
+
+## Findings (the coordinator's card review, 2026-10-20)
+
+Found on the UI workbench at develop `237fd0a` (screenshots by the coordinator), anchored at
+`242523e`. For the docs PR to number in `open-items.md`. Reproduction: `make ui-workbench` with
+in-process scripted model answers and `AIA_AI_ANALYSIS_ENABLED=true`, then `make ui-fixtures`,
+unless stated.
+
+- **CR-2. A design job waiting for budget reads as a failure with "Zkusit znovu".**
+  Anchor: `apps/web/src/lib/research-agent-jobs.ts:28, 45-47`,
+  `components/rehome/research/useAiStep.tsx:47, 58-80`; `AgentBudgetWaits` mounted only at
+  `ResearchScreen.tsx:319, 363 @ 242523e`. Reproduce: a study with no budget left, then any stage's AI
+  job. Consequence: "Zkusit znovu" starts a new job instead of lifting the budget; the real lift is
+  hidden in "Připravenost a pomoc". Smallest fix: `followAgentJob` reports an `AWAITING_BUDGET` step as
+  its own kind (and `waiting` counts `AWAITING_*`); `AiFailureCard` renders `AgentBudgetWaits` for it.
+  Test: a job whose step is `AWAITING_BUDGET` shows the budget lift in place, never a retry.
+- **CR-3. One budget lift releases one analysis step, so a run's eight steps need eight lifts.**
+  Anchor: `components/rehome/research/ExecutionSteps.tsx:1285-1287` (a `BudgetLift` per step),
+  `application/research.py:1036-1049 @ 242523e` (line 1048 passes `[step]` to
+  `lift_study_budget_waits`). Reproduce: a run whose analysis steps stop at the study's cap, then one
+  20 USD lift on Progress. Consequence: eight forms, eight clicks, the budget raised each time.
+  Smallest fix: lift every `AWAITING_BUDGET` step of the run (`run["steps"]`; the helper already
+  filters) and render one run-level lift. Test: one lift on a run with several waiting steps resumes
+  them all, in one ledger row.
