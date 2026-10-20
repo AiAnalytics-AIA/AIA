@@ -51,9 +51,12 @@ another account, which has only user openclaw-cornelius); disk fix: ONLY the Doc
   Doc follow-ups (overview MVP-13/MVP-3 wallet; ARCHITECTURE §8 npm + pip-audit blocking) handed to planning 2 for the next docs PR.
 - #510, #512, #513, #514, #515, #516: freeze inputs, docs-only drafts. Merge after Nigel signs the baseline (or earlier as
   evidence with his OK).
-- #519 versions.tf + lock file (infra, b37833b): reviewed OK; merge when green, after #520.
-- #520 docs follow-ups of #509/#511/#518 (planning 2): review; merge only after develop CI on 47e55368 dispatched its deploy.
-- #521 host user_data ignore_changes (infra; Nigel said commit-and-push): review, merge when green.
+- 18:25 MERGED: #520 docs follow-ups (5ad36799), #519 versions.tf+lock (6c398dfc), #521 user_data ignore_changes (7878bad7).
+  develop CI on 47e55368 GREEN, deploy run 39474293434 dispatched 18:23 (carries #509/#511/#518). A develop run is normally ~73 min
+  (the SQLite step re-runs the whole suite on push only) - the 16:08 run was NOT hung; don't cancel for that again.
+  Codex review of #518: no findings.
+- Docker layer fix (01AXkf...): done, verified, NOT committed (classifier); waits on Nigel's own words in that session. Added
+  ARG AIA_DEPS_REFRESH (dated) to force a dependency refresh; gap: pip-audit audits a fresh resolution, not the image's cached layer.
 - Google IdP fix prepared on fix/terraform-google-idp (infra), NOT committed: needs Nigel's own "commit and push" again.
 - Coming: Docker layer PR (01AXkf...).
 
