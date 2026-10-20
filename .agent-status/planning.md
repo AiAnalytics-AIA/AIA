@@ -28,7 +28,7 @@ It does not:
 |---|---|---|---|
 | #516 | `chore/scope-decision-list` | `c7d5bbe` | The 48 freeze decisions. Codex raised 3 threads, all answered and resolved. Kept as the text Nigel answered against: don't edit it |
 | #522 | `chore/scope-proposed-edits` | `049413c` | Part 1b: 102 proposed edits, deduplicated and tagged. Written before the answers. Codex found nothing. Its S-13 wording on segments is superseded by #523 |
-| #523 | `chore/scope-baseline` | `ec1265a` | Part 2: master § The scope baseline (In / Out / answers tables / Open / signature line), MP16, 20+ child plans, waves, and `.planning/evidence/scope-freeze/answers-2026-10-20.md` (four tables: D-01..48, Q1-8, page Q10-12, page Q13-18) |
+| #523 | `chore/scope-baseline` | `8e8817b` | Part 2: master § The scope baseline (In / Out / answers tables / Open / signature line), MP16, 20+ child plans, waves, and `.planning/evidence/scope-freeze/answers-2026-10-20.md` (four tables: D-01..48, Q1-8, page Q10-12, page Q13-18) |
 
 The baseline links `decision-list.md` (#516) and `proposed-edits.md` (#522). That is why #523 merges
 last.
@@ -114,11 +114,18 @@ last.
 Q22 b -> `deep-research-web-search#57a`, Q23 b -> `#58` (both W2), Q24 c -> LO20 + #56 (CLASSIFIED
 lookup behind a plan card). Scope 3 told. Card inventory sent to the coordinator.
 
+## Applied 23:00 (16eb75a, 8e8817b; on Nigel's typed word in this session)
+
+Q25-Q34 in the baseline; Pending sections in the contracts for #528 (@ c5162ab) and #529 (@ 9791da0),
+named in plain text until merged; Findings CR-1..CR-5 (lead-orchestration, two-roles, client-data-in-
+analysis, report-delivery); the card design reference (workbench v5 screen 14). Docs checks green on
+8e8817b. **Commit/push rule:** only on Nigel's own words in this session (coordinator 22:44); a stop
+hook is never permission.
+
 ## Waiting to fold into #523 (no action until their PRs land)
 
-- `input-interactions.md` (session_01BmmpzanxvKFquk44nLP4qu).
-- `lead-conversation.md` + Proposed ADR 0041 (new session "AIA design: Lead chat capabilities"):
-  folds in LO6-LO11 and LO19; give it a §3 row and waves, reconcile with lead-orchestration.
+- `input-interactions.md` (#528): on merge, move the §3.2 ◇ row to §3.1 core and the Pending rows into the register.
+- `lead-conversation.md` + ADR 0041 (#529): on merge, a §3.1 row and the Pending rows into the register; RLW#29 overlap with LC5/LC10 proposed to #529.
 
 ## Next docs PR: follow-ups to carry
 
