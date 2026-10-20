@@ -2,7 +2,7 @@
 status: planned
 chunks:
   - "[ ] 0. The method owner's decisions: segment clustering algorithm and parameters, the register entry for each new map method"
-  - "[ ] 1. Segments defined by the study's selected dimensions: a pure domain rule, with support and suppression"
+  - "[ ] 1. Segments defined by the sampler's stored descriptors (MVPQ-03): a pure domain rule, with support and suppression"
   - "[ ] 2. A segment map computed through the existing engine, under a pinned method id"
   - "[ ] 3. Segments found by clustering, as an option, deterministic and labelled"
   - "[ ] 4. Each new map method registered INTERNAL_ONLY until the method owner approves it"
@@ -45,9 +45,13 @@ owner decides chunk 0 in an AIA session.**
 0. **Method owner.** The clustering algorithm and its parameters; whether segment maps need a
    separate register entry per segment definition; the support floor per segment (`n_min` 30 is
    today's WARN for a Sociomap, `domain/research_design.py` `sociomap_support`). Blocks 3 and 4.
-1. **Segments by dimension.** Pure `domain/`: a segment is a cell of the selected dimensions
-   (`DIMENSION_TOPICS` / `persona_topics.py` name them); below the floor a segment is suppressed
-   and said so, never ordered. Test: a small cell is suppressed, a sufficient one is kept.
+1. **Segments by the sampler's descriptors.** Pure `domain/`: a defined segment is a cell of the
+   descriptors the sampler stores per respondent with lineage (the product owner, 2026-10-20,
+   MVPQ-03), not of the study's selected dimensions (a dimension is a persona-topic allowlist and
+   partitions no one, G30). The permitted combinations, how accepted own dimensions take part and
+   the support floor are the methodology owner's (chunk 0). Before this is built it is reconciled
+   with the methodology owner's PR #504 (`aia-sociomap-5`: a respondent map and clustered taste
+   segments). Below the floor a segment is suppressed and said so, never ordered. Test: a small cell is suppressed, a sufficient one is kept.
 2. **Segment map.** The existing contract-3 engine per segment, no new geometry; a new method id
    pinned at run start like every method (`SociomapMethod`), fingerprint in the reuse key. Test:
    removing the pin fails the run; the same pin reuses.
@@ -59,8 +63,9 @@ owner decides chunk 0 in an AIA session.**
    respondent or segment maps.**
 5. **Filters.** An API route returning aggregates for a filter set (counts, the map recomputed or
    read), never rows. Test: no response body contains a respondent id.
-6. **Drill-down.** One route, `EDIT_STUDY`, returns one respondent's profile and answers from the
-   stored dataset, every field labelled modelled. Tests: 403 without `EDIT_STUDY`; the route is
+6. **Drill-down.** One route, `EDIT_STUDY`, returns one respondent's stored attributes and answers
+   from the stored dataset, every field labelled modelled; **never the generated persona profile
+   prose** (the product owner, 2026-10-20, MVPQ-03). Tests: 403 without `EDIT_STUDY`; the route is
    not reachable from the report or snapshot path; never an `AdmittedClaim`. `ARCHITECTURE.md` §4's
    "rows never sent" gains the one named exception (docs PR).
 7. **The Lead reads it.** Filters and the drill-down enter the Lead's results context

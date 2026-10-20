@@ -489,7 +489,7 @@ MVPQ-01 was answered on 2026-10-20: the browser's Czech Research Lead V2 build i
 | Structural edits may auto-accept per stage | MVP-14, D18 | `working-copy-edit-ops#WCE11`, `research-lead-workbench#11` |
 | The report and the map snapshot are approved separately; the client report follows self-approval, no second person | F17 (withdrawn requirement) | `report-delivery#RD3`, `report-delivery#RD4` |
 | A person may start a conversation with the Lead directly | Q25 | `lead-orchestration#LO5` |
-| Client PDF, the evidence audit and the legal source-use gate stay in AC-13 | the acceptance document, until the owner overrides | `report-delivery#RD0`, `report-delivery#RD1` |
+| Client PDF stays in AC-13; its gate is MVPQ-09's (no internal source, no drill-down content, no unadmitted number; no separate legal review) | the acceptance document; MVPQ-09, owner 2026-10-20 | `report-delivery#RD0`, `report-delivery#RD1` |
 | The negative cases X2 (missing evidence) and X6 (methodology refusal) are release tests | prototype review | `mvp-acceptance-harness#13` |
 | OI-64 (fieldwork repays every respondent) is an engineering prerequisite, not a product question | G26 | `run-qc-and-checkpoint#RQC0` |
 | The delete path is required before release | MVP-30 | `study-data-lifecycle#SDL1`, `study-data-lifecycle#SDL3` |

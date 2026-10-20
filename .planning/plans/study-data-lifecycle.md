@@ -1,7 +1,7 @@
 ---
 status: planned
 chunks:
-  - "[ ] SDL0. Decide the deletion horizons, tombstones and backup-resurrection semantics"
+  - "[ ] SDL0. Write down the owner's deletion policy (MVPQ-07, 2026-10-20) as the contract SDL1-SDL5 build: 30 days at most in backups and versions, journal replay after restore, content-free usage and audit rows kept for OWNER/ADMIN"
   - "[ ] SDL1. Foreign keys and the ledger: `ai_usage_events.study_id` and `population_dataset_versions.owner_client_id` get an `ondelete` rule"
   - "[ ] SDL2. Storage: `delete_prefix` for S3, a `DeleteObjectVersion` grant, a bucket lifecycle for versions, IAM for population children"
   - "[ ] SDL3. The delete service for a study and a client: rows, S3 prefixes, audit policy, logs and the error tracker"
@@ -24,10 +24,10 @@ Every chunk below is **open**; a chunk is built from this file, not from the mas
 ## Chunks
 
 **SDL0. Decide the deletion horizons, tombstones and backup-resurrection semantics**  
-The delete path is decided; what is open is the approved residual retention in backups and bucket versions (14 and 30 days are infrastructure defaults, not an owner approval), and what non-content ledger/audit facts remain. Restore must reapply deletions before the environment serves traffic; a durable deletion journal/tombstone is the mechanism, not permission to resurrect data. The owner states them here.
+**Decided by the owner, 2026-10-20 (MVPQ-07).** After a person deletes a client or study, its content may remain in backups and object versions for **at most 30 days** (RDS's 14-day recovery window lies inside it; the S3 version lifecycle is set to 30 days, not left at a default). A durable deletion journal, kept apart from the snapshots, is replayed after any restore before the environment serves traffic. **Content-free usage and audit rows** (date, model, tokens, USD and identifiers; no text, no client name) are kept so spend still reconciles, readable by an organisation OWNER or ADMIN only. This chunk writes that down as the contract SDL1-SDL5 build to.
 
 **SDL1. Foreign keys and the ledger: `ai_usage_events.study_id` and `population_dataset_versions.owner_client_id` get an `ondelete` rule**  
-Neither has one (`tables.py:1833, 1938-1939`). The usage ledger must still reconcile to spend (AC-15) after a deletion: the rule is anonymise or cascade, decided in SDL0.
+Neither has one (`tables.py:1833, 1938-1939`). The usage ledger must still reconcile to spend (AC-15) after a deletion: SDL0 keeps the content-free usage rows, so a usage row is never cascaded with its study; it keeps the study's identifier without a foreign key to a deleted row.
 
 **SDL2. Storage: `delete_prefix` for S3, a `DeleteObjectVersion` grant, a bucket lifecycle for versions, IAM for population children**  
 `delete_prefix` exists only on the filesystem store (`storage.py:366`); IAM grants no delete on population children (`infra/develop/main.tf:364-368`).
@@ -46,7 +46,7 @@ A production release checklist item (`production-environment#PE9a`).
 
 ## Open: owner clarifications
 
-- The deletion horizons, the tombstone and the backup semantics (SDL0).
+- None: the horizons, the journal and the surviving facts were decided on 2026-10-20 (MVPQ-07, SDL0).
 
 
 ## Release ordering (2026-10-20)
@@ -55,4 +55,4 @@ SDL0 precedes the deletion FK migration M12 and destructive lifecycle settings. 
 implement the accepted policy; SDL5 specifies restore ordering and SDL6 exercises it on disposable
 test data. The original tombstone/journal must survive independently of the restored snapshot;
 its scope ids/cutoff and replay result are evidenced before restored traffic is enabled. Retain
-only the non-content identifiers the owner accepts. PE9a cannot pass without SDL6's actual proof.
+only the content-free usage and audit rows MVPQ-07 accepts. PE9a cannot pass without SDL6's actual proof.
