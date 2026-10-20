@@ -28,7 +28,7 @@ It does not:
 |---|---|---|---|
 | #516 | `chore/scope-decision-list` | `c7d5bbe` | The 48 freeze decisions. Codex raised 3 threads, all answered and resolved. Kept as the text Nigel answered against: don't edit it |
 | #522 | `chore/scope-proposed-edits` | `049413c` | Part 1b: 102 proposed edits, deduplicated and tagged. Written before the answers. Codex found nothing. Its S-13 wording on segments is superseded by #523 |
-| #523 | `chore/scope-baseline` | `4067f36` | Part 2: master § The scope baseline (In / Out / answers tables / Open / signature line), MP16, 20+ child plans, waves, and `.planning/evidence/scope-freeze/answers-2026-10-20.md` (four tables: D-01..48, Q1-8, page Q10-12, page Q13-18) |
+| #523 | `chore/scope-baseline` | `ec1265a` | Part 2: master § The scope baseline (In / Out / answers tables / Open / signature line), MP16, 20+ child plans, waves, and `.planning/evidence/scope-freeze/answers-2026-10-20.md` (four tables: D-01..48, Q1-8, page Q10-12, page Q13-18) |
 
 The baseline links `decision-list.md` (#516) and `proposed-edits.md` (#522). That is why #523 merges
 last.
@@ -108,6 +108,17 @@ last.
 - **Still open from before:** the performance budget values (`mvp-acceptance-harness#18`), MQ-01 to
   MQ-24 (Aram, packet #510), MVPQ-06's evaluation thresholds, S2-S5, and accepting ADRs 0028-0038
   (#512) plus a new ADR for the Lead's lookup.
+
+## Applied 22:10 (ec1265a)
+
+Q22 b -> `deep-research-web-search#57a`, Q23 b -> `#58` (both W2), Q24 c -> LO20 + #56 (CLASSIFIED
+lookup behind a plan card). Scope 3 told. Card inventory sent to the coordinator.
+
+## Waiting to fold into #523 (no action until their PRs land)
+
+- `input-interactions.md` (session_01BmmpzanxvKFquk44nLP4qu).
+- `lead-conversation.md` + Proposed ADR 0041 (new session "AIA design: Lead chat capabilities"):
+  folds in LO6-LO11 and LO19; give it a §3 row and waves, reconcile with lead-orchestration.
 
 ## Next docs PR: follow-ups to carry
 
