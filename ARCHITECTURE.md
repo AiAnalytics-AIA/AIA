@@ -355,9 +355,11 @@ can grant approval or supply deployment prices.
   Production has no retrieval, so web tracks are blocked; recorded retrieval is local and test only.
   Decided and not built yet (the owner, 2026-10-19, #500): for the MVP, classification in Deep
   Research is replaced by one declared posture per client, `OPEN` or `CLASSIFIED` (the default),
-  pinned in the run's request at enqueue and copied by a retry. An `OPEN` client's design and
-  queries are not classified and may go to any composed route; a `CLASSIFIED` client behaves as
-  above, so its web tracks stay parked (`deep-research-web-search#53`; ADR 0008 amendment pending).
+  pinned in the run's request at enqueue and copied by a retry. For an `OPEN` client, only the
+  search queries and the plan step's web gate are lowered to Class C, so its queries may go to any
+  composed search route; model-bound design material keeps its rule-derived class (Class B by
+  `material_rules`, ADR 0008 Amendment 2026-10-19), so model requests are unchanged. A `CLASSIFIED`
+  client behaves as above, so its web tracks stay parked (`deep-research-web-search#53`; ADR 0008 amendment pending).
   The Class B route is deferred whole (`class-b-search-route`). Model routes, EU residency,
   grounding and the evidence gates are unchanged.
 - **Fieldwork is a boundary, and `ai_runtime` is answered only by AI respondents.**
