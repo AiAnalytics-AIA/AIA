@@ -42,7 +42,7 @@ No code deletes an attachment's bytes today.
 Interfaces I26.
 
 **SDL6. Exercised once on develop: a delete, then a restore, with the evidence recorded**  
-A production release checklist item (`production-environment#PE9`).
+A production release checklist item (`production-environment#PE9a`).
 
 ## Open: owner clarifications
 
@@ -55,4 +55,4 @@ SDL0 precedes the deletion FK migration M12 and destructive lifecycle settings. 
 implement the accepted policy; SDL5 specifies restore ordering and SDL6 exercises it on disposable
 test data. The original tombstone/journal must survive independently of the restored snapshot;
 its scope ids/cutoff and replay result are evidenced before restored traffic is enabled. Retain
-only the non-content identifiers the owner accepts. PE9 cannot pass without SDL6's actual proof.
+only the non-content identifiers the owner accepts. PE9a cannot pass without SDL6's actual proof.

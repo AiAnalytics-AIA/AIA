@@ -10,7 +10,8 @@ chunks:
   - "[ ] PE6. Population provisioning in production: asset root, import, establish, `record-dictionary`, `record-catalogue`, the store"
   - "[ ] PE7. Tagged Bedrock profiles: the worker accepts the profile ARN (or the plan uses `eu.` ids); cost reconciliation includes tool spend"
   - "[ ] PE8. A freeze of auto-deploys during a tier B run"
-  - "[ ] PE9. The release checklist exercised once on develop: restore, rollback, alarms, the delete path (`study-data-lifecycle#SDL6`), the activation profile `READY` on the production host"
+  - "[ ] PE9a. Restore and the delete path exercised once on develop (W4): a restore after a deletion does not resurrect it (`study-data-lifecycle#SDL6`)"
+  - "[ ] PE9b. The rest of the release checklist evidenced (W5): rollback, alarms, the activation profile `READY` on the production host"
 ---
 # The production environment
 
@@ -54,7 +55,8 @@ Interfaces I18; shared with `run-qc-and-checkpoint#RQC10`.
 **PE8. A freeze of auto-deploys during a tier B run**  
 
 
-**PE9. The release checklist exercised once on develop: restore, rollback, alarms, the delete path (`study-data-lifecycle#SDL6`), the activation profile `READY` on the production host**  
+**PE9a. Restore and the delete path exercised once on develop (W4), consuming `study-data-lifecycle#SDL6`**  
+**PE9b. Rollback, alarms and the activation profile `READY` on the production host (W5)**  
 A production release stays a blocker on I-5 whatever tier B showed on develop.
 
 ## Open: owner clarifications
@@ -65,8 +67,8 @@ A production release stays a blocker on I-5 whatever tier B showed on develop.
 ## Execution prerequisites (2026-10-20)
 
 PE0/PE3 precede PE1's apply and PE2's release workflow. Resolve the model-identity/invocation-target
-contract (develop-spend-attribution 5) before configuring the PE7 tagged target, not after a failing
+contract (develop-spend-attribution 5a) before configuring the PE7 tagged target, not after a failing
 production startup. PE4 must preserve the decided public-host retrieval scope and existing URL/
 private-address safeguards; a proxy cannot silently reduce the product to a fixed publisher list.
 PE5/PE6 and the effective activation profile are evidenced before live production work. PE8 freezes
-the tested candidate during tier B; PE9 consumes SDL6 and is a prerequisite to final manual release.
+the tested candidate during tier B; PE9a consumes SDL6 and PE9b closes the checklist; both are prerequisites to final manual release.

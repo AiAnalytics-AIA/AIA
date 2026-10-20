@@ -12,7 +12,11 @@ reads it and the front-matter of every plan and fails when:
 * a typed count in prose ("38 gaps", "twenty-six interfaces") disagrees with the
   rows, or a section heading carries a count;
 * ``class-b-search-route`` is listed as core, or the new-plan table of §6.3 does
-  not name the six child plans or a plan file is missing for one.
+  not name the six child plans or a plan file is missing for one;
+* ``.planning/mvp-execution-contracts.md`` is inconsistent: a reference that does
+  not resolve, a chunk assigned twice, a predecessor that is unknown, in a later
+  wave or part of a cycle, or an open chunk of a core plan in neither the
+  predecessor table nor the "every other open chunk" table.
 
     python tools/master_check.py            # check, print the derived counts
     python tools/master_check.py --quiet    # check only
@@ -32,6 +36,7 @@ import progress
 
 REPO = progress.REPO
 MASTER = progress.PLANS / "mvp-master-plan.md"
+CONTRACTS = REPO / ".planning" / "mvp-execution-contracts.md"
 SELF = "mvp-master-plan"
 
 _REF = re.compile(r"`([a-z0-9][a-z0-9-]*)#([A-Za-z0-9.]+)`")
@@ -137,6 +142,64 @@ def main(argv: list[str] | None = None) -> int:
     if "six" not in m13:
         failures.append("chunk M13 must say six child plans")
 
+    # 6. the execution contracts: references, waves, predecessors, coverage
+    ctext = CONTRACTS.read_text(encoding="utf-8")
+    rows = [r for r in table_rows(ctext) if re.fullmatch(r"E\d+", r[0])]
+    wave: dict[str, int] = {}
+    graph: dict[str, list[str]] = {}
+    assigned: dict[tuple[str, str], str] = {}
+    for r in rows:
+        wave[r[0]] = int(r[1][1:])
+        graph[r[0]] = re.findall(r"E\d+", r[3])
+        for plan, cid in _REF.findall(r[2]):
+            if plan not in plans or cid not in ids[plan]:
+                failures.append(f"{r[0]} names `{plan}#{cid}`, which does not exist")
+            elif (plan, cid) in assigned:
+                failures.append(f"`{plan}#{cid}` is in {assigned[(plan, cid)]} and {r[0]}")
+            else:
+                assigned[(plan, cid)] = r[0]
+    for rid, needs in graph.items():
+        for n in needs:
+            if n not in wave:
+                failures.append(f"{rid} needs {n}, which is not a row")
+            elif wave[n] > wave[rid]:
+                failures.append(f"{rid} (W{wave[rid]}) needs {n} (W{wave[n]}), a later wave")
+    state: dict[str, int] = {}
+
+    def visit(node: str, trail: list[str]) -> None:
+        if state.get(node) == 1:
+            failures.append("predecessor cycle: " + " -> ".join(trail))
+            return
+        if state.get(node) == 2:
+            return
+        state[node] = 1
+        for nxt in graph.get(node, []):
+            if nxt in graph:
+                visit(nxt, [*trail, nxt])
+        state[node] = 2
+
+    for node in graph:
+        visit(node, [node])
+    rest = ctext[ctext.index("## Every other open chunk") :]
+    rest = rest[: rest.index("\n## ", 5)]
+    unscheduled = []
+    for r in table_rows(rest)[1:]:
+        found = _REF.findall(r[0])
+        if not found or found[0][0] not in plans or found[0][1] not in ids[found[0][0]]:
+            failures.append(f"execution contracts: row {r[0]} does not resolve")
+            continue
+        if found[0] in assigned:
+            first = assigned[found[0]]
+            failures.append(f"`{found[0][0]}#{found[0][1]}` is in {first} and the second table")
+        assigned[found[0]] = "second table"
+        if r[1] == "UNSCHEDULED":
+            unscheduled.append(f"{found[0][0]}#{found[0][1]}")
+    for name in named["3.1"]:
+        for mark, text in plans[name].chunks:
+            cid = text.split(" ", 1)[0].rstrip(".")
+            if mark == " " and (name, cid) not in assigned:
+                failures.append(f"open chunk `{name}#{cid}` has no wave in the execution contracts")
+
     if not args.quiet:
         counts = {k: len(v) for k, v in named.items()}
         opened = sum(1 for p in plans.values() if p.status != "done")
@@ -149,6 +212,8 @@ def main(argv: list[str] | None = None) -> int:
             f"rows: {len(gaps)} gaps, {len(ifaces)} interfaces, {len(ac)} acceptance "
             f"criteria; {len(set(refs))} distinct chunk references"
         )
+        print(f"execution contracts: {len(rows)} predecessor rows, {len(assigned)} chunks assigned")
+        print(f"unscheduled (need a scope call): {len(unscheduled)}")
     if failures:
         print(f"\n{len(failures)} problem(s):", file=sys.stderr)
         for f in failures:
