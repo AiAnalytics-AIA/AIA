@@ -10,7 +10,8 @@ personal files are Class C, its client notes Class A) and
 researcher's turns, and now also their Lead's files and notes, are read by nobody else.
 **Date:** 2026-10-20. **Amended 2026-10-20** with the product owner's recorded answers D-32, D-33,
 D-34 and Q5 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`): no admin
-read, no handover, no departure trigger; still Proposed.
+read, no handover, no departure trigger; and Q14 (a) on the PM status page (20:50-21:04 UTC, relayed
+by the coordinator): a departed member's Lead is sealed, then deleted. Still Proposed.
 **Plan:** [lead-orchestration](../../../.planning/plans/lead-orchestration.md) LO11 (migration M7)
 
 ## Context
@@ -74,8 +75,14 @@ handover, no copy for a successor and no departure trigger. A study is not assig
 study's context. Every read of `researcher_leads`, its revisions, notes and signals, and of
 `study_lead_turns`, filters by the caller's own `user_id`.
 
-What becomes of a deactivated member's Lead (kept read-only, or deleted under the deletion path of
-MVPQ-07) is not decided here (*Open for Nigel*, 1).
+**A departed member's Lead is sealed, then deleted** (the product owner, 2026-10-20, Q14 a). When a
+member is removed or deactivated (D-27), their Lead, its files, notes, signals and turns are sealed
+at once: nobody can read them, an OWNER or ADMIN included, and no turn can be started on them. At
+the end of MVPQ-07's retention period they are deleted (database rows and any stored copies, with
+the content-free usage and audit rows kept so spend still reconciles). What the departed member's
+Lead contributed to a study and a person accepted stays with the study: accepted study notes (ADR
+0039), accepted edits in the working copy and its operation log, and ledger rows, attributed as
+they were.
 
 ## Alternatives considered
 
@@ -101,7 +108,10 @@ MVPQ-07) is not decided here (*Open for Nigel*, 1).
 ## What enforces it
 
 - `make layer_check`: `researcher_lead_signals` only through its repository.
-- Tests: no query of `study_lead_turns`, `researcher_leads`, its revisions, notes or signals lacks
+- Tests: after a member is removed, every read of their Lead, its files, notes, signals and turns is
+  refused for every caller, admins included, and no turn starts; after the retention period the rows
+  are gone and the usage rows remain; a study note their Lead proposed and a person accepted stays in
+  the study; no query of `study_lead_turns`, `researcher_leads`, its revisions, notes or signals lacks
   the caller's `user_id` filter (a repository test over every method); an OWNER or ADMIN asking for
   another member's Lead gets 404; a proposed personal file naming a client of the organization is
   refused; a restore writes a new revision; a second organization's Lead answers 404.
@@ -119,10 +129,8 @@ Answered by the product owner on 2026-10-20 (`answers-2026-10-20.md`, #523 @ `ee
 - ~~`READ_LEAD_FILES` and ADR 0019.~~ No admin read (D-33).
 - ~~Amending ADR 0026.~~ Yes, as this ADR is accepted (D-08); the amendment is now narrower.
 
-Still open:
+- ~~A deactivated member's Lead.~~ Sealed, then deleted at the end of MVPQ-07's retention period;
+  accepted study notes stay with the study (Q14, a). Decision 5.
+- ~~The per-study context file.~~ Its own ADR, [0039](0039-the-study-context-file.md).
 
-1. **A deactivated member's Lead.** Kept read-only and unreadable by anyone, or deleted with the
-   member under MVPQ-07's deletion path (content-free usage rows kept)? D-27 adds member removal.
-2. **The per-study context file** (Q5, Q10: code plus "Poznámky ke studii", any Lead proposes, a
-   person accepts) is new scope (`lead-orchestration#LO19`). It is the study's, not the Lead's, so
-   this ADR does not decide it; does it need an ADR of its own, or a section here?
+Nothing remains open in this ADR but its acceptance.
