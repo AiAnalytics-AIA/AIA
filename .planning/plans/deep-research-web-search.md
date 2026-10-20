@@ -1761,8 +1761,12 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
   queries for **every client, CLASSIFIED included**.
   - It changes MVP-27 (amended 2026-10-19) for Class B: a CLASSIFIED client's design-derived queries
     no longer leave its web tracks parked. A query takes the class of what it was written from
-    (`deep_research/classification.py`, never lowered by keywords); Brave admits B and C, and the
-    route's admitted classes come from the recorded determination, not from code defaults.
+    (`deep_research/classification.py`, never lowered by keywords); a CLASSIFIED client's design
+    queries take Class B by rule **for search egress only**. **Brave alone** admits B and C: every
+    other route (Wikipedia, Common Crawl, public fetch, connectors) stays Class C for a CLASSIFIED
+    client, so a Class B query to it is refused by name. Brave's admitted classes come from the
+    recorded determination, not from code defaults. ADR 0032 decision 4 (#512 @ 4502017) records it
+    as an explicit exception to ADR 0008's EU-processing condition, for Brave alone.
   - **Class A stays refused** on Brave (client notes, approved knowledge, a client's sources, by
     `material_rules`) until page Q22 is answered. **Search operators** (`site:`, `filetype:`,
     `intitle:`) are page Q23, open; nothing here adds them. The owner's note: "maybe even class A,
@@ -1777,7 +1781,8 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
   - ADR 0008 (residency and classes) and ADR 0032 (#512) record the route's admitted classes; both
     change with this (Doc follow-up).
   - Tests: a CLASSIFIED client's design-derived query reaches the recorded Brave double at Class B; a
-    query built from a Class A knowledge item is refused before anything is sent; the determination
+    query built from a Class A knowledge item is refused before anything is sent; the same Class B
+    query to a Class C route (Wikipedia, Common Crawl) is refused by name; the determination
     record is the only source of Brave's admitted classes (removing it refuses Class B); an OPEN
     client's behaviour is unchanged.
   - The Lead's lookup (`lead-orchestration#LO20`, chunk 56) stays OPEN-only (page Q18) unless the
