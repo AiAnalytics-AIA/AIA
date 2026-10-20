@@ -6,7 +6,7 @@ chunks:
   - "[ ] LC2. Co Vedoucí vidí: the Vidí chip opens the last turn's manifest in words, layer by layer, with what was left out and why"
   - "[ ] LC3. The decision digest: a code-built record of what this conversation decided (edits, cards, notes, self-updates, lookups) in the conversation-memory layer, never dropped"
   - "[ ] LC4. Budgets enforced: ADR 0041's floors and ceilings, the design layer's outline fallback, spare bytes to the verbatim conversation, every omission named"
-  - "[ ] LC5. Queued messages stored on the server: status queued / answered / withdrawn, one turn answers all queued, LeadBusy retired for messages, visible in every tab"
+  - "[ ] LC5. Queued messages stored on the server: immutable rows, queued / answered / withdrawn derived (answers_through, a withdrawal row), bounded in bytes and count, a follow-on turn for what layer 9 cannot hold, LeadBusy retired for messages, visible in every tab"
   - "[ ] LC6. Cost, model and class on every Lead turn, from the usage ledger and the composition digest"
   - "[ ] LC7. Grounded hierarchical compaction: research_lead_compact after the reply, block summaries of eight turns with a turn reference on every sentence, episode roll-ups (three levels at most), the preservation check, STUDY_LEAD_SUMMARY, AIA_AI_RESEARCH_LEAD_COMPACTION_ENABLED and its two keys, summary_lag"
   - "[ ] LC7a. Kept facts (Držená fakta): proposed by the compaction step, each with a quote located verbatim in its named turn, never compacted, superseded only by name, 40 x 300 characters"
@@ -15,7 +15,7 @@ chunks:
   - "[ ] LC10. Regenerate, edit-and-resend and retry as replacement turns: parent_turn_id, replaces_turn_id, superseded_turn refusals"
   - "[ ] LC11. Pins: a turn, knowledge item, note or artifact element pinned to the conversation, its own layer, refused when made if it cannot fit"
   - "[ ] LC12. Feedback: pomohlo / nepomohlo with a closed reason per Lead turn, private, an evaluation export by prompt version, an ADR 0030 signal by id"
-  - "[ ] LC13. The long-conversation journey and the recall test: 60 recorded turns, every digest decision and kept fact in turn 61's context, a summarised subject's turns retrieved verbatim, the manifest naming omissions, a queued message from a second tab, a regenerate, zero unintended paid jobs"
+  - "[ ] LC13. The long-conversation journey and the recall test: 60 recorded turns, every kept fact in turn 61's context and every digest decision in it or listed by ledger id, a summarised subject's turns retrieved verbatim, the manifest naming omissions, a queued message from a second tab, a regenerate, zero unintended paid jobs"
   - "[ ] LC14. After the MVP: one's own conversations listed on Můj Vedoucí and a lexical search over one's own turns"
   - "[ ] LC15. After the MVP: export of one's own conversation as Markdown, each turn's class shown, audited"
   - "[ ] LC16. After the MVP: branch navigation over replaced turns, and Začít od čistého stolu"
@@ -95,19 +95,47 @@ in the compact drawer.
 
 **LC3. The decision digest.** A pure projection over the ledger rows and turns of this conversation
 (`lead_edit`, `lead_job_request`, `lead_self_update`, plan and lookup rows when they exist), each line
-with its turn id; layer 10. Tests: the same ledger gives the same digest; a dismissed edit from turn 3
-is in turn 40's context.
+with its turn id and ledger row id, each at most 200 bytes. It goes in layer 10, within its 8 KB share
+and in ADR 0041 decision 4's order:
+1. decisions on items the message, the focus or a pin names;
+2. undecided proposals;
+3. the latest decision per item;
+4. counts.
+
+The rest is counted, and listed in the manifest by ledger id.
+
+Tests:
+- the same ledger gives the same digest;
+- a dismissed edit from turn 3 is in turn 40's context when its item is named;
+- 500 decisions stay within 8 KB, and every omitted one is listed by id;
+- no line is rewritten.
 
 **LC4. Budgets enforced.** ADR 0041 decision 2's floors and ceilings; the design layer's outline
 fallback (focused stage verbatim, others as ids and titles); spare bytes to the verbatim
 conversation. Tests: a 60 KB questionnaire leaves the conversation its floor; the outline names the
 sections it shortened; floors sum within 96 KB.
 
-**LC5. Queued messages on the server.** Migration: `study_lead_turns.status` (nullable; person
-messages only). `post` stores a message while a turn runs as `queued`; the worker's next turn takes
-every queued message in order; `DELETE`-free withdrawal (`POST …/turns/{id}/withdraw`). The web
-drops its module-level queue for the server's. Tests: two tabs, a message from each while a turn
-runs, one turn answers both; a withdrawn message is not answered; a greeting still waits.
+**LC5. Queued messages on the server.** The migration adds `parent_turn_id` and `answers_through`
+(nullable, set on insert, never updated) and a `withdrawal` turn kind. Rows stay immutable under the
+`before_update` guard; a message's queued, answered or withdrawn state is derived (ADR 0041
+decision 7).
+- `post` stores a message while a turn runs.
+- The worker's next turn takes queued messages oldest first while they fit layer 9's 12 KB, records
+  `answers_through`, and enqueues a follow-on turn for any left (`queued_deferred`).
+- Bounds: `MESSAGE_MAX_BYTES` (8 KB UTF-8, 422 `message_too_long`) and 5 queued at most (409
+  `lead_queue_full`).
+- A message is withdrawn with `POST …/turns/{id}/withdraw`, which appends a `withdrawal` row; it is
+  edited by appending a replacement.
+- The web drops its module-level queue for the server's.
+
+Tests:
+- with two tabs, a message from each while a turn runs: one turn answers both;
+- a withdrawn message is not answered;
+- no turn row is ever updated;
+- 4,000 four-byte characters are refused by bytes;
+- five 8 KB messages are answered across two turns, the second named in the first's manifest;
+- a sixth queued message is refused;
+- a greeting still waits.
 
 **LC6. Cost, model and class per turn.** The turn's usage rows (model, tokens, USD) and class in
 `GET …/lead`; a quiet line under each Lead turn; compaction and lookup costs as their own lines.
@@ -163,7 +191,7 @@ Everything retrieved is recorded in the manifest with its reason. Tests:
 - a forgotten note is never retrieved;
 - another client's note is never retrieved.
 
-**LC10. Regenerate, edit-and-resend, retry.** Migration: `parent_turn_id`, `replaces_turn_id`.
+**LC10. Regenerate, edit-and-resend, retry.** Migration: `replaces_turn_id` (set on insert, never updated; `parent_turn_id` comes with LC5).
 Routes: `POST …/turns/{id}/regenerate`, `POST …/turns/{id}/resend` (edited text). The replaced turn's
 undecided output refused `superseded_turn`. The web edits the message in place and collapses the
 replaced turn. Tests: regenerate after an accepted edit is refused; a superseded card's approve is
@@ -181,7 +209,8 @@ is refused; the export holds no text; a sealed Lead's feedback is unreadable.
 **LC13. The long-conversation journey and the recall test.** Extends
 `tools/ui_workbench/lead_journey.mjs` with a scripted Lead (no model) over 60 turns:
 - recorded compactions: blocks, one roll-up and kept facts;
-- every digest decision and every kept fact present in turn 61's context;
+- every kept fact in turn 61's context, and every digest decision in it or listed by ledger id in its
+  manifest and retrieved when its item is named;
 - a message naming a summarised subject retrieves that sentence's turns verbatim;
 - the manifest opened;
 - a queued message from a second tab;

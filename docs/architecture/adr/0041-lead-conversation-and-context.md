@@ -89,8 +89,8 @@ its values are proposed here, to be set from LO14's measurement:
 | 6 | Design and stage state (LO7) | 12 KB | 32 KB | the focused stage verbatim, the others as an outline of item ids and titles, named |
 | 7 | Runs and results (LO8 `ResultsContext`) | 4 KB | 16 KB | LO8's own bound |
 | 8 | Pinned items (decision 6) | 0 | 8 KB | refuse the pin when it is made, never at the turn |
-| 9 | View and the message(s) | as written | 12 KB | cannot happen: message bounds; queued messages, decision 7 |
-| 10 | Conversation memory (M3): digest, kept facts, summaries | 6 KB | 16 KB | oldest blocks rolled up; oldest unpinned facts to retrieval; the digest's oldest decisions to one line each; all named |
+| 9 | View and the message(s) | as written | 12 KB | queued messages oldest first while they fit; the rest answered by a follow-on turn, named (decision 7) |
+| 10 | Conversation memory (M3): digest, kept facts, summaries | 6 KB | 16 KB | the digest within its 8 KB share by decision 4's order, older decisions counted and named by ledger id; oldest blocks rolled up; oldest unpinned facts to retrieval; all named |
 | 11 | Conversation, verbatim | 8 KB | what is left | oldest first, **only turns a summary covers**, else decision 4's fallback |
 
 **Results enter once, then as references.** A continuation turn's typed results (LO6) and a
@@ -128,6 +128,19 @@ parts, from exact to approximate:
    this conversation, from the approval ledger and the turns: edits accepted or dismissed (by item),
    cards approved or left, notes kept or forgotten, self-updates accepted or refused, lookups run,
    feedback given, each with its turn id. No model, no cost, never summarised.
+   **It is bounded in context and complete in the ledger.**
+   - **Its record is the ledger.** The digest is a view of the approval ledger rows, which are
+     immutable, so no decision is ever lost. What is bounded is how much of it a turn carries.
+   - **Each line is exact and short:** at most 200 bytes, with the item, the decision, the turn id
+     and the ledger row id.
+   - **Its share is 8 KB of layer 10,** filled in this order:
+     1. every decision on an item the message, the focus or a pin names;
+     2. every undecided proposal, as a one-line pointer to the turn holding it;
+     3. the latest decision per item, newest first;
+     4. then counts per kind ("14 older edit decisions, 3 cards").
+   - **Nothing is rewritten.** A decision that does not fit is left out, counted and listed in the
+     manifest by its ledger row id. Retrieval (decision 5) brings it back exactly when its item is
+     named.
 2. **Kept facts (*Držená fakta*), grounded.** Statements the conversation established that are not
    ledger decisions: "the client wants the report in English", "region is not a quota", "the
    pilot is in Brno". The compaction step proposes them; each must carry a quote that code locates,
@@ -178,7 +191,8 @@ refused or switched-off summary loses no decision.
   light model where one is configured. Off, the digest, the kept facts already accepted and the named
   drop are what remains.
 - **Measured:** the chunk's PR reports a recall test on a recorded 60-turn conversation (every
-  digest decision and every kept fact present in turn 61's context; the turns behind a summary
+  kept fact in turn 61's context, every digest decision in it or listed by ledger id and retrieved
+  when its item is named; the turns behind a summary
   sentence retrieved when the message names its subject), and the cost per block.
 - **"Začít od čistého stolu"** (after the MVP): the researcher sets a boundary; turns before it enter
   the Lead's context only through M3.
@@ -215,15 +229,35 @@ pinned item keeps its own class; a pin never copies text between clients.
 
 ### 7. Message operations are new turns; history is never rewritten
 
-`study_lead_turns` stays append-only and gains three nullable columns: `parent_turn_id` (the turn
-this one answers or follows), `replaces_turn_id` (the turn it supersedes) and `status` for a
-person's message (`queued`, `answered`, `withdrawn`). The table holds a tree; the MVP's interface
-shows the current path with superseded turns collapsed.
+`study_lead_turns` stays append-only, and its rows stay immutable (the `before_update` guard,
+`infrastructure/tables.py:815-818 @ 237fd0a`). It gains three nullable columns, written when the
+row is inserted and never after:
+- `parent_turn_id`: the turn this one answers or follows;
+- `replaces_turn_id`: the turn it supersedes;
+- `answers_through`: on a Lead turn, the `sequence_no` of the newest person message it answers.
+
+A message's state is derived, never stored:
+- **queued:** a person message that no Lead turn's `answers_through` covers yet;
+- **answered:** a person message that one does cover;
+- **withdrawn:** a person message named by a later row of kind `withdrawal` (`parent_turn_id` = the
+  message).
+
+The table holds a tree. The MVP's interface shows the current path, with superseded turns collapsed.
 
 - **Queued messages are stored at once.** A message posted while a turn runs is a stored turn,
-  `queued`, visible in every tab; the next turn answers all queued messages together, in order, and
-  marks them `answered`. Each stays its own turn with its own text, never merged into one prompt. `LeadBusy` is retired for messages (a greeting still waits). A queued
-  message can be withdrawn (`withdrawn`, never deleted) before its turn starts.
+  visible in every tab. The next turn answers the queued messages in order. Each stays its own
+  turn with its own text and is never merged into one prompt. `LeadBusy` is retired for messages; a
+  greeting still waits. A queued message can be withdrawn before its turn starts, or edited, which
+  appends a replacement with `replaces_turn_id`.
+- **The queue is bounded in bytes, never truncated.**
+  - **Per message:** a message is at most `MESSAGE_MAX_BYTES` of UTF-8, 8 KB, on top of today's
+    4,000 characters. A post over it is refused (422 `message_too_long`).
+  - **Per queue:** at most 5 messages, so a sixth post is refused (409 `lead_queue_full`).
+  - **Per turn:** a turn takes queued messages, oldest first, while they fit layer 9's 12 KB
+    ceiling. Its `answers_through` stops at the last one taken. If any remain, a follow-on turn is
+    enqueued at once to answer them, and the manifest names them (`queued_deferred`).
+
+  So layer 9 cannot overflow, and no message is cut or lost.
 - **Regenerate** the newest Lead turn: a new Lead turn with `replaces_turn_id`, from a fresh
   freeze. Allowed only while none of the replaced turn's edits, cards or self-updates has been
   decided; its undecided ones are refused afterwards as `superseded_turn`. Paid like any turn.
@@ -313,7 +347,8 @@ completes (a polite live region), never per token.
 
 ## Consequences
 
-- Three nullable columns on `study_lead_turns`, one feedback table, one manifest per turn (in the
+- Three nullable columns on `study_lead_turns`, set on insert and never updated, and a
+  `withdrawal` turn kind; one feedback table, one manifest per turn (in the
   step's stored input), one artifact type, one capability, one switch with two keys.
 - The Lead remembers a long study's decisions exactly and its dialogue approximately, and says
   which.
@@ -332,9 +367,14 @@ completes (a polite live region), never per token.
   an unreferenced turn, is refused; a kept fact whose quote does not locate in its named turn is
   refused; a roll-up keeps its children's references.
 - The recall test (decision 4, *Measured*): on a recorded 60-turn conversation, turn 61's context
-  holds every digest decision and every kept fact, and a message naming a summarised subject brings
-  back the referenced turns verbatim.
-- Application tests: a queued message posted from a second tab is answered by the next turn; a
+  holds every kept fact and every digest decision, either in context or listed by ledger id in the
+  manifest and retrieved exactly when its item is named; a message naming a summarised subject
+  brings back the referenced turns verbatim.
+- Application tests: no `study_lead_turns` row is ever updated (the `before_update` guard stays);
+  a message over 8 KB of UTF-8 is refused; a sixth queued message is refused; queued messages over
+  layer 9 are answered by a follow-on turn named in the manifest; the digest of 500 decisions stays
+  within its 8 KB share with every omitted decision listed by ledger id; a queued message posted
+  from a second tab is answered by the next turn; a
   regenerate after a decided edit is refused; a superseded turn's card is refused; the manifest
   lists every omitted id; feedback by another researcher is refused; a sealed Lead refuses every
   operation here.
