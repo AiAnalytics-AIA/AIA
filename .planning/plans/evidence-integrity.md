@@ -12,6 +12,7 @@ chunks:
   - "[ ] 9b. The refusal (MVPQ-04, W3): report composition, approval and every export refuse while any of the eight modules is blocked or has no supported finding, until it is resolved; the diagnostic cannot satisfy the gate"
   - "[ ] 8a. A two-origin analysis input and its fingerprint, designed (W1) and reviewed with S3 before client-data-in-analysis 5"
   - "[ ] 8b. The two-origin input wired (W3): the production constructor supplies the client-reported table and the sealed-bundle context, and a changed context or origin changes the module's input fingerprint and payload"
+  - "[ ] 10. The filtered base (W2, after run-qc-and-checkpoint RQC11): a conditional question aggregated over the respondents it was asked, its own effective n and support, the base stated on Results and in the report"
 ---
 # Evidence integrity: findings cite evidence, run QC warns, one policy authority
 
@@ -112,3 +113,9 @@ requirement visible: integrating Deep Research context is MVP work, not an unrec
 MVPQ-04 is settled (block), so the diagnostic of chunk 9a is W1 and the composer's refusal 9b is W3; citation validators and missing-evidence negative tests never waited. No provisional finding is evidence.
 
 **9a and 9b, added 2026-10-20 (MVPQ-04).** A module that cannot state a supported finding stores a diagnostic: the module, reason codes and what would resolve it (a same-data retry through `retry_analysis`, a changed design, more data). It is not a finding, is not counted as admitted, and appears on Analysis and Results. The composer of the internal report and the exports (internal DOCX and PDF, with literature, client) refuse while any of the eight modules is BLOCKED or empty; the existing "all eight modules complete" rule is the same rule stated once. Test: a module with no finding blocks composition and export, shows its diagnostic, and a patched finding with no claim id is refused by the citation gate.
+
+## Cross-check additions (2026-10-20)
+
+From the independent cross-check of the master plan against the code (`mvp-master-plan.md` §6.1, G47-G57). Anchors are `@ 085abe0`.
+
+**10. The filtered base (G53, X8).** A routed question's numbers are over those it was asked, never over everyone. The aggregate takes the routed respondents as its base, computes its own effective n and support (a small base is suppressed like any other), and every admitted claim carries the base; Results and the report state it ("n = 84, those who never visit"). Tests: Q7's percentages sum over the routed base; a base below the support floor is suppressed and named; the claim's base appears on Results.

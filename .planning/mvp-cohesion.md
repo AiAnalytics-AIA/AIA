@@ -147,7 +147,7 @@ Today `instrument.py` refuses any origin but the simulated and `MODELLED_AI_PANE
 `-2`).
 
 **Anchor.** `domain/fieldwork.py:88` (`CLIENT_ADMISSIBLE_ORIGINS`) and `:152` ("no fourth kind"),
-`domain/evidence/instrument.py:112-121` @ `085abe0`; ADR 0027 §Consequences (#494).
+`domain/evidence/instrument.py:184-196` @ `085abe0` (`_declared`, corrected 2026-10-20 from 112-121); ADR 0027 §Consequences (#494).
 
 **Consequence.** The first client-data number meets a gate that has no rule for it and refuses it
 (fail closed, correct), so AC-10 cannot pass, and whoever builds it invents the policy.
@@ -724,3 +724,26 @@ MVPQ-07 and 08 are settled; MVPQ-03, 05, 06 and 09 have their product-owner part
 MVPQ-10, MVPQ-12 and the coding method (`MVPQ-02b`) remain the methodology owner's, who is
 working in PR #504. No paid run, infrastructure change, merge or release is authorized by
 recording these answers.
+
+## The independent cross-check, and the owner's answers on X1, X8 and X10 (2026-10-20)
+
+Four track maps built from the code before the master plan existed (the Lead, the eleven artifacts,
+population and maps, client data) were compared with the plan at `129a800e`, slice by slice; each
+difference went to a verifier told to refute it against the code and every plan file. 16 of 101
+findings held. Merged, they are the master plan's gap rows G47-G57 and five corrections in its §6.2;
+each row names the chunk that closes it, and every new chunk has a wave in
+`mvp-execution-contracts.md`. The evaluation and evidence are the cross-check's; chunk wording is
+this session's. The other three tracks (evidence, Deep Research, acceptance) were not re-mapped:
+the master plan's traces 3 and 5 cover them.
+
+Three rows needed the owner. Each was asked with a worked example; the answers are decisions:
+
+| Row | Answer | Disposition |
+|---|---|---|
+| X1 (G48) | "Build segment evidence" | Per-segment aggregates over the sampler-descriptor segments admitted as SEGMENT-level claims, thin segments suppressed, `RELIGION` refused client-facing; the Segments module states a finding and MVPQ-04's gate can pass. `segment-maps-and-drilldown#10` |
+| X8 (G53) | "Build routing end to end" | Conditions set and validated in the questionnaire, fieldwork asks a routed question only of those it applies to and records "not asked", results and the report state the filtered base. `working-copy-edit-ops#WCE13`, `run-qc-and-checkpoint#RQC11`, `evidence-integrity#10` |
+| X10 (G55) | "Remove the test button" | Settings' draft-prompt test is removed; AC-02 needs no exception for it. A draft is compared and activated, and seen on the next real job. `system-prompts-settings#14` |
+
+With these dispositions, the cross-check's verified findings meet the planning-readiness condition
+in `mvp-execution-contracts.md`. No paid run, infrastructure change, merge or release is authorized
+by recording them.

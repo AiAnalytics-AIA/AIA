@@ -7,6 +7,7 @@ chunks:
   - "[ ] RD3. The Approve and Export panel: what is approved and by whom; exports after approval; the slot in the Report artifact"
   - "[ ] RD4. The map snapshot: an approvable object rendered server-side from the stored map and camera parameters, never browser bytes; one ledger shape"
   - "[ ] RD5. Report draft revisions: a separate draft counter, tracked changes per paragraph; a report edit never reopens fieldwork"
+  - "[ ] RD5a. The report's document model stored and served (W2, before RD5 and RD7): the ReportDocument as JSON beside each DOCX under the same fingerprint, with stable paragraph ids and claim refs, read by a VIEW_RESULTS route"
   - "[ ] RD6. The accept destinations for the report writer, the map interpreter and the straight-liner flags: an artifact type, the composer input and its fingerprint; and, before any semantic report edit exists, the ADR with its deterministic admission rule that ADR 0026 decision 4 requires"
   - "[ ] RD7. A sentence-level claim check: a sentence that claims a comparison with no admitted claim blocks approval, the refusal naming it"
   - "[ ] RD8. The producer of a client report is the run that composed it, not whoever first downloaded it"
@@ -78,3 +79,9 @@ land before LO9b's report binding and any executable report-wording command. The
 renderer must use the pinned methodology and stored numerical artifact; a camera edit is a view.
 F17 settles approval before a deliverable download; master item 9 asks about check definitions,
 not a choice to approve after download. Do not introduce an unapproved internal-draft exception.
+
+## Cross-check additions (2026-10-20)
+
+From the independent cross-check of the master plan against the code (`mvp-master-plan.md` §6.1, G47-G57). Anchors are `@ 085abe0`.
+
+**RD5a. The report's document model stored and served (G50, X4).** The report steps store DOCX bytes only and discard the `ReportDocument` (`apps/executors/src/aia_executors/report.py:140-157`; `application/report.py:422`, likewise `client_report.py` and `contextual_report.py`), and `Paragraph.id` is optional (`domain/report/model.py:87`). RD5 (tracked changes per paragraph), RD7 (the sentence-level claim check), LO8's report-text context and the V2 document-first draft with claim chips have nothing to read. This chunk stores the `ReportDocument` as JSON (outline, stable paragraph ids, claim refs, ledger summary) beside each DOCX under the same fingerprint, for the internal, client and with-literature variants, and a `VIEW_RESULTS` route reads it. Test: the stored document renders to the same DOCX bytes, and paragraph ids are stable across a rerun with the same fingerprint.
