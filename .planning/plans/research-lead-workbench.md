@@ -330,7 +330,13 @@ artifact frame, routing and the old-method panel text (Q2).
     - Its recommendation: a conditional go for ONLYOFFICE Docs Community, self-hosted. AIA writes
       the Lead's suggestions as OOXML revisions, and every number is a locked, tagged content
       control that AIA checks on each save. Collabora Online is the fallback.
-    - It records finding F-ED1: today's DOCX carries no ledger ref
-      (`report_docx/blocks.py:116-123 @ e09a6c99`). R3 cannot be checked through a round trip until
-      RD6 emits refs as content controls.
+    - It records finding F-ED1: today's DOCX carries no ledger ref on any of its seven
+      number-printing paths. These are prose values, table cells, KPI tiles, caption base n, chart
+      images, the evidence appendix and the map pair table (`report_docx/blocks.py:116-123`,
+      `tables.py:182-198`, `blocks.py:280-299 @ e09a6c99`, and the others listed there). R3 cannot
+      be checked through a round trip until RD6 emits refs as locked, tagged content controls.
+    - It records finding F-ED3: no report keeps its document model
+      (`apps/executors/src/aia_executors/report.py:121-167 @ e09a6c99`). `report-delivery#RD5a` is
+      therefore a prerequisite of both edit modes.
+    - The one-day proof covers comments as well as numbers.
     - The go/no-go is the owner's, so the chunk stays open.
