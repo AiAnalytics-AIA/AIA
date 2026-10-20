@@ -1,7 +1,7 @@
 # pm-coordinator — the AIA PM session
 
 Current state. Observed state only. No secrets.
-Updated: 2026-10-20 ~16:40 UTC by session_01YEVg53K5fKSGUfcKPTdrRk ("AIA PM: coordinator 2"), successor of
+Updated: 2026-10-20 ~17:25 UTC by session_01YEVg53K5fKSGUfcKPTdrRk ("AIA PM: coordinator 2"), successor of
 session_019bYPVpsShVq3LCtWDT5Kr8 (archived 16:35 at 73% context). Nigel talks to this session. Tools: .agent-status/pm-coordinator/tools/ (README there).
 
 ## Mandate (Nigel, 2026-10-20)
@@ -22,8 +22,8 @@ session_019bYPVpsShVq3LCtWDT5Kr8 (archived 16:35 at 73% context). Nigel talks to
 X1 segment evidence; X8 routing end to end; X10 remove Settings draft test; spending "envelope" -> **wallet**, Czech **Peněženka**
 (#511); **MVP ships aia-sociomap-5** (MVPQ-13), -5 is CANONICAL (the old formula audit stands only where -5 is silent; packet fixed
 in #510 @ 798d87a); CI fails on high/critical vulns; npm gate = all deps + ONE dated exception (GHSA-vfj7-8cjw-p6xm, expires
-2026-11-20, matched by GHSA id); infra read policy terraform-plan-read: YES (Nigel attaches it; JSON given to him 16:15, not yet
-confirmed attached); disk fix: ONLY the Dockerfile dependency layer (not retention, not 75% alarm).
+2026-11-20, matched by GHSA id); infra read policy terraform-plan-read: ATTACHED 17:14 by Nigel (account 311141567391; his CloudShell was first in
+another account, which has only user openclaw-cornelius); disk fix: ONLY the Dockerfile dependency layer (not retention, not 75% alarm).
 
 ## Sessions
 | Session | Title | State |
@@ -43,10 +43,10 @@ confirmed attached); disk fix: ONLY the Dockerfile dependency layer (not retenti
 
 ## PRs (AiAnalytics-AIA/AIA)
 - Merged today: #504, #506, #507, #508 (86ec0cdd), #509 (f2b0b928). Closed: #505.
-- #511 wallet rename (8fb59523): reviewed OK, ALL GREEN 16:18. Held: develop CI for #509 (f2b0b928, run 39454751130, started
-  16:08) is still running and a merge would cancel it and its deploy. Merge #511 and #518 once that run + deploy finish (~17:00).
-- #518 npm gate (fix/npm-audit-blocking @ 3cafc8c, Next session 01QzemV…): REVIEWED OK by coordinator 2 (id+package match, expiry,
-  fails closed, 10 tests). Backend CI running at 16:35. Merge after #511 per above; then docs follow-up (ARCHITECTURE §8) for planning.
+- MERGED 17:2x by coordinator 2: #511 wallet (125db46d) and #518 npm gate (47e55368). develop CI for #509 (run 39454751130) had
+  stalled 30+ min in "Domain tests on SQLite"; #518's CI was green on top of f2b0b928, so it was cancelled by the merges. WATCH: the
+  develop run on 47e55368 must pass and dispatch a deploy (carries #509 + #511 + #518). If its SQLite step stalls again -> real hang.
+  Doc follow-ups (overview MVP-13/MVP-3 wallet; ARCHITECTURE §8 npm + pip-audit blocking) handed to planning 2 for the next docs PR.
 - #510, #512, #513, #514, #515, #516: freeze inputs, docs-only drafts. Merge after Nigel signs the baseline (or earlier as
   evidence with his OK).
 - Coming: npm gate PR (Next session), Docker layer PR, versions.tf PR (infra, after Nigel's word).
@@ -60,6 +60,11 @@ confirmed attached); disk fix: ONLY the Dockerfile dependency layer (not retenti
 - MVP plan page https://claude.ai/artifact/RAYF6NZ1ctrAxo8qEYFWqR (generator .agent-status/planning/plan-page/).
 
 ## Infra facts (read-only audit)
+- Full plan 17:15 @ f2b0b928: 1 add, 3 change, 0 destroy. Remaining denial: budgets:ListTagsForResource (add to
+  TerraformRefreshBudgetAndCognito). Items put to Nigel 17:20: (2) aws_instance.host user_data drift since c4ba7032 (09-23) - an
+  untargeted apply STOPS/STARTS the host; options (a) lifecycle ignore_changes=[user_data] (recommended) or (b) planned window;
+  (3) github_deploy policy diff = side effect of (2); (4) HYPOTHESIS: Cognito Google IdP drops authorize_url ?hd=art-chain.io, so the
+  Workspace domain restriction may never have applied; Nigel's read-only check: describe-identity-provider ... authorize_url.
 - Deploy 854c2092 healthy (CPU back to ~10%, mem 31.6%, alarms OK). -5 not yet exercised under load.
 - Disk: sawtooth, not a leak — ~1 GB per deploy kept 48 h by image_retention.py; troughs ~53%; deploys refused at 85% (= alarm).
 - Next terraform apply fails until: terraform import 'aws_route53_record.errors[0]' Z0491946PNRJDOXB1EWV_errors.aia-develop.art-chain.io_A
