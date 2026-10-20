@@ -1,8 +1,8 @@
 # pm-coordinator — the AIA PM session
 
 Current state. Observed state only. No secrets.
-Updated: 2026-10-20 16:25 UTC by session_019bYPVpsShVq3LCtWDT5Kr8 ("AIA PM: coordinator") at 70.7% context, HANDING OFF to
-"AIA PM: coordinator 2". Tools: .agent-status/pm-coordinator/tools/ (README there).
+Updated: 2026-10-20 ~16:40 UTC by session_01YEVg53K5fKSGUfcKPTdrRk ("AIA PM: coordinator 2"), successor of
+session_019bYPVpsShVq3LCtWDT5Kr8 (archived 16:35 at 73% context). Nigel talks to this session. Tools: .agent-status/pm-coordinator/tools/ (README there).
 
 ## Mandate (Nigel, 2026-10-20)
 - PM for every AIA session; others are workers. Steer directly (act, then tell Nigel); start sessions only for chunks the plan
@@ -38,18 +38,23 @@ confirmed attached); disk fix: ONLY the Dockerfile dependency layer (not retenti
 | session_01LBR1SyjXK8uYR5VdBjGAEJ | AIA infra audit | env "AIA infra" (personal; can't start sessions there). Waiting: Nigel attaches terraform-plan-read -> re-run full plan. versions.tf fix (>=1.10 + commit .terraform.lock.hcl) prepared, waits for Nigel's own "commit and push" in that session. Import cmd for errors DNS record recorded. |
 | session_01AXkfBjA7hUPZipWXSoHzEc | AIA fix: Docker dependency layer | started 16:22; plan file + Dockerfile split + equivalence proof; draft PR |
 | session_01End3azGdHNr1MtxRjUqqZ8 | AIA design: MVP workbench artifact | idle; https://claude.ai/artifact/JrWZXosJtKVLckHhArngeV |
-| archived | AIA planning (old), AIA #504 review | |
+| session_01YEVg53K5fKSGUfcKPTdrRk | AIA PM: coordinator 2 | THIS session. Subscribed #510, #512-#515, #518. All workers told of the change 16:33. |
+| archived | AIA PM: coordinator (019bYP…), AIA planning (old), AIA #504 review | |
 
 ## PRs (AiAnalytics-AIA/AIA)
 - Merged today: #504, #506, #507, #508 (86ec0cdd), #509 (f2b0b928). Closed: #505.
-- #511 wallet rename (8fb59523): reviewed OK; MERGE WHEN GREEN (full CI ~50 min, started ~15:35).
+- #511 wallet rename (8fb59523): reviewed OK, ALL GREEN 16:18. Held: develop CI for #509 (f2b0b928, run 39454751130, started
+  16:08) is still running and a merge would cancel it and its deploy. Merge #511 and #518 once that run + deploy finish (~17:00).
+- #518 npm gate (fix/npm-audit-blocking @ 3cafc8c, Next session 01QzemV…): REVIEWED OK by coordinator 2 (id+package match, expiry,
+  fails closed, 10 tests). Backend CI running at 16:35. Merge after #511 per above; then docs follow-up (ARCHITECTURE §8) for planning.
 - #510, #512, #513, #514, #515, #516: freeze inputs, docs-only drafts. Merge after Nigel signs the baseline (or earlier as
   evidence with his OK).
 - Coming: npm gate PR (Next session), Docker layer PR, versions.tf PR (infra, after Nigel's word).
 
 ## Artifacts
 - AIA Scope Decisions (for Aram to answer #516's 48): https://claude.ai/artifact/WdXcN8nQnQX3rW36hF8iVd. db collection "answers",
-  doc per D-01..D-48 {choice, text, option_text, by, at, title}. Read with ArtifactData list. Empty at 16:07. Nigel must share it
+  doc per D-01..D-48 {choice, text, option_text, by, at, title}. Read with ArtifactData list. 8 of 48 answered at 16:35 (D-01..D-08,
+  one user u_lDmchBNgQRXZ1nH5Fyv9hQ, 16:08-16:13). Nigel must share it
   with Aram (interact/edit). When answered: hand to planning 2 for step 4 part 2.
 - PDFs sent to Nigel: methodology packet + engineering companion (@ 798d87a), decision list (@ c7d5bbe). Rebuild with tools/.
 - MVP plan page https://claude.ai/artifact/RAYF6NZ1ctrAxo8qEYFWqR (generator .agent-status/planning/plan-page/).
@@ -61,6 +66,8 @@ confirmed attached); disk fix: ONLY the Dockerfile dependency layer (not retenti
 - CI runs no Terraform step although infra/develop/README.md says fmt -check runs (for PE3).
 
 ## Open items
+- **Hourly sweep trigger NOT created**: create_trigger was refused by the auto-mode permission classifier (16:31). Nigel must allow
+  mcp__claude-code-remote__create_trigger (or create it); until then sweeps happen on PR events and Nigel's messages only.
 - Dependabot 112 alerts mostly main (618 commits behind develop) + legacy/; suggest a develop->main release sometime.
 - Optional for Nigel: "Security and dependency scan" as a required check; archive the spare "AIA infra" env (Artchain s.r.o. org);
   root MFA.
