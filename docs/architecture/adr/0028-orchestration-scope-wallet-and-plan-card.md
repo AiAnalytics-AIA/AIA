@@ -9,14 +9,18 @@ and Interpretation Research may be plan steps). **Builds on** [ADR 0019](0019-tw
 ledger and the queue are PostgreSQL). **Leaves unchanged** `budget_usd` as the cap that stops
 spending, `spend_confirm_usd` as a per-start confirmation threshold, every evidence gate and every
 run's pins.
-**Date:** 2026-10-20
+**Date:** 2026-10-20. **Amended 2026-10-20** with the product owner's recorded answers D-01 to D-05
+and D-08 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`); still Proposed.
 **Plan:** [lead-orchestration](../../../.planning/plans/lead-orchestration.md) LO0-LO5, LO10, LO15, LO16
 
 **Terminology** (the product owner, 2026-10-20). The per-study spending allowance is the **wallet**
 in code and plans (`study_wallets`, `study_wallet_raises`, `study_wallet_charges`,
 `clients.wallet_ceiling_usd`, "wallet cap") and **Peněženka** on screen. Earlier documents call it
 the *envelope*; the two words mean the same thing. `budget_usd` (the hard budget) and
-`spend_confirm_usd` (the confirmation threshold) keep their names.
+`spend_confirm_usd` (the confirmation threshold) keep their names. The four money numbers' Czech
+names (the product owner, 2026-10-20, D-01): *Rozpočet klienta* (`clients.budget_usd`), *Rozpočet
+studie* (`budget_usd`, renaming today's "Strop rozpočtu"), *Peněženka* (the wallet) and *Práh
+potvrzení* (`spend_confirm_usd`).
 
 ## Context
 
@@ -47,7 +51,7 @@ architectural change, not a screen:
 |---|---|---|---|
 | `studies.budget_usd` | The hard cap: a reservation that does not fit parks `AWAITING_BUDGET` (unchanged) | a member (ADR 0019) | *Rozpočet studie* |
 | `study_wallets.cap_usd` | What paid work may be started **without a further card**, a slice of `budget_usd` | the researcher, up to the ceiling | *Peněženka* |
-| `studies.spend_confirm_usd` | A per-start confirmation threshold; null never asks (unchanged) | a member | *Potvrdit nad* |
+| `studies.spend_confirm_usd` | A per-start confirmation threshold; null never asks (unchanged) | a member | *Práh potvrzení* |
 
 `clients.wallet_ceiling_usd` (nullable, set only by an organization OWNER or ADMIN) bounds every
 open wallet of the client's studies; null means a wallet may not exceed the study's `budget_usd`.
@@ -61,7 +65,10 @@ every wallet: the exception the owner settled (MVPQ-08, LO13).
 - `study_wallets`: one open wallet per study (a partial unique index `WHERE closed_at IS NULL`), no
   expiry; it closes with the study.
 - `study_wallet_raises`: insert-once, `from_cap_usd`, `to_cap_usd`, `raised_by`. A raise inside the
-  ceiling is the researcher's act and writes a ledger row (`subject_type = "wallet"`).
+  ceiling is the researcher's act and writes a ledger row (`subject_type = "wallet"`). **A raise
+  above the client's ceiling is refused**; only an OWNER or ADMIN raising the ceiling itself lets a
+  wallet grow past it (the product owner, 2026-10-20, D-03). The refusal names who can raise the
+  ceiling.
 - `study_wallet_charges`: insert-once, one per started run, `ceiling_usd`, the `plan_id` or none,
   and the `approval_decisions` row that authorised it.
 
@@ -81,15 +88,16 @@ answerability acknowledgement, each explicit, never "the latest". It has three c
 |---|---|---|---|
 | the Run stage's button | the person's `APPROVE_GATE` | `spend` when confirmed (today's) | asks, as today |
 | a person's typed request in the composer (`chat_start`) | the person's `APPROVE_GATE`, matched by the server | `chat_start` | asks the person in the same exchange |
-| a plan step | the plan authority (decision 4) | `plan_step` | **parks** |
+| a plan step | the plan authority (decision 4) | `plan_step` | covered by the plan's approval for the ceiling the card showed; **parks** if the ceiling grew (D-02) |
 
 **The security condition.** A by-request start is authorised by a typed command the web sends
 from the composer's quick action, naming the revision it starts. The server executes it directly.
 Free text is never a start: it goes to the Lead, which can only prepare a card. A model's reading
 of a message ("the person asked") is not authority, because anything the Lead read (a client
 document, a captured source, a pasted brief) can carry instructions. The confirmation of a
-threshold comes only from a person's request body, never from a model output, a plan row or a
-worker; an import contract forbids `aia_executors` and the plan step from importing the confirming
+threshold comes only from a person's act: their own request, or their approval of a plan card that
+showed the ceiling (decision 4). A plan step reads the confirmation that approval recorded; it can
+never create one, and a model output or a worker never supplies one; an import contract forbids `aia_executors` and the plan step from importing the confirming
 service entry point.
 
 ### 4. The plan authority: issued by `ScopeResolver`, can start what a frozen step names, cannot approve
@@ -98,7 +106,10 @@ A Lead turn may return a plan: at most twelve typed steps (`agent_job`, `researc
 `deep_research`, `interpretation_research`), each with its own ceiling, frozen at proposal with the
 Design Revision and working revision it was prepared on (`lead_plans`, `lead_plan_steps`). A
 person approves it once (`APPROVE_GATE`, one ledger row `lead_plan`). Approval needs the whole
-plan's ceiling to fit the wallet's remaining; it does not reserve it.
+plan's ceiling to fit the wallet's remaining; it does not reserve it. **The approval records a
+confirmation for each step's ceiling the card showed** (the product owner, 2026-10-20, D-02): a step
+whose run reaches `spend_confirm_usd` at that ceiling or below starts without asking again, because
+the person saw it on the card; the card shows each ceiling against the threshold.
 
 An approved plan runs as a workflow of a new closed type, `lead_plan`, one `lead_plan_step` per
 step, each depending on the previous. The step's executor asks `ScopeResolver` for a **plan
@@ -111,9 +122,10 @@ step's own start) with that step's frozen inputs, and nothing else: no `APPROVE_
 approval did not cover:
 
 - its ceiling does not fit the wallet's remaining, or the ceiling is unknown;
-- the run's ceiling reaches `spend_confirm_usd` (see *Open for Nigel*, 1);
+- the run's ceiling **grew** since the card was shown and reaches `spend_confirm_usd` (D-02);
 - a budget lift, a report approval, a Sociomap unlock, a readiness or answerability failure;
-- the working copy or head Design Revision moved since the plan was prepared (decision 5).
+- the step would start from the working copy, and the working copy or head Design Revision moved
+  since the plan was prepared (decision 5).
 
 A parked step is never skipped and never retried around the gate; the person's act resumes or stops
 it (`…/stop`, `STOPPED` with the reason).
@@ -122,8 +134,13 @@ it (`…/stop`, `STOPPED` with the reason).
 
 `approve_request` today submits whatever the working copy is at approval time (LO10). Approving a
 plan names the plan's `design_revision_id` and `workspace_revision`; a mismatch is refused
-`409 stale_plan`, never approved on content the person did not see. A step that would start a run on
-a revision other than the one frozen in it parks.
+`409 stale_plan`, never approved on content the person did not see.
+
+**When the design moves while a plan runs** (the product owner, 2026-10-20, D-04): the steps already
+tied to the plan's immutable Design Revision finish on it. A run executes one immutable revision
+(ADR 0016), so finishing it is safe, and stopping it would waste paid fieldwork. Only a step that
+would start from the working copy stops, `STOPPED` with the reason; a new plan uses the new design.
+A step never starts on a revision other than the one frozen in it.
 
 ### 6. Off by default
 
@@ -141,6 +158,13 @@ fallback). `chat_start` needs only the wallet.
   from any text the Lead has read becomes a spend.
 - **Charge the wallet by settled spend.** A start would be judged by what earlier runs happened to
   cost, so concurrent starts could exceed the cap; by ceiling, a start never can.
+- **Park every step whose run reaches the threshold, even one the card showed** (this ADR's draft).
+  Rejected by the owner (D-02): it asks twice for a number already on the card.
+- **Stop the whole plan when the design moves** (this ADR's draft). Rejected by the owner (D-04):
+  it wastes paid fieldwork on a run that executes an immutable revision anyway.
+- **An approver for a wallet raise above the client's ceiling** (LO1's test). Rejected by the owner
+  (D-03): with about ten users, a queue nobody watches is worse than a refusal naming who can raise
+  the ceiling.
 - **Reserve the plan's whole ceiling at approval.** Simpler accounting, but it would lock the
   wallet for steps that may never run; each step charges when it starts.
 
@@ -161,8 +185,10 @@ fallback). `chat_start` needs only the wallet.
 - An import contract (`[tool.importlinter]`): `aia_executors` and the `lead_plan_step` executor do
   not import the confirming start entry point; the API never starts a plan step.
 - `StudyWalletRepository` is the only writer of the wallet tables (`layer_check`).
-- Tests: concurrent starts never exceed the cap; an unknown ceiling is refused; a step above the
-  threshold parks; a stale plan is refused at approval; a direct HTTP start and rebuild above the
+- Tests: concurrent starts never exceed the cap; an unknown ceiling is refused; a step whose
+  ceiling the card showed starts above the threshold without asking again, and one whose ceiling
+  grew parks; a raise above the client's ceiling is refused by name; a design move lets a step tied
+  to the frozen revision finish and stops a step that would start from the working copy; a stale plan is refused at approval; a direct HTTP start and rebuild above the
   threshold without a confirmation are refused (LO15); a `chat_start` built from free text is
   refused; the plan authority cannot reach another study.
 
@@ -172,21 +198,17 @@ fallback). `chat_start` needs only the wallet.
 
 ## Open for Nigel
 
-1. **Does a plan's approval cover the threshold?** The target architecture parks a step whose run
-   reaches `spend_confirm_usd` (`mvp-target-architecture.md` §3.4), yet the plan card already shows
-   "start fieldwork, ceiling X USD" (LO4). Parking asks twice for the same number; not parking
-   makes the threshold meaningless inside a plan. This ADR parks; the alternative is that the plan's
-   approval records a confirmation for each step's ceiling.
-2. **A raise above the client's ceiling.** LO1's test reads "an approver above it"; the target
-   architecture (§3.3) refuses it outright. This ADR refuses it, so only an OWNER or ADMIN raising
-   the ceiling lets a wallet grow.
-3. **A plan stops on any revision move**, while proposals go stale only item by item (ADR 0026
-   decision 5, `working-copy-edit-ops` WCE5). A plan's run executes a whole immutable revision, so
-   this ADR stops the plan; confirm.
-4. **Deep Research inside the wallet.** Its priced tool calls are held against the study's budget
-   (`application/web_retrieval.py`), but tool spend is not in the usage ledger (`production-environment`
-   PE7, migration M11). The wallet charges a Deep Research run by its ceiling; reconciliation of its
-   tool spend waits for M11.
-5. **Amending ADR 0026, which is Accepted.** Decision 7's "every time" and *Accepted with* 4's "the
-   other three start nothing from the card" change for an approved plan. That needs the owner's
-   explicit yes, not this ADR's acceptance alone.
+Answered by the product owner on 2026-10-20 (`answers-2026-10-20.md`, #523 @ `ee21982`), and
+written into the decisions above:
+
+1. ~~Does a plan's approval cover the threshold?~~ Yes, for each step's ceiling the card showed; a
+   grown ceiling parks (D-02, b). Decision 4.
+2. ~~A raise above the client's ceiling.~~ Refused; only raising the ceiling lets a wallet grow
+   (D-03, a). Decision 2.
+3. ~~A plan stops on any revision move.~~ No: steps tied to the immutable revision finish; only a
+   step that would start from the working copy stops (D-04, b). Decision 5.
+4. ~~Deep Research inside the wallet.~~ Charge its ceiling, reconcile its tool spend after M11
+   (D-05, a), as decision 2 and this item already said.
+5. ~~Amending ADR 0026, which is Accepted.~~ Yes, to each amendment as its ADR is accepted (D-08, a).
+
+Nothing remains open in this ADR but its acceptance.
