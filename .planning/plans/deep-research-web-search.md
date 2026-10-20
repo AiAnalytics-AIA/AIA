@@ -1732,7 +1732,7 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
 - **54 and `mvp-acceptance-harness#11` (D-11).** The acceptance study cites one known dead URL, so a
   real run meets the archive and the run's record names `archive_lookup` / `archive_fetch`.
 - **Deep Research from the Lead (D-12)** is `lead-orchestration#LO5a`; its ceiling is chunk 55's.
-- **The Lead's own web search** (D-35) is not this plan's until the owner answers baseline Q6.
+- **The Lead's own web search** (D-35, Q6): its retrieval half is chunk 56, below.
 
 ### After the baseline's questions (the owner's answers to the baseline's Q1-Q8, 2026-10-20 19:37-19:46 UTC (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, second table))
 

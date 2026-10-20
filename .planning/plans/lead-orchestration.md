@@ -162,8 +162,7 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
 - **LO11 (D-32, D-33, D-34).** Each researcher has their own Lead, built and named by them (free
   text), never transferred: the handover, the departure trigger and an admin's reading of another
   researcher's Lead files are **out**. LO11 keeps the Lead's file history (readable, restorable
-  revisions) and F14's learning rules. Whether a study has one assigned lead researcher an admin can
-  change ("an admin can change the research lead") is open (baseline Q5). ADR 0030 is narrowed in its
+  revisions) and F14's learning rules. No study is assigned to one researcher's Lead (Q5, below). ADR 0030 is narrowed in its
   own PR accordingly.
 - **LO12a (D-10).** Every API error in Czech with a no-leak test and a native copy review; the words
   for a refused Deep Research run (terminal, by cause).

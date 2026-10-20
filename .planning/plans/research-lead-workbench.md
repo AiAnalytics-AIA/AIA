@@ -274,7 +274,8 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
   determined `-5` map looks as confident as any other. Project memory's past runs draw through the same
   `RunResults`, so they get the same layers. Test: a `-5` map with a low split-half share shows its
   credibility banner and uncertainty circles in Results and in project memory. The
-  `-1`/`-3` drawing leaves the product; what a stored older run shows is baseline Q2.
+  `-1`/`-3` drawing leaves the product; a stored older run keeps its data and its map panel says "Mapa ze
+  starší metody; spusťte běh znovu" (Q2).
 - **15.** Mount `ItemInspector` (imported only by its own test) and fix provider waits reading as
   inert (`research/lane.ts:134 @ 854c209`).
 - **26 (D-12).** No Deep Research button survives as an exception; Deep Research starts through the
