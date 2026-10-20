@@ -14,7 +14,7 @@ chunks:
   - "[ ] MP10. This plan re-verified at each gate (I-0 to I-5), its register and gap list brought up to date"
   - "[ ] MP11. The owner answers §11.4's questions; each answer is recorded in mvp-cohesion.md's register and the plans it moves are edited"
   - "[x] MP12. Canonical V2 precedence and eleven-artifact / 34-row planning conformance inventory recorded; implementation and owner/methodology questions remain open"
-  - "[x] MP13. The six child plans written and registered (each session reviews its plan before its wave)"
+  - "[x] MP13. The seven child plans written and registered (each session reviews its plan before its wave)"
   - "[ ] MP14. tools/master_check.py wired into the Documentation checks job (a ci.yml change, in its own pull request)"
   - "[x] MP15. Execution dependencies, partial wave checks and the owner decision packet reconciled; implementation remains open"
 ---
@@ -118,7 +118,7 @@ The waves of every chunk are in `.planning/mvp-execution-contracts.md` (the pred
 | `architecture-enforcement` | SUPPORT (S3) | the new tables must pass its contracts; chunk 9 (a digest on scope and claims) is security | schedule beside M1-M6; not gating |
 | `ai-research-activation` | FOLD into §4 and `MP7` | its open chunk is the activation the AI route still lacks | close when `MP7` is done |
 | `run-recovery-and-truth` | CLOSE | chunk 4 (search beyond Wikipedia) is `deep-research-web-search` 51-52 | owner closes with a pointer |
-| `research-agent-workflows` | FOLD | 5-8 are covered by D17's workers, Interpretation Research (30) and `evidence-integrity`, **but its I4 (OI-64, a per-respondent checkpoint) is open and owned by nothing else** (§6, G27) | move I4 to a chunk of the new `run-qc-and-checkpoint` plan, then close with a pointer |
+| `research-agent-workflows` | FOLD | 5-8 are covered by D17's workers, Interpretation Research (30) and `evidence-integrity`, its I4 (OI-64, a per-respondent checkpoint) is now owned by `run-qc-and-checkpoint#RQC0` (§6, G26); **the transfer is done in this plan** | close with a pointer to RQC0 once `MP3` is run; no checkpoint work stays in the old plan |
 | `mvp-workflow-assurance` | CLOSE A4, A5; keep A3 optional | A4-A5 define an older four-area MVP including Simulation; `mvp-acceptance-harness` replaces them | owner re-scopes, A3 is measured simplification |
 | `connected-research-assurance`, `contextual-research-settings-ux`, `desktop-ux-overhaul-handoff` | CLOSE (verify) | housekeeping chunks ("release checks, deploy, reconcile documentation") of finished work | owners verify against `develop`, close |
 | `methodology-tab` | POST | S4d waits on the audit's author, W1c on panel source weighting, X1 is Simulation | none |
@@ -149,7 +149,7 @@ register check fails on a criterion with no resolvable chunk.
 | AC-02 | `research-lead-workbench#11`, `research-lead-workbench#14`, `research-lead-workbench#15`, `research-lead-workbench#16`, `working-copy-edit-ops#WCE2`, `working-copy-edit-ops#WCE6`, `lead-orchestration#LO3`, `lead-orchestration#LO4`, `lead-orchestration#LO5`, `lead-orchestration#LO13`, `mvp-acceptance-harness#10`, `lead-orchestration#LO15`, `research-lead-workbench#26`, `research-lead-workbench#27` |
 | AC-03 | `research-lead-workbench#11`, `system-prompts-settings#7`, `system-prompts-settings#13`, `lead-orchestration#LO9a`, `lead-orchestration#LO9b`, `assumptions-and-open-answer-coding#AOC0`, `assumptions-and-open-answer-coding#AOC1`, `assumptions-and-open-answer-coding#AOC2`, `assumptions-and-open-answer-coding#AOC3`, `assumptions-and-open-answer-coding#AOC7` |
 | AC-04 | `lead-orchestration#LO0`, `lead-orchestration#LO1`, `client-budget#CB5`, `lead-orchestration#LO15` |
-| AC-05 | `audience-catalogue-cpu#4`, `complete-study-report#B6`, `run-qc-and-checkpoint#RQC6`, `run-qc-and-checkpoint#RQC8`, `run-qc-and-checkpoint#RQC10` |
+| AC-05 | `audience-catalogue-cpu#4`, `complete-study-report#B6`, `run-qc-and-checkpoint#RQC6`, `run-qc-and-checkpoint#RQC8`, `run-qc-and-checkpoint#RQC10`, `sociomap-formula-corrections#I1` |
 | AC-06 | `run-qc-and-checkpoint#RQC0` |
 | AC-07 | `working-copy-edit-ops#WCE7` |
 | AC-08 | `evidence-integrity#1`, `evidence-integrity#2`, `evidence-integrity#3`, `evidence-integrity#6`, `run-qc-and-checkpoint#RQC2`, `evidence-integrity#9a`, `evidence-integrity#9b`, `assumptions-and-open-answer-coding#AOC4`, `assumptions-and-open-answer-coding#AOC5`, `assumptions-and-open-answer-coding#AOC6`, `assumptions-and-open-answer-coding#AOC8`, `assumptions-and-open-answer-coding#AOC9` |
@@ -349,6 +349,7 @@ gap rows it takes.
 | `report-delivery` | G34, G35 (the accept paths), I12, I13, I14 | S3 | W2 |
 | `study-data-lifecycle` | G8, G25 (bytes), I26 | S3 | before W5 |
 | `production-environment` | G2, G6, G7, I18 | S3 | W1 infra apply |
+| `assumptions-and-open-answer-coding` | G44, G45 (added by the owner's MVPQ-02 answer, 2026-10-20) | S1, S2, S3 | W1 |
 
 Segment attributes (G30) are `segment-maps-and-drilldown#0a`, not a plan, because the method owner
 decides what a segment is.
@@ -571,7 +572,7 @@ questions, and X2 and X6 stay release tests.
 
 | Finding | Implementation owners |
 |---|---|
-| CR-01 executable chunks | the six child plans (`MP13`); §5 and §6.1 name a chunk per row |
+| CR-01 executable chunks | the seven child plans (`MP13`); §5 and §6.1 name a chunk per row |
 | CR-02 threshold against budget | `lead-orchestration#LO1`, `develop-spend-attribution#5a`, §11.2 |
 | CR-03 plan authority and AC-02 | `lead-orchestration#LO3`, `lead-orchestration#LO4`, `lead-orchestration#LO5`, `mvp-acceptance-harness#14` |
 | CR-04 OPEN posture in the harness | `deep-research-web-search#53`, `mvp-acceptance-harness#11` |

@@ -12,7 +12,7 @@ reads it and the front-matter of every plan and fails when:
 * a typed count in prose ("38 gaps", "twenty-six interfaces") disagrees with the
   rows, or a section heading carries a count;
 * ``class-b-search-route`` is listed as core, or the new-plan table of §6.3 does
-  not name the six child plans or a plan file is missing for one;
+  not name exactly the seven child plans or a plan file is missing for one;
 * ``.planning/mvp-execution-contracts.md`` is inconsistent: a reference that does
   not resolve, a chunk assigned twice, a predecessor that is unknown, in a later
   wave or part of a cycle, or an open chunk of a core plan in neither the
@@ -39,6 +39,15 @@ MASTER = progress.PLANS / "mvp-master-plan.md"
 CONTRACTS = REPO / ".planning" / "mvp-execution-contracts.md"
 SELF = "mvp-master-plan"
 
+NEW_PLANS = {
+    "working-copy-edit-ops",
+    "lead-orchestration",
+    "run-qc-and-checkpoint",
+    "report-delivery",
+    "study-data-lifecycle",
+    "production-environment",
+    "assumptions-and-open-answer-coding",
+}
 _REF = re.compile(r"`([a-z0-9][a-z0-9-]*)#([A-Za-z0-9.]+)`")
 _NUMBER_WORDS = {"twenty-six": 26, "thirty-eight": 38, "fifteen": 15, "six": 6}
 
@@ -133,14 +142,18 @@ def main(argv: list[str] | None = None) -> int:
     # 5. the new plans of §6.3
     s63 = section(text, "### 6.3 ", "## 7. ")
     new_plans = [r[0].strip("`") for r in table_rows(s63)[1:]]
-    if len(new_plans) != 6:
-        failures.append(f"§6.3 names {len(new_plans)} new plans; the plan says six")
+    if set(new_plans) != NEW_PLANS or len(new_plans) != len(NEW_PLANS):
+        gone = sorted(NEW_PLANS - set(new_plans))
+        extra = sorted(set(new_plans) - NEW_PLANS)
+        failures.append(
+            f"§6.3 must name exactly the seven child plans: missing {gone}, unexpected {extra}"
+        )
     for name in new_plans:
         if name not in plans:
             failures.append(f"§6.3 names `{name}`: no plan file")
     m13 = next((t for _, t in plans[SELF].chunks if t.startswith("MP13.")), "")
-    if "six" not in m13:
-        failures.append("chunk MP13 must say six child plans")
+    if "seven" not in m13:
+        failures.append("chunk MP13 must say seven child plans")
 
     # 6. the execution contracts: references, waves, predecessors, coverage
     ctext = CONTRACTS.read_text(encoding="utf-8")
