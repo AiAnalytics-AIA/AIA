@@ -15,8 +15,12 @@
 
 ARG PYTHON_VERSION=3.12
 
-# ----------------------------------------------------------------- builder --
-FROM python:${PYTHON_VERSION}-slim-bookworm AS builder
+# -------------------------------------------------------------------- deps --
+# Third-party dependencies only, from the four pyproject files and nothing else, so
+# this stage -- and the one large layer the runtime copies from it -- changes only
+# when a dependency does. A source-only commit reuses it from the build cache, and
+# the develop host, which stores layers by digest, downloads nothing new for it.
+FROM python:${PYTHON_VERSION}-slim-bookworm AS deps
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -26,33 +30,41 @@ RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /src
-# Copy only what the install needs first, so a source edit does not re-resolve
-# dependencies. pip resolves `aia-core` from the local directory because every
-# distribution is installed in one invocation.
 COPY packages/aia_core/pyproject.toml packages/aia_core/pyproject.toml
 COPY apps/api/pyproject.toml apps/api/pyproject.toml
 COPY apps/worker/pyproject.toml apps/worker/pyproject.toml
 COPY apps/executors/pyproject.toml apps/executors/pyproject.toml
-COPY packages/aia_core/src packages/aia_core/src
-COPY apps/api/src apps/api/src
-COPY apps/worker/src apps/worker/src
-COPY apps/executors/src apps/executors/src
 
-RUN pip install --upgrade pip \
+# A deliberate refresh: the dependency layer is reused until a pyproject changes or
+# the build cache drops it, so a release inside a range (a security fix) reaches the
+# images only then. Changing this date re-resolves every dependency on the next
+# build. CI's pip-audit audits a fresh resolution, not this cached one, so bump it
+# when an advisory is fixed upstream within a range.
+ARG AIA_DEPS_REFRESH=2026-10-20
+
+# The same pip invocation the images always used, so pip resolves exactly the same
+# set, over empty stand-ins for AIA's four packages (an __init__.py each: enough for
+# hatchling to build them). The stand-ins are then uninstalled, leaving only the
+# third-party distributions; the real packages go in per target, below.
+RUN for pkg in packages/aia_core/src/aia_core apps/api/src/aia_api \
+               apps/worker/src/aia_worker apps/executors/src/aia_executors; do \
+      mkdir -p "$pkg" && touch "$pkg/__init__.py"; \
+    done \
+ && pip install --upgrade pip \
  && pip install \
       "./packages/aia_core[postgres,s3,bedrock,documents,report,errors]" \
       ./apps/api \
       ./apps/worker \
-      ./apps/executors
+      ./apps/executors \
+ && pip uninstall --yes aia-core aia-api aia-worker aia-executors
 
 # ----------------------------------------------------------------- runtime --
 FROM python:${PYTHON_VERSION}-slim-bookworm AS runtime
 
-ARG AIA_BUILD_SHA
-ARG AIA_BUILD_TIME
-ENV AIA_BUILD_SHA=${AIA_BUILD_SHA} \
-    AIA_BUILD_TIME=${AIA_BUILD_TIME} \
-    PATH="/opt/venv/bin:$PATH" \
+# Nothing here may change per commit: AIA_BUILD_SHA and AIA_BUILD_TIME are set at the
+# end of each target, after the layers, because a build argument in a RUN's
+# environment makes that RUN, and every layer after it, new on every commit.
+ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     AIA_LOG_FORMAT=json \
@@ -67,7 +79,7 @@ RUN groupadd --system --gid 10001 aia \
  && useradd --system --uid 10001 --gid aia --home-dir /app --shell /usr/sbin/nologin aia \
  && mkdir -p /app && chown aia:aia /app
 
-COPY --from=builder /opt/venv /opt/venv
+COPY --from=deps /opt/venv /opt/venv
 WORKDIR /app
 USER aia
 
@@ -79,6 +91,27 @@ FROM runtime AS api
 # with nothing else.
 COPY --chown=aia:aia alembic.ini alembic.ini
 COPY --chown=aia:aia migrations migrations
+
+# AIA's own four packages, without their dependencies (the deps stage installed
+# them): a layer of a few megabytes, the only one a source-only commit changes. The
+# sources are bind-mounted at the paths the deps stage used, so each package records
+# the same origin (pip freeze: `aia-core @ file:///src/packages/aia_core`); `pip
+# check` fails the build if a package needs a dependency the deps stage lacks.
+USER root
+RUN --mount=type=bind,source=packages/aia_core,target=/src/packages/aia_core,rw \
+    --mount=type=bind,source=apps/api,target=/src/apps/api,rw \
+    --mount=type=bind,source=apps/worker,target=/src/apps/worker,rw \
+    --mount=type=bind,source=apps/executors,target=/src/apps/executors,rw \
+    cd /src \
+ && PIP_DISABLE_PIP_VERSION_CHECK=1 PIP_NO_CACHE_DIR=1 pip install --no-deps \
+      ./packages/aia_core ./apps/api ./apps/worker ./apps/executors \
+ && pip check
+USER aia
+
+ARG AIA_BUILD_SHA
+ARG AIA_BUILD_TIME
+ENV AIA_BUILD_SHA=${AIA_BUILD_SHA} \
+    AIA_BUILD_TIME=${AIA_BUILD_TIME}
 
 EXPOSE 8000
 # Liveness only: /health touches no dependency, so a database outage restarts
@@ -105,7 +138,23 @@ RUN if [ "$AIA_WORKER_PDF" = "true" ]; then \
       && apt-get install -y --no-install-recommends libreoffice-writer-nogui \
       && rm -rf /var/lib/apt/lists/*; \
     fi
+
+# AIA's own packages after LibreOffice, so a source-only commit reuses that layer
+# too; the same step as in the api target.
+RUN --mount=type=bind,source=packages/aia_core,target=/src/packages/aia_core,rw \
+    --mount=type=bind,source=apps/api,target=/src/apps/api,rw \
+    --mount=type=bind,source=apps/worker,target=/src/apps/worker,rw \
+    --mount=type=bind,source=apps/executors,target=/src/apps/executors,rw \
+    cd /src \
+ && PIP_DISABLE_PIP_VERSION_CHECK=1 PIP_NO_CACHE_DIR=1 pip install --no-deps \
+      ./packages/aia_core ./apps/api ./apps/worker ./apps/executors \
+ && pip check
 USER aia
+
+ARG AIA_BUILD_SHA
+ARG AIA_BUILD_TIME
+ENV AIA_BUILD_SHA=${AIA_BUILD_SHA} \
+    AIA_BUILD_TIME=${AIA_BUILD_TIME}
 
 # No inbound port. The worker polls PostgreSQL; a first SIGTERM releases the
 # executing step and exits 0, a second exits at once (aia_worker.__main__).
