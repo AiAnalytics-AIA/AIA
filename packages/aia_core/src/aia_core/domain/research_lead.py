@@ -45,12 +45,12 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from .ai_contracts import AgentDefinition, Message, ModelRequest, canonical_json
 from .ai_material import MaterialApproval, most_restrictive_material
 from .ai_models import ModelCapability
-from .licence import DataLineage
 from .material_rules import MaterialRule, classify_by_rule, rule_class
 from .prompts import PromptPin
 from .research_agents import (
     FIXED_PREFIX,
     ResearchAction,
+    knowledge_lineage,
     prompt_class_source,
     prompt_data_class,
 )
@@ -981,9 +981,7 @@ def lead_request(
     system = lead_prompt(prompt.text)
     message = model_message(context)
     knowledge = layer(context, "knowledge")["items"]
-    lineage = DataLineage.none()
-    if any(k.get("kind") in {"DATASET", "ARTIFACT", "FINDING"} for k in knowledge):
-        lineage = DataLineage.of("unclassified-client-knowledge")
+    lineage = knowledge_lineage(knowledge)
     return ModelRequest(
         agent=AgentDefinition(
             agent_id=LEAD_AGENT_ID,

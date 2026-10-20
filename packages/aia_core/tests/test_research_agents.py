@@ -77,6 +77,67 @@ def test_every_contract_is_closed_and_has_no_tools_or_fallback() -> None:
         BriefAnalysis.model_validate({**analysis().model_dump(), "approved": True})
 
 
+def test_knowledge_lineage_is_the_recorded_datasets_and_an_unrecorded_one_still_refuses() -> None:
+    # CR-4: the union of the items' recorded datasets; the placeholder for each
+    # dataset-derived item that records none, which the licence gate refuses by name.
+    from aia_core.domain.knowledge import recorded_datasets
+    from aia_core.domain.licence import LicenceDenied
+    from aia_core.domain.licence_determinations import (
+        SYNTHETIC_FIXTURE_DATASET,
+        recorded_policy,
+    )
+    from aia_core.domain.research_agents import UNRECORDED_KNOWLEDGE_LINEAGE, knowledge_lineage
+    from aia_core.domain.residency import ProviderRoute
+
+    def item(kind: KnowledgeKind, datasets: tuple[str, ...] | None) -> KnowledgeItem:
+        return KnowledgeItem(
+            item_id=f"K-{kind.value}",
+            client_id="C1",
+            kind=kind,
+            title="t",
+            revision=1,
+            datasets=datasets,
+        )
+
+    route = ProviderRoute(route_id="any-route", provider="bedrock")
+    recorded = context_snapshot(
+        DESIGN,
+        [
+            item(KnowledgeKind.DATASET, (SYNTHETIC_FIXTURE_DATASET,)),
+            item(KnowledgeKind.FINDING, (SYNTHETIC_FIXTURE_DATASET,)),
+            item(KnowledgeKind.TERM, None),
+        ],
+    )
+    lineage = knowledge_lineage(recorded["knowledge"])
+    assert lineage.datasets == {SYNTHETIC_FIXTURE_DATASET}
+    recorded_policy().authorise(lineage=lineage, route=route)
+
+    for unrecorded in (KnowledgeKind.DATASET, KnowledgeKind.FINDING, KnowledgeKind.ARTIFACT):
+        snapshot = context_snapshot(
+            DESIGN,
+            [item(KnowledgeKind.DATASET, (SYNTHETIC_FIXTURE_DATASET,)), item(unrecorded, None)],
+        )
+        mixed = knowledge_lineage(snapshot["knowledge"])
+        assert UNRECORDED_KNOWLEDGE_LINEAGE in mixed.datasets
+        with pytest.raises(LicenceDenied, match=UNRECORDED_KNOWLEDGE_LINEAGE) as refused:
+            recorded_policy().authorise(lineage=mixed, route=route)
+        assert refused.value.reason == "dataset_unknown"
+
+    # A stored snapshot from before lineage was recorded reads exactly as it did.
+    legacy = [{"item_id": "K1", "kind": "FINDING", "title": "t", "summary": "", "revision": 1}]
+    assert knowledge_lineage(legacy).datasets == {UNRECORDED_KNOWLEDGE_LINEAGE}
+    assert knowledge_lineage([]).datasets == frozenset()
+    # Only a list of nonempty names is a record; anything else is unrecorded, never "none".
+    assert recorded_datasets({}) is None
+    assert recorded_datasets({"datasets": []}) is None
+    assert recorded_datasets({"datasets": [""]}) is None
+    assert recorded_datasets({"datasets": "aia_synthetic_fixture"}) is None
+    assert recorded_datasets({"datasets": ["b", "a", "a"]}) == ("a", "b")
+    assert knowledge_lineage([{"kind": "DATASET", "datasets": []}]).datasets == {
+        UNRECORDED_KNOWLEDGE_LINEAGE
+    }
+
+
 def test_memory_is_frozen_bounded_and_never_downgraded_by_fictional_client() -> None:
     item = KnowledgeItem(
         item_id="K1",

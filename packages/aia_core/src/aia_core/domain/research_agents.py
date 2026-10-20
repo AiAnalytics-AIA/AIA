@@ -555,11 +555,44 @@ def knowledge_entries(knowledge: list[KnowledgeItem]) -> tuple[list[dict[str, An
             "title": item.title,
             "summary": item.summary,
         }
+        if item.datasets is not None:
+            # Its recorded lineage (CR-4), which knowledge_lineage reads; absent: unrecorded.
+            entry["datasets"] = list(item.datasets)
         if len(canonical_json([*selected, entry]).encode()) <= KNOWLEDGE_MAX_BYTES:
             selected.append(entry)
         else:
             omitted.append(item.item_id)
     return selected, omitted
+
+
+#: The kinds whose material derives from some dataset, so a request must name it.
+DATASET_DERIVED_KINDS: Final = frozenset({"DATASET", "ARTIFACT", "FINDING"})
+#: The lineage an item of those kinds carries when nobody recorded its datasets: a name no
+#: licence determination knows, so the licence gate refuses it (``dataset_unknown``).
+UNRECORDED_KNOWLEDGE_LINEAGE: Final = "unclassified-client-knowledge"
+
+
+def knowledge_lineage(entries: list[dict[str, Any]]) -> DataLineage:
+    """The licence lineage of the knowledge a request carries (CR-4): the union of every
+    entry's recorded ``datasets``, and the unrecorded placeholder for each dataset-derived
+    entry that records none -- which keeps that request refused by name. No dataset-derived
+    entry and no recorded dataset: derived from no dataset.
+
+    A stored entry from before lineage was recorded carries no ``datasets`` and reads as
+    unrecorded, exactly as every such entry did before.
+    """
+    datasets: set[str] = set()
+    for entry in entries:
+        recorded = entry.get("datasets")
+        if (
+            isinstance(recorded, list)
+            and recorded
+            and all(isinstance(d, str) and d.strip() for d in recorded)
+        ):
+            datasets.update(recorded)
+        elif entry.get("kind") in DATASET_DERIVED_KINDS:
+            datasets.add(UNRECORDED_KNOWLEDGE_LINEAGE)
+    return DataLineage.of(*sorted(datasets)) if datasets else DataLineage.none()
 
 
 def context_snapshot(content: dict[str, Any], knowledge: list[KnowledgeItem]) -> dict[str, Any]:
@@ -685,9 +718,7 @@ def agent_request(
         ]
         + [rule_class(MaterialRule.KNOWLEDGE) for _ in snapshot["knowledge"]]
     )
-    lineage = DataLineage.none()
-    if any(k["kind"] in {"DATASET", "ARTIFACT", "FINDING"} for k in snapshot["knowledge"]):
-        lineage = DataLineage.of("unclassified-client-knowledge")
+    lineage = knowledge_lineage(snapshot["knowledge"])
     capability = (
         ModelCapability.CRITIC
         if action is ResearchAction.CRITIQUE
