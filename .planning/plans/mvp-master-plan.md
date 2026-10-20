@@ -17,7 +17,7 @@ chunks:
   - "[x] MP13. The seven child plans written and registered (each session reviews its plan before its wave)"
   - "[ ] MP14. tools/master_check.py wired into the Documentation checks job (a ci.yml change, in its own pull request)"
   - "[x] MP15. Execution dependencies, partial wave checks and the owner decision packet reconciled; implementation remains open"
-  - "[ ] MP16. The scope baseline signed by the owner (§ The scope baseline); its open items answered or carried, each answer applied to the plans it moves"
+  - "[x] MP16. The scope baseline signed by the owner (§ The scope baseline); its open items answered or carried, each answer applied to the plans it moves"
 ---
 # The MVP master plan
 
@@ -57,8 +57,9 @@ kind wins, and the others are stale until fixed.
 
 ## The scope baseline (2026-10-20), for the owner's signature
 
-**Status: not signed.** The scope freeze (the owner, 2026-10-20, about 15:25 UTC) holds every feature
-chunk until the owner signs below; security fixes are exempt. The baseline is written against
+**Status: signed by the owner, 2026-10-20, about 23:10 UTC** ("ok lets sign it", in the coordinator's
+session). The scope freeze (the owner, 2026-10-20, about 15:25 UTC) held every feature chunk until
+this signature; it is lifted for the chunks in **In**, in their waves. The baseline is written against
 `develop` @ `47e5536`, from the owner's 48 answers of the same day, recorded word for word in
 [`answers-2026-10-20.md`](../evidence/scope-freeze/answers-2026-10-20.md) (decision ids from
 [`decision-list.md`](../evidence/scope-freeze/decision-list.md), #516), and the inputs' proposed
@@ -215,7 +216,7 @@ to the input-interactions plan (PR #528), named in plain text until it is on dev
 
 ### Signature
 
-Signed: ______________________ (Nigel Blount, product owner)   Date: ____________
+Signed: Nigel Blount, product owner ("ok lets sign it", relayed by the coordinator at his word)   Date: 2026-10-20
 
 ## 2. The three failures this plan exists to prevent
 
