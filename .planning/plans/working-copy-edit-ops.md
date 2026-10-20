@@ -7,7 +7,7 @@ chunks:
   - "[ ] WCE3a. The web store on the server vocabulary, Brief and Design stages"
   - "[ ] WCE3b. The web store on the server vocabulary, Questionnaire (manual operations, move, remove, reference by stable id)"
   - "[ ] WCE3c. The web store on the server vocabulary, Audience, Dimensions and Sample"
-  - "[ ] WCE4. Presence (M2) and the change feed: `study_presence`, `GET changes?since=`, a poll, two sessions"
+  - "[ ] WCE4. Presence (M2) and the change feed: `study_presence`, `GET …/workspace/ops?since=` (ADR 0029), a poll, two sessions"
   - "[ ] WCE5. Field-level merge, per (item_key, field) (D-06), and a stale rule that a later Design Revision does not defeat"
   - "[ ] WCE6. Per-change accept (M6): `proposal_change_decisions`, one change identity across the three accept routes, a dependency rule for coupled changes, `touched_items` returned to the web; any member with the accept permission may accept a proposal another member's Lead prepared (Q16), the chat text staying private"
   - "[ ] WCE7. Readiness and impact on a working revision: readiness without a submitted Design Revision, "current / changed / re-check" per stage, and accepting a working copy as a revision"
@@ -56,7 +56,7 @@ Includes the @ pointer carrying id and revision (workbench 16) and the questionn
 **WCE3c. The web store on the server vocabulary, Audience, Dimensions and Sample**  
 
 
-**WCE4. Presence (M2) and the change feed: `study_presence`, `GET changes?since=`, a poll, two sessions**  
+**WCE4. Presence (M2) and the change feed: `study_presence`, `GET …/workspace/ops?since=` (ADR 0029), a poll, two sessions**  
 Test: two sessions edit one study; each sees the other within a poll; a presence row expires without a heartbeat. Gate I-1. The feed also carries each pending proposal (change identity, item, proposer, status) with no chat text, so another member can accept it (`WCE6`, gap G42).
 
 **WCE5. Field-level merge, per (item_key, field) (D-06), and a stale rule that a later Design Revision does not defeat**  
