@@ -19,6 +19,14 @@ session_019bYPVpsShVq3LCtWDT5Kr8 (archived 16:35 at 73% context). Nigel talks to
 - This container can't reach aia-develop.art-chain.io (proxy 403); deploy evidence = workflow smoke + infra session (CloudWatch).
 
 ## Decisions recorded today (Nigel) — don't re-ask
+~19:40 standing rules: (1) /pmstatus page (https://claude.ai/artifact/Fuc4xiyeNEze1L6QdyGpuW) ALWAYS carries interactive multiple-choice
+questions (recommendation + rationale + practical example); read answers from its db (collections answers/actions) and act on them
+(delegate or ask follow-ups); give each session a full-width card. (2) Sessions publish animated explainer artifacts for complex
+functions/features (HTML/SVG step-through, play/pause/step), linked in PR bodies and in status replies (EXPLAINERS). Tell every new
+session this at start. Tools: .agent-status/pm-coordinator/pmstatus/.
+19:30: domain move develop -> dev.ai-analytics.ai (old address dropped); zone Z02697562BFCKJ2GDY3RI created; Webglobe NS change
+awaiting coworker e-mail confirmation; domain unused (no records copied; parked MX/SPF/DMARC suggested). Drive docs: 20-doc set in
+folder 1vo5Fsd4Ob9XOP4OVJmWGqtua5l6ADEM9, 19 old docs archived.
 17:30: host user_data -> (a) lifecycle ignore_changes (infra session prepares; Nigel's own commit-and-push); Google IdP -> Nigel runs the
 read-only check first; budgets:ListTagsForResource -> Nigel adds it; hourly sweep -> NO SWEEP (stay event-driven; don't ask again).
 X1 segment evidence; X8 routing end to end; X10 remove Settings draft test; spending "envelope" -> **wallet**, Czech **Peněženka**
