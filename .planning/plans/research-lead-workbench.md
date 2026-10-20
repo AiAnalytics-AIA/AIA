@@ -243,5 +243,5 @@ the Czech AIA Vedoucí výzkumu / Research Lead V2 build. This settles prototype
 for the full workspace and all eleven artifact bodies. It supersedes the recommendation
 to take V3 bodies by default. Implement the selected compact layout; expose complexity
 through its contextual controls. Preserve existing domain/methodology, scope, budget,
-approval and privacy decisions. M12 records necessary conformance deltas; implementation
+approval and privacy decisions. MP12 (the master plan's chunk) records necessary conformance deltas; implementation
 chunks remain open. See `../mvp-owner-decisions.md` MVPQ-01; do not re-ask this question.

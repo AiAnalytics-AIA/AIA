@@ -1,22 +1,22 @@
 ---
 status: in-progress
 chunks:
-  - "[x] M0. This plan, first draft: the goal, the document map, the plan register, the activation matrix, the execution protocol"
-  - "[x] M1. The five cohesion traces folded in: the gap register (§6) and the interface register (§5), anchors spot-checked"
-  - "[x] M2. Each gap's chunk added to its plan, with a named ID (§6.1, §5); each plan's owner reviews before its wave"
-  - "[ ] M3. Disposition edits: close or re-scope the plans §3.2 marks CLOSE or FOLD (each plan's owner confirms)"
-  - "[ ] M4. Contracts written before the work that needs them (mvp-development-plan.md §5), and the shared-surface owners of §2 of that plan"
-  - "[ ] M5. The ADRs (mvp-development-plan.md §6), the ADR 0008 amendment for the open posture, and the ADRs ADR 0026 decision 4 requires before semantic report edits and respondent replacement; ADRs awaiting an owner decision stay Proposed"
-  - "[ ] M6. The activation profile: deploy/develop declares the MVP switches and the smoke reports each READY or NOT_READY without a paid call"
-  - "[ ] M7. The operator runbook run once on develop: AI route classes, Brave sign-off, secrets, the reach switches, with the evidence recorded"
-  - "[x] M8. A register check: tools/master_check.py fails on a dangling plan#ID reference, a plan missing from §3, an AC or G or I row with no resolvable chunk, or a count that does not match the tables"
-  - "[ ] M9. The production release checklist exercised once on develop: delete path, backups and restore, alarms, rollback"
-  - "[ ] M10. This plan re-verified at each gate (I-0 to I-5), its register and gap list brought up to date"
-  - "[ ] M11. The owner answers §11.4's questions; each answer is recorded in mvp-cohesion.md's register and the plans it moves are edited"
-  - "[x] M12. Canonical V2 precedence and eleven-artifact / 34-row planning conformance inventory recorded; implementation and owner/methodology questions remain open"
-  - "[x] M13. The six child plans written and registered (each session reviews its plan before its wave)"
-  - "[ ] M14. tools/master_check.py wired into the Documentation checks job (a ci.yml change, in its own pull request)"
-  - "[x] M15. Execution dependencies, partial wave checks and the owner decision packet reconciled; implementation remains open"
+  - "[x] MP0. This plan, first draft: the goal, the document map, the plan register, the activation matrix, the execution protocol"
+  - "[x] MP1. The five cohesion traces folded in: the gap register (§6) and the interface register (§5), anchors spot-checked"
+  - "[x] MP2. Each gap's chunk added to its plan, with a named ID (§6.1, §5); each plan's owner reviews before its wave"
+  - "[ ] MP3. Disposition edits: close or re-scope the plans §3.2 marks CLOSE or FOLD (each plan's owner confirms)"
+  - "[ ] MP4. Contracts written before the work that needs them (mvp-development-plan.md §5), and the shared-surface owners of §2 of that plan"
+  - "[ ] MP5. The ADRs (mvp-development-plan.md §6), the ADR 0008 amendment for the open posture, and the ADRs ADR 0026 decision 4 requires before semantic report edits and respondent replacement; ADRs awaiting an owner decision stay Proposed"
+  - "[ ] MP6. The activation profile: deploy/develop declares the MVP switches and the smoke reports each READY or NOT_READY without a paid call"
+  - "[ ] MP7. The operator runbook run once on develop: AI route classes, Brave sign-off, secrets, the reach switches, with the evidence recorded"
+  - "[x] MP8. A register check: tools/master_check.py fails on a dangling plan#ID reference, a plan missing from §3, an AC or G or I row with no resolvable chunk, or a count that does not match the tables"
+  - "[ ] MP9. The production release checklist exercised once on develop: delete path, backups and restore, alarms, rollback"
+  - "[ ] MP10. This plan re-verified at each gate (I-0 to I-5), its register and gap list brought up to date"
+  - "[ ] MP11. The owner answers §11.4's questions; each answer is recorded in mvp-cohesion.md's register and the plans it moves are edited"
+  - "[x] MP12. Canonical V2 precedence and eleven-artifact / 34-row planning conformance inventory recorded; implementation and owner/methodology questions remain open"
+  - "[x] MP13. The six child plans written and registered (each session reviews its plan before its wave)"
+  - "[ ] MP14. tools/master_check.py wired into the Documentation checks job (a ci.yml change, in its own pull request)"
+  - "[x] MP15. Execution dependencies, partial wave checks and the owner decision packet reconciled; implementation remains open"
 ---
 # The MVP master plan
 
@@ -67,7 +67,7 @@ kind wins, and the others are stale until fixed.
    (`deploy/develop/README.md` § AI route classes), and the deploy's smoke never looks:
    `smoke.py:207-214 @ 769917f` reports the AI check "not runnable ... never a pass". A green deploy
    hid a product that could not run. Rule: §4's activation matrix is declared in the repository and
-   checked on every deploy (`mvp-master-plan#M6`).
+   checked on every deploy (`mvp-master-plan#MP6`).
 3. **Two plans owning one surface.** `client-workspace` C8 says a dataset's use in a study is "V AIA
    zatím není"; `client-data-in-analysis` builds exactly that. Rule: §3 names one owner per surface
    and one disposition per plan; a plan that disagrees is re-scoped, not left to win by being later.
@@ -77,7 +77,7 @@ kind wins, and the others are stale until fixed.
 **Role.** `CORE`: carries an MVP gate. `SUPPORT`: needed, gates nothing alone. `CLOSE`: finished or
 superseded, to be verified and closed by its owner. `FOLD`: its remaining work belongs inside another
 plan. `POST`: after the MVP, by decision. The dispositions of plans outside the development plan are
-**proposed** (◇): each plan's owner confirms in `M3`.
+**proposed** (◇): each plan's owner confirms in `MP3`.
 
 ### 3.1 Core: carry an MVP gate
 
@@ -115,7 +115,7 @@ The waves of every chunk are in `.planning/mvp-execution-contracts.md` (the pred
 | `productization-coherence` | SUPPORT (S1) | PC5 (stage track says the design changed after the run) and PC16 (rewording a question keeps its links) land inside artifacts 17-18 | add to workbench 17-18 as acceptance lines |
 | `client-workspace` | FOLD into `client-knowledge-lifecycle` (S3) | C6-C9 overlap K3, K2, K6; C8 contradicts ADR 0027 and F19 | re-scope C8, point C6-C9 at the lifecycle chunks |
 | `architecture-enforcement` | SUPPORT (S3) | the new tables must pass its contracts; chunk 9 (a digest on scope and claims) is security | schedule beside M1-M6; not gating |
-| `ai-research-activation` | FOLD into §4 and `M7` | its open chunk is the activation the AI route still lacks | close when `M7` is done |
+| `ai-research-activation` | FOLD into §4 and `MP7` | its open chunk is the activation the AI route still lacks | close when `MP7` is done |
 | `run-recovery-and-truth` | CLOSE | chunk 4 (search beyond Wikipedia) is `deep-research-web-search` 51-52 | owner closes with a pointer |
 | `research-agent-workflows` | FOLD | 5-8 are covered by D17's workers, Interpretation Research (30) and `evidence-integrity`, **but its I4 (OI-64, a per-respondent checkpoint) is open and owned by nothing else** (§6, G27) | move I4 to a chunk of the new `run-qc-and-checkpoint` plan, then close with a pointer |
 | `mvp-workflow-assurance` | CLOSE A4, A5; keep A3 optional | A4-A5 define an older four-area MVP including Simulation; `mvp-acceptance-harness` replaces them | owner re-scopes, A3 is measured simplification |
@@ -134,7 +134,7 @@ The waves of every chunk are in `.planning/mvp-execution-contracts.md` (the pred
 Counts are derived, not typed: `python tools/master_check.py` prints how many plans each table holds and
 checks them against the plan files' front matter.
 
-A plan not in §3 is a defect of this plan: `tools/master_check.py` (M8) fails on it.
+A plan not in §3 is a defect of this plan: `tools/master_check.py` (`MP8`) fails on it.
 
 ### 3.4 Acceptance criteria and what builds them
 
@@ -157,13 +157,13 @@ register check fails on a criterion with no resolvable chunk.
 | AC-11 | `deep-research-web-search#51`, `deep-research-web-search#52`, `deep-research-web-search#53`, `deep-research-web-search#54`, `deep-research-web-search#27`, `mvp-acceptance-harness#11` |
 | AC-12 | `mvp-acceptance-harness#5`, `client-knowledge-lifecycle#K7a` |
 | AC-13 | `report-delivery#RD0`, `report-delivery#RD1`, `report-delivery#RD3`, `report-delivery#RD4`, `research-integrity-report#6` |
-| AC-14 | `mvp-master-plan#M6`, `mvp-acceptance-harness#5` |
+| AC-14 | `mvp-master-plan#MP6`, `mvp-acceptance-harness#5` |
 | AC-15 | `develop-spend-attribution#1`, `develop-spend-attribution#3`, `develop-spend-attribution#5a`, `develop-spend-attribution#5b`, `deep-research#4`, `production-environment#PE7` |
 
 ## 4. The activation matrix: what must be switched on, and who throws it
 
 A feature that is built and not switched on does not exist for the owner. **The route row reaches further than the first diagnosis said:** with the route at Class C only, every Lead turn, design job, panel fieldwork request and modelled-run analysis parks (a design is Class B by rule, approved knowledge and panel personas Class A: `material_rules.py:79-91`, `ai_fieldwork.py:418-432`, `harness.py:192-203`), and the planned results layer, report writer and map interpreter would too. Production needs the same approval and retention evidence, and `AIA_AI_ROUTE_ID` must equal `bedrock-eu-primary` for panel lineage (`licence_determinations.py:44`). Each row is a switch, the
-gate that needs it, who sets it, and the evidence that it is on. **`M6` declares this profile in the repository and makes the smoke report each row `READY` or `NOT_READY` with the reason, never a paid call**, so a green deploy can no longer hide a dead product.
+gate that needs it, who sets it, and the evidence that it is on. **`MP6` declares this profile in the repository and makes the smoke report each row `READY` or `NOT_READY` with the reason, never a paid call**, so a green deploy can no longer hide a dead product.
 
 | Switch or parameter | Needed by | Set by | Evidence |
 |---|---|---|---|
@@ -212,9 +212,9 @@ trace that found each (`.planning/evidence/mvp-master-traces/`).
 | I13 | **Map snapshot**: the renderer, the approvable object, the ledger shape | S2 figure, S3 approval (T3 C5) | S3 owns the object, S2 the deterministic function with camera parameters | W2 | `report-delivery#RD4` |
 | I14 | **Accepted report wording, map readings, flags**: an artifact type and the composer input that carries them into a report's fingerprint | S1 workers, S3 composer (T3 C7) | S3 defines the type, S1 writes the worker against it | W3 | `report-delivery#RD6` |
 | I15 | **Settings**: the router (S1), the Reach panel (S2, which needs a worker-published composition record the API can read), posture and ceiling (S3) | S1, S2, S3 (T4 C3, T5 C2) | S1 owns the router; S2 writes the record | W1 | `lead-orchestration#LO12`, `deep-research-web-search#52` |
-| I16 | **Class and residency rules**: `material_rules.py`, `residency.py`, and the classification code in `web_retrieval.py`, `application/deep_research.py`, `aia_executors/deep_research/*` | S1, S2, S3 (T4 C2, T5 C1) | S2 for Deep Research, S1 for `material_rules`; others open small PRs | W0 | `mvp-master-plan#M4` |
-| I17 | **Ledger writers and closed sets**: `workflow_repository.py`, `workflow_templates.py`, `executors/registry.py` | S1, S2, S3 (T4 C1, C4) | S3 (the lane owner) reviews; each session registers its own kind | W1 | `mvp-master-plan#M4` |
-| I18 | **Population in production**: provisioning, the licence route id, the tier A double for AC-05 | S2, S3 (T2 C10, T4 C7) | S3 | W1 | `production-environment#PE6`, `run-qc-and-checkpoint#RQC10` |
+| I16 | **Class and residency rules**: `material_rules.py`, `residency.py`, and the classification code in `web_retrieval.py`, `application/deep_research.py`, `aia_executors/deep_research/*` | S1, S2, S3 (T4 C2, T5 C1) | S2 for Deep Research, S1 for `material_rules`; others open small PRs | W0 | `mvp-master-plan#MP4` |
+| I17 | **Ledger writers and closed sets**: `workflow_repository.py`, `workflow_templates.py`, `executors/registry.py` | S1, S2, S3 (T4 C1, C4) | S3 (the lane owner) reviews; each session registers its own kind | W1 | `mvp-master-plan#MP4` |
+| I18 | **Population in production**: provisioning, the licence route id, the tier A double for AC-05 | S2, S3 (T2 C10, T4 C7) | S3 | W1 (tier A double); W3 (production provisioning) | `production-environment#PE6`, `run-qc-and-checkpoint#RQC10` |
 | I19 | **Evidence into Client Knowledge**: three plans (`verified_sources`, K2e, deep-research chunk 37), three semantics (item or proposal) | S2, S3 (T5 C3, C6) | S3 decides once; S2 supplies the bundle reader | W2 | `client-knowledge-lifecycle#K8` |
 | I20 | **Tool spend, the ledger and AC-15**: Brave and Athena spend is in `budget_reservations`, not the usage ledger | S2 ledger, S3 reconciliation (T5 C9) | S3 | W3 | `deep-research#4` |
 | I21 | **A single-origin analysis input** against client-reported numbers | S2, S3 (T3 C4) | S2 designs a two-origin input and its fingerprint before S3's client-data chunk 5 | W3 | `evidence-integrity#8a`, `evidence-integrity#8b` |
@@ -235,10 +235,10 @@ These rows preserve the original findings; assigning chunks resolves planning ow
 
 | # | Gap | Chunks |
 |---|---|---|
-| G1 | **No one can tell a user how to fix a route-class refusal.** Each surface says what is refused (the job error, the Lead pane, source proposals, Progress parks); none says who fixes it; the API cannot evaluate class; `/config` omits retention. The fix is an operator's (SSM), Settings is read-only (T4 A2, B9) | `lead-orchestration#LO12`, `research-lead-workbench#11`, `mvp-master-plan#M6` |
+| G1 | **No one can tell a user how to fix a route-class refusal.** Each surface says what is refused (the job error, the Lead pane, source proposals, Progress parks); none says who fixes it; the API cannot evaluate class; `/config` omits retention. The fix is an operator's (SSM), Settings is read-only (T4 A2, B9) | `lead-orchestration#LO12`, `research-lead-workbench#11`, `mvp-master-plan#MP6` |
 | G2 | **Production route classes and retention evidence** are in no plan; ADR 0010's amendment is develop-only (T4 A3) | `production-environment#PE5` |
-| G3 | **Readiness cannot see worker egress**: the panel default parks every run when the route lacks Class A, and the API reads no egress key (T2 A1) | `run-qc-and-checkpoint#RQC8`, `mvp-master-plan#M6` |
-| G4 | **The activation profile is not declared** (chunk 6 of this plan) | `mvp-master-plan#M6` |
+| G3 | **Readiness cannot see worker egress**: the panel default parks every run when the route lacks Class A, and the API reads no egress key (T2 A1) | `run-qc-and-checkpoint#RQC8`, `mvp-master-plan#MP6` |
+| G4 | **The activation profile is not declared** (chunk 6 of this plan) | `mvp-master-plan#MP6` |
 | G5 | **Each connector is UNVERIFIED**, none run live; Common Crawl's AWS side has no Terraform; the focused crawler, triage readers and procurement source are not usable though chunks 16 and 20 were ticked (T5 A5, A6, A16, B1, B15) | `deep-research-web-search#54`, `deep-research-web-search#16`, `deep-research-web-search#20`, `deep-research-web-search#36` |
 | G6 | **No Terraform validation in CI**; two documents assume it; no freeze of auto-deploys during a tier B run; production needs its own ADR 0022 approvals (T5 A10, A11, A17, B9) | `production-environment#PE3`, `production-environment#PE5`, `production-environment#PE8` |
 | G7 | **Production environment has no plan file**: `infra/production`, the workflow, RDS, Cognito, the egress proxy (which contradicts fetch from any public host), tag-conditioned IAM (T5 A8, A9, B14) | `production-environment#PE0`, `production-environment#PE1`, `production-environment#PE2`, `production-environment#PE4` |
@@ -295,6 +295,7 @@ These rows preserve the original findings; assigning chunks resolves planning ow
 | G36 | **Evidence into knowledge has three semantics** and a document item holds only `source_id`, so Deep Research never sees the file text (`knowledge_access.py:75-90`); the data-contract permission differs between plans (`APPROVE_GATE` against `PROPOSE_CLIENT_KNOWLEDGE`); ADR 0027 decision 3 uses a blocklist, the plans an allowlist (T5 #8, B10; T3 B8) | `client-knowledge-lifecycle#K8`, `client-data-in-analysis#2` |
 | G41 | **Two settled features have no ADR yet.** ADR 0026 decision 4 (Accepted) gives semantic report edits and respondent replacement no command until each has its own ADR and a deterministic admission rule; the report-wording worker and replacement chunks did not name that prerequisite (review item 4) | `report-delivery#RD6`, `run-qc-and-checkpoint#RQC5` |
 | G42 | **A proposal one researcher's Lead prepared cannot be accepted by another member.** Q16 (decided 2026-10-19): any member with the accept permission may accept another's proposal; the chat stays private (Q26). Today `decide_edits` takes the caller's own completed turn (`application/research_lead.py:515-518`; `study_lead_repository.py:60-76` reads only the caller's turns), so an edit block is reachable only through its author's private turn. A proposal must be a shared artifact-level item identified by its change identity, with no chat text (review of 2026-10-20) | `working-copy-edit-ops#WCE6`, `working-copy-edit-ops#WCE4`, `working-copy-edit-ops#WCE12` |
+| G43 | **Three lane migrations had no owning chunk.** M3 (the ledger's subject types, W0, first) was in a development-plan row only; M8 (`client_data_contracts`, `client_dataset_copies`) and M9 (`inference_profile_arn`) named no chunk that creates them, while consumers write those subjects and tables (review of 2026-10-20) | `lead-orchestration#LO16`, `client-data-in-analysis#2`, `client-data-in-analysis#3`, `develop-spend-attribution#5a` |
 
 **Deep Research and the open posture**
 
@@ -332,7 +333,7 @@ These rows preserve the original findings; assigning chunks resolves planning ow
 
 ### 6.3 New plan files these gaps need
 
-The traces found work no plan owns. Each is now one plan file with open, named chunks (`M13`),
+The traces found work no plan owns. Each is now one plan file with open, named chunks (`MP13`),
 written by the session named, before its wave starts. A plan is not new work: its first line says which
 gap rows it takes.
 
@@ -397,14 +398,14 @@ verify` is green; its anchors are in its plan; any shared-file change is written
 switch, if any, is in §4 with its evidence; the plan's front matter is ticked.
 
 **Status.** Progress lives only in plan front matter and the PR body (`python tools/progress.py`).
-This plan's register is re-verified at every gate (`M10`), and a session that finds a plan not in
+This plan's register is re-verified at every gate (`MP10`), and a session that finds a plan not in
 §3, or a chunk a wave names that does not exist, fixes §3 in its PR, never in chat.
 
 **Incidents and rollback.** A bad deploy is rolled back by the workflow's own input (an older
 schema-compatible SHA with migrations unchecked, `deploy-develop.yml:24`); the runbook is
 `deploy/develop/README.md`. Production adds the same with an RDS snapshot first.
 
-**Who throws a switch.** An operator, from the runbook, with the evidence written down (`M7`). A
+**Who throws a switch.** An operator, from the runbook, with the evidence written down (`MP7`). A
 session never asks for credentials in chat: a read-only credential goes in the environment's secrets,
 and a write step is a person's.
 
@@ -447,26 +448,26 @@ still the owner's and an operator's (`mvp-target-architecture.md` §9).
 
 | Risk | Consequence | What holds it |
 |---|---|---|
-| A built feature stays switched off | the owner sees a broken product (§2.2) | §4 and `M6` |
+| A built feature stays switched off | the owner sees a broken product (§2.2) | §4 and `MP6` |
 | S1 is the critical path and carries the Lead, the artifacts and the plan card | the date slips | the fewest side tasks; S2 and S3 carry everything that can wait |
 | The method owner has not answered | segment maps, clustering and register entries wait | decisions named in `mvp-cohesion.md`; no dates yet |
 | Classification is deferred and a client is marked OPEN | an OPEN client's queries reach Brave unchecked | the audited flag is the only guard, stated |
-| Plans drift again | this plan goes stale | the register check (`M8`), and the rule in §8 |
+| Plans drift again | this plan goes stale | the register check (`MP8`), and the rule in §8 |
 
 ## 11. Questions for the owner
 
 Only choices that are genuinely open are asked. Decisions already made are listed in 11.1 and are not
 re-asked; a different answer to one of them is a **scope override** and is said to be one (11.3), with the
-work it moves. Each answer is recorded in `mvp-cohesion.md`'s register (`M11`). "Row" means a row of
+work it moves. Each answer is recorded in `mvp-cohesion.md`'s register (`MP11`). "Row" means a row of
 `.planning/evidence/mvp-prototype-v2/conformance.md`.
 
 ### 11.1 Settled, not asked again
 
-MVPQ-01 was answered on 2026-10-20: the browser's Czech Research Lead V2 build is the canonical reference for both the workspace and all eleven artifact bodies; V3 is supporting reference only. Preserve newer recorded domain/methodology decisions; verify deltas in M12.
+MVPQ-01 was answered on 2026-10-20: the browser's Czech Research Lead V2 build is the canonical reference for both the workspace and all eleven artifact bodies; V3 is supporting reference only. Preserve newer recorded domain/methodology decisions; verify deltas in MP12.
 
 | Decision | Settled by | Where it is built |
 |---|---|---|
-| Canonical design is the browser's Czech V2 build, including its artifact bodies; the earlier V2/V3 blend recommendation is superseded | MVPQ-01, owner 2026-10-20 | `research-lead-workbench#15`, `research-lead-workbench#17`, `research-lead-workbench#22`, `mvp-master-plan#M12` |
+| Canonical design is the browser's Czech V2 build, including its artifact bodies; the earlier V2/V3 blend recommendation is superseded | MVPQ-01, owner 2026-10-20 | `research-lead-workbench#15`, `research-lead-workbench#17`, `research-lead-workbench#22`, `mvp-master-plan#MP12` |
 | Each researcher has their own private Lead | F12, Q26 | `lead-orchestration#LO0`, `lead-orchestration#LO11` |
 | The Deep Research open posture replaces classification for the MVP; the posture is pinned at enqueue and a retry copies it | #500, owner 2026-10-19 | `deep-research-web-search#53` |
 | Respondent replacement is a new linked run, never an edit of a completed one | F18 | `run-qc-and-checkpoint#RQC5` |
@@ -548,8 +549,8 @@ Answer-ready wording, stable decision ids, decision owner and permitted independ
 
 The Brave plan and sign-off; the production hostname, Cognito and Google callbacks; RDS sizing; Bedrock
 quota and the model per tier; the Bedrock retention evidence that lets the four route parameters be set
-(`M7`); the Lead's cost per turn, measured on develop; provider terms. None is portrayed as performed. The
-activation profile (`M6`) makes each READY or NOT_READY.
+(`MP7`); the Lead's cost per turn, measured on develop; provider terms. None is portrayed as performed. The
+activation profile (`MP6`) makes each READY or NOT_READY.
 
 ### 11.6 Recommendations withdrawn
 
@@ -565,7 +566,7 @@ questions, and X2 and X6 stay release tests.
 
 | Finding | Implementation owners |
 |---|---|
-| CR-01 executable chunks | the six child plans (`M13`); §5 and §6.1 name a chunk per row |
+| CR-01 executable chunks | the six child plans (`MP13`); §5 and §6.1 name a chunk per row |
 | CR-02 threshold against budget | `lead-orchestration#LO1`, `develop-spend-attribution#5a`, §11.2 |
 | CR-03 plan authority and AC-02 | `lead-orchestration#LO3`, `lead-orchestration#LO4`, `lead-orchestration#LO5`, `mvp-acceptance-harness#14` |
 | CR-04 OPEN posture in the harness | `deep-research-web-search#53`, `mvp-acceptance-harness#11` |
@@ -588,7 +589,7 @@ no calendar is promised: capacity and external decisions (§11.4 1, 3, 5, 6, 7) 
 
 
 
-## M12 conformance inventory (2026-10-20)
+## MP12 conformance inventory (2026-10-20)
 
 [Canonical V2 disposition](../evidence/mvp-prototype-v2/current-disposition.md)
 compares every artifact and all 34 historical walk rows with the recorded decisions
@@ -598,7 +599,7 @@ preserved with a supersession notice. Workbench 15/20/21 explicitly own message
 origin/return UI and the four-way result/display/interpretation/context distinction;
 their minimal context/cursor contract is W1, their complete UI W4.
 
-M12 is complete as a planning inventory only. It does not pass any acceptance
+MP12 is complete as a planning inventory only. It does not pass any acceptance
 criterion or close UI implementation, MVPQ-02–12, scientific approvals or the
 parallel crosscheck's not-yet-received final output. Segment-map/filter work is not
 proof that compare_segments supplies admitted comparative analysis; until a named

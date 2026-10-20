@@ -17,13 +17,14 @@ chunks:
   - "[ ] LO12. The route-class refusal says who fixes it: a pre-flight read of the AI route and a message with a link"
   - "[ ] LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02"
   - "[ ] LO14. The Lead's cost per turn measured, and an `AIA_LEAD_*` kill switch and budget line"
+  - "[ ] LO16. The approval ledger's subject types (lane migration M3, W0, the first migration): `approval_decisions.subject_type` extended with `envelope`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot` and `sociomap_unlock`; S3 writes it"
   - "[ ] LO15. Server spend enforcement (W0): `ResearchAgentJobs.start` and `rebuild` apply `spend_confirm_usd` as `ResearchRuns.start` does, and record the confirmation in the ledger; tested through direct HTTP start and rebuild and through the Lead's approve path"
 ---
 # Lead orchestration: the envelope, the plan card, the continuation turn and the Lead over time
 
 The orchestration the prototype and the owner describe: a per-study envelope, a plan approved once, a chat start, a continuation turn that returns typed results to the Lead, its context layers, its workers and its lifecycle. Written 2026-10-19 from `.planning/evidence/mvp-master-traces/trace-4-lead-governance.md` and `trace-2-sample-execution.md`.
 
-**Owner: S1.** Takes the gap rows G1, G11, G12, G13, G15, G16, G17, G20, G39 and interfaces I1, I3, I4, I22, I23 of `mvp-master-plan.md` §6.1 and serves AC-02, AC-03, AC-04, AC-15 and gate I-1.
+**Owner: S1.** Takes the gap rows G1, G11, G12, G13, G15, G16, G17, G20, G39, G43 and interfaces I1, I3, I4, I22, I23 of `mvp-master-plan.md` §6.1 and serves AC-02, AC-03, AC-04, AC-15 and gate I-1.
 Every chunk below is **open**; a chunk is built from this file, not from the master plan.
 
 ## Decisions this plan carries (settled by the owner; not re-asked)
@@ -69,6 +70,9 @@ One row defines a worker once: id, closed task, context layer, data-class rule, 
 **LO9b. The three new workers as rows (W3): a `REPORT_WRITING` binding, result kinds and accept destinations, per-worker price and keys**  
 The three workers (map interpreter, report writer, straight-liner check) have no binding, no accept path and no price today. The accept destinations are `report-delivery#RD6` and `run-qc-and-checkpoint#RQC4`. **Prerequisite for the report writer's semantic edits:** ADR 0026 decision 4 requires an ADR and a deterministic admission rule for semantic report edits before any command exists; the feature is settled, the ADR is the work (`report-delivery#RD6`).
 
+**LO16. The approval ledger's subject types (lane migration M3, W0, the first migration)**  
+`approval_decisions.subject_type` is a check constraint; every later migration and consumer (`LO1`, `LO3`, `LO5`, `working-copy-edit-ops#WCE8`, `report-delivery#RD4`, `client-data-in-analysis#2`) writes one of these subjects, so one migration extends it once and no later migration edits the same constraint. S3 owns the lane and writes it; the consumers write only their rows. It lands with its repository change, a round-trip test, an isolation test and its `layer_check` rule. Gap G43.
+
 **LO15. Server spend enforcement (W0): `ResearchAgentJobs.start` and `rebuild` apply `spend_confirm_usd` as `ResearchRuns.start` does, and record the confirmation in the ledger**  
 `ResearchAgentJobs.start` (`application/research.py:1311-1407`) reads no `spend_confirm_usd`, while `ResearchRuns.start` does (`:739`); the only check on a design job today is in the Lead's approve path (`application/research_lead.py:678-760`). Removing the manual buttons (D15) is a UI change and does not enforce a server rule: `mvp-cohesion.md` F5 adopts this check as the first code change, and `research-lead-workbench` F1 is no longer an owner decision. `budget_usd` is the cap; the envelope and the `spend_confirm_usd` confirmation are distinct. Test: a direct HTTP start and a rebuild above the threshold are refused without a covering confirmation and write the ledger row with one; the Lead's approve path still passes; a start under the threshold is unchanged. Interfaces I4.
 
@@ -94,7 +98,7 @@ None here. The envelope sits beside `spend_confirm_usd`, which stays a per-start
 
 ## Execution predecessors (2026-10-20)
 
-LO0, LO9a and LO15 are W0; LO1-LO8, LO10 and LO12-LO14 are W1; LO11 is W2;
+LO0, LO9a, LO15 and LO16 are W0; LO1-LO8, LO10 and LO12-LO14 are W1; LO11 is W2;
 LO9b is W3. LO10's card-revision check precedes the first actionable card, not the final workers.
 LO7 uses WCE4's change feed and RQC7's events; unavailable result providers are typed unavailable,
 never guessed. LO11's persistent personal lifecycle is later work; basic per-researcher turn privacy

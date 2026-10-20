@@ -138,9 +138,9 @@ def main(argv: list[str] | None = None) -> int:
     for name in new_plans:
         if name not in plans:
             failures.append(f"§6.3 names `{name}`: no plan file")
-    m13 = next((t for _, t in plans[SELF].chunks if t.startswith("M13.")), "")
+    m13 = next((t for _, t in plans[SELF].chunks if t.startswith("MP13.")), "")
     if "six" not in m13:
-        failures.append("chunk M13 must say six child plans")
+        failures.append("chunk MP13 must say six child plans")
 
     # 6. the execution contracts: references, waves, predecessors, coverage
     ctext = CONTRACTS.read_text(encoding="utf-8")
