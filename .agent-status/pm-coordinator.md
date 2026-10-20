@@ -133,3 +133,6 @@ Arigamaru; #512 ADR decisions; design feedback (optional).
   (inventory, rule I1-I11, fix list, plan input-interactions.md, explainer, one docs PR). Design sessions told the rule;
   workbench design applied it locally (screen 12 Vstupy), unpublished.
 - #525 green @ 87e5998; hold the merge until develop CI on 44b66ef finishes (~21:40) and Q21.
+
+- 21:33 Nigel: #517 is Arams (Arigamaru = A. Bahbouh, the methodology owner, in charge of methodology). It is the -5 web drawing (sociomap-5-web plan). I undrafted it at 20:06 by mistake (its body says draft); asked Nigel whether to restore draft. Planning 2 told to point research-lead-workbench#20 / signed-off#9 at it. Never merge #517 without Aram.
+- #526 = IdP fix (Nigel typed it); marked ready for Codex 21:31.
