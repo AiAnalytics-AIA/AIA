@@ -13,7 +13,7 @@ chunks:
   - "[ ] M9. The production release checklist exercised once on develop: delete path, backups and restore, alarms, rollback"
   - "[ ] M10. This plan re-verified at each gate (I-0 to I-5), its register and gap list brought up to date"
   - "[ ] M11. The owner answers §11.4's questions; each answer is recorded in mvp-cohesion.md's register and the plans it moves are edited"
-  - "[ ] M12. Canonical V2 precedence recorded (MVPQ-01 settled); verify each artifact against that build and list required deltas from recorded domain decisions"
+  - "[x] M12. Canonical V2 precedence and eleven-artifact / 34-row planning conformance inventory recorded; implementation and owner/methodology questions remain open"
   - "[x] M13. The six child plans written and registered (each session reviews its plan before its wave)"
   - "[ ] M14. tools/master_check.py wired into the Documentation checks job (a ci.yml change, in its own pull request)"
   - "[x] M15. Execution dependencies, partial wave checks and the owner decision packet reconciled; implementation remains open"
@@ -586,3 +586,21 @@ Readiness conditions 1 to 7 of that review: 1 and 2 are the tables of §3.4, §5
 6 is that ADRs awaiting owner decisions stay Proposed and every implementation chunk stays open; 7 is that
 no calendar is promised: capacity and external decisions (§11.4 1, 3, 5, 6, 7) are the dependency risk.
 
+
+
+## M12 conformance inventory (2026-10-20)
+
+[Canonical V2 disposition](../evidence/mvp-prototype-v2/current-disposition.md)
+compares every artifact and all 34 historical walk rows with the recorded decisions
+and executable child chunks. It records private-Lead/shared-proposal, budget,
+own-dimension, replacement, permission and evidence deltas. The historical audit is
+preserved with a supersession notice. Workbench 15/20/21 explicitly own message
+origin/return UI and the four-way result/display/interpretation/context distinction;
+their minimal context/cursor contract is W1, their complete UI W4.
+
+M12 is complete as a planning inventory only. It does not pass any acceptance
+criterion or close UI implementation, MVPQ-02–12, scientific approvals or the
+parallel crosscheck's not-yet-received final output. Segment-map/filter work is not
+proof that compare_segments supplies admitted comparative analysis; until a named
+producer/method passes admission, the capability and affected coverage remain
+explicitly unavailable. Apply the owner's empty-module/report policy when answered.
