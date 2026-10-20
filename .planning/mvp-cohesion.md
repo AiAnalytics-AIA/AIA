@@ -705,3 +705,22 @@ MVPQ-01, 02, 04 and 11 are now settled. MVPQ-03, 05–10 and 12 remain open.
 Canonical Sociomap Q5/Q6/Q7, replacement weights, client evidence, source-use and
 retention decisions are unchanged. No paid run, infrastructure change, merge or
 release is authorized by recording these answers.
+
+## Owner answers MVPQ-03, 05, 06, 07, 08 and 09 (2026-10-20)
+
+Recorded from the product owner's answers to the decision cards in this session, each asked
+with a worked example. These are decisions, not recommendations; implementation remains open.
+
+| Id | Answer | Required disposition |
+|---|---|---|
+| MVPQ-03 | "Sampler's descriptors"; drill-down "Facts and answers only" | Defined segments start from the sampler's stored descriptors. The internal drill-down shows stored attributes and answers only, never generated persona prose. Combinations, support, own dimensions, clustering and the register entry stay the methodology owner's. PR #504 (`aia-sociomap-5`, the methodology owner's) carries a respondent map and clustered taste segments: `segment-maps-and-drilldown#0a`, `segment-maps-and-drilldown#1` and `sociomap-formula-corrections#3` are to be reconciled with it before they are built |
+| MVPQ-05 | "The contract alone"; label "Label only" | The accepted data contract compiles into the dataset's evidence policy: a column it names used and not personal is admissible as client-reported, with no AIA field list in between. "z dat klienta" beside each client number; source and period disclosed once, not per line. The benchmark interval and any grounding of AI respondents by a client survey stay the methodology owner's. Affects `client-data-in-analysis#2`, `client-data-in-analysis#9` and ADR 0027 decision 6 (its per-line period and source) |
+| MVPQ-06 | "Required"; "You, USD 50" | Common Crawl stays required for I-R. The product owner owns evaluations 25, 26 and 39 and their thresholds, with a USD 50 allowance apart from the USD 25 tier-B study, estimated from the configured ceilings before any paid run. The tasks, metrics and thresholds stay open. Affects `deep-research-web-search#25`, `deep-research-web-search#26`, `deep-research-web-search#39`, `mvp-acceptance-harness#11` |
+| MVPQ-07 | "30 days, journal replay"; usage facts "Keep, admins only" | Deleted content may remain in backups and object versions for at most 30 days; a durable deletion journal is replayed after any restore before traffic is served. Content-free usage and audit rows (no text, no client name) are kept for reconciliation, readable by an organisation OWNER or ADMIN only. Affects `study-data-lifecycle#SDL0`, `study-data-lifecycle#SDL5` |
+| MVPQ-08 | "Yes, recorded exception" | Client-level source extraction stays in Client Knowledge under its client budget, approval, isolation and audit, an explicit exception to AC-02. Affects `client-knowledge-lifecycle#K8`, `lead-orchestration#LO13` and AC-02's wording |
+| MVPQ-09 | "Keep a minimal gate" (after first choosing to drop both gates); RD7 "Block approval" | Before a client deliverable can be approved: no source marked "Interní dokument", no drill-down content, no number without an admitted claim. No separate legal-rights review in the MVP; exact-version approval (F17) unchanged. An unsupported claim blocks approval and the refusal names the sentence. AC-13's "evidence audit and legal source-use gate" becomes this gate (#503 carries the acceptance wording). Affects `report-delivery#RD0`, `report-delivery#RD1`, `report-delivery#RD3`, `report-delivery#RD7` |
+
+MVPQ-07 and 08 are settled; MVPQ-03, 05, 06 and 09 have their product-owner parts answered.
+MVPQ-10, MVPQ-12 and the coding method (`MVPQ-02b`) remain the methodology owner's, who is
+working in PR #504. No paid run, infrastructure change, merge or release is authorized by
+recording these answers.

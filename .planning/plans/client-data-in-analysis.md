@@ -40,14 +40,14 @@ chunk order below (its §Consequences).
 
 ## Chunks
 
-0. **The policy decision.** The owner deferred it to this plan on 2026-10-19. The recommendation in
-   `mvp-cohesion.md` F3: the accepted data contract (use, unit, period, rights) compiles into a
-   third instrument policy, so MVP-29's "one authority" is one *per evidence source*; the
-   alternative is mapping client columns onto the population contract's 115 fields, which most real
-   datasets will not fit. Also settle ADR 0027's Q1 (benchmark interval when supports differ
-   greatly), Q2 (may client survey answers ground AI respondents; the methodology owner) and Q3 (the
-   label wording, set with `domain/report/copy.py`). Output: an amendment to ADR 0027 and this
-   plan's chunks 4 and 5 made exact.
+0. **The policy decision.** Product owner's part **decided 2026-10-20 (MVPQ-05)**: the accepted
+   data contract **alone** compiles into the dataset's evidence policy (one authority *per evidence
+   source*, MVP-29), with no AIA field list in between: a column the contract names used and not
+   personal is admissible as client-reported. ADR 0027's Q3, the label: "z dat klienta" beside each
+   client number, the source and the period disclosed once (a footnote or the methods chapter, set
+   with `domain/report/copy.py`), not on every line. **Still open (methodology owner):** Q1, the
+   benchmark interval when supports differ greatly, and Q2, whether client survey answers may ever
+   ground AI respondents. Output: an amendment to ADR 0027 and this plan's chunks 4 and 5 made exact.
 1. **Origin.** Add `CLIENT_REPORTED`, decide it admissible client-facing, add its `origin_kind`
    reading, update `test_every_origin_is_decided_once`; every label, report and readiness check that
    reads an origin reads this one.
@@ -68,7 +68,7 @@ chunk order below (its §Consequences).
    act; no unnamed column appears in the stored copy, in an artifact or in a model request.
 4. **Computation.** Code computes (descriptive tables, benchmark gaps); no model reads a row.
 5. **Admission and grade.** The new grade through `admit_numeric_claims`; each number labelled
-   *z dat klienta* with its period and source dataset; shown **beside** the modelled results or as a
+   *z dat klienta*, its period and source dataset disclosed once per report (MVPQ-05), not per line; shown **beside** the modelled results or as a
    benchmark, never mixed into one number (ADR 0027 decision 7).
 6. **Client survey map.** The existing engine over the client's own survey, labelled as the
    client's survey and never merged with the AI respondents' map. Method registration follows

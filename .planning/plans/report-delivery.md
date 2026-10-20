@@ -1,14 +1,14 @@
 ---
 status: planned
 chunks:
-  - "[ ] RD0. Define the "evidence audit" and the "legal source-use gate" as testable checks (the owner states what each checks)"
+  - "[ ] RD0. Build the client deliverable's gate the owner set (MVPQ-09): no \"Interní dokument\" source, no drill-down content, no number without an admitted claim"
   - "[ ] RD1. The client report PDF: extend `RENDERABLE_REPORTS`, the PDF is approved with its DOCX"
   - "[ ] RD2. A reader for the approval ledger: "approved by whom, when" for a report and a snapshot"
   - "[ ] RD3. The Approve and Export panel: what is approved and by whom; exports after approval; the slot in the Report artifact"
   - "[ ] RD4. The map snapshot: an approvable object rendered server-side from the stored map and camera parameters, never browser bytes; one ledger shape"
   - "[ ] RD5. Report draft revisions: a separate draft counter, tracked changes per paragraph; a report edit never reopens fieldwork"
   - "[ ] RD6. The accept destinations for the report writer, the map interpreter and the straight-liner flags: an artifact type, the composer input and its fingerprint; and, before any semantic report edit exists, the ADR with its deterministic admission rule that ADR 0026 decision 4 requires"
-  - "[ ] RD7. A sentence-level claim check: a sentence that claims a comparison with no admitted claim is flagged"
+  - "[ ] RD7. A sentence-level claim check: a sentence that claims a comparison with no admitted claim blocks approval, the refusal naming it"
   - "[ ] RD8. The producer of a client report is the run that composed it, not whoever first downloaded it"
   - "[ ] RD9. The report's assumptions chapter (W3, MVPQ-02): each tracked assumption with its status and its admitted or cited support, and nothing else"
   - "[ ] RD10. The report's open-answer coding chapter (W3, MVPQ-02): the codebook version, the coded counts as admitted claims with suppression named, and the method's limits"
@@ -24,12 +24,12 @@ Every chunk below is **open**; a chunk is built from this file, not from the mas
 
 - Separate approvals for the internal report, the client report and each map snapshot; DOCX and PDF become available only after approval (F17).
 - No unconditional second person: whether the producer may approve follows the client's existing self-approval setting (F17, withdrawn 2026-10-19).
-- AC-13 stands as written: the client report is **DOCX and PDF**, passes the evidence audit and the legal source-use gate, carries only approved maps and labelled modelled and client-reported numbers and no analysis prose. Dropping the PDF or weakening a gate is a scope override and needs the owner's explicit yes.
+- The client report is **DOCX and PDF**, carries only approved maps and labelled modelled and client-reported numbers and no analysis prose. Its gate is the one the owner set on 2026-10-20 (MVPQ-09), replacing "the evidence audit and the legal source-use gate": before a client deliverable can be approved, no source marked "Interní dokument", no drill-down content and no number without an admitted claim; **no separate legal-rights review** in the MVP. Dropping the PDF or weakening this gate is a scope override and needs the owner's explicit yes.
 
 ## Chunks
 
-**RD0. Define the "evidence audit" and the "legal source-use gate" as testable checks (the owner states what each checks)**  
-Both are NOT_STARTED in the parity matrix with no plan. The checks are the owner's to define; this chunk records them and builds them. Not replaced by a weaker check without the owner's override.
+**RD0. Build the client deliverable's gate the owner set (MVPQ-09, 2026-10-20)**  
+Three deterministic checks before approval, each refusing by name: no cited source marked "Interní dokument"; no drill-down content; no number without an admitted claim. No separate legal-rights review step: a source-class check is not a legal-rights determination, and the MVP does not claim one. A scientific check beyond admitted support stays the methodology owner's to add. Tests: a client report citing an internal source, carrying a drill-down field or an unadmitted number is refused by name and cannot be approved.
 
 **RD1. The client report PDF: extend `RENDERABLE_REPORTS`, the PDF is approved with its DOCX**  
 The client report is DOCX only today (`report_variants.py:78`).
@@ -51,8 +51,8 @@ S3 defines the type, S1 writes the worker against it (`lead-orchestration#LO9b`)
 
 **Prerequisite (ADR 0026 decision 4, Accepted):** semantic report edits get no command until their own ADR and a deterministic admission rule exist (a report is composed from admitted claims and frozen on approval). That the feature is wanted is settled (MVP-12); writing the ADR and the rule is this chunk's first step, and a wording edit never reopens completed fieldwork (an invariant, `RD5`).
 
-**RD7. A sentence-level claim check: a sentence that claims a comparison with no admitted claim is flagged**  
-The prototype shows it (scenario M); the evidence validation checks numbers only. A new rule; the owner confirms its strictness.
+**RD7. A sentence-level claim check: a sentence that claims a comparison with no admitted claim blocks approval**  
+The prototype shows it (scenario M); the evidence validation checks numbers only. A new rule; its strictness is the owner's (MVPQ-09, 2026-10-20): it **blocks approval**, never a flag the reviewer may approve past, and the refusal names the sentence.
 
 **RD8. The producer of a client report is the run that composed it, not whoever first downloaded it**  
 With self-approval off, the reviewer who opens it first cannot approve it today ◇.
