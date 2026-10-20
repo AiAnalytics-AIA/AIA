@@ -70,7 +70,8 @@ operator's record, never from the posture (`plan.py:175-178 @ 854c209`).
 The release route is Brave (the product owner, 2026-10-20, Q16 a). **Brave may receive Class B
 queries, those derived from a study's design, for every client, CLASSIFIED included** (Q20 b). This
 is the owner's recorded determination about one route, kept as data beside the route's definition,
-as the panel licence determinations are (OI-61, `domain/licence_determinations.py`): Brave is
+as the panel licence determinations are (OI-61, `domain/licence_determinations.py`; planned as
+`deep-research-web-search` chunk 57, #523 @ `4067f36`): Brave is
 `NON_EU`, and ADR 0008 approves a Class B route only with confirmed EU processing, so the
 determination is an explicit, dated exception to that condition for this route alone, never a
 default other routes inherit.
@@ -150,5 +151,5 @@ Still open:
 1. **Class A in a query.** A query written from approved knowledge or a client source is Class A
    and stays refused for every CLASSIFIED client (Q20). Confirm that, including for the Lead's lookup
    (ADR 0040), whose context usually holds approved knowledge.
-2. **Search operators** (`site:`, quoted phrases, exclusions): whether a query may use them, and
+2. **Search operators** (`site:`, `filetype:`, `intitle:`, quoted phrases, exclusions): whether a query may use them, and
    what a `site:` naming a client's own domain reveals. Waits on the owner's follow-ups Q22 and Q23.
