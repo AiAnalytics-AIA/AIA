@@ -17,13 +17,15 @@ Updated 2026-10-20. Design prototype only: no product code, no product PR (scope
   steppers for numbers, segmented controls / chips for predetermined answers, an inline "new" row for creating, a modal only
   for a consequential action. Applied to every Settings artboard (round 2): role, client status and self-approval as segmented
   controls; Metodik as a switch; budgets, thresholds and methodology parameters as steppers with in-place typing; Deep Research
-  proposals made in the Návrh cell; add member as an inline row; Lead read/handover as an expanding row; modals kept only for
-  methodology activation (reason chips + in-place note), deactivating a member and deleting a client (acknowledge switch, no typed name).
+  proposals made in the Návrh cell; add member as an inline row; modals kept only for
+  methodology activation (reason chips + in-place note), approving/withdrawing a DR policy, and deleting a client (acknowledge switch, no typed name).
+- Round 3 (21:20): aligned with the input standard I1-I11 (input-interactions audit): steppers state bounds, Shift x10, out-of-range refused at the field; deactivate member is immediate with Vrátit (8 s), as are role and Metodik changes; Uloženo beside the value. Not built: leave-guard for the unsaved methodology draft (I10).
+- Round 3b (21:23, coordinator relaying the owner's D-32/33/34, Q5 c, Q14 a, ADR 0030): no admin read or handover of a Lead. Removed from Přístup; a deactivated member's row and toast say the Lead is sealed, unreadable by anyone, deleted at the end of retention. Audit shows "Vedoucí zapečetěn".
   Affects every Settings plan's UI chunks (settings-workspace-ux, methodology-tab, system-prompts-settings, client-budget).
 
 ## Open, with Nigel
 1. Hide Sociomapping (H-Model) and the 18.6.6 reference map in Metodika (recommended).
 2. A Správa dat tab for client delete and kept records (N12; recommended) vs Přístup → Klienti.
-3. Lead read/handover from Přístup (recommended) vs Můj Vedoucí (LO11).
+3. (closed: no Lead read or handover, D-32/33/34)
 4. Stav systému as its own tab (recommended) vs inside Reference.
 5. Prompts edited by OWNER/ADMIN (recommended) vs a new mark.
