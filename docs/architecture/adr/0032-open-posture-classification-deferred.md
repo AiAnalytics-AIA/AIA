@@ -10,7 +10,8 @@ frozen invariant, for Deep Research's web egress only, and its addendum of 2026-
 **Leaves unchanged** the EU residency of models and storage, the model gateway and
 `domain/material_rules.py` for every model call, the licence gate, grounding, verification and
 every evidence gate.
-**Date:** 2026-10-20
+**Date:** 2026-10-20. **Amended 2026-10-20** with the product owner's recorded answers D-08 and D-17
+(`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`); still Proposed.
 **Plan:** [deep-research-web-search](../../../.planning/plans/deep-research-web-search.md) 53 (§ Open
 posture), 51, 52; migration M10
 
@@ -37,7 +38,9 @@ classifier redesign (`aia-query-classifier-2`) is deferred, not built.
 ### 1. Every client declares a posture: `CLASSIFIED` (the default) or `OPEN`
 
 `clients.data_posture` (M10), with who set it and when. Only an organization OWNER or ADMIN sets it
-(`PUT /clients/{id}/data-posture`); every change is audited and shown on the client's profile.
+(`PUT /clients/{id}/data-posture`); every change is audited and shown on the client's profile. It
+is set on the client's Profil → Pravidla, beside the wallet ceiling (the product owner, 2026-10-20,
+D-17).
 Marking a client OPEN is **the organization's statement that this client's material may be used in
 public search queries**. It is a positive, recorded justification, which is what ADR 0008's
 "refuses anything it cannot positively justify" asks for; the default stays closed.
@@ -114,8 +117,6 @@ I-R, and AC-11's first half.
    the candidate); `mvp-development-plan.md` §1 says the route is Brave for an OPEN client and the
    Class B route is after the MVP. Both are dated 2026-10-19. This ADR follows the development plan;
    MVP-27 and AC-11's wording would change (its Doc follow-up already proposes it).
-2. **"Frozen" retrieval.** CLAUDE.md §2 and ADR 0021 call the engine frozen; the development plan
-   opens retrieval, routes and connectors for this work. This ADR touches the gate's classification
-   calls; the wording change is a docs follow-up the owner should confirm.
-3. **Amending ADR 0008, a frozen invariant**, needs the owner's explicit yes, recorded in that ADR's
-   amendments as the 2026-10-19 one was.
+2. ~~"Frozen" retrieval.~~ Yes: CLAUDE.md §2's and ADR 0021's wording changes, as a docs follow-up,
+   when this ADR is accepted (D-08, a).
+3. ~~Amending ADR 0008.~~ Yes, recorded in ADR 0008's amendments when this ADR is accepted (D-08, a).
