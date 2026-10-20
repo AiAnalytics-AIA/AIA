@@ -12,7 +12,9 @@ stored run's artifacts and pins (never rewritten, recomputed or deleted), and th
 golden fixtures as tested reference.
 **Date:** 2026-10-20. **Amended 2026-10-20** with the product owner's recorded answers D-13, D-14 and
 Q1 to Q4 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`): `-5` the only
-method, the old methods out of every product path, the Metodik mark. Still Proposed.
+method, the old methods out of every product path, the Metodik mark; and Q17 (a) on the PM status
+page (20:50-21:04 UTC, relayed by the coordinator): approved older reports stay downloadable, an
+older-method retry refused. Still Proposed.
 **Plan:** [signed-off-sociomap-method](../../../.planning/plans/signed-off-sociomap-method.md);
 packet E-1 to E-9
 
@@ -85,8 +87,15 @@ A run stored under an older method keeps its pins and its stored artifacts, byte
 is back-filled, re-labelled, recomputed or deleted. What a person sees of it is its data (results,
 aggregates, analysis) with, in place of its map, *"Mapa ze starší metody; spusťte běh znovu"* (Q2).
 A retry keeps the original's pins (as `ResearchRuns.retry` does today), so retrying such a run would
-recompute an older method; a retry of an older-method run is refused by name and a new run is
-started instead. A study that wants maps of an older run's data starts a new run under `-5`.
+recompute an older method; a retry of an older-method run is refused by name, with a link that
+starts a new `-5` run of the same design (the product owner, 2026-10-20, Q17 a). A study that wants
+maps of an older run's data starts a new run under `-5`.
+
+**Reports already approved stay as approved** (Q17 a). A client or internal report approved before
+the switch, a `-3` map in it included, stays downloadable byte for byte as it was approved: the
+approval binds the stored artifact's fingerprint (ADR 0035 decision 6), and serving a stored,
+approved document is not a product path that computes, draws or approves an older method. Nothing
+regenerates it; a new report of the same study needs a new `-5` run.
 
 ### 4. The stored map is the record; the production image is the reference
 
@@ -143,7 +152,8 @@ its own PR with the parity tests' result stated.
 - Tests: a new run with no version in force pins `aia-sociomap-5` alone, at its fingerprint;
   `default_methods()` returns one method; a stored `-1` or `-3` run reads its data and shows the
   older-method message in place of its map, with its artifacts unchanged; no product route draws,
-  reports or approves a map of an older method; a retry of an older-method run is refused by name;
+  reports or approves a map of an older method; a retry of an older-method run is refused by name
+  and offers a new `-5` run; a report approved under `-3` downloads byte for byte as approved;
   storing or activating a methodology version without the Metodik mark is refused; activating the
   `-5` preset unchanged pins the same name and fingerprint; a version that changes one field pins
   `-5+e<n>` and matches no `-5` entry; a `-5` map is refused client-facing with no entry; the report verifies a stored `-5` map
@@ -168,13 +178,10 @@ written into decisions 1 and 3:
 - Who edits methodology: the Metodik mark (D-14, Q4). What a stored older run shows (Q2) and the old
   code's fate (Q3).
 
+- ~~Client reports already approved under `-3`.~~ Stay downloadable unchanged (Q17, a). Decision 3.
+- ~~Retrying an older-method run.~~ Refused, with a link to a new `-5` run (Q17, a). Decision 3.
+
 Still open:
 
-1. **Client reports already approved under `-3`.** D6 approved `-3` for client reports on
-   2026-10-13, and a delivered client report may carry a `-3` map. Q3 removes `-3` from every product
-   path: does an already approved and delivered report stay downloadable as it was approved, or is
-   it withdrawn with the method?
-2. **Retrying an older-method run.** This ADR refuses it (a retry keeps its pins, so it would
-   recompute a removed method) and points to a new run; confirm.
-3. **The method questions** (MQ-01 the entry and its scope, MQ-04 the platform, MQ-06 the runtime and
+1. **The method questions** (MQ-01 the entry and its scope, MQ-04 the platform, MQ-06 the runtime and
    the rest) are the methodology owner's, in the packet (#510).
