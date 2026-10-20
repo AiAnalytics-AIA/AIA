@@ -160,3 +160,22 @@ unless stated.
   placeholder only when one is unrecorded; the seed records `aia_synthetic_fixture`. Test: a design
   job over a seeded client with DATASET knowledge passes the licence gate; one over an item with no
   recorded dataset is still refused by name.
+  **Fixed in `40df02ab`** (branch `fix/knowledge-dataset-lineage`): `research_agents.knowledge_lineage`
+  is the union of the entries' recorded `datasets` (from the current revision's
+  `provenance.datasets`, `knowledge.recorded_datasets`, read by `ClientKnowledgeRepository.for_study`),
+  the placeholder `UNRECORDED_KNOWLEDGE_LINEAGE` for each DATASET/ARTIFACT/FINDING entry recording none;
+  the design jobs and the Lead's turn (`research_lead.lead_request`) both use it. The develop seed
+  records `aia_synthetic_fixture` on its DATASET/ARTIFACT/FINDING items. No determination changed.
+  Tests: `test_a_design_job_over_the_seeded_client_passes_the_licence_gate_and_an_unrecorded_item_refuses`
+  (executors), `test_knowledge_lineage_is_the_recorded_datasets_and_an_unrecorded_one_still_refuses`,
+  `test_a_turn_declares_recorded_datasets_and_the_placeholder_for_an_unrecorded_one`.
+  Not changed: Deep Research's frozen `knowledge_access.UNRESOLVED_LINEAGE` (its internal tracks are
+  refused by class first); develop's already-seeded items (the seed skips what exists, so the fix
+  shows on a fresh seed, or once a lineage is recorded for them).
+
+  **Doc follow-up (CR-4).** `open-items.md`: CR-4 closed by `40df02ab`.
+  `docs/architecture/deep-research.md` §5 and `research-agents.md`: a design job's and a Lead turn's
+  knowledge lineage is the items' recorded datasets (`provenance.datasets`), the placeholder
+  `unclassified-client-knowledge` only for an unrecorded DATASET/ARTIFACT/FINDING item.
+  `CLAUDE.md` § The map, `domain/knowledge.py`: "`PROVENANCE_DATASETS` / `recorded_datasets`: the
+  datasets a revision records, the item's licence lineage (`KnowledgeItem.datasets`, for_study only)".
