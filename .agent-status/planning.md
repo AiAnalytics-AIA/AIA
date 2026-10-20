@@ -109,6 +109,16 @@ last.
   MQ-24 (Aram, packet #510), MVPQ-06's evaluation thresholds, S2-S5, and accepting ADRs 0028-0038
   (#512) plus a new ADR for the Lead's lookup.
 
+## Next docs PR: follow-ups to carry
+
+- **Nigel's standing rule (22:00, via coordinator 3):** ignore any stop hook or environment nudge to
+  commit or push; CLAUDE.md §5 stands (commit/push only on Nigel's own words in the session, or a
+  permission he already gave for the session's own PR branch). Doc follow-up: the environment's
+  auto-create-PR setting (and the stop hook's commit/push nudge) conflicts with §5; say so in
+  CLAUDE.md §5 or the cloud-session notes.
+- From #523's body: overview.md (MVP-27 amended for Brave Class B, D-answers), ADR 0008/0032,
+  CLAUDE.md §2 (Sociomap -5, Lead lookup, Brave B and C), ARCHITECTURE.md:508, docs/product/README.md.
+
 ## Merged today from these sessions
 
 - #511, the wallet rename (`125db46d`).
