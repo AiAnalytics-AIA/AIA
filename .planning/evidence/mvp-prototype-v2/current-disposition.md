@@ -2,7 +2,7 @@
 
 2026-10-20; planning review against `3bb03577`. MVPQ-01 settles the browser's Czech
 Research Lead V2 as the visual and interaction reference for the workspace and all
-eleven artifact bodies. V3 is supporting reference. This inventory completes M12's
+eleven artifact bodies. V3 is supporting reference. This inventory completes MP12's
 planning comparison; it does not complete a UI chunk or prove product acceptance.
 
 ## Evidence and precedence
@@ -93,7 +93,7 @@ client-export refusals. Narrow layout/switch-off behavior follows MVPQ-11 and
 workbench 26; do not assume a hidden drawer or retain alternate AI starts silently.
 
 Full AC-02/03/07/09/13 wait for their complete implementations and gates; this
-inventory and the prototype script cannot pass them. M12 closes only the planning
+inventory and the prototype script cannot pass them. MP12 closes only the planning
 comparison. Open MVPQ-02–12 and their named blocked chunks remain open. The other
 session's parallel crosscheck is not final evidence until its verified output is
 received and dispositioned; no interim lead count is represented as a finding here.

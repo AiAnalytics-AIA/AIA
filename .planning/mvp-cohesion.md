@@ -675,7 +675,7 @@ V2 controls the workspace interactions and all eleven artifact bodies. V3 is sup
 capability/design reference only, and cannot silently replace V2's selected layout.
 The previous recommendation to combine V2 interactions with V3 bodies is superseded.
 Existing explicit domain/methodology, private-Lead, budget and approval decisions remain
-in force; necessary differences from the prototype are listed in master M12.
+in force; necessary differences from the prototype are listed in master MP12.
 
 Disposition: MVPQ-01 SETTLED; workbench 15/17–22 and master §11.1/§11.4 reconciled.
 No implementation, scientific parameter, configuration or other owner decision is approved

@@ -27,7 +27,7 @@ V3 artifact bodies by default is superseded.
 
 Existing explicit methodology, private-Lead, budget, approval and real-data decisions
 still govern. Prototype mock text/data do not approve conflicting domain behavior.
-Workbench 15 and 17–22 follow V2; M12 still checks and records any necessary differences
+Workbench 15 and 17–22 follow V2; MP12 still checks and records any necessary differences
 from the existing domain decisions. This question is answered, not an implementation
 completion. Do not ask it again.
 

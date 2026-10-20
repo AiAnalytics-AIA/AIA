@@ -111,3 +111,10 @@ preparation; ADR 0027 remains Proposed until its owner decisions are answered.
 
 Chunk 8 implements the accepted contract/pins in W3 with chunks 0-9; it is not claimed built by 8a.
 Evidence-integrity 8 precedes chunks 4-5; frozen contract versions reach node 9 and the report.
+
+## Migration (lane M8, W3)
+
+Chunk 2 stores the accepted contract (`client_data_contracts`) and chunk 3 the analysis copy
+(`client_dataset_copies`): one migration, lane **M8**, S3, with each repository, a round-trip test, an isolation
+predicate test, a concurrent-access test and its `layer_check` rule in the same PR. Neither table exists before
+its chunk needs it; the W0 contract of 8a stores nothing. Gap G43.

@@ -89,3 +89,9 @@ validator requiring `eu.` ids; do not loosen arbitrary model identity. Reuse the
 production PE7 before PE1's live model configuration. Chunks 5b, 3 and 4 are final reconciliation (5b W3, 3-4 W5):
 model usage to its ledger within AC-15's USD 0.01, tool/search separately, tagged AWS billing in
 its stated window with lag and a stated billing tolerance. Unknown billing is never zero.
+
+## Migration (lane M9, only if needed)
+
+If 5a finds the model fields cannot carry the application inference profile, the lane's **M9**
+(`ai_usage_events.inference_profile_arn`) is added under 5a, W1, before 1-2 configure profiles; if they can, M9 is
+removed from the lane in the same PR. Gap G43.
