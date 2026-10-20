@@ -119,7 +119,11 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
 
 **New chunk.** 11 (W3), D-42 in.
 
-**Existing chunks, changed.** D-13 makes `aia-sociomap-5` the only method: 1-3 build on `-5`'s stored
-respondent map and taste segments rather than the contract-3 route (G59); how descriptor segments and
-`-5`'s taste segments relate is the methodology owner's (MQ-02, MQ-05), and these chunks wait on it.
-9 and 10 name `-5`'s fields; 9's figures are `signed-off-sociomap-method#9`'s.
+**Existing chunks, changed.** Segments stay **defined by the sampler's stored descriptors** (MVPQ-03,
+§ Decisions; `mvp-cohesion.md`); `-5` does not replace them. D-13 changes only the engine: 2 computes
+each descriptor-defined segment's map with `-5`, the only method, instead of the contract-3 engine
+(G59). 3 stays the optional clustering, and `-5`'s taste segments are one candidate for it; whether
+they are, and how they relate to descriptor segments, is the methodology owner's (MQ-02, MQ-05), so
+3 waits on it. 10 does not wait: without SEGMENT-level evidence the Segments module has no supported
+finding, and MVPQ-04 then blocks **every** report, not only a study with segments. 9 names `-5`'s
+fields; its figures are `signed-off-sociomap-method#9`'s.

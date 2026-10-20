@@ -14,7 +14,7 @@ chunks:
   - "[ ] LO9c. A results-worker job shape (W2, before LO9b): a workflow type and step kind keyed on (run_id, target), frozen inputs by artifact id and SHA-256, its own context builder and executor behind its own switch, sharing the worker row, prompt pin and usage ledger"
   - "[ ] LO9b. The three new workers as rows (W3): a `REPORT_WRITING` binding, result kinds and accept destinations, per-worker price and keys"
   - "[ ] LO10. `approve_request` bound to the revision shown on its card, and a clean error where the 96 KB Lead context meets the 64 KB agent limit"
-  - "[ ] LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions, the admin read and handover, a departure trigger"
+  - "[ ] LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions; no handover, departure trigger or admin read (D-32 to D-34)"
   - "[ ] LO12a. The route-class refusal says who fixes it (W0): on the job error, the Lead pane, source proposals and Progress, from the refusal codes that exist today, with a link to the runbook; static copy, no read of the route"
   - "[ ] LO12b. A pre-flight read of the AI route (W1): the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`), and the new refusal reasons"
   - "[ ] LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02"
@@ -87,8 +87,8 @@ The three workers (map interpreter, report writer, straight-liner check) have no
 **LO10. `approve_request` bound to the revision shown on its card, and a clean error where the 96 KB Lead context meets the 64 KB agent limit**  
 `approve_request` submits whatever the working copy is at approval time, unlike `decide_edits`, which needs `base_revision`. Test: approving a card whose revision moved is refused with a message, not a 500.
 
-**LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions, the admin read and handover, a departure trigger**  
-File revisions have no reader today (`revisions()` has no caller). Turns stay private (Q26: an admin's read covers files and notes only; a handed-on Lead is a copy without personal notes). Another member's ability to accept a proposal is **not** a Lead-lifecycle matter and is not decided here: Q16 makes proposals shared, and `working-copy-edit-ops#WCE6` builds it (gap G42).
+**LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions; no handover, departure trigger or admin read (D-32 to D-34)**  
+File revisions have no reader today (`revisions()` has no caller). Turns stay private (Q26). A Lead is never handed over and no admin reads another researcher's Lead files (the owner, 2026-10-20, D-32 to D-34; the earlier "admin read and handover" is withdrawn). Another member's ability to accept a proposal is **not** a Lead-lifecycle matter and is not decided here: Q16 makes proposals shared, and `working-copy-edit-ops#WCE6` builds it (gap G42).
 
 **LO12a. The route-class refusal says who fixes it (W0): static copy on the four surfaces**  
 The refusal surfaces in the job error, the Lead pane, source proposals and Progress, and none says an operator fixes it (the AI route's classes are set in SSM, not on Settings, which is read-only). The copy is keyed by the refusal codes that exist today (`egress_route_not_approved_for_class` and its siblings) and names the operator step and the runbook; it reads nothing and needs no composition record. Test: each code on each surface renders its who-fixes-it line. Interfaces I24.
