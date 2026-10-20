@@ -295,33 +295,143 @@ def pr_chips(prs: list) -> str:
     return f'<div class="prs">{"".join(out)}</div>' if out else ""
 
 
+def safe_url(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text if text.lower().startswith(("https://", "http://")) else None
+
+
+def explainer_row(items: list) -> str:
+    """Each explainer embedded in a sandboxed srcdoc iframe (scripts only, no same-origin:
+    the untrusted code cannot reach this page or its db); a link when no html was fetched."""
+    out = []
+    for x in items:
+        if not isinstance(x, dict) or not x.get("title"):
+            continue
+        url = safe_url(x.get("source_url") or x.get("url"))
+        title = str(x.get("title"))
+        fn = f' — {e(x.get("function"))}' if x.get("function") else ""
+        link = (
+            f' <a href="{e(url)}" target="_blank" rel="noopener noreferrer">Open full size</a>' if url else ""
+        )
+        html_src = x.get("html")
+        h = num(x.get("height"))
+        height = int(max(160, min(900, h))) if h is not None else 360
+        if isinstance(html_src, str) and html_src.strip():
+            out.append(
+                f'<figure class="explf"><iframe sandbox="allow-scripts" srcdoc="{escape(html_src, quote=True)}" '
+                f'title="{e(title)}" loading="lazy" referrerpolicy="no-referrer" style="--h:{height}px"></iframe>'
+                f'<figcaption>▶ {e(title)}{fn}{link}</figcaption></figure>'
+            )
+        elif url:
+            out.append(
+                f'<a class="expl" href="{e(url)}" target="_blank" rel="noopener noreferrer">▶ Explainer: {e(title)}'
+                f'<small>{fn}</small></a>'
+            )
+        else:
+            out.append(f'<span class="expl">▶ Explainer: {e(title)}<small>{fn} (no link)</small></span>')
+    return f'<div class="expls">{"".join(out)}</div>' if out else ""
+
+
 def session_card(s: dict, labels: dict[str, str]) -> str:
     state = str(s.get("state") or "")
     label, cls = STATES.get(state, (state or "Unknown", "waiting"))
     reply = str(s.get("reply") or "")
     noreply = '<span class="noreply" title="No reply to the status request; filled from its session summary">no reply</span>' if reply == "no reply" else ""
-    rows = []
-    if s.get("doing"):
-        rows.append(f'<div class="row"><span class="k">Doing</span><span>{e(s.get("doing"))}</span></div>')
-    if s.get("needs"):
-        rows.append(f'<div class="row need"><span class="k">Needs you</span><span>{e(s.get("needs"))}</span></div>')
-    bb = [str(x) for x in as_list(s.get("blocked_by"))]
-    if bb:
-        rows.append(
-            f'<div class="row"><span class="k">Blocked by</span><span class="chips">{"".join(chip(x, labels) for x in bb)}</span></div>'
-        )
+
+    def field(k: str, body: str, extra: str = "") -> str:
+        return f'<div class="fld{extra}"><div class="k">{k}</div><div>{body}</div></div>'
+
+    col1 = []
+    col1.append(field("Doing", e(s.get("doing")) or '<span class="muted">unknown</span>'))
     if s.get("next"):
-        rows.append(f'<div class="row"><span class="k">Next</span><span>{e(s.get("next"))}</span></div>')
+        col1.append(field("Next", e(s.get("next"))))
+    col2 = [field("Plan chunk", progress(s.get("plan")))]
+    prs = pr_chips(as_list(s.get("prs")))
+    col2.append(field("PRs", prs or '<span class="muted">none</span>'))
+    col3 = []
+    if s.get("needs"):
+        col3.append(field("Needs you", e(s.get("needs")), " need"))
+    bb = [str(x) for x in as_list(s.get("blocked_by"))]
+    col3.append(
+        field("Blocked by", f'<span class="chips">{"".join(chip(x, labels) for x in bb)}</span>' if bb else '<span class="muted">nothing</span>')
+    )
     return (
         f'<article class="card sess s-{cls}">'
         f'<header><div class="sh"><h4>{e(s.get("title"))}</h4>'
-        f'<div class="sid">{e(s.get("id"))}</div></div>{gauge(num(s.get("context_pct")))}</header>'
-        f'<div class="pills"><span class="pill p-{cls}">{e(label)}</span>{noreply}</div>'
-        f"{progress(s.get('plan'))}{pr_chips(as_list(s.get('prs')))}"
-        f'{"".join(rows)}'
-        f'<footer class="muted">Updated {e(short_time(s.get("last_update"))) or "unknown"}</footer>'
+        f'<div class="sid">{e(s.get("id"))}</div>'
+        f'<div class="pills"><span class="pill p-{cls}">{e(label)}</span>{noreply}'
+        f'<span class="upd muted">Updated {e(short_time(s.get("last_update"))) or "unknown"}</span></div></div>'
+        f'{gauge(num(s.get("context_pct")))}</header>'
+        f'<div class="sgrid"><div class="scol">{"".join(col1)}</div><div class="scol">{"".join(col2)}</div>'
+        f'<div class="scol">{"".join(col3)}</div></div>'
+        f'{explainer_row(as_list(s.get("explainers")))}'
         f"</article>"
     )
+
+
+# ---------------------------------------------------------------- questions
+
+
+def question_card(q: dict, labels: dict[str, str]) -> str:
+    qid = str(q.get("id") or "")
+    rec = str(q.get("rec") or "")
+    tiles = []
+    for o in as_list(q.get("options")):
+        if not isinstance(o, dict):
+            continue
+        key = str(o.get("key") or "")
+        is_rec = key == rec
+        badge = '<span class="badge">Recommended</span>' if is_rec else ""
+        detail = f'<span class="od">{e(o.get("detail"))}</span>' if o.get("detail") else ""
+        tiles.append(
+            f'<label class="opt{" is-rec" if is_rec else ""}"><input type="radio" name="opt-{e(qid)}" value="{e(key)}">'
+            f'<span class="ob"><span class="ol"><span class="okey">{e(key)}</span>{e(o.get("label"))}{badge}</span>{detail}</span></label>'
+        )
+    why = (
+        f'<div class="why"><div class="k">Why we recommend it</div><p>{e(q.get("rationale"))}</p></div>'
+        if q.get("rationale")
+        else ""
+    )
+    unb = "".join(chip(str(u), labels) for u in as_list(q.get("unblocks")))
+    return (
+        f'<article class="card qcard" data-qid="{e(qid)}">'
+        f'<header class="qh"><span class="qid">{e(qid)}</span><h3>{e(q.get("title"))}</h3>'
+        f'<span class="qbadge" hidden></span></header>'
+        f'<div class="answered" hidden><span class="k">Answered</span><b class="alabel"></b>'
+        f'<span class="anote muted"></span><button type="button" class="btn ghost change">Change</button></div>'
+        f'<div class="qbody">'
+        f'<p class="ctx">{e(q.get("context"))}</p>'
+        + (f'<div class="exbox"><div class="k">Practical example</div><p>{e(q.get("example"))}</p></div>' if q.get("example") else "")
+        + f'<form class="qform" novalidate><fieldset><legend class="k">Your choice</legend>'
+        f'<div class="opts">{"".join(tiles)}</div></fieldset>{why}'
+        + (f'<div class="unb"><span class="k">unblocks →</span>{unb}</div>' if unb else "")
+        + f'<label class="note"><span class="k">Note (optional)</span><textarea rows="2" maxlength="4000" '
+        f'placeholder="Anything the session should know"></textarea></label>'
+        f'<div class="qact"><button type="submit" class="btn primary save" disabled>Save</button>'
+        f'<button type="button" class="btn ghost cancel" hidden>Cancel</button>'
+        f'<span class="savemsg" role="status" aria-live="polite"></span></div></form></div></article>'
+    )
+
+
+def decided_html(items: list) -> str:
+    rows = []
+    for d in items:
+        if not isinstance(d, dict):
+            continue
+        note = f' <span class="muted">— {e(d.get("note"))}</span>' if d.get("note") else ""
+        rows.append(
+            f'<li><span class="qid">{e(d.get("id"))}</span><span><b>{e(d.get("title"))}</b>: '
+            f'{e(d.get("choice_label") or d.get("choice"))}{note}</span>'
+            f'<time>{e(short_time(d.get("at")))}</time></li>'
+        )
+    if not rows:
+        return ""
+    return f'<details class="card decided"><summary>Decided <span class="n">{len(rows)}</span></summary><ul>{"".join(rows)}</ul></details>'
+
+
+def json_script(element_id: str, value: object) -> str:
+    text = json.dumps(value, ensure_ascii=False).replace("</", "<\\/").replace("<!--", "\\u003c!--")
+    return f'<script type="application/json" id="{element_id}">{text}</script>'
 
 
 # ---------------------------------------------------------------- page
@@ -344,6 +454,7 @@ CSS = r"""
   --block:#ff6b6b;--block-bg:#421b1b;--todo:#9aa3b0;--todo-bg:#232831;--you:#ffa94d;--you-bg:#3d2810;
   --review:#b394ff;--review-bg:#2b2145;--accent:#ff8a4c;--shadow:none;}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;overflow-wrap:anywhere}
 main{max-width:1240px;margin:0 auto;padding:24px 16px 48px}
@@ -458,11 +569,286 @@ ul.recent time{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nu
 .sw.todo{background:var(--surface);border-color:var(--todo);border-style:dotted}
 .dot{width:10px;height:10px;border-radius:50%}
 .empty{padding:14px 16px;border:1px dashed var(--line);border-radius:12px;color:var(--muted)}
+/* sessions as full-width rows */
+.rows{display:flex;flex-direction:column;gap:14px}
+.sess{gap:12px;padding:16px 18px}
+.sess .pills{margin-top:6px;align-items:center}
+.upd{font-size:12px}
+.sgrid{display:grid;grid-template-columns:1fr;gap:12px 22px}
+@media (min-width:760px){.sgrid{grid-template-columns:1fr 1fr}}
+@media (min-width:1100px){.sgrid{grid-template-columns:1.2fr 1fr 1fr}}
+.scol{display:flex;flex-direction:column;gap:10px;min-width:0}
+.fld{font-size:14px;min-width:0}
+.fld>.k{display:block;margin-bottom:3px}
+.fld.need{background:var(--you-bg);border-radius:8px;padding:7px 9px}
+.fld.need>.k{color:var(--you)}
+.expls{display:flex;flex-direction:column;gap:12px}
+.expl{display:inline-flex;gap:6px;align-items:baseline;font-weight:600;font-size:14px;color:var(--active)}
+.expl small{color:var(--muted);font-weight:500}
+.explf{margin:0}
+.explf iframe{display:block;width:100%;height:var(--h,360px);border:1px solid var(--line);border-radius:10px;background:#fff}
+.explf figcaption{font-size:13px;color:var(--muted);margin-top:6px}
+.explf a,.expl{color:var(--active)}
+/* decisions */
+.decwrap{border:2px solid var(--you);border-radius:18px;padding:18px;background:var(--you-bg)}
+.decwrap>h2{margin-top:0}
+.dechead{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:-4px 0 14px}
+.qcount{font-weight:800;font-size:15px;color:var(--you)}
+.qmeter{flex:1;min-width:120px;max-width:320px;height:10px;border-radius:999px;background:var(--surface);border:1px solid var(--line);overflow:hidden}
+.qmeter i{display:block;height:100%;width:0;background:var(--done);transition:width .3s}
+.dbmsg{font-size:14px;border-radius:10px;padding:9px 12px;background:var(--surface);border:1px solid var(--line)}
+.dbmsg.bad{border-color:var(--block);color:var(--block);background:var(--block-bg)}
+.qlist{display:flex;flex-direction:column;gap:16px}
+.qcard{padding:20px 22px;border-left:6px solid var(--you)}
+.qcard.is-answered{border-left-color:var(--done)}
+.qh{display:flex;gap:12px;align-items:flex-start}
+.qh h3{font-size:18px;margin:2px 0 0;flex:1}
+.qid{flex:none;font-weight:800;font-size:13px;color:var(--you);background:var(--you-bg);border-radius:8px;padding:4px 9px}
+.qbadge{flex:none;font-size:12px;font-weight:700;color:var(--done);background:var(--done-bg);border-radius:999px;padding:3px 10px}
+.ctx{margin:12px 0;font-size:15px;max-width:880px}
+.exbox{background:var(--active-bg);border-left:4px solid var(--active);border-radius:10px;padding:10px 14px;margin:0 0 14px;max-width:880px}
+.exbox .k{color:var(--active)}
+.exbox p{margin:3px 0 0}
+fieldset{border:0;margin:0;padding:0;min-width:0}
+legend{padding:0;margin-bottom:8px}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:10px}
+.opt{position:relative;display:flex;gap:12px;align-items:flex-start;cursor:pointer;background:var(--surface);border:2px solid var(--line);border-radius:12px;padding:14px 16px;min-height:72px}
+.opt:hover{border-color:var(--muted)}
+.opt input{flex:none;width:20px;height:20px;margin:2px 0 0;accent-color:var(--you)}
+.opt:has(input:checked){border-color:var(--you);background:var(--you-bg);box-shadow:0 0 0 2px var(--you) inset}
+.opt:has(input:focus-visible){outline:3px solid var(--active);outline-offset:2px}
+.opt.is-rec{border-style:solid}
+.ob{display:flex;flex-direction:column;gap:3px;min-width:0}
+.ol{font-weight:700;font-size:15px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.okey{font-size:12px;color:var(--muted);text-transform:uppercase}
+.od{font-size:13px;color:var(--muted)}
+.badge{font-size:11px;font-weight:800;color:var(--done);background:var(--done-bg);border:1px solid var(--done);border-radius:999px;padding:1px 8px;text-transform:uppercase;letter-spacing:.04em}
+.why{margin-top:12px;background:var(--done-bg);border-radius:10px;padding:10px 14px;max-width:880px}
+.why .k{color:var(--done)}
+.why p{margin:3px 0 0}
+.note{display:block;margin-top:14px;max-width:880px}
+.note .k{display:block;margin-bottom:4px}
+textarea{width:100%;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 11px;resize:vertical}
+.qact{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+.btn{font:inherit;font-weight:700;font-size:14px;border-radius:10px;padding:9px 18px;border:2px solid var(--you);cursor:pointer;background:var(--surface);color:var(--you)}
+.btn.primary{background:var(--you);color:var(--surface)}
+.btn.ghost{border-color:var(--line);color:var(--ink)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.savemsg{font-size:13px;color:var(--muted)}
+.savemsg.bad{color:var(--block)}
+.answered{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-top:12px;background:var(--done-bg);border-radius:10px;padding:10px 14px}
+.answered .k{color:var(--done)}
+.answered .alabel{font-size:15px}
+.answered .change{margin-left:auto}
+.decided{margin-top:16px;padding:12px 16px}
+.decided summary{cursor:pointer;font-weight:700}
+.decided ul{list-style:none;margin:10px 0 0;padding:0}
+.decided li{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line);font-size:14px}
+.decided time{font-size:12px;color:var(--muted)}
+.n{font-size:12px;font-weight:600;color:var(--muted);background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:1px 8px}
+.doneact{margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.doneact .btn{padding:6px 14px;font-size:13px}
+.btn[aria-pressed="true"]{background:var(--done);border-color:var(--done);color:var(--surface)}
+.needcard.is-done{border-left-color:var(--done);opacity:.8}
+.needcard.is-done h3{text-decoration:line-through;text-decoration-thickness:1px}
+@media (max-width:520px){.explf iframe{height:calc(var(--h,360px) * 1.6)}}
+@media (max-width:520px){.decwrap{padding:12px;border-radius:14px}.qcard{padding:14px}.decided li{grid-template-columns:auto 1fr}.decided time{grid-column:2}.answered .change{margin-left:0}}
 @media (max-width:520px){
   h1{font-size:22px}.tile b{font-size:32px}.row{grid-template-columns:1fr;gap:0}
   ul.recent li{grid-template-columns:1fr;gap:2px}
 }
 """
+
+
+JS = r"""
+(function () {
+  "use strict";
+  function readJSON(id) {
+    try { var el = document.getElementById(id); return el ? JSON.parse(el.textContent || "[]") : []; }
+    catch (err) { return []; }
+  }
+  var QS = readJSON("q-data"), ACTS = readJSON("a-data");
+  var byId = {};
+  QS.forEach(function (q) { byId[q.id] = q; });
+  var SAFE = /^[A-Za-z0-9_\-.~:@+]{1,200}$/;
+  var answers = {}, db = null, uid = null, writable = true;
+  var msg = document.getElementById("db-msg");
+  var countEl = document.getElementById("q-count"), meter = document.getElementById("q-meter");
+  var cards = Array.prototype.slice.call(document.querySelectorAll(".qcard[data-qid]"));
+
+  function say(text, bad) {
+    if (!msg) return;
+    msg.textContent = text;
+    msg.className = "dbmsg" + (bad ? " bad" : "");
+    msg.hidden = !text;
+  }
+  function counter() {
+    var n = 0;
+    QS.forEach(function (q) { if (answers[q.id]) n++; });
+    if (countEl) countEl.textContent = n + " of " + QS.length + " answered";
+    if (meter) meter.style.width = (QS.length ? (100 * n / QS.length) : 0) + "%";
+  }
+  function retryOnce(fn) {
+    return fn().catch(function (err) {
+      if (err && err.code === "unavailable") {
+        return new Promise(function (r) { setTimeout(r, 400 + Math.random() * 600); }).then(fn);
+      }
+      throw err;
+    });
+  }
+  function errText(err) {
+    var c = err && err.code;
+    if (c === "invalid_argument") return "You can read this page but not save on it (your access is view-only).";
+    if (c === "quota_exceeded") return "The answer store is full; tell the coordinator.";
+    if (c === "resource_exhausted") return "Too many saves at once; wait a moment and try again.";
+    if (c === "revoked" || c === "not_granted" || c === "capability_disabled" || c === "capability_removed")
+      return "Saving is not available in this view.";
+    return "Could not save (" + (c || "unknown error") + "). Try again.";
+  }
+
+  function chosen(card) {
+    var r = card.querySelector('input[type="radio"]:checked');
+    return r ? r.value : null;
+  }
+  function paint(card) {
+    var qid = card.getAttribute("data-qid"), a = answers[qid];
+    var ans = card.querySelector(".answered"), body = card.querySelector(".qbody");
+    var badge = card.querySelector(".qbadge"), cancel = card.querySelector(".cancel");
+    var editing = card.getAttribute("data-editing") === "1";
+    if (a && !editing) {
+      card.classList.add("is-answered");
+      ans.hidden = false; body.hidden = true;
+      ans.querySelector(".alabel").textContent = (a.choice ? a.choice + ". " : "") + (a.option_label || "");
+      ans.querySelector(".anote").textContent = a.note ? "Note: " + a.note : "";
+      badge.hidden = false; badge.textContent = "Answered";
+    } else {
+      card.classList.toggle("is-answered", !!a);
+      ans.hidden = true; body.hidden = false;
+      badge.hidden = !a; badge.textContent = a ? "Answered" : "";
+      cancel.hidden = !(a && editing);
+    }
+    var save = card.querySelector(".save");
+    save.disabled = !(db && writable && chosen(card));
+  }
+  function fill(card) {
+    var a = answers[card.getAttribute("data-qid")];
+    if (!a) return;
+    card.querySelectorAll('input[type="radio"]').forEach(function (r) { r.checked = r.value === a.choice; });
+    card.querySelector("textarea").value = a.note || "";
+  }
+
+  cards.forEach(function (card) {
+    var qid = card.getAttribute("data-qid");
+    var out = card.querySelector(".savemsg");
+    card.querySelectorAll('input[type="radio"]').forEach(function (r) {
+      r.addEventListener("change", function () { paint(card); });
+    });
+    card.querySelector(".change").addEventListener("click", function () {
+      card.setAttribute("data-editing", "1"); fill(card); paint(card);
+      var first = card.querySelector('input[type="radio"]:checked') || card.querySelector('input[type="radio"]');
+      if (first) first.focus();
+    });
+    card.querySelector(".cancel").addEventListener("click", function () {
+      card.removeAttribute("data-editing"); out.textContent = ""; paint(card);
+    });
+    card.querySelector("form").addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      var key = chosen(card);
+      if (!db || !key || !SAFE.test(qid)) return;
+      var q = byId[qid] || { title: "", options: [] };
+      var opt = (q.options || []).filter(function (o) { return o.key === key; })[0];
+      var note = card.querySelector("textarea").value.trim().slice(0, 4000);
+      var body = { choice: key, option_label: opt ? opt.label : key, note: note,
+                   at: new Date().toISOString(), title: q.title || "" };
+      if (uid) body.by = uid;
+      var save = card.querySelector(".save");
+      save.disabled = true; out.className = "savemsg"; out.textContent = "Saving…";
+      retryOnce(function () { return db.collection("answers").doc(qid).set(body); }).then(function () {
+        answers[qid] = body; card.removeAttribute("data-editing");
+        out.textContent = "Saved."; counter(); paint(card);
+      }, function (err) {
+        if (err && err.code === "invalid_argument") writable = false;
+        out.className = "savemsg bad"; out.textContent = errText(err); paint(card);
+      });
+    });
+    paint(card);
+  });
+
+  var doneState = {};
+  var toggles = Array.prototype.slice.call(document.querySelectorAll(".done-toggle[data-aid]"));
+  function paintToggle(btn) {
+    var id = btn.getAttribute("data-aid"), d = doneState[id];
+    var on = !!(d && d.done);
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    btn.textContent = on ? "Done ✓ (undo)" : "I've done this";
+    btn.disabled = !(db && writable);
+    var card = btn.closest(".needcard");
+    if (card) card.classList.toggle("is-done", on);
+  }
+  toggles.forEach(function (btn) {
+    var id = btn.getAttribute("data-aid");
+    var out = btn.parentNode.querySelector(".savemsg");
+    btn.addEventListener("click", function () {
+      if (!db || !SAFE.test(id)) return;
+      var a = ACTS.filter(function (x) { return x.id === id; })[0];
+      var next = !(doneState[id] && doneState[id].done);
+      var body = { done: next, at: new Date().toISOString(), title: a ? a.title : "" };
+      if (uid) body.by = uid;
+      btn.disabled = true; out.className = "savemsg"; out.textContent = "Saving…";
+      retryOnce(function () { return db.collection("actions").doc(id).set(body); }).then(function () {
+        doneState[id] = body; out.textContent = next ? "Recorded." : "Undone."; paintToggle(btn);
+      }, function (err) {
+        if (err && err.code === "invalid_argument") writable = false;
+        out.className = "savemsg bad"; out.textContent = errText(err); paintToggle(btn);
+      });
+    });
+  });
+
+  function offline(text) {
+    db = null;
+    say(text, true);
+    if (countEl) countEl.textContent = "Answers can't be loaded in this view";
+    cards.forEach(paint); toggles.forEach(paintToggle);
+  }
+
+  var claude = window.claude;
+  if (!claude || typeof claude.use !== "function") {
+    offline("Saving is unavailable here (this copy of the page is not opened in Claude). Everything stays readable; answer in the coordinator session instead.");
+    return;
+  }
+  Promise.resolve().then(function () { return claude.use("db"); }).then(function (handle) {
+    if (!handle) {
+      offline("The answer store is unavailable in this view (signed out, or not granted). Everything stays readable; answer in the coordinator session instead.");
+      return null;
+    }
+    db = handle;
+    return Promise.resolve().then(function () { return claude.use("user"); })
+      .then(function (u) { return u ? u.id() : null; }, function () { return null; })
+      .then(function (id) { uid = id || null; })
+      .then(function () {
+        return Promise.all([
+          retryOnce(function () { return db.collection("answers").get(); }),
+          retryOnce(function () { return db.collection("actions").get(); })
+        ]);
+      })
+      .then(function (snaps) {
+        snaps[0].docs.forEach(function (d) {
+          var v = d.exists ? d.data() : null;
+          if (v && typeof v === "object" && byId[d.id] && typeof v.choice === "string") answers[d.id] = v;
+        });
+        snaps[1].docs.forEach(function (d) {
+          var v = d.exists ? d.data() : null;
+          if (v && typeof v === "object") doneState[d.id] = v;
+        });
+        say("", false); counter(); cards.forEach(paint); toggles.forEach(paintToggle);
+      });
+  }).catch(function (err) {
+    offline("Answers could not be loaded (" + ((err && err.code) || "error") + "). Everything stays readable; reload to try again.");
+  });
+})();
+"""
+
+EMPTY_Q = '<div class="empty">No open questions.</div>'
 
 
 def render(data: dict) -> str:
@@ -503,16 +889,45 @@ def render(data: dict) -> str:
         if n.get("recommendation"):
             dl.append(f'<dt>Recommendation</dt><dd class="rec">{e(n.get("recommendation"))}</dd>')
         need_cards.append(
-            f'<article class="card needcard"><div class="top"><span class="rank">{rank}</span>'
+            f'<article class="card needcard" data-aid="{e(n.get("id"))}"><div class="top"><span class="rank">{rank}</span>'
             f'<h3><span class="muted">{e(n.get("id"))}</span> {e(n.get("title"))}</h3>'
             f'<span class="score" title="Steps that wait on this, directly or indirectly">unblocks {score}</span></div>'
             f'<dl>{"".join(dl)}</dl>'
             + (f'<div class="unb"><span class="k">unblocks →</span>{unb}</div>' if unb else "")
             + (f'<div class="where"><span class="k">Where</span>{e(n.get("where"))}</div>' if n.get("where") else "")
+            + f'<div class="doneact"><button type="button" class="btn done-toggle" data-aid="{e(n.get("id"))}" '
+            f'aria-pressed="false" disabled>I\'ve done this</button><span class="savemsg" role="status" aria-live="polite"></span></div>'
             + "</article>"
         )
     needs_html = (
         f'<div class="grid">{"".join(need_cards)}</div>' if need_cards else '<div class="empty">Nothing waits on you.</div>'
+    )
+
+    questions = [q for q in as_list(data.get("questions")) if isinstance(q, dict) and q.get("id")]
+    q_cards = "".join(question_card(q, labels) for q in questions)
+    q_data = [
+        {
+            "id": str(q.get("id")),
+            "title": str(q.get("title") or ""),
+            "options": [
+                {"key": str(o.get("key") or ""), "label": str(o.get("label") or "")}
+                for o in as_list(q.get("options"))
+                if isinstance(o, dict)
+            ],
+        }
+        for q in questions
+    ]
+    a_data = [{"id": str(n.get("id")), "title": str(n.get("title") or "")} for n in needs if n.get("id")]
+    decided = decided_html(as_list(data.get("decided")))
+    decisions_html = (
+        f'<section class="decwrap" id="decisions" aria-labelledby="dec-h"><h2 id="dec-h">Your decisions '
+        f'<span class="n">{len(questions)}</span></h2>'
+        f'<div class="dechead"><span class="qcount" id="q-count">Loading answers… (of {len(questions)})</span>'
+        f'<span class="qmeter" aria-hidden="true"><i id="q-meter"></i></span></div>'
+        f'<div class="dbmsg" id="db-msg" role="status">Connecting to the answer store… The questions are readable now; '
+        f'Save switches on once the store answers.</div>'
+        f'<div class="qlist" style="margin-top:14px">{q_cards or EMPTY_Q}</div>'
+        f"{decided}</section>"
     )
 
     # Workstreams
@@ -538,7 +953,7 @@ def render(data: dict) -> str:
     sess_html = []
     for cat in order:
         cards = "".join(session_card(s, labels) for s in groups[cat])
-        sess_html.append(f'<div class="cat"><h3>{e(cat)} · {len(groups[cat])}</h3><div class="grid">{cards}</div></div>')
+        sess_html.append(f'<div class="cat"><h3>{e(cat)} · {len(groups[cat])}</h3><div class="rows">{cards}</div></div>')
     noreply = [s for s in sessions if s.get("reply") == "no reply"]
 
     # Next
@@ -591,8 +1006,10 @@ def render(data: dict) -> str:
 <p class="headline">{e(data.get("headline"))}</p>
 <div class="tiles">{tiles_html}</div>
 
-<h2>Needs you <span class="n">{len(needs)}</span></h2>
-<p class="muted" style="margin-top:-6px">Ranked by how many steps each unblocks.</p>
+<div style="margin-top:28px">{decisions_html}</div>
+
+<h2>Actions only you can take <span class="n">{len(needs)}</span></h2>
+<p class="muted" style="margin-top:-6px">Ranked by how many steps each unblocks. Press "I've done this" when you have.</p>
 {needs_html}
 
 <h2>Workstreams and dependencies</h2>
@@ -609,7 +1026,11 @@ def render(data: dict) -> str:
 
 <h2>Legend</h2>
 <div class="card">{legend}</div>
-</main></body></html>
+</main>
+{json_script("q-data", q_data)}
+{json_script("a-data", a_data)}
+<script>{JS}</script>
+</body></html>
 """
 
 

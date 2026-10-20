@@ -11,3 +11,6 @@ NEEDS: <exactly what you need from Nigel: the decision or words, with a one-line
 BLOCKED-BY: <session id, PR or step you wait on> or none
 NEXT: <your next step once unblocked>
 CONTEXT: <your context usage, %>
+EXPLAINERS: <title — function/file>, ... or none
+
+If your work touched a complex function or feature, send each explainer as a SEPARATE send_message to {COORDINATOR_ID}, its first line exactly "EXPLAINER <title> — <function/file>", then the explainer's HTML: one self-contained page under 40 KB (inline SVG/CSS/JS, no external requests) that animates the function step by step with play / pause / step controls. Never publish an artifact of your own; the coordinator embeds it in your card on the status page.

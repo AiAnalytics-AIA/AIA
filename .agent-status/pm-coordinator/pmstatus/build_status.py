@@ -1,4 +1,10 @@
 import json
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from questions import Q  # noqa: E402
+
 S=lambda **k:k
 sess=[
  S(id="session_01YEVg53K5fKSGUfcKPTdrRk",title="AIA PM: coordinator 2",category="PM",state="working",doing="Running /pmstatus; watching develop CI for #519-#521 and the domain move.",plan=None,prs=[],needs=None,blocked_by=[],next="Put Q1-Q8 to you when you ask; merge #516→#522→#523 after your signature.",context_pct=60,last_update="2026-10-20T19:20:00Z",reply="received"),
@@ -14,7 +20,7 @@ sess=[
  S(id="session_01End3azGdHNr1MtxRjUqqZ8",title="AIA design: MVP workbench artifact",category="Design",state="waiting-on-nigel",doing="Design v2 published (11 screens, Peněženka).",plan=None,prs=[],needs="Your feedback on the design, when you have time (not blocking).",blocked_by=[],next="Apply your feedback.",context_pct=36,last_update="2026-10-20T19:18:14Z",reply="received"),
 ]
 needs=[
- dict(id="N1",title="Answer Q1-Q8, then sign the scope baseline (#523)",why="Scope freeze: no MVP feature code starts until you sign. 7 sessions' work merges with it.",example="Q1: does the switch to -5 merge as soon as it's built (maps internal until Arigamaru's register entry), or wait for the entry?",recommendation="Say 'ask me the questions': I'll run them with an example and a recommendation each, then you sign in planning 2.",unblocks=["planning","scope-inputs","build"],where="This session"),
+ dict(id="N1",title="Answer Q1-Q8, then sign the scope baseline (#523)",why="Scope freeze: no MVP feature code starts until you sign. 7 sessions' work merges with it.",example="Q1: does the switch to -5 merge as soon as it's built (maps internal until Arigamaru's register entry), or wait for the entry?",recommendation="Answer Q1-Q8 under 'Your decisions' on this page; I'll apply them, then you sign in planning 2.",unblocks=["planning","scope-inputs","build"],where="Your decisions (this page), then planning 2"),
  dict(id="N2",title="Confirm the Webglobe nameserver change",why="The domain move to dev.ai-analytics.ai can't start until .ai shows the AWS nameservers.",example="dig +short NS ai-analytics.ai @a.nic.ai shows four awsdns names.",recommendation="Your coworker confirms the e-mail; then run the dig and tell me.",unblocks=["d4","d5"],where="Webglobe e-mail + CloudShell"),
  dict(id="N4",title="'commit and push the IdP fix' (infra session)",why="Makes Terraform match what Cognito really does and keeps the domain cutover plan clean.",example="Type exactly: commit and push the IdP fix",recommendation="Do it before the domain cutover.",unblocks=["i2","d5"],where="AIA infra audit session"),
  dict(id="N6",title="'commit and push' the Docker layer fix",why="Stops ~1 GB of host disk per deploy and cuts rebuilds from 4.5 min to under a minute.",example="Type: commit and push",recommendation="Yes: equivalence is proven (68 packages, 10,157 files identical).",unblocks=["k2"],where="AIA fix: Docker dependency layer session"),
@@ -67,5 +73,60 @@ rec=[
  dict(when="2026-10-20T17:45:00Z",what="Scope baseline drafted (#522, #523) from all 48 answers."),
  dict(when="2026-10-20T17:20:00Z",what="Merged #511 (wallet) and #518 (npm gate); terraform-plan-read attached."),
 ]
-d=dict(generated_at="2026-10-20T19:25:00Z",develop_sha="7878bad",headline="Ten sessions report. Nothing is broken; nine wait on you. Two quick 'commit and push' words and the Webglobe confirmation unblock the infra work; Q1-Q8 plus your signature unblock the whole MVP build.",needs_nigel=needs,sessions=sess,workstreams=ws,next_actions=nxt,recent=rec)
+
+# Explainers: explainers/<session-id>/<slug>.html, each saved by the coordinator from a session's
+# "EXPLAINER <title> — <function>" message. Title, function and height come from, in order: a sidecar
+# <slug>.json {"title", "function", "height"}; a first-line comment
+# <!-- EXPLAINER <title> — <function> [height=<px>] -->; the page's <title>; the slug.
+import glob
+import re
+HERE = os.path.dirname(os.path.abspath(__file__))
+MAX_EXPLAINER = 40 * 1024
+HEAD = re.compile(r"^\s*<!--\s*EXPLAINER\s+(.*?)\s*-->", re.S)
+
+
+def load_explainers(session_id):
+    out = []
+    for path in sorted(glob.glob(os.path.join(HERE, "explainers", session_id, "*.html"))):
+        raw = open(path, encoding="utf-8").read()
+        if len(raw.encode("utf-8")) > MAX_EXPLAINER:
+            print(f"skipped {path}: over 40 KB", file=sys.stderr)
+            continue
+        slug = os.path.splitext(os.path.basename(path))[0]
+        title, function, height = slug.replace("-", " "), None, None
+        m = HEAD.match(raw)
+        if m:
+            head = m.group(1)
+            hm = re.search(r"\bheight=(\d+)\s*$", head)
+            if hm:
+                height = int(hm.group(1))
+                head = head[: hm.start()].strip()
+            parts = re.split(r"\s+[—-]\s+", head, maxsplit=1)
+            title = parts[0] or title
+            function = parts[1] if len(parts) > 1 else None
+        else:
+            tm = re.search(r"<title>(.*?)</title>", raw, re.S | re.I)
+            if tm and tm.group(1).strip():
+                title = tm.group(1).strip()
+        side = os.path.splitext(path)[0] + ".json"
+        if os.path.exists(side):
+            meta = json.load(open(side, encoding="utf-8"))
+            if isinstance(meta, dict):
+                title = str(meta.get("title") or title)
+                function = meta.get("function") or function
+                if isinstance(meta.get("height"), (int, float)):
+                    height = int(meta["height"])
+        item = dict(title=title, function=function, html=raw)
+        if height:
+            item["height"] = height
+        out.append(item)
+    return out
+
+
+for s_ in sess:
+    ex = load_explainers(s_["id"])
+    if ex:
+        s_["explainers"] = ex
+
+d=dict(generated_at="2026-10-20T19:25:00Z",develop_sha="7878bad",headline="Ten sessions report. Nothing is broken; nine wait on you. Two quick 'commit and push' words and the Webglobe confirmation unblock the infra work; Q1-Q8 plus your signature unblock the whole MVP build.",needs_nigel=needs,sessions=sess,workstreams=ws,next_actions=nxt,recent=rec,questions=Q,decided=[])
 json.dump(d,open('status.json','w'),ensure_ascii=False,indent=1)

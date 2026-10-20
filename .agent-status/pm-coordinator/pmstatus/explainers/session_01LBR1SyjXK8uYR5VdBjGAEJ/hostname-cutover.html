@@ -1,0 +1,207 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Develop Hostname Cutover</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one 360px frame for an iframe — header with status pills, a scaling diagram, then the step text and controls. Self-contained: no external requests. */
+:root {
+  --bg: #f3f5f8; --surface: #ffffff; --ink: #18212d; --muted: #586474; --line: #c6ceda;
+  --accent: #2b59c3; --accent-soft: #e3eafb; --up: #1d7a4b; --down: #b3412b; --idle: #8a95a5;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e131a; --surface: #161d27; --ink: #e5eaf1; --muted: #97a2b2; --line: #2d3746;
+  --accent: #7ea3ff; --accent-soft: #1e2a44; --up: #4cc38a; --down: #ff7d61; --idle: #6b7686; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0e131a; --surface: #161d27; --ink: #e5eaf1; --muted: #97a2b2; --line: #2d3746;
+  --accent: #7ea3ff; --accent-soft: #1e2a44; --up: #4cc38a; --down: #ff7d61; --idle: #6b7686; color-scheme: dark }
+
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font: 13px/1.45 var(--sans); }
+.frame { box-sizing: border-box; height: 100%; min-height: 340px; max-width: 980px; margin: 0 auto;
+  display: grid; grid-template-rows: auto minmax(120px, 1fr) auto; gap: 8px; padding-block: 10px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; min-width: 0; }
+h1 { font-size: 0.98rem; font-weight: 600; margin: 0; margin-right: auto; text-wrap: balance; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 0.74rem; padding: 3px 8px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--line); white-space: nowrap; }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--dot, var(--idle)); }
+.pill[data-s="up"] { --dot: var(--up); } .pill[data-s="down"] { --dot: var(--down); } .pill[data-s="idle"] { --dot: var(--idle); }
+.pill b { font-weight: 600; }
+
+.diagram { min-height: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.diagram svg { display: block; width: 100%; height: 100%; }
+.node rect { fill: var(--surface); stroke: var(--line); stroke-width: 1.2; transition: stroke .3s, fill .3s; }
+.node .t { fill: var(--ink); font: 600 13px var(--sans); }
+.node .d { fill: var(--muted); font: 11.5px var(--mono); }
+.node.changed rect { stroke: var(--accent); stroke-width: 2.2; fill: var(--accent-soft); }
+.node.gone .d { fill: var(--down); text-decoration: line-through; }
+.edge { fill: none; stroke: var(--line); stroke-width: 1.6; transition: stroke .3s; }
+.edge.on { stroke: var(--accent); stroke-width: 2.4; stroke-dasharray: 6 5; animation: flow 1s linear infinite; }
+.edge.cut { stroke: var(--down); stroke-dasharray: 2 5; }
+.elabel { fill: var(--muted); font: 10.5px var(--sans); }
+@keyframes flow { to { stroke-dashoffset: -11; } }
+
+.step { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: end; min-width: 0; }
+.text { min-width: 0; }
+.text .meta { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.text h2 { font-size: 0.92rem; margin: 1px 0 2px; }
+.text p { margin: 0; max-width: 80ch; }
+.text .down-note { color: var(--down); font-weight: 600; margin-top: 2px; }
+.controls { display: flex; gap: 6px; align-items: center; }
+button { font: 500 0.8rem var(--sans); color: var(--ink); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:disabled { opacity: .45; cursor: default; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); min-width: 4.4em; }
+.counter { font-family: var(--mono); font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 3.6em; text-align: right; }
+@media (max-width: 560px) { .step { grid-template-columns: 1fr; } .controls { justify-content: flex-end; } }
+@media (prefers-reduced-motion: reduce) { .edge.on { animation: none; } * { transition: none !important; } }
+</style>
+
+<div class="frame">
+  <div class="top">
+    <h1>Develop moves to dev.ai-analytics.ai</h1>
+    <span class="pill" id="st-old" data-s="up">Old site: <b id="st-old-v">up</b></span>
+    <span class="pill" id="st-new" data-s="idle">New site: <b id="st-new-v">not yet</b></span>
+    <span class="pill" id="st-auth" data-s="up">Sign-in: <b id="st-auth-v">old name</b></span>
+  </div>
+
+  <div class="diagram">
+    <svg viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="dg-title">
+      <title id="dg-title">The pieces the cutover touches: DNS zones, the develop host, Cognito, SSM, Let's Encrypt and the deploy workflow</title>
+      <path class="edge" id="e-reg" d="M120 102 V170"/>
+      <path class="edge" id="e-new" d="M220 206 H300"/>
+      <path class="edge" id="e-old" d="M220 336 C260 336 270 232 300 226"/>
+      <path class="edge" id="e-cog" d="M400 170 V102"/>
+      <path class="edge" id="e-user" d="M400 310 V242"/>
+      <path class="edge" id="e-acme" d="M580 80 C540 90 530 170 500 186"/>
+      <path class="edge" id="e-ssm" d="M580 206 H500"/>
+      <path class="edge" id="e-gh" d="M580 336 C540 330 530 240 500 226"/>
+      <text class="elabel" x="128" y="140">NS delegation</text>
+      <text class="elabel" x="408" y="140">sign-in redirect</text>
+      <text class="elabel" x="408" y="280">HTTPS</text>
+      <g class="node" id="n-reg"><rect x="20" y="30" width="200" height="72" rx="8"/><text class="t" x="34" y="58">Registrar (.ai)</text><text class="d" x="34" y="80" id="d-reg"></text></g>
+      <g class="node" id="n-new"><rect x="20" y="170" width="200" height="72" rx="8"/><text class="t" x="34" y="198">Zone ai-analytics.ai</text><text class="d" x="34" y="220" id="d-new"></text></g>
+      <g class="node" id="n-old"><rect x="20" y="310" width="200" height="72" rx="8"/><text class="t" x="34" y="338">Zone art-chain.io</text><text class="d" x="34" y="360" id="d-old"></text></g>
+      <g class="node" id="n-cog"><rect x="300" y="30" width="200" height="72" rx="8"/><text class="t" x="314" y="58">Cognito app client</text><text class="d" x="314" y="80" id="d-cog"></text></g>
+      <g class="node" id="n-host"><rect x="300" y="170" width="200" height="72" rx="8"/><text class="t" x="314" y="198">Develop host · Caddy</text><text class="d" x="314" y="220" id="d-host"></text></g>
+      <g class="node" id="n-user"><rect x="300" y="310" width="200" height="72" rx="8"/><text class="t" x="314" y="338">People signing in</text><text class="d" x="314" y="360" id="d-user"></text></g>
+      <g class="node" id="n-acme"><rect x="580" y="30" width="200" height="72" rx="8"/><text class="t" x="594" y="58">Let's Encrypt</text><text class="d" x="594" y="80" id="d-acme"></text></g>
+      <g class="node" id="n-ssm"><rect x="580" y="170" width="200" height="72" rx="8"/><text class="t" x="594" y="198">SSM /aia/develop</text><text class="d" x="594" y="220" id="d-ssm"></text></g>
+      <g class="node" id="n-gh"><rect x="580" y="310" width="200" height="72" rx="8"/><text class="t" x="594" y="338">Deploy develop</text><text class="d" x="594" y="360" id="d-gh"></text></g>
+    </svg>
+  </div>
+
+  <div class="step">
+    <div class="text" aria-live="polite">
+      <div class="meta"><span id="c-who"></span> · AWS: <span id="c-aws"></span></div>
+      <h2 id="c-title"></h2>
+      <p id="c-body"></p>
+      <p class="down-note" id="c-down" hidden></p>
+    </div>
+    <div class="controls">
+      <button id="prev" type="button" aria-label="Previous step">‹</button>
+      <button id="play" type="button" class="primary">Play</button>
+      <button id="next" type="button" aria-label="Next step">›</button>
+      <span class="counter" id="counter"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const BASE = { "d-reg": "NS: registrar default", "d-new": "NS, SOA only", "d-old": "aia-develop A · errors A",
+    "d-cog": "callback: aia-develop…", "d-host": "EIP 3.64.35.250 · old certs", "d-user": "session on the old host",
+    "d-acme": "issues TLS certificates", "d-ssm": "hostname · web DSN: old", "d-gh": "AIA_PUBLIC_HOSTNAME: old" };
+  const LIVE_OLD = ["e-old", "e-user", "e-cog"];
+  const STEPS = [
+    { t: "Before the window", who: "Operator", aws: "no", edges: LIVE_OLD, changed: [],
+      b: "Note the SHA that is running (/api/v1/health → build.sha). Optionally merge the Google sign-in fix first, so the plan has no unrelated diff." },
+    { t: "Delegate the new zone", who: "Nigel", aws: "no (registrar)", edges: ["e-reg", ...LIVE_OLD], changed: ["n-reg"], set: { "d-reg": "NS → awsdns ×4" },
+      b: "Point the registrar at the four Route 53 name servers. Wait until dig at the .ai registry, dig +trace and a public resolver all show awsdns." },
+    { t: "Import the old errors record", who: "Operator", aws: "state only", edges: ["e-reg", ...LIVE_OLD], changed: ["n-old"],
+      b: "terraform import errors.aia-develop.art-chain.io, so the cutover deletes it too instead of leaving the old name resolving." },
+    { t: "Edit terraform.tfvars", who: "Operator", aws: "no", edges: ["e-reg", ...LIVE_OLD], changed: [],
+      b: "public_hostname = dev.ai-analytics.ai, route53_zone_id = the new zone. Nothing live changes yet." },
+    { t: "Plan, and read it", who: "Operator", aws: "read only", edges: ["e-reg", ...LIVE_OLD], changed: [],
+      b: "Expect 2 to add, 3 to change, 2 to destroy. Stop on any user pool, identity provider or client replacement." },
+    { t: "Apply", who: "Operator", aws: "yes", edges: ["e-reg", "e-new"], cut: ["e-old", "e-user"],
+      changed: ["n-old", "n-new", "n-cog", "n-ssm"],
+      set: { "d-old": "records removed", "d-new": "dev A · errors A", "d-cog": "callback: dev.ai-analytics.ai", "d-ssm": "hostname: new · DSN: old" },
+      b: "Old A records deleted, new ones created; Cognito accepts only the new callback; SSM holds the new hostname. The host is untouched.",
+      down: "Old site down from here (after its 300 s TTL); the new name has no certificate yet." },
+    { t: "Hand changes", who: "Operator", aws: "yes (SSM)", edges: ["e-reg", "e-new"], cut: ["e-old", "e-user"], changed: ["n-ssm", "n-gh"],
+      set: { "d-ssm": "hostname · web DSN: new", "d-gh": "AIA_PUBLIC_HOSTNAME: new" },
+      b: "Set the web error-tracking DSN host in SSM and the GitHub environment variable AIA_PUBLIC_HOSTNAME. Terraform manages neither." },
+    { t: "Check the new names resolve", who: "Operator", aws: "no", edges: ["e-reg", "e-new"], cut: ["e-old", "e-user"], changed: ["n-new"],
+      b: "dig dev.ai-analytics.ai and errors.dev.ai-analytics.ai: both must show 3.64.35.250 before Caddy can get a certificate." },
+    { t: "Redeploy the running SHA", who: "GitHub Actions", aws: "yes (deploy)",
+      edges: ["e-reg", "e-new", "e-gh", "e-ssm", "e-acme", "e-user", "e-cog"], cut: ["e-old"], changed: ["n-host", "n-acme", "n-gh"],
+      set: { "d-host": "EIP 3.64.35.250 · new certs", "d-acme": "certs: dev, errors.dev" },
+      b: "Deploy develop with the step 0 SHA, migrate off. The host rereads SSM, Caddy gets both certificates, smoke.sh runs, and the workflow checks the new URL reports that SHA." },
+    { t: "Verify by hand", who: "Operator", aws: "no", edges: ["e-reg", "e-new", "e-user", "e-cog"], cut: ["e-old"], changed: [],
+      b: "Sign in at dev.ai-analytics.ai and open errors.dev.ai-analytics.ai. The old name no longer answers." },
+    { t: "Everyone signs in again", who: "Users", aws: "no", edges: ["e-reg", "e-new", "e-user", "e-cog"], cut: ["e-old"], changed: ["n-user"],
+      set: { "d-user": "session on dev.ai-analytics.ai" },
+      b: "The AIA cookie belonged to the old host; Cognito's own session is on its unchanged domain, so Google rarely asks again. Later: an SES identity for GlitchTip mail on the new domain." },
+    { t: "Rollback, if needed", who: "Operator", aws: "yes", edges: ["e-old", "e-user", "e-cog"], cut: ["e-new"], changed: ["n-old", "n-cog", "n-ssm", "n-gh"],
+      set: { "d-old": "aia-develop A · errors A", "d-new": "records removed", "d-cog": "callback: aia-develop…", "d-ssm": "hostname · web DSN: old", "d-gh": "AIA_PUBLIC_HOSTNAME: old", "d-host": "EIP 3.64.35.250 · old certs", "d-user": "session on the old host" },
+      b: "Old values back in tfvars, plan the mirror image and apply; restore the DSN host and the GitHub variable; redeploy the same SHA. Caddy still has the old certificates.", rollback: true }
+  ];
+  const $ = id => document.getElementById(id);
+  let i = 0, timer = null;
+
+  function status(k) {
+    const s = STEPS[k];
+    const pill = (id, st, v) => { $(id).dataset.s = st; $(id + "-v").textContent = v; };
+    if (s.rollback) { pill("st-old", "up", "back up"); pill("st-new", "idle", "removed"); pill("st-auth", "up", "old name"); return; }
+    const oldDown = k >= 5, newUp = k >= 8;
+    pill("st-old", oldDown ? "down" : "up", oldDown ? "down, dropped" : "up");
+    pill("st-new", newUp ? "up" : "idle", newUp ? "up" : (oldDown ? "no certificate" : "not yet"));
+    pill("st-auth", oldDown && !newUp ? "down" : "up", newUp ? "new name" : (oldDown ? "unavailable" : "old name"));
+  }
+
+  function render() {
+    const s = STEPS[i];
+    // Node texts accumulate step by step; the rollback step sets its own complete state.
+    const text = { ...BASE };
+    for (let k = 0; k <= i; k++) Object.assign(text, STEPS[k].set || {});
+    for (const [id, v] of Object.entries(text)) $(id).textContent = v;
+    document.querySelectorAll(".edge").forEach(e => {
+      e.classList.toggle("on", s.edges.includes(e.id));
+      e.classList.toggle("cut", (s.cut || []).includes(e.id));
+    });
+    document.querySelectorAll(".node").forEach(n => {
+      n.classList.toggle("changed", s.changed.includes(n.id));
+      n.classList.toggle("gone", (i >= 5 && !s.rollback && n.id === "n-old") || (s.rollback && n.id === "n-new"));
+    });
+    $("c-who").textContent = s.who; $("c-aws").textContent = s.aws;
+    $("c-title").textContent = (s.rollback ? "" : i + ". ") + s.t;
+    $("c-body").textContent = s.b;
+    $("c-down").hidden = !s.down; $("c-down").textContent = s.down || "";
+    $("counter").textContent = `${i + 1}/${STEPS.length}`;
+    $("prev").disabled = i === 0; $("next").disabled = i === STEPS.length - 1;
+    status(i);
+  }
+  function go(k) { i = Math.max(0, Math.min(STEPS.length - 1, k)); render(); }
+  function stop() { clearInterval(timer); timer = null; $("play").textContent = "Play"; }
+  function play() {
+    if (i === STEPS.length - 1) go(0);
+    $("play").textContent = "Pause";
+    timer = setInterval(() => { if (i >= STEPS.length - 1) stop(); else go(i + 1); }, 4500);
+  }
+  $("prev").addEventListener("click", () => { stop(); go(i - 1); });
+  $("next").addEventListener("click", () => { stop(); go(i + 1); });
+  $("play").addEventListener("click", () => timer ? stop() : play());
+  document.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight") { stop(); go(i + 1); }
+    if (e.key === "ArrowLeft") { stop(); go(i - 1); }
+  });
+  render();
+})();
+</script>
+
+</body></html>

@@ -1,0 +1,134 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>AIA Image Layers</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one 360px-tall card: step caption, two layer stacks (before | after), controls row. Self-contained, no external requests. */
+:root {
+  --bg: #f3f5f7; --fg: #17202a; --muted: #5b6672; --line: #d5dbe1;
+  --cached: #c9dbe0; --cached-ink: #24525e; --rebuilt: #e9873a; --rebuilt-ink: #ffffff;
+  --meta: #e6e9ed; --meta-ink: #5b6672; --accent: #1f6f82;
+  --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12171c; --fg: #e4e9ee; --muted: #98a3ae; --line: #2c353e;
+  --cached: #24414a; --cached-ink: #bfe0e8; --rebuilt: #d9772c; --rebuilt-ink: #12171c;
+  --meta: #232b33; --meta-ink: #98a3ae; --accent: #6cc0d2; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12171c; --fg: #e4e9ee; --muted: #98a3ae; --line: #2c353e;
+  --cached: #24414a; --cached-ink: #bfe0e8; --rebuilt: #d9772c; --rebuilt-ink: #12171c;
+  --meta: #232b33; --meta-ink: #98a3ae; --accent: #6cc0d2; color-scheme: dark }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font: 13px/1.4 var(--sans); margin: 0;
+  padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); padding-block: 10px; box-sizing: border-box; }
+main { height: 340px; max-height: 100%; display: grid; grid-template-rows: auto 1fr auto; gap: 8px; max-width: 900px; margin: 0 auto; }
+.step { min-height: 4.2em; }
+.step .n { font: 600 10px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.step p { margin: 2px 0 0; }
+code { font-family: var(--mono); font-size: .92em; }
+.stacks { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; min-height: 0; }
+.stack { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.stack h2 { font: 600 10px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.layer { display: flex; justify-content: space-between; gap: 6px; align-items: center; border-radius: 3px; padding: 3px 7px;
+  background: var(--cached); color: var(--cached-ink); font-size: 11.5px; transition: background .35s, color .35s, opacity .35s; min-width: 0; }
+.layer .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.layer .size { font-family: var(--mono); font-size: 10.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.layer.big { padding-block: 14px; } .layer.mid { padding-block: 8px; }
+.layer.meta { background: var(--meta); color: var(--meta-ink); outline: 1px dashed var(--line); outline-offset: -1px; }
+.layer.rebuilt { background: var(--rebuilt); color: var(--rebuilt-ink); }
+.layer.dim { opacity: .35; }
+.total { font: 11px var(--mono); font-variant-numeric: tabular-nums; min-height: 1.4em; margin-top: 2px; }
+.total b { color: var(--rebuilt); }
+.bar { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+button { font: 600 12px var(--sans); background: transparent; color: var(--fg); border: 1px solid var(--line); border-radius: 5px; padding: 4px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button:disabled { opacity: .45; cursor: default; }
+.dots { display: flex; gap: 4px; }
+.dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
+.dots i.on { background: var(--accent); }
+.legend { display: flex; gap: 10px; flex-wrap: wrap; color: var(--muted); font-size: 11px; margin-left: auto; }
+.legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 4px; background: var(--sw); }
+@media (max-width: 480px) { .legend { display: none; } .layer .name { white-space: normal; } }
+@media (prefers-reduced-motion: reduce) { .layer { transition: none; } }
+</style>
+
+<main>
+  <div class="step" aria-live="polite"><div class="n" id="stepn"></div><p id="stept"></p></div>
+
+  <div class="stacks">
+    <section class="stack" aria-label="Before">
+      <h2>Before: worker image</h2>
+      <div class="layer meta" data-b="sha" title="Declared at the top of the runtime stage"><span class="name"><code>ARG AIA_BUILD_SHA</code> at top</span><span class="size">no layer</span></div>
+      <div class="layer mid" data-b="lo"><span class="name">LibreOffice Writer</span><span class="size">≈300 MB*</span></div>
+      <div class="layer big" data-b="venv"><span class="name">/opt/venv: deps + AIA code</span><span class="size">772 MB</span></div>
+      <div class="layer" data-b="user"><span class="name">user aia (RUN)</span><span class="size">45 kB</span></div>
+      <div class="layer" data-b="base"><span class="name">python:3.12-slim</span><span class="size">base</span></div>
+      <div class="total" id="tb"></div>
+    </section>
+    <section class="stack" aria-label="After">
+      <h2>After: worker image</h2>
+      <div class="layer meta" data-a="sha" title="Set at the end of the target"><span class="name"><code>ARG AIA_BUILD_SHA</code> last</span><span class="size">no layer</span></div>
+      <div class="layer" data-a="code"><span class="name">AIA packages, --no-deps</span><span class="size">19.7 MB</span></div>
+      <div class="layer mid" data-a="lo"><span class="name">LibreOffice Writer</span><span class="size">≈300 MB*</span></div>
+      <div class="layer big" data-a="venv"><span class="name">/opt/venv: third-party only</span><span class="size">772 MB</span></div>
+      <div class="layer" data-a="user"><span class="name">user aia (RUN)</span><span class="size">45 kB</span></div>
+      <div class="layer" data-a="base"><span class="name">python:3.12-slim</span><span class="size">base</span></div>
+      <div class="total" id="ta"></div>
+    </section>
+  </div>
+
+  <div class="bar">
+    <button id="prev" type="button">Back</button>
+    <button id="play" type="button">Play</button>
+    <button id="next" type="button">Step</button>
+    <div class="dots" id="dots" aria-hidden="true"></div>
+    <div class="legend">
+      <span style="--sw: var(--cached)">cached</span>
+      <span style="--sw: var(--rebuilt)">rebuilt, downloaded</span>
+    </div>
+  </div>
+</main>
+
+<script>
+const steps = [
+  { t: "The worker image as the last deploy built it, before and after the split in deploy/docker/python.Dockerfile. Every layer is already on the develop host.", b: {}, a: {} },
+  { t: "A commit changes one line of AIA's source. No pyproject.toml, no dependency changes.", b: {}, a: {} },
+  { t: "Before: sources were copied in before pip install, so the edit re-runs the whole install (4 m 30 s). After: the deps stage reads only the pyproject files and is reused.", b: { venv: "rebuilt" }, a: {}, tb: "pip install re-runs", ta: "deps reused" },
+  { t: "Before: AIA_BUILD_SHA sat in every RUN's environment, so a new SHA rebuilt the user RUN and everything above it, LibreOffice too. After: the SHA is set last.", b: { sha: "on", user: "rebuilt", venv: "rebuilt", lo: "rebuilt" }, a: { sha: "on" } },
+  { t: "After: only AIA's own four packages install again, in a small layer above LibreOffice.", b: { sha: "on", user: "rebuilt", venv: "rebuilt", lo: "rebuilt" }, a: { sha: "on", code: "rebuilt" } },
+  { t: "New on the host per deploy (unpacked; measured 2026-10-20). *LibreOffice's size is the Dockerfile's estimate; it could not be built in the measuring sandbox.", b: { sha: "on", user: "rebuilt", venv: "rebuilt", lo: "rebuilt" }, a: { sha: "on", code: "rebuilt" }, tb: "new: <b>≈1.1 GB</b>", ta: "new: <b>≈40 MB</b> (api + worker)" },
+];
+let i = 0, timer = null;
+const $ = (s) => document.querySelector(s);
+const dots = $("#dots");
+steps.forEach(() => dots.appendChild(document.createElement("i")));
+function paint(side, state) {
+  document.querySelectorAll(`[data-${side}]`).forEach((el) => {
+    const s = state[el.dataset[side]];
+    el.classList.toggle("rebuilt", s === "rebuilt");
+    if (el.classList.contains("meta")) el.classList.toggle("dim", s !== "on");
+  });
+}
+function render() {
+  const s = steps[i];
+  $("#stepn").textContent = `Step ${i + 1} of ${steps.length}`;
+  $("#stept").textContent = s.t;
+  paint("b", s.b); paint("a", s.a);
+  $("#tb").innerHTML = s.tb || ""; $("#ta").innerHTML = s.ta || "";
+  [...dots.children].forEach((d, k) => d.classList.toggle("on", k === i));
+  $("#prev").disabled = i === 0; $("#next").disabled = i === steps.length - 1;
+}
+function stop() { clearInterval(timer); timer = null; $("#play").textContent = "Play"; }
+$("#next").onclick = () => { stop(); if (i < steps.length - 1) { i++; render(); } };
+$("#prev").onclick = () => { stop(); if (i > 0) { i--; render(); } };
+$("#play").onclick = () => {
+  if (timer) return stop();
+  if (i === steps.length - 1) i = 0;
+  render(); $("#play").textContent = "Pause";
+  timer = setInterval(() => { if (i < steps.length - 1) { i++; render(); } else stop(); }, 3500);
+};
+render();
+</script>
+
+</body></html>
