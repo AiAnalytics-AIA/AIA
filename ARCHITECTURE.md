@@ -47,7 +47,7 @@ point; nothing outside it touches its internals.
 
 | # | Layer | Path | Owns | May depend on |
 |---|---|---|---|---|
-| 1 | **Domain** | `packages/aia_core/src/aia_core/domain/` | Pure rules: pipeline, project, providers, scope vocabulary, population versions and import contract, Sociomapping mathematics, evidence gates, analysis modules. Shapes and validation. No I/O. | Nothing internal. Stdlib + Pydantic only — numerical code included, which is why the Sociomap engine is pure Python rather than numpy. |
+| 1 | **Domain** | `packages/aia_core/src/aia_core/domain/` | Pure rules: pipeline, project, providers, scope vocabulary, population versions and import contract, Sociomapping mathematics, evidence gates, analysis modules. Shapes and validation. No I/O. | Nothing internal. Stdlib and Pydantic, plus numpy, scipy and numba for numerical code (agreed 2026-10-19 for the methodology owner's `aia-sociomap-5`, #504). No I/O either way. The earlier Sociomap presets stay pure Python and byte-identical. |
 | 2 | **Application** | `packages/aia_core/src/aia_core/application/` | Use cases. **The only issuer of a scope context, and the only loader of population data.** Orchestrates domain + infrastructure. Reaches rows only through a repository. | 1, 3 |
 | 3 | **Infrastructure** | `packages/aia_core/src/aia_core/infrastructure/` | SQLAlchemy tables and repositories, object storage, provider gateways. Every external service behind a protocol. | 1 |
 | 4 | **Workers** | `apps/worker/src/aia_worker/` | Durable step execution: claim from the PostgreSQL queue, heartbeat, run the `StepExecutor` registered for the step's kind, record the outcome; every worker also reconciles. **Knows nothing about what a step does.** | 1, 2, 3 — never 5 |
@@ -260,7 +260,11 @@ can grant approval or supply deployment prices.
   can mint, after the field policy, the `CORE_JOINT_STATUS` certificate, support,
   the interval rule and the tier gate have all passed. The certificate itself is an
   `aia_core.domain.evidence.JointStatus` only `load_joint_status` can issue, bound to the loaded panel's
-  hash. A prompt may state a rule; it is never the only thing enforcing it.
+  hash. A prompt may state a rule; it is never the only thing enforcing it. Decided and not built yet:
+  every key finding of an analysis module cites an admitted claim or is refused (MVP-23,
+  `evidence-integrity#1`); 18.6.6's run QC is a warning, never a gate (MVP-24,
+  `evidence-integrity#2`, `#3`); a module with no supported finding blocks the report (MVPQ-04,
+  `evidence-integrity#9a`, `#9b`).
 - **A research run executes a Design Revision, and nothing else**
   ([ADR 0016](docs/architecture/adr/0016-research-execution-and-model-transmission.md)).
   The browser submits the design it shows; `StudyDesignRepository` stores it as
@@ -269,8 +273,11 @@ can grant approval or supply deployment prices.
   repository can see it. A run names a revision by id; it is found only through
   the Study (`ResearchRuns`), and its artifacts are read only through the run
   (`research_artifacts`, `ArtifactRepository(owner=)`), never by id alone.
-  Respondent rows are never sent to the browser; the Sociomap artifact is served
-  only with `EDIT_STUDY`. An analysis retry (`retry_failed_modules`) is a new run
+  Respondent rows are never sent to the browser, with one named exception, decided and not
+  built yet (`mvp-cohesion.md` F2, MVPQ-03; `segment-maps-and-drilldown#6`): one route, under
+  `EDIT_STUDY`, returns one respondent's stored attributes and answers, every field labelled
+  modelled, never generated persona prose; it is internal only, never in an export, a report or a
+  map snapshot, and never an `AdmittedClaim`. The Sociomap artifact is served only with `EDIT_STUDY`. An analysis retry (`retry_failed_modules`) is a new run
   linked to the original whose fieldwork step takes the original's dataset by
   artifact id and SHA-256 (`frozen_dataset`), verified and never substituted: it
   collects nothing, and the report's gate over all eight modules is unchanged.
@@ -346,6 +353,15 @@ can grant approval or supply deployment prices.
   (`DeepResearchRuns`) and executed by six steps whose completed tracks, snapshots, verification
   batches and brief are reused by fingerprint, while anything a gate refused is its run's alone.
   Production has no retrieval, so web tracks are blocked; recorded retrieval is local and test only.
+  Decided and not built yet (the owner, 2026-10-19, #500): for the MVP, classification in Deep
+  Research is replaced by one declared posture per client, `OPEN` or `CLASSIFIED` (the default),
+  pinned in the run's request at enqueue and copied by a retry. For an `OPEN` client, only the
+  search queries and the plan step's web gate are lowered to Class C, so its queries may go to any
+  composed search route; model-bound design material keeps its rule-derived class (Class B by
+  `material_rules`, ADR 0008 Amendment 2026-10-19), so model requests are unchanged. A `CLASSIFIED`
+  client behaves as above, so its web tracks stay parked (`deep-research-web-search#53`; ADR 0008 amendment pending).
+  The Class B route is deferred whole (`class-b-search-route`). Model routes, EU residency,
+  grounding and the evidence gates are unchanged.
 - **Fieldwork is a boundary, and `ai_runtime` is answered only by AI respondents.**
   The deployed composition (`aia_executors.registry`) has no deterministic dataset
   producer. It builds the AI respondent engine (`aia_executors.ai_fieldwork`) only
@@ -393,9 +409,12 @@ can grant approval or supply deployment prices.
   source is `APPROVED` for `bedrock-eu-primary` alone (OI-61, data owner,
   2026-10-12); any other route refuses it.
 - **Integrated is not exposed.** The research Sociomap is computed from the
-  unit's own relation matrix by AIA's engine and marked `INTERNAL_ONLY` while
-  PROGRESS D6 is open; every client-facing surface, export or report calls
-  `require_client_facing`, which refuses it and fails closed on a missing status.
+  unit's own relation matrix by AIA's engine, and its status is the Sociomap
+  register's for the exact method and spec fingerprint that computed it
+  (`domain/sociomap_register.py`): `aia-sociomap-3` is approved (the product owner,
+  2026-10-13, D6), and every other method, `aia-sociomap-5` included, is `INTERNAL_ONLY`
+  until registered. Every client-facing surface, export or report calls
+  `require_client_facing`, which refuses an unapproved map and fails closed on a missing status.
 - **A stored method is read by the contract it names; contracts are added beside
   each other, never edited.** A Sociomap spec and artifact carry their contract
   number (`read_spec` / `spec_payload`, `read_artifact`): contract 2 is
@@ -657,7 +676,7 @@ front-matter, committed-key scan) instead of the suites; the path list is the `c
 | `make exposure_check` | **blocking** |
 | `alembic upgrade head` / `alembic check` / downgrade-to-base | **blocking** |
 | `pytest` — core + API, on PostgreSQL on every pull request; the SQLite run only on a push to `develop`, where it blocks the deploy; a collect-only pass over all four test trees in one session on every pull request, so a cross-tree module-name collision fails before the SQLite run on `develop` | **blocking** |
-| Parity-matrix consistency (`test_parity_matrix.py`, inside the pytest steps) | **blocking** |
+| Parity-matrix consistency (`test_parity_matrix.py`, inside the pytest steps) | **blocking**. Parity with 18.6.6 is information, never a release criterion (MVP-21): no capability is a release blocker, and a failing parity test still fails a pull request like any test (`mvp-cohesion.md` F9) |
 | Concurrency suite with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
 | Worker suite, including real worker processes, with `AIA_REQUIRE_POSTGRES=1` | **blocking** |
 | Executor suite (the `develop_snapshot` step under the real loop, the develop seed, the smoke module) with `AIA_REQUIRE_POSTGRES=1` | **blocking** |

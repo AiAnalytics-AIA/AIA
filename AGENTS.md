@@ -1914,6 +1914,25 @@ copy nobody writes.
 `docker rm "$cid"`, copies files out of a volume without running anything of the
 image.
 
+## numba, numpy and scipy in the domain (aia-sociomap-5, #504)
+
+`aia-sociomap-5` ports the methodology owner's numerical code as written, so the domain imports
+numpy, scipy and numba (pinned 2.5 / 1.18 / 0.68 in `packages/aia_core/pyproject.toml`).
+
+- **numba needs a writable cache at import.** The develop containers are read-only except `/tmp`,
+  and numba raises at import without a cache directory it can write. Wrong: rely on the default
+  (beside the package). Right: `NUMBA_CACHE_DIR=/tmp/numba` in the image's environment
+  (`deploy/docker/python.Dockerfile`).
+- **BB1 (soft-rank Spearman with Coulomb) is platform-dependent.** With identical library versions,
+  macOS and Linux can give different BB1 maps from about 12 objects: last-bit differences in the
+  compiled kernel, amplified by a chaotic criterion. A given image is deterministic. Wrong: a parity
+  test that compares a full BB1 map exactly across platforms. Right: exact parity where the method
+  is deterministic (inputs, Interval MDS), self-consistency for full BB1 runs, and stored maps of the
+  earlier presets pinned per platform.
+- **The library versions are part of the result.** BB1 and borderline segment decisions change
+  between numba 0.64 / numpy 2.3 and 0.68 / 2.5. Do not widen the pins without the methodology
+  owner and a fresh fixture.
+
 ## Durable AI proposal reuse and browser lifetime
 
 Apply the workflow-type filter in the repository before the list limit. Filtering
