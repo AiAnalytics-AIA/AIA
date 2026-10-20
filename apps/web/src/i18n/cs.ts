@@ -3104,6 +3104,8 @@ export const cs = {
           countTooFewHelp: "Segmenty potřebují alespoň {people} lidí s alespoň {ratings} hodnocenými objekty.",
           countNone: "žádné zřetelné",
           countNoneHelp: "Data žádné skupiny chutí silnější než náhoda neukazují.",
+          export: "Export PNG",
+          exportHelp: "Uloží aktuální pohled na mapu jako obrázek PNG.",
           // A clicked object, relation or respondent (the panel's detail beside the map).
           infoTip: "Co to znamená?",
           objectDetailTitle: "Detail objektu / vztahu",

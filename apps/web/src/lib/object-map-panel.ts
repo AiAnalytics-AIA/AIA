@@ -779,3 +779,69 @@ function drawPerson(ctx: CanvasRenderingContext2D, x: number, y: number, selecte
     ctx.stroke();
   }
 }
+
+// ---------------------------------------------------------------- the PNG snapshot's legend
+
+/** The legend card as the page shows it under the map's bottom left corner: its title, the
+ *  height ramp with its three marks, and on the respondent map the taste segments' lines. */
+export type LegendCard = {
+  title: string;
+  marks: [string, string, string];
+  segments?: { title: string | null; rows: { colour: string; text: string }[]; foot: string | null } | null;
+};
+
+const LEGEND_RAMP = ["#07134f", "#005fa8", "#00bdd1", "#14d178", "#7ce700", "#f4e81b", "#ff8f16", "#e8231d"];
+
+/**
+ * Draws the legend card into a snapshot of the map (the panel's PNG export has the canvas only;
+ * the page's legend is drawn over it in HTML): 260 px wide, 17 px from the left and 14 px from
+ * the bottom, in the card's colours and sizes. Draws in CSS pixels: the caller sets the transform.
+ */
+export function drawLegendCard(ctx: CanvasRenderingContext2D, card: LegendCard, height: number): void {
+  const x = 17, width = 260, pad = 12, inner = width - 2 * pad;
+  const rows: { draw: (y: number) => void; h: number }[] = [];
+  const text = (s: string, y: number, font: string, colour: string, align: CanvasTextAlign = "left", at = x + pad) => {
+    ctx.font = font; ctx.fillStyle = colour; ctx.textAlign = align; ctx.textBaseline = "top"; ctx.fillText(s, at, y);
+  };
+  rows.push({ h: 14, draw: (y) => text(card.title.toUpperCase(), y, "700 10.5px system-ui", "rgba(255,255,255,.7)") });
+  rows.push({ h: 14, draw: (y) => {
+    const g = ctx.createLinearGradient(x + pad, 0, x + pad + inner, 0);
+    LEGEND_RAMP.forEach((c, k) => g.addColorStop(k / (LEGEND_RAMP.length - 1), c));
+    ctx.fillStyle = g; ctx.fillRect(x + pad, y + 3, inner, 8);
+  } });
+  rows.push({ h: 14, draw: (y) => {
+    const font = "9.5px system-ui", colour = "rgba(255,255,255,.56)";
+    text(card.marks[0], y, font, colour);
+    text(card.marks[1], y, font, colour, "center", x + width / 2);
+    text(card.marks[2], y, font, colour, "right", x + pad + inner);
+  } });
+  const seg = card.segments;
+  if (seg) {
+    ctx.font = "9.5px system-ui";
+    if (seg.title) rows.push({ h: 16, draw: (y) => text(seg.title!.toUpperCase(), y + 3, "700 10.5px system-ui", "rgba(255,255,255,.7)") });
+    for (const row of seg.rows) {
+      const lines = wrapWords(row.text, inner - 14, (l) => ctx.measureText(l).width);
+      rows.push({ h: 13.3 * lines.length, draw: (y) => {
+        ctx.beginPath(); ctx.arc(x + pad + 4.5, y + 6, 4.5, 0, Math.PI * 2); ctx.fillStyle = row.colour; ctx.fill();
+        lines.forEach((l, k) => text(l, y + 13.3 * k, "9.5px system-ui", "rgba(255,255,255,.58)", "left", x + pad + 14));
+      } });
+    }
+    if (seg.foot) {
+      const lines = wrapWords(seg.foot, inner, (l) => ctx.measureText(l).width);
+      rows.push({ h: 13.3 * lines.length, draw: (y) => lines.forEach((l, k) => text(l, y + 13.3 * k, "9.5px system-ui", "rgba(255,255,255,.58)")) });
+    }
+  }
+  const h = rows.reduce((s, r) => s + r.h, 0) + 2 * 10;
+  const top = height - 14 - h;
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(x, top, width, h, 8);
+  ctx.fillStyle = "rgba(8,11,15,.75)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,.13)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  let y = top + 10;
+  for (const r of rows) { r.draw(y); y += r.h; }
+  ctx.restore();
+}

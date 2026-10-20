@@ -16,8 +16,7 @@
 // one faint), the objects as markers, its own legend, note and counts, the taste segments'
 // colours, legend and hint. A clicked object, relation or respondent shows its detail above the
 // list, from what the map stores (the panel's p-value, noise level and the respondent's answers
-// are not stored, so not shown). Seam for the later chunk: the PNG snapshot with the legend with
-// the report's figure (chunk 7).
+// are not stored, so not shown). Export PNG saves the map as drawn with its legend card.
 //
 // As the panel embedded in a page: the wheel zooms while the pointer is over the map and scrolls the
 // page elsewhere; ⛶ opens the map in the browser's full screen (the panel's `socioFullscreen66`).
@@ -30,7 +29,7 @@ import {
   type SegmentLegend, objectDetail, objectsNotPlaced, panelObjects, relationDetail, respondentDetail, respondentNote, segmentLegend, storedFrame, storedRespondents,
 } from "@/lib/object-map-signed-off";
 import {
-  CLICK_SLOP, COOL, INITIAL_CAMERA, SECONDARY, SEGMENT_COLOURS, SEGMENT_GREY, TOP_PITCH, WARM, ZOOM_IN, ZOOM_OUT,
+  CLICK_SLOP, COOL, drawLegendCard, INITIAL_CAMERA, SECONDARY, SEGMENT_COLOURS, SEGMENT_GREY, TOP_PITCH, WARM, ZOOM_IN, ZOOM_OUT,
   type Hit, type Norm, type PanelCamera, type RelationMode,
   REL_FLOOR, absoluteGrid, densityGrid, mapStatements, panelDots, camera3d, color66, dragCamera, drawObjectMap, hitTest, nodeScale, nodeTones, normalizer,
   panelNodes, relationPairs, relationStrength, storedGrid, strongestRelation, topCamera, wheelCamera, zoomCamera,
@@ -264,6 +263,27 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   );
   const fromAbove = camera.pitch < TOP_PITCH;
   const notPlaced = objectsNotPlaced(battery, map);
+  // The panel's Export PNG (`socioExport66`): the canvas as drawn, here with the legend card
+  // drawn in, since the page's legend is HTML over the canvas and would be missing.
+  const exportPng = () => {
+    const node = canvas.current;
+    if (!node) return;
+    const out = document.createElement("canvas");
+    out.width = node.width;
+    out.height = node.height;
+    const context = out.getContext("2d");
+    if (!context) return;
+    context.drawImage(node, 0, 0);
+    context.setTransform(node.width / size.width, 0, 0, node.height / size.height, 0, 0);
+    const panel = "research.exec.objectMap.panel";
+    drawLegendCard(context, people
+      ? { title: t(`${panel}.legendTitleRespondents`), marks: [panelNumber(0), t(`${panel}.scaleDensity`), panelNumber(1)], segments: segments ? segmentLines(segments) : null }
+      : { title: t(`${panel}.legendTitle`), marks: legendMarks(battery, nodes.map((n) => (n.primary ? n.value : null)), norm) }, size.height);
+    const link = document.createElement("a");
+    link.download = `Sociomapa_${people ? "respondenti" : "objekty"}.png`;
+    link.href = out.toDataURL("image/png");
+    link.click();
+  };
   const choose = (k: number) => { setSelected((s) => (s === k ? -1 : k)); setRelation(null); };
   const detail = people
     ? <PersonCard detail={person >= 0 ? respondentDetail(map, dots[person].id) : null} />
@@ -295,6 +315,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
             ))}
           </div>
         )}
+        <button type="button" className={SWITCH} title={t("research.exec.objectMap.panel.exportHelp")} onClick={exportPng}>{t("research.exec.objectMap.panel.export")}</button>
       </div>
       <div className="flex flex-wrap items-start gap-4">
         <div ref={setStage} className="relative h-[700px] min-w-0 flex-[999_1_560px] overflow-hidden rounded-[10px] bg-[#07090c] [min-width:min(100%,560px)] [&:fullscreen]:h-screen [&:fullscreen]:w-screen [&:fullscreen]:rounded-none" data-testid="object-map-stage">
@@ -330,15 +351,21 @@ export function panelNumber(v: number | null): string {
   return Math.abs(v) >= 100 ? num(v, 0) : num(v, Math.abs(v) < 10 ? 2 : 1);
 }
 
+/** The legend's three marks under the ramp: the lowest and highest PRIMARY mean on the declared
+ *  scale and the scale's word (rozsah, absolutní, bez dat). */
+function legendMarks(battery: BatteryWithMaps, stored: (number | null)[], norm: Norm): [string, string, string] {
+  const scale = normalizer(stored.filter((v): v is number => v !== null), norm, [0, 1]);
+  const shown = (v: number) => (scale.kind === "none" ? "—" : panelNumber(originalRating(v, battery.rating_scale) ?? v));
+  const kind = { range: "scaleRange", absolute: "scaleAbsolute", none: "scaleNone" }[scale.kind];
+  return [shown(scale.lo), t(`research.exec.objectMap.panel.${kind}`), shown(scale.hi)];
+}
+
 /** The panel's legend (`updateLegend66`, `relationKeyHtml66`): the height scale at a glance, its
  *  meaning behind an ⓘ, and what the lines mean folded out. */
 function Legend({ battery, values: stored, norm, strongest }: { battery: BatteryWithMaps; values: (number | null)[]; norm: Norm; strongest: number }) {
   const [open, setOpen] = useState(false);
   // The scale reads the PRIMARY objects' stored means; the numbers print on the declared scale.
-  const values = stored.filter((v): v is number => v !== null);
-  const scale = normalizer(values, norm, [0, 1]);
-  const shown = (v: number) => panelNumber(originalRating(v, battery.rating_scale) ?? v);
-  const kind = { range: "scaleRange", absolute: "scaleAbsolute", none: "scaleNone" }[scale.kind];
+  const [lo, word, hi] = legendMarks(battery, stored, norm);
   const relative = norm !== "absolute" && strongest > 1e-6;
   const row = (k: string, v: string) => <div><span className="font-semibold">{t(`research.exec.objectMap.panel.${k}`)}</span> {t(`research.exec.objectMap.panel.${v}`)}</div>;
   return (
@@ -356,7 +383,7 @@ function Legend({ battery, values: stored, norm, strongest }: { battery: Battery
       </b>
       <div aria-hidden className="my-1.5 h-2 rounded-[2px] bg-[linear-gradient(90deg,#07134f,#005fa8,#00bdd1,#14d178,#7ce700,#f4e81b,#ff8f16,#e8231d)]" />
       <div className="flex justify-between text-[9.5px] text-white/[.56]" data-testid="object-map-legend-scale">
-        <span>{scale.kind === "none" ? "—" : shown(scale.lo)}</span><span>{t(`research.exec.objectMap.panel.${kind}`)}</span><span>{scale.kind === "none" ? "—" : shown(scale.hi)}</span>
+        <span>{lo}</span><span>{word}</span><span>{hi}</span>
       </div>
       {open ? (
         <div data-testid="object-map-legend-key">

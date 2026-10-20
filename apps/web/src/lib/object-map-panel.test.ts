@@ -28,6 +28,7 @@ import {
   blend66,
   camera3d,
   color66,
+  drawLegendCard,
   drawObjectMap,
   nodeScale,
   nodeTones,
@@ -49,6 +50,7 @@ import {
   ZOOM_IN,
   ZOOM_OUT,
   INITIAL_CAMERA,
+  type LegendCard,
   type Norm,
   type PanelCamera,
   type RelationMode,
@@ -257,6 +259,10 @@ function recorder() {
     stroke() { ops.push({ op: "stroke", path, style: state.strokeStyle, alpha: state.globalAlpha, width: state.lineWidth, dash: state.dash.join(",") }); },
     fillText(text: string, x: number, y: number) { ops.push({ op: "text", path: [], text, x, y, font: state.font, style: state.fillStyle, align: state.textAlign, baseline: state.textBaseline }); },
     measureText(text: string) { return { width: measure(text, state.font) }; },
+    createLinearGradient(x0: number, y0: number, x1: number, y1: number) {
+      const stops: [number, string][] = [];
+      return { kind: "gradient", x0, y0, x1, y1, stops, addColorStop(o: number, c: string) { stops.push([o, c]); } };
+    },
   };
   return { ctx: ctx as unknown as CanvasRenderingContext2D, ops };
 }
@@ -524,5 +530,49 @@ describe("taste segments on the respondent map", () => {
     // As the panel's segColor66: the colour follows the stored flag alone, a faint dot included (drawn at 30 %).
     expect(dotColour({ ...dot, faded: true })).toBe(SEGMENT_COLOURS[2]);
     expect(dotColour({ ...dot, segmented: false })).toBeNull();
+  });
+});
+
+describe("the PNG snapshot's legend card", () => {
+  const card = (segments?: LegendCard["segments"]) => {
+    const { ctx, ops } = recorder();
+    drawLegendCard(ctx, { title: "Výška · Průměrné hodnocení", marks: ["6,19", "rozsah", "6,62"], segments }, 700);
+    return ops;
+  };
+
+  it("draws the page's card in the bottom left: title, ramp and its three marks", () => {
+    const ops = card();
+    const box = ops.find((o) => o.op === "fill" && o.path.some((p) => p[0] === "R"))!;
+    const [, x, y, w, h] = box.path.find((p) => p[0] === "R")! as number[];
+    expect([x, w]).toEqual([17, 260]);
+    expect(y + h).toBe(700 - 14);
+    expect(box.style).toBe("rgba(8,11,15,.75)");
+    const texts = ops.filter((o) => o.op === "text");
+    expect(texts.map((o) => o.text)).toEqual(["VÝŠKA · PRŮMĚRNÉ HODNOCENÍ", "6,19", "rozsah", "6,62"]);
+    expect(texts.map((o) => o.align)).toEqual(["left", "left", "center", "right"]);
+    // The marks sit at the ramp's ends and the card's middle, inside the 12 px padding.
+    expect(texts.slice(1).map((o) => o.x)).toEqual([29, 147, 265]);
+    const ramp = ops.find((o) => o.op === "rect")!;
+    expect([ramp.x, ramp.w, ramp.h]).toEqual([29, 236, 8]);
+    const gradient = ramp.fill as unknown as { stops: [number, string][] };
+    expect(gradient.stops.map(([, c]) => c)).toEqual(["#07134f", "#005fa8", "#00bdd1", "#14d178", "#7ce700", "#f4e81b", "#ff8f16", "#e8231d"]);
+  });
+
+  it("adds the taste segments' lines under the ramp, each with its colour, long ones wrapped", () => {
+    const long = "Segment 1 · 47 % · výš: Opera, Klasika, Pop · níž: Country, Hip hop, Metal";
+    const ops = card({ title: "Chuťové segmenty", rows: [{ colour: "#7fd3ff", text: long }, { colour: "#9aa3ad", text: "není jasně v jednom segmentu" }], foot: null });
+    const texts = ops.filter((o) => o.op === "text").map((o) => o.text!);
+    expect(texts.slice(4, 5)).toEqual(["CHUŤOVÉ SEGMENTY"]);
+    // The first row wraps at the card's width: its words, in order, over more than one line.
+    const first = texts.slice(5, -1);
+    expect(first.length).toBeGreaterThan(1);
+    expect(first.join(" ")).toBe(long);
+    expect(texts.at(-1)).toBe("není jasně v jednom segmentu");
+    const dots = ops.filter((o) => o.op === "fill" && o.path.some((p) => p[0] === "A")).map((o) => o.style);
+    expect(dots).toEqual(["#7fd3ff", "#9aa3ad"]);
+    // The card grows with its lines and still ends 14 px above the bottom.
+    const [, , y, , h] = ops.find((o) => o.op === "fill" && o.path.some((p) => p[0] === "R"))!.path.find((p) => p[0] === "R") as number[];
+    expect(y + h).toBe(686);
+    expect(h).toBeGreaterThan(card().find((o) => o.op === "fill")!.path.find((p) => p[0] === "R")![4] as number);
   });
 });

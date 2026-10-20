@@ -34,7 +34,8 @@ beforeEach(() => {
       // A frame starts with the background; the veil of a weakly determined map is a later fill.
       : key === "fillRect" ? () => { if (target.fillStyle === "#07090c") { frames++; radii = []; texts = []; } }
       : key === "fillText" ? (text: string) => { texts.push(text); }
-      : key === "arc" ? (_x: number, _y: number, r: number) => { radii.push(r); } : () => {}),
+      : key === "arc" ? (_x: number, _y: number, r: number) => { radii.push(r); }
+      : key === "createLinearGradient" ? () => ({ addColorStop: () => {} }) : () => {}),
     set: (target, key, value) => { target[key as string] = value; return true; },
   });
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(context as unknown as CanvasRenderingContext2D);
@@ -587,5 +588,41 @@ describe("what a click shows beside the map", () => {
     expect(text.includes("slabě umístěn")).toBe(r.placement[k] === "FADED");
     const seg = r.segments!;
     expect(text).toContain(seg.coloured![k] ? `Chuťový segment ${seg.label![k] + 1}` : "Není jasně v jednom chuťovém segmentu");
+  });
+});
+
+describe("Export PNG", () => {
+  const save = () => {
+    const saved: { name: string; href: string }[] = [];
+    vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue("data:image/png;base64,AAAA");
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) { saved.push({ name: this.download, href: this.href }); });
+    return saved;
+  };
+
+  it("saves the object map with the legend drawn in, as Sociomapa_objekty.png", async () => {
+    const saved = save();
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    await nextFrame(0);
+    const button = screen.getByRole("button", { name: "Export PNG" });
+    expect(button.getAttribute("title")).toBe("Uloží aktuální pohled na mapu jako obrázek PNG.");
+    texts = [];
+    fireEvent.click(button);
+    expect(saved).toEqual([{ name: "Sociomapa_objekty.png", href: "data:image/png;base64,AAAA" }]);
+    // The legend card's words, as the page's legend shows them.
+    const marks = screen.getByTestId("object-map-legend-scale").children;
+    expect(texts).toEqual(["VÝŠKA · PRŮMĚRNÉ HODNOCENÍ", ...Array.from(marks).map((m) => m.textContent)]);
+  });
+
+  it("saves the respondent map with its density legend and segments, as Sociomapa_respondenti.png", async () => {
+    const saved = save();
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
+    await nextFrame(0);
+    texts = [];
+    fireEvent.click(screen.getByRole("button", { name: "Export PNG" }));
+    expect(saved.map((x) => x.name)).toEqual(["Sociomapa_respondenti.png"]);
+    expect(texts.slice(0, 4)).toEqual(["VÝŠKA · SHLUKY RESPONDENTŮ", "0,00", "hustota", "1,00"]);
+    expect(texts).toContain("CHUŤOVÉ SEGMENTY · PŘEKRÝVAJÍ SE");
+    expect(texts.at(-1)).toBe("není jasně v jednom segmentu");
   });
 });
