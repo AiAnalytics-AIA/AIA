@@ -26,7 +26,7 @@ producer implemented. Wave numbers are earliest integration waves, not dates.
 | E03 | W0 | S1: `lead-orchestration#LO9a`, `lead-orchestration#LO15`; S3: `develop-spend-attribution#5a` compatibility contract | E02 | Worker spec fixture and server confirmation rule; direct agent start/rebuild cannot evade the threshold or forge a human confirmation |
 | E04 | W0 | S2: `run-qc-and-checkpoint#RQC9`, `run-qc-and-checkpoint#RQC10`; S3: `client-data-in-analysis#8a` | E01 | Single n authority, HTTP population double and proposed Brief-material signature; no client dataset admitted by attaching it |
 | E05 | W0 | Operator/S3: `mvp-master-plan#MP6`, `mvp-master-plan#MP7`; S2: `deep-research-web-search#1` (the owner's Brave sign-off), `deep-research-web-search#51`, `deep-research-web-search#54` | E01 | Separate no-call composition readiness from approved live route probes; operator evidence remains required; a live probe runs only after the sign-off and a named allocation line; early probes prove reach only |
-| E06 | W1 | S1: `working-copy-edit-ops#WCE1`, `working-copy-edit-ops#WCE2`, `working-copy-edit-ops#WCE5`, `working-copy-edit-ops#WCE6` | E02 | Stable ids, one writer including import/reuse/autosave, item conflicts and atomic dependent groups; locked-write refusal tested from every writer |
+| E06 | W1 | S1: `working-copy-edit-ops#WCE1`, `working-copy-edit-ops#WCE2`, `working-copy-edit-ops#WCE5`, `working-copy-edit-ops#WCE6` | E02 | Stable ids, one writer including import/reuse/autosave, conflicts per `(item_key, field)` (D-06) and atomic dependent groups; locked-write refusal tested from every writer |
 | E07 | W1 | S1: `lead-orchestration#LO1`, `lead-orchestration#LO2`, `lead-orchestration#LO3`, `lead-orchestration#LO10` | E02, E03 | Atomic wallet/holds, issued authority, immutable start pins and card revision; stale card and concurrent overspend refuse before dispatch |
 | E08 | W1 | S2: `run-qc-and-checkpoint#RQC0`, `run-qc-and-checkpoint#RQC1`, `run-qc-and-checkpoint#RQC2`, `run-qc-and-checkpoint#RQC4a`, `run-qc-and-checkpoint#RQC7` | E03, E04 | Durable respondent/paid-call recovery, deterministic QC flags and event payload before Fieldwork UI; uncertain dispatched calls never replay automatically |
 | E09 | W1 | S3: `client-knowledge-lifecycle#K3`, `client-knowledge-lifecycle#K4`, `client-knowledge-lifecycle#K8`; S1: `lead-orchestration#LO13` | E02 | Reviewed revisions, frozen eligible context and capture/import semantics; accepted client-level paid-work exception recorded separately from study-stage starts |
@@ -36,11 +36,11 @@ producer implemented. Wave numbers are earliest integration waves, not dates.
 | E13 | W1 | Method owner/S2: `sociomap-formula-corrections#0b`, `sociomap-formula-corrections#I0`, `segment-maps-and-drilldown#0a` | — | Approved decisions and pinned input/descriptor contract before affected W2 numerical behavior; proposal/fixture preparation may proceed, approval cannot be inferred from completed code |
 | E14 | W2 | S2/S3: `sociomap-formula-corrections#I1`, `sociomap-formula-corrections#I3`, `sociomap-formula-corrections#3`, `segment-maps-and-drilldown#1`, `segment-maps-and-drilldown#5`, `client-knowledge-lifecycle#K5` | E10, E11, E12, E13 | Actual population/own-dimension values reach respondents, descriptors, filters and map consumers; missing inputs refuse; changing only a hash is insufficient proof |
 | E15 | W2 | S1/S3: `working-copy-edit-ops#WCE8`, `working-copy-edit-ops#WCE9`, `working-copy-edit-ops#WCE11`, `report-delivery#RD3`, `report-delivery#RD4`, `research-lead-workbench#20`, `research-lead-workbench#22` | E06, E11, E12, E14, E29 | Declare/unlock editor, recorded undo before structural auto-accept, real Results/Sociomap/Audience/Dimensions consumers and approved stored snapshot; view operations preserve numerical hash |
-| E16 | W2 | S1: `lead-orchestration#LO11` | E06, E09, E10 | Persistent Lead-file history/handover; admin file access tested separately from private turns; private proposal text cannot leak through shared activity |
+| E16 | W2 | S1: `lead-orchestration#LO11` | E06, E09, E10 | Persistent Lead-file history and rollback (no handover or admin read: D-32 to D-34; a departed member's Lead sealed, then deleted: Q14); private turns and proposal text cannot leak through shared activity |
 | E17 | W3 | S2/S3: `client-data-in-analysis#0`, `client-data-in-analysis#2`, `client-data-in-analysis#3`, `client-data-in-analysis#8`, `client-data-in-analysis#9`, `evidence-integrity#8b` | E04, E09, E11 | Accepted ADR 0027 and contract before runtime; pinned analysis copy excludes personal/unnamed columns; client data and modelled evidence stay distinct through run node and fingerprint |
 | E18 | W3 | S3/S2: `report-delivery#RD6`, `run-qc-and-checkpoint#RQC4`, `run-qc-and-checkpoint#RQC5`; S1: `lead-orchestration#LO9b` | E03, E08, E11, E17 | First the semantic-edit/replacement ADRs and accept-result contracts; then worker bindings/proposals; replacement additionally waits for approved weighting/support and preserves the original run |
 | E19 | W3 | S1/S2: `system-prompts-settings#7`, `system-prompts-settings#13` | E03, E11, E18 | Eight analysis pins reach assembly, reuse identity, repairs and usage; all eleven worker slots wired; queued work keeps its pin, new activation changes new work only |
-| E20 | W3 | S2/S3: `evidence-integrity#1`, `evidence-integrity#7`, `evidence-integrity#9b`, `client-data-in-analysis#5`, `report-delivery#RD0`, `report-delivery#RD1`, `report-delivery#RD5`, `research-lead-workbench#21` | E15, E17, E18, E19, E32 | Admitted findings plus separately labelled external/client context; full Report artifact hosts approval/export; revised wording invalidates approval without recollecting fieldwork; a module with no supported finding blocks composition and export (MVPQ-04, settled) |
+| E20 | W3 | S2/S3: `evidence-integrity#7`, `evidence-integrity#9b`, `client-data-in-analysis#5`, `report-delivery#RD0`, `report-delivery#RD1`, `report-delivery#RD5`, `research-lead-workbench#21` | E15, E17, E18, E19, E32 | Admitted findings plus separately labelled external/client context; full Report artifact hosts approval/export; revised wording invalidates approval without recollecting fieldwork; a module with no supported finding blocks composition and export (MVPQ-04, settled) |
 | E21 | W3 | S2/S3: `deep-research#4`, `develop-spend-attribution#5b`, `production-environment#PE7` | E02, E12 | Tool ledger/migration M11 and profile accounting complete before final accounting; E03 already supplies model identity versus invocation-target compatibility before early configuration; legacy reservations stay explicit and no call is charged twice |
 | E22 | W4 | S2/S3: `deep-research-web-search#24`, `deep-research-web-search#25`, `deep-research-web-search#26`, `deep-research-web-search#39`, `deep-research-web-search#27`; S1: `research-lead-workbench#23` | E12, E20, E21, E27, E28 | The operator screen for both purposes (24) comes first; approved evaluation metrics/thresholds and separate allowance precede final live 27; Design and Interpretation paths use captured sources and budget; mature conversation cards consume working contracts |
 | E23 | W4 | S3: `study-data-lifecycle#SDL0`, `study-data-lifecycle#SDL1`, `study-data-lifecycle#SDL5`, `study-data-lifecycle#SDL6`, `production-environment#PE9a` | E21 | Accepted residual-retention/audit policy before M12; delete/restore exercise proves the independent journal is replayed before serving restored traffic |
@@ -51,7 +51,7 @@ producer implemented. Wave numbers are earliest integration waves, not dates.
 | E28 | W3 | S2: `deep-research-web-search#31`, `deep-research-web-search#32` | E15, E20, E27 | The Lens as an annotation sidecar that never changes a canonical coordinate (a view operation preserves the map's numerical hash), then the report evidence graph over the five evidence families, each claim's support resolving to an admitted claim, a captured source or a knowledge item; Interpretation Research reads and never writes; before the evaluations and the final live run |
 | E29 | W2 | S2: `sociomap-formula-corrections#2d` | E13 | After I0, I2 and I4 of the second table: the preset and artifact contract, `methodology_status` stays INTERNAL_ONLY; consumed by Results and the map approval (E15) |
 | E31 | W2 | S2 and the method owner: `sociomap-formula-corrections#4c` | E13 | Gated by MVPQ-12's F16 and R-adapter disposition; a separate research product, not the respondent map; built or retired with the reason recorded, and the final acceptance waits for that disposition rather than for a build; approving a method stays the owner's |
-| E32 | W1 | S1/S2/method owner: `assumptions-and-open-answer-coding#AOC0`, `assumptions-and-open-answer-coding#AOC1`, `assumptions-and-open-answer-coding#AOC4`, `evidence-integrity#9a` | E02, E06 | The assumption item kind's contract and fixture on the shared vocabulary; the coding method (`MVPQ-02b`) written for the owner's approval before any count is produced, and the assumptions contract with UNTESTED tracking usable at once (an evidence-backed status waits for AOC2's ADR); the empty-module diagnostic stored and shown (MVPQ-04, settled) |
+| E32 | W1 | S1/S2/method owner: `assumptions-and-open-answer-coding#AOC0`, `assumptions-and-open-answer-coding#AOC1`, `assumptions-and-open-answer-coding#AOC4`, `evidence-integrity#1`, `evidence-integrity#9a` | E02, E06 | The assumption item kind's contract and fixture on the shared vocabulary; the coding method (`MVPQ-02b`) written for the owner's approval before any count is produced, and the assumptions contract with UNTESTED tracking usable at once (an evidence-backed status waits for AOC2's ADR); the empty-module diagnostic stored and shown (MVPQ-04, settled) |
 | E33 | W2 | S2: `assumptions-and-open-answer-coding#AOC2`, `assumptions-and-open-answer-coding#AOC5` | E08, E12, E32 | The ADR and admission rule ADR 0026 decision 4 requires for assumption evidence and for coding, then Design Research evidence attachable to an assumption by a person's accept, and the coding node, per-answer artifact and deterministic counts with an impact root that never reruns fieldwork |
 | E34 | W3 | S1/S2/S3: `assumptions-and-open-answer-coding#AOC3`, `assumptions-and-open-answer-coding#AOC6`, `assumptions-and-open-answer-coding#AOC7`, `assumptions-and-open-answer-coding#AOC8`, `report-delivery#RD9`, `report-delivery#RD10` | E19, E20, E33 | Assumptions and coded counts reach the Design artifact, the Lead's context, the analysis payload, Results and the report as admitted or cited support only; a coder worker exists only if the method permits one, as a twelfth row beyond AC-03's eleven; raw text is never admitted evidence |
 | E30 | W2 | S2/S3: `sociomap-formula-corrections#5b` | E15 | Verified, not assumed: `report_maps.py:159-180` and `figures.py:76-95` already print Stress-1 and the internal status, so 5b is ticked with a test that the internal report's map figure carries both on RD4's snapshot path, or the gap it closes is listed |
@@ -61,6 +61,61 @@ record schema work in E25's chunks begin earlier; E25 is the final combined proo
 Production infrastructure PE0/PE1/PE2/PE3/PE4 can progress alongside W1, with
 PE5/PE6/PE7 completing before a release candidate needs them. No paid or write
 operation is performed by this planning PR.
+
+**Scope freeze (2026-10-20).** The owner's D-13 makes `aia-sociomap-5` the only method of new runs, so
+E14, E29, E30 and E31, written for the contract-3 route, are re-aimed at the `-5` engine (segments stay
+defined by descriptors, MVPQ-03) once the methodology owner answers MQ-02 and MQ-05 (`signed-off-sociomap-method#8`, master § The scope
+baseline). E30's "the map figure carries Stress-1" does not hold for `-5`, which computes none.
+
+## Pending: the input-interactions plan (PR #528 @ c5162ab, not on develop)
+
+The product owner asked for edit-in-place inputs (2026-10-20, 21:10 UTC); the plan is
+input-interactions.md on PR #528 @ c5162ab, docs only, in review. #528 registers it in master §3.2 as
+◇ (decided at `MP16`); that row is kept as #528 writes it, and the two PRs merge cleanly in either
+order (checked at 9767be2). Its chunks are named in plain text here, not as register references,
+until it is on develop. Then, in a follow-up commit: the §3.2 ◇ row moves to §3.1 as core (S1, the
+product owner, I-1) and the rows below move into the table that follows. Proposed waves:
+
+| Chunk (input-interactions) | Wave | Basis |
+|---|---|---|
+| 0. Audit, standard and plan | done with #528 | docs only |
+| 1. Shared primitives (InlineText, Stepper, ChoiceChips, InlineCreateRow, SwatchPicker, MenuButton, UndoToast, SpendDialog) | W1 | before the artifact bodies (E26: research-lead-workbench 14-22) are built on them |
+| 2. Knowledge library | W1 | the owner's own example; with client-workspace C6 and C7 |
+| 3. Questionnaire | W2 | applied to the Questionnaire artifact (research-lead-workbench 17); every scale point labelled (Q32) |
+| 3b. Scales: a scale question's end labels, or one per point, compiled into SpecQuestion and read by respondents and the report tables (finding IA-7) | W1 | not input UX alone: it changes what every AI respondent reads (today bare numbers, `ai_respondent.py:379-388`), so the respondent-system fingerprint moves; past runs keep their pins. Before any holdout confirmation run (panel-grounded-respondents 7f-7h, POST) binds to a fingerprint; the methodology owner (A. Bahbouh) signs the wording rule |
+| 4. Brief and plan | W2 | applied to the Brief and Design artifacts (research-lead-workbench 18) |
+| 5. Sample and audience | W2 | with research-lead-workbench 19 and 22 |
+| 6. Run, spend and results: one SpendDialog | W2 | the money prompts of the card path (lead-orchestration LO4, LO10) render through it, so the four money prompts are one dialog |
+| 7. Clients and studies (rename routes) | W2 | API rename routes audited, in the api-contract list; the client rename by any member under EDIT_CLIENT_PROFILE, audited (page Q34) |
+| 8. Client profile | W2 | with client-workspace and client-knowledge-lifecycle K11 (the wallet ceiling stepper) |
+| 9. Settings (parameter bounds in the catalogue) | W3 | after system-prompts-settings and signed-off-sociomap-method 10 (the Metodik mark) |
+| 10. The input journey at four widths | W4 | beside mvp-acceptance-harness's journeys |
+
+Its owner decisions are answered (pages Q31-Q34, master § The scope baseline): batched knowledge
+revisions, scale presets plus "Vlastní" with every point labelled, report approval as a modal, and
+any member renames a client.
+
+## Pending: the Lead conversation plan (PR #529 @ 9791da0, not on develop)
+
+The product owner asked for the Lead's chat capabilities (2026-10-20, 22:25 UTC) and answered Q25-Q30
+(master § The scope baseline). The plan is lead-conversation.md on PR #529 @ 9791da0, with ADR 0041
+Proposed; docs only, in review. Its chunks are named in plain text until it is on develop; then it
+gets a §3.1 row (core, S1, the product owner) and these rows join the table below. The waves are the
+plan's own:
+
+| Chunk (lead-conversation) | Wave | Basis |
+|---|---|---|
+| LC0. ADR 0041 accepted | W0 | the owner; nothing below is built before it |
+| LC1, LC2, LC3, LC5, LC6 (layer table and manifest, Co Vedoucí vidí, decision digest, queued messages on the server, cost per turn) | W1 | with E10, after lead-orchestration LO7's first layer; no model call |
+| LC4, LC7, LC7a, LC8, LC9, LC10, LC11 (budgets, compaction, kept facts, corrections, retrieval, regenerate and edit-and-resend, pins) | W2 | with lead-orchestration LO19, after LC1; LC7 behind its own kill switch |
+| LC12, LC13 (feedback; the long-conversation journey) | W3 | with lead-orchestration LO18 |
+| LC14-LC18 | POST | the plan's own: after the MVP |
+
+**Overlap to settle when it lands:** research-lead-workbench 29 (conversation controls: copy, edit and
+resend, ArrowUp, queued-message send-now and edit; D-38) is the UI of LC5 and LC10, and #529's fold-in
+table does not list it. Proposed: 29 stays the UI owner and takes LC10's replacement-turn rule and
+LC5's server queue as acceptance conditions, as the other folded chunks do; LC10 and LC5 own the
+server side.
 
 ## Every other open chunk of a core plan
 
@@ -142,6 +197,46 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `production-environment#PE4` | W1 | proposed here |
 | `production-environment#PE5` | W3 | proposed here: before a release candidate |
 | `production-environment#PE6` | W3 | proposed here: before a release candidate |
+| `signed-off-sociomap-method#8` | W1 | scope freeze, D-13 and Q1: `-5` the only method of new runs, merged when built; before E13 |
+| `signed-off-sociomap-method#9` | W2 | scope freeze, D-13: the report draws `-5`; before E15 |
+| `signed-off-sociomap-method#10` | W1 | scope freeze, D-14 and Q4: the Metodik mark gates storing and activating |
+| `signed-off-sociomap-method#11` | W2 | scope freeze, Q8: Metodika's comparison shows all of `-5`'s outputs; after 8 |
+| `lead-orchestration#LO9d` | W2 | scope freeze, Q12: after LO9a and `working-copy-edit-ops#WCE7` |
+| `lead-orchestration#LO19` | W2 | scope freeze, Q5: the study's context file; after LO8 and `working-copy-edit-ops#WCE4` |
+| `lead-orchestration#LO20` | W3 | scope freeze, Q6: Hledat na webu; after `deep-research-web-search#56`; an ADR first |
+| `deep-research-web-search#56` | W3 | scope freeze, Q6: the Lead's quick lookup through RetrievalGate |
+| `research-lead-workbench#32` | W3 | scope freeze, Q5 and Q6: with `lead-orchestration#LO19` and `#LO20` |
+| `deep-research-web-search#51a` | W1 | cross-check G67: with E12 |
+| `lead-orchestration#LO5a` | W1 | scope freeze, D-12: with `research-lead-workbench#26` (E26) and E12 |
+| `lead-orchestration#LO12c` | W1 | scope freeze, D-09: after LO12b (E12) |
+| `lead-orchestration#LO17` | W1 | scope freeze, D-18: after LO4 (E10) |
+| `lead-orchestration#LO18` | W3 | scope freeze, D-39: after LO6; an ADR 0026 amendment in its PR |
+| `research-lead-workbench#29` | W2 | scope freeze, D-38 |
+| `research-lead-workbench#30` | W3 | scope freeze, D-39: with `lead-orchestration#LO18` |
+| `research-lead-workbench#31` | W3 | scope freeze, D-41: with `report-delivery#RD12` |
+| `report-delivery#RD11` | W3 | MVP-26, chunk missing until the scope freeze: after RD0 |
+| `report-delivery#RD12` | W3 | scope freeze, D-41: after RD0 |
+| `segment-maps-and-drilldown#11` | W3 | scope freeze, D-42: after 8 and `research-lead-workbench#20` (E15) |
+| `working-copy-edit-ops#WCE14` | W2 | scope freeze, D-45 |
+| `run-qc-and-checkpoint#RQC12` | W1 | cross-check G78 |
+| `run-qc-and-checkpoint#RQC13` | W2 | scope freeze, D-45: after WCE14 |
+| `mvp-acceptance-harness#16` | W3 | cross-check G65: after `system-prompts-settings#7` |
+| `mvp-acceptance-harness#18` | W4 | scope freeze, D-48: the budget values are open in the baseline |
+| `client-knowledge-lifecycle#K9` | W3 | scope freeze, D-47 |
+| `client-knowledge-lifecycle#K10` | W3 | scope freeze, D-47 |
+| `client-knowledge-lifecycle#K11` | W1 | scope freeze, D-17: with `deep-research-web-search#53` and `lead-orchestration#LO1`; I15 |
+| `client-knowledge-lifecycle#K12` | W1 | MVP-31, chunk missing until the scope freeze |
+| `develop-spend-attribution#6` | W3 | scope freeze, D-47: after 5b |
+| `production-environment#PE10` | W1 | scope freeze, D-22: before the first production sign-in |
+| `production-environment#PE11` | W4 | scope freeze, D-23: before the release candidate |
+| `two-roles-human-ai-gates#8` | W2 | scope freeze, D-27 |
+| `study-data-lifecycle#SDL4b` | W4 | scope freeze, D-29: with SDL3 |
+| `architecture-enforcement#12` | W3 | scope freeze, D-24 (a SUPPORT plan) |
+| `client-data-in-analysis#10` | W3 | scope freeze, D-37: with 2 and 2a (E17) |
+| `research-lead-workbench#33` | W1 | owner, page Q19: the editor spike before LO19 and RD6 build their surface |
+| `deep-research-web-search#57` | W2 | owner determination 2026-10-20, page Q20: with chunk 53 (E12) |
+| `deep-research-web-search#57a` | W2 | owner, page Q22: with chunk 57 (E12) |
+| `deep-research-web-search#58` | W2 | owner, page Q23: with chunk 57 |
 | `research-lead-workbench#24` | POST | development plan D16: after the MVP |
 | `research-lead-workbench#25` | POST | development plan D16: after the MVP |
 

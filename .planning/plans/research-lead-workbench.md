@@ -21,7 +21,7 @@ chunks:
   - "[ ] 17. Questionnaire artifact, its proposal shown in it (where chunk 7 lands)"
   - "[ ] 18. Brief and Research design artifacts"
   - "[ ] 19. Sample and Fieldwork artifacts"
-  - "[ ] 20. Results and Sociomap artifacts"
+  - "[ ] 20. Results and Sociomap artifacts, drawing aia-sociomap-5 in full: credibility, uncertainty circles, the respondent map, taste segments, unplaced objects, in Results and project memory alike (D-13)"
   - "[ ] 21. Analysis and Report artifacts"
   - "[ ] 22. Audience and Dimensions artifacts"
   - "[ ] 23. Worker and Deep Research cards in the conversation, each opening the artifact it changes"
@@ -29,6 +29,11 @@ chunks:
   - "[ ] 25. Deep Research reachable from every stage as a capability"
   - "[ ] 26. The Lead stays accessible at every width (D20, MVPQ-11): the workbench serves under 1100 px with the Lead as a compact drawer or a stacked layout, the manual AI starts are removed in every layout, tested at 1099, 1100, 768 and 390 px, by keyboard, focus and Escape with a return to the targeted artifact, with a stale card refused, and by a direct request"
   - "[ ] 27. Switch-off and rollback (D20): actual availability is stated; the compact Lead stays reachable while its backend is enabled, a genuinely disabled backend stays disabled and says so, with no alternate AI start and no bypass of a kill switch; every layout uses the same card, plan, wallet and server-confirmation paths"
+  - "[ ] 29. Conversation controls: older-message paging (with its route), copy, edit and resend, ArrowUp to edit the last message, send-now and edit for a queued message (D-38)"
+  - "[ ] 30. The conversation's UI for LO18: streamed text, a file from the composer, unprompted comments marked as paid turns (D-39)"
+  - "[ ] 31. Results: charts on the result views and a CSV/XLSX export of the per-question tables from admitted claims (report-delivery RD12) (D-41)"
+  - "[ ] 32. The Lead pane's web results: inline citations with links and quotes, the result list as it arrives, each search's cost, and Kontext studie (the study's context file) readable with its version (Q5, Q6)"
+  - "[ ] 33. Editor spike (Q19): Wordcraft, ONLYOFFICE Docs and Collabora Online compared against Tiptap for the study context file and reports, on Word-like UX, tracked changes and comments, Lead-driven edits, ledger refs through a round trip, DOCX fidelity, licence and EU self-hosting; a go/no-go to the owner"
 ---
 # Research Lead workbench
 
@@ -254,3 +259,67 @@ chunks remain open. See `../mvp-owner-decisions.md` MVPQ-01; do not re-ask this 
 ## Assumption panel (2026-10-20, MVPQ-02)
 
 Tracked assumptions are shown and edited in the Design artifact (18) and in Audience (22, where the canonical V2 places the assumption and evidence panel), both from the one item contract of `assumptions-and-open-answer-coding#AOC1`; there is no second store and no panel-local state.
+
+## Scope freeze (2026-10-20)
+
+Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
+
+**New chunks.** 29 (W2), 30 (W3, with `lead-orchestration#LO18`), 31 (W3, with
+`report-delivery#RD12`). D-38, D-39 and D-41 were answered **in** whole.
+
+**Existing chunks, changed by the owner's answers.**
+
+- **20 (D-13).** The map views draw `aia-sociomap-5` only: the method named, relative-height terraces,
+  the credibility banner, split-half share and uncertainty circles, "Neumístěno", the respondent map
+  and taste segments, following `ui_app.html`'s drawing (packet E-3, the owner's standing rule). Today `ObjectMapView` reads only `support` (`ObjectMapView.tsx:296, 568 @ 7975ff6`, #514), so a weakly
+  determined `-5` map looks as confident as any other. Project memory's past runs draw through the same
+  `RunResults`, so they get the same layers. Test: a `-5` map with a low split-half share shows its
+  credibility banner and uncertainty circles in Results and in project memory. The
+  `-1`/`-3` drawing leaves the product; a stored older run keeps its data and its map panel says "Mapa ze
+  starší metody; spusťte běh znovu" (Q2).
+- **15.** Mount `ItemInspector` (imported only by its own test) and fix provider waits reading as
+  inert (`research/lane.ts:134 @ 854c209`).
+- **26 (D-12).** No Deep Research button survives as an exception; Deep Research starts through the
+  Lead (`lead-orchestration#LO5a`).
+- **Map node drag** (D-40) is **out**: camera-only view operations satisfy AC-09.
+
+### After the baseline's questions (the owner's answers to the baseline's Q1-Q8, 2026-10-20 19:37-19:46 UTC (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, second table))
+
+- **32 (W3, with `lead-orchestration#LO19` and `#LO20`).** The UI half: a search's results appear in
+  the turn as they come (no click to open them), each claim with its inline citation, a captured page
+  one click from "Ověřeno, přidat zdroj"; the study's context file is readable from the pane.
+
+### Implementation lane: the methodology owner's #517 (2026-10-20)
+
+The product owner, 21:33 UTC (relayed by the coordinator): the `-5` drawing is **A. Bahbouh's own
+lane**, PR #517 (`feature/aia-sociomap-5-web`) and its plan `.planning/plans/sociomap-5-web.md` on that
+branch.
+- Built there (chunks 1-5 ticked on the branch at the time of writing): the panel ported pixel for
+  pixel, credibility (the weakly-determined banner, the uncertainty circle, objects not placed), the
+  respondent map and taste segments.
+- Still to come there: detail on click (6), and the Word report's `-5` figure and the web map's PNG
+  snapshot (7).
+
+**Chunk 20 does not build the `-5` layers again.** It hosts #517's panel in the Results and Sociomap
+artifacts and in project memory, and its credibility test is met by #517's work. Chunk 20 keeps the
+artifact frame, routing and the old-method panel text (Q2).
+
+### After the editor answer (the owner's answers on the PM status page, 2026-10-20, relayed by the coordinator at 21:41 UTC (page ids Q19 to Q21; `.planning/evidence/scope-freeze/answers-2026-10-20.md`, fifth table))
+
+- **33 (W1, page Q19: (a)).** Evaluate before adopting. A time-boxed spike compares editors for the
+  study context file (`lead-orchestration#LO19`) and the report documents (`report-delivery#RD6`),
+  each researcher's tracked-change or direct mode (page Q13) included. Its outcome is a written
+  go/no-go to the owner; nothing is adopted in this chunk.
+  - **Candidates:** Wordcraft (`github.com/storytold/wordcraft`; MIT/Apache, Rust/WASM, an MCP
+    server, alpha); ONLYOFFICE Docs (AGPL, Word-like, track changes, a JS API); Collabora Online
+    (LibreOffice-based, MPL, WOPI). Tiptap is the baseline: the owner finds its UX poor ("I want as
+    close to Microsoft Word or LibreOffice as possible") and asks for alternatives.
+  - **Criteria:** a Word-like UX; tracked changes and comments; the Lead driving edits (suggestion
+    and direct modes); every report number staying a ledger ref through an edit and a DOCX round trip
+    (`report-delivery#RD6`); DOCX fidelity against `infrastructure/report_docx`; the licence (AGPL's
+    obligations named for a hosted product); EU self-hosting with no outside service.
+  - **Evidence:** each candidate run locally on one fictional study context file and one sample
+    report, the round trip's ledger refs counted before and after, a screenshot set, the licence
+    reading. Zero paid jobs.
+  - LO19 and RD6 build against the editor the owner chooses; until then they keep a plain editor
+    behind the same edit operations, so the choice changes the surface, not the rules.

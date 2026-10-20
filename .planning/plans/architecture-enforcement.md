@@ -12,6 +12,7 @@ chunks:
   - "[x] 8. Harden against accidental bypass (audit at e57c3b82): an unsearchable grep pattern fails, no inline suppression of the bans, the tests exemption names its four trees, stale per-file-ignores fail, make verify runs ruff check, any static skip is caught"
   - "[ ] 9. A scope context and an admitted claim carry a digest of their fields, so a modified copy (dataclasses.replace) is refused; its own PR, reviewed by Kyi"
   - "[ ] 10. Contracts from the audit: no tables row imported from any module, synthetic_fieldwork and the workbench fenced, API non-router modules off tables, the domain's import allowlist"
+  - "[ ] 12. Per-member rate limits on writes (about 60 per minute, then 429 in Czech) (D-24)"
 ---
 # Architecture enforcement — the layering guard says what it checks
 
@@ -385,3 +386,9 @@ For the next docs-only PR:
   KEPT (`allow_indirect_imports = true`; with `false` every importer of the package
   breaks it). RIGHT: the package re-exports nothing from the forbidden module, held by a
   test (`test_infrastructure_facade.py`).
+
+## Scope freeze (2026-10-20)
+
+Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
+
+**New chunk.** 12 (W3), D-24.

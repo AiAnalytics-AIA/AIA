@@ -15,6 +15,7 @@ chunks:
   - "[ ] 8. Brief materials pick a client dataset; `brief_signature` and `design_material` carry the source id and the contract version, with one fixture for Python and TypeScript"
   - "[ ] 9. The client-data steps placed in the run: a graph node, a contract-version pin on the run, an impact root, and which run's report prints them; class and lineage for client-reported numbers sent to a model"
   - "[ ] 8a. W0 proposed Brief-material/signature interface and shared fixture; uploaded datasets remain ineligible until an accepted data contract exists"
+  - "[ ] 10. The data contract accepted in the study's Brief drawer with its quality report; the Data tab shows the accepted contract read-only (D-37)"
 ---
 # A client's own data in a study's analysis
 
@@ -131,3 +132,31 @@ From the independent cross-check of the master plan against the code (`mvp-maste
 **2a. The data quality report (G52, X6).** ADR 0027 decision 4 makes code's quality report part of what the person accepts, and the architecture has a `quality_report` column, but no chunk computes it. A pure `client_data.quality_report(contract, rows)` (missing, duplicate and out-of-range counts per used column, `QUALITY_VERSION`, canonical SHA-256), stored on the contract and shown before accept. It reads every row, so 3a comes first. A source whose reading carries `rows_bound` or `sheets_bound` is refused by name, never reported as complete. Test: duplicates, blanks and an out-of-range value are counted over a dataset larger than the preview, and a truncated reading cannot be accepted.
 
 **3a and 3b. Where the analysis copy's rows come from (G52, X7).** The only stored dataset rows sit in a reading cut at 250,000 characters (PARTIAL, `text_bound`), the grid reader is itself bounded, and `ClientSourceRepository` reads only through a `ClientContext` (a `StudyContext` is a separate class), so a copy built from the reading would silently total a truncated dataset and `client_data_prepare` has no accessor. 3a: a full-grid reader over the kept original bytes, not the stored reading, under stated analysis bounds, refusing by name above them and never keeping a partial copy. 3b: the hash-verified accessor and the scope `client_data_prepare` runs under (the client-work context pattern, or a StudyContext read of the client's copy). Test: a CSV over 250,000 characters is copied whole or refused with a named reason, never totalled partial.
+
+## Scope freeze (2026-10-20)
+
+Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
+
+**New chunk.** 10 (W3, with 2 and 2a), D-37; it replaces `client-workspace` C8's "V AIA zatím není".
+
+**Existing chunks, changed.** 0 (G51): the methodology owner decides a client number's support,
+metric and interval (packet MQ-18).
+
+## Findings (the coordinator's card review, 2026-10-20)
+
+Found on the UI workbench at develop `237fd0a` (screenshots by the coordinator), anchored at
+`242523e`. For the docs PR to number in `open-items.md`. Reproduction: `make ui-workbench` with
+in-process scripted model answers and `AIA_AI_ANALYSIS_ENABLED=true`, then `make ui-fixtures`,
+unless stated.
+
+- **CR-4. A client with DATASET or FINDING knowledge cannot run any AI design job.**
+  Anchor: `domain/research_agents.py:688-690` (the placeholder lineage
+  `unclassified-client-knowledge`), `domain/licence.py:158-164`, no such entry in
+  `domain/licence_determinations.py @ 242523e`; `knowledge_entries` (`research_agents.py:545-562`)
+  carries no lineage. Reproduce: `make seed-develop`, then any design job for Horizont Mobility:
+  refused `licence_dataset_unknown`. Consequence: the seeded client, and any real client with a
+  dataset or finding, gets no AI help, though only titles and summaries reach the model. Smallest
+  fix: the lineage is the union of the items' recorded datasets (`provenance.datasets`), the
+  placeholder only when one is unrecorded; the seed records `aia_synthetic_fixture`. Test: a design
+  job over a seeded client with DATASET knowledge passes the licence gate; one over an item with no
+  recorded dataset is still refused by name.

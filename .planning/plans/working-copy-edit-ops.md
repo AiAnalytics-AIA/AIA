@@ -7,8 +7,8 @@ chunks:
   - "[ ] WCE3a. The web store on the server vocabulary, Brief and Design stages"
   - "[ ] WCE3b. The web store on the server vocabulary, Questionnaire (manual operations, move, remove, reference by stable id)"
   - "[ ] WCE3c. The web store on the server vocabulary, Audience, Dimensions and Sample"
-  - "[ ] WCE4. Presence (M2) and the change feed: `study_presence`, `GET changes?since=`, a poll, two sessions"
-  - "[ ] WCE5. Item-level merge and a stale rule that a later Design Revision does not defeat"
+  - "[ ] WCE4. Presence (M2) and the change feed: `study_presence`, `GET …/workspace/ops?since=` (ADR 0029), a poll, two sessions"
+  - "[ ] WCE5. Field-level merge, per (item_key, field) (D-06), and a stale rule that a later Design Revision does not defeat"
   - "[ ] WCE6. Per-change accept (M6): `proposal_change_decisions`, one change identity across the three accept routes, a dependency rule for coupled changes, `touched_items` returned to the web; any member with the accept permission may accept a proposal another member's Lead prepared (Q16), the chat text staying private"
   - "[ ] WCE7. Readiness and impact on a working revision: readiness without a submitted Design Revision, "current / changed / re-check" per stage, and accepting a working copy as a revision"
   - "[ ] WCE8. Sociomap declarations: an editor for `sociomap_rating` and `context_objects`, the hard lock and `sociomap_unlock`"
@@ -18,6 +18,7 @@ chunks:
   - "[ ] WCE11. Auto-apply per stage (MVP-14, D18): the researcher's `auto_accept_text_edits` gains a per-stage structural choice, off by default"
   - "[ ] WCE12. Journey: two researchers, one study, recorded doubles (the I-1 exit)"
   - "[ ] WCE13. Routing in the questionnaire (W1, with research-lead-workbench 17): route_set sets, edits and removes a display condition, validated by the domain (the condition names an earlier question and an option it has), and readiness accepts a valid conditional question"
+  - "[ ] WCE14. A stimulus item: content shown to respondents before a question (respondents.context), in the edit vocabulary and the design (D-45)"
 ---
 # Working-copy edit operations, merge and the Sociomap lock
 
@@ -55,11 +56,11 @@ Includes the @ pointer carrying id and revision (workbench 16) and the questionn
 **WCE3c. The web store on the server vocabulary, Audience, Dimensions and Sample**  
 
 
-**WCE4. Presence (M2) and the change feed: `study_presence`, `GET changes?since=`, a poll, two sessions**  
+**WCE4. Presence (M2) and the change feed: `study_presence`, `GET …/workspace/ops?since=` (ADR 0029), a poll, two sessions**  
 Test: two sessions edit one study; each sees the other within a poll; a presence row expires without a heartbeat. Gate I-1. The feed also carries each pending proposal (change identity, item, proposer, status) with no chat text, so another member can accept it (`WCE6`, gap G42).
 
-**WCE5. Item-level merge and a stale rule that a later Design Revision does not defeat**  
-`proposal_accept.py:117-118` refuses on "head moved" before comparing items, and any job start, rebuild, Lead approval or a visit to the Run stage submits a Design Revision, killing every other pending proposal. The check becomes: stale only when an item the proposal touches changed since its baseline. Test: a revision submitted elsewhere does not stale a proposal on other items; the item-level conflict still does.
+**WCE5. Field-level merge, per (item_key, field) (D-06), and a stale rule that a later Design Revision does not defeat**  
+`proposal_accept.py:117-118` refuses on "head moved" before comparing items, and any job start, rebuild, Lead approval or a visit to the Run stage submits a Design Revision, killing every other pending proposal. The check becomes: stale only when a field the proposal touches, `(item_key, field)`, changed since its baseline (D-06). Tests: a revision submitted elsewhere does not stale a proposal on other items; a change to another field of the same item does not stale it either (Q4's wording and its options merge); the same field changed does.
 
 **WCE6. Per-change accept (M6): `proposal_change_decisions`, one change identity across the three accept routes, a dependency rule for coupled changes, `touched_items` returned to the web**  
 The agent-job accept, Design Research `item_ids` and the Lead `indices` become one mechanism. A research-question reword and the questionnaire links that name it are one dependent group. Every accept writes the working revision **and** submits the Design Revision in one transaction, so the head equals the working copy after any accept (`proposal_accept.py:142-156`); the Lead edit accept (`research_lead.py:592-601`) saves only today and is fixed here. **Shared proposals (Q16, gap G42):** `decide_edits` takes the caller's own completed turn (`research_lead.py:515-518`), so another member cannot accept an edit block its author's Lead prepared. A proposed change becomes an artifact-level item addressed by its change identity (item, operation, base revision, proposer, status) and carried to the others by `WCE4`'s feed **without the turn's chat text**; accepting needs `EDIT_STUDY` and `APPROVE_GATE` and the item-level stale rule, not ownership of the turn. Tests: member B accepts a change member A's Lead prepared without ever reading A's turn; B cannot read A's turn text through the feed; a second accept of the same change keeps the first decision; the ledger names both people. Interfaces I9.
@@ -109,3 +110,29 @@ From the independent cross-check of the master plan against the code (`mvp-maste
 **WCE13. Routing in the questionnaire (G53, X8; the owner, 2026-10-20: build routing end to end).** Today the code cannot run a condition: readiness FAILs any conditional question, the outlook marks it UNANSWERABLE and fieldwork asks every respondent every question. This chunk makes `route_set` set, edit and remove a display condition through the shared vocabulary, validated by the domain (the condition names an earlier question and one of its options; a cycle or a forward reference is refused by name), and readiness accepts a valid conditional question instead of failing it. Fieldwork is `run-qc-and-checkpoint#RQC11`, the filtered base `evidence-integrity#10`. Test: a condition on Q7 for those who answered "never" to Q2 is stored, passes readiness, and a condition naming a later question is refused.
 
 **WCE11, amended (G56, X11).** The chunk states who performs a structural auto-apply (the researcher's browser session, or a named server path under the person's standing authority, coordinated with G42), where the per-stage choice lives (Můj Vedoucí or the artifact header), and the rule once fieldwork exists (a structural auto-apply is refused or announced in the conversation, never applied silently). Today an automatic accept is an act of the signed-in browser after it sees a turn finish, and `decide_edits` needs the caller's `APPROVE_GATE` and own completed turn, so a continuation turn (LO6) finishing with no browser open applies nothing. Test: with a stage on and no browser open, a continuation turn's structural edit stays pending; after fieldwork exists it is not applied silently.
+
+## Scope freeze (2026-10-20)
+
+Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
+
+**New chunk.** WCE14 (W2), D-45 in; fieldwork carries it (`run-qc-and-checkpoint#RQC13`).
+
+**Existing chunks, changed by the owner's answers.**
+
+- **WCE0 / WCE5 (D-06).** Conflicts are per `(item_key, field)`.
+- **WCE7 / WCE9 (D-07).** An unaccepted change is `REJECTED`; `DROPPED_STALE` when it conflicted.
+- **WCE4.** One feed name, `…/workspace/ops?since=`.
+- **WCE8 (D-30).** The lock covers the declared inputs and the sets they rate.
+- **WCE11 (D-31).** A named server path accepts a structural change under the person's standing
+  choice; the switch is per stage on Můj Vedoucí, off by default.
+- **WCE1** gains no decision, expected-answer or done-when kinds: the question chain is **out** (D-44).
+
+### After the stage-handoff answer (the owner's answers on the PM status page, 2026-10-20 about 20:35 UTC, relayed by the coordinator (page ids Q10, Q11, Q12; `.planning/evidence/scope-freeze/answers-2026-10-20.md`, third table))
+
+- **WCE7 (Q12).** A declared map of what each stage reads (its upstream stages and items), the one
+  source for "current / changed / re-check", for `lead-orchestration#LO9d`'s worker inputs and for
+  staleness. A **pending proposal** built on an older upstream item is flagged "postaveno na starší
+  verzi …", not only a run: today the lane marks a run's staleness only (`apps/web/src/research/
+  lane.ts:34-96 @ 7878bad`). Test: accepting a brief change flags a pending questionnaire proposal
+  built before it.
+
