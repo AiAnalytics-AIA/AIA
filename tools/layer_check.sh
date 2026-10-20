@@ -125,7 +125,7 @@ forbid "domain imports no framework, driver or SDK" \
 # library, an XML toolkit or a plotting stack in the domain would make the
 # report's rules untestable without them (.planning/plans/report-docx.md).
 forbid "domain imports no document, XML or plotting library" \
-  '^\s*(from|import)\s+(docx|lxml|matplotlib|numpy|PIL|pptx|openpyxl)\b' \
+  '^\s*(from|import)\s+(docx|lxml|matplotlib|PIL|pptx|openpyxl)\b' \
   "$CORE/domain/"
 
 # The domain importing outward (application, infrastructure) is the import

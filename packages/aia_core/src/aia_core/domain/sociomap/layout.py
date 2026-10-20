@@ -12,8 +12,10 @@ algorithm is a spec field, looked up in :data:`LAYOUT_ALGORITHMS`, and an
 algorithm this engine cannot run raises :class:`LayoutUnavailable` naming why.
 There is no ``auto``, no probing and no fallback.
 
-Four algorithms are known (the fourth, ``aia_smacof_objects_v1``, places objects alone
-and is described with :func:`fit_smacof_objects` below):
+Five algorithms are known (the fourth, ``aia_smacof_objects_v1``, places objects alone
+and is described with :func:`fit_smacof_objects` below; the fifth,
+``aia_soft_rank_spearman_or_interval_mds_v1``, also places objects alone, in
+``signed_off_layout``):
 
 ``python_weighted_unfolding``
     The reference's Python branch (fixture F4). **Not implemented**: its source
@@ -112,6 +114,10 @@ class LayoutAlgorithm(StrEnum):
     #: on the fixed ruler (:func:`fit_smacof_objects`). Contract 3 only: a contract-2
     #: spec places respondents and objects together and refuses it.
     AIA_SMACOF_OBJECTS_V1 = "aia_smacof_objects_v1"
+    #: The signed-off AIA Sociomapa methodology's layout (``aia-sociomap-5``): the objects
+    #: alone, by soft-rank Spearman with Coulomb repulsion or, by the fixed object-count rule,
+    #: Interval MDS, scaled to the ruler (``signed_off_layout``). Contract 3 only.
+    SOFT_RANK_SPEARMAN_OR_INTERVAL_MDS = "aia_soft_rank_spearman_or_interval_mds_v1"
     LEGACY_PYTHON_WEIGHTED_UNFOLDING = "python_weighted_unfolding"
     LEGACY_R_SMACOF_UNFOLDING = "r_smacof_unfolding"
 
@@ -145,6 +151,15 @@ LAYOUT_ALGORITHMS: dict[LayoutAlgorithm, LayoutAlgorithmInfo] = {
         AlgorithmStatus.IMPLEMENTED,
         parity="none claimed; the audit's F6/F7 formulas, pinned by planted configurations",
         reason="weighted SMACOF of the objects from a Torgerson start, specified in this module",
+    ),
+    LayoutAlgorithm.SOFT_RANK_SPEARMAN_OR_INTERVAL_MDS: LayoutAlgorithmInfo(
+        LayoutAlgorithm.SOFT_RANK_SPEARMAN_OR_INTERVAL_MDS,
+        AlgorithmStatus.IMPLEMENTED,
+        parity=(
+            "the methodology's own code: exact where it is deterministic, statistical for full "
+            "soft-rank runs, whose compiled kernel's last bits differ between platforms"
+        ),
+        reason="the signed-off methodology's layout, ported as written in signed_off_layout",
     ),
     LayoutAlgorithm.LEGACY_PYTHON_WEIGHTED_UNFOLDING: LayoutAlgorithmInfo(
         LayoutAlgorithm.LEGACY_PYTHON_WEIGHTED_UNFOLDING,

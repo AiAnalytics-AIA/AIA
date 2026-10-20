@@ -5,7 +5,7 @@
 // at (`elevation`): the top of its display terrace (plan object-map-3d-redesign). The terraces
 // are a picture of the stored grid on the absolute 0-1 scale; the stored number is what every
 // label prints.
-import { type Frame, type ObjectMapArtifact, type ViewSize, TERRACE_BANDS, terraceBand, terraceLevel } from "./object-map-view";
+import { type Frame, type ObjectMapArtifact, type ViewSize, TERRACE_BANDS, gridOrigin, terraceBand, terraceLevel } from "./object-map-view";
 
 export type TerrainVertex = { x: number; y: number; height: number; elevation?: number };
 export type TerrainFace = { vertices: [TerrainVertex, TerrainVertex, TerrainVertex]; band: number; riser: boolean };
@@ -28,12 +28,12 @@ export function terrainMesh(map: ObjectMapArtifact): TerrainFace[] {
   // The backend contract declares intervals, so a 64 grid has 65 samples.
   const n = parameters.grid_resolution + 1;
   if (n < 2 || height.length !== n || height.some((row) => row.length !== n)) return [];
-  const step = 2 * parameters.half_extent / (n - 1);
+  const { x0, y0, step } = gridOrigin(parameters);
   const vertex = (row: number, col: number): TerrainVertex | null => {
     const h = height[row][col];
     return h === null || !Number.isFinite(h) ? null : {
-      x: -parameters.half_extent + col * step,
-      y: -parameters.half_extent + row * step,
+      x: x0 + col * step,
+      y: y0 + row * step,
       height: h,
       elevation: terraceLevel(h),
     };
@@ -148,11 +148,11 @@ export function terraceLayers(map: ObjectMapArtifact): TerraceLayer[] {
   const { height, parameters } = map.terrain;
   const n = parameters.grid_resolution + 1;
   if (n < 2 || height.length !== n || height.some((row) => row.length !== n)) return [];
-  const step = 2 * parameters.half_extent / (n - 1);
+  const { x0, y0, step } = gridOrigin(parameters);
   type V = Point & { h: number };
   const at = (row: number, col: number): V | null => {
     const h = height[row][col];
-    return h === null || !Number.isFinite(h) ? null : { x: -parameters.half_extent + col * step, y: -parameters.half_extent + row * step, h };
+    return h === null || !Number.isFinite(h) ? null : { x: x0 + col * step, y: y0 + row * step, h };
   };
   const triangles: [V, V, V][] = [];
   const shared = new Map<string, number>();

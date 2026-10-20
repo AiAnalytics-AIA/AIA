@@ -55,7 +55,11 @@ ENV AIA_BUILD_SHA=${AIA_BUILD_SHA} \
     PATH="/opt/venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    AIA_LOG_FORMAT=json
+    AIA_LOG_FORMAT=json \
+    NUMBA_CACHE_DIR=/tmp/numba
+
+# NUMBA_CACHE_DIR: numba's kernel cache must be writable at import; in a read-only
+# container only /tmp is, so the kernels compile once per container start.
 
 # A dedicated unprivileged user with a fixed uid, so a volume mounted for the
 # filesystem store (local use only) has a predictable owner.

@@ -13,12 +13,18 @@ Plan ``sociomap-formula-corrections`` § 8.2, S2. One pure function from
     F7   SMACOF from a Torgerson start; Stress-1 and its band; never rescaled
     F8   PRIMARY alignment and connectedness, UNKNOWN left out; the mean rating as height
     F9   K100 with its respondent-bootstrap interval, when the caller asks for it
-    F12  the envelope terrain over the PRIMARY hills, when the spec declares one (4b)
+    F12  the envelope terrain over the PRIMARY hills, when the spec declares one (4b); the
+         framed envelope over their relative heights under ``aia-sociomap-5``
+         the split-half check and the uncertainty radius of a mapped ``aia-sociomap-5`` map
+         the respondent map of a mapped ``aia-sociomap-5`` map: the vector model with the
+         chance test, and the density of the PLACED respondents on the terrain's frame
+         its taste segments, decided on the shown map and maps of jittered ratings
 
 Every step is a function another chunk already landed and tested (2a ``person_minmax``,
 1a ``derive_pair_relations``, 2b ``fit_smacof_objects``, 2c ``stress_quality``, 1b
 ``primary_scores``, 4a ``connectedness_100``); this module composes them and records what
-it composed. Respondent placement (chunk 3) is not computed and the artifact says so; so is
+it composed. Respondent placement (chunk 3) is not computed, outside a mapped
+``aia-sociomap-5`` map, and the artifact says so; so is
 the terrain where the spec declares none (``aia-sociomap-2``) or the family is not mapped.
 A family the data cannot map is :data:`~.models_v3.MapOutcome.NOT_MAPPABLE` with its reason,
 never an exception and never a picture.
@@ -36,6 +42,9 @@ import math
 from collections.abc import Sequence
 from typing import Any, Final
 
+import numpy as np
+from numpy.typing import NDArray
+
 from .layout import (
     UnfoldingDesignError,
     correlation_distances,
@@ -46,6 +55,8 @@ from .metrics import ObjectRole, connectedness_100, primary_scores, rank_with_ti
 from .models_v3 import (
     OBJECT_MAP_IMPLEMENTATION,
     OBJECT_MAP_IMPLEMENTATION_VERSION,
+    CredibilityRule,
+    MapCredibility,
     MapOutcome,
     NotComputed,
     NotMappable,
@@ -55,25 +66,74 @@ from .models_v3 import (
     ObjectMapLayout,
     ObjectMapProvenance,
     ObjectMapSupport,
+    RespondentDensity,
+    RespondentMap,
+    RespondentStatus,
+    SegmentHint,
+    SegmentProfile,
     SociomapArtifactV3,
+    SparseDesign,
+    TasteSegments,
 )
-from .pairs import derive_pair_relations
+from .pairs import PairRelations, derive_pair_relations
 from .relations import PairStatus, person_minmax
-from .slots import HEIGHT, NO_SLOTS, SCALE, STRESS_1, SUPPORT_EFFECTIVE_N, Slots
+from .signed_off_credibility import map_uncertainty, split_half_agreement
+from .signed_off_inputs import PreparedInputs, prepare
+from .signed_off_layout import (
+    SMACOF_ITMAX,
+    PositionMethod,
+    choose_method,
+    interval_mds,
+    soft_rank_spearman,
+    to_ruler,
+)
+from .signed_off_respondents import PLACED, place_respondents, respondent_density
+from .signed_off_segments import (
+    Split,
+    jittered_ratings,
+    segment_profiles,
+    taste_segments,
+)
+from .slots import (
+    DISTANCE,
+    EFFECT_FLOOR,
+    EFFECTIVE_N,
+    HEIGHT,
+    INTERVAL_HIGH,
+    INTERVAL_LOW,
+    K100,
+    NO_SLOTS,
+    PERSON,
+    SCALE,
+    STRESS_1,
+    SUPPORT_EFFECTIVE_N,
+    Slots,
+)
 from .specification import (
     LEGACY_MIN_OBJECTS,
     ObjectHeightMetric,
     PairEvidenceBasis,
+    RelationEstimator,
     SociomapSpecV3,
+    TerrainMethod,
+    UnsupportedMethodology,
     require_supported,
 )
-from .terrain import EnvelopeHill, EnvelopeParameters, EnvelopeTerrain, object_envelope
+from .terrain import (
+    EnvelopeHill,
+    EnvelopeParameters,
+    EnvelopeTerrain,
+    fit_frame,
+    object_envelope,
+)
 from .view import stress_quality
 
 __all__ = [
     "CONNECTEDNESS_OFF",
     "NOT_PLACED_NO_SPREAD",
     "RESPONDENTS_NOT_COMPUTED",
+    "RESPONDENTS_NOT_MAPPED",
+    "RESPONDENT_DECIMALS",
     "TERRAIN_NOT_COMPUTED",
     "TERRAIN_NOT_MAPPED",
     "WEIGHTING",
@@ -93,6 +153,15 @@ RESPONDENTS_NOT_COMPUTED: Final = NotComputed(
         "respondent placement is chunk 3 (ideal points against this object map, audit F10); "
         "its misfit threshold is open (plan sociomap-formula-corrections § 4a, 0b)"
     ),
+)
+#: Decimal places of each respondent's stored position, misfit and p-value (1e-5 ruler units
+#: is far below anything drawn).
+RESPONDENT_DECIMALS: Final = 5
+#: Why an unmappable object set's respondents are not placed under ``aia-sociomap-5``: there
+#: is no map to place them on.
+RESPONDENTS_NOT_MAPPED: Final = NotComputed(
+    status="not_computed",
+    reason="the objects are not mappable, so there is no map to place the respondents on",
 )
 TERRAIN_NOT_COMPUTED: Final = NotComputed(
     status="not_computed",
@@ -125,6 +194,38 @@ WEIGHTING_KISH: Final = (
     "how many times its respondent was drawn, and its Kish n reads the weights of the "
     "distinct respondents drawn; the heights are weighted means; nothing here is clustered "
     "on donors"
+)
+#: The same under the baseline-corrected relation (``aia-sociomap-5``), which is unweighted.
+WEIGHTING_UNWEIGHTED: Final = (
+    "the relations are unweighted: each pair's baseline-corrected r~, its n and its status read "
+    "every respondent who rated both objects once, whatever their weight; the heights are "
+    "weighted means on the declared 0-1 scale; nothing here is clustered on donors"
+)
+#: Why a respondent is not placed under the baseline-corrected relation: it centres each
+#: person's ratings of the mapped objects only.
+NOT_PLACED_NO_SPREAD_OBJECTS: Final = (
+    "no spread over the mapped objects: every object rated with one value, or fewer than two rated"
+)
+#: The connectedness score's bootstrap resamples the weighted Pearson relation; the
+#: baseline-corrected one has none.
+CONNECTEDNESS_NOT_IN_METHOD: Final = {
+    "status": "not_computed",
+    "reason": (
+        "the respondent bootstrap of the connectedness score resamples the weighted Pearson "
+        "relation; the baseline-corrected relation of this method has no such interval"
+    ),
+}
+#: The formulas a version may replace that the baseline-corrected relation and its signed-off
+#: layout never read: a replacement would be stored and silently do nothing, so it is refused.
+_UNREAD_BY_BASELINE_CORRECTED: Final = (
+    PERSON,
+    EFFECTIVE_N,
+    INTERVAL_LOW,
+    INTERVAL_HIGH,
+    EFFECT_FLOOR,
+    K100,
+    DISTANCE,
+    STRESS_1,
 )
 CONNECTEDNESS_OFF: Final = {
     "status": "not_computed",
@@ -210,23 +311,91 @@ def _heights(
     )
 
 
+#: Every hill's relative height when the objects' heights do not differ: the signed-off
+#: methodology stands them all at the middle.
+EQUAL_RELATIVE_HEIGHT: Final = 0.5
+#: Below this spread the heights do not differ (the methodology's own tie threshold).
+_EQUAL_HEIGHTS: Final = 1e-15
+
+
+def _relative_heights(
+    values: Sequence[float | None], primary: Sequence[bool], floor: float
+) -> tuple[float | None, ...]:
+    """The framed envelope's hill heights: each rated PRIMARY object's height min-max scaled
+    over the rated PRIMARY objects onto ``[floor, 1]``; heights that do not differ all stand
+    at :data:`EQUAL_RELATIVE_HEIGHT`. An object nobody rated is not placed and a SECONDARY
+    object raises no hill: neither has one."""
+    rated = [v for v, p in zip(values, primary, strict=True) if p and v is not None]
+    lo, hi = (min(rated), max(rated)) if rated else (0.0, 0.0)
+    out: list[float | None] = []
+    for v, p in zip(values, primary, strict=True):
+        if not p or v is None:
+            out.append(None)
+            continue
+        out.append(
+            EQUAL_RELATIVE_HEIGHT
+            if hi - lo < _EQUAL_HEIGHTS
+            else floor + (1.0 - floor) * (v - lo) / (hi - lo)
+        )
+    return tuple(out)
+
+
+def _frame_objects(
+    values: Sequence[float | None], known: Sequence[Sequence[bool]]
+) -> tuple[bool, ...]:
+    """Which objects the framed envelope's frame is fitted over: the rated objects with at
+    least one known (RELIABLE or WEAK) pair, as the AIA panel fits its map. An object without
+    one is still drawn, and may stand outside the frame."""
+    return tuple(v is not None and any(row) for v, row in zip(values, known, strict=True))
+
+
 def _terrain(
     spec: SociomapSpecV3,
     layout: ObjectMapLayout | None,
     heights: ObjectHeights,
     inputs: ObjectMapInputs,
+    framing: Sequence[bool],
     slots: Slots = NO_SLOTS,
 ) -> NotComputed | EnvelopeTerrain:
     """F12's envelope over the PRIMARY objects' hills, each exactly its F8 height.
 
     A SECONDARY object raises no hill (F8: context objects never enter terrain), and an
     object nobody rated has no height and so no hill -- not a hill of 0.
+
+    The framed envelope stands each rated PRIMARY object's hill at its relative height on a
+    grid framed on the objects ``framing`` marks (:func:`_frame_objects`), and lets every hill
+    reach every cell.
     """
     declared = spec.terrain
     if declared is None:
         return TERRAIN_NOT_COMPUTED
     if layout is None:
         return TERRAIN_NOT_MAPPED
+    if declared.method == TerrainMethod.FRAMED_RELATIVE_ENVELOPE:
+        if declared.frame_fill is None or heights.relative is None:
+            raise ValueError("the framed envelope is declared whole (require_supported)")
+        centre, half = fit_frame(
+            [p for p, f in zip(layout.points, framing, strict=True) if f], declared.frame_fill
+        )
+        return object_envelope(
+            [
+                EnvelopeHill(entity_id=oid, x=point[0], y=point[1], height=t)
+                for oid, point, t in zip(
+                    inputs.object_ids, layout.points, heights.relative, strict=True
+                )
+                if t is not None
+            ],
+            EnvelopeParameters(
+                grid_resolution=declared.grid_resolution,
+                half_extent=half,
+                sigma=declared.sigma,
+                centre=centre,
+            ),
+            slots=slots,
+            method="framed_relative_envelope",
+        )
+    if declared.half_extent is None or declared.kernel_cutoff is None:
+        raise ValueError("the envelope is declared whole (require_supported)")
     hills = [
         EnvelopeHill(entity_id=oid, x=point[0], y=point[1], height=h)
         for oid, point, h in zip(inputs.object_ids, layout.points, heights.values, strict=True)
@@ -281,6 +450,398 @@ def _evidence_policy(spec: SociomapSpecV3) -> dict[str, Any]:
     return {"basis": rel.basis, "effect_floor": rel.effect_floor}
 
 
+def _ratings(family: Sequence[Sequence[float | None]], m: int) -> NDArray[np.float64]:
+    """The family's raw ratings as the methodology reads them: NaN where not rated."""
+    return np.array(
+        [[math.nan if v is None else v for v in row] for row in family], dtype=float
+    ).reshape(len(family), m)
+
+
+def _prepare(
+    ratings: NDArray[np.float64], spec: SociomapSpecV3, *, noise_rule: bool = True
+) -> PreparedInputs:
+    """:func:`~.signed_off_inputs.prepare` under the spec; ``noise_rule`` false leaves the
+    noise rule out whatever the spec declares, as the methodology's credibility maps do."""
+    rel, layout = spec.relation, spec.layout
+    noise = rel.noise_rule
+    if (
+        rel.false_discovery_rate is None
+        or noise is None
+        or layout.layout_floor is None
+        or layout.sparse_share is None
+        or layout.min_layout_partners is None
+        or layout.layout_weight_full_at is None
+        or layout.precision_weight_cap is None
+    ):
+        raise ValueError("the baseline-corrected relation is declared whole (require_supported)")
+    return prepare(
+        ratings,
+        n_min=rel.n_min,
+        layout_floor=layout.layout_floor,
+        layout_weight_full_at=layout.layout_weight_full_at,
+        false_discovery_rate=rel.false_discovery_rate,
+        noise_rule=noise_rule and noise.enabled,
+        noise_permutations=noise.permutations,
+        noise_seed=noise.seed,
+        precision_weight_cap=layout.precision_weight_cap,
+        sparse_share=layout.sparse_share,
+        min_layout_partners=layout.min_layout_partners,
+    )
+
+
+def _baseline_corrected(
+    family: Sequence[Sequence[float | None]], ids: Sequence[str], spec: SociomapSpecV3
+) -> tuple[PairRelations, list[int], SparseDesign, PreparedInputs]:
+    """The signed-off methodology's relations (:func:`~.signed_off_inputs.prepare`) on the
+    family's raw ratings, as the artifact records them: each known pair's ``r~`` and every
+    pair's support ``n``; RELIABLE (Benjamini-Hochberg and the noise rule), WEAK (known, not
+    reliable) or UNKNOWN (below the status floor or a column without spread: no ``r~``); no
+    interval. Also the respondents centring leaves out, the sparse-design note and the layout
+    inputs."""
+    m = len(ids)
+    prepared = _prepare(_ratings(family, m), spec)
+    # Each pair read from its upper half: the methodology computes r~[i, j] and r~[j, i]
+    # separately, so they can differ in the last bit, and the artifact holds one value a pair.
+    upper = np.triu(np.ones((m, m), dtype=bool), 1)
+    known = np.where(upper, prepared.known, prepared.known.T)
+    reliable = np.where(upper, prepared.reliable, prepared.reliable.T)
+    rt = np.where(upper, prepared.rt, prepared.rt.T)
+    status = tuple(
+        tuple(
+            None
+            if i == j
+            else PairStatus.RELIABLE
+            if reliable[i, j]
+            else PairStatus.WEAK
+            if known[i, j]
+            else PairStatus.UNKNOWN
+            for j in range(m)
+        )
+        for i in range(m)
+    )
+    pairs = PairRelations(
+        r=tuple(
+            tuple(float(rt[i, j]) if known[i, j] else None for j in range(m)) for i in range(m)
+        ),
+        n=tuple(
+            tuple(None if i == j else int(prepared.n[i, j]) for j in range(m)) for i in range(m)
+        ),
+        interval=tuple(tuple(None for _ in range(m)) for _ in range(m)),
+        status=status,
+        n_min=spec.relation.n_min,
+        confidence=spec.relation.confidence,
+    )
+    excluded = [k for k in range(len(family)) if not prepared.placed[k]]
+    sparse = SparseDesign(
+        flag=prepared.sparse.flag,
+        share_below_layout_floor=prepared.sparse.share_below_layout_floor,
+        weakly_connected=tuple(ids[k] for k in prepared.sparse.weakly_connected),
+    )
+    return pairs, excluded, sparse, prepared
+
+
+def _primary_only(inputs: ObjectMapInputs) -> ObjectMapInputs:
+    """``inputs`` with the context (SECONDARY) objects left out of the mapped objects."""
+    keep = [
+        k
+        for k, oid in enumerate(inputs.object_ids)
+        if inputs.roles[oid] == ObjectRole.PRIMARY.value
+    ]
+    if len(keep) == len(inputs.object_ids):
+        return inputs
+    ids = tuple(inputs.object_ids[k] for k in keep)
+    return ObjectMapInputs.model_validate(
+        inputs.model_dump()
+        | {
+            "object_ids": ids,
+            "object_items": tuple(inputs.object_items[k] for k in keep),
+            "roles": dict.fromkeys(ids, ObjectRole.PRIMARY.value),
+        }
+    )
+
+
+def _rated_only(inputs: ObjectMapInputs) -> tuple[ObjectMapInputs, tuple[str, ...]]:
+    """``inputs`` with the objects nobody rated left out of the mapped objects, and those
+    objects. They have no relation to anything; left in, the layout would treat them as
+    unrelated to every object and push the others. With nothing rated there is no map to keep
+    them off: the set stays as it is, and no pair reaching the layout floor says why."""
+    rated = [any(row[c] is not None for row in inputs.values) for c in inputs.object_columns()]
+    if all(rated) or not any(rated):
+        return inputs, ()
+    keep = [k for k, r in enumerate(rated) if r]
+    ids = tuple(inputs.object_ids[k] for k in keep)
+    return ObjectMapInputs.model_validate(
+        inputs.model_dump()
+        | {
+            "object_ids": ids,
+            "object_items": tuple(inputs.object_items[k] for k in keep),
+            "roles": {oid: inputs.roles[oid] for oid in ids},
+        }
+    ), tuple(oid for oid, r in zip(inputs.object_ids, rated, strict=True) if not r)
+
+
+def _scales(inputs: ObjectMapInputs) -> set[tuple[float, float]]:
+    """The declared scales of the mapped objects' items."""
+    return {(inputs.items[c].scale_min, inputs.items[c].scale_max) for c in inputs.object_columns()}
+
+
+def _signed_off_layout(
+    prepared: PreparedInputs, ids: Sequence[str], spec: SociomapSpecV3
+) -> ObjectMapLayout | NotMappable:
+    """The signed-off methodology's positions: the fixed object-count rule picks soft-rank
+    Spearman with Coulomb repulsion or Interval MDS on the layout pairs, and one uniform scale
+    puts the map in ruler units. Stress-1 is not computed: it is SMACOF's measure, and the
+    methodology judges a map by its split-half check. ``converged`` is whether the kept run
+    stopped by its own rule before its cap. With no layout pair nothing places the objects:
+    not mappable."""
+    layout = spec.layout
+    srs, imds, partners = layout.soft_rank_spearman, layout.interval_mds, layout.min_layout_partners
+    if srs is None or imds is None or partners is None:
+        raise ValueError("the signed-off layout is declared whole (require_supported)")
+    m = len(ids)
+    fitted = ~prepared.unknown_layout & ~np.eye(m, dtype=bool)
+    if not fitted.any():
+        return NotMappable(
+            reason=NotMappableReason.NO_KNOWN_PAIR.value,
+            message=(
+                f"no pair reached the layout floor {layout.layout_floor}: every pair is masked, "
+                "so nothing places the objects"
+            ),
+            objects=tuple(ids),
+        )
+    method = choose_method(m, srs.min_objects, srs.max_objects)
+    if method is PositionMethod.SOFT_RANK_SPEARMAN_COULOMB:
+        run = soft_rank_spearman(
+            prepared,
+            repulsion_weight=srs.repulsion_weight,
+            seed=srs.seed,
+            restarts_below_ten_objects=srs.restarts_below_ten_objects,
+            restarts=srs.restarts,
+            max_passes=srs.max_passes,
+            min_partners=partners,
+        )
+        xy, iterations, converged = run.points, run.passes, run.passes < srs.max_passes
+    else:
+        xy, iterations = interval_mds(
+            prepared, starts=imds.random_starts, kappa=imds.floor_fraction
+        )
+        converged = iterations < SMACOF_ITMAX
+    ruler = to_ruler(xy, prepared.delta_layout, fitted)
+    return ObjectMapLayout(
+        points=tuple((float(x), float(y)) for x, y in ruler),
+        extent=layout.map_frame.extent,
+        known_pairs=int(fitted.sum()) // 2,
+        iterations=iterations,
+        converged=converged,
+        start_fill=None,
+        method=method.value,
+    )
+
+
+#: What the signed-off Interval MDS raises on too little data: ``ZeroDivisionError`` when no
+#: pair reaches the layout floor, ``LinAlgError`` when the classical start of a near-empty
+#: design does not converge. Any other error is a defect and propagates.
+_TOO_LITTLE_DATA: Final = (ZeroDivisionError, np.linalg.LinAlgError)
+
+
+def _credibility(
+    family: Sequence[Sequence[float | None]], prepared: PreparedInputs, spec: SociomapSpecV3
+) -> MapCredibility:
+    """The signed-off methodology's map credibility, with the AIA panel's fallbacks. The
+    split-half check decides whether the map is weakly determined; when it has no score (a
+    half cannot be mapped, or two objects have no triplet) the map is weakly determined
+    exactly when no pair is RELIABLE. The uncertainty radius is ``None`` when a bootstrap map
+    cannot be computed. Every map here is Interval MDS of the input stage without the noise
+    rule, on the family's raw ratings, as the methodology computes them."""
+    cred, imds = spec.credibility, spec.layout.interval_mds
+    if cred is None or imds is None:
+        raise ValueError("the map credibility is declared whole (require_supported)")
+    m = len(prepared.n)
+    ratings = _ratings(family, m)
+
+    def map_of(part: NDArray[np.float64]) -> NDArray[np.float64]:
+        xy, _ = interval_mds(
+            _prepare(part, spec, noise_rule=False),
+            starts=imds.random_starts,
+            kappa=imds.floor_fraction,
+        )
+        return xy
+
+    try:
+        score = split_half_agreement(
+            ratings, splits=cred.split_half_splits, seed=cred.split_half_seed, map_of=map_of
+        )
+    except _TOO_LITTLE_DATA:
+        score = math.nan
+    reliable = int(prepared.reliable[np.triu_indices(m, 1)].sum())
+    try:
+        radius: float | None = map_uncertainty(
+            ratings,
+            resamples=cred.bootstrap_resamples,
+            seed=cred.bootstrap_seed,
+            safety=cred.safety_factor,
+            map_of=map_of,
+        ).radius
+    except _TOO_LITTLE_DATA:
+        radius = None
+    finite = math.isfinite(score)
+    return MapCredibility(
+        rule=(CredibilityRule.SPLIT_HALF if finite else CredibilityRule.NO_RELIABLE_PAIR).value,
+        split_half=score if finite else None,
+        threshold=cred.split_half_threshold,
+        weakly_determined=score < cred.split_half_threshold if finite else reliable == 0,
+        reliable_pairs=reliable,
+        # A reference map with every object on one point has no distance to measure by.
+        uncertainty_radius=radius if radius is not None and math.isfinite(radius) else None,
+    )
+
+
+def _segments(
+    family: Sequence[Sequence[float | None]],
+    ratings: NDArray[np.float64],
+    layout: ObjectMapLayout,
+    placed: NDArray[np.bool_],
+    ids: Sequence[str],
+    spec: SociomapSpecV3,
+) -> TasteSegments:
+    """The signed-off methodology's taste segments on a mapped map, with the AIA panel's caller
+    rules: the mixture on the slopes of the ratings on the declared 0-1 scale, unweighted;
+    decided on the shown map and, from the declared number of objects, on maps of the raw
+    ratings jittered at the rounding level, each laid out as the shown map is (the input
+    stage, the fixed object-count rule, the ruler). A jittered map that cannot be laid out is
+    left out of the vote. Coloured: the clearly placed respondents of the respondent map. The
+    profiles read the raw ratings, the likely split's too under a borderline decision."""
+    declared = spec.segments
+    if declared is None:
+        raise ValueError("the taste segments are declared (require_supported)")
+    raw = _ratings(family, len(ids))
+    others: list[NDArray[np.float64]] = []
+    if len(ids) >= declared.consensus_min_objects:
+        for copy in jittered_ratings(
+            raw, copies=declared.consensus_maps - 1, jitter=declared.jitter, seed=declared.seed
+        ):
+            other = _signed_off_layout(_prepare(copy, spec), ids, spec)
+            if isinstance(other, ObjectMapLayout):
+                others.append(np.array(other.points, dtype=float))
+    found = taste_segments(np.array(layout.points, dtype=float), others, ratings, placed, declared)
+
+    def profiles(split: Split) -> tuple[SegmentProfile, ...]:
+        drawn = segment_profiles(
+            raw,
+            split,
+            false_discovery_rate=declared.profile_false_discovery_rate,
+            top=declared.profile_top,
+        )
+        return tuple(
+            SegmentProfile(
+                likes=tuple(ids[j] for j in drawn.likes[g]),
+                dislikes=tuple(ids[j] for j in drawn.dislikes[g]),
+                difference=tuple(float(v) for v in drawn.difference[g]),
+                standard_error=tuple(float(v) for v in drawn.standard_error[g]),
+                p_value=tuple(float(v) for v in drawn.p_value[g]),
+                distinctive=tuple(bool(v) for v in drawn.distinctive[g]),
+            )
+            for g in range(split.k)
+        )
+
+    split, hint = found.split, found.hint
+    return TasteSegments(
+        decision=found.decision,
+        reason=found.reason,
+        k=0 if split is None else split.k,
+        k_fit=found.k_fit,
+        gain=found.gain,
+        null_gain_max=found.null_gain_max,
+        margins=found.margins,
+        mean_margin=found.mean_margin,
+        votes=found.votes,
+        maps=found.maps,
+        shares=() if split is None else tuple(split.shares),
+        separation=None if split is None else split.separation,
+        distinct=None if split is None else split.distinct,
+        profiles=() if split is None else profiles(split),
+        label=None if split is None else tuple(int(v) for v in split.labels),
+        # Five decimals, as the respondent map's columns: the colour was decided before.
+        membership=None
+        if split is None
+        else tuple(
+            round(float(v), RESPONDENT_DECIMALS) if math.isfinite(v) else None
+            for v in split.membership
+        ),
+        coloured=None if split is None else tuple(bool(v) for v in split.coloured),
+        hint=None
+        if hint is None
+        else SegmentHint(k=hint.k, shares=tuple(hint.shares), profiles=profiles(hint)),
+    )
+
+
+def _respondents(
+    family: Sequence[Sequence[float | None]],
+    scaled: Sequence[Sequence[float | None]],
+    columns: Sequence[int],
+    ids: Sequence[str],
+    layout: ObjectMapLayout,
+    terrain: NotComputed | EnvelopeTerrain,
+    spec: SociomapSpecV3,
+) -> RespondentMap:
+    """The signed-off methodology's respondent map on a mapped map, with the AIA panel's
+    caller rules: every respondent placed by the vector model from their ratings of the mapped
+    objects on the declared 0-1 scale, unweighted; informative from the declared number of
+    objects; the density of the PLACED respondents on the object terrain's own grid, so a
+    respondent can stand outside it; the taste segments where the spec declares them."""
+    declared = spec.respondent_map
+    if declared is None or not isinstance(terrain, EnvelopeTerrain):
+        raise ValueError("the respondent map is declared on the framed terrain (require_supported)")
+    ratings = np.array(
+        [[math.nan if (v := row[c]) is None else v for c in columns] for row in scaled],
+        dtype=float,
+    ).reshape(len(scaled), len(columns))
+    placed = place_respondents(
+        np.array(layout.points, dtype=float),
+        ratings,
+        chance_level=declared.chance_level,
+        min_ratings=declared.min_ratings,
+    )
+    grid = EnvelopeParameters(
+        grid_resolution=terrain.parameters.grid_resolution,
+        half_extent=terrain.parameters.half_extent,
+        sigma=declared.density_sigma,
+        centre=terrain.parameters.centre,
+    )
+    height = respondent_density(placed.x, placed.status, grid.axes(), declared.density_sigma)
+
+    # Stored to RESPONDENT_DECIMALS places: one entry per respondent makes this the largest
+    # part of the artifact; statuses and the density were decided at full precision.
+    def column(values: NDArray[np.float64]) -> tuple[float | None, ...]:
+        return tuple(
+            round(float(v), RESPONDENT_DECIMALS) if math.isfinite(v) else None for v in values
+        )
+
+    return RespondentMap(
+        x=column(placed.x[:, 0]),
+        y=column(placed.x[:, 1]),
+        placement=placed.status,
+        misfit=column(placed.misfit),
+        p_value=column(placed.p_value),
+        counts={s.value: placed.status.count(s.value) for s in RespondentStatus},
+        informative=len(columns) >= declared.informative_min_objects,
+        min_objects=declared.informative_min_objects,
+        density=RespondentDensity(
+            parameters=grid, height=tuple(tuple(float(h) for h in row) for row in height)
+        ),
+        segments=None
+        if spec.segments is None
+        else _segments(
+            family,
+            ratings,
+            layout,
+            np.array([s == PLACED for s in placed.status], dtype=bool),
+            ids,
+            spec,
+        ),
+    )
+
+
 def compute_object_map(
     inputs: ObjectMapInputs,
     spec: SociomapSpecV3,
@@ -295,24 +856,49 @@ def compute_object_map(
     one, bit for bit as before.
     """
     require_supported(spec)
+    if spec.relation.estimator == RelationEstimator.BASELINE_CORRECTED_PEARSON:
+        # The signed-off methodology maps a set's PRIMARY objects only, as the AIA panel
+        # shows them; how context objects join its map is an open question. An object nobody
+        # rated is not placed: it is left out before anything is computed.
+        inputs, unrated = _rated_only(_primary_only(inputs))
+    else:
+        unrated = ()
     scaled = _scaled(inputs, slots)
-    person = person_minmax(scaled, slots=slots)
-    not_placed = {inputs.respondent_ids[k]: NOT_PLACED_NO_SPREAD for k in person.excluded}
     columns = inputs.object_columns()
-    family = [[row[c] for c in columns] for row in person.values]
     weights = list(inputs.weights)
     evidence = spec.relation
-    policy = _evidence_policy(spec)
-    pairs = derive_pair_relations(
-        family,
-        weights,
-        n_min=evidence.n_min,
-        confidence=evidence.confidence,
-        slots=slots,
-        **policy,
-    )
     ids = list(inputs.object_ids)
     m = len(ids)
+    sparse: SparseDesign | None = None
+    prepared: PreparedInputs | None = None
+    corrected = evidence.estimator == RelationEstimator.BASELINE_CORRECTED_PEARSON
+    if corrected and (unread := [s for s in _UNREAD_BY_BASELINE_CORRECTED if s in slots]):
+        raise UnsupportedMethodology(
+            dict.fromkeys(
+                unread,
+                "the baseline-corrected relation and its layout do not read this formula; "
+                "remove it",
+            )
+        )
+    if corrected:
+        # The signed-off methodology reads the raw ratings of the mapped objects, unweighted.
+        family = [[row[c] for c in columns] for row in inputs.values]
+        policy: dict[str, Any] = {}
+        pairs, excluded, sparse, prepared = _baseline_corrected(family, ids, spec)
+        not_placed = {inputs.respondent_ids[k]: NOT_PLACED_NO_SPREAD_OBJECTS for k in excluded}
+    else:
+        person = person_minmax(scaled, slots=slots)
+        not_placed = {inputs.respondent_ids[k]: NOT_PLACED_NO_SPREAD for k in person.excluded}
+        family = [[row[c] for c in columns] for row in person.values]
+        policy = _evidence_policy(spec)
+        pairs = derive_pair_relations(
+            family,
+            weights,
+            n_min=evidence.n_min,
+            confidence=evidence.confidence,
+            slots=slots,
+            **policy,
+        )
     known = [
         [i != j and pairs.status[i][j] in (PairStatus.RELIABLE, PairStatus.WEAK) for j in range(m)]
         for i in range(m)
@@ -320,15 +906,35 @@ def compute_object_map(
 
     not_mappable: NotMappable | None = None
     layout: ObjectMapLayout | None = None
+    credibility: MapCredibility | None = None
     declared = spec.layout.min_objects
     min_objects = LEGACY_MIN_OBJECTS if declared is None else declared
     if m < min_objects:
         needed = "three" if min_objects == LEGACY_MIN_OBJECTS else str(min_objects)
         not_mappable = NotMappable(
             reason=NotMappableReason.TOO_FEW_OBJECTS.value,
-            message=f"an object map needs at least {needed} objects; the family has {m}",
+            message=f"an object map needs at least {needed} objects; the family has {m}"
+            + (f" ({', '.join(unrated)} nobody rated)" if unrated else ""),
             objects=tuple(ids),
         )
+    elif prepared is not None and len(scales := _scales(inputs)) > 1:
+        not_mappable = NotMappable(
+            reason=NotMappableReason.MIXED_SCALES.value,
+            message=(
+                "the objects are rated on different scales ("
+                + ", ".join(f"{lo:g}-{hi:g}" for lo, hi in sorted(scales))
+                + "); the signed-off methodology maps one scale per set"
+            ),
+            objects=tuple(ids),
+        )
+    elif prepared is not None:
+        # The signed-off layout places every object, related or not: no known-pair check.
+        placed = _signed_off_layout(prepared, ids, spec)
+        if isinstance(placed, NotMappable):
+            not_mappable = placed
+        else:
+            layout = placed
+            credibility = _credibility(family, prepared, spec)
     elif not any(any(row) for row in known):
         not_mappable = NotMappable(
             reason=NotMappableReason.NO_KNOWN_PAIR.value,
@@ -378,9 +984,22 @@ def compute_object_map(
 
     scores = primary_scores(ids, pairs.r, pairs.status, inputs.roles, slots=slots)
     heights = _heights(scaled, weights, columns, slots)
+    terrain = spec.terrain
+    if layout is not None and terrain is not None and terrain.relative_height_floor is not None:
+        heights = heights.model_copy(
+            update={
+                "relative": _relative_heights(
+                    heights.values,
+                    [inputs.roles[oid] == ObjectRole.PRIMARY.value for oid in ids],
+                    terrain.relative_height_floor,
+                )
+            }
+        )
 
-    connectedness: dict[str, Any] = dict(CONNECTEDNESS_OFF)
-    if connectedness_interval:
+    connectedness: dict[str, Any] = dict(
+        CONNECTEDNESS_NOT_IN_METHOD if corrected else CONNECTEDNESS_OFF
+    )
+    if connectedness_interval and not corrected:
 
         def correlate(
             multiplicities: Sequence[int],
@@ -420,6 +1039,15 @@ def compute_object_map(
             "ranking": rank_with_ties(k100.intervals()).to_payload(),
         }
 
+    drawn = _terrain(spec, layout, heights, inputs, _frame_objects(heights.values, known), slots)
+    respondents: NotComputed | RespondentMap = RESPONDENTS_NOT_COMPUTED
+    if spec.respondent_map is not None:
+        respondents = (
+            RESPONDENTS_NOT_MAPPED
+            if layout is None
+            else _respondents(family, scaled, columns, ids, layout, drawn, spec)
+        )
+
     return SociomapArtifactV3(
         spec=spec,
         respondent_ids=inputs.respondent_ids,
@@ -440,14 +1068,21 @@ def compute_object_map(
         support=_support(
             inputs,
             not_placed,
-            WEIGHTING_KISH if evidence.basis == PairEvidenceBasis.KISH_EFFECTIVE_N else WEIGHTING,
+            WEIGHTING_UNWEIGHTED
+            if corrected
+            else WEIGHTING_KISH
+            if evidence.basis == PairEvidenceBasis.KISH_EFFECTIVE_N
+            else WEIGHTING,
             slots,
         ),
-        respondents=RESPONDENTS_NOT_COMPUTED,
-        terrain=_terrain(spec, layout, heights, inputs, slots),
+        respondents=respondents,
+        terrain=drawn,
         provenance=ObjectMapProvenance(
             implementation=OBJECT_MAP_IMPLEMENTATION,
             implementation_version=OBJECT_MAP_IMPLEMENTATION_VERSION,
             input_fingerprints=inputs.fingerprints(),
         ),
+        sparse_design=sparse,
+        credibility=credibility,
+        objects_not_placed=unrated,
     )

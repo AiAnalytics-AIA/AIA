@@ -25,10 +25,11 @@ const show = (v: number | null) => (v === null ? "—" : number.format(v));
 const state = (s: string) => t(`research.exec.objectMap.state.${s}`);
 
 function stress(m: MethodMapSummary): string {
-  if (m.outcome !== "MAPPED" || m.stress_1 === null) {
+  if (m.outcome !== "MAPPED") {
     const reason = m.not_mappable ? t(`${C}.notMappable.${m.not_mappable}`) : "";
     return tv(`${C}.notMapped`, { reason });
   }
+  if (m.stress_1 === null) return t(`${C}.stressNotComputed`);
   return `${number.format(m.stress_1)} · ${m.quality ? t(`research.exec.objectMap.quality.${m.quality}`) : ""}`;
 }
 

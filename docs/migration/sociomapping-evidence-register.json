@@ -80,6 +80,11 @@
    "title": "NPC Panel 18.6.6, the frozen unit's code (legacy/npc-panel-18.6.6/app, ADR 0011)",
    "pages": null,
    "product": "LEGACY_AIA"
+  },
+  "AIA_SOCIOMAPA_METHOD": {
+   "title": "AIA Sociomapa methodology signed off by its owner (A. Bahbouh, 2026-10): its formulas, code and self-test, kept outside this repository",
+   "pages": null,
+   "product": "AIA"
   }
  },
  "canonical": {
@@ -2307,6 +2312,278 @@
    "uncertainty": "The audit's checks covered the target defect only; the fitted map 'still needs a recovery test on data with known ideal points' (§ 12 F16). The tolerance between R and the Python fallback is engineering (plan § 4 item 5).",
    "resolve_by": "sociomap-formula-corrections chunk 4c",
    "question": "A6 and B10 -- what constitutes successful recovery (geometry, ideal-point ordering, generosity invariance, straight-liners excluded, no collapse, determinism within tolerance), and three layers for R/Python equivalence: fixture parity, property tests, recovery tests"
+  },
+  {
+   "id": "AIA-SIGNED-OFF-INPUTS",
+   "title": "Mean-centred ratings, the baseline-corrected relation, two pair floors, Benjamini-Hochberg with the noise rule, and the sparse-design note",
+   "product": "AIA",
+   "label": "PROPOSED",
+   "sources": [
+    {
+     "document": "AIA_SOCIOMAPA_METHOD",
+     "page": null,
+     "section": "aia_inputs.py: centre, pair_stats, bh, noise_q95, noise_q95_fast, precision_weights, layout_weights, sparse_design, prepare",
+     "states": "Each respondent's raw ratings minus their own mean (fewer than two ratings or no spread: left out); the unweighted pairwise Pearson r, the baseline r0 two unrelated objects get from centring alone and r~ = (r - r0) / (1 - r0); below the status floor (10) a pair is unknown; reliable by Benjamini-Hochberg at 0.05 on Fisher's p against r0 and the noise rule (|r~| above the 95th percentile of |r~| with one object shuffled, 100 shuffles per object, seed 0); layout pairs from 5 co-raters weighted min(1, (n - 3) / 17); precision weights capped at 20; the sparse-design note above 30 % of pairs below the layout floor or an object with fewer than 3 layout partners."
+    }
+   ],
+   "formula": "c_ki = a_ki - mean_l a_kl (k left out when L_k < 2 or max |c_k| <= 1e-12); r_ij = clip(cov / sqrt(v_i v_j), +-0.999999) over the co-raters; r0_ij = -(1 / n_ij) sum_k 1 / (L_k - 1); r~_ij = (r_ij - r0_ij) / (1 - r0_ij); z = (atanh r_ij - atanh clip(r0_ij, +-0.999)) sqrt(max(n_ij - 3, 1e-9)), p = 2 (1 - Phi(|z|)); known iff n_ij >= n_min and v_i, v_j > 1e-12; RELIABLE iff BH(q) keeps the pair and |r~_ij| > the 95th percentile of the shuffled |r~|; WEAK if known and not reliable; UNKNOWN otherwise; layout weight min(1, max(0, (n - 3) / (n_full - 3))) for n >= n_L, else 0; sparse iff share(w_L = 0) > s or some object has fewer than p_min partners with w_L > 0",
+   "applies_to": "aia-sociomap-5's object map: its relations, pair statuses and sparse-design note (engine_v2.compute_object_map), and the layout pairs, layout weights and precision weights its layout reads (rule AIA-SIGNED-OFF-LAYOUT).",
+   "implementation": "aia_core.domain.sociomap.signed_off_inputs:prepare",
+   "validation": [
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_inputs.py::test_the_port_reproduces_every_output_of_the_methodologys_own_code",
+     "what": "every output of the methodology's own prepare on three seeded studies (complete, sparse, very sparse) to 1e-9, flags and counts exactly"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_inputs.py::test_the_object_map_records_the_baseline_corrected_relations_under_aia_sociomap_5",
+     "what": "the object map records r~, n, the three statuses and the sparse-design note the port computes"
+    }
+   ],
+   "uncertainty": "The methodology is AIA's own, signed off by its owner; no external source states it. It maps a set's PRIMARY objects only, as the AIA panel shows them: context objects are left off the map until their placement is decided (open question). It is unweighted and reads the raw ratings of the mapped objects on their own scale, so respondent weights and the other rating items do not enter the relations. The noise rule's complete-data path does not leave out respondents without spread (the methodology's own approximation), and on incomplete data it takes half the shuffles.",
+   "resolve_by": "plan signed-off-sociomap-method",
+   "question": null
+  },
+  {
+   "id": "AIA-SIGNED-OFF-LAYOUT",
+   "title": "Object positions: soft-rank Spearman with Coulomb repulsion or Interval MDS by a fixed object-count rule, scaled to the ruler",
+   "product": "AIA",
+   "label": "PROPOSED",
+   "sources": [
+    {
+     "document": "AIA_SOCIOMAPA_METHOD",
+     "page": null,
+     "section": "layout.py: choose_method, make_layout; srs_coulomb_bb1.py: srs_coulomb_bb1, bb1_fast and its compiled kernels; bb1_reference.py: prep_A, classical_start, soft_rank_rows; interval_mds.py: interval_mds, multistart, smacof (interval); sociomap_3d.py: to_ruler",
+     "states": "Maps of 4 to 163 objects are placed by soft-rank Spearman with Coulomb repulsion, the others by Interval MDS: below 4 objects the order term has no rows (each needs 3 layout partners), above 163 the soft-rank layout exceeds 30 s with the core count fixed at 10, so every machine picks the same method. Soft-rank Spearman: each row of the layout relations is min-max scaled into [1e-6, 1 - 1e-6] and compared with the row of map distances by a weighted Pearson of their soft ranks (temperature 1 / min(M, 50)^2) over the row's layout partners, rows with fewer than 3 partners left out; plus lambda = 0.15 times the Coulomb energy of the unrelated charge ((1 - r~) / 2)^2; optimised per object by Barzilai-Borwein steps with backtracking in the unit square, at most 500 passes, from a classical start and seeded random starts (seed 1; 15 restarts below 10 objects, 10 otherwise), the restart with the best hard-rank Spearman kept. Interval MDS: weighted SMACOF of the layout targets sqrt(2 (1 - r~)) with an interval transformation and precision weights 2n / ((1 - r~)(1 + r~)^2) capped 20:1, pairs below the layout floor pushed apart only when closer than half the fitted distance of two unrelated objects; the classical start and 2 random starts, the lowest normalised stress kept. The map is centred and scaled by one least-squares factor to the targets of the layout pairs."
+    }
+   ],
+   "formula": "method = soft_rank_spearman if M_min <= M <= M_max else interval_mds; soft rank: f(X) = 1/(2 N_A) sum_{i active} (1 + corr_{w_L,i}(SR_i(A), SR_i(D))) + lambda rho/P sum_{i<j} q_ij / d_ij, SR_i(v)_j = sum_{k != j} sigma((v_ij - v_ik) / tau), tau = 1/min(M,50)^2, q = ((1 - r~)/2)^2, rho = sqrt(mean d^2); X kept = argmax over restarts of the mean hard-rank Spearman; Interval MDS: min sum w_ij (c max(0, m_d + b (delta_ij - m_delta)) - d_ij)^2, w = max(pi, max pi / C) / mean, pi = 2n / ((1 - r~)(1 + r~)^2); n_ij < n_L: dhat = max(d_ij, kappa dhat(sqrt 2)), weight 1; ruler: X <- (X - mean X) sum_L d delta / sum_L d^2",
+   "applies_to": "aia-sociomap-5's object map: the coordinates on the ruler, and the method that placed them (layout.method); no Stress-1 (engine_v2.compute_object_map).",
+   "implementation": "aia_core.domain.sociomap.engine_v2:_signed_off_layout",
+   "validation": [
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_layout.py::test_the_deterministic_parts_match_the_methodologys_own_code_exactly",
+     "what": "the soft-rank layout's scaled relations, z-scored soft ranks, active rows and random starts of the methodology's own code on six seeded studies, to 1e-12"
+    },
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_layout.py::test_interval_mds_matches_the_methodologys_own_code",
+     "what": "Interval MDS maps of the methodology's own code on six studies (2 to 20 objects), to 1e-9"
+    },
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_layout.py::test_the_ruler_scale_matches_the_methodologys_own_code",
+     "what": "the ruler scale of the methodology's own maps, to 1e-12"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_layout.py::test_the_soft_rank_layout_recovers_the_planted_map",
+     "what": "a full soft-rank run orders the triplets of a planted 20-object map as its truth does (above 0.85, the methodology's own criterion), inside the unit square, its hard-rank Spearman within 0.01 of the methodology's own run"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_layout.py::test_the_object_map_records_the_signed_off_positions_under_aia_sociomap_5",
+     "what": "the object map records the ruler coordinates and the method the fixed object-count rule chose, and no Stress-1"
+    }
+   ],
+   "uncertainty": "The methodology is AIA's own, signed off by its owner; no external source states it. The soft-rank criterion is very rugged: with the same library versions macOS and Linux give the same inputs and Interval MDS maps but can give different soft-rank maps from about 12 objects on (last-bit differences in the compiled kernel), so full soft-rank runs are checked statistically, not number for number. Stress-1 and its band are not computed: they measure SMACOF's fit, and the methodology judges a map by its split-half check (ported with the map credibility). With no pair at or above the layout floor the map is not drawn, where the methodology would place the objects by the repulsion term alone.",
+   "resolve_by": "plan signed-off-sociomap-method",
+   "question": null
+  },
+  {
+   "id": "AIA-SIGNED-OFF-TERRAIN",
+   "title": "Object height and terrain: the survey-weighted mean rating, relative heights with a floor, the frame fitted to the map, and the envelope with no cut-off",
+   "product": "AIA",
+   "label": "PROPOSED",
+   "sources": [
+    {
+     "document": "AIA_SOCIOMAPA_METHOD",
+     "page": null,
+     "section": "aia_inputs.py: prepare (mean_rating); aia_inputs.py: rated_objects; sociomap_3d.py: frame_fit, frame_objects, normalise_rel, terrain, and render's handling of objects without ratings",
+     "states": "An object's height is the survey-weighted mean of its ratings over everyone who rated it (the relations stay unweighted); an object nobody rated is left out of the set before anything is computed (aia_inputs.rated_objects) and listed as not placed; left in, the layout would give it the unrelated charge to every object and push the others. The hill heights are the rated objects' heights min-max scaled onto [0.15, 1], all 0.5 when the heights do not differ (spread below 1e-15). The positions, scaled by 27, are centred on the middle of the bounding box of the rated objects with at least one known pair and scaled so their largest offset on either axis is 0.70 of the grid's half-width of 62 (scale 1 when that offset is at most 1e-12; no shift and scale 1 when no object has a known pair); an object without a known pair may fall outside the frame. The terrain is the maximum over the objects of t_j exp(-||q - x_j||^2 / (2 (6.75 k)^2)) on an 85 x 85 grid over [-62, 62], with no cut-off."
+    }
+   ],
+   "formula": "h_j = mean of a_kj over the raters of j on the declared 0-1 scale, weighted by the respondents' survey weights w_k; an object nobody rated is left out of the set before the relations, the layout and the terrain (listed in objects_not_placed); t_j = f + (1 - f) (h_j - min h) / (max h - min h), t_j = 0.5 when max h - min h < 1e-15, over the rated PRIMARY objects; K = the rated objects with at least one RELIABLE or WEAK pair; c = (min x + max x) / 2 over K; H = max over K of ||x_j - c||_inf / v, H = 62/27 when that maximum is at most 1e-12/27, c = 0 and H = 62/27 when K is empty; grid c - H + t 2H/N, t = 0..N; z(q) = max over PRIMARY j of t_j exp(-||q - x_j||^2 / (2 sigma^2)), sigma = 0.25, every cell",
+   "applies_to": "aia-sociomap-5's object map: its heights (heights.values, survey-weighted), the relative heights (heights.relative), the objects not placed (objects_not_placed) and the framed terrain grid (terrain.parameters.centre and half_extent, terrain.height) (engine_v2.compute_object_map).",
+   "implementation": "aia_core.domain.sociomap.engine_v2:_terrain",
+   "validation": [
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_height_frame_and_terrain_match_the_methodologys_own_code",
+     "what": "the mean ratings, objects not placed, relative heights, objects the frame is fitted over, frame and terrain grid of the methodology's own code on ten studies (2 to 20 objects; an object nobody rated, equal heights, nothing rated, two objects at one point, the object that sets the frame without a known pair), to 1e-12"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_the_object_map_stores_the_framed_terrain_under_aia_sociomap_5",
+     "what": "the object map stores the survey-weighted heights, the relative heights, the object nobody rated left out of the map (the map equals the rated objects' own) and listed as not placed and the terrain framed on the objects with a known pair, with a height in every cell"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_a_context_object_is_left_off_the_map",
+     "what": "a context object is left off the map: the map equals the primary objects' own"
+    }
+   ],
+   "uncertainty": "The methodology is AIA's own, signed off by its owner; no external source states it. It assumes every object is PRIMARY, and under aia-sociomap-5 every mapped object is: context objects are left off the map (open question); the code still raises hills and scales the relative heights over PRIMARY objects only, so it equals the methodology's. The height is survey-weighted and the relations unweighted, as the methodology is (and as the AIA panel draws it); whether the relations should carry survey weights is an open question for the methodology owner. The heights are stored on the declared 0-1 scale rather than the raw scale; the relative heights are the same, since min-max scaling ignores the scale's ends, except that the 1e-15 tie threshold is read on the 0-1 scale. Drawing (the height exaggeration, node size, label note, colours, camera) is the web client's.",
+   "resolve_by": "plan signed-off-sociomap-method",
+   "question": null
+  },
+  {
+   "id": "AIA-SIGNED-OFF-CREDIBILITY",
+   "title": "Map credibility: the split-half check, the weakly determined map with its no-reliable-pair fallback, and one uncertainty radius per map",
+   "product": "AIA",
+   "label": "PROPOSED",
+   "sources": [
+    {
+     "document": "AIA_SOCIOMAPA_METHOD",
+     "page": null,
+     "section": "map_checks.py: split_half_agreement, structure_statement, SPLIT_HALF_MIN, SPLIT_HALF_SPLITS; uncertainty.py: map_uncertainty, _procrustes, _rho, SAFETY; the AIA panel's object_map (aia_map.py) for the fallbacks",
+     "states": "The respondents are split at random into two halves (generator seed 0, the first floor(N/2) of a permutation and the rest), twice; each half is prepared without the noise rule and mapped by Interval MDS; the score is the share of triplets (i; j, k) whose order 'i closer to j than to k' the two half-maps agree on, averaged over the splits (0.5 chance, 1 identical). Below 0.59 the map is weakly determined: two halves of the sample agree on only s % of 'which is closer' comparisons, and positions are not to be read as groups or distances. Without a score the map is weakly determined when no pair is RELIABLE (BH 5 % and the noise rule). The uncertainty radius: 20 respondent bootstraps (seed 0), each prepared without the noise rule and mapped by Interval MDS from a cold start, Procrustes-aligned (rotation, reflection, translation, uniform scale) onto the Interval MDS map of the whole sample; each object's RMS deviation from its mean bootstrap position in units of that map's RMS inter-object distance; radius = 1.2 x the median over objects. One radius per map: per-object spreads rank the objects no better than chance. The AIA panel decides by the no-reliable-pair rule when the split-half check fails or has no score (two objects), and draws no radius when the bootstrap fails."
+    }
+   ],
+   "formula": "s = mean over S splits of mean over i and j < k (j, k != i) of [sgn(d1_ij - d1_ik) = sgn(d2_ij - d2_ik)], d_h the distances of the Interval MDS map of half h; weakly determined = s < s_min when s is defined, else #RELIABLE pairs = 0; Y_b = Procrustes(X_b onto X) / rho(X), rho = sqrt(mean_{i<j} d_ij(X)^2); sigma_j = sqrt(mean_b ||Y_bj - mean_b Y_bj||^2); R = c median_j sigma_j",
+   "applies_to": "aia-sociomap-5's MAPPED object map: credibility.split_half, rule, threshold, weakly_determined, reliable_pairs and uncertainty_radius (engine_v2.compute_object_map).",
+   "implementation": "aia_core.domain.sociomap.engine_v2:_credibility",
+   "validation": [
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_the_split_half_check_and_the_radius_match_the_methodologys_own_code",
+     "what": "the split-half agreement, the uncertainty radius and each object's spread of the methodology's own code on nine studies (2 to 20 objects; very sparse, halves that cannot be mapped, too few respondents to bootstrap, pure noise), to 1e-12, and the same LinAlgError where it fails"
+    },
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_the_rule_and_the_flag_are_the_panels",
+     "what": "which rule decides, whether the map is weakly determined, the RELIABLE pairs and the radius as the AIA panel computes them, on the nine studies"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_a_half_with_no_layout_pair_falls_back_to_the_no_reliable_pair_rule",
+     "what": "a half with no pair at the layout floor raises ZeroDivisionError, as the original does, and the no-reliable-pair rule decides"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_any_other_error_propagates",
+     "what": "only the two errors Interval MDS raises on too little data fall back; any other propagates"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_credibility.py::test_the_object_map_stores_the_credibility_under_aia_sociomap_5",
+     "what": "a MAPPED map stores the credibility and round-trips; a NOT_MAPPABLE map stores none"
+    }
+   ],
+   "uncertainty": "The split-half score compares the signs of distance differences, so on data full of ties a near-zero difference can change sign between macOS and Linux and move the score (as the methodology's own code does); radii differ at about 1e-11. The methodology is AIA's own, signed off by its owner; no external source states it. The half-maps, bootstrap maps and the reference map are Interval MDS even where the drawn map is the soft-rank layout; the methodology states the radius holds for both (their true spreads agree). The fallbacks are the AIA panel's, except that only the two errors Interval MDS raises on too little data (ZeroDivisionError, LinAlgError) fall back; the panel catches any error. A non-finite radius (a reference map with no distance) is stored as none. The radius is in units of the RMS inter-object distance; drawing the circle and the weakly-determined banner is the web client's.",
+   "resolve_by": "plan signed-off-sociomap-method",
+   "question": null
+  },
+  {
+   "id": "AIA-SIGNED-OFF-RESPONDENTS",
+   "title": "Respondent map: vector-model placement, the chance test for placed and faded respondents, the informative minimum of objects, and the density of clearly placed respondents on the object map's frame",
+   "product": "AIA",
+   "label": "PROPOSED",
+   "sources": [
+    {
+     "document": "AIA_SOCIOMAPA_METHOD",
+     "page": null,
+     "section": "respondents.py: place_respondents, FADE_ALPHA, MIN_RATED, RESP_MAP_MIN_OBJECTS, DENSITY_SIGMA_RULER, density_weights; sociomap_3d.py: render_respondents (the density on the object map's frame); the AIA panel's respondent_map (aia_map.py) and _placement / _respondent_set (visualization_lab.py) for the caller rules",
+     "states": "With the objects fixed at their ruler positions y_j, each respondent's ratings of the objects they rated, rescaled to the set's 0..1 scale, are regressed on the object coordinates (intercept and two slopes; one 3 x 3 normal-equation solve per respondent by pseudo-inverse). The respondent is drawn at c + R_max sqrt(R2) beta / |beta| (c the object centre, R_max the largest object distance from it; at c when the slope has no length). Misfit 1 - R2 is shown. Chance test: p = (1 - R2)^((n - 3) / 2), 1 at n = 3; PLACED when p <= 0.10, otherwise FADED; NOT_PLACED with fewer than 3 rated objects or all ratings equal (sum of squares <= 1e-12). The density sums exp(-d^2 / (2 sigma^2)) over the PLACED respondents only, sigma 0.35 ruler units, divided by its maximum, on the object map's frame and grid (fitted over the rated objects with a known pair; respondents may fall outside it); FADED respondents are drawn faintly and not counted. The AIA panel always draws the respondent map and flags it not informative below 6 objects, recording the minimum; it reports each respondent's position, status, misfit and p-value and the counts of each status. Unweighted: survey weights do not enter."
+    }
+   ],
+   "formula": "a~_kj = c_k + beta_k . y_j + e_kj over j in J_k (a~ on the declared 0-1 scale, unweighted); R2_k = 1 - SSR_k / SST_k; x_k = mean_j y_j + R_max sqrt(R2_k) beta_k / |beta_k|; misfit_k = 1 - R2_k; p_k = (1 - R2_k)^((n_k - 3) / 2), p_k = 1 at n_k = 3; PLACED if p_k <= alpha, else FADED; NOT_PLACED if n_k < n_min or SST_k <= 1e-12; informative = M >= M_min; T(q) = sum over PLACED k of exp(-||q - x_k||^2 / (2 sigma_R^2)) / max_q' (same), T = 0 when nobody is PLACED, on the object terrain's grid; alpha = 0.10, n_min = 3, M_min = 6, sigma_R = 0.35",
+   "applies_to": "aia-sociomap-5's MAPPED object map: respondents.x, y, placement, misfit, p_value, counts, informative, min_objects and density (engine_v2.compute_object_map). A NOT_MAPPABLE map records that no respondent is placed.",
+   "implementation": "aia_core.domain.sociomap.engine_v2:_respondents",
+   "validation": [
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_placement_matches_the_methodologys_own_code",
+     "what": "each respondent's position, misfit, p-value and status, the counts and whether the map is informative, of the methodology's own code on ten studies (2 to 20 objects; clear tastes; an object nobody rated, five objects, respondents with two ratings or all ratings equal, nobody placed), to 1e-12"
+    },
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_density_matches_the_methodologys_own_code",
+     "what": "the frame the density stands on and every density cell of the methodology's own code on the ten studies, to 1e-12"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_the_object_map_stores_the_respondent_map_under_aia_sociomap_5",
+     "what": "a MAPPED map stores the respondent map of its own layout on its terrain's grid, and round-trips"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_survey_weights_do_not_enter_the_respondent_map",
+     "what": "changing the survey weights changes the heights and not the respondent map"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_respondents.py::test_earlier_presets_store_exactly_what_they_stored",
+     "what": "aia-sociomap-2, -3 and -4 store no respondent map and no respondent_map in their spec"
+    }
+   ],
+   "uncertainty": "The methodology is AIA's own, signed off by its owner; no external source states it. The ratings are those of the mapped (PRIMARY, rated) objects on each item's declared 0-1 scale; for a set on one scale this equals the methodology's (A - lo) / (hi - lo). The positions are BB1's or Interval MDS's, so where BB1 differs between platforms the respondent map differs with it; placement and density are deterministic given the positions. Respondents are stored in ruler units (the AIA panel reports them x 27, its map units). The taste segments stored with the respondent map are registered as AIA-SIGNED-OFF-SEGMENTS. The respondent drawing (dots, faded transparency, the 26x height exaggeration) and the note below the informative minimum are not here: drawing is the web client's.",
+   "resolve_by": "plan signed-off-sociomap-method",
+   "question": null
+  },
+  {
+   "id": "AIA-SIGNED-OFF-SEGMENTS",
+   "title": "Taste segments: a mixture on the respondents' vector-model slopes with a penalised number of segments, the shuffle guard, the step-down, the decision over the shown and near-identical maps with a borderline band, membership and colour only for clearly placed respondents, and segment profiles",
+   "product": "AIA",
+   "label": "PROPOSED",
+   "sources": [
+    {
+     "document": "AIA_SOCIOMAPA_METHOD",
+     "page": null,
+     "section": "respondents.py: respondent_slopes, _psd, _kmeans, _psd2, _em, _xd_em, _seg_fit, _shuffle_within, _min_sep, find_segments, _segments_from_fit, consensus_maps, _consensus_state, find_segments_consensus, segment_profiles, SEG_* and PROFILE_Q; respondent_map_method.md (taste segments, shuffle guard, step-down, borderline segments, profiles and membership); the AIA panel's respondent_map (aia_map.py) and _placement / _respondent_set (visualization_lab.py) for the caller rules",
+     "states": "Each respondent with at least 5 ratings of the mapped objects, not all equal, has a vector-model slope (ratings on the set's 0..1 scale regressed on the object positions) and its noise covariance V_k = s_k^2 [(Z'Z)^-1]_beta,beta, s_k^2 = RSS_k / (n_k - 3). With fewer than 30 such respondents the map says 'Too few respondents to look for taste segments'. A Gaussian mixture in which each slope keeps its own noise (extreme deconvolution; 3 k-means++ starts, at most 200 EM iterations, relative tolerance 1e-6) is fitted for G = 1..4; G* minimises -2 log L + 0.5 (6G - 1) ln n. G* = 1: 'No clear taste segments'. Shuffle guard: the same fit on 20 copies with each respondent's ratings permuted among the objects they rated (stream seed + 7919); segments only when the gain C(1) - C(G*) beats every shuffled gain; the loop stops at the first batch with a shuffle as strong. Step-down: while G >= 3 and the last segment adds < 0.10 of the log-likelihood gain, then while a segment holds < 0.05 of the respondents, then while the two closest segments are < 1.8 apart, G -> G - 1. The decision is taken on the shown map and 4 maps of the ratings with a 1e-9 jitter laid out as the shown map (the panel makes them only from 5 objects): segments if the mean penalised margin < -4 and at least half the maps show segments (fitted on the shown map; if it alone showed none, with the most common number of the others); none if the mean margin > 4, or no map shows segments and it is > 0; otherwise borderline: nobody coloured, the likely split named. Labels largest first; a respondent is coloured at membership >= 0.8 and clearly placed by the chance test; segments distinct at separation >= 3.5. Profiles: the membership-weighted difference of respondent-centred raw ratings against everyone else, a normal test, Benjamini-Hochberg at 0.05 over all segments and objects, up to 3 distinctive objects named higher and lower. Unweighted."
+    }
+   ],
+   "formula": "beta_k, V_k from a~_kj = c_k + beta_k . y_j + e_kj over j in J_k, n_k >= n_s; log L_G = sum_k log sum_g pi_g phi(beta_k; mu_g, Sigma_g + V_k); C(G) = -2 log L_G + lambda (6G - 1) ln n; G* = argmin_{G <= G_max} C(G), none when n < n_min; Delta = C(1) - C(G*), shown iff Delta > max_b Delta^(b) (B shuffles); step-down by g_min, pi_min, S_min with S_gh = sqrt(dmu' [(Sigma_g + Sigma_h) / 2]^-1 dmu); margin_m = min_{G >= 2} C_m(G) - C_m(1) on the shown map and the maps of the ratings + jitter, segments iff mean < -b and votes >= half, none iff mean > b or (no votes and mean > 0), borderline otherwise; r_kg the posterior membership, coloured iff max_g r_kg >= r_min and PLACED; distinct iff min S_gh >= S_d; d_gj = weighted mean of c_kj by r_kg minus by 1 - r_kg, c_kj = a_kj - mean_k a, se^2 = v1 / neff1 + v0 / neff0, BH at q, top t; G_max = 4, lambda = 0.5, B = 20, n_min = 30, n_s = 5, g_min = 0.10, pi_min = 0.05, S_min = 1.8, r_min = 0.8, S_d = 3.5, q = 0.05, t = 3, 5 maps from 5 objects, b = 4.0, jitter 1e-9, seed 0",
+   "applies_to": "aia-sociomap-5's MAPPED object map: respondents.segments (decision, reason, k, k_fit, gain, null_gain_max, margins, mean_margin, votes, maps, shares, separation, distinct, profiles, label, membership, coloured, hint) (engine_v2.compute_object_map).",
+   "implementation": "aia_core.domain.sociomap.engine_v2:_segments",
+   "validation": [
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_match_the_methodologys_own_code",
+     "what": "the decision and its reason, k, the fit's k, the borderline hint, labels, colour mask, votes, maps, margins, shares and named objects exactly, and membership, separation, gain, the largest shuffled gain, mean margin and profiles to 1e-9 relative, of the methodology's own code on eleven studies (clear segments, none, borderline, too few respondents, four objects, a step-down from four to three segments at 3,000 respondents, a shown map rejected by the shuffle guard with and without the other maps, segments not stable across the maps, segments shown only by the other maps, a borderline decision no map votes for), on its own shown and other maps"
+    },
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_jittered_ratings_draw_the_methodologys_stream",
+     "what": "the first noise values of each of the methodology's four near-identical maps, exactly"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_maps_decide_together_within_the_band",
+     "what": "each branch of the decision over the maps: segments, none, borderline, a map with too few respondents"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_segments_shown_only_by_the_other_maps_take_their_most_common_number",
+     "what": "segments shown only by the other maps are fitted on the shown map with their most common number, not their largest"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_object_map_stores_the_segments_under_aia_sociomap_5",
+     "what": "a MAPPED map stores the segments of its own layout and its own jittered maps, colours only PLACED respondents, and round-trips"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_a_set_below_the_consensus_minimum_makes_no_jittered_maps",
+     "what": "below five objects only the shown map is laid out"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_threads_never_change_a_stored_value",
+     "what": "the shuffles fitted one at a time store what the threads store; the batch is a fixed four"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_earlier_presets_store_exactly_what_they_stored",
+     "what": "aia-sociomap-2, -3 and -4 keep their spec and artifact fingerprints"
+    }
+   ],
+   "uncertainty": "The methodology is AIA's own, signed off by its owner; no external source states it. Every value the methodology holds in code (the minimum respondents and ratings, the step-down limits, the consensus guard of 5 objects, which is the AIA panel's) is a spec value here; the EM starts, iterations and tolerance, the eigenvalue floor, the generator offsets and the shuffle batch are fixed. The methodology runs its shuffles in batches of min(4, CPU count) and states the result is the same for any value; it is not when a shuffle reaches the real gain (the largest shuffled gain recorded is that of the shuffles run), so the batch is fixed at 4. 'Clearly placed' reads the respondent map's own chance-test level and minimum (equal to the methodology's at their defaults). A jittered map that cannot be laid out is left out of the vote (the methodology would fail). The slopes read the ratings on the declared 0-1 scale (one scale per set), the profiles the raw ratings. Where BB1 differs between platforms the shown and jittered maps differ, and so can a borderline decision; the EM loop is compiled, so its last bits can differ between platforms. Objects nobody rated are left out before anything is computed (methodology owner's decision), whereas the AIA panel lays them out with the rest; on such sets the panel's shown and near-identical maps differ, and so can its segment decision (in review, a 10-object set with one object nobody rated: here no segments, the panel borderline). The minimum of objects for the near-identical maps counts the rated objects. Drawing (colours, the borderline note, the legend) is the web client's.",
+   "resolve_by": "plan signed-off-sociomap-method",
+   "question": null
   }
  ]
 }

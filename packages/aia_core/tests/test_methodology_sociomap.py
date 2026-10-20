@@ -47,7 +47,12 @@ def test_the_groups_follow_the_computation_by_its_stages() -> None:
     assert titles["S1"] == "Vstupní hodnocení" and titles["S6"] == "Terén"
     by_id = {g.id: g for g in SOCIOMAP.groups}
     # A respondent without variance is decided with the inputs, before any relation.
-    assert by_id["S1"].step_ids == ("f1_declared_scale", "f2_person_minmax", "f11_not_placed")
+    assert by_id["S1"].step_ids == (
+        "f1_declared_scale",
+        "f2_person_minmax",
+        "person_centring",
+        "f11_not_placed",
+    )
     assert all(by_id[g].note_cs for g in ("S1", "S2", "S3", "S4", "S5", "S6", "S7"))
 
 

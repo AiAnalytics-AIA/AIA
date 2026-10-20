@@ -12,7 +12,7 @@ from aia_core.application.report_maps import (
     compose_map_sections,
     pair_status_means,
 )
-from aia_core.domain.report.model import Paragraph, SociomapFigure, Table, TextCell
+from aia_core.domain.report.model import Callout, Paragraph, SociomapFigure, Table, Text, TextCell
 from aia_core.domain.sociomap import (
     AIA_SOCIOMAP_V1,
     AIA_SOCIOMAP_V2,
@@ -30,11 +30,12 @@ from aia_core.domain.sociomap import (
 )
 from aia_core.domain.sociomap.layout import correlation_distance
 from aia_core.domain.sociomap.relations import PairStatus
+from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V5
 from aia_core.infrastructure.report_docx.cover import ASSET
 from aia_core.infrastructure.report_docx.object_map_figure import object_map_snapshots
 
 
-def result(*, flat: bool = False) -> dict:
+def result(*, flat: bool = False, spec: SociomapSpecV3 = AIA_SOCIOMAP_V3) -> dict:
     rng = random.Random(92)
     objects = ("a", "b", "c", "d")
     data = ObjectMapInputs(
@@ -49,7 +50,7 @@ def result(*, flat: bool = False) -> dict:
         object_items=objects,
         roles=dict.fromkeys(objects, "primary"),
     )
-    artifact = compute_object_map(data, AIA_SOCIOMAP_V3, connectedness_interval=False)
+    artifact = compute_object_map(data, spec, connectedness_interval=False)
     return {
         "methodology_status": "INTERNAL_ONLY",
         "batteries": [
@@ -57,7 +58,7 @@ def result(*, flat: bool = False) -> dict:
                 "battery_id": "fictional",
                 "title": "Fiktivní nabídky",
                 "objects": [{"id": o, "label": f"Objekt {o}"} for o in objects],
-                "maps": {AIA_SOCIOMAP_V3.methodology_version: artifact.to_payload()},
+                "maps": {spec.methodology_version: artifact.to_payload()},
             }
         ],
     }
@@ -109,6 +110,33 @@ def test_the_map_chapter_says_its_counts_and_pair_states_in_czech() -> None:
         assert f"{PAIR_STATUS[status]}: {means[status]}" in table.notes[0]
     words = " ".join([*states, *table.notes])
     assert not any(code in words for code in ("reliable", "RELIABLE", "WEAK", "UNKNOWN"))
+
+
+def test_a_signed_off_map_states_how_far_it_can_be_read() -> None:
+    # Forty respondents rating four objects at random: no structure, so the signed-off map is
+    # weakly determined, and the report says so instead of letting positions read as groups.
+    frozen = result(spec=AIA_SOCIOMAP_V5)
+    ((_, artifact),) = read_object_maps(frozen["batteries"][0])
+    credibility = artifact.credibility
+    assert credibility is not None and credibility.weakly_determined
+    assert credibility.split_half is not None and credibility.uncertainty_radius is not None
+    blocks = compose_map_sections(frozen, object_map_snapshots(frozen), source="Frozen")[0].blocks
+    (warning,) = [b for b in blocks if isinstance(b, Callout) and b.title == "Slabě určená mapa"]
+    share = f"{round(100 * credibility.split_half)} %"
+    assert warning.content == (
+        Text(
+            f"Dvě poloviny vzorku se shodnou jen v {share} srovnání „co je blíž“ (50 % = "
+            "náhoda). Pozice na mapě nečtěte jako skupiny ani vzdálenosti."
+        ),
+    )
+    prose = " ".join(
+        i.text for b in blocks if isinstance(b, Paragraph) for i in b.content if hasattr(i, "text")
+    )
+    assert f"shodnou v {share} srovnání" in prose and "pod 59 % je mapa slabě určená" in prose
+    assert "Poloměr nejistoty polohy je " in prose
+    # The earlier presets say nothing of it.
+    words = repr(compose_map_sections(result(), object_map_snapshots(result()), source="Frozen"))
+    assert "Slabě určená" not in words and "Poloměr nejistoty" not in words
 
 
 def weighted_result(spec: SociomapSpecV3) -> dict:

@@ -1087,11 +1087,13 @@ export const cs = {
             statuses: "Stavy párů",
             effectiveN: "Efektivní n",
             notMapped: "nezmapováno: {reason}",
+            stressNotComputed: "metodika Stress-1 nepočítá",
             notMappable: {
               TOO_FEW_OBJECTS: "méně než tři objekty",
               NO_KNOWN_PAIR: "žádný pár není spolehlivý ani slabý",
               DISCONNECTED: "některé objekty nemají řetěz známých párů ke zbytku",
               SINGULAR: "známé páry rozložení neurčují",
+              MIXED_SCALES: "objekty jsou hodnocené na různých škálách",
             },
             statusChanges: "Páry, jimž se mění stav",
             noStatusChange: "Žádnému páru se stav nemění.",

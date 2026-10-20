@@ -35,10 +35,10 @@ def draw_object_map_snapshot(
         )
         terrain = artifact.terrain
         if isinstance(terrain, EnvelopeTerrain):
-            axis = np.asarray(terrain.parameters.axis())
-            xx, yy = np.meshgrid(axis, axis)
+            x_axis, y_axis = terrain.parameters.axes()
+            xx, yy = np.meshgrid(np.asarray(x_axis), np.asarray(y_axis))
             zz = np.array([[np.nan if h is None else h for h in row] for row in terrain.height])
-            size = len(axis)
+            size = len(x_axis)
             faces: list[tuple[int, int, int]] = []
             for row in range(size - 1):
                 for column in range(size - 1):

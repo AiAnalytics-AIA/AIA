@@ -21,6 +21,7 @@ from aia_core.domain.report.model import (
 )
 from aia_core.domain.report.numbers import counted, effective_n, number
 from aia_core.domain.sociomap import read_object_maps
+from aia_core.domain.sociomap.models_v3 import MapCredibility
 from aia_core.domain.sociomap.pairs import PairRelations
 from aia_core.domain.sociomap.relations import PairStatus
 from aia_core.domain.sociomap.terrain import EnvelopeTerrain
@@ -64,6 +65,40 @@ def pair_status_means(relations: PairRelations) -> dict[PairStatus, str]:
         ),
         PairStatus.UNKNOWN: f"{short}, nebo korelaci nelze spočítat",
     }
+
+
+#: The signed-off layout's methods (``layout.method``), which compute no Stress-1.
+POSITION_METHOD = {
+    "soft_rank_spearman_coulomb": "Spearman měkkých pořadí s Coulombovým odpuzováním",
+    "interval_mds": "Interval MDS",
+}
+
+
+def _credibility_note(credibility: MapCredibility) -> str:
+    """The signed-off methodology's split-half check and uncertainty radius, for internal
+    readers."""
+    agreement = (
+        " Shodu polovin vzorku nelze spočítat; mapa je slabě určená, právě když žádný vztah "
+        f"není spolehlivý (spolehlivých vztahů: {credibility.reliable_pairs})."
+        if credibility.split_half is None
+        else " Dvě poloviny vzorku se shodnou v "
+        f"{number(round(100 * credibility.split_half), 0)} % srovnání „co je blíž“ (50 % = "
+        f"náhoda; pod {number(round(100 * credibility.threshold), 0)} % je mapa slabě určená)."
+    )
+    verdict = (
+        " Mapa je slabě určená." if credibility.weakly_determined else (" Mapa slabě určená není.")
+    )
+    radius = credibility.uncertainty_radius
+    return (
+        agreement
+        + verdict
+        + (
+            " Poloměr nejistoty polohy nelze spočítat."
+            if radius is None
+            else f" Poloměr nejistoty polohy je {number(round(radius, 2), 2)}násobek střední "
+            "kvadratické vzdálenosti objektů."
+        )
+    )
 
 
 QUALITY = {
@@ -146,6 +181,25 @@ def compose_map_sections(
                     ),
                 )
             )
+            credibility = artifact.credibility
+            if credibility is not None and credibility.weakly_determined:
+                # The signed-off methodology shows this instead of reading positions as structure.
+                blocks.append(
+                    Callout(
+                        CalloutKind.LIMITATION,
+                        text(
+                            (
+                                "Žádný vztah mezi objekty se neliší od náhody. "
+                                if credibility.split_half is None
+                                else "Dvě poloviny vzorku se shodnou jen v "
+                                f"{number(round(100 * credibility.split_half), 0)} % srovnání "
+                                "„co je blíž“ (50 % = náhoda). "
+                            )
+                            + "Pozice na mapě nečtěte jako skupiny ani vzdálenosti."
+                        ),
+                        title="Slabě určená mapa",
+                    )
+                )
             if not client:
                 # Support counts and the fit, as numbers outside the ledger: internal only.
                 blocks.append(
@@ -156,14 +210,25 @@ def compose_map_sections(
                             "Vztahy vycházejí "
                             f"z {support.placed} použitelných profilů hodnocení z celkem "
                             f"{support.respondents} odpovědních profilů; počet nezávislých "
-                            f"donorů je {support.donors}. Stress-1 je "
-                            f"{number(round(layout.stress_1, 3), 3)} (uložená kvalita: "
-                            f"{QUALITY.get(layout.quality, layout.quality)}). Nižší Stress-1 "
-                            "znamená menší nesoulad mezi cílovými vztahy a vzdálenostmi na mapě. "
-                            "Shoda uspořádání není testem statistické významnosti vztahů."
+                            f"donorů je {support.donors}."
+                            + (
+                                f" Stress-1 je {number(round(layout.stress_1, 3), 3)} (uložená "
+                                f"kvalita: {QUALITY.get(layout.quality, layout.quality)}). Nižší "
+                                "Stress-1 znamená menší nesoulad mezi cílovými vztahy "
+                                "a vzdálenostmi na mapě. Shoda uspořádání není testem "
+                                "statistické významnosti vztahů."
+                                if layout.stress_1 is not None and layout.quality is not None
+                                else ""
+                            )
+                            + ("" if credibility is None else _credibility_note(credibility))
                         )
                     )
                 )
+            # The framed envelope draws relative heights and reaches every cell.
+            relative = (
+                isinstance(artifact.terrain, EnvelopeTerrain)
+                and artifact.terrain.method == "framed_relative_envelope"
+            )
             for view in (
                 ("top", "3d") if isinstance(artifact.terrain, EnvelopeTerrain) else ("top",)
             ):
@@ -178,10 +243,18 @@ def compose_map_sections(
                         image_png=images[key],
                         methodology_status=map_status.value,
                         stress_1=layout.stress_1,
+                        fit_caption=None
+                        if layout.stress_1 is not None or layout.method is None
+                        else f"rozložení {POSITION_METHOD.get(layout.method, layout.method)}; "
+                        "Stress-1 se nepočítá",
                         source=source,
                         alt=f"{view_title} uložené mapy {battery['title']}. Číslované objekty "
-                        "odpovídají legendě; barva a výška ukazují průměr hodnocení "
-                        "na škále 0\u20131.",
+                        "odpovídají legendě; barva a výška ukazují "
+                        + (
+                            "průměr hodnocení vůči ostatním objektům sady."
+                            if relative
+                            else "průměr hodnocení na škále 0\u20131."
+                        ),
                     )
                 )
             if isinstance(artifact.terrain, EnvelopeTerrain):
@@ -190,9 +263,15 @@ def compose_map_sections(
                         text(
                             "Prostorový pohled zobrazuje uloženou obálku objektových výšek. "
                             "Povrch mezi body je vizualizační konstrukce, nikoli další naměřená "
-                            "odpověď. Prázdné oblasti nemají povrch a neznamenají "
-                            "nulové hodnocení. "
-                            "Perspektiva mění zdánlivou vzdálenost; polohy proto porovnávejte "
+                            "odpověď. "
+                            + (
+                                "Daleko od objektů klesá povrch k nule, což neznamená "
+                                "nulové hodnocení. "
+                                if relative
+                                else "Prázdné oblasti nemají povrch a neznamenají "
+                                "nulové hodnocení. "
+                            )
+                            + "Perspektiva mění zdánlivou vzdálenost; polohy proto porovnávejte "
                             "v pohledu shora."
                         )
                     )
