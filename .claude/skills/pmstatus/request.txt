@@ -1,0 +1,16 @@
+[PM status request from the coordinator, session {COORDINATOR_ID}]
+
+Nigel asked for a PM status. Please reply within 10 minutes, with send_message to session_id {COORDINATOR_ID}, using exactly this block (one line per field, "none" where nothing applies). Observed state only: what you verified, not what you intend. Do not stop or change your current work to answer.
+
+SESSION: <your session id> | <your session title>
+STATE: working | waiting-on-nigel | waiting-on-review | waiting-on-other-session | done | blocked
+DOING: <one sentence: what you are doing right now>
+PLAN: <.planning/plans/<plan>.md> | <current chunk, as written in the plan's chunks:> | <x of y chunks done>
+PRS: <#num title - open/draft/merged - CI green/red/pending>, ... or none
+NEEDS: <exactly what you need from Nigel: the decision or words, with a one-line example> or none
+BLOCKED-BY: <session id, PR or step you wait on> or none
+NEXT: <your next step once unblocked>
+CONTEXT: <your context usage, %>
+EXPLAINERS: <title — function/file>, ... or none
+
+If your work touched a complex function or feature, send each explainer as a SEPARATE send_message to {COORDINATOR_ID}, its first line exactly "EXPLAINER <title> — <function/file>", then the explainer's HTML: one self-contained page under 40 KB (inline SVG/CSS/JS, no external requests) that animates the function step by step with play / pause / step controls. Never publish an artifact of your own; the coordinator embeds it in your card on the status page.
