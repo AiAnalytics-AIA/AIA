@@ -1,20 +1,43 @@
 {
- "generated_at": "2026-10-20T20:40:00Z",
- "develop_sha": "7878bad",
- "headline": "Q10, Q11 and Q12 are applied as you answered. One follow-up (Q13) on how the Lead edits documents live. Then your typed MP16 signature unblocks the build. #524 is merged and its first deploy is being watched.",
+ "generated_at": "2026-10-20T21:25:00Z",
+ "develop_sha": "44b66ef",
+ "headline": "Three decisions left (Q19 Wordcraft, Q20 Brave and design data, Q21 merge authority), then two things to type here: 'accept ADRs 0028-0040' and your MP16 signature. That unblocks the MVP build.",
  "needs_nigel": [
   {
-   "id": "N7",
-   "title": "Sign the scope baseline (MP16) on #523",
-   "why": "#523 now carries your Q1-Q8 answers (master_check ok). The scope freeze holds all MVP feature code until you sign; ticking 'done' on the page is not a signature.",
-   "example": "Type in the coordinator chat: \"I sign MP16 on #523 at <head>\". The tick on this page is not a signature. Wait until #523 carries Q10-Q13.",
-   "recommendation": "Answer Q10 and Q11 first and wait for the stage-handoff amendment; then sign. I merge #516 → #522 → #523 and start the W0/W1 lanes.",
+   "id": "N9",
+   "title": "Type your MP16 signature in the coordinator chat (#523)",
+   "why": "The scope freeze holds all MVP feature code until you sign. #523 @ fe5dc1b carries Q1-Q18; Q19 and Q20 go in next. A tick on this page is not a signature.",
+   "example": "I sign MP16 on #523 at <head>",
+   "recommendation": "Answer Q19-Q20 first; I'll tell you the final head SHA to sign.",
    "unblocks": [
-    "planning",
-    "scope-inputs",
-    "build"
+    "f4",
+    "f5",
+    "f6"
    ],
-   "where": "This chat (coordinator 3)"
+   "where": "Coordinator chat"
+  },
+  {
+   "id": "N10",
+   "title": "Type 'accept ADRs 0028-0040' in the coordinator chat",
+   "why": "All your answers are applied (#512 @ 06b143c). 0032 waits on Q20 and 0039 on Q19. Accepting also approves 0039/0040's amendments to ADR 0026. The method questions in 0034, 0036 and 0037 go to Arigamaru separately.",
+   "example": "accept ADRs 0028-0040",
+   "recommendation": "After Q19 and Q20.",
+   "unblocks": [
+    "f6"
+   ],
+   "where": "Coordinator chat"
+  },
+  {
+   "id": "N8",
+   "title": "Type 'commit and push the IdP fix' in the AIA infra audit session",
+   "why": "The fix is ready and checked, but the repo rules need your own words in that session. A tick here doesn't reach it (you ticked it at 20:34; nothing was pushed).",
+   "example": "commit and push the IdP fix",
+   "recommendation": "Do it before the domain cutover.",
+   "unblocks": [
+    "i2",
+    "d5"
+   ],
+   "where": "AIA infra audit session"
   },
   {
    "id": "N2",
@@ -29,38 +52,34 @@
    "where": "Webglobe e-mail + CloudShell"
   },
   {
-   "id": "N4",
-   "title": "'commit and push the IdP fix' (infra session)",
-   "why": "You marked it done at 20:34, but no IdP branch is on GitHub yet; I've asked the infra session what's blocking. Makes Terraform match what Cognito really does and keeps the domain cutover plan clean.",
-   "example": "Type exactly: commit and push the IdP fix",
-   "recommendation": "Do it before the domain cutover.",
-   "unblocks": [
-    "i2",
-    "d5"
-   ],
-   "where": "AIA infra audit session"
-  },
-  {
    "id": "N3",
-   "title": "Review the methodology packet (#510)",
-   "why": "Arigamaru's 24 MQ answers gate the numerical MVP chunks; nothing goes to him before you review.",
-   "example": "The PDF I sent earlier (methodology + engineering companion).",
-   "recommendation": "Read it, then say 'send to Arigamaru'.",
+   "title": "Review the methodology packet (#510), then say 'send to Arigamaru'",
+   "why": "Arigamaru's method questions gate the numerical MVP chunks and four ADRs (0034, 0036-0038). Codex's findings are fixed (#510 @ b968a21, green).",
+   "example": "send to Arigamaru",
+   "recommendation": "Read the packet, then say the word.",
    "unblocks": [
-    "m2"
+    "m2",
+    "m3"
    ],
-   "where": "PDF / PR #510"
+   "where": "PR #510"
   },
   {
-   "id": "N5",
-   "title": "Decide ADRs 0028-0038 (#512)",
-   "why": "The architecture of the wallet, working copy, Lead and production depends on them; most are already settled by your 48 answers.",
-   "example": "ADR 0028: the wallet and plan card. Accept as drafted?",
-   "recommendation": "Accept them with the baseline signature; I'll list only the 'Open for Nigel' items left.",
-   "unblocks": [
-    "build"
-   ],
-   "where": "PR #512"
+   "id": "N11",
+   "title": "Tell me whose PR #517 is",
+   "why": "#517 (draw aia-sociomap-5 maps in the web) is feature code that no session I track owns, and the scope freeze holds it.",
+   "example": "'It's mine, park it' or 'close it, research-lead-workbench#20 covers it'",
+   "recommendation": "Park it until MP16; the -5 drawing chunk (research-lead-workbench#20) can reuse it.",
+   "unblocks": [],
+   "where": "Coordinator chat"
+  },
+  {
+   "id": "N12",
+   "title": "Optional: say 'update the workbench design'",
+   "why": "The design session applied your input rule (screen 12 Vstupy, inline folders, steppers) in its local copy; the published design is still version 2.",
+   "example": "update the workbench design",
+   "recommendation": "Yes, so you review the new inputs in one place.",
+   "unblocks": [],
+   "where": "Coordinator chat"
   }
  ],
  "sessions": [
@@ -69,288 +88,278 @@
    "title": "AIA PM: coordinator 3",
    "category": "PM",
    "state": "working",
-   "doing": "Took over from coordinator 2; watching #510 #512-#515 #525, and #524 CI.",
+   "doing": "Running the page; watching #524's first deploy and every open PR.",
    "plan": null,
    "prs": [],
    "needs": null,
    "blocked_by": [],
-   "next": "Q10 and your MP16 signature, then merge #516→#522→#523; merge #524/#525 when green.",
-   "context_pct": 3,
-   "last_update": "2026-10-20T20:05:00Z",
-   "reply": "received",
-   "explainers": []
+   "next": "Merge #525 after develop CI; merge the freeze PRs after MP16.",
+   "context_pct": null,
+   "last_update": "2026-10-20T21:25:00Z",
+   "reply": "received"
   },
   {
    "id": "session_01RxUnHwTXGVFYjwzfpKi9kT",
    "title": "AIA planning 2: master plan + docs PRs",
    "category": "Planning",
    "state": "waiting-on-nigel",
-   "doing": "Finished freeze step 4 part 2: all 48 answers applied, dated baseline written (#523).",
-   "plan": {
-    "path": ".planning/plans/mvp-master-plan.md",
-    "chunk": "MP16 — the owner signs the scope baseline",
-    "done": 7,
-    "total": 17
-   },
+   "doing": "#523 carries Q1-Q18 and the stage-handoff amendment (fe5dc1b).",
+   "plan": null,
    "prs": [
     {
      "num": 516,
-     "title": "48-decision list",
-     "state": "draft",
+     "title": "Decision list",
+     "state": "open",
      "ci": "green"
     },
     {
      "num": 522,
-     "title": "Consolidated 102 proposed edits",
-     "state": "draft",
+     "title": "Proposed edits",
+     "state": "open",
      "ci": "green"
     },
     {
      "num": 523,
      "title": "Scope baseline",
-     "state": "draft",
+     "state": "open",
      "ci": "green"
     }
    ],
-   "needs": "Your answers to Q1-Q8, then your signature on MP16.",
+   "needs": "Q19-Q20, then your MP16 signature.",
    "blocked_by": [
-    "N1"
+    "N9"
    ],
-   "next": "Apply each answer to the plans #523 names; you sign MP16.",
-   "context_pct": 56,
-   "last_update": "2026-10-20T19:18:27Z",
-   "reply": "received",
-   "explainers": []
-  },
-  {
-   "id": "session_015hqQ6KEtJb864UHuU74ypp",
-   "title": "AIA scope 2: methodology packet",
-   "category": "Scope inputs",
-   "state": "waiting-on-nigel",
-   "doing": "Packet finished (MVPQ-13 = -5 canonical; MQ-01..24 for Arigamaru).",
-   "plan": null,
-   "prs": [
-    {
-     "num": 510,
-     "title": "MVP methodology packet",
-     "state": "draft",
-     "ci": "green"
-    }
-   ],
-   "needs": "Your review of the packet PDF before it goes to Arigamaru.",
-   "blocked_by": [
-    "N3"
-   ],
-   "next": "Add your edits as one commit; then you send it to Arigamaru.",
-   "context_pct": null,
-   "last_update": "2026-10-20T19:18:29Z",
-   "reply": "received",
-   "explainers": []
+   "next": "Apply Q19-Q20; fold in the input-interactions plan.",
+   "context_pct": 57,
+   "last_update": "2026-10-20T21:07:00Z",
+   "reply": "received"
   },
   {
    "id": "session_01Qg43kRfsZ97FjA8XenP28x",
    "title": "AIA scope 3: MVP ADR drafts",
    "category": "Scope inputs",
    "state": "waiting-on-nigel",
-   "doing": "ADRs 0028-0038 drafted (0038: MVP ships aia-sociomap-5).",
+   "doing": "ADRs 0028-0040 carry your answers, Proposed (06b143c).",
    "plan": null,
    "prs": [
     {
      "num": 512,
-     "title": "ADRs 0028-0038 (Proposed)",
-     "state": "draft",
+     "title": "ADRs 0028-0040",
+     "state": "open",
      "ci": "green"
     }
    ],
-   "needs": "Accept / amend / reject each ADR and answer its 'Open for Nigel' items.",
+   "needs": "Q19-Q20, then 'accept ADRs 0028-0040'.",
    "blocked_by": [
-    "N5"
+    "N10"
    ],
-   "next": "Apply your decisions as amendments; docs PR adds index rows.",
-   "context_pct": 15,
-   "last_update": "2026-10-20T19:18:13Z",
-   "reply": "received",
-   "explainers": []
+   "next": "Apply Q19-Q20.",
+   "context_pct": null,
+   "last_update": "2026-10-20T21:08:00Z",
+   "reply": "received"
+  },
+  {
+   "id": "session_015hqQ6KEtJb864UHuU74ypp",
+   "title": "AIA scope 2: methodology packet",
+   "category": "Scope inputs",
+   "state": "waiting-on-nigel",
+   "doing": "Codex findings fixed (b968a21); packet ready.",
+   "plan": null,
+   "prs": [
+    {
+     "num": 510,
+     "title": "Methodology packet",
+     "state": "open",
+     "ci": "green"
+    }
+   ],
+   "needs": "Your review, then 'send to Arigamaru'.",
+   "blocked_by": [
+    "N3"
+   ],
+   "next": "Hold; no contact with Arigamaru until you say.",
+   "context_pct": null,
+   "last_update": "2026-10-20T20:13:00Z",
+   "reply": "received"
   },
   {
    "id": "session_01EWprA36RBr7HAF58DTxTNn",
    "title": "AIA scope 1b: reverse scope audit",
    "category": "Scope inputs",
    "state": "waiting-on-review",
-   "doing": "313-row audit delivered; its 14 edits and 23 questions are already folded into #516/#522.",
+   "doing": "Codex found nothing; merges as evidence after MP16.",
    "plan": null,
    "prs": [
     {
      "num": 513,
      "title": "Reverse scope audit",
-     "state": "draft",
+     "state": "open",
      "ci": "green"
     }
    ],
-   "needs": "Nothing new: merges with the baseline.",
+   "needs": null,
    "blocked_by": [
-    "N1"
+    "N9"
    ],
-   "next": "Merged as evidence after you sign.",
+   "next": "Merge with the baseline.",
    "context_pct": null,
-   "last_update": "2026-10-20T19:18:08Z",
-   "reply": "received",
-   "explainers": []
+   "last_update": "2026-10-20T20:10:00Z",
+   "reply": "received"
   },
   {
    "id": "session_01Hv8Phz319H6u3HLQ2BgF6C",
    "title": "AIA scope 1c: client pages + Settings",
    "category": "Scope inputs",
    "state": "waiting-on-review",
-   "doing": "Impact note delivered; N1-N12 folded into #516/#522.",
+   "doing": "Codex findings fixed (7975ff6); posture on Profil, I15 corrected.",
    "plan": null,
    "prs": [
     {
      "num": 514,
      "title": "Client pages + Settings impact",
-     "state": "draft",
+     "state": "open",
      "ci": "green"
     }
    ],
-   "needs": "Nothing new: merges with the baseline.",
+   "needs": null,
    "blocked_by": [
-    "N1"
+    "N9"
    ],
-   "next": "Merged as evidence after you sign.",
-   "context_pct": 3,
-   "last_update": "2026-10-20T19:18:17Z",
-   "reply": "received",
-   "explainers": []
+   "next": "Merge with the baseline.",
+   "context_pct": null,
+   "last_update": "2026-10-20T20:19:00Z",
+   "reply": "received"
   },
   {
    "id": "session_01FskpgUny4pDAMYFBLvAj4S",
    "title": "AIA scope 1a: cross-check tracks 5-7",
    "category": "Scope inputs",
    "state": "waiting-on-review",
-   "doing": "21 findings (G58-G78) delivered; folded into #522.",
+   "doing": "Codex findings handled (f3dca5e); descriptor segments kept.",
    "plan": null,
    "prs": [
     {
      "num": 515,
      "title": "Cross-check tracks 5-7",
-     "state": "draft",
+     "state": "open",
      "ci": "green"
     }
    ],
-   "needs": "Nothing new: merges with the baseline.",
+   "needs": null,
    "blocked_by": [
-    "N1"
+    "N9"
    ],
-   "next": "Merged as evidence after you sign.",
+   "next": "Merge with the baseline.",
    "context_pct": null,
-   "last_update": "2026-10-20T19:18:25Z",
-   "reply": "received",
-   "explainers": []
+   "last_update": "2026-10-20T20:15:00Z",
+   "reply": "received"
   },
   {
-   "id": "session_01LBR1SyjXK8uYR5VdBjGAEJ",
-   "title": "AIA infra audit",
-   "category": "Infra",
+   "id": "session_01Ku9CwQRUsBdPUbqWy6zYj7",
+   "title": "AIA design: Settings prototype",
+   "category": "Design",
    "state": "waiting-on-nigel",
-   "doing": "Cutover plan for dev.ai-analytics.ai ready (2 add / 3 change / 1 destroy, 0 denials) with runbook + rollback; #519 and #521 merged.",
+   "doing": "Prototype live (10 tabs, role switcher); applying the input rule next.",
    "plan": null,
-   "prs": [
-    {
-     "num": 519,
-     "title": "Terraform ≥1.10 + lock file",
-     "state": "merged",
-     "ci": "green"
-    },
-    {
-     "num": 521,
-     "title": "Ignore user_data on the host",
-     "state": "merged",
-     "ci": "green"
-    }
-   ],
-   "needs": "(1) 'commit and push the IdP fix' in its session; (2) the dig check once Webglobe's NS change is live.",
-   "blocked_by": [
-    "N2",
-    "N4"
-   ],
-   "next": "Open the IdP fix PR; after delegation, run the cutover with you.",
+   "prs": [],
+   "needs": "Your changes and its 5 open questions, in that session.",
+   "blocked_by": [],
+   "next": "Round 2 with your edits.",
    "context_pct": null,
-   "last_update": "2026-10-20T19:18:10Z",
-   "reply": "received",
-   "explainers": []
+   "last_update": "2026-10-20T20:41:00Z",
+   "reply": "received"
   },
   {
-   "id": "session_01AXkfBjA7hUPZipWXSoHzEc",
-   "title": "AIA fix: Docker dependency layer",
-   "category": "Infra",
-   "state": "review",
-   "doing": "Draft PR #524 open; CI running.",
-   "plan": {
-    "path": ".planning/plans/image-build-layers.md",
-    "chunk": "3 — the layer check",
-    "done": 3,
-    "total": 3
-   },
-   "prs": [
-    {
-     "number": 524,
-     "title": "Docker dependency layer",
-     "state": "draft",
-     "ci": "pending"
-    }
-   ],
-   "needs": null,
-   "blocked_by": [],
-   "next": "Coordinator reviews and merges when green; the first deploy proves the PDF variant.",
-   "context_pct": 27,
-   "last_update": "2026-10-20T19:55:00Z",
-   "reply": "received",
-   "explainers": []
-  },
-  {
-   "id": "session_01QzemVrHfQp8jsVEqXb9W6x",
-   "title": "AIA fix: Next.js 16.4 security",
-   "category": "Security/CI",
-   "state": "done",
-   "doing": "#509 (Next 16.4.2 + blocking pip-audit) and #518 (npm gate) merged and deployed.",
+   "id": "session_01BmmpzanxvKFquk44nLP4qu",
+   "title": "AIA design: input interactions audit",
+   "category": "Design",
+   "state": "working",
+   "doing": "Inventorying every input in the web app; writing the rule (I1-I11).",
    "plan": null,
-   "prs": [
-    {
-     "num": 509,
-     "title": "Next 16.4.2 + pip-audit",
-     "state": "merged",
-     "ci": "green"
-    },
-    {
-     "num": 518,
-     "title": "npm audit gate",
-     "state": "merged",
-     "ci": "green"
-    }
-   ],
-   "needs": null,
+   "prs": [],
+   "needs": "Permission before its first commit (it will ask in its session).",
    "blocked_by": [],
-   "next": "Idle. The braces exception expires 2026-11-20.",
-   "context_pct": 32,
-   "last_update": "2026-10-20T19:18:21Z",
-   "reply": "received",
-   "explainers": []
+   "next": "Inventory report, then a docs-only PR and an explainer.",
+   "context_pct": null,
+   "last_update": "2026-10-20T21:14:00Z",
+   "reply": "received"
   },
   {
    "id": "session_01End3azGdHNr1MtxRjUqqZ8",
    "title": "AIA design: MVP workbench artifact",
    "category": "Design",
    "state": "waiting-on-nigel",
-   "doing": "Design v2 published (11 screens, Peněženka).",
+   "doing": "Input rule applied locally (screen 12 Vstupy); published design still v2.",
    "plan": null,
    "prs": [],
-   "needs": "Your feedback on the design, when you have time (not blocking).",
+   "needs": "Optional: 'update the workbench design'.",
+   "blocked_by": [
+    "N12"
+   ],
+   "next": "Publish on your word.",
+   "context_pct": null,
+   "last_update": "2026-10-20T21:18:00Z",
+   "reply": "received"
+  },
+  {
+   "id": "session_01LBR1SyjXK8uYR5VdBjGAEJ",
+   "title": "AIA infra audit",
+   "category": "Infra",
+   "state": "waiting-on-nigel",
+   "doing": "IdP fix ready locally; cutover runbook ready; prod hostname app.ai-analytics.ai noted.",
+   "plan": null,
+   "prs": [],
+   "needs": "Your 'commit and push the IdP fix' in its session; the dig check.",
+   "blocked_by": [
+    "N8",
+    "N2"
+   ],
+   "next": "IdP PR; then the cutover with you.",
+   "context_pct": null,
+   "last_update": "2026-10-20T20:37:00Z",
+   "reply": "received"
+  },
+  {
+   "id": "session_01AXkfBjA7hUPZipWXSoHzEc",
+   "title": "AIA fix: Docker dependency layer",
+   "category": "Infra",
+   "state": "done",
+   "doing": "#524 merged 20:29; the first deploy proves the PDF image.",
+   "plan": {
+    "path": ".planning/plans/image-build-layers.md",
+    "chunk": "done",
+    "done": 3,
+    "total": 3
+   },
+   "prs": [
+    {
+     "num": 524,
+     "title": "Docker dependency layer",
+     "state": "merged",
+     "ci": "green"
+    }
+   ],
+   "needs": null,
    "blocked_by": [],
-   "next": "Apply your feedback.",
-   "context_pct": 36,
-   "last_update": "2026-10-20T19:18:14Z",
-   "reply": "received",
-   "explainers": []
+   "next": "Fix only if the first deploy fails.",
+   "context_pct": 27,
+   "last_update": "2026-10-20T20:28:00Z",
+   "reply": "received"
+  },
+  {
+   "id": "session_01QzemVrHfQp8jsVEqXb9W6x",
+   "title": "AIA fix: Next.js 16.4 security",
+   "category": "Security/CI",
+   "state": "done",
+   "doing": "#509 and #518 merged and deployed.",
+   "plan": null,
+   "prs": [],
+   "needs": null,
+   "blocked_by": [],
+   "next": "Idle. The braces exception expires 2026-11-20.",
+   "context_pct": 32,
+   "last_update": "2026-10-20T19:18:00Z",
+   "reply": "received"
   }
  ],
  "workstreams": [
@@ -360,23 +369,23 @@
    "steps": [
     {
      "id": "f1",
-     "title": "48 answers (#516)",
+     "title": "Q1-Q18 answered and applied",
      "status": "done",
-     "owner": "Nigel",
+     "owner": "Nigel + Planning 2",
      "depends_on": []
     },
     {
      "id": "f2",
-     "title": "Baseline drafted (#522/#523)",
-     "status": "done",
-     "owner": "Planning 2",
+     "title": "Q19-Q21",
+     "status": "waiting",
+     "owner": "Nigel",
      "depends_on": [
       "f1"
      ]
     },
     {
      "id": "f3",
-     "title": "Q1-Q8 answered",
+     "title": "Accept ADRs 0028-0040",
      "status": "waiting",
      "owner": "Nigel",
      "depends_on": [
@@ -389,12 +398,12 @@
      "status": "waiting",
      "owner": "Nigel",
      "depends_on": [
-      "f3"
+      "f2"
      ]
     },
     {
      "id": "f5",
-     "title": "Merge #516→#522→#523 (+#510-#515)",
+     "title": "Merge #516→#522→#523 + evidence",
      "status": "todo",
      "owner": "Coordinator",
      "depends_on": [
@@ -404,10 +413,11 @@
     {
      "id": "f6",
      "title": "Start W0/W1 build lanes",
-     "status": "blocked",
+     "status": "todo",
      "owner": "Coordinator",
      "depends_on": [
-      "f5"
+      "f5",
+      "f3"
      ]
     }
    ]
@@ -418,23 +428,14 @@
    "steps": [
     {
      "id": "d1",
-     "title": "Route 53 zone created",
+     "title": "Route 53 zone",
      "status": "done",
      "owner": "Nigel",
      "depends_on": []
     },
     {
-     "id": "d2",
-     "title": "Parked mail records",
-     "status": "active",
-     "owner": "Nigel",
-     "depends_on": [
-      "d1"
-     ]
-    },
-    {
      "id": "d3",
-     "title": "Webglobe NS → AWS (e-mail confirm)",
+     "title": "Webglobe NS → AWS",
      "status": "waiting",
      "owner": "Coworker",
      "depends_on": [
@@ -451,8 +452,15 @@
      ]
     },
     {
+     "id": "i2",
+     "title": "IdP fix PR",
+     "status": "waiting",
+     "owner": "Nigel → Infra",
+     "depends_on": []
+    },
+    {
      "id": "d5",
-     "title": "terraform apply + SSM DSN + GitHub var",
+     "title": "terraform apply + SSM + GitHub var",
      "status": "todo",
      "owner": "Infra + Nigel",
      "depends_on": [
@@ -472,37 +480,32 @@
    ]
   },
   {
-   "id": "infra",
-   "title": "Infra hardening",
+   "id": "deploy",
+   "title": "Docker layer fix",
    "steps": [
     {
-     "id": "i1",
-     "title": "#519 lock file, #521 user_data",
-     "status": "done",
-     "owner": "Infra",
-     "depends_on": []
-    },
-    {
-     "id": "i2",
-     "title": "Google IdP fix PR",
-     "status": "waiting",
-     "owner": "Nigel → Infra",
-     "depends_on": []
-    },
-    {
      "id": "k1",
-     "title": "Docker layer fix verified",
+     "title": "#524 merged",
      "status": "done",
-     "owner": "Docker",
+     "owner": "Coordinator",
      "depends_on": []
     },
     {
      "id": "k2",
-     "title": "Docker PR + first deploy",
-     "status": "waiting",
-     "owner": "Nigel → Docker",
+     "title": "Develop CI on 44b66ef",
+     "status": "active",
+     "owner": "CI",
      "depends_on": [
       "k1"
+     ]
+    },
+    {
+     "id": "k3",
+     "title": "First deploy (PDF image)",
+     "status": "todo",
+     "owner": "Coordinator",
+     "depends_on": [
+      "k2"
      ]
     }
    ]
@@ -513,7 +516,7 @@
    "steps": [
     {
      "id": "m1",
-     "title": "Packet #510 written",
+     "title": "Packet #510 + Codex fixes",
      "status": "done",
      "owner": "Scope 2",
      "depends_on": []
@@ -529,43 +532,42 @@
     },
     {
      "id": "m3",
-     "title": "Arigamaru answers MQ-01..24",
+     "title": "Arigamaru answers",
      "status": "todo",
      "owner": "Arigamaru",
      "depends_on": [
       "m2"
      ]
-    },
-    {
-     "id": "m4",
-     "title": "-5 register entry + numeric chunks",
-     "status": "blocked",
-     "owner": "Build",
-     "depends_on": [
-      "m3",
-      "f4"
-     ]
     }
    ]
   },
   {
-   "id": "docs",
-   "title": "Documentation",
+   "id": "ux",
+   "title": "Input interactions",
    "steps": [
     {
-     "id": "o1",
-     "title": "20-doc Drive set + archive",
-     "status": "done",
-     "owner": "Coordinator",
+     "id": "u1",
+     "title": "System-wide audit",
+     "status": "active",
+     "owner": "Input audit",
      "depends_on": []
     },
     {
-     "id": "o2",
-     "title": "Repo docs PR (stale ADR index etc.)",
+     "id": "u2",
+     "title": "Plan PR + explainer",
+     "status": "todo",
+     "owner": "Input audit",
+     "depends_on": [
+      "u1"
+     ]
+    },
+    {
+     "id": "u3",
+     "title": "Folded into the baseline",
      "status": "todo",
      "owner": "Planning 2",
      "depends_on": [
-      "f5"
+      "u2"
      ]
     }
    ]
@@ -574,43 +576,42 @@
  "next_actions": [
   {
    "id": "A1",
-   "who": "Coworker / Nigel",
-   "what": "Confirm Webglobe NS e-mail; run the dig check.",
+   "who": "Nigel",
+   "what": "Answer Q19-Q21 on this page.",
    "after": []
   },
   {
    "id": "A2",
    "who": "Nigel",
-   "what": "'commit and push' in the infra session (IdP fix) and in the Docker session.",
-   "after": []
+   "what": "Type 'accept ADRs 0028-0040' and your MP16 signature here.",
+   "after": [
+    "A1"
+   ]
   },
   {
    "id": "A3",
    "who": "Coordinator",
-   "what": "Review and merge the IdP and Docker PRs when green; watch the deploy.",
+   "what": "Merge #525 once develop CI is free; watch #524's first deploy.",
+   "after": []
+  },
+  {
+   "id": "A4",
+   "who": "Coordinator",
+   "what": "Merge #516→#522→#523 and #510, #512-#515; start the W0/W1 lanes.",
    "after": [
     "A2"
    ]
   },
   {
-   "id": "A4",
-   "who": "Nigel + Infra",
-   "what": "Domain cutover (~10 min downtime, then everyone re-logs in).",
-   "after": [
-    "A1",
-    "A3"
-   ]
-  },
-  {
    "id": "A5",
    "who": "Nigel",
-   "what": "Go through Q1-Q8 with me, then sign the baseline.",
+   "what": "'commit and push the IdP fix' in the infra session; Webglobe and the dig.",
    "after": []
   },
   {
    "id": "A6",
-   "who": "Coordinator",
-   "what": "Merge #516→#522→#523 and the evidence PRs; start the W0/W1 lanes.",
+   "who": "Nigel + Infra",
+   "what": "Domain cutover.",
    "after": [
     "A5"
    ]
@@ -618,165 +619,136 @@
   {
    "id": "A7",
    "who": "Nigel",
-   "what": "Review the methodology packet, then send it to Arigamaru.",
+   "what": "Review #510, then 'send to Arigamaru'.",
    "after": []
   }
  ],
  "recent": [
   {
-   "when": "2026-10-20T19:05:00Z",
-   "what": "Route 53 zone ai-analytics.ai created; cutover plan clean."
+   "when": "2026-10-20T21:14:00Z",
+   "what": "Input-interactions audit session started; both design sessions told the rule."
   },
   {
-   "when": "2026-10-20T19:00:00Z",
-   "what": "Documentation: 20 Google Docs, a consistency review (9 fixes), 19 old docs archived."
+   "when": "2026-10-20T21:07:00Z",
+   "what": "Q13-Q18 applied to #523 (fe5dc1b) and the ADRs (#512 @ 06b143c)."
   },
   {
-   "when": "2026-10-20T18:30:00Z",
-   "what": "Deployed 47e55368 (Next 16.4.2, blocking audits, wallet rename)."
+   "when": "2026-10-20T20:50:00Z",
+   "what": "ADRs 0039 (study context file) and 0040 (Lead web search) written."
   },
   {
-   "when": "2026-10-20T18:25:00Z",
-   "what": "Merged #520, #519, #521."
+   "when": "2026-10-20T20:36:00Z",
+   "what": "#525: Codex fixes pushed (87e5998), green."
   },
   {
-   "when": "2026-10-20T17:45:00Z",
-   "what": "Scope baseline drafted (#522, #523) from all 48 answers."
+   "when": "2026-10-20T20:29:00Z",
+   "what": "#524 merged (44b66ef)."
   },
   {
-   "when": "2026-10-20T17:20:00Z",
-   "what": "Merged #511 (wallet) and #518 (npm gate); terraform-plan-read attached."
+   "when": "2026-10-20T20:22:00Z",
+   "what": "Q10-Q12 applied; stage-handoff gaps planned (LO9d, AOC3, WCE7, LO7)."
+  },
+  {
+   "when": "2026-10-20T20:15:00Z",
+   "what": "Settings prototype session started; prototype live at 20:41."
+  },
+  {
+   "when": "2026-10-20T20:06:00Z",
+   "what": "All 11 open PRs opened for Codex review; findings fixed on #510, #512, #514, #515, #516, #523, #525."
+  },
+  {
+   "when": "2026-10-20T19:55:00Z",
+   "what": "Coordinator 3 took over from coordinator 2."
   }
  ],
  "questions": [
   {
-   "id": "Q13",
-   "title": "How does the Lead edit a document live, and what is 'Wordcraft'?",
-   "context": "Your Q10 note: the Lead should live-edit the document, and each researcher decides whether its changes arrive as comments or as direct rewrites. Today every Lead edit is a proposal a person accepts, and your auto-accept toggle accepts text edits automatically. 'Wordcraft' isn't defined anywhere in the plans: if you mean a specific product or editor, name it in the note. I've assumed this covers the study context file and the report (Q6's free report edits).",
-   "example": "Jana opens the report's Interpretace section with her Lead. Under (a), with her setting on 'Návrhy', the Lead's rewrite shows as tracked changes she accepts or rejects one by one. Petr has 'Přímé úpravy' on: the Lead rewrites the paragraph in place, it's marked 'upraveno Vedoucím', and he can undo it. Either way the numbers stay ledger references.",
+   "id": "Q19",
+   "title": "How do we bring in Wordcraft?",
+   "context": "Wordcraft (github.com/storytold/wordcraft) is an MIT/Apache, open-source Rust reimplementation of Word. It runs in the browser through WebAssembly, has tracked changes and comments, and agents drive it through an MCP server with 422 commands. It is alpha: 634 open issues, no real-time co-editing. AIA's report is built from a document model whose every number is a ledger reference, then rendered to DOCX, so an outside editor has to keep those references intact.",
+   "example": "Under (a), a one-week evaluation chunk loads a real fictional AIA report into Wordcraft in the browser, has the Lead propose a tracked change through its MCP server, and checks that the numbers survive a round trip. Then you choose (b) or (c) on what it shows.",
    "options": [
     {
      "key": "a",
-     "label": "Per researcher: suggestions or direct edits",
-     "detail": "Tracked-change suggestions by default; a researcher can switch to direct, undoable rewrites. Extends the auto-accept toggle; numbers stay ledger references"
+     "label": "Evaluate first, then decide",
+     "detail": "One spike chunk in W1: embed, Lead edits via MCP, ledger references survive; a go/no-go for you"
     },
     {
      "key": "b",
-     "label": "Direct edits only",
-     "detail": "The Lead always rewrites in place; the researcher undoes"
+     "label": "Adopt it as the MVP editor now",
+     "detail": "Context file and reports edited in Wordcraft; the alpha risk sits on the critical path"
     },
     {
      "key": "c",
-     "label": "Proposals only in the MVP",
-     "detail": "Keep accept/dismiss; live co-editing after the MVP"
+     "label": "Build our own suggestions UI",
+     "detail": "Tracked changes inside AIA's current editor; Wordcraft stays a reference"
     }
    ],
    "rec": "a",
-   "rationale": "It is what your note describes, and it builds on the toggle and edit gate that already exist. Suggestions as the default keep a person's eyes on every change unless they choose otherwise.",
+   "rationale": "It's alpha, and our numbers must stay ledger references. A short test answers whether it fits before the MVP depends on it, and Q13's editing rule holds whichever editor wins.",
    "unblocks": [
-    "LO19 study context file",
-    "Report editing (Q6)",
-    "MP16 signature"
+    "Report editing",
+    "LO19 study context file"
    ],
-   "where": "Answer here (name 'Wordcraft' in the note)"
+   "where": "Answer here"
+  },
+  {
+   "id": "Q20",
+   "title": "May Brave receive queries written from a client's design?",
+   "context": "Your Q16 note: Brave for all queries, not just Class C. Brave runs outside the EU, and today it may only receive public-context (Class C) queries. A query written from a study's design is Class B by rule (ADR 0008). Allowing it means approving a non-EU route for Class B, the way you approved panel data for Bedrock EU (OI-61), and it would be recorded the same way. Class A (a client's own sources and approved knowledge) would still never go.",
+   "example": "A design asks how Czech 18-25s see energy-drink prices. Today the Lead may only search 'ceny energetických nápojů ČR 2026'. Under (a), it may also send 'energy drinks price perception 18-25 Czech students', which is written from the design, to Brave, for an OPEN client. A CLASSIFIED client still gets no search.",
+   "options": [
+    {
+     "key": "a",
+     "label": "Class B to Brave, OPEN clients only",
+     "detail": "Recorded as your determination; never Class A; CLASSIFIED clients excluded"
+    },
+    {
+     "key": "b",
+     "label": "Class B to Brave for every client",
+     "detail": "Includes CLASSIFIED clients"
+    },
+    {
+     "key": "c",
+     "label": "Keep Brave at Class C",
+     "detail": "Class B waits for an EU provider"
+    }
+   ],
+   "rec": "a",
+   "rationale": "It gives the search quality you want where clients allow it. CLASSIFIED clients and their sources stay protected, and the decision is on record for an audit.",
+   "unblocks": [
+    "ADR 0032",
+    "ADR 0040",
+    "Deep Research reach"
+   ],
+   "where": "Answer here"
+  },
+  {
+   "id": "Q21",
+   "title": "Do I keep merging the PRs I've reviewed?",
+   "context": "Your mandate says I merge any green PR I've reviewed. After I merged #524 at 20:29, the session's automatic permission check blocked my next message as 'Merge Without Review': it doesn't count my own review. Next up: #525 (green now), then #516 → #522 → #523 and the evidence PRs once you sign MP16.",
+   "example": "Under (a), you add allow rules for this session (the GitHub merge tool and session messages), and #525 merges itself at 21:45, once develop's CI is free. Under (b), you type 'merge #525' here, and I merge it then.",
+   "options": [
+    {
+     "key": "a",
+     "label": "Keep merging; I'll add the allow rule",
+     "detail": "Rules for mcp__github__merge_pull_request and mcp__claude-code-remote__send_message in this session's permissions"
+    },
+    {
+     "key": "b",
+     "label": "I approve each merge",
+     "detail": "You type 'merge #N' here; I merge only then"
+    }
+   ],
+   "rec": "a",
+   "rationale": "Every merge is still reviewed, green and pinned to an exact commit. (b) puts you on the critical path for about twelve merges this week.",
+   "unblocks": [
+    "#525",
+    "#516 → #522 → #523",
+    "evidence PRs"
+   ],
+   "where": "Answer here"
   }
  ],
- "decided": [
-  {
-   "id": "Q1",
-   "title": "When does the switch to aia-sociomap-5 land?",
-   "choice": "a",
-   "choice_label": "Merge when built",
-   "note": "",
-   "at": "2026-10-20T19:37:39.344Z"
-  },
-  {
-   "id": "Q2",
-   "title": "What do stored runs with -1/-3 maps show?",
-   "choice": "a",
-   "choice_label": "Keep data, explain",
-   "note": "",
-   "at": "2026-10-20T19:38:05.994Z"
-  },
-  {
-   "id": "Q3",
-   "title": "'Get rid of the old ones': the product, or the code too?",
-   "choice": "a",
-   "choice_label": "Remove from the product",
-   "note": "",
-   "at": "2026-10-20T19:38:31.078Z"
-  },
-  {
-   "id": "Q4",
-   "title": "'Only the mathematician edits methodology': what is the permission?",
-   "choice": "a",
-   "choice_label": "'Metodik' mark, store + activate",
-   "note": "",
-   "at": "2026-10-20T19:39:09.577Z"
-  },
-  {
-   "id": "Q5",
-   "title": "What does 'an admin can change the research lead' mean?",
-   "choice": "c",
-   "choice_label": "No assignment",
-   "note": "this is an edge cas i know, but the reality is this, there are three researches. each researcher has an assigned LEadAgent, which is an llm (probably opus5.5) and this iseach real persons research assistant that they curate and develop themselves. opening a study, just shows their own agent within that studies artifacts, and now their ai agent can interact with the artifacts of that study and control the functions and valves in them. it is basically the analytical execution layer on this step by step research methodology. he carries his own files, but also the context of each study session. maybe we need to have an md file attached to each study session so the researches ai can get the context of hte study, this should be updated regularly within each study.",
-   "at": "2026-10-20T19:44:34.840Z"
-  },
-  {
-   "id": "Q6",
-   "title": "The Lead edits reports freely and searches the web: how?",
-   "choice": "a",
-   "choice_label": "Free edits + governed search",
-   "note": "ok i really want to preserve a good UX here, and not have limited results.",
-   "at": "2026-10-20T19:45:41.322Z"
-  },
-  {
-   "id": "Q7",
-   "title": "Production uptime probe and on-call",
-   "choice": "a",
-   "choice_label": "GlitchTip monitor + named recipient",
-   "note": "",
-   "at": "2026-10-20T19:45:52.009Z"
-  },
-  {
-   "id": "Q8",
-   "title": "Does Metodika's comparison show -5's new outputs in the MVP?",
-   "choice": "a",
-   "choice_label": "Yes, all outputs",
-   "note": "",
-   "at": "2026-10-20T19:46:14.035Z"
-  },
-  {
-   "id": "Q9",
-   "title": "Make /pmstatus part of the repo?",
-   "choice": "a",
-   "choice_label": "Yes, open a small PR",
-   "note": "add this to the claude.md file, reccomending the structured workflow and using the PM status skill for this repo",
-   "at": "2026-10-20T19:47:08.775Z"
-  },
-  {
-   "id": "Q10",
-   "title": "Who writes the prose in a study's context file?",
-   "choice": "b",
-   "choice_label": "Code + 'Poznámky ke studii'",
-   "note": "i do want to kinda integrate wordcraft and have the lead research be able to live edit the document, once the user is editing the document will depend if they revize the text as a comment or rewrite it directly, that will be up to each researcher.",
-   "at": "2026-10-20T20:04:16.793Z"
-  },
-  {
-   "id": "Q11",
-   "title": "Which statuses can a tracked assumption have?",
-   "choice": "b",
-   "choice_label": "The three + RETIRED",
-   "note": "",
-   "at": "2026-10-20T20:21:24.943Z"
-  },
-  {
-   "id": "Q12",
-   "title": "How fully do the stages hand their work to the next stage in the MVP?",
-   "choice": "a",
-   "choice_label": "Close all five gaps",
-   "note": "we need the highest degree of integration, this needs to be cohesive to produce a high quality report",
-   "at": "2026-10-20T20:33:24.654Z"
-  }
- ]
+ "decided": []
 }

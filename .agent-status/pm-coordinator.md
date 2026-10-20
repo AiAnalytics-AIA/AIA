@@ -119,3 +119,17 @@ Arigamaru; #512 ADR decisions; design feedback (optional).
 - New session session_01Ku9CwQRUsBdPUbqWy6zYj7 "AIA design: Settings prototype" (Nigel works there directly; may publish its
   one Design artifact). Round 0 = local HTML file; artifact publish blocked by its classifier, awaiting Nigel.
 - #517 feature/aia-sociomap-5-web: owner unknown; ask Nigel.
+
+## 21:25 update (coordinator 3)
+- Q13 a (+Wordcraft = github.com/storytold/wordcraft, Rust/WASM Word clone, MCP, alpha), Q14 a, Q15 a (app.ai-analytics.ai),
+  Q16 a + note "Brave for all queries not just C", Q17 a, Q18 a (no card; 3 queries/5 pages/2 lookups). Applied: #523 fe5dc1b,
+  #512 06b143c (ADRs 0039, 0040 new). Follow-ups on the page: Q19 Wordcraft adoption (rec a: evaluate spike), Q20 Brave for
+  Class B (rec a: OPEN clients only, recorded determination), Q21 merge authority (rec a: Nigel adds allow rules).
+- Nigel's rule (21:20): every page update rebuilds "Actions only you can take" from verified state (reissue unverified ticks
+  under new id + title) and drops applied decisions from the page; added to SKILL.md (scratch + coordination copy; #525 copy
+  edited locally, push needs Nigel's word). Actions now N9 MP16, N10 accept ADRs, N8 IdP push, N2 Webglobe, N3 #510, N11 #517,
+  N12 workbench design update.
+- Input interactions (Nigel 21:10): new session session_01BmmpzanxvKFquk44nLP4qu "AIA design: input interactions audit"
+  (inventory, rule I1-I11, fix list, plan input-interactions.md, explainer, one docs PR). Design sessions told the rule;
+  workbench design applied it locally (screen 12 Vstupy), unpublished.
+- #525 green @ 87e5998; hold the merge until develop CI on 44b66ef finishes (~21:40) and Q21.
