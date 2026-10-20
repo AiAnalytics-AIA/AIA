@@ -85,6 +85,10 @@ another account, which has only user openclaw-cornelius); disk fix: ONLY the Doc
   (rec: one assigned, only its Lead spends the wallet), Q6 D-35 report edits (rec: free edits, numbers stay ledger refs) + Lead web
   search (rec: 'Hledat na webu' via RetrievalGate, OPEN clients, cited), Q7 uptime probe (rec: GlitchTip monitor + named recipient);
   plus C-2 Metodika comparison of -5 outputs (rec: not in MVP). Full wording in planning 2's 17:35 message / its plan files.
+  Nigel 17:40: "ask me the questions later" - hold until he asks. Also 2 sanity checks: D-33 read as 'no admin reading of another's
+  Lead files' (out); D-38 taken IN in full.
+- PRs from planning 2: #522 part 1b (consolidated edits), #523 part 2 = THE SCOPE BASELINE (master plan § The scope baseline, MP16
+  signing, answers-2026-10-20.md, 20 child plans). Merge order #516 -> #522 -> #523, all only after Nigel signs. master_check ok.
 - No hourly sweep (Nigel 17:30). Event-driven only; check session context when woken.
 - Dependabot 112 alerts mostly main (618 commits behind develop) + legacy/; suggest a develop->main release sometime.
 - Optional for Nigel: "Security and dependency scan" as a required check; archive the spare "AIA infra" env (Artchain s.r.o. org);
