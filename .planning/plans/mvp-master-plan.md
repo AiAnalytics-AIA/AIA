@@ -171,11 +171,42 @@ Relayed by the coordinator from the PM status page; recorded in
 | Q23 | Search operators (`site:`, `filetype:`, `intitle:`) are in the MVP, written by the model; RetrievalGate checks every URL and hop | `deep-research-web-search#58` |
 | Q24 | The Lead's lookup works for CLASSIFIED clients behind a plan card; OPEN clients need none | `lead-orchestration#LO20`, `deep-research-web-search#56` |
 
+### The owner's Lead chat decisions of 22:39-22:42 UTC (page Q25 to Q30)
+
+Relayed by the coordinator from the PM status page (Q29 answered at 22:48-22:51); recorded in
+[`answers-2026-10-20.md`](../evidence/scope-freeze/answers-2026-10-20.md) (seventh table). They
+apply to the Lead conversation plan (`lead-conversation.md`, LC0-LC18) and its Proposed ADR 0041,
+which a design session is writing; their chunks get waves when that plan lands.
+
+| Page | Answer | Chunks |
+|---|---|---|
+| Q25 | A long conversation is kept as a decision digest plus a model summary, its context preserved as fully as possible | `lead-conversation.md` (to land), ADR 0041 |
+| Q26 | Feedback on the Lead's answers is in the MVP | `lead-conversation.md` (to land) |
+| Q27 | Messages queued while the Lead works are stored on the server and answered together | `lead-conversation.md` (to land) |
+| Q28 | The 96 KB context cap stays, with a budget per layer | `lead-conversation.md` (to land), ADR 0041 |
+| Q29 | No threads within a study: the study is the thread | `lead-conversation.md` (to land) |
+| Q30 | Regenerate and edit-and-resend are in the MVP | `lead-conversation.md` (to land) |
+
+### The owner's input decisions of 22:48-22:51 UTC (page Q31 to Q34)
+
+Relayed by the coordinator; recorded in
+[`answers-2026-10-20.md`](../evidence/scope-freeze/answers-2026-10-20.md) (eighth table). They apply
+to the input-interactions plan (PR #528), named in plain text until it is on develop.
+
+| Page | Answer | Chunks |
+|---|---|---|
+| Q31 | Inline edits of a knowledge item are batched into one revision per editing session | input-interactions 2 |
+| Q32 | Scale ranges as presets plus "Vlastní"; every scale point (1-10) gets a verbal label, not only the ends | input-interactions 3 |
+| Q33 | Report approval stays a modal naming the document | input-interactions 6 |
+| Q34 | Any member may rename a client, audited, under EDIT_CLIENT_PROFILE | input-interactions 7 |
+
 ### Open: signing does not answer these
 
 | # | Question | Who answers | Waits on it |
 |---|---|---|---|
 | — | The editor's go/no-go after the spike (page Q19): Wordcraft, ONLYOFFICE Docs or Collabora Online, against Tiptap | the owner | `research-lead-workbench#33`, `lead-orchestration#LO19`, `report-delivery#RD6` |
+| — | Scale labels in what respondents read (input-interactions 3b, finding IA-7, PR #528): it moves the respondent-system fingerprint the holdout validation binds to; the wording rule is the methodology owner's | A. Bahbouh | input-interactions 3b; `panel-grounded-respondents` 7f-7h |
+| — | ADR 0041 (the Lead's conversation and context, PR #529) accepted: lead-conversation LC0 | the owner | lead-conversation LC1-LC13 (#529) |
 | — | The performance budget values for `mvp-acceptance-harness#18` (D-48); planning proposes them in that chunk's PR, the owner approves | the owner | `mvp-acceptance-harness#18` |
 | — | The methodology owner's decisions MQ-01 to MQ-24, MQ-01 (the `-5` register entry) first | A. Bahbouh | `mvp-methodology-packet.md` (#510); §11.4 |
 | — | The Deep Research evaluation tasks and thresholds (MVPQ-06, rest) | the owner | `deep-research-web-search#27` |
