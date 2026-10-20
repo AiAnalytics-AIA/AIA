@@ -3977,7 +3977,7 @@
    },
    {
     "id": "AC-03",
-    "statement": "From the brief, the Lead's workers produce the research design, questionnaire, audience and dimensions as proposals; each accepted proposal becomes a Design Revision; tracked assumptions are design items with a stable id, a status, cited evidence and status changes a person accepts. Every worker's system prompt is editable in Settings and pinned on the job that used it; no silent provider fallback.",
+    "statement": "From the brief, the Lead's workers produce the research design, questionnaire, audience and dimensions as proposals; each accepted proposal becomes a Design Revision; tracked assumptions are design items with a stable id and a status (an explicitly unverified assumption needs no evidence yet), cited evidence where a status asserts something, and status changes a person accepts. Every worker's system prompt is editable in Settings and pinned on the job that used it; no silent provider fallback.",
     "capabilities": [
      "project.persistence",
      "pipeline.stages",
@@ -4076,7 +4076,7 @@
    },
    {
     "id": "AC-13",
-    "statement": "The internal report and the client report (DOCX and PDF) pass the evidence audit and the legal source-use gate. The internal report states each tracked assumption with its status and support and the coded open answers as admitted claims; the client report carries them only as approved, labelled content, and carries only approved maps and labelled modelled and client-reported numbers, no analysis prose; a client receives only approved exports: the report and each map snapshot are approved separately, by the researcher or, where the client or the study turns self-approval off, by a different person, and a download of an unapproved or stale version is refused.",
+    "statement": "The internal report and the client report (DOCX and PDF) pass the evidence audit and the legal source-use gate. The internal report states each tracked assumption with its status and support and the admitted coded counts with their method, version and limits (raw answers and examples stay labelled source or context, never numerically admitted evidence); the client report carries them only as approved, labelled content, and carries only approved maps and labelled modelled and client-reported numbers, no analysis prose; a client receives only approved exports: the report and each map snapshot are approved separately, by the researcher or, where the client or the study turns self-approval off, by a different person, and a download of an unapproved or stale version is refused.",
     "capabilities": [
      "reports.generation",
      "governance.evidence_audit",
