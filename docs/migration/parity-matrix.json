@@ -3966,7 +3966,7 @@
    },
    {
     "id": "AC-02",
-    "statement": "The study is worked in the Research Lead workbench: the Lead's conversation beside the eleven step artifacts of the canonical V2 prototype, the stage navigator on top, the interface in Czech. Every AI action is started through the Lead (no manual AI button on any stage); a paid step starts only inside what a person approved: an approval card, an approved plan whose steps the Lead runs inside the study's envelope, or a typed start by a person (the model never supplies a person's confirmation, and a gate the plan does not cover parks); every start is held to the study's budget and recorded in the approval ledger, and the spend limit stays a separate per-start confirmation threshold; the Lead's edits are proposals a person accepts, applied without a click only where the researcher chose (text edits, structural edits per stage). The Lead quotes no number its context does not hold.",
+    "statement": "The study is worked in the Research Lead workbench: the Lead's conversation beside the eleven step artifacts of the canonical V2 prototype, the stage navigator on top, the interface in Czech; the Lead stays reachable at every screen width (a compact drawer or a stacked layout, never an alternate AI start). Every AI action is started through the Lead (no manual AI button on any stage); a paid step starts only inside what a person approved: an approval card, an approved plan whose steps the Lead runs inside the study's envelope, or a typed start by a person (the model never supplies a person's confirmation, and a gate the plan does not cover parks); every start is held to the study's budget and recorded in the approval ledger, and the spend limit stays a separate per-start confirmation threshold; the Lead's edits are proposals a person accepts, applied without a click only where the researcher chose (text edits, structural edits per stage). The Lead quotes no number its context does not hold.",
     "capabilities": [
      "ai.gateway",
      "ai.credentials",
@@ -3977,7 +3977,7 @@
    },
    {
     "id": "AC-03",
-    "statement": "From the brief, the Lead's workers produce the research design, questionnaire, audience and dimensions as proposals; each accepted proposal becomes a Design Revision. Every worker's system prompt is editable in Settings and pinned on the job that used it; no silent provider fallback.",
+    "statement": "From the brief, the Lead's workers produce the research design, questionnaire, audience and dimensions as proposals; each accepted proposal becomes a Design Revision; tracked assumptions are design items with a stable id, a status, cited evidence and status changes a person accepts. Every worker's system prompt is editable in Settings and pinned on the job that used it; no silent provider fallback.",
     "capabilities": [
      "project.persistence",
      "pipeline.stages",
@@ -4036,7 +4036,7 @@
    },
    {
     "id": "AC-08",
-    "statement": "Every number in a result is an admitted claim: effective-n suppression on every client-facing number, intervals required, one field-policy authority (the population contract's 115 client-measurable fields), RELIGION refused client-facing. Every key finding of an analysis module cites admitted evidence or is refused. 18.6.6's run QC is shown as warnings, never a gate.",
+    "statement": "Every number in a result is an admitted claim: effective-n suppression on every client-facing number, intervals required, one field-policy authority (the population contract's 115 client-measurable fields), RELIGION refused client-facing. Every key finding of an analysis module cites admitted evidence or is refused. 18.6.6's run QC is shown as warnings, never a gate. Open answers are coded per answer under a versioned method and their counts are admitted claims, never produced from prose. A module with no supported finding blocks report composition, approval and export until resolved; a diagnostic is not a finding.",
     "capabilities": [
      "analysis.qc",
      "statistics.diagnostics",
@@ -4076,7 +4076,7 @@
    },
    {
     "id": "AC-13",
-    "statement": "The internal report and the client report (DOCX and PDF) pass the evidence audit and the legal source-use gate. The client report carries only approved maps and labelled modelled and client-reported numbers, no analysis prose; a client receives only approved exports: the report and each map snapshot are approved separately, by the researcher or, where the client or the study turns self-approval off, by a different person, and a download of an unapproved or stale version is refused.",
+    "statement": "The internal report and the client report (DOCX and PDF) pass the evidence audit and the legal source-use gate. The internal report states each tracked assumption with its status and support and the coded open answers as admitted claims; the client report carries them only as approved, labelled content, and carries only approved maps and labelled modelled and client-reported numbers, no analysis prose; a client receives only approved exports: the report and each map snapshot are approved separately, by the researcher or, where the client or the study turns self-approval off, by a different person, and a download of an unapproved or stale version is refused.",
     "capabilities": [
      "reports.generation",
      "governance.evidence_audit",
