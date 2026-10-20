@@ -512,9 +512,10 @@ The plans are corrected, with the owner told in the pull request:
 
 ### 11.3 Proposed scope overrides: only if you want them
 
+The earlier S1 (draw the V3 header strip) is closed by MVPQ-01: the canonical V2 build's compact header is the reference, which is what `research-lead-workbench#15` plans. S2 and S3 stay labelled overrides because the recorded budget and private-Lead decisions govern where the prototype shows otherwise.
+
 | # | The plans say | The override | What it moves |
 |---|---|---|---|
-| S1 | The workbench plan's chunk 15 shows readiness, outlook and spend in the inspector only; the V3 boards draw a header strip | Draw the strip as the V3 boards do | `research-lead-workbench#15`; one more surface in I-1 |
 | S2 | Two meters (envelope and spend) | One meter, as the prototype shows | `lead-orchestration#LO1`, `research-lead-workbench#15` |
 | S3 | One private Lead per researcher | One conversation per study, as the prototype has it | storage, retention, the return summary; reopens F12/Q26 |
 | S4 | The permission panel shows the client's posture (OPEN or CLASSIFIED) and the strict class text applies to CLASSIFIED | Show the strict text for every client | `deep-research-web-search#54`; contradicts the open posture's intent |
