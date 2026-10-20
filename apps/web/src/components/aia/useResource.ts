@@ -28,7 +28,7 @@ export function useResource<T>(load: () => Promise<T>, deps: readonly unknown[])
     routerRef.current = router;
   }, [router]);
   // `load` is recreated on every render; `deps` says when the read changes.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/use-memo -- the caller's deps decide when the read changes
   const run = useCallback(load, deps);
   useEffect(() => {
     let live = true;

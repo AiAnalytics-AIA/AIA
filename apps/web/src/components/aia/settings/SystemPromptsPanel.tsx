@@ -727,6 +727,7 @@ function TestRun({ detail, version, studies, clients, onClose }: {
   useEffect(() => {
     if (!studyId) return;
     let live = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- another study's revisions are cleared before its own are read
     setRevisions(null);
     setRevisionId("");
     research.revisions(studyId).then(

@@ -119,10 +119,12 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   }, [studyId, onTurns]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reads the Lead's state from the API; its setters run when it answers
     if (epoch) void read();
   }, [epoch, read]);
   useEffect(() => {
     researcherLead.get().then(setMe, (e: unknown) => setError(e instanceof ApiError && e.status === 404 ? "Vedoucí výzkumu v této verzi AIA zatím není." : String(e)));
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reads the Lead's state from the API; its setters run when it answers
     void read();
   }, [read]);
   useEffect(() => {
@@ -180,6 +182,7 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   useEffect(() => {
     if (session?.busy || sending || held || !queued.length) return;
     const [next, ...rest] = queued;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the queue drains one message each time the Lead is free
     setQueued(rest);
     if (next) void message(next);
   }, [session, sending, held, queued, message]);

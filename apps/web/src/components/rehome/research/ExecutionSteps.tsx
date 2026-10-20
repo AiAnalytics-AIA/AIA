@@ -603,6 +603,7 @@ export function RunStep() {
   const [design, setDesign] = useState<DesignEvidence | null>(null);
   useEffect(() => {
     let live = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- another study's evidence is cleared before this one is read
     setDesign(null);
     if (!frame.canEdit) return;
     (async () => {
