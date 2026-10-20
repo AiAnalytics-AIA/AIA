@@ -942,7 +942,8 @@ export const cs = {
         inForce: "v platnosti",
         steps: "kroků",
         noSteps: "Žádný krok: v AIA se zatím nepočítá.",
-        audit: "audit {point}",
+        stepOrigin: "Původ: audit {point}",
+        stepOriginSignedOff: "Původ: schválená metodika AIA",
         notYet: "Zatím v AIA není",
         context: {
           label: "Kde krok stojí ve výpočtu",

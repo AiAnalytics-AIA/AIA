@@ -3,6 +3,7 @@
 // Node against the API's own document (src/lib/fixtures/methodology.json).
 
 import temml from "temml";
+import { t, tv } from "@/i18n/t";
 
 import type { MethodGroup, MethodModuleDetail, MethodStepOut, MethodValue } from "./api";
 
@@ -49,6 +50,33 @@ export function groupSteps(detail: MethodModuleDetail): GroupedSteps {
     group,
     steps: group.step_ids.map((id) => byId.get(id)).filter((s): s is MethodStepOut => s !== undefined),
   }));
+}
+
+/** Each stage's number in the computation, from the module's full list of stages (the editor
+ *  leaves out stages with nothing to edit, and a number must not shift when one is left out);
+ *  a module's opening "Metoda" group, which only names the method, has none. */
+export function stageNumbers(groups: readonly { id: string }[]): Map<string, string> {
+  return new Map(groups.filter((g) => g.id !== "M").map((g, i) => [g.id, String(i + 1)]));
+}
+
+/** Each step's number, M<stage>.<step>: its stage's number and its place in that stage's full list,
+ *  so a step the editor leaves out keeps its number (methodology owner, 2026-10-20: replaces the
+ *  audit points as the steps' tags; the audit point is named in the step's detail). */
+export function stepNumbers(groups: readonly { id: string; step_ids: readonly string[] }[]): Map<string, string> {
+  const stages = stageNumbers(groups);
+  return new Map(groups.flatMap((g) => {
+    const stage = stages.get(g.id);
+    return stage ? g.step_ids.map((id, k) => [id, `M${stage}.${k + 1}`] as [string, string]) : [];
+  }));
+}
+
+/** The audit point the signed-off methodology's steps carry (they implement no point of the audit). */
+export const SIGNED_OFF_ORIGIN = "AIA";
+
+/** Where a step comes from, in words, for its detail: the audit point it implements, or the
+ *  signed-off methodology. */
+export function stepOrigin(audit: string): string {
+  return audit === SIGNED_OFF_ORIGIN ? t("aia.settings.methodology.stepOriginSignedOff") : tv("aia.settings.methodology.stepOrigin", { point: audit });
 }
 
 /** A formula as MathML, or null when Temml cannot read it (the page then shows the LaTeX). */
