@@ -10,18 +10,20 @@ chunks:
   - "[ ] LO6. The continuation turn: a finished step enqueues a Lead turn with typed results; no polling"
   - "[ ] LO7. The Lead's context layers per ADR 0026 decision 2: readiness, question outlook, what changed since its last turn, other people's changes, and the execution state (status, park code, spend, selection receipt, QC)"
   - "[ ] LO8. `ResultsContext`: type, class (`MaterialRule` for results, module text, maps, report text), lineage, bound, an external-evidence slot labelled L; and the decision on a read tool against ADR 0026 decision 3"
-  - "[ ] LO9. The worker registry: `LeadWorkerSpec`, a `REPORT_WRITING` binding, result kinds and accept destinations for the three new workers, per-worker price and keys"
+  - "[ ] LO9a. The worker contract, early (W0, the first deliverable of `research-lead-workbench` 11): `LeadWorkerSpec` as a type, one row per worker (id, closed task, context layer, data-class rule, capability, reservation, prompt id and pin, switch, card kind, result kind), with its fixture"
+  - "[ ] LO9b. The three new workers as rows (W3): a `REPORT_WRITING` binding, result kinds and accept destinations, per-worker price and keys"
   - "[ ] LO10. `approve_request` bound to the revision shown on its card, and a clean error where the 96 KB Lead context meets the 64 KB agent limit"
   - "[ ] LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions, the admin read and handover, a departure trigger"
   - "[ ] LO12. The route-class refusal says who fixes it: a pre-flight read of the AI route and a message with a link"
   - "[ ] LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02"
   - "[ ] LO14. The Lead's cost per turn measured, and an `AIA_LEAD_*` kill switch and budget line"
+  - "[ ] LO15. Server spend enforcement (W0): `ResearchAgentJobs.start` and `rebuild` apply `spend_confirm_usd` as `ResearchRuns.start` does, and record the confirmation in the ledger; tested through direct HTTP start and rebuild and through the Lead's approve path"
 ---
 # Lead orchestration: the envelope, the plan card, the continuation turn and the Lead over time
 
 The orchestration the prototype and the owner describe: a per-study envelope, a plan approved once, a chat start, a continuation turn that returns typed results to the Lead, its context layers, its workers and its lifecycle. Written 2026-10-19 from `.planning/evidence/mvp-master-traces/trace-4-lead-governance.md` and `trace-2-sample-execution.md`.
 
-**Owner: S1.** Takes the gap rows G1, G11, G12, G13, G15, G16, G17, G20 and interfaces I1, I3, I4, I22, I23 of `mvp-master-plan.md` §6.1 and serves AC-02, AC-03, AC-04, AC-15 and gate I-1.
+**Owner: S1.** Takes the gap rows G1, G11, G12, G13, G15, G16, G17, G20, G39 and interfaces I1, I3, I4, I22, I23 of `mvp-master-plan.md` §6.1 and serves AC-02, AC-03, AC-04, AC-15 and gate I-1.
 Every chunk below is **open**; a chunk is built from this file, not from the master plan.
 
 ## Decisions this plan carries (settled by the owner; not re-asked)
@@ -47,7 +49,7 @@ The data for the two meters: spent against `budget_usd`, and the envelope remain
 The riskiest piece: the most tests and a kill switch. A step that reaches a gate the plan does not cover parks.
 
 **LO4. The plan card: the steps (including "start fieldwork, ceiling X USD"), approved once, stopping at every gate it does not cover**  
-The prototype's decision card for a run start is this card with one item. The UI is `research-lead-workbench` 23; this chunk is the contract and the ledger rows (`lead_plan`, `plan_step`, M3).
+The prototype's decision card for a run start is this card with one item. The minimum usable plan card lands with LO4 in W1 inside the current Lead pane; it is part of I-1. `research-lead-workbench` 23 adds the richer worker/Deep Research cards in W4 and is not the first UI for plan approval. This chunk owns the contract and ledger rows (`lead_plan`, `plan_step`, M3).
 
 **LO5. Direct human chat start: the typed command the server matches, ledger `chat_start`, the model not in the path**  
 The security condition: a start is authorised by a person's own typed command matched by the server, never by a model's interpretation of text. Inside the envelope only.
@@ -61,8 +63,14 @@ Turns are person-started only today (`research_lead.py:763-790`). A result reach
 **LO8. `ResultsContext`: type, class (`MaterialRule` for results, module text, maps, report text), lineage, bound, an external-evidence slot labelled L; and the decision on a read tool against ADR 0026 decision 3**  
 Written in **W1**, not W2. S2 and S3 write providers against it. Test: a result with Class A lineage is refused by a Class-C-only route. Interfaces I1.
 
-**LO9. The worker registry: `LeadWorkerSpec`, a `REPORT_WRITING` binding, result kinds and accept destinations for the three new workers, per-worker price and keys**  
-The three workers (map interpreter, report writer, straight-liner check) have no binding, no accept path and no price today. The accept destinations are `report-delivery#RD6` and `run-qc-and-checkpoint#RQC4`.
+**LO9a. The worker contract, early (W0, the first deliverable of `research-lead-workbench` 11): `LeadWorkerSpec` as a type, one row per worker, with its fixture**  
+One row defines a worker once: id, closed task, context layer, data-class rule, capability, reservation, prompt id and pin, switch, card kind, result kind (`mvp-cohesion.md` F5). Chunk 11's command registry and the W1 artifact chunks depend on this row; the three new workers are rows, not three designs. Test: a worker with a missing field is refused at registration.
+
+**LO9b. The three new workers as rows (W3): a `REPORT_WRITING` binding, result kinds and accept destinations, per-worker price and keys**  
+The three workers (map interpreter, report writer, straight-liner check) have no binding, no accept path and no price today. The accept destinations are `report-delivery#RD6` and `run-qc-and-checkpoint#RQC4`. **Prerequisite for the report writer's semantic edits:** ADR 0026 decision 4 requires an ADR and a deterministic admission rule for semantic report edits before any command exists; the feature is settled, the ADR is the work (`report-delivery#RD6`).
+
+**LO15. Server spend enforcement (W0): `ResearchAgentJobs.start` and `rebuild` apply `spend_confirm_usd` as `ResearchRuns.start` does, and record the confirmation in the ledger**  
+`ResearchAgentJobs.start` (`application/research.py:1311-1407`) reads no `spend_confirm_usd`, while `ResearchRuns.start` does (`:739`); the only check on a design job today is in the Lead's approve path (`application/research_lead.py:678-760`). Removing the manual buttons (D15) is a UI change and does not enforce a server rule: `mvp-cohesion.md` F5 adopts this check as the first code change, and `research-lead-workbench` F1 is no longer an owner decision. `budget_usd` is the cap; the envelope and the `spend_confirm_usd` confirmation are distinct. Test: a direct HTTP start and a rebuild above the threshold are refused without a covering confirmation and write the ledger row with one; the Lead's approve path still passes; a start under the threshold is unchanged. Interfaces I4.
 
 **LO10. `approve_request` bound to the revision shown on its card, and a clean error where the 96 KB Lead context meets the 64 KB agent limit**  
 `approve_request` submits whatever the working copy is at approval time, unlike `decide_edits`, which needs `base_revision`. Test: approving a card whose revision moved is refused with a message, not a 500.
@@ -81,4 +89,15 @@ The prototype's own documentation lists the unmeasured cost per turn as a gap to
 
 ## Open: owner clarifications
 
-- Whether the envelope replaces `spend_confirm_usd` or sits beside it (proposed: beside it; the threshold stays a per-start confirmation).
+None here. The envelope sits beside `spend_confirm_usd`, which stays a per-start confirmation (settled; `mvp-master-plan.md` §11.2).
+
+
+## Execution predecessors (2026-10-20)
+
+LO0, LO9a and LO15 are W0; LO1-LO8, LO10 and LO12-LO14 are W1; LO11 is W2;
+LO9b is W3. LO10's card-revision check precedes the first actionable card, not the final workers.
+LO7 uses WCE4's change feed and RQC7's events; unavailable result providers are typed unavailable,
+never guessed. LO11's persistent personal lifecycle is later work; basic per-researcher turn privacy
+must already pass AC-01 in W1. LO14's measured turn cost requires approved live activation; the
+zero-cost composition/limit tests can precede it. LO13 records only the exception the owner accepts.
+See `../mvp-execution-contracts.md`; no implementation checkbox changes here.

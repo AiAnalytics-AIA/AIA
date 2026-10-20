@@ -6,12 +6,13 @@ chunks:
   - "[ ] RQC2. The QC node wired into the run: template node, step kind, registry, `AIA_RUN_QC_ENABLED`, the run-key identity"
   - "[ ] RQC3. A `MaterialRule` and lineage for run-derived material sent to a model (QC flags, the map interpreter)"
   - "[ ] RQC4. The flag artifact and the worker's keep-or-flag proposal; the accept destination"
-  - "[ ] RQC5. Replace as a new linked run: a start path from a COMPLETED run with an exclusion pin that reuses the other respondents' paid answers"
+  - "[ ] RQC5. Replace as a new linked run: a start path from a COMPLETED run with an exclusion pin that reuses the other respondents' paid answers; its ADR and deterministic admission rule (ADR 0026 decision 4) come first"
   - "[ ] RQC6. Quotas before a run and a support forecast for the panel path"
   - "[ ] RQC7. The fieldwork event contract: heartbeat, quota-cell fill, a respondent grid, the park reason code"
   - "[ ] RQC8. Readiness reads the worker's egress: a run whose route cannot carry Class A is flagged before it parks"
   - "[ ] RQC9. One authority for the valid n: the domain readiness limits, read by the web and the Lead"
   - "[ ] RQC10. A population double composed in both the API and the worker over HTTP, for tier A's AC-05"
+  - "[ ] RQC4a. W1 flag contract: deterministic QC flags, ids, lineage and accept-target schema before the W3 model-worker proposal"
 ---
 # Run QC and a fieldwork checkpoint
 
@@ -44,7 +45,7 @@ There are three definitions today (`sociomap/engine.py:84-109`, the unit QC `qc.
 Per F18 nothing pauses; a proposal waits. The accept destination is a field of the run's QC record.
 
 **RQC5. Replace as a new linked run: a start path from a COMPLETED run with an exclusion pin that reuses the other respondents' paid answers**  
-Per F18 replacement is a new linked run. The weighting and support meaning of a replacement is a method question; the chunk builds the mechanism the owner decided and labels its limits.
+Per F18 replacement is a new linked run. **Prerequisite (ADR 0026 decision 4, Accepted):** respondent replacement gets no command until its own ADR and a deterministic admission rule exist (respondents are drawn once per run); the feature is settled, the ADR is the work. The weighting and support meaning of a replacement is a **methodology dependency** and sits in the master decision register (`mvp-master-plan.md` §11.4); the chunk builds the mechanism the owner decided and labels its limits.
 
 **RQC6. Quotas before a run and a support forecast for the panel path**  
 The preview drops the composition and readiness does not call the previewer for the panel; `support_forecast` is unknown for a panel run today.
@@ -64,3 +65,16 @@ Fictional rows cannot meet the v17 contract, so the existing panel tests inject 
 ## Open: owner clarifications
 
 - The weighting and support meaning of a replaced respondent (a method question; RQC5 builds the mechanism and labels the limit).
+
+
+## Execution predecessors (2026-10-20)
+
+RQC9-RQC10 land in W0: the single valid-n contract and population double precede the W1 UI and
+HTTP journey. RQC0 is first in W1 before resumed fieldwork; RQC1-RQC3, RQC4a and RQC6-RQC8
+then supply the deterministic QC contract/node, readiness/support and Fieldwork events. The
+Fieldwork artifact cannot be called integrated before it consumes RQC7's real payload.
+
+RQC4's model-worker proposal/accept implementation and RQC5's linked replacement land in W3,
+after the shared contracts: RQC4's accept-result type precedes LO9b's binding; the executable proposal follows that binding. RQC4a separates the earlier typed
+flag contract from that paid worker. Replacement also needs its own ADR and approved weighting,
+effective-n and support semantics; preparing storage/refusal tests does not approve those semantics.

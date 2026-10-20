@@ -60,3 +60,13 @@ A production release stays a blocker on I-5 whatever tier B showed on develop.
 ## Open: owner clarifications
 
 - The production hostname, RDS sizing and Bedrock quota (owner and operator).
+
+
+## Execution prerequisites (2026-10-20)
+
+PE0/PE3 precede PE1's apply and PE2's release workflow. Resolve the model-identity/invocation-target
+contract (develop-spend-attribution 5) before configuring the PE7 tagged target, not after a failing
+production startup. PE4 must preserve the decided public-host retrieval scope and existing URL/
+private-address safeguards; a proxy cannot silently reduce the product to a fixed publisher list.
+PE5/PE6 and the effective activation profile are evidenced before live production work. PE8 freezes
+the tested candidate during tier B; PE9 consumes SDL6 and is a prerequisite to final manual release.

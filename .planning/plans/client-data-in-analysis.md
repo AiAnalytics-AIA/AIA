@@ -11,12 +11,13 @@ chunks:
   - "[ ] 7. The Lead and the analysis modules see only admitted client-reported results, never rows"
   - "[ ] 8. Brief materials pick a client dataset; `brief_signature` and `design_material` carry the source id and the contract version, with one fixture for Python and TypeScript"
   - "[ ] 9. The client-data steps placed in the run: a graph node, a contract-version pin on the run, an impact root, and which run's report prints them; class and lineage for client-reported numbers sent to a model"
+  - "[ ] 8a. W0 proposed Brief-material/signature interface and shared fixture; uploaded datasets remain ineligible until an accepted data contract exists"
 ---
 # A client's own data in a study's analysis
 
 Track D of the MVP roadmap (`overview.md` § MVP roadmap, #493). Written 2026-10-19 from
 ADR 0027 (#494, Proposed) and `mvp-cohesion.md` F3 and F7 (#496). **Owner: a chat session, named
-when chunk 0 starts. Nothing here starts before ADR 0027 is accepted.**
+when chunk 0 starts. Runtime use and admission wait for accepted ADR 0027; chunk 8a may propose the cross-plan interface before that decision.**
 
 ## Decisions this plan carries
 
@@ -98,3 +99,15 @@ Chunk 1 edits `domain/fieldwork.py` and `domain/evidence/`: hand-off, not a seco
   §5 says `PROPOSE_CLIENT_KNOWLEDGE`. One is chosen in chunk 2 and the other document is corrected. ADR 0027
   decision 3 (a blocklist of flagged personal columns) and chunk 3 (an allowlist the contract names) are
   reconciled in chunk 0.
+
+
+## Early Brief contract, runtime later (2026-10-20)
+
+**8a. W0 proposed Brief-material interface.** Specify source id, reading hash, optional contract id
+and version, use/eligibility state and Python/TypeScript signature fixture before the W1 Brief UI.
+An uploaded dataset with no accepted contract is visible as a source but unavailable to analysis;
+the signature cannot label it admitted. Review with S1 before workbench 18. This is contract/design
+preparation; ADR 0027 remains Proposed until its owner decisions are answered.
+
+Chunk 8 implements the accepted contract/pins in W3 with chunks 0-9; it is not claimed built by 8a.
+Evidence-integrity 8 precedes chunks 4-5; frozen contract versions reach node 9 and the report.

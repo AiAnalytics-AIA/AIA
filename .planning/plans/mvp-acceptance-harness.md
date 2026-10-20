@@ -71,9 +71,7 @@ repository, domain function or table is touched directly.
 4. **Doubles.** One recorded exchange per model call kind and one per retrieval, deterministic,
    each stating that it is a recording, behind `GovernedModelGateway` and `RetrievalGate`, never
    around them.
-5. **Wiring.** A criterion lands when its work does. The first batch rests on built work: AC-01
-   (scope, 404), AC-06 (worker killed), AC-07 (impact preview), AC-12 (project memory), AC-14 (typed
-   config). Each later criterion arrives with the integration gate that makes it runnable
+5. **Wiring.** A criterion lands when its work does. The first batch exercises existing paths for AC-01 (scope, 404), AC-12 (project memory) and AC-14 (typed config). AC-06 requires RQC0's fieldwork checkpoint/kill proof and AC-07 requires WCE7's working-revision impact path; collecting older tests for them does not prove the stronger MVP obligations. Each later criterion arrives with the integration gate that makes it runnable
    (`mvp-cohesion.md` §4: I-1 to I-4).
 6. **Record.** One line per criterion, `PASS` / `FAIL` with the observation that decided it, stored
    as an artifact of the study with the reports, approved map snapshots and their approval records,
@@ -142,3 +140,21 @@ and asserts exit 0 and a `FAIL` line, and a matrix-consistency failure still exi
   docs-only path list). **AC-15's reconciliation is stated as separate lines**: model usage in the ledger,
   tool and search spend, reservations, uncertain calls, cloud-billing lag and non-provider infrastructure
   charges; a number never reads as zero because it is unknown. The edit is on `chore/acceptance-reconcile`.
+
+
+## Incremental gates and full acceptance (2026-10-20)
+
+W0 builds 1-4, 8-9 and 14. W1-W4 extend 5, 10 and 13. W5 finishes 6-7 and 11-12.
+RQC10's population double lands before the W1 HTTP path. Do not give an unimplemented criterion
+a passing placeholder: record PASS / FAIL / NOT_EXECUTED / BLOCKED with reason and evidence.
+
+I-1 covers the available design workers, not all eleven workers; I-3/W3 adds LO9b and the eight
+analysis prompt pins. Only final tier A can report AC-03 PASS for all of them. Browser proof grows
+per artifact, and all eleven artifacts must pass before the release record. W0 tree collection,
+partial I-1 coverage, live I-R probes, final tier B and production are distinct evidence classes.
+
+The record pins the tested application SHA, plan/acceptance versions, fixture hashes, model and
+prompt identities, deployment/composition and effective policy. It includes criterion/negative-case
+id, expected/actual behavior, evidence artifact ref and cost/reservation/uncertainty lines. For a
+changed input, method, contract, prompt or deployment, identify which evidence must be repeated;
+do not carry a green release decision from an older SHA. Paid reruns still require their allowance.

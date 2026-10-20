@@ -12,7 +12,7 @@ chunks:
   - "[x] 8. design_items, the working revision on every Design Revision writer (web submit, reuse, accepts), the item-level stale rule"
   - "[x] 9. Accept in one transaction: merged Design Revision, working copy, ledger; the web reloads"
   - "[x] 10. Dismiss and rebuild through the ledger and rebuild_of; the pending-proposals projection"
-  - "[ ] 11. The command registry: the workers the Lead may call, each with its prompt and price, behind approve_request (ledger and spend limit already built); the route-class refusal says who fixes it (lead-orchestration LO12)"
+  - "[ ] 11. The command registry: the workers the Lead may call, each with its prompt and price, behind approve_request (ledger and spend limit already built); the route-class refusal says who fixes it (lead-orchestration LO12); first deliverable: the worker row (lead-orchestration LO9a)"
   - "[ ] 12. Workbench journey: four widths, keyboard, focus modes, a Lead turn on recorded answers, zero unintended paid jobs"
   - "[x] 13. Design V3 in the repository (prototypes/research-lead-v3, its text) and its chunks in this plan"
   - "[ ] 14. The Lead's view vocabulary: a closed, per-artifact set of display operations the Lead may run on the artifact pane"
@@ -27,6 +27,7 @@ chunks:
   - "[ ] 23. Worker and Deep Research cards in the conversation, each opening the artifact it changes"
   - "[ ] 24. A standing 'continue until you need me' beyond an approved plan's steps, over chunk 11's command registry, stopping at every gate (after the MVP: the plan-scoped part is lead-orchestration LO3-LO5)"
   - "[ ] 25. Deep Research reachable from every stage as a capability"
+  - "[ ] 26. The layout rule (D17): the AI starts are removed in every layout the same way, and tested at 1099 and 1100 px, with the switch off and by a direct request"
 ---
 # Research Lead workbench
 
@@ -127,7 +128,16 @@ at an element (`lib/lead.ts:341`, `Workbench.tsx:185-207 @ 0b4e05e`).
   `approve_request`, which already holds the study's spend limit (`application/research_lead.py:678-760
   @ 0b4e05e`). Removal goes **artifact by artifact**: each of 17-22 lands without its stage's buttons
   and with the Lead able to call that stage's worker, so no AI action is ever without a way in. This
-  closes F1: no paid design job starts outside the Lead's path.
+  removes the way in from the interface only; it does not enforce the spend limit, which is a server
+  rule (`lead-orchestration#LO15`).
+- **D17. The layout rule (reconciles D12 and D15; proposed, an owner choice is recorded in
+  `mvp-master-plan.md` §11.4).** D12 keeps today's screens under 1100 px or with the switch off, and
+  D15 removes the manual AI starts. The consistent rule: the starts are removed in **every** layout
+  (the stage components are shared), and where the Lead is not offered the stage says *"AI se spouští
+  přes Vedoucího; ten potřebuje pracovní stůl (od 1100 px)"* instead. Every server path is held by the
+  server rule (`lead-orchestration#LO15`), so a direct request is not a way around the Lead's gates.
+  Client Knowledge extraction is the separately recorded client-level exception (`lead-orchestration#LO13`).
+  Test (chunk 26): 1099 px and 1100 px, the switch off, and a direct HTTP start.
 - **D16. Release scope** (owner, 2026-10-19; MVP-3). The Lead and all eleven V3 artifacts are
   release-blocking (12, 11, 14-23). **The plan-scoped part of the autopilot is in the MVP** (an approved
   plan the Lead runs, and a person's chat start: `lead-orchestration` LO3-LO5; MVP-3 amended and MVP-13
@@ -179,12 +189,13 @@ The backend each chunk needs is in `.planning/mvp-consolidation.md` §6.
 
 ## Findings
 
-- **F1. An agent job ignores the study's spend limit** *(observation, not yet a defect)*.
+- **F1. An agent job ignores the study's spend limit** *(a defect to fix now, `lead-orchestration#LO15`)*.
   - `ResearchAgentJobs.start` (`research.py:1300-1384 @ 50547cdc`) holds a reservation but never
     reads `spend_confirm_usd`, which `ResearchRuns.start` applies (`research.py:716-729 @
     50547cdc`).
-  - ADR 0026 decision 7 applies the limit to Lead-prepared jobs. Whether a person's own button
-    should be held to it too is the product owner's call.
+  - ADR 0026 decision 7 applies the limit to Lead-prepared jobs. `mvp-cohesion.md` F5 adopts the
+    check inside `ResearchAgentJobs.start` as the first code change (`lead-orchestration#LO15`), so no
+    path is held to a different rule.
   - Reproduction: set a spend limit below `AIA_AI_RESEARCH_RESERVATION_USD`, then start any design
     job; no confirmation is asked.
 - **F2. Today's accept can silently overwrite an edit made in another tab.**
