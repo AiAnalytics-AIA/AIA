@@ -144,7 +144,7 @@ plan (or to a new plan from #497) before the wave starts.
 | S | Work |
 |---|---|
 | S3 | Merge #493, #494, #495, #491, #496, #497 in that order; apply the docs follow-ups; add `prototypes/` to the docs-only path list (`ci-skip-docs-only`); `mvp-acceptance-harness` 1-3 (budget table, inputs, harness with its CI step); `infra/production` skeleton and `develop-spend-attribution` 1-2 (tagged profiles); migration **M3** (all ledger subject types, §4); **operator, first:** confirm the Bedrock retention evidence and set the four route parameters on develop (`deploy/develop/README.md` § AI route classes) so no AI step in any stage parks on `egress_route_not_approved_for_class`; and the stage error says who can fix it (below) |
-| S1 | The spend-limit fix in `ResearchAgentJobs.start` (a fix, F5); the worker row (`research-lead-workbench` 11, first deliverable); ADRs for the edit vocabulary and the orchestration scope written and proposed |
+| S1 | The spend-limit fix in `ResearchAgentJobs.start` and `rebuild` (`lead-orchestration` LO15; a fix, F5); the worker row (`lead-orchestration` LO9a, `research-lead-workbench` 11's first deliverable, which W1 depends on); ADRs for the edit vocabulary and the orchestration scope written and proposed |
 | S2 | `audience-catalogue-cpu` 4; `complete-study-report` B6 (the operator flag); `evidence-integrity` 1 (findings cite all) and 5 (one authority); **reach**: `deep-research-web-search` 1, 51, 53, 54 and 55, the ADR 0008 amendment (open posture) |
 
 **Exit I-0:** `alembic heads` single; the acceptance tree collects and runs AC-01, 06, 07, 12, 14.
@@ -244,6 +244,7 @@ access: `ARCHITECTURE.md` §7) and its `layer_check` rule in the same PR.
 | The Lead over time and its files | proposed updates, signals, admin read, handover, privacy of turns; amends ADR 0026 decision 8 | W2 M7 |
 | Production environment | a separate environment on the one-host pattern with RDS, in the same AWS account with the mitigations of architecture §6.2; supersedes the "undecided" in ADR 0009 | W1 infra apply |
 | Open posture, classification deferred (amends ADR 0008) | one flag per client in place of classification for Deep Research in the MVP; what CLASSIFIED means for web tracks; the post-MVP redesign note | W0 |
+| Semantic report edits; respondent replacement (ADR 0026 decision 4 requires each) | the deterministic admission rule for each, before a command exists | before `report-delivery` RD6 and `run-qc-and-checkpoint` RQC5 |
 | Client data's evidence policy (amends ADR 0027) | the policy source for client columns | W3 |
 
 ## 7. Order inside the critical path

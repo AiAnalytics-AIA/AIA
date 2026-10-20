@@ -7,13 +7,13 @@ chunks:
   - "[x] 4. Storage: immutable prompt versions + append-only activations + audit, repository"
   - "[x] 5. Authorised create / activate / reset / history (in the repository, like the other admin acts)"
   - "[x] 6. Resolution and pinning: research agents (resolve at enqueue, executor runs the pin)"
-  - "[ ] 7. Resolution and pinning: the eight analysis modules editable and pinned per run (MVP-32); the respondent and Deep Research prompts stay read-only (method) but their pin is recorded on the run"
+  - "[ ] 7. Resolution and pinning: the eight analysis modules editable and pinned per run (MVP-32), through application assembly, the result fingerprint, the initial and repair calls, the executor and the usage provenance; the respondent and Deep Research prompts stay read-only (method) but their pin is recorded on the run"
   - "[x] 8. API: /api/v1/system-prompts; agent jobs accept prompt_version and report the prompt they ran"
   - "[x] 9. Settings restructured into tabs (read-only material to Reference)"
   - "[x] 10. System prompts tab: list, editor, compare, activate, reset, history"
   - "[x] 11. Test a draft: a pinned job on a study, from the tab"
   - "[x] 12. Doc follow-up written (below)"
-  - "[ ] 13. The analysis and Deep Research executors take a prompt pin, so the slots `prompt_slots.py:121-140` marks "not run by any composition" are run"
+  - "[ ] 13. The analysis and Deep Research executors take a prompt pin, so the slots `prompt_slots.py:121-140` marks "not run by any composition" are run; queued work keeps the pin it was queued with after an activation, and new work gets a new identity"
 ---
 # System prompts, editable from Settings, and a Settings page that can be used
 
@@ -119,6 +119,9 @@ Each is small, builds and passes tests alone, and is committed on its own (after
    a tampered pin fails closed; no activation runs the baseline and records that.
 7. **Respondent, analysis, Deep Research wired,** one sub-commit each, same pattern. Analysis keeps
    `{module}`, `{metrics}`, `{units}` as required placeholders (`prompt.py:82-98`).
+   *Superseded by MVP-32 (2026-10-19):* only the eight analysis modules (and the eleven Lead workers) are
+   editable and pinned; the respondent and Deep Research prompts are method, read-only, with their pin
+   recorded on the run.
 8. **API.** `routers/system_prompts.py` under the organization (not under a study: a prompt is not
    study-scoped, so this is a deliberate exception to the study-prefix route rule, to be stated in
    the ADR and checked against the route test). The settings document lists the active version per
@@ -303,3 +306,12 @@ the run. **13.** `registry.py:100-109` registers the analysis and Deep Research 
 `prompt_slots.py:121-140` calls their slots "not run by any composition"; the executors need to resolve a
 pin. S2 owns the executor half, S1 the slots. Interfaces I25. Settings also shows `FAST_EXTRACTION` as
 unused (`settings.py:529`) though the worker uses it (`ai_runtime.py:729-730`): corrected here.
+
+**7 and 13, extended through application assembly.** Wiring the executors is not enough: the pin has to reach
+every place the prompt is read. `application/analysis.py:125-139` builds a module's reuse identity from
+`prompt_template_sha256()` (the code's template, whatever a person activated) and `:171` builds the system
+prompt with `system_prompt(spec, ...)` (again the code's). Chunk 7 therefore covers: the application
+assembly that resolves the pin, the module's result fingerprint, the initial and the repair calls, the
+executor, and the usage provenance (`system_prompt_sha256` of what was sent). Tests: work queued before an
+activation keeps its pin and its identity after it; work started after gets a new identity and so does not
+reuse the old result; a repair call uses the same pin as its initial call. Interfaces I25.

@@ -6,7 +6,7 @@ chunks:
   - "[ ] RQC2. The QC node wired into the run: template node, step kind, registry, `AIA_RUN_QC_ENABLED`, the run-key identity"
   - "[ ] RQC3. A `MaterialRule` and lineage for run-derived material sent to a model (QC flags, the map interpreter)"
   - "[ ] RQC4. The flag artifact and the worker's keep-or-flag proposal; the accept destination"
-  - "[ ] RQC5. Replace as a new linked run: a start path from a COMPLETED run with an exclusion pin that reuses the other respondents' paid answers"
+  - "[ ] RQC5. Replace as a new linked run: a start path from a COMPLETED run with an exclusion pin that reuses the other respondents' paid answers; its ADR and deterministic admission rule (ADR 0026 decision 4) come first"
   - "[ ] RQC6. Quotas before a run and a support forecast for the panel path"
   - "[ ] RQC7. The fieldwork event contract: heartbeat, quota-cell fill, a respondent grid, the park reason code"
   - "[ ] RQC8. Readiness reads the worker's egress: a run whose route cannot carry Class A is flagged before it parks"
@@ -44,7 +44,7 @@ There are three definitions today (`sociomap/engine.py:84-109`, the unit QC `qc.
 Per F18 nothing pauses; a proposal waits. The accept destination is a field of the run's QC record.
 
 **RQC5. Replace as a new linked run: a start path from a COMPLETED run with an exclusion pin that reuses the other respondents' paid answers**  
-Per F18 replacement is a new linked run. The weighting and support meaning of a replacement is a method question; the chunk builds the mechanism the owner decided and labels its limits.
+Per F18 replacement is a new linked run. **Prerequisite (ADR 0026 decision 4, Accepted):** respondent replacement gets no command until its own ADR and a deterministic admission rule exist (respondents are drawn once per run); the feature is settled, the ADR is the work. The weighting and support meaning of a replacement is a **methodology dependency** and sits in the master decision register (`mvp-master-plan.md` §11.4); the chunk builds the mechanism the owner decided and labels its limits.
 
 **RQC6. Quotas before a run and a support forecast for the panel path**  
 The preview drops the composition and readiness does not call the previewer for the panel; `support_forecast` is unknown for a panel run today.

@@ -7,7 +7,7 @@ chunks:
   - "[ ] RD3. The Approve and Export panel: what is approved and by whom; exports after approval; the slot in the Report artifact"
   - "[ ] RD4. The map snapshot: an approvable object rendered server-side from the stored map and camera parameters, never browser bytes; one ledger shape"
   - "[ ] RD5. Report draft revisions: a separate draft counter, tracked changes per paragraph; a report edit never reopens fieldwork"
-  - "[ ] RD6. The accept destinations for the report writer, the map interpreter and the straight-liner flags: an artifact type, the composer input and its fingerprint"
+  - "[ ] RD6. The accept destinations for the report writer, the map interpreter and the straight-liner flags: an artifact type, the composer input and its fingerprint; and, before any semantic report edit exists, the ADR with its deterministic admission rule that ADR 0026 decision 4 requires"
   - "[ ] RD7. A sentence-level claim check: a sentence that claims a comparison with no admitted claim is flagged"
   - "[ ] RD8. The producer of a client report is the run that composed it, not whoever first downloaded it"
 ---
@@ -45,7 +45,9 @@ The existing approval writes subject `artifact` (`artifact_repository.py:568`) a
 The prototype's D6. The counter against ADR 0016's revision semantics is an owner clarification below.
 
 **RD6. The accept destinations for the report writer, the map interpreter and the straight-liner flags: an artifact type, the composer input and its fingerprint**  
-S3 defines the type, S1 writes the worker against it (`lead-orchestration#LO9`). Interfaces I14.
+S3 defines the type, S1 writes the worker against it (`lead-orchestration#LO9b`). Interfaces I14.
+
+**Prerequisite (ADR 0026 decision 4, Accepted):** semantic report edits get no command until their own ADR and a deterministic admission rule exist (a report is composed from admitted claims and frozen on approval). That the feature is wanted is settled (MVP-12); writing the ADR and the rule is this chunk's first step, and a wording edit never reopens completed fieldwork (an invariant, `RD5`).
 
 **RD7. A sentence-level claim check: a sentence that claims a comparison with no admitted claim is flagged**  
 The prototype shows it (scenario M); the evidence validation checks numbers only. A new rule; the owner confirms its strictness.
@@ -56,4 +58,4 @@ With self-approval off, the reviewer who opens it first cannot approve it today 
 ## Open: owner clarifications
 
 - What the evidence audit and the legal source-use gate check (RD0).
-- Whether the report draft counter is separate from the Design Revision (proposed: yes, the prototype's D6).
+- Settled by requirement, not asked: the report draft counter is separate from the Design Revision, and a report edit never reopens fieldwork (immutable runs, RD5).

@@ -82,4 +82,4 @@ The second edit merges or conflicts on one item only; a locked item refuses; pre
 
 ## Open: owner clarifications
 
-- Whether a research-question reword with a dependent questionnaire change is accepted or refused as one group (the proposed rule: one group, accepted or rejected together).
+- None for the owner. A research-question reword with a dependent questionnaire change is one group, accepted or rejected together, and a split that would leave the copy invalid is refused by the server's validation (`WCE6`); "content from revision n" is computed from where an item last changed, never stored (`WCE7`).

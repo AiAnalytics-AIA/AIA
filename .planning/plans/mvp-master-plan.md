@@ -6,7 +6,7 @@ chunks:
   - "[x] M2. Each gap's chunk added to its plan, with a named ID (§6.1, §5); each plan's owner reviews before its wave"
   - "[ ] M3. Disposition edits: close or re-scope the plans §3.2 marks CLOSE or FOLD (each plan's owner confirms)"
   - "[ ] M4. Contracts written before the work that needs them (mvp-development-plan.md §5), and the shared-surface owners of §2 of that plan"
-  - "[ ] M5. The ADRs (mvp-development-plan.md §6) and the ADR 0008 amendment for the open posture; ADRs awaiting an owner decision stay Proposed"
+  - "[ ] M5. The ADRs (mvp-development-plan.md §6), the ADR 0008 amendment for the open posture, and the ADRs ADR 0026 decision 4 requires before semantic report edits and respondent replacement; ADRs awaiting an owner decision stay Proposed"
   - "[ ] M6. The activation profile: deploy/develop declares the MVP switches and the smoke reports each READY or NOT_READY without a paid call"
   - "[ ] M7. The operator runbook run once on develop: AI route classes, Brave sign-off, secrets, the reach switches, with the evidence recorded"
   - "[x] M8. A register check: tools/master_check.py fails on a dangling plan#ID reference, a plan missing from §3, an AC or G or I row with no resolvable chunk, or a count that does not match the tables"
@@ -82,7 +82,7 @@ plan. `POST`: after the MVP, by decision. The dispositions of plans outside the 
 
 | Plan | Session | Waves | Gate | Needs first |
 |---|---|---|---|---|
-| `research-lead-workbench` | S1 | W0 (11), W1 (11, 14-19), W2 (20, 22), W3 (21), W4 (23) | I-1 to I-4 | edit vocabulary, `LeadWorkerSpec` |
+| `research-lead-workbench` | S1 | W0 (11), W1 (11, 14-19, 26), W2 (20, 22), W3 (21), W4 (23) | I-1 to I-4 | edit vocabulary, `LeadWorkerSpec` |
 | `evidence-integrity` | S2 | W0 (1, 5), W1 (2-3), W3 (4) | I-3 | none |
 | `sociomap-formula-corrections` | S2 | W2 | I-2 | method owner (0b is open; 0a is done) |
 | `segment-maps-and-drilldown` | S2 | W2 | I-2 | method owner, register entries |
@@ -97,9 +97,9 @@ plan. `POST`: after the MVP, by decision. The dispositions of plans outside the 
 | `two-roles-human-ai-gates` | S3 | W2, W3 (5b.4) | I-2, I-3 | a client-report contract |
 | `develop-spend-attribution` | S3 | W0 (1-2) | I-0 | none |
 | `mvp-acceptance-harness` | S3 | W0 (1-3), then every wave | I-0, I-5 | #495 merged |
-| `system-prompts-settings` | S1 | W3 (7) | I-3 | worker row |
+| `system-prompts-settings` | S1 | W3 (7, 13) | I-3 | worker row |
 | `working-copy-edit-ops` | S1 | W1 (WCE0-WCE7), W2 (WCE8-WCE10) | I-1, I-2 | the edit vocabulary (I2) |
-| `lead-orchestration` | S1 | W1 (LO0-LO8, LO12), W3 (LO9-LO11, LO13) | I-1, I-3 | the money vocabulary (I4), `ResultsContext` (I1) |
+| `lead-orchestration` | S1 | W0 (LO9a, LO15), W1 (LO0-LO8, LO12), W3 (LO9b, LO10, LO11, LO13) | I-1, I-3 | the money vocabulary (I4), `ResultsContext` (I1) |
 | `run-qc-and-checkpoint` | S2 | W1 (RQC0-RQC5), W2 (RQC6-RQC8), W3 (RQC9-RQC10) | I-1, I-2 | none; RQC0 comes before any step that follows fieldwork |
 | `report-delivery` | S3 | W2 (RD0-RD4), W3 (RD5-RD8) | I-2, I-3 | a client-report contract, the evidence gate definitions (§11.4) |
 | `study-data-lifecycle` | S3 | before W5 | I-5 | the deletion horizons (§11.4) |
@@ -142,9 +142,9 @@ register check fails on a criterion with no resolvable chunk.
 | AC | Built by |
 |---|---|
 | AC-01 | `mvp-acceptance-harness#5`, `lead-orchestration#LO11` |
-| AC-02 | `research-lead-workbench#11`, `research-lead-workbench#14`, `research-lead-workbench#15`, `research-lead-workbench#16`, `working-copy-edit-ops#WCE2`, `working-copy-edit-ops#WCE6`, `lead-orchestration#LO3`, `lead-orchestration#LO4`, `lead-orchestration#LO5`, `lead-orchestration#LO13`, `mvp-acceptance-harness#10` |
-| AC-03 | `research-lead-workbench#11`, `system-prompts-settings#7`, `system-prompts-settings#13`, `lead-orchestration#LO9` |
-| AC-04 | `lead-orchestration#LO0`, `lead-orchestration#LO1`, `client-budget#CB5` |
+| AC-02 | `research-lead-workbench#11`, `research-lead-workbench#14`, `research-lead-workbench#15`, `research-lead-workbench#16`, `working-copy-edit-ops#WCE2`, `working-copy-edit-ops#WCE6`, `lead-orchestration#LO3`, `lead-orchestration#LO4`, `lead-orchestration#LO5`, `lead-orchestration#LO13`, `mvp-acceptance-harness#10`, `lead-orchestration#LO15`, `research-lead-workbench#26` |
+| AC-03 | `research-lead-workbench#11`, `system-prompts-settings#7`, `system-prompts-settings#13`, `lead-orchestration#LO9a`, `lead-orchestration#LO9b` |
+| AC-04 | `lead-orchestration#LO0`, `lead-orchestration#LO1`, `client-budget#CB5`, `lead-orchestration#LO15` |
 | AC-05 | `audience-catalogue-cpu#4`, `complete-study-report#B6`, `run-qc-and-checkpoint#RQC6`, `run-qc-and-checkpoint#RQC8`, `run-qc-and-checkpoint#RQC10` |
 | AC-06 | `run-qc-and-checkpoint#RQC0` |
 | AC-07 | `working-copy-edit-ops#WCE7` |
@@ -197,7 +197,7 @@ trace that found each (`.planning/evidence/mvp-master-traces/`).
 | I1 | **`ResultsContext`**: type, classes, lineage, bound, an external-evidence slot (labelled L, never respondent evidence) | S1 type; S2 and S3 providers; Deep Research bundle (T3 C1, T5 C5) | S1, **in W1**, as an ADR addendum with a `MaterialRule` and a lineage test | before any results layer | `lead-orchestration#LO8` |
 | I2 | **Stage and item vocabulary**: `pipeline.RESEARCH_STAGES`, `StepKey`, the workbench stages, the Lead's `Stage`, `IMPACT_ROOTS`, `design_items` kinds. No Sociomap stage in the pipeline | S1, S2, S3 (T1 C2, T3 C8) | S1, one table beside `domain/edit_ops.py` | W1 | `working-copy-edit-ops#WCE0` |
 | I3 | **Three ways to start a run** (Run button, plan card, typed `start_run`) over one `ResearchRuns.start`: which pins and confirmations each passes. The confirmation is a function argument, so a plan authority without `APPROVE_GATE` does not protect it | S1, S2, S3 (T2 C2, T4 A4) | S1 in the orchestration ADR, with a typed start API that has no `confirm_cost_usd` and an import rule | W1 | `lead-orchestration#LO2` |
-| I4 | **The money vocabulary**: envelope cap, `budget_usd`, `spend_confirm_usd`, client ceiling, `clients.budget_usd`, OI-64. The spend limit is a confirmation threshold and `None` means never; the cap is `budget_usd` | S1 envelope, S3 ledger (T2 B1, T4 B1 and B15) | S1 in the orchestration ADR, defined against `budget_usd` | W1 | `lead-orchestration#LO0` |
+| I4 | **The money vocabulary**: envelope cap, `budget_usd`, `spend_confirm_usd`, client ceiling, `clients.budget_usd`, OI-64. The spend limit is a confirmation threshold and `None` means never; the cap is `budget_usd` | S1 envelope, S3 ledger (T2 B1, T4 B1 and B15) | S1 in the orchestration ADR, defined against `budget_usd` | W1 | `lead-orchestration#LO0`, `lead-orchestration#LO15` |
 | I5 | **What a "dimension" is**: a persona topic, a materialized column, or a segment descriptor | S2 (segments, personas), S3 (K5 materialization) (T2 C1, T3 A2) | S2, in `sociomap-formula-corrections` I0 | W2 | `segment-maps-and-drilldown#0a` |
 | I6 | **Straight-liner**: the engine's, the unit QC's and the worker's definition; one flag artifact; what "replace" means | S1 worker, S2 engine and QC (T2 C5, T3 C3) | S2, one definition in `domain/` | W1 | `run-qc-and-checkpoint#RQC1` |
 | I7 | **Fieldwork events to the Fieldwork artifact**: heartbeat, quota-cell fill, respondent grid, park reason | S2 produces, S1 consumes (T2 C9) | S2 writes the payload first | W1 | `run-qc-and-checkpoint#RQC7` |
@@ -218,7 +218,7 @@ trace that found each (`.planning/evidence/mvp-master-traces/`).
 | I22 | **The cost function for a Deep Research start** lives in `routers/deep_research.py:292-340` on the API's env copy; a plan step in the worker needs the same ceiling | S1, S2 (T5 C4) | S2 moves it to the application layer | W1 | `deep-research-web-search#55` |
 | I23 | **Client-level paid AI** (source proposals, `clients.budget_usd`) against "every AI action goes through the Lead" | S3, S1 (T4 C10) | S3, with an explicit exception recorded in AC-02 | W1 | `lead-orchestration#LO13` |
 | I24 | **`apps/web/src/lib/api.ts` and `i18n/cs.ts`**: one large file each, edited by every session, carrying every refusal message | S1, S2, S3 (T4 C8) | S1 for refusal wording; others by area | W0 | `lead-orchestration#LO12` |
-| I25 | **Prompt slots**: wiring the analysis and Deep Research prompts needs those executors to take a pin | S1 slots, S2 executors (T4 C5) | S2 for the executor half | W3 | `system-prompts-settings#13` |
+| I25 | **Prompt slots**: wiring the analysis and Deep Research prompts needs those executors to take a pin | S1 slots, S2 executors (T4 C5) | S2 for the executor half | W3 | `system-prompts-settings#7`, `system-prompts-settings#13` |
 | I26 | **Delete path, ledger, audit and backups**: the ledger FK, audit rows and a restore after a deletion need one rule | all S3 (T5 C7) | S3 | before W5 | `study-data-lifecycle#SDL0`, `study-data-lifecycle#SDL1`, `study-data-lifecycle#SDL5` |
 
 
@@ -252,7 +252,9 @@ Grouped by what they block. **Chunks** are the named chunks (written plan, then 
 | G13 | **There is no continuation turn**: turns are person-started only; the Lead sees run id and status, not park reasons or spend (T4 A1, T2 C3) | `lead-orchestration#LO6` |
 | G14 | **A plan's own steps defeat its stale rule**: `proposal_accept.py:117-118` refuses on "head moved" before comparing items, and any job start, rebuild, Lead approval or a visit to the Run stage submits a Design Revision, killing every other pending proposal; a second researcher's action kills the first's (T1 #2, T4 B7) | `working-copy-edit-ops#WCE5` |
 | G15 | **`approve_request` is not bound to the card's revision**; the Lead's 96 KB context against the agents' 64 KB likely returns a 500 on approval ◇ (T4 A10) | `lead-orchestration#LO10` |
-| G16 | **The three new workers have no binding, accept path, price or `MaterialRule`**: no `REPORT_WRITING` binding, no result kind for interpretation, wording or flags, no rule for results, module text, maps or report text (T4 A5, T3 A9, A10, T2 A5) | `lead-orchestration#LO9`, `report-delivery#RD6`, `run-qc-and-checkpoint#RQC3` |
+| G39 | **No chunk enforces the spend limit on the server.** `ResearchAgentJobs.start` reads no `spend_confirm_usd` (`application/research.py:1311-1407`, against `ResearchRuns.start` at `:739`); cohesion F5 adopts the check as the first code change, the development plan's W0 names it, but no child chunk did, and workbench D15 said removing the buttons closed F1. `budget_usd` is the cap; the envelope and the confirmation are distinct (review of 2026-10-20, item 1) | `lead-orchestration#LO15` |
+| G40 | **D12 and D15 disagree below 1100 px or with the switch off**: today's screens keep their AI starts, D15 removes them; no rule covers every layout and every server path (review item 5) | `research-lead-workbench#26`, `lead-orchestration#LO15` |
+| G16 | **The three new workers have no binding, accept path, price or `MaterialRule`**: no `REPORT_WRITING` binding, no result kind for interpretation, wording or flags, no rule for results, module text, maps or report text (T4 A5, T3 A9, A10, T2 A5) | `lead-orchestration#LO9a`, `lead-orchestration#LO9b`, `report-delivery#RD6`, `run-qc-and-checkpoint#RQC3` |
 | G17 | **Lead files cannot be rolled back** (`revisions()` has no caller); admin read and handover, the USER file's handover rule and a departure trigger are unplanned; a second researcher cannot accept the first Lead's edit blocks (turns are private) (T4 A6, A7, A12) | `lead-orchestration#LO11` |
 
 **Working copy and design stages**
@@ -288,6 +290,7 @@ Grouped by what they block. **Chunks** are the named chunks (written plan, then 
 | G34 | **AC-13 asks for what does not exist**: no client report PDF (`report_variants.py:78`); "evidence audit" and "legal source-use gate" are NOT_STARTED with no plan; "exports only after approval" contradicts the code (drafts download freely, approval follows: `research.py:2395-2449`); no map-snapshot object, route or renderer; two ledger shapes for it; no reader of the approval ledger for "approved by whom" (T3 A6-A8, A13, B3, B4, B9) | `report-delivery#RD0`, `report-delivery#RD1`, `report-delivery#RD2`, `report-delivery#RD3`, `report-delivery#RD4` |
 | G35 | **Client-data steps are not placed in the run**: no graph node, no contract-version pin, no impact root; no class or lineage for client-reported numbers going to a model; no accept target for the three new workers (T3 A9, A11, A12) | `client-data-in-analysis#9`, `report-delivery#RD6` |
 | G36 | **Evidence into knowledge has three semantics** and a document item holds only `source_id`, so Deep Research never sees the file text (`knowledge_access.py:75-90`); the data-contract permission differs between plans (`APPROVE_GATE` against `PROPOSE_CLIENT_KNOWLEDGE`); ADR 0027 decision 3 uses a blocklist, the plans an allowlist (T5 #8, B10; T3 B8) | `client-knowledge-lifecycle#K8`, `client-data-in-analysis#2` |
+| G41 | **Two settled features have no ADR yet.** ADR 0026 decision 4 (Accepted) gives semantic report edits and respondent replacement no command until each has its own ADR and a deterministic admission rule; the report-wording worker and replacement chunks did not name that prerequisite (review item 4) | `report-delivery#RD6`, `run-qc-and-checkpoint#RQC5` |
 
 **Deep Research and the open posture**
 
@@ -480,6 +483,23 @@ The plans are corrected, with the owner told in the pull request:
 - `two-roles-human-ai-gates#5b.4` no longer says no client report exists.
 - The Deep Research evaluations and the USD 25 allocation are in the harness and in §9.
 - Production release is a blocker (§9, §10).
+- **The server enforces the spend limit.** `ResearchAgentJobs.start` and `rebuild` get the check
+  `ResearchRuns.start` has (`lead-orchestration#LO15`, W0); `research-lead-workbench` D15 no longer claims
+  removing buttons closes F1, and F1 is no longer an owner decision.
+- **The worker contract comes first.** `lead-orchestration#LO9a` (the `LeadWorkerSpec` row) is W0 and chunk
+  11's first deliverable; `LO9b` (the three new workers' bindings) stays W3. W1 depends on `LO9a`.
+- **The analysis prompt pin reaches every use.** The reuse identity and the system prompt in
+  `application/analysis.py:125-139, :171` still read the code's template; `system-prompts-settings#7` and
+  `#13` cover assembly, fingerprint, initial and repair calls, executor and usage provenance, with a test that
+  queued work keeps its pin after an activation.
+- **Semantic report edits and respondent replacement need their ADRs first** (ADR 0026 decision 4,
+  Accepted): the features are settled and not re-asked; the ADR and a deterministic admission rule are the
+  work (`report-delivery#RD6`, `run-qc-and-checkpoint#RQC5`).
+- **Engineering invariants, not questions:** a report wording edit never reopens completed fieldwork
+  (`report-delivery#RD5`); a coupled change is one group, accepted or refused together, and the server's
+  validation refuses a split that leaves the copy invalid (`working-copy-edit-ops#WCE6`); an artifact's
+  "content from revision n" is computed from where its items last changed, never a second store
+  (`working-copy-edit-ops#WCE7`).
 
 ### 11.3 Proposed scope overrides: only if you want them
 
@@ -504,9 +524,8 @@ The plans are corrected, with the owner told in the pull request:
 | 7 | **Deletion semantics.** The deletion horizon for backups and bucket versions, and how a deleted subject stays deleted after a restore | `study-data-lifecycle#SDL0`, `study-data-lifecycle#SDL5` | Document the horizons you approve and a deletion journal replayed after restore; 14 and 30 days are infrastructure defaults, not an approval |
 | 8 | **Paid work outside a study.** Client-level source extraction stays in Client Knowledge under the client budget while every study-stage AI action goes through the Lead? | `client-knowledge-lifecycle#K8` | Yes, as a recorded exception to AC-02 with client isolation, approval and a budget |
 | 9 | **The two AC-13 gates.** What is the "evidence audit" and the "legal source-use gate"? Exports only after approval, or approved after download? | `report-delivery#RD0`, `report-delivery#RD1`, `report-delivery#RD3` | Evidence audit = the existing report validation plus the admitted-claim check; legal gate = the source-class check; client exports after approval, internal drafts downloadable |
-| 10 | **Report draft counter and ADR 0016.** May a report edit reopen fieldwork? | `report-delivery#RD5` | A separate counter; a report edit never reopens a run |
-| 11 | **Revision semantics.** The prototype's "content from revision n" against a Design Revision counter | `working-copy-edit-ops#WCE7` | One study-level counter; "content from revision n" is computed from where an item last changed, never a second store |
-| 12 | **Coupled changes.** Is a change that needs another change one block or two? | `working-copy-edit-ops#WCE6` | Group them into one accept, and refuse to split one that would leave the copy invalid |
+| 10 | **Replacement weighting and support.** What a replaced respondent does to the weights, the effective n and the support rules (a methodology dependency; the feature itself is settled, F18) | `run-qc-and-checkpoint#RQC5` | The method owner defines it; until then the chunk builds the mechanism and labels the limit |
+| 11 | **The AI starts below 1100 px or with the workbench off.** Rule A (proposed): removed in every layout, the stage says the Lead needs the wider workbench (literal MVP-8, no exception). Rule B: the fallback keeps its buttons under the server's spend rule, a recorded exception to MVP-8 | `research-lead-workbench#26`, `lead-orchestration#LO15` | A: it needs no exception, and develop has the workbench on. Rollback by switching it off then loses AI, which is the cost |
 
 ### 11.5 Operator and owner checklist (not methodology, not yet done)
 
@@ -538,7 +557,7 @@ named chunks, not by a note.
 | CR-06 stale 5b.4 | `two-roles-human-ai-gates#5b.4`, `report-delivery#RD3`, `report-delivery#RD4` |
 | CR-07 client PDF | `report-delivery#RD1` |
 | CR-08 evidence rule wording | `evidence-integrity#1` |
-| CR-09 prompt scope | `system-prompts-settings#7`, `system-prompts-settings#13`, `lead-orchestration#LO9` |
+| CR-09 prompt scope | `system-prompts-settings#7`, `system-prompts-settings#13`, `lead-orchestration#LO9a`, `lead-orchestration#LO9b` |
 | CR-10 segment descriptors | `segment-maps-and-drilldown#0a`, `client-knowledge-lifecycle#K5` |
 | CR-11 checkpoint | `run-qc-and-checkpoint#RQC0` |
 | CR-12 browser journeys | `mvp-acceptance-harness#10` |
