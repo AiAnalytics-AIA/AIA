@@ -12,6 +12,7 @@ chunks:
   - "[ ] RQC8. Readiness reads the worker's egress: a run whose route cannot carry Class A is flagged before it parks"
   - "[ ] RQC9. One authority for the valid n: the domain readiness limits, read by the web and the Lead"
   - "[ ] RQC10. A population double composed in both the API and the worker over HTTP, for tier A's AC-05"
+  - "[ ] RQC11. Routing in fieldwork (W1, after working-copy-edit-ops WCE13): a conditional question is asked only of respondents whose earlier answer meets its condition, and the dataset records who was not asked"
   - "[ ] RQC4a. W1 flag contract: deterministic QC flags, ids, lineage and accept-target schema before the W3 model-worker proposal"
 ---
 # Run QC and a fieldwork checkpoint
@@ -78,3 +79,9 @@ RQC4's model-worker proposal/accept implementation and RQC5's linked replacement
 after the shared contracts: RQC4's accept-result type precedes LO9b's binding; the executable proposal follows that binding. RQC4a separates the earlier typed
 flag contract from that paid worker. Replacement also needs its own ADR and approved weighting,
 effective-n and support semantics; preparing storage/refusal tests does not approve those semantics.
+
+## Cross-check additions (2026-10-20)
+
+From the independent cross-check of the master plan against the code (`mvp-master-plan.md` §6.1, G47-G57). Anchors are `@ 085abe0`.
+
+**RQC11. Routing in fieldwork (G53, X8; the owner, 2026-10-20: build routing end to end).** Fieldwork today asks every respondent every question, and readiness refuses a conditional one. With `working-copy-edit-ops#WCE13` storing valid conditions, this chunk evaluates each condition on the respondent's own earlier answer, in questionnaire order, asks the question only when it holds, and records "not asked" distinctly from a missing answer, so the filtered base is computable. The checkpoint (RQC0) keeps routing state per respondent. Tests: Q7 is asked only of respondents who answered "never" to Q2; the dataset distinguishes not asked from not answered; a resumed run routes the same way.

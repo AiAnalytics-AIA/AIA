@@ -251,7 +251,7 @@ report, `research_agent`, `research_lead`, the six Deep Research kinds, `populat
 | `research_segment_maps` | one map per segment through the existing engine | no | rides the Sociomap pin |
 | `client_data_prepare` | builds the analysis copy from the contract's allowlist | no | `AIA_CLIENT_DATA_ENABLED` |
 | `client_data_compute` | descriptive tables and benchmark gaps | no | same |
-| `research_agent` actions `interpret_map`, `polish_report`, `flag_straightliners` | the three new workers (MVP-12), each a closed task | yes | `AIA_AI_RESEARCH_WORKERS_*` |
+| a results-worker job (`lead-orchestration#LO9c`) for `interpret_map`, `polish_report`, `flag_straightliners`; not `research_agent` actions, which are keyed on a Design Revision (corrected 2026-10-20) | the three new workers (MVP-12), each a closed task | yes | `AIA_AI_RESEARCH_WORKERS_*` |
 
 **One worker row, written once** (`mvp-cohesion.md` F5): id, closed task, context layer, data-class
 rule (`material_rules`), capability, reservation, prompt id and pinned version (editable in Settings,

@@ -4,7 +4,10 @@ chunks:
   - "[ ] 0. Decide the evidence policy for a client's dataset columns (deferred by the owner, 2026-10-19), and settle ADR 0027's three open questions"
   - "[ ] 1. The origin CLIENT_REPORTED and its fourth reading in origin_kind, every label reading it"
   - "[ ] 2. The data contract as a type, and the route a person accepts it through (approval ledger)"
+  - "[ ] 2a. The data quality report the person accepts (W3, after 3a): missing, duplicate and out-of-range counts per used column over every row, versioned and hashed, shown before accept; a truncated reading cannot be accepted"
   - "[ ] 3. The analysis copy holds only the columns the accepted contract names, each classified by a person; nothing personal stored for analysis or sent to a model"
+  - "[ ] 3a. A full-grid reader over the kept original bytes under stated analysis bounds, refusing by name above them, never a partial copy (W3, before 2a)"
+  - "[ ] 3b. The hash-verified accessor and the scope the client-data step runs under (W3)"
   - "[ ] 4. Deterministic computations per shape: descriptive tables and benchmark gaps"
   - "[ ] 5. Admission and the client-reported grade in domain/evidence, and the report's marks"
   - "[ ] 6. A client's own survey: its own Sociomap through the existing engine, never merged"
@@ -33,7 +36,7 @@ chunk order below (its §Consequences).
   says there is no fourth, and `test_every_origin_is_decided_once` fails an origin not decided.
 - A study's instrument items become evidence fields only under the policy their answers' origin
   selects, `-1` simulated or `-2` modelled panel; any other origin is refused
-  (`domain/evidence/instrument.py:112-121 @ 085abe0`, `ARCHITECTURE.md` §4).
+  (`_declared`, `domain/evidence/instrument.py:184-196 @ 085abe0`, `ARCHITECTURE.md` §4).
 - A dataset's preview names a column personal from its header or its values and masks its samples
   (`domain/client_datasets.py:70, 144 @ 085abe0`). **Masking is the preview's rule; dropping is the
   analysis copy's.** Say it once in chunk 3's test so the two never drift.
@@ -118,3 +121,13 @@ Chunk 2 stores the accepted contract (`client_data_contracts`) and chunk 3 the a
 (`client_dataset_copies`): one migration, lane **M8**, S3, with each repository, a round-trip test, an isolation
 predicate test, a concurrent-access test and its `layer_check` rule in the same PR. Neither table exists before
 its chunk needs it; the W0 contract of 8a stores nothing. Gap G43.
+
+## Cross-check additions (2026-10-20)
+
+From the independent cross-check of the master plan against the code (`mvp-master-plan.md` §6.1, G47-G57). Anchors are `@ 085abe0`.
+
+**Chunk 0, amended (G51, X5).** A client number has no respondent n or effective n, so `assess_support` suppresses it ("support unknown: n or effective n missing"), and `MetricKind`/`MetricUnit` have no count, amount or rate kind: the AC-10 dataset (visits by branch and month) would be suppressed or refused whatever policy source chunk 0 picks. Chunk 0 (and the ADR 0027 amendment it produces) also decides (a) the support a client aggregate or record count carries (exact counts or row count as n, or an explicit "not a sample" status, never an invented effective n), (b) the metric and unit set a client number may take beyond mean, pct and n, (c) when an interval is required; chunk 5 and `evidence-integrity#8b` name it. Test: the AC-10 dataset is admitted client-reported, and a row with no declared support is refused by name.
+
+**2a. The data quality report (G52, X6).** ADR 0027 decision 4 makes code's quality report part of what the person accepts, and the architecture has a `quality_report` column, but no chunk computes it. A pure `client_data.quality_report(contract, rows)` (missing, duplicate and out-of-range counts per used column, `QUALITY_VERSION`, canonical SHA-256), stored on the contract and shown before accept. It reads every row, so 3a comes first. A source whose reading carries `rows_bound` or `sheets_bound` is refused by name, never reported as complete. Test: duplicates, blanks and an out-of-range value are counted over a dataset larger than the preview, and a truncated reading cannot be accepted.
+
+**3a and 3b. Where the analysis copy's rows come from (G52, X7).** The only stored dataset rows sit in a reading cut at 250,000 characters (PARTIAL, `text_bound`), the grid reader is itself bounded, and `ClientSourceRepository` reads only through a `ClientContext` (a `StudyContext` is a separate class), so a copy built from the reading would silently total a truncated dataset and `client_data_prepare` has no accessor. 3a: a full-grid reader over the kept original bytes, not the stored reading, under stated analysis bounds, refusing by name above them and never keeping a partial copy. 3b: the hash-verified accessor and the scope `client_data_prepare` runs under (the client-work context pattern, or a StudyContext read of the client's copy). Test: a CSV over 250,000 characters is copied whole or refused with a named reason, never totalled partial.
