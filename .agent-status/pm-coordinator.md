@@ -136,3 +136,4 @@ Arigamaru; #512 ADR decisions; design feedback (optional).
 
 - 21:33 Nigel: #517 is Arams (Arigamaru = A. Bahbouh, the methodology owner, in charge of methodology). It is the -5 web drawing (sociomap-5-web plan). I undrafted it at 20:06 by mistake (its body says draft); asked Nigel whether to restore draft. Planning 2 told to point research-lead-workbench#20 / signed-off#9 at it. Never merge #517 without Aram.
 - #526 = IdP fix (Nigel typed it); marked ready for Codex 21:31.
+- 21:35 Nigel: leave #517 ready for Codex (not draft). Do not merge without Aram.
