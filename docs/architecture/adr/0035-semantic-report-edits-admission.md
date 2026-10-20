@@ -8,8 +8,9 @@ model (numbers only as refs). **Leaves unchanged** every claim, every run and it
 approval of a stored report.
 **Date:** 2026-10-20. **Amended 2026-10-20** with the product owner's recorded answers D-35 and Q6
 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`): free edits, numbers as
-ledger refs; the draft's closed operations and per-paragraph ref equality are withdrawn. Still
-Proposed.
+ledger refs; the draft's closed operations and per-paragraph ref equality are withdrawn; and Q13 (a)
+on the PM status page (20:50-21:04 UTC, relayed by the coordinator): the Lead live-edits, per
+researcher. Still Proposed.
 **Plan:** [report-delivery](../../../.planning/plans/report-delivery.md) RD5, RD5a, RD6, RD7;
 `lead-orchestration` LO9b, LO9c
 
@@ -78,12 +79,21 @@ An accepted edit set writes a new **draft revision** of that report: `(base fing
 edits)`, its own fingerprint, its own counter, separate from the Design Revision. It never reruns
 fieldwork, aggregation, analysis or the Sociomap, and never changes the run.
 
-### 5. The Lead proposes; a person accepts
+### 5. The Lead live-edits, as each researcher chooses
 
 The report writer is the researcher's Lead working on the report artifact through a results worker
-(LO9c): keyed on (run, report artifact), frozen input by id and SHA-256, its output a proposal of
-edits, each a change a person accepts or rejects (ADR 0029's per-change accept, on the report).
-Accepting needs `APPROVE_GATE`.
+(LO9c): keyed on (run, report artifact), frozen input by id and SHA-256. How its edits land is the
+researcher's own setting (the product owner, 2026-10-20, Q13 a), the same one that governs the
+study notes ([ADR 0039](0039-the-study-context-file.md) decision 2):
+
+- **Suggestions** (the default): each edit is a tracked change a person accepts or rejects (ADR
+  0029's per-change accept, on the report); accepting needs `APPROVE_GATE`.
+- **Direct rewrites**: the edit applies to the draft at once, marked *upraveno Vedoucím*, undoable,
+  a ledger row marked automatic under the researcher's standing choice.
+
+Either way, decision 3's whole-document rule runs before an edit lands: a direct rewrite that would
+break it is not applied and is shown as a refused suggestion naming the rule. A direct rewrite never
+approves a report; approval stays a person's act on the exact version (decision 6).
 
 ### 6. Approval is of the exact version
 
@@ -109,7 +119,9 @@ client deliverable follow approval (RD3).
 
 ## What enforces it
 
-- Tests: the stored document renders to the same DOCX bytes; ids are stable across a rerun with the
+- Tests: in suggestion mode an edit lands only when accepted; in direct mode it lands at once, is
+  marked *upraveno Vedoucím* and undoes, and one that breaks decision 3 is not applied; a direct
+  rewrite never approves; the stored document renders to the same DOCX bytes; ids are stable across a rerun with the
   same fingerprint; joining two paragraphs keeps both refs; a typed number is refused; a ref the
   composer did not admit for the surface is refused; removing a required module's last finding or a
   required disclosure is refused by name; a comparison sentence with no admitting ref blocks approval
@@ -123,15 +135,14 @@ RD5a and RD5 (W2/W3), RD6's accept destination, RD7, LO9b's report binding, and 
 
 ## Open for Nigel
 
-Answered by the product owner on 2026-10-20 (`answers-2026-10-20.md`, #523 @ `ee21982`):
+Answered by the product owner on 2026-10-20 (D-35 and Q6 in `answers-2026-10-20.md`, #523 @
+`ee21982`; Q13 on the PM status page):
 
 - ~~Moving chapters.~~ Free, the client report included (D-35).
 - ~~Ref-set equality.~~ Paragraphs may be joined; refs are unioned (D-35, Q6).
+- ~~Does the automatic accept apply to report edits?~~ The researcher's own editing mode applies:
+  suggestions by default, or direct, undoable rewrites (Q13, a). Decision 5.
+- ~~The Lead's web search.~~ Written as [ADR 0040](0040-the-leads-web-lookup.md).
 
-Still open:
-
-1. **Does the researcher's automatic accept apply to report edits?** ADR 0029 decision 9 lets text
-   edits apply without a click when the researcher turns it on; Q10 applies the toggle to the study
-   context file. This ADR has every report edit accepted by a person; whether the toggle extends to
-   reports waits for the owner's pending Q13 (per researcher: suggestions or direct edits).
-2. ~~The Lead's web search.~~ Written as [ADR 0040](0040-the-leads-web-lookup.md).
+Nothing remains open in this ADR but its acceptance; the editor that shows tracked changes is
+[ADR 0039](0039-the-study-context-file.md)'s open item.
