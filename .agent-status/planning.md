@@ -17,7 +17,7 @@ merge (the coordinator merges reviewed green PRs; Nigel merges when he says so).
 | PR | Branch | Head | State | Left |
 |---|---|---|---|---|
 | #522 | `chore/scope-proposed-edits` | `049413c` | draft, docs-only | freeze part 1b: 102 proposed edits deduplicated and tagged (written before the answers) |
-| #523 | `chore/scope-baseline` | `ed03730` | draft, docs-only | freeze part 2: the 48 answers applied; master § The scope baseline (In/Out/Open Q1-Q8, signature line); 20 child plans; waves; merge after #516 and #522; awaits Nigel's signature |
+| #523 | `chore/scope-baseline` | `5107edc` | draft, docs-only | freeze part 2: the 48 answers applied; master § The scope baseline (In/Out/Open Q1-Q8, signature line); 20 child plans; waves; merge after #516 and #522; awaits Nigel's signature |
 | #516 | `chore/scope-decision-list` | `c7d5bbe` | draft, docs-only | freeze step 4 part 1: 48 decisions for Nigel (one new file, `.planning/evidence/scope-freeze/decision-list.md`) + 35 no-decision edits; sent to coordinator, who presents it. Part 2 (apply answers, write baseline) waits on his answers |
 
 Subscribed to PR activity on #511: session_01RxUnHwTXGVFYjwzfpKi9kT (planning 2), 15:50 UTC. CI at that
@@ -100,3 +100,6 @@ no unadmitted number; an unsupported claim blocks approval; no legal review).
 The owner's 48 answers are in (page DB, collection answers; copied to
 `.planning/evidence/scope-freeze/answers-2026-10-20.md` in #523). Open questions Q1-Q8 (in #523's baseline) were sent to the
 coordinator, who asks Nigel directly (~19:30 UTC). When answered: apply each to the plans #523 names, then Nigel signs.
+
+## 19:55 UTC
+Q1-Q8 answered by Nigel (relayed by coordinator 2) and applied to #523 (5107edc). One new question Q9 (who writes a study context file's prose; recommended (b) Lead-proposed notes a person accepts) sent to the coordinator. Next: apply Q9; then Nigel's explicit signature on MP16 (the status-page tick is not it).
