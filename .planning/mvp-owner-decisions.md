@@ -45,11 +45,15 @@ answers, with deterministic theme counts and traceable examples. Connect the
 result to Analysis, Report, claim admission and exact input fingerprints. A
 prototype panel or generated prose is not a coded result.
 
-**Still requiring methodology specification:** the codebook/rules, permitted labels
+**MVPQ-02b — OPEN coding-method prerequisite:** the codebook/rules, permitted labels
 and multi-label semantics, denominator/missing-answer treatment, review/acceptance
 and scientific admission. Approval of the feature does not choose those rules.
-Name their methodology-owner prerequisite in the coding chunk and gate; do not
-reopen the settled scope. If this creates an additional worker/prompt, update the
+Name this methodology-owner prerequisite as MVPQ-02b in the coding chunk and gate;
+do not reopen the settled scope. Deterministic counts are computed from the same
+frozen reviewed per-answer assignment artifact and its version, dataset and codebook;
+a model or a human recoding the same text may legitimately produce different
+assignments. Changed assignments invalidate dependent counts/analysis/report,
+while the original answers remain frozen. If this creates an additional worker/prompt, update the
 registry, price/pins, harness and acceptance statements explicitly alongside the
 eleven baseline workers. Stable ids and unrelated manual editing can proceed.
 
@@ -103,7 +107,8 @@ policy. Chunk 8a's proposed Brief/signature contract can proceed without admitti
 
 ## MVPQ-06 — Required reach, evaluation quality and allowance
 
-**Product owner plus research-quality owner.** Three separate answers are needed:
+**Product owner plus research-quality owner.** Evaluation thresholds and allowance
+still need answers; the required reach is recorded alongside them:
 
 - Common Crawl remains required for I-R under the recorded scope; this does not
   need reconfirmation. Removing or delaying it would require an explicit owner
