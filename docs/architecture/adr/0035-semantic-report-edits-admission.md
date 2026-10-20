@@ -9,8 +9,8 @@ approval of a stored report.
 **Date:** 2026-10-20. **Amended 2026-10-20** with the product owner's recorded answers D-35 and Q6
 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`): free edits, numbers as
 ledger refs; the draft's closed operations and per-paragraph ref equality are withdrawn; and Q13 (a)
-on the PM status page (20:50-21:04 UTC, relayed by the coordinator): the Lead live-edits, per
-researcher. Still Proposed.
+and Q19 (a) on the PM status page (relayed by the coordinator): the Lead live-edits, per researcher;
+the editor by an evaluation spike. Still Proposed.
 **Plan:** [report-delivery](../../../.planning/plans/report-delivery.md) RD5, RD5a, RD6, RD7;
 `lead-orchestration` LO9b, LO9c
 
@@ -144,5 +144,9 @@ Answered by the product owner on 2026-10-20 (D-35 and Q6 in `answers-2026-10-20.
   suggestions by default, or direct, undoable rewrites (Q13, a). Decision 5.
 - ~~The Lead's web search.~~ Written as [ADR 0040](0040-the-leads-web-lookup.md).
 
-Nothing remains open in this ADR but its acceptance; the editor that shows tracked changes is
-[ADR 0039](0039-the-study-context-file.md)'s open item.
+Still open:
+
+1. **The editor** that shows a report's tracked changes is chosen by an evaluation spike before
+   adoption (Q19, a): Wordcraft, ONLYOFFICE Docs or Collabora Online, Tiptap rejected. The editing
+   rule of decision 5 holds whichever wins; see [ADR 0039](0039-the-study-context-file.md)'s open
+   item 1.
