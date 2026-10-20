@@ -11,8 +11,9 @@ import signedOff from "@/lib/fixtures/object-map-signed-off.json";
 import legacy from "@/lib/fixtures/object-map.json";
 import golden from "@/lib/fixtures/object-map-draw-golden.json";
 import { type BatteryWithMaps, mapLinks } from "@/lib/object-map-view";
-import { INITIAL_CAMERA, densityGrid, panelDots, panelNodes, projection, storedGrid, terrainAt } from "@/lib/object-map-panel";
+import { INITIAL_CAMERA, densityGrid, panelDots, panelNodes, projection, relationGeometry, storedGrid, terrainAt } from "@/lib/object-map-panel";
 import { type SignedOffRespondents, storedFrame } from "@/lib/object-map-signed-off";
+import { num } from "@/lib/sociomapping-view";
 import { sharePercent } from "./ObjectMapPanel";
 import { ObjectMapView } from "./ObjectMapView";
 
@@ -449,3 +450,141 @@ describe("taste segments", () => {
   });
 });
 
+
+describe("what a click shows beside the map", () => {
+  const card = () => screen.getByTestId("object-map-detail");
+  const label = (id: string) => hudba.objects.find((o) => o.id === id)!.label;
+
+  it("asks for a click, then shows a chosen object's stored numbers and strongest relations", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    expect(card().textContent).toContain("Detail objektu / vztahu");
+    expect(card().textContent).toContain("Klikněte na objekt nebo vztah.");
+    fireEvent.click(within(screen.getByTestId("object-map-panel-list")).getByRole("button", { name: "Vybrat objekt Rock" }));
+    expect(screen.getByTestId("object-map-detail-label").textContent).toBe("Rock");
+    const k = map.object_ids.indexOf(canvas().getAttribute("data-selected")!);
+    const text = card().textContent!;
+    expect(text).toContain("Průměrné hodnocení");
+    expect(text).toContain("Provázanost (0–100)");
+    expect(text).toContain(num(100 * map.scores!.objects[k].connectedness!, 1));
+    // The alignment says nothing on this map (every object PRIMARY, each respondent's mean removed).
+    expect(text).not.toContain("Soulad s rodinou");
+    const rows = within(screen.getByTestId("object-map-detail-relations")).getAllByText(/^[+−-]?\d,\d\d$/);
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.length).toBeLessThanOrEqual(5);
+    // Nothing the map does not store: no p-value, no noise level, no rating distribution.
+    expect(text).not.toMatch(/Úroveň šumu|Rozložení hodnocení|První volba/);
+  });
+
+  it("selects a relation by a click on its line: the pair's r, interval, N and verdict", async () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    await nextFrame(0);
+    // A drawn line's midpoint (the panel's own hits on the opening frame) with no object within its hit radius.
+    const nodes = map.object_ids.map((_, k) => nodeAt(k));
+    const line = (golden.scenes.relativeInitial.hits as [string, number, number, number, number, number][])
+      .find((h) => h[0] === "relation" && nodes.every((q) => Math.hypot(q.x - h[3], q.y - h[4]) > 14))!;
+    const [, i, j, x, y] = line;
+    fireEvent.pointerDown(canvas(), { clientX: x, clientY: y, pointerId: 1 });
+    fireEvent.pointerUp(canvas(), { clientX: x, clientY: y, pointerId: 1 });
+    expect(canvas().getAttribute("data-relation")).toBe(`${map.object_ids[i]}|${map.object_ids[j]}`);
+    expect(canvas().getAttribute("data-selected")).toBe(map.object_ids[i]);
+    const block = screen.getByTestId("object-map-detail-relation").textContent!;
+    expect(block).toContain("Vybraný vztah");
+    expect(block).toContain(`${label(map.object_ids[i])} – ${label(map.object_ids[j])}`);
+    const r = map.relations.r[i][j]!;
+    expect(block).toContain((r >= 0 ? "+" : "") + num(r, 2));
+    // This estimator stores no interval: "95 % —", as the panel prints a missing one.
+    expect(map.relations.interval![i][j]).toBeNull();
+    expect(block).toContain("95 % —");
+    expect(block).toContain(String(map.relations.n[i][j]));
+    // "zřetelný" from |r| 0,3, as the panel words it.
+    const word = Math.abs(r) >= 0.3 ? "zřetelný" : "slabý", sign = r >= 0 ? "kladný" : "záporný";
+    expect(screen.getByTestId("object-map-detail-verdict").textContent).toBe(`Spolehlivý ${word} ${sign} vztah: silnější, než jaký vytvoří náhoda.`);
+    // The object's own detail follows under the relation; choosing an object from the list drops the relation.
+    expect(screen.getByTestId("object-map-detail-label").textContent).toBe(label(map.object_ids[i]));
+    const reselect = () => { fireEvent.pointerDown(canvas(), { clientX: x, clientY: y, pointerId: 1 }); fireEvent.pointerUp(canvas(), { clientX: x, clientY: y, pointerId: 1 }); };
+    fireEvent.click(within(screen.getByTestId("object-map-panel-list")).getByRole("button", { name: `Vybrat objekt ${label(map.object_ids[j])}` }));
+    expect(canvas().getAttribute("data-relation")).toBe("");
+    expect(screen.queryByTestId("object-map-detail-relation")).toBeNull();
+    // So does a click on an object on the map (the panel's list does; its canvas keeps a stale relation).
+    reselect();
+    expect(canvas().getAttribute("data-relation")).not.toBe("");
+    const other = map.object_ids.findIndex((_, k) => k !== i && k !== j && nodes.every((q, m) => m === k || Math.hypot(q.x - nodes[k].x, q.y - nodes[k].y) > 28));
+    fireEvent.pointerDown(canvas(), { clientX: nodes[other].x, clientY: nodes[other].y, pointerId: 1 });
+    fireEvent.pointerUp(canvas(), { clientX: nodes[other].x, clientY: nodes[other].y, pointerId: 1 });
+    expect(canvas().getAttribute("data-selected")).toBe(map.object_ids[other]);
+    expect(canvas().getAttribute("data-relation")).toBe("");
+    // A click on free ground clears both.
+    reselect();
+    fireEvent.pointerDown(canvas(), { clientX: 2, clientY: 2, pointerId: 1 });
+    fireEvent.pointerUp(canvas(), { clientX: 2, clientY: 2, pointerId: 1 });
+    expect(canvas().getAttribute("data-selected")).toBe("");
+    expect(canvas().getAttribute("data-relation")).toBe("");
+    expect(screen.queryByTestId("object-map-detail-relation")).toBeNull();
+  });
+
+  it("prints a stored interval as the panel does: signed, decimal comma", async () => {
+    const nodes = map.object_ids.map((_, k) => nodeAt(k));
+    const line = (golden.scenes.relativeInitial.hits as [string, number, number, number, number, number][])
+      .find((h) => h[0] === "relation" && nodes.every((q) => Math.hypot(q.x - h[3], q.y - h[4]) > 14))!;
+    const [, i, j] = line;
+    const interval = map.relations.r.map((row, a) => row.map((_, b) => ((a === i && b === j) || (a === j && b === i) ? [-0.05, 0.41] as [number, number] : null)));
+    const stored = hudba.maps!["aia-sociomap-5"];
+    const withInterval = { ...hudba, maps: { "aia-sociomap-5": { ...stored, artifact: { ...map, relations: { ...map.relations, interval } } } } };
+    render(<ObjectMapView battery={withInterval} dataOrigin={null} />);
+    await nextFrame(0);
+    fireEvent.pointerDown(canvas(), { clientX: line[3], clientY: line[4], pointerId: 1 });
+    fireEvent.pointerUp(canvas(), { clientX: line[3], clientY: line[4], pointerId: 1 });
+    expect(screen.getByTestId("object-map-detail-relation").textContent).toContain("95 % -0,05 až +0,41");
+  });
+
+  it("words a relation under |r| 0,3 as slabý, at or over it as zřetelný", async () => {
+    // A drawn pair's midpoint on the opening frame (it does not depend on r), clear of every object.
+    const nodes = map.object_ids.map((_, k) => nodeAt(k));
+    const index = (id: string) => map.object_ids.indexOf(id);
+    const [i, j, x, y] = mapLinks(map).map((l) => {
+      const [a, b] = [index(l.a), index(l.b)];
+      const mid = relationGeometry(nodes[a], nodes[b], a < b ? 1 : -1, 0, 0)!.mid;
+      return [a, b, mid.x, mid.y];
+    }).find(([, , mx, my]) => nodes.every((q) => Math.hypot(q.x - mx, q.y - my) > 14))!;
+    // Set the pair to 0,25 and 0,30 and click it on "Vše".
+    const verdict = async (v: number) => {
+      const r = map.relations.r.map((row, a) => row.map((x0, b) => ((a === i && b === j) || (a === j && b === i) ? v : x0)));
+      const stored = hudba.maps!["aia-sociomap-5"];
+      render(<ObjectMapView battery={{ ...hudba, maps: { "aia-sociomap-5": { ...stored, artifact: { ...map, relations: { ...map.relations, r } } } } }} dataOrigin={null} />);
+      fireEvent.click(screen.getByRole("button", { name: "Vše" }));
+      await nextFrame(0);
+      fireEvent.pointerDown(canvas(), { clientX: x, clientY: y, pointerId: 1 });
+      fireEvent.pointerUp(canvas(), { clientX: x, clientY: y, pointerId: 1 });
+      const text = screen.getByTestId("object-map-detail-verdict").textContent;
+      cleanup();
+      frames = 0;
+      return text;
+    };
+    expect(await verdict(0.25)).toBe("Spolehlivý slabý kladný vztah: silnější, než jaký vytvoří náhoda.");
+    expect(await verdict(0.3)).toBe("Spolehlivý zřetelný kladný vztah: silnější, než jaký vytvoří náhoda.");
+  });
+
+  it("shows a clicked respondent's profile on the respondent map, and asks for a click without one", async () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
+    await nextFrame(0);
+    expect(card().textContent).toContain("Profil respondenta");
+    expect(card().textContent).toContain("Klikněte na člověka v mapě.");
+    const dots = panelDots(map, storedFrame(map)!);
+    const grid = densityGrid(map)!;
+    const P = projection(INITIAL_CAMERA, 900, 700);
+    const at = dots.map((d) => P.project(d.x, d.y, terrainAt(grid, d.x, d.y) + 0.65));
+    const lone = at.findIndex((q, k) => at.every((o, j) => j === k || Math.hypot(o.x - q.x, o.y - q.y) > 16));
+    fireEvent.pointerDown(canvas(), { clientX: at[lone].x, clientY: at[lone].y, pointerId: 1 });
+    fireEvent.pointerUp(canvas(), { clientX: at[lone].x, clientY: at[lone].y, pointerId: 1 });
+    const id = dots[lone].id, k = map.respondent_ids!.indexOf(id);
+    const r = map.respondents as SignedOffRespondents;
+    expect(screen.getByTestId("object-map-detail-person").textContent).toBe(id);
+    const text = card().textContent!;
+    expect(text).toContain("Poloha z odpovědí");
+    expect(text).toContain(`Mapa vysvětluje ${Math.round(100 * (1 - r.misfit[k]!))} % rozdílů v jeho hodnoceních`);
+    expect(text.includes("slabě umístěn")).toBe(r.placement[k] === "FADED");
+    const seg = r.segments!;
+    expect(text).toContain(seg.coloured![k] ? `Chuťový segment ${seg.label![k] + 1}` : "Není jasně v jednom chuťovém segmentu");
+  });
+});

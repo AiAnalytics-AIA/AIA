@@ -293,7 +293,8 @@ describe("a whole frame", () => {
       const grid = norm === "absolute" ? absoluteGrid(map)! : storedGrid(map)!;
       const result = drawObjectMap(ctx, { width: W, height: H, camera, grid, nodes, tones: nodeTones(nodes, norm), pairs, selected: scene.selected, hovered: scene.hovered, nodeScale: nodeScale(13) });
       close(summarise(ops), scene.summary);
-      close(result.hits.map((h) => [h.index, h.x, h.y, h.r]), scene.hits);
+      // Every hit in the panel's order: the drawn relation lines at their midpoints, then the objects.
+      close(result.hits.map((h) => [h.kind, h.index, h.j ?? null, h.x, h.y, h.r]), scene.hits);
       expect(result.labels.shown).toBe(scene.summary.texts.length);
     });
   }

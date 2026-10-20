@@ -397,8 +397,9 @@ export type MapScene = {
   respondents?: { dots: PanelDot[]; selected: number };
 };
 
-/** What a click can land on: an object (on either map) or a respondent's dot. */
-export type Hit = { index: number; x: number; y: number; r: number; kind: "object" | "respondent" };
+/** What a click can land on: an object (on either map), a respondent's dot, or a drawn relation
+ *  at its midpoint (`index` and `j` its two objects). */
+export type Hit = { index: number; x: number; y: number; r: number; kind: "object" | "respondent" | "relation"; j?: number };
 export type DrawResult = { hits: Hit[]; labels: { shown: number; wanted: number } };
 
 /** The object under a screen point, nearest first, within its hit radius (`hit66`). */
@@ -486,12 +487,13 @@ function drawContours(ctx: CanvasRenderingContext2D, P: Projection, grid: PanelG
 function drawObjects(ctx: CanvasRenderingContext2D, P: Projection, scene: MapScene): DrawResult {
   const { grid, nodes, tones, selected, hovered } = scene;
   const q = nodes.map((n) => P.project(n.x, n.y, terrainAt(grid, n.x, n.y) + 0.8));
+  const hits: Hit[] = [];
   for (const pair of scene.pairs) {
     const side = pair.i < pair.j ? 1 : -1;
-    relationLine(ctx, q[pair.i], q[pair.j], pair.k, pair.r >= 0 ? WARM : COOL, side, lineClearance(pair.i === selected), lineClearance(pair.j === selected));
+    const mid = relationLine(ctx, q[pair.i], q[pair.j], pair.k, pair.r >= 0 ? WARM : COOL, side, lineClearance(pair.i === selected), lineClearance(pair.j === selected));
+    if (mid) hits.push({ index: pair.i, j: pair.j, x: mid.x, y: mid.y, r: 10, kind: "relation" });
   }
   const order = nodes.map((_, i) => i).sort((a, b) => q[a].depth - q[b].depth);
-  const hits: Hit[] = [];
   const labels: LabelItem[] = [];
   for (const i of order) {
     const sel = i === selected, hov = i === hovered, sec = !nodes[i].primary;
@@ -519,10 +521,10 @@ function drawObjects(ctx: CanvasRenderingContext2D, P: Projection, scene: MapSce
   return { hits, labels: { shown: placed.length, wanted: labels.length } };
 }
 
-function relationLine(ctx: CanvasRenderingContext2D, a: XY, b: XY, k: number, color: string, side: number, ra: number, rb: number): void {
+function relationLine(ctx: CanvasRenderingContext2D, a: XY, b: XY, k: number, color: string, side: number, ra: number, rb: number): XY | null {
   const w = relationWidth(k);
   const g = relationGeometry(a, b, side, ra, rb);
-  if (!g) return;
+  if (!g) return null;
   const s = g.piece;
   const path = () => { ctx.beginPath(); ctx.moveTo(s.p0.x, s.p0.y); ctx.quadraticCurveTo(s.c.x, s.c.y, s.p1.x, s.p1.y); };
   ctx.save();
@@ -539,6 +541,7 @@ function relationLine(ctx: CanvasRenderingContext2D, a: XY, b: XY, k: number, co
   path();
   ctx.stroke();
   ctx.restore();
+  return g.mid;
 }
 
 // ---------------------------------------------------------------- what the map says about itself

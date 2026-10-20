@@ -13,10 +13,11 @@
 // stored credibility, and the objects nobody rated are listed beside it. A map that stores its
 // respondent map switches to it (the panel's Mapa: Respondenti / Objekty): the stored density of
 // the clearly placed respondents as the terrain, every placed respondent as a dot (a weakly placed
-// one faint), the objects as markers, its own legend, note and counts. Seams for the later
-// chunks: the taste segments' colours, legend and hint (chunk 5, `dotColour`), a selected object's
-// or respondent's detail card beside the list (chunk 6), and the PNG snapshot with the legend
-// with the report's figure (chunk 7).
+// one faint), the objects as markers, its own legend, note and counts, the taste segments'
+// colours, legend and hint. A clicked object, relation or respondent shows its detail above the
+// list, from what the map stores (the panel's p-value, noise level and the respondent's answers
+// are not stored, so not shown). Seam for the later chunk: the PNG snapshot with the legend with
+// the report's figure (chunk 7).
 //
 // As the panel embedded in a page: the wheel zooms while the pointer is over the map and scrolls the
 // page elsewhere; ⛶ opens the map in the browser's full screen (the panel's `socioFullscreen66`).
@@ -25,7 +26,9 @@ import { type PointerEvent, type ReactNode, useEffect, useId, useMemo, useRef, u
 import { t, tv } from "@/i18n/t";
 import { num } from "@/lib/sociomapping-view";
 import { type BatteryWithMaps, type ObjectMapArtifact, originalRating } from "@/lib/object-map-view";
-import { type SegmentLegend, objectsNotPlaced, panelObjects, respondentNote, segmentLegend, storedFrame, storedRespondents } from "@/lib/object-map-signed-off";
+import {
+  type SegmentLegend, objectDetail, objectsNotPlaced, panelObjects, relationDetail, respondentDetail, respondentNote, segmentLegend, storedFrame, storedRespondents,
+} from "@/lib/object-map-signed-off";
 import {
   CLICK_SLOP, COOL, INITIAL_CAMERA, SECONDARY, SEGMENT_COLOURS, SEGMENT_GREY, TOP_PITCH, WARM, ZOOM_IN, ZOOM_OUT,
   type Hit, type Norm, type PanelCamera, type RelationMode,
@@ -64,11 +67,12 @@ export function ObjectMapPanel({ battery, map, facts }: { battery: BatteryWithMa
 type ListItem = { id: string; label: string; value: number | null; colour: string };
 
 /** Beside the map: every object as a button (keyboard and screen-reader access to the map), then the facts. */
-function Aside({ battery, facts, items, selected, notPlaced, counts = null, onChoose, onHover }: {
-  battery: BatteryWithMaps; facts: ReactNode; items: ListItem[]; selected: number; notPlaced: string[]; counts?: ReactNode; onChoose?: (k: number) => void; onHover?: (k: number) => void;
+function Aside({ battery, facts, items, selected, notPlaced, counts = null, detail = null, onChoose, onHover }: {
+  battery: BatteryWithMaps; facts: ReactNode; items: ListItem[]; selected: number; notPlaced: string[]; counts?: ReactNode; detail?: ReactNode; onChoose?: (k: number) => void; onHover?: (k: number) => void;
 }) {
   return (
     <aside className="flex min-w-0 flex-[1_1_260px] flex-col gap-3">
+      {detail}
       {counts}
       <div className="flex flex-col gap-2 rounded-[10px] border border-border bg-surface-raised p-4" data-testid="object-map-panel-list">
         <h4 className="text-xs font-semibold">{t("research.exec.objectMap.panel.listTitle")}</h4>
@@ -104,6 +108,8 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   const [mode, setMode] = useState<RelationMode>("top");
   const [camera, setCamera] = useState<PanelCamera>(INITIAL_CAMERA);
   const [selected, setSelected] = useState(-1);
+  // The clicked relation line's two objects (the first is also the selected object), or null.
+  const [relation, setRelation] = useState<[number, number] | null>(null);
   // Which map the canvas shows, and the clicked respondent's dot on the respondent map (-1: none).
   const [view, setView] = useState<"objects" | "respondents">("objects");
   const [person, setPerson] = useState(-1);
@@ -243,11 +249,13 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
     pointer.current = null;
     if (!p || p.moved >= CLICK_SLOP) return;
     const hit = p.mode === "select" ? p.hit : null;
-    // On the respondent map a click on a dot rings that respondent; an object's marker opens its
-    // detail with chunk 6. A click on free ground clears both selections, as the panel's.
-    if (hit?.kind === "respondent") { setPerson(hit.index); setSelected(-1); }
-    else if (hit?.kind === "object" && !people) setSelected(hit.index);
-    else if (!hit) { setSelected(-1); setPerson(-1); }
+    // On the respondent map a click on a dot rings that respondent and shows its profile; on the
+    // object map an object or a relation line shows its detail. A click on free ground clears
+    // every selection, as the panel's.
+    if (hit?.kind === "respondent") { setPerson(hit.index); setSelected(-1); setRelation(null); }
+    else if (hit?.kind === "relation" && !people) { setSelected(hit.index); setRelation([hit.index, hit.j!]); }
+    else if (hit?.kind === "object" && !people) { setSelected(hit.index); setRelation(null); }
+    else if (!hit) { setSelected(-1); setPerson(-1); setRelation(null); }
   };
 
   const tool = (label: string, short: string, act: () => void, pressed?: boolean) => (
@@ -256,7 +264,10 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   );
   const fromAbove = camera.pitch < TOP_PITCH;
   const notPlaced = objectsNotPlaced(battery, map);
-  const choose = (k: number) => setSelected((s) => (s === k ? -1 : k));
+  const choose = (k: number) => { setSelected((s) => (s === k ? -1 : k)); setRelation(null); };
+  const detail = people
+    ? <PersonCard detail={person >= 0 ? respondentDetail(map, dots[person].id) : null} />
+    : <ObjectCard battery={battery} map={map} selected={selected} relation={relation} />;
 
   return (
     <div className="flex flex-col gap-3" data-testid="object-map-panel">
@@ -289,7 +300,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
         <div ref={setStage} className="relative h-[700px] min-w-0 flex-[999_1_560px] overflow-hidden rounded-[10px] bg-[#07090c] [min-width:min(100%,560px)] [&:fullscreen]:h-screen [&:fullscreen]:w-screen [&:fullscreen]:rounded-none" data-testid="object-map-stage">
           <canvas ref={canvas} className="block h-full w-full cursor-grab touch-none" role="img" data-testid="object-map-canvas"
             data-camera={JSON.stringify(camera)} data-norm={norm} data-map={people ? "respondents" : "objects"} data-person={people && person >= 0 ? dots[person].id : ""}
-            data-relations={people ? "" : pairs.map((p) => `${nodes[p.i].id}|${nodes[p.j].id}`).join(" ")} data-selected={selected >= 0 ? nodes[selected].id : ""}
+            data-relations={people ? "" : pairs.map((p) => `${nodes[p.i].id}|${nodes[p.j].id}`).join(" ")} data-selected={selected >= 0 ? nodes[selected].id : ""} data-relation={relation ? `${nodes[relation[0]].id}|${nodes[relation[1]].id}` : ""}
             aria-label={people ? tv("research.exec.objectMap.panel.respondentCanvas", { title: battery.title, placed: dots.length, n: nodes.length }) : tv("research.exec.objectMap.panel.canvas", { title: battery.title, n: nodes.length })}
             aria-describedby={people ? undefined : described}
             onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => { pointer.current = null; }} onPointerLeave={() => { if (!pointer.current) setHovered(-1); }} />
@@ -305,7 +316,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
           </div>
           {people ? <DensityLegend segments={segments} /> : <Legend battery={battery} values={nodes.map((n) => (n.primary ? n.value : null))} norm={norm} strongest={strongest} />}
         </div>
-        <Aside battery={battery} facts={facts} selected={selected} onChoose={choose} onHover={setHovered} notPlaced={notPlaced}
+        <Aside battery={battery} facts={facts} selected={selected} onChoose={choose} onHover={setHovered} notPlaced={notPlaced} detail={detail}
           counts={people ? <RespondentCounts map={map} segments={segments} /> : null}
           items={nodes.map((n, k) => ({ id: n.id, label: n.label, value: n.value, colour: n.primary ? color66(tones[k]) : SECONDARY }))} />
       </div>
@@ -513,5 +524,127 @@ function RespondentCounts({ map, segments }: { map: ObjectMapArtifact; segments:
       {c.NOT_PLACED ? row("countNotPlaced", count(c.NOT_PLACED), tv("research.exec.objectMap.panel.countNotPlacedHelp", { ratings })) : null}
       {segments ? (() => { const s = segmentsRow(segments, map); return <div data-testid="object-map-segments-row">{row("countSegments", s.value, s.help)}</div>; })() : null}
     </div>
+  );
+}
+
+/** A label with its meaning behind an ⓘ, as the panel's detail labels (`mi1910`). */
+function Tip({ label, help }: { label: string; help: string }) {
+  return (
+    <span>
+      {label}{" "}
+      <details className="inline">
+        <summary className="inline cursor-pointer list-none opacity-60 [&::-webkit-details-marker]:hidden" title={t("research.exec.objectMap.panel.infoTip")} aria-label={t("research.exec.objectMap.panel.infoTip")}>ⓘ</summary>
+        <span className="mt-1 block text-[11px] font-normal leading-[1.4]">{help}</span>
+      </details>
+    </span>
+  );
+}
+
+function Fact({ label, help, value, note }: { label: string; help?: string; value: string; note?: string }) {
+  return (
+    <div className="rounded-[6px] border border-border bg-surface p-[7px]">
+      <small className="mb-0.5 block text-[9.5px] text-ink-muted">{help ? <Tip label={label} help={help} /> : label}</small>
+      <strong className="text-[15px] tabular-nums">{value}</strong>
+      {note ? <small className="block text-[9.5px] text-ink-muted">{note}</small> : null}
+    </div>
+  );
+}
+
+function DetailCard({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-2 rounded-[10px] border border-border bg-surface-raised p-4 text-xs" data-testid="object-map-detail">
+      <h4 className="font-semibold">{title}</h4>
+      {children}
+    </div>
+  );
+}
+
+const DETAIL_HEAD = "mt-1 text-xs font-semibold";
+const signed = (v: number) => (v >= 0 ? "+" : "") + num(v, 2);
+
+/** The panel's object detail (`objectDetail66`): the selected relation, then the object's numbers
+ *  and its strongest reliable relations, all as the map stores them. */
+function ObjectCard({ battery, map, selected, relation }: { battery: BatteryWithMaps; map: ObjectMapArtifact; selected: number; relation: [number, number] | null }) {
+  const p = "research.exec.objectMap.panel";
+  if (selected < 0) {
+    return <DetailCard title={t(`${p}.objectDetailTitle`)}><p className="py-4 text-center text-ink-muted">{t(`${p}.objectDetailEmpty`)}</p></DetailCard>;
+  }
+  const o = objectDetail(battery, map, selected);
+  return (
+    <DetailCard title={t(`${p}.objectDetailTitle`)}>
+      {relation ? <RelationBlock detail={relationDetail(battery, map, relation[0], relation[1])} /> : null}
+      <b className="text-sm" data-testid="object-map-detail-label">{o.label}</b>
+      {o.primary ? null : <p className="text-[10.5px] text-ink-muted">{t(`${p}.detailSecondary`)}</p>}
+      <div className="grid grid-cols-2 gap-1.5">
+        <Fact label={t(`${p}.detailHeight`)} help={t(`${p}.detailHeightHelp`)} value={panelNumber(o.height === null ? null : originalRating(o.height, battery.rating_scale) ?? o.height)} />
+        <Fact label={t(`${p}.detailConnectedness`)} help={t(`${p}.detailConnectednessHelp`)} value={panelNumber(o.connectedness)} />
+        {o.alignment !== null ? <Fact label={t(`${p}.detailAlignment`)} help={t(`${p}.detailAlignmentHelp`)} value={(o.alignment >= 0 ? "+" : "") + panelNumber(o.alignment)} /> : null}
+      </div>
+      <h5 className={DETAIL_HEAD}><Tip label={t(`${p}.detailRelations`)} help={t(`${p}.detailRelationsHelp`)} /></h5>
+      {o.relations.length ? (
+        <div className="grid gap-[3px]" data-testid="object-map-detail-relations">
+          {o.relations.map((x) => (
+            <div key={x.id} className="flex justify-between gap-2.5 border-b border-border py-[5px] text-[10.5px]"><span className="min-w-0 text-ink-muted">{x.label}</span><b className="tabular-nums">{signed(x.r)}</b></div>
+          ))}
+        </div>
+      ) : <p className="text-[10.5px] text-ink-muted">{t(`${p}.detailNoRelation`)}</p>}
+      {o.primary ? null : (
+        <>
+          <h5 className={DETAIL_HEAD}>{t(`${p}.detailPlacement`)}</h5>
+          <Fact label={t(`${p}.detailBasis`)} value={o.basis === null ? t(`${p}.detailBasisNone`) : num(o.basis, 2)} />
+          <p className="text-[10.5px] text-ink-muted">{t(`${p}.detailBasisNote`)}</p>
+        </>
+      )}
+    </DetailCard>
+  );
+}
+
+/** The panel's "Vybraný vztah" (`relationHtml66`) without the p-value and the noise level, which
+ *  the map does not store (nor, under this estimator, an interval: "95 % —" as the panel prints a
+ *  missing one); the verdict reads the stored status. "zřetelný" from |r| 0,3, as the panel words it. */
+function RelationBlock({ detail: d }: { detail: ReturnType<typeof relationDetail> }) {
+  const p = "research.exec.objectMap.panel";
+  let verdict: ReactNode;
+  if (d.r === null) verdict = tv(`${p}.${d.verdict === "noSpread" ? "relationNoSpread" : "relationFewRatings"}`, { n: d.n ?? 0 });
+  else {
+    const word = t(`${p}.${Math.abs(d.r) >= 0.3 ? "relationClear" : "relationSlight"}`), sign = t(`${p}.${d.r >= 0 ? "relationPositive" : "relationNegative"}`);
+    verdict = d.verdict === "reliable"
+      ? (d.noiseRule ? <><b>{tv(`${p}.relationReliableNoise`, { word, sign })}</b> {t(`${p}.relationReliableNoiseText`)}</> : <><b>{t(`${p}.relationReliable`)}</b> ({word} {sign}).</>)
+      : <><b>{t(`${p}.relationWeak`)}</b> {t(`${p}.${d.noiseRule ? "relationWeakNoiseText" : "relationWeakText"}`)}</>;
+  }
+  return (
+    <div className="flex flex-col gap-1.5 rounded-[7px] border border-border bg-surface p-2" data-testid="object-map-detail-relation">
+      <h5 className="text-xs font-semibold">{t(`${p}.relationTitle`)}</h5>
+      <b>{d.a} – {d.b}</b>
+      {d.r !== null ? (
+        <div className="grid grid-cols-2 gap-1.5">
+          <Fact label={t(`${p}.relationR`)} help={t(`${p}.relationRHelp`)} value={signed(d.r)} note={d.interval ? tv(`${p}.relationInterval`, { lo: signed(d.interval[0]), hi: signed(d.interval[1]) }) : t(`${p}.relationNoInterval`)} />
+          <Fact label={t(`${p}.relationN`)} help={tv(`${p}.relationNHelp`, { total: d.respondents })} value={d.n === null ? "—" : String(d.n)} />
+        </div>
+      ) : null}
+      <p className="text-[10.5px] leading-[1.45] text-ink-muted" data-testid="object-map-detail-verdict">{verdict}</p>
+    </div>
+  );
+}
+
+/** The panel's respondent detail (`personDetail66`): where the respondent sits and why, how well
+ *  the map fits them, and their taste segment. The stored map holds no profile and no answers. */
+function PersonCard({ detail: d }: { detail: ReturnType<typeof respondentDetail> }) {
+  const p = "research.exec.objectMap.panel";
+  if (!d) return <DetailCard title={t(`${p}.personTitle`)}><p className="py-4 text-center text-ink-muted">{t(`${p}.personEmpty`)}</p></DetailCard>;
+  return (
+    <DetailCard title={t(`${p}.personTitle`)}>
+      <div className="flex items-center gap-[9px]">
+        <div aria-hidden className="grid h-[46px] w-[46px] flex-none place-items-center rounded-full bg-[#1d2b33] font-extrabold text-white">{d.id.slice(-2)}</div>
+        <div>
+          <b data-testid="object-map-detail-person">{d.id}</b>
+          <p className="text-[10.5px] leading-[1.45] text-ink-muted">
+            {t(`${p}.personPosition`)}
+            {d.explained !== null ? <><br />{tv(`${p}.personExplained`, { pct: d.explained })}{d.faded ? ` · ${t(`${p}.personFaded`)}` : ""}</> : null}
+            {d.segment !== null ? <><br />{d.segment >= 0 ? tv(`${p}.personSegment`, { n: d.segment + 1 }) : t(`${p}.personNoSegment`)}</> : null}
+          </p>
+        </div>
+      </div>
+    </DetailCard>
   );
 }
