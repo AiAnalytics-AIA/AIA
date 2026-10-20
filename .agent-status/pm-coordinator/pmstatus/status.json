@@ -1,14 +1,26 @@
 {
- "generated_at": "2026-10-20T21:25:00Z",
+ "generated_at": "2026-10-20T21:50:00Z",
  "develop_sha": "44b66ef",
- "headline": "Three decisions left (Q19 Wordcraft, Q20 Brave and design data, Q21 merge authority), then two things to type here: 'accept ADRs 0028-0040' and your MP16 signature. That unblocks the MVP build.",
+ "headline": "Q19-Q21 are answered and being applied. Two follow-ups (Q22 Class A in searches, Q23 search operators), then 'accept ADRs 0028-0040' and your MP16 signature. Planning 2 is handing off to planning 3 at 73% context.",
  "needs_nigel": [
+  {
+   "id": "N13",
+   "title": "Add the allow rule for merges and session messages (Q21)",
+   "why": "You chose (a): I keep merging. The permission check blocked a session message after the #524 merge as 'Merge Without Review', so it may block the next merge too.",
+   "example": "In this session's permission settings, allow mcp__github__merge_pull_request and mcp__claude-code-remote__send_message.",
+   "recommendation": "Add both now; #525 is the next merge.",
+   "unblocks": [
+    "f5",
+    "#525"
+   ],
+   "where": "This session's permission settings"
+  },
   {
    "id": "N9",
    "title": "Type your MP16 signature in the coordinator chat (#523)",
    "why": "The scope freeze holds all MVP feature code until you sign. #523 @ fe5dc1b carries Q1-Q18; Q19 and Q20 go in next. A tick on this page is not a signature.",
    "example": "I sign MP16 on #523 at <head>",
-   "recommendation": "Answer Q19-Q20 first; I'll tell you the final head SHA to sign.",
+   "recommendation": "After Q22 and Q23 (and the planning 3 handoff, which applies Q19-Q21).",
    "unblocks": [
     "f4",
     "f5",
@@ -21,23 +33,11 @@
    "title": "Type 'accept ADRs 0028-0040' in the coordinator chat",
    "why": "All your answers are applied (#512 @ 06b143c). 0032 waits on Q20 and 0039 on Q19. Accepting also approves 0039/0040's amendments to ADR 0026. The method questions in 0034, 0036 and 0037 go to Arigamaru separately.",
    "example": "accept ADRs 0028-0040",
-   "recommendation": "After Q19 and Q20.",
+   "recommendation": "After Q22 and Q23 (and the planning 3 handoff, which applies Q19-Q21).",
    "unblocks": [
     "f6"
    ],
    "where": "Coordinator chat"
-  },
-  {
-   "id": "N8",
-   "title": "Type 'commit and push the IdP fix' in the AIA infra audit session",
-   "why": "The fix is ready and checked, but the repo rules need your own words in that session. A tick here doesn't reach it (you ticked it at 20:34; nothing was pushed).",
-   "example": "commit and push the IdP fix",
-   "recommendation": "Do it before the domain cutover.",
-   "unblocks": [
-    "i2",
-    "d5"
-   ],
-   "where": "AIA infra audit session"
   },
   {
    "id": "N2",
@@ -64,22 +64,16 @@
    "where": "PR #510"
   },
   {
-   "id": "N11",
-   "title": "Tell me whose PR #517 is",
-   "why": "#517 (draw aia-sociomap-5 maps in the web) is feature code that no session I track owns, and the scope freeze holds it.",
-   "example": "'It's mine, park it' or 'close it, research-lead-workbench#20 covers it'",
-   "recommendation": "Park it until MP16; the -5 drawing chunk (research-lead-workbench#20) can reuse it.",
-   "unblocks": [],
-   "where": "Coordinator chat"
-  },
-  {
-   "id": "N12",
-   "title": "Optional: say 'update the workbench design'",
-   "why": "The design session applied your input rule (screen 12 Vstupy, inline folders, steppers) in its local copy; the published design is still version 2.",
-   "example": "update the workbench design",
-   "recommendation": "Yes, so you review the new inputs in one place.",
-   "unblocks": [],
-   "where": "Coordinator chat"
+   "id": "N14",
+   "title": "Say \"go\" in the input interactions audit session",
+   "why": "Its evidence file and the input-interactions plan are written; repo rules need your word in that session before it commits and opens the docs PR.",
+   "example": "go",
+   "recommendation": "Yes: the plan then folds into the baseline before you sign.",
+   "unblocks": [
+    "u2",
+    "u3"
+   ],
+   "where": "AIA design: input interactions audit session"
   }
  ],
  "sessions": [
@@ -94,7 +88,7 @@
    "needs": null,
    "blocked_by": [],
    "next": "Merge #525 after develop CI; merge the freeze PRs after MP16.",
-   "context_pct": null,
+   "context_pct": 58,
    "last_update": "2026-10-20T21:25:00Z",
    "reply": "received"
   },
@@ -103,7 +97,7 @@
    "title": "AIA planning 2: master plan + docs PRs",
    "category": "Planning",
    "state": "waiting-on-nigel",
-   "doing": "#523 carries Q1-Q18 and the stage-handoff amendment (fe5dc1b).",
+   "doing": "Handing off at 73% context; planning 3 takes over #516/#522/#523.",
    "plan": null,
    "prs": [
     {
@@ -129,8 +123,8 @@
    "blocked_by": [
     "N9"
    ],
-   "next": "Apply Q19-Q20; fold in the input-interactions plan.",
-   "context_pct": 57,
+   "next": "Planning 3 applies Q19-Q21.",
+   "context_pct": 73,
    "last_update": "2026-10-20T21:07:00Z",
    "reply": "received"
   },
@@ -154,7 +148,7 @@
     "N10"
    ],
    "next": "Apply Q19-Q20.",
-   "context_pct": null,
+   "context_pct": 55,
    "last_update": "2026-10-20T21:08:00Z",
    "reply": "received"
   },
@@ -178,7 +172,7 @@
     "N3"
    ],
    "next": "Hold; no contact with Arigamaru until you say.",
-   "context_pct": null,
+   "context_pct": 38,
    "last_update": "2026-10-20T20:13:00Z",
    "reply": "received"
   },
@@ -202,7 +196,7 @@
     "N9"
    ],
    "next": "Merge with the baseline.",
-   "context_pct": null,
+   "context_pct": 34,
    "last_update": "2026-10-20T20:10:00Z",
    "reply": "received"
   },
@@ -226,7 +220,7 @@
     "N9"
    ],
    "next": "Merge with the baseline.",
-   "context_pct": null,
+   "context_pct": 39,
    "last_update": "2026-10-20T20:19:00Z",
    "reply": "received"
   },
@@ -250,7 +244,7 @@
     "N9"
    ],
    "next": "Merge with the baseline.",
-   "context_pct": null,
+   "context_pct": 40,
    "last_update": "2026-10-20T20:15:00Z",
    "reply": "received"
   },
@@ -259,13 +253,13 @@
    "title": "AIA design: Settings prototype",
    "category": "Design",
    "state": "waiting-on-nigel",
-   "doing": "Prototype live (10 tabs, role switcher); applying the input rule next.",
+   "doing": "Round 2: input rule applied on all 10 tabs; removing the admin Lead read and handover.",
    "plan": null,
    "prs": [],
-   "needs": "Your changes and its 5 open questions, in that session.",
+   "needs": "Its questions, starting with who edits system prompts (owners/admins, or a mark like Metodik).",
    "blocked_by": [],
    "next": "Round 2 with your edits.",
-   "context_pct": null,
+   "context_pct": 42,
    "last_update": "2026-10-20T20:41:00Z",
    "reply": "received"
   },
@@ -273,31 +267,40 @@
    "id": "session_01BmmpzanxvKFquk44nLP4qu",
    "title": "AIA design: input interactions audit",
    "category": "Design",
-   "state": "working",
-   "doing": "Inventorying every input in the web app; writing the rule (I1-I11).",
+   "state": "waiting-on-nigel",
+   "doing": "Inventory done: ~250 inputs in 34 files; 11 full-screen one-box dialogs; bugs IA-1 to IA-5 found.",
    "plan": null,
    "prs": [],
-   "needs": "Permission before its first commit (it will ask in its session).",
-   "blocked_by": [],
-   "next": "Inventory report, then a docs-only PR and an explainer.",
-   "context_pct": null,
+   "needs": "Your \"go\" in its session to commit and open the PR.",
+   "blocked_by": [
+    "N14"
+   ],
+   "next": "Asks you for commit permission, then a docs-only PR with the evidence and plan.",
+   "context_pct": 25,
    "last_update": "2026-10-20T21:14:00Z",
-   "reply": "received"
+   "reply": "received",
+   "explainers": [
+    {
+     "id": "input-standard",
+     "title": "Input Interactions Standard",
+     "function": "apps/web inputs: before/after of rule I1-I11",
+     "html": "<!doctype html>\n<html lang=\"cs\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Input Interactions Standard</title>\n<style>\n:root{--surface:#f9f6f2;--raised:#fefcf9;--sunken:#f1eee9;--overlay:#fefdfb;--border:#dad7d2;--strong:#7b8187;--ink:#151a20;--muted:#43484f;--faint:#5c6167;--inv:#151a20;--inv-ink:#f9f6f2;--signal:#006b9f;--signal-wash:#d7edfb;--on-signal:#fefcf9;--fault:#b52524;--fault-wash:#ffe8e6;--you:#f5ae39;--you-wash:#feeed3;--blue:#3b6fb6;--teal:#2b8a8a;--green:#4b8a3c;--orange:#c46a1d;--violet:#7a55b3;--slate:#5c6167}\n@media (prefers-color-scheme:dark){:root:not([data-theme=\"light\"]){--surface:#0f1215;--raised:#171a1e;--sunken:#090b0f;--overlay:#1d2125;--border:#2f3338;--strong:#70757c;--ink:#ece9e4;--muted:#bdbab5;--faint:#9e9b96;--inv:#ece9e4;--inv-ink:#0f1215;--signal:#5cb2e6;--signal-wash:#0f2a3a;--on-signal:#0f1215;--fault:#ff8a80;--fault-wash:#3a1414;--you:#f5ae39;--you-wash:#3a2a10}}\n:root[data-theme=\"dark\"]{--surface:#0f1215;--raised:#171a1e;--sunken:#090b0f;--overlay:#1d2125;--border:#2f3338;--strong:#70757c;--ink:#ece9e4;--muted:#bdbab5;--faint:#9e9b96;--inv:#ece9e4;--inv-ink:#0f1215;--signal:#5cb2e6;--signal-wash:#0f2a3a;--on-signal:#0f1215;--fault:#ff8a80;--fault-wash:#3a1414}\n*{box-sizing:border-box}\nbody{margin:0;background:var(--surface);color:var(--ink);font:15px/1.55 \"IBM Plex Sans\",system-ui,-apple-system,\"Segoe UI\",sans-serif}\nmain{max-width:1060px;margin:0 auto;padding:32px 16px 64px}\nh1{font:600 28px/1.2 \"Source Serif 4\",Georgia,serif;margin:0 0 6px}\nh2{font:600 19px/1.3 \"Source Serif 4\",Georgia,serif;margin:0 0 4px}\n.lede{color:var(--muted);max-width:720px;margin:0 0 20px}\n.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px;margin:0 0 36px;padding:0;list-style:none}\n.rules li{background:var(--raised);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13.5px}\n.rules b{display:block;font-size:12px;color:var(--signal);letter-spacing:.02em}\nsection.case{margin:0 0 40px}\n.case p.why{color:var(--muted);margin:0 0 12px;font-size:14px;max-width:760px}\n.pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}\n@media (max-width:760px){.pair{grid-template-columns:1fr}}\n.panel{border:1px solid var(--border);border-radius:10px;background:var(--raised);overflow:hidden}\n.tag{display:flex;justify-content:space-between;align-items:center;padding:7px 12px;font-size:12px;font-weight:600;border-bottom:1px solid var(--border)}\n.before .tag{background:var(--fault-wash);color:var(--fault)}\n.after .tag{background:var(--signal-wash);color:var(--signal)}\n.tag span{font-weight:400;color:var(--muted)}\n.stage{position:relative;padding:14px;min-height:210px;background:var(--surface)}\n.cap{font-size:12.5px;color:var(--muted);padding:9px 12px;border-top:1px solid var(--border)}\ncode,.mono{font-family:\"IBM Plex Mono\",ui-monospace,monospace;font-size:12px}\n.tree{width:210px;font-size:13.5px}\n.tree .h{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);margin:0 0 4px}\n.row{display:flex;align-items:center;gap:8px;height:32px;padding:0 8px;border-radius:6px}\n.row.sel{background:var(--signal-wash)}\n.ic{width:14px;height:11px;border:1.5px solid var(--strong);border-radius:2px;flex:none}\n.btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:6px;border:1px solid var(--strong);background:var(--raised);color:var(--ink);font:inherit;font-size:13px}\n.btn.p{background:var(--signal);color:var(--on-signal);border-color:var(--signal)}\n.btn.q{border-color:transparent;background:transparent;color:var(--signal)}\n.ghost{color:var(--signal);font-size:13px;padding:0 8px;height:32px;display:flex;align-items:center}\n.scrim{position:absolute;inset:0;background:rgba(21,26,32,.42);display:flex;align-items:center;justify-content:center;padding:12px}\n.dlg{width:min(300px,100%);background:var(--overlay);border:1px solid var(--strong);border-radius:4px;padding:14px;box-shadow:0 12px 32px rgba(0,0,0,.25);font-size:13px}\n.dlg .f{height:30px;border:1px solid var(--strong);border-radius:2px;margin:8px 0 12px;background:var(--raised)}\n.dlg .acts{display:flex;justify-content:flex-end;gap:6px}\n.edit{display:flex;align-items:center;gap:8px;height:32px;padding:0 8px;border:1.5px solid var(--signal);border-radius:6px;background:var(--raised);outline:2px solid var(--signal-wash);outline-offset:1px}\n.caret{display:inline-block;width:1px;height:15px;background:var(--ink);animation:b 1s steps(1) infinite;vertical-align:middle}\n@keyframes b{50%{opacity:0}}\n@media (prefers-reduced-motion:reduce){.caret{animation:none}}\n.hint{font-size:11.5px;color:var(--faint);margin:4px 8px 0}\n.err{font-size:12px;color:var(--fault);margin:4px 8px 0}\n.state{font-size:11.5px;color:var(--muted);margin-left:auto}\n.kbd{font:11px \"IBM Plex Mono\",monospace;border:1px solid var(--border);border-bottom-width:2px;border-radius:3px;padding:0 4px;background:var(--raised)}\n.field{font-size:12px;color:var(--muted);margin:0 0 4px}\n.input{display:flex;align-items:center;height:34px;border:1px solid var(--strong);border-radius:2px;background:var(--raised);padding:0 10px;font-size:14px}\n.stepper{display:inline-flex;align-items:stretch;border:1px solid var(--strong);border-radius:6px;overflow:hidden;background:var(--raised);height:40px}\n.stepper button{width:40px;border:0;background:var(--sunken);color:var(--ink);font:600 18px/1 system-ui}\n.stepper .v{min-width:86px;display:flex;align-items:center;justify-content:center;font:600 17px \"IBM Plex Mono\",monospace;border-left:1px solid var(--border);border-right:1px solid var(--border)}\n.chip{display:inline-flex;align-items:center;height:28px;padding:0 10px;border-radius:999px;border:1px solid var(--border);background:var(--raised);font-size:12.5px;margin:0 4px 4px 0}\n.chip.on{border-color:var(--signal);background:var(--signal-wash);color:var(--signal);font-weight:600}\n.range{position:relative;height:4px;background:var(--border);border-radius:2px;margin:18px 4px 6px}\n.range i{position:absolute;top:-6px;width:16px;height:16px;border-radius:50%;background:var(--signal);left:100%;margin-left:-8px}\n.q{background:var(--raised);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13.5px}\n.q .t{font-weight:600;margin-bottom:8px}\n.opt{display:flex;align-items:center;gap:8px;height:30px;padding:0 6px;border-radius:4px}\n.opt .dot{width:12px;height:12px;border:1.5px solid var(--strong);border-radius:50%;flex:none}\n.seg{display:inline-flex;border:1px solid var(--strong);border-radius:6px;overflow:hidden;margin-bottom:8px}\n.seg span{padding:4px 10px;font-size:12px;border-left:1px solid var(--border)}\n.seg span:first-child{border-left:0}\n.seg .on{background:var(--signal);color:var(--on-signal)}\n.prof dt{font-size:12px;color:var(--muted);margin-top:10px}\n.prof dd{margin:2px 0 0;font-size:14px}\n.pen{border-bottom:1px dashed var(--strong);padding-bottom:1px}\n.combo{border:1px solid var(--strong);border-radius:6px;background:var(--overlay);margin-top:4px;font-size:13px;box-shadow:0 8px 20px rgba(0,0,0,.12)}\n.combo div{padding:6px 10px}\n.combo .hi{background:var(--signal-wash)}\n.combo .new{color:var(--signal);border-top:1px solid var(--border)}\nfooter{color:var(--faint);font-size:12.5px;border-top:1px solid var(--border);padding-top:14px}\n</style>\n</head>\n<body>\n<main>\n<h1>Edit where it is shown, count, choose</h1>\n<p class=\"lede\">AIA's input standard (I1–I11), shown on four screens from <code>develop @ 44b66ef</code>. Today AIA opens a full-screen modal holding one text box 11 times. The standard removes every one of them. Light and dark use the product's tokens.</p>\n\n<ul class=\"rules\">\n<li><b>I1 · Edit in place</b>Click the value, type. Enter saves, Esc restores, the save state shows beside it.</li>\n<li><b>I2 · Count</b>Bounded numbers get a stepper with the bounds stated. A value out of range is refused, never clamped.</li>\n<li><b>I3 · Choose</b>A known set gets chips, a segmented control or a combobox. If the system knows the list, nobody types it.</li>\n<li><b>I5 · Create in the list</b>\"+ New\" becomes a row where the thing will live. Enter creates it and opens the next row.</li>\n<li><b>I6 · Undo</b>A reversible delete happens at once, with \"Vrátit\" for 8 s.</li>\n<li><b>I7 · Modals are rare</b>Only for money, ledger decisions and irreversible actions. Never for a single text field.</li>\n</ul>\n\n<section class=\"case\">\n<h2>1. Creating a folder in a client's knowledge</h2>\n<p class=\"why\"><code>KnowledgeArea.tsx:319</code>: \"Nová složka\" opens <code>AskDialog</code>, a <code>showModal()</code> dialog over a dimmed page. Renaming a folder or a label does the same. Two lines above it, \"Nový štítek\" is already an inline form.</p>\n<div class=\"pair\">\n<div class=\"panel before\"><div class=\"tag\">Today <span>AskDialog prompt</span></div>\n<div class=\"stage\">\n <div class=\"tree\"><div class=\"h\">Složky</div>\n  <div class=\"row\"><span class=\"ic\"></span>Brief 2026</div>\n  <div class=\"row\"><span class=\"ic\"></span>Konkurence</div>\n  <div class=\"row\"><span class=\"ic\"></span>Data z terénu</div>\n  <div class=\"ghost\">+ Nová složka</div></div>\n <div class=\"scrim\"><div class=\"dlg\">Název nové složky<div class=\"f\"></div><div class=\"acts\"><span class=\"btn q\">Zrušit</span><span class=\"btn p\">OK</span></div></div></div>\n</div>\n<div class=\"cap\">The whole page is covered to ask for one word. A duplicate name is reported only after OK, as a 409.</div></div>\n<div class=\"panel after\"><div class=\"tag\">Standard <span>I5 inline row · I1 rename</span></div>\n<div class=\"stage\">\n <div class=\"tree\"><div class=\"h\">Složky</div>\n  <div class=\"row\"><span class=\"ic\"></span>Brief 2026</div>\n  <div class=\"row\"><span class=\"ic\"></span>Konkurence</div>\n  <div class=\"row\"><span class=\"ic\"></span>Data z terénu</div>\n  <div class=\"edit\"><span class=\"ic\"></span>Konkurence<span class=\"caret\"></span></div>\n  <div class=\"err\">Složka „Konkurence“ už existuje.</div>\n  <div class=\"hint\"><span class=\"kbd\">Enter</span> vytvoří a otevře další · <span class=\"kbd\">Esc</span> zruší</div></div>\n</div>\n<div class=\"cap\">The row appears where the folder will be. Uniqueness is checked as you type. To rename, double-click or press F2 on the name.</div></div>\n</div>\n</section>\n\n<section class=\"case\">\n<h2>2. Sample size n</h2>\n<p class=\"why\"><code>PersonaStep.tsx</code> has three controls for one value: presets, a slider from 200 to 2000, and a field from 50 to 5000. <code>setSampleSize</code> silently turns 20 into 50 and an empty field into the recommendation (IA-1, IA-3).</p>\n<div class=\"pair\">\n<div class=\"panel before\"><div class=\"tag\">Today <span>presets + slider + field</span></div>\n<div class=\"stage\">\n <div><span class=\"chip on\">620 · doporučeno</span><span class=\"chip\">400</span><span class=\"chip\">800</span><span class=\"chip\">1200</span></div>\n <div class=\"range\"><i></i></div><div class=\"hint\" style=\"margin:0\">200 ———————————— 2000</div>\n <div class=\"field\" style=\"margin-top:14px\">Počet respondentů</div>\n <div class=\"input\">3000</div>\n <div class=\"hint\" style=\"margin:6px 0 0\">The slider sits at 2000 while the field says 3000. Typing 20 stores 50 without a word.</div>\n</div>\n<div class=\"cap\">Three controls for one number, and they disagree.</div></div>\n<div class=\"panel after\"><div class=\"tag\">Standard <span>I2 stepper</span></div>\n<div class=\"stage\">\n <div class=\"field\">Počet respondentů · 50–5 000</div>\n <div class=\"stepper\"><button aria-label=\"Méně\">−</button><span class=\"v\">20</span><button aria-label=\"Více\">+</button></div>\n <div class=\"err\" style=\"margin-left:0\">Nejméně 50 respondentů. Uloženo zůstává 620.</div>\n <div style=\"margin-top:12px\"><span class=\"chip on\">Doporučeno 620</span><span class=\"state\">Uloženo</span></div>\n <div class=\"hint\" style=\"margin:8px 0 0\">Krok 50 · <span class=\"kbd\">Shift</span> ×10 · tlačítka se zastaví na mezi</div>\n</div>\n<div class=\"cap\">One counter shows the bounds, refuses values out of range at the field and offers the recommendation as a chip.</div></div>\n</div>\n</section>\n\n<section class=\"case\">\n<h2>3. A question's options</h2>\n<p class=\"why\">Quick add \"Jedna odpověď\" (<code>QuestionnaireStep.tsx:500–502</code>) opens two modals in a row: the question, then the options typed as \"Ano, Ne\" and split on commas. The type pills are a hand-rolled radio group, and the scale's Minimum and Maximum accept min &gt; max (IA-2).</p>\n<div class=\"pair\">\n<div class=\"panel before\"><div class=\"tag\">Today <span>2 chained AskDialog prompts</span></div>\n<div class=\"stage\">\n <div class=\"q\" style=\"opacity:.5\"><div class=\"t\">Q3 …</div></div>\n <div class=\"scrim\"><div class=\"dlg\">Odpovědi oddělte čárkou. Pokud necháte prázdné, použije se Ano / Ne.<div class=\"f mono\" style=\"display:flex;align-items:center;padding:0 8px\">Denně, Týdně, Měsíčně, Méně často</div><div class=\"acts\"><span class=\"btn q\">Zrušit</span><span class=\"btn p\">OK</span></div></div></div>\n</div>\n<div class=\"cap\">A list typed as one string in one box. An option containing a comma (\"Ano, ale…\") splits in two.</div></div>\n<div class=\"panel after\"><div class=\"tag\">Standard <span>I1 + I5 + I3 in the artifact</span></div>\n<div class=\"stage\">\n <div class=\"q\">\n  <div class=\"seg\" role=\"radiogroup\"><span class=\"on\">Jedna</span><span>Více</span><span>Škála</span><span>Otevřená</span></div>\n  <div class=\"t\"><span class=\"pen\">Jak často nakupujete online?</span></div>\n  <div class=\"opt\"><span class=\"dot\"></span>Denně</div>\n  <div class=\"opt\"><span class=\"dot\"></span>Týdně</div>\n  <div class=\"opt\"><span class=\"dot\"></span>Měsíčně</div>\n  <div class=\"edit\" style=\"height:30px\"><span class=\"dot\" style=\"width:12px;height:12px;border:1.5px solid var(--strong);border-radius:50%\"></span>Méně často<span class=\"caret\"></span><span class=\"state\">Ukládám…</span></div>\n  <div class=\"hint\"><span class=\"kbd\">Enter</span> další možnost · <span class=\"kbd\">Esc</span> hotovo</div>\n </div>\n</div>\n<div class=\"cap\">The question is created where it will appear. Each option is its own row, so commas are just text. The type is a segmented control.</div></div>\n</div>\n</section>\n\n<section class=\"case\">\n<h2>4. A client's profile field</h2>\n<p class=\"why\"><code>ProfileArea.tsx:74–86</code>: \"Odvětví\" and \"Trh\" are free-text fields inside a form, saved by \"Uložit profil\". A client's name cannot be changed at all; that needs a new rename route (E9).</p>\n<div class=\"pair\">\n<div class=\"panel before\"><div class=\"tag\">Today <span>form + explicit save</span></div>\n<div class=\"stage\">\n <div class=\"field\">Zkratka</div><div class=\"input\">KBX</div>\n <div class=\"field\" style=\"margin-top:10px\">Odvětví</div><div class=\"input\">retail, FMCG ?</div>\n <div class=\"field\" style=\"margin-top:10px\">Trh</div><div class=\"input\">CZ</div>\n <div style=\"margin-top:12px\"><span class=\"btn p\">Uložit profil</span></div>\n</div>\n<div class=\"cap\">The profile becomes a form to edit one word. Each client spells its industry differently.</div></div>\n<div class=\"panel after\"><div class=\"tag\">Standard <span>I1 in place · I3 combobox</span></div>\n<div class=\"stage\">\n <dl class=\"prof\" style=\"margin:0\">\n  <dt>Zkratka</dt><dd><span class=\"pen\">KBX</span></dd>\n  <dt>Odvětví</dt><dd><div class=\"edit\" style=\"height:32px\">Ret<span class=\"caret\"></span><span class=\"state\">Esc zruší</span></div>\n   <div class=\"combo\"><div class=\"hi\">Retail – potraviny</div><div>Retail – elektronika</div><div class=\"new\">+ Použít „Ret“ jako nové odvětví</div></div></dd>\n  <dt>Trh</dt><dd><span class=\"pen\">Česko</span></dd>\n </dl>\n</div>\n<div class=\"cap\">Click the value to edit it. The combobox offers the values the organization already uses and still accepts a new one. Each field saves on commit, with \"Vrátit\".</div></div>\n</div>\n</section>\n\n<section class=\"case\">\n<h2>Where a modal stays</h2>\n<p class=\"why\">Starting a run whose cost reaches the study's limit, lifting a budget, approving a report, activating a methodology version, approving a Deep Research policy, a Lead change that reaches every client, archiving a client. Each one interrupts because it spends money or records a decision that cannot be taken back. The modal states the consequence and the cost, and focuses the safe choice.</p>\n</section>\n\n<footer>The full inventory (~250 entry points), the fix list and the plan are in <code>.planning/evidence/input-interactions-audit.md</code> and <code>.planning/plans/input-interactions.md</code>. The plan is proposed for the scope baseline. Prototype references: <code>prototypes/research-lead-v2/src/components/ui.tsx:52</code> (Item) and <code>:108</code> (AddItem).</footer>\n</main>\n</body>\n</html>\n",
+     "height": 720
+    }
+   ]
   },
   {
    "id": "session_01End3azGdHNr1MtxRjUqqZ8",
    "title": "AIA design: MVP workbench artifact",
    "category": "Design",
-   "state": "waiting-on-nigel",
-   "doing": "Input rule applied locally (screen 12 Vstupy); published design still v2.",
+   "state": "done",
+   "doing": "Design v3 published with the input rule (screen 12 Vstupy).",
    "plan": null,
    "prs": [],
-   "needs": "Optional: 'update the workbench design'.",
-   "blocked_by": [
-    "N12"
-   ],
-   "next": "Publish on your word.",
-   "context_pct": null,
+   "needs": null,
+   "blocked_by": [],
+   "next": "Apply your feedback when you have it.",
+   "context_pct": 39,
    "last_update": "2026-10-20T21:18:00Z",
    "reply": "received"
   },
@@ -306,16 +309,22 @@
    "title": "AIA infra audit",
    "category": "Infra",
    "state": "waiting-on-nigel",
-   "doing": "IdP fix ready locally; cutover runbook ready; prod hostname app.ai-analytics.ai noted.",
+   "doing": "IdP fix is PR #526 (Codex review running).",
    "plan": null,
-   "prs": [],
-   "needs": "Your 'commit and push the IdP fix' in its session; the dig check.",
+   "prs": [
+    {
+     "num": 526,
+     "title": "Google IdP fix",
+     "state": "open",
+     "ci": "pending"
+    }
+   ],
+   "needs": "The dig check once Webglobe is live.",
    "blocked_by": [
-    "N8",
     "N2"
    ],
    "next": "IdP PR; then the cutover with you.",
-   "context_pct": null,
+   "context_pct": 57,
    "last_update": "2026-10-20T20:37:00Z",
    "reply": "received"
   },
@@ -345,21 +354,6 @@
    "context_pct": 27,
    "last_update": "2026-10-20T20:28:00Z",
    "reply": "received"
-  },
-  {
-   "id": "session_01QzemVrHfQp8jsVEqXb9W6x",
-   "title": "AIA fix: Next.js 16.4 security",
-   "category": "Security/CI",
-   "state": "done",
-   "doing": "#509 and #518 merged and deployed.",
-   "plan": null,
-   "prs": [],
-   "needs": null,
-   "blocked_by": [],
-   "next": "Idle. The braces exception expires 2026-11-20.",
-   "context_pct": 32,
-   "last_update": "2026-10-20T19:18:00Z",
-   "reply": "received"
   }
  ],
  "workstreams": [
@@ -369,14 +363,14 @@
    "steps": [
     {
      "id": "f1",
-     "title": "Q1-Q18 answered and applied",
+     "title": "Q1-Q21 answered",
      "status": "done",
      "owner": "Nigel + Planning 2",
      "depends_on": []
     },
     {
      "id": "f2",
-     "title": "Q19-Q21",
+     "title": "Q22-Q23",
      "status": "waiting",
      "owner": "Nigel",
      "depends_on": [
@@ -453,9 +447,9 @@
     },
     {
      "id": "i2",
-     "title": "IdP fix PR",
-     "status": "waiting",
-     "owner": "Nigel → Infra",
+     "title": "IdP fix PR #526",
+     "status": "active",
+     "owner": "Infra",
      "depends_on": []
     },
     {
@@ -625,6 +619,10 @@
  ],
  "recent": [
   {
+   "when": "2026-10-20T21:45:00Z",
+   "what": "Sessions reconciled: Next.js session archived; planning 2 handing off; 1c's stale note corrected."
+  },
+  {
    "when": "2026-10-20T21:14:00Z",
    "what": "Input-interactions audit session started; both design sessions told the rule."
   },
@@ -663,89 +661,63 @@
  ],
  "questions": [
   {
-   "id": "Q19",
-   "title": "How do we bring in Wordcraft?",
-   "context": "Wordcraft (github.com/storytold/wordcraft) is an MIT/Apache, open-source Rust reimplementation of Word. It runs in the browser through WebAssembly, has tracked changes and comments, and agents drive it through an MCP server with 422 commands. It is alpha: 634 open issues, no real-time co-editing. AIA's report is built from a document model whose every number is a ledger reference, then rendered to DOCX, so an outside editor has to keep those references intact.",
-   "example": "Under (a), a one-week evaluation chunk loads a real fictional AIA report into Wordcraft in the browser, has the Lead propose a tracked change through its MCP server, and checks that the numbers survive a round trip. Then you choose (b) or (c) on what it shows.",
+   "id": "Q22",
+   "title": "May a search query ever carry Class A material?",
+   "context": "Your Q20 note: 'maybe even class A, depends how the query is constructed'. Class A is the client's own material: their uploaded sources, their approved knowledge, their notes. Today nothing Class A leaves AIA except to the approved EU model route. A query built from it would send the client's own words to a search provider outside the EU.",
+   "example": "A client's internal report says their new product is code-named 'Projekt Lípa' and launches in Brno in March. Under (a), the Lead may search only from the design and public context ('nápoje bez cukru Brno 2026'), and never 'Projekt Lípa'. Under (b), code builds the query from approved fields of the client's knowledge (category, market, competitors), never free text. Under (c), the Lead may quote the report in a query.",
    "options": [
     {
      "key": "a",
-     "label": "Evaluate first, then decide",
-     "detail": "One spike chunk in W1: embed, Lead edits via MCP, ledger references survive; a go/no-go for you"
+     "label": "Never Class A",
+     "detail": "Queries are built from the design (Class B) and public context only"
     },
     {
      "key": "b",
-     "label": "Adopt it as the MVP editor now",
-     "detail": "Context file and reports edited in Wordcraft; the alpha risk sits on the critical path"
+     "label": "Only fields code extracts",
+     "detail": "Category, market, named competitors from approved knowledge; never the client's free text or documents"
     },
     {
      "key": "c",
-     "label": "Build our own suggestions UI",
-     "detail": "Tracked changes inside AIA's current editor; Wordcraft stays a reference"
+     "label": "Class A allowed",
+     "detail": "Any client material may shape a query"
     }
    ],
-   "rec": "a",
-   "rationale": "It's alpha, and our numbers must stay ledger references. A short test answers whether it fits before the MVP depends on it, and Q13's editing rule holds whichever editor wins.",
-   "unblocks": [
-    "Report editing",
-    "LO19 study context file"
-   ],
-   "where": "Answer here"
-  },
-  {
-   "id": "Q20",
-   "title": "May Brave receive queries written from a client's design?",
-   "context": "Your Q16 note: Brave for all queries, not just Class C. Brave runs outside the EU, and today it may only receive public-context (Class C) queries. A query written from a study's design is Class B by rule (ADR 0008). Allowing it means approving a non-EU route for Class B, the way you approved panel data for Bedrock EU (OI-61), and it would be recorded the same way. Class A (a client's own sources and approved knowledge) would still never go.",
-   "example": "A design asks how Czech 18-25s see energy-drink prices. Today the Lead may only search 'ceny energetických nápojů ČR 2026'. Under (a), it may also send 'energy drinks price perception 18-25 Czech students', which is written from the design, to Brave, for an OPEN client. A CLASSIFIED client still gets no search.",
-   "options": [
-    {
-     "key": "a",
-     "label": "Class B to Brave, OPEN clients only",
-     "detail": "Recorded as your determination; never Class A; CLASSIFIED clients excluded"
-    },
-    {
-     "key": "b",
-     "label": "Class B to Brave for every client",
-     "detail": "Includes CLASSIFIED clients"
-    },
-    {
-     "key": "c",
-     "label": "Keep Brave at Class C",
-     "detail": "Class B waits for an EU provider"
-    }
-   ],
-   "rec": "a",
-   "rationale": "It gives the search quality you want where clients allow it. CLASSIFIED clients and their sources stay protected, and the decision is on record for an audit.",
+   "rec": "b",
+   "rationale": "It gives the specific, reputable searches you want ('competitor X, Czech market') without sending a client's confidential text to a provider outside the EU. Code, not the model, picks the fields.",
    "unblocks": [
     "ADR 0032",
     "ADR 0040",
-    "Deep Research reach"
+    "Deep Research query rules"
    ],
    "where": "Answer here"
   },
   {
-   "id": "Q21",
-   "title": "Do I keep merging the PRs I've reviewed?",
-   "context": "Your mandate says I merge any green PR I've reviewed. After I merged #524 at 20:29, the session's automatic permission check blocked my next message as 'Merge Without Review': it doesn't count my own review. Next up: #525 (green now), then #516 → #522 → #523 and the evidence PRs once you sign MP16.",
-   "example": "Under (a), you add allow rules for this session (the GitHub merge tool and session messages), and #525 merges itself at 21:45, once develop's CI is free. Under (b), you type 'merge #525' here, and I merge it then.",
+   "id": "Q23",
+   "title": "Search operators (\"Google search hacking\") in the MVP?",
+   "context": "Your Q20 note: build advanced search operators into the workflows to find highly specific, reputable sources. Brave's API supports operators like site:, filetype: and intitle:. Today queries are plain text written by the investigators. Adding operators touches Deep Research's query planning, which is frozen except for defects, so it needs your yes as a scope change.",
+   "example": "A Design Research track on Czech dairy consumption sends 'site:czso.cz filetype:pdf spotřeba mléka 2025' and 'site:mze.gov.cz \"mléčné výrobky\" zpráva'. That finds the ČSÚ and ministry reports directly instead of blogs. A curated list of reputable domains per topic (ČSÚ, Eurostat, ministries, academic repositories) is kept in Settings.",
    "options": [
     {
      "key": "a",
-     "label": "Keep merging; I'll add the allow rule",
-     "detail": "Rules for mcp__github__merge_pull_request and mcp__claude-code-remote__send_message in this session's permissions"
+     "label": "In the MVP, from a curated domain list",
+     "detail": "Code composes operators from a reviewed list of reputable domains and file types per topic; the model proposes, code validates"
     },
     {
      "key": "b",
-     "label": "I approve each merge",
-     "detail": "You type 'merge #N' here; I merge only then"
+     "label": "In the MVP, model-written operators",
+     "detail": "The model writes operators freely; RetrievalGate still checks every URL"
+    },
+    {
+     "key": "c",
+     "label": "After the MVP",
+     "detail": "Plain-text queries at release"
     }
    ],
    "rec": "a",
-   "rationale": "Every merge is still reviewed, green and pinned to an exact commit. (b) puts you on the critical path for about twelve merges this week.",
+   "rationale": "It's what makes the sources reputable rather than just specific, and a curated list keeps code in charge of where queries go. It's a small change around the frozen engine rather than inside it.",
    "unblocks": [
-    "#525",
-    "#516 → #522 → #523",
-    "evidence PRs"
+    "Deep Research quality",
+    "Lead web search (LO20)"
    ],
    "where": "Answer here"
   }

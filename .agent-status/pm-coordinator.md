@@ -137,3 +137,14 @@ Arigamaru; #512 ADR decisions; design feedback (optional).
 - 21:33 Nigel: #517 is Arams (Arigamaru = A. Bahbouh, the methodology owner, in charge of methodology). It is the -5 web drawing (sociomap-5-web plan). I undrafted it at 20:06 by mistake (its body says draft); asked Nigel whether to restore draft. Planning 2 told to point research-lead-workbench#20 / signed-off#9 at it. Never merge #517 without Aram.
 - #526 = IdP fix (Nigel typed it); marked ready for Codex 21:31.
 - 21:35 Nigel: leave #517 ready for Codex (not draft). Do not merge without Aram.
+## 21:50 update (coordinator 3, ctx ~58%)
+- Q19 a (evaluate first; note: alternatives, Tiptap had terrible UX, "as close to Word/LibreOffice as possible": spike
+  compares Wordcraft, ONLYOFFICE Docs, Collabora Online). Q20 b (Brave gets Class B for EVERY client incl. CLASSIFIED,
+  owner determination 2026-10-20; note "maybe even class A" + "google search hacking"): follow-ups Q22 (Class A, rec b
+  code-extracted fields only) and Q23 (search operators, rec a curated domain list). Q21 a: coordinator keeps merging;
+  Nigel adds allow rules (N13). Relayed to planning 2 (for handoff) and scope 3 (#512).
+- Session reconcile 21:45: archived Next.js session (01QzemV...); planning 2 at 73% -> asked for handoff file, then start
+  "AIA planning 3" and archive planning 2. Told 1c its N1-N12 note is stale. Non-AIA sessions on the account (Hello,
+  Python app export error, TechTonic AMS) are out of scope.
+- Settings prototype asks Nigel: who edits system prompts (owners/admins vs a mark like Metodik) + 3 more.
+- Input audit waits on Nigel's "go" in its session (N14).
