@@ -45,6 +45,16 @@ Updated: 2026-10-20 ~15:30 UTC by session_019bYPVpsShVq3LCtWDT5Kr8 ("AIA PM: coo
   only the plans change. The Sociomap terrain envelope, Deep Research's orchestration envelope and the
   error-tracking envelope are different things and keep their names.
 
+- **The MVP ships `aia-sociomap-5`** (Nigel, 2026-10-20, ~15:35 UTC), not -3. Passed to scope sessions 1a, 1b,
+  1c, 2 (packet: what must be true for -5 to ship) and 3 (a new ADR). Needs: register approval of -5
+  (INTERNAL_ONLY now), the web drawing -5, report figures for -5, runs pinning -5, reconciling MVPQ-03's
+  descriptor segments with -5's taste segments.
+- #508: Codex found 3 valid issues (P1 ARCHITECTURE.md OPEN-posture text lets design go to Class C model
+  routes; P2 autopilot "out" unqualified; P2 MVP-8 says V3). Planning session fixing; re-review then merge
+  after the 854c2092 deploy.
+- #509 (Next 16.4.2 + blocking pip-audit): npm gate decision pending with Nigel (braces GHSA-vfj7-8cjw-p6xm,
+  dev-only, no fix exists). Options: block all with one dated exception (recommended) / prod only / advisory.
+
 ## Open items
 - Dependabot: develop's real exposure was apps/web npm (next 16.3.6 etc., 8 high); Python 0/88 vulnerable; the
   112 alerts are mostly main (618 commits behind develop) + legacy/. CI audits were `|| true` (advisory).
