@@ -323,3 +323,14 @@ artifact frame, routing and the old-method panel text (Q2).
     reading. Zero paid jobs.
   - LO19 and RD6 build against the editor the owner chooses; until then they keep a plain editor
     behind the same edit operations, so the choice changes the surface, not the rules.
+  - **Spike written up (2026-10-20):**
+    [`editor-spike-2026-10-21.md`](../evidence/editor-spike-2026-10-21.md).
+    - It is a desk comparison of five editors with cited sources. The local run on fictional files
+      is not done yet: this session's egress refused the vendors' hosts.
+    - Its recommendation: a conditional go for ONLYOFFICE Docs Community, self-hosted. AIA writes
+      the Lead's suggestions as OOXML revisions, and every number is a locked, tagged content
+      control that AIA checks on each save. Collabora Online is the fallback.
+    - It records finding F-ED1: today's DOCX carries no ledger ref
+      (`report_docx/blocks.py:116-123 @ e09a6c99`). R3 cannot be checked through a round trip until
+      RD6 emits refs as content controls.
+    - The go/no-go is the owner's, so the chunk stays open.
