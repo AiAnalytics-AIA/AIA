@@ -1,8 +1,8 @@
 # planning — AIA planning session (master plan, decisions, docs PRs)
 
 Current state, rewritten each update. Observed state only. No secrets.
-Updated: 2026-10-20 ~15:40 UTC by session_01Y7frLAETBEYvez3sW7FbGF ("AIA planning: master plan + docs
-PRs"), handing off at ~70% context to its successor ("AIA planning 2"). Works under the PM coordinator
+Updated: 2026-10-20 ~15:50 UTC by session_01RxUnHwTXGVFYjwzfpKi9kT ("AIA planning 2"), which took
+over from session_01Y7frLAETBEYvez3sW7FbGF (retired at ~70% context). Works under the PM coordinator
 (session_019bYPVpsShVq3LCtWDT5Kr8, `.agent-status/pm-coordinator.md`); Nigel also talks to this
 session directly.
 
@@ -18,7 +18,16 @@ merge (the coordinator merges reviewed green PRs; Nigel merges when he says so).
 |---|---|---|---|---|
 | #511 | `chore/wallet-rename` | `8fb59523` | draft, CI running at handoff (docs/migration touched, so the full suites run, ~35 min) | the money "envelope" renamed "wallet" (Czech UI "Peněženka", Nigel 2026-10-20) across 12 plan/acceptance files + `parity-matrix.json` AC-02/AC-04; recorded in `lead-orchestration#LO0` and master §11.1. Keep green; coordinator reviews and merges. **Doc follow-up in its body:** `overview.md` MVP-13 still says "a per-study envelope" (shared file, not edited) |
 
-Subscribed to PR activity on #511 (this session); a successor should `subscribe_pr_activity` on it.
+Subscribed to PR activity on #511: session_01RxUnHwTXGVFYjwzfpKi9kT (planning 2), 15:50 UTC. CI at that
+time: backend + frontend running, every other check green.
+
+## Scope freeze (Nigel, 2026-10-20 ~15:25 UTC)
+No feature code until Nigel signs a dated scope baseline in mvp-master-plan.md. Inputs from sessions
+1a (crosscheck-tracks-5-7.md), 1b (reverse-scope-audit.md), 1c (client-and-settings-impact.md), 2
+(mvp-methodology-packet.md, #510), 3 (Proposed ADRs 0028+), each a docs-only draft PR with "Proposed
+master-plan edits". **Step 4 is this session's, when the coordinator asks:** apply the accepted
+proposals and write the baseline (in / out / open decisions) for Nigel to sign. Until then
+mvp-master-plan.md is not edited except by #511. Decided: the MVP ships `aia-sociomap-5` (MVPQ-13 in #510).
 
 ## Merged today from this session
 #508 (doc follow-ups of #499-#507, OI-135..138, `signed-off-sociomap-method` registered; plus 2fa78b50 for Codex's three findings), merged by the coordinator as 86ec0cdd. Earlier: #491, #493, #494, #495 (2026-10-19); #506 (owner answers MVPQ-03/05/06/07/08/09 into packet,
