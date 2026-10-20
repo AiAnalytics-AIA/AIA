@@ -74,6 +74,18 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | Chunk | Wave | Basis |
 |---|---|---|
 | `evidence-integrity#2` | W1 | development plan §3 |
+| `lead-orchestration#LO9c` | W2 | cross-check G47: after LO9a, before LO9b (E18) |
+| `segment-maps-and-drilldown#10` | W2 | cross-check G48, owner 2026-10-20: after 1 (E14); before `evidence-integrity#9b` |
+| `working-copy-edit-ops#WCE8b` | W2 | cross-check G49: with WCE8, before `research-lead-workbench#17` (E26) is accepted on a map study |
+| `report-delivery#RD5a` | W2 | cross-check G50: before RD5 and RD7 |
+| `client-data-in-analysis#3a` | W3 | cross-check G52: before 2a and 3 (E17) |
+| `client-data-in-analysis#3b` | W3 | cross-check G52: with 3 (E17) |
+| `client-data-in-analysis#2a` | W3 | cross-check G52: after 3a, before the contract is accepted |
+| `working-copy-edit-ops#WCE13` | W1 | cross-check G53, owner 2026-10-20: with `research-lead-workbench#17` (E26) |
+| `run-qc-and-checkpoint#RQC11` | W1 | cross-check G53: after WCE13, with RQC0 (E08) |
+| `evidence-integrity#10` | W2 | cross-check G53: after RQC11 |
+| `segment-maps-and-drilldown#9` | W2 | cross-check G54: before `report-delivery#RD4` (E15) |
+| `system-prompts-settings#14` | W1 | cross-check G55, owner 2026-10-20: with the stage buttons' removal (E26) |
 | `evidence-integrity#3` | W1 | development plan §3 |
 | `evidence-integrity#4` | W3 | development plan §3 |
 | `evidence-integrity#5` | W0 | development plan §3 |

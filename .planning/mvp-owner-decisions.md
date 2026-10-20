@@ -262,6 +262,13 @@ decision. Blocks 0b and the affected spec/map/report/client-approval behavior;
 unaffected infrastructure/contracts can proceed. Engineering chooses how to meet
 an approved R seam and measured tolerance, not a different scientific method.
 
+## From the cross-check: X1, X8, X10: SETTLED, 2026-10-20
+
+**Product owner answers** (recorded in `mvp-cohesion.md`, master plan G48, G53, G55): build segment
+evidence (`segment-maps-and-drilldown#10`); build questionnaire routing end to end
+(`working-copy-edit-ops#WCE13`, `run-qc-and-checkpoint#RQC11`, `evidence-integrity#10`); remove
+Settings' draft-prompt test (`system-prompts-settings#14`). Not asked again.
+
 ## Operator facts are a separate checklist
 
 Production hostname/callbacks, RDS sizing, quotas, model tiers/prices, Brave plan

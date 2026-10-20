@@ -121,6 +121,7 @@ The waves of every chunk are in `.planning/mvp-execution-contracts.md` (the pred
 | `research-agent-workflows` | FOLD | 5-8 are covered by D17's workers, Interpretation Research (30) and `evidence-integrity`, its I4 (OI-64, a per-respondent checkpoint) is now owned by `run-qc-and-checkpoint#RQC0` (§6, G26); **the transfer is done in this plan** | close with a pointer to RQC0 once `MP3` is run; no checkpoint work stays in the old plan |
 | `mvp-workflow-assurance` | CLOSE A4, A5; keep A3 optional | A4-A5 define an older four-area MVP including Simulation; `mvp-acceptance-harness` replaces them | owner re-scopes, A3 is measured simplification |
 | `connected-research-assurance`, `contextual-research-settings-ux`, `desktop-ux-overhaul-handoff` | CLOSE (verify) | housekeeping chunks ("release checks, deploy, reconcile documentation") of finished work | owners verify against `develop`, close |
+| `signed-off-sociomap-method` | SUPPORT (S2, the methodology owner) | `aia-sociomap-5` (#504, merged 2026-10-20): the methodology owner's signed-off method with the respondent map (MVP-4) and clustered taste segments (MVP-17), not the default and `INTERNAL_ONLY` until registered; `segment-maps-and-drilldown` 1, 9, 10 and `sociomap-formula-corrections#3` are to be reconciled with it before they are built (MVPQ-03) | the methodology owner and S2 decide whether it replaces `sociomap-formula-corrections#3` as the respondent map; its web drawing is its own Web follow-up |
 | `methodology-tab` | POST | S4d waits on the audit's author, W1c on panel source weighting, X1 is Simulation | none |
 | `panel-grounded-respondents` | POST | 7f-7h are the holdout validation that lifts client-facing analysis prose; the MVP's client report carries none (AC-13) | none |
 | `sociomapping-engine` | POST | the SOMECS engine depends on the method owner's exports and decisions; the MVP uses `aia-sociomap-3` | none |
@@ -153,7 +154,7 @@ register check fails on a criterion with no resolvable chunk.
 | AC-06 | `run-qc-and-checkpoint#RQC0` |
 | AC-07 | `working-copy-edit-ops#WCE7` |
 | AC-08 | `evidence-integrity#1`, `evidence-integrity#2`, `evidence-integrity#3`, `evidence-integrity#6`, `run-qc-and-checkpoint#RQC2`, `evidence-integrity#9a`, `evidence-integrity#9b`, `assumptions-and-open-answer-coding#AOC4`, `assumptions-and-open-answer-coding#AOC5`, `assumptions-and-open-answer-coding#AOC6`, `assumptions-and-open-answer-coding#AOC8`, `assumptions-and-open-answer-coding#AOC9` |
-| AC-09 | `sociomap-formula-corrections#I0`, `segment-maps-and-drilldown#0a`, `segment-maps-and-drilldown#5`, `segment-maps-and-drilldown#6`, `working-copy-edit-ops#WCE8`, `mvp-acceptance-harness#10` |
+| AC-09 | `sociomap-formula-corrections#I0`, `sociomap-formula-corrections#3`, `segment-maps-and-drilldown#0a`, `segment-maps-and-drilldown#1`, `segment-maps-and-drilldown#2`, `segment-maps-and-drilldown#4`, `segment-maps-and-drilldown#5`, `segment-maps-and-drilldown#6`, `segment-maps-and-drilldown#8`, `segment-maps-and-drilldown#9`, `research-lead-workbench#20`, `working-copy-edit-ops#WCE8`, `mvp-acceptance-harness#10` |
 | AC-10 | `client-knowledge-lifecycle#K2`, `client-knowledge-lifecycle#K5`, `client-data-in-analysis#2`, `client-data-in-analysis#3`, `client-data-in-analysis#9` |
 | AC-11 | `deep-research-web-search#51`, `deep-research-web-search#52`, `deep-research-web-search#53`, `deep-research-web-search#54`, `deep-research-web-search#27`, `mvp-acceptance-harness#11` |
 | AC-12 | `mvp-acceptance-harness#5`, `client-knowledge-lifecycle#K7a` |
@@ -308,6 +309,24 @@ These rows preserve the original findings; assigning chunks resolves planning ow
 | G37 | **The open posture needs a setter route, permission test, audit row, profile UI and `api-contract` entry** (specified in `deep-research-web-search` 53 after this review) (T5 A2, T4 A8) | `deep-research-web-search#53` |
 | G38 | **A second live Deep Research run (Interpretation) is needed for "cited context in the report"** (`contextual_report.py:985`) and is absent from AC-11's wording, gate I-4 and the USD 25 budget table (T5 A14) | `mvp-acceptance-harness#1`, `mvp-acceptance-harness#11` |
 
+**From the independent cross-check (2026-10-20)**
+
+Four track maps built from the code before this plan existed were compared with it at `129a800e`; each difference went to a verifier told to refute it against the code and every plan file. 16 of 101 findings held; merged, they are these rows and five corrections in §6.2. Anchors are `@ 085abe0`.
+
+| # | Gap | Chunks |
+|---|---|---|
+| G47 | **The three new workers have no job shape.** A `research_agent` job is keyed on a Design Revision with a design snapshot (`application/research.py:1311-1356`) and `ResearchAction` is closed (`domain/research_agents.py:35-43`); the map interpreter, report writer and straight-liner check need a job keyed on a run and a target (X2) | `lead-orchestration#LO9c` |
+| G48 | **The Segments module could never pass, so no report could compose.** MVPQ-04 blocks the report on a module with no supported finding, and nothing produces SEGMENT-level admitted evidence (`domain/evidence/claims.py:81` has no producer). The owner, 2026-10-20: build segment evidence (X1) | `segment-maps-and-drilldown#10` |
+| G49 | **A questionnaire proposal drops protected inputs and item identity.** `proposal_result` discards declared batteries and renumbers every item (`domain/research_agents.py:748-787`), so an accept on a map study trips the lock or loses the declarations, and per-change accept sees everything replaced (X3) | `working-copy-edit-ops#WCE8b` |
+| G50 | **No report document model is stored or served.** The steps store DOCX bytes and discard the `ReportDocument` (`aia_executors/report.py:140-157`), so tracked changes, the sentence check, the Lead's report text and the V2 draft have no source (X4) | `report-delivery#RD5a` |
+| G51 | **A client number has no support or metric kind.** `assess_support` suppresses a number with no n, and the metric vocabulary has no count, amount or rate, so the AC-10 dataset would be suppressed whatever the policy (X5) | `client-data-in-analysis#0` |
+| G52 | **The client dataset's rows and quality report have no producer.** The stored reading is cut at 250,000 characters and the accessor is client-scoped only, so an analysis copy could total a truncated dataset; nothing computes the quality report the person accepts (X6, X7) | `client-data-in-analysis#3a`, `client-data-in-analysis#3b`, `client-data-in-analysis#2a` |
+| G53 | **Routing cannot run.** Readiness fails any conditional question and fieldwork asks everyone everything; the V2 design shows routing and a filtered base. The owner, 2026-10-20: build routing end to end (X8) | `working-copy-edit-ops#WCE13`, `run-qc-and-checkpoint#RQC11`, `evidence-integrity#10` |
+| G54 | **No respondent-map or segment-map figure or chapter.** The report reads contract-3 object maps only, and the run graph has no segment-map node for the report (X9) | `segment-maps-and-drilldown#9` |
+| G55 | **Settings' draft test is a paid AI start outside the Lead.** It contradicts AC-02 and MVPQ-11. The owner, 2026-10-20: remove the test button (X10) | `system-prompts-settings#14` |
+| G56 | **Structural auto-apply has no actor, setting place or post-fieldwork rule.** A continuation turn finishing with no browser open applies nothing today (X11) | `working-copy-edit-ops#WCE11` |
+| G57 | **A retry's analysis prompt pin is undecided.** `_restart` has no prompt parameter, so a person who fixes a prompt cannot tell whether `retry_analysis` uses it (X12) | `system-prompts-settings#7` |
+
 ### 6.2 Statements that are wrong or stale: fix the document, not the code
 
 | Statement | Where | What is true | Fix |
@@ -326,7 +345,11 @@ These rows preserve the original findings; assigning chunks resolves planning ow
 | "The working copy is written only by `apply_edit_ops`" | target-architecture §8 against §3.1 | the whole-copy route stays | I8 |
 | "After any accept the head equals the working copy" | target-architecture `:179-183` | the Lead's accept saves only and submits no revision (`research_lead.py:592-601`) | G14 |
 | "A plan stops at the next step if the design moved" | target-architecture `:144-146` | an accepted `agent_job` moves the head | G14 |
-| Structural edits may auto-apply per stage (D18, MVP-14) | `research-lead-workbench.md:141-144` | cohesion and architecture say text only | owner decision (§11 Q9) |
+| Structural edits may auto-apply per stage (D18, MVP-14) | `research-lead-workbench.md:155-158` (D18) | cohesion and architecture say text only | settled, §11.1: off by default, text-only is the only automatic accept until a researcher turns a stage on; `working-copy-edit-ops#WCE11` (corrected 2026-10-20 by the cross-check) |
+| The three new workers are `research_agent` actions, "each a job like today's" | `mvp-target-architecture.md:254`, `mvp-consolidation.md:190` | a `research_agent` job is keyed on a Design Revision; `ResearchAction` is closed (G47) | `lead-orchestration#LO9c`; both rows corrected 2026-10-20 |
+| AC-09 is built by six chunks | §3.4's AC-09 row | the respondent map is `sociomap-formula-corrections#3` (open) and the segment map, register entry, artifact and figures are `segment-maps-and-drilldown` 1, 2, 4, 8, 9 with `research-lead-workbench#20` | row completed 2026-10-20 |
+| Any other origin is refused at `instrument.py:112-121` | `client-data-in-analysis.md`, `mvp-cohesion.md` F3 | those lines are constants; the refusal is `_declared` at `instrument.py:184-196 @ 085abe0` | anchors corrected 2026-10-20 |
+| `system-prompts-settings` chunk 8 is built, including the settings document's versions | that plan's chunk 8 `[x]` | `research_analysis` still lists no version (`routers/settings.py:486-492 @ 085abe0`) | `system-prompts-settings#7` takes it over |
 | MVP-13 "one card at a time" | `overview.md:584`, AC-02 | superseded by the envelope (F13) | docs PR |
 | "A client report is produced by whoever first downloads it" | `research.py:2478-2485` | with self-approval off, the reviewer who opens it first cannot approve it ◇ | `report-delivery` |
 | Settings "FAST_EXTRACTION unused", analysis and Deep Research prompt slots "not run" | `settings.py:529`, `prompt_slots.py:121-140` | both are registered and run | `system-prompts-settings` |
@@ -482,6 +505,9 @@ MVPQ-01 was answered on 2026-10-20: the browser's Czech Research Lead V2 build i
 | Deleted content lasts at most 30 days in backups and versions; a deletion journal is replayed after restore; content-free usage rows stay, admins only | MVPQ-07, owner 2026-10-20 | `study-data-lifecycle#SDL0`, `study-data-lifecycle#SDL5` |
 | Client-level source extraction stays in Client Knowledge, a recorded exception to AC-02 | MVPQ-08, owner 2026-10-20 | `client-knowledge-lifecycle#K8` |
 | A client deliverable's gate: no "Interní dokument" source, no drill-down content, no number without an admitted claim; an unsupported claim blocks approval; no separate legal review | MVPQ-09, owner 2026-10-20 | `report-delivery#RD0`, `report-delivery#RD1`, `report-delivery#RD3`, `report-delivery#RD7` |
+| Segment evidence is built: per-segment admitted claims, so the Segments module can state a finding and the report composes | X1, owner 2026-10-20 | `segment-maps-and-drilldown#10` |
+| Questionnaire routing is built end to end: conditions set and validated, fieldwork routes, results on the filtered base | X8, owner 2026-10-20 | `working-copy-edit-ops#WCE13`, `run-qc-and-checkpoint#RQC11`, `evidence-integrity#10` |
+| Settings' draft-prompt test is removed; no paid AI start outside the Lead, no exception for it in AC-02 | X10, owner 2026-10-20 | `system-prompts-settings#14` |
 | Each researcher has their own private Lead | F12, Q26 | `lead-orchestration#LO0`, `lead-orchestration#LO11` |
 | The Deep Research open posture replaces classification for the MVP; the posture is pinned at enqueue and a retry copies it | #500, owner 2026-10-19 | `deep-research-web-search#53` |
 | Respondent replacement is a new linked run, never an edit of a completed one | F18 | `run-qc-and-checkpoint#RQC5` |

@@ -10,6 +10,8 @@ chunks:
   - "[ ] 6. The respondent drill-down route: one respondent's profile and answers, internal, never exported"
   - "[ ] 7. The Lead reads filters and the drill-down, labelled modelled, on the approved route only"
   - "[ ] 8. The Sociomap artifact shows filters and drill-down (with research-lead-workbench chunk 20)"
+  - "[ ] 9. Respondent-map and segment-map figures and report chapters (W2, before report-delivery RD4): drawn beside the object map, keyed by battery, method and kind with the register status"
+  - "[ ] 10. Segment evidence (W2, after 1; the owner, 2026-10-20): per-segment aggregates as SEGMENT-level admitted claims, thin segments suppressed, so the Segments module can state a finding"
   - "[ ] 0a. What a segment is, and the respondent attributes stored per respondent: their class and who may read them; before chunk 1"
 ---
 # Segment maps, map filters and the respondent drill-down
@@ -101,3 +103,11 @@ not stored). Segment maps, filters and the drill-down have nothing to read until
 holds the segmentation variables. The owner and the method owner state the variable (the proposed default
 is the quota-cell fields sampling already uses: age group, sex, region, education from n 700); this chunk
 then stores it, classes it and says who may read it: the producer, the lineage, the storage, the allowed descriptor set, the support and suppression rules and the consumer contract. An approved own dimension needs an actual consumer (a segmentation or filter), not only a child file (gap G28, `client-knowledge-lifecycle` K5). Gap G30; interface I5.
+
+## Cross-check additions (2026-10-20)
+
+From the independent cross-check of the master plan against the code (`mvp-master-plan.md` §6.1, G47-G57). Anchors are `@ 085abe0`.
+
+**9. Respondent-map and segment-map figures and report chapters (G54, X9).** `object_map_snapshots` and `compose_map_sections` read only contract-3 object maps through `read_object_maps`, `report-delivery#RD4` says S2 supplies the figure function, and the run graph has no segment-map node or report `depends_on` edge. This chunk draws `draw_respondent_map_snapshot` and `draw_segment_map_snapshot` beside `draw_object_map_snapshot`, keys `object_map_snapshots` and `compose_map_sections` by (battery, method, kind) with the register status and any suppressed or not-mappable segment named, and puts the segment-map artifact in the report's `depends_on`. It states whether a client snapshot prints respondent points or only the aggregate terrain. Reconcile with the methodology owner's `aia-sociomap-5` (#504) first. Tests: deterministic bytes; `client=True` refuses an unregistered kind.
+
+**10. Segment evidence (G48, X1; the owner, 2026-10-20: build segment evidence).** MVPQ-04 blocks the report while any of the eight modules has no supported finding, and chunk 5 says segment filters are never an `AdmittedClaim`; nothing produces SEGMENT-level admitted evidence (`ClaimLevel.SEGMENT` is defined at `domain/evidence/claims.py:81` and has no producer; `domain/analysis/modules.py:91-96` tells the module to say segmentation cannot be assessed). So the Segments module could never state a finding and no report could be composed. This chunk computes per-segment aggregates over chunk 1's descriptors (Kish effective n, support, suppression) and admits them as SEGMENT-level claims through `admit_numeric_claims`, so the module states a finding from them. Filters (chunk 5) stay aggregates only. Tests: a thin segment is suppressed and named; `RELIGION` is refused client-facing; the Segments module of the library study states a finding that cites a SEGMENT claim, and the report composes.

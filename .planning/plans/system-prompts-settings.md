@@ -14,6 +14,7 @@ chunks:
   - "[x] 11. Test a draft: a pinned job on a study, from the tab"
   - "[x] 12. Doc follow-up written (below)"
   - "[ ] 13. The analysis and Deep Research executors take a prompt pin, so the slots `prompt_slots.py:121-140` marks "not run by any composition" are run; queued work keeps the pin it was queued with after an activation, and new work gets a new identity"
+  - "[ ] 14. Remove the draft test from Settings (W1; the owner, 2026-10-20): no paid AI start outside the Lead; a draft is compared and activated, never run from Settings"
 ---
 # System prompts, editable from Settings, and a Settings page that can be used
 
@@ -317,3 +318,13 @@ activation keeps its pin and its identity after it; work started after gets a ne
 reuse the old result; a repair call uses the same pin as its initial call. Interfaces I25.
 
 **Coder worker (2026-10-20).** If `assumptions-and-open-answer-coding#AOC7` adds a worker, its prompt is editable and pinned like the eleven (chunks 7 and 13 cover its slot); if the coding method forbids a model coder, nothing is added.
+
+## Cross-check additions (2026-10-20)
+
+From the independent cross-check of the master plan against the code (`mvp-master-plan.md` §6.1, G47-G57). Anchors are `@ 085abe0`.
+
+**14. Remove the draft test (G55, X10; the owner, 2026-10-20: remove the test button).** Settings' "test a draft" is a paid AI start outside the Lead: its Run button calls `researchAgents.start` with a pinned prompt version and creates no Lead card (`apps/web/src/components/aia/settings/SystemPromptsPanel.tsx`). AC-02 (every AI action through the Lead) and MVPQ-11 (no manual AI start in any layout) forbid it. This chunk removes the button and its route use; chunk 11's draft test is withdrawn. A draft is compared with the active version and activated; its effect is seen on the next real job, which pins it. Tests: the Settings page has no AI start (the AC-02 sweep passes without an exception); the agent-job start route still refuses an unconfirmed spend (`lead-orchestration#LO15`).
+
+**Chunk 7, amended (G57, X12).** `retry_analysis` resolves the analysis prompt pins afresh and records them: a changed pin changes the module fingerprint, so that module reruns; completed modules under an unchanged pin are reused. A plain whole-run retry keeps the original's pin (`_restart` copies every other pin from the original's metadata and has no prompt parameter today). Test: edit and activate a prompt after a run, then `retry_analysis`: the failed module runs the new pin and a completed one is reused.
+
+**Chunk 8, correction.** Chunk 8 is ticked, but its settings-document half was not delivered: `research_analysis` still lists no version (`NativeActivity(key="research_analysis", ..., versions=[])`, `apps/api/src/aia_api/routers/settings.py:486-492 @ 085abe0`). Chunk 7 takes it over. Test: `test_settings_api` asserts `research_analysis` lists its versions after chunk 7.

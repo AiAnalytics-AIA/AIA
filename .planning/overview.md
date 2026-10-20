@@ -556,13 +556,14 @@ open plan classified, anchored @ `0b4e05e`). Plans keep their own status; this s
 tracks, their order and their owners, and only docs PRs edit it.
 
 **The MVP.** The research lifecycle end to end in the **Research Lead workbench** (the Lead beside
-eleven V3 step artifacts, ADR 0026), on AI respondents drawn from the population; **Sociomapping**
+eleven step artifacts of the canonical V2 prototype, MVPQ-01, ADR 0026), on AI respondents drawn from the population; **Sociomapping**
 with the approved object map **and the respondent map**; the **data library** from a client's
 source to an accepted, materialized dimension owned by that client; **project memory** (design
 reuse, done); **delivery** as the approved internal and client reports and approved map snapshots;
-live **Deep Research** on the full design through an EU Class B search provider (MVP-27). *Out:* Simulation and every scenario,
+live **Deep Research** on the full design for a client marked `OPEN` (MVP-27 as amended by #500). *Out:* Simulation and every scenario,
 a client login, report depth tiers, client-facing analysis prose (it waits on the holdout
-validation), the Lead's autopilot, Deep Research from every stage, promotion of a client's
+validation), the Lead's full autopilot ("continue until you need me"; the approved-plan part is in, MVP-3 as
+amended, `lead-orchestration` LO1-LO6), Deep Research from every stage, promotion of a client's
 dimension into the shared LIVE population.
 
 **Decisions of 2026-10-19 (owner).**
@@ -571,17 +572,17 @@ dimension into the shared LIVE population.
 |---|---|
 | MVP-1 | All scenarios out, the deck's P0 Scenario engine included (also resolves D9) |
 | MVP-2 | Client View is the approved exports: the client report (DOCX/PDF) and approved map snapshots. No client login |
-| MVP-3 | The workbench redesign is release-blocking: the Lead and all eleven V3 artifacts before release. The autopilot ("continue until you need me") and Deep Research from every stage come after |
+| MVP-3 | The workbench redesign is release-blocking: the Lead and all eleven artifacts before release. The autopilot ("continue until you need me") and Deep Research from every stage come after. *Amended 2026-10-19 (F13, Q14, Q25):* a plan-scoped part of the autopilot is in the MVP, a plan the Lead prepares inside the study's envelope and a person approves once, which parks at every gate it does not cover (`lead-orchestration` LO1-LO6). *Amended 2026-10-20 (MVPQ-01):* the artifacts are those of the canonical V2 prototype, not V3 |
 | MVP-4 | The respondent map is in the MVP (`sociomap-formula-corrections` chunk 3); the method owner works in AIA sessions and answers 0b there |
 | MVP-5 | `docs/migration/mvp-acceptance.md` is rewritten as the one definition of done (its machine-readable criteria in `parity-matrix.json` with it) |
 | MVP-6 | Report depth tiers after the MVP |
 | MVP-7 | The data library ends at an owned child population; no promotion to shared LIVE |
-| MVP-8 | **Every AI action goes through the Research Lead.** The manual AI buttons are removed, artifact by artifact as each V3 artifact lands; the Lead calls smaller workers, each with its own system prompt, and every paid one is approved by a person through the Lead's approve path (which already holds the spend limit; this closes research-lead-workbench F1) |
+| MVP-8 | **Every AI action goes through the Research Lead.** The manual AI buttons are removed, as each canonical V2 artifact lands (MVPQ-01); the Lead calls smaller workers, each with its own system prompt, and every paid one is approved by a person through the Lead's approve path (which already holds the spend limit; this closes research-lead-workbench F1) |
 | MVP-9 | Live Deep Research with Brave is release-blocking; the owner / data owner chase Brave's written answer on storing results (DR-2) **Superseded by MVP-27** (same day): the release route is an EU Class B provider; Brave stays a Class C route |
 | MVP-10 | Client deliverables carry labelled modelled numbers and approved maps; analysis prose stays internal until `panel-grounded-respondents` 7f-7h |
 | MVP-11 | **Target: end of Q1 2027.** Order by dependency; a track at risk of the date is named in its row |
 | MVP-12 | The Lead's workers in the MVP: the eight existing (`analyze_brief`, `build_questionnaire`, `optimize_questionnaire`, `propose_audience`, `suggest_dimensions`, `critique_design`, `design_copilot`, `answer_memory`) and three new ones: a **map interpreter** (reads a frozen map, writes an unapproved interpretation), a **report writer** (wording and order of a draft; numbers stay references re-admitted), a **straight-liner check** (flags respondents with identical battery answers, proposes keep or replace) |
-| MVP-13 | A paid worker job is approved **one card at a time** in the chat (no standing budget in the MVP) |
+| MVP-13 | ~~A paid worker job is approved **one card at a time** in the chat (no standing budget in the MVP)~~ *Superseded 2026-10-19 (F13, Q14) by a per-study envelope:* the researcher sets it up to a client ceiling; a paid step starts inside it through an approval card, a plan approved once, or a typed start by a person; the study's `budget_usd` is the cap and the spend limit stays a per-start confirmation threshold (`lead-orchestration` LO0-LO5, LO15) |
 | MVP-14 | Structural edits (adding or removing questions, a battery) are proposals by default; the researcher may let the Lead apply them **without a click in stages they choose**, each change still a new working revision |
 | MVP-15 | The Lead sees **everything stored** about a study's results (aggregates, maps, module texts, report drafts), classified before any model reads it and fetched within its context bound |
 | MVP-16 | Map kinds in the MVP: **object, respondent and segment**; hybrid after. The Sociomap artifact has **filters and drill-down** to one respondent's profile and answers |
@@ -595,7 +596,7 @@ dimension into the shared LIVE population.
 | MVP-24 | 18.6.6's run QC (`qc.kontrola`: straight-lining, speeders, inconsistent answers) is ported **as warnings** on Fieldwork, Results and to the Lead, never a gate (ANL-3); it pairs with the straight-liner worker (MVP-12). No plan yet |
 | MVP-25 | Thin support: **suppression is enough**, analysis does not pause (ANL-2) |
 | MVP-26 | Deep Research's further outputs (DR-4): **accepted findings as cited context** in the client report's research-context chapter (never respondent evidence), and **the run's sources as a dataset** (`deep-research-web-search` 37) |
-| MVP-27 | **Live Deep Research uses the full study design** (DR-2b): queries may carry the Class B design, so they go only to a search provider **approved for Class B under an EU processing agreement**, contracted before release. This replaces Brave as MVP-9's route; Brave and Wikipedia stay Class C. Choosing and contracting the provider is the owner's (candidate: Linkup) |
+| MVP-27 | **Live Deep Research uses the full study design** (DR-2b). ~~Queries go only to a search provider approved for Class B under an EU processing agreement (candidate: Linkup).~~ *Amended 2026-10-19 (#500):* classification leaves the MVP's path. One declared posture per client, `OPEN` or `CLASSIFIED` (the default), pinned at enqueue; an `OPEN` client's design and queries go to Brave and every composed route, a `CLASSIFIED` client's web tracks stay parked. The Class B route is deferred whole (`class-b-search-route`; `deep-research-web-search` 51-55; reach is required, Common Crawl included, MVPQ-06) |
 | MVP-28 | `RELIGION` stays refused client-facing (D7) |
 | MVP-29 | **One field-policy authority: the population contract's stricter list (115 client-measurable fields)** (D8); `domain.evidence` consumes it; the data owner may widen it later |
 | MVP-30 | Spend is proven by AIA's ledger **and** an AWS application inference profile tagged `Environment=develop` (AR-3; one Terraform + IAM + model-policy change) |
@@ -607,16 +608,20 @@ dimension into the shared LIVE population.
 named here when its work starts; no two agents edit the same plan. An agent marks its own PR ready
 and handles review (MVP-22); **the owner merges**. The method owner works in AIA sessions under CLAUDE.md.
 
-**Tracks, in order within each.**
+**Tracks, superseded (2026-10-20).** The track rows that stood here named "no plan yet" for work
+that now has plans. The order, ownership and waves now live in the MVP plans, and this section no
+longer repeats them:
 
-| Track | Plans and chunks | Owner | Blocked by |
-|---|---|---|---|
-| **A. Release acceptance** (run once) | `mvp-acceptance.md` rewrite (MVP-5, MVP-20, MVP-21: the library study, USD 25, no parity gate); then one recorded and one deployed run that ticks `ai-research-activation` 4, `connected-research-assurance` 5, `contextual-research-settings-ux` 5, `research-agent-workflows` 8, `research-integrity-report` 5, `mvp-workflow-assurance` A4/A5 | open | B-F |
-| **B. Workbench and Lead** | `research-lead-workbench` 12 → 11 (command registry, the eleven workers of MVP-12) → 14-16 → the Lead's results context (MVP-15) → 17-22, each removing its stage's AI buttons and adding the Lead's worker call (MVP-8) → 23; three new worker contracts (MVP-12); `system-prompts-settings` 7 (every worker's prompt editable, MVP-32); hide Simulace (MVP-31) | open | C for the Results and Sociomap artifacts; D for the Brief's materials |
-| **C. Population → respondents → maps** | `audience-catalogue-cpu` 4 → `complete-study-report` B6 (operator flag) → `sociomap-formula-corrections` I0-I5, 0b, 3 (respondent map), 4d → **segment map** and clustering (MVP-16/17: no plan yet; method owner's algorithm) → filters and drill-down in the Sociomap artifact (with B 20) | open; method owner for 0b and clustering | the method owner's answers |
-| **D. Data and evidence** | `client-budget` CB5 → `client-knowledge-lifecycle` K2e, K2f, K3, K4, K5 (to an owned child), K6, K7 → `client-workspace` C6-C9 → **client datasets in analysis** (MVP-19: ADR first, then a plan; personal columns dropped) | open | the MVP-19 ADR |
-| **E. Delivery and gates** | `research-integrity-report` 6-8 → `two-roles-human-ai-gates` 5b.4 as approved exports (MVP-2) → findings must cite evidence (MVP-23) and run QC as warnings (MVP-24): **no plan yet** → field policy to one authority (MVP-29) | open | — |
-| **F. Deep Research live** | choose and contract an EU Class B search provider (MVP-27), its route composed beside Brave's, then `deep-research-web-search` 1 (sign-off) → 27 (develop activation); `deep-research` 4 (tool rows in the usage ledger); `deep-research-web-search` 37 (sources dataset) and the report's research-context chapter (MVP-26) | open | the provider contract (owner) |
+- [`plans/mvp-master-plan.md`](plans/mvp-master-plan.md): the entry point. Which plans are the
+  MVP (the register), what must be switched on and by whom, the interfaces between plans, the gap
+  register (G1-G57) with the chunk that closes each, and the questions still open.
+- [`mvp-development-plan.md`](mvp-development-plan.md): gates I-0 to I-5 and I-R, three build
+  sessions (S1 workbench and Lead; S2 population, maps, evidence and Deep Research; S3 data,
+  delivery, infrastructure and acceptance), waves W0 to W5 and the migration lane.
+- [`mvp-execution-contracts.md`](mvp-execution-contracts.md): the dependency graph (E01-E34) and
+  every open chunk's wave.
+- [`mvp-cohesion.md`](mvp-cohesion.md) and [`mvp-owner-decisions.md`](mvp-owner-decisions.md): the
+  decision register (F1-F19, the owner's answers, MVPQ-01 to MVPQ-12) and what stays open.
 
 After the MVP: `simulation-studio`, `sociomapping-engine` (SOMECS), `methodology-tab` S4d/W1c/X1,
 `panel-grounded-respondents` 7f-7h, `deep-research-web-search` 31-39, research-lead-workbench

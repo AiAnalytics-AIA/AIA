@@ -11,6 +11,7 @@ chunks:
   - "[ ] LO7. The Lead's context layers per ADR 0026 decision 2: readiness, question outlook, what changed since its last turn, other people's changes, and the execution state (status, park code, spend, selection receipt, QC)"
   - "[ ] LO8. `ResultsContext`: type, class (`MaterialRule` for results, module text, maps, report text), lineage, bound, an external-evidence slot labelled L; and the decision on a read tool against ADR 0026 decision 3"
   - "[ ] LO9a. The worker contract, early (W0, the first deliverable of `research-lead-workbench` 11): `LeadWorkerSpec` as a type, one row per worker (id, closed task, context layer, data-class rule, capability, reservation, prompt id and pin, switch, card kind, result kind), with its fixture"
+  - "[ ] LO9c. A results-worker job shape (W2, before LO9b): a workflow type and step kind keyed on (run_id, target), frozen inputs by artifact id and SHA-256, its own context builder and executor behind its own switch, sharing the worker row, prompt pin and usage ledger"
   - "[ ] LO9b. The three new workers as rows (W3): a `REPORT_WRITING` binding, result kinds and accept destinations, per-worker price and keys"
   - "[ ] LO10. `approve_request` bound to the revision shown on its card, and a clean error where the 96 KB Lead context meets the 64 KB agent limit"
   - "[ ] LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions, the admin read and handover, a departure trigger"
@@ -109,3 +110,9 @@ never guessed. LO11's persistent personal lifecycle is later work; basic per-res
 must already pass AC-01 in W1. LO14's measured turn cost requires approved live activation; the
 zero-cost composition/limit tests can precede it. LO13 records only the exception the owner accepts.
 See `../mvp-execution-contracts.md`; no implementation checkbox changes here.
+
+## Cross-check additions (2026-10-20)
+
+From the independent cross-check of the master plan against the code (`mvp-master-plan.md` §6.1, G47-G57). Anchors are `@ 085abe0`.
+
+**LO9c. A results-worker job shape (G47, X2).** The map interpreter, the report writer and the straight-liner check cannot be `research_agent` actions: a `research_agent` job is keyed on a Design Revision and carries a design snapshot (`application/research.py:1311-1356`), and `ResearchAction` is a closed eight-member enum (`domain/research_agents.py:35-43`). This chunk builds the second shape: a workflow type and step kind keyed on (run_id, target), a frozen-input payload (artifact ids and SHA-256, as `FrozenLineage` does), its own context builder, a service found only through the Study, and an executor behind its own `AIA_AI_RESEARCH_WORKERS_*` switch. It shares `LeadWorkerSpec`, the prompt pin and the usage ledger; LO9b then adds only rows. Test: a job for run R and a map target is refused for another Study's run, and the executor verifies the payload hash.

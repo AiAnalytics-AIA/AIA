@@ -9,7 +9,8 @@ decides what the AI produced), [ADR 0024](0024-panel-grounded-respondents-are-mo
 **Changes** the closed set of data origins (decision 1) and the claims a report may print (decision 6).
 **Leaves unchanged** the AI respondents' origins, the Sociomap register, the methodology in force and
 every existing run.
-**Date:** 2026-10-19
+**Date:** 2026-10-19. **Amended 2026-10-20** with the product owner's MVPQ-05 answer (decisions 3, 6 and
+Q3; `mvp-owner-decisions.md`) and the support question the cross-check found (Q4, master plan G51).
 
 ## Context
 
@@ -45,10 +46,12 @@ Three facts of the code frame it:
    row) and a client's own survey (one respondent per row). What a row is, is part of the data
    contract (decision 4); nothing is inferred from the file.
 
-3. **Personal columns are dropped, never stored for analysis, never sent to a model.** A column with
-   a `PersonalHint` is left out of the analysis copy when the dataset is accepted; a person may clear
-   a false flag, recorded with their name. The kept source file is unchanged and stays a client
-   source; the analysis copy is a separate artifact without those columns.
+3. **Personal columns are dropped, never stored for analysis, never sent to a model.** The analysis
+   copy holds **only** the columns the accepted contract names as used and not personal: an
+   allowlist, not the preview's `PersonalHint`s, which only warn (amended 2026-10-20, MVPQ-05: the
+   accepted contract alone is the dataset's evidence policy, with no AIA field list in between). A
+   column the contract does not name is never copied. The kept source file is unchanged and stays a
+   client source; the analysis copy is a separate artifact without the other columns.
 
 4. **A person accepts a data contract before any use.** Per dataset: the period and the unit (what a
    row is, currency, units); each used column's meaning (AIA proposes, a person confirms); the use
@@ -63,8 +66,9 @@ Three facts of the code frame it:
 
 6. **Graded "client-reported", printed every time.** A client-reported number carries its own grade:
    measured by the client, not verified by AIA. AIA vouches for the computation, not the data. It may
-   appear in the client report and the approved exports, each time labelled *z dat klienta* with its
-   period and source dataset (the owner, MVP-19).
+   appear in the client report and the approved exports, each time labelled *z dat klienta* (the owner,
+   MVP-19). Its source dataset and period are disclosed once per report, in a footnote or the methods
+   chapter, not on every line (amended 2026-10-20, MVPQ-05).
 
 7. **Beside modelled results, never mixed into one number.** A client-reported number and a modelled
    number are never combined into one figure. Two uses are allowed:
@@ -104,5 +108,11 @@ Three facts of the code frame it:
   against a client's 40,000 rows): one interval rule, or each side's own?
 - **Q2.** Whether a client's survey answers may also ground AI respondents later (decision 7's
   calibration), and who decides it: the methodology owner.
-- **Q3.** The exact label words beside each number in the report (*z dat klienta*, the period, the
-  source), to be set with the report's copy (`domain/report/copy.py`).
+- ~~**Q3.** The exact label words beside each number in the report.~~ Answered 2026-10-20 (MVPQ-05):
+  *z dat klienta* beside each number; source and period once (decision 6).
+- **Q4** (the cross-check, master plan G51). A client number has no respondent n or effective n, so
+  the evidence layer's support rule would suppress it, and the metric vocabulary has no count,
+  amount or rate. Decide the support a client aggregate or record count carries (exact counts or
+  row count as n, or an explicit "not a sample" status, never an invented effective n), the metric
+  and unit set a client number may take, and when an interval is required
+  (`client-data-in-analysis#0`). Q1, Q2 and Q4 are the methodology owner's.
