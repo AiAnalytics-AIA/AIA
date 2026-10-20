@@ -13,7 +13,8 @@ every evidence gate.
 **Date:** 2026-10-20. **Amended 2026-10-20** with the product owner's recorded answers D-08 and D-17
 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`), and Q16 (a) and Q20 (b) on
 the PM status page (relayed by the coordinator): Brave at release, and Brave may carry Class B
-queries for every client. Still Proposed.
+queries for every client; and Q22 (b) and Q23 (b) (21:55-21:57 UTC): Class A only as fields code
+extracts, and search operators. Still Proposed.
 **Plan:** [deep-research-web-search](../../../.planning/plans/deep-research-web-search.md) 53 (§ Open
 posture), 51, 52; migration M10
 
@@ -84,12 +85,23 @@ For a CLASSIFIED client:
   addendum item 1 for search queries; model requests keep it);
 - such a query may go to Brave; every other composed route (the connectors, Common Crawl, the
   crawler) stays Class C only;
-- a query that carries Class A material (written from approved client knowledge, a client source, a
-  client note) is refused, and the track parks by name, as today;
+- **Class A reaches a query only as fields code extracts from approved knowledge** (the product
+  owner, 2026-10-20, Q22 b; `deep-research-web-search` chunk 57a): the category, the market and the
+  named competitors, picked by code from approved Client Knowledge items, never by the model. The
+  client's free text, notes, documents and sources never reach a query. A query is checked by code
+  before it leaves: anything Class A in it that is not one of those extracted field values refuses
+  it, and the track parks by name. Such a query goes to Brave alone; every other route still refuses
+  Class A;
 - fetching a page Brave returned sends no client material and is governed as today.
 
-Search operators in a query (`site:`, quotes, `-term` and the like) are not decided here (*Open for
-Nigel*, 2). Operator-declared fictional clients behave as before. OPEN behaves as decision 3.
+**Search operators** (Q23 b; chunk 58): a query may carry `site:`, `filetype:` and `intitle:`,
+written by the model freely (chosen over a curated list of domains). An operator never changes a
+query's class: the query is classed by its words, operators included, by the rules above. A route
+that does not support an operator receives the query without it, and the journal records that it
+was dropped. `RetrievalGate` checks every returned URL and every hop as today, whatever the operator
+asked for.
+
+Operator-declared fictional clients behave as before. OPEN behaves as decision 3.
 
 ### 5. The deferral and the redesign note
 
@@ -125,7 +137,10 @@ determination are the controls.
 
 - Tests (chunk 53): an OPEN client's edited design runs its web tracks with no operator record; a
   CLASSIFIED client's edited design sends its Class B queries to Brave and to no other route; a
-  CLASSIFIED query carrying Class A material is refused and its track parks; Brave's Class B
+  CLASSIFIED query carrying Class A text other than the extracted fields (category, market,
+  named competitors) is refused and its track parks, and one carrying only those fields goes to Brave
+  alone; an operator does not change a query's class, and a route without it receives the query
+  without it, recorded; Brave's Class B
   determination is read from its recorded data, and a route without one stays Class C; a retry keeps the original's
   posture; a mid-run switch changes nothing for the run; a model request in an OPEN run still carries
   the design's rule class; only OWNER or ADMIN may set the posture, audited, a second organization's
@@ -146,10 +161,9 @@ I-R, and AC-11's first half.
    when this ADR is accepted (D-08, a).
 3. ~~Amending ADR 0008.~~ Yes, recorded in ADR 0008's amendments when this ADR is accepted (D-08, a).
 
-Still open:
+- ~~Class A in a query.~~ Only fields code extracts from approved knowledge (category, market,
+  named competitors), checked before the query leaves, Brave alone (Q22, b). Decision 4.
+- ~~Search operators.~~ `site:`, `filetype:`, `intitle:`, written freely; class unchanged; dropped
+  and recorded where a route lacks them (Q23, b). Decision 4.
 
-1. **Class A in a query.** A query written from approved knowledge or a client source is Class A
-   and stays refused for every CLASSIFIED client (Q20). Confirm that, including for the Lead's lookup
-   (ADR 0040), whose context usually holds approved knowledge.
-2. **Search operators** (`site:`, `filetype:`, `intitle:`, quoted phrases, exclusions): whether a query may use them, and
-   what a `site:` naming a client's own domain reveals. Waits on the owner's follow-ups Q22 and Q23.
+Nothing remains open in this ADR but its acceptance.
