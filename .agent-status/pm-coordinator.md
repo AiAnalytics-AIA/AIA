@@ -97,6 +97,25 @@ Arigamaru; #512 ADR decisions; design feedback (optional).
 - Dependabot ~112 alerts mostly on main (556 commits behind develop): suggest a develop->main release sometime.
 - braces npm exception expires 2026-11-20 (CI fails from 11-21 until rechecked).
 - make ui-capture crashes in the cloud image (capture.mjs ESM import of CJS playwright; #514 F-1).
-- Standalone explainer artifacts published before the no-artifacts rule: Docker 5HtdSPoHoCvYitirfEfj2U (retire when #524 is
-  merged and deployed), infra TGD4M1kWyChDQMg4uBw8DU (retire after the cutover). Delete each then, under rule 5.
+- Both standalone explainer artifacts (5HtdSP..., TGD4M1...) are already gone (the two deleted at 19:50); both explainers
+  were marked seen by Nigel at 20:12 and are retired (explainers/_retired/).
 - #517 feature/aia-sociomap-5-web (opened 16:04, feature code, owner session unknown to me): ask Nigel/locate owner; scope freeze.
+
+## 20:40 update (coordinator 3)
+- Answers: Q10 b (code + "Poznámky ke studii", Lead proposes, person accepts; note: Lead should live-edit documents,
+  comment vs direct rewrite chosen per researcher, "integrate wordcraft" undefined -> follow-up Q13 on the page, rec a:
+  per-researcher suggestions-or-direct, suggestions default); Q11 b (UNTESTED/SUPPORTED/CONTRADICTED + RETIRED);
+  Q12 a (close all 5 stage-handoff gaps: new LO9d; AOC3, WCE7, LO7, LO6 test). Relayed to planning 2 and scope 3 (Q11).
+- Stage-handoff audit (subagent, 20:20): design workers get only design + knowledge titles (domain/research_agents.py:565-583
+  @7878bad); analysis never gets hypotheses (analysis_results.py:570-578, modules.py:101); no stale flag on pending proposals
+  (lane.ts:34-96); Lead doesn't see pending proposals (application/research_lead.py:858-889).
+- Nigel ticked N7 "sign MP16" at 20:35: NOT a signature; get the typed one once #523 carries Q10-Q13.
+- N4 ticked done 20:34 but no fix/terraform-google-idp on origin; asked infra session.
+- Codex: all 11 open PRs marked ready 20:06. Findings handled on #510 (b968a21), #512 (3bbcb46), #514 (7975ff6), #515
+  (f3dca5e), #516, #523 (now 10a7228+); #513 #522 clean. #525: fixed in 87e5998 on Nigel's "push the #525 fix" (CSP in
+  explainer frames; action rows count only when titles match; seen rule).
+- #524 MERGED 20:29 as 44b66ef (reviewed: Dockerfile deps stage). Watching first deploy (send_later 21:50). The classifier
+  then blocked a send_message citing "Merge Without Review"; asked Nigel whether to keep merging reviewed PRs.
+- New session session_01Ku9CwQRUsBdPUbqWy6zYj7 "AIA design: Settings prototype" (Nigel works there directly; may publish its
+  one Design artifact). Round 0 = local HTML file; artifact publish blocked by its classifier, awaiting Nigel.
+- #517 feature/aia-sociomap-5-web: owner unknown; ask Nigel.

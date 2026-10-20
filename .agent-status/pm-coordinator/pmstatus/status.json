@@ -1,14 +1,14 @@
 {
- "generated_at": "2026-10-20T20:05:00Z",
+ "generated_at": "2026-10-20T20:40:00Z",
  "develop_sha": "7878bad",
- "headline": "Coordinator 3 has taken over. Your Q1-Q9 answers are applied (#523 @ 5107edc). One new question (Q10) and then your explicit MP16 signature unblock the MVP build; the Webglobe confirmation and the IdP 'commit and push' unblock the domain move. #524 and #525 merge when CI is green.",
+ "headline": "Q10, Q11 and Q12 are applied as you answered. One follow-up (Q13) on how the Lead edits documents live. Then your typed MP16 signature unblocks the build. #524 is merged and its first deploy is being watched.",
  "needs_nigel": [
   {
    "id": "N7",
-   "title": "Sign the scope baseline (MP16) on #523 @ 5107edc",
+   "title": "Sign the scope baseline (MP16) on #523",
    "why": "#523 now carries your Q1-Q8 answers (master_check ok). The scope freeze holds all MVP feature code until you sign; ticking 'done' on the page is not a signature.",
-   "example": "Type here: \"I sign MP16 on #523 at 5107edc\" (after answering Q10, or say Q10 stays open in the baseline).",
-   "recommendation": "Answer Q10 first, then sign; I merge #516 → #522 → #523 and start the W0/W1 lanes.",
+   "example": "Type in the coordinator chat: \"I sign MP16 on #523 at <head>\". The tick on this page is not a signature. Wait until #523 carries Q10-Q13.",
+   "recommendation": "Answer Q10 and Q11 first and wait for the stage-handoff amendment; then sign. I merge #516 → #522 → #523 and start the W0/W1 lanes.",
    "unblocks": [
     "planning",
     "scope-inputs",
@@ -31,7 +31,7 @@
   {
    "id": "N4",
    "title": "'commit and push the IdP fix' (infra session)",
-   "why": "Makes Terraform match what Cognito really does and keeps the domain cutover plan clean.",
+   "why": "You marked it done at 20:34, but no IdP branch is on GitHub yet; I've asked the infra session what's blocking. Makes Terraform match what Cognito really does and keeps the domain cutover plan clean.",
    "example": "Type exactly: commit and push the IdP fix",
    "recommendation": "Do it before the domain cutover.",
    "unblocks": [
@@ -77,7 +77,8 @@
    "next": "Q10 and your MP16 signature, then merge #516→#522→#523; merge #524/#525 when green.",
    "context_pct": 3,
    "last_update": "2026-10-20T20:05:00Z",
-   "reply": "received"
+   "reply": "received",
+   "explainers": []
   },
   {
    "id": "session_01RxUnHwTXGVFYjwzfpKi9kT",
@@ -118,7 +119,8 @@
    "next": "Apply each answer to the plans #523 names; you sign MP16.",
    "context_pct": 56,
    "last_update": "2026-10-20T19:18:27Z",
-   "reply": "received"
+   "reply": "received",
+   "explainers": []
   },
   {
    "id": "session_015hqQ6KEtJb864UHuU74ypp",
@@ -142,7 +144,8 @@
    "next": "Add your edits as one commit; then you send it to Arigamaru.",
    "context_pct": null,
    "last_update": "2026-10-20T19:18:29Z",
-   "reply": "received"
+   "reply": "received",
+   "explainers": []
   },
   {
    "id": "session_01Qg43kRfsZ97FjA8XenP28x",
@@ -166,7 +169,8 @@
    "next": "Apply your decisions as amendments; docs PR adds index rows.",
    "context_pct": 15,
    "last_update": "2026-10-20T19:18:13Z",
-   "reply": "received"
+   "reply": "received",
+   "explainers": []
   },
   {
    "id": "session_01EWprA36RBr7HAF58DTxTNn",
@@ -190,7 +194,8 @@
    "next": "Merged as evidence after you sign.",
    "context_pct": null,
    "last_update": "2026-10-20T19:18:08Z",
-   "reply": "received"
+   "reply": "received",
+   "explainers": []
   },
   {
    "id": "session_01Hv8Phz319H6u3HLQ2BgF6C",
@@ -214,7 +219,8 @@
    "next": "Merged as evidence after you sign.",
    "context_pct": 3,
    "last_update": "2026-10-20T19:18:17Z",
-   "reply": "received"
+   "reply": "received",
+   "explainers": []
   },
   {
    "id": "session_01FskpgUny4pDAMYFBLvAj4S",
@@ -238,7 +244,8 @@
    "next": "Merged as evidence after you sign.",
    "context_pct": null,
    "last_update": "2026-10-20T19:18:25Z",
-   "reply": "received"
+   "reply": "received",
+   "explainers": []
   },
   {
    "id": "session_01LBR1SyjXK8uYR5VdBjGAEJ",
@@ -270,15 +277,7 @@
    "context_pct": null,
    "last_update": "2026-10-20T19:18:10Z",
    "reply": "received",
-   "explainers": [
-    {
-     "title": "Develop hostname cutover",
-     "function": "infra/develop (Route 53, Cognito, Caddy)",
-     "html": "<!doctype html><html><head><meta charset=utf8><meta name=viewport content=\"width=device-width,initial-scale=1,viewport-fit=cover\"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>\n<title>Develop Hostname Cutover</title>\n<meta name=\"claude:viewport-fit-sides\" content=\"cover\">\n<style>\n/* Layout: one 360px frame for an iframe — header with status pills, a scaling diagram, then the step text and controls. Self-contained: no external requests. */\n:root {\n  --bg: #f3f5f8; --surface: #ffffff; --ink: #18212d; --muted: #586474; --line: #c6ceda;\n  --accent: #2b59c3; --accent-soft: #e3eafb; --up: #1d7a4b; --down: #b3412b; --idle: #8a95a5;\n  --sans: system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif;\n  --mono: ui-monospace, \"SFMono-Regular\", Menlo, Consolas, \"Liberation Mono\", monospace;\n}\n@media (prefers-color-scheme: dark) { :root:not([data-theme=\"light\"]) {\n  --bg: #0e131a; --surface: #161d27; --ink: #e5eaf1; --muted: #97a2b2; --line: #2d3746;\n  --accent: #7ea3ff; --accent-soft: #1e2a44; --up: #4cc38a; --down: #ff7d61; --idle: #6b7686; color-scheme: dark } }\n:root[data-theme=\"dark\"] {\n  --bg: #0e131a; --surface: #161d27; --ink: #e5eaf1; --muted: #97a2b2; --line: #2d3746;\n  --accent: #7ea3ff; --accent-soft: #1e2a44; --up: #4cc38a; --down: #ff7d61; --idle: #6b7686; color-scheme: dark }\n\nhtml, body { height: 100%; }\nbody { background: var(--bg); color: var(--ink); font: 13px/1.45 var(--sans); }\n.frame { box-sizing: border-box; height: 100%; min-height: 340px; max-width: 980px; margin: 0 auto;\n  display: grid; grid-template-rows: auto minmax(120px, 1fr) auto; gap: 8px; padding-block: 10px;\n  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }\n\n.top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; min-width: 0; }\nh1 { font-size: 0.98rem; font-weight: 600; margin: 0; margin-right: auto; text-wrap: balance; }\n.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 0.74rem; padding: 3px 8px; border-radius: 999px;\n  background: var(--surface); border: 1px solid var(--line); white-space: nowrap; }\n.pill::before { content: \"\"; width: 7px; height: 7px; border-radius: 50%; background: var(--dot, var(--idle)); }\n.pill[data-s=\"up\"] { --dot: var(--up); } .pill[data-s=\"down\"] { --dot: var(--down); } .pill[data-s=\"idle\"] { --dot: var(--idle); }\n.pill b { font-weight: 600; }\n\n.diagram { min-height: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }\n.diagram svg { display: block; width: 100%; height: 100%; }\n.node rect { fill: var(--surface); stroke: var(--line); stroke-width: 1.2; transition: stroke .3s, fill .3s; }\n.node .t { fill: var(--ink); font: 600 13px var(--sans); }\n.node .d { fill: var(--muted); font: 11.5px var(--mono); }\n.node.changed rect { stroke: var(--accent); stroke-width: 2.2; fill: var(--accent-soft); }\n.node.gone .d { fill: var(--down); text-decoration: line-through; }\n.edge { fill: none; stroke: var(--line); stroke-width: 1.6; transition: stroke .3s; }\n.edge.on { stroke: var(--accent); stroke-width: 2.4; stroke-dasharray: 6 5; animation: flow 1s linear infinite; }\n.edge.cut { stroke: var(--down); stroke-dasharray: 2 5; }\n.elabel { fill: var(--muted); font: 10.5px var(--sans); }\n@keyframes flow { to { stroke-dashoffset: -11; } }\n\n.step { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: end; min-width: 0; }\n.text { min-width: 0; }\n.text .meta { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }\n.text h2 { font-size: 0.92rem; margin: 1px 0 2px; }\n.text p { margin: 0; max-width: 80ch; }\n.text .down-note { color: var(--down); font-weight: 600; margin-top: 2px; }\n.controls { display: flex; gap: 6px; align-items: center; }\nbutton { font: 500 0.8rem var(--sans); color: var(--ink); background: var(--surface); border: 1px solid var(--line);\n  border-radius: 6px; padding: 5px 10px; cursor: pointer; }\nbutton:hover:not(:disabled) { border-color: var(--accent); }\nbutton:disabled { opacity: .45; cursor: default; }\nbutton:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }\nbutton.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); min-width: 4.4em; }\n.counter { font-family: var(--mono); font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 3.6em; text-align: right; }\n@media (max-width: 560px) { .step { grid-template-columns: 1fr; } .controls { justify-content: flex-end; } }\n@media (prefers-reduced-motion: reduce) { .edge.on { animation: none; } * { transition: none !important; } }\n</style>\n\n<div class=\"frame\">\n  <div class=\"top\">\n    <h1>Develop moves to dev.ai-analytics.ai</h1>\n    <span class=\"pill\" id=\"st-old\" data-s=\"up\">Old site: <b id=\"st-old-v\">up</b></span>\n    <span class=\"pill\" id=\"st-new\" data-s=\"idle\">New site: <b id=\"st-new-v\">not yet</b></span>\n    <span class=\"pill\" id=\"st-auth\" data-s=\"up\">Sign-in: <b id=\"st-auth-v\">old name</b></span>\n  </div>\n\n  <div class=\"diagram\">\n    <svg viewBox=\"0 0 800 400\" preserveAspectRatio=\"xMidYMid meet\" role=\"img\" aria-labelledby=\"dg-title\">\n      <title id=\"dg-title\">The pieces the cutover touches: DNS zones, the develop host, Cognito, SSM, Let's Encrypt and the deploy workflow</title>\n      <path class=\"edge\" id=\"e-reg\" d=\"M120 102 V170\"/>\n      <path class=\"edge\" id=\"e-new\" d=\"M220 206 H300\"/>\n      <path class=\"edge\" id=\"e-old\" d=\"M220 336 C260 336 270 232 300 226\"/>\n      <path class=\"edge\" id=\"e-cog\" d=\"M400 170 V102\"/>\n      <path class=\"edge\" id=\"e-user\" d=\"M400 310 V242\"/>\n      <path class=\"edge\" id=\"e-acme\" d=\"M580 80 C540 90 530 170 500 186\"/>\n      <path class=\"edge\" id=\"e-ssm\" d=\"M580 206 H500\"/>\n      <path class=\"edge\" id=\"e-gh\" d=\"M580 336 C540 330 530 240 500 226\"/>\n      <text class=\"elabel\" x=\"128\" y=\"140\">NS delegation</text>\n      <text class=\"elabel\" x=\"408\" y=\"140\">sign-in redirect</text>\n      <text class=\"elabel\" x=\"408\" y=\"280\">HTTPS</text>\n      <g class=\"node\" id=\"n-reg\"><rect x=\"20\" y=\"30\" width=\"200\" height=\"72\" rx=\"8\"/><text class=\"t\" x=\"34\" y=\"58\">Registrar (.ai)</text><text class=\"d\" x=\"34\" y=\"80\" id=\"d-reg\"></text></g>\n      <g class=\"node\" id=\"n-new\"><rect x=\"20\" y=\"170\" width=\"200\" height=\"72\" rx=\"8\"/><text class=\"t\" x=\"34\" y=\"198\">Zone ai-analytics.ai</text><text class=\"d\" x=\"34\" y=\"220\" id=\"d-new\"></text></g>\n      <g class=\"node\" id=\"n-old\"><rect x=\"20\" y=\"310\" width=\"200\" height=\"72\" rx=\"8\"/><text class=\"t\" x=\"34\" y=\"338\">Zone art-chain.io</text><text class=\"d\" x=\"34\" y=\"360\" id=\"d-old\"></text></g>\n      <g class=\"node\" id=\"n-cog\"><rect x=\"300\" y=\"30\" width=\"200\" height=\"72\" rx=\"8\"/><text class=\"t\" x=\"314\" y=\"58\">Cognito app client</text><text class=\"d\" x=\"314\" y=\"80\" id=\"d-cog\"></text></g>\n      <g class=\"node\" id=\"n-host\"><rect x=\"300\" y=\"170\" width=\"200\" height=\"72\" rx=\"8\"/><text class=\"t\" x=\"314\" y=\"198\">Develop host · Caddy</text><text class=\"d\" x=\"314\" y=\"220\" id=\"d-host\"></text></g>\n      <g class=\"node\" id=\"n-user\"><rect x=\"300\" y=\"310\" width=\"200\" height=\"72\" rx=\"8\"/><text class=\"t\" x=\"314\" y=\"338\">People signing in</text><text class=\"d\" x=\"314\" y=\"360\" id=\"d-user\"></text></g>\n      <g class=\"node\" id=\"n-acme\"><rect x=\"580\" y=\"30\" width=\"200\" height=\"72\" rx=\"8\"/><text class=\"t\" x=\"594\" y=\"58\">Let's Encrypt</text><text class=\"d\" x=\"594\" y=\"80\" id=\"d-acme\"></text></g>\n      <g class=\"node\" id=\"n-ssm\"><rect x=\"580\" y=\"170\" width=\"200\" height=\"72\" rx=\"8\"/><text class=\"t\" x=\"594\" y=\"198\">SSM /aia/develop</text><text class=\"d\" x=\"594\" y=\"220\" id=\"d-ssm\"></text></g>\n      <g class=\"node\" id=\"n-gh\"><rect x=\"580\" y=\"310\" width=\"200\" height=\"72\" rx=\"8\"/><text class=\"t\" x=\"594\" y=\"338\">Deploy develop</text><text class=\"d\" x=\"594\" y=\"360\" id=\"d-gh\"></text></g>\n    </svg>\n  </div>\n\n  <div class=\"step\">\n    <div class=\"text\" aria-live=\"polite\">\n      <div class=\"meta\"><span id=\"c-who\"></span> · AWS: <span id=\"c-aws\"></span></div>\n      <h2 id=\"c-title\"></h2>\n      <p id=\"c-body\"></p>\n      <p class=\"down-note\" id=\"c-down\" hidden></p>\n    </div>\n    <div class=\"controls\">\n      <button id=\"prev\" type=\"button\" aria-label=\"Previous step\">‹</button>\n      <button id=\"play\" type=\"button\" class=\"primary\">Play</button>\n      <button id=\"next\" type=\"button\" aria-label=\"Next step\">›</button>\n      <span class=\"counter\" id=\"counter\"></span>\n    </div>\n  </div>\n</div>\n\n<script>\n(() => {\n  const BASE = { \"d-reg\": \"NS: registrar default\", \"d-new\": \"NS, SOA only\", \"d-old\": \"aia-develop A · errors A\",\n    \"d-cog\": \"callback: aia-develop…\", \"d-host\": \"EIP 3.64.35.250 · old certs\", \"d-user\": \"session on the old host\",\n    \"d-acme\": \"issues TLS certificates\", \"d-ssm\": \"hostname · web DSN: old\", \"d-gh\": \"AIA_PUBLIC_HOSTNAME: old\" };\n  const LIVE_OLD = [\"e-old\", \"e-user\", \"e-cog\"];\n  const STEPS = [\n    { t: \"Before the window\", who: \"Operator\", aws: \"no\", edges: LIVE_OLD, changed: [],\n      b: \"Note the SHA that is running (/api/v1/health → build.sha). Optionally merge the Google sign-in fix first, so the plan has no unrelated diff.\" },\n    { t: \"Delegate the new zone\", who: \"Nigel\", aws: \"no (registrar)\", edges: [\"e-reg\", ...LIVE_OLD], changed: [\"n-reg\"], set: { \"d-reg\": \"NS → awsdns ×4\" },\n      b: \"Point the registrar at the four Route 53 name servers. Wait until dig at the .ai registry, dig +trace and a public resolver all show awsdns.\" },\n    { t: \"Import the old errors record\", who: \"Operator\", aws: \"state only\", edges: [\"e-reg\", ...LIVE_OLD], changed: [\"n-old\"],\n      b: \"terraform import errors.aia-develop.art-chain.io, so the cutover deletes it too instead of leaving the old name resolving.\" },\n    { t: \"Edit terraform.tfvars\", who: \"Operator\", aws: \"no\", edges: [\"e-reg\", ...LIVE_OLD], changed: [],\n      b: \"public_hostname = dev.ai-analytics.ai, route53_zone_id = the new zone. Nothing live changes yet.\" },\n    { t: \"Plan, and read it\", who: \"Operator\", aws: \"read only\", edges: [\"e-reg\", ...LIVE_OLD], changed: [],\n      b: \"Expect 2 to add, 3 to change, 2 to destroy. Stop on any user pool, identity provider or client replacement.\" },\n    { t: \"Apply\", who: \"Operator\", aws: \"yes\", edges: [\"e-reg\", \"e-new\"], cut: [\"e-old\", \"e-user\"],\n      changed: [\"n-old\", \"n-new\", \"n-cog\", \"n-ssm\"],\n      set: { \"d-old\": \"records removed\", \"d-new\": \"dev A · errors A\", \"d-cog\": \"callback: dev.ai-analytics.ai\", \"d-ssm\": \"hostname: new · DSN: old\" },\n      b: \"Old A records deleted, new ones created; Cognito accepts only the new callback; SSM holds the new hostname. The host is untouched.\",\n      down: \"Old site down from here (after its 300 s TTL); the new name has no certificate yet.\" },\n    { t: \"Hand changes\", who: \"Operator\", aws: \"yes (SSM)\", edges: [\"e-reg\", \"e-new\"], cut: [\"e-old\", \"e-user\"], changed: [\"n-ssm\", \"n-gh\"],\n      set: { \"d-ssm\": \"hostname · web DSN: new\", \"d-gh\": \"AIA_PUBLIC_HOSTNAME: new\" },\n      b: \"Set the web error-tracking DSN host in SSM and the GitHub environment variable AIA_PUBLIC_HOSTNAME. Terraform manages neither.\" },\n    { t: \"Check the new names resolve\", who: \"Operator\", aws: \"no\", edges: [\"e-reg\", \"e-new\"], cut: [\"e-old\", \"e-user\"], changed: [\"n-new\"],\n      b: \"dig dev.ai-analytics.ai and errors.dev.ai-analytics.ai: both must show 3.64.35.250 before Caddy can get a certificate.\" },\n    { t: \"Redeploy the running SHA\", who: \"GitHub Actions\", aws: \"yes (deploy)\",\n      edges: [\"e-reg\", \"e-new\", \"e-gh\", \"e-ssm\", \"e-acme\", \"e-user\", \"e-cog\"], cut: [\"e-old\"], changed: [\"n-host\", \"n-acme\", \"n-gh\"],\n      set: { \"d-host\": \"EIP 3.64.35.250 · new certs\", \"d-acme\": \"certs: dev, errors.dev\" },\n      b: \"Deploy develop with the step 0 SHA, migrate off. The host rereads SSM, Caddy gets both certificates, smoke.sh runs, and the workflow checks the new URL reports that SHA.\" },\n    { t: \"Verify by hand\", who: \"Operator\", aws: \"no\", edges: [\"e-reg\", \"e-new\", \"e-user\", \"e-cog\"], cut: [\"e-old\"], changed: [],\n      b: \"Sign in at dev.ai-analytics.ai and open errors.dev.ai-analytics.ai. The old name no longer answers.\" },\n    { t: \"Everyone signs in again\", who: \"Users\", aws: \"no\", edges: [\"e-reg\", \"e-new\", \"e-user\", \"e-cog\"], cut: [\"e-old\"], changed: [\"n-user\"],\n      set: { \"d-user\": \"session on dev.ai-analytics.ai\" },\n      b: \"The AIA cookie belonged to the old host; Cognito's own session is on its unchanged domain, so Google rarely asks again. Later: an SES identity for GlitchTip mail on the new domain.\" },\n    { t: \"Rollback, if needed\", who: \"Operator\", aws: \"yes\", edges: [\"e-old\", \"e-user\", \"e-cog\"], cut: [\"e-new\"], changed: [\"n-old\", \"n-cog\", \"n-ssm\", \"n-gh\"],\n      set: { \"d-old\": \"aia-develop A · errors A\", \"d-new\": \"records removed\", \"d-cog\": \"callback: aia-develop…\", \"d-ssm\": \"hostname · web DSN: old\", \"d-gh\": \"AIA_PUBLIC_HOSTNAME: old\", \"d-host\": \"EIP 3.64.35.250 · old certs\", \"d-user\": \"session on the old host\" },\n      b: \"Old values back in tfvars, plan the mirror image and apply; restore the DSN host and the GitHub variable; redeploy the same SHA. Caddy still has the old certificates.\", rollback: true }\n  ];\n  const $ = id => document.getElementById(id);\n  let i = 0, timer = null;\n\n  function status(k) {\n    const s = STEPS[k];\n    const pill = (id, st, v) => { $(id).dataset.s = st; $(id + \"-v\").textContent = v; };\n    if (s.rollback) { pill(\"st-old\", \"up\", \"back up\"); pill(\"st-new\", \"idle\", \"removed\"); pill(\"st-auth\", \"up\", \"old name\"); return; }\n    const oldDown = k >= 5, newUp = k >= 8;\n    pill(\"st-old\", oldDown ? \"down\" : \"up\", oldDown ? \"down, dropped\" : \"up\");\n    pill(\"st-new\", newUp ? \"up\" : \"idle\", newUp ? \"up\" : (oldDown ? \"no certificate\" : \"not yet\"));\n    pill(\"st-auth\", oldDown && !newUp ? \"down\" : \"up\", newUp ? \"new name\" : (oldDown ? \"unavailable\" : \"old name\"));\n  }\n\n  function render() {\n    const s = STEPS[i];\n    // Node texts accumulate step by step; the rollback step sets its own complete state.\n    const text = { ...BASE };\n    for (let k = 0; k <= i; k++) Object.assign(text, STEPS[k].set || {});\n    for (const [id, v] of Object.entries(text)) $(id).textContent = v;\n    document.querySelectorAll(\".edge\").forEach(e => {\n      e.classList.toggle(\"on\", s.edges.includes(e.id));\n      e.classList.toggle(\"cut\", (s.cut || []).includes(e.id));\n    });\n    document.querySelectorAll(\".node\").forEach(n => {\n      n.classList.toggle(\"changed\", s.changed.includes(n.id));\n      n.classList.toggle(\"gone\", (i >= 5 && !s.rollback && n.id === \"n-old\") || (s.rollback && n.id === \"n-new\"));\n    });\n    $(\"c-who\").textContent = s.who; $(\"c-aws\").textContent = s.aws;\n    $(\"c-title\").textContent = (s.rollback ? \"\" : i + \". \") + s.t;\n    $(\"c-body\").textContent = s.b;\n    $(\"c-down\").hidden = !s.down; $(\"c-down\").textContent = s.down || \"\";\n    $(\"counter\").textContent = `${i + 1}/${STEPS.length}`;\n    $(\"prev\").disabled = i === 0; $(\"next\").disabled = i === STEPS.length - 1;\n    status(i);\n  }\n  function go(k) { i = Math.max(0, Math.min(STEPS.length - 1, k)); render(); }\n  function stop() { clearInterval(timer); timer = null; $(\"play\").textContent = \"Play\"; }\n  function play() {\n    if (i === STEPS.length - 1) go(0);\n    $(\"play\").textContent = \"Pause\";\n    timer = setInterval(() => { if (i >= STEPS.length - 1) stop(); else go(i + 1); }, 4500);\n  }\n  $(\"prev\").addEventListener(\"click\", () => { stop(); go(i - 1); });\n  $(\"next\").addEventListener(\"click\", () => { stop(); go(i + 1); });\n  $(\"play\").addEventListener(\"click\", () => timer ? stop() : play());\n  document.addEventListener(\"keydown\", e => {\n    if (e.key === \"ArrowRight\") { stop(); go(i + 1); }\n    if (e.key === \"ArrowLeft\") { stop(); go(i - 1); }\n  });\n  render();\n})();\n</script>\n\n</body></html>",
-     "height": 380,
-     "id": "hostname-cutover"
-    }
-   ]
+   "explainers": []
   },
   {
    "id": "session_01AXkfBjA7hUPZipWXSoHzEc",
@@ -306,14 +305,7 @@
    "context_pct": 27,
    "last_update": "2026-10-20T19:55:00Z",
    "reply": "received",
-   "explainers": [
-    {
-     "title": "Image layers before vs after",
-     "function": "deploy/docker/python.Dockerfile",
-     "html": "<!doctype html><html><head><meta charset=utf8><meta name=viewport content=\"width=device-width,initial-scale=1,viewport-fit=cover\"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>\n<title>AIA Image Layers</title>\n<meta name=\"claude:viewport-fit-sides\" content=\"cover\">\n<style>\n/* Layout: one 360px-tall card: step caption, two layer stacks (before | after), controls row. Self-contained, no external requests. */\n:root {\n  --bg: #f3f5f7; --fg: #17202a; --muted: #5b6672; --line: #d5dbe1;\n  --cached: #c9dbe0; --cached-ink: #24525e; --rebuilt: #e9873a; --rebuilt-ink: #ffffff;\n  --meta: #e6e9ed; --meta-ink: #5b6672; --accent: #1f6f82;\n  --sans: system-ui, -apple-system, \"Segoe UI\", sans-serif;\n  --mono: ui-monospace, \"SFMono-Regular\", Menlo, Consolas, monospace;\n}\n@media (prefers-color-scheme: dark) { :root:not([data-theme=\"light\"]) {\n  --bg: #12171c; --fg: #e4e9ee; --muted: #98a3ae; --line: #2c353e;\n  --cached: #24414a; --cached-ink: #bfe0e8; --rebuilt: #d9772c; --rebuilt-ink: #12171c;\n  --meta: #232b33; --meta-ink: #98a3ae; --accent: #6cc0d2; color-scheme: dark } }\n:root[data-theme=\"dark\"] {\n  --bg: #12171c; --fg: #e4e9ee; --muted: #98a3ae; --line: #2c353e;\n  --cached: #24414a; --cached-ink: #bfe0e8; --rebuilt: #d9772c; --rebuilt-ink: #12171c;\n  --meta: #232b33; --meta-ink: #98a3ae; --accent: #6cc0d2; color-scheme: dark }\nhtml, body { height: 100%; }\nbody { background: var(--bg); color: var(--fg); font: 13px/1.4 var(--sans); margin: 0;\n  padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); padding-block: 10px; box-sizing: border-box; }\nmain { height: 340px; max-height: 100%; display: grid; grid-template-rows: auto 1fr auto; gap: 8px; max-width: 900px; margin: 0 auto; }\n.step { min-height: 4.2em; }\n.step .n { font: 600 10px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }\n.step p { margin: 2px 0 0; }\ncode { font-family: var(--mono); font-size: .92em; }\n.stacks { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; min-height: 0; }\n.stack { display: flex; flex-direction: column; gap: 3px; min-width: 0; }\n.stack h2 { font: 600 10px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0; }\n.layer { display: flex; justify-content: space-between; gap: 6px; align-items: center; border-radius: 3px; padding: 3px 7px;\n  background: var(--cached); color: var(--cached-ink); font-size: 11.5px; transition: background .35s, color .35s, opacity .35s; min-width: 0; }\n.layer .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\n.layer .size { font-family: var(--mono); font-size: 10.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }\n.layer.big { padding-block: 14px; } .layer.mid { padding-block: 8px; }\n.layer.meta { background: var(--meta); color: var(--meta-ink); outline: 1px dashed var(--line); outline-offset: -1px; }\n.layer.rebuilt { background: var(--rebuilt); color: var(--rebuilt-ink); }\n.layer.dim { opacity: .35; }\n.total { font: 11px var(--mono); font-variant-numeric: tabular-nums; min-height: 1.4em; margin-top: 2px; }\n.total b { color: var(--rebuilt); }\n.bar { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }\nbutton { font: 600 12px var(--sans); background: transparent; color: var(--fg); border: 1px solid var(--line); border-radius: 5px; padding: 4px 10px; cursor: pointer; }\nbutton:hover { border-color: var(--accent); }\nbutton:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }\nbutton:disabled { opacity: .45; cursor: default; }\n.dots { display: flex; gap: 4px; }\n.dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }\n.dots i.on { background: var(--accent); }\n.legend { display: flex; gap: 10px; flex-wrap: wrap; color: var(--muted); font-size: 11px; margin-left: auto; }\n.legend span::before { content: \"\"; display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 4px; background: var(--sw); }\n@media (max-width: 480px) { .legend { display: none; } .layer .name { white-space: normal; } }\n@media (prefers-reduced-motion: reduce) { .layer { transition: none; } }\n</style>\n\n<main>\n  <div class=\"step\" aria-live=\"polite\"><div class=\"n\" id=\"stepn\"></div><p id=\"stept\"></p></div>\n\n  <div class=\"stacks\">\n    <section class=\"stack\" aria-label=\"Before\">\n      <h2>Before: worker image</h2>\n      <div class=\"layer meta\" data-b=\"sha\" title=\"Declared at the top of the runtime stage\"><span class=\"name\"><code>ARG AIA_BUILD_SHA</code> at top</span><span class=\"size\">no layer</span></div>\n      <div class=\"layer mid\" data-b=\"lo\"><span class=\"name\">LibreOffice Writer</span><span class=\"size\">≈300 MB*</span></div>\n      <div class=\"layer big\" data-b=\"venv\"><span class=\"name\">/opt/venv: deps + AIA code</span><span class=\"size\">772 MB</span></div>\n      <div class=\"layer\" data-b=\"user\"><span class=\"name\">user aia (RUN)</span><span class=\"size\">45 kB</span></div>\n      <div class=\"layer\" data-b=\"base\"><span class=\"name\">python:3.12-slim</span><span class=\"size\">base</span></div>\n      <div class=\"total\" id=\"tb\"></div>\n    </section>\n    <section class=\"stack\" aria-label=\"After\">\n      <h2>After: worker image</h2>\n      <div class=\"layer meta\" data-a=\"sha\" title=\"Set at the end of the target\"><span class=\"name\"><code>ARG AIA_BUILD_SHA</code> last</span><span class=\"size\">no layer</span></div>\n      <div class=\"layer\" data-a=\"code\"><span class=\"name\">AIA packages, --no-deps</span><span class=\"size\">19.7 MB</span></div>\n      <div class=\"layer mid\" data-a=\"lo\"><span class=\"name\">LibreOffice Writer</span><span class=\"size\">≈300 MB*</span></div>\n      <div class=\"layer big\" data-a=\"venv\"><span class=\"name\">/opt/venv: third-party only</span><span class=\"size\">772 MB</span></div>\n      <div class=\"layer\" data-a=\"user\"><span class=\"name\">user aia (RUN)</span><span class=\"size\">45 kB</span></div>\n      <div class=\"layer\" data-a=\"base\"><span class=\"name\">python:3.12-slim</span><span class=\"size\">base</span></div>\n      <div class=\"total\" id=\"ta\"></div>\n    </section>\n  </div>\n\n  <div class=\"bar\">\n    <button id=\"prev\" type=\"button\">Back</button>\n    <button id=\"play\" type=\"button\">Play</button>\n    <button id=\"next\" type=\"button\">Step</button>\n    <div class=\"dots\" id=\"dots\" aria-hidden=\"true\"></div>\n    <div class=\"legend\">\n      <span style=\"--sw: var(--cached)\">cached</span>\n      <span style=\"--sw: var(--rebuilt)\">rebuilt, downloaded</span>\n    </div>\n  </div>\n</main>\n\n<script>\nconst steps = [\n  { t: \"The worker image as the last deploy built it, before and after the split in deploy/docker/python.Dockerfile. Every layer is already on the develop host.\", b: {}, a: {} },\n  { t: \"A commit changes one line of AIA's source. No pyproject.toml, no dependency changes.\", b: {}, a: {} },\n  { t: \"Before: sources were copied in before pip install, so the edit re-runs the whole install (4 m 30 s). After: the deps stage reads only the pyproject files and is reused.\", b: { venv: \"rebuilt\" }, a: {}, tb: \"pip install re-runs\", ta: \"deps reused\" },\n  { t: \"Before: AIA_BUILD_SHA sat in every RUN's environment, so a new SHA rebuilt the user RUN and everything above it, LibreOffice too. After: the SHA is set last.\", b: { sha: \"on\", user: \"rebuilt\", venv: \"rebuilt\", lo: \"rebuilt\" }, a: { sha: \"on\" } },\n  { t: \"After: only AIA's own four packages install again, in a small layer above LibreOffice.\", b: { sha: \"on\", user: \"rebuilt\", venv: \"rebuilt\", lo: \"rebuilt\" }, a: { sha: \"on\", code: \"rebuilt\" } },\n  { t: \"New on the host per deploy (unpacked; measured 2026-10-20). *LibreOffice's size is the Dockerfile's estimate; it could not be built in the measuring sandbox.\", b: { sha: \"on\", user: \"rebuilt\", venv: \"rebuilt\", lo: \"rebuilt\" }, a: { sha: \"on\", code: \"rebuilt\" }, tb: \"new: <b>≈1.1 GB</b>\", ta: \"new: <b>≈40 MB</b> (api + worker)\" },\n];\nlet i = 0, timer = null;\nconst $ = (s) => document.querySelector(s);\nconst dots = $(\"#dots\");\nsteps.forEach(() => dots.appendChild(document.createElement(\"i\")));\nfunction paint(side, state) {\n  document.querySelectorAll(`[data-${side}]`).forEach((el) => {\n    const s = state[el.dataset[side]];\n    el.classList.toggle(\"rebuilt\", s === \"rebuilt\");\n    if (el.classList.contains(\"meta\")) el.classList.toggle(\"dim\", s !== \"on\");\n  });\n}\nfunction render() {\n  const s = steps[i];\n  $(\"#stepn\").textContent = `Step ${i + 1} of ${steps.length}`;\n  $(\"#stept\").textContent = s.t;\n  paint(\"b\", s.b); paint(\"a\", s.a);\n  $(\"#tb\").innerHTML = s.tb || \"\"; $(\"#ta\").innerHTML = s.ta || \"\";\n  [...dots.children].forEach((d, k) => d.classList.toggle(\"on\", k === i));\n  $(\"#prev\").disabled = i === 0; $(\"#next\").disabled = i === steps.length - 1;\n}\nfunction stop() { clearInterval(timer); timer = null; $(\"#play\").textContent = \"Play\"; }\n$(\"#next\").onclick = () => { stop(); if (i < steps.length - 1) { i++; render(); } };\n$(\"#prev\").onclick = () => { stop(); if (i > 0) { i--; render(); } };\n$(\"#play\").onclick = () => {\n  if (timer) return stop();\n  if (i === steps.length - 1) i = 0;\n  render(); $(\"#play\").textContent = \"Pause\";\n  timer = setInterval(() => { if (i < steps.length - 1) { i++; render(); } else stop(); }, 3500);\n};\nrender();\n</script>\n\n</body></html>",
-     "id": "image-layers"
-    }
-   ]
+   "explainers": []
   },
   {
    "id": "session_01QzemVrHfQp8jsVEqXb9W6x",
@@ -341,7 +333,8 @@
    "next": "Idle. The braces exception expires 2026-11-20.",
    "context_pct": 32,
    "last_update": "2026-10-20T19:18:21Z",
-   "reply": "received"
+   "reply": "received",
+   "explainers": []
   },
   {
    "id": "session_01End3azGdHNr1MtxRjUqqZ8",
@@ -356,7 +349,8 @@
    "next": "Apply your feedback.",
    "context_pct": 36,
    "last_update": "2026-10-20T19:18:14Z",
-   "reply": "received"
+   "reply": "received",
+   "explainers": []
   }
  ],
  "workstreams": [
@@ -656,34 +650,35 @@
  ],
  "questions": [
   {
-   "id": "Q10",
-   "title": "Who writes the prose in a study's context file?",
-   "context": "From your Q5 answer: every researcher's own Lead works in every study, and each study gets a context .md file the Lead reads, kept up to date. Code can fill the facts (stage, design revision, runs, budget). Open: who may write the free-text part, which every researcher's Lead in that study will read.",
-   "example": "Jana's Lead learns the client wants Prague results reported separately. Under (b) it proposes the note 'Klient chce Prahu zvlášť' in 'Poznámky ke studii'; Jana accepts it, and next day Petr's Lead reads it when he opens the study.",
+   "id": "Q13",
+   "title": "How does the Lead edit a document live, and what is 'Wordcraft'?",
+   "context": "Your Q10 note: the Lead should live-edit the document, and each researcher decides whether its changes arrive as comments or as direct rewrites. Today every Lead edit is a proposal a person accepts, and your auto-accept toggle accepts text edits automatically. 'Wordcraft' isn't defined anywhere in the plans: if you mean a specific product or editor, name it in the note. I've assumed this covers the study context file and the report (Q6's free report edits).",
+   "example": "Jana opens the report's Interpretace section with her Lead. Under (a), with her setting on 'Návrhy', the Lead's rewrite shows as tracked changes she accepts or rejects one by one. Petr has 'Přímé úpravy' on: the Lead rewrites the paragraph in place, it's marked 'upraveno Vedoucím', and he can undo it. Either way the numbers stay ledger references.",
    "options": [
     {
      "key": "a",
-     "label": "Code only, no prose",
-     "detail": "Facts generated from the study; nothing written by a Lead"
+     "label": "Per researcher: suggestions or direct edits",
+     "detail": "Tracked-change suggestions by default; a researcher can switch to direct, undoable rewrites. Extends the auto-accept toggle; numbers stay ledger references"
     },
     {
      "key": "b",
-     "label": "Code + 'Poznámky ke studii'",
-     "detail": "Any researcher's Lead proposes a note, a person accepts it (your auto-accept text toggle applies)"
+     "label": "Direct edits only",
+     "detail": "The Lead always rewrites in place; the researcher undoes"
     },
     {
      "key": "c",
-     "label": "Leads write notes freely",
-     "detail": "No acceptance step"
+     "label": "Proposals only in the MVP",
+     "detail": "Keep accept/dismiss; live co-editing after the MVP"
     }
    ],
-   "rec": "b",
-   "rationale": "A note every colleague's Lead will read should pass a person once, like every other Lead edit; with your auto-accept toggle on it costs no clicks. (c) lets one Lead's mistake mislead everyone's.",
+   "rec": "a",
+   "rationale": "It is what your note describes, and it builds on the toggle and edit gate that already exist. Suggestions as the default keep a person's eyes on every change unless they choose otherwise.",
    "unblocks": [
-    "Lead orchestration chunks",
+    "LO19 study context file",
+    "Report editing (Q6)",
     "MP16 signature"
    ],
-   "where": "Answer here"
+   "where": "Answer here (name 'Wordcraft' in the note)"
   }
  ],
  "decided": [
@@ -758,6 +753,30 @@
    "choice_label": "Yes, open a small PR",
    "note": "add this to the claude.md file, reccomending the structured workflow and using the PM status skill for this repo",
    "at": "2026-10-20T19:47:08.775Z"
+  },
+  {
+   "id": "Q10",
+   "title": "Who writes the prose in a study's context file?",
+   "choice": "b",
+   "choice_label": "Code + 'Poznámky ke studii'",
+   "note": "i do want to kinda integrate wordcraft and have the lead research be able to live edit the document, once the user is editing the document will depend if they revize the text as a comment or rewrite it directly, that will be up to each researcher.",
+   "at": "2026-10-20T20:04:16.793Z"
+  },
+  {
+   "id": "Q11",
+   "title": "Which statuses can a tracked assumption have?",
+   "choice": "b",
+   "choice_label": "The three + RETIRED",
+   "note": "",
+   "at": "2026-10-20T20:21:24.943Z"
+  },
+  {
+   "id": "Q12",
+   "title": "How fully do the stages hand their work to the next stage in the MVP?",
+   "choice": "a",
+   "choice_label": "Close all five gaps",
+   "note": "we need the highest degree of integration, this needs to be cohesive to produce a high quality report",
+   "at": "2026-10-20T20:33:24.654Z"
   }
  ]
 }

@@ -301,6 +301,32 @@ def safe_url(value: object) -> str | None:
     return text if text.lower().startswith(("https://", "http://")) else None
 
 
+# Explainers are untrusted HTML. The sandbox (scripts only, no same-origin) keeps them from this page and
+# its db; this policy, the first thing in their <head>, keeps them off the network: no fetch, beacon,
+# image, font or frame from anywhere but the document itself.
+EXPLAINER_CSP = (
+    '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; '
+    "script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; "
+    "media-src data: blob:; connect-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'\">"
+)
+REFRESH = re.compile(r"<meta[^>]+http-equiv\s*=\s*[\"']?refresh", re.I)
+HEAD_OPEN = re.compile(r"<head(\s[^>]*)?>", re.I)
+DOCTYPE = re.compile(r"^\s*<!doctype[^>]*>", re.I)
+
+
+def contained(src: str) -> str | None:
+    """The explainer with the network policy first in its head; None for one that redirects itself."""
+    if REFRESH.search(src):
+        return None
+    m = HEAD_OPEN.search(src)
+    if m:
+        return src[: m.end()] + EXPLAINER_CSP + src[m.end() :]
+    m = DOCTYPE.match(src)
+    if m:
+        return src[: m.end()] + "<head>" + EXPLAINER_CSP + "</head>" + src[m.end() :]
+    return "<head>" + EXPLAINER_CSP + "</head>" + src
+
+
 def explainer_row(items: list) -> str:
     """Each explainer embedded in a sandboxed srcdoc iframe (scripts only, no same-origin:
     the untrusted code cannot reach this page or its db); a link when no html was fetched."""
@@ -320,6 +346,7 @@ def explainer_row(items: list) -> str:
             f'Mark as seen</button><span class="savemsg" role="status" aria-live="polite"></span>'
         )
         html_src = x.get("html")
+        html_src = contained(html_src) if isinstance(html_src, str) and html_src.strip() else None
         h = num(x.get("height"))
         height = int(max(160, min(900, h))) if h is not None else 360
         if isinstance(html_src, str) and html_src.strip():
@@ -878,7 +905,9 @@ JS = r"""
         });
         snaps[1].docs.forEach(function (d) {
           var v = d.exists ? d.data() : null;
-          if (v && typeof v === "object") doneState[d.id] = v;
+          var a = ACTS.filter(function (x) { return x.id === d.id; })[0];
+          // A retired id must never mark a new action done: the stored title has to match.
+          if (v && typeof v === "object" && a && v.title === a.title) doneState[d.id] = v;
         });
         snaps[2].docs.forEach(function (d) {
           var v = d.exists ? d.data() : null;
