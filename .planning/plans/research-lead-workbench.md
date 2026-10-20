@@ -250,3 +250,7 @@ to take V3 bodies by default. Implement the selected compact layout; expose comp
 through its contextual controls. Preserve existing domain/methodology, scope, budget,
 approval and privacy decisions. MP12 (the master plan's chunk) records necessary conformance deltas; implementation
 chunks remain open. See `../mvp-owner-decisions.md` MVPQ-01; do not re-ask this question.
+
+## Assumption panel (2026-10-20, MVPQ-02)
+
+Tracked assumptions are shown and edited in the Design artifact (18) and in Audience (22, where the canonical V2 places the assumption and evidence panel), both from the one item contract of `assumptions-and-open-answer-coding#AOC1`; there is no second store and no panel-local state.
