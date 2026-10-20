@@ -1,6 +1,6 @@
 # MVP owner decision packet
 
-2026-10-20. MVPQ-01, MVPQ-02, MVPQ-04 and MVPQ-11 are SETTLED by the product owner below. MVPQ-03, MVPQ-05–10 and MVPQ-12 remain OPEN until the named owner answers. The coding feature's scope is settled; its methodology specification and admission rules still require the methodology owner's approval. A session,
+2026-10-20. MVPQ-01, MVPQ-02, MVPQ-04, MVPQ-07, MVPQ-08 and MVPQ-11 are SETTLED by the product owner below. MVPQ-03, MVPQ-05, MVPQ-06 and MVPQ-09 have their product-owner parts ANSWERED; their methodology or quality parts, and MVPQ-10 and MVPQ-12, remain OPEN until the named owner answers. The coding feature's scope is settled; its methodology specification and admission rules still require the methodology owner's approval. A session,
 question widget or usage limit ending is not an answer. Recommendations below
 are proposals, not approvals. The master plan §11.4 is the index; the settled
 decisions remain in §11.1 and the cohesion register.
@@ -60,7 +60,17 @@ eleven baseline workers. Stable ids and unrelated manual editing can proceed.
 The researcher's private return summary remains existing LO7 work; it is not
 removed or made conditional on the new assumptions feature.
 
-## MVPQ-03 — What defines a segment and what may drill-down expose?
+## MVPQ-03 — What defines a segment and what may drill-down expose?: PRODUCT PART ANSWERED, 2026-10-20
+
+**Product owner answer:** defined segments start from the sampler's stored descriptors
+(the recommendation below); the internal drill-down shows **stored attributes and answers
+only**, never the generated persona profile prose. **Still open (methodology owner):** the
+permitted combinations, minimum support and suppression, how accepted own dimensions take
+part, the clustering method and its register approval. The methodology owner's open PR #504
+(`aia-sociomap-5`, `.planning/plans/signed-off-sociomap-method.md` on its branch) already
+carries a respondent map and clustered taste segments; `segment-maps-and-drilldown` and
+`sociomap-formula-corrections#3` are not yet reconciled with it.
+
 
 **Product owner plus methodology owner.** Name the permitted stored descriptors
 and combinations; distinguish persona topics from real materialized variables.
@@ -89,7 +99,16 @@ all-eight-modules rule remains; this answer is not permission to bypass it with 
 coverage note. Preserve same-data analysis retry and frozen numeric outputs. No
 implementation checkbox is completed by this answer.
 
-## MVPQ-05 — Client-data evidence policy
+## MVPQ-05 — Client-data evidence policy: PRODUCT PART ANSWERED, 2026-10-20
+
+**Product owner answer:** the human-accepted data contract **alone** compiles into the
+dataset's evidence policy: a column the contract names used and not personal is admissible
+as client-reported, with no AIA-maintained field list in between. The visible label is
+**"z dat klienta"** beside each client number; the source and the period are disclosed once
+(a footnote or the methods chapter), not on every line. **Still open (methodology owner):**
+the benchmark interval when supports differ, and whether a client survey may ever ground AI
+respondents.
+
 
 **Product owner and methodology owner.** Decide these parts of ADR 0027 together:
 
@@ -105,7 +124,14 @@ client-reported and modelled results distinct. No guessed statistical rule or gr
 permission. Blocks client-data 0–9 runtime/admission and evidence-integrity 8's final
 policy. Chunk 8a's proposed Brief/signature contract can proceed without admitting data.
 
-## MVPQ-06 — Required reach, evaluation quality and allowance
+## MVPQ-06 — Required reach, evaluation quality and allowance: PRODUCT PART ANSWERED, 2026-10-20
+
+**Product owner answer:** Common Crawl stays required for I-R. The product owner owns
+evaluations 25, 26 and 39 and their thresholds. Their allowance is **USD 50**, separate from
+the USD 25 representative tier-B study, with costs estimated from the configured ceilings
+before any paid run. **Still open:** the representative tasks, metrics and measured
+thresholds themselves. No paid work is authorized by recording this.
+
 
 **Product owner plus research-quality owner.** Evaluation thresholds and allowance
 still need answers; the required reach is recorded alongside them:
@@ -124,7 +150,15 @@ the configured ceilings before an allowance is chosen. Blocks final research
 evaluation/live gates; independent implementation and zero-cost tests can continue.
 Keep n=300 and USD25 acceptance inputs until the owner explicitly changes them.
 
-## MVPQ-07 — Residual deletion retention and accounting facts
+## MVPQ-07 — Residual deletion retention and accounting facts: SETTLED, 2026-10-20
+
+**Product owner answer:** after a person deletes a client or study, its content may remain
+in backups and object versions for **at most 30 days** (RDS's 14-day recovery window lies
+inside that), and a durable deletion journal is replayed after any restore before traffic is
+served. **Content-free usage and audit rows** (date, model, tokens, USD, ids; no text, no
+client name) are kept so spend still reconciles, readable by an organisation OWNER or ADMIN
+only.
+
 
 **Product owner/data owner.** After a person deletes a client/study, state the
 maximum residual lifetime in backups and object versions. Which non-content
@@ -136,7 +170,12 @@ durable deletion journal before serving traffic; deleted content must not reappe
 Blocks SDL0, deletion FK M12, destructive lifecycle configuration and final release.
 Schema/inventory/runbook proposals and disposable-data test design can continue.
 
-## MVPQ-08 — Client Knowledge extraction outside a study
+## MVPQ-08 — Client Knowledge extraction outside a study: SETTLED, 2026-10-20
+
+**Product owner answer:** yes. Source extraction stays a client-level job in Client
+Knowledge, under its client budget, approval, isolation and audit, recorded as an explicit
+exception to AC-02.
+
 
 **Product owner.** Confirm the scope exception: source extraction can remain a
 client-level job in Client Knowledge, charged to its client budget, while study-stage
@@ -146,7 +185,16 @@ AI starts use the Lead's approved authority path.
 budget, isolation and audit; do not create a fake study. Blocks LO13's final acceptance
 wording and K8's paid-source entry semantics; it does not grant arbitrary study starts.
 
-## MVPQ-09 — Exact report evidence and source-use checks
+## MVPQ-09 — Exact report evidence and source-use checks: PRODUCT PART ANSWERED, 2026-10-20
+
+**Product owner answer:** a **minimal deterministic gate** before a client deliverable can be
+approved, not the full enumerated audit: no source marked "Interní dokument", no drill-down
+content, and no number without an admitted claim. There is **no separate legal-rights review
+step** in the MVP; the reviewer approves the exact version (F17, unchanged). An unsupported
+qualitative or comparison claim (RD7) **blocks approval**, and the refusal names the
+sentence. AC-13's wording ("evidence audit and the legal source-use gate") changes to this
+gate. **Still open (methodology owner):** any scientific check beyond admitted support.
+
 
 **Product owner/data owner, methodology owner for scientific checks.** Confirm the
 enumerated checks behind “evidence audit” and “legal source-use gate”: admitted
