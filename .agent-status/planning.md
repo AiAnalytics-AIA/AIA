@@ -16,7 +16,6 @@ merge (the coordinator merges reviewed green PRs; Nigel merges when he says so).
 ## Open PRs this session owns
 | PR | Branch | Head | State | Left |
 |---|---|---|---|---|
-| #520 | `chore/docs-followups-509-511-518` | `f734332` | draft, docs-only, green | ARCHITECTURE §8 audit rows blocking, AGENTS #509 gotchas, overview MVP-3/13 wallet; merge after develop's 47e55368 deploy |
 | #522 | `chore/scope-proposed-edits` | `049413c` | draft, docs-only | freeze part 1b: 102 proposed edits deduplicated and tagged (written before the answers) |
 | #523 | `chore/scope-baseline` | `ed03730` | draft, docs-only | freeze part 2: the 48 answers applied; master § The scope baseline (In/Out/Open Q1-Q8, signature line); 20 child plans; waves; merge after #516 and #522; awaits Nigel's signature |
 | #516 | `chore/scope-decision-list` | `c7d5bbe` | draft, docs-only | freeze step 4 part 1: 48 decisions for Nigel (one new file, `.planning/evidence/scope-freeze/decision-list.md`) + 35 no-decision edits; sent to coordinator, who presents it. Part 2 (apply answers, write baseline) waits on his answers |
@@ -33,7 +32,7 @@ proposals and write the baseline (in / out / open decisions) for Nigel to sign. 
 mvp-master-plan.md is not edited except by #511. Decided: the MVP ships `aia-sociomap-5` (MVPQ-13 in #510).
 
 ## Merged today from this session
-#511 (wallet rename), merged 17:17 UTC. #508 (doc follow-ups of #499-#507, OI-135..138, `signed-off-sociomap-method` registered; plus 2fa78b50 for Codex's three findings), merged by the coordinator as 86ec0cdd. Earlier: #491, #493, #494, #495 (2026-10-19); #506 (owner answers MVPQ-03/05/06/07/08/09 into packet,
+#520 (doc follow-ups of #509/#511/#518), merged 18:24 UTC. #511 (wallet rename), merged 17:17 UTC. #508 (doc follow-ups of #499-#507, OI-135..138, `signed-off-sociomap-method` registered; plus 2fa78b50 for Codex's three findings), merged by the coordinator as 86ec0cdd. Earlier: #491, #493, #494, #495 (2026-10-19); #506 (owner answers MVPQ-03/05/06/07/08/09 into packet,
 cohesion register, master §11, child plans and AC-02/09/13; carried #503), #507 (cross-check
 dispositions G47-G57 + 5 corrections + X1/X8/X10 answers).
 
