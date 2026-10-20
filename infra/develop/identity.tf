@@ -48,14 +48,26 @@ resource "aws_cognito_identity_provider" "google" {
   provider_name = "Google"
   provider_type = "Google"
 
+  # The five endpoint keys below are what Cognito sets and keeps for a Google
+  # provider, whatever is sent: it stored authorize_url without the `hd` hint
+  # this block used to append, and returned the other four although they were
+  # never set, so every plan showed a diff. They are written as Cognito keeps
+  # them so a plan is quiet.
+  #
+  # The Workspace restriction is therefore not here. It is the Google OAuth
+  # consent screen set to *Internal* (README § Human actions, step 3): Google
+  # refuses any account outside the Workspace. Cognito then creates a federated
+  # user for whoever Google lets through, and AIA grants that user nothing until
+  # the develop seed or an organization owner adds them (403 not_provisioned).
   provider_details = {
-    client_id        = var.google_client_id
-    client_secret    = var.google_client_secret
-    authorize_scopes = "openid email profile"
-    # Google's `hd` hint restricts the account chooser to the Workspace domain.
-    # It is a hint, not a control: the control is that Cognito admits only
-    # provisioned users and AIA grants nothing to an unknown one.
-    authorize_url                 = "https://accounts.google.com/o/oauth2/v2/auth?hd=${var.google_hosted_domain}"
+    client_id                     = var.google_client_id
+    client_secret                 = var.google_client_secret
+    authorize_scopes              = "openid email profile"
+    authorize_url                 = "https://accounts.google.com/o/oauth2/v2/auth"
+    token_url                     = "https://www.googleapis.com/oauth2/v4/token"
+    token_request_method          = "POST"
+    oidc_issuer                   = "https://accounts.google.com"
+    attributes_url                = "https://people.googleapis.com/v1/people/me?personFields="
     attributes_url_add_attributes = "true"
   }
 

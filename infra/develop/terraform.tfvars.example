@@ -22,7 +22,6 @@ root_volume_gb = 80
 cognito_domain_prefix = "aia-develop" # must be globally unique
 google_client_id      = "…apps.googleusercontent.com"
 google_client_secret  = "…"
-google_hosted_domain  = "example.com"
 
 # The one pinned EU inference profile the instance role may invoke (ADR 0010).
 # Verify in the Bedrock console that model access is enabled for it first, and
