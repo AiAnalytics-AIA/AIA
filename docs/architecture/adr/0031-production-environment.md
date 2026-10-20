@@ -9,7 +9,8 @@ index's *Not decided anywhere* list. ECS Fargate is **not** chosen for the MVP. 
 [ADR 0010](0010-bedrock-eu-inference-route.md). **Leaves unchanged** develop, its host and its
 deploy, and every application guard of `AIA_ENV=production`.
 **Date:** 2026-10-20. **Amended 2026-10-20** with the product owner's recorded answers D-19, D-20
-and D-21 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`); still Proposed.
+and D-21 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`), and Q15 (a) on
+the PM status page (20:50-21:04 UTC, relayed by the coordinator): the hostname. Still Proposed.
 **Plan:** [production-environment](../../../.planning/plans/production-environment.md) PE0-PE9b
 
 ## Context
@@ -111,9 +112,10 @@ checks, not a list of permitted publishers.
 
 The proposed sizes are accepted (the product owner, 2026-10-20, D-20): `t3a.large` for the host and
 `db.t4g.medium` for RDS, confirmed by a measurement on develop under the acceptance run before the
-first apply; the Bedrock quota is raised before the first client run. The production hostname is on
-a new domain the owner will name ("i will be changing to a new domain"); nothing in `infra/production`
-hard-codes one, and the Cognito callbacks and Caddy hostname are variables.
+first apply; the Bedrock quota is raised before the first client run. The production hostname is
+**`app.ai-analytics.ai`** (the product owner, 2026-10-20, Q15 a; the new domain of D-20). It is a
+Terraform variable, set to that value, so the Cognito callbacks, the Google Workspace redirect and
+Caddy's hostname follow it; the domain's DNS zone and certificate are part of the first apply.
 
 Production uses **tagged application inference profiles** (the product owner, 2026-10-20, D-21), one
 per model in use, tagged `Environment=production`, so its Bedrock spend is attributable from the
@@ -161,12 +163,11 @@ accepts an `eu.` id today (`ai_runtime.py:254, 516`, PE7, after `develop-spend-a
 Answered by the product owner on 2026-10-20 (`answers-2026-10-20.md`, #523 @ `ee21982`), and
 written into decisions 6 and 7:
 
-1. ~~Hostname, sizing and quota.~~ The proposed sizes accepted; a new domain (D-20).
+1. ~~Hostname, sizing and quota.~~ The proposed sizes accepted; a new domain (D-20), named by Q15.
 2. ~~Egress in production.~~ A proxy that blocks private and metadata ranges only; the application's
    checks are the boundary (D-19, b).
 3. ~~Tagged profiles or `eu.` ids.~~ Tagged profiles (D-21, a).
 
-Still open:
+- ~~The production hostname itself.~~ `app.ai-analytics.ai` (Q15, a). Decision 7.
 
-1. **The production hostname itself**: the new domain's name, needed before the Cognito pool and the
-   Google callbacks are created (owner and operator).
+Nothing remains open in this ADR but its acceptance.
