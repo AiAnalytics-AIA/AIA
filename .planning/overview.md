@@ -562,7 +562,8 @@ source to an accepted, materialized dimension owned by that client; **project me
 reuse, done); **delivery** as the approved internal and client reports and approved map snapshots;
 live **Deep Research** on the full design for a client marked `OPEN` (MVP-27 as amended by #500). *Out:* Simulation and every scenario,
 a client login, report depth tiers, client-facing analysis prose (it waits on the holdout
-validation), the Lead's autopilot, Deep Research from every stage, promotion of a client's
+validation), the Lead's full autopilot ("continue until you need me"; the approved-plan part is in, MVP-3 as
+amended, `lead-orchestration` LO1-LO6), Deep Research from every stage, promotion of a client's
 dimension into the shared LIVE population.
 
 **Decisions of 2026-10-19 (owner).**
@@ -576,7 +577,7 @@ dimension into the shared LIVE population.
 | MVP-5 | `docs/migration/mvp-acceptance.md` is rewritten as the one definition of done (its machine-readable criteria in `parity-matrix.json` with it) |
 | MVP-6 | Report depth tiers after the MVP |
 | MVP-7 | The data library ends at an owned child population; no promotion to shared LIVE |
-| MVP-8 | **Every AI action goes through the Research Lead.** The manual AI buttons are removed, artifact by artifact as each V3 artifact lands; the Lead calls smaller workers, each with its own system prompt, and every paid one is approved by a person through the Lead's approve path (which already holds the spend limit; this closes research-lead-workbench F1) |
+| MVP-8 | **Every AI action goes through the Research Lead.** The manual AI buttons are removed, as each canonical V2 artifact lands (MVPQ-01); the Lead calls smaller workers, each with its own system prompt, and every paid one is approved by a person through the Lead's approve path (which already holds the spend limit; this closes research-lead-workbench F1) |
 | MVP-9 | Live Deep Research with Brave is release-blocking; the owner / data owner chase Brave's written answer on storing results (DR-2) **Superseded by MVP-27** (same day): the release route is an EU Class B provider; Brave stays a Class C route |
 | MVP-10 | Client deliverables carry labelled modelled numbers and approved maps; analysis prose stays internal until `panel-grounded-respondents` 7f-7h |
 | MVP-11 | **Target: end of Q1 2027.** Order by dependency; a track at risk of the date is named in its row |
