@@ -16,6 +16,7 @@ merge (the coordinator merges reviewed green PRs; Nigel merges when he says so).
 ## Open PRs this session owns
 | PR | Branch | Head | State | Left |
 |---|---|---|---|---|
+| #516 | `chore/scope-decision-list` | `c7d5bbe` | draft, docs-only | freeze step 4 part 1: 48 decisions for Nigel (one new file, `.planning/evidence/scope-freeze/decision-list.md`) + 35 no-decision edits; sent to coordinator, who presents it. Part 2 (apply answers, write baseline) waits on his answers |
 | #511 | `chore/wallet-rename` | `8fb59523` | draft, CI running at handoff (docs/migration touched, so the full suites run, ~35 min) | the money "envelope" renamed "wallet" (Czech UI "Peněženka", Nigel 2026-10-20) across 12 plan/acceptance files + `parity-matrix.json` AC-02/AC-04; recorded in `lead-orchestration#LO0` and master §11.1. Keep green; coordinator reviews and merges. **Doc follow-up in its body:** `overview.md` MVP-13 still says "a per-study envelope" (shared file, not edited) |
 
 Subscribed to PR activity on #511: session_01RxUnHwTXGVFYjwzfpKi9kT (planning 2), 15:50 UTC. CI at that
