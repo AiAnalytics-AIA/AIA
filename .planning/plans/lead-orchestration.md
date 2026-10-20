@@ -14,7 +14,8 @@ chunks:
   - "[ ] LO9b. The three new workers as rows (W3): a `REPORT_WRITING` binding, result kinds and accept destinations, per-worker price and keys"
   - "[ ] LO10. `approve_request` bound to the revision shown on its card, and a clean error where the 96 KB Lead context meets the 64 KB agent limit"
   - "[ ] LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions, the admin read and handover, a departure trigger"
-  - "[ ] LO12. The route-class refusal says who fixes it: a pre-flight read of the AI route and a message with a link"
+  - "[ ] LO12a. The route-class refusal says who fixes it (W0): on the job error, the Lead pane, source proposals and Progress, from the refusal codes that exist today, with a link to the runbook; static copy, no read of the route"
+  - "[ ] LO12b. A pre-flight read of the AI route (W1): the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`), and the new refusal reasons"
   - "[ ] LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02"
   - "[ ] LO14. The Lead's cost per turn measured, and an `AIA_LEAD_*` kill switch and budget line"
   - "[ ] LO16. The approval ledger's subject types (lane migration M3, W0, the first migration): `approval_decisions.subject_type` extended with `envelope`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot` and `sociomap_unlock`; S3 writes it"
@@ -82,8 +83,11 @@ The three workers (map interpreter, report writer, straight-liner check) have no
 **LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions, the admin read and handover, a departure trigger**  
 File revisions have no reader today (`revisions()` has no caller). Turns stay private (Q26: an admin's read covers files and notes only; a handed-on Lead is a copy without personal notes). Another member's ability to accept a proposal is **not** a Lead-lifecycle matter and is not decided here: Q16 makes proposals shared, and `working-copy-edit-ops#WCE6` builds it (gap G42).
 
-**LO12. The route-class refusal says who fixes it: a pre-flight read of the AI route and a message with a link**  
-The refusal surfaces in the job error, the Lead pane, source proposals and Progress, and none says an operator fixes it. The API cannot evaluate class, so the worker publishes a composition record the API and Settings read (shared with `deep-research-web-search#52`). The Lead pane gains `retention_unspecified`, `residency_violation` and `training_exclusion_missing`. Settings is read-only and stays so. Interfaces I15, I24.
+**LO12a. The route-class refusal says who fixes it (W0): static copy on the four surfaces**  
+The refusal surfaces in the job error, the Lead pane, source proposals and Progress, and none says an operator fixes it (the AI route's classes are set in SSM, not on Settings, which is read-only). The copy is keyed by the refusal codes that exist today (`egress_route_not_approved_for_class` and its siblings) and names the operator step and the runbook; it reads nothing and needs no composition record. Test: each code on each surface renders its who-fixes-it line. Interfaces I24.
+
+**LO12b. A pre-flight read of the AI route (W1)**  
+The API cannot evaluate class, so the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`, whose Reach panel is the other consumer, and with `run-qc-and-checkpoint#RQC8`). It lands in the same row as 52 (E12). The Lead pane gains `retention_unspecified`, `residency_violation` and `training_exclusion_missing`. Settings is read-only and stays so. Interfaces I15.
 
 **LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02**  
 A wording change to the criterion, made with the acceptance harness, not a behaviour change. Interfaces I23.
@@ -98,7 +102,7 @@ None here. The envelope sits beside `spend_confirm_usd`, which stays a per-start
 
 ## Execution predecessors (2026-10-20)
 
-LO0, LO9a, LO15 and LO16 are W0; LO1-LO8, LO10 and LO12-LO14 are W1; LO11 is W2;
+LO0, LO9a, LO12a, LO15 and LO16 are W0; LO1-LO8, LO10, LO12b, LO13 and LO14 are W1; LO11 is W2;
 LO9b is W3. LO10's card-revision check precedes the first actionable card, not the final workers.
 LO7 uses WCE4's change feed and RQC7's events; unavailable result providers are typed unavailable,
 never guessed. LO11's persistent personal lifecycle is later work; basic per-researcher turn privacy

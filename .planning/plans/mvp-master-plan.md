@@ -211,7 +211,7 @@ trace that found each (`.planning/evidence/mvp-master-traces/`).
 | I12 | **Approve and Export panel** inside the Report artifact | S3 panel, S1 slot (T3 C2) | S1 hosts a slot, same wave | W2 | `report-delivery#RD3` |
 | I13 | **Map snapshot**: the renderer, the approvable object, the ledger shape | S2 figure, S3 approval (T3 C5) | S3 owns the object, S2 the deterministic function with camera parameters | W2 | `report-delivery#RD4` |
 | I14 | **Accepted report wording, map readings, flags**: an artifact type and the composer input that carries them into a report's fingerprint | S1 workers, S3 composer (T3 C7) | S3 defines the type, S1 writes the worker against it | W3 | `report-delivery#RD6` |
-| I15 | **Settings**: the router (S1), the Reach panel (S2, which needs a worker-published composition record the API can read), posture and ceiling (S3) | S1, S2, S3 (T4 C3, T5 C2) | S1 owns the router; S2 writes the record | W1 | `lead-orchestration#LO12`, `deep-research-web-search#52` |
+| I15 | **Settings**: the router (S1), the Reach panel (S2, which needs a worker-published composition record the API can read), posture and ceiling (S3) | S1, S2, S3 (T4 C3, T5 C2) | S1 owns the router; S2 writes the record | W1 | `lead-orchestration#LO12b`, `deep-research-web-search#52` |
 | I16 | **Class and residency rules**: `material_rules.py`, `residency.py`, and the classification code in `web_retrieval.py`, `application/deep_research.py`, `aia_executors/deep_research/*` | S1, S2, S3 (T4 C2, T5 C1) | S2 for Deep Research, S1 for `material_rules`; others open small PRs | W0 | `mvp-master-plan#MP4` |
 | I17 | **Ledger writers and closed sets**: `workflow_repository.py`, `workflow_templates.py`, `executors/registry.py` | S1, S2, S3 (T4 C1, C4) | S3 (the lane owner) reviews; each session registers its own kind | W1 | `mvp-master-plan#MP4` |
 | I18 | **Population in production**: provisioning, the licence route id, the tier A double for AC-05 | S2, S3 (T2 C10, T4 C7) | S3 | W1 (tier A double); W3 (production provisioning) | `production-environment#PE6`, `run-qc-and-checkpoint#RQC10` |
@@ -220,7 +220,7 @@ trace that found each (`.planning/evidence/mvp-master-traces/`).
 | I21 | **A single-origin analysis input** against client-reported numbers | S2, S3 (T3 C4) | S2 designs a two-origin input and its fingerprint before S3's client-data chunk 5 | W3 | `evidence-integrity#8a`, `evidence-integrity#8b` |
 | I22 | **The cost function for a Deep Research start** lives in `routers/deep_research.py:292-340` on the API's env copy; a plan step in the worker needs the same ceiling | S1, S2 (T5 C4) | S2 moves it to the application layer | W1 | `deep-research-web-search#55` |
 | I23 | **Client-level paid AI** (source proposals, `clients.budget_usd`) against "every AI action goes through the Lead" | S3, S1 (T4 C10) | S3, with an explicit exception recorded in AC-02 | W1 | `lead-orchestration#LO13` |
-| I24 | **`apps/web/src/lib/api.ts` and `i18n/cs.ts`**: one large file each, edited by every session, carrying every refusal message | S1, S2, S3 (T4 C8) | S1 for refusal wording; others by area | W0 | `lead-orchestration#LO12` |
+| I24 | **`apps/web/src/lib/api.ts` and `i18n/cs.ts`**: one large file each, edited by every session, carrying every refusal message | S1, S2, S3 (T4 C8) | S1 for refusal wording; others by area | W0 | `lead-orchestration#LO12a` |
 | I25 | **Prompt slots**: wiring the analysis and Deep Research prompts needs those executors to take a pin | S1 slots, S2 executors (T4 C5) | S2 for the executor half | W3 | `system-prompts-settings#7`, `system-prompts-settings#13` |
 | I26 | **Delete path, ledger, audit and backups**: the ledger FK, audit rows and a restore after a deletion need one rule | all S3 (T5 C7) | S3 | before W5 | `study-data-lifecycle#SDL0`, `study-data-lifecycle#SDL1`, `study-data-lifecycle#SDL5` |
 
@@ -235,7 +235,7 @@ These rows preserve the original findings; assigning chunks resolves planning ow
 
 | # | Gap | Chunks |
 |---|---|---|
-| G1 | **No one can tell a user how to fix a route-class refusal.** Each surface says what is refused (the job error, the Lead pane, source proposals, Progress parks); none says who fixes it; the API cannot evaluate class; `/config` omits retention. The fix is an operator's (SSM), Settings is read-only (T4 A2, B9) | `lead-orchestration#LO12`, `research-lead-workbench#11`, `mvp-master-plan#MP6` |
+| G1 | **No one can tell a user how to fix a route-class refusal.** Each surface says what is refused (the job error, the Lead pane, source proposals, Progress parks); none says who fixes it; the API cannot evaluate class; `/config` omits retention. The fix is an operator's (SSM), Settings is read-only (T4 A2, B9) | `lead-orchestration#LO12a`, `lead-orchestration#LO12b`, `research-lead-workbench#11`, `mvp-master-plan#MP6` |
 | G2 | **Production route classes and retention evidence** are in no plan; ADR 0010's amendment is develop-only (T4 A3) | `production-environment#PE5` |
 | G3 | **Readiness cannot see worker egress**: the panel default parks every run when the route lacks Class A, and the API reads no egress key (T2 A1) | `run-qc-and-checkpoint#RQC8`, `mvp-master-plan#MP6` |
 | G4 | **The activation profile is not declared** (chunk 6 of this plan) | `mvp-master-plan#MP6` |

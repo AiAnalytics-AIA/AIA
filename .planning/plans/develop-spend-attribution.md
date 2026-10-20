@@ -93,5 +93,5 @@ its stated window with lag and a stated billing tolerance. Unknown billing is ne
 ## Migration (lane M9, only if needed)
 
 If 5a finds the model fields cannot carry the application inference profile, the lane's **M9**
-(`ai_usage_events.inference_profile_arn`) is added under 5a, W1, before 1-2 configure profiles; if they can, M9 is
+(`ai_usage_events.inference_profile_arn`) is added under 5a, **W0**, after lane M3 and before 1-2 configure profiles; if they can, M9 is
 removed from the lane in the same PR. Gap G43.
