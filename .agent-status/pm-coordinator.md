@@ -154,3 +154,10 @@ Arigamaru; #512 ADR decisions; design feedback (optional).
   (planning 3 has the follow-up). Planning 3 = session_011zQKG9WLH8Ex7dmjwZxWwB; planning 2 and Docker archived 21:48/21:51.
 - #524 deployed 21:44 (PDF worker image built in 58 s, smoke ok). vite fix ready locally on fix/vite-advisory (32cc8fe),
   awaiting Nigel's "push the vite fix". Open on the page: Q22, Q23, Q24.
+- 22:13 Nigel (typed): "accept ADRs 0028-0033, 0035, 0038-0040; hold 0034, 0036, 0037". Relayed to scope 3 (status Accepted,
+  open items kept: editor via spike; methodologist's Qs in 0038; 0034/0036/0037 held for Aram).
+- Q22 b (code-extracted fields only), Q23 b (model-written operators; RetrievalGate checks URLs), Q24 c (CLASSIFIED lookups
+  behind a plan card; note: wants to know how many cards and how they're systematically created -> planning 3 listing them
+  for an explainer). Relayed to planning 3.
+- #527 vite fix opened (Nigel: "push the vite fix"), Codex clean; merge when green, then bring develop into #525.
+  #526 IdP reviewed by me: OK; merge when backend green. Input audit refused a relayed "go" (correct); Nigel to type it there.
