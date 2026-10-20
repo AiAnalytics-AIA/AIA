@@ -9,8 +9,8 @@ accept and the automatic text accept) and [ADR 0030](0030-the-lead-over-time-and
 Lead is its researcher's alone). **Leaves unchanged** the privacy of every researcher's turns, the
 Lead's closed output and the 96 KB context bound.
 **Date:** 2026-10-20. **Amended 2026-10-20** with the product owner's answer Q13 (a) on the PM status page
-(20:50-21:04 UTC, relayed by the coordinator): the Lead live-edits documents, per researcher. Still
-Proposed.
+(20:50-21:04 UTC, relayed by the coordinator): the Lead live-edits documents, per researcher; and
+Q19 (a): the editor is chosen by an evaluation spike. Still Proposed.
 **Plan:** [lead-orchestration](../../../.planning/plans/lead-orchestration.md) LO19 (#523);
 `research-lead-workbench` 32
 
@@ -135,9 +135,13 @@ who opens the study.
 
 Still open:
 
-1. **The editor.** The owner's note names Wordcraft (`github.com/storytold/wordcraft`: a Rust
-   reimplementation of Word with WASM, an MCP server and track changes; MIT/Apache, alpha). Whether
-   and how to adopt it is a follow-up the coordinator is asking; decision 2 is written for any editor
-   that can show and resolve tracked changes.
+1. **The editor, pending an evaluation spike** (the product owner, 2026-10-20, Q19 a). The editor
+   is chosen by a spike with a go/no-go before any adoption. The candidates are Wordcraft
+   (`github.com/storytold/wordcraft`: a Rust reimplementation of Word with WASM, an MCP server and
+   track changes; MIT/Apache, alpha), ONLYOFFICE Docs and Collabora Online; Tiptap is rejected for
+   its UX, the owner wanting "as close to Microsoft Word or LibreOffice as possible". The spike
+   checks each against decision 2 (tracked changes a person resolves, direct edits marked and
+   undoable, numbers kept as refs it cannot retype), EU hosting of anything server-side, licence,
+   and the cost of running it. Decision 2 holds whichever wins.
 2. **Amending ADR 0026, which is Accepted**, in decision 2's study layer, needs the owner's explicit
    yes (D-08 named the other amendments, not this one).
