@@ -4,11 +4,12 @@ chunks:
   - "[ ] 0. Audit, standard and this plan (docs only; .planning/evidence/input-interactions-audit.md)"
   - "[ ] 1. Shared primitives with tests: InlineText, Stepper, ChoiceChips (+ Segmented and Switch adopted everywhere), InlineCreateRow, SwatchPicker, MenuButton, UndoToast, SpendDialog; retire AskDialog's prompt form"
   - "[ ] 2. Knowledge library: folders and labels created in the list, renamed in place, recoloured by swatch; bulk and item filing by menu; search debounced (audit D1-D13)"
-  - "[ ] 3. Questionnaire: questions, options, blocks and sets created and edited in place; scale ends as steppers or presets, and the domain refusing a non-integer end; comparisons as segmented; deletes with undo (audit A1-A21)"
+  - "[ ] 3. Questionnaire: questions, options, blocks and sets created and edited in place; comparisons as segmented; deletes with undo (audit A1-A8, A11-A21)"
+  - "[ ] 3b. Scales: range presets 1-5, 1-7, 0-10, 1-10 and Vlastní; a verbal label on every point; the domain compiling the labels and refusing a non-integer end, the labels reaching respondents (audit A9, A10, IA-2, IA-7)"
   - "[ ] 4. Brief and plan: the narrative's questions, objectives and hypotheses as items edited in place; the measurement folded into the set card; autosave replaces the explicit editors (audit A22-A36)"
   - "[ ] 5. Sample and audience: one n stepper 50-5000 with the recommendation, no silent clamp; factor ranges as bounded steppers; subpanels and values as chips or combobox (audit B1-B11)"
   - "[ ] 6. Run, spend and results: one SpendDialog for every money confirmation; cancels as inline confirms; report approval as a modal naming the document; JobPanel non-modal (audit B12-B28, C1-C8)"
-  - "[ ] 7. Clients and studies: new client and new study as inline rows; study rename in place (API: a rename route), client rename once its permission is decided; intake sheet non-modal, creating folders and labels inline (audit D14-D26, E9)"
+  - "[ ] 7. Clients and studies: new client and new study as inline rows; study and client rename in place (API: rename routes; a client rename under EDIT_CLIENT_PROFILE, audited); intake sheet non-modal, creating folders and labels inline (audit D14-D26, E9)"
   - "[ ] 8. Client profile: fields edited in place, contacts as an inline table with undo, brands and competitors as list rows, self-approval three-way, budget stepper (audit E1-E12)"
   - "[ ] 9. Settings: money and rule numbers as steppers, known sets as segmented, rows edited in place; methodology parameters typed by their bounds (API: bounds and enums per parameter) (audit F1-F16)"
   - "[ ] 10. Verify: a Playwright input journey at 1440/1024/768/390 (keyboard only, Esc, undo, field errors, zero modal prompts); ux, client, settings and workbench journeys green"
@@ -125,23 +126,61 @@ deleted in the chunk that removes its last caller.
 (the owner's own example), questionnaire, brief and plan, sample and audience, run and results,
 clients and studies, profile, Settings. Each chunk's PR lists the audit rows it closes.
 
-**API and domain changes** (audit §5), each inside the chunk that needs it: rename a study, and a
-client once its permission is decided (chunk 7, `PUT` routes, audited); the domain refusing a
-non-integer scale end, which today `int()` truncates (chunk 3, with a readiness test); methodology
+**API and domain changes** (audit §5), each inside the chunk that needs it: rename a study and a
+client (chunk 7, `PUT` routes, audited; the client's name joins `EDIT_CLIENT_PROFILE`); scale labels
+compiled into the specification and sent to respondents, and a non-integer end refused (chunk 3b,
+§ Scales below); methodology
 parameter bounds, steps and enumerations in the catalogue response (chunk 9); the industry/market
 list read from the organization's own clients (chunk 8). Everything else is web-only.
 
-## Decisions for the owner
+## Owner decisions (the product owner, 2026-10-20, 22:48–22:51 UTC, on #528)
 
-1. **One revision per inline commit** on a knowledge item, or batch an open-item session into one
-   revision (audit §5.5). Recommended: batch, web-side.
-2. **Scale range**: free min/max steppers, or presets (1–5, 1–7, 0–10, 1–10) with "Vlastní" opening
-   the steppers. Recommended: presets first; 18.6.6 allowed 0–11.
-3. **Report approval as a modal** (I7b): today a single click. Recommended: a modal naming the
-   document, since it cannot be undone.
-4. **Who may rename a client** (audit §5.1): no permission covers it today
-   (`EDIT_CLIENT_PROFILE` excludes the name). A profile edit (any member) or a lifecycle change
-   (administrator only). Recommended: administrator only, like the client's status.
+1. **Knowledge edits in place are batched** (Q31 a): one open-item editing session writes one
+   revision, web-side (audit §5.5).
+2. **Scale range by presets** (Q32 a): 1–5, 1–7, 0–10 and 1–10, plus "Vlastní" opening the two
+   steppers. His note adds a requirement: *"a researcher asked if we could assign word attributes to
+   every number between 1-10"* — every point may carry its own verbal label (§ Scales).
+3. **Report approval is a modal that names the document** (Q33 a): version, format and variant,
+   since the approval cannot be undone (audit B22).
+4. **Any member may rename a client, every rename audited** (Q34 a): the client's name becomes part
+   of `EDIT_CLIENT_PROFILE` (its comment today excludes it, `packages/aia_core/src/aia_core/domain/
+   scope.py:234 @ 44b66ef`). His note: "this seems like an edge case".
+
+## Scales (chunk 3b)
+
+**What is stored today** (`develop` @ `44b66ef`):
+
+- A scale **question** stores `skala: [low, high]` and `popisky_skaly: [left, right]`, the two
+  ends only (`apps/web/src/research/questionnaire.ts:254`, 18.6.6's format). **The compiler never
+  reads `popisky_skaly`**: `SpecQuestion` has no labels (`packages/aia_core/src/aia_core/domain/
+  research_design.py:474`), and the respondent's item is built without them
+  (`packages/aia_core/src/aia_core/domain/ai_respondent.py:379-388`). AI respondents answer a scale
+  question as bare numbers; the ends the researcher typed reach no one (IA-7).
+- A tracked **set** stores `scale_labels: [left, right]`, compiled (`research_design.py:554-556`,
+  defaulting to vůbec / velmi) and sent to respondents as "1 = …, 10 = …"
+  (`ai_respondent.py:567-571`).
+- Nothing stores a label per point.
+
+**The rule:**
+
+- One field for both: `popisky_skaly` on a question and `scale_labels` on a set hold **either the
+  two ends or one label per point**, low to high. A list of any other length is refused at compile
+  (`scale_labels_mismatch`, a readiness FAIL), as is an empty or a repeated label
+  (`scale_label_invalid`), never padded or guessed. Each label ≤ 60 characters.
+- `SpecQuestion` gains `scale_labels`, absent from the stored form and the fingerprint when none were
+  declared (the spec's rule for a declaration not made). The respondent's item carries them; the
+  prompt lists every labelled point ("1 = vůbec, 2 = …"); the report's question tables and the
+  questionnaire appendix print them.
+- A non-integer end is refused as `invalid_scale` (today `int()` truncates it, IA-2).
+- **When the range changes:** a two-end scale keeps its two ends. A fully labelled scale keeps its
+  labels only if the number of points is unchanged (1–5 to 0–4 shifts them); otherwise the end labels
+  stay, every inner label is cleared, and an undo toast says how many ("Odstraněno 8 popisků bodů –
+  Vrátit"). Labels are never redistributed by guess.
+- **The editor (I1, I3):** the preset chips above the scale preview; each point of the preview is an
+  inline label field (Tab moves to the next point); "Popsat každý bod" turns the ends-only scale into
+  every point, prefilled with the two ends.
+- The change alters what respondents are told, so it changes the respondent system's fingerprint
+  (ADR 0024 §4); runs made before it keep their pinned specification and are not reinterpreted.
 
 ## Where this touches other plans
 
@@ -166,8 +205,9 @@ Planning should fold these together rather than build twice:
 ## What this does not do
 
 No visual redesign beyond the controls; no soft delete (C9 owns it). The server's rules change in
-two places only: a non-integer scale end is refused, and a client rename takes whichever permission
-the owner decides. No new route except the three named.
+three places only: scale labels are compiled, validated and sent to respondents, with a non-integer
+end refused (chunk 3b); a client's name joins `EDIT_CLIENT_PROFILE`. No new route except the three
+named.
 
 ## Findings
 

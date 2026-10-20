@@ -149,8 +149,8 @@ an endpoint or field (listed in §5).
 | A6 | `rs/QuestionnaireStep.tsx:500` (P6, P7) | Quick add Škála / Otevřená: the wording | free text | **AskDialog prompt** | F2 | I5 inline new question row in the outline, type preset, wording focused | ✓ |
 | A7 | `rs/QuestionnaireStep.tsx:500`+`:502` (P8) | Quick add Jedna odpověď: wording, then options as "Ano, Ne" | free text + list | **2 chained AskDialog prompts**, comma string | F2 | I5 inline new question row; options as I5 rows (default Ano / Ne) | ✓ |
 | A8 | `rs/QuestionnaireStep.tsx:509`+`:511` (P9) | Sledovaná sada: type, then 4–15 items as a comma string | short name + list 4–15 | **2 chained AskDialog prompts**; count error by toast | F2 | I5 inline new set card: name (I1) + `ChipInput` items with "4–15" counter at the field (I9) | ✓ |
-| A9 | `rs/QuestionnaireStep.tsx:777`, `:779` | Škála: Minimum / Maximum | integers, min < max; today 0–11 | uncontrolled `type=number`, no step, blur; **min>max, decimals, empty→0 accepted** | F2 | I2 two steppers bounded by each other (min ≤ max−1), or I3 presets 1–5 / 1–7 / 0–10 / 1–10 | **new**: the domain refuses a non-integer end (§5.7) |
-| A10 | `rs/QuestionnaireStep.tsx:757`, `:767`, `:973`, `:977` | Scale end labels, per question / per set | short labels | uncontrolled input, blur | F2 | I1 on the scale preview's end labels, where they are shown | ✓ |
+| A9 | `rs/QuestionnaireStep.tsx:777`, `:779` | Škála: Minimum / Maximum | integers, min < max; today 0–11 | uncontrolled `type=number`, no step, blur; **min>max, decimals, empty→0 accepted** | F2 | I3 presets 1–5 / 1–7 / 0–10 / 1–10 (owner, Q32 a), "Vlastní" opening two I2 steppers bounded by each other | **new**: the domain refuses a non-integer end (§5.7) |
+| A10 | `rs/QuestionnaireStep.tsx:757`, `:767`, `:973`, `:977` | Scale end labels, per question / per set | two short labels; **per point wanted** (owner, Q32) | uncontrolled input, blur | F2 | I1 on every point of the scale preview (plan § Scales) | **new**: the question's labels are never compiled (§5.8) |
 | A11 | `rs/QuestionnaireStep.tsx:615` | "Jak výzkumné otázky zodpovíme", per research question | one of 5 (Neurčeno, Popis, Pořadí, Segmenty, A/B) | raw `<select>` | F2 | I3 `Segmented` (or chips at phone width); disable with reason where the measures can't serve it | ✓ |
 | A12 | `rs/QuestionnaireStep.tsx:808`, `:819` | Odpovídá na výzkumné otázky, per question/set | several of N | pressed pills | F2 | I3 toggle chips (keep; adopt the shared component) | ✓ |
 | A13 | `rs/QuestionnaireStep.tsx:916`, `:930`, `:935`, `:941` | Set: name, object type, goal, common question with `{object}` | short texts; template must contain `{object}` | inputs, autosave; warning border | F2 | I1 each; I9 the `{object}` rule said in words at the field | ✓ |
@@ -203,7 +203,7 @@ an endpoint or field (listed in §5).
 | B19 | `rs/DeepResearchPanel.tsx:140` | Zrušit běh (Deep Research) | action | **no confirm** | F3 | I6 `InlineConfirm` (match B18) | ✓ |
 | B20 | `rs/BudgetLift.tsx:66`, `:69` | Nový rozpočet studie (USD), note | USD ≥ current, ≤1,000,000; text ≤500 | inline `type=number` + textarea, explicit | F3 | keep inline (it is already where the stop is shown) but I2 money stepper starting at current + the step's need; this is money: I7a allows a modal, inline is acceptable because the step is parked, nothing spends until submit | ✓ |
 | B21 | `rs/CompleteReport.tsx:355`, `:389`, `:369` | Verze zprávy; Formát; Varianta | one of 2; one of 2; one of 1+N | `Segment` ×2; `Select` | F1 | keep `Segment`s; variant = `RadioCard` when ≤3 | ✓ |
-| B22 | `rs/CompleteReport.tsx:438` | **Schválit zprávu** | action, once, ledger | Button, **no confirm** | F1 | I7b: a modal naming which document (version, format, variant) is approved — it is recorded and cannot be undone | ✓ |
+| B22 | `rs/CompleteReport.tsx:438` | **Schválit zprávu** | action, once, ledger | Button, **no confirm** | F1 | I7b: a modal naming which document (version, format, variant) is approved (owner, Q33 a) | ✓ |
 | B23 | `rs/ResearchAssistance.tsx:131`, `:119`, `:149` | Co chcete zjistit? (≤8000) | free text | textarea in aside; narrow: `<dialog>` drawer | F2 | keep; narrow = full-height sheet carrying the task (I8, already) | ✓ |
 | B24 | `rs/AgentProposalDialog.tsx:22-32` | Použít / Ponechat návrh | one of 2 | `<dialog>` | F2 | inline review in the artifact (`rs/ProposalReview.tsx` pattern; research-lead-workbench chunk 7) | ✓ |
 | B25 | `rs/JobPanel.tsx:45` | (job progress) | — | modal overlay `role=dialog` | F2 | non-modal panel beside the stage (I8): a running job must not block reading | ✓ |
@@ -267,7 +267,7 @@ an endpoint or field (listed in §5).
 | E6 | `cl/ProfileArea.tsx:260` | Odebrat kontakt | — | **immediate DELETE, no confirm, no undo** | F3 | I6 delete + "Vrátit" (re-POST the contact) | ✓ (undo by re-create; history shows both) |
 | E7 | `cl/ProfileArea.tsx:303-312` | Vlastní schvalování znalostí | allow / forbid / **inherit** (API takes null) | hand-rolled switch, 2 states | F3 | I3 `Segmented` Povolit / Zakázat / Dědit, with the inherited value shown | ✓ `PUT /self-approval` |
 | E8 | `cl/ProfileArea.tsx:395`, `:400` | Rozpočet klienta USD | 0–1,000,000, step 0.01 | button → inline `type=number` | F3 | I2 money stepper, I1 on the shown budget | ✓ `PUT /clients/{id}/budget` |
-| E9 | — (no control) | Client name | ≤255 | **cannot be changed** (the profile says so) | F3 | I1 on the client's title | **new** `PUT /clients/{id}` name |
+| E9 | — (no control) | Client name | ≤255 | **cannot be changed** (the profile says so) | F3 | I1 on the client's title; any member, audited (owner, Q34 a) | **new** `PUT /clients/{id}` name |
 | E10 | `components/aia/MemoryStudy.tsx:212-237` | Použít tento design: new or empty study; name; which empty study | one of 2; ≤255; one of N | radio pair + input + `<select>` | F3 | `Segmented` + I1 name + combobox | ✓ |
 | E11 | `components/aia/MemorySearch.tsx:43`; `components/aia/GlobalPages.tsx:174` | Memory search; Klient | search; one of N | input (300 ms); `<select>` | F2 | keep; client → combobox | ✓ |
 | E12 | `components/aia/PopulationCharacteristics.tsx:43`, `:158`, `:161` | Verze; Hledat pole; Bloky | one of N; search; one of N | `<select>`, input, `<select>` | F3 | keep | — |
@@ -378,12 +378,11 @@ Most fixes are web-only: the routes already take the value the new control would
 These need a server change, and each is a chunk of its own in the plan:
 
 1. **Rename a client** (E9): there is no route; `cl/ProfileArea.tsx` says the name is fixed. Needs
-   `PUT /api/v1/clients/{id}` `{name}`, audited. **No permission covers it today**:
-   `ClientPermission.EDIT_CLIENT_PROFILE` excludes the name by its own comment
-   (`packages/aia_core/src/aia_core/domain/scope.py:234-235`), and the client's status is an
-   administrator's (ADR 0019). Owner decision: a rename is a profile edit (extend
-   `EDIT_CLIENT_PROFILE`, any member) or a lifecycle change (administrator only). Until it is
-   decided, E9 is out of the plan's build.
+   `PUT /api/v1/clients/{id}` `{name}`, audited. No permission covered it
+   (`ClientPermission.EDIT_CLIENT_PROFILE` excludes the name by its own comment,
+   `packages/aia_core/src/aia_core/domain/scope.py:234-235`). **Decided by the owner (2026-10-20,
+   Q34 a):** any member may rename a client, each rename audited; the name joins
+   `EDIT_CLIENT_PROFILE`.
 2. **Rename a study**: no route takes a Study's `name` after creation (`scope.py` has status and
    budget only, `routers/scope.py:457-503`). Inline rename of a study in Výzkumy (I1) needs one.
 3. **Methodology parameter bounds and enumerations** (F10): the catalogue sends each parameter's
@@ -394,10 +393,10 @@ These need a server change, and each is a chunk of its own in the plan:
 4. **Industry and market vocabulary** (E2): free text today; a combobox needs a list. Proposed: the
    organization's own values so far (a read over `clients.industry`/`market`, no new table) —
    free entry stays allowed.
-5. **One revision per inline commit** (D12): editing a knowledge item in place commits each field
-   as a new revision through `POST …/proposals` with `base_revision`. Two commits a second apart
-   are two revisions. Decision for the owner: accept that (simple, honest history), or batch commits
-   made within one open-item session into one revision (web-side, no API change).
+5. **One revision per editing session** (D12): editing a knowledge item in place would commit each
+   field as a new revision through `POST …/proposals` with `base_revision`. **Decided by the owner
+   (2026-10-20, Q31 a):** one open-item session writes one revision, batched web-side, no API
+   change.
 6. **Undo of server deletes** (D3, D7, E6): undo by re-create is possible today but leaves two
    audit entries and new ids. Acceptable for the MVP; a soft delete with restore is out of scope
    (client-workspace C9 / lifecycle K6 own retirement).
@@ -405,6 +404,11 @@ These need a server change, and each is a chunk of its own in the plan:
    revision or a stale client still can, and `_scale` truncates it with `int()`
    (`packages/aia_core/src/aia_core/domain/research_design.py:405`). The domain must refuse a
    non-integer end as `invalid_scale` (a readiness FAIL), with a test, in the same chunk.
+8. **Scale labels never reach respondents, and none exist per point** (A10, IA-7): a scale
+   question's `popisky_skaly` is stored but never compiled (`SpecQuestion` has no labels;
+   `packages/aia_core/src/aia_core/domain/ai_respondent.py:379-388` builds the item without them).
+   The owner asked (2026-10-20, Q32 note) for a verbal label on every point. The domain rule, the
+   validation and what happens when the range changes are in the plan, § Scales (chunk 3b).
 
 ## 6. Findings
 
@@ -418,13 +422,21 @@ Six-part findings for the docs PR to number (CLAUDE.md §9). Each reproduces in 
   (I2, I9). Test: the stepper's unit test asserting 20 is shown as an error and not stored.
 - **IA-2. Scale min/max accept nonsense.** `rs/QuestionnaireStep.tsx:777,779 @ 44b66ef`
   (`setScaleEnd` with `+raw`): min 8, max 3; 2.5; and an empty field (stored 0) are all saved
-  to the working copy. Compile refuses min ≥ max (`invalid_scale`), so that one is caught late at
+  to the working copy (and see IA-7: its end labels are dropped at compile). Compile refuses min ≥ max (`invalid_scale`), so that one is caught late at
   readiness; but `_scale` turns 2.5 into 2 with `int()` (`packages/aia_core/src/aia_core/domain/
   research_design.py:405 @ 44b66ef`), and an empty Minimum becomes a 0–10 scale. Repro: a unit
   test compiling a scale question with `skala: [2.5, 10]` gets `(2, 10)` and no problem.
   Consequence: fieldwork asks a scale the researcher did not set. Fix: bounded steppers (A9) and
   the domain refusing a non-integer end (§5.7). Tests: a Vitest on `setScaleEnd`; a domain test
   that `[2.5, 10]` is `invalid_scale`.
+- **IA-7. A scale question's labels never reach respondents.** `packages/aia_core/src/aia_core/
+  domain/ai_respondent.py:379-388 @ 44b66ef` builds a scale question's item without labels, and
+  `research_design.py` never reads `popisky_skaly`. Repro: compile a question with
+  `popisky_skaly: ["vůbec", "zásadně"]`; the `SpecQuestion` carries no labels and the respondent
+  prompt shows the numbers alone. Consequence: AI respondents answer "1–10" without knowing which
+  end is which, while a tracked set's ends are sent; the researcher's labels look honoured on
+  screen and are not. Fix: compile and send them (plan § Scales). Test: a domain test that the
+  question's prompt carries "1 = vůbec, 10 = zásadně".
 - **IA-3. The n slider cannot reach the field's range.** `rs/PersonaStep.tsx:380` (200–2000) vs
   `:407` (50–5000): a stored n of 3000 puts the slider at its end, misrepresenting the value.
   Repro: type 3000. Fix: one stepper (B1). Test: as IA-1.
