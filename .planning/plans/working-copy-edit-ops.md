@@ -9,7 +9,7 @@ chunks:
   - "[ ] WCE3c. The web store on the server vocabulary, Audience, Dimensions and Sample"
   - "[ ] WCE4. Presence (M2) and the change feed: `study_presence`, `GET changes?since=`, a poll, two sessions"
   - "[ ] WCE5. Item-level merge and a stale rule that a later Design Revision does not defeat"
-  - "[ ] WCE6. Per-change accept (M6): `proposal_change_decisions`, one change identity across the three accept routes, a dependency rule for coupled changes, `touched_items` returned to the web"
+  - "[ ] WCE6. Per-change accept (M6): `proposal_change_decisions`, one change identity across the three accept routes, a dependency rule for coupled changes, `touched_items` returned to the web; any member with the accept permission may accept a proposal another member's Lead prepared (Q16), the chat text staying private"
   - "[ ] WCE7. Readiness and impact on a working revision: readiness without a submitted Design Revision, "current / changed / re-check" per stage, and accepting a working copy as a revision"
   - "[ ] WCE8. Sociomap declarations: an editor for `sociomap_rating` and `context_objects`, the hard lock and `sociomap_unlock`"
   - "[ ] WCE9. Undo and restore of a person's edit, and a route that reads an old working revision"
@@ -54,13 +54,13 @@ Includes the @ pointer carrying id and revision (workbench 16) and the questionn
 
 
 **WCE4. Presence (M2) and the change feed: `study_presence`, `GET changes?since=`, a poll, two sessions**  
-Test: two sessions edit one study; each sees the other within a poll; a presence row expires without a heartbeat. Gate I-1.
+Test: two sessions edit one study; each sees the other within a poll; a presence row expires without a heartbeat. Gate I-1. The feed also carries each pending proposal (change identity, item, proposer, status) with no chat text, so another member can accept it (`WCE6`, gap G42).
 
 **WCE5. Item-level merge and a stale rule that a later Design Revision does not defeat**  
 `proposal_accept.py:117-118` refuses on "head moved" before comparing items, and any job start, rebuild, Lead approval or a visit to the Run stage submits a Design Revision, killing every other pending proposal. The check becomes: stale only when an item the proposal touches changed since its baseline. Test: a revision submitted elsewhere does not stale a proposal on other items; the item-level conflict still does.
 
 **WCE6. Per-change accept (M6): `proposal_change_decisions`, one change identity across the three accept routes, a dependency rule for coupled changes, `touched_items` returned to the web**  
-The agent-job accept, Design Research `item_ids` and the Lead `indices` become one mechanism. A research-question reword and the questionnaire links that name it are one dependent group. Every accept writes the working revision **and** submits the Design Revision in one transaction, so the head equals the working copy after any accept (`proposal_accept.py:142-156`); the Lead edit accept (`research_lead.py:592-601`) saves only today and is fixed here. Interfaces I9.
+The agent-job accept, Design Research `item_ids` and the Lead `indices` become one mechanism. A research-question reword and the questionnaire links that name it are one dependent group. Every accept writes the working revision **and** submits the Design Revision in one transaction, so the head equals the working copy after any accept (`proposal_accept.py:142-156`); the Lead edit accept (`research_lead.py:592-601`) saves only today and is fixed here. **Shared proposals (Q16, gap G42):** `decide_edits` takes the caller's own completed turn (`research_lead.py:515-518`), so another member cannot accept an edit block its author's Lead prepared. A proposed change becomes an artifact-level item addressed by its change identity (item, operation, base revision, proposer, status) and carried to the others by `WCE4`'s feed **without the turn's chat text**; accepting needs `EDIT_STUDY` and `APPROVE_GATE` and the item-level stale rule, not ownership of the turn. Tests: member B accepts a change member A's Lead prepared without ever reading A's turn; B cannot read A's turn text through the feed; a second accept of the same change keeps the first decision; the ledger names both people. Interfaces I9.
 
 **WCE7. Readiness and impact on a working revision: readiness without a submitted Design Revision, "current / changed / re-check" per stage, and accepting a working copy as a revision**  
 Hand edits create no Design Revision today and `impact_preview` has no route for a study, so AC-07 cannot be tested as written. Test: edit the questionnaire after a run; the stages after it read "reopened" and the run says its design is older than the head.
@@ -78,7 +78,7 @@ Its operations today are `set_text`, `list_*`, `question_*` and `set_n`; `propos
 Each applied edit is a working revision and a ledger row marked auto, with the undo of WCE9. Test: with a stage on, a structural edit applies when its turn finishes and can be undone; with it off, nothing structural applies without a click.
 
 **WCE12. Journey: two researchers, one study, recorded doubles (the I-1 exit)**  
-The second edit merges or conflicts on one item only; a locked item refuses; presence and the feed show. Adds its steps to `workbench_journey.mjs` and the acceptance harness.
+The second edit merges or conflicts on one item only; a locked item refuses; presence and the feed show. Member B accepts a change member A's Lead prepared without reading A's turn. Adds its steps to `workbench_journey.mjs` and the acceptance harness.
 
 ## Open: owner clarifications
 
