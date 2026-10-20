@@ -63,7 +63,7 @@ a pin is never rewritten.
 | Respondent map (MVP-4) | None; `sociomap-formula-corrections` 3 would have to be built and waits on the F10 threshold | Built: vector-model placement, PLACED / FADED by the chance test at p ≤ 0.10, density σ 0.35 |
 | Clustered segments (MVP-17) | None; `segment-maps-and-drilldown` 0 and 3 wait on an algorithm | Built: taste segments, a mixture on slopes with the shuffle guard, step-down and consensus (`:1602-1620`) |
 | Web drawing | Drawn (`apps/web/src/lib/object-map-view.ts:20`) | Not drawn yet (E-3) |
-| Report chapters | Exist (`application/report_maps.py:112, 215-220`) | Need the credibility in place of Stress-1 and new figures (E-4) |
+| Report chapters | Exist (`application/report_maps.py:112, 215-220`) | The object-map chapter already reads `-5` (no Stress-1, the credibility note and the weakly-determined warning, relative heights); respondent and segment figures are new (E-4) |
 | Platform | Deterministic everywhere | BB1 maps can differ between platforms from 12 objects on (MQ-04) |
 
 Worked example, kept: 400 AI respondents rate 8 mineral-water brands on 1-10; *Horská* and *Pramen*
@@ -167,8 +167,9 @@ suppressed and said so, never ordered (the plan's invariant); `RELIGION` stays r
 
 **(5) Recommendation.** "Do not invent support thresholds" (MVPQ-03's recommendation).
 
-**(6) Blocks / proceeds.** Blocks segment 10, the Segments module's finding and so the report gate
-for any study with segments. Proceeds: the admission plumbing with a declared floor.
+**(6) Blocks / proceeds.** Blocks segment 10 and the Segments module's finding. Segments is one of the
+eight modules every report requires, so under MVPQ-04 a missing segment finding blocks **every**
+report, not only studies that ask for segments (`segment-maps-and-drilldown#10`). Proceeds: the admission plumbing with a declared floor.
 
 ### MQ-04. BB1's platform dependence: is the map computed in the production worker image the record? (MVPQ-12)
 
@@ -532,10 +533,13 @@ description.
   heights are drawn on absolute terraces; no credibility banner, split-half share, uncertainty
   circles, respondent map, taste segments, "Neumístěno" list or 26x height exaggeration. The standing
   rule: the panel follows `ui_app.html`'s drawing (`signed-off-sociomap-method.md`, Doc follow-up).
-- **E-4. The report's figures and chapters.** The map chapter prints Stress-1 (`application/report_maps.py:215-220`),
-  which `-5` has none of (`:70`); `object_map_snapshots` and `compose_map_sections` read only object maps
-  (`infrastructure/report_docx/object_map_figure.py:110`, `domain/sociomap/models_v3.py:801`);
-  respondent and segment figures are `segment-maps-and-drilldown` 9.
+- **E-4. The report's respondent and segment figures.** The object-map chapter already reads a `-5` map:
+  no Stress-1 (its fit caption says Stress-1 is not computed, `application/report_maps.py:245-250`), the
+  credibility note for internal readers (`:77-90`, `:223`), the weakly-determined warning (`:185-200`) and
+  relative heights (`:228-231`). What is missing is the respondent map and the taste segments:
+  `object_map_snapshots` and `compose_map_sections` draw only object maps
+  (`infrastructure/report_docx/object_map_figure.py:110`, `domain/sociomap/models_v3.py:801`); those
+  figures are `segment-maps-and-drilldown` 9.
 - **E-5. Metodika's comparison cannot show `-5`'s changes.** `sociomap_check.MapSummary` (`domain/methodology/sociomap_check.py:136`) carries no
   credibility, respondent map or segments, so an edit of those values shows no difference there.
 - **E-6. The worker image.** numba needs `NUMBA_CACHE_DIR=/tmp/numba` in the read-only containers
