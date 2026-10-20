@@ -80,6 +80,37 @@ last.
 - **`master_check`:** ok at `1ba4bc0` (263 chunks with a wave, 0 unscheduled). `progress --check`:
   105 of 105.
 
+## To apply first (planning 3): Nigel's answers Q19-Q21 (relayed by coordinator 3, 21:41 UTC)
+
+None of these is in #523 yet. Apply them to #523 (head `1ba4bc0`), which closes Open items Q19 and
+Q20 there.
+
+- **Q19 (a): evaluate the editor before adopting one.** Add a W1 spike chunk, best placed in
+  `research-lead-workbench` with a wave row, comparing Word- or LibreOffice-like editors for the
+  study context file and reports.
+  - The candidates:
+    - Wordcraft (MIT/Apache, Rust/WASM, MCP server, alpha);
+    - ONLYOFFICE Docs (AGPL, Word-like, track changes, JS API);
+    - Collabora Online (LibreOffice-based, MPL, WOPI).
+  - Tiptap is the baseline Nigel dislikes. His note: "maybe suggest alternatives, maybe tiptap, but
+    even that had a terrible UX; I want as close to Microsoft Word or LibreOffice as possible".
+  - The criteria: a Word-like UX; tracked changes and comments; the Lead driving the edits; ledger
+    refs surviving a round trip; DOCX fidelity; the licence; EU self-hosting.
+  - The outcome is a go/no-go to Nigel.
+  - Replace the baseline's "editor: Wordcraft?" Open row with this chunk.
+- **Q20 (b): Brave may receive Class B (design-derived) queries for every client, CLASSIFIED
+  included.**
+  - Record it as the owner's determination of 2026-10-20, in the style of OI-61, in
+    `deep-research-web-search#53` and the baseline. It changes MVP-27's "CLASSIFIED tracks stay
+    parked" for Class B queries.
+  - His note: "maybe even class A, depends how the query is constructed. I like to implement google
+    search hacking into the workflows, to create highly specific and reputable sources".
+  - Class A stays refused until page Q22 is answered. Search operators (site:, filetype:, intitle:)
+    are page Q23. Mark both Open.
+  - This touches the ADR 0032 / ADR 0008 class rule: note it in the Doc follow-up, and tell scope 3
+    (session_01Qg43kRfsZ97FjA8XenP28x) that ADR 0032 changes.
+- **Q21 (a): the coordinator keeps merging reviewed, green PRs.** No plan edit is needed.
+
 ## Still open (in the baseline's Open table, or due next)
 
 - **Page Q19:** the editor for Lead edits. Nigel named Wordcraft (github.com/storytold/wordcraft);
