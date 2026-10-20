@@ -434,7 +434,7 @@ Four track maps built from the code before this plan existed were compared with 
 | G72 | **AOC2 names no producer**: subjects are QUESTION, OBJECT or CROSS only (`contracts.py:138-144`) | `assumptions-and-open-answer-coding#AOC2` |
 | G73 | **AC-01's "another client's user gets 404" contradicts ADR 0019** (`scope.py:244-247`, `test_scope_isolation.py:209`) | `mvp-acceptance-harness#14` |
 | G74 | **AC-14 had no subject**: no edition file by design (`module-inventory.md:321`), no configuration recorded on a run; D-09 | `mvp-acceptance-harness#14`, `lead-orchestration#LO12c` |
-| G75 | **`parity_status.py` ties the acceptance verdict to parity readiness** (`:375-378`) | `mvp-acceptance-harness#17` |
+| G75 | **`parity_status.py` ties the acceptance verdict to parity readiness** (`:375-378`) | `mvp-acceptance-harness#3` |
 | G76 | **The study cannot be provisioned over HTTP**: no route creates the organization or its owner (`scope_repository.py:103`) | `mvp-acceptance-harness#3`, `production-environment#PE10` |
 | G77 | **No tier-A projection of each criterion is written**; the record is per criterion, not per tier | `mvp-acceptance-harness#6`, `mvp-acceptance-harness#14` |
 | G78 | **Weight identity is recorded but not served over HTTP** (`research.py:375-388`) | `run-qc-and-checkpoint#RQC12` |
@@ -472,7 +472,7 @@ Four track maps built from the code before this plan existed were compared with 
 | "The MVP uses `aia-sociomap-3`" | §3.2 (`sociomapping-engine` row) | the owner chose `-5` (MVPQ-13), the only method (D-13) | corrected by the freeze |
 | #504 "open" | `mvp-owner-decisions.md:69-71` | merged as `18d59ea` | the owner packet, with MVPQ-13 |
 | "The built ones first (AC-01, 06, 07, 12, 14)" | `mvp-acceptance-harness.md:8` (chunk 5) | only AC-12 has an existing path | `mvp-acceptance-harness#5` |
-| `sociomapping.core`: `-3` "INTERNAL_ONLY while D6 is open"; `project.memory` NOT_STARTED | `parity-matrix.json:3485`, `:2573` | approved 2026-10-13; built and tested | `mvp-acceptance-harness#17` (a full-suite PR) |
+| `sociomapping.core`: `-3` "INTERNAL_ONLY while D6 is open"; `project.memory` NOT_STARTED | `parity-matrix.json:3485`, `:2573` | approved 2026-10-13; built and tested | `mvp-acceptance-harness#3` (a full-suite PR) |
 | E30 "the map figure carries Stress-1" | `mvp-execution-contracts.md` E30 | `-5` computes no Stress-1 | noted in the contracts by the freeze |
 
 ### 6.3 New plan files these gaps need

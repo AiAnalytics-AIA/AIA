@@ -17,7 +17,6 @@ chunks:
   - "[ ] 15. The assumptions and open-answer coding journey (W5, MVPQ-02) with its refusals, over recorded doubles: `assumptions-and-open-answer-coding#AOC9`"
   - "[ ] 14. The acceptance wording reconciled in the acceptance document and `parity-matrix.json` together, in a PR that runs the tests: AC-02 (approval card and plan), AC-11 (OPEN posture), AC-13 (F17), AC-15 (separate model, tool, reservation, uncertain and billing-lag lines; the USD 0.01 tolerance kept unless the owner changes it)"
   - "[ ] 16. The per-number provenance walk for AC-15: every ledger ref of both reports resolves to its model binding, prompt pin, population version and weight role (G65)"
-  - "[ ] 17. The acceptance verdict computed from its own JUnit, path parity beside it and never in it; parity-matrix project.memory corrected (G75)"
   - "[ ] 18. Performance budgets as a release gate: page and API latency budgets per journey (D-48; the numbers are open)"
 ---
 # The MVP acceptance harness
@@ -169,10 +168,14 @@ do not carry a green release decision from an older SHA. Paid reruns still requi
 
 Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
 
-**New chunks.** 16 (W3), 17 (W0, E01), 18 (W4; D-48 in, its budget values open in the baseline).
+**New chunks.** 16 (W3), 18 (W4; D-48 in, its budget values open in the baseline).
 
 **Existing chunks, changed.**
 
+- **3 (G75).** `parity_status.py` computes MVP-ACCEPT-2's verdict from the acceptance step's own
+  JUnit (which 3 already produces), with path parity reported beside it and never in it; a test line:
+  a passing acceptance JUnit prints PASS while the path capabilities stay NOT_RUNNABLE. The
+  `project.memory` row of `parity-matrix.json` is corrected with it (#515, narrowed: no new chunk).
 - **3 (G76).** A declared operator bootstrap (`aia_executors.seed`, or production's
   `production-environment#PE10`), named in the record; everything after it over HTTP, the worker as a
   subprocess; an import-linter contract that `tests/acceptance` imports no application or

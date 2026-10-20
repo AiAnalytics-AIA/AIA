@@ -170,7 +170,6 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `run-qc-and-checkpoint#RQC12` | W1 | cross-check G78 |
 | `run-qc-and-checkpoint#RQC13` | W2 | scope freeze, D-45: after WCE14 |
 | `mvp-acceptance-harness#16` | W3 | cross-check G65: after `system-prompts-settings#7` |
-| `mvp-acceptance-harness#17` | W0 | cross-check G75: with E01 |
 | `mvp-acceptance-harness#18` | W4 | scope freeze, D-48: the budget values are open in the baseline |
 | `client-knowledge-lifecycle#K9` | W3 | scope freeze, D-47 |
 | `client-knowledge-lifecycle#K10` | W3 | scope freeze, D-47 |
