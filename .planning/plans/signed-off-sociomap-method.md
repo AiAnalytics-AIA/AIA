@@ -285,3 +285,18 @@ owner answers MQ-06.
   that starts a new run on `-5` from the same Design Revision. Approved reports of such runs stay
   downloadable (`report-delivery#RD3`). Test: a retry of a `-3` run returns the refusal and the new
   run link, and starts nothing.
+
+### Implementation lane: the methodology owner's #517 (2026-10-20)
+
+The product owner, 21:33 UTC (relayed by the coordinator): the `-5` drawing is **A. Bahbouh's own
+lane**, PR #517 (`feature/aia-sociomap-5-web`) and its plan `.planning/plans/sociomap-5-web.md` on that
+branch.
+- Built there (chunks 1-5 ticked on the branch at the time of writing): the panel ported pixel for
+  pixel, credibility (the weakly-determined banner, the uncertainty circle, objects not placed), the
+  respondent map and taste segments.
+- Still to come there: detail on click (6), and the Word report's `-5` figure and the web map's PNG
+  snapshot (7).
+
+**Chunk 9's figure is built by #517's chunk 7.** Chunk 9 keeps the report chapter's text (credibility
+in place of Stress-1, unplaced objects listed) and the respondent-map and taste-segment figures'
+place in the chapter, drawn from #517's renderer.

@@ -287,3 +287,18 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
 - **32 (W3, with `lead-orchestration#LO19` and `#LO20`).** The UI half: a search's results appear in
   the turn as they come (no click to open them), each claim with its inline citation, a captured page
   one click from "Ověřeno, přidat zdroj"; the study's context file is readable from the pane.
+
+### Implementation lane: the methodology owner's #517 (2026-10-20)
+
+The product owner, 21:33 UTC (relayed by the coordinator): the `-5` drawing is **A. Bahbouh's own
+lane**, PR #517 (`feature/aia-sociomap-5-web`) and its plan `.planning/plans/sociomap-5-web.md` on that
+branch.
+- Built there (chunks 1-5 ticked on the branch at the time of writing): the panel ported pixel for
+  pixel, credibility (the weakly-determined banner, the uncertainty circle, objects not placed), the
+  respondent map and taste segments.
+- Still to come there: detail on click (6), and the Word report's `-5` figure and the web map's PNG
+  snapshot (7).
+
+**Chunk 20 does not build the `-5` layers again.** It hosts #517's panel in the Results and Sociomap
+artifacts and in project memory, and its credibility test is met by #517's work. Chunk 20 keeps the
+artifact frame, routing and the old-method panel text (Q2).
