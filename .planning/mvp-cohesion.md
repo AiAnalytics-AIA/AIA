@@ -775,3 +775,11 @@ How they are applied:
 - **Still open.** Their remaining parts are the baseline's open questions Q1 to Q8, for the owner.
 
 No paid run, infrastructure change, merge or release is authorized by recording them.
+
+The baseline's eight follow-up questions were answered the same evening, between 19:37 and 19:46
+UTC. The answers are recorded in the second table of `answers-2026-10-20.md` and applied in #523.
+Three of them added scope:
+
+- Q5: a per-study context file that every researcher's Lead reads (`lead-orchestration#LO19`).
+- Q6: the Lead's governed web search (`lead-orchestration#LO20`, `deep-research-web-search#56`).
+- Q8: Metodika's full `-5` comparison (`signed-off-sociomap-method#11`).

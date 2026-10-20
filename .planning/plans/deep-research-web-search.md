@@ -60,6 +60,7 @@ chunks:
   - "[ ] 54. Before the first activation: each connector probed live once (every interface is UNVERIFIED), AIA_DEEP_RESEARCH_AGENT_DIRECTED named in the activation matrix, Common Crawl's AWS side (workgroup, results bucket, grants, us-east-1 exception) in Terraform or kept out of the first activation"
   - "[ ] 55. The start's cost ceiling function moves from the API router to the application layer, so a plan step in the worker and the router use one"
   - "[ ] 51a. A run's routes on its record: by_route in CoverageLedger (sent, succeeded, refused) and composed_routes from the plan artifact (G67)"
+  - "[ ] 56. A quick single-track lookup for the Lead's Hledat na webu: several search hits and parallel fetches of the top pages through RetrievalGate, captured snapshots, per-call cost against the wallet, OPEN posture only (Q6)"
 ---
 # Deep Research — wide, precise, and defensible
 
@@ -1732,3 +1733,15 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
   real run meets the archive and the run's record names `archive_lookup` / `archive_fetch`.
 - **Deep Research from the Lead (D-12)** is `lead-orchestration#LO5a`; its ceiling is chunk 55's.
 - **The Lead's own web search** (D-35) is not this plan's until the owner answers baseline Q6.
+
+### After the baseline's questions (the owner's answers to the baseline's Q1-Q8, 2026-10-20 19:37-19:46 UTC (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, second table))
+
+- **56 (W3).** Q6: the retrieval half of `lead-orchestration#LO20`. A lookup is one track, not a
+  run: one query (or a few the Lead writes), the route's hits returned together (a page of results
+  per query, the route's own page size), the top pages fetched in parallel with the existing per-host pacing, each captured as
+  a content-addressed snapshot so a quote can be grounded, everything journaled and metered as
+  chunk 47's coverage counts it. It reuses the engine's retrieval and grounding unchanged (ADR 0021:
+  the engine stays frozen; this is a new caller, not a change to the run's steps). Latency target:
+  first results to the Lead within the route's own response time, measured in the PR. Tests: a
+  CLASSIFIED client's lookup sends nothing; a lookup's spend is held against the wallet before it
+  leaves; a quote not in a captured snapshot is refused.

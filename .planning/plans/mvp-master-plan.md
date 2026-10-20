@@ -63,8 +63,8 @@ chunk until the owner signs below; security fixes are exempt. The baseline is wr
 [`answers-2026-10-20.md`](../evidence/scope-freeze/answers-2026-10-20.md) (decision ids from
 [`decision-list.md`](../evidence/scope-freeze/decision-list.md), #516), and the inputs' proposed
 edits, consolidated in [`proposed-edits.md`](../evidence/scope-freeze/proposed-edits.md) (#522).
-Signing settles **In** and **Out**; it does not answer **Open**, whose items each name who answers and
-what waits on them.
+Signing settles **In** and **Out**, including the owner's answers to Q1-Q8; it does not answer
+**Open**, whose items each name who answers and what waits on them.
 
 ### In
 
@@ -85,6 +85,7 @@ AC-15), as amended below; the core plans of §3.1 with their open chunks and wav
 | Client pages and Settings | Posture and wallet ceiling on Profil → Pravidla (D-17); the data contract accepted in the Brief drawer, the Data tab read-only (D-37); delete: a client by an admin, a source by a researcher, knowledge retired (D-29); deactivating a member (D-27); a cross-client portfolio, project memory over approved reports, an organization's monthly spend (D-47); Simulace hidden (MVP-31); no paid start outside the Lead over HTTP (D-15) | `client-knowledge-lifecycle#K11`, `client-data-in-analysis#10`, `study-data-lifecycle#SDL3`, `study-data-lifecycle#SDL4b`, `two-roles-human-ai-gates#8`, `client-knowledge-lifecycle#K9`, `client-knowledge-lifecycle#K10`, `develop-spend-attribution#6`, `client-knowledge-lifecycle#K12`, `system-prompts-settings#14` |
 | Acceptance | AC-14 reads typed settings plus a composition digest on each run (D-09); AC-01's 404 is for another organization (ADR 0019); accessibility (axe) and performance budgets are release gates (D-48) | `lead-orchestration#LO12c`, `mvp-acceptance-harness#14`, `mvp-acceptance-harness#10`, `mvp-acceptance-harness#18` |
 | Production and release | Egress blocks private and metadata ranges only (D-19); the proposed sizes (D-20); tagged inference profiles (D-21); production starts empty, bootstrapped by an operator command (D-22); an external security review (D-23); per-member rate limits (D-24); RPO 24 h, RTO 4 h (D-25); GlitchTip for errors (D-26); terms, privacy notice, client DPA and the panel-licence confirmation before the first client (D-28) | `production-environment#PE4`, `production-environment#PE7`, `production-environment#PE10`, `production-environment#PE11`, `architecture-enforcement#12`, `production-environment#PE9a`, `production-environment#PE9b` |
+| Added by Q1-Q8 | The Metodik mark (Q4); Metodika's full `-5` comparison (Q8); the study's context file (Q5); free report edits with every number a ref, and the Lead's governed web search (Q6); a GlitchTip uptime monitor (Q7) | `signed-off-sociomap-method#10`, `signed-off-sociomap-method#11`, `lead-orchestration#LO19`, `report-delivery#RD6`, `lead-orchestration#LO20`, `deep-research-web-search#56`, `research-lead-workbench#32`, `production-environment#PE9b` |
 | Proposals | The ADRs 0028 to 0038 (#512) as Proposed; the owner's yes to amend ADR 0026 and ADR 0008 as each is accepted, including the "frozen retrieval" wording (D-08) | `mvp-master-plan#MP5` |
 
 ### Out
@@ -93,33 +94,45 @@ AC-15), as amended below; the core plans of §3.1 with their open chunks and wav
 - A locked attention-check question (D-43); MVP-24's QC warnings stay.
 - The question chain: the Brief's decisions, expected answers and done-when (D-44).
 - Known-truth anchors, an instrument library, schedules and pause, "society insights" (D-46).
-- Handing a Lead over, a departure trigger, and an admin reading another researcher's Lead files
-  (D-32 to D-34); ADR 0030 is narrowed to the Lead's own file history.
-- `aia-sociomap-1` to `-4` in any product path (D-13); what a stored older run shows is Q2 below.
+- Handing a Lead over, a departure trigger, an admin reading another researcher's Lead files
+  (D-32 to D-34), and assigning a study to one researcher's Lead (Q5); ADR 0030 is narrowed to the
+  Lead's own file history.
+- `aia-sociomap-1` to `-4` in any product path (D-13, Q3); a stored older run keeps its data and says
+  its map is from an older method (Q2).
 - Export of a client's data and erasing one person as features: an operator procedure in the
   runbook for about ten users (D-29).
 - As before the freeze: Simulation (§3.2 `simulation-studio`), the Class B search route (§3.3),
   SOMECS (`sociomapping-engine`), the holdout validation and client-facing analysis prose
   (`panel-grounded-respondents`), and every POST row of §3.2.
 
+### The owner's answers to the baseline's questions (2026-10-20, 19:37-19:46 UTC)
+
+Answered on the PM status page by the owner's account, relayed by the coordinator, and recorded in
+[`answers-2026-10-20.md`](../evidence/scope-freeze/answers-2026-10-20.md) (second table). They are part
+of **In** and **Out** above.
+
+| # | Answer | Chunks |
+|---|---|---|
+| Q1 | The switch to `-5` merges when built; every `-5` map stays internal, and none reaches a client, until the methodology owner's register entry (MQ-01) | `signed-off-sociomap-method#8` |
+| Q2 | A stored `-1`/`-3` run keeps its data; its map panel says "Mapa ze starší metody; spusťte běh znovu" | `signed-off-sociomap-method#8`, `research-lead-workbench#20` |
+| Q3 | `-1` to `-4` leave every product path; the old engine and its golden fixtures stay as tested reference | `signed-off-sociomap-method#8` |
+| Q4 | A "Metodik" member mark, granted by an OWNER, held by A. Bahbouh, gates storing and activating methodology versions | `signed-off-sociomap-method#10` |
+| Q5 | No study assignment: every researcher's own Lead works in every study they open. **New scope:** a per-study context file every Lead reads, kept current | `lead-orchestration#LO11`, `lead-orchestration#LO19`, `research-lead-workbench#32` |
+| Q6 | Free report edits, every number still a ledger ref; the Lead's governed "Hledat na webu" through `RetrievalGate`, OPEN clients, charged to the wallet, with a fast, rich result (several results, inline citations, no extra clicks) | `report-delivery#RD6`, `lead-orchestration#LO20`, `deep-research-web-search#56`, `research-lead-workbench#32` |
+| Q7 | GlitchTip stays the error tracker; production adds a GlitchTip uptime monitor alerting Nigel Blount | `production-environment#PE9b` |
+| Q8 | Metodika's comparison shows all of `-5`'s outputs in the MVP (against the recommendation) | `signed-off-sociomap-method#11` |
+
 ### Open: signing does not answer these
 
 | # | Question | Who answers | Waits on it |
 |---|---|---|---|
-| Q1 | When the switch to `-5` merges: as soon as it is built (every `-5` map internal until the methodology owner's register entry; no map reaches a client meanwhile), or only together with the entry. Recommended: as soon as built; no real client receives a report before production | the owner | `signed-off-sociomap-method#8` |
-| Q2 | What a stored `-1`/`-3` run shows once the old drawing is gone: its data with "an older method's map; run again", a "recompute with `-5`" action as a new linked map, or deletion. Recommended: the first; every stored run on develop is fictional | the owner | `signed-off-sociomap-method#8`, `research-lead-workbench#20` |
-| Q3 | Whether "get rid of the old ones" deletes the old engine code and its golden fixtures F1-F9, or removes it from every product path and keeps it as tested reference. Recommended: the second now, deletion once `-5` has golden fixtures of its own | the owner | `signed-off-sociomap-method#8` |
-| Q4 | The form of "only the mathematician edits the methodology": a methodologist mark an OWNER grants (held today by A. Bahbouh) gating storing and activating, the same with activation left to OWNER/ADMIN, or one named account. Recommended: the first | the owner | `signed-off-sociomap-method#10` |
-| Q5 | Whether a study has one assigned lead researcher an admin can change ("an admin can change the research lead"), whose Lead prepares the plans that spend the study's wallet while others' Leads may chat and propose, or no assignment. Today none exists | the owner | `lead-orchestration#LO4`, `lead-orchestration#LO11` |
-| Q6 | The Lead's document editing and web search (D-35, "edit the documents as they see fit … a web search … like ChatGPT or Claude"): whether every number in an edited report stays an admitted ledger ref (ADR 0035, AC-13), and whether the Lead's search runs through `RetrievalGate` under the client's posture with quotes cited as external context (ADR 0017, ADR 0021) or as a provider's own browsing. Recommended: the number rule kept, the search through `RetrievalGate`; either needs an ADR | the owner | `report-delivery#RD6`, a Lead lookup chunk not yet written |
-| Q7 | Whether production gets an uptime probe (GlitchTip's own monitors) and a named recipient, beside GlitchTip's errors | the owner | `production-environment#PE9b` |
-| Q8 | Whether Metodika's comparison shows `-5`'s credibility, respondent map and segments in the MVP (packet E-5); under D-14 the methodologist is its only user | the owner | `signed-off-sociomap-method#10` |
+| Q9 | Who may write the prose part of a study's context file (Q5's new scope): code only, code plus study notes a researcher's Lead proposes and a person accepts, or Leads freely. Sent to the coordinator with a recommendation | the owner | `lead-orchestration#LO19` |
 | — | Production's new domain name (D-20: "i will be changing to a new domain") | the owner | `production-environment#PE1`, Cognito callbacks |
 | — | The performance budget values for `mvp-acceptance-harness#18` (D-48); planning proposes them in that chunk's PR, the owner approves | the owner | `mvp-acceptance-harness#18` |
 | — | The methodology owner's decisions MQ-01 to MQ-24, MQ-01 (the `-5` register entry) first | A. Bahbouh | `mvp-methodology-packet.md` (#510); §11.4 |
 | — | The Deep Research evaluation tasks and thresholds (MVPQ-06, rest) | the owner | `deep-research-web-search#27` |
 | — | The scope overrides S2 to S5, only if wanted (§11.3) | the owner | §11.3 |
-| — | Each ADR 0028 to 0038 accepted (the owner; A. Bahbouh on the method parts) | the owner | `mvp-master-plan#MP5` |
+| — | Each ADR 0028 to 0038 accepted (the owner; A. Bahbouh on the method parts), and the new ADR for the Lead's web lookup (Q6) written | the owner | `mvp-master-plan#MP5`, `lead-orchestration#LO20` |
 
 ### Signature
 

@@ -11,7 +11,8 @@ chunks:
   - "[x] 7. Taste segments: the mixture on slopes, the shuffle guard, the step-down, profiles, colour only for clearly placed respondents, borderline segments"
   - "[ ] 8. aia-sociomap-5 the only method of new runs: the code's default pins -5 by its own name, -1 to -4 leave every product path (run pins, Metodika presets and in-force, the web, the report), Metodika's in force is -5 (D-13)"
   - "[ ] 9. The report draws -5: object-map figure from heights.relative and the terrain method, objects_not_placed listed, credibility in place of Stress-1, the respondent-map and taste-segment figures (D-13)"
-  - "[ ] 10. Methodology is edited only by the methodologist: storing and activating a methodology version needs the methodologist's permission (D-14; its exact form is open, master § The scope baseline, Q4)"
+  - "[ ] 10. Methodology is edited only by the methodologist: a Metodik member mark an OWNER grants (held by A. Bahbouh) gates storing and activating methodology versions (D-14, Q4)"
+  - "[ ] 11. Metodika shows -5 in full: the comparison (MapSummary) carries credibility, the respondent map and taste segments, and the -5 steps are what in force describes (Q8)"
 ---
 # aia-sociomap-5 — the signed-off AIA Sociomapa methodology as a method
 
@@ -249,20 +250,30 @@ Chunk 8 supersedes this plan's § Not in this plan where it puts making `-5` the
   it). The worker image's `NUMBA_CACHE_DIR` and library versions are recorded with each map (packet
   E-6). Tests: a new run pins exactly `aia-sociomap-5` at `8b0b4864…`; no product path offers `-1` to
   `-4`; `require_client_facing` passes for a `-5` map once the register entry exists and refuses
-  `-5+e1`. **Open, recorded in the master plan's baseline:** when the switch merges relative to the
-  methodology owner's register entry (Q1), what a stored `-1`/`-3` run shows once the old drawing is
-  gone (Q2), and whether the old engine code and its golden fixtures are deleted or kept as reference
-  (Q3). The register entry itself is the methodology owner's (packet MQ-01).
+  `-5+e1`. **Settled by the owner (Q1-Q3).** It merges **when built**: every `-5` map stays
+  `INTERNAL_ONLY`, and no map reaches a client, until the methodology owner's register entry exists
+  (packet MQ-01, asked first). A stored `-1`/`-3` run keeps its data and numbers; its map panel says
+  "Mapa ze starší metody; spusťte běh znovu" and draws nothing. `-1` to `-4` leave every product
+  path, while the old engine and its golden fixtures F1-F9 stay in the code as tested reference
+  (their deletion is a later decision, once `-5` has golden fixtures of its own).
 - **9 (W2, before E15).** The report's map chapter and figures for `-5`: z from `heights.relative`,
   the caption from the terrain method, `objects_not_placed` listed (today dropped:
   `object_map_figure.py:39, 64-104 @ 854c209`), credibility in place of Stress-1
   (`report_maps.py:215-220`), and the respondent-map and taste-segment figures
   (`segment-maps-and-drilldown#9`). How the report re-derives a `-5` map follows MQ-04 (E-7).
-- **10 (W1).** D-14: "only the mathematician can edit the methodology." Storing and activating a
-  methodology version (today OWNER or ADMIN, ADR 0023) needs the methodologist's permission. Its
-  form (a member mark an OWNER grants, whether activation is included, or a named account) is open
-  (baseline Q4); the chunk builds the permission check and its refusal, and changes ADR 0023's role
-  table in its PR's Doc follow-up.
+- **10 (W1).** D-14 and Q4: a "Metodik" mark on a member, granted and withdrawn by an OWNER
+  (audited), held today by A. Bahbouh, gates **both** storing and activating a methodology version
+  (today OWNER or ADMIN, ADR 0023). Any member still reads Metodika and runs check and compare.
+  Tests: an ADMIN without the mark is refused by name on store and on activate; the mark's grant and
+  withdrawal are audited. ADR 0023's role table changes in its PR's Doc follow-up.
+- **11 (W2, after 8).** Q8, against the planning session's recommendation: Metodika's comparison
+  shows **all** of `-5`'s outputs. `MapSummary` (`domain/methodology/sociomap_check.py:136 @
+  854c209`) carries credibility (split-half share, uncertainty radius), the respondent map
+  (placed / faded counts) and taste segments, so an edit of any `-5` parameter shows its effect;
+  "v platnosti" describes the `-5` steps ("Věrohodnost mapy", "Respondenti a podpora mapy", S7) and
+  the `-3`-only steps are not shown as in force. The comparison runs on the API host: its latency on
+  the fixed panels is measured in the chunk's PR (BB1 at about 9 s compiled is the methodology
+  owner's figure).
 
 **Measurement before MQ-06** (packet E-9): a `-5` map with respondents and segments on the develop
 worker image at 1,500, 5,000 and 20,000 respondents, recorded in this plan before the methodology

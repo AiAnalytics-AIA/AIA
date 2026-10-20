@@ -90,8 +90,9 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
   are the boundary.
 - **PE7 (D-21).** Tagged application inference profiles in production.
 - **PE9a (D-25).** RPO 24 h and RTO 4 h, the database and S3 restored together, proved once.
-- **PE9b (D-26).** GlitchTip already runs for errors (the owner, "i have glitchtip implemented");
-  an uptime probe and a named on-call recipient are open (baseline Q7).
+- **PE9b (D-26, Q7).** GlitchTip already runs for errors (the owner, "i have glitchtip
+  implemented"). Production adds a GlitchTip uptime monitor on its `/health`, alerting Nigel Blount
+  by e-mail (its threshold set and stated in the chunk's PR); no other service.
 - **The release checklist (D-28).** Terms, a privacy notice, a client DPA and the data owner's
   confirmation that the panel licence covers paid deliverables, all before the first client; the
   first-sign-in notice is the only screen.

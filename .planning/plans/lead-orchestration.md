@@ -25,6 +25,8 @@ chunks:
   - "[ ] LO12c. The composition digest stored on each run and served over HTTP (D-09; the record #513 called MP6b)"
   - "[ ] LO17. Stopping the Lead: cancel a running turn, withdraw an approved plan (the current step finishes or is cancelled, nothing after it starts), with the workbench build line (D-18)"
   - "[ ] LO18. The Lead's turns stream, take a file from the composer, and comment unprompted after the researcher pauses editing, each such comment a paid turn inside the wallet (D-39)"
+  - "[ ] LO19. A study's context file: a Markdown file per study, built by code from the study's shared state and refreshed on every change, read by every researcher's Lead in that study as its study layer (Q5)"
+  - "[ ] LO20. Hledat na webu: the Lead's governed web search through RetrievalGate, several results with inline citations in the turn, OPEN clients only, each search charged to the wallet (Q6)"
 ---
 # Lead orchestration: the wallet, the plan card, the continuation turn and the Lead over time
 
@@ -165,3 +167,44 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
   own PR accordingly.
 - **LO12a (D-10).** Every API error in Czech with a no-leak test and a native copy review; the words
   for a refused Deep Research run (terminal, by cause).
+
+### After the baseline's questions (the owner's answers to the baseline's Q1-Q8, 2026-10-20 19:37-19:46 UTC (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, second table))
+
+- **LO11 (Q5): no study assignment.** Every researcher's own Lead works in every study they open; an
+  admin assigns nothing. The owner: "opening a study, just shows their own agent within that studies
+  artifacts, and now their ai agent can interact with the artifacts of that study and control the
+  functions and valves in them … he carries his own files, but also the context of each study
+  session." The open study-assignment question is closed.
+- **LO19 (W2, after LO8 and `working-copy-edit-ops#WCE4`).** The owner: "maybe we need to have an md
+  file attached to each study session so the researchers ai can get the context of the study, this
+  should be updated regularly within each study." Proposed shape, pending the one question sent to
+  the owner (who may write its prose part):
+  - **What it holds.** The study's shared state, never any researcher's private turns: the brief and
+    research questions, each stage's state, the Design Revision head and what changed since the
+    last one (from the operation log), runs and their states, approved results and report state, the
+    decisions in the approval ledger (accepted and refused changes, approvals, spend confirmations),
+    and open items. Each line names its source (revision, run, ledger row).
+  - **Who writes it.** Code, as a deterministic projection of that state (no model call, no cost);
+    rebuilt on every working-copy revision, run event and ledger decision, so it is always current.
+  - **Its class.** The highest class of what it holds by `material_rules.py`: Class B for a design,
+    Class A when it carries approved client knowledge; it is sent only to a route approved for that
+    class.
+  - **How it fits ADR 0026.** It becomes the content of `freeze_context`'s existing `study` layer
+    (`domain/research_lead.py:782-829 @ 47e5536`) with a byte budget of its own inside the 96 KB;
+    when over budget the oldest history lines go first, and the omission is named. It feeds the
+    frozen context, never replaces it: each turn freezes the file's version it read, so a turn stays
+    reproducible.
+  - **Where it shows.** Readable in the study (the Lead pane's "Kontext studie"), with its version.
+  - Tests: two researchers' Leads read the same file; no private turn text appears in it; a run event
+    rebuilds it; a turn records the file version it read.
+- **LO20 (W3, after `deep-research-web-search#56`).** Q6, with the owner's note: "i really want to
+  preserve a good UX here, and not have limited results." The Lead calls Hledat na webu as a tool:
+  code sends the query through `RetrievalGate` (posture, class, egress, metering, journal) as a
+  single-track lookup (`deep-research-web-search#56`): several search results at once (a list of
+  titles, snippets and links), the top pages fetched and captured in parallel, and the Lead's answer
+  cites each claim inline with its link and quote, labelled "externí zdroj", never respondent
+  evidence. No extra click: the results stream into the turn. OPEN clients only; for a CLASSIFIED
+  client the Lead says it may not search and why. Each search and fetch is charged to the wallet and
+  shown with its cost. A captured page can be added to Client Knowledge by the existing "Ověřeno,
+  přidat zdroj". **Needs an ADR first** (a new ADR after 0038 for the Lead's lookup tool, and ADR
+  0017's scope widened to it); the chunk's PR carries it Proposed.

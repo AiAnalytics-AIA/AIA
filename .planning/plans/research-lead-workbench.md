@@ -32,6 +32,7 @@ chunks:
   - "[ ] 29. Conversation controls: older-message paging (with its route), copy, edit and resend, ArrowUp to edit the last message, send-now and edit for a queued message (D-38)"
   - "[ ] 30. The conversation's UI for LO18: streamed text, a file from the composer, unprompted comments marked as paid turns (D-39)"
   - "[ ] 31. Results: charts on the result views and a CSV/XLSX export of the per-question tables from admitted claims (report-delivery RD12) (D-41)"
+  - "[ ] 32. The Lead pane's web results: inline citations with links and quotes, the result list as it arrives, each search's cost, and Kontext studie (the study's context file) readable with its version (Q5, Q6)"
 ---
 # Research Lead workbench
 
@@ -276,3 +277,9 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
 - **26 (D-12).** No Deep Research button survives as an exception; Deep Research starts through the
   Lead (`lead-orchestration#LO5a`).
 - **Map node drag** (D-40) is **out**: camera-only view operations satisfy AC-09.
+
+### After the baseline's questions (the owner's answers to the baseline's Q1-Q8, 2026-10-20 19:37-19:46 UTC (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, second table))
+
+- **32 (W3, with `lead-orchestration#LO19` and `#LO20`).** The UI half: a search's results appear in
+  the turn as they come (no click to open them), each claim with its inline citation, a captured page
+  one click from "Ověřeno, přidat zdroj"; the study's context file is readable from the pane.

@@ -147,9 +147,14 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `production-environment#PE4` | W1 | proposed here |
 | `production-environment#PE5` | W3 | proposed here: before a release candidate |
 | `production-environment#PE6` | W3 | proposed here: before a release candidate |
-| `signed-off-sociomap-method#8` | W1 | scope freeze, D-13: `-5` the only method of new runs; before E13; its merge timing is baseline Q1 |
+| `signed-off-sociomap-method#8` | W1 | scope freeze, D-13 and Q1: `-5` the only method of new runs, merged when built; before E13 |
 | `signed-off-sociomap-method#9` | W2 | scope freeze, D-13: the report draws `-5`; before E15 |
-| `signed-off-sociomap-method#10` | W1 | scope freeze, D-14: methodology edited by the methodologist only; its form is baseline Q4 |
+| `signed-off-sociomap-method#10` | W1 | scope freeze, D-14 and Q4: the Metodik mark gates storing and activating |
+| `signed-off-sociomap-method#11` | W2 | scope freeze, Q8: Metodika's comparison shows all of `-5`'s outputs; after 8 |
+| `lead-orchestration#LO19` | W2 | scope freeze, Q5: the study's context file; after LO8 and `working-copy-edit-ops#WCE4` |
+| `lead-orchestration#LO20` | W3 | scope freeze, Q6: Hledat na webu; after `deep-research-web-search#56`; an ADR first |
+| `deep-research-web-search#56` | W3 | scope freeze, Q6: the Lead's quick lookup through RetrievalGate |
+| `research-lead-workbench#32` | W3 | scope freeze, Q5 and Q6: with `lead-orchestration#LO19` and `#LO20` |
 | `deep-research-web-search#51a` | W1 | cross-check G67: with E12 |
 | `lead-orchestration#LO5a` | W1 | scope freeze, D-12: with `research-lead-workbench#26` (E26) and E12 |
 | `lead-orchestration#LO12c` | W1 | scope freeze, D-09: after LO12b (E12) |

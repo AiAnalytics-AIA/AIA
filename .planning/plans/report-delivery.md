@@ -102,6 +102,9 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
   (`client-knowledge-lifecycle#K8`), and RD0 checks both deliverables.
 - **RD3 (G66).** The approve response and review state carry the report's kind; `internal_only` is
   false for `research_client_docx`.
-- **RD6.** D-35's answer ("the lead agent can help change" the documents, joining paragraphs, copy)
-  widens what a report edit may do; how far, and whether the number rule still binds it, is
-  baseline Q6. Until answered, RD6 is built to ADR 0035 with merging allowed (refs unioned).
+- **RD6 (D-35, Q6).** The Lead edits a report as the researcher asks: rewrite, merge or split
+  paragraphs, move sections (the client report's chapters included), copy edits. **Every number stays
+  an admitted ledger ref**: a merge unions the refs, a split divides them, and no typed number is
+  accepted. The exact edited version is what a person approves. ADR 0035 is amended in this chunk's PR
+  (ref-set equality per paragraph becomes "every number a ref"; `section_move` allowed on every
+  chapter).
