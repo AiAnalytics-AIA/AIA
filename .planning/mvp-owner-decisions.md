@@ -91,8 +91,9 @@ policy. Chunk 8a's proposed Brief/signature contract can proceed without admitti
 
 **Product owner plus research-quality owner.** Three separate answers are needed:
 
-- Does Common Crawl remain required for I-R? It is currently required. Removing or
-  delaying it is an explicit change to the gate, not something a smoke can imply.
+- Common Crawl remains required for I-R under the recorded scope; this does not
+  need reconfirmation. Removing or delaying it would require an explicit owner
+  override, not a successful smoke or an engineering scheduling choice.
 - Who owns evaluations 25/26/39, which representative tasks/metrics are required,
   and what measured thresholds must pass before final live run 27?
 - What is the approved evaluation/comparison allowance, separately from the USD 25
@@ -194,3 +195,26 @@ and terms, retention evidence, secrets and measured Lead turn cost are not answe
 by these product questions. M6/M7 and PE5 record the actual operator evidence;
 unknown stays NOT_READY. No credential, provider sign-off, paid allowance or
 deployment is implied by this document.
+
+
+## Work that can begin while answers remain open
+
+This is a planning handoff, not authorization for paid work, infrastructure changes
+or release. The execution graph is the scheduling authority; engineering sequencing
+within preserved scope is not another product question.
+
+| Order | Independent work / predecessor | Concrete reviewable output |
+|---|---|---|
+| W0 E01 | No open owner decision | Acceptance collection/marker, shared recorded doubles and synchronized MD/JSON criteria; deliberately omitted coverage fails CI |
+| W0 E02 | No open owner decision | Money/issued-authority and complete edit-vocabulary contracts, ledger subjects and negative fixtures; structural auto-accept remains off by default |
+| W0 E03 | After E02 | LO9a worker rows; LO15 server start/rebuild confirmation check; spend-attribution 5a identity/invocation compatibility. Direct requests cannot evade confirmation |
+| W0 E04 | After E01 | RQC9 single n authority, RQC10 HTTP population double and proposed client-material signature contract 8a; no client evidence admitted by attachment |
+| W0 E05, no-call part | After E01 | Composition-readiness inventory and typed NOT_READY reasons; live probes still require actual operator readiness and approved allowance |
+
+Next integration work consumes these contracts with recorded providers. A missing
+methodology answer blocks only the affected numerical/admission behavior; a missing
+budget blocks live calls. Unrelated contract, storage, UI and refusal preparation
+continues. No elapsed session, expired question widget, draft PR or green test can
+supply an unanswered owner/methodology decision. Record actual answers once using
+MVPQ ids, update the affected child/acceptance contracts together, and retain every
+other open item until its named owner answers.
