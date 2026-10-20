@@ -53,12 +53,16 @@ another account, which has only user openclaw-cornelius); disk fix: ONLY the Doc
   evidence with his OK).
 - #519 versions.tf + lock file (infra, b37833b): reviewed OK; merge when green, after #520.
 - #520 docs follow-ups of #509/#511/#518 (planning 2): review; merge only after develop CI on 47e55368 dispatched its deploy.
-- Coming: Docker layer PR (01AXkf...), user_data ignore_changes PR (infra).
+- #521 host user_data ignore_changes (infra; Nigel said commit-and-push): review, merge when green.
+- Google IdP fix prepared on fix/terraform-google-idp (infra), NOT committed: needs Nigel's own "commit and push" again.
+- Coming: Docker layer PR (01AXkf...).
 
 ## Artifacts
 - AIA Scope Decisions (for Aram to answer #516's 48): https://claude.ai/artifact/WdXcN8nQnQX3rW36hF8iVd. db collection "answers",
-  doc per D-01..D-48 {choice, text, option_text, by, at, title}. Read with ArtifactData list. 8 of 48 answered at 16:35 (D-01..D-08,
-  one user u_lDmchBNgQRXZ1nH5Fyv9hQ, 16:08-16:13). Nigel must share it
+  doc per D-01..D-48 {choice, text, option_text, by, at, title}. Read with ArtifactData list. ALL 48 ANSWERED by Nigel (u_lDmchBNgQRXZ1nH5Fyv9hQ);
+  handed verbatim to planning 2 at ~17:35 for step 4 part 2 (+ part 1b consolidation). Watch: D-13 (-5 ONLY, remove old methods), D-14
+  (only the mathematician edits methodology), D-20 (new prod domain, TBD), D-35 (Lead edits docs freely + Lead web search = NEW SCOPE,
+  collides with ADR 0017/0021: to be put to Nigel as a question). Planning sends new questions to the coordinator, not to Nigel. Nigel must share it
   with Aram (interact/edit). When answered: hand to planning 2 for step 4 part 2.
 - PDFs sent to Nigel: methodology packet + engineering companion (@ 798d87a), decision list (@ c7d5bbe). Rebuild with tools/.
 - MVP plan page https://claude.ai/artifact/RAYF6NZ1ctrAxo8qEYFWqR (generator .agent-status/planning/plan-page/).
