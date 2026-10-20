@@ -18,6 +18,7 @@ Plan ``sociomap-formula-corrections`` § 8.2, S2. One pure function from
          the split-half check and the uncertainty radius of a mapped ``aia-sociomap-5`` map
          the respondent map of a mapped ``aia-sociomap-5`` map: the vector model with the
          chance test, and the density of the PLACED respondents on the terrain's frame
+         its taste segments, decided on the shown map and maps of jittered ratings
 
 Every step is a function another chunk already landed and tested (2a ``person_minmax``,
 1a ``derive_pair_relations``, 2b ``fit_smacof_objects``, 2c ``stress_quality``, 1b
@@ -68,8 +69,11 @@ from .models_v3 import (
     RespondentDensity,
     RespondentMap,
     RespondentStatus,
+    SegmentHint,
+    SegmentProfile,
     SociomapArtifactV3,
     SparseDesign,
+    TasteSegments,
 )
 from .pairs import PairRelations, derive_pair_relations
 from .relations import PairStatus, person_minmax
@@ -83,7 +87,13 @@ from .signed_off_layout import (
     soft_rank_spearman,
     to_ruler,
 )
-from .signed_off_respondents import place_respondents, respondent_density
+from .signed_off_respondents import PLACED, place_respondents, respondent_density
+from .signed_off_segments import (
+    Split,
+    jittered_ratings,
+    segment_profiles,
+    taste_segments,
+)
 from .slots import (
     DISTANCE,
     EFFECT_FLOOR,
@@ -686,9 +696,90 @@ def _credibility(
     )
 
 
+def _segments(
+    family: Sequence[Sequence[float | None]],
+    ratings: NDArray[np.float64],
+    layout: ObjectMapLayout,
+    placed: NDArray[np.bool_],
+    ids: Sequence[str],
+    spec: SociomapSpecV3,
+) -> TasteSegments:
+    """The signed-off methodology's taste segments on a mapped map, with the AIA panel's caller
+    rules: the mixture on the slopes of the ratings on the declared 0-1 scale, unweighted;
+    decided on the shown map and, from the declared number of objects, on maps of the raw
+    ratings jittered at the rounding level, each laid out as the shown map is (the input
+    stage, the fixed object-count rule, the ruler). A jittered map that cannot be laid out is
+    left out of the vote. Coloured: the clearly placed respondents of the respondent map. The
+    profiles read the raw ratings, the likely split's too under a borderline decision."""
+    declared = spec.segments
+    if declared is None:
+        raise ValueError("the taste segments are declared (require_supported)")
+    raw = _ratings(family, len(ids))
+    others: list[NDArray[np.float64]] = []
+    if len(ids) >= declared.consensus_min_objects:
+        for copy in jittered_ratings(
+            raw, copies=declared.consensus_maps - 1, jitter=declared.jitter, seed=declared.seed
+        ):
+            other = _signed_off_layout(_prepare(copy, spec), ids, spec)
+            if isinstance(other, ObjectMapLayout):
+                others.append(np.array(other.points, dtype=float))
+    found = taste_segments(np.array(layout.points, dtype=float), others, ratings, placed, declared)
+
+    def profiles(split: Split) -> tuple[SegmentProfile, ...]:
+        drawn = segment_profiles(
+            raw,
+            split,
+            false_discovery_rate=declared.profile_false_discovery_rate,
+            top=declared.profile_top,
+        )
+        return tuple(
+            SegmentProfile(
+                likes=tuple(ids[j] for j in drawn.likes[g]),
+                dislikes=tuple(ids[j] for j in drawn.dislikes[g]),
+                difference=tuple(float(v) for v in drawn.difference[g]),
+                standard_error=tuple(float(v) for v in drawn.standard_error[g]),
+                p_value=tuple(float(v) for v in drawn.p_value[g]),
+                distinctive=tuple(bool(v) for v in drawn.distinctive[g]),
+            )
+            for g in range(split.k)
+        )
+
+    split, hint = found.split, found.hint
+    return TasteSegments(
+        decision=found.decision,
+        reason=found.reason,
+        k=0 if split is None else split.k,
+        k_fit=found.k_fit,
+        gain=found.gain,
+        null_gain_max=found.null_gain_max,
+        margins=found.margins,
+        mean_margin=found.mean_margin,
+        votes=found.votes,
+        maps=found.maps,
+        shares=() if split is None else tuple(split.shares),
+        separation=None if split is None else split.separation,
+        distinct=None if split is None else split.distinct,
+        profiles=() if split is None else profiles(split),
+        label=None if split is None else tuple(int(v) for v in split.labels),
+        # Five decimals, as the respondent map's columns: the colour was decided before.
+        membership=None
+        if split is None
+        else tuple(
+            round(float(v), RESPONDENT_DECIMALS) if math.isfinite(v) else None
+            for v in split.membership
+        ),
+        coloured=None if split is None else tuple(bool(v) for v in split.coloured),
+        hint=None
+        if hint is None
+        else SegmentHint(k=hint.k, shares=tuple(hint.shares), profiles=profiles(hint)),
+    )
+
+
 def _respondents(
+    family: Sequence[Sequence[float | None]],
     scaled: Sequence[Sequence[float | None]],
     columns: Sequence[int],
+    ids: Sequence[str],
     layout: ObjectMapLayout,
     terrain: NotComputed | EnvelopeTerrain,
     spec: SociomapSpecV3,
@@ -697,7 +788,7 @@ def _respondents(
     caller rules: every respondent placed by the vector model from their ratings of the mapped
     objects on the declared 0-1 scale, unweighted; informative from the declared number of
     objects; the density of the PLACED respondents on the object terrain's own grid, so a
-    respondent can stand outside it."""
+    respondent can stand outside it; the taste segments where the spec declares them."""
     declared = spec.respondent_map
     if declared is None or not isinstance(terrain, EnvelopeTerrain):
         raise ValueError("the respondent map is declared on the framed terrain (require_supported)")
@@ -737,6 +828,16 @@ def _respondents(
         min_objects=declared.informative_min_objects,
         density=RespondentDensity(
             parameters=grid, height=tuple(tuple(float(h) for h in row) for row in height)
+        ),
+        segments=None
+        if spec.segments is None
+        else _segments(
+            family,
+            ratings,
+            layout,
+            np.array([s == PLACED for s in placed.status], dtype=bool),
+            ids,
+            spec,
         ),
     )
 
@@ -944,7 +1045,7 @@ def compute_object_map(
         respondents = (
             RESPONDENTS_NOT_MAPPED
             if layout is None
-            else _respondents(scaled, columns, layout, drawn, spec)
+            else _respondents(family, scaled, columns, ids, layout, drawn, spec)
         )
 
     return SociomapArtifactV3(

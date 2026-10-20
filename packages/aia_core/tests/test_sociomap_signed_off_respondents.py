@@ -243,6 +243,7 @@ def test_the_object_map_stores_the_respondent_map_under_aia_sociomap_5() -> None
         "informative",
         "min_objects",
         "density",
+        "segments",
     }
     assert set(stored["respondents"]["density"]["parameters"]) == {
         "grid_resolution",

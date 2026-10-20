@@ -2216,12 +2216,19 @@
      },
      {
       "id": "S7",
-      "note_cs": "Kde na mapě leží respondenti a na kolika lidech mapa stojí.",
+      "note_cs": "Kde na mapě leží respondenti, jaké mají segmenty vkusu a na kolika lidech mapa stojí.",
       "step_ids": [
        "f10_placement",
        "vector_model_placement",
        "respondent_density",
        "respondent_map",
+       "segment_mixture",
+       "shuffle_guard",
+       "segment_step_down",
+       "segment_consensus",
+       "segment_membership",
+       "segment_profiles",
+       "taste_segments",
        "support"
       ],
       "title_cs": "Respondenti a podpora mapy"
@@ -2253,7 +2260,7 @@
     ],
     "id": "sociomap",
     "in_force": "aia-sociomap-3",
-    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy a mapu respondentů podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
     "preset": "aia-sociomap-2",
     "presets": [
      "aia-sociomap-4",
@@ -2284,7 +2291,7 @@
       "reading_cs": "",
       "role_cs": "Jméno a otisk metodiky, které si běh připne; podle nich je u každé mapy vidět, čím byla spočtena.",
       "source_cs": "metodika v platnosti při spuštění běhu",
-      "source_sha256": "57f3a17a2dececbdbfa688181651aa247bf7e34b0e1d2ae6f9c36db56272c6d0",
+      "source_sha256": "6013f8150a9e4359be8f0dd3e0d67efa83f0489554cbda22991c78d11f499b3d",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_the_presets_fingerprints"
@@ -2316,6 +2323,7 @@
        "f2_person_minmax",
        "f8_height",
        "vector_model_placement",
+       "segment_mixture",
        "f11_not_placed"
       ],
       "formula_latex": "\\tilde a_{kc} = \\frac{a_{kc} - s^{\\min}_c}{s^{\\max}_c - s^{\\min}_c} \\in [0, 1],\\qquad a_{kc} \\notin [s^{\\min}_c, s^{\\max}_c] \\Rightarrow \\text{odmítnuto}",
@@ -3424,7 +3432,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "f0412a1ce0190f244faf4adb676f031b700b4a40a1841c0df0da6d84d68cd2d6",
+      "source_sha256": "24f5be1e1825142153d4222107fdc23c23083f1a2bfc51e74b35fae10ecf492a",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -3717,7 +3725,8 @@
       ],
       "feeds": [
        "soft_rank_spearman_layout",
-       "interval_mds_layout"
+       "interval_mds_layout",
+       "segment_consensus"
       ],
       "formula_latex": "\\text{rozložení} = \\begin{cases}\\text{Spearman měkkých pořadí s Coulombovým odpuzováním (BB1)} & M_{\\min} \\le M \\le M_{\\max} \\\\\\text{Interval MDS} & \\text{jinak} \\end{cases},\\qquad \\nexists\\, i < j : n_{ij} \\ge n_L \\;\\Rightarrow\\; \\text{nelze zmapovat}",
       "formulas": [],
@@ -4006,6 +4015,8 @@
       ],
       "feeds": [
        "vector_model_placement",
+       "segment_mixture",
+       "segment_consensus",
        "terrain_frame",
        "f12_envelope"
       ],
@@ -4884,7 +4895,8 @@
       ],
       "feeds": [
        "respondent_density",
-       "respondent_map"
+       "respondent_map",
+       "segment_membership"
       ],
       "formula_latex": "\\tilde a_{kj} = c_k + \\boldsymbol\\beta_k^{\\top} y_j + \\varepsilon_{kj},\\ j \\in J_k,\\qquad R_k^2 = 1 - \\frac{\\sum_{j \\in J_k} (\\tilde a_{kj} - \\hat c_k - \\hat{\\boldsymbol\\beta}_k^{\\top} y_j)^2}{\\sum_{j \\in J_k} (\\tilde a_{kj} - \\bar a_k)^2},\\qquad x_k = \\bar y + R_{\\max} \\sqrt{R_k^2}\\,\\frac{\\hat{\\boldsymbol\\beta}_k}{\\lVert \\hat{\\boldsymbol\\beta}_k \\rVert},\\qquad e_k = 1 - R_k^2,\\qquad p_k = (1 - R_k^2)^{(n_k - 3)/2},\\qquad \\text{jasný směr} \\iff p_k \\le \\alpha",
       "formulas": [],
@@ -5037,7 +5049,7 @@
       "reading_cs": "",
       "role_cs": "Zapíše mapu respondentů k mapě objektů a řekne, zda má sada dost objektů, aby jí šlo věřit, nebo je jen orientační.",
       "source_cs": "",
-      "source_sha256": "e8b8ec932bcda9600c03da563ee480a0c1164453fa1622e9ed4eac8dddfd6367",
+      "source_sha256": "d12e242d399b5bb9ddebb39e5bf073ac73809267ef54391306136b48bc10ca18",
       "symbols": [
        {
         "latex": "M",
@@ -5093,6 +5105,548 @@
         "origin": "specification",
         "reference": "respondent_map.density_sigma",
         "unit": "jednotky vzdálenosti",
+        "value": null
+       }
+      ]
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [
+       "shuffle_guard",
+       "segment_step_down"
+      ],
+      "formula_latex": "\\hat{\\boldsymbol\\beta}_k = \\mathbf b_k + \\mathbf e_k,\\ \\mathbf e_k \\sim \\mathcal N(\\mathbf 0, V_k),\\ \\mathbf b_k \\sim \\sum_{g=1}^{G} \\pi_g \\mathcal N(\\boldsymbol\\mu_g, \\Sigma_g),\\qquad V_k = s_k^2 \\big[(Z_k^{\\top} Z_k)^{-1}\\big]_{\\beta\\beta},\\ s_k^2 = \\frac{\\mathrm{RSS}_k}{n_k - 3},\\qquad C(G) = -2 \\log \\hat L_G + \\lambda\\, (6G - 1) \\ln n,\\qquad G^{*} = \\arg\\min_{1 \\le G \\le G_{\\max}} C(G)",
+      "formulas": [],
+      "id": "segment_mixture",
+      "implements": "aia_core.domain.sociomap.signed_off_segments:_seg_fit",
+      "inputs": [
+       "f1_declared_scale",
+       "ruler_scale"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5, jen u nakreslené mapy. Segmenty se hledají na sklonech, ne na polohách: sklon roste s vkusem lineárně, takže sada bez segmentů je jeden gaussovský mrak, kdežto polohy se ohýbají do prstence. Sklon má respondent s aspoň daným počtem hodnocení, která nejsou všechna stejná; s méně respondenty se sklonem se segmenty nehledají. Směs nese u každého respondenta jeho vlastní šum (extreme deconvolution): tři starty k-means++, nejvýš 200 kroků EM, dokud log L roste relativně aspoň o 10^-6 (pevné hodnoty metodiky). λ = 0,5 je kalibrované na studiích bez segmentů (asi 2 % falešných segmentů).",
+      "reading_cs": "",
+      "role_cs": "Hledá skupiny respondentů s podobným vkusem: kolik jich je a jak velké.",
+      "source_cs": "",
+      "source_sha256": "e1a8dd812528fe7aa094d5c3c0b1eda60e8745c46e9e6fede25578b3be0b2d85",
+      "symbols": [
+       {
+        "latex": "\\hat{\\boldsymbol\\beta}_k, V_k",
+        "meaning_cs": "sklon respondenta k z vektorového modelu (hodnocení na škále 0-1, bez vah) a šum toho sklonu",
+        "unit": ""
+       },
+       {
+        "latex": "n_k",
+        "meaning_cs": "počet objektů mapy, které respondent k hodnotil",
+        "unit": ""
+       },
+       {
+        "latex": "\\pi_g, \\boldsymbol\\mu_g, \\Sigma_g",
+        "meaning_cs": "podíl, střed a rozptyl segmentu g",
+        "unit": ""
+       },
+       {
+        "latex": "n",
+        "meaning_cs": "počet respondentů se sklonem",
+        "unit": ""
+       },
+       {
+        "latex": "\\lambda, G_{\\max}",
+        "meaning_cs": "násobek penalizace BIC a největší počet segmentů (hodnota u kroku Segmenty vkusu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_object_map_stores_the_segments_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu: sklony respondentů a směs s penalizací",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [
+       "segment_step_down"
+      ],
+      "formula_latex": "\\Delta = C(1) - C(G^{*}),\\qquad \\text{segmenty} \\iff G^{*} \\ge 2 \\ \\wedge\\ \\Delta > \\max_{b \\le B} \\Delta^{(b)}",
+      "formulas": [],
+      "id": "shuffle_guard",
+      "implements": "aia_core.domain.sociomap.signed_off_segments:_largest_shuffled_gain",
+      "inputs": [
+       "segment_mixture"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Zamíchání nechá každému respondentovi jeho zvyky hodnocení i chybějící hodnoty a odstraní společný vkus. Zamíchání se táhnou popořadě z jednoho generátoru (semínko + 7919) a počítají se po čtyřech; skončí po první čtveřici, v níž některé dosáhne skutečného zisku (rozhodnutí je pak stejné). Čtveřice je pevná, nikdy počet jader stroje: největší zisk ze zamíchání, který mapa zapíše, na ní závisí. B = 0 pojistku vypne. Mapa zapíše zisk a největší zisk ze zamíchání (segments.gain, null_gain_max).",
+      "reading_cs": "",
+      "role_cs": "Ověří, že segmenty nejsou silnější jen proto, jak lidé hodnotí: na zamíchaných hodnoceních by být neměly.",
+      "source_cs": "",
+      "source_sha256": "fce6b2cc18579f69204afa0b0a60bc75fcaae2cf20b78235382fc7d07f47699a",
+      "symbols": [
+       {
+        "latex": "\\Delta",
+        "meaning_cs": "zisk modelu se segmenty proti jednomu segmentu",
+        "unit": ""
+       },
+       {
+        "latex": "\\Delta^{(b)}",
+        "meaning_cs": "tentýž zisk na kopii, kde má každý respondent svá hodnocení náhodně přeházená mezi objekty, které hodnotil (0, vyjde-li jeden segment)",
+        "unit": ""
+       },
+       {
+        "latex": "B",
+        "meaning_cs": "počet zamíchání (hodnota u kroku Segmenty vkusu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_threads_never_change_a_stored_value",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu: pojistka proti zamíchaným hodnocením",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [
+       "segment_consensus"
+      ],
+      "formula_latex": "G \\leftarrow G - 1 \\text{ dokud } G \\ge 3 \\wedge \\frac{\\log \\hat L_G - \\log \\hat L_{G-1}}{\\log \\hat L_G - \\log \\hat L_1} < g_{\\min};\\ \\text{pak dokud } \\min_g \\hat\\pi_g < \\pi_{\\min};\\ \\text{pak dokud } \\min_{g \\ne h} S_{gh} < S_{\\min}",
+      "formulas": [],
+      "id": "segment_step_down",
+      "implements": "aia_core.domain.sociomap.signed_off_segments:map_decision",
+      "inputs": [
+       "segment_mixture",
+       "shuffle_guard"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Na velkých vzorcích směs rozdělí tvar uvnitř jednoho segmentu nebo odštěpí střípek; pojistka proti zamíchání to nechá projít, protože je to skutečná struktura. Každé pravidlo se zkouší na fitu s tolika segmenty; skončí-li to u jednoho, segmenty nejsou. Všechna tři jsou podíly nebo velikosti účinku, takže nerostou s n. Mapa zapíše počet, který zvolil fit (segments.k_fit).",
+      "reading_cs": "",
+      "role_cs": "Ubere segmenty, které jen dělí jeden skutečný segment nebo odštěpí střípek.",
+      "source_cs": "",
+      "source_sha256": "71428b8a7d0fa53ce7f4e025c97ac57bc03823d00523edf3a41a80b41467a95e",
+      "symbols": [
+       {
+        "latex": "S_{gh}",
+        "meaning_cs": "oddělení segmentů: √((μ_g - μ_h)' [(Σ_g + Σ_h)/2]^-1 (μ_g - μ_h))",
+        "unit": ""
+       },
+       {
+        "latex": "g_{\\min}, \\pi_{\\min}, S_{\\min}",
+        "meaning_cs": "nejmenší podíl zisku, nejmenší segment a nejmenší oddělení (hodnota u kroku Segmenty vkusu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu: ubírání proti přílišnému dělení",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [
+       "segment_membership",
+       "taste_segments"
+      ],
+      "formula_latex": "\\bar\\Delta = \\operatorname{mean}_m \\big(\\min_{G \\ge 2} C_m(G) - C_m(1)\\big),\\quad v = \\frac{\\#\\{m: G_m \\ge 2\\}}{\\#\\text{map}},\\qquad \\text{segmenty} \\iff \\bar\\Delta < -b \\wedge v \\ge \\tfrac12,\\quad \\text{žádné} \\iff \\bar\\Delta > b \\vee (v = 0 \\wedge \\bar\\Delta > 0),\\quad \\text{jinak hraniční}",
+      "formulas": [],
+      "id": "segment_consensus",
+      "implements": "aia_core.domain.sociomap.signed_off_segments:taste_segments",
+      "inputs": [
+       "segment_step_down",
+       "object_count_rule",
+       "ruler_scale"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Šum 10^-9 v hodnoceních může poslat rozložení k jiné, stejně dobré mapě a překlopit těsné rozhodnutí. Proto se rozhoduje na nakreslené mapě a na dalších mapách posunutých hodnocení (každá svým generátorem, semínko + 104729 krát její číslo), jen od daného počtu objektů. Segmenty se vždy fitují na nakreslené mapě; neukázala-li je sama, s nejčastějším počtem ostatních map. Hraniční: nikdo se neobarví a mapa pojmenuje pravděpodobné dělení (nejčastější počet, jinak nejlepší podle C) s jeho objekty. Ukázala-li segmenty nakreslená mapa, ale vyjde žádné (průměrný okraj nad b; pravidlo v = 0 tu nenastane, protože nakreslená mapa sama hlasuje), segmenty nejsou: nejsou stabilní mezi variantami mapy. Ukáže-li je jen nakreslená mapa a průměr leží v pásmu od -b do b, rozhodnutí je hraniční. Mapu, kterou nelze rozložit, hlasování vynechá. Mapa zapíše rozhodnutí, okraje map (na dvě desetinná místa), jejich průměr, hlasy a počet map (segments.decision, margins, mean_margin, votes, maps, hint).",
+      "reading_cs": "",
+      "role_cs": "Rozhodne o segmentech na nakreslené mapě i jejích téměř stejných variantách; těsný případ označí za hraniční.",
+      "source_cs": "",
+      "source_sha256": "008928364d5d1ebe29c6b7c61cae18a67b81ef547e61b1304ab9548d55252794",
+      "symbols": [
+       {
+        "latex": "m",
+        "meaning_cs": "nakreslená mapa a mapy hodnocení posunutých o šum velikosti zaokrouhlení, rozložené stejně jako ona",
+        "unit": ""
+       },
+       {
+        "latex": "G_m",
+        "meaning_cs": "počet segmentů, který ukáže mapa m (předchozí kroky)",
+        "unit": ""
+       },
+       {
+        "latex": "b",
+        "meaning_cs": "šířka hraničního pásma (hodnota u kroku Segmenty vkusu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_maps_decide_together_within_the_band",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_a_set_below_the_consensus_minimum_makes_no_jittered_maps",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu: rozhodnutí přes téměř stejné mapy, hraniční případ",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [
+       "segment_profiles",
+       "taste_segments"
+      ],
+      "formula_latex": "r_{kg} = \\frac{\\pi_g \\phi(\\hat{\\boldsymbol\\beta}_k; \\boldsymbol\\mu_g, \\Sigma_g + V_k)}{\\sum_h \\pi_h \\phi(\\hat{\\boldsymbol\\beta}_k; \\boldsymbol\\mu_h, \\Sigma_h + V_k)},\\qquad \\text{barva} \\iff \\max_g r_{kg} \\ge r_{\\min} \\wedge k \\in \\mathcal P,\\qquad \\text{zřetelné} \\iff \\min_{g \\ne h} S_{gh} \\ge S_d",
+      "formulas": [],
+      "id": "segment_membership",
+      "implements": "aia_core.domain.sociomap.signed_off_segments:_segments_from_fit",
+      "inputs": [
+       "segment_consensus",
+       "vector_model_placement"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Respondent patří do segmentu s nejvyšší příslušností; segmenty jsou seřazené od největšího. Barvu dostane jen ten, kdo do segmentu patří s pravděpodobností aspoň r_min a je jasně umístěný: respondenti se slabým směrem zůstanou šedí, protože jejich barva seděla jen v 67 % případů (jasně umístění 88 %). Kdo sklon nemá, nepatří nikam (-1). Mapa zapíše u každého respondenta segment, příslušnost (na pět desetinných míst, barva se rozhodla předtím) a barvu, a podíly segmentů, jejich oddělení a zda jsou zřetelné (segments.label, membership, coloured, shares, separation, distinct); bez segmentů nic z toho.",
+      "reading_cs": "",
+      "role_cs": "Kdo do kterého segmentu patří a koho mapa obarví.",
+      "source_cs": "",
+      "source_sha256": "cea22055fd0ff053049d7945089644112c5975d2649832089fca95c359792276",
+      "symbols": [
+       {
+        "latex": "r_{kg}",
+        "meaning_cs": "pravděpodobnost, že respondent k patří do segmentu g",
+        "unit": ""
+       },
+       {
+        "latex": "\\mathcal P",
+        "meaning_cs": "respondenti s jasným směrem (PLACED) podle mapy respondentů a jejích hodnot",
+        "unit": ""
+       },
+       {
+        "latex": "r_{\\min}, S_d",
+        "meaning_cs": "příslušnost pro barvu a oddělení zřetelných segmentů (hodnota u kroku Segmenty vkusu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_object_map_stores_the_segments_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu: příslušnost a barva jen jasně umístěných",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [
+       "taste_segments"
+      ],
+      "formula_latex": "d_{gj} = \\frac{\\sum_k r_{kg} c_{kj}}{\\sum_k r_{kg}} - \\frac{\\sum_k (1 - r_{kg}) c_{kj}}{\\sum_k (1 - r_{kg})},\\quad c_{kj} = a_{kj} - \\bar a_k,\\qquad \\widehat{\\mathrm{se}}^2 = \\frac{\\hat v^{(1)}}{n^{(1)}_{\\mathrm{eff}}} + \\frac{\\hat v^{(0)}}{n^{(0)}_{\\mathrm{eff}}},\\quad n_{\\mathrm{eff}} = \\frac{(\\sum w)^2}{\\sum w^2}",
+      "formulas": [],
+      "id": "segment_profiles",
+      "implements": "aia_core.domain.sociomap.signed_off_segments:segment_profiles",
+      "inputs": [
+       "segment_membership"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Rozdíly jsou v bodech škály, ze surových hodnocení, vážené příslušností. Oboustranné p-hodnoty normálního testu, pak Benjamini-Hochberg na hladině q přes všechny segmenty a objekty. Segment jmenuje nejvýš t význačných objektů, které hodnotí výš (od největšího rozdílu), a t, které hodnotí níž. Intervaly se neukazují: jejich pokrytí je 75 %, ne 95 %. U hraničního rozhodnutí se počítají pro pravděpodobné dělení. Mapa zapíše rozdíly, chyby, p-hodnoty, význačnost a jmenované objekty (segments.profiles).",
+      "reading_cs": "",
+      "role_cs": "Které objekty segment hodnotí výš a které níž než ostatní.",
+      "source_cs": "",
+      "source_sha256": "e578ada5e873a9fcad92e0023d4d2c690f490c6a1392ea6efbd3eef691ea9531",
+      "symbols": [
+       {
+        "latex": "a_{kj}, \\bar a_k",
+        "meaning_cs": "surové hodnocení objektu j respondentem k a průměr jeho hodnocení",
+        "unit": ""
+       },
+       {
+        "latex": "d_{gj}",
+        "meaning_cs": "o kolik segment g hodnotí objekt j výš než ostatní",
+        "unit": "body škály"
+       },
+       {
+        "latex": "q, t",
+        "meaning_cs": "hladina Benjaminiho-Hochberga a počet jmenovaných objektů (hodnota u kroku Segmenty vkusu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_object_map_stores_the_segments_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu: co segment hodnotí výš a níž",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [],
+      "formula_latex": "\\text{rozhodnutí} \\in \\{\\text{segmenty}, \\text{žádné}, \\text{hraniční}\\}",
+      "formulas": [],
+      "id": "taste_segments",
+      "implements": "aia_core.domain.sociomap.engine_v2:_segments",
+      "inputs": [
+       "segment_consensus",
+       "segment_membership",
+       "segment_profiles"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5, jen u nakreslené mapy, vedle mapy respondentů; bez vah. Mapa zapíše rozhodnutí a u žádných segmentů důvod: málo respondentů se sklonem, žádné jasné segmenty, ne silnější než zamíchaná hodnocení, nestabilní mezi variantami mapy (segments.decision, reason). Pevné hodnoty metodiky, které tu nejsou: tři starty a nejvýš 200 kroků EM s tolerancí 10^-6, práh vlastních čísel 10^-6, posuny generátorů 7919 a 104729 a čtveřice zamíchání.",
+      "reading_cs": "",
+      "role_cs": "Zapíše segmenty vkusu k mapě respondentů: rozhodnutí, segmenty, barvy a profily.",
+      "source_cs": "",
+      "source_sha256": "a0845d38eb5be1671cacf73bd7fbbc409b47a68bc0d22d4074e8c9e62232d405",
+      "symbols": [
+       {
+        "latex": "G_{\\max}, \\lambda",
+        "meaning_cs": "největší počet segmentů a násobek penalizace BIC",
+        "unit": ""
+       },
+       {
+        "latex": "B",
+        "meaning_cs": "počet zamíchání pojistky (0 ji vypne)",
+        "unit": ""
+       },
+       {
+        "latex": "g_{\\min}, \\pi_{\\min}, S_{\\min}",
+        "meaning_cs": "ubírání: podíl zisku, nejmenší segment, nejmenší oddělení",
+        "unit": ""
+       },
+       {
+        "latex": "r_{\\min}, S_d",
+        "meaning_cs": "příslušnost pro barvu, oddělení zřetelných segmentů",
+        "unit": ""
+       },
+       {
+        "latex": "q, t",
+        "meaning_cs": "hladina profilů a počet jmenovaných objektů",
+        "unit": ""
+       },
+       {
+        "latex": "b",
+        "meaning_cs": "šířka hraničního pásma",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_studies_cover_the_decisions",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_without_segments_nobody_is_labelled",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_are_declared_exactly_under_the_signed_off_methodology",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_earlier_presets_store_exactly_what_they_stored",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_object_map_stores_the_segments_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu",
+      "values": [
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Největší počet segmentů G_max",
+        "origin": "specification",
+        "reference": "segments.max_segments",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Násobek penalizace BIC λ",
+        "origin": "specification",
+        "reference": "segments.penalty_factor",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Počet zamíchání B",
+        "origin": "specification",
+        "reference": "segments.shuffles",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Nejméně respondentů se sklonem",
+        "origin": "specification",
+        "reference": "segments.min_respondents",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Nejméně hodnocení pro sklon",
+        "origin": "specification",
+        "reference": "segments.min_ratings",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Nejmenší podíl zisku g_min",
+        "origin": "specification",
+        "reference": "segments.min_gain_share",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Nejmenší segment π_min",
+        "origin": "specification",
+        "reference": "segments.min_segment_share",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Nejmenší oddělení S_min",
+        "origin": "specification",
+        "reference": "segments.min_separation",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Příslušnost pro barvu r_min",
+        "origin": "specification",
+        "reference": "segments.colour_membership",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Oddělení zřetelných segmentů S_d",
+        "origin": "specification",
+        "reference": "segments.distinct_separation",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Hladina profilů q",
+        "origin": "specification",
+        "reference": "segments.profile_false_discovery_rate",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Počet jmenovaných objektů t",
+        "origin": "specification",
+        "reference": "segments.profile_top",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Počet map pro rozhodnutí (s nakreslenou)",
+        "origin": "specification",
+        "reference": "segments.consensus_maps",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Téměř stejné mapy od tolika objektů",
+        "origin": "specification",
+        "reference": "segments.consensus_min_objects",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Šířka hraničního pásma b",
+        "origin": "specification",
+        "reference": "segments.borderline_margin",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Velikost šumu v hodnoceních",
+        "origin": "specification",
+        "reference": "segments.jitter",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Semínko generátorů",
+        "origin": "specification",
+        "reference": "segments.seed",
+        "unit": "",
         "value": null
        }
       ]
@@ -5516,7 +6070,7 @@
       ]
      }
     ],
-    "steps": 41,
+    "steps": 48,
     "title_cs": "Sociomapa: objektová mapa"
    },
    "aia-sociomap-3": {
@@ -5609,12 +6163,19 @@
      },
      {
       "id": "S7",
-      "note_cs": "Kde na mapě leží respondenti a na kolika lidech mapa stojí.",
+      "note_cs": "Kde na mapě leží respondenti, jaké mají segmenty vkusu a na kolika lidech mapa stojí.",
       "step_ids": [
        "f10_placement",
        "vector_model_placement",
        "respondent_density",
        "respondent_map",
+       "segment_mixture",
+       "shuffle_guard",
+       "segment_step_down",
+       "segment_consensus",
+       "segment_membership",
+       "segment_profiles",
+       "taste_segments",
        "support"
       ],
       "title_cs": "Respondenti a podpora mapy"
@@ -5646,7 +6207,7 @@
     ],
     "id": "sociomap",
     "in_force": "aia-sociomap-3",
-    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy a mapu respondentů podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
     "preset": "aia-sociomap-3",
     "presets": [
      "aia-sociomap-4",
@@ -5677,7 +6238,7 @@
       "reading_cs": "",
       "role_cs": "Jméno a otisk metodiky, které si běh připne; podle nich je u každé mapy vidět, čím byla spočtena.",
       "source_cs": "metodika v platnosti při spuštění běhu",
-      "source_sha256": "57f3a17a2dececbdbfa688181651aa247bf7e34b0e1d2ae6f9c36db56272c6d0",
+      "source_sha256": "6013f8150a9e4359be8f0dd3e0d67efa83f0489554cbda22991c78d11f499b3d",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_the_presets_fingerprints"
@@ -5709,6 +6270,7 @@
        "f2_person_minmax",
        "f8_height",
        "vector_model_placement",
+       "segment_mixture",
        "f11_not_placed"
       ],
       "formula_latex": "\\tilde a_{kc} = \\frac{a_{kc} - s^{\\min}_c}{s^{\\max}_c - s^{\\min}_c} \\in [0, 1],\\qquad a_{kc} \\notin [s^{\\min}_c, s^{\\max}_c] \\Rightarrow \\text{odmítnuto}",
@@ -6817,7 +7379,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "f0412a1ce0190f244faf4adb676f031b700b4a40a1841c0df0da6d84d68cd2d6",
+      "source_sha256": "24f5be1e1825142153d4222107fdc23c23083f1a2bfc51e74b35fae10ecf492a",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -7110,7 +7672,8 @@
       ],
       "feeds": [
        "soft_rank_spearman_layout",
-       "interval_mds_layout"
+       "interval_mds_layout",
+       "segment_consensus"
       ],
       "formula_latex": "\\text{rozložení} = \\begin{cases}\\text{Spearman měkkých pořadí s Coulombovým odpuzováním (BB1)} & M_{\\min} \\le M \\le M_{\\max} \\\\\\text{Interval MDS} & \\text{jinak} \\end{cases},\\qquad \\nexists\\, i < j : n_{ij} \\ge n_L \\;\\Rightarrow\\; \\text{nelze zmapovat}",
       "formulas": [],
@@ -7399,6 +7962,8 @@
       ],
       "feeds": [
        "vector_model_placement",
+       "segment_mixture",
+       "segment_consensus",
        "terrain_frame",
        "f12_envelope"
       ],
@@ -8277,7 +8842,8 @@
       ],
       "feeds": [
        "respondent_density",
-       "respondent_map"
+       "respondent_map",
+       "segment_membership"
       ],
       "formula_latex": "\\tilde a_{kj} = c_k + \\boldsymbol\\beta_k^{\\top} y_j + \\varepsilon_{kj},\\ j \\in J_k,\\qquad R_k^2 = 1 - \\frac{\\sum_{j \\in J_k} (\\tilde a_{kj} - \\hat c_k - \\hat{\\boldsymbol\\beta}_k^{\\top} y_j)^2}{\\sum_{j \\in J_k} (\\tilde a_{kj} - \\bar a_k)^2},\\qquad x_k = \\bar y + R_{\\max} \\sqrt{R_k^2}\\,\\frac{\\hat{\\boldsymbol\\beta}_k}{\\lVert \\hat{\\boldsymbol\\beta}_k \\rVert},\\qquad e_k = 1 - R_k^2,\\qquad p_k = (1 - R_k^2)^{(n_k - 3)/2},\\qquad \\text{jasný směr} \\iff p_k \\le \\alpha",
       "formulas": [],
@@ -8430,7 +8996,7 @@
       "reading_cs": "",
       "role_cs": "Zapíše mapu respondentů k mapě objektů a řekne, zda má sada dost objektů, aby jí šlo věřit, nebo je jen orientační.",
       "source_cs": "",
-      "source_sha256": "e8b8ec932bcda9600c03da563ee480a0c1164453fa1622e9ed4eac8dddfd6367",
+      "source_sha256": "d12e242d399b5bb9ddebb39e5bf073ac73809267ef54391306136b48bc10ca18",
       "symbols": [
        {
         "latex": "M",
@@ -8486,6 +9052,548 @@
         "origin": "specification",
         "reference": "respondent_map.density_sigma",
         "unit": "jednotky vzdálenosti",
+        "value": null
+       }
+      ]
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [
+       "shuffle_guard",
+       "segment_step_down"
+      ],
+      "formula_latex": "\\hat{\\boldsymbol\\beta}_k = \\mathbf b_k + \\mathbf e_k,\\ \\mathbf e_k \\sim \\mathcal N(\\mathbf 0, V_k),\\ \\mathbf b_k \\sim \\sum_{g=1}^{G} \\pi_g \\mathcal N(\\boldsymbol\\mu_g, \\Sigma_g),\\qquad V_k = s_k^2 \\big[(Z_k^{\\top} Z_k)^{-1}\\big]_{\\beta\\beta},\\ s_k^2 = \\frac{\\mathrm{RSS}_k}{n_k - 3},\\qquad C(G) = -2 \\log \\hat L_G + \\lambda\\, (6G - 1) \\ln n,\\qquad G^{*} = \\arg\\min_{1 \\le G \\le G_{\\max}} C(G)",
+      "formulas": [],
+      "id": "segment_mixture",
+      "implements": "aia_core.domain.sociomap.signed_off_segments:_seg_fit",
+      "inputs": [
+       "f1_declared_scale",
+       "ruler_scale"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5, jen u nakreslené mapy. Segmenty se hledají na sklonech, ne na polohách: sklon roste s vkusem lineárně, takže sada bez segmentů je jeden gaussovský mrak, kdežto polohy se ohýbají do prstence. Sklon má respondent s aspoň daným počtem hodnocení, která nejsou všechna stejná; s méně respondenty se sklonem se segmenty nehledají. Směs nese u každého respondenta jeho vlastní šum (extreme deconvolution): tři starty k-means++, nejvýš 200 kroků EM, dokud log L roste relativně aspoň o 10^-6 (pevné hodnoty metodiky). λ = 0,5 je kalibrované na studiích bez segmentů (asi 2 % falešných segmentů).",
+      "reading_cs": "",
+      "role_cs": "Hledá skupiny respondentů s podobným vkusem: kolik jich je a jak velké.",
+      "source_cs": "",
+      "source_sha256": "e1a8dd812528fe7aa094d5c3c0b1eda60e8745c46e9e6fede25578b3be0b2d85",
+      "symbols": [
+       {
+        "latex": "\\hat{\\boldsymbol\\beta}_k, V_k",
+        "meaning_cs": "sklon respondenta k z vektorového modelu (hodnocení na škále 0-1, bez vah) a šum toho sklonu",
+        "unit": ""
+       },
+       {
+        "latex": "n_k",
+        "meaning_cs": "počet objektů mapy, které respondent k hodnotil",
+        "unit": ""
+       },
+       {
+        "latex": "\\pi_g, \\boldsymbol\\mu_g, \\Sigma_g",
+        "meaning_cs": "podíl, střed a rozptyl segmentu g",
+        "unit": ""
+       },
+       {
+        "latex": "n",
+        "meaning_cs": "počet respondentů se sklonem",
+        "unit": ""
+       },
+       {
+        "latex": "\\lambda, G_{\\max}",
+        "meaning_cs": "násobek penalizace BIC a největší počet segmentů (hodnota u kroku Segmenty vkusu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_object_map_stores_the_segments_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu: sklony respondentů a směs s penalizací",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [
+       "segment_step_down"
+      ],
+      "formula_latex": "\\Delta = C(1) - C(G^{*}),\\qquad \\text{segmenty} \\iff G^{*} \\ge 2 \\ \\wedge\\ \\Delta > \\max_{b \\le B} \\Delta^{(b)}",
+      "formulas": [],
+      "id": "shuffle_guard",
+      "implements": "aia_core.domain.sociomap.signed_off_segments:_largest_shuffled_gain",
+      "inputs": [
+       "segment_mixture"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Zamíchání nechá každému respondentovi jeho zvyky hodnocení i chybějící hodnoty a odstraní společný vkus. Zamíchání se táhnou popořadě z jednoho generátoru (semínko + 7919) a počítají se po čtyřech; skončí po první čtveřici, v níž některé dosáhne skutečného zisku (rozhodnutí je pak stejné). Čtveřice je pevná, nikdy počet jader stroje: největší zisk ze zamíchání, který mapa zapíše, na ní závisí. B = 0 pojistku vypne. Mapa zapíše zisk a největší zisk ze zamíchání (segments.gain, null_gain_max).",
+      "reading_cs": "",
+      "role_cs": "Ověří, že segmenty nejsou silnější jen proto, jak lidé hodnotí: na zamíchaných hodnoceních by být neměly.",
+      "source_cs": "",
+      "source_sha256": "fce6b2cc18579f69204afa0b0a60bc75fcaae2cf20b78235382fc7d07f47699a",
+      "symbols": [
+       {
+        "latex": "\\Delta",
+        "meaning_cs": "zisk modelu se segmenty proti jednomu segmentu",
+        "unit": ""
+       },
+       {
+        "latex": "\\Delta^{(b)}",
+        "meaning_cs": "tentýž zisk na kopii, kde má každý respondent svá hodnocení náhodně přeházená mezi objekty, které hodnotil (0, vyjde-li jeden segment)",
+        "unit": ""
+       },
+       {
+        "latex": "B",
+        "meaning_cs": "počet zamíchání (hodnota u kroku Segmenty vkusu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_threads_never_change_a_stored_value",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu: pojistka proti zamíchaným hodnocením",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [
+       "segment_consensus"
+      ],
+      "formula_latex": "G \\leftarrow G - 1 \\text{ dokud } G \\ge 3 \\wedge \\frac{\\log \\hat L_G - \\log \\hat L_{G-1}}{\\log \\hat L_G - \\log \\hat L_1} < g_{\\min};\\ \\text{pak dokud } \\min_g \\hat\\pi_g < \\pi_{\\min};\\ \\text{pak dokud } \\min_{g \\ne h} S_{gh} < S_{\\min}",
+      "formulas": [],
+      "id": "segment_step_down",
+      "implements": "aia_core.domain.sociomap.signed_off_segments:map_decision",
+      "inputs": [
+       "segment_mixture",
+       "shuffle_guard"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Na velkých vzorcích směs rozdělí tvar uvnitř jednoho segmentu nebo odštěpí střípek; pojistka proti zamíchání to nechá projít, protože je to skutečná struktura. Každé pravidlo se zkouší na fitu s tolika segmenty; skončí-li to u jednoho, segmenty nejsou. Všechna tři jsou podíly nebo velikosti účinku, takže nerostou s n. Mapa zapíše počet, který zvolil fit (segments.k_fit).",
+      "reading_cs": "",
+      "role_cs": "Ubere segmenty, které jen dělí jeden skutečný segment nebo odštěpí střípek.",
+      "source_cs": "",
+      "source_sha256": "71428b8a7d0fa53ce7f4e025c97ac57bc03823d00523edf3a41a80b41467a95e",
+      "symbols": [
+       {
+        "latex": "S_{gh}",
+        "meaning_cs": "oddělení segmentů: √((μ_g - μ_h)' [(Σ_g + Σ_h)/2]^-1 (μ_g - μ_h))",
+        "unit": ""
+       },
+       {
+        "latex": "g_{\\min}, \\pi_{\\min}, S_{\\min}",
+        "meaning_cs": "nejmenší podíl zisku, nejmenší segment a nejmenší oddělení (hodnota u kroku Segmenty vkusu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu: ubírání proti přílišnému dělení",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [
+       "segment_membership",
+       "taste_segments"
+      ],
+      "formula_latex": "\\bar\\Delta = \\operatorname{mean}_m \\big(\\min_{G \\ge 2} C_m(G) - C_m(1)\\big),\\quad v = \\frac{\\#\\{m: G_m \\ge 2\\}}{\\#\\text{map}},\\qquad \\text{segmenty} \\iff \\bar\\Delta < -b \\wedge v \\ge \\tfrac12,\\quad \\text{žádné} \\iff \\bar\\Delta > b \\vee (v = 0 \\wedge \\bar\\Delta > 0),\\quad \\text{jinak hraniční}",
+      "formulas": [],
+      "id": "segment_consensus",
+      "implements": "aia_core.domain.sociomap.signed_off_segments:taste_segments",
+      "inputs": [
+       "segment_step_down",
+       "object_count_rule",
+       "ruler_scale"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Šum 10^-9 v hodnoceních může poslat rozložení k jiné, stejně dobré mapě a překlopit těsné rozhodnutí. Proto se rozhoduje na nakreslené mapě a na dalších mapách posunutých hodnocení (každá svým generátorem, semínko + 104729 krát její číslo), jen od daného počtu objektů. Segmenty se vždy fitují na nakreslené mapě; neukázala-li je sama, s nejčastějším počtem ostatních map. Hraniční: nikdo se neobarví a mapa pojmenuje pravděpodobné dělení (nejčastější počet, jinak nejlepší podle C) s jeho objekty. Ukázala-li segmenty nakreslená mapa, ale vyjde žádné (průměrný okraj nad b; pravidlo v = 0 tu nenastane, protože nakreslená mapa sama hlasuje), segmenty nejsou: nejsou stabilní mezi variantami mapy. Ukáže-li je jen nakreslená mapa a průměr leží v pásmu od -b do b, rozhodnutí je hraniční. Mapu, kterou nelze rozložit, hlasování vynechá. Mapa zapíše rozhodnutí, okraje map (na dvě desetinná místa), jejich průměr, hlasy a počet map (segments.decision, margins, mean_margin, votes, maps, hint).",
+      "reading_cs": "",
+      "role_cs": "Rozhodne o segmentech na nakreslené mapě i jejích téměř stejných variantách; těsný případ označí za hraniční.",
+      "source_cs": "",
+      "source_sha256": "008928364d5d1ebe29c6b7c61cae18a67b81ef547e61b1304ab9548d55252794",
+      "symbols": [
+       {
+        "latex": "m",
+        "meaning_cs": "nakreslená mapa a mapy hodnocení posunutých o šum velikosti zaokrouhlení, rozložené stejně jako ona",
+        "unit": ""
+       },
+       {
+        "latex": "G_m",
+        "meaning_cs": "počet segmentů, který ukáže mapa m (předchozí kroky)",
+        "unit": ""
+       },
+       {
+        "latex": "b",
+        "meaning_cs": "šířka hraničního pásma (hodnota u kroku Segmenty vkusu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_maps_decide_together_within_the_band",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_a_set_below_the_consensus_minimum_makes_no_jittered_maps",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu: rozhodnutí přes téměř stejné mapy, hraniční případ",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [
+       "segment_profiles",
+       "taste_segments"
+      ],
+      "formula_latex": "r_{kg} = \\frac{\\pi_g \\phi(\\hat{\\boldsymbol\\beta}_k; \\boldsymbol\\mu_g, \\Sigma_g + V_k)}{\\sum_h \\pi_h \\phi(\\hat{\\boldsymbol\\beta}_k; \\boldsymbol\\mu_h, \\Sigma_h + V_k)},\\qquad \\text{barva} \\iff \\max_g r_{kg} \\ge r_{\\min} \\wedge k \\in \\mathcal P,\\qquad \\text{zřetelné} \\iff \\min_{g \\ne h} S_{gh} \\ge S_d",
+      "formulas": [],
+      "id": "segment_membership",
+      "implements": "aia_core.domain.sociomap.signed_off_segments:_segments_from_fit",
+      "inputs": [
+       "segment_consensus",
+       "vector_model_placement"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Respondent patří do segmentu s nejvyšší příslušností; segmenty jsou seřazené od největšího. Barvu dostane jen ten, kdo do segmentu patří s pravděpodobností aspoň r_min a je jasně umístěný: respondenti se slabým směrem zůstanou šedí, protože jejich barva seděla jen v 67 % případů (jasně umístění 88 %). Kdo sklon nemá, nepatří nikam (-1). Mapa zapíše u každého respondenta segment, příslušnost (na pět desetinných míst, barva se rozhodla předtím) a barvu, a podíly segmentů, jejich oddělení a zda jsou zřetelné (segments.label, membership, coloured, shares, separation, distinct); bez segmentů nic z toho.",
+      "reading_cs": "",
+      "role_cs": "Kdo do kterého segmentu patří a koho mapa obarví.",
+      "source_cs": "",
+      "source_sha256": "cea22055fd0ff053049d7945089644112c5975d2649832089fca95c359792276",
+      "symbols": [
+       {
+        "latex": "r_{kg}",
+        "meaning_cs": "pravděpodobnost, že respondent k patří do segmentu g",
+        "unit": ""
+       },
+       {
+        "latex": "\\mathcal P",
+        "meaning_cs": "respondenti s jasným směrem (PLACED) podle mapy respondentů a jejích hodnot",
+        "unit": ""
+       },
+       {
+        "latex": "r_{\\min}, S_d",
+        "meaning_cs": "příslušnost pro barvu a oddělení zřetelných segmentů (hodnota u kroku Segmenty vkusu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_object_map_stores_the_segments_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu: příslušnost a barva jen jasně umístěných",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [
+       "taste_segments"
+      ],
+      "formula_latex": "d_{gj} = \\frac{\\sum_k r_{kg} c_{kj}}{\\sum_k r_{kg}} - \\frac{\\sum_k (1 - r_{kg}) c_{kj}}{\\sum_k (1 - r_{kg})},\\quad c_{kj} = a_{kj} - \\bar a_k,\\qquad \\widehat{\\mathrm{se}}^2 = \\frac{\\hat v^{(1)}}{n^{(1)}_{\\mathrm{eff}}} + \\frac{\\hat v^{(0)}}{n^{(0)}_{\\mathrm{eff}}},\\quad n_{\\mathrm{eff}} = \\frac{(\\sum w)^2}{\\sum w^2}",
+      "formulas": [],
+      "id": "segment_profiles",
+      "implements": "aia_core.domain.sociomap.signed_off_segments:segment_profiles",
+      "inputs": [
+       "segment_membership"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Rozdíly jsou v bodech škály, ze surových hodnocení, vážené příslušností. Oboustranné p-hodnoty normálního testu, pak Benjamini-Hochberg na hladině q přes všechny segmenty a objekty. Segment jmenuje nejvýš t význačných objektů, které hodnotí výš (od největšího rozdílu), a t, které hodnotí níž. Intervaly se neukazují: jejich pokrytí je 75 %, ne 95 %. U hraničního rozhodnutí se počítají pro pravděpodobné dělení. Mapa zapíše rozdíly, chyby, p-hodnoty, význačnost a jmenované objekty (segments.profiles).",
+      "reading_cs": "",
+      "role_cs": "Které objekty segment hodnotí výš a které níž než ostatní.",
+      "source_cs": "",
+      "source_sha256": "e578ada5e873a9fcad92e0023d4d2c690f490c6a1392ea6efbd3eef691ea9531",
+      "symbols": [
+       {
+        "latex": "a_{kj}, \\bar a_k",
+        "meaning_cs": "surové hodnocení objektu j respondentem k a průměr jeho hodnocení",
+        "unit": ""
+       },
+       {
+        "latex": "d_{gj}",
+        "meaning_cs": "o kolik segment g hodnotí objekt j výš než ostatní",
+        "unit": "body škály"
+       },
+       {
+        "latex": "q, t",
+        "meaning_cs": "hladina Benjaminiho-Hochberga a počet jmenovaných objektů (hodnota u kroku Segmenty vkusu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_object_map_stores_the_segments_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu: co segment hodnotí výš a níž",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [],
+      "formula_latex": "\\text{rozhodnutí} \\in \\{\\text{segmenty}, \\text{žádné}, \\text{hraniční}\\}",
+      "formulas": [],
+      "id": "taste_segments",
+      "implements": "aia_core.domain.sociomap.engine_v2:_segments",
+      "inputs": [
+       "segment_consensus",
+       "segment_membership",
+       "segment_profiles"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5, jen u nakreslené mapy, vedle mapy respondentů; bez vah. Mapa zapíše rozhodnutí a u žádných segmentů důvod: málo respondentů se sklonem, žádné jasné segmenty, ne silnější než zamíchaná hodnocení, nestabilní mezi variantami mapy (segments.decision, reason). Pevné hodnoty metodiky, které tu nejsou: tři starty a nejvýš 200 kroků EM s tolerancí 10^-6, práh vlastních čísel 10^-6, posuny generátorů 7919 a 104729 a čtveřice zamíchání.",
+      "reading_cs": "",
+      "role_cs": "Zapíše segmenty vkusu k mapě respondentů: rozhodnutí, segmenty, barvy a profily.",
+      "source_cs": "",
+      "source_sha256": "a0845d38eb5be1671cacf73bd7fbbc409b47a68bc0d22d4074e8c9e62232d405",
+      "symbols": [
+       {
+        "latex": "G_{\\max}, \\lambda",
+        "meaning_cs": "největší počet segmentů a násobek penalizace BIC",
+        "unit": ""
+       },
+       {
+        "latex": "B",
+        "meaning_cs": "počet zamíchání pojistky (0 ji vypne)",
+        "unit": ""
+       },
+       {
+        "latex": "g_{\\min}, \\pi_{\\min}, S_{\\min}",
+        "meaning_cs": "ubírání: podíl zisku, nejmenší segment, nejmenší oddělení",
+        "unit": ""
+       },
+       {
+        "latex": "r_{\\min}, S_d",
+        "meaning_cs": "příslušnost pro barvu, oddělení zřetelných segmentů",
+        "unit": ""
+       },
+       {
+        "latex": "q, t",
+        "meaning_cs": "hladina profilů a počet jmenovaných objektů",
+        "unit": ""
+       },
+       {
+        "latex": "b",
+        "meaning_cs": "šířka hraničního pásma",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_studies_cover_the_decisions",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_without_segments_nobody_is_labelled",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_are_declared_exactly_under_the_signed_off_methodology",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_earlier_presets_store_exactly_what_they_stored",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_object_map_stores_the_segments_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu",
+      "values": [
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Největší počet segmentů G_max",
+        "origin": "specification",
+        "reference": "segments.max_segments",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Násobek penalizace BIC λ",
+        "origin": "specification",
+        "reference": "segments.penalty_factor",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Počet zamíchání B",
+        "origin": "specification",
+        "reference": "segments.shuffles",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Nejméně respondentů se sklonem",
+        "origin": "specification",
+        "reference": "segments.min_respondents",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Nejméně hodnocení pro sklon",
+        "origin": "specification",
+        "reference": "segments.min_ratings",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Nejmenší podíl zisku g_min",
+        "origin": "specification",
+        "reference": "segments.min_gain_share",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Nejmenší segment π_min",
+        "origin": "specification",
+        "reference": "segments.min_segment_share",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Nejmenší oddělení S_min",
+        "origin": "specification",
+        "reference": "segments.min_separation",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Příslušnost pro barvu r_min",
+        "origin": "specification",
+        "reference": "segments.colour_membership",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Oddělení zřetelných segmentů S_d",
+        "origin": "specification",
+        "reference": "segments.distinct_separation",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Hladina profilů q",
+        "origin": "specification",
+        "reference": "segments.profile_false_discovery_rate",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Počet jmenovaných objektů t",
+        "origin": "specification",
+        "reference": "segments.profile_top",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Počet map pro rozhodnutí (s nakreslenou)",
+        "origin": "specification",
+        "reference": "segments.consensus_maps",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Téměř stejné mapy od tolika objektů",
+        "origin": "specification",
+        "reference": "segments.consensus_min_objects",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Šířka hraničního pásma b",
+        "origin": "specification",
+        "reference": "segments.borderline_margin",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Velikost šumu v hodnoceních",
+        "origin": "specification",
+        "reference": "segments.jitter",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Semínko generátorů",
+        "origin": "specification",
+        "reference": "segments.seed",
+        "unit": "",
         "value": null
        }
       ]
@@ -8909,7 +10017,7 @@
       ]
      }
     ],
-    "steps": 41,
+    "steps": 48,
     "title_cs": "Sociomapa: objektová mapa"
    },
    "aia-sociomap-4": {
@@ -9002,12 +10110,19 @@
      },
      {
       "id": "S7",
-      "note_cs": "Kde na mapě leží respondenti a na kolika lidech mapa stojí.",
+      "note_cs": "Kde na mapě leží respondenti, jaké mají segmenty vkusu a na kolika lidech mapa stojí.",
       "step_ids": [
        "f10_placement",
        "vector_model_placement",
        "respondent_density",
        "respondent_map",
+       "segment_mixture",
+       "shuffle_guard",
+       "segment_step_down",
+       "segment_consensus",
+       "segment_membership",
+       "segment_profiles",
+       "taste_segments",
        "support"
       ],
       "title_cs": "Respondenti a podpora mapy"
@@ -9039,7 +10154,7 @@
     ],
     "id": "sociomap",
     "in_force": "aia-sociomap-3",
-    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy a mapu respondentů podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
     "preset": "aia-sociomap-4",
     "presets": [
      "aia-sociomap-4",
@@ -9070,7 +10185,7 @@
       "reading_cs": "",
       "role_cs": "Jméno a otisk metodiky, které si běh připne; podle nich je u každé mapy vidět, čím byla spočtena.",
       "source_cs": "metodika v platnosti při spuštění běhu",
-      "source_sha256": "57f3a17a2dececbdbfa688181651aa247bf7e34b0e1d2ae6f9c36db56272c6d0",
+      "source_sha256": "6013f8150a9e4359be8f0dd3e0d67efa83f0489554cbda22991c78d11f499b3d",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_the_presets_fingerprints"
@@ -9102,6 +10217,7 @@
        "f2_person_minmax",
        "f8_height",
        "vector_model_placement",
+       "segment_mixture",
        "f11_not_placed"
       ],
       "formula_latex": "\\tilde a_{kc} = \\frac{a_{kc} - s^{\\min}_c}{s^{\\max}_c - s^{\\min}_c} \\in [0, 1],\\qquad a_{kc} \\notin [s^{\\min}_c, s^{\\max}_c] \\Rightarrow \\text{odmítnuto}",
@@ -10210,7 +11326,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "f0412a1ce0190f244faf4adb676f031b700b4a40a1841c0df0da6d84d68cd2d6",
+      "source_sha256": "24f5be1e1825142153d4222107fdc23c23083f1a2bfc51e74b35fae10ecf492a",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -10503,7 +11619,8 @@
       ],
       "feeds": [
        "soft_rank_spearman_layout",
-       "interval_mds_layout"
+       "interval_mds_layout",
+       "segment_consensus"
       ],
       "formula_latex": "\\text{rozložení} = \\begin{cases}\\text{Spearman měkkých pořadí s Coulombovým odpuzováním (BB1)} & M_{\\min} \\le M \\le M_{\\max} \\\\\\text{Interval MDS} & \\text{jinak} \\end{cases},\\qquad \\nexists\\, i < j : n_{ij} \\ge n_L \\;\\Rightarrow\\; \\text{nelze zmapovat}",
       "formulas": [],
@@ -10792,6 +11909,8 @@
       ],
       "feeds": [
        "vector_model_placement",
+       "segment_mixture",
+       "segment_consensus",
        "terrain_frame",
        "f12_envelope"
       ],
@@ -11677,7 +12796,8 @@
       ],
       "feeds": [
        "respondent_density",
-       "respondent_map"
+       "respondent_map",
+       "segment_membership"
       ],
       "formula_latex": "\\tilde a_{kj} = c_k + \\boldsymbol\\beta_k^{\\top} y_j + \\varepsilon_{kj},\\ j \\in J_k,\\qquad R_k^2 = 1 - \\frac{\\sum_{j \\in J_k} (\\tilde a_{kj} - \\hat c_k - \\hat{\\boldsymbol\\beta}_k^{\\top} y_j)^2}{\\sum_{j \\in J_k} (\\tilde a_{kj} - \\bar a_k)^2},\\qquad x_k = \\bar y + R_{\\max} \\sqrt{R_k^2}\\,\\frac{\\hat{\\boldsymbol\\beta}_k}{\\lVert \\hat{\\boldsymbol\\beta}_k \\rVert},\\qquad e_k = 1 - R_k^2,\\qquad p_k = (1 - R_k^2)^{(n_k - 3)/2},\\qquad \\text{jasný směr} \\iff p_k \\le \\alpha",
       "formulas": [],
@@ -11830,7 +12950,7 @@
       "reading_cs": "",
       "role_cs": "Zapíše mapu respondentů k mapě objektů a řekne, zda má sada dost objektů, aby jí šlo věřit, nebo je jen orientační.",
       "source_cs": "",
-      "source_sha256": "e8b8ec932bcda9600c03da563ee480a0c1164453fa1622e9ed4eac8dddfd6367",
+      "source_sha256": "d12e242d399b5bb9ddebb39e5bf073ac73809267ef54391306136b48bc10ca18",
       "symbols": [
        {
         "latex": "M",
@@ -11886,6 +13006,548 @@
         "origin": "specification",
         "reference": "respondent_map.density_sigma",
         "unit": "jednotky vzdálenosti",
+        "value": null
+       }
+      ]
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [
+       "shuffle_guard",
+       "segment_step_down"
+      ],
+      "formula_latex": "\\hat{\\boldsymbol\\beta}_k = \\mathbf b_k + \\mathbf e_k,\\ \\mathbf e_k \\sim \\mathcal N(\\mathbf 0, V_k),\\ \\mathbf b_k \\sim \\sum_{g=1}^{G} \\pi_g \\mathcal N(\\boldsymbol\\mu_g, \\Sigma_g),\\qquad V_k = s_k^2 \\big[(Z_k^{\\top} Z_k)^{-1}\\big]_{\\beta\\beta},\\ s_k^2 = \\frac{\\mathrm{RSS}_k}{n_k - 3},\\qquad C(G) = -2 \\log \\hat L_G + \\lambda\\, (6G - 1) \\ln n,\\qquad G^{*} = \\arg\\min_{1 \\le G \\le G_{\\max}} C(G)",
+      "formulas": [],
+      "id": "segment_mixture",
+      "implements": "aia_core.domain.sociomap.signed_off_segments:_seg_fit",
+      "inputs": [
+       "f1_declared_scale",
+       "ruler_scale"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5, jen u nakreslené mapy. Segmenty se hledají na sklonech, ne na polohách: sklon roste s vkusem lineárně, takže sada bez segmentů je jeden gaussovský mrak, kdežto polohy se ohýbají do prstence. Sklon má respondent s aspoň daným počtem hodnocení, která nejsou všechna stejná; s méně respondenty se sklonem se segmenty nehledají. Směs nese u každého respondenta jeho vlastní šum (extreme deconvolution): tři starty k-means++, nejvýš 200 kroků EM, dokud log L roste relativně aspoň o 10^-6 (pevné hodnoty metodiky). λ = 0,5 je kalibrované na studiích bez segmentů (asi 2 % falešných segmentů).",
+      "reading_cs": "",
+      "role_cs": "Hledá skupiny respondentů s podobným vkusem: kolik jich je a jak velké.",
+      "source_cs": "",
+      "source_sha256": "e1a8dd812528fe7aa094d5c3c0b1eda60e8745c46e9e6fede25578b3be0b2d85",
+      "symbols": [
+       {
+        "latex": "\\hat{\\boldsymbol\\beta}_k, V_k",
+        "meaning_cs": "sklon respondenta k z vektorového modelu (hodnocení na škále 0-1, bez vah) a šum toho sklonu",
+        "unit": ""
+       },
+       {
+        "latex": "n_k",
+        "meaning_cs": "počet objektů mapy, které respondent k hodnotil",
+        "unit": ""
+       },
+       {
+        "latex": "\\pi_g, \\boldsymbol\\mu_g, \\Sigma_g",
+        "meaning_cs": "podíl, střed a rozptyl segmentu g",
+        "unit": ""
+       },
+       {
+        "latex": "n",
+        "meaning_cs": "počet respondentů se sklonem",
+        "unit": ""
+       },
+       {
+        "latex": "\\lambda, G_{\\max}",
+        "meaning_cs": "násobek penalizace BIC a největší počet segmentů (hodnota u kroku Segmenty vkusu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_object_map_stores_the_segments_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu: sklony respondentů a směs s penalizací",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [
+       "segment_step_down"
+      ],
+      "formula_latex": "\\Delta = C(1) - C(G^{*}),\\qquad \\text{segmenty} \\iff G^{*} \\ge 2 \\ \\wedge\\ \\Delta > \\max_{b \\le B} \\Delta^{(b)}",
+      "formulas": [],
+      "id": "shuffle_guard",
+      "implements": "aia_core.domain.sociomap.signed_off_segments:_largest_shuffled_gain",
+      "inputs": [
+       "segment_mixture"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Zamíchání nechá každému respondentovi jeho zvyky hodnocení i chybějící hodnoty a odstraní společný vkus. Zamíchání se táhnou popořadě z jednoho generátoru (semínko + 7919) a počítají se po čtyřech; skončí po první čtveřici, v níž některé dosáhne skutečného zisku (rozhodnutí je pak stejné). Čtveřice je pevná, nikdy počet jader stroje: největší zisk ze zamíchání, který mapa zapíše, na ní závisí. B = 0 pojistku vypne. Mapa zapíše zisk a největší zisk ze zamíchání (segments.gain, null_gain_max).",
+      "reading_cs": "",
+      "role_cs": "Ověří, že segmenty nejsou silnější jen proto, jak lidé hodnotí: na zamíchaných hodnoceních by být neměly.",
+      "source_cs": "",
+      "source_sha256": "fce6b2cc18579f69204afa0b0a60bc75fcaae2cf20b78235382fc7d07f47699a",
+      "symbols": [
+       {
+        "latex": "\\Delta",
+        "meaning_cs": "zisk modelu se segmenty proti jednomu segmentu",
+        "unit": ""
+       },
+       {
+        "latex": "\\Delta^{(b)}",
+        "meaning_cs": "tentýž zisk na kopii, kde má každý respondent svá hodnocení náhodně přeházená mezi objekty, které hodnotil (0, vyjde-li jeden segment)",
+        "unit": ""
+       },
+       {
+        "latex": "B",
+        "meaning_cs": "počet zamíchání (hodnota u kroku Segmenty vkusu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_threads_never_change_a_stored_value",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu: pojistka proti zamíchaným hodnocením",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [
+       "segment_consensus"
+      ],
+      "formula_latex": "G \\leftarrow G - 1 \\text{ dokud } G \\ge 3 \\wedge \\frac{\\log \\hat L_G - \\log \\hat L_{G-1}}{\\log \\hat L_G - \\log \\hat L_1} < g_{\\min};\\ \\text{pak dokud } \\min_g \\hat\\pi_g < \\pi_{\\min};\\ \\text{pak dokud } \\min_{g \\ne h} S_{gh} < S_{\\min}",
+      "formulas": [],
+      "id": "segment_step_down",
+      "implements": "aia_core.domain.sociomap.signed_off_segments:map_decision",
+      "inputs": [
+       "segment_mixture",
+       "shuffle_guard"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Na velkých vzorcích směs rozdělí tvar uvnitř jednoho segmentu nebo odštěpí střípek; pojistka proti zamíchání to nechá projít, protože je to skutečná struktura. Každé pravidlo se zkouší na fitu s tolika segmenty; skončí-li to u jednoho, segmenty nejsou. Všechna tři jsou podíly nebo velikosti účinku, takže nerostou s n. Mapa zapíše počet, který zvolil fit (segments.k_fit).",
+      "reading_cs": "",
+      "role_cs": "Ubere segmenty, které jen dělí jeden skutečný segment nebo odštěpí střípek.",
+      "source_cs": "",
+      "source_sha256": "71428b8a7d0fa53ce7f4e025c97ac57bc03823d00523edf3a41a80b41467a95e",
+      "symbols": [
+       {
+        "latex": "S_{gh}",
+        "meaning_cs": "oddělení segmentů: √((μ_g - μ_h)' [(Σ_g + Σ_h)/2]^-1 (μ_g - μ_h))",
+        "unit": ""
+       },
+       {
+        "latex": "g_{\\min}, \\pi_{\\min}, S_{\\min}",
+        "meaning_cs": "nejmenší podíl zisku, nejmenší segment a nejmenší oddělení (hodnota u kroku Segmenty vkusu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu: ubírání proti přílišnému dělení",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [
+       "segment_membership",
+       "taste_segments"
+      ],
+      "formula_latex": "\\bar\\Delta = \\operatorname{mean}_m \\big(\\min_{G \\ge 2} C_m(G) - C_m(1)\\big),\\quad v = \\frac{\\#\\{m: G_m \\ge 2\\}}{\\#\\text{map}},\\qquad \\text{segmenty} \\iff \\bar\\Delta < -b \\wedge v \\ge \\tfrac12,\\quad \\text{žádné} \\iff \\bar\\Delta > b \\vee (v = 0 \\wedge \\bar\\Delta > 0),\\quad \\text{jinak hraniční}",
+      "formulas": [],
+      "id": "segment_consensus",
+      "implements": "aia_core.domain.sociomap.signed_off_segments:taste_segments",
+      "inputs": [
+       "segment_step_down",
+       "object_count_rule",
+       "ruler_scale"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Šum 10^-9 v hodnoceních může poslat rozložení k jiné, stejně dobré mapě a překlopit těsné rozhodnutí. Proto se rozhoduje na nakreslené mapě a na dalších mapách posunutých hodnocení (každá svým generátorem, semínko + 104729 krát její číslo), jen od daného počtu objektů. Segmenty se vždy fitují na nakreslené mapě; neukázala-li je sama, s nejčastějším počtem ostatních map. Hraniční: nikdo se neobarví a mapa pojmenuje pravděpodobné dělení (nejčastější počet, jinak nejlepší podle C) s jeho objekty. Ukázala-li segmenty nakreslená mapa, ale vyjde žádné (průměrný okraj nad b; pravidlo v = 0 tu nenastane, protože nakreslená mapa sama hlasuje), segmenty nejsou: nejsou stabilní mezi variantami mapy. Ukáže-li je jen nakreslená mapa a průměr leží v pásmu od -b do b, rozhodnutí je hraniční. Mapu, kterou nelze rozložit, hlasování vynechá. Mapa zapíše rozhodnutí, okraje map (na dvě desetinná místa), jejich průměr, hlasy a počet map (segments.decision, margins, mean_margin, votes, maps, hint).",
+      "reading_cs": "",
+      "role_cs": "Rozhodne o segmentech na nakreslené mapě i jejích téměř stejných variantách; těsný případ označí za hraniční.",
+      "source_cs": "",
+      "source_sha256": "008928364d5d1ebe29c6b7c61cae18a67b81ef547e61b1304ab9548d55252794",
+      "symbols": [
+       {
+        "latex": "m",
+        "meaning_cs": "nakreslená mapa a mapy hodnocení posunutých o šum velikosti zaokrouhlení, rozložené stejně jako ona",
+        "unit": ""
+       },
+       {
+        "latex": "G_m",
+        "meaning_cs": "počet segmentů, který ukáže mapa m (předchozí kroky)",
+        "unit": ""
+       },
+       {
+        "latex": "b",
+        "meaning_cs": "šířka hraničního pásma (hodnota u kroku Segmenty vkusu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_maps_decide_together_within_the_band",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_a_set_below_the_consensus_minimum_makes_no_jittered_maps",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu: rozhodnutí přes téměř stejné mapy, hraniční případ",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [
+       "segment_profiles",
+       "taste_segments"
+      ],
+      "formula_latex": "r_{kg} = \\frac{\\pi_g \\phi(\\hat{\\boldsymbol\\beta}_k; \\boldsymbol\\mu_g, \\Sigma_g + V_k)}{\\sum_h \\pi_h \\phi(\\hat{\\boldsymbol\\beta}_k; \\boldsymbol\\mu_h, \\Sigma_h + V_k)},\\qquad \\text{barva} \\iff \\max_g r_{kg} \\ge r_{\\min} \\wedge k \\in \\mathcal P,\\qquad \\text{zřetelné} \\iff \\min_{g \\ne h} S_{gh} \\ge S_d",
+      "formulas": [],
+      "id": "segment_membership",
+      "implements": "aia_core.domain.sociomap.signed_off_segments:_segments_from_fit",
+      "inputs": [
+       "segment_consensus",
+       "vector_model_placement"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Respondent patří do segmentu s nejvyšší příslušností; segmenty jsou seřazené od největšího. Barvu dostane jen ten, kdo do segmentu patří s pravděpodobností aspoň r_min a je jasně umístěný: respondenti se slabým směrem zůstanou šedí, protože jejich barva seděla jen v 67 % případů (jasně umístění 88 %). Kdo sklon nemá, nepatří nikam (-1). Mapa zapíše u každého respondenta segment, příslušnost (na pět desetinných míst, barva se rozhodla předtím) a barvu, a podíly segmentů, jejich oddělení a zda jsou zřetelné (segments.label, membership, coloured, shares, separation, distinct); bez segmentů nic z toho.",
+      "reading_cs": "",
+      "role_cs": "Kdo do kterého segmentu patří a koho mapa obarví.",
+      "source_cs": "",
+      "source_sha256": "cea22055fd0ff053049d7945089644112c5975d2649832089fca95c359792276",
+      "symbols": [
+       {
+        "latex": "r_{kg}",
+        "meaning_cs": "pravděpodobnost, že respondent k patří do segmentu g",
+        "unit": ""
+       },
+       {
+        "latex": "\\mathcal P",
+        "meaning_cs": "respondenti s jasným směrem (PLACED) podle mapy respondentů a jejích hodnot",
+        "unit": ""
+       },
+       {
+        "latex": "r_{\\min}, S_d",
+        "meaning_cs": "příslušnost pro barvu a oddělení zřetelných segmentů (hodnota u kroku Segmenty vkusu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_object_map_stores_the_segments_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu: příslušnost a barva jen jasně umístěných",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [
+       "taste_segments"
+      ],
+      "formula_latex": "d_{gj} = \\frac{\\sum_k r_{kg} c_{kj}}{\\sum_k r_{kg}} - \\frac{\\sum_k (1 - r_{kg}) c_{kj}}{\\sum_k (1 - r_{kg})},\\quad c_{kj} = a_{kj} - \\bar a_k,\\qquad \\widehat{\\mathrm{se}}^2 = \\frac{\\hat v^{(1)}}{n^{(1)}_{\\mathrm{eff}}} + \\frac{\\hat v^{(0)}}{n^{(0)}_{\\mathrm{eff}}},\\quad n_{\\mathrm{eff}} = \\frac{(\\sum w)^2}{\\sum w^2}",
+      "formulas": [],
+      "id": "segment_profiles",
+      "implements": "aia_core.domain.sociomap.signed_off_segments:segment_profiles",
+      "inputs": [
+       "segment_membership"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Rozdíly jsou v bodech škály, ze surových hodnocení, vážené příslušností. Oboustranné p-hodnoty normálního testu, pak Benjamini-Hochberg na hladině q přes všechny segmenty a objekty. Segment jmenuje nejvýš t význačných objektů, které hodnotí výš (od největšího rozdílu), a t, které hodnotí níž. Intervaly se neukazují: jejich pokrytí je 75 %, ne 95 %. U hraničního rozhodnutí se počítají pro pravděpodobné dělení. Mapa zapíše rozdíly, chyby, p-hodnoty, význačnost a jmenované objekty (segments.profiles).",
+      "reading_cs": "",
+      "role_cs": "Které objekty segment hodnotí výš a které níž než ostatní.",
+      "source_cs": "",
+      "source_sha256": "e578ada5e873a9fcad92e0023d4d2c690f490c6a1392ea6efbd3eef691ea9531",
+      "symbols": [
+       {
+        "latex": "a_{kj}, \\bar a_k",
+        "meaning_cs": "surové hodnocení objektu j respondentem k a průměr jeho hodnocení",
+        "unit": ""
+       },
+       {
+        "latex": "d_{gj}",
+        "meaning_cs": "o kolik segment g hodnotí objekt j výš než ostatní",
+        "unit": "body škály"
+       },
+       {
+        "latex": "q, t",
+        "meaning_cs": "hladina Benjaminiho-Hochberga a počet jmenovaných objektů (hodnota u kroku Segmenty vkusu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_object_map_stores_the_segments_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu: co segment hodnotí výš a níž",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [],
+      "formula_latex": "\\text{rozhodnutí} \\in \\{\\text{segmenty}, \\text{žádné}, \\text{hraniční}\\}",
+      "formulas": [],
+      "id": "taste_segments",
+      "implements": "aia_core.domain.sociomap.engine_v2:_segments",
+      "inputs": [
+       "segment_consensus",
+       "segment_membership",
+       "segment_profiles"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5, jen u nakreslené mapy, vedle mapy respondentů; bez vah. Mapa zapíše rozhodnutí a u žádných segmentů důvod: málo respondentů se sklonem, žádné jasné segmenty, ne silnější než zamíchaná hodnocení, nestabilní mezi variantami mapy (segments.decision, reason). Pevné hodnoty metodiky, které tu nejsou: tři starty a nejvýš 200 kroků EM s tolerancí 10^-6, práh vlastních čísel 10^-6, posuny generátorů 7919 a 104729 a čtveřice zamíchání.",
+      "reading_cs": "",
+      "role_cs": "Zapíše segmenty vkusu k mapě respondentů: rozhodnutí, segmenty, barvy a profily.",
+      "source_cs": "",
+      "source_sha256": "a0845d38eb5be1671cacf73bd7fbbc409b47a68bc0d22d4074e8c9e62232d405",
+      "symbols": [
+       {
+        "latex": "G_{\\max}, \\lambda",
+        "meaning_cs": "největší počet segmentů a násobek penalizace BIC",
+        "unit": ""
+       },
+       {
+        "latex": "B",
+        "meaning_cs": "počet zamíchání pojistky (0 ji vypne)",
+        "unit": ""
+       },
+       {
+        "latex": "g_{\\min}, \\pi_{\\min}, S_{\\min}",
+        "meaning_cs": "ubírání: podíl zisku, nejmenší segment, nejmenší oddělení",
+        "unit": ""
+       },
+       {
+        "latex": "r_{\\min}, S_d",
+        "meaning_cs": "příslušnost pro barvu, oddělení zřetelných segmentů",
+        "unit": ""
+       },
+       {
+        "latex": "q, t",
+        "meaning_cs": "hladina profilů a počet jmenovaných objektů",
+        "unit": ""
+       },
+       {
+        "latex": "b",
+        "meaning_cs": "šířka hraničního pásma",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_studies_cover_the_decisions",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_without_segments_nobody_is_labelled",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_are_declared_exactly_under_the_signed_off_methodology",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_earlier_presets_store_exactly_what_they_stored",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_object_map_stores_the_segments_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu",
+      "values": [
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Největší počet segmentů G_max",
+        "origin": "specification",
+        "reference": "segments.max_segments",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Násobek penalizace BIC λ",
+        "origin": "specification",
+        "reference": "segments.penalty_factor",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Počet zamíchání B",
+        "origin": "specification",
+        "reference": "segments.shuffles",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Nejméně respondentů se sklonem",
+        "origin": "specification",
+        "reference": "segments.min_respondents",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Nejméně hodnocení pro sklon",
+        "origin": "specification",
+        "reference": "segments.min_ratings",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Nejmenší podíl zisku g_min",
+        "origin": "specification",
+        "reference": "segments.min_gain_share",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Nejmenší segment π_min",
+        "origin": "specification",
+        "reference": "segments.min_segment_share",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Nejmenší oddělení S_min",
+        "origin": "specification",
+        "reference": "segments.min_separation",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Příslušnost pro barvu r_min",
+        "origin": "specification",
+        "reference": "segments.colour_membership",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Oddělení zřetelných segmentů S_d",
+        "origin": "specification",
+        "reference": "segments.distinct_separation",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Hladina profilů q",
+        "origin": "specification",
+        "reference": "segments.profile_false_discovery_rate",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Počet jmenovaných objektů t",
+        "origin": "specification",
+        "reference": "segments.profile_top",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Počet map pro rozhodnutí (s nakreslenou)",
+        "origin": "specification",
+        "reference": "segments.consensus_maps",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Téměř stejné mapy od tolika objektů",
+        "origin": "specification",
+        "reference": "segments.consensus_min_objects",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Šířka hraničního pásma b",
+        "origin": "specification",
+        "reference": "segments.borderline_margin",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Velikost šumu v hodnoceních",
+        "origin": "specification",
+        "reference": "segments.jitter",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": true,
+        "effect": "",
+        "label_cs": "Semínko generátorů",
+        "origin": "specification",
+        "reference": "segments.seed",
+        "unit": "",
         "value": null
        }
       ]
@@ -12309,7 +13971,7 @@
       ]
      }
     ],
-    "steps": 41,
+    "steps": 48,
     "title_cs": "Sociomapa: objektová mapa"
    },
    "aia-sociomap-5": {
@@ -12402,12 +14064,19 @@
      },
      {
       "id": "S7",
-      "note_cs": "Kde na mapě leží respondenti a na kolika lidech mapa stojí.",
+      "note_cs": "Kde na mapě leží respondenti, jaké mají segmenty vkusu a na kolika lidech mapa stojí.",
       "step_ids": [
        "f10_placement",
        "vector_model_placement",
        "respondent_density",
        "respondent_map",
+       "segment_mixture",
+       "shuffle_guard",
+       "segment_step_down",
+       "segment_consensus",
+       "segment_membership",
+       "segment_profiles",
+       "taste_segments",
        "support"
       ],
       "title_cs": "Respondenti a podpora mapy"
@@ -12439,7 +14108,7 @@
     ],
     "id": "sociomap",
     "in_force": "aia-sociomap-3",
-    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy a mapu respondentů podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
     "preset": "aia-sociomap-5",
     "presets": [
      "aia-sociomap-4",
@@ -12470,7 +14139,7 @@
       "reading_cs": "",
       "role_cs": "Jméno a otisk metodiky, které si běh připne; podle nich je u každé mapy vidět, čím byla spočtena.",
       "source_cs": "metodika v platnosti při spuštění běhu",
-      "source_sha256": "57f3a17a2dececbdbfa688181651aa247bf7e34b0e1d2ae6f9c36db56272c6d0",
+      "source_sha256": "6013f8150a9e4359be8f0dd3e0d67efa83f0489554cbda22991c78d11f499b3d",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_the_presets_fingerprints"
@@ -12502,6 +14171,7 @@
        "f2_person_minmax",
        "f8_height",
        "vector_model_placement",
+       "segment_mixture",
        "f11_not_placed"
       ],
       "formula_latex": "\\tilde a_{kc} = \\frac{a_{kc} - s^{\\min}_c}{s^{\\max}_c - s^{\\min}_c} \\in [0, 1],\\qquad a_{kc} \\notin [s^{\\min}_c, s^{\\max}_c] \\Rightarrow \\text{odmítnuto}",
@@ -13610,7 +15280,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "f0412a1ce0190f244faf4adb676f031b700b4a40a1841c0df0da6d84d68cd2d6",
+      "source_sha256": "24f5be1e1825142153d4222107fdc23c23083f1a2bfc51e74b35fae10ecf492a",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -13903,7 +15573,8 @@
       ],
       "feeds": [
        "soft_rank_spearman_layout",
-       "interval_mds_layout"
+       "interval_mds_layout",
+       "segment_consensus"
       ],
       "formula_latex": "\\text{rozložení} = \\begin{cases}\\text{Spearman měkkých pořadí s Coulombovým odpuzováním (BB1)} & M_{\\min} \\le M \\le M_{\\max} \\\\\\text{Interval MDS} & \\text{jinak} \\end{cases},\\qquad \\nexists\\, i < j : n_{ij} \\ge n_L \\;\\Rightarrow\\; \\text{nelze zmapovat}",
       "formulas": [],
@@ -14192,6 +15863,8 @@
       ],
       "feeds": [
        "vector_model_placement",
+       "segment_mixture",
+       "segment_consensus",
        "terrain_frame",
        "f12_envelope"
       ],
@@ -15073,7 +16746,8 @@
       ],
       "feeds": [
        "respondent_density",
-       "respondent_map"
+       "respondent_map",
+       "segment_membership"
       ],
       "formula_latex": "\\tilde a_{kj} = c_k + \\boldsymbol\\beta_k^{\\top} y_j + \\varepsilon_{kj},\\ j \\in J_k,\\qquad R_k^2 = 1 - \\frac{\\sum_{j \\in J_k} (\\tilde a_{kj} - \\hat c_k - \\hat{\\boldsymbol\\beta}_k^{\\top} y_j)^2}{\\sum_{j \\in J_k} (\\tilde a_{kj} - \\bar a_k)^2},\\qquad x_k = \\bar y + R_{\\max} \\sqrt{R_k^2}\\,\\frac{\\hat{\\boldsymbol\\beta}_k}{\\lVert \\hat{\\boldsymbol\\beta}_k \\rVert},\\qquad e_k = 1 - R_k^2,\\qquad p_k = (1 - R_k^2)^{(n_k - 3)/2},\\qquad \\text{jasný směr} \\iff p_k \\le \\alpha",
       "formulas": [],
@@ -15226,7 +16900,7 @@
       "reading_cs": "",
       "role_cs": "Zapíše mapu respondentů k mapě objektů a řekne, zda má sada dost objektů, aby jí šlo věřit, nebo je jen orientační.",
       "source_cs": "",
-      "source_sha256": "e8b8ec932bcda9600c03da563ee480a0c1164453fa1622e9ed4eac8dddfd6367",
+      "source_sha256": "d12e242d399b5bb9ddebb39e5bf073ac73809267ef54391306136b48bc10ca18",
       "symbols": [
        {
         "latex": "M",
@@ -15283,6 +16957,548 @@
         "reference": "respondent_map.density_sigma",
         "unit": "jednotky vzdálenosti",
         "value": 0.35
+       }
+      ]
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [
+       "shuffle_guard",
+       "segment_step_down"
+      ],
+      "formula_latex": "\\hat{\\boldsymbol\\beta}_k = \\mathbf b_k + \\mathbf e_k,\\ \\mathbf e_k \\sim \\mathcal N(\\mathbf 0, V_k),\\ \\mathbf b_k \\sim \\sum_{g=1}^{G} \\pi_g \\mathcal N(\\boldsymbol\\mu_g, \\Sigma_g),\\qquad V_k = s_k^2 \\big[(Z_k^{\\top} Z_k)^{-1}\\big]_{\\beta\\beta},\\ s_k^2 = \\frac{\\mathrm{RSS}_k}{n_k - 3},\\qquad C(G) = -2 \\log \\hat L_G + \\lambda\\, (6G - 1) \\ln n,\\qquad G^{*} = \\arg\\min_{1 \\le G \\le G_{\\max}} C(G)",
+      "formulas": [],
+      "id": "segment_mixture",
+      "implements": "aia_core.domain.sociomap.signed_off_segments:_seg_fit",
+      "inputs": [
+       "f1_declared_scale",
+       "ruler_scale"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5, jen u nakreslené mapy. Segmenty se hledají na sklonech, ne na polohách: sklon roste s vkusem lineárně, takže sada bez segmentů je jeden gaussovský mrak, kdežto polohy se ohýbají do prstence. Sklon má respondent s aspoň daným počtem hodnocení, která nejsou všechna stejná; s méně respondenty se sklonem se segmenty nehledají. Směs nese u každého respondenta jeho vlastní šum (extreme deconvolution): tři starty k-means++, nejvýš 200 kroků EM, dokud log L roste relativně aspoň o 10^-6 (pevné hodnoty metodiky). λ = 0,5 je kalibrované na studiích bez segmentů (asi 2 % falešných segmentů).",
+      "reading_cs": "",
+      "role_cs": "Hledá skupiny respondentů s podobným vkusem: kolik jich je a jak velké.",
+      "source_cs": "",
+      "source_sha256": "e1a8dd812528fe7aa094d5c3c0b1eda60e8745c46e9e6fede25578b3be0b2d85",
+      "symbols": [
+       {
+        "latex": "\\hat{\\boldsymbol\\beta}_k, V_k",
+        "meaning_cs": "sklon respondenta k z vektorového modelu (hodnocení na škále 0-1, bez vah) a šum toho sklonu",
+        "unit": ""
+       },
+       {
+        "latex": "n_k",
+        "meaning_cs": "počet objektů mapy, které respondent k hodnotil",
+        "unit": ""
+       },
+       {
+        "latex": "\\pi_g, \\boldsymbol\\mu_g, \\Sigma_g",
+        "meaning_cs": "podíl, střed a rozptyl segmentu g",
+        "unit": ""
+       },
+       {
+        "latex": "n",
+        "meaning_cs": "počet respondentů se sklonem",
+        "unit": ""
+       },
+       {
+        "latex": "\\lambda, G_{\\max}",
+        "meaning_cs": "násobek penalizace BIC a největší počet segmentů (hodnota u kroku Segmenty vkusu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_object_map_stores_the_segments_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu: sklony respondentů a směs s penalizací",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [
+       "segment_step_down"
+      ],
+      "formula_latex": "\\Delta = C(1) - C(G^{*}),\\qquad \\text{segmenty} \\iff G^{*} \\ge 2 \\ \\wedge\\ \\Delta > \\max_{b \\le B} \\Delta^{(b)}",
+      "formulas": [],
+      "id": "shuffle_guard",
+      "implements": "aia_core.domain.sociomap.signed_off_segments:_largest_shuffled_gain",
+      "inputs": [
+       "segment_mixture"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Zamíchání nechá každému respondentovi jeho zvyky hodnocení i chybějící hodnoty a odstraní společný vkus. Zamíchání se táhnou popořadě z jednoho generátoru (semínko + 7919) a počítají se po čtyřech; skončí po první čtveřici, v níž některé dosáhne skutečného zisku (rozhodnutí je pak stejné). Čtveřice je pevná, nikdy počet jader stroje: největší zisk ze zamíchání, který mapa zapíše, na ní závisí. B = 0 pojistku vypne. Mapa zapíše zisk a největší zisk ze zamíchání (segments.gain, null_gain_max).",
+      "reading_cs": "",
+      "role_cs": "Ověří, že segmenty nejsou silnější jen proto, jak lidé hodnotí: na zamíchaných hodnoceních by být neměly.",
+      "source_cs": "",
+      "source_sha256": "fce6b2cc18579f69204afa0b0a60bc75fcaae2cf20b78235382fc7d07f47699a",
+      "symbols": [
+       {
+        "latex": "\\Delta",
+        "meaning_cs": "zisk modelu se segmenty proti jednomu segmentu",
+        "unit": ""
+       },
+       {
+        "latex": "\\Delta^{(b)}",
+        "meaning_cs": "tentýž zisk na kopii, kde má každý respondent svá hodnocení náhodně přeházená mezi objekty, které hodnotil (0, vyjde-li jeden segment)",
+        "unit": ""
+       },
+       {
+        "latex": "B",
+        "meaning_cs": "počet zamíchání (hodnota u kroku Segmenty vkusu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_threads_never_change_a_stored_value",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu: pojistka proti zamíchaným hodnocením",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [
+       "segment_consensus"
+      ],
+      "formula_latex": "G \\leftarrow G - 1 \\text{ dokud } G \\ge 3 \\wedge \\frac{\\log \\hat L_G - \\log \\hat L_{G-1}}{\\log \\hat L_G - \\log \\hat L_1} < g_{\\min};\\ \\text{pak dokud } \\min_g \\hat\\pi_g < \\pi_{\\min};\\ \\text{pak dokud } \\min_{g \\ne h} S_{gh} < S_{\\min}",
+      "formulas": [],
+      "id": "segment_step_down",
+      "implements": "aia_core.domain.sociomap.signed_off_segments:map_decision",
+      "inputs": [
+       "segment_mixture",
+       "shuffle_guard"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Na velkých vzorcích směs rozdělí tvar uvnitř jednoho segmentu nebo odštěpí střípek; pojistka proti zamíchání to nechá projít, protože je to skutečná struktura. Každé pravidlo se zkouší na fitu s tolika segmenty; skončí-li to u jednoho, segmenty nejsou. Všechna tři jsou podíly nebo velikosti účinku, takže nerostou s n. Mapa zapíše počet, který zvolil fit (segments.k_fit).",
+      "reading_cs": "",
+      "role_cs": "Ubere segmenty, které jen dělí jeden skutečný segment nebo odštěpí střípek.",
+      "source_cs": "",
+      "source_sha256": "71428b8a7d0fa53ce7f4e025c97ac57bc03823d00523edf3a41a80b41467a95e",
+      "symbols": [
+       {
+        "latex": "S_{gh}",
+        "meaning_cs": "oddělení segmentů: √((μ_g - μ_h)' [(Σ_g + Σ_h)/2]^-1 (μ_g - μ_h))",
+        "unit": ""
+       },
+       {
+        "latex": "g_{\\min}, \\pi_{\\min}, S_{\\min}",
+        "meaning_cs": "nejmenší podíl zisku, nejmenší segment a nejmenší oddělení (hodnota u kroku Segmenty vkusu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu: ubírání proti přílišnému dělení",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [
+       "segment_membership",
+       "taste_segments"
+      ],
+      "formula_latex": "\\bar\\Delta = \\operatorname{mean}_m \\big(\\min_{G \\ge 2} C_m(G) - C_m(1)\\big),\\quad v = \\frac{\\#\\{m: G_m \\ge 2\\}}{\\#\\text{map}},\\qquad \\text{segmenty} \\iff \\bar\\Delta < -b \\wedge v \\ge \\tfrac12,\\quad \\text{žádné} \\iff \\bar\\Delta > b \\vee (v = 0 \\wedge \\bar\\Delta > 0),\\quad \\text{jinak hraniční}",
+      "formulas": [],
+      "id": "segment_consensus",
+      "implements": "aia_core.domain.sociomap.signed_off_segments:taste_segments",
+      "inputs": [
+       "segment_step_down",
+       "object_count_rule",
+       "ruler_scale"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Šum 10^-9 v hodnoceních může poslat rozložení k jiné, stejně dobré mapě a překlopit těsné rozhodnutí. Proto se rozhoduje na nakreslené mapě a na dalších mapách posunutých hodnocení (každá svým generátorem, semínko + 104729 krát její číslo), jen od daného počtu objektů. Segmenty se vždy fitují na nakreslené mapě; neukázala-li je sama, s nejčastějším počtem ostatních map. Hraniční: nikdo se neobarví a mapa pojmenuje pravděpodobné dělení (nejčastější počet, jinak nejlepší podle C) s jeho objekty. Ukázala-li segmenty nakreslená mapa, ale vyjde žádné (průměrný okraj nad b; pravidlo v = 0 tu nenastane, protože nakreslená mapa sama hlasuje), segmenty nejsou: nejsou stabilní mezi variantami mapy. Ukáže-li je jen nakreslená mapa a průměr leží v pásmu od -b do b, rozhodnutí je hraniční. Mapu, kterou nelze rozložit, hlasování vynechá. Mapa zapíše rozhodnutí, okraje map (na dvě desetinná místa), jejich průměr, hlasy a počet map (segments.decision, margins, mean_margin, votes, maps, hint).",
+      "reading_cs": "",
+      "role_cs": "Rozhodne o segmentech na nakreslené mapě i jejích téměř stejných variantách; těsný případ označí za hraniční.",
+      "source_cs": "",
+      "source_sha256": "008928364d5d1ebe29c6b7c61cae18a67b81ef547e61b1304ab9548d55252794",
+      "symbols": [
+       {
+        "latex": "m",
+        "meaning_cs": "nakreslená mapa a mapy hodnocení posunutých o šum velikosti zaokrouhlení, rozložené stejně jako ona",
+        "unit": ""
+       },
+       {
+        "latex": "G_m",
+        "meaning_cs": "počet segmentů, který ukáže mapa m (předchozí kroky)",
+        "unit": ""
+       },
+       {
+        "latex": "b",
+        "meaning_cs": "šířka hraničního pásma (hodnota u kroku Segmenty vkusu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_maps_decide_together_within_the_band",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_a_set_below_the_consensus_minimum_makes_no_jittered_maps",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu: rozhodnutí přes téměř stejné mapy, hraniční případ",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [
+       "segment_profiles",
+       "taste_segments"
+      ],
+      "formula_latex": "r_{kg} = \\frac{\\pi_g \\phi(\\hat{\\boldsymbol\\beta}_k; \\boldsymbol\\mu_g, \\Sigma_g + V_k)}{\\sum_h \\pi_h \\phi(\\hat{\\boldsymbol\\beta}_k; \\boldsymbol\\mu_h, \\Sigma_h + V_k)},\\qquad \\text{barva} \\iff \\max_g r_{kg} \\ge r_{\\min} \\wedge k \\in \\mathcal P,\\qquad \\text{zřetelné} \\iff \\min_{g \\ne h} S_{gh} \\ge S_d",
+      "formulas": [],
+      "id": "segment_membership",
+      "implements": "aia_core.domain.sociomap.signed_off_segments:_segments_from_fit",
+      "inputs": [
+       "segment_consensus",
+       "vector_model_placement"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Respondent patří do segmentu s nejvyšší příslušností; segmenty jsou seřazené od největšího. Barvu dostane jen ten, kdo do segmentu patří s pravděpodobností aspoň r_min a je jasně umístěný: respondenti se slabým směrem zůstanou šedí, protože jejich barva seděla jen v 67 % případů (jasně umístění 88 %). Kdo sklon nemá, nepatří nikam (-1). Mapa zapíše u každého respondenta segment, příslušnost (na pět desetinných míst, barva se rozhodla předtím) a barvu, a podíly segmentů, jejich oddělení a zda jsou zřetelné (segments.label, membership, coloured, shares, separation, distinct); bez segmentů nic z toho.",
+      "reading_cs": "",
+      "role_cs": "Kdo do kterého segmentu patří a koho mapa obarví.",
+      "source_cs": "",
+      "source_sha256": "cea22055fd0ff053049d7945089644112c5975d2649832089fca95c359792276",
+      "symbols": [
+       {
+        "latex": "r_{kg}",
+        "meaning_cs": "pravděpodobnost, že respondent k patří do segmentu g",
+        "unit": ""
+       },
+       {
+        "latex": "\\mathcal P",
+        "meaning_cs": "respondenti s jasným směrem (PLACED) podle mapy respondentů a jejích hodnot",
+        "unit": ""
+       },
+       {
+        "latex": "r_{\\min}, S_d",
+        "meaning_cs": "příslušnost pro barvu a oddělení zřetelných segmentů (hodnota u kroku Segmenty vkusu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_object_map_stores_the_segments_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu: příslušnost a barva jen jasně umístěných",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [
+       "taste_segments"
+      ],
+      "formula_latex": "d_{gj} = \\frac{\\sum_k r_{kg} c_{kj}}{\\sum_k r_{kg}} - \\frac{\\sum_k (1 - r_{kg}) c_{kj}}{\\sum_k (1 - r_{kg})},\\quad c_{kj} = a_{kj} - \\bar a_k,\\qquad \\widehat{\\mathrm{se}}^2 = \\frac{\\hat v^{(1)}}{n^{(1)}_{\\mathrm{eff}}} + \\frac{\\hat v^{(0)}}{n^{(0)}_{\\mathrm{eff}}},\\quad n_{\\mathrm{eff}} = \\frac{(\\sum w)^2}{\\sum w^2}",
+      "formulas": [],
+      "id": "segment_profiles",
+      "implements": "aia_core.domain.sociomap.signed_off_segments:segment_profiles",
+      "inputs": [
+       "segment_membership"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Rozdíly jsou v bodech škály, ze surových hodnocení, vážené příslušností. Oboustranné p-hodnoty normálního testu, pak Benjamini-Hochberg na hladině q přes všechny segmenty a objekty. Segment jmenuje nejvýš t význačných objektů, které hodnotí výš (od největšího rozdílu), a t, které hodnotí níž. Intervaly se neukazují: jejich pokrytí je 75 %, ne 95 %. U hraničního rozhodnutí se počítají pro pravděpodobné dělení. Mapa zapíše rozdíly, chyby, p-hodnoty, význačnost a jmenované objekty (segments.profiles).",
+      "reading_cs": "",
+      "role_cs": "Které objekty segment hodnotí výš a které níž než ostatní.",
+      "source_cs": "",
+      "source_sha256": "e578ada5e873a9fcad92e0023d4d2c690f490c6a1392ea6efbd3eef691ea9531",
+      "symbols": [
+       {
+        "latex": "a_{kj}, \\bar a_k",
+        "meaning_cs": "surové hodnocení objektu j respondentem k a průměr jeho hodnocení",
+        "unit": ""
+       },
+       {
+        "latex": "d_{gj}",
+        "meaning_cs": "o kolik segment g hodnotí objekt j výš než ostatní",
+        "unit": "body škály"
+       },
+       {
+        "latex": "q, t",
+        "meaning_cs": "hladina Benjaminiho-Hochberga a počet jmenovaných objektů (hodnota u kroku Segmenty vkusu)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_object_map_stores_the_segments_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu: co segment hodnotí výš a níž",
+      "values": []
+     },
+     {
+      "audit": "— schválená metodika AIA Sociomapa",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-SEGMENTS"
+       }
+      ],
+      "feeds": [],
+      "formula_latex": "\\text{rozhodnutí} \\in \\{\\text{segmenty}, \\text{žádné}, \\text{hraniční}\\}",
+      "formulas": [],
+      "id": "taste_segments",
+      "implements": "aia_core.domain.sociomap.engine_v2:_segments",
+      "inputs": [
+       "segment_consensus",
+       "segment_membership",
+       "segment_profiles"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Jen aia-sociomap-5, jen u nakreslené mapy, vedle mapy respondentů; bez vah. Mapa zapíše rozhodnutí a u žádných segmentů důvod: málo respondentů se sklonem, žádné jasné segmenty, ne silnější než zamíchaná hodnocení, nestabilní mezi variantami mapy (segments.decision, reason). Pevné hodnoty metodiky, které tu nejsou: tři starty a nejvýš 200 kroků EM s tolerancí 10^-6, práh vlastních čísel 10^-6, posuny generátorů 7919 a 104729 a čtveřice zamíchání.",
+      "reading_cs": "",
+      "role_cs": "Zapíše segmenty vkusu k mapě respondentů: rozhodnutí, segmenty, barvy a profily.",
+      "source_cs": "",
+      "source_sha256": "a0845d38eb5be1671cacf73bd7fbbc409b47a68bc0d22d4074e8c9e62232d405",
+      "symbols": [
+       {
+        "latex": "G_{\\max}, \\lambda",
+        "meaning_cs": "největší počet segmentů a násobek penalizace BIC",
+        "unit": ""
+       },
+       {
+        "latex": "B",
+        "meaning_cs": "počet zamíchání pojistky (0 ji vypne)",
+        "unit": ""
+       },
+       {
+        "latex": "g_{\\min}, \\pi_{\\min}, S_{\\min}",
+        "meaning_cs": "ubírání: podíl zisku, nejmenší segment, nejmenší oddělení",
+        "unit": ""
+       },
+       {
+        "latex": "r_{\\min}, S_d",
+        "meaning_cs": "příslušnost pro barvu, oddělení zřetelných segmentů",
+        "unit": ""
+       },
+       {
+        "latex": "q, t",
+        "meaning_cs": "hladina profilů a počet jmenovaných objektů",
+        "unit": ""
+       },
+       {
+        "latex": "b",
+        "meaning_cs": "šířka hraničního pásma",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_studies_cover_the_decisions",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_without_segments_nobody_is_labelled",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_are_declared_exactly_under_the_signed_off_methodology",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_earlier_presets_store_exactly_what_they_stored",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_object_map_stores_the_segments_under_aia_sociomap_5",
+       "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_every_value_of_the_stage_changes_the_segments_when_edited"
+      ],
+      "title_cs": "Segmenty vkusu",
+      "values": [
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Největší počet segmentů G_max",
+        "origin": "specification",
+        "reference": "segments.max_segments",
+        "unit": "",
+        "value": 4
+       },
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Násobek penalizace BIC λ",
+        "origin": "specification",
+        "reference": "segments.penalty_factor",
+        "unit": "",
+        "value": 0.5
+       },
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Počet zamíchání B",
+        "origin": "specification",
+        "reference": "segments.shuffles",
+        "unit": "",
+        "value": 20
+       },
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Nejméně respondentů se sklonem",
+        "origin": "specification",
+        "reference": "segments.min_respondents",
+        "unit": "",
+        "value": 30
+       },
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Nejméně hodnocení pro sklon",
+        "origin": "specification",
+        "reference": "segments.min_ratings",
+        "unit": "",
+        "value": 5
+       },
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Nejmenší podíl zisku g_min",
+        "origin": "specification",
+        "reference": "segments.min_gain_share",
+        "unit": "",
+        "value": 0.1
+       },
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Nejmenší segment π_min",
+        "origin": "specification",
+        "reference": "segments.min_segment_share",
+        "unit": "",
+        "value": 0.05
+       },
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Nejmenší oddělení S_min",
+        "origin": "specification",
+        "reference": "segments.min_separation",
+        "unit": "",
+        "value": 1.8
+       },
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Příslušnost pro barvu r_min",
+        "origin": "specification",
+        "reference": "segments.colour_membership",
+        "unit": "",
+        "value": 0.8
+       },
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Oddělení zřetelných segmentů S_d",
+        "origin": "specification",
+        "reference": "segments.distinct_separation",
+        "unit": "",
+        "value": 3.5
+       },
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Hladina profilů q",
+        "origin": "specification",
+        "reference": "segments.profile_false_discovery_rate",
+        "unit": "",
+        "value": 0.05
+       },
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Počet jmenovaných objektů t",
+        "origin": "specification",
+        "reference": "segments.profile_top",
+        "unit": "",
+        "value": 3
+       },
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Počet map pro rozhodnutí (s nakreslenou)",
+        "origin": "specification",
+        "reference": "segments.consensus_maps",
+        "unit": "",
+        "value": 5
+       },
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Téměř stejné mapy od tolika objektů",
+        "origin": "specification",
+        "reference": "segments.consensus_min_objects",
+        "unit": "",
+        "value": 5
+       },
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Šířka hraničního pásma b",
+        "origin": "specification",
+        "reference": "segments.borderline_margin",
+        "unit": "",
+        "value": 4.0
+       },
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Velikost šumu v hodnoceních",
+        "origin": "specification",
+        "reference": "segments.jitter",
+        "unit": "",
+        "value": 1e-09
+       },
+       {
+        "absent": false,
+        "effect": "",
+        "label_cs": "Semínko generátorů",
+        "origin": "specification",
+        "reference": "segments.seed",
+        "unit": "",
+        "value": 0
        }
       ]
      },
@@ -15705,7 +17921,7 @@
       ]
      }
     ],
-    "steps": 41,
+    "steps": 48,
     "title_cs": "Sociomapa: objektová mapa"
    }
   },
@@ -19080,12 +21296,19 @@
     },
     {
      "id": "S7",
-     "note_cs": "Kde na mapě leží respondenti a na kolika lidech mapa stojí.",
+     "note_cs": "Kde na mapě leží respondenti, jaké mají segmenty vkusu a na kolika lidech mapa stojí.",
      "step_ids": [
       "f10_placement",
       "vector_model_placement",
       "respondent_density",
       "respondent_map",
+      "segment_mixture",
+      "shuffle_guard",
+      "segment_step_down",
+      "segment_consensus",
+      "segment_membership",
+      "segment_profiles",
+      "taste_segments",
       "support"
      ],
      "title_cs": "Respondenti a podpora mapy"
@@ -19117,7 +21340,7 @@
    ],
    "id": "sociomap",
    "in_force": "aia-sociomap-3",
-   "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy a mapu respondentů podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+   "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
    "presets": [
     "aia-sociomap-4",
     "aia-sociomap-3",
@@ -19125,7 +21348,7 @@
     "aia-sociomap-5"
    ],
    "preview_title_cs": "",
-   "steps": 41,
+   "steps": 48,
    "title_cs": "Sociomapa: objektová mapa"
   },
   {
@@ -19839,6 +22062,25 @@
     "respondent_placement": null,
     "scores": {
      "height": "mean_rating_0_1"
+    },
+    "segments": {
+     "borderline_margin": 4.0,
+     "colour_membership": 0.8,
+     "consensus_maps": 5,
+     "consensus_min_objects": 5,
+     "distinct_separation": 3.5,
+     "jitter": 1e-09,
+     "max_segments": 4,
+     "min_gain_share": 0.1,
+     "min_ratings": 5,
+     "min_respondents": 30,
+     "min_segment_share": 0.05,
+     "min_separation": 1.8,
+     "penalty_factor": 0.5,
+     "profile_false_discovery_rate": 0.05,
+     "profile_top": 3,
+     "seed": 0,
+     "shuffles": 20
     },
     "terrain": {
      "frame_fill": 0.7,

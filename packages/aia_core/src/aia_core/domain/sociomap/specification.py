@@ -107,6 +107,7 @@ __all__ = [
     "SociomapSpec",
     "SociomapSpecV3",
     "SoftRankSpearmanSpec",
+    "TasteSegmentsSpec",
     "TerrainMethod",
     "TerrainSpec",
     "UnknownSpecContract",
@@ -723,15 +724,55 @@ class RespondentMapSpec(_Frozen):
         return _not_boolean(v)
 
 
+class TasteSegmentsSpec(_Frozen):
+    """The signed-off methodology's taste segments (``aia-sociomap-5``): a mixture of 1 to
+    ``max_segments`` segments on the vector-model slopes of the respondents with at least
+    ``min_ratings`` ratings, chosen by the likelihood penalised ``penalty_factor`` times BIC,
+    looked for from ``min_respondents`` such respondents; shown only when the gain beats
+    ``shuffles`` within-respondent shuffles (0 switches the guard off); stepped down while the
+    last segment adds less than ``min_gain_share`` of the gain, a segment holds less than
+    ``min_segment_share`` of the respondents or two segments are less than ``min_separation``
+    apart. A respondent is coloured from membership ``colour_membership`` and clearly placed;
+    segments are distinct from separation ``distinct_separation``. Profiles: Benjamini-Hochberg
+    at ``profile_false_discovery_rate``, ``profile_top`` objects named. The decision is taken
+    on ``consensus_maps`` maps (the shown one and maps of ratings jittered by ``jitter``) when
+    the set has at least ``consensus_min_objects`` objects, borderline within
+    ``borderline_margin`` of a zero mean margin. ``seed`` starts every generator."""
+
+    max_segments: int
+    penalty_factor: float
+    shuffles: int
+    min_respondents: int
+    min_ratings: int
+    min_gain_share: float
+    min_segment_share: float
+    min_separation: float
+    colour_membership: float
+    distinct_separation: float
+    profile_false_discovery_rate: float
+    profile_top: int
+    consensus_maps: int
+    consensus_min_objects: int
+    borderline_margin: float
+    jitter: float
+    seed: int
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def _no_bool(cls, v: object) -> object:
+        return _not_boolean(v)
+
+
 class SociomapSpecV3(_Frozen):
     """Every methodology decision behind one contract-3 Sociomap (the audit's object map).
 
     ``respondent_placement`` is declared ``None``: no member is built (chunk 3 waits on a
     decision the audit leaves to its author), and a value is refused by
     :func:`require_supported` rather than ignored. ``terrain`` is the object envelope
-    (chunk 4b) or ``None``, which computes no terrain. ``credibility`` and ``respondent_map``
-    are declared exactly under the baseline-corrected relation (``aia-sociomap-5``); ``None``
-    is left out of the stored form, so earlier pins read unchanged.
+    (chunk 4b) or ``None``, which computes no terrain. ``credibility``, ``respondent_map`` and
+    ``segments`` are declared exactly under the baseline-corrected relation
+    (``aia-sociomap-5``); ``None`` is left out of the stored form, so earlier pins read
+    unchanged.
     """
 
     methodology_version: str
@@ -744,6 +785,7 @@ class SociomapSpecV3(_Frozen):
     terrain: ObjectTerrainSpec | None
     credibility: MapCredibilitySpec | None = None
     respondent_map: RespondentMapSpec | None = None
+    segments: TasteSegmentsSpec | None = None
 
     @field_validator("methodology_version")
     @classmethod
@@ -755,7 +797,7 @@ class SociomapSpecV3(_Frozen):
     @model_serializer(mode="wrap")
     def _without_undeclared(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
         body: dict[str, Any] = handler(self)
-        for key in ("credibility", "respondent_map"):
+        for key in ("credibility", "respondent_map", "segments"):
             if body.get(key) is None:
                 body.pop(key, None)
         return body
@@ -921,6 +963,7 @@ def _baseline_corrected_problems(spec: SociomapSpecV3) -> dict[str, str]:
         **{f"layout.{key}": getattr(layout, key) for key in _LAYOUT_PAIR_FIELDS},
         "credibility": spec.credibility,
         "respondent_map": spec.respondent_map,
+        "segments": spec.segments,
     }
     if not corrected:
         for path, value in declared.items():
@@ -993,6 +1036,7 @@ def _baseline_corrected_problems(spec: SociomapSpecV3) -> dict[str, str]:
     problems.update(_soft_rank_spearman_problems(layout.soft_rank_spearman))
     problems.update(_credibility_problems(spec.credibility))
     problems.update(_respondent_map_problems(spec))
+    problems.update(_segments_problems(spec.segments))
     imds = layout.interval_mds
     if imds is not None and imds.random_starts < 0:
         problems["layout.interval_mds.random_starts"] = (
@@ -1089,6 +1133,62 @@ def _respondent_map_problems(spec: SociomapSpecV3) -> dict[str, str]:
     if not (math.isfinite(sigma) and sigma > 0.0):
         problems["respondent_map.density_sigma"] = (
             f"a kernel width is positive and finite; got {sigma!r}"
+        )
+    return problems
+
+
+def _segments_problems(segments: TasteSegmentsSpec | None) -> dict[str, str]:
+    problems: dict[str, str] = {}
+    if segments is None:
+        return problems
+    path = "segments"
+    if segments.max_segments < 2:
+        problems[f"{path}.max_segments"] = (
+            f"at least 2: one segment is no segmentation; got {segments.max_segments}"
+        )
+    elif segments.min_respondents < segments.max_segments:
+        problems[f"{path}.min_respondents"] = (
+            f"at least max_segments {segments.max_segments}: each start draws one respondent "
+            f"per segment; got {segments.min_respondents}"
+        )
+    if segments.min_ratings <= _VECTOR_MODEL_PARAMETERS:
+        problems[f"{path}.min_ratings"] = (
+            f"more than {_VECTOR_MODEL_PARAMETERS}: a slope's noise is estimated from the "
+            f"ratings beyond the vector model's intercept and two slopes; got "
+            f"{segments.min_ratings}"
+        )
+    for key in ("penalty_factor", "jitter"):
+        value = getattr(segments, key)
+        if not (math.isfinite(value) and value > 0.0):
+            problems[f"{path}.{key}"] = f"positive and finite; got {value!r}"
+    for key in ("min_separation", "distinct_separation", "borderline_margin"):
+        value = getattr(segments, key)
+        if not (math.isfinite(value) and value >= 0.0):
+            problems[f"{path}.{key}"] = f"non-negative and finite; got {value!r}"
+    for key in ("min_gain_share", "min_segment_share"):
+        value = getattr(segments, key)
+        if not (math.isfinite(value) and 0.0 <= value <= 1.0):
+            problems[f"{path}.{key}"] = f"a share lies in [0, 1]; got {value!r}"
+    membership = segments.colour_membership
+    if not (math.isfinite(membership) and 0.0 < membership <= 1.0):
+        problems[f"{path}.colour_membership"] = (
+            f"a membership probability lies in (0, 1]; got {membership!r}"
+        )
+    rate = segments.profile_false_discovery_rate
+    if not (math.isfinite(rate) and 0.0 < rate < 1.0):
+        problems[f"{path}.profile_false_discovery_rate"] = (
+            f"a false-discovery rate lies strictly between 0 and 1; got {rate!r}"
+        )
+    for key in ("profile_top", "consensus_maps", "consensus_min_objects"):
+        if getattr(segments, key) < 1:
+            problems[f"{path}.{key}"] = f"at least 1; got {getattr(segments, key)}"
+    if segments.shuffles < 0:
+        problems[f"{path}.shuffles"] = (
+            f"a count of shuffles, 0 to switch the guard off; got {segments.shuffles}"
+        )
+    if segments.seed < 0:
+        problems[f"{path}.seed"] = (
+            f"the generator's seed is a non-negative integer; got {segments.seed}"
         )
     return problems
 
@@ -1448,8 +1548,8 @@ AIA_SOCIOMAP_V4 = AIA_SOCIOMAP_V3.model_copy(
 # rule, Interval MDS; no Stress-1; the survey-weighted mean rating as height, and the envelope of
 # relative heights on a grid framed on the map; the split-half check and the uncertainty radius;
 # the respondents placed by the vector model with the chance test, and their density on the
-# map's frame; every value the methodology's own. Not pinned
-# by default and not in the register: a run gets it only through a methodology version.
+# map's frame; taste segments on the respondents' slopes; every value the methodology's own. Not
+# pinned by default and not in the register: a run gets it only through a methodology version.
 AIA_SOCIOMAP_V5 = AIA_SOCIOMAP_V4.model_copy(
     update={
         "methodology_version": "aia-sociomap-5",
@@ -1498,6 +1598,25 @@ AIA_SOCIOMAP_V5 = AIA_SOCIOMAP_V4.model_copy(
         ),
         "respondent_map": RespondentMapSpec(
             chance_level=0.10, min_ratings=3, informative_min_objects=6, density_sigma=0.35
+        ),
+        "segments": TasteSegmentsSpec(
+            max_segments=4,
+            penalty_factor=0.5,
+            shuffles=20,
+            min_respondents=30,
+            min_ratings=5,
+            min_gain_share=0.10,
+            min_segment_share=0.05,
+            min_separation=1.8,
+            colour_membership=0.8,
+            distinct_separation=3.5,
+            profile_false_discovery_rate=0.05,
+            profile_top=3,
+            consensus_maps=5,
+            consensus_min_objects=5,
+            borderline_margin=4.0,
+            jitter=1e-9,
+            seed=0,
         ),
         "terrain": ObjectTerrainSpec(
             method=TerrainMethod.FRAMED_RELATIVE_ENVELOPE,

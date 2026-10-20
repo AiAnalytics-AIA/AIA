@@ -116,6 +116,18 @@ _RESPONDENTS_EDIT_TEST: Final = (
     f"{_RESPONDENTS_TEST}test_every_value_of_the_stage_changes_the_map_when_edited"
 )
 
+_SIGNED_OFF_SEGMENTS: Final = _rule("AIA-SIGNED-OFF-SEGMENTS")
+_SEGMENTS_TEST: Final = f"{_T}/test_sociomap_signed_off_segments.py::"
+_SEGMENTS_PARITY_TEST: Final = f"{_SEGMENTS_TEST}test_the_segments_match_the_methodologys_own_code"
+_SEGMENTS_MAP_TEST: Final = (
+    f"{_SEGMENTS_TEST}test_the_object_map_stores_the_segments_under_aia_sociomap_5"
+)
+_SEGMENTS_EDIT_TEST: Final = (
+    f"{_SEGMENTS_TEST}test_every_value_of_the_stage_changes_the_segments_when_edited"
+)
+#: Where every value of the taste segments is shown and edited.
+_AT_SEGMENTS: Final = "(hodnota u kroku Segmenty vkusu)"
+
 _CATALOGUE: Final[tuple[MethodStep, ...]] = (
     # ------------------------------------------------------------------ the method
     MethodStep(
@@ -123,7 +135,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         title_cs="Pojmenování metody",
         formula_latex=r"\text{metoda} = \text{methodology\_version}",
         implements=f"{_S}.specification:SociomapSpecV3",
-        source_sha256="57f3a17a2dececbdbfa688181651aa247bf7e34b0e1d2ae6f9c36db56272c6d0",
+        source_sha256="6013f8150a9e4359be8f0dd3e0d67efa83f0489554cbda22991c78d11f499b3d",
         parameters=(ParameterRef("methodology_version", "Verze metodiky"),),
         evidence=(
             Evidence(
@@ -463,7 +475,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         title_cs="Síla vztahu a jeho směr",
         formula_latex=r"s_{ij} = |r_{ij}|,\qquad \operatorname{sgn} r_{ij} \text{ jako barva}",
         implements=f"{_S}.engine_v2:compute_object_map",
-        source_sha256="f0412a1ce0190f244faf4adb676f031b700b4a40a1841c0df0da6d84d68cd2d6",
+        source_sha256="24f5be1e1825142153d4222107fdc23c23083f1a2bfc51e74b35fae10ecf492a",
         evidence=(_rule("AUDIT-F4"),),
         tests=(
             f"{_T}/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input",
@@ -1126,7 +1138,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         title_cs="Mapa respondentů: spolehlivá od daného počtu objektů",
         formula_latex=r"\text{spolehlivá} \iff M \ge M_{\min}",
         implements=f"{_S}.engine_v2:_respondents",
-        source_sha256="e8b8ec932bcda9600c03da563ee480a0c1164453fa1622e9ed4eac8dddfd6367",
+        source_sha256="d12e242d399b5bb9ddebb39e5bf073ac73809267ef54391306136b48bc10ca18",
         symbols=(
             Symbol(r"M", "počet objektů mapy"),
             Symbol(r"M_{\min}", "počet objektů, od kterého je mapa respondentů spolehlivá"),
@@ -1156,6 +1168,285 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
             "respondent jen o málo větší šanci být skutečný než náhodný. Pod třemi objekty nelze "
             "umístit nikoho (potřeba aspoň tří hodnocení). Umístění samo se nemění. Mapa zapíše, "
             "zda je spolehlivá, a M_min (respondents.informative a min_objects)."
+        ),
+    ),
+    MethodStep(
+        id="segment_mixture",
+        title_cs="Segmenty vkusu: sklony respondentů a směs s penalizací",
+        formula_latex=(
+            r"\hat{\boldsymbol\beta}_k = \mathbf b_k + \mathbf e_k,\ "
+            r"\mathbf e_k \sim \mathcal N(\mathbf 0, V_k),\ "
+            r"\mathbf b_k \sim \sum_{g=1}^{G} \pi_g \mathcal N(\boldsymbol\mu_g, \Sigma_g),"
+            r"\qquad V_k = s_k^2 \big[(Z_k^{\top} Z_k)^{-1}\big]_{\beta\beta},\ "
+            r"s_k^2 = \frac{\mathrm{RSS}_k}{n_k - 3},"
+            r"\qquad C(G) = -2 \log \hat L_G + \lambda\, (6G - 1) \ln n,"
+            r"\qquad G^{*} = \arg\min_{1 \le G \le G_{\max}} C(G)"
+        ),
+        implements=f"{_S}.signed_off_segments:_seg_fit",
+        source_sha256="e1a8dd812528fe7aa094d5c3c0b1eda60e8745c46e9e6fede25578b3be0b2d85",
+        symbols=(
+            Symbol(
+                r"\hat{\boldsymbol\beta}_k, V_k",
+                "sklon respondenta k z vektorového modelu (hodnocení na škále 0-1, bez vah) a "
+                "šum toho sklonu",
+            ),
+            Symbol(r"n_k", "počet objektů mapy, které respondent k hodnotil"),
+            Symbol(
+                r"\pi_g, \boldsymbol\mu_g, \Sigma_g",
+                "podíl, střed a rozptyl segmentu g",
+            ),
+            Symbol(r"n", "počet respondentů se sklonem"),
+            Symbol(
+                r"\lambda, G_{\max}",
+                f"násobek penalizace BIC a největší počet segmentů {_AT_SEGMENTS}",
+            ),
+        ),
+        evidence=(_SIGNED_OFF_SEGMENTS,),
+        tests=(_SEGMENTS_PARITY_TEST, _SEGMENTS_MAP_TEST, _SEGMENTS_EDIT_TEST),
+        note_cs=(
+            "Jen aia-sociomap-5, jen u nakreslené mapy. Segmenty se hledají na sklonech, ne na "
+            "polohách: sklon roste s vkusem lineárně, takže sada bez segmentů je jeden "
+            "gaussovský mrak, kdežto polohy se ohýbají do prstence. Sklon má respondent "
+            "s aspoň daným počtem hodnocení, která nejsou všechna stejná; s méně respondenty "
+            "se sklonem se segmenty nehledají. Směs nese u každého respondenta jeho vlastní šum "
+            "(extreme deconvolution): tři starty k-means++, nejvýš 200 kroků EM, dokud log L "
+            "roste relativně aspoň o 10^-6 (pevné hodnoty metodiky). \u03bb = 0,5 je "
+            "kalibrované na studiích bez segmentů (asi 2 % falešných segmentů)."
+        ),
+    ),
+    MethodStep(
+        id="shuffle_guard",
+        title_cs="Segmenty vkusu: pojistka proti zamíchaným hodnocením",
+        formula_latex=(
+            r"\Delta = C(1) - C(G^{*}),\qquad "
+            r"\text{segmenty} \iff G^{*} \ge 2 \ \wedge\ \Delta > \max_{b \le B} \Delta^{(b)}"
+        ),
+        implements=f"{_S}.signed_off_segments:_largest_shuffled_gain",
+        source_sha256="fce6b2cc18579f69204afa0b0a60bc75fcaae2cf20b78235382fc7d07f47699a",
+        symbols=(
+            Symbol(r"\Delta", "zisk modelu se segmenty proti jednomu segmentu"),
+            Symbol(
+                r"\Delta^{(b)}",
+                "tentýž zisk na kopii, kde má každý respondent svá hodnocení náhodně "
+                "přeházená mezi objekty, které hodnotil (0, vyjde-li jeden segment)",
+            ),
+            Symbol(r"B", f"počet zamíchání {_AT_SEGMENTS}"),
+        ),
+        evidence=(_SIGNED_OFF_SEGMENTS,),
+        tests=(
+            _SEGMENTS_PARITY_TEST,
+            f"{_SEGMENTS_TEST}test_the_threads_never_change_a_stored_value",
+            _SEGMENTS_EDIT_TEST,
+        ),
+        note_cs=(
+            "Zamíchání nechá každému respondentovi jeho zvyky hodnocení i chybějící hodnoty a "
+            "odstraní společný vkus. Zamíchání se táhnou popořadě z jednoho generátoru (semínko "
+            "+ 7919) a počítají se po čtyřech; skončí po první čtveřici, v níž některé dosáhne "
+            "skutečného zisku (rozhodnutí je pak stejné). Čtveřice je pevná, nikdy počet jader "
+            "stroje: největší zisk ze zamíchání, který mapa zapíše, na ní závisí. B = 0 pojistku "
+            "vypne. Mapa zapíše zisk a největší zisk ze zamíchání (segments.gain, "
+            "null_gain_max)."
+        ),
+    ),
+    MethodStep(
+        id="segment_step_down",
+        title_cs="Segmenty vkusu: ubírání proti přílišnému dělení",
+        formula_latex=(
+            r"G \leftarrow G - 1 \text{ dokud } G \ge 3 \wedge "
+            r"\frac{\log \hat L_G - \log \hat L_{G-1}}{\log \hat L_G - \log \hat L_1} < g_{\min};"
+            r"\ \text{pak dokud } \min_g \hat\pi_g < \pi_{\min};"
+            r"\ \text{pak dokud } \min_{g \ne h} S_{gh} < S_{\min}"
+        ),
+        implements=f"{_S}.signed_off_segments:map_decision",
+        source_sha256="71428b8a7d0fa53ce7f4e025c97ac57bc03823d00523edf3a41a80b41467a95e",
+        symbols=(
+            Symbol(
+                r"S_{gh}",
+                "oddělení segmentů: \u221a((\u03bc_g - \u03bc_h)' [(\u03a3_g + "
+                "\u03a3_h)/2]^-1 (\u03bc_g - \u03bc_h))",
+            ),
+            Symbol(
+                r"g_{\min}, \pi_{\min}, S_{\min}",
+                f"nejmenší podíl zisku, nejmenší segment a nejmenší oddělení {_AT_SEGMENTS}",
+            ),
+        ),
+        evidence=(_SIGNED_OFF_SEGMENTS,),
+        tests=(_SEGMENTS_PARITY_TEST, _SEGMENTS_EDIT_TEST),
+        note_cs=(
+            "Na velkých vzorcích směs rozdělí tvar uvnitř jednoho segmentu nebo odštěpí "
+            "střípek; pojistka proti zamíchání to nechá projít, protože je to skutečná struktura. "
+            "Každé pravidlo se zkouší na fitu s tolika segmenty; skončí-li to u jednoho, segmenty "
+            "nejsou. Všechna tři jsou podíly nebo velikosti účinku, takže nerostou s n. Mapa "
+            "zapíše počet, který zvolil fit (segments.k_fit)."
+        ),
+    ),
+    MethodStep(
+        id="segment_consensus",
+        title_cs="Segmenty vkusu: rozhodnutí přes téměř stejné mapy, hraniční případ",
+        formula_latex=(
+            r"\bar\Delta = \operatorname{mean}_m \big(\min_{G \ge 2} C_m(G) - C_m(1)\big),"
+            r"\quad v = \frac{\#\{m: G_m \ge 2\}}{\#\text{map}},"
+            r"\qquad \text{segmenty} \iff \bar\Delta < -b \wedge v \ge \tfrac12,"
+            r"\quad \text{žádné} \iff \bar\Delta > b \vee (v = 0 \wedge \bar\Delta > 0),"
+            r"\quad \text{jinak hraniční}"
+        ),
+        implements=f"{_S}.signed_off_segments:taste_segments",
+        source_sha256="008928364d5d1ebe29c6b7c61cae18a67b81ef547e61b1304ab9548d55252794",
+        symbols=(
+            Symbol(
+                r"m",
+                "nakreslená mapa a mapy hodnocení posunutých o šum velikosti zaokrouhlení, "
+                "rozložené stejně jako ona",
+            ),
+            Symbol(r"G_m", "počet segmentů, který ukáže mapa m (předchozí kroky)"),
+            Symbol(r"b", f"šířka hraničního pásma {_AT_SEGMENTS}"),
+        ),
+        evidence=(_SIGNED_OFF_SEGMENTS,),
+        tests=(
+            _SEGMENTS_PARITY_TEST,
+            f"{_SEGMENTS_TEST}test_the_maps_decide_together_within_the_band",
+            f"{_SEGMENTS_TEST}test_a_set_below_the_consensus_minimum_makes_no_jittered_maps",
+            _SEGMENTS_EDIT_TEST,
+        ),
+        note_cs=(
+            "Šum 10^-9 v hodnoceních může poslat rozložení k jiné, stejně dobré mapě a překlopit "
+            "těsné rozhodnutí. Proto se rozhoduje na nakreslené mapě a na dalších mapách "
+            "posunutých hodnocení (každá svým generátorem, semínko + 104729 krát její číslo), "
+            "jen od daného počtu objektů. Segmenty se vždy fitují na nakreslené mapě; neukázala-li "
+            "je sama, s nejčastějším počtem ostatních map. Hraniční: nikdo se neobarví a mapa "
+            "pojmenuje pravděpodobné dělení (nejčastější počet, jinak nejlepší podle C) s jeho "
+            "objekty. Ukázala-li segmenty nakreslená mapa, ale vyjde žádné (průměrný okraj nad b; "
+            "pravidlo v = 0 tu nenastane, protože nakreslená mapa sama hlasuje), segmenty nejsou: "
+            "nejsou stabilní mezi variantami mapy. Ukáže-li je jen nakreslená mapa a průměr leží "
+            "v pásmu od -b do b, rozhodnutí je hraniční. Mapu, kterou nelze rozložit, hlasování "
+            "vynechá. Mapa zapíše rozhodnutí, okraje map "
+            "(na dvě desetinná místa), jejich průměr, hlasy a počet map (segments.decision, "
+            "margins, mean_margin, votes, maps, hint)."
+        ),
+    ),
+    MethodStep(
+        id="segment_membership",
+        title_cs="Segmenty vkusu: příslušnost a barva jen jasně umístěných",
+        formula_latex=(
+            r"r_{kg} = \frac{\pi_g \phi(\hat{\boldsymbol\beta}_k; \boldsymbol\mu_g, "
+            r"\Sigma_g + V_k)}{\sum_h \pi_h \phi(\hat{\boldsymbol\beta}_k; \boldsymbol\mu_h, "
+            r"\Sigma_h + V_k)},\qquad \text{barva} \iff \max_g r_{kg} \ge r_{\min} \wedge "
+            r"k \in \mathcal P,\qquad \text{zřetelné} \iff \min_{g \ne h} S_{gh} \ge S_d"
+        ),
+        implements=f"{_S}.signed_off_segments:_segments_from_fit",
+        source_sha256="cea22055fd0ff053049d7945089644112c5975d2649832089fca95c359792276",
+        symbols=(
+            Symbol(r"r_{kg}", "pravděpodobnost, že respondent k patří do segmentu g"),
+            Symbol(
+                r"\mathcal P",
+                "respondenti s jasným směrem (PLACED) podle mapy respondentů a jejích hodnot",
+            ),
+            Symbol(
+                r"r_{\min}, S_d",
+                f"příslušnost pro barvu a oddělení zřetelných segmentů {_AT_SEGMENTS}",
+            ),
+        ),
+        evidence=(_SIGNED_OFF_SEGMENTS,),
+        tests=(_SEGMENTS_PARITY_TEST, _SEGMENTS_MAP_TEST, _SEGMENTS_EDIT_TEST),
+        note_cs=(
+            "Respondent patří do segmentu s nejvyšší příslušností; segmenty jsou seřazené od "
+            "největšího. Barvu dostane jen ten, kdo do segmentu patří s pravděpodobností aspoň "
+            "r_min a je jasně umístěný: respondenti se slabým směrem zůstanou šedí, protože "
+            "jejich barva seděla jen v 67 % případů (jasně umístění 88 %). Kdo sklon nemá, "
+            "nepatří nikam (-1). Mapa zapíše u každého respondenta segment, příslušnost (na pět "
+            "desetinných míst, barva se rozhodla předtím) a barvu, a podíly segmentů, jejich "
+            "oddělení a zda jsou zřetelné (segments.label, membership, coloured, shares, "
+            "separation, distinct); bez segmentů nic z toho."
+        ),
+    ),
+    MethodStep(
+        id="segment_profiles",
+        title_cs="Segmenty vkusu: co segment hodnotí výš a níž",
+        formula_latex=(
+            r"d_{gj} = \frac{\sum_k r_{kg} c_{kj}}{\sum_k r_{kg}} - "
+            r"\frac{\sum_k (1 - r_{kg}) c_{kj}}{\sum_k (1 - r_{kg})},\quad "
+            r"c_{kj} = a_{kj} - \bar a_k,\qquad \widehat{\mathrm{se}}^2 = "
+            r"\frac{\hat v^{(1)}}{n^{(1)}_{\mathrm{eff}}} + "
+            r"\frac{\hat v^{(0)}}{n^{(0)}_{\mathrm{eff}}},"
+            r"\quad n_{\mathrm{eff}} = \frac{(\sum w)^2}{\sum w^2}"
+        ),
+        implements=f"{_S}.signed_off_segments:segment_profiles",
+        source_sha256="e578ada5e873a9fcad92e0023d4d2c690f490c6a1392ea6efbd3eef691ea9531",
+        symbols=(
+            Symbol(
+                r"a_{kj}, \bar a_k",
+                "surové hodnocení objektu j respondentem k a průměr jeho hodnocení",
+            ),
+            Symbol(r"d_{gj}", "o kolik segment g hodnotí objekt j výš než ostatní", "body škály"),
+            Symbol(
+                r"q, t",
+                f"hladina Benjaminiho-Hochberga a počet jmenovaných objektů {_AT_SEGMENTS}",
+            ),
+        ),
+        evidence=(_SIGNED_OFF_SEGMENTS,),
+        tests=(_SEGMENTS_PARITY_TEST, _SEGMENTS_MAP_TEST, _SEGMENTS_EDIT_TEST),
+        note_cs=(
+            "Rozdíly jsou v bodech škály, ze surových hodnocení, vážené příslušností. Oboustranné "
+            "p-hodnoty normálního testu, pak Benjamini-Hochberg na hladině q přes všechny "
+            "segmenty a objekty. Segment jmenuje nejvýš t význačných objektů, které hodnotí výš "
+            "(od největšího rozdílu), a t, které hodnotí níž. Intervaly se neukazují: jejich "
+            "pokrytí je 75 %, ne 95 %. U hraničního rozhodnutí se počítají pro pravděpodobné "
+            "dělení. Mapa zapíše rozdíly, chyby, p-hodnoty, význačnost a jmenované objekty "
+            "(segments.profiles)."
+        ),
+    ),
+    MethodStep(
+        id="taste_segments",
+        title_cs="Segmenty vkusu",
+        formula_latex=(r"\text{rozhodnutí} \in \{\text{segmenty}, \text{žádné}, \text{hraniční}\}"),
+        implements=f"{_S}.engine_v2:_segments",
+        source_sha256="a0845d38eb5be1671cacf73bd7fbbc409b47a68bc0d22d4074e8c9e62232d405",
+        symbols=(
+            Symbol(r"G_{\max}, \lambda", "největší počet segmentů a násobek penalizace BIC"),
+            Symbol(r"B", "počet zamíchání pojistky (0 ji vypne)"),
+            Symbol(
+                r"g_{\min}, \pi_{\min}, S_{\min}",
+                "ubírání: podíl zisku, nejmenší segment, nejmenší oddělení",
+            ),
+            Symbol(r"r_{\min}, S_d", "příslušnost pro barvu, oddělení zřetelných segmentů"),
+            Symbol(r"q, t", "hladina profilů a počet jmenovaných objektů"),
+            Symbol(r"b", "šířka hraničního pásma"),
+        ),
+        parameters=(
+            ParameterRef("segments.max_segments", "Největší počet segmentů G_max"),
+            ParameterRef("segments.penalty_factor", "Násobek penalizace BIC \u03bb"),
+            ParameterRef("segments.shuffles", "Počet zamíchání B"),
+            ParameterRef("segments.min_respondents", "Nejméně respondentů se sklonem"),
+            ParameterRef("segments.min_ratings", "Nejméně hodnocení pro sklon"),
+            ParameterRef("segments.min_gain_share", "Nejmenší podíl zisku g_min"),
+            ParameterRef("segments.min_segment_share", "Nejmenší segment \u03c0_min"),
+            ParameterRef("segments.min_separation", "Nejmenší oddělení S_min"),
+            ParameterRef("segments.colour_membership", "Příslušnost pro barvu r_min"),
+            ParameterRef("segments.distinct_separation", "Oddělení zřetelných segmentů S_d"),
+            ParameterRef("segments.profile_false_discovery_rate", "Hladina profilů q"),
+            ParameterRef("segments.profile_top", "Počet jmenovaných objektů t"),
+            ParameterRef("segments.consensus_maps", "Počet map pro rozhodnutí (s nakreslenou)"),
+            ParameterRef("segments.consensus_min_objects", "Téměř stejné mapy od tolika objektů"),
+            ParameterRef("segments.borderline_margin", "Šířka hraničního pásma b"),
+            ParameterRef("segments.jitter", "Velikost šumu v hodnoceních"),
+            ParameterRef("segments.seed", "Semínko generátorů"),
+        ),
+        evidence=(_SIGNED_OFF_SEGMENTS,),
+        tests=(
+            f"{_SEGMENTS_TEST}test_the_studies_cover_the_decisions",
+            f"{_SEGMENTS_TEST}test_without_segments_nobody_is_labelled",
+            f"{_SEGMENTS_TEST}test_the_segments_are_declared_exactly_under_the_signed_off_methodology",
+            f"{_SEGMENTS_TEST}test_earlier_presets_store_exactly_what_they_stored",
+            _SEGMENTS_MAP_TEST,
+            _SEGMENTS_EDIT_TEST,
+        ),
+        note_cs=(
+            "Jen aia-sociomap-5, jen u nakreslené mapy, vedle mapy respondentů; bez vah. Mapa "
+            "zapíše rozhodnutí a u žádných segmentů důvod: málo respondentů se sklonem, žádné "
+            "jasné segmenty, ne silnější než zamíchaná hodnocení, nestabilní mezi variantami "
+            "mapy (segments.decision, reason). Pevné hodnoty metodiky, které tu nejsou: tři "
+            "starty a nejvýš 200 kroků EM s tolerancí 10^-6, práh vlastních čísel 10^-6, "
+            "posuny generátorů 7919 a 104729 a čtveřice zamíchání."
         ),
     ),
     # ------------------------------------------------------------------ F11
@@ -1540,6 +1831,43 @@ _CONTEXT: Final[dict[str, _Context]] = {
         inputs=("vector_model_placement", "respondent_density"),
         audit=_SIGNED_OFF_POINT,
     ),
+    "segment_mixture": _Context(
+        role_cs="Hledá skupiny respondentů s podobným vkusem: kolik jich je a jak velké.",
+        inputs=("f1_declared_scale", "ruler_scale"),
+        audit=_SIGNED_OFF_POINT,
+    ),
+    "shuffle_guard": _Context(
+        role_cs="Ověří, že segmenty nejsou silnější jen proto, jak lidé hodnotí: na "
+        "zamíchaných hodnoceních by být neměly.",
+        inputs=("segment_mixture",),
+        audit=_SIGNED_OFF_POINT,
+    ),
+    "segment_step_down": _Context(
+        role_cs="Ubere segmenty, které jen dělí jeden skutečný segment nebo odštěpí střípek.",
+        inputs=("segment_mixture", "shuffle_guard"),
+        audit=_SIGNED_OFF_POINT,
+    ),
+    "segment_consensus": _Context(
+        role_cs="Rozhodne o segmentech na nakreslené mapě i jejích téměř stejných variantách; "
+        "těsný případ označí za hraniční.",
+        inputs=("segment_step_down", "object_count_rule", "ruler_scale"),
+        audit=_SIGNED_OFF_POINT,
+    ),
+    "segment_membership": _Context(
+        role_cs="Kdo do kterého segmentu patří a koho mapa obarví.",
+        inputs=("segment_consensus", "vector_model_placement"),
+        audit=_SIGNED_OFF_POINT,
+    ),
+    "segment_profiles": _Context(
+        role_cs="Které objekty segment hodnotí výš a které níž než ostatní.",
+        inputs=("segment_membership",),
+        audit=_SIGNED_OFF_POINT,
+    ),
+    "taste_segments": _Context(
+        role_cs="Zapíše segmenty vkusu k mapě respondentů: rozhodnutí, segmenty, barvy a profily.",
+        inputs=("segment_consensus", "segment_membership", "segment_profiles"),
+        audit=_SIGNED_OFF_POINT,
+    ),
     "support": _Context(
         role_cs="Počty, které mapa uvádí: kdo ji nese, kdo vypadl a jaké je efektivní n.",
         inputs=("f11_not_placed",),
@@ -1628,9 +1956,16 @@ _GROUPS: Final = (
             "vector_model_placement",
             "respondent_density",
             "respondent_map",
+            "segment_mixture",
+            "shuffle_guard",
+            "segment_step_down",
+            "segment_consensus",
+            "segment_membership",
+            "segment_profiles",
+            "taste_segments",
             "support",
         ),
-        "Kde na mapě leží respondenti a na kolika lidech mapa stojí.",
+        "Kde na mapě leží respondenti, jaké mají segmenty vkusu a na kolika lidech mapa stojí.",
     ),
     StepGroup(
         "F5",
@@ -1687,7 +2022,8 @@ SOCIOMAP: Final = MethodModule(
         "je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice "
         "i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava "
         "z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, "
-        "terén, věrohodnost mapy a mapu respondentů podle schválené metodiky AIA Sociomapa "
+        "terén, věrohodnost mapy, mapu respondentů a segmenty vkusu podle schválené metodiky "
+        "AIA Sociomapa "
         "(kroky označené „Jen aia-sociomap-5“)."
     ),
 )

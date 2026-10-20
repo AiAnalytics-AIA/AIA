@@ -46,6 +46,7 @@ __all__ = [
     "CredibilityRule",
     "MapCredibility",
     "MapOutcome",
+    "NoSegmentsReason",
     "NotComputed",
     "NotMappable",
     "NotMappableReason",
@@ -58,8 +59,12 @@ __all__ = [
     "RespondentDensity",
     "RespondentMap",
     "RespondentStatus",
+    "SegmentDecision",
+    "SegmentHint",
+    "SegmentProfile",
     "SociomapArtifactV3",
     "SparseDesign",
+    "TasteSegments",
     "read_artifact",
     "read_object_maps",
 ]
@@ -415,6 +420,155 @@ class RespondentDensity(_Frozen):
         return self
 
 
+class SegmentDecision(StrEnum):
+    """What the taste segments of a respondent map are (``aia-sociomap-5``)."""
+
+    #: Segments shown: their respondents coloured, their profiles named.
+    SEGMENTS = "SEGMENTS"
+    #: No segments; the reason says why.
+    NONE = "NONE"
+    #: A near-tie between the shown and the jittered maps: nobody coloured, the likely split
+    #: named.
+    BORDERLINE = "BORDERLINE"
+
+
+class NoSegmentsReason(StrEnum):
+    """Why a respondent map shows no taste segments."""
+
+    #: Fewer respondents with a slope than the declared minimum: nothing was looked for.
+    TOO_FEW_RESPONDENTS = "TOO_FEW_RESPONDENTS"
+    #: One segment fits best, or the step-down left fewer than two.
+    NO_CLEAR_SEGMENTS = "NO_CLEAR_SEGMENTS"
+    #: The gain is no larger than in the ratings shuffled within each respondent.
+    NOT_ABOVE_SHUFFLED = "NOT_ABOVE_SHUFFLED"
+    #: The shown map showed segments, the jittered maps together did not.
+    NOT_STABLE = "NOT_STABLE"
+
+
+class SegmentProfile(_Frozen):
+    """What one segment rates above or below everyone else, one entry per mapped object in
+    the map's ``object_ids`` order: the difference of respondent-centred raw ratings (rating
+    units), its standard error and p-value, and whether it is distinctive; ``likes`` and
+    ``dislikes`` are up to the declared number of distinctive objects rated higher (largest
+    first) and lower (lowest first)."""
+
+    likes: tuple[str, ...]
+    dislikes: tuple[str, ...]
+    difference: tuple[float, ...]
+    standard_error: tuple[float, ...]
+    p_value: tuple[float, ...]
+    distinctive: tuple[bool, ...]
+
+    @model_validator(mode="after")
+    def _aligned(self) -> Self:
+        m = len(self.difference)
+        if any(len(c) != m for c in (self.standard_error, self.p_value, self.distinctive)):
+            raise ValueError("a profile has one entry per object in every column")
+        if not all(math.isfinite(v) for v in (*self.difference, *self.standard_error)):
+            raise ValueError("a profile's differences and standard errors are finite")
+        if not all(0.0 <= p <= 1.0 for p in self.p_value):
+            raise ValueError("a p-value lies in [0, 1]")
+        return self
+
+
+class SegmentHint(_Frozen):
+    """The likely split of a borderline decision: its number of segments, their shares
+    (largest first) and profiles. Nobody is coloured by it."""
+
+    k: int
+    shares: tuple[float, ...]
+    profiles: tuple[SegmentProfile, ...]
+
+    @model_validator(mode="after")
+    def _sized(self) -> Self:
+        if self.k < 2 or len(self.shares) != self.k or len(self.profiles) != self.k:
+            raise ValueError("a split has at least two segments, each with a share and profile")
+        return self
+
+
+class TasteSegments(_Frozen):
+    """The taste segments of a respondent map (``aia-sociomap-5``).
+
+    ``decision`` and, for NONE, ``reason`` are codes the reader words. ``gain`` is the shown
+    map's gain of the segment model over one segment, ``null_gain_max`` the largest gain in
+    the shuffled ratings (``None`` when the guard did not run), ``k_fit`` the number the fit
+    chose before the step-down (``None`` unless the step-down ran). ``margins`` are the
+    penalised margins of the shown and the jittered maps (below 0 favours segments; rounded to
+    two decimals, ``None`` for a map with too few respondents), ``mean_margin`` their mean,
+    ``votes`` the maps showing segments of ``maps``; all four ``None`` when the set has too
+    few objects for jittered maps. Under SEGMENTS: ``k`` segments with their ``shares``
+    (largest first), smallest ``separation``, whether ``distinct``, one profile each, and per
+    respondent in ``respondent_ids`` order the ``label`` (-1 without a slope), largest
+    ``membership`` (``None`` without a slope; five decimals, the colour decided before) and
+    whether ``coloured``. Otherwise ``k`` is 0 and the per-respondent columns are ``None``:
+    nobody is coloured. Under BORDERLINE, ``hint`` is the likely split.
+    """
+
+    decision: str
+    reason: str | None
+    k: int
+    k_fit: int | None
+    gain: float
+    null_gain_max: float | None
+    margins: tuple[float | None, ...] | None
+    mean_margin: float | None
+    votes: int | None
+    maps: int | None
+    shares: tuple[float, ...]
+    separation: float | None
+    distinct: bool | None
+    profiles: tuple[SegmentProfile, ...]
+    label: tuple[int, ...] | None
+    membership: tuple[float | None, ...] | None
+    coloured: tuple[bool, ...] | None
+    hint: SegmentHint | None
+
+    @model_validator(mode="after")
+    def _coherent(self) -> Self:
+        if self.decision not in {d.value for d in SegmentDecision}:
+            raise ValueError(f"a decision is one of {[d.value for d in SegmentDecision]}")
+        none = self.decision == SegmentDecision.NONE
+        if (self.reason is not None) != none:
+            raise ValueError("a reason is given exactly when there are no segments")
+        if self.reason is not None and self.reason not in {r.value for r in NoSegmentsReason}:
+            raise ValueError(f"a reason is one of {[r.value for r in NoSegmentsReason]}")
+        if (self.hint is not None) != (self.decision == SegmentDecision.BORDERLINE):
+            raise ValueError("a likely split is named exactly when the decision is borderline")
+        consensus = (self.margins, self.mean_margin, self.votes, self.maps)
+        if self.margins is None and any(v is not None for v in consensus):
+            raise ValueError("margins, their mean, votes and maps are recorded together")
+        if self.margins is not None and (
+            self.maps is None or self.votes is None or len(self.margins) != self.maps
+        ):
+            raise ValueError("one margin per map, and the votes among them")
+        shown = self.decision == SegmentDecision.SEGMENTS
+        columns = (self.label, self.membership, self.coloured)
+        if not shown:
+            if self.k != 0 or self.shares or self.profiles or self.separation is not None:
+                raise ValueError("without segments there are no shares, profiles or separation")
+            if self.distinct is not None or any(c is not None for c in columns):
+                raise ValueError("without segments nobody is labelled or coloured")
+            return self
+        if self.k < 2 or len(self.shares) != self.k or len(self.profiles) != self.k:
+            raise ValueError("segments are at least two, each with a share and a profile")
+        if self.separation is None or self.distinct is None:
+            raise ValueError("segments record their separation and whether they are distinct")
+        if self.label is None or self.membership is None or self.coloured is None:
+            raise ValueError("segments label every respondent")
+        if not len(self.label) == len(self.membership) == len(self.coloured):
+            raise ValueError("every per-respondent column has one entry per respondent")
+        for label, membership, coloured in zip(
+            self.label, self.membership, self.coloured, strict=True
+        ):
+            if not -1 <= label < self.k:
+                raise ValueError(f"a label is -1 or a segment below {self.k}")
+            if (membership is None) != (label == -1):
+                raise ValueError("a respondent has a membership exactly when labelled")
+            if coloured and label == -1:
+                raise ValueError("only a labelled respondent is coloured")
+        return self
+
+
 class RespondentMap(_Frozen):
     """The signed-off methodology's respondent map (``aia-sociomap-5``), one entry per
     respondent in the map's ``respondent_ids`` order.
@@ -436,6 +590,16 @@ class RespondentMap(_Frozen):
     informative: bool
     min_objects: int
     density: RespondentDensity
+    #: The taste segments, where the spec declares them; ``None`` is left out of the stored
+    #: form, so a respondent map stored before them reads, and recomputes, byte for byte.
+    segments: TasteSegments | None = None
+
+    @model_serializer(mode="wrap")
+    def _without_absent(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        body: dict[str, Any] = handler(self)
+        if body.get("segments") is None:
+            body.pop("segments", None)
+        return body
 
     @model_validator(mode="after")
     def _coherent(self) -> Self:
@@ -453,6 +617,14 @@ class RespondentMap(_Frozen):
                 raise ValueError("a respondent has a position and a fit exactly when placed")
         if self.counts != {s.value: self.placement.count(s) for s in RespondentStatus}:
             raise ValueError("counts must count each placement")
+        if self.segments is not None and self.segments.coloured is not None:
+            if len(self.segments.coloured) != n:
+                raise ValueError("the segments label every respondent of the map")
+            if any(
+                coloured and status != RespondentStatus.PLACED
+                for coloured, status in zip(self.segments.coloured, self.placement, strict=True)
+            ):
+                raise ValueError("only a clearly placed (PLACED) respondent is coloured")
         return self
 
 
@@ -549,6 +721,17 @@ class SociomapArtifactV3(_Frozen):
                 raise ValueError("the respondent map places every respondent of the map")
             if self.respondents.informative != (m >= self.respondents.min_objects):
                 raise ValueError("the respondent map is informative from its minimum of objects")
+            segments = self.respondents.segments
+            if (segments is None) != (self.spec.segments is None):
+                raise ValueError("a respondent map has taste segments exactly when declared")
+            profiles = () if segments is None else segments.profiles
+            if segments is not None and segments.hint is not None:
+                profiles += segments.hint.profiles
+            for profile in profiles:
+                if len(profile.difference) != m:
+                    raise ValueError("a segment profile has one entry per mapped object")
+                if set(profile.likes + profile.dislikes) - set(self.object_ids):
+                    raise ValueError("a segment profile names mapped objects")
         if len(self.heights.values) != m or len(self.heights.support_n) != m:
             raise ValueError("heights must align with the mapped objects")
         if self.heights.relative is not None and len(self.heights.relative) != m:

@@ -8,7 +8,7 @@ chunks:
   - "[x] 4. Height and terrain: mean rating, relative heights with a floor, ruler and frame scaling, the envelope terrain, node size and label note for large maps"
   - "[x] 5. Map credibility: split-half agreement, the no-reliable-structure statement, one uncertainty radius per map"
   - "[x] 6. Respondent map: vector-model placement, the chance test for placed / faded, the respondent terrain, the indicative note below six objects"
-  - "[ ] 7. Taste segments: the mixture on slopes, the shuffle guard, the step-down, profiles, colour only for clearly placed respondents, borderline segments"
+  - "[x] 7. Taste segments: the mixture on slopes, the shuffle guard, the step-down, profiles, colour only for clearly placed respondents, borderline segments"
 ---
 # aia-sociomap-5 — the signed-off AIA Sociomapa methodology as a method
 
@@ -200,6 +200,30 @@ and 0.68/2.5).
   methodology comparison (`sociomap_check.MapSummary`) does not carry the respondent map yet,
   so an edit of a `respondent_map` value shows no change there. Until then the web and the
   report show no respondents for a `-5` map.
+
+- Where the object-map artifact is described: under `aia-sociomap-5` a MAPPED map's respondent
+  map records `segments` = {`decision` (`SEGMENTS`, `NONE` or `BORDERLINE`), `reason` (under
+  `NONE`: `TOO_FEW_RESPONDENTS`, `NO_CLEAR_SEGMENTS`, `NOT_ABOVE_SHUFFLED` or `NOT_STABLE`), `k`
+  (0 unless `SEGMENTS`), `k_fit`, `gain`, `null_gain_max`, `margins` (each map's, two decimals),
+  `mean_margin`, `votes`, `maps` (the last four null below `consensus_min_objects`), `shares`,
+  `separation`, `distinct`, `profiles` (per segment: `likes`, `dislikes` as object ids,
+  `difference`, `standard_error`, `p_value`, `distinctive` per object), per respondent in
+  `respondent_ids` order `label` (-1 without a slope), `membership` (five decimals) and
+  `coloured` (all three null unless `SEGMENTS`), `hint` (`BORDERLINE` only: `k`, `shares`,
+  `profiles`)}. The spec's top-level `segments` section (17 values) is declared under `-5` only
+  and left out of the earlier presets' stored form.
+- CLAUDE.md §2: `domain/sociomap/signed_off_segments.py` (`respondent_slopes`, `map_decision`,
+  `taste_segments`, `consensus_state`, `segment_profiles`, `jittered_ratings`; the compiled EM
+  loop; the shuffles fitted four at a time in threads), wired in `engine_v2._segments`; Metodika
+  steps `segment_mixture`, `shuffle_guard`, `segment_step_down`, `segment_consensus`,
+  `segment_membership`, `segment_profiles`, `taste_segments` (the 17 values) in group S7; register
+  rule `AIA-SIGNED-OFF-SEGMENTS`.
+- Web follow-up (taste segments, not drawn yet): the respondent dots coloured by `label` where
+  `coloured`, grey otherwise; the segment legend with shares and `likes` / `dislikes`, "overlapping"
+  when not `distinct`; the decision's note from `decision` and `reason` (the panel's texts); under
+  `BORDERLINE` nobody coloured and the likely split named from `hint`. The methodology comparison
+  (`sociomap_check.MapSummary`) does not carry the segments yet, so an edit of a `segments` value
+  shows no change there. Until then the web and the report show no segments for a `-5` map.
 
 ## Findings
 

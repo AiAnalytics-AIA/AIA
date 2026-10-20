@@ -2519,7 +2519,69 @@
      "what": "aia-sociomap-2, -3 and -4 store no respondent map and no respondent_map in their spec"
     }
    ],
-   "uncertainty": "The methodology is AIA's own, signed off by its owner; no external source states it. The ratings are those of the mapped (PRIMARY, rated) objects on each item's declared 0-1 scale; for a set on one scale this equals the methodology's (A - lo) / (hi - lo). The positions are BB1's or Interval MDS's, so where BB1 differs between platforms the respondent map differs with it; placement and density are deterministic given the positions. Respondents are stored in ruler units (the AIA panel reports them x 27, its map units). Taste segments, the respondent drawing (dots, faded transparency, the 26x height exaggeration) and the note below the informative minimum are not here: segments are a later chunk, drawing is the web client's.",
+   "uncertainty": "The methodology is AIA's own, signed off by its owner; no external source states it. The ratings are those of the mapped (PRIMARY, rated) objects on each item's declared 0-1 scale; for a set on one scale this equals the methodology's (A - lo) / (hi - lo). The positions are BB1's or Interval MDS's, so where BB1 differs between platforms the respondent map differs with it; placement and density are deterministic given the positions. Respondents are stored in ruler units (the AIA panel reports them x 27, its map units). The taste segments stored with the respondent map are registered as AIA-SIGNED-OFF-SEGMENTS. The respondent drawing (dots, faded transparency, the 26x height exaggeration) and the note below the informative minimum are not here: drawing is the web client's.",
+   "resolve_by": "plan signed-off-sociomap-method",
+   "question": null
+  },
+  {
+   "id": "AIA-SIGNED-OFF-SEGMENTS",
+   "title": "Taste segments: a mixture on the respondents' vector-model slopes with a penalised number of segments, the shuffle guard, the step-down, the decision over the shown and near-identical maps with a borderline band, membership and colour only for clearly placed respondents, and segment profiles",
+   "product": "AIA",
+   "label": "PROPOSED",
+   "sources": [
+    {
+     "document": "AIA_SOCIOMAPA_METHOD",
+     "page": null,
+     "section": "respondents.py: respondent_slopes, _psd, _kmeans, _psd2, _em, _xd_em, _seg_fit, _shuffle_within, _min_sep, find_segments, _segments_from_fit, consensus_maps, _consensus_state, find_segments_consensus, segment_profiles, SEG_* and PROFILE_Q; respondent_map_method.md (taste segments, shuffle guard, step-down, borderline segments, profiles and membership); the AIA panel's respondent_map (aia_map.py) and _placement / _respondent_set (visualization_lab.py) for the caller rules",
+     "states": "Each respondent with at least 5 ratings of the mapped objects, not all equal, has a vector-model slope (ratings on the set's 0..1 scale regressed on the object positions) and its noise covariance V_k = s_k^2 [(Z'Z)^-1]_beta,beta, s_k^2 = RSS_k / (n_k - 3). With fewer than 30 such respondents the map says 'Too few respondents to look for taste segments'. A Gaussian mixture in which each slope keeps its own noise (extreme deconvolution; 3 k-means++ starts, at most 200 EM iterations, relative tolerance 1e-6) is fitted for G = 1..4; G* minimises -2 log L + 0.5 (6G - 1) ln n. G* = 1: 'No clear taste segments'. Shuffle guard: the same fit on 20 copies with each respondent's ratings permuted among the objects they rated (stream seed + 7919); segments only when the gain C(1) - C(G*) beats every shuffled gain; the loop stops at the first batch with a shuffle as strong. Step-down: while G >= 3 and the last segment adds < 0.10 of the log-likelihood gain, then while a segment holds < 0.05 of the respondents, then while the two closest segments are < 1.8 apart, G -> G - 1. The decision is taken on the shown map and 4 maps of the ratings with a 1e-9 jitter laid out as the shown map (the panel makes them only from 5 objects): segments if the mean penalised margin < -4 and at least half the maps show segments (fitted on the shown map; if it alone showed none, with the most common number of the others); none if the mean margin > 4, or no map shows segments and it is > 0; otherwise borderline: nobody coloured, the likely split named. Labels largest first; a respondent is coloured at membership >= 0.8 and clearly placed by the chance test; segments distinct at separation >= 3.5. Profiles: the membership-weighted difference of respondent-centred raw ratings against everyone else, a normal test, Benjamini-Hochberg at 0.05 over all segments and objects, up to 3 distinctive objects named higher and lower. Unweighted."
+    }
+   ],
+   "formula": "beta_k, V_k from a~_kj = c_k + beta_k . y_j + e_kj over j in J_k, n_k >= n_s; log L_G = sum_k log sum_g pi_g phi(beta_k; mu_g, Sigma_g + V_k); C(G) = -2 log L_G + lambda (6G - 1) ln n; G* = argmin_{G <= G_max} C(G), none when n < n_min; Delta = C(1) - C(G*), shown iff Delta > max_b Delta^(b) (B shuffles); step-down by g_min, pi_min, S_min with S_gh = sqrt(dmu' [(Sigma_g + Sigma_h) / 2]^-1 dmu); margin_m = min_{G >= 2} C_m(G) - C_m(1) on the shown map and the maps of the ratings + jitter, segments iff mean < -b and votes >= half, none iff mean > b or (no votes and mean > 0), borderline otherwise; r_kg the posterior membership, coloured iff max_g r_kg >= r_min and PLACED; distinct iff min S_gh >= S_d; d_gj = weighted mean of c_kj by r_kg minus by 1 - r_kg, c_kj = a_kj - mean_k a, se^2 = v1 / neff1 + v0 / neff0, BH at q, top t; G_max = 4, lambda = 0.5, B = 20, n_min = 30, n_s = 5, g_min = 0.10, pi_min = 0.05, S_min = 1.8, r_min = 0.8, S_d = 3.5, q = 0.05, t = 3, 5 maps from 5 objects, b = 4.0, jitter 1e-9, seed 0",
+   "applies_to": "aia-sociomap-5's MAPPED object map: respondents.segments (decision, reason, k, k_fit, gain, null_gain_max, margins, mean_margin, votes, maps, shares, separation, distinct, profiles, label, membership, coloured, hint) (engine_v2.compute_object_map).",
+   "implementation": "aia_core.domain.sociomap.engine_v2:_segments",
+   "validation": [
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_segments_match_the_methodologys_own_code",
+     "what": "the decision and its reason, k, the fit's k, the borderline hint, labels, colour mask, votes, maps, margins, shares and named objects exactly, and membership, separation, gain, the largest shuffled gain, mean margin and profiles to 1e-9 relative, of the methodology's own code on eleven studies (clear segments, none, borderline, too few respondents, four objects, a step-down from four to three segments at 3,000 respondents, a shown map rejected by the shuffle guard with and without the other maps, segments not stable across the maps, segments shown only by the other maps, a borderline decision no map votes for), on its own shown and other maps"
+    },
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_jittered_ratings_draw_the_methodologys_stream",
+     "what": "the first noise values of each of the methodology's four near-identical maps, exactly"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_maps_decide_together_within_the_band",
+     "what": "each branch of the decision over the maps: segments, none, borderline, a map with too few respondents"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_segments_shown_only_by_the_other_maps_take_their_most_common_number",
+     "what": "segments shown only by the other maps are fitted on the shown map with their most common number, not their largest"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_object_map_stores_the_segments_under_aia_sociomap_5",
+     "what": "a MAPPED map stores the segments of its own layout and its own jittered maps, colours only PLACED respondents, and round-trips"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_a_set_below_the_consensus_minimum_makes_no_jittered_maps",
+     "what": "below five objects only the shown map is laid out"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_the_threads_never_change_a_stored_value",
+     "what": "the shuffles fitted one at a time store what the threads store; the batch is a fixed four"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_signed_off_segments.py::test_earlier_presets_store_exactly_what_they_stored",
+     "what": "aia-sociomap-2, -3 and -4 keep their spec and artifact fingerprints"
+    }
+   ],
+   "uncertainty": "The methodology is AIA's own, signed off by its owner; no external source states it. Every value the methodology holds in code (the minimum respondents and ratings, the step-down limits, the consensus guard of 5 objects, which is the AIA panel's) is a spec value here; the EM starts, iterations and tolerance, the eigenvalue floor, the generator offsets and the shuffle batch are fixed. The methodology runs its shuffles in batches of min(4, CPU count) and states the result is the same for any value; it is not when a shuffle reaches the real gain (the largest shuffled gain recorded is that of the shuffles run), so the batch is fixed at 4. 'Clearly placed' reads the respondent map's own chance-test level and minimum (equal to the methodology's at their defaults). A jittered map that cannot be laid out is left out of the vote (the methodology would fail). The slopes read the ratings on the declared 0-1 scale (one scale per set), the profiles the raw ratings. Where BB1 differs between platforms the shown and jittered maps differ, and so can a borderline decision; the EM loop is compiled, so its last bits can differ between platforms. Objects nobody rated are left out before anything is computed (methodology owner's decision), whereas the AIA panel lays them out with the rest; on such sets the panel's shown and near-identical maps differ, and so can its segment decision (in review, a 10-object set with one object nobody rated: here no segments, the panel borderline). The minimum of objects for the near-identical maps counts the rated objects. Drawing (colours, the borderline note, the legend) is the web client's.",
    "resolve_by": "plan signed-off-sociomap-method",
    "question": null
   }
