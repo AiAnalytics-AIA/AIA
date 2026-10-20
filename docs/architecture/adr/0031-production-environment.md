@@ -48,11 +48,18 @@ deployed-environment guard on.
 
 ### 2. A root of its own: `infra/production/`
 
-A second Terraform root with its own state and lock. It **looks up** the account's GitHub OIDC
-provider and never creates or destroys it. Its buckets are `force_destroy = false` with
+A second Terraform root with its own state and lock. Its buckets are `force_destroy = false` with
 `prevent_destroy`; the RDS instance has deletion protection and a final snapshot. One root per
 environment keeps ADR 0009's "one root, no modules" rule; the difference from develop is
 documented beside it.
+
+**The account's GitHub OIDC provider leaves develop's lifecycle.** Production looking it up is not
+enough: while develop's root owns it, a destroy of develop deletes it and breaks production's deploy
+trust. So the provider moves to a third, account-level root, `infra/account/`, with its own state, that
+owns only what is one per account (the OIDC provider, CloudTrail) under `prevent_destroy`. Develop's
+resource is moved there by a state move or an `import` and a `removed` block, never by destroy and
+recreate; develop and production both look it up (`create_github_oidc_provider = false`). The move
+lands before production's first apply.
 
 ### 3. Separation inside one account
 
@@ -61,7 +68,7 @@ documented beside it.
 - a deploy role per GitHub environment, assumable only from that environment;
 - a KMS key, a Cognito pool, a bucket set, an RDS instance and a state per environment; bucket
   policies deny the other environment's roles;
-- CloudTrail on for the account.
+- CloudTrail on for the account, owned by `infra/account/`.
 
 **What this does not fix:** Bedrock quotas are account-wide, so tier B on develop and production
 use draw on the same limits (tier B runs outside working hours, develop's concurrency is capped),
@@ -115,8 +122,9 @@ the network layer is decided by PE4 (*Open for Nigel*, 2).
 
 - PE3: `terraform fmt -check`, `validate` and `plan` on every pull request that touches `infra/`
   (a separate PR, since `ci.yml` is outside the docs-only path list).
-- A Terraform test or plan check: `infra/production` declares no `aws_iam_openid_connect_provider`
-  resource and no bucket with `force_destroy = true`.
+- A Terraform test or plan check: neither `infra/develop` nor `infra/production` declares an
+  `aws_iam_openid_connect_provider` resource (only `infra/account` does, with `prevent_destroy`), and
+  `infra/production` declares no bucket with `force_destroy = true`.
 - `smoke.sh` against production: `AIA_ENV=production` guards active, header identity rejected, the
   database unreachable from outside, the worker executing, the deployed SHA visible.
 - The release checklist (PE9a, PE9b): restore with deletion replay, rollback, alarms, the activation

@@ -48,7 +48,13 @@ counts only the substitutes and its downstream steps, and is charged and confirm
 
 The substitutes are drawn through the run's population and sampler with a seed derived from the
 original's seed and the exclusion's fingerprint, never with the original's draw repeated, and never
-chosen by a model. The draw is recorded as the original's is.
+chosen by a model. **The draw excludes every respondent of the original draw**, kept and excluded
+alike (by the population row or donor each was drawn from): the sampler guarantees uniqueness only
+within one draw, so without the exclusion a substitute could repeat a kept respondent, or bring a
+flagged one back. A substitute that would repeat one is never drawn; when the population left after
+the exclusion cannot fill what the method asks, the replacement is refused by name
+(`replacement_pool_exhausted`), never filled with a repeat. The draw is recorded as the original's
+is, with the excluded set's fingerprint.
 
 ### 5. The method, awaiting the methodology owner
 
@@ -83,7 +89,9 @@ renormalised; the two runs can be compared because both are kept whole.
 
 - Tests: a replacement leaves every artifact of the original byte-identical; kept respondents' answers
   are reused by hash and cost no call; an exclusion without an accepted flag is refused; the
-  substitutes' draw is reproducible from the pinned seed and exclusion; a replacement from a run
+  substitutes' draw is reproducible from the pinned seed and exclusion; no substitute is a
+  respondent of the original draw, kept or excluded, and a population too small after that exclusion
+  refuses `replacement_pool_exhausted`; a replacement from a run
   that is not COMPLETED is refused; with no approved method version, `run.replace` refuses by name;
   the Lead can only prepare a card for it.
 
