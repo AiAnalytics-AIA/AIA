@@ -37,11 +37,11 @@ person accepts (`assumption_add`, `assumption_edit`, `assumption_link`, `assumpt
 | Status | Needs |
 |---|---|
 | `UNTESTED` | nothing: tracking what is not yet known is the core use |
-| `UNVERIFIED` | nothing; a person's note that it was looked at and not settled |
 | `SUPPORTED`, `CONTRADICTED` | at least one admissible attachment (decision 3) and a person's accept |
 | `RETIRED` | a person's accept; kept, never deleted |
 
-Readiness lists `UNTESTED` assumptions as a warning, never a failure.
+The set is closed: these four and no other (the product owner, 2026-10-20, Q11 b; there is no
+`UNVERIFIED`). Readiness lists `UNTESTED` assumptions as a warning, never a failure.
 
 ### 3. An attachment is admissible only as one of two references, verified by code
 
@@ -99,5 +99,5 @@ AOC1 (W1, the item and `UNTESTED` tracking), AOC2 (W2, attachments), AOC3 and RD
    needs support, … cited Deep Research findings as external context" (AOC0). This ADR lets a person
    set `SUPPORTED` on external attachments alone **and** prints its basis as external; the stricter
    reading needs at least one respondent claim for `SUPPORTED` and `CONTRADICTED`.
-2. **The status set.** `UNVERIFIED` and `RETIRED` are this ADR's proposals beside the plan's
-   `UNTESTED`, supported and contradicted.
+2. ~~**The status set.**~~ Answered 2026-10-20 by the product owner (Q11 b): `UNTESTED`,
+   `SUPPORTED`, `CONTRADICTED` and `RETIRED`; there is no `UNVERIFIED`. Decision 2 reads so.
