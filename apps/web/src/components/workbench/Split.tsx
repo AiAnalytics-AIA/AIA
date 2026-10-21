@@ -5,17 +5,20 @@
 // lib/workbench-split.ts: 28-62 %, 2 % per arrow, Home / Enter / double-click back to 40 %, and
 // focus modes that never change the width the person chose.
 
-import { type KeyboardEvent, type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import type { WorkbenchLayout } from "@/lib/workbench-layout";
 import { type FocusMode, SPLIT_DEFAULT, SPLIT_MAX, SPLIT_MIN, leftWidth, splitFromKey, splitFromPointer } from "@/lib/workbench-split";
 
 const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-/** The open drawer or sheet is modal: Tab and Shift+Tab go round inside it, never to the artifact behind. */
-export function trapTab(e: KeyboardEvent<HTMLElement>) {
+/** The open drawer or sheet is modal: Tab and Shift+Tab go round inside it, never to the artifact behind
+ * (which is inert as well; the wrap keeps focus off the browser's own controls between the ends). Read
+ * on the document, so a Tab from nowhere -- the focused control removed, focus fallen to the body --
+ * is brought back inside as well. */
+export function trapTab(container: HTMLElement, e: KeyboardEvent) {
   if (e.key !== "Tab") return;
-  const items = [...e.currentTarget.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => !el.closest("[hidden]"));
+  const items = [...container.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => !el.closest("[hidden]"));
   if (!items.length) {
     e.preventDefault();
     return;
@@ -23,7 +26,7 @@ export function trapTab(e: KeyboardEvent<HTMLElement>) {
   const first = items[0]!;
   const last = items[items.length - 1]!;
   const active = document.activeElement;
-  const inside = active instanceof HTMLElement && e.currentTarget.contains(active);
+  const inside = active instanceof HTMLElement && container.contains(active);
   if (e.shiftKey && (!inside || active === first)) {
     e.preventDefault();
     last.focus();
@@ -54,6 +57,14 @@ export function Split({ split, mode, layout = "split", shown = true, leftLabel, 
   const box = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState(false);
   const compact = layout !== "split";
+  const dialog = useRef<HTMLDivElement>(null);
+  const modal = compact && shown;
+  useEffect(() => {
+    if (!modal) return;
+    const onKey = (e: KeyboardEvent) => dialog.current && trapTab(dialog.current, e);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [modal]);
   const width = compact ? null : leftWidth(split, mode);
   const fromPointer = (clientX: number) => {
     const r = box.current?.getBoundingClientRect();
@@ -61,11 +72,11 @@ export function Split({ split, mode, layout = "split", shown = true, leftLabel, 
   };
   return (
     <div className={`split split--${compact ? layout : mode === "split" ? "normal" : mode}`} ref={box}>
-      {width === null ? <div className="split__rail">{rail}</div> : null}
+      {width === null ? <div className="split__rail" inert={compact && shown}>{rail}</div> : null}
       {/* In artifact focus, and in a closed drawer, the conversation is hidden, not unmounted: its
           draft, queue, poll and once-only view ops survive (D21: one tree, no remount). */}
       {compact ? (
-        <div className="split__left" hidden={!shown} role={shown ? "dialog" : undefined} aria-modal={shown ? true : undefined} aria-label={shown ? leftLabel : undefined} onKeyDown={shown ? trapTab : undefined}>{left}</div>
+        <div className="split__left" hidden={!shown} role={shown ? "dialog" : undefined} aria-modal={shown ? true : undefined} aria-label={shown ? leftLabel : undefined} ref={dialog}>{left}</div>
       ) : (
         <div className="split__left" hidden={width === null} style={width === null ? undefined : { width: `${width}%` }}>{left}</div>
       )}
@@ -101,7 +112,9 @@ export function Split({ split, mode, layout = "split", shown = true, leftLabel, 
           }}
         />
       ) : null}
-      <div className="split__right">{right}</div>
+      {/* Behind the open drawer or sheet nothing answers a pointer, a key or assistive technology:
+          aria-modal is true of the page, not only declared (the header and navigator likewise). */}
+      <div className="split__right" inert={compact && shown}>{right}</div>
     </div>
   );
 }

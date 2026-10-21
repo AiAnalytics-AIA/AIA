@@ -190,6 +190,8 @@ try {
     const launcher = page.locator("[data-lead-launcher]");
     await launcher.waitFor();
     assert.equal(await page.getByRole("dialog", { name: "Vedoucí výzkumu" }).count(), 0, `${width}: the conversation starts closed`);
+    // The pane reads the session while closed; open it once the composer can take focus.
+    await page.waitForFunction(() => !document.querySelector("textarea[aria-label='Napište Vedoucímu výzkumu']")?.disabled, null, { timeout: 30000 });
     await launcher.press("Enter");
     const dialog = page.getByRole("dialog", { name: "Vedoucí výzkumu" });
     await dialog.waitFor();

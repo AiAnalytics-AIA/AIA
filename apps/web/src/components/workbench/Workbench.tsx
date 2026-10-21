@@ -199,7 +199,14 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   const launcher = useRef<HTMLButtonElement>(null);
   const moveFocus = useCallback((to: FocusTarget) => {
     if (!to || to.to === "target") return;
-    requestAnimationFrame(() => (to.to === "launcher" ? launcher.current : document.getElementById("composer"))?.focus());
+    // Into the conversation: the composer, or, while it is disabled (the session not read yet, the
+    // Lead not hatched), the conversation's first control, so focus is never left behind it.
+    requestAnimationFrame(() => {
+      if (to.to === "launcher") return launcher.current?.focus();
+      const composer = document.getElementById("composer") as HTMLTextAreaElement | null;
+      if (composer && !composer.disabled) return composer.focus();
+      document.querySelector<HTMLElement>(".split__left button:not([disabled]), .split__left a[href]")?.focus();
+    });
   }, []);
   const drawerEvent = useCallback((event: DrawerEvent) => {
     const next = nextDrawer(drawer, event, layout);
@@ -324,9 +331,15 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
           if (el) {
             el.scrollIntoView({ block: "center", behavior: "smooth" });
             // With the conversation stepped aside, focus follows to what the Lead pointed at.
+            // The artifact is inert until the drawer's step aside has rendered: try again briefly.
             if (compact) {
               if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "-1");
-              el.focus({ preventScroll: true });
+              let attempts = 0;
+              const take = () => {
+                el.focus({ preventScroll: true });
+                if (document.activeElement !== el && attempts++ < 10) setTimeout(take, 50);
+              };
+              take();
             }
             el.classList.add("just");
             setTimeout(() => el.classList.remove("just"), 2300);
@@ -585,8 +598,8 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   return (
     <div className={`wb wb--${layout}${picking ? " wb-picking" : ""}`} data-workbench data-layout={layout}>
       <a href="#composer" className="skip">Přeskočit na zprávu</a>
-      <StudyHeader frame={frame} study={study} pending={open.length} blocked={blocked} onPending={() => open[0] && go(editStage(open[0].edit))} layout={layout} />
-      <StageNav stage={stage} lane={lane} onOpen={go} layout={layout} />
+      <StudyHeader frame={frame} study={study} pending={open.length} blocked={blocked} onPending={() => open[0] && go(editStage(open[0].edit))} layout={layout} inert={isModal(layout, drawer)} />
+      <StageNav stage={stage} lane={lane} onOpen={go} layout={layout} inert={isModal(layout, drawer)} />
       <main className="workspace">
         <Split split={split} mode={mode} layout={layout} shown={conversationShown(layout, drawer)} leftLabel="Vedoucí výzkumu"
           onSplit={setSplit} onCommit={(v) => { setSplit(v); writeSplit(storage(), v); }}
@@ -711,7 +724,7 @@ function holds(state: ResearchState, item: AutoApplied): boolean {
   return item.revision !== null && state.revision !== null && state.revision >= item.revision;
 }
 
-function StudyHeader({ frame, study, pending, blocked, onPending, layout = "split" }: { frame: StudyFrame; study: Study | null; pending: number; blocked: number; onPending: () => void; layout?: WorkbenchLayout }) {
+function StudyHeader({ frame, study, pending, blocked, onPending, layout = "split", inert = false }: { frame: StudyFrame; study: Study | null; pending: number; blocked: number; onPending: () => void; layout?: WorkbenchLayout; inert?: boolean }) {
   // Under 768 px (the sheet) the bar keeps the study's name and the menu; what waits and the budget
   // move into the menu (research-lead-workbench 26d).
   const narrow = layout === "sheet";
@@ -726,7 +739,7 @@ function StudyHeader({ frame, study, pending, blocked, onPending, layout = "spli
   const spent = study?.spent_usd ?? null;
   const spentPct = budget && spent !== null ? Math.min(100, (spent / budget) * 100) : 0;
   return (
-    <header className="shead">
+    <header className="shead" inert={inert}>
       <span className="shead__band" aria-hidden="true" />
       <button type="button" className="shead__home" onClick={() => leave(appRoutes.client(frame.clientId))} aria-label={`Klienti › ${frame.clientName}`}>
         <span className="shead__mono" aria-hidden="true">{initials(frame.clientName)}</span>
@@ -769,7 +782,7 @@ function StudyHeader({ frame, study, pending, blocked, onPending, layout = "spli
 
 const STAGE_TONE: Record<string, GlyphTone> = { done: "done", running: "running", you: "you", fault: "fault", inert: "inert", ready: "ready" };
 
-function StageNav({ stage, lane, onOpen, layout = "split" }: { stage: WorkbenchStage; lane: Parameters<typeof stageState>[1]; onOpen: (s: WorkbenchStage) => void; layout?: WorkbenchLayout }) {
+function StageNav({ stage, lane, onOpen, layout = "split", inert = false }: { stage: WorkbenchStage; lane: Parameters<typeof stageState>[1]; onOpen: (s: WorkbenchStage) => void; layout?: WorkbenchLayout; inert?: boolean }) {
   const nav = useRef<HTMLElement>(null);
   const [listOpen, setListOpen] = useState(false);
   // In the drawer layout the navigator scrolls sideways: the current stage is kept in view.
@@ -814,7 +827,7 @@ function StageNav({ stage, lane, onOpen, layout = "split" }: { stage: WorkbenchS
   if (layout === "sheet") {
     // Under 768 px: one button names the current stage and opens every stage, grouped by phase.
     return (
-      <nav className="nav nav--sheet" aria-label="Kroky studie" onKeyDown={onKey} ref={nav}>
+      <nav className="nav nav--sheet" aria-label="Kroky studie" onKeyDown={onKey} ref={nav} inert={inert}>
         <button type="button" className="nav__current" aria-expanded={listOpen} aria-haspopup="true" onClick={() => setListOpen((v) => !v)}>
           <Glyph tone={STAGE_TONE[stageState(stage, lane).tone] ?? "inert"} size={11} />
           <span className="nav__currentlabel">Krok: {STAGES[stage].label}</span>
@@ -830,7 +843,7 @@ function StageNav({ stage, lane, onOpen, layout = "split" }: { stage: WorkbenchS
     );
   }
   return (
-    <nav className={`nav${layout === "drawer" ? " nav--scroll" : ""}`} aria-label="Kroky studie" onKeyDown={onKey} ref={nav}>
+    <nav className={`nav${layout === "drawer" ? " nav--scroll" : ""}`} aria-label="Kroky studie" onKeyDown={onKey} ref={nav} inert={inert}>
       {phases}
     </nav>
   );

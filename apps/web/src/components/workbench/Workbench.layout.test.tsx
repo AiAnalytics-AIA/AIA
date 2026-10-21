@@ -176,6 +176,14 @@ describe("the launcher and the drawer (26c)", () => {
     expect(document.activeElement).toBe(first);
     fireEvent.keyDown(first, { key: "Tab", shiftKey: true });
     expect(document.activeElement).toBe(last);
+    // A Tab from nowhere (the focused control removed, focus on the body) comes back inside.
+    last.blur();
+    fireEvent.keyDown(document.body, { key: "Tab" });
+    expect(document.activeElement).toBe(first);
+    // What is behind it is inert: the artifact, the launcher, the header and the navigator.
+    for (const sel of [".split__right", ".split__rail", "header.shead", "nav.nav"]) expect(document.querySelector(sel)!.hasAttribute("inert")).toBe(true);
+    fireEvent.keyDown(window, { key: "Escape" });
+    for (const sel of [".split__right", ".split__rail", "header.shead", "nav.nav"]) expect(document.querySelector(sel)!.hasAttribute("inert")).toBe(false);
   });
 
   it("'@' in the drawer steps the conversation aside; a tap on the artifact sets the chip and reopens it at the composer", async () => {
