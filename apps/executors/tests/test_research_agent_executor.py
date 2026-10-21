@@ -13,6 +13,7 @@ from aia_core.application.proposal_accept import StaleProposal
 from aia_core.application.research import ResearchAgentJobs
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.design import DesignRejected
+from aia_core.domain.item_ids import derived_id
 from aia_core.domain.prompts import PromptPin
 from aia_core.domain.research_agents import (
     BASELINE_PROMPT_VERSION,
@@ -229,8 +230,11 @@ def test_worker_stores_proposal_and_review_creates_a_new_revision(
         base = job["metadata"]["base_workspace_revision"]
         assert base == designs.get(baseline).workspace_revision is not None
         touched = job["steps"][0]["output"]["touched_items"]
-        assert "content:objective:test appeal" in touched
-        assert "analysis:objective:test appeal" in touched
+        # A plan item is named by its stable id (WCE1); content stored without ids has the id its
+        # wording derives, one per wording.
+        appeal = derived_id("obj_", "objective", "Test appeal", 1)
+        assert f"content:objective:{appeal}" in touched
+        assert f"analysis:objective:{appeal}" in touched
         assert "content:brief:goal" not in touched
         workspaces = StudyWorkspaceRepository(session)
         before = workspaces.content(scope)

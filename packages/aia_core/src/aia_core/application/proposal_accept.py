@@ -28,7 +28,13 @@ from dataclasses import dataclass
 from sqlalchemy.orm import Session
 
 from ..domain.design import DesignRejected, DesignRevision
-from ..domain.design_items import Documents, ItemKey, design_items, merge_items
+from ..domain.design_items import (
+    Documents,
+    ItemKey,
+    design_items,
+    from_legacy_keys,
+    merge_items,
+)
 from ..domain.scope import Permission, StudyContext
 from ..domain.workspace import WorkingSave
 from ..infrastructure.study_design_repository import StudyDesignRepository
@@ -103,7 +109,10 @@ def accept_into_working_copy(
     """Check, merge and write a proposal made on ``design_revision_id`` (the module's steps 1-4).
 
     ``proposed`` is the design the proposal would make of its baseline; ``touched`` the items it
-    changes, as the worker recorded them, else computed here from the baseline. Needs
+    changes, as the worker recorded them, else computed here from the baseline. A key recorded
+    before item ids (WCE1: a plan-list item by its text) is read as the id it names now
+    (``from_legacy_keys``), so a job finished before the deploy is checked and merged as one
+    after it. Needs
     ``EDIT_STUDY`` and ``APPROVE_GATE`` on an open Study: only a person accepts (ADR 0019 gate 1).
     """
     scope.require(Permission.EDIT_STUDY)
@@ -130,7 +139,11 @@ def accept_into_working_copy(
             current_revision=now.revision,
         )
     current = Documents(content=dict(now.content or {}), analysis=now.analysis)
-    touched_set = frozenset(touched) if touched is not None else design_items(baseline, proposed)
+    touched_set = (
+        from_legacy_keys(touched, baseline, proposed)
+        if touched is not None
+        else design_items(baseline, proposed)
+    )
     conflicts = touched_set & design_items(baseline, current)
     if conflicts:
         raise StaleProposal(
@@ -138,7 +151,7 @@ def accept_into_working_copy(
             why="items_changed",
             conflicting_items=conflicts,
         )
-    merged = merge_items(proposed, current, touched_set)
+    merged = merge_items(proposed, current, touched_set, baseline=baseline)
     saved = workspaces.save(
         scope,
         content=merged.content,

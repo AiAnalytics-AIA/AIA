@@ -1,5 +1,5 @@
 {
- "description": "Shared cases for the working copy's edit vocabulary (packages/aia_core/src/aia_core/domain/edit_ops.py; ADR 0029 decision 1; working-copy-edit-ops WCE0). Read by packages/aia_core/tests/test_edit_ops.py and apps/web/src/lib/edit-ops.cases.test.ts. catalogue: the closed operation set. apply: an edit on a working copy and what the server's apply_edit makes of it, or the word it refuses with; ids are the suffixes new ids take, in order (a new section's id first, then its question's). text_edits: the text-only marker that bounds the default automatic accept. touches, lock and whole_copy_lock: the server's alone (the web decides neither). link_keys and research_questions_of: the trace's reading, held to research_trace and analysis.native. Fictional content.",
+ "description": "Shared cases for the working copy's edit vocabulary (packages/aia_core/src/aia_core/domain/edit_ops.py; ADR 0029 decision 1; working-copy-edit-ops WCE0). Read by packages/aia_core/tests/test_edit_ops.py and apps/web/src/lib/edit-ops.cases.test.ts. catalogue: the closed operation set. apply: an edit on a working copy and what the server's apply_edit makes of it, or the word it refuses with; ids are the suffixes new ids take, in order (a new section's id first, then its question's). text_edits: the text-only marker that bounds the default automatic accept. touches, lock and whole_copy_lock: the server's alone (the web decides neither); touches name items by their stable ids (domain/item_ids.py: a list entry's id derived from its wording when the copy keeps none), and an added item by the placeholder new id (Q_new, sec_new). link_keys and research_questions_of: the trace's reading, held to research_trace and analysis.native. Fictional content.",
  "ids": [
   "a1b2c3d4e5",
   "f6a7b8c9d0",
@@ -4808,8 +4808,7 @@
    },
    "content": "base",
    "touches": [
-    "content:research_question:kdo kupuje?|text",
-    "content:research_question:kdo nakupuje?|text"
+    "content:research_question:rq_ff3bb7f9ad|text"
    ]
   },
   {
@@ -4849,8 +4848,7 @@
    },
    "content": "base",
    "touches": [
-    "content:question:Q2|item",
-    "content:section:sec_a|questions"
+    "content:question:Q2|item"
    ]
   },
   {
@@ -4864,7 +4862,7 @@
    },
    "content": "base",
    "touches": [
-    "content:section:sec_a|questions"
+    "content:question:Q_new|item"
    ]
   },
   {

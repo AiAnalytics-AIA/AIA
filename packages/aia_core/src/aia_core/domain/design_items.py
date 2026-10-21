@@ -15,15 +15,20 @@ A design is two documents, the working ``content`` and its separate ``analysis``
 
   - ``brief``: ``title``, ``goal``, ``decision_use`` and each ``briefing.<field>``;
   - ``objective``, ``research_question``, ``hypothesis``: each entry of
-    ``research_plan.objectives`` / ``research_questions`` / ``hypotheses``, keyed by its
-    normalised text (whitespace collapsed, casefolded), as ``diffLists`` keys them;
+    ``research_plan.objectives`` / ``research_questions`` / ``hypotheses``, keyed by its stable id
+    (:mod:`.item_ids`, WCE1): the id its id list gives it, or, for content written before ids, the
+    id derived from its wording -- one id per normalised wording and occurrence, so such content
+    has exactly the items it had when they were keyed by text (:func:`legacy_keys` reads an id
+    key back as the text key it replaces, and the shared cases are checked through it);
   - ``tracked_set``: each of ``research_plan.tracked_sets``, by its ``id``, else by its
     normalised title (a plan's set carries no id today, ``research_agents.TrackedSet``, and the
     web keys it by title);
   - ``plan``: every other field of ``research_plan``;
   - ``section``, ``question``, ``battery``: each questionnaire section by id (its fields, with
-    its questions' keys in order standing for its questions), each question by id, and each
-    ``object_battery`` section by id, whole;
+    its questions' keys in order standing for its questions; a section without one by the id the
+    compiler gives it, ``item_ids.section_ids``), each question by id, and each
+    ``object_battery`` section by id, whole. An id list (``kategorie_ids``, ``object_ids``) is no
+    part of an item's value: it names the parts, it does not change them;
   - ``audience``, ``dimensions`` (``persona_dimensions``) and ``n``: one item each;
   - ``field``: every other top-level field, so that no difference falls between items.
 
@@ -34,8 +39,8 @@ A list that is not a list of what its items need (strings, objects) is one item,
 shape the rules do not know is compared as a value, never skipped. Two entries of one list
 with the same key -- two sets titled alike, a repeated question id -- stay two items, the
 second keyed ``<key>#2`` (:func:`occurrence_keys`), so a merge never collapses them. Order
-is no item: a merge keeps the person's order and slots in what only the proposal has.
-Pure: no I/O.
+is no item: a merge keeps the person's order and slots in what only the proposal has. (Order and
+the field-level view, D-06, are :mod:`.design_fields`'.) Pure: no I/O.
 """
 
 from __future__ import annotations
@@ -46,12 +51,16 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any, Final, Literal
 
+from .item_ids import ID_LISTS, SIDECAR_KEYS, Entry, bound_of, list_ids, with_item_ids
+
 __all__ = [
     "Documents",
     "ItemKey",
     "brief_signature",
     "design_items",
+    "from_legacy_keys",
     "item_values",
+    "legacy_keys",
     "merge_items",
     "occurrence_keys",
 ]
@@ -134,6 +143,32 @@ def _canonical(value: Any) -> str:
 
 # -- items ------------------------------------------------------------------------------------
 
+#: The plan's text lists: each list's id list and the kind its items are (``item_ids.ID_LISTS``).
+_TEXT_LIST_IDS: Final[dict[str, tuple[str, str]]] = {
+    list_key: (ids_key, kind) for list_key, ids_key, kind, _ in ID_LISTS
+}
+
+
+def _resolve(docs: Documents, previous: Documents | None = None) -> Documents:
+    """``docs`` with every item's id written in (:func:`.item_ids.with_item_ids`)."""
+    content, analysis = with_item_ids(
+        docs.content,
+        docs.analysis,
+        previous=(previous.content, previous.analysis) if previous is not None else None,
+    )
+    return Documents(content=content, analysis=analysis)
+
+
+def _documents(value: Documents | Mapping[str, Any]) -> Documents:
+    return value if isinstance(value, Documents) else Documents.of(value)
+
+
+def _strip(value: Any) -> Any:
+    """An item's value without the id lists that name its parts (they are no part of it)."""
+    if isinstance(value, Mapping):
+        return {k: v for k, v in value.items() if k not in SIDECAR_KEYS}
+    return value
+
 
 def occurrence_keys(keys: Iterable[str]) -> list[str]:
     """Each key as it is keyed in its list: the second ``a`` is ``a#2``, the third ``a#3``.
@@ -156,11 +191,15 @@ def occurrence_keys(keys: Iterable[str]) -> list[str]:
     return out
 
 
-def _text_entries(value: Any) -> list[tuple[str, Any]] | None:
-    """A list of strings as ``(key, text)``; ``None`` for another shape."""
-    if not isinstance(value, list) or not all(isinstance(x, str) for x in value):
+def _text_entries(holder: Mapping[str, Any], name: str) -> list[tuple[str, Any]] | None:
+    """A plan list of strings as ``(id, text)``, by the ids written in; ``None`` for another
+    shape (or a list without them)."""
+    spec = _TEXT_LIST_IDS.get(name)
+    value = holder.get(name)
+    if spec is None or not isinstance(value, list):
         return None
-    return list(zip(occurrence_keys(normalise(t) for t in value), value, strict=True))
+    ids = list_ids(holder, name, spec[0])
+    return list(zip(ids, value, strict=True)) if ids is not None else None
 
 
 def _set_key(entry: Mapping[str, Any]) -> str:
@@ -184,11 +223,16 @@ def _ident(entry: Mapping[str, Any], fallback: str) -> str:
     return ident if isinstance(ident, str) and ident else fallback
 
 
-def _section_entries(value: Any) -> list[tuple[str, Mapping[str, Any]]] | None:
+def _section_entries(value: Any, raw: Any = None) -> list[tuple[str, Mapping[str, Any]]] | None:
+    """Sections as ``(key, section)``: keyed by ``value``'s ids (the sections with their ids
+    written in), each valued as ``raw``'s section at the same place when ``raw`` is given."""
     if not isinstance(value, list) or not all(isinstance(s, Mapping) for s in value):
         return None
     keys = occurrence_keys(_ident(sec, f"#{i}") for i, sec in enumerate(value))
-    return list(zip(keys, value, strict=True))
+    values = raw if isinstance(raw, list) and len(raw) == len(value) else value
+    if not all(isinstance(s, Mapping) for s in values):
+        values = value
+    return list(zip(keys, values, strict=True))
 
 
 def _section_questions(
@@ -223,7 +267,7 @@ def _section_value(
 ) -> tuple[str, Any]:
     """A section's own item: ``battery`` whole, or ``section`` with its questions as keys."""
     if section.get("type") == "object_battery":
-        return "battery", dict(section)
+        return "battery", _strip(section)
     if questions is None:
         return "section", dict(section)
     own = {k: v for k, v in section.items() if k != "questions"}
@@ -234,9 +278,11 @@ def _section_value(
 def _plan_items(doc: Document, plan: Mapping[str, Any], out: dict[ItemKey, Any]) -> None:
     """The research plan's items: its text lists, its tracked sets and every other field."""
     for name, value in plan.items():
-        kind = dict(TEXT_LISTS).get(name)
-        entries = _text_entries(value) if kind else None
-        if kind and entries is not None:
+        if name in SIDECAR_KEYS:
+            continue
+        entries = _text_entries(plan, name)
+        if entries is not None:
+            kind = _TEXT_LIST_IDS[name][1]
             for k, text in entries:
                 out[ItemKey(doc, kind, k)] = text
             continue
@@ -249,10 +295,12 @@ def _plan_items(doc: Document, plan: Mapping[str, Any], out: dict[ItemKey, Any])
         out[ItemKey(doc, "plan" if doc == "content" else "field", name)] = value
 
 
-def item_values(docs: Documents) -> dict[ItemKey, Any]:
-    """Every item of a design and its value."""
+def item_values(docs: Documents, *, previous: Documents | None = None) -> dict[ItemKey, Any]:
+    """Every item of a design and its value, keyed by its id (read against ``previous``, the
+    baseline, where a list carries no ids of its own; :mod:`.item_ids`)."""
     out: dict[ItemKey, Any] = {}
-    content = docs.content
+    resolved = _resolve(docs, previous)
+    content = resolved.content
     for name, value in content.items():
         if name in _BRIEF_FIELDS:
             out[ItemKey("content", "brief", name)] = value
@@ -267,14 +315,21 @@ def item_values(docs: Documents) -> dict[ItemKey, Any]:
                 kind, own = _section_value(section, questions[k])
                 out[ItemKey("content", kind, k)] = own
                 for qk, q in questions[k] or []:
-                    out[ItemKey("content", "question", qk)] = q
+                    out[ItemKey("content", "question", qk)] = _strip(q)
         elif name in _SINGLE:
             out[ItemKey("content", _SINGLE[name], "")] = value
         else:
             out[ItemKey("content", "field", name)] = value
-    if docs.analysis is not None:
-        _plan_items("analysis", docs.analysis, out)
+    if resolved.analysis is not None:
+        _plan_items("analysis", resolved.analysis, out)
     return out
+
+
+def _same(key: ItemKey, a: Any, b: Any) -> bool:
+    # A text item's value is its spelling: one that normalises the same is no change.
+    if key.kind in _TEXT_KINDS and isinstance(a, str) and isinstance(b, str):
+        return normalise(a) == normalise(b)
+    return _canonical(a) == _canonical(b)
 
 
 def design_items(
@@ -282,21 +337,76 @@ def design_items(
 ) -> frozenset[ItemKey]:
     """The items that differ between two designs: added, removed or changed.
 
-    ``before`` and ``after`` are ``{content, analysis}`` (or :class:`Documents`). A text item
-    differs only when its normalised text is new or gone; a respelling that normalises the same
-    is not a change, as the web reads it.
+    ``before`` and ``after`` are ``{content, analysis}`` (or :class:`Documents`); ``after``'s ids
+    are read against ``before``. A text item differs when its id is new or gone, or its
+    normalised wording changed (a reword its id list records is one changed item); a respelling
+    that normalises the same is not a change, as the web reads it.
     """
-    a = item_values(before if isinstance(before, Documents) else Documents.of(before))
-    b = item_values(after if isinstance(after, Documents) else Documents.of(after))
+    b_docs = _documents(before)
+    a = item_values(b_docs)
+    b = item_values(_documents(after), previous=b_docs)
     changed: set[ItemKey] = set()
     for key in a.keys() | b.keys():
-        if key not in a or key not in b:
-            changed.add(key)
-            continue
-        # A text item's value is its spelling: one that normalises the same is no change.
-        if key.kind not in _TEXT_KINDS and _canonical(a[key]) != _canonical(b[key]):
+        if key not in a or key not in b or not _same(key, a[key], b[key]):
             changed.add(key)
     return frozenset(changed)
+
+
+# -- the text keys ids replace ------------------------------------------------------------------
+
+
+def _text_key_map(docs: Documents) -> dict[ItemKey, ItemKey]:
+    """Each plan-list item's id key and the text key it had before ids (normalised, counted)."""
+    out: dict[ItemKey, ItemKey] = {}
+    plan = docs.content.get("research_plan")
+    homes: tuple[tuple[Document, Any], ...] = (("content", plan), ("analysis", docs.analysis))
+    for doc, holder in homes:
+        if not isinstance(holder, Mapping):
+            continue
+        for list_key, ids_key, kind, _ in ID_LISTS:
+            ids = list_ids(holder, list_key, ids_key)
+            if ids is None:
+                continue
+            texts = occurrence_keys(normalise(t) for t in holder[list_key])
+            for ident, text in zip(ids, texts, strict=True):
+                out[ItemKey(doc, kind, ident)] = ItemKey(doc, kind, text)
+    return out
+
+
+def _key_maps(
+    before: Documents | Mapping[str, Any], after: Documents | Mapping[str, Any]
+) -> tuple[dict[ItemKey, ItemKey], dict[ItemKey, ItemKey]]:
+    b_docs = _documents(before)
+    return _text_key_map(_resolve(b_docs)), _text_key_map(_resolve(_documents(after), b_docs))
+
+
+def legacy_keys(
+    keys: Iterable[ItemKey],
+    before: Documents | Mapping[str, Any],
+    after: Documents | Mapping[str, Any],
+) -> frozenset[ItemKey]:
+    """``keys`` (``design_items(before, after)``) with each plan-list item's id key read back as
+    the text key ``design_items`` returned before ids: what the shared cases are written in. For
+    content without id lists the two are one to one."""
+    in_before, in_after = _key_maps(before, after)
+    return frozenset(in_before.get(k) or in_after.get(k) or k for k in keys)
+
+
+def from_legacy_keys(
+    keys: Iterable[ItemKey],
+    before: Documents | Mapping[str, Any],
+    after: Documents | Mapping[str, Any],
+) -> frozenset[ItemKey]:
+    """Keys recorded before WCE1 (a plan-list item by its normalised text) as ``design_items``
+    keys them now, by id: a worker recorded a proposal's ``touched_items`` before the deploy and a
+    person accepts it after. A key that already names an id, or names nothing in either design,
+    is kept as it is."""
+    in_before, in_after = _key_maps(before, after)
+    ids = in_before.keys() | in_after.keys()
+    by_text: dict[ItemKey, ItemKey] = {}
+    for source in (in_after, in_before):  # the baseline's reading wins
+        by_text.update({text: ident for ident, text in source.items()})
+    return frozenset(k if k in ids else by_text.get(k, k) for k in keys)
 
 
 # -- merge ------------------------------------------------------------------------------------
@@ -306,7 +416,7 @@ def _keyed_merge(
     proposed: list[tuple[str, Any]],
     current: list[tuple[str, Any]],
     touched: set[str],
-) -> list[Any]:
+) -> list[tuple[str, Any]]:
     """One keyed list, merged: a touched entry as proposed (or gone), every other as now.
 
     The person's order is kept: order is no item, so a proposal never moves what is there. An
@@ -334,43 +444,62 @@ def _keyed_merge(
                 break
         keys.insert(at, k)
         values[k] = offered[k]
-    return [values[k] for k in keys]
+    return [(k, values[k]) for k in keys]
+
+
+Side = tuple[Mapping[str, Any], Mapping[str, Any]]
 
 
 def _merge_plan(
-    doc: Document,
-    proposed: Mapping[str, Any],
-    current: Mapping[str, Any],
-    touched: set[ItemKey],
+    doc: Document, proposed: Side, current: Side, touched: set[ItemKey]
 ) -> dict[str, Any]:
-    """A research plan (or an analysis), merged field by field and list item by list item."""
-    out = dict(current)
+    """A research plan (or an analysis), merged field by field and list item by list item.
+
+    Each side is ``(as stored, with its ids written in)``: keyed by the ids, valued as stored. A
+    merged text list keeps an id list when the person's copy has one."""
+    (p_raw, p_ids), (c_raw, c_ids) = proposed, current
+    out = dict(c_raw)
     other = "plan" if doc == "content" else "field"
-    for name in sorted(proposed.keys() | current.keys()):
-        kind = dict(TEXT_LISTS).get(name) or ("tracked_set" if name == "tracked_sets" else None)
-        reader = _set_entries if kind == "tracked_set" else _text_entries
-        mine = {t.key for t in touched if t.kind == kind} if kind else set()
-        p_entries = reader(proposed.get(name)) if kind else None
-        c_entries = reader(current.get(name)) if kind and name in current else []
-        if kind and mine and p_entries is not None and c_entries is not None:
-            out[name] = _keyed_merge(p_entries, c_entries, mine)
+    for name in sorted(p_raw.keys() | c_raw.keys()):
+        if name in SIDECAR_KEYS:
             continue
+        if name in _TEXT_LIST_IDS:
+            ids_key, kind = _TEXT_LIST_IDS[name]
+            mine = {t.key for t in touched if t.kind == kind}
+            p_entries = _text_entries(p_ids, name) if name in p_raw else None
+            c_entries = _text_entries(c_ids, name) if name in c_raw else []
+            if mine and p_entries is not None and c_entries is not None:
+                merged = _keyed_merge(p_entries, c_entries, mine)
+                out[name] = [v for _, v in merged]
+                if ids_key in c_raw:
+                    out[ids_key] = [Entry(k, bound_of(v)).as_json() for k, v in merged]
+                continue
+        elif name == "tracked_sets":
+            mine = {t.key for t in touched if t.kind == "tracked_set"}
+            p_sets = _set_entries(p_raw.get(name))
+            c_sets = _set_entries(c_raw.get(name)) if name in c_raw else []
+            if mine and p_sets is not None and c_sets is not None:
+                out[name] = [v for _, v in _keyed_merge(p_sets, c_sets, mine)]
+                continue
         if ItemKey(doc, other, name) in touched:
-            if name in proposed:
-                out[name] = proposed[name]
+            if name in p_raw:
+                out[name] = p_raw[name]
             else:
                 out.pop(name, None)
     return out
 
 
 def _merge_sections(
-    proposed: Any, current: Any, touched: set[ItemKey]
+    proposed: tuple[Any, Any], current: tuple[Any, Any], touched: set[ItemKey]
 ) -> Any:  # a list of sections, or the current value untouched
+    """The questionnaire, merged section by section and question by question. Each side is
+    ``(as stored, with its ids written in)``: keyed by the ids, valued as stored."""
+    (p_raw, p_ids), (c_raw, c_ids) = proposed, current
     mine = {t for t in touched if t.document == "content" and t.kind in _SECTION_KINDS}
     if not mine:
-        return current
-    p_sections = _section_entries(proposed) or []
-    c_sections = _section_entries(current) or []
+        return c_raw
+    p_sections = _section_entries(p_ids, p_raw) or []
+    c_sections = _section_entries(c_ids, c_raw) or []
     p_by, c_by = dict(p_sections), dict(c_sections)
     p_questions, c_questions = _section_questions(p_sections), _section_questions(c_sections)
     section_keys = {t.key for t in mine if t.kind in ("section", "battery")}
@@ -379,14 +508,14 @@ def _merge_sections(
         [(k, k) for k, _ in p_sections], [(k, k) for k, _ in c_sections], section_keys
     )
     out: list[Any] = []
-    for key in order:
+    for key, _ in order:
         section = p_by[key] if key in section_keys or key not in c_by else c_by[key]
         mine_q, theirs_q = c_questions.get(key), p_questions.get(key)
         if section.get("type") == "object_battery" or (mine_q is None and theirs_q is None):
             out.append(dict(section))
             continue
         questions = (
-            _keyed_merge(theirs_q or [], mine_q, question_keys)
+            [v for _, v in _keyed_merge(theirs_q or [], mine_q, question_keys)]
             if key in c_by and mine_q is not None
             else [q for _, q in theirs_q or []]
         )
@@ -394,16 +523,25 @@ def _merge_sections(
     return out
 
 
-def merge_items(proposed: Documents, current: Documents, touched: Iterable[ItemKey]) -> Documents:
+def merge_items(
+    proposed: Documents,
+    current: Documents,
+    touched: Iterable[ItemKey],
+    *,
+    baseline: Documents | None = None,
+) -> Documents:
     """The proposal merged into the working copy now, item by item (ADR 0026 decision 6).
 
     Each item in ``touched`` takes the proposal's value, or is removed where the proposal has
     none; every other item keeps the person's. The caller has refused the merge when a touched
     item also changed in the working copy since the proposal's baseline, so no edit of the
     person's is overwritten here. An analysis the proposal leaves alone is kept as it is, never
-    cleared.
+    cleared. ``baseline`` is the design ``touched`` was computed against: both sides' ids are read
+    against it, as :func:`design_items` read them. Nothing is stored with an id it did not have,
+    but a merged plan list whose working copy keeps an id list keeps it, lined up.
     """
     touched_set = set(touched)
+    p_res, c_res = _resolve(proposed, baseline), _resolve(current, baseline)
     content = dict(current.content)
     p = proposed.content
     for key in sorted(touched_set):
@@ -432,22 +570,30 @@ def merge_items(proposed: Documents, current: Documents, touched: Iterable[ItemK
             content.pop(name, None)
     plan_kinds = {"plan", "tracked_set"} | {k for _, k in TEXT_LISTS}
     if any(t.document == "content" and t.kind in plan_kinds for t in touched_set):
-        p_plan = p.get("research_plan")
-        c_plan = content.get("research_plan")
         content["research_plan"] = _merge_plan(
             "content",
-            _mapping(p_plan),
-            _mapping(c_plan),
+            (_mapping(p.get("research_plan")), _mapping(p_res.content.get("research_plan"))),
+            (
+                _mapping(content.get("research_plan")),
+                _mapping(c_res.content.get("research_plan")),
+            ),
             touched_set,
         )
     if "sections" in content or "sections" in p:
-        merged = _merge_sections(p.get("sections"), content.get("sections"), touched_set)
+        merged = _merge_sections(
+            (p.get("sections"), p_res.content.get("sections")),
+            (content.get("sections"), c_res.content.get("sections")),
+            touched_set,
+        )
         if merged is not None:
             content["sections"] = merged
     analysis = current.analysis
     if any(t.document == "analysis" for t in touched_set):
         analysis = _merge_plan(
-            "analysis", proposed.analysis or {}, current.analysis or {}, touched_set
+            "analysis",
+            (proposed.analysis or {}, p_res.analysis or {}),
+            (current.analysis or {}, c_res.analysis or {}),
+            touched_set,
         )
     return Documents(content=content, analysis=analysis)
 

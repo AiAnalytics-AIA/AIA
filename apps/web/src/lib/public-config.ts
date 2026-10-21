@@ -34,6 +34,10 @@ export type PublicConfig = {
   // The research workbench (ADR 0026): the study screen as conversation beside artifact.
   // AIA_WEB_RESEARCH_WORKBENCH; unset or not a switch value, off.
   workbench: boolean;
+  // Stable item ids (working-copy-edit-ops WCE1): the study's store writes each plan item's,
+  // option's and object's id beside it and follows a reworded research question's links.
+  // AIA_WEB_STABLE_ITEM_IDS; unset or not a switch value, off (the server keys by ids either way).
+  stableItemIds: boolean;
   build: { sha: string | null; built_at: string | null };
   // Where the browser reports an error it could not handle (GlitchTip; lib/error-tracking.ts).
   // A DSN's key is public by design: it can only send events. null: nothing is loaded.

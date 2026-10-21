@@ -5,6 +5,8 @@
 
 import { ApiError, type StaleProposalDetails } from "@/lib/api";
 
+import { wordingOf } from "./item-ids";
+
 const BRIEF: Record<string, string> = {
   title: "Název studie",
   goal: "Cíl studie",
@@ -36,15 +38,20 @@ function questionText(project: Obj | null, id: string): string | null {
   return null;
 }
 
-/** One item, said in words: `content:objective:zjistit cenu` is Cíl „zjistit cenu“. */
+/**
+ * One item, said in words: `content:objective:zjistit cenu` is Cíl „zjistit cenu“. A plan item
+ * named by its stable id (WCE1, `content:research_question:rq_…`) is said by its wording in the
+ * design the person has; one that is no longer there by its key, as before.
+ */
 export function itemWords(item: string, project: Obj | null = null): string {
   const [, kind = "", ...rest] = item.split(":");
   const key = rest.join(":");
+  const wording = () => (project ? wordingOf(project, null, kind, key) : null) ?? key;
   switch (kind) {
     case "brief": return BRIEF[key] ?? `Zadání: ${key.replace(/^briefing\./, "")}`;
-    case "objective": return `Cíl „${key}“`;
-    case "research_question": return `Výzkumná otázka „${key}“`;
-    case "hypothesis": return `Hypotéza „${key}“`;
+    case "objective": return `Cíl „${wording()}“`;
+    case "research_question": return `Výzkumná otázka „${wording()}“`;
+    case "hypothesis": return `Hypotéza „${wording()}“`;
     case "tracked_set": return `Porovnávaná sada „${key}“`;
     case "plan": return PLAN[key] ?? `Plán výzkumu: ${key}`;
     case "section": return `Část dotazníku ${key}`;
