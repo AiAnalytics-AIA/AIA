@@ -2073,6 +2073,7 @@ export const cs = {
           no_text: "Bez znění ji nikdo nedostane a nic ji nečte.",
           condition: "Má podmínku (filtr): běh ji odmítne, dokud ji neodeberete.",
           set_size: "Sada potřebuje 4–15 různých položek; do té doby ji nic nečte.",
+          familiarity: "Sadu s povinnou znalostí položek AIA zatím neumí položit: běh ji odmítne; do té doby ji nic nečte.",
         },
         rule: "Co položka napájí, až projde kontrolou před spuštěním; zda projde, rozhodne Kontrola.",
       },

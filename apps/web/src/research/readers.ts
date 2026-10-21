@@ -9,7 +9,9 @@
 //   read over (research_sociomap.py:388-405); without a set no map is made (:585);
 // - an open question's answers are shown as illustrations and no analysis cites them
 //   (domain/question_outlook.py:61-62, 153);
-// - a question with a condition (`filtr`) is refused at the run (research_design.py:1093-1101).
+// - a question with a condition (`filtr`) is refused at the run (research_design.py:1093-1101), and
+//   so is a set with familiarity required (battery_familiarity, research_design.py:1206-1212 @ 6359f8ee;
+//   read with Python's bool(), :910).
 // What else the compiler may refuse (a scale, too few options) Kontrola names, so a reader
 // listed here is what the item feeds once it compiles, never a verdict that it will.
 
@@ -21,7 +23,7 @@ import { type Question, type Section, questionCondition, sections } from "./ques
 export type Reader = "fieldwork" | "results" | "sociomap" | "analysis" | "report";
 
 /** Why an item reaches no stage yet; the person fixes it on Dotazník. */
-export type Held = "no_text" | "condition" | "set_size";
+export type Held = "no_text" | "condition" | "set_size" | "familiarity";
 
 export type ItemReaders = {
   kind: "question" | "set";
@@ -44,6 +46,9 @@ export type ItemReaders = {
 };
 
 const str = (x: unknown): string => (typeof x === "string" ? x.trim() : "");
+/** Python's bool(), as the compiler reads a flag: empty strings, lists and objects are false. */
+const pyTrue = (x: unknown): boolean =>
+  Array.isArray(x) ? x.length > 0 : x && typeof x === "object" ? Object.keys(x).length > 0 : Boolean(x);
 
 function questionReaders(q: Question, si: number, n: number, hasSet: boolean): ItemReaders {
   const text = str(q.text);
@@ -61,7 +66,7 @@ function questionReaders(q: Question, si: number, n: number, hasSet: boolean): I
 function setReaders(sec: Section, si: number, n: number): ItemReaders {
   const objects = (sec.objects || []).map(str).filter(Boolean);
   const size = new Set(objects).size;
-  const held: Held | null = size < SET_MIN || size > SET_MAX ? "set_size" : null;
+  const held: Held | null = size < SET_MIN || size > SET_MAX ? "set_size" : pyTrue(sec.familiarity_required) ? "familiarity" : null;
   const declared = Array.isArray(sec.context_objects) ? (sec.context_objects as unknown[]).map(str).filter(Boolean) : [];
   return {
     kind: "set",

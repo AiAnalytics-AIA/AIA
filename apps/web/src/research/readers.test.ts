@@ -20,6 +20,15 @@ describe("what reads each questionnaire item", () => {
     expect(small).toMatchObject({ held: "set_size", readers: [] });
   });
 
+  it("holds a set with familiarity required, which the run refuses, and keeps it from the Sociomap", () => {
+    const [set] = questionnaireReaders(project([{ ...SET, familiarity_required: true }]));
+    expect(set).toMatchObject({ held: "familiarity", readers: [] });
+    const q = { id: "q_mood", text: "Jak se dnes cítíte?", typ: "skala", sociomap_rating: true };
+    const items = questionnaireReaders(project([{ type: "questions", questions: [q] }, { ...SET, familiarity_required: true }]));
+    expect(items[0].readers).not.toContain("sociomap");
+    for (const off of [false, 0, "", [], {}, null]) expect(questionnaireReaders(project([{ ...SET, familiarity_required: off }]))[0].held).toBeNull();
+  });
+
   it("names a set's declared context objects", () => {
     const [set] = questionnaireReaders(project([{ ...SET, context_objects: ["Voda", " "] }]));
     expect(set.context).toEqual(["Voda"]);
