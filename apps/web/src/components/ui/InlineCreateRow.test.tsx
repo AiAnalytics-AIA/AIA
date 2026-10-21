@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { InlineCreateRow } from "./InlineCreateRow";
@@ -73,6 +73,23 @@ describe("InlineCreateRow (I5): created in the list, no dialog", () => {
     fireEvent.change(row(), { target: { value: "Archiv" } });
     fireEvent.keyDown(row(), { key: "Enter" });
     expect((await screen.findByRole("alert")).textContent).toBe("Nevytvořeno. Zkuste to znovu.");
+  });
+
+  it("an answer for a row already left sets nothing on the row opened after it (Codex #532 sweep)", async () => {
+    let refuse!: (words: string) => void;
+    const create = vi.fn(() => new Promise<string>((r) => (refuse = r)));
+    render(<InlineCreateRow label="Nová složka" onCreate={create} />);
+    openRow();
+    fireEvent.change(row(), { target: { value: "Archiv" } });
+    fireEvent.keyDown(row(), { key: "Enter" });
+    expect(screen.getByText("Ukládám…")).toBeTruthy();
+    fireEvent.keyDown(row(), { key: "Escape" });
+    openRow();
+    // The new row is not busy, and the old refusal does not land on it.
+    expect(row().readOnly).toBe(false);
+    await act(async () => refuse("Takový název už u tohoto klienta je."));
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByText("Ukládám…")).toBeNull();
   });
 
   it("cancels on Esc, and on leaving it empty; a typed name survives a blur", () => {

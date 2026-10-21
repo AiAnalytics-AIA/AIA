@@ -48,11 +48,18 @@ export function InlineCreateRow({
   // An empty row is said only once the person tried to create it; a taken or too long name at once.
   const shown: string | null = refusal ?? (problem && (problem.kind !== "empty" || submitted) ? nameProblemWords(problem) : null);
 
+  // Each creation is numbered, and closing the row ends the current one: an answer that comes
+  // back for a row already left (Esc while it was creating) sets nothing on the row reopened
+  // after it (the sweep after Codex on #532).
+  const latest = useRef(0);
+
   const close = () => {
+    latest.current++;
     setOpen(false);
     setDraft("");
     setRefusal(null);
     setSubmitted(false);
+    setBusy(false);
     requestAnimationFrame(() => trigger.current?.focus());
   };
 
@@ -60,6 +67,7 @@ export function InlineCreateRow({
     setSubmitted(true);
     if (problem || busy) return;
     const name = cleanName(draft);
+    const op = ++latest.current;
     setBusy(true);
     let answer: string | boolean | void;
     try {
@@ -67,6 +75,7 @@ export function InlineCreateRow({
     } catch {
       answer = t("input.name.failed");
     }
+    if (op !== latest.current) return;
     setBusy(false);
     if (typeof answer === "string") {
       setRefusal(answer);

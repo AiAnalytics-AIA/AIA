@@ -66,7 +66,11 @@ export function InlineText({
     if (refocus) requestAnimationFrame(() => shown.current?.focus());
   };
 
+  // Each save is numbered; only the newest one's answer may set the state. An older save that
+  // answers late says nothing about the value on screen (Codex on #532).
+  const latest = useRef(0);
   const send = (next: string) => {
+    const op = ++latest.current;
     setSent(next);
     if (timer.current) clearTimeout(timer.current);
     let result: void | Promise<unknown>;
@@ -83,10 +87,13 @@ export function InlineText({
     setSave("saving");
     result.then(
       () => {
+        if (op !== latest.current) return;
         setSave("saved");
         timer.current = setTimeout(() => setSave("idle"), SAVED_MS);
       },
-      () => setSave("failed"),
+      () => {
+        if (op === latest.current) setSave("failed");
+      },
     );
   };
 

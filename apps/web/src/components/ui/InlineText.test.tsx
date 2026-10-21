@@ -112,6 +112,41 @@ describe("InlineText (I1): edit where it is shown", () => {
     expect(await screen.findByText("Uloženo")).toBeTruthy();
   });
 
+  it("ignores an older save that answers after a newer one (Codex #532)", async () => {
+    // Each call returns its own promise, settled by hand in the order the test chooses.
+    const pending: { resolve: () => void; reject: (e: Error) => void }[] = [];
+    const save = vi.fn(() => new Promise<void>((resolve, reject) => pending.push({ resolve, reject })));
+    const edit = (text: string) => {
+      fireEvent.click(shown());
+      fireEvent.change(field(), { target: { value: text } });
+      fireEvent.keyDown(field(), { key: "Enter" });
+    };
+
+    // A pending, B fails, then A resolves: the failure of B stands, and the retry resends B.
+    const { unmount } = render(<InlineText label="Název studie" value="původní" onCommit={save} />);
+    edit("A");
+    edit("B");
+    await act(async () => pending[1].reject(new Error("x")));
+    await act(async () => pending[0].resolve());
+    expect(screen.getByText(/Neuloženo/)).toBeTruthy();
+    expect(screen.queryByText("Uloženo")).toBeNull();
+    expect(shown().textContent).toContain("B");
+    fireEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }));
+    expect(save).toHaveBeenLastCalledWith("B");
+    unmount();
+
+    // A pending, B succeeds, then A rejects: B is saved, and no retry is offered.
+    pending.length = 0;
+    render(<InlineText label="Název studie" value="původní" onCommit={save} />);
+    edit("A");
+    edit("B");
+    await act(async () => pending[1].resolve());
+    await act(async () => pending[0].reject(new Error("x")));
+    expect(screen.getByText("Uloženo")).toBeTruthy();
+    expect(screen.queryByText(/Neuloženo/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Zkusit znovu" })).toBeNull();
+  });
+
   it("cannot be opened when disabled, and says why", () => {
     render(<InlineText label="Název studie" value="A" onCommit={() => {}} disabled disabledReason="zmrazeno během běhu" />);
     fireEvent.click(shown());
