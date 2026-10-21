@@ -682,6 +682,10 @@ class RunAnalysis:
     #: How the aggregate every module read departs from 18.6.6's port (plan
     #: ``methodology-tab`` G3c); ``None`` when it is the port, or nothing was read yet.
     aggregation_deviation: Mapping[str, Any] | None = None
+    #: This run's own sources, read from the run itself. A reused module's record keeps the
+    #: names it was computed under (:class:`ModuleSources`), so what the run stands on is read
+    #: here, never from a record; ``None`` when no outcome was stored yet.
+    sources: ModuleSources | None = None
 
     @property
     def complete(self) -> bool:
@@ -967,8 +971,10 @@ def reconstruct_run(
     outcomes, pending = _split(run)
     modules: dict[AnalysisModuleId, ReconstructedModule] = {}
     deviation: Mapping[str, Any] | None = None
+    refs: ModuleSources | None = None
     if outcomes:
         sources = _sources(session, scope, store, run)
+        refs = sources.refs
         raw = sources.aggregate.get("deviation")
         deviation = raw if isinstance(raw, Mapping) else None
         for module in AnalysisModuleId:
@@ -977,7 +983,11 @@ def reconstruct_run(
                     session, scope, store, sources, module, outcomes[module]
                 )
     return RunAnalysis(
-        run_id=run_id, modules=modules, pending=pending, aggregation_deviation=deviation
+        run_id=run_id,
+        modules=modules,
+        pending=pending,
+        aggregation_deviation=deviation,
+        sources=refs,
     )
 
 

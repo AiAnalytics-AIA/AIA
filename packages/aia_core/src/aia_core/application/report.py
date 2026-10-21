@@ -232,7 +232,11 @@ def compose_internal_report(
     sections: list[Section] = [Section("Úvod a rámec studie", tuple(introduction), id="intro")]
     if design is not None:
         sections.append(design.chapter)
-    upstream = first.record.sources
+    # The run's own sources: a module reused from an identical earlier run keeps that run's
+    # names in its record (ModuleSources), which this audit must never print as this run's.
+    upstream = run.sources
+    if upstream is None:
+        raise ReportCompositionRefused("the run's own sources were not read")
     audit = [
         ("Běh", run.run_id),
         ("Evidence", table_fingerprint),
