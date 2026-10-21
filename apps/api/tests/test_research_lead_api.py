@@ -935,6 +935,24 @@ def test_a_card_the_lead_prepared_waits_while_the_lead_is_switched_off(
     assert _written_by_an_approval(app) > before
 
 
+def test_a_card_approved_before_the_switch_off_still_answers_with_its_job(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """Review of #561: an approval asked again after the switch-off (a lost response, a second
+    tab) returns the job that already runs, and writes nothing; only an approval that would
+    create a job is refused."""
+    turn_id = _turn(researcher, world, app, JOB)
+    url = f"{lead_url(world)}/turns/{turn_id}/request"
+    approved = researcher.post(url, json={})
+    assert approved.status_code == 200, approved.text
+    written = _written_by_an_approval(app)
+    app.state.settings = app.state.settings.model_copy(update={"ai_research_lead_enabled": False})
+    again = researcher.post(url, json={})
+    assert again.status_code == 200, again.text
+    assert again.json()["run_id"] == approved.json()["run_id"]
+    assert _written_by_an_approval(app) == written
+
+
 def test_the_refusal_is_read_from_the_stored_turn_never_the_body(
     researcher: TestClient, world: Any, app: FastAPI
 ) -> None:

@@ -835,7 +835,8 @@ class ResearchLead:
         only opens a stage (:class:`NotAPaidRequest`). The card is the Lead model's output, as
         the stored turn says (:func:`_model_prepared`), so with the Lead switched off it is
         refused (:class:`LeadDisabled`, Q42) before anything is written; it waits until the
-        Lead is on again. Its ceiling is the design job's
+        Lead is on again. A card approved before the switch-off answers with its job, as any
+        repeated approval does. Its ceiling is the design job's
         reservation (``reservation_usd``: a primary and one repair). At or above the study's
         spend limit it needs ``confirm_cost_usd`` at least the ceiling
         (:class:`CostConfirmationRequired`); with a limit and no reservation configured it is
@@ -850,8 +851,6 @@ class ResearchLead:
         self.scope.require_open_study()
         turn, output = self._completed(turn_id)
         assert turn.run_id is not None
-        if _model_prepared(turn) and not self.enabled:
-            raise LeadDisabled("the Research Lead is switched off; its card waits until it is on")
         request = output.request
         if not isinstance(request, AgentJobRequest):
             raise NotAPaidRequest("this turn prepared no paid job")
@@ -859,6 +858,8 @@ class ResearchLead:
         workflows = self._workflows()
         approved = workflows.lead_decisions([turn_id]).get(turn_id, {}).get("request")
         if approved:
+            # Approved before any switch-off: the job exists and is answered as it is, so a
+            # retry after a lost response is never misreported as refused (review of #561).
             jobs = ResearchAgentJobs(self.session, self.scope)
             run = jobs.get(str(approved["run_id"]))
             return {
@@ -866,6 +867,10 @@ class ResearchLead:
                 "design_revision_id": run["metadata"]["design_revision_id"],
                 "status": run["status"].value,
             }
+        # Q42: only an approval that would create a job is held by the switch, before anything
+        # is submitted, created, written or held.
+        if _model_prepared(turn) and not self.enabled:
+            raise LeadDisabled("the Research Lead is switched off; its card waits until it is on")
 
         # The confirmation threshold's one rule, the job start's own (lead-orchestration LO15):
         # asked here before the design is submitted, and again by the start, which records the
