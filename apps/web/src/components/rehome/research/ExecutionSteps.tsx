@@ -92,6 +92,7 @@ import { withBudget } from "@/lib/budget-line";
 import { reportStatus, reportStatusWords } from "@/lib/report-status";
 import type { Tone } from "@/lib/tone";
 import { AnalysisCoverage, AnalysisMilestones } from "./AnalysisCoverage";
+import { setShownAnalysis } from "./AnalysisInspect";
 import { CodedWords } from "./CodedWords";
 import { CONFLICT_MESSAGE, submitWorkingDesign } from "@/research/store";
 import { projectVariants, selectedVariant } from "@/research/plan";
@@ -1629,8 +1630,16 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
     );
     return () => { live = false; };
   }, [frame.studyId, run.run_id, states]);
+  const shownValue = loaded.state === "ready" ? loaded.value : null;
+  // The inspector reads the analysis this page shows, never a run it fetched itself (ANL3).
+  useEffect(() => {
+    if (!shownValue) return;
+    const next = { runId: run.run_id, analysis: shownValue, spec };
+    setShownAnalysis(next);
+    return () => setShownAnalysis(null);
+  }, [run.run_id, shownValue, spec]);
   if (loaded.state === "hidden") return null;
-  const analysis = loaded.state === "ready" ? loaded.value : null;
+  const analysis = shownValue;
   const complete = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "COMPLETED").length;
   const blocked = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "BLOCKED").length;
   const selected = analysis?.modules[selectedModule];
