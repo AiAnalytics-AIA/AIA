@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Readiness } from "./api";
-import { outlookSummary, personaSourcesOf, sourceChosenOnRun, supportForecastOf } from "./sample-view";
+import { checkStage, outlookSummary, personaSourcesOf, readinessSummary, sourceChosenOnRun, supportForecastOf } from "./sample-view";
 
 const readiness = (over: Partial<Readiness>): Readiness => ({
   design_revision_id: "r1", rules: "aia-readiness-1", ready: true, checks: [], questions: 3, batteries: 0, objects: 0, n: 200,
@@ -59,5 +59,36 @@ describe("sourceChosenOnRun", () => {
     expect(sourceChosenOnRun(readiness({ persona_sources: sources }))).toBe(true);
     expect(sourceChosenOnRun(readiness({ fieldwork_source: "synthetic_fixture", persona_sources: sources }))).toBe(false);
     expect(sourceChosenOnRun(readiness({}))).toBe(false);
+  });
+});
+
+describe("checkStage", () => {
+  it("sends each known check to the stage that fixes it", () => {
+    expect(checkStage("sample_size")).toBe("dimensions");
+    expect(checkStage("sociomap_support")).toBe("dimensions");
+    expect(checkStage("dimensions")).toBe("dimensions");
+    expect(checkStage("audience")).toBe("audience");
+    expect(checkStage("conditional_questions")).toBe("questionnaire");
+  });
+
+  it("names no stage for a check it does not know, never a guess", () => {
+    expect(checkStage("new_server_check")).toBeNull();
+    expect(checkStage("toString")).toBeNull();
+  });
+});
+
+describe("readinessSummary", () => {
+  const check = (id: string, status: string) => ({ id, status, message: id }) as Readiness["checks"][number];
+
+  it("orders worst first, keeping the server's order within a status, and counts each", () => {
+    const s = readinessSummary(readiness({ checks: [check("a", "PASS"), check("b", "WARN"), check("c", "FAIL"), check("d", "WARN")] }));
+    expect(s.checks.map((c) => c.id)).toEqual(["c", "b", "d", "a"]);
+    expect(s).toMatchObject({ blocking: 1, warnings: 2, unknown: 0 });
+  });
+
+  it("puts a status it does not know first and never counts it as passed", () => {
+    const s = readinessSummary(readiness({ checks: [check("a", "PASS"), check("x", "SKIPPED")] }));
+    expect(s.checks[0].id).toBe("x");
+    expect(s).toMatchObject({ blocking: 0, warnings: 0, unknown: 1 });
   });
 });

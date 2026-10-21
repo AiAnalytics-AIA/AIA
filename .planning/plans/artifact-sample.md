@@ -4,7 +4,7 @@ chunks:
   - "[x] SMP1. Vzorek's contract as data: view operations, pointable ids (size, quota cell, forecast item, readiness check) and V2's interaction contract"
   - "[ ] SMP2. Velikost a složení: n, the dimensions and the audience summarized; the panel's quota cells before a run, and for the fictional roster the words that it has none"
   - "[x] SMP3. Odhad podpory před během: the support forecast and the question outlook, labelled a forecast, never a result"
-  - "[ ] SMP4. Připravenost ke spuštění: every readiness check with its stage link, on the working revision"
+  - "[x] SMP4. Připravenost ke spuštění: every readiness check with its stage link, on the working revision"
   - "[x] SMP5. Kdo bude odpovídat: the persona source offered, its default and why an unoffered one is not, read only here with a link to Spuštění, where it is chosen (SQ1 = Q54 b)"
   - "[ ] SMP6. Journey: Vzorek at 1440, 1100, 768 and 390 px, zero paid jobs"
 ---
@@ -146,6 +146,26 @@ field. (a) if the owner wants V2's layout exactly.
   390 px: the size and the server's forecast, read only, every `sample:` id present, no overflow,
   Spuštění one click away, nothing paid. The readiness list and a check opening its stage join it
   with SMP4; the chunk stays open until then.
+
+- **SMP4 (2026-10-22).** Vzorek §3 lists every check the server ran on the working copy, worst
+  first (an unknown status first, never counted as passed), each with the stage that fixes it
+  (`sample-view.ts` `checkStage`; a check this client does not know names none) and its own target
+  `sample:ready:<id>`; the aside counts what blocks and what warns; "Pokračovat na Sběr dat" goes on,
+  "Lze pokračovat s omezeními" when only warnings. The support forecast is shown in §2 alone, counted
+  here and named when it warns. Kontrola's cards stay on Spuštění until `artifact-fieldwork#FLD6`
+  decides; "Kdo bude odpovídat" is now §4, as V2 numbers it.
+
+## Findings
+
+- **F-SMP-1. Spuštění sends a failing `dimensions` or `sociomap_support` check to Dotazník.**
+  - Anchor: `apps/web/src/components/rehome/research/ExecutionSteps.tsx:381-385 @ bfe6d15b` (`fixStep`:
+    `/sample|^n$|^support_forecast$/` → persona, `/audience/` → audience, the rest → questionnaire).
+  - Reproduction: `fixStep("dimensions")` and `fixStep("sociomap_support")` return `"questionnaire"`;
+    the checks are `research_design.py:1250-1276 @ bfe6d15b` (n below the pair minimum; the selected
+    dimensions).
+  - Consequence: "Opravit →" on those checks opens the questionnaire, where neither is fixed.
+  - Smallest fix: map both to `persona`, as Vzorek's `checkStage` does.
+  - Test: `fixStep` for each check id the domain emits. Reported to the Sběr dat session (its file).
 
 ## Doc follow-up
 

@@ -271,12 +271,17 @@ try {
     // Read only: no editable surface of any kind, and every button one of its navigation links.
     const editable = "input, select, textarea, [contenteditable]:not([contenteditable='false']), [role=slider], [role=spinbutton], [role=textbox], [role=checkbox], [role=radio], [role=switch], [role=combobox]";
     assert.equal(await sample.locator(editable).count(), 0, `Vzorek has no editable control @${width}`);
-    const NAVIGATION = new Set(["Upravit v Dimenzích", "Upravit cílovou skupinu", "Sociomapa", "Změnit ve Spuštění", "Ověřit v Kontrole a spuštění"]);
+    // The section links, the stage each readiness check is fixed on, and the way on to Sběr dat.
+    const NAVIGATION = new Set(["Upravit v Dimenzích", "Upravit cílovou skupinu", "Sociomapa", "Změnit ve Spuštění", "Pokračovat na Sběr dat", "Dimenze", "Cílová skupina", "Dotazník"]);
     const buttons = (await sample.locator("button, [role=button]").allInnerTexts()).map((b) => b.trim());
     assert.deepEqual(buttons.filter((b) => !NAVIGATION.has(b)), [], `Vzorek's buttons only navigate @${width}`);
     for (const id of ["sample:size", "sample:n", "sample:forecast", "sample:forecast:support", "sample:forecast:outlook"]) {
       assert.equal(await sample.locator(`[data-aia="${id}"]`).count(), 1, `${id} @${width}`);
     }
+    // Připravenost ke spuštění (SMP4): the server's checks on the working copy, each its own target.
+    const ready = page.getByRole("region", { name: "Připravenost ke spuštění" });
+    await ready.locator('[data-aia^="sample:ready:"]').first().waitFor({ timeout: 30000 });
+    assert.equal(await ready.getByText("nepodařilo načíst").count(), 0, `Vzorek's readiness read @${width}`);
     await noOverflow(`sample @${width}`);
     await sample.screenshot({ path: join(out, `${width}-sample.png`) });
   }
@@ -284,9 +289,9 @@ try {
   assert.equal(writes.filter((w) => /\/design\/revisions$/.test(w.path)).length, submitsBefore, "a Vzorek visit submits no design");
   // Its links open the stages where things are set.
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.getByRole("button", { name: "Ověřit v Kontrole a spuštění" }).click();
+  await page.getByRole("button", { name: "Pokračovat na Sběr dat" }).click();
   await page.locator(".nav__stage.is-current", { hasText: "Sběr dat" }).waitFor();
-  check("Vzorek: size and the server's forecast on the working copy at 1440, 1100, 768 and 390, nothing submitted, read only, no overflow; Spuštění one click away");
+  check("Vzorek: size, the server's forecast and readiness on the working copy at 1440, 1100, 768 and 390, nothing submitted, read only, no overflow; Sběr dat one click away");
 
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");

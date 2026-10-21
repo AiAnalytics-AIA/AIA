@@ -35,7 +35,7 @@ describe("SampleArtifact", () => {
     expect(screen.queryByRole("textbox")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Upravit v Dimenzích" }));
     fireEvent.click(screen.getByRole("button", { name: "Sociomapa" }));
-    fireEvent.click(screen.getByRole("button", { name: "Ověřit v Kontrole a spuštění" }));
+    fireEvent.click(screen.getByRole("button", { name: "Pokračovat na Sběr dat" }));
     expect(onOpen.mock.calls).toEqual([["dimensions"], ["sociomap"], ["fieldwork"]]);
   });
 
@@ -74,6 +74,54 @@ describe("SampleArtifact", () => {
     cleanup();
     render(<SampleArtifact project={project({})} onOpen={vi.fn()} readiness={{ kind: "failed", message: "500" }} />);
     expect(screen.getByRole("alert").textContent).toContain("500");
+  });
+});
+
+describe("Připravenost ke spuštění", () => {
+  const checks = [
+    { id: "sample_size", status: "PASS" as const, message: "n = 200." },
+    { id: "conditional_questions", status: "FAIL" as const, message: "Podmíněnou otázku AIA neumí položit." },
+    { id: "sociomap_support", status: "WARN" as const, message: "n je pod 30 na pár." },
+    { id: "new_server_check", status: "WARN" as const, message: "Něco nového." },
+  ];
+
+  it("lists every check worst first; a FAIL names its stage and opens it", () => {
+    const onOpen = vi.fn();
+    const { container } = render(<SampleArtifact project={project({ n: 200 })} onOpen={onOpen} readiness={ready({ checks })} />);
+    const section = screen.getByRole("region", { name: "Připravenost ke spuštění" });
+    expect(section.textContent).toContain("1 kontrola brání spuštění");
+    const items = [...section.querySelectorAll("li")].map((li) => li.getAttribute("data-aia"));
+    expect(items).toEqual(["sample:ready:conditional_questions", "sample:ready:sociomap_support", "sample:ready:new_server_check", "sample:ready:sample_size"]);
+    const fail = container.querySelector('[data-aia="sample:ready:conditional_questions"]')!;
+    fireEvent.click(fail.querySelector("button")!);
+    expect(onOpen).toHaveBeenCalledWith("questionnaire");
+    // n's support is fixed where n is set; a check this client does not know names no stage.
+    expect(container.querySelector('[data-aia="sample:ready:sociomap_support"] button')?.textContent).toBe("Dimenze");
+    expect(container.querySelector('[data-aia="sample:ready:new_server_check"] button')).toBeNull();
+    expect(section.textContent).not.toContain("Lze pokračovat s omezeními");
+  });
+
+  it("shows the support forecast in section 2 only, counted and named here when it warns", () => {
+    render(<SampleArtifact project={project({ n: 50 })} onOpen={vi.fn()} readiness={ready({ checks: [{ id: "support_forecast", status: "WARN", message: "Čísla budou potlačená." }] })} />);
+    const section = screen.getByRole("region", { name: "Připravenost ke spuštění" });
+    expect(section.querySelector('[data-aia="sample:ready:support_forecast"]')).toBeNull();
+    expect(section.textContent).toContain("1 varování, nic nebrání");
+    expect(section.textContent).toContain("viz oddíl 2");
+    expect(screen.getAllByText("Čísla budou potlačená.")).toHaveLength(1);
+  });
+
+  it("says a run with only warnings may continue with limits", () => {
+    render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({ checks: checks.filter((c) => c.status !== "FAIL") })} />);
+    const section = screen.getByRole("region", { name: "Připravenost ke spuštění" });
+    expect(section.textContent).toContain("2 varování, nic nebrání");
+    expect(section.textContent).toContain("Lze pokračovat s omezeními.");
+  });
+
+  it("says when nothing was checked, never that nothing stops the run", () => {
+    render(<SampleArtifact project={project({})} onOpen={vi.fn()} readiness={{ kind: "none" }} />);
+    const section = screen.getByRole("region", { name: "Připravenost ke spuštění" });
+    expect(section.textContent).toContain("kontroly neproběhly");
+    expect(section.textContent).not.toContain("nic nebrání");
   });
 });
 
