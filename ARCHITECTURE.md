@@ -505,7 +505,8 @@ What are you building?
 ├─ A rule that could be decided on paper, with no I/O?
 │    → packages/aia_core/src/aia_core/domain/<context>.py
 │      + packages/aia_core/tests/test_<context>.py
-│      Pure function or frozen dataclass. No imports beyond stdlib + Pydantic.
+│      Pure function or frozen dataclass. No imports beyond stdlib + Pydantic
+│      (numpy, scipy and numba for numerical code only: §2, layer 1).
 │
 ├─ A use case that reads or writes, or needs authorization?
 │    → packages/aia_core/src/aia_core/application/<use_case>.py

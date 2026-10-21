@@ -9,23 +9,28 @@ chunks:
   - "[x] 6. Lead pane: conversation, composer, greeting, view tools, edits as change blocks, decision cards"
   - "[x] 6b. Personal Leads: researcher_leads and memories, hatching, the Můj Vedoucí page, per-researcher sessions"
   - "[ ] 7. Agent proposals inline in the artifact, with research-question coverage gained, lost and kept"
+  - "[ ] 7b. Review a Design Research proposal inside the artifact (DRL-6, F-DRL-1): its EVIDENCE items with their findings' quotes and sources, ticked and accepted through POST …/design-proposal/accept with both expected revisions, then the working copy reloaded; a GAP item has no checkbox"
   - "[x] 8. design_items, the working revision on every Design Revision writer (web submit, reuse, accepts), the item-level stale rule"
   - "[x] 9. Accept in one transaction: merged Design Revision, working copy, ledger; the web reloads"
   - "[x] 10. Dismiss and rebuild through the ledger and rebuild_of; the pending-proposals projection"
   - "[ ] 11. The command registry: the workers the Lead may call, each with its prompt and price, behind approve_request (ledger and spend limit already built); the route-class refusal says who fixes it (lead-orchestration LO12a, then LO12b); first deliverable: the worker row (lead-orchestration LO9a)"
   - "[ ] 12. Workbench journey: four widths, keyboard, focus modes, a Lead turn on recorded answers, zero unintended paid jobs"
+  - "[ ] 12a. The UI workbench runs Deep Research on recorded web with no paid calls (DRL-1, F-DRL-6): the six steps and the track kind over deep_research_recorded with a scripted model transport, one fictional design and one interpretation exchange; local and test only"
   - "[x] 13. Design V3 in the repository (prototypes/research-lead-v3, its text) and its chunks in this plan"
   - "[ ] 14. The Lead's view vocabulary: a closed, per-artifact set of display operations the Lead may run on the artifact pane"
   - "[ ] 15. The artifact frame: title, state pill, one version line and at most one state bar; inputs, feeds, workers and provenance in the inspector (the canonical V2 prototype's D5, owner confirmed in MVPQ-01 on 2026-10-20), Pracovní kopie / Historie / Původ, the revision stepper"
   - "[ ] 16. Pointing at the artifact: the Vidí chip, the target button and @ over every artifact's elements"
-  - "[ ] 17. Questionnaire artifact, its proposal shown in it (where chunk 7 lands)"
-  - "[ ] 18. Brief and Research design artifacts"
-  - "[ ] 19. Sample and Fieldwork artifacts"
-  - "[ ] 20. Results and Sociomap artifacts, drawing aia-sociomap-5 in full: credibility, uncertainty circles, the respondent map, taste segments, unplaced objects, in Results and project memory alike (D-13)"
-  - "[ ] 21. Analysis and Report artifacts"
-  - "[ ] 22. Audience and Dimensions artifacts"
+  - "[ ] 17. Questionnaire artifact (umbrella): artifact-questionnaire QST1-QST9; chunk 7 lands in QST5"
+  - "[ ] 18. Brief and Research design artifacts (umbrella): artifact-brief BRF1-BRF6, artifact-design DSN1-DSN8"
+  - "[ ] 19. Sample and Fieldwork artifacts (umbrella): artifact-sample SMP1-SMP6, artifact-fieldwork FLD1-FLD8"
+  - "[ ] 20. Results and Sociomap artifacts (umbrella): artifact-results RES1-RES7, artifact-sociomap SOC1-SOC8; the aia-sociomap-5 drawing in full (credibility, uncertainty circles, the respondent map, taste segments, unplaced objects, in Results and project memory alike, D-13) is sociomap-5-web, hosted by SOC2"
+  - "[ ] 21. Analysis and Report artifacts (umbrella): artifact-analysis ANL1-ANL8, artifact-report RPT1-RPT7"
+  - "[ ] 22. Audience and Dimensions artifacts (umbrella): artifact-audience AUD1-AUD6, artifact-dimensions DIM1-DIM6"
   - "[ ] 23. Worker and Deep Research cards in the conversation, each opening the artifact it changes (partial, feature/lead-worker-cards: design-job and research-run cards built; Deep Research cards not yet)"
   - "[ ] 24. A standing 'continue until you need me' beyond an approved plan's steps, over chunk 11's command registry, stopping at every gate (after the MVP: the plan-scoped part is lead-orchestration LO3-LO5)"
+  - "[ ] 23b. Deep Research request and running cards in the conversation (DRL-4, after #550's chunk 23 half): the quote (ceiling by kind, priced routes, missing live settings, threshold), 'Spustit rešerši' through approve_request, the orb, six steps and fan-out tracks, waits with resume and budget lift, Zrušit"
+  - "[ ] 23c. The finished Deep Research card (DRL-7): coverage and counts, the first findings with 'Ověřeno, přidat zdroj', 'Zkontrolovat návrh' (7b), 'Použít ve zprávě' and the report with literature prepared and approved on CompleteReport's routes, a failure's cause and 'Zkusit znovu'"
+  - "[ ] 26f.1. The Deep Research half of 26f (DRL-5): the Deep Research starts and retries removed from every layout, their panels kept as readers; after 23b and after lead-orchestration LO5a.3 (Q48); with it lead-orchestration LO5a's acceptance"
   - "[ ] 25. Deep Research reachable from every stage as a capability"
   - "[ ] 26a. The Lead at every width (D20, MVPQ-11), its pure rules: lib/workbench-layout.ts, the breakpoints (split from 1100 px, drawer 768-1099, sheet under 768), the drawer's states and the one Escape order, tested at 1099, 1100, 768, 767 and 390 px"
   - "[ ] 26b. One tree, three layouts: Workbench renders the artifact and LeadPane once at every width, so crossing 1100 px remounts nothing (a mount-counter test); the workbench serves under 1100 px"
@@ -444,6 +449,30 @@ appear in the lead researches chat too"). Built on `feature/lead-worker-cards`:
 - **ADR 0026**, under *Accepted with*: the Lead steers the artifact pane through a closed set of
   display operations (D10); its gates are unchanged.
 
+## Artifact plans (2026-10-21)
+
+The product owner, 2026-10-21: "we need to have a plan for each artifact of each research stage",
+and "ensure they all work together to produce a draft research document".
+- Chunks 17-22 are now umbrellas. Each is ticked when its artifact plans are done, and the work is
+  built from those files:
+
+  | Chunk | Artifact plans |
+  |---|---|
+  | 17 | [`artifact-questionnaire`](artifact-questionnaire.md) (chunk 7's questionnaire half is QST5) |
+  | 18 | [`artifact-brief`](artifact-brief.md), [`artifact-design`](artifact-design.md) |
+  | 19 | [`artifact-sample`](artifact-sample.md) (Kontrola's readiness), [`artifact-fieldwork`](artifact-fieldwork.md) (Spuštění and Průběh) |
+  | 20 | [`artifact-results`](artifact-results.md), [`artifact-sociomap`](artifact-sociomap.md) |
+  | 21 | [`artifact-analysis`](artifact-analysis.md), [`artifact-report`](artifact-report.md) |
+  | 22 | [`artifact-audience`](artifact-audience.md), [`artifact-dimensions`](artifact-dimensions.md) |
+
+- [`artifact-chain-to-draft-report`](artifact-chain-to-draft-report.md) composes the hand-offs into
+  one internal draft and holds the chain's acceptance test (CHN11, CHN12).
+- Each artifact plan's first chunk declares its part of chunk 14's view vocabulary and chunk 16's
+  targets. 14 and 16 keep the frame and the grammar; the artifacts fill them in.
+- The stage list was checked against `apps/web/src/lib/workbench-stages.ts:16-19` and
+  `prototypes/research-lead-v2/src/model/terms.ts:6`. There are eleven stages: Kontrola is part of
+  Vzorek, and Spuštění with Průběh is Sběr dat.
+
 ## Child plans (added by the master plan, 2026-10-19)
 
 The orchestration and edit work this plan's artifacts stand on is in six plans, each chunk in exactly one
@@ -775,3 +804,190 @@ so it is rerun on `workbench.py up --fresh`.
 - **`CLAUDE.md` § 2**, when 27c lands: `src/components/workbench/` no longer sits behind
   `AIA_WEB_RESEARCH_WORKBENCH`; there is no classic layout; the Lead is a drawer under 1100 px.
   When 26a and 27a land: `lib/workbench-layout.ts` and `lib/lead-availability.ts`.
+
+## Deep Research cards and starts: the Lead controls Deep Research end to end (2026-10-21)
+
+The owner, 2026-10-21: "the lead should be able to control the whole process". The decisions (Q44
+to Q48, his words and their times) and the Lead's half of the work (LO5a.1 to LO5a.4, with
+LO6's and LO8's tightening) are in
+[`lead-orchestration.md` § Deep Research under the Lead](lead-orchestration.md#deep-research-under-the-lead-2026-10-21).
+The pricing half is `deep-research-web-search` 55 (DRL-0). This section holds the UI and workbench
+half: 7b, 12a, 23b, 23c and 26f.1. Anchors are `@ 095a3e68` unless stated; `@ cd7af699` is #550.
+
+**Where the chunk lines sit.** 7b and 12a stand under the chunks they refine. 23b, 23c and 26f.1
+stand after 24, not beside 23 and 26. #550 rewrites line 23 and #551 replaces 26 and 27 with 26a-27d,
+so a line next to either would conflict with them. 23 itself stays the half #550 builds (worker and
+research-run cards); 26f.1 refines #551's 26f by name.
+
+### Amended decisions
+
+- **D7, for the two Deep Research kinds** (`lead-orchestration#LO5a.2`). A `design_research` or
+  `interpretation_research` card no longer only opens its stage. "Spustit rešerši" calls
+  `POST …/lead/turns/{turn_id}/request`, and `approve_request` starts the run on the server with the
+  threshold, the live-settings guard and the `lead_job_request` ledger row. `research_run` keeps
+  #550's path, through Spuštění's own route.
+- **25, narrowed.** Once LO5a.1 and LO5a.2 land, the Lead may prepare Deep Research from any stage.
+  25 then means only subject kinds beyond research questions and questions (Audience or Dimensions
+  as subjects). Those need new engine subjects, and the engine is frozen (ADR 0021), so 25 stays
+  after the MVP (D16).
+
+### The chunks
+
+**7b (DRL-6). Review a Design Research proposal inside the artifact (F-DRL-1).**
+- `apps/web/src/lib/api.ts`: `deepResearch.acceptDesignProposal(studyId, runId, itemIds,
+  expectedRevisionId, expectedWorkspaceRevision)` on `POST …/runs/{run_id}/design-proposal/accept`
+  (`routers/deep_research.py:768-796`; `DesignResearchProposals.accept`,
+  `application/design_research.py:90-157`, `EDIT_STUDY` and `APPROVE_GATE`, the item-level stale
+  rule, the `design_research` ledger row).
+- New `components/rehome/research/DesignResearchReview.tsx`. It lists each item, EVIDENCE or GAP, by
+  subject, with its findings' quotes and sources and the research question it informs, and offers
+  checkboxes and "Přijmout vybrané". A `stale_proposal` refusal is said through `proposal-items.ts`,
+  and after an accept the store reloads (`reload(read, { since })`).
+- It is mounted on Návrh and Dotazník, where the subject lives, and opened from the card's
+  "Zkontrolovat návrh" (#550's `OPEN_REVIEW_KEY` pattern).
+- The Lead may recommend items by id in its reply. It cannot accept them.
+- Tests (Vitest):
+  - the request body has exactly the ticked items and both revisions;
+  - a stale proposal is said in Czech;
+  - a GAP item has no checkbox.
+
+  Journey: accept one EVIDENCE item and reload; the item is in the working copy, with a
+  `design_research` ledger row.
+- It can land before 23b as a stage control, because the accept is a person's gate, not an AI start.
+  No kill switch.
+
+**12a (DRL-1). A UI workbench that runs Deep Research on recorded web, with no paid calls (F-DRL-6).**
+- `apps/executors/src/aia_executors/workbench.py` `workbench_registry_for` adds the Deep Research
+  executors over `deep_research_recorded`'s runtime, with a scripted model transport replaying
+  recorded answers (as `apps/executors/tests/test_deep_research_journey.py` does). Both modules
+  already refuse outside local and test (`deep_research_recorded.py:57-58`).
+- A small fictional exchange file under `tools/ui_workbench/fixtures/deep_research/`: one design run,
+  and one interpretation over the fixture project's run. `tools/ui_workbench/workbench.py` sets the
+  keys.
+- Tests (`apps/executors/tests/test_research_lead_workbench.py`):
+  - the registry holds the six steps and the track kind;
+  - a run on the fixture completes with a sealed bundle marked `RECORDED_FIXTURE`;
+  - no gateway call is priced.
+
+  `layer_check` still forbids naming either module in a deployment.
+- Every journey below runs on it with the scripted Lead and asserts zero paid calls: the usage
+  ledger's paid rows are unchanged, and every snapshot is `RECORDED_FIXTURE`. `lead_journey.mjs` runs
+  on `workbench.py up --fresh` (OI-133).
+
+**23b (DRL-4). Deep Research request and running cards in the conversation.** Every Deep Research run
+of the study is a card, however it was started, as #550 does for jobs and runs (`lib/lead-cards.ts`,
+`components/workbench/LeadCards.tsx @ cd7af699`). A run started from a turn's card stands with that
+turn (`request_decision.run_id`); any other run stands at its creation time.
+- **The request card** shows:
+  - the purpose ("Rešerše k návrhu" / "Rešerše k výsledkům");
+  - the focus (Q45) or the target (Q44) in words, with its connections, and behind a disclosure the
+    run, the artifact id and a SHA prefix;
+  - the preset (STANDARD by default, QUICK offered; Q46);
+  - the Lead's `why`;
+  - DRL-0's quote: the ceiling and its breakdown by kind, grouped as model, search (Brave), index
+    (Common Crawl's Athena) and free routes, each priced route with its price date and an unknown
+    price read as "cena neznámá", never 0;
+  - the threshold and the budget line (`budget-line.ts`), and the wallet's remainder once the wallet
+    is on;
+  - missing live settings: they list the keys in words and the routes that need them, say who fixes
+    them ("správce organizace, Nastavení → Hloubkový výzkum") with a link, and disable the card
+    before a click (LO12a's pattern).
+
+  Its buttons are "Teď ne" and "Spustit rešerši". The latter goes through `approveRequest`, with
+  #550's ask-again loop.
+- **The running card** shows:
+  - the 64 px orb while a step is RUNNING (`deepResearchRunningStep`);
+  - the six steps, with each fan-out track `investigate/<track>` under investigate, and the live feed
+    of the selected step (`StepActivityPanel` over `useStepActivity`);
+  - the cost spent so far against the ceiling;
+  - waits in words: `AWAITING_BUDGET` with `BudgetLift` (`APPROVE_BUDGET`), a runtime park with
+    "Pokračovat v běhu", and the egress codes with LO12a's who-fixes-it line;
+  - "Zrušit rešerši" (`CANCEL_WORKFLOW`), which keeps what was captured.
+- Files: `lib/lead-cards.ts` (`deepResearchCard(run)` and the quote model), `LeadCards.tsx`
+  (`DeepResearchCard`), `LeadPane.tsx` (`REQUEST_WORDS` marks both kinds as paid; "Zkontrolovat
+  cenu" calls the quote), `Workbench.tsx` (`onRequest` for both kinds and retry; the study's Deep
+  Research runs polled into the cards).
+- Tests:
+  - `lead-cards.test.ts`: each phase's words; the orb only while RUNNING; the tracks listed under
+    investigate; an unknown cost reads "náklady nevykázány"; missing live settings disable the card.
+  - `LeadPane.test.tsx`: the card asks once at the threshold.
+  - `lead_journey.mjs` on 12a: "připrav rešerši k návrhu" gives a design card with a ceiling;
+    "Spustit rešerši" gives a running card with the orb and the tracks; the run completes; zero paid
+    calls.
+- Depends on #550, 12a and `lead-orchestration#LO5a.2`. Cards are display; the kill switch is as
+  LO5a.2's.
+
+**23c (DRL-7). The finished card: findings, sources and the report.**
+- Every finished card shows:
+  - the coverage verdict and the counts (accepted, snapshots, gaps, rejected), with
+    `SearchedNothing` when nothing was searched;
+  - the first three accepted findings, rendered from `GET …/bundle`, never from model text, each with
+    `VerifiedSourceButton` (a person's click, `application/verified_sources.py:47-67`);
+  - links to the stage panel and to the bundle in full.
+- For design, the card adds "Zkontrolovat návrh" (7b).
+- For interpretation, it adds:
+  - "Použít ve zprávě", which sets the results page's review through the study's page memory;
+  - the state of the report with literature, read from `GET …/report/context`, with "Připravit
+    zprávu" and "Schválit zprávu" on `CompleteReport`'s routes. Approval is bound to the artifact id
+    the card shows (`requestStored`'s `X-AIA-Artifact-Id` rule), and the self-approval rule applies.
+- For a failure, it shows the cause worded by code (D-10) and "Zkusit znovu". An interpretation
+  retry refused as `lineage_changed` says so and offers a new start over the current target.
+- It reuses `lib/report-status.ts`, with no new rule.
+- Tests (Vitest):
+  - a bundle with zero accepted findings says so;
+  - "Schválit" sends the artifact id the card shows;
+  - a refused approval (self-approval) is said.
+
+  Journey: interpretation over the fixture run → the finished card → "Ověřeno, přidat zdroj" → the
+  item appears on Znalosti → "Použít ve zprávě" → the report prepared, and approved by a second
+  fictional member where self-approval is off.
+- Depends on 23b, and on 7b for the design link. No kill switch, since these are people's own gates.
+
+**26f.1 (DRL-5). The Deep Research half of 26f.**
+- Removed in every layout:
+  - `DeepResearchPanel.tsx:124` (start) and `:139` (retry);
+  - `InterpretationResearch.tsx:145` (start, with its preset select) and `:161` (retry).
+- Their panels stay as read-only views of the runs: the state, the bundle, "Ověřeno, přidat zdroj",
+  "Použít ve zprávě", "Zrušit", and the waits (resume, budget lift). None of these starts paid work.
+  The stage says where to start instead ("Rešerši připraví Vedoucí výzkumu", `AskLead`, #550).
+- 26f's static guard adds `deepResearch.start`, `deepResearch.interpret` and `deepResearch.retry`.
+  Their only callers are then the Lead's cards and the run card's retry.
+- Tests:
+  - the guard;
+  - `ResearchScreen.workbench.test.tsx`: no Deep Research start on Dotazník or Výsledky;
+  - `lead_journey.mjs` at 1440 and 390 px (until 26c's drawer exists, 1440 and 1100): Deep Research
+    is startable only through the Lead;
+  - a direct HTTP `POST …/deep-research/runs` with the page's token meets the same gates (26e's
+    pattern).
+- **Depends on 23b and on `lead-orchestration#LO5a.3` (Q48: the buttons go only once typed starts
+  work with the Lead off).** While the classic frame exists, it sits behind `leadOwnsAiStarts`, and
+  27c deletes the predicate.
+- No kill switch, by D-12. `lead-orchestration#LO5a`'s acceptance is ticked with it.
+
+### Findings
+
+- **F-DRL-1. No web path turns a Design Research proposal into a Design Revision.**
+  - Anchor: `apps/api/src/aia_api/routers/deep_research.py:768-796` and
+    `application/design_research.py:90-157` exist. The only web reference to the proposal is the GET
+    at `apps/web/src/lib/api.ts:1412 @ 095a3e68`.
+  - Reproduction: `git grep -n 'design-proposal' 095a3e68 -- apps/web/src` lists api.ts:1412 and a
+    test's GET stub alone.
+  - Consequence: ADR 0021's checkpoint 1 ("human-reviewed proposals → a new Design Revision") cannot
+    be completed in the product. A finding can only be read.
+  - Smallest fix: 7b.
+  - Test: 7b's Vitest that the review posts the ticked `item_ids` with both expected revisions, and
+    its journey step.
+- **F-DRL-6. The UI workbench cannot run Deep Research at all.**
+  - Anchor: `apps/executors/src/aia_executors/workbench.py:158-173 @ 095a3e68` composes no Deep
+    Research runtime, so a run parks at plan.
+  - Reproduction: `make ui-workbench`, `make ui-fixtures`, then start Design Research on a fixture
+    study. The run waits at plan.
+  - Consequence: no browser journey can prove D-12's acceptance with zero paid calls.
+  - Smallest fix: 12a.
+  - Test: 12a's "a run on the fixture completes with a sealed bundle marked `RECORDED_FIXTURE`".
+
+### Doc follow-up (Deep Research cards and starts)
+
+- `open-items.md`: number F-DRL-1 (owner 7b) and F-DRL-6 (owner 12a).
+- `CLAUDE.md` map, `src/components/rehome/research/`: `DesignResearchReview.tsx` (7b), once built.
+- The register rows for 7b, 12a, 23b, 23c and 26f.1, in this PR's description.
