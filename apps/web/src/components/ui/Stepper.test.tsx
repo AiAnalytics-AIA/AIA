@@ -104,6 +104,18 @@ describe("Stepper (I2): bounded numbers, refused and never clamped", () => {
     expect(problem).toHaveBeenLastCalledWith(null);
   });
 
+  it("saves an in-place edit of a displayed negative value, its printed minus sign included (Codex #532)", () => {
+    const save = vi.fn();
+    render(<Stepper label="Posun" value={-3} onCommit={save} min={-10} max={10} />);
+    const input = screen.getByRole("spinbutton", { name: "Posun" }) as HTMLInputElement;
+    expect(input.value).toBe("−3");
+    // The person edits the shown text: the digit changes, the printed minus stays.
+    fireEvent.change(input, { target: { value: input.value.replace("3", "5") } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(save).toHaveBeenCalledWith(-5);
+  });
+
   it("shows money with its unit and its decimals", () => {
     render(<Stepper label="Rozpočet" value={85} onCommit={() => {}} min={80.86} max={500} decimals={2} unit="USD" />);
     expect((screen.getByRole("spinbutton", { name: "Rozpočet" }) as HTMLInputElement).value).toBe("85,00");

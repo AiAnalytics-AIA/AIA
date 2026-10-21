@@ -25,10 +25,14 @@ export type NumberReading = { ok: true; value: number } | { ok: false; problem: 
 // Spaces a person (or a pasted Czech figure) puts between thousands: space, NBSP, narrow NBSP.
 const GROUPING = /[\s  ]/g;
 const NUMERAL = /^-?\d+(?:\.(\d+))?$/;
+// Minus signs a value can carry back into the field: formatNumber's own U+2212, and the dashes a
+// pasted figure or a keyboard's autocorrect writes for it (figure dash, en dash, small and
+// full-width hyphen-minus). Each is read as "-", so a displayed negative value edits and saves.
+const MINUS = /[−‒–﹣－]/g;
 
 /** A typed value read against its bounds: the number as typed, or why it is refused. */
 export function readNumber(raw: string, bounds: NumberBounds): NumberReading {
-  const text = raw.replace(GROUPING, "").replace(",", ".");
+  const text = raw.replace(GROUPING, "").replace(MINUS, "-").replace(",", ".");
   if (!text) return { ok: false, problem: { kind: "empty" } };
   const m = NUMERAL.exec(text);
   if (!m) return { ok: false, problem: { kind: "notNumber", raw: raw.trim() } };

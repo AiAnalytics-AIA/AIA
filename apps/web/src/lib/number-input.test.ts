@@ -32,6 +32,15 @@ describe("readNumber: a typed value is accepted as typed or refused, never clamp
     expect(readNumber("5,0", { min: 0, max: 10 })).toEqual({ ok: true, value: 5 });
   });
 
+  it("reads back the minus sign it prints, and the dashes pasted for one (Codex #532)", () => {
+    const B = { min: -10, max: 10, decimals: 1 };
+    expect(readNumber(formatNumber(-3), B)).toEqual({ ok: true, value: -3 });
+    expect(readNumber(formatNumber(-2.5, 1), B)).toEqual({ ok: true, value: -2.5 });
+    for (const minus of ["-", "−", "‒", "–", "﹣", "－"]) expect(readNumber(`${minus}4`, B)).toEqual({ ok: true, value: -4 });
+    // Every value formatNumber writes within the bounds reads back as itself.
+    for (let v = -10; v <= 10; v += 0.5) expect(readNumber(formatNumber(v, 1), B)).toEqual({ ok: true, value: v });
+  });
+
   it("refuses what is not a number", () => {
     expect(readNumber("abc", N)).toEqual({ ok: false, problem: { kind: "notNumber", raw: "abc" } });
     expect(readNumber("1e3", N)).toEqual({ ok: false, problem: { kind: "notNumber", raw: "1e3" } });
