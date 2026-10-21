@@ -457,6 +457,10 @@ threshold, not a stop: corrected 2026-10-19 after the code traces, `research.py:
    approval-ledger row. The Lead can never unlock. The lock text stops saying "methodology
    revision".
 
+
+**2026-10-21 (Q40-Q43, `research-lead-workbench` D15 and D22, #551).** Under 3, a stage has no start
+of its own except the research run: Spuštění keeps its Start button beside the run's card in the
+Lead's chat (`research-lead-workbench#26f`); every other manual AI start is removed.
 ### F14. Each researcher's own Lead: how it develops, and who can see it
 
 **What exists.** Each researcher has their own Lead: a name, a SOUL (working style, at most 2,000

@@ -4383,3 +4383,352 @@ on PostgreSQL (`ARCHITECTURE.md` §8); `AGENTS.md` § Alembic says to verify mig
 **Test.** CI's `alembic check` on PostgreSQL.
 
 **Status.** Open; accepted as a property of the test setup, not a defect.
+
+---
+
+## OI-139 · Finding · The Lead's request card shows no cost and starts the job on one click
+
+**Claim.** A Lead turn's request card starts a paid agent job on "Spustit úlohu" without showing its
+price; the only ceiling is the flat `AIA_AI_RESEARCH_RESERVATION_USD`, raised only as a 409 when it
+reaches the study's limit, and the turn returns no cost.
+
+**Anchor.** `apps/web/src/components/workbench/LeadPane.tsx:471-488`, `Workbench.tsx:258-279`,
+`apps/api/src/aia_api/routers/lead.py:458-462`, `application/research_lead.py:720-734 @ 242523e`.
+Plan `lead-orchestration`, Findings CR-1 (the coordinator's card review, 2026-10-20).
+
+**Reproduction.** `make ui-workbench` with in-process scripted model answers and
+`AIA_AI_ANALYSIS_ENABLED=true`, then `make ui-fixtures`; a Lead turn proposing an agent job, then
+"Spustit úlohu".
+
+**Consequence.** A person approves paid work without seeing its price.
+
+**Smallest fix.** The card path's price step (`lead-orchestration` LO4, LO10): the turn returns
+`ceiling_usd`, the card shows "až X USD" and sends `confirm_cost_usd`.
+
+**Test.** A request card renders its ceiling, and approving it without `confirm_cost_usd` at or above
+the limit is refused.
+
+**Status.** Open.
+
+---
+
+## OI-140 · Finding, closed · A design job waiting for budget reads as a failure with "Zkusit znovu"
+
+**Claim.** When a stage's design job stops at the study's budget, the stage shows a fault card whose
+"Zkusit znovu" starts a new job, while the real budget lift sits out of sight.
+
+**Anchor.** `apps/web/src/lib/research-agent-jobs.ts:28, 45-47`,
+`components/rehome/research/useAiStep.tsx:47, 58-80`; `AgentBudgetWaits` mounted only at
+`ResearchScreen.tsx:319, 363 @ 242523e`. Plan `two-roles-human-ai-gates`, Findings CR-2.
+
+**Reproduction.** `make ui-workbench` with in-process scripted model answers and
+`AIA_AI_ANALYSIS_ENABLED=true`, then `make ui-fixtures`; a study with no budget left, then any stage's
+AI job.
+
+**Consequence.** "Zkusit znovu" starts a new job instead of lifting the budget; the real lift is
+hidden in "Připravenost a pomoc".
+
+**Smallest fix.** `followAgentJob` reports an `AWAITING_BUDGET` step as its own kind (and `waiting`
+counts `AWAITING_*`); `AiFailureCard` renders `AgentBudgetWaits` for it.
+
+**Test.** A job whose step is `AWAITING_BUDGET` shows the budget lift in place, never a retry.
+
+**Status.** Closed by #533 (merged as `5116723`, 2026-10-21).
+
+---
+
+## OI-141 · Finding, closed · One budget lift releases one analysis step, so a run's eight steps need eight lifts
+
+**Claim.** Progress draws a budget form under every waiting step, and the lift passes only that one
+step to `lift_study_budget_waits`, so a run whose eight analysis modules stopped at the cap needs
+eight lifts.
+
+**Anchor.** `components/rehome/research/ExecutionSteps.tsx:1285-1287` (a `BudgetLift` per step),
+`application/research.py:1036-1049 @ 242523e` (line 1048 passes `[step]` to
+`lift_study_budget_waits`). Plan `two-roles-human-ai-gates`, Findings CR-3.
+
+**Reproduction.** `make ui-workbench` with in-process scripted model answers and
+`AIA_AI_ANALYSIS_ENABLED=true`, then `make ui-fixtures`; a run whose analysis steps stop at the
+study's cap, then one 20 USD lift on Progress.
+
+**Consequence.** Eight forms, eight clicks, the budget raised each time, eight ledger rows.
+
+**Smallest fix.** Lift every `AWAITING_BUDGET` step of the run (`run["steps"]`; the helper already
+filters) and render one run-level lift.
+
+**Test.** One lift on a run with several waiting steps resumes them all, in one ledger row.
+
+**Status.** Closed by #533 (merged as `5116723`, 2026-10-21).
+
+---
+
+## OI-142 · Finding · A client with DATASET, ARTIFACT or FINDING knowledge cannot run any AI design job
+
+**Claim.** A design job over a client whose knowledge holds a DATASET, ARTIFACT or FINDING item carries the
+placeholder lineage `unclassified-client-knowledge`, which the licence gate refuses, so that client
+gets no AI help although only titles and summaries reach the model.
+
+**Anchor.** `domain/research_agents.py:688-690` (the placeholder lineage
+`unclassified-client-knowledge`), `domain/licence.py:158-164`, no such entry in
+`domain/licence_determinations.py @ 242523e`; `knowledge_entries` (`research_agents.py:545-562`)
+carries no lineage. Plan `client-data-in-analysis`, Findings CR-4.
+
+**Reproduction.** `make seed-develop`, then any design job for Horizont Mobility: refused
+`licence_dataset_unknown`.
+
+**Consequence.** The seeded client, and any real client with a dataset, artifact or finding, gets no
+AI help.
+
+**Smallest fix.** The lineage is the union of the items' recorded datasets (`provenance.datasets`),
+the placeholder only when one is unrecorded; the seed records `aia_synthetic_fixture`.
+
+**Test.** A design job over a client with DATASET, ARTIFACT and FINDING knowledge, each recording its
+dataset, passes the licence gate; one over an item of any of the three kinds with no recorded dataset
+is still refused by name.
+
+**Status.** Open.
+
+---
+
+## OI-143 · Finding, closed · The report card said "Modelovaná data" for a run of fictional respondents
+
+**Claim.** The report card's "Omezení, původ dat a příloha evidence" part was a static string that
+never read the run's origin, so a fictional run was labelled modelled.
+
+**Anchor.** Before: `apps/web/src/components/rehome/research/CompleteReport.tsx:66 @ 242523e`, a
+static string in `reportParts` that never read `runOriginKinds` (`lib/research-execution.ts:186-205`).
+After: `04ed258f` (#530), `reportParts` takes the run's origin kinds and words them through
+`originWords`. Plan `report-delivery`, Findings CR-5.
+
+**Reproduction.** Before the fix: `make ui-research` (fictional fieldwork), then Výsledky's report
+card.
+
+**Consequence.** A fictional run was labelled modelled, against the rule that every label reads the
+origin.
+
+**Smallest fix.** Done: "Fiktivní data", "Modelovaná data", "Neznámý původ dat" (an unknown origin,
+or none stated yet), a mixed run every kind.
+
+**Test.** `CompleteReport.test.tsx` "the report card's origin (CR-5)".
+
+**Status.** Closed (`04ed258f`, #530).
+
+---
+
+## OI-144 · Finding · The sample size is silently clamped
+
+**Claim.** Typing 20 in "Počet respondentů" stores 50, and an empty field stores the recommendation,
+with no message.
+
+**Anchor.** `apps/web/src/research/persona.ts:180 @ 44b66ef`; the field at
+`apps/web/src/components/rehome/research/PersonaStep.tsx:407 @ 44b66ef`. Audit
+`.planning/evidence/input-interactions-audit.md` §6, IA-1.
+
+**Reproduction.** A Vitest on `setSampleSize(p, "20").project.n === 50`.
+
+**Consequence.** The researcher believes n is what they typed.
+
+**Smallest fix.** Refuse out-of-range at the field (input standard I2, I9; `input-interactions`
+chunk 5).
+
+**Test.** The stepper's unit test asserting 20 is shown as an error and not stored.
+
+**Status.** Open.
+
+---
+
+## OI-145 · Finding · Scale ends accept nonsense, and the domain truncates 2.5 to 2
+
+**Claim.** A scale question's minimum and maximum save min 8 / max 3, 2.5 and an empty field (stored
+0) to the working copy; compile refuses min ≥ max only at readiness, turns 2.5 into 2 with `int()`,
+and makes an empty minimum a 0–10 scale.
+
+**Anchor.** `apps/web/src/components/rehome/research/QuestionnaireStep.tsx:777,779 @ 44b66ef`
+(`setScaleEnd` with `+raw`); `packages/aia_core/src/aia_core/domain/research_design.py:405 @ 44b66ef`
+(`_scale`). Audit `input-interactions-audit.md` §6, IA-2.
+
+**Reproduction.** A unit test compiling a scale question with `skala: [2.5, 10]` gets `(2, 10)` and no
+problem.
+
+**Consequence.** Fieldwork asks a scale the researcher did not set.
+
+**Smallest fix.** Bounded steppers (audit A9) and the domain refusing a non-integer end (audit §5.7).
+
+**Test.** A Vitest on `setScaleEnd`; a domain test that `[2.5, 10]` is `invalid_scale`.
+
+**Status.** Partly fixed: the domain refuses a non-integer end (`invalid_scale`) since #538 (merged as `45ffa12`, input-interactions 3b1); the editor's field check is `input-interactions#3b2`, open.
+
+---
+
+## OI-146 · Finding · The n slider cannot reach the field's range
+
+**Claim.** The sample-size slider runs 200–2000 while the field beside it runs 50–5000, so a stored n
+of 3000 puts the slider at its end.
+
+**Anchor.** `apps/web/src/components/rehome/research/PersonaStep.tsx:380` (200–2000) vs `:407`
+(50–5000) `@ 44b66ef`. Audit `input-interactions-audit.md` §6, IA-3.
+
+**Reproduction.** Type 3000 in the field; the slider shows 2000.
+
+**Consequence.** The slider misrepresents the value.
+
+**Smallest fix.** One stepper (audit B1).
+
+**Test.** As OI-144.
+
+**Status.** Open.
+
+---
+
+## OI-147 · Finding · The knowledge search sends a request on every keystroke
+
+**Claim.** The client library's search sends one GET per keystroke.
+
+**Anchor.** `apps/web/src/components/aia/clients/KnowledgeLibrary.tsx:85-88 @ 44b66ef`. Audit
+`input-interactions-audit.md` §6, IA-4.
+
+**Reproduction.** Type "segmentace" with the network panel open: ten GETs.
+
+**Consequence.** Wasted requests; results flicker.
+
+**Smallest fix.** A 300 ms debounce, as `MemorySearch.tsx:43`.
+
+**Test.** A Vitest with fake timers counting requests.
+
+**Status.** Open.
+
+---
+
+## OI-148 · Finding · A contact is deleted with one click
+
+**Claim.** "Odebrat" on a client's contact sends the DELETE at once, with no confirmation and no undo.
+
+**Anchor.** `apps/web/src/components/aia/clients/ProfileArea.tsx:260 @ 44b66ef`. Audit
+`input-interactions-audit.md` §6, IA-5.
+
+**Reproduction.** `make ui-workbench` + `make ui-fixtures`; Profil, then "Odebrat" on a contact.
+
+**Consequence.** A slip loses a contact, with nothing to bring it back.
+
+**Smallest fix.** Undo (input standard I6).
+
+**Test.** The client journey removing and restoring a contact.
+
+**Status.** Open.
+
+---
+
+## OI-149 · Hypothesis · Selects that act on change
+
+**Claim.** Several selects fire their action on change, so a keyboard user moving through the options
+can fire it.
+
+**Anchor.** `apps/web/src/components/aia/clients/KnowledgeLibrary.tsx:241,259,268,382,406`,
+`apps/web/src/components/aia/clients/KnowledgeArea.tsx:494 @ 44b66ef`. Audit
+`input-interactions-audit.md` §6, IA-6.
+
+**Reproduction.** Not reproduced. Reproduce in Chrome on Windows, where a closed `<select>` changes on
+arrow keys, before budgeting.
+
+**Consequence.** An action fires that the person did not choose.
+
+**Smallest fix.** A menu button (audit D11).
+
+**Test.** A component test that arrow keys do not call the action.
+
+**Status.** Open; a hypothesis until reproduced.
+
+---
+
+## OI-150 · Finding · A scale question's labels never reach respondents
+
+**Claim.** A scale question's labels (`popisky_skaly`) are never compiled, so AI respondents see bare
+numbers while a tracked set's ends are sent.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/ai_respondent.py:379-388 @ 44b66ef` builds a scale
+question's item without labels, and `research_design.py` never reads `popisky_skaly`. Audit
+`input-interactions-audit.md` §6, IA-7.
+
+**Reproduction.** Compile a question with `popisky_skaly: ["vůbec", "zásadně"]`: the `SpecQuestion`
+carries no labels and the respondent prompt shows the numbers alone.
+
+**Consequence.** AI respondents answer "1–10" without knowing which end is which; the researcher's
+labels look honoured on screen and are not.
+
+**Smallest fix.** Compile and send them (`input-interactions` chunk 3b, § Scales). It moves the
+respondent-system fingerprint the holdout validation binds to, and the wording rule is the
+methodology owner's (`mvp-master-plan.md` § The scope baseline, Open).
+
+**Test.** A domain test that the question's prompt carries "1 = vůbec, 10 = zásadně".
+
+**Status.** Fixed behind a switch: #538 (merged as `45ffa12`, input-interactions 3b1) compiles the labels and sends them to respondents under `AIA_AI_SCALE_LABELS_IN_PROMPT`, off by default; switching it on moves the respondent-system fingerprint and waits on the methodology owner's wording rule. Open until it is on.
+
+---
+
+## OI-151 · Finding · The Lead's rolling summary that ADR 0026 promised is not built
+
+**Claim.** ADR 0026 decision 2 promises "a rolling summary of older turns, stored as an artifact of
+the Lead's run"; none exists, and `freeze_context` keeps 12 turns and counts the rest.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/research_lead.py:121,796-827 @ 237fd0a`. Plan
+`lead-conversation`, Findings F1 (#529).
+
+**Reproduction.** Post 13 messages in one study; turn 14's stored context has `omitted_turns: 1` and
+no summary.
+
+**Consequence.** The Lead forgets the start of a long study's conversation.
+
+**Smallest fix.** `lead-conversation` LC3 (the decision digest), then LC7 (ADR 0041, Proposed).
+
+**Test.** LC3's "turn 3 in turn 40" test.
+
+**Status.** Open.
+
+---
+
+## OI-152 · Finding, closed · ADR 0026 said one conversation per study, shared by everyone
+
+**Claim.** ADR 0026's *Consequences* said "one conversation per study … shared by everyone who opens
+the study", contradicting its own *Accepted with* 6 and the code (one conversation per researcher).
+
+**Anchor.** `docs/architecture/adr/0026-research-lead-proposes-a-person-decides.md:455 @ 3d98e9e`;
+the code scopes a turn by `user_id` (ADR 0026 decision 8). Plan `lead-conversation`, Findings F2
+(#529).
+
+**Reproduction.** Read the two places side by side.
+
+**Consequence.** Docs only: a reader could build a shared conversation that the owner ruled out.
+
+**Smallest fix.** Done in this docs PR: the line reads "one conversation per researcher per study".
+
+**Test.** None; a documentation defect.
+
+**Status.** Closed (this docs PR).
+
+---
+
+## OI-153 · Finding · A rendered report's DOCX does not record which ledger ref a number came from
+
+**Claim.** On every render path that prints a number (prose values, table cells, KPI tiles, captions,
+charts, the map chapters), the DOCX writes plain text runs or an image; no element carries the ledger
+ref, apart from the evidence appendix's visible text.
+
+**Anchor.** `packages/aia_core/src/aia_core/infrastructure/report_docx/blocks.py:116-123 @ e09a6c99`
+(`write_value`), with the full path table P1-P15 in
+`.planning/evidence/editor-spike-2026-10-21.md` § F-ED1 (#531).
+
+**Reproduction.** Render any sample report (`make report-preview`), unzip `word/document.xml`, and
+search it for a ledger ref id: the only hits are the appendix's visible text.
+
+**Consequence.** Once a person edits the DOCX in any document editor, AIA cannot tell an evidenced or
+machine-written number from one someone typed; a report's numbers cannot be checked through a DOCX
+round trip.
+
+**Smallest fix.** For `report-delivery#RD6`: the renderer wraps every printed group in a locked content
+control (`w:sdt`, `sdtContentLocked`) tagged with its source, and a census on save refuses a lost or
+changed control and a changed numeric token outside one (the evidence file states the rule).
+
+**Test.** A renderer test over one `ReportDocument` holding every path P1-P15: every source has a tag,
+no tag lacks a source, and every numeric token outside a field result sits inside a tagged control.
+
+**Status.** Open.

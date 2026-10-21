@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  applyLeadEdit, autoAcceptIndices, autoAcceptPlan, describeEdit, droppedLines, editRefusalWords, editStage, isTextEdit, pendingSelfUpdate, revertTextEdit, targetLabel, textEditInverse,
+  applyLeadEdit, autoAcceptIndices, autoAcceptPlan, describeEdit, droppedLines, editRefusalWords, editStage, isTextEdit, leadReasonWords, pendingSelfUpdate, revertTextEdit, targetLabel, textEditInverse,
   type LeadEdit, type LeadTurn,
 } from "./lead";
 import type { ResearchProject } from "@/research/model";
@@ -204,5 +204,22 @@ describe("a refused or dropped edit says why in words (RQC9)", () => {
     expect(droppedLines([{ reason: "unknown_item" }, { reason: "unknown_question" }])).toEqual([
       "2 navržené změny se netýkaly ničeho v pracovní kopii a byly vynechány.",
     ]);
+  });
+});
+
+describe("leadReasonWords", () => {
+  it("says what to do about a turn parked on the study's budget, by the code the server sends", () => {
+    // The server's waiting reason is budget_exceeded; AWAITING_BUDGET is a step status it never sends.
+    expect(leadReasonWords("budget_exceeded")).toContain("Nastavení → Studie");
+    // Setting the budget sends the message by itself (the product owner, 2026-10-21, Q39).
+    expect(leadReasonWords("budget_exceeded")).toContain("odešle sama");
+    expect(leadReasonWords("budget_exceeded")).not.toContain("budget_exceeded");
+  });
+  it("says a superseded turn's message was read with the next one", () => {
+    expect(leadReasonWords("CANCELLED")).toContain("další zprávou");
+  });
+  it("names an unknown code rather than guessing", () => {
+    expect(leadReasonWords("something_new")).toBe("Vedoucí se zastavil (something_new).");
+    expect(leadReasonWords(null)).toBe("Vedoucí se zastavil.");
   });
 });
