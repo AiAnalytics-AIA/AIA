@@ -1,4 +1,22 @@
+/**
+ * The four money names (the product owner, 2026-10-20, D-01; ADR 0028), written once: every screen
+ * that names one of these amounts reads it from here. The server's domain/money.py holds the same
+ * names, and both are held to packages/aia_core/tests/fixtures/money/vocabulary.json. The
+ * threshold is a confirmation, never a cap: the study's budget stops spending.
+ */
+export const money = {
+  /** clients.budget_usd: the cap of the client's own AI work, outside every study. */
+  clientBudget: "Rozpočet klienta",
+  /** studies.budget_usd: the cap that stops a study's spending (formerly "Strop rozpočtu"). */
+  studyBudget: "Rozpočet studie",
+  /** study_wallets.cap_usd: what paid work may start without a further card. */
+  wallet: "Peněženka",
+  /** studies.spend_confirm_usd: a start whose ceiling reaches it asks first; unset, nothing asks. */
+  confirmThreshold: "Práh potvrzení",
+} as const;
+
 export const cs = {
+  money,
   // The client-first AIA shell (ADR 0015). AIA's own words, not the classic
   // interface's: Clients first, then one client's work, then one study.
   aia: {
@@ -97,7 +115,7 @@ export const cs = {
       entityWaits: "Přidáno jako návrh: čeká, až ho schválí někdo jiný.",
       entitiesEdit: "Upravit ve Znalostech",
       budget: {
-        title: "Rozpočet klienta",
+        title: money.clientBudget,
         hint: "Platí práci AI přímo na klientovi, například návrhy znalostí z jeho podkladů. Rozpočty studií jsou zvlášť a tento je nečerpá ani neomezuje.",
         limit: "Rozpočet",
         spent: "Utraceno",
@@ -1432,7 +1450,7 @@ export const cs = {
           membership_is_access: "Členství v organizaci je přístup: každý člen vidí všechny klienty a studie",
           studies: "Studie",
           study_status: "Stav studie",
-          study_budget: "Rozpočet studie",
+          study_budget: money.studyBudget,
           default_project_max_api_cost: "Výchozí strop placeného API na projekt (prototyp)",
           project_max_api_cost: "Strop placeného API projektu (prototyp)",
           no_spend_past_budget: "Žádná útrata nad rozpočet",
@@ -1493,7 +1511,7 @@ export const cs = {
           budget: "Rozpočet",
           spent: "Utraceno",
           remaining: "Zbývá",
-          ceiling: "Strop rozpočtu",
+          ceiling: money.studyBudget,
           budgetInvalid: "Rozpočet musí být číslo (USD).",
           costsHidden: "náklady nevidíte (chybí oprávnění VIEW_COSTS)",
           permissionNote: "Stav a rozpočet studie smí měnit každý výzkumník. Rozpočet je tvrdý strop: krok, který by ho překročil, se zastaví.",
@@ -2546,20 +2564,20 @@ export const cs = {
         },
         remaining: "Z rozpočtu studie zbývá {remaining} USD (rozpočet {budget} USD).",
         budgetUnknown: "Rozpočet studie se nepodařilo načíst.",
-        limit: "Kdy se ptát před spuštěním",
+        limit: money.confirmThreshold,
         limitAmount: "Ptát se, když běh může stát alespoň (USD)",
-        limitNone: "Limit není nastaven: běh se spustí bez potvrzení.",
-        limitSet: "Limit studie: {limit} USD.",
-        save: "Uložit limit",
-        clear: "Zrušit limit",
-        willAsk: "Strop dosahuje limitu studie: před spuštěním se zeptám.",
-        unknownBlocks: "Studie má limit a strop nelze spočítat, takže běh nespustím. Doplňte nastavení nasazení, nebo limit zrušte.",
-        confirm: "Tento běh může stát až {ceiling} USD (limit studie je {limit} USD). Spustit?",
+        limitNone: "Práh potvrzení není nastaven: běh se spustí bez potvrzení.",
+        limitSet: "Práh potvrzení: {limit} USD.",
+        save: "Uložit práh",
+        clear: "Zrušit práh",
+        willAsk: "Strop dosahuje prahu potvrzení: před spuštěním se zeptám.",
+        unknownBlocks: "Studie má práh potvrzení a strop nelze spočítat, takže běh nespustím. Doplňte nastavení nasazení, nebo práh zrušte.",
+        confirm: "Tento běh může stát až {ceiling} USD (práh potvrzení studie je {limit} USD). Spustit?",
         // Studio v3: the limit as a switch, the ceiling as a bar.
         switch: "Zeptat se před spuštěním, když běh může stát alespoň",
         saving: "Ukládám…",
         legendCeiling: "Strop běhu",
-        legendLimit: "Limit studie",
+        legendLimit: money.confirmThreshold,
       },
       receiptTitle: "Co spustíte",
       receiptDims: "{d} dimenzí · N={n}",

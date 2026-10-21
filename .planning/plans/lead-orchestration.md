@@ -1,7 +1,7 @@
 ---
 status: in-progress
 chunks:
-  - "[ ] LO0. The contract ADR and the money vocabulary: wallet cap, `budget_usd`, `spend_confirm_usd`, the client ceiling, `clients.budget_usd`, OI-64, one precedence"
+  - "[x] LO0. The contract ADR and the money vocabulary: wallet cap, `budget_usd`, `spend_confirm_usd`, the client ceiling, `clients.budget_usd`, OI-64, one precedence"
   - "[ ] LO1. The wallet (M4): `study_wallets`, `_raises`, `_charges` and `clients.wallet_ceiling_usd`; charges for paid work including Deep Research"
   - "[ ] LO2. A typed `start_run` with no `confirm_cost_usd`, and an import rule that a plan step cannot reach the confirming start"
   - "[ ] LO3. `lead_plans` and `lead_plan_steps` (M5), the plan authority capability issued by `ScopeResolver`, the `lead_plan` workflow type, behind `AIA_LEAD_PLANS_ENABLED`"
@@ -317,4 +317,21 @@ proposed extra subjects (`qc_decision`, `study_note`, `report_edit`, `knowledge_
 `budget_lift`) are **not** admitted: LO16's list is unchanged until the owner and S3 decide, and
 admitting any of them later is a new migration on the same constraint, which M3 exists to avoid
 (`budget_lift` is already `budget`; `knowledge_revision` is the knowledge repository's revisions).
+
+## LO0 delivered (2026-10-21)
+
+The contract ADR is ADR 0028, accepted and merged with #512. The vocabulary is typed in
+`domain/money.py`: the five amounts (`MONEY`: column, Czech name, role, who sets it, what null
+means), `PRECEDENCE` (budget, then wallet, then threshold), and the rules LO1, LO3/LO4, LO5 and
+LO15 implement: `threshold_verdict` (today's rule; `ResearchRuns.start` now calls it),
+`wallet_remaining` and `wallet_verdict` (by ceiling, an unknown ceiling refused),
+`wallet_raise_verdict` (D-03: above the client ceiling refused, never above the budget) and
+`start_verdict` for the three paths (D-02: a plan step starts on the ceiling its card showed and
+parks when it grew; it never supplies a confirmation). OI-64 is written into the contract: a retry
+is judged by its own full ceiling, because until RQC0 it may pay its respondents again. The four
+names (D-01) are written once in the web copy module (`cs.money`); Settings' "Strop rozpočtu" is
+"Rozpočet studie", and the run's cost panel calls the threshold "Práh potvrzení" throughout. Both
+are held to `tests/fixtures/money/vocabulary.json` (`test_money.py`, `apps/web/src/i18n/money.test.ts`),
+and `test_nothing_calls_the_confirmation_threshold_a_hard_stop` reads the code and the governing
+documents. The wallet ceiling has no Czech label: the owner named none, so none is invented.
 

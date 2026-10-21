@@ -272,7 +272,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
         if (e instanceof ApiError && e.code === "cost_confirmation_required" && confirmUsd === undefined) {
           const ceiling = Number(e.details.ceiling_usd);
           const limit = Number(e.details.limit_usd);
-          if (!(await confirm(`Úloha může stát až ${usd(ceiling)} USD, což dosahuje limitu studie ${usd(limit)} USD. Spustit?`))) throw e;
+          if (!(await confirm(`Úloha může stát až ${usd(ceiling)} USD, což dosahuje prahu potvrzení studie ${usd(limit)} USD. Spustit?`))) throw e;
           confirmUsd = ceiling;
           continue;
         }
