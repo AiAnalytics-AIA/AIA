@@ -88,6 +88,8 @@ try {
     await coverage.waitFor({ timeout: 120000 });
     await page.locator("[data-analysis-milestones]").waitFor({ timeout: 30000 });
     await page.locator("[data-key-findings]").waitFor({ timeout: 30000 });
+    // The rows come after the design's research questions are read: measure only once they are there.
+    await coverage.locator("tr[data-rq]").first().waitFor({ timeout: 30000 });
     await noOverflow(`analysis @${width}`);
     // Opened as Analýza, the pane starts at the analysis, once it is read (F2).
     await page.waitForFunction(() => {
@@ -98,6 +100,10 @@ try {
     // Nothing in the coverage table is cut off (F3).
     const clipped = await coverage.evaluate((el) => { const t = el.querySelector("table"); return !!t && t.getBoundingClientRect().width > el.getBoundingClientRect().width + 1; });
     assert.equal(clipped, false, `@${width}: the coverage table is clipped`);
+    // Below md each cell shows its column's name; on the full table the header row says it.
+    const names = await coverage.evaluate((el) => [...el.querySelectorAll("td span[aria-hidden]")].filter((n) => n.getBoundingClientRect().height > 0).length);
+    if (width < 768) assert(names >= 3, `@${width}: the stacked cells show their column names`);
+    else assert.equal(names, 0, `@${width}: the column names repeat beside the header row`);
     // A finished run's fieldwork reads done (F1).
     const fieldworkDone = await page.locator("[data-analysis-milestones] li").first().getAttribute("data-done");
     assert.equal(fieldworkDone, "true", `@${width}: Sběr dokončen reads čeká on a finished run`);
@@ -108,27 +114,39 @@ try {
     assert.deepEqual(repeated, [], `@${width}: targets on more than one element`);
     assert(Object.keys(counts).some((id) => id.startsWith("module:")), `@${width}: no module target`);
 
-    // A module stored BLOCKED never reads as done.
-    const doneButBlocked = await page.evaluate(() => [...document.querySelectorAll('nav[aria-label="Části AI analýzy"] button')]
-      .filter((b) => /Hotovo/.test(b.textContent ?? "") && b.getAttribute("data-outcome") === "BLOCKED").length);
-    assert.equal(doneButBlocked, 0, `@${width}: a blocked module reads Hotovo`);
+    // A module reads done only when it is stored COMPLETED, and a BLOCKED one reads "Potřebuje opravu".
+    const entries = await page.evaluate(() => [...document.querySelectorAll("nav[aria-label=\"Části AI analýzy\"] button")]
+      .map((b) => ({ outcome: b.getAttribute("data-outcome"), text: b.textContent ?? "" })));
+    assert.equal(entries.length, 8, `@${width}: the eight modules are listed`);
+    for (const e of entries) {
+      assert.equal(/Dokončeno/.test(e.text), e.outcome === "COMPLETED", `@${width}: "${e.text}" reads against its stored ${e.outcome}`);
+      if (e.outcome === "BLOCKED") assert.match(e.text, /Potřebuje opravu/, `@${width}: a blocked module says it needs repair`);
+    }
   }
   check("Analýza at 1440, 1100, 768 and 390: opens on its analysis; coverage unclipped, milestones done, Hlavní zjištění; no overflow");
   check("every module:, finding: and claim: target names exactly one element at every width");
 
-  // A coverage finding chip keeps the analysis view and brings the finding into view (F4).
+  // Moving to Analýza within the page (Výsledky, then its stage) also opens on the analysis (F2).
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(analysisUrl, { waitUntil: "load", timeout: 180000 });
+  await page.goto(analysisUrl.replace("#analysis", "#data"), { waitUntil: "load", timeout: 180000 });
+  await page.locator("[data-key-findings]").waitFor({ state: "attached", timeout: 120000 });
+  await page.evaluate(() => { location.hash = "#analysis"; });
+  await page.waitForFunction(() => {
+    const r = document.querySelector("[data-analysis-card]")?.getBoundingClientRect();
+    return !!r && r.top >= 0 && r.top < innerHeight / 2;
+  }, null, { timeout: 15000 }).catch(() => assert.fail("moving to Analýza within the page leaves the analysis out of view"));
+  check("moving from Výsledky to Analýza within the page opens on the analysis");
+
+  // A coverage finding chip keeps the analysis view and brings the finding into view (F4).
   const chip = page.locator("[data-analysis-coverage] [data-finding-chip]").first();
-  if (await chip.count()) {
+  await chip.waitFor({ timeout: 30000 });
+  {
     await chip.click();
     const after = await page.evaluate(() => ({ hash: location.hash, tab: document.querySelector('[role=tab][aria-selected=true]')?.textContent?.trim(), focused: document.activeElement?.id ?? "" }));
     assert.equal(after.hash, "#analysis", "a finding chip leaves the hash as it was");
     assert.equal(after.tab, "AI analýza", "a finding chip keeps the analysis view");
     assert.match(after.focused, /^analysis-finding-/, "the finding is focused");
     check("a coverage finding chip keeps AI analýza and focuses the finding");
-  } else {
-    check("no finding answers a research question on this run (no chip to follow)");
   }
 
   // A cited number opens its measure on Výsledky.

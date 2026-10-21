@@ -12,8 +12,14 @@ import type { ResearchProject } from "@/research/model";
 import { researchQuestionsOf } from "@/research/trace";
 import { useFrame } from "./frame-hook";
 
-/** A cell that, below md, stacks under its column's name (the header is read by screen readers only there). */
-const CELL = "py-2 pr-3 max-md:block max-md:py-1 max-md:before:block max-md:before:text-xs max-md:before:text-ink-muted max-md:before:content-[attr(data-label)]";
+/** A cell that, below md, stacks under its column's name; the explicit roles keep the table's semantics
+ *  there, which display:block would strip. */
+const CELL = "py-2 pr-3 max-md:block max-md:py-1";
+
+/** A column's name over its cell below md, where the header row is visually hidden; read once, from the header. */
+function ColumnName({ children }: { children: string }) {
+  return <span aria-hidden className="block text-xs text-ink-muted md:hidden">{children}</span>;
+}
 
 const STATE_WORDS: Record<CoverageState, string> = {
   answered: "ano",
@@ -101,16 +107,16 @@ export function AnalysisCoverage({ run, analysis }: { run: ResearchRun; analysis
       <h3 id="analysis-coverage-title" className="text-base font-semibold">Pokrytí výzkumných otázek</h3>
       {rows.length ? (
         <div className="mt-3">
-          <table className="w-full text-left text-sm max-md:block">
-            <thead className="text-xs text-ink-muted max-md:sr-only">
-              <tr><th className="py-1 pr-3 font-medium">Otázka</th><th className="py-1 pr-3 font-medium">Odpověď</th><th className="py-1 pr-3 font-medium">Zjištění</th><th className="py-1 font-medium">Co chybí</th></tr>
+          <table role="table" className="w-full text-left text-sm max-md:block">
+            <thead role="rowgroup" className="text-xs text-ink-muted max-md:sr-only">
+              <tr role="row">{["Otázka", "Odpověď", "Zjištění", "Co chybí"].map((h) => <th key={h} role="columnheader" className="py-1 pr-3 font-medium">{h}</th>)}</tr>
             </thead>
-            <tbody className="max-md:block">
+            <tbody role="rowgroup" className="max-md:block">
               {rows.map((row) => (
-                <tr key={row.index} data-rq={row.index} data-state={row.state} className="border-t border-border align-top max-md:block max-md:py-2">
-                  <td className="py-2 pr-3 max-md:block max-md:py-1"><span className="font-semibold">RQ{row.index + 1}</span> {row.question}</td>
-                  <td className={CELL} data-label="Odpověď">{STATE_WORDS[row.state]}</td>
-                  <td className={CELL} data-label="Zjištění">
+                <tr key={row.index} data-rq={row.index} data-state={row.state} role="row" className="border-t border-border align-top max-md:block max-md:py-2">
+                  <td role="cell" className="py-2 pr-3 max-md:block max-md:py-1"><span className="font-semibold">RQ{row.index + 1}</span> {row.question}</td>
+                  <td role="cell" className={CELL}><ColumnName>Odpověď</ColumnName>{STATE_WORDS[row.state]}</td>
+                  <td role="cell" className={CELL}><ColumnName>Zjištění</ColumnName>
                     {row.findings.length ? (
                       <span className="flex flex-wrap gap-1">
                         {row.findings.map((f) => (
@@ -122,7 +128,7 @@ export function AnalysisCoverage({ run, analysis }: { run: ResearchRun; analysis
                       </span>
                     ) : "—"}
                   </td>
-                  <td className={`${CELL} text-ink-muted`} data-label="Co chybí">{missing(row)}</td>
+                  <td role="cell" className={CELL}><ColumnName>Co chybí</ColumnName><span className="text-ink-muted">{missing(row)}</span></td>
                 </tr>
               ))}
             </tbody>
