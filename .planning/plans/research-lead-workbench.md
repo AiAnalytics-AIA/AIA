@@ -1280,3 +1280,27 @@ Recommended with LO12b, whose record makes the disagreement visible instead.
 - `deploy/develop/README.md` (the switches): the same rule; develop states `true` by Compose.
 - `docs/architecture/adr/0026-…` *Accepted with*: Q42's refusal and the switch stated per
   deployment.
+
+## Contract follow-ups from the stage owners (2026-10-21)
+
+Three changes to chunk 16's contract rows, each one a stage owner asked for. They change no server
+behaviour beyond `FOCUS_KINDS` gaining one kind.
+
+- **Sběr dat (FLD7, #563): kind `receipt`.** The fieldwork row targets `step` and `receipt`.
+  `receipt:respondents` is the "Kdo odpovídal" card, which `ch-method` reads. It was added to
+  `domain/lead_artifacts.py` `TargetKind`, `domain/research_lead.py` `FOCUS_KINDS`,
+  `lib/workbench-artifacts.ts` and `contract.json`. The label is "Kdo odpovídal"
+  (`targetLabel`).
+- **Vzorek (SMP4, SMP5, #606): kind `sample` takes `ready`, `respondents` and
+  `respondents:<persona source>`.** These sit beside the existing ids. `FOCUS_ID` already
+  accepted them; the fixture's grammar now says so.
+- **Dotazník (Codex on #607): `targetOfElement`'s `qedit_` / `qblock_` id fallbacks name only an id
+  the contract can send.** For a card without a stored id, the screen invents one, and the
+  fallbacks used to turn it into a target:
+  - `question:Q`, from `questionElementId`'s placeholder;
+  - `section:0`, from a block's index;
+  - `question:Q 2`, which the server refuses.
+
+  Those are now refused, while a stored id stays pickable whether #607's marks have landed yet or
+  not (review of #618). Test: `lead.test.ts` "names an unmarked card by its DOM id only when the
+  id is a stored one the contract can send".

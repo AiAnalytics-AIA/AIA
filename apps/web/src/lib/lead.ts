@@ -450,7 +450,7 @@ const KIND_WORDS: Readonly<Record<TargetKind, string>> = {
   brief: "Zadání", objective: "Cíl", material: "Podklad", plan: "Návrh", rq: "Výzkumná otázka",
   hypothesis: "Hypotéza", set: "Sada", assumption: "Předpoklad", section: "Oddíl", question: "Otázka",
   audience: "Cílová skupina", dimension: "Dimenze", own_dimension: "Vlastní dimenze", sample: "Vzorek",
-  step: "Krok", measure: "Měření", object: "Objekt", pair: "Dvojice", module: "Modul",
+  step: "Krok", receipt: "Kdo odpovídal", measure: "Měření", object: "Objekt", pair: "Dvojice", module: "Modul",
   finding: "Zjištění", claim: "Tvrzení", report: "Zpráva",
 };
 
@@ -474,6 +474,7 @@ export function targetLabel(target: string): string {
     if (id.startsWith("subpanel:")) return `Podpanel: ${id.slice(9)}`;
     return AUDIENCE_PARTS[id] ?? `Cílová skupina: ${id}`;
   }
+  if (parsed.kind === "receipt" && id === "respondents") return "Kdo odpovídal";
   return `${KIND_WORDS[parsed.kind]} ${id}`;
 }
 
@@ -517,8 +518,15 @@ export function targetOfElement(el: Element | null): { id: string; label: string
       return { id: aia, label: `${targetLabel(aia)}${heading ? `: ${label(heading)}` : ""}` };
     }
     let m: RegExpMatchArray | null;
-    if ((m = id.match(/^qedit_(.+)$/))) return { id: `question:${m[1]}`, label: `Otázka ${m[1]}: ${label(wordingOf(at, text))}` };
-    if ((m = id.match(/^qblock_(.+)$/))) return { id: `section:${m[1]}`, label: `Oddíl: ${label(titleOf(at, m[1]!))}` };
+    // A questionnaire card before its screen marks it (#607): named by its DOM id, but only an id
+    // the contract can send. The ids the screen invents for a card without one are never a
+    // target: questionElementId's placeholder `Q`, a block's index, an id outside the grammar.
+    if ((m = id.match(/^qedit_(.+)$/)) && m[1] !== "Q" && parseAiaId(`question:${m[1]}`)) {
+      return { id: `question:${m[1]}`, label: `Otázka ${m[1]}: ${label(wordingOf(at, text))}` };
+    }
+    if ((m = id.match(/^qblock_(.+)$/)) && !/^\d+$/.test(m[1]!) && parseAiaId(`section:${m[1]}`)) {
+      return { id: `section:${m[1]}`, label: `Oddíl: ${label(titleOf(at, m[1]!))}` };
+    }
     if ((m = id.match(/^brief-(.+)$/))) return { id: `brief:${m[1]}`, label: `Zadání: ${label(at.querySelector("h2, h3, label")?.textContent?.trim() || m[1]!)}` };
     const plan: Record<string, { id: string; label: string }> = {
       "plan-sets": { id: "plan:sets", label: "Návrh: sledované sady" },

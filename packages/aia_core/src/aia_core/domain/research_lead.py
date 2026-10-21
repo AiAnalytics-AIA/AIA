@@ -208,7 +208,7 @@ STAGES: Final[tuple[str, ...]] = get_args(Stage)
 FOCUS_KINDS: Final[tuple[str, ...]] = (
     "brief", "objective", "material", "plan", "rq", "hypothesis", "set", "assumption",
     "section", "question", "audience", "dimension", "own_dimension", "sample", "step",
-    "measure", "object", "pair", "module", "finding", "claim", "report",
+    "receipt", "measure", "object", "pair", "module", "finding", "claim", "report",
 )  # fmt: skip
 #: An element's id: an identifier, possibly of colon-separated parts (``finding:executive:2``),
 #: a battery-qualified object (``set1/fio``) or a pair (``set1/fio~air``).
