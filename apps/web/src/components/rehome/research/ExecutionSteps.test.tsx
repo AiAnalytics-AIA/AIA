@@ -1731,6 +1731,10 @@ describe("Results", () => {
       "34,8 % podíl odpovědi „Kávu“ · Který nápoj byste si vybrali?",
     ]);
     expect(cited[0].getAttribute("href")).toBe("#measure-q2");
+    // Each cited number and the module view carry the Lead's targets (ANL1).
+    expect(keyFindings.querySelector('[data-aia="claim:executive:C1"]')).toBeTruthy();
+    expect(keyFindings.querySelector('[data-aia="finding:executive:0"]')).toBeTruthy();
+    expect(document.querySelector('section[data-aia="module:executive"]')).toBeTruthy();
     // A number whose question AIA cannot find says so in words; its reference stays as a code (6c).
     expect(within(keyFindings).getByText(/číslo, k němuž AIA nedohledala otázku/)).toBeTruthy();
     expect(within(keyFindings).getByText("x9.median").tagName).toBe("CODE");
