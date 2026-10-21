@@ -3,7 +3,7 @@ status: in-progress
 chunks:
   - "[x] SOC1. Sociomapa's contract as data: the closed display operations (view, labels, weak links, mode, battery, selection), pointable ids (object, pair, respondent, segment) and V2's interaction contract; any operation that would write is refused"
   - "[ ] SOC2. The artifact hosts sociomap-5-web's panel in the frame, in Results and project memory alike, with the old-method text for a -1/-3 run"
-  - "[ ] SOC3. The four-way legend and the display filter bar: frozen result, display, labelled interpretation, external context"
+  - "[x] SOC3. The four-way legend and the display filter bar: frozen result, display, labelled interpretation, external context"
   - "[ ] SOC4. Object, pair and respondent detail in the item inspector, from the stored map only"
   - "[ ] SOC5. Interpretation on the map: the map interpreter's labelled output and a pair's Interpretation Research as Lead cards, never an input to the map"
   - "[ ] SOC6. Segment maps, filters and the respondent drill-down hosted here"
@@ -128,6 +128,18 @@ Depends on `research-lead-workbench#14`, `#16`.
   frame itself waits for `research-lead-workbench#15`.
 
 **SOC3. Legend and filter bar.** Test: with weak links hidden the bar says what did not change.
+- Delivered on the `-5` panel: the filter bar (`lib/sociomap-display.ts` `displayChanges`: what the
+  toolbar changed against the opening -- the respondent map, Absolutní, Vybraný / Vše -- in words, then
+  "Výpočet, polohy objektů, výšky, vztahy a věrohodnost mapy beze změny.", and "Zrušit filtr" back to
+  the opening), and "Co je co", the four registers, beside the map. Tests: `sociomap-display.test.ts`,
+  `ObjectMapPanel.test.tsx` › "the filter bar and the four registers".
+- The plan's test names hidden weak links, which the `-5` panel does not offer (the panel's rule:
+  its relation display is Top / Vybraný / Vše); the same test runs on the panel's own display
+  choices. Finding for SOC1's live filters: the registry's `labels` and `hide_weak` filters
+  (`VIEW_FILTERS.sociomap`) have no control on the `-5` panel, and `view: top|relief` is the
+  panel's 2D / 3D camera, not a toggle. Until the panel offers them (the methodology owner's call,
+  as every visual decision inside the panel), a Lead `filter` on `labels` or `hide_weak` has
+  nothing to set; SOC2's wiring refuses it by name rather than ignore it.
 
 **SOC4. Detail in the inspector.**
 - `ItemInspector` (mounted by chunk 15) shows the object, pair and respondent detail of

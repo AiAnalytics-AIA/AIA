@@ -722,3 +722,41 @@ describe("the Lead's names on the map", () => {
     expect(document.querySelector(focusSelector(`object:hudba/${map.object_ids[i]}`))?.tagName).toBe("BUTTON");
   });
 });
+
+// Around the map (artifact-sociomap SOC3): the filter bar names what the toolbar changed and that the
+// computation did not; the legend names the four kinds of content.
+describe("the filter bar and the four registers", () => {
+  const bar = () => screen.queryByTestId("object-map-filter-bar");
+
+  it("shows no bar at the map's opening, and the four registers beside it", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    expect(bar()).toBeNull();
+    const registers = screen.getByTestId("object-map-registers");
+    expect([...registers.querySelectorAll("[data-register]")].map((r) => r.getAttribute("data-register"))).toEqual(["computed", "display", "interpretation", "external"]);
+    expect(registers.textContent).toContain("Deterministický výsledek");
+    expect(registers.textContent).toContain("do výpočtu nevstupují");
+  });
+
+  it("names a display change and says what did not change, leaving the map's numbers as they were", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    const list = () => within(screen.getByTestId("object-map-panel-list")).getAllByRole("button").map((b) => b.textContent);
+    const before = list();
+    fireEvent.click(screen.getByRole("button", { name: "Vše" }));
+    fireEvent.click(screen.getByRole("button", { name: "Absolutní" }));
+    expect(bar()!.textContent).toContain("Filtr zobrazení: absolutní výšky, všechny vztahy.");
+    expect(bar()!.textContent).toContain("Výpočet, polohy objektů, výšky, vztahy a věrohodnost mapy beze změny.");
+    expect(bar()!.getAttribute("data-aia-filters")).toBe("norm:absolute relations:all");
+    expect(list()).toEqual(before);
+  });
+
+  it("goes back to how the map opens on Zrušit filtr", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
+    expect(bar()!.textContent).toContain("mapa respondentů");
+    fireEvent.click(within(bar()!).getByRole("button", { name: "Zrušit filtr" }));
+    expect(bar()).toBeNull();
+    expect(canvas().getAttribute("data-map")).toBe("objects");
+    expect(canvas().getAttribute("data-norm")).toBe("range");
+    expect(screen.getByRole("button", { name: "Top vztahy" }).getAttribute("aria-pressed")).toBe("true");
+  });
+});
