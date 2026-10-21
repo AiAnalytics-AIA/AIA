@@ -58,7 +58,7 @@ chunks:
   - "[ ] 52. Reach is stated by code: Settings lists every route and connector as built, approved, active or refused, with the reason, read from the composition"
   - "[ ] 53. Open posture (owner, 2026-10-19): `clients.data_posture` OPEN or CLASSIFIED replaces classification for Deep Research in the MVP; a run pins it at enqueue, a retry copies it"
   - "[ ] 54. Before the first activation: each connector probed live once (every interface is UNVERIFIED), AIA_DEEP_RESEARCH_AGENT_DIRECTED named in the activation matrix, Common Crawl's AWS side (workgroup, results bucket, grants, us-east-1 exception) in Terraform or kept out of the first activation"
-  - "[ ] 55. The start's cost ceiling function moves from the API router to the application layer, so a plan step in the worker and the router use one"
+  - "[ ] 55. The start's cost ceiling function moves from the API router to the application layer, so a plan step in the worker and the router use one; always computed and stored on create, threshold or not (F-DRL-2); a read-only POST …/deep-research/quote priced by the same function as the start (DRL-0, 2026-10-21)"
   - "[ ] 51a. A run's routes on its record: by_route in CoverageLedger (sent, succeeded, refused) and composed_routes from the plan artifact (G67)"
   - "[ ] 56. A quick single-track lookup for the Lead's Hledat na webu: several search hits and parallel fetches of the top pages through RetrievalGate, captured snapshots, per-call cost against the wallet; OPEN without a card, CLASSIFIED behind a plan card (Q6, Q24)"
   - "[ ] 57. Brave for Class B queries (owner determination 2026-10-20, Q20): a query written from a design reaches Brave at Class B for every client, CLASSIFIED included; Class A only as chunk 57a's code-extracted fields (Q22); recorded as data beside OI-61"
@@ -1814,3 +1814,79 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
   plan card (`lead-orchestration#LO20`), and its queries are Class B or 57a's fields, to Brave alone.
   The test "a CLASSIFIED client's lookup sends nothing" becomes "sends nothing until its card is
   approved".
+
+## Chunk 55 tightened: the ceiling always computed, and a quote (DRL-0, 2026-10-21)
+
+Part of the plan for the Research Lead to control Deep Research end to end (the owner, 2026-10-21:
+"the lead should be able to control the whole process"). The decisions, Q44 to Q48, are in
+[`lead-orchestration.md` § Deep Research under the Lead](lead-orchestration.md#deep-research-under-the-lead-2026-10-21).
+Every card, typed start and plan step there is priced by this chunk. Anchors are `@ 095a3e68`.
+
+- **Files.**
+  - New `packages/aia_core/src/aia_core/application/deep_research_pricing.py`, holding a typed
+    `DeepResearchPricingSettings` built from the same `AIA_*` keys, and `prices`, `search_route`,
+    `mode` and the per-kind budgets. They move from `apps/api/src/aia_api/routers/deep_research.py:261-387`.
+    The API's `config.py` constructs it; the worker's settings construct it when LO5a.4 needs it.
+  - `application/deep_research.py`:
+    - `_enqueue` always computes the ceiling on create and stores `cost_ceiling_usd` (with its
+      per-kind breakdown, or unknown with its kinds) in the run's metadata. It asks the threshold
+      only when one is set. Today the ceiling is computed only under a threshold (`:636`,
+      `if limit is not None and existing is None`).
+    - A new read-only `quote` returns, for a design or an interpretation start, by purpose and preset:
+      - the ceiling (or unknown, with the kinds whose price is missing);
+      - its `usd` by kind;
+      - the priced routes it would use (Brave search, Common Crawl's index);
+      - the live settings still missing approval (ADR 0022's `missing_for_live`);
+      - the study's threshold and its remaining budget;
+      - the pinned settings' digest.
+    - The start and the quote call one pricing function, so they cannot disagree.
+  - `routers/deep_research.py` delegates to it and adds `POST …/deep-research/quote`. The route is
+    read-only and needs `RUN_WORKFLOW`; its body is a design or an interpretation start without the
+    confirmation. Nothing is reserved, started or written.
+- **Kill switch.** The quote answers even when `AIA_DEEP_RESEARCH_ENABLED` is off, and says that a
+  run would park. That flag is read from the API's copy of the deployment's keys, never claimed as
+  the worker's state; that waits for LO12b's composition record. Behaviour is otherwise unchanged,
+  except that a ceiling is now stored on every new run.
+- **Tests.**
+  - A fixture of key combinations: off, wikipedia, brave with and without a price, and Common Crawl
+    full and partial. For each, the router's old prices equal the new function's.
+  - A create with no threshold stores the ceiling, and the quote equals it.
+  - The quote and the start agree under a threshold: the start asks with exactly the quote's ceiling.
+  - A quote writes nothing: no run, no ledger row, no reservation.
+  - An unknown price is `null` with its kinds, never 0.
+  - API: the route's scope, and 404 for a revision or target outside the study.
+- **Dependencies:** none (W1, as I22 says).
+
+### Findings
+
+- **F-DRL-2. A Deep Research ceiling is never computed unless the study has a threshold.**
+  - Anchor: `packages/aia_core/src/aia_core/application/deep_research.py:635-655 @ 095a3e68`.
+  - Reproduction: start a run on a study with `spend_confirm_usd = null`. The run's metadata has no
+    `cost_ceiling_usd`, and no route returns one.
+  - Consequence: this is CR-1 (`lead-orchestration`) again, for Deep Research. A card cannot show
+    "až X USD", and the wallet (D-05: charged at its ceiling) has nothing to charge.
+  - Smallest fix: this chunk (always computed, and the quote).
+  - Test: a create with no threshold stores `cost_ceiling_usd`, and the quote equals it.
+- **F-DRL-3. The ceiling is priced from the API's own environment copy** (I22, already this chunk's
+  reason).
+  - Anchor: `apps/api/src/aia_api/routers/deep_research.py:261-387 @ 095a3e68`.
+  - Reproduction: `git grep -n "def deep_research_prices" 095a3e68` finds it only in the router.
+  - Consequence: a plan step in the worker cannot price the way the API does.
+  - Smallest fix: this chunk.
+  - Test: the key-combination fixture above.
+- **F-DRL-7. A name collision.** `AIA_DEEP_RESEARCH_LEAD` / `settings.deep_research_lead`
+  (`apps/api/src/aia_api/config.py:182 @ 095a3e68`) is the Deep Research engine's *lead researcher*
+  mode, not the Research Lead (Vedoucí výzkumu).
+  - Reproduction: `git grep -n deep_research_lead 095a3e68 -- apps/api`.
+  - Consequence: a reader or an agent can take one for the other. The plans now say "the engine's
+    lead mode" for the former.
+  - Smallest fix: one line in `docs/architecture/deep-research.md` (Doc follow-up).
+  - Test: none; it is wording.
+
+### Doc follow-up (chunk 55, DRL-0)
+
+- `open-items.md`: number F-DRL-2 and F-DRL-3 (owner 55), and F-DRL-7 (owner: the docs PR).
+- `docs/architecture/deep-research.md`: "the engine's lead mode (`AIA_DEEP_RESEARCH_LEAD`) is the
+  engine's lead researcher, not the Research Lead (Vedoucí výzkumu)".
+- `CLAUDE.md` map, once built: `application/deep_research_pricing.py` and
+  `POST …/deep-research/quote`.

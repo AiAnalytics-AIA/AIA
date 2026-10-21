@@ -21,7 +21,11 @@ chunks:
   - "[ ] LO14. The Lead's cost per turn measured, and an `AIA_LEAD_*` kill switch and budget line"
   - "[x] LO16. The approval ledger's subject types (lane migration M3, W0, the first migration): `approval_decisions.subject_type` extended with `wallet`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot` and `sociomap_unlock`; S3 writes it"
   - "[x] LO15. Server spend enforcement (W0): `ResearchAgentJobs.start` and `rebuild` apply `spend_confirm_usd` as `ResearchRuns.start` does, and record the confirmation in the ledger; tested through direct HTTP start and rebuild and through the Lead's approve path"
-  - "[ ] LO5a. Deep Research from the Lead: a plan-step kind and a typed chat start, priced by deep-research-web-search 55's ceiling (D-12)"
+  - "[ ] LO5a. Deep Research from the Lead: a plan-step kind and a typed chat start, priced by deep-research-web-search 55's ceiling (D-12); split into LO5a.1-LO5a.4 (2026-10-21), this line holds the acceptance and is ticked when they and research-lead-workbench 26f.1 have landed"
+  - "[ ] LO5a.1. The Lead's Deep Research requests and context (DRL-2): a preset (QUICK or STANDARD, STANDARD by default), a design focus on named research questions, an Interpretation target from a code-built candidate list over every result kind of ADR 0021, Q44 (the research-questions module by default), a retry request; the deep_research and targets layers"
+  - "[ ] LO5a.2. A Lead card starts Deep Research on the server (DRL-3): approve_request starts Design and Interpretation Research and their retry, priced by deep-research-web-search 55, with the threshold, live settings and ledger row; amends research-lead-workbench D7 for the two kinds"
+  - "[ ] LO5a.3. Typed Deep Research starts (DRL-8, on LO5): start, retry and stop matched by code with no model in the path, ledger chat_start, a wallet charge at the ceiling; works with the Lead off"
+  - "[ ] LO5a.4. Deep Research as plan-step kinds (DRL-9, on LO3/LO4): design_research and interpretation_research steps, a target fixed or relative to an earlier step resolved when the step starts, parked when its module ended BLOCKED"
   - "[ ] LO12c. The composition digest stored on each run and served over HTTP (D-09; the record #513 called MP6b)"
   - "[ ] LO17. Stopping the Lead: cancel a running turn, withdraw an approved plan (the current step finishes or is cancelled, nothing after it starts), with the workbench build line (D-18)"
   - "[ ] LO18. The Lead's turns stream, take a file from the composer, and comment unprompted after the researcher pauses editing, each such comment a paid turn inside the wallet (D-39)"
@@ -66,12 +70,29 @@ The security condition: a start is authorised by a person's own typed command ma
 
 **LO6. The continuation turn: a finished step enqueues a Lead turn with typed results; no polling**  
 Turns are person-started only today (`research_lead.py:763-790`). A result reaches the Lead as an artifact reference plus fields code has validated, never a worker's free text (a summary derived from web text is an injection path). Test: a step finishing wakes one turn with its results; a failed step wakes one with the park reason.
+**Deep Research (DRL-10, 2026-10-21):** a Deep Research run that finishes, fails or parks wakes one
+turn with typed fields only (run id, purpose, status and park code, counts, `quality_status`, actual
+cost, the bundle's SHA-256 and its finding ids; no web text by this path), and a research run whose
+analysis completes wakes one whose context offers its Interpretation candidates (LO5a.1), so the
+scripted Lead can prepare an interpretation card. Tests: a completed Deep Research run's turn holds
+its counts and ids and no quote text; a park wakes one with the code; a completed analysis lets the
+scripted Lead prepare an interpretation card. Detail in *Deep Research under the Lead* below.
 
 **LO7. The Lead's context layers per ADR 0026 decision 2: readiness, question outlook, what changed since its last turn, other people's changes, and the execution state (status, park code, spend, selection receipt, QC)**  
 `freeze_context` has none of these (`domain/research_lead.py:803-819`). The Lead's answer to "Kde jsme?" is built from them.
 
 **LO8. `ResultsContext`: type, class (`MaterialRule` for results, module text, maps, report text), lineage, bound, an external-evidence slot labelled L; and the decision on a read tool against ADR 0026 decision 3**  
 Written in **W1**, not W2. S2 and S3 write providers against it. Test: a result with Class A lineage is refused by a Class-C-only route. Interfaces I1.
+**Deep Research's provider and the one door for external numbers (DRL-11, 2026-10-21):** the L slot's
+Deep Research provider carries the study's newest sealed bundle(s) by reference (each accepted
+finding's claim, quote, source title and URL, source class, verifier verdict and injection flag;
+gaps; rejected findings by reason code), bounded with omissions named, classed by `MaterialRule`;
+LO9d's stage workers read the same provider. `ground_edits` refuses an edit whose number appears in
+the context only in L: an external number enters a design only through
+`DesignResearchProposals.accept` (ADR 0021). The web renders an `evidence:<id>` citation's quote and
+source from the bundle, never from the model's text. Tests: a reply citing a finding renders the
+bundle's quote; an edit carrying a number found only in a finding is refused; a hostile page's text
+(`deep-research-web-search` chunk 45's set) in L changes no request or edit.
 
 **LO9a. The worker contract, early (W0, the first deliverable of `research-lead-workbench` 11): `LeadWorkerSpec` as a type, one row per worker, with its fixture**  
 One row defines a worker once: id, closed task, context layer, data-class rule, capability, reservation, prompt id and pin, switch, card kind, result kind (`mvp-cohesion.md` F5). Chunk 11's command registry and the W1 artifact chunks depend on this row; the three new workers are rows, not three designs. Test: a worker with a missing field is refused at registration.
@@ -140,7 +161,9 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
   exits non-zero by name.
 - **LO17 (W1).** D-18: Esc during a turn stops it ("Zastaveno vámi. Nic nebylo přijato za vás.");
   "Zastavit plán" on a running plan's card. Tests: a cancelled turn applies nothing and its
-  reservation settles; a withdrawn plan starts no further step.
+  reservation settles; a withdrawn plan starts no further step. *Tightened 2026-10-21 (LO5a.4):* a
+  withdrawn plan whose current step is a Deep Research run cancels it, keeps what it captured, and
+  starts nothing after it.
 - **LO18 (W3).** D-39, IN: streaming text (ADR 0026 left streaming "not decided"; this answer decides
   it), a file from the composer kept as the client's source or the brief's attachment by the existing
   paths, and unprompted comments after a pause, **each a paid turn charged to the wallet, shown as
@@ -587,3 +610,286 @@ builds the ADR as written.
   closes its wallet when it closes"; the scope router's status route goes through it.
 - `deploy/develop/README.md` (the switches): `AIA_STUDY_WALLET_ENABLED`, off, not in Compose.
 
+
+## Deep Research under the Lead (2026-10-21)
+
+The owner, 2026-10-21, on #550's note that the Deep Research start buttons stay because the Lead
+cannot start Deep Research end to end: **"we need to plan this, the lead should be able to control
+the whole process".** This section is that plan's Lead half. Its UI half is
+`research-lead-workbench` § *Deep Research cards and starts*, and its pricing half is
+`deep-research-web-search` 55 (DRL-0). The ids DRL-0 to DRL-11 name the pieces across the three
+files. Anchors are `@ 095a3e68` (`origin/develop` when written) unless stated; `@ cd7af699` is #550.
+
+### Decisions (the product owner, Nigel, 2026-10-21; not re-asked)
+
+- **Earlier the same day:** "the lead should be able to control the whole process".
+- **Q44 (12:28 UTC). The Lead may offer all seven Interpretation target kinds** of ADR 0021
+  (`domain/deep_research/integration.py:172-260`), **from the code-built candidate list, with the
+  `research_questions` analysis module as the default** it proposes. The seven are `TargetKind`
+  (`integration.py:172-179`). Six are results (`RESULT_QUESTION`, `RESULT_BATTERY_OBJECT`,
+  `ANALYSIS_MODULE`, `SOCIOMAP`, `SOCIOMAP_OBJECT`, `SOCIOMAP_RELATIONSHIP`) and are offered as
+  Interpretation candidates. The seventh, `DESIGN_REVISION`, is Design Research's own target: the
+  Lead reaches it through a design request, and the interpretation freeze refuses it (422), as it
+  does today. His note: "the research lead
+  needs to be able to control the end to end process and ensure it has all the context and
+  connections to be informed". So each candidate carries its connections in words built by code:
+  the research run and its date, the module, question or map entity, and the research questions it
+  traces to (`domain/research_trace.py`). The model never writes an id of its own.
+- **Q45 (12:29 UTC). A Design Research run may focus on named research questions;** the whole design
+  stays the default. His note: "cool idea, needs to be well planned and properly connected". So the
+  focus is ids of the revision's research questions taken from the turn's context, filtered by code
+  into the engine's subjects before the request is frozen. The engine is unchanged: it receives fewer
+  subjects, and per-subject fingerprints keep reuse. The card names each focused question and the
+  questionnaire items that measure it (`research_trace`), so the person sees what is researched and
+  what is not.
+- **Q46 (12:31 UTC). The Lead offers QUICK and STANDARD, and STANDARD is the default.** His note,
+  which overrides the option's own default of QUICK: "standard by default". The request contract
+  refuses DEEP and EXHAUSTIVE. The card shows each preset's own ceiling (DRL-0's quote), because even
+  these are large: `deep-research-reports.md` records worst cases of USD 31.03 for QUICK and
+  USD 170.59 for STANDARD over a fresh executive target.
+- **Q47 (12:31 UTC). An approved plan may chain fieldwork, then Interpretation Research on its
+  results.** Code resolves the target when that step starts, and the plan card shows it as
+  "výsledek kroku N · <modul>", with its ceiling confirmed at plan approval (D-02). **The step parks
+  if its module ended BLOCKED** (or is stored BLOCKED, as `needsRepair` reads it). It never
+  substitutes another target.
+- **Q48 (12:32 UTC). DRL-5 (removing the Deep Research buttons) waits for DRL-8** (typed starts that
+  work without the model, LO5a.3). Q43's guarantee therefore holds before the buttons go: with the
+  Lead off, Deep Research stays startable by a typed command.
+
+Decided as engineering in the same plan, not asked:
+- No new kill switch for the Lead's Deep Research card. It holds the same server gates as the stage
+  start it replaces, and a switch turned off would bring back D-12's gap once the buttons are gone.
+  Rollback is `AIA_AI_RESEARCH_LEAD_ENABLED`, which leaves typed starts working (Q43).
+- The Lead never cancels, accepts a proposal, approves a report or a setting, or adds a source by
+  itself (ADR 0026, ADR 0019, ADR 0022, CLAUDE.md).
+- The run card's retry, resume and budget lift use the stage routes, as #550's run card does.
+
+### Settled before and carried here
+
+- D-12: Deep Research starts only through the Lead (LO5a).
+- D15 and AC-02: Deep Research is not an exception; source proposals are (LO13).
+- D7 as #550 amends it, amended again by LO5a.2 for the two Deep Research kinds.
+- LO4: a card is a one-item plan once LO3 and LO4 land.
+- D-05: a Deep Research run is charged at its ceiling until M11 (`ChargeKind.DEEP_RESEARCH` and
+  `INTERPRETATION_RESEARCH`, `domain/wallet.py:58-66`).
+- Q42 and Q43: `research-lead-workbench` 27b, on #551.
+- ADR 0021: Design Research only proposes. The engine is frozen, so nothing below changes
+  `domain/deep_research/*` or `aia_executors/deep_research/*` except as a caller.
+- ADR 0022: a priced live route is refused until every live setting is approved
+  (`application/deep_research.py:625-632`), and the Lead never approves one.
+
+### The chunks
+
+**LO5a.1 (DRL-2). The Lead's Deep Research requests and context.**
+- `domain/research_lead.py`. Today both requests carry only `why` (`domain/research_lead.py:250-258`).
+  - `DesignResearchRequest` gains `preset: Literal["QUICK","STANDARD"] = "STANDARD"` (Q46) and
+    `focus: list[<research-question id>]`, empty for the whole design (Q45).
+  - `InterpretationResearchRequest` gains `target: <candidate id>` (by default the run's
+    `research_questions` module candidate, Q44) and `preset`.
+  - A new `DeepResearchRetryRequest` (`kind: "deep_research_retry"`, a `run_id` from the layer).
+  - `lead_contract` grounds every id against the layers and refuses one that is not there, as it
+    refuses an unknown focus target today.
+  - The prompt (`_TASK`, `:545-580`) describes the two purposes, the presets and what a target is,
+    and says that a rešerše is external context, never respondent evidence. The prompt version is
+    bumped (ADR 0020 pin).
+- New `domain/lead_research_targets.py`, `interpretation_candidates` (pure). It lists the study's
+  targetable entities from its finished research runs, newest first and bounded. Each candidate has
+  a short id `t1…tn` that is stable within the turn, its `TargetKind`, its words and connections
+  (Q44), and the `ResearchTargetRef` behind it. A module stored BLOCKED is left out (the `needsRepair`
+  rule).
+- `application/research_lead.py` `_freeze` gains two layers, each in its own byte budget inside the
+  96 KB, with omissions named and classed by `material_rules`. This closes F-DRL-4.
+  - `deep_research`: the study's newest Deep Research runs (id, purpose, target in words, preset,
+    phase and park code, counts, actual cost, ceiling).
+  - `targets`: the candidates.
+- The scripted Lead (`aia_executors/workbench.py`): "rešerš" prepares `design_research`; "výklad" or
+  "výsledk" prepares `interpretation_research` over the default candidate.
+- Tests (`test_research_lead.py`):
+  - an unknown target, focus or run id is refused;
+  - DEEP is refused, and STANDARD is the default;
+  - the layers fit inside 96 KB;
+  - a Deep Research run appears in the context;
+  - the layers' class follows `material_rules`;
+  - a BLOCKED module is omitted;
+  - a candidate's connections name its research questions.
+
+  Fixture: the candidate list for the workbench's fixture run.
+- **The scoped freeze (Q45; Codex on #553).** Today `DeepResearchRuns.freeze_design` and `start`
+  take no focus and rebuild every subject from the whole revision (`extract_subjects`,
+  `application/deep_research.py:293, 319 @ 095a3e68`). A focused card would therefore quote and run
+  the whole design. The contract:
+  - `freeze_design(…, focus=<research-question ids>)` validates each id against the revision's
+    research questions (an unknown id is refused by name, `focus_unknown`, 422) and carries only the
+    selected research-question subjects into the frozen `DeepResearchRequest`. An empty focus is the
+    whole design.
+  - That one frozen spec is used for both the quote and the enqueue: LO5a.2 freezes once and passes
+    the same spec to `DeepResearchRuns.quote` (DRL-0's `_admit`) for the card's price and to the
+    start for the run. The start gains an entry that enqueues a given frozen spec (or `start` takes
+    `focus` and freezes identically), so the run never re-freezes the whole design.
+  - The focused subjects are in the engine request, so a focused run has its own request and spec
+    fingerprint and never reuses the whole design's run by idempotency; its per-subject track
+    fingerprints still reuse what was researched before.
+  - **Dependency on DRL-0 (#555):** `_admit` and `quote` take the frozen spec, so the focus reaches
+    them through it. The quote route's body gains `focus` here, and `_admit` gains a focus parameter
+    only if a caller cannot hand it the focused spec. #555 is not changed for this.
+- Tests (focus): a focused quote equals the focused start's ceiling, and both are smaller than the
+  whole design's; an unknown focus id is refused before anything is priced; the focused run's
+  request holds only the selected subjects.
+- Kill switch: the Lead's own (`AIA_AI_RESEARCH_LEAD_ENABLED`). The fields only prepare.
+
+**LO5a.2 (DRL-3). A Lead card starts Deep Research on the server; this amends D7 for the two kinds.**
+Today `approve_request` raises `NotAPaidRequest` for any request that is not an `AgentJobRequest`
+(`application/research_lead.py:711-712`), and the router answers 422 `not_a_paid_request`
+(`routers/lead.py:335-336`; `test_a_request_that_only_opens_a_stage_is_not_a_paid_request`). The
+web card only navigates (`Workbench.tsx:258-262`).
+- Design: the design must be the revision the card was quoted on (LO10's rule: the turn's working
+  revision, else `LeadTurnStale`, else submit it). The design is frozen once with the card's
+  focus (LO5a.1's scoped freeze), and that spec is the one priced and enqueued.
+- Interpretation: the target is resolved from the turn's frozen candidates, then
+  `start_interpretation` is called. Its freeze verifies every pin (`ResearchTargetNotFound` and
+  `ResearchTargetInvalid`, answered 404 and 422).
+- `deep_research_retry` calls `retry`.
+- Each is priced by DRL-0 and confirmed with `confirm_cost_usd` equal to the ceiling the card showed
+  (D-02). A ceiling that grew asks again with the server's figure (#550's pattern,
+  `Workbench.tsx:476-493 @ cd7af699`).
+- The `lead_job_request` ledger row carries the run id, purpose, target, preset, focus, ceiling and
+  `spend`.
+- **The wallet (Codex on #553).** `lead_job_request` is not a wallet authority: a charge accepts only a
+  `chat_start` or `plan_step` row naming the charged run with decision `start`
+  (`domain/wallet.py:72-78`, `infrastructure/study_wallet_repository.py` `charge` and its decision
+  check). Without more, a card-approved run would bypass the wallet cap with the wallet on. So, when
+  `AIA_STUDY_WALLET_ENABLED` is on, the approval writes a wallet-authorising decision and charges the
+  wallet in the same transaction as the start, in LO1's order: quote under the study lock, create
+  the run, write the `lead_card` row naming that run (decision `start`), charge it as
+  `DEEP_RESEARCH` or `INTERPRETATION_RESEARCH` at its ceiling. A refused charge (`outside_wallet`,
+  `ceiling_unknown`, `no_wallet`) rolls the whole transaction back: no run, no ledger row. A person
+  approving a card on the spot is judged by `start_verdict`'s `CHAT_START` rule (inside the wallet,
+  refused outside); whether `StartPath` gets its own member is decided in the PR, with no rule of
+  its own. With the wallet off, nothing is charged, as for every start today.
+- **The authority: a new subject `lead_card`, not a single-step plan.** It is the smaller of the two.
+  A single-step plan needs `lead_plans`, `lead_plan_steps`, the plan authority and the `lead_plan`
+  workflow type (LO3, "the riskiest piece") and the plan card (LO4) before any Deep Research card
+  could charge. A new subject is one value in `ApprovalSubject`, one in `CHARGE_AUTHORITIES`, and one
+  migration (named here **M3b**, `lead_card` added to `approval_decisions.subject_type`'s CHECK, with
+  its round-trip test in `test_approval_ledger.py`). The cost is the one LO16 wanted to avoid: a
+  second migration on the same constraint. It also serves agent-job cards, which are not charged
+  today either (`StartPath.PERSON`). Reusing `lead_job_request` as the authority was rejected: its
+  `run_id` names the Lead turn's run and its decision is `approve` (`workflow_repository.py:2681-2715
+  @ 095a3e68`), so it cannot name the charged run without changing what existing rows mean.
+- Approved once: a second approval returns the same run. `NotAPaidRequest` stays for `research_run`
+  only.
+- `routers/lead.py` maps `LiveNotApproved` to 409 `live_settings_unapproved` with `missing` and
+  `routes`, and maps the cost 409s. It answers `research_lead_disabled` (Q42) if 27b has not landed;
+  whichever of the two lands second keeps one check.
+- Tests:
+  - an approval creates one run with its ledger row, and a second approval returns it;
+  - a stale working revision is refused;
+  - another study's target is 404;
+  - a moved pin is refused;
+  - the threshold asks, and once confirmed the row records `spend`;
+  - on a priced composition without approved live settings: 409 with the keys, and nothing written;
+  - with the Lead off: 409, with no workflow row and no reservation;
+  - the run's spec and fingerprint equal those of a stage start with the same inputs;
+  - with the wallet on, an approved card's run is charged once under its `lead_card` row, and a card
+    whose ceiling is over the wallet's remainder is refused with no run, no ledger row and no charge;
+  - with the wallet off, nothing is charged and nothing changes.
+- Depends on DRL-0, LO5a.1, LO1 (done), the M3b migration (in this chunk, after LO16) and LO10 (or
+  this chunk's own revision check for its kinds); ideally 27b.
+
+**LO5a.3 (DRL-8, on LO5). Typed Deep Research starts.**
+- LO5's matcher gains:
+  - "Spusť rešerši k návrhu [rychlou|standardní]", STANDARD when neither is said;
+  - "Spusť rešerši výsledků", with the target picked from the composer's code-built list (LO5a.1's
+    candidates), never parsed from free text;
+  - "Zopakuj rešerši";
+  - "Zastav rešerši".
+- Each runs in one transaction, in LO1's order (choice 4): quote under the study lock
+  (`start_verdict(CHAT_START)`), create the run, write the `chat_start` row naming it, then charge
+  the wallet as `DEEP_RESEARCH` or `INTERPRETATION_RESEARCH` at the ceiling.
+  `StudyWalletRepository.charge` needs the run to exist (`unknown_run`, `study_wallet_repository.py`
+  `charge`), so the charge comes after the create, never before; a refused charge rolls back the run
+  and the row.
+- It works with the Lead off (Q43).
+- Tests:
+  - with the Lead off, a typed design start writes `chat_start`, a charge and one run, while free
+    text is 409;
+  - outside the wallet, it is refused and nothing is written;
+  - the order holds: the charge names the run created in the same transaction, and a charge refused
+    after the create leaves no run, no `chat_start` row and no charge;
+  - a typed stop cancels the run;
+  - a journey on recorded web.
+- Kill switch: `AIA_STUDY_WALLET_ENABLED`.
+- Depends on LO5, LO1, DRL-0, LO5a.1 and 27b. **DRL-5 waits for it (Q48).**
+
+**LO5a.4 (DRL-9, on LO3/LO4). Deep Research as plan-step kinds.**
+- `lead_plan_steps.kind` takes `design_research` and `interpretation_research`.
+  - A design step runs over the plan's immutable revision (D-04).
+  - An interpretation step names a fixed target or one relative to an earlier step (Q47). Code
+    resolves it when the step starts.
+- The worker-side step calls `DeepResearchRuns.start` or `start_interpretation` under the plan
+  authority, priced by DRL-0 from the worker's settings. It parks on any of:
+  - a ceiling that grew (D-02);
+  - the wallet;
+  - `LiveNotApproved`;
+  - a BLOCKED module (Q47).
+- LO4's card shows one line per step: "Rešerše k návrhu · strop X USD".
+- Tests:
+  - an approved plan "fieldwork, then interpretation of step 1's `research_questions` module" runs
+    both steps and charges two `plan_step` rows;
+  - a grown ceiling parks;
+  - a BLOCKED module parks the step and starts nothing;
+  - a withdrawn plan (LO17) cancels the running Deep Research step;
+  - the worker's ceiling equals the API's quote for the same spec.
+- Kill switch: `AIA_LEAD_PLANS_ENABLED`.
+- Depends on LO3, LO4, LO17 and DRL-0.
+
+**LO5a (the acceptance).**
+- At 1440 and 390 px, Deep Research can be started only through the Lead: an approved card, a typed
+  command or a plan step.
+- A direct `POST …/deep-research/runs` with the page's token meets the same gates.
+- It is ticked together with `research-lead-workbench` 26f.1 (DRL-5).
+
+**LO6 (DRL-10) and LO8 (DRL-11)** are tightened in their own paragraphs above, and **LO17**'s test in
+the scope freeze section.
+
+**Order.**
+1. DRL-0 and DRL-1, in parallel.
+2. LO5a.1.
+3. LO5a.2, after LO10 (ideally after 27b).
+4. DRL-6, which can go early.
+5. DRL-4, after #550.
+6. DRL-7.
+7. LO5a.3 (on LO5), **then DRL-5 (Q48)**.
+8. LO6's, LO5a.4's and LO8's parts, as their parents land.
+
+### Findings
+
+- **F-DRL-4. The Lead cannot see a Deep Research run.**
+  - Anchor: `application/research_lead.py:858-866 @ 095a3e68` lists runs with
+    `workflow_type=RESEARCH`, at most five.
+  - Reproduction: start a Design Research run, post a Lead turn, and read the turn's frozen context.
+    No Deep Research run is in it.
+  - Consequence: "Kde jsme?" omits a running or finished rešerše, and the Lead may prepare a
+    duplicate.
+  - Smallest fix: LO5a.1's `deep_research` layer.
+  - Test: LO5a.1's "a Deep Research run appears in the context".
+- **F-DRL-5. The Interpretation target is fixed in the browser.**
+  - Anchor: `apps/web/src/lib/api.ts:1380-1385 @ 095a3e68` always sends `ANALYSIS_MODULE`
+    `research_questions`.
+  - Reproduction: `git show 095a3e68:apps/web/src/lib/api.ts | sed -n 1380,1385p`.
+  - Consequence: six of ADR 0021's seven target kinds have no way in from the product, although
+    `POST …/runs/interpretation` accepts them.
+  - Smallest fix: LO5a.1's candidates, all seven kinds (Q44).
+  - Test: an LO5a.2 approval over a battery-object candidate starts a run whose target is that object.
+- F-DRL-1 and F-DRL-6 belong to `research-lead-workbench`. F-DRL-2, F-DRL-3 and F-DRL-7 belong to
+  `deep-research-web-search` (chunk 55).
+
+### Doc follow-up (Deep Research under the Lead)
+
+- `open-items.md`: number F-DRL-4 (owner LO5a.1) and F-DRL-5 (owner LO5a.1).
+- `mvp-master-plan.md` and `mvp-execution-contracts.md`: the register rows listed in this PR's
+  description.
+- ADR 0026 *Accepted with*: a Lead card starts Design and Interpretation Research on the server
+  through `approve_request` (LO5a.2), with the Q44-Q47 answers.
+- ADR 0028 (the wallet): a person's approval of a Lead card is a charge authority, `lead_card`
+  (migration M3b on the subject CHECK, LO5a.2); LO16's delivered note gains the same line.
