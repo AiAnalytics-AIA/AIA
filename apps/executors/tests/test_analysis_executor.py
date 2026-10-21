@@ -446,7 +446,7 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
     assert cited and cited == set(payload["ledger"]["refs"])
     # Every section names its sources, stored with the document (artifact-chain CHN1): the map
     # chapters the run's Sociomap, the questions the aggregate, who answered the dataset.
-    assert payload["contract"] == "aia-report-document-2"
+    assert payload["contract"] == "aia-report-document-3"
     sources = {s["id"]: s["sources"] for s in payload["sections"]}
     assert all(sources.values()), [k for k, v in sources.items() if not v]
     named = {k: {x.get("artifact_type") for x in v} for k, v in sources.items()}

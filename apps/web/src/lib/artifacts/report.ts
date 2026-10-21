@@ -9,9 +9,9 @@ import { aiaId } from "@/lib/workbench-artifacts";
 /**
  * The contracts this reader knows; a document of any other is refused, never read in part. -2
  * (artifact-chain-to-draft-report CHN1) only adds each section's `sources` and the document's `unread`,
- * which this reader does not need to draw the draft.
+ * -3 (report-delivery RD0) each ledger entry's `level`: neither is needed to draw the draft.
  */
-export const DOCUMENT_CONTRACTS = ["aia-report-document-1", "aia-report-document-2"] as const;
+export const DOCUMENT_CONTRACTS = ["aia-report-document-1", "aia-report-document-2", "aia-report-document-3"] as const;
 
 export type Inline =
   | { type: "text"; text: string; emphasis: "none" | "em" | "strong" }
