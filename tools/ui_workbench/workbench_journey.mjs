@@ -239,7 +239,12 @@ try {
     await forecast.getByText("odhad, ne výsledek").waitFor();
     await forecast.getByText(/Podle revize návrhu|odhad není|nepodařilo načíst/).first().waitFor({ timeout: 30000 });
     assert.equal(await forecast.getByText("nepodařilo načíst").count(), 0, `Vzorek's forecast read @${width}`);
-    assert.equal(await sample.locator("input, select, textarea").count(), 0, `Vzorek has no input @${width}`);
+    // Read only: no editable surface of any kind, and every button one of its navigation links.
+    const editable = "input, select, textarea, [contenteditable]:not([contenteditable='false']), [role=slider], [role=spinbutton], [role=textbox], [role=checkbox], [role=radio], [role=switch], [role=combobox]";
+    assert.equal(await sample.locator(editable).count(), 0, `Vzorek has no editable control @${width}`);
+    const NAVIGATION = new Set(["Upravit v Dimenzích", "Upravit cílovou skupinu", "Sociomapa", "Změnit ve Spuštění", "Ověřit v Kontrole a spuštění"]);
+    const buttons = (await sample.locator("button, [role=button]").allInnerTexts()).map((b) => b.trim());
+    assert.deepEqual(buttons.filter((b) => !NAVIGATION.has(b)), [], `Vzorek's buttons only navigate @${width}`);
     for (const id of ["sample:size", "sample:n", "sample:forecast", "sample:forecast:support", "sample:forecast:outlook"]) {
       assert.equal(await sample.locator(`[data-aia="${id}"]`).count(), 1, `${id} @${width}`);
     }
