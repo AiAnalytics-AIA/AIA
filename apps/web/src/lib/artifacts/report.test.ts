@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 import { parseAiaId } from "@/lib/workbench-artifacts";
 
 import {
-  blockTarget, claimLines, claimTarget, gradeWords, readDocument, reviewWords, sectionTarget,
+  approvalWords, blockTarget, claimLines, claimTarget, gradeWords, readDocument, reviewWords, sectionTarget,
   supportWords, unresolvedRefs, valueWords, type LedgerEntry, type ReportDocumentModel,
 } from "./report";
 
@@ -109,4 +109,28 @@ describe("the document's refs", () => {
 it("names the DOCX's review", () => {
   expect(reviewWords({ review_state: "DRAFT_UNAPPROVED" })).toBe("neschváleno");
   expect(reviewWords({ review_state: "APPROVED_INTERNAL" })).toBe("interně schváleno");
+});
+
+describe("who approved, in words (RD2)", () => {
+  const base = {
+    approved_at: "2026-10-21T21:30:00+00:00", approver_name: "Fiktivní Recenzentka", by_you: false,
+    self_approved: false, self_approval_allowed: true, self_approval_source: "default", note: "",
+  };
+
+  it("names the approver and the day in Prague", () => {
+    expect(approvalWords(base)).toBe("schválil(a) Fiktivní Recenzentka 21. 10. 2026");
+    // 23:30 UTC is already the next day in Prague.
+    expect(approvalWords({ ...base, approved_at: "2026-10-21T23:30:00+00:00" })).toBe("schválil(a) Fiktivní Recenzentka 22. 10. 2026");
+  });
+
+  it("says you, an unknown person as unknown, and one's own work", () => {
+    expect(approvalWords({ ...base, by_you: true })).toBe("schválil(a) vy 21. 10. 2026");
+    expect(approvalWords({ ...base, approver_name: null })).toBe("schválil(a) neznámý člen 21. 10. 2026");
+    expect(approvalWords({ ...base, self_approved: true })).toBe("schválil(a) Fiktivní Recenzentka 21. 10. 2026 · vlastní práce");
+  });
+
+  it("says nothing for a draft", () => {
+    expect(approvalWords(null)).toBeNull();
+    expect(approvalWords(undefined)).toBeNull();
+  });
 });

@@ -2049,6 +2049,7 @@ def run_report(
         "state": "READY",
         "internal_only": True,
         **_review_fields(artifact, mark),
+        **_approval_fields(artifact, scope, session, store),
         "artifact_id": artifact.artifact_id,
         "sha256": artifact.sha256,
         "size_bytes": artifact.size_bytes,
@@ -2167,6 +2168,30 @@ def _review_fields(artifact: Artifact, mark: ReviewMark) -> dict[str, Any]:
         "review_state": mark.state.value,
         "approved_on": mark.approved_on.isoformat() if mark.approved_on else None,
         "stamped": stampable(artifact),
+    }
+
+
+def _approval_fields(
+    artifact: Artifact, scope: StudyContext, session: SessionDep, store: ArtifactStoreDep
+) -> dict[str, Any]:
+    """Who approved a version and when, from its ledger row (report-delivery RD2): ``approval``
+    is null for a draft. ``by_you``: the asker is the approver. A name the store no longer knows
+    is null, never a guess."""
+    if not artifact.is_approved:
+        return {"approval": None}
+    record = research_artifacts(session, scope, store).approval_record(artifact.artifact_id)
+    if record is None:  # approved without its row: _mark refuses it first, with 409
+        return {"approval": None}
+    return {
+        "approval": {
+            "approved_at": record.decided_at.isoformat(),
+            "approver_name": record.approver_name,
+            "by_you": record.approver_user_id == scope.actor_id,
+            "self_approved": record.self_approved,
+            "self_approval_allowed": record.self_approval_allowed,
+            "self_approval_source": record.self_approval_source,
+            "note": record.note,
+        }
     }
 
 
@@ -2346,6 +2371,7 @@ def run_report_document(
         "report_artifact_id": report.artifact_id,
         "report_sha256": report.sha256,
         **_review_fields(report, mark),
+        **_approval_fields(report, scope, session, store),
         "document": document,
     }
 
@@ -2784,6 +2810,7 @@ def client_report_document_route(
         "report_artifact_id": report.artifact_id,
         "report_sha256": report.sha256,
         **_review_fields(report, mark),
+        **_approval_fields(report, scope, session, store),
         "document": document,
     }
 
@@ -2832,6 +2859,7 @@ def approve_run_report(
         "artifact_id": artifact.artifact_id,
         "artifact_type": artifact.artifact_type,
         **_review_fields(artifact, _mark(artifact, scope, session, store)),
+        **_approval_fields(artifact, scope, session, store),
         "internal_only": True,
     }
 

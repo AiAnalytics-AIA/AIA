@@ -94,7 +94,20 @@ export type StoredReportDocument = {
   review_state: "DRAFT_UNAPPROVED" | "APPROVED_INTERNAL";
   approved_on: string | null;
   stamped: boolean;
+  /** Who approved the DOCX and when, from its ledger row (report-delivery RD2); null for a draft. */
+  approval?: Approval | null;
   document: ReportDocumentModel;
+};
+
+/** One approval as the ledger recorded it. `approver_name` null: a person the store no longer knows. */
+export type Approval = {
+  approved_at: string;
+  approver_name: string | null;
+  by_you: boolean;
+  self_approved: boolean;
+  self_approval_allowed: boolean;
+  self_approval_source: string;
+  note: string;
 };
 
 /** A stored document of this contract, or null: one of any other is not read. */
@@ -175,6 +188,21 @@ export function claimLines(entry: LedgerEntry | undefined): string[] {
 export function unresolvedRefs(doc: ReportDocumentModel): string[] {
   const held = doc.ledger.refs;
   return [...new Set(doc.sections.flatMap((section) => section.refs))].filter((ref) => !(ref in held));
+}
+
+/**
+ * Who approved and when, in words: "schválil(a) Jana Nováková 21. 10. 2026", "vy" for the asker, an
+ * unknown person "neznámý člen" (never a guess), and "vlastní práce" when they approved what they
+ * produced. Null for a draft or an approval the response does not carry.
+ */
+export function approvalWords(approval: Approval | null | undefined): string | null {
+  if (!approval) return null;
+  const at = new Date(approval.approved_at);
+  const day = Number.isNaN(at.getTime())
+    ? "neznámého dne"
+    : at.toLocaleDateString("cs-CZ", { day: "numeric", month: "numeric", year: "numeric", timeZone: "Europe/Prague" });
+  const who = approval.by_you ? "vy" : approval.approver_name ?? "neznámý člen";
+  return `schválil(a) ${who} ${day}${approval.self_approved ? " · vlastní práce" : ""}`;
 }
 
 /** The review the doc bar names: the DOCX's, since the DOCX is what a person approves. */

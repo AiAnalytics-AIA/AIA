@@ -45,10 +45,12 @@ from .tables import (
     ProjectArtifactDependencyRow,
     ProjectArtifactRow,
     ProjectRow,
+    UserRow,
     as_utc,
 )
 
 __all__ = [
+    "ApprovalRecord",
     "Artifact",
     "ArtifactNotFound",
     "ArtifactRepository",
@@ -122,6 +124,26 @@ class Artifact:
     def is_reusable(self) -> bool:
         """True when this artifact may be reused for a matching fingerprint."""
         return self.status.is_reusable
+
+
+@dataclass(frozen=True, slots=True)
+class ApprovalRecord:
+    """Who approved an artifact and when, as the approval ledger recorded it (report-delivery
+    RD2). Read from the newest ``APPROVED`` row, never from the artifact's flag: the flag says
+    that it is approved, the row says by whom, under which self-approval rule, and when.
+
+    ``approver_name`` is the person's display name, else their e-mail, else ``None`` for a
+    user the store no longer knows: unknown, never a guess."""
+
+    decision_id: int
+    decided_at: datetime
+    approver_user_id: str
+    approver_name: str | None
+    producer_user_id: str | None
+    self_approved: bool
+    self_approval_allowed: bool
+    self_approval_source: str
+    note: str
 
 
 def _to_domain(row: ProjectArtifactRow) -> Artifact:
@@ -599,6 +621,40 @@ class ArtifactRepository:
             .limit(1)
         )
         return None if decided is None else as_utc(decided)
+
+    def approval_record(self, artifact_id: str) -> ApprovalRecord | None:
+        """The artifact's newest ``APPROVED`` ledger row with the approver's name, within this
+        scope; ``None`` while the ledger holds none (a draft, or an approval recorded before the
+        ledger, which a caller refuses rather than names)."""
+        row = self._row(artifact_id)
+        found = self._session.execute(
+            select(ApprovalDecisionRow, UserRow.display_name, UserRow.email)
+            .outerjoin(UserRow, UserRow.user_id == ApprovalDecisionRow.approver_user_id)
+            .where(
+                ApprovalDecisionRow.organization_id == self._scope.organization_id,
+                ApprovalDecisionRow.client_id == self._scope.client_id,
+                ApprovalDecisionRow.study_id == self._scope.study_id,
+                ApprovalDecisionRow.subject_type == ApprovalSubject.ARTIFACT,
+                ApprovalDecisionRow.subject_id == row.artifact_id,
+                ApprovalDecisionRow.decision == "APPROVED",
+            )
+            .order_by(ApprovalDecisionRow.decision_id.desc())
+            .limit(1)
+        ).first()
+        if found is None:
+            return None
+        decision, display_name, email = found
+        return ApprovalRecord(
+            decision_id=decision.decision_id,
+            decided_at=as_utc(decision.created_at),
+            approver_user_id=decision.approver_user_id,
+            approver_name=(display_name or email or None),
+            producer_user_id=decision.producer_user_id,
+            self_approved=decision.self_approved,
+            self_approval_allowed=decision.self_approval_allowed,
+            self_approval_source=decision.self_approval_source,
+            note=decision.comment,
+        )
 
     def freeze(self, artifact_id: str) -> Artifact:
         """Freeze an artifact so it can no longer be superseded in place.

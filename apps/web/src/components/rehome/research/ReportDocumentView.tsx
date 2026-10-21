@@ -11,7 +11,7 @@ import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { ApiError, research, type ResearchRun } from "@/lib/api";
 import {
   type Block, type Cell, claimLines, claimTarget, gradeWords, type Inline, type LedgerEntry, type ListItem,
-  readDocument, type ReportDocumentModel, reviewWords, type Section, sectionTarget, blockTarget,
+  approvalWords, readDocument, type ReportDocumentModel, reviewWords, type Section, sectionTarget, blockTarget,
   type StoredReportDocument, unresolvedRefs, valueWords,
 } from "@/lib/artifacts/report";
 import { backEntry, closeStack, emptyStack, openEntry, type InspectorStack } from "@/lib/inspector-stack";
@@ -94,6 +94,7 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
         <div className="mb-2.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted" data-report-docbar>
           <span className="font-semibold text-ink">Interní zpráva</span>
           <span>· {reviewWords(stored)}</span>
+          {approvalWords(stored.approval) ? <span data-approval>· {approvalWords(stored.approval)}</span> : null}
           <span className="font-mono">· {stored.report_artifact_id}</span>
         </div>
         {missing.length ? (

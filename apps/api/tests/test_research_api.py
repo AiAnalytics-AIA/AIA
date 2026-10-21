@@ -837,6 +837,7 @@ def test_a_person_approves_a_runs_stored_report_once_and_only_that(
     own = researcher.post(approve, json={"artifact_id": report_id})
     assert own.status_code == 403 and own.json()["code"] == "separation_of_duties"
     assert researcher.get(url).json()["review_state"] == "DRAFT_UNAPPROVED"
+    assert researcher.get(url).json()["approval"] is None  # a draft names no approver (RD2)
 
     before = _prague_today()
     approved = outsider.post(approve, json={"artifact_id": report_id, "note": "Přečteno."})
@@ -846,6 +847,13 @@ def test_a_person_approves_a_runs_stored_report_once_and_only_that(
     status_ = researcher.get(url).json()
     assert status_["review_state"] == "APPROVED_INTERNAL"
     assert status_["approved_on"] in {before, _prague_today()}
+    # RD2: by whom, under which rule, from the ledger row; "you" is the asker.
+    approval = status_["approval"]
+    assert approval["approver_name"] and approval["by_you"] is False
+    assert approval["self_approved"] is False and approval["self_approval_allowed"] is False
+    assert approval["self_approval_source"] == "client" and approval["note"] == "Přečteno."
+    assert outsider.get(url).json()["approval"]["by_you"] is True
+    assert approved.json()["approval"]["by_you"] is True
     # D2: its fictional bytes take no stamp, so its approved export is its stored bytes and
     # approving asks for no new PDF (cross-review interactions#4); a person may ask for one.
     assert status_["stamped"] is False
