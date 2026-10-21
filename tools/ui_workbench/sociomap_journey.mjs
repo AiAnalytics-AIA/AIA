@@ -2,14 +2,15 @@
 /**
  * The Sociomapa stage in a browser, on the workbench (plan artifact-sociomap SOC8):
  *
- *   node tools/ui_workbench/sociomap_journey.mjs --prepare   # once: a -5 version in force, one fictional run
+ *   node tools/ui_workbench/sociomap_journey.mjs --prepare   # once: one fictional run on -5 (what is in force put back)
  *   node tools/ui_workbench/sociomap_journey.mjs [--facade URL] [--out DIR]
  *
  * Needs `make ui-workbench` with AIA_WEB_RESEARCH_WORKBENCH=true and `make ui-fixtures`. The map the
- * stage draws is the newest run of the `sociomapping` fixture (eight fictional brands). --prepare stores
- * a methodology version from the aia-sociomap-5 preset, puts it in force in the local workbench
- * only, and runs research_journey.mjs on that fixture, so the run pins -5 (fictional fieldwork, no
- * model). The journey itself starts nothing:
+ * stage draws is the newest run of the `sociomapping` fixture (eight fictional brands). --prepare,
+ * when the study has no such run, puts a version of the aia-sociomap-5 preset in force in the local
+ * workbench, runs research_journey.mjs on that fixture (fictional fieldwork, no model), and puts back
+ * what was in force at once: the run keeps the -5 it pinned. Rerun, it starts nothing new. The
+ * journey itself starts nothing:
  *
  *   * the -5 panel at 1440 and 1100 (the workbench's split) and 768 and 390 px, no page overflow;
  *   * every listed object carries its Lead name `object:<battery>/<object>` (SOC1/SOC2), once, and
@@ -28,7 +29,7 @@
  */
 import assert from "node:assert/strict";
 import { execFileSync, execSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -53,28 +54,66 @@ async function api(method, path, body) {
   return text ? JSON.parse(text) : null;
 }
 
-/** The newest finished run of the study whose Sociomap is an older method's (not -5 or a version of it). */
+/** The study's finished runs, newest first (the route's largest page). */
+async function finishedRuns() {
+  const { items } = await api("GET", `/studies/${study}/research/runs?limit=100`);
+  return items.filter((r) => r.status === "COMPLETED" && r.methodology?.sociomap?.name);
+}
+const isFive = (name) => name.startsWith("aia-sociomap-5");
+/** The newest finished run whose Sociomap is an older method's (not -5 or a version of it). */
 async function olderRun() {
-  const { items } = await api("GET", `/studies/${study}/research/runs`);
-  return items.find((r) => r.status === "COMPLETED" && r.methodology?.sociomap?.name && !r.methodology.sociomap.name.startsWith("aia-sociomap-5")) ?? null;
+  return (await finishedRuns()).find((r) => !isFive(r.methodology.sociomap.name)) ?? null;
+}
+
+/** The repository's interpreter, as the Makefile picks it: AIA_API_PYTHON, else .venv, else python3. */
+function python() {
+  if (process.env.AIA_API_PYTHON) return process.env.AIA_API_PYTHON;
+  const venv = join(repo, ".venv/bin/python");
+  return existsSync(venv) ? venv : "python3";
 }
 
 if (args.includes("--prepare")) {
-  // The aia-sociomap-5 preset's specification, read from the domain (no route serves a preset's spec).
-  const python = join(repo, ".venv/bin/python");
-  const spec = JSON.parse(execFileSync(python, ["-c",
-    "import json; from aia_core.domain.methodology.sociomap import SOCIOMAP as m; " +
-    "p = next(x for x in m.presets if x.name == 'aia-sociomap-5'); print(p.spec.model_dump_json())"], { encoding: "utf8" }));
-  const inForce = (await api("GET", "/methodology/sociomap")).in_force;
-  const journey = () => execFileSync("node", [join(repo, "tools/ui_workbench/research_journey.mjs"), "--fixture", "sociomapping", "--facade", base], { stdio: "inherit" });
-  // An older method's run first, while the code's preset is in force, for the older-method check.
-  if (!(await olderRun()) && !String(inForce).startsWith("aia-sociomap-5")) journey();
-  if (!String(inForce).startsWith("aia-sociomap-5")) {
-    const v = await api("POST", "/methodology/sociomap/versions", { base_preset: "aia-sociomap-5", spec, formulas: {}, note: "sociomap journey: the -5 map, locally" });
-    await api("PUT", "/methodology/sociomap/activation", { version_number: v.version_number, reason: "sociomap journey: the -5 map, locally" });
-    console.log(`sociomap journey: ${v.name} in force (was ${inForce})`);
+  // research_journey.mjs starts the run through the Run stage. Its own end check can read the study's
+  // earlier run as the new one's (a study with a finished run already), so the run is then followed
+  // here, by the runs route, until a finished run of the method wanted is there.
+  const journey = async (wanted) => {
+    try {
+      execFileSync("node", [join(repo, "tools/ui_workbench/research_journey.mjs"), "--fixture", "sociomapping", "--facade", base], { stdio: "inherit" });
+    } catch {
+      console.log("sociomap journey: the research journey's own check did not pass; following the run by the API");
+    }
+    for (let i = 0; i < 90 && !(await finishedRuns()).some((r) => wanted(r.methodology.sociomap.name)); i++) await new Promise((r) => setTimeout(r, 2000));
+    if (!(await finishedRuns()).some((r) => wanted(r.methodology.sociomap.name))) throw new Error("the run did not finish within 3 minutes (see tmp/ui-workbench/logs/worker.log)");
+  };
+  const runs = await finishedRuns();
+  const versions = await api("GET", "/methodology/sociomap/versions");
+  // What is in force now: a stored version's number, or null for the code's preset; put back below.
+  const before = versions.in_force?.origin === "stored" ? versions.in_force.version_number : null;
+  // -5 already in force: a stored version of it, or the code's own preset (signed-off-sociomap-method#8).
+  const fiveInForce = isFive(versions.in_force?.name ?? "");
+  // An older method's run first, while one is what a new run pins; once -5 is the code's own preset no
+  // new run can be one, and the journey says it made no older-method check.
+  if (!fiveInForce && !runs.some((r) => !isFive(r.methodology.sociomap.name))) await journey((name) => !isFive(name));
+  if (!runs.some((r) => isFive(r.methodology.sociomap.name))) {
+    // A version of the -5 preset, reused when one is stored: its specification read from the domain
+    // (no route serves a preset's).
+    let five = fiveInForce ? versions.in_force : versions.versions.find((v) => v.base_preset === "aia-sociomap-5") ?? null;
+    if (!five) {
+      const spec = JSON.parse(execFileSync(python(), ["-c",
+        "import json; from aia_core.domain.methodology.sociomap import SOCIOMAP as m; " +
+        "p = next(x for x in m.presets if x.name == 'aia-sociomap-5'); print(p.spec.model_dump_json())"], { encoding: "utf8" }));
+      five = await api("POST", "/methodology/sociomap/versions", { base_preset: "aia-sociomap-5", spec, formulas: {}, note: "sociomap journey: the -5 map, locally" });
+    }
+    // With a -5 version already in force (someone's own choice), the run takes it and nothing is changed.
+    if (!fiveInForce) await api("PUT", "/methodology/sociomap/activation", { version_number: five.version_number, reason: "sociomap journey: one -5 run, locally" });
+    try {
+      await journey(isFive);
+    } finally {
+      // A run keeps the methods it pinned, so what was in force goes back at once (as ui-methodology does).
+      if (!fiveInForce) await api("PUT", "/methodology/sociomap/activation", { version_number: before, reason: "sociomap journey: back to what was in force before it" });
+    }
+    console.log(`sociomap journey: one run on ${five.name}; ${before === null ? "the code's preset" : `version ${before}`} in force again`);
   }
-  journey();
   console.log("sociomap journey: prepared; run it again without --prepare");
   process.exit(0);
 }
@@ -115,10 +154,13 @@ const canvas = page.locator('[data-testid="object-map-canvas"]').first();
 const bar = page.locator('[data-testid="object-map-filter-bar"]');
 const button = (name) => panel.getByRole("button", { name, exact: true }).first();
 const attr = (name) => canvas.getAttribute(name);
+// The newest run on -5, by its id: a later run on another method does not take its place.
+const fiveRun = (await finishedRuns()).find((r) => isFive(r.methodology.sociomap.name)) ?? null;
 const openMap = async () => {
-  await page.goto(`${base}/app/clients/${client}/research/${study}/results#maps`);
+  if (!fiveRun) throw new Error("no aia-sociomap-5 run on the sociomapping fixture: run this journey with --prepare first");
+  await page.goto(`${base}/app/clients/${client}/research/${study}/results?run=${fiveRun.run_id}#maps`);
   await panel.waitFor({ timeout: 120000 }).catch(() => {
-    throw new Error("no aia-sociomap-5 map on the sociomapping fixture's newest run: run this journey with --prepare first");
+    throw new Error(`run ${fiveRun.run_id} shows no aia-sociomap-5 map`);
   });
 };
 
