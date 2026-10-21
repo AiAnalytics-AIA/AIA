@@ -69,6 +69,7 @@ import { ActionDock, RadioCard, StepSection } from "../step";
 import { AiButton, Button, Chip, Field, Tag, TextArea, TextInput } from "../ui";
 import { useResearch } from "./context";
 import { InspectorSlot } from "./Inspector";
+import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 
 const NOT_IN_AIA = "rounded-control border border-status-you-ink/40 bg-status-you-wash p-4";
@@ -265,6 +266,7 @@ const PROPOSE_SAVED = "Návrh audience je uložený. Zkontrolujte popis a omezen
 function FilterEditor({ live }: { live: Live }) {
   const { store, state, runJob, toast } = useResearch();
   const step = useAiStep();
+  const leadOwnsAiStarts = useLeadOwnsAiStarts();
   const [text, setText] = useState(String(state.project.audience.description || ""));
   const chips = filterChips(state.project, live.state === "ready" ? live.catalog : null);
   const change = (c: Change) => store.update(() => ({ project: c.project }), { reason: c.reason, invalidateCheck: c.invalidateCheck });
@@ -299,9 +301,10 @@ function FilterEditor({ live }: { live: Live }) {
         <Field label={t("research.audience.describe")} className="mt-3">
           <div className="flex flex-wrap gap-2">
             <TextInput className="min-w-64 flex-1" value={text} placeholder={t("research.audience.describePlaceholder")} onChange={(e) => setText(e.target.value)} />
-            <AiButton disabled={step.busy} onClick={() => void propose()}>{t("research.audience.propose")}</AiButton>
+            {!leadOwnsAiStarts ? <AiButton disabled={step.busy} onClick={() => void propose()}>{t("research.audience.propose")}</AiButton> : null}
           </div>
         </Field>
+        {leadOwnsAiStarts ? <AskLead className="mt-2" what="Návrh cílové skupiny z popisu" /> : null}
         {chips.length ? (
           <>
             <p className="mt-3 text-xs text-ink-muted">{live.state === "ready" ? t("research.audience.selectedFilters") : t("research.audience.storedFilters")}</p>
