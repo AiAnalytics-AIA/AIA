@@ -1,0 +1,897 @@
+{
+ "contract": "aia-report-document-1",
+ "ledger": {
+  "refs": {
+   "n_total": {
+    "base_text": "n = 480",
+    "basis": "MEASURED",
+    "data_origin": "MODELLED_AI_PANEL",
+    "grade": "measured",
+    "indicative": false,
+    "interval_text": null,
+    "metric": "n",
+    "modelled_panel": true,
+    "number_text": "1 204",
+    "question_id": "q1",
+    "support": "REPORTABLE",
+    "suppressed": false,
+    "unit": "respondents",
+    "value_text": "1 204"
+   },
+   "switch_modelled": {
+    "base_text": "n = 480",
+    "basis": "MODELED",
+    "data_origin": "MODELLED_AI_PANEL",
+    "grade": "modelled",
+    "indicative": false,
+    "interval_text": "(14,9–21,9 %)",
+    "metric": "top2box_pct",
+    "modelled_panel": true,
+    "number_text": "18,4",
+    "question_id": "q1",
+    "support": "REPORTABLE",
+    "suppressed": false,
+    "unit": "%",
+    "value_text": "18,4 %"
+   },
+   "switch_modelled_young": {
+    "base_text": "n = 480",
+    "basis": "MODELED",
+    "data_origin": "MODELLED_AI_PANEL",
+    "grade": "modelled",
+    "indicative": false,
+    "interval_text": "(18,2–29,8 %)",
+    "metric": "top2box_pct",
+    "modelled_panel": true,
+    "number_text": "24,0",
+    "question_id": "q1",
+    "support": "REPORTABLE",
+    "suppressed": false,
+    "unit": "%",
+    "value_text": "24,0 %"
+   },
+   "trust_brno": {
+    "base_text": "n = 480",
+    "basis": "MEASURED",
+    "data_origin": "MODELLED_AI_PANEL",
+    "grade": "measured",
+    "indicative": false,
+    "interval_text": "(32,2–47,2 %)",
+    "metric": "top2box_pct",
+    "modelled_panel": true,
+    "number_text": "39,7",
+    "question_id": "q1",
+    "support": "REPORTABLE",
+    "suppressed": false,
+    "unit": "%",
+    "value_text": "39,7 %"
+   },
+   "trust_ostrava": {
+    "base_text": "n = 40",
+    "basis": "MEASURED",
+    "data_origin": "MODELLED_AI_PANEL",
+    "grade": "measured",
+    "indicative": true,
+    "interval_text": "(27,9–44,3 %)",
+    "metric": "top2box_pct",
+    "modelled_panel": true,
+    "number_text": "36,1",
+    "question_id": "q1",
+    "support": "INDICATIVE",
+    "suppressed": false,
+    "unit": "%",
+    "value_text": "36,1 %"
+   },
+   "trust_praha": {
+    "base_text": "n = 480",
+    "basis": "MEASURED",
+    "data_origin": "MODELLED_AI_PANEL",
+    "grade": "measured",
+    "indicative": false,
+    "interval_text": "(41,0–55,4 %)",
+    "metric": "top2box_pct",
+    "modelled_panel": true,
+    "number_text": "48,2",
+    "question_id": "q1",
+    "support": "REPORTABLE",
+    "suppressed": false,
+    "unit": "%",
+    "value_text": "48,2 %"
+   },
+   "trust_total": {
+    "base_text": "n = 480",
+    "basis": "MEASURED",
+    "data_origin": "MODELLED_AI_PANEL",
+    "grade": "measured",
+    "indicative": false,
+    "interval_text": "(38,1–46,9 %)",
+    "metric": "top2box_pct",
+    "modelled_panel": true,
+    "number_text": "42,5",
+    "question_id": "q1",
+    "support": "REPORTABLE",
+    "suppressed": false,
+    "unit": "%",
+    "value_text": "42,5 %"
+   },
+   "trust_zlin": {
+    "reasons": [
+     "n 30 < min_cell 50",
+     "effective n 20 < 25"
+    ],
+    "suppressed": true
+   }
+  },
+  "surface": "INTERNAL"
+ },
+ "meta": {
+  "classification": "internal",
+  "client_logo_sha256": null,
+  "client_name": "Klient a.s.",
+  "identifiers": [
+   [
+    "Běh",
+    "run-7f3a2c"
+   ],
+   [
+    "Populace",
+    "pop-v17-static"
+   ]
+  ],
+  "issued_on": "2026-09-25",
+  "kind": "internal",
+  "language": "cs",
+  "method_status": "synthetic/modelled research; external predictive certification pending",
+  "prepared_by": "AIA",
+  "revision": 2,
+  "study_id": "STU-2026-014",
+  "study_name": "Důvěra 2026",
+  "subtitle": "Co rozhoduje o přechodu k jiné bance",
+  "title": "Důvěra v banky 2026"
+ },
+ "sections": [
+  {
+   "appendix": false,
+   "blocks": [
+    {
+     "content": [
+      {
+       "emphasis": "none",
+       "text": "Bankám v Česku důvěřuje ",
+       "type": "text"
+      },
+      {
+       "ref": "trust_total",
+       "type": "value",
+       "with_interval": false
+      },
+      {
+       "emphasis": "none",
+       "text": " dospělých. Nejvíc důvěřují lidé v Praze, nejméně v Ostravě; rozdíl je dost velký na to, aby rozhodl o tom, kde začít.",
+       "type": "text"
+      }
+     ],
+     "id": "ch-summary.1",
+     "marks": [],
+     "refs": [
+      "trust_total"
+     ],
+     "role": "lede",
+     "type": "paragraph"
+    },
+    {
+     "content": [],
+     "id": "ch-summary.2",
+     "kind": "method",
+     "marks": [],
+     "refs": [],
+     "title": null,
+     "type": "callout"
+    },
+    {
+     "id": "ch-summary.3",
+     "items": [
+      {
+       "label": "Důvěřuje bankám",
+       "ref": "trust_total"
+      },
+      {
+       "label": "Respondentů",
+       "ref": "n_total"
+      }
+     ],
+     "refs": [
+      "trust_total",
+      "n_total"
+     ],
+     "type": "kpi_row"
+    }
+   ],
+   "id": "ch-summary",
+   "refs": [
+    "trust_total",
+    "n_total"
+   ],
+   "title": "Shrnutí pro vedení"
+  },
+  {
+   "appendix": false,
+   "blocks": [
+    {
+     "content": [
+      {
+       "emphasis": "none",
+       "text": "Kampaň na udržení klientů začněte v Praze, kde je důvěra nejvyšší (",
+       "type": "text"
+      },
+      {
+       "ref": "trust_praha",
+       "type": "value",
+       "with_interval": false
+      },
+      {
+       "emphasis": "none",
+       "text": "), a v Ostravě ji nejdřív ověřte na větším vzorku.",
+       "type": "text"
+      }
+     ],
+     "id": "ch-decision.1",
+     "kind": "decision",
+     "marks": [
+      "trust_praha"
+     ],
+     "refs": [
+      "trust_praha"
+     ],
+     "title": null,
+     "type": "callout"
+    }
+   ],
+   "id": "ch-decision",
+   "refs": [
+    "trust_praha"
+   ],
+   "title": "Odpověď pro rozhodnutí"
+  },
+  {
+   "appendix": false,
+   "blocks": [
+    {
+     "anchor": "tab-research-questions",
+     "base_ref": null,
+     "columns": [
+      {
+       "align": "left",
+       "label": "Otázka",
+       "unit": null
+      },
+      {
+       "align": "left",
+       "label": "Odpověď",
+       "unit": null
+      },
+      {
+       "align": "left",
+       "label": "Síla evidence",
+       "unit": null
+      }
+     ],
+     "id": "ch-questions.1",
+     "notes": [],
+     "refs": [],
+     "rows": [
+      {
+       "cells": [
+        {
+         "text": "Jak moc lidé důvěřují bankám?",
+         "type": "text"
+        },
+        {
+         "text": "Necelá polovina dospělých jim důvěřuje.",
+         "type": "text"
+        },
+        {
+         "text": "měřeno",
+         "type": "text"
+        }
+       ],
+       "emphasis": false
+      },
+      {
+       "cells": [
+        {
+         "text": "Kde je důvěra nejvyšší?",
+         "type": "text"
+        },
+        {
+         "text": "V Praze; v Ostravě nejnižší.",
+         "type": "text"
+        },
+        {
+         "text": "měřeno",
+         "type": "text"
+        }
+       ],
+       "emphasis": false
+      },
+      {
+       "cells": [
+        {
+         "text": "Kdo je ochoten přejít?",
+         "type": "text"
+        },
+        {
+         "text": "Spíše mladší lidé; jde o modelovaný odhad.",
+         "type": "text"
+        },
+        {
+         "text": "modelováno",
+         "type": "text"
+        }
+       ],
+       "emphasis": false
+      }
+     ],
+     "source": "AIA, analýza studie Důvěra 2026",
+     "suppressed_rows": 0,
+     "title": "Odpovědi na výzkumné otázky",
+     "type": "table"
+    }
+   ],
+   "id": "ch-questions",
+   "refs": [],
+   "title": "Výzkumné otázky"
+  },
+  {
+   "appendix": false,
+   "blocks": [
+    {
+     "confidence": "střední",
+     "evidence": "Srovnání regionů na plném vzorku, s intervaly.",
+     "finding": "Důvěra je v Praze vyšší než v ostatních regionech.",
+     "headline": "Praha důvěřuje bankám nejvíc",
+     "id": "ch-findings.1",
+     "marks": [
+      "trust_praha"
+     ],
+     "meaning": "Kampaň na udržení klientů má největší šanci uspět v Praze.",
+     "refs": [
+      "trust_praha"
+     ],
+     "type": "key_finding"
+    },
+    {
+     "confidence": "nízká",
+     "evidence": "Behaviorální model, nikoli měření.",
+     "finding": "Model odhaduje vyšší ochotu přejít u lidí do 30 let.",
+     "headline": "Mladší lidé by přešli spíš",
+     "id": "ch-findings.2",
+     "marks": [
+      "switch_modelled_young"
+     ],
+     "meaning": "Nabídku pro mladé testujte dřív, než ji rozšíříte.",
+     "refs": [
+      "switch_modelled_young"
+     ],
+     "type": "key_finding"
+    },
+    {
+     "content": [
+      {
+       "emphasis": "none",
+       "text": "Rozdíly mezi regiony ukazuje ",
+       "type": "text"
+      },
+      {
+       "target": "fig-regions",
+       "type": "cross_ref"
+      },
+      {
+       "emphasis": "none",
+       "text": "; přesné hodnoty jsou v ",
+       "type": "text"
+      },
+      {
+       "target": "tab-regions",
+       "type": "cross_ref"
+      },
+      {
+       "emphasis": "none",
+       "text": ".",
+       "type": "text"
+      },
+      {
+       "text": "Region Zlín je potlačen pro nízkou efektivní velikost vzorku.",
+       "type": "footnote"
+      }
+     ],
+     "id": "ch-findings.3",
+     "marks": [],
+     "refs": [],
+     "role": "body",
+     "type": "paragraph"
+    },
+    {
+     "alt": "Tečkový graf s intervaly: důvěra je nejvyšší v Praze a nejnižší v Ostravě.",
+     "anchor": "fig-regions",
+     "base_ref": "trust_total",
+     "chart": {
+      "categories": [
+       "Praha",
+       "Brno",
+       "Ostrava",
+       "Zlín"
+      ],
+      "kind": "dot_interval",
+      "series": [
+       {
+        "modelled": false,
+        "name": "Důvěra",
+        "refs": [
+         "trust_praha",
+         "trust_brno",
+         "trust_ostrava",
+         "trust_zlin"
+        ]
+       }
+      ],
+      "value_label": "Podíl důvěřujících (%)"
+     },
+     "id": "ch-findings.4",
+     "notes": [],
+     "refs": [
+      "trust_praha",
+      "trust_brno",
+      "trust_ostrava",
+      "trust_zlin",
+      "trust_total"
+     ],
+     "source": "AIA, syntetický panel 2026",
+     "title": "Důvěra v banky podle regionu",
+     "type": "figure"
+    },
+    {
+     "anchor": "tab-regions",
+     "base_ref": "trust_total",
+     "columns": [
+      {
+       "align": "left",
+       "label": "Region",
+       "unit": null
+      },
+      {
+       "align": "right",
+       "label": "Důvěra",
+       "unit": "%"
+      }
+     ],
+     "id": "ch-findings.5",
+     "notes": [],
+     "refs": [
+      "trust_praha",
+      "trust_brno",
+      "trust_ostrava",
+      "trust_total"
+     ],
+     "rows": [
+      {
+       "cells": [
+        {
+         "text": "Praha",
+         "type": "text"
+        },
+        {
+         "ref": "trust_praha",
+         "type": "number",
+         "with_interval": false
+        }
+       ],
+       "emphasis": false
+      },
+      {
+       "cells": [
+        {
+         "text": "Brno",
+         "type": "text"
+        },
+        {
+         "ref": "trust_brno",
+         "type": "number",
+         "with_interval": false
+        }
+       ],
+       "emphasis": false
+      },
+      {
+       "cells": [
+        {
+         "text": "Ostrava",
+         "type": "text"
+        },
+        {
+         "ref": "trust_ostrava",
+         "type": "number",
+         "with_interval": false
+        }
+       ],
+       "emphasis": false
+      },
+      {
+       "cells": [
+        {
+         "text": "Celkem",
+         "type": "text"
+        },
+        {
+         "ref": "trust_total",
+         "type": "number",
+         "with_interval": false
+        }
+       ],
+       "emphasis": true
+      }
+     ],
+     "source": "AIA, syntetický panel 2026",
+     "suppressed_rows": 1,
+     "title": "Důvěra v banky podle regionu",
+     "type": "table"
+    },
+    {
+     "alt": "Pruhový graf: modelovaná ochota přejít je vyšší u lidí do 30 let.",
+     "anchor": "fig-switch",
+     "base_ref": null,
+     "chart": {
+      "categories": [
+       "Celkem",
+       "Do 30 let"
+      ],
+      "kind": "bar",
+      "series": [
+       {
+        "modelled": true,
+        "name": "Přechod",
+        "refs": [
+         "switch_modelled",
+         "switch_modelled_young"
+        ]
+       }
+      ],
+      "value_label": "Podíl (%)"
+     },
+     "id": "ch-findings.6",
+     "notes": [
+      "Hodnoty jsou modelované z behaviorálního prioru, nikoli změřené."
+     ],
+     "refs": [
+      "switch_modelled",
+      "switch_modelled_young"
+     ],
+     "source": "AIA, behaviorální model 2026",
+     "title": "Modelovaná ochota přejít k jiné bance",
+     "type": "figure"
+    },
+    {
+     "attribution": "žena, 34 let, Brno",
+     "id": "ch-findings.7",
+     "refs": [],
+     "synthetic": true,
+     "text": "Banku měním, až když mě opravdu naštve.",
+     "type": "quote"
+    }
+   ],
+   "id": "ch-findings",
+   "refs": [
+    "trust_praha",
+    "switch_modelled_young",
+    "trust_brno",
+    "trust_ostrava",
+    "trust_zlin",
+    "trust_total",
+    "switch_modelled"
+   ],
+   "title": "Co jsme zjistili"
+  },
+  {
+   "appendix": false,
+   "blocks": [
+    {
+     "action": "Začněte v Praze",
+     "id": "ch-recommendations.1",
+     "marks": [
+      "trust_praha"
+     ],
+     "priority": "vysoká",
+     "refs": [
+      "trust_praha"
+     ],
+     "type": "recommendation",
+     "why": "Nejvyšší důvěra dává kampani nejlepší výchozí bod."
+    },
+    {
+     "action": "Ověřte Ostravu na větším vzorku",
+     "id": "ch-recommendations.2",
+     "marks": [
+      "trust_ostrava"
+     ],
+     "priority": "střední",
+     "refs": [
+      "trust_ostrava"
+     ],
+     "type": "recommendation",
+     "why": "Výsledek je orientační; rozhodnutí by na něm nemělo stát."
+    }
+   ],
+   "id": "ch-recommendations",
+   "refs": [
+    "trust_praha",
+    "trust_ostrava"
+   ],
+   "title": "Doporučení"
+  },
+  {
+   "appendix": false,
+   "blocks": [
+    {
+     "content": [
+      {
+       "emphasis": "none",
+       "text": "Výsledky odpovídají dostupným veřejným průzkumům důvěry v instituce; externí prediktivní validace proti lidskému vzorku zatím neproběhla.",
+       "type": "text"
+      }
+     ],
+     "id": "ch-external.1",
+     "marks": [],
+     "refs": [],
+     "role": "body",
+     "type": "paragraph"
+    }
+   ],
+   "id": "ch-external",
+   "refs": [],
+   "title": "Jak výsledky zapadají do dostupné externí evidence"
+  },
+  {
+   "appendix": false,
+   "blocks": [
+    {
+     "content": [
+      {
+       "emphasis": "none",
+       "text": "Jistota je nejvyšší u celkové důvěry a u Prahy, nejnižší u Ostravy.",
+       "type": "text"
+      }
+     ],
+     "id": "ch-confidence.1",
+     "marks": [],
+     "refs": [],
+     "role": "body",
+     "type": "paragraph"
+    },
+    {
+     "id": "ch-confidence.2",
+     "refs": [],
+     "type": "evidence_key"
+    }
+   ],
+   "id": "ch-confidence",
+   "refs": [],
+   "title": "Jistota závěrů"
+  },
+  {
+   "appendix": false,
+   "blocks": [
+    {
+     "content": [
+      {
+       "emphasis": "none",
+       "text": "Syntetický panel kalibrovaný na populaci ČR 18+, vážený; čísla prošla evidenční branou a jsou uvedena s intervaly.",
+       "type": "text"
+      }
+     ],
+     "id": "ch-method.1",
+     "marks": [],
+     "refs": [],
+     "role": "body",
+     "type": "paragraph"
+    }
+   ],
+   "id": "ch-method",
+   "refs": [],
+   "title": "Metodika"
+  },
+  {
+   "appendix": false,
+   "blocks": [
+    {
+     "id": "ch-limitations.1",
+     "items": [
+      {
+       "children": [],
+       "content": [
+        {
+         "emphasis": "none",
+         "text": "Výsledky jsou syntetické a modelované, nikoli měřené na lidech.",
+         "type": "text"
+        }
+       ]
+      },
+      {
+       "children": [],
+       "content": [
+        {
+         "emphasis": "none",
+         "text": "Region Zlín nemá dostatečnou efektivní velikost vzorku.",
+         "type": "text"
+        }
+       ]
+      },
+      {
+       "children": [],
+       "content": [
+        {
+         "emphasis": "none",
+         "text": "Ochota přejít je modelovaný odhad.",
+         "type": "text"
+        }
+       ]
+      }
+     ],
+     "ordered": false,
+     "refs": [],
+     "type": "list"
+    }
+   ],
+   "id": "ch-limitations",
+   "refs": [],
+   "title": "Limity"
+  },
+  {
+   "appendix": false,
+   "blocks": [
+    {
+     "content": [
+      {
+       "emphasis": "none",
+       "text": "Důvěra je dost silná na to, aby se na ní dalo stavět, začněte v Praze.",
+       "type": "text"
+      }
+     ],
+     "id": "ch-conclusion.1",
+     "marks": [],
+     "refs": [],
+     "role": "body",
+     "type": "paragraph"
+    }
+   ],
+   "id": "ch-conclusion",
+   "refs": [],
+   "title": "Závěr"
+  },
+  {
+   "appendix": true,
+   "blocks": [
+    {
+     "content": [
+      {
+       "emphasis": "none",
+       "text": "Q1. Jak moc důvěřujete bankám? (škála 1-5)",
+       "type": "text"
+      }
+     ],
+     "id": "app-questionnaire.1",
+     "marks": [],
+     "refs": [],
+     "role": "body",
+     "type": "paragraph"
+    }
+   ],
+   "id": "app-questionnaire",
+   "refs": [],
+   "title": "Dotazník"
+  },
+  {
+   "appendix": true,
+   "blocks": [
+    {
+     "id": "app-evidence.1",
+     "refs": [],
+     "type": "evidence_appendix"
+    }
+   ],
+   "id": "app-evidence",
+   "refs": [],
+   "title": "Evidenční příloha"
+  },
+  {
+   "appendix": true,
+   "blocks": [
+    {
+     "entries": [
+      [
+       "Běh",
+       "run-7f3a2c"
+      ],
+      [
+       "Model",
+       "anthropic.claude (Bedrock EU)"
+      ],
+      [
+       "QA",
+       "passed"
+      ]
+     ],
+     "id": "app-audit.1",
+     "refs": [],
+     "type": "audit"
+    }
+   ],
+   "id": "app-audit",
+   "refs": [],
+   "title": "Audit"
+  },
+  {
+   "appendix": false,
+   "blocks": [
+    {
+     "anchor": "tab-shared",
+     "base_ref": null,
+     "columns": [
+      {
+       "align": "left",
+       "label": "Skupina",
+       "unit": null
+      },
+      {
+       "align": "left",
+       "label": "Hodnota",
+       "unit": null
+      }
+     ],
+     "id": "ch-shared.1",
+     "notes": [],
+     "refs": [
+      "trust_total"
+     ],
+     "rows": [
+      {
+       "cells": [
+        {
+         "text": "Kept",
+         "type": "text"
+        },
+        {
+         "ref": "trust_total",
+         "type": "number",
+         "with_interval": true
+        }
+       ],
+       "emphasis": false
+      }
+     ],
+     "source": "Fiktivní běh",
+     "suppressed_rows": 1,
+     "title": "Fiktivní tabulka",
+     "type": "table"
+    },
+    {
+     "alt": "Mapa objektů",
+     "anchor": "fig-shared",
+     "fit_caption": null,
+     "id": "ch-shared.2",
+     "image_sha256": "1b618cde06fad79af0b808725bf1955debe5f6ef5d8cee842e33d3553b7abc45",
+     "methodology_status": "INTERNAL_ONLY",
+     "refs": [],
+     "source": "Fiktivní běh",
+     "stress_1": 0.083,
+     "title": "Fiktivní mapa",
+     "type": "sociomap_figure"
+    }
+   ],
+   "id": "ch-shared",
+   "refs": [
+    "trust_total"
+   ],
+   "title": "Fiktivní doplněk"
+  }
+ ]
+}

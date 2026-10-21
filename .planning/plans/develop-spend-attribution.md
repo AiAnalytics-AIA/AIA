@@ -8,7 +8,7 @@ chunks:
   - "[x] 5a. The worker accepts what the plan creates (W0): a tagged profile ARN or an `eu.` id, decided as a model identity versus an invocation target; and the statement "no Environment tag" corrected"
   - "[ ] 5b. The reconciliation's lines (W3): model usage, tool and search spend, open reservations and uncertain calls, each separate, after `deep-research` 4; billing lag recorded, never zero"
   - "[ ] 6. An organization's monthly spend, read-only for OWNER and ADMIN in Settings: model, Brave and other tool spend across clients, from the content-free rows MVPQ-07 keeps (D-47)"
-  - "[ ] 7. Per-researcher spend (Q40): an actor user id on every ai_usage_events, budget_reservations and tool-spend row, booked to whoever approved or started the paid work; a per-person aggregate route (OWNER/ADMIN see everyone, a researcher only themself); Settings → Studie a rozpočty \"Útrata podle výzkumníka\" (the Settings prototype, round 5); after lead-orchestration LO1's wallet holds"
+  - "[x] 7. Per-researcher spend (Q40): an actor user id on every ai_usage_events, budget_reservations and tool-spend row, booked to whoever approved or started the paid work; a per-person aggregate route (OWNER/ADMIN see everyone, a researcher only themself); Settings → Studie a rozpočty \"Útrata podle výzkumníka\" (the Settings prototype, round 5); after lead-orchestration LO1's wallet holds"
 ---
 # Spend proven twice: AIA's ledger and an AWS cost record
 
@@ -211,3 +211,120 @@ the rows within USD 0.01; open holds and uncertain calls listed apart.
   `tools/master_check.py` fails ("open chunk … has no wave") until they land.
 - `mvp-owner-decisions.md`: Q40 as answered.
 - `CLAUDE.md` § 2: the new column and route when chunk 7 lands.
+
+## Chunk 7 delivered (2026-10-21, Sprint 5, Q49)
+
+**The hypothesis, settled: `ai_usage_events.actor_id` is not the person Q40 asks for.** It is the
+egress decision's actor (`application/model_gateway.py:855 @ 25f26232`), and a worker's scope
+names as actor the run's `triggered_by`, else the lease identity `worker:<worker_id>`
+(`application/scope.py:359` and `:388 @ 25f26232`); `triggered_by` is whoever's scope created the
+run (`infrastructure/workflow_repository.py:546 @ 25f26232`); and a resolution row's actor is the
+person who resolved it (`infrastructure/ai_usage_repository.py:289 @ 25f26232`). So it is the
+starter (never an approver, a budget lifter or a card's approver), falls back to a non-person
+string, and moves on a resolution. Test:
+`test_the_ledgers_actor_is_the_runs_starter_or_the_worker_never_the_payer`. It is left as it is
+(it records the scope that wrote the row) and not reused.
+
+**The rule** (`domain/spend_attribution.py` `charged_to`), over facts read from the approval
+ledger and the run (`infrastructure/workflow_repository.py` `charged_to_for_run`, there because
+that module is one of the ledger's two readers, `make layer_check`):
+
+1. the latest **budget lift** of the run (`budget`, decision `lift`, the run's `run_id`): a lift
+   approves the run's further paid work, so the holds made after it are the lifter's;
+2. the **one person whose approval started it**: `spend`, `answerability`, `chat_start`,
+   `plan_step` rows naming the run in `run_id`, and the Lead card (`lead_job_request`) whose
+   comment names it as `agent_run_id`, parsed, never matched as text alone. Two different
+   approvers: booked to nobody, not to one of them;
+3. else the run's **starter** (`triggered_by`) when it is a member of the run's organization; a
+   worker id or an unknown id is no person;
+4. else null, listed as "Nepřiřazeno".
+
+Every start path today reaches it unchanged: a person's own start (Spuštění's Start, a retry, an
+analysis retry, a Deep Research or Interpretation Research start, a Lead turn, the client's own
+work) creates the run under that person's scope, so rule 3 names them; a spend confirmation or an
+answerability acknowledgement names its person by rule 2; a Lead card's agent job by rule 2; a
+budget lift by rule 1. LO5's typed chat start and LO3's plan step have no writer yet; their ledger
+rows are the wallet charge's authority (LO1), so a wallet-charged run's holds are booked to the
+same person as its charge, and a researcher's total and the wallet agree by construction (test:
+`test_a_wallet_start_books_its_decisions_approver`, both subjects).
+
+**The columns** (migration `568761e1c719`, down revision `60ccc9ff42cf`, one head):
+`charged_to_user_id` (nullable) on `budget_reservations` (every hold: a model call's and a priced
+tool call's, `reserve_tool_budget`, which are the tool-spend rows until `deep-research` 4) and on
+`ai_usage_events`; indexes `ix_reservations_charged_to`, `ix_usage_charged_to`,
+`ix_usage_reservation`. A hold takes its person in `WorkflowRepository._reserve`, under the lease,
+never from a request body or a model; a usage row copies its hold's at append
+(`AIUsageRepository._charged_to`), so a call, its hold and its resolution always name one person;
+a call with no hold (a subscription runtime) takes the run's by the same rule. **No column on
+`study_wallet_charges`**: a charge names its authorising ledger row by a NOT NULL foreign key, whose
+`approver_user_id` is the person exactly; a copy would be a second source of one value.
+
+**The backfill takes only what the ledger names**: a past hold is booked to the latest lift of its
+run written no later than the hold, else the one approver of its run's start rows above, else
+stays null; `triggered_by` is not the ledger and is not used for past rows. A past usage row takes
+its hold's person. Measured on a fresh PostgreSQL 16: `alembic upgrade head`, `downgrade -1`,
+`upgrade head` clean; `alembic.autogenerate.compare_metadata` against the models: 0 differences.
+The downgrade drops both columns and the indexes.
+
+**The route**: `GET /api/v1/settings/researcher-spend?period=this_month|last_month|year_to_date`
+(`routers/researcher_spend.py`, `application/researcher_spend.py`,
+`infrastructure/researcher_spend_repository.py`). Per person: model spend (the usage ledger,
+compensations included, by `occurred_at`), spend outside the ledger (holds settled in the period
+that no usage row names: tool calls), the holds open **now** (whatever the period), uncertain calls
+(a model call dispatched in the period with no resolution and no known outcome, and a tool hold
+settled uncertain), the study count; by activity (`lead`, `fieldwork`, `analysis_report`,
+`deep_research`, `other`: agent jobs, client documents, validation) and by study. Months are UTC.
+OWNER and ADMIN read every member (a member with no rows at a known zero), anyone booked who has
+left, and the unattributed row; anyone else reads only rows booked to themself, **in the query**
+(`ResearcherSpendRepository._booked`), never a full list filtered afterwards.
+
+**The card**: Settings → Studie a rozpočty, "Útrata podle výzkumníka"
+(`components/aia/settings/ResearcherSpendCard.tsx`, pure part `lib/researcher-spend.ts`): the three
+periods, one row per person with the total, its parts (an activity at a known zero left out), the
+held amount and the study count; a row opens to its studies; the organization's total for an
+administrator. A total with an uncertain call carries "?" and says how many calls have no known
+price; a total that is zero only because nothing is known reads "neznámá", never 0,00 USD. The
+Settings prototype (round 5) could not be read from this session; the card follows the plan's
+description above.
+
+Tests: `packages/aia_core/tests/test_spend_attribution.py` (the rule; the activities held to the
+workflow constants; the periods; the fold: model, outside the ledger, reserved, uncertain, parts
+summing to the whole; the hypothesis; the payer per path: own start, spend confirmation, Lead
+card, chat start and plan step, two approvers, a non-member starter, a budget lift before and
+after; the usage row and its resolution; the read for an administrator and for a researcher, the
+researcher's rows checked before any fold; last month; the aggregate equal to the rows within
+USD 0.01; the backfill; the DDL round trip on PostgreSQL),
+`apps/api/tests/test_researcher_spend_api.py` (owner sees everyone and the unattributed; a
+researcher sees only themself; the periods; 401),
+`apps/web/src/lib/researcher-spend.test.ts`,
+`apps/web/src/components/aia/settings/ResearcherSpendCard.test.tsx`, and a ControlPanel test that
+the card is on the tab.
+
+### Findings (chunk 7)
+
+- **F-SA7-1. Tool spend is identified by absence.** "Outside the ledger" is a settled hold no
+  usage row names: today that is exactly the priced tool calls, but a model hold settled without
+  its ledger row would be counted there too (as real spend, never lost). Anchor:
+  `infrastructure/researcher_spend_repository.py` `holds` (`in_ledger`) @ this PR. Closes when
+  `deep-research` 4 gives tool calls their own ledger and 5b reads it.
+- **F-SA7-2. A budget lift books the rest of the run to the lifter.** Read from "approves" in Q40;
+  a lift by someone other than the starter moves the run's later holds to them. If the owner reads
+  Q40 as "the starter keeps the run", the change is rule 1's removal in `charged_to` and its test.
+
+### Doc follow-up (chunk 7, replaces the list above)
+
+- `mvp-master-plan.md` / `mvp-execution-contracts.md`: `develop-spend-attribution#7` done; the
+  migration `568761e1c719` in the lane table after M4 (`60ccc9ff42cf`).
+- `mvp-owner-decisions.md`: Q40 as answered and delivered here.
+- `CLAUDE.md` § 2, `routers/`: "settings (…) `GET /settings/researcher-spend?period=`: each
+  person's spend (Q40), everyone for OWNER/ADMIN, the caller's own otherwise, in the query";
+  `domain/`: "`spend_attribution.py` Who a charge is booked to (Q40: the budget lift, else the
+  one start approver, else the starter, else null) and the per-person fold"; `application/`:
+  "`researcher_spend.py` the per-person report"; `infrastructure/`: "`researcher_spend_repository.py`
+  per-person spend rows, scoped in the query"; the `workflow_repository.py` line: "`charged_to_for_run`:
+  the person a hold is booked to"; `tables.py` / the ledger line: "`charged_to_user_id` on
+  `budget_reservations` and `ai_usage_events`, never `actor_id`"; web: "settings/ResearcherSpendCard
+  (Útrata podle výzkumníka, on Studie a rozpočty; lib/researcher-spend.ts)".
+- `AGENTS.md` (SQLAlchemy): a `select` of more than ten columns types its rows as a variadic tuple,
+  so `for (a, b, …) in rows` fails `mypy --strict` ("Variadic tuple unpacking requires a star
+  target"); read such rows through `row._mapping[Column]` instead.

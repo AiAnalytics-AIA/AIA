@@ -261,13 +261,15 @@ const EXPECTED_KIND: Record<string, OriginKind> = { fictional_roster: "SIMULATED
 export function respondentReceipt(run: Pick<ResearchRun, "persona_source" | "steps">): {
   pinned: string;
   observed: OriginKind | null;
+  /** The origin code fieldwork stored (DataOrigin, e.g. SYNTHETIC_AI_FICTIONAL), as stored; null until it has. */
+  origin: string | null;
   mismatch: boolean;
 } {
   const pinned = run.persona_source ?? "fictional_roster";
   const fieldwork = run.steps.find((s) => s.node_key === "run");
   const stored = fieldwork && (fieldwork.data_origin_kind || fieldwork.data_origin) ? statedKind(fieldwork.data_origin_kind, fieldwork.data_origin) : null;
   const expected = EXPECTED_KIND[pinned];
-  return { pinned, observed: stored, mismatch: stored !== null && (expected === undefined || stored !== expected) };
+  return { pinned, observed: stored, origin: fieldwork?.data_origin || null, mismatch: stored !== null && (expected === undefined || stored !== expected) };
 }
 
 export function stepOf(run: Pick<ResearchRun, "steps">, nodeKey: string): ResearchStep | null {

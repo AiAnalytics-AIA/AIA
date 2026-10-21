@@ -21,7 +21,8 @@ content already shaped.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, replace
 
 from aia_core.domain.report.copy import t
 from aia_core.domain.report.evidence import EvidenceLedger
@@ -44,12 +45,15 @@ from aia_core.domain.report.model import (
     ReportDocument,
     ReportKind,
     ReportMeta,
+    RunOutput,
     Section,
+    SectionSource,
     Table,
     TableRow,
     TextCell,
     text,
 )
+from aia_core.domain.report.sources import with_source_audit
 
 
 @dataclass(frozen=True, slots=True)
@@ -106,6 +110,16 @@ class DocumentationContent:
     method: tuple[Block, ...]
     limitations: tuple[str, ...]
     appendices: tuple[Section, ...] = ()
+
+
+#: What each section was composed from, by section id (artifact-chain CHN1). A template takes
+#: it from its caller, which knows the artifacts; the evidence refs are added when stored.
+Sources = Mapping[str, tuple[SectionSource, ...]]
+
+
+def _sourced(sections: list[Section], sources: Sources | None) -> tuple[Section, ...]:
+    given = sources or {}
+    return tuple(replace(s, sources=(*s.sources, *given.get(s.id or "", ()))) for s in sections)
 
 
 def _require_kind(meta: ReportMeta, kind: ReportKind) -> None:
@@ -170,16 +184,27 @@ def _evidence_appendix() -> Section:
 
 
 def client_report(
-    meta: ReportMeta, content: ReportContent, ledger: EvidenceLedger
+    meta: ReportMeta,
+    content: ReportContent,
+    ledger: EvidenceLedger,
+    *,
+    sources: Sources | None = None,
+    outputs: tuple[RunOutput, ...] = (),
 ) -> ReportDocument:
     """The client deliverable, in the legacy section order."""
     _require_kind(meta, ReportKind.CLIENT)
     sections = [*_client_sections(meta, content), *content.appendices, _evidence_appendix()]
-    return ReportDocument(meta, tuple(sections), ledger)
+    return ReportDocument(meta, _sourced(sections, sources), ledger, outputs=outputs)
 
 
 def final_report(
-    meta: ReportMeta, content: ReportContent, final: FinalContent, ledger: EvidenceLedger
+    meta: ReportMeta,
+    content: ReportContent,
+    final: FinalContent,
+    ledger: EvidenceLedger,
+    *,
+    sources: Sources | None = None,
+    outputs: tuple[RunOutput, ...] = (),
 ) -> ReportDocument:
     """The client report with external triangulation and the effective sample support."""
     _require_kind(meta, ReportKind.FINAL)
@@ -190,7 +215,7 @@ def final_report(
         Section(t("tpl_support"), (final.support,), id="ch-support"),
     ]
     sections += [*content.appendices, _evidence_appendix()]
-    return ReportDocument(meta, tuple(sections), ledger)
+    return ReportDocument(meta, _sourced(sections, sources), ledger, outputs=outputs)
 
 
 def internal_report(
@@ -198,8 +223,12 @@ def internal_report(
     content: ReportContent,
     audit: tuple[tuple[str, str], ...],
     ledger: EvidenceLedger,
+    *,
+    sources: Sources | None = None,
+    outputs: tuple[RunOutput, ...] = (),
 ) -> ReportDocument:
-    """The client report for the team: identifiers on the control page, and the audit."""
+    """The client report for the team: identifiers on the control page, and the audit with
+    every section's sources."""
     _require_kind(meta, ReportKind.INTERNAL)
     sections = [
         *_client_sections(meta, content),
@@ -207,7 +236,9 @@ def internal_report(
         _evidence_appendix(),
         Section(t("audit"), (AuditBlock(audit),), id="app-audit", appendix=True),
     ]
-    return ReportDocument(meta, tuple(sections), ledger)
+    return with_source_audit(
+        ReportDocument(meta, _sourced(sections, sources), ledger, outputs=outputs)
+    )
 
 
 def study_documentation(
@@ -215,6 +246,9 @@ def study_documentation(
     content: DocumentationContent,
     audit: tuple[tuple[str, str], ...],
     ledger: EvidenceLedger,
+    *,
+    sources: Sources | None = None,
+    outputs: tuple[RunOutput, ...] = (),
 ) -> ReportDocument:
     """How the study was done: purpose, design, population, support, method, limits."""
     _require_kind(meta, ReportKind.DOCUMENTATION)
@@ -233,4 +267,8 @@ def study_documentation(
         _evidence_appendix(),
         Section(t("audit"), (AuditBlock(audit),), id="app-audit", appendix=True),
     ]
-    return ReportDocument(meta, tuple(sections), ledger, list_of_figures=False)
+    return with_source_audit(
+        ReportDocument(
+            meta, _sourced(sections, sources), ledger, list_of_figures=False, outputs=outputs
+        )
+    )

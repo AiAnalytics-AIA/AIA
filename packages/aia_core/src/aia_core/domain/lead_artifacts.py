@@ -96,6 +96,7 @@ class TargetKind(StrEnum):
     OWN_DIMENSION = "own_dimension"
     SAMPLE = "sample"
     STEP = "step"
+    RECEIPT = "receipt"
     MEASURE = "measure"
     OBJECT = "object"
     PAIR = "pair"
@@ -331,7 +332,7 @@ ARTIFACTS: Final[dict[str, ArtifactContract]] = {
             "run",
             edits=False,
             view_ops=("inspect",),
-            targets=("step",),
+            targets=("step", "receipt"),
             starts=("research_run",),
             inputs=("questionnaire", "audience", "dimensions", "sample"),
             hands_off=(

@@ -7,7 +7,7 @@ chunks:
   - "[ ] FLD4. Náklady: spent, reserved, the run's ceiling and the study's remainder, and who spent it"
   - "[ ] FLD5. Kvalita a zásah: the run's QC warnings and straight-liner flags, keep or flag; replacement shown unavailable until its method is set"
   - "[ ] FLD6. Spuštění: the Start stays with its gates and one spend dialog; the run also a Lead card; retries, resume and budget lift through the Lead's cards or a person's own gate"
-  - "[ ] FLD7. Kdo odpovídal: the receipt, source, population recorded and read, dimensions passed, the data's origin"
+  - "[x] FLD7. Kdo odpovídal: the receipt, source, population recorded and read, dimensions passed, the data's origin"
   - "[ ] FLD8. Journey: Sběr dat at 1440, 1100, 768 and 390 px on fictional fieldwork, zero paid jobs"
 ---
 # Artifact: Sběr dat (Fieldwork: Spuštění and Průběh)

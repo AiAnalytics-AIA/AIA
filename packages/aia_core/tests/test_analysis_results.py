@@ -34,7 +34,11 @@ from aia_core.application.analysis_results import (
     reconstruct_run,
     stored_analysis,
 )
-from aia_core.application.report import ReportCompositionRefused, compose_internal_report
+from aia_core.application.report import (
+    ReportCompositionRefused,
+    compose_internal_report,
+    upstream_artifacts,
+)
 from aia_core.application.report_design import compose_design_sections
 from aia_core.application.report_method import compose_method_section
 from aia_core.application.report_tables import compose_question_tables, scale_notes
@@ -64,10 +68,12 @@ from aia_core.domain.fieldwork import DataOrigin, FieldworkSource
 from aia_core.domain.licence_determinations import SYNTHETIC_FIXTURE_DATASET
 from aia_core.domain.pipeline import ProjectType, fingerprint
 from aia_core.domain.report.model import (
+    ArtifactSource,
     AuditBlock,
     BulletList,
     Callout,
     Classification,
+    FixedSource,
     NumberCell,
     Paragraph,
     ParagraphRole,
@@ -79,6 +85,7 @@ from aia_core.domain.report.model import (
     TextCell,
     text,
 )
+from aia_core.domain.report.sources import report_sources
 from aia_core.domain.report.validation import cited_refs
 from aia_core.domain.research_aggregate import AIA_AGGREGATE_V1, aggregate_dataset
 from aia_core.domain.research_design import (
@@ -784,6 +791,32 @@ def test_reconstructed_analysis_composes_an_internal_branded_draft(
     assert first is not None
     doc = compose_internal_report(run, report_meta(first.method_status))
     assert len(doc.sections) == 12  # Introduction, methods, eight modules, evidence, audit.
+    # Every section names what it was composed from (artifact-chain CHN1): a module's chapter
+    # its stored outcome, the audit the run's own upstream artifacts; fixed text is the
+    # methodology's guidance alone.
+    manifest = {e.section_id: e.sources for e in report_sources(doc).sections}
+    assert all(manifest.values())
+    for spec in ANALYSIS_MODULES:
+        module = run.modules[spec.module_id]
+        assert (
+            ArtifactSource("research_analysis_module", module.artifact_id, module.artifact_sha256)
+            in manifest[f"ch-{spec.ordinal}"]
+        )
+    assert run.sources is not None
+    audited = {s.artifact_id for s in manifest["app-audit"] if isinstance(s, ArtifactSource)}
+    assert {
+        run.sources.specification.artifact_id,
+        run.sources.dataset.artifact_id,
+        run.sources.aggregate.artifact_id,
+    } <= audited
+    fixed = [k for k, v in manifest.items() if any(isinstance(s, FixedSource) for s in v)]
+    assert fixed == ["methodology"]
+    # Composed without the run's chapters, nothing reads the specification or the aggregate:
+    # the audit names them, but listing is not reading (review of #621).
+    specification, dataset, aggregate = upstream_artifacts(run.sources)
+    unread = report_sources(doc).unread
+    assert specification in unread and aggregate in unread
+    assert dataset not in unread  # the introduction's frame reads its origin
     assert doc.sections[0].id == "intro"
     ids = [s.id for s in doc.sections]
     assert ids.index("methodology") < ids.index("ch-4") < ids.index("ch-3")
