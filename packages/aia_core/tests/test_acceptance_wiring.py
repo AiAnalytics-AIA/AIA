@@ -48,6 +48,8 @@ def test_the_acceptance_step_is_blocking_selects_the_marker_and_writes_junit() -
     assert "--junit-xml=tmp/junit/acceptance.xml" in step
     assert "-o junit_family=xunit1" in step
     assert "AIA_ACCEPTANCE_DATABASE_URL: postgresql" in step
+    # A stuck stack fails the step in minutes, not at the job's limit.
+    assert re.search(r"^\s*timeout-minutes: \d+$", step, re.M), step
     # Nothing that would let a failure through: the exit code is the step's.
     for escape in ("continue-on-error", "|| true", "set +e", "exit 0"):
         assert escape not in step, escape

@@ -23,8 +23,9 @@ pytestmark = pytest.mark.acceptance
 
 #: The prefix of every path in the API's own document; ``http`` already carries it.
 PREFIX = "/api/v1"
-#: A study id of the right shape that no study has.
+#: A study id and a client id of the right shape that nothing has.
 ABSENT_STUDY = "STU-0000000000000000000000000000dead"
+ABSENT_CLIENT = "CLI-0000000000000000000000000000dead"
 #: Any other path parameter: its shape does not matter, scope is decided first.
 _PARAM = re.compile(r"\{[^}]+\}")
 
@@ -58,6 +59,14 @@ def _error(reply: Any) -> dict[str, Any]:
     return body
 
 
+def _answer(reply: Any) -> tuple[int, Any]:
+    """A reply's status and its error body without the request id (None when not JSON)."""
+    try:
+        return reply.status, _error(reply)
+    except (ValueError, TypeError, AttributeError):
+        return reply.status, None
+
+
 def _document_paths(http: Any, people: Any) -> dict[str, dict[str, Any]]:
     spec = http.get("/openapi.json", as_user=people.researcher)
     assert spec.status == 200, spec.text
@@ -66,14 +75,54 @@ def _document_paths(http: Any, people: Any) -> dict[str, dict[str, Any]]:
     return paths
 
 
-def _study_routes(http: Any, people: Any) -> list[tuple[str, str]]:
-    """Every (method, path) of the API that names a study, from the API's own document."""
+def _routes_naming(http: Any, people: Any, key: str, *, without: str = "") -> list[tuple[str, str]]:
+    """Every (method, path) of the API whose path names ``key``, from the API's own document."""
     return sorted(
         (method.upper(), path.removeprefix(PREFIX))
         for path, operations in _document_paths(http, people).items()
-        if "{study_id}" in path
+        if key in path and not (without and without in path)
         for method in operations
         if method in {"get", "post", "put", "patch", "delete"}
+    )
+
+
+def _probe_as_stranger(
+    http: Any, people: Any, routes: list[tuple[str, str]], key: str, real_id: str, absent_id: str
+) -> tuple[list[tuple[str, str, int, str]], list[tuple[str, str, int, str]]]:
+    """Each route called by another organization's user on the real id and on an absent one,
+    then by the owner on the real id. Returns the leaks (anything but the absent id's 404)
+    and the unproven (the owner answered as the stranger was answered, so the 404 may be a
+    missing child's, not scope's)."""
+    leaks: list[tuple[str, str, int, str]] = []
+    unproven: list[tuple[str, str, int, str]] = []
+    for method, template in routes:
+        body = {} if method in {"POST", "PUT", "PATCH"} else None
+        real = _PARAM.sub("X-0", template.replace(key, real_id))
+        absent = _PARAM.sub("X-0", template.replace(key, absent_id))
+        got = http.call(method, real, as_user=people.other_organization, body=body)
+        none = http.call(method, absent, as_user=people.other_organization, body=body)
+        if got.status != 404 or _error(got) != _error(none):
+            leaks.append((method, template, got.status, got.text[:120]))
+            continue
+        # After the foreign calls, so nothing the owner's call changes can mask them.
+        own = http.call(method, real, as_user=people.researcher, body=body)
+        if _answer(own) == _answer(got):
+            unproven.append((method, template, own.status, own.text[:120]))
+    return leaks, unproven
+
+
+def _assert_scoped(
+    routes: list[tuple[str, str]],
+    leaks: list[tuple[str, str, int, str]],
+    unproven: list[tuple[str, str, int, str]],
+) -> None:
+    assert not leaks, (
+        f"{len(leaks)} of {len(routes)} routes answer another organization:\n"
+        + "\n".join(map(str, leaks))
+    )
+    assert not unproven, (
+        f"{len(unproven)} routes answer the owner as they answer a stranger, so their 404 "
+        "may be a missing child, not scope:\n" + "\n".join(map(str, unproven))
     )
 
 
@@ -120,29 +169,61 @@ def test_ac01_a_user_of_another_organization_gets_404_on_every_study_route(
     unique: Callable[[str], str],
 ) -> None:
     """404, never 403, and the same 404 a study that does not exist gets (ADR 0019): another
-    organization learns nothing, not even that the study exists."""
+    organization learns nothing, not even that the study exists.
+
+    The path's other ids are placeholders, so a route could answer 404 for a missing child
+    before it ever looked at scope. The study's own researcher calls each route too, the same
+    way: their answer must differ from the foreign one (a 2xx, a 422, or the child's own
+    "no such run"), which shows the foreign 404 is scope's, decided first."""
     signed_in(people.researcher)
     signed_in(people.other_organization)
     _, study_id = _provision(http, people, unique)
     assert http.get(f"/studies/{study_id}", as_user=people.researcher).status == 200
 
-    routes = _study_routes(http, people)
+    routes = _routes_naming(http, people, "{study_id}")
     assert len(routes) >= 50, f"only {len(routes)} study routes: the document is not the API's"
-    leaks: list[tuple[str, str, int, str]] = []
-    for method, template in routes:
-        body = {} if method in {"POST", "PUT", "PATCH"} else None
-        real = _PARAM.sub("X-0", template.replace("{study_id}", study_id))
-        absent = _PARAM.sub("X-0", template.replace("{study_id}", ABSENT_STUDY))
-        got = http.call(method, real, as_user=people.other_organization, body=body)
-        none = http.call(method, absent, as_user=people.other_organization, body=body)
-        if got.status != 404 or _error(got) != _error(none):
-            leaks.append((method, template, got.status, got.text[:120]))
-    assert not leaks, (
-        f"{len(leaks)} of {len(routes)} study routes answer another organization:\n"
-        + "\n".join(map(str, leaks))
+    _assert_scoped(
+        routes, *_probe_as_stranger(http, people, routes, "{study_id}", study_id, ABSENT_STUDY)
     )
 
     # And the other way: the other organization's seeded study is not the researcher's.
     theirs = str(stack.seeded["study_id"])
     assert http.get(f"/studies/{theirs}", as_user=people.researcher).status == 404
     assert http.get(f"/studies/{theirs}", as_user=people.other_organization).status == 200
+
+
+def test_ac01_a_user_of_another_organization_cannot_tell_a_client_from_an_absent_one(
+    http: Any, people: Any, signed_in: Callable[[str], None], unique: Callable[[str], str]
+) -> None:
+    """The client half of the same boundary, beyond AC-01's study routes. Every route that
+    names a client, and no study, answers another organization's user exactly as it answers
+    an absent client, never 403, and where that answer is a 404 the owner is answered
+    otherwise. Not every such answer is a 404: most client routes validate the body and
+    path before they resolve scope, so a stranger sends ``{}`` and gets the same 422 an
+    absent client gets (finding F-6 in the harness plan). That discloses nothing; it is not
+    the 404 AC-01 asks of study routes."""
+    signed_in(people.researcher)
+    signed_in(people.other_organization)
+    client_id, _ = _provision(http, people, unique)
+    routes = _routes_naming(http, people, "{client_id}", without="{study_id}")
+    assert len(routes) >= 10, f"only {len(routes)} client routes: the document is not the API's"
+    told: list[tuple[str, str, int, str]] = []
+    unproven: list[tuple[str, str, int, str]] = []
+    for method, template in routes:
+        body = {} if method in {"POST", "PUT", "PATCH"} else None
+        real = _PARAM.sub("X-0", template.replace("{client_id}", client_id))
+        absent = _PARAM.sub("X-0", template.replace("{client_id}", ABSENT_CLIENT))
+        got = http.call(method, real, as_user=people.other_organization, body=body)
+        none = http.call(method, absent, as_user=people.other_organization, body=body)
+        if got.status in (200, 201, 204, 403) or _answer(got) != _answer(none):
+            told.append((method, template, got.status, got.text[:120]))
+            continue
+        if got.status == 404:
+            own = http.call(method, real, as_user=people.researcher, body=body)
+            if _answer(own) == _answer(got):
+                unproven.append((method, template, own.status, own.text[:120]))
+    assert not told, (
+        f"{len(told)} of {len(routes)} client routes tell another organization the client "
+        "exists:\n" + "\n".join(map(str, told))
+    )
+    assert not unproven, "\n".join(map(str, unproven))

@@ -249,6 +249,9 @@ jobs:
         # A database of its own, so nothing another step left behind is read. Blocking:
         # a failing criterion fails CI, and parity_status.py gives each criterion its
         # verdict from this JUnit (a test it lists that did not run is a FAIL there).
+        # A stuck process (an API that never answers, a worker that never drains) fails the
+        # step in minutes, not at the job's six-hour limit; the tree takes about 30 s.
+        timeout-minutes: 15
         env:
           AIA_ACCEPTANCE_DATABASE_URL: postgresql+psycopg://aia:aia_ci@localhost:5432/aia_acceptance
           PGPASSWORD: aia_ci

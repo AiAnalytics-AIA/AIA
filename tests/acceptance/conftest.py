@@ -84,6 +84,11 @@ class Reply:
         return self.body.decode("utf-8", "replace")
 
 
+#: The stack is on 127.0.0.1: no proxy from the environment (HTTPS_PROXY, a CI runner's) may
+#: stand between the test and it.
+_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+
 @dataclass(frozen=True)
 class Http:
     """The API's base URL (``…/api/v1``). Each call names who makes it: the credential is that
@@ -107,7 +112,7 @@ class Http:
         if data is not None:
             request.add_header("Content-Type", "application/json")
         try:
-            with urllib.request.urlopen(request, timeout=timeout) as response:
+            with _OPENER.open(request, timeout=timeout) as response:
                 return Reply(response.status, response.read(), dict(response.headers))
         except urllib.error.HTTPError as error:
             return Reply(error.code, error.read(), dict(error.headers))
@@ -128,6 +133,8 @@ class Http:
 
 
 def _free_port() -> int:
+    """A port free now; another process may take it before the API binds it (a known race,
+    left: the API's start then fails visibly and the session fails, never passes)."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(("127.0.0.1", 0))
         return int(s.getsockname()[1])
@@ -263,9 +270,12 @@ class Stack:
         self.workers.append(process)
         try:
             yield process
-        finally:
-            code = process.stop()
-            assert code == 0, f"the worker exited {code} on SIGTERM\n{process.tail()}"
+        except BaseException:
+            # The test's own failure is the one to report; the worker is stopped all the same.
+            process.stop()
+            raise
+        code = process.stop()
+        assert code == 0, f"the worker exited {code} on SIGTERM\n{process.tail()}"
 
     def logs(self) -> str:
         return "\n".join(p.tail() for p in (self.api, *self.workers))

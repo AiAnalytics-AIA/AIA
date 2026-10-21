@@ -3143,7 +3143,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "Off the MVP path: 18.6.6's results verification and reality alignment are not in AIA (research-flow-rehome; reverse scope audit L-04), so AC-08 no longer names it; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
+    "reason": "Off the MVP path: 18.6.6's results verification and reality alignment are not in AIA (research-flow-rehome; .planning/evidence/scope-freeze/proposed-edits.md A-07; mvp-acceptance-harness#14), so AC-08 no longer names it; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -3568,7 +3568,7 @@
    "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "Off the MVP path: calibration, benchmarks, holdout and ablation are out of the MVP's scope (panel-grounded-respondents, master plan section 3.2; reverse scope audit L-29), so AC-05 no longer names it; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
+    "reason": "Off the MVP path: calibration, benchmarks, holdout and ablation are out of the MVP's scope (panel-grounded-respondents, master plan section 3.2; .planning/evidence/scope-freeze/proposed-edits.md A-07; mvp-acceptance-harness#14), so AC-05 no longer names it; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -3974,7 +3974,8 @@
     "tests": [
      "tests/acceptance/test_mvp_acceptance.py::test_ac01_people_authenticate_through_the_identity_seam_and_provision_the_study",
      "tests/acceptance/test_mvp_acceptance.py::test_ac01_every_project_route_is_study_scoped",
-     "tests/acceptance/test_mvp_acceptance.py::test_ac01_a_user_of_another_organization_gets_404_on_every_study_route"
+     "tests/acceptance/test_mvp_acceptance.py::test_ac01_a_user_of_another_organization_gets_404_on_every_study_route",
+     "tests/acceptance/test_mvp_acceptance.py::test_ac01_a_user_of_another_organization_cannot_tell_a_client_from_an_absent_one"
     ]
    },
    {

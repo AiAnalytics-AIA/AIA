@@ -221,7 +221,8 @@ def test_the_stack_is_separate_processes_after_one_declared_bootstrap(stack: Any
 # --------------------------------------------------------------------------- #
 
 
-def _wait_for_run(stack: Any, path: str, who: str) -> dict[str, Any]:
+def _wait_for_run(stack: Any, worker: Any, path: str, who: str) -> dict[str, Any]:
+    """Poll the run until it ends, or until the worker that drains it is gone."""
     deadline = time.monotonic() + RUN_SECONDS
     seen: dict[str, Any] = {}
     while time.monotonic() < deadline:
@@ -230,7 +231,7 @@ def _wait_for_run(stack: Any, path: str, who: str) -> dict[str, Any]:
         seen = dict(reply.json())
         if seen["status"] in {"COMPLETED", "FAILED", "CANCELLED"}:
             return seen
-        if any(not w.alive() for w in stack.workers):
+        if not worker.alive():
             break
         time.sleep(0.5)
     raise AssertionError(f"the run did not finish: {json.dumps(seen)[:2000]}\n{stack.logs()}")
@@ -285,8 +286,8 @@ def test_a_run_is_answered_by_recorded_models_behind_the_gateway(
     assert started.status in (200, 201), started.text
     run_path = f"{base}/research/runs/{started.json()['run_id']}"
 
-    with stack.worker("recorded"):
-        run = _wait_for_run(stack, run_path, who)
+    with stack.worker("recorded") as worker:
+        run = _wait_for_run(stack, worker, run_path, who)
     assert run["status"] == "COMPLETED", f"{_unfinished(run)}\n{stack.logs()}"
 
     analysis = http.get(f"{run_path}/analysis", as_user=who)

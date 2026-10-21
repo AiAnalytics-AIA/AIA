@@ -247,6 +247,34 @@ Branch `feature/w0-acceptance-harness`, from `develop` @ `c88fd7fd`.
   model, cost), no respondent content. Test: over HTTP, a run's usage lists each respondent call's
   provider request id.
 
+- **F-6. Most client routes check the request before the client's scope.** Another
+  organization's user who sends `{}` to 26 of the 37 routes naming a client (and no study)
+  gets 422, not 404. Each route validates its body and path before it resolves the client
+  context (for example `POST /clients/{client_id}/contacts`, `apps/api/src/aia_api/routers/workspace.py`
+  @ `c170c921`). The answer is the same as the one an absent client gets, so nothing is
+  disclosed, and AC-01 asks its 404 of study routes only.
+  Reproduction: `test_mvp_acceptance.py::test_ac01_a_user_of_another_organization_cannot_tell_a_client_from_an_absent_one`
+  asserts the weaker rule; tightening it to 404 fails on those 26 routes.
+  Smallest fix: resolve the client context as a dependency, as `get_study_context` does for
+  studies.
+  Test: the client probe with the 404 rule.
+- **F-7. Review of `c170c921` (2026-10-21).** A product defect, fixed elsewhere: the API commits after the
+  response is sent (`get_session` is a yield dependency), so the acceptance step can race a
+  duplicate user (about 1 run in 4). It is fixed on `fix/commit-before-response`, and this branch takes it by
+  merging `develop`. Fixed here:
+  - the recorded-models layer rule now catches every import form, and quoted dotted names, in the
+    executors, the API, the worker and the core, with a seeded self-test;
+  - the 404 probe now proves that scope ran first: the owner is answered otherwise on all 96 routes;
+  - `_wait_for_run` watches its own worker;
+  - the worker fixture no longer masks a test's failure;
+  - the step has `timeout-minutes: 15`;
+  - the harness's HTTP ignores environment proxies;
+  - the matrix's anchors resolve.
+
+  Left, noted:
+  - `_free_port` can race another process for the port; the session then fails and never passes.
+  - CI's `available="postgres acceptance"` is hard-coded beside the step that runs.
+
 ## Doc follow-up
 
 For the docs PR (CLAUDE.md §1; this PR edits no shared file):
@@ -277,7 +305,7 @@ For the docs PR (CLAUDE.md §1; this PR edits no shared file):
     is not the operator path).
   - Two error answers differ by their `request_id`: compare the body without it, never the bytes
     (`test_mvp_acceptance.py::_error`).
-- `.planning/open-items.md`: F-2, F-4 and F-5 above, numbered there.
+- `.planning/open-items.md`: F-2, F-4, F-5 and F-6 above, numbered there.
 
 ## Chunk 8: parity reports and never blocks
 
