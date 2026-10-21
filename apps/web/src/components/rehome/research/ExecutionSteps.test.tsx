@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 
 
 import { t, tv } from "@/i18n/t";
 import type { ResearchRun } from "@/lib/api";
+import { AnalysisInspect } from "./AnalysisInspect";
 import { measureAnchor } from "@/lib/result-reading";
 import { CONFLICT_MESSAGE } from "@/research/store";
 import { RunResults } from "./ExecutionSteps";
@@ -1735,6 +1736,10 @@ describe("Results", () => {
     expect(keyFindings.querySelector('[data-aia="claim:executive:C1"]')).toBeTruthy();
     expect(keyFindings.querySelector('[data-aia="finding:executive:0"]')).toBeTruthy();
     expect(document.querySelector('section[data-aia="module:executive"]')).toBeTruthy();
+    // The inspector reads this very analysis, published by the page (ANL3).
+    const drawer = render(<AnalysisInspect target={{ kind: "finding", id: "executive:0" }} />);
+    expect(within(drawer.container).getAllByRole("link")[0].getAttribute("href")).toBe("#measure-q2");
+    drawer.unmount();
     // A number whose question AIA cannot find says so in words; its reference stays as a code (6c).
     expect(within(keyFindings).getByText(/číslo, k němuž AIA nedohledala otázku/)).toBeTruthy();
     expect(within(keyFindings).getByText("x9.median").tagName).toBe("CODE");

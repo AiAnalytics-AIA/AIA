@@ -125,6 +125,14 @@ every research question … (ANL2)".
 **ANL3. Findings.** Test: a claim chip resolves to its measure on Výsledky (`citedMeasure`); an
 unresolved ref is kept as a code, never as text.
 
+The inspector body has landed; the chunk stays open until the frame opens it. `lib/analysis-inspect.ts`
+(`inspectView`, `numberWords`) shows a finding with every number it cites, each resolved to its measure
+(`#measure-<id>`). It shows a claim with its measure and the sentences of its module that cite it. A target
+the run does not hold reads as missing, with the reason. `AnalysisInspect.tsx` has the coordinator's
+signature (`{ target: { kind, id } }`, no header of its own) and reads the analysis the page shows,
+which `AnalysisResults` publishes (`setShownAnalysis`), so the drawer never opens another run's item. Still
+open: the frame wiring `inspect` and a person's click to it (the integration coordinator's).
+
 **ANL4. Blocked claims and diagnostics.** Test: a module stored BLOCKED shows "Potřebuje opravu",
 never "Hotovo" (`needsRepair`). Depends on `evidence-integrity#9a`.
 
