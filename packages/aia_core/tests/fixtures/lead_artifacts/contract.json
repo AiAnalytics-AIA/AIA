@@ -117,13 +117,19 @@
     {
       "kind": "audience",
       "stage": "audience",
-      "id": "definition|filters|<filter key>|preview",
+      "id": "definition|filters|filter:<factor id>|subpanel:<subpanel key>|preview",
       "live": false
     },
     {
       "kind": "dimension",
       "stage": "dimensions",
       "id": "<dimension id>",
+      "live": false
+    },
+    {
+      "kind": "own_dimension",
+      "stage": "dimensions",
+      "id": "<materialization request id>",
       "live": false
     },
     {
@@ -508,7 +514,8 @@
         "focus"
       ],
       "targets": [
-        "dimension"
+        "dimension",
+        "own_dimension"
       ],
       "starts": [
         "agent_job:suggest_dimensions",

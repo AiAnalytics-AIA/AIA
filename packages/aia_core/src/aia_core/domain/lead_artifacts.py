@@ -93,6 +93,7 @@ class TargetKind(StrEnum):
     QUESTION = "question"
     AUDIENCE = "audience"
     DIMENSION = "dimension"
+    OWN_DIMENSION = "own_dimension"
     SAMPLE = "sample"
     STEP = "step"
     MEASURE = "measure"
@@ -307,7 +308,7 @@ ARTIFACTS: Final[dict[str, ArtifactContract]] = {
             "working",
             edits=True,
             view_ops=(),
-            targets=("dimension",),
+            targets=("dimension", "own_dimension"),
             starts=("agent_job:suggest_dimensions", _MEMORY),
             inputs=("design", "audience"),
             hands_off=(("fieldwork", "SpecSelection dimensions (persona_dimensions.approved)"),),

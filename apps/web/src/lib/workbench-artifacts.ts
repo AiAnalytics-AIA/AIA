@@ -16,7 +16,7 @@ export type ViewOpKind = "open_stage" | "focus" | "inspect" | "select" | "filter
 export const LIVE_VIEW_OPS: ReadonlySet<ViewOpKind> = new Set<ViewOpKind>(["open_stage", "focus"]);
 
 export type TargetKind =
-  | "brief" | "objective" | "material" | "plan" | "rq" | "hypothesis" | "set" | "assumption" | "section" | "question" | "audience" | "dimension" | "sample"
+  | "brief" | "objective" | "material" | "plan" | "rq" | "hypothesis" | "set" | "assumption" | "section" | "question" | "audience" | "dimension" | "own_dimension" | "sample"
   | "step" | "measure" | "object" | "pair" | "module" | "finding" | "claim" | "report";
 /** The target kinds the server's FOCUS_ID accepts today; a screen adding a kind asks for it there. */
 export const LIVE_TARGETS: ReadonlySet<TargetKind> = new Set<TargetKind>(["brief", "plan", "section", "question"]);
@@ -90,7 +90,7 @@ export const ARTIFACTS: Readonly<Record<WorkbenchStage, ArtifactContract>> = {
   },
   dimensions: {
     stage: "dimensions", artifact: "working", edits: true,
-    view_ops: ["open_stage", "focus"], targets: ["dimension"],
+    view_ops: ["open_stage", "focus"], targets: ["dimension", "own_dimension"],
     starts: ["agent_job:suggest_dimensions", MEMORY],
     inputs: ["design", "audience"],
     hands_off: [{ to: "fieldwork", form: "SpecSelection dimensions (persona_dimensions.approved)" }],
