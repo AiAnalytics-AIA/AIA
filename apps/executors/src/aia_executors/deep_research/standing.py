@@ -83,6 +83,7 @@ def work_standings(
         class_a_texts=_class_a_texts(plan.request),
         clock=runtime.clock,
         datasets=runtime.datasets,
+        class_gates=runtime.config.class_gates,
     )
     standings: dict[str, WorkStatusRecord] = {}
     for doi in sorted(set(dois))[:MAX_WORK_LOOKUPS]:
