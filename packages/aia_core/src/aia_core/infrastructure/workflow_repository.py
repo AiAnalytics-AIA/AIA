@@ -1117,6 +1117,25 @@ class WorkflowRepository:
 
     # ------------------------------------------------------- budget and costs --
 
+    def steps_awaiting_budget(
+        self, *, project_id: str, workflow_type: str
+    ) -> list[tuple[str, str]]:
+        """Every ``(run_id, step_id)`` of the project's ``workflow_type`` runs in scope whose step
+        is parked at the budget cap, oldest run first. One query over the waiting steps, never a
+        page of runs, so a wait behind any number of newer runs is found."""
+        rows = self._session.execute(
+            select(StepRunRow.run_id, StepRunRow.step_id)
+            .join(WorkflowRunRow, WorkflowRunRow.run_id == StepRunRow.run_id)
+            .where(
+                WorkflowRunRow.project_id == project_id,
+                WorkflowRunRow.workflow_type == workflow_type,
+                StepRunRow.status == StepRunStatus.AWAITING_BUDGET.value,
+                *self._scope_filter(),
+            )
+            .order_by(WorkflowRunRow.created_at, WorkflowRunRow.run_id, StepRunRow.step_id)
+        ).all()
+        return [(str(run_id), str(step_id)) for run_id, step_id in rows]
+
     def study_reserved_usd(self) -> float:
         """What the study in scope's open holds keep from its budget now (calls in flight)."""
         scope = self.scope

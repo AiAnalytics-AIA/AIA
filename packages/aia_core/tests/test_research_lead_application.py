@@ -326,6 +326,41 @@ def test_a_budget_still_too_small_leaves_the_turn_parked(scoped: Any, session: A
     assert set_study_budget(session, scope, 10.0)[1] != []  # now it fits
 
 
+def test_a_turn_parked_behind_more_than_a_page_of_later_runs_is_still_sent(
+    scoped: Any, session: Any
+) -> None:
+    """Codex on #547: the release read the newest 200 Lead runs, so a turn parked behind more
+    than 200 later ones was never found and stayed parked for ever. It reads the waiting steps
+    themselves."""
+    from aia_core.application.workflows import start_workflow
+    from aia_core.domain.design import DESIGN_PROJECT_OWNER
+
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    _no_budget(scoped, scope)
+    first = _message(_lead(scope, session))
+    _park_on_budget(session, scope, requested=0.5)
+    parked = WorkflowRepository(session, scope).get_run(first[-1]["run_id"])
+    for i in range(201):  # later Lead runs, as other turns of the study would leave them
+        start_workflow(
+            session,
+            scope,
+            project_id=parked["project_id"],
+            revision=parked["project_revision"],
+            workflow_type=RESEARCH_LEAD,
+            idempotency_key=f"{RESEARCH_LEAD}:later-{i}",
+            step_inputs={"turn": {}},
+            owner=DESIGN_PROJECT_OWNER,
+        )
+    assert first[-1]["run_id"] not in {
+        r["run_id"]
+        for r in WorkflowRepository(session, scope).list_runs(
+            project_id=parked["project_id"], workflow_type=RESEARCH_LEAD, limit=200
+        )
+    }
+    assert set_study_budget(session, scope, 5.0)[1] == [first[-1]["run_id"]]
+
+
 def test_a_parked_turn_whose_hold_is_unknown_stays_parked(scoped: Any, session: Any) -> None:
     scope = scoped.scope()
     _hatch(scoped, session)

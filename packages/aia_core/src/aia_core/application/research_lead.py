@@ -340,14 +340,9 @@ def release_lead_budget_waits(
     if project_id is None:
         return []
     workflows = WorkflowRepository(session, scope)
-    runs = workflows.list_runs(
-        project_id=project_id, workflow_type=RESEARCH_LEAD, steps=True, limit=200
-    )
-    waiting = [
-        (run["run_id"], run["steps"][0])
-        for run in reversed(runs)  # oldest first
-        if run.get("steps") and run["steps"][0]["status"] is StepRunStatus.AWAITING_BUDGET
-    ]
+    # The waiting steps themselves, oldest first: a page of the newest runs would miss a turn
+    # parked behind more than a page of later ones (Codex on #547).
+    waiting = workflows.steps_awaiting_budget(project_id=project_id, workflow_type=RESEARCH_LEAD)
     if not waiting:
         return []
     study = ScopeRepository(session).get_study(scope, for_update=True)
@@ -355,16 +350,16 @@ def release_lead_budget_waits(
     if budget_after <= budget_before:
         return []
     remaining = budget_after - float(study.spent_usd) - workflows.study_reserved_usd()
-    asked = workflows.last_attempt_errors([str(step["step_id"]) for _, step in waiting])
+    asked = workflows.last_attempt_errors([step_id for _, step_id in waiting])
     released: list[str] = []
-    for run_id, step in waiting:
-        requested = (asked.get(str(step["step_id"])) or {}).get("error", {}).get("requested_usd")
+    for run_id, step_id in waiting:
+        requested = (asked.get(step_id) or {}).get("error", {}).get("requested_usd")
         if not isinstance(requested, int | float) or float(requested) > remaining + 1e-9:
             continue
         workflows.lock_run(run_id)
         try:
             workflows.resume_budget_waits(
-                [str(step["step_id"])],
+                [step_id],
                 note=note,
                 budget_before=budget_before,
                 budget_after=budget_after,
