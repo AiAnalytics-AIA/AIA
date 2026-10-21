@@ -8,7 +8,8 @@
  * (the split, the side drawer and the sheet, research-lead-workbench 26b-26c): no page overflow,
  * nothing remounted across 1100 or 768 px, the Lead opened from the launcher and closed by Escape, the eleven stages in six phases, the separator by
  * keyboard, the focus modes, the stage navigation (Výsledky's views by hash), Návrh's research
- * questions with their coverage at 1440, 1100, 768 and 390 px, and that nothing
+ * questions with their coverage at 1440, 1100, 768 and 390 px, Vzorek read only with the server's
+ * forecast at the same four widths, and that nothing
  * paid starts: no research run, agent job, Deep Research run or Lead request approval.
  */
 import assert from "node:assert/strict";
@@ -226,6 +227,30 @@ try {
     await coverage.screenshot({ path: join(out, `${width}-plan-coverage.png`) });
   }
   check("Návrh shows its research questions' coverage at 1440, 1100, 768 and 390, no overflow");
+
+  // Vzorek (artifact-sample SMP6): read only, at every width. Its forecast is the server's, labelled
+  // a forecast, on the revision it was read on; nothing on it sets n or starts anything.
+  for (const width of [1440, 1100, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(base + stagePath("dimensions") + "#sample");
+    const sample = page.locator("[data-sample-view]");
+    await sample.waitFor({ timeout: 30000 });
+    const forecast = page.getByRole("region", { name: "Odhad podpory před během" });
+    await forecast.getByText("odhad, ne výsledek").waitFor();
+    await forecast.getByText(/Podle revize návrhu|odhad není|nepodařilo načíst/).first().waitFor({ timeout: 30000 });
+    assert.equal(await forecast.getByText("nepodařilo načíst").count(), 0, `Vzorek's forecast read @${width}`);
+    assert.equal(await sample.locator("input, select, textarea").count(), 0, `Vzorek has no input @${width}`);
+    for (const id of ["sample:size", "sample:n", "sample:forecast", "sample:forecast:support", "sample:forecast:outlook"]) {
+      assert.equal(await sample.locator(`[data-aia="${id}"]`).count(), 1, `${id} @${width}`);
+    }
+    await noOverflow(`sample @${width}`);
+    await sample.screenshot({ path: join(out, `${width}-sample.png`) });
+  }
+  // Its links open the stages where things are set.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.getByRole("button", { name: "Ověřit v Kontrole a spuštění" }).click();
+  await page.locator(".nav__stage.is-current", { hasText: "Sběr dat" }).waitFor();
+  check("Vzorek: size and the server's forecast at 1440, 1100, 768 and 390, read only, no overflow; Spuštění one click away");
 
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");
