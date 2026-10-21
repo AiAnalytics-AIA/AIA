@@ -9,13 +9,16 @@
 import type { ReactNode } from "react";
 
 import { t } from "@/i18n/t";
+import { sampleAia } from "@/lib/artifacts/sample";
 import type { OutlookVerdict } from "@/lib/api";
+import { codeWords } from "@/lib/reason-words";
 import { VERDICT_ORDER } from "@/lib/research-execution";
-import { outlookSummary, supportForecastOf } from "@/lib/sample-view";
+import { outlookSummary, personaSourcesOf, sourceChosenOnRun, supportForecastOf } from "@/lib/sample-view";
 import type { WorkbenchStage } from "@/lib/workbench-stages";
 import { audienceReady } from "@/research/audience";
 import type { ResearchProject } from "@/research/model";
 import { PERSONA_DIM_LABELS, chosenDimensions, recommendedSample } from "@/research/persona";
+import { CodedWords } from "../rehome/research/CodedWords";
 import { useResearch } from "../rehome/research/context";
 import { Glyph, type GlyphTone } from "./Glyph";
 import { useSampleReadiness, type SampleReadiness } from "./useSampleReadiness";
@@ -54,8 +57,8 @@ export function SampleArtifact({ project, readiness, onOpen }: { project: Resear
   return (
     <div className="flex max-w-3xl flex-col gap-4" aria-label="Vzorek" data-sample-view>
       <p className="text-sm text-ink-muted">Přehled vzorku jen ke čtení. Velikost a dimenze se nastavují v Dimenzích, cílová skupina ve svém kroku; zda vzorek stačí, ověří Kontrola a spuštění na serveru.</p>
-      <Sec n={1} title="Velikost a složení" aside={n ? `n ${n}` : undefined} aia="sample:size">
-        <div data-aia="sample:n">
+      <Sec n={1} title="Velikost a složení" aside={n ? `n ${n}` : undefined} aia={sampleAia.section("size")}>
+        <div data-aia={sampleAia.n()}>
           <div className="flex items-center gap-2"><Glyph tone={n ? "done" : "inert"} size={12} /><h3 className="text-sm font-semibold">Velikost vzorku</h3></div>
           <p className="mt-1 text-2xl font-semibold tabular-nums">{n ? `N = ${n}` : "Nenastaveno"}</p>
           <p className="text-sm text-ink-muted">Doporučeno {rec.n}: {rec.why}</p>
@@ -71,13 +74,16 @@ export function SampleArtifact({ project, readiness, onOpen }: { project: Resear
           {dims.length ? <ul className="mt-1 flex flex-wrap gap-1.5">{dims.map((d) => <li key={d} className="rounded-sm border border-border px-2 py-0.5 text-sm">{PERSONA_DIM_LABELS[d] ?? d}</li>)}</ul> : <p className="mt-1 text-sm text-ink-muted">Žádné</p>}
         </div>
       </Sec>
-      <Sec n={2} title="Odhad podpory před během" aside="odhad, ne výsledek" aia="sample:forecast">
+      <Sec n={2} title="Odhad podpory před během" aside="odhad, ne výsledek" aia={sampleAia.section("forecast")}>
         <Forecast readiness={readiness} />
         <p className="text-sm text-ink-muted">
           Skutečná podpora dvojic se ověří až z výsledných dat (
           <button type="button" className="text-signal underline" onClick={() => onOpen("sociomap")}>Sociomapa</button>
           ). Kvóta ji nezaručuje.
         </p>
+      </Sec>
+      <Sec n={3} title="Kdo bude odpovídat" aia="sample:respondents">
+        <Respondents readiness={readiness} onOpen={onOpen} />
       </Sec>
       <button type="button" className="self-start rounded-control border border-border-strong px-3 py-1.5 text-sm font-medium" onClick={() => onOpen("fieldwork")}>Ověřit v Kontrole a spuštění</button>
     </div>
@@ -93,14 +99,14 @@ function Forecast({ readiness }: { readiness: SampleReadiness }) {
   return (
     <>
       <p className="text-xs text-ink-muted">Podle revize návrhu {readiness.revision}</p>
-      <div className="flex items-start gap-2" data-aia="sample:forecast:support">
+      <div className="flex items-start gap-2" data-aia={sampleAia.forecast("support")}>
         <span className="mt-1"><Glyph tone={support.known ? (STATUS_TONE[support.status] ?? "inert") : "inert"} size={12} title={support.known ? support.status : "neznámé"} /></span>
         <div className="min-w-0">
           <h3 className="text-sm font-semibold">Opora výsledků{support.known ? "" : ": neznámé"}</h3>
           <p className="text-sm">{support.message ?? "Server oporu pro tento běh předem nespočítal."}</p>
         </div>
       </div>
-      <div className="flex items-start gap-2" data-aia="sample:forecast:outlook">
+      <div className="flex items-start gap-2" data-aia={sampleAia.forecast("outlook")}>
         <span className="mt-1"><Glyph tone={outlook ? (outlook.UNANSWERABLE ? "fault" : outlook.AT_RISK ? "you" : outlook.UNKNOWN ? "inert" : "done") : "inert"} size={12} /></span>
         <div className="min-w-0">
           <h3 className="text-sm font-semibold">Na co běh odpoví{outlook ? "" : ": neznámé"}</h3>
@@ -113,6 +119,47 @@ function Forecast({ readiness }: { readiness: SampleReadiness }) {
           ) : <p className="text-sm">Server výhled otázek pro tento návrh nevrátil.</p>}
         </div>
       </div>
+    </>
+  );
+}
+
+const R = "research.exec.respondents";
+
+// Kdo bude odpovídat (SMP5, SQ1 = Q54 b): what the server offers and its default, read only. The
+// source is chosen on Spuštění, beside the start that pins it, so nothing here sets it.
+function Respondents({ readiness, onOpen }: { readiness: SampleReadiness; onOpen: Open }) {
+  const sources = readiness.kind === "ready" ? personaSourcesOf(readiness.readiness) : null;
+  // Spuštění offers the choice only for a run AI respondents answer; elsewhere there is none to send the person to.
+  const chosen = readiness.kind === "ready" && sourceChosenOnRun(readiness.readiness);
+  return (
+    <>
+      {readiness.kind === "loading" ? <p className="text-sm text-ink-muted" role="status">Načítám nabídku ze serveru…</p>
+        : readiness.kind === "failed" ? <p className="text-sm text-status-fault">Nabídku se nepodařilo načíst.</p>
+        : readiness.kind === "ready" && readiness.readiness.fieldwork_source !== "ai_runtime" ? <p className="text-sm">Toto nasazení nesbírá data přes AI respondenty, takže se zdroj respondentů nevolí.</p>
+        : !sources ? <p className="text-sm text-ink-muted">Server zdroje respondentů nevrátil: neznámé.</p>
+        : (
+          <ul className="flex flex-col gap-2" aria-label="Zdroje respondentů">
+            {sources.map((o) => (
+              <li key={o.source} className={`flex items-start gap-2 text-sm ${o.offered ? "" : "text-ink-muted"}`} data-aia={`sample:respondents:${o.source}`}>
+                <span className="mt-1"><Glyph tone={o.offered ? (o.default ? "done" : "ready") : "inert"} size={12} title={o.offered ? "nabízeno" : "nenabízeno"} /></span>
+                <span className="flex min-w-0 flex-col">
+                  <span>
+                    <span className="font-semibold">{t(`${R}.${o.source}`)}</span>
+                    {o.default ? <span className="text-ink-muted"> · {t(`${R}.default`)}</span> : null}
+                    {o.offered ? null : <span> · nenabízeno</span>}
+                  </span>
+                  <span className="text-xs text-ink-muted">{o.offered ? t(`${R}.${o.source}Help`) : <CodedWords inline coded={codeWords(`${R}.reason`, o.reason ?? "")} />}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      {chosen ? (
+        <p className="text-sm text-ink-muted">
+          Zdroj se volí ve Spuštění, u startu běhu, který ho zapíše.{" "}
+          <button type="button" className="text-signal underline" onClick={() => onOpen("fieldwork")}>Změnit ve Spuštění</button>
+        </p>
+      ) : null}
     </>
   );
 }

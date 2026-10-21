@@ -1,11 +1,11 @@
 ---
 status: in-progress
 chunks:
-  - "[ ] SMP1. Vzorek's contract as data: view operations, pointable ids (size, quota cell, forecast item, readiness check) and V2's interaction contract"
+  - "[x] SMP1. Vzorek's contract as data: view operations, pointable ids (size, quota cell, forecast item, readiness check) and V2's interaction contract"
   - "[ ] SMP2. Velikost a složení: n, the dimensions and the audience summarized; the panel's quota cells before a run, and for the fictional roster the words that it has none"
   - "[x] SMP3. Odhad podpory před během: the support forecast and the question outlook, labelled a forecast, never a result"
   - "[ ] SMP4. Připravenost ke spuštění: every readiness check with its stage link, on the working revision"
-  - "[ ] SMP5. Kdo bude odpovídat: the persona source offered, its default and why an unoffered one is not, read only here with a link to Spuštění, where it is chosen (SQ1 = Q54 b)"
+  - "[x] SMP5. Kdo bude odpovídat: the persona source offered, its default and why an unoffered one is not, read only here with a link to Spuštění, where it is chosen (SQ1 = Q54 b)"
   - "[ ] SMP6. Journey: Vzorek at 1440, 1100, 768 and 390 px, zero paid jobs"
 ---
 # Artifact: Vzorek (Sample)
@@ -139,6 +139,11 @@ field. (a) if the owner wants V2's layout exactly.
   @ 871c62c5`), so `supportForecastOf` reads `persona_source: "panel"` (or no `support_forecast`
   check) as "neznámé". A structured forecast on the readiness response would remove the rule's
   copy; not needed for SMP3.
+
+- **SMP6, first part (2026-10-21):** `workbench_journey.mjs` opens Vzorek at 1440, 1100, 768 and
+  390 px: the size and the server's forecast, read only, every `sample:` id present, no overflow,
+  Spuštění one click away, nothing paid. The readiness list and a check opening its stage join it
+  with SMP4; the chunk stays open until then.
 
 ## Doc follow-up
 

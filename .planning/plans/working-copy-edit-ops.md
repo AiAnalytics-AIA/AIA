@@ -10,7 +10,9 @@ chunks:
   - "[ ] WCE4. Presence (M2) and the change feed: `study_presence`, `GET …/workspace/ops?since=` (ADR 0029), a poll, two sessions"
   - "[ ] WCE5. Field-level merge, per (item_key, field) (D-06), and a stale rule that a later Design Revision does not defeat"
   - "[ ] WCE6. Per-change accept (M6): `proposal_change_decisions`, one change identity across the three accept routes, a dependency rule for coupled changes, `touched_items` returned to the web; any member with the accept permission may accept a proposal another member's Lead prepared (Q16), the chat text staying private"
-  - "[ ] WCE7. Readiness and impact on a working revision: readiness without a submitted Design Revision, "current / changed / re-check" per stage, and accepting a working copy as a revision"
+  - "[x] WCE7a. Readiness on a working revision: `GET …/research/readiness/working?working_revision=n`, the readiness a submit of that revision reads, nothing written"
+  - "[ ] WCE7b. The stages read it: Vzorek and Návrh on the working revision they show, no submit on a visit (Spuštění in artifact-fieldwork#FLD6)"
+  - "[ ] WCE7c. Impact per stage: "current / changed / re-check" against the run's Design Revision, and accepting a working copy as a revision"
   - "[ ] WCE8. Sociomap declarations: an editor for `sociomap_rating` and `context_objects`, the hard lock and `sociomap_unlock`"
   - "[ ] WCE8b. The questionnaire proposal keeps protected inputs and item identity (W2, with WCE8, before research-lead-workbench 7 and 17): declared batteries, tracked sets and rating questions copied from the baseline under their ids, never from model output; proposed items keep a baseline id"
   - "[ ] WCE9. Undo and restore of a person's edit, and a route that reads an old working revision"
@@ -67,6 +69,20 @@ The agent-job accept, Design Research `item_ids` and the Lead `indices` become o
 
 **WCE7. Readiness and impact on a working revision: readiness without a submitted Design Revision, "current / changed / re-check" per stage, and accepting a working copy as a revision**  
 Hand edits create no Design Revision today and `impact_preview` has no route for a study, so AC-07 cannot be tested as written. Test: edit the questionnaire after a run; the stages after it read "reopened" and the run says its design is older than the head.
+
+Split 2026-10-21 (owner: the Vzorek session, assigned by the PM) into three PRs:
+- **WCE7a, delivered.** `ResearchRuns.outlook_working(working_revision)` (`application/research.py`)
+  reads `StudyWorkspaceRepository.at_revision` and assesses it through the same `_assess` as
+  `outlook`, so a working revision and the Design Revision submitted from it (equal by hash) read
+  the same readiness. Its answerability names no Design Revision, so its digest never stands for
+  a start's acknowledgement. Route `GET /studies/{id}/research/readiness/working`
+  (`WorkingReadinessResponse`: the readiness fields and `working_revision`); a revision the Study
+  never saved is 404 `working_revision_not_found`. Test:
+  `test_readiness_reads_a_working_revision_without_submitting_a_design`.
+- **WCE7b.** Vzorek (`useSampleReadiness`) and Návrh's coverage read it, and a visit stops
+  submitting a Design Revision. Spuštění reads it while open and submits only at start, with that
+  revision's readiness checked again: the Sběr dat session's, in `artifact-fieldwork#FLD6`.
+- **WCE7c.** The impact rule and "accepting a working copy as a revision", the AC-07 test above.
 
 **WCE8. Sociomap declarations: an editor for `sociomap_rating` and `context_objects`, the hard lock and `sociomap_unlock`**  
 Nobody can set the declarations (zero web hits), so the lock has no subject. The unlock is a ledger row (`sociomap_unlock`, M3), warns, and cannot be called by the Lead. Test: the whole-copy route cannot change a locked item. Interfaces I11.

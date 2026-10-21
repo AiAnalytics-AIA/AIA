@@ -1,7 +1,7 @@
 ---
 status: in-progress
 chunks:
-  - "[ ] DSN1. Návrh's contract as data: view operations, pointable ids (rq, objective, hypothesis, set, assumption) and V2's interaction contract, in research-lead-workbench 14's and 16's tables"
+  - "[x] DSN1. Návrh's contract as data: view operations, pointable ids (rq, objective, hypothesis, set, assumption) and V2's interaction contract, in research-lead-workbench 14's and 16's tables"
   - "[ ] DSN2. Research questions with their coverage on the working revision: measures, items, comparison and gaps from research_trace, pokryto / částečně / mezera by the trace's own verdict"
   - "[ ] DSN3. The narrative as items: problem summary, objectives, hypotheses and comparable measurements edited in place and autosaved, ProposalEditor and MeasurementEditor retired"
   - "[ ] DSN4. Ve zprávě: each research question's report chapter and the analysis module answering it, from the newest run's stored report model"
@@ -132,6 +132,14 @@ když are not built. What stays is code-derived: measures, items, comparison, an
 - Replaces `ProposalEditor` and `MeasurementEditor`'s explicit save (A30, A33) with autosaved items.
 - Test: `PlanStep.test.tsx`: an RQ edited in place keeps its id; a set's items reach 15 and stop.
 - Depends on `input-interactions#4` and `working-copy-edit-ops#WCE3a`.
+- Progress (2026-10-21, `feature/design-narrative-items`): the narrative half landed on today's
+  store path. `PlanNarrative` edits the problem summary and each research question, objective and
+  hypothesis in place (`InlineText`), adds them in their list (`InlineCreateRow`) and takes a
+  removal back (`UndoToast`); `ProposalEditor` is retired (`research/plan-narrative.ts`,
+  `plan-narrative.test.ts`, `PlanStep.test.tsx`). A value edited in place is a button, in which a
+  browser selects no text, so a narrative item is commented on by its own "Komentovat" (quoting the
+  item whole); selection still comments elsewhere (A35). Stays open for `MeasurementEditor` folded
+  into the set card (A33) and the move onto WCE3a's vocabulary.
 
 **DSN4. Ve zprávě.**
 - From the newest completed run's stored report model: the section id (`ch-2`, and any

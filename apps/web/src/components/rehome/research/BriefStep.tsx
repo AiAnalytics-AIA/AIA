@@ -17,6 +17,12 @@ import { t, tv } from "@/i18n/t";
 import { workspace } from "@/lib/api";
 import { saveBlob } from "@/lib/download";
 import { type BriefMaterials, classLabel, classOf } from "@/lib/material-class";
+import { briefElementId, contextField, materialAia } from "@/lib/artifacts/brief";
+import { aiaId } from "@/lib/workbench-artifacts";
+import { OBJECTIVE_MAX, addObjective, objectivesEditable, objectivesOf, removeObjective, restoreObjective, setObjective } from "@/research/brief-objectives";
+import { InlineCreateRow } from "../../ui/InlineCreateRow";
+import { InlineText } from "../../ui/InlineText";
+import { UndoToast, useUndo } from "../../ui/UndoToast";
 import {
   type BriefingField,
   MAX_FILES_PER_PICK,
@@ -187,7 +193,7 @@ export function BriefStep() {
         <div className="mt-3 flex flex-wrap items-end gap-2">
           <label className="flex min-w-60 flex-1 flex-col gap-1">
             <span className="text-xs font-medium text-ink-muted">{t("research.brief.titleLabel")} · {t("research.brief.optional")}</span>
-            <TextInput className="w-full !rounded-control" value={titleValue(p)} placeholder={t("research.brief.titlePlaceholder")} onChange={(e) => edit("title", e.target.value)} />
+            <TextInput id={briefElementId("title")} className="w-full !rounded-control" value={titleValue(p)} placeholder={t("research.brief.titlePlaceholder")} onChange={(e) => edit("title", e.target.value)} />
           </label>
           <Button variant="quiet" className="!rounded-control" disabled={!goalLength} onClick={() => edit("title", titleFromGoal(goal))}>
             {t("research.brief.suggestTitle")}
@@ -195,9 +201,11 @@ export function BriefStep() {
         </div>
       </StepSection>
 
+      <Objectives />
+
       <StepSection
         id="brief-type"
-        n={2}
+        n={3}
         title={t("research.brief.typesTitle")}
         hint={t("research.brief.typesHelp")}
         aside={selected.size ? <span className="font-mono text-xs text-ink-muted">{tv("research.brief.readyTypesN", { n: selected.size })}</span> : null}
@@ -240,6 +248,66 @@ export function BriefStep() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * Cíle (artifact-brief BRF2): the study's objectives as items, each edited where it is shown, added
+ * in the list and removed with "Vrátit". The same list Návrh shows (brief-objectives.ts); each item
+ * is a Lead target, objective:<id>. None yet reads "Zatím prázdné", never the goal in their place.
+ */
+function Objectives() {
+  const { store, state } = useResearch();
+  const undo = useUndo();
+  const design = { project: state.project, analysis: state.analysis };
+  const items = objectivesOf(design);
+  const editable = objectivesEditable(design);
+  const remove = (index: number) => {
+    const { removed } = removeObjective(store.get(), index);
+    if (removed === null) return;
+    store.update((d) => removeObjective(d, index).design, { reason: "brief_objective_remove" });
+    undo.offer({
+      message: tv("research.brief.objectiveRemoved", { text: removed.length > 60 ? `${removed.slice(0, 57)}…` : removed }),
+      undo: () => store.update((d) => restoreObjective(d, index, removed), { reason: "brief_objective_restore" }),
+    });
+  };
+  return (
+    <StepSection id={briefElementId("objectives")} n={2} title={t("research.brief.objectivesTitle")} hint={t("research.brief.objectivesHint")}>
+      {items.length ? (
+        <ol className="flex flex-col gap-1.5">
+          {items.map((o, i) => (
+            <li key={o.id} data-aia={aiaId("objective", o.id)} className="flex items-start gap-2">
+              <span aria-hidden="true" className="mt-1.5 w-5 shrink-0 text-right font-mono text-xs text-ink-faint">{i + 1}.</span>
+              <InlineText
+                className="min-w-0 flex-1"
+                multiline
+                value={o.text}
+                label={tv("research.brief.objectiveLabel", { n: i + 1 })}
+                rules={{ maxLength: OBJECTIVE_MAX }}
+                onCommit={(text) => store.update((d) => setObjective(d, i, text), { reason: "brief_objective" })}
+              />
+              <Button small variant="quiet" aria-label={tv("research.brief.objectiveRemoveAria", { n: i + 1 })} onClick={() => remove(i)}>
+                ×
+              </Button>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="text-sm text-ink-muted">
+          {editable ? t("research.brief.objectivesEmpty") : t("research.brief.objectivesUnreadable")}
+        </p>
+      )}
+      {editable ? (
+        <InlineCreateRow
+          className="mt-2"
+          label={t("research.brief.objectiveAdd")}
+          maxLength={OBJECTIVE_MAX}
+          existing={items.map((o) => o.text)}
+          onCreate={(text) => store.update((d) => addObjective(d, text), { reason: "brief_objective_add" })}
+        />
+      ) : null}
+      <UndoToast offer={undo.current} onDone={undo.clear} />
+    </StepSection>
   );
 }
 
@@ -316,12 +384,12 @@ function ContextFields({ p, edit }: { p: ResearchProject; edit: (field: TopField
   const open = CONTEXT.filter((c) => opened.has(c.field) || contextValue(p, c.field));
   const closed = CONTEXT.filter((c) => !open.includes(c));
   return (
-    <StepSection id="brief-context" n={4} optional title={t("research.brief.contextTitle")} hint={t("research.brief.contextHint")}>
+    <StepSection id="brief-context" n={5} optional title={t("research.brief.contextTitle")} hint={t("research.brief.contextHint")}>
       <div className="flex flex-col gap-3">
         {open.map((c) => (
           <div key={c.field} className="flex flex-col gap-1">
             <span className="flex items-center justify-between gap-2 text-xs font-medium text-ink-muted">
-              <label htmlFor={`brief-${c.field}`}>{t(c.label)}</label>
+              <label htmlFor={briefElementId(contextField(c.field))}>{t(c.label)}</label>
               <button
                 type="button"
                 aria-label={tv("research.brief.contextRemoveAria", { label: t(c.label) })}
@@ -335,7 +403,7 @@ function ContextFields({ p, edit }: { p: ResearchProject; edit: (field: TopField
               </button>
             </span>
             <textarea
-              id={`brief-${c.field}`}
+              id={briefElementId(contextField(c.field))}
               rows={2}
               placeholder={t(`research.brief.examples.${c.field}`)}
               value={contextValue(p, c.field)}
@@ -349,6 +417,7 @@ function ContextFields({ p, edit }: { p: ResearchProject; edit: (field: TopField
             {closed.map((c) => (
               <button
                 key={c.field}
+                id={briefElementId(contextField(c.field))}
                 type="button"
                 onClick={() => setOpened((s) => new Set([...s, c.field]))}
                 className={`inline-flex items-center gap-1 rounded-pill border border-border bg-surface px-3 py-1 text-[13px] leading-5 text-ink hover:border-signal hover:text-signal ${FOCUS}`}
@@ -484,7 +553,7 @@ function Attachments({ uploads }: { uploads: Uploads }) {
   return (
     <StepSection
       id="brief-files"
-      n={3}
+      n={4}
       optional
       title={t("research.brief.filesTitle")}
       hint={t("research.brief.attachHelpAnywhere")}
@@ -549,8 +618,9 @@ function Attachments({ uploads }: { uploads: Uploads }) {
             const missing = x.kind !== "url" && !stored;
             const b = badge(x);
             const cls = classOf(classes, state.revision, x, i);
+            const first = stored !== null && list.findIndex((y) => storedAttachmentId(y) === stored) === i;
             return (
-              <li key={`${i}-${x.sha256 || x.url || x.filename}`} className="flex items-center gap-3 border-b border-border px-2.5 py-2 last:border-b-0">
+              <li key={`${i}-${x.sha256 || x.url || x.filename}`} data-aia={first ? materialAia(stored) : undefined} className="flex items-center gap-3 border-b border-border px-2.5 py-2 last:border-b-0">
                 <span aria-hidden="true" className={`inline-flex h-7 min-w-10 items-center justify-center rounded-md px-1 font-mono text-[10px] font-semibold ${b.look}`}>{b.label}</span>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-medium">{line.name}</div>

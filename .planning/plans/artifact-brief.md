@@ -1,7 +1,7 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] BRF1. The Brief's contract as data: its view operations, its pointable element ids and V2's interaction contract, registered in research-lead-workbench 14's vocabulary and 16's target table"
+  - "[x] BRF1. The Brief's contract as data: its view operations, its pointable element ids and V2's interaction contract, registered in research-lead-workbench 14's vocabulary and 16's target table"
   - "[ ] BRF2. The Brief body as V2 draws it: Cíle, Rozhodnutí, Kontext and Podklady as items edited in place over the working copy, autosaved"
   - "[ ] BRF3. Podklady with their data class: the attachments and picked client sources served with the class material_rules gives them, shown as chips; links and removal with undo"
   - "[ ] BRF4. The Lead on the Brief: analyze_brief as a Lead card, its proposal inline, the stage's own AI start removed"
@@ -133,6 +133,13 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
 - Depends on `research-lead-workbench#14` and `#16`. It lands as their first consumer if they ship
   together.
 
+- *Landed* (`apps/web/src/lib/artifacts/brief.ts`): `brief:<field>` for every field and section
+  (`briefing.<field>` as the Lead's edits name it) and `material:<attachment_id>` for a file kept in
+  AIA, each one element by the screen's `brief-<field>` id or the row's `data-aia`; an empty context
+  field is named by its chip. Agreed with the integration coordinator: the target kinds are
+  `objective` and `material` of their own (#563), not `brief.<section>.<item>`. `objective:<id>`
+  joins with BRF2. A link has no stable id and is not a target yet.
+
 **BRF2. The body as V2 draws it.**
 - `BriefStep` keeps its data and its save; its layout becomes V2's four sections (Předpoklady is a
   link, B-6) built from the existing primitives.
@@ -142,6 +149,13 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
     changes only that item's text in the saved copy; Esc restores it.
   - A study that has no objectives yet shows "Zatím prázdné", not a placeholder (D13).
 - Depends on `input-interactions#1` and `#4`, and on `working-copy-edit-ops#WCE3a`.
+
+- *Landed, Cíle* (`apps/web/src/research/brief-objectives.ts`, BriefStep `Objectives`): the
+  objectives as items on the Brief, read and written where Návrh keeps them (`research_plan` and
+  the analysis together, as `plan-edit.ts` does), each `objective:<item id>`, edited in place
+  (InlineText), added in the list (InlineCreateRow), removed with Vrátit (UndoToast); none reads
+  "Zatím prázdné". On today's whole-copy store; WCE3a moves it onto the edit vocabulary. Still to
+  come in BRF2: Rozhodnutí and Kontext as items, Předpoklady as a link.
 
 **BRF3. Podklady with their class.**
 - API: the attachments listing and the brief's picked sources answer each item's `data_class` and

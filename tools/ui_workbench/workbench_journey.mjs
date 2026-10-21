@@ -8,7 +8,8 @@
  * (the split, the side drawer and the sheet, research-lead-workbench 26b-26c): no page overflow,
  * nothing remounted across 1100 or 768 px, the Lead opened from the launcher and closed by Escape, the eleven stages in six phases, the separator by
  * keyboard, the focus modes, the stage navigation (Výsledky's views by hash), Návrh's research
- * questions with their coverage at 1440, 1100, 768 and 390 px, and that nothing
+ * questions with their coverage at 1440, 1100, 768 and 390 px, Vzorek read only with the server's
+ * forecast at the same four widths, and that nothing
  * paid starts: no research run, agent job, Deep Research run or Lead request approval.
  */
 import assert from "node:assert/strict";
@@ -82,6 +83,13 @@ try {
   assert(await page.locator(".art .arthead__title").innerText() === "Zadání");
   await noOverflow("brief @1440");
   await shot("1440-brief");
+
+  // The Brief's Lead targets (artifact-brief BRF1): each field the contract names is one element
+  // (an empty context field by its chip), and a name it does not hold finds nothing.
+  const BRIEF_FIELDS = ["goal", "title", "objectives", "type", "files", "context", "briefing.product_description", "decision_use", "briefing.situation", "briefing.what_is_known", "briefing.constraints"];
+  for (const f of BRIEF_FIELDS) assert.equal(await page.locator(`[id="brief-${f}"]`).count(), 1, `brief:${f}`);
+  assert.equal(await page.locator('[id="brief-situation"]').count(), 0, "brief:situation is not a target");
+  check("every Brief target the contract names is one element");
 
   // The separator: keyboard moves it 2 % within 28-62 %; Home goes back to 40 %.
   const sep = page.getByRole("separator", { name: "Změnit poměr konverzace a artefaktu" });
@@ -226,6 +234,56 @@ try {
     await coverage.screenshot({ path: join(out, `${width}-plan-coverage.png`) });
   }
   check("Návrh shows its research questions' coverage at 1440, 1100, 768 and 390, no overflow");
+
+  // Cílová skupina names what the Lead can focus (data-aia, the artifact contract's row `audience`):
+  // the description, the filters, each factor by its catalogue id and the preview, at every width.
+  const aud = fixtures.audience;
+  for (const width of [1440, 1100, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(base + `/app/clients/${aud.client}/research/${aud.study}/audience`);
+    await page.locator('[data-aia="audience:definition"]').waitFor({ timeout: 30000 });
+    for (const target of ["audience:definition", "audience:filters", "audience:preview"]) {
+      await page.locator(`[data-aia="${target}"]`).waitFor({ timeout: 30000 });
+      assert.equal(await page.locator(`[data-aia="${target}"]`).count(), 1, `${target} @${width}`);
+    }
+    // Every stored filter's chip carries its target, whichever factors the editor shows.
+    const chips = await page.getByRole("button", { name: /^Odebrat filtr/ }).count();
+    assert.equal(await page.locator('[data-aia^="audience:filter:"]').count(), chips, `a target per stored filter @${width}`);
+    await noOverflow(`audience @${width}`);
+    await shot(`${width}-audience`);
+  }
+  check("Cílová skupina names its description, filters, factors and preview at 1440, 1100, 768 and 390");
+
+  // Vzorek (artifact-sample SMP6): read only, at every width. Its forecast is the server's, labelled
+  // a forecast, on the revision it was read on; nothing on it sets n or starts anything.
+  for (const width of [1440, 1100, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(base + stagePath("dimensions") + "#sample");
+    const sample = page.locator("[data-sample-view]");
+    await sample.waitFor({ timeout: 30000 });
+    const forecast = page.getByRole("region", { name: "Odhad podpory před během" });
+    await forecast.getByText("odhad, ne výsledek").waitFor();
+    // The journey's identity edits, so Vzorek reads readiness on the revision its copy submits to:
+    // the empty state ("odhad není") or a failed read is a failure here, never a pass.
+    await forecast.getByText(/Podle revize návrhu|odhad není|nepodařilo načíst/).first().waitFor({ timeout: 30000 });
+    assert.equal(await forecast.getByText(/Podle revize návrhu \d+/).count(), 1, `Vzorek's forecast read on a revision @${width}`);
+    // Read only: no editable surface of any kind, and every button one of its navigation links.
+    const editable = "input, select, textarea, [contenteditable]:not([contenteditable='false']), [role=slider], [role=spinbutton], [role=textbox], [role=checkbox], [role=radio], [role=switch], [role=combobox]";
+    assert.equal(await sample.locator(editable).count(), 0, `Vzorek has no editable control @${width}`);
+    const NAVIGATION = new Set(["Upravit v Dimenzích", "Upravit cílovou skupinu", "Sociomapa", "Změnit ve Spuštění", "Ověřit v Kontrole a spuštění"]);
+    const buttons = (await sample.locator("button, [role=button]").allInnerTexts()).map((b) => b.trim());
+    assert.deepEqual(buttons.filter((b) => !NAVIGATION.has(b)), [], `Vzorek's buttons only navigate @${width}`);
+    for (const id of ["sample:size", "sample:n", "sample:forecast", "sample:forecast:support", "sample:forecast:outlook"]) {
+      assert.equal(await sample.locator(`[data-aia="${id}"]`).count(), 1, `${id} @${width}`);
+    }
+    await noOverflow(`sample @${width}`);
+    await sample.screenshot({ path: join(out, `${width}-sample.png`) });
+  }
+  // Its links open the stages where things are set.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.getByRole("button", { name: "Ověřit v Kontrole a spuštění" }).click();
+  await page.locator(".nav__stage.is-current", { hasText: "Sběr dat" }).waitFor();
+  check("Vzorek: size and the server's forecast at 1440, 1100, 768 and 390, read only, no overflow; Spuštění one click away");
 
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");
