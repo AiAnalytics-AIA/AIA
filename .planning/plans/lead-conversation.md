@@ -97,17 +97,20 @@ in the compact drawer.
 **LC3. The decision digest.** A pure projection over the ledger rows and turns of this conversation
 (`lead_edit`, `lead_job_request`, `lead_self_update`, plan and lookup rows when they exist), each line
 with its turn id and ledger row id, each at most 200 bytes. It goes in layer 10, within its 8 KB share
-and in ADR 0041 decision 4's order:
-1. decisions on items the message, the focus or a pin names;
-2. undecided proposals;
-3. the latest decision per item;
-4. counts.
+in ADR 0041 decision 4's four capped groups:
+1. decisions on named items (4 KB; per item, the newest 3, newest first);
+2. undecided proposals on the active path (2 KB; newest first);
+3. the latest decision per other item (what is left);
+4. counts (256 bytes, reserved).
 
-The rest is counted, with its ledger range in the manifest (ADR 0041 decision 3), and pages from it.
+A group under its cap leaves its bytes to group 3. A decision left out pages from its ledger range,
+an undecided proposal from its turn range, both in the manifest (ADR 0041 decision 3).
 
 Tests:
 - the same ledger gives the same digest;
 - a dismissed edit from turn 3 is in turn 40's context when its item is named;
+- 40 decisions on one named item and 60 undecided proposals keep every group within its cap, and
+  each omission pages from its ledger or turn range;
 - 500 decisions stay within 8 KB, the stored manifest stays bounded (counts and a range), and every
   omitted decision pages from that range;
 - no line is rewritten.
@@ -192,10 +195,14 @@ applied to turns). Facts are never compacted; a later fact supersedes one by nam
 - a superseded fact leaves the context with its successor named;
 - turn 61 of a 60-turn recording holds every kept fact.
 
-**LC8. Summaries and facts corrected in place.** `PUT …/lead/memory/{id}` (one's own conversation)
+**LC8. Summaries and facts corrected in place, references kept.** References are fixed chips; a
+sentence without one is refused in place; a turn left unreferenced returns to the uncovered-terms
+index (recomputed); the number rule applies; the coverage floor does not. `PUT …/lead/memory/{id}` (one's own conversation)
 corrects, pins or retires a summary or a fact. The person's revision is kept as written and is
 audited, and later roll-ups build on it. Tests:
 - a corrected summary is in the next turn's context verbatim;
+- a correction that leaves a sentence without a reference is refused;
+- deleting the only sentence about turn 9 puts turn 9's words in the uncovered-terms index;
 - a retired fact is not in it;
 - numbers in a correction follow the same rule.
 
@@ -210,11 +217,15 @@ Everything retrieved is recorded in the manifest with its reason. Tests:
 - a forgotten note is never retrieved;
 - another client's note is never retrieved.
 
-**LC10. Regenerate, edit-and-resend, retry.** Migration: `replaces_turn_id` (set on insert, never updated; `parent_turn_id` comes with LC5).
+**LC10. Regenerate, edit-and-resend, retry, and the active path.** One `active_path` predicate
+(ADR 0041 decision 7) used by freezing, retrieval, compaction and the digest; compaction never
+covers the two newest active exchanges. Migration: `replaces_turn_id` (set on insert, never updated; `parent_turn_id` comes with LC5).
 Routes: `POST …/turns/{id}/regenerate`, `POST …/turns/{id}/resend` (edited text). The replaced turn's
 undecided output refused `superseded_turn`. The web edits the message in place and collapses the
 replaced turn. Tests: regenerate after an accepted edit is refused; a superseded card's approve is
-refused; history keeps both turns.
+refused; history keeps both turns; after a regenerate and after an edit-and-resend the next turn's
+context, retrieval candidates, summaries and digest hold no superseded turn; a Lead turn answering
+a replaced message is inactive.
 
 **LC11. Pins.** `study_lead_pins` (researcher, study, kind, ref, pinned revision, created_at,
 removed_at); layer 8, its floor the accepted pins' bytes, reserved in the floor pass. Tests: a pin

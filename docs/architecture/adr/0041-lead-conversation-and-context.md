@@ -91,7 +91,7 @@ its values are proposed here, to be set from LO14's measurement:
 | 8 | Pinned items (decision 6) | the accepted pins' bytes | 8 KB | refuse the pin when it is made; an accepted pin is reserved in the floor pass, never dropped at a turn |
 | 9 | View and the message(s) | as written | 12 KB | queued messages oldest first while they fit; the rest answered by a follow-on turn, named (decision 7) |
 | 10 | Conversation memory (M3): digest, kept facts, summaries | 6 KB | 16 KB | the digest within its 8 KB share by decision 4's order, older decisions counted with their ledger range (decision 3); oldest blocks rolled up; oldest unpinned facts to retrieval; all named |
-| 11 | Conversation, verbatim | 8 KB | what is left | oldest first, **only turns a summary covers**, else decision 4's fallback |
+| 11 | Conversation, verbatim (active path only, decision 7) | 8 KB | what is left | oldest first, **only turns a summary covers**, else decision 4's fallback |
 
 **The allocation is global, in two passes, so the total cannot exceed 96 KB.** The ceilings sum to
 more than 96 KB on purpose, because most layers are small most of the time. `freeze_context`
@@ -161,15 +161,25 @@ parts, from exact to approximate:
      immutable, so no decision is ever lost. What is bounded is how much of it a turn carries.
    - **Each line is exact and short:** at most 200 bytes, with the item, the decision, the turn id
      and the ledger row id.
-   - **Its share is 8 KB of layer 10,** filled in this order:
-     1. every decision on an item the message, the focus or a pin names;
-     2. every undecided proposal, as a one-line pointer to the turn holding it;
-     3. the latest decision per item, newest first;
-     4. then counts per kind ("14 older edit decisions, 3 cards").
-   - **Nothing is rewritten.** A decision that does not fit is left out and counted. The manifest
-     records the ledger range it came from (decision 3), so each one can be paged by its ledger
-     row id. Retrieval (decision 5) brings it back exactly when its item is
-     named.
+   - **Its share is 8 KB of layer 10, in four groups.** Each group has its own cap and a
+     deterministic order inside it, so no group can starve the others:
+
+     | Group | Cap | Order inside the group |
+     |---|---|---|
+     | 1. Decisions on items the message, focus or a pin names | 4 KB | Items in the order they are named, then the newest 3 decisions per item, newest first; the rest counted per item |
+     | 2. Undecided proposals on the active path (decision 7) | 2 KB | Newest first, one pointer line each |
+     | 3. The latest decision per other item | whatever groups 1 and 2 left | Newest first |
+     | 4. Counts per kind | 256 bytes, always reserved | "14 older edit decisions, 3 cards" |
+
+     A group under its cap leaves its bytes to group 3.
+   - **Nothing is rewritten, and every omission has a source to page from.**
+     - A decision left out of groups 1 or 3 is counted, and the manifest records its **ledger
+       range** (decision 3).
+     - An undecided proposal left out of group 2 lives in a turn's output, not the ledger. The
+       manifest records the **turn range** that holds it.
+     - Both page through "Co Vedoucí vidí".
+     - Retrieval (decision 5) brings a decision back exactly when its item is named, and the newest
+       omitted undecided proposals when the message names their stage.
 2. **Kept facts (*Držená fakta*), grounded.** Statements the conversation established that are not
    ledger decisions: "the client wants the report in English", "region is not a quota", "the
    pilot is in Brno". The compaction step proposes them; each must carry a quote that code locates,
@@ -178,7 +188,8 @@ parts, from exact to approximate:
    compacted: a later fact may supersede one by naming it, and the researcher can pin, correct or
    retire any (in place, decision 11). Bounded (40 facts, 300 characters each); over the bound the
    oldest unpinned facts move to retrieval, named in the manifest.
-3. **Hierarchical summaries, each line referenced.** Turns are summarised in fixed blocks of eight
+3. **Hierarchical summaries, each line referenced.** Active turns (decision 7) older than the two
+   newest active exchanges are summarised in fixed blocks of eight
    *after* the reply, by a follow-on step `research_lead_compact`, so the person never waits.
    - A **block summary** covers one block. Every sentence ends with the turn ids it rests on
      (`[t12, t14]`), each within the block.
@@ -232,8 +243,17 @@ exactly that the first thing retrieval looks for:
 
 - **Not research truth:** labelled *shrnutí konverzace*; never a source of the study context file,
   knowledge or a report.
-- **Correctable in place:** the researcher rewrites a summary or a fact inline in "Co Vedoucí vidí";
-  a person's revision (`created_by = person`) is kept as written, and later roll-ups build on it.
+- **Correctable in place, references kept.** The researcher rewrites a summary or a fact inline in
+  "Co Vedoucí vidí". A person's revision (`created_by = person`) passes the same preservation
+  check as a model's, except the coverage floor:
+  - **Each sentence keeps its references.** They show as fixed chips the person can move or remove
+    but cannot type. A sentence left without any is refused in place, with the reason.
+  - **Deleted sentences.** A turn that loses its last referencing sentence must still be referenced
+    by another sentence or a digest line. Otherwise its words go back into the uncovered-terms
+    index, which is recomputed for the revision, and retrieval still finds it.
+  - **Numbers.** The number rule applies.
+  - **Later roll-ups build on the revision,** so every summary sentence stays expandable to its
+    turns.
 - **Paid and switched:** `AIA_AI_RESEARCH_LEAD_COMPACTION_ENABLED` (off by default, on for develop
   once measured), with its own `…_MAX_OUTPUT_TOKENS` and `…_RESERVATION_USD`, charged to the wallet
   like a turn and shown with its cost. It names `ModelCapability.STUDY_LEAD_SUMMARY`, bound to the
@@ -301,7 +321,21 @@ A message's state is derived, never stored:
 - **withdrawn:** a person message named by a later row of kind `withdrawal` (`parent_turn_id` = the
   message).
 
-The table holds a tree. The MVP's interface shows the current path, with superseded turns collapsed.
+The table holds a tree. **The active path** is the one predicate that freezing, retrieval,
+compaction and the digest all use. A turn is active when:
+
+- no later row names it by `replaces_turn_id`, and no `withdrawal` names it;
+- the turn its `parent_turn_id` names is active;
+- for a Lead turn, every person message it answers is still active when the turn is read. A Lead
+  turn answering a message later replaced by an edit-and-resend is therefore inactive with it.
+
+Inactive turns stay stored. The interface shows them collapsed, and the researcher can open them.
+They never enter layer 11, the retrieval candidates, a summary block or the digest's undecided
+group. Their undecided output is refused as `superseded_turn`.
+
+**Compaction stays out of the replaceable window.** Regenerate and edit-and-resend act only on the
+newest exchange (decision 7). Compaction covers only turns older than the two newest active
+exchanges, so a covered turn can never be superseded afterwards.
 
 - **Queued messages are stored at once.** A message posted while a turn runs is a stored turn,
   visible in every tab. The next turn answers the queued messages in order. Each stays its own
@@ -427,7 +461,12 @@ completes (a polite live region), never per token.
   refused; a roll-up keeps its children's references; a constraint a summary left out is in its
   turn's uncovered terms and brings that turn back verbatim when named; a summary under the
   coverage floor is refused; with every layer at its ceiling an accepted pin is still whole; an
-  edited queued message sends only its edit, and its original is never marked answered.
+  edited queued message sends only its edit, and its original is never marked answered; after a
+  regenerate or an edit-and-resend the next turn's context, retrieval candidates, summaries and
+  digest hold no superseded turn; a person's correction that leaves a sentence without a reference
+  is refused, and a turn it un-references returns to the uncovered-terms index; 40 decisions on one
+  named item and 60 undecided proposals keep the digest within 8 KB, every group within its cap,
+  each omission pageable from its ledger or turn range.
 - The recall test (decision 4, *Measured*): on a recorded 60-turn conversation, turn 61's context
   holds every kept fact and every digest decision, either in context or reachable through the
   manifest's ledger range and retrieved exactly when its item is named; a message naming a summarised subject
