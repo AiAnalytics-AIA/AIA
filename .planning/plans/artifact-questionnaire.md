@@ -111,6 +111,12 @@ V2: `QuestionnaireArt` (`DesignStages.tsx:95-142`).
 - Tests: `QuestionnaireStep.test.tsx`: the strip's coverage pill is a gap for an unmeasured RQ; ten
   Enters make ten options.
 - Depends on `input-interactions#1`, `#3` and `working-copy-edit-ops#WCE3b`.
+- *Progress (feature/questionnaire-strip):* the strip alone, which needs none of those: the items a
+  respondent answers and coverage per stated research question (`trace.ts` `coverageOf`), read as
+  `research_trace.py:242-259` reads it: unknown until an item declares a link, never a gap; the
+  length says "Délka zatím neodhadnuta" until QQ1/QST7. Tests: `trace.test.ts`,
+  `QuestionnaireStrip.test.tsx`. The rows edited in place and the item pills stay open, behind the
+  dependencies above; QST2 stays unticked.
 
 **QST3. Protected inputs.**
 - The lock line and the server's refusal text at the item.

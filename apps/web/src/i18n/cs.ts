@@ -2021,6 +2021,17 @@ export const cs = {
       readyTitle: "Dotazník",
       readyCounts: "{questions} otázek · {sets} sledovaných sad",
       readyCountsDetail: "Běžné otázky a sady k porovnání",
+      // The strip (artifact-questionnaire QST2): items and coverage per research question.
+      strip: {
+        label: "Dotazník v číslech",
+        items: { one: "1 položka pro respondenty", few: "{n} položky pro respondenty", many: "{n} položek pro respondenty" },
+        coverage: "Pokrytí výzkumných otázek",
+        rq: "VO{n}",
+        measured: "VO{n}: {rq} · měří {count}",
+        gap: "VO{n}: {rq} · žádná položka ji neměří",
+        unlinked: "Pokrytí neznámé: žádná položka zatím neuvádí, kterou výzkumnou otázku měří.",
+        noLength: "Délka zatím neodhadnuta",
+      },
       chooseTitle: "Jak chcete dotazník vytvořit?",
       chooseIntro: "Nemusíte znát interní datovou strukturu. Vyberte jednu ze tří cest.",
       pathUpload: "Nahrát Excel",
