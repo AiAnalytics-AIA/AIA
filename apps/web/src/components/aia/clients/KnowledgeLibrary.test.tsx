@@ -48,14 +48,22 @@ function api(overrides: Record<string, (body: unknown, url: string) => unknown> 
       const routes: Record<string, (b: unknown, url: string) => unknown> = {
         "GET /config": () => ({ cognitoDomain: "", cognitoClientId: "", publicOrigin: "http://localhost", apiBase: "", build: { sha: null } }),
         [`GET ${base}`]: (_b, url) => {
-          const folder = new URL(url, "http://x").searchParams.get("folder");
-          return folder ? ITEMS.filter((i) => (folder === "unfiled" ? !i.folder_id : i.folder_id === folder)) : ITEMS;
+          const params = new URL(url, "http://x").searchParams;
+          const folder = params.get("folder");
+          const label = params.get("label");
+          return ITEMS.filter((i) => !folder || (folder === "unfiled" ? !i.folder_id : i.folder_id === folder)).filter((i) => !label || (i.label_ids as string[]).includes(label));
         },
         [`GET ${base}/folders`]: () => FOLDERS,
         [`GET ${base}/labels`]: () => LABELS,
         [`GET ${base}/items/KNW-1/revisions`]: () => REVISIONS,
         [`PUT ${base}/placement`]: () => [],
-        [`POST ${base}/folders`]: () => ({ folder_id: "KNF-2", name: "Nová", item_count: 0 }),
+        [`POST ${base}/folders`]: (b) => ({ folder_id: "KNF-2", item_count: 0, ...(b as object) }),
+        [`PUT ${base}/folders/KNF-1`]: (b) => ({ folder_id: "KNF-1", item_count: 1, ...(b as object) }),
+        [`DELETE ${base}/folders/KNF-1`]: () => new Response(null, { status: 204 }),
+        [`POST ${base}/labels`]: (b) => ({ label_id: "KNL-9", item_count: 0, ...(b as object) }),
+        [`PUT ${base}/labels/KNL-1`]: (b) => ({ ...LABELS[0], ...(b as object) }),
+        [`PUT ${base}/labels/KNL-2`]: (b) => ({ ...LABELS[1], ...(b as object) }),
+        [`DELETE ${base}/labels/KNL-1`]: () => new Response(null, { status: 204 }),
         [`POST ${base}/proposals`]: (b) => ({ proposal_id: "KNP-9", status: "APPROVED", ...(b as object) }),
         [`GET ${base}/proposals`]: () => [],
         "GET /api/v1/clients/CLI-a": () => CLIENT,
@@ -89,8 +97,15 @@ const open = (client: typeof CLIENT = CLIENT) =>
       <KnowledgeArea />
     </ClientValue>,
   );
-const nav = () => within(screen.getByRole("navigation", { name: "Pohledy, složky a štítky" }));
+const navEl = () => screen.getByRole("navigation", { name: "Pohledy, složky a štítky" });
+const nav = () => within(navEl());
 const table = () => screen.getByRole("table", { name: "Znalosti klienta" });
+const BASE = "/api/v1/clients/CLI-a/knowledge";
+/** Opens the menu button `menu` inside `where` and chooses `item` from it. */
+const choose = (where: HTMLElement, menu: string, item: string) => {
+  fireEvent.click(within(where).getByRole("button", { name: menu }));
+  fireEvent.click(within(within(where).getByRole("menu", { name: menu })).getByRole("menuitem", { name: item }));
+};
 
 describe("the knowledge library", () => {
   it("lists the client's knowledge with where each item is filed", async () => {
@@ -137,14 +152,38 @@ describe("the knowledge library", () => {
     await screen.findByText("Hlavní konkurenti");
     fireEvent.click(screen.getByRole("checkbox", { name: "Vybrat Výroční zpráva" }));
     fireEvent.click(screen.getByRole("checkbox", { name: "Vybrat Pobočky se zmenší" }));
-    const bar = within(screen.getByRole("region", { name: "Hromadné úpravy vybraných znalostí" }));
+    const region = screen.getByRole("region", { name: "Hromadné úpravy vybraných znalostí" });
+    const bar = within(region);
     expect(bar.getByText("Vybráno: 2")).toBeTruthy();
-    fireEvent.change(bar.getByRole("combobox", { name: "Přesunout do složky…" }), { target: { value: "KNF-1" } });
+    // Filing is a menu, never a select that files on change (input-interactions I3, audit D11).
+    expect(bar.queryByRole("combobox")).toBeNull();
+    choose(region, "Přesunout do složky", "Trh a konkurence");
     await waitFor(() => expect(sent("PUT", "/placement")[0].body).toEqual({ item_ids: ["KNW-2", "KNW-3"], folder_id: "KNF-1" }));
-    fireEvent.change(bar.getByRole("combobox", { name: "Přidat štítek…" }), { target: { value: "KNL-2" } });
+    choose(region, "Přidat štítek", "ověřit");
     await waitFor(() => expect(sent("PUT", "/placement")[1].body).toEqual({ item_ids: ["KNW-2", "KNW-3"], add_labels: ["KNL-2"] }));
-    fireEvent.change(bar.getByRole("combobox", { name: "Přesunout do složky…" }), { target: { value: "none" } });
-    await waitFor(() => expect(sent("PUT", "/placement")[2].body).toEqual({ item_ids: ["KNW-2", "KNW-3"], folder_id: null }));
+    choose(region, "Odebrat štítek", "retail");
+    await waitFor(() => expect(sent("PUT", "/placement")[2].body).toEqual({ item_ids: ["KNW-2", "KNW-3"], remove_labels: ["KNL-1"] }));
+    choose(region, "Přesunout do složky", "Bez složky");
+    await waitFor(() => expect(sent("PUT", "/placement")[3].body).toEqual({ item_ids: ["KNW-2", "KNW-3"], folder_id: null }));
+  });
+
+  it("files nothing while the arrows move through a bulk menu; Enter files the one reached (audit IA-6)", async () => {
+    api();
+    open();
+    await screen.findByText("Hlavní konkurenti");
+    fireEvent.click(screen.getByRole("checkbox", { name: "Vybrat Výroční zpráva" }));
+    const bar = within(screen.getByRole("region", { name: "Hromadné úpravy vybraných znalostí" }));
+    const move = bar.getByRole("button", { name: "Přesunout do složky" });
+    fireEvent.keyDown(move, { key: "ArrowDown" });
+    const items = within(bar.getByRole("menu", { name: "Přesunout do složky" })).getAllByRole("menuitem");
+    await waitFor(() => expect(document.activeElement).toBe(items[0]));
+    fireEvent.keyDown(items[0], { key: "ArrowDown" });
+    expect(document.activeElement).toBe(items[1]);
+    expect(sent("PUT", "/placement")).toHaveLength(0);
+    // Enter on a menu item is the button's own click.
+    fireEvent.click(items[1]);
+    await waitFor(() => expect(sent("PUT", "/placement")[0].body).toEqual({ item_ids: ["KNW-2"], folder_id: null }));
+    expect(document.activeElement).toBe(move);
   });
 
   it("opens an item beside the list: its history, an edit as a new revision, its folder and labels", async () => {
@@ -164,10 +203,21 @@ describe("the knowledge library", () => {
       expect(sent("POST", "/proposals")[0].body).toEqual({ kind: "ENTITY", title: "Hlavní konkurenti v retailu", summary: "Dva hlavní.", content: { aliases: ["Konkurent A"] }, item_id: "KNW-1", base_revision: 2 }),
     );
 
-    fireEvent.change(panel.getByRole("combobox", { name: "Složka" }), { target: { value: "none" } });
+    // Its folder and labels are filed by menu (audit D13): the folder it is in is offered, not chosen.
+    const aside = screen.getByRole("complementary", { name: "Otevřená znalost" });
+    expect(within(panel.getByRole("group", { name: "Složka" })).getByText("Trh a konkurence")).toBeTruthy();
+    fireEvent.click(panel.getByRole("button", { name: "Změnit složku" }));
+    expect((panel.getByRole("menuitem", { name: "Trh a konkurence" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(panel.getByRole("button", { name: "Změnit složku" }));
+    choose(aside, "Změnit složku", "Bez složky");
     await waitFor(() => expect(sent("PUT", "/placement")[0].body).toEqual({ item_ids: ["KNW-1"], folder_id: null }));
     fireEvent.click(panel.getByRole("button", { name: "Odebrat štítek retail" }));
     await waitFor(() => expect(sent("PUT", "/placement")[1].body).toEqual({ item_ids: ["KNW-1"], remove_labels: ["KNL-1"] }));
+    // "Přidat štítek" offers only the labels it does not carry.
+    fireEvent.click(panel.getByRole("button", { name: "Přidat štítek" }));
+    expect(panel.queryByRole("menuitem", { name: "retail" })).toBeNull();
+    fireEvent.click(panel.getByRole("menuitem", { name: "ověřit" }));
+    await waitFor(() => expect(sent("PUT", "/placement")[2].body).toEqual({ item_ids: ["KNW-1"], add_labels: ["KNL-2"] }));
   });
 
   it("says an edit waits when the client asked for independent review", async () => {
@@ -270,7 +320,180 @@ describe("the knowledge library", () => {
     fireEvent.click(screen.getByRole("button", { name: /Hlavní konkurenti/ }));
     const panel = within(await screen.findByRole("complementary", { name: "Otevřená znalost" }));
     expect(panel.queryByRole("textbox")).toBeNull();
-    expect((panel.getByRole("combobox", { name: "Složka" }) as HTMLSelectElement).disabled).toBe(true);
+    expect(within(panel.getByRole("group", { name: "Složka" })).getByText("Trh a konkurence")).toBeTruthy();
+    expect(panel.queryByRole("button", { name: "Změnit složku" })).toBeNull();
+    expect(panel.queryByRole("button", { name: "Přidat štítek" })).toBeNull();
+    // Nothing in the side panel renames, recolours or deletes for a reader either.
+    expect(nav().queryByRole("button", { name: /^Akce / })).toBeNull();
+    expect(nav().queryByRole("button", { name: /^Barva štítku/ })).toBeNull();
+    expect(nav().queryByRole("button", { name: "Nový štítek" })).toBeNull();
+  });
+
+  it("asks the API once the typing pauses, never letter by letter (audit D9, IA-4)", async () => {
+    api();
+    open();
+    await screen.findByText("Hlavní konkurenti");
+    const search = screen.getByRole("searchbox", { name: "Hledat ve znalostech" });
+    const asked = () => sent("GET", "").filter((c) => new URL(c.url, "http://x").searchParams.has("q"));
+    for (const typed of ["s", "se", "seg", "segm"]) fireEvent.change(search, { target: { value: typed } });
+    expect(asked()).toHaveLength(0);
+    await waitFor(() => expect(asked()).toHaveLength(1));
+    expect(new URL(asked()[0].url, "http://x").searchParams.get("q")).toBe("segm");
+    // Spaces alone change nothing that is asked.
+    fireEvent.change(search, { target: { value: "segm  " } });
+    await new Promise((r) => setTimeout(r, 400));
+    expect(asked()).toHaveLength(1);
+  });
+});
+
+// ---- folders and labels in the list (input-interactions chunk 2, audit D1-D7) -------------
+
+describe("folders and labels, organized where they are listed", () => {
+  it("renames a folder in place from its menu: Enter saves, no dialog, focus back on the row", async () => {
+    api();
+    open();
+    await nav().findByRole("button", { name: "Trh a konkurence 1" });
+    choose(navEl(), "Akce složky Trh a konkurence", "Přejmenovat");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    const field = nav().getByRole("textbox", { name: "Název složky" }) as HTMLInputElement;
+    expect(field.value).toBe("Trh a konkurence");
+    await waitFor(() => expect(document.activeElement).toBe(field));
+    fireEvent.change(field, { target: { value: "Trh  a soupeři " } });
+    fireEvent.keyDown(field, { key: "Enter" });
+    await waitFor(() => expect(sent("PUT", "/folders/KNF-1")[0].body).toEqual({ name: "Trh a soupeři" }));
+    // The row is back, under its new name, and focus with it.
+    const row = await nav().findByRole("button", { name: /^Trh a soupeři/ });
+    await waitFor(() => expect(document.activeElement).toBe(row));
+  });
+
+  it("opens a folder's name on F2; Esc restores it and sends nothing; a taken name is said at the field", async () => {
+    api({ [`GET ${BASE}/folders`]: () => [...FOLDERS, { folder_id: "KNF-2", name: "Archiv", item_count: 0 }] });
+    open();
+    const row = await nav().findByRole("button", { name: "Trh a konkurence 1" });
+    fireEvent.keyDown(row, { key: "F2" });
+    const field = nav().getByRole("textbox", { name: "Název složky" });
+    fireEvent.change(field, { target: { value: "archiv" } });
+    fireEvent.keyDown(field, { key: "Enter" });
+    expect(nav().getByText("„Archiv“ už existuje.")).toBeTruthy();
+    expect(field.getAttribute("aria-invalid")).toBe("true");
+    fireEvent.keyDown(field, { key: "Escape" });
+    const back = await nav().findByRole("button", { name: "Trh a konkurence 1" });
+    await waitFor(() => expect(document.activeElement).toBe(back));
+    expect(sent("PUT", "/folders/KNF-1")).toHaveLength(0);
+  });
+
+  it("keeps a rename the server refused at its field, Neuloženo – Zkusit znovu, until it goes", async () => {
+    let refuse = true;
+    api({
+      [`PUT ${BASE}/folders/KNF-1`]: (b) =>
+        refuse ? new Response(JSON.stringify({ code: "boom", message: "x" }), { status: 500 }) : { folder_id: "KNF-1", item_count: 1, ...(b as object) },
+    });
+    open();
+    fireEvent.keyDown(await nav().findByRole("button", { name: "Trh a konkurence 1" }), { key: "F2" });
+    const field = nav().getByRole("textbox", { name: "Název složky" });
+    fireEvent.change(field, { target: { value: "Konkurence" } });
+    fireEvent.keyDown(field, { key: "Enter" });
+    expect(await nav().findByText(/^Neuloženo/)).toBeTruthy();
+    expect(nav().getByText("Konkurence")).toBeTruthy();
+    refuse = false;
+    fireEvent.click(nav().getByRole("button", { name: "Zkusit znovu" }));
+    await nav().findByRole("button", { name: /^Konkurence/ });
+    expect(sent("PUT", "/folders/KNF-1").map((c) => c.body)).toEqual([{ name: "Konkurence" }, { name: "Konkurence" }]);
+  });
+
+  it("renames a label on F2 and recolours it by its swatch; the arrows only move (audit D5, D6)", async () => {
+    api();
+    open();
+    const retail = await nav().findByRole("button", { name: "retail 1" });
+    fireEvent.keyDown(retail, { key: "F2" });
+    const field = nav().getByRole("textbox", { name: "Název štítku" });
+    fireEvent.change(field, { target: { value: "maloobchod" } });
+    fireEvent.keyDown(field, { key: "Enter" });
+    await waitFor(() => expect(sent("PUT", "/labels/KNL-1")[0].body).toEqual({ name: "maloobchod" }));
+
+    const swatch = await nav().findByRole("button", { name: "Barva štítku ověřit: Oranžová" });
+    fireEvent.click(swatch);
+    const list = nav().getByRole("listbox", { name: "Barva štítku ověřit" });
+    const orange = within(list).getByRole("option", { name: "Oranžová" });
+    await waitFor(() => expect(document.activeElement).toBe(orange));
+    fireEvent.keyDown(orange, { key: "ArrowRight" });
+    expect(sent("PUT", "/labels/KNL-2")).toHaveLength(0);
+    fireEvent.click(within(list).getByRole("option", { name: "Modrá" }));
+    await waitFor(() => expect(sent("PUT", "/labels/KNL-2")[0].body).toEqual({ colour: "BLUE" }));
+    expect(nav().queryByRole("listbox")).toBeNull();
+  });
+
+  it("creates a label in the list in the colour its swatch shows, the first one unused by default (audit D4)", async () => {
+    api();
+    open();
+    await nav().findByRole("button", { name: "retail 1" });
+    fireEvent.click(nav().getByRole("button", { name: "Nový štítek" }));
+    const row = nav().getByRole("textbox", { name: "Nový štítek" });
+    // GREEN and ORANGE are taken: the row starts on BLUE.
+    expect(nav().getByRole("button", { name: "Barva nového štítku: Modrá" })).toBeTruthy();
+    fireEvent.change(row, { target: { value: "priorita" } });
+    fireEvent.keyDown(row, { key: "Enter" });
+    await waitFor(() => expect(sent("POST", "/labels")[0].body).toEqual({ name: "priorita", colour: "BLUE" }));
+
+    // A swatch chosen in the row is the colour it is made in; moving to the swatch keeps the row open.
+    const next = nav().getByRole("textbox", { name: "Nový štítek" });
+    fireEvent.change(next, { target: { value: "  " } });
+    const pickColour = nav().getByRole("button", { name: /^Barva nového štítku/ });
+    fireEvent.blur(next, { relatedTarget: pickColour });
+    fireEvent.click(pickColour);
+    fireEvent.click(nav().getByRole("option", { name: "Fialová" }));
+    const still = nav().getByRole("textbox", { name: "Nový štítek" });
+    fireEvent.change(still, { target: { value: "k ověření" } });
+    fireEvent.keyDown(still, { key: "Enter" });
+    await waitFor(() => expect(sent("POST", "/labels")[1].body).toEqual({ name: "k ověření", colour: "VIOLET" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("deletes a folder at once and Vrátit makes it again with its items filed back (audit D3)", async () => {
+    api();
+    open();
+    await nav().findByRole("button", { name: "Trh a konkurence 1" });
+    choose(navEl(), "Akce složky Trh a konkurence", "Smazat složku");
+    // Its items are read first, then it goes: no confirmation, no dialog.
+    await waitFor(() => expect(sent("DELETE", "/folders/KNF-1")).toHaveLength(1));
+    expect(sent("GET", "").some((c) => c.url.includes("folder=KNF-1"))).toBe(true);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    const toast = (await screen.findByText("Složka „Trh a konkurence“ smazána")).closest<HTMLElement>('[role="status"]')!;
+    fireEvent.click(within(toast).getByRole("button", { name: "Vrátit" }));
+    await waitFor(() => expect(sent("PUT", "/placement")[0]?.body).toEqual({ item_ids: ["KNW-1"], folder_id: "KNF-2" }));
+    expect(sent("POST", "/folders")[0].body).toEqual({ name: "Trh a konkurence" });
+    expect(screen.queryByText(/smazána/)).toBeNull();
+  });
+
+  it("deletes a label at once and Vrátit makes it again, in its colour, on its items (audit D7)", async () => {
+    api();
+    open();
+    await nav().findByRole("button", { name: "retail 1" });
+    choose(navEl(), "Akce štítku retail", "Smazat štítek");
+    await waitFor(() => expect(sent("DELETE", "/labels/KNL-1")).toHaveLength(1));
+    expect(sent("GET", "").some((c) => c.url.includes("label=KNL-1"))).toBe(true);
+    fireEvent.click(await screen.findByRole("button", { name: "Vrátit" }));
+    await waitFor(() => expect(sent("PUT", "/placement")[0]?.body).toEqual({ item_ids: ["KNW-1"], add_labels: ["KNL-9"] }));
+    expect(sent("POST", "/labels")[0].body).toEqual({ name: "retail", colour: "GREEN" });
+  });
+
+  it("asks at the row, naming what goes, when the items filed there could not all be read", async () => {
+    // The API counts five; the read returns one (filed meanwhile, or another's write): undo could not be whole.
+    api({ [`GET ${BASE}/folders`]: () => [{ ...FOLDERS[0], item_count: 5 }] });
+    open();
+    await nav().findByRole("button", { name: "Trh a konkurence 5" });
+    choose(navEl(), "Akce složky Trh a konkurence", "Smazat složku");
+    const ask = await nav().findByRole("alertdialog");
+    expect(ask.textContent).toContain("Smazat složku „Trh a konkurence“? Jejích 5 znalostí zůstane, jen bez složky. Smazání nepůjde vrátit.");
+    expect(sent("DELETE", "/folders/KNF-1")).toHaveLength(0);
+    // The safe choice has the focus; Ponechat leaves it all as it was.
+    expect(document.activeElement).toBe(within(ask).getByRole("button", { name: "Ponechat" }));
+    fireEvent.click(within(ask).getByRole("button", { name: "Ponechat" }));
+    expect(nav().queryByRole("alertdialog")).toBeNull();
+    choose(navEl(), "Akce složky Trh a konkurence", "Smazat složku");
+    fireEvent.click(within(await nav().findByRole("alertdialog")).getByRole("button", { name: "Smazat" }));
+    await waitFor(() => expect(sent("DELETE", "/folders/KNF-1")).toHaveLength(1));
+    expect(screen.queryByRole("button", { name: "Vrátit" })).toBeNull();
   });
 });
 
