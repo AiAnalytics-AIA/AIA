@@ -886,7 +886,7 @@ class ResearchLead:
             focus_ = {"id": str(focus.get("id") or ""), "label": str(focus.get("label") or "")}
             if not FOCUS_ID.fullmatch(focus_["id"]):
                 raise LeadRejected(
-                    "a focus names an element: question:, section:, brief: or plan: and an id",
+                    "a focus names an element of a stage screen: a known kind and an id",
                     reason="invalid_lead_turn",
                 )
         return message, focus_

@@ -86,6 +86,7 @@ __all__ = [
     "DEFAULT_LEAD_NAME",
     "DEFAULT_SOUL",
     "FOCUS_ID",
+    "FOCUS_KINDS",
     "LEAD_AGENT_ID",
     "LEAD_HARNESS_VERSION",
     "LEAD_PROMPT_ID",
@@ -196,13 +197,23 @@ Stage = Literal[
 STAGES: Final[tuple[str, ...]] = get_args(Stage)
 
 
+#: The kinds of element a stage screen names (``domain/lead_artifacts.py`` ``TargetKind``, held
+#: equal to this by its test; the per-artifact contract, research-lead-workbench 16).
+FOCUS_KINDS: Final[tuple[str, ...]] = (
+    "brief", "objective", "material", "plan", "rq", "hypothesis", "set", "assumption",
+    "section", "question", "audience", "dimension", "own_dimension", "sample", "step",
+    "measure", "object", "pair", "module", "finding", "claim", "report",
+)  # fmt: skip
+#: An element's id: an identifier, possibly of colon-separated parts (``finding:executive:2``),
+#: a battery-qualified object (``set1/fio``) or a pair (``set1/fio~air``).
+_ID = r"[A-Za-z0-9_.\-~/:]{1,80}"
 #: A ``data-aia`` id the interface focuses: ``question:q3``, ``brief:goal``.
-_TARGET = r"^[a-z_]+:[A-Za-z0-9_.\-]+$"
-#: What a person's message may say it is about: an element of a stage screen, in the forms the
-#: web's targetOfElement produces (``question:<id>``, ``section:<id>``, ``brief:<field>``,
-#: ``plan:<part>``). The id reaches the model unclassified, so it may be an identifier and
-#: nothing else; the free text beside it is the label, which is classified.
-FOCUS_ID: Final = re.compile(r"^(?:question|section|brief|plan):[A-Za-z0-9_.\-]{1,80}$")
+_TARGET = r"^[a-z_]+:[A-Za-z0-9_.\-~/:]+$"
+#: What a person's message may say it is about: an element of a stage screen, as the web's
+#: targetOfElement produces it (``<kind>:<id>``, ``data-aia`` on the element). The id reaches the
+#: model unclassified, so it may be an identifier and nothing else; the free text beside it is
+#: the label, which is classified.
+FOCUS_ID: Final = re.compile(rf"^(?:{'|'.join(FOCUS_KINDS)}):{_ID}$")
 _MEMORY_ID = r"^LMM-[0-9a-f]{1,32}$"
 
 

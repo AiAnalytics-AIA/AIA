@@ -105,10 +105,9 @@ class TargetKind(StrEnum):
     REPORT = "report"
 
 
-#: The target kinds a person's message may name today (``research_lead.FOCUS_ID``).
-LIVE_TARGETS: Final = frozenset(
-    {TargetKind.BRIEF, TargetKind.PLAN, TargetKind.SECTION, TargetKind.QUESTION}
-)
+#: The target kinds a person's message may name and the Lead may focus: every kind, since the
+#: server's FOCUS_ID takes each (research-lead-workbench 16).
+LIVE_TARGETS: Final = frozenset(TargetKind)
 
 #: What a card may start: a design worker, one of the Lead's prepared requests, or a finished
 #: run's failed analysis modules asked again (``POST …/analysis/retry``).

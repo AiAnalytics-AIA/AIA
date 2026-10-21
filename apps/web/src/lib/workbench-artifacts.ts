@@ -18,8 +18,12 @@ export const LIVE_VIEW_OPS: ReadonlySet<ViewOpKind> = new Set<ViewOpKind>(["open
 export type TargetKind =
   | "brief" | "objective" | "material" | "plan" | "rq" | "hypothesis" | "set" | "assumption" | "section" | "question" | "audience" | "dimension" | "own_dimension" | "sample"
   | "step" | "measure" | "object" | "pair" | "module" | "finding" | "claim" | "report";
-/** The target kinds the server's FOCUS_ID accepts today; a screen adding a kind asks for it there. */
-export const LIVE_TARGETS: ReadonlySet<TargetKind> = new Set<TargetKind>(["brief", "plan", "section", "question"]);
+/** Every target kind: the server's FOCUS_ID takes each (research-lead-workbench 16). */
+export const LIVE_TARGETS: ReadonlySet<TargetKind> = new Set<TargetKind>([
+  "brief", "objective", "material", "plan", "rq", "hypothesis", "set", "assumption", "section", "question",
+  "audience", "dimension", "own_dimension", "sample", "step", "measure", "object", "pair", "module", "finding",
+  "claim", "report",
+]);
 
 /** What a card starts: a design worker, a Lead request, or a finished run's failed analysis asked again. */
 export type LeadStart =
@@ -172,7 +176,7 @@ export const allowsView = (stage: WorkbenchStage, op: string): boolean =>
   (ARTIFACTS[stage].view_ops as readonly string[]).includes(op);
 
 /** An id: letters, digits and _ . - ~ / and : (an id may hold parts, e.g. finding:<module>:<n>). */
-const ID = /^[A-Za-z0-9_.\-~/:]{1,120}$/;
+const ID = /^[A-Za-z0-9_.\-~/:]{1,80}$/;
 
 /**
  * The `data-aia` id a screen puts on an element the Lead can name: `<kind>:<id>`. One builder, so a

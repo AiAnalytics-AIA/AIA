@@ -64,13 +64,13 @@
       "kind": "objective",
       "stage": "brief",
       "id": "<objective id> (plan.objectives; Návrh points at the same item)",
-      "live": false
+      "live": true
     },
     {
       "kind": "material",
       "stage": "brief",
       "id": "<attachment or client source id>",
-      "live": false
+      "live": true
     },
     {
       "kind": "plan",
@@ -82,25 +82,25 @@
       "kind": "rq",
       "stage": "design",
       "id": "<rq id>",
-      "live": false
+      "live": true
     },
     {
       "kind": "hypothesis",
       "stage": "design",
       "id": "<hypothesis id>",
-      "live": false
+      "live": true
     },
     {
       "kind": "set",
       "stage": "design",
       "id": "<set id>",
-      "live": false
+      "live": true
     },
     {
       "kind": "assumption",
       "stage": "design",
       "id": "<assumption id>",
-      "live": false
+      "live": true
     },
     {
       "kind": "section",
@@ -118,73 +118,73 @@
       "kind": "audience",
       "stage": "audience",
       "id": "definition|filters|filter:<factor id>|subpanel:<subpanel key>|preview",
-      "live": false
+      "live": true
     },
     {
       "kind": "dimension",
       "stage": "dimensions",
       "id": "<dimension id>",
-      "live": false
+      "live": true
     },
     {
       "kind": "own_dimension",
       "stage": "dimensions",
       "id": "<materialization request id>",
-      "live": false
+      "live": true
     },
     {
       "kind": "sample",
       "stage": "sample",
       "id": "n|size|quota:<cell>|forecast|forecast:<item>|ready:<readiness check id>",
-      "live": false
+      "live": true
     },
     {
       "kind": "step",
       "stage": "fieldwork",
       "id": "<run step node_key>",
-      "live": false
+      "live": true
     },
     {
       "kind": "measure",
       "stage": "results",
       "id": "<measure id>",
-      "live": false
+      "live": true
     },
     {
       "kind": "object",
       "stage": "sociomap",
       "id": "<battery>/<object id>",
-      "live": false
+      "live": true
     },
     {
       "kind": "pair",
       "stage": "sociomap",
       "id": "<battery>/<object id>~<object id>",
-      "live": false
+      "live": true
     },
     {
       "kind": "module",
       "stage": "analysis",
       "id": "<analysis module kind>",
-      "live": false
+      "live": true
     },
     {
       "kind": "finding",
       "stage": "analysis",
       "id": "<module>:<n>",
-      "live": false
+      "live": true
     },
     {
       "kind": "claim",
       "stage": "analysis",
       "id": "<module>:<claim id>",
-      "live": false
+      "live": true
     },
     {
       "kind": "report",
       "stage": "report",
       "id": "<report section id: intro, ch-design, ch-1 … ch-8, literature, methodology, ch-method, ch-questions, ch-native-map-<n>, app-questionnaire, app-evidence, app-audit>",
-      "live": false
+      "live": true
     }
   ],
   "report_sections": [

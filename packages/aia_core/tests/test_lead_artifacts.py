@@ -28,7 +28,7 @@ from aia_core.domain.lead_artifacts import (
     allows_view,
     contract_for,
 )
-from aia_core.domain.research_lead import FOCUS_ID, STAGES, LeadOutput
+from aia_core.domain.research_lead import FOCUS_ID, FOCUS_KINDS, STAGES, LeadOutput
 
 FIXTURE = json.loads(
     (Path(__file__).parent / "fixtures/lead_artifacts/contract.json").read_text(encoding="utf-8")
@@ -65,6 +65,14 @@ def test_live_view_ops_are_what_the_lead_s_output_carries() -> None:
 @pytest.mark.parametrize("kind", sorted(TargetKind))
 def test_live_targets_are_what_focus_accepts(kind: TargetKind) -> None:
     assert bool(FOCUS_ID.match(f"{kind.value}:x1")) == (kind in LIVE_TARGETS)
+
+
+def test_the_server_focuses_exactly_the_registry_s_kinds() -> None:
+    assert set(FOCUS_KINDS) == {k.value for k in TargetKind}
+    for target in ("finding:executive:2", "pair:set1/fio~air", "audience:filter:kraj"):
+        assert FOCUS_ID.fullmatch(target)
+    for target in ("nonsense:x", "question:", "question:a b", "question:" + "x" * 81):
+        assert not FOCUS_ID.fullmatch(target)
 
 
 def test_each_target_kind_belongs_to_the_stage_the_fixture_names() -> None:
