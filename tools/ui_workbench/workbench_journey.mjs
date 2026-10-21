@@ -189,6 +189,31 @@ try {
   }
   check("the launcher opens the Lead at 1024 and 390; Escape closes it to the launcher");
 
+  // The compact navigator (26d): every stage reachable by keyboard at 768 and 390 px, no overflow.
+  await page.setViewportSize({ width: 768, height: 900 });
+  await page.goto(base + stagePath("questionnaire"));
+  await page.locator(".nav--scroll .nav__stage").first().focus();
+  await page.keyboard.press("End");
+  assert.match(await page.evaluate(() => document.activeElement?.textContent ?? ""), /Zpráva/);
+  const inView = await page.evaluate(() => {
+    const r = document.activeElement.getBoundingClientRect();
+    return r.right <= window.innerWidth + 1 && r.left >= -1;
+  });
+  assert(inView, "the last stage scrolls into view by keyboard @768");
+  await noOverflow("navigator @768");
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.locator(".nav__current").click();
+  assert.equal(await page.locator(".nav__list .nav__stage").count(), 11, "all eleven stages @390");
+  await page.locator(".nav__list .nav__stage").first().focus();
+  await page.keyboard.press("End");
+  assert.match(await page.evaluate(() => document.activeElement?.textContent ?? ""), /Zpráva/);
+  await noOverflow("navigator open @390");
+  await shot("390-navigator");
+  await page.keyboard.press("Escape");
+  await page.locator(".nav__list").waitFor({ state: "detached" });
+  await shot("390-header");
+  check("every stage reachable by keyboard at 768 (scrolling) and 390 (the stage list), no overflow");
+
   // Návrh: each research question with its coverage (artifact-design DSN2), at every width, in the
   // workbench at each. Reading it is a GET.
   for (const width of [1440, 1100, 768, 390]) {
