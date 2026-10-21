@@ -146,3 +146,13 @@ def test_the_scripted_step_output_says_it_is_scripted(
         run = WorkflowRepository(session, world.lead_scope(session)).get_run(_last(world)["run_id"])
     output = run["steps"][0]["output"]
     assert output["scripted"] is True and output["data_class"] is None
+
+
+def test_a_scripted_message_asking_to_start_prepares_the_research_run(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    _setup(world)
+    _post(world, kind="message", text="Spusť výzkum, prosím.")
+    assert _worker(world, database_url, store, build).run_once()
+    output = _last(world)["output"]
+    assert output["request"] == {"kind": "research_run", "why": "Ukázka spuštění výzkumu"}
