@@ -76,6 +76,7 @@ import { AiButton, Button } from "../ui";
 import { isNativeResult } from "@/lib/research-agent-jobs";
 import { openPlace, scrollBehavior, scrollToPlace } from "@/lib/open-place";
 import { useResearch } from "./context";
+import { ID_SOURCE, type TargetKind, aiaId } from "@/lib/workbench-artifacts";
 import { QuestionnaireDependencies } from "./QuestionnaireDependencies";
 import { QuestionnaireStrip } from "./QuestionnaireStrip";
 import { InspectorSlot } from "./Inspector";
@@ -90,6 +91,15 @@ const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visi
 const INPUT = `min-h-9 w-full rounded-control border border-border-strong bg-surface-raised px-2.5 text-sm text-ink placeholder:text-ink-faint ${FOCUS}`;
 const LABEL = "text-xs font-medium text-ink-muted";
 const CARD = "rounded-card border border-border bg-surface-raised p-5";
+
+/**
+ * The `data-aia` a block, a tracked set or a question carries for the Research Lead (the contract's
+ * targets, lib/workbench-artifacts.ts): `section:<id>` and `question:<id>` by the item's stored id.
+ * An item with no id yet, or one outside the id grammar, carries none: nothing is named for it.
+ */
+const ID_RULE = new RegExp(ID_SOURCE);
+const aiaOf = (kind: TargetKind, id: unknown): string | undefined =>
+  typeof id === "string" && ID_RULE.test(id) ? aiaId(kind, id) : undefined;
 
 /** A tracked set is measured on 4–15 objects (SET_SIZE). */
 const setInvalid = (sec: Section) => {
@@ -682,7 +692,7 @@ function QuestionBlock({ n, firstQ, sec, si, update }: { n: number; firstQ: numb
   const qs = sec.questions || [];
   const [confirming, setConfirming] = useState(false);
   return (
-    <article id={`qblock_${sec.id || si}`} className="scroll-mt-40 rounded-panel bg-surface-sunken p-4">
+    <article id={`qblock_${sec.id || si}`} data-aia={aiaOf("section", sec.id)} className="scroll-mt-40 rounded-panel bg-surface-sunken p-4">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint">{tv("research.questionnaire.blockHead", { n, q: qs.length })}</div>
@@ -725,7 +735,7 @@ function QuestionCard({ n, q, si, qi, update }: { n: number; q: Question; si: nu
   const unworded = !String(q.text || "").trim();
   const hint = `${questionElementId(q)}_missing`;
   return (
-    <div id={questionElementId(q)} data-unworded={unworded || undefined} className={`scroll-mt-40 rounded-card border bg-surface-raised p-4 ${FOCUS} ${unworded ? "border-status-you shadow-[0_0_0_3px_var(--color-status-you-wash)]" : "border-border"}`}>
+    <div id={questionElementId(q)} data-aia={aiaOf("question", q.id)} data-unworded={unworded || undefined} className={`scroll-mt-40 rounded-card border bg-surface-raised p-4 ${FOCUS} ${unworded ? "border-status-you shadow-[0_0_0_3px_var(--color-status-you-wash)]" : "border-border"}`}>
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-md bg-signal-wash px-1.5 py-0.5 font-mono text-xs font-semibold text-signal" title={String(q.id || "")}>Q{n}</span>
         <span className="sr-only">{q.id || "Q"}</span>
@@ -918,7 +928,7 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
     setNote(r.note);
   };
   return (
-    <article id={setElementId(sec, si)} className={`scroll-mt-40 flex flex-col gap-3 rounded-card border border-border border-t-[3px] border-t-hue-violet bg-surface-raised p-4 ${FOCUS}`}>
+    <article id={setElementId(sec, si)} data-aia={aiaOf("section", sec.id)} className={`scroll-mt-40 flex flex-col gap-3 rounded-card border border-border border-t-[3px] border-t-hue-violet bg-surface-raised p-4 ${FOCUS}`}>
       <div className="flex items-start gap-3">
         <span className="mt-1 whitespace-nowrap rounded-md bg-hue-violet/12 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-hue-violet">{tv("research.questionnaire.setBadge", { n })}</span>
         <div className="min-w-0 flex-1">
