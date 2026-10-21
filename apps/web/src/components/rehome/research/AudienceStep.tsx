@@ -71,6 +71,15 @@ import { useResearch } from "./context";
 import { InspectorSlot } from "./Inspector";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 
+/**
+ * What the Research Lead can name on this screen (the coordinator's artifact contract, row
+ * `audience`): the description, the filters, one factor by its catalogue id, the preview. The
+ * workbench focuses them through lib/lead.ts focusSelector's `data-aia` fall-through.
+ */
+export const AUDIENCE_TARGET = { definition: "audience:definition", filters: "audience:filters", preview: "audience:preview" } as const;
+/** One factor's target: its catalogue id, as the stored filters key it (`audience:kraj`). */
+export const audienceFactorTarget = (factorId: string) => `audience:${factorId}`;
+
 const NOT_IN_AIA = "rounded-control border border-status-you-ink/40 bg-status-you-wash p-4";
 const EYEBROW = "font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint";
 
@@ -284,11 +293,14 @@ function FilterEditor({ live }: { live: Live }) {
 
   return (
     <div className="mt-4 flex flex-col gap-3">
-      {live.state === "ready" ? <LiveFilters live={live} /> : null}
-      {live.state === "missing" ? (
-        <NotInAia title={t("research.audience.filterTitle")}>{`${live.text} ${t("research.audience.filtersNotInAia")}`}</NotInAia>
-      ) : null}
-      <section className="rounded-control border border-border bg-surface p-4" aria-labelledby="aud-filters">
+      {live.state === "loading" ? null : (
+        <div data-aia={AUDIENCE_TARGET.filters}>
+          {live.state === "ready" ? <LiveFilters live={live} /> : (
+            <NotInAia title={t("research.audience.filterTitle")}>{`${live.text} ${t("research.audience.filtersNotInAia")}`}</NotInAia>
+          )}
+        </div>
+      )}
+      <section data-aia={AUDIENCE_TARGET.definition} className="rounded-control border border-border bg-surface p-4" aria-labelledby="aud-filters">
         {step.failure ? (
           <div className="mb-4">
             <AiFailureCard failure={step.failure} title={t("research.audience.failedTitle")} onRetry={() => step.setFailure(null)} onContinue={(id) => void step.resume(id, () => toast(PROPOSE_SAVED))} />
@@ -374,7 +386,7 @@ function FactorEditor({ factor, project, onChange }: { factor: Factor; project: 
     const { lo, hi } = rangeOf(project, factor.id);
     const commit = (min: string, max: string) => onChange(setRange(project, factor.id, min, max));
     return (
-      <fieldset className="rounded-control border border-border p-3" disabled={!!refusal}>
+      <fieldset data-aia={audienceFactorTarget(factor.id)} className="rounded-control border border-border p-3" disabled={!!refusal}>
         <legend className="px-1 text-sm font-medium">{legend}</legend>
         {refusal ? <p className="text-xs text-ink-muted">{refusal}</p> : null}
         <div className="flex flex-wrap items-end gap-2">
@@ -399,7 +411,7 @@ function FactorEditor({ factor, project, onChange }: { factor: Factor; project: 
     onChange(setAudienceCategory(project, factor.id, [...next]));
   };
   return (
-    <fieldset className="rounded-control border border-border p-3" disabled={!!refusal}>
+    <fieldset data-aia={audienceFactorTarget(factor.id)} className="rounded-control border border-border p-3" disabled={!!refusal}>
       <legend className="px-1 text-sm font-medium">{legend}</legend>
       {refusal ? <p className="text-xs text-ink-muted">{refusal}</p> : null}
       <div className="flex flex-wrap gap-x-4 gap-y-1">
@@ -435,7 +447,7 @@ function Preview() {
     }
   };
   return (
-    <div className="mt-4 border-t border-border pt-3">
+    <div data-aia={AUDIENCE_TARGET.preview} className="mt-4 border-t border-border pt-3">
       <Button disabled={busy} onClick={() => void check()}>
         {busy ? t("research.audience.previewRunning") : t("research.audience.previewButton")}
       </Button>

@@ -166,6 +166,24 @@ try {
   await shot("1024-classic");
   check("1280 and 1100 workbench, 1024 classic, no overflow");
 
+  // Cílová skupina names what the Lead can focus (data-aia, the artifact contract's row `audience`):
+  // the description, the filters, each factor by its catalogue id and the preview, at every width.
+  const aud = fixtures.audience;
+  for (const width of [1440, 1100, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(base + `/app/clients/${aud.client}/research/${aud.study}/audience`);
+    await page.locator('[data-aia="audience:definition"]').waitFor({ timeout: 30000 });
+    for (const target of ["audience:definition", "audience:filters", "audience:preview"]) {
+      await page.locator(`[data-aia="${target}"]`).waitFor({ timeout: 30000 });
+      assert.equal(await page.locator(`[data-aia="${target}"]`).count(), 1, `${target} @${width}`);
+    }
+    const factors = await page.locator('[data-aia^="audience:"]').evaluateAll((els) => els.map((e) => e.getAttribute("data-aia")));
+    assert(factors.length > 4, `a factor target beside the three sections @${width}: ${factors.join(", ")}`);
+    await noOverflow(`audience @${width}`);
+    await shot(`${width}-audience`);
+  }
+  check("Cílová skupina names its description, filters, factors and preview at 1440, 1100, 768 and 390");
+
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");
   check("nothing paid started");

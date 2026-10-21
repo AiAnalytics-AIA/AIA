@@ -7,6 +7,7 @@ import { ResearchScreen } from "./ResearchScreen";
 import { type SavedBody, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME } from "./test-frame";
 import { CATALOGUE } from "@/research/audience.live.test";
+import { focusSelector } from "@/lib/lead";
 
 // Native jobs need more than vitest's 5 s under CI load (test-native-agents.ts).
 vi.setConfig({ testTimeout: NATIVE_TEST_TIMEOUT_MS });
@@ -159,6 +160,24 @@ describe("Audience", () => {
       expect(screen.getByText(/unclassified_derived_field/)).toBeTruthy();
       expect(screen.getByText("Vybrané filtry:")).toBeTruthy();
       noUnitCalls();
+    });
+
+    it("names the description, the filters, each factor and the preview for the Lead to focus", async () => {
+      aiaStub({ ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", filters: {} } }, live());
+      const { container } = render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      await screen.findByText(/z populace v17_4_0/);
+      for (const target of ["audience:definition", "audience:filters", "audience:kraj", "audience:vek", "audience:preview"]) {
+        expect(container.querySelectorAll(focusSelector(target)), target).toHaveLength(1);
+      }
+      expect(container.querySelector(focusSelector("audience:kraj"))!.textContent).toContain("Zlínský kraj");
+      expect(container.querySelector(focusSelector("audience:preview"))!.textContent).toContain("Ověřit proveditelnost");
+    });
+
+    it("without a population, the filters target is the note that says why", async () => {
+      aiaStub({ ui_state: ANALYTICS, audience: { strategy: "filters", source_mode: "population", filters: {} } }, { [CAT]: () => new Response(JSON.stringify({ code: "population_not_established", message: "no" }), { status: 409 }) });
+      const { container } = render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      await waitFor(() => expect(container.querySelector(focusSelector("audience:filters"))?.textContent).toContain("V AIA zatím není"));
+      expect(container.querySelector(focusSelector("audience:preview"))).toBeNull();
     });
 
     it("the preview counts the audience in AIA and says whether n can be drawn", async () => {
