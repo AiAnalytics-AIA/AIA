@@ -177,8 +177,7 @@ try {
       await page.locator(`[data-aia="${target}"]`).waitFor({ timeout: 30000 });
       assert.equal(await page.locator(`[data-aia="${target}"]`).count(), 1, `${target} @${width}`);
     }
-    const factors = await page.locator('[data-aia^="audience:"]').evaluateAll((els) => els.map((e) => e.getAttribute("data-aia")));
-    assert(factors.length > 4, `a factor target beside the three sections @${width}: ${factors.join(", ")}`);
+    assert(await page.locator('[data-aia^="audience:filter:"]').count() > 0, `a factor target @${width}`);
     await noOverflow(`audience @${width}`);
     await shot(`${width}-audience`);
   }

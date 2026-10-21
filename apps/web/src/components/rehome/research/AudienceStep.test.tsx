@@ -166,10 +166,10 @@ describe("Audience", () => {
       aiaStub({ ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", filters: {} } }, live());
       const { container } = render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
       await screen.findByText(/z populace v17_4_0/);
-      for (const target of ["audience:definition", "audience:filters", "audience:kraj", "audience:vek", "audience:preview"]) {
+      for (const target of ["audience:definition", "audience:filters", "audience:filter:kraj", "audience:filter:vek", "audience:preview"]) {
         expect(container.querySelectorAll(focusSelector(target)), target).toHaveLength(1);
       }
-      expect(container.querySelector(focusSelector("audience:kraj"))!.textContent).toContain("Zlínský kraj");
+      expect(container.querySelector(focusSelector("audience:filter:kraj"))!.textContent).toContain("Zlínský kraj");
       expect(container.querySelector(focusSelector("audience:preview"))!.textContent).toContain("Ověřit proveditelnost");
     });
 
@@ -206,11 +206,12 @@ describe("Audience", () => {
 
     it("a built-in subpanel is chosen as its filter; one the policy refuses cannot be", async () => {
       aiaStub({ ui_state: { audience_entry: "analytics", analytics_choice: "special" } }, live());
-      render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      const { container } = render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
       const young = await screen.findByRole("radio", { name: /Mladí 18–29/ });
       expect((screen.getByRole("radio", { name: /Studenti/ }) as HTMLButtonElement).disabled).toBe(true);
       expect(screen.getByText(/Nelze použít: audit_only/)).toBeTruthy();
       expect(screen.getByText(/speciální panely a vlastní publikum stavěla 18.6.6/i)).toBeTruthy();
+      expect(container.querySelector(focusSelector("audience:subpanel:young_18_29"))!.textContent).toContain("Mladí 18–29");
       fireEvent.click(young);
       await saved();
       expect(lastSave()).toMatchObject({ reason: "population_subpanel", content: { audience: { builtin_subpanel: "young_18_29", source_mode: "population", filters: { vek: [18, 29] } } } });

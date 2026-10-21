@@ -72,13 +72,15 @@ import { InspectorSlot } from "./Inspector";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 
 /**
- * What the Research Lead can name on this screen (the coordinator's artifact contract, row
- * `audience`): the description, the filters, one factor by its catalogue id, the preview. The
- * workbench focuses them through lib/lead.ts focusSelector's `data-aia` fall-through.
+ * What the Research Lead can name on this screen (artifact-audience § 4): the description, the
+ * filters, one factor by its catalogue id, one built-in subpanel, the preview. The workbench
+ * focuses them through lib/lead.ts focusSelector's `data-aia` fall-through.
  */
 export const AUDIENCE_TARGET = { definition: "audience:definition", filters: "audience:filters", preview: "audience:preview" } as const;
-/** One factor's target: its catalogue id, as the stored filters key it (`audience:kraj`). */
-export const audienceFactorTarget = (factorId: string) => `audience:${factorId}`;
+/** One factor's target: its catalogue id, as the stored filters key it (`audience:filter:kraj`). */
+export const audienceFactorTarget = (factorId: string) => `audience:filter:${factorId}`;
+/** One built-in subpanel's target, by its key (`audience:subpanel:young_18_29`). */
+export const audienceSubpanelTarget = (key: string) => `audience:subpanel:${key}`;
 
 const NOT_IN_AIA = "rounded-control border border-status-you-ink/40 bg-status-you-wash p-4";
 const EYEBROW = "font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint";
@@ -476,11 +478,13 @@ function Subpanels({ live }: { live: Extract<Live, { state: "ready" }> }) {
         <p className="mt-1 text-xs text-ink-muted">{tv("research.audience.subpanelsIntro", { measured: live.api.subpanels_measured_on })}</p>
         <div role="radiogroup" aria-label={t("research.audience.subpanelsTitle")} className="mt-2 grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
           {live.api.subpanels.map((sp) => (
-            <RadioCard key={sp.key} checked={current === sp.key} disabled={sp.usable !== true} onSelect={() => current !== sp.key && pick(sp.key)} title={sp.name}>
-              {tv("research.audience.subpanelRows", { rows: sp.measured_by_18_6_6.rows.toLocaleString("cs-CZ"), donors: sp.measured_by_18_6_6.unique_core_donors.toLocaleString("cs-CZ") })}
-              {sp.usable === false ? <> · {tv("research.audience.subpanelUnusable", { reason: sp.reason || "?" })}</> : null}
-              {sp.usable == null ? <> · {t("research.audience.subpanelUnknown")}</> : null}
-            </RadioCard>
+            <div key={sp.key} data-aia={audienceSubpanelTarget(sp.key)} className="grid">
+              <RadioCard checked={current === sp.key} disabled={sp.usable !== true} onSelect={() => current !== sp.key && pick(sp.key)} title={sp.name}>
+                {tv("research.audience.subpanelRows", { rows: sp.measured_by_18_6_6.rows.toLocaleString("cs-CZ"), donors: sp.measured_by_18_6_6.unique_core_donors.toLocaleString("cs-CZ") })}
+                {sp.usable === false ? <> · {tv("research.audience.subpanelUnusable", { reason: sp.reason || "?" })}</> : null}
+                {sp.usable == null ? <> · {t("research.audience.subpanelUnknown")}</> : null}
+              </RadioCard>
+            </div>
           ))}
         </div>
       </section>
