@@ -15,13 +15,14 @@ import { type ReactNode, type Ref, useCallback, useEffect, useMemo, useRef, useS
 
 import { ApiError, api, lead as leadApi, research, type Readiness, type ResearchAgentJob, type ResearchRun, type Study } from "@/lib/api";
 import { withBudget } from "@/lib/budget-line";
+import { availabilityWords, leadAvailability, type LeadAvailability, type LeadStateWithWorker } from "@/lib/lead-availability";
 import { JOB_STAGE, jobMovesByItself } from "@/lib/lead-cards";
 import { unanswerableAsked } from "@/lib/answerability";
 import { jobCostAsked } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import { guardedNavigate } from "@/lib/guarded-navigation";
 import {
-  applyLeadEdit, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetOfElement, textEditInverse,
+  applyLeadEdit, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
   type LeadEdit, type LeadRequest, type LeadTurn, type LeadView, type ResearcherLead,
 } from "@/lib/lead";
 import {
@@ -198,7 +199,14 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   const launcher = useRef<HTMLButtonElement>(null);
   const moveFocus = useCallback((to: FocusTarget) => {
     if (!to || to.to === "target") return;
-    requestAnimationFrame(() => (to.to === "launcher" ? launcher.current : document.getElementById("composer"))?.focus());
+    // Into the conversation: the composer, or, while it is disabled (the session not read yet, the
+    // Lead not hatched), the conversation's first control, so focus is never left behind it.
+    requestAnimationFrame(() => {
+      if (to.to === "launcher") return launcher.current?.focus();
+      const composer = document.getElementById("composer") as HTMLTextAreaElement | null;
+      if (composer && !composer.disabled) return composer.focus();
+      document.querySelector<HTMLElement>(".split__left button:not([disabled]), .split__left a[href]")?.focus();
+    });
   }, []);
   const drawerEvent = useCallback((event: DrawerEvent) => {
     const next = nextDrawer(drawer, event, layout);
@@ -237,8 +245,10 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     setTurns(ts);
   }, []);
   // Pointing at the artifact: "@" arms it, the next click on an element the Lead can name is the
-  // focus of the next message. Escape, or a click on nothing nameable, disarms it.
-  const [picking, setPicking] = useState(false);
+  // focus of the next message. Escape, or a click on nothing nameable, disarms it. It is a drawer
+  // state: in the drawer and the sheet the conversation steps aside while armed and comes back at
+  // the composer (lib/workbench-layout.ts).
+  const picking = drawer.kind === "picking";
   const [focus, setFocus] = useState<{ id: string; label: string } | null>(null);
   useEffect(() => {
     if (!picking) return;
@@ -248,11 +258,15 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
       e.stopPropagation();
       const t = targetOfElement(e.target as Element);
       if (t) setFocus(t);
-      setPicking(false);
-      document.getElementById("composer")?.focus();
+      drawerEvent({ type: "picked" });
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setPicking(false);
+      if (e.key !== "Escape") return;
+      const step = onEscape(drawer, { handled: e.defaultPrevented, askDialogOpen: !!document.querySelector("[data-ask-dialog][open], dialog[open]") }, layout);
+      if (step.action !== "disarm_picking") return;
+      e.preventDefault();
+      setDrawerState(step.state);
+      moveFocus(step.focus);
     };
     body?.addEventListener("click", onClick, true);
     window.addEventListener("keydown", onKey);
@@ -260,7 +274,10 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
       body?.removeEventListener("click", onClick, true);
       window.removeEventListener("keydown", onKey);
     };
-  }, [picking]);
+  }, [picking, drawer, layout, drawerEvent, moveFocus]);
+  // Whether the Lead answers (27a), read from every read of GET /lead: the launcher's dot.
+  const [availability, setAvailability] = useState<LeadAvailability>({ kind: "UNKNOWN", reason: null });
+  const onSession = useCallback((s: LeadStateWithWorker | null, failed: boolean) => setAvailability(leadAvailability(s, failed)), []);
   const [notice, setNotice] = useState<string | null>(null);
   const [study, setStudy] = useState<Study | null>(null);
   // A job that moves on its own (queued or running) is read again, so its card in the conversation
@@ -313,6 +330,17 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
           const el = document.querySelector<HTMLElement>(focusSelector(v.target));
           if (el) {
             el.scrollIntoView({ block: "center", behavior: "smooth" });
+            // With the conversation stepped aside, focus follows to what the Lead pointed at.
+            // The artifact is inert until the drawer's step aside has rendered: try again briefly.
+            if (compact) {
+              if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "-1");
+              let attempts = 0;
+              const take = () => {
+                el.focus({ preventScroll: true });
+                if (document.activeElement !== el && attempts++ < 10) setTimeout(take, 50);
+              };
+              take();
+            }
             el.classList.add("just");
             setTimeout(() => el.classList.remove("just"), 2300);
           } else if (tries++ < 10) setTimeout(find, 150);
@@ -562,7 +590,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   }), [runs, frame.stepHref, go, prepareRun, startRun, runOfTurn, onRefreshJobs]);
   const leadPane = (
     <LeadPane studyId={frame.studyId} stage={stage} canEdit={frame.canEdit} focus={focus} picking={picking}
-      onPick={() => setPicking((p) => !p)} onClearFocus={() => setFocus(null)} jobs={[...jobs].reverse()} onOpenJob={openJob} cards={cards} onView={onView} onRequest={onRequest} onTurns={onTurns} onLead={onLead} beforeMessage={flushBeforeMessage} epoch={leadEpoch} registerSend={registerSend}
+      onPick={() => drawerEvent({ type: picking ? "picked" : "pick" })} onSession={onSession} onClearFocus={() => setFocus(null)} jobs={[...jobs].reverse()} onOpenJob={openJob} cards={cards} onView={onView} onRequest={onRequest} onTurns={onTurns} onLead={onLead} beforeMessage={flushBeforeMessage} epoch={leadEpoch} registerSend={registerSend}
       mode={mode} onFocusMode={() => setMode((m) => (m === "conversation" ? "split" : "conversation"))}
       onClose={compact ? () => drawerEvent({ type: "close" }) : undefined} />
   );
@@ -570,13 +598,13 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   return (
     <div className={`wb wb--${layout}${picking ? " wb-picking" : ""}`} data-workbench data-layout={layout}>
       <a href="#composer" className="skip">Přeskočit na zprávu</a>
-      <StudyHeader frame={frame} study={study} pending={open.length} blocked={blocked} onPending={() => open[0] && go(editStage(open[0].edit))} layout={layout} />
-      <StageNav stage={stage} lane={lane} onOpen={go} layout={layout} />
+      <StudyHeader frame={frame} study={study} pending={open.length} blocked={blocked} onPending={() => open[0] && go(editStage(open[0].edit))} layout={layout} inert={isModal(layout, drawer)} />
+      <StageNav stage={stage} lane={lane} onOpen={go} layout={layout} inert={isModal(layout, drawer)} />
       <main className="workspace">
         <Split split={split} mode={mode} layout={layout} shown={conversationShown(layout, drawer)} leftLabel="Vedoucí výzkumu"
           onSplit={setSplit} onCommit={(v) => { setSplit(v); writeSplit(storage(), v); }}
           left={leadPane}
-          rail={<Rail ref={launcher} pending={open.length} open={isModal(layout, drawer)} onOpen={() => (compact ? drawerEvent({ type: "open" }) : setMode("split"))} />}
+          rail={<Rail ref={launcher} pending={open.length} availability={availability} open={isModal(layout, drawer)} onOpen={() => (compact ? drawerEvent({ type: "open" }) : setMode("split"))} />}
           right={
             <div className="art" aria-label={`Artefakt ${STAGES[stage].label}`}>
               <div className="arthead">
@@ -594,6 +622,12 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
                 </div>
               </div>
               {picking ? <div className="artbar artbar--op" role="status"><Icon name="at" size={13} /><div className="artbar__grow">Klikněte na otázku, oddíl nebo část zadání, o které chcete s Vedoucím mluvit. Esc zruší.</div></div> : null}
+              {drawer.kind === "peek" ? (
+                <div className="artbar artbar--op" role="status" data-peek>
+                  <Mark size={13} /><div className="artbar__grow">Vedoucí ukazuje: {drawer.target.includes(":") ? targetLabel(drawer.target) : STAGES[drawer.target as WorkbenchStage]?.label ?? drawer.target}</div>
+                  <button type="button" className="btn btn--sm btn--quiet" onClick={() => drawerEvent({ type: "back" })}>Zpět k Vedoucímu</button>
+                </div>
+              ) : null}
               {notice ? <div className="artbar artbar--stale" role="status"><Glyph tone="reopened" size={12} /><div className="artbar__grow">{notice}</div><button type="button" className="iconbtn" aria-label="Zavřít" onClick={() => setNotice(null)}><Icon name="close" size={14} /></button></div> : null}
               {autoHere.length ? <AutoBar items={autoHere} state={state} canEdit={frame.canEdit} onRevert={revert} onHide={() => autoStore.set((a) => a.filter((x) => editStage(x.edit) !== stage))} /> : null}
               {here.length ? <EditsBar items={here} state={state} marks={marks} canEdit={frame.canEdit} onAccept={(keys) => void decide("accept", keys)} onDismiss={(keys) => void decide("dismiss", keys)} /> : null}
@@ -690,7 +724,7 @@ function holds(state: ResearchState, item: AutoApplied): boolean {
   return item.revision !== null && state.revision !== null && state.revision >= item.revision;
 }
 
-function StudyHeader({ frame, study, pending, blocked, onPending, layout = "split" }: { frame: StudyFrame; study: Study | null; pending: number; blocked: number; onPending: () => void; layout?: WorkbenchLayout }) {
+function StudyHeader({ frame, study, pending, blocked, onPending, layout = "split", inert = false }: { frame: StudyFrame; study: Study | null; pending: number; blocked: number; onPending: () => void; layout?: WorkbenchLayout; inert?: boolean }) {
   // Under 768 px (the sheet) the bar keeps the study's name and the menu; what waits and the budget
   // move into the menu (research-lead-workbench 26d).
   const narrow = layout === "sheet";
@@ -705,7 +739,7 @@ function StudyHeader({ frame, study, pending, blocked, onPending, layout = "spli
   const spent = study?.spent_usd ?? null;
   const spentPct = budget && spent !== null ? Math.min(100, (spent / budget) * 100) : 0;
   return (
-    <header className="shead">
+    <header className="shead" inert={inert}>
       <span className="shead__band" aria-hidden="true" />
       <button type="button" className="shead__home" onClick={() => leave(appRoutes.client(frame.clientId))} aria-label={`Klienti › ${frame.clientName}`}>
         <span className="shead__mono" aria-hidden="true">{initials(frame.clientName)}</span>
@@ -748,7 +782,7 @@ function StudyHeader({ frame, study, pending, blocked, onPending, layout = "spli
 
 const STAGE_TONE: Record<string, GlyphTone> = { done: "done", running: "running", you: "you", fault: "fault", inert: "inert", ready: "ready" };
 
-function StageNav({ stage, lane, onOpen, layout = "split" }: { stage: WorkbenchStage; lane: Parameters<typeof stageState>[1]; onOpen: (s: WorkbenchStage) => void; layout?: WorkbenchLayout }) {
+function StageNav({ stage, lane, onOpen, layout = "split", inert = false }: { stage: WorkbenchStage; lane: Parameters<typeof stageState>[1]; onOpen: (s: WorkbenchStage) => void; layout?: WorkbenchLayout; inert?: boolean }) {
   const nav = useRef<HTMLElement>(null);
   const [listOpen, setListOpen] = useState(false);
   // In the drawer layout the navigator scrolls sideways: the current stage is kept in view.
@@ -793,7 +827,7 @@ function StageNav({ stage, lane, onOpen, layout = "split" }: { stage: WorkbenchS
   if (layout === "sheet") {
     // Under 768 px: one button names the current stage and opens every stage, grouped by phase.
     return (
-      <nav className="nav nav--sheet" aria-label="Kroky studie" onKeyDown={onKey} ref={nav}>
+      <nav className="nav nav--sheet" aria-label="Kroky studie" onKeyDown={onKey} ref={nav} inert={inert}>
         <button type="button" className="nav__current" aria-expanded={listOpen} aria-haspopup="true" onClick={() => setListOpen((v) => !v)}>
           <Glyph tone={STAGE_TONE[stageState(stage, lane).tone] ?? "inert"} size={11} />
           <span className="nav__currentlabel">Krok: {STAGES[stage].label}</span>
@@ -809,20 +843,25 @@ function StageNav({ stage, lane, onOpen, layout = "split" }: { stage: WorkbenchS
     );
   }
   return (
-    <nav className={`nav${layout === "drawer" ? " nav--scroll" : ""}`} aria-label="Kroky studie" onKeyDown={onKey} ref={nav}>
+    <nav className={`nav${layout === "drawer" ? " nav--scroll" : ""}`} aria-label="Kroky studie" onKeyDown={onKey} ref={nav} inert={inert}>
       {phases}
     </nav>
   );
 }
 
+/** The launcher's dot: shape carries the state (Glyph's grammar); unknown is never drawn as on. */
+const AVAILABILITY_TONE: Record<LeadAvailability["kind"], GlyphTone> = { ON: "done", WAITING: "world", OFF: "blocked", UNKNOWN: "inert" };
+
 /** The way to the conversation when it is not beside the artifact: the rail in artifact focus and
  * the drawer, a bottom bar under 768 px. A waiting change is announced in its name, since the
  * hidden conversation's live region is silent. */
-function Rail({ ref, pending, open = false, onOpen }: { ref?: Ref<HTMLButtonElement>; pending: number; open?: boolean; onOpen: () => void }) {
-  const name = `Otevřít konverzaci s Vedoucím výzkumu${pending > 0 ? `, čeká na vás ${pending}` : ""}`;
+function Rail({ ref, pending, availability, open = false, onOpen }: { ref?: Ref<HTMLButtonElement>; pending: number; availability: LeadAvailability; open?: boolean; onOpen: () => void }) {
+  const name = `Otevřít konverzaci s Vedoucím výzkumu${pending > 0 ? `, čeká na vás ${pending}` : ""}. ${availabilityWords(availability)}`;
   return (
     <div className="rail">
-      <button ref={ref} type="button" className="iconbtn" style={{ width: 40, height: 40 }} aria-label={name} title={name} aria-expanded={open} aria-haspopup="dialog" onClick={onOpen} data-lead-launcher><Mark size={20} /></button>
+      <button ref={ref} type="button" className="iconbtn rail__launch" style={{ width: 40, height: 40 }} aria-label={name} title={name} aria-expanded={open} aria-haspopup="dialog" onClick={onOpen} data-lead-launcher data-availability={availability.kind}>
+        <Mark size={20} /><span className="rail__dot"><Glyph tone={AVAILABILITY_TONE[availability.kind]} size={10} /></span>
+      </button>
       {pending > 0 ? <span className="rail__badge" title={`Čeká na vás: ${pending}`}>{pending}</span> : null}
     </div>
   );
