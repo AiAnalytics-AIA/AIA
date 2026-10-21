@@ -195,10 +195,12 @@ function RespondentsReceipt({ run }: { run: ResearchRun }) {
   const labels = dimensionLabels({});
   const applied = (on: boolean, reason: string | null) => (on ? t(`${R}.applied`) : reason ? codedText(codeWords(`${R}.reason`, reason)) : t(`${R}.none`));
   const filters = sel ? Object.keys(sel.audience_filters) : [];
-  const rows: [string, string][] = [
+  const rows: [string, ReactNode][] = [
     [t(`${R}.source`), `${t(`research.exec.respondents.${who.pinned}`)} · ${who.observed ? t(`${R}.observed.${who.observed}`) : t(`${R}.pending`)}`],
     [t(`${R}.population`), populationNote(run) ?? t(`${R}.populationNone`)],
   ];
+  // The code as fieldwork stored it, beside the source the run pinned: a mismatch shows both.
+  const origin: [string, ReactNode] = [t(`${R}.origin`), who.origin ? <span className="font-mono text-xs" data-origin-code>{who.origin}</span> : t(`${R}.pending`)];
   if (sel) {
     const unmatched = sel.dimensions_unmatched ?? [];
     const unmatchedNote = unmatched.length ? ` · ${tv(`${R}.unmatched`, { list: unmatched.map((d) => labels[d] ?? d).join(", ") })}` : "";
@@ -209,7 +211,7 @@ function RespondentsReceipt({ run }: { run: ResearchRun }) {
     <Card title={t(`${R}.title`)}>
       {who.mismatch ? <p role="alert" className="mb-2 text-sm font-semibold text-status-fault">{t(`${R}.mismatch`)}</p> : null}
       <dl data-population={run.population?.version_label} className="divide-y divide-border rounded-control border border-border">
-        {rows.map(([k, v]) => (
+        {[...rows, origin].map(([k, v]) => (
           <div key={k} className="grid grid-cols-[8rem_1fr] items-baseline gap-3 px-3 py-2 text-sm">
             <dt className="text-ink-muted">{k}</dt>
             <dd className="min-w-0">{v}</dd>

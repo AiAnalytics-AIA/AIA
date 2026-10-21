@@ -1118,6 +1118,26 @@ describe("Progress", () => {
     expect(within(card).getByText(t(`${R}.unrecorded`))).toBeTruthy();
   });
 
+  it("keeps both sides of a mismatch in view, the stored origin code beside the pinned source (artifact-fieldwork FLD7)", async () => {
+    api(listed(run({ ...COMPLETED, persona_source: "panel" })));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const R = "research.exec.respondents.receipt";
+    const card = (await screen.findByRole("heading", { name: t(`${R}.title`) })).closest("section") as HTMLElement;
+    const value = (label: string) => within(card).getByText(label).nextElementSibling?.textContent;
+    // Named, never resolved: the pinned panel, what the data say, and the code as stored.
+    expect(value(t(`${R}.source`))).toBe(`${t("research.exec.respondents.panel")} · ${t(`${R}.observed.SIMULATED`)}`);
+    expect(value(t(`${R}.origin`))).toBe("SYNTHETIC_FIXTURE");
+  });
+
+  it("says the data's origin is not yet stored while fieldwork has not stored it", async () => {
+    api(listed(PARKED));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const R = "research.exec.respondents.receipt";
+    const card = (await screen.findByRole("heading", { name: t(`${R}.title`) })).closest("section") as HTMLElement;
+    expect(within(card).getByText(t(`${R}.origin`)).nextElementSibling?.textContent).toBe(t(`${R}.pending`));
+    expect(card.querySelector("[data-origin-code]")).toBeNull();
+  });
+
   it("tags each step AI or deterministic and makes it pointable by the Lead (artifact-fieldwork FLD2)", async () => {
     api(listed(PARKED));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
