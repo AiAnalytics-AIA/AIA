@@ -210,6 +210,7 @@ is rebased on `develop` immediately before merge, and migration PRs merge one at
 | # | Migration | Session | Wave |
 |---|---|---|---|
 | M3 | `approval_decisions.subject_type` check extended: `wallet`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot`, `sociomap_unlock` | S3 | W0 (first, so no later migration edits the same constraint) |
+| M3b | `approval_decisions.subject_type` check gains `lead_card` (in `CHARGE_AUTHORITIES`): a Lead card that starts Deep Research on the server (`lead-orchestration#LO5a.2`); after M3 (LO16), in LO5a.2's own PR | S3 | W1, before LO5a.2 |
 | M1 | `workspace_edit_ops` | S1 | W1 |
 | M2 | `study_presence` | S1 | W1 |
 | M4 | `study_wallets`, `study_wallet_raises`, `study_wallet_charges`, `clients.wallet_ceiling_usd` | S1 (ceiling column S3) | W1 |
@@ -221,6 +222,7 @@ is rebased on `develop` immediately before merge, and migration PRs merge one at
 | M10 | `clients.data_posture` (`CLASSIFIED` default, `OPEN`), audited by who and when | S3 | W1 |
 | M11 | Tool-usage ledger storage, only the schema `deep-research#4` actually needs; no duplicate charge | S2 producer, S3 migration review | W3 before final AC-15 |
 | M12 | Deletion FK rules, only after `study-data-lifecycle#SDL0` settles the ledger/audit disposition | S3 | before W5 |
+| M13 | The actor user id on `ai_usage_events`, `budget_reservations` and tool-spend rows (per-researcher spend, Q40; `develop-spend-attribution#7`), null where the person is unknown, never a guess; first settles whether `ai_usage_events.actor_id` holds the person or the worker's lease identity | S3 | W3, after LO1 |
 
 Each migration lands with its repository, its tests (round-trip, isolation predicate, concurrent
 access: `ARCHITECTURE.md` §7) and its `layer_check` rule in the same PR.

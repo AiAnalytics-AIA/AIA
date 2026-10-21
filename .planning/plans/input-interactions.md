@@ -7,6 +7,7 @@ chunks:
   - "[ ] 3. Questionnaire: questions, options, blocks and sets created and edited in place; comparisons as segmented; deletes with undo (audit A1-A8, A11-A21)"
   - "[x] 3b1. Scales, server side: the domain compiling a scale's labels (two ends or one per point; labels that break the rule left out with a readiness WARN, scale_labels_ignored; the compiler aia-research-compile-2) and refusing a non-integer end (invalid_scale); the labels reaching respondents behind AIA_AI_SCALE_LABELS_IN_PROMPT (off), the respondent prompt's identity moving with it; the report printing them; the editor's pure rule (apps/web/src/research/scale-labels.ts) (audit IA-2, IA-7)"
   - "[ ] 3b2. Scales, the editor: range presets 1-5, 1-7, 0-10, 1-10 and Vlastní; a verbal label on every point, on chunk 1's primitives (#532); the range-change rule with its undo toast (audit A9, A10)"
+  - "[ ] 3b3. Scale labels switched on for respondents: AIA_AI_SCALE_LABELS_IN_PROMPT on for develop once the methodology owner has approved the wording rule; the moved respondent-system fingerprint recorded; deployment evidence (a run whose respondents read the labels); before any holdout confirmation binds to a fingerprint"
   - "[ ] 4. Brief and plan: the narrative's questions, objectives and hypotheses as items edited in place; the measurement folded into the set card; autosave replaces the explicit editors (audit A22-A36)"
   - "[ ] 5. Sample and audience: one n stepper 50-5000 with the recommendation, no silent clamp; factor ranges as bounded steppers; subpanels and values as chips or combobox (audit B1-B11)"
   - "[ ] 6. Run, spend and results: one SpendDialog for every money confirmation; cancels as inline confirms; report approval as a modal naming the document; JobPanel non-modal (audit B12-B28, C1-C8)"
@@ -390,3 +391,13 @@ IA-1 … IA-6, with all six parts, in the audit's §6. For the docs PR to number
   expect(el.textContent).toBe("50–5 000 · ↑ ↓ o krok, Shift ×10");
   ```
 - **open-items.md**: number IA-8 (closed by this PR) beside IA-1 … IA-7.
+
+### Chunk 3b3, added by planning (2026-10-21)
+
+3b1 built the label path behind `AIA_AI_SCALE_LABELS_IN_PROMPT`, off, and 3b2 is the editor; no
+chunk switched the path on, so every scheduled chunk could finish with respondents still reading bare
+numbers (Codex on #548). **3b3** turns it on for develop once the methodology owner (A. Bahbouh)
+approves the wording rule, records the respondent-system fingerprint it moves to, and shows a develop
+run whose respondents read the labels. It lands before any holdout confirmation
+(`panel-grounded-respondents` 7f-7h) binds to a fingerprint.
+
