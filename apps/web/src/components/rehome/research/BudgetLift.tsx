@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { api } from "@/lib/api";
-import { budgetLine, type StudyBudget } from "@/lib/budget-line";
+import { budgetLine, holdsNote, type StudyBudget } from "@/lib/budget-line";
 
 import { Button, Field, TextArea, TextInput } from "../ui";
 
@@ -61,6 +61,7 @@ export function BudgetLift({ studyId, lift, busy, label }: {
           {budgetLine(current.study)}
         </p>
       )}
+      {current && holdsNote(current.study) ? <p className="text-xs text-ink-muted">{holdsNote(current.study)}</p> : null}
       <div className="flex flex-wrap items-end gap-3">
         <Field label={t("research.exec.budget.amount")} className="w-48">
           <TextInput type="number" inputMode="decimal" min={current?.budget ?? 0} step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} disabled={current == null} />

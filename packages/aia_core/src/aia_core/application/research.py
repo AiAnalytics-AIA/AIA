@@ -254,6 +254,7 @@ class CostCeilingUnknown(Exception):
 def lift_study_budget_waits(
     session: Session,
     scope: StudyContext,
+    run_id: str,
     steps: Sequence[Mapping[str, Any]],
     *,
     budget_usd: float,
@@ -267,7 +268,12 @@ def lift_study_budget_waits(
     Needs ``APPROVE_BUDGET`` and ``MANAGE_STUDY_BUDGET`` on an open Study, which a worker's
     scope does not hold. ``budget_usd`` equal to the current budget lifts the wait without
     changing it (it was raised by hand); below it is refused: this lifts a cap, it does not
-    lower one. Each step's lift is its own approval in the ledger.
+    lower one. One lift is one decision: every waiting step of ``steps`` goes on under one
+    lock and one approval row in the ledger (CR-3), so a run whose eight analysis modules
+    stopped at the cap needs one lift, not eight. ``steps`` are the steps of run ``run_id``,
+    whose lock is taken before the study's (the order a completing step takes them in); the
+    study's budget is then read locked, so two lifts at once never compare against the same
+    old budget and a raise is never overwritten by a smaller one decided earlier.
 
     Checked before anything is written, so a refused lift changes nothing, not even the
     budget; the budget change and the resumes share the caller's transaction. The callers
@@ -280,16 +286,23 @@ def lift_study_budget_waits(
     if not waiting:
         raise BudgetWaitNotLiftable("only a step waiting for budget can be lifted")
     scopes = ScopeRepository(session)
-    current = float(scopes.get_study(scope).budget_usd)
+    workflows = WorkflowRepository(session, scope)
+    # The run, then the study: the order a completing step takes them in (run, then the payer
+    # it charges), so the two never wait on each other.
+    workflows.lock_run(run_id)
+    # Locked before it is compared: two lifts at once must not compare against the same old
+    # budget, the later one writing a lower cap over the earlier one's raise.
+    current = float(scopes.get_study(scope, for_update=True).budget_usd)
     if budget_usd < current:
         raise BudgetNotRaised(offered=budget_usd, current=current)
     if budget_usd > current:
         scopes.set_study_budget(scope, budget_usd)
-    workflows = WorkflowRepository(session, scope)
-    for step in waiting:
-        workflows.resume_budget_wait(
-            str(step["step_id"]), note=note, budget_before=current, budget_after=budget_usd
-        )
+    workflows.resume_budget_waits(
+        [str(step["step_id"]) for step in waiting],
+        note=note,
+        budget_before=current,
+        budget_after=budget_usd,
+    )
 
 
 def resume_runtime_parks(
@@ -1038,18 +1051,33 @@ class ResearchRuns:
         return self._workflows().request_cancel(run_id, reason=reason)
 
     def lift_budget_wait(
-        self, run_id: str, node_key: str, *, budget_usd: float, note: str = ""
+        self,
+        run_id: str,
+        node_key: str | None = None,
+        *,
+        budget_usd: float,
+        note: str = "",
     ) -> dict[str, Any]:
-        """Raise the study's budget to ``budget_usd`` and let the waiting step go on
-        (:func:`lift_study_budget_waits`, which states the rule)."""
+        """Raise the study's budget to ``budget_usd`` and let every step of the run stopped at
+        the cap go on, in one decision (:func:`lift_study_budget_waits`, which states the rule).
+
+        A run's analysis modules each reserve their own call, so several can wait at once; the
+        lift is the run's, not one per step (CR-3). ``node_key``, when given (the older
+        per-step route), must name a step of the run that is waiting for budget; the lift
+        still releases every waiting step."""
         self.scope.require(Permission.APPROVE_BUDGET)
         self.scope.require(Permission.MANAGE_STUDY_BUDGET)
         self.scope.require_open_study()
         run = self.get(run_id)
-        step = next((s for s in run["steps"] if s["node_key"] == node_key), None)
-        if step is None:
-            raise ResearchStepNotFound(node_key)
-        lift_study_budget_waits(self.session, self.scope, [step], budget_usd=budget_usd, note=note)
+        if node_key is not None:
+            step = next((s for s in run["steps"] if s["node_key"] == node_key), None)
+            if step is None:
+                raise ResearchStepNotFound(node_key)
+            if step["status"] is not StepRunStatus.AWAITING_BUDGET:
+                raise BudgetWaitNotLiftable("only a step waiting for budget can be lifted")
+        lift_study_budget_waits(
+            self.session, self.scope, run_id, run["steps"], budget_usd=budget_usd, note=note
+        )
         return self.get(run_id)
 
     def resume(self, run_id: str) -> dict[str, Any]:
@@ -1568,7 +1596,7 @@ class ResearchAgentJobs:
         the same revision returns this job, so without the lift it never ends but by a cancel."""
         run = self.get(run_id)
         lift_study_budget_waits(
-            self.session, self.scope, run["steps"], budget_usd=budget_usd, note=note
+            self.session, self.scope, run_id, run["steps"], budget_usd=budget_usd, note=note
         )
         return self.get(run_id)
 

@@ -29,6 +29,14 @@ export function budgetLine(study: StudyBudget | null | undefined, ceiling?: numb
   return parts.join(" ");
 }
 
+/**
+ * What a remainder read beside a budget lift leaves out: the amounts open holds keep for steps that
+ * run now. Said only when there is a remainder to qualify; an unknown one says nothing more.
+ */
+export function holdsNote(study: StudyBudget | null | undefined): string | null {
+  return usd(study?.remaining_usd) === null ? null : t("research.exec.budgetLine.holdsNotCounted");
+}
+
 /** The study's budget read now, or null when it cannot be read: the line then says it is unknown. */
 export async function readBudget(studyId: string): Promise<StudyBudget | null> {
   try {

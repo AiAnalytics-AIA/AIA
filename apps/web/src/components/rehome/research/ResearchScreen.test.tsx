@@ -267,6 +267,112 @@ describe("ResearchScreen", () => {
   it("lists as rebuilt exactly the steps that have a screen", () => {
     for (const k of STEP_KEYS) expect(REBUILT_STEPS.has(k), k).toBe(k in STEP_SCREENS);
   });
+
+  describe("an AI job stopped at the study's budget (CR-2)", () => {
+  const JOBS = "/api/v1/studies/STU-1/research/agent-jobs";
+  const job = (status: string, stepStatus: string) => ({ run_id: "RUN-J1", design_revision_id: "REV-3", action: "propose_audience", status,
+    is_terminal: status === "COMPLETED", needs_attention: status === "AWAITING_BUDGET", context_sha256: "x", harness_version: "2",
+    created_at: "2026-10-20T09:00:00Z", actual_cost_usd: null, proposal_state: status === "COMPLETED" ? "pending" : null,
+    steps: [{ step_id: "STEP-agent", node_key: "agent", status: stepStatus, waiting_reason: stepStatus === "AWAITING_BUDGET" ? "budget_exceeded" : null, error_message: null }] });
+  const AUDIENCE = { content: { title: "Alfa", audience: { strategy: "filters" }, ui_state: { audience_entry: "analytics", analytics_choice: "cz18" } } };
+  /** The study's AI job, waiting for budget until lifted; `listed` puts it in the screen's list of jobs too. */
+  /** `runningPolls`: how many reads of the job after the lift still find it running (a slow job). */
+  const waitingJob = (listed: boolean, runningPolls = 0) => {
+    const state = { lifted: false, polls: 0 };
+    const now = () => {
+      if (!state.lifted) return job("AWAITING_BUDGET", "AWAITING_BUDGET");
+      return state.polls <= runningPolls ? job("RUNNING", "RUNNING") : job("COMPLETED", "SUCCEEDED");
+    };
+    api(() => content(AUDIENCE), undefined, {
+      [`POST ${JOBS}`]: () => job("AWAITING_BUDGET", "AWAITING_BUDGET"),
+      [`GET ${JOBS}`]: () => (listed ? [now()] : []),
+      [`GET ${JOBS}/RUN-J1`]: () => { if (state.lifted) state.polls += 1; return now(); },
+      [`POST ${JOBS}/RUN-J1/budget`]: () => { state.lifted = true; return job("RUNNING", "RUNNABLE"); },
+      [`GET ${JOBS}/RUN-J1/result`]: () => ({
+        result: { project: { title: "Alfa" }, proposal: { message: "Návrh audience" } },
+        provenance: { agent_id: "aia.research.propose_audience", design_revision_id: "REV-3", context_sha256: "x", status: "COMPLETED" },
+      }),
+      "GET /api/v1/studies/STU-1/design/revisions/REV-3": () => ({ revision_id: "REV-3", revision: 3,
+        content: defaultsMerge({ title: "Alfa" }, { empty_project: EMPTY_PROJECT } as unknown as Template) }),
+      "GET /api/v1/studies/STU-1": () => ({ study_id: "STU-1", name: "Alfa", budget_usd: 5, spent_usd: 4.8, remaining_usd: 0.2 }),
+      "GET /api/v1/population/audience-catalogue": () => new Response('{"code":"not_found","message":"No such resource."}', { status: 404 }),
+    });
+    return state;
+  };
+  const lift = async (form: HTMLElement, total: string) => {
+    await within(form).findByText(/5\.00/);
+    fireEvent.change(within(form).getByLabelText(t("research.exec.budget.amount")), { target: { value: total } });
+    fireEvent.click(within(form).getByRole("button", { name: t("research.exec.budget.lift") }));
+  };
+
+  it("offers one lift for a wait the stage shows in place, never a second in the job list, and opens the proposal from it (Codex on #533)", async () => {
+    waitingJob(true);
+    render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+    fireEvent.change(await screen.findByPlaceholderText(t("research.audience.describePlaceholder")), { target: { value: "Ženy 30-45 let" } });
+    fireEvent.click(screen.getByRole("button", { name: t("research.audience.propose") }));
+    await screen.findByRole("status", { name: t("research.aiBudget.waitingTitle") });
+    // The list was read again with the job in it (the start refreshes it), and still one form.
+    await vi.waitFor(() => expect(calls.filter((c) => c.method === "GET" && c.url === JOBS).length).toBeGreaterThanOrEqual(2));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.getAllByRole("form", { name: t("research.exec.budget.title") })).toHaveLength(1);
+    expect(screen.queryByRole("heading", { name: t("research.aiBudget.title") })).toBeNull();
+    await lift(screen.getByRole("form", { name: t("research.exec.budget.title") }), "8");
+    expect(await screen.findByRole("button", { name: "Použít návrh" }, { timeout: 5000 })).toBeTruthy();
+  });
+
+  it("offers no second lift while a lifted job still runs, though the list was last read while it waited (review P2-1)", async () => {
+    const state = waitingJob(true, 2);
+    render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+    fireEvent.change(await screen.findByPlaceholderText(t("research.audience.describePlaceholder")), { target: { value: "Ženy 30-45 let" } });
+    fireEvent.click(screen.getByRole("button", { name: t("research.audience.propose") }));
+    await screen.findByRole("status", { name: t("research.aiBudget.waitingTitle") });
+    await vi.waitFor(() => expect(calls.filter((c) => c.method === "GET" && c.url === JOBS).length).toBeGreaterThanOrEqual(2));
+    await lift(screen.getByRole("form", { name: t("research.exec.budget.title") }), "8");
+    // The job reads RUNNING on its first two polls after the lift: no lift form anywhere then.
+    await vi.waitFor(() => expect(state.polls).toBeGreaterThanOrEqual(1), { timeout: 5000 });
+    expect(screen.queryAllByRole("form")).toHaveLength(0);
+    expect(screen.queryByRole("heading", { name: t("research.aiBudget.title") })).toBeNull();
+    await vi.waitFor(() => expect(state.polls).toBeGreaterThanOrEqual(2), { timeout: 5000 });
+    expect(screen.queryAllByRole("form")).toHaveLength(0);
+    expect(await screen.findByRole("button", { name: "Použít návrh" }, { timeout: 8000 })).toBeTruthy();
+    expect(screen.queryAllByRole("form")).toHaveLength(0);
+    expect(calls.filter((c) => c.method === "POST" && c.url === `${JOBS}/RUN-J1/budget`)).toHaveLength(1);
+  });
+
+  it("opens the proposal of a job lifted from the screen's list of waiting jobs, which no stage shows in place", async () => {
+    waitingJob(true);
+    render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+    const list = (await screen.findByRole("heading", { name: t("research.aiBudget.title") }, { timeout: 5000 })).parentElement as HTMLElement;
+    expect(screen.getAllByRole("form")).toHaveLength(1);
+    await lift(within(list).getByRole("form"), "8");
+    expect(await screen.findByRole("button", { name: "Použít návrh" }, { timeout: 5000 })).toBeTruthy();
+    expect(calls.filter((c) => c.method === "POST" && c.url === JOBS)).toEqual([]); // nothing started
+  });
+
+  it("shows a stage's AI job stopped at the budget as waiting, lifts it in place and goes on with the same job (CR-2)", async () => {
+    waitingJob(false);
+    render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+    fireEvent.change(await screen.findByPlaceholderText(t("research.audience.describePlaceholder")), { target: { value: "Ženy 30-45 let" } });
+    fireEvent.click(screen.getByRole("button", { name: t("research.audience.propose") }));
+
+    // Waiting in words, with the study's budget lift where the failure was: no retry, no fault.
+    const card = await screen.findByRole("status", { name: t("research.aiBudget.waitingTitle") });
+    expect(within(card).getByText(t("research.aiBudget.waitingHelp"))).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("research.retry") })).toBeNull();
+    expect(screen.queryByText(t("research.audience.failedTitle"))).toBeNull();
+    const form = within(card).getByRole("form", { name: t("research.exec.budget.title") });
+    await within(form).findByText(/5\.00/);
+    expect(within(form).getByText(t("research.exec.budgetLine.holdsNotCounted"))).toBeTruthy();
+    fireEvent.change(within(form).getByLabelText(t("research.exec.budget.amount")), { target: { value: "8" } });
+    fireEvent.click(within(form).getByRole("button", { name: t("research.exec.budget.lift") }));
+
+    await vi.waitFor(() => expect(calls.filter((c) => c.method === "GET" && c.url === `${JOBS}/RUN-J1/result`)).toHaveLength(1));
+    expect(calls.filter((c) => c.method === "POST" && c.url === `${JOBS}/RUN-J1/budget`).map((c) => c.body)).toEqual([{ budget_usd: 8, note: "" }]);
+    // The same job went on: one start, never a second job for the waiting one.
+    expect(calls.filter((c) => c.method === "POST" && c.url === JOBS)).toHaveLength(1);
+    await vi.waitFor(() => expect(screen.queryByRole("status", { name: t("research.aiBudget.waitingTitle") })).toBeNull());
+  });
+  });
 });
 
 describe("AI pomoc (Studio v3)", () => {

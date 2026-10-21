@@ -1339,9 +1339,45 @@ class BudgetLiftRequest(BaseModel):
 
 
 @router.post(
+    "/research/runs/{run_id}/budget",
+    response_model=ResearchRunResponse,
+    summary="Raise the study's budget and let every step of the run stopped at the cap go on",
+    responses={
+        409: {"model": ErrorResponse, "description": "Nothing in the run waits for budget"},
+        422: {"model": ErrorResponse, "description": "The budget offered is below the current one"},
+    },
+)
+def lift_run_budget_wait(
+    run_id: RunIdPath,
+    body: BudgetLiftRequest,
+    scope: StudyScopeDep,
+    session: SessionDep,
+) -> ResearchRunResponse:
+    """Needs ``APPROVE_BUDGET`` and ``MANAGE_STUDY_BUDGET`` on an open Study.
+
+    The run's lift (CR-3): a run's analysis modules each reserve their own call, so several
+    steps can stop at the study's budget at once. One lift raises the budget (equal to the
+    current one lifts the waits without changing it; lower is refused) and offers every
+    waiting step to a worker again, under one lock, as one decision in the approval ledger.
+    The cap stays hard: a step whose next reservation still passes the budget stops again.
+    """
+    runs = ResearchRuns(session, scope)
+    try:
+        return _run(
+            runs.lift_budget_wait(run_id, budget_usd=body.budget_usd, note=body.note), scope
+        )
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ResearchRunNotFound as exc:
+        raise _not_found("run") from exc
+    except (BudgetWaitNotLiftable, BudgetNotRaised) as exc:
+        raise _budget_lift_refused(exc) from exc
+
+
+@router.post(
     "/research/runs/{run_id}/steps/{node_key}/budget",
     response_model=ResearchRunResponse,
-    summary="Raise the study's budget and let a step that stopped at the cap go on",
+    summary="Raise the study's budget and let the run's steps that stopped at the cap go on",
     responses={
         409: {"model": ErrorResponse, "description": "The step is not waiting for budget"},
         422: {"model": ErrorResponse, "description": "The budget offered is below the current one"},
@@ -1359,8 +1395,9 @@ def lift_budget_wait(
     A step whose next paid call would pass the study's budget stops waiting for budget,
     and nothing else can resume it. The person names the budget the study is raised to
     (equal to the current one lifts the wait without changing it; lower is refused) and
-    the step is offered to a worker again. The decision is written to the approval
-    ledger and the change to the access audit. The cap stays hard: if the new budget is
+    the step, with every other step of the run waiting for budget, is offered to a worker
+    again (the run's lift, ``POST …/runs/{run_id}/budget``). The decision is written once to
+    the approval ledger and the change to the access audit. The cap stays hard: if the new budget is
     still too small the step stops again at its next reservation.
     """
     runs = ResearchRuns(session, scope)
