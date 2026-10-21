@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { QuestionResult } from "./research-execution";
-import { citedMeasure, compareObjects, czechList, inlineRuns, measureAnchor, readMeasure, separation, textBlocks } from "./result-reading";
+import { citedMeasure, compareObjects, czechList, inlineRuns, measureAnchor, measureTarget, objectTarget, readMeasure, separation, setTarget, textBlocks } from "./result-reading";
 
 const support = (status: "REPORTABLE" | "INDICATIVE" | "SUPPRESS") => ({ support_status: status, n_platnych: 140, n_unique_layer_donors: 120, effective_n: 110 });
 const choice = (status: "REPORTABLE" | "INDICATIVE" | "SUPPRESS", shares: Record<string, [number, number, number] | [number]>, typ = "vyber"): QuestionResult => ({
@@ -100,6 +100,22 @@ describe("compareObjects", () => {
     expect(c.top).toBe("Pořadí objektů nelze posoudit: u některých chybí interval.");
   });
 
+  it("keeps each withheld object with its reason, its donors and Kish n, and never a number", () => {
+    const c = compareObjects([object("a", 4.2, 4.0, 4.4), object("b", 3.7, 3.2, 4.3, "SUPPRESS"), object("c", null)]);
+    expect(c.withheld).toEqual([
+      { id: "b", label: "B", reason: "suppressed", donors: expect.any(Number), effectiveN: expect.any(Number) },
+      { id: "c", label: "C", reason: "no_mean", donors: expect.any(Number), effectiveN: expect.any(Number) },
+    ]);
+    expect(c.withheld.map((o) => o.label)).toEqual(c.omitted);
+    expect(Object.keys(c.withheld[0])).not.toContain("value");
+    expect(c.ranked[0].effectiveN).toEqual(expect.any(Number));
+  });
+
+  it("reads a Kish n the aggregate did not store as unknown, never zero", () => {
+    const c = compareObjects([{ id: "a", label: "A", result: { ...scale("REPORTABLE", 4.2, 4.0, 4.4), effective_n: undefined as unknown as number } }]);
+    expect(c.ranked[0].effectiveN).toBeNull();
+  });
+
   it("says nothing about order with fewer than two objects", () => {
     expect(compareObjects([object("a", 4.2, 4, 4.4)], [1, 5])).toMatchObject({ top: null, bottom: null });
   });
@@ -184,5 +200,14 @@ describe("textBlocks", () => {
     expect(czechList(["A"])).toBe("A");
     expect(czechList(["A", "B"])).toBe("A a B");
     expect(czechList(["A", "B", "C"])).toBe("A, B a C");
+  });
+});
+
+describe("the Lead's targets on Výsledky", () => {
+  it("names a measure, a set and an object row as the Lead's focus finds them", () => {
+    expect(measureTarget("q2")).toBe("measure:q2");
+    expect(measureTarget("napoje:caj")).toBe("measure:napoje:caj");
+    expect(setTarget("napoje")).toBe("set:napoje");
+    expect(objectTarget("napoje", "caj")).toBe("object:napoje.caj");
   });
 });
