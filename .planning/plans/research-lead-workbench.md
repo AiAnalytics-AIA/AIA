@@ -24,7 +24,7 @@ chunks:
   - "[ ] 20. Results and Sociomap artifacts, drawing aia-sociomap-5 in full: credibility, uncertainty circles, the respondent map, taste segments, unplaced objects, in Results and project memory alike (D-13)"
   - "[ ] 21. Analysis and Report artifacts"
   - "[ ] 22. Audience and Dimensions artifacts"
-  - "[ ] 23. Worker and Deep Research cards in the conversation, each opening the artifact it changes"
+  - "[ ] 23. Worker and Deep Research cards in the conversation, each opening the artifact it changes (partial, feature/lead-worker-cards: design-job and research-run cards built; Deep Research cards not yet)"
   - "[ ] 24. A standing 'continue until you need me' beyond an approved plan's steps, over chunk 11's command registry, stopping at every gate (after the MVP: the plan-scoped part is lead-orchestration LO3-LO5)"
   - "[ ] 25. Deep Research reachable from every stage as a capability"
   - "[ ] 26. The Lead stays accessible at every width (D20, MVPQ-11): the workbench serves under 1100 px with the Lead as a compact drawer or a stacked layout, the manual AI starts are removed in every layout, tested at 1099, 1100, 768 and 390 px, by keyboard, focus and Escape with a return to the targeted artifact, with a stale card refused, and by a direct request"
@@ -200,6 +200,69 @@ with its prompt and price; most of the paid path is built, `mvp-consolidation.md
 (vocabulary, frame, pointing: every artifact needs them), then 17-22 (those AIA backs first, Audience
 and Dimensions last; each removes its stage's AI buttons, D15), then 23. 24-25 after the MVP (D16).
 The backend each chunk needs is in `.planning/mvp-consolidation.md` §6.
+
+## Chunk 23 brought forward, and D15 in the workbench (owner, 2026-10-21)
+
+The owner on develop with the workbench on: "the individual AI worker buttons are still there, also a
+modal appears when the AI workers are running, i want all the aiworker runtimes to pop up as cards in
+the lead researcher chat, preserve the orb UI", widened the same day to research runs ("i want this to
+appear in the lead researches chat too"). Built on `feature/lead-worker-cards`:
+
+- **Cards.** Every design job (the eight `ResearchAgentAction`s) and every research run of the study,
+  however it was started, is a card in the Lead's conversation (`lib/lead-cards.ts`,
+  `components/workbench/LeadCards.tsx`): its name, its state (`agentJobState`, `runState`), its cost
+  (unreported is said, never 0), and, while the API reports a step RUNNING, the orb and the live feed
+  (`StepActivityPanel` at 64 px over `useStepActivity`). A job approved on a turn's card stands with
+  that turn (`request_decision.run_id`); everything else at the time it was created. A finished job
+  links to the stage its proposal changes and to its review there (`JOB_STAGE`; the review opens when
+  that stage mounts, `OPEN_REVIEW_KEY` in the study's page memory); advice opens in the artifact pane.
+  A run links to Průběh, and to Výsledky once its aggregate exists.
+- **The prepared research run is an approval card** (the owner's widening; amends D7 for
+  `research_run` only). "Zkontrolovat spuštění" submits the working design and reads its readiness, as
+  Spuštění does on a visit; "Spustit výzkum" starts it through **Spuštění's own route**,
+  `POST …/research/runs` (`ResearchRuns.start`: readiness, the spend limit and its confirmation with
+  `budget-line.ts`, the default persona source, LIVE). No second start and no `approve_request` path
+  were built. What only the person decides on Spuštění is sent there: a failing readiness,
+  answerability gaps (their acknowledgement is written in the person's words), a ceiling unknown under
+  a limit, another persona source or a materialized population.
+- **No modal.** In the workbench the job dialog (`JobPanel` as a dialog) is not rendered; the card
+  carries its content.
+- **D15 removals (workbench layout only),** behind one predicate, `ResearchContext.leadOwnsAiStarts`
+  (`leadOwnsAiStarts("workbench")`), which every stage reads; chunk 26 removes the predicate when the
+  classic layout gets the Lead or is retired:
+  - AI pomoc (critique_design, design_copilot, answer_memory: the inspector card, its question form,
+    its saved list's "Pokračovat"), and Výsledky's "Zeptat se na klientské znalosti";
+  - Zadání's "Vytvořit návrh s AI" (analyze_brief): a plain "Pokračovat na Návrh" link instead;
+  - Dotazník's "Sestavit první verzi dotazníku" (build_questionnaire) and "Optimalizovat dotazník s AI"
+    (optimize_questionnaire);
+  - Cílová skupina's "AI: navrhnout cílovou skupinu" from a description (propose_audience);
+  - Dimenze's "AI doporučí" (suggest_dimensions).
+  Each stage says the Lead prepares it instead (`AskLead`). Every one of those eight actions is an
+  `AgentJobRequest` the Lead may prepare, and `approve_request` starts it with the spend gate and the
+  ledger row (`application/research_lead.py:683-765 @ 095a3e68`).
+- **Kept, and why:**
+  - the classic layout's buttons (switch off, or under 1100 px): no Lead there until chunk 26;
+  - Spuštění's Start: not a worker start (the owner: "too" means in addition);
+  - Návrh's "Doplnit a aktualizovat návrh" (follow-up answers) and "Zpracovat komentáře": each first writes the
+    person's answers or comments into the working copy (`answerFollowUps`, `commentsToReview`) and marks
+    the plan as changed by comments (`plan_changed26`); the Lead's `analyze_brief` would not write
+    either. They go with chunk 18, which needs a save-only control for both;
+  - Deep Research's starts (Návrh's "Spustit veřejný výzkum", Výsledky' "Spustit rešerši výsledků" and
+    its retry): the Lead's `design_research` / `interpretation_research` requests only open the stage
+    (D7); they go with `lead-orchestration#LO5a` (scope freeze, chunk 26 D-12);
+  - the inspector's budget lifts and saved proposals: they continue or review an approved job, they
+    start nothing.
+- **Tests.** `lib/lead-cards.test.ts` (each action's card and stage, state words, orb only while
+  RUNNING, run cards, the conversation's order, the run card's plan, the predicate),
+  `LeadPane.test.tsx` (a running job's card with its orb and no dialog, then its links; a run's card;
+  the run card starting only on a click), `ResearchScreen.workbench.test.tsx` (no AI start of its own on
+  Zadání, Dotazník, Cílová skupina, Dimenze; Spuštění's Start kept) and
+  `tools/ui_workbench/lead_cards_journey.mjs`: the scripted Lead (a message with "spusť" now prepares
+  the research run, `aia_executors/workbench.py`) and the workbench's fictional fieldwork; zero paid
+  jobs, the design job parks without the AI runtime.
+- **Not built here:** Deep Research cards (chunk 23 stays open); a run card does not survive a reload
+  beside the turn that prepared it (it then stands at its own time, and the request card reads open
+  again, finding the run on the same revision when asked); the compact Lead under 1100 px (chunk 26).
 
 ## Findings
 
