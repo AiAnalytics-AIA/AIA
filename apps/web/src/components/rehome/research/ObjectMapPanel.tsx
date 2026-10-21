@@ -47,6 +47,11 @@ const RELATION_MODES: { mode: RelationMode; label: string; help?: string }[] = [
 ];
 
 const PRESSED = "aria-pressed:!border-signal aria-pressed:!bg-signal-wash aria-pressed:font-semibold aria-pressed:text-signal";
+/** The map's stage height: the panel's 700 px where there is room; never taller than the view less its
+ *  header and toolbar, so the toolbar and the whole map are seen together; and on a narrow screen
+ *  not much taller than wide, since the map is drawn at the scale of its shorter side (the rest of a
+ *  tall canvas is empty). Full screen takes the screen. */
+export const STAGE_HEIGHT = "min(700px, max(320px, calc(100dvh - 260px)), max(360px, 110vw))";
 const SWITCH = `inline-flex min-h-7 items-center disabled:cursor-not-allowed disabled:opacity-50 rounded-sm border border-border-strong bg-surface-raised px-2 text-xs text-ink hover:border-signal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${PRESSED}`;
 
 export function ObjectMapPanel({ battery, map, facts }: { battery: BatteryWithMaps; map: ObjectMapArtifact; facts: ReactNode }) {
@@ -340,7 +345,8 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
         {changes.length ? <FilterBar changes={changes} onReset={resetDisplay} /> : null}
       </div>
       <div className="flex flex-wrap items-start gap-4">
-        <div ref={setStage} className="relative h-[700px] min-w-0 flex-[999_1_560px] overflow-hidden rounded-[10px] bg-[#07090c] [min-width:min(100%,560px)] [&:fullscreen]:h-screen [&:fullscreen]:w-screen [&:fullscreen]:rounded-none" data-testid="object-map-stage">
+        <div ref={setStage} className="relative min-w-0 flex-[999_1_560px] overflow-hidden rounded-[10px] bg-[#07090c] [min-width:min(100%,560px)] [&:fullscreen]:h-screen [&:fullscreen]:w-screen [&:fullscreen]:rounded-none" data-testid="object-map-stage"
+          style={full ? undefined : { height: STAGE_HEIGHT }}>
           <canvas ref={canvas} className="block h-full w-full cursor-grab touch-none" role="img" data-testid="object-map-canvas"
             data-camera={JSON.stringify(camera)} data-norm={norm} data-map={people ? "respondents" : "objects"} data-person={people && person >= 0 ? dots[person].id : ""}
             data-relations={people ? "" : pairs.map((p) => `${nodes[p.i].id}|${nodes[p.j].id}`).join(" ")} data-selected={selected >= 0 ? nodes[selected].id : ""} data-relation={relation ? `${nodes[relation[0]].id}|${nodes[relation[1]].id}` : ""}

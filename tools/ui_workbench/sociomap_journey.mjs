@@ -171,10 +171,20 @@ try {
     await openMap();
     await canvas.waitFor();
     await noOverflow(`sociomap @${width}`);
-    await panel.scrollIntoViewIfNeeded();
+    // The map fits where it is read: its toolbar and the whole canvas in one view of the pane, and a
+    // narrow canvas no taller than its width calls for (the map is drawn at the scale of its shorter side).
+    await panel.evaluate((n) => n.scrollIntoView({ block: "start" }));
+    const fit = await page.evaluate(() => {
+      const box = (s) => document.querySelector(s)?.getBoundingClientRect();
+      const bar = box('[data-testid="object-map-panel"] [role=toolbar]'), stage = box('[data-testid="object-map-stage"]');
+      const pane = document.querySelector(".artbody")?.getBoundingClientRect() ?? { top: 0, bottom: innerHeight };
+      return { top: bar.top, bottom: stage.bottom, paneTop: pane.top, paneBottom: pane.bottom, w: stage.width, h: stage.height };
+    });
+    assert(fit.bottom - fit.top <= fit.paneBottom - fit.paneTop + 1, `@${width}: toolbar and canvas (${Math.round(fit.bottom - fit.top)} px) fit the pane (${Math.round(fit.paneBottom - fit.paneTop)} px)`);
+    assert(fit.h <= Math.max(360, 1.5 * fit.w) + 1, `@${width}: the canvas (${Math.round(fit.w)} x ${Math.round(fit.h)}) is no taller than its width calls for`);
     await shot(`${width}-sociomap`);
   }
-  check("the -5 map at 1440, 1100, 768 and 390 px, no page overflow");
+  check("the -5 map at 1440, 1100, 768 and 390 px, no page overflow, toolbar and canvas in one view");
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await openMap();

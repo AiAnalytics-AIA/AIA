@@ -185,3 +185,29 @@ owner and A. Bahbouh.
 
 - Register this plan and its chunks. `research-lead-workbench#20`'s D-13 text is met by
   `sociomap-5-web` and SOC2.
+
+## Findings
+
+Browser audit, 2026-10-21, on the local workbench (`AIA_WEB_RESEARCH_WORKBENCH=true`, a fictional eight-brand run on
+`aia-sociomap-5` and one on `-3`), 1440 / 1100 / 768 / 390 px:
+
+- **Fixed (this PR): the map did not fit where it is read.** `ObjectMapPanel.tsx:330 @ bfe6d15b` gave the stage a fixed
+  700 px height.
+  - At 1440 px in the workbench, the toolbar plus the canvas took 788 px of a 755 px pane, so the toolbar left the view
+    while the map was read, and the detail card sat below it.
+  - At 390 px the canvas was 308 × 700 px. The map is drawn at the scale of its shorter side, so the top 230 px were
+    empty, and the list and detail were a screen further down.
+  - Now `STAGE_HEIGHT`: `min(700px, max(320px, 100dvh − 260px), max(360px, 110vw))`; full screen still takes the screen.
+  - Test: `sociomap_journey.mjs` checks at every width that the toolbar and the whole canvas fit the pane, and that a
+    canvas is no taller than 1.5 × its width. It failed at 1440 before the fix (788 > 755 px).
+- **Open, SOC2 (blocked on research-lead-workbench#15): the Sociomapa stage opens on Výsledky's other cards.** The
+  stage is Výsledky's maps view (`workbench-stages.ts`, view `maps`), and `ResultsWorkspace` puts "Kdo odpovídal",
+  "Kompletní zpráva studie" and the results tabs above the maps panel. The map starts 2,174 px into a 755 px pane at
+  1440 px. SOC2's frame shows the map alone; until then a person scrolls three screens to the map. The Výsledky screen
+  owns `ResultsWorkspace`, so this is not patched here.
+- **For the methodology owner (inside the panel's drawing, not changed):**
+  - at 390 px the legend card (260 px wide, bottom-left) covers the lower third of the map;
+  - the tool column (top-right) covers object labels near the right edge ("Borealis").
+  Both follow the AIA panel's layout.
+- **Known, already with the methodology owner:** Iris's label is dropped beside Halo (`placeLabels`, Q50 (b)),
+  still seen in every width.
