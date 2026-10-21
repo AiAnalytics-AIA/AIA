@@ -20,9 +20,11 @@ from aia_core.application.research_lead import ResearchLead
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.ai_models import ModelCapability
+from aia_core.domain.knowledge import KnowledgeKind
 from aia_core.domain.research_lead import LEAD_PROMPT_ID, RememberNote, SelfUpdate, lead_prompt
 from aia_core.domain.residency import DataClass
 from aia_core.infrastructure.ai_usage_repository import AIUsageRepository
+from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from aia_core.infrastructure.model_adapters.transport import HttpRequest, HttpResponse
 from aia_core.infrastructure.prompt_repository import PromptRepository
 from aia_core.infrastructure.researcher_lead_repository import ResearcherLeadRepository
@@ -136,12 +138,16 @@ def worker(
     configured: bool = True,
     approvals: tuple[MaterialApproval, ...] = APPROVALS,
     route_approved_for: str | None = None,
+    class_gates: str = "",
 ) -> Worker:
+    gates = {"AIA_DATA_CLASS_GATES": class_gates}
     cfg = (
-        settings()
+        settings(**gates)
         if route_approved_for is None
         # Client-confidential material needs the route's retention stated, too.
-        else settings(AIA_AI_ROUTE_APPROVED_FOR=route_approved_for, AIA_AI_ROUTE_RETENTION_DAYS="0")
+        else settings(
+            AIA_AI_ROUTE_APPROVED_FOR=route_approved_for, AIA_AI_ROUTE_RETENTION_DAYS="0", **gates
+        )
     )
     executor = ResearchLeadExecutor(
         store=store,
@@ -371,11 +377,8 @@ def test_unconfigured_the_turn_parks_and_nothing_is_sent(
     assert (turn["status"], turn["reason"]) == ("WAITING", "research_lead_unconfigured")
 
 
-def test_unclassified_material_parks_the_turn_before_any_call(
-    ready: Any, database_url: str, store: Any, build: Any
-) -> None:
-    """Material no rule covers still refuses (ADR 0008): a stored edit of the Lead's prompt
-    saved before declarations existed has no class, whatever the message's."""
+def _undeclared_prompt(ready: Any) -> None:
+    """A stored edit of the Lead's prompt saved before declarations existed: no class."""
     with ready.sessions() as session:
         repo = PromptRepository(session, ready.admin_context(session))
         version = repo.create_version(LEAD_PROMPT_ID, "Buď stručný.", declares_no_client_data=True)
@@ -389,12 +392,95 @@ def test_unclassified_material_parks_the_turn_before_any_call(
         )
         repo.activate(LEAD_PROMPT_ID, version.version_number, reason="test")
         session.commit()
+
+
+def test_unclassified_material_parks_the_turn_before_any_call(
+    ready: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """Material no rule covers still refuses (ADR 0008): a stored edit of the Lead's prompt
+    saved before declarations existed has no class, whatever the message's."""
+    _undeclared_prompt(ready)
     turn_id = post(ready, message="Text klienta")
     transport = RecordedBedrock([REPLY])
     assert worker(ready, database_url, store, build, transport).run_once()
     assert transport.requests == []
     turn = lead_turn(ready, turn_id)
     assert (turn["status"], turn["reason"]) == ("WAITING", "egress_unclassified_material")
+
+
+def _stored_provenance(ready: Any, store: Any, turn: dict[str, Any]) -> dict[str, Any]:
+    with ready.sessions() as session:
+        scope = ready.lead_scope(session)
+        run = WorkflowRepository(session, scope).get_run(turn["run_id"])
+        stored = research_artifacts(session, scope, store).read_json(
+            run["steps"][0]["output"]["artifact_id"]
+        )
+    provenance: dict[str, Any] = stored["provenance"]
+    return provenance
+
+
+def _ledger_notes(ready: Any, turn: dict[str, Any]) -> list[str]:
+    with ready.sessions() as session:
+        events = AIUsageRepository(session, ready.lead_scope(session)).events(run_id=turn["run_id"])
+    return [e.note for e in events]
+
+
+def test_under_advisory_class_gates_an_unclassified_turn_is_answered_and_says_so(
+    ready: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """Develop only (plan develop-class-advisory): the turn the test above parks is sent, judged
+    as Class A, and the refusal enforce would have made is on its provenance and ledger rows."""
+    _undeclared_prompt(ready)
+    turn_id = post(ready, message="Text klienta")
+    transport = RecordedBedrock([REPLY])
+    assert worker(ready, database_url, store, build, transport, class_gates="advisory").run_once()
+    assert len(transport.requests) == 1
+    turn = lead_turn(ready, turn_id)
+    assert turn["status"] == "COMPLETED" and turn["data_class"] == "CLASS_A_CLIENT_CONFIDENTIAL"
+    provenance = _stored_provenance(ready, store, turn)
+    advisory = (
+        "class_advisory gate=egress rule=unclassified_material class=unclassified advisory=true"
+    )
+    assert advisory in provenance["class_advisory"]
+    # The class is still computed and shown: the prompt's part is unknown, by name.
+    prompt = next(p for p in provenance["material_classification"] if p["part"] == "prompt")
+    assert prompt["data_class"] is None
+    notes = _ledger_notes(ready, turn)
+    assert notes and all(advisory in note for note in notes)
+
+
+def test_under_advisory_class_gates_a_class_a_turn_rides_a_route_approved_for_b_and_c(
+    ready: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """The client note's Class A over the EU route approved for B and C: enforce parks it
+    (test_a_client_note_makes_the_turn_class_a_...); advisory sends it and records it."""
+    with ready.sessions() as session:
+        ResearcherLeadRepository(session, ready.lead_scope(session)).apply_self_update(
+            SelfUpdate(remember=[RememberNote(scope="client", text="Acme chce výsledky.")]),
+            source_turn_id="LDT-seed",
+        )
+        session.commit()
+    turn_id = post(ready)
+    transport = RecordedBedrock([REPLY])
+    assert worker(ready, database_url, store, build, transport, class_gates="advisory").run_once()
+    assert len(transport.requests) == 1
+    turn = lead_turn(ready, turn_id)
+    assert turn["status"] == "COMPLETED" and turn["data_class"] == "CLASS_A_CLIENT_CONFIDENTIAL"
+    assert _stored_provenance(ready, store, turn)["class_advisory"] == [
+        "class_advisory gate=egress rule=route_not_approved_for_class "
+        "class=CLASS_A_CLIENT_CONFIDENTIAL advisory=true"
+    ]
+
+
+def test_under_enforce_a_lead_turn_records_no_advisory(
+    ready: Any, database_url: str, store: Any, build: Any
+) -> None:
+    turn_id = post(ready)
+    transport = RecordedBedrock([REPLY])
+    assert worker(ready, database_url, store, build, transport).run_once()
+    turn = lead_turn(ready, turn_id)
+    assert "class_advisory" not in _stored_provenance(ready, store, turn)
+    assert all("class_advisory" not in note for note in _ledger_notes(ready, turn))
 
 
 def test_a_client_note_makes_the_turn_class_a_and_a_route_without_a_refuses_it(
@@ -412,6 +498,56 @@ def test_a_client_note_makes_the_turn_class_a_and_a_route_without_a_refuses_it(
     assert worker(ready, database_url, store, build, transport).run_once()
     assert transport.requests == []  # the route is approved for Classes B and C only
     assert lead_turn(ready, turn_id)["status"] == "WAITING"
+
+
+#: Every class: what a turn over the client's approved knowledge (Class A by rule) needs.
+EVERY_CLASS = "CLASS_A_CLIENT_CONFIDENTIAL,CLASS_B_DERIVED_CLIENT,CLASS_C_INTERNAL"
+
+
+def add_dataset_knowledge(world: Any) -> None:
+    """An approved DATASET item: a person's write in the client workspace takes effect now."""
+    with world.sessions() as session:
+        ctx = ScopeResolver(session).client_context(
+            AuthenticatedPrincipal(user_id=world.lead_id, organization_id=world.organization_id),
+            client_id=world.client_id,
+        )
+        ClientKnowledgeRepository(session).add(
+            ctx, kind=KnowledgeKind.DATASET, title="Vlastní data", summary="Fiktivní, n = 300"
+        )
+        session.commit()
+
+
+def test_a_dataset_in_the_client_knowledge_reaches_the_eu_bedrock_route(
+    ready: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """PR #564 Finding 1: once a client had an approved DATASET, ARTIFACT or FINDING item, its
+    turns declared the lineage ``unclassified-client-knowledge``, which no determination named,
+    and every one parked ``licence_dataset_unknown``. The data owner approved that lineage for
+    the EU Bedrock route alone (2026-10-21, /pmstatus Q60)."""
+    add_dataset_knowledge(ready)
+    turn_id = post(ready)
+    transport = RecordedBedrock([REPLY])
+    w = worker(ready, database_url, store, build, transport, route_approved_for=EVERY_CLASS)
+    assert w.run_once()
+    assert len(transport.requests) == 1
+    turn = lead_turn(ready, turn_id)
+    assert (turn["status"], turn["reason"]) == ("COMPLETED", None), turn
+    assert turn["data_class"] == "CLASS_A_CLIENT_CONFIDENTIAL"
+
+
+def test_a_dataset_in_the_client_knowledge_is_refused_on_any_other_route(
+    ready: Any, database_url: str, store: Any, build: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The determination names one route: the same turn over another is refused, unsent."""
+    add_dataset_knowledge(ready)
+    turn_id = post(ready)
+    monkeypatch.setitem(ENV, "AIA_AI_ROUTE_ID", "bedrock-eu-secondary")
+    transport = RecordedBedrock([REPLY])
+    w = worker(ready, database_url, store, build, transport, route_approved_for=EVERY_CLASS)
+    assert w.run_once()
+    assert transport.requests == []
+    turn = lead_turn(ready, turn_id)
+    assert (turn["status"], turn["reason"]) == ("WAITING", "licence_not_approved_for_route"), turn
 
 
 def test_the_turn_applies_only_what_stays_in_its_client_and_the_rest_waits(

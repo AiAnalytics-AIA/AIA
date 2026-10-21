@@ -7,7 +7,7 @@ import { latestDesignRun, questionEvidence, isDesignRun } from "./design-evidenc
 const RQ = "Jak často lidé pijí kávu?";
 const finding = (id: string) => ({ evidence_id: id, claim: `Tvrzení ${id}`, quote: "citace", source_title: "Zdroj", source: "https://example.org", source_class: "B", confidence: 0.7 });
 const proposal: DesignProposal = {
-  run_id: "DR-1", admissible: true, refusal: null,
+  run_id: "DR-1", design_revision_id: "REV-1", design_revision: 1, admissible: true, refusal: null,
   items: [
     { item_id: "DRP-1", kind: "EVIDENCE", subject_key: "q-aaaaaaaaaaaa", subject_kind: "QUESTION", subject_text: RQ, subject_origin: "research_plan.research_questions[0]", findings: [finding("EV-1"), finding("EV-2")] },
     { item_id: "DRP-2", kind: "GAP", subject_key: "q-bbbbbbbbbbbb", subject_kind: "QUESTION", subject_text: "Jiná?", subject_origin: "research_plan.research_questions[1]", findings: [] },

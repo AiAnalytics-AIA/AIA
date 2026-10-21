@@ -1214,6 +1214,37 @@ def test_a_dataset_in_the_knowledge_declares_its_lineage() -> None:
     assert request.data_lineage is not None and request.data_lineage.datasets
 
 
+@pytest.mark.parametrize("kind", ["DATASET", "ARTIFACT", "FINDING"])
+def test_a_turn_over_dataset_derived_knowledge_passes_the_licence_gate_on_eu_bedrock_only(
+    kind: str,
+) -> None:
+    """PR #564 Finding 1: the lineage such a turn declares had no determination, so every turn
+    of the client was refused ``dataset_unknown``. The data owner approved it for the EU
+    Bedrock route alone (2026-10-21, /pmstatus Q60); any other route still refuses."""
+    from aia_core.domain.licence import LicenceDenied
+    from aia_core.domain.licence_determinations import PANEL_APPROVED_ROUTE, recorded_policy
+    from aia_core.domain.residency import ProviderRoute, ResidencyZone
+
+    knowledge = [{"item_id": "K1", "revision": 1, "kind": kind, "title": "t", "summary": "s"}]
+    lineage = _request(_context(knowledge=knowledge), IDENTITY, DESIGN_OK).data_lineage
+    eu = ProviderRoute(
+        route_id=PANEL_APPROVED_ROUTE,
+        provider="bedrock",
+        zone=ResidencyZone.EU,
+        eu_processing_approved=True,
+        excluded_from_training=True,
+        retention_days=0,
+        approved_for=frozenset(DataClass),
+    )
+    recorded_policy().authorise(lineage=lineage, route=eu)
+    for other in ("bedrock-eu-secondary", "anthropic-direct"):
+        with pytest.raises(LicenceDenied) as refused:
+            recorded_policy().authorise(
+                lineage=lineage, route=ProviderRoute(route_id=other, provider="bedrock")
+            )
+        assert refused.value.reason == "not_approved_for_route"
+
+
 def test_the_window_bounds_a_turn_and_its_repair() -> None:
     assert lead_request_window_tokens(1500) > CONTEXT_MAX_BYTES + 5 * 1500
     assert lead_request_window_tokens(3000) - lead_request_window_tokens(1500) == 5 * 1500

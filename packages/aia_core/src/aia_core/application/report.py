@@ -42,6 +42,9 @@ from aia_core.domain.report.validation import require_valid
 INTERNAL_REPORT_ARTIFACT_TYPE = "research_internal_docx"
 # The stored DOCX rendered as PDF beside it (complete-study-report B3).
 INTERNAL_REPORT_PDF_ARTIFACT_TYPE = "research_internal_pdf"
+# The draft's document model beside its DOCX, under the same fingerprint (report-delivery RD5a):
+# what the Zpráva pane reads and every later edit names a paragraph in.
+INTERNAL_REPORT_DOCUMENT_ARTIFACT_TYPE = "research_internal_document"
 INTERNAL_REPORT_MEDIA_TYPE = (
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 )
@@ -136,6 +139,8 @@ def compose_internal_report(
     design: DesignSections | None = None,
     method: Section | None = None,
     research_question_gaps: Mapping[str, str] | None = None,
+    map_source: tuple[str, str] | None = None,
+    methodology_rules: tuple[Block, ...] = (),
 ) -> ReportDocument:
     """Make an unapproved AIA-branded internal draft from all eight admitted modules.
 
@@ -148,6 +153,10 @@ def compose_internal_report(
     ``research_question_gaps`` (``research_question_gaps``): the research questions the run
     recorded at start as gaps, in words, by their text; the introduction's list and every answer
     to one of them say so where the answer is read.
+    ``map_source``: the verified Sociomap's artifact id and SHA-256 (``report_chapters``), named
+    in the audit beside the specification, dataset and aggregate the analysis was built from.
+    ``methodology_rules`` (``compose_methodology_rules``): the rules the run was computed under,
+    printed in the methodology chapter after its reading guidance.
     Client deliverables have a separate admission and review contract; this
     function never upgrades internal claims to a client-facing surface.
     """
@@ -229,7 +238,25 @@ def compose_internal_report(
     sections: list[Section] = [Section("Úvod a rámec studie", tuple(introduction), id="intro")]
     if design is not None:
         sections.append(design.chapter)
-    audit = [("Běh", run.run_id), ("Evidence", table_fingerprint)]
+    # The run's own sources: a module reused from an identical earlier run keeps that run's
+    # names in its record (ModuleSources), which this audit must never print as this run's.
+    upstream = run.sources
+    if upstream is None:
+        raise ReportCompositionRefused("the run's own sources were not read")
+    audit = [
+        ("Běh", run.run_id),
+        ("Evidence", table_fingerprint),
+        # Every artifact the draft stands on, by id and content (artifact-chain CHN6).
+        ("Revize návrhu", upstream.design_revision_id),
+        (
+            "Specifikace",
+            f"{upstream.specification.artifact_id} · SHA-256 {upstream.specification.sha256}",
+        ),
+        ("Data", f"{upstream.dataset.artifact_id} · SHA-256 {upstream.dataset.sha256}"),
+        ("Agregace", f"{upstream.aggregate.artifact_id} · SHA-256 {upstream.aggregate.sha256}"),
+    ]
+    if map_source is not None:
+        audit.append(("Sociomapa", f"{map_source[0]} · SHA-256 {map_source[1]}"))
     if deviation is not None:
         audit.append(("Metodika agregace", str(deviation.get("methodology_version") or "?")))
     # Put the population context before object-level findings; keep module IDs
@@ -285,6 +312,7 @@ def compose_internal_report(
                                 "následující kapitoly rozvíjejí jejich věcný význam."
                             )
                         ),
+                        *methodology_rules,
                         *(
                             ()
                             if deviation is None

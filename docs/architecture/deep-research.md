@@ -30,7 +30,9 @@ workflow (`deep_research`, `domain/deep_research/workflow.py`) whose engine requ
 from one Design Revision and filed under `DEEP_RESEARCH`. With `AIA_DEEP_RESEARCH_FAN_OUT` the
 `investigate` step hands each track to a step of its own and joins them
 ([deep-research-fan-out.md](deep-research-fan-out.md)); with `AIA_DEEP_RESEARCH_AGENT_DIRECTED`
-and `AIA_DEEP_RESEARCH_LEAD` investigators and a lead researcher direct the web tracks.
+and `AIA_DEEP_RESEARCH_LEAD` investigators and a lead researcher direct the web tracks. The
+engine's lead mode (`AIA_DEEP_RESEARCH_LEAD`, `settings.deep_research_lead`) is the engine's lead
+researcher, not the Research Lead (Vedoucí výzkumu) of ADR 0026 (OI-181).
 
 **Not a stage: two checkpoints** (ADR 0021). Every new run is started from a
 `DeepResearchRunSpec` (`integration.py`): its **purpose** (`DESIGN_RESEARCH` before the

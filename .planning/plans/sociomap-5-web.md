@@ -131,6 +131,26 @@ independent review; the owner's look at screenshots before each commit.
   - the segment note sits under the legend's key, always in view, as in the panel; with three segments it covers the
     bottom-left of the map.
 
+- Sprint 5, the `-5` map's selection state (the product owner, Q50 (b), 2026-10-21 14:27 UTC: "Fix only the two
+  state issues now; send the camera and label changes to Aram"). Deviations from the panel, display only:
+  - Objekty / Respondenti opens each map with nothing selected (object, relation, ringed respondent): the panel's
+    selection carried across. Test: `ObjectMapPanel.test.tsx` › "starts the respondent map with nothing selected…",
+    "forgets the ringed respondent when the map changes".
+  - In full screen "Top vztahy" is the map's five strongest whatever is selected: the selection's own five (the
+    panel's `topRelationPairs66`) stays on the page, where the detail card names the selection; in full screen
+    that card is out of sight and one link looked like a fault. Test: "draws the map's five strongest relations
+    under Top vztahy in full screen…".
+- For the methodology owner (not built, Q50 (b)): two of the product owner's screenshot issues are the panel's own
+  behaviour, and changing them is your call.
+  - 2D after a turn in 3D: `topCamera` (`socioCam66('top')`) keeps the nearest quarter turn, so a map turned past
+    45° comes back to 2D lying on its side. Proposed: 2D always north up (yaw 0), otherwise the panel's 2D.
+  - Iris loses its name beside Halo (the 8-brand workbench fixture, `-5`): `placeLabels` (`placeLabels66`) skips a
+    label whose box collides. Proposed: try below, right and left of the node before skipping; behind a switch, so
+    the golden scenes keep the panel's rule. Built and shown working on the workbench, then taken out.
+- Found while checking these (not fixed here): on the `-3` map (`ObjectMapView`) a pressed control pill (3D,
+  Shora, Vztahy) renders blank on the workbench, its text the colour of its background; and the `-3` 3D view's
+  selected-object card covers the pins beside it.
+
 ## Doc follow-up (chunk 2)
 
 - `apps/web/src/lib/fixtures/object-map-draw-golden.json` holds values returned by the panel's own functions (whole lines

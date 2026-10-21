@@ -46,7 +46,7 @@ producer implemented. Wave numbers are earliest integration waves, not dates.
 | E23 | W4 | S3: `study-data-lifecycle#SDL0`, `study-data-lifecycle#SDL1`, `study-data-lifecycle#SDL5`, `study-data-lifecycle#SDL6`, `production-environment#PE9a` | E21 | Accepted residual-retention/audit policy before M12; delete/restore exercise proves the independent journal is replayed before serving restored traffic |
 | E24 | W5 | S3/all: `mvp-acceptance-harness#5`, `mvp-acceptance-harness#10`, `mvp-acceptance-harness#13`, `mvp-acceptance-harness#15`, `assumptions-and-open-answer-coding#AOC9`, `client-knowledge-lifecycle#K7a` | E10, E15, E16, E20, E22, E23, E26, E30, E31, E34 | All fifteen full criteria, all eleven browser artifacts and negative cases at one pinned release candidate; research intake→knowledge→dimension→report→reuse proven without a hidden Simulation prerequisite |
 | E25 | W5 | S3/operator: `mvp-acceptance-harness#6`, `mvp-acceptance-harness#7`, `mvp-acceptance-harness#11`, `mvp-acceptance-harness#12`, `production-environment#PE8`, `production-environment#PE9b` | E24 | Budget (E01's allocation) respected by every paid dispatch, candidate held stable for tier B, costs/unknowns reconciled and production checklist evidenced; production release remains a separate recorded act |
-| E26 | W1 | S1: `research-lead-workbench#7`, `research-lead-workbench#11`, `research-lead-workbench#12`, `research-lead-workbench#14`, `research-lead-workbench#15`, `research-lead-workbench#16`, `research-lead-workbench#17`, `research-lead-workbench#18`, `research-lead-workbench#19`, `research-lead-workbench#26`, `research-lead-workbench#27`, `working-copy-edit-ops#WCE3a`, `working-copy-edit-ops#WCE3b`, `working-copy-edit-ops#WCE3c`, `working-copy-edit-ops#WCE7` | E03, E06 | The canonical V2 frame and the first artifacts (Brief, Design, Questionnaire, Sample and Fieldwork; Audience and Dimensions are in E15), the command registry on the worker row, the Lead reachable at every width and availability stated honestly on switch-off and rollback with a disabled backend kept disabled (MVPQ-11), the web store on the server vocabulary and readiness on a working revision; each removes its stage's manual AI starts only with the Lead able to call that stage's worker; browser journey at 1099, 1100, 768 and 390 px with keyboard, focus and Escape and a return to the artifact, a stale card, switch off, kill switch off and a direct request |
+| E26 | W1 | S1: `research-lead-workbench#7`, `research-lead-workbench#11`, `research-lead-workbench#12`, `research-lead-workbench#14`, `research-lead-workbench#15`, `research-lead-workbench#16`, `research-lead-workbench#17`, `research-lead-workbench#18`, `research-lead-workbench#19`, `research-lead-workbench#26a`, `research-lead-workbench#26b`, `research-lead-workbench#26c`, `research-lead-workbench#26d`, `research-lead-workbench#26e`, `research-lead-workbench#26f`, `research-lead-workbench#27a`, `research-lead-workbench#27b`, `research-lead-workbench#27c`, `research-lead-workbench#27d`, `working-copy-edit-ops#WCE3a`, `working-copy-edit-ops#WCE3b`, `working-copy-edit-ops#WCE3c`, `working-copy-edit-ops#WCE7` | E03, E06 | The canonical V2 frame and the first artifacts (Brief, Design, Questionnaire, Sample and Fieldwork; Audience and Dimensions are in E15), the command registry on the worker row, the Lead reachable at every width and availability stated honestly on switch-off and rollback with a disabled backend kept disabled (MVPQ-11), the web store on the server vocabulary and readiness on a working revision; each removes its stage's manual AI starts only with the Lead able to call that stage's worker; browser journey at 1099, 1100, 768 and 390 px with keyboard, focus and Escape and a return to the artifact, a stale card, switch off, kill switch off and a direct request |
 | E27 | W2 | S2, in this order: `deep-research-web-search#8`, `deep-research-web-search#20`, `deep-research-web-search#16`, `deep-research-web-search#6`, `deep-research-web-search#33`, `deep-research-web-search#34`, `deep-research-web-search#35`, `deep-research-web-search#36`, `deep-research-web-search#37` | E03, E12 | Source tiers and the register, built and shipped off until the owner approves it, before any quality rate is measured; the light model's key and `RESEARCH_TRIAGE` (20) before the extractors that use it (35), through E03's model-identity contract; procurement built against the interface E05's probes found, or closed with the probe's evidence that none is reachable (16: G5's exclusion is then recorded, never silent); documents, structured capture, records, extractors, inventory subjects and the sealed dataset in the plan's order; recorded exchanges, nothing live beyond I-R's approved routes |
 | E28 | W3 | S2: `deep-research-web-search#31`, `deep-research-web-search#32` | E15, E20, E27 | The Lens as an annotation sidecar that never changes a canonical coordinate (a view operation preserves the map's numerical hash), then the report evidence graph over the five evidence families, each claim's support resolving to an admitted claim, a captured source or a knowledge item; Interpretation Research reads and never writes; before the evaluations and the final live run |
 | E29 | W2 | S2: `sociomap-formula-corrections#2d` | E13 | After I0, I2 and I4 of the second table: the preset and artifact contract, `methodology_status` stays INTERNAL_ONLY; consumed by Results and the map approval (E15) |
@@ -67,55 +67,10 @@ E14, E29, E30 and E31, written for the contract-3 route, are re-aimed at the `-5
 defined by descriptors, MVPQ-03) once the methodology owner answers MQ-02 and MQ-05 (`signed-off-sociomap-method#8`, master § The scope
 baseline). E30's "the map figure carries Stress-1" does not hold for `-5`, which computes none.
 
-## Pending: the input-interactions plan (PR #528 @ c5162ab, not on develop)
-
-The product owner asked for edit-in-place inputs (2026-10-20, 21:10 UTC); the plan is
-input-interactions.md on PR #528 @ c5162ab, docs only, in review. #528 registers it in master §3.2 as
-◇ (decided at `MP16`); that row is kept as #528 writes it, and the two PRs merge cleanly in either
-order (checked at 9767be2). Its chunks are named in plain text here, not as register references,
-until it is on develop. Then, in a follow-up commit: the §3.2 ◇ row moves to §3.1 as core (S1, the
-product owner, I-1) and the rows below move into the table that follows. Proposed waves:
-
-| Chunk (input-interactions) | Wave | Basis |
-|---|---|---|
-| 0. Audit, standard and plan | done with #528 | docs only |
-| 1. Shared primitives (InlineText, Stepper, ChoiceChips, InlineCreateRow, SwatchPicker, MenuButton, UndoToast, SpendDialog) | W1 | before the artifact bodies (E26: research-lead-workbench 14-22) are built on them |
-| 2. Knowledge library | W1 | the owner's own example; with client-workspace C6 and C7 |
-| 3. Questionnaire | W2 | applied to the Questionnaire artifact (research-lead-workbench 17); every scale point labelled (Q32) |
-| 3b. Scales: a scale question's end labels, or one per point, compiled into SpecQuestion and read by respondents and the report tables (finding IA-7) | W1 | not input UX alone: it changes what every AI respondent reads (today bare numbers, `ai_respondent.py:379-388`), so the respondent-system fingerprint moves; past runs keep their pins. Before any holdout confirmation run (panel-grounded-respondents 7f-7h, POST) binds to a fingerprint; the methodology owner (A. Bahbouh) signs the wording rule |
-| 4. Brief and plan | W2 | applied to the Brief and Design artifacts (research-lead-workbench 18) |
-| 5. Sample and audience | W2 | with research-lead-workbench 19 and 22 |
-| 6. Run, spend and results: one SpendDialog | W2 | the money prompts of the card path (lead-orchestration LO4, LO10) render through it, so the four money prompts are one dialog |
-| 7. Clients and studies (rename routes) | W2 | API rename routes audited, in the api-contract list; the client rename by any member under EDIT_CLIENT_PROFILE, audited (page Q34) |
-| 8. Client profile | W2 | with client-workspace and client-knowledge-lifecycle K11 (the wallet ceiling stepper) |
-| 9. Settings (parameter bounds in the catalogue) | W3 | after system-prompts-settings and signed-off-sociomap-method 10 (the Metodik mark) |
-| 10. The input journey at four widths | W4 | beside mvp-acceptance-harness's journeys |
-
-Its owner decisions are answered (pages Q31-Q34, master § The scope baseline): batched knowledge
-revisions, scale presets plus "Vlastní" with every point labelled, report approval as a modal, and
-any member renames a client.
-
-## Pending: the Lead conversation plan (PR #529 @ 9791da0, not on develop)
-
-The product owner asked for the Lead's chat capabilities (2026-10-20, 22:25 UTC) and answered Q25-Q30
-(master § The scope baseline). The plan is lead-conversation.md on PR #529 @ 9791da0, with ADR 0041
-Proposed; docs only, in review. Its chunks are named in plain text until it is on develop; then it
-gets a §3.1 row (core, S1, the product owner) and these rows join the table below. The waves are the
-plan's own:
-
-| Chunk (lead-conversation) | Wave | Basis |
-|---|---|---|
-| LC0. ADR 0041 accepted | W0 | the owner; nothing below is built before it |
-| LC1, LC2, LC3, LC5, LC6 (layer table and manifest, Co Vedoucí vidí, decision digest, queued messages on the server, cost per turn) | W1 | with E10, after lead-orchestration LO7's first layer; no model call |
-| LC4, LC7, LC7a, LC8, LC9, LC10, LC11 (budgets, compaction, kept facts, corrections, retrieval, regenerate and edit-and-resend, pins) | W2 | with lead-orchestration LO19, after LC1; LC7 behind its own kill switch |
-| LC12, LC13 (feedback; the long-conversation journey) | W3 | with lead-orchestration LO18 |
-| LC14-LC18 | POST | the plan's own: after the MVP |
-
-**Overlap to settle when it lands:** research-lead-workbench 29 (conversation controls: copy, edit and
-resend, ArrowUp, queued-message send-now and edit; D-38) is the UI of LC5 and LC10, and #529's fold-in
-table does not list it. Proposed: 29 stays the UI owner and takes LC10's replacement-turn rule and
-LC5's server queue as acceptance conditions, as the other folded chunks do; LC10 and LC5 own the
-server side.
+**The Lead conversation's UI overlap (2026-10-21).** `research-lead-workbench#29` (copy, edit and
+resend, ArrowUp, a queued message's send-now and edit; D-38) is the UI of `lead-conversation#LC5` and
+`#LC10`. It stays the UI owner and takes LC10's replacement-turn rule and LC5's server queue as
+acceptance conditions; LC5 and LC10 own the server side.
 
 ## Every other open chunk of a core plan
 
@@ -207,7 +162,16 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `deep-research-web-search#56` | W3 | scope freeze, Q6: the Lead's quick lookup through RetrievalGate |
 | `research-lead-workbench#32` | W3 | scope freeze, Q5 and Q6: with `lead-orchestration#LO19` and `#LO20` |
 | `deep-research-web-search#51a` | W1 | cross-check G67: with E12 |
-| `lead-orchestration#LO5a` | W1 | scope freeze, D-12: with `research-lead-workbench#26` (E26) and E12 |
+| `lead-orchestration#LO5a` | W1 | scope freeze, D-12: with `research-lead-workbench#26f` (E26) and E12 |
+| `lead-orchestration#LO5a.1` | W1 | lead deep research plan (2026-10-21, Q44-Q46): the Lead's Deep Research requests and layers; with E26 |
+| `lead-orchestration#LO5a.2` | W1 | lead deep research plan: a Lead card starts Deep Research on the server; after `lead-orchestration#LO10` and `deep-research-web-search#55` (E12) |
+| `lead-orchestration#LO5a.3` | W1 | lead deep research plan: typed Deep Research starts; after `lead-orchestration#LO5` (E10) |
+| `lead-orchestration#LO5a.4` | W1 | lead deep research plan (Q47): Deep Research plan-step kinds; after `lead-orchestration#LO3`, `#LO4` and `#LO17` |
+| `research-lead-workbench#7b` | W1 | lead deep research plan: Design Research proposal review (F-DRL-1); with `research-lead-workbench#7` (E26) |
+| `research-lead-workbench#12a` | W1 | lead deep research plan: Deep Research on recorded web in the UI workbench (F-DRL-6); with `research-lead-workbench#12` (E26) |
+| `research-lead-workbench#23b` | W1 | lead deep research plan: Deep Research request and running cards; after #550 (chunk 23 brought forward) |
+| `research-lead-workbench#23c` | W1 | lead deep research plan: the finished Deep Research card; after 23b |
+| `research-lead-workbench#26f.1` | W1 | lead deep research plan (Q48): the Deep Research half of 26f; after 23b and `lead-orchestration#LO5a.3` |
 | `lead-orchestration#LO12c` | W1 | scope freeze, D-09: after LO12b (E12) |
 | `lead-orchestration#LO17` | W1 | scope freeze, D-18: after LO4 (E10) |
 | `lead-orchestration#LO18` | W3 | scope freeze, D-39: after LO6; an ADR 0026 amendment in its PR |
@@ -227,6 +191,7 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `client-knowledge-lifecycle#K11` | W1 | scope freeze, D-17: with `deep-research-web-search#53` and `lead-orchestration#LO1`; I15 |
 | `client-knowledge-lifecycle#K12` | W1 | MVP-31, chunk missing until the scope freeze |
 | `develop-spend-attribution#6` | W3 | scope freeze, D-47: after 5b |
+| `develop-spend-attribution#7` | W3 | owner, Q40 (2026-10-21): per-researcher spend; after `lead-orchestration#LO1`'s wallet holds, with chunk 6; its actor columns are migration M13 |
 | `production-environment#PE10` | W1 | scope freeze, D-22: before the first production sign-in |
 | `production-environment#PE11` | W4 | scope freeze, D-23: before the release candidate |
 | `two-roles-human-ai-gates#8` | W2 | scope freeze, D-27 |
@@ -237,6 +202,135 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `deep-research-web-search#57` | W2 | owner determination 2026-10-20, page Q20: with chunk 53 (E12) |
 | `deep-research-web-search#57a` | W2 | owner, page Q22: with chunk 57 (E12) |
 | `deep-research-web-search#58` | W2 | owner, page Q23: with chunk 57 |
+| `input-interactions#0` | W0 | done by #528's merge (the audit, standard and plan); its owner ticks it |
+| `input-interactions#1` | W1 | the shared primitives before the artifact bodies (E26: `research-lead-workbench#14`-22) build on them |
+| `input-interactions#2` | W1 | the owner's own example; with `client-workspace` C6 and C7; batched revisions (Q31) |
+| `input-interactions#3b2` | W1 | the scale editor on chunk 1's primitives; 3b1 (the server side, IA-7) landed in #538 behind `AIA_AI_SCALE_LABELS_IN_PROMPT`, off: switching it on moves the respondent-system fingerprint, so before any holdout confirmation (`panel-grounded-respondents` 7f-7h) binds to one, on the methodology owner's wording rule |
+| `input-interactions#3b3` | W2 | the scale labels switched on for respondents after the methodology owner's wording rule, with the moved fingerprint and develop evidence; before `panel-grounded-respondents` 7f-7h binds to a fingerprint |
+| `input-interactions#3` | W2 | applied to the Questionnaire artifact (`research-lead-workbench#17`) |
+| `input-interactions#4` | W2 | applied to the Brief and Design artifacts (`research-lead-workbench#18`) |
+| `input-interactions#5` | W2 | with `research-lead-workbench#19` and `#22` |
+| `input-interactions#6` | W2 | one SpendDialog: the card path's money prompts (`lead-orchestration#LO4`, `#LO10`) render through it; report approval a modal (Q33) |
+| `input-interactions#7` | W2 | rename routes in the api-contract list; a client rename by any member under EDIT_CLIENT_PROFILE, audited (Q34) |
+| `input-interactions#8` | W2 | with `client-knowledge-lifecycle#K11` (the wallet ceiling stepper) |
+| `input-interactions#9` | W3 | after `system-prompts-settings` and `signed-off-sociomap-method#10` (the Metodik mark) |
+| `input-interactions#10` | W4 | beside `mvp-acceptance-harness`'s journeys |
+| `lead-conversation#LC0` | W0 | the owner accepts ADR 0041; nothing below is built before it |
+| `lead-conversation#LC1` | W1 | the plan's own: with E10, after `lead-orchestration#LO7`'s first layer; no model call |
+| `lead-conversation#LC2` | W1 | the plan's own: with E10, after `lead-orchestration#LO7`'s first layer; no model call |
+| `lead-conversation#LC3` | W1 | the plan's own: with E10, after `lead-orchestration#LO7`'s first layer; no model call |
+| `lead-conversation#LC5` | W1 | the plan's own: with E10, after `lead-orchestration#LO7`'s first layer; no model call |
+| `lead-conversation#LC6` | W1 | the plan's own: with E10, after `lead-orchestration#LO7`'s first layer; no model call |
+| `lead-conversation#LC4` | W2 | the plan's own: with `lead-orchestration#LO19`, after LC1 |
+| `lead-conversation#LC7` | W2 | the plan's own: with `lead-orchestration#LO19`, after LC1; behind its own kill switch |
+| `lead-conversation#LC7a` | W2 | the plan's own: with `lead-orchestration#LO19`, after LC1 |
+| `lead-conversation#LC8` | W2 | the plan's own: with `lead-orchestration#LO19`, after LC1 |
+| `lead-conversation#LC9` | W2 | the plan's own: with `lead-orchestration#LO19`, after LC1 |
+| `lead-conversation#LC10` | W2 | the plan's own: with `lead-orchestration#LO19`, after LC1 |
+| `lead-conversation#LC11` | W2 | the plan's own: with `lead-orchestration#LO19`, after LC1 |
+| `lead-conversation#LC12` | W3 | the plan's own: with `lead-orchestration#LO18` |
+| `lead-conversation#LC13` | W3 | the plan's own: with `lead-orchestration#LO18` |
+| `lead-conversation#LC14` | POST | the plan's own: after the MVP |
+| `lead-conversation#LC15` | POST | the plan's own: after the MVP |
+| `lead-conversation#LC16` | POST | the plan's own: after the MVP |
+| `lead-conversation#LC17` | POST | the plan's own: after the MVP |
+| `lead-conversation#LC18` | POST | the plan's own: after the MVP |
+| `client-knowledge-lifecycle#K4b` | W1 | with K4 (E09): the consumers read the frozen context behind a switch |
+| `client-knowledge-lifecycle#K4c` | W1 | with K4b: the web's Použít v této studii |
+| `sociomap-5-web#6` | W2 | the methodology owner's lane (#517); hosted by `research-lead-workbench#20` |
+| `sociomap-5-web#7` | W2 | the methodology owner's lane; the report figure with `signed-off-sociomap-method#9` |
+| `artifact-questionnaire#QST1` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#17` (E26) |
+| `artifact-questionnaire#QST2` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#17` (E26) |
+| `artifact-questionnaire#QST3` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#17` (E26) |
+| `artifact-questionnaire#QST4` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#17` (E26) |
+| `artifact-questionnaire#QST5` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#17` (E26) |
+| `artifact-questionnaire#QST6` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#17` (E26) |
+| `artifact-questionnaire#QST7` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#17` (E26) |
+| `artifact-questionnaire#QST8` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#17` (E26) |
+| `artifact-questionnaire#QST9` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#17` (E26) |
+| `artifact-brief#BRF1` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-brief#BRF2` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-brief#BRF3` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-brief#BRF4` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-brief#BRF5` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-brief#BRF6` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-design#DSN1` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-design#DSN2` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-design#DSN3` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-design#DSN4` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-design#DSN5` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-design#DSN6` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-design#DSN7` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-design#DSN8` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-sample#SMP1` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-sample#SMP2` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-sample#SMP3` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-sample#SMP4` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-sample#SMP5` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-sample#SMP6` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-fieldwork#FLD1` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-fieldwork#FLD2` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-fieldwork#FLD3` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-fieldwork#FLD4` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-fieldwork#FLD5` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-fieldwork#FLD6` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-fieldwork#FLD7` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-fieldwork#FLD8` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-results#RES1` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-results#RES2` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-results#RES3` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-results#RES4` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-results#RES5` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-results#RES6` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-results#RES7` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-sociomap#SOC1` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-sociomap#SOC2` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-sociomap#SOC3` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-sociomap#SOC4` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-sociomap#SOC5` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-sociomap#SOC6` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-sociomap#SOC7` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-sociomap#SOC8` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-audience#AUD1` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
+| `artifact-audience#AUD2` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
+| `artifact-audience#AUD3` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
+| `artifact-audience#AUD4` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
+| `artifact-audience#AUD5` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
+| `artifact-audience#AUD6` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
+| `artifact-dimensions#DIM1` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
+| `artifact-dimensions#DIM2` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
+| `artifact-dimensions#DIM3` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
+| `artifact-dimensions#DIM4` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
+| `artifact-dimensions#DIM5` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
+| `artifact-dimensions#DIM6` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
+| `artifact-analysis#ANL1` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-analysis#ANL2` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-analysis#ANL3` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-analysis#ANL4` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-analysis#ANL5` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-analysis#ANL6` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-analysis#ANL7` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-analysis#ANL8` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-report#RPT1` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-report#RPT2` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-report#RPT3` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-report#RPT4` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-report#RPT5` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-report#RPT6` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-report#RPT7` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN1` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN2` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN3` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN4` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN5` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN6` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN7` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN8` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN9` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN10` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN11a` | W4 | artifact plans (#560): before CHN11 |
+| `artifact-chain-to-draft-report#CHN11` | W4 | artifact plans (#560): the chain's acceptance journey, after CHN2-CHN10 and every artifact plan |
+| `artifact-chain-to-draft-report#CHN12` | W4 | artifact plans (#560): the chain's acceptance journey, after CHN2-CHN10 and every artifact plan |
 | `research-lead-workbench#24` | POST | development plan D16: after the MVP |
 | `research-lead-workbench#25` | POST | development plan D16: after the MVP |
 

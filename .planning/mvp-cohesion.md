@@ -457,6 +457,10 @@ threshold, not a stop: corrected 2026-10-19 after the code traces, `research.py:
    approval-ledger row. The Lead can never unlock. The lock text stops saying "methodology
    revision".
 
+
+**2026-10-21 (Q40-Q43, `research-lead-workbench` D15 and D22, #551).** Under 3, a stage has no start
+of its own except the research run: Spuštění keeps its Start button beside the run's card in the
+Lead's chat (`research-lead-workbench#26f`); every other manual AI start is removed.
 ### F14. Each researcher's own Lead: how it develops, and who can see it
 
 **What exists.** Each researcher has their own Lead: a name, a SOUL (working style, at most 2,000
@@ -724,6 +728,19 @@ MVPQ-07 and 08 are settled; MVPQ-03, 05, 06 and 09 have their product-owner part
 MVPQ-10, MVPQ-12 and the coding method (`MVPQ-02b`) remain the methodology owner's, who is
 working in PR #504. No paid run, infrastructure change, merge or release is authorized by
 recording these answers.
+
+## Owner decision MVPQ-13 — the MVP ships `aia-sociomap-5` (2026-10-20)
+
+Decided by the product owner (Nigel Blount), 2026-10-20, relayed by the coordinator; recorded in
+[`mvp-methodology-packet.md`](mvp-methodology-packet.md) (#510) and `mvp-owner-decisions.md` § MVPQ-13.
+The MVP's Sociomap is the methodology owner's signed-off `aia-sociomap-5`; it is the one canonical
+source, the formula audit standing only where `-5` is silent; the hybrid (`-3` object maps, `-5`
+respondent and segment maps) is rejected because `-5` places respondents against its own object
+positions. ADR: [ADR 0038](../docs/architecture/adr/0038-mvp-sociomap-method-is-aia-sociomap-5.md)
+(Accepted 2026-10-20, D-13). Acceptance: no `-5` map reaches a client before the methodology owner's
+register entry (MQ-01). Affected chunks: `segment-maps-and-drilldown` 0, 1, 3, 4, 9, 10;
+`sociomap-formula-corrections` 0b, 3, 4c, 5b; `signed-off-sociomap-method#8` (pin `-5`, the packet's
+E-1); `report-delivery#RD4`; `research-lead-workbench#20`.
 
 ## The independent cross-check, and the owner's answers on X1, X8 and X10 (2026-10-20)
 

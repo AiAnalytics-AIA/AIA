@@ -2,6 +2,16 @@
    research-lead prototype (prototypes/research-lead-v2/src/styles/app.css @ 9b50963f), scoped
    under .wb so nothing reaches the rest of AIA. It reads AIA's own tokens (src/app/tokens.css);
    the prototype's document-level rules are the root's own here. */
+/* The prototype's element-level base rules, in Tailwind's base layer: unlayered CSS beats every
+   layer, so here they would override a re-homed screen's text-* utility on any button inside .wb
+   (a pressed object-map pill rendered ink on ink). The prototype's classes set their own colour. */
+@layer base {
+  .wb {
+    button, input, textarea, select { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+  }
+}
+
 @keyframes caret { 50% { opacity: .25; } }
 @keyframes just { 0% { background: var(--ai-wash); outline: 2px solid var(--ai-edge); } 100% { background: transparent; outline: 2px solid transparent; } }
 
@@ -12,8 +22,7 @@
   *, *::before, *::after { box-sizing: border-box; }
 
 /* ---------- base ---------- */
-button, input, textarea, select { font: inherit; color: inherit; }
-button { cursor: pointer; }
+/* The element rules (font, colour, cursor of form controls) are in @layer base, below the file. */
 :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .icon, .glyph, .mark { flex: none; display: inline-block; vertical-align: middle; }
@@ -98,6 +107,41 @@ button { cursor: pointer; }
 .split__handle::after { content: ""; position: absolute; top: 0; bottom: 0; left: 4px; width: 1px; background: transparent; }
 .split__handle:hover::after, .split__handle.is-drag::after, .split__handle:focus-visible::after { background: var(--signal); width: 2px; left: 3.5px; }
 .split__handle:focus-visible { outline: none; }
+
+/* The Lead at every width (research-lead-workbench 26b-26c, D21): one tree; below 1100 px the
+   artifact takes the width and the conversation opens over it, a side drawer from 768 px and a
+   full-screen sheet below, the rail the launcher (a bottom bar in the sheet). Nothing remounts. */
+.split--drawer .split__right, .split--sheet .split__right { min-width: 0; }
+.split--drawer .split__left, .split--sheet .split__left { min-width: 0; z-index: 30; }
+.split--drawer .split__left { position: absolute; top: 0; bottom: 0; left: 64px; width: min(440px, 80vw); box-shadow: 4px 0 18px rgba(21, 26, 32, .14); }
+.split--sheet { flex-direction: column-reverse; }
+.split--sheet .split__rail { flex: 0 0 auto; flex-direction: row; border-right: 0; border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom); }
+.split--sheet .split__rail .rail { flex-direction: row; padding: 4px 12px; }
+.split--sheet .split__left { position: fixed; inset: 0; height: 100dvh; border-right: 0;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+
+/* The compact header and stage navigator (26d): from 768 to 1099 px the navigator scrolls sideways
+   with the current stage in view; under 768 px one button names the stage and opens every stage
+   grouped by phase, and the bar keeps only the study's name and the menu. */
+.nav--scroll { overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
+.nav--scroll .nav__plabel { display: none; }
+.nav--scroll .nav__phase { flex: none; }
+/* Not a query container in the sheet: a container is the containing block of its fixed
+   descendants, and the stage list's scrim must cover the viewport, not the 40 px bar. */
+.nav--sheet { align-items: center; padding: 0 12px; container-type: normal; }
+.nav__current { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 8px; border: 0; border-radius: 4px; background: transparent; font-size: 13px; font-weight: 600; max-width: 100%; }
+.nav__current:hover { background: var(--surface-sunken); }
+.nav__currentlabel { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav__list { left: 8px; right: 8px; top: 38px; max-height: 70dvh; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.nav__list .nav__phase { flex-direction: column; align-items: stretch; border-right: 0; margin: 0; padding: 0; }
+.nav__list .nav__plabel { display: block; padding: 4px 8px 2px; }
+.nav__list .nav__stage { justify-content: flex-start; height: 36px; }
+.menu__info { display: flex; align-items: center; gap: 6px; padding: 8px 12px; font-size: 13px; color: var(--ink-muted); border-bottom: 1px solid var(--border); }
+.wb--sheet .shead { gap: 8px; }
+.wb--sheet .shead__home { min-width: 0; flex: 1 1 auto; }
+.wb--sheet .shead__title { min-width: 0; }
+.wb--sheet .shead__spacer { display: none; }
+.wb--sheet .insp { width: 100%; }
 
 /* conversation */
 .conv { display: flex; flex-direction: column; min-height: 0; height: 100%; }
@@ -280,6 +324,8 @@ button { cursor: pointer; }
 
 /* rail (artifact focus) */
 .rail { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 0; height: 100%; }
+.rail__launch { position: relative; }
+.rail__dot { position: absolute; right: 2px; bottom: 2px; display: inline-flex; border-radius: 50%; background: var(--surface-raised); padding: 1px; line-height: 0; }
 .rail__badge { min-width: 18px; height: 18px; border-radius: 9px; background: var(--status-you); color: var(--on-status-you); font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; padding: 0 5px; }
 
 /* entry view */
@@ -441,8 +487,9 @@ button { cursor: pointer; }
 
 /* conversation extras */
 .older { display: flex; justify-content: center; padding: 4px 0 12px 0; }
-.conv__latestwrap { position: relative; height: 0; }
-.conv__latestwrap .conv__latest { bottom: 10px; box-shadow: var(--shadow-overlay); }
+/* In the flow above the composer, never over the conversation: a card's actions stay uncovered. */
+.conv__latestwrap { display: flex; justify-content: center; padding: 4px 0 2px 0; border-top: 1px solid var(--border); }
+.conv__latestwrap .conv__latest { position: static; transform: none; }
 .typing { display: inline-flex; gap: 4px; align-items: center; height: 24px; }
 .typing i { width: 6px; height: 6px; border-radius: 3px; background: var(--ink-faint); animation: caret 1.2s infinite; }
 .typing i:nth-child(2) { animation-delay: .2s; } .typing i:nth-child(3) { animation-delay: .4s; }
@@ -517,4 +564,19 @@ button { cursor: pointer; }
 .wb-picking .artbody { cursor: crosshair; }
 .wb-picking .artbody :is([id^="qedit_"], [id^="qblock_"], [id^="brief-"], [id^="plan-"]):hover { outline: 2px solid var(--signal); outline-offset: 2px; }
 .split__left[hidden] { display: none; }
+
+/* cards in the conversation (chunk 23): title and state pill, key facts as label/value rows, actions */
+.statepill--fault { border-color: var(--status-fault); color: var(--status-fault); }
+.statepill--running { border-color: var(--status-running); color: var(--status-running); border-style: dashed; }
+.card__eyebrow { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--status-you-ink); margin: 0 0 4px 0; }
+.card__titlerow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 2px 0; }
+.card__titlerow .dec__title { margin: 0; }
+.card__titlerow .act__title { font-size: 14px; }
+.kvgrid.card__facts { grid-template-columns: 112px minmax(0, 1fr); margin: 8px 0 10px 0; padding: 8px 0 0 0; border-top: 1px solid var(--border); font-size: 13px; line-height: 19px; }
+.card__facts dd { font-variant-numeric: tabular-nums; min-width: 0; }
+.card__key { font-size: 18px; line-height: 24px; font-weight: 600; color: var(--ink); }
+.card__sub { display: block; font-size: 12px; line-height: 16px; color: var(--ink-muted); }
+.card__actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.act__card { padding: 8px 12px 10px 12px; }
+.act__card .card__facts { margin: 6px 0 8px 0; }
 }

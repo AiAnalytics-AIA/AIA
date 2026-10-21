@@ -135,7 +135,8 @@ from ..domain.deep_research.web import (
     SearchHit,
     check_url,
 )
-from ..domain.residency import DataClass, EgressDenied, evaluate_egress
+from ..domain.deployment import DataClassGates
+from ..domain.residency import ClassAdvisory, DataClass, EgressDenied, evaluate_egress
 from ..domain.scope import ScopeDenied, ScopeGrant, StudyContext
 from ..infrastructure.archive_index import ArchiveRecordFetcher, IndexQueryFailed, UrlIndex
 from ..infrastructure.dataset_connectors import DatasetConnector, dataset_snapshot
@@ -542,7 +543,12 @@ class RetrievalGate:
         archive: ArchiveRetrieval | None = None,
         datasets: Sequence[DatasetAccess] = (),
         archives: Sequence[DatasetAccess] = (),
+        class_gates: DataClassGates = DataClassGates.ENFORCE,
     ) -> None:
+        """``class_gates`` is the deployment's ``AIA_DATA_CLASS_GATES``: under advisory (develop
+        only) a refusal made solely because of a query's or a URL's class is passed where the
+        route's residency allows it, and written on the call's ``DISPATCHED`` event; a route
+        that declares ``any_class_when_advisory`` (Brave's search) takes any class."""
         if not isinstance(scope, StudyContext) or not isinstance(scope.grant, ScopeGrant):
             raise ScopeDenied(
                 "retrieval requires an issued study context", reason="unauthorised_scope"
@@ -557,6 +563,7 @@ class RetrievalGate:
         self._archive = archive
         self._datasets = {d.connector.connector_id: d for d in datasets}
         self._archives = {a.connector.connector_id: a for a in archives}
+        self._class_gates = class_gates
         if len(self._datasets) != len(datasets) or len(self._archives) != len(archives):
             raise ValueError("each dataset connector at most once")
         if any(d.route.tool is not ToolKind.DATASET_QUERY for d in datasets):
@@ -605,15 +612,87 @@ class RetrievalGate:
             note=note[:500],
         )
 
-    def _refusal(self, route: ToolRoute, *, data_class: DataClass) -> str | None:
-        """Why this call may not leave, or None. Egress first, then metering."""
+    def _judge(
+        self,
+        route: ToolRoute,
+        *,
+        data_class: DataClass,
+        class_a: str | None,
+        c_only: str | None,
+        gates: DataClassGates,
+    ) -> str | None:
+        """Why this call may not leave under ``gates``, or None: the class rules this call is
+        held to (``class_a``: the reason a Class A one is refused with; ``c_only``: the reason
+        anything but Class C is), then egress, then metering."""
+        if class_a is not None and data_class is DataClass.CLASS_A_CLIENT_CONFIDENTIAL:
+            return class_a
+        if c_only is not None and data_class is not DataClass.CLASS_C_INTERNAL:
+            return c_only
         try:
-            evaluate_egress(scope=self._scope, data_class=data_class, route=route.route)
+            evaluate_egress(
+                scope=self._scope, data_class=data_class, route=route.route, class_gates=gates
+            )
         except EgressDenied as exc:
             return f"egress_{exc.reason}"
         if route.price_usd_per_call > 0 and not self._meter.charges_study_budget:
             return "tool_metering_unavailable"
         return None
+
+    def _refusal(
+        self,
+        route: ToolRoute,
+        *,
+        data_class: DataClass,
+        class_a: str | None = None,
+        c_only: str | None = None,
+    ) -> str | None:
+        """Why this call may not leave, or None.
+
+        Under enforce, exactly :meth:`_judge`. Under advisory class gates (develop only) a
+        refusal made solely because of the class is lifted: the class rules are not applied
+        and egress judges the class advisory, so residency still decides -- except on a route
+        that declares ``any_class_when_advisory`` (Brave's search, the owner's one stated
+        exception), which is judged as for Class C. What enforce would have refused is
+        recorded when the call opens (:meth:`_open`)."""
+        enforced = self._judge(
+            route,
+            data_class=data_class,
+            class_a=class_a,
+            c_only=c_only,
+            gates=DataClassGates.ENFORCE,
+        )
+        if enforced is None or not self._class_gates.advisory:
+            return enforced
+        return self._judge(
+            route,
+            data_class=(
+                DataClass.CLASS_C_INTERNAL if route.any_class_when_advisory else data_class
+            ),
+            class_a=None,
+            c_only=None,
+            gates=DataClassGates.ADVISORY,
+        )
+
+    def _advisory_note(
+        self,
+        route: ToolRoute,
+        *,
+        data_class: DataClass,
+        class_a: str | None,
+        c_only: str | None,
+    ) -> str:
+        """The advisory a call that is about to open passed, as its event note; empty when
+        enforce would have let it leave too (always, under enforce)."""
+        if not self._class_gates.advisory:
+            return ""
+        would = self._judge(
+            route,
+            data_class=data_class,
+            class_a=class_a,
+            c_only=c_only,
+            gates=DataClassGates.ENFORCE,
+        )
+        return "" if would is None else ClassAdvisory("retrieval", would, data_class).note()
 
     def refusal_for_class(self, data_class: DataClass) -> str | None:
         """Why every query written from a context of ``data_class`` would be refused.
@@ -623,9 +702,9 @@ class RetrievalGate:
         queries that can never be sent. A fetch is judged for the public class its
         URLs start from.
         """
-        if data_class is DataClass.CLASS_A_CLIENT_CONFIDENTIAL:
-            return "class_a_query"
-        search = self._refusal(self._retrieval.search_route, data_class=data_class)
+        search = self._refusal(
+            self._retrieval.search_route, data_class=data_class, class_a="class_a_query"
+        )
         if search is not None:
             return search
         fetch = self._refusal(self._retrieval.fetch_route, data_class=DataClass.CLASS_C_INTERNAL)
@@ -678,9 +757,21 @@ class RetrievalGate:
         )
 
     def _open(
-        self, route: ToolRoute, *, data_class: DataClass, track_id: str, sent: str
+        self,
+        route: ToolRoute,
+        *,
+        data_class: DataClass,
+        track_id: str,
+        sent: str,
+        class_a: str | None = None,
+        c_only: str | None = None,
     ) -> tuple[str, ToolReservation]:
-        """Reserve, then journal the dispatch durably. Raises before anything is sent."""
+        """Reserve, then journal the dispatch durably. Raises before anything is sent.
+
+        ``class_a`` and ``c_only`` are the class rules the call was admitted under
+        (:meth:`_refusal`): a call advisory class gates let through carries what enforce
+        would have refused on its ``DISPATCHED`` event."""
+        note = self._advisory_note(route, data_class=data_class, class_a=class_a, c_only=c_only)
         reservation = self._meter.reserve(
             tool=route.tool,
             route_id=route.route_id,
@@ -697,6 +788,7 @@ class RetrievalGate:
                 track_id=track_id,
                 sent=sent,
                 reservation=reservation,
+                note=note,
             )
         )
         return call_id, reservation
@@ -793,11 +885,7 @@ class RetrievalGate:
         )
         cls = classified.data_class
         sent = sent_search(query, lang)
-        reason = (
-            "class_a_query"
-            if cls is DataClass.CLASS_A_CLIENT_CONFIDENTIAL
-            else self._refusal(route, data_class=cls)
-        )
+        reason = self._refusal(route, data_class=cls, class_a="class_a_query")
         if reason is not None:
             self._refuse(route, reason=reason, data_class=cls, track_id=track_id, sent=sent)
             record = QueryRecord(
@@ -810,7 +898,9 @@ class RetrievalGate:
                 hits=0,
             )
             return SearchOutcome(record, (), False)
-        call_id, reservation = self._open(route, data_class=cls, track_id=track_id, sent=sent)
+        call_id, reservation = self._open(
+            route, data_class=cls, track_id=track_id, sent=sent, class_a="class_a_query"
+        )
         return PendingSearch(
             query=query,
             lang=lang,
@@ -893,9 +983,9 @@ class RetrievalGate:
             return cls, ARCHIVE_HOST_NOT_PERMITTED
         if host_allowed is not None and not host_allowed(host):
             return cls, HOST_OUT_OF_SCOPE
-        if cls is DataClass.CLASS_A_CLIENT_CONFIDENTIAL:
-            return cls, "class_a_url"
-        return cls, self._refusal(self._retrieval.fetch_route, data_class=cls)
+        return cls, self._refusal(
+            self._retrieval.fetch_route, data_class=cls, class_a="class_a_url"
+        )
 
     def _fetch_close(
         self,
@@ -975,7 +1065,9 @@ class RetrievalGate:
         fetch route unless another is named (an archive's).
         """
         route = route or self._retrieval.fetch_route
-        call_id, reservation = self._open(route, data_class=cls, track_id=track_id, sent=url)
+        call_id, reservation = self._open(
+            route, data_class=cls, track_id=track_id, sent=url, class_a="class_a_url"
+        )
         result: _Fetched | None = None
         refused: FetchRefused | None = None
         failure: ToolCallFailed | None = None
@@ -1041,6 +1133,12 @@ class RetrievalGate:
                 if host_allowed is not None and not host_allowed(final_host):
                     reason = REDIRECT_OUT_OF_SCOPE
                 else:
+                    # A page served from the cache was admitted by the same class gate as a
+                    # dispatched one: a refusal advisory gates lifted is on this event too.
+                    advisory = self._advisory_note(
+                        route, data_class=cls, class_a="class_a_url", c_only=None
+                    )
+                    cached = f"run_snapshot_cache {hit.snapshot.snapshot_id}"
                     self._meter.outcome(
                         self._event(
                             route,
@@ -1049,7 +1147,7 @@ class RetrievalGate:
                             data_class=cls,
                             track_id=track_id,
                             sent=url,
-                            note=f"run_snapshot_cache {hit.snapshot.snapshot_id}",
+                            note=f"{cached} {advisory}" if advisory else cached,
                         )
                     )
                     return FetchOutcome(
@@ -1066,7 +1164,9 @@ class RetrievalGate:
         if reason is not None:
             self._refuse(route, reason=reason, data_class=cls, track_id=track_id, sent=url)
             return FetchOutcome(url=url, page=None, reason=reason, uncertain=False, data_class=cls)
-        call_id, reservation = self._open(route, data_class=cls, track_id=track_id, sent=url)
+        call_id, reservation = self._open(
+            route, data_class=cls, track_id=track_id, sent=url, class_a="class_a_url"
+        )
         return PendingFetch(
             url=url,
             track_id=track_id,
@@ -1183,15 +1283,15 @@ class RetrievalGate:
         reason: str | None
         if query.target is IndexTarget.URL and _permit_url(permit) != query.value:
             reason = "archive_not_permitted"
-        elif cls is DataClass.CLASS_A_CLIENT_CONFIDENTIAL:
-            reason = "class_a_query"
         else:
-            reason = self._refusal(route, data_class=cls)
+            reason = self._refusal(route, data_class=cls, class_a="class_a_query")
         if reason is not None:
             self._refuse(route, reason=reason, data_class=cls, track_id=track_id, sent=statement)
             return IndexOutcome(statement, cls, (), reason, False)
 
-        call_id, reservation = self._open(route, data_class=cls, track_id=track_id, sent=statement)
+        call_id, reservation = self._open(
+            route, data_class=cls, track_id=track_id, sent=statement, class_a="class_a_query"
+        )
 
         def close(
             outcome: ToolOutcome,
@@ -1286,11 +1386,7 @@ class RetrievalGate:
         if _permit_url(permit) != row.url:
             reason = "archive_not_permitted"
         if reason is None:
-            reason = (
-                "class_a_url"
-                if cls is DataClass.CLASS_A_CLIENT_CONFIDENTIAL
-                else self._refusal(route, data_class=cls)
-            )
+            reason = self._refusal(route, data_class=cls, class_a="class_a_url")
         if reason is not None:
             self._refuse(route, reason=reason, data_class=cls, track_id=track_id, sent=sent)
             return FetchOutcome(url=row.url, page=None, reason=reason, uncertain=False)
@@ -1397,17 +1493,22 @@ class RetrievalGate:
         reason: str | None
         if archive and not (isinstance(permit, ArchivePermit) and permit.url == query.dataset_id):
             reason = "archive_not_permitted"
-        elif cls is DataClass.CLASS_A_CLIENT_CONFIDENTIAL:
-            reason = "class_a_query"
-        elif cls is not DataClass.CLASS_C_INTERNAL:
-            reason = "dataset_class_c_only"
         else:
-            reason = self._refusal(route, data_class=cls)
+            reason = self._refusal(
+                route, data_class=cls, class_a="class_a_query", c_only="dataset_class_c_only"
+            )
         if reason is not None:
             self._refuse(route, reason=reason, data_class=cls, track_id=track_id, sent=sent)
             return DatasetOutcome(record(QueryDecision.REFUSED, refusal=reason), None, False)
 
-        call_id, reservation = self._open(route, data_class=cls, track_id=track_id, sent=sent)
+        call_id, reservation = self._open(
+            route,
+            data_class=cls,
+            track_id=track_id,
+            sent=sent,
+            class_a="class_a_query",
+            c_only="dataset_class_c_only",
+        )
         try:
             response = access.connector.query(query)
             if response.result.query != query:

@@ -1,0 +1,433 @@
+"""A person's typed start in the Lead's composer, over HTTP (lead-orchestration LO5).
+
+The server matches the command by code (``domain/lead_commands.py``) and stores it on the
+person's own turn; no model is in the path, so the card is theirs, approvable while the Lead is
+switched off (Q43), while a card the Lead's model prepared is refused then (Q42, D22). Approval
+follows LO1's order: quote (the wallet, when on), create the run, write ``chat_start`` naming it,
+charge it.
+"""
+
+from __future__ import annotations
+
+import json
+from typing import Any
+
+import pytest
+from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+from aia_core.application.wallet import StudyWallets
+from aia_core.domain.approval_ledger import ApprovalSubject
+from aia_core.domain.money import WalletVerdict
+from aia_core.domain.workflow_templates import (
+    RESEARCH,
+    RESEARCH_AGENT,
+    RESEARCH_LEAD,
+    RESEARCH_LEAD_TURN,
+)
+from aia_core.infrastructure.db import create_session_factory
+from aia_core.infrastructure.scope_repository import ScopeRepository
+from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRepository
+from aia_core.infrastructure.tables import (
+    ApprovalDecisionRow,
+    StudyWalletChargeRow,
+    WorkflowRunRow,
+)
+from aia_core.infrastructure.workflow_repository import WorkflowRepository
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+from sqlalchemy import select
+
+from aia_api.config import Settings
+
+#: Runnable: 450 respondents, seven closed items in one block (test_research_spend_api).
+DESIGN: dict[str, Any] = {
+    "title": "Ranní nápoj",
+    "goal": "Zjistit, zda nový nápoj dává smysl dojíždějícím.",
+    "n": 450,
+    "sections": [
+        {
+            "id": "s1",
+            "type": "questions",
+            "questions": [
+                {"id": "q1", "text": "Jak často pijete kávu?", "typ": "skala", "skala": [1, 5]},
+                {
+                    "id": "q2",
+                    "text": "Co si ráno koupíte?",
+                    "typ": "vyber",
+                    "kategorie": ["Kávu", "Čaj", "Nic"],
+                },
+            ],
+        },
+    ],
+}
+JOB_RESERVATION = 2.0
+WHY = "Zadání to potřebuje."
+
+
+@pytest.fixture
+def settings(settings: Settings) -> Settings:
+    return settings.model_copy(
+        update={
+            "ai_research_lead_enabled": False,
+            "ai_research_reservation_usd": JOB_RESERVATION,
+            "ai_fieldwork_reservation_usd": 0.5,
+        }
+    )
+
+
+def _lead(world: Any) -> str:
+    return f"/api/v1/studies/{world.study_id()}/lead"
+
+
+def _scope(world: Any, session: Any) -> Any:
+    return ScopeResolver(session).study_context(
+        AuthenticatedPrincipal(
+            user_id=world.users["researcher"], organization_id=world.organization_id
+        ),
+        study_id=world.study_id(),
+    )
+
+
+def _save(app: FastAPI, world: Any, content: dict[str, Any] = DESIGN) -> None:
+    with create_session_factory(app.state.engine)() as session:
+        StudyWorkspaceRepository(session).save(
+            _scope(world, session), content=content, base_revision=None
+        )
+        session.commit()
+
+
+def _type(client: TestClient, world: Any, text: str) -> Any:
+    return client.post(
+        f"{_lead(world)}/turns", json={"kind": "message", "stage": "brief", "text": text}
+    )
+
+
+def _approve(client: TestClient, world: Any, turn_id: str, **body: Any) -> Any:
+    return client.post(f"{_lead(world)}/turns/{turn_id}/request", json=body)
+
+
+def _written(app: FastAPI) -> dict[str, int]:
+    """Every row an approval may write: the jobs' and runs' rows, the chat_start rows, the
+    wallet's charges."""
+    with create_session_factory(app.state.engine)() as session:
+        runs = session.scalars(
+            select(WorkflowRunRow.workflow_type).where(
+                WorkflowRunRow.workflow_type.in_((RESEARCH_AGENT, RESEARCH))
+            )
+        ).all()
+        starts = session.scalars(
+            select(ApprovalDecisionRow).where(
+                ApprovalDecisionRow.subject_type == ApprovalSubject.CHAT_START
+            )
+        ).all()
+        charges = session.scalars(select(StudyWalletChargeRow)).all()
+        return {"runs": len(runs), "chat_start": len(starts), "charges": len(charges)}
+
+
+def _chat_starts(app: FastAPI) -> list[ApprovalDecisionRow]:
+    with create_session_factory(app.state.engine)() as session:
+        rows = session.scalars(
+            select(ApprovalDecisionRow).where(
+                ApprovalDecisionRow.subject_type == ApprovalSubject.CHAT_START
+            )
+        ).all()
+        session.expunge_all()
+        return list(rows)
+
+
+def _lead_runs(app: FastAPI) -> int:
+    with create_session_factory(app.state.engine)() as session:
+        return len(
+            session.scalars(
+                select(WorkflowRunRow).where(WorkflowRunRow.workflow_type == RESEARCH_LEAD)
+            ).all()
+        )
+
+
+# --------------------------------------------------------------------------- the command
+
+
+def test_with_the_lead_off_a_typed_command_is_taken_and_free_text_is_not(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """Q43: the composer takes the typed start with the Lead off -- stored as the person's
+    command, no Lead turn, no run -- while free text is refused with the disabled notice."""
+    _save(app, world)
+    refused = _type(researcher, world, "Co mám udělat dál?")
+    assert refused.status_code == 409 and refused.json()["code"] == "research_lead_unavailable"
+
+    typed = _type(researcher, world, "Analyzuj zadání")
+    assert typed.status_code == 201, typed.text
+    (turn,) = typed.json()["turns"]
+    assert (turn["actor"], turn["command"], turn["text"]) == (
+        "person",
+        "agent_job:analyze_brief",
+        "Analyzuj zadání",
+    )
+    assert turn["request_decision"] is None
+    assert _lead_runs(app) == 0 and _written(app)["runs"] == 0
+    # No hatched Lead is needed for a command: the person's own card, not a conversation.
+    state = researcher.get(_lead(world)).json()
+    assert [t["command"] for t in state["turns"]] == ["agent_job:analyze_brief"]
+
+
+def test_with_the_lead_on_a_typed_command_is_not_sent_to_the_model(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """The model is never in the path of a typed start: nothing is queued for the Lead."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_research_lead_enabled": True})
+    assert researcher.post("/api/v1/lead").status_code == 201
+    _save(app, world)
+    typed = _type(researcher, world, "/Navrhni dotazník: krátce, do deseti otázek.")
+    assert typed.status_code == 201, typed.text
+    assert [t["actor"] for t in typed.json()["turns"]] == ["person"]
+    assert typed.json()["turns"][0]["command"] == "agent_job:build_questionnaire"
+    assert _lead_runs(app) == 0
+
+
+def test_a_near_match_is_a_message_never_a_start(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    app.state.settings = app.state.settings.model_copy(update={"ai_research_lead_enabled": True})
+    assert researcher.post("/api/v1/lead").status_code == 201
+    _save(app, world)
+    posted = _type(researcher, world, "Prosím spusť výzkum")
+    assert posted.status_code == 201, posted.text
+    person, lead = posted.json()["turns"]
+    assert person["command"] is None and lead["actor"] == "lead"
+
+
+def test_the_conversation_lists_the_commands_it_takes(researcher: TestClient, world: Any) -> None:
+    """The composer's vocabulary comes from the server, the fixture's exactly, Lead on or off."""
+    from pathlib import Path
+
+    fixture = json.loads(
+        (
+            Path(__file__).resolve().parents[3]
+            / "packages/aia_core/tests/fixtures/lead_commands/commands.json"
+        ).read_text("utf-8")
+    )
+    state = researcher.get(_lead(world)).json()
+    assert state["available"] is False
+    assert state["commands"] == fixture["commands"]
+
+
+# --------------------------------------------------------------------------- the approval
+
+
+def test_a_typed_design_job_starts_with_the_lead_off_and_writes_chat_start_once(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    _save(app, world)
+    turn_id = _type(researcher, world, "Navrhni dotazník: krátce").json()["turns"][0]["turn_id"]
+    approved = _approve(researcher, world, turn_id)
+    assert approved.status_code == 200, approved.text
+    run_id = approved.json()["run_id"]
+    assert approved.json()["design_revision_id"].startswith("REV-")
+
+    (row,) = _chat_starts(app)
+    assert (row.subject_id, row.run_id, row.decision, row.gate_type) == (
+        run_id,
+        run_id,
+        "start",
+        "chat_start",
+    )
+    assert row.approver_user_id == world.users["researcher"]
+    assert json.loads(row.comment) == {
+        "turn_id": turn_id,
+        "start": "agent_job:build_questionnaire",
+        "ceiling_usd": JOB_RESERVATION,
+        "design_revision_id": approved.json()["design_revision_id"],
+    }
+    with create_session_factory(app.state.engine)() as session:
+        job = WorkflowRepository(session, _scope(world, session)).get_run(run_id)
+        assert job["workflow_type"] == RESEARCH_AGENT
+    jobs = researcher.get(f"/api/v1/studies/{world.study_id()}/research/agent-jobs").json()
+    assert [j["run_id"] for j in jobs] == [run_id], jobs
+
+    again = _approve(researcher, world, turn_id)
+    assert again.status_code == 200 and again.json()["run_id"] == run_id
+    assert _written(app)["chat_start"] == 1
+    turn = researcher.get(_lead(world)).json()["turns"][-1]
+    assert turn["request_decision"] == {"status": "approved", "run_id": run_id}
+
+
+def test_in_one_switched_off_state_the_typed_card_starts_and_the_models_card_waits(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """D22: the guard tells the two kinds of card apart from the stored turn. With the Lead
+    off, a card its model prepared is 409 research_lead_disabled; the person's typed card is
+    approved and writes chat_start."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_research_lead_enabled": True})
+    assert researcher.post("/api/v1/lead").status_code == 201
+    _save(app, world)
+    posted = _type(researcher, world, "Co dál?")
+    assert posted.status_code == 201, posted.text
+    lead_turn = posted.json()["turns"][-1]["turn_id"]
+    with create_session_factory(app.state.engine)() as session:
+        workflows = WorkflowRepository(session, _scope(world, session))
+        work = workflows.claim_next(worker_id="w", kinds={RESEARCH_LEAD_TURN})
+        assert work is not None
+        workflows.complete_attempt(
+            work.attempt_id,
+            worker_id="w",
+            output={
+                "lead_output": {
+                    "reply": "Připraveno.",
+                    "request": {"kind": "agent_job", "action": "analyze_brief", "why": WHY},
+                },
+                "dropped": [],
+                "self_update_applied": None,
+            },
+        )
+        session.commit()
+    typed = _type(researcher, world, "Zkontroluj návrh").json()["turns"][0]["turn_id"]
+
+    app.state.settings = app.state.settings.model_copy(update={"ai_research_lead_enabled": False})
+    refused = _approve(researcher, world, lead_turn)
+    assert refused.status_code == 409 and refused.json()["code"] == "research_lead_disabled"
+    approved = _approve(researcher, world, typed)
+    assert approved.status_code == 200, approved.text
+    assert [r.run_id for r in _chat_starts(app)] == [approved.json()["run_id"]]
+
+
+def test_the_threshold_asks_a_typed_start_as_it_asks_every_start(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """LO15's rule holds on the typed path: at the threshold the server's ceiling is asked
+    for, and once confirmed the job's spend row and the chat_start row are both written."""
+    _save(app, world)
+    with create_session_factory(app.state.engine)() as session:
+        ScopeRepository(session).set_study_spend_confirm(_scope(world, session), 1.0)
+        session.commit()
+    turn_id = _type(researcher, world, "Analyzuj zadání").json()["turns"][0]["turn_id"]
+    asked = _approve(researcher, world, turn_id)
+    assert asked.status_code == 409 and asked.json()["code"] == "cost_confirmation_required"
+    assert asked.json()["details"] == {"ceiling_usd": JOB_RESERVATION, "limit_usd": 1.0}
+    assert _written(app) == {"runs": 0, "chat_start": 0, "charges": 0}
+    approved = _approve(researcher, world, turn_id, confirm_cost_usd=JOB_RESERVATION)
+    assert approved.status_code == 200, approved.text
+    with create_session_factory(app.state.engine)() as session:
+        spend = session.scalars(
+            select(ApprovalDecisionRow).where(
+                ApprovalDecisionRow.subject_type == ApprovalSubject.SPEND
+            )
+        ).all()
+        assert [r.run_id for r in spend] == [approved.json()["run_id"]]
+    assert _written(app)["chat_start"] == 1
+
+
+def test_a_typed_research_run_starts_on_the_deployments_run_settings(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    _save(app, world)
+    turn_id = _type(researcher, world, "Spusť výzkum").json()["turns"][0]["turn_id"]
+    approved = _approve(researcher, world, turn_id)
+    assert approved.status_code == 200, approved.text
+    run_id = approved.json()["run_id"]
+    runs = researcher.get(f"/api/v1/studies/{world.study_id()}/research/runs").json()
+    assert [r["run_id"] for r in runs["items"]] == [run_id]
+    (row,) = _chat_starts(app)
+    comment = json.loads(row.comment)
+    assert (row.run_id, comment["start"]) == (run_id, "research_run")
+    assert comment["ceiling_usd"] == pytest.approx(450 * 0.5)
+    # The run's own start: the same revision asked again returns it and writes nothing.
+    again = _type(researcher, world, "Spusť výzkum").json()["turns"][0]["turn_id"]
+    second = _approve(researcher, world, again)
+    assert second.status_code == 200 and second.json()["run_id"] == run_id
+    assert _written(app)["chat_start"] == 1
+
+
+def test_a_typed_run_on_a_design_that_is_not_ready_is_refused_by_the_runs_own_rule(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    _save(app, world, {"title": "Prázdné", "sections": []})
+    turn_id = _type(researcher, world, "Spusť výzkum").json()["turns"][0]["turn_id"]
+    refused = _approve(researcher, world, turn_id)
+    assert refused.status_code in (409, 422), refused.text
+    assert _written(app) == {"runs": 0, "chat_start": 0, "charges": 0}
+
+
+def test_someone_elses_typed_card_is_not_found(
+    researcher: TestClient, reviewer: TestClient, world: Any, app: FastAPI
+) -> None:
+    _save(app, world)
+    turn_id = _type(researcher, world, "Analyzuj zadání").json()["turns"][0]["turn_id"]
+    other = _approve(reviewer, world, turn_id)
+    assert other.status_code == 404, other.text
+    assert _written(app)["runs"] == 0
+
+
+# --------------------------------------------------------------------------- the wallet
+
+
+def _wallet_on(app: FastAPI, client: TestClient, world: Any, cap: float | None) -> None:
+    app.state.settings = app.state.settings.model_copy(update={"study_wallet_enabled": True})
+    study = f"/api/v1/studies/{world.study_id()}"
+    assert client.put(f"{study}/budget", json={"budget_usd": 100.0}).status_code == 200
+    if cap is not None:
+        set_cap = client.put(f"{study}/wallet", json={"cap_usd": cap})
+        assert set_cap.status_code == 200, set_cap.text
+
+
+def test_with_the_wallet_on_a_typed_start_is_charged_under_its_chat_start_row(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    _wallet_on(app, researcher, world, cap=5.0)
+    _save(app, world)
+    turn_id = _type(researcher, world, "Analyzuj zadání").json()["turns"][0]["turn_id"]
+    approved = _approve(researcher, world, turn_id)
+    assert approved.status_code == 200, approved.text
+    (row,) = _chat_starts(app)
+    with create_session_factory(app.state.engine)() as session:
+        (charge,) = session.scalars(select(StudyWalletChargeRow)).all()
+        assert (charge.run_id, charge.kind, charge.ceiling_usd, charge.approval_decision_id) == (
+            approved.json()["run_id"],
+            "agent_job",
+            JOB_RESERVATION,
+            row.decision_id,
+        )
+    assert _approve(researcher, world, turn_id).json()["run_id"] == approved.json()["run_id"]
+    assert _written(app) == {"runs": 1, "chat_start": 1, "charges": 1}
+
+
+@pytest.mark.parametrize("cap", [None, 1.0])
+def test_outside_the_wallet_a_typed_start_writes_nothing(
+    researcher: TestClient, world: Any, app: FastAPI, cap: float | None
+) -> None:
+    """No wallet, or one whose remainder is below the job's ceiling: 409 outside_wallet, and no
+    run, no chat_start row, no charge."""
+    _wallet_on(app, researcher, world, cap=cap)
+    _save(app, world)
+    turn_id = _type(researcher, world, "Analyzuj zadání").json()["turns"][0]["turn_id"]
+    refused = _approve(researcher, world, turn_id)
+    assert refused.status_code == 409 and refused.json()["code"] == "outside_wallet", refused.text
+    assert refused.json()["details"]["ceiling_usd"] == JOB_RESERVATION
+    assert _written(app) == {"runs": 0, "chat_start": 0, "charges": 0}
+
+
+def test_an_unknown_ceiling_is_refused_never_charged_as_zero(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    _wallet_on(app, researcher, world, cap=5.0)
+    app.state.settings = app.state.settings.model_copy(update={"ai_research_reservation_usd": None})
+    _save(app, world)
+    turn_id = _type(researcher, world, "Analyzuj zadání").json()["turns"][0]["turn_id"]
+    refused = _approve(researcher, world, turn_id)
+    assert refused.status_code == 409 and refused.json()["code"] == "ceiling_unknown"
+    assert _written(app) == {"runs": 0, "chat_start": 0, "charges": 0}
+
+
+def test_a_charge_refused_after_the_create_leaves_no_run_no_row_and_no_charge(
+    researcher: TestClient, world: Any, app: FastAPI, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """LO1's order: the charge names the run created in the same transaction, so a charge
+    refused after the create (another start took the wallet meanwhile) rolls the run and its
+    chat_start row back with it."""
+    _wallet_on(app, researcher, world, cap=1.0)
+    _save(app, world)
+    # The quote is told the start fits; the charge, under the same lock, finds it does not.
+    monkeypatch.setattr(StudyWallets, "quote", lambda self, ceiling: (WalletVerdict.FITS, 10.0))
+    turn_id = _type(researcher, world, "Analyzuj zadání").json()["turns"][0]["turn_id"]
+    refused = _approve(researcher, world, turn_id)
+    assert refused.status_code == 409 and refused.json()["code"] == "outside_wallet", refused.text
+    assert _written(app) == {"runs": 0, "chat_start": 0, "charges": 0}
