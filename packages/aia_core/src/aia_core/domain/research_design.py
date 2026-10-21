@@ -916,7 +916,8 @@ def compile_design(
 def _audience(audience: dict[str, Any]) -> dict[str, Any]:
     """The audience as the design stated it: its source and strategy, whether it narrowed, and
     (compiler 3, artifact-chain CHN5) the description and built-in subpanel a person gave, each
-    only when given, so a design that states neither keeps the body it always had."""
+    only when given (the subpanel only on a population audience), so a design that states
+    neither keeps the body it always had."""
     out: dict[str, Any] = {
         "source_mode": _text(audience.get("source_mode")) or "population",
         "strategy": _text(audience.get("strategy")) or "population",
@@ -924,7 +925,9 @@ def _audience(audience: dict[str, Any]) -> dict[str, Any]:
     }
     if description := _text(audience.get("description")):
         out["description"] = description
-    if subpanel := _text(audience.get("builtin_subpanel")):
+    # A subpanel is a part of AIA's population. The audience step keeps the last one chosen
+    # when the source moves outside it (OI-51), so it is the audience's only on a population.
+    if out["source_mode"] == "population" and (subpanel := _text(audience.get("builtin_subpanel"))):
         out["builtin_subpanel"] = subpanel
     return out
 

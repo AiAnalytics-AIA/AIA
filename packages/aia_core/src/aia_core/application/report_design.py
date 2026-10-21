@@ -103,7 +103,8 @@ def _audience_sentence(spec: ResearchSpecification) -> str:
     stated = ""
     if description := spec.audience.get("description"):
         stated += f"Cílová skupina podle návrhu: {description}. "
-    if subpanel := spec.audience.get("builtin_subpanel"):
+    population = spec.audience.get("source_mode") == "population"
+    if population and (subpanel := spec.audience.get("builtin_subpanel")):
         stated += f"Vycházela z vestavěného podpanelu {subpanel}. "
     return stated + _audience_rule(spec)
 

@@ -165,3 +165,23 @@ def test_the_audiences_description_and_subpanel_are_kept_and_printed_when_given(
     blank, _ = compile_design({**DESIGN, "audience": {**DESIGN["audience"], "description": "  "}})
     assert blank is not None and blank.fingerprint() == plain.fingerprint()
     assert "podle návrhu" not in _words(compose_design_sections(plain, ()).chapter.blocks)
+
+
+def test_a_subpanel_left_from_a_population_choice_is_not_an_external_audiences() -> None:
+    """The audience step keeps the last built-in subpanel when the source moves outside AIA's
+    population (OI-51); an external audience did not come from it, so it is neither compiled
+    nor printed (Codex on #587)."""
+    external = {
+        **DESIGN,
+        "audience": {
+            **DESIGN["audience"],
+            "source_mode": "customer",
+            "builtin_subpanel": "young_18_29",
+        },
+    }
+    spec, problems = compile_design(external)
+    assert spec is not None, problems
+    assert "builtin_subpanel" not in spec.audience
+    words = _words(compose_design_sections(spec, ()).chapter.blocks)
+    assert "podpanelu" not in words
+    assert "mimo populaci AIA" in words
