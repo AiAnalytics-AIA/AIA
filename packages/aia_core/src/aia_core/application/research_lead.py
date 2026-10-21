@@ -222,14 +222,15 @@ def _lead_status(step: Mapping[str, Any], last: Mapping[str, Any] | None) -> tup
 
 
 def _holds(turn: Mapping[str, Any]) -> bool:
-    """Whether a Lead turn holds the conversation: queued, running, or parked on the study's
-    budget. A turn waiting for budget is paid for when the budget is lifted, so a message sent
-    meanwhile would queue a second paid turn behind it. A turn parked for any other reason
-    (the Lead not configured, the route refusing) does not hold it: nothing would ever free it.
+    """Whether a Lead turn holds the conversation: queued or running.
+
+    A turn parked for any reason does not. Nothing frees a parked Lead turn on its own: a
+    budget set in Settings only changes a number (:meth:`WorkflowRepository.resume_budget_waits`),
+    and no route lifts a Lead turn's wait, so a turn that held the conversation while parked
+    held it for ever (F4). A turn parked on the budget is superseded by the next message
+    instead (:meth:`ResearchLead.post`), so at most one turn waits to be paid.
     """
-    return turn["actor"] == "lead" and (
-        turn["status"] in ("QUEUED", "RUNNING") or turn["awaiting_budget"]
-    )
+    return turn["actor"] == "lead" and turn["status"] in ("QUEUED", "RUNNING")
 
 
 def _view(
@@ -395,9 +396,11 @@ class ResearchLead:
         Needs ``EDIT_STUDY`` and ``RUN_WORKFLOW`` on an open Study, a hatched Lead and no
         Lead turn of this researcher queued or running here (:class:`LeadBusy`). A greeting
         within :data:`GREETING_WINDOW` of the Lead's last turn stores nothing and returns
-        no turns. The researcher's Lead row is locked first, so two posts at once (two tabs
-        opening the Study) are decided one after the other: one greeting, never two.
-        Returns the turns stored, as :meth:`state` reads them.
+        no turns. When the Lead's last turn is parked on the study's budget, a message
+        supersedes it (its run cancelled, never paid; its message kept in the history the new
+        turn sees) and a greeting stores nothing. The researcher's Lead row is locked first,
+        so two posts at once (two tabs opening the Study) are decided one after the other:
+        one greeting, never two. Returns the turns stored, as :meth:`state` reads them.
         """
         if not self.enabled:
             raise LeadUnavailable("the Research Lead is not switched on in this deployment")
@@ -417,11 +420,22 @@ class ResearchLead:
             and latest.created_at > self.clock() - GREETING_WINDOW
         ):
             return []
+        superseded: str | None = None
         if latest is not None:
             current = self._annotated([latest])[0]
             if _holds(current):
                 raise LeadBusy("the Lead is still answering your last message")
+            if current["awaiting_budget"]:
+                # A greeting never cancels the person's own waiting message.
+                if kind == "greeting":
+                    return []
+                superseded = latest.run_id
 
+        if superseded is not None:
+            # The parked turn sent nothing and holds no reservation (a budget park spends no
+            # attempt): cancelling it pays nothing, and its message stays in the history the
+            # new turn is frozen with. Nothing paid is started without this person's message.
+            self._workflows().request_cancel(superseded, reason="lead_turn_superseded")
         history = self._annotated(turns.turns(limit=50))
         content, analysis, workspace_revision = self._working_content()
         project_id, design_revision = self._design_project(content, workspace_revision)

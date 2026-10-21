@@ -219,27 +219,85 @@ def test_a_parked_turn_says_why_and_does_not_hold_the_conversation(
     assert len(_message(_lead(scope, session), "Jsi tam?")) == 2
 
 
-def test_a_turn_parked_on_the_budget_holds_the_conversation(scoped: Any, session: Any) -> None:
-    """The review of baac33d5 (a hypothesis): messages sent while a turn waits for budget
-    queued turns that would all pay once the budget was lifted. Such a turn holds the
-    conversation as a running one does; lifting the budget frees it."""
-    scope = scoped.scope()
-    _hatch(scoped, session)
-    _message(_lead(scope, session))
+def _park_on_budget(session: Any, scope: Any) -> Any:
+    """The worker's side of a turn whose reservation passes the study's budget."""
     workflows = WorkflowRepository(session, scope)
     work = workflows.claim_next(worker_id="w", kinds={RESEARCH_LEAD_TURN})
     assert work is not None
     workflows.fail_attempt(work.attempt_id, worker_id="w", failure=FailureClass.BUDGET_EXCEEDED)
+    return work
+
+
+def test_a_message_after_the_budget_is_set_is_answered_not_held(scoped: Any, session: Any) -> None:
+    """The product owner on develop (2026-10-21): a message sent with no study budget parked
+    at the cap; a budget set in Nastavení -> Studie changed only the number (nothing lifts a
+    Lead turn's wait), yet that parked turn held the conversation, so every later message was
+    refused (``lead_busy``) or queued by the pane behind it, for ever.
+
+    A turn parked on the budget does not hold the conversation. The next message supersedes
+    it: the parked run is cancelled, never paid, and the new turn carries the unanswered
+    message in its history. Only one turn is ever waiting, so a lift never pays for a stack.
+    """
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    first = _message(_lead(scope, session), "Kde studie stojí?")
+    _park_on_budget(session, scope)
     state = _lead(scope, session).state()
-    assert state["busy"] is True and state["turns"][-1]["status"] == "WAITING"
-    with pytest.raises(LeadBusy):
-        _message(_lead(scope, session), "Jsi tam?")
-    # A greeting is still a no-op, never a 409.
-    assert _lead(scope, session).post(kind="greeting", stage="brief") == []
+    parked = state["turns"][-1]
+    assert (parked["status"], parked["reason"]) == ("WAITING", "budget_exceeded")
+    assert state["busy"] is False
 
     budget = float(scoped.scope_repo.get_study(scope).budget_usd)
-    workflows.resume_budget_wait(work.step_id, budget_before=budget, budget_after=budget)
-    assert _lead(scope, session).state()["busy"] is True  # queued again: still answering
+    scoped.scope_repo.set_study_budget(scope, budget + 5.0)  # only changes a number
+    turns = _message(_lead(scope, session), "Jsi tam?")
+    assert [t["actor"] for t in turns] == ["person", "lead"]
+    assert turns[-1]["status"] == "QUEUED"
+
+    workflows = WorkflowRepository(session, scope)
+    old = workflows.get_run(first[-1]["run_id"])
+    assert old["status"] is WorkflowRunStatus.CANCELLED
+    state = _lead(scope, session).state()
+    assert state["busy"] is True  # the new turn is queued: the pane waits for it alone
+    by_id = {t["turn_id"]: t for t in state["turns"]}
+    assert by_id[first[-1]["turn_id"]]["status"] == "CANCELLED"
+    context = _step_input(session, scope, turns[-1]["run_id"])["context"]
+    earlier = [t.get("text") for t in layer(context, "conversation")["turns"]]
+    assert "Kde studie stojí?" in earlier
+    _complete(session, scope, {"reply": "Ano."})
+    assert _lead(scope, session).state()["busy"] is False
+
+
+def test_a_greeting_does_not_supersede_a_message_waiting_for_budget(
+    scoped: Any, session: Any
+) -> None:
+    """Opening the study greets; it never cancels the person's own message."""
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    first = _message(_lead(scope, session))
+    _park_on_budget(session, scope)
+    later = _lead(scope, session, clock=lambda: utcnow() + timedelta(days=1))
+    assert later.post(kind="greeting", stage="brief") == []
+    run = WorkflowRepository(session, scope).get_run(first[-1]["run_id"])
+    assert run["status"] is not WorkflowRunStatus.CANCELLED
+
+
+def test_a_turn_resumed_from_a_budget_wait_holds_the_conversation(
+    scoped: Any, session: Any
+) -> None:
+    """The review of baac33d5: messages must not stack paid turns behind one another. A turn
+    whose budget wait a person lifted is queued again, and holds the conversation as any
+    queued turn does, until it is answered."""
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    _message(_lead(scope, session))
+    work = _park_on_budget(session, scope)
+    budget = float(scoped.scope_repo.get_study(scope).budget_usd)
+    WorkflowRepository(session, scope).resume_budget_wait(
+        work.step_id, budget_before=budget, budget_after=budget
+    )
+    assert _lead(scope, session).state()["busy"] is True
+    with pytest.raises(LeadBusy):
+        _message(_lead(scope, session), "Jsi tam?")
     _complete(session, scope, {"reply": "Hotovo."})
     assert _lead(scope, session).state()["busy"] is False
     assert len(_message(_lead(scope, session), "Další")) == 2
