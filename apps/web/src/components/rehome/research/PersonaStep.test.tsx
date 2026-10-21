@@ -62,7 +62,7 @@ function aiaStub(project: Record<string, unknown>, over: Record<string, (b: unkn
 const posted = (path: string) => calls.filter((c) => c.url.split("?")[0] === path && (!path.startsWith("/api/v1/") || c.body !== null));
 type Saved = { content: Record<string, unknown> & { persona_dimensions: { approved: string[] } }; reason: string };
 const lastSave = () => saves.at(-1) as unknown as Saved;
-const savedWith = (reason: string) => waitFor(() => expect(lastSave()?.reason).toBe(reason), { timeout: 4000 });
+const savedWith = (reason: string) => waitFor(() => expect(lastSave()?.reason).toBe(reason));
 const PLANNED = { research_plan: { recommended_topics: ["zdraví", "média"] } };
 /** Nothing the Dimenze step does reaches the 18.6.6 unit (ADR 0018). */
 const noUnitCalls = () => expect(calls.filter((c) => !c.url.startsWith("/api/v1/") && c.url !== "/config").map((c) => c.url)).toEqual([]);
