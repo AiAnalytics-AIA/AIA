@@ -15,12 +15,12 @@ from typing import Any
 import pytest
 from aia_api.config import Environment, Settings
 from aia_api.main import create_app
-from aia_core.domain.ai_contracts import UsageOutcome
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+from aia_core.domain.ai_contracts import UsageOutcome
 from aia_core.domain.knowledge import KnowledgeKind
 from aia_core.infrastructure.ai_usage_repository import AIUsageRepository
-from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from aia_core.infrastructure.build_identity import BuildIdentity
+from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_executors import workbench
 from aia_executors.workbench import recorded_research_agent, workbench_registry_for
