@@ -8,7 +8,8 @@
  * (the split, the side drawer and the sheet, research-lead-workbench 26b-26c): no page overflow,
  * nothing remounted across 1100 or 768 px, the Lead opened from the launcher and closed by Escape, the eleven stages in six phases, the separator by
  * keyboard, the focus modes, the stage navigation (Výsledky's views by hash), Návrh's research
- * questions with their coverage at 1440, 1100, 768 and 390 px, and that nothing
+ * questions with their coverage at 1440, 1100, 768 and 390 px, Vzorek read only with the server's
+ * forecast at the same four widths, and that nothing
  * paid starts: no research run, agent job, Deep Research run or Lead request approval.
  */
 import assert from "node:assert/strict";
@@ -252,6 +253,37 @@ try {
     await shot(`${width}-audience`);
   }
   check("Cílová skupina names its description, filters, factors and preview at 1440, 1100, 768 and 390");
+
+  // Vzorek (artifact-sample SMP6): read only, at every width. Its forecast is the server's, labelled
+  // a forecast, on the revision it was read on; nothing on it sets n or starts anything.
+  for (const width of [1440, 1100, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(base + stagePath("dimensions") + "#sample");
+    const sample = page.locator("[data-sample-view]");
+    await sample.waitFor({ timeout: 30000 });
+    const forecast = page.getByRole("region", { name: "Odhad podpory před během" });
+    await forecast.getByText("odhad, ne výsledek").waitFor();
+    // The journey's identity edits, so Vzorek reads readiness on the revision its copy submits to:
+    // the empty state ("odhad není") or a failed read is a failure here, never a pass.
+    await forecast.getByText(/Podle revize návrhu|odhad není|nepodařilo načíst/).first().waitFor({ timeout: 30000 });
+    assert.equal(await forecast.getByText(/Podle revize návrhu \d+/).count(), 1, `Vzorek's forecast read on a revision @${width}`);
+    // Read only: no editable surface of any kind, and every button one of its navigation links.
+    const editable = "input, select, textarea, [contenteditable]:not([contenteditable='false']), [role=slider], [role=spinbutton], [role=textbox], [role=checkbox], [role=radio], [role=switch], [role=combobox]";
+    assert.equal(await sample.locator(editable).count(), 0, `Vzorek has no editable control @${width}`);
+    const NAVIGATION = new Set(["Upravit v Dimenzích", "Upravit cílovou skupinu", "Sociomapa", "Změnit ve Spuštění", "Ověřit v Kontrole a spuštění"]);
+    const buttons = (await sample.locator("button, [role=button]").allInnerTexts()).map((b) => b.trim());
+    assert.deepEqual(buttons.filter((b) => !NAVIGATION.has(b)), [], `Vzorek's buttons only navigate @${width}`);
+    for (const id of ["sample:size", "sample:n", "sample:forecast", "sample:forecast:support", "sample:forecast:outlook"]) {
+      assert.equal(await sample.locator(`[data-aia="${id}"]`).count(), 1, `${id} @${width}`);
+    }
+    await noOverflow(`sample @${width}`);
+    await sample.screenshot({ path: join(out, `${width}-sample.png`) });
+  }
+  // Its links open the stages where things are set.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.getByRole("button", { name: "Ověřit v Kontrole a spuštění" }).click();
+  await page.locator(".nav__stage.is-current", { hasText: "Sběr dat" }).waitFor();
+  check("Vzorek: size and the server's forecast at 1440, 1100, 768 and 390, read only, no overflow; Spuštění one click away");
 
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");

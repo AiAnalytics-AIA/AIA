@@ -140,6 +140,11 @@ field. (a) if the owner wants V2's layout exactly.
   check) as "neznámé". A structured forecast on the readiness response would remove the rule's
   copy; not needed for SMP3.
 
+- **SMP6, first part (2026-10-21):** `workbench_journey.mjs` opens Vzorek at 1440, 1100, 768 and
+  390 px: the size and the server's forecast, read only, every `sample:` id present, no overflow,
+  Spuštění one click away, nothing paid. The readiness list and a check opening its stage join it
+  with SMP4; the chunk stays open until then.
+
 ## Doc follow-up
 
 - Register this plan and its chunks.
