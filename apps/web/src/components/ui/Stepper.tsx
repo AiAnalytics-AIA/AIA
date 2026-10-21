@@ -6,19 +6,24 @@
 // why, in words, and nothing is saved -- never clamped, never replaced (audit IA-1, IA-2). Esc
 // restores the saved value. Money passes `unit="USD"` and whole-dollar steps.
 
-import { type KeyboardEvent, type ReactNode, useId, useState } from "react";
+import { type KeyboardEvent, type ReactNode, useId, useRef, useState } from "react";
 
 import { tv, t } from "@/i18n/t";
+import type { SaveState } from "@/lib/inline-edit";
 import { type NumberBounds, canStep, formatNumber, numberProblemWords, rangeWords, readNumber, stepNumber } from "@/lib/number-input";
 import { Icon } from "../rehome/icons";
-import { FIELD_ERROR, FOCUS } from "./parts";
+import { FIELD_ERROR, FOCUS, SaveNote } from "./parts";
 
 export function Stepper({
   value, onCommit, onProblem, label, min, max, step = 1, decimals = 0, unit, disabled = false, showBounds = true, note, className = "",
 }: {
   /** The saved value; null when none is set yet (the field is empty until one is chosen). */
   value: number | null;
-  onCommit: (value: number) => void;
+  /**
+   * Saves a value. Return a promise to have the stepper wait for the answer (Ukládám… while it
+   * is pending, Neuloženo – Zkusit znovu when it rejects); return nothing for a value kept at once.
+   */
+  onCommit: (value: number) => void | Promise<unknown>;
   /**
    * Told when the field holds a refused value (the words) and when it no longer does (null): what
    * is typed there is then not the saved value, and an action beside it must not act on either.
@@ -55,20 +60,41 @@ export function Stepper({
     setProblem(null);
     setChecked(false);
   };
-  // What this stepper last committed, until the caller's `value` moves: a parent that saves
-  // asynchronously still holds the old value for a while, and a second press must step from what
-  // was sent, not from that stale prop (Codex on #532). Any change of `value` is the caller's answer.
+  // The caller's answer to a save, explicitly (Codex on #532: equality of `value` cannot tell
+  // "still saving" from "answered with the same value"). An onCommit that returns a promise is
+  // pending until it settles: meanwhile the field shows and steps from what was sent, so a second
+  // press does not step from the stale prop. Resolved, `value` is the truth again; rejected, the
+  // field goes back to `value` and says Neuloženo, with the failed value to resend. A synchronous
+  // onCommit keeps no optimistic state at all. Only the newest save's answer counts.
   const [sent, setSent] = useState<number | null>(null);
-  const [seen, setSeen] = useState(value);
-  if (seen !== value) {
-    setSeen(value);
-    setSent(null);
-  }
+  const [save, setSave] = useState<SaveState>("idle");
+  const [failed, setFailed] = useState<number | null>(null);
+  const latest = useRef(0);
   const saved = sent ?? value;
   const commit = (next: number) => {
     if (next === saved) return;
+    const op = ++latest.current;
+    const result = onCommit(next);
+    if (!(result instanceof Promise)) {
+      setSent(null);
+      setSave("idle");
+      return;
+    }
     setSent(next);
-    onCommit(next);
+    setSave("saving");
+    result.then(
+      () => {
+        if (op !== latest.current) return;
+        setSent(null);
+        setSave("idle");
+      },
+      () => {
+        if (op !== latest.current) return;
+        setSent(null);
+        setFailed(next);
+        setSave("failed");
+      },
+    );
   };
   const errorId = useId();
   const boundsId = useId();
@@ -180,6 +206,7 @@ export function Stepper({
         <span id={boundsId} className={showBounds ? "text-xs text-ink-faint" : "sr-only"}>
           {range} · {t("input.stepHint")}
         </span>
+        <SaveNote state={save} onRetry={failed !== null ? () => commit(failed) : undefined} />
       </span>
       {problem ? (
         <span id={errorId} role="alert" className="text-xs leading-4 text-status-fault">{problem}</span>

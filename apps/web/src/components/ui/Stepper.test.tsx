@@ -68,17 +68,17 @@ describe("Stepper (I2): bounded numbers, refused and never clamped", () => {
   });
 
   it("steps by one step with the arrows and the buttons, by ten with Shift", () => {
-    // The caller never moves `value` here: each press steps from what the last one sent.
+    // A synchronous caller that keeps `value` at 400: no optimistic state, each press steps from 400.
     const save = n(400);
     fireEvent.keyDown(field(), { key: "ArrowUp" });
     expect(save).toHaveBeenLastCalledWith(410);
     fireEvent.keyDown(field(), { key: "ArrowDown", shiftKey: true });
-    expect(save).toHaveBeenLastCalledWith(310);
+    expect(save).toHaveBeenLastCalledWith(300);
     fireEvent.click(plus());
-    expect(save).toHaveBeenLastCalledWith(320);
+    expect(save).toHaveBeenLastCalledWith(410);
     fireEvent.click(minus(), { shiftKey: true });
-    expect(save).toHaveBeenLastCalledWith(220);
-    expect((field() as HTMLInputElement).value).toBe("220");
+    expect(save).toHaveBeenLastCalledWith(300);
+    expect((field() as HTMLInputElement).value).toBe("400");
   });
 
   it("commits a button press once, stepped from the typed draft (Codex #532)", () => {
@@ -111,8 +111,13 @@ describe("Stepper (I2): bounded numbers, refused and never clamped", () => {
           max={500}
           onCommit={(v) => {
             calls.push(v);
-            // Saved on the server first; the parent's value moves only when it answers.
-            answer = () => setValue(v);
+            // Saved on the server first; the parent's value moves when the save answers.
+            return new Promise<void>((resolve) => {
+              answer = () => {
+                setValue(v);
+                resolve();
+              };
+            });
           }}
         />
       );
@@ -125,10 +130,56 @@ describe("Stepper (I2): bounded numbers, refused and never clamped", () => {
     fireEvent.click(up);
     expect(calls).toEqual([91, 92]);
     expect(input.value).toBe("92");
+    expect(screen.getByText("Ukládám…")).toBeTruthy();
     await act(async () => answer());
     expect(input.value).toBe("92");
+    expect(screen.queryByText("Ukládám…")).toBeNull();
     fireEvent.keyDown(input, { key: "ArrowUp" });
     expect(calls).toEqual([91, 92, 93]);
+  });
+
+  it("goes back to the saved value and says Neuloženo when a save is refused (Codex #532)", async () => {
+    let refuse!: () => void;
+    const save = vi.fn((v: number) => new Promise<void>((_, reject) => (refuse = () => reject(new Error(String(v))))));
+    render(<Stepper label="Počet" value={80} onCommit={save} min={0} max={500} />);
+    const input = screen.getByRole("spinbutton", { name: "Počet" }) as HTMLInputElement;
+    fireEvent.keyDown(input, { key: "ArrowUp" });
+    expect(input.value).toBe("81");
+    await act(async () => refuse());
+    // The parent never moved `value`: the field shows it, not the unsaved 81, and steps from it.
+    expect(input.value).toBe("80");
+    expect(input.getAttribute("aria-valuenow")).toBe("80");
+    expect(screen.getByText(/Neuloženo/)).toBeTruthy();
+    // Zkusit znovu resends the value that failed.
+    fireEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }));
+    expect(save).toHaveBeenLastCalledWith(81);
+  });
+
+  it("steps from the value an answered save left unchanged (Codex #532)", async () => {
+    let accept!: () => void;
+    const save = vi.fn(() => new Promise<void>((resolve) => (accept = resolve)));
+    // The parent answers but keeps 80 (for example, the server kept the old value).
+    render(<Stepper label="Počet" value={80} onCommit={save} min={0} max={500} />);
+    const input = screen.getByRole("spinbutton", { name: "Počet" }) as HTMLInputElement;
+    fireEvent.keyDown(input, { key: "ArrowUp" });
+    await act(async () => accept());
+    expect(input.value).toBe("80");
+    fireEvent.keyDown(input, { key: "ArrowUp" });
+    expect(save).toHaveBeenLastCalledWith(81);
+    expect(screen.queryByText(/Neuloženo/)).toBeNull();
+  });
+
+  it("ignores an older save's answer after a newer one was sent (Codex #532)", async () => {
+    const pending: { resolve: () => void; reject: () => void }[] = [];
+    const save = vi.fn(() => new Promise<void>((resolve, reject) => pending.push({ resolve, reject: () => reject(new Error("x")) })));
+    render(<Stepper label="Počet" value={80} onCommit={save} min={0} max={500} />);
+    const input = screen.getByRole("spinbutton", { name: "Počet" }) as HTMLInputElement;
+    fireEvent.keyDown(input, { key: "ArrowUp" });
+    fireEvent.keyDown(input, { key: "ArrowUp" });
+    expect(save).toHaveBeenLastCalledWith(82);
+    await act(async () => pending[0].reject());
+    expect(input.value).toBe("82");
+    expect(screen.queryByText(/Neuloženo/)).toBeNull();
   });
 
   it("disables a button at its bound", () => {
