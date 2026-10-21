@@ -298,13 +298,18 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   const choose = (k: number) => { setSelected((s) => (s === k ? -1 : k)); setRelation(null); };
   // What the toolbar has changed against the map's opening; the bar names it (SOC3).
   const changes = displayChanges({ map: people ? "respondents" : "objects", norm, relations: mode });
+  // "Zrušit filtr" removes its own bar: the keyboard goes back to the toolbar, never to the page's top.
+  const toolbar = useRef<HTMLDivElement>(null);
+  const [resets, setResets] = useState(0);
+  useEffect(() => { if (resets) toolbar.current?.focus(); }, [resets]);
+  const resetDisplay = () => { showMap("objects"); setNorm("range"); setMode("top"); setResets((n) => n + 1); };
   const detail = people
     ? <PersonCard detail={person >= 0 ? respondentDetail(map, dots[person].id) : null} />
     : <ObjectCard battery={battery} map={map} selected={selected} relation={relation} />;
 
   return (
     <div className="flex flex-col gap-3" data-testid="object-map-panel">
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2" role="toolbar" aria-label={t("research.exec.objectMap.controls")}>
+      <div ref={toolbar} tabIndex={-1} className="flex flex-wrap items-center gap-x-5 gap-y-2 focus:outline-none" role="toolbar" aria-label={t("research.exec.objectMap.controls")}>
         {density ? (
           <div className="flex items-center gap-1.5" role="group" aria-label={t("research.exec.objectMap.panel.mapGroup")}>
             <span className="text-[10px] uppercase tracking-[.06em] text-ink-muted">{t("research.exec.objectMap.panel.mapGroup")}</span>
@@ -330,9 +335,10 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
         )}
         <button type="button" className={SWITCH} title={t("research.exec.objectMap.panel.exportHelp")} onClick={exportPng}>{t("research.exec.objectMap.panel.export")}</button>
       </div>
-      {changes.length ? (
-        <FilterBar changes={changes} onReset={() => { showMap("objects"); setNorm("range"); setMode("top"); }} />
-      ) : null}
+      {/* One live region, always there, so the bar's first appearance is announced too. */}
+      <div role="status" data-testid="object-map-filter-status">
+        {changes.length ? <FilterBar changes={changes} onReset={resetDisplay} /> : null}
+      </div>
       <div className="flex flex-wrap items-start gap-4">
         <div ref={setStage} className="relative h-[700px] min-w-0 flex-[999_1_560px] overflow-hidden rounded-[10px] bg-[#07090c] [min-width:min(100%,560px)] [&:fullscreen]:h-screen [&:fullscreen]:w-screen [&:fullscreen]:rounded-none" data-testid="object-map-stage">
           <canvas ref={canvas} className="block h-full w-full cursor-grab touch-none" role="img" data-testid="object-map-canvas"
@@ -707,7 +713,7 @@ const CHANGE_WORDS: Record<string, string> = {
 function FilterBar({ changes, onReset }: { changes: DisplayChange[]; onReset: () => void }) {
   const p = "research.exec.objectMap.panel";
   return (
-    <div role="status" data-testid="object-map-filter-bar" data-aia-filters={changes.map((c) => `${c.key}:${c.value}`).join(" ")}
+    <div data-testid="object-map-filter-bar" data-aia-filters={changes.map((c) => `${c.key}:${c.value}`).join(" ")}
       className="flex flex-wrap items-baseline gap-x-2 gap-y-1 rounded-sm border border-border bg-surface-raised px-3 py-2 text-xs">
       <b>{t(`${p}.filterTitle`)}</b>{" "}
       <span>{changes.map((c) => t(CHANGE_WORDS[`${c.key}:${c.value}`]!)).join(", ")}.</span>{" "}

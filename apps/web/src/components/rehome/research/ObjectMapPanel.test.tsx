@@ -759,4 +759,20 @@ describe("the filter bar and the four registers", () => {
     expect(canvas().getAttribute("data-norm")).toBe("range");
     expect(screen.getByRole("button", { name: "Top vztahy" }).getAttribute("aria-pressed")).toBe("true");
   });
+
+  it("keeps the keyboard in the toolbar when Zrušit filtr removes its own bar, and announces the bar from a live region already there", async () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    const live = screen.getByTestId("object-map-filter-status");
+    expect(live.getAttribute("role")).toBe("status");
+    expect(live.textContent).toBe("");
+    fireEvent.click(screen.getByRole("button", { name: "Absolutní" }));
+    expect(screen.getByTestId("object-map-filter-status")).toBe(live);
+    expect(live.textContent).toContain("absolutní výšky");
+    const reset = within(bar()!).getByRole("button", { name: "Zrušit filtr" });
+    reset.focus();
+    fireEvent.click(reset);
+    expect(bar()).toBeNull();
+    await waitFor(() => expect(document.activeElement).not.toBe(document.body));
+    expect(screen.getByRole("toolbar", { name: "Ovládání mapy" }).contains(document.activeElement)).toBe(true);
+  });
 });
