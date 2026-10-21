@@ -483,6 +483,23 @@ forbid "the worker never touches the approval ledger" \
 forbid "executors never touch the approval ledger" \
   'ApprovalDecisionRow|approval_decisions' \
   apps/executors/src
+# A study's wallet (ADR 0028 decision 2, lead-orchestration LO1): StudyWalletRepository is the
+# only reader and writer of its three tables, because every write that compares an amount takes
+# the study row's lock first; a charge written anywhere else is a hold nobody checked against the
+# cap, and could overspend it.
+forbid "the study wallet's tables are touched only by StudyWalletRepository" \
+  'StudyWallet(Raise|Charge)?Row|(FROM|INTO|UPDATE|JOIN)[[:space:]]+study_wallet' \
+  "$CORE" \
+  "$CORE/infrastructure/tables.py" "$CORE/infrastructure/study_wallet_repository.py"
+forbid "the API never touches the study wallet's tables" \
+  'StudyWallet(Raise|Charge)?Row|(FROM|INTO|UPDATE|JOIN)[[:space:]]+study_wallet' \
+  apps/api/src
+forbid "the worker never touches the study wallet's tables" \
+  'StudyWallet(Raise|Charge)?Row|(FROM|INTO|UPDATE|JOIN)[[:space:]]+study_wallet' \
+  apps/worker/src
+forbid "executors never touch the study wallet's tables" \
+  'StudyWallet(Raise|Charge)?Row|(FROM|INTO|UPDATE|JOIN)[[:space:]]+study_wallet' \
+  apps/executors/src
 # Its subjects are one closed set, domain/approval_ledger.py's ApprovalSubject (lead-orchestration
 # LO16): a writer or a reader naming a subject as a string of its own drifts from the CHECK the
 # table holds (ARCHITECTURE.md A6).

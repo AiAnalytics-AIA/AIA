@@ -49,6 +49,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+from decimal import Decimal
 from enum import StrEnum
 from types import MappingProxyType
 from typing import Final
@@ -230,13 +231,20 @@ def wallet_remaining(cap_usd: float, charges_usd: Iterable[float]) -> float:
     Never negative."""
     cap = _usd(cap_usd, "the wallet's cap")
     assert cap is not None
-    spent = 0.0
+    spent = Decimal(0)
     for charge in charges_usd:
         value = _usd(charge, "a charge")
         if value is None:
             raise ValueError("a charge is a known ceiling: an unknown one is refused at start")
-        spent += value
-    return max(0.0, cap - spent)
+        spent += _exact(value)
+    return float(max(Decimal(0), _exact(cap) - spent))
+
+
+def _exact(value: float) -> Decimal:
+    """A stored amount as the decimal it was written as (``repr``'s shortest round trip), so
+    sums and comparisons do not drift: USD 0.30 less 0.10 leaves 0.20, and a 0.20 start fits it
+    exactly, where binary floats leave 0.19999999999999998 and refuse it."""
+    return Decimal(repr(value))
 
 
 def wallet_verdict(ceiling_usd: float | None, remaining_usd: float) -> WalletVerdict:
@@ -247,7 +255,7 @@ def wallet_verdict(ceiling_usd: float | None, remaining_usd: float) -> WalletVer
     assert remaining is not None
     if ceiling is None:
         return WalletVerdict.CEILING_UNKNOWN
-    return WalletVerdict.FITS if ceiling <= remaining else WalletVerdict.OUTSIDE
+    return WalletVerdict.FITS if _exact(ceiling) <= _exact(remaining) else WalletVerdict.OUTSIDE
 
 
 class RaiseVerdict(StrEnum):
