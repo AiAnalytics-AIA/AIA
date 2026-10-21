@@ -76,6 +76,7 @@ import { AiButton, Button } from "../ui";
 import { isNativeResult } from "@/lib/research-agent-jobs";
 import { openPlace, scrollBehavior, scrollToPlace } from "@/lib/open-place";
 import { useResearch } from "./context";
+import { QuestionnaireDependencies } from "./QuestionnaireDependencies";
 import { QuestionnaireStrip } from "./QuestionnaireStrip";
 import { InspectorSlot } from "./Inspector";
 import { questionnaireIssues } from "@/research/lane";
@@ -618,6 +619,7 @@ function Editor({ update }: { update: Update }) {
           <p className="mt-1 text-sm text-ink-muted">{t("research.questionnaire.emptyText")}</p>
         </div>
       )}
+      <QuestionnaireDependencies />
     </div>
   );
 }
