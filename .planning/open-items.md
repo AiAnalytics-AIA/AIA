@@ -4462,9 +4462,9 @@ filters) and render one run-level lift.
 
 ---
 
-## OI-142 · Finding · A client with DATASET or FINDING knowledge cannot run any AI design job
+## OI-142 · Finding · A client with DATASET, ARTIFACT or FINDING knowledge cannot run any AI design job
 
-**Claim.** A design job over a client whose knowledge holds a DATASET or FINDING item carries the
+**Claim.** A design job over a client whose knowledge holds a DATASET, ARTIFACT or FINDING item carries the
 placeholder lineage `unclassified-client-knowledge`, which the licence gate refuses, so that client
 gets no AI help although only titles and summaries reach the model.
 
@@ -4476,13 +4476,15 @@ carries no lineage. Plan `client-data-in-analysis`, Findings CR-4.
 **Reproduction.** `make seed-develop`, then any design job for Horizont Mobility: refused
 `licence_dataset_unknown`.
 
-**Consequence.** The seeded client, and any real client with a dataset or finding, gets no AI help.
+**Consequence.** The seeded client, and any real client with a dataset, artifact or finding, gets no
+AI help.
 
 **Smallest fix.** The lineage is the union of the items' recorded datasets (`provenance.datasets`),
 the placeholder only when one is unrecorded; the seed records `aia_synthetic_fixture`.
 
-**Test.** A design job over a seeded client with DATASET knowledge passes the licence gate; one over
-an item with no recorded dataset is still refused by name.
+**Test.** A design job over a client with DATASET, ARTIFACT and FINDING knowledge, each recording its
+dataset, passes the licence gate; one over an item of any of the three kinds with no recorded dataset
+is still refused by name.
 
 **Status.** Open.
 

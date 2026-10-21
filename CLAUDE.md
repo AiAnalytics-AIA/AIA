@@ -1999,4 +1999,4 @@ reservation covers primary plus one schema repair. The study Research Lead's own
 owned web retrieval remain in the complete-workflow plan, not delivered by the
 proposal executor. Do not describe model recollection as web research. The Lead's own web lookup
 ("Hledat na webu", `lead-orchestration#LO20`, [ADR 0040](docs/architecture/adr/0040-the-leads-web-lookup.md),
-Proposed; not built yet) is a governed retrieval path through `RetrievalGate`, never model recollection.
+accepted 2026-10-20; not built yet) is a governed retrieval path through `RetrievalGate`, never model recollection.
