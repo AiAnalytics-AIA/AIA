@@ -9,6 +9,7 @@
 import type { ReactNode } from "react";
 
 import { t } from "@/i18n/t";
+import { sampleAia } from "@/lib/artifacts/sample";
 import type { OutlookVerdict } from "@/lib/api";
 import { VERDICT_ORDER } from "@/lib/research-execution";
 import { outlookSummary, supportForecastOf } from "@/lib/sample-view";
@@ -54,8 +55,8 @@ export function SampleArtifact({ project, readiness, onOpen }: { project: Resear
   return (
     <div className="flex max-w-3xl flex-col gap-4" aria-label="Vzorek" data-sample-view>
       <p className="text-sm text-ink-muted">Přehled vzorku jen ke čtení. Velikost a dimenze se nastavují v Dimenzích, cílová skupina ve svém kroku; zda vzorek stačí, ověří Kontrola a spuštění na serveru.</p>
-      <Sec n={1} title="Velikost a složení" aside={n ? `n ${n}` : undefined} aia="sample:size">
-        <div data-aia="sample:n">
+      <Sec n={1} title="Velikost a složení" aside={n ? `n ${n}` : undefined} aia={sampleAia.section("size")}>
+        <div data-aia={sampleAia.n()}>
           <div className="flex items-center gap-2"><Glyph tone={n ? "done" : "inert"} size={12} /><h3 className="text-sm font-semibold">Velikost vzorku</h3></div>
           <p className="mt-1 text-2xl font-semibold tabular-nums">{n ? `N = ${n}` : "Nenastaveno"}</p>
           <p className="text-sm text-ink-muted">Doporučeno {rec.n}: {rec.why}</p>
@@ -71,7 +72,7 @@ export function SampleArtifact({ project, readiness, onOpen }: { project: Resear
           {dims.length ? <ul className="mt-1 flex flex-wrap gap-1.5">{dims.map((d) => <li key={d} className="rounded-sm border border-border px-2 py-0.5 text-sm">{PERSONA_DIM_LABELS[d] ?? d}</li>)}</ul> : <p className="mt-1 text-sm text-ink-muted">Žádné</p>}
         </div>
       </Sec>
-      <Sec n={2} title="Odhad podpory před během" aside="odhad, ne výsledek" aia="sample:forecast">
+      <Sec n={2} title="Odhad podpory před během" aside="odhad, ne výsledek" aia={sampleAia.section("forecast")}>
         <Forecast readiness={readiness} />
         <p className="text-sm text-ink-muted">
           Skutečná podpora dvojic se ověří až z výsledných dat (
@@ -93,14 +94,14 @@ function Forecast({ readiness }: { readiness: SampleReadiness }) {
   return (
     <>
       <p className="text-xs text-ink-muted">Podle revize návrhu {readiness.revision}</p>
-      <div className="flex items-start gap-2" data-aia="sample:forecast:support">
+      <div className="flex items-start gap-2" data-aia={sampleAia.forecast("support")}>
         <span className="mt-1"><Glyph tone={support.known ? (STATUS_TONE[support.status] ?? "inert") : "inert"} size={12} title={support.known ? support.status : "neznámé"} /></span>
         <div className="min-w-0">
           <h3 className="text-sm font-semibold">Opora výsledků{support.known ? "" : ": neznámé"}</h3>
           <p className="text-sm">{support.message ?? "Server oporu pro tento běh předem nespočítal."}</p>
         </div>
       </div>
-      <div className="flex items-start gap-2" data-aia="sample:forecast:outlook">
+      <div className="flex items-start gap-2" data-aia={sampleAia.forecast("outlook")}>
         <span className="mt-1"><Glyph tone={outlook ? (outlook.UNANSWERABLE ? "fault" : outlook.AT_RISK ? "you" : outlook.UNKNOWN ? "inert" : "done") : "inert"} size={12} /></span>
         <div className="min-w-0">
           <h3 className="text-sm font-semibold">Na co běh odpoví{outlook ? "" : ": neznámé"}</h3>
