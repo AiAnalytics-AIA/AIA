@@ -11,6 +11,8 @@
 // changed is still read right (the server's module says how). Pure: every function returns new
 // documents. The store writes the ids only behind AIA_WEB_STABLE_ITEM_IDS (/config's stableItemIds).
 
+import { CASE_FOLDS } from "./case-folds";
+
 type Obj = Record<string, unknown>;
 const isObj = (x: unknown): x is Obj => !!x && typeof x === "object" && !Array.isArray(x);
 
@@ -26,11 +28,18 @@ export const OBJECT_IDS = "object_ids";
 export const SIDECAR_KEYS: ReadonlySet<string> = new Set([...ID_LISTS.map((l) => l[1]), OPTION_IDS, OBJECT_IDS]);
 
 const ID = /^[A-Za-z0-9_.-]{1,80}$/;
-// Whitespace spelled out as the server folds it (Python's split and JavaScript's \s differ).
-const WS = /[\t\n\x0b\x0c\r \x1c-\x1f\x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+/g;
+// Whitespace as Python's str.split reads it (JavaScript's \s differs on U+001C-U+001F and U+FEFF).
+const WS = /[\t\n\x0b\x0c\r \x1c-\x1f\x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+/g;
 
-/** A wording as identity compares it: whitespace collapsed and trimmed, lower-cased. */
-export const fold = (text: string): string => text.replace(WS, " ").replace(/^ +| +$/g, "").toLowerCase();
+/**
+ * A wording as identity compares it, as the server's fold does (" ".join(split()).casefold()):
+ * whitespace collapsed and trimmed, case-folded -- lower-casing plus CASE_FOLDS (sharp s, final sigma).
+ */
+export function fold(text: string): string {
+  let out = "";
+  for (const ch of text.replace(WS, " ").replace(/^ | $/g, "")) out += CASE_FOLDS[ch] ?? ch.toLowerCase();
+  return out;
+}
 
 const encoder = new TextEncoder();
 /** (a * b) mod 2^64 for two 64-bit numbers as [high, low] 32-bit halves, in 16-bit limbs (exact). */

@@ -6,10 +6,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { CASE_FOLDS } from "./case-folds";
 import { derivedId, entries, fnv10, fold, reconcile, sectionIds, settleItemIds, withItemIds, wordingOf } from "./item-ids";
 
 type Obj = Record<string, unknown>;
 const FILE = JSON.parse(readFileSync(join(process.cwd(), "../../packages/aia_core/tests/fixtures/item_ids/cases.json"), "utf8")) as {
+  case_folds: Record<string, string>;
   hashes: { text: string; fnv10: string }[];
   folds: { text: string; fold: string }[];
   derived: { prefix: string; kind: string; text: string; occurrence: number; id: string }[];
@@ -23,6 +25,7 @@ describe("the hash, the fold and a derived id are the server's", () => {
   it.each(FILE.hashes)("fnv10 $text", (c) => expect(fnv10(c.text)).toBe(c.fnv10));
   it("a lone surrogate hashes as U+FFFD, as the server reads it", () => expect(fnv10("\ud800 osamocený")).toBe(fnv10("\ufffd osamocený")));
   it.each(FILE.folds)("fold $text", (c) => expect(fold(c.text)).toBe(c.fold));
+  it("adds to lower-casing exactly the case folds the server's casefold has", () => expect({ ...CASE_FOLDS }).toEqual(FILE.case_folds));
   it.each(FILE.derived)("derived $kind $text", (c) => expect(derivedId(c.prefix, c.kind, c.text, c.occurrence)).toBe(c.id));
 });
 

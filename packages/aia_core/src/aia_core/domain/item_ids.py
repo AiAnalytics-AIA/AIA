@@ -43,10 +43,13 @@ measure it, the comparison that answers it) to its new wording. Pure: stdlib onl
 from __future__ import annotations
 
 import re
+import sys
 import unicodedata
 from collections.abc import Iterable, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass
+from functools import cache
+from types import MappingProxyType
 from typing import Any, Final
 
 __all__ = [
@@ -56,6 +59,7 @@ __all__ = [
     "SIDECAR_KEYS",
     "Entry",
     "bound_of",
+    "case_folds",
     "derived_id",
     "fnv10",
     "fold",
@@ -83,11 +87,6 @@ SIDECAR_KEYS: Final = frozenset({s for _, s, _, _ in ID_LISTS} | {OPTION_IDS, OB
 _OPTION_PREFIX: Final = "opt_"
 _OBJECT_PREFIX: Final = "o_"
 _ID: Final = re.compile(r"^[A-Za-z0-9_.\-]{1,80}$")
-#: Whitespace as both languages fold it: spelled out, so Python's ``str.split`` and JavaScript's
-#: ``\s`` (which differ on U+001C-U+001F and U+FEFF) never decide an id.
-_WS: Final = re.compile(
-    "[\t\n\x0b\x0c\r \x1c-\x1f\x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+"
-)
 _SURROGATE: Final = re.compile("[\ud800-\udfff]")
 _REPLACEMENT: Final = "\ufffd"
 _FNV_OFFSET: Final = 0xCBF29CE484222325
@@ -96,12 +95,27 @@ _MASK: Final = (1 << 64) - 1
 
 
 def fold(text: str) -> str:
-    """A wording as identity compares it: whitespace collapsed and trimmed, lower-cased.
+    """A wording as identity compares it: whitespace collapsed and trimmed (``str.split``'s
+    whitespace), case-folded (``str.casefold``): exactly how ``design_items`` keyed a list entry by
+    its text before ids (``normalise`` is this function), so content stored before has one derived
+    id per old text key, ``ß`` and ``ς`` included. The web folds the same way (``item-ids.ts``:
+    lower-casing plus the code points :func:`case_folds` lists)."""
+    return " ".join(text.split()).casefold()
 
-    ``str.lower`` and JavaScript's ``toLowerCase`` agree (Unicode's default full lower-casing); the
-    ``casefold`` ``design_items`` compares wording with does not (``ß``, F-WCE0-2), so it never
-    names an id."""
-    return _WS.sub(" ", text).strip(" ").lower()
+
+@cache
+def case_folds() -> Mapping[str, str]:
+    """Every code point whose case folding is not its lower-casing (``ß`` -> ``ss``, final sigma to
+    sigma): what the web adds to ``toLowerCase`` to fold as :func:`fold` does. The case file pins
+    it. Built on first use (it reads every code point once)."""
+    out: dict[str, str] = {}
+    for code in range(sys.maxunicode + 1):
+        if 0xD800 <= code <= 0xDFFF:
+            continue
+        ch = chr(code)
+        if ch.casefold() != ch.lower():
+            out[ch] = ch.casefold()
+    return MappingProxyType(out)
 
 
 def fnv10(text: str) -> str:

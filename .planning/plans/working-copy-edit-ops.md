@@ -276,12 +276,50 @@ Plan tests: `test_a_reword_keeps_its_research_question_links`,
   research question accepted by click leaves the link dangling; accepted with auto it does not.
   Consequence: a dangling link the trace names, only with the switch on. Smallest fix: WCE2's one
   writer settles every write. Test: a WCE2 test of the accept route asserting no dangling link.
-- **F-WCE1-2. A whole-list replacement that keeps a stale id list reads as rewords when no wording
-  anchors.** Anchor: `domain/item_ids.py` `reconcile` (equal-count gap rule). Reproduction: case
-  "two rewords in place keep theirs" in the case file: a proposal that replaces both research
-  questions with new ones keeps their ids. Consequence: per-change accept (WCE6) would show a change
-  where a model meant remove + add; nothing is lost. Smallest fix: WCE8b's baseline ids in
-  proposals, and proposals that drop the spread id list. Test: WCE8b's fixture case.
+- **F-WCE1-2. A whole-list replacement that keeps a stale id list reads as rewords, and with the
+  switch on the web then moves questionnaire links onto a different research question.** Blocks
+  turning `AIA_WEB_STABLE_ITEM_IDS` on; owner WCE8b with WCE2. Anchor: `domain/item_ids.py`
+  `reconcile` (the equal-count gap rule) with `follow_rewords`, reached in the web by
+  `apps/web/src/research/plan.ts` `applyVariant` and `plan-edit.ts` `applyNarrative`, which replace
+  `research_questions` and spread the old `research_plan` with its `research_question_ids`.
+  Reproduction (`settle_item_ids`, from the independent review of #543): before
+  `["Kdo kupuje kávu?", "Jak často?", "Kde nakupují?"]` with Q1 linked to "Jak často?", after
+  `["Proč nekupují?", "Které značky znají?", "Kde nakupují?"]`: Q1 now links "Které značky znají?".
+  Consequence: a stamped guess, a measure moved onto an unrelated research question (today the
+  link dangles, which the trace shows). With the switch off nothing stores id lists and no server
+  path settles, so links never move. Smallest fix: the writers that replace a whole list drop its
+  id list, and `follow_rewords` follows only a reword the binding vouches for, never a gap match.
+  Test: the reproduction, asserting the link dangles rather than moves.
+- **F-WCE1-3. `touches` and `lock_refusal` differ from before (switch-on and WCE2 prerequisite).**
+  Anchor: `domain/edit_ops.py` `touches` (the field diff of applying the edit). A `question_edit`
+  that changes nothing on a locked rating question now passes the lock (it touches nothing); an
+  edit `apply_edit` refuses touches nothing, so it is refused with its own word, not the lock's.
+  Reproduction: the review's probe over set_text, list ops, question add / edit / remove, set_n,
+  malformed content and a locked question and battery: no refusal became an apply. Consequence:
+  none today (`lock_refusal` is not wired). Fix: WCE2 asks `refusal` before the lock. Test: WCE2's
+  every-writer lock tests.
+- **F-WCE1-4. Switching on rewrites every loaded study's design bytes (switch-on prerequisite).**
+  The store marks such a copy `completed`, so it is saved before a submit. The agents' context then
+  carries `*_ids` and their hashes, and `research_agents.py` `proposal_result` spreads model output
+  over that plan, so a model can echo stale entries back (F-WCE1-2's input). Deep Research
+  classifies a design by its exact bytes (OI-129), so those designs park until an operator
+  classifies them again. Fix before switching on: a rollout note, the agents' context without id
+  lists (or WCE8b), and the re-classification planned.
+- **F-WCE1-5. On, then off, leaves stale id lists (switch-on prerequisite).** The stored id lists
+  stay and go stale under writers that ignore them; the server keeps reading them by the gap rule
+  (links never move on the server). Fix: strip them when off, or record that turning off is one-way
+  until WCE2.
+
+Fixed in this PR after the independent review: an `items_changed` refusal carries each
+conflicting item's wording (`conflicting_wording`, from the current copy else the baseline; the web
+prefers it), so a reworded or removed item is never named by its hash
+(`test_a_refusal_names_a_reworded_research_question_by_its_wording`, `proposal-items.test.ts`).
+Keys recorded before ids for sections and questions without one (`#i`, `#i#j`) are translated to
+the compiler's ids, and a recorded key that names nothing in either design is refused
+`unknown_baseline`, never accepted and dropped (`test_proposal_accept_ids.py`). Identity folds
+exactly as the old text keys did (`" ".join(split()).casefold()`, one function; the web adds the
+297 code points where case folding is not lower-casing, `apps/web/src/research/case-folds.ts`), so
+`ß` and final sigma map one to one (`test_a_respelling_the_old_keys_called_one_item_is_still_one`).
 
 ### Doc follow-up (WCE1)
 
@@ -296,4 +334,6 @@ Plan tests: `test_a_reword_keeps_its_research_question_links`,
 - `AGENTS.md` (Next.js/TypeScript): the web's `tsconfig` targets below ES2020, so BigInt literals
   do not compile; `item-ids.ts` does 64-bit arithmetic in 16-bit limbs (wrong: `1n << 64n`;
   right: `mul64` over `[hi, lo]`).
-- `open-items.md`: close F-WCE0-3 (this chunk); number F-WCE1-1 (open, WCE2) and F-WCE1-2 (open, WCE8b).
+- `open-items.md`: close F-WCE0-3 (this chunk); number F-WCE1-1 (open, WCE2), F-WCE1-2 (open,
+  WCE8b with WCE2; blocks switching `AIA_WEB_STABLE_ITEM_IDS` on) and F-WCE1-3 to F-WCE1-5 (open,
+  switch-on prerequisites).

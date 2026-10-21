@@ -879,6 +879,7 @@ def test_a_job_started_after_an_edit_is_checked_against_its_designs_working_revi
         assert refused.value.details() == {
             "reason": "items_changed",
             "conflicting_items": ["content:plan:problem_summary"],
+            "conflicting_wording": {},  # a plan field, said by its name
         }
         # Nothing was written: the design and the working copy are as the person left them.
         scope = world.lead_scope(session)

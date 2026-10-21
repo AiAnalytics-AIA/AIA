@@ -51,7 +51,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any, Final, Literal
 
-from .item_ids import ID_LISTS, SIDECAR_KEYS, Entry, bound_of, list_ids, with_item_ids
+from .item_ids import ID_LISTS, SIDECAR_KEYS, Entry, bound_of, fold, list_ids, with_item_ids
 
 __all__ = [
     "Documents",
@@ -62,7 +62,9 @@ __all__ = [
     "item_values",
     "legacy_keys",
     "merge_items",
+    "named_items",
     "occurrence_keys",
+    "wordings",
 ]
 
 Document = Literal["content", "analysis"]
@@ -128,8 +130,9 @@ class Documents:
 
 
 def normalise(text: str) -> str:
-    """A list entry as it is keyed: whitespace collapsed and trimmed, casefolded."""
-    return " ".join(text.split()).casefold()
+    """A list entry as it is keyed: whitespace collapsed and trimmed, casefolded. The one folding,
+    :func:`.item_ids.fold`, so a derived id and the text key it replaces are one to one."""
+    return fold(text)
 
 
 def _mapping(value: Any) -> Mapping[str, Any]:
@@ -373,11 +376,49 @@ def _text_key_map(docs: Documents) -> dict[ItemKey, ItemKey]:
     return out
 
 
+def _section_keys(sections: Any) -> list[tuple[ItemKey, list[ItemKey]]] | None:
+    """Each section's key and its questions' keys, in order; ``None`` for a shape keyed whole."""
+    entries = _section_entries(sections)
+    if entries is None:
+        return None
+    questions = _section_questions(entries)
+    out: list[tuple[ItemKey, list[ItemKey]]] = []
+    for key, section in entries:
+        kind = "battery" if section.get("type") == "object_battery" else "section"
+        held = [ItemKey("content", "question", q) for q, _ in questions[key] or []]
+        out.append((ItemKey("content", kind, key), held))
+    return out
+
+
+def _section_key_map(raw: Documents, resolved: Documents) -> dict[ItemKey, ItemKey]:
+    """Each section's and question's key now and the key it had before ids, where they differ: a
+    section without an id was ``#<i>`` and is the compiler's id now, and its questions without an
+    id were ``#<i>#<j>`` and are ``<id>#<j>``."""
+    before = _section_keys(raw.content.get("sections"))
+    now = _section_keys(resolved.content.get("sections"))
+    if before is None or now is None or len(before) != len(now):
+        return {}
+    out: dict[ItemKey, ItemKey] = {}
+    for (old_key, old_held), (new_key, new_held) in zip(before, now, strict=True):
+        if old_key != new_key:
+            out[new_key] = old_key
+        for old_q, new_q in zip(old_held, new_held, strict=True):
+            if old_q != new_q:
+                out[new_q] = old_q
+    return out
+
+
+def _legacy_map(docs: Documents, previous: Documents | None = None) -> dict[ItemKey, ItemKey]:
+    """Every key ``design_items`` gives now with the key it gave before ids, where they differ."""
+    resolved = _resolve(docs, previous)
+    return {**_text_key_map(resolved), **_section_key_map(docs, resolved)}
+
+
 def _key_maps(
     before: Documents | Mapping[str, Any], after: Documents | Mapping[str, Any]
 ) -> tuple[dict[ItemKey, ItemKey], dict[ItemKey, ItemKey]]:
     b_docs = _documents(before)
-    return _text_key_map(_resolve(b_docs)), _text_key_map(_resolve(_documents(after), b_docs))
+    return _legacy_map(b_docs), _legacy_map(_documents(after), b_docs)
 
 
 def legacy_keys(
@@ -385,9 +426,10 @@ def legacy_keys(
     before: Documents | Mapping[str, Any],
     after: Documents | Mapping[str, Any],
 ) -> frozenset[ItemKey]:
-    """``keys`` (``design_items(before, after)``) with each plan-list item's id key read back as
-    the text key ``design_items`` returned before ids: what the shared cases are written in. For
-    content without id lists the two are one to one."""
+    """``keys`` (``design_items(before, after)``) read back as the keys ``design_items`` returned
+    before ids: a plan-list item by its normalised text, a section without an id by its place
+    (``#<i>``) and its questions without one by theirs (``#<i>#<j>``). What the shared cases are
+    written in. For content without id lists the two are one to one (one folding for both)."""
     in_before, in_after = _key_maps(before, after)
     return frozenset(in_before.get(k) or in_after.get(k) or k for k in keys)
 
@@ -397,16 +439,48 @@ def from_legacy_keys(
     before: Documents | Mapping[str, Any],
     after: Documents | Mapping[str, Any],
 ) -> frozenset[ItemKey]:
-    """Keys recorded before WCE1 (a plan-list item by its normalised text) as ``design_items``
-    keys them now, by id: a worker recorded a proposal's ``touched_items`` before the deploy and a
-    person accepts it after. A key that already names an id, or names nothing in either design,
-    is kept as it is."""
+    """Keys recorded before WCE1 as ``design_items`` keys them now: a plan-list item by its id, a
+    section without an id by the compiler's, its questions without one under it. A worker recorded
+    a proposal's ``touched_items`` before the deploy and a person accepts it after. A key that
+    already names an item now is kept; one that names nothing in either design is kept too, and
+    the caller refuses it (:func:`named_items`), never merging past it."""
     in_before, in_after = _key_maps(before, after)
     ids = in_before.keys() | in_after.keys()
-    by_text: dict[ItemKey, ItemKey] = {}
+    by_old: dict[ItemKey, ItemKey] = {}
     for source in (in_after, in_before):  # the baseline's reading wins
-        by_text.update({text: ident for ident, text in source.items()})
-    return frozenset(k if k in ids else by_text.get(k, k) for k in keys)
+        by_old.update({old: new for new, old in source.items()})
+    return frozenset(k if k in ids else by_old.get(k, k) for k in keys)
+
+
+def named_items(
+    before: Documents | Mapping[str, Any], after: Documents | Mapping[str, Any]
+) -> frozenset[ItemKey]:
+    """Every item key either design has (``after`` read against ``before``): what a recorded
+    ``touched_items`` may name."""
+    b_docs = _documents(before)
+    return frozenset(item_values(b_docs).keys() | item_values(_documents(after), previous=b_docs))
+
+
+def wordings(
+    keys: Iterable[ItemKey],
+    baseline: Documents | Mapping[str, Any],
+    current: Documents | Mapping[str, Any],
+) -> dict[ItemKey, str]:
+    """The wording each of ``keys`` names, to say a refusal to a person: a plan-list item's text or
+    a question's, as ``current`` has it (read against ``baseline``), else as ``baseline`` had it --
+    an item the person reworded or removed is named by an id ``current`` may no longer hold."""
+    b_docs = _documents(baseline)
+    values = {**item_values(b_docs), **item_values(_documents(current), previous=b_docs)}
+    out: dict[ItemKey, str] = {}
+    for key in keys:
+        value = values.get(key)
+        if key.kind == "question" and isinstance(value, Mapping):
+            value = value.get("text")
+        elif key.kind not in _TEXT_KINDS:
+            continue
+        if isinstance(value, str) and value.strip():
+            out[key] = value.strip()
+    return out
 
 
 # -- merge ------------------------------------------------------------------------------------

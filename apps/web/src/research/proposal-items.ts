@@ -40,13 +40,14 @@ function questionText(project: Obj | null, id: string): string | null {
 
 /**
  * One item, said in words: `content:objective:zjistit cenu` is Cíl „zjistit cenu“. A plan item
- * named by its stable id (WCE1, `content:research_question:rq_…`) is said by its wording in the
- * design the person has; one that is no longer there by its key, as before.
+ * named by its stable id (WCE1, `content:research_question:rq_…`) is said by `said`, the wording the
+ * server sent with the refusal (it knows the baseline, so a reworded or removed item too), else by
+ * its wording in the design the person has, else by its key, as before.
  */
-export function itemWords(item: string, project: Obj | null = null): string {
+export function itemWords(item: string, project: Obj | null = null, said: string | null = null): string {
   const [, kind = "", ...rest] = item.split(":");
   const key = rest.join(":");
-  const wording = () => (project ? wordingOf(project, null, kind, key) : null) ?? key;
+  const wording = () => said ?? (project ? wordingOf(project, null, kind, key) : null) ?? key;
   switch (kind) {
     case "brief": return BRIEF[key] ?? `Zadání: ${key.replace(/^briefing\./, "")}`;
     case "objective": return `Cíl „${wording()}“`;
@@ -57,7 +58,7 @@ export function itemWords(item: string, project: Obj | null = null): string {
     case "section": return `Část dotazníku ${key}`;
     case "battery": return `Baterie dotazníku ${key}`;
     case "question": {
-      const text = questionText(project, key);
+      const text = said ?? questionText(project, key);
       return text ? `Otázka „${text}“` : `Otázka ${key}`;
     }
     case "field": return PLAN[key] ?? `Pole ${key}`;
@@ -70,13 +71,18 @@ export function staleDetails(e: unknown): StaleProposalDetails | null {
   if (!(e instanceof ApiError) || e.status !== 409 || e.code !== "stale_proposal") return null;
   const d = e.details ?? {};
   const items = Array.isArray(d.conflicting_items) ? d.conflicting_items.filter((x): x is string => typeof x === "string") : [];
-  return { reason: typeof d.reason === "string" ? d.reason : "", conflicting_items: items };
+  const raw = d.conflicting_wording;
+  const wording = raw && typeof raw === "object" && !Array.isArray(raw)
+    ? Object.fromEntries(Object.entries(raw as Record<string, unknown>).filter((e): e is [string, string] => typeof e[1] === "string"))
+    : {};
+  return { reason: typeof d.reason === "string" ? d.reason : "", conflicting_items: items, conflicting_wording: wording };
 }
 
 /** Why a proposal cannot be used, in words, naming each item both changed (once). */
 export function staleMessage(details: StaleProposalDetails, project: Obj | null = null): string {
   if (details.reason === "items_changed" && details.conflicting_items.length) {
-    const words = [...new Set(details.conflicting_items.map((i) => itemWords(i, project)))];
+    const said = details.conflicting_wording ?? {};
+    const words = [...new Set(details.conflicting_items.map((i) => itemWords(i, project, said[i] ?? null)))];
     return `Návrh nejde použít: mezitím se změnilo, co návrh mění – ${words.join(", ")}. Vaše úpravy zůstávají; návrh připravte znovu nad současným zadáním.`;
   }
   if (details.reason === "unknown_baseline") {

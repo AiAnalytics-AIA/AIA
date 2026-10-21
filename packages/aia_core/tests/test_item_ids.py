@@ -30,6 +30,7 @@ from aia_core.domain.design_items import (
 from aia_core.domain.item_ids import (
     SIDECAR_KEYS,
     _entries,
+    case_folds,
     derived_id,
     fnv10,
     fold,
@@ -63,6 +64,25 @@ def test_a_lone_surrogate_hashes_as_the_browser_encodes_it() -> None:
 @pytest.mark.parametrize("case", CASES["folds"], ids=lambda c: repr(c["text"]))
 def test_the_fold(case: dict[str, str]) -> None:
     assert fold(case["text"]) == case["fold"]
+    # One folding: the key a list entry had before ids is the one its derived id is made from.
+    assert fold(case["text"]) == " ".join(case["text"].split()).casefold()
+
+
+def test_the_case_folds_the_web_adds_to_lower_casing_are_the_server_s() -> None:
+    assert dict(case_folds()) == CASES["case_folds"]
+
+
+def test_a_respelling_the_old_keys_called_one_item_is_still_one() -> None:
+    """Review of #543 (P3-2): ``Straße`` and ``STRASSE`` were one text key (casefold); a lower-cased
+    derivation made them two ids, so a respelling read as a removal and an addition."""
+    for old, new in (("Straße", "STRASSE"), ("Ὀδυσσεύς", "ὈΔΥΣΣΕΎΣ"), ("ΟΔΟΣ", "οδος")):
+        before = {"content": {"research_plan": {"research_questions": [old]}}}
+        after = {"content": {"research_plan": {"research_questions": [new]}}}
+        assert design_items(before, after) == frozenset()
+        both = {"content": {"research_plan": {"research_questions": [old, new]}}}
+        added = design_items(before, both)
+        assert len(added) == 1
+        assert len(legacy_keys(added, before, both)) == 1
 
 
 @pytest.mark.parametrize("case", CASES["derived"], ids=lambda c: f"{c['kind']}:{c['text']}")
