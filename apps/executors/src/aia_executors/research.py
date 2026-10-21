@@ -162,6 +162,20 @@ def _limits_part(limits: ReadinessSpec) -> dict[str, Any]:
     return {} if values == readiness_values(AIA_READINESS_V1) else {"readiness": values}
 
 
+def compile_fingerprint(content: Any, compiler_version: str, limits: ReadinessSpec) -> str:
+    """The compile step's reuse key: the design, the compiler and the limits. A specification
+    another compiler stored (``aia-research-compile-1``, before scale labels) is never handed
+    to a run this compiler compiles."""
+    return fingerprint(
+        {
+            "design": content,
+            "compiler": compiler_version,
+            # Only when it can change the outcome: the preset's key is unchanged.
+            **_limits_part(limits),
+        }
+    )
+
+
 def _missing_upstream(node_key: str) -> Failed:
     return Failed(
         FailureClass.MISSING_CONFIGURATION,
@@ -260,14 +274,7 @@ class CompileExecutor(_Step):
                     "specification_fingerprint": spec.fingerprint(),
                 },
                 artifact_type=SPECIFICATION,
-                input_fingerprint=fingerprint(
-                    {
-                        "design": content,
-                        "compiler": spec.compiler_version,
-                        # Only when it can change the outcome: the preset's key is unchanged.
-                        **_limits_part(limits),
-                    }
-                ),
+                input_fingerprint=compile_fingerprint(content, spec.compiler_version, limits),
             )
         context.progress("specifikace sestavena", artifact_id=artifact.artifact_id)
         return _produced(

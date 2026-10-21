@@ -1,8 +1,11 @@
 /**
  * A scale's range and its verbal labels, the pure part of the scale editor (input-interactions
  * chunk 3b). The labels are the two ends or one per point, low to high: the rule the server
- * compiles (`research_design._scale_labels`: any other length is `scale_labels_mismatch`, a
- * blank, repeated or over-long label `scale_label_invalid`). Nothing here guesses a label.
+ * compiles (`research_design._scale_labels`). The server never refuses a design for its labels:
+ * any that break the rule (another length, a blank, repeated or over-long label) it leaves out
+ * and readiness warns (`scale_labels_ignored`). Here, at the field, the editor refuses them
+ * (`labelProblem`), so a person never saves labels that would be left out. Nothing here
+ * guesses a label.
  */
 
 /** The longest label one point may carry; the server's `SCALE_LABEL_MAX`. */
@@ -67,7 +70,7 @@ export function rescaleLabels(labels: readonly string[], from: Scale, to: Scale)
 }
 
 /** Why the labels cannot be compiled, in the words the editor shows at the field; `null` when
- * they can. The server's rule, so a refusal there is never a surprise here. */
+ * they can. The server's rule: labels this refuses, the server leaves out with a warning. */
 export function labelProblem(labels: readonly string[], scale: Scale): string | null {
   const trimmed = labels.map((label) => label.trim());
   if (trimmed.every((label) => label === "")) return null;

@@ -75,8 +75,11 @@ __all__ = [
     "settle_selection",
 ]
 
-#: The compiler's own version: part of the specification's fingerprint.
-COMPILER_VERSION: Final = "aia-research-compile-1"
+#: The compiler's own version: part of the specification's fingerprint. ``-2`` compiles a
+#: scale's verbal labels (input-interactions 3b); a specification ``-1`` stored is read as
+#: stored, held to the revision it records, never recompiled under ``-2``
+#: (``application.analysis_results.native_sources``).
+COMPILER_VERSION: Final = "aia-research-compile-2"
 
 #: The unit's "don't know" option (``dotaznik.py`` ``Otazka.volby``).
 DONT_KNOW: Final = "Nevím / neodpovím"
@@ -487,53 +490,48 @@ def _scale(raw: Any, default: tuple[int, int]) -> tuple[int, int] | None:
 
 
 def _scale_labels(
-    raw: Any, scale: tuple[int, int], *, where: str, problems: list[CompileProblem]
-) -> tuple[str, ...] | None:
+    raw: Any, scale: tuple[int, int], *, where: str, instead: str, notes: list[CompileProblem]
+) -> tuple[str, ...]:
     """A scale's verbal labels as declared: the two ends or one per point, low to high.
 
-    ``()`` when none were declared (absent, an empty list, or every label blank); ``None``
-    with a problem when they cannot be read. A list of any other length is
-    ``scale_labels_mismatch``; a blank, repeated or over-long label, or anything but a list
-    of texts, is ``scale_label_invalid``. Nothing is padded, cut or guessed."""
+    ``()`` when none were declared (absent, an empty list, or every label blank), and also
+    when they break the rule: a list of any other length, a blank, repeated or over-long
+    label, anything but a list of texts. Such labels are left out -- nothing is padded, cut
+    or guessed -- and a ``scale_labels_ignored`` note names why and what is used ``instead``
+    (readiness WARNs with it). They never stop a design from compiling: one that compiled
+    before the labels were read still does (input-interactions 3b; the editor refuses them
+    at the field, ``scale-labels.ts`` ``labelProblem``)."""
     if raw is None:
         return ()
+    why: str | None = None
+    labels: list[str] = []
     if not isinstance(raw, list | tuple) or not all(isinstance(x, str) for x in raw):
-        problems.append(
-            CompileProblem(
-                code="scale_label_invalid",
-                where=where,
-                message=f"{where}: popisky škály musí být seznam textů.",
+        why = "popisky škály nejsou seznam textů"
+    else:
+        labels = [_text(x) for x in raw]
+        if not any(labels):
+            return ()
+        points = scale_points(scale)
+        if len(labels) not in (2, points):
+            why = (
+                f"škála {scale[0]}\u2013{scale[1]} má {points} bodů a popisků je "
+                f"{len(labels)}; popište oba konce, nebo každý bod"
             )
-        )
-        return None
-    labels = [_text(x) for x in raw]
-    if not any(labels):
-        return ()
-    points = scale_points(scale)
-    if len(labels) not in (2, points):
-        problems.append(
-            CompileProblem(
-                code="scale_labels_mismatch",
-                where=where,
-                message=(
-                    f"{where}: škála {scale[0]}\u2013{scale[1]} má {points} bodů, popisků je "
-                    f"{len(labels)}. Popište oba konce, nebo každý bod."
-                ),
-            )
-        )
-        return None
-    why = None
-    if not all(labels):
-        why = "popisek bodu škály nesmí být prázdný"
-    elif len({label.casefold() for label in labels}) != len(labels):
-        why = "dva body škály nesmí mít stejný popisek"
-    elif any(len(label) > SCALE_LABEL_MAX for label in labels):
-        why = f"popisek bodu škály smí mít nejvýše {SCALE_LABEL_MAX} znaků"
+        elif not all(labels):
+            why = "popisek bodu škály je prázdný"
+        elif len({label.casefold() for label in labels}) != len(labels):
+            why = "dva body škály mají stejný popisek"
+        elif any(len(label) > SCALE_LABEL_MAX for label in labels):
+            why = f"popisek bodu škály má víc než {SCALE_LABEL_MAX} znaků"
     if why is not None:
-        problems.append(
-            CompileProblem(code="scale_label_invalid", where=where, message=f"{where}: {why}.")
+        notes.append(
+            CompileProblem(
+                code="scale_labels_ignored",
+                where=where,
+                message=f"{where}: popisky škály se nepoužijí, protože {why}. {instead}",
+            )
         )
-        return None
+        return ()
     return tuple(labels)
 
 
@@ -558,7 +556,13 @@ def _links(
 
 
 def _question(
-    raw: Any, *, section_id: str, ordinal: int, used: set[str], problems: list[CompileProblem]
+    raw: Any,
+    *,
+    section_id: str,
+    ordinal: int,
+    used: set[str],
+    problems: list[CompileProblem],
+    notes: list[CompileProblem],
 ) -> SpecQuestion | None:
     where = f"{section_id}#{ordinal}"
     if not isinstance(raw, dict):
@@ -611,10 +615,13 @@ def _question(
                 )
             )
             return None
-        declared = _scale_labels(raw.get("popisky_skaly"), scale, where=qid, problems=problems)
-        if declared is None:
-            return None
-        scale_labels = declared
+        scale_labels = _scale_labels(
+            raw.get("popisky_skaly"),
+            scale,
+            where=qid,
+            instead="Respondenti uvidí jen čísla škály a zpráva popisky neuvede.",
+            notes=notes,
+        )
     rating_item = raw.get("sociomap_rating") is True
     if rating_item and typ != "skala":
         problems.append(
@@ -649,6 +656,7 @@ def _battery(
     section_id: str,
     title: str,
     problems: list[CompileProblem],
+    notes: list[CompileProblem],
     limits: TrackedSetLimits,
 ) -> SpecBattery | None:
     family = _text(raw.get("object_family") or raw.get("object_type"))  # research_project.py:318
@@ -686,9 +694,13 @@ def _battery(
     template = _text(raw.get("object_question") or "Jak hodnotíte položku {object}?")
     if "{object}" not in template:  # research_project.py:330-332
         template = template.rstrip(" ?") + " {object}?"
-    stated = _scale_labels(raw.get("scale_labels"), scale, where=section_id, problems=problems)
-    if stated is None:
-        return None
+    stated = _scale_labels(
+        raw.get("scale_labels"),
+        scale,
+        where=section_id,
+        instead="Konce škály se popíší jako „vůbec“ a „velmi“.",
+        notes=notes,
+    )
     scale_labels = stated or ("vůbec", "velmi")
     used: set[str] = set()
     objects = tuple(
@@ -745,14 +757,20 @@ def _battery(
 
 
 def compile_design(
-    content: dict[str, Any], *, limits: ReadinessSpec = AIA_READINESS_V1
+    content: dict[str, Any],
+    *,
+    limits: ReadinessSpec = AIA_READINESS_V1,
+    notes: list[CompileProblem] | None = None,
 ) -> tuple[ResearchSpecification | None, tuple[CompileProblem, ...]]:
     """Compile a design, or say exactly what stops it. Never both a spec and a problem.
 
     ``limits`` gives the hard size of a tracked set: a run compiles under the limits it
     pinned. The default, the preset, is the code's; a caller compiling for a run passes the
-    run's pin."""
+    run's pin. ``notes``, when given, collects what was compiled around rather than refused
+    (scale labels that break the rule: ``scale_labels_ignored``); readiness WARNs with them."""
     problems: list[CompileProblem] = []
+    if notes is None:
+        notes = []
     questions: list[SpecQuestion] = []
     batteries: list[SpecBattery] = []
     section_ids: set[str] = set()
@@ -772,13 +790,23 @@ def compile_design(
         if kind == "questions":
             for qi, q in enumerate(sec.get("questions") or [], start=1):
                 compiled = _question(
-                    q, section_id=sid, ordinal=qi, used=question_ids, problems=problems
+                    q,
+                    section_id=sid,
+                    ordinal=qi,
+                    used=question_ids,
+                    problems=problems,
+                    notes=notes,
                 )
                 if compiled is not None:
                     questions.append(compiled)
         else:
             battery = _battery(
-                sec, section_id=sid, title=title, problems=problems, limits=limits.tracked_set
+                sec,
+                section_id=sid,
+                title=title,
+                problems=problems,
+                notes=notes,
+                limits=limits.tracked_set,
             )
             if battery is not None:
                 batteries.append(battery)
@@ -1132,8 +1160,10 @@ def prepare(
 ) -> tuple[ResearchSpecification | None, Readiness]:
     """Compile and assess in one call. A design that does not compile is not ready.
     ``pair_n_min``, ``filters_applied`` and ``limits`` as :func:`assess_readiness` takes
-    them; the design compiles under the same ``limits``."""
-    spec, problems = compile_design(content, limits=limits)
+    them; the design compiles under the same ``limits``. Labels compiled around are a WARN
+    each, in words, never a FAIL."""
+    notes: list[CompileProblem] = []
+    spec, problems = compile_design(content, limits=limits, notes=notes)
     if spec is None:
         return None, Readiness(
             rules=READINESS_RULES,
@@ -1145,6 +1175,13 @@ def prepare(
                 for p in problems
             ),
         )
-    return spec, assess_readiness(
+    readiness = assess_readiness(
         spec, pair_n_min=pair_n_min, filters_applied=filters_applied, limits=limits
     )
+    if not notes:
+        return spec, readiness
+    warned = tuple(
+        ReadinessCheck(id=f"compile:{n.code}:{n.where}", status=CheckStatus.WARN, message=n.message)
+        for n in notes
+    )
+    return spec, readiness.model_copy(update={"checks": (*readiness.checks, *warned)})
