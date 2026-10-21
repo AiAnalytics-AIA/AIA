@@ -234,6 +234,25 @@ try {
   }
   check("Návrh shows its research questions' coverage at 1440, 1100, 768 and 390, no overflow");
 
+  // Cílová skupina names what the Lead can focus (data-aia, the artifact contract's row `audience`):
+  // the description, the filters, each factor by its catalogue id and the preview, at every width.
+  const aud = fixtures.audience;
+  for (const width of [1440, 1100, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(base + `/app/clients/${aud.client}/research/${aud.study}/audience`);
+    await page.locator('[data-aia="audience:definition"]').waitFor({ timeout: 30000 });
+    for (const target of ["audience:definition", "audience:filters", "audience:preview"]) {
+      await page.locator(`[data-aia="${target}"]`).waitFor({ timeout: 30000 });
+      assert.equal(await page.locator(`[data-aia="${target}"]`).count(), 1, `${target} @${width}`);
+    }
+    // Every stored filter's chip carries its target, whichever factors the editor shows.
+    const chips = await page.getByRole("button", { name: /^Odebrat filtr/ }).count();
+    assert.equal(await page.locator('[data-aia^="audience:filter:"]').count(), chips, `a target per stored filter @${width}`);
+    await noOverflow(`audience @${width}`);
+    await shot(`${width}-audience`);
+  }
+  check("Cílová skupina names its description, filters, factors and preview at 1440, 1100, 768 and 390");
+
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");
   check("nothing paid started");
