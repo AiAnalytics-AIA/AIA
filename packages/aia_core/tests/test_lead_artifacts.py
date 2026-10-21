@@ -28,7 +28,14 @@ from aia_core.domain.lead_artifacts import (
     allows_view,
     contract_for,
 )
-from aia_core.domain.research_lead import FOCUS_ID, FOCUS_KINDS, STAGES, LeadOutput
+from aia_core.domain.research_lead import (
+    FOCUS_ID,
+    FOCUS_KINDS,
+    ID_PATTERN,
+    STAGES,
+    FocusItem,
+    LeadOutput,
+)
 
 FIXTURE = json.loads(
     (Path(__file__).parent / "fixtures/lead_artifacts/contract.json").read_text(encoding="utf-8")
@@ -73,6 +80,23 @@ def test_the_server_focuses_exactly_the_registry_s_kinds() -> None:
         assert FOCUS_ID.fullmatch(target)
     for target in ("nonsense:x", "question:", "question:a b", "question:" + "x" * 81):
         assert not FOCUS_ID.fullmatch(target)
+
+
+def test_one_id_grammar_holds_on_both_sides_and_every_example_passes_the_server() -> None:
+    """The grammar is the fixture's; the server's FOCUS_ID and the Lead's own focus (FocusItem)
+    take it, so an id the web builds is one the server accepts (the PM's review of #563)."""
+    assert FIXTURE["id_pattern"] == ID_PATTERN
+    examples = (
+        "brief:goal", "objective:obj_1", "plan:narrative", "rq:rq_1", "question:q3",
+        "audience:filter:kraj", "audience:subpanel:young_18_29", "dimension:eko",
+        "own_dimension:REQ-1", "sample:quota:muz.18-29", "sample:ready:sample_size",
+        "step:analysis/executive", "measure:napoje/caj", "object:napoje/caj",
+        "pair:napoje/caj~kava", "module:executive", "finding:executive:2",
+        "claim:executive:c1", "report:ch-native-map-1",
+    )  # fmt: skip
+    for target in examples:
+        assert FOCUS_ID.fullmatch(target), target
+        assert FocusItem(op="focus", target=target).target == target
 
 
 def test_each_target_kind_belongs_to_the_stage_the_fixture_names() -> None:

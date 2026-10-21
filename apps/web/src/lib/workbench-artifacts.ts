@@ -177,6 +177,8 @@ export const allowsView = (stage: WorkbenchStage, op: string): boolean =>
 
 /** An id: letters, digits and _ . - ~ / and : (an id may hold parts, e.g. finding:<module>:<n>). */
 const ID = /^[A-Za-z0-9_.\-~/:]{1,80}$/;
+/** The id grammar's source, held equal to the fixture's id_pattern (the server's ID_PATTERN). */
+export const ID_SOURCE = ID.source;
 
 /**
  * The `data-aia` id a screen puts on an element the Lead can name: `<kind>:<id>`. One builder, so a

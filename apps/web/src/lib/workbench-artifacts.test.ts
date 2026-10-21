@@ -11,6 +11,7 @@ import {
 
 const FILE = JSON.parse(readFileSync(join(process.cwd(), "../../packages/aia_core/tests/fixtures/lead_artifacts/contract.json"), "utf8")) as {
   fields: string[];
+  id_pattern: string;
   view_ops: { op: string; live: boolean }[];
   filters: Record<string, string[]>;
   targets: { kind: string; stage: string; live: boolean }[];
@@ -45,6 +46,11 @@ describe("the per-artifact contract", () => {
 });
 
 describe("aiaId / parseAiaId", () => {
+  it("builds ids of the one grammar the fixture publishes, the server's", async () => {
+    const { ID_SOURCE } = await import("./workbench-artifacts");
+    expect(ID_SOURCE).toBe(`^${FILE.id_pattern}$`);
+  });
+
   it("round-trips a target and names its stage", () => {
     expect(aiaId("pair", "fio~air")).toBe("pair:fio~air");
     expect(parseAiaId("pair:fio~air")).toEqual({ kind: "pair", id: "fio~air", stage: "sociomap" });

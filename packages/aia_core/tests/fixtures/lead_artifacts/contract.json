@@ -12,6 +12,7 @@
     "report_sections",
     "refusals"
   ],
+  "id_pattern": "[A-Za-z0-9_.\\-~/:]{1,80}",
   "view_ops": [
     {
       "op": "open_stage",
