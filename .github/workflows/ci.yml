@@ -16,7 +16,11 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # A pull request's older run is cancelled by its newer push. A push to develop never
+  # cancels a run in progress: with back-to-back merges every develop run was cancelled
+  # and none deployed for ~5 h 40 min (OI-191). GitHub keeps one pending run per group,
+  # so a burst of merges still runs at most the one in progress plus the newest.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   PYTHON_VERSION: "3.12"
@@ -581,6 +585,8 @@ jobs:
               "/api/v1/studies/{study_id}/research/readiness",
               # Readiness on a working revision, nothing submitted (working-copy-edit-ops WCE7a).
               "/api/v1/studies/{study_id}/research/readiness/working",
+              # Dimenze's persona-topic chip before any run (artifact-dimensions DIM2).
+              "/api/v1/studies/{study_id}/research/persona-topics",
               "/api/v1/studies/{study_id}/research/runs",
               "/api/v1/studies/{study_id}/research/runs/{run_id}",
               "/api/v1/studies/{study_id}/research/runs/{run_id}/events",

@@ -2696,3 +2696,20 @@ def test_a_panel_runs_filters_are_applied_only_once_its_draw_succeeded() -> None
         "dimensions_not_persona_topics",
     )
     assert unmatched.filters_applied is True
+
+
+def test_persona_topics_answer_each_dimension_before_any_run(
+    researcher: TestClient, world: Any
+) -> None:
+    """artifact-dimensions DIM2: Dimenze's chip, from the mapping a run's receipt reads."""
+    url = f"{API}/studies/{world.study_id()}/research/persona-topics"
+    got = researcher.get(url, params=[("dimension", "ekologie"), ("dimension", "barva_obalu")])
+    assert got.status_code == 200
+    assert got.json()["items"] == [
+        {"dimension": "ekologie", "topic": "eko"},
+        {"dimension": "barva_obalu", "topic": None},
+    ]
+    assert researcher.get(url).json() == {"items": []}
+    too_many = researcher.get(url, params=[("dimension", f"d{i}") for i in range(65)])
+    assert too_many.status_code == 422
+    assert researcher.get(url, params={"dimension": "x" * 81}).status_code == 422
