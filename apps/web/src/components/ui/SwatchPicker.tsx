@@ -16,6 +16,7 @@ import { FOCUS, POPOVER, useDismiss } from "./parts";
 
 type Props<C extends string> = {
   value: C;
+  /** Reports the colour chosen; awaited by nothing, so a caller that saves on it owns its errors. */
   onChange: (colour: C) => void;
   colours: readonly C[];
   /** The token utility that paints each colour ("bg-hue-blue"). */

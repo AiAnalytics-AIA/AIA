@@ -21,7 +21,8 @@ export function Stepper({
   value: number | null;
   /**
    * Saves a value. Return a promise to have the stepper wait for the answer (Ukládám… while it
-   * is pending, Neuloženo – Zkusit znovu when it rejects); return nothing for a value kept at once.
+   * is pending, Neuloženo – Zkusit znovu when it rejects or throws); return nothing for a value
+   * kept at once.
    */
   onCommit: (value: number) => void | Promise<unknown>;
   /**
@@ -74,7 +75,19 @@ export function Stepper({
   const commit = (next: number) => {
     if (next === saved) return;
     const op = ++latest.current;
-    const result = onCommit(next);
+    const fail = () => {
+      setSent(null);
+      setFailed(next);
+      setSave("failed");
+    };
+    let result: void | Promise<unknown>;
+    // A synchronous throw is the same refusal as a rejected promise (Codex on #532), as in InlineText.
+    try {
+      result = onCommit(next);
+    } catch {
+      fail();
+      return;
+    }
     if (!(result instanceof Promise)) {
       setSent(null);
       setSave("idle");
@@ -89,10 +102,7 @@ export function Stepper({
         setSave("idle");
       },
       () => {
-        if (op !== latest.current) return;
-        setSent(null);
-        setFailed(next);
-        setSave("failed");
+        if (op === latest.current) fail();
       },
     );
   };

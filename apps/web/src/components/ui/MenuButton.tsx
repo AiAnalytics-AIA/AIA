@@ -19,6 +19,10 @@ export function MenuButton<K extends string>({
   /** What the menu does ("Přesunout do složky"): the button's text and the menu's name. */
   label: string;
   items: readonly MenuItem<K>[];
+  /**
+   * Does the chosen action. Awaited by nothing: the menu has closed by then, so the caller owns
+   * the action's errors and says them where the action shows (I9).
+   */
   onSelect: (key: K) => void;
   icon?: IconName;
   disabled?: boolean;

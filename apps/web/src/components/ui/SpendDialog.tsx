@@ -49,6 +49,10 @@ type Question = {
   busy?: boolean;
   /** A refusal from the server, said in the dialog beside the action it refused. */
   error?: string | null;
+  /**
+   * The person's yes. The dialog awaits nothing: the caller owns the spend, sets `busy` while it
+   * runs, and gives a refusal back through `error`, said inside the dialog.
+   */
   onConfirm: (amountUsd?: number) => void;
   onCancel: () => void;
 };

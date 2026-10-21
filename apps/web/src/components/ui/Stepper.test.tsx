@@ -155,6 +155,25 @@ describe("Stepper (I2): bounded numbers, refused and never clamped", () => {
     expect(save).toHaveBeenLastCalledWith(81);
   });
 
+  it("takes a save that throws as one that is refused (Codex #532)", () => {
+    const save = vi.fn((v: number) => {
+      if (v === 81) throw new Error("offline");
+    });
+    render(<Stepper label="Počet" value={80} onCommit={save} min={0} max={500} />);
+    const input = screen.getByRole("spinbutton", { name: "Počet" }) as HTMLInputElement;
+    // Typed and committed, then stepped: neither escapes the handler.
+    fireEvent.change(input, { target: { value: "81" } });
+    expect(() => fireEvent.keyDown(input, { key: "Enter" })).not.toThrow();
+    expect(input.value).toBe("80");
+    expect(screen.getByText(/Neuloženo/)).toBeTruthy();
+    expect(() => fireEvent.keyDown(input, { key: "ArrowUp" })).not.toThrow();
+    expect(screen.getByText(/Neuloženo/)).toBeTruthy();
+    // Zkusit znovu resends 81; it throws again and is said again.
+    fireEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }));
+    expect(save).toHaveBeenLastCalledWith(81);
+    expect(screen.getByText(/Neuloženo/)).toBeTruthy();
+  });
+
   it("steps from the value an answered save left unchanged (Codex #532)", async () => {
     let accept!: () => void;
     const save = vi.fn(() => new Promise<void>((resolve) => (accept = resolve)));

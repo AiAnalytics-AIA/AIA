@@ -67,6 +67,23 @@ describe("InlineCreateRow (I5): created in the list, no dialog", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
+  it("takes an onCreate that throws as one that rejects (Codex #532 sweep)", async () => {
+    render(
+      <InlineCreateRow
+        label="Nová složka"
+        onCreate={() => {
+          throw new Error("offline");
+        }}
+      />,
+    );
+    openRow();
+    fireEvent.change(row(), { target: { value: "Archiv" } });
+    fireEvent.keyDown(row(), { key: "Enter" });
+    expect((await screen.findByRole("alert")).textContent).toBe("Nevytvořeno. Zkuste to znovu.");
+    expect(row().value).toBe("Archiv");
+    expect(row().readOnly).toBe(false);
+  });
+
   it("says a failure that has no words of its own", async () => {
     render(<InlineCreateRow label="Nová složka" onCreate={() => Promise.reject(new Error("network"))} />);
     openRow();

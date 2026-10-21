@@ -13,6 +13,8 @@ import { FOCUS, TOUCH } from "./parts";
 
 export type Choice<K extends string> = { key: K; label: ReactNode; disabled?: boolean };
 
+// onChange reports a choice and awaits nothing: a caller that saves on it owns the save's errors
+// and says them (with SaveNote beside the chips, or at the field). Its return value is ignored.
 type Common<K extends string> = {
   options: readonly Choice<K>[];
   /** The group's accessible name ("Věková skupina"). */

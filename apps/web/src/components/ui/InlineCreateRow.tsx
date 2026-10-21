@@ -20,7 +20,7 @@ export function InlineCreateRow({
   label: string;
   /**
    * Creates the thing. Resolves to nothing (or true) when it was created; to a string, the
-   * refusal in words, to say at the row; a rejection is said as "Nevytvořeno".
+   * refusal in words, to say at the row; a rejection or a synchronous throw is said as "Nevytvořeno".
    */
   onCreate: (name: string) => Promise<string | boolean | void> | string | boolean | void;
   /** The names already in the list: one equal to the typed name, case and spacing aside, is refused. */

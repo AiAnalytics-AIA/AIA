@@ -18,7 +18,10 @@ export const UNDO_MS = 8000;
 export type UndoOffer = {
   /** What just happened, in words ("Složka „Archiv 2024“ smazána"). */
   message: string;
-  /** Takes it back. Called once, at most. */
+  /**
+   * Takes it back. Called once, at most, after the toast is gone; awaited by nothing, so the
+   * caller owns its errors (a failed re-create is said where the item is, never here: I9).
+   */
   undo: () => void;
 };
 
