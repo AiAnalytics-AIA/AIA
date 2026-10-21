@@ -7,16 +7,24 @@ import { describe, expect, it } from "vitest";
 
 const CSS = readFileSync(join(process.cwd(), "src/components/workbench/workbench.css"), "utf8");
 
-/** The CSS outside every @layer block, braces matched. */
-function unlayered(css: string): string {
+/** The CSS outside every @layer block, braces matched; comments dropped first, so an "@layer" in
+ * a comment is not taken for a block, and a statement (`@layer a, b;`) opens none. */
+function unlayered(source: string): string {
+  const css = source.replace(/\/\*[\s\S]*?\*\//g, "");
   let out = "";
   let i = 0;
   while (i < css.length) {
     const at = css.indexOf("@layer", i);
     if (at < 0) return out + css.slice(i);
     out += css.slice(i, at);
+    const open = css.indexOf("{", at);
+    const end = css.indexOf(";", at);
+    if (open < 0 || (end >= 0 && end < open)) {
+      i = end < 0 ? css.length : end + 1;
+      continue;
+    }
     let depth = 0;
-    let j = css.indexOf("{", at);
+    let j = open;
     for (; j < css.length; j++) {
       if (css[j] === "{") depth++;
       else if (css[j] === "}" && --depth === 0) break;
@@ -30,5 +38,14 @@ describe("workbench.css", () => {
   it("sets a form control's colour only inside @layer base, never unlayered", () => {
     expect(CSS).toMatch(/@layer base \{[\s\S]*button, input, textarea, select \{ font: inherit; color: inherit; \}/);
     expect(unlayered(CSS)).not.toMatch(/(^|[\s,{])(button|input|textarea|select)\s*[,{][^}]*color:/);
+  });
+
+  it("reads only real @layer blocks as layered: a comment or a statement naming @layer hides no rule", () => {
+    const css = "/* rules go in @layer base */\nbutton { color: red; }\n@layer a, b;\ninput { color: blue; }\n@layer base { select { color: green; } }\n.x { margin: 0; }";
+    const left = unlayered(css);
+    expect(left).toContain("button { color: red; }");
+    expect(left).toContain("input { color: blue; }");
+    expect(left).not.toContain("select");
+    expect(left).toContain(".x { margin: 0; }");
   });
 });
