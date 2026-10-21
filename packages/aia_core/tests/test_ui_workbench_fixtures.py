@@ -37,6 +37,7 @@ def api(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Api:
     m = _load()
     calls: list[str] = []
     saves: dict[str, list[dict[str, Any]]] = {}
+    budgets: dict[str, float] = {}
 
     def call(method: str, path: str, body: dict[str, Any] | None = None) -> Any:
         calls.append(f"{method} {path}")
@@ -56,6 +57,10 @@ def api(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Api:
         if method == "GET" and path.endswith("/workspace/content"):
             n = len(saves[study])
             return {"revision": n or None, "template": TEMPLATE}
+        if method == "PUT" and path.endswith("/budget"):
+            assert body is not None
+            budgets[study] = body["budget_usd"]
+            return {"study_id": study, "budget_usd": body["budget_usd"]}
         if method == "PUT" and path.endswith("/workspace/content"):
             assert body is not None
             saves[study].append(body)
@@ -64,6 +69,7 @@ def api(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Api:
 
     monkeypatch.setattr(m, "STUDIES", tmp_path / "studies.json")
     monkeypatch.setattr(m, "_api", call)
+    monkeypatch.setattr(m, "BUDGETS", budgets, raising=False)
     return m, calls, saves
 
 
@@ -77,6 +83,9 @@ def test_every_fixture_is_a_study_of_the_workbench_client_saved_through_aia(api:
         [body] = saves[v["study"]]
         assert list(body) == ["content", "analysis", "base_revision", "reason"]
         assert body["base_revision"] is None and body["reason"] == "workbench_fixture"
+    # Each study gets a budget, as a person sets one: the run's recorded analysis holds a
+    # reservation against it (artifact-chain CHN7).
+    assert {m.BUDGETS[v["study"]] for v in out.values()} == {m.FIXTURE_BUDGET_USD}
     # Nothing but AIA's own routes, and no unit project anywhere.
     assert all(" /studies/" in c or " /clients/" in c or " /workspace/" in c for c in calls)
 
