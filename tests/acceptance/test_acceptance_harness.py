@@ -141,7 +141,12 @@ def test_the_plan_states_the_allocation_this_file_holds() -> None:
         for line in allocation["outside_budget"]
     }
     assert stated == held, {"plan only": stated - held, "file only": held - stated}
-    assert "PROPOSAL" in PLAN.read_text("utf-8")
+    # The plan says what the file says: approved when it is, a proposal until then.
+    heading = "## Chunk 1: the USD 25 allocation -- "
+    if allocation["approved_by"] is None:
+        assert heading + "PROPOSAL" in PLAN.read_text("utf-8")
+    else:
+        assert heading + f"APPROVED, option {allocation['option']}" in PLAN.read_text("utf-8")
 
 
 # --------------------------------------------------------------------------- #

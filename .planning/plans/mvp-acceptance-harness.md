@@ -1,7 +1,7 @@
 ---
 status: in-progress
 chunks:
-  - "[ ] 1. The USD 25 allocation: a ceiling per category, summed and checked before any recorded run, covering fieldwork, analysis and its repairs, the Lead's turns, Deep Research search and tool spend and the second (Interpretation) run, a retry round; the evaluation allowance stated apart"
+  - "[x] 1. The USD 25 allocation: a ceiling per category, summed and checked before any recorded run, covering fieldwork, analysis and its repairs, the Lead's turns, Deep Research search and tool spend and the second (Interpretation) run, a retry round; the evaluation allowance stated apart"
   - "[ ] 2. The study's fixed inputs, fictional and committed: brief, client document, dataset with one personal column, a web page, a past study"
   - "[x] 3. The harness: tests/acceptance driven over HTTP, reusing the scripted-provider fixture of test_product_acceptance.py, and its CI step (collected, writing JUnit)"
   - "[ ] 4. Recorded doubles behind the gateway and the retrieval gate for the Lead, every worker, respondents, analysis and Deep Research"
@@ -121,9 +121,15 @@ seen, I-3 evidence complete, I-4 Deep Research live). Chunk 7 needs `class-b-sea
 `develop-spend-attribution`. This plan ticks, from its single record, the "deploy and verify live"
 chunks the consolidation lists (`mvp-consolidation.md` §4.3, #493).
 
-## Chunk 1: the USD 25 allocation -- PROPOSAL, awaiting owner approval
+## Chunk 1: the USD 25 allocation -- APPROVED, option A
 
-**Status: PROPOSAL, awaiting owner approval.** Written 2026-10-21 for E01 (W0). The owner approved
+**Status: APPROVED by the owner, option A, as proposed.** Nigel Blount (product owner) answered
+Q37 "Approve the USD 25 acceptance allocation (#535)" with "Approve as proposed" on 2026-10-21 at
+07:56 UTC: the table below, A01-A12, USD 25.00 in all, both Deep Research runs shallower than
+Standard; the evaluations stay outside the 25 (Findings, F-3). `tests/acceptance/allocation.json`
+records it (`approved_by`, `approved_at`, `option: "A"`). Options B and C below were not taken.
+
+The proposal as written and approved. Written 2026-10-21 for E01 (W0). The owner approved
 spending up to USD 25 on Bedrock for live checks on fictional studies (Nigel Blount, 2026-10-20,
 about 23:40 UTC, in the coordinator's session); that is the ceiling this table divides. **No paid
 dispatch happens in the PR that adds it**, and none happens on it until the owner approves the
@@ -226,7 +232,10 @@ Branch `feature/w0-acceptance-harness`, from `develop` @ `c88fd7fd`.
   (`aia_knowledge_source_proposals`), the five Deep Research agents, and recorded retrieval in the
   harness's composition (`deep_research_recorded` exists; its fixture and agents are the
   suites' own). Each suite keeps its own double until its contract joins the shared wire.
-- **Chunk 1 (proposed, not approved).** The table above; ticked when the owner approves it.
+- **Chunk 1 (done).** The table above, approved by the owner as option A on 2026-10-21 at 07:56
+  UTC (Q37). Summed and checked in tier A
+  (`test_acceptance_harness.py::test_the_tier_b_allocation_is_whole_and_within_the_study_budget`)
+  before any live run; holding each line during the live run is the tier B runbook's (chunk 7).
 - **Chunk 14 (in part).** Done: AC-01 ("a user of another organization gets 404", G73) and AC-14
   (typed settings, the composition digest, D-09 (b)) in both files; each criterion's tier-A and
   tier-B projection in both files (`tier_a`, `tier_b`; §3.1; G77's wording half); the L-04 / L-29
