@@ -6,8 +6,10 @@ import { SpendDialog } from "./SpendDialog";
 
 // jsdom has <dialog> without showModal/close: the modal's open state, as a browser sets it.
 beforeAll(() => {
+  // As a browser does: open it, then focus its first focusable element (review of #532, P2-4).
   HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
     this.setAttribute("open", "");
+    this.querySelector<HTMLElement>("button:not([disabled]), input:not([disabled]), [tabindex]")?.focus();
   };
   HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
     this.removeAttribute("open");
@@ -188,6 +190,33 @@ describe("SpendDialog (I7a): the one modal for money", () => {
     expect((screen.getByRole("button", { name: /Zvýšit na/ }) as HTMLButtonElement).disabled).toBe(true);
     rerender(ask("D", 100, 90));
     expect((screen.getByRole("button", { name: "Zvýšit na 100 USD" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("gives a lift's safe choice the focus, not the stepper's first button (review of #532, P2-4)", () => {
+    render(
+      <SpendDialog
+        open
+        question="q"
+        kind="study_budget_lift"
+        summary="Krok čeká."
+        ceilingUsd={1}
+        lines={[{ name: "study_budget", usd: 80, remainingUsd: 0 }]}
+        pays="study_budget"
+        amount={{ value: 85, min: 81, max: 500 }}
+        confirmLabel={(usd) => `Zvýšit na ${usd} USD`}
+        cancelLabel="Nechat čekat"
+        onConfirm={() => {}}
+        onCancel={() => {}}
+      />,
+    );
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Nechat čekat" }));
+  });
+
+  it("never prints 0 USD for an amount it does not have (review of #532)", () => {
+    const label = vi.fn((usd: number | null) => (usd === null ? "Spustit" : `Spustit · ${usd} USD`));
+    render(<SpendDialog open question="q" kind="spend_confirm" summary="x" ceilingUsd={1} lines={[]} confirmLabel={label} onConfirm={() => {}} onCancel={() => {}} />);
+    expect(label).toHaveBeenCalledWith(null);
+    expect(screen.getByRole("button", { name: "Spustit" })).toBeTruthy();
   });
 
   it("says a refusal from the server inside the dialog", () => {

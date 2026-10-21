@@ -42,8 +42,8 @@ type Question = {
   pays?: MoneyName;
   /** A lift: the new amount of `pays`, set here; the confirmation carries it. */
   amount?: SpendAmount;
-  /** Names the act and the price; with an amount, a function of it. */
-  confirmLabel: string | ((amountUsd: number) => string);
+  /** Names the act and the price; with an amount, a function of it (null: no amount, never 0 USD). */
+  confirmLabel: string | ((amountUsd: number | null) => string);
   /** What leaving it does ("Nechat čekat", "Zrušit"). */
   cancelLabel?: string;
   busy?: boolean;
@@ -72,7 +72,13 @@ export function SpendDialog({ open, question, ...q }: Question & {
   useLayoutEffect(() => {
     const d = ref.current;
     if (!d) return;
-    if (open && !d.open) d.showModal();
+    if (open && !d.open) {
+      d.showModal();
+      // React runs a child's autoFocus before this effect, on a dialog not yet shown, and
+      // showModal then focuses the first focusable element (a lift's stepper button). The safe
+      // choice takes the focus here instead (review of #532, P2-4).
+      d.querySelector<HTMLElement>("[data-spend-safe]")?.focus();
+    }
     if (!open && d.open) d.close();
   }, [open]);
 
@@ -101,7 +107,7 @@ function SpendForm({
   const payer = pays ? lines.find((l) => l.name === pays) : undefined;
   const after = remainingAfter(payer, ceilingUsd, amount ? newAmount : undefined);
   const ceiling = ceilingWords(ceilingUsd);
-  const label = typeof confirmLabel === "function" ? confirmLabel(newAmount ?? amount?.value ?? 0) : confirmLabel;
+  const label = typeof confirmLabel === "function" ? confirmLabel(amount ? newAmount : null) : confirmLabel;
   const amountMissing = amount !== undefined && (newAmount === null || amountProblem !== null);
 
   return (
@@ -149,7 +155,7 @@ function SpendForm({
       ) : null}
       {error ? <p role="alert" className="rounded-sm border border-status-fault/40 bg-status-fault-wash p-2 text-[13px] text-status-fault">{error}</p> : null}
       <div className="flex flex-wrap justify-end gap-2">
-        <Button variant="quiet" autoFocus disabled={busy} onClick={onCancel}>
+        <Button variant="quiet" data-spend-safe="" disabled={busy} onClick={onCancel}>
           {cancelLabel ?? t("dialog.cancel")}
         </Button>
         <Button variant="primary" disabled={busy || amountMissing} onClick={() => onConfirm(amount ? (newAmount ?? undefined) : undefined)}>
