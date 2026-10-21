@@ -4,8 +4,9 @@
  *   AIA_WEB_RESEARCH_WORKBENCH=true python3 tools/ui_workbench/workbench.py up
  *   python3 tools/ui_workbench/fixture_project.py
  *   node tools/ui_workbench/workbench_journey.mjs [--facade http://127.0.0.1:8780] [--out DIR]
- * Local fictional identity only. It checks the workbench at 1440, 1280 and 1100 px wide and the
- * classic layout at 1024: no page overflow, the eleven stages in six phases, the separator by
+ * Local fictional identity only. It checks the workbench at 1440, 1280, 1100, 1099, 768 and 390 px
+ * (the split, the side drawer and the sheet, research-lead-workbench 26b-26c): no page overflow,
+ * nothing remounted across 1100 or 768 px, the Lead opened from the launcher and closed by Escape, the eleven stages in six phases, the separator by
  * keyboard, the focus modes, the stage navigation (Výsledky's views by hash), Návrh's research
  * questions with their coverage at 1440, 1100, 768 and 390 px, and that nothing
  * paid starts: no research run, agent job, Deep Research run or Lead request approval.
@@ -82,6 +83,13 @@ try {
   await noOverflow("brief @1440");
   await shot("1440-brief");
 
+  // The Brief's Lead targets (artifact-brief BRF1): each field the contract names is one element
+  // (an empty context field by its chip), and a name it does not hold finds nothing.
+  const BRIEF_FIELDS = ["goal", "title", "type", "files", "context", "briefing.product_description", "decision_use", "briefing.situation", "briefing.what_is_known", "briefing.constraints"];
+  for (const f of BRIEF_FIELDS) assert.equal(await page.locator(`[id="brief-${f}"]`).count(), 1, `brief:${f}`);
+  assert.equal(await page.locator('[id="brief-situation"]').count(), 0, "brief:situation is not a target");
+  check("every Brief target the contract names is one element");
+
   // The separator: keyboard moves it 2 % within 28-62 %; Home goes back to 40 %.
   const sep = page.getByRole("separator", { name: "Změnit poměr konverzace a artefaktu" });
   await sep.focus();
@@ -141,34 +149,80 @@ try {
   await shot("1440-report");
   check("Sociomapa and Zpráva open Výsledky's views by hash");
 
-  // Narrower: the workbench down to 1100 px, the classic layout below.
-  for (const width of [1280, 1100]) {
+  // Narrower: the split down to 1100 px, the side drawer from 768, the sheet below (26b, D21).
+  const layoutIs = async (want) => assert.equal(await page.locator("[data-workbench]").getAttribute("data-layout"), want);
+  for (const [width, want] of [[1280, "split"], [1100, "split"], [1099, "drawer"], [768, "drawer"], [390, "sheet"]]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(base + stagePath("questionnaire"));
     await page.locator("[data-workbench]").waitFor();
+    await layoutIs(want);
     await noOverflow(`questionnaire @${width}`);
     await shot(`${width}-questionnaire`);
   }
-  // A resize across the breakpoint keeps the open stage in its layout (its editors' local drafts
-  // survive); the next stage opens in the layout the width allows.
-  await page.setViewportSize({ width: 1024, height: 900 });
-  await page.waitForTimeout(300);
-  assert.equal(await page.locator("[data-workbench]").count(), 1, "the open stage keeps its layout across a resize");
-  await noOverflow("questionnaire @1024 kept");
-  await page.locator(".nav__stage", { hasText: "Cíl. skupina" }).click();
-  await page.waitForURL(`**${stagePath("audience")}`);
-  await page.locator("h1", { hasText: "Cílová skupina" }).waitFor();
-  assert.equal(await page.locator("[data-workbench]").count(), 0, "the next stage opens classic under 1100 px");
-  check("a resize keeps the open stage's layout; the next stage takes the width's");
-  await page.goto(base + stagePath("questionnaire"));
-  await page.locator("header h1").waitFor();
-  assert.equal(await page.locator("[data-workbench]").count(), 0, "classic layout under 1100 px");
-  await noOverflow("questionnaire @1024");
-  await shot("1024-classic");
-  check("1280 and 1100 workbench, 1024 classic, no overflow");
+  check("the workbench at 1280 and 1100 (split), 1099 and 768 (drawer), 390 (sheet), no overflow");
 
-  // Návrh: each research question with its coverage (artifact-design DSN2), at every width; the
-  // workbench at 1440 and 1100, the classic layout below. Reading it is a GET.
+  // A resize across 1100 px remounts nothing: the stage's and the conversation's own DOM nodes,
+  // tagged before, are the same nodes after crossing both ways (a remount makes new ones).
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(base + stagePath("questionnaire"));
+  await page.locator(".wb-stage > div").first().waitFor();
+  await page.locator(".conv").waitFor({ state: "attached" });
+  await page.evaluate(() => {
+    document.querySelector(".wb-stage > div:not([hidden])").dataset.kept = "stage";
+    document.querySelector(".conv").dataset.kept = "conversation";
+  });
+  await page.setViewportSize({ width: 1024, height: 900 });
+  await layoutIs("drawer");
+  await page.setViewportSize({ width: 390, height: 900 });
+  await layoutIs("sheet");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await layoutIs("split");
+  assert.equal(await page.locator('[data-kept="stage"]').count(), 1, "the stage's screen was not remounted");
+  assert.equal(await page.locator('[data-kept="conversation"]').count(), 1, "the conversation was not remounted");
+  check("crossing 1100 and 768 px both ways remounts neither the stage nor the conversation");
+
+  // Below 1100 px the launcher opens the Lead as a modal dialog; Escape closes it, back to the launcher.
+  for (const width of [1024, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    const launcher = page.locator("[data-lead-launcher]");
+    await launcher.click();
+    const dialog = page.getByRole("dialog", { name: "Vedoucí výzkumu" });
+    await dialog.waitFor();
+    await noOverflow(`Lead open @${width}`);
+    await shot(`${width}-lead-open`);
+    await page.keyboard.press("Escape");
+    await dialog.waitFor({ state: "hidden" });
+    assert.equal(await page.evaluate(() => document.activeElement?.hasAttribute("data-lead-launcher")), true, `focus back on the launcher @${width}`);
+  }
+  check("the launcher opens the Lead at 1024 and 390; Escape closes it to the launcher");
+
+  // The compact navigator (26d): every stage reachable by keyboard at 768 and 390 px, no overflow.
+  await page.setViewportSize({ width: 768, height: 900 });
+  await page.goto(base + stagePath("questionnaire"));
+  await page.locator(".nav--scroll .nav__stage").first().focus();
+  await page.keyboard.press("End");
+  assert.match(await page.evaluate(() => document.activeElement?.textContent ?? ""), /Zpráva/);
+  const inView = await page.evaluate(() => {
+    const r = document.activeElement.getBoundingClientRect();
+    return r.right <= window.innerWidth + 1 && r.left >= -1;
+  });
+  assert(inView, "the last stage scrolls into view by keyboard @768");
+  await noOverflow("navigator @768");
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.locator(".nav__current").click();
+  assert.equal(await page.locator(".nav__list .nav__stage").count(), 11, "all eleven stages @390");
+  await page.locator(".nav__list .nav__stage").first().focus();
+  await page.keyboard.press("End");
+  assert.match(await page.evaluate(() => document.activeElement?.textContent ?? ""), /Zpráva/);
+  await noOverflow("navigator open @390");
+  await shot("390-navigator");
+  await page.keyboard.press("Escape");
+  await page.locator(".nav__list").waitFor({ state: "detached" });
+  await shot("390-header");
+  check("every stage reachable by keyboard at 768 (scrolling) and 390 (the stage list), no overflow");
+
+  // Návrh: each research question with its coverage (artifact-design DSN2), at every width, in the
+  // workbench at each. Reading it is a GET.
   for (const width of [1440, 1100, 768, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(base + stagePath("plan"));

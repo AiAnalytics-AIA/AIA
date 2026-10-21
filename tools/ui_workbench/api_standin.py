@@ -72,6 +72,9 @@ def build(
         ai_analysis_enabled=True,
         # Priced at zero, so a nominal hold: eight modules stay inside a fixture study's budget.
         ai_analysis_reservation_usd=0.01,
+        # A design job's ceiling (lead-orchestration LO15): its recorded answer costs nothing,
+        # and a nominal hold keeps the spend gate a real one (aia_executors.workbench).
+        ai_research_reservation_usd=0.01,
     )
     app = create_app(settings)
     return app, Base, seed_develop, Session
