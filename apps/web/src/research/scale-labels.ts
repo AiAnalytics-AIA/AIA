@@ -85,3 +85,94 @@ export function labelProblem(labels: readonly string[], scale: Scale): string | 
   }
   return null;
 }
+
+// ---- The editor's pure part (input-interactions 3b2) ----------------------------------------
+
+/**
+ * The ends a "Vlastní" range may take: whole numbers, `SCALE_END_MIN` <= low < high <=
+ * `SCALE_END_MAX`. The domain's bound for a scale an agent proposes
+ * (`aia_core/domain/research_agents.py` `QuestionItem` / `BatterySection`: `0 <= low < high <= 100`);
+ * the compiler itself asks only two whole numbers, low < high (`research_design._scale`).
+ */
+export const SCALE_END_MIN = 0;
+export const SCALE_END_MAX = 100;
+
+/**
+ * The most points "Každý bod" offers to describe: the presets' largest (0-10). A wider scale
+ * keeps its two ends; one already labelled point by point is shown and edited as it is.
+ */
+export const DESCRIBED_POINTS_MAX = 11;
+
+/** A range in words, as the chips and the notes write it ("0–10"). */
+export function rangeWords(scale: Scale): string {
+  return `${scale[0]}–${scale[1]}`;
+}
+
+/** The two steppers' bounds for "Vlastní": each end bounded by the other, never equal to it. */
+export function endBounds(scale: Scale): { low: { min: number; max: number }; high: { min: number; max: number } } {
+  return {
+    low: { min: SCALE_END_MIN, max: Math.min(scale[1] - 1, SCALE_END_MAX - 1) },
+    high: { min: Math.max(scale[0] + 1, SCALE_END_MIN + 1), max: SCALE_END_MAX },
+  };
+}
+
+/**
+ * A stored range as the editor reads it: two whole numbers in bounds, low < high; `null`
+ * otherwise (a decimal, a reversed or an out-of-bounds range the old fields let through, IA-2),
+ * never rounded or swapped into one.
+ */
+export function readRange(raw: readonly unknown[] | undefined): Scale | null {
+  if (!raw || raw.length !== 2) return null;
+  const [low, high] = raw;
+  if (typeof low !== "number" || typeof high !== "number") return null;
+  if (!Number.isInteger(low) || !Number.isInteger(high)) return null;
+  if (low < SCALE_END_MIN || high > SCALE_END_MAX || low >= high) return null;
+  return [low, high];
+}
+
+export type LabelMode = "ends" | "points";
+
+/** How the labels are drawn: one field per point when they describe every point, else the ends. */
+export function labelMode(labels: readonly string[], scale: Scale): LabelMode {
+  return everyPointLabelled(labels, scale) ? "points" : "ends";
+}
+
+/** The two ends as shown: the first label and the last, whatever the list's length. */
+export function shownEnds(labels: readonly string[]): [string, string] {
+  return [labels[0] ?? "", labels.length > 1 ? labels[labels.length - 1] : ""];
+}
+
+/** One end written: the labels become exactly the two ends (a list of another length is put right). */
+export function withEnd(labels: readonly string[], end: 0 | 1, value: string): string[] {
+  const [low, high] = shownEnds(labels);
+  return end === 0 ? [value, high] : [low, value];
+}
+
+/** One point's label written; the other points are kept as they are. */
+export function withPoint(labels: readonly string[], index: number, value: string): string[] {
+  return labels.map((label, i) => (i === index ? value : label));
+}
+
+/**
+ * "Jen konce": a scale labelled point by point back to its two ends. The inner labels are
+ * cleared and counted for the undo, as a range change counts them.
+ */
+export function endsOnly(labels: readonly string[], scale: Scale): Rescaled {
+  if (!everyPointLabelled(labels, scale)) return { labels: [...labels], cleared: 0 };
+  const inner = labels.slice(1, -1).filter((label) => label.trim() !== "").length;
+  return { labels: [labels[0], labels[labels.length - 1]], cleared: inner };
+}
+
+/** Whether `value` repeats another point's label (case-folded, as the server compares). */
+export function repeatsAnother(labels: readonly string[], index: number, value: string): boolean {
+  const folded = value.trim().toLocaleLowerCase("cs");
+  if (!folded) return false;
+  return labels.some((label, i) => i !== index && label.trim().toLocaleLowerCase("cs") === folded);
+}
+
+/** What the undo toast says was cleared, in Czech number agreement ("Odstraněno 8 popisků bodů"). */
+export function clearedWords(n: number): string {
+  if (n === 1) return "Odstraněn 1 popisek bodu";
+  if (n >= 2 && n <= 4) return `Odstraněny ${n} popisky bodů`;
+  return `Odstraněno ${n} popisků bodů`;
+}

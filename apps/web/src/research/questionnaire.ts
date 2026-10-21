@@ -259,6 +259,27 @@ export function setScaleLabel(p: ResearchProject, si: number, qi: number, i: 0 |
   });
 }
 
+/**
+ * The scale editor's write (input-interactions 3b2): a question's range and its labels, the two
+ * ends or one per point, together, as `ScaleEditor` decided them. The range is whole numbers,
+ * low < high (`scale-labels.ts` `readRange`); the classic `setScaleEnd` (`+raw`) stays for the
+ * parity tests and no screen calls it.
+ */
+export function setQuestionScale(p: ResearchProject, si: number, qi: number, scale: readonly [number, number], labels: readonly string[]): ResearchProject {
+  return edit(p, (xs) => {
+    const q = (xs[si].questions || [])[qi];
+    q.skala = [scale[0], scale[1]];
+    q.popisky_skaly = [...labels];
+  });
+}
+
+/** A tracked set's labels from the scale editor: its two ends (the set's range is not edited). */
+export function setSetScaleLabels(p: ResearchProject, si: number, labels: readonly string[]): ResearchProject {
+  return edit(p, (xs) => {
+    xs[si].scale_labels = [...labels];
+  });
+}
+
 /** addQuestionSection */
 export function addQuestionSection(p: ResearchProject, ids: IdSource = SYSTEM): ResearchProject {
   return withSections(p, [...sections(p), { id: secId(ids), type: "questions", title: "Nový blok", purpose: "", questions: [] }]);
