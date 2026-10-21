@@ -791,8 +791,8 @@ class DeepResearchRuns:
         """Raise the study's budget and let every step of this run stopped at the cap go on
         (``application.research.lift_study_budget_waits``). A priced tool call or a model
         request held against the study's budget stops its step in ``AWAITING_BUDGET``; a
-        fanned-out run may have several such steps, and one lift lets them all go on, each its
-        own approval in the ledger. The cap stays hard."""
+        fanned-out run may have several such steps, and one lift lets them all go on, one
+        approval in the ledger for the run. The cap stays hard."""
         run = self.get(run_id)
         lift_study_budget_waits(
             self.session, self.scope, run["steps"], budget_usd=budget_usd, note=note

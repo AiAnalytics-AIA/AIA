@@ -523,6 +523,100 @@ def test_a_refused_lift_changes_nothing(
     assert _step_status(runs, run_id, node) == "AWAITING_BUDGET"
 
 
+@pytest.fixture
+def analysis_parked_on_budget(session: Any, runs: Any, design: Any) -> Any:
+    """A run whose eight analysis modules each stopped at the study's budget cap (CR-3).
+
+    Each module reserves its own call, so the cap stops them one by one; the steps are put
+    in ``AWAITING_BUDGET`` as a refused reservation leaves them, without spending an attempt.
+    """
+    from sqlalchemy import update
+
+    from aia_core.infrastructure.tables import StepRunRow
+
+    started = runs(user="lead").start(
+        design_revision_id=design(), fieldwork_source=AI, analysis_enabled=True
+    )
+    modules = [s["node_key"] for s in started.run["steps"] if s["node_key"].startswith("analysis_")]
+    assert len(modules) == 8
+    session.execute(
+        update(StepRunRow)
+        .where(StepRunRow.run_id == started.run_id, StepRunRow.node_key.in_(modules))
+        .values(status=StepRunStatus.AWAITING_BUDGET.value, waiting_reason="budget_exceeded")
+    )
+    session.flush()
+    return started.run_id, modules
+
+
+def test_one_lift_releases_every_step_of_the_run_waiting_for_budget(
+    session: Any, scoped: Any, runs: Any, analysis_parked_on_budget: Any
+) -> None:
+    """CR-3: the eight analysis modules needed eight lifts, the budget raised each time."""
+    from sqlalchemy import select
+
+    from aia_core.infrastructure.tables import ApprovalDecisionRow
+
+    run_id, modules = analysis_parked_on_budget
+    before = _budget(scoped)
+
+    after = runs(user="researcher").lift_budget_wait(
+        run_id, budget_usd=before + 20.0, note="Klient souhlasil"
+    )
+
+    by_node = {s["node_key"]: s for s in after["steps"]}
+    assert [by_node[m]["status"] for m in modules] == [StepRunStatus.RUNNABLE] * 8
+    assert _budget(scoped) == before + 20.0
+    [row] = session.scalars(
+        select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_type == "budget")
+    ).all()
+    assert (row.decision, row.comment, row.run_id) == ("lift", "Klient souhlasil", run_id)
+    assert (row.subject_id, row.step_id) == (run_id, None)  # the run's decision, not a step's
+    resumed = [
+        e
+        for e in runs(user="lead")._workflows().events(run_id)
+        if e["event_type"] == "STEP_RESUMED"
+    ]
+    assert len(resumed) == 8  # each step still says it went on, and why
+    # Nothing waits any more: a second lift is refused and writes nothing.
+    with pytest.raises(BudgetWaitNotLiftable):
+        runs(user="researcher").lift_budget_wait(run_id, budget_usd=before + 40.0)
+    assert len(session.scalars(select(ApprovalDecisionRow)).all()) == 1
+
+
+def test_a_run_lift_too_small_releases_nothing(
+    session: Any, scoped: Any, runs: Any, analysis_parked_on_budget: Any
+) -> None:
+    from sqlalchemy import select
+
+    from aia_core.infrastructure.tables import ApprovalDecisionRow
+
+    run_id, modules = analysis_parked_on_budget
+    before = _budget(scoped)
+    with pytest.raises(BudgetNotRaised):  # below the budget now: lowering is not lifting
+        runs(user="researcher").lift_budget_wait(run_id, budget_usd=before - 0.01)
+    by_node = {s["node_key"]: s for s in runs(user="lead").get(run_id)["steps"]}
+    assert [by_node[m]["status"] for m in modules] == [StepRunStatus.AWAITING_BUDGET] * 8
+    assert _budget(scoped) == before
+    assert (
+        session.scalars(
+            select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_type == "budget")
+        ).all()
+        == []
+    )
+
+
+def test_a_named_step_lifts_the_whole_run(
+    scoped: Any, runs: Any, analysis_parked_on_budget: Any
+) -> None:
+    """The older per-step route names one waiting step; the lift is still the run's."""
+    run_id, modules = analysis_parked_on_budget
+    after = runs(user="researcher").lift_budget_wait(
+        run_id, modules[3], budget_usd=_budget(scoped) + 5.0
+    )
+    by_node = {s["node_key"]: s for s in after["steps"]}
+    assert all(by_node[m]["status"] is StepRunStatus.RUNNABLE for m in modules)
+
+
 def test_a_closed_study_does_not_lift_a_budget_wait(
     scoped: Any, runs: Any, parked_on_budget: Any
 ) -> None:

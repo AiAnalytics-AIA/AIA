@@ -2772,6 +2772,7 @@ export const cs = {
         within: "I při nejvyšší ceně by zbylo {after} USD, bez částek, které právě drží běžící kroky.",
         beyond: "To je víc, než nyní zbývá: přesáhne-li skutečná cena zbytek, krok se zastaví, dokud rozpočet nezvýšíte.",
         ceilingUnknown: "Kolik může stát, AIA předem neví.",
+        holdsNotCounted: "Zbytek nezahrnuje částky, které právě drží běžící kroky.",
       },
       budget: {
         title: "Zvýšit rozpočet studie",
@@ -2782,6 +2783,8 @@ export const cs = {
         note: "Poznámka k rozhodnutí",
         lift: "Zvýšit rozpočet a pokračovat",
         hardCap: "Strop zůstává tvrdý: pokud ani nový rozpočet krok nepokryje, krok se znovu zastaví.",
+        runTitle: "Běh čeká na rozpočet studie",
+        runWaiting: "Čekající kroky ({count}): {steps}. Jedno zvýšení rozpočtu pustí dál všechny najednou.",
       },
       failed: "Běh selhal u kroku „{step}“.",
       cancel: "Zrušit běh",
