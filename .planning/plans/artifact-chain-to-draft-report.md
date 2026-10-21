@@ -374,6 +374,21 @@ literature when chosen, in today's section order. The owner adds: "ensure we are
 anything". CHN2 is unblocked by it and still waits on `assumptions-and-open-answer-coding#AOC3`.
 The section census against this answer is in the PR that recorded it.
 
+**PM-2 (PM, 2026-10-21, on the census).** These decisions follow from Q55 (b):
+
+- **RD9 and RD10's sections have ids and places.**
+  - `ch-coding` (open-answer coding, `report-delivery#RD10`) prints right after `ch-questions`.
+  - `ch-assumptions` (`report-delivery#RD9`) prints right before `ch-6` Hypotézy.
+
+  CHN1's manifest and Zpráva's `report:section:<id>` name them by these ids.
+- **`segment-maps-and-drilldown#10` lands before `evidence-integrity#9b` and CHN10.** Otherwise no
+  run can reach a draft: SEGMENTS has no admitted producer, and the block refuses any draft that has
+  a module with no supported finding. Each owner marks the dependency in its own plan.
+- **CHN8 stays open.** The gaps inside sections stay listed in §2 as they are.
+- **The Lead's study notes (LO19) in the draft are held** as the owner's Q69. The PM recommends they
+  stay out of the draft, because they are working notes, not evidence. No plan line is added until
+  the owner answers.
+
 **CQ1. Which sections must a draft research document contain at MVP?** Open (Q55).
 - (a) Today's internal report as composed (§2), with its gaps closed: the brief, the full audience,
   traced RQs, the run's methods.
