@@ -260,7 +260,10 @@ switched off is refused, 409 `research_lead_disabled`; stored text edits can sti
 dismissed (27b). Q43: with the Lead off, LO5's typed start commands still work, matched by code
 (27a, 27b). The research run keeps Spuštění's own Start button and also appears as a card in the
 Lead's chat ("i want this to appear in the lead researches chat too"; D15, 26f). Q40: spend is shown
-per researcher (`develop-spend-attribution#7`).
+per researcher (`develop-spend-attribution#7`), delivered by #583 (merged as `e78dfa8b`, 2026-10-21):
+Settings → Studie a rozpočty "Útrata podle výzkumníka", every member for OWNER/ADMIN, a researcher
+their own; a charge booked to the budget lifter, else the one start approver, else the starter,
+else nobody, never a guess (Q67 (a) below; OI-193, OI-194).
 
 **2026-10-21, the owner's answers Q50, Q52, Q54, Q56 and Q58** (on the PM status page, relayed by the
 coordinator; the artifact plans, #560). Q50 (b): in the `-5` drawing only the two state issues are

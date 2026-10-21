@@ -191,7 +191,7 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `client-knowledge-lifecycle#K11` | W1 | scope freeze, D-17: with `deep-research-web-search#53` and `lead-orchestration#LO1`; I15 |
 | `client-knowledge-lifecycle#K12` | W1 | MVP-31, chunk missing until the scope freeze |
 | `develop-spend-attribution#6` | W3 | scope freeze, D-47: after 5b |
-| `develop-spend-attribution#7` | W3 | owner, Q40 (2026-10-21): per-researcher spend; after `lead-orchestration#LO1`'s wallet holds, with chunk 6; its actor columns are migration M13 |
+| `develop-spend-attribution#7` | W3 | owner, Q40 (2026-10-21): per-researcher spend; after `lead-orchestration#LO1`'s wallet holds, with chunk 6; its actor columns are migration M13; landed in #583 (migration `568761e1c719`, M13) |
 | `production-environment#PE10` | W1 | scope freeze, D-22: before the first production sign-in |
 | `production-environment#PE11` | W4 | scope freeze, D-23: before the release candidate |
 | `two-roles-human-ai-gates#8` | W2 | scope freeze, D-27 |
@@ -254,7 +254,7 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `artifact-brief#BRF4` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
 | `artifact-brief#BRF5` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
 | `artifact-brief#BRF6` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
-| `artifact-design#DSN1` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-design#DSN1` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26); landed in #577 |
 | `artifact-design#DSN2` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
 | `artifact-design#DSN3` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
 | `artifact-design#DSN4` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
@@ -262,11 +262,11 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `artifact-design#DSN6` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
 | `artifact-design#DSN7` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
 | `artifact-design#DSN8` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
-| `artifact-sample#SMP1` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-sample#SMP1` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26); landed in #606 |
 | `artifact-sample#SMP2` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
 | `artifact-sample#SMP3` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
 | `artifact-sample#SMP4` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
-| `artifact-sample#SMP5` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-sample#SMP5` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26); landed in #603 |
 | `artifact-sample#SMP6` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
 | `artifact-fieldwork#FLD1` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
 | `artifact-fieldwork#FLD2` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
@@ -274,7 +274,7 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `artifact-fieldwork#FLD4` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
 | `artifact-fieldwork#FLD5` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
 | `artifact-fieldwork#FLD6` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
-| `artifact-fieldwork#FLD7` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-fieldwork#FLD7` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26); landed in #614 |
 | `artifact-fieldwork#FLD8` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
 | `artifact-results#RES1` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
 | `artifact-results#RES2` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
@@ -284,7 +284,7 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `artifact-results#RES8` | W2 | the per-question CSV/XLSX export, moved from `report-delivery#RD12` by the coordinator (2026-10-21); umbrella `research-lead-workbench#20` (E15) |
 | `artifact-results#RES6` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
 | `artifact-results#RES7` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
-| `artifact-sociomap#SOC1` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-sociomap#SOC1` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15); landed in #601 |
 | `artifact-sociomap#SOC2` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
 | `artifact-sociomap#SOC3` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
 | `artifact-sociomap#SOC4` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
@@ -304,7 +304,7 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `artifact-dimensions#DIM4` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
 | `artifact-dimensions#DIM5` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
 | `artifact-dimensions#DIM6` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
-| `artifact-analysis#ANL1` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-analysis#ANL1` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20); landed in #605 |
 | `artifact-analysis#ANL2` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20); landed in #575 |
 | `artifact-analysis#ANL3` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
 | `artifact-analysis#ANL4` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
@@ -312,22 +312,22 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `artifact-analysis#ANL6` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
 | `artifact-analysis#ANL7` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
 | `artifact-analysis#ANL8` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
-| `artifact-report#RPT1` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
-| `artifact-report#RPT2` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-report#RPT1` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20); landed in #617 |
+| `artifact-report#RPT2` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20); landed in #617 |
 | `artifact-report#RPT3` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
 | `artifact-report#RPT4` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
 | `artifact-report#RPT5` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
 | `artifact-report#RPT6` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
 | `artifact-report#RPT7` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
-| `artifact-chain-to-draft-report#CHN1` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN1` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20); landed in #621 |
 | `artifact-chain-to-draft-report#CHN2` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
 | `artifact-chain-to-draft-report#CHN3` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
 | `artifact-chain-to-draft-report#CHN4` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
-| `artifact-chain-to-draft-report#CHN5` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN5` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20); ticked in #621 |
 | `artifact-chain-to-draft-report#CHN6` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
-| `artifact-chain-to-draft-report#CHN7` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN7` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20); ticked in #621 |
 | `artifact-chain-to-draft-report#CHN8` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
-| `artifact-chain-to-draft-report#CHN9` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN9` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20); ticked in #621 |
 | `artifact-chain-to-draft-report#CHN9b` | W3 | split from CHN9 (#589): the run's QC warnings in the methodology chapter, after `evidence-integrity#3` |
 | `artifact-chain-to-draft-report#CHN10` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20); after `segment-maps-and-drilldown#10` (OI-192): once the refusal lands, the Segments chapter needs an admitted producer |
 | `artifact-chain-to-draft-report#CHN11a` | W4 | artifact plans (#560): before CHN11 |
