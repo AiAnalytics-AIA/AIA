@@ -1209,12 +1209,13 @@ behaviour beyond `FOCUS_KINDS` gaining one kind.
 - **Vzorek (SMP4, SMP5, #606): kind `sample` takes `ready`, `respondents` and
   `respondents:<persona source>`.** These sit beside the existing ids. `FOCUS_ID` already
   accepted them; the fixture's grammar now says so.
-- **Dotazník (Codex on #607): `targetOfElement` drops the `qedit_` / `qblock_` id fallbacks.**
-  Every card with a valid stored id carries its `data-aia` mark (#607). For an unmarked card the
-  fallbacks invented a target:
+- **Dotazník (Codex on #607): `targetOfElement`'s `qedit_` / `qblock_` id fallbacks name only an id
+  the contract can send.** For a card without a stored id, the screen invents one, and the
+  fallbacks used to turn it into a target:
   - `question:Q`, from `questionElementId`'s placeholder;
   - `section:0`, from a block's index;
   - `question:Q 2`, which the server refuses.
 
-  The DOM ids stay as anchors, and `focusSelector` still finds a card by them. Test:
-  `lead.test.ts` "names no target for an unmarked card".
+  Those are now refused, while a stored id stays pickable whether #607's marks have landed yet or
+  not (review of #618). Test: `lead.test.ts` "names an unmarked card by its DOM id only when the
+  id is a stored one the contract can send".

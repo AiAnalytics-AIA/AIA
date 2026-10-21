@@ -133,10 +133,11 @@ describe("targetOfElement", () => {
     expect(document.querySelector(focusSelector("section:S1"))?.id).toBe("qset_S1");
   });
 
-  it("names no target for an unmarked card: its DOM id is an anchor, never an id to send", async () => {
-    // Dotazník marks every card with a valid stored id (#607). An unmarked one has none: a question
-    // without an id is qedit_Q (questionElementId's placeholder), a block without one qblock_<index>,
-    // and an id like "Q 2" is one the server refuses. Picking it names nothing (Codex on #607).
+  it("names an unmarked card by its DOM id only when the id is a stored one the contract can send", async () => {
+    // Before Dotazník marks its cards (#607) a card is named by its DOM id. The ids the screen
+    // invents name nothing: a question without an id is qedit_Q (questionElementId's placeholder),
+    // a block without one qblock_<index>, and an id like "Q 2" is one the server refuses (Codex on
+    // #607; review of #618: a stored id stays pickable whichever PR lands first).
     const { targetOfElement } = await import("./lead");
     const { JSDOM } = await import("jsdom");
     const { document } = new JSDOM(`<div id="qedit_Q"><i id="q">-</i></div><article id="qblock_0"><i id="b">-</i></article>
@@ -144,6 +145,10 @@ describe("targetOfElement", () => {
     expect(targetOfElement(document.getElementById("q"))).toBeNull();
     expect(targetOfElement(document.getElementById("b"))).toBeNull();
     expect(targetOfElement(document.getElementById("s"))).toBeNull();
+    const stored = new JSDOM(`<div id="qedit_q1"><textarea id="w">Jak často?</textarea></div>
+      <article id="qblock_B1"><h3>Úvod</h3><i id="x">-</i></article>`).window.document;
+    expect(targetOfElement(stored.getElementById("w"))).toEqual({ id: "question:q1", label: "Otázka q1: Jak často?" });
+    expect(targetOfElement(stored.getElementById("x"))).toEqual({ id: "section:B1", label: "Oddíl: Úvod" });
   });
 });
 

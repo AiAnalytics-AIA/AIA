@@ -518,6 +518,15 @@ export function targetOfElement(el: Element | null): { id: string; label: string
       return { id: aia, label: `${targetLabel(aia)}${heading ? `: ${label(heading)}` : ""}` };
     }
     let m: RegExpMatchArray | null;
+    // A questionnaire card before its screen marks it (#607): named by its DOM id, but only an id
+    // the contract can send. The ids the screen invents for a card without one are never a
+    // target: questionElementId's placeholder `Q`, a block's index, an id outside the grammar.
+    if ((m = id.match(/^qedit_(.+)$/)) && m[1] !== "Q" && parseAiaId(`question:${m[1]}`)) {
+      return { id: `question:${m[1]}`, label: `Otázka ${m[1]}: ${label(wordingOf(at, text))}` };
+    }
+    if ((m = id.match(/^qblock_(.+)$/)) && !/^\d+$/.test(m[1]!) && parseAiaId(`section:${m[1]}`)) {
+      return { id: `section:${m[1]}`, label: `Oddíl: ${label(titleOf(at, m[1]!))}` };
+    }
     if ((m = id.match(/^brief-(.+)$/))) return { id: `brief:${m[1]}`, label: `Zadání: ${label(at.querySelector("h2, h3, label")?.textContent?.trim() || m[1]!)}` };
     const plan: Record<string, { id: string; label: string }> = {
       "plan-sets": { id: "plan:sets", label: "Návrh: sledované sady" },
