@@ -280,7 +280,8 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `artifact-results#RES2` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
 | `artifact-results#RES3` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
 | `artifact-results#RES4` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
-| `artifact-results#RES5` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-results#RES5b` | W3 | artifact plans: the coded counts, after `assumptions-and-open-answer-coding#AOC8` (RES5a landed) |
+| `artifact-results#RES8` | W2 | the per-question CSV/XLSX export, moved from `report-delivery#RD12` by the coordinator (2026-10-21); umbrella `research-lead-workbench#20` (E15) |
 | `artifact-results#RES6` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
 | `artifact-results#RES7` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
 | `artifact-sociomap#SOC1` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
