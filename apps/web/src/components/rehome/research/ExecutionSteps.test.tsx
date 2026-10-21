@@ -1117,6 +1117,24 @@ describe("Progress", () => {
     expect(within(card).getByText(t(`${R}.unrecorded`))).toBeTruthy();
   });
 
+  it("tags each step AI or deterministic and makes it pointable by the Lead (artifact-fieldwork FLD2)", async () => {
+    api(listed(PARKED));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const work = (key: string) => list.querySelector(`[data-aia="step:${key}"] [data-step-work]`)?.textContent;
+    // AI respondents answer this run's fieldwork: a model step.
+    expect(work("run")).toBe(t("research.exec.stepWork.ai"));
+    expect(work("compile")).toBe(t("research.exec.stepWork.running"));
+    expect(work("aggregate")).toBe(t("research.exec.stepWork.running"));
+  });
+
+  it("tags fictional fixture fieldwork as code, never as AI", async () => {
+    api(listed(COMPLETED));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    expect(list.querySelector('[data-aia="step:run"] [data-step-work]')?.textContent).toBe(t("research.exec.stepWork.running"));
+  });
+
   it("explains a run waiting for the AI runtime, step by step, without offering a retry", async () => {
     api(listed(PARKED));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);

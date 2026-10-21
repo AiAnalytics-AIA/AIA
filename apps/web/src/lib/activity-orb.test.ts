@@ -2,7 +2,7 @@
 // as AI, a step that is code as work in progress.
 import { describe, expect, it } from "vitest";
 
-import { AGENT_ORB, agentJobOrb, deepResearchRunOrb, deepResearchRunningStep, deepResearchStepOrb, researchStepOrb } from "./activity-orb";
+import { AGENT_ORB, agentJobOrb, deepResearchRunOrb, deepResearchRunningStep, deepResearchStepOrb, researchStepOrb, researchStepWork } from "./activity-orb";
 import type { ResearchAgentAction } from "./api";
 
 const step = (node_key: string, status: string) => ({ node_key, status }) as never;
@@ -71,5 +71,27 @@ describe("a Deep Research step", () => {
     const steps = [step("merge", "RUNNING"), step("investigate/a", "RUNNING")];
     expect(deepResearchRunningStep(steps)?.step).toBe(steps[1]);
     expect(deepResearchRunningStep([step("plan", "SUCCEEDED")])).toBeNull();
+  });
+});
+
+describe("whether a research run's step calls a model, at any status (artifact-fieldwork FLD2)", () => {
+  const ai = { fieldwork_source: "ai_runtime" };
+  const fixture = { fieldwork_source: "fixture" };
+
+  it("fieldwork is AI only when AI respondents answer it", () => {
+    expect(researchStepWork(ai, "run")).toBe("ai");
+    expect(researchStepWork(fixture, "run")).toBe("running");
+  });
+
+  it("an analysis module is AI", () => {
+    expect(researchStepWork(fixture, "analysis_executive")).toBe("ai");
+  });
+
+  it.each(["compile", "preflight", "aggregate", "sociomap", "sociomapping", "sociomapping_report", "report"])("%s is code", (key) => {
+    expect(researchStepWork(ai, key)).toBe("running");
+  });
+
+  it("a step no table names is unknown, never guessed", () => {
+    expect(researchStepWork(ai, "a_step_added_later")).toBeNull();
   });
 });

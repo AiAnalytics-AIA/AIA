@@ -66,10 +66,20 @@ export function agentJobOrb(job: Pick<ResearchAgentJob, "action" | "steps">): Or
   return job.steps.some((s) => s.status === RUNNING) ? ai(AGENT_ORB[job.action]) : null;
 }
 
+/**
+ * Whether a research run's step calls a model (`ai`) or is code (`code`), whatever its status:
+ * the same rule as its orb. A step no table names is unknown (null), never guessed either way.
+ */
+export function researchStepWork(run: Pick<ResearchRun, "fieldwork_source">, nodeKey: string): OrbInk | null {
+  if (nodeKey === "run") return run.fieldwork_source === "ai_runtime" ? "ai" : "running";
+  if (nodeKey.startsWith("analysis_")) return "ai";
+  return RUN_STEP_ORB[nodeKey]?.ink ?? null;
+}
+
 /** A step of a research run while it executes. */
 export function researchStepOrb(run: Pick<ResearchRun, "fieldwork_source">, step: Pick<ResearchStep, "node_key" | "status">): Orb | null {
   if (step.status !== RUNNING) return null;
-  if (step.node_key === "run") return run.fieldwork_source === "ai_runtime" ? ai("listening") : code("listening");
+  if (step.node_key === "run") return researchStepWork(run, "run") === "ai" ? ai("listening") : code("listening");
   if (step.node_key.startsWith("analysis_")) return ai("working");
   return RUN_STEP_ORB[step.node_key] ?? UNNAMED;
 }

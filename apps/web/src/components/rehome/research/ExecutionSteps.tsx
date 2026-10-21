@@ -40,7 +40,7 @@ import {
 import { clientChildren, outcomeValue, targetVerdict } from "@/lib/population";
 import { latestDesignRun, questionEvidence } from "@/lib/design-evidence";
 import { citedSnapshot } from "@/lib/verified-source";
-import { researchStepOrb } from "@/lib/activity-orb";
+import { researchStepOrb, researchStepWork } from "@/lib/activity-orb";
 import { activityOf } from "@/lib/step-activity";
 import { type BatteryWithMaps, mapApproval, readObjectMap, type RecordedMethod, type RegisterEntry } from "@/lib/object-map-view";
 import {
@@ -1276,10 +1276,12 @@ export function ProgressStep() {
       <Card title={t("aia.stages.progress")}>
         <ol className="flex flex-col gap-3" aria-label={t("aia.stages.progress")}>
           {listed.map((s) => (
-            <li key={s.node_key} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
+            // Pointable by the Lead (the coordinator's registry: fieldwork targets step:<node_key>).
+            <li key={s.node_key} data-aia={`step:${s.node_key}`} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
               <div className="flex flex-wrap items-center gap-2">
                 <Chip tone={stepTone(s, run.is_terminal)}>{stepStatusLabel(s, run.is_terminal)}</Chip>
                 <span className="font-medium">{stepLabel(s.node_key)}</span>
+                <span data-step-work={researchStepWork(run, s.node_key) ?? "unknown"} className="text-xs text-ink-muted">{t(`research.exec.stepWork.${researchStepWork(run, s.node_key) ?? "unknown"}`)}</span>
                 {stepOriginKind(s) ? (
                   <span title={s.data_origin ?? undefined} data-origin-kind={stepOriginKind(s)}>
                     <Chip tone={stepOriginKind(s) === "MODELLED" ? "neutral" : "fault"}>{t(`research.exec.originKind.${stepOriginKind(s)}`)}</Chip>

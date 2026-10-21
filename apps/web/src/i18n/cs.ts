@@ -2713,6 +2713,11 @@ export const cs = {
       },
       edit: "Upravit",
       stepsFinished: "{done} z {total} kroků hotovo",
+      stepWork: {
+        ai: "AI · ModelGateway",
+        running: "deterministické",
+        unknown: "druh kroku neznámý",
+      },
       runCost: "Skutečné náklady",
       runCostUnknown: "Zatím nevykázané",
       fix: "Opravit →",
