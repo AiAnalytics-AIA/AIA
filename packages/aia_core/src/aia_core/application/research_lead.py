@@ -59,7 +59,7 @@ from ..domain.research_lead import (
     stale_files,
 )
 from ..domain.research_template import research_template
-from ..domain.scope import OrganizationContext, Permission, StudyContext
+from ..domain.scope import OrganizationContext, Permission, Study, StudyContext
 from ..domain.workflow import StepRunStatus
 from ..domain.workflow_templates import RESEARCH, RESEARCH_LEAD
 from ..domain.workspace import edited_from_current
@@ -77,7 +77,7 @@ from ..infrastructure.study_workspace_repository import (
     StudyWorkspaceRepository,
     WorkspaceConflict,
 )
-from ..infrastructure.workflow_repository import WorkflowRepository
+from ..infrastructure.workflow_repository import BudgetWaitNotLiftable, WorkflowRepository
 from .research import ResearchAgentJobs, readiness_in_force
 from .workflows import start_workflow
 
@@ -99,6 +99,8 @@ __all__ = [
     "NotAPaidRequest",
     "ResearchLead",
     "WorkspaceConflict",
+    "release_lead_budget_waits",
+    "set_study_budget",
 ]
 
 #: A greeting within this long of the Lead's last turn is a no-op: the Lead has spoken.
@@ -223,14 +225,15 @@ def _lead_status(step: Mapping[str, Any], last: Mapping[str, Any] | None) -> tup
 
 
 def _holds(turn: Mapping[str, Any]) -> bool:
-    """Whether a Lead turn holds the conversation: queued, running, or parked on the study's
-    budget. A turn waiting for budget is paid for when the budget is lifted, so a message sent
-    meanwhile would queue a second paid turn behind it. A turn parked for any other reason
-    (the Lead not configured, the route refusing) does not hold it: nothing would ever free it.
+    """Whether a Lead turn holds the conversation: queued or running.
+
+    A turn parked for any reason does not: one that held the conversation while parked held
+    it for ever when nothing released it (F4). A turn parked on the budget is sent when a
+    person sets or raises the budget (:func:`release_lead_budget_waits`) or superseded by the
+    next message (:meth:`ResearchLead.post`), so at most one turn waits to be paid; while it
+    waits, the conversation stays open.
     """
-    return turn["actor"] == "lead" and (
-        turn["status"] in ("QUEUED", "RUNNING") or turn["awaiting_budget"]
-    )
+    return turn["actor"] == "lead" and turn["status"] in ("QUEUED", "RUNNING")
 
 
 def _view(
@@ -310,6 +313,78 @@ def _view(
             seen = out.get("self_update_base")
             base["self_update_base"] = dict(seen) if isinstance(seen, dict) else None
     return base
+
+
+def release_lead_budget_waits(
+    session: Session, scope: StudyContext, *, budget_before: float, note: str = ""
+) -> list[str]:
+    """Send the Lead turns of this Study parked at the budget cap, once a person set or raised
+    the budget (the product owner, 2026-10-21, Q39: "once the budget is set or raised, it should
+    automatically resend the message the researcher attempted to send in the first place").
+
+    Called in the transaction that changed the budget, after the change. The person who set it
+    is the consent: each released turn's wait is lifted through
+    :meth:`WorkflowRepository.resume_budget_waits`, one approval row in the ledger naming that
+    person, as every other budget lift is. Nothing is released unless the budget went up, the
+    person holds ``APPROVE_BUDGET`` and the Study is open. A turn is released only when the hold
+    its attempt asked for (the parked attempt's ``requested_usd``) now fits what remains; one
+    whose hold would still pass the budget, or whose hold was not recorded (unknown is never
+    taken to fit), stays parked with its words. Oldest first, each released turn's hold counted
+    against the rest. Returns the released runs' ids.
+
+    The study row is already locked by the change; a parked Lead run has no attempt in flight,
+    so taking its lock after the study's waits on nothing that holds the study.
+    """
+    if not scope.has(Permission.APPROVE_BUDGET) or not scope.study_status.accepts_work:
+        return []
+    project_id = StudyDesignRepository(session, scope).project_id()
+    if project_id is None:
+        return []
+    workflows = WorkflowRepository(session, scope)
+    # The waiting steps themselves, oldest first: a page of the newest runs would miss a turn
+    # parked behind more than a page of later ones (Codex on #547).
+    waiting = workflows.steps_awaiting_budget(project_id=project_id, workflow_type=RESEARCH_LEAD)
+    if not waiting:
+        return []
+    study = ScopeRepository(session).get_study(scope, for_update=True)
+    budget_after = float(study.budget_usd)
+    if budget_after <= budget_before:
+        return []
+    remaining = budget_after - float(study.spent_usd) - workflows.study_reserved_usd()
+    asked = workflows.last_attempt_errors([step_id for _, step_id in waiting])
+    released: list[str] = []
+    for run_id, step_id in waiting:
+        requested = (asked.get(step_id) or {}).get("error", {}).get("requested_usd")
+        if not isinstance(requested, int | float) or float(requested) > remaining + 1e-9:
+            continue
+        workflows.lock_run(run_id)
+        try:
+            workflows.resume_budget_waits(
+                [step_id],
+                note=note,
+                budget_before=budget_before,
+                budget_after=budget_after,
+            )
+        except BudgetWaitNotLiftable:
+            continue  # superseded or cancelled since it was listed
+        remaining -= float(requested)
+        released.append(run_id)
+    return released
+
+
+def set_study_budget(
+    session: Session, scope: StudyContext, budget_usd: float
+) -> tuple[Study, list[str]]:
+    """Set the study's budget (``ScopeRepository.set_study_budget``, audited) and send the Lead
+    turns that waited for it (:func:`release_lead_budget_waits`). Returns the study and the
+    released runs' ids."""
+    scopes = ScopeRepository(session)
+    before = float(scopes.get_study(scope, for_update=True).budget_usd)
+    study = scopes.set_study_budget(scope, budget_usd)
+    released = release_lead_budget_waits(
+        session, scope, budget_before=before, note="budget set in Nastavení → Studie"
+    )
+    return study, released
 
 
 @dataclass(frozen=True, slots=True)
@@ -396,9 +471,11 @@ class ResearchLead:
         Needs ``EDIT_STUDY`` and ``RUN_WORKFLOW`` on an open Study, a hatched Lead and no
         Lead turn of this researcher queued or running here (:class:`LeadBusy`). A greeting
         within :data:`GREETING_WINDOW` of the Lead's last turn stores nothing and returns
-        no turns. The researcher's Lead row is locked first, so two posts at once (two tabs
-        opening the Study) are decided one after the other: one greeting, never two.
-        Returns the turns stored, as :meth:`state` reads them.
+        no turns. When the Lead's last turn is parked on the study's budget, a message
+        supersedes it (its run cancelled, never paid; its message kept in the history the new
+        turn sees) and a greeting stores nothing. The researcher's Lead row is locked first,
+        so two posts at once (two tabs opening the Study) are decided one after the other:
+        one greeting, never two. Returns the turns stored, as :meth:`state` reads them.
         """
         if not self.enabled:
             raise LeadUnavailable("the Research Lead is not switched on in this deployment")
@@ -418,11 +495,22 @@ class ResearchLead:
             and latest.created_at > self.clock() - GREETING_WINDOW
         ):
             return []
+        superseded: str | None = None
         if latest is not None:
             current = self._annotated([latest])[0]
             if _holds(current):
                 raise LeadBusy("the Lead is still answering your last message")
+            if current["awaiting_budget"]:
+                # A greeting never cancels the person's own waiting message.
+                if kind == "greeting":
+                    return []
+                superseded = latest.run_id
 
+        if superseded is not None:
+            # The parked turn sent nothing and holds no reservation (a budget park spends no
+            # attempt): cancelling it pays nothing, and its message stays in the history the
+            # new turn is frozen with. Nothing paid is started without this person's message.
+            self._workflows().request_cancel(superseded, reason="lead_turn_superseded")
         history = self._annotated(turns.turns(limit=50))
         content, analysis, workspace_revision = self._working_content()
         project_id, design_revision = self._design_project(content, workspace_revision)

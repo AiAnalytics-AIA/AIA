@@ -452,7 +452,9 @@ The product owner's decisions of 2026-10-19 on accepting:
 
 ## Consequences
 
-- **Gains.** One conversation per study, stored in AIA and shared by everyone who opens the study.
+- **Gains.** One conversation per researcher per study, stored in AIA (*Accepted with* 6; corrected
+  2026-10-21: this line said "shared by everyone who opens the study", which neither decision 6 nor
+  the code says, OI-152).
   A proposal can no longer be applied over an edit it would overwrite, while edits elsewhere do not
   block it. The Design Revision and the working copy cannot disagree after an accept. No AI action
   spends money or changes the design without a person's decision in the ledger.
