@@ -104,6 +104,7 @@ from aia_core.domain.fieldwork import (
     persona_source_of,
 )
 from aia_core.domain.methodology.pins import response_deviates, run_methods
+from aia_core.domain.persona_topics import dimension_topic
 from aia_core.domain.population import PopulationError, UnknownDatasetVersion
 from aia_core.domain.report.document_model import (
     DOCUMENT_MODEL_MEDIA_TYPE,
@@ -140,7 +141,7 @@ from aia_core.infrastructure.workflow_repository import (
     RuntimeParkNotResumable,
 )
 from fastapi import APIRouter, HTTPException, Path, Query, Request, Response, status
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from ..dependencies import (
     ArtifactStoreDep,
@@ -1352,6 +1353,46 @@ def sociomap_register(scope: StudyScopeDep) -> dict[str, Any]:
     except ScopeDenied as exc:
         raise _refused(exc) from exc
     return {"entries": [entry.model_dump(mode="json") for entry in SOCIOMAP_REGISTER]}
+
+
+class DimensionTopic(BaseModel):
+    """A selected dimension and the persona topic it lets through (``dimension_topic``)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    dimension: str
+    #: ``None``: it names no persona topic, so a run lists it in ``dimensions_unmatched`` and
+    #: no respondent's profile carries it.
+    topic: str | None
+
+
+class DimensionTopicList(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    items: list[DimensionTopic]
+
+
+@router.get(
+    "/research/persona-topics",
+    response_model=DimensionTopicList,
+    summary="The persona topic each dimension lets through",
+)
+def persona_topics(
+    scope: StudyScopeDep,
+    dimension: Annotated[
+        list[Annotated[str, StringConstraints(max_length=80)]], Query(max_length=64)
+    ] = [],  # noqa: B006
+) -> DimensionTopicList:
+    """Dimenze's chip before any run (artifact-dimensions DIM2): the same mapping a run's
+    ``selection_receipt`` reads, asked of the working copy's dimensions, in the order given.
+    It reads no design, so a dimension chosen a moment ago is answered without a revision."""
+    try:
+        scope.require(Permission.VIEW_STUDY)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    return DimensionTopicList(
+        items=[DimensionTopic(dimension=d, topic=dimension_topic(d)) for d in dimension]
+    )
 
 
 @router.get("/research/runs", response_model=ResearchRunList, summary="The Study's research runs")
