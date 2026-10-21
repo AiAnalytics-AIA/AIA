@@ -2509,6 +2509,7 @@ export const cs = {
           mismatch: "Data neodpovídají zdroji, který běh zvolil. Výsledky berte jako neověřené.",
           population: "Populace",
           populationNone: "běh žádnou nezaznamenal",
+          origin: "Původ dat",
           dimensions: "Dimenze",
           filters: "Filtry publika",
           none: "žádné nevybrány",
