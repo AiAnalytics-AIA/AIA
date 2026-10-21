@@ -540,38 +540,43 @@ function Outline({ update }: { update: Update }) {
     </li>
   );
 
+  // The wrapper stretches to its flex line, and the outline sticks only within it: beside the
+  // editor the line is the editor's height; wrapped onto a line of its own (a narrow pane, a
+  // phone) it is the outline's, so the outline scrolls away instead of covering the editor.
   return (
-    <aside aria-labelledby="q-editor" className="sticky top-[136px] flex flex-[1_1_240px] flex-col gap-3 rounded-card border border-border bg-surface-raised p-3.5">
-      <div>
-        <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint">{t("research.questionnaire.editorTag")}</div>
-        <h2 id="q-editor" className={`mt-0.5 rounded-sm text-sm font-semibold ${FOCUS}`}>{tv("research.questionnaire.editorCounts", counts)}</h2>
-      </div>
-      {xs.length ? (
-        <ul className="flex max-h-[45vh] flex-col gap-0.5 overflow-y-auto">
-          {xs.flatMap((sec, si) =>
-            sec.type === "questions"
-              ? [
-                  row(`qblock_${sec.id || si}`, `B${++b}`, String(sec.title || ""), !(sec.questions || []).length),
-                  ...(sec.questions || []).map((x) => row(questionElementId(x), `Q${++q}`, String(x.text || ""), !String(x.text || "").trim(), 1)),
-                ]
-              : [row(setElementId(sec, si), `S${++s}`, String(sec.title || ""), setInvalid(sec))],
-          )}
-        </ul>
-      ) : null}
-      <div className="border-t border-border pt-3">
-        <div className={LABEL}>{t("research.questionnaire.quickAdd")}</div>
-        <div className="mt-1.5 flex flex-wrap gap-1.5">
-          {([["choice", "addChoice"], ["scale", "addScale"], ["open", "addOpen"]] as const).map(([kind, label]) => (
-            <Button key={kind} small variant="secondary" icon="plus" className="!rounded-control" onClick={() => void guided(kind)}>{t(`research.questionnaire.${label}`)}</Button>
-          ))}
+    <div className="flex flex-[1_1_240px] flex-col self-stretch">
+      <aside aria-labelledby="q-editor" className="sticky top-[136px] flex flex-col gap-3 rounded-card border border-border bg-surface-raised p-3.5">
+        <div>
+          <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint">{t("research.questionnaire.editorTag")}</div>
+          <h2 id="q-editor" className={`mt-0.5 rounded-sm text-sm font-semibold ${FOCUS}`}>{tv("research.questionnaire.editorCounts", counts)}</h2>
         </div>
-        <p className="mt-1.5 text-xs text-ink-muted">{t("research.questionnaire.quickHelp")}</p>
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        <Button small icon="plus" className="!rounded-control" onClick={() => update((p) => addQuestionSection(p))}>{t("research.questionnaire.addBlockV3")}</Button>
-        <Button small icon="plus" className="!rounded-control" onClick={() => void trackedSet()}>{t("research.questionnaire.addSet")}</Button>
-      </div>
-    </aside>
+        {xs.length ? (
+          <ul className="flex max-h-[45vh] flex-col gap-0.5 overflow-y-auto">
+            {xs.flatMap((sec, si) =>
+              sec.type === "questions"
+                ? [
+                    row(`qblock_${sec.id || si}`, `B${++b}`, String(sec.title || ""), !(sec.questions || []).length),
+                    ...(sec.questions || []).map((x) => row(questionElementId(x), `Q${++q}`, String(x.text || ""), !String(x.text || "").trim(), 1)),
+                  ]
+                : [row(setElementId(sec, si), `S${++s}`, String(sec.title || ""), setInvalid(sec))],
+            )}
+          </ul>
+        ) : null}
+        <div className="border-t border-border pt-3">
+          <div className={LABEL}>{t("research.questionnaire.quickAdd")}</div>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {([["choice", "addChoice"], ["scale", "addScale"], ["open", "addOpen"]] as const).map(([kind, label]) => (
+              <Button key={kind} small variant="secondary" icon="plus" className="!rounded-control" onClick={() => void guided(kind)}>{t(`research.questionnaire.${label}`)}</Button>
+            ))}
+          </div>
+          <p className="mt-1.5 text-xs text-ink-muted">{t("research.questionnaire.quickHelp")}</p>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          <Button small icon="plus" className="!rounded-control" onClick={() => update((p) => addQuestionSection(p))}>{t("research.questionnaire.addBlockV3")}</Button>
+          <Button small icon="plus" className="!rounded-control" onClick={() => void trackedSet()}>{t("research.questionnaire.addSet")}</Button>
+        </div>
+      </aside>
+    </div>
   );
 }
 
