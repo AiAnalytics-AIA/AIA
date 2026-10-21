@@ -222,6 +222,14 @@ SOCIOMAPPING_SECTIONS: list[dict[str, Any]] = [
     },
 ]
 
+# The research questions fixtures/deep_research/agents.json plans its queries for.
+DEEP_RESEARCH_QUESTIONS: list[str] = [
+    "Jak velký je trh ranních nápojů pro dojíždějící v Česku?",
+    "Proč lidé na cestě do práce kupují nápoje s kofeinem?",
+]
+#: Room for the scripted requests' nominal holds; nothing is spent from it.
+DEEP_RESEARCH_BUDGET_USD = 1.0
+
 FIXTURES: dict[str, dict[str, Any]] = {
     # The brief with nothing filled in: the first screen as a new project sees it.
     "empty": {"project": {"title": "Workbench · prázdné zadání"}, "analysis": None},
@@ -295,6 +303,20 @@ FIXTURES: dict[str, dict[str, Any]] = {
         },
         "analysis": ANALYSIS,
     },
+    # The questionnaire's project with two research questions and a Design Research run over
+    # it (research-lead-workbench 12a): the worker answers it on the fictional recorded web in
+    # fixtures/deep_research/ with scripted agents, so the run completes and nothing is paid.
+    "deep_research": {
+        "project": {
+            **BRIEF,
+            "title": "Workbench · rešerše k návrhu",
+            "sections": SECTIONS,
+            "research_plan": {"research_questions": DEEP_RESEARCH_QUESTIONS},
+            "ui_state": {"questionnaire_path": "manual"},
+        },
+        "analysis": ANALYSIS,
+        "design_research": True,
+    },
 }
 
 
@@ -326,6 +348,30 @@ def project_of(fx: dict[str, Any], template: dict[str, Any]) -> dict[str, Any]:
     return project
 
 
+def design_research(study: str, content: dict[str, Any], revision: int) -> str:
+    """The study's Design Research run: the one it has, else one started over the working copy
+    submitted as a Design Revision, as the panel starts it (QUICK, the web channel). The
+    workbench's worker answers it on recorded web with scripted agents; nothing is paid."""
+    # Every scripted request still holds a nominal amount before it is sent and settles at
+    # zero (aia_executors.workbench); a new study's budget is 0, so it is given room for holds.
+    _api("PUT", f"/studies/{study}/budget", {"budget_usd": DEEP_RESEARCH_BUDGET_USD})
+    runs = _api("GET", f"/studies/{study}/deep-research/runs")
+    for run in runs:
+        if run.get("purpose") in (None, "DESIGN_RESEARCH"):
+            return str(run["run_id"])
+    design = _api(
+        "POST",
+        f"/studies/{study}/design/revisions",
+        {"content": content, "source_stage": "questionnaire", "workspace_revision": revision},
+    )
+    run = _api(
+        "POST",
+        f"/studies/{study}/deep-research/runs",
+        {"design_revision_id": design["revision_id"], "preset_name": "QUICK", "channels": ["WEB"]},
+    )
+    return str(run["run_id"])
+
+
 def write() -> dict[str, dict[str, str]]:
     """Each fixture's study under the workbench client, holding the fixture as its content."""
     clients = [c for c in _api("GET", "/workspace/clients") if c["name"].startswith(CLIENT)]
@@ -348,17 +394,20 @@ def write() -> dict[str, dict[str, str]]:
             if current is None:
                 raise SystemExit(f"AIA does not serve the new study {study}'s content")
         assert study is not None
-        _api(
+        content = project_of(fx, current["template"])
+        saved = _api(
             "PUT",
             f"/studies/{study}/workspace/content",
             {
-                "content": project_of(fx, current["template"]),
+                "content": content,
                 "analysis": fx["analysis"],
                 "base_revision": current["revision"],
                 "reason": "workbench_fixture",
             },
         )
         out[key] = {"client": client, "study": study}
+        if fx.get("design_research"):
+            out[key]["deep_research_run"] = design_research(study, content, saved["revision"])
     STUDIES.parent.mkdir(parents=True, exist_ok=True)
     STUDIES.write_text(json.dumps(out, indent=2) + "\n")
     return out

@@ -6,7 +6,7 @@ export type IconName =
   | "home" | "research" | "simulation" | "assistant" | "library" | "settings" | "command" | "projects"
   | "external" | "plus" | "search" | "pin" | "tag" | "copy" | "archive" | "trash" | "restore" | "back"
   | "attach" | "link" | "next" | "download" | "client" | "knowledge" | "data" | "memory" | "intelligence"
-  | "pencil" | "minus" | "chevron"
+  | "pencil" | "minus" | "chevron" | "more"
   | "done" | "running" | "you" | "world" | "fault" | "dot";
 
 const PATHS: Record<IconName, string> = {
@@ -41,6 +41,8 @@ const PATHS: Record<IconName, string> = {
   pencil: "M10.5 2.5l3 3L6 13H3v-3zM9 4l3 3",
   minus: "M3 8h10",
   chevron: "M4 6l4 4 4-4",
+  // A row's own actions (input-interactions chunk 2: a folder's or a label's menu).
+  more: "M3.5 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2ZM8 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2ZM12.5 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z",
   // Status glyphs: shape carries the status as well as colour (brief §5).
   done: "M3 8.5 6.5 12 13 4.5",
   running: "M8 2.5a5.5 5.5 0 1 1-5.5 5.5",

@@ -12,6 +12,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Literal
 
+from aia_core.application.deep_research_pricing import DeepResearchPricingSettings
 from aia_core.domain.deployment import DeploymentEnvironment, fictional_material_problem
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.infrastructure.build_identity import BuildIdentity, parse_build_sha
@@ -132,9 +133,13 @@ class Settings(BaseSettings):
     ai_research_reservation_usd: float | None = None
 
     # The Research Lead (ADR 0026, ``AIA_AI_RESEARCH_LEAD_ENABLED``, the worker's switch too):
-    # off, a message is refused (409 ``research_lead_unavailable``) and nothing is queued; the
-    # conversation already stored stays readable. Off by default; on for develop by Compose.
-    ai_research_lead_enabled: bool = False
+    # off, a message is refused (409 ``research_lead_unavailable``) and nothing is queued, and a
+    # card its model prepared is refused on approval (409 ``research_lead_disabled``, Q42); the
+    # conversation already stored stays readable. Unset reads as off, but a deployed
+    # environment must state it (``validate_for_production``): with every AI start moving to
+    # the Lead, a deployment that merely forgot the key would lose it (Q43, research-lead-
+    # workbench 27a). On for develop by Compose.
+    ai_research_lead_enabled: bool | None = None
 
     # A study's wallet, Peněženka (ADR 0028 decision 2, lead-orchestration LO1,
     # ``AIA_STUDY_WALLET_ENABLED``): off, GET /studies/{id}/wallet answers unavailable without
@@ -179,7 +184,13 @@ class Settings(BaseSettings):
     # the names; here only whether any is listed matters to the ceiling.
     deep_research_connectors: str = ""
     deep_research_agent_directed: bool = False
+    # The Deep Research engine's lead-researcher mode, not the Research Lead (F-DRL-7).
     deep_research_lead: bool = False
+    # ``AIA_DEEP_RESEARCH_ENABLED`` as the API's environment carries it (the develop Compose
+    # file passes the worker's value). Read only to say, on a quote, whether a run would park
+    # (plan deep-research-web-search 55); unset is ``None``, unknown, never "off" or "on". What
+    # the worker composed is the worker's to publish (lead-orchestration LO12b).
+    deep_research_enabled: bool | None = None
 
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_format: Literal["json", "console"] = "json"
@@ -216,6 +227,8 @@ class Settings(BaseSettings):
         "deep_research_common_crawl_usd_per_tb_scanned",
         "deep_research_common_crawl_min_billed_bytes",
         "deep_research_common_crawl_billing_increment_bytes",
+        "ai_research_lead_enabled",
+        "deep_research_enabled",
         mode="before",
     )
     @classmethod
@@ -233,6 +246,32 @@ class Settings(BaseSettings):
             return [origin.strip() for origin in value.split(",") if origin.strip()]
         return value
 
+    def deep_research_pricing(self) -> DeepResearchPricingSettings:
+        """The keys a Deep Research ceiling is priced from (plan deep-research-web-search 55)."""
+        return DeepResearchPricingSettings(
+            input_usd_per_mtok=self.bedrock_input_usd_per_mtok,
+            output_usd_per_mtok=self.bedrock_output_usd_per_mtok,
+            cache_read_usd_per_mtok=self.bedrock_cache_read_usd_per_mtok,
+            cache_write_usd_per_mtok=self.bedrock_cache_write_usd_per_mtok,
+            context_window_tokens=self.bedrock_context_window_tokens,
+            max_output_tokens=self.ai_research_max_output_tokens,
+            thinking_budget_tokens=self.deep_research_thinking_budget_tokens,
+            web_search=self.deep_research_web_search,
+            wikipedia_enabled=self.deep_research_wikipedia_enabled,
+            brave_usd_per_1000=self.deep_research_brave_usd_per_1000,
+            common_crawl=self.deep_research_common_crawl,
+            common_crawl_max_scan_bytes=self.deep_research_common_crawl_max_scan_bytes,
+            common_crawl_usd_per_tb_scanned=self.deep_research_common_crawl_usd_per_tb_scanned,
+            common_crawl_min_billed_bytes=self.deep_research_common_crawl_min_billed_bytes,
+            common_crawl_billing_increment_bytes=(
+                self.deep_research_common_crawl_billing_increment_bytes
+            ),
+            connectors=self.deep_research_connectors,
+            agent_directed=self.deep_research_agent_directed,
+            engine_lead=self.deep_research_lead,
+            enabled=self.deep_research_enabled,
+        )
+
     @property
     def fictional_client_ids(self) -> frozenset[str]:
         """The clients a draft prompt may be tested on; empty means none."""
@@ -249,6 +288,12 @@ class Settings(BaseSettings):
                 "AIA_BUILD_SHA": self.build_sha,
             },
         )
+
+    @property
+    def research_lead_on(self) -> bool:
+        """Whether the Research Lead is switched on: only an explicit ``true``. Unset is off
+        here and refused at start in a deployed environment (``validate_for_production``)."""
+        return self.ai_research_lead_enabled is True
 
     @property
     def build(self) -> BuildIdentity:
@@ -346,6 +391,14 @@ class Settings(BaseSettings):
             problems.append(
                 "AIA_RESEARCH_FIELDWORK_SOURCE=synthetic_fixture is refused outside "
                 "local and test (ADR 0016)"
+            )
+
+        # The Lead's kill switch is a decision, never an omission (Q43, research-lead-workbench
+        # 27a): off, every Lead start but a typed command stops, so a deployment says which.
+        if self.ai_research_lead_enabled is None:
+            problems.append(
+                "AIA_AI_RESEARCH_LEAD_ENABLED must be stated (true or false) in a deployed "
+                "environment: unset, the Research Lead would be off by omission"
             )
 
         # The population double is fictional; no deployment composes it (RQC10).

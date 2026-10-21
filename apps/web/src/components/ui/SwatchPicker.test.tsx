@@ -74,4 +74,13 @@ describe("SwatchPicker (I3, I5): a colour chosen by its swatch, named in words",
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByRole("listbox")).toBeNull();
   });
+
+  it("popover at a row's end opens leftwards, its swatches one row (chunk 2: a new label's swatch)", () => {
+    render(<SwatchPicker {...props} popover align="end" value="BLUE" onChange={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: "Barva štítku: Modrá" }));
+    const box = screen.getByRole("listbox", { name: "Barva štítku" }).parentElement!;
+    expect(box.className).toContain("right-0");
+    expect(box.className).not.toContain("left-0");
+    expect(box.className).toContain("w-max");
+  });
 });

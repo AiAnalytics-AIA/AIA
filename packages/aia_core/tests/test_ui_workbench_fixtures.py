@@ -37,6 +37,8 @@ def api(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Api:
     m = _load()
     calls: list[str] = []
     saves: dict[str, list[dict[str, Any]]] = {}
+    budgets: dict[str, float] = {}
+    runs: dict[str, list[dict[str, Any]]] = {}
 
     def call(method: str, path: str, body: dict[str, Any] | None = None) -> Any:
         calls.append(f"{method} {path}")
@@ -60,11 +62,50 @@ def api(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Api:
             assert body is not None
             saves[study].append(body)
             return {"revision": len(saves[study])}
+        # The deep_research fixture: a budget for the holds, then one Design Research run.
+        if method == "PUT" and path.endswith("/budget"):
+            assert body is not None
+            budgets[study] = body["budget_usd"]
+            return {"study_id": study}
+        if method == "POST" and path.endswith("/design/revisions"):
+            assert body is not None
+            assert body["workspace_revision"] == len(saves[study])
+            return {"revision_id": f"REV-{study}"}
+        if path.endswith("/deep-research/runs"):
+            if method == "GET":
+                return runs.get(study, [])
+            assert body is not None
+            runs.setdefault(study, []).append(
+                {"run_id": f"RUN-{study}", "purpose": "DESIGN_RESEARCH", "request": body}
+            )
+            return {"run_id": f"RUN-{study}"}
         raise AssertionError(path)
 
     monkeypatch.setattr(m, "STUDIES", tmp_path / "studies.json")
     monkeypatch.setattr(m, "_api", call)
+    m._stub_runs = runs  # type: ignore[attr-defined]  # read by the Deep Research test
+    m._stub_budgets = budgets  # type: ignore[attr-defined]
     return m, calls, saves
+
+
+def test_the_deep_research_fixture_starts_one_design_research_run(api: Api) -> None:
+    m, _calls, _saves = api
+    first = m.write()
+    study = first["deep_research"]["study"]
+    assert first["deep_research"]["deep_research_run"] == f"RUN-{study}"
+    # As the panel starts it, over the revision the save just wrote; holds have a budget.
+    [run] = m._stub_runs[study]
+    assert run["request"] == {
+        "design_revision_id": f"REV-{study}",
+        "preset_name": "QUICK",
+        "channels": ["WEB"],
+    }
+    assert m._stub_budgets[study] == m.DEEP_RESEARCH_BUDGET_USD
+    # Only that fixture starts one, and a second run finds it instead of starting another.
+    assert set(m._stub_runs) == {study}
+    again = m.write()
+    assert again["deep_research"]["deep_research_run"] == f"RUN-{study}"
+    assert len(m._stub_runs[study]) == 1
 
 
 def test_every_fixture_is_a_study_of_the_workbench_client_saved_through_aia(api: Api) -> None:
@@ -98,7 +139,8 @@ def test_a_second_run_saves_a_new_revision_of_the_same_studies(api: Api) -> None
     first = m.write()
     second = m.write()
     assert first == second
-    assert sum(c.startswith("POST") for c in calls) == len(m.FIXTURES)
+    # No study is created twice (deep_research's revision and run POSTs are not studies).
+    assert sum(c.startswith("POST /clients/") for c in calls) == len(m.FIXTURES)
     for v in second.values():
         assert [b["base_revision"] for b in saves[v["study"]]] == [None, 1]
 

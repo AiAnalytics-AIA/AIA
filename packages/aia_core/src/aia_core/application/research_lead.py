@@ -86,6 +86,7 @@ __all__ = [
     "LeadAlreadyHatched",
     "LeadBusy",
     "LeadContextTooLarge",
+    "LeadDisabled",
     "LeadEditsStale",
     "LeadNotHatched",
     "LeadProfile",
@@ -101,6 +102,7 @@ __all__ = [
     "WorkspaceConflict",
     "release_lead_budget_waits",
     "set_study_budget",
+    "worker_readiness",
 ]
 
 #: A greeting within this long of the Lead's last turn is a no-op: the Lead has spoken.
@@ -120,6 +122,48 @@ class LeadUnavailable(Exception):
     """The deployment has not switched the Lead on (``AIA_AI_RESEARCH_LEAD_ENABLED``)."""
 
     reason = "research_lead_unavailable"
+
+
+class LeadDisabled(LeadUnavailable):
+    """A card the Lead's model prepared, approved while the Lead is switched off (Q42, D22).
+
+    The card waits: it is approvable again once the Lead is on. Deciding a turn's stored
+    edits is not refused: it calls no model and spends nothing.
+    """
+
+    reason = "research_lead_disabled"
+
+
+#: The park reasons that say the worker's composition cannot answer a Lead turn: the Lead's
+#: switch or keys unset there (``aia_executors.research_lead.LEAD_UNCONFIGURED``), or no AI
+#: runtime at all.
+WORKER_NOT_READY_REASONS: Final = frozenset(
+    {"research_lead_unconfigured", "ai_runtime_unavailable"}
+)
+
+
+def worker_readiness(
+    turns: Sequence[Mapping[str, Any]],
+) -> tuple[bool | None, str | None, str | None]:
+    """Whether the worker can answer a Lead turn, as far as the caller's own turns show: the
+    answer, where it was read, and the reason when it is ``False``.
+
+    There is no worker composition record yet (lead-orchestration LO12b), so the one honest
+    source the API holds is this conversation's newest Lead turn a worker has decided. Parked
+    or failed for a reason that names the worker's composition
+    (:data:`WORKER_NOT_READY_REASONS`), the worker is not ready:
+    ``(False, "newest_turn", <reason>)``. Nothing here can say a worker *is* ready -- a turn
+    answered yesterday proves nothing about the worker running today -- so the answer is
+    otherwise ``(None, None, None)``: unknown, never ``True``. LO12b's record replaces this.
+    """
+    for turn in reversed(turns):
+        if turn["actor"] != "lead" or turn["status"] in ("QUEUED", "RUNNING", "CANCELLED"):
+            continue
+        reason = turn["reason"]
+        if turn["status"] in ("WAITING", "FAILED") and reason in WORKER_NOT_READY_REASONS:
+            return False, "newest_turn", str(reason)
+        return None, None, None
+    return None, None, None
 
 
 class LeadBusy(Exception):
@@ -788,7 +832,11 @@ class ResearchLead:
 
         Needs ``EDIT_STUDY``, ``RUN_WORKFLOW`` and ``APPROVE_GATE`` on an open Study, and the
         caller's own completed Lead turn whose request is an ``agent_job``; any other request
-        only opens a stage (:class:`NotAPaidRequest`). Its ceiling is the design job's
+        only opens a stage (:class:`NotAPaidRequest`). The card is the Lead model's output, as
+        the stored turn says (:func:`_model_prepared`), so with the Lead switched off it is
+        refused (:class:`LeadDisabled`, Q42) before anything is written; it waits until the
+        Lead is on again. A card approved before the switch-off answers with its job, as any
+        repeated approval does. Its ceiling is the design job's
         reservation (``reservation_usd``: a primary and one repair). At or above the study's
         spend limit it needs ``confirm_cost_usd`` at least the ceiling
         (:class:`CostConfirmationRequired`); with a limit and no reservation configured it is
@@ -810,6 +858,8 @@ class ResearchLead:
         workflows = self._workflows()
         approved = workflows.lead_decisions([turn_id]).get(turn_id, {}).get("request")
         if approved:
+            # Approved before any switch-off: the job exists and is answered as it is, so a
+            # retry after a lost response is never misreported as refused (review of #561).
             jobs = ResearchAgentJobs(self.session, self.scope)
             run = jobs.get(str(approved["run_id"]))
             return {
@@ -817,6 +867,10 @@ class ResearchLead:
                 "design_revision_id": run["metadata"]["design_revision_id"],
                 "status": run["status"].value,
             }
+        # Q42: only an approval that would create a job is held by the switch, before anything
+        # is submitted, created, written or held.
+        if _model_prepared(turn) and not self.enabled:
+            raise LeadDisabled("the Research Lead is switched off; its card waits until it is on")
 
         # The confirmation threshold's one rule, the job start's own (lead-orchestration LO15):
         # asked here before the design is submitted, and again by the start, which records the
@@ -995,6 +1049,12 @@ class ResearchLead:
             view={"kind": kind, "stage": stage, "focus": focus, "message": message},
             conversation=_conversation(history),
         )
+
+
+def _model_prepared(turn: LeadTurn) -> bool:
+    """Whether a card is the Lead model's output, read from the stored turn and never from a
+    request body (D22): a Lead turn's request is what the worker's model answered."""
+    return turn.actor == "lead"
 
 
 def _conversation(history: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:

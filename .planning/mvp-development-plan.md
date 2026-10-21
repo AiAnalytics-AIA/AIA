@@ -218,7 +218,7 @@ is rebased on `develop` immediately before merge, and migration PRs merge one at
 | M6 | `proposal_change_decisions` | S1 | W1 |
 | M7 | `researcher_lead_signals`, `researcher_leads.archived_at`, `derived_from_lead_id` | S1 | W2 |
 | M8 | `client_data_contracts`, `client_dataset_copies` | S3 | W3 |
-| M9 | ◇ `ai_usage_events.inference_profile_arn` (only if `develop-spend-attribution` 5a finds the model fields do not carry it) | S3 | W0, after M3 and before profiles 1-2 are configured |
+| M9 | ~~◇ `ai_usage_events.inference_profile_arn` (only if `develop-spend-attribution` 5a finds the model fields do not carry it)~~ **Not needed** (5a, #541, 2026-10-21): the model fields carry the identity, and the invocation target is configuration (`domain/model_invocation.py`) | S3 | W0, after M3 and before profiles 1-2 are configured |
 | M10 | `clients.data_posture` (`CLASSIFIED` default, `OPEN`), audited by who and when | S3 | W1 |
 | M11 | Tool-usage ledger storage, only the schema `deep-research#4` actually needs; no duplicate charge | S2 producer, S3 migration review | W3 before final AC-15 |
 | M12 | Deletion FK rules, only after `study-data-lifecycle#SDL0` settles the ledger/audit disposition | S3 | before W5 |

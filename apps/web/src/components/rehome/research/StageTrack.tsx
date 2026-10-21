@@ -11,7 +11,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { t } from "@/i18n/t";
-import { research } from "@/lib/api";
+import { research, type ResearchRun } from "@/lib/api";
 import { pollMs, shouldPoll } from "@/lib/research-execution";
 import { type LaneStage, type LaneTone, designLane, runLane } from "@/research/lane";
 import type { ResearchState } from "@/research/store";
@@ -55,10 +55,11 @@ function Glyph({ tone }: { tone: LaneTone }) {
  * The study's runs: the run stages' state. Read when the study or the stage changes, and read
  * again while one of them can still change on its own, by the rule and at the pace Progress reads
  * its run (`shouldPoll` / `pollMs`). Read once, the track said "běží" and "Zatím nic" beside a page
- * whose run had finished, until a reload (productization-coherence PC5).
+ * whose run had finished, until a reload (productization-coherence PC5). A change of `epoch` reads
+ * them again: a run started from the Lead's conversation is followed at once.
  */
-export function useRuns(studyId: string, current: StepKey) {
-  const [runs, setRuns] = useState<Parameters<typeof runLane>[0]>(null);
+export function useRuns(studyId: string, current: StepKey, epoch = 0) {
+  const [runs, setRuns] = useState<ResearchRun[] | null>(null);
   useEffect(() => {
     let live = true;
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -79,7 +80,7 @@ export function useRuns(studyId: string, current: StepKey) {
       live = false;
       if (timer) clearTimeout(timer);
     };
-  }, [studyId, current]);
+  }, [studyId, current, epoch]);
   return runs;
 }
 

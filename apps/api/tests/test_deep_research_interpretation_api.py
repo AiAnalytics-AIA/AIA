@@ -332,3 +332,63 @@ def test_the_design_proposal_route_refuses_an_interpretation_run(
     }
     refused = researcher.post(f"{run_url}/design-proposal/accept", json=accept)
     assert refused.status_code == 409 and refused.json()["code"] == "not_design_research"
+
+
+def test_the_quote_prices_an_interpretation_start_as_the_start_asks(
+    app: FastAPI, researcher: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    """Plan chunk 55 (DRL-0): ``POST …/deep-research/quote`` over the same target answers the
+    ceiling the start then asks to confirm, and writes nothing; another Study's target is 404."""
+    results = _results(app, researcher, world)
+    target = _object_target(results)
+    quote_url = f"{_study(world)}/deep-research/quote"
+    body = {"purpose": "INTERPRETATION_RESEARCH", "target": target, "preset_name": "QUICK"}
+    assert (
+        researcher.put(f"{_study(world)}/spend-confirm", json={"limit_usd": 0.01}).status_code
+        == 200
+    )
+    quoted = researcher.post(quote_url, json=body)
+    assert quoted.status_code == 200, quoted.text
+    assert quoted.json()["purpose"] == "INTERPRETATION_RESEARCH"
+    assert quoted.json()["start_verdict"] == "confirm"
+    assert researcher.get(_url(world)).json() == []
+    asked = researcher.post(f"{_url(world)}/interpretation", json=_body(target))
+    assert asked.status_code == 409, asked.text
+    assert asked.json()["details"]["ceiling_usd"] == quoted.json()["ceiling_usd"]
+    for member in (researcher, other_client_lead):
+        foreign = member.post(f"{_study(world, 'other_client')}/deep-research/quote", json=body)
+        assert foreign.status_code == 404, foreign.text
+
+
+def test_a_quote_marks_nothing_closed_or_open(
+    app: FastAPI,
+    researcher: TestClient,
+    world: Any,
+    damage_artifact: Any,
+    artifact_status: Any,
+) -> None:
+    """Codex on #555: a quote is read-only. On a closed study it is 403 ``study_closed`` before
+    any artifact is read; on an open one a pinned artifact that fails verification is 409
+    ``artifact_corrupt`` and still not marked CORRUPT (a start over it marks it)."""
+    results = _results(app, researcher, world)
+    target = _object_target(results)
+    quote_url = f"{_study(world)}/deep-research/quote"
+    body = {"purpose": "INTERPRETATION_RESEARCH", "target": target, "preset_name": "QUICK"}
+    damage_artifact(results["sociomap"], "tampered")
+    with create_session_factory(app.state.engine)() as session:
+        before = len(session.scalars(select(WorkflowRunRow)).all())
+
+    damaged = researcher.post(quote_url, json=body)
+    assert damaged.status_code == 409, damaged.text
+    assert damaged.json()["code"] == "artifact_corrupt"
+    assert artifact_status(results["sociomap"]) == "VALID"
+
+    closed = researcher.put(f"{_study(world)}/status", json={"status": "ARCHIVED"})
+    assert closed.status_code == 200, closed.text
+    refused = researcher.post(quote_url, json=body)
+    assert refused.status_code == 403, refused.text
+    assert refused.json()["code"] == "study_closed"
+    assert artifact_status(results["sociomap"]) == "VALID"
+    with create_session_factory(app.state.engine)() as session:
+        assert len(session.scalars(select(WorkflowRunRow)).all()) == before
+        assert session.scalars(select(ApprovalDecisionRow)).all() == []
