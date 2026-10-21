@@ -123,6 +123,20 @@ describe("Zadání", () => {
     expect(screen.queryByText("https://example.test/a")).toBeNull();
   });
 
+  it("removes a material at once and puts it back in place with Vrátit (audit A28)", async () => {
+    unitStub({ briefing: { attachments: [{ kind: "url", url: "https://a.test", title: "A" }, { kind: "url", url: "https://b.test", title: "B" }] } });
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Odebrat A" }));
+    expect(screen.queryByRole("button", { name: "Odebrat A" })).toBeNull();
+    expect(screen.getByText("Podklad „A“ odebrán")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Vrátit" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Odebrat A" })).toBeTruthy());
+    // Back first, as it was, and saved so.
+    expect(screen.getAllByRole("button", { name: /^Odebrat / }).map((x) => x.getAttribute("aria-label"))).toEqual(["Odebrat A", "Odebrat B"]);
+    await waitFor(() => expect(ws.saves.at(-1)?.reason).toBe("brief_attachment_restore"));
+    expect((ws.saves.at(-1)!.content.briefing as { attachments: { url: string }[] }).attachments.map((x) => x.url)).toEqual(["https://a.test", "https://b.test"]);
+  });
+
   const record = (b: unknown, n = 1) => ({
     kind: "file",
     attachment_id: `ART-${n}a`,

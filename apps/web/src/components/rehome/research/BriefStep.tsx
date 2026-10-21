@@ -34,6 +34,7 @@ import {
   editBrief,
   fileToBase64,
   removeAttachment,
+  restoreAttachment,
   storedAttachmentId,
   titleValue,
   toggleProblemType,
@@ -532,6 +533,9 @@ function Attachments({ uploads }: { uploads: Uploads }) {
   const list: Attachment[] = state.project.briefing.attachments || [];
   const { upload, pending, busy, error, setError } = uploads;
   const classes = useMaterialClasses(frame.studyId, state.revision);
+  // A removal happens at once, with Vrátit (I6, audit A28). The stored file stays in AIA's storage
+  // until then and after: removing it from the brief only drops its record, which the undo puts back.
+  const undo = useUndo();
 
   const download = async (x: Attachment, attachmentId: string) => {
     setError(null);
@@ -647,7 +651,13 @@ function Attachments({ uploads }: { uploads: Uploads }) {
                   small
                   variant="quiet"
                   aria-label={tv("research.brief.removeAria", { name: line.name })}
-                  onClick={() => store.update(({ project }) => ({ project: removeAttachment(project, i) }), { reason: "brief_attachment_remove" })}
+                  onClick={() => {
+                    store.update(({ project }) => ({ project: removeAttachment(project, i) }), { reason: "brief_attachment_remove" });
+                    undo.offer({
+                      message: tv("research.brief.attachmentRemoved", { name: line.name }),
+                      undo: () => store.update(({ project }) => ({ project: restoreAttachment(project, i, x) }), { reason: "brief_attachment_restore" }),
+                    });
+                  }}
                 >
                   ×
                 </Button>
@@ -669,6 +679,7 @@ function Attachments({ uploads }: { uploads: Uploads }) {
           ))}
         </ul>
       ) : null}
+      <UndoToast offer={undo.current} onDone={undo.clear} />
     </StepSection>
   );
 }

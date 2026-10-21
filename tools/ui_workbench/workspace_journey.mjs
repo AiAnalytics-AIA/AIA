@@ -124,6 +124,18 @@ const [download] = await Promise.all([page.waitForEvent("download", { timeout: 6
 const fileBack = readFileSync(await download.path(), "utf8");
 if (fileBack !== FILE.body) fail(`the downloaded file differs: ${JSON.stringify(fileBack)}`);
 ok("Zadání: the file downloads through the study, byte for byte");
+
+// Removing a material happens at once, with Vrátit (input-interactions I6, audit A28).
+// The removal saves first (Vrátit stays offered for 8 s, past the 1.8 s save), then the restore.
+const removedSave = saved();
+await page.getByRole("button", { name: `Odebrat ${FILE.name}` }).click();
+await removedSave;
+const restored = saved();
+await page.getByRole("button", { name: "Vrátit" }).click();
+await restored;
+await page.reload({ waitUntil: "load" });
+await text(FILE.name, "the attachment after Vrátit and a reload");
+ok("Zadání: a removed attachment comes back with Vrátit, saved (A28)");
 await shot("1-brief");
 
 // 2. Dotazník: AIA's template, imported back.
