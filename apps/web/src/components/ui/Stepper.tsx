@@ -55,12 +55,27 @@ export function Stepper({
     setProblem(null);
     setChecked(false);
   };
+  // What this stepper last committed, until the caller's `value` moves: a parent that saves
+  // asynchronously still holds the old value for a while, and a second press must step from what
+  // was sent, not from that stale prop (Codex on #532). Any change of `value` is the caller's answer.
+  const [sent, setSent] = useState<number | null>(null);
+  const [seen, setSeen] = useState(value);
+  if (seen !== value) {
+    setSeen(value);
+    setSent(null);
+  }
+  const saved = sent ?? value;
+  const commit = (next: number) => {
+    if (next === saved) return;
+    setSent(next);
+    onCommit(next);
+  };
   const errorId = useId();
   const boundsId = useId();
   // The bounds carry the unit: they are the field's description, and a screen reader hears them
   // apart from the unit drawn beside the value (Codex on #532).
   const range = rangeWords(bounds, unit);
-  const shownValue = draft ?? (value === null ? "" : formatNumber(value, decimals > 0 ? decimals : undefined));
+  const shownValue = draft ?? (saved === null ? "" : formatNumber(saved, decimals > 0 ? decimals : undefined));
 
   const commitDraft = (): boolean => {
     if (draft === null) return true;
@@ -71,23 +86,24 @@ export function Stepper({
       return false;
     }
     settle();
-    if (read.value !== value) onCommit(read.value);
+    commit(read.value);
     return true;
   };
 
-  // The base a press moves from: a valid draft (what the person sees), else the saved value.
+  // The base a press moves from: a valid draft (what the person sees), else what was saved.
   const base = (): number | null => {
     if (draft !== null) {
       const read = readNumber(draft, { ...bounds, min: -Infinity, max: Infinity });
       if (read.ok) return read.value;
     }
-    return value;
+    return saved;
   };
+  // One press, one commit: the step from the draft. The draft itself is not committed first.
   const press = (direction: 1 | -1, big: boolean) => {
     const next = stepNumber(base(), direction, bounds, big);
     if (next === null) return;
     settle();
-    if (next !== value) onCommit(next);
+    commit(next);
   };
 
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -108,7 +124,7 @@ export function Stepper({
   // valid value, and not at all when it is not -- never the saved value behind it (Codex on #532).
   // aria-invalid follows the draft as it is typed; the words come with the first refused commit (I9).
   const reading = draft === null ? null : readNumber(draft, bounds);
-  const announced = reading === null ? value : reading.ok ? reading.value : null;
+  const announced = reading === null ? saved : reading.ok ? reading.value : null;
   const invalid = problem !== null || (reading !== null && !reading.ok);
   // The buttons are for the pointer; the keyboard has the same moves on the field itself (↑ ↓,
   // Shift ×10), so the stepper is one Tab stop (the ARIA spin button pattern).
@@ -118,6 +134,9 @@ export function Stepper({
       tabIndex={-1}
       disabled={disabled || !canStep(current, direction, bounds)}
       aria-label={tv(direction > 0 ? "input.increase" : "input.decrease", { label })}
+      // Pressing a button must not take the focus from the field: its blur would commit the draft,
+      // and the click would then commit again (Codex on #532). The press steps from the draft.
+      onMouseDown={(e) => e.preventDefault()}
       onClick={(e) => press(direction, e.shiftKey)}
       className={`inline-flex size-11 shrink-0 items-center justify-center text-ink-muted hover:bg-surface-sunken hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent sm:size-8 ${FOCUS}`}
     >

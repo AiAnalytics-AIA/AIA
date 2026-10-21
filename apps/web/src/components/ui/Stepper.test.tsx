@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Stepper } from "./Stepper";
@@ -67,15 +68,67 @@ describe("Stepper (I2): bounded numbers, refused and never clamped", () => {
   });
 
   it("steps by one step with the arrows and the buttons, by ten with Shift", () => {
+    // The caller never moves `value` here: each press steps from what the last one sent.
     const save = n(400);
     fireEvent.keyDown(field(), { key: "ArrowUp" });
     expect(save).toHaveBeenLastCalledWith(410);
     fireEvent.keyDown(field(), { key: "ArrowDown", shiftKey: true });
-    expect(save).toHaveBeenLastCalledWith(300);
+    expect(save).toHaveBeenLastCalledWith(310);
     fireEvent.click(plus());
-    expect(save).toHaveBeenLastCalledWith(410);
+    expect(save).toHaveBeenLastCalledWith(320);
     fireEvent.click(minus(), { shiftKey: true });
-    expect(save).toHaveBeenLastCalledWith(300);
+    expect(save).toHaveBeenLastCalledWith(220);
+    expect((field() as HTMLInputElement).value).toBe("220");
+  });
+
+  it("commits a button press once, stepped from the typed draft (Codex #532)", () => {
+    const save = vi.fn();
+    render(<Stepper label="Počet" value={80} onCommit={save} min={0} max={500} />);
+    const input = screen.getByRole("spinbutton", { name: "Počet" });
+    act(() => input.focus());
+    fireEvent.change(input, { target: { value: "90" } });
+    const up = screen.getByRole("button", { name: "Zvýšit: Počet" });
+    // A browser moves focus on mousedown unless it is prevented; then the field would blur.
+    const focusMoves = fireEvent.mouseDown(up);
+    if (focusMoves) fireEvent.blur(input);
+    fireEvent.mouseUp(up);
+    fireEvent.click(up);
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(save).toHaveBeenCalledWith(91);
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("steps from what it sent while an async parent has not answered yet, then follows the parent (Codex #532)", async () => {
+    const calls: number[] = [];
+    let answer!: () => void;
+    function Parent() {
+      const [value, setValue] = useState(80);
+      return (
+        <Stepper
+          label="Počet"
+          value={value}
+          min={0}
+          max={500}
+          onCommit={(v) => {
+            calls.push(v);
+            // Saved on the server first; the parent's value moves only when it answers.
+            answer = () => setValue(v);
+          }}
+        />
+      );
+    }
+    render(<Parent />);
+    const input = screen.getByRole("spinbutton", { name: "Počet" }) as HTMLInputElement;
+    const up = screen.getByRole("button", { name: "Zvýšit: Počet" });
+    fireEvent.change(input, { target: { value: "90" } });
+    fireEvent.click(up);
+    fireEvent.click(up);
+    expect(calls).toEqual([91, 92]);
+    expect(input.value).toBe("92");
+    await act(async () => answer());
+    expect(input.value).toBe("92");
+    fireEvent.keyDown(input, { key: "ArrowUp" });
+    expect(calls).toEqual([91, 92, 93]);
   });
 
   it("disables a button at its bound", () => {
