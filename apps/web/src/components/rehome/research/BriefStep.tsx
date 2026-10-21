@@ -9,6 +9,7 @@
 // draws it. The sentence starters and "Navrhnout z cíle" write the same fields a
 // person types into; nothing here calls a model but the analysis.
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type DragEvent, type ReactNode, useRef, useState } from "react";
 
@@ -36,6 +37,7 @@ import { StepSection } from "../step";
 import { InspectorSlot } from "./Inspector";
 import { AiButton, Button, TextInput } from "../ui";
 import { useResearch } from "./context";
+import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AnalysisFailureCard, useAnalysis } from "./useAnalysis";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -81,6 +83,7 @@ export function BriefStep() {
   const router = useRouter();
   const p = state.project;
   const { analyse: runAnalysis, resume, failure, busy } = useAnalysis();
+  const leadOwnsAiStarts = useLeadOwnsAiStarts();
 
   const edit = (field: TopField | BriefingField, value: string) =>
     store.update(({ project, analysis }) => editBrief(project, analysis, field, value));
@@ -132,10 +135,20 @@ export function BriefStep() {
           ]}
         >
           <p aria-live="polite" className={`text-[13px] leading-5 ${ready ? "text-ink-muted" : "text-status-you-ink"}`}>{note}</p>
-          <AiButton variant="primary" className="w-full justify-center !min-h-11" onClick={analyse} disabled={busy || !ready}>
-            {t("research.brief.next")}
-            <Icon name="next" size={14} />
-          </AiButton>
+          {!leadOwnsAiStarts ? (
+            <AiButton variant="primary" className="w-full justify-center !min-h-11" onClick={analyse} disabled={busy || !ready}>
+              {t("research.brief.next")}
+              <Icon name="next" size={14} />
+            </AiButton>
+          ) : (
+            <>
+              <Link href={stepHref("plan")} className="inline-flex w-full items-center justify-center gap-1 rounded-control border border-border-strong px-3 !min-h-11 text-sm no-underline">
+                Pokračovat na Návrh
+                <Icon name="next" size={14} />
+              </Link>
+              <AskLead className="mt-2" what="Analýzu zadání" />
+            </>
+          )}
         </Readiness>
       </InspectorSlot>
 

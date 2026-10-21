@@ -15,12 +15,12 @@ operations. This module is that contract, before any writer moves onto it
 * **Ids** (:data:`ITEM_ID`, :func:`new_item_id`, :func:`new_op_id`): the grammar an item's stable
   id keeps (the id part of the Lead's ``FOCUS_ID``), the prefix each kind's new ids take (the ones
   ``apply_edit`` and the web already write: ``Q_``, ``sec_``), and an operation's own id for the
-  log (M1). Giving existing content ids is WCE1.
+  log (M1). Existing content's ids, and the id lists that keep them, are ``item_ids``' (WCE1).
 * **Validation** (:func:`refusal`): why an operation cannot apply to a working copy, as a stable
   word from :data:`REFUSALS`, the same words :func:`apply_edit` refuses with.
 * **What an operation touches** (:func:`touches`): each ``(item key, field)`` it writes, the unit
-  two people's edits conflict on (the owner's D-06: per field, not per item). Until WCE1 a plan
-  list's item is keyed by its normalised text, as ``design_items`` keys it.
+  two people's edits conflict on (the owner's D-06: per field, not per item), on the items'
+  stable ids (``item_ids``, WCE1), as the field view ``design_fields`` compares them.
 * **The lock** (:func:`locked_items`, :func:`lock_refusal`, :func:`whole_copy_lock_refusal`): once
   a design declares a Sociomap input (a ``sociomap_rating`` question, or ``context_objects`` on a
   tracked set), the declared inputs and the sets they rate are locked (the owner's D-30): an
@@ -49,8 +49,10 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from .design_items import Documents, ItemKey, item_values, normalise
+from .design_fields import Touch, changed_fields
+from .design_items import Documents, ItemKey, item_values
 from .design_items import design_items as changed_items
+from .item_ids import with_item_ids
 from .research_design import SampleSizeLimits, sample_size_problem
 
 __all__ = [
@@ -897,79 +899,47 @@ def refusal(
 
 # --------------------------------------------------------------------------- what it touches
 
-#: One ``(item, field)`` an operation writes: the unit two edits conflict on (D-06).
-Touch = tuple[ItemKey, str]
-
-_LIST_KIND: Final[Mapping[str, str]] = MappingProxyType(
-    {
-        "plan.objectives": "objective",
-        "plan.research_questions": "research_question",
-        "plan.hypotheses": "hypothesis",
-    }
-)
+#: The ids :func:`touches` names an added item by when the caller gives none: the kind's prefix
+#: and ``new``. A caller that will apply the edit passes the ``new_id`` it applies it with.
+_PLACEHOLDER: Final[Callable[[IdKind], str]] = lambda kind: ID_PREFIX[IdKind(kind)] + "new"  # noqa: E731
+#: What an operation changes besides what a person wrote: the stages' own state.
+_CONSEQUENCES: Final = frozenset({ItemKey("content", "field", "ui_state")})
+_APPLIED_TYPES: Final = (SetText, ListAdd, ListReplace, ListRemove, QuestionAdd, QuestionEdit,
+                         QuestionRemove, SetN)  # fmt: skip
 
 
-def _section_of(content: Mapping[str, Any], question_id: str) -> str | None:
-    for section in content.get("sections") or ():
-        if not isinstance(section, Mapping) or section.get("type") != "questions":
-            continue
-        for question in section.get("questions") or ():
-            if isinstance(question, Mapping) and question.get("id") == question_id:
-                return str(section.get("id") or "")
-    return None
+def touches(
+    edit: BaseModel,
+    content: Mapping[str, Any],
+    *,
+    new_id: Callable[[IdKind], str] = _PLACEHOLDER,
+) -> frozenset[Touch]:
+    """Every ``(item key, field)`` ``edit`` writes in the working copy ``content`` (D-06).
 
-
-def _first_questions_section(content: Mapping[str, Any]) -> str:
-    for section in content.get("sections") or ():
-        if isinstance(section, Mapping) and section.get("type") == "questions":
-            return str(section.get("id") or "")
-    return ""
-
-
-def touches(edit: BaseModel, content: Mapping[str, Any]) -> frozenset[Touch]:
-    """Every ``(item key, field)`` ``edit`` writes in the working copy ``content``.
-
-    Item keys are ``design_items``' (``content:question:Q1``). A plan-list item is keyed by its
-    normalised text until WCE1 gives it an id, so a reword touches the old text and the new. A
-    question added where no questions section exists touches the section it creates, keyed
-    ``""``. A brief edit also clears the analysis made of the brief (:func:`apply_edit`); that is
-    a consequence of the edit, not a field a person wrote, and is not listed."""
-    c: Literal["content"] = "content"
-    if isinstance(edit, SetText):
-        if edit.field == "plan.problem_summary":
-            return frozenset({(ItemKey(c, "plan", "problem_summary"), "text")})
-        return frozenset({(ItemKey(c, "brief", edit.field), "text")})
-    if isinstance(edit, ListAdd):
-        return frozenset({(ItemKey(c, _LIST_KIND[edit.list], normalise(edit.value)), "item")})
-    if isinstance(edit, ListReplace):
-        kind = _LIST_KIND[edit.list]
-        return frozenset(
-            {
-                (ItemKey(c, kind, normalise(edit.old)), "text"),
-                (ItemKey(c, kind, normalise(edit.value)), "text"),
-            }
-        )
-    if isinstance(edit, ListRemove):
-        return frozenset({(ItemKey(c, _LIST_KIND[edit.list], normalise(edit.old)), "item")})
-    if isinstance(edit, QuestionAdd):
-        section = edit.section_id or _first_questions_section(content)
-        return frozenset({(ItemKey(c, "section", section), "questions")})
-    if isinstance(edit, QuestionEdit):
-        out: set[Touch] = set()
-        if edit.text is not None:
-            out.add((ItemKey(c, "question", edit.question_id), "text"))
-        if edit.options is not None:
-            out.add((ItemKey(c, "question", edit.question_id), "kategorie"))
-        return frozenset(out)
-    if isinstance(edit, QuestionRemove):
-        removed: set[Touch] = {(ItemKey(c, "question", edit.question_id), "item")}
-        holder = _section_of(content, edit.question_id)
-        if holder is not None:
-            removed.add((ItemKey(c, "section", holder), "questions"))
-        return frozenset(removed)
+    Exactly what applying it changes: the edit is applied to ``content`` with its ids written in
+    (:mod:`.item_ids`) and the two are compared field by field (:mod:`.design_fields`), so the keys
+    are the items' stable ids, the same ``design_items`` and :func:`locked_items` use. A reworded
+    list entry touches its one item's ``text``; an added item (a question, a list entry, the
+    section a first question creates) touches its own ``item`` and nothing of its section or list,
+    so two people adding to one section touch different keys; a removed one its ``item``. An added
+    item is named by ``new_id`` (by default a placeholder, ``Q_new``). The stages' own state
+    (``ui_state``), which an edit of the plan also marks, is not listed; nor is the analysis a
+    brief edit clears (:func:`apply_edit`): consequences of the edit, not what a person wrote. An
+    edit the copy refuses touches nothing."""
+    if not isinstance(edit, _APPLIED_TYPES):
+        raise TypeError(f"not an operation the vocabulary applies: {type(edit).__name__}")
+    base, _ = with_item_ids(content)
     if isinstance(edit, SetN):
-        return frozenset({(ItemKey(c, "n", ""), "value")})
-    raise TypeError(f"not an operation the vocabulary applies: {type(edit).__name__}")
+        # What a sample size writes does not depend on the limits it is checked against
+        # (``apply_edit``'s ``sample_size``): a value out of range is refused there, not untouched.
+        after: dict[str, Any] = {**base, "n": edit.value}
+    else:
+        applied = apply_edit(base, None, edit, new_id=new_id)
+        if isinstance(applied, Refused):
+            return frozenset()
+        after = applied[0]
+    changed = changed_fields(Documents(content=base), Documents(content=after))
+    return frozenset(t for t in changed if t[0] not in _CONSEQUENCES)
 
 
 # --------------------------------------------------------------------------- the lock

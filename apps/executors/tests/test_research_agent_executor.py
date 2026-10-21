@@ -13,6 +13,7 @@ from aia_core.application.proposal_accept import StaleProposal
 from aia_core.application.research import ResearchAgentJobs
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.design import DesignRejected
+from aia_core.domain.item_ids import derived_id
 from aia_core.domain.prompts import PromptPin
 from aia_core.domain.research_agents import (
     BASELINE_PROMPT_VERSION,
@@ -35,6 +36,7 @@ from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRep
 from aia_core.infrastructure.tables import ApprovalDecisionRow, PromptVersionRow
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_executors.ai_runtime import AIRuntimeConfigError, AIRuntimeSettings, build_gateway
+from aia_executors.recorded_models import DESIGN_ANSWERS, RecordedModels
 from aia_executors.registry import registry_for
 from aia_executors.research_agents import ResearchAgentConfig, ResearchAgentExecutor, _touched
 from aia_worker.settings import WorkerSettings
@@ -140,7 +142,13 @@ def settings(client_id: str, **overrides: str) -> AIRuntimeSettings:
     return result
 
 
-def start(world: Any, *, content: dict[str, Any] | None = None, instruction: str = "") -> str:
+def start(
+    world: Any,
+    *,
+    content: dict[str, Any] | None = None,
+    instruction: str = "",
+    action: ResearchAction = ResearchAction.ANALYZE,
+) -> str:
     with world.sessions() as session:
         scope = world.lead_scope(session)
         revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
@@ -149,7 +157,7 @@ def start(world: Any, *, content: dict[str, Any] | None = None, instruction: str
         )
         job = ResearchAgentJobs(session, scope).start(
             design_revision_id=revision.revision_id,
-            action=ResearchAction.ANALYZE,
+            action=action,
             instruction=instruction,
         )
         session.commit()
@@ -229,8 +237,11 @@ def test_worker_stores_proposal_and_review_creates_a_new_revision(
         base = job["metadata"]["base_workspace_revision"]
         assert base == designs.get(baseline).workspace_revision is not None
         touched = job["steps"][0]["output"]["touched_items"]
-        assert "content:objective:test appeal" in touched
-        assert "analysis:objective:test appeal" in touched
+        # A plan item is named by its stable id (WCE1); content stored without ids has the id its
+        # wording derives, one per wording.
+        appeal = derived_id("obj_", "objective", "Test appeal", 1)
+        assert f"content:objective:{appeal}" in touched
+        assert f"analysis:objective:{appeal}" in touched
         assert "content:brief:goal" not in touched
         workspaces = StudyWorkspaceRepository(session)
         before = workspaces.content(scope)
@@ -277,6 +288,24 @@ def test_worker_stores_proposal_and_review_creates_a_new_revision(
             "workspace_revision": accepted.working.revision,
             "workspace_revision_id": accepted.working.revision_id,
         }
+
+
+@pytest.mark.parametrize("action", list(ResearchAction))
+def test_every_design_worker_runs_end_to_end_on_its_recording(
+    world: Any, database_url: str, store: Any, build: Any, action: ResearchAction
+) -> None:
+    """RecordedModels holds one answer per design worker (artifact-chain CHN7): the job runs
+    through the real worker, gateway, adapter and ledger, its answer keeps the closed contract,
+    and the stored proposal names a recording."""
+    assert f"aia_research_{action.value}" in DESIGN_ANSWERS
+    run_id = start(world, action=action)
+    w = worker(world, database_url, store, build, RecordedModels())  # type: ignore[arg-type]
+    assert w.run_once()
+    with world.sessions() as session:
+        jobs = ResearchAgentJobs(session, world.lead_scope(session))
+        assert jobs.get(run_id)["status"] is WorkflowRunStatus.COMPLETED
+        provenance = jobs.result(run_id, store=store)["provenance"]
+        assert provenance["provider_request_id"].startswith(f"recorded-{action.value}-")
 
 
 @pytest.mark.parametrize("step_events", [False, True])
@@ -875,6 +904,7 @@ def test_a_job_started_after_an_edit_is_checked_against_its_designs_working_revi
         assert refused.value.details() == {
             "reason": "items_changed",
             "conflicting_items": ["content:plan:problem_summary"],
+            "conflicting_wording": {},  # a plan field, said by its name
         }
         # Nothing was written: the design and the working copy are as the person left them.
         scope = world.lead_scope(session)

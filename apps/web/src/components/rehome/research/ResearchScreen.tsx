@@ -38,7 +38,8 @@ import { type StudyFrame, useStudyFrame } from "./frame";
 import { DesignSourceNote } from "./DesignSourceNote";
 import { STEP_SCREENS } from "./steps";
 import { ResearchAssistance, isAdviceAction } from "./ResearchAssistance";
-import { Workbench, useStageWide } from "../../workbench/Workbench";
+import { OPEN_REVIEW_KEY, Workbench, useStageWide } from "../../workbench/Workbench";
+import { leadOwnsAiStarts } from "@/lib/lead-cards";
 import { loadConfig } from "@/lib/auth";
 
 // Contextual help keeps the same stage/action contract and native job boundaries.
@@ -68,6 +69,18 @@ const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 /** A design proposal a person has still to decide, as the server projects it (ADR 0026 decision 8). */
 const pendingProposal = (j: ResearchAgentJob) => j.status === "COMPLETED" && !isAdviceAction(j.action) && j.proposal_state === "pending";
 
+/** The stable item ids switch once read (/config's stableItemIds, WCE1); null until then. */
+let itemIdsKnown: boolean | null = null;
+
+/** Whether the store keeps stable item ids: off when the config cannot be read. */
+function stableItemIds(): Promise<boolean> {
+  if (itemIdsKnown !== null) return Promise.resolve(itemIdsKnown);
+  return loadConfig().then(
+    (c) => (itemIdsKnown = c.stableItemIds === true),
+    () => false,
+  );
+}
+
 /** The study's working content, loaded once and kept while the person stays in the study (its layout). */
 export function ResearchSession({ studyId, initialContent, children }: { studyId: string; initialContent?: WorkingContent; children: ReactNode }) {
   const [loaded, setLoaded] = useState<Loaded>({ kind: "loading" });
@@ -77,12 +90,15 @@ export function ResearchSession({ studyId, initialContent, children }: { studyId
   useEffect(() => {
     let live = true;
     let store: ResearchStore | null = null;
-    (version === 0 && initialContent ? Promise.resolve(readWorkingContent(initialContent)) : loadResearch(studyId)).then(
-      (r) => {
+    // Stable item ids are kept only behind their switch (WCE1); a config that cannot be read is off.
+    stableItemIds().then((itemIds) =>
+      (version === 0 && initialContent ? Promise.resolve(readWorkingContent(initialContent, { itemIds })) : loadResearch(studyId, undefined, { itemIds })).then((r) => ({ r, itemIds })),
+    ).then(
+      ({ r, itemIds }) => {
         if (!live) return;
         if (r.kind === "awaiting_migration") return setLoaded({ kind: "awaiting_migration" });
         if (r.kind === "unrecoverable") return setLoaded({ kind: "unrecoverable", template: r.template, canEdit: r.canEdit });
-        const s = new ResearchStore(r.state, studyId, { readOnly: !r.canEdit });
+        const s = new ResearchStore(r.state, studyId, { readOnly: !r.canEdit, itemIds });
         store = s;
         setLoaded({ kind: "ready", store: s, template: r.template, origin: r.origin });
       },
@@ -97,7 +113,7 @@ export function ResearchSession({ studyId, initialContent, children }: { studyId
   // Nothing survived in 18.6.6: a person who may edit starts again, explicitly,
   // from the template. The first save records it with the study (ADR 0018).
   const startAgain = useCallback(() => {
-    setLoaded((l) => (l.kind === "unrecoverable" && l.canEdit ? { kind: "ready", store: new ResearchStore(newResearch(l.template), studyId), template: l.template, origin: null } : l));
+    setLoaded((l) => (l.kind === "unrecoverable" && l.canEdit ? { kind: "ready", store: new ResearchStore(newResearch(l.template), studyId, { itemIds: itemIdsKnown === true }), template: l.template, origin: null } : l));
   }, [studyId]);
 
   const value = useMemo(
@@ -327,17 +343,33 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
   // The proposals a person has still to decide (ADR 0026 decision 8): an accepted, dismissed or
   // superseded one is not offered again.
   const savedProposals = agents.recent.filter(pendingProposal);
+  // In the workbench every AI action goes through the Research Lead (D15): no AI pomoc, no stage
+  // "Navrhnout", no job dialog -- each job is a card in the conversation. The classic layout, which
+  // has no Lead yet (chunk 26), keeps its buttons.
+  const inWorkbench = workbench && wide;
+  const leadOwns = leadOwnsAiStarts(inWorkbench ? "workbench" : "classic");
+  const starts = !leadOwns;
+  // A card on another stage asked for this job's review: opened here once the jobs are read.
+  const openAgent = agents.open;
+  useEffect(() => {
+    const wanted = memory.get(OPEN_REVIEW_KEY);
+    if (typeof wanted !== "string" || agents.busy) return;
+    const job = agents.recent.find((j) => j.run_id === wanted);
+    if (!job) return;
+    memory.delete(OPEN_REVIEW_KEY);
+    void openAgent(job);
+  }, [memory, agents.recent, agents.busy, openAgent]);
 
   return (
-    <ResearchAssistance step={step} studyName={frame.studyName} canEdit={frame.canEdit} memory={memory} actions={aiHelp} agents={agents} job={job} onCancel={onCancel} studyId={frame.studyId}>
-    {({ card, panel, expanded, ask: askAssistance }) => <ResearchContext.Provider value={{ ...value, askAssistance }}>
-      {workbench && wide ? (
+    <ResearchAssistance step={step} studyName={frame.studyName} canEdit={frame.canEdit} memory={memory} actions={aiHelp} agents={agents} job={job} onCancel={onCancel} studyId={frame.studyId} starts={starts}>
+    {({ card, panel, expanded, ask: askAssistance }) => <ResearchContext.Provider value={{ ...value, leadOwnsAiStarts: leadOwns, askAssistance: leadOwns ? undefined : askAssistance }}>
+      {inWorkbench ? (
         <InspectorProvider disabled={!frame.canEdit && DESIGN_STEPS.has(step)}>{(column) => (
           <Workbench frame={frame} step={step} store={store} memory={memory} reload={reload} confirm={confirm} onAgentStarted={() => void agents.refresh()}
             jobs={agents.recent} onOpenJob={(j) => void agents.open(j)} onRefreshJobs={refreshJobs}
             save={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} onReload={reload} />}
             inspector={column(<>
-              {expanded ? panel : card}
+              {card}
               {onTrack ? <Blockers state={state} stepHref={stepHref} /> : null}
               {agents.notice ? <p role="status" className="text-sm text-ink-muted">{agents.notice}</p> : null}
               <AgentBudgetWaits jobs={agents.recent} studyId={frame.studyId} canEdit={frame.canEdit} onChanged={agents.refresh} exclude={claimed} onLifted={continueListed} />
@@ -352,12 +384,13 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
             <DesignSourceNote clientId={frame.clientId} studyId={frame.studyId} />
             {origin ? <p role="status" data-content-origin="18.6.6" className="mb-4 max-w-3xl rounded-sm border border-border bg-surface-raised p-3 text-sm leading-6 text-ink">{origin}</p> : null}
             <div className="flex min-w-0 flex-col gap-4">
+              {/* An advice answer opened from its card in the conversation: read here, never in a closed inspector. */}
+              {panel}
               {agents.proposalReview ? <ProposalReview result={agents.proposalReview.result} state={state} onDecision={agents.proposalReview.decide} canApply={frame.canEdit} stale={agents.proposalReview.stale} /> : null}
               <ReadOnly when={!frame.canEdit && DESIGN_STEPS.has(step)}>
                 {Screen ? <Screen /> : <StepPlaceholder step={step} />}
               </ReadOnly>
             </div>
-            {expanded ? null : panel}
           </Workbench>
         )}</InspectorProvider>
       ) : (
@@ -392,7 +425,7 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
         </section> : null}
         </StageChrome>
       )}
-      {job && !isAdviceAction(agents.activeAction) ? <JobPanel job={job} onCancel={onCancel} studyId={frame.studyId} /> : null}
+      {job && starts && !isAdviceAction(agents.activeAction) ? <JobPanel job={job} onCancel={onCancel} studyId={frame.studyId} /> : null}
       {agents.dialog}
       <AskDialog ask={ask} onDone={() => setAsk(null)} />
       <Toast message={toast} />

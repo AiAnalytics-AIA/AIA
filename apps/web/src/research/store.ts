@@ -9,6 +9,7 @@
 
 import { t, tv } from "@/i18n/t";
 import { ApiError, type ContentState, type DesignRevision, type WorkingContent, research, workspace } from "@/lib/api";
+import { settleItemIds, withItemIds } from "./item-ids";
 import { type Json, type ResearchProject, type Template, defaultsMerge } from "./model";
 
 export const SAVE_DEBOUNCE_MS = 1800;
@@ -91,8 +92,17 @@ export function originNotice(state: ContentState, lineage: Record<string, unknow
   return null;
 }
 
+/**
+ * Whether the store keeps stable item ids (working-copy-edit-ops WCE1; /config's stableItemIds,
+ * AIA_WEB_STABLE_ITEM_IDS, off by default). On, a load writes each item's id in (`withItemIds`:
+ * content stored before ids is then `completed`, saved before a submit) and every change is
+ * settled (`settleItemIds`: ids kept through a reword, a reworded research question's links
+ * followed). Off, the store writes no id and the server keys by the ids it derives.
+ */
+export type ItemIdsOption = { itemIds?: boolean };
+
 /** What a load of the study's working content means for its stages. */
-export function readWorkingContent(r: WorkingContent): LoadResult {
+export function readWorkingContent(r: WorkingContent, { itemIds = false }: ItemIdsOption = {}): LoadResult {
   if (r.state === "AWAITING_MIGRATION") return { kind: "awaiting_migration" };
   const template = templateOf(r);
   if (r.state === "UNRECOVERABLE") return { kind: "unrecoverable", template, canEdit: r.can_edit, lineage: r.lineage || {} };
@@ -100,7 +110,9 @@ export function readWorkingContent(r: WorkingContent): LoadResult {
   if (r.state === "EMPTY" || !r.content) {
     return { kind: "research", state: newResearch(template), template, contentState: r.state, canEdit: r.can_edit, origin };
   }
-  const project = defaultsMerge(r.content, template);
+  const merged = defaultsMerge(r.content, template);
+  const stored = isRecord(r.analysis) ? (r.analysis as Analysis) : null;
+  const [project, analysis] = itemIds ? withItemIds(merged, stored) : [merged, stored];
   return {
     kind: "research",
     template,
@@ -110,7 +122,7 @@ export function readWorkingContent(r: WorkingContent): LoadResult {
     state: {
       revision: r.revision,
       project,
-      analysis: isRecord(r.analysis) ? (r.analysis as Analysis) : null,
+      analysis,
       save: { kind: "saved" },
       checkEpoch: 0,
       completed: canonical(project) !== canonical(r.content),
@@ -119,8 +131,12 @@ export function readWorkingContent(r: WorkingContent): LoadResult {
 }
 
 /** GET the study's working content and read it. `read` is injected in tests. */
-export async function loadResearch(studyId: string, read: (studyId: string) => Promise<WorkingContent> = workspace.content): Promise<LoadResult> {
-  return readWorkingContent(await read(studyId));
+export async function loadResearch(
+  studyId: string,
+  read: (studyId: string) => Promise<WorkingContent> = workspace.content,
+  options: ItemIdsOption = {},
+): Promise<LoadResult> {
+  return readWorkingContent(await read(studyId), options);
 }
 
 type SaveContent = typeof workspace.saveContent;
@@ -142,7 +158,7 @@ export class ResearchStore {
   constructor(
     initial: ResearchState,
     private readonly studyId: string,
-    private readonly opts: { onSaved?: (revision: number) => void; save?: SaveContent; readOnly?: boolean } = {},
+    private readonly opts: { onSaved?: (revision: number) => void; save?: SaveContent; readOnly?: boolean } & ItemIdsOption = {},
   ) {
     this.state = opts.readOnly ? { ...initial, save: { kind: "readonly" } } : initial;
   }
@@ -171,7 +187,7 @@ export class ResearchStore {
   ): void {
     // Content that may not change here is never changed, so nothing on screen reads as edited.
     if (this.opts.readOnly) return;
-    const r = change({ project: this.state.project, analysis: this.state.analysis });
+    const r = this.settled(change({ project: this.state.project, analysis: this.state.analysis }));
     const blocked = this.state.save.kind === "conflict" || this.state.save.kind === "closed";
     this.set({
       ...this.state,
@@ -187,22 +203,74 @@ export class ResearchStore {
     this.timer = setTimeout(() => this.autosave(), SAVE_DEBOUNCE_MS);
   }
 
-  /** A debounced save: its failure is shown through `save`, not thrown. */
-  private autosave(): void {
-    this.flush().catch(() => {});
+  /** A change with its item ids settled against this copy, when the store keeps them (WCE1). */
+  private settled<R extends { project: ResearchProject; analysis?: Analysis | null }>(r: R): R {
+    if (!this.opts.itemIds) return r;
+    const analysis = r.analysis === undefined ? this.state.analysis : r.analysis;
+    const [project, settledAnalysis] = settleItemIds([this.state.project, this.state.analysis], [r.project, analysis]);
+    return { ...r, project, analysis: settledAnalysis };
   }
 
-  /** Save now; resolves when AIA has answered. A conflict is thrown, and kept in `save`. */
-  async flush(reason?: string): Promise<void> {
-    if (this.timer) {
-      clearTimeout(this.timer);
-      this.timer = null;
-    }
-    if (this.inflight) await this.inflight;
+  /**
+   * A debounced save: one save, its failure shown through `save`, not thrown. A change typed while
+   * it was in flight waits for its own debounce (the save arms it again), as the classic autosave does.
+   */
+  private autosave(): void {
+    this.drain(undefined, 1).catch(() => {});
+  }
+
+  /**
+   * Whether this copy is owed a save: it was never saved, it changed since its last save (pending,
+   * failed, or changed while a save was in flight), or the template completed it on load.
+   */
+  private owed(): boolean {
     const s = this.state;
-    if (this.opts.readOnly) return;
-    if (s.save.kind === "conflict") throw new ApiError(409, "stale_revision", CONFLICT_MESSAGE, null);
-    if (s.save.kind === "closed") throw new ApiError(403, "study_closed", CLOSED_MESSAGE, null);
+    return s.revision === null || s.save.kind !== "saved" || !!s.completed;
+  }
+
+  /**
+   * Save now; resolves only once AIA holds the copy as it is, edits made while a save was in flight
+   * included. Saves are serialised: one at a time, each naming the revision the one before it
+   * returned, so two callers waiting behind one save never send the same base (F-STORE-1). A copy
+   * nothing is owed on is not sent. A conflict is thrown, and kept in `save`. After
+   * MAX_FLUSH_ROUNDS saves with the copy still changing under them, `FlushIncomplete` is thrown;
+   * the change stays pending and its debounced save stays armed, so nothing is dropped.
+   */
+  async flush(reason?: string): Promise<void> {
+    if (await this.drain(reason, MAX_FLUSH_ROUNDS)) return;
+    if (this.state.save.kind === "pending" && !this.timer) {
+      this.timer = setTimeout(() => this.autosave(), SAVE_DEBOUNCE_MS);
+    }
+    throw new FlushIncomplete();
+  }
+
+  /**
+   * Up to `rounds` serialised saves, until nothing is owed. True when nothing is owed (or the copy
+   * may not change here); false when the rounds ran out with a change still waiting.
+   */
+  private async drain(reason: string | undefined, rounds: number): Promise<boolean> {
+    for (let round = 0; round < rounds; round++) {
+      if (this.timer) {
+        clearTimeout(this.timer);
+        this.timer = null;
+      }
+      // One save at a time: wait for whichever save is in flight, then look at the copy again.
+      while (this.inflight) await this.inflight;
+      if (this.opts.readOnly) return true;
+      if (this.state.save.kind === "conflict") throw new ApiError(409, "stale_revision", CONFLICT_MESSAGE, null);
+      if (this.state.save.kind === "closed") throw new ApiError(403, "study_closed", CLOSED_MESSAGE, null);
+      if (!this.owed()) return true;
+      await this.saveOnce(reason);
+    }
+    return !this.owed();
+  }
+
+  /**
+   * One save of the copy as it is now. Called only with no save in flight: `inflight` is set before
+   * this returns, so a caller resuming after the previous save waits for this one.
+   */
+  private saveOnce(reason?: string): Promise<void> {
+    const s = this.state;
     const body = {
       content: s.project,
       analysis: s.analysis,
@@ -210,7 +278,7 @@ export class ResearchStore {
       reason: saveReason(reason ?? this.reason),
     };
     this.set({ ...this.state, save: { kind: "saving" } });
-    this.inflight = (async () => {
+    const flight = (async () => {
       try {
         const r = await (this.opts.save ?? workspace.saveContent)(this.studyId, body);
         this.set({
@@ -240,15 +308,17 @@ export class ResearchStore {
         this.inflight = null;
       }
     })();
-    await this.inflight;
+    this.inflight = flight;
+    return flight;
   }
 
   /** Replace the project and analysis with what an AI step returned (no autosave of its own). */
   replace(next: { project?: ResearchProject; analysis?: Analysis | null }): void {
+    const r = this.settled({ project: next.project ?? this.state.project, analysis: next.analysis });
     this.set({
       ...this.state,
-      project: next.project ?? this.state.project,
-      analysis: next.analysis === undefined ? this.state.analysis : next.analysis,
+      project: r.project,
+      analysis: r.analysis === undefined ? this.state.analysis : r.analysis,
     });
   }
 
@@ -294,7 +364,7 @@ export class ResearchStore {
       }
       throw e;
     }
-    const loaded = readWorkingContent(raw);
+    const loaded = readWorkingContent(raw, { itemIds: this.opts.itemIds });
     if (loaded.kind !== "research") throw new Error("Pracovní obsah studie se nepodařilo znovu načíst.");
     if (since && (this.state.project !== since.project || this.state.analysis !== since.analysis)) {
       this.conflict(loaded.state.revision);
@@ -323,6 +393,20 @@ export class ResearchStore {
 export const CONFLICT_MESSAGE = "Obsah studie mezitím uložil někdo jiný. Načtěte ho znovu, než budete pokračovat.";
 export const CLOSED_MESSAGE = "Studie je uzavřená a změny nepřijímá. Načtěte ji znovu.";
 
+/** How many saves one `flush` makes while the copy keeps changing under them, before it says so. */
+export const MAX_FLUSH_ROUNDS = 4;
+
+export const FLUSH_INCOMPLETE_MESSAGE = "Obsah studie se mění rychleji, než se stihne uložit. Změny čekají na uložení.";
+
+/** A flush that saved MAX_FLUSH_ROUNDS times and still has a change waiting: nothing was dropped. */
+export class FlushIncomplete extends Error {
+  readonly code = "flush_incomplete";
+  constructor() {
+    super(FLUSH_INCOMPLETE_MESSAGE);
+    this.name = "FlushIncomplete";
+  }
+}
+
 /** The API's save reason: the classic reasons are already this shape; anything else is `autosave`. */
 export function saveReason(reason: string): string {
   return /^[a-z0-9_:.-]{1,64}$/.test(reason) ? reason : "autosave";
@@ -339,12 +423,10 @@ export async function submitWorkingDesign(
   sourceStage: string,
   submit: typeof research.submitDesign = research.submitDesign,
 ): Promise<DesignRevision> {
-  // A copy AIA already holds as it is needs no save: its revision is what is submitted. One the
-  // template completed on load is not what AIA holds, so it is saved first (its own revision).
-  const owed = () => store.get().revision === null || store.get().save.kind !== "saved" || !!store.get().completed;
-  for (let i = 0; i < 2 && owed(); i++) {
-    await store.flush(sourceStage === "run" ? "run" : undefined);
-  }
+  // A copy AIA already holds as it is needs no save (flush sends nothing): its revision is what is
+  // submitted. One the template completed on load is not what AIA holds, so it is saved first, and
+  // flush saves a change typed during that save too.
+  await store.flush(sourceStage === "run" ? "run" : undefined);
   const s = store.get();
   if (s.revision === null) throw new Error("Pracovní obsah studie ještě není uložený.");
   return submit(studyId, s.project, sourceStage, s.revision);

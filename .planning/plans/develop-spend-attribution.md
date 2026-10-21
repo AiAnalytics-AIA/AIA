@@ -8,6 +8,7 @@ chunks:
   - "[x] 5a. The worker accepts what the plan creates (W0): a tagged profile ARN or an `eu.` id, decided as a model identity versus an invocation target; and the statement "no Environment tag" corrected"
   - "[ ] 5b. The reconciliation's lines (W3): model usage, tool and search spend, open reservations and uncertain calls, each separate, after `deep-research` 4; billing lag recorded, never zero"
   - "[ ] 6. An organization's monthly spend, read-only for OWNER and ADMIN in Settings: model, Brave and other tool spend across clients, from the content-free rows MVPQ-07 keeps (D-47)"
+  - "[ ] 7. Per-researcher spend (Q40): an actor user id on every ai_usage_events, budget_reservations and tool-spend row, booked to whoever approved or started the paid work; a per-person aggregate route (OWNER/ADMIN see everyone, a researcher only themself); Settings → Studie a rozpočty \"Útrata podle výzkumníka\" (the Settings prototype, round 5); after lead-orchestration LO1's wallet holds"
 ---
 # Spend proven twice: AIA's ledger and an AWS cost record
 
@@ -156,3 +157,57 @@ Tests: `packages/aia_core/tests/test_model_invocation.py`,
   "`model_invocation.py` A model's identity versus its invocation target (5a)".
 - `deploy/develop/README.md` § The Research Lead's own model and the AI runtime section: the two
   optional keys, set in SSM once chunk 1's profiles exist.
+
+## Per-researcher spend (chunk 7, 2026-10-21)
+
+**Decision Q40 (Nigel, the product owner, 11:42 UTC, 2026-10-21): spend is attributed per researcher.**
+A charge is booked to whoever approves or starts the paid work. OWNER and ADMIN see everyone's; a
+researcher sees only their own.
+
+**What exists** (`origin/develop @ 095a3e68`).
+
+- `ai_usage_events.actor_id` is non-null (`packages/aia_core/src/aia_core/infrastructure/tables.py:1956`),
+  copied from the egress decision's issued `StudyContext` (`:1940-1942`). A model call runs in the
+  worker, whose scope `ScopeResolver` issues against a held lease, so whether `actor_id` names the person
+  who started the run or the worker's own identity is **a hypothesis to settle first**, with a test. If it
+  is the worker's, it is not the attribution Q40 asks for, and is not reused for it.
+- `budget_reservations` (`tables.py:1629`) has no person column. `study_wallet_raises.raised_by`
+  (`:1717`) names who raised a cap, not who spent. `approval_decisions.approver_user_id` (`:1871`) and
+  `workflow_gates.decided_by_user_id` (`:1808`) name who approved, per decision.
+- Tool spend (Brave, Athena) is held through `reserve_tool_budget` on the same reservations and enters
+  a ledger only with `deep-research` 4 (chunk 5b above).
+
+**The chunk.**
+
+1. **Who pays.** One rule in the application layer: the person is the approver of the card, plan or
+   budget lift that let the work start (`approval_decisions.approver_user_id`), else the person who
+   started it (a typed chat start, Spuštění's Start, a direct start). Never a model, never the worker;
+   a row with no such person stores null and is listed as "nepřiřazeno", never booked to someone by
+   guess (CLAUDE.md § 8).
+2. **The column.** An actor user id (`charged_to_user_id`, nullable) on `ai_usage_events`,
+   `budget_reservations` and the tool-spend rows, set at reservation from the run's recorded starter
+   and copied to each usage row; never from a request body or a model's output. One migration (its lane
+   in the master plan's migration list), with a round-trip and an isolation test. Rows written before
+   it stay null; nothing is backfilled by inference.
+3. **The holds.** The wallet's quote and charge (`lead-orchestration` LO1, `study_wallet_charges`, one per
+   run) carry the same person, so a researcher's total and the wallet agree. **Depends on LO1's wallet
+   holds** being the path every paid start takes.
+4. **The route.** A per-person aggregate, read-only: by researcher, by month, model and tool spend
+   separate, open holds named apart and uncertain calls never counted as zero (5b's rules). OWNER and
+   ADMIN read every member of the organization; a researcher reads only their own row, enforced in the
+   query, not by filtering a full list.
+5. **The screen.** Settings → Studie a rozpočty, "Útrata podle výzkumníka", following the Settings
+   prototype's round 5: one row per researcher, the month's total and its parts; a researcher sees
+   themself only.
+
+**Tests.** The payer rule per start path (card, plan, typed start, Spuštění's Start, budget lift);
+unknown stays null; a researcher's read refused for another person; the aggregate equals the sum of
+the rows within USD 0.01; open holds and uncertain calls listed apart.
+
+### Doc follow-up (chunk 7)
+
+- `mvp-master-plan.md` and `mvp-execution-contracts.md`: a register row and a wave for
+  `develop-spend-attribution#7` (after LO1; with chunk 6, W3), and the migration in the lane table.
+  `tools/master_check.py` fails ("open chunk … has no wave") until they land.
+- `mvp-owner-decisions.md`: Q40 as answered.
+- `CLAUDE.md` § 2: the new column and route when chunk 7 lands.

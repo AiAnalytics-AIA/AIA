@@ -91,7 +91,7 @@ export function readMeasure(result: QuestionResult, scale?: readonly [number, nu
     : result.typ === "skala"
       ? scaleReading(result, scale, topBox, at)
       : Array.isArray(result.verbatimy) && result.verbatimy.length
-        ? "Otevřené odpovědi: ukázky jsou v detailu."
+        ? `Otevřená otázka: ${finite(result.n_platnych) ? `${result.n_platnych.toLocaleString("cs-CZ")} odpovědí, ` : ""}nekódováno.`
         : null;
   if (words === null) return { text: "Pro tuto otázku není k dispozici číselný souhrn.", tone: "empty" };
   return result.support_status === "INDICATIVE" ? { text: `Orientační: ${words}`, tone: "indicative" } : { text: words, tone: "plain" };
@@ -99,12 +99,17 @@ export function readMeasure(result: QuestionResult, scale?: readonly [number, nu
 
 // ---- a set's objects compared ------------------------------------------------------------
 
-export type RankedObject = Estimate & { id: string; label: string; support: SupportStatus };
+/** Kish n as the aggregate stored it; null when it did not (never 0). */
+export type RankedObject = Estimate & { id: string; label: string; support: SupportStatus; effectiveN: number | null };
+/** An object the comparison shows without a number: suppressed (with its donors, the reason) or with no mean. */
+export type WithheldObject = { id: string; label: string; reason: "suppressed" | "no_mean"; donors: number | null; effectiveN: number | null };
 export type ObjectComparison = {
   /** Highest mean first; only objects with a number. */
   ranked: RankedObject[];
   /** Objects left out: suppressed, or with no mean. Named so the reader knows they exist. */
   omitted: string[];
+  /** The same objects as `omitted`, in the same order, with why each has no number. */
+  withheld: WithheldObject[];
   /** The axis the comparison is drawn on: the set's scale, else the intervals' span. */
   domain: [number, number];
   /** What may be said about the top and the bottom; null when nothing may. */
@@ -120,30 +125,34 @@ export type ObjectComparison = {
 export function compareObjects(objects: readonly { id: string; label: string; result: QuestionResult }[], scale?: readonly [number, number] | null): ObjectComparison {
   const ranked: RankedObject[] = [];
   const omitted: string[] = [];
+  const withheld: WithheldObject[] = [];
   for (const { id, label, result } of objects) {
-    if (result.support_status === "SUPPRESS" || !finite(result.prumer)) omitted.push(label);
-    else ranked.push({ id, label, support: result.support_status, value: result.prumer, ...interval(result.prumer_interval_95) });
+    const effectiveN = finite(result.effective_n) ? result.effective_n : null;
+    if (result.support_status === "SUPPRESS" || !finite(result.prumer)) {
+      omitted.push(label);
+      withheld.push({ id, label, reason: result.support_status === "SUPPRESS" ? "suppressed" : "no_mean", donors: finite(result.n_unique_layer_donors) ? result.n_unique_layer_donors : null, effectiveN });
+    } else ranked.push({ id, label, support: result.support_status, value: result.prumer, effectiveN, ...interval(result.prumer_interval_95) });
   }
   ranked.sort((a, b) => b.value - a.value);
   const lows = ranked.map((o) => o.low ?? o.value);
   const highs = ranked.map((o) => o.high ?? o.value);
   const domain: [number, number] = scale ? [scale[0], scale[1]] : ranked.length ? [Math.min(...lows), Math.max(...highs)] : [0, 1];
-  if (ranked.length < 2) return { ranked, omitted, domain, top: null, bottom: null };
+  if (ranked.length < 2) return { ranked, omitted, withheld, domain, top: null, bottom: null };
   if (ranked.some((o) => o.low === null)) {
-    return { ranked, omitted, domain, top: "Pořadí objektů nelze posoudit: u některých chybí interval.", bottom: null };
+    return { ranked, omitted, withheld, domain, top: "Pořadí objektů nelze posoudit: u některých chybí interval.", bottom: null };
   }
   const leader = ranked[0];
   const last = ranked[ranked.length - 1];
   const top = ranked.filter((o) => o === leader || separation(leader, o) !== "ABOVE");
   if (top.length === ranked.length) {
-    return { ranked, omitted, domain, top: "Objekty se od sebe spolehlivě neliší: 95% intervaly všech se překrývají s nejvýše hodnoceným.", bottom: null };
+    return { ranked, omitted, withheld, domain, top: "Objekty se od sebe spolehlivě neliší: 95% intervaly všech se překrývají s nejvýše hodnoceným.", bottom: null };
   }
   const bottom = ranked.filter((o) => o === last || separation(o, last) !== "ABOVE");
   const say = (group: RankedObject[], one: string, many: string) => group.length === 1
     ? `${one}: ${group[0].label}.`
     : `${many}: ${czechList(group.map((o) => o.label), 4, "dalších")}; pořadí mezi nimi nelze potvrdit.`;
   return {
-    ranked, omitted, domain,
+    ranked, omitted, withheld, domain,
     top: say(top, "Spolehlivě nejvýše hodnocený", "Nejvýše hodnocené"),
     bottom: say(bottom, "Spolehlivě nejníže hodnocený", "Nejníže hodnocené"),
   };
@@ -157,6 +166,17 @@ export type CompiledSpecification = {
   questions?: { id: string; text: string; typ?: string; options?: string[]; scale?: [number, number] | null }[];
   batteries?: { id: string; title: string; scale?: [number, number] | null; objects?: { id: string; label: string }[] }[];
 };
+
+// ---- what the Research Lead may point at on Výsledky (artifact-results §4) ---------------
+// The Lead's focus falls through to an element carrying its target as data-aia (lead.ts
+// focusSelector), so these are the ids the Data view's elements carry.
+
+/** A measure's card: a question's id, or `<set>:<object>` (measureAnchor's id). */
+export const measureTarget = (measureId: string): string => `measure:${measureId}`;
+/** A set's comparison. */
+export const setTarget = (setId: string): string => `set:${setId}`;
+/** One object's row in its set's comparison. */
+export const objectTarget = (setId: string, objectId: string): string => `object:${setId}.${objectId}`;
 
 /** The Data card a measure is shown on: a question's id, or `<set>:<object>`. */
 export function measureAnchor(measureId: string): string {

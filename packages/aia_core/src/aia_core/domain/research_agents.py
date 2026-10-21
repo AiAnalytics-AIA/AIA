@@ -24,6 +24,7 @@ from .lead_workers import CardKind, ContextLayer, LeadWorkerSpec, ResultKind, Wo
 from .licence import DataLineage
 from .material_rules import MaterialRule, RuledMaterial, classify_by_rule, rule_class
 from .prompts import PromptPin
+from .research_design import keep_point_labels
 from .residency import DataClass
 
 HARNESS_VERSION: Final = "aia-research-harness-3"
@@ -781,7 +782,9 @@ def proposal_result(
             for j, question in enumerate(section.get("questions", [])):
                 question["id"] = assign_id(f"ai_q_{i + 1}_{j + 1}")
                 _keep_links(question, question["id"], stated, dropped)
-        p["sections"] = preserved + sections
+        # ``Question.popisky_skaly`` is the two ends: a scale the baseline labelled on every
+        # point keeps those labels, never dropped by the proposal (#559).
+        p["sections"] = preserved + keep_point_labels(sections, baseline.get("sections"))
         answered = data["comparisons"]
         # A design may hold any JSON below its top level (``validate_design``): a plan that is
         # not an object is never overwritten, so its comparisons are dropped and named; a

@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  applyLeadEdit, autoAcceptIndices, autoAcceptPlan, describeEdit, droppedLines, editRefusalWords, editStage, isTextEdit, pendingSelfUpdate, revertTextEdit, targetLabel, textEditInverse,
+  applyLeadEdit, autoAcceptIndices, autoAcceptPlan, describeEdit, droppedLines, editRefusalWords, editStage, isTextEdit, leadReasonWords, pendingSelfUpdate, revertTextEdit, targetLabel, textEditInverse,
   type LeadEdit, type LeadTurn,
 } from "./lead";
 import type { ResearchProject } from "@/research/model";
@@ -100,6 +100,26 @@ describe("targetOfElement", () => {
     expect(targetOfElement(document.getElementById("hit"))).toEqual({ id: "question:Q_1", label: "Otázka Q_1: Jak jste spokojeni?" });
     expect(targetOfElement(document.getElementById("g"))).toEqual({ id: "brief:goal", label: "Zadání: Co potřebujete zjistit" });
     expect(targetOfElement(document.getElementById("n"))).toBeNull();
+  });
+
+  it("names any element a screen marked with data-aia, nearest first, and ignores other marks", async () => {
+    const { targetOfElement } = await import("./lead");
+    const { JSDOM } = await import("jsdom");
+    const { document } = new JSDOM(`<fieldset data-aia="audience:filter:kraj"><legend>Kraj</legend><input id="k"></fieldset>
+      <div data-aia="finding:executive:2"><p id="f">text</p></div><div data-aia="lead-edit.x"><i id="o">-</i></div>`).window;
+    expect(targetOfElement(document.getElementById("k"))).toEqual({ id: "audience:filter:kraj", label: "Filtr: kraj: Kraj" });
+    expect(targetOfElement(document.getElementById("f"))).toEqual({ id: "finding:executive:2", label: "Zjištění executive:2" });
+    expect(targetOfElement(document.getElementById("o"))).toBeNull();
+  });
+});
+
+describe("targetLabel for every artifact's kinds", () => {
+  it("says each kind in words, and the audience's parts as the Cílová skupina screen names them", () => {
+    expect(targetLabel("audience:definition")).toBe("Cílová skupina: popis");
+    expect(targetLabel("audience:subpanel:young_18_29")).toBe("Podpanel: young_18_29");
+    expect(targetLabel("pair:set1/fio~air")).toBe("Dvojice set1/fio~air");
+    expect(targetLabel("measure:q3")).toBe("Měření q3");
+    expect(targetLabel("nonsense:q3")).toBe("nonsense:q3");
   });
 });
 
@@ -204,5 +224,22 @@ describe("a refused or dropped edit says why in words (RQC9)", () => {
     expect(droppedLines([{ reason: "unknown_item" }, { reason: "unknown_question" }])).toEqual([
       "2 navržené změny se netýkaly ničeho v pracovní kopii a byly vynechány.",
     ]);
+  });
+});
+
+describe("leadReasonWords", () => {
+  it("says what to do about a turn parked on the study's budget, by the code the server sends", () => {
+    // The server's waiting reason is budget_exceeded; AWAITING_BUDGET is a step status it never sends.
+    expect(leadReasonWords("budget_exceeded")).toContain("Nastavení → Studie");
+    // Setting the budget sends the message by itself (the product owner, 2026-10-21, Q39).
+    expect(leadReasonWords("budget_exceeded")).toContain("odešle sama");
+    expect(leadReasonWords("budget_exceeded")).not.toContain("budget_exceeded");
+  });
+  it("says a superseded turn's message was read with the next one", () => {
+    expect(leadReasonWords("CANCELLED")).toContain("další zprávou");
+  });
+  it("names an unknown code rather than guessing", () => {
+    expect(leadReasonWords("something_new")).toBe("Vedoucí se zastavil (something_new).");
+    expect(leadReasonWords(null)).toBe("Vedoucí se zastavil.");
   });
 });

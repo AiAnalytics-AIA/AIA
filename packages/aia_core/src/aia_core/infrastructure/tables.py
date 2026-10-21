@@ -41,6 +41,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from ..domain.approval_ledger import subject_check_sql
+from ..domain.wallet import ChargeKind
 
 # Explicit naming convention so Alembic generates stable, reviewable constraint
 # names instead of database-assigned ones.
@@ -509,6 +510,10 @@ class ClientRow(Base):
         Float, nullable=False, default=0.0, server_default="0"
     )
     spent_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0, server_default="0")
+    # The bound on every open wallet of the client's studies (ADR 0028 decision 1, lead-
+    # orchestration LO1): set by an organization OWNER or ADMIN; NULL means a wallet may not
+    # exceed its study's budget. Spends nothing itself.
+    wallet_ceiling_usd: Mapped[float | None] = mapped_column(Float)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
     )
@@ -525,6 +530,10 @@ class ClientRow(Base):
         UniqueConstraint("organization_id", "slug", name="client_slug_unique"),
         CheckConstraint("budget_usd >= 0", name="client_budget_non_negative"),
         CheckConstraint("spent_usd >= 0", name="client_spent_non_negative"),
+        CheckConstraint(
+            "wallet_ceiling_usd is null or wallet_ceiling_usd >= 0",
+            name="client_wallet_ceiling_non_negative",
+        ),
         CheckConstraint("status in ('ACTIVE','DORMANT','ARCHIVED')", name="client_status_known"),
         Index("ix_clients_org", "organization_id", "status"),
     )
@@ -1655,6 +1664,120 @@ class BudgetReservationRow(Base):
         Index("ix_reservations_study_status", "study_id", "status"),
         Index("ix_reservations_client_status", "client_id", "status"),
         Index("ix_reservations_attempt", "attempt_id"),
+    )
+
+
+class StudyWalletRow(Base):
+    """A study's wallet (Peněženka, ADR 0028 decision 2, lead-orchestration LO1): what paid work
+    may start without a further card, a slice of the study's budget.
+
+    One open wallet per study (a partial unique index); no expiry; ``closed_at`` set when the
+    study closes. ``cap_usd`` is the cap its newest raise set; what it may hold now is bounded by
+    the client's wallet ceiling and the study's budget too (``domain/wallet.py``
+    ``effective_cap``). Only ``StudyWalletRepository`` reads or writes it (``make layer_check``).
+    """
+
+    __tablename__ = "study_wallets"
+
+    wallet_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    study_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    cap_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
+        CheckConstraint("cap_usd >= 0", name="study_wallet_cap_non_negative"),
+        Index(
+            "uq_study_wallets_open",
+            "study_id",
+            unique=True,
+            postgresql_where=text("closed_at IS NULL"),
+            sqlite_where=text("closed_at IS NULL"),
+        ),
+    )
+
+
+class StudyWalletRaiseRow(Base):
+    """**Insert-once**: one change of a wallet's cap, by the researcher, with the approval-ledger
+    row (``ApprovalSubject.WALLET``) that records it (ADR 0028 decision 2)."""
+
+    __tablename__ = "study_wallet_raises"
+
+    raise_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    wallet_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    study_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    from_cap_usd: Mapped[float] = mapped_column(Float, nullable=False)
+    to_cap_usd: Mapped[float] = mapped_column(Float, nullable=False)
+    raised_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    approval_decision_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["wallet_id"], ["study_wallets.wallet_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
+        # NO ACTION, not RESTRICT: checked at the statement's end, so a study's delete cascades
+        # through both the ledger and this row.
+        ForeignKeyConstraint(["approval_decision_id"], ["approval_decisions.decision_id"]),
+        CheckConstraint("from_cap_usd >= 0", name="wallet_raise_from_non_negative"),
+        CheckConstraint("to_cap_usd >= 0", name="wallet_raise_to_non_negative"),
+        UniqueConstraint("approval_decision_id", name="wallet_raise_decision_once"),
+        Index("ix_study_wallet_raises_wallet", "wallet_id", "raise_id"),
+    )
+
+
+class StudyWalletChargeRow(Base):
+    """**Insert-once**: one started run's hold on its study's wallet, at its **cost ceiling**,
+    never released and never re-priced (ADR 0028 decision 2), with the approval-ledger row that
+    authorised the start (a ``chat_start`` or ``plan_step``) and the plan, if any.
+
+    One charge per run (unique ``run_id``): a start that finds its run already there charges
+    nothing again. ``plan_id`` names a ``lead_plans`` row once LO3 creates that table; until then
+    it is a bare id with no foreign key.
+    """
+
+    __tablename__ = "study_wallet_charges"
+
+    charge_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    wallet_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    study_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    run_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    ceiling_usd: Mapped[float] = mapped_column(Float, nullable=False)
+    plan_id: Mapped[str | None] = mapped_column(String(64))
+    # The plan step that started the run (a ``plan_step`` charge only; the ledger row's subject).
+    plan_step_id: Mapped[str | None] = mapped_column(String(64))
+    approval_decision_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["wallet_id"], ["study_wallets.wallet_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["run_id"], ["workflow_runs.run_id"], ondelete="CASCADE"),
+        CheckConstraint(
+            "(plan_id is null) = (plan_step_id is null)", name="wallet_charge_plan_and_step"
+        ),
+        # One start decision authorises one charge, of one run.
+        UniqueConstraint("approval_decision_id", name="wallet_charge_decision_once"),
+        # NO ACTION, not RESTRICT: checked at the statement's end, so a study's delete cascades
+        # through both the ledger and this row.
+        ForeignKeyConstraint(["approval_decision_id"], ["approval_decisions.decision_id"]),
+        CheckConstraint("ceiling_usd >= 0", name="wallet_charge_ceiling_non_negative"),
+        CheckConstraint(
+            "kind in (" + ",".join(f"'{k.value}'" for k in ChargeKind) + ")",
+            name="wallet_charge_kind_known",
+        ),
+        UniqueConstraint("run_id", name="wallet_charge_run_once"),
+        Index("ix_study_wallet_charges_wallet", "wallet_id"),
     )
 
 

@@ -13,12 +13,19 @@ from typing import Any
 import pytest
 from aia_core.application.research import research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+from aia_core.domain.approval_ledger import ApprovalSubject
 from aia_core.domain.research_lead import ARTIFACT_TYPE
-from aia_core.domain.workflow_templates import RESEARCH_LEAD_TURN
+from aia_core.domain.workflow import FailureClass
+from aia_core.domain.workflow_templates import RESEARCH_AGENT, RESEARCH_LEAD_TURN
 from aia_core.infrastructure.db import create_session_factory
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRepository
-from aia_core.infrastructure.tables import AccessAuditRow, ApprovalDecisionRow
+from aia_core.infrastructure.tables import (
+    AccessAuditRow,
+    ApprovalDecisionRow,
+    BudgetReservationRow,
+    WorkflowRunRow,
+)
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -520,6 +527,69 @@ def test_an_automatic_accept_leaves_a_save_made_while_the_lead_worked_and_says_w
     assert clicked.json()["results"] == [{"index": 0, "status": "accepted", "reason": None}]
 
 
+def test_a_greeting_on_a_new_study_does_not_make_the_persons_first_save_stale(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """The product owner's report of 2026-10-21: a brand-new study, the Lead's greeting on
+    opening it, two sentences typed into Zadání -- "Uloženo jinde". The greeting needs a Design
+    Revision, and a study with no working copy has its template saved as revision 1 for it
+    (``submit_as_working_copy``), behind the browser, which loaded the study EMPTY and saves
+    its first change from no revision. That copy is the template the browser started from
+    too: nobody's work is in it, so the first save is not stale. The turn names the revision
+    its context was frozen from, so its text edits can be accepted automatically."""
+    _hatched(researcher)
+    assert (
+        researcher.put(
+            "/api/v1/lead/preferences", json={"auto_accept_text_edits": True}
+        ).status_code
+        == 200
+    )
+    content_url = f"/api/v1/studies/{world.study_id()}/workspace/content"
+    assert researcher.get(content_url).json()["state"] == "EMPTY"
+    greeted = researcher.post(
+        f"{lead_url(world)}/turns", json={"kind": "greeting", "stage": "brief"}
+    )
+    assert greeted.status_code == 201, greeted.text
+    (turn,) = greeted.json()["turns"]
+    behind = researcher.get(content_url).json()
+    assert behind["revision"] == 1
+    assert turn["workspace_revision"] == 1
+
+    typed = {**CONTENT, "title": "Dvě věty v zadání."}
+    mine = researcher.put(content_url, json={"content": typed, "base_revision": None})
+    assert mine.status_code == 200, mine.text
+    assert mine.json()["revision"] == 2
+    assert researcher.get(content_url).json()["content"]["title"] == "Dvě věty v zadání."
+
+    # Once a person's work is in the copy, a save from no revision is stale again.
+    again = researcher.put(content_url, json={"content": CONTENT, "base_revision": None})
+    assert again.status_code == 409 and again.json()["code"] == "stale_revision"
+    assert again.json()["details"]["current_revision"] == 2
+
+
+def test_a_greeting_on_a_new_study_has_its_text_edits_accepted_automatically(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """The browser still holds the EMPTY copy (no revision) when the greeting answers; the
+    turn was frozen from the template revision saved for it, so its wording is taken."""
+    _hatched(researcher)
+    researcher.put("/api/v1/lead/preferences", json={"auto_accept_text_edits": True})
+    greeted = researcher.post(
+        f"{lead_url(world)}/turns", json={"kind": "greeting", "stage": "brief"}
+    )
+    turn_id = str(greeted.json()["turns"][-1]["turn_id"])
+    _complete(app, world, TEXT_AND_STRUCTURE)
+    auto = researcher.post(
+        f"{lead_url(world)}/turns/{turn_id}/edits",
+        json={"decision": "accept", "indices": [0], "base_revision": None, "auto": True},
+    )
+    assert auto.status_code == 200, auto.text
+    assert auto.json() == {
+        "workspace_revision": 2,
+        "results": [{"index": 0, "status": "accepted", "reason": None}],
+    }
+
+
 def test_someone_elses_turn_is_not_found(
     researcher: TestClient, viewer: TestClient, world: Any, app: FastAPI
 ) -> None:
@@ -771,3 +841,219 @@ def test_an_older_soul_change_never_overwrites_a_newer_one(
     assert "self_update_base" not in turns[first]
     again = decide(first)
     assert again.status_code == 409 and again.json()["code"] == "lead_self_update_decided"
+
+
+# --------------------------------------------------------------------------- the study's budget
+
+
+def test_setting_the_study_budget_sends_the_message_that_waited_for_it(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """F4 and the product owner's Q39 (2026-10-21): the message that parked for lack of budget
+    is sent once a person sets the budget in Nastavení -> Studie, and the ledger names them."""
+    budget_url = f"/api/v1/studies/{world.study_id()}/budget"
+    assert researcher.put(budget_url, json={"budget_usd": 0.0}).status_code == 200
+    _hatched(researcher)
+    posted = researcher.post(
+        f"{lead_url(world)}/turns", json={"kind": "message", "stage": "brief", "text": "Jsi tam?"}
+    )
+    assert posted.status_code == 201, posted.text
+    run_id = posted.json()["turns"][-1]["run_id"]
+    with create_session_factory(app.state.engine)() as session:
+        workflows = WorkflowRepository(session, _scope(app, world, session))
+        work = workflows.claim_next(worker_id="w", kinds={RESEARCH_LEAD_TURN})
+        assert work is not None
+        workflows.fail_attempt(
+            work.attempt_id,
+            worker_id="w",
+            failure=FailureClass.BUDGET_EXCEEDED,
+            error={"requested_usd": 0.5, "remaining_usd": 0.0, "budget_usd": 0.0},
+        )
+        session.commit()
+    lead = researcher.get(lead_url(world)).json()
+    assert (lead["turns"][-1]["status"], lead["turns"][-1]["reason"]) == (
+        "WAITING",
+        "budget_exceeded",
+    )
+    assert lead["busy"] is False
+
+    assert researcher.put(budget_url, json={"budget_usd": 5.0}).status_code == 200
+    lead = researcher.get(lead_url(world)).json()
+    assert lead["turns"][-1]["status"] == "QUEUED" and lead["busy"] is True
+    with create_session_factory(app.state.engine)() as session:
+        rows = session.scalars(
+            select(ApprovalDecisionRow).where(ApprovalDecisionRow.run_id == run_id)
+        ).all()
+        assert [(r.gate_type, r.decision, r.approver_user_id) for r in rows] == [
+            ("budget", "lift", world.users["researcher"])
+        ]
+
+
+# --------------------------------------------------------------------------- the switch off (27b)
+
+
+def _written_by_an_approval(app: FastAPI) -> int:
+    """What approving a Lead job writes: the job's run, its ledger rows and any budget hold."""
+    with create_session_factory(app.state.engine)() as session:
+        runs = session.scalars(
+            select(WorkflowRunRow).where(WorkflowRunRow.workflow_type == RESEARCH_AGENT)
+        ).all()
+        approvals = session.scalars(
+            select(ApprovalDecisionRow).where(
+                ApprovalDecisionRow.subject_type == ApprovalSubject.LEAD_JOB_REQUEST
+            )
+        ).all()
+        holds = session.scalars(select(BudgetReservationRow)).all()
+        return len(runs) + len(approvals) + len(holds)
+
+
+JOB = {
+    "reply": "Připraveno.",
+    "request": {"kind": "agent_job", "action": "analyze_brief", "why": WHY},
+}
+
+
+def test_a_card_the_lead_prepared_waits_while_the_lead_is_switched_off(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """Q42 (D22): approved after a switch-off, a card the Lead's model prepared is 409
+    research_lead_disabled and nothing is written -- no run, no ledger row, no hold -- and it
+    is approvable once the Lead is on again."""
+    turn_id = _turn(researcher, world, app, JOB)
+    before = _written_by_an_approval(app)
+    app.state.settings = app.state.settings.model_copy(update={"ai_research_lead_enabled": False})
+    url = f"{lead_url(world)}/turns/{turn_id}/request"
+    refused = researcher.post(url, json={})
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["code"] == "research_lead_disabled"
+    assert _written_by_an_approval(app) == before
+    assert researcher.get(lead_url(world)).json()["turns"][-1]["request_decision"] is None
+
+    app.state.settings = app.state.settings.model_copy(update={"ai_research_lead_enabled": True})
+    approved = researcher.post(url, json={})
+    assert approved.status_code == 200, approved.text
+    assert _written_by_an_approval(app) > before
+
+
+def test_a_card_approved_before_the_switch_off_still_answers_with_its_job(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """Review of #561: an approval asked again after the switch-off (a lost response, a second
+    tab) returns the job that already runs, and writes nothing; only an approval that would
+    create a job is refused."""
+    turn_id = _turn(researcher, world, app, JOB)
+    url = f"{lead_url(world)}/turns/{turn_id}/request"
+    approved = researcher.post(url, json={})
+    assert approved.status_code == 200, approved.text
+    written = _written_by_an_approval(app)
+    app.state.settings = app.state.settings.model_copy(update={"ai_research_lead_enabled": False})
+    again = researcher.post(url, json={})
+    assert again.status_code == 200, again.text
+    assert again.json()["run_id"] == approved.json()["run_id"]
+    assert _written_by_an_approval(app) == written
+
+
+def test_the_refusal_is_read_from_the_stored_turn_never_the_body(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """The card's kind comes from the stored turn: a body naming an origin is refused at
+    validation, and the switch's refusal holds whatever the body confirms."""
+    turn_id = _turn(researcher, world, app, JOB)
+    app.state.settings = app.state.settings.model_copy(update={"ai_research_lead_enabled": False})
+    url = f"{lead_url(world)}/turns/{turn_id}/request"
+    assert researcher.post(url, json={"origin": "chat_start"}).status_code == 422
+    refused = researcher.post(url, json={"confirm_cost_usd": 5.0})
+    assert refused.status_code == 409 and refused.json()["code"] == "research_lead_disabled"
+
+
+def test_stored_edits_are_still_decided_while_the_lead_is_switched_off(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """Q42: accepting or dismissing stored edits calls no model and spends nothing."""
+    turn_id = _turn(researcher, world, app, EDITS)
+    app.state.settings = app.state.settings.model_copy(update={"ai_research_lead_enabled": False})
+    url = f"{lead_url(world)}/turns/{turn_id}/edits"
+    accepted = researcher.post(url, json={"decision": "accept", "indices": [0], "base_revision": 1})
+    assert accepted.status_code == 200, accepted.text
+    assert accepted.json()["results"][0]["status"] == "accepted"
+    dismissed = researcher.post(url, json={"decision": "dismiss", "indices": [1]})
+    assert dismissed.status_code == 200, dismissed.text
+    assert dismissed.json()["results"][0]["status"] == "dismissed"
+
+
+def _park(app: FastAPI, world: Any, *, reason: str) -> None:
+    with create_session_factory(app.state.engine)() as session:
+        workflows = WorkflowRepository(session, _scope(app, world, session))
+        work = workflows.claim_next(worker_id="w", kinds={RESEARCH_LEAD_TURN})
+        assert work is not None
+        workflows.fail_attempt(
+            work.attempt_id,
+            worker_id="w",
+            failure=FailureClass.RUNTIME_UNAVAILABLE,
+            error={"reason": reason, "message": "x"},
+        )
+        session.commit()
+
+
+def test_the_worker_is_never_reported_ready_without_a_source(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """27b: with the API's switch on, ``available`` is true, but nothing the API holds shows a
+    worker that can answer: ``worker_ready`` is null, never true -- before any turn and after
+    one completed."""
+    _hatched(researcher)
+    state = researcher.get(lead_url(world)).json()
+    assert state["available"] is True
+    assert (state["worker_ready"], state["worker_ready_source"], state["worker_reason"]) == (
+        None,
+        None,
+        None,
+    )
+    posted = researcher.post(
+        f"{lead_url(world)}/turns", json={"kind": "message", "stage": "brief", "text": "Ahoj"}
+    )
+    assert posted.status_code == 201, posted.text
+    _complete(app, world, {"reply": "Dobrý den."})
+    state = researcher.get(lead_url(world)).json()
+    assert state["turns"][-1]["status"] == "COMPLETED"
+    assert (state["worker_ready"], state["worker_ready_source"], state["worker_reason"]) == (
+        None,
+        None,
+        None,
+    )
+
+
+@pytest.mark.parametrize("reason", ["research_lead_unconfigured", "ai_runtime_unavailable"])
+def test_a_worker_that_cannot_answer_is_reported_not_ready(
+    researcher: TestClient, world: Any, app: FastAPI, reason: str
+) -> None:
+    """27b: the API's switch on and the worker's off (or its keys unset, or no runtime): the
+    turn parks for the worker's composition, and GET /lead says the worker is not ready and
+    where it read that. A later turn the worker answers makes it unknown again."""
+    _hatched(researcher)
+    _save_content(app, world)
+    posted = researcher.post(
+        f"{lead_url(world)}/turns", json={"kind": "message", "stage": "brief", "text": "Jsi tam?"}
+    )
+    assert posted.status_code == 201, posted.text
+    _park(app, world, reason=reason)
+    state = researcher.get(lead_url(world)).json()
+    assert state["available"] is True
+    assert (state["turns"][-1]["status"], state["turns"][-1]["reason"]) == ("WAITING", reason)
+    assert (state["worker_ready"], state["worker_ready_source"], state["worker_reason"]) == (
+        False,
+        "newest_turn",
+        reason,
+    )
+
+    again = researcher.post(
+        f"{lead_url(world)}/turns", json={"kind": "message", "stage": "brief", "text": "A teď?"}
+    )
+    assert again.status_code == 201, again.text
+    _complete(app, world, {"reply": "Ano."})
+    state = researcher.get(lead_url(world)).json()
+    assert (state["worker_ready"], state["worker_ready_source"], state["worker_reason"]) == (
+        None,
+        None,
+        None,
+    )

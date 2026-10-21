@@ -29,12 +29,14 @@ from aia_core.domain.attachments import (
     safe_filename,
     validate_attachment,
 )
+from aia_core.domain.research_template import research_template
 from aia_core.domain.scope import ScopeDenied, StudyStatus
 from aia_core.domain.workspace import (
     WORKING_CONTENT_MAX_BYTES,
     WORKSPACE_PROJECT_OWNER,
     ContentState,
     WorkspaceRejected,
+    edited_from_current,
     validate_working_content,
 )
 from aia_core.infrastructure.artifact_repository import ArtifactNotFound, ArtifactRepository
@@ -139,6 +141,47 @@ def test_a_save_from_a_stale_copy_is_refused_and_says_what_is_current(
     with pytest.raises(WorkspaceConflict):
         workspaces.save(lead, content=BRIEF, base_revision=None)
     assert workspaces.content(lead).content == {**BRIEF, "goal": "Druhý editor"}
+
+
+def test_a_first_save_is_not_stale_over_the_bare_template_a_server_writer_saved(
+    scoped: Any, workspaces: StudyWorkspaceRepository
+) -> None:
+    """The Research Lead's first turn in a new Study saves the template as working revision 1
+    (submit_as_working_copy), behind a browser that loaded the Study EMPTY. The browser's copy
+    started from that same template, so its first save, naming no revision, overwrites nobody's
+    work and is taken; once anything else is in the copy, a save from no revision is stale."""
+    lead = scoped.scope()
+    workspaces.save(lead, content=research_template(), base_revision=None, reason="authored")
+    first = workspaces.save(lead, content=BRIEF, base_revision=None)
+    assert (first.revision, first.deduplicated) == (2, False)
+    assert workspaces.content(lead).content == BRIEF
+    with pytest.raises(WorkspaceConflict) as stale:
+        workspaces.save(lead, content={**BRIEF, "goal": "Jinak"}, base_revision=None)
+    assert (stale.value.reason, stale.value.current_revision) == ("stale_revision", 2)
+
+
+def test_a_template_with_an_analysis_is_someones_work(
+    scoped: Any, workspaces: StudyWorkspaceRepository
+) -> None:
+    lead = scoped.scope()
+    workspaces.save(
+        lead, content=research_template(), analysis={"summary": "rozbor"}, base_revision=None
+    )
+    with pytest.raises(WorkspaceConflict):
+        workspaces.save(lead, content=BRIEF, base_revision=None)
+
+
+def test_edited_from_current_names_the_current_revision_or_the_bare_template() -> None:
+    template = research_template()
+    assert edited_from_current(None, None)
+    assert edited_from_current(3, 3, BRIEF)
+    assert not edited_from_current(2, 3, template)
+    assert not edited_from_current(None, 1, BRIEF)
+    assert edited_from_current(None, 1, template)
+    assert not edited_from_current(None, 1, template, {"summary": "rozbor"})
+    assert not edited_from_current(None, 1, {**template, "title": "Něco"})
+    # A copy that names a revision was not edited from the template, whatever it holds.
+    assert not edited_from_current(1, 2, template)
 
 
 def test_content_awaiting_migration_is_named_and_not_editable(

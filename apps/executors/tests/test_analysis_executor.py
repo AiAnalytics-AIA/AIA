@@ -71,6 +71,7 @@ from aia_core.domain.deep_research.workflow import deep_research_steps
 from aia_core.domain.evidence import AdmittedClaim, ClaimSurface, ViolationCode
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.pipeline import ProjectType
+from aia_core.domain.report.document_model import read_document_payload
 from aia_core.domain.report.model import Callout
 from aia_core.domain.report.review import REVIEW_STAMP_CONTRACT, ReviewMark, ReviewState
 from aia_core.domain.residency import DataClass
@@ -113,7 +114,11 @@ from aia_executors.analysis import (
 from aia_executors.deep_research import DeepResearchRuntime
 from aia_executors.recorded_models import PROFILE, RecordedModels, RecordedSigner, runtime_env
 from aia_executors.registry import registry_for
-from aia_executors.report import REPORT_ARTIFACT_TYPE, report_registry
+from aia_executors.report import (
+    REPORT_ARTIFACT_TYPE,
+    REPORT_DOCUMENT_ARTIFACT_TYPE,
+    report_registry,
+)
 from aia_executors.workbench import workbench_registry_for
 from aia_worker.executor import ShutdownRequested, StepExecutor
 from aia_worker.settings import WorkerSettings
@@ -415,6 +420,28 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
     )
     assert "smyšlení respondenti" in body
     assert report.metadata["report_contract"] == "aia-internal-report-10"
+    # The document the DOCX was rendered from, beside it (report-delivery RD5a).
+    stored = report_step["output"]["document"]
+    with world.sessions() as session:
+        repo = research_artifacts(session, world.lead_scope(session), store)
+        model = repo.get(stored["artifact_id"])
+        payload = read_document_payload(repo.read(stored["artifact_id"]))
+        model_dependencies = repo.dependencies(stored["artifact_id"])
+    assert model.artifact_type == REPORT_DOCUMENT_ARTIFACT_TYPE
+    assert model.sha256 == stored["sha256"]
+    assert model.input_fingerprint == report.input_fingerprint
+    assert model.metadata["docx_artifact_id"] == report_id
+    assert model.metadata["docx_sha256"] == report.sha256
+    assert [d.artifact_id for d in model_dependencies] == [report_id]
+    section_ids = [section["id"] for section in payload["sections"]]
+    assert (
+        section_ids[0] == "intro" and "methodology" in section_ids and "ch-questions" in section_ids
+    )
+    assert section_ids[-1] == "app-audit"
+    titles = [section["title"] for section in payload["sections"]]
+    assert "Výsledky jednotlivých otázek" in titles
+    cited = {ref for s in payload["sections"] for ref in s["refs"]}
+    assert cited and cited == set(payload["ledger"]["refs"])
 
 
 @pytest.mark.parametrize(
@@ -919,6 +946,22 @@ def test_the_steps_pdf_renders_the_stored_docx_when_the_step_reuses_it(
         stored_pdf = repo.read(output["pdf"]["artifact_id"])
     assert len(rendered) == 2 and docx == rendered[0] != rendered[1]
     assert stored_pdf == b"%PDF-1.7 rendering of " + hashlib.sha256(docx).hexdigest().encode()
+    # Its document model was stored once, beside the stored DOCX, and found again (RD5a): the
+    # ids every later edit names do not move when the step runs again.
+    with world.sessions() as session:
+        repo = research_artifacts(session, world.lead_scope(session), store)
+        stored_docx = repo.get(output["artifact_id"])
+        models = [
+            a
+            for a in repo.list_for_stage(
+                project_id=stored_docx.project_id,
+                revision=stored_docx.revision,
+                stage_type=stored_docx.stage_type,
+            )
+            if a.artifact_type == REPORT_DOCUMENT_ARTIFACT_TYPE
+        ]
+    assert [m.artifact_id for m in models] == [output["document"]["artifact_id"]]
+    assert models[0].metadata["docx_artifact_id"] == output["artifact_id"]
 
 
 def test_a_pdf_that_cannot_be_made_is_said_so_and_the_report_still_stands(

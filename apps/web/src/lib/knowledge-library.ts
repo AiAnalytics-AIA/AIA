@@ -2,7 +2,7 @@
 // for what, the "older than a year" rule, label colours, and the selection the bulk bar
 // acts on. Pure, so the rules are tested apart from the page.
 
-import { ApiError, type KnowledgeFiling, type KnowledgeItem, type LabelColour } from "@/lib/api";
+import { ApiError, type KnowledgeFiling, type KnowledgeItem, LABEL_COLOURS, type LabelColour } from "@/lib/api";
 
 /**
  * What the library shows: everything, items in no folder, items not changed for a year,
@@ -89,4 +89,24 @@ export function staleEdit(e: unknown): StaleEdit | null {
   if (typeof current !== "number") return null;
   const base = e.details.base_revision;
   return { base: typeof base === "number" ? base : null, current };
+}
+
+/**
+ * The colour a new label starts with (input-interactions I5: the row carries its swatch, and one
+ * is chosen already so Enter alone creates): the first the client's labels do not use yet, else
+ * the next in turn, so labels made one after another are told apart.
+ */
+export function nextLabelColour(labels: readonly { colour: LabelColour }[]): LabelColour {
+  const used = new Set(labels.map((l) => l.colour));
+  return LABEL_COLOURS.find((c) => !used.has(c)) ?? LABEL_COLOURS[labels.length % LABEL_COLOURS.length];
+}
+
+/**
+ * Whether a folder's or a label's deletion can be taken back (I6): its items were read just
+ * before, and the read is the whole of what the API counts as filed there -- as many as it
+ * counts, under the result cap. Anything short of that would refile some of the items and call
+ * it undone, so the deletion is confirmed at the row instead, naming what goes.
+ */
+export function undoable(filedCount: number, read: readonly unknown[]): boolean {
+  return read.length === filedCount && !atCap(read);
 }

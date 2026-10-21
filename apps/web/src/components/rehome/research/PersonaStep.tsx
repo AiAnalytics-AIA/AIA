@@ -63,6 +63,7 @@ import { ActionDock, StepSection } from "../step";
 import { AiButton, Button, Field, TextInput } from "../ui";
 import { useResearch, useSessionState } from "./context";
 import { InspectorSlot } from "./Inspector";
+import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 import { readyLimits, useSampleLimits } from "./useSampleLimits";
 
@@ -90,6 +91,7 @@ export function PersonaStep() {
   const { store, state, runJob, toast, stepHref, frame } = useResearch();
   const router = useRouter();
   const step = useAiStep();
+  const leadOwnsAiStarts = useLeadOwnsAiStarts();
   const active = useClientDimensions(frame.studyId);
   const sampleLimits = useSampleLimits(frame.studyId);
   const limits = readyLimits(sampleLimits);
@@ -216,7 +218,7 @@ export function PersonaStep() {
           lead
           title={t("research.persona.catalogTitle")}
           hint={t("research.persona.baseIntro")}
-          aside={<AiButton small disabled={step.busy} onClick={() => void suggest()}>{t("research.persona.suggest")}</AiButton>}
+          aside={!leadOwnsAiStarts ? <AiButton small disabled={step.busy} onClick={() => void suggest()}>{t("research.persona.suggest")}</AiButton> : <AskLead what="Návrh dimenzí" />}
         >
           <label className="flex items-center gap-2 rounded-control border border-border-strong bg-surface-raised px-2.5 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus-ring">
             <Icon name="search" size={14} className="text-ink-muted" />

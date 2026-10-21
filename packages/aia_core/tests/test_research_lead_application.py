@@ -31,6 +31,8 @@ from aia_core.application.research_lead import (
     LeadUnavailable,
     NotAPaidRequest,
     ResearchLead,
+    set_study_budget,
+    worker_readiness,
 )
 from aia_core.domain.research_lead import RememberNote, SelfUpdate, layer, self_update_base
 from aia_core.domain.scope import (
@@ -219,27 +221,188 @@ def test_a_parked_turn_says_why_and_does_not_hold_the_conversation(
     assert len(_message(_lead(scope, session), "Jsi tam?")) == 2
 
 
-def test_a_turn_parked_on_the_budget_holds_the_conversation(scoped: Any, session: Any) -> None:
-    """The review of baac33d5 (a hypothesis): messages sent while a turn waits for budget
-    queued turns that would all pay once the budget was lifted. Such a turn holds the
-    conversation as a running one does; lifting the budget frees it."""
-    scope = scoped.scope()
-    _hatch(scoped, session)
-    _message(_lead(scope, session))
+def _park_on_budget(session: Any, scope: Any, requested: float | None = 0.5) -> Any:
+    """The worker's side of a turn whose reservation passes the study's budget, with the error
+    the worker records (``requested_usd``: the hold the turn asked for)."""
     workflows = WorkflowRepository(session, scope)
     work = workflows.claim_next(worker_id="w", kinds={RESEARCH_LEAD_TURN})
     assert work is not None
-    workflows.fail_attempt(work.attempt_id, worker_id="w", failure=FailureClass.BUDGET_EXCEEDED)
+    error = {} if requested is None else {"requested_usd": requested, "remaining_usd": 0.0}
+    workflows.fail_attempt(
+        work.attempt_id, worker_id="w", failure=FailureClass.BUDGET_EXCEEDED, error=error
+    )
+    return work
+
+
+def _no_budget(scoped: Any, scope: Any) -> None:
+    scoped.scope_repo.set_study_budget(scope, 0.0)
+
+
+def test_a_message_written_again_before_the_budget_is_set_is_answered_not_held(
+    scoped: Any, session: Any
+) -> None:
+    """The product owner on develop (2026-10-21): a message sent with no study budget parked
+    at the cap, and that parked turn held the conversation, so every later message was refused
+    (``lead_busy``) or queued by the pane behind it, for ever (F4).
+
+    A turn parked on the budget does not hold the conversation. A message written before the
+    budget is set supersedes it: the parked run is cancelled, never paid, and the new turn
+    carries the unanswered message in its history. Only one turn is ever waiting, so a lift
+    never pays for a stack.
+    """
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    _no_budget(scoped, scope)
+    first = _message(_lead(scope, session), "Kde studie stojí?")
+    _park_on_budget(session, scope)
     state = _lead(scope, session).state()
-    assert state["busy"] is True and state["turns"][-1]["status"] == "WAITING"
+    parked = state["turns"][-1]
+    assert (parked["status"], parked["reason"]) == ("WAITING", "budget_exceeded")
+    assert state["busy"] is False
+
+    turns = _message(_lead(scope, session), "Jsi tam?")
+    assert [t["actor"] for t in turns] == ["person", "lead"]
+    assert turns[-1]["status"] == "QUEUED"
+
+    workflows = WorkflowRepository(session, scope)
+    old = workflows.get_run(first[-1]["run_id"])
+    assert old["status"] is WorkflowRunStatus.CANCELLED
+    state = _lead(scope, session).state()
+    assert state["busy"] is True  # the new turn is queued: the pane waits for it alone
+    by_id = {t["turn_id"]: t for t in state["turns"]}
+    assert by_id[first[-1]["turn_id"]]["status"] == "CANCELLED"
+    context = _step_input(session, scope, turns[-1]["run_id"])["context"]
+    earlier = [t.get("text") for t in layer(context, "conversation")["turns"]]
+    assert "Kde studie stojí?" in earlier
+    _complete(session, scope, {"reply": "Ano."})
+    assert _lead(scope, session).state()["busy"] is False
+
+
+def test_setting_the_budget_sends_the_parked_message_and_records_the_person(
+    scoped: Any, session: Any
+) -> None:
+    """The product owner, 2026-10-21 (Q39): "once the budget is set or raised, it should
+    automatically resend the message the researcher attempted to send in the first place".
+    The person setting the budget is the consent, recorded in the ledger as every lift is."""
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    _no_budget(scoped, scope)
+    first = _message(_lead(scope, session), "Kde studie stojí?")
+    work = _park_on_budget(session, scope, requested=0.5)
+
+    study, released = set_study_budget(session, scope, 5.0)
+    assert study.budget_usd == 5.0 and released == [first[-1]["run_id"]]
+    state = _lead(scope, session).state()
+    assert state["turns"][-1]["status"] == "QUEUED" and state["busy"] is True
+    rows = session.scalars(
+        select(ApprovalDecisionRow).where(ApprovalDecisionRow.run_id == first[-1]["run_id"])
+    ).all()
+    assert [(r.gate_type, r.decision, r.step_id) for r in rows] == [
+        ("budget", "lift", work.step_id)
+    ]
+    assert rows[0].approver_user_id == scope.actor_id
+
+    # The message is answered without being written again; the next one goes as usual.
+    _complete(session, scope, {"reply": "Ve fázi zadání."})
+    state = _lead(scope, session).state()
+    assert state["busy"] is False and state["turns"][-1]["output"] == {"reply": "Ve fázi zadání."}
+    assert len(_message(_lead(scope, session), "Díky")) == 2
+
+
+def test_a_budget_still_too_small_leaves_the_turn_parked(scoped: Any, session: Any) -> None:
+    """A hold that would still pass the new budget is not sent; nor is one whose hold the
+    attempt did not record (unknown never fits), nor anything on a budget lowered or kept."""
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    _no_budget(scoped, scope)
+    _message(_lead(scope, session))
+    _park_on_budget(session, scope, requested=10.0)
+
+    assert set_study_budget(session, scope, 5.0)[1] == []
+    assert set_study_budget(session, scope, 5.0)[1] == []  # kept, not raised
+    assert set_study_budget(session, scope, 1.0)[1] == []  # lowered
+    turn = _lead(scope, session).state()["turns"][-1]
+    assert (turn["status"], turn["reason"]) == ("WAITING", "budget_exceeded")
+    assert session.scalars(select(ApprovalDecisionRow)).all() == []
+    assert set_study_budget(session, scope, 10.0)[1] != []  # now it fits
+
+
+def test_a_turn_parked_behind_more_than_a_page_of_later_runs_is_still_sent(
+    scoped: Any, session: Any
+) -> None:
+    """Codex on #547: the release read the newest 200 Lead runs, so a turn parked behind more
+    than 200 later ones was never found and stayed parked for ever. It reads the waiting steps
+    themselves."""
+    from aia_core.application.workflows import start_workflow
+    from aia_core.domain.design import DESIGN_PROJECT_OWNER
+
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    _no_budget(scoped, scope)
+    first = _message(_lead(scope, session))
+    _park_on_budget(session, scope, requested=0.5)
+    parked = WorkflowRepository(session, scope).get_run(first[-1]["run_id"])
+    for i in range(201):  # later Lead runs, as other turns of the study would leave them
+        start_workflow(
+            session,
+            scope,
+            project_id=parked["project_id"],
+            revision=parked["project_revision"],
+            workflow_type=RESEARCH_LEAD,
+            idempotency_key=f"{RESEARCH_LEAD}:later-{i}",
+            step_inputs={"turn": {}},
+            owner=DESIGN_PROJECT_OWNER,
+        )
+    assert first[-1]["run_id"] not in {
+        r["run_id"]
+        for r in WorkflowRepository(session, scope).list_runs(
+            project_id=parked["project_id"], workflow_type=RESEARCH_LEAD, limit=200
+        )
+    }
+    assert set_study_budget(session, scope, 5.0)[1] == [first[-1]["run_id"]]
+
+
+def test_a_parked_turn_whose_hold_is_unknown_stays_parked(scoped: Any, session: Any) -> None:
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    _no_budget(scoped, scope)
+    _message(_lead(scope, session))
+    _park_on_budget(session, scope, requested=None)
+    assert set_study_budget(session, scope, 500.0)[1] == []
+    assert _lead(scope, session).state()["turns"][-1]["status"] == "WAITING"
+
+
+def test_a_greeting_does_not_supersede_a_message_waiting_for_budget(
+    scoped: Any, session: Any
+) -> None:
+    """Opening the study greets; it never cancels the person's own message."""
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    first = _message(_lead(scope, session))
+    _park_on_budget(session, scope)
+    later = _lead(scope, session, clock=lambda: utcnow() + timedelta(days=1))
+    assert later.post(kind="greeting", stage="brief") == []
+    run = WorkflowRepository(session, scope).get_run(first[-1]["run_id"])
+    assert run["status"] is not WorkflowRunStatus.CANCELLED
+
+
+def test_a_turn_resumed_from_a_budget_wait_holds_the_conversation(
+    scoped: Any, session: Any
+) -> None:
+    """The review of baac33d5: messages must not stack paid turns behind one another. A turn
+    whose budget wait a person lifted is queued again, and holds the conversation as any
+    queued turn does, until it is answered."""
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    _message(_lead(scope, session))
+    work = _park_on_budget(session, scope)
+    budget = float(scoped.scope_repo.get_study(scope).budget_usd)
+    WorkflowRepository(session, scope).resume_budget_wait(
+        work.step_id, budget_before=budget, budget_after=budget
+    )
+    assert _lead(scope, session).state()["busy"] is True
     with pytest.raises(LeadBusy):
         _message(_lead(scope, session), "Jsi tam?")
-    # A greeting is still a no-op, never a 409.
-    assert _lead(scope, session).post(kind="greeting", stage="brief") == []
-
-    budget = float(scoped.scope_repo.get_study(scope).budget_usd)
-    workflows.resume_budget_wait(work.step_id, budget_before=budget, budget_after=budget)
-    assert _lead(scope, session).state()["busy"] is True  # queued again: still answering
     _complete(session, scope, {"reply": "Hotovo."})
     assert _lead(scope, session).state()["busy"] is False
     assert len(_message(_lead(scope, session), "Další")) == 2
@@ -698,3 +861,46 @@ def test_two_tabs_opening_the_study_start_one_greeting(
         workflow_type=RESEARCH_LEAD,
     )
     assert len(runs) == 1
+
+
+def _t(actor: str, status: str, reason: str | None = None) -> dict[str, Any]:
+    return {"actor": actor, "status": status, "reason": reason}
+
+
+NOT_READY_UNCONFIGURED = (False, "newest_turn", "research_lead_unconfigured")
+NOT_READY_RUNTIME = (False, "newest_turn", "ai_runtime_unavailable")
+
+
+@pytest.mark.parametrize(
+    "turns,expected",
+    [
+        ([], (None, None, None)),
+        ([_t("person", "COMPLETED")], (None, None, None)),
+        ([_t("lead", "COMPLETED")], (None, None, None)),
+        ([_t("lead", "WAITING", "research_lead_unconfigured")], NOT_READY_UNCONFIGURED),
+        ([_t("lead", "FAILED", "ai_runtime_unavailable")], NOT_READY_RUNTIME),
+        # A park that does not name the worker's composition says nothing about it.
+        ([_t("lead", "WAITING", "budget_exceeded")], (None, None, None)),
+        ([_t("lead", "WAITING", "egress_no_approved_route")], (None, None, None)),
+        # The newest decided turn speaks; one still queued or cancelled is skipped.
+        (
+            [_t("lead", "WAITING", "research_lead_unconfigured"), _t("lead", "QUEUED")],
+            NOT_READY_UNCONFIGURED,
+        ),
+        (
+            [_t("lead", "WAITING", "research_lead_unconfigured"), _t("lead", "COMPLETED")],
+            (None, None, None),
+        ),
+        (
+            [_t("lead", "WAITING", "ai_runtime_unavailable"), _t("lead", "CANCELLED")],
+            NOT_READY_RUNTIME,
+        ),
+    ],
+)
+def test_the_worker_is_never_read_as_ready(
+    turns: list[dict[str, Any]], expected: tuple[bool | None, str | None, str | None]
+) -> None:
+    """27b without LO12b's record: only a park naming the worker's composition says anything
+    (not ready); nothing says ready."""
+    assert worker_readiness(turns) == expected
+    assert worker_readiness(turns)[0] is not True

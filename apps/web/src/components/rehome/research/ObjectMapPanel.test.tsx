@@ -217,6 +217,64 @@ describe("the panel's controls", () => {
   });
 });
 
+// Where the web leaves the panel (Sprint 5, the product owner's Q50 (b)): the selection's state,
+// each case the screenshot it reproduces, failing on the panel's own behaviour.
+describe("the display state, where the web leaves the panel", () => {
+  const enterFull = () => {
+    const stage = screen.getByTestId("object-map-stage");
+    Object.assign(stage, { requestFullscreen: () => Promise.resolve() });
+    fireEvent.click(screen.getByRole("button", { name: "Celá obrazovka" }));
+    Object.defineProperty(document, "fullscreenElement", { configurable: true, value: stage });
+    fireEvent(document, new Event("fullscreenchange"));
+  };
+  afterEach(() => { Object.defineProperty(document, "fullscreenElement", { configurable: true, value: null }); });
+  const strongest = () => mapLinks(map).sort((a, b) => Math.abs(b.r) - Math.abs(a.r)).slice(0, 5).map((l) => `${l.a}|${l.b}`).sort();
+
+  it("starts the respondent map with nothing selected, and comes back to the objects with nothing selected", async () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    fireEvent.click(within(screen.getByTestId("object-map-panel-list")).getAllByRole("button")[0]);
+    expect(canvas().getAttribute("data-selected")).not.toBe("");
+    fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
+    expect(canvas().getAttribute("data-selected")).toBe("");
+    expect(canvas().getAttribute("data-relation")).toBe("");
+    fireEvent.click(screen.getByRole("button", { name: "Objekty" }));
+    expect(canvas().getAttribute("data-selected")).toBe("");
+    expect(drawn().sort()).toEqual(strongest());
+  });
+
+  it("forgets the ringed respondent when the map changes", async () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
+    await nextFrame(0);
+    // A dot no other dot or marker sits within a hit radius of, where the drawn frame put it.
+    const dots = panelDots(map, storedFrame(map)!);
+    const grid = densityGrid(map)!;
+    const P = projection(INITIAL_CAMERA, 900, 700);
+    const at = dots.map((d) => P.project(d.x, d.y, terrainAt(grid, d.x, d.y) + 0.65));
+    const lone = at.findIndex((q, k) => at.every((o, j) => j === k || Math.hypot(o.x - q.x, o.y - q.y) > 16));
+    fireEvent.pointerDown(canvas(), { clientX: at[lone].x, clientY: at[lone].y, pointerId: 1 });
+    fireEvent.pointerUp(canvas(), { clientX: at[lone].x, clientY: at[lone].y, pointerId: 1 });
+    expect(canvas().getAttribute("data-person")).toBe(dots[lone].id);
+    fireEvent.click(screen.getByRole("button", { name: "Objekty" }));
+    fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
+    expect(canvas().getAttribute("data-person")).toBe("");
+  });
+
+  it("draws the map's five strongest relations under Top vztahy in full screen, a selection or not", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    fireEvent.click(within(screen.getByTestId("object-map-panel-list")).getAllByRole("button")[0]);
+    const id = canvas().getAttribute("data-selected")!;
+    // On the page the selection's own five, with its detail card beside the map (the panel's rule).
+    for (const pair of drawn()) expect(pair.split("|")).toContain(id);
+    enterFull();
+    expect(canvas().getAttribute("data-selected")).toBe(id);
+    expect(drawn().sort()).toEqual(strongest());
+    // Vybraný still means the selected object's relations, in full screen too.
+    fireEvent.click(screen.getByRole("button", { name: "Vybraný" }));
+    for (const pair of drawn()) expect(pair.split("|")).toContain(id);
+  });
+});
+
 describe("accessibility", () => {
   it("names the canvas, describes its lines, and lists every object as a button", () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);

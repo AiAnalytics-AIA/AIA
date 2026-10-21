@@ -39,6 +39,7 @@ from aia_core.application.research_lead import (
     NotAPaidRequest,
     ResearchLead,
     WorkspaceConflict,
+    worker_readiness,
 )
 from aia_core.domain.design import DesignRejected
 from aia_core.domain.scope import ScopeDenied
@@ -197,9 +198,22 @@ class LeadTurn(BaseModel):
 
 
 class LeadState(BaseModel):
+    """The conversation and whether it is offered. ``available`` is the API's switch alone;
+    ``worker_ready`` is whether a worker can answer a turn, ``null`` when that is unknown and
+    never ``true`` without a source that shows it (research-lead-workbench 27a/27b)."""
+
     model_config = ConfigDict(extra="forbid")
     available: bool
     unavailable_reason: str | None
+    #: ``false`` only on evidence (the source says which); ``null``: unknown. Until the worker
+    #: publishes its composition (lead-orchestration LO12b) nothing here reports ``true``.
+    worker_ready: bool | None
+    #: Where ``worker_ready`` was read: ``newest_turn`` (this conversation's newest decided Lead
+    #: turn parked for a reason naming the worker's composition), or ``null`` with no source.
+    worker_ready_source: Literal["newest_turn"] | None
+    #: Why the worker is not ready (a park code, e.g. ``research_lead_unconfigured``); ``null``
+    #: unless ``worker_ready`` is ``false``. The name ``lib/lead-availability.ts`` reads.
+    worker_reason: str | None
     busy: bool
     turns: list[LeadTurn]
 
@@ -351,12 +365,16 @@ def _lead_errors() -> Iterator[None]:
 def read_lead(scope: StudyScopeDep, session: SessionDep, settings: SettingsDep) -> LeadState:
     """The caller's own conversation in the Study, oldest first, and whether the Lead is on."""
     with _lead_errors():
-        lead = ResearchLead(session, scope, enabled=settings.ai_research_lead_enabled)
+        lead = ResearchLead(session, scope, enabled=settings.research_lead_on)
         state = lead.state()
-    on = settings.ai_research_lead_enabled
+    on = settings.research_lead_on
+    ready, source, reason = worker_readiness(state["turns"])
     return LeadState(
         available=on,
         unavailable_reason=None if on else _DISABLED,
+        worker_ready=ready,
+        worker_ready_source=source,
+        worker_reason=reason,
         busy=state["busy"],
         turns=[LeadTurn.model_validate(t) for t in _public(state["turns"])],
     )
@@ -388,7 +406,7 @@ def post_turn(
     """Store the message and queue the Lead's turn: 201 with the turns stored, or 200 with
     none for a greeting the Lead has already given in the last eight hours."""
     with _lead_errors():
-        turns = ResearchLead(session, scope, enabled=settings.ai_research_lead_enabled).post(
+        turns = ResearchLead(session, scope, enabled=settings.research_lead_on).post(
             kind=body.kind,
             stage=body.stage,
             text=body.text,
@@ -441,7 +459,10 @@ def decide_self_update(
     "/lead/turns/{turn_id}/request",
     response_model=ApprovedRequest,
     responses={
-        409: {"model": ErrorResponse, "description": "The spend limit asks, or it is unknown"},
+        409: {
+            "model": ErrorResponse,
+            "description": "The spend limit asks, or it is unknown; or the Lead is switched off",
+        },
         422: {"model": ErrorResponse, "description": "The turn prepared no paid job"},
     },
 )
@@ -453,9 +474,10 @@ def approve_request(
     settings: SettingsDep,
 ) -> ApprovedRequest:
     """Approve the design job the caller's own Lead turn prepared: held to the study's spend
-    limit, started and recorded in the approval ledger, once."""
+    limit, started and recorded in the approval ledger, once. With the Lead switched off, a
+    card its model prepared is 409 ``research_lead_disabled`` and nothing is written (Q42)."""
     with _lead_errors():
-        started = ResearchLead(session, scope).approve_request(
+        started = ResearchLead(session, scope, enabled=settings.research_lead_on).approve_request(
             turn_id,
             confirm_cost_usd=body.confirm_cost_usd,
             reservation_usd=settings.ai_research_reservation_usd,

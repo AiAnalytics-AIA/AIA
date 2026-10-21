@@ -1117,6 +1117,30 @@ class WorkflowRepository:
 
     # ------------------------------------------------------- budget and costs --
 
+    def steps_awaiting_budget(
+        self, *, project_id: str, workflow_type: str
+    ) -> list[tuple[str, str]]:
+        """Every ``(run_id, step_id)`` of the project's ``workflow_type`` runs in scope whose step
+        is parked at the budget cap, oldest run first. One query over the waiting steps, never a
+        page of runs, so a wait behind any number of newer runs is found."""
+        rows = self._session.execute(
+            select(StepRunRow.run_id, StepRunRow.step_id)
+            .join(WorkflowRunRow, WorkflowRunRow.run_id == StepRunRow.run_id)
+            .where(
+                WorkflowRunRow.project_id == project_id,
+                WorkflowRunRow.workflow_type == workflow_type,
+                StepRunRow.status == StepRunStatus.AWAITING_BUDGET.value,
+                *self._scope_filter(),
+            )
+            .order_by(WorkflowRunRow.created_at, WorkflowRunRow.run_id, StepRunRow.step_id)
+        ).all()
+        return [(str(run_id), str(step_id)) for run_id, step_id in rows]
+
+    def study_reserved_usd(self) -> float:
+        """What the study in scope's open holds keep from its budget now (calls in flight)."""
+        scope = self.scope
+        return self._outstanding_reservations(client_id=scope.client_id, study_id=scope.study_id)
+
     def _outstanding_reservations(self, *, client_id: str, study_id: str | None) -> float:
         """Sum of reservations still holding the payer's budget.
 
@@ -2855,20 +2879,65 @@ class WorkflowRepository:
         rows = self._session.scalars(
             select(ApprovalDecisionRow).where(*where).order_by(ApprovalDecisionRow.decision_id)
         ).all()
-        return [
-            LedgerEntry(
-                decision_id=row.decision_id,
-                subject=ApprovalSubject(row.subject_type),
-                subject_id=row.subject_id,
-                run_id=row.run_id,
-                decision=row.decision,
-                approver_user_id=row.approver_user_id,
-                self_approved=row.self_approved,
-                comment=row.comment,
-                created_at=as_utc(row.created_at),
+        return [_ledger_entry(row) for row in rows]
+
+    def ledger_entry(self, decision_id: int) -> LedgerEntry | None:
+        """One of this study's approval-ledger rows by its id, or ``None`` when it is not this
+        study's (read under the scope's three columns, as :meth:`ledger`)."""
+        row = self._session.scalar(
+            select(ApprovalDecisionRow).where(
+                ApprovalDecisionRow.decision_id == decision_id,
+                ApprovalDecisionRow.organization_id == self.scope.organization_id,
+                ApprovalDecisionRow.client_id == self.scope.client_id,
+                ApprovalDecisionRow.study_id == self.scope.study_id,
             )
-            for row in rows
-        ]
+        )
+        return None if row is None else _ledger_entry(row)
+
+    def record_wallet_raise(
+        self,
+        wallet_id: str,
+        *,
+        from_cap_usd: float,
+        to_cap_usd: float,
+        study_budget_usd: float,
+        client_ceiling_usd: float | None,
+    ) -> int:
+        """Write a person's change of their study's wallet cap (ADR 0028 decision 2, lead-
+        orchestration LO1) in the append-only approval ledger, and return the row's id, which
+        the raise row names. The row records the two caps and the bounds the change was judged
+        under (the study's budget, the client's wallet ceiling). Needs ``APPROVE_BUDGET``, which
+        the worker's scope does not hold: a step cannot widen the wallet it spends from.
+        """
+        self.scope.require(Permission.APPROVE_BUDGET)
+        independence = observe_approval_independence(
+            producer_user_id=self.scope.actor_id,
+            approving_user_id=self.scope.actor_id,
+            policy=self.scope.self_approval,
+        )
+        row = ApprovalDecisionRow(
+            organization_id=self.scope.organization_id,
+            client_id=self.scope.client_id,
+            study_id=self.scope.study_id,
+            subject_type=ApprovalSubject.WALLET,
+            subject_id=wallet_id,
+            gate_type="wallet",
+            decision="set_cap",
+            comment=json.dumps(
+                {
+                    "from_cap_usd": from_cap_usd,
+                    "to_cap_usd": to_cap_usd,
+                    "study_budget_usd": study_budget_usd,
+                    "client_ceiling_usd": client_ceiling_usd,
+                },
+                sort_keys=True,
+            ),
+            request_id=self.scope.request_id,
+            **independence.audit_fields(),
+        )
+        self._session.add(row)
+        self._session.flush()
+        return int(row.decision_id)
 
     def record_design_research_acceptance(
         self,
@@ -3531,3 +3600,17 @@ class WorkQueue:
             failure=FailureClass.PERMISSION,
             error={"reason": reason},
         )
+
+
+def _ledger_entry(row: ApprovalDecisionRow) -> LedgerEntry:
+    return LedgerEntry(
+        decision_id=row.decision_id,
+        subject=ApprovalSubject(row.subject_type),
+        subject_id=row.subject_id,
+        run_id=row.run_id,
+        decision=row.decision,
+        approver_user_id=row.approver_user_id,
+        self_approved=row.self_approved,
+        comment=row.comment,
+        created_at=as_utc(row.created_at),
+    )

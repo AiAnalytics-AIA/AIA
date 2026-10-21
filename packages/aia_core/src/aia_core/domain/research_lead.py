@@ -86,6 +86,8 @@ __all__ = [
     "DEFAULT_LEAD_NAME",
     "DEFAULT_SOUL",
     "FOCUS_ID",
+    "FOCUS_KINDS",
+    "ID_PATTERN",
     "LEAD_AGENT_ID",
     "LEAD_HARNESS_VERSION",
     "LEAD_PROMPT_ID",
@@ -149,7 +151,9 @@ LEAD_PROMPT_VERSION: Final = "1"
 #: 2: the frozen design layer carries the readiness limits in force, and ``set_n`` is held to
 #: them rather than to a range of its own (plan ``run-qc-and-checkpoint`` RQC9). A turn queued
 #: under 1 has no limits to be grounded against, so the executor refuses it by name.
-LEAD_HARNESS_VERSION: Final = "aia-research-lead-2"
+#: 3: a focus may name any element in the per-artifact contract (FOCUS_KINDS) by an id of the one
+#: grammar the contract publishes (ID_PATTERN); the output's view schema widened with it.
+LEAD_HARNESS_VERSION: Final = "aia-research-lead-3"
 #: A turn's stored output. Served only by the Lead's own routes, never the generic ones.
 ARTIFACT_TYPE: Final = "research_lead_turn"
 
@@ -196,13 +200,23 @@ Stage = Literal[
 STAGES: Final[tuple[str, ...]] = get_args(Stage)
 
 
+#: The kinds of element a stage screen names (``domain/lead_artifacts.py`` ``TargetKind``, held
+#: equal to this by its test; the per-artifact contract, research-lead-workbench 16).
+FOCUS_KINDS: Final[tuple[str, ...]] = (
+    "brief", "objective", "material", "plan", "rq", "hypothesis", "set", "assumption",
+    "section", "question", "audience", "dimension", "own_dimension", "sample", "step",
+    "measure", "object", "pair", "module", "finding", "claim", "report",
+)  # fmt: skip
+#: An element's id: an identifier, possibly of colon-separated parts (``finding:executive:2``),
+#: a battery-qualified object (``set1/fio``) or a pair (``set1/fio~air``).
+ID_PATTERN: Final = r"[A-Za-z0-9_.\-~/:]{1,80}"
 #: A ``data-aia`` id the interface focuses: ``question:q3``, ``brief:goal``.
-_TARGET = r"^[a-z_]+:[A-Za-z0-9_.\-]+$"
-#: What a person's message may say it is about: an element of a stage screen, in the forms the
-#: web's targetOfElement produces (``question:<id>``, ``section:<id>``, ``brief:<field>``,
-#: ``plan:<part>``). The id reaches the model unclassified, so it may be an identifier and
-#: nothing else; the free text beside it is the label, which is classified.
-FOCUS_ID: Final = re.compile(r"^(?:question|section|brief|plan):[A-Za-z0-9_.\-]{1,80}$")
+_TARGET = rf"^[a-z_]+:{ID_PATTERN}$"
+#: What a person's message may say it is about: an element of a stage screen, as the web's
+#: targetOfElement produces it (``<kind>:<id>``, ``data-aia`` on the element). The id reaches the
+#: model unclassified, so it may be an identifier and nothing else; the free text beside it is
+#: the label, which is classified.
+FOCUS_ID: Final = re.compile(rf"^(?:{'|'.join(FOCUS_KINDS)}):{ID_PATTERN}$")
 _MEMORY_ID = r"^LMM-[0-9a-f]{1,32}$"
 
 

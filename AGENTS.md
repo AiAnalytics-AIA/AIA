@@ -186,7 +186,22 @@ LIKE 'idle in%'` — its last query names the call that opened it.
 Markers are registered in the root `pyproject.toml` **and** in each package's
 own `pyproject.toml`, and `--strict-markers` is on, so a typo in a marker name is
 an error rather than a silently unfiltered run. Current markers: `parity`,
-`postgres`, `golden`, `oracle`.
+`postgres`, `golden`, `oracle`, `acceptance`.
+
+**Alembic does not migrate SQLite.** A harness that bootstraps through the migrations, as the
+acceptance tree does (`alembic upgrade head`, then the seed), needs PostgreSQL; the suites'
+`Base.metadata.create_all` is not the operator path (#535).
+
+```bash
+# WRONG -- NotImplementedError: No support for ALTER of constraints in SQLite dialect
+DATABASE_URL=sqlite+pysqlite:///x.db alembic upgrade head
+# RIGHT -- a PostgreSQL database the harness may migrate and seed
+AIA_ACCEPTANCE_DATABASE_URL=postgresql+psycopg://… make test-acceptance
+```
+
+**Two error answers differ by their `request_id`.** Every error envelope carries the request's
+id, so two refusals that are the same answer are never the same bytes. Compare the body without it
+(`tests/acceptance/test_mvp_acceptance.py` `_error`), never the raw response.
 
 **`skipif` is a static skip to `layer_check`.** The rule that rejects
 `@pytest.mark.skip` matches `@pytest.mark.skipif` too, on purpose: a condition
@@ -581,7 +596,27 @@ op.create_check_constraint(op.f(_NAME), "approval_decisions",
 
 A CHECK on an append-only table also needs a `downgrade` that refuses while a row of the new
 kind exists, rather than deleting from the ledger or re-adding a constraint those rows break.
-`alembic check` after the upgrade is the proof that model and migration agree.
+`alembic check` after the upgrade proves the columns agree, not the constraint (below).
+
+**Autogenerate does not see a CHECK constraint, and neither does `alembic check`.** After the
+ledger's `CheckConstraint` changed in `tables.py`, `make migration m="…"` generated an empty
+`upgrade()` with `pass`, and `alembic check` said "No new upgrade operations detected" both
+before and after the real migration (#534, migration `5054d4d610c2`). A CHECK change is a
+hand-written migration.
+
+```python
+# WRONG -- trust the generated revision, or alembic check, for a CHECK change
+def upgrade() -> None:
+    pass
+
+# RIGHT -- drop and create it by hand, the values listed literally as they are when it runs
+op.drop_constraint(op.f(_NAME), "approval_decisions", type_="check")
+op.create_check_constraint(op.f(_NAME), "approval_decisions", "subject_type in ('gate', …)")
+```
+
+Hold the migration's literal list to the model's in a test
+(`test_approval_ledger.py::test_the_migration_names_the_same_subjects_in_the_same_order`), and on
+PostgreSQL read `pg_get_constraintdef` after upgrading.
 
 **Two PRs that each add a revision on the same parent are green alone and red together.** A PR's
 CI runs on its merge with the base as it was then, so neither run sees the other's revision; the
@@ -849,6 +884,27 @@ SettingsDep = Annotated[Settings, Depends(get_settings)]
 # RIGHT -- the validated instance the application was built with
 SettingsDep = Annotated[Settings, Depends(get_app_settings)]   # request.app.state.settings
 ```
+
+**A `yield` dependency's exit runs after the response unless its scope is `"function"`.** Since
+FastAPI 0.118.0, the code after `yield` in a dependency with the default scope (`"request"`) runs
+after the response has been sent. `get_session` commits there, so a client got its 201 before the
+row was committed: the next request (`POST /session` after `POST /members`) inserted the user again
+and failed with UniqueViolation, and a commit that failed was rolled back after a 2xx (OI-162).
+`TestClient` hides this, because it returns only after the whole ASGI cycle; only a real server
+shows it (`apps/api/tests/test_commit_before_response.py`).
+
+```python
+# WRONG -- commits after the client already has its 201
+SessionDep = Annotated[Session, Depends(get_session)]
+
+# RIGHT -- commits when the endpoint returns, before the response; a failed commit is the response
+SessionDep = Annotated[Session, Depends(get_session, scope="function")]   # FastAPI >= 0.121.1
+```
+
+Take the session only through `SessionDep`. The dependency cache is keyed by scope, so a bare
+`Depends(get_session)` would be a second session in the same request;
+`test_every_route_takes_its_session_in_function_scope` fails one. Nothing may read the session from
+a streamed body or a background task, because it is closed by then: open a session of your own there.
 
 **An error raised after a write rolls the write back, audit rows included.**
 `get_session` is a `yield` dependency that commits on success and rolls back on
@@ -1478,6 +1534,19 @@ await findByText("Přečteno: 2 části, 1\u00a0200 znaků");
 await findByText("Přečteno: 2 části, 1 200 znaků");
 ```
 
+Where the U+00A0 itself is what the test checks (a Stepper's bounds, `50–5 000`), read the
+element's `textContent`, or pass `{ normalizer: (s) => s }` (#532):
+
+```ts
+// RIGHT -- the exact characters the page renders
+expect(el.textContent).toBe("50–5\u00a0000 · ↑ ↓ o krok, Shift ×10");
+```
+
+**React 19 runs a child's `autoFocus` before a parent's layout effect calls `showModal()`**, and
+`showModal()` then focuses the first focusable element, so the field marked `autoFocus` loses focus.
+Focus the intended element right after `showModal()` instead (#532, `SpendDialog`: the safe choice
+takes the focus after `showModal`).
+
 **jsdom has no `URL.createObjectURL`, and a clicked `<a download>` goes nowhere.**
 A download that needs the bearer token cannot be a plain link: the app fetches the
 bytes (`workspace.attachment` in `src/lib/api.ts`) and `saveBlob`
@@ -1722,6 +1791,17 @@ submitting it, so the design is a stored revision").
 await research.submitDesign(studyId, store.get().project, stage, store.get().revision!);
 // RIGHT: a completed (or unsaved) copy is saved first; the revision named is exactly what is sent
 await submitWorkingDesign(store, studyId, stage);
+```
+
+**The web's `tsconfig` targets ES2017, so a BigInt literal does not compile.** A 64-bit hash
+(FNV-1a 64 with MurmurHash3's finaliser, `src/research/item-ids.ts`, WCE1) is done in 16-bit limbs
+over a `[hi, lo]` pair of 32-bit halves (#543).
+
+```ts
+// WRONG -- "BigInt literals are not available when targeting lower than ES2020"
+const MASK = (1n << 64n) - 1n;
+// RIGHT -- 64-bit arithmetic in limbs
+[hi, lo] = mul64(hi, lo, 0x00000100, 0x000001b3);
 ```
 
 ## The 18.6.6 unit, run outside its container

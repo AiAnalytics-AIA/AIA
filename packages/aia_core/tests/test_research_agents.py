@@ -460,7 +460,11 @@ def test_a_proposal_on_a_design_with_no_working_revision_is_refused_as_unknown(
             expected_workspace_revision=working,
         )
     assert refused.value.reason == "stale_proposal"
-    assert refused.value.details() == {"reason": "unknown_baseline", "conflicting_items": []}
+    assert refused.value.details() == {
+        "reason": "unknown_baseline",
+        "conflicting_items": [],
+        "conflicting_wording": {},
+    }
     assert designs.latest() == legacy
     assert StudyWorkspaceRepository(session).content(scope).revision == working
 
