@@ -33,7 +33,8 @@ Updated 2026-10-20. Design prototype only: no product code, no product PR (scope
 - 2026-10-21 (Nigel): track each researcher's individual spend on Studie a rozpočty. Prototype: per-person total, share,
   split by activity, per-study breakdown, period selector. Assumed (to confirm): attributed to whoever started or approved the paid
   work; OWNER/ADMIN see all, a researcher sees only their own. Needs an actor on every ledger and reservation row
-  (develop-spend-attribution, I20).
+  (develop-spend-attribution, I20). PROTOTYPE ONLY: the coordinator proposes develop-spend-attribution chunk 7 and has put
+  (a) and (b) to Nigel on /pmstatus; the card is labelled as a prototype until he answers.
 - Readability pass (2026-10-21, Nigel): Stav systému, Deep Research, Správa dat, Metodika: all information kept, sections separated.
 
 ## Open, with Nigel
