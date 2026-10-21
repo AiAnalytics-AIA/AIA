@@ -262,7 +262,6 @@ export const cs = {
       noFolders: "Zatím žádná složka.",
       noLabels: "Bez štítků",
       newFolder: "Nová složka",
-      newFolderAsk: "Název nové složky",
       renameFolderAsk: "Nový název složky",
       deleteFolderAsk: "Smazat složku „{name}“? Jejích {n} znalostí zůstane, jen bez složky.",
       newLabel: "Nový štítek",
