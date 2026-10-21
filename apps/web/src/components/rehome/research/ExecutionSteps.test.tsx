@@ -1618,6 +1618,58 @@ describe("Results", () => {
     expect(document.querySelectorAll("[data-answer-gap]")).toHaveLength(1);
   });
 
+  it("covers every research question of the frozen design: its answer, the findings on the same measures, what is missing (ANL2)", async () => {
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-7", analysis_outcome: "COMPLETED" }),
+    ], answerability: { ready: true, gaps: [{ kind: "not_answerable", research_question: "Proč  měníte banku?", verdict: "UNANSWERABLE", reasons: [], measures: [] }] } as unknown as ResearchRun["answerability"] });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/design/revisions/REV-a1": () => ({ revision_id: "REV-a1", content: { research_plan: { research_questions: ["Co lidé pijí?", "Proč měníte banku?", "Kdo pije čaj?"] } } }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: {}, modules: {
+        research_questions: { outcome: "COMPLETED", summary: null, violations: [],
+          research_question_answers: [{ question: "Co lidé pijí?", answer: "Čaj.", claim_ids: ["C1"] }, { question: "Proč měníte banku?", answer: "Nevíme.", claim_ids: [] }, { question: "Kdo pije čaj?", answer: "Mnozí.", claim_ids: [] }],
+          key_findings: [{ text: "Čaj vede.", claim_ids: ["C1"] }],
+          claims: [{ claim_id: "C1", evidence_ref: "q2.pct.2", value: 38.4, indicative: false, data_origin: null }] },
+      } }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const table = await screen.findByRole("region", { name: "Pokrytí výzkumných otázek" });
+    await waitFor(() => expect(table.querySelectorAll("tr[data-rq]")).toHaveLength(3));
+    const rows = [...table.querySelectorAll("tr[data-rq]")];
+    expect(rows.map((r) => [r.getAttribute("data-rq"), r.getAttribute("data-state")])).toEqual([["0", "answered"], ["1", "gap"], ["2", "unsupported"]]);
+    // The Lead points at the module (rq:<id> waits for stable research-question ids, WCE1).
+    expect(table.getAttribute("data-aia")).toBe("module:research_questions");
+    // The recorded gap reads "bez doložené odpovědi", with what the run recorded; never "ano".
+    expect(rows[1].textContent).toContain("bez doložené odpovědi");
+    expect(rows[1].textContent).toContain("Při spuštění běh zaznamenal");
+    // A finding on the same measure is linked to where it is shown, and carries its Lead target.
+    const link = within(rows[0] as HTMLElement).getByRole("link");
+    expect(link.getAttribute("href")).toBe("#analysis-finding-research_questions-0");
+    expect(document.getElementById("analysis-finding-research_questions-0")?.getAttribute("data-aia")).toBe("finding:research_questions:0");
+    expect(rows[2].textContent).toContain("Odpověď necituje žádné připuštěné číslo.");
+  });
+
+  it("says the research questions are unknown when the frozen design cannot be read, never that it has none (ANL2)", async () => {
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-7", analysis_outcome: "BLOCKED" }),
+    ] });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/design/revisions/REV-a1": () => { throw new Error("neznámá revize"); },
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: {}, modules: {
+        research_questions: { outcome: "BLOCKED", summary: null, violations: [{ code: "x", subject: "y", detail: "z" }], research_question_answers: [], key_findings: [], claims: [] },
+      } }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const section = await screen.findByRole("region", { name: "Pokrytí výzkumných otázek" });
+    await waitFor(() => expect(section.querySelector("[data-coverage-read]")?.getAttribute("data-coverage-read")).toBe("failed"));
+    expect(section.textContent).toContain("Výzkumné otázky běhu jsou neznámé");
+    expect(section.textContent).not.toContain("neuvádí výzkumné otázky");
+    expect(section.querySelectorAll("tr[data-rq]")).toHaveLength(0);
+  });
+
   it("puts every module's key findings first, each with the numbers it cites, and keeps every word formatted", async () => {
     const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
       step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6" }),
