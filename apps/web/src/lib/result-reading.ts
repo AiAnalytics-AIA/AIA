@@ -91,7 +91,7 @@ export function readMeasure(result: QuestionResult, scale?: readonly [number, nu
     : result.typ === "skala"
       ? scaleReading(result, scale, topBox, at)
       : Array.isArray(result.verbatimy) && result.verbatimy.length
-        ? "Otevřené odpovědi: ukázky jsou v detailu."
+        ? `Otevřená otázka: ${finite(result.n_platnych) ? `${result.n_platnych.toLocaleString("cs-CZ")} odpovědí, ` : ""}nekódováno.`
         : null;
   if (words === null) return { text: "Pro tuto otázku není k dispozici číselný souhrn.", tone: "empty" };
   return result.support_status === "INDICATIVE" ? { text: `Orientační: ${words}`, tone: "indicative" } : { text: words, tone: "plain" };

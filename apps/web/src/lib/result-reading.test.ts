@@ -69,7 +69,7 @@ describe("readMeasure", () => {
   });
 
   it("says when a question has no numeric summary", () => {
-    expect(readMeasure({ typ: "otevrena", ...support("REPORTABLE"), verbatimy: ["dobré"] }).text).toBe("Otevřené odpovědi: ukázky jsou v detailu.");
+    expect(readMeasure({ typ: "otevrena", ...support("REPORTABLE"), verbatimy: ["dobré"] }).text).toMatch(/^Otevřená otázka: \d+ odpovědí, nekódováno\.$/);
     expect(readMeasure({ typ: "otevrena", ...support("REPORTABLE") }).tone).toBe("empty");
   });
 });
