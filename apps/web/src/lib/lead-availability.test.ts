@@ -2,8 +2,8 @@
 // unknown never on, a switched-off Lead off, a parked turn waiting.
 import { describe, expect, it } from "vitest";
 
-import type { LeadState, LeadTurn } from "./lead";
-import { availabilityLabel, availabilityWords, isLeadOn, leadAvailability, leadReasonWords } from "./lead-availability";
+import type { LeadTurn } from "./lead";
+import { type LeadStateWithWorker, availabilityLabel, availabilityWords, isLeadOn, leadAvailability, leadReasonWords } from "./lead-availability";
 
 const turn = (over: Partial<LeadTurn>): LeadTurn => ({
   turn_id: `t${over.sequence_no ?? 1}`,
@@ -23,16 +23,16 @@ const turn = (over: Partial<LeadTurn>): LeadTurn => ({
   ...over,
 } as LeadTurn);
 
-const state = (over: Partial<LeadState>): LeadState => ({ available: true, unavailable_reason: null, busy: false, turns: [], ...over });
+const state = (over: Partial<LeadStateWithWorker>): LeadStateWithWorker => ({ available: true, unavailable_reason: null, busy: false, turns: [], worker_ready: true, ...over });
 
 describe("leadAvailability", () => {
   it("never reads an unread, unreadable or out-of-shape answer as on", () => {
     expect(leadAvailability(null)).toEqual({ kind: "UNKNOWN", reason: null });
     expect(leadAvailability(undefined)).toEqual({ kind: "UNKNOWN", reason: null });
     expect(leadAvailability(state({}), true)).toEqual({ kind: "UNKNOWN", reason: null });
-    const odd = { ...state({}), available: "yes" } as unknown as LeadState;
+    const odd = { ...state({}), available: "yes" } as unknown as LeadStateWithWorker;
     expect(leadAvailability(odd).kind).toBe("UNKNOWN");
-    const missing = { busy: false, turns: [] } as unknown as LeadState;
+    const missing = { busy: false, turns: [] } as unknown as LeadStateWithWorker;
     expect(leadAvailability(missing).kind).toBe("UNKNOWN");
     for (const s of [null, undefined, odd, missing]) expect(isLeadOn(leadAvailability(s))).toBe(false);
   });
@@ -50,7 +50,7 @@ describe("leadAvailability", () => {
   });
 
   it("reads a newest Lead turn the worker parked as waiting, with its reason", () => {
-    for (const reason of ["research_lead_unconfigured", "ai_runtime_unavailable", "egress_no_approved_route", "AWAITING_BUDGET"]) {
+    for (const reason of ["research_lead_unconfigured", "ai_runtime_unavailable", "egress_no_approved_route", "budget_exceeded", "reservation_exhausted"]) {
       const a = leadAvailability(state({ turns: [turn({ sequence_no: 1 }), turn({ sequence_no: 2, status: "WAITING", reason })] }));
       expect(a).toEqual({ kind: "WAITING", reason });
       expect(isLeadOn(a)).toBe(false);
@@ -83,7 +83,37 @@ describe("leadAvailability", () => {
   });
 });
 
+describe("the worker's readiness", () => {
+  it("reads available: true without a worker-ready signal as unknown, never on", () => {
+    // Today's GET /lead: the API's switch on, nothing said about the worker (routers/lead.py:356-359).
+    const today = { available: true, unavailable_reason: null, busy: false, turns: [] } as LeadStateWithWorker;
+    expect(leadAvailability(today)).toEqual({ kind: "UNKNOWN", reason: null });
+    expect(leadAvailability(state({ worker_ready: null }))).toEqual({ kind: "UNKNOWN", reason: null });
+    expect(isLeadOn(leadAvailability(today))).toBe(false);
+  });
+
+  it("reads a worker that says it is not ready as waiting, with its reason", () => {
+    expect(leadAvailability(state({ worker_ready: false, worker_reason: "research_lead_unconfigured" }))).toEqual({ kind: "WAITING", reason: "research_lead_unconfigured" });
+    expect(leadAvailability(state({ worker_ready: false }))).toEqual({ kind: "WAITING", reason: null });
+  });
+
+  it("still reads a parked newest turn as waiting when readiness is not reported", () => {
+    const turns = [turn({ status: "WAITING", reason: "research_lead_unconfigured" })];
+    expect(leadAvailability(state({ worker_ready: undefined, turns }))).toEqual({ kind: "WAITING", reason: "research_lead_unconfigured" });
+  });
+
+  it("reads the API's switch off as off whatever the worker says", () => {
+    expect(leadAvailability(state({ available: false, unavailable_reason: "research_lead_disabled", worker_ready: true })).kind).toBe("OFF");
+  });
+});
+
 describe("leadReasonWords", () => {
+  it("has words for the codes a budget park really carries, not the status name", () => {
+    expect(leadReasonWords("budget_exceeded")).toMatch(/rozpočet studie/);
+    expect(leadReasonWords("reservation_exhausted")).toMatch(/rozpočet studie/);
+    expect(leadReasonWords("AWAITING_BUDGET")).toBe("Vedoucí se zastavil (AWAITING_BUDGET).");
+  });
+
   it("keeps a code it has no words for, never guessing", () => {
     expect(leadReasonWords("something_new")).toBe("Vedoucí se zastavil (something_new).");
     expect(leadReasonWords(null)).toBe("Vedoucí se zastavil.");
