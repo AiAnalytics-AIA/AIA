@@ -347,6 +347,30 @@ The backend each chunk needs is in `.planning/mvp-consolidation.md` §6.
     (`test_research_lead_application.py`);
     `test_setting_the_study_budget_sends_the_message_that_waited_for_it`
     (`apps/api/tests/test_research_lead_api.py`); `leadReasonWords` in `lib/lead.test.ts`.
+- **F-STORE-1. Two flushes waiting behind one save sent the same base revision** *(recorded in
+  #554; fixed on `fix/store-flush-serialise`)*.
+  1. Claim: `ResearchStore.flush` let every caller waiting behind an in-flight save resume
+     together; each built its body from the same `state.revision`, so the second was refused
+     `stale_revision`. And a flush saved only the snapshot it took, so an edit typed during the
+     flight stayed pending after it resolved, and callers looped (`submitWorkingDesign`).
+  2. Anchor: `apps/web/src/research/store.ts:225-233 @ 054cf007` (`if (this.inflight) await
+     this.inflight;` then `base_revision: s.revision`, with no re-check).
+  3. Reproduction: a scratch Vitest on 054cf007 sent bases `[3, 4, 4]`; the tests below fail on
+     `origin/develop` 722dd75c and pass with the fix.
+  4. Consequence: after a fast edit, a false "Uloženo jinde" conflict whose only way on is a
+     reload that drops the edit; and a caller that took one flush to mean "saved" (an accept, a
+     job start) acted on a revision that did not hold the person's last edit.
+  5. Fix: saves are serialised. `flush` waits for whichever save is in flight, looks at the copy
+     again and saves only what is still owed (never saved, changed, failed or template-completed),
+     from the revision the previous save returned, until nothing is owed; at most
+     `MAX_FLUSH_ROUNDS` (4) saves, then `FlushIncomplete` with the change still pending and its
+     debounced save armed. The debounced autosave stays one save per debounce. A flush on a copy
+     AIA already holds sends nothing (it used to send a deduplicated save). `submitWorkingDesign`
+     calls `flush` once instead of looping.
+  6. Tests (`apps/web/src/research/store.test.ts`): `serialises the saves of callers waiting
+     behind one: each names the revision the one before returned`, `saves an edit made during the
+     flight in the same flush, which resolves only once it is saved`, `says when the copy kept
+     changing through every round, and keeps the change waiting for its save`.
 
 ## Doc follow-up (for the docs PR, not this branch)
 
@@ -359,7 +383,7 @@ The backend each chunk needs is in `.planning/mvp-consolidation.md` §6.
     `study_lead_turns`, `aia_executors/research_lead.py` and `AIA_AI_RESEARCH_LEAD_*`.
 - **`ARCHITECTURE.md`.** The accept route's new shape, and one more human-only gate source (a
   Lead-prepared job).
-- **`.planning/open-items.md`.** F1 and F2 above; F3, closed by its fix.
+- **`.planning/open-items.md`.** F1 and F2 above; F3 and F-STORE-1, each closed by its fix.
 - **`CLAUDE.md` § 2**, `domain/workspace.py` / the working content paragraph: a save naming no
   revision is not stale over a working copy that is still the bare template a server writer
   saved (`edited_from_current`).
