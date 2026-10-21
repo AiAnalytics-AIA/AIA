@@ -123,6 +123,12 @@ describe("targetOfElement", () => {
     expect(targetOfElement(document.getElementById("t"))).toEqual({ id: "question:Q1", label: "Otázka Q1: Jak často?" });
     expect(targetOfElement(document.getElementById("rq"))?.label).toBe("Otázka Q1: Jak často?");
     expect(targetOfElement(document.getElementById("s"))).toEqual({ id: "section:S1", label: "Oddíl: Nápoje" });
+    // Dotazník edits a block's or set's title in place: an input, not a heading (Codex on #599).
+    const edited = new JSDOM(`<article data-aia="section:S2" id="qset_S2"><fieldset><legend>Odpovídá na výzkumné otázky</legend><input type="checkbox" checked></fieldset>
+        <input aria-label="Název sady" value="Snídaně"><i id="e">-</i></article>
+      <article id="qblock_B1"><input aria-label="Název bloku" value="Úvod"><i id="b">-</i></article>`).window.document;
+    expect(targetOfElement(edited.getElementById("e"))).toEqual({ id: "section:S2", label: "Oddíl: Snídaně" });
+    expect(targetOfElement(edited.getElementById("b"))).toEqual({ id: "section:B1", label: "Oddíl: Úvod" });
     // A tracked set's card is found by its mark: it has no qblock_ id.
     expect(document.querySelector(focusSelector("section:S1"))?.id).toBe("qset_S1");
   });

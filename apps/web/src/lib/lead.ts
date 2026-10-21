@@ -477,6 +477,16 @@ export function targetLabel(target: string): string {
   return `${KIND_WORDS[parsed.kind]} ${id}`;
 }
 
+/** A section card's title: its heading, else its first field (Dotazník edits a block's or a set's
+ * title in place, as an input), else its id. */
+function titleOf(card: Element, id: string): string {
+  const heading = card.querySelector("h3, h2")?.textContent?.trim();
+  if (heading) return heading;
+  const field = card.querySelector('input:not([type="checkbox"]):not([type="radio"]), textarea');
+  const value = field && "value" in field && typeof field.value === "string" ? field.value.trim() : "";
+  return value || id;
+}
+
 /** A question card's wording: its first field's value, else the card's text. */
 function wordingOf(card: Element, text: string): string {
   const field = card.querySelector("textarea, input");
@@ -500,7 +510,7 @@ export function targetOfElement(el: Element | null): { id: string; label: string
     // be a part of it (the research-question legend), never what the person pointed at.
     if (aia && parsed?.kind === "question") return { id: aia, label: `Otázka ${parsed.id}: ${label(wordingOf(at, text))}` };
     if (aia && parsed?.kind === "section") {
-      return { id: aia, label: `Oddíl: ${label(at.querySelector("h3, h2")?.textContent?.trim() || parsed.id)}` };
+      return { id: aia, label: `Oddíl: ${label(titleOf(at, parsed.id))}` };
     }
     if (aia && parsed) {
       const heading = at.querySelector("h2, h3, h4, label, legend")?.textContent?.trim();
@@ -508,7 +518,7 @@ export function targetOfElement(el: Element | null): { id: string; label: string
     }
     let m: RegExpMatchArray | null;
     if ((m = id.match(/^qedit_(.+)$/))) return { id: `question:${m[1]}`, label: `Otázka ${m[1]}: ${label(wordingOf(at, text))}` };
-    if ((m = id.match(/^qblock_(.+)$/))) return { id: `section:${m[1]}`, label: `Oddíl: ${label(at.querySelector("h3, h2")?.textContent?.trim() || m[1]!)}` };
+    if ((m = id.match(/^qblock_(.+)$/))) return { id: `section:${m[1]}`, label: `Oddíl: ${label(titleOf(at, m[1]!))}` };
     if ((m = id.match(/^brief-(.+)$/))) return { id: `brief:${m[1]}`, label: `Zadání: ${label(at.querySelector("h2, h3, label")?.textContent?.trim() || m[1]!)}` };
     const plan: Record<string, { id: string; label: string }> = {
       "plan-sets": { id: "plan:sets", label: "Návrh: sledované sady" },
