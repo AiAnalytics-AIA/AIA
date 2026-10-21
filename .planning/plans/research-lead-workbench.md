@@ -236,17 +236,25 @@ appear in the lead researches chat too"). Built on `feature/lead-worker-cards`:
   - Dotazník's "Sestavit první verzi dotazníku" (build_questionnaire) and "Optimalizovat dotazník s AI"
     (optimize_questionnaire);
   - Cílová skupina's "AI: navrhnout cílovou skupinu" from a description (propose_audience);
-  - Dimenze's "AI doporučí" (suggest_dimensions).
+  - Dimenze's "AI doporučí" (suggest_dimensions);
+  - Návrh's "Doplnit a aktualizovat návrh" (follow-up answers) and "Zpracovat komentáře" -- **the
+    owner, 2026-10-21: "this should be done through the lead agent too"**. In the workbench each is a
+    save-only control, "Uložit odpovědi" / "Uložit komentáře": it writes the answers into
+    `briefing.what_is_known` (`answerFollowUps`) or the comments into `briefing.review_comments`
+    (`commentsToReview`, and marks the plan changed by comments, `plan_changed26`), exactly as the
+    button did before its analysis, with no paid call. The stage then says the Lead updates the design
+    from them and offers "Požádat Vedoucího", which sends the Lead a typed message ("Aktualizuj návrh
+    podle mých odpovědí." / "…komentářů."); the Lead answers with its usual card for the same worker
+    the buttons call, `analyze_brief`. No server change: the job's frozen design is the whole working
+    copy (`domain/research_agents.py:536-543 @ 095a3e68`), so the saved answers and comments reach it;
+    held by `test_the_design_update_from_saved_answers_and_comments_goes_through_approve_request`
+    (through `approve_request` and the ledger).
   Each stage says the Lead prepares it instead (`AskLead`). Every one of those eight actions is an
   `AgentJobRequest` the Lead may prepare, and `approve_request` starts it with the spend gate and the
   ledger row (`application/research_lead.py:683-765 @ 095a3e68`).
 - **Kept, and why:**
   - the classic layout's buttons (switch off, or under 1100 px): no Lead there until chunk 26;
   - Spuštění's Start: not a worker start (the owner: "too" means in addition);
-  - Návrh's "Doplnit a aktualizovat návrh" (follow-up answers) and "Zpracovat komentáře": each first writes the
-    person's answers or comments into the working copy (`answerFollowUps`, `commentsToReview`) and marks
-    the plan as changed by comments (`plan_changed26`); the Lead's `analyze_brief` would not write
-    either. They go with chunk 18, which needs a save-only control for both;
   - Deep Research's starts (Návrh's "Spustit veřejný výzkum", Výsledky' "Spustit rešerši výsledků" and
     its retry): the Lead's `design_research` / `interpretation_research` requests only open the stage
     (D7); they go with `lead-orchestration#LO5a` (scope freeze, chunk 26 D-12);
@@ -260,6 +268,16 @@ appear in the lead researches chat too"). Built on `feature/lead-worker-cards`:
   `tools/ui_workbench/lead_cards_journey.mjs`: the scripted Lead (a message with "spusť" now prepares
   the research run, `aia_executors/workbench.py`) and the workbench's fictional fieldwork; zero paid
   jobs, the design job parks without the AI runtime.
+- **The cards' hierarchy (owner, 2026-10-21: the run card "needs better visual hierarchy").** Every
+  card reads as the prototype's decision card: an eyebrow where the decision is the person's, the
+  title with a state pill, the Lead's why, the key facts as label/value rows (`kvgrid`, tabular
+  numbers; the run's ceiling the most prominent value, an unknown one said, never 0; the budget
+  before and at least after; the respondents with a link to Spuštění), the actions on the right. The
+  "Na nejnovější" pill now sits in the flow above the composer, so it never covers a card's actions.
+- **Codex on #550.** "Spustit výzkum" checks the working copy again at the click; a design that changed
+  since the card's check is checked anew and shown, never started. Only a job that moves on its own
+  (queued or running) is polled; one waiting for budget, recovery or the AI runtime is read again on
+  the window's focus, a card's action or a budget change (`jobMovesByItself`).
 - **Not built here:** Deep Research cards (chunk 23 stays open); a run card does not survive a reload
   beside the turn that prepared it (it then stands at its own time, and the request card reads open
   again, finding the run on the same revision when asked); the compact Lead under 1100 px (chunk 26).
