@@ -665,7 +665,10 @@ Výsledky shows up to five raw open answers per question, internal only (Q52); t
 chosen on Spuštění (Q54); code writes the report narrative's first draft and the Lead proposes
 tracked changes (Q56); the literature is woven into the one report, labelled external, and the
 separate report with literature is retired for new reports (Q58;
-[`mvp-owner-decisions.md`](mvp-owner-decisions.md)). Q51, Q53 and Q55 are open.
+[`mvp-owner-decisions.md`](mvp-owner-decisions.md)). Q51, Q53 and Q55 are open. Q59 (14:40): the Lead sees an index of all of the study's
+client's knowledge every turn and opens any file's text by id on demand, code-fetched and scoped to
+that client; pending proposals marked unapproved, "Interní dokument" sources marked, rejected items
+left out (plan `lead-client-knowledge.md`, coming).
 
 **Working model (owner, 2026-10-19).** This section is the roadmap. Each track has one owner,
 named here when its work starts; no two agents edit the same plan. An agent marks its own PR ready

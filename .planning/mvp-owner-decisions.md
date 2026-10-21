@@ -276,6 +276,14 @@ the separate report with literature is retired for new reports; stored ones stay
 may need a note in ADR 0021 and `contextual_report.py`'s description. Q57 was MVPQ-04 already (no new
 decision). Q51, Q53 and Q55 are open.
 
+**2026-10-21 14:40 UTC, the owner's answer Q59 (a)** (relayed by the coordinator): "The lead
+researcher can see all the files in a client's knowledge base." Every Lead turn carries an index of
+the study's client's knowledge: every item and source file, with its name, kind, status, folder and
+summary. The Lead opens any file's text by id on demand; code fetches it, scoped to that client, and
+the Lead cites it by locator. Pending proposals are marked unapproved, sources marked "Interní
+dokument" are included and marked, and rejected items are left out. The plan,
+`lead-client-knowledge.md`, comes in its own PR.
+
 ## MVPQ-12 — Canonical Sociomap questions still requiring sign-off
 
 Answer-ready form: [`mvp-methodology-packet.md`](mvp-methodology-packet.md) MQ-04 – MQ-10; under MVPQ-13 (below) `aia-sociomap-5` settles Q5-Q7, the kernel widths and respondent placement (the packet's MQ-05 record), and only what `-5` leaves open is asked.
