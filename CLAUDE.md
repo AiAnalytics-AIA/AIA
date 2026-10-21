@@ -72,7 +72,9 @@ apps/
     config.py               Typed settings + production guards
     dependencies.py         Composition root: engine, sessions, identity, scope; AudiencePopulation,
                             the population the audience routes read (CZECH_AUDIENCE in every
-                            deployment; only the workbench installs another on app.state)
+                            deployment; only the workbench installs another on app.state); RunPopulationDep,
+                            the population a new run records (the Czech LIVE; the population double only under
+                            AIA_POPULATION_DOUBLE, local and test, RQC10)
     identity/               IdentityProvider protocol: cognito, testing, development
     observability.py        Structured logging, request correlation, secret redaction
                             (aia_core.infrastructure.redaction); tags every error report with the
@@ -95,7 +97,10 @@ apps/
                             proposal names none), and a proposal answers its source_id and, from AI,
                             its from_source (the document, run, quote and locator; #446); GET/PUT
                             /clients/{id}/profile (the profile, its contacts, its history),
-                            POST /clients/{id}/contacts, PUT/DELETE …/contacts/{contact_id}),
+                            POST /clients/{id}/contacts, PUT/DELETE …/contacts/{contact_id}; a knowledge decision
+                            naming a revision for a new item is 422 no_revision_to_review, 409 knowledge_proposal_stale
+                            details carry reviewed_revision, and revisions and proposals answer author, decision and
+                            reviewed_revision (revisions also base_revision, evidence, sha256; lifecycle K3)),
                             client_sources (a client's sources, lifecycle K2: POST/GET
                             /clients/{id}/sources -- 201 when new, 200 with created: false for the
                             same bytes again -- GET …/{source_id} with its reading (a dataset's
@@ -111,7 +116,9 @@ apps/
                             member, ADR 0018), research (a study's Design Revisions, readiness, runs, their steps and
                             artifacts (ADR 0016; GET …/research/runs lists each run with its steps, without
                             their attempt history: no start time, error or cost), the budget lift for a step
-                            stopped at the study's cap,
+                            stopped at the study's cap, and POST …/runs/{id}/budget: the run's budget lift, every
+                            step waiting for budget released as one decision (CR-3); GET …/research/limits: the
+                            readiness limits in force, the valid n the web refuses outside of (RQC9);
                             POST …/runs/{id}/analysis/retry (a finished run's failed analysis modules
                             asked again over its own collected data) and GET …/analysis/retryable
                             (read from the outcomes as stored), each step's analysis_outcome,
@@ -121,7 +128,9 @@ apps/
                             agent-jobs beneath each Study, with their event feed (…/agent-jobs/{id}/events?
                             since=; a step names the step_id its events carry), each job's proposal_state
                             and rebuild_of (?pending=true: only proposals still waiting), …/dismiss (a
-                            ledger row) and …/rebuild (asked again on the newest revision); GET …/design/source: where a reused design
+                            ledger row) and …/rebuild (asked again on the newest revision); POST …/agent-jobs and …/rebuild take
+                            confirm_cost_usd, and a new job whose reservation reaches the study's threshold is 409
+                            cost_confirmation_required (LO15); GET …/design/source: where a reused design
                             came from; a run's reports: GET …/report, …/report/download,
                             …/report/pdf/download, …/report/context/download (stored, names its
                             artifact), …/report/client/download (a modelled run's client report;
@@ -151,7 +160,11 @@ apps/
                             client and URL or final URL (200 exists otherwise); a proposal where the
                             client or the Study has self-approval off), scope
                             (PUT /studies/{id}/spend-confirm sets the limit; any member creates a
-                            client, its status stays the Admin's),
+                            client, its status stays the Admin's; PUT /studies/{id}/budget sends the study's
+                            Lead turns parked at the cap whose hold now fits, lifted in the ledger under the person
+                            who set it (Q39); a study's status change goes through application/wallet.py
+                            set_study_status), wallet (GET/PUT /studies/{id}/wallet, Peněženka; off: available false,
+                            409 wallet_disabled; 409 above_client_ceiling naming OWNER/ADMIN, above_study_budget),
                             settings (the read-only settings document: every control and how it is set;
                             the access group states membership_is_access and offers no grant;
                             ai_runtime, what powers AIA's model calls from code (the study Lead an
@@ -225,6 +238,16 @@ apps/
                             the editor's pure part,
                             FrontDoor (the Graphite frame of /login, /logout, /auth/callback; the
                             identity's cyan, `brand-apex`, is the signal there)
+    src/components/ui/      The input standard's shared controls (input-interactions I1-I11): InlineText,
+                            Stepper, ChoiceChips, InlineCreateRow, SwatchPicker, MenuButton, UndoToast (useUndo),
+                            SpendDialog (the one modal for money: four kinds, four sums by name, the ceiling "horní
+                            mez, ne odhad", unknown never zero); parts.tsx: their shared classes, SaveNote,
+                            useDismiss. Their pure rules in src/lib/: number-input.ts (a bounded number read, never
+                            clamped), name-input.ts (organizer_name / organizer_key at the row, length in code
+                            points), roving.ts (arrow keys in a group), inline-edit.ts (isThenable), spend.ts
+    src/i18n/cs.ts          The copy module; `money`: the four money names written once (Rozpočet klienta,
+                            Rozpočet studie, Peněženka, Práh potvrzení; D-01), held to the server's by
+                            tests/fixtures/money/vocabulary.json
     src/components/brand/   Wordmark and LatticeField: the identity inline, in currentColor + --signal;
                             ActivityOrb: the thinking-orbs package (MIT, plain canvas), shown only while
                             the API reports a step RUNNING, tinted --ai-ink when a model works on it and
@@ -264,7 +287,13 @@ apps/
                             guarded-navigation.ts: every way out of a stage is a link click, so a stage's
                             leave guard can stop it; lead.ts: the Lead's turns and closed output, the
                             pure part of its edit tools (isTextEdit, the server's is_text_edit), focus
-                            targets to and from the stages' data-aia ids
+                            targets to and from the stages' data-aia ids; applyLeadEdit mirrors the
+                            server's apply_edit, held to it by tests/fixtures/edit_ops/cases.json (reason: the
+                            server's refusal word); leadReasonWords (a turn parked on the budget, one replaced).
+                            workbench-layout.ts: the workbench's layouts by width (split ≥ 1100 px, drawer
+                            768-1099, sheet < 768), the drawer's states and the one Escape order (D21);
+                            lead-availability.ts: the Lead's availability from GET /lead alone (ON / WAITING / OFF /
+                            UNKNOWN; unknown never on) and its words
     src/components/rehome/  Primitives (token utilities only) and the research stages, re-homed
                             under the shell above
     src/research/           The research flow's logic ported from ui_app.html (parity-tested under
@@ -283,7 +312,13 @@ apps/
                             conflict), conflict(current) (a copy that moved
                             while an accept was in flight), completed (a copy the template's defaults
                             completed on load) and submitWorkingDesign (saves such a copy, then submits
-                            the revision it names)
+                            the revision it names); the store keeps stable item ids behind
+                            AIA_WEB_STABLE_ITEM_IDS (/config stableItemIds, off; item-ids.ts, the port of
+                            domain/item_ids.py); persona.ts: the sample input refuses outside the server's range,
+                            never clamps (IA-1); scale-labels.ts: the scale editor's pure part (presets,
+                            rescaleLabels, describeEveryPoint, labelProblem), wired to no screen until
+                            input-interactions 3b2; brief-materials.ts: the Brief's materials, signed only when
+                            present (briefFingerprint), never an eligibility
     src/testing/legacy.ts   Parity harness: a function's effective binding, run in a Node vm (reads
                             the vendored ui_app.html: reference only, never product code)
     src/lib/app-routes.ts   Every /app URL, built in one place (stage slugs: `persona` is `dimensions`;
@@ -367,13 +402,15 @@ apps/
     src/lib/budget-line.ts  What remains of a study's budget beside what an action can cost (budgetLine,
                             withBudget: read as a confirmation asks; unknown never zero; open holds not
                             counted, said so), on every start, retry, analysis retry, Deep Research start
-                            and budget lift
+                            and budget lift; holdsNote: beside a lift, open holds are not in the remainder
     src/lib/report-status.ts  One rule for a run's internal report (reportStatus: NONE, COMPOSING,
                             NOT_MADE, FAILED, REFUSED, DRAFT, APPROVED, UNKNOWN; reviewStatus;
                             approvalRefusal), read by CompleteReport, the internal report panel, project
                             memory's runLabels and Interpretation Research
     src/lib/research-agent-jobs.ts  Native Study jobs: enqueue/follow; proposal review and reload
-                            live in useResearchAgents.tsx. No classic provider probe.
+                            live in useResearchAgents.tsx. No classic provider probe. agentJobState: a job
+                            waiting for budget waits, never a failure; the stage shows the study's lift for the same
+                            job (CR-2)
     src/lib/research-execution.ts  How a run's state and results read: suppression hides numbers,
                             fictional data is labelled every time, the park is explained;
                             originKind / resultOriginKind: the API's three-way reading of an
@@ -470,7 +507,16 @@ apps/
     snapshot.py             develop_snapshot: a project revision as a JSON artifact (S3)
     registry.py             The composition root AIA_WORKER_EXECUTORS names; store + build;
                             population_store: the one store the materialize step and the panel
-                            loader share
+                            loader share; compose_registry(transport=, signer=, population=): production's
+                            composition, which the acceptance and population-double workers reuse
+    recorded_models.py      The recorded Converse wire the suites and the acceptance harness share:
+                            respondent, analysis and Lead answers, recorded-<kind>-<n>; any other contract refused
+                            by name
+    acceptance_recorded.py  The acceptance harness's worker: production's composition over the recorded
+                            wire; local and test only; refuses Deep Research
+    population_double.py    LOCAL AND TEST ONLY: the production registry with the panel loader
+                            replaced by the population double's (RQC10); refused outside local and test, and no
+                            deployment may name it (layer_check)
     research.py             The research steps: compile, preflight, fieldwork (parks without a
                             source), aggregate, sociomap; every artifact on the owned design project;
                             the sociomap step computes the run's pinned methods (none: legacy;
@@ -494,7 +540,9 @@ apps/
                             answer_plans: the request, draw and ledger loop over given plans, which
                             produce and the validation's arms share; require_binding= fails a
                             different resolved binding before any request; Answered.details: each
-                            draw's record; the run's design classified by rule (rule:design)
+                            draw's record; the run's design classified by rule (rule:design);
+                            AIA_AI_SCALE_LABELS_IN_PROMPT (off): a scale question's labels in its item, and a
+                            validation arm asks with them off
     client_source_proposals.py  The client_source_proposals step (lifecycle K2d): AI proposals
                             from a client's document as the client's own work, every request held against and charged
                             to the client's budget (AWAITING_BUDGET until lifted); each answered batch kept in
@@ -539,7 +587,10 @@ apps/
                             AIA_AI_RESEARCH_LEAD_*, no defaults, a wrong key stops the worker by
                             name), a second policy entry on the same route pinned through
                             PinnedModels; else to the route's model. The Lead's reservation is
-                            checked at that model's prices and window
+                            checked at that model's prices and window. Each …MODEL_ID is the model's
+                            identity; the optional AIA_BEDROCK_INVOCATION_TARGET /
+                            AIA_AI_RESEARCH_LEAD_INVOCATION_TARGET is the application inference profile ARN its
+                            calls go through (domain/model_invocation.py; unset, the id itself)
     workbench.py            The ONLY composition with fictional fieldwork; refuses unless AIA_ENV is
                             local/test, and no deployment may name it (layer_check)
     deep_research/          The six Deep Research steps (in the default registry; a run parks
@@ -611,6 +662,28 @@ packages/aia_core/src/aia_core/
                             rule:<name> or operator); material no rule names still refuses
     ai_execution.py         ModelGateway + ExecutionContext: the step-executor contract
     ai_tools.py             ToolRegistry — scope never from model arguments
+    approval_ledger.py      The approval ledger's closed set of subjects (ApprovalSubject: what each
+                            subject_id names and who writes it; LANE_M3_SUBJECTS: wallet, lead_plan, plan_step,
+                            chat_start, data_contract, map_snapshot, sociomap_unlock, admitted by migration
+                            5054d4d610c2 before their writers)
+    money.py                The four money amounts and their names (Rozpočet klienta, Rozpočet studie,
+                            Peněženka, Práh potvrzení; D-01), the wallet ceiling, one precedence (budget, wallet,
+                            threshold), the threshold's rule (threshold_verdict: ResearchRuns.start, agent jobs,
+                            Deep Research, validation), the wallet's and one start's verdict per path (ADR 0028)
+    wallet.py               The wallet's values: ChargeKind, CHARGE_AUTHORITIES, effective_cap (the least of
+                            the cap, the client ceiling and the study budget), the two refusals (LO1)
+    edit_ops.py             The working copy's edit vocabulary (ADR 0029 decision 1): 30 operations, 8
+                            applied (the Lead's payloads and apply_edit, re-exported by research_lead) and 22
+                            declared, refused op_not_available; ids, refusal words, touches (the field diff of
+                            applying the edit), the Sociomap lock (locked_items, lock_refusal,
+                            whole_copy_lock_refusal), the text-only marker; set_n held to the readiness limits
+                            (sample_size_problem); one case file, tests/fixtures/edit_ops/cases.json
+    lead_workers.py         The worker contract (LO9a): LeadWorkerSpec, one row per worker the Lead may
+                            call, every field required and checked at registration (WorkerRegistry); the eight
+                            design workers are research_agents.WORKERS, held to
+                            tests/fixtures/lead_workers/workers.json
+    model_invocation.py     A model's identity (the eu. id) versus its invocation target (an application
+                            inference profile ARN in the route's EU region, or the id itself; 5a)
     research_agents.py     Eight closed Research task contracts, prompt/harness versions,
                             bounded context and task-owned proposal mapping; the questionnaire
                             contract (harness 3) proposes each item's research_questions, a set's
@@ -628,7 +701,8 @@ packages/aia_core/src/aia_core/
                             context_classification: each part's class by rule, material_rules);
                             TEXT_EDIT_OPS / is_text_edit (set_text of the title or problem summary,
                             list_replace of a hypothesis, question_edit of the text alone: what an
-                            automatic accept may take)
+                            automatic accept may take); its edits are edit_ops's; set_n held to the
+                            readiness limits frozen in design.readiness (harness aia-research-lead-2)
     deep_research/          Deep Research (ADR 0017, ADR 0021), pure; the engine is frozen after #166:
       contracts.py          subjects, tracks, snapshots, knowledge sources, evidence, quarantine and
                             stop reasons, the request a run is frozen to; harness 3: the request's
@@ -669,7 +743,10 @@ packages/aia_core/src/aia_core/
     ai_respondent.py        The AI respondent: agent aia.research.respondent, prompt v1, per-block strict
                             contract, fictional roster, facts by code, interpretation, the dataset;
                             dataset_origin: the origin derived from the personas (a mixed roster refused);
-                            fieldwork_seed: the roster and draw seed from the specification
+                            fieldwork_seed: the roster and draw seed from the specification;
+                            scale_label_wording (PROVISIONAL, SCALE_LABEL_WORDING), sent only under
+                            AIA_AI_SCALE_LABELS_IN_PROMPT; respondent_prompt_sha256: the prompt a respondent system
+                            names, another one with the labels on
     support_forecast.py     A run's evidence support, forecast before launch from the roster fieldwork
                             will draw (fieldwork_seed + fictional_roster through donor_support and
                             reassess_support, under the support rules and aggregation formulas a start
@@ -723,7 +800,17 @@ packages/aia_core/src/aia_core/
                             (item by item, keeping the person's order), occurrence_keys (a repeated
                             key is <key>#2), brief_signature (= the web's briefFingerprint); shared
                             cases in tests/fixtures/design_items/cases.json (cases, merges), read by
-                            proposal-diff.items.test.ts
+                            proposal-diff.items.test.ts; plan-list items keyed by id; legacy_keys /
+                            from_legacy_keys (keys a worker recorded before the ids, read as the ids they name)
+    item_ids.py             Stable item ids beside the lists they name (WCE1): *_ids entries {id, bound},
+                            derived for content stored before; section ids the compiler's; links follow a reword
+                            (follow_rewords, settle_item_ids); apps/web/src/research/item-ids.ts its port, one case
+                            file (tests/fixtures/item_ids/cases.json)
+    design_fields.py        The D-06 field view: item (existence), each field, a question's section, and
+                            order items
+    brief_materials.py      The Brief's materials (proposed, client-data-in-analysis 8a): a client dataset
+                            named by source, reading and intended contract; eligibility computed from accepted
+                            contracts, never stored; none eligible before chunk 2
     design_reuse.py         A reused design's labels (derive_source_labels: the union over every run of
                             the source revision, never chosen) and its citation (DesignSource)
     research_design.py      A revision -> ResearchSpecification (compile) + AIA's readiness rules;
@@ -735,7 +822,14 @@ packages/aia_core/src/aia_core/
                             measures, by text; a question whose id is a set item's id refused
                             (item_id_collision); selection_receipt: what a run records of its design's selection
                             (dimensions and filters await a population draw, an applied flag never true before the
-                            code that applies it ran; dimensions_unmatched)
+                            code that applies it ran; dimensions_unmatched); COMPILER_VERSION
+                            aia-research-compile-2 (scale labels): a scale's labels (popisky_skaly on a question,
+                            scale_labels on a set) are the two ends or one per point, ≤ 60 characters, else left out
+                            with a readiness WARN scale_labels_ignored, never stopping a compile; a non-integer end is
+                            invalid_scale; SpecQuestion.scale_labels out of the fingerprint when none; a -1
+                            specification read as stored; a set's told_ends (develop_ends) is develop's reading of
+                            its ends, sent while the labels stay off the prompt; sample_size_problem: a valid n is a
+                            whole number within the limits, never clamped (RQC9)
     run_cost.py             The most a run can cost: its model requests x the reservation per request
                             (fieldwork, analysis with its repairs); an upper bound; unknown, never zero
     fieldwork.py            FieldworkSource, FieldworkDataset, validate_dataset; DataOrigin (two
@@ -853,7 +947,9 @@ packages/aia_core/src/aia_core/
                             (deployed guards, fictional material), the one fictional-material rule the
                             API and the worker both ask
     workspace.py            A research Study's working content: ContentState (EMPTY … AWAITING_MIGRATION),
-                            validation, lineage of content migrated from 18.6.6 (ADR 0018, OI-58)
+                            validation, lineage of content migrated from 18.6.6 (ADR 0018, OI-58);
+                            edited_from_current: a save naming no revision is not stale over a working copy that is
+                            still the bare template a server writer saved (OI-173)
     research_template.py    The research template a new study starts from (the unit's empty project)
     attachments.py          A brief attachment's record and the unit's rules (25 MB, the name, the excerpt)
     questionnaire_import.py The questionnaire template's rows -> sections, as the unit imported them
@@ -864,7 +960,14 @@ packages/aia_core/src/aia_core/
                             folders and labels (organization, not knowledge: no model sees them, no
                             revision is written), STALE_AFTER (365 days), KnowledgeHealth;
                             source_ref: a file by reference (content.source_id, SOURCE /
-                            DOCUMENT / DATASET only); ProposalDraft: an AI proposal's draft before it is filed
+                            DOCUMENT / DATASET only); ProposalDraft: an AI proposal's draft before it is filed;
+                            typed revisions and decisions (lifecycle K3): KnowledgeAuthor, KnowledgeDecision,
+                            reviewed_decision (the one approval rule: a named revision that is not current is stale
+                            whatever the base), RevisionEvidence / evidence_of, revision_sha256 (canonical JSON);
+                            UNKNOWN / null for a record from before
+    knowledge_context.py    A study's chosen knowledge (lifecycle K4): KnowledgeSelection,
+                            FrozenKnowledgeContext (CURRENT / SUPERSEDED entries, RETIRED omitted by name,
+                            context_sha256, verify), StaleKnowledgeSelection
     client_profile.py       A client's profile on its record (short code, industry, market,
                             description) and its contacts; neither is knowledge, no model reads them
     client_sources.py       A client's sources (lifecycle K2): family by suffix (the owner's format
@@ -1011,6 +1114,11 @@ packages/aia_core/src/aia_core/
                             registered as its owned child, never promoted; resolve_child: an owned
                             child, pinned, verified against its base at load; child_binding: a
                             selected child, the study's own client's only
+    population_double.py    LOCAL AND TEST ONLY: the fictional population both processes compose for tier
+                            A (AIA_POPULATION_DOUBLE), established through PopulationRuntime; refused outside local
+                            and test
+    wallet.py               StudyWallets behind AIA_STUDY_WALLET_ENABLED (off by default); set_study_status:
+                            a study's status change, which closes its wallet when the study closes
     materialize.py          prepare_materialization: a dimension request checked from a study against
                             LIVE's kept policy (owner from the scope, base, definition);
                             start_materialization: a population_materialize run under the study's
@@ -1043,7 +1151,9 @@ packages/aia_core/src/aia_core/
                             stored_analysis reads them as stored, any harness, judging nothing;
                             retry_failed_modules: a finished run's model-blocked or failed modules
                             asked again as a new linked run over its frozen dataset (no fieldwork),
-                            completed ones reused, the preflight's refusals not retried
+                            completed ones reused, the preflight's refusals not retried; an analysis retry
+                            names the original's specification by id and SHA-256 (FrozenDataset.specification_*),
+                            taken as stored by the compile step
     report.py               Main internal narrative from eight re-admitted analysis modules;
                             body prose keeps evidence refs and actual headings keep semantic styles;
                             the design chapter after the introduction, "Respondenti a výpočet" and the
@@ -1096,7 +1206,9 @@ packages/aia_core/src/aia_core/
                             auto=: the researcher's standing choice, text edits only, refused whole
                             as stale_turn (LeadTurnStale) when the turn's frozen working revision is
                             not the current one --, approve_request, decide_self_update) and
-                            LeadProfile (read, hatch, set_preferences)
+                            LeadProfile (read, hatch, set_preferences); set_study_budget /
+                            release_lead_budget_waits; a message written before the budget is set replaces a parked
+                            turn, and a parked turn holds nothing
     verified_sources.py     add_verified_source: a captured source a person checked, from the run's
                             verified sealed bundle (the snapshot and the accepted finding citing it;
                             nothing from the browser), added to the Study's client's knowledge as a
@@ -1223,7 +1335,11 @@ packages/aia_core/src/aia_core/
                             reviewer names the current revision (reviewed_revision); propose_from_client_work: AI
                             proposals filed once per run, authored ai, the run named; add_source_once
                             (client row locked): a SOURCE item once per client and URL or final URL,
-                            an active item or a pending proposal answering exists
+                            an active item or a pending proposal answering exists; proposals record author,
+                            decision and reviewed_revision (migration a3c5e7f9b1d4), revisions read typed through
+                            their proposal; select_for_study / unselect_for_study / selections / freeze_for_study
+                            over client_knowledge_selections (migration b5d7f9a1c3e6), one exact revision per study
+                            and item, audited CLIENT_KNOWLEDGE_SELECTED / _UNSELECTED
     client_profile_repository.py  The ONLY reader/writer of client_contacts and the profile columns
                             of clients; history read from the audit, never naming an e-mail
     client_source_repository.py  The ONLY reader/writer of client_sources and
@@ -1254,11 +1370,17 @@ packages/aia_core/src/aia_core/
                             the population binding each run records; list_runs(key_prefix=), matched literally;
                             list_runs(steps=True): a page's steps in one more query, no attempts; WorkQueue --
                             the only cross-study surface (claim, recover, resume, refuse);
-                            resume_budget_wait: a person lifts an AWAITING_BUDGET step, in the
-                            approval ledger (the worker's scope cannot); record_spend_confirmation and
+                            resume_budget_waits: a person lifts every AWAITING_BUDGET step of one run, one
+                            row in the approval ledger (subject the run; each STEP_RESUMED names its decision_id;
+                            the worker's scope cannot); ledger(subjects=): a study's ledger rows under its three
+                            scope columns; record_spend_confirmation and
                             record_ai_proposal_acceptance (once per agent job): the same ledger;
                             reserve_tool_budget: a priced tool call's hold, the same check, fence
                             and recovery as a model call's
+    study_wallet_repository.py  The ONLY reader/writer of study_wallets, study_wallet_raises and
+                            study_wallet_charges (migration 60ccc9ff42cf, LO1): every amount compared under the
+                            study row's FOR UPDATE; a charge is a run's ceiling, once, authorised by a chat_start or
+                            plan_step ledger row; set_cap writes the wallet ledger row
     fan_out_coordination.py  ModelSlots (model requests in flight across processes, PostgreSQL
                             rows) and SharedHostPacer (per-host politeness shared by every worker)
     host_pacing.py          PacedTransport: every fetch waits its host's turn (local or shared pacer)
@@ -1313,6 +1435,8 @@ packages/aia_core/src/aia_core/
                             a malformed DSN refused at start; every event redacted, no bodies,
                             cookies, queries, locals, user or model input; no tracing
 
+tests/acceptance/           MVP-ACCEPT-2 tier A over HTTP: the stack (the API and an acceptance_recorded
+                            worker as processes), the declared bootstrap, allocation.json (the approved USD 25)
 migrations/                 Alembic
 deploy/docker/              python.Dockerfile (api + worker targets; the worker build arg AIA_WORKER_PDF
                             installs LibreOffice Writer, ~300 MB, on for develop; NUMBA_CACHE_DIR=/tmp/numba,
@@ -1362,7 +1486,8 @@ tools/film_frame0.py        Checks the launch film's frame 0 is the mark the han
                             over ffmpeg; fails above 0.5 px)
 tools/report_preview.py     A report as a reader sees it: DOCX -> PDF -> PNG via LibreOffice,
                             lint, greyscale, +35 % Czech stress (manual)
-tools/parity_status.py      Parity verdict per capability, from JUnit XML
+tools/parity_status.py      Parity verdict per capability, from JUnit XML; the acceptance verdict per
+                            criterion from the acceptance step's JUnit, path parity beside it
 tools/progress.py           Every plan's status from its front-matter; `--check` validates it
 tools/master_check.py       The MVP master plan's register against the plan files: every plan#ID resolves,
                             every gap, interface and criterion has a chunk, every open core chunk a wave
@@ -1481,7 +1606,9 @@ and save it through `/api/v1/studies/{study_id}/workspace/content`; it is the St
 owned working project (`projects.owner = study_workspace`), found only through the
 Study's `study_workspaces` row, whose `content_state` names where it stands. A save
 names the revision it was edited from and a stale one is refused (409), never
-applied over a newer one. A study bound to 18.6.6 before ADR 0018 is
+applied over a newer one; a save naming no revision is not stale over a copy that is still the
+bare template a server writer saved, and the Lead's turn names that template revision
+(`edited_from_current`, OI-173). A study bound to 18.6.6 before ADR 0018 is
 `AWAITING_MIGRATION` -- not editable -- until the explicit migration of its 18.6.6
 content (`aia_executors.legacy_workspace`, ADR 0018 decision 2) brings it over from a
 *copy* of the unit's store, as a named person through their own access; nothing reads
@@ -1499,7 +1626,9 @@ self-approval is turned off), and either writes a new revision with provenance; 
 the AI wrote stays a proposal until a person accepts it. An approval never applies an edit
 written from an older revision unless the reviewer names the current one (F-K1, OI-111). A source
 Deep Research captured and a person checked is that person's write ("Ověřeno, přidat zdroj"),
-once per client and address. Nothing changes knowledge otherwise. `make layer_check` keeps the rows inside the
+once per client and address. Nothing changes knowledge otherwise. A study's chosen knowledge is a
+person's choice of exact revisions, frozen for its consumers (K4; the consumers move in K4b behind a
+switch). `make layer_check` keeps the rows inside the
 repository.
 
 **A research run executes a Design Revision** (ADR 0016). The browser submits the
@@ -1628,6 +1757,7 @@ ungated fixture.
 | Tests | `make test` (core + API + worker + executors) |
 | Worker tests | `make test-worker` (the multi-process suite needs a PostgreSQL `DATABASE_URL`) |
 | Executor tests | `make test-executors` (the snapshot step under the real worker loop; seed; smoke module) |
+| **MVP acceptance, tier A** | `make test-acceptance` (needs `AIA_ACCEPTANCE_DATABASE_URL`, a PostgreSQL database it may migrate and seed): `tests/acceptance` starts the API and a worker (`aia_executors.acceptance_recorded`) as processes after the declared bootstrap and drives them over HTTP; recorded models, nothing paid |
 | Deploy `develop` | Merge to `develop`; [`deploy/develop/README.md`](deploy/develop/README.md) is the runbook. Live at <https://aia-develop.art-chain.io/> |
 | **Deployment disk / image dry-run** | On the host, `python3 bin/image_retention.py preflight --registry <deployment-registry> --state-file /opt/aia/develop/.deploy-state/successful-releases.json --protect <current-sha> --protect <incoming-sha>`: no deletion unless `--apply`; the full deploy applies retention under its host lock before pulling. See [`Disk retention`](deploy/develop/README.md#disk-retention) for safeguards, initialization and refusal recovery. |
 | Parity vs prototype | `make test-parity` (needs `AIA_LEGACY_REFERENCE`; population parity needs `AIA_REFERENCE_REPO`) |
@@ -1899,12 +2029,22 @@ are fast and stay in the foreground.
 
 ### Known flakes
 
-None recorded. Add an entry here the moment one is confirmed, in this shape:
+Add an entry here the moment one is confirmed, in this shape:
 
 ```
 - `packages/aia_core/tests/test_x.py::test_y` — symptom: …
   Confirmation: passes when run alone. Cause: … Fix or waiver: …
 ```
+
+- `apps/web` jsdom component tests (MethodologyVersions, MethodologyPanel, QuestionnaireStep,
+  ResearchScreen, IntakeSheet, AudienceStep, BriefStep, ExecutionSteps, FieldOriginPanel,
+  ObjectMapView, SystemPromptsPanel) — symptom: "Test timed out in 5000ms", or a findBy*
+  that finds nothing after ~1 s, only while the host is loaded.
+  Confirmation: passes when run alone. Cause: CPU starvation against idle-sized budgets
+  (vitest 5 s per test, testing-library 1 s per lookup); no shared state. Fix or waiver:
+  testTimeout 30 s (apps/web/vitest.config.mts), asyncUtilTimeout 10 s
+  (apps/web/vitest.setup.ts); vi.waitFor keeps 1 s and names its size where it needs more
+  (#536, OI-134).
 
 Mocks live at interface boundaries — external services are mocked through their
 protocol, always. Real HTTP only in explicitly manual or integration runs; if a

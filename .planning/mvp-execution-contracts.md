@@ -239,6 +239,98 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `client-knowledge-lifecycle#K4c` | W1 | with K4b: the web's Použít v této studii |
 | `sociomap-5-web#6` | W2 | the methodology owner's lane (#517); hosted by `research-lead-workbench#20` |
 | `sociomap-5-web#7` | W2 | the methodology owner's lane; the report figure with `signed-off-sociomap-method#9` |
+| `artifact-questionnaire#QST1` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#17` (E26) |
+| `artifact-questionnaire#QST2` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#17` (E26) |
+| `artifact-questionnaire#QST3` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#17` (E26) |
+| `artifact-questionnaire#QST4` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#17` (E26) |
+| `artifact-questionnaire#QST5` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#17` (E26) |
+| `artifact-questionnaire#QST6` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#17` (E26) |
+| `artifact-questionnaire#QST7` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#17` (E26) |
+| `artifact-questionnaire#QST8` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#17` (E26) |
+| `artifact-questionnaire#QST9` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#17` (E26) |
+| `artifact-brief#BRF1` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-brief#BRF2` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-brief#BRF3` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-brief#BRF4` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-brief#BRF5` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-brief#BRF6` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-design#DSN1` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-design#DSN2` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-design#DSN3` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-design#DSN4` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-design#DSN5` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-design#DSN6` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-design#DSN7` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-design#DSN8` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#18` (E26) |
+| `artifact-sample#SMP1` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-sample#SMP2` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-sample#SMP3` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-sample#SMP4` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-sample#SMP5` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-sample#SMP6` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-fieldwork#FLD1` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-fieldwork#FLD2` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-fieldwork#FLD3` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-fieldwork#FLD4` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-fieldwork#FLD5` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-fieldwork#FLD6` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-fieldwork#FLD7` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-fieldwork#FLD8` | W1 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#19` (E26) |
+| `artifact-results#RES1` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-results#RES2` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-results#RES3` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-results#RES4` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-results#RES5` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-results#RES6` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-results#RES7` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-sociomap#SOC1` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-sociomap#SOC2` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-sociomap#SOC3` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-sociomap#SOC4` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-sociomap#SOC5` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-sociomap#SOC6` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-sociomap#SOC7` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-sociomap#SOC8` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-audience#AUD1` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
+| `artifact-audience#AUD2` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
+| `artifact-audience#AUD3` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
+| `artifact-audience#AUD4` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
+| `artifact-audience#AUD5` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
+| `artifact-audience#AUD6` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
+| `artifact-dimensions#DIM1` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
+| `artifact-dimensions#DIM2` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
+| `artifact-dimensions#DIM3` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
+| `artifact-dimensions#DIM4` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
+| `artifact-dimensions#DIM5` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
+| `artifact-dimensions#DIM6` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#22` (E15) |
+| `artifact-analysis#ANL1` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-analysis#ANL2` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-analysis#ANL3` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-analysis#ANL4` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-analysis#ANL5` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-analysis#ANL6` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-analysis#ANL7` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-analysis#ANL8` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-report#RPT1` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-report#RPT2` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-report#RPT3` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-report#RPT4` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-report#RPT5` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-report#RPT6` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-report#RPT7` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN1` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN2` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN3` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN4` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN5` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN6` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN7` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN8` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN9` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN10` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN11a` | W4 | artifact plans (#560): before CHN11 |
+| `artifact-chain-to-draft-report#CHN11` | W4 | artifact plans (#560): the chain's acceptance journey, after CHN2-CHN10 and every artifact plan |
+| `artifact-chain-to-draft-report#CHN12` | W4 | artifact plans (#560): the chain's acceptance journey, after CHN2-CHN10 and every artifact plan |
 | `research-lead-workbench#24` | POST | development plan D16: after the MVP |
 | `research-lead-workbench#25` | POST | development plan D16: after the MVP |
 

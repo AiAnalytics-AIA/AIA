@@ -10,16 +10,37 @@
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { lead as leadApi, researcherLead, ApiError, type ResearchAgentJob } from "@/lib/api";
+import { lead as leadApi, researcherLead, ApiError, type Readiness, type ResearchAgentJob, type ResearchRun } from "@/lib/api";
 import { ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import type { LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
 import { droppedLines, leadReasonWords as reasonWords, pendingSelfUpdate, targetLabel } from "@/lib/lead";
+import { conversationTimeline } from "@/lib/lead-cards";
 import { STAGES, isWorkbenchStage, type WorkbenchStage } from "@/lib/workbench-stages";
+import type { StepKey } from "@/research/steps";
 import { Glyph } from "./Glyph";
 import { Icon, Mark } from "./Icons";
+import { Facts, Pill, RunCardView, RunRequestCard, WorkerCardView } from "./LeadCards";
 
 const POLL_MS = 1500;
+
+/**
+ * What the conversation's cards need beside the turns (chunk 23): the study's research runs, where
+ * Průběh and Výsledky are, and the prepared run's start through Spuštění's route. Without it the
+ * pane shows the design jobs alone.
+ */
+export type LeadCardsContext = {
+  runs: ResearchRun[];
+  stepHref: (step: StepKey) => string;
+  onStage: (stage: WorkbenchStage) => void;
+  prepareRun: () => Promise<{ readiness: Readiness; runs: ResearchRun[] }>;
+  startRun: (readiness: Readiness, confirm: { ceiling: number; limit: number } | null) => Promise<ResearchRun | null>;
+  /** The run each turn's card started, in this page's memory. */
+  runOfTurn: ReadonlyMap<string, string>;
+  onRunStarted: (turnId: string, run: ResearchRun) => void;
+  /** Read the jobs again after a card acted on one (a resume): a waiting job is not polled. */
+  onJobsChanged?: () => void;
+};
 
 /**
  * What the person is writing and what waits to be sent, per study, for as long as the page lives:
@@ -41,7 +62,7 @@ const time = (iso: string) => {
 /** The newest Lead turn that finished: the one whose view tools have been applied. */
 const newestCompleted = (turns: LeadTurn[]) => [...turns].reverse().find((t) => t.actor === "lead" && t.status === "COMPLETED") ?? null;
 
-export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onClearFocus, onView, onRequest, onTurns, onFocusMode, mode, epoch, jobs = [], onOpenJob, onLead, beforeMessage }: {
+export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onClearFocus, onView, onRequest, onTurns, onFocusMode, mode, epoch, jobs = [], onOpenJob, onLead, beforeMessage, cards, registerSend }: {
   studyId: string;
   stage: WorkbenchStage;
   canEdit: boolean;
@@ -68,6 +89,10 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   beforeMessage?: () => Promise<void>;
   onFocusMode: () => void;
   mode: "split" | "conversation" | "artifact";
+  /** The worker and run cards' context (chunk 23). */
+  cards?: LeadCardsContext;
+  /** Receives the way a stage sends the Lead a message, as the person would type it. */
+  registerSend?: (send: (text: string) => void) => void;
 }) {
   const [me, setMe] = useState<ResearcherLead | null>(null);
   const [session, setSession] = useState<LeadState | null>(null);
@@ -179,6 +204,16 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
     setDraft("");
     onClearFocus();
   };
+  // A stage's message (Návrh's "Požádat Vedoucího"): sent or queued as typed, the draft left alone.
+  const fromStage = (text: string) => {
+    const t = text.trim();
+    if (!t) return;
+    if (session?.busy || sending || held) setQueued((q) => [...q, { text: t, stage, focus: null }]);
+    else void message({ text: t, stage, focus: null });
+  };
+  useEffect(() => {
+    registerSend?.(fromStage);
+  });
 
   const hatch = async () => {
     try {
@@ -215,7 +250,7 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
           <Icon name={mode === "conversation" ? "normal" : "focusChat"} size={16} />
         </button>
       </div>
-      <Conversation turns={session?.turns ?? []} jobs={jobs} onOpenJob={onOpenJob} busy={!!session?.busy || sending} name={name} onFollow={send} onView={onView} onRequest={onRequest} onSelfUpdate={decideSelfUpdate} canEdit={canEdit}>
+      <Conversation turns={session?.turns ?? []} jobs={jobs} cards={cards} studyId={studyId} onOpenJob={onOpenJob} busy={!!session?.busy || sending} name={name} onFollow={send} onView={onView} onRequest={onRequest} onSelfUpdate={decideSelfUpdate} canEdit={canEdit}>
         {error ? <div className="msg"><div className="notice"><Glyph tone="fault" size={11} />{error}</div></div> : null}
         {held ? (
           <div className="msg"><div className="notice"><Glyph tone="fault" size={11} />Zprávu se nepodařilo odeslat. Čeká ve frontě.
@@ -245,8 +280,8 @@ function HatchCard({ onHatch }: { onHatch: () => void }) {
   );
 }
 
-function Conversation({ turns, jobs, onOpenJob, busy, name, onFollow, onView, onRequest, onSelfUpdate, canEdit, children }: {
-  turns: LeadTurn[]; jobs: ResearchAgentJob[]; onOpenJob?: (job: ResearchAgentJob) => void; busy: boolean; name: string; canEdit: boolean;
+function Conversation({ turns, jobs, cards, studyId, onOpenJob, busy, name, onFollow, onView, onRequest, onSelfUpdate, canEdit, children }: {
+  turns: LeadTurn[]; jobs: ResearchAgentJob[]; cards?: LeadCardsContext; studyId: string; onOpenJob?: (job: ResearchAgentJob) => void; busy: boolean; name: string; canEdit: boolean;
   onFollow: (t: string) => void; onView: (ops: LeadView[]) => void; onRequest: (turn: LeadTurn, r: LeadRequest) => Promise<void>;
   onSelfUpdate: (turn: LeadTurn, decision: "accept" | "dismiss") => Promise<SelfUpdateDecision | null>;
   children: React.ReactNode;
@@ -254,7 +289,8 @@ function Conversation({ turns, jobs, onOpenJob, busy, name, onFollow, onView, on
   const box = useRef<HTMLDivElement>(null);
   const atBottom = useRef(true);
   const [away, setAway] = useState(false);
-  const sig = `${turns.length}:${turns.at(-1)?.status ?? ""}:${busy}:${jobs.map((j) => j.status).join(",")}`;
+  const runs = cards?.runs ?? [];
+  const sig = `${turns.length}:${turns.at(-1)?.status ?? ""}:${busy}:${jobs.map((j) => j.status).join(",")}:${runs.map((r) => r.phase).join(",")}`;
   useLayoutEffect(() => {
     const el = box.current;
     if (el && atBottom.current) el.scrollTop = el.scrollHeight;
@@ -271,12 +307,15 @@ function Conversation({ turns, jobs, onOpenJob, busy, name, onFollow, onView, on
       <div className="conv__scroll" ref={box} onScroll={onScroll} tabIndex={0} role="log" aria-label={`Konverzace: ${name}`} aria-live="polite" aria-relevant="additions">
         <div>
           {children}
-          {timeline(turns, jobs).map((x) => x.kind === "job"
-            ? <ActivityCard key={x.job.run_id} job={x.job} onOpen={onOpenJob} />
-            : x.turn.actor === "person"
-              ? <PersonTurn key={x.turn.turn_id} t={x.turn} />
-              : <LeadTurnView key={x.turn.turn_id} t={x.turn} name={name} last={x.turn.turn_id === lastLead?.turn_id} busy={busy} onFollow={onFollow} onView={onView} onRequest={onRequest} onSelfUpdate={onSelfUpdate} canEdit={canEdit}
-                  job={jobs.find((j) => j.run_id === x.turn.request_decision?.run_id) ?? null} onOpenJob={onOpenJob} />)}
+          {conversationTimeline(turns, jobs, runs, cards?.runOfTurn).map((x) => x.kind === "job"
+            ? <WorkerCardView key={x.job.run_id} job={x.job} studyId={studyId} onOpen={onOpenJob} onStage={cards?.onStage} onChanged={cards?.onJobsChanged} />
+            : x.kind === "run"
+              ? (cards ? <RunCardView key={x.run.run_id} run={x.run} studyId={studyId} stepHref={cards.stepHref} /> : null)
+              : x.turn.actor === "person"
+                ? <PersonTurn key={x.turn.turn_id} t={x.turn} />
+                : <LeadTurnView key={x.turn.turn_id} t={x.turn} name={name} last={x.turn.turn_id === lastLead?.turn_id} busy={busy} onFollow={onFollow} onView={onView} onRequest={onRequest} onSelfUpdate={onSelfUpdate} canEdit={canEdit}
+                    job={jobs.find((j) => j.run_id === x.turn.request_decision?.run_id) ?? null} onOpenJob={onOpenJob} studyId={studyId} cards={cards}
+                    run={runs.find((r) => r.run_id === cards?.runOfTurn.get(x.turn.turn_id)) ?? null} />)}
           <div style={{ height: 8 }} />
         </div>
       </div>
@@ -310,8 +349,9 @@ function Prose({ text }: { text: string }) {
 
 const VIEW_LABEL = (v: LeadView) => (v.op === "open_stage" ? `Otevřít ${isWorkbenchStage(v.stage) ? STAGES[v.stage].label : v.stage}` : `Ukázat: ${targetLabel(v.target)}`);
 
-function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, onSelfUpdate, canEdit, job, onOpenJob }: {
+function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, onSelfUpdate, canEdit, job, onOpenJob, studyId, cards, run }: {
   t: LeadTurn; name: string; last: boolean; busy: boolean; canEdit: boolean; job: ResearchAgentJob | null; onOpenJob?: (job: ResearchAgentJob) => void;
+  studyId: string; cards?: LeadCardsContext; run: ResearchRun | null;
   onFollow: (t: string) => void; onView: (ops: LeadView[]) => void; onRequest: (turn: LeadTurn, r: LeadRequest) => Promise<void>;
   onSelfUpdate: (turn: LeadTurn, decision: "accept" | "dismiss") => Promise<SelfUpdateDecision | null>;
 }) {
@@ -342,52 +382,14 @@ function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, onSelf
           {o.dropped?.length ? droppedLines(o.dropped).map((line) => <div key={line} className="cap">{line}</div>) : null}
         </div>
       </div>
-      {o.request ? <RequestCard r={o.request} approved={t.request_decision ?? null} onApprove={() => onRequest(t, o.request!)} canEdit={canEdit} /> : null}
-      {job ? <ActivityCard job={job} onOpen={onOpenJob} /> : null}
+      {o.request?.kind === "research_run" && cards
+        ? <RunRequestCard studyId={studyId} why={o.request.why} canEdit={canEdit} prepare={cards.prepareRun} start={cards.startRun} stepHref={cards.stepHref} onStarted={(r) => cards.onRunStarted(t.turn_id, r)} />
+        : o.request ? <RequestCard r={o.request} approved={t.request_decision ?? null} onApprove={() => onRequest(t, o.request!)} canEdit={canEdit} /> : null}
+      {job ? <WorkerCardView job={job} studyId={studyId} onOpen={onOpenJob} onStage={cards?.onStage} onChanged={cards?.onJobsChanged} /> : null}
+      {run && cards ? <RunCardView run={run} studyId={studyId} stepHref={cards.stepHref} /> : null}
       {last && !busy && o.follow?.length ? (
         <div className="follow" aria-label="Navázat">{o.follow.map((f) => <button key={f} type="button" className="follow__btn" onClick={() => onFollow(f)}><Icon name="next" size={13} />{f}</button>)}</div>
       ) : null}
-    </div>
-  );
-}
-
-/** Turns and the jobs no turn started, in the order they happened. */
-function timeline(turns: LeadTurn[], jobs: ResearchAgentJob[]): ({ kind: "turn"; turn: LeadTurn; at: number } | { kind: "job"; job: ResearchAgentJob; at: number })[] {
-  const linked = new Set(turns.map((t) => t.request_decision?.run_id).filter(Boolean));
-  const at = (iso: string | null | undefined) => Date.parse(iso ?? "") || 0;
-  return [
-    ...turns.map((turn) => ({ kind: "turn" as const, turn, at: at(turn.created_at) })),
-    ...jobs.filter((j) => !linked.has(j.run_id)).map((job) => ({ kind: "job" as const, job, at: at(job.created_at) })),
-  ].sort((a, b) => a.at - b.at);
-}
-
-const ADVICE = new Set(["critique_design", "design_copilot", "answer_memory"]);
-const JOB_STATE: Record<string, { word: string; tone: "done" | "running" | "world" | "fault" | "cancelled" | "inert" }> = {
-  COMPLETED: { word: "hotovo", tone: "done" },
-  RUNNING: { word: "běží", tone: "running" },
-  QUEUED: { word: "ve frontě", tone: "running" },
-  FAILED: { word: "selhalo", tone: "fault" },
-  CANCELLED: { word: "zrušeno", tone: "cancelled" },
-};
-
-/** A design job in the conversation, as the prototype's activity card: what, how it stands, the way to its result. */
-function ActivityCard({ job, onOpen }: { job: ResearchAgentJob; onOpen?: (job: ResearchAgentJob) => void }) {
-  const s = JOB_STATE[job.status] ?? (job.status.startsWith("WAITING") || job.status.startsWith("AWAITING") ? { word: "čeká", tone: "world" as const } : { word: job.status.toLowerCase(), tone: "inert" as const });
-  const done = job.status === "COMPLETED";
-  const cost = typeof job.actual_cost_usd === "number" ? ` · ${job.actual_cost_usd.toLocaleString("cs-CZ", { maximumFractionDigits: 3 })} USD` : "";
-  return (
-    <div className="msg" data-aia={`activity.${job.run_id}`}>
-      <div className="act act--worker">
-        <div className="act__row">
-          <span className="act__type" title="Úloha AI"><Icon name="worker" size={13} /></span>
-          <span className="act__title">{ACTION_LABELS[job.action] ?? job.action}</span>
-          <span className="act__sum">· {s.word}{cost}</span>
-          <span className="act__right">
-            <Glyph tone={s.tone} size={12} title={s.word} />
-            {done && onOpen ? <button type="button" className="btn btn--sm" onClick={() => onOpen(job)}>{ADVICE.has(job.action) ? "Otevřít" : "Zkontrolovat"}</button> : null}
-          </span>
-        </div>
-      </div>
     </div>
   );
 }
@@ -456,16 +458,21 @@ function RequestCard({ r, approved, onApprove, canEdit }: { r: LeadRequest; appr
   const [state, setState] = useState<"open" | "busy" | "done" | "kept">(approved ? "done" : "open");
   const w = REQUEST_WORDS[r.kind];
   const paid = r.kind === "agent_job";
+  // As every card in the conversation reads (chunk 23): eyebrow, title with its state pill, the
+  // Lead's why, the key facts as label/value rows, the actions on the right.
+  const pill = state === "done" ? { word: "Rozhodnuto", tone: "done" as const } : state === "kept" ? { word: "Ponecháno", tone: "inert" as const } : { word: paid ? "Čeká na schválení" : "Otevře krok", tone: "you" as const };
   return (
-    <div className="msg">
+    <div className="msg" data-card="request">
       <div className={`dec${state === "done" || state === "kept" ? " is-decided" : ""}`}>
-        <div className="dec__head"><Glyph tone={state === "done" ? "done" : state === "kept" ? "inert" : "you"} size={11} />{state === "done" ? "Rozhodnuto" : state === "kept" ? "Ponecháno" : "Rozhodnutí patří vám"}</div>
         <div className="dec__body">
-          <p className="dec__title">{w.title}{r.kind === "agent_job" ? ` · ${ACTION_LABELS[r.action as keyof typeof ACTION_LABELS] ?? r.action}` : ""}</p>
+          {state === "done" || state === "kept" ? null : <p className="card__eyebrow">Rozhodnutí patří vám</p>}
+          <div className="card__titlerow"><p className="dec__title">{w.title}</p><Pill word={pill.word} tone={pill.tone} /></div>
           <p className="dec__reason">{r.why}</p>
-          <p className="cap">{paid ? "Placená úloha: spustí se až vaším potvrzením a hradí se z rozpočtu studie." : "Nic se nespustí: otevře se krok, kde spuštění potvrdíte se všemi jeho kontrolami (připravenost, zodpověditelnost, limit útraty)."}</p>
+          <Facts facts={paid
+            ? [{ label: "Úloha", value: ACTION_LABELS[(r as { action: string }).action as keyof typeof ACTION_LABELS] ?? (r as { action: string }).action }, { label: "Platba", value: "z rozpočtu studie", sub: "Spustí se až vaším potvrzením." }]
+            : [{ label: "Co se stane", value: "Otevře se krok, kde spuštění potvrdíte", sub: "Se všemi jeho kontrolami: připravenost, zodpověditelnost, limit útraty." }]} />
           {state === "open" ? (
-            <div className="dec__foot"><button type="button" className="btn btn--sm btn--quiet" onClick={() => setState("kept")}>Teď ne</button><span className="grow" />
+            <div className="card__actions"><button type="button" className="btn btn--sm btn--quiet" onClick={() => setState("kept")}>Teď ne</button>
               <button type="button" className="btn btn--primary btn--sm" disabled={!canEdit} onClick={() => { setState("busy"); onApprove().then(() => setState("done"), () => setState("open")); }}>{w.action}</button></div>
           ) : null}
         </div>

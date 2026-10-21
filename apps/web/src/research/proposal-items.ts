@@ -22,6 +22,8 @@ const PLAN: Record<string, string> = {
   complexity: "Rozsah studie",
   method_reason: "Zdůvodnění metody",
 };
+/** A top-level field of the design (design_items.py `field`), in words where AIA names it. */
+const FIELD: Record<string, string> = { design_research: "Podklady z hloubkového výzkumu" };
 const SINGLE: Record<string, string> = { audience: "Cílová skupina", dimensions: "Výběr dimenzí", n: "Velikost vzorku" };
 
 type Obj = Record<string, unknown>;
@@ -61,7 +63,7 @@ export function itemWords(item: string, project: Obj | null = null, said: string
       const text = said ?? questionText(project, key);
       return text ? `Otázka „${text}“` : `Otázka ${key}`;
     }
-    case "field": return PLAN[key] ?? `Pole ${key}`;
+    case "field": return FIELD[key] ?? PLAN[key] ?? `Pole ${key}`;
     default: return SINGLE[kind] ?? item;
   }
 }

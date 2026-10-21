@@ -38,7 +38,8 @@ import { type StudyFrame, useStudyFrame } from "./frame";
 import { DesignSourceNote } from "./DesignSourceNote";
 import { STEP_SCREENS } from "./steps";
 import { ResearchAssistance, isAdviceAction } from "./ResearchAssistance";
-import { Workbench, useStageWide } from "../../workbench/Workbench";
+import { OPEN_REVIEW_KEY, Workbench, useStageWide } from "../../workbench/Workbench";
+import { leadOwnsAiStarts } from "@/lib/lead-cards";
 import { loadConfig } from "@/lib/auth";
 
 // Contextual help keeps the same stage/action contract and native job boundaries.
@@ -342,17 +343,33 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
   // The proposals a person has still to decide (ADR 0026 decision 8): an accepted, dismissed or
   // superseded one is not offered again.
   const savedProposals = agents.recent.filter(pendingProposal);
+  // In the workbench every AI action goes through the Research Lead (D15): no AI pomoc, no stage
+  // "Navrhnout", no job dialog -- each job is a card in the conversation. The classic layout, which
+  // has no Lead yet (chunk 26), keeps its buttons.
+  const inWorkbench = workbench && wide;
+  const leadOwns = leadOwnsAiStarts(inWorkbench ? "workbench" : "classic");
+  const starts = !leadOwns;
+  // A card on another stage asked for this job's review: opened here once the jobs are read.
+  const openAgent = agents.open;
+  useEffect(() => {
+    const wanted = memory.get(OPEN_REVIEW_KEY);
+    if (typeof wanted !== "string" || agents.busy) return;
+    const job = agents.recent.find((j) => j.run_id === wanted);
+    if (!job) return;
+    memory.delete(OPEN_REVIEW_KEY);
+    void openAgent(job);
+  }, [memory, agents.recent, agents.busy, openAgent]);
 
   return (
-    <ResearchAssistance step={step} studyName={frame.studyName} canEdit={frame.canEdit} memory={memory} actions={aiHelp} agents={agents} job={job} onCancel={onCancel} studyId={frame.studyId}>
-    {({ card, panel, expanded, ask: askAssistance }) => <ResearchContext.Provider value={{ ...value, askAssistance }}>
-      {workbench && wide ? (
+    <ResearchAssistance step={step} studyName={frame.studyName} canEdit={frame.canEdit} memory={memory} actions={aiHelp} agents={agents} job={job} onCancel={onCancel} studyId={frame.studyId} starts={starts}>
+    {({ card, panel, expanded, ask: askAssistance }) => <ResearchContext.Provider value={{ ...value, leadOwnsAiStarts: leadOwns, askAssistance: leadOwns ? undefined : askAssistance }}>
+      {inWorkbench ? (
         <InspectorProvider disabled={!frame.canEdit && DESIGN_STEPS.has(step)}>{(column) => (
           <Workbench frame={frame} step={step} store={store} memory={memory} reload={reload} confirm={confirm} onAgentStarted={() => void agents.refresh()}
             jobs={agents.recent} onOpenJob={(j) => void agents.open(j)} onRefreshJobs={refreshJobs}
             save={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} onReload={reload} />}
             inspector={column(<>
-              {expanded ? panel : card}
+              {card}
               {onTrack ? <Blockers state={state} stepHref={stepHref} /> : null}
               {agents.notice ? <p role="status" className="text-sm text-ink-muted">{agents.notice}</p> : null}
               <AgentBudgetWaits jobs={agents.recent} studyId={frame.studyId} canEdit={frame.canEdit} onChanged={agents.refresh} exclude={claimed} onLifted={continueListed} />
@@ -367,12 +384,13 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
             <DesignSourceNote clientId={frame.clientId} studyId={frame.studyId} />
             {origin ? <p role="status" data-content-origin="18.6.6" className="mb-4 max-w-3xl rounded-sm border border-border bg-surface-raised p-3 text-sm leading-6 text-ink">{origin}</p> : null}
             <div className="flex min-w-0 flex-col gap-4">
+              {/* An advice answer opened from its card in the conversation: read here, never in a closed inspector. */}
+              {panel}
               {agents.proposalReview ? <ProposalReview result={agents.proposalReview.result} state={state} onDecision={agents.proposalReview.decide} canApply={frame.canEdit} stale={agents.proposalReview.stale} /> : null}
               <ReadOnly when={!frame.canEdit && DESIGN_STEPS.has(step)}>
                 {Screen ? <Screen /> : <StepPlaceholder step={step} />}
               </ReadOnly>
             </div>
-            {expanded ? null : panel}
           </Workbench>
         )}</InspectorProvider>
       ) : (
@@ -407,7 +425,7 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
         </section> : null}
         </StageChrome>
       )}
-      {job && !isAdviceAction(agents.activeAction) ? <JobPanel job={job} onCancel={onCancel} studyId={frame.studyId} /> : null}
+      {job && starts && !isAdviceAction(agents.activeAction) ? <JobPanel job={job} onCancel={onCancel} studyId={frame.studyId} /> : null}
       {agents.dialog}
       <AskDialog ask={ask} onDone={() => setAsk(null)} />
       <Toast message={toast} />
