@@ -1682,6 +1682,51 @@ export const admin = {
   setSelfApproval: (body: { allowed: boolean | null; client_id?: string; study_id?: string }) =>
     request<SelfApprovalPolicy>("PUT", "/api/v1/self-approval", body),
   audit: (limit = 50) => request<AuditEntry[]>("GET", `/api/v1/access-audit?limit=${limit}`),
+  /** Each person's spend (Q40): everyone for an OWNER or ADMIN, the caller alone otherwise. */
+  researcherSpend: (period: SpendPeriod = "this_month") =>
+    request<ResearcherSpend>("GET", `/api/v1/settings/researcher-spend?period=${enc(period)}`),
+};
+
+// ---- Per-researcher spend (routers/researcher_spend.py, develop-spend-attribution 7) ----
+
+export type SpendPeriod = "this_month" | "last_month" | "year_to_date";
+export type SpendActivity = "lead" | "fieldwork" | "analysis_report" | "deep_research" | "other";
+
+/** Spend settled in the period (model from the usage ledger, the rest from holds outside it),
+ *  holds open now, and calls whose bill is not known (above zero: the total is not exact). */
+export type SpendFigures = {
+  model_usd: number;
+  outside_ledger_usd: number;
+  total_usd: number;
+  reserved_usd: number;
+  uncertain_calls: number;
+};
+export type ActivitySpend = SpendFigures & { activity: SpendActivity };
+export type StudySpend = SpendFigures & {
+  /** null: the client's own work, which is no study. */
+  study_id: string | null;
+  study_name: string | null;
+  client_id: string;
+  client_name: string | null;
+  by_activity: ActivitySpend[];
+};
+export type PersonSpend = SpendFigures & {
+  /** null: what is booked to nobody ("nepřiřazeno"), listed for OWNER and ADMIN only. */
+  user_id: string | null;
+  email: string | null;
+  display_name: string | null;
+  is_member: boolean | null;
+  study_count: number;
+  by_activity: ActivitySpend[];
+  studies: StudySpend[];
+};
+export type ResearcherSpend = {
+  period: SpendPeriod;
+  start: string;
+  end: string;
+  everyone: boolean;
+  currency: string;
+  people: PersonSpend[];
 };
 
 // ---- Deep Research settings (routers/deep_research_settings.py, ADR 0022) ---------------

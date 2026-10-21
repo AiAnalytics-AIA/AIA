@@ -7,6 +7,7 @@ import { ResearchScreen } from "./ResearchScreen";
 import { type SavedBody, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME } from "./test-frame";
 import { CATALOGUE } from "@/research/audience.live.test";
+import { focusSelector } from "@/lib/lead";
 
 // Native jobs need more than vitest's 5 s under CI load (test-native-agents.ts).
 vi.setConfig({ testTimeout: NATIVE_TEST_TIMEOUT_MS });
@@ -161,6 +162,31 @@ describe("Audience", () => {
       noUnitCalls();
     });
 
+    it("names the description, the filters, each stored filter and the preview for the Lead to focus", async () => {
+      // prijem is outside the category the editor opens on, so its editor is not drawn: its
+      // target is the chip every stored filter has.
+      const income = { ...CATALOGUE.factors[1]!, id: "prijem", column: "prijem", label: "Příjem domácnosti", category: "economy", category_label: "Ekonomika", values: [{ value: "Nad 60 000 Kč", count: 20 }] };
+      const catalogue = { ...CATALOGUE, categories: [...CATALOGUE.categories, { id: "economy", label: "Ekonomika", description: "", count: 1, filterable_count: 1 }], factors: [...CATALOGUE.factors, income] };
+      const filters = { kraj: ["Zlínský kraj"], vek: { min: 30, max: 59 }, prijem: ["Nad 60 000 Kč"] };
+      aiaStub({ ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", filters } }, { [CAT]: () => catalogue });
+      const { container } = render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      await screen.findByText(/z populace v17_4_0/);
+      expect(screen.queryByRole("checkbox", { name: /Nad 60 000 Kč/ })).toBeNull();
+      for (const target of ["audience:definition", "audience:filters", "audience:filter:kraj", "audience:filter:vek", "audience:filter:prijem", "audience:preview"]) {
+        expect(container.querySelectorAll(focusSelector(target)), target).toHaveLength(1);
+      }
+      expect(container.querySelector(focusSelector("audience:filter:kraj"))!.textContent).toContain("Zlínský kraj");
+      expect(container.querySelector(focusSelector("audience:filter:prijem"))!.textContent).toContain("Příjem domácnosti");
+      expect(container.querySelector(focusSelector("audience:preview"))!.textContent).toContain("Ověřit proveditelnost");
+    });
+
+    it("without a population, the filters target is the note that says why", async () => {
+      aiaStub({ ui_state: ANALYTICS, audience: { strategy: "filters", source_mode: "population", filters: {} } }, { [CAT]: () => new Response(JSON.stringify({ code: "population_not_established", message: "no" }), { status: 409 }) });
+      const { container } = render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      await waitFor(() => expect(container.querySelector(focusSelector("audience:filters"))?.textContent).toContain("V AIA zatím není"));
+      expect(container.querySelector(focusSelector("audience:preview"))).toBeNull();
+    });
+
     it("the preview counts the audience in AIA and says whether n can be drawn", async () => {
       aiaStub(
         { ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", filters: { vek: { min: 30, max: 59 } } } },
@@ -202,11 +228,12 @@ describe("Audience", () => {
 
     it("a built-in subpanel is chosen as its filter; one the policy refuses cannot be", async () => {
       aiaStub({ ui_state: { audience_entry: "analytics", analytics_choice: "special" } }, live());
-      render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      const { container } = render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
       const young = await screen.findByRole("radio", { name: /Mladí 18–29/ });
       expect((screen.getByRole("radio", { name: /Studenti/ }) as HTMLButtonElement).disabled).toBe(true);
       expect(screen.getByText(/Nelze použít: audit_only/)).toBeTruthy();
       expect(screen.getByText(/speciální panely a vlastní publikum stavěla 18.6.6/i)).toBeTruthy();
+      expect(container.querySelector(focusSelector("audience:subpanel:young_18_29"))!.textContent).toContain("Mladí 18–29");
       fireEvent.click(young);
       await saved();
       expect(lastSave()).toMatchObject({ reason: "population_subpanel", content: { audience: { builtin_subpanel: "young_18_29", source_mode: "population", filters: { vek: [18, 29] } } } });

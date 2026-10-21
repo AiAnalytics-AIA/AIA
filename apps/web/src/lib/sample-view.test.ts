@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Readiness } from "./api";
-import { outlookSummary, supportForecastOf } from "./sample-view";
+import { outlookSummary, personaSourcesOf, sourceChosenOnRun, supportForecastOf } from "./sample-view";
 
 const readiness = (over: Partial<Readiness>): Readiness => ({
   design_revision_id: "r1", rules: "aia-readiness-1", ready: true, checks: [], questions: 3, batteries: 0, objects: 0, n: 200,
@@ -34,5 +34,30 @@ describe("outlookSummary", () => {
   it("is null when the API sent no outlook, never all answered", () => {
     expect(outlookSummary(readiness({}))).toBeNull();
     expect(outlookSummary(readiness({ question_outlook: [] }))).toBeNull();
+  });
+});
+
+describe("personaSourcesOf", () => {
+  it("lists the server's sources as sent", () => {
+    const sources = [
+      { source: "fictional_roster", offered: true, reason: null, default: true },
+      { source: "panel", offered: false, reason: "panel_personas_disabled", default: false },
+    ];
+    expect(personaSourcesOf(readiness({ persona_sources: sources }))).toEqual(sources);
+  });
+
+  it("is null when the API sent none, never a default", () => {
+    expect(personaSourcesOf(readiness({}))).toBeNull();
+    expect(personaSourcesOf(readiness({ persona_sources: [] }))).toBeNull();
+  });
+});
+
+describe("sourceChosenOnRun", () => {
+  const sources = [{ source: "fictional_roster", offered: true, reason: null, default: true }];
+
+  it("is true only for an AI-answered run with sources, as Spuštění offers the choice", () => {
+    expect(sourceChosenOnRun(readiness({ persona_sources: sources }))).toBe(true);
+    expect(sourceChosenOnRun(readiness({ fieldwork_source: "synthetic_fixture", persona_sources: sources }))).toBe(false);
+    expect(sourceChosenOnRun(readiness({}))).toBe(false);
   });
 });
