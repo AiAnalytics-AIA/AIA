@@ -120,6 +120,8 @@ def test_the_api_starts_with_the_develop_hosts_configuration(
     settings = _api_settings(env, monkeypatch)
     assert settings.is_production  # every deployed-environment guard ran
     settings.validate_for_production()
+    # The Lead's switch is stated, so the deployed guard passes, and it is on (27a, Q43).
+    assert settings.ai_research_lead_enabled is True and settings.research_lead_on
 
 
 def test_the_worker_starts_its_ai_runtime_with_the_develop_hosts_configuration() -> None:

@@ -132,9 +132,13 @@ class Settings(BaseSettings):
     ai_research_reservation_usd: float | None = None
 
     # The Research Lead (ADR 0026, ``AIA_AI_RESEARCH_LEAD_ENABLED``, the worker's switch too):
-    # off, a message is refused (409 ``research_lead_unavailable``) and nothing is queued; the
-    # conversation already stored stays readable. Off by default; on for develop by Compose.
-    ai_research_lead_enabled: bool = False
+    # off, a message is refused (409 ``research_lead_unavailable``) and nothing is queued, and a
+    # card its model prepared is refused on approval (409 ``research_lead_disabled``, Q42); the
+    # conversation already stored stays readable. Unset reads as off, but a deployed
+    # environment must state it (``validate_for_production``): with every AI start moving to
+    # the Lead, a deployment that merely forgot the key would lose it (Q43, research-lead-
+    # workbench 27a). On for develop by Compose.
+    ai_research_lead_enabled: bool | None = None
 
     # A study's wallet, Peněženka (ADR 0028 decision 2, lead-orchestration LO1,
     # ``AIA_STUDY_WALLET_ENABLED``): off, GET /studies/{id}/wallet answers unavailable without
@@ -216,6 +220,7 @@ class Settings(BaseSettings):
         "deep_research_common_crawl_usd_per_tb_scanned",
         "deep_research_common_crawl_min_billed_bytes",
         "deep_research_common_crawl_billing_increment_bytes",
+        "ai_research_lead_enabled",
         mode="before",
     )
     @classmethod
@@ -249,6 +254,12 @@ class Settings(BaseSettings):
                 "AIA_BUILD_SHA": self.build_sha,
             },
         )
+
+    @property
+    def research_lead_on(self) -> bool:
+        """Whether the Research Lead is switched on: only an explicit ``true``. Unset is off
+        here and refused at start in a deployed environment (``validate_for_production``)."""
+        return self.ai_research_lead_enabled is True
 
     @property
     def build(self) -> BuildIdentity:
@@ -346,6 +357,14 @@ class Settings(BaseSettings):
             problems.append(
                 "AIA_RESEARCH_FIELDWORK_SOURCE=synthetic_fixture is refused outside "
                 "local and test (ADR 0016)"
+            )
+
+        # The Lead's kill switch is a decision, never an omission (Q43, research-lead-workbench
+        # 27a): off, every Lead start but a typed command stops, so a deployment says which.
+        if self.ai_research_lead_enabled is None:
+            problems.append(
+                "AIA_AI_RESEARCH_LEAD_ENABLED must be stated (true or false) in a deployed "
+                "environment: unset, the Research Lead would be off by omission"
             )
 
         # The population double is fictional; no deployment composes it (RQC10).

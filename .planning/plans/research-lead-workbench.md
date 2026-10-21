@@ -886,3 +886,90 @@ turn (`request_decision.run_id`); any other run stands at its creation time.
 - `open-items.md`: number F-DRL-1 (owner 7b) and F-DRL-6 (owner 12a).
 - `CLAUDE.md` map, `src/components/rehome/research/`: `DesignResearchReview.tsx` (7b), once built.
 - The register rows for 7b, 12a, 23b, 23c and 26f.1, in this PR's description.
+
+## 27a's inventory and 27b's server half (2026-10-21)
+
+Sprint 5 part 3 (Q49, the owner's "approve all seven parts", 2026-10-21). Anchors are
+`file:line @ 25f26232` (`origin/develop` when written) unless they say otherwise. 27a's pure reader
+(`lib/lead-availability.ts`) is already on develop; its launcher and stage line wait for 26c and 26f,
+so 27a stays open. 27b's typed-command half is `lead-orchestration#LO5` (the next PR), so 27b stays
+open until it lands.
+
+### Every path that turns the Lead off or stops it answering (27a.1, Q43)
+
+Who: **D** = whoever edits the deployment's environment (the develop host's `.env` / Compose, an
+operator); **S** = the researcher or anyone with the study's permissions; **O** = an organization
+OWNER or ADMIN. "Now" is what this PR changed; nothing here loosens a kill switch.
+
+| # | Path | Anchor | Effect | Who | Accident before | Now |
+|---|---|---|---|---|---|---|
+| 1 | API `AIA_AI_RESEARCH_LEAD_ENABLED` unset | `apps/api/src/aia_api/config.py:137` (was `bool = False`); read at `routers/lead.py:354, 356, 391` | `GET /lead` `available: false`; a post 409 `research_lead_unavailable` (`application/research_lead.py:480`) | D | **Off by omission**: a deployment that forgot the key had no Lead | **Closed.** `bool \| None = None`; `validate_for_production` refuses to start any deployed `AIA_ENV` (develop, staging, production) without `true` or `false`; an empty value is unset, not false. Local/test: unset stays off. `test_a_deployment_states_the_research_lead_switch` |
+| 2 | API `AIA_AI_RESEARCH_LEAD_ENABLED=false` | same | as 1, and now a model-prepared card's approval is 409 `research_lead_disabled` (27b) | D | A deliberate switch-off | **Kept** as the kill switch; it is a stated decision now (1) |
+| 3 | Worker `AIA_AI_RESEARCH_LEAD_ENABLED` unset or false | `apps/executors/src/aia_executors/ai_runtime.py:696`; executor composed only when `study_lead_configured` (`registry.py:205`), else the default parks (`registry.py:107`, `research_lead.py:133-142`, `LEAD_UNCONFIGURED` `:79`) | every turn parks `research_lead_unconfigured` | D | The API and the worker read separate copies (`deploy/develop/docker-compose.yml:156` api, `:237` worker) and can disagree; the API said available | **Named.** `GET /lead` answers `worker_ready: false`, `worker_reason`, `worker_ready_source: "newest_turn"` once the newest turn parks for it. A start-time cross-check is impossible (two processes); LO12b's composition record is the fix |
+| 4 | Worker switch on, `…_MAX_OUTPUT_TOKENS` or `…_RESERVATION_USD` unset | `ai_runtime.py:862-863` (`_with_study_lead` returns the switch alone) | every turn parks `research_lead_unconfigured` | D | Silent until a turn is asked | **Named** as 3 |
+| 5 | A wrong Lead key (out of range, a reservation below two calls, the Lead's model equal to the route's) | `ai_runtime.py:692-695, 879-893`; `LeadModelSettings.__post_init__` `:328-360` | the **worker stops at start**, every step kind with it | D | One typo stops all AI work, not only the Lead | **Named, kept**: fail-loud at start is the existing rule (ARCHITECTURE A5); narrowing it to "park the Lead only" would hide a misconfiguration. Owner-visible in the deploy's health check |
+| 6 | `AIA_AI_RUNTIME_ENABLED` unset | `ai_runtime.py:571` | no runtime; the turn parks (`ai_runtime_unavailable` or `research_lead_unconfigured`) | D | Off by default (the worker's rule for every AI step) | **Named** as 3 (`worker_reason` either code) |
+| 7 | Egress and licence refusals | `application/model_gateway.py:349, 359, 368, 374`; the executor parks them `research_lead.py:189-197` (`RUNTIME_UNAVAILABLE`, the gate's reason) | a turn parks for one study's class or route | D (route classes in SSM), O (licence determinations are code) | A route or classification change elsewhere | **Named**: per-study, said in words (`lib/lead.ts` `LEAD_REASON_WORDS`); LO12a/LO12b own who fixes it |
+| 8 | The study's budget spent | `application/research_lead.py:227-237` (`_holds`), `:318` (`release_lead_budget_waits`) | the turn waits `budget_exceeded`; sent when the budget is set or raised | S | A spent study budget | By design (Q39) |
+| 9 | Not hatched | `application/research_lead.py:487` | a post 409 `lead_not_hatched` | S | Per researcher | By design |
+| 10 | Busy | `application/research_lead.py:502` | a post 409 `lead_busy` until the turn ends | S | Per researcher | By design; a worker that never claims leaves it busy (11) |
+| 11 | No worker running (or none claims `research_lead_turn`) | `_holds` `:227-237` | the turn stays QUEUED, the conversation busy | D | Silent | **Named**: LO12b (a heartbeat in the composition record); `worker_ready` stays null, never true |
+| 12 | Context too large | `domain/research_lead.py:675` | a post 422 `lead_context_too_large` | S | Per study | By design |
+| 13 | A closed study, or a role without `EDIT_STUDY` / `RUN_WORKFLOW` | `application/research_lead.py:482-484`; `domain/scope.py:740` | a post 403 | O / S | By design | By design |
+| 14 | The web's workbench switch `AIA_WEB_RESEARCH_WORKBENCH` off | `deploy/develop/docker-compose.yml:116`; `apps/web/src/app/config/route.ts:31`; `ResearchScreen.tsx:236, 336` | the classic frame: **no Lead on screen at all** | D | Off by default (D5) | **Owned by 27c** (Q41): the switch is removed and the workbench serves every width |
+| 15 | Width under 1100 px | `apps/web/src/components/workbench/Workbench.tsx:62` | the classic frame, no Lead | the browser | Any narrow window | **Owned by 26b/26c** (D21: the drawer) |
+| 16 | The web's own copy of `AIA_AI_RESEARCH_LEAD_ENABLED` | `deploy/develop/docker-compose.yml:100`; `lib/public-config.ts` | display only, never availability | D | Can differ from the API's | **Kept out**: `lib/lead-availability.ts` reads `GET /lead` alone |
+| 17 | `GET /lead` unreadable (an older API's 404, a network error) | `LeadPane.tsx:98, 110` | the pane says the Lead is not in this version | — | — | `UNKNOWN` in the reader, never on |
+
+### 27b, server half (this PR)
+
+- **The kill switch holds on a model-prepared card (Q42).** `ResearchLead.approve_request` reads
+  whether the card is the Lead model's output from the stored turn (`_model_prepared`: a Lead turn,
+  `actor = "lead"`), never from the body, and with the switch off raises `LeadDisabled`
+  (`research_lead_disabled`, a `LeadUnavailable`) before any design is submitted, job created,
+  ledger row written or budget held. The router answers 409. The card waits: approved again once the
+  Lead is on. LO5's server-matched `chat_start` card is a person's turn, not a Lead turn, so this
+  guard leaves it approvable (the next PR).
+- **Stored edits still decide** (`decide_edits` reads no switch, unchanged).
+- **`GET /lead` reports the worker's readiness**: `worker_ready`, `worker_ready_source`,
+  `worker_reason`. There is no composition record yet (LO12b), so the smallest honest source is
+  the caller's own newest Lead turn a worker decided: parked or failed `research_lead_unconfigured`
+  or `ai_runtime_unavailable` reads `false` with that reason and source `newest_turn`; anything
+  else is `null`. **Nothing reads `true`**: a turn answered yesterday says nothing about the worker
+  today, and 27a's reader treats `null` as unknown, never on (`worker_readiness`,
+  `application/research_lead.py`). The field names are the ones `lib/lead-availability.ts` already
+  reads (`worker_ready`, `worker_reason`).
+- **The API's switch is hard to leave off by accident** (inventory row 1). Chosen: refuse to start
+  a deployed environment that does not state it, over reporting it on `/config` and Settings,
+  because a report is read only by someone who already suspects the switch, and every other
+  "this deployment is unsafe or half-configured" rule in `validate_for_production` already fails
+  the health check rather than serving. Develop's value is unchanged (Compose states
+  `${AIA_AI_RESEARCH_LEAD_ENABLED:-true}`); `test_the_api_starts_with_the_develop_hosts_configuration`
+  now asserts the Lead is stated and on there.
+
+Tests: `apps/api/tests/test_research_lead_api.py` (`test_a_card_the_lead_prepared_waits_while_the_lead_is_switched_off`:
+409, no run, no ledger row, no hold, then approvable once on;
+`test_the_refusal_is_read_from_the_stored_turn_never_the_body`;
+`test_stored_edits_are_still_decided_while_the_lead_is_switched_off`;
+`test_the_worker_is_never_reported_ready_without_a_source`;
+`test_a_worker_that_cannot_answer_is_reported_not_ready[…]`),
+`packages/aia_core/tests/test_research_lead_application.py::test_the_worker_is_never_read_as_ready`,
+`apps/api/tests/test_config_and_security.py::test_a_deployment_states_the_research_lead_switch`,
+`::test_locally_the_research_lead_is_off_unless_switched_on`.
+
+**Not done here, named.** The worker's own copy of the switch (row 3) is still off by omission in
+the worker; making the worker refuse a deployed start without it is the same rule and a separate
+change, because a worker refusing to start stops every AI step, not only the Lead (row 5's cost).
+Recommended with LO12b, whose record makes the disagreement visible instead.
+
+### Doc follow-up (27a inventory, 27b server half)
+
+- `CLAUDE.md` map, `routers/lead.py` line: "`GET /studies/{id}/lead` answers `worker_ready`
+  (null unknown, false with `worker_reason` from the newest parked turn, never true until LO12b),
+  `worker_ready_source`; `POST …/turns/{turn_id}/request` is 409 `research_lead_disabled` for a
+  card the Lead's model prepared while the Lead is off (Q42)".
+- `CLAUDE.md` map, `config.py`: "`AIA_AI_RESEARCH_LEAD_ENABLED` must be stated in a deployed
+  environment (unset: refused at start)".
+- `deploy/develop/README.md` (the switches): the same rule; develop states `true` by Compose.
+- `docs/architecture/adr/0026-…` *Accepted with*: Q42's refusal and the switch stated per
+  deployment.
