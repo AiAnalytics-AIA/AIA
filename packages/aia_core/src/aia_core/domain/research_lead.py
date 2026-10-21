@@ -920,6 +920,10 @@ class LeadTurn(Closed):
     design_revision_id: str | None
     created_by: str
     created_at: datetime
+    #: The typed start the server matched in this person's message (lead-orchestration LO5,
+    #: ``domain/lead_commands.py``: ``agent_job:<action>`` or ``research_run``); ``None`` for
+    #: any other turn. Its card is the person's command, never Lead output (D22).
+    command: str | None = None
 
 
 class ResearcherLead(Closed):

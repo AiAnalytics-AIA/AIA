@@ -31,6 +31,7 @@ from aia_core.application.deep_research import (
     RunSpecCorrupt,
 )
 from aia_core.application.errors import WorkspaceConflict
+from aia_core.application.lead_chat_start import RunStartSettings
 from aia_core.application.proposal_accept import StaleProposal
 from aia_core.application.report import (
     INTERNAL_REPORT_ARTIFACT_TYPE,
@@ -132,6 +133,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ..dependencies import (
     ArtifactStoreDep,
+    AudiencePopulation,
     RunPopulationDep,
     SessionDep,
     SettingsDep,
@@ -1265,7 +1267,7 @@ def start_run(
         population_contract=population.contract,
         population_id=population.population_id,
     )
-    try:
+    with run_start_errors():
         started = runs.start(
             design_revision_id=body.design_revision_id,
             fieldwork_source=_fieldwork_source(request),
@@ -1278,6 +1280,15 @@ def start_run(
             acknowledge=_acknowledgement(body.acknowledge_research_questions),
             require_answerability=request.app.state.settings.research_answerability_gate,
         )
+    return _started(runs, started, response)
+
+
+@contextmanager
+def run_start_errors() -> Iterator[None]:
+    """A research run start's refusals as HTTP, one mapping for every way a run is started:
+    this router's ``POST …/research/runs`` and the Lead's typed start (``routers/lead.py``)."""
+    try:
+        yield
     except ScopeDenied as exc:
         raise _refused(exc) from exc
     except DesignRevisionNotFound as exc:
@@ -1295,7 +1306,25 @@ def start_run(
         raise _not_found("population_version") from exc
     except PopulationError as exc:
         raise _population_refused(exc) from exc
-    return _started(runs, started, response)
+
+
+def run_start_settings(request: Request, population: AudiencePopulation) -> RunStartSettings:
+    """What a research run's start takes from the deployment, as ``start_run`` passes it: the
+    fieldwork source, analysis and Sociomapping switches, reservations, the default persona
+    source, the answerability gate and the population a new run records. A typed start (LO5)
+    names no persona source, population child or acknowledgement, so it starts on the
+    deployment's defaults, as a start naming none does here."""
+    settings = request.app.state.settings
+    return RunStartSettings(
+        fieldwork_source=_fieldwork_source(request),
+        analysis_enabled=settings.ai_analysis_enabled,
+        sociomapping_enabled=settings.sociomapping_experimental_enabled,
+        reservations=_reservations(request),
+        persona_source=_persona_source(request),
+        require_answerability=settings.research_answerability_gate,
+        population_contract=population.contract,
+        population_id=population.population_id,
+    )
 
 
 @router.get(
