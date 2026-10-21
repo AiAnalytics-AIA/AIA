@@ -26,8 +26,13 @@ describe("readDocument", () => {
     expect(doc.sections.at(-1)?.id).toBe("ch-shared");
   });
 
+  it("reads -2, which only adds sources and unread (CHN1)", () => {
+    expect(readDocument({ ...(FIXTURE as object), contract: "aia-report-document-2", unread: [] })).not.toBeNull();
+  });
+
   it("refuses another contract, never reading it in part", () => {
     expect(readDocument({ ...(FIXTURE as object), contract: "aia-report-document-0" })).toBeNull();
+    expect(readDocument({ ...(FIXTURE as object), contract: "aia-report-document-3" })).toBeNull();
     expect(readDocument({ ...(FIXTURE as object), sections: undefined })).toBeNull();
     expect(readDocument(null)).toBeNull();
     expect(readDocument("text")).toBeNull();

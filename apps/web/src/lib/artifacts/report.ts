@@ -6,8 +6,12 @@
 
 import { aiaId } from "@/lib/workbench-artifacts";
 
-/** The contract this reader knows; a document of any other is refused, never read in part. */
-export const DOCUMENT_CONTRACT = "aia-report-document-1";
+/**
+ * The contracts this reader knows; a document of any other is refused, never read in part. -2
+ * (artifact-chain-to-draft-report CHN1) only adds each section's `sources` and the document's `unread`,
+ * which this reader does not need to draw the draft.
+ */
+export const DOCUMENT_CONTRACTS = ["aia-report-document-1", "aia-report-document-2"] as const;
 
 export type Inline =
   | { type: "text"; text: string; emphasis: "none" | "em" | "strong" }
@@ -70,7 +74,7 @@ export type LedgerEntry =
     };
 
 export type ReportDocumentModel = {
-  contract: typeof DOCUMENT_CONTRACT;
+  contract: (typeof DOCUMENT_CONTRACTS)[number];
   meta: {
     kind: string; title: string; subtitle: string; client_name: string; study_name: string; study_id: string;
     issued_on: string; revision: number; method_status: string; classification: string;
@@ -97,7 +101,7 @@ export type StoredReportDocument = {
 export function readDocument(payload: unknown): ReportDocumentModel | null {
   if (typeof payload !== "object" || payload === null) return null;
   const doc = payload as Partial<ReportDocumentModel>;
-  if (doc.contract !== DOCUMENT_CONTRACT || !Array.isArray(doc.sections) || typeof doc.ledger !== "object" || doc.ledger === null) return null;
+  if (!(DOCUMENT_CONTRACTS as readonly unknown[]).includes(doc.contract) || !Array.isArray(doc.sections) || typeof doc.ledger !== "object" || doc.ledger === null) return null;
   return doc as ReportDocumentModel;
 }
 
