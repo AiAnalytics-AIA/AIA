@@ -347,6 +347,12 @@ class FrozenDataset:
     #: Modules whose step will ask a model: the retried ones, and any completed one whose
     #: stored harness or prompt is not today's (its reuse key moved).
     modules_asked: int
+    #: The original's specification, by artifact id and SHA-256: the retry's compile step
+    #: takes it as stored, never compiling the revision again under a later compiler (whose
+    #: specification would move every completed module's reuse key, unpaid in the ceiling).
+    #: ``None`` only for a caller that names none; :func:`retry_failed_modules` always does.
+    specification_artifact_id: str | None = None
+    specification_sha256: str | None = None
 
     def __post_init__(self) -> None:
         if self.analysis_round < 1:
@@ -357,6 +363,16 @@ class FrozenDataset:
 
     def note(self) -> dict[str, Any]:
         return {**self.step_input(), "round": self.analysis_round, "modules": list(self.retried)}
+
+    def specification_input(self) -> dict[str, Any] | None:
+        """The compile step's ``frozen_specification``; ``None`` when none is named."""
+        if self.specification_artifact_id is None or self.specification_sha256 is None:
+            return None
+        return {
+            "run_id": self.run_id,
+            "artifact_id": self.specification_artifact_id,
+            "sha256": self.specification_sha256,
+        }
 
 
 @dataclass(frozen=True, slots=True)
@@ -800,6 +816,12 @@ class ResearchRuns:
                 "compile": {
                     "design_revision_id": revision.revision_id,
                     "readiness": readiness_pin,
+                    **(
+                        {"frozen_specification": frozen_spec}
+                        if frozen_dataset is not None
+                        and (frozen_spec := frozen_dataset.specification_input()) is not None
+                        else {}
+                    ),
                 },
                 "preflight": {
                     "methods": pinned,

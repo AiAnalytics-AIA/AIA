@@ -6,6 +6,7 @@ stored with the one builder the executor uses; nothing here trusts a stored numb
 
 from __future__ import annotations
 
+import copy
 import dataclasses
 import hashlib
 import json
@@ -30,11 +31,12 @@ from aia_core.application.analysis_results import (
     prepare_module,
     reconstruct_module,
     reconstruct_run,
+    stored_analysis,
 )
 from aia_core.application.report import ReportCompositionRefused, compose_internal_report
 from aia_core.application.report_design import compose_design_sections
 from aia_core.application.report_method import compose_method_section
-from aia_core.application.report_tables import compose_question_tables
+from aia_core.application.report_tables import compose_question_tables, scale_notes
 from aia_core.application.research import research_artifacts
 from aia_core.domain.analysis import ANALYSIS_MODULES, AnalysisModuleId
 from aia_core.domain.analysis.artifact import (
@@ -78,7 +80,11 @@ from aia_core.domain.report.model import (
 )
 from aia_core.domain.report.validation import cited_refs
 from aia_core.domain.research_aggregate import AIA_AGGREGATE_V1, aggregate_dataset
-from aia_core.domain.research_design import AIA_READINESS_V1, compile_design
+from aia_core.domain.research_design import (
+    AIA_READINESS_V1,
+    ResearchSpecification,
+    compile_design,
+)
 from aia_core.domain.synthetic_fieldwork import synthetic_dataset
 from aia_core.domain.workflow_templates import RESEARCH, steps_for_workflow
 from aia_core.infrastructure.report_docx.lint import lint_docx
@@ -554,6 +560,49 @@ def test_another_compilers_specification_is_held_to_the_revision_it_records(
         with pytest.raises(SourcesRefused) as refused:
             world.sources(run_id)
         assert refused.value.reason == "design_revision"
+
+
+def test_a_run_stored_before_scale_labels_compiled_reads_as_stored(world: World) -> None:
+    """input-interactions 3b: a run of a labelled design whose compile step stored the develop
+    specification (compile-1, no scale_labels) is read, reconstructed and reported as stored --
+    never recompiled under compile-2 and refused for the fingerprint the labels moved."""
+    labelled = copy.deepcopy(DESIGN)
+    labelled["sections"][0]["questions"][0]["popisky_skaly"] = ["vůbec", "zcela"]
+    run_id = world.start(labelled)
+    spec, _ = compile_design(labelled)
+    assert spec is not None and spec.questions[0].scale_labels == ("vůbec", "zcela")
+    body = spec.model_dump(mode="json")
+    body["compiler_version"] = "aia-research-compile-1"
+    for question in body["questions"]:
+        del question["scale_labels"]
+    develop = ResearchSpecification.model_validate(body)
+    assert develop.fingerprint() != spec.fingerprint()
+    world.upstream(
+        payloads={
+            "compile": {
+                "kind": SPECIFICATION_ARTIFACT,
+                "design_revision_id": world.run(run_id)["metadata"]["design_revision_id"],
+                "specification": body,
+                "specification_fingerprint": develop.fingerprint(),
+            }
+        }
+    )
+    sources = world.sources(run_id)
+    assert sources.specification.compiler_version == "aia-research-compile-1"
+    assert sources.specification.questions[0].scale_labels == ()
+    world.store_outcomes(run_id, completed)
+    run = reconstruct_run(world.session, world.scope, world.store, run_id=run_id)
+    assert len(run.modules) == len(ANALYSIS_MODULES)
+    stored = stored_analysis(world.session, world.scope, world.store, run_id=run_id)
+    assert set(stored.records) == set(run.modules)
+    tables = compose_question_tables(
+        run,
+        native_items(sources.specification),
+        source="Zmrazený běh",
+        scales=scale_notes(sources.specification),
+    )
+    (chapter,) = tables.sections
+    assert all(t.notes == () for t in chapter.blocks if isinstance(t, Table))
 
 
 @pytest.mark.parametrize(
@@ -1286,6 +1335,23 @@ def test_every_question_prints_its_numbers_through_admission_after_the_methodolo
             assert isinstance(label, TextCell) and label.text
             # A number is a ref, never text: suppression and intervals stay the ledger's.
             assert isinstance(value, NumberCell) and value.with_interval
+
+    # Without scale notes no table carries one; with them a scale item's table names its
+    # labelled points beside its values (input-interactions 3b).
+    assert all(t.notes == () for t in printed)
+    labelled = copy.deepcopy(DESIGN)
+    labelled["sections"][0]["questions"][0]["popisky_skaly"] = ["nikdy", "denně"]
+    labelled_spec, _ = compile_design(labelled)
+    assert labelled_spec is not None
+    notes = scale_notes(labelled_spec)
+    assert notes == {"q1": "Škála: 1 = nikdy, 5 = denně."}
+    tables = compose_question_tables(run, items, source="Zmrazený běh", scales=notes)
+    (chapter,) = tables.sections
+    by_title = {t.title: t for t in chapter.blocks if isinstance(t, Table)}
+    noted = {i.text: notes[i.question_id] for i in items if i.question_id in notes}
+    assert noted and all(
+        by_title[title].notes == (note,) for title, note in noted.items() if title in by_title
+    )
 
     first = run.modules[AnalysisModuleId.EXECUTIVE].result
     assert first is not None

@@ -15,8 +15,10 @@ import pytest
 
 from aia_core.domain.fieldwork import DataOrigin, InvalidDataset, validate_dataset
 from aia_core.domain.research_design import (
+    COMPILER_VERSION,
     DONT_KNOW,
     CheckStatus,
+    ResearchSpecification,
     assess_readiness,
     compile_design,
     prepare,
@@ -232,3 +234,148 @@ def test_a_fictional_dataset_needs_n() -> None:
     assert spec is not None
     with pytest.raises(ValueError, match="needs the specification's n"):
         synthetic_dataset(spec, seed=1)
+
+
+# --------------------------------------------------------------------------- #
+# Scale labels and whole-number ends (input-interactions 3b; IA-2, IA-7)
+# --------------------------------------------------------------------------- #
+
+#: ``DESIGN``'s specification fingerprint on develop before scale labels were compiled
+#: (@ 45e87184, compiler ``aia-research-compile-1``): a specification stored then must read
+#: back to exactly it, whatever this compiler does.
+_FINGERPRINT_BEFORE_LABELS = "c3bdb0965fa401bbdcb96a3ceae59496c3ca275e74c2ddfda40b5fb4310f1447"
+
+
+def _scale_question(**fields: Any) -> dict[str, Any]:
+    return {
+        "n": 100,
+        "sections": [
+            {
+                "type": "questions",
+                "questions": [{"id": "s", "text": "Jak?", "typ": "skala", **fields}],
+            }
+        ],
+    }
+
+
+def _as_stored_on_develop(spec: Any) -> dict[str, Any]:
+    """A specification as develop's compile step stored it: compile-1, no ``scale_labels``
+    on a question."""
+    body = spec.model_dump(mode="json")
+    body["compiler_version"] = "aia-research-compile-1"
+    for question in body["questions"]:
+        del question["scale_labels"]
+    return body
+
+
+def test_a_specification_stored_before_the_labels_reads_back_as_stored() -> None:
+    spec, _ = compile_design(DESIGN)
+    assert spec is not None and spec.compiler_version == COMPILER_VERSION
+    assert COMPILER_VERSION == "aia-research-compile-2"
+    stored = ResearchSpecification.model_validate(_as_stored_on_develop(spec))
+    assert all(q.scale_labels == () for q in stored.questions)
+    assert stored.fingerprint() == _FINGERPRINT_BEFORE_LABELS
+    # The new compiler is another identity: its artifact is never one compile-1 stored.
+    assert spec.fingerprint() != _FINGERPRINT_BEFORE_LABELS
+
+
+def test_a_design_without_labels_compiles_without_them() -> None:
+    spec, _ = compile_design(DESIGN)
+    assert spec is not None and all(q.scale_labels == () for q in spec.questions)
+    blank = copy.deepcopy(DESIGN)
+    blank["sections"][0]["questions"][0]["popisky_skaly"] = ["", " "]
+    blank_spec, _ = compile_design(blank)
+    assert blank_spec is not None and blank_spec.fingerprint() == spec.fingerprint()
+
+
+def test_a_scale_questions_labels_are_compiled_as_its_ends_or_every_point() -> None:
+    ends, problems = compile_design(
+        _scale_question(skala=[1, 10], popisky_skaly=["vůbec", "zcela"])
+    )
+    assert problems == () and ends is not None
+    (q,) = ends.questions
+    assert q.scale_labels == ("vůbec", "zcela") and q.end_labels == ("vůbec", "zcela")
+    every = ["rozhodně ne", "spíše ne", "nevím", "spíše ano", "rozhodně ano"]
+    points, problems = compile_design(_scale_question(skala=[1, 5], popisky_skaly=every))
+    assert problems == () and points is not None
+    assert points.questions[0].scale_labels == tuple(every)
+    assert points.questions[0].end_labels == ("rozhodně ne", "rozhodně ano")
+    # Declared labels are part of what respondents may be told: they move the fingerprint.
+    bare, _ = compile_design(_scale_question(skala=[1, 10]))
+    assert bare is not None and bare.questions[0].end_labels is None
+    assert bare.fingerprint() != ends.fingerprint()
+
+
+@pytest.mark.parametrize(
+    ("labels", "words"),
+    [
+        (["a", "b", "c"], "10 bodů a popisků je 3"),
+        (["a"], "10 bodů a popisků je 1"),
+        ([str(i) for i in range(9)], "10 bodů a popisků je 9"),
+        (["a", "", "c", "d", "e", "f", "g", "h", "i", "j"], "je prázdný"),
+        (["vůbec", ""], "je prázdný"),
+        (["Ano", "ano"], "stejný popisek"),
+        (["x" * 61, "y"], "víc než 60 znaků"),
+        ("vůbec-zcela", "nejsou seznam textů"),
+        ([1, 10], "nejsou seznam textů"),
+    ],
+)
+def test_labels_that_break_the_rule_are_left_out_and_said_never_refused(
+    labels: Any, words: str
+) -> None:
+    """A design that compiled on develop still compiles: such labels are none declared --
+    nothing sent, nothing printed -- and readiness says why, a WARN, never a FAIL."""
+    design = _scale_question(skala=[1, 10], popisky_skaly=labels)
+    spec, problems = compile_design(design)
+    assert problems == () and spec is not None
+    assert spec.questions[0].scale_labels == ()
+    _, readiness = prepare(design, pair_n_min=AUDIT_PROVISIONAL_N_MIN)
+    (ignored,) = [c for c in readiness.checks if c.id.startswith("compile:scale_labels_ignored")]
+    assert ignored.status is CheckStatus.WARN and words in ignored.message
+    assert "Respondenti uvidí jen čísla škály" in ignored.message
+    assert not any(c.status is CheckStatus.FAIL for c in readiness.checks if "scale" in c.id)
+
+
+@pytest.mark.parametrize("skala", [[2.5, 10], [1, 9.5], [True, 10], ["1.5", 10]])
+def test_a_scale_end_that_is_not_whole_is_refused_in_words(skala: list[Any]) -> None:
+    """IA-2: never truncated by int(). Kontrola shows it as a check in words."""
+    design = _scale_question(skala=skala)
+    spec, problems = compile_design(design)
+    assert spec is None and [p.code for p in problems] == ["invalid_scale"]
+    _, readiness = prepare(design, pair_n_min=AUDIT_PROVISIONAL_N_MIN)
+    (check,) = readiness.checks
+    assert check.id == "compile:invalid_scale:s" and check.status is CheckStatus.FAIL
+    assert "škála musí mít dvě celá čísla" in check.message and not readiness.ready
+
+
+def test_a_whole_number_end_written_otherwise_is_the_number_it_writes() -> None:
+    for skala in ([1.0, 10.0], ["1", " 10 "]):
+        spec, problems = compile_design(_scale_question(skala=skala))
+        assert problems == () and spec is not None and spec.questions[0].scale == (1, 10)
+
+
+def test_a_label_of_sixty_characters_is_kept() -> None:
+    spec, problems = compile_design(_scale_question(skala=[1, 10], popisky_skaly=["x" * 60, "y"]))
+    assert problems == () and spec is not None
+    assert spec.questions[0].scale_labels == ("x" * 60, "y")
+
+
+def test_a_sets_labels_follow_the_same_rule() -> None:
+    battery = DESIGN["sections"][1]
+    every = [f"bod {i}" for i in range(1, 11)]
+    spec, problems = compile_design({**DESIGN, "sections": [{**battery, "scale_labels": every}]})
+    assert problems == () and spec is not None
+    assert spec.batteries[0].scale_labels == tuple(every)
+    assert spec.batteries[0].end_labels == ("bod 1", "bod 10")
+    default, _ = compile_design({**DESIGN, "sections": [battery]})
+    assert default is not None and default.batteries[0].scale_labels == ("vůbec", "velmi")
+    for labels in (["a", "b", "c"], ["a", "a"], ["vůbec", ""]):
+        design = {**DESIGN, "sections": [{**battery, "scale_labels": labels}]}
+        broken, problems = compile_design(design)
+        assert problems == () and broken is not None
+        assert broken.batteries[0].scale_labels == ("vůbec", "velmi")
+        _, readiness = prepare(design, pair_n_min=AUDIT_PROVISIONAL_N_MIN)
+        (ignored,) = [c for c in readiness.checks if c.id.startswith("compile:scale_labels")]
+        assert ignored.status is CheckStatus.WARN and "„vůbec“ a „velmi“" in ignored.message
+    _, problems = compile_design({**DESIGN, "sections": [{**battery, "scale": [1, 7.5]}]})
+    assert [p.code for p in problems] == ["invalid_scale"]

@@ -93,6 +93,11 @@ def _check(design: dict[str, Any]) -> Any:
     return next(c for c in readiness.checks if c.id == RESEARCH_TRACE_CHECK)
 
 
+def _under_compile_1(spec: Any) -> Any:
+    """``spec`` named by the compiler before scale labels: its body, the earlier identity."""
+    return spec.model_copy(update={"compiler_version": "aia-research-compile-1"})
+
+
 def test_a_link_is_compiled_as_declared_and_an_undeclared_one_keeps_the_fingerprint() -> None:
     spec = _compile(DESIGN)
     assert spec.questions[0].research_questions == (RQ_HABIT,)
@@ -106,7 +111,9 @@ def test_a_link_is_compiled_as_declared_and_an_undeclared_one_keeps_the_fingerpr
             q.pop("research_questions", None)
     plain = _compile(unlinked)
     # What this design compiled to before links existed (computed at 2b's head, aabe3bc2).
-    assert plain.fingerprint() == UNLINKED_FINGERPRINT
+    # The compiler moved to aia-research-compile-2 (scale labels, input-interactions 3b);
+    # the body is what it was, so under the earlier compiler's name it fingerprints as then.
+    assert _under_compile_1(plain).fingerprint() == UNLINKED_FINGERPRINT
     # An empty declaration is no declaration: the fingerprint a design always had.
     empty = copy.deepcopy(unlinked)
     empty["sections"][0]["questions"][0]["research_questions"] = []
