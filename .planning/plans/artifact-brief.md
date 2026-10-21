@@ -150,6 +150,13 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
   - A study that has no objectives yet shows "Zatím prázdné", not a placeholder (D13).
 - Depends on `input-interactions#1` and `#4`, and on `working-copy-edit-ops#WCE3a`.
 
+- *Landed, Cíle* (`apps/web/src/research/brief-objectives.ts`, BriefStep `Objectives`): the
+  objectives as items on the Brief, read and written where Návrh keeps them (`research_plan` and
+  the analysis together, as `plan-edit.ts` does), each `objective:<item id>`, edited in place
+  (InlineText), added in the list (InlineCreateRow), removed with Vrátit (UndoToast); none reads
+  "Zatím prázdné". On today's whole-copy store; WCE3a moves it onto the edit vocabulary. Still to
+  come in BRF2: Rozhodnutí and Kontext as items, Předpoklady as a link.
+
 **BRF3. Podklady with their class.**
 - API: the attachments listing and the brief's picked sources answer each item's `data_class` and
   `class_source` (`rule:<name>` or `operator`), by `classify_by_rule`. An unknown class reads as

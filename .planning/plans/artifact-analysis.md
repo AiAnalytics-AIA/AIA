@@ -1,7 +1,7 @@
 ---
 status: in-progress
 chunks:
-  - "[ ] ANL1. Analýza's contract as data: view operations, pointable ids (module, finding, claim, research question) and V2's interaction contract"
+  - "[x] ANL1. Analýza's contract as data: view operations, pointable ids (module, finding, claim, research question) and V2's interaction contract"
   - "[x] ANL2. Milestones and Pokrytí výzkumných otázek: each research question with its answer state, the findings that answer it and what is missing"
   - "[ ] ANL3. Findings with their claim and source chips, opened in the inspector down to the measure on Výsledky"
   - "[ ] ANL4. Blokované nároky and a module with no supported finding, each with its reason and the way out"
@@ -96,6 +96,17 @@ V2: `AnalysisArt` (`InterpretStages.tsx:37-101`).
 
 **ANL1. Contract.** `lib/artifacts/analysis.ts`. Depends on `research-lead-workbench#14`, `#16`.
 
+Landed on #563's registry (`lib/workbench-artifacts.ts` `ARTIFACTS.analysis`: open_stage, focus,
+inspect; module, finding, claim; analysis_retry and interpretation_research). `lib/artifacts/analysis.ts`
+names the targets through `aiaId` and reads them back (`analysisTarget`, `readAnalysisTarget`,
+`inspectable`): `module:<kind>`, `finding:<module>:<n>`, `claim:<module>:<claim_id>` (a claim id is unique
+only within its module; one outside the id grammar is left unnamed, never rewritten). No `rq:` here: the
+coordinator's ruling on #563 keeps it on the design row until WCE1. The screen carries them on the
+coverage table, every module's entry in the module list (rendered whichever module is selected, so the
+Lead's focus finds any of them; research_questions is the coverage table alone), each key finding and
+each cited number's first chip in the page (`claimMarks`), so every target names exactly one element. Tests: `artifacts/analysis.test.ts`,
+`ExecutionSteps.test.tsx` "puts every module's key findings first …".
+
 **ANL2. Coverage.** Test: an RQ recorded as a gap at start reads "bez doložené odpovědi" with the
 recorded reason.
 
@@ -115,6 +126,14 @@ every research question … (ANL2)".
 
 **ANL3. Findings.** Test: a claim chip resolves to its measure on Výsledky (`citedMeasure`); an
 unresolved ref is kept as a code, never as text.
+
+The inspector body has landed; the chunk stays open until the frame opens it. `lib/analysis-inspect.ts`
+(`inspectView`, `numberWords`) shows a finding with every number it cites, each resolved to its measure
+(`#measure-<id>`). It shows a claim with its measure and the sentences of its module that cite it. A target
+the run does not hold reads as missing, with the reason. `AnalysisInspect.tsx` has the coordinator's
+signature (`{ target: { kind, id } }`, no header of its own) and reads the analysis the page shows,
+which `AnalysisResults` publishes (`setShownAnalysis`), so the drawer never opens another run's item. Still
+open: the frame wiring `inspect` and a person's click to it (the integration coordinator's).
 
 **ANL4. Blocked claims and diagnostics.** Test: a module stored BLOCKED shows "Potřebuje opravu",
 never "Hotovo" (`needsRepair`). Depends on `evidence-integrity#9a`.

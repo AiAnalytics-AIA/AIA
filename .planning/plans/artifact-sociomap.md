@@ -1,7 +1,7 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] SOC1. Sociomapa's contract as data: the closed display operations (view, labels, weak links, mode, battery, selection), pointable ids (object, pair, respondent, segment) and V2's interaction contract; any operation that would write is refused"
+  - "[x] SOC1. Sociomapa's contract as data: the closed display operations (view, labels, weak links, mode, battery, selection), pointable ids (object, pair, respondent, segment) and V2's interaction contract; any operation that would write is refused"
   - "[ ] SOC2. The artifact hosts sociomap-5-web's panel in the frame, in Results and project memory alike, with the old-method text for a -1/-3 run"
   - "[x] SOC3. The four-way legend and the display filter bar: frozen result, display, labelled interpretation, external context"
   - "[ ] SOC4. Object, pair and respondent detail in the item inspector, from the stored map only"
@@ -70,8 +70,13 @@ V2: `SociomapArt` (`EvidenceStages.tsx`, the Sociomap section).
 
   A request to move a node, change a threshold or recompute is refused, and the refusal points to
   Metodika (D-40: map node drag is out).
-- **Pointing:** `map:object:<battery>:<object>`, `map:pair:<battery>:<a>~<b>`,
-  `map:respondent:<battery>:<n>` and `map:segment:<battery>:<k>`.
+- **Pointing** (agreed with the integration coordinator, 2026-10-21, registry #563):
+  `object:<battery>/<object>` and `pair:<battery>/<a>~<b>`, the pair's ends in the map's own order.
+  Respondent and segment targets are requested from the coordinator with SOC6.
+- **As the registry names them:** `map_view`, `map_labels`, `map_hide_weak`, `map_mode` and
+  `map_battery` are the one display-only `filter` operation with the names `view`, `labels`,
+  `hide_weak`, `mode` and `battery`; `select_object` / `select_pair` are `select` on an object or pair
+  target; `open_method` is `inspect`, on a `method:<id>` target the coordinator adds when it is needed.
 - **Edit operations:** none.
 - **Workers and cards:**
   - the map interpreter (`lead-orchestration#LO9b`), a proposal card: its output is an unapproved,
@@ -102,12 +107,25 @@ V2: `SociomapArt` (`EvidenceStages.tsx`, the Sociomap section).
 
 **SOC1. Contract.** `lib/artifacts/sociomap.ts`. Test: a `move_object` request is refused by name.
 Depends on `research-lead-workbench#14`, `#16`.
+- Delivered: `objectTarget`, `pairTarget`, `readTarget` and `targetWords` (null for an id outside
+  the grammar or an element the run lacks, never a guessed id); `FILTER_VALUES`, held to the
+  registry's `VIEW_FILTERS`; `readMapOp`, which takes only the row's operations in the map's form on
+  this run's batteries and refuses the rest by name (`writes_the_map` for any `move_`, `set_`,
+  `recompute`… name, pointing to Metodika); `SOCIOMAP_INTERACTION`, V2's contract. Tests:
+  `lib/artifacts/sociomap.test.ts`. No screen reads it yet: SOC2 puts the ids on the map's elements.
 
 **SOC2. Host the panel.**
 - In the artifact frame (`research-lead-workbench#15`), in Results and in project memory
   (`MemoryStudy`).
 - Test: a `-1` run reads the old-method text.
 - Depends on `sociomap-5-web#6`, `signed-off-sociomap-method#8`.
+- The old-method text is #598's (`signed-off-sociomap-method#8`: `olderMethodOnly`,
+  "Mapa ze starší metody; spusťte nový běh", a battery with no `-5` map); SOC2 shows that text,
+  keyed off the same condition, and writes no second notice (PM, 2026-10-21).
+- Delivered so far: the `-5` panel's elements carry the SOC1 ids (`data-aia`): every listed object
+  `object:<battery>/<object>` (its one element, selected or not), and the detail card's selected
+  relation `pair:<battery>/<a>~<b>`. Tests: `ObjectMapPanel.test.tsx` › "the Lead's names on the map". The
+  frame itself waits for `research-lead-workbench#15`.
 
 **SOC3. Legend and filter bar.** Test: with weak links hidden the bar says what did not change.
 - Delivered on the `-5` panel: the filter bar (`lib/sociomap-display.ts` `displayChanges`: what the
