@@ -1281,7 +1281,9 @@ export function ProgressStep() {
               <div className="flex flex-wrap items-center gap-2">
                 <Chip tone={stepTone(s, run.is_terminal)}>{stepStatusLabel(s, run.is_terminal)}</Chip>
                 <span className="font-medium">{stepLabel(s.node_key)}</span>
-                <span data-step-work={researchStepWork(run, s.node_key) ?? "unknown"} className="text-xs text-ink-muted">{t(`research.exec.stepWork.${researchStepWork(run, s.node_key) ?? "unknown"}`)}</span>
+                {researchStepWork(run, s.node_key) ? (
+                  <span data-step-work={researchStepWork(run, s.node_key)} className="text-xs text-ink-muted">{t(`research.exec.stepWork.${researchStepWork(run, s.node_key)}`)}</span>
+                ) : null}
                 {stepOriginKind(s) ? (
                   <span title={s.data_origin ?? undefined} data-origin-kind={stepOriginKind(s)}>
                     <Chip tone={stepOriginKind(s) === "MODELLED" ? "neutral" : "fault"}>{t(`research.exec.originKind.${stepOriginKind(s)}`)}</Chip>

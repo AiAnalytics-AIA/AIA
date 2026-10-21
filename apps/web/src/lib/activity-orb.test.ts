@@ -76,11 +76,15 @@ describe("a Deep Research step", () => {
 
 describe("whether a research run's step calls a model, at any status (artifact-fieldwork FLD2)", () => {
   const ai = { fieldwork_source: "ai_runtime" };
-  const fixture = { fieldwork_source: "fixture" };
+  const fixture = { fieldwork_source: "synthetic_fixture" };
 
   it("fieldwork is AI only when AI respondents answer it", () => {
     expect(researchStepWork(ai, "run")).toBe("ai");
     expect(researchStepWork(fixture, "run")).toBe("running");
+  });
+
+  it.each(["", "a_source_added_later"])("fieldwork from a source %j the run did not name is unknown, never code", (source) => {
+    expect(researchStepWork({ fieldwork_source: source }, "run")).toBeNull();
   });
 
   it("an analysis module is AI", () => {

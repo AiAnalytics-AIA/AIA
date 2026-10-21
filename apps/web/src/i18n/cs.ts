@@ -2716,7 +2716,6 @@ export const cs = {
       stepWork: {
         ai: "AI · ModelGateway",
         running: "deterministické",
-        unknown: "druh kroku neznámý",
       },
       runCost: "Skutečné náklady",
       runCostUnknown: "Zatím nevykázané",

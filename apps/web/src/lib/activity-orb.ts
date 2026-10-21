@@ -66,12 +66,16 @@ export function agentJobOrb(job: Pick<ResearchAgentJob, "action" | "steps">): Or
   return job.steps.some((s) => s.status === RUNNING) ? ai(AGENT_ORB[job.action]) : null;
 }
 
+/** The fieldwork sources a run records, and who answers each. */
+const FIELDWORK_WORK: Readonly<Record<string, OrbInk>> = { ai_runtime: "ai", synthetic_fixture: "running" };
+
 /**
  * Whether a research run's step calls a model (`ai`) or is code (`code`), whatever its status:
  * the same rule as its orb. A step no table names is unknown (null), never guessed either way.
  */
 export function researchStepWork(run: Pick<ResearchRun, "fieldwork_source">, nodeKey: string): OrbInk | null {
-  if (nodeKey === "run") return run.fieldwork_source === "ai_runtime" ? "ai" : "running";
+  // A run that recorded no source reads "" (routers/research.py _run): unknown, not code.
+  if (nodeKey === "run") return FIELDWORK_WORK[run.fieldwork_source] ?? null;
   if (nodeKey.startsWith("analysis_")) return "ai";
   return RUN_STEP_ORB[nodeKey]?.ink ?? null;
 }

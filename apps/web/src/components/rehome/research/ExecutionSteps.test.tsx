@@ -1135,6 +1135,15 @@ describe("Progress", () => {
     expect(list.querySelector('[data-aia="step:run"] [data-step-work]')?.textContent).toBe(t("research.exec.stepWork.running"));
   });
 
+  it("tags no fieldwork step when the run recorded no source: unknown is never stamped as code", async () => {
+    api(listed(run({ ...COMPLETED, fieldwork_source: "" })));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    expect(list.querySelector('[data-aia="step:run"]')).toBeTruthy();
+    expect(list.querySelector('[data-aia="step:run"] [data-step-work]')).toBeNull();
+    expect(list.querySelector('[data-aia="step:aggregate"] [data-step-work]')?.textContent).toBe(t("research.exec.stepWork.running"));
+  });
+
   it("explains a run waiting for the AI runtime, step by step, without offering a retry", async () => {
     api(listed(PARKED));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
