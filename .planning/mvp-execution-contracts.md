@@ -331,6 +331,14 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `artifact-chain-to-draft-report#CHN11a` | W4 | artifact plans (#560): before CHN11 |
 | `artifact-chain-to-draft-report#CHN11` | W4 | artifact plans (#560): the chain's acceptance journey, after CHN2-CHN10 and every artifact plan |
 | `artifact-chain-to-draft-report#CHN12` | W4 | artifact plans (#560): the chain's acceptance journey, after CHN2-CHN10 and every artifact plan |
+| `lead-client-knowledge#LK0` | W1 | owner Q60 (2026-10-21): the licence determination, a live defect (every Lead turn refused for a client with a dataset, artifact or finding); its own fix PR |
+| `lead-client-knowledge#LK1` | W2 | owner Q59: the knowledge index; ADR 0042 (Proposed) with it; with `lead-conversation#LC1`'s layer table |
+| `lead-client-knowledge#LK2` | W2 | after LK1: the index frozen at enqueue |
+| `lead-client-knowledge#LK3` | W2 | after LK2, with `lead-conversation#LC4`'s budgets: the read in the closed contract inside 96 KB |
+| `lead-client-knowledge#LK4` | W2 | after LK3: the read round behind `AIA_AI_RESEARCH_LEAD_KNOWLEDGE_READS`, off; cost and latency measured |
+| `lead-client-knowledge#LK5` | W2 | owner Q62: a dataset read as its preview; after LK0 and LK4 |
+| `lead-client-knowledge#LK6` | W2 | after LK4: what the Lead read, in the API and on screen |
+| `lead-client-knowledge#LK7` | W3 | after LK4-LK6 and the measurement: switched on for develop |
 | `research-lead-workbench#24` | POST | development plan D16: after the MVP |
 | `research-lead-workbench#25` | POST | development plan D16: after the MVP |
 

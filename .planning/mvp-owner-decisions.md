@@ -284,6 +284,21 @@ the Lead cites it by locator. Pending proposals are marked unapproved, sources m
 dokument" are included and marked, and rejected items are left out. The plan,
 `lead-client-knowledge.md`, comes in its own PR.
 
+**2026-10-21, the owner's answers Q60-Q65** (on the PM status page, relayed by the coordinator).
+Q60 (a), 14:51 UTC, as data owner: client knowledge in the lineage `unclassified-client-knowledge` is
+licensed for `bedrock-eu-primary` only, beside the panel's OI-61 rule (`lead-client-knowledge#LK0`,
+its own fix PR); it ends the refusal of every Lead turn for a client with an approved dataset,
+artifact or finding (OI-142). Q61 (b), against the coordinator's recommendation: folder and label
+names never reach a model; the Lead's index carries item names and kinds only. Q62 (a): a dataset
+the Lead opens is read as its preview only, personal columns masked, never its rows (LK5). Q63 (a),
+15:15: the nine typed start commands in #574 stay as proposed. Q64 (a), 15:17: Claude reviews stand
+in for Codex until its credits reset (17:42 Prague time). Q65 (a), 15:18: brief attachments stay
+Class B, shown for awareness; "i dont want any gates stopping based on the classification, we are
+going for full functionality right now." Q66 is open: whether Q65 holds on develop only,
+everywhere, or for the brief file only. The read round inside a Lead turn (ADR 0042, Proposed) is
+the coordinator's decision within Q59; the experimental Sociomapping draft is named only in CHN1's
+section manifest (the coordinator, #579). Q51, Q53 and Q55 are open.
+
 ## MVPQ-12 — Canonical Sociomap questions still requiring sign-off
 
 Answer-ready form: [`mvp-methodology-packet.md`](mvp-methodology-packet.md) MQ-04 – MQ-10; under MVPQ-13 (below) `aia-sociomap-5` settles Q5-Q7, the kernel widths and respondent placement (the packet's MQ-05 record), and only what `-5` leaves open is asked.
