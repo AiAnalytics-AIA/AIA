@@ -316,8 +316,9 @@ length limit?", (a), 20:16: "A declared rule per study type, set by Aram on Meto
 sections does the MVP draft report have?", (b), 14:33: "Today's report with gaps closed, plus
 RD9/RD10, plus literature when chosen, in today's order", with his note "ensure we are not missing
 anything". Q67 "Per-researcher spend: who pays after a budget lift?", (a), 20:12: "Whoever lifts the
-budget pays for what runs after the lift" (built in #583). No question from the PM status page is
-open after these.
+budget pays for what runs after the lift" (built in #583). Still open on the PM status page: Q68
+(comments on Návrh; the coordinator recommends (b)) and Q69 (the Lead's study notes in the draft
+report; the coordinator recommends (a), left out).
 
 ## MVPQ-12 — Canonical Sociomap questions still requiring sign-off
 
