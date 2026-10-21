@@ -49,7 +49,7 @@ from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Suc
 from .research import upstream_artifact
 
 REPORT_ARTIFACT_TYPE = INTERNAL_REPORT_ARTIFACT_TYPE
-REPORT_CONTRACT_VERSION = "aia-internal-report-10"
+REPORT_CONTRACT_VERSION = "aia-internal-report-12"
 REPORT_PDF_ARTIFACT_TYPE = INTERNAL_REPORT_PDF_ARTIFACT_TYPE
 REPORT_DOCUMENT_ARTIFACT_TYPE = INTERNAL_REPORT_DOCUMENT_ARTIFACT_TYPE
 
@@ -109,6 +109,8 @@ class ReportExecutor:
                     design=chapters.design,
                     method=chapters.method,
                     research_question_gaps=chapters.gaps,
+                    map_source=(chapters.map_artifact_id, chapters.map_sha256),
+                    methodology_rules=chapters.methodology,
                 )
             except (
                 ReconstructionRefused,
