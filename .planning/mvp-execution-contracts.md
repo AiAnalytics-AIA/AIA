@@ -85,7 +85,7 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 |---|---|---|
 | `evidence-integrity#2` | W1 | development plan §3 |
 | `lead-orchestration#LO9c` | W2 | cross-check G47: after LO9a, before LO9b (E18) |
-| `segment-maps-and-drilldown#10` | W2 | cross-check G48, owner 2026-10-20: after 1 (E14); before `evidence-integrity#9b` |
+| `segment-maps-and-drilldown#10` | W2 | cross-check G48, owner 2026-10-20: after 1 (E14); before `evidence-integrity#9b` and `artifact-chain-to-draft-report#CHN10` (OI-192) |
 | `working-copy-edit-ops#WCE8b` | W2 | cross-check G49: with WCE8, before `research-lead-workbench#17` (E26) is accepted on a map study |
 | `report-delivery#RD5a` | W2 | cross-check G50: before RD5 and RD7 |
 | `client-data-in-analysis#3a` | W3 | cross-check G52: before 2a and 3 (E17) |
@@ -328,7 +328,7 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `artifact-chain-to-draft-report#CHN7` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
 | `artifact-chain-to-draft-report#CHN8` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
 | `artifact-chain-to-draft-report#CHN9` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
-| `artifact-chain-to-draft-report#CHN10` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
+| `artifact-chain-to-draft-report#CHN10` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20); after `segment-maps-and-drilldown#10` (OI-192): once the refusal lands, the Segments chapter needs an admitted producer |
 | `artifact-chain-to-draft-report#CHN11a` | W4 | artifact plans (#560): before CHN11 |
 | `artifact-chain-to-draft-report#CHN11` | W4 | artifact plans (#560): the chain's acceptance journey, after CHN2-CHN10 and every artifact plan |
 | `artifact-chain-to-draft-report#CHN12` | W4 | artifact plans (#560): the chain's acceptance journey, after CHN2-CHN10 and every artifact plan |

@@ -5679,3 +5679,30 @@ to `develop` and `main`; and, after the change, the same listing showing complet
 busy day.
 
 **Status.** Open. Not changed here (a docs-only PR edits no workflow).
+
+---
+
+## OI-192 · Finding · The draft report's Segments chapter loses its only producer when the refusal lands first
+
+**Claim.** `evidence-integrity#9b` refuses report composition while any analysis module has no
+supported finding, and the Segments module (report chapter ch-5) has no admitted producer until
+`segment-maps-and-drilldown#10` (segment evidence) lands; built in the other order, no run reaches a
+draft. The same census found the coded open answers' chapter (`ch-coding`) belongs right after
+ch-questions, and the assumptions chapter (`ch-assumptions`) right before ch-6.
+
+**Anchor.** `.planning/plans/evidence-integrity.md` chunk 9b and
+`.planning/plans/segment-maps-and-drilldown.md` chunk 10 @ c98836c; the execution contracts had 10
+before 9b but not before `artifact-chain-to-draft-report#CHN10`.
+
+**Reproduction.** Hypothesis until 9b is built: a fictional run with a segment question, after 9b
+and before 10, is refused at composition with the Segments module named.
+
+**Consequence.** Every draft report would be refused.
+
+**Smallest fix.** The order recorded in the contracts and in both plans: 10 before 9b and CHN10.
+
+**Test.** The chain's acceptance (`artifact-chain-to-draft-report#CHN11`) on a run with segments.
+
+**Status.** Open: recorded as an ordering in this PR (the coordinator's census finding PM-2,
+2026-10-21); closes when 10 lands before 9b.
+
