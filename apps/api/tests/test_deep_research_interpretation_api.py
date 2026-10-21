@@ -332,3 +332,29 @@ def test_the_design_proposal_route_refuses_an_interpretation_run(
     }
     refused = researcher.post(f"{run_url}/design-proposal/accept", json=accept)
     assert refused.status_code == 409 and refused.json()["code"] == "not_design_research"
+
+
+def test_the_quote_prices_an_interpretation_start_as_the_start_asks(
+    app: FastAPI, researcher: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    """Plan chunk 55 (DRL-0): ``POST …/deep-research/quote`` over the same target answers the
+    ceiling the start then asks to confirm, and writes nothing; another Study's target is 404."""
+    results = _results(app, researcher, world)
+    target = _object_target(results)
+    quote_url = f"{_study(world)}/deep-research/quote"
+    body = {"purpose": "INTERPRETATION_RESEARCH", "target": target, "preset_name": "QUICK"}
+    assert (
+        researcher.put(f"{_study(world)}/spend-confirm", json={"limit_usd": 0.01}).status_code
+        == 200
+    )
+    quoted = researcher.post(quote_url, json=body)
+    assert quoted.status_code == 200, quoted.text
+    assert quoted.json()["purpose"] == "INTERPRETATION_RESEARCH"
+    assert quoted.json()["start_verdict"] == "confirm"
+    assert researcher.get(_url(world)).json() == []
+    asked = researcher.post(f"{_url(world)}/interpretation", json=_body(target))
+    assert asked.status_code == 409, asked.text
+    assert asked.json()["details"]["ceiling_usd"] == quoted.json()["ceiling_usd"]
+    for member in (researcher, other_client_lead):
+        foreign = member.post(f"{_study(world, 'other_client')}/deep-research/quote", json=body)
+        assert foreign.status_code == 404, foreign.text
