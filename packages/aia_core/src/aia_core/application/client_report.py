@@ -25,13 +25,18 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from aia_core.application.analysis_results import SourcesRefused, native_sources
-from aia_core.application.report import RESEARCH_SUBTITLE
+from aia_core.application.report import (
+    RESEARCH_SUBTITLE,
+    SOCIOMAP_ARTIFACT,
+    sourced,
+    upstream_artifacts,
+)
 from aia_core.application.report_chapters import verified_map
 from aia_core.application.report_design import compose_design_sections
 from aia_core.application.report_document import beside, store_document_beside
 from aia_core.application.report_export import review_stamp_record
 from aia_core.application.report_maps import compose_map_sections
-from aia_core.application.report_method import compose_method_section
+from aia_core.application.report_method import METHOD_SOURCES, compose_method_section
 from aia_core.application.report_tables import question_tables, scale_notes
 from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.analysis.native import native_evidence, native_items
@@ -43,6 +48,7 @@ from aia_core.domain.fieldwork import MODELLED_DISCLOSURE, OriginKind, origin_ki
 from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.report.evidence import EvidenceLedger
 from aia_core.domain.report.model import (
+    ArtifactSource,
     Callout,
     CalloutKind,
     Classification,
@@ -52,6 +58,7 @@ from aia_core.domain.report.model import (
     ReportKind,
     ReportMeta,
     Section,
+    SpecSource,
     text,
 )
 from aia_core.domain.report.validation import require_valid
@@ -208,13 +215,26 @@ def compose_client_report(
         ),
         id="ch-intro",
     )
+    # What each section is composed from (artifact-chain CHN1); stored with the document model.
+    specification, dataset, aggregate = upstream_artifacts(sources.refs)
+    the_map = ArtifactSource(SOCIOMAP_ARTIFACT, mapped.artifact_id, mapped.sha256)
     sections = [
-        intro,
-        design.chapter,
-        compose_method_section(meta_run, origin, client=True),
-        *tables.sections,
-        *maps,
-        design.appendix,
+        sourced(intro, dataset, the_map),
+        sourced(
+            design.chapter,
+            specification,
+            SpecSource("questions"),
+            SpecSource("batteries"),
+            SpecSource("n"),
+            SpecSource("audience"),
+        ),
+        sourced(compose_method_section(meta_run, origin, client=True), dataset, *METHOD_SOURCES),
+        *(
+            sourced(section, aggregate, specification, SpecSource("questions"))
+            for section in tables.sections
+        ),
+        *(sourced(section, the_map) for section in maps),
+        sourced(design.appendix, specification, SpecSource("questions"), SpecSource("batteries")),
         Section("Evidenční příloha", (EvidenceAppendix(),), id="app-evidence", appendix=True),
     ]
     ledger = EvidenceLedger.from_claims(

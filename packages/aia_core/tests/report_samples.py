@@ -8,6 +8,7 @@ that factor with Czech filler, so a layout can be checked for text that runs
 
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Callable
 from datetime import date
 from typing import Any
@@ -16,6 +17,7 @@ from aia_core.domain.evidence.claims import ClaimSurface
 from aia_core.domain.evidence.validation import METHOD_STATUS_PENDING
 from aia_core.domain.report.model import (
     Align,
+    ArtifactSource,
     Chart,
     ChartKind,
     Classification,
@@ -34,8 +36,11 @@ from aia_core.domain.report.model import (
     ReportKind,
     ReportMeta,
     RevisionEntry,
+    RunSource,
     Section,
+    SectionSource,
     Series,
+    SpecSource,
     Table,
     TableRow,
     Text,
@@ -47,6 +52,7 @@ from aia_core.domain.report.templates import (
     FinalContent,
     QuestionAnswer,
     ReportContent,
+    Sources,
     client_report,
     final_report,
     internal_report,
@@ -293,12 +299,68 @@ def content(s: Callable[[str], str]) -> ReportContent:
     )
 
 
+def _artifact(artifact_type: str, artifact_id: str) -> ArtifactSource:
+    """A fictional stored artifact, its SHA-256 the digest of its id."""
+    return ArtifactSource(
+        artifact_type, artifact_id, hashlib.sha256(artifact_id.encode()).hexdigest()
+    )
+
+
+SPECIFICATION = _artifact("research_specification", "art-spec-7f3a2c")
+DATASET = _artifact("research_fieldwork_dataset", "art-data-7f3a2c")
+AGGREGATE = _artifact("research_aggregate", "art-agg-7f3a2c")
+EXECUTIVE = _artifact("research_analysis_module", "art-exec-7f3a2c")
+QUESTIONS = _artifact("research_analysis_module", "art-rq-7f3a2c")
+OBJECTS = _artifact("research_analysis_module", "art-obj-7f3a2c")
+IMPLICATIONS = _artifact("research_analysis_module", "art-impl-7f3a2c")
+LIMITATIONS = _artifact("research_analysis_module", "art-lim-7f3a2c")
+BUNDLE = _artifact("deep_research_bundle", "art-bundle-7f3a2c")
+#: A run's output the samples never read: the manifest names it as unread.
+SOCIOMAPPING = _artifact("research_sociomapping_docx", "art-smx-7f3a2c")
+
+#: What each sample section was composed from (artifact-chain CHN1).
+SOURCES: dict[str, tuple[SectionSource, ...]] = {
+    "ch-summary": (EXECUTIVE,),
+    "ch-decision": (EXECUTIVE,),
+    "ch-questions": (QUESTIONS,),
+    "ch-findings": (OBJECTS,),
+    "ch-recommendations": (IMPLICATIONS,),
+    "ch-external": (BUNDLE,),
+    "ch-triangulation": (BUNDLE,),
+    "ch-confidence": (LIMITATIONS,),
+    "ch-method": (DATASET, RunSource("metadata.population"), RunSource("metadata.support")),
+    "ch-limitations": (LIMITATIONS,),
+    "ch-conclusion": (EXECUTIVE,),
+    "ch-support": (AGGREGATE,),
+    "ch-purpose": (SPECIFICATION, SpecSource("title")),
+    "ch-design": (SPECIFICATION, SpecSource("questions"), SpecSource("batteries")),
+    "ch-population": (RunSource("metadata.population"),),
+    "app-questionnaire": (SPECIFICATION, SpecSource("questions")),
+    "app-audit": (SPECIFICATION, DATASET, AGGREGATE),
+}
+OUTPUTS = (
+    SPECIFICATION,
+    DATASET,
+    AGGREGATE,
+    EXECUTIVE,
+    QUESTIONS,
+    OBJECTS,
+    IMPLICATIONS,
+    LIMITATIONS,
+    SOCIOMAPPING,
+)
+
+
 def build(kind: str, report_ledger: Any, *, stress: float = 1.0) -> ReportDocument:
-    """One sample report of ``kind`` (``KINDS``)."""
+    """One sample report of ``kind`` (``KINDS``), with its section sources and the run's
+    outputs (``SOURCES``, ``OUTPUTS``)."""
     s = stretch(stress)
+    sources: Sources = SOURCES
     audit = (("Běh", "run-7f3a2c"), ("Model", "anthropic.claude (Bedrock EU)"), ("QA", "passed"))
     if kind == "client":
-        return client_report(meta(ReportKind.CLIENT), content(s), report_ledger())
+        return client_report(
+            meta(ReportKind.CLIENT), content(s), report_ledger(), sources=sources, outputs=OUTPUTS
+        )
     if kind == "final":
         final = FinalContent(
             triangulation=(
@@ -306,10 +368,19 @@ def build(kind: str, report_ledger: Any, *, stress: float = 1.0) -> ReportDocume
             ),
             support=_support_table(s),
         )
-        return final_report(meta(ReportKind.FINAL), content(s), final, report_ledger())
+        return final_report(
+            meta(ReportKind.FINAL),
+            content(s),
+            final,
+            report_ledger(),
+            sources=sources,
+            outputs=OUTPUTS,
+        )
     ledger = report_ledger(ClaimSurface.INTERNAL)
     if kind == "internal":
-        return internal_report(meta(ReportKind.INTERNAL), content(s), audit, ledger)
+        return internal_report(
+            meta(ReportKind.INTERNAL), content(s), audit, ledger, sources=sources, outputs=OUTPUTS
+        )
     if kind == "documentation":
         doc = DocumentationContent(
             purpose=(
@@ -323,5 +394,7 @@ def build(kind: str, report_ledger: Any, *, stress: float = 1.0) -> ReportDocume
             ),
             limitations=(s("Externí validace čeká."),),
         )
-        return study_documentation(meta(ReportKind.DOCUMENTATION), doc, audit, ledger)
+        return study_documentation(
+            meta(ReportKind.DOCUMENTATION), doc, audit, ledger, sources=sources, outputs=OUTPUTS
+        )
     raise ValueError(f"no sample for {kind!r}")
