@@ -583,6 +583,13 @@ unless stated.
   hidden in "Připravenost a pomoc". Smallest fix: `followAgentJob` reports an `AWAITING_BUDGET` step as
   its own kind (and `waiting` counts `AWAITING_*`); `AiFailureCard` renders `AgentBudgetWaits` for it.
   Test: a job whose step is `AWAITING_BUDGET` shows the budget lift in place, never a retry.
+  **Fixed in `a68b806e`** (branch `fix/budget-wait-whole-run` from `develop` @ `c88fd7fd`, anchors
+  re-checked there): `agentJobState` names the wait, `followAgentJob` throws it as
+  `JobError("awaiting_budget")` with the job's id, and `AiFailureCard` draws the study's `BudgetLift`
+  for that job with no retry; after the lift `useResearchAgents.continueJob` follows the same job.
+  Tests: `research-agent-jobs.test.ts` (the state mapping), `ResearchScreen.test.tsx` "shows a
+  stage's AI job stopped at the budget as waiting, lifts it in place and goes on with the same job
+  (CR-2)".
 - **CR-3. One budget lift releases one analysis step, so a run's eight steps need eight lifts.**
   Anchor: `components/rehome/research/ExecutionSteps.tsx:1285-1287` (a `BudgetLift` per step),
   `application/research.py:1036-1049 @ 242523e` (line 1048 passes `[step]` to
@@ -591,3 +598,25 @@ unless stated.
   Smallest fix: lift every `AWAITING_BUDGET` step of the run (`run["steps"]`; the helper already
   filters) and render one run-level lift. Test: one lift on a run with several waiting steps resumes
   them all, in one ledger row.
+  **Fixed in `44827609`** (same branch): `WorkflowRepository.resume_budget_waits` lifts every
+  waiting step of one run under one lock and writes one approval row (`subject_id` the step for one,
+  else the run; a `STEP_RESUMED` event per step); `ResearchRuns.lift_budget_wait` lifts the whole
+  run; `POST /api/v1/studies/{id}/research/runs/{run_id}/budget` is the run's route (the per-step
+  route still works and releases the run); Progress shows one lift for the run. Tests:
+  `test_research_runs.py::test_one_lift_releases_every_step_of_the_run_waiting_for_budget`,
+  `::test_a_run_lift_too_small_releases_nothing`, `::test_a_named_step_lifts_the_whole_run`,
+  `test_research_api.py::test_the_runs_budget_lift_releases_the_run_and_is_refused_when_nothing_waits`,
+  `ExecutionSteps.test.tsx` "offers one lift for the run when eight analysis steps wait, …".
+
+### Doc follow-up (CR-2, CR-3)
+
+- `CLAUDE.md` §2 map, `routers/` research line: add "POST …/runs/{id}/budget: the run's budget lift,
+  every step waiting for budget released as one decision (CR-3)".
+- `CLAUDE.md` §2 map, `workflow_repository.py` line: "resume_budget_wait: a person lifts an
+  AWAITING_BUDGET step, in the approval ledger" becomes "resume_budget_waits: a person lifts every
+  AWAITING_BUDGET step of one run, one row in the approval ledger".
+- `CLAUDE.md` §2 map, `src/lib/research-agent-jobs.ts` line: add "agentJobState: a job waiting for
+  budget waits, never a failure; the stage shows the study's lift for the same job (CR-2)".
+- `CLAUDE.md` §2 map, `src/lib/budget-line.ts` line: add "holdsNote: beside a lift, open holds are
+  not in the remainder".
+- `open-items.md`: CR-2 and CR-3 filed and closed by this PR.
