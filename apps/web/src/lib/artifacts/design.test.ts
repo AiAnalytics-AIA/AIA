@@ -58,6 +58,8 @@ describe("Návrh's view operations", () => {
     expect(designAllows("open_stage")).toBe(true);
     expect(designAllows("focus")).toBe(true);
     expect(designAllows("show_diff")).toBe(true);
+    // V2's "Celý řetěz" is inspect on an rq:<id> target (the coordinator's ruling), never its own name.
+    expect(designAllows("inspect")).toBe(true);
     expect(designAllows("filter")).toBe(false);
     expect(designAllows("expand_chain")).toBe(false);
   });
