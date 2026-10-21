@@ -9,6 +9,7 @@ chunks:
   - "[x] 6. Lead pane: conversation, composer, greeting, view tools, edits as change blocks, decision cards"
   - "[x] 6b. Personal Leads: researcher_leads and memories, hatching, the Můj Vedoucí page, per-researcher sessions"
   - "[ ] 7. Agent proposals inline in the artifact, with research-question coverage gained, lost and kept"
+  - "[x] 7b. Design Research proposals reviewed in the artifact (F-DRL-1)"
   - "[x] 8. design_items, the working revision on every Design Revision writer (web submit, reuse, accepts), the item-level stale rule"
   - "[x] 9. Accept in one transaction: merged Design Revision, working copy, ledger; the web reloads"
   - "[x] 10. Dismiss and rebuild through the ledger and rebuild_of; the pending-proposals projection"
@@ -245,6 +246,35 @@ The backend each chunk needs is in `.planning/mvp-consolidation.md` §6.
      `test_a_greeting_on_a_new_study_has_its_text_edits_accepted_automatically`,
      `test_a_first_save_is_not_stale_over_the_bare_template_a_server_writer_saved`,
      `test_edited_from_current_names_the_current_revision_or_the_bare_template`.
+- **F-DRL-1. No web path turned a Design Research proposal into a Design Revision** *(closed by
+  chunk 7b; the finding is numbered by `chore/lead-deep-research-plan`'s plan)*.
+  1. Claim: the accept route existed, but the web only read the proposal, so ADR 0021's first
+     checkpoint (a person turns a proposal into a Design Revision) could not be completed in AIA.
+  2. Anchor: `routers/deep_research.py:768-796 @ 722dd75c` (the route) and
+     `application/design_research.py:90-157 @ 722dd75c` (one transaction through
+     `accept_into_working_copy`, the `design_research` ledger row); the only web caller was the
+     GET at `apps/web/src/lib/api.ts:1412 @ 722dd75c`.
+  3. Reproduction: `git grep -n 'design-proposal' 722dd75c -- apps/web/src` lists the GET alone.
+  4. Consequence: a finding could be read on Dotazník and never taken into the design.
+  5. Fix: `DesignResearchReview.tsx` in the Deep Research panel, over `lib/design-research-review.ts`
+     (pure) and `deepResearch.acceptDesignProposal`: a completed `DESIGN_RESEARCH` run's items, each
+     EVIDENCE item with its findings' quotes and sources and a checkbox, each GAP item without one;
+     "Přijmout vybrané" sends exactly the ticked items on the run's Design Revision and the working
+     revision the person has, after a flush; the working copy is then reloaded with `since`, so a
+     change typed meanwhile is kept in conflict. A `stale_proposal` is said through
+     `research/proposal-items.ts` (which now names the `design_research` field) and the proposal is
+     never applied. Items the working copy already took from the run are marked "V návrhu", and the
+     run offers no further accept: its accept wrote a revision the run did not research, which the
+     server refuses (`design_moved`).
+  6. Tests: `lib/design-research-review.test.ts` (the body has exactly the ticked items and both
+     revisions; a GAP or a taken item is never sent; the refusals in Czech) and
+     `DesignResearchReview.test.tsx` (nothing written before the accept; the post, then the reload;
+     a stale proposal said by name and not applied; read-only without the right). No journey: the
+     workbench composes no Deep Research (F-DRL-6, DRL-1). The route's contract is unchanged; its
+     success path stays tested by `apps/executors/tests/test_design_research_proposals.py`.
+  - Not done here: a ledger row for a dismissed item. Leaving an item unticked writes nothing, and
+    the proposal stays in its run; ADR 0021 asks only that nothing is written without an accept.
+    DRL-7 links the Lead's finished card here.
 
 ## Doc follow-up (for the docs PR, not this branch)
 
@@ -263,6 +293,11 @@ The backend each chunk needs is in `.planning/mvp-consolidation.md` §6.
   saved (`edited_from_current`).
 - **`CLAUDE.md` § 2**, beside `src/components/workbench/`: `prototypes/research-lead-v2/` is the
   canonical workspace and artifact reference (MVPQ-01, 2026-10-20); V3 is supporting reference.
+- **`CLAUDE.md` § 2**, beside `DeepResearchPanel` in `components/rehome/research/`:
+  `DesignResearchReview.tsx`, a completed Design Research run's proposal reviewed on Dotazník, its
+  ticked items accepted through `POST …/design-proposal/accept`, then the working copy reloaded;
+  `lib/design-research-review.ts`, its pure part (readProposal, acceptBody, refusalWords); `lib/api.ts`
+  `deepResearch.acceptDesignProposal`. `.planning/open-items.md`: F-DRL-1, closed by chunk 7b.
 - **ADR 0026**, under *Accepted with*: the Lead steers the artifact pane through a closed set of
   display operations (D10); its gates are unchanged.
 
