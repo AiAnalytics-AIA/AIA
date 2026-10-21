@@ -117,7 +117,9 @@ button { cursor: pointer; }
 .nav--scroll { overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
 .nav--scroll .nav__plabel { display: none; }
 .nav--scroll .nav__phase { flex: none; }
-.nav--sheet { align-items: center; padding: 0 12px; }
+/* Not a query container in the sheet: a container is the containing block of its fixed
+   descendants, and the stage list's scrim must cover the viewport, not the 40 px bar. */
+.nav--sheet { align-items: center; padding: 0 12px; container-type: normal; }
 .nav__current { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 8px; border: 0; border-radius: 4px; background: transparent; font-size: 13px; font-weight: 600; max-width: 100%; }
 .nav__current:hover { background: var(--surface-sunken); }
 .nav__currentlabel { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

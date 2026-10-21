@@ -3,6 +3,9 @@
 // crossing 1100 px remounts nothing and keeps the composer's draft; below 1100 px the
 // conversation stays mounted, hidden until the launcher opens it as a modal dialog over the
 // artifact, and Zavřít or Escape closes it with focus back on the launcher.
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -267,6 +270,13 @@ describe("the compact header and stage navigator (26d)", () => {
     fireEvent.keyDown(stages[10]!, { key: "Escape" });
     expect(nav.querySelectorAll(".nav__stage")).toHaveLength(0);
     expect(document.activeElement).toBe(current);
+  });
+
+  it("in the sheet the navigator is no query container, so the stage list's scrim covers the viewport", () => {
+    // A container is the containing block of its fixed descendants (Codex on #593).
+    const css = readFileSync(join(process.cwd(), "src/components/workbench/workbench.css"), "utf8");
+    expect(css).toMatch(/\.nav--sheet \{[^}]*container-type: normal;/);
+    expect(css).toMatch(/\.scrim \{ position: fixed; inset: 0;/);
   });
 
   it("from 768 to 1099 px the navigator scrolls sideways and keeps every stage; the header keeps its meter", () => {
