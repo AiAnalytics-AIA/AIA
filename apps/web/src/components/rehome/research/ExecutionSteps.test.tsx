@@ -1863,13 +1863,22 @@ describe("Results", () => {
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
     const comparison = await screen.findByRole("region", { name: "Srovnání: Nápoje" });
-    expect(within(comparison).getByText("Průměr na škále 1–5 · 95% interval")).toBeTruthy();
-    expect(within(comparison).getByText("Spolehlivě nejvýše hodnocený: Káva.")).toBeTruthy();
-    expect(within(comparison).getByText("Nejníže hodnocené: Čaj a Voda; pořadí mezi nimi nelze potvrdit.")).toBeTruthy();
-    expect(within(comparison).getAllByRole("link").map((a) => a.textContent)).toEqual(["Káva", "Čaj", "Voda"]);
-    // A suppressed object is not drawn and has no number, but is named.
-    expect(within(comparison).getByText("Bez čísla (potlačeno nebo bez průměru): Mléko.")).toBeTruthy();
+    expect(within(comparison).getByText("Průměr na škále 1–5 · 95% interval · Kish n")).toBeTruthy();
+    expect(within(comparison).getByText(/Spolehlivě nejvýše hodnocený: Káva\. Nejníže hodnocené: Čaj a Voda; pořadí mezi nimi nelze potvrdit\./)).toBeTruthy();
+    expect(within(comparison).getByText("Pořadí platí jen tam, kde se intervaly rozcházejí.")).toBeTruthy();
+    // Highest mean first, then the suppressed object in a row of its own.
+    expect(within(comparison).getAllByRole("link").map((a) => a.textContent)).toEqual(["Káva", "Čaj", "Voda", "Mléko"]);
+    const kava = comparison.querySelector('[data-aia="object:napoje.kava"]') as HTMLElement;
+    expect(within(kava).getByText("[4,00; 4,40]")).toBeTruthy();
+    expect(kava.textContent).toMatch(/z 5/);
+    // A suppressed object keeps its row and says why; its mean and interval are not shown.
+    const mleko = comparison.querySelector('[data-aia="object:napoje.mleko"]') as HTMLElement;
+    expect(mleko.getAttribute("data-withheld")).toBe("suppressed");
+    expect(mleko.textContent).toMatch(/^MlékoPotlačeno · podpora dat nestačí \(\d+ unikátních dárců\)/);
     expect(within(comparison).queryByText("3,50")).toBeNull();
+    expect(comparison.textContent).not.toMatch(/2,00|5,00/);
+    // The Lead points at the set, an object's row and each measure's card (artifact-results §4).
+    expect(comparison.getAttribute("data-aia")).toBe("set:napoje");
     // No rounding block: 18.6.6's two places, as each card prints them.
     expect(within(comparison).getByText("4,20")).toBeTruthy();
     // A link to a card clears the filters that hide it and opens its detail.
@@ -1880,6 +1889,7 @@ describe("Results", () => {
     fireEvent(window, new HashChangeEvent("hashchange"));
     const card = await within(explorer).findByRole("region", { name: "Čaj" });
     expect(card.getAttribute("data-focused")).toBe("true");
+    expect(card.getAttribute("data-aia")).toBe("measure:napoje:caj");
     expect((card.querySelector("details") as HTMLDetailsElement).open).toBe(true);
     expect((within(explorer).getByRole("searchbox", { name: "Najít otázku nebo objekt" }) as HTMLInputElement).value).toBe("");
     window.location.hash = "";
