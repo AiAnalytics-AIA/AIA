@@ -23,9 +23,13 @@ Updated 2026-10-20. Design prototype only: no product code, no product PR (scope
 - Round 3b (21:23, coordinator relaying the owner's D-32/33/34, Q5 c, Q14 a, ADR 0030): no admin read or handover of a Lead. Removed from Přístup; a deactivated member's row and toast say the Lead is sealed, unreadable by anyone, deleted at the end of retention. Audit shows "Vedoucí zapečetěn".
   Affects every Settings plan's UI chunks (settings-workspace-ux, methodology-tab, system-prompts-settings, client-budget).
 
+- 2026-10-21 (Nigel, in this session): accept all four recommendations. (1) Metodika hides the experimental Sociomapping (H-Model)
+  and the 18.6.6 reference map, beside -1..-4; (2) a Settings tab "Správa dat" holds client delete (owner/admin, irreversible-action
+  modal) and the kept records (N6, N12); (3) "Stav systému" is its own tab under Provoz (smoke rows + GlitchTip); (4) system prompts
+  stay edited by OWNER/ADMIN, no new mark. Plans to carry it: study-data-lifecycle#SDL3 (delete entry point), mvp-acceptance-harness/MP6
+  (Stav systému as the smoke's reader), system-prompts-settings, methodology-tab.
+- Fix (2026-10-21): Přístup and other screens rendered broken because sc-for/sc-if inside <table> are foster-parented out by the HTML
+  parser. Every dynamic table is now an ARIA grid of divs (role=table/row/cell).
+
 ## Open, with Nigel
-1. Hide Sociomapping (H-Model) and the 18.6.6 reference map in Metodika (recommended).
-2. A Správa dat tab for client delete and kept records (N12; recommended) vs Přístup → Klienti.
-3. (closed: no Lead read or handover, D-32/33/34)
-4. Stav systému as its own tab (recommended) vs inside Reference.
-5. Prompts edited by OWNER/ADMIN (recommended) vs a new mark.
+None.
