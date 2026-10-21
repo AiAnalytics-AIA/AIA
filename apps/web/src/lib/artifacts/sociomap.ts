@@ -103,11 +103,12 @@ const METODIKA = "Mapa je zmrazený výsledek běhu a Vedoucí na ní mění jen
 
 /**
  * A Lead operation on the map, checked against the contract: what the row allows, in the form the map
- * reads, on an element this run has (`batteries`: the run's battery ids). Everything else is refused
+ * reads, on an element this run's maps have (`batteries`: the run's batteries with their objects; an
+ * object, or each end of a pair, must be one of its battery's). Everything else is refused
  * by name -- above all anything that would move an object, change a threshold or recompute (D-40:
  * no node drag), which the frozen map never takes from the Lead.
  */
-export function readMapOp(input: unknown, batteries: readonly string[]): MapOp | MapRefusal {
+export function readMapOp(input: unknown, batteries: readonly MapBattery[]): MapOp | MapRefusal {
   const raw = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   const op = typeof raw.op === "string" ? raw.op : "";
   const refuse = (refused: MapRefusal["refused"], words: string): MapRefusal => ({ refused, op, words });
@@ -121,11 +122,14 @@ export function readMapOp(input: unknown, batteries: readonly string[]): MapOp |
       return refuse("unknown_filter", `Filtr „${String(name)}“ mapa nezná.`);
     }
     const allowed = FILTER_VALUES[name as MapFilter];
-    const ok = typeof value === "string" && (allowed === null ? batteries.includes(value) : (allowed as readonly string[]).includes(value));
+    const ok = typeof value === "string" && (allowed === null ? batteries.some((b) => b.battery_id === value) : (allowed as readonly string[]).includes(value));
     return ok ? { op, name: name as MapFilter, value: value as string } : refuse("unknown_value", `Filtr „${name}“ nemá hodnotu „${String(value)}“.`);
   }
   const target = typeof raw.target === "string" ? readTarget(raw.target) : null;
-  if (!target || !batteries.includes(target.battery)) return refuse("unknown_target", `Mapa tohoto běhu prvek „${String(raw.target)}“ nemá.`);
+  const battery = target && batteries.find((b) => b.battery_id === target.battery);
+  const has = (id: string) => battery?.objects.some((o) => o.id === id) ?? false;
+  const known = target !== null && (target.kind === "object" ? has(target.object) : has(target.a) && has(target.b));
+  if (!target || !known) return refuse("unknown_target", `Mapa tohoto běhu prvek „${String(raw.target)}“ nemá.`);
   return { op: op as "focus" | "select" | "inspect", target };
 }
 

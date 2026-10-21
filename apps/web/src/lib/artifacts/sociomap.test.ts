@@ -10,7 +10,6 @@ const BATTERIES = [
   { battery_id: "set_1", title: "Fiktivní značky", objects: [{ id: "halo", label: "Halo" }, { id: "iris", label: "Iris" }, { id: "gale", label: "Gale" }] },
   { battery_id: "set_2", title: "Varianty", objects: [{ id: "halo", label: "Jemná" }] },
 ];
-const IDS = BATTERIES.map((b) => b.battery_id);
 
 describe("the map's row", () => {
   it("is the registry's own, a frozen run the Lead never edits", () => {
@@ -61,7 +60,7 @@ describe("targets", () => {
 
 describe("what the Lead may do on the map", () => {
   it("refuses a move_object request by name, pointing to Metodika", () => {
-    const r = readMapOp({ op: "move_object", target: "object:set_1/halo", x: 1, y: 2 }, IDS);
+    const r = readMapOp({ op: "move_object", target: "object:set_1/halo", x: 1, y: 2 }, BATTERIES);
     expect(isRefusal(r) && r.refused).toBe("writes_the_map");
     expect(isRefusal(r) && r.words).toContain("„move_object“ není operace zobrazení mapy");
     expect(isRefusal(r) && r.words).toContain("Nastavení → Metodika");
@@ -69,30 +68,35 @@ describe("what the Lead may do on the map", () => {
 
   it("refuses every write to the map, and any operation the row does not list", () => {
     for (const op of ["set_threshold", "recompute", "drag", "edit_height", "approve_map", "delete_pair"]) {
-      expect(readMapOp({ op }, IDS)).toMatchObject({ refused: "writes_the_map", op });
+      expect(readMapOp({ op }, BATTERIES)).toMatchObject({ refused: "writes_the_map", op });
     }
     for (const op of ["show_diff", "say_hello", "", undefined]) {
-      expect(readMapOp({ op }, IDS)).toMatchObject({ refused: "not_a_map_op" });
+      expect(readMapOp({ op }, BATTERIES)).toMatchObject({ refused: "not_a_map_op" });
     }
-    expect(readMapOp(null, IDS)).toMatchObject({ refused: "not_a_map_op" });
+    expect(readMapOp(null, BATTERIES)).toMatchObject({ refused: "not_a_map_op" });
   });
 
   it("takes each display filter at its values, and refuses an unknown filter or value", () => {
-    expect(readMapOp({ op: "filter", name: "view", value: "relief" }, IDS)).toEqual({ op: "filter", name: "view", value: "relief" });
-    expect(readMapOp({ op: "filter", name: "hide_weak", value: "on" }, IDS)).toEqual({ op: "filter", name: "hide_weak", value: "on" });
-    expect(readMapOp({ op: "filter", name: "mode", value: "respondents" }, IDS)).toEqual({ op: "filter", name: "mode", value: "respondents" });
-    expect(readMapOp({ op: "filter", name: "battery", value: "set_2" }, IDS)).toEqual({ op: "filter", name: "battery", value: "set_2" });
-    expect(readMapOp({ op: "filter", name: "battery", value: "set_9" }, IDS)).toMatchObject({ refused: "unknown_value" });
-    expect(readMapOp({ op: "filter", name: "view", value: "spin" }, IDS)).toMatchObject({ refused: "unknown_value" });
-    expect(readMapOp({ op: "filter", name: "n_min", value: "5" }, IDS)).toMatchObject({ refused: "unknown_filter" });
+    expect(readMapOp({ op: "filter", name: "view", value: "relief" }, BATTERIES)).toEqual({ op: "filter", name: "view", value: "relief" });
+    expect(readMapOp({ op: "filter", name: "hide_weak", value: "on" }, BATTERIES)).toEqual({ op: "filter", name: "hide_weak", value: "on" });
+    expect(readMapOp({ op: "filter", name: "mode", value: "respondents" }, BATTERIES)).toEqual({ op: "filter", name: "mode", value: "respondents" });
+    expect(readMapOp({ op: "filter", name: "battery", value: "set_2" }, BATTERIES)).toEqual({ op: "filter", name: "battery", value: "set_2" });
+    expect(readMapOp({ op: "filter", name: "battery", value: "set_9" }, BATTERIES)).toMatchObject({ refused: "unknown_value" });
+    expect(readMapOp({ op: "filter", name: "view", value: "spin" }, BATTERIES)).toMatchObject({ refused: "unknown_value" });
+    expect(readMapOp({ op: "filter", name: "n_min", value: "5" }, BATTERIES)).toMatchObject({ refused: "unknown_filter" });
   });
 
   it("selects, focuses and inspects only an element of this run's maps", () => {
-    expect(readMapOp({ op: "select", target: "pair:set_1/iris~halo" }, IDS)).toEqual({ op: "select", target: { kind: "pair", battery: "set_1", a: "halo", b: "iris" } });
-    expect(readMapOp({ op: "inspect", target: "object:set_2/halo" }, IDS)).toEqual({ op: "inspect", target: { kind: "object", battery: "set_2", object: "halo" } });
-    expect(readMapOp({ op: "focus", target: "object:set_1/gale" }, IDS)).toMatchObject({ op: "focus" });
-    expect(readMapOp({ op: "select", target: "object:set_9/halo" }, IDS)).toMatchObject({ refused: "unknown_target" });
-    expect(readMapOp({ op: "select", target: "question:q1" }, IDS)).toMatchObject({ refused: "unknown_target" });
-    expect(readMapOp({ op: "open_stage" }, IDS)).toEqual({ op: "open_stage" });
+    expect(readMapOp({ op: "select", target: "pair:set_1/iris~halo" }, BATTERIES)).toEqual({ op: "select", target: { kind: "pair", battery: "set_1", a: "halo", b: "iris" } });
+    expect(readMapOp({ op: "inspect", target: "object:set_2/halo" }, BATTERIES)).toEqual({ op: "inspect", target: { kind: "object", battery: "set_2", object: "halo" } });
+    expect(readMapOp({ op: "focus", target: "object:set_1/gale" }, BATTERIES)).toMatchObject({ op: "focus" });
+    expect(readMapOp({ op: "select", target: "object:set_9/halo" }, BATTERIES)).toMatchObject({ refused: "unknown_target" });
+    // The battery is the run's, the element is not (Codex, #601): an object it lacks, or a pair with one end or both.
+    expect(readMapOp({ op: "select", target: "object:set_1/nobody" }, BATTERIES)).toMatchObject({ refused: "unknown_target" });
+    expect(readMapOp({ op: "inspect", target: "pair:set_1/halo~nobody" }, BATTERIES)).toMatchObject({ refused: "unknown_target" });
+    expect(readMapOp({ op: "focus", target: "pair:set_1/ghost~nobody" }, BATTERIES)).toMatchObject({ refused: "unknown_target" });
+    expect(readMapOp({ op: "select", target: "object:set_2/iris" }, BATTERIES)).toMatchObject({ refused: "unknown_target" }); // iris is set_1's
+    expect(readMapOp({ op: "select", target: "question:q1" }, BATTERIES)).toMatchObject({ refused: "unknown_target" });
+    expect(readMapOp({ op: "open_stage" }, BATTERIES)).toEqual({ op: "open_stage" });
   });
 });
