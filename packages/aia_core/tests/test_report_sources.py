@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from report_samples import KINDS, OUTPUTS, SOCIOMAPPING, build
+from report_samples import AGGREGATE, KINDS, OUTPUTS, SOCIOMAPPING, build
 
 from aia_core.application.report import beside_outputs
 from aia_core.domain.analysis import ANALYSIS_MODULES
@@ -81,11 +81,13 @@ def test_the_run_outputs_no_section_read_are_named(report_ledger: Any) -> None:
     document = build("internal", report_ledger)
     manifest = report_sources(document)
 
-    assert manifest.unread == (SOCIOMAPPING,)
+    # The internal sample's chapters never read the aggregate: the audit names it, but listing is
+    # not reading (review of #621), so it is unread beside the Sociomapping no section reads.
+    assert manifest.unread == (AGGREGATE, SOCIOMAPPING)
     # One a section reads is not unread; one made beside the report always is.
     beside = BesideOutput("sociomapping_report", "research_sociomapping_report")
     reread = report_sources(replace(document, outputs=(*OUTPUTS, beside)))
-    assert reread.unread == (SOCIOMAPPING, beside)
+    assert reread.unread == (AGGREGATE, SOCIOMAPPING, beside)
 
 
 def test_the_manifest_is_stored_with_the_document_model(report_ledger: Any) -> None:
@@ -98,10 +100,11 @@ def test_the_manifest_is_stored_with_the_document_model(report_ledger: Any) -> N
     assert payload["unread"] == [
         {
             "kind": "artifact",
-            "artifact_type": SOCIOMAPPING.artifact_type,
-            "artifact_id": SOCIOMAPPING.artifact_id,
-            "sha256": SOCIOMAPPING.sha256,
+            "artifact_type": a.artifact_type,
+            "artifact_id": a.artifact_id,
+            "sha256": a.sha256,
         }
+        for a in (AGGREGATE, SOCIOMAPPING)
     ]
 
 

@@ -67,9 +67,11 @@ def report_sources(document: ReportDocument) -> ReportSources:
         sections.append(
             SectionSources(section.id or f"section-{index}", section.title, tuple(sources))
         )
+    # The audit lists the run's artifacts; it composes nothing from them, so it is no reader.
     read = {
         (s.artifact_id, s.sha256)
         for entry in sections
+        if entry.section_id != AUDIT_SECTION_ID
         for s in entry.sources
         if isinstance(s, ArtifactSource)
     }

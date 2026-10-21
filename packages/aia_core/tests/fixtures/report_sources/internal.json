@@ -207,6 +207,12 @@
   ],
   "unread": [
     {
+      "artifact_id": "art-agg-7f3a2c",
+      "artifact_type": "research_aggregate",
+      "kind": "artifact",
+      "sha256": "6247e189b52ab147459dfebd33324097a835c0fd84aa81619b37d9c59b0c2963"
+    },
+    {
       "artifact_id": "art-smx-7f3a2c",
       "artifact_type": "research_sociomapping_docx",
       "kind": "artifact",

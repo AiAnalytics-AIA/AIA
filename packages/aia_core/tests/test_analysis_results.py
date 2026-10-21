@@ -34,7 +34,11 @@ from aia_core.application.analysis_results import (
     reconstruct_run,
     stored_analysis,
 )
-from aia_core.application.report import ReportCompositionRefused, compose_internal_report
+from aia_core.application.report import (
+    ReportCompositionRefused,
+    compose_internal_report,
+    upstream_artifacts,
+)
 from aia_core.application.report_design import compose_design_sections
 from aia_core.application.report_method import compose_method_section
 from aia_core.application.report_tables import compose_question_tables, scale_notes
@@ -807,7 +811,12 @@ def test_reconstructed_analysis_composes_an_internal_branded_draft(
     } <= audited
     fixed = [k for k, v in manifest.items() if any(isinstance(s, FixedSource) for s in v)]
     assert fixed == ["methodology"]
-    assert report_sources(doc).unread == ()
+    # Composed without the run's chapters, nothing reads the specification or the aggregate:
+    # the audit names them, but listing is not reading (review of #621).
+    specification, dataset, aggregate = upstream_artifacts(run.sources)
+    unread = report_sources(doc).unread
+    assert specification in unread and aggregate in unread
+    assert dataset not in unread  # the introduction's frame reads its origin
     assert doc.sections[0].id == "intro"
     ids = [s.id for s in doc.sections]
     assert ids.index("methodology") < ids.index("ch-4") < ids.index("ch-3")
