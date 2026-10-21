@@ -595,7 +595,14 @@ unless stated.
   (the analysis not asked again), Audience says the proposal is saved, Dimenze shows the
   suggestions. Tests: `BriefStep.test.tsx` "goes on to the plan once an analysis that waited for
   budget is lifted and accepted, …", `QuestionnaireStep.test.tsx` "builds the questionnaire once its
-  analysis, waiting for budget, is lifted and accepted, …".
+  analysis, waiting for budget, is lifted and accepted, …". Codex round 2: the screen's list of
+  waiting jobs (`AgentBudgetWaits`) drew a second lift beside the stage's own, and its lift only read
+  the list again; and a continued analysis lost the mode it was asked in. A wait shown in place now
+  claims its job (`claimWait`), so the list leaves it out, and a lift from the list goes on with the
+  job (`continueJob`); an analysis wait keeps `byComments`, and its continuation marks the plan (and
+  says "Komentáře zapracovány") as `analyse` does. Tests: `ResearchScreen.test.tsx` "offers one lift
+  for a wait the stage shows in place, …" and "opens the proposal of a job lifted from the screen's
+  list …"; `PlanStep.test.tsx` "an analysis that waited for the study's budget" (both modes).
 - **CR-3. One budget lift releases one analysis step, so a run's eight steps need eight lifts.**
   Anchor: `components/rehome/research/ExecutionSteps.tsx:1285-1287` (a `BudgetLift` per step),
   `application/research.py:1036-1049 @ 242523e` (line 1048 passes `[step]` to

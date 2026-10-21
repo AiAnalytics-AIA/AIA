@@ -8,7 +8,7 @@
 // A job stopped at the study's budget is not a failure: it waits, and the
 // study's budget lift is offered in its place; the same job then goes on (CR-2).
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { t } from "@/i18n/t";
 import { researchAgents } from "@/lib/api";
@@ -80,7 +80,9 @@ export function useAiStep() {
 
 /** The study's budget lift for the one job that waits for it, in place of the failure. */
 function BudgetWaitCard({ jobId, onContinue }: { jobId: string; onContinue: (jobId: string) => void }) {
-  const { frame } = useResearch();
+  const { frame, claimWait } = useResearch();
+  // This wait is shown here, so the screen's list of waiting jobs does not offer a second lift.
+  useEffect(() => claimWait(jobId), [claimWait, jobId]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const lift = async (total: number, note: string) => {

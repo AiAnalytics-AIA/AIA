@@ -25,12 +25,17 @@ import { AiFailureCard, failureOf } from "./useAiStep";
 export type AnalysisFailure =
   | { kind: "analysis"; message: string; jobId: string | null }
   | { kind: "provider"; message: string }
-  /** The analysis job stopped at the study's budget: it waits for a lift (CR-2). */
-  | { kind: "budget"; jobId: string };
+  /**
+   * The analysis job stopped at the study's budget: it waits for a lift (CR-2). `byComments` is the
+   * mode the waiting call was asked in, kept with the wait so its continuation marks the plan as
+   * `analyse` would have.
+   */
+  | { kind: "budget"; jobId: string; byComments: boolean };
 
-const analysisFailureOf = (e: unknown): AnalysisFailure => {
+const analysisFailureOf = (e: unknown, byComments: boolean): AnalysisFailure => {
   const f = failureOf(e);
-  return f.kind === "job" ? { kind: "analysis", message: f.message, jobId: f.jobId } : f;
+  if (f.kind === "job") return { kind: "analysis", message: f.message, jobId: f.jobId };
+  return f.kind === "budget" ? { ...f, byComments } : f;
 };
 
 export function useAnalysis() {
@@ -66,7 +71,7 @@ export function useAnalysis() {
       }, { reason: "ai_analysis_1780" });
       return true;
     } catch (e) {
-      setFailure(analysisFailureOf(e));
+      setFailure(analysisFailureOf(e, byComments));
       return false;
     } finally {
       setBusy(false);
@@ -78,14 +83,19 @@ export function useAnalysis() {
    * Resolves true when it completed, as `analyse` does.
    */
   const resume = async (jobId: string): Promise<boolean> => {
+    // The mode of the call that waited, kept with its wait. A wait this hook did not record (none
+    // matching) leaves the plan's mark as it is: never a guess.
+    const mode = failure?.kind === "budget" && failure.jobId === jobId ? failure.byComments : null;
     setFailure(null);
     setBusy(true);
     try {
-      // Whether the person's comments asked for it is not known here, so the mark is left as it is.
-      await continueJob(jobId);
+      const result = await continueJob(jobId);
+      if (mode !== null && isNativeResult(result)) {
+        store.update(({ project }) => ({ project: { ...project, ui_state: { ...project.ui_state, plan_changed26: mode } } }), { reason: "native_analysis_reviewed" });
+      }
       return true;
     } catch (e) {
-      setFailure(analysisFailureOf(e));
+      setFailure(analysisFailureOf(e, mode ?? false));
       return false;
     } finally {
       setBusy(false);
@@ -102,7 +112,7 @@ export function useAnalysis() {
 export function AnalysisFailureCard({ failure, onRetry, onContinue }: { failure: AnalysisFailure; onRetry: () => void; onContinue: (jobId: string) => void }) {
   return (
     <AiFailureCard
-      failure={failure.kind === "analysis" ? { kind: "job", message: failure.message, jobId: failure.jobId } : failure}
+      failure={failure.kind === "analysis" ? { kind: "job", message: failure.message, jobId: failure.jobId } : failure.kind === "budget" ? { kind: "budget", jobId: failure.jobId } : failure}
       title={t("research.brief.failedTitle")}
       sub={t("research.brief.failedSub")}
       onRetry={onRetry}

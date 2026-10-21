@@ -210,7 +210,11 @@ export function PlanStep() {
         <p className="mt-3 text-xs leading-5 text-ink-muted">{t("research.plan.manualNote")}</p>
       </header>
       <JumpChips chips={chips} />
-      {failure ? <AnalysisFailureCard failure={failure} onRetry={() => void analyse()} onContinue={(id) => void resume(id)} /> : null}
+      {failure ? <AnalysisFailureCard failure={failure} onRetry={() => void analyse()} onContinue={(id) => {
+        // A wait from "process comments" ends as that action does, with its toast (CR-2).
+        const comments = failure.kind === "budget" && failure.jobId === id && failure.byComments;
+        void resume(id).then((ok) => { if (ok && comments) toast(t("research.plan.commentsDone")); });
+      }} /> : null}
       {variantSection}
       <Commentable onQuote={(quote) => setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }])}>
         <div className="flex flex-col gap-4">
