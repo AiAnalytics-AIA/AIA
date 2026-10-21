@@ -10,7 +10,7 @@ chunks:
   - "[ ] LO6. The continuation turn: a finished step enqueues a Lead turn with typed results; no polling"
   - "[ ] LO7. The Lead's context layers per ADR 0026 decision 2: readiness, question outlook, what changed since its last turn, other people's changes, and the execution state (status, park code, spend, selection receipt, QC)"
   - "[ ] LO8. `ResultsContext`: type, class (`MaterialRule` for results, module text, maps, report text), lineage, bound, an external-evidence slot labelled L; and the decision on a read tool against ADR 0026 decision 3"
-  - "[ ] LO9a. The worker contract, early (W0, the first deliverable of `research-lead-workbench` 11): `LeadWorkerSpec` as a type, one row per worker (id, closed task, context layer, data-class rule, capability, reservation, prompt id and pin, switch, card kind, result kind), with its fixture"
+  - "[x] LO9a. The worker contract, early (W0, the first deliverable of `research-lead-workbench` 11): `LeadWorkerSpec` as a type, one row per worker (id, closed task, context layer, data-class rule, capability, reservation, prompt id and pin, switch, card kind, result kind), with its fixture"
   - "[ ] LO9c. A results-worker job shape (W2, before LO9b): a workflow type and step kind keyed on (run_id, target), frozen inputs by artifact id and SHA-256, its own context builder and executor behind its own switch, sharing the worker row, prompt pin and usage ledger"
   - "[ ] LO9b. The three new workers as rows (W3): a `REPORT_WRITING` binding, result kinds and accept destinations, per-worker price and keys"
   - "[ ] LO10. `approve_request` bound to the revision shown on its card, and a clean error where the 96 KB Lead context meets the 64 KB agent limit"
@@ -20,7 +20,7 @@ chunks:
   - "[ ] LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02"
   - "[ ] LO14. The Lead's cost per turn measured, and an `AIA_LEAD_*` kill switch and budget line"
   - "[x] LO16. The approval ledger's subject types (lane migration M3, W0, the first migration): `approval_decisions.subject_type` extended with `wallet`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot` and `sociomap_unlock`; S3 writes it"
-  - "[ ] LO15. Server spend enforcement (W0): `ResearchAgentJobs.start` and `rebuild` apply `spend_confirm_usd` as `ResearchRuns.start` does, and record the confirmation in the ledger; tested through direct HTTP start and rebuild and through the Lead's approve path"
+  - "[x] LO15. Server spend enforcement (W0): `ResearchAgentJobs.start` and `rebuild` apply `spend_confirm_usd` as `ResearchRuns.start` does, and record the confirmation in the ledger; tested through direct HTTP start and rebuild and through the Lead's approve path"
   - "[ ] LO5a. Deep Research from the Lead: a plan-step kind and a typed chat start, priced by deep-research-web-search 55's ceiling (D-12)"
   - "[ ] LO12c. The composition digest stored on each run and served over HTTP (D-09; the record #513 called MP6b)"
   - "[ ] LO17. Stopping the Lead: cancel a running turn, withdraw an approved plan (the current step finishes or is cancelled, nothing after it starts), with the workbench build line (D-18)"
@@ -352,3 +352,99 @@ documents. The wallet ceiling has no Czech label: the owner named none, so none 
 
 - `open-items.md`: number F-LO0-1, owner LO15.
 
+
+## LO15 delivered (2026-10-21, E03)
+
+Before (`@ b5b369ae`): `ResearchAgentJobs.start` (`application/research.py:1343-1439`) and
+`rebuild` (`:1546-1570`) read no `spend_confirm_usd`; the only check on a design job was the Lead's
+approve path (`application/research_lead.py:720-734`). The worker's scope holds `EDIT_STUDY` and
+`RUN_WORKFLOW` (`domain/scope.py:202-213`), so a step could have created a job past any threshold.
+
+Now:
+
+- `ResearchAgentJobs.spend_gate` is the job's one rule: `money.threshold_verdict` over the job's
+  ceiling (`reservation_usd`, the design job's reservation `AIA_AI_RESEARCH_RESERVATION_USD`, a
+  primary and one repair) and the study's threshold. Using a confirmation needs `APPROVE_BUDGET`,
+  which `WORKER_PERMISSIONS` withholds, so a step can neither evade the threshold nor supply the yes.
+  `start` applies it only when the job would be created (a found job asks nothing, as a run's start)
+  and writes the `spend` ledger row with the new job (`record_spend_confirmation`); `rebuild` passes
+  its `confirm_cost_usd` through to `start`.
+- The API's `POST …/research/agent-jobs` and `POST …/agent-jobs/{id}/rebuild` take
+  `confirm_cost_usd` and pass the deployment's reservation; refusals are the run start's 409
+  `cost_confirmation_required` (ceiling and threshold in `details`) and `cost_ceiling_unknown`
+  (`research_reservation_missing`). The request never names the ceiling.
+- The Lead's approve path asks through the same `spend_gate` before submitting the design, then the
+  job's own start applies it again and writes the job's `spend` row; the turn's `lead_job_request`
+  row keeps its `spend` figures as before. The browser's direct start and rebuild
+  (`useResearchAgents`) ask once with the server's ceiling (`withJobCostConfirmation`,
+  `lib/research-agent-jobs.ts`) and confirm exactly that figure.
+- **F-LO0-1 closed:** `deep_research.py` and `validation.py` call `threshold_verdict` in place of their
+  inline comparisons, each keeping its own refusal for an unknown ceiling; `research_lead.py` calls
+  `spend_gate`. Held by `test_every_start_path_applies_the_one_domain_rule`.
+
+No switch: with no threshold set (the default) nothing changes, and a switch off would reopen the
+path E03 closes. Tests: `packages/aia_core/tests/test_research_agent_spend.py` (below, at and above
+the threshold, an unknown reservation, a rebuild, the worker's scope asked and refused its
+confirmation, the four start paths on the one rule), `test_the_spend_limit_holds_a_prepared_job`
+(the Lead path writes the job's spend row), `apps/api/tests/test_research_agent_spend_api.py`
+(direct HTTP start and rebuild), `apps/web/src/lib/research-agent-jobs.test.ts`.
+
+### Doc follow-up (LO15)
+
+- `open-items.md`: F-LO0-1 closed by LO15 (E03).
+- `CLAUDE.md` map, `routers/research.py` line on agent jobs: "`POST …/agent-jobs` and
+  `…/rebuild` take `confirm_cost_usd`; a new job whose reservation reaches the study's threshold is
+  409 `cost_confirmation_required` (LO15)".
+- `docs/architecture/research-agents.md`: a job is held to `spend_confirm_usd` at start and
+  rebuild, its ceiling the design job's reservation.
+
+## LO9a delivered (2026-10-21, E03)
+
+`domain/lead_workers.py`: `LeadWorkerSpec`, one frozen row per worker with the ten fields of F5
+(`worker_id`, `task` with its closed `output_contract`, `context_layer`, `material_rules`,
+`capability`, `reservation_key` with `schema_repairs`, `prompt_id` with `prompt_version`, `switch`,
+`card_kind`, `result_kind`); no field has a default. `WorkerRegistry` refuses at registration a row
+with a field missing (named in `WorkerRefused.fields`), of the wrong shape (an unknown material
+rule or capability, a switch not `AIA_…_ENABLED`, a reservation key not `AIA_…_RESERVATION_USD`, an
+open contract, an advice card on a proposal result, an extra field), or reusing an id or a prompt.
+The eight design workers are rows (`domain/research_agents.py` `WORKERS`, `worker_for`) and
+`agent_request` takes its capability, prompt id and repair count from the row, so the row is the
+definition the job runs, not a description beside it. The fixture is
+`packages/aia_core/tests/fixtures/lead_workers/workers.json`; `test_lead_workers.py` holds the rows
+to it, to `CONTRACTS`, `prompt_version_for`, `DESIGN_ACTIONS` and the executor's keys.
+
+**Choices recorded.** (1) The type is its own module, not `research_agents.py` as F5 first wrote:
+LO9c's results workers share the row and are not `research_agent` actions (keyed on a run, not a
+Design Revision), so the type must not live in the design harness; the design harness holds its
+rows. (2) A row names the reservation's deployment key, never an amount: the amount is the
+deployment's (ADR 0028: unknown is not zero), and LO15 reads it there. (3) `ContextLayer` has one
+member, the design snapshot; LO8's results context adds its own when it exists, so nothing claims a
+layer no builder makes. (4) `data_class` is derived from the rules (their worst case, Class A here
+because a snapshot may carry approved knowledge); the request's own class stays `agent_request`'s.
+(5) The registry is not yet read by the API or Settings: `research-lead-workbench` 11 (the command
+registry) and Settings' `ai_runtime` document read it in E26; nothing here changes a runtime path but
+`agent_request`'s three values, which are byte-identical to before.
+
+### Doc follow-up (LO9a)
+
+- `CLAUDE.md` map, `packages/aia_core/src/aia_core/domain/`: "`lead_workers.py` The worker contract
+  (LO9a): `LeadWorkerSpec`, one row per worker the Lead may call, every field required and checked
+  at registration (`WorkerRegistry`); the eight design workers are `research_agents.WORKERS`, held to
+  `tests/fixtures/lead_workers/workers.json`".
+
+### Review of #541 (2026-10-21), applied
+
+The prompt-test panel's start asks at the threshold too (`SystemPromptsPanel` TestRun, through
+`withJobCostConfirmation`); a "no" is `JobCostDeclined`, in Czech; a sub-cent ceiling prints its
+digits, never "0 USD" (`jobCostUsd`); an approval whose job already existed records `spend: null` on
+its `lead_job_request` row; `RequestApproval.confirm_cost_usd` takes the run's bound (0 to
+1,000,000) and no non-finite number; `test_the_request_s_class_comes_from_exactly_the_row_s_rules`
+holds `agent_request`'s rules to the worker row; an invocation-target refusal masks the account id.
+
+**Finding F-E03-1.** A non-finite number in any request body (`Infinity`, `NaN`, which Python's JSON
+parser accepts) was refused by validation, and then the 422 itself failed to serialise its echo of
+the input: a 500. Anchor: `apps/api/src/aia_api/observability.py:206-213 @ 8e3f55dd`. Reproduction:
+`test_a_confirmation_outside_its_bound_or_not_finite_is_refused[Infinity]` against that line.
+Consequence: a malformed client got a 500 and an error report instead of a 422. Fix (here): the echo
+keeps non-finite constants as text (`parse_constant=str`). Doc follow-up: number it in
+`open-items.md`, closed by #541.

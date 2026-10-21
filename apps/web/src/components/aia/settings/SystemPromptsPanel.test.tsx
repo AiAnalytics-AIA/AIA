@@ -580,6 +580,40 @@ describe("trying a version", () => {
     expect(await within(panel).findByText(/Návrh z e1/)).toBeTruthy();
   });
 
+  const thresholdAsks = (body: Body) =>
+    body && "confirm_cost_usd" in body
+      ? { run_id: "RUN-1", design_revision_id: "REV-2", action: "analyze_brief", status: "COMPLETED", is_terminal: true, needs_attention: false,
+          context_sha256: "c", harness_version: "h", prompt_version: "e1", prompt_origin: "stored", created_at: null, steps: [], actual_cost_usd: 0.0123 }
+      : new Response('{"code":"cost_confirmation_required","message":"confirm","details":{"ceiling_usd":2,"limit_usd":1}}', { status: 409 });
+
+  it("asks before a test job that reaches the study's confirmation threshold, and confirms the server's ceiling", async () => {
+    fakeApi({ "POST /api/v1/studies/STU-1/research/agent-jobs": thresholdAsks });
+    mount();
+    const panel = await openTest();
+    await waitFor(() => expect((within(panel).getByLabelText("Revize návrhu") as HTMLSelectElement).value).toBe("REV-2"));
+    fireEvent.click(within(panel).getByRole("button", { name: "Zadat zkušební úlohu" }));
+    const ask = await within(panel).findByRole("alertdialog");
+    expect(ask.textContent).toContain("Práh potvrzení");
+    fireEvent.click(within(ask).getByRole("button", { name: "Spustit" }));
+    await waitFor(() => expect(panel.querySelector("[data-job]")).toBeTruthy());
+    expect(called("POST", "/api/v1/studies/STU-1/research/agent-jobs").map((c) => c.body)).toEqual([
+      { design_revision_id: "REV-2", action: "analyze_brief", instruction: "", prompt_version: 1 },
+      { design_revision_id: "REV-2", action: "analyze_brief", instruction: "", prompt_version: 1, confirm_cost_usd: 2 },
+    ]);
+  });
+
+  it("starts nothing when the person declines the threshold, and says so in Czech", async () => {
+    fakeApi({ "POST /api/v1/studies/STU-1/research/agent-jobs": thresholdAsks });
+    mount();
+    const panel = await openTest();
+    await waitFor(() => expect((within(panel).getByLabelText("Revize návrhu") as HTMLSelectElement).value).toBe("REV-2"));
+    fireEvent.click(within(panel).getByRole("button", { name: "Zadat zkušební úlohu" }));
+    fireEvent.click(within(await within(panel).findByRole("alertdialog")).getByRole("button", { name: "Nespouštět" }));
+    expect(await within(panel).findByText(/AI krok se nespustil/)).toBeTruthy();
+    expect(called("POST", "/api/v1/studies/STU-1/research/agent-jobs")).toHaveLength(1);
+    expect(panel.querySelector("[data-job]")).toBeNull();
+  });
+
   it("shows the API's refusal when a non-administrator's job is not allowed", async () => {
     fakeApi({
       "POST /api/v1/studies/STU-1/research/agent-jobs": () =>

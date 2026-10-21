@@ -50,6 +50,7 @@ from ..domain.holdout.run import (
     validation_specification,
     validation_steps,
 )
+from ..domain.money import ThresholdVerdict, threshold_verdict
 from ..domain.panel_source import PANEL_SOURCE, pinned_components
 from ..domain.pipeline import ProjectType
 from ..domain.population import CZ_LIVE, PopulationImportContract
@@ -197,9 +198,14 @@ class ValidationRuns:
             )
         limit = ScopeRepository(self.session).get_study(self.scope).spend_confirm_usd
         confirmation: tuple[float, float] | None = None
-        if limit is not None and ceiling >= limit:
-            if confirm_cost_usd is None or confirm_cost_usd < ceiling:
-                raise CostConfirmationRequired(ceiling_usd=ceiling, limit_usd=limit)
+        # The confirmation threshold's one rule (domain/money.py; ADR 0019 gate 2); an unknown
+        # ceiling is refused above, as holdout_cost_unknown.
+        verdict = threshold_verdict(ceiling, limit, confirm_cost_usd)
+        if verdict is ThresholdVerdict.ASK:
+            assert limit is not None
+            raise CostConfirmationRequired(ceiling_usd=ceiling, limit_usd=limit)
+        if verdict is ThresholdVerdict.CONFIRMED:
+            assert limit is not None
             confirmation = (ceiling, limit)
 
         project_id, revision = self._project(stored.sha256)
