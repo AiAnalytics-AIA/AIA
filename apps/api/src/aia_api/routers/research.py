@@ -77,7 +77,9 @@ from aia_core.application.research import (
     ResearchRunNotRetryable,
     ResearchRuns,
     ResearchStepNotFound,
+    RunOutlook,
     RunReservations,
+    WorkingRevisionNotFound,
     readiness_in_force,
     research_artifacts,
 )
@@ -576,12 +578,11 @@ class ResearchLimitsResponse(BaseModel):
     sample_size: SampleSizeRange
 
 
-class ReadinessResponse(BaseModel):
-    """Whether a Design Revision can run in AIA: AIA's structural checks, by name."""
+class _ReadinessBody(BaseModel):
+    """What readiness says of a design, whichever revision it was read on."""
 
     model_config = ConfigDict(extra="forbid")
 
-    design_revision_id: str
     rules: str
     ready: bool
     checks: list[ReadinessCheckResponse]
@@ -613,6 +614,20 @@ class ReadinessResponse(BaseModel):
     persona_sources: list[PersonaSourceOption] = []
     #: ``None`` when the design does not compile.
     answerability: AnswerabilityResponse | None = None
+
+
+class ReadinessResponse(_ReadinessBody):
+    """Whether a Design Revision can run in AIA: AIA's structural checks, by name."""
+
+    design_revision_id: str
+
+
+class WorkingReadinessResponse(_ReadinessBody):
+    """The same readiness on a revision of the Study's working content, before any Design
+    Revision is submitted (working-copy-edit-ops WCE7). Its answerability's digest names no
+    Design Revision, so it never stands for a start's acknowledgement."""
+
+    working_revision: int
 
 
 class PersonaSourceOption(BaseModel):
@@ -1169,6 +1184,48 @@ def readiness(
         )
     except DesignRevisionNotFound as exc:
         raise _not_found("design_revision") from exc
+    return ReadinessResponse(
+        design_revision_id=design_revision_id,
+        **_readiness_body(request, runs, outlook, chosen),
+    )
+
+
+@router.get(
+    "/research/readiness/working",
+    response_model=WorkingReadinessResponse,
+    summary="Could this working revision run in AIA?",
+)
+def working_readiness(
+    request: Request,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    working_revision: Annotated[int, Query(ge=1)],
+    persona_source: Annotated[PersonaSource | None, Query()] = None,
+) -> WorkingReadinessResponse:
+    """The readiness of a revision of the Study's working content, read as a submit of it
+    would read it, with no Design Revision written (working-copy-edit-ops WCE7). A stage
+    reads it on the revision it shows; a start still runs a submitted Design Revision.
+    A revision the Study never saved is 404 ``working_revision``."""
+    chosen = _chosen_persona_source(request, persona_source)
+    runs = ResearchRuns(session, scope)
+    try:
+        outlook = runs.outlook_working(
+            working_revision,
+            persona_source=chosen,
+            fieldwork_source=_fieldwork_source(request),
+        )
+    except WorkingRevisionNotFound as exc:
+        raise _not_found("working_revision") from exc
+    return WorkingReadinessResponse(
+        working_revision=working_revision,
+        **_readiness_body(request, runs, outlook, chosen),
+    )
+
+
+def _readiness_body(
+    request: Request, runs: ResearchRuns, outlook: RunOutlook, chosen: PersonaSource
+) -> dict[str, Any]:
+    """The readiness fields both routes answer, from one outlook."""
     spec, result = outlook.spec, outlook.readiness
     settings = request.app.state.settings
     ceiling = (
@@ -1182,32 +1239,31 @@ def readiness(
         else None
     )
     limit = runs.spend_limit()
-    return ReadinessResponse(
-        design_revision_id=design_revision_id,
-        rules=result.rules,
-        ready=result.ready,
-        checks=[
+    return {
+        "rules": result.rules,
+        "ready": result.ready,
+        "checks": [
             ReadinessCheckResponse(id=c.id, status=c.status.value, message=c.message)
             for c in result.checks
         ],
-        questions=len(spec.questions) if spec else 0,
-        batteries=len(spec.batteries) if spec else 0,
-        objects=sum(len(b.objects) for b in spec.batteries) if spec else 0,
-        n=spec.n if spec else None,
-        fieldwork_source=str(_fieldwork_source(request).value),
-        cost_ceiling_usd=ceiling.total_usd if ceiling else None,
-        cost_ceiling_unknown=ceiling.unknown.value if ceiling and ceiling.unknown else None,
-        fieldwork_requests=ceiling.fieldwork_requests if ceiling else 0,
-        analysis_calls=ceiling.analysis_calls if ceiling else 0,
-        spend_confirm_usd=limit,
+        "questions": len(spec.questions) if spec else 0,
+        "batteries": len(spec.batteries) if spec else 0,
+        "objects": sum(len(b.objects) for b in spec.batteries) if spec else 0,
+        "n": spec.n if spec else None,
+        "fieldwork_source": str(_fieldwork_source(request).value),
+        "cost_ceiling_usd": ceiling.total_usd if ceiling else None,
+        "cost_ceiling_unknown": ceiling.unknown.value if ceiling and ceiling.unknown else None,
+        "fieldwork_requests": ceiling.fieldwork_requests if ceiling else 0,
+        "analysis_calls": ceiling.analysis_calls if ceiling else 0,
+        "spend_confirm_usd": limit,
         # Unknown does not ask: it refuses at the start, so the page shows it differently.
-        confirmation_required=bool(
+        "confirmation_required": bool(
             limit is not None
             and ceiling
             and ceiling.total_usd is not None
             and ceiling.total_usd >= limit
         ),
-        question_outlook=[
+        "question_outlook": [
             QuestionOutlookResponse(
                 question_id=q.question_id,
                 text=q.text,
@@ -1218,16 +1274,16 @@ def readiness(
             )
             for q in outlook.questions
         ],
-        research_trace=_trace(outlook.trace) if outlook.trace is not None else None,
-        persona_source=chosen.value,
-        persona_sources=_persona_sources(request),
-        answerability=_answerability(
+        "research_trace": _trace(outlook.trace) if outlook.trace is not None else None,
+        "persona_source": chosen.value,
+        "persona_sources": _persona_sources(request),
+        "answerability": _answerability(
             outlook.answerability,
             required=request.app.state.settings.research_answerability_gate,
         )
         if outlook.answerability is not None
         else None,
-    )
+    }
 
 
 def _trace(trace: ResearchTrace) -> ResearchTraceResponse:
