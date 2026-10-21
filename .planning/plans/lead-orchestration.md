@@ -6,7 +6,7 @@ chunks:
   - "[ ] LO2. A typed `start_run` with no `confirm_cost_usd`, and an import rule that a plan step cannot reach the confirming start"
   - "[ ] LO3. `lead_plans` and `lead_plan_steps` (M5), the plan authority capability issued by `ScopeResolver`, the `lead_plan` workflow type, behind `AIA_LEAD_PLANS_ENABLED`"
   - "[ ] LO4. The plan card: the steps (including "start fieldwork, ceiling X USD"), approved once, stopping at every gate it does not cover"
-  - "[ ] LO5. Direct human chat start: the typed command the server matches, ledger `chat_start`, the model not in the path"
+  - "[x] LO5. Direct human chat start: the typed command the server matches, ledger `chat_start`, the model not in the path"
   - "[ ] LO6. The continuation turn: a finished step enqueues a Lead turn with typed results; no polling"
   - "[ ] LO7. The Lead's context layers per ADR 0026 decision 2: readiness, question outlook, what changed since its last turn, other people's changes, and the execution state (status, park code, spend, selection receipt, QC)"
   - "[ ] LO8. `ResultsContext`: type, class (`MaterialRule` for results, module text, maps, report text), lineage, bound, an external-evidence slot labelled L; and the decision on a read tool against ADR 0026 decision 3"
@@ -893,3 +893,85 @@ the scope freeze section.
   through `approve_request` (LO5a.2), with the Q44-Q47 answers.
 - ADR 0028 (the wallet): a person's approval of a Lead card is a charge authority, `lead_card`
   (migration M3b on the subject CHECK, LO5a.2); LO16's delivered note gains the same line.
+
+## LO5 delivered (2026-10-21, Sprint 5 part 3, stacked on research-lead-workbench 27b's #561)
+
+**The vocabulary** (`domain/lead_commands.py`, pinned in
+`packages/aia_core/tests/fixtures/lead_commands/commands.json`, served on `GET /lead` as
+`commands`). One Czech imperative per start, named as the card registry names it:
+
+| Typed | Start |
+|---|---|
+| Analyzuj zadání | `agent_job:analyze_brief` |
+| Navrhni dotazník | `agent_job:build_questionnaire` |
+| Uprav dotazník | `agent_job:optimize_questionnaire` |
+| Navrhni audienci | `agent_job:propose_audience` |
+| Navrhni dimenze | `agent_job:suggest_dimensions` |
+| Zkontroluj návrh | `agent_job:critique_design` |
+| Pomoz s návrhem | `agent_job:design_copilot` |
+| Zeptej se na klientské znalosti | `agent_job:answer_memory` |
+| Spusť výzkum | `research_run` |
+
+The whole message must be the command after a fixed normalisation (NFC, case folded, whitespace
+collapsed, an optional leading `/`, one trailing `.` or `!`); diacritics are kept exactly, so
+"spust vyzkum" is a message, and so is "Prosím spusť výzkum". A design job may carry the person's
+instruction after a colon ("Navrhni dotazník: krátce"); the run takes none. Nothing near a
+command is read as one: a guess at a start is the thing LO5 exists to prevent.
+
+**The path.** `ResearchLead.post` matches before anything else: a command is stored on the
+person's own turn (`study_lead_turns.command`, migration `c663617cf79b`, CHECK
+`command IS NULL OR actor = 'person'`), with no Lead turn and no run, Lead on or off, hatched or
+not (Q43). Free text with the Lead off is still 409 `research_lead_unavailable`.
+`approve_request` reads the stored turn: a person's turn naming a command goes to
+`application/lead_chat_start.py` `approve_chat_start`, never through the Lead switch (D22); a
+Lead turn keeps 27b's guard. The approval runs in LO1's order, in the request's one transaction:
+
+1. with `AIA_STUDY_WALLET_ENABLED`: `StudyWallets.quote` under the study lock and
+   `money.start_verdict(CHAT_START)`: outside the wallet or an unknown ceiling is 409
+   `outside_wallet` / `ceiling_unknown` (nothing written), the threshold asks
+   (`cost_confirmation_required`); with the wallet off, nothing is quoted or charged;
+2. the work's own start: `ResearchAgentJobs.start` (the job's reservation is its ceiling, LO15's
+   threshold and `spend` row) or `ResearchRuns.start` on the deployment's run settings
+   (`routers/research.py` `run_start_settings`, the same values `POST …/research/runs` passes;
+   its refusals through the shared `run_start_errors`);
+3. `WorkflowRepository.record_chat_start`: subject the run, decision `start`, the turn, the start,
+   the ceiling and the Design Revision; `APPROVE_GATE`, which the worker's scope withholds;
+4. `StudyWallets.charge` (`AGENT_JOB` or `RESEARCH_RUN`) under that row; a refusal rolls the run
+   and the row back with it.
+
+Approved once: a second approval returns the run its `chat_start` row names. A start that finds
+its work already there (the same job on the same design, the revision's run) returns it and
+writes nothing: that work was authorised when it was created.
+
+**Choices recorded.** (1) A typed research run starts on the deployment's defaults: the default
+persona source, LIVE, no answerability acknowledgement (a gap with the gate on is refused by the
+run's own rule and the person goes to Spuštění). (2) The command is a column, not a new turn
+kind: `kind` stays `message`, so every reader of the conversation is unchanged. (3) The matcher
+runs before the Lead's switch, its lock and its busy check: a typed start is the person's, not a
+conversation turn.
+
+**Not here.** Deep Research typed starts (LO5a.3) need DRL-0 (#555) and LO5a.1, neither on
+develop; `design_research` and `interpretation_research` are not matched yet. The composer's
+recognition and card in the web are the next PR, after #550 (Lead chat cards) merges.
+
+Tests: `packages/aia_core/tests/test_lead_commands.py` (the fixture, every worker and the run
+once, matches and near-misses), `test_lead_chat_start.py` (the row authorises its charge; the
+worker cannot write one), `apps/api/tests/test_lead_chat_start_api.py` (Lead off: a command taken,
+free text 409; Lead on: no model turn; in one switched-off state the model's card 409 and the typed
+card started; once only; the threshold; a typed run; a design not ready writes nothing; another
+researcher's card 404; with the wallet on: charged under its row, outside or unknown writes
+nothing, a charge refused after the create rolls back; the CHECK). Migration: `alembic upgrade
+head`, `alembic check`, `downgrade base`, `upgrade head` on PostgreSQL 16.
+
+### Doc follow-up (LO5)
+
+- `CLAUDE.md` map, `routers/lead.py`: "a message that is exactly a typed start command
+  (`domain/lead_commands.py`) is stored as the person's command, Lead on or off, with no model
+  turn; `POST …/turns/{turn_id}/request` starts it (ledger `chat_start`, the wallet when on);
+  `GET /lead` lists `commands`".
+- `CLAUDE.md` map, `domain/`: "`lead_commands.py` the composer's typed start commands, matched
+  by code (LO5), pinned in `tests/fixtures/lead_commands/commands.json`"; `application/`:
+  "`lead_chat_start.py` approve_chat_start: quote, create, `chat_start`, charge (LO1's order)";
+  `infrastructure/`: "`workflow_repository.record_chat_start`".
+- ADR 0028 *What enforces it*: the `chat_start` writer and its order.
+- ADR 0026 *Accepted with*: typed start commands bypass the model and the Lead's switch (Q43).
