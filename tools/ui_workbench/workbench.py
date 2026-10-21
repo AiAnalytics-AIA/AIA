@@ -259,6 +259,8 @@ def up(fresh: bool, with_unit: bool = False) -> int:
                 "AIA_WORKER_EXECUTORS": "aia_executors.workbench:build_registry",
                 # Analysis answered from recordings, at zero price (CHN7).
                 "AIA_AI_ANALYSIS_ENABLED": "true",
+                # The eight design workers too: a job's card, proposal and stale refusal (26e).
+                "AIA_AI_RESEARCH_AGENTS_ENABLED": "true",
                 "AIA_WORKER_ID": "workbench-worker",
                 "AIA_WORKER_POLL_SECONDS": "1",
                 "AIA_STORAGE_BACKEND": "filesystem",
