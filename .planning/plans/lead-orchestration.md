@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] LO0. The contract ADR and the money vocabulary: wallet cap, `budget_usd`, `spend_confirm_usd`, the client ceiling, `clients.budget_usd`, OI-64, one precedence"
-  - "[ ] LO1. The wallet (M4): `study_wallets`, `_raises`, `_charges` and `clients.wallet_ceiling_usd`; charges for paid work including Deep Research"
+  - "[x] LO1. The wallet (M4): `study_wallets`, `_raises`, `_charges` and `clients.wallet_ceiling_usd`; charges for paid work including Deep Research"
   - "[ ] LO2. A typed `start_run` with no `confirm_cost_usd`, and an import rule that a plan step cannot reach the confirming start"
   - "[ ] LO3. `lead_plans` and `lead_plan_steps` (M5), the plan authority capability issued by `ScopeResolver`, the `lead_plan` workflow type, behind `AIA_LEAD_PLANS_ENABLED`"
   - "[ ] LO4. The plan card: the steps (including "start fieldwork, ceiling X USD"), approved once, stopping at every gate it does not cover"
@@ -448,3 +448,89 @@ the input: a 500. Anchor: `apps/api/src/aia_api/observability.py:206-213 @ 8e3f5
 Consequence: a malformed client got a 500 and an error report instead of a 422. Fix (here): the echo
 keeps non-finite constants as text (`parse_constant=str`). Doc follow-up: number it in
 `open-items.md`, closed by #541.
+
+## LO1 delivered (2026-10-21, E07, stacked on #541)
+
+Migration M4, `60ccc9ff42cf` (down revision `5054d4d610c2`, one head): `study_wallets` (one open
+wallet per study, `uq_study_wallets_open` partial on `closed_at IS NULL`), `study_wallet_raises`
+and `study_wallet_charges` (insert-once; a charge unique per `run_id`, its kind one of
+`domain/wallet.py` `ChargeKind`: research run, agent job, Deep Research, Interpretation Research),
+and `clients.wallet_ceiling_usd` (nullable, non-negative). The downgrade drops all four and refuses
+while a raise or a charge is stored. `infrastructure/study_wallet_repository.py`
+(`StudyWalletRepository`) is their only reader and writer (`make layer_check`, four rules: core,
+API, worker, executors). `application/wallet.py` (`StudyWallets`) is the switch: with
+`AIA_STUDY_WALLET_ENABLED` off (the default, off in test, absent from the develop Compose file)
+every call raises `WalletDisabled` before the repository is built. HTTP:
+`GET /studies/{id}/wallet` (off: `available: false`, no row read) and `PUT …/wallet {cap_usd}`
+(`APPROVE_BUDGET`; off: 409 `wallet_disabled`; 409 `above_client_ceiling` with
+`who_can_raise: ["OWNER","ADMIN"]` (D-03) or `above_study_budget`). A cap change writes one
+`wallet` ledger row (`WorkflowRepository.record_wallet_raise`, `APPROVE_BUDGET`, which
+`WORKER_PERMISSIONS` withholds) and one raise naming it.
+
+**Choices recorded.**
+
+1. **The lock is the study row, `SELECT … FOR UPDATE`, under READ COMMITTED**, taken first by every
+   write that compares an amount (`set_cap`, `quote`, `charge`, `close`). Rejected: a conditional
+   `UPDATE … SET charged = charged + x WHERE charged + x <= cap` on the wallet row (it needs a
+   denormalised running total beside the insert-once charges, two sources of one number, and the
+   cap's bounds live on two other rows), and `SERIALIZABLE` (aborts on conflict and needs a retry
+   loop at every caller; the blocking lock waits and re-reads instead). The study row is the lock
+   `workflow_repository._reserve` already takes for the budget, so the order is the existing one:
+   the study row, then anything of the run (#533); no client row is locked, so the client-budget
+   order (`application/client_work.py`) is untouched. The wallet row is not the lock because the
+   first raise creates it, and a lock on a row not yet there protects nothing.
+2. **A charge is a hold at its run's ceiling, never released or re-priced** (ADR 0028 decision 2):
+   remaining is the effective cap minus the charges' ceilings (`money.wallet_remaining`); settled
+   spend stays in the usage ledger, read for display. No `settled_usd` column: a second copy of
+   what the usage ledger holds would be a second source of one number. "Settled once" here means
+   the hold is written once (unique `run_id`) and a start that finds its run charged charges
+   nothing again.
+3. **The effective cap** is the smallest of the wallet's cap, the client's wallet ceiling and the
+   study's budget (`domain/wallet.py` `effective_cap`), computed at every read, so a ceiling
+   lowered or a budget cut after a raise bounds the wallet at once.
+4. **A charge needs a `chat_start` or `plan_step` ledger row of the same study**
+   (`CHARGE_AUTHORITIES`) and `RUN_WORKFLOW`, not an approval: the plan authority (LO3) holds none
+   and charges under the decision a person already made. A person's own start on the Run stage
+   does not consult the wallet (`money.start_verdict`, `StartPath.PERSON`) and writes no charge,
+   so no existing start path calls the repository: with the switch on or off, today's spend paths
+   are byte-for-byte unchanged. LO5 (the typed chat start) and LO3/LO4 (the plan step) are its
+   callers: `quote` under the study lock, create the run, `charge` it, one transaction.
+5. **A refusal is typed, never decided here**: `WalletChargeRefused` (`no_wallet`,
+   `ceiling_unknown`, `outside_wallet`); the plan step parks on it and the typed start refuses
+   (`money.start_verdict`). "A charge above the wallet parks, never fails" is LO3's test, on its
+   step; LO1 proves the refusal writes nothing.
+6. **The switch is the wallet's own** (`AIA_STUDY_WALLET_ENABLED`), apart from ADR 0028 decision
+   6's `AIA_LEAD_PLANS_ENABLED`, so the wallet ships off before any caller exists.
+
+Tests: `packages/aia_core/tests/test_study_wallet.py` (the cap's two refusals, the ledger row once,
+a no-op cap, bounds that move, the worker refused, a charge once by ceiling, unknown refused, no
+wallet, the authority's subject and study, another study's run, close and reopen, the table's
+uniques and kind CHECK, the switch off reading nothing; on PostgreSQL: eight concurrent USD 3
+charges on a USD 10 wallet, exactly three charged; a charge waiting on a held cap change and
+refused against the new cap; the migration's downgrade and upgrade, and its refusal with a raise
+stored). Both concurrency tests fail when `charge` reads the study row without the lock (measured:
+mutation run, 2 failed). `apps/api/tests/test_wallet_api.py` (off by default, on: set and read,
+both refusals with their details, 422, 404).
+
+**Open for the owner (not a finding).** With charges never released, a wallet is drawn down by
+upper bounds: a run whose ceiling was USD 5 and that cost USD 0.40 keeps USD 5 of the wallet held
+until the researcher raises the cap. ADR 0028 rejects charging by settled spend for concurrency; a
+release of the unspent part *after* a run ends (the hold settled to its usage) keeps concurrency
+safe and is a different rule. Whether to adopt it is the owner's, in an ADR 0028 amendment; LO1
+builds the ADR as written.
+
+### Doc follow-up (LO1)
+
+- `CLAUDE.md` map, `infrastructure/`: "`study_wallet_repository.py` The ONLY reader/writer of
+  `study_wallets`, `study_wallet_raises`, `study_wallet_charges` (M4, LO1): every amount compared
+  under the study row's `FOR UPDATE`; a charge is a run's ceiling, once, authorised by a
+  `chat_start` or `plan_step` ledger row; `set_cap` writes the `wallet` ledger row"; `application/`:
+  "`wallet.py` StudyWallets behind `AIA_STUDY_WALLET_ENABLED` (off by default)"; `domain/`:
+  "`wallet.py` the wallet's values: `ChargeKind`, `CHARGE_AUTHORITIES`, `effective_cap`, the two
+  refusals"; `routers/`: "wallet (GET/PUT /studies/{id}/wallet, Peněženka; off: available false,
+  409 wallet_disabled; 409 above_client_ceiling naming OWNER/ADMIN, above_study_budget)".
+- `ARCHITECTURE.md` enforcement list: the four `layer_check` wallet rules.
+- `docs/architecture/adr/0028-…` What enforces it: "the wallet is behind
+  `AIA_STUDY_WALLET_ENABLED`, apart from `AIA_LEAD_PLANS_ENABLED`"; and the release question above.
+- `deploy/develop/README.md` (the switches): `AIA_STUDY_WALLET_ENABLED`, off, not in Compose.
+
