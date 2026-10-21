@@ -566,3 +566,28 @@ export function revertTextEdit(now: Content, e: LeadEdit, inverse: LeadEdit): { 
   }
   return applyLeadEdit(now, inverse);
 }
+
+/** A Lead turn's or a refused post's reason code in words, as the pane shows it. A turn parked on
+ * the study's budget comes back as `budget_exceeded` (the step's waiting reason, never the status
+ * AWAITING_BUDGET); it holds nothing, and it is sent by itself once a person sets or raises the
+ * budget (the product owner, 2026-10-21, Q39), so its words say where. A cancelled Lead turn is one
+ * a message written before the budget was set superseded: no other path cancels a Lead turn. */
+export const LEAD_REASON_WORDS: Readonly<Record<string, string>> = {
+  research_lead_unavailable: "Vedoucí výzkumu není v tomto prostředí zapnutý.",
+  research_lead_disabled: "Vedoucí výzkumu není v tomto prostředí zapnutý.",
+  egress_unclassified_material: "Tuto zprávu zatím nelze poslat modelu: materiál studie není klasifikovaný. Rozhoduje o tom správce AIA.",
+  egress_no_approved_route: "Vedoucí výzkumu čeká: pro model AI není schválená trasa.",
+  egress_route_not_approved_for_class: "Tuto studii nelze poslat modelu: trasa AI není schválena pro třídu jejích dat.",
+  research_lead_unconfigured: "Vedoucí výzkumu čeká: model AI není pro pracovníka nastavený.",
+  ai_runtime_unavailable: "Vedoucí výzkumu čeká: AI v tomto prostředí neběží.",
+  licence_undetermined: "Tuto studii nelze poslat modelu: licence dat panelu to neumožňuje.",
+  lead_context_too_large: "Studie je pro jednu odpověď příliš velká. Zkuste se zeptat na konkrétní část.",
+  lead_busy: "Vedoucí ještě odpovídá na předchozí zprávu.",
+  lead_not_hatched: "Nejdřív si vylíhněte vlastního Vedoucího výzkumu.",
+  budget_exceeded: "Na odpověď nezbývá rozpočet studie. Nastavte ho v Nastavení → Studie a zpráva se odešle sama.",
+  CANCELLED: "Na tuto zprávu Vedoucí neodpověděl zvlášť: přečetl ji s vaší další zprávou.",
+};
+
+export function leadReasonWords(code: string | null | undefined): string {
+  return code ? LEAD_REASON_WORDS[code] ?? `Vedoucí se zastavil (${code}).` : "Vedoucí se zastavil.";
+}
