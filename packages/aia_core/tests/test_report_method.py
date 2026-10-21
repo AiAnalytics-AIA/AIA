@@ -592,3 +592,63 @@ def test_the_client_report_never_calls_a_pending_question_one_the_run_could_answ
     )
     assert "mohl odpovědět" not in words
     assert "na kterou běh sbíral odpovědi" in words and "rozhodla až podpora" in words
+
+
+def _rule_words(blocks: Any) -> list[str]:
+    from aia_core.domain.report.model import BulletList
+
+    (listing,) = [b for b in blocks if isinstance(b, BulletList)]
+    return ["".join(i.text for i in item.content if isinstance(i, Text)) for item in listing.items]
+
+
+def test_the_methodology_states_the_rules_the_run_pinned() -> None:
+    """CHN9: the support rule's lines (Results' and the analysis gate's), the aggregation
+    methodology and the Sociomap method, each as the run recorded them."""
+    from aia_core.application.report_method import compose_methodology_rules
+    from aia_core.domain.evidence.support import AIA_SUPPORT_V1
+
+    meta = {"support": AIA_SUPPORT_V1.model_dump(mode="json")}
+    support, aggregation, sociomap = _rule_words(compose_methodology_rules(meta))
+    assert support.startswith("Pravidlo podpory aia-support-1: ve výsledcích méně než 25 dárců")
+    # Either rule can be the stricter (both are editable): a number must pass both (Codex on #589).
+    assert "přísnější" not in support
+    assert "projde oběma pravidly" in support
+    assert "pravidlem analýzy: méně než 50 odpovědí číslo potlačí" in support
+    assert "efektivní velikost vzorku pod 25 číslo potlačí" in support
+    # The places the aggregate stored at, which the report prints as stored (Codex on #589):
+    # a run with no aggregation pin was computed as 18.6.6's port, 1 and 2.
+    assert aggregation == (
+        "Agregace: metodika aia-aggregate-1; podíly uloženy na 1 desetinné místo, průměry na "
+        "2 desetinná místa; zpráva je dál nezaokrouhluje."
+    )
+    assert sociomap.startswith("Sociomapa: metoda ") and "kapitola s mapami" in sociomap
+
+
+def test_a_pin_that_cannot_be_read_is_said_so_never_a_presets_name() -> None:
+    from aia_core.application.report_method import compose_methodology_rules
+
+    support, aggregation, _ = _rule_words(
+        compose_methodology_rules({"support": {"broken": True}, "aggregation": "x"})
+    )
+    assert support == "Pravidlo podpory: záznam nelze přečíst."
+    assert aggregation == (
+        "Agregace: metodika záznam nelze přečíst; zaokrouhlení: záznam nelze přečíst."
+    )
+
+
+def test_an_edited_aggregation_states_the_places_it_stored_at() -> None:
+    from aia_core.application.report_method import compose_methodology_rules
+    from aia_core.domain.methodology.pins import aggregation_pin_for
+    from aia_core.domain.research_aggregate import AIA_AGGREGATE_V1
+
+    edited = AIA_AGGREGATE_V1.model_copy(
+        update={
+            "methodology_version": "aia-aggregate-1+e1",
+            "rounding": AIA_AGGREGATE_V1.rounding.model_copy(
+                update={"share_decimals": 0, "mean_decimals": 3}
+            ),
+        }
+    )
+    pin = aggregation_pin_for({"spec": edited.model_dump(mode="json")})
+    _, aggregation, _ = _rule_words(compose_methodology_rules({"aggregation": pin}))
+    assert "podíly uloženy na 0 desetinných míst, průměry na 3 desetinná místa" in aggregation

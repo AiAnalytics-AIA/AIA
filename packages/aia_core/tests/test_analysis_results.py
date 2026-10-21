@@ -11,6 +11,7 @@ import dataclasses
 import hashlib
 import json
 import uuid
+from dataclasses import replace
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -1268,6 +1269,59 @@ def test_an_aggregate_that_is_not_the_units_port_says_so_in_analysis_and_the_rep
     audit = next(b for b in sections["app-audit"].blocks if isinstance(b, AuditBlock))
     assert ("Metodika agregace", "aia-aggregate-1+e1") in audit.entries
     assert not lint_docx(DocxRenderer().render(doc))
+
+    # The audit names every artifact the draft stands on, by id and content (artifact-chain
+    # CHN6): the Design Revision, specification, dataset and aggregate, and the map it was given.
+    refs = run.sources
+    assert refs is not None
+    assert refs.design_revision_id == world.run(run_id)["metadata"]["design_revision_id"]
+    entries = dict(audit.entries)
+    assert entries["Revize návrhu"] == refs.design_revision_id
+    for label, ref in (
+        ("Specifikace", refs.specification),
+        ("Data", refs.dataset),
+        ("Agregace", refs.aggregate),
+    ):
+        assert entries[label] == f"{ref.artifact_id} · SHA-256 {ref.sha256}"
+    assert "Sociomapa" not in entries
+    mapped = compose_internal_report(
+        run, report_meta(first.method_status), map_source=("ART-map", "b" * 64)
+    )
+    mapped_audit = next(
+        b
+        for b in {s.id: s for s in mapped.sections}["app-audit"].blocks
+        if isinstance(b, AuditBlock)
+    )
+    assert ("Sociomapa", f"ART-map · SHA-256 {'b' * 64}") in mapped_audit.entries
+
+    # A module reused from an identical earlier run keeps that run's names in its record
+    # (ModuleSources); the audit names this run's own sources, never the record's.
+    earlier = {
+        m: replace(
+            o,
+            record=o.record.model_copy(
+                update={
+                    "sources": o.record.sources.model_copy(
+                        update={"design_revision_id": "REV-0123456789abcdef"}
+                    )
+                }
+            ),
+        )
+        for m, o in run.modules.items()
+    }
+    reused = replace(run, modules=earlier)
+    reused_audit = next(
+        b
+        for b in {
+            s.id: s
+            for s in compose_internal_report(reused, report_meta(first.method_status)).sections
+        }["app-audit"].blocks
+        if isinstance(b, AuditBlock)
+    )
+    assert dict(reused_audit.entries)["Revize návrhu"] == refs.design_revision_id
+    # Without the run's own sources the audit has nothing true to print: refused, never guessed.
+    with pytest.raises(ReportCompositionRefused, match="own sources"):
+        compose_internal_report(replace(run, sources=None), report_meta(first.method_status))
 
 
 def test_a_modelled_dataset_names_its_respondent_system_and_a_bad_record_is_refused() -> None:

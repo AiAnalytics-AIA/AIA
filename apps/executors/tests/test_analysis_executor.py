@@ -419,7 +419,9 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
         < body.index("Výsledky jednotlivých otázek")
     )
     assert "smyšlení respondenti" in body
-    assert report.metadata["report_contract"] == "aia-internal-report-10"
+    assert report.metadata["report_contract"] == "aia-internal-report-12"
+    # The methodology chapter states the rules the run pinned (artifact-chain CHN9).
+    assert "Pravidlo podpory aia-support-1" in body and "Agregace: metodika" in body
     # The document the DOCX was rendered from, beside it (report-delivery RD5a).
     stored = report_step["output"]["document"]
     with world.sessions() as session:
@@ -1329,7 +1331,7 @@ def test_a_retry_of_a_run_an_earlier_compiler_compiled_reuses_its_specification(
     first = _started_with_analysis(world)
     _drain(worker)
     monkeypatch.undo()
-    assert research_design.COMPILER_VERSION == "aia-research-compile-2"
+    assert research_design.COMPILER_VERSION == "aia-research-compile-3"
     original = _run(world, first)
     compiled = next(s for s in original["steps"] if s["node_key"] == "compile")["output"]
     spec_payload = _payload(world, store, compiled["artifact_id"])
