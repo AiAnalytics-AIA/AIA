@@ -106,8 +106,9 @@ V2: `ReportArt` (`InterpretStages.tsx:103-162`).
 *RPT1 and RPT2, done (`feature/report-document-pane`):*
 - `apps/web/src/lib/artifacts/report.ts` (pure): the stored document model's types (contract
   `aia-report-document-1`, refused otherwise), the pointable ids through the registry's `aiaId` --
-  `report:<section id>`, `report:<section id>.<n>` for a block, `claim:<ref>` (none for a ref outside the
-  id grammar, e.g. one carrying an answer's wording) -- and how a ref reads: the stored text only, a
+  `report:<section id>`, `report:<section id>.<n>` for a block, `report:<block id>:<ref>` for a number's first
+  chip in its block (the report's own kind: `claim:` is Analýza's, `claim:<module>:<claim_id>`, #605; none for a
+  ref outside the id grammar, e.g. one carrying an answer's wording) -- and how a ref reads: the stored text only, a
   suppressed ref "potlačeno", an unknown one "?", an unknown grade or support unknown, never good.
   The view operations stay the registry's (`open_stage`, `focus`, `show_diff`); `show_tracked_changes` and
   `show_variant` wait for RD5 and RPT3 and are asked of the coordinator then.
@@ -115,7 +116,7 @@ V2: `ReportArt` (`InterpretStages.tsx:103-162`).
   pinned by `test_the_web_reads_the_document_model_this_writes` (rewrite with
   `AIA_WRITE_REPORT_DOCUMENT_FIXTURE=1`), read by `report.test.ts` and `ReportDocumentView.test.tsx`.
 - `ReportDocumentView` on Zpráva (the report view's panel, first): every section and block in print order with
-  its `data-aia`; numbers as chips opening the claim in the item inspector (beside the draft in a wide pane, a
+  its `data-aia`, no two elements sharing one; numbers as chips opening the claim in the item inspector (beside the draft in a wide pane, a
   sheet in a narrow one); tables without the rows the DOCX removes, with their count; a chart's numbers as a
   table (the DOCX draws the chart); a map figure's caption (the image is in the DOCX). Each route answer in
   words: not stored before RD5a, refused, none for a reader the internal draft is not for (403).

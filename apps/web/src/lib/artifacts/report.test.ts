@@ -45,10 +45,11 @@ describe("pointing", () => {
     }
   });
 
-  it("names a claim by its ref, and leaves a ref outside the grammar unnamed", () => {
-    expect(claimTarget("trust_praha")).toBe("claim:trust_praha");
-    expect(parseAiaId("claim:trust_praha")?.kind).toBe("claim");
-    expect(claimTarget("q3.pct.Spíše ano")).toBeNull();
+  it("names a number in its block, in the report's kind, never Analýza's claim:", () => {
+    const block = { id: "ch-1.2" };
+    expect(claimTarget(block, "trust_praha")).toBe("report:ch-1.2:trust_praha");
+    expect(parseAiaId(claimTarget(block, "trust_praha")!)).toEqual({ kind: "report", id: "ch-1.2:trust_praha", stage: "report" });
+    expect(claimTarget(block, "q3.pct.Spíše ano")).toBeNull();
   });
 });
 

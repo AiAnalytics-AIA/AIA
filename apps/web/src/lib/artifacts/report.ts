@@ -1,5 +1,6 @@
 // Zpráva's artifact as the pane reads it (artifact-report RPT1): the stored document model of a run's
-// report (report-delivery RD5a, contract aia-report-document-1) and what on it the Lead can point at.
+// report (report-delivery RD5a, contract aia-report-document-1) and what on it the Lead can point at:
+// every target is the report's own kind, `report:`, so a focus lands on Zpráva.
 // Pure: the pane renders what this says, and never formats a number -- each ref's text is the one the
 // DOCX prints, stored beside it by the server (domain/report/document_model.py).
 
@@ -111,10 +112,15 @@ export const blockTarget = (block: Block): string => aiaId("report", block.id);
 const ID = /^[A-Za-z0-9_.\-~/:]{1,80}$/;
 
 /**
- * A claim chip's `data-aia`: `claim:<ref>`, or null for a ref outside the id grammar (a ref may carry an
- * answer's wording, `q3.pct.Spíše ano`): the chip still opens its claim, the Lead cannot name it.
+ * A number chip's `data-aia`: `report:<block id>:<ref>`, the report's own kind, so the Lead's focus lands on
+ * Zpráva -- `claim:` is Analýza's (`claim:<module>:<claim_id>`), and one ref can sit in several blocks. Null
+ * for a ref outside the id grammar (a ref may carry an answer's wording, `q3.pct.Spíše ano`): the chip still
+ * opens its claim, the Lead names its block instead.
  */
-export const claimTarget = (ref: string): string | null => (ID.test(ref) ? aiaId("claim", ref) : null);
+export const claimTarget = (block: Pick<Block, "id">, ref: string): string | null => {
+  const id = `${block.id}:${ref}`;
+  return ID.test(id) ? aiaId("report", id) : null;
+};
 
 // ---------------------------------------------------------------- reading a ref
 

@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError, research, type ResearchRun } from "@/lib/api";
 import { type ReportDocumentModel, type StoredReportDocument, valueWords } from "@/lib/artifacts/report";
+import { parseAiaId } from "@/lib/workbench-artifacts";
 
 import { StudyFrameProvider } from "./frame";
 import { ReportDocumentView } from "./ReportDocumentView";
@@ -46,6 +47,18 @@ describe("the stored draft in the pane", () => {
     const blocks = DOC.sections.flatMap((s) => s.blocks.map((b) => `report:${b.id}`));
     for (const id of blocks) expect(container.querySelector(`[data-aia="${id}"]`)).not.toBeNull();
     expect(container.querySelector("[data-unrendered]")).toBeNull(); // every kind in the fixture has a renderer
+  });
+
+  it("gives no two elements one id, and points every chip at Zpráva, never Analýza's claim:", async () => {
+    vi.mocked(research.reportDocument).mockResolvedValue(STORED);
+    const { container } = show();
+    await screen.findByRole("article", { name: "Koncept zprávy" });
+    const ids = [...container.querySelectorAll("[data-aia]")].map((e) => e.getAttribute("data-aia")!);
+    expect(new Set(ids).size).toBe(ids.length);
+    const chips = [...container.querySelectorAll("[data-claim][data-aia]")].map((e) => e.getAttribute("data-aia")!);
+    expect(chips.length).toBeGreaterThan(0);
+    for (const id of chips) expect(parseAiaId(id)?.stage).toBe("report");
+    expect(ids.some((id) => id.startsWith("claim:"))).toBe(false);
   });
 
   it("prints each number as the DOCX's text, and no suppressed one", async () => {

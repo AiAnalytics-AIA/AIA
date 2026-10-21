@@ -137,7 +137,7 @@ function DocSection({ section, ...read }: { section: Section } & Read) {
       <h2 className="mb-1.5 mt-5 font-sans text-base font-semibold">{section.appendix ? `Příloha · ${section.title}` : section.title}</h2>
       {section.blocks.map((block) => (
         <div key={block.id} data-aia={blockTarget(block)} className="mb-2.5">
-          <DocBlock block={block} {...read} />
+          <DocBlock block={block} {...read} point={pointer(block)} />
         </div>
       ))}
     </section>
@@ -145,12 +145,25 @@ function DocSection({ section, ...read }: { section: Section } & Read) {
 }
 
 /** A number as a chip: the DOCX's text for it; a click opens its claim. Suppressed: never a number. */
-type Chip = Pick<Read, "entry" | "onClaim">;
+type Chip = Pick<Read, "entry" | "onClaim"> & {
+  /** The chip's `data-aia` in its block: the first chip of a ref only, so no two elements share an id. */
+  point: (ref: string) => string | undefined;
+};
 
-function Claim({ ref_, withInterval, entry, onClaim }: { ref_: string; withInterval: boolean } & Chip) {
-  const target = claimTarget(ref_);
+/** A block's pointer: `report:<block id>:<ref>` for a ref's first chip in the block, none after. */
+function pointer(block: Block): (ref: string) => string | undefined {
+  const seen = new Set<string>();
+  return (ref) => {
+    if (seen.has(ref)) return undefined;
+    seen.add(ref);
+    return claimTarget(block, ref) ?? undefined;
+  };
+}
+
+function Claim({ ref_, withInterval, entry, onClaim, point }: { ref_: string; withInterval: boolean } & Chip) {
+  const target = point(ref_);
   return (
-    <button type="button" onClick={() => onClaim(ref_)} data-aia={target ?? undefined} data-claim={ref_}
+    <button type="button" onClick={() => onClaim(ref_)} data-aia={target} data-claim={ref_}
       className="mx-px inline rounded-sm bg-surface-sunken px-1 font-mono text-[0.92em] text-ink hover:bg-signal-wash focus-visible:outline-2 focus-visible:outline-focus-ring">
       {valueWords(entry(ref_), withInterval)}
     </button>
@@ -158,18 +171,18 @@ function Claim({ ref_, withInterval, entry, onClaim }: { ref_: string; withInter
 }
 
 /** A block's own refs (a callout's or a finding's marks) as chips after its text. */
-function Marks({ refs, entry, onClaim }: { refs: string[] } & Chip) {
+function Marks({ refs, ...chip }: { refs: string[] } & Chip) {
   if (!refs.length) return null;
-  return <span className="ml-1 font-sans">{refs.map((ref) => <Claim key={ref} ref_={ref} withInterval={false} entry={entry} onClaim={onClaim} />)}</span>;
+  return <span className="ml-1 font-sans">{refs.map((ref) => <Claim key={ref} ref_={ref} withInterval={false} {...chip} />)}</span>;
 }
 
-function Inlines({ content, entry, onClaim }: { content: Inline[] } & Chip): ReactNode {
+function Inlines({ content, ...chip }: { content: Inline[] } & Chip): ReactNode {
   return content.map((inline, i) => {
     switch (inline.type) {
       case "text":
         return inline.emphasis === "strong" ? <strong key={i}>{inline.text}</strong> : inline.emphasis === "em" ? <em key={i}>{inline.text}</em> : <span key={i}>{inline.text}</span>;
       case "value":
-        return <Claim key={i} ref_={inline.ref} withInterval={inline.with_interval} entry={entry} onClaim={onClaim} />;
+        return <Claim key={i} ref_={inline.ref} withInterval={inline.with_interval} {...chip} />;
       case "footnote":
         return <sup key={i} title={inline.text} className="font-sans text-ink-muted">*</sup>;
       case "cross_ref":
@@ -182,22 +195,22 @@ function Inlines({ content, entry, onClaim }: { content: Inline[] } & Chip): Rea
   });
 }
 
-function Items({ items, ordered, entry, onClaim }: { items: ListItem[]; ordered: boolean } & Chip) {
+function Items({ items, ordered, ...chip }: { items: ListItem[]; ordered: boolean } & Chip) {
   const List = ordered ? "ol" : "ul";
   return <List className={`${ordered ? "list-decimal" : "list-disc"} ml-6 text-[15px] leading-6`}>
-    {items.map((item, i) => <li key={i}><Inlines content={item.content} entry={entry} onClaim={onClaim} />
-      {item.children.length ? <Items items={item.children} ordered={ordered} entry={entry} onClaim={onClaim} /> : null}</li>)}
+    {items.map((item, i) => <li key={i}><Inlines content={item.content} {...chip} />
+      {item.children.length ? <Items items={item.children} ordered={ordered} {...chip} /> : null}</li>)}
   </List>;
 }
 
-function TableCell({ cell, entry, onClaim }: { cell: Cell } & Chip) {
+function TableCell({ cell, ...chip }: { cell: Cell } & Chip) {
   if (cell.type === "text") return <>{cell.text}</>;
   if (cell.type === "empty") return <span className="text-ink-muted">{cell.reason}</span>;
-  return <Claim ref_={cell.ref} withInterval={cell.with_interval} entry={entry} onClaim={onClaim} />;
+  return <Claim ref_={cell.ref} withInterval={cell.with_interval} {...chip} />;
 }
 
-function DocBlock({ block, entry, onClaim, refs }: { block: Block } & Read) {
-  const read = { entry, onClaim };
+function DocBlock({ block, entry, onClaim, refs, point }: { block: Block; point: Chip["point"] } & Read) {
+  const read = { entry, onClaim, point };
   switch (block.type) {
     case "heading":
       return block.level === 2 ? <h3 className="mt-3 font-sans text-[15px] font-semibold">{block.text}</h3> : <h4 className="mt-2 font-sans text-sm font-semibold">{block.text}</h4>;
@@ -225,7 +238,7 @@ function DocBlock({ block, entry, onClaim, refs }: { block: Block } & Read) {
     case "kpi_row":
       return <div className="flex flex-wrap gap-3 font-sans">{block.items.map((kpi) => (
         <div key={kpi.ref} className="min-w-32 rounded-control border border-border px-3 py-2">
-          <Claim ref_={kpi.ref} withInterval entry={entry} onClaim={onClaim} />
+          <Claim ref_={kpi.ref} withInterval {...read} />
           <p className="text-xs text-ink-muted">{kpi.label}</p>
         </div>))}</div>;
     case "table":
@@ -271,12 +284,13 @@ function DocBlock({ block, entry, onClaim, refs }: { block: Block } & Read) {
 }
 
 /** One row per ref the document cites, admitted or suppressed, as the DOCX's evidence appendix. */
-function EvidenceAppendix({ refs, entry, onClaim }: Read) {
+function EvidenceAppendix({ refs, ...chip }: Pick<Read, "refs"> & Chip) {
+  const { entry } = chip;
   return <div className="overflow-x-auto font-sans"><table className="w-full text-sm" data-evidence-appendix>
     <thead><tr>{["Tvrzení", "Hodnota", "Základ", "Stupeň"].map((h) => <th key={h} scope="col" className="border-b border-border px-2 py-1 text-left font-semibold">{h}</th>)}</tr></thead>
     <tbody>{refs.map((ref) => { const e = entry(ref); return <tr key={ref}>
       <td className="border-b border-border px-2 py-1 font-mono text-xs">{ref}</td>
-      <td className="border-b border-border px-2 py-1"><Claim ref_={ref} withInterval entry={entry} onClaim={onClaim} /></td>
+      <td className="border-b border-border px-2 py-1"><Claim ref_={ref} withInterval {...chip} /></td>
       <td className="border-b border-border px-2 py-1">{e && !e.suppressed ? e.base_text ?? "n = ?" : "—"}</td>
       <td className="border-b border-border px-2 py-1">{e && !e.suppressed ? gradeWords(e.grade) : e ? "potlačeno" : "?"}</td>
     </tr>; })}</tbody>

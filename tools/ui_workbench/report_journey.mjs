@@ -102,6 +102,9 @@ try {
       assert(!entry.suppressed, `@${width}: no suppressed number is shown (${ref})`);
       assert(text.startsWith(entry.value_text), `@${width}: chip ${ref} prints the stored text`);
     }
+    const ids = await article.locator("[data-aia]").evaluateAll((els) => els.map((e) => e.getAttribute("data-aia")));
+    assert.equal(new Set(ids).size, ids.length, `@${width}: no two elements share a data-aia`);
+    assert(ids.every((id) => id.startsWith("report:")), `@${width}: every target is the report's own kind`);
     await noOverflow(`report @${width}`);
     await page.screenshot({ path: join(out, `${width}-report.png`) });
 
@@ -114,7 +117,7 @@ try {
     await page.keyboard.press("Escape");
     await drawer.waitFor({ state: "detached", timeout: 10000 });
   }
-  check("the stored draft in the pane at 1440, 1100, 768 and 390: sections in print order with their ids, every chip a held ref with its stored text, none suppressed, no overflow");
+  check("the stored draft in the pane at 1440, 1100, 768 and 390: sections in print order with their ids, every chip a held ref with its stored text, none suppressed, every data-aia unique and report:, no overflow");
   check("a number chip opens its claim in the inspector and Escape closes it, at every width");
 
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
