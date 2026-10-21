@@ -3,7 +3,7 @@
 // remaining_usd is the budget less recorded spend, so what is held by running steps is named, not counted.
 import { describe, expect, it } from "vitest";
 
-import { budgetLine } from "./budget-line";
+import { budgetLine, holdsNote } from "./budget-line";
 
 const study = (remaining_usd: number | null) => ({ budget_usd: 10, spent_usd: remaining_usd === null ? null : 10 - remaining_usd, remaining_usd });
 
@@ -21,5 +21,14 @@ describe("budgetLine", () => {
     expect(budgetLine(null, 2.25)).toBe("Kolik z rozpočtu studie zbývá, AIA nyní neví.");
     expect(budgetLine(study(null))).toBe("Kolik z rozpočtu studie zbývá, AIA nyní neví.");
     expect(budgetLine(study(6.5), null)).toBe("Z rozpočtu studie zbývá 6.50 USD. Kolik může stát, AIA předem neví.");
+  });
+});
+
+describe("holdsNote", () => {
+  it("says beside a lift that open holds are not in the remainder, and says nothing of an unknown one", () => {
+    expect(holdsNote(study(0.5))).toBe("Zbytek nezahrnuje částky, které právě drží běžící kroky.");
+    expect(holdsNote(study(0))).toBe("Zbytek nezahrnuje částky, které právě drží běžící kroky.");
+    expect(holdsNote(study(null))).toBeNull();
+    expect(holdsNote(null)).toBeNull();
   });
 });

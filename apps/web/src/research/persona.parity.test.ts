@@ -27,6 +27,7 @@ import {
   removeDimension,
   requestBody,
   requestLabel,
+  isSampleRefusal,
   setSampleSize,
   suggestPayload,
   suggestedRequest,
@@ -197,15 +198,33 @@ describe("the sample size is recommendedSample1789 and its input", () => {
   for (const [name, p] of cases) {
     it(`recommendedSample: ${name}`, () => expect(recommendedSample(p)).toEqual(legacy.run("PROJECT=__p;recommendedSample1789()", { __p: p })));
   }
-  it("the input: clamped to 50–5 000, empty or 0 is the recommendation", () => {
+  it("the input: a value the classic stored as typed is stored the same; one it clamped is refused (RQC9, IA-1)", () => {
+    // A deliberate departure: the classic clamped to 50–5 000 and stored the recommendation for an
+    // empty field or 0. AIA refuses anything outside the server's valid n (here the readiness
+    // preset's 20–10 000) and stores nothing, so the person is never shown a number they did not type.
+    const limits = { min: 20, max: 10000 };
     const html = classic("renderPersonaBase()").view;
     const handler = html.match(/onchange="(PROJECT\.n=Math\.max[^"]*)"/)![1];
-    for (const v of ["800", "10", "99999", "", "0", "abc", "250.5"]) {
-      const ran = legacy.run<Ran>(`${RESET}PROJECT=__p;(function(){${handler}}).call({value:__v});${OUT}`, { __p: withApproval(base).project, __v: v });
-      const got = setSampleSize(withApproval(base).project, v);
+    const run = (v: string) => legacy.run<Ran>(`${RESET}PROJECT=__p;(function(){${handler}}).call({value:__v});${OUT}`, { __p: withApproval(base).project, __v: v });
+    for (const v of ["800", "50", "5000"]) {
+      const ran = run(v);
+      const got = setSampleSize(withApproval(base).project, v, limits);
+      expect(isSampleRefusal(got)).toBe(false);
+      if (isSampleRefusal(got)) continue;
       expect(got.project).toEqual(ran.p);
       expect(ran.saves).toEqual([[got.reason, true]]);
     }
+    for (const [v, refused] of [["10", "out_of_range"], ["99999", "out_of_range"], ["0", "out_of_range"], ["", "not_a_number"], ["abc", "not_a_number"], ["250.5", "not_a_number"]] as const) {
+      // What the classic did instead: a number moved to a bound, the recommendation, or (250.5)
+      // a count no respondent can be.
+      const stored = run(v).p.n;
+      expect(stored !== Number(v) || !Number.isInteger(stored)).toBe(true);
+      const got = setSampleSize(withApproval(base).project, v, limits);
+      expect(isSampleRefusal(got) && got.refused).toBe(refused);
+    }
+    // Unread limits refuse: a range nobody has seen is not presumed to admit a value.
+    const unknown = setSampleSize(withApproval(base).project, "800", null);
+    expect(isSampleRefusal(unknown) && unknown.refused).toBe("limits_unknown");
   });
   it("useRecommendedSample1789", () => {
     const p = withApproval(make({ n: 1234 })).project;

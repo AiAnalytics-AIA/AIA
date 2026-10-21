@@ -125,3 +125,14 @@ describe("the research workbench switch", () => {
     expect((await GET().json()).workbench).toBe(false);
   });
 });
+
+describe("the stable item ids switch", () => {
+  it("is off unless a switch value reads true", async () => {
+    vi.stubEnv("AIA_WEB_STABLE_ITEM_IDS", undefined);
+    expect((await GET().json()).stableItemIds).toBe(false);
+    vi.stubEnv("AIA_WEB_STABLE_ITEM_IDS", "on");
+    expect((await GET().json()).stableItemIds).toBe(true);
+    vi.stubEnv("AIA_WEB_STABLE_ITEM_IDS", "maybe");
+    expect((await GET().json()).stableItemIds).toBe(false);
+  });
+});

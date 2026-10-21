@@ -19,16 +19,33 @@ import {
   withAttachmentContext,
 } from "@/research/brief";
 import { isNativeResult } from "@/lib/research-agent-jobs";
-import { JobError } from "@/research/jobs";
 import { useResearch } from "./context";
-import { AiFailureCard } from "./useAiStep";
+import { AiFailureCard, failureOf, followClaimed, followFailureOf } from "./useAiStep";
 
-export type AnalysisFailure = { kind: "analysis"; message: string; jobId: string | null } | { kind: "provider"; message: string };
+export type AnalysisFailure =
+  | { kind: "analysis"; message: string; jobId: string | null }
+  | { kind: "provider"; message: string }
+  /**
+   * The analysis job stopped at the study's budget: it waits for a lift (CR-2). `byComments` is the
+   * mode the waiting call was asked in, kept with the wait so its continuation marks the plan as
+   * `analyse` would have; null when it is not known (the mark is then left as it is).
+   */
+  | { kind: "budget"; jobId: string; byComments: boolean | null }
+  /** Following the lifted job broke off: it is followed again, never asked anew (review P3-2). */
+  | { kind: "follow"; message: string; jobId: string; byComments: boolean | null };
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const analysisFailureOf = (e: unknown, byComments: boolean): AnalysisFailure => {
+  const f = failureOf(e);
+  if (f.kind === "job") return { kind: "analysis", message: f.message, jobId: f.jobId };
+  return f.kind === "budget" || f.kind === "follow" ? { ...f, byComments } : f;
+};
+
+/** The mode a continuation of `jobId` keeps: the wait's or the broken-off follow's, else unknown. */
+export const modeOf = (failure: AnalysisFailure | null, jobId: string): boolean | null =>
+  (failure?.kind === "budget" || failure?.kind === "follow") && failure.jobId === jobId ? failure.byComments : null;
 
 export function useAnalysis() {
-  const { store, template, runJob } = useResearch();
+  const { store, template, runJob, continueJob, claimWait } = useResearch();
   const [failure, setFailure] = useState<AnalysisFailure | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -60,24 +77,52 @@ export function useAnalysis() {
       }, { reason: "ai_analysis_1780" });
       return true;
     } catch (e) {
-      setFailure({ kind: "analysis", message: message(e), jobId: e instanceof JobError ? e.jobId : null });
+      setFailure(analysisFailureOf(e, byComments));
       return false;
     } finally {
       setBusy(false);
     }
   };
 
-  return { analyse, failure, clearFailure: () => setFailure(null), busy };
+  /**
+   * After a budget lift: follow the same analysis job on to its proposal (CR-2). Starts nothing.
+   * Resolves true when it completed, as `analyse` does.
+   */
+  const resume = async (jobId: string): Promise<boolean> => {
+    // The mode of the call that waited, kept with its wait. A wait this hook did not record (none
+    // matching) leaves the plan's mark as it is: never a guess.
+    const mode = modeOf(failure, jobId);
+    setFailure(null);
+    setBusy(true);
+    try {
+      const result = await followClaimed(claimWait, jobId, () => continueJob(jobId));
+      if (mode !== null && isNativeResult(result)) {
+        store.update(({ project }) => ({ project: { ...project, ui_state: { ...project.ui_state, plan_changed26: mode } } }), { reason: "native_analysis_reviewed" });
+      }
+      return true;
+    } catch (e) {
+      setFailure({ ...followFailureOf(e, jobId), byComments: mode });
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return { analyse, resume, failure, clearFailure: () => setFailure(null), busy };
 }
 
-/** The classic analysis error card, with what failed said in words, or the provider notice. */
-export function AnalysisFailureCard({ failure, onRetry }: { failure: AnalysisFailure; onRetry: () => void }) {
+/**
+ * The classic analysis error card, with what failed said in words, or the provider notice, or the
+ * study's budget lift for a job that waits (`onContinue` follows the same job).
+ */
+export function AnalysisFailureCard({ failure, onRetry, onContinue }: { failure: AnalysisFailure; onRetry: () => void; onContinue: (jobId: string) => void }) {
   return (
     <AiFailureCard
-      failure={failure.kind === "analysis" ? { kind: "job", message: failure.message, jobId: failure.jobId } : failure}
+      failure={failure.kind === "analysis" ? { kind: "job", message: failure.message, jobId: failure.jobId } : failure.kind === "budget" ? { kind: "budget", jobId: failure.jobId } : failure.kind === "follow" ? { kind: "follow", message: failure.message, jobId: failure.jobId } : failure}
       title={t("research.brief.failedTitle")}
       sub={t("research.brief.failedSub")}
       onRetry={onRetry}
+      onContinue={onContinue}
     />
   );
 }

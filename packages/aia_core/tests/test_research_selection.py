@@ -58,6 +58,11 @@ def _with(*, dimensions: Any = None, filters: Any = None) -> dict[str, Any]:
     return design
 
 
+def _under_compile_1(spec: Any) -> Any:
+    """``spec`` named by the compiler before scale labels: its body, the earlier identity."""
+    return spec.model_copy(update={"compiler_version": "aia-research-compile-1"})
+
+
 def test_two_designs_differing_only_in_dimensions_are_two_specifications() -> None:
     finance, ecology = _spec(_with(dimensions=["finance"])), _spec(_with(dimensions=["ekologie"]))
     assert finance.fingerprint() != ecology.fingerprint()
@@ -82,7 +87,9 @@ def test_the_selection_says_it_was_not_applied() -> None:
 def test_a_design_that_selects_nothing_has_no_selection_and_keeps_its_fingerprint() -> None:
     plain = _spec(DESIGN)
     assert plain.selection is None
-    assert plain.fingerprint() == DEVELOP_FINGERPRINT
+    # The compiler moved to aia-research-compile-2 (scale labels, input-interactions 3b);
+    # the body is what it was, so under the earlier compiler's name it fingerprints as then.
+    assert _under_compile_1(plain).fingerprint() == DEVELOP_FINGERPRINT
     # Empty approvals and empty filters select nothing: they are not a selection.
     assert _spec(_with(dimensions=[], filters={"vek": [], "kraj": "", "x": None})).selection is None
     # (``_with(filters=...)`` also sets the strategy, which is the audience summary's own.)

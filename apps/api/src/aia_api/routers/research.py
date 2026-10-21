@@ -71,6 +71,7 @@ from aia_core.application.research import (
     ResearchRuns,
     ResearchStepNotFound,
     RunReservations,
+    readiness_in_force,
     research_artifacts,
 )
 from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFACT_TYPE
@@ -129,7 +130,13 @@ from aia_core.infrastructure.workflow_repository import (
 from fastapi import APIRouter, HTTPException, Path, Query, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..dependencies import ArtifactStoreDep, SessionDep, SettingsDep, StudyScopeDep
+from ..dependencies import (
+    ArtifactStoreDep,
+    RunPopulationDep,
+    SessionDep,
+    SettingsDep,
+    StudyScopeDep,
+)
 from ..schemas.projects import ErrorResponse
 from ..schemas.runs import ArtifactResponse, RunEventResponse
 from .runs import artifact_corrupt, artifact_response
@@ -529,6 +536,30 @@ class ResearchTraceResponse(BaseModel):
     dangling: list[DanglingLinkResponse]
     #: Whether any item declares a link; without one, coverage is unknown.
     linked: bool
+
+
+class SampleSizeRange(BaseModel):
+    """A valid n: a whole number from ``min`` to ``max``, both included."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    min: int
+    max: int
+
+
+class ResearchLimitsResponse(BaseModel):
+    """The readiness limits in force for the Study (plan ``run-qc-and-checkpoint`` RQC9).
+
+    The one authority for a valid n: what a run start checks and pins and what a Research Lead
+    edit is held to. The web reads it instead of a range of its own, and refuses a value
+    outside it -- never clamps it. ``version`` is the stored methodology version in force;
+    ``None``: nothing stored, the code's preset (``methodology_version``)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    methodology_version: str
+    version: int | None
+    sample_size: SampleSizeRange
 
 
 class ReadinessResponse(BaseModel):
@@ -1081,6 +1112,22 @@ def _started(runs: ResearchRuns, started: StartedRun, response: Response) -> Res
 
 
 @router.get(
+    "/research/limits",
+    response_model=ResearchLimitsResponse,
+    summary="The readiness limits in force: the valid sample size",
+)
+def research_limits(scope: StudyScopeDep, session: SessionDep) -> ResearchLimitsResponse:
+    """The limits a run start of this Study checks today, read from the organization's
+    readiness methodology in force (the preset when nothing is stored). Starts nothing."""
+    limits, stored = readiness_in_force(session, scope)
+    return ResearchLimitsResponse(
+        methodology_version=limits.methodology_version,
+        version=None if stored is None else int(stored["version"]),
+        sample_size=SampleSizeRange(min=limits.sample_size.min, max=limits.sample_size.max),
+    )
+
+
+@router.get(
     "/research/readiness",
     response_model=ReadinessResponse,
     summary="Can this Design Revision run in AIA?",
@@ -1202,15 +1249,22 @@ def start_run(
     scope: StudyScopeDep,
     session: SessionDep,
     response: Response,
+    population: RunPopulationDep,
 ) -> ResearchRunResponse:
     """Idempotent per Design Revision: a double submission gets the existing run.
 
     Needs ``RUN_WORKFLOW`` on an open Study. The fieldwork source is the
     deployment's, never the request's; who answers is the person's, among the sources the
-    deployment offers (409 ``persona_source_unavailable`` otherwise).
+    deployment offers (409 ``persona_source_unavailable`` otherwise). The population a new run
+    records is the deployment's (the Czech LIVE; the population double only in local and test).
     """
     persona_source = _chosen_persona_source(request, body.persona_source)
-    runs = ResearchRuns(session, scope)
+    runs = ResearchRuns(
+        session,
+        scope,
+        population_contract=population.contract,
+        population_id=population.population_id,
+    )
     try:
         started = runs.start(
             design_revision_id=body.design_revision_id,
@@ -1339,9 +1393,45 @@ class BudgetLiftRequest(BaseModel):
 
 
 @router.post(
+    "/research/runs/{run_id}/budget",
+    response_model=ResearchRunResponse,
+    summary="Raise the study's budget and let every step of the run stopped at the cap go on",
+    responses={
+        409: {"model": ErrorResponse, "description": "Nothing in the run waits for budget"},
+        422: {"model": ErrorResponse, "description": "The budget offered is below the current one"},
+    },
+)
+def lift_run_budget_wait(
+    run_id: RunIdPath,
+    body: BudgetLiftRequest,
+    scope: StudyScopeDep,
+    session: SessionDep,
+) -> ResearchRunResponse:
+    """Needs ``APPROVE_BUDGET`` and ``MANAGE_STUDY_BUDGET`` on an open Study.
+
+    The run's lift (CR-3): a run's analysis modules each reserve their own call, so several
+    steps can stop at the study's budget at once. One lift raises the budget (equal to the
+    current one lifts the waits without changing it; lower is refused) and offers every
+    waiting step to a worker again, under one lock, as one decision in the approval ledger.
+    The cap stays hard: a step whose next reservation still passes the budget stops again.
+    """
+    runs = ResearchRuns(session, scope)
+    try:
+        return _run(
+            runs.lift_budget_wait(run_id, budget_usd=body.budget_usd, note=body.note), scope
+        )
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ResearchRunNotFound as exc:
+        raise _not_found("run") from exc
+    except (BudgetWaitNotLiftable, BudgetNotRaised) as exc:
+        raise _budget_lift_refused(exc) from exc
+
+
+@router.post(
     "/research/runs/{run_id}/steps/{node_key}/budget",
     response_model=ResearchRunResponse,
-    summary="Raise the study's budget and let a step that stopped at the cap go on",
+    summary="Raise the study's budget and let the run's steps that stopped at the cap go on",
     responses={
         409: {"model": ErrorResponse, "description": "The step is not waiting for budget"},
         422: {"model": ErrorResponse, "description": "The budget offered is below the current one"},
@@ -1359,8 +1449,9 @@ def lift_budget_wait(
     A step whose next paid call would pass the study's budget stops waiting for budget,
     and nothing else can resume it. The person names the budget the study is raised to
     (equal to the current one lifts the wait without changing it; lower is refused) and
-    the step is offered to a worker again. The decision is written to the approval
-    ledger and the change to the access audit. The cap stays hard: if the new budget is
+    the step, with every other step of the run waiting for budget, is offered to a worker
+    again (the run's lift, ``POST …/runs/{run_id}/budget``). The decision is written once to
+    the approval ledger and the change to the access audit. The cap stays hard: if the new budget is
     still too small the step stops again at its next reservation.
     """
     runs = ResearchRuns(session, scope)
@@ -2593,6 +2684,10 @@ class AgentJobStart(BaseModel):
     #: fictional (409 ``prompt_test_requires_fictional_client`` otherwise); the job records
     #: which prompt it ran.
     prompt_version: int | None = Field(default=None, ge=1)
+    #: The ceiling a person confirmed when the study's confirmation threshold asked (409
+    #: ``cost_confirmation_required``, lead-orchestration LO15). Never the ceiling itself: the
+    #: server works that out from the design job's reservation.
+    confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000, allow_inf_nan=False)
 
 
 class AgentProposalAccept(BaseModel):
@@ -2645,6 +2740,8 @@ class AgentProposalRebuild(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
     design_revision_id: str = Field(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")
+    #: As a start's: the new job is paid work and meets the threshold (LO15).
+    confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000, allow_inf_nan=False)
 
 
 def _agent_response(
@@ -2723,6 +2820,8 @@ def _agent_errors(session: SessionDep) -> Iterator[None]:
         raise _runtime_park_refused(exc) from exc
     except (BudgetWaitNotLiftable, BudgetNotRaised) as exc:
         raise _budget_lift_refused(exc) from exc
+    except (CostConfirmationRequired, CostCeilingUnknown) as exc:
+        raise _cost_refused(exc) from exc
     except (IntegrityError, ObjectNotFound) as exc:
         # The proposal's bytes failed verification on read: keep its CORRUPT mark.
         raise artifact_corrupt(session) from exc
@@ -2732,7 +2831,18 @@ def _agent_errors(session: SessionDep) -> Iterator[None]:
         ) from exc
 
 
-@router.post("/research/agent-jobs", response_model=AgentJobResponse, status_code=201)
+@router.post(
+    "/research/agent-jobs",
+    response_model=AgentJobResponse,
+    status_code=201,
+    responses={
+        409: {
+            "model": ErrorResponse,
+            "description": "The confirmation threshold asks (cost_confirmation_required), or "
+            "the job's ceiling is unknown (cost_ceiling_unknown)",
+        },
+    },
+)
 def start_agent_job(
     body: AgentJobStart,
     scope: StudyScopeDep,
@@ -2742,12 +2852,19 @@ def start_agent_job(
 ) -> AgentJobResponse:
     with _agent_errors(session):
         # The deployment's fictional-client list decides where a draft prompt may be tried.
-        jobs = ResearchAgentJobs(session, scope, draft_client_ids=settings.fictional_client_ids)
+        # What one job can cost at most, for the study's confirmation threshold (LO15).
+        jobs = ResearchAgentJobs(
+            session,
+            scope,
+            draft_client_ids=settings.fictional_client_ids,
+            reservation_usd=settings.ai_research_reservation_usd,
+        )
         started = jobs.start(
             design_revision_id=body.design_revision_id,
             action=body.action,
             instruction=body.instruction,
             prompt_version=body.prompt_version,
+            confirm_cost_usd=body.confirm_cost_usd,
         )
         if not started.created:
             response.status_code = 200
@@ -2865,21 +2982,34 @@ def dismiss_agent_result(
     "/research/agent-jobs/{run_id}/rebuild",
     response_model=AgentJobResponse,
     status_code=201,
-    responses={409: {"model": ErrorResponse, "description": "Advice, or not the newest design"}},
+    responses={
+        409: {
+            "model": ErrorResponse,
+            "description": "Advice, not the newest design, or the confirmation threshold asks",
+        }
+    },
 )
 def rebuild_agent_result(
     run_id: RunIdPath,
     body: AgentProposalRebuild,
     scope: StudyScopeDep,
     session: SessionDep,
+    settings: SettingsDep,
     response: Response,
 ) -> AgentJobResponse:
     """Ask the same action and instruction again on the Study's newest Design Revision: a new
     job, ``rebuild_of`` the old one, which it supersedes (ADR 0026 decision 5). Accepts
-    nothing; the old proposal stays readable."""
+    nothing; the old proposal stays readable. The new job meets the study's confirmation
+    threshold as a start does (LO15)."""
     with _agent_errors(session):
-        jobs = ResearchAgentJobs(session, scope)
-        started = jobs.rebuild(run_id, design_revision_id=body.design_revision_id)
+        jobs = ResearchAgentJobs(
+            session, scope, reservation_usd=settings.ai_research_reservation_usd
+        )
+        started = jobs.rebuild(
+            run_id,
+            design_revision_id=body.design_revision_id,
+            confirm_cost_usd=body.confirm_cost_usd,
+        )
         if not started.created:
             response.status_code = 200
         return _agent_with_state(jobs, started.run_id, scope)

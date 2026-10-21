@@ -116,6 +116,7 @@ from ..domain.deep_research.settings import (
 )
 from ..domain.deep_research.tooling import TOOL_EVENT_KINDS, ToolUsageEvent
 from ..domain.deep_research.workflow import DEEP_RESEARCH, deep_research_steps
+from ..domain.money import ThresholdVerdict, threshold_verdict
 from ..domain.research import phase_of, retryable
 from ..domain.run_cost import (
     CeilingUnknown,
@@ -645,9 +646,12 @@ class DeepResearchRuns:
                     limit_usd=limit,
                     kinds=tuple(k.value for k in ceiling.unknown_kinds),
                 )
-            if ceiling.total_usd >= limit:
-                if confirm_cost_usd is None or confirm_cost_usd < ceiling.total_usd:
-                    raise CostConfirmationRequired(ceiling_usd=ceiling.total_usd, limit_usd=limit)
+            # The confirmation threshold's one rule (domain/money.py; ADR 0019 gate 2); the
+            # unknown ceiling is refused above, with the kinds whose price is missing.
+            verdict = threshold_verdict(ceiling.total_usd, limit, confirm_cost_usd)
+            if verdict is ThresholdVerdict.ASK:
+                raise CostConfirmationRequired(ceiling_usd=ceiling.total_usd, limit_usd=limit)
+            if verdict is ThresholdVerdict.CONFIRMED:
                 confirmation = (ceiling.total_usd, limit)
         run_id = workflows.create_run(
             project_id=project_id,
@@ -791,11 +795,11 @@ class DeepResearchRuns:
         """Raise the study's budget and let every step of this run stopped at the cap go on
         (``application.research.lift_study_budget_waits``). A priced tool call or a model
         request held against the study's budget stops its step in ``AWAITING_BUDGET``; a
-        fanned-out run may have several such steps, and one lift lets them all go on, each its
-        own approval in the ledger. The cap stays hard."""
+        fanned-out run may have several such steps, and one lift lets them all go on, one
+        approval in the ledger for the run. The cap stays hard."""
         run = self.get(run_id)
         lift_study_budget_waits(
-            self.session, self.scope, run["steps"], budget_usd=budget_usd, note=note
+            self.session, self.scope, run_id, run["steps"], budget_usd=budget_usd, note=note
         )
         return self.get(run_id)
 

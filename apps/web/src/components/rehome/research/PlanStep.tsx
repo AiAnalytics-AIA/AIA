@@ -47,7 +47,8 @@ import { Icon, type IconName } from "../icons";
 import { ActionDock, ChipInput, InlineConfirm, StepSection } from "../step";
 import { AiButton, Button, Field, TextArea, TextInput } from "../ui";
 import { useResearch } from "./context";
-import { AnalysisFailureCard, useAnalysis } from "./useAnalysis";
+import { AnalysisFailureCard, modeOf, useAnalysis } from "./useAnalysis";
+import { readyLimits, useSampleLimits } from "./useSampleLimits";
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 const INPUT = `min-h-9 w-full rounded-control border border-border-strong bg-surface-raised px-2.5 text-sm text-ink placeholder:text-ink-faint ${FOCUS}`;
@@ -76,9 +77,10 @@ export function followUpAnswers(questions: string[], answers: string[]): string 
 }
 
 export function PlanStep() {
-  const { store, state, toast, stepHref, confirm } = useResearch();
+  const { store, state, toast, stepHref, confirm, frame } = useResearch();
+  const sampleLimits = useSampleLimits(frame.studyId);
   const router = useRouter();
-  const { analyse, failure, busy } = useAnalysis();
+  const { analyse, resume, failure, busy } = useAnalysis();
   const a = proposalAnalysis(state);
   const p = state.project;
   const variants = projectVariants(state);
@@ -151,13 +153,17 @@ export function PlanStep() {
   );
 
   const chooseVariant = (id: string) => {
+    // A variant carries an n; until the valid range is read nothing is applied (RQC9).
+    if (sampleLimits.state === "loading") return toast(t("research.plan.variantWaitLimits"));
     const snapshot = store.get();
     const analysis = proposalAnalysis(snapshot);
-    const r = applyVariant({ ...snapshot, analysis }, id);
+    const r = applyVariant({ ...snapshot, analysis }, id, readyLimits(sampleLimits));
     if (!r) return;
     store.update(() => ({ ...r.state, project: { ...r.state.project, ui_state: { ...r.state.project.ui_state, plan_manual_changed: false } } }), { reason: "project_variant_1793" });
     setPendingVariant(null);
-    toast(tv("research.plan.variantApplied", { title: r.title }));
+    const applied = tv("research.plan.variantApplied", { title: r.title });
+    // The variant's n outside the valid range is not stored, and the person is told (RQC9).
+    toast(r.sampleRefused ? `${applied}. ${tv("research.plan.variantSampleKept", { why: r.sampleRefused })}` : applied);
   };
   const variantSection = variants.length ? <>
     <Variants variants={variants} current={selectedVariant(p)} onApply={(id) => {
@@ -210,7 +216,11 @@ export function PlanStep() {
         <p className="mt-3 text-xs leading-5 text-ink-muted">{t("research.plan.manualNote")}</p>
       </header>
       <JumpChips chips={chips} />
-      {failure ? <AnalysisFailureCard failure={failure} onRetry={() => void analyse()} /> : null}
+      {failure ? <AnalysisFailureCard failure={failure} onRetry={() => void analyse()} onContinue={(id) => {
+        // A wait from "process comments" ends as that action does, with its toast (CR-2).
+        const comments = modeOf(failure, id) === true;
+        void resume(id).then((ok) => { if (ok && comments) toast(t("research.plan.commentsDone")); });
+      }} /> : null}
       {variantSection}
       <Commentable onQuote={(quote) => setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }])}>
         <div className="flex flex-col gap-4">

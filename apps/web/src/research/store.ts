@@ -9,6 +9,7 @@
 
 import { t, tv } from "@/i18n/t";
 import { ApiError, type ContentState, type DesignRevision, type WorkingContent, research, workspace } from "@/lib/api";
+import { settleItemIds, withItemIds } from "./item-ids";
 import { type Json, type ResearchProject, type Template, defaultsMerge } from "./model";
 
 export const SAVE_DEBOUNCE_MS = 1800;
@@ -91,8 +92,17 @@ export function originNotice(state: ContentState, lineage: Record<string, unknow
   return null;
 }
 
+/**
+ * Whether the store keeps stable item ids (working-copy-edit-ops WCE1; /config's stableItemIds,
+ * AIA_WEB_STABLE_ITEM_IDS, off by default). On, a load writes each item's id in (`withItemIds`:
+ * content stored before ids is then `completed`, saved before a submit) and every change is
+ * settled (`settleItemIds`: ids kept through a reword, a reworded research question's links
+ * followed). Off, the store writes no id and the server keys by the ids it derives.
+ */
+export type ItemIdsOption = { itemIds?: boolean };
+
 /** What a load of the study's working content means for its stages. */
-export function readWorkingContent(r: WorkingContent): LoadResult {
+export function readWorkingContent(r: WorkingContent, { itemIds = false }: ItemIdsOption = {}): LoadResult {
   if (r.state === "AWAITING_MIGRATION") return { kind: "awaiting_migration" };
   const template = templateOf(r);
   if (r.state === "UNRECOVERABLE") return { kind: "unrecoverable", template, canEdit: r.can_edit, lineage: r.lineage || {} };
@@ -100,7 +110,9 @@ export function readWorkingContent(r: WorkingContent): LoadResult {
   if (r.state === "EMPTY" || !r.content) {
     return { kind: "research", state: newResearch(template), template, contentState: r.state, canEdit: r.can_edit, origin };
   }
-  const project = defaultsMerge(r.content, template);
+  const merged = defaultsMerge(r.content, template);
+  const stored = isRecord(r.analysis) ? (r.analysis as Analysis) : null;
+  const [project, analysis] = itemIds ? withItemIds(merged, stored) : [merged, stored];
   return {
     kind: "research",
     template,
@@ -110,7 +122,7 @@ export function readWorkingContent(r: WorkingContent): LoadResult {
     state: {
       revision: r.revision,
       project,
-      analysis: isRecord(r.analysis) ? (r.analysis as Analysis) : null,
+      analysis,
       save: { kind: "saved" },
       checkEpoch: 0,
       completed: canonical(project) !== canonical(r.content),
@@ -119,8 +131,12 @@ export function readWorkingContent(r: WorkingContent): LoadResult {
 }
 
 /** GET the study's working content and read it. `read` is injected in tests. */
-export async function loadResearch(studyId: string, read: (studyId: string) => Promise<WorkingContent> = workspace.content): Promise<LoadResult> {
-  return readWorkingContent(await read(studyId));
+export async function loadResearch(
+  studyId: string,
+  read: (studyId: string) => Promise<WorkingContent> = workspace.content,
+  options: ItemIdsOption = {},
+): Promise<LoadResult> {
+  return readWorkingContent(await read(studyId), options);
 }
 
 type SaveContent = typeof workspace.saveContent;
@@ -142,7 +158,7 @@ export class ResearchStore {
   constructor(
     initial: ResearchState,
     private readonly studyId: string,
-    private readonly opts: { onSaved?: (revision: number) => void; save?: SaveContent; readOnly?: boolean } = {},
+    private readonly opts: { onSaved?: (revision: number) => void; save?: SaveContent; readOnly?: boolean } & ItemIdsOption = {},
   ) {
     this.state = opts.readOnly ? { ...initial, save: { kind: "readonly" } } : initial;
   }
@@ -171,7 +187,7 @@ export class ResearchStore {
   ): void {
     // Content that may not change here is never changed, so nothing on screen reads as edited.
     if (this.opts.readOnly) return;
-    const r = change({ project: this.state.project, analysis: this.state.analysis });
+    const r = this.settled(change({ project: this.state.project, analysis: this.state.analysis }));
     const blocked = this.state.save.kind === "conflict" || this.state.save.kind === "closed";
     this.set({
       ...this.state,
@@ -185,6 +201,14 @@ export class ResearchStore {
     if (blocked) return;
     if (this.timer) clearTimeout(this.timer);
     this.timer = setTimeout(() => this.autosave(), SAVE_DEBOUNCE_MS);
+  }
+
+  /** A change with its item ids settled against this copy, when the store keeps them (WCE1). */
+  private settled<R extends { project: ResearchProject; analysis?: Analysis | null }>(r: R): R {
+    if (!this.opts.itemIds) return r;
+    const analysis = r.analysis === undefined ? this.state.analysis : r.analysis;
+    const [project, settledAnalysis] = settleItemIds([this.state.project, this.state.analysis], [r.project, analysis]);
+    return { ...r, project, analysis: settledAnalysis };
   }
 
   /** A debounced save: its failure is shown through `save`, not thrown. */
@@ -245,10 +269,11 @@ export class ResearchStore {
 
   /** Replace the project and analysis with what an AI step returned (no autosave of its own). */
   replace(next: { project?: ResearchProject; analysis?: Analysis | null }): void {
+    const r = this.settled({ project: next.project ?? this.state.project, analysis: next.analysis });
     this.set({
       ...this.state,
-      project: next.project ?? this.state.project,
-      analysis: next.analysis === undefined ? this.state.analysis : next.analysis,
+      project: r.project,
+      analysis: r.analysis === undefined ? this.state.analysis : r.analysis,
     });
   }
 
@@ -294,7 +319,7 @@ export class ResearchStore {
       }
       throw e;
     }
-    const loaded = readWorkingContent(raw);
+    const loaded = readWorkingContent(raw, { itemIds: this.opts.itemIds });
     if (loaded.kind !== "research") throw new Error("Pracovní obsah studie se nepodařilo znovu načíst.");
     if (since && (this.state.project !== since.project || this.state.analysis !== since.analysis)) {
       this.conflict(loaded.state.revision);

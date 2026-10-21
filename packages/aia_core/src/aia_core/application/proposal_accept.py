@@ -22,13 +22,22 @@ it no longer writes the proposal back itself.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
 from ..domain.design import DesignRejected, DesignRevision
-from ..domain.design_items import Documents, ItemKey, design_items, merge_items
+from ..domain.design_items import (
+    Documents,
+    ItemKey,
+    ambiguous_legacy_keys,
+    design_items,
+    from_legacy_keys,
+    merge_items,
+    named_items,
+    wordings,
+)
 from ..domain.scope import Permission, StudyContext
 from ..domain.workspace import WorkingSave
 from ..infrastructure.study_design_repository import StudyDesignRepository
@@ -49,21 +58,32 @@ class StaleProposal(DesignRejected):
     """The proposal cannot be accepted as it stands: rebuild it on the current design.
 
     ``why`` is ``design_moved``, ``unknown_baseline`` or ``items_changed``; ``conflicting_items``
-    names, for the last, each item the proposal changes that the working copy changed too.
+    names, for the last, each item the proposal changes that the working copy changed too, and
+    ``wording`` the words each names: a plan item is keyed by its id (WCE1), and one the person
+    reworded or removed is no longer in the copy the browser holds.
     """
 
     def __init__(
-        self, message: str, *, why: str, conflicting_items: Iterable[ItemKey] = ()
+        self,
+        message: str,
+        *,
+        why: str,
+        conflicting_items: Iterable[ItemKey] = (),
+        wording: Mapping[ItemKey, str] | None = None,
     ) -> None:
         super().__init__(message, reason="stale_proposal")
         self.why = why
         self.conflicting_items = tuple(sorted(conflicting_items))
+        self.wording = dict(wording or {})
 
     def details(self) -> dict[str, object]:
         """The refusal's details, as the API answers them."""
         return {
             "reason": self.why,
             "conflicting_items": [str(k) for k in self.conflicting_items],
+            "conflicting_wording": {
+                str(k): self.wording[k] for k in self.conflicting_items if k in self.wording
+            },
         }
 
 
@@ -103,7 +123,10 @@ def accept_into_working_copy(
     """Check, merge and write a proposal made on ``design_revision_id`` (the module's steps 1-4).
 
     ``proposed`` is the design the proposal would make of its baseline; ``touched`` the items it
-    changes, as the worker recorded them, else computed here from the baseline. Needs
+    changes, as the worker recorded them, else computed here from the baseline. A key recorded
+    before item ids (WCE1: a plan-list item by its text) is read as the id it names now
+    (``from_legacy_keys``), so a job finished before the deploy is checked and merged as one
+    after it. Needs
     ``EDIT_STUDY`` and ``APPROVE_GATE`` on an open Study: only a person accepts (ADR 0019 gate 1).
     """
     scope.require(Permission.EDIT_STUDY)
@@ -130,15 +153,35 @@ def accept_into_working_copy(
             current_revision=now.revision,
         )
     current = Documents(content=dict(now.content or {}), analysis=now.analysis)
-    touched_set = frozenset(touched) if touched is not None else design_items(baseline, proposed)
+    recorded = list(touched) if touched is not None else None
+    if recorded is not None and ambiguous_legacy_keys(recorded, baseline, proposed):
+        # A place recorded before ids that holds different sections in the baseline and the
+        # proposal: either reading drops the other's change. Refused, never accepted and dropped.
+        raise StaleProposal(
+            "the proposal names a place its baseline and it fill with different items",
+            why="unknown_baseline",
+        )
+    touched_set = (
+        from_legacy_keys(recorded, baseline, proposed)
+        if recorded is not None
+        else design_items(baseline, proposed)
+    )
+    if touched_set - named_items(baseline, proposed):
+        # A recorded item neither design has: the check cannot be made, and a merge would apply
+        # nothing for it. Refused, never accepted and dropped.
+        raise StaleProposal(
+            "the proposal names an item neither its baseline nor it has",
+            why="unknown_baseline",
+        )
     conflicts = touched_set & design_items(baseline, current)
     if conflicts:
         raise StaleProposal(
             "the working copy changed an item the proposal changes",
             why="items_changed",
             conflicting_items=conflicts,
+            wording=wordings(conflicts, baseline, current),
         )
-    merged = merge_items(proposed, current, touched_set)
+    merged = merge_items(proposed, current, touched_set, baseline=baseline)
     saved = workspaces.save(
         scope,
         content=merged.content,

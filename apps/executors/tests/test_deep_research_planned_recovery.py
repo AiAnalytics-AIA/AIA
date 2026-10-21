@@ -40,7 +40,6 @@ from aia_core.infrastructure.tables import ProjectArtifactRow
 from aia_core.infrastructure.web_retrieval import RecordedFetchTransport, RecordedSearch
 from aia_executors.deep_research import DeepResearchRuntime
 from aia_worker.worker import Worker
-from conftest import _truncate  # type: ignore[import-not-found]
 from deep_research_fixtures import (
     ANSWERS,
     RecordedAgents,
@@ -307,11 +306,15 @@ def _compare(recovered: Journey, reference: _Snapshot, *, fanned_out: bool) -> N
 
 
 def _run_reference(
-    journeys: Callable[..., Journey], sessions: sessionmaker[Session], *, fan_out: bool
+    journeys: Callable[..., Journey],
+    sessions: sessionmaker[Session],
+    truncate: Callable[[sessionmaker[Session]], None],
+    *,
+    fan_out: bool,
 ) -> _Snapshot:
     reference = journeys(fan_out=fan_out, release=None)
     snap = _Snapshot(semantics(reference), reference.dispatches())
-    _truncate(sessions)
+    truncate(sessions)
     return snap
 
 
@@ -327,11 +330,12 @@ def _run_reference(
 def test_a_released_planned_track_continues_and_sends_nothing_twice(
     journeys: Callable[..., Journey],
     sessions: sessionmaker[Session],
+    truncate_tables: Callable[[sessionmaker[Session]], None],
     monkeypatch: pytest.MonkeyPatch,
     release: Callable[[pytest.MonkeyPatch], Callable[[Journey, Worker], None]],
     fan_out: bool,
 ) -> None:
-    reference = _run_reference(journeys, sessions, fan_out=fan_out)
+    reference = _run_reference(journeys, sessions, truncate_tables, fan_out=fan_out)
     recovered = journeys(fan_out=fan_out, release=release(monkeypatch))
     _compare(recovered, reference, fanned_out=fan_out)
 

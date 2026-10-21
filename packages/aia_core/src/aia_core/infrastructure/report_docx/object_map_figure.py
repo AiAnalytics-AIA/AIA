@@ -14,6 +14,10 @@ from aia_core.domain.report.print_tokens import COLORS
 from aia_core.domain.sociomap import SociomapArtifactV3, read_object_maps
 from aia_core.domain.sociomap.terrain import EnvelopeTerrain
 from aia_core.infrastructure.report_docx.plotting import drawing, export, new_figure
+from aia_core.infrastructure.report_docx.signed_off_map_figure import (
+    is_signed_off,
+    signed_off_snapshots,
+)
 
 
 def draw_object_map_snapshot(
@@ -108,12 +112,18 @@ def draw_object_map_snapshot(
 
 
 def object_map_snapshots(result: Mapping[str, object]) -> dict[tuple[str, str, str], bytes]:
-    """Render every stored contract-3 map's available views, with integrity checked first."""
+    """Render every stored contract-3 map's available views, with integrity checked first.
+    A signed-off map with its terrain is drawn as the AIA panel draws it, its respondent map
+    included (:mod:`.signed_off_map_figure`); every other map keeps these snapshots."""
     images: dict[tuple[str, str, str], bytes] = {}
     for battery in cast(list[dict[str, Any]], result.get("batteries", [])):
         labels = {o["id"]: o["label"] for o in battery["objects"]}
         for method, artifact in read_object_maps(battery):
             if artifact.layout is None:
+                continue
+            if is_signed_off(artifact) and isinstance(artifact.terrain, EnvelopeTerrain):
+                for view, png in signed_off_snapshots(artifact, labels).items():
+                    images[(battery["battery_id"], method, view)] = png
                 continue
             images[(battery["battery_id"], method, "top")] = draw_object_map_snapshot(
                 artifact, labels

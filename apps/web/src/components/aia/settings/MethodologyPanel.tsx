@@ -10,9 +10,9 @@
 
 import { useCallback, useState } from "react";
 
-import { t, tv } from "@/i18n/t";
+import { t } from "@/i18n/t";
 import { type MethodFormula, type MethodModuleDetail, type MethodModuleSummary, type MethodStepOut, methodology } from "@/lib/api";
-import { groupSteps, showValue } from "@/lib/methodology";
+import { groupSteps, showValue, stepNumbers, stepOrigin } from "@/lib/methodology";
 import { Button, Tag, TextInput } from "../../rehome/ui";
 import { InlineConfirm } from "../../rehome/step";
 import { Loaded } from "../states";
@@ -126,6 +126,7 @@ function ModuleView({ summary, people, onDirty, onOpen }: { summary: MethodModul
 
 function Steps({ detail }: { detail: MethodModuleDetail }) {
   const groups = groupSteps(detail);
+  const numbers = stepNumbers(detail.groups);
   const titles = Object.fromEntries(detail.step_details.map((s) => [s.id, s.title_cs]));
   const [query, setQuery] = useState("");
   const shown = groups.map((item) => ({ ...item, steps: item.steps.filter((step) => `${step.title_cs} ${step.note_cs} ${step.values.map((v) => `${v.label_cs} ${v.reference} ${String(v.value)}`).join(" ")} ${step.formulas.map((f) => `${f.title_cs} ${f.note_cs}`).join(" ")}`.toLocaleLowerCase("cs").includes(query.trim().toLocaleLowerCase("cs"))) }));
@@ -142,7 +143,7 @@ function Steps({ detail }: { detail: MethodModuleDetail }) {
             <span className="shrink-0 text-xs text-ink-muted">{steps.length} {t(`${M}.steps`)} <span aria-hidden="true">⌄</span></span>
           </summary>
           <div className="flex min-w-0 flex-col gap-3 border-t border-border p-3">
-            {steps.length ? steps.map((step) => <StepCard key={step.id} step={step} editable={detail.editable} titles={titles} />) : <p className="text-sm text-ink-muted">{t(`${M}.noSteps`)}</p>}
+            {steps.length ? steps.map((step) => <StepCard key={step.id} step={step} number={numbers.get(step.id)} editable={detail.editable} titles={titles} />) : <p className="text-sm text-ink-muted">{t(`${M}.noSteps`)}</p>}
           </div>
         </details>
       </section>;
@@ -160,13 +161,14 @@ function showStep(stepId: string) {
   heading.scrollIntoView({ block: "start" });
 }
 
-function StepCard({ step, editable, titles }: { step: MethodStepOut; editable: boolean; titles: Record<string, string> }) {
+function StepCard({ step, number, editable, titles }: { step: MethodStepOut; number?: string; editable: boolean; titles: Record<string, string> }) {
   return (
     <article aria-labelledby={`ms-${step.id}`} className="flex min-w-0 flex-col gap-3 rounded-md border border-border bg-surface-raised p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h4 id={`ms-${step.id}`} className="scroll-mt-4 text-sm font-semibold">{step.title_cs}</h4>
-        {step.audit ? <span data-audit-point className="shrink-0 font-mono text-xs text-ink-faint">{tv(`${M}.audit`, { point: step.audit })}</span> : null}
+        {number ? <span data-step-number className="shrink-0 font-mono text-xs text-ink-faint">{number}</span> : null}
       </div>
+      {step.audit ? <p data-step-origin className="-mt-2 text-xs text-ink-faint">{stepOrigin(step.audit)}</p> : null}
       <div className="text-ink"><Formula latex={step.formula_latex} /></div>
       {step.note_cs ? <p className="max-w-3xl text-sm text-ink-muted">{step.note_cs}</p> : null}
       <StepContext step={step} titles={titles} onPick={showStep} />

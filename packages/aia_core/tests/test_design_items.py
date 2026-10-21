@@ -18,7 +18,9 @@ from aia_core.domain.design_items import (
     ItemKey,
     brief_signature,
     design_items,
+    from_legacy_keys,
     item_values,
+    legacy_keys,
     merge_items,
     occurrence_keys,
 )
@@ -35,8 +37,14 @@ def docs(value: dict[str, Any]) -> Documents:
 
 @pytest.mark.parametrize("case", CASES["cases"], ids=lambda c: c["name"])
 def test_the_shared_cases(case: dict[str, Any]) -> None:
+    """The cases are written in the text keys of before WCE1. Content without id lists has one
+    id per text key, so the items read back are exactly the case's, and none is lost to a merge
+    of two text keys into one id."""
     items = design_items(case["before"], case["after"])
-    assert sorted(str(k) for k in items) == case["items"], case["note"]
+    legacy = legacy_keys(items, case["before"], case["after"])
+    assert sorted(str(k) for k in legacy) == case["items"], case["note"]
+    assert len(legacy) == len(items)
+    assert from_legacy_keys(legacy, case["before"], case["after"]) == items
     # The difference is symmetric: what was added one way is removed the other.
     assert design_items(case["after"], case["before"]) == items
 
@@ -201,6 +209,12 @@ def test_a_repeated_key_is_counted_never_collapsed() -> None:
         )
     )
     keys = {str(k) for k in values}
-    assert {"content:objective:cena", "content:objective:cena#2"} <= keys
+    objectives = {k for k in values if k.kind == "objective"}
+    assert len(objectives) == 2  # two ids, one per occurrence of the wording
+    plan = {"content": {"research_plan": {"objectives": ["Cena", "cena "]}}}
+    assert {str(k) for k in legacy_keys(objectives, plan, plan)} == {
+        "content:objective:cena",
+        "content:objective:cena#2",
+    }
     assert {"content:section:s", "content:section:s#2"} <= keys
     assert {"content:question:q", "content:question:q#2", "content:question:q#3"} <= keys

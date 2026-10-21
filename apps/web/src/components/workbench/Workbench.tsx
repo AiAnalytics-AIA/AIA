@@ -17,7 +17,7 @@ import { ApiError, api, lead as leadApi, type ResearchAgentJob, type Study } fro
 import { appRoutes } from "@/lib/app-routes";
 import { guardedNavigate } from "@/lib/guarded-navigation";
 import {
-  applyLeadEdit, autoAcceptPlan, describeEdit, editStage, focusSelector, revertTextEdit, targetOfElement, textEditInverse,
+  applyLeadEdit, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetOfElement, textEditInverse,
   type LeadEdit, type LeadRequest, type LeadTurn, type LeadView, type ResearcherLead,
 } from "@/lib/lead";
 import { type FocusMode, readSplit, writeSplit } from "@/lib/workbench-split";
@@ -272,7 +272,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
         if (e instanceof ApiError && e.code === "cost_confirmation_required" && confirmUsd === undefined) {
           const ceiling = Number(e.details.ceiling_usd);
           const limit = Number(e.details.limit_usd);
-          if (!(await confirm(`Úloha může stát až ${usd(ceiling)} USD, což dosahuje limitu studie ${usd(limit)} USD. Spustit?`))) throw e;
+          if (!(await confirm(`Úloha může stát až ${usd(ceiling)} USD, což dosahuje prahu potvrzení studie ${usd(limit)} USD. Spustit?`))) throw e;
           confirmUsd = ceiling;
           continue;
         }
@@ -309,7 +309,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     const out: Record<string, EditMark> = {};
     for (const t of turns) {
       for (const [i, d] of Object.entries(t.edit_decisions ?? {})) {
-        out[`${t.turn_id}:${i}`] = d.status === "refused" ? { refused: d.reason ?? "Úpravu už nelze použít." } : d.status;
+        out[`${t.turn_id}:${i}`] = d.status === "refused" ? { refused: editRefusalWords(d.reason) } : d.status;
       }
     }
     return out;
@@ -415,6 +415,10 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
       try {
         const r = await leadApi.decideEdits(frame.studyId, turnId, { decision, indices, base_revision: base });
         if (r.results.some((x) => x.status === "accepted")) changed = true;
+        // An edit the server refused stays open; say why, in words (a sample size outside the
+        // valid range, RQC9, among them).
+        const refused = [...new Set(r.results.filter((x) => x.status === "refused").map((x) => editRefusalWords(x.reason)))];
+        if (refused.length) setNotice(refused.join(" "));
         // The next turn's edits are decided on the revision this one wrote.
         if (r.workspace_revision !== null) base = r.workspace_revision;
       } catch (e) {

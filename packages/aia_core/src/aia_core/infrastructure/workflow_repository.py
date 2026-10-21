@@ -31,6 +31,7 @@ from typing import Any, cast
 from sqlalchemy import CursorResult, func, or_, select, update
 from sqlalchemy.orm import Session
 
+from ..domain.approval_ledger import ApprovalSubject, LedgerEntry
 from ..domain.population import (
     JointState,
     PopulationBinding,
@@ -2189,6 +2190,23 @@ class WorkflowRepository:
     ) -> None:
         """Let a step that stopped at the budget cap go on, after a person lifts the cap.
 
+        :meth:`resume_budget_waits` for one step.
+        """
+        self.resume_budget_waits(
+            [step_id], note=note, budget_before=budget_before, budget_after=budget_after
+        )
+
+    def resume_budget_waits(
+        self,
+        step_ids: Sequence[str],
+        *,
+        note: str = "",
+        budget_before: float,
+        budget_after: float,
+    ) -> None:
+        """Let every step of one run that stopped at the budget cap go on, after a person
+        lifts the cap: one decision, one approval in the ledger.
+
         A reservation that would pass the study's budget parks the step in
         ``AWAITING_BUDGET`` without spending an attempt, and nothing resumed it: the
         provider sweep never touches an ``AWAITING_*`` step, and raising the budget
@@ -2196,15 +2214,24 @@ class WorkflowRepository:
         ``APPROVE_BUDGET``, which the worker's scope does not hold (ADR 0019 decision
         6), and writes the decision to the append-only approval ledger like a gate.
 
+        A run's analysis modules each hold their own reservation, so eight of them can stop
+        at the same cap; the person decides once for the run (CR-3), so the ledger has one
+        row for the lift and each step its own ``STEP_RESUMED`` event. The row's
+        ``subject_id`` is always the run (the subject of a budget lift is the run's wait);
+        ``step_id`` names the step when one was lifted, and is null for several. Each event's
+        payload carries the row's ``decision_id`` and every lifted ``step_ids``, so the ledger
+        and the events join by id, never by time or guess.
+
         The caller raises the budget first (``ScopeRepository.set_study_budget``, which
-        audits it) and passes both figures so the event shows what was lifted. The step
-        becomes runnable again; if the budget is still too small it parks again at the
-        next reservation. Refused when the step is not waiting for budget, which also
-        makes a second lift a no-op, and when the run is being cancelled.
+        audits it) and passes both figures so the event shows what was lifted. The steps
+        become runnable again; if the budget is still too small a step parks again at its
+        next reservation. Refused whole, before anything is written, when any step is not
+        waiting for budget (which also makes a second lift a no-op), when the steps are not
+        all of one run, and when the run is being cancelled.
         """
         self.scope.require(Permission.APPROVE_BUDGET)
-        self._resume_budget_wait(
-            step_id,
+        self._resume_budget_waits(
+            step_ids,
             note=note,
             budget_before=budget_before,
             budget_after=budget_after,
@@ -2236,8 +2263,8 @@ class WorkflowRepository:
         ) != (scope.organization_id, scope.client_id):
             raise ScopeDenied("not found", reason="scope_mismatch")
         approver.require(ClientPermission.MANAGE_CLIENT_BUDGET)
-        self._resume_budget_wait(
-            step_id,
+        self._resume_budget_waits(
+            [step_id],
             note=note,
             budget_before=budget_before,
             budget_after=budget_after,
@@ -2247,9 +2274,9 @@ class WorkflowRepository:
             request_id=approver.request_id,
         )
 
-    def _resume_budget_wait(
+    def _resume_budget_waits(
         self,
-        step_id: str,
+        step_ids: Sequence[str],
         *,
         note: str,
         budget_before: float,
@@ -2260,13 +2287,20 @@ class WorkflowRepository:
         request_id: str | None,
     ) -> None:
         """The lift itself, once the caller has established who may lift and for whom."""
-        step = self._step(step_id)
-        self._lock_run_for(step)
-        run = self._run(step.run_id)
-        self._session.refresh(run)
-        if StepRunStatus(step.status) is not StepRunStatus.AWAITING_BUDGET:
+        if not step_ids:
             raise BudgetWaitNotLiftable("only a step waiting for budget can be lifted")
-        if run.cancel_requested or step.cancel_requested:
+        steps = [self._step(step_id) for step_id in dict.fromkeys(step_ids)]
+        run_ids = {step.run_id for step in steps}
+        if len(run_ids) != 1:
+            raise BudgetWaitNotLiftable("one lift is one run's decision")
+        self._lock_run_for(steps[0])
+        for step in steps[1:]:
+            self._session.refresh(step)
+        run = self._run(steps[0].run_id)
+        self._session.refresh(run)
+        if any(StepRunStatus(s.status) is not StepRunStatus.AWAITING_BUDGET for s in steps):
+            raise BudgetWaitNotLiftable("only a step waiting for budget can be lifted")
+        if run.cancel_requested or any(s.cancel_requested for s in steps):
             raise BudgetWaitNotLiftable("a run that is being cancelled is not resumed")
 
         independence = observe_approval_independence(
@@ -2274,45 +2308,50 @@ class WorkflowRepository:
             approving_user_id=actor_id,
             policy=policy,
         )
-        self._session.add(
-            ApprovalDecisionRow(
-                organization_id=run.organization_id,
-                client_id=run.client_id,
-                study_id=study_id,
-                subject_type="budget",
-                subject_id=step_id,
-                run_id=step.run_id,
-                step_id=step_id,
-                gate_type="budget",
-                decision="lift",
-                comment=note,
-                request_id=request_id,
-                **independence.audit_fields(),
+        decision = ApprovalDecisionRow(
+            organization_id=run.organization_id,
+            client_id=run.client_id,
+            study_id=study_id,
+            subject_type=ApprovalSubject.BUDGET,
+            subject_id=run.run_id,
+            run_id=run.run_id,
+            step_id=steps[0].step_id if len(steps) == 1 else None,
+            gate_type="budget",
+            decision="lift",
+            comment=note,
+            request_id=request_id,
+            **independence.audit_fields(),
+        )
+        self._session.add(decision)
+        self._session.flush()  # the decision's id, named by every step's event below
+        lifted = [step.step_id for step in steps]
+        now = utcnow()
+        for step in steps:
+            step.status = StepRunStatus.RUNNABLE.value
+            step.waiting_reason = None
+            step.runnable_after = None
+            step.updated_at = now
+            self._event(
+                step.run_id,
+                event_type="STEP_RESUMED",
+                message=(
+                    f"{step.node_key}: budget lifted from {budget_before:.2f} to {budget_after:.2f}"
+                ),
+                payload={
+                    "from": StepRunStatus.AWAITING_BUDGET.value,
+                    "actor_id": actor_id,
+                    "budget_before_usd": budget_before,
+                    "budget_after_usd": budget_after,
+                    "note": note,
+                    "decision_id": decision.decision_id,
+                    "step_ids": lifted,
+                    **independence.audit_fields(),
+                },
+                step_id=step.step_id,
+                level="WARN" if independence.self_approved else "INFO",
             )
-        )
-        step.status = StepRunStatus.RUNNABLE.value
-        step.waiting_reason = None
-        step.runnable_after = None
-        step.updated_at = utcnow()
-        self._event(
-            step.run_id,
-            event_type="STEP_RESUMED",
-            message=(
-                f"{step.node_key}: budget lifted from {budget_before:.2f} to {budget_after:.2f}"
-            ),
-            payload={
-                "from": StepRunStatus.AWAITING_BUDGET.value,
-                "actor_id": actor_id,
-                "budget_before_usd": budget_before,
-                "budget_after_usd": budget_after,
-                "note": note,
-                **independence.audit_fields(),
-            },
-            step_id=step_id,
-            level="WARN" if independence.self_approved else "INFO",
-        )
         self._session.flush()
-        self._refresh_run(step.run_id)
+        self._refresh_run(run.run_id)
         self._session.flush()
 
     def record_spend_confirmation(
@@ -2339,7 +2378,7 @@ class WorkflowRepository:
                 organization_id=self.scope.organization_id,
                 client_id=self.scope.client_id,
                 study_id=self.scope.study_id,
-                subject_type="spend",
+                subject_type=ApprovalSubject.SPEND,
                 subject_id=run_id,
                 run_id=run_id,
                 gate_type="spend",
@@ -2389,7 +2428,7 @@ class WorkflowRepository:
                 organization_id=self.scope.organization_id,
                 client_id=self.scope.client_id,
                 study_id=self.scope.study_id,
-                subject_type="answerability",
+                subject_type=ApprovalSubject.ANSWERABILITY,
                 subject_id=run_id,
                 run_id=run_id,
                 gate_type="answerability",
@@ -2447,7 +2486,7 @@ class WorkflowRepository:
         recorded = self._session.scalar(
             select(ApprovalDecisionRow.decision_id).where(
                 ApprovalDecisionRow.study_id == self.scope.study_id,
-                ApprovalDecisionRow.subject_type == "ai_proposal",
+                ApprovalDecisionRow.subject_type == ApprovalSubject.AI_PROPOSAL,
                 ApprovalDecisionRow.subject_id == run_id,
                 ApprovalDecisionRow.decision == "accept",
             )
@@ -2464,7 +2503,7 @@ class WorkflowRepository:
                 organization_id=self.scope.organization_id,
                 client_id=self.scope.client_id,
                 study_id=self.scope.study_id,
-                subject_type="ai_proposal",
+                subject_type=ApprovalSubject.AI_PROPOSAL,
                 subject_id=run_id,
                 run_id=run_id,
                 project_id=project_id,
@@ -2493,7 +2532,7 @@ class WorkflowRepository:
         """Write a person's dismissal of what an agent job proposed, in the approval ledger.
 
         ADR 0026 decision 8: dismissing AI output is a decision about it, recorded where its
-        accept would be (``subject_type = "ai_proposal"``, ``decision = "dismiss"``). Needs
+        accept would be (``ApprovalSubject.AI_PROPOSAL``, ``decision = "dismiss"``). Needs
         ``APPROVE_GATE``. Returns ``False`` and writes nothing when the job already has a
         decision -- dismissed before, or accepted (an accepted proposal is in the design; there
         is nothing left to dismiss, and the caller says so).
@@ -2503,7 +2542,7 @@ class WorkflowRepository:
         recorded = self._session.scalar(
             select(ApprovalDecisionRow.decision_id).where(
                 ApprovalDecisionRow.study_id == self.scope.study_id,
-                ApprovalDecisionRow.subject_type == "ai_proposal",
+                ApprovalDecisionRow.subject_type == ApprovalSubject.AI_PROPOSAL,
                 ApprovalDecisionRow.subject_id == run_id,
                 ApprovalDecisionRow.decision.in_(("accept", "dismiss")),
             )
@@ -2520,7 +2559,7 @@ class WorkflowRepository:
                 organization_id=self.scope.organization_id,
                 client_id=self.scope.client_id,
                 study_id=self.scope.study_id,
-                subject_type="ai_proposal",
+                subject_type=ApprovalSubject.AI_PROPOSAL,
                 subject_id=run_id,
                 run_id=run_id,
                 project_id=run.project_id,
@@ -2543,7 +2582,7 @@ class WorkflowRepository:
         rows = self._session.execute(
             select(ApprovalDecisionRow.subject_id, ApprovalDecisionRow.decision).where(
                 ApprovalDecisionRow.study_id == self.scope.study_id,
-                ApprovalDecisionRow.subject_type == "ai_proposal",
+                ApprovalDecisionRow.subject_type == ApprovalSubject.AI_PROPOSAL,
                 ApprovalDecisionRow.subject_id.in_(list(run_ids)),
             )
         ).all()
@@ -2584,7 +2623,7 @@ class WorkflowRepository:
         recorded = self._session.scalar(
             select(ApprovalDecisionRow.decision_id).where(
                 ApprovalDecisionRow.study_id == self.scope.study_id,
-                ApprovalDecisionRow.subject_type == "lead_edit",
+                ApprovalDecisionRow.subject_type == ApprovalSubject.LEAD_EDIT,
                 ApprovalDecisionRow.subject_id == subject,
             )
         )
@@ -2600,7 +2639,7 @@ class WorkflowRepository:
                 organization_id=self.scope.organization_id,
                 client_id=self.scope.client_id,
                 study_id=self.scope.study_id,
-                subject_type="lead_edit",
+                subject_type=ApprovalSubject.LEAD_EDIT,
                 subject_id=subject,
                 run_id=lead_run_id,
                 project_id=run.project_id,
@@ -2644,7 +2683,7 @@ class WorkflowRepository:
         recorded = self._session.scalar(
             select(ApprovalDecisionRow.decision_id).where(
                 ApprovalDecisionRow.study_id == self.scope.study_id,
-                ApprovalDecisionRow.subject_type == "lead_job_request",
+                ApprovalDecisionRow.subject_type == ApprovalSubject.LEAD_JOB_REQUEST,
                 ApprovalDecisionRow.subject_id == turn_id,
             )
         )
@@ -2660,7 +2699,7 @@ class WorkflowRepository:
                 organization_id=self.scope.organization_id,
                 client_id=self.scope.client_id,
                 study_id=self.scope.study_id,
-                subject_type="lead_job_request",
+                subject_type=ApprovalSubject.LEAD_JOB_REQUEST,
                 subject_id=turn_id,
                 run_id=lead_run_id,
                 project_id=run.project_id,
@@ -2703,7 +2742,7 @@ class WorkflowRepository:
         recorded = self._session.scalar(
             select(ApprovalDecisionRow.decision_id).where(
                 ApprovalDecisionRow.study_id == self.scope.study_id,
-                ApprovalDecisionRow.subject_type == "lead_self_update",
+                ApprovalDecisionRow.subject_type == ApprovalSubject.LEAD_SELF_UPDATE,
                 ApprovalDecisionRow.subject_id == turn_id,
             )
         )
@@ -2719,7 +2758,7 @@ class WorkflowRepository:
                 organization_id=self.scope.organization_id,
                 client_id=self.scope.client_id,
                 study_id=self.scope.study_id,
-                subject_type="lead_self_update",
+                subject_type=ApprovalSubject.LEAD_SELF_UPDATE,
                 subject_id=turn_id,
                 run_id=lead_run_id,
                 project_id=run.project_id,
@@ -2744,9 +2783,11 @@ class WorkflowRepository:
         if not turn_ids:
             return {}
         subjects = or_(
-            ApprovalDecisionRow.subject_type.in_(("lead_job_request", "lead_self_update"))
+            ApprovalDecisionRow.subject_type.in_(
+                (ApprovalSubject.LEAD_JOB_REQUEST, ApprovalSubject.LEAD_SELF_UPDATE)
+            )
             & ApprovalDecisionRow.subject_id.in_(list(turn_ids)),
-            (ApprovalDecisionRow.subject_type == "lead_edit")
+            (ApprovalDecisionRow.subject_type == ApprovalSubject.LEAD_EDIT)
             & or_(
                 *(
                     ApprovalDecisionRow.subject_id.startswith(f"{t}:", autoescape=True)
@@ -2761,7 +2802,7 @@ class WorkflowRepository:
         ).all()
         found: dict[str, dict[str, Any]] = {}
         for row in rows:
-            if row.subject_type == "lead_self_update":
+            if row.subject_type == ApprovalSubject.LEAD_SELF_UPDATE:
                 entry = found.setdefault(row.subject_id, {"edits": {}, "request": None})
                 entry.setdefault(
                     "self_update",
@@ -2771,7 +2812,7 @@ class WorkflowRepository:
                     },
                 )
                 continue
-            if row.subject_type == "lead_job_request":
+            if row.subject_type == ApprovalSubject.LEAD_JOB_REQUEST:
                 entry = found.setdefault(row.subject_id, {"edits": {}, "request": None})
                 if entry["request"] is None:
                     comment = json.loads(row.comment or "{}")
@@ -2792,6 +2833,87 @@ class WorkflowRepository:
                 },
             )
         return found
+
+    def ledger(self, subjects: Collection[ApprovalSubject] | None = None) -> list[LedgerEntry]:
+        """This study's approval-ledger rows, oldest first, of ``subjects`` (every subject by
+        default): what was decided, on what, by whom, and whether by the producer themself.
+
+        The rows are read under all three of the scope's columns (organization, client,
+        study), so another study's decisions, or another organization's, are never in it. A
+        stored subject no :class:`ApprovalSubject` names cannot be (the CHECK constraint holds
+        the same set); one would raise here rather than be read as something it is not.
+        """
+        where = [
+            ApprovalDecisionRow.organization_id == self.scope.organization_id,
+            ApprovalDecisionRow.client_id == self.scope.client_id,
+            ApprovalDecisionRow.study_id == self.scope.study_id,
+        ]
+        if subjects is not None:
+            if not subjects:
+                return []
+            where.append(ApprovalDecisionRow.subject_type.in_(sorted(subjects)))
+        rows = self._session.scalars(
+            select(ApprovalDecisionRow).where(*where).order_by(ApprovalDecisionRow.decision_id)
+        ).all()
+        return [_ledger_entry(row) for row in rows]
+
+    def ledger_entry(self, decision_id: int) -> LedgerEntry | None:
+        """One of this study's approval-ledger rows by its id, or ``None`` when it is not this
+        study's (read under the scope's three columns, as :meth:`ledger`)."""
+        row = self._session.scalar(
+            select(ApprovalDecisionRow).where(
+                ApprovalDecisionRow.decision_id == decision_id,
+                ApprovalDecisionRow.organization_id == self.scope.organization_id,
+                ApprovalDecisionRow.client_id == self.scope.client_id,
+                ApprovalDecisionRow.study_id == self.scope.study_id,
+            )
+        )
+        return None if row is None else _ledger_entry(row)
+
+    def record_wallet_raise(
+        self,
+        wallet_id: str,
+        *,
+        from_cap_usd: float,
+        to_cap_usd: float,
+        study_budget_usd: float,
+        client_ceiling_usd: float | None,
+    ) -> int:
+        """Write a person's change of their study's wallet cap (ADR 0028 decision 2, lead-
+        orchestration LO1) in the append-only approval ledger, and return the row's id, which
+        the raise row names. The row records the two caps and the bounds the change was judged
+        under (the study's budget, the client's wallet ceiling). Needs ``APPROVE_BUDGET``, which
+        the worker's scope does not hold: a step cannot widen the wallet it spends from.
+        """
+        self.scope.require(Permission.APPROVE_BUDGET)
+        independence = observe_approval_independence(
+            producer_user_id=self.scope.actor_id,
+            approving_user_id=self.scope.actor_id,
+            policy=self.scope.self_approval,
+        )
+        row = ApprovalDecisionRow(
+            organization_id=self.scope.organization_id,
+            client_id=self.scope.client_id,
+            study_id=self.scope.study_id,
+            subject_type=ApprovalSubject.WALLET,
+            subject_id=wallet_id,
+            gate_type="wallet",
+            decision="set_cap",
+            comment=json.dumps(
+                {
+                    "from_cap_usd": from_cap_usd,
+                    "to_cap_usd": to_cap_usd,
+                    "study_budget_usd": study_budget_usd,
+                    "client_ceiling_usd": client_ceiling_usd,
+                },
+                sort_keys=True,
+            ),
+            request_id=self.scope.request_id,
+            **independence.audit_fields(),
+        )
+        self._session.add(row)
+        self._session.flush()
+        return int(row.decision_id)
 
     def record_design_research_acceptance(
         self,
@@ -2822,7 +2944,7 @@ class WorkflowRepository:
         recorded = self._session.scalar(
             select(ApprovalDecisionRow.decision_id).where(
                 ApprovalDecisionRow.study_id == self.scope.study_id,
-                ApprovalDecisionRow.subject_type == "design_research",
+                ApprovalDecisionRow.subject_type == ApprovalSubject.DESIGN_RESEARCH,
                 ApprovalDecisionRow.subject_id == selection_id,
             )
         )
@@ -2838,7 +2960,7 @@ class WorkflowRepository:
                 organization_id=self.scope.organization_id,
                 client_id=self.scope.client_id,
                 study_id=self.scope.study_id,
-                subject_type="design_research",
+                subject_type=ApprovalSubject.DESIGN_RESEARCH,
                 subject_id=selection_id,
                 run_id=run_id,
                 project_id=project_id,
@@ -3074,7 +3196,7 @@ class WorkflowRepository:
                 organization_id=self.scope.organization_id,
                 client_id=self.scope.client_id,
                 study_id=self.scope.study_id,
-                subject_type="gate",
+                subject_type=ApprovalSubject.GATE,
                 subject_id=gate_id,
                 run_id=gate.run_id,
                 step_id=gate.step_id,
@@ -3454,3 +3576,17 @@ class WorkQueue:
             failure=FailureClass.PERMISSION,
             error={"reason": reason},
         )
+
+
+def _ledger_entry(row: ApprovalDecisionRow) -> LedgerEntry:
+    return LedgerEntry(
+        decision_id=row.decision_id,
+        subject=ApprovalSubject(row.subject_type),
+        subject_id=row.subject_id,
+        run_id=row.run_id,
+        decision=row.decision,
+        approver_user_id=row.approver_user_id,
+        self_approved=row.self_approved,
+        comment=row.comment,
+        created_at=as_utc(row.created_at),
+    )

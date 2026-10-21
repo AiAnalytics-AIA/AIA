@@ -29,6 +29,9 @@ AIA_AI_FIELDWORK_RESERVATION_USD        budget held per request (primary + one r
 AIA_AI_FICTIONAL_CLIENT_IDS             optional; clients whose designs are Class C;
                                         refused outside local, test and develop
 AIA_BEDROCK_TIMEOUT_SECONDS             optional read timeout, default 300
+AIA_BEDROCK_INVOCATION_TARGET           optional; an application inference profile ARN
+                                        over AIA_BEDROCK_MODEL_ID, in AIA_BEDROCK_REGION:
+                                        what the calls go through; unset, the id itself
 AIA_AI_RESEARCH_LEAD_ENABLED            optional, off: the Research Lead's turns (ADR 0026)
 AIA_AI_RESEARCH_LEAD_MAX_OUTPUT_TOKENS  a Lead turn's output cap
 AIA_AI_RESEARCH_LEAD_RESERVATION_USD    held per turn: a primary and one repair at the
@@ -55,7 +58,17 @@ AIA_AI_RESEARCH_LEAD_STRUCTURED_OUTPUT        ``forced_tool`` or ``auto_tool``
 AIA_AI_RESEARCH_LEAD_THINKING                 ``budget`` or ``adaptive``
 AIA_AI_RESEARCH_LEAD_EFFORT                   optional, adaptive only: low, medium,
                                               high, xhigh or max
+AIA_AI_RESEARCH_LEAD_INVOCATION_TARGET        optional; the Lead model's application
+                                              inference profile ARN; unset, the id itself
 ============================================  ======================================
+
+**A model's identity and its invocation target** (``domain/model_invocation.py``,
+develop-spend-attribution 5a). Each ``…MODEL_ID`` is the model's identity -- priced, bound,
+recorded and validated as an ``eu.`` profile id, never loosened -- and each optional
+``…INVOCATION_TARGET`` is what its calls are sent through: an application inference profile ARN
+(tagged ``Environment=develop`` by Terraform) in the route's region, or, unset, the id itself.
+An ARN given as a ``…MODEL_ID`` is still refused; a target of any other shape stops the worker
+by name; two models never share one target.
 
 Retention is left unspecified unless configured, deliberately: the account's Bedrock
 data-retention setting is ``inherit``, which is not an explicit zero-retention policy,
@@ -91,6 +104,11 @@ from aia_core.domain.ai_models import (
 from aia_core.domain.deep_research.request_limits import ModelPrices, reservation_usd
 from aia_core.domain.deployment import fictional_material_problem, parse_environment
 from aia_core.domain.licence_determinations import recorded_policy
+from aia_core.domain.model_invocation import (
+    InvocationTargetRefused,
+    ModelInvocation,
+    invocation_target,
+)
 from aia_core.domain.providers import Provider
 from aia_core.domain.research_lead import lead_request_window_tokens
 from aia_core.domain.residency import DataClass, EgressPolicy, ProviderRoute, ResidencyZone
@@ -115,6 +133,9 @@ from .ai_fieldwork import AIFieldwork, AIFieldworkConfig, PopulationLoader, popu
 __all__ = [
     "AIRuntimeConfigError",
     "AIRuntimeSettings",
+    # The model wire a composition may pass to build_gateway (registry.compose_registry).
+    "BedrockSigner",
+    "HttpTransport",
     "LeadModelSettings",
     "LightModelSettings",
     "build_ai_fieldwork",
@@ -206,6 +227,9 @@ class LightModelSettings:
     context_window_tokens: int
     cache_read_usd_per_mtok: float | None = None
     cache_write_usd_per_mtok: float | None = None
+    #: An application inference profile ARN over ``model_id`` (5a); ``None``: the id itself.
+    #: Checked against the route's region when the gateway is built.
+    invocation_target: str | None = None
 
     def __post_init__(self) -> None:
         if not _pinned_eu_profile(self.model_id):
@@ -297,6 +321,9 @@ class LeadModelSettings:
     effort: Effort | None = None
     cache_read_usd_per_mtok: float | None = None
     cache_write_usd_per_mtok: float | None = None
+    #: ``AIA_AI_RESEARCH_LEAD_INVOCATION_TARGET`` (5a): an application inference profile ARN over
+    #: ``model_id``; ``None``: the id itself. Checked against the route's region at start.
+    invocation_target: str | None = None
 
     def __post_init__(self) -> None:
         if not _lead_eu_profile(self.model_id):
@@ -363,6 +390,8 @@ class LeadModelSettings:
             ),
             thinking=_choice(env, "AIA_AI_RESEARCH_LEAD_THINKING", ThinkingMode),
             effort=_choice(env, "AIA_AI_RESEARCH_LEAD_EFFORT", Effort) if effort_raw else None,
+            invocation_target=(env.get("AIA_AI_RESEARCH_LEAD_INVOCATION_TARGET") or "").strip()
+            or None,
         )
 
     def request_profile(self) -> RequestProfile:
@@ -464,6 +493,10 @@ class AIRuntimeSettings:
     #: (``StepModelCaller(announce=)``): counts, cost and latency, never text. Two
     #: lease-fenced writes per request, so it is a switch (CLAUDE.md § 8).
     step_events: bool = False
+    #: ``AIA_AI_SCALE_LABELS_IN_PROMPT`` (off by default): fieldwork writes a scale question's
+    #: verbal labels into its item (input-interactions 3b). The wording is provisional until
+    #: the methodology owner signs it; on, the respondent prompt's identity changes.
+    scale_labels_in_prompt: bool = False
     #: ``AIA_AI_POPULATION_PERSONAS_ENABLED`` (off by default): fieldwork can serve a run that
     #: pinned respondents drawn from its population (plan panel-grounded-respondents 5d). On,
     #: ``AIA_POPULATION_ASSET_ROOT`` is required: the directory the population is read from.
@@ -480,6 +513,36 @@ class AIRuntimeSettings:
     #: read and checked whenever its id is set; ``STUDY_LEAD`` is bound to it only while the
     #: Lead can answer a turn (:attr:`study_lead_model`). ``None``: the route's model.
     lead_model: LeadModelSettings | None = None
+    #: ``AIA_BEDROCK_INVOCATION_TARGET`` (develop-spend-attribution 5a): the application
+    #: inference profile the route model's calls go through; ``None``: ``model_id`` itself.
+    invocation_target: str | None = None
+
+    def invocations(self, light: LightModelSettings | None = None) -> dict[str, ModelInvocation]:
+        """Each model this composition calls, by identity, with what its calls are sent through.
+
+        Raises :class:`AIRuntimeConfigError` for a target of the wrong shape or region, and for
+        two models sharing one target (one profile per model: its tag and IAM grant are its own).
+        """
+        models: list[tuple[str, str | None, str]] = [
+            (self.model_id, self.invocation_target, "AIA_BEDROCK_INVOCATION_TARGET")
+        ]
+        lead = self.lead_model  # checked whenever it is set, as its id is
+        if lead is not None:
+            models.append(
+                (lead.model_id, lead.invocation_target, "AIA_AI_RESEARCH_LEAD_INVOCATION_TARGET")
+            )
+        if light is not None:
+            models.append((light.model_id, light.invocation_target, "the light model's target"))
+        found: dict[str, ModelInvocation] = {}
+        for identity, target, key in models:
+            try:
+                found[identity] = invocation_target(identity, target, region=self.region)
+            except InvocationTargetRefused as exc:
+                raise AIRuntimeConfigError(f"{key}: {exc}") from exc
+        targets = [i.target for i in found.values()]
+        if len(set(targets)) != len(targets):
+            raise AIRuntimeConfigError("two models name the same invocation target")
+        return found
 
     @property
     def study_lead_configured(self) -> bool:
@@ -597,6 +660,7 @@ class AIRuntimeSettings:
             if _flag(env, "AIA_AI_RESEARCH_AGENTS_ENABLED", required=False)
             else 0,
             step_events=_flag(env, "AIA_AI_STEP_EVENTS", required=False),
+            scale_labels_in_prompt=_flag(env, "AIA_AI_SCALE_LABELS_IN_PROMPT", required=False),
             population_personas_enabled=_flag(
                 env, "AIA_AI_POPULATION_PERSONAS_ENABLED", required=False
             ),
@@ -622,6 +686,7 @@ class AIRuntimeSettings:
             if _flag(env, "AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED", required=False)
             else 0,
             lead_model=LeadModelSettings.from_env(env),
+            invocation_target=(env.get("AIA_BEDROCK_INVOCATION_TARGET") or "").strip() or None,
         )
         if settings.lead_model is not None and settings.lead_model.model_id == model_id:
             raise AIRuntimeConfigError(
@@ -630,6 +695,7 @@ class AIRuntimeSettings:
             )
         if _flag(env, "AIA_AI_RESEARCH_LEAD_ENABLED", required=False):
             settings = _with_study_lead(settings, env)
+        settings.invocations()  # every target checked at start, by name
         if settings.population_personas_enabled and settings.population_asset_root is None:
             raise AIRuntimeConfigError(
                 "AIA_AI_POPULATION_PERSONAS_ENABLED needs AIA_POPULATION_ASSET_ROOT: the "
@@ -857,6 +923,8 @@ def build_gateway(
 
         signer = InstanceRoleSigner(region=settings.region)
 
+    targets = settings.invocations(light)
+
     def pinned(model_id: str) -> BedrockConverseAdapter:
         return BedrockConverseAdapter(
             transport=transport,
@@ -864,6 +932,7 @@ def build_gateway(
             region=settings.region,
             model_id=model_id,
             timeout_s=settings.timeout_s,
+            invocation_target=targets[model_id].target,
         )
 
     main = pinned(settings.model_id)
@@ -927,6 +996,7 @@ def build_ai_fieldwork(
             max_output_tokens=settings.fieldwork_max_output_tokens,
             fictional_client_ids=settings.fictional_client_ids,
             material_approvals=settings.material_approvals,
+            scale_labels_in_prompt=settings.scale_labels_in_prompt,
         ),
         build=build,
     )

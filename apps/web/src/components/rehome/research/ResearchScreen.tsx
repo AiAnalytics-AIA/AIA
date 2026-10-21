@@ -68,6 +68,18 @@ const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 /** A design proposal a person has still to decide, as the server projects it (ADR 0026 decision 8). */
 const pendingProposal = (j: ResearchAgentJob) => j.status === "COMPLETED" && !isAdviceAction(j.action) && j.proposal_state === "pending";
 
+/** The stable item ids switch once read (/config's stableItemIds, WCE1); null until then. */
+let itemIdsKnown: boolean | null = null;
+
+/** Whether the store keeps stable item ids: off when the config cannot be read. */
+function stableItemIds(): Promise<boolean> {
+  if (itemIdsKnown !== null) return Promise.resolve(itemIdsKnown);
+  return loadConfig().then(
+    (c) => (itemIdsKnown = c.stableItemIds === true),
+    () => false,
+  );
+}
+
 /** The study's working content, loaded once and kept while the person stays in the study (its layout). */
 export function ResearchSession({ studyId, initialContent, children }: { studyId: string; initialContent?: WorkingContent; children: ReactNode }) {
   const [loaded, setLoaded] = useState<Loaded>({ kind: "loading" });
@@ -77,12 +89,15 @@ export function ResearchSession({ studyId, initialContent, children }: { studyId
   useEffect(() => {
     let live = true;
     let store: ResearchStore | null = null;
-    (version === 0 && initialContent ? Promise.resolve(readWorkingContent(initialContent)) : loadResearch(studyId)).then(
-      (r) => {
+    // Stable item ids are kept only behind their switch (WCE1); a config that cannot be read is off.
+    stableItemIds().then((itemIds) =>
+      (version === 0 && initialContent ? Promise.resolve(readWorkingContent(initialContent, { itemIds })) : loadResearch(studyId, undefined, { itemIds })).then((r) => ({ r, itemIds })),
+    ).then(
+      ({ r, itemIds }) => {
         if (!live) return;
         if (r.kind === "awaiting_migration") return setLoaded({ kind: "awaiting_migration" });
         if (r.kind === "unrecoverable") return setLoaded({ kind: "unrecoverable", template: r.template, canEdit: r.canEdit });
-        const s = new ResearchStore(r.state, studyId, { readOnly: !r.canEdit });
+        const s = new ResearchStore(r.state, studyId, { readOnly: !r.canEdit, itemIds });
         store = s;
         setLoaded({ kind: "ready", store: s, template: r.template, origin: r.origin });
       },
@@ -97,7 +112,7 @@ export function ResearchSession({ studyId, initialContent, children }: { studyId
   // Nothing survived in 18.6.6: a person who may edit starts again, explicitly,
   // from the template. The first save records it with the study (ADR 0018).
   const startAgain = useCallback(() => {
-    setLoaded((l) => (l.kind === "unrecoverable" && l.canEdit ? { kind: "ready", store: new ResearchStore(newResearch(l.template), studyId), template: l.template, origin: null } : l));
+    setLoaded((l) => (l.kind === "unrecoverable" && l.canEdit ? { kind: "ready", store: new ResearchStore(newResearch(l.template), studyId, { itemIds: itemIdsKnown === true }), template: l.template, origin: null } : l));
   }, [studyId]);
 
   const value = useMemo(
@@ -254,7 +269,9 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
     return () => clearTimeout(id);
   }, [toast]);
 
-  const agents = useResearchAgents(frame.studyId, store, setJob, true, true);
+  const confirm = useCallback((m: string) => new Promise<boolean>((resolve) => setAsk({ kind: "confirm", message: m, resolve })), []);
+  // A job reaching the study's confirmation threshold asks here first (LO15).
+  const agents = useResearchAgents(frame.studyId, store, setJob, true, true, confirm);
   const nativeRun = agents.run;
 
   // Design actions remain research agent jobs; Deep Research uses its own durable panel.
@@ -269,6 +286,29 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
     },
     [nativeRun],
   );
+  const nativeContinue = agents.continueJob;
+  const continueJob = useCallback(
+    async (jobId: string) => {
+      try {
+        return await nativeContinue(jobId);
+      } catch (e) {
+        if (e instanceof JobError && e.kind === "busy") setToast(e.message);
+        throw e;
+      }
+    },
+    [nativeContinue],
+  );
+  // One lift per waiting job (Codex on #533): a stage that shows a job's wait in place claims it,
+  // and the screen's list of waiting jobs leaves that job out.
+  const [claimed, setClaimed] = useState<readonly string[]>([]);
+  const claimWait = useCallback((jobId: string) => {
+    setClaimed((c) => [...c, jobId]);
+    return () => setClaimed((c) => { const i = c.indexOf(jobId); return i < 0 ? c : [...c.slice(0, i), ...c.slice(i + 1)]; });
+  }, []);
+  // A wait lifted from the list goes on as the same job, its proposal opened like any other.
+  const continueListed = useCallback((job: ResearchAgentJob) => {
+    continueJob(job.run_id).catch((e: unknown) => { if (!(e instanceof JobError && e.kind === "busy")) setToast(message(e)); });
+  }, [continueJob]);
 
   const onCancel = (jobId: string) =>
     setAsk({
@@ -283,14 +323,13 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
       },
     });
 
-  const confirm = useCallback((m: string) => new Promise<boolean>((resolve) => setAsk({ kind: "confirm", message: m, resolve })), []);
   const prompt = useCallback(
     (m: string, initial = "") => new Promise<string | null>((resolve) => setAsk({ kind: "prompt", message: m, initial, resolve })),
     [],
   );
   const value = useMemo(
-    () => ({ store, template, runJob, job, toast: setToast, confirm, prompt, memory, stepHref, frame }),
-    [store, template, runJob, job, confirm, prompt, memory, stepHref, frame],
+    () => ({ store, template, runJob, continueJob, claimWait, job, toast: setToast, confirm, prompt, memory, stepHref, frame }),
+    [store, template, runJob, continueJob, claimWait, job, confirm, prompt, memory, stepHref, frame],
   );
   const Screen = STEP_SCREENS[step];
   const aiHelp = aiHelpFor(step);
@@ -316,7 +355,7 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
               {expanded ? panel : card}
               {onTrack ? <Blockers state={state} stepHref={stepHref} /> : null}
               {agents.notice ? <p role="status" className="text-sm text-ink-muted">{agents.notice}</p> : null}
-              <AgentBudgetWaits jobs={agents.recent} studyId={frame.studyId} canEdit={frame.canEdit} onChanged={agents.refresh} />
+              <AgentBudgetWaits jobs={agents.recent} studyId={frame.studyId} canEdit={frame.canEdit} onChanged={agents.refresh} exclude={claimed} onLifted={continueListed} />
               {savedProposals.length ? <section className="rounded-md border border-border p-3"><h2 className="mb-2 text-sm font-semibold">{t("research.aiSaved")}</h2>
                 <div className="flex flex-wrap gap-2">
                   {savedProposals.slice(0, 5).map((j) => <Button key={j.run_id} disabled={agents.busy} onClick={() => void agents.open(j)}>{ACTION_LABELS[j.action]} · {j.created_at ? new Date(j.created_at).toLocaleString("cs-CZ") : ""}</Button>)}
@@ -360,7 +399,7 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
             </div>
           )}</InspectorProvider>
         {agents.notice ? <p role="status" className="my-3 text-sm text-ink-muted">{agents.notice}</p> : null}
-        <AgentBudgetWaits jobs={agents.recent} studyId={frame.studyId} canEdit={frame.canEdit} onChanged={agents.refresh} />
+        <AgentBudgetWaits jobs={agents.recent} studyId={frame.studyId} canEdit={frame.canEdit} onChanged={agents.refresh} exclude={claimed} onLifted={continueListed} />
         {savedProposals.length ? <section className="my-4 rounded-md border border-border p-4"><h2 className="mb-2 font-semibold">{t("research.aiSaved")}</h2>
           <div className="flex flex-wrap gap-2">
             {savedProposals.slice(0, 5).map((j) => <Button key={j.run_id} disabled={agents.busy} onClick={() => void agents.open(j)}>{ACTION_LABELS[j.action]} · {j.created_at ? new Date(j.created_at).toLocaleString("cs-CZ") : ""}</Button>)}

@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import type { MethodModuleDetail, MethodValue } from "./api";
 import fixture from "./fixtures/methodology.json";
-import { formulaMathML, groupSteps, showNumber, showValue } from "./methodology";
+import { formulaMathML, groupSteps, showNumber, showValue, stepNumbers, stepOrigin } from "./methodology";
 
 type Document = { modules: { id: string }[]; details: Record<string, Record<string, MethodModuleDetail>> };
 const doc = fixture as unknown as Document;
@@ -90,5 +90,22 @@ describe("groups", () => {
   it("put a module without groups in one block", () => {
     const flat = { ...doc.details.sociomap["aia-sociomap-3"], groups: [] };
     expect(groupSteps(flat)).toEqual([{ group: null, steps: flat.step_details }]);
+  });
+});
+
+describe("step numbers", () => {
+  const groups = [
+    { id: "M", step_ids: ["method"] },
+    { id: "inputs", step_ids: ["a", "b"] },
+    { id: "pairs", step_ids: ["c", "d", "e"] },
+  ];
+
+  it("number each step by its stage and its place in that stage's full list; the method names none", () => {
+    expect(Object.fromEntries(stepNumbers(groups))).toEqual({ a: "M1.1", b: "M1.2", c: "M2.1", d: "M2.2", e: "M2.3" });
+  });
+
+  it("names a step's origin: the audit point, or the signed-off methodology", () => {
+    expect(stepOrigin("F6")).toBe("Původ: audit F6");
+    expect(stepOrigin("AIA")).toBe("Původ: schválená metodika AIA");
   });
 });

@@ -16,6 +16,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
+from aia_core.application.wallet import set_study_status as change_study_status
 from aia_core.domain.scope import (
     ClientStatus,
     OrganizationRole,
@@ -32,6 +33,8 @@ from ..dependencies import (
     PrincipalDep,
     ResolverDep,
     ScopeRepositoryDep,
+    SessionDep,
+    SettingsDep,
     StudyScopeDep,
     require_permission,
 )
@@ -462,15 +465,22 @@ def get_study(scope: StudyScopeDep, repo: ScopeRepositoryDep) -> StudyResponse:
 def set_study_status(
     body: StudyStatusRequest,
     scope: StudyScopeDep,
-    repo: ScopeRepositoryDep,
+    session: SessionDep,
+    settings: SettingsDep,
 ) -> StudyResponse:
     """Change the lifecycle status.
 
     Marking a study DELIVERED requires sign-off authority, because delivery is
-    the point at which work becomes client-visible and is frozen.
+    the point at which work becomes client-visible and is frozen. A study that
+    closes closes its wallet too, when the wallet is on (lead-orchestration LO1).
     """
     try:
-        study = repo.set_study_status(scope, StudyStatus(body.status))
+        study = change_study_status(
+            session,
+            scope,
+            StudyStatus(body.status),
+            wallet_enabled=settings.study_wallet_enabled,
+        )
     except ScopeDenied as exc:
         raise _forbidden(exc) from exc
     return _study_response(

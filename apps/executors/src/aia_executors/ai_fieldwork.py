@@ -43,6 +43,7 @@ from aia_core.domain.ai_respondent import (
     PROMPT_SHA256,
     PROMPT_VERSION,
     ROSTER_VERSION,
+    SCALE_LABEL_WORDING,
     RespondentOutputInvalid,
     RespondentPlan,
     UnsupportedFact,
@@ -145,6 +146,11 @@ class AIFieldworkConfig:
     fictional_client_ids: frozenset[str]
     progress_every: int = 10
     material_approvals: tuple[MaterialApproval, ...] = ()
+    #: ``AIA_AI_SCALE_LABELS_IN_PROMPT`` (off by default): a scale question's verbal labels in
+    #: its item, in the provisional wording the methodology owner signs before it is switched
+    #: on (input-interactions 3b). On, it changes the respondent prompt's identity, so the
+    #: dataset's respondent system and provenance say so.
+    scale_labels_in_prompt: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -171,6 +177,9 @@ class Answered:
     resolution: Any
     #: Per respondent, in ``rows``' order: what each item's draw recorded (its probabilities).
     details: list[dict[str, dict[str, Any]]]
+    #: Whether the requests carried the scale labels: the value used, which is what the
+    #: dataset records, never the composition's switch read again.
+    scale_labels_in_prompt: bool = False
 
 
 class AIFieldwork:
@@ -208,6 +217,7 @@ class AIFieldwork:
         data_class: DataClass,
         lineage: DataLineage,
         require_binding: str | None = None,
+        scale_labels_in_prompt: bool | None = None,
     ) -> Answered | Failed:
         """Ask the model every block of every plan and draw the answers by code.
 
@@ -219,8 +229,16 @@ class AIFieldwork:
         ``require_binding`` is the provider, model and route the answers must come from (a
         validation's preregistered binding): the preflight's resolution is compared with it
         before the first request, and a different one fails by name, nothing sent.
+
+        ``scale_labels_in_prompt`` overrides the composition's switch: a validation's arms ask
+        the respondent system it preregistered, which names its prompt.
         """
         cfg = self._config
+        labelled = (
+            cfg.scale_labels_in_prompt
+            if scale_labels_in_prompt is None
+            else (scale_labels_in_prompt)
+        )
         items = {i.item_id: i for i in plan_items(spec)}
         caller = self._caller_factory(
             gateway=self._gateway,
@@ -242,6 +260,7 @@ class AIFieldwork:
                 lineage=lineage,
                 max_output_tokens=cfg.max_output_tokens,
                 response=response,
+                scale_labels_in_prompt=labelled,
             )
 
         first = next((i for i, p in enumerate(plans) if p.blocks), None)
@@ -324,7 +343,13 @@ class AIFieldwork:
             if done % max(1, cfg.progress_every) == 0 or done == len(plans):
                 context.progress("AI respondenti odpověděli", respondents=done, of=len(plans))
 
-        return Answered(rows=rows, calls=calls, resolution=resolution, details=details)
+        return Answered(
+            rows=rows,
+            calls=calls,
+            resolution=resolution,
+            details=details,
+            scale_labels_in_prompt=labelled,
+        )
 
     def binding(self, resolution: Any) -> str:
         """The provider, model and route a preflight resolved, as a respondent system names it."""
@@ -460,7 +485,15 @@ class AIFieldwork:
         dataset = assemble_dataset(spec, rows, seed=seed)
         provenance = {
             "agent": {"id": AGENT_ID, "version": AGENT_VERSION},
-            "prompt": {"id": PROMPT_ID, "version": PROMPT_VERSION, "sha256": PROMPT_SHA256},
+            "prompt": {
+                "id": PROMPT_ID,
+                "version": PROMPT_VERSION,
+                "sha256": PROMPT_SHA256,
+                # Only when on: a run made with the switch off records what it always did.
+                **(
+                    {"scale_labels": SCALE_LABEL_WORDING} if answered.scale_labels_in_prompt else {}
+                ),
+            },
             "contract_version": CONTRACT_VERSION,
             "generator": GENERATOR,
             "behavior_version": BEHAVIOR_VERSION,
@@ -491,6 +524,7 @@ class AIFieldwork:
             system = respondent_system(
                 population,
                 model_binding=self.binding(resolution),
+                scale_labels_in_prompt=answered.scale_labels_in_prompt,
             )
         return ProducedDataset(
             dataset=dataset,

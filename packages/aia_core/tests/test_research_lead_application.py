@@ -617,10 +617,32 @@ def test_the_spend_limit_holds_a_prepared_job(scoped: Any, session: Any) -> None
         "confirmed_usd": 2.0,
     }
     assert started["run_id"]
+    # The job's own start applied the same rule (LO15) and wrote the job's spend row.
+    (spend,) = _ledger(session, "spend")
+    assert (spend.run_id, spend.decision) == (started["run_id"], "confirm")
+    assert json.loads(spend.comment) == {"ceiling_usd": 2.0, "limit_usd": 1.0, "confirmed_usd": 2.0}
     # Below the limit, nothing is asked.
     scope2, turn2 = _ready(scoped, session, JOB, user="researcher", study="sibling")
     scoped.scope_repo.set_study_spend_confirm(scope2, 5.0)
     assert _lead(scope2, session).approve_request(turn2, confirm_cost_usd=None, reservation_usd=2.0)
+
+
+def test_an_approval_that_finds_its_job_already_there_records_no_new_spend(
+    scoped: Any, session: Any
+) -> None:
+    """Two turns preparing the same job on the same design: the second approval starts nothing
+    (the job exists), so its ledger row confirms no spend and no second spend row is written."""
+    scope, first = _ready(scoped, session, JOB)
+    scoped.scope_repo.set_study_spend_confirm(scope, 1.0)
+    one = _lead(scope, session).approve_request(first, confirm_cost_usd=2.0, reservation_usd=2.0)
+    second = _message(_lead(scope, session))[-1]["turn_id"]
+    _complete(session, scope, JOB)
+    two = _lead(scope, session).approve_request(second, confirm_cost_usd=2.0, reservation_usd=2.0)
+    assert two["run_id"] == one["run_id"]
+    rows = {r.subject_id: json.loads(r.comment) for r in _ledger(session, "lead_job_request")}
+    assert rows[first]["spend"] == {"ceiling_usd": 2.0, "limit_usd": 1.0, "confirmed_usd": 2.0}
+    assert rows[second]["spend"] is None
+    assert len(_ledger(session, "spend")) == 1
 
 
 def test_only_an_agent_job_is_approved_here(scoped: Any, session: Any) -> None:

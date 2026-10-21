@@ -14,21 +14,27 @@ import { BudgetLift } from "./BudgetLift";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
-export function AgentBudgetWaits({ jobs, studyId, canEdit, onChanged }: {
+export function AgentBudgetWaits({ jobs, studyId, canEdit, onChanged, exclude = [], onLifted }: {
   jobs: ResearchAgentJob[];
   studyId: string;
   canEdit: boolean;
   onChanged: () => Promise<unknown>;
+  /** Jobs whose wait a stage already shows in place, with its own lift: one lift per job. */
+  exclude?: readonly string[];
+  /** Go on with the job once lifted (its proposal opened as any other); without it, only the list is read again. */
+  onLifted?: (job: ResearchAgentJob) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const waiting = jobs.filter((j) => !j.is_terminal && j.steps.some((s) => s.status === "AWAITING_BUDGET"));
+  const waiting = jobs.filter((j) => !j.is_terminal && j.steps.some((s) => s.status === "AWAITING_BUDGET") && !exclude.includes(j.run_id));
   if (!waiting.length) return null;
   const lift = async (job: ResearchAgentJob, total: number, note: string) => {
     setBusy(true); setError(null);
-    try { await researchAgents.liftBudget(studyId, job.run_id, total, note); await onChanged(); }
-    catch (e) { setError(message(e)); }
-    finally { setBusy(false); }
+    try { await researchAgents.liftBudget(studyId, job.run_id, total, note); }
+    catch (e) { setError(message(e)); setBusy(false); return; }
+    try { await onChanged(); } catch { /* the list is read again on its next refresh */ }
+    setBusy(false);
+    onLifted?.(job);
   };
   return (
     <section aria-labelledby="agent-budget-title" className="my-4 flex flex-col gap-3 rounded-md border border-status-you-ink/40 bg-status-you-wash p-4 text-sm">
