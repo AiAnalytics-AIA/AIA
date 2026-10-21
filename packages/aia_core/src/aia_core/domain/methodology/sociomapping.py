@@ -62,7 +62,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         title_cs="Jen úplní respondenti, bez vah",
         formula_latex=(r"K = \{k : a_{kj}\ \text{zodpovězeno pro všechna}\ j\},\quad w_k = 1"),
         implements=f"{_R}:battery_sociomapping",
-        source_sha256="fcb6824892daa480e982997811092e2d0a22b358fc439ed7ec8cafdec99172cc",
+        source_sha256="97051d17f4ebfb4d0a1d9dfad80a33567e24d53a3e4879cfa01fb69823b91a1a",
         symbols=(Symbol("K", "respondenti, kteří ohodnotili každý objekt sady"),),
         constants=(
             ConstantRef(f"{_R}:_COMPLETE_CASES_RULE", "Pravidlo vyřazení"),

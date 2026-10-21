@@ -380,6 +380,9 @@ class Item:
     allow_dont_know: bool = False
     #: The scale's verbal labels: the two ends or one per point (``research_design``).
     scale_labels: tuple[str, ...] | None = None
+    #: A set's two ends as develop wrote them (``SpecBattery.told_ends``): what the item says
+    #: while the scale labels stay off the prompt.
+    told_ends: tuple[str, str] | None = None
     question: SpecQuestion | None = None
 
     @property
@@ -434,6 +437,7 @@ def plan_items(spec: ResearchSpecification) -> tuple[Item, ...]:
                     b.question_template.replace("{object}", o.label),
                     scale=b.scale,
                     scale_labels=b.scale_labels,
+                    told_ends=b.told_ends,
                 )
             )
     return tuple(items)
@@ -604,10 +608,10 @@ def _instruction(item: Item, *, scale_labels_in_prompt: bool = False) -> str:
         low, high = item.scale
         if scale_labels_in_prompt:
             ends = scale_label_wording(item.scale, item.scale_labels or ())
-        elif item.scale_labels and item.question is None:
-            # Off: a tracked set's two ends, as they were always written; a question's labels
+        elif item.told_ends is not None:
+            # Off: a tracked set's two ends exactly as develop wrote them; a question's labels
             # are not shown (input-interactions 3b keeps them behind the switch).
-            ends = f" ({low} = {item.scale_labels[0]}, {high} = {item.scale_labels[-1]})"
+            ends = f" ({low} = {item.told_ends[0]}, {high} = {item.told_ends[1]})"
         else:
             ends = ""
         tail = " a poslední pro „nevím“" if item.allow_dont_know else ""

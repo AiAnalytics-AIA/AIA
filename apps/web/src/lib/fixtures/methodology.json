@@ -1128,7 +1128,7 @@
       "reading_cs": "{tracked_set.min} ≤ počet ≤ {tracked_set.max}, doporučeno {tracked_set.recommended_min}–{tracked_set.recommended_max}",
       "role_cs": "Kolik srovnatelných položek (značek, médií, emocí) smí mít jedna sledovaná sada. Mimo pevné meze se návrh nesestaví; mimo doporučené kontrola jen upozorní.",
       "source_cs": "položky každé sledované sady v dotazníku",
-      "source_sha256": "308b0fdfa92871961bac4ed816c6c4b7ea19bbf4e7be539fb000194addb2b345",
+      "source_sha256": "4f83d0bb95488d3997d74ddfd7021b5f320a5e645b1145b033514025fabebd49",
       "symbols": [
        {
         "latex": "k",
@@ -19066,7 +19066,7 @@
       "reading_cs": "",
       "role_cs": "",
       "source_cs": "",
-      "source_sha256": "fcb6824892daa480e982997811092e2d0a22b358fc439ed7ec8cafdec99172cc",
+      "source_sha256": "97051d17f4ebfb4d0a1d9dfad80a33567e24d53a3e4879cfa01fb69823b91a1a",
       "symbols": [
        {
         "latex": "K",

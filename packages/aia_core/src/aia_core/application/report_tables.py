@@ -85,14 +85,16 @@ def _label(ref: str, question_id: str, detail: str | None) -> str:
 
 def scale_notes(spec: ResearchSpecification) -> dict[str, str]:
     """The note a scale item's table carries, by question id: its labelled points as the
-    respondents were given them (input-interactions 3b). A question without labels has none;
-    every tracked object has its set's."""
+    design declared them (input-interactions 3b), never a claim about what a respondent was
+    sent (that is the dataset's provenance). A question without labels has none; every
+    tracked object has its set's, its two ends as develop read them (``told_ends``)."""
     notes: dict[str, str] = {}
     for q in spec.questions:
         if q.scale is not None and q.scale_labels:
             notes[q.id] = f"Škála: {scale_wording(q.scale, q.scale_labels)}."
     for b in spec.batteries:
-        note = f"Škála: {scale_wording(b.scale, b.scale_labels)}."
+        labels = b.told_ends if len(b.scale_labels) == 2 else b.scale_labels
+        note = f"Škála: {scale_wording(b.scale, labels)}."
         for o in b.objects:
             notes[b.question_id(o)] = note
     return notes

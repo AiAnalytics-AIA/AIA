@@ -307,6 +307,11 @@ class SpecBattery(_Frozen):
     roles_declared: bool = False
     #: The research questions the design says this set measures, as :class:`SpecQuestion`'s.
     research_questions: tuple[str, ...] = ()
+    #: Develop's reading of the set's ends where it differs from :attr:`end_labels` (input-
+    #: interactions 3b; ``None`` otherwise, and then absent from the fingerprint): the first
+    #: two labels as written, or ``vůbec`` / ``velmi``. What respondents are told while the
+    #: labels stay off the prompt, so a stored design sends what it always sent.
+    develop_ends: tuple[str, str] | None = None
 
     @model_validator(mode="after")
     def _roles(self) -> SpecBattery:
@@ -325,6 +330,14 @@ class SpecBattery(_Frozen):
     def end_labels(self) -> tuple[str, str]:
         """The labels of the scale's two ends, whichever form was declared."""
         return (self.scale_labels[0], self.scale_labels[-1])
+
+    @property
+    def told_ends(self) -> tuple[str, str]:
+        """The two ends a respondent is told while ``AIA_AI_SCALE_LABELS_IN_PROMPT`` is off,
+        and the report and the map print: develop's reading (:func:`_develop_ends`), byte for
+        byte. It differs from :attr:`end_labels` only for labels the new rule leaves out or a
+        set labelled point by point, and is then stored as :attr:`develop_ends`."""
+        return self.develop_ends or self.end_labels
 
     def question_id(self, obj: SpecObject) -> str:
         return f"{self.id}_obj_{obj.id}"
@@ -395,6 +408,8 @@ class ResearchSpecification(_Frozen):
                 del battery["context_objects"]
             if not battery["research_questions"]:
                 del battery["research_questions"]
+            if battery["develop_ends"] is None:
+                del battery["develop_ends"]
         if body["selection"] is None:
             del body["selection"]
         return fingerprint(body)
@@ -487,6 +502,20 @@ def _scale(raw: Any, default: tuple[int, int]) -> tuple[int, int] | None:
     if low is None or high is None:
         return None
     return (low, high) if low < high else None
+
+
+def _develop_ends(raw: Any) -> tuple[str, str]:
+    """A set's two ends exactly as develop compiled them before scale labels were read
+    (``aia-research-compile-1``): the first two entries as text, ``vůbec`` / ``velmi`` unless
+    both are there and not blank. Kept so that, with the labels off the prompt, a stored set
+    sends its respondents what it always sent."""
+    try:
+        ends = [_text(x) for x in (raw or [])][:2]
+    except TypeError:  # not iterable: develop's compile failed here; no design holds one
+        ends = []
+    if len(ends) != 2 or not all(ends):
+        return ("vůbec", "velmi")
+    return (ends[0], ends[1])
 
 
 def _scale_labels(
@@ -694,11 +723,15 @@ def _battery(
     template = _text(raw.get("object_question") or "Jak hodnotíte položku {object}?")
     if "{object}" not in template:  # research_project.py:330-332
         template = template.rstrip(" ?") + " {object}?"
+    told = _develop_ends(raw.get("scale_labels"))
     stated = _scale_labels(
         raw.get("scale_labels"),
         scale,
         where=section_id,
-        instead="Konce škály se popíší jako „vůbec“ a „velmi“.",
+        instead=(
+            f"Respondentům se konce škály posílají jako dosud („{told[0]}“ a „{told[1]}“); "
+            "až se začnou posílat popisky bodů, popíší se jako „vůbec“ a „velmi“."
+        ),
         notes=notes,
     )
     scale_labels = stated or ("vůbec", "velmi")
@@ -745,6 +778,7 @@ def _battery(
         question_template=template,
         scale=scale,
         scale_labels=scale_labels,
+        develop_ends=None if told == (scale_labels[0], scale_labels[-1]) else told,
         objects=objects,
         familiarity_required=bool(raw.get("familiarity_required", False)),
         output_type=output_type

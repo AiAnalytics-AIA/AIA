@@ -27,6 +27,7 @@ from aia_core.domain.report.model import (
 from aia_core.domain.report.numbers import counted
 from aia_core.domain.research_design import (
     ResearchSpecification,
+    SpecBattery,
     SpecQuestion,
     labelled_points,
 )
@@ -51,6 +52,13 @@ def scale_wording(scale: tuple[int, int], labels: Sequence[str]) -> str:
     """A labelled scale's points as the report prints them, beside its values: the two ends
     or every point, low to high (``1 = vůbec, 10 = zcela``); empty for no labels."""
     return ", ".join(f"{value} = {label}" for value, label in labelled_points(scale, labels))
+
+
+def _ends(battery: SpecBattery) -> tuple[str, str]:
+    """A set's two ends as the report names them: as develop read them for a set labelled at
+    its ends (the report a stored design always had), the first and last point's for one
+    labelled point by point."""
+    return battery.told_ends if len(battery.scale_labels) == 2 else battery.end_labels
 
 
 def _question_line(q: SpecQuestion) -> ListItem:
@@ -123,7 +131,7 @@ def compose_design_sections(
     if spec.batteries:
         blocks.append(Heading("Porovnávané sady", 2))
         for battery in spec.batteries:
-            low, high = battery.end_labels
+            low, high = _ends(battery)
             blocks.append(
                 Paragraph(
                     (
@@ -176,7 +184,7 @@ def compose_design_sections(
         questionnaire.append(Heading(f"Blok {index}", 2))
         questionnaire.append(BulletList(tuple(_question_line(q) for q in questions)))
     for battery in spec.batteries:
-        low, high = battery.end_labels
+        low, high = _ends(battery)
         scale = (
             f"{battery.scale[0]} ({low}) až {battery.scale[1]} ({high})"
             if len(battery.scale_labels) == 2

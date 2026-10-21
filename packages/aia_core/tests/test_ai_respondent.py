@@ -394,3 +394,65 @@ def test_the_provisional_wording_lives_in_one_function() -> None:
     assert scale_label_wording((0, 2), ("ne", "možná", "ano")) == " (0 = ne, 1 = možná, 2 = ano)"
     assert scale_label_wording((1, 10), ()) == ""
     assert SCALE_LABEL_WORDING.startswith("aia-scale-labels-provisional")
+
+
+#: SHA-256 over every request a four-object set's design makes for two fictional respondents,
+#: per stored ``scale_labels``, computed with develop's code (@ 45e87184): with the switch off,
+#: a stored set sends exactly these bytes, whatever the new rule makes of its labels.
+_SET_REQUESTS_ON_DEVELOP = {
+    "duplicate": "0473f0ca9d86f9d74a9befeff91de2e9d47a93dfb58b9d1ade0a80a502b5752c",
+    "too_long": "a0782291bc07f22fa40a7ee91ae75391a57bda25fe977b183911910b0d92f1a7",
+    "three": "9a387bcb820b3b0619a8b90deb98c94838b8e3955a38aa391aeed6356d73eff0",
+    "every_point": "72908d1b91fde2f7966bc818d8f93ad761b5524f69e45701a80c728ea671b1e1",
+    "blank_end": "2565fc2d5428e606beaaa574aeb3a3eb6f7421d3b181523c5723420c938e0c89",
+    "numbers": "4e3f25848934ceb67eac1231ef925d952a658ea48d7220c5a244089dc9674a31",
+    "two": "1a683ac8fa083abe84f3cbd8b5253b3f4c155dd83dd3b65cf4b89fe455072f7f",
+}
+_SET_LABELS: dict[str, Any] = {
+    "duplicate": ["Ano", "ano"],
+    "too_long": ["x" * 61, "velmi"],
+    "three": ["nic", "trochu", "hodně"],
+    "every_point": [f"bod {i}" for i in range(1, 11)],
+    "blank_end": ["vůbec", ""],
+    "numbers": [1, 10],
+    "two": ["vůbec", "zcela"],
+}
+
+
+def _set_design(labels: Any) -> dict[str, Any]:
+    return {
+        "title": "Fiktivní sada",
+        "n": 4,
+        "sections": [
+            {
+                "type": "object_battery",
+                "title": "Nápoje",
+                "object_family": "nápoje",
+                "objects": ["Káva", "Čaj", "Kakao", "Džus"],
+                "object_question": "Jak hodnotíte {object}?",
+                "scale": [1, 10],
+                "scale_labels": labels,
+            }
+        ],
+    }
+
+
+@pytest.mark.parametrize("case", sorted(_SET_LABELS))
+def test_off_a_stored_sets_requests_are_develops_bytes(case: str) -> None:
+    """Review of #538: a set's ends are read exactly as develop read them while the switch is
+    off -- the first two as written, else vůbec / velmi -- whatever the new rule leaves out."""
+    spec, problems = compile_design(_set_design(_SET_LABELS[case]))
+    assert spec is not None, problems
+    assert _digest(_requests(spec)) == _SET_REQUESTS_ON_DEVELOP[case]
+
+
+def test_on_a_set_is_read_by_the_new_rule() -> None:
+    spec, _ = compile_design(_set_design(_SET_LABELS["every_point"]))
+    assert spec is not None
+    assert spec.batteries[0].told_ends == ("bod 1", "bod 2")  # develop's reading, kept off
+    on = "\n".join(_requests(spec, scale_labels_in_prompt=True))
+    assert "(1 = bod 1, 2 = bod 2, 3 = bod 3" in on and "10 = bod 10)" in on
+    duplicate, _ = compile_design(_set_design(_SET_LABELS["duplicate"]))
+    assert duplicate is not None
+    assert duplicate.batteries[0].told_ends == ("Ano", "ano")
+    assert "(1 = vůbec, 10 = velmi)" in "\n".join(_requests(duplicate, scale_labels_in_prompt=True))

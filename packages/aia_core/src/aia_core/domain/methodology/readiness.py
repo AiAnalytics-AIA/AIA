@@ -141,7 +141,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"k^{\mathrm{dop}}_{\min} \le k \le k^{\mathrm{dop}}_{\max}"
         ),
         implements=f"{_R}:_battery",
-        source_sha256="308b0fdfa92871961bac4ed816c6c4b7ea19bbf4e7be539fb000194addb2b345",
+        source_sha256="4f83d0bb95488d3997d74ddfd7021b5f320a5e645b1145b033514025fabebd49",
         symbols=(Symbol("k", "počet srovnatelných položek jedné sledované sady", "položky"),),
         parameters=(
             ParameterRef(
