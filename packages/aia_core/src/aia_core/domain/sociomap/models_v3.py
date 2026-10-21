@@ -634,6 +634,18 @@ class ObjectMapProvenance(_Frozen):
     implementation: str
     implementation_version: str
     input_fingerprints: dict[str, str]
+    #: What the worker computed a signed-off map with: its numerical libraries' versions and
+    #: its ``NUMBA_CACHE_DIR``, as the worker read them. ``None`` -- every earlier map, and any
+    #: map computed without them -- is left out of the stored form, so it reads, and
+    #: fingerprints, byte for byte as before.
+    runtime: dict[str, str] | None = None
+
+    @model_serializer(mode="wrap")
+    def _without_absent_runtime(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        body: dict[str, Any] = handler(self)
+        if body.get("runtime") is None:
+            body.pop("runtime", None)
+        return body
 
 
 class SociomapArtifactV3(_Frozen):

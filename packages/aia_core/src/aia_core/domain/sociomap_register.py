@@ -66,6 +66,23 @@ SOCIOMAP_REGISTER: Final[tuple[MethodApproval, ...]] = (
             "zobrazuje vztahy mezi hodnocenými objekty, nikoli jejich příčinu."
         ),
     ),
+    MethodApproval(
+        method_id="aia-sociomap-5",
+        spec_fingerprint="8b0b486443024475a64c06dd0124a24a0a39d3b6bf3937813715cd98032969e0",
+        status=MethodologyStatus.CLIENT_FACING,
+        decided_by="metodik AIA",
+        decided_on=date(2026, 10, 21),
+        record=(
+            ".planning/plans/signed-off-sociomap-method.md, chunk 8: the methodology owner "
+            "(2026-10-21) approved aia-sociomap-5 for reports when it became the default"
+        ),
+        reader_note=(
+            "Mapa je počítána schválenou metodikou AIA aia-sociomap-5, kterou metodik AIA "
+            "21. 10. 2026 schválil k použití ve zprávách. Zobrazuje vztahy mezi hodnocenými "
+            "objekty, nikoli jejich příčinu; jak spolehlivě je mapa určena, uvádí kontrola "
+            "polovin vzorku a poloměr nejistoty."
+        ),
+    ),
 )
 
 

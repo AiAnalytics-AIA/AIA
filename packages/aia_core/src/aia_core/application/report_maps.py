@@ -339,8 +339,7 @@ def compose_map_sections(
             views: tuple[str, ...] = (
                 ("top", "3d") if isinstance(artifact.terrain, EnvelopeTerrain) else ("top",)
             )
-            # The respondent map, a dot per respondent, stays in the internal report.
-            if panel and not client and isinstance(artifact.respondents, RespondentMap):
+            if panel and isinstance(artifact.respondents, RespondentMap):
                 views += ("respondents",)
             for view in views:
                 key = (battery["battery_id"], method, view)

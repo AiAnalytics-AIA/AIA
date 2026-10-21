@@ -423,7 +423,8 @@ def test_ai_respondents_answer_and_the_run_continues_through_aggregate_and_socio
     for node in ("aggregate", "sociomap"):
         assert steps[node]["status"] is StepRunStatus.SUCCEEDED
         assert steps[node]["output"]["data_origin"] == "SYNTHETIC_AI_FICTIONAL"
-    assert steps["sociomap"]["output"]["methodology_status"] == "INTERNAL_ONLY"
+    # aia-sociomap-5, what a new run pins, is approved in the register.
+    assert steps["sociomap"]["output"]["methodology_status"] == "CLIENT_FACING"
 
 
 def test_ai_respondents_answer_under_the_response_process_their_run_pinned(

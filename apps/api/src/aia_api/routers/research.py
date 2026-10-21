@@ -74,6 +74,7 @@ from aia_core.application.research import (
     ResearchQuestionsUnanswerable,
     ResearchRunNotFound,
     ResearchRunNotRetryable,
+    ResearchRunOnRetiredMethod,
     ResearchRuns,
     ResearchStepNotFound,
     RunReservations,
@@ -1113,6 +1114,33 @@ def _no_population(exc: PanelPopulationMissing) -> HTTPException:
     )
 
 
+def _retired_method(exc: ResearchRunOnRetiredMethod, study_id: str) -> HTTPException:
+    """409: the run's Sociomap method is one no new run computes, so it is not started again.
+    ``new_run`` is the request that starts a new run over the same Design Revision, which pins
+    ``aia-sociomap-5``, with the refused run's respondents, population and research-question
+    decision; nothing was started."""
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={
+            "code": "run_on_retired_method",
+            "message": (
+                "Běh byl spočten starší metodou Sociomapy a znovu se nespouští. Spusťte nový "
+                "běh ze stejné revize návrhu; spočte se metodou aia-sociomap-5. Nic nebylo "
+                "spuštěno."
+            ),
+            "details": {
+                "methods": exc.methods,
+                "design_revision_id": exc.design_revision_id,
+                "new_run": {
+                    "method": "POST",
+                    "href": f"/api/v1/studies/{study_id}/research/runs",
+                    "body": exc.new_run,
+                },
+            },
+        },
+    )
+
+
 def _started(runs: ResearchRuns, started: StartedRun, response: Response) -> ResearchRunResponse:
     if started.created:
         response.headers["Location"] = (
@@ -1549,7 +1577,8 @@ def resume_run(run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep) -> 
         200: {"description": "This run was already retried: that retry"},
         409: {
             "model": ErrorResponse,
-            "description": "The run is not failed or cancelled, or the study's limit asks first",
+            "description": "The run is not failed or cancelled, the study's limit asks first, "
+            "or it pinned a Sociomap method no new run computes (run_on_retired_method)",
         },
     },
 )
@@ -1584,6 +1613,8 @@ def retry_run(
         raise _cost_refused(exc) from exc
     except PanelPopulationMissing as exc:
         raise _no_population(exc) from exc
+    except ResearchRunOnRetiredMethod as exc:
+        raise _retired_method(exc, scope.study_id) from exc
     except ResearchRunNotRetryable as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -1684,6 +1715,8 @@ def retry_analysis(
         raise _unanswerable(exc) from exc
     except (CostConfirmationRequired, CostCeilingUnknown) as exc:
         raise _cost_refused(exc) from exc
+    except ResearchRunOnRetiredMethod as exc:
+        raise _retired_method(exc, scope.study_id) from exc
     except AnalysisNotRetryable as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

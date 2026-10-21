@@ -86,9 +86,11 @@ from ..domain.research_design import (
 from ..domain.research_sociomap import (
     SociomapMethod,
     default_methods,
+    is_retired,
     methods_fingerprint,
     read_methods,
     side_tables_of,
+    without_reference,
 )
 from ..domain.research_trace import (
     ResearchTrace,
@@ -137,6 +139,7 @@ __all__ = [
     "ResearchQuestionsUnanswerable",
     "ResearchRunNotFound",
     "ResearchRunNotRetryable",
+    "ResearchRunOnRetiredMethod",
     "ResearchRuns",
     "ResearchStepNotFound",
     "RunOutlook",
@@ -211,6 +214,26 @@ class ResearchRunNotRetryable(Exception):
     def __init__(self, status: WorkflowRunStatus) -> None:
         super().__init__(f"a {status.value} run cannot be retried")
         self.status = status
+
+
+class ResearchRunOnRetiredMethod(Exception):
+    """The run's object map is the earlier default's ``aia-sociomap-3`` (or it pinned the
+    reference map alone): it is never computed again. A new run over the same Design Revision
+    pins ``aia-sociomap-5``."""
+
+    def __init__(self, run: Mapping[str, Any], methods: list[str]) -> None:
+        run_id = str(run["run_id"])
+        design_revision_id = str(run["metadata"]["design_revision_id"])
+        super().__init__(
+            f"run {run_id} pinned {', '.join(methods)}, which no new run computes; start a new "
+            f"run over {design_revision_id} instead"
+        )
+        self.run_id = run_id
+        self.design_revision_id = design_revision_id
+        self.methods = methods
+        #: The start a new run takes to begin as this one did: the same revision, respondents,
+        #: population and research-question decision (a start's own fields, as the API reads them).
+        self.new_run = _new_run_start(run)
 
 
 class ResearchStepNotFound(LookupError):
@@ -617,10 +640,11 @@ class ResearchRuns:
         The run pins its Sociomap methods here, each with its whole spec
         (``sociomap_methods``; :func:`~aia_core.domain.research_sociomap.default_methods`
         when not given): the ``sociomap`` step computes exactly those, whatever the
-        module's preset becomes before it runs or is retried. A set the caller chooses over
-        the default is part of the run's identity, so the same revision under two chosen
-        sets is two runs; taking the default is not, so a start over a revision that has a
-        run (made under an earlier default) returns that run and pays for nothing again.
+        module's preset becomes before it runs or is retried. The set is part of the run's
+        identity, the default's included, so the same revision under two sets is two runs: a
+        start over a revision whose run pinned an earlier default (``aia-sociomap-1`` with
+        ``-3``) starts a new run on ``aia-sociomap-5`` rather than returning the old one. A run
+        stored with the old default's bare key keeps it.
 
         Idempotent: the same revision starts one run, and so does retrying the
         same run -- a double submission gets the run that already exists. Needs
@@ -667,11 +691,10 @@ class ResearchRuns:
             # An edited methodology is new identity: the same revision under it is another
             # run, and its cost goes through the spend confirmation below like any new run.
             key += f":methodology:{methodology['payload_sha256'][:16]}"
-        elif sociomap_methods is not None and methods != default_methods():
-            # Only a set the caller chose over the default is new identity. A start that
-            # takes the default keeps the key every earlier run of the revision has, so a
-            # re-start after the default changes returns the run that exists -- with the
-            # methods it pinned -- instead of paying for its fieldwork again.
+        else:
+            # The methods are identity, the default's too: a revision whose run pinned the old
+            # default (keyed bare, as every start that took a default was) gets a new run on
+            # the signed-off methodology, never the old run handed back as if it were one.
             key += f":sociomap:{methods_fingerprint(methods)[:16]}"
         if support_version is not None:
             key += f":support:{support_version['payload_sha256'][:16]}"
@@ -857,7 +880,16 @@ class ResearchRuns:
                     **({"frozen_dataset": frozen_dataset.step_input()} if frozen_dataset else {}),
                 },
                 "aggregate": {"support": support_pin, "aggregation": aggregation_pin},
-                "sociomap": {"methods": pinned},
+                "sociomap": {
+                    "methods": pinned,
+                    # An analysis retry of a run on the earlier default reuses its stored map
+                    # and never computes that method again.
+                    **(
+                        {"reuse_only": True}
+                        if frozen_dataset is not None and is_retired(methods)
+                        else {}
+                    ),
+                },
                 **(
                     analysis_step_inputs(
                         ClaimSurface.INTERNAL,
@@ -906,10 +938,12 @@ class ResearchRuns:
 
         A retry spends again, so it asks again: the limit and the confirmation work as they do
         for :meth:`start`. It pins the Sociomap methods the run it retries pinned, never the
-        current default; a run stored before methods were pinned retries as
-        ``aia-sociomap-1``, the method that computed it. It keeps the original's persona
-        source whatever the deployment's switch now says; a run stored before the source was
-        pinned retries on the fictional roster, which answered it.
+        current default, without the reference map; a run whose object map is ``aia-sociomap-3``
+        or that pinned the reference map alone (as a run stored before pins reads) is refused,
+        :class:`ResearchRunOnRetiredMethod`.
+        It keeps the original's persona source whatever the deployment's switch now says; a
+        run stored before the source was pinned retries on the fictional roster, which
+        answered it.
         """
         run = self.get(run_id)
         if not retryable(run["status"]):
@@ -967,8 +1001,23 @@ class ResearchRuns:
         require_answerability: bool = False,
     ) -> StartedRun:
         """A new run linked to ``run``, under every pin it recorded, and the answerability
-        acknowledgement it recorded: it covers the retry only while the gaps are the same."""
+        acknowledgement it recorded: it covers the retry only while the gaps are the same.
+
+        A run whose methods no new run computes (:func:`~aia_core.domain.research_sociomap.
+        is_retired`) is refused (:class:`ResearchRunOnRetiredMethod`) before anything is started
+        or spent: the refusal names its Design Revision, over which a new run pins
+        ``aia-sociomap-5``. An analysis retry of such a run is let through when its Sociomap is
+        stored: it keeps the pins, so its step finds that map under the same inputs and computes
+        nothing (the step is told to reuse only, and fails rather than compute it again). A run
+        of an edited version is retried with that version alone: the reference map pinned
+        beside it is dropped."""
         run_id = str(run["run_id"])
+        pinned = read_methods(run["metadata"].get("sociomap_methods"))
+        if is_retired(pinned):
+            if frozen_dataset is None or not _sociomap_stored(run):
+                raise ResearchRunOnRetiredMethod(run, [m.method_id for m in pinned])
+        else:
+            pinned = without_reference(pinned)
         return self.start(
             design_revision_id=str(run["metadata"]["design_revision_id"]),
             fieldwork_source=fieldwork_source,
@@ -980,7 +1029,7 @@ class ResearchRuns:
             sociomapping_enabled=bool(run["metadata"].get("sociomapping_enabled", False)),
             reservations=reservations,
             confirm_cost_usd=confirm_cost_usd,
-            sociomap_methods=read_methods(run["metadata"].get("sociomap_methods")),
+            sociomap_methods=pinned,
             support=read_support_pin(run["metadata"].get("support")),
             aggregation=_aggregation_of(run["metadata"]),
             response=read_response_pin(run["metadata"].get("response")),
@@ -1797,6 +1846,45 @@ def _ended_without_result(run: Mapping[str, Any]) -> bool:
         a["paid_call_dispatched"] and not a["paid_call_outcome_known"]
         for step in run["steps"]
         for a in step["attempts"]
+    )
+
+
+def _new_run_start(run: Mapping[str, Any]) -> dict[str, Any]:
+    """What a new run over ``run``'s Design Revision starts with to begin as ``run`` did: its
+    persona source, the materialized child it ran over (a pinned population names none), and
+    the research-question acknowledgement it recorded."""
+    meta = run["metadata"]
+    population = meta.get("population")
+    child = (
+        population.get("version_id")
+        if isinstance(population, Mapping) and population.get("population_id") is None
+        else None
+    )
+    acknowledged = _acknowledgement_of(run)
+    return {
+        "design_revision_id": str(meta["design_revision_id"]),
+        "persona_source": persona_source_of(meta).value,
+        **({"population_version_id": str(child)} if child else {}),
+        **(
+            {
+                "acknowledge_research_questions": {
+                    "digest": acknowledged[0].digest,
+                    "reason": acknowledged[0].reason,
+                }
+            }
+            if acknowledged is not None
+            else {}
+        ),
+    }
+
+
+def _sociomap_stored(run: Mapping[str, Any]) -> bool:
+    """Whether ``run``'s Sociomap step succeeded with a stored map."""
+    return any(
+        s.get("node_key") == "sociomap"
+        and s.get("status") is StepRunStatus.SUCCEEDED
+        and (s.get("output") or {}).get("artifact_id")
+        for s in run.get("steps") or ()
     )
 
 

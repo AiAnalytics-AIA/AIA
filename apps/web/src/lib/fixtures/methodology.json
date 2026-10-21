@@ -2260,14 +2260,14 @@
      }
     ],
     "id": "sociomap",
-    "in_force": "aia-sociomap-3",
-    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+    "in_force": "aia-sociomap-5",
+    "note_cs": "Každý nový běh si připne jen aia-sociomap-5: vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu počítá podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“); úprava vychází z ní. Mapu aia-sociomap-5 schválil metodik AIA pro zprávy (2026-10-21, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. Referenční mapa aia-sociomap-1 se pro nové běhy nepočítá; uložené běhy si své mapy ponechávají. aia-sociomap-2 až -4 zůstávají v nabídce jako starší výchozí body úprav.",
     "preset": "aia-sociomap-2",
     "presets": [
+     "aia-sociomap-5",
      "aia-sociomap-4",
      "aia-sociomap-3",
-     "aia-sociomap-2",
-     "aia-sociomap-5"
+     "aia-sociomap-2"
     ],
     "preview_title_cs": "",
     "step_details": [
@@ -3443,7 +3443,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "24f5be1e1825142153d4222107fdc23c23083f1a2bfc51e74b35fae10ecf492a",
+      "source_sha256": "486f2898a3ec104c14acfa87c3e54f2d5e28179b6ec78d0515583e9bcfb876e2",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -6217,14 +6217,14 @@
      }
     ],
     "id": "sociomap",
-    "in_force": "aia-sociomap-3",
-    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+    "in_force": "aia-sociomap-5",
+    "note_cs": "Každý nový běh si připne jen aia-sociomap-5: vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu počítá podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“); úprava vychází z ní. Mapu aia-sociomap-5 schválil metodik AIA pro zprávy (2026-10-21, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. Referenční mapa aia-sociomap-1 se pro nové běhy nepočítá; uložené běhy si své mapy ponechávají. aia-sociomap-2 až -4 zůstávají v nabídce jako starší výchozí body úprav.",
     "preset": "aia-sociomap-3",
     "presets": [
+     "aia-sociomap-5",
      "aia-sociomap-4",
      "aia-sociomap-3",
-     "aia-sociomap-2",
-     "aia-sociomap-5"
+     "aia-sociomap-2"
     ],
     "preview_title_cs": "",
     "step_details": [
@@ -7400,7 +7400,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "24f5be1e1825142153d4222107fdc23c23083f1a2bfc51e74b35fae10ecf492a",
+      "source_sha256": "486f2898a3ec104c14acfa87c3e54f2d5e28179b6ec78d0515583e9bcfb876e2",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -10174,14 +10174,14 @@
      }
     ],
     "id": "sociomap",
-    "in_force": "aia-sociomap-3",
-    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+    "in_force": "aia-sociomap-5",
+    "note_cs": "Každý nový běh si připne jen aia-sociomap-5: vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu počítá podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“); úprava vychází z ní. Mapu aia-sociomap-5 schválil metodik AIA pro zprávy (2026-10-21, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. Referenční mapa aia-sociomap-1 se pro nové běhy nepočítá; uložené běhy si své mapy ponechávají. aia-sociomap-2 až -4 zůstávají v nabídce jako starší výchozí body úprav.",
     "preset": "aia-sociomap-4",
     "presets": [
+     "aia-sociomap-5",
      "aia-sociomap-4",
      "aia-sociomap-3",
-     "aia-sociomap-2",
-     "aia-sociomap-5"
+     "aia-sociomap-2"
     ],
     "preview_title_cs": "",
     "step_details": [
@@ -11357,7 +11357,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "24f5be1e1825142153d4222107fdc23c23083f1a2bfc51e74b35fae10ecf492a",
+      "source_sha256": "486f2898a3ec104c14acfa87c3e54f2d5e28179b6ec78d0515583e9bcfb876e2",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -14138,14 +14138,14 @@
      }
     ],
     "id": "sociomap",
-    "in_force": "aia-sociomap-3",
-    "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+    "in_force": "aia-sociomap-5",
+    "note_cs": "Každý nový běh si připne jen aia-sociomap-5: vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu počítá podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“); úprava vychází z ní. Mapu aia-sociomap-5 schválil metodik AIA pro zprávy (2026-10-21, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. Referenční mapa aia-sociomap-1 se pro nové běhy nepočítá; uložené běhy si své mapy ponechávají. aia-sociomap-2 až -4 zůstávají v nabídce jako starší výchozí body úprav.",
     "preset": "aia-sociomap-5",
     "presets": [
+     "aia-sociomap-5",
      "aia-sociomap-4",
      "aia-sociomap-3",
-     "aia-sociomap-2",
-     "aia-sociomap-5"
+     "aia-sociomap-2"
     ],
     "preview_title_cs": "",
     "step_details": [
@@ -15321,7 +15321,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "24f5be1e1825142153d4222107fdc23c23083f1a2bfc51e74b35fae10ecf492a",
+      "source_sha256": "486f2898a3ec104c14acfa87c3e54f2d5e28179b6ec78d0515583e9bcfb876e2",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -18033,7 +18033,7 @@
     ],
     "id": "sociomap_reference",
     "in_force": "aia-sociomap-1",
-    "note_cs": "Výpočet 18.6.6 zachovaný přesně (fixtury F1-F9), aby šel porovnat s objektovou mapou. Audit u několika kroků uvádí vadu; náprava je objektová mapa. Referenční mapa se needituje, aby zůstala referencí.",
+    "note_cs": "Výpočet 18.6.6 zachovaný přesně (fixtury F1-F9), aby šel porovnat s objektovou mapou. Audit u několika kroků uvádí vadu; náprava je objektová mapa. Referenční mapa se needituje, aby zůstala referencí. Nové běhy ji nepočítají; čtou ji jen uložené běhy.",
     "preset": "aia-sociomap-1",
     "presets": [
      "aia-sociomap-1"
@@ -18105,7 +18105,7 @@
       "reading_cs": "",
       "role_cs": "",
       "source_cs": "",
-      "source_sha256": "da40e7aa1a961d47d191e425dbb923f20af780e718e7fae597138a5d57ccc3db",
+      "source_sha256": "d23fd10d6521a6c8736e9241dc2a6ad21f90970f5221d9e269feff79192a2722",
       "symbols": [
        {
         "latex": "N",
@@ -21380,13 +21380,13 @@
     }
    ],
    "id": "sociomap",
-   "in_force": "aia-sociomap-3",
-   "note_cs": "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“).",
+   "in_force": "aia-sociomap-5",
+   "note_cs": "Každý nový běh si připne jen aia-sociomap-5: vstupy, vztahy, polohy objektů, jejich výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu počítá podle schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“); úprava vychází z ní. Mapu aia-sociomap-5 schválil metodik AIA pro zprávy (2026-10-21, registr Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. Referenční mapa aia-sociomap-1 se pro nové běhy nepočítá; uložené běhy si své mapy ponechávají. aia-sociomap-2 až -4 zůstávají v nabídce jako starší výchozí body úprav.",
    "presets": [
+    "aia-sociomap-5",
     "aia-sociomap-4",
     "aia-sociomap-3",
-    "aia-sociomap-2",
-    "aia-sociomap-5"
+    "aia-sociomap-2"
    ],
    "preview_title_cs": "",
    "steps": 48,
@@ -21458,7 +21458,7 @@
    ],
    "id": "sociomap_reference",
    "in_force": "aia-sociomap-1",
-   "note_cs": "Výpočet 18.6.6 zachovaný přesně (fixtury F1-F9), aby šel porovnat s objektovou mapou. Audit u několika kroků uvádí vadu; náprava je objektová mapa. Referenční mapa se needituje, aby zůstala referencí.",
+   "note_cs": "Výpočet 18.6.6 zachovaný přesně (fixtury F1-F9), aby šel porovnat s objektovou mapou. Audit u několika kroků uvádí vadu; náprava je objektová mapa. Referenční mapa se needituje, aby zůstala referencí. Nové běhy ji nepočítají; čtou ji jen uložené běhy.",
    "presets": [
     "aia-sociomap-1"
    ],

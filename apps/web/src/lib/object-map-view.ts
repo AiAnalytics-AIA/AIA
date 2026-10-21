@@ -15,11 +15,11 @@
 
 import { type SignedOffRespondents, type SignedOffRespondentSpec, isSignedOffMap } from "./object-map-signed-off";
 
-/** The code's object maps, newest first; a run that pinned `aia-sociomap-2` reads it. A run
- *  started under an edited methodology (ADR 0023) pins its map under the version's own name,
- *  `aia-sociomap-3+e<n>`, and is read as well: the map is whichever contract-3 map the run
- *  stored, a known name first. */
-export const OBJECT_MAP_METHODS = ["aia-sociomap-4", "aia-sociomap-3", "aia-sociomap-2"] as const;
+/** The code's object maps, newest first: `aia-sociomap-5`, the one a new run pins, then the older
+ *  ones a stored run may hold. A run started under an edited methodology (ADR 0023) pins its map
+ *  under the version's own name, `aia-sociomap-5+e<n>`, and is read as well: the map is whichever
+ *  contract-3 map the run stored, a known name first. */
+export const OBJECT_MAP_METHODS = ["aia-sociomap-5", "aia-sociomap-4", "aia-sociomap-3", "aia-sociomap-2"] as const;
 
 export type PairState = "reliable" | "weak" | "unknown";
 
@@ -128,6 +128,15 @@ export function mapApproval(
   if (!recorded || !register || (recorded.formulas && Object.keys(recorded.formulas).length > 0)) return null;
   return register.find((e) => e.method_id === methodId && e.spec_fingerprint === recorded.spec_fingerprint
     && e.status === "CLIENT_FACING") ?? null;
+}
+
+/**
+ * Whether the battery holds no map of the signed-off methodology (`aia-sociomap-5` or a version
+ * edited from it): a run stored under an older method (`aia-sociomap-1` to `-4`). Its panel says so
+ * and draws nothing; its data stays on the page.
+ */
+export function olderMethodOnly(battery: BatteryWithMaps): boolean {
+  return !Object.values(battery.maps ?? {}).some((m) => m?.artifact?.contract_version === "3" && isSignedOffMap(m.artifact));
 }
 
 export function readObjectMap(battery: BatteryWithMaps): ReadMap {

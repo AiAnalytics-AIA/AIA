@@ -203,7 +203,7 @@ def test_a_pair_whose_two_halves_differ_in_the_last_bit_is_recorded_once(
 
 def test_the_baseline_corrected_relation_is_declared_whole_and_only_by_itself() -> None:
     require_supported(AIA_SOCIOMAP_V5)
-    assert "aia-sociomap-5" not in [m.method_id for m in default_methods()]
+    assert [m.method_id for m in default_methods()] == ["aia-sociomap-5"]
     half = AIA_SOCIOMAP_V5.model_copy(
         update={"ratings": AIA_SOCIOMAP_V4.ratings, "layout": AIA_SOCIOMAP_V4.layout}
     )

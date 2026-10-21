@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 
 
 import { t, tv } from "@/i18n/t";
 import type { ResearchRun } from "@/lib/api";
+import signedOffFixture from "@/lib/fixtures/object-map-signed-off.json";
 import { measureAnchor } from "@/lib/result-reading";
 import { CONFLICT_MESSAGE } from "@/research/store";
 import { RunResults } from "./ExecutionSteps";
@@ -1031,6 +1032,90 @@ describe("Run: what a run can cost (5b.2)", () => {
     await waitFor(() => expect(screen.queryByRole("region", { name: t("research.exec.answerability.title") })).toBeNull());
   });
 
+  it("refuses a retry of an old-method run and starts a new run on aia-sociomap-5 from its revision", async () => {
+    const cancelled = { ...PARKED, phase: "CANCELLED", status: "CANCELLED", is_terminal: true, retryable: true };
+    const revision = (cancelled as { design_revision_id: string }).design_revision_id;
+    const refusal = {
+      code: "run_on_retired_method",
+      message: "Běh byl spočten starší metodou Sociomapy a znovu se nespouští.",
+      details: {
+        methods: ["aia-sociomap-1", "aia-sociomap-3"],
+        design_revision_id: revision,
+        new_run: { method: "POST", href: "/api/v1/studies/STU-1/research/runs", body: { design_revision_id: revision, persona_source: "panel", population_version_id: "VER-child", acknowledge_research_questions: { digest: "d".repeat(64), reason: "Pokračujeme s omezeními." } } },
+      },
+    };
+    api({
+      ...listed(cancelled),
+      "POST /api/v1/studies/STU-1/research/runs/RUN-1/retry": () => new Response(JSON.stringify(refusal), { status: 409 }),
+      "POST /api/v1/studies/STU-1/research/runs": () => run({ run_id: "RUN-2", phase: "QUEUED" }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-2": () => run({ run_id: "RUN-2", phase: "QUEUED" }),
+    });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.retry") }));
+    const note = await waitFor(() => {
+      const found = document.querySelector("[data-retired-method]");
+      if (!found) throw new Error("no refusal shown");
+      return found as HTMLElement;
+    });
+    expect(within(note).getByText(t("research.exec.retiredMethod.text"))).toBeTruthy();
+    const starts = () => calls.filter((c) => c.method === "POST" && c.url === "/api/v1/studies/STU-1/research/runs");
+    expect(starts()).toHaveLength(0); // the refusal started nothing
+    fireEvent.click(within(note).getByRole("button", { name: t("research.exec.retiredMethod.action") }));
+    await waitFor(() => expect(starts()).toHaveLength(1));
+    // The new run starts as the refused one did: its respondents, population and decision.
+    expect(starts()[0].body).toEqual({
+      design_revision_id: revision, persona_source: "panel", population_version_id: "VER-child",
+      acknowledge_research_questions: { digest: "d".repeat(64), reason: "Pokračujeme s omezeními." },
+    });
+    await waitFor(() => expect(document.querySelector("[data-retired-method]")).toBeNull());
+  });
+
+  it("asks for the research questions when the offered new run is refused for them, and starts it with the answer", async () => {
+    const cancelled = { ...PARKED, phase: "CANCELLED", status: "CANCELLED", is_terminal: true, retryable: true };
+    const digest = "e".repeat(64);
+    const gaps = {
+      rules: "aia-answerability-1", capable: false, digest, acknowledgement_required: true,
+      gaps: [{ kind: "not_answerable", research_question: "Jak klienti důvěřují účtu?", verdict: "UNKNOWN", reasons: ["unlinked_design"], measures: [] }],
+    };
+    const refusal = {
+      code: "run_on_retired_method", message: "…",
+      details: { methods: ["aia-sociomap-1"], design_revision_id: "REV-a1",
+        new_run: { method: "POST", href: "/api/v1/studies/STU-1/research/runs", body: { design_revision_id: "REV-a1", persona_source: "fictional_roster" } } },
+    };
+    api({
+      ...listed(cancelled),
+      "POST /api/v1/studies/STU-1/research/runs/RUN-1/retry": () => new Response(JSON.stringify(refusal), { status: 409 }),
+      "POST /api/v1/studies/STU-1/research/runs": (b) =>
+        (b as { acknowledge_research_questions?: unknown } | null)?.acknowledge_research_questions
+          ? run({ run_id: "RUN-2", phase: "QUEUED" })
+          : new Response(JSON.stringify({ code: "research_questions_unanswerable", message: "…", details: gaps }), { status: 409 }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-2": () => run({ run_id: "RUN-2", phase: "QUEUED" }),
+    });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.retry") }));
+    const note = await waitFor(() => {
+      const found = document.querySelector("[data-retired-method]");
+      if (!found) throw new Error("no refusal shown");
+      return found as HTMLElement;
+    });
+    fireEvent.click(within(note).getByRole("button", { name: t("research.exec.retiredMethod.action") }));
+    const gate = await within(note).findByRole("region", { name: t("research.exec.answerability.title") });
+    const again = within(note).getByRole("button", { name: t("research.exec.retiredMethod.action") }) as HTMLButtonElement;
+    expect(again.disabled).toBe(true);
+    fireEvent.click(within(gate).getByRole("checkbox", { name: t("research.exec.answerability.choice") }));
+    fireEvent.change(within(gate).getByRole("textbox"), { target: { value: "Spouštíme nový běh s omezeními." } });
+    await waitFor(() => expect(again.disabled).toBe(false));
+    fireEvent.click(again);
+    const starts = () => calls.filter((c) => c.method === "POST" && c.url === "/api/v1/studies/STU-1/research/runs");
+    await waitFor(() => expect(starts()).toHaveLength(2));
+    expect(starts()[1].body).toEqual({
+      design_revision_id: "REV-a1", persona_source: "fictional_roster",
+      acknowledge_research_questions: { digest, reason: "Spouštíme nový běh s omezeními." },
+    });
+    // The new run is followed: the refusal belonged to the old one and is gone.
+    await waitFor(() => expect(document.querySelector("[data-retired-method]")).toBeNull());
+  });
+
   it("keeps a refused retry's gaps only while their run can still be retried", async () => {
     // Review 2: the gate stayed after the run moved on, and its button retried whatever run was shown.
     let shown: Record<string, unknown> = { ...PARKED, phase: "CANCELLED", status: "CANCELLED", is_terminal: true, retryable: true };
@@ -1067,6 +1152,38 @@ describe("Progress", () => {
     expect(screen.getAllByText("Potřebuje opravu").length).toBeGreaterThanOrEqual(2); // the run, and its blocked module
     expect(screen.queryByText("Dokončeno")).toBeNull();
     expect(screen.getByText("6 z 7 kroků hotovo")).toBeTruthy();
+  });
+
+  it("says an analysis retry of an old-method run was refused, and starts the new run it names", async () => {
+    const blocked = run({
+      ...COMPLETED,
+      steps: [...COMPLETED.steps, step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", analysis_outcome: "BLOCKED" })],
+    });
+    const refusal = {
+      code: "run_on_retired_method", message: "…",
+      details: { methods: ["aia-sociomap-1", "aia-sociomap-3"], design_revision_id: "REV-a1",
+        new_run: { method: "POST", href: "/api/v1/studies/STU-1/research/runs", body: { design_revision_id: "REV-a1", persona_source: "fictional_roster" } } },
+    };
+    api({
+      ...listed(blocked),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis/retryable": () => ({ run_id: "RUN-1", modules: ["executive"] }),
+      "POST /api/v1/studies/STU-1/research/runs/RUN-1/analysis/retry": () => new Response(JSON.stringify(refusal), { status: 409 }),
+      "POST /api/v1/studies/STU-1/research/runs": () => run({ run_id: "RUN-2", phase: "QUEUED" }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-2": () => run({ run_id: "RUN-2", phase: "QUEUED" }),
+    });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const card = (await screen.findByRole("region", { name: t("research.exec.analysisRetry.title") })) as HTMLElement;
+    fireEvent.click(within(card).getByRole("button", { name: t("research.exec.analysisRetry.action") }));
+    const note = await waitFor(() => {
+      const found = card.querySelector("[data-retired-method]");
+      if (!found) throw new Error("no refusal shown");
+      return found as HTMLElement;
+    });
+    const starts = () => calls.filter((c) => c.method === "POST" && c.url === "/api/v1/studies/STU-1/research/runs");
+    expect(starts()).toHaveLength(0);
+    fireEvent.click(within(note).getByRole("button", { name: t("research.exec.retiredMethod.action") }));
+    await waitFor(() => expect(starts()).toHaveLength(1));
+    expect(starts()[0].body).toEqual({ design_revision_id: "REV-a1", persona_source: "fictional_roster" });
   });
 
   it("offers to repair a run whose modules an earlier version of AIA completed, and says that is why (PC3)", async () => {
@@ -1813,6 +1930,28 @@ describe("Results", () => {
     expect(screen.queryByText(t("research.exec.results.mapsByMethod"))).toBeNull();
   });
 
+  it("draws a new run's aia-sociomap-5 map with no reference comparison beside it", async () => {
+    const battery = signedOffFixture.batteries[0];
+    const methodId = Object.keys(battery.maps)[0];
+    const signedOff = { ...SOCIOMAP, payload: { sociomap: {
+      methodology_status: "CLIENT_FACING", data_origin: "SYNTHETIC_FIXTURE",
+      methods: [{ method_id: methodId, spec_fingerprint: (battery.maps as Record<string, { spec_fingerprint: string }>)[methodId].spec_fingerprint }],
+      batteries: [{ ...battery, methodology_status: "CLIENT_FACING" }],
+    } } };
+    api({
+      ...listed(COMPLETED),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => signedOff,
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Sociomapy" }));
+    const [map] = await screen.findAllByRole("region", { name: battery.title });
+    expect(map.querySelector(`[data-testid="object-map-${battery.battery_id}"]`)).not.toBeNull();
+    expect(within(map).queryByText(t("research.exec.results.olderMethod"))).toBeNull();
+    // No reference map was computed, so no comparison with one is offered.
+    expect(within(map).queryByText(t("research.exec.objectMap.comparison"))).toBeNull();
+  });
+
   it("shows a fictional run's aggregates labelled as fiction, hides a suppressed cell, keeps the Sociomap internal", async () => {
     api({
       ...listed(COMPLETED),
@@ -1836,9 +1975,13 @@ describe("Results", () => {
     // What 18.6.6's map tool did and AIA does not is said where the map is.
     expect(screen.getByText(t("research.exec.results.mapToolNotInAia"))).toBeTruthy();
     fireEvent.click(screen.getByRole("tab", { name: "Sociomapy" }));
+    // A run stored under the old default (the reference map, no aia-sociomap-5 map): its data
+    // stays, its map panel says why nothing is drawn, and draws nothing.
     const map = screen.getByRole("region", { name: "Nápoje" });
-    expect(within(map).getByText("Káva")).toBeTruthy();
-    expect(within(map).getByText("6,14")).toBeTruthy();
+    expect(within(map).getByText(t("research.exec.results.olderMethod"))).toBeTruthy();
+    expect(t("research.exec.results.olderMethod")).toBe("Mapa ze starší metody; spusťte nový běh");
+    expect(within(map).queryByText("Káva")).toBeNull();
+    expect(within(map).queryByText("6,14")).toBeNull();
     expect(screen.getAllByText(/Artefakt ART-4/).length).toBe(1);
     // No hand-off to 18.6.6: the report AIA does not have yet is said, not linked (ADR 0018).
     expect(screen.queryByRole("link", { name: /18\.6\.6/ })).toBeNull();

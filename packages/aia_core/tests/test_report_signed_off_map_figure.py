@@ -399,13 +399,12 @@ def test_the_respondent_alt_text_names_segment_colours_only_when_they_are_shown(
     assert "barva bodu chuťový segment" not in respondent_alt(plain)
 
 
-def test_the_client_report_leaves_the_respondent_map_out(monkeypatch: pytest.MonkeyPatch) -> None:
-    # As if the register approved this method for clients (it approves no signed-off one yet).
+def test_the_client_report_shows_the_respondent_map_too(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The register's entry for aia-sociomap-5, as the stored map's method recorded it.
     method = AIA_SOCIOMAP_V5.methodology_version
-    monkeypatch.setattr(
-        report_maps, "recorded_statuses", lambda _result: {method: SOCIOMAP_REGISTER[0]}
-    )
-    assert SOCIOMAP_REGISTER[0].status is MethodologyStatus.CLIENT_FACING
+    entry = next(a for a in SOCIOMAP_REGISTER if a.method_id == method)
+    monkeypatch.setattr(report_maps, "recorded_statuses", lambda _result: {method: entry})
+    assert entry.status is MethodologyStatus.CLIENT_FACING
     frozen = tastes()
     images = object_map_snapshots(frozen)
     client = [
@@ -413,7 +412,9 @@ def test_the_client_report_leaves_the_respondent_map_out(monkeypatch: pytest.Mon
         for b in compose_map_sections(frozen, images, source="Frozen", client=True)[0].blocks
         if isinstance(b, SociomapFigure)
     ]
-    assert [f.title.split(" · ")[1] for f in client] == ["Pohled shora", "Prostorový pohled"]
+    views = ["Pohled shora", "Prostorový pohled", "Mapa respondentů"]
+    assert [f.title.split(" · ")[1] for f in client] == views
+    assert all(f.methodology_status == "CLIENT_FACING" for f in client)
     internal = [
         b
         for b in compose_map_sections(frozen, images, source="Frozen")[0].blocks

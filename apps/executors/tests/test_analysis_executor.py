@@ -619,22 +619,23 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
 
     assert dataset["dataset"]["origin"] == "SYNTHETIC_AI_FICTIONAL"
     assert len(dataset["dataset"]["respondents"]) == design["n"]
-    assert mapped["methodology_status"] == "INTERNAL_ONLY"
+    # A new run's map: aia-sociomap-5 alone, which the register approves for reports.
+    assert mapped["methodology_status"] == "CLIENT_FACING"
     assert len(mapped["batteries"]) == 1
     battery = mapped["batteries"][0]
-    assert len(battery["sociomap"]["layout"]["object_xy"]) == 3
-    assert battery["sociomap"]["layout"]["respondent_ids"]
+    assert "sociomap" not in battery  # no reference picture is computed
     pinned = run["metadata"]["sociomap_methods"]
     assert mapped["methods"] == [
         {"method_id": method["method_id"], "spec_fingerprint": method["spec_fingerprint"]}
         for method in pinned
     ]
-    v2 = read_artifact(battery["maps"]["aia-sociomap-3"])
-    assert isinstance(v2, SociomapArtifactV3)
-    assert v2.scores["primary"] == [obj["id"] for obj in battery["objects"]]
-    assert v2.support.respondents == n
-    assert v2.spec.fingerprint() == next(
-        method["spec_fingerprint"] for method in pinned if method["method_id"] == "aia-sociomap-3"
+    v5 = read_artifact(battery["maps"]["aia-sociomap-5"])
+    assert isinstance(v5, SociomapArtifactV3)
+    assert v5.object_ids == tuple(obj["id"] for obj in battery["objects"])
+    assert v5.layout is not None and len(v5.layout.points) == 3
+    assert v5.support.respondents == n
+    assert v5.spec.fingerprint() == next(
+        method["spec_fingerprint"] for method in pinned if method["method_id"] == "aia-sociomap-5"
     )
     assert report.artifact_type == REPORT_ARTIFACT_TYPE
     assert report.metadata["run_id"] == started.run_id
@@ -1246,7 +1247,7 @@ def test_a_module_whose_drafts_cite_nothing_is_blocked_after_three_calls_and_str
     assert len(answered) == 10
 
 
-def _started_with_analysis(world: Any) -> str:
+def _started_with_analysis(world: Any, sociomap_methods: Any = None) -> str:
     with world.sessions() as session:
         scope = world.lead_scope(session)
         revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
@@ -1256,6 +1257,7 @@ def _started_with_analysis(world: Any) -> str:
             design_revision_id=revision.revision_id,
             fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
             analysis_enabled=True,
+            sociomap_methods=sociomap_methods,
         )
         session.commit()
     return started.run_id
@@ -1308,6 +1310,42 @@ def test_retrying_failed_modules_asks_only_them_over_the_same_data(
     with pytest.raises(AnalysisNotRetryable) as nothing:
         _retry_analysis(world, store, retry.run_id)
     assert nothing.value.reason == "nothing_to_retry"
+
+
+def test_an_analysis_retry_of_an_old_default_run_reuses_its_map_and_computes_no_old_method(
+    world: Any,
+    store: InMemoryArtifactStore,
+    run_with: Callable[..., Worker],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A run stored under the old default (the reference map beside aia-sociomap-3) may have its
+    failed modules asked again: its Sociomap step finds the map stored under the same inputs and
+    computes nothing; the old methods are never computed again."""
+    from aia_core.domain.research_sociomap import SociomapMethod
+    from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V1, AIA_SOCIOMAP_V3
+    from aia_executors import research as research_executors
+
+    old = (SociomapMethod.of(AIA_SOCIOMAP_V1), SociomapMethod.of(AIA_SOCIOMAP_V3))
+    models = RecordedModels(invent={"objects"})
+    worker = run_with(models)
+    first = _started_with_analysis(world, sociomap_methods=old)
+    _drain(worker)
+    original = _run(world, first)
+    mapped = next(s for s in original["steps"] if s["node_key"] == "sociomap")["output"]
+
+    def _refuse(*_: object, **__: object) -> object:
+        raise AssertionError("an old method was computed again")
+
+    monkeypatch.setattr(research_executors, "research_sociomaps", _refuse)
+    models.invent.clear()
+    retry = _retry_analysis(world, store, first)
+    _drain(worker)
+    second = _run(world, retry.run_id)
+    assert second["status"] is WorkflowRunStatus.COMPLETED, _unfinished(world, retry.run_id)
+    assert second["metadata"]["sociomap_methods"] == original["metadata"]["sociomap_methods"]
+    step = next(s for s in second["steps"] if s["node_key"] == "sociomap")
+    assert step["output"]["artifact_id"] == mapped["artifact_id"]
+    assert step["output"]["reused"] is True
 
 
 def test_a_retry_of_a_run_an_earlier_compiler_compiled_reuses_its_specification(

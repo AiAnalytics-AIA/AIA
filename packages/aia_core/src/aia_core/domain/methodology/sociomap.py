@@ -2,9 +2,9 @@
 
 ADR 0023; plan ``methodology-tab.md`` S1. The audit *NPC Sociomapa: faulty formulas in the
 code* (A. Bahbouh, 2026-10-06) is the canonical methodology (the owner's rule of
-2026-10-07). This catalogue shows how AIA computes each of its sixteen points today, under
-``aia-sociomap-3`` (the preset every new run pins beside the reference map) and its
-predecessor ``aia-sociomap-2``. A point the code does not compute yet (F5 for this map,
+2026-10-07). This catalogue shows how AIA computes each of its sixteen points, under
+``aia-sociomap-5`` (the signed-off methodology, what every new run pins) and its predecessors
+``aia-sociomap-4`` to ``-2``. A point the code does not compute yet (F5 for this map,
 F10's placement, F14, F15, F16) is shown with the audit's proposed formula and says so.
 
 Every formula is written from the function it names; each function is pinned by the SHA256
@@ -478,7 +478,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         title_cs="Síla vztahu a jeho směr",
         formula_latex=r"s_{ij} = |r_{ij}|,\qquad \operatorname{sgn} r_{ij} \text{ jako barva}",
         implements=f"{_S}.engine_v2:compute_object_map",
-        source_sha256="24f5be1e1825142153d4222107fdc23c23083f1a2bfc51e74b35fae10ecf492a",
+        source_sha256="486f2898a3ec104c14acfa87c3e54f2d5e28179b6ec78d0515583e9bcfb876e2",
         evidence=(_rule("AUDIT-F4"),),
         tests=(
             f"{_T}/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input",
@@ -2008,25 +2008,23 @@ SOCIOMAP: Final = MethodModule(
     title_cs="Sociomapa: objektová mapa",
     steps=_STEPS,
     presets=(
+        # First: the preset in force, where an edit starts (the page offers the first preset).
+        Preset("aia-sociomap-5", AIA_SOCIOMAP_V5, _validate),
         Preset("aia-sociomap-4", AIA_SOCIOMAP_V4, _validate),
         Preset("aia-sociomap-3", AIA_SOCIOMAP_V3, _validate),
         Preset("aia-sociomap-2", AIA_SOCIOMAP_V2, _validate),
-        # Last, so an edit still starts from aia-sociomap-4 (the page offers the first preset).
-        Preset("aia-sociomap-5", AIA_SOCIOMAP_V5, _validate),
     ),
-    in_force="aia-sociomap-3",
+    in_force="aia-sociomap-5",
     groups=_GROUPS,
     formulas=SOCIOMAP_FORMULAS,
     editable=True,
     note_cs=(
-        "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne "
-        "aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapu aia-sociomap-3 schválil "
-        "vlastník produktu pro zprávy (2026-10-13, registr Sociomap); upravená verze v platnosti "
-        "je interní, dokud ji registr neschválí. aia-sociomap-4 počítá totéž, jen má v metodice "
-        "i hodnoty, které -3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava "
-        "z něj vychází. aia-sociomap-5 počítá vstupy, vztahy, polohy objektů, jejich výšky, "
-        "terén, věrohodnost mapy, mapu respondentů a segmenty vkusu podle schválené metodiky "
-        "AIA Sociomapa "
-        "(kroky označené „Jen aia-sociomap-5“)."
+        "Každý nový běh si připne jen aia-sociomap-5: vstupy, vztahy, polohy objektů, jejich "
+        "výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu počítá podle "
+        "schválené metodiky AIA Sociomapa (kroky označené „Jen aia-sociomap-5“); úprava "
+        "vychází z ní. Mapu aia-sociomap-5 schválil metodik AIA pro zprávy (2026-10-21, registr "
+        "Sociomap); upravená verze v platnosti je interní, dokud ji registr neschválí. "
+        "Referenční mapa aia-sociomap-1 se pro nové běhy nepočítá; uložené běhy si své mapy "
+        "ponechávají. aia-sociomap-2 až -4 zůstávají v nabídce jako starší výchozí body úprav."
     ),
 )
