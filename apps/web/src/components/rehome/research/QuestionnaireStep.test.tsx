@@ -406,6 +406,30 @@ describe("Dotazník", () => {
     expect(posted("/api/research/build_questionnaire")).toEqual([]);
   });
 
+  it("builds the questionnaire once its analysis, waiting for budget, is lifted and accepted: the analysis is not asked again (CR-2)", async () => {
+    let lifted = false;
+    const waiting = { run_id: "RUN-A", design_revision_id: "REV-A", action: "analyze_brief", status: "AWAITING_BUDGET", is_terminal: false, needs_attention: true,
+      steps: [{ step_id: "STEP-A", node_key: "agent", status: "AWAITING_BUDGET", waiting_reason: "budget_exceeded", error_message: null }],
+      created_at: null, context_sha256: "sha", harness_version: "v1", actual_cost_usd: null };
+    unitStub({ ...BRIEF, ui_state: { questionnaire_path: "ai" } }, null, {
+      "native/job": () => (lifted ? undefined : waiting),
+      [`${AGENTS_PATH}/RUN-A/budget`]: () => { lifted = true; return { ...waiting, status: "RUNNING", steps: [{ ...waiting.steps[0], status: "RUNNABLE" }] }; },
+      "/api/v1/studies/STU-1": () => ({ study_id: "STU-1", name: "Alfa", budget_usd: 5, spent_usd: 5, remaining_usd: 0 }),
+    });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Sestavit první verzi dotazníku" }, NATIVE_JOB_WAIT));
+    const form = await screen.findByRole("form", { name: "Zvýšit rozpočet studie" }, NATIVE_JOB_WAIT);
+    expect(screen.queryByRole("button", { name: "Zkusit znovu" })).toBeNull();
+    await within(form).findByText(/5\.00/);
+    fireEvent.change(within(form).getByLabelText("Nový rozpočet studie (USD)"), { target: { value: "9" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Zvýšit rozpočet a pokračovat" }));
+    await approveProposal(); // the analysis
+    await waitFor(() => expect(posted(AGENTS_PATH)).toHaveLength(2), NATIVE_JOB_WAIT);
+    await approveProposal(); // the build that waited behind it
+    expect(await screen.findByRole("heading", { name: "2 otázek · 1 sledovaných sad" }, NATIVE_JOB_WAIT)).toBeTruthy();
+    expect(posted(AGENTS_PATH).map((c) => (c.body as { action: string }).action)).toEqual(["analyze_brief", "build_questionnaire"]);
+  });
+
   it("parks the build at the native runtime boundary", async () => {
     unitStub({ ...BRIEF, ui_state: { questionnaire_path: "ai" } }, null, { "native/job": () => ({ status: "WAITING_PROVIDER", is_terminal: false, needs_attention: true, steps: [{ error_message: PARK_MESSAGE }], run_id: "RUN-A" }) });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);

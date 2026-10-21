@@ -1751,6 +1751,12 @@ export const cs = {
       title: "AI úloha čeká na rozpočet studie",
       help: "Úloha se zastavila, protože by překročila rozpočet studie, a sama nepokračuje. Po navýšení rozpočtu pokračuje tatáž úloha; nic dalšího se nespouští.",
       job: "{action} · zadáno {when}",
+      // A stage's own AI step that stopped at the budget, said where the person asked for it (CR-2).
+      waitingTitle: "AI krok čeká na rozpočet studie",
+      waitingHelp: "Nejde o chybu: krok se zastavil, protože by překročil rozpočet studie, a sám nepokračuje. Po zvýšení rozpočtu pokračuje tatáž úloha; nic nového se nespouští.",
+      readOnly: "Rozpočet může zvýšit jen člověk, který smí studii upravovat.",
+      followFailed: "Sledování úlohy po zvýšení rozpočtu se přerušilo. Tatáž úloha pokračuje dál; nic nového se nespouští.",
+      followAgain: "Sledovat znovu",
     },
     // Studio v3's shared step pieces (components/rehome/step.tsx).
     step: { optional: "volitelné", remove: "Odebrat", keep: "Ponechat" },
@@ -2772,6 +2778,7 @@ export const cs = {
         within: "I při nejvyšší ceně by zbylo {after} USD, bez částek, které právě drží běžící kroky.",
         beyond: "To je víc, než nyní zbývá: přesáhne-li skutečná cena zbytek, krok se zastaví, dokud rozpočet nezvýšíte.",
         ceilingUnknown: "Kolik může stát, AIA předem neví.",
+        holdsNotCounted: "Zbytek nezahrnuje částky, které právě drží běžící kroky.",
       },
       budget: {
         title: "Zvýšit rozpočet studie",
@@ -2782,6 +2789,8 @@ export const cs = {
         note: "Poznámka k rozhodnutí",
         lift: "Zvýšit rozpočet a pokračovat",
         hardCap: "Strop zůstává tvrdý: pokud ani nový rozpočet krok nepokryje, krok se znovu zastaví.",
+        runTitle: "Běh čeká na rozpočet studie",
+        runWaiting: "Čekající kroky ({count}): {steps}. Jedno zvýšení rozpočtu pustí dál všechny najednou.",
       },
       failed: "Běh selhal u kroku „{step}“.",
       cancel: "Zrušit běh",

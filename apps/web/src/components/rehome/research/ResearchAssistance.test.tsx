@@ -19,7 +19,7 @@ function Harness({ canEdit = true }: { canEdit?: boolean }) {
 beforeEach(() => {
   memory = new Map();
   agents = { run: vi.fn().mockResolvedValue({}), busy: false, activeAction: null, adviceReview: null, proposalReview: null, recent: [], notice: null, dialog: null,
-    refresh: vi.fn().mockResolvedValue([]), open: vi.fn().mockResolvedValue(undefined), continueAdvice: vi.fn().mockResolvedValue(undefined) };
+    refresh: vi.fn().mockResolvedValue([]), open: vi.fn().mockResolvedValue(undefined), continueAdvice: vi.fn().mockResolvedValue(undefined), continueJob: vi.fn().mockResolvedValue(undefined) };
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
 });

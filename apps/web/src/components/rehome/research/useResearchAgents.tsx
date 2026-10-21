@@ -199,7 +199,20 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
     } finally { await finish(controller); }
   }, [studyId, onUpdate, apply, finish]);
 
-  return { run, recent, notice, busy, activeAction, open, refresh, continueAdvice,
+  // Follow the same job again after a person lifted the study's budget for it (CR-2), then review
+  // its proposal as any other. Nothing is started: the job keeps its design and its baseline.
+  const continueJob = useCallback(async (jobId: string, title = "Uložený AI krok") => {
+    if (active.current) throw new JobError("Jiný AI krok ještě běží.", "busy", jobId);
+    const controller = new AbortController(); active.current = controller;
+    setBusy(true); setNotice(null);
+    try {
+      const finished = await followAgentJob(studyId, jobId, title, onUpdate, controller.signal);
+      onUpdate(null); setActiveAction(finished.action);
+      return await apply(finished, controller.signal);
+    } finally { await finish(controller); }
+  }, [studyId, onUpdate, apply, finish]);
+
+  return { run, recent, notice, busy, activeAction, open, refresh, continueAdvice, continueJob,
     adviceReview: adviceInWorkspace && review?.advice ? review : null,
     proposalReview: proposalsInWorkspace && review && !review.advice ? review : null,
     dialog: review && !(adviceInWorkspace && review.advice) && !(proposalsInWorkspace && !review.advice) ? <AgentProposalDialog result={review.result} advice={review.advice} onDecision={review.decide} /> : null };
