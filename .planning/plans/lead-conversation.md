@@ -6,7 +6,7 @@ chunks:
   - "[ ] LC2. Co Vedoucí vidí: the Vidí chip opens the last turn's manifest in words, layer by layer, with what was left out and why"
   - "[ ] LC3. The decision digest: a code-built record of what this conversation decided (edits, cards, notes, self-updates, lookups) in the conversation-memory layer, never dropped"
   - "[ ] LC4. Budgets enforced: ADR 0041's floors, ceilings and two-pass global allocation, the design layer's outline fallback, spare bytes to the verbatim conversation, every omission named"
-  - "[ ] LC5. Queued messages stored on the server: immutable rows, queued / answered / withdrawn derived (answers_through, a withdrawal row), bounded in bytes and count, a follow-on turn for what layer 9 cannot hold, LeadBusy retired for messages, visible in every tab"
+  - "[ ] LC5. Queued messages stored on the server: immutable rows, queued / answered / withdrawn derived (an exact study_lead_turn_answers relation, a withdrawal row, queue position kept through an edit), bounded in bytes and count, a follow-on turn for what layer 9 cannot hold, LeadBusy retired for messages, visible in every tab"
   - "[ ] LC6. Cost, model and class on every Lead turn, from the usage ledger and the composition digest"
   - "[ ] LC7. Grounded hierarchical compaction: research_lead_compact after the reply, block summaries of eight turns with a turn reference on every sentence, episode roll-ups (three levels at most), the preservation check, the coverage floor and the uncovered-terms index, STUDY_LEAD_SUMMARY, AIA_AI_RESEARCH_LEAD_COMPACTION_ENABLED and its two keys, summary_lag"
   - "[ ] LC7a. Kept facts (Držená fakta): proposed by the compaction step, each with a quote located verbatim in its named turn, never compacted, superseded only by name, 40 x 300 characters"
@@ -96,8 +96,9 @@ in the compact drawer.
 
 **LC3. The decision digest.** A pure projection over the ledger rows and turns of this conversation
 (`lead_edit`, `lead_job_request`, `lead_self_update`, plan and lookup rows when they exist), each line
-with its turn id and ledger row id, each at most 200 bytes. It goes in layer 10, within its 8 KB share
-in ADR 0041 decision 4's four capped groups:
+with its turn id and ledger row id, each at most 200 bytes. It goes in layer 10, within its share, which scales from
+5 KB at the layer's 10 KB floor to 8 KB at 16 KB, in ADR 0041 decision 4's four capped groups (the
+caps below at 8 KB, scaled with the share, group 4 fixed):
 1. decisions on named items (4 KB; per item, the newest 3, newest first);
 2. undecided proposals on the active path (2 KB; newest first);
 3. the latest decision per other item (what is left);
@@ -111,7 +112,7 @@ Tests:
 - a dismissed edit from turn 3 is in turn 40's context when its item is named;
 - 40 decisions on one named item and 60 undecided proposals keep every group within its cap, and
   each omission pages from its ledger or turn range;
-- 500 decisions stay within 8 KB, the stored manifest stays bounded (counts and a range), and every
+- 500 decisions stay within the digest's share (8 KB, or 5 KB at the layer floor), the stored manifest stays bounded (counts and a range), and every
   omitted decision pages from that range;
 - no line is rewritten.
 
@@ -123,13 +124,15 @@ conversation. Tests: a 60 KB questionnaire leaves the conversation its floor; th
 sections it shortened; floors sum within 96 KB; every layer at 90 % of its ceiling at once still
 freezes within 96 KB, with the conversation at its floor and each shortened layer named.
 
-**LC5. Queued messages on the server.** The migration adds `parent_turn_id` and `answers_through`
-(nullable, set on insert, never updated) and a `withdrawal` turn kind. Rows stay immutable under the
+**LC5. Queued messages on the server.** The migration adds `parent_turn_id` (nullable, set on
+insert, never updated), a `withdrawal` turn kind and the append-only `study_lead_turn_answers`
+(`lead_turn_id`, `person_turn_id`), written with the Lead turn. A message's queue position is the
+`sequence_no` at the root of its `replaces_turn_id` chain. Rows stay immutable under the
 `before_update` guard; a message's queued, answered or withdrawn state is derived (ADR 0041
 decision 7).
 - `post` stores a message while a turn runs.
-- The worker's next turn takes queued messages oldest first while they fit layer 9's 12 KB, records
-  `answers_through`, and enqueues a follow-on turn for any left (`queued_deferred`).
+- The worker's next turn takes queued messages in queue-position order while they fit layer 9's
+  12 KB, writes one answer row per message it sent, and enqueues a follow-on turn for any left (`queued_deferred`).
 - Bounds: `MESSAGE_MAX_BYTES` (8 KB UTF-8, 422 `message_too_long`) and 5 queued at most (409
   `lead_queue_full`).
 - A message is withdrawn with `POST …/turns/{id}/withdraw`, which appends a `withdrawal` row; it is
@@ -148,6 +151,8 @@ Tests:
 - a queued message edited before its turn starts: only the edit is sent, the original is neither
   sent nor marked answered;
 - a withdrawn message inside an answered range is not shown as answered;
+- an early queued message edited after two more were queued keeps its place; when its edit alone
+  fills layer 9, the two later messages stay queued and unanswered;
 - a greeting still waits.
 
 **LC6. Cost, model and class per turn.** The turn's usage rows (model, tokens, USD) and class in

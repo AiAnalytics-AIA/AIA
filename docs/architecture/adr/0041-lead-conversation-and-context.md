@@ -90,7 +90,7 @@ its values are proposed here, to be set from LO14's measurement:
 | 7 | Runs and results (LO8 `ResultsContext`) | 4 KB | 16 KB | LO8's own bound |
 | 8 | Pinned items (decision 6) | the accepted pins' bytes | 8 KB | refuse the pin when it is made; an accepted pin is reserved in the floor pass, never dropped at a turn |
 | 9 | View and the message(s) | as written | 12 KB | queued messages oldest first while they fit; the rest answered by a follow-on turn, named (decision 7) |
-| 10 | Conversation memory (M3): digest, kept facts, summaries | 6 KB | 16 KB | the digest within its 8 KB share by decision 4's order, older decisions counted with their ledger range (decision 3); oldest blocks rolled up; oldest unpinned facts to retrieval; all named |
+| 10 | Conversation memory (M3): digest, kept facts, summaries | 10 KB | 16 KB | the digest within its share (5-8 KB, scaling with the layer's allocation) by decision 4's order, older decisions counted with their ledger range (decision 3); oldest blocks rolled up; oldest unpinned facts to retrieval; all named |
 | 11 | Conversation, verbatim (active path only, decision 7) | 8 KB | what is left | oldest first, **only turns a summary covers**, else decision 4's fallback |
 
 **The allocation is global, in two passes, so the total cannot exceed 96 KB.** The ceilings sum to
@@ -98,9 +98,9 @@ more than 96 KB on purpose, because most layers are small most of the time. `fre
 therefore never adds layers up and checks afterwards. It allocates:
 
 1. **Floors first.** Each layer gets the smaller of its content and its floor. The floors sum to at
-   most 86 KB: prompt 12, files 6, notes 4, study file 8, knowledge 6, design 12, results 4, pins
-   up to 8 (every accepted pin, reserved), message 12, memory 6, verbatim 8. That leaves at least
-   10 KB.
+   most 90 KB: prompt 12, files 6, notes 4, study file 8, knowledge 6, design 12, results 4, pins
+   up to 8 (every accepted pin, reserved), message 12, memory 10, verbatim 8. That leaves at least
+   6 KB.
 2. **The remainder in a fixed priority order.** Each layer in turn takes what it still needs, up to
    its ceiling, until the 96 KB is spent:
    design (6) → study file (4) → results (7) → pins (8) → conversation memory (10) → knowledge (5)
@@ -161,8 +161,17 @@ parts, from exact to approximate:
      immutable, so no decision is ever lost. What is bounded is how much of it a turn carries.
    - **Each line is exact and short:** at most 200 bytes, with the item, the decision, the turn id
      and the ledger row id.
-   - **Its share is 8 KB of layer 10, in four groups.** Each group has its own cap and a
-     deterministic order inside it, so no group can starve the others:
+   - **Its share of layer 10 scales with the layer's allocation.**
+     - **Range:** from 5 KB at the layer's 10 KB floor to 8 KB at 16 KB, linearly.
+     - **Group caps:** the caps below are the 8 KB values. They scale by the same factor (5/8 at the
+       floor), except group 4's 256 bytes, which stay fixed.
+     - **The rest of the layer:** after the digest, the remaining bytes go to kept facts first, then
+       summaries.
+
+     So a large design that takes the whole remainder still leaves memory a compliant allocation:
+     a 5 KB digest and 5 KB for facts and summaries.
+   - **The groups.** Each group has its own cap and a deterministic order inside it, so no group
+     can starve the others:
 
      | Group | Cap | Order inside the group |
      |---|---|---|
@@ -308,16 +317,22 @@ pinned item keeps its own class; a pin never copies text between clients.
 `infrastructure/tables.py:815-818 @ 237fd0a`). It gains three nullable columns, written when the
 row is inserted and never after:
 - `parent_turn_id`: the turn this one answers or follows;
-- `replaces_turn_id`: the turn it supersedes;
-- `answers_through`: on a Lead turn, the `sequence_no` of the newest person message it answers.
+- `replaces_turn_id`: the turn it supersedes.
+
+What a Lead turn answered is recorded exactly, not as a high-water mark. **`study_lead_turn_answers`**
+is append-only, holding (`lead_turn_id`, `person_turn_id`). It is inserted in the same transaction
+as the Lead turn, with one row per message the turn was actually sent, and is scoped like the turns.
+
+**A message's queue position** is the `sequence_no` of the root of its `replaces_turn_id` chain. An
+edit therefore keeps the original's place in the queue, whatever `sequence_no` the edit itself gets.
 
 A message's state is derived, never stored:
-- **queued:** a person message that no Lead turn's `answers_through` covers yet, that no later row
+- **queued:** a person message that no `study_lead_turn_answers` row names, that no later row
   names by `replaces_turn_id` (an edited message is replaced by its edit, which takes its place in
   the queue) and that no `withdrawal` names;
-- **answered:** a queued message that a Lead turn's `answers_through` covers. A replaced or
-  withdrawn message is never sent to the model, and is never marked answered by a range it falls
-  inside;
+- **answered:** a message that a `study_lead_turn_answers` row names: exactly the messages the
+  turn was sent, so a deferred message is never answered by position. A replaced or withdrawn
+  message is never sent and never named;
 - **withdrawn:** a person message named by a later row of kind `withdrawal` (`parent_turn_id` = the
   message).
 
@@ -347,7 +362,8 @@ exchanges, so a covered turn can never be superseded afterwards.
     4,000 characters. A post over it is refused (422 `message_too_long`).
   - **Per queue:** at most 5 messages, so a sixth post is refused (409 `lead_queue_full`).
   - **Per turn:** a turn takes queued messages, oldest first, while they fit layer 9's 12 KB
-    ceiling. Its `answers_through` stops at the last one taken. If any remain, a follow-on turn is
+    ceiling. Queue position, as defined above, sets the order. The turn's answer rows name exactly
+    the messages taken. If any remain, a follow-on turn is
     enqueued at once to answer them, and the manifest names them (`queued_deferred`).
 
   So layer 9 cannot overflow, and no message is cut or lost.
@@ -440,8 +456,8 @@ completes (a polite live region), never per token.
 
 ## Consequences
 
-- Three nullable columns on `study_lead_turns`, set on insert and never updated, and a
-  `withdrawal` turn kind; one feedback table, one manifest per turn (in the
+- Two nullable columns on `study_lead_turns`, set on insert and never updated, a `withdrawal`
+  turn kind and an append-only `study_lead_turn_answers` relation; one feedback table, one manifest per turn (in the
   step's stored input), one artifact type, one capability, one switch with two keys.
 - The Lead remembers a long study's decisions exactly and its dialogue approximately, and says
   which.
@@ -461,7 +477,10 @@ completes (a polite live region), never per token.
   refused; a roll-up keeps its children's references; a constraint a summary left out is in its
   turn's uncovered terms and brings that turn back verbatim when named; a summary under the
   coverage floor is refused; with every layer at its ceiling an accepted pin is still whole; an
-  edited queued message sends only its edit, and its original is never marked answered; after a
+  edited queued message sends only its edit, keeps the original's queue position, and its original
+  is never marked answered; a message deferred behind a large edited one stays unanswered; with the
+  design taking the whole remainder, layer 10 at its 10 KB floor holds a 5 KB digest within its
+  scaled group caps; after a
   regenerate or an edit-and-resend the next turn's context, retrieval candidates, summaries and
   digest hold no superseded turn; a person's correction that leaves a sentence without a reference
   is refused, and a turn it un-references returns to the uncovered-terms index; 40 decisions on one
@@ -474,7 +493,7 @@ completes (a polite live region), never per token.
 - Application tests: no `study_lead_turns` row is ever updated (the `before_update` guard stays);
   a message over 8 KB of UTF-8 is refused; a sixth queued message is refused; queued messages over
   layer 9 are answered by a follow-on turn named in the manifest; the digest of 500 decisions stays
-  within its 8 KB share, its manifest stays bounded (counts and a range), and every omitted decision
+  within its share, its manifest stays bounded (counts and a range), and every omitted decision
   pages from that range; a queued message posted
   from a second tab is answered by the next turn; a
   regenerate after a decided edit is refused; a superseded turn's card is refused; the manifest
