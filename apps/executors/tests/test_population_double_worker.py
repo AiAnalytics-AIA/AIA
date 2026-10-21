@@ -3,7 +3,7 @@
 A panel run is started over HTTP by an API that composed the double; a worker that composed its
 own double -- built independently, as a second process would -- draws the run's respondents
 from what the run recorded. Nothing is injected into either process: each reads the population
-through the canonical loader from the same deterministic bytes. A scripted Bedrock answers the
+through the canonical loader from the same deterministic bytes. Recorded models answer the
 respondents (nothing leaves the process, nothing is paid). And the worker's composition refuses
 every environment but local and test before it builds anything.
 """
@@ -29,11 +29,11 @@ from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_executors import population_double as composition
 from aia_executors.ai_runtime import AIRuntimeSettings, build_ai_fieldwork
+from aia_executors.recorded_models import RecordedModels, RecordedSigner, runtime_env
 from aia_executors.registry import registry_for
 from aia_worker.settings import WorkerSettings
 from aia_worker.worker import Worker
 from fastapi.testclient import TestClient
-from scripted_bedrock import ScriptedModels, Signer, runtime_env
 
 API = "/api/v1"
 N = 120
@@ -106,7 +106,7 @@ def api(world: Any, database_url: str, store: InMemoryArtifactStore) -> Iterator
 
 def _worker(world: Any, database_url: str, store: Any, build: BuildIdentity, models: Any) -> Worker:
     """The worker's panel path over a double of its own: what the composition passes
-    (``aia_executors.population_double``), with the scripted transport in place of Bedrock."""
+    (``aia_executors.population_double``), with the recorded wire in place of Bedrock."""
     env = runtime_env(
         world.client_id,
         [],
@@ -134,7 +134,7 @@ def _worker(world: Any, database_url: str, store: Any, build: BuildIdentity, mod
                 settings,
                 build=build,
                 transport=models,
-                signer=Signer(),
+                signer=RecordedSigner(),
                 population=double.loader(),
             ),
         ),
@@ -176,7 +176,7 @@ def test_a_panel_run_over_http_is_answered_from_the_double_the_worker_composed(
     run_id = started.json()["run_id"]
     assert started.json()["population"]["population_id"] == DOUBLE_NAMES.live
 
-    models = ScriptedModels()
+    models = RecordedModels()
     worker = _worker(world, database_url, store, build, models)
     while worker.run_once() is not None:
         pass
