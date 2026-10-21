@@ -21,7 +21,12 @@ from aia_core.application.analysis_results import (
     retry_failed_modules,
     stored_analysis,
 )
-from aia_core.application.client_report import ClientReportRefused, stored_client_report
+from aia_core.application.client_report import (
+    CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE,
+    ClientReportRefused,
+    client_report_document,
+    stored_client_report,
+)
 from aia_core.application.contextual_report import stored_contextual_report
 from aia_core.application.deep_research import (
     BundleNotReady,
@@ -34,6 +39,7 @@ from aia_core.application.errors import WorkspaceConflict
 from aia_core.application.proposal_accept import StaleProposal
 from aia_core.application.report import (
     INTERNAL_REPORT_ARTIFACT_TYPE,
+    INTERNAL_REPORT_DOCUMENT_ARTIFACT_TYPE,
     INTERNAL_REPORT_MEDIA_TYPE,
     ReportCompositionRefused,
 )
@@ -98,6 +104,11 @@ from aia_core.domain.fieldwork import (
 )
 from aia_core.domain.methodology.pins import response_deviates, run_methods
 from aia_core.domain.population import PopulationError, UnknownDatasetVersion
+from aia_core.domain.report.document_model import (
+    DOCUMENT_MODEL_MEDIA_TYPE,
+    DocumentModelInvalid,
+    read_document_payload,
+)
 from aia_core.domain.report.review import ReviewMark, ReviewState
 from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ResearchAction
@@ -172,6 +183,7 @@ _RESEARCHERS_ONLY = frozenset(
         "research_sociomap",
         "research_analysis_module",
         INTERNAL_REPORT_ARTIFACT_TYPE,
+        INTERNAL_REPORT_DOCUMENT_ARTIFACT_TYPE,
         "research_sociomapping",
         SOCIOMAPPING_REPORT_ARTIFACT_TYPE,
     }
@@ -2157,6 +2169,61 @@ def download_run_report(
     )
 
 
+@router.get(
+    "/research/runs/{run_id}/report/document",
+    response_model=dict[str, Any],
+    summary="The run's internal draft as its stored document model",
+)
+def run_report_document(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> dict[str, Any]:
+    """The document the run's internal DOCX was rendered from (report-delivery RD5a): its
+    sections and blocks by their stored ids, and the ledger of every ref it cites with the text
+    the DOCX prints. Read only through the run, beside the DOCX it names; the review is the
+    DOCX's, because the DOCX is what a person approves.
+
+    409 ``report_document_not_stored`` for a report composed before the document was stored
+    (its DOCX still downloads); 409 ``report_artifact_invalid`` for a document that is not the
+    one beside this run's DOCX."""
+    step, report = _report_for_run(run_id, scope, session, store)
+    if step is None or report is None:
+        raise _not_found("report")
+    said = (step.get("output") or {}).get("document")
+    if not isinstance(said, dict) or not said.get("artifact_id"):
+        raise HTTPException(409, detail={"code": "report_document_not_stored"})
+    repo = research_artifacts(session, scope, store)
+    try:
+        model = repo.get(str(said["artifact_id"]))
+    except ArtifactNotFound as exc:
+        raise HTTPException(409, detail={"code": "report_artifact_missing"}) from exc
+    if (
+        model.artifact_type != INTERNAL_REPORT_DOCUMENT_ARTIFACT_TYPE
+        or model.content_type != DOCUMENT_MODEL_MEDIA_TYPE
+        or model.status is not ArtifactStatus.VALID
+        or model.sha256 != said.get("sha256")
+        or model.metadata.get("run_id") != run_id
+        or model.metadata.get("docx_artifact_id") != report.artifact_id
+        or model.metadata.get("docx_sha256") != report.sha256
+    ):
+        raise HTTPException(409, detail={"code": "report_artifact_invalid"})
+    try:
+        document = read_document_payload(repo.read(model.artifact_id))
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+    except DocumentModelInvalid as exc:
+        raise HTTPException(409, detail={"code": "report_artifact_invalid"}) from exc
+    mark = _mark(report, scope, session, store)
+    return {
+        "run_id": run_id,
+        "artifact_id": model.artifact_id,
+        "sha256": model.sha256,
+        "report_artifact_id": report.artifact_id,
+        "report_sha256": report.sha256,
+        **_review_fields(report, mark),
+        "document": document,
+    }
+
+
 # The experimental Sociomapping's internal draft, read only through the run that produced it.
 
 
@@ -2547,6 +2614,52 @@ class ReportApprovalRequest(BaseModel):
 
     artifact_id: str = Field(pattern=r"^ART-[0-9a-f]{16}$")
     note: str = Field(default="", max_length=2000)
+
+
+@router.get(
+    "/research/runs/{run_id}/report/client/document",
+    response_model=dict[str, Any],
+    summary="The run's stored client report as its document model",
+)
+def client_report_document_route(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> dict[str, Any]:
+    """The document the run's stored client report was rendered from (report-delivery RD5a):
+    the approved version's when a person approved one, else the newest stored draft's. It
+    composes nothing; a client report is prepared by its download. 404 while none is stored;
+    409 ``report_document_not_stored`` for a version stored before RD5a."""
+    try:
+        found = client_report_document(session, scope, store, run_id=run_id)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ResearchRunNotFound as exc:
+        raise _not_found("run") from exc
+    if found is None:
+        raise _not_found("report")
+    report, model = found
+    if model is None:
+        raise HTTPException(409, detail={"code": "report_document_not_stored"})
+    if model.content_type != DOCUMENT_MODEL_MEDIA_TYPE or (
+        model.artifact_type != CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE
+    ):  # pragma: no cover - client_report_document selects by type
+        raise HTTPException(409, detail={"code": "report_artifact_invalid"})
+    repo = research_artifacts(session, scope, store)
+    try:
+        document = read_document_payload(repo.read(model.artifact_id))
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+    except DocumentModelInvalid as exc:
+        raise HTTPException(409, detail={"code": "report_artifact_invalid"}) from exc
+    mark = _mark(report, scope, session, store)
+    return {
+        "run_id": run_id,
+        "artifact_id": model.artifact_id,
+        "sha256": model.sha256,
+        "report_artifact_id": report.artifact_id,
+        "report_sha256": report.sha256,
+        **_review_fields(report, mark),
+        "document": document,
+    }
 
 
 @router.post(
