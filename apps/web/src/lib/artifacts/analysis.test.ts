@@ -1,7 +1,7 @@
 // Analýza's contract as data (artifact-analysis ANL1).
 import { describe, expect, it } from "vitest";
 
-import { ANALYSIS, analysisTarget, inspectable, readAnalysisTarget } from "./analysis";
+import { ANALYSIS, analysisTarget, chipKey, claimMarks, inspectable, readAnalysisTarget } from "./analysis";
 
 describe("Analýza's row", () => {
   it("is a frozen run the Lead may open, focus and inspect, naming modules, findings and claims", () => {
@@ -41,5 +41,23 @@ describe("analysisTarget / readAnalysisTarget", () => {
     expect(inspectable({ kind: "finding", module: "executive", index: 0 })).toBe(true);
     expect(inspectable({ kind: "claim", module: "executive", claimId: "C1" })).toBe(true);
     expect(inspectable({ kind: "module", module: "executive" })).toBe(false);
+  });
+});
+
+describe("claimMarks", () => {
+  const mod = (outcome: string, findings: string[][], answers: string[][] = []) => ({
+    outcome, key_findings: findings.map((claim_ids) => ({ claim_ids })), research_question_answers: answers.map((claim_ids) => ({ claim_ids })),
+  });
+
+  it("marks one chip per claim, the first in the page: the cross-module list, then the selected module's answers and findings", () => {
+    const marks = claimMarks({
+      executive: mod("COMPLETED", [["C1", "C2"], ["C1"]], [["C2", "C5"]]),
+      objects: mod("COMPLETED", [["C1"]]),
+      audience: mod("BLOCKED", [["C9"]]),
+    }, "executive");
+    expect([...marks].sort()).toEqual([
+      "answer:executive:0:C5", "key:executive:0:C1", "key:executive:0:C2", "key:objects:0:C1",
+    ].sort());
+    expect(marks.has(chipKey({ list: "finding", module: "executive", index: 1 }, "C1"))).toBe(false);
   });
 });

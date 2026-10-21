@@ -1734,8 +1734,13 @@ describe("Results", () => {
     // Each cited number and the module view carry the Lead's targets (ANL1).
     expect(keyFindings.querySelector('[data-aia="claim:executive:C1"]')).toBeTruthy();
     expect(keyFindings.querySelector('[data-aia="finding:executive:0"]')).toBeTruthy();
-    // Every module is a Lead target whichever is selected: its entry in the module list (Codex P1 on #605).
-    for (const m of ["executive", "objects", "audience", "hypotheses", "limitations"]) expect(document.querySelector(`button[data-aia="module:${m}"]`)).toBeTruthy();
+    // Every module is a Lead target whichever is selected (Codex P1 on #605), and every target names
+    // exactly one element: research_questions is the coverage table, each claim its first chip.
+    for (const m of ["executive", "research_questions", "objects", "audience", "segments", "hypotheses", "implications", "limitations"]) {
+      expect(document.querySelectorAll(`[data-aia="module:${m}"]`)).toHaveLength(1);
+    }
+    for (const c of ["C1", "C2", "C3"]) expect(document.querySelectorAll(`[data-aia="claim:executive:${c}"]`)).toHaveLength(1);
+    expect(keyFindings.querySelector('[data-aia="claim:executive:C2"]')).toBeTruthy();
     // A number whose question AIA cannot find says so in words; its reference stays as a code (6c).
     expect(within(keyFindings).getByText(/číslo, k němuž AIA nedohledala otázku/)).toBeTruthy();
     expect(within(keyFindings).getByText("x9.median").tagName).toBe("CODE");
