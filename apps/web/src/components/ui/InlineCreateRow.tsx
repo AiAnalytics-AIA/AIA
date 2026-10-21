@@ -53,14 +53,16 @@ export function InlineCreateRow({
   // after it (the sweep after Codex on #532).
   const latest = useRef(0);
 
-  const close = () => {
+  const close = (refocus = true) => {
     latest.current++;
     setOpen(false);
     setDraft("");
     setRefusal(null);
     setSubmitted(false);
     setBusy(false);
-    requestAnimationFrame(() => trigger.current?.focus());
+    // Focus goes back to "+" after Esc or a creation that closes the row (I11); a blur leaves it
+    // where the person put it (review of #532, P2-3).
+    if (refocus) requestAnimationFrame(() => trigger.current?.focus());
   };
 
   const create = async () => {
@@ -140,7 +142,7 @@ export function InlineCreateRow({
             }
           }}
           onBlur={() => {
-            if (!cleanName(draft) && !busy) close();
+            if (!cleanName(draft) && !busy) close(false);
           }}
           className="min-h-7 min-w-0 flex-1 border-0 bg-transparent text-[13px] text-ink outline-none placeholder:text-ink-faint"
         />

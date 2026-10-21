@@ -109,6 +109,27 @@ describe("InlineCreateRow (I5): created in the list, no dialog", () => {
     expect(screen.queryByText("Ukládám…")).toBeNull();
   });
 
+  it("leaves focus where the person put it when an empty row closes on blur; Esc gives it back to + (review of #532, P2-3)", async () => {
+    render(
+      <>
+        <InlineCreateRow label="Nová složka" onCreate={vi.fn()} />
+        <input aria-label="Hledat" />
+      </>,
+    );
+    const frame = () => act(() => new Promise<void>((r) => requestAnimationFrame(() => r())));
+    openRow();
+    const search = screen.getByRole("textbox", { name: "Hledat" });
+    act(() => search.focus());
+    await frame();
+    expect(screen.getByRole("button", { name: "Nová složka" })).toBeTruthy();
+    expect(document.activeElement).toBe(search);
+
+    openRow();
+    fireEvent.keyDown(row(), { key: "Escape" });
+    await frame();
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Nová složka" }));
+  });
+
   it("cancels on Esc, and on leaving it empty; a typed name survives a blur", () => {
     render(<InlineCreateRow label="Nová složka" onCreate={vi.fn()} />);
     openRow();
