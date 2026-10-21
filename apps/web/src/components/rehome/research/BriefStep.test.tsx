@@ -6,7 +6,9 @@ import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 
 
 import { AGENTS_PATH, DESIGN_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { LINK_INVALID } from "@/research/brief";
-import { PROBLEM_TYPES, briefFingerprint, defaultsMerge } from "@/research/model";
+import { briefTarget, briefTargets } from "@/lib/artifacts/brief";
+import { focusSelector, targetOfElement } from "@/lib/lead";
+import { PROBLEM_TYPES, type ResearchProject, briefFingerprint, defaultsMerge } from "@/research/model";
 import { ResearchScreen } from "./ResearchScreen";
 import { workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
@@ -157,6 +159,36 @@ describe("Zadání", () => {
     expect(order[0]).toBe("content");
     expect(order[1]).toBe("attachments");
     expect(ws.saves[0]).toMatchObject({ base_revision: null, reason: "brief_attachments" });
+  });
+
+  it("has exactly one element for every target its contract names, and @ reads each back (BRF1)", async () => {
+    const project = {
+      title: "Studie",
+      goal: "Chceme zjistit, jak lidé vnímají značku.",
+      decision_use: "Rozhodneme o kampani",
+      briefing: {
+        situation: "Trh roste",
+        attachments: [record({ filename: "a.txt" }), record({ filename: "b.txt" }, 2), { kind: "url", url: "https://example.org/a", title: "A" }, record({ filename: "a.txt" })],
+      },
+    };
+    unitStub(project);
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    await screen.findByText("b.txt");
+    const targets = briefTargets(project as unknown as ResearchProject);
+    expect(targets).toContain("brief:briefing.situation");
+    expect(targets).toContain("brief:briefing.constraints");
+    expect(targets.filter((x) => x.startsWith("material:"))).toHaveLength(2);
+    for (const target of targets) {
+      const found = document.querySelectorAll(focusSelector(target));
+      expect(found, target).toHaveLength(1);
+      expect(targetOfElement(found[0]!)?.id, target).toBe(target);
+    }
+    // An open field and a closed one's chip both carry the name; the label still finds its field.
+    expect(screen.getByLabelText("Situace / trh")).toBe(document.getElementById("brief-briefing.situation"));
+    expect(document.getElementById("brief-briefing.constraints")?.tagName).toBe("BUTTON");
+    // A target the contract does not name finds nothing on the screen.
+    expect(briefTarget("brief:situation")).toBeNull();
+    expect(document.querySelectorAll(focusSelector("brief:situation"))).toHaveLength(0);
   });
 
   it("prints each material's class as the server answers it, and unknown when it names none (BRF3)", async () => {
