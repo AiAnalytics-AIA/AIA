@@ -31,6 +31,9 @@ from typing import Annotated, Any, Final
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
+from .pipeline import fingerprint
+from .research_template import research_template
+
 __all__ = [
     "LEGACY_SOURCE",
     "SAVE_REASON",
@@ -45,6 +48,7 @@ __all__ = [
     "WorkingRevision",
     "WorkingSave",
     "WorkspaceRejected",
+    "edited_from_current",
     "validate_working_content",
 ]
 
@@ -243,3 +247,27 @@ class WorkingRevision(BaseModel):
     content_sha256: str
     created_at: datetime
     created_by: str | None
+
+
+def edited_from_current(
+    base_revision: int | None,
+    current_revision: int | None,
+    current_content: Any = None,
+    current_analysis: Any = None,
+) -> bool:
+    """Whether a copy edited from ``base_revision`` was edited from the current working content.
+
+    The revision it names is the current one; or it names none -- it was loaded with nothing
+    saved and started from the research template -- and the current revision is that template
+    still, with no analysis. A server writer saves the bare template as a Study's first working
+    revision when it needs one and none exists (``submit_as_working_copy`` for the Research
+    Lead's first turn, OI-58 / ADR 0026 decision 5), behind a browser that loaded the Study
+    EMPTY; nobody's work is in it, so a save from that browser overwrites nothing. A copy that
+    holds anything else -- anyone's edit, a reused design, an analysis -- makes a save from no
+    revision stale, as ADR 0018 says.
+    """
+    if base_revision == current_revision:
+        return True
+    if base_revision is not None or current_revision is None or current_analysis:
+        return False
+    return fingerprint(current_content) == fingerprint(research_template())

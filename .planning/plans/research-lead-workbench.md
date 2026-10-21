@@ -218,6 +218,33 @@ The backend each chunk needs is in `.planning/mvp-consolidation.md` §6.
   - Closed by chunk 8.
   - The test that would have caught it: accepting after a working-copy save from a second session
     on an item the proposal changes must be refused.
+- **F3. The Lead's greeting made a new study's first save stale** *(fixed on
+  `fix/new-study-first-save-conflict`; the product owner on develop b3984d4, 2026-10-21)*.
+  1. Claim: on a study with no working copy, the greeting's `post` saves the bare template as
+     working revision 1 behind the browser, which loaded the study EMPTY, so the person's first
+     save (base `null`) is refused `stale_revision` and the copy sits in conflict.
+  2. Anchor: the greeting is posted on opening (`LeadPane.tsx:178 @ 962652b1`); `post` calls
+     `_design_project` (`research_lead.py:427 @ 962652b1`), which for a study with no Design
+     Revision calls `submit_as_working_copy` (`research_lead.py:811 @ 962652b1`), a working-copy
+     save; the browser saves with `base_revision: s.revision`, `null` (`store.ts:233 @ 962652b1`),
+     refused by `study_workspace_repository.py:268 @ 962652b1`. The turn also recorded
+     `workspace_revision = None` for a context frozen from revision 1, so an automatic accept of
+     its text edits was refused too (`research_lead.py:561 @ 962652b1`, then `stale_turn`).
+  3. Reproduction: `pytest apps/api/tests/test_research_lead_api.py -k new_study` (both fail on
+     962652b1); in a browser, the workbench with `AIA_WEB_RESEARCH_WORKBENCH=true`, a hatched
+     Lead, a new study, two sentences typed into Zadání: "Uloženo jinde · změny zde neuloženy",
+     "Pracovní kopie zatím neuložena".
+  4. Consequence: the person's first words are not saved, and the only way on is "Načíst znovu",
+     which drops them; every new study opened with a hatched Lead hit it.
+  5. Fix: the template is nobody's work. `domain/workspace.py` `edited_from_current`: a copy
+     naming no revision was edited from the current one when that is still the bare template with
+     no analysis; the save and the Lead's accept both ask it. A copy holding anything else (an
+     edit, a reused design, an analysis) still makes a save from no revision stale (ADR 0018).
+     `post` names the template revision it froze the turn from.
+  6. Tests: `test_a_greeting_on_a_new_study_does_not_make_the_persons_first_save_stale`,
+     `test_a_greeting_on_a_new_study_has_its_text_edits_accepted_automatically`,
+     `test_a_first_save_is_not_stale_over_the_bare_template_a_server_writer_saved`,
+     `test_edited_from_current_names_the_current_revision_or_the_bare_template`.
 
 ## Doc follow-up (for the docs PR, not this branch)
 
@@ -230,7 +257,10 @@ The backend each chunk needs is in `.planning/mvp-consolidation.md` §6.
     `study_lead_turns`, `aia_executors/research_lead.py` and `AIA_AI_RESEARCH_LEAD_*`.
 - **`ARCHITECTURE.md`.** The accept route's new shape, and one more human-only gate source (a
   Lead-prepared job).
-- **`.planning/open-items.md`.** F1 and F2 above.
+- **`.planning/open-items.md`.** F1 and F2 above; F3, closed by its fix.
+- **`CLAUDE.md` § 2**, `domain/workspace.py` / the working content paragraph: a save naming no
+  revision is not stale over a working copy that is still the bare template a server writer
+  saved (`edited_from_current`).
 - **`CLAUDE.md` § 2**, beside `src/components/workbench/`: `prototypes/research-lead-v2/` is the
   canonical workspace and artifact reference (MVPQ-01, 2026-10-20); V3 is supporting reference.
 - **ADR 0026**, under *Accepted with*: the Lead steers the artifact pane through a closed set of

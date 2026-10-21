@@ -46,6 +46,7 @@ from ..domain.workspace import (
     WorkingRevision,
     WorkingSave,
     WorkspaceRejected,
+    edited_from_current,
     validate_working_content,
 )
 from .artifact_repository import Artifact, ArtifactNotFound, ArtifactRepository
@@ -243,8 +244,9 @@ class StudyWorkspaceRepository:
         """Save the Study's working content as its newest revision.
 
         ``base_revision`` is the revision the content was edited from: ``None`` only
-        for a Study with no content yet. A save from any other revision than the
-        current one is refused (``stale_revision``), so two editors cannot silently
+        for a Study with no content yet, or whose content is still the bare template a server
+        writer saved for it (:func:`~aia_core.domain.workspace.edited_from_current`). A save
+        from any other revision than the current one is refused (``stale_revision``), so two editors cannot silently
         overwrite each other. Content and analysis identical to the current revision
         write nothing (``deduplicated``). Needs ``EDIT_STUDY`` on an open research
         Study whose content is not awaiting migration. The first save creates the
@@ -265,7 +267,12 @@ class StudyWorkspaceRepository:
             )
         current = self._current(row) if row is not None and state.has_content else None
         current_revision = current.revision if current is not None else None
-        if base_revision != current_revision:
+        if not edited_from_current(
+            base_revision,
+            current_revision,
+            current.content if current is not None else None,
+            current.analysis if current is not None else None,
+        ):
             raise WorkspaceConflict(
                 "the working content changed since it was loaded",
                 reason="stale_revision",
