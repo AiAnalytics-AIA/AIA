@@ -231,8 +231,8 @@ export function QuestionnaireStep() {
           </>
         ) : null}
       </div>
-      {analysis.failure ? <AnalysisFailureCard failure={analysis.failure} onRetry={() => void build()} /> : null}
-      {step.failure ? <AiFailureCard failure={step.failure} title={t("research.questionnaire.failedTitle")} onRetry={() => step.setFailure(null)} /> : null}
+      {analysis.failure ? <AnalysisFailureCard failure={analysis.failure} onRetry={() => void build()} onContinue={(id) => void analysis.resume(id)} /> : null}
+      {step.failure ? <AiFailureCard failure={step.failure} title={t("research.questionnaire.failedTitle")} onRetry={() => step.setFailure(null)} onContinue={(id) => void step.resume(id)} /> : null}
       {view === "upload" ? <Upload /> : null}
       {view === "ai" ? (
         <section className={CARD} aria-labelledby="q-ai">

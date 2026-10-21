@@ -1751,6 +1751,10 @@ export const cs = {
       title: "AI úloha čeká na rozpočet studie",
       help: "Úloha se zastavila, protože by překročila rozpočet studie, a sama nepokračuje. Po navýšení rozpočtu pokračuje tatáž úloha; nic dalšího se nespouští.",
       job: "{action} · zadáno {when}",
+      // A stage's own AI step that stopped at the budget, said where the person asked for it (CR-2).
+      waitingTitle: "AI krok čeká na rozpočet studie",
+      waitingHelp: "Nejde o chybu: krok se zastavil, protože by překročil rozpočet studie, a sám nepokračuje. Po zvýšení rozpočtu pokračuje tatáž úloha; nic nového se nespouští.",
+      readOnly: "Rozpočet může zvýšit jen člověk, který smí studii upravovat.",
     },
     // Studio v3's shared step pieces (components/rehome/step.tsx).
     step: { optional: "volitelné", remove: "Odebrat", keep: "Ponechat" },

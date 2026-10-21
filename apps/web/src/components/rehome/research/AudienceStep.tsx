@@ -288,7 +288,7 @@ function FilterEditor({ live }: { live: Live }) {
       <section className="rounded-control border border-border bg-surface p-4" aria-labelledby="aud-filters">
         {step.failure ? (
           <div className="mb-4">
-            <AiFailureCard failure={step.failure} title={t("research.audience.failedTitle")} onRetry={() => step.setFailure(null)} />
+            <AiFailureCard failure={step.failure} title={t("research.audience.failedTitle")} onRetry={() => step.setFailure(null)} onContinue={(id) => void step.resume(id)} />
           </div>
         ) : null}
         <div className={EYEBROW}>{t("research.audience.filterTag")}</div>

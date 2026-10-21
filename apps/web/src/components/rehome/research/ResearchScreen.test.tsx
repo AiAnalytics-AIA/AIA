@@ -267,6 +267,46 @@ describe("ResearchScreen", () => {
   it("lists as rebuilt exactly the steps that have a screen", () => {
     for (const k of STEP_KEYS) expect(REBUILT_STEPS.has(k), k).toBe(k in STEP_SCREENS);
   });
+
+  it("shows a stage's AI job stopped at the budget as waiting, lifts it in place and goes on with the same job (CR-2)", async () => {
+    const JOBS = "/api/v1/studies/STU-1/research/agent-jobs";
+    const job = (status: string, stepStatus: string) => ({ run_id: "RUN-J1", design_revision_id: "REV-3", action: "propose_audience", status,
+      is_terminal: status === "COMPLETED", needs_attention: status === "AWAITING_BUDGET", context_sha256: "x", harness_version: "2",
+      created_at: "2026-10-20T09:00:00Z", actual_cost_usd: null, proposal_state: null,
+      steps: [{ step_id: "STEP-agent", node_key: "agent", status: stepStatus, waiting_reason: stepStatus === "AWAITING_BUDGET" ? "budget_exceeded" : null, error_message: null }] });
+    let lifted = false;
+    api(() => content({ content: { title: "Alfa", audience: { strategy: "filters" }, ui_state: { audience_entry: "analytics", analytics_choice: "cz18" } } }), undefined, {
+      [`POST ${JOBS}`]: () => job("AWAITING_BUDGET", "AWAITING_BUDGET"),
+      [`GET ${JOBS}/RUN-J1`]: () => (lifted ? job("COMPLETED", "SUCCEEDED") : job("AWAITING_BUDGET", "AWAITING_BUDGET")),
+      [`POST ${JOBS}/RUN-J1/budget`]: () => { lifted = true; return job("RUNNING", "RUNNABLE"); },
+      [`GET ${JOBS}/RUN-J1/result`]: () => ({
+        result: { project: { title: "Alfa" }, proposal: { message: "Návrh audience" } },
+        provenance: { agent_id: "aia.research.propose_audience", design_revision_id: "REV-3", context_sha256: "x", status: "COMPLETED" },
+      }),
+      "GET /api/v1/studies/STU-1": () => ({ study_id: "STU-1", name: "Alfa", budget_usd: 5, spent_usd: 4.8, remaining_usd: 0.2 }),
+      "GET /api/v1/population/audience-catalogue": () => new Response('{"code":"not_found","message":"No such resource."}', { status: 404 }),
+    });
+    render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+    fireEvent.change(await screen.findByPlaceholderText(t("research.audience.describePlaceholder")), { target: { value: "Ženy 30-45 let" } });
+    fireEvent.click(screen.getByRole("button", { name: t("research.audience.propose") }));
+
+    // Waiting in words, with the study's budget lift where the failure was: no retry, no fault.
+    const card = await screen.findByRole("status", { name: t("research.aiBudget.waitingTitle") });
+    expect(within(card).getByText(t("research.aiBudget.waitingHelp"))).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("research.retry") })).toBeNull();
+    expect(screen.queryByText(t("research.audience.failedTitle"))).toBeNull();
+    const form = within(card).getByRole("form", { name: t("research.exec.budget.title") });
+    await within(form).findByText(/5\.00/);
+    expect(within(form).getByText(t("research.exec.budgetLine.holdsNotCounted"))).toBeTruthy();
+    fireEvent.change(within(form).getByLabelText(t("research.exec.budget.amount")), { target: { value: "8" } });
+    fireEvent.click(within(form).getByRole("button", { name: t("research.exec.budget.lift") }));
+
+    await vi.waitFor(() => expect(calls.filter((c) => c.method === "GET" && c.url === `${JOBS}/RUN-J1/result`)).toHaveLength(1));
+    expect(calls.filter((c) => c.method === "POST" && c.url === `${JOBS}/RUN-J1/budget`).map((c) => c.body)).toEqual([{ budget_usd: 8, note: "" }]);
+    // The same job went on: one start, never a second job for the waiting one.
+    expect(calls.filter((c) => c.method === "POST" && c.url === JOBS)).toHaveLength(1);
+    await vi.waitFor(() => expect(screen.queryByRole("status", { name: t("research.aiBudget.waitingTitle") })).toBeNull());
+  });
 });
 
 describe("AI pomoc (Studio v3)", () => {

@@ -80,7 +80,7 @@ export function BriefStep() {
   const { store, state, stepHref } = useResearch();
   const router = useRouter();
   const p = state.project;
-  const { analyse: runAnalysis, failure, busy } = useAnalysis();
+  const { analyse: runAnalysis, resume, failure, busy } = useAnalysis();
 
   const edit = (field: TopField | BriefingField, value: string) =>
     store.update(({ project, analysis }) => editBrief(project, analysis, field, value));
@@ -133,7 +133,7 @@ export function BriefStep() {
         </Readiness>
       </InspectorSlot>
 
-      {failure ? <AnalysisFailureCard failure={failure} onRetry={analyse} /> : null}
+      {failure ? <AnalysisFailureCard failure={failure} onRetry={analyse} onContinue={(id) => void resume(id)} /> : null}
 
       <StepSection id="brief-goal" n={1} lead title={t("research.brief.goalTitle")} hint={t("research.brief.goalHint")}>
         <textarea

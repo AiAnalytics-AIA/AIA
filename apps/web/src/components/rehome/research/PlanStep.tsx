@@ -78,7 +78,7 @@ export function followUpAnswers(questions: string[], answers: string[]): string 
 export function PlanStep() {
   const { store, state, toast, stepHref, confirm } = useResearch();
   const router = useRouter();
-  const { analyse, failure, busy } = useAnalysis();
+  const { analyse, resume, failure, busy } = useAnalysis();
   const a = proposalAnalysis(state);
   const p = state.project;
   const variants = projectVariants(state);
@@ -210,7 +210,7 @@ export function PlanStep() {
         <p className="mt-3 text-xs leading-5 text-ink-muted">{t("research.plan.manualNote")}</p>
       </header>
       <JumpChips chips={chips} />
-      {failure ? <AnalysisFailureCard failure={failure} onRetry={() => void analyse()} /> : null}
+      {failure ? <AnalysisFailureCard failure={failure} onRetry={() => void analyse()} onContinue={(id) => void resume(id)} /> : null}
       {variantSection}
       <Commentable onQuote={(quote) => setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }])}>
         <div className="flex flex-col gap-4">

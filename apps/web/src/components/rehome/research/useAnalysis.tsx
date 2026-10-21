@@ -19,16 +19,22 @@ import {
   withAttachmentContext,
 } from "@/research/brief";
 import { isNativeResult } from "@/lib/research-agent-jobs";
-import { JobError } from "@/research/jobs";
 import { useResearch } from "./context";
-import { AiFailureCard } from "./useAiStep";
+import { AiFailureCard, failureOf } from "./useAiStep";
 
-export type AnalysisFailure = { kind: "analysis"; message: string; jobId: string | null } | { kind: "provider"; message: string };
+export type AnalysisFailure =
+  | { kind: "analysis"; message: string; jobId: string | null }
+  | { kind: "provider"; message: string }
+  /** The analysis job stopped at the study's budget: it waits for a lift (CR-2). */
+  | { kind: "budget"; jobId: string };
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const analysisFailureOf = (e: unknown): AnalysisFailure => {
+  const f = failureOf(e);
+  return f.kind === "job" ? { kind: "analysis", message: f.message, jobId: f.jobId } : f;
+};
 
 export function useAnalysis() {
-  const { store, template, runJob } = useResearch();
+  const { store, template, runJob, continueJob } = useResearch();
   const [failure, setFailure] = useState<AnalysisFailure | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -60,24 +66,47 @@ export function useAnalysis() {
       }, { reason: "ai_analysis_1780" });
       return true;
     } catch (e) {
-      setFailure({ kind: "analysis", message: message(e), jobId: e instanceof JobError ? e.jobId : null });
+      setFailure(analysisFailureOf(e));
       return false;
     } finally {
       setBusy(false);
     }
   };
 
-  return { analyse, failure, clearFailure: () => setFailure(null), busy };
+  /**
+   * After a budget lift: follow the same analysis job on to its proposal (CR-2). Starts nothing.
+   * Resolves true when it completed, as `analyse` does.
+   */
+  const resume = async (jobId: string): Promise<boolean> => {
+    setFailure(null);
+    setBusy(true);
+    try {
+      // Whether the person's comments asked for it is not known here, so the mark is left as it is.
+      await continueJob(jobId);
+      return true;
+    } catch (e) {
+      setFailure(analysisFailureOf(e));
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return { analyse, resume, failure, clearFailure: () => setFailure(null), busy };
 }
 
-/** The classic analysis error card, with what failed said in words, or the provider notice. */
-export function AnalysisFailureCard({ failure, onRetry }: { failure: AnalysisFailure; onRetry: () => void }) {
+/**
+ * The classic analysis error card, with what failed said in words, or the provider notice, or the
+ * study's budget lift for a job that waits (`onContinue` follows the same job).
+ */
+export function AnalysisFailureCard({ failure, onRetry, onContinue }: { failure: AnalysisFailure; onRetry: () => void; onContinue: (jobId: string) => void }) {
   return (
     <AiFailureCard
       failure={failure.kind === "analysis" ? { kind: "job", message: failure.message, jobId: failure.jobId } : failure}
       title={t("research.brief.failedTitle")}
       sub={t("research.brief.failedSub")}
       onRetry={onRetry}
+      onContinue={onContinue}
     />
   );
 }

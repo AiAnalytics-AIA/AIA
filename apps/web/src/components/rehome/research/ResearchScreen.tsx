@@ -269,6 +269,18 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
     },
     [nativeRun],
   );
+  const nativeContinue = agents.continueJob;
+  const continueJob = useCallback(
+    async (jobId: string) => {
+      try {
+        return await nativeContinue(jobId);
+      } catch (e) {
+        if (e instanceof JobError && e.kind === "busy") setToast(e.message);
+        throw e;
+      }
+    },
+    [nativeContinue],
+  );
 
   const onCancel = (jobId: string) =>
     setAsk({
@@ -289,8 +301,8 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
     [],
   );
   const value = useMemo(
-    () => ({ store, template, runJob, job, toast: setToast, confirm, prompt, memory, stepHref, frame }),
-    [store, template, runJob, job, confirm, prompt, memory, stepHref, frame],
+    () => ({ store, template, runJob, continueJob, job, toast: setToast, confirm, prompt, memory, stepHref, frame }),
+    [store, template, runJob, continueJob, job, confirm, prompt, memory, stepHref, frame],
   );
   const Screen = STEP_SCREENS[step];
   const aiHelp = aiHelpFor(step);
