@@ -2028,6 +2028,46 @@ def test_readiness_says_what_would_stop_a_run_before_anything_starts(
     )
 
 
+def test_readiness_reads_a_working_revision_without_submitting_a_design(
+    researcher: TestClient, viewer: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    """Plan working-copy-edit-ops WCE7: a stage reads readiness on the working revision it
+    shows. The answer is the one a submit of that revision reads, and nothing is written."""
+    base = f"{API}/studies/{world.study_id()}"
+    now = researcher.get(f"{base}/workspace/content").json().get("revision")
+    saved = researcher.put(
+        f"{base}/workspace/content", json={"content": DESIGN, "base_revision": now}
+    )
+    assert saved.status_code == 200, saved.text
+    number = saved.json()["revision"]
+    url = f"{base}/research/readiness/working"
+
+    working = viewer.get(url, params={"working_revision": number})
+    assert working.status_code == 200, working.text
+    body = working.json()
+    assert body["working_revision"] == number and "design_revision_id" not in body
+    assert viewer.get(f"{base}/design/revisions").json()["items"] == [], "nothing was submitted"
+
+    # The same answer a submit of that revision reads, but for the revision it names.
+    revision_id = submit(researcher, world).json()["revision_id"]
+    design = viewer.get(f"{base}/research/readiness", params={"design_revision_id": revision_id})
+    same = {**design.json()}
+    same.pop("design_revision_id")
+    mine = {k: v for k, v in body.items() if k != "working_revision"}
+    # Its acknowledgement digest names no Design Revision, so it never stands for a start's.
+    assert mine["answerability"]["digest"] != same["answerability"]["digest"]
+    mine["answerability"].pop("digest")
+    same["answerability"].pop("digest")
+    assert mine == same
+
+    # A revision the Study never saved, or another study's, is not found.
+    missing = viewer.get(url, params={"working_revision": number + 50})
+    assert missing.status_code == 404 and missing.json()["code"] == "working_revision_not_found"
+    assert viewer.get(url, params={"working_revision": 0}).status_code == 422
+    other = f"{API}/studies/{world.study_id('other_client')}/research/readiness/working"
+    assert other_client_lead.get(other, params={"working_revision": number}).status_code == 404
+
+
 def test_readiness_forecasts_whether_a_runs_numbers_will_be_shown(
     researcher: TestClient, viewer: TestClient, world: Any
 ) -> None:
