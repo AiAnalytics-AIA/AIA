@@ -50,6 +50,7 @@ from ..domain.methodology.pins import (
     sociomap_methods_for,
     support_spec_for,
 )
+from ..domain.money import ThresholdVerdict, threshold_verdict
 from ..domain.panel_persona import persona_allowlist
 from ..domain.pipeline import fingerprint
 from ..domain.population import (
@@ -745,12 +746,15 @@ class ResearchRuns:
                 fieldwork_frozen=frozen_dataset is not None,
                 analysis_modules=frozen_dataset.modules_asked if frozen_dataset else None,
             )
-            if ceiling.total_usd is None:
+            # The confirmation threshold's one rule (domain/money.py; ADR 0019 gate 2).
+            verdict = threshold_verdict(ceiling.total_usd, limit, confirm_cost_usd)
+            if verdict is ThresholdVerdict.CEILING_UNKNOWN:
                 assert ceiling.unknown is not None
                 raise CostCeilingUnknown(ceiling.unknown, limit_usd=limit)
-            if ceiling.total_usd >= limit:
-                if confirm_cost_usd is None or confirm_cost_usd < ceiling.total_usd:
-                    raise CostConfirmationRequired(ceiling_usd=ceiling.total_usd, limit_usd=limit)
+            assert ceiling.total_usd is not None
+            if verdict is ThresholdVerdict.ASK:
+                raise CostConfirmationRequired(ceiling_usd=ceiling.total_usd, limit_usd=limit)
+            if verdict is ThresholdVerdict.CONFIRMED:
                 confirmation = (ceiling.total_usd, limit)
         started = start_workflow(
             self.session,

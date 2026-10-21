@@ -83,7 +83,7 @@ try {
   const studies = await get("/api/v1/studies"); const study = studies[0]; const original = await get(`/api/v1/studies/${study.study_id}`);
   await page.locator(`[data-study="${study.study_id}"]`).getByRole("button", { name: "Upravit", exact: true }).click();
   const card = page.locator(`[data-study-edit="${study.study_id}"]`);
-  const budget = card.getByLabel("Strop rozpočtu", { exact: true }); await budget.fill("20");
+  const budget = card.getByLabel("Rozpočet studie", { exact: true }); await budget.fill("20");
   await page.getByRole("searchbox", { name: "Hledat studii nebo klienta" }).fill("no-such-study"); assert(!await card.isVisible());
   await page.getByRole("searchbox", { name: "Hledat studii nebo klienta" }).fill(""); assert.equal(await budget.inputValue(), "20");
   await budget.locator("xpath=ancestor::form").getByRole("button", { name: "Uložit", exact: true }).click();

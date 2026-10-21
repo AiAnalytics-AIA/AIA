@@ -40,6 +40,8 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
+from ..domain.approval_ledger import subject_check_sql
+
 # Explicit naming convention so Alembic generates stable, reviewable constraint
 # names instead of database-assigned ones.
 NAMING_CONVENTION = {
@@ -1674,7 +1676,8 @@ class ApprovalDecisionRow(Base):
     # or a run started over research questions it cannot all answer (subject_id = the run), or
     # a Research Lead's proposed edit (subject_id = "<turn_id>:<index>") or prepared paid job
     # (subject_id = the Lead turn) or the self-update it left waiting (subject_id = the Lead
-    # turn), each decided by a person (ADR 0026).
+    # turn), each decided by a person (ADR 0026). The closed set, with what each subject_id
+    # names and who writes it, is domain/approval_ledger.py's ApprovalSubject.
     subject_type: Mapped[str] = mapped_column(String(32), nullable=False)
     subject_id: Mapped[str] = mapped_column(String(64), nullable=False)
 
@@ -1705,12 +1708,9 @@ class ApprovalDecisionRow(Base):
 
     __table_args__ = (
         ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
-        CheckConstraint(
-            "subject_type in "
-            "('gate','artifact','budget','spend','ai_proposal','design_research','answerability',"
-            "'lead_edit','lead_job_request','lead_self_update')",
-            name="approval_subject_type_known",
-        ),
+        # Exactly the closed set of subjects (domain/approval_ledger.py); migration
+        # 5054d4d610c2 is the last to change it (lead-orchestration LO16, lane M3).
+        CheckConstraint(subject_check_sql(), name="approval_subject_type_known"),
         CheckConstraint(
             "self_approval_source in ('default','organization','client','study')",
             name="approval_self_approval_source_known",

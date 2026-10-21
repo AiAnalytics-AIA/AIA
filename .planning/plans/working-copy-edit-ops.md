@@ -1,7 +1,7 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] WCE0. The contract: the closed operation set, ids, validation, the lock rule and the text-only marker, with one shared fixture (tests/fixtures/edit_ops/cases.json) read by the Python and the TypeScript tests"
+  - "[x] WCE0. The contract: the closed operation set, ids, validation, the lock rule and the text-only marker, with one shared fixture (tests/fixtures/edit_ops/cases.json) read by the Python and the TypeScript tests"
   - "[ ] WCE1. Stable item identity: ids for objectives, research questions, hypotheses, options, battery objects and sections; existing content gets ids on load; `FOCUS_ID` and `design_items` keys use them"
   - "[ ] WCE2. `workspace_edit_ops` (M1) and `apply_edit_ops`: the one writer of the working copy; every other writer becomes a recorded whole-copy operation"
   - "[ ] WCE3a. The web store on the server vocabulary, Brief and Design stages"
@@ -135,4 +135,81 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
   verzi …", not only a run: today the lane marks a run's staleness only (`apps/web/src/research/
   lane.ts:34-96 @ 7878bad`). Test: accepting a brief change flags a pending questionnaire proposal
   built before it.
+
+## WCE0 delivered (2026-10-21)
+
+`packages/aia_core/src/aia_core/domain/edit_ops.py` is the vocabulary; the Lead's edit payloads,
+`is_text_edit` and `apply_edit` moved there verbatim from `domain/research_lead.py`, which
+re-exports them (its output schema and prompt hash unchanged, checked before and after).
+
+- **The closed set** (`CATALOGUE`, `OpName`): 30 operations. The eight the Lead proposes today are
+  `APPLIED`; the other 22 are `DECLARED` with their item kinds, fields, text ruling, lock relevance
+  and owning chunk (WCE2, WCE3a, WCE3b, WCE8, WCE10, WCE13, WCE14, AOC1), refused by name
+  (`op_not_available`) until that chunk gives each its payload and apply. `in_lead_output` is a
+  fact about today's Lead schema (a test reads the schema), never a plan.
+- **Ids**: `ITEM_ID` (the id part of `FOCUS_ID`), `ID_PREFIX` per `IdKind` (`Q_` and `sec_` as
+  written today; `obj_`, `rq_`, `hyp_`, `set_`, `opt_`, `o_`, `asm_`, `stim_` new), `new_item_id`,
+  `new_op_id` (`EOP-`, for M1's rows). Giving existing content ids stays WCE1.
+- **Validation**: `refusal` (the grounding `ground_edits` now calls), `op_refusal`, `REFUSALS`.
+- **Touches**: `touches(edit, content)`, the `(item key, field)` pairs (D-06), on `design_items`'
+  keys; a plan-list item is text-keyed until WCE1.
+- **The lock** (D-30): `declares_sociomap_inputs`, `locked_items` (declared rating questions and
+  every questionnaire tracked set, once anything is declared; the plan's own `tracked_sets` are not
+  read by the map and are not locked), `lock_refusal`, `whole_copy_lock_refusal`. Nothing calls them
+  yet: WCE2 makes every writer ask; `ground_edits` deliberately does not, so the Lead's behaviour
+  does not change in this chunk.
+- **Text only**: `is_text_edit` / `TEXT_EDIT_OPS` unchanged; a test holds that only a `BY_PAYLOAD`
+  operation can be one and a declared operation never is, so the default automatic accept stays
+  text-only.
+- **One refusal for what cannot apply**: `refusal`, `apply_edit` and `lock_refusal` ask `op_refusal`
+  first, so a declared operation is `op_not_available` and an unknown one `unknown_edit` at all
+  three, none raising (`test_every_entry_point_refuses_an_operation_it_cannot_apply_with_one_word`).
+- **One case file**: `packages/aia_core/tests/fixtures/edit_ops/cases.json` (25 apply cases, the
+  text marker, touches, lock, whole-copy lock, the trace's link key and `research_questions_of`),
+  read by `packages/aia_core/tests/test_edit_ops.py` and `apps/web/src/lib/edit-ops.cases.test.ts`.
+  `applyLeadEdit` now mirrors the server's `apply_edit` and answers the server's refusal word
+  (`reason`) beside its Czech sentence.
+
+## Findings
+
+- **F-WCE0-1. The web's applyLeadEdit wrote a different working copy from the server's
+  apply_edit.** Anchor: `apps/web/src/lib/lead.ts:180-238 @ 6b76eef4` against
+  `packages/aia_core/src/aia_core/domain/research_lead.py:1200-1320 @ 6b76eef4`. Reproduction: the
+  case file's test against that `lead.ts` fails 10 of 25 apply cases: five on behaviour (the two
+  problem-summary cases, a research question added and one reworded: a list or summary edit went
+  through `applyNarrative` with the whole narrative, so it copied the analysis' other lists and an
+  empty `problem_summary` over the plan's; and options on a scale, dropped silently where the
+  server refuses `options_on_non_selection`) and five because it gave no refusal word. The web
+  also trimmed a list value and a new question's text, which the server stores as given
+  (`lead.ts:199, 203, 217 @ 6b76eef4`; no case turned on it). Consequence: after an
+  automatic accept the screen's copy, from which "Vrátit" reads the wording to put back, differed
+  from the saved one until the reload. Fix: this chunk (the web follows the server). Test:
+  `apps/web/src/lib/edit-ops.cases.test.ts`.
+- **F-WCE0-2. The two sides fold case differently.** Anchor: `apps/web/src/lib/lead.ts:139 @
+  6b76eef4` (`toLocaleLowerCase("cs")`) against `domain/edit_ops.py` `_key` (`str.casefold`).
+  Reproduction: `python -c "print('STRASSE'.casefold() == 'straße'.casefold())"` prints `True`;
+  `"STRASSE".toLocaleLowerCase("cs") === "straße".toLocaleLowerCase("cs")` is `false` in Node.
+  Consequence: a list item spelled with `ß` (or another character `casefold` expands) is found by
+  the server and not by the screen; rare in Czech content, and gone once WCE1 keys items by id.
+  Smallest fix: key by id (WCE1); no case in the file until then. Test: a case-file case with `ß`.
+
+- **F-WCE0-3. `touches()` keys a question and a section by its raw id; `locked_items()` by
+  `design_items`' occurrence key.** Anchor: `domain/edit_ops.py` `touches` against `locked_items`
+  (`item_values`, `occurrence_keys`) at #534's head. Reproduction: a working copy with two questions
+  both `id: "Q1"`, the second marked `sociomap_rating`: `locked_items` holds `content:question:Q1#2`;
+  a `question_edit` of `Q1` touches `content:question:Q1` (the first, which `apply_edit` edits) and
+  is let through, which is right for the first and says nothing of the second; a section with no id
+  is `#<i>` in `design_items` and `""` in `touches`. Consequence: none on well-formed content (ids
+  unique, the first occurrence's key is the plain id); on a malformed copy the two keyings disagree.
+  Smallest fix: WCE1's stable, unique ids, after which both read one key; mapping occurrence keys
+  back to positions here is more code than the case is worth. Test: a case-file case with a
+  repeated id once WCE1 refuses or renames them.
+
+## Doc follow-up (WCE0)
+
+- `CLAUDE.md` § 2, under `domain/`: `edit_ops.py` (the working copy's edit vocabulary: the closed
+  set, ids, validation, touches, the Sociomap lock, the text-only marker; ADR 0029 decision 1);
+  under `research_lead.py`: "its edits are `edit_ops`'s". Under `src/lib/lead.ts`: `applyLeadEdit`
+  mirrors the server's `apply_edit`, held to it by `tests/fixtures/edit_ops/cases.json`.
+- `open-items.md`: number F-WCE0-3 (open, WCE1).
 
