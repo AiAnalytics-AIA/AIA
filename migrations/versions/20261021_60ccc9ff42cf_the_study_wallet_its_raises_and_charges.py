@@ -1,7 +1,7 @@
 """the study wallet, its raises and charges
 
 Revision ID: 60ccc9ff42cf
-Revises: 5054d4d610c2
+Revises: b5d7f9a1c3e6
 Created: 2026-10-21 04:47:39.960899+00:00
 
 Migration M4 of the MVP's lane (``lead-orchestration`` LO1; ADR 0028 decision 2): the wallet
@@ -28,7 +28,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "60ccc9ff42cf"
-down_revision: str | None = "5054d4d610c2"
+down_revision: str | None = "b5d7f9a1c3e6"
 branch_labels = None
 depends_on = None
 

@@ -776,7 +776,7 @@ def _tables(connection: Any) -> set[str]:
 def test_the_migration_lists_the_domain_charge_kinds() -> None:
     migration = _migration()
     assert tuple(k.value for k in ChargeKind) == migration._KINDS
-    assert migration.down_revision == "5054d4d610c2"
+    assert migration.down_revision == "b5d7f9a1c3e6"
 
 
 def test_the_downgrade_takes_the_wallet_back_and_the_upgrade_restores_it(postgres: Any) -> None:
