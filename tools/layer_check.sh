@@ -504,6 +504,16 @@ forbid "among the executors, only the workbench composition builds fictional fie
 forbid "no deployment runs the workbench composition" \
   'aia_executors\.workbench|aia_executors/workbench' \
   deploy
+# Recorded model answers (plan mvp-acceptance-harness chunk 4) stand in for Bedrock behind the
+# gateway, in tests and in the acceptance harness's worker. No production composition imports
+# them, and no deployment names either module: a recording never answers a deployed request.
+forbid "among the executors, only the acceptance composition imports the recorded models" \
+  '^\s*(from|import)\s+\S*(recorded_models|acceptance_recorded)\b' \
+  "$EXECUTORS" \
+  "$EXECUTORS/acceptance_recorded.py"
+forbid "no deployment runs the recorded models" \
+  'recorded_models|acceptance_recorded' \
+  deploy
 # A validation's persona arms (panel-grounded-respondents 7c, 7e4) show a respondent another
 # person's profile, or none at all. Only the validation's own executor builds them, so no
 # client research run can carry an arm or an exclusion.

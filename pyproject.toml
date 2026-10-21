@@ -139,6 +139,9 @@ ignore_imports = [
     "aia_executors.deep_research_live -> aia_core.infrastructure.model_adapters.**",
     "aia_executors.deep_research_runtime -> aia_core.infrastructure.model_adapters.**",
     "aia_executors.deep_research_runtime -> aia_core.infrastructure.model_adapters",
+    # The recorded wire (tests and the acceptance harness's worker only; layer_check keeps it
+    # out of production): it speaks the transport's request and response types, no adapter.
+    "aia_executors.recorded_models -> aia_core.infrastructure.model_adapters.transport",
 ]
 
 # Live network wires are imported by the compositions that build a route and by
