@@ -570,8 +570,8 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   return (
     <div className={`wb wb--${layout}${picking ? " wb-picking" : ""}`} data-workbench data-layout={layout}>
       <a href="#composer" className="skip">Přeskočit na zprávu</a>
-      <StudyHeader frame={frame} study={study} pending={open.length} blocked={blocked} onPending={() => open[0] && go(editStage(open[0].edit))} />
-      <StageNav stage={stage} lane={lane} onOpen={go} />
+      <StudyHeader frame={frame} study={study} pending={open.length} blocked={blocked} onPending={() => open[0] && go(editStage(open[0].edit))} layout={layout} />
+      <StageNav stage={stage} lane={lane} onOpen={go} layout={layout} />
       <main className="workspace">
         <Split split={split} mode={mode} layout={layout} shown={conversationShown(layout, drawer)} leftLabel="Vedoucí výzkumu"
           onSplit={setSplit} onCommit={(v) => { setSplit(v); writeSplit(storage(), v); }}
@@ -690,7 +690,10 @@ function holds(state: ResearchState, item: AutoApplied): boolean {
   return item.revision !== null && state.revision !== null && state.revision >= item.revision;
 }
 
-function StudyHeader({ frame, study, pending, blocked, onPending }: { frame: StudyFrame; study: Study | null; pending: number; blocked: number; onPending: () => void }) {
+function StudyHeader({ frame, study, pending, blocked, onPending, layout = "split" }: { frame: StudyFrame; study: Study | null; pending: number; blocked: number; onPending: () => void; layout?: WorkbenchLayout }) {
+  // Under 768 px (the sheet) the bar keeps the study's name and the menu; what waits and the budget
+  // move into the menu (research-lead-workbench 26d).
+  const narrow = layout === "sheet";
   const router = useRouter();
   const [menu, setMenu] = useState(false);
   // Leaving the study goes through a link's click too, so Návrh's leave guard can stop it.
@@ -708,20 +711,29 @@ function StudyHeader({ frame, study, pending, blocked, onPending }: { frame: Stu
         <span className="shead__mono" aria-hidden="true">{initials(frame.clientName)}</span>
         <span className="shead__title"><span className="shead__client">Klienti › {frame.clientName}</span><span className="shead__study">{frame.studyName}</span></span>
       </button>
-      <span className="shead__state"><Glyph tone={blocked ? "you" : "done"} size={11} />{blocked ? `Do spuštění zbývá ${blocked}` : "Návrh splňuje podmínky kroků"}</span>
+      {narrow ? null : <span className="shead__state"><Glyph tone={blocked ? "you" : "done"} size={11} />{blocked ? `Do spuštění zbývá ${blocked}` : "Návrh splňuje podmínky kroků"}</span>}
       <span className="shead__spacer" />
-      {pending > 0 ? <button type="button" className="shead__pending" onClick={onPending}><Glyph tone="you" size={11} />Čeká na vás: {pending}</button> : null}
-      <span className="budgetmini" title="Rozpočet studie: utraceno / limit">
-        <Icon name="budget" size={13} />
-        <span className="budgetmini__bar" aria-hidden="true"><i style={{ width: `${spentPct}%` }} /></span>
-        <span className="num">{budget === null ? "Rozpočet nenastaven" : `${usd(spent)} / ${usd(budget)} USD`}</span>
-      </span>
+      {pending > 0 && !narrow ? <button type="button" className="shead__pending" onClick={onPending}><Glyph tone="you" size={11} />Čeká na vás: {pending}</button> : null}
+      {narrow ? null : (
+        <span className="budgetmini" title="Rozpočet studie: utraceno / limit">
+          <Icon name="budget" size={13} />
+          <span className="budgetmini__bar" aria-hidden="true"><i style={{ width: `${spentPct}%` }} /></span>
+          <span className="num">{budget === null ? "Rozpočet nenastaven" : `${usd(spent)} / ${usd(budget)} USD`}</span>
+        </span>
+      )}
       <div style={{ position: "relative" }}>
         <button type="button" className="iconbtn" aria-label="Nabídka" title="Nabídka" aria-expanded={menu} onClick={() => setMenu((v) => !v)}><Icon name="menu" size={16} /></button>
         {menu ? (
           <>
             <div className="scrim" onClick={() => setMenu(false)} />
             <div className="pop menu" style={{ right: 0, top: 34, width: 280 }} role="menu">
+              {narrow ? (
+                <>
+                  <div className="menu__info" role="none"><Glyph tone={blocked ? "you" : "done"} size={11} />{blocked ? `Do spuštění zbývá ${blocked}` : "Návrh splňuje podmínky kroků"}</div>
+                  <div className="menu__info num" role="none"><Icon name="budget" size={13} />{budget === null ? "Rozpočet nenastaven" : `Rozpočet: ${usd(spent)} / ${usd(budget)} USD`}</div>
+                  {pending > 0 ? <button type="button" role="menuitem" className="listbtn" onClick={() => { setMenu(false); onPending(); }}>Čeká na vás: {pending}</button> : null}
+                </>
+              ) : null}
               <button type="button" role="menuitem" className="listbtn" onClick={() => leave(appRoutes.lead())}>Můj Vedoucí výzkumu</button>
               <button type="button" role="menuitem" className="listbtn" onClick={() => leave(appRoutes.client(frame.clientId))}>Pracovní prostor klienta</button>
               <button type="button" role="menuitem" className="listbtn" onClick={() => leave(appRoutes.memory())}>Projektová paměť</button>
@@ -736,32 +748,69 @@ function StudyHeader({ frame, study, pending, blocked, onPending }: { frame: Stu
 
 const STAGE_TONE: Record<string, GlyphTone> = { done: "done", running: "running", you: "you", fault: "fault", inert: "inert", ready: "ready" };
 
-function StageNav({ stage, lane, onOpen }: { stage: WorkbenchStage; lane: Parameters<typeof stageState>[1]; onOpen: (s: WorkbenchStage) => void }) {
+function StageNav({ stage, lane, onOpen, layout = "split" }: { stage: WorkbenchStage; lane: Parameters<typeof stageState>[1]; onOpen: (s: WorkbenchStage) => void; layout?: WorkbenchLayout }) {
+  const nav = useRef<HTMLElement>(null);
+  const [listOpen, setListOpen] = useState(false);
+  // In the drawer layout the navigator scrolls sideways: the current stage is kept in view.
+  useEffect(() => {
+    if (layout !== "drawer") return;
+    nav.current?.querySelector<HTMLElement>(".nav__stage.is-current")?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+  }, [stage, layout]);
   const onKey = (e: React.KeyboardEvent<HTMLElement>) => {
-    if (!["ArrowRight", "ArrowLeft", "Home", "End"].includes(e.key)) return;
+    if (e.key === "Escape" && listOpen) {
+      e.preventDefault();
+      setListOpen(false);
+      nav.current?.querySelector<HTMLButtonElement>(".nav__current")?.focus();
+      return;
+    }
+    const keys = ["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp", "Home", "End"];
+    if (!keys.includes(e.key)) return;
     const btns = Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>(".nav__stage"));
+    if (!btns.length) return;
     const i = btns.indexOf(document.activeElement as HTMLButtonElement);
-    const j = e.key === "Home" ? 0 : e.key === "End" ? btns.length - 1 : Math.max(0, Math.min(btns.length - 1, i + (e.key === "ArrowRight" ? 1 : -1)));
+    const forward = e.key === "ArrowRight" || e.key === "ArrowDown";
+    const j = e.key === "Home" ? 0 : e.key === "End" ? btns.length - 1 : Math.max(0, Math.min(btns.length - 1, i + (forward ? 1 : -1)));
     btns[j]?.focus();
     e.preventDefault();
   };
+  const stageButton = (s: WorkbenchStage) => {
+    const k = stageState(s, lane);
+    const cur = s === stage;
+    return (
+      <button key={s} type="button" className={`nav__stage${cur ? " is-current" : ""}${k.tone === "inert" ? " is-inert" : ""}${k.tone === "you" ? " is-you" : ""}`}
+        aria-current={cur ? "page" : undefined} title={`${STAGES[s].label}${k.line ? `: ${k.line}` : ""}`}
+        onClick={() => { setListOpen(false); onOpen(s); }}>
+        <Glyph tone={STAGE_TONE[k.tone] ?? "inert"} size={11} />{layout === "sheet" ? STAGES[s].label : STAGES[s].short}{k.line ? <span className="sr-only">, {k.line}</span> : null}
+      </button>
+    );
+  };
+  const phases = PHASES.map((ph) => (
+    <div className="nav__phase" key={ph.id} role="group" aria-label={ph.label}>
+      <span className="nav__plabel">{ph.label}</span>
+      {STAGE_ORDER.filter((s) => STAGES[s].phase === ph.id).map(stageButton)}
+    </div>
+  ));
+  if (layout === "sheet") {
+    // Under 768 px: one button names the current stage and opens every stage, grouped by phase.
+    return (
+      <nav className="nav nav--sheet" aria-label="Kroky studie" onKeyDown={onKey} ref={nav}>
+        <button type="button" className="nav__current" aria-expanded={listOpen} aria-haspopup="true" onClick={() => setListOpen((v) => !v)}>
+          <Glyph tone={STAGE_TONE[stageState(stage, lane).tone] ?? "inert"} size={11} />
+          <span className="nav__currentlabel">Krok: {STAGES[stage].label}</span>
+          <Icon name="down" size={14} />
+        </button>
+        {listOpen ? (
+          <>
+            <div className="scrim" onClick={() => setListOpen(false)} />
+            <div className="pop nav__list">{phases}</div>
+          </>
+        ) : null}
+      </nav>
+    );
+  }
   return (
-    <nav className="nav" aria-label="Kroky studie" onKeyDown={onKey}>
-      {PHASES.map((ph) => (
-        <div className="nav__phase" key={ph.id} role="group" aria-label={ph.label}>
-          <span className="nav__plabel">{ph.label}</span>
-          {STAGE_ORDER.filter((s) => STAGES[s].phase === ph.id).map((s) => {
-            const k = stageState(s, lane);
-            const cur = s === stage;
-            return (
-              <button key={s} type="button" className={`nav__stage${cur ? " is-current" : ""}${k.tone === "inert" ? " is-inert" : ""}${k.tone === "you" ? " is-you" : ""}`}
-                aria-current={cur ? "page" : undefined} title={`${STAGES[s].label}${k.line ? `: ${k.line}` : ""}`} onClick={() => onOpen(s)}>
-                <Glyph tone={STAGE_TONE[k.tone] ?? "inert"} size={11} />{STAGES[s].short}{k.line ? <span className="sr-only">, {k.line}</span> : null}
-              </button>
-            );
-          })}
-        </div>
-      ))}
+    <nav className={`nav${layout === "drawer" ? " nav--scroll" : ""}`} aria-label="Kroky studie" onKeyDown={onKey} ref={nav}>
+      {phases}
     </nav>
   );
 }

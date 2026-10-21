@@ -152,3 +152,44 @@ describe("the workbench at every width", () => {
     expect(conversation().hasAttribute("hidden")).toBe(true);
   });
 });
+
+describe("the compact header and stage navigator (26d)", () => {
+  it("under 768 px one button names the stage and opens all eleven, by phase, keyboard included", () => {
+    bench();
+    setWidth(390);
+    const nav = screen.getByRole("navigation", { name: "Kroky studie" });
+    const current = screen.getByRole("button", { name: /Krok: Dotazník/ });
+    expect(current.getAttribute("aria-expanded")).toBe("false");
+    expect(nav.querySelectorAll(".nav__stage")).toHaveLength(0);
+    fireEvent.click(current);
+    const stages = nav.querySelectorAll<HTMLButtonElement>(".nav__stage");
+    expect(stages).toHaveLength(11);
+    expect(nav.querySelectorAll('[role="group"]')).toHaveLength(6);
+    stages[0]!.focus();
+    fireEvent.keyDown(stages[0]!, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(stages[1]);
+    fireEvent.keyDown(stages[1]!, { key: "End" });
+    expect(document.activeElement).toBe(stages[10]);
+    fireEvent.keyDown(stages[10]!, { key: "Escape" });
+    expect(nav.querySelectorAll(".nav__stage")).toHaveLength(0);
+    expect(document.activeElement).toBe(current);
+  });
+
+  it("from 768 to 1099 px the navigator scrolls sideways and keeps every stage; the header keeps its meter", () => {
+    bench();
+    setWidth(900);
+    const nav = screen.getByRole("navigation", { name: "Kroky studie" });
+    expect(nav.classList.contains("nav--scroll")).toBe(true);
+    expect(nav.querySelectorAll(".nav__stage")).toHaveLength(11);
+    expect(document.querySelector(".budgetmini")).not.toBeNull();
+  });
+
+  it("under 768 px the budget and what waits move into the menu", () => {
+    bench();
+    setWidth(390);
+    expect(document.querySelector(".budgetmini")).toBeNull();
+    expect(document.querySelector(".shead__state")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Nabídka" }));
+    expect(screen.getByRole("menu").textContent).toMatch(/Rozpočet nenastaven/);
+  });
+});
