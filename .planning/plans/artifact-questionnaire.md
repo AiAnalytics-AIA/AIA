@@ -1,5 +1,5 @@
 ---
-status: planned
+status: in-progress
 chunks:
   - "[ ] QST1. Dotazník's contract as data: view operations, pointable ids (question, section, set, option) and V2's interaction contract"
   - "[ ] QST2. The body as V2 draws it: the strip (items, length, coverage per research question), blocks and items with type, options and research-question pills, edited in place"
@@ -8,7 +8,7 @@ chunks:
   - "[ ] QST5. Proposals inline (research-lead-workbench 7 lands here): a change block per item with research-question coverage gained, lost and kept, per-change accept, stale refused, protected inputs kept"
   - "[ ] QST6. The Lead on Dotazník: build_questionnaire and optimize_questionnaire as cards, the stage's AI starts removed, Design Research moved to Návrh"
   - "[ ] QST7. The questionnaire's length, by the rule the owner chooses"
-  - "[ ] QST8. Závislosti: what reads each set and question downstream (Sociomap, Results, Analysis), from the specification"
+  - "[x] QST8. Závislosti: what reads each set and question downstream (Sociomap, Results, Analysis), from the specification"
   - "[ ] QST9. Journey: Dotazník at 1440, 1100, 768 and 390 px, zero paid jobs"
 ---
 # Artifact: Dotazník (Questionnaire)
@@ -139,6 +139,20 @@ V2: `QuestionnaireArt` (`DesignStages.tsx:95-142`).
 unknown duration is never zero.
 
 **QST8. Závislosti.** Test: a set declared as a Sociomap input lists Sociomapa.
+
+*Delivered (feature/questionnaire-dependencies):* `src/research/readers.ts` reads the working copy,
+not a compiled specification: readiness exists only for a submitted Design Revision
+(`routers/research.py` `ReadinessResponse`), and Dotazník edits the working copy. Each rule cites
+the server line it mirrors, and an item's readers are what it feeds once it compiles, never a
+verdict that it will (Kontrola decides). Tests: `readers.test.ts`,
+`QuestionnaireDependencies.test.tsx`; journey `tools/ui_workbench/questionnaire_journey.mjs`
+(1440, 1100, 768, 390 px; zero paid jobs).
+
+*Finding QF-1:* the outline is `sticky` at every width (`QuestionnaireStep.tsx:545 @ 25f26232`).
+Wrapped under the editor, it covers about half the viewport at 390 px and in the workbench at 1100
+px, Závislosti included. Reproduction: the journey's `390-dependencies-section.png`. Fix: sticky only
+while it sits beside the editor (a container query). Test: a journey assertion that the section is
+not covered at 390 px.
 
 **QST9. Journey** at 1440, 1100, 768 and 390 px:
 - an item edited in place;
