@@ -237,8 +237,10 @@ try {
     await sample.waitFor({ timeout: 30000 });
     const forecast = page.getByRole("region", { name: "Odhad podpory před během" });
     await forecast.getByText("odhad, ne výsledek").waitFor();
+    // The journey's identity edits, so Vzorek reads readiness on the revision its copy submits to:
+    // the empty state ("odhad není") or a failed read is a failure here, never a pass.
     await forecast.getByText(/Podle revize návrhu|odhad není|nepodařilo načíst/).first().waitFor({ timeout: 30000 });
-    assert.equal(await forecast.getByText("nepodařilo načíst").count(), 0, `Vzorek's forecast read @${width}`);
+    assert.equal(await forecast.getByText(/Podle revize návrhu \d+/).count(), 1, `Vzorek's forecast read on a revision @${width}`);
     // Read only: no editable surface of any kind, and every button one of its navigation links.
     const editable = "input, select, textarea, [contenteditable]:not([contenteditable='false']), [role=slider], [role=spinbutton], [role=textbox], [role=checkbox], [role=radio], [role=switch], [role=combobox]";
     assert.equal(await sample.locator(editable).count(), 0, `Vzorek has no editable control @${width}`);
