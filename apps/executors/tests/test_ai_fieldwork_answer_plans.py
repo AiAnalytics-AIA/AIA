@@ -209,7 +209,10 @@ def _asked(*, scale_labels_in_prompt: bool, override: bool | None = None) -> str
         scale_labels_in_prompt=override,
     )
     assert isinstance(answered, Answered)
-    return "\n".join(r.messages[0].content for r in caller.requests)
+    text = "\n".join(r.messages[0].content for r in caller.requests)
+    # What is recorded is what was sent: the value used, never the switch read again.
+    assert answered.scale_labels_in_prompt is ("nikdy" in text)
+    return text
 
 
 def test_a_scale_questions_labels_are_sent_only_with_the_switch_on() -> None:

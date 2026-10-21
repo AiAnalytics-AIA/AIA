@@ -177,6 +177,9 @@ class Answered:
     resolution: Any
     #: Per respondent, in ``rows``' order: what each item's draw recorded (its probabilities).
     details: list[dict[str, dict[str, Any]]]
+    #: Whether the requests carried the scale labels: the value used, which is what the
+    #: dataset records, never the composition's switch read again.
+    scale_labels_in_prompt: bool = False
 
 
 class AIFieldwork:
@@ -340,7 +343,13 @@ class AIFieldwork:
             if done % max(1, cfg.progress_every) == 0 or done == len(plans):
                 context.progress("AI respondenti odpověděli", respondents=done, of=len(plans))
 
-        return Answered(rows=rows, calls=calls, resolution=resolution, details=details)
+        return Answered(
+            rows=rows,
+            calls=calls,
+            resolution=resolution,
+            details=details,
+            scale_labels_in_prompt=labelled,
+        )
 
     def binding(self, resolution: Any) -> str:
         """The provider, model and route a preflight resolved, as a respondent system names it."""
@@ -481,7 +490,9 @@ class AIFieldwork:
                 "version": PROMPT_VERSION,
                 "sha256": PROMPT_SHA256,
                 # Only when on: a run made with the switch off records what it always did.
-                **({"scale_labels": SCALE_LABEL_WORDING} if cfg.scale_labels_in_prompt else {}),
+                **(
+                    {"scale_labels": SCALE_LABEL_WORDING} if answered.scale_labels_in_prompt else {}
+                ),
             },
             "contract_version": CONTRACT_VERSION,
             "generator": GENERATOR,
@@ -513,7 +524,7 @@ class AIFieldwork:
             system = respondent_system(
                 population,
                 model_binding=self.binding(resolution),
-                scale_labels_in_prompt=cfg.scale_labels_in_prompt,
+                scale_labels_in_prompt=answered.scale_labels_in_prompt,
             )
         return ProducedDataset(
             dataset=dataset,
