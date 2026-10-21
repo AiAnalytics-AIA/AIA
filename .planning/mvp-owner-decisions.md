@@ -243,6 +243,16 @@ This settles the product behavior; the exact responsive composition is an
 engineering/design choice, not another owner question. The separately open
 client-level extraction exception is still MVPQ-08.
 
+**2026-10-21, the owner's answers Q40-Q43** (on the PM status page, relayed by the coordinator;
+plan `research-lead-workbench` D21, D22, #551). The narrow-screen Lead is a side drawer at
+768-1099 px and a full-screen sheet under 768 px, one element tree (chunks 26a-26f). Q41: the classic
+study frame and `AIA_WEB_RESEARCH_WORKBENCH` are retired (27c). Q42: a card approved after the Lead is
+switched off is refused, 409 `research_lead_disabled`; stored text edits can still be accepted or
+dismissed (27b). Q43: with the Lead off, LO5's typed start commands still work, matched by code
+(27a, 27b). The research run keeps Spuštění's own Start button and also appears as a card in the
+Lead's chat ("i want this to appear in the lead researches chat too"; D15, 26f). Q40: spend is shown
+per researcher (`develop-spend-attribution#7`).
+
 ## MVPQ-12 — Canonical Sociomap questions still requiring sign-off
 
 **Methodology owner/audit author, coordinated by product owner.** Use the existing
