@@ -126,7 +126,8 @@ Tests:
 then the remainder in the declared priority order, each layer's over-policy applied to its
 allocation); the design layer's
 five-step shortening ladder (ADR 0041 decision 2: all verbatim; focused stage verbatim; focused
-item and section verbatim; focused item only; `item_over_budget` with its parts listed, so a part can be focused with `@`), each step
+item and section verbatim; focused item only; `item_over_budget` with at most 50 parts and 2 KB listed by stable part id, the rest paged, so any
+part can be focused with `@`), each step
 named; spare bytes to the verbatim conversation. Tests: a 60 KB questionnaire at a 12 KB
 allocation lands on step 3 or 4 and leaves the conversation its floor; the manifest names every
 item it outlined; a single item over the allocation is carried as `item_over_budget` with its parts listed, and
@@ -196,6 +197,8 @@ cost (burst, latency, USD per block). Tests:
 - a foreign number is refused;
 - a Class A turn makes a Class A summary, which a Class-C route refuses;
 - a roll-up keeps its children's references;
+- past three levels the oldest episode leaves the context, counted with its range, and a message
+  matching one of its sentences brings it back, then its children's turns;
 - a constraint stated in turn 5 and left out of the summary is in turn 5's uncovered terms, and a
   later message naming it brings turn 5 back verbatim;
 - a summary under 60 % coverage is refused with `summary_lag`;

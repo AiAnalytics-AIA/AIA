@@ -130,8 +130,11 @@ step that fits its allocation. Each step keeps the one before it whole:
    ids and titles; the other stages as counts per section.
 4. The focused item verbatim, everything else as counts.
 5. If even the focused item exceeds the allocation, it is carried as its id, its title, its
-   size and the list of its parts (fields, options, sub-items) with each part's size, named
-   `item_over_budget`. A pin cannot help, since it would be larger than the pin layer. Instead:
+   size and a **bounded** list of its parts (fields, options, sub-items), named `item_over_budget`.
+   - The list holds at most 50 parts and 2 KB, in the item's own order.
+   - Each listed part carries its stable part id and its size.
+   - The rest are counted, and the manifest records their part-id range. "Co Vedoucí vidí" pages
+     them, and `@` can focus any part from the full list. A pin cannot help, since it would be larger than the pin layer. Instead:
    - the Lead is told it cannot see that item whole, and says so in its reply;
    - the researcher can point at one part with `@` (`research-lead-workbench#16`). A focused part
      is then the focused item for step 4, carried verbatim if it fits.
@@ -249,6 +252,15 @@ parts, from exact to approximate:
    - When block summaries exceed their share of layer 10, the oldest are rolled up into an **episode
      summary**, whose sentences reference the block summaries; episodes roll up the same way. Three
      levels at most.
+   - **Beyond the third level nothing is rolled up further, and nothing becomes unreachable.**
+     When level-three summaries exceed their share, the oldest leave layer 10. They are counted, and
+     the manifest records their summary range (decision 3). Every summary at every level stays
+     stored and stays in retrieval:
+     - a message matching a sentence of an evicted top-level summary brings that summary back;
+     - following its references then brings back its children, and in turn their turns, as far as
+       layer 11's spare bytes allow (decision 5, step 1).
+
+     The hierarchy bounds what is in context, never what can be reached.
    - The context carries the newest episode, the newest blocks and the verbatim tail: a rolling
      window over a tree, so the cost of a turn does not grow with the study's age.
    - Each is an artifact `research_lead_summary` of the Lead's run: level, the turn range, the child
