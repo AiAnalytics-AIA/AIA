@@ -473,26 +473,33 @@ IDENTITY_ANALYSIS: dict[str, Any] = {
 
 def test_identity_metadata_grounds_no_number() -> None:
     """Codex P1 on #557: a ``bound`` hash starting ``7a`` still grounded a 7. The allowed numbers
-    come from the context with its identity metadata left out, not masked afterwards."""
+    come from the context with its identity metadata left out, not masked afterwards.
+
+    The review of 4d434c4d: the working copy's save counter (``workspace_revision``, moved by
+    every 1.8 s autosave) and a knowledge item's ``revision`` count saves, not anything in the
+    design, so at 7 they grounded "Máme 7 otázek." They are identity metadata too."""
     design = {
-        "workspace_revision": 1,
+        "workspace_revision": 7,
         "design_revision_id": REV_7,
         "content": IDENTITY_DESIGN,
         "analysis": IDENTITY_ANALYSIS,
     }
-    context = _context(design=design)
+    knowledge = [{"item_id": "K1", "revision": 7, "kind": "FACT", "title": "t", "summary": "s"}]
+    context = _context(design=design, knowledge=knowledge)
     assert "7" in number_tokens(model_message(context))  # what the whole message reads
     citable = canonical_json(citable_context(context))
     assert "7" not in number_tokens(citable)
-    # Only identity is left out: the words and the counters stay.
+    assert "workspace_revision" not in citable and '"revision"' not in citable
+    # Only identity is left out: the words stay.
     assert "Poznat trh" in citable and "zadani.pdf" in citable
-    assert '"workspace_revision":1' in citable
     contract = _request(context, IDENTITY).agent.output_contract
-    assert not validate_structured_output(
-        contract, structured={"reply": "Máme 7 cílů."}, text=""
-    ).ok
+    for reply in ("Máme 7 cílů.", "Máme 7 otázek."):
+        assert not validate_structured_output(contract, structured={"reply": reply}, text="").ok
     # A number the design's words hold is still citable.
-    worded = _context(design={**design, "content": {**IDENTITY_DESIGN, "goal": "Test 7 cílů"}})
+    worded = _context(
+        design={**design, "content": {**IDENTITY_DESIGN, "goal": "Test 7 cílů"}},
+        knowledge=knowledge,
+    )
     contract = _request(worded, IDENTITY).agent.output_contract
     assert validate_structured_output(contract, structured={"reply": "Máme 7 cílů."}, text="").ok
 

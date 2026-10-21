@@ -373,15 +373,21 @@ def unreadable_numbers(text: str) -> list[str]:
 #: ``bound`` hash ``7a01…`` or a ``created_at`` of ``…T13:07`` would otherwise ground a reply's
 #: invented 7. The stable-item sidecars (``item_ids.SIDECAR_KEYS``: the ids and their ``bound``
 #: wording hashes) end in ``_ids``; they are named too, so a rename there cannot reopen this.
-_IDENTITY_KEYS: Final = frozenset({"id", "bound"}) | SIDECAR_KEYS
+#: ``revision`` (a knowledge item's) and ``*_revision`` (the design layer's
+#: ``workspace_revision``) are save counters: the stage autosaves every 1.8 s, so the counter
+#: says how often the copy was saved, nothing about the design, and at 7 it grounded "Máme 7
+#: otázek." (the review of 4d434c4d).
+_IDENTITY_KEYS: Final = frozenset({"id", "bound", "revision"}) | SIDECAR_KEYS
 #: ``*_id`` / ``*_ids`` (``design_revision_id``, ``run_id``, ``item_id``, ``memory_id``,
-#: ``source_id``, ``omitted_ids``), ``*_version`` (``methodology_version``,
+#: ``source_id``, ``omitted_ids``), ``*_revision`` (``workspace_revision``), ``*_version``
+#: (``methodology_version``,
 #: ``contract_version``), ``*_at`` (a dimension proposal's ``created_at``), ``*sha256`` (an
 #: attachment's ``sha256``, a material's ``reading_sha256``), ``*_signature`` (an analysis's
 #: ``_brief_signature``) and ``*fingerprint``.
 _IDENTITY_SUFFIXES: Final = (
     "_id",
     "_ids",
+    "_revision",
     "_version",
     "_at",
     "sha256",

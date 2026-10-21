@@ -409,9 +409,9 @@ appear in the lead researches chat too"). Built on `feature/lead-worker-cards`:
      that checks it was flaky at ~2.5 %.
   5. Fix: identity metadata is no number. The numbers a reply may write are read from
      `citable_context(context)`: the layers the model is sent with every identity key dropped,
-     with all it holds, before any number is read. The identity keys are `id`, `bound` and
-     `item_ids.SIDECAR_KEYS`, plus the suffixes `*_id`, `*_ids`, `*_version`, `*_at`,
-     `*sha256`, `*_signature` and `*fingerprint`. Every focus target is blanked too.
+     with all it holds, before any number is read. The identity keys are `id`, `bound`, `revision` and
+     `item_ids.SIDECAR_KEYS`, plus the suffixes `*_id`, `*_ids`, `*_revision`, `*_version`,
+     `*_at`, `*sha256`, `*_signature` and `*fingerprint`. Every focus target is blanked too.
      `context_identifiers(context)` names the identifier strings under those keys; a bare number
      used as an id is left out, so it never masks a reply's number. `lead_contract(…,
      identifiers)` blanks each whole occurrence of one before reading numbers: in the reply, so
@@ -437,10 +437,19 @@ appear in the lead researches chat too"). Built on `feature/lead-worker-cards`:
      `dimension_id`, `proposal_id` and `created_at`; in the analysis, `_brief_signature`; in the
      view, the focus `target`. No `fingerprint` key is in the context today; the suffix is there
      for the next writer.
+     Review of 4d434c4d: the design layer's `workspace_revision` is a save counter (the stage
+     autosaves every 1.8 s), yet it stayed citable, so at 7 "Máme 7 otázek." passed; the test
+     asserted it stayed citable, which was the bug. A knowledge entry's `revision`
+     (`domain/research_agents.py:554 @ 4d434c4d`) is the same kind of counter. `revision` and
+     the suffix `*_revision` are identity keys now. Every other number the frozen layers carry
+     was read and kept: the study's `budget_usd`, `spent_usd` and `spend_confirm_usd`, the
+     readiness `sample_size` limits, the conversation's `omitted_turns` and whatever the
+     design's content and analysis hold (none of their keys ends in `_revision`).
   6. Tests: `test_an_identifiers_digits_ground_no_number`, `test_the_context_names_its_identifiers`,
      `test_a_request_holds_a_reply_to_the_context_without_its_identifiers`,
      `test_identity_metadata_grounds_no_number` (a `bound`, a `sha256`, a `reading_sha256`, a
-     `contract_version`, a `_brief_signature` and a `created_at`, each leading with 7),
+     `contract_version`, a `_brief_signature`, a `created_at`, a `workspace_revision` of 7 and
+     a knowledge item's `revision` of 7; "Máme 7 otázek." refused),
      `test_an_identifier_ends_only_where_no_identifier_character_follows`
      (`packages/aia_core/tests/test_research_lead.py`) and
      `test_a_number_only_an_identifier_holds_is_still_invented`
@@ -532,8 +541,8 @@ appear in the lead researches chat too"). Built on `feature/lead-worker-cards`:
   its fix.
 - **`CLAUDE.md` § 2**, `domain/research_lead.py`: after "lead_contract (numbers only from the
   context, sign included, exponents refused)" add "; identity metadata is no number
-  (citable_context: the context without id, bound, the item-id sidecars, *_id, *_ids,
-  *_version, *_at, *sha256, *_signature, *fingerprint and focus targets; context_identifiers:
+  (citable_context: the context without id, bound, revision, the item-id sidecars, *_id, *_ids,
+  *_revision, *_version, *_at, *sha256, *_signature, *fingerprint and focus targets; context_identifiers:
   an id quoted whole in the reply writes no number)".
 - **`CLAUDE.md` § 2**, `domain/workspace.py` / the working content paragraph: a save naming no
   revision is not stale over a working copy that is still the bare template a server writer
