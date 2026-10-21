@@ -28,10 +28,7 @@ export type SpendAmount = {
   step?: number;
 };
 
-export function SpendDialog({
-  open, kind, summary, ceilingUsd, ceilingNote, lines, pays, amount, confirmLabel, cancelLabel, busy = false, error, onConfirm, onCancel,
-}: {
-  open: boolean;
+type Question = {
   kind: SpendKind;
   /** What the action buys, in a sentence or two. */
   summary: ReactNode;
@@ -54,22 +51,19 @@ export function SpendDialog({
   error?: string | null;
   onConfirm: (amountUsd?: number) => void;
   onCancel: () => void;
+};
+
+export function SpendDialog({ open, question, ...q }: Question & {
+  open: boolean;
+  /**
+   * The question's identity (the step, run or job it asks about). Each question is its own form,
+   * mounted per identity (AGENTS.md: a dialog's initial value is a child mounted per question),
+   * so a question queued behind another never inherits the amount typed into the one before it.
+   */
+  question: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
-  const [newAmount, setNewAmount] = useState<number | null>(amount?.value ?? null);
-  // A refused amount in the stepper: the confirmation waits until the field holds a valid one.
-  const [amountProblem, setAmountProblem] = useState<string | null>(null);
-  const [opened, setOpened] = useState(open);
   const titleId = useId();
-  // A new question starts from its own proposed amount (state adjusted while rendering, React's
-  // pattern for a prop that resets local state).
-  if (open !== opened) {
-    setOpened(open);
-    if (open) {
-      setNewAmount(amount?.value ?? null);
-      setAmountProblem(null);
-    }
-  }
 
   useLayoutEffect(() => {
     const d = ref.current;
@@ -78,6 +72,28 @@ export function SpendDialog({
     if (!open && d.open) d.close();
   }, [open]);
 
+  return (
+    <dialog
+      ref={ref}
+      aria-labelledby={titleId}
+      onCancel={(e) => {
+        e.preventDefault();
+        if (!q.busy) q.onCancel();
+      }}
+      className="m-auto w-[min(30rem,calc(100vw-2rem))] rounded-md border border-border-strong bg-surface-overlay p-0 text-ink shadow-[var(--shadow-overlay)] backdrop:bg-surface-inverse/40"
+    >
+      {open ? <SpendForm key={question} titleId={titleId} {...q} /> : null}
+    </dialog>
+  );
+}
+
+function SpendForm({
+  titleId, kind, summary, ceilingUsd, ceilingNote, lines, pays, amount, confirmLabel, cancelLabel, busy = false, error, onConfirm, onCancel,
+}: Question & { titleId: string }) {
+  const [newAmount, setNewAmount] = useState<number | null>(amount?.value ?? null);
+  // A refused amount in the stepper: the confirmation waits until the field holds a valid one.
+  const [amountProblem, setAmountProblem] = useState<string | null>(null);
+
   const payer = pays ? lines.find((l) => l.name === pays) : undefined;
   const after = remainingAfter(payer, ceilingUsd, amount ? newAmount : undefined);
   const ceiling = ceilingWords(ceilingUsd);
@@ -85,69 +101,57 @@ export function SpendDialog({
   const amountMissing = amount !== undefined && (newAmount === null || amountProblem !== null);
 
   return (
-    <dialog
-      ref={ref}
-      aria-labelledby={titleId}
-      onCancel={(e) => {
-        e.preventDefault();
-        if (!busy) onCancel();
-      }}
-      className="m-auto w-[min(30rem,calc(100vw-2rem))] rounded-md border border-border-strong bg-surface-overlay p-0 text-ink shadow-[var(--shadow-overlay)] backdrop:bg-surface-inverse/40"
-    >
-      {open ? (
-        <div className="flex flex-col gap-4 p-5">
-          <h2 id={titleId} className="text-base font-semibold leading-6">{spendTitle(kind)}</h2>
-          <div className="text-sm leading-6">{summary}</div>
-          <dl className="grid grid-cols-[minmax(0,11rem)_minmax(0,1fr)] gap-x-3 gap-y-2 text-[13px] leading-5">
-            <dt className="text-ink-muted">{t("input.spend.ceiling")}</dt>
-            <dd data-testid="spend-ceiling">
-              <b className="font-semibold">{ceiling.value}</b>
-              <span className="text-ink-muted"> · {ceiling.note}</span>
-              {ceilingNote ? <span className="block text-xs text-ink-faint">{ceilingNote}</span> : null}
+    <div className="flex flex-col gap-4 p-5">
+      <h2 id={titleId} className="text-base font-semibold leading-6">{spendTitle(kind)}</h2>
+      <div className="text-sm leading-6">{summary}</div>
+      <dl className="grid grid-cols-[minmax(0,11rem)_minmax(0,1fr)] gap-x-3 gap-y-2 text-[13px] leading-5">
+        <dt className="text-ink-muted">{t("input.spend.ceiling")}</dt>
+        <dd data-testid="spend-ceiling">
+          <b className="font-semibold">{ceiling.value}</b>
+          <span className="text-ink-muted"> · {ceiling.note}</span>
+          {ceilingNote ? <span className="block text-xs text-ink-faint">{ceilingNote}</span> : null}
+        </dd>
+        {lines.map((line) => (
+          <div key={line.name} className="contents">
+            <dt className="text-ink-muted">{moneyName(line.name)}</dt>
+            <dd>
+              {amount && line.name === pays ? (
+                <Stepper
+                  label={t("input.spend.newAmount")}
+                  value={newAmount}
+                  onCommit={setNewAmount}
+                  onProblem={setAmountProblem}
+                  min={amount.min}
+                  max={amount.max}
+                  step={amount.step ?? 1}
+                  decimals={2}
+                  unit="USD"
+                  note={lineWords(line)}
+                />
+              ) : (
+                <>
+                  {lineWords(line)}
+                  {line.note ? <span className="block text-xs text-ink-faint">{line.note}</span> : null}
+                </>
+              )}
             </dd>
-            {lines.map((line) => (
-              <div key={line.name} className="contents">
-                <dt className="text-ink-muted">{moneyName(line.name)}</dt>
-                <dd>
-                  {amount && line.name === pays ? (
-                    <Stepper
-                      label={t("input.spend.newAmount")}
-                      value={newAmount}
-                      onCommit={setNewAmount}
-                      onProblem={setAmountProblem}
-                      min={amount.min}
-                      max={amount.max}
-                      step={amount.step ?? 1}
-                      decimals={2}
-                      unit="USD"
-                      note={lineWords(line)}
-                    />
-                  ) : (
-                    <>
-                      {lineWords(line)}
-                      {line.note ? <span className="block text-xs text-ink-faint">{line.note}</span> : null}
-                    </>
-                  )}
-                </dd>
-              </div>
-            ))}
-          </dl>
-          {pays ? (
-            <p className="text-[13px] leading-5" data-testid="spend-after">
-              {afterWords(after)} <span className="text-ink-faint">{t("input.spend.held")}</span>
-            </p>
-          ) : null}
-          {error ? <p role="alert" className="rounded-sm border border-status-fault/40 bg-status-fault-wash p-2 text-[13px] text-status-fault">{error}</p> : null}
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button variant="quiet" autoFocus disabled={busy} onClick={onCancel}>
-              {cancelLabel ?? t("dialog.cancel")}
-            </Button>
-            <Button variant="primary" disabled={busy || amountMissing} onClick={() => onConfirm(amount ? (newAmount ?? undefined) : undefined)}>
-              {label}
-            </Button>
           </div>
-        </div>
+        ))}
+      </dl>
+      {pays ? (
+        <p className="text-[13px] leading-5" data-testid="spend-after">
+          {afterWords(after)} <span className="text-ink-faint">{t("input.spend.held")}</span>
+        </p>
       ) : null}
-    </dialog>
+      {error ? <p role="alert" className="rounded-sm border border-status-fault/40 bg-status-fault-wash p-2 text-[13px] text-status-fault">{error}</p> : null}
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button variant="quiet" autoFocus disabled={busy} onClick={onCancel}>
+          {cancelLabel ?? t("dialog.cancel")}
+        </Button>
+        <Button variant="primary" disabled={busy || amountMissing} onClick={() => onConfirm(amount ? (newAmount ?? undefined) : undefined)}>
+          {label}
+        </Button>
+      </div>
+    </div>
   );
 }

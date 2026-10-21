@@ -19,6 +19,7 @@ const confirm = () =>
   render(
     <SpendDialog
       open
+      question="q"
       kind="spend_confirm"
       summary="Horní mez běhu dosahuje vašeho prahu potvrzení."
       ceilingUsd={28.4}
@@ -57,6 +58,7 @@ describe("SpendDialog (I7a): the one modal for money", () => {
     render(
       <SpendDialog
         open
+        question="q"
         kind="spend_confirm"
         summary="Spustit běh."
         ceilingUsd={null}
@@ -79,7 +81,7 @@ describe("SpendDialog (I7a): the one modal for money", () => {
     const yes = vi.fn();
     const no = vi.fn();
     render(
-      <SpendDialog open kind="spend_confirm" summary="x" ceilingUsd={1} lines={[]} confirmLabel="Spustit · do 1,00 USD" onConfirm={yes} onCancel={no} />,
+      <SpendDialog open question="q" kind="spend_confirm" summary="x" ceilingUsd={1} lines={[]} confirmLabel="Spustit · do 1,00 USD" onConfirm={yes} onCancel={no} />,
     );
     fireEvent(screen.getByRole("dialog"), new Event("cancel", { cancelable: true }));
     expect(no).toHaveBeenCalledTimes(1);
@@ -94,6 +96,7 @@ describe("SpendDialog (I7a): the one modal for money", () => {
     render(
       <SpendDialog
         open
+        question="q"
         kind="study_budget_lift"
         summary="8 kroků analýzy čeká."
         ceilingUsd={1.76}
@@ -120,6 +123,7 @@ describe("SpendDialog (I7a): the one modal for money", () => {
     render(
       <SpendDialog
         open
+        question="q"
         kind="client_budget_lift"
         summary="Návrhy znalostí ze souboru čekají."
         ceilingUsd={0.31}
@@ -143,9 +147,52 @@ describe("SpendDialog (I7a): the one modal for money", () => {
     expect(yes).toHaveBeenCalledWith(20);
   });
 
+  it("a question queued behind another starts from its own amount, never the one typed before (Codex #532)", () => {
+    const yes = vi.fn();
+    const ask = (question: string, value: number, min: number) => (
+      <SpendDialog
+        open
+        question={question}
+        kind="study_budget_lift"
+        summary={`Krok ${question} čeká.`}
+        ceilingUsd={1}
+        lines={[{ name: "study_budget", usd: 80, remainingUsd: 0 }]}
+        pays="study_budget"
+        amount={{ value, min, max: 500 }}
+        confirmLabel={(usd) => `Zvýšit na ${usd} USD`}
+        onConfirm={yes}
+        onCancel={() => {}}
+      />
+    );
+    const { rerender } = render(ask("A", 85, 81));
+    // A: a refused amount typed in, then a valid one.
+    const a = screen.getByRole("spinbutton", { name: "Nová částka" });
+    fireEvent.change(a, { target: { value: "2" } });
+    fireEvent.blur(a);
+    expect(screen.getByRole("alert")).toBeTruthy();
+    fireEvent.change(a, { target: { value: "120" } });
+    fireEvent.blur(a);
+    // B replaces A while the dialog stays open.
+    rerender(ask("B", 95, 90));
+    expect(screen.getByText("Krok B čeká.")).toBeTruthy();
+    expect((screen.getByRole("spinbutton", { name: "Nová částka" }) as HTMLInputElement).value).toBe("95,00");
+    expect(screen.queryByRole("alert")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Zvýšit na 95 USD" }));
+    expect(yes).toHaveBeenCalledWith(95);
+
+    // And an amount refused in C does not hold the next question's confirmation back.
+    rerender(ask("C", 85, 81));
+    const c = screen.getByRole("spinbutton", { name: "Nová částka" });
+    fireEvent.change(c, { target: { value: "2" } });
+    fireEvent.blur(c);
+    expect((screen.getByRole("button", { name: /Zvýšit na/ }) as HTMLButtonElement).disabled).toBe(true);
+    rerender(ask("D", 100, 90));
+    expect((screen.getByRole("button", { name: "Zvýšit na 100 USD" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
   it("says a refusal from the server inside the dialog", () => {
     render(
-      <SpendDialog open kind="wallet_lift" summary="x" ceilingUsd={18.4} lines={[{ name: "wallet", usd: 40, remainingUsd: 12 }]} confirmLabel="Navýšit" error="Nad stropem klienta schvaluje vlastník." onConfirm={() => {}} onCancel={() => {}} />,
+      <SpendDialog open question="q" kind="wallet_lift" summary="x" ceilingUsd={18.4} lines={[{ name: "wallet", usd: 40, remainingUsd: 12 }]} confirmLabel="Navýšit" error="Nad stropem klienta schvaluje vlastník." onConfirm={() => {}} onCancel={() => {}} />,
     );
     expect(screen.getByRole("dialog", { name: "Navýšení peněženky" })).toBeTruthy();
     expect(screen.getByRole("alert").textContent).toBe("Nad stropem klienta schvaluje vlastník.");
