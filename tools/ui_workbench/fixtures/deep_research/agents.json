@@ -1,0 +1,115 @@
+{
+ "planner": {
+  "Jak velký je trh ranních nápojů pro dojíždějící v Česku?": {
+   "sub_questions": [
+    "Jak rychle trh roste?"
+   ],
+   "queries": [
+    "trh ranních nápojů česko"
+   ]
+  },
+  "Proč lidé na cestě do práce kupují nápoje s kofeinem?": {
+   "sub_questions": [
+    "Jaké jsou důvody nákupu?"
+   ],
+   "queries": [
+    "důvody nákupu kofeinových nápojů na cestě"
+   ]
+  }
+ },
+ "default_queries": [
+  "ranní nápoje dojíždějící"
+ ],
+ "web": {
+  "https://stat.example/ranni-napoje-2025": [
+   {
+    "quote": "Prodej nápojů s kofeinem v plechovce vzrostl v Česku v roce 2025 o 9 %.",
+    "claim": "Prodej nápojů s kofeinem v plechovce vzrostl v Česku v roce 2025 o 9 %.",
+    "evidence_type": "official_report",
+    "source_date": "2025-05-20",
+    "geography": "CZ",
+    "population": "dospělí v Česku",
+    "topics": [
+     "trh"
+    ],
+    "outcome_overlap": false,
+    "recommended_use": "context_only",
+    "source_quality": 0.7
+   },
+   {
+    "quote": "Dvě třetiny prodejů připadají na dny pracovního týdne.",
+    "claim": "Dvě třetiny prodejů připadají na dny pracovního týdne.",
+    "evidence_type": "official_report",
+    "source_date": "2025-05-20",
+    "geography": "CZ",
+    "population": "dospělí v Česku",
+    "topics": [
+     "trh"
+    ],
+    "outcome_overlap": false,
+    "recommended_use": "context_only",
+    "source_quality": 0.7
+   }
+  ],
+  "https://trh.example/zprava-napoje": [
+   {
+    "quote": "Lidé, kteří denně dojíždějí, kupují nápoj na cestu v průměru třikrát týdně.",
+    "claim": "Lidé, kteří denně dojíždějí, kupují nápoj na cestu v průměru třikrát týdně.",
+    "evidence_type": "official_report",
+    "source_date": "2025-03-14",
+    "geography": "CZ",
+    "population": "dospělí v Česku",
+    "topics": [
+     "trh"
+    ],
+    "outcome_overlap": false,
+    "recommended_use": "context_only",
+    "source_quality": 0.7
+   },
+   {
+    "quote": "Nejčastějším místem nákupu je nádraží nebo zastávka.",
+    "claim": "Nejčastějším místem nákupu je nádraží nebo zastávka.",
+    "evidence_type": "official_report",
+    "source_date": "2025-03-14",
+    "geography": "CZ",
+    "population": "dospělí v Česku",
+    "topics": [
+     "trh"
+    ],
+    "outcome_overlap": false,
+    "recommended_use": "context_only",
+    "source_quality": 0.7
+   }
+  ],
+  "https://zpravy.example/dojizdeni-napoje": [
+   {
+    "quote": "Dojíždějící uvádějí jako hlavní důvod nákupu potřebu se probrat před prací.",
+    "claim": "Dojíždějící uvádějí jako hlavní důvod nákupu potřebu se probrat před prací.",
+    "evidence_type": "official_report",
+    "source_date": "2025-09-02",
+    "geography": "CZ",
+    "population": "dospělí v Česku",
+    "topics": [
+     "trh"
+    ],
+    "outcome_overlap": false,
+    "recommended_use": "context_only",
+    "source_quality": 0.7
+   },
+   {
+    "quote": "Mírnější chuť upřednostňuje většina dotázaných nad 35 let.",
+    "claim": "Mírnější chuť upřednostňuje většina dotázaných nad 35 let.",
+    "evidence_type": "official_report",
+    "source_date": "2025-09-02",
+    "geography": "CZ",
+    "population": "dospělí v Česku",
+    "topics": [
+     "trh"
+    ],
+    "outcome_overlap": false,
+    "recommended_use": "context_only",
+    "source_quality": 0.7
+   }
+  ]
+ }
+}

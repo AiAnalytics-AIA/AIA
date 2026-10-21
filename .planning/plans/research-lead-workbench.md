@@ -15,8 +15,7 @@ chunks:
   - "[x] 10. Dismiss and rebuild through the ledger and rebuild_of; the pending-proposals projection"
   - "[ ] 11. The command registry: the workers the Lead may call, each with its prompt and price, behind approve_request (ledger and spend limit already built); the route-class refusal says who fixes it (lead-orchestration LO12a, then LO12b); first deliverable: the worker row (lead-orchestration LO9a)"
   - "[ ] 12. Workbench journey: four widths, keyboard, focus modes, a Lead turn on recorded answers, zero unintended paid jobs"
-  - "[ ] 12a. The UI workbench runs Deep Research on recorded web with no paid calls (DRL-1, F-DRL-6): the six steps and the track kind over deep_research_recorded with a scripted model transport, one fictional design and one interpretation exchange; local and test only"
-  - "[x] 13. Design V3 in the repository (prototypes/research-lead-v3, its text) and its chunks in this plan"
+  - "[x] 12a. The UI workbench runs Deep Research on recorded web with no paid calls (DRL-1, F-DRL-6): the six steps and the track kind over deep_research_recorded with a scripted model transport, one fictional design exchange and deep_research_journey.mjs; local and test only"  - "[x] 13. Design V3 in the repository (prototypes/research-lead-v3, its text) and its chunks in this plan"
   - "[ ] 14. The Lead's view vocabulary: a closed, per-artifact set of display operations the Lead may run on the artifact pane"
   - "[ ] 15. The artifact frame: title, state pill, one version line and at most one state bar; inputs, feeds, workers and provenance in the inspector (the canonical V2 prototype's D5, owner confirmed in MVPQ-01 on 2026-10-20), Pracovní kopie / Historie / Původ, the revision stepper"
   - "[ ] 16. Pointing at the artifact: the Vidí chip, the target button and @ over every artifact's elements"
@@ -768,6 +767,57 @@ research-run cards); 26f.1 refines #551's 26f by name.
 - Every journey below runs on it with the scripted Lead and asserts zero paid calls: the usage
   ledger's paid rows are unchanged, and every snapshot is `RECORDED_FIXTURE`. `lead_journey.mjs` runs
   on `workbench.py up --fresh` (OI-133).
+
+**12a as built (2026-10-21).**
+- `apps/executors/src/aia_executors/workbench.py`: with `AIA_WORKBENCH_DEEP_RESEARCH_FIXTURES`
+  naming a directory, `workbench_registry_for(…, deep_research=<dir>)` adds
+  `deep_research_registry` over `deep_research_recorded.recorded_runtime` (its `web.json`) and the
+  real gateway and Bedrock adapter over `ScriptedDeepResearchModel` (its `agents.json`): planner,
+  web and internal investigators, verifier, synthesizer. Every response says
+  `x-aia-scripted: workbench-deep-research-1` and `workbench-scripted-<role>-<n>`; the route is
+  `workbench-scripted`, model `eu.workbench-scripted-deep-research-v1:0`. Unset, nothing changes:
+  the steps park at plan as before.
+- **Wrong and right, side by side (for `AGENTS.md`).** Zero prices look like "no paid calls", but
+  `StepModelCaller` refuses a zero hold ("a metered request needs a positive reservation"), so the
+  plan step raises. Right: a nominal price (USD 0.01 / MTok) sizes each hold, and the script reports
+  `inputTokens: 0, outputTokens: 0`, so every call settles at exactly 0 (`cost_usd = 0` on every
+  ledger row). The study needs a budget for the holds: a new study's is 0, so the run waits
+  `AWAITING_BUDGET` at plan; `fixture_project.py` sets USD 1 on the fixture study.
+- A design's class: Deep Research takes it from an operator's exact-bytes classification, never a
+  rule (OI-129), so a design the browser submits has none and the run fails
+  `egress_unclassified_material`. `WorkbenchDesignClassifier` (the plan step in this composition
+  only) classifies the run's frozen design Class C, synthetic, then runs the real plan step over
+  that classification: on this machine the workbench is the operator.
+- `tools/layer_check.sh`: "among the executors, only the recorded and workbench compositions build
+  recorded web retrieval" (`workbench.py` exempt for naming `deep_research_recorded`), and a new
+  rule that `workbench.py` names no recorded double itself. "No deployment runs the workbench
+  composition" and "no deployment runs the recorded Deep Research composition" are unchanged.
+  `pyproject.toml`'s model-adapter contract ignores `aia_executors.workbench ->
+  …model_adapters.transport` (request and response types only), as for `recorded_models`.
+- Fixtures: `tools/ui_workbench/fixtures/deep_research/{web,agents}.json`, three fictional
+  `.example` pages; `fixture_project.py`'s `deep_research` study (two research questions, the
+  questionnaire, budget USD 1) and its Design Research run, started as the panel starts it (QUICK,
+  WEB). It completes: 6 accepted findings, 3 recorded snapshots, 16 set aside (the four tracked
+  objects' copies are off topic), `quality_status` GROUNDED.
+- Tests: `apps/executors/tests/test_workbench_deep_research.py` (a file of its own rather than
+  `test_research_lead_workbench.py`, which is the scripted Lead's): the six kinds and the track kind
+  registered, the plan step the classifier only here; the routes recorded and fee-free; refused
+  outside local and test; a run on the fixture completes with a verified bundle whose origins are
+  `RECORDED_FIXTURE` alone, every snapshot RECORDED, every ledger row `cost_usd = 0` on
+  `workbench-scripted` with a scripted request id.
+- Journey: `tools/ui_workbench/deep_research_journey.mjs`: the fixture's run completes; "Spustit
+  veřejný výzkum" on Dotazník starts one; it is followed to completion; the panel shows every
+  accepted finding of the sealed bundle; "Zkontrolovat návrh", where the build has it (#554), ticks
+  one EVIDENCE item, accepts it and finds its `design_research` ledger row; without it, the proposal
+  it would review is read. It asserts no priced ledger row, no spend, no other model route, no
+  research run or agent job started, and no browser request to a host but the workbench.
+- **Not built: the interpretation exchange.** An Interpretation Research start targets a stored
+  analysis module (`ANALYSIS_MODULE`, `apps/web/src/lib/api.ts` `deepResearch.interpret`), and the
+  workbench stores none: its analysis steps park `analysis_unconfigured` (no AI runtime there). The
+  scripted agents answer any subject (the planner falls back to `default_queries`), so an
+  interpretation run needs only that analysis artifact; it is left to 23c's journey, which needs it
+  anyway. It is not a chunk line here, because a new open chunk needs a wave in
+  `mvp-execution-contracts.md` (`tools/master_check.py`); this PR's Doc follow-up proposes one.
 
 **23b (DRL-4). Deep Research request and running cards in the conversation.** Every Deep Research run
 of the study is a card, however it was started, as #550 does for jobs and runs (`lib/lead-cards.ts`,
