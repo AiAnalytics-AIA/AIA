@@ -16,7 +16,7 @@ on it.
 - **[F]** marks a page this session fetched and read itself.
 - **[S]** marks a search-engine excerpt of a vendor or press page whose page could not be fetched
   (the egress refusal above).
-- Every source was read on **2026-10-20**.
+- Every source was read on **2026-10-20**, except [35] and [36], which were read on 2026-10-21.
 - A sentence marked *Inference* is my reasoning, not a sourced fact. An [S] claim is weaker than an
   [F] claim, and the local run should re-check each one it relies on.
 
@@ -50,31 +50,56 @@ custom XML. (The one exception is the evidence appendix, which prints the ref id
 | P4 | Caption base n: `Table.base_ref`, `Figure.base_ref` | `infrastructure/report_docx/tables.py:87` (`caption` → `base_text`, `blocks.py:108-113`) | "n = 1 204" from the row's effective n | an inline locked control tagged `ref#n` |
 | P5 | Chart values: `Series.refs` in a `Figure` | `infrastructure/report_docx/charts.py:85-104` (`points`), labels drawn at `charts.py:176` | values and intervals drawn **into the SVG/PNG image**; no text in `document.xml` | the whole figure in a locked block-level control, tagged with its refs; the image itself cannot be edited |
 | P6 | Evidence appendix: `cited_refs(report)` | `infrastructure/report_docx/blocks.py:346-375` | per ref: the ref id, value, interval, effective n, support, basis, grade, disclosures | the appendix table as one locked block-level region; it is regenerated, never edited |
-| P7 | Map pair table: not from the ledger | `application/report_maps.py:295-302` | the signed r, pair n and Kish n as **`TextCell` text**, from the stored map artifact | a locked region tagged with the map artifact id. Without it, the census reads these numbers as untagged digits |
+| P7 | Map pair table: not from the ledger | `application/report_maps.py:295-302` | the signed r, pair n and Kish n as **`TextCell` text**, from the stored map artifact | a locked region tagged `map:<artifact_id>`. Without it, the census reads these numbers as untagged digits |
+| P8 | Map support and credibility prose: not from the ledger | `application/report_maps.py:186-201` (the "Slabě určená mapa" callout: split-half %); `:203-223` (object count, placed/total profiles, donors, Stress-1 and its quality); `_credibility_note` `:77-100` (split-half %, its threshold %, reliable pairs, the uncertainty radius); `pair_status_means` `:43-66` (the pair rule's `n_min`, written into the reading guide) | split-half agreement, thresholds, profile and donor counts, Stress-1 and uncertainty radii as **ordinary `Paragraph`/`Callout` text** | each paragraph or callout as a locked block-level region tagged `map:<artifact_id>` (regenerated from the artifact, never typed over) |
+| P9 | Map figure caption: not from the ledger | `infrastructure/report_docx/figures.py:71-92` (`render_sociomap`: Stress-1 at `:79`, or `fit_caption` at `:76`); `stress_1` set at `application/report_maps.py:245` | "Stress-1 = 0,123" (or the fit caption) in the caption's `extra` | an inline locked control over the caption's fit text, tagged `map:<artifact_id>` |
 
 Paths that print grade marks or disclosures from refs but no number need no control of their own
 (`blocks.py:181-185`, `:211`, `:264`, `:275`). A census must still count their refs, so that a deleted
 callout is noticed. The object-map and Sociomapping figures (`object_map_figure.py`,
 `sociomapping_figure.py`) are images drawn from stored artifacts, and are locked like P5.
 
+**The sweep: every other place that writes digits into a report** (at `e09a6c99`). Found by
+grepping the report composers (`application/report*.py`, `client_report.py`,
+`contextual_report.py`, `sociomapping_report.py`) and the renderer (`infrastructure/report_docx/*.py`)
+for `number(`, `numbers.`, `counted(`, `len(`, `round(` and `str(` in printed text, then reading each
+hit.
+
+| # | Path | Anchor @ e09a6c99 | Digits it writes | Disposition |
+|---|---|---|---|---|
+| P10 | The design chapter and questionnaire appendix | `application/report_design.py:49-51` (scale ends), `:69` (audience filter bounds), `:77`, `:122` (item counts), `:141` ("Návrh počítal s {spec.n} respondenty"), `:164` ("Blok {index}") | design facts from the Design Revision the run executed | a locked block-level region tagged `design:<revision_id>`; regenerated, never edited |
+| P11 | The method chapter, "Respondenti a výpočet" | `application/report_method.py:120` (item counts), `:228-235` (the trace table's counts), `:296`, `:352`, `:432-438` (selection sentences) | counts and ids from the run's record | a locked region tagged `run:<run_id>` |
+| P12 | Refused-question counts | `application/report_tables.py:195` ("Výsledky {len(refused)} otázek zpráva neuvádí") | a count the admission computed | a locked callout tagged `run:<run_id>` |
+| P13 | Suppressed-row and omitted-point counts | `infrastructure/report_docx/tables.py:116-117` (`source_line`: "{removed}"), called with `drawn.omitted` at `figures.py:66` | counts of rows or points suppression removed | inside the table's or figure's locked region (P2/P5) |
+| P14 | The literature report's bundle figures | `application/contextual_report.py:312` (labels L1, L2, …), `:392-394` (snapshot, accepted, cited and rejected counts), `:428`, `:439` | counts and labels from the sealed bundle | a locked region tagged `bundle:<run_id>`; L-labels as locked inline controls, because prose cites them |
+| P15 | The audit and provenance rows | `application/report.py:102-112` (the methodology deviation: each changed parameter "18.6.6: {unit}, zde {used}", the replaced formula ids), `:232-234` (run id, evidence fingerprint, methodology version) | parameter values and version strings | the document-control table, a locked region |
+| P16 | The experimental Sociomapping DOCX | `application/sociomapping_report.py:139` (`_n`), `:142-147` (`_fit_caption`), `:161`, `:193`, `:282`, `:288`, `:416-431` | accuracy, counts and versions from the Sociomapping result | out of RD6's scope: an internal draft no editor flow opens. If it is ever opened, it is locked whole |
+| — | Document furniture | `infrastructure/report_docx/layout.py:255-262` (cover rows: date, design revision), `:318-341` (document control: date, revision, revision history), `outline.py` and the SEQ, PAGE and TOC fields (`ooxml.py`), `numbering.py` | dates, revision numbers, chapter, figure, table and page numbers | Word fields or front matter. They stay fields, and the front matter is a locked region; the census ignores field results |
+| — | Ruled out: digits that never reach visible text | `cover.py:109` (EMU offsets), `tables.py:234` (column widths), `charts.py:110` (axis ticks, inside the image: P5), `review_stamp.py` (XML ids), `styles.py:397` (style values) | layout geometry | nothing to tag |
+| — | Ruled out: model prose | `Text` inlines (`model.py`, top docstring: prose "analysis already checked for uncited numbers") | a digit a model or person wrote, such as a year or a question number | editable. The census refuses a digit in edited prose that the stored model's paragraph did not already hold (below) |
+
 - **Reproduction:** render any sample report (`make report-preview`), unzip `word/document.xml`,
   and search it for a ledger ref id. The only hits are the appendix's visible text (P6).
 - **Consequence:** once a person edits the DOCX in any document editor, AIA cannot tell an evidenced
-  number from a number someone typed: in prose, in a table, in a KPI tile, or in a caption. R3
-  cannot be checked through a DOCX round trip today.
+  or machine-written number from a number someone typed: in prose, a table, a KPI tile, a caption,
+  or the map, design and method chapters. R3 cannot be checked through a DOCX round trip today.
 - **Smallest fix (for RD6, not this spike):**
-  - The renderer wraps every printed group P1-P7 in a content control (`w:sdt`), with `w:tag` = the
-    ref (or `map:<artifact_id>`) and `w:lock` = `sdtContentLocked`. A group that spans paragraphs
-    (P2's interval, P3, P5, P6, P7) is a block-level control.
-  - On a save, a census refuses a document that:
+  - The renderer wraps every printed group P1-P15 in a content control (`w:sdt`) with `w:lock` =
+    `sdtContentLocked`. Its `w:tag` names the source: the ledger ref, `map:<artifact_id>`,
+    `design:<revision_id>`, `run:<run_id>` or `bundle:<run_id>`. A group that spans paragraphs is a
+    block-level control.
+  - On a save, a census over the stored model (F-ED3) refuses a document that:
     - lost a tagged control;
     - changed a control's text;
-    - holds a digit outside every control in evidenced prose.
+    - holds, in an editable paragraph, a digit that the stored model's paragraph did not already
+      hold.
+  - A new number enters a report only as a ledger ref, through AIA's edit operation, never typed.
 - **Test that would have caught it:** a renderer test over one `ReportDocument` that holds every
-  path P1-P7. It collects the refs the model cites (the `Value`, `NumberCell`, `Kpi` and `base_ref`
-  refs, the series refs, `cited_refs`) and the `w:sdt/w:sdtPr/w:tag` values in the DOCX, and expects
-  every model ref to have a tag, every number-bearing run to sit inside one, and no tag without a
-  ref.
+  path P1-P15. It collects the refs the model cites (`Value`, `NumberCell`, `Kpi` and `base_ref`
+  refs, series refs, `cited_refs`) and the map, design, run and bundle sources, then reads the
+  `w:sdt/w:sdtPr/w:tag` values and every `w:t` in the DOCX. It expects:
+  - every source to have a tag, and no tag without a source;
+  - every digit outside a field result to sit inside a tagged control or in prose the model holds.
 
 **F-ED3. AIA does not keep the document model of a rendered report.**
 
@@ -142,7 +167,7 @@ numbered.
 
 ### Sources
 
-Every source below was read on 2026-10-20.
+Every source below was read on 2026-10-20 unless it says otherwise.
 
 1. [F] <https://github.com/storytold/wordcraft>: MIT/Apache-2.0, alpha, "clean-room reimplementation of
    Microsoft Word in pure Rust", Review tab with track changes, 15.1k stars, 1,020 commits.
@@ -256,6 +281,18 @@ Every source below was read on 2026-10-20.
 34. [F] <https://raw.githubusercontent.com/python-openxml/python-docx/master/HISTORY.rst>: 1.2.0
     (2025-06-16), "Add support for comments". AIA's `report` extra already pins `python-docx>=1.2,<2`
     (`packages/aia_core/pyproject.toml:29 @ e09a6c99`).
+35. [F, read 2026-10-21] <https://raw.githubusercontent.com/python-openxml/python-docx/master/docs/dev/analysis/features/comments.rst>
+    (the source of <https://python-docx.readthedocs.io/en/latest/dev/analysis/features/comments.html>,
+    whose host the egress refused): `commentsExtended.xml` "contains completion (resolved) status
+    and parent-id for threading comment responses", keyed to `w15:paraId`; `commentsIds.xml` maps
+    `w16cid:paraId` to `w16cid:durableId`; "Neither of these features is supported by the initial
+    implementation of comments in python-docx".
+36. [S, read 2026-10-21] <https://msopenspecs.microsoft.com/files/MS-DOCX/%5bMS-DOCX%5d-250218.docx>:
+    [MS-DOCX] 21.2 lists the commentsExtended (2.1.2) and commentsExtensible (2.1.5) parts. [S]
+    <https://learn.microsoft.com/ja-jp/dotnet/api/documentformat.openxml.office2021.word.commentsext.commentextensible.durableid?view=openxml-3.0.1>:
+    `w16cex:durableId` (Office 2021 and later). The attribute names `paraIdParent`, `done` and
+    `dateUtc` are from my knowledge of the format, not from a page read here; the proof confirms
+    them on a file Word saved.
 
 ## The shape that makes the choice reversible
 
@@ -274,7 +311,25 @@ surface and not the store.
 - A Lead suggestion becomes OOXML revisions (`w:ins` / `w:del`, author "Vedoucí"), written into the
   DOCX against the stored model's paragraph ids.
 - A Lead comment becomes a native Word comment written the same way. python-docx has supported
-  comments since 1.2 [34].
+  comments since 1.2 [34], but only `comments.xml`. Its own analysis page says replies and resolved
+  status are not supported [35]:
+  - Threading (each reply's parent) and resolved status live in `commentsExtended.xml`
+    (`w15:commentEx`: `w15:paraId`, `w15:paraIdParent`, `w15:done`).
+  - Durable ids live in `commentsIds.xml` (`w16cid:commentId`).
+  - UTC dates live in `commentsExtensible.xml` (`w16cex:commentExtensible`) [36].
+- **AIA writes top-level comments only.** A Lead's comment is a new thread written with
+  python-docx's `add_comment`. Replies and resolving are the person's, in the editor.
+- **If the Lead must ever reply in a thread, AIA's own OOXML code writes the reply.** That would be a
+  new module beside `infrastructure/report_docx/ooxml.py` (a hypothetical `comments.py`, not built),
+  with lxml as `ooxml.py` already uses. It writes:
+  - the reply in `comments.xml` (through python-docx);
+  - its `w15:commentEx` entry with `paraIdParent` set to the parent comment's paragraph, in
+    `commentsExtended.xml`;
+  - its `commentsIds.xml` and `commentsExtensible.xml` entries;
+  - each part's content type and relationship.
+
+  It is tested by reading the parts back. This is RD6's decision; nothing in this spike depends on
+  it.
 - The editor only shows suggestions and comments, and lets the person accept, reject or reply.
 - A direct rewrite is applied as a new model version. Undoing it re-renders the stored version before
   it, so the undo needs RD5a's stored versions.
@@ -283,12 +338,15 @@ surface and not the store.
 
 **2. Numbers are locked, tagged content controls, and AIA checks every save (F-ED1's fix).**
 
-- This covers every render path, P1-P7.
+- This covers every digit-writing path, P1-P15 (P16 is out of scope).
 - The editor saves back to AIA (a callback or WOPI PutFile).
 - AIA runs a ref census against the stored model:
   - every tagged control is present, with its text unchanged;
-  - no digit appears outside a control in evidenced prose;
-  - every comment is read back with its author, anchor, replies and resolved state.
+  - no editable paragraph holds a digit that its stored paragraph did not;
+  - every comment is read back with its author, anchor, replies and resolved state. Author, text
+    and anchor come through python-docx. Replies and resolved state come from parsing
+    `commentsExtended.xml`, `commentsIds.xml` and `commentsExtensible.xml` directly, because
+    python-docx does not read them [35].
 - If the census fails, AIA refuses the save by name.
 - R3 is then enforced by AIA, whatever the editor does.
 
@@ -308,7 +366,7 @@ Adding comments to the criteria strengthens ONLYOFFICE against Collabora: Collab
 round trip with replies and resolve is not documented [31].
 
 **The one-day local proof, before any build work.** On a sample report from `make report-preview`
-whose renderer emits locked, tagged controls on all of P1-P7, the proof runs these steps:
+whose renderer emits locked, tagged controls on all of P1-P15, the proof runs these steps:
 
 1. Count the refs in the model and the tags in the DOCX.
 2. Open the report in the editor with tracked changes on.
@@ -317,8 +375,17 @@ whose renderer emits locked, tagged controls on all of P1-P7, the proof runs the
 5. Accept one AIA-written Lead suggestion, and reject another.
 6. Save the document back to AIA.
 7. Re-count the tags, and diff each control's text.
-8. Read every comment back with its author, anchor, replies and resolved state, both through
-   python-docx and by opening the saved file in Word or LibreOffice.
+8. Read every comment back:
+   - author, text and anchor through python-docx (`comments.xml`);
+   - which comment replies to which, and which thread is resolved, by **parsing the OOXML
+     directly**, since python-docx does not read it [35]:
+     - `commentsExtended.xml`: each `w15:commentEx`'s `paraIdParent` and `done`, joined to
+       `comments.xml` by `w15:paraId`;
+     - `commentsIds.xml`: the durable ids, checked stable across the save;
+     - `commentsExtensible.xml`: the UTC dates.
+
+   Then open the saved file in Word or LibreOffice and confirm the same threads and states.
+9. Try typing a new number into editable prose, and confirm the census refuses the save.
 
 The proof passes only if every tag survives with its text unchanged, no control could be edited or
 deleted, and every comment round-trips. If it fails, the fallback is Collabora Online (MPL 2.0) under
@@ -363,7 +430,7 @@ keep the Lead's rules in AIA, so the editor can be replaced.
    researcher relies on a screen reader.
 5. **F-ED1 and F-ED3 are real work, whichever editor wins.**
    - RD5a must store the model of every rendered version.
-   - The renderer must emit tagged, locked controls on all of P1-P7, including P7's numbers, which
+   - The renderer must emit tagged, locked controls on all of P1-P15, including P7-P15, which
      do not come from the ledger.
    - RD6 must read a saved DOCX back against the stored model into an accept result, with its
      comments.
