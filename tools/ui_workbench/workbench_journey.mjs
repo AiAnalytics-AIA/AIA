@@ -222,6 +222,20 @@ try {
   await shot("390-header");
   check("every stage reachable by keyboard at 768 (scrolling) and 390 (the stage list), no overflow");
 
+  // Zadání: V2's sections in order -- Cíle, Rozhodnutí, Kontext -- at every width (artifact-brief
+  // BRF2). Reading it is a GET; nothing is edited here (the workspace journey edits a fresh study).
+  for (const width of [1440, 1100, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(base + stagePath("brief"));
+    const sections = page.locator('[id="brief-objectives"], [id="brief-decision_use"], [id="brief-context"]');
+    await sections.first().waitFor({ timeout: 30000 });
+    assert.equal(await sections.count(), 3, `Cíle, Rozhodnutí, Kontext @${width}`);
+    assert.equal(await page.getByRole("button", { name: /^Upravit: Situace \/ trh/ }).count(), 1, `Kontext edited in place @${width}`);
+    await noOverflow(`brief @${width}`);
+    await page.screenshot({ path: join(out, `${width}-brief.png`), fullPage: true });
+  }
+  check("Zadání shows Cíle, Rozhodnutí and Kontext, edited in place, at 1440, 1100, 768 and 390, no overflow");
+
   // Návrh: each research question with its coverage (artifact-design DSN2), at every width, in the
   // workbench at each. Reading it is a GET.
   for (const width of [1440, 1100, 768, 390]) {

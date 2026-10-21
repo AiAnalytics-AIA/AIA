@@ -51,13 +51,15 @@ const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 const INPUT = `rounded-control border border-border-strong text-ink placeholder:text-ink-faint ${FOCUS}`;
 
+/** The longest text a brief field takes: the edit vocabulary's set_text value (edit_ops VALUE_MAX_CHARS). */
+const CONTEXT_MAX = 4000;
+
 /** A goal this long reads as a sentence; shorter, the AI will have to ask. */
 export const GOAL_SENTENCE = 40;
 
 /** The further context, in the order the classic form showed it. */
-const CONTEXT: { field: TopField | BriefingField; label: string }[] = [
+const CONTEXT: { field: BriefingField; label: string }[] = [
   { field: "product_description", label: "research.brief.productDescription" },
-  { field: "decision_use", label: "research.brief.decisionUse" },
   { field: "situation", label: "research.brief.situation" },
   { field: "what_is_known", label: "research.brief.whatIsKnown" },
   { field: "constraints", label: "research.brief.constraints" },
@@ -111,7 +113,7 @@ export function BriefStep() {
   const goal = p.goal || "";
   const goalLength = goal.trim().length;
   const attachments = p.briefing.attachments || [];
-  const filled = CONTEXT.filter((c) => contextValue(p, c.field).trim()).length;
+  const filled = [...CONTEXT.map((c) => contextValue(p, c.field)), p.decision_use || ""].filter((v) => v.trim()).length;
   const ready = canAnalyse(p);
   const score = [goalLength >= GOAL_SENTENCE, selected.size > 0, attachments.length > 0, filled > 0].filter(Boolean).length * 25;
 
@@ -203,9 +205,13 @@ export function BriefStep() {
 
       <Objectives />
 
+      <Decision edit={edit} p={p} />
+
+      <Context edit={edit} p={p} />
+
       <StepSection
         id="brief-type"
-        n={3}
+        n={5}
         title={t("research.brief.typesTitle")}
         hint={t("research.brief.typesHelp")}
         aside={selected.size ? <span className="font-mono text-xs text-ink-muted">{tv("research.brief.readyTypesN", { n: selected.size })}</span> : null}
@@ -236,7 +242,6 @@ export function BriefStep() {
 
       <Attachments uploads={uploads} />
 
-      <ContextFields edit={edit} p={p} />
 
       {uploads.over ? (
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 flex items-start justify-center rounded-card border-2 border-dashed border-signal bg-signal-wash/90 pt-40">
@@ -375,60 +380,49 @@ function Readiness({ score, ready, rows, children }: {
 }
 
 /**
- * The further context, one field at a time: a field with a value is open, an
- * empty one is a "+" chip until the person opens it. × empties the field (the
- * same edit as deleting its text) and closes it.
+ * Rozhodnutí (artifact-brief BRF2): the decision the research is to support, one text edited
+ * where it is shown (I1). D-44 took the decision list out, so it is `decision_use`, one item.
  */
-function ContextFields({ p, edit }: { p: ResearchProject; edit: (field: TopField | BriefingField, value: string) => void }) {
-  const [opened, setOpened] = useState<ReadonlySet<string>>(() => new Set());
-  const open = CONTEXT.filter((c) => opened.has(c.field) || contextValue(p, c.field));
-  const closed = CONTEXT.filter((c) => !open.includes(c));
+function Decision({ p, edit }: { p: ResearchProject; edit: (field: TopField | BriefingField, value: string) => void }) {
   return (
-    <StepSection id="brief-context" n={5} optional title={t("research.brief.contextTitle")} hint={t("research.brief.contextHint")}>
-      <div className="flex flex-col gap-3">
-        {open.map((c) => (
-          <div key={c.field} className="flex flex-col gap-1">
-            <span className="flex items-center justify-between gap-2 text-xs font-medium text-ink-muted">
-              <label htmlFor={briefElementId(contextField(c.field))}>{t(c.label)}</label>
-              <button
-                type="button"
-                aria-label={tv("research.brief.contextRemoveAria", { label: t(c.label) })}
-                onClick={() => {
-                  edit(c.field, "");
-                  setOpened((s) => new Set([...s].filter((f) => f !== c.field)));
-                }}
-                className={`rounded-sm px-1 text-sm text-ink-faint hover:text-ink ${FOCUS}`}
-              >
-                ×
-              </button>
-            </span>
-            <textarea
-              id={briefElementId(contextField(c.field))}
-              rows={2}
-              placeholder={t(`research.brief.examples.${c.field}`)}
-              value={contextValue(p, c.field)}
-              onChange={(e) => edit(c.field, e.target.value)}
-              className={`min-h-[60px] w-full resize-y bg-surface-raised px-2.5 py-2 text-sm leading-[22px] ${INPUT}`}
-            />
+    <StepSection id={briefElementId("decision_use")} n={3} title={t("research.brief.decisionTitle")} hint={t("research.brief.decisionHint")}>
+      <InlineText
+        multiline
+        value={p.decision_use || ""}
+        label={t("research.brief.decisionUse")}
+        placeholder={t("research.brief.examples.decision_use")}
+        rules={{ required: false, maxLength: CONTEXT_MAX }}
+        onCommit={(v) => edit("decision_use", v)}
+      />
+    </StepSection>
+  );
+}
+
+/**
+ * Kontext (artifact-brief BRF2): the four further fields as items, each edited where it is shown
+ * (I1). An empty one shows its example as the placeholder; clearing it is an edit like any other.
+ * Each row is the Lead's brief:briefing.<field>.
+ */
+function Context({ p, edit }: { p: ResearchProject; edit: (field: TopField | BriefingField, value: string) => void }) {
+  return (
+    <StepSection id={briefElementId("context")} n={4} optional title={t("research.brief.contextTitle")} hint={t("research.brief.contextHint")}>
+      <dl className="flex flex-col gap-3">
+        {CONTEXT.map((c) => (
+          <div key={c.field} id={briefElementId(contextField(c.field))} className="flex flex-col gap-1">
+            <dt className="text-xs font-medium text-ink-muted">{t(c.label)}</dt>
+            <dd>
+              <InlineText
+                multiline
+                value={contextValue(p, c.field)}
+                label={t(c.label)}
+                placeholder={t(`research.brief.examples.${c.field}`)}
+                rules={{ required: false, maxLength: CONTEXT_MAX }}
+                onCommit={(v) => edit(c.field, v)}
+              />
+            </dd>
           </div>
         ))}
-        {closed.length ? (
-          <div className="flex flex-wrap gap-1.5">
-            {closed.map((c) => (
-              <button
-                key={c.field}
-                id={briefElementId(contextField(c.field))}
-                type="button"
-                onClick={() => setOpened((s) => new Set([...s, c.field]))}
-                className={`inline-flex items-center gap-1 rounded-pill border border-border bg-surface px-3 py-1 text-[13px] leading-5 text-ink hover:border-signal hover:text-signal ${FOCUS}`}
-              >
-                <Icon name="plus" size={12} />
-                {t(c.label)}
-              </button>
-            ))}
-          </div>
-        ) : null}
-      </div>
+      </dl>
     </StepSection>
   );
 }
@@ -553,7 +547,7 @@ function Attachments({ uploads }: { uploads: Uploads }) {
   return (
     <StepSection
       id="brief-files"
-      n={4}
+      n={6}
       optional
       title={t("research.brief.filesTitle")}
       hint={t("research.brief.attachHelpAnywhere")}
