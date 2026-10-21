@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { researchAgents, type ResearchAgentAction, type ResearchAgentJob, type ResearchAgentResult } from "@/lib/api";
-import { followAgentJob } from "@/lib/research-agent-jobs";
+import { followAgentJob, withJobCostConfirmation } from "@/lib/research-agent-jobs";
 import { JobError, type JobUpdate } from "@/research/jobs";
 import { staleDetails, staleMessage } from "@/research/proposal-items";
 import { submitWorkingDesign, type ResearchStore } from "@/research/store";
@@ -31,7 +31,13 @@ function check(signal: AbortSignal) {
  * a design proposal is reviewed inline at the top of the stage (ProposalReview)
  * instead of the modal dialog; the decision and what it does are the same.
  */
-export function useResearchAgents(studyId: string, store: ResearchStore, onUpdate: (u: JobUpdate | null) => void, adviceInWorkspace = false, proposalsInWorkspace = false) {
+const refuse = async () => false;
+/**
+ * `confirm`: how the stage asks a person a yes/no question; a job whose ceiling reaches the study's
+ * confirmation threshold is started only after that yes (LO15). Without it, nothing is confirmed
+ * and such a start or rebuild ends with the server's refusal.
+ */
+export function useResearchAgents(studyId: string, store: ResearchStore, onUpdate: (u: JobUpdate | null) => void, adviceInWorkspace = false, proposalsInWorkspace = false, confirm: (message: string) => Promise<boolean> = refuse) {
   const [recent, setRecent] = useState<ResearchAgentJob[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -104,7 +110,7 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
         // supersedes this one. Nothing is accepted; the new proposal is reviewed as any other.
         setNotice(null);
         const revision = await submitWorkingDesign(store, studyId, sourceOf(job.action)); check(signal);
-        const next = await researchAgents.rebuild(studyId, job.run_id, revision.revision_id); check(signal);
+        const next = await withJobCostConfirmation((usd) => researchAgents.rebuild(studyId, job.run_id, revision.revision_id, usd), confirm); check(signal);
         await refresh().catch(() => []);
         job = await followAgentJob(studyId, next.run_id, "Nový návrh nad současným zadáním", onUpdate, signal);
         onUpdate(null);
@@ -143,7 +149,7 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
       }
       return { ...result.result, native: true };
     }
-  }, [studyId, store, askReview, refresh, onUpdate]);
+  }, [studyId, store, askReview, refresh, onUpdate, confirm]);
 
   const finish = useCallback(async (controller: AbortController) => {
     if (active.current === controller) active.current = null;
@@ -162,7 +168,8 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
       await store.flush(); check(controller.signal);
       // The design names the working revision it is: the proposal's baseline (ADR 0026 decision 5).
       const revision = await submitWorkingDesign(store, studyId, sourceOf(action)); check(controller.signal);
-      let job = await researchAgents.start(studyId, revision.revision_id, action, String(payload.instruction || payload.popis || "")); check(controller.signal);
+      const instruction = String(payload.instruction || payload.popis || "");
+      let job = await withJobCostConfirmation((usd) => researchAgents.start(studyId, revision.revision_id, action, instruction, undefined, usd), confirm); check(controller.signal);
       // A repeated button press is an explicit request to continue a job that
       // parked before any provider call while the runtime was unavailable.
       if (job.status === "WAITING_PROVIDER" && job.steps.some((step) => step.waiting_reason === "ai_runtime_unavailable")) {
@@ -173,7 +180,7 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
       onUpdate(null);
       return await apply(finished, controller.signal);
     } finally { await finish(controller); }
-  }, [store, studyId, refresh, onUpdate, apply, finish]);
+  }, [store, studyId, refresh, onUpdate, apply, finish, confirm]);
 
   const open = useCallback(async (job: ResearchAgentJob) => {
     if (active.current) { setNotice("Jiný AI krok ještě běží."); return; }

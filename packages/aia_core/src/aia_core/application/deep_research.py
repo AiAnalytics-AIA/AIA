@@ -116,6 +116,7 @@ from ..domain.deep_research.settings import (
 )
 from ..domain.deep_research.tooling import TOOL_EVENT_KINDS, ToolUsageEvent
 from ..domain.deep_research.workflow import DEEP_RESEARCH, deep_research_steps
+from ..domain.money import ThresholdVerdict, threshold_verdict
 from ..domain.research import phase_of, retryable
 from ..domain.run_cost import (
     CeilingUnknown,
@@ -645,9 +646,12 @@ class DeepResearchRuns:
                     limit_usd=limit,
                     kinds=tuple(k.value for k in ceiling.unknown_kinds),
                 )
-            if ceiling.total_usd >= limit:
-                if confirm_cost_usd is None or confirm_cost_usd < ceiling.total_usd:
-                    raise CostConfirmationRequired(ceiling_usd=ceiling.total_usd, limit_usd=limit)
+            # The confirmation threshold's one rule (domain/money.py; ADR 0019 gate 2); the
+            # unknown ceiling is refused above, with the kinds whose price is missing.
+            verdict = threshold_verdict(ceiling.total_usd, limit, confirm_cost_usd)
+            if verdict is ThresholdVerdict.ASK:
+                raise CostConfirmationRequired(ceiling_usd=ceiling.total_usd, limit_usd=limit)
+            if verdict is ThresholdVerdict.CONFIRMED:
                 confirmation = (ceiling.total_usd, limit)
         run_id = workflows.create_run(
             project_id=project_id,
