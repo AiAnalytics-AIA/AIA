@@ -1826,6 +1826,15 @@ export const cs = {
       readyFiles: "Podklady",
       readyFilesEmpty: "Briefy, data, weby",
       readyFilesN: "{n} v kontextu",
+      // artifact-brief BRF3: each material's data class, as the server answers it.
+      dataClass: {
+        CLASS_A_CLIENT_CONFIDENTIAL: "A · důvěrné klienta",
+        CLASS_B_DERIVED_CLIENT: "B · odvozené od klienta",
+        CLASS_C_INTERNAL: "C · interní",
+      },
+      dataClassUnknown: "třída neznámá",
+      dataClassAside: "třída dat určuje, kam smí",
+      dataClassRule: "Třída podle pravidla {rule}; přísněji ji může zařadit jen operátor.",
       readyContext: "Kontext",
       readyContextEmpty: "Trh, omezení, co už víte",
       readyContextN: "{n} z 5 polí",
