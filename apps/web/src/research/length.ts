@@ -22,6 +22,16 @@ export type Length =
 const texts = (raw: unknown): string[] =>
   Array.isArray(raw) ? raw.filter((x): x is string => typeof x === "string" && x.trim() !== "").map((x) => x.trim()) : [];
 
+/**
+ * A question's type as the compiler reads it (research_design.py:731, `_text(raw.get("typ") or
+ * "vyber")`): none or empty is a single choice; anything but the four types is not priced.
+ */
+function typeOf(raw: unknown): Exclude<Priced, "set_object"> | null {
+  if (raw === undefined || raw === null || raw === "" || raw === false || raw === 0) return "vyber";
+  const typ = typeof raw === "string" ? raw.trim() : "";
+  return typ === "vyber" || typ === "multi" || typ === "skala" || typ === "otevrena" ? typ : null;
+}
+
 /** A rule read from the server, kept only when every price is a finite number of seconds, 0 or more. */
 export function readRule(raw: unknown): LengthRule | null {
   if (!raw || typeof raw !== "object") return null;
@@ -51,8 +61,8 @@ export function questionnaireLength(p: ResearchProject, rule: LengthRule | null)
     if (kind === "object_battery") seconds += new Set(texts(s.objects)).size * rule.seconds.set_object;
     else if (kind === "questions")
       for (const q of s.questions || []) {
-        const typ = q.typ as Priced | undefined;
-        if (typ && typ !== "set_object" && (PRICED as readonly string[]).includes(typ)) seconds += rule.seconds[typ];
+        const typ = typeOf(q.typ);
+        if (typ) seconds += rule.seconds[typ];
         else unpriced += 1;
       }
   }

@@ -23,8 +23,13 @@ describe("the questionnaire's length", () => {
   });
 
   it("leaves the length unknown, never zero, when an item's type has no price", () => {
-    const p = project([{ type: "questions", questions: [{ text: "A?", typ: "vyber" }, { text: "B?" }, { text: "C?", typ: "matice" }] }]);
+    const p = project([{ type: "questions", questions: [{ text: "A?", typ: "vyber" }, { text: "C?", typ: "matice" }, { text: "D?", typ: "set_object" }] }]);
     expect(questionnaireLength(p, readRule(RULE))).toEqual({ kind: "unknown", unpriced: 2 });
+  });
+
+  it("prices a question without a type as single choice, as the compiler reads it", () => {
+    const p = project([{ type: "questions", questions: [{ text: "A?" }, { text: "B?", typ: "" }, { text: "C?", typ: " skala " }] }]);
+    expect(questionnaireLength(p, readRule(RULE))).toMatchObject({ kind: "estimate", seconds: 28 });
   });
 
   it("reads a rule only when every price is a finite number of seconds", () => {
