@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { InlineText } from "./InlineText";
@@ -248,7 +248,9 @@ describe("InlineText opened from elsewhere (input-interactions chunk 2: a row's 
     expect(settled).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }));
     expect(await screen.findByText("Uloženo")).toBeTruthy();
-    expect(settled).toHaveBeenCalledTimes(1);
+    // onSettled runs in an effect after the commit that shows "Uloženo" (InlineText.tsx:77-81),
+    // so under load the assertion can run first: wait for it rather than read it at once.
+    await waitFor(() => expect(settled).toHaveBeenCalledTimes(1));
   });
 
   it("never settles without having been opened, and does not open when disabled", () => {
