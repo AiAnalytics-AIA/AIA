@@ -175,6 +175,21 @@ describe("Audience", () => {
       noUnitCalls();
     });
 
+    it("the preview names what each filter selects alone (AUD3)", async () => {
+      const filters = { vek: { min: 30, max: 59 }, kraj: ["Zlínský kraj"] };
+      aiaStub(
+        { ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", filters } },
+        live({ [PREVIEW]: () => ({ version_id: "DSV-1", version_label: "v17_4_0", population_rows: 18766, selected_rows: 900, selected_donors: 400, filters_applied: { vek: { min: 30, max: 59 }, kraj: { values: ["Zlínský kraj"] } }, per_filter: { vek: 5120, kraj: 1200 }, audience: { ok: true }, n: null, sample: null, seed: 20261012 }) }),
+      );
+      render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      fireEvent.click(await screen.findByRole("button", { name: "Ověřit proveditelnost" }));
+      const status = await screen.findByRole("status");
+      expect(status.textContent).toContain("Filtry vyberou 900 z 18\u00a0766");
+      expect(status.textContent).toMatch(/Samotný filtr .+: 5\u00a0120 lidí\./);
+      expect(status.textContent).toMatch(/Samotný filtr .+: 1\u00a0200 lidí\./);
+      noUnitCalls();
+    });
+
     it("a deployment without the population mounted says the preview is not here", async () => {
       aiaStub(
         { ui_state: ANALYTICS, audience: { strategy: "filters", source_mode: "population", filters: {} } },
