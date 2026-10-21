@@ -176,3 +176,71 @@ export function clearedWords(n: number): string {
   if (n >= 2 && n <= 4) return `Odstraněny ${n} popisky bodů`;
   return `Odstraněno ${n} popisků bodů`;
 }
+
+// ---- Per-point labels through a rewrite (#559 review) ---------------------------------------
+
+type Rec = Record<string, unknown>;
+const isRec = (x: unknown): x is Rec => typeof x === "object" && x !== null && !Array.isArray(x);
+const fold = (text: unknown) => String(text ?? "").replace(/\s+/g, " ").trim().toLocaleLowerCase("cs");
+
+/** A question's labels when they are a valid label on every point of its range; else `null`. */
+function pointLabelsOf(q: Rec): { scale: Scale; labels: string[] } | null {
+  const scale = readRange(Array.isArray(q.skala) ? q.skala : undefined);
+  const labels = q.popisky_skaly;
+  if (q.typ !== "skala" || !scale || !Array.isArray(labels) || !labels.every((l) => typeof l === "string")) return null;
+  if (!everyPointLabelled(labels, scale) || labelProblem(labels, scale) !== null) return null;
+  return { scale, labels: [...labels] };
+}
+
+type Kept = { q: Rec; scale: Scale; labels: string[] };
+
+/** The stored per-point labels a rewritten question keeps, or `null` (see `keepPointLabels`). */
+function keptFor(q: Rec, kept: readonly Kept[]): string[] | null {
+  const scale = readRange(Array.isArray(q.skala) ? q.skala : undefined);
+  const labels = Array.isArray(q.popisky_skaly) ? q.popisky_skaly : q.popisky_skaly == null ? [] : null;
+  if (q.typ !== "skala" || !scale || labels === null || labels.length > 2) return null;
+  const same = kept.filter((x) => x.scale[0] === scale[0] && x.scale[1] === scale[1]);
+  const tiers: ((x: Kept) => boolean)[] = [
+    (x) => q.id != null && x.q.id === q.id,
+    (x) => fold(q.text) !== "" && fold(x.q.text) === fold(q.text),
+    (x) => labels.length === 2 && fold(labels[0]) === fold(x.labels[0]) && fold(labels[1]) === fold(x.labels[x.labels.length - 1]),
+  ];
+  for (const tier of tiers) {
+    const found = same.filter(tier);
+    if (found.length === 1) return [...found[0].labels];
+    if (found.length > 1) return null;
+  }
+  return null;
+}
+
+/**
+ * A rewritten questionnaire with its scale questions' per-point labels kept. A rewrite whose
+ * contract carries a scale's two ends only (the optimiser, an agent's proposal) would otherwise
+ * drop the inner labels without a word. A rewritten scale question with at most two labels and
+ * the same range as a stored question labelled validly on every point keeps the stored labels,
+ * when exactly one such stored question matches it: by id, else by wording, else by its two ends.
+ * Anything else stays as the rewrite wrote it. The server keeps them by the same rule
+ * (`aia_core/domain/research_design.py` `keep_point_labels`).
+ */
+export function keepPointLabels<T>(rewritten: readonly T[], stored: unknown): T[] {
+  const kept: Kept[] = [];
+  for (const s of Array.isArray(stored) ? stored : []) {
+    if (!isRec(s) || !Array.isArray(s.questions)) continue;
+    for (const q of s.questions) {
+      const point = isRec(q) ? pointLabelsOf(q) : null;
+      if (point && isRec(q)) kept.push({ q, ...point });
+    }
+  }
+  if (!kept.length) return [...rewritten];
+  return rewritten.map((section) => {
+    if (!isRec(section) || !Array.isArray(section.questions)) return section;
+    let changed = false;
+    const questions = section.questions.map((q: unknown) => {
+      const labels = isRec(q) ? keptFor(q, kept) : null;
+      if (!labels) return q;
+      changed = true;
+      return { ...(q as Rec), popisky_skaly: labels };
+    });
+    return changed ? ({ ...section, questions } as T) : section;
+  });
+}

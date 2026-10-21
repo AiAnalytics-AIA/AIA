@@ -125,7 +125,7 @@ export function QuestionnaireStep() {
       const s = store.get();
       const result = await runJob("researchBuildQuestionnaire", buildPayload(s.project, s.analysis), { title: BUILD_TITLE, warnMs: BUILD_WARN_MS });
       if (isNativeResult(result)) return;
-      store.update(() => ({ project: applyBuilt(result, template) }), { reason: "questionnaire_ai_1776" });
+      store.update(({ project: before }) => ({ project: applyBuilt(result, template, before) }), { reason: "questionnaire_ai_1776" });
     }, (m) => m + BUILD_FAILED_SUFFIX);
   const build = async () => {
     step.setFailure(null);
@@ -148,7 +148,7 @@ export function QuestionnaireStep() {
       const s = store.get();
       const result = await runJob("questionnaireOptimize", optimizePayload(s.project), { title: OPTIMIZE_TITLE });
       if (isNativeResult(result)) return;
-      store.update(({ analysis: a }) => applyOptimized(result, a, template), { reason: "questionnaire_optimized" });
+      store.update(({ project: before, analysis: a }) => applyOptimized(result, a, template, before), { reason: "questionnaire_optimized" });
       toast(OPTIMIZE_DONE);
     });
 
