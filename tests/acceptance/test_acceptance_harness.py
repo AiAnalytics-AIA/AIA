@@ -1,9 +1,10 @@
 """The harness itself: the stack tier A runs on, its recorded providers and its boundaries.
 
 These hold what every criterion in ``test_mvp_acceptance.py`` relies on (plan
-``mvp-acceptance-harness`` chunks 3 and 4): the tree drives the product only over HTTP and
+``mvp-acceptance-harness`` chunks 1, 3 and 4): the tree drives the product only over HTTP and
 through the declared operator bootstrap; the API and the worker are processes of their own; a
-research run's model calls are answered by recordings behind the real gateway, and say so.
+research run's model calls are answered by recordings behind the real gateway, and say so; and
+the USD 25 allocation the live tier will spend under is whole and sums within the study's budget.
 They prove no acceptance criterion and are listed under none.
 """
 
@@ -69,6 +70,78 @@ RESPONDENT_CALL_USD = (900 * 3 + 120 * 15) / 1_000_000
 ANALYSIS_CALL_USD = (2400 * 3 + 380 * 15) / 1_000_000
 #: Long enough for a cold worker on a CI runner (CLAUDE.md §7: size timing generously).
 RUN_SECONDS = 300.0
+
+
+ALLOCATION = HERE / "allocation.json"
+PLAN = REPO / ".planning" / "plans" / "mvp-acceptance-harness.md"
+#: The categories chunk 1 of the plan says the allocation covers, each a line of its own.
+ALLOCATED_CATEGORIES = frozenset(
+    {
+        "fieldwork",
+        "analysis_and_repairs",
+        "lead_turns",
+        "design_workers",
+        "report_writer_and_map_interpreter",
+        "deep_research_design_models",
+        "deep_research_interpretation_models",
+        "deep_research_tools_and_search",
+        "retry_round",
+    }
+)
+_PLAN_ROW = re.compile(r"^\| (A\d\d|E\d\d) \| `([a-z_]+)` \| ([0-9.,-]+|unknown) \|", re.M)
+
+
+# --------------------------------------------------------------------------- #
+# the tier B allocation (plan chunk 1)
+# --------------------------------------------------------------------------- #
+
+
+def test_the_tier_b_allocation_is_whole_and_within_the_study_budget() -> None:
+    """Every category has a ceiling of its own; the ceilings sum to the study's budget and no
+    more; nothing outside the budget is counted in it; and until the owner approves it, it says
+    so. Summed here, before any recorded or live run."""
+    allocation = json.loads(ALLOCATION.read_text("utf-8"))
+    lines = allocation["lines"]
+    ids = [line["id"] for line in lines]
+    assert len(ids) == len(set(ids)), ids
+    categories = {line["category"] for line in lines}
+    assert categories >= ALLOCATED_CATEGORIES, ALLOCATED_CATEGORIES - categories
+    assert all(line["ceiling_usd"] > 0 for line in lines), "a zero ceiling is a guess"
+    total = round(sum(line["ceiling_usd"] for line in lines), 2)
+    assert total == allocation["budget_usd"] == 25.0, total
+    if allocation["approved_by"] is None:
+        assert allocation["status"].endswith("awaiting owner approval"), allocation["status"]
+        assert allocation["approved_at"] is None
+    else:
+        assert allocation["status"].startswith("APPROVED") and allocation["approved_at"]
+    for line in allocation["outside_budget"]:
+        estimate = line["estimate_usd"]
+        # Unknown is said, never read as zero (CLAUDE.md §8).
+        assert estimate is None or 0 < estimate[0] <= estimate[1], line["id"]
+        if estimate is None:
+            assert "unknown" in line["basis"], line["id"]
+
+
+def test_the_plan_states_the_allocation_this_file_holds() -> None:
+    """The plan's table (what the owner reads and approves) and this file (what is summed and
+    what tier B checks) are one allocation."""
+    allocation = json.loads(ALLOCATION.read_text("utf-8"))
+    stated = {(m[0], m[1], m[2]) for m in _PLAN_ROW.findall(PLAN.read_text("utf-8"))}
+    held = {
+        (line["id"], line["category"], f"{line['ceiling_usd']:.2f}") for line in allocation["lines"]
+    }
+    held |= {
+        (
+            line["id"],
+            line["category"],
+            "unknown"
+            if line["estimate_usd"] is None
+            else "-".join(f"{v:,.2f}" for v in line["estimate_usd"]),
+        )
+        for line in allocation["outside_budget"]
+    }
+    assert stated == held, {"plan only": stated - held, "file only": held - stated}
+    assert "PROPOSAL" in PLAN.read_text("utf-8")
 
 
 # --------------------------------------------------------------------------- #
