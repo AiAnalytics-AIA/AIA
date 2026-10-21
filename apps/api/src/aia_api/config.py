@@ -12,7 +12,13 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Literal
 
-from aia_core.domain.deployment import DeploymentEnvironment, fictional_material_problem
+from aia_core.domain.deployment import (
+    DataClassGates,
+    DeploymentEnvironment,
+    data_class_gates_problem,
+    fictional_material_problem,
+    parse_data_class_gates,
+)
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.infrastructure.build_identity import BuildIdentity, parse_build_sha
 from aia_core.infrastructure.error_tracking import DSN_ENV, ErrorTrackingSettings
@@ -120,6 +126,12 @@ class Settings(BaseSettings):
     # develop, by the same rule the worker applies (aia_core.domain.deployment).
     ai_fictional_client_ids: str = ""
 
+    # Whether a refusal made solely because of a data class stops a call or is recorded and
+    # passed (``AIA_DATA_CLASS_GATES``, the worker's key; plan develop-class-advisory). Enforce
+    # by default; advisory only in local, test and develop, refused in staging and production by
+    # the same rule the worker applies (aia_core.domain.deployment).
+    data_class_gates: DataClassGates = DataClassGates.ENFORCE
+
     # What the worker reserves per model request (``AIA_AI_FIELDWORK_RESERVATION_USD``,
     # ``AIA_AI_ANALYSIS_RESERVATION_USD``), read here so the API can say what a run can cost at
     # most before it starts (plan 5b.2). Unset is not zero: the ceiling is then unknown, and a
@@ -223,6 +235,14 @@ class Settings(BaseSettings):
         """A Compose variable passed through empty means "not set", not a number that fails."""
         if isinstance(value, str) and not value.strip():
             return None
+        return value
+
+    @field_validator("data_class_gates", mode="before")
+    @classmethod
+    def _parse_class_gates(cls, value: object) -> object:
+        """Empty is enforce; a value that is not a mode is refused by name, never guessed."""
+        if isinstance(value, str):
+            return parse_data_class_gates(value)
         return value
 
     @field_validator("cors_origins", mode="before")
@@ -340,6 +360,9 @@ class Settings(BaseSettings):
         fictional = fictional_material_problem(self.env, self.fictional_client_ids)
         if fictional:
             problems.append(fictional)
+        gates = data_class_gates_problem(self.env, self.data_class_gates)
+        if gates:
+            problems.append(gates)
 
         # Fictional respondents must never become a deployed study's fieldwork (D1).
         if self.research_fieldwork_source is FieldworkSource.SYNTHETIC_FIXTURE:

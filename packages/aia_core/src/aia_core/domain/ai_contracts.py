@@ -790,6 +790,9 @@ class CallProvenance:
     finished_at: datetime
     #: Content hash of the inputs of the call that produced the output.
     input_fingerprint: str | None = None
+    #: The class-only refusals this call passed under ``AIA_DATA_CLASS_GATES=advisory``, each
+    #: as ``residency.ClassAdvisory.note()``; empty under enforce (plan develop-class-advisory).
+    class_advisories: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

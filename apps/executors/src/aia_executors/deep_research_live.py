@@ -90,7 +90,8 @@ __all__ = [
     "wikipedia_retrieval",
 ]
 
-#: Brave's search route: priced, outside the EU (plan § 10), Class C only.
+#: Brave's search route: priced, outside the EU (plan § 10), Class C only -- any class under
+#: advisory class gates (develop only, plan develop-class-advisory).
 BRAVE_ROUTE_ID: Final = "brave-web-search"
 
 _FETCH_ID = "pinned-public-https-1"
@@ -226,6 +227,10 @@ def brave_retrieval(
                 adapter_id=BRAVE_SEARCH_ID,
                 retrieval_mode=RetrievalMode.LIVE,
                 price_usd_per_call=price_usd_per_call,
+                # The owner's one stated exception to EU residency (2026-10-21): under
+                # AIA_DATA_CLASS_GATES=advisory, develop only, Brave takes a search query of any
+                # class, each recorded on its tool event. Under enforce, Class C only as ever.
+                any_class_when_advisory=True,
             ),
             fetch_route=ToolRoute(
                 route=_provider_route("public-web-fetch", "public-web"),

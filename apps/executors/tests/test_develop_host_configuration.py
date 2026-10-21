@@ -127,6 +127,55 @@ def test_the_worker_starts_its_ai_runtime_with_the_develop_hosts_configuration()
     assert settings is not None
 
 
+def test_develop_runs_its_data_class_gates_advisory_in_the_api_and_the_worker(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The product owner, 2026-10-21 (plan develop-class-advisory): fixed in the Compose file,
+    whatever Parameter Store holds, and accepted by both processes' startup checks."""
+    from aia_core.domain.deployment import DataClassGates
+    from aia_worker.settings import WorkerSettings
+
+    for service in ("api", "worker"):
+        assert _container(service, HOST_ENV)["AIA_DATA_CLASS_GATES"] == "advisory"
+        overridden = {**HOST_ENV, "AIA_DATA_CLASS_GATES": "enforce"}
+        assert _container(service, overridden)["AIA_DATA_CLASS_GATES"] == "advisory"
+    api = _api_settings(_container("api", HOST_ENV), monkeypatch)
+    assert api.data_class_gates is DataClassGates.ADVISORY
+    api.validate_for_production()
+    worker = _container("worker", HOST_ENV)
+    runtime = AIRuntimeSettings.from_env(worker)
+    assert runtime is not None and runtime.data_class_gates is DataClassGates.ADVISORY
+    process = WorkerSettings.from_env(
+        {**worker, "AIA_WORKER_EXECUTORS": "aia_executors.registry:build_registry"}
+    )
+    assert process.data_class_gates is DataClassGates.ADVISORY
+
+
+def test_the_develop_deploy_workflow_checks_the_gates_are_advisory() -> None:
+    workflow = (ROOT / ".github" / "workflows" / "deploy-develop.yml").read_text(encoding="utf-8")
+    assert "grep -qx '  AIA_DATA_CLASS_GATES: advisory' deploy/develop/docker-compose.yml" in (
+        workflow
+    )
+
+
+def test_advisory_gates_under_staging_are_refused_by_both(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Develop's configuration moved to staging or production does not start either process."""
+    clean = {k: v for k, v in HOST_ENV.items() if k != "AIA_AI_FICTIONAL_CLIENT_IDS"}
+    for env in ("staging", "production"):
+        api = {**_container("api", clean), "AIA_ENV": env}
+        with pytest.raises(
+            RuntimeError, match=f"AIA_DATA_CLASS_GATES=advisory is refused in {env}"
+        ):
+            _api_settings(api, monkeypatch).validate_for_production()
+        worker = {**_container("worker", clean), "AIA_ENV": env}
+        with pytest.raises(
+            RuntimeError, match=f"AIA_DATA_CLASS_GATES=advisory is refused in {env}"
+        ):
+            AIRuntimeSettings.from_env(worker)
+
+
 #: The route widened as deploy/develop/README.md § AI route classes sets it (ADR 0010,
 #: amendment 2026-10-19): Classes A, B and C, with the confirmed retention stated.
 WIDENED_ENV = {

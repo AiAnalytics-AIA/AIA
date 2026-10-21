@@ -44,6 +44,8 @@ from aia_core.domain.deep_research.steps import (
     run_scoped,
 )
 from aia_core.domain.licence import DataLineage
+from aia_core.domain.material_rules import MaterialRule, classify_by_rule
+from aia_core.domain.residency import ClassAdvisory
 from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.study_design_repository import (
     DesignRevisionNotFound,
@@ -160,17 +162,29 @@ class PlanExecutor(_Step):
                 or designs.project_id() != step.project_id
             ):
                 return _invalid("design_not_in_scope", "the run's design does not match its scope")
-            decision = classify_material(
-                designs.content(request.design_revision_id), runtime.config.material_approvals
-            )
+            design = designs.content(request.design_revision_id)
+            decision = classify_material(design, runtime.config.material_approvals)
         dclass = decision.data_class
         if dclass is None:
-            return Failed(
-                FailureClass.RUNTIME_UNAVAILABLE,
-                error={
-                    "reason": "egress_unclassified_material",
-                    "message": "Zadání nemá klasifikaci vstupních dat. Nic nebylo odesláno.",
-                },
+            if not runtime.config.class_gates.advisory:
+                return Failed(
+                    FailureClass.RUNTIME_UNAVAILABLE,
+                    error={
+                        "reason": "egress_unclassified_material",
+                        "message": "Zadání nemá klasifikaci vstupních dat. Nic nebylo odesláno.",
+                    },
+                )
+            # OI-129 under advisory class gates (develop only): a design no operator classified
+            # takes the owner's design rule (Class B, ``material_rules``) instead of parking the
+            # run, and the step's event says so; residency then decides each route as for B.
+            dclass = classify_by_rule(
+                design, MaterialRule.DESIGN, runtime.config.material_approvals
+            ).data_class
+            context.progress(
+                "Zadání nemá klasifikaci operátora; třída podle pravidla (jen doporučující)",
+                class_advisory=ClassAdvisory(
+                    "deep_research_design", "egress_unclassified_material", dclass
+                ).record(),
             )
         fictional = any(
             approval.sha256 == decision.sha256 and approval.synthetic
