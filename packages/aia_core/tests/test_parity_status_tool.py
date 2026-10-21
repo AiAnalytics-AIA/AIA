@@ -351,6 +351,89 @@ def test_the_acceptance_path_is_the_criteria_not_the_blocker_flag(
     assert {s.id for s in report.capabilities if s.on_path} == on_path
 
 
+# --------------------------------------------------------------------------- #
+# The acceptance verdict: from the acceptance step's JUnit, never from parity (G75)
+# --------------------------------------------------------------------------- #
+
+ACC = "tests/acceptance/test_mvp_acceptance.py"
+
+
+def wired(matrix: dict[str, Any]) -> dict[str, Any]:
+    """The committed matrix with every criterion proved by one test of its own."""
+    out = copy.deepcopy(matrix)
+    for crit in out["mvp_acceptance"]["criteria"]:
+        crit["tests"] = [f"{ACC}::test_{crit['id'].lower().replace('-', '')}_proof"]
+    return out
+
+
+def acceptance_results(
+    matrix: dict[str, Any], outcome: dict[str, str] | None = None
+) -> dict[tuple[str, str], str]:
+    """Every criterion's test passing, except those ``outcome`` names."""
+    outcome = outcome or {}
+    return {
+        (ACC, f"test_{c['id'].lower().replace('-', '')}_proof"): outcome.get(c["id"], "passed")
+        for c in matrix["mvp_acceptance"]["criteria"]
+    }
+
+
+def test_a_passing_acceptance_run_passes_while_path_parity_stays_unready(
+    tool: ModuleType, matrix: dict[str, Any]
+) -> None:
+    """Parity is reported beside the acceptance verdict, never in it (MVP-21, crosscheck A4):
+    every criterion's tests passing is PASS although no on-path capability is release-ready."""
+    m = wired(matrix)
+    report = tool.build_report(m, acceptance_results(m), frozenset({"acceptance"}))
+    assert report.acceptance["verdict"] == "PASS"
+    assert report.acceptance["criteria_counts"] == {"PASS": len(m["mvp_acceptance"]["criteria"])}
+    on_path = [s for s in report.capabilities if s.on_path]
+    assert on_path and not any(s.release_ready for s in on_path)
+    assert report.acceptance["not_release_ready"] == len(on_path)
+
+
+def test_one_failing_criterion_fails_the_acceptance_and_the_cli(
+    tool: ModuleType, matrix: dict[str, Any], tmp_path: Path
+) -> None:
+    m = wired(matrix)
+    report = tool.build_report(m, acceptance_results(m, {"AC-07": "failed"}), None)
+    assert report.acceptance["verdict"] == "FAIL"
+    assert report.failed()
+    verdicts = {c["id"]: c["verdict"] for c in report.acceptance["criteria"]}
+    assert verdicts["AC-07"] == "FAIL" and verdicts["AC-06"] == "PASS"
+    matrix_path = tmp_path / "matrix.json"
+    matrix_path.write_text(json.dumps(m))
+    body = case(ACC, "test_ac07_proof", "failed")
+    assert tool.main(["--matrix", str(matrix_path), "--junit", str(junit(tmp_path, body))]) == 1
+
+
+def test_a_skipped_or_missing_criterion_test_is_never_a_pass(
+    tool: ModuleType, matrix: dict[str, Any]
+) -> None:
+    m = wired(matrix)
+    skipped = acceptance_results(m, {"AC-03": "skipped"})
+    report = tool.build_report(m, skipped, None)
+    assert report.acceptance["verdict"] == "NOT_EXECUTED"
+    # Where the acceptance step ran, a test it skipped or did not collect is a failure.
+    assert tool.build_report(m, skipped, frozenset({"acceptance"})).acceptance["verdict"] == "FAIL"
+    missing = {k: v for k, v in acceptance_results(m).items() if "ac12" not in k[1]}
+    report = tool.build_report(m, missing, frozenset({"acceptance"}))
+    assert {c["id"]: c["verdict"] for c in report.acceptance["criteria"]}["AC-12"] == "FAIL"
+
+
+def test_a_criterion_no_test_proves_keeps_the_acceptance_not_runnable(
+    tool: ModuleType, matrix: dict[str, Any]
+) -> None:
+    """The committed matrix: AC-01's tests passing makes AC-01 PASS and nothing more."""
+    ac01 = next(c for c in matrix["mvp_acceptance"]["criteria"] if c["id"] == "AC-01")
+    assert ac01["tests"], "AC-01 is wired"
+    results = {tuple(t.split("::", 1)): "passed" for t in ac01["tests"]}
+    report = tool.build_report(matrix, results, frozenset({"acceptance"}))
+    verdicts = {c["id"]: c["verdict"] for c in report.acceptance["criteria"]}
+    assert verdicts.pop("AC-01") == "PASS"
+    assert set(verdicts.values()) == {"NOT_RUNNABLE"}
+    assert report.acceptance["verdict"] == "NOT_RUNNABLE"
+
+
 def test_a_failed_gate_test_fails_the_cli(tool: ModuleType, tmp_path: Path) -> None:
     body = case("tests/test_sociomap_engine.py", "test_f9_manual_drag_is_a_view_override", "failed")
     path = junit(tmp_path, body)

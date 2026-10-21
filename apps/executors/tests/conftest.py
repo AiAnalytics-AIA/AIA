@@ -74,6 +74,13 @@ def sessions(engine: Engine) -> sessionmaker[Session]:
 
 
 @pytest.fixture
+def truncate_tables() -> Callable[[sessionmaker[Session]], None]:
+    """Empty every table, as the engine fixture does around each test: through a fixture,
+    because ``conftest`` is no importable name once several test trees run in one session."""
+    return _truncate
+
+
+@pytest.fixture
 def store() -> InMemoryArtifactStore:
     return InMemoryArtifactStore()
 

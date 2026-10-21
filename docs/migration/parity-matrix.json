@@ -2578,8 +2578,14 @@
     "confirmed": false
    },
    "parity_owner": "parity-quality",
-   "implementation_state": "NOT_STARTED",
-   "implementation": [],
+   "implementation_state": "PARTIAL",
+   "implementation": [
+    "packages/aia_core/src/aia_core/domain/project_memory.py",
+    "packages/aia_core/src/aia_core/application/project_memory.py",
+    "packages/aia_core/src/aia_core/application/design_reuse.py",
+    "apps/api/tests/test_project_memory_api.py",
+    "apps/api/tests/test_project_memory_reuse_api.py"
+   ],
    "reference_modules": [
     "project_memory.py"
    ],
@@ -2597,7 +2603,7 @@
     "blocking": false,
     "reason": "On the MVP acceptance path (AC-12); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
-   "notes": ""
+   "notes": "AIA's own project memory is built and tested: one client's studies searched through the scope resolver, a past design reused with its citation and labels (crosscheck A4, G75). PARTIAL, not IMPLEMENTED: 18.6.6's retrieval over immutable revisions is not ported as such (module-dispositions.json keeps project_memory.py not-started: no port of it exists), and no gate compares retrieval quality with the reference."
   },
   "project.migration": {
    "family": "project",
@@ -3134,10 +3140,10 @@
    "intentional_difference": null,
    "documented_deviations": [],
    "high_risk": [],
-   "mvp_path": true,
+   "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "On the MVP acceptance path (AC-08); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
+    "reason": "Off the MVP path: 18.6.6's results verification and reality alignment are not in AIA (research-flow-rehome; .planning/evidence/scope-freeze/proposed-edits.md A-07; mvp-acceptance-harness#14), so AC-08 no longer names it; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -3559,10 +3565,10 @@
    "high_risk": [
     "R5"
    ],
-   "mvp_path": true,
+   "mvp_path": false,
    "release_blocker": {
     "blocking": false,
-    "reason": "On the MVP acceptance path (AC-05); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
+    "reason": "Off the MVP path: calibration, benchmarks, holdout and ablation are out of the MVP's scope (panel-grounded-respondents, master plan section 3.2; .planning/evidence/scope-freeze/proposed-edits.md A-07; mvp-acceptance-harness#14), so AC-05 no longer names it; its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
    "notes": ""
   },
@@ -3955,13 +3961,21 @@
  "mvp_acceptance": {
   "id": "MVP-ACCEPT-2",
   "definition": "docs/migration/mvp-acceptance.md",
-  "test": null,
+  "test": "tests/acceptance/test_mvp_acceptance.py",
   "criteria": [
    {
     "id": "AC-01",
-    "statement": "Researcher and reviewer authenticate through the IdentityProvider seam (Cognito in the deployed stack); the study is provisioned as Organization -> Client -> Study and every call is study-scoped. A second client's user gets 404, not 403, on every study route.",
+    "statement": "Researcher and reviewer authenticate through the IdentityProvider seam (Cognito in the deployed stack); the study is provisioned as Organization -> Client -> Study and every call is study-scoped. A user of another organization gets 404, not 403, on every study route (ADR 0019: within an organization, membership is the access).",
     "capabilities": [
      "api.http"
+    ],
+    "tier_a": "The development identity provider behind the IdentityProvider seam; the study provisioned over HTTP after the declared operator bootstrap; every study route answers another organization's user 404, the same 404 a study that does not exist gets.",
+    "tier_b": "Cognito sign-in for both people on develop; the same probe of every study route against the deployed API.",
+    "tests": [
+     "tests/acceptance/test_mvp_acceptance.py::test_ac01_people_authenticate_through_the_identity_seam_and_provision_the_study",
+     "tests/acceptance/test_mvp_acceptance.py::test_ac01_every_project_route_is_study_scoped",
+     "tests/acceptance/test_mvp_acceptance.py::test_ac01_a_user_of_another_organization_gets_404_on_every_study_route",
+     "tests/acceptance/test_mvp_acceptance.py::test_ac01_a_user_of_another_organization_cannot_tell_a_client_from_an_absent_one"
     ]
    },
    {
@@ -3973,7 +3987,10 @@
      "ai.provider_policy",
      "ai.runtime_policy",
      "ai.usage_ledger"
-    ]
+    ],
+    "tier_a": "The workbench's routes over HTTP on the recorded Lead and workers, and the browser journeys as a line of their own (harness chunk 10): every AI start through the Lead, every paid step from an approval card, an approved plan or a typed start, each in the approval ledger.",
+    "tier_b": "A person works the study in the deployed workbench at every supported width, the Lead and the workers on the live route.",
+    "tests": []
    },
    {
     "id": "AC-03",
@@ -3985,7 +4002,10 @@
      "questionnaire.engine",
      "questionnaire.instruments",
      "questionnaire.conditionals"
-    ]
+    ],
+    "tier_a": "Each worker's recorded answer becomes a proposal and an accepted one a Design Revision; the tracked assumptions and their status changes; each job pins the prompt it used; a refused route fails by name, never falls back.",
+    "tier_b": "The live workers on the brief, each job's pinned prompt read back.",
+    "tests": []
    },
    {
     "id": "AC-04",
@@ -3995,7 +4015,10 @@
      "cost.reservations",
      "cost.hard_cap",
      "workflow.config"
-    ]
+    ],
+    "tier_a": "On recorded calls at test prices: the ceiling shown before the start, reservations under the study-row lock, an exhausted budget parked in AWAITING_BUDGET with nothing spent, concurrent starts held to the budget, the spend-limit confirmation in the approval ledger.",
+    "tier_b": "The same on live prices, inside the allocation's lines (tests/acceptance/allocation.json).",
+    "tests": []
    },
    {
     "id": "AC-05",
@@ -4011,9 +4034,11 @@
      "respondents.engine",
      "respondents.factual_layer",
      "respondents.context",
-     "respondents.layers",
-     "statistics.calibration"
-    ]
+     "respondents.layers"
+    ],
+    "tier_a": "Fieldwork from the recorded population double (run-qc-and-checkpoint RQC10) through the one loader: filters and dimensions reach the respondents, a removed weight fails the run, the population version and weight identity in provenance.",
+    "tier_b": "LIVE v17_4_0 on develop, its SHA256 verified, MODELLED_AI_PANEL respondents on the live route.",
+    "tests": []
    },
    {
     "id": "AC-06",
@@ -4024,7 +4049,10 @@
      "workflow.dispatch",
      "workflow.legacy_dispatch",
      "orchestration.cli"
-    ]
+    ],
+    "tier_a": "A worker process killed mid-fieldwork resumes after the last checkpointed respondent; a possibly-billed recorded call goes to RECOVERY_REQUIRED; an analysis-only retry reuses the frozen dataset.",
+    "tier_b": "An analysis-only retry on develop (allocation line A09). The kill is not repeated live: until RQC0 a restart repays fieldwork (OI-64), and the record says so.",
+    "tests": []
    },
    {
     "id": "AC-07",
@@ -4032,7 +4060,10 @@
     "capabilities": [
      "artifacts.storage",
      "artifacts.registration"
-    ]
+    ],
+    "tier_a": "An edit after recorded fieldwork: exactly the stages the impact preview names reopen, every other stage's artifacts reused by fingerprint.",
+    "tier_b": "The same edit on the live study.",
+    "tests": []
    },
    {
     "id": "AC-08",
@@ -4045,9 +4076,11 @@
      "governance.validation_state",
      "analysis.modules",
      "governance.product_policy",
-     "governance.anchors",
-     "results.verification"
-    ]
+     "governance.anchors"
+    ],
+    "tier_a": "On the recorded run: every number an admitted claim (suppression, intervals, the one field-policy authority, RELIGION refused), every key finding cited or refused, coded counts admitted, a module without a supported finding blocking the report.",
+    "tier_b": "The same rules held on the live run's results and reports.",
+    "tests": []
    },
    {
     "id": "AC-09",
@@ -4055,24 +4088,36 @@
     "capabilities": [
      "sociomapping.core",
      "sociomapping.study_module"
-    ]
+    ],
+    "tier_a": "Object, respondent and segment maps from the recorded run under the pinned method, each with the register's status; drill-down to stored attributes; a drag (browser journey) changes the view and nothing else.",
+    "tier_b": "The live run's maps, and their approved snapshots.",
+    "tests": []
    },
    {
     "id": "AC-10",
     "statement": "The client's document, dataset and public web page are taken in, read and proposed as knowledge a person accepts; a client dimension is materialized as that client's owned child population and used by a run. A client dataset is used in analysis only under a data contract a person accepted, its personal columns dropped, its numbers graded client-reported and shown beside the modelled results or as a benchmark, never mixed into one number (ADR 0027).",
-    "capabilities": []
+    "capabilities": [],
+    "tier_a": "The document, dataset and page taken in over HTTP and proposed by a recorded extraction, then accepted; a dimension materialized over the recorded population double and used by a run; the dataset under an accepted contract, its personal column dropped, its numbers client-reported.",
+    "tier_b": "The same on develop, the extraction on the live route charged to the client's budget.",
+    "tests": []
    },
    {
     "id": "AC-11",
     "statement": "Design Research runs live on the full study design through the approved search routes (Brave, public fetch, a connector probed live and the archive route, each named in the run's record) under the client's data posture: an OPEN client's run proceeds, a CLASSIFIED client's run is refused whole, the posture is pinned when the run is enqueued and a retry copies it; every finding is a quote grounded in a captured source; a person adds a checked source to the client's knowledge in one click; accepted findings appear as cited context in the report (through an Interpretation Research run, budgeted with the Design Research run), never as respondent evidence, and the run's sources are kept as a dataset.",
-    "capabilities": []
+    "capabilities": [],
+    "tier_a": "Recorded retrieval behind RetrievalGate: the posture pinned at enqueue and copied by a retry, a CLASSIFIED client's run refused whole, every finding a quote in a captured snapshot, a checked source added in one click, an Interpretation run's cited context in the report.",
+    "tier_b": "Live Design and Interpretation runs through Brave, public fetch, a connector and the archive route, each named in the run's record, inside allocation lines A06-A08.",
+    "tests": []
    },
    {
     "id": "AC-12",
     "statement": "The same client's past study is found in project memory and its design reused in the new study with its citation and labels; another client's studies cannot be found.",
     "capabilities": [
      "project.memory"
-    ]
+    ],
+    "tier_a": "Project memory's search and the design's reuse over HTTP, with its citation and labels; another client's studies not found.",
+    "tier_b": "The fictional past study found and its design reused on develop, over the deployed API.",
+    "tests": []
    },
    {
     "id": "AC-13",
@@ -4082,15 +4127,21 @@
      "governance.evidence_audit",
      "governance.legal",
      "results.registry"
-    ]
+    ],
+    "tier_a": "The internal and client reports (DOCX and PDF) of the recorded run pass the deliverable's gate; the report and each map snapshot approved separately; an unapproved or stale download refused.",
+    "tier_b": "The live run's reports, approved by the researcher or, with self-approval off, by another person.",
+    "tests": []
    },
    {
     "id": "AC-14",
-    "statement": "Configuration is typed and recorded on the run; a malformed edition file refuses to start.",
+    "statement": "Typed settings refuse a malformed value by name: the API and the worker do not start on one. Each run records its composition digest (the settings and the composition it ran under), served with the run.",
     "capabilities": [
      "config.environment",
      "config.edition"
-    ]
+    ],
+    "tier_a": "The API and the worker each refuse a malformed setting at start, by name and with a non-zero exit; a run read over HTTP carries its composition digest.",
+    "tier_b": "The live run's composition digest equals the deployment's.",
+    "tests": []
    },
    {
     "id": "AC-15",
@@ -4099,7 +4150,10 @@
      "artifacts.registration",
      "ai.usage_ledger",
      "cost.estimation"
-    ]
+    ],
+    "tier_a": "Every ledger ref of the recorded run's reports resolves to its provenance; recorded model spend reconciles to the usage ledger within USD 0.01; tool spend, open reservations and uncertain calls on their own lines.",
+    "tier_b": "Model spend agrees with the develop-tagged AWS cost record, billing lag recorded and never read as zero; infrastructure charges on their own line; each allocation line's actual beside its ceiling.",
+    "tests": []
    }
   ]
  }
