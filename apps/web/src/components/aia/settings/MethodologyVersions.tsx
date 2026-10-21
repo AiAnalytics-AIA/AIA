@@ -25,7 +25,7 @@ import {
   methodology,
 } from "@/lib/api";
 import { relative } from "@/lib/format";
-import { groupSteps } from "@/lib/methodology";
+import { groupSteps, stageNumbers, stepNumbers, stepOrigin } from "@/lib/methodology";
 import {
   type EditField,
   changedPaths,
@@ -292,6 +292,7 @@ function EditorForm({ summary, start, presets, detail, currentSpec, onBase, onDi
   const editableIds = useMemo(() => new Set(steps.map(({ step }) => step.id)), [steps]);
   const stageOf = useMemo(() => new Map(groupSteps(detail).flatMap(({ group, steps: groupItems }) => group ? groupItems.map((item) => [item.id, group.title_cs] as const) : [])), [detail]);
   const numbers = useMemo(() => stageNumbers(detail.groups), [detail]);
+  const stepNumber = useMemo(() => stepNumbers(detail.groups), [detail]);
   const notYet = useMemo(() => groupSteps(detail).filter(({ group, steps: groupItems }) => group && !groupItems.length).map(({ group }) => group!.title_cs.replace(/^Zatím v AIA není:\s*/, "")), [detail]);
   const [leaveHref, setLeaveHref] = useState<string | null>(null);
   const changedCount = Object.keys(raw).filter((r) => raw[r] !== toInput(readPath(start.spec, r))).length + [...builtin.keys()].filter((slot) => exprs[slot] !== (start.formulas[slot] ?? builtin.get(slot))).length;
@@ -461,7 +462,7 @@ function EditorForm({ summary, start, presets, detail, currentSpec, onBase, onDi
                         className={`flex min-h-8 w-full items-center gap-2 rounded-sm py-1 pl-8 pr-2 text-left text-sm leading-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${on ? "bg-signal-wash font-semibold text-signal" : "text-ink hover:bg-surface-sunken"}`}
                       >
                         <span className="min-w-0 flex-1">{item.step.title_cs}</span>
-                        {item.step.audit ? <span className="shrink-0 font-mono text-xs font-normal text-ink-faint">{item.step.audit}</span> : null}
+                        {stepNumber.get(item.step.id) ? <span data-step-number className="shrink-0 font-mono text-xs font-normal text-ink-faint">{stepNumber.get(item.step.id)}</span> : null}
                         {state.problems ? <span className="shrink-0 rounded-sm bg-status-fault-wash px-1 text-[11px] font-semibold text-status-fault">{t(`${V}.stepProblems`)}</span>
                           : state.changes ? <span className="size-2 shrink-0 rounded-full bg-signal" aria-label={tv(`${V}.stepChanges`, { count: state.changes })} /> : null}
                       </button>
@@ -511,7 +512,7 @@ function EditorForm({ summary, start, presets, detail, currentSpec, onBase, onDi
                 setRaw={setRaw}
                 setExprs={setExprs}
                 clearPreview={clearPreview}
-                stage={stageOf.get(step.id) ?? ""}
+                stage={[stepNumber.get(step.id), stageOf.get(step.id)].filter(Boolean).join(" · ")}
                 titles={titles}
                 linkable={editableIds}
                 onPick={setSelectedStep}
@@ -560,13 +561,6 @@ function EditorForm({ summary, start, presets, detail, currentSpec, onBase, onDi
   );
 }
 
-/** Each stage's number in the computation, from the module's full list of stages (the editor
- *  leaves out stages with nothing to edit, and a number must not shift when one is left out);
- *  a module's opening "Metoda" group, which only names the method, has none. */
-function stageNumbers(groups: readonly { id: string }[]): Map<string, string> {
-  return new Map(groups.filter((g) => g.id !== "M").map((g, i) => [g.id, String(i + 1)]));
-}
-
 /** One step of the editor, redrawn only when its own values, problems or visibility change:
  *  every keystroke would otherwise re-typeset every step's formulas (measured: the guided test
  *  went from 3.7 s to 5.4 s before this split). */
@@ -588,7 +582,7 @@ const StepEditor = memo(function StepEditor({ step, fields, hidden, busy, start,
   return (
             <fieldset key={step.id} hidden={hidden} disabled={busy} data-edit-step={step.id} className="flex min-w-0 max-w-full flex-col gap-4">
       <legend className="mb-1 text-lg font-semibold leading-[26px]">{step.title_cs}</legend>
-      {stage || step.audit ? <p data-step-stage className="text-xs text-ink-faint">{stage}{stage && step.audit ? " · " : ""}{step.audit ? <span className="font-mono">{tv(`${M}.audit`, { point: step.audit })}</span> : null}</p> : null}
+      {stage || step.audit ? <p data-step-stage className="text-xs text-ink-faint">{stage}{stage && step.audit ? " · " : ""}{step.audit ? <span>{stepOrigin(step.audit)}</span> : null}</p> : null}
       {step.note_cs ? <p className="max-w-3xl text-sm leading-6 text-ink-muted">{step.note_cs}</p> : null}
       {hidden ? null : <StepContext step={step} titles={titles} linkable={linkable} onPick={onPick} />}
       {step.reading_cs && !hidden ? (

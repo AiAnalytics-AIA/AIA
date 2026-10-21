@@ -456,7 +456,10 @@ describe("guided methodology editing", () => {
     expect(within(outline.querySelector("[data-not-yet]") as HTMLElement).getByText("testy při porovnání oblastí (F14)")).toBeTruthy();
     fireEvent.click(form.querySelector('[data-edit-step-link="f6_distance"]')!);
     const step = form.querySelector('[data-edit-step="f6_distance"]') as HTMLElement;
-    expect(step.querySelector("[data-step-stage]")!.textContent).toBe("Rozložení na mapě · audit F6");
+    // The step's number (its stage's and its place there) leads, as in the outline; the audit point is named.
+    const number = form.querySelector('[data-edit-step-link="f6_distance"] [data-step-number]')!.textContent!;
+    expect(number).toMatch(/^M\d+\.\d+$/);
+    expect(step.querySelector("[data-step-stage]")!.textContent).toBe(`${number} · Rozložení na mapě · Původ: audit F6`);
     fireEvent.click(step.querySelector('[data-context="to"] [data-context-link="f6_smacof"]')!);
     expect((form.querySelector('[data-edit-step="f6_smacof"]') as HTMLElement).hidden).toBe(false);
     expect(step.hidden).toBe(true);

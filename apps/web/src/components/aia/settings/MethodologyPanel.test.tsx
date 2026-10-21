@@ -88,7 +88,7 @@ describe("the Metodika tab", () => {
     fakeApi();
     render(<MethodologyPanel />);
     const distance = await card("Cílová vzdálenost z korelace");
-    expect(within(distance).getByText("audit F6")).toBeTruthy();
+    expect(within(distance).getByText("Původ: audit F6")).toBeTruthy();
     const context = distance.querySelector("[data-step-context]") as HTMLElement;
     const linked = (row: string) => [...context.querySelectorAll(`[data-context="${row}"] [data-context-link]`)].map((a) => a.getAttribute("data-context-link"));
     expect(linked("from")).toEqual(["f3_correlation", "f3_status"]);

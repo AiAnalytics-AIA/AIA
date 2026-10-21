@@ -2406,7 +2406,7 @@
     }
    ],
    "formula": "h_j = mean of a_kj over the raters of j on the declared 0-1 scale, weighted by the respondents' survey weights w_k; an object nobody rated is left out of the set before the relations, the layout and the terrain (listed in objects_not_placed); t_j = f + (1 - f) (h_j - min h) / (max h - min h), t_j = 0.5 when max h - min h < 1e-15, over the rated PRIMARY objects; K = the rated objects with at least one RELIABLE or WEAK pair; c = (min x + max x) / 2 over K; H = max over K of ||x_j - c||_inf / v, H = 62/27 when that maximum is at most 1e-12/27, c = 0 and H = 62/27 when K is empty; grid c - H + t 2H/N, t = 0..N; z(q) = max over PRIMARY j of t_j exp(-||q - x_j||^2 / (2 sigma^2)), sigma = 0.25, every cell",
-   "applies_to": "aia-sociomap-5's object map: its heights (heights.values, survey-weighted), the relative heights (heights.relative), the objects not placed (objects_not_placed) and the framed terrain grid (terrain.parameters.centre and half_extent, terrain.height) (engine_v2.compute_object_map).",
+   "applies_to": "aia-sociomap-5's object map: its heights (heights.values, survey-weighted), the relative heights (heights.relative), the objects not placed (objects_not_placed) and the framed terrain grid (terrain.parameters.centre and half_extent, terrain.height, and terrain.absolute_height: the same envelope with each hill at its 0-1 height, the panel's Absolutní view, stored so that no reader evaluates a kernel) (engine_v2.compute_object_map).",
    "implementation": "aia_core.domain.sociomap.engine_v2:_terrain",
    "validation": [
     {
