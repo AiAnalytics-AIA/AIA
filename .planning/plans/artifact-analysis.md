@@ -156,6 +156,35 @@ Depends on `evidence-integrity#7`, `lead-orchestration#LO9b`.
   - a module retried through the card on recorded answers.
 - Zero paid jobs. 768 and 390 px depend on `research-lead-workbench#26b`-`#26d`.
 
+## Findings
+
+From the ANL8 audit in a browser: the UI workbench's recorded analysis, the `persona` fixture's finished run,
+1440/1100/768/390 px (`tools/ui_workbench/analysis_journey.mjs`). Fixed on `feature/analysis-audit-fixes`.
+
+- **F1.** The milestone "Sběr dokončen" read "čeká" on a finished run.
+  - Anchor: `AnalysisCoverage.tsx:59 @ bfe6d15b` reads a step keyed `fieldwork`; the fieldwork step is keyed `run`
+    (`research-execution.ts:16 @ bfe6d15b` `STEP_ORDER`).
+  - Repro: the journey's milestone check, or `ExecutionSteps.test.tsx` "covers every research question … (ANL2)".
+  - Consequence: every finished run said its fieldwork was still waiting.
+  - Fix: `stepOf(run, "run")`. Test: the milestone's `data-done` is `true` on the completed fixture.
+- **F2.** The Analýza stage opened about 1,780 px above its analysis (2,670 px at 390), at scroll 0.
+  - Anchor: `ResultsWorkspace.tsx @ bfe6d15b` draws the run's summary and the report card above the view tabs
+    on every result stage. `ExecutionSteps.tsx:1659 @ bfe6d15b` (the analysis card) is below them.
+  - Repro: the journey's "opens on its analysis" check.
+  - Consequence: a person opening Analýza saw "Kdo odpovídal" and the report card, and had to scroll to find the analysis.
+  - Fix: opened as `#analysis`, `AnalysisResults` scrolls its card into view once, when the analysis is read.
+    The same frame puts Sociomapa and Zpráva below the same header; that is reported to the integration coordinator.
+  - Test: the journey's check at every width.
+- **F3.** At 390 px the coverage table was cut off by a horizontal scroll (`min-w-[36rem]`, `AnalysisCoverage.tsx:88 @ bfe6d15b`).
+  - Consequence: "Zjištění" was clipped and "Co chybí" was out of sight.
+  - Fix: below md each row is a card, each cell under its column's name.
+  - Test: the journey checks that the table is never wider than its section.
+- **F4.** A finding chip in the coverage table sent the page to Přehled.
+  - Anchor: `AnalysisCoverage.tsx:101 @ bfe6d15b` linked `#analysis-finding-…`, a hash `ResultsWorkspace` reads as no view.
+  - Consequence: the finding was hidden, and the workbench's stage track moved to Výsledky.
+  - Fix: the chip is a button that scrolls to and focuses the finding, with no hash.
+  - Tests: `ExecutionSteps.test.tsx` (hash unchanged, the finding focused) and the journey (AI analýza still selected).
+
 ## 8. Owner questions
 
 None here. A module with no supported finding blocks the report: MVPQ-04 settled it

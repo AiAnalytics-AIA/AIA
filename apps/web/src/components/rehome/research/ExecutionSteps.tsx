@@ -1635,6 +1635,15 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
     return () => { live = false; };
   }, [frame.studyId, run.run_id, states]);
   const shownValue = loaded.state === "ready" ? loaded.value : null;
+  // Opened as Analýza (#analysis), the stage starts at its analysis, once, when it is read: the run's
+  // summary and the report card above the tabs put it some 1,800 px down the pane (ANL8 audit).
+  const cardRef = useRef<HTMLDivElement>(null);
+  const scrolled = useRef(false);
+  useEffect(() => {
+    if (!shownValue || scrolled.current) return;
+    scrolled.current = true;
+    if (["#analysis", "#res-analysis"].includes(window.location.hash)) cardRef.current?.scrollIntoView?.({ block: "start" });
+  }, [shownValue]);
   // The inspector reads the analysis this page shows, never a run it fetched itself (ANL3).
   useEffect(() => {
     if (!shownValue) return;
@@ -1656,6 +1665,7 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
   });
   const withoutFindings = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "BLOCKED").map((id) => stepLabel(`analysis_${id}`));
   return (
+    <div ref={cardRef} data-analysis-card className="scroll-mt-2">
     <Card title={t("research.exec.results.analysis")} tone="notice">
       <p role="note" className="mb-3 text-sm font-semibold">
         {loaded.state === "ready" && resultOriginKind(loaded.value)
@@ -1735,6 +1745,7 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
         </div>
       ) : null}
     </Card>
+    </div>
   );
 }
 
