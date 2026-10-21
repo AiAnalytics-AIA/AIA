@@ -43,7 +43,7 @@ function aiaStub(project: Record<string, unknown>, over: Record<string, (b: unkn
 }
 const posted = (path: string) => calls.filter((c) => c.url.split("?")[0] === path && (!path.startsWith("/api/v1/") || c.body !== null));
 const lastSave = () => saves.at(-1) as unknown as { content: { audience: Record<string, unknown>; ui_state: Record<string, unknown> }; reason: string };
-const saved = () => waitFor(() => expect(saves.length).toBeGreaterThan(0), { timeout: 4000 });
+const saved = () => waitFor(() => expect(saves.length).toBeGreaterThan(0));
 /** Nothing the audience step does reaches the 18.6.6 unit (ADR 0018). */
 const noUnitCalls = () => expect(calls.filter((c) => !c.url.startsWith("/api/v1/") && c.url !== "/config").map((c) => c.url)).toEqual([]);
 
@@ -153,7 +153,7 @@ describe("Audience", () => {
       const from = screen.getAllByLabelText("Od")[0] as HTMLInputElement;
       fireEvent.change(from, { target: { value: "30" } });
       fireEvent.blur(from);
-      await waitFor(() => expect(lastSave().content.audience.filters).toEqual({ kraj: ["Zlínský kraj"], vek: { min: 30 } }), { timeout: 4000 });
+      await waitFor(() => expect(lastSave().content.audience.filters).toEqual({ kraj: ["Zlínský kraj"], vek: { min: 30 } }));
       // A factor the version's policy refuses is listed, said, and cannot be chosen.
       expect((screen.getByRole("checkbox", { name: /Rodič/ }) as HTMLInputElement).disabled).toBe(true);
       expect(screen.getByText(/unclassified_derived_field/)).toBeTruthy();

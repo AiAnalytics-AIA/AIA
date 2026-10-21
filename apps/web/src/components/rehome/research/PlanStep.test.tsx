@@ -175,7 +175,7 @@ describe("Návrh", () => {
     expect(screen.getByText("1 z 1 zodpovězeno")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Doplnit a aktualizovat návrh" }));
     await approveProposal();
-    expect(await screen.findByText("Nové shrnutí.", {}, { timeout: 4000 })).toBeTruthy();
+    expect(await screen.findByText("Nové shrnutí.")).toBeTruthy();
     const [analyze] = posted(DESIGN_PATH);
     expect(((analyze.body?.content as { briefing: { what_is_known: string } }).briefing).what_is_known).toBe("Víme A.\n\nDoplnění k analýze:\nJen MHD?\nAno, jen MHD.");
     expect(push).not.toHaveBeenCalled();
@@ -203,7 +203,7 @@ describe("Návrh", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Zpracovat komentáře" }));
     await approveProposal();
-    expect(await screen.findByText("Upraveno podle vašich komentářů", {}, { timeout: 4000 })).toBeTruthy();
+    expect(await screen.findByText("Upraveno podle vašich komentářů")).toBeTruthy();
     const [analyze] = posted(DESIGN_PATH);
     // The revised briefing is frozen in the native Design Revision.
     expect(((analyze.body?.content as { briefing: { review_comments: string } }).briefing).review_comments).toBe("1. K textu „Jde o test“: Není to test.");
@@ -230,7 +230,7 @@ describe("direct proposal editing", () => {
     const input = screen.getAllByLabelText("Název sady").find((e) => e.getAttribute("placeholder") !== "Název sady")!;
     fireEvent.change(input, { target: { value: "Nová sada" } });
     fireEvent.submit(input.closest("form")!);
-    await waitFor(() => expect(ws.saves.length).toBeGreaterThan(0), { timeout: 4000 });
+    await waitFor(() => expect(ws.saves.length).toBeGreaterThan(0));
     const sets = (ws.saves.at(-1)!.content.research_plan as { tracked_sets: unknown[] }).tracked_sets;
     expect(sets).toHaveLength(2);
     expect(sets[0]).toEqual(existing);
@@ -247,7 +247,7 @@ describe("direct proposal editing", () => {
     fireEvent.change(within(form).getByLabelText("Co má výzkum zjistit"), { target: { value: "První cíl\n\nDruhý cíl" } });
     fireEvent.change(within(form).getByLabelText("Výzkumné otázky"), { target: { value: "Nová otázka?" } });
     fireEvent.click(within(form).getByRole("button", { name: "Použít úpravy návrhu" }));
-    await waitFor(() => expect(ws.saves.length).toBeGreaterThan(0), { timeout: 4000 });
+    await waitFor(() => expect(ws.saves.length).toBeGreaterThan(0));
     expect(ws.saves.at(-1)?.content.research_plan).toMatchObject({ problem_summary: "Upravený problém", objectives: ["První cíl", "Druhý cíl"], research_questions: ["Nová otázka?"], status: "approved" });
     expect(ws.saves.at(-1)?.analysis).toMatchObject({ problem_summary: "Upravený problém", objectives: ["První cíl", "Druhý cíl"] });
     expect(posted(DESIGN_PATH)).toEqual([]); // manual editing never pays for an AI task
@@ -283,7 +283,7 @@ describe("direct proposal editing", () => {
     fireEvent.change(within(form).getByLabelText("1 na škále"), { target: { value: "určitě ne" } });
     expect(within(form).getByText("Zvolili byste Nová A?")).toBeTruthy();
     fireEvent.click(within(form).getByRole("button", { name: "Použít změny sady" }));
-    await waitFor(() => expect(ws.saves.length).toBeGreaterThan(0), { timeout: 4000 });
+    await waitFor(() => expect(ws.saves.length).toBeGreaterThan(0));
     const body = ws.saves.at(-1)!;
     expect(body.content.sections).toEqual([{ title: "Existující dotazník" }]);
     expect((body.content.research_plan as { tracked_sets: unknown[] }).tracked_sets[0]).toMatchObject({ objects: ["Nová A", "B", "C", "D"], scale_labels: ["určitě ne", "velmi"], custom_method: "keep" });

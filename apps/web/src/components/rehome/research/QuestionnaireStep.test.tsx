@@ -64,7 +64,7 @@ async function answerDialog(question: string, value: string | null) {
 }
 async function saved() {
   // The store saves 1.8 s after the last change; the test waits for that body.
-  await waitFor(() => expect(saves.length).toBeGreaterThan(0), { timeout: 4000 });
+  await waitFor(() => expect(saves.length).toBeGreaterThan(0));
 }
 
 if (!Blob.prototype.arrayBuffer) {
@@ -251,7 +251,7 @@ describe("Dotazník", () => {
     expect((lastSave().content as unknown as { sections: { output_type?: string }[] }).sections[1].output_type).toBe("test_konceptu");
     expect(within(set).getByText("Cenová pásma pro test konceptu")).toBeTruthy();
     fireEvent.click(within(set).getByRole("switch", { name: "Porovnat položky jako koncepty (A/B test)" }));
-    await waitFor(() => expect((lastSave().content as unknown as { sections: { output_type?: string }[] }).sections[1].output_type).toBe("pozicni_mapa"), { timeout: 4000 });
+    await waitFor(() => expect((lastSave().content as unknown as { sections: { output_type?: string }[] }).sections[1].output_type).toBe("pozicni_mapa"));
   });
 
   it("adds a guided question through the classic prompt, and refuses a set of three", async () => {
@@ -400,7 +400,7 @@ describe("Dotazník", () => {
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "Sestavit první verzi dotazníku" }));
     await approveProposal();
-    expect(await screen.findByRole("heading", { name: "2 otázek · 1 sledovaných sad" }, { timeout: 4000 })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "2 otázek · 1 sledovaných sad" })).toBeTruthy();
     expect(posted("/api/research/analyze")).toEqual([]);
     expect(posted(AGENTS_PATH).map((c) => (c.body as { action: string }).action)).toEqual(["build_questionnaire"]);
     expect(posted("/api/research/build_questionnaire")).toEqual([]);

@@ -197,7 +197,7 @@ describe("LeadPane", () => {
     expect(await screen.findByText("Zkrať ji")).toBeTruthy();
     rerender(pane({ focus: null, stage: "design" }));
     state = { ...state, busy: false, turns: [turn({ output: { reply: "Hotovo." } })] };
-    await waitFor(() => expect(posts.at(-1)).toEqual({ kind: "message", text: "Zkrať ji", stage: "brief", focus }), { timeout: 4000 });
+    await waitFor(() => expect(posts.at(-1)).toEqual({ kind: "message", text: "Zkrať ji", stage: "brief", focus }));
   });
 
   it("keeps a message the server did not take, held until the researcher tries again", async () => {
