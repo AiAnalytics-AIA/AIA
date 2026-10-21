@@ -237,6 +237,10 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   // The item inspector (chunk 2): an item a screen opens (a finding, a cited number) over the
   // artifact, its back stack the stage's own; another stage starts it empty.
   const [items, setItems] = useState<InspectorStack>(() => emptyStack(stage));
+  // Another stage starts it empty, stored so (reset while rendering, React's pattern for state
+  // that follows a prop): a stage reached again (Výsledky's views by hash keep this workbench
+  // mounted) never brings back the drawer it had.
+  if (items.stage !== stage) setItems(emptyStack(stage));
   const shownItems = onStage(items, stage);
   const itemInspector = useMemo<ItemInspectorApi>(() => ({
     open: (entry) => {
@@ -653,13 +657,12 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
                   {/* Sample shows Dimenze's screen hidden, so its readiness still reaches the inspector. */}
                   <div hidden={stage === "sample"}><LeadAskContext.Provider value={askLead}><ItemInspectorContext.Provider value={itemInspector}>{children}</ItemInspectorContext.Provider></LeadAskContext.Provider></div>
                 </div></div>
-                {topEntry(shownItems) ? (
-                  <div className="itemdrawer">
-                    <ItemInspector stack={shownItems} onBack={() => setItems((s) => backEntry(onStage(s, stage)))} onClose={() => setItems((s) => closeStack(onStage(s, stage)))}>
-                      {(entry) => <ItemInspectBody entry={entry} />}
-                    </ItemInspector>
-                  </div>
-                ) : null}
+                {/* Mounted while empty, so closing it gives the focus back to what opened it. */}
+                <div className="itemdrawer" hidden={!topEntry(shownItems)}>
+                  <ItemInspector stack={shownItems} onBack={() => setItems((s) => backEntry(onStage(s, stage)))} onClose={() => setItems((s) => closeStack(onStage(s, stage)))}>
+                    {(entry) => <ItemInspectBody entry={entry} />}
+                  </ItemInspector>
+                </div>
                 <aside className="insp" aria-label="Připravenost a pomoc" hidden={!inspectorOpen}>
                   <div className="insp__head">
                     <div style={{ minWidth: 0, flex: 1 }}><div className="insp__title">Připravenost a pomoc</div><div className="insp__sub">{STAGES[stage].label}</div></div>

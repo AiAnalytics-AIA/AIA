@@ -339,6 +339,34 @@ describe("the item inspector", () => {
     expect(opened).toEqual([true, true]);
   });
 
+  it("gives the focus back to what opened it when it closes (Codex on #623)", async () => {
+    bench(<Opener />);
+    const opener = screen.getByRole("button", { name: "open q1" });
+    opener.focus();
+    fireEvent.click(opener);
+    await waitFor(() => expect(document.activeElement?.getAttribute("data-item-inspector")).toBe("question:q1"));
+    const drawer = document.querySelector("[data-item-inspector]")!;
+    fireEvent.click([...drawer.querySelectorAll("header button")].at(-1)!);
+    await waitFor(() => expect(document.activeElement).toBe(opener));
+  });
+
+  it("starts empty on another stage and stays empty when the first stage is reached again", () => {
+    const view = bench(<Opener />);
+    fireEvent.click(screen.getByRole("button", { name: "open q1" }));
+    expect(document.querySelector("[data-item-inspector]")).toBeTruthy();
+    const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
+    const at = (step: "questionnaire" | "audience") => (
+      <Workbench frame={TEST_FRAME} step={step} store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
+        onAgentStarted={vi.fn()} jobs={[]} onOpenJob={vi.fn()} onRefreshJobs={vi.fn(async () => [])}>
+        <Opener />
+      </Workbench>
+    );
+    view.rerender(at("audience"));
+    expect(document.querySelector("[data-item-inspector]")).toBeNull();
+    view.rerender(at("questionnaire"));
+    expect(document.querySelector("[data-item-inspector]")).toBeNull();
+  });
+
   it("refuses an id outside the contract's grammar and opens nothing", () => {
     bench(<Opener />);
     fireEvent.click(screen.getByRole("button", { name: "open bad" }));
