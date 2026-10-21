@@ -5,6 +5,7 @@ ADR 0026 and the product owner's 2026-10-19 decisions. No database, no model.
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import pytest
@@ -34,6 +35,7 @@ from aia_core.domain.research_lead import (
     Refused,
     SelfUpdate,
     apply_edit,
+    citable_context,
     context_bytes,
     context_classification,
     context_identifiers,
@@ -440,6 +442,77 @@ def test_a_request_holds_a_reply_to_the_context_without_its_identifiers() -> Non
     assert not validate_structured_output(contract, structured=invented, text="").ok
     quoted = {"reply": f"Návrh {REV_7} je uložený."}
     assert validate_structured_output(contract, structured=quoted, text="").ok
+
+
+#: The identity metadata a frozen design carries today, each value leading with a 7 (Codex P1
+#: on #557): the stable-item sidecar's ``bound`` hash (``item_ids``, ten hex digits), a brief
+#: attachment's ``sha256``, a material's ``reading_sha256``, ``source_id`` and
+#: ``contract_version``, the analysis's ``_brief_signature`` (the brief again, with the
+#: attachment's hash) and a dimension proposal's ``created_at`` (``persona.ts``).
+SHA_7 = "7f" + "0" * 62
+IDENTITY_DESIGN: dict[str, Any] = {
+    "title": "Fiktivní",
+    "goal": "Test",
+    "research_plan": {
+        "objectives": ["Poznat trh"],
+        "objective_ids": [{"id": "obj_7a01b2c3d4", "bound": "7a01b2c3d4"}],
+    },
+    "briefing": {
+        "attachments": [{"attachment_id": "ATT-7c", "filename": "zadani.pdf", "sha256": SHA_7}],
+        "materials": [
+            {"source_id": "SRC-7d", "reading_sha256": SHA_7, "contract_version": 7},
+        ],
+    },
+    "dimension_proposals": [{"label": "Ekologie", "created_at": "2026-10-21T13:07:00.000Z"}],
+}
+IDENTITY_ANALYSIS: dict[str, Any] = {
+    "_brief_signature": json.dumps({"goal": "Test", "attachments": [SHA_7]}),
+    "summary": "Shrnutí",
+}
+
+
+def test_identity_metadata_grounds_no_number() -> None:
+    """Codex P1 on #557: a ``bound`` hash starting ``7a`` still grounded a 7. The allowed numbers
+    come from the context with its identity metadata left out, not masked afterwards."""
+    design = {
+        "workspace_revision": 1,
+        "design_revision_id": REV_7,
+        "content": IDENTITY_DESIGN,
+        "analysis": IDENTITY_ANALYSIS,
+    }
+    context = _context(design=design)
+    assert "7" in number_tokens(model_message(context))  # what the whole message reads
+    citable = canonical_json(citable_context(context))
+    assert "7" not in number_tokens(citable)
+    # Only identity is left out: the words and the counters stay.
+    assert "Poznat trh" in citable and "zadani.pdf" in citable
+    assert '"workspace_revision":1' in citable
+    contract = _request(context, IDENTITY).agent.output_contract
+    assert not validate_structured_output(
+        contract, structured={"reply": "Máme 7 cílů."}, text=""
+    ).ok
+    # A number the design's words hold is still citable.
+    worded = _context(design={**design, "content": {**IDENTITY_DESIGN, "goal": "Test 7 cílů"}})
+    contract = _request(worded, IDENTITY).agent.output_contract
+    assert validate_structured_output(contract, structured={"reply": "Máme 7 cílů."}, text="").ok
+
+
+def test_an_identifier_ends_only_where_no_identifier_character_follows() -> None:
+    """Codex P2 on #557: a dot is part of an ``ITEM_ID`` or a focus target, so ``X.REV-7a…`` and
+    ``REV-7a….b`` are other identifiers, never a whole quote of ``REV-7a…``; a sentence still
+    ends on one."""
+    allowed = canonical_json({"n": 20})
+    ids = frozenset({REV_7})
+
+    def ok(reply: str) -> bool:
+        return validate_structured_output(
+            lead_contract(allowed, ids), structured={"reply": reply}, text=""
+        ).ok
+
+    assert ok(f"Běží na {REV_7}.") and ok(f"Běží na {REV_7}, ne jinak.")
+    assert not ok(f"Viz X.{REV_7}.")
+    assert not ok(f"Viz {REV_7}.b.")
+    assert not ok(f"Viz {REV_7}-2.")
 
 
 def test_a_number_in_another_field_is_not_the_replys() -> None:

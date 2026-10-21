@@ -268,14 +268,41 @@ The backend each chunk needs is in `.planning/mvp-consolidation.md` §6.
   4. Consequence: a number the Lead invents reaches the researcher unrepaired whenever an id in
      the context happens to begin with its digits; the guard held or not by chance, and the test
      that checks it was flaky at ~2.5 %.
-  5. Fix: an identifier is no number on either side. `context_identifiers(context)` collects the
-     string values under `id`, `*_id`, `*_ids` and `*_version` keys and every focus target; a bare
-     number used as an id is left out, so it can never mask a reply's number. `lead_contract(…,
-     identifiers)` blanks each whole occurrence of one before reading numbers, in the allowed text
-     and in the reply alike, so a reply quoting an id whole writes no number by it and a digit
-     taken from one is held to the context like any other. `lead_request` passes them.
+  5. Fix: identity metadata is no number. The numbers a reply may write are read from
+     `citable_context(context)`: the layers the model is sent with every identity key dropped,
+     with all it holds, before any number is read. The identity keys are `id`, `bound` and
+     `item_ids.SIDECAR_KEYS`, plus the suffixes `*_id`, `*_ids`, `*_version`, `*_at`,
+     `*sha256`, `*_signature` and `*fingerprint`. Every focus target is blanked too.
+     `context_identifiers(context)` names the identifier strings under those keys; a bare number
+     used as an id is left out, so it never masks a reply's number. `lead_contract(…,
+     identifiers)` blanks each whole occurrence of one before reading numbers: in the reply, so
+     a quoted id writes no number by it, and in the allowed text's prose (an earlier reply or a
+     message quoting an id). A digit taken from an id is held to the context like any other
+     number. An identifier is made of word characters, hyphens and dots. A whole quote is never
+     preceded by one, and never followed by one except a dot that ends a sentence, so
+     `X.REV-7a…`, `REV-7a….b` and `REV-7a…-2` are other identifiers.
+     Codex on #557 (0746f29f): (P1) the allowlist was fragile. A `bound` hash was in fact
+     already masked: the walk carried the flag down from `objective_ids`. But an attachment's
+     `sha256`, a material's `reading_sha256`, the analysis's `_brief_signature` and a dimension
+     proposal's `created_at` (`apps/web/src/research/persona.ts:301 @ 722dd75c`) still grounded
+     their digits. Checked by running 0746f29f's `lead_request` on the new test's context; this
+     is where the clock hypothesis was partly right. (P2) the boundary treated `.` as outside an
+     identifier, so `X.REV-7a…` was blanked as a quote.
+     Opaque values the frozen context can carry today, found by reading every writer of its
+     layers: `design_revision_id`, `run_id`, `item_id`, `omitted_ids`, `memory_id`,
+     `methodology_version`; in the design content, sections' and questions' `id`, the sidecars
+     (`objective_ids`, `research_question_ids`, `hypothesis_ids`, `kategorie_ids`,
+     `object_ids`, each entry an `id` and a `bound` FNV hash), the brief's attachments
+     (`attachment_id`, `sha256`, `legacy_attachment_id`), the materials (`source_id`,
+     `reading_sha256`, `contract_id`, `contract_version`), the dimension proposals'
+     `dimension_id`, `proposal_id` and `created_at`; in the analysis, `_brief_signature`; in the
+     view, the focus `target`. No `fingerprint` key is in the context today; the suffix is there
+     for the next writer.
   6. Tests: `test_an_identifiers_digits_ground_no_number`, `test_the_context_names_its_identifiers`,
-     `test_a_request_holds_a_reply_to_the_context_without_its_identifiers`
+     `test_a_request_holds_a_reply_to_the_context_without_its_identifiers`,
+     `test_identity_metadata_grounds_no_number` (a `bound`, a `sha256`, a `reading_sha256`, a
+     `contract_version`, a `_brief_signature` and a `created_at`, each leading with 7),
+     `test_an_identifier_ends_only_where_no_identifier_character_follows`
      (`packages/aia_core/tests/test_research_lead.py`) and
      `test_a_number_only_an_identifier_holds_is_still_invented`
      (`apps/executors/tests/test_research_lead_executor.py`). The flaky test is unchanged; it no
@@ -295,9 +322,10 @@ The backend each chunk needs is in `.planning/mvp-consolidation.md` §6.
 - **`.planning/open-items.md`.** F1 and F2 above; F3, closed by its fix; F-CLOCK-1, closed by
   its fix.
 - **`CLAUDE.md` § 2**, `domain/research_lead.py`: after "lead_contract (numbers only from the
-  context, sign included, exponents refused)" add "; an identifier's digits are no number
-  (context_identifiers: the values under id / *_id / *_ids / *_version and focus targets,
-  blanked in the context and the reply alike)".
+  context, sign included, exponents refused)" add "; identity metadata is no number
+  (citable_context: the context without id, bound, the item-id sidecars, *_id, *_ids,
+  *_version, *_at, *sha256, *_signature, *fingerprint and focus targets; context_identifiers:
+  an id quoted whole in the reply writes no number)".
 - **`CLAUDE.md` § 2**, `domain/workspace.py` / the working content paragraph: a save naming no
   revision is not stale over a working copy that is still the bare template a server writer
   saved (`edited_from_current`).
