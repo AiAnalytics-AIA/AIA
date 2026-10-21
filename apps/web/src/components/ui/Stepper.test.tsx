@@ -116,6 +116,31 @@ describe("Stepper (I2): bounded numbers, refused and never clamped", () => {
     expect(save).toHaveBeenCalledWith(-5);
   });
 
+  it("announces what the field holds now, not the saved value behind a draft (Codex #532)", () => {
+    render(<Stepper label="Rozpočet" value={80} onCommit={() => {}} min={50} max={500} decimals={2} unit="USD" />);
+    const money = screen.getByRole("spinbutton", { name: "Rozpočet" });
+    expect(money.getAttribute("aria-valuetext")).toBe("80,00 USD");
+    fireEvent.change(money, { target: { value: "90" } });
+    expect(money.getAttribute("aria-valuenow")).toBe("90");
+    expect(money.getAttribute("aria-valuetext")).toBe("90,00 USD");
+    expect(money.hasAttribute("aria-invalid")).toBe(false);
+    // Garbage: nothing is announced as the value; the field says it is invalid.
+    fireEvent.change(money, { target: { value: "abc" } });
+    expect(money.hasAttribute("aria-valuenow")).toBe(false);
+    expect(money.hasAttribute("aria-valuetext")).toBe(false);
+    expect(money.getAttribute("aria-invalid")).toBe("true");
+    // Out of range is not announced either; after the refused commit the words join the description.
+    fireEvent.change(money, { target: { value: "9" } });
+    expect(money.hasAttribute("aria-valuetext")).toBe(false);
+    fireEvent.blur(money);
+    const described = (money.getAttribute("aria-describedby") ?? "").split(" ").map((id) => document.getElementById(id)?.textContent);
+    expect(described[0]).toBe("Musí být 50–500 USD; neuloženo.");
+    // Esc: back to the saved value, announced as it.
+    fireEvent.keyDown(money, { key: "Escape" });
+    expect(money.getAttribute("aria-valuetext")).toBe("80,00 USD");
+    expect(money.hasAttribute("aria-invalid")).toBe(false);
+  });
+
   it("shows money with its unit and its decimals", () => {
     render(<Stepper label="Rozpočet" value={85} onCommit={() => {}} min={80.86} max={500} decimals={2} unit="USD" />);
     expect((screen.getByRole("spinbutton", { name: "Rozpočet" }) as HTMLInputElement).value).toBe("85,00");

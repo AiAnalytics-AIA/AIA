@@ -104,6 +104,12 @@ export function Stepper({
   };
 
   const current = base();
+  // What the field holds now, for assistive technology: a draft is announced as itself when it is a
+  // valid value, and not at all when it is not -- never the saved value behind it (Codex on #532).
+  // aria-invalid follows the draft as it is typed; the words come with the first refused commit (I9).
+  const reading = draft === null ? null : readNumber(draft, bounds);
+  const announced = reading === null ? value : reading.ok ? reading.value : null;
+  const invalid = problem !== null || (reading !== null && !reading.ok);
   // The buttons are for the pointer; the keyboard has the same moves on the field itself (↑ ↓,
   // Shift ×10), so the stepper is one Tab stop (the ARIA spin button pattern).
   const button = (direction: 1 | -1) => (
@@ -132,9 +138,9 @@ export function Stepper({
             aria-label={label}
             aria-valuemin={min}
             aria-valuemax={max}
-            aria-valuenow={value ?? undefined}
-            aria-valuetext={value !== null && unit ? `${formatNumber(value, decimals > 0 ? decimals : undefined)} ${unit}` : undefined}
-            aria-invalid={problem ? true : undefined}
+            aria-valuenow={announced ?? undefined}
+            aria-valuetext={announced !== null && unit ? `${formatNumber(announced, decimals > 0 ? decimals : undefined)} ${unit}` : undefined}
+            aria-invalid={invalid ? true : undefined}
             aria-describedby={problem ? `${errorId} ${boundsId}` : boundsId}
             disabled={disabled}
             value={shownValue}
