@@ -23,6 +23,7 @@
 
 import { type PointerEvent, type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { t, tv } from "@/i18n/t";
+import { objectTarget, pairTarget } from "@/lib/artifacts/sociomap";
 import { num } from "@/lib/sociomapping-view";
 import { type BatteryWithMaps, type ObjectMapArtifact, originalRating } from "@/lib/object-map-view";
 import {
@@ -78,7 +79,7 @@ function Aside({ battery, facts, items, selected, notPlaced, counts = null, deta
         <ul className="flex flex-col">
           {items.map((n, k) => (
             <li key={n.id}>
-              <button type="button" aria-pressed={k === selected} disabled={!onChoose} onClick={() => onChoose?.(k)} onPointerEnter={() => onHover?.(k)} onPointerLeave={() => onHover?.(-1)}
+              <button type="button" data-aia={objectTarget(battery.battery_id, n.id) ?? undefined} aria-pressed={k === selected} disabled={!onChoose} onClick={() => onChoose?.(k)} onPointerEnter={() => onHover?.(k)} onPointerLeave={() => onHover?.(-1)}
                 aria-label={tv("research.exec.objectMap.selectObject", { label: n.label })}
                 className={`grid w-full grid-cols-[12px_minmax(0,1fr)_auto] items-center gap-2 rounded px-1.5 py-[5px] text-left text-xs hover:bg-surface ${k === selected ? "bg-signal-wash font-semibold" : ""}`}>
                 <span aria-hidden className="h-3 w-3 rounded-full" style={{ background: n.colour }} />
@@ -606,10 +607,12 @@ function ObjectCard({ battery, map, selected, relation }: { battery: BatteryWith
     return <DetailCard title={t(`${p}.objectDetailTitle`)}><p className="py-4 text-center text-ink-muted">{t(`${p}.objectDetailEmpty`)}</p></DetailCard>;
   }
   const o = objectDetail(battery, map, selected);
+  // The Lead's names for what the card shows (lib/artifacts/sociomap.ts): the pair, then the object.
+  const pair = relation ? pairTarget(battery.battery_id, map.object_ids[relation[0]], map.object_ids[relation[1]]) : null;
   return (
     <DetailCard title={t(`${p}.objectDetailTitle`)}>
-      {relation ? <RelationBlock detail={relationDetail(battery, map, relation[0], relation[1])} /> : null}
-      <b className="text-sm" data-testid="object-map-detail-label">{o.label}</b>
+      {relation ? <div data-aia={pair ?? undefined}><RelationBlock detail={relationDetail(battery, map, relation[0], relation[1])} /></div> : null}
+      <b className="text-sm" data-testid="object-map-detail-label" data-aia={objectTarget(battery.battery_id, map.object_ids[selected]) ?? undefined}>{o.label}</b>
       {o.primary ? null : <p className="text-[10.5px] text-ink-muted">{t(`${p}.detailSecondary`)}</p>}
       <div className="grid grid-cols-2 gap-1.5">
         <Fact label={t(`${p}.detailHeight`)} help={t(`${p}.detailHeightHelp`)} value={panelNumber(o.height === null ? null : originalRating(o.height, battery.rating_scale) ?? o.height)} />

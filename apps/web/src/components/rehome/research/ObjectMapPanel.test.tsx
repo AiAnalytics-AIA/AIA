@@ -11,6 +11,9 @@ import signedOff from "@/lib/fixtures/object-map-signed-off.json";
 import legacy from "@/lib/fixtures/object-map.json";
 import golden from "@/lib/fixtures/object-map-draw-golden.json";
 import { type BatteryWithMaps, mapLinks } from "@/lib/object-map-view";
+import { readTarget } from "@/lib/artifacts/sociomap";
+import { focusSelector } from "@/lib/lead";
+import { parseAiaId } from "@/lib/workbench-artifacts";
 import { INITIAL_CAMERA, densityGrid, panelDots, panelNodes, projection, relationGeometry, storedGrid, terrainAt } from "@/lib/object-map-panel";
 import { type SignedOffRespondents, storedFrame } from "@/lib/object-map-signed-off";
 import { num } from "@/lib/sociomapping-view";
@@ -682,5 +685,34 @@ describe("Export PNG", () => {
     expect(texts.slice(0, 4)).toEqual(["VÝŠKA · SHLUKY RESPONDENTŮ", "0,00", "hustota", "1,00"]);
     expect(texts).toContain("CHUŤOVÉ SEGMENTY · PŘEKRÝVAJÍ SE");
     expect(texts.at(-1)).toBe("není jasně v jednom segmentu");
+  });
+});
+
+// What the Lead can name on the map (artifact-sociomap SOC1/SOC2): each object in the list and the
+// selected object and relation in the detail card carry their `object:` / `pair:` id, as the registry
+// reads them and as the Lead's focus finds them.
+describe("the Lead's names on the map", () => {
+  it("names every listed object by its battery, and the Lead's focus finds it", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    const buttons = within(screen.getByTestId("object-map-panel-list")).getAllByRole("button");
+    expect(buttons.map((b) => b.getAttribute("data-aia"))).toEqual(map.object_ids.map((id) => `object:hudba/${id}`));
+    const target = `object:hudba/${map.object_ids[2]}`;
+    expect(parseAiaId(target)?.stage).toBe("sociomap");
+    expect(document.querySelector(focusSelector(target))).toBe(buttons[2]);
+  });
+
+  it("names the selected object and the selected relation in the detail card, one pair id either way", async () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    await nextFrame(0);
+    const nodes = map.object_ids.map((_, k) => nodeAt(k));
+    const [, i, j, x, y] = (golden.scenes.relativeInitial.hits as [string, number, number, number, number, number][])
+      .find((h) => h[0] === "relation" && nodes.every((q) => Math.hypot(q.x - h[3], q.y - h[4]) > 14))!;
+    fireEvent.pointerDown(canvas(), { clientX: x, clientY: y, pointerId: 1 });
+    fireEvent.pointerUp(canvas(), { clientX: x, clientY: y, pointerId: 1 });
+    const [a, b] = [map.object_ids[i], map.object_ids[j]].sort();
+    const pair = screen.getByTestId("object-map-detail-relation").closest("[data-aia]")!;
+    expect(pair.getAttribute("data-aia")).toBe(`pair:hudba/${a}~${b}`);
+    expect(readTarget(pair.getAttribute("data-aia")!)).toEqual({ kind: "pair", battery: "hudba", a, b });
+    expect(screen.getByTestId("object-map-detail-label").getAttribute("data-aia")).toBe(`object:hudba/${map.object_ids[i]}`);
   });
 });
