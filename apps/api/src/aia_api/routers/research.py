@@ -130,7 +130,13 @@ from aia_core.infrastructure.workflow_repository import (
 from fastapi import APIRouter, HTTPException, Path, Query, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..dependencies import ArtifactStoreDep, SessionDep, SettingsDep, StudyScopeDep
+from ..dependencies import (
+    ArtifactStoreDep,
+    RunPopulationDep,
+    SessionDep,
+    SettingsDep,
+    StudyScopeDep,
+)
 from ..schemas.projects import ErrorResponse
 from ..schemas.runs import ArtifactResponse, RunEventResponse
 from .runs import artifact_corrupt, artifact_response
@@ -1243,15 +1249,22 @@ def start_run(
     scope: StudyScopeDep,
     session: SessionDep,
     response: Response,
+    population: RunPopulationDep,
 ) -> ResearchRunResponse:
     """Idempotent per Design Revision: a double submission gets the existing run.
 
     Needs ``RUN_WORKFLOW`` on an open Study. The fieldwork source is the
     deployment's, never the request's; who answers is the person's, among the sources the
-    deployment offers (409 ``persona_source_unavailable`` otherwise).
+    deployment offers (409 ``persona_source_unavailable`` otherwise). The population a new run
+    records is the deployment's (the Czech LIVE; the population double only in local and test).
     """
     persona_source = _chosen_persona_source(request, body.persona_source)
-    runs = ResearchRuns(session, scope)
+    runs = ResearchRuns(
+        session,
+        scope,
+        population_contract=population.contract,
+        population_id=population.population_id,
+    )
     try:
         started = runs.start(
             design_revision_id=body.design_revision_id,

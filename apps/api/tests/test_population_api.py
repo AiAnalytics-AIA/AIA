@@ -598,13 +598,13 @@ def test_the_audience_routes_read_the_population_the_composition_names(
 
     with create_session_factory(app.state.engine)() as session:
         rt = fictional_live.runtime(session)
-        live = PopulationRegistryRepository(session).population(fictional_live.live_id)
+        live = PopulationRegistryRepository(session).population(fictional_live.population_id)
         assert live is not None
         version_id = live.current_version_id
         rt.record_audience_catalogue(version_id, recorded_by="test")
         session.commit()
     app.state.audience_population = AudiencePopulation(
-        contract=fictional_live.contract, population_id=fictional_live.live_id
+        contract=fictional_live.contract, population_id=fictional_live.population_id
     )
     body = viewer.get(url).json()
     assert body["version_id"] == version_id and body["version_label"] == "v1_4"

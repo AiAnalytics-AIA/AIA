@@ -27,7 +27,7 @@ from aia_core.infrastructure.storage import ArtifactStore
 from aia_core.infrastructure.storage_settings import StorageSettings, build_artifact_store
 from aia_worker.executor import StepExecutor
 
-from .ai_fieldwork import AIFieldwork
+from .ai_fieldwork import AIFieldwork, PopulationLoader
 from .ai_runtime import AIRuntimeSettings, build_ai_fieldwork, build_gateway
 from .analysis import AnalysisConfig, analysis_registry
 from .client_source_proposals import KIND as CLIENT_SOURCE_PROPOSALS_KIND
@@ -152,8 +152,14 @@ def materialize_executor(
     )
 
 
-def build_registry() -> dict[str, StepExecutor]:
-    """The factory named by ``AIA_WORKER_EXECUTORS``; reads the environment."""
+def build_registry(*, population: PopulationLoader | None = None) -> dict[str, StepExecutor]:
+    """The factory named by ``AIA_WORKER_EXECUTORS``; reads the environment.
+
+    ``population`` replaces the panel path's loader (``build_ai_fieldwork(population=)``); only
+    the local and test composition ``aia_executors.population_double`` passes one. Named by
+    ``AIA_WORKER_EXECUTORS`` the factory is called without it, and the loader is the production
+    one over ``AIA_POPULATION_ASSET_ROOT``.
+    """
     build = BuildIdentity.from_env()
     connectedness_interval = sociomap_connectedness_interval(os.environ)
     settings = AIRuntimeSettings.from_env()
@@ -219,7 +225,9 @@ def build_registry() -> dict[str, StepExecutor]:
         deep_research=deep_research_runtime(settings),
         build=build,
         ai_runtime=(
-            build_ai_fieldwork(settings, build=build, population_store=children)
+            build_ai_fieldwork(
+                settings, build=build, population=population, population_store=children
+            )
             if settings is not None
             else None
         ),

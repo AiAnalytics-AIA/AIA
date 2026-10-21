@@ -551,6 +551,31 @@ forbid "among the executors, only the recorded composition builds recorded web r
 forbid "no deployment runs the recorded Deep Research composition" \
   'deep_research_recorded|load_recorded_web' \
   deploy
+# The population double (plan run-qc-and-checkpoint RQC10) is a fictional population both
+# processes compose for tier A of the acceptance harness. It is kept out of every deployment
+# the way the workbench and recorded web retrieval are: it refuses any AIA_ENV but local and
+# test, only the two compositions import it (the API's composition root and the worker's
+# aia_executors.population_double), and no deployment names it.
+forbid "nothing in the core imports the population double" \
+  '^\s*(from|import)\s+\S*population_double' \
+  "$CORE"
+forbid "in the API, only the composition root imports the population double" \
+  '^\s*(from|import)\s+\S*population_double' \
+  "$API" \
+  "$API/dependencies.py"
+forbid "the worker never imports the population double" \
+  '^\s*(from|import)\s+\S*population_double' \
+  "$WORKER"
+forbid "among the executors, only its composition imports the population double" \
+  '^\s*(from|import)\s+\S*population_double' \
+  "$EXECUTORS" \
+  "$EXECUTORS/population_double.py"
+forbid "no deployment composes the population double" \
+  'AIA_POPULATION_DOUBLE|population_double' \
+  deploy
+forbid "no infrastructure definition composes the population double" \
+  'AIA_POPULATION_DOUBLE|population_double' \
+  infra
 # Deep Research has no authority over research truth (ADR 0021): it may propose a
 # design change for a person to accept and write its own evidence, never a Design
 # Revision, a Study's working content or a research run's deterministic artifacts.
