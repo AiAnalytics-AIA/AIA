@@ -60,4 +60,19 @@ describe("Dotazník's Lead targets", () => {
     expect(targetOfElement(container.querySelector('[data-aia="section:sec_b"] input'))?.label).toBe("Oddíl: Média");
     expect(targetOfElement(container.querySelector('[data-aia="section:sec_b"] input'))?.id).toBe("section:sec_b");
   });
+
+  it("gives a repeated id's mark to its first occurrence only, so each mark names one element", async () => {
+    const repeated = [
+      { id: "sec_a", type: "questions", title: "První", questions: [{ id: "Q1", text: "Jak často?", typ: "vyber", kategorie: ["A", "B"] }] },
+      { id: "sec_b", type: "questions", title: "Druhý", questions: [{ id: "Q1", text: "Kdy naposledy?", typ: "vyber", kategorie: ["A", "B"] }] },
+      { id: "sec_a", type: "object_battery", title: "Média", object_type: "média", objects: ["TV", "Rádio", "Web", "Tisk"] },
+    ];
+    stub({ goal: "G", sections: repeated, ui_state: { questionnaire_path: "manual" } });
+    const { container } = render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findAllByDisplayValue("Kdy naposledy?");
+    expect(container.querySelectorAll('[data-aia="question:Q1"]')).toHaveLength(1);
+    expect(container.querySelector('[data-aia="question:Q1"] textarea')).toHaveProperty("value", "Jak často?");
+    expect(container.querySelectorAll('[data-aia="section:sec_a"]')).toHaveLength(1);
+    expect(container.querySelector('[data-aia="section:sec_a"]')?.id).toBe("qblock_sec_a");
+  });
 });
