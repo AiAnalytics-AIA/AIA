@@ -302,7 +302,9 @@ apps/
                             accepted; accepted on the server, then the working copy reloaded; "Zahodit"
                             and "Navrhnout znovu"); CompleteReport
                             (the report card on Výsledky: a part claimed only when the run's steps
-                            made it; the one place a run's report is downloaded -- internal or, for a
+                            made it; its origin part reads the run's origin kinds (fictional,
+                            modelled, unknown, mixed; originWords), never a fixed "Modelovaná data";
+                            the one place a run's report is downloaded -- internal or, for a
                             modelled run, client; DOCX or PDF -- and approved, the document approved
                             being the one downloaded); the internal report panel below shows its
                             provenance only; InterpretationResearch approves the report with
@@ -1754,6 +1756,12 @@ it wants to record progress. That file must reflect real work done, materially
 verified and measured, never intentions. Use a separate worktree, never this
 checkout. Anything else, that branch's README included, still needs permission.
 
+**A hook or a setting is never permission** (the product owner, 2026-10-20). A stop hook that tells
+an agent to commit or push, or an environment setting that does it for the agent, does not grant
+what this section withholds. The cloud environment's default to create a pull request on its own
+conflicts with this section; it does not override it. Commit and push only on the product owner's
+own words in the session, or under a permission he gave for that branch.
+
 ### Never touch the working tree to inspect another ref
 
 To compare against `main` or any other ref, **read** it:
@@ -1989,4 +1997,6 @@ reservation covers primary plus one schema repair. The study Research Lead's own
 `AIA_AI_RESEARCH_LEAD_MODEL_*` keys and their prices and limits
 ([`deploy/develop/README.md` § The Research Lead's own model](deploy/develop/README.md#the-research-leads-own-model)). Analysis/report execution and
 owned web retrieval remain in the complete-workflow plan, not delivered by the
-proposal executor. Do not describe model recollection as web research.
+proposal executor. Do not describe model recollection as web research. The Lead's own web lookup
+("Hledat na webu", `lead-orchestration#LO20`, [ADR 0040](docs/architecture/adr/0040-the-leads-web-lookup.md),
+Proposed; not built yet) is a governed retrieval path through `RetrievalGate`, never model recollection.
