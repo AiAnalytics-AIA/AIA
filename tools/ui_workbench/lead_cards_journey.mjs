@@ -61,6 +61,12 @@ const fixtures = JSON.parse(readFileSync(join(repo, "tmp/ui-workbench/studies.js
 const { client, study } = fixtures[arg("fixture", "persona")];
 const stagePath = (slug) => `/app/clients/${client}/research/${study}/${slug}`;
 const shot = (name) => page.screenshot({ path: join(out, `${name}.png`) });
+/** A card on its own, scrolled to the middle of the conversation first, so nothing crops it. */
+const cardShot = async (card, name) => {
+  await card.evaluate((e) => e.scrollIntoView({ block: "center" }));
+  await page.waitForTimeout(300);
+  await card.screenshot({ path: join(out, `${name}.png`) });
+};
 const SCRIPTED = "[Workbench · bez modelu]";
 
 async function openStage(slug) {
@@ -116,7 +122,7 @@ try {
   const workerState = await worker.getAttribute("data-card-state");
   notes.push(`design job card: ${workerState} (${(await worker.innerText()).replace(/\s+/g, " ").trim()})`);
   check(`the approved design job is a card in the conversation (${workerState}), and no dialog opens`);
-  await worker.screenshot({ path: join(out, "1440-worker-card.png") });
+  await cardShot(worker, "1440-worker-card");
   await shot("1440-worker-card-page");
 
   // The research run: prepared by the Lead, started from its card through Spuštění's route.
@@ -128,7 +134,7 @@ try {
     await shot("1440-run-request-not-startable");
     throw new Error(`the prepared run cannot start from its card: ${(await request.innerText()).replace(/\s+/g, " ")}`);
   });
-  await request.screenshot({ path: join(out, "1440-run-request.png") });
+  await cardShot(request, "1440-run-request");
   const [startedRun] = await Promise.all([
     page.waitForResponse((r) => new URL(r.url()).pathname.endsWith("/research/runs") && r.request().method() === "POST", { timeout: 60000 }),
     start.click(),
@@ -139,7 +145,7 @@ try {
   await run.waitFor({ timeout: 60000 });
   const orb = await run.locator("[data-orb]").first().waitFor({ timeout: 60000 }).then(() => true, () => false);
   if (orb) {
-    await run.screenshot({ path: join(out, "1440-run-card-running.png") });
+    await cardShot(run, "1440-run-card-running");
     await shot("1440-run-card-running-page");
     check("the run's card shows the orb while a step runs");
   } else {
@@ -151,11 +157,37 @@ try {
   await run.locator("[data-orb]").first().waitFor({ state: "detached", timeout: 240000 });
   const ended = await run.getAttribute("data-card-state");
   notes.push(`run card once nothing runs: ${ended} (${(await run.innerText()).replace(/\s+/g, " ").trim()})`);
-  await run.screenshot({ path: join(out, "1440-run-card-done.png") });
+  await cardShot(run, "1440-run-card-done");
   await shot("1440-run-card-done-page");
   assert.equal(await run.getByRole("link", { name: "Průběh" }).count(), 1, "Průběh is linked");
   check(`once no step runs the card has no orb, and links to Průběh and Výsledky (${ended})`);
   assert.equal(await page.locator('[role="dialog"]').count(), 0, "no job dialog");
+
+  // The same at 1100 px, the workbench's narrowest width: nothing covers a card's actions.
+  await page.setViewportSize({ width: 1100, height: 900 });
+  await page.waitForTimeout(800);
+  await run.scrollIntoViewIfNeeded();
+  await shot("1100-run-card-done-page");
+  await page.setViewportSize({ width: 1440, height: 900 });
+
+  // Návrh's follow-up answers (the owner, 2026-10-21): saved for the Lead, which prepares the
+  // design's update as its card; nothing paid starts from the stage.
+  const planned = fixtures.planned;
+  await page.goto(base + `/app/clients/${planned.client}/research/${planned.study}/plan`);
+  await page.locator("[data-workbench]").waitFor({ timeout: 60000 });
+  await page.getByLabel("Odpověď na otázku 1").fill("Ano, jen veřejnou dopravou.");
+  const before = writes.length;
+  await page.getByRole("button", { name: "Uložit odpovědi" }).click();
+  await page.locator("[data-saved-for-lead]").waitFor({ timeout: 30000 });
+  assert.equal(writes.slice(before).filter((w) => /\/agent-jobs$|\/lead\/turns\/[^/]+\/request$/.test(w.path)).length, 0, "saving the answers starts nothing");
+  check("Návrh's answers are saved for the Lead, with no AI call from the stage");
+  await composerReady();
+  const replies = await page.locator(".conv").getByText(SCRIPTED, { exact: false }).count();
+  await page.getByRole("button", { name: "Požádat Vedoucího" }).click();
+  await page.waitForFunction((n) => document.body.innerText.split("[Workbench · bez modelu]").length - 1 > n, replies, { timeout: 90000 });
+  await page.locator(".conv .dec").filter({ hasText: "Analýza zadání" }).last().getByRole("button", { name: "Spustit úlohu" }).waitFor({ timeout: 30000 });
+  await shot("1440-plan-answers-to-lead");
+  check("Požádat Vedoucího sends the Lead a message, and the Lead prepares the brief's analysis as its card");
 
   const paid = writes.filter((w) => /\/deep-research\/runs/.test(w.path));
   assert.deepEqual(paid, [], "no Deep Research started");

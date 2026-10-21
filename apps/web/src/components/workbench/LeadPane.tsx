@@ -20,7 +20,7 @@ import { STAGES, isWorkbenchStage, type WorkbenchStage } from "@/lib/workbench-s
 import type { StepKey } from "@/research/steps";
 import { Glyph } from "./Glyph";
 import { Icon, Mark } from "./Icons";
-import { RunCardView, RunRequestCard, WorkerCardView } from "./LeadCards";
+import { Facts, Pill, RunCardView, RunRequestCard, WorkerCardView } from "./LeadCards";
 
 const POLL_MS = 1500;
 
@@ -38,6 +38,8 @@ export type LeadCardsContext = {
   /** The run each turn's card started, in this page's memory. */
   runOfTurn: ReadonlyMap<string, string>;
   onRunStarted: (turnId: string, run: ResearchRun) => void;
+  /** Read the jobs again after a card acted on one (a resume): a waiting job is not polled. */
+  onJobsChanged?: () => void;
 };
 
 /**
@@ -76,7 +78,7 @@ const time = (iso: string) => {
 /** The newest Lead turn that finished: the one whose view tools have been applied. */
 const newestCompleted = (turns: LeadTurn[]) => [...turns].reverse().find((t) => t.actor === "lead" && t.status === "COMPLETED") ?? null;
 
-export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onClearFocus, onView, onRequest, onTurns, onFocusMode, mode, epoch, jobs = [], onOpenJob, onLead, beforeMessage, cards }: {
+export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onClearFocus, onView, onRequest, onTurns, onFocusMode, mode, epoch, jobs = [], onOpenJob, onLead, beforeMessage, cards, registerSend }: {
   studyId: string;
   stage: WorkbenchStage;
   canEdit: boolean;
@@ -105,6 +107,8 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   mode: "split" | "conversation" | "artifact";
   /** The worker and run cards' context (chunk 23). */
   cards?: LeadCardsContext;
+  /** Receives the way a stage sends the Lead a message, as the person would type it. */
+  registerSend?: (send: (text: string) => void) => void;
 }) {
   const [me, setMe] = useState<ResearcherLead | null>(null);
   const [session, setSession] = useState<LeadState | null>(null);
@@ -216,6 +220,16 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
     setDraft("");
     onClearFocus();
   };
+  // A stage's message (Návrh's "Požádat Vedoucího"): sent or queued as typed, the draft left alone.
+  const fromStage = (text: string) => {
+    const t = text.trim();
+    if (!t) return;
+    if (session?.busy || sending || held) setQueued((q) => [...q, { text: t, stage, focus: null }]);
+    else void message({ text: t, stage, focus: null });
+  };
+  useEffect(() => {
+    registerSend?.(fromStage);
+  });
 
   const hatch = async () => {
     try {
@@ -310,7 +324,7 @@ function Conversation({ turns, jobs, cards, studyId, onOpenJob, busy, name, onFo
         <div>
           {children}
           {conversationTimeline(turns, jobs, runs, cards?.runOfTurn).map((x) => x.kind === "job"
-            ? <WorkerCardView key={x.job.run_id} job={x.job} studyId={studyId} onOpen={onOpenJob} onStage={cards?.onStage} />
+            ? <WorkerCardView key={x.job.run_id} job={x.job} studyId={studyId} onOpen={onOpenJob} onStage={cards?.onStage} onChanged={cards?.onJobsChanged} />
             : x.kind === "run"
               ? (cards ? <RunCardView key={x.run.run_id} run={x.run} studyId={studyId} stepHref={cards.stepHref} /> : null)
               : x.turn.actor === "person"
@@ -387,7 +401,7 @@ function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, onSelf
       {o.request?.kind === "research_run" && cards
         ? <RunRequestCard studyId={studyId} why={o.request.why} canEdit={canEdit} prepare={cards.prepareRun} start={cards.startRun} stepHref={cards.stepHref} onStarted={(r) => cards.onRunStarted(t.turn_id, r)} />
         : o.request ? <RequestCard r={o.request} approved={t.request_decision ?? null} onApprove={() => onRequest(t, o.request!)} canEdit={canEdit} /> : null}
-      {job ? <WorkerCardView job={job} studyId={studyId} onOpen={onOpenJob} onStage={cards?.onStage} /> : null}
+      {job ? <WorkerCardView job={job} studyId={studyId} onOpen={onOpenJob} onStage={cards?.onStage} onChanged={cards?.onJobsChanged} /> : null}
       {run && cards ? <RunCardView run={run} studyId={studyId} stepHref={cards.stepHref} /> : null}
       {last && !busy && o.follow?.length ? (
         <div className="follow" aria-label="Navázat">{o.follow.map((f) => <button key={f} type="button" className="follow__btn" onClick={() => onFollow(f)}><Icon name="next" size={13} />{f}</button>)}</div>
@@ -460,16 +474,21 @@ function RequestCard({ r, approved, onApprove, canEdit }: { r: LeadRequest; appr
   const [state, setState] = useState<"open" | "busy" | "done" | "kept">(approved ? "done" : "open");
   const w = REQUEST_WORDS[r.kind];
   const paid = r.kind === "agent_job";
+  // As every card in the conversation reads (chunk 23): eyebrow, title with its state pill, the
+  // Lead's why, the key facts as label/value rows, the actions on the right.
+  const pill = state === "done" ? { word: "Rozhodnuto", tone: "done" as const } : state === "kept" ? { word: "Ponecháno", tone: "inert" as const } : { word: paid ? "Čeká na schválení" : "Otevře krok", tone: "you" as const };
   return (
-    <div className="msg">
+    <div className="msg" data-card="request">
       <div className={`dec${state === "done" || state === "kept" ? " is-decided" : ""}`}>
-        <div className="dec__head"><Glyph tone={state === "done" ? "done" : state === "kept" ? "inert" : "you"} size={11} />{state === "done" ? "Rozhodnuto" : state === "kept" ? "Ponecháno" : "Rozhodnutí patří vám"}</div>
         <div className="dec__body">
-          <p className="dec__title">{w.title}{r.kind === "agent_job" ? ` · ${ACTION_LABELS[r.action as keyof typeof ACTION_LABELS] ?? r.action}` : ""}</p>
+          {state === "done" || state === "kept" ? null : <p className="card__eyebrow">Rozhodnutí patří vám</p>}
+          <div className="card__titlerow"><p className="dec__title">{w.title}</p><Pill word={pill.word} tone={pill.tone} /></div>
           <p className="dec__reason">{r.why}</p>
-          <p className="cap">{paid ? "Placená úloha: spustí se až vaším potvrzením a hradí se z rozpočtu studie." : "Nic se nespustí: otevře se krok, kde spuštění potvrdíte se všemi jeho kontrolami (připravenost, zodpověditelnost, limit útraty)."}</p>
+          <Facts facts={paid
+            ? [{ label: "Úloha", value: ACTION_LABELS[(r as { action: string }).action as keyof typeof ACTION_LABELS] ?? (r as { action: string }).action }, { label: "Platba", value: "z rozpočtu studie", sub: "Spustí se až vaším potvrzením." }]
+            : [{ label: "Co se stane", value: "Otevře se krok, kde spuštění potvrdíte", sub: "Se všemi jeho kontrolami: připravenost, zodpověditelnost, limit útraty." }]} />
           {state === "open" ? (
-            <div className="dec__foot"><button type="button" className="btn btn--sm btn--quiet" onClick={() => setState("kept")}>Teď ne</button><span className="grow" />
+            <div className="card__actions"><button type="button" className="btn btn--sm btn--quiet" onClick={() => setState("kept")}>Teď ne</button>
               <button type="button" className="btn btn--primary btn--sm" disabled={!canEdit} onClick={() => { setState("busy"); onApprove().then(() => setState("done"), () => setState("open")); }}>{w.action}</button></div>
           ) : null}
         </div>

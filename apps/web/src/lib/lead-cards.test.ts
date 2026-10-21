@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Readiness, ResearchAgentAction, ResearchAgentJob, ResearchRun, ResearchStep } from "./api";
 import { ACTION_LABELS } from "./research-agent-jobs";
-import { JOB_STAGE, conversationTimeline, costWords, leadOwnsAiStarts, runCard, runRequestPlan, workerCard } from "./lead-cards";
+import { JOB_STAGE, budgetFacts, ceilingWords, conversationTimeline, costWords, jobMovesByItself, leadOwnsAiStarts, pillClass, runCard, runRequestPill, runRequestPlan, workerCard } from "./lead-cards";
 
 const step = (over: Partial<ResearchStep> = {}): ResearchStep => ({
   step_id: "STEP-1", node_key: "agent", kind: "research_agent", stage_type: "x", status: "RUNNING", waiting_reason: null,
@@ -129,5 +129,39 @@ describe("which layout keeps the stages' own AI starts", () => {
   it("gives them to the Lead in the workbench, and leaves them in the classic layout until it has a Lead", () => {
     expect(leadOwnsAiStarts("workbench")).toBe(true);
     expect(leadOwnsAiStarts("classic")).toBe(false);
+  });
+});
+
+describe("what a card's facts and pill say", () => {
+  it("names the ceiling as a figure, or unknown, never zero for unknown", () => {
+    expect(ceilingWords(4.2)).toBe("4,2 USD");
+    expect(ceilingWords(null)).toMatch(/^Neznámá/);
+  });
+
+  it("reads the budget before and at least after the run, or says it may cost more, or that it is unknown", () => {
+    expect(budgetFacts({ remaining_usd: 10 }, 4)).toEqual({ value: "zbývá 10 USD → nejméně 6 USD", note: "Bez částek, které právě drží běžící kroky." });
+    expect(budgetFacts({ remaining_usd: 2 }, 4).value).toBe("zbývá 2 USD → běh může stát víc");
+    expect(budgetFacts({ remaining_usd: 2 }, null).value).toBe("zbývá 2 USD → po běhu neznámo");
+    expect(budgetFacts(null, 4)).toEqual({ value: "Kolik zbývá, AIA nyní neví", note: null });
+  });
+
+  it("gives the prepared run's card its pill from the check and the decision", () => {
+    expect(runRequestPill(null, "open")).toEqual({ word: "Ke kontrole", tone: "you" });
+    expect(runRequestPill({ kind: "start", ceiling: 1, confirm: null, source: null }, "open").word).toBe("Připraveno");
+    expect(runRequestPill({ kind: "not_ready", reasons: [] }, "open")).toEqual({ word: "Blokuje: připravenost", tone: "fault" });
+    expect(runRequestPill({ kind: "start", ceiling: 1, confirm: null, source: null }, "started").word).toBe("Spuštěno");
+    expect(pillClass("fault")).toBe("statepill statepill--fault");
+    expect(pillClass("inert")).toBe("statepill");
+  });
+});
+
+describe("which jobs are read again on a timer", () => {
+  it("polls a queued or running job, and never one that waits for a person, budget or the AI runtime", () => {
+    expect(jobMovesByItself(job())).toBe(true);
+    expect(jobMovesByItself(job({ status: "QUEUED", steps: [step({ status: "RUNNABLE" })] }))).toBe(true);
+    expect(jobMovesByItself(job({ status: "AWAITING_BUDGET", steps: [step({ status: "AWAITING_BUDGET" })] }))).toBe(false);
+    expect(jobMovesByItself(job({ status: "RECOVERY_REQUIRED", needs_attention: true }))).toBe(false);
+    expect(jobMovesByItself(job({ status: "WAITING_PROVIDER", steps: [step({ status: "WAITING_PROVIDER", waiting_reason: "ai_runtime_unavailable" })] }))).toBe(false);
+    expect(jobMovesByItself(job({ status: "COMPLETED", is_terminal: true }))).toBe(false);
   });
 });

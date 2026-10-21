@@ -210,3 +210,53 @@ export function runRequestPlan(readiness: Readiness): RunRequestPlan {
 export function leadOwnsAiStarts(layout: "workbench" | "classic"): boolean {
   return layout === "workbench";
 }
+
+/** A card's state pill: the workbench's statepill modifier for its tone. */
+export function pillClass(tone: CardTone): string {
+  if (tone === "running") return "statepill statepill--running";
+  if (tone === "fault") return "statepill statepill--fault";
+  if (tone === "you" || tone === "world") return "statepill statepill--proposed";
+  if (tone === "done") return "statepill statepill--accepted";
+  return "statepill";
+}
+
+/** The prepared run card's state pill: before the check, then what the check found, then the decision. */
+export function runRequestPill(plan: RunRequestPlan | null, state: "open" | "kept" | "started" | "existing"): { word: string; tone: CardTone } {
+  if (state === "started") return { word: "Spuštěno", tone: "done" };
+  if (state === "existing") return { word: "Už běží", tone: "inert" };
+  if (state === "kept") return { word: "Ponecháno", tone: "inert" };
+  if (!plan) return { word: "Ke kontrole", tone: "you" };
+  if (plan.kind === "start") return { word: "Připraveno", tone: "done" };
+  if (plan.kind === "not_ready") return { word: "Blokuje: připravenost", tone: "fault" };
+  if (plan.kind === "acknowledge") return { word: "Blokuje: nezodpovězené otázky", tone: "fault" };
+  return { word: "Blokuje: neznámá cena", tone: "fault" };
+}
+
+const usdOrNull = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
+
+/** What a run can cost at most, as its card's key fact: the API's figure, or that it is unknown. */
+export const ceilingWords = (ceiling: number | null): string => (ceiling === null ? "Neznámá: AIA ji předem neumí určit" : `${jobCostUsd(ceiling)} USD`);
+
+/**
+ * The study's budget beside a run's ceiling, as the card's row reads it: what remains now, and what
+ * at least remains after the run at its ceiling -- or that it may cost more than remains. Unknown is
+ * said, never zero; the remainder leaves out what running steps hold, which `note` says.
+ */
+export function budgetFacts(study: { remaining_usd?: number | null } | null, ceiling: number | null): { value: string; note: string | null } {
+  const remaining = usdOrNull(study?.remaining_usd);
+  if (remaining === null) return { value: "Kolik zbývá, AIA nyní neví", note: null };
+  const before = `zbývá ${jobCostUsd(remaining)} USD`;
+  const note = "Bez částek, které právě drží běžící kroky.";
+  if (ceiling === null) return { value: `${before} → po běhu neznámo`, note };
+  if (ceiling > remaining) return { value: `${before} → běh může stát víc`, note: `Přesáhne-li cena zbytek, běh se zastaví, dokud rozpočet nezvýšíte. ${note}` };
+  return { value: `${before} → nejméně ${jobCostUsd(remaining - ceiling)} USD`, note };
+}
+
+/**
+ * Whether a job moves on its own, so its card is worth reading again on a timer: queued or running.
+ * A job waiting for budget, for recovery or for the AI runtime moves only when a person acts; it is
+ * read again on their action, a budget change or the window's focus, never polled.
+ */
+export function jobMovesByItself(job: Pick<ResearchAgentJob, "status" | "is_terminal" | "needs_attention" | "steps">): boolean {
+  return agentJobState(job) === "running";
+}

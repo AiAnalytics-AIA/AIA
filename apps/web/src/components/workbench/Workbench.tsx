@@ -15,7 +15,7 @@ import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState, useS
 
 import { ApiError, api, lead as leadApi, research, type Readiness, type ResearchAgentJob, type ResearchRun, type Study } from "@/lib/api";
 import { withBudget } from "@/lib/budget-line";
-import { JOB_STAGE } from "@/lib/lead-cards";
+import { JOB_STAGE, jobMovesByItself } from "@/lib/lead-cards";
 import { unanswerableAsked } from "@/lib/answerability";
 import { jobCostAsked } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
@@ -31,6 +31,7 @@ import { submitWorkingDesign, type ResearchState, type ResearchStore } from "@/r
 import type { StepKey } from "@/research/steps";
 import type { StudyFrame } from "../rehome/research/frame";
 import { useRuns } from "../rehome/research/StageTrack";
+import { LeadAskContext } from "../rehome/research/AskLead";
 import { Glyph, type GlyphTone } from "./Glyph";
 import { Icon, Mark } from "./Icons";
 import { LeadPane, type LeadCardsContext } from "./LeadPane";
@@ -225,15 +226,24 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   }, [picking]);
   const [notice, setNotice] = useState<string | null>(null);
   const [study, setStudy] = useState<Study | null>(null);
-  // A job that still moves is read again, so its card in the conversation follows it; every attempt,
-  // failed or not, moves the poll on, so one failed read does not freeze the card.
-  const moving = jobs.some((j) => !j.is_terminal);
+  // A job that moves on its own (queued or running) is read again, so its card in the conversation
+  // follows it; every attempt, failed or not, moves the poll on, so one failed read does not freeze
+  // the card. A job waiting for budget, recovery or the AI runtime moves only when a person acts: it
+  // is read again on the window's focus, a card's action or a budget change, never on a timer.
+  const moving = jobs.some(jobMovesByItself);
   const [jobPolls, setJobPolls] = useState(0);
   useEffect(() => {
     if (!moving) return;
     const t = setTimeout(() => void onRefreshJobs().finally(() => setJobPolls((n) => n + 1)), 3000);
     return () => clearTimeout(t);
   }, [moving, jobs, jobPolls, onRefreshJobs]);
+  const waiting = jobs.some((j) => !j.is_terminal && !jobMovesByItself(j));
+  useEffect(() => {
+    if (!waiting) return;
+    const onFocus = () => void onRefreshJobs();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [waiting, onRefreshJobs]);
   // The budget meter is read again whenever a run, a design job or a Lead turn changes state: all spend.
   const jobStates = jobs.map((j) => `${j.run_id}:${j.status}`).join(",");
   const turnStates = turns.map((t) => `${t.turn_id}:${t.status}`).join(",");
@@ -453,6 +463,10 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
 
   const blocked = blockers(state).length;
   const flushBeforeMessage = useCallback(() => store.flush(), [store]);
+  // A stage may send the Lead a message as the person would type it (Návrh's "Požádat Vedoucího").
+  const leadSend = useRef<((text: string) => void) | null>(null);
+  const registerSend = useCallback((send: (text: string) => void) => { leadSend.current = send; }, []);
+  const askLead = useCallback((text: string) => leadSend.current?.(text), []);
 
   // A finished job's review opens on the stage its proposal changes (chunk 23): the stage's screen
   // opens it when it mounts (ResearchScreen, OPEN_REVIEW_KEY in the study's page memory).
@@ -499,15 +513,16 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     prepareRun,
     startRun,
     runOfTurn,
+    onJobsChanged: () => void onRefreshJobs(),
     onRunStarted: (turnId: string, run: ResearchRun) => {
       runOfTurn.set(turnId, run.run_id);
       setRunLinksRead((n) => n + 1);
       setRunEpoch((n) => n + 1);
     },
-  }), [runs, frame.stepHref, go, prepareRun, startRun, runOfTurn]);
+  }), [runs, frame.stepHref, go, prepareRun, startRun, runOfTurn, onRefreshJobs]);
   const leadPane = (
     <LeadPane studyId={frame.studyId} stage={stage} canEdit={frame.canEdit} focus={focus} picking={picking}
-      onPick={() => setPicking((p) => !p)} onClearFocus={() => setFocus(null)} jobs={[...jobs].reverse()} onOpenJob={openJob} cards={cards} onView={onView} onRequest={onRequest} onTurns={onTurns} onLead={onLead} beforeMessage={flushBeforeMessage} epoch={leadEpoch}
+      onPick={() => setPicking((p) => !p)} onClearFocus={() => setFocus(null)} jobs={[...jobs].reverse()} onOpenJob={openJob} cards={cards} onView={onView} onRequest={onRequest} onTurns={onTurns} onLead={onLead} beforeMessage={flushBeforeMessage} epoch={leadEpoch} registerSend={registerSend}
       mode={mode} onFocusMode={() => setMode((m) => (m === "conversation" ? "split" : "conversation"))} />
   );
 
@@ -544,7 +559,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
                 <div className="artbody" id="artbody"><div className="wb-stage">
                   {stage === "sample" ? <SampleView project={state.project} onOpen={go} /> : null}
                   {/* Sample shows Dimenze's screen hidden, so its readiness still reaches the inspector. */}
-                  <div hidden={stage === "sample"}>{children}</div>
+                  <div hidden={stage === "sample"}><LeadAskContext.Provider value={askLead}>{children}</LeadAskContext.Provider></div>
                 </div></div>
                 <aside className="insp" aria-label="Připravenost a pomoc" hidden={!inspectorOpen}>
                   <div className="insp__head">
