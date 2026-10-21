@@ -206,6 +206,7 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `input-interactions#1` | W1 | the shared primitives before the artifact bodies (E26: `research-lead-workbench#14`-22) build on them |
 | `input-interactions#2` | W1 | the owner's own example; with `client-workspace` C6 and C7; batched revisions (Q31) |
 | `input-interactions#3b2` | W1 | the scale editor on chunk 1's primitives; 3b1 (the server side, IA-7) landed in #538 behind `AIA_AI_SCALE_LABELS_IN_PROMPT`, off: switching it on moves the respondent-system fingerprint, so before any holdout confirmation (`panel-grounded-respondents` 7f-7h) binds to one, on the methodology owner's wording rule |
+| `input-interactions#3b3` | W2 | the scale labels switched on for respondents after the methodology owner's wording rule, with the moved fingerprint and develop evidence; before `panel-grounded-respondents` 7f-7h binds to a fingerprint |
 | `input-interactions#3` | W2 | applied to the Questionnaire artifact (`research-lead-workbench#17`) |
 | `input-interactions#4` | W2 | applied to the Brief and Design artifacts (`research-lead-workbench#18`) |
 | `input-interactions#5` | W2 | with `research-lead-workbench#19` and `#22` |

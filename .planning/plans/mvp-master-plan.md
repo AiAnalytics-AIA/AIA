@@ -206,7 +206,7 @@ to the input-interactions plan (#528).
 | # | Question | Who answers | Waits on it |
 |---|---|---|---|
 | — | The editor's go/no-go after the spike (page Q19): Wordcraft, ONLYOFFICE Docs or Collabora Online, against Tiptap | the owner | `research-lead-workbench#33`, `lead-orchestration#LO19`, `report-delivery#RD6` |
-| — | Scale labels in what respondents read (input-interactions 3b, finding IA-7, PR #528): it moves the respondent-system fingerprint the holdout validation binds to; the wording rule is the methodology owner's | A. Bahbouh | `input-interactions#3b1` (behind `AIA_AI_SCALE_LABELS_IN_PROMPT`, off); `panel-grounded-respondents` 7f-7h |
+| — | Scale labels in what respondents read (input-interactions 3b, finding IA-7, PR #528): it moves the respondent-system fingerprint the holdout validation binds to; the wording rule is the methodology owner's | A. Bahbouh | `input-interactions#3b3` (switching on `AIA_AI_SCALE_LABELS_IN_PROMPT`, which 3b1 built off); `panel-grounded-respondents` 7f-7h |
 | — | ADR 0041 (the Lead's conversation and context, #529) accepted | the owner | `lead-conversation#LC0` |
 | — | The performance budget values for `mvp-acceptance-harness#18` (D-48); planning proposes them in that chunk's PR, the owner approves | the owner | `mvp-acceptance-harness#18` |
 | — | The methodology owner's decisions MQ-01 to MQ-24, MQ-01 (the `-5` register entry) first | A. Bahbouh | `mvp-methodology-packet.md` (#510); §11.4 |
