@@ -95,7 +95,7 @@ describe("targetOfElement", () => {
   it("names the nearest element the stage screens identify, from wherever the person clicked", async () => {
     const { targetOfElement } = await import("./lead");
     const { JSDOM } = await import("jsdom");
-    const { document } = new JSDOM(`<div id="qedit_Q_1"><span><b id="hit">x</b></span><textarea>Jak jste spokojeni?</textarea></div>
+    const { document } = new JSDOM(`<div data-aia="question:Q_1" id="qedit_Q_1"><span><b id="hit">x</b></span><textarea>Jak jste spokojeni?</textarea></div>
       <section id="brief-goal"><h2>Co potřebujete zjistit</h2><p id="g">text</p></section><div id="none"><i id="n">-</i></div>`).window;
     expect(targetOfElement(document.getElementById("hit"))).toEqual({ id: "question:Q_1", label: "Otázka Q_1: Jak jste spokojeni?" });
     expect(targetOfElement(document.getElementById("g"))).toEqual({ id: "brief:goal", label: "Zadání: Co potřebujete zjistit" });
@@ -126,11 +126,24 @@ describe("targetOfElement", () => {
     // Dotazník edits a block's or set's title in place: an input, not a heading (Codex on #599).
     const edited = new JSDOM(`<article data-aia="section:S2" id="qset_S2"><fieldset><legend>Odpovídá na výzkumné otázky</legend><input type="checkbox" checked></fieldset>
         <input aria-label="Název sady" value="Snídaně"><i id="e">-</i></article>
-      <article id="qblock_B1"><input aria-label="Název bloku" value="Úvod"><i id="b">-</i></article>`).window.document;
+      <article data-aia="section:B1" id="qblock_B1"><input aria-label="Název bloku" value="Úvod"><i id="b">-</i></article>`).window.document;
     expect(targetOfElement(edited.getElementById("e"))).toEqual({ id: "section:S2", label: "Oddíl: Snídaně" });
     expect(targetOfElement(edited.getElementById("b"))).toEqual({ id: "section:B1", label: "Oddíl: Úvod" });
     // A tracked set's card is found by its mark: it has no qblock_ id.
     expect(document.querySelector(focusSelector("section:S1"))?.id).toBe("qset_S1");
+  });
+
+  it("names no target for an unmarked card: its DOM id is an anchor, never an id to send", async () => {
+    // Dotazník marks every card with a valid stored id (#607). An unmarked one has none: a question
+    // without an id is qedit_Q (questionElementId's placeholder), a block without one qblock_<index>,
+    // and an id like "Q 2" is one the server refuses. Picking it names nothing (Codex on #607).
+    const { targetOfElement } = await import("./lead");
+    const { JSDOM } = await import("jsdom");
+    const { document } = new JSDOM(`<div id="qedit_Q"><i id="q">-</i></div><article id="qblock_0"><i id="b">-</i></article>
+      <div id="qedit_Q 2"><i id="s">-</i></div>`).window;
+    expect(targetOfElement(document.getElementById("q"))).toBeNull();
+    expect(targetOfElement(document.getElementById("b"))).toBeNull();
+    expect(targetOfElement(document.getElementById("s"))).toBeNull();
   });
 });
 
@@ -140,6 +153,7 @@ describe("targetLabel for every artifact's kinds", () => {
     expect(targetLabel("audience:subpanel:young_18_29")).toBe("Podpanel: young_18_29");
     expect(targetLabel("pair:set1/fio~air")).toBe("Dvojice set1/fio~air");
     expect(targetLabel("measure:q3")).toBe("Měření q3");
+    expect(targetLabel("receipt:respondents")).toBe("Kdo odpovídal");
     expect(targetLabel("nonsense:q3")).toBe("nonsense:q3");
   });
 });
