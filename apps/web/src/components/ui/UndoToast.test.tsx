@@ -128,6 +128,31 @@ describe("UndoToast (I6): Vrátit for 8 s, one at a time", () => {
     expect(done).toHaveBeenCalledTimes(1);
   });
 
+  it("ends a focus hold when the offer is cleared from outside, with no blur (review of #532)", () => {
+    const first = { message: "První", undo: () => {} };
+    const done = vi.fn();
+    const { rerender } = render(<UndoToast offer={first} onDone={done} />);
+    act(() => screen.getByRole("button", { name: "Vrátit" }).focus());
+    // The page takes the offer down itself (another deletion's result, a navigation).
+    rerender(<UndoToast offer={null} onDone={done} />);
+    rerender(<UndoToast offer={{ message: "Druhá", undo: () => {} }} onDone={done} />);
+    act(() => vi.advanceTimersByTime(UNDO_MS));
+    expect(done).toHaveBeenCalledTimes(1);
+  });
+
+  it("ends a focus hold on its own button even if the caller keeps the offer up (review of #532)", () => {
+    const offer = { message: "Smazáno", undo: () => {} };
+    // A caller whose onDone does not take the offer down: only the button's own reset frees the timer.
+    const done = vi.fn();
+    render(<UndoToast offer={offer} onDone={done} />);
+    const close = screen.getByRole("button", { name: "Zavřít" });
+    act(() => close.focus());
+    fireEvent.click(close);
+    expect(done).toHaveBeenCalledTimes(1);
+    act(() => vi.advanceTimersByTime(UNDO_MS));
+    expect(done).toHaveBeenCalledTimes(2);
+  });
+
   it("can be closed without undoing", () => {
     const undo = vi.fn();
     render(<Host />);
