@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from enum import StrEnum
 from typing import Any, Final, Literal
 
@@ -49,6 +49,7 @@ __all__ = [
     "FILTERS_AWAIT_DRAW",
     "FILTERS_NEED_POPULATION",
     "SAMPLE_SIZE_BOUNDS",
+    "SCALE_LABEL_MAX",
     "SELECTION_NOT_APPLIED",
     "TRACKED_SET_LIMITS",
     "CheckStatus",
@@ -65,9 +66,11 @@ __all__ = [
     "TrackedSetLimits",
     "assess_readiness",
     "compile_design",
+    "labelled_points",
     "prepare",
     "readiness_problems",
     "readiness_values",
+    "scale_points",
     "selection_receipt",
     "settle_selection",
 ]
@@ -84,6 +87,9 @@ SAMPLE_SIZE_BOUNDS: Final = (20, 10000)
 #: ``PRODUCT_POLICY.json`` ``research_design.tracked_set`` for a position map:
 #: hard (min, max) and recommended (min, max).
 TRACKED_SET_LIMITS: Final = ((3, 40), (4, 15))
+
+#: The longest verbal label one point of a scale may carry (input-interactions 3b).
+SCALE_LABEL_MAX: Final = 60
 
 #: The fewest items a tracked set may ever have: fewer give no map (an object map needs
 #: three objects). A version may raise the hard minimum, never lower it below this.
@@ -192,6 +198,35 @@ class _Frozen(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
 
+def scale_points(scale: tuple[int, int]) -> int:
+    """How many points a scale has, both ends included."""
+    return scale[1] - scale[0] + 1
+
+
+def labelled_points(scale: tuple[int, int], labels: Sequence[str]) -> list[tuple[int, str]]:
+    """Each labelled point of a scale with its label, low to high: the two ends when two
+    labels were declared, else every point (``labels`` one per point)."""
+    if not labels:
+        return []
+    low, high = scale
+    if len(labels) == 2:
+        return [(low, labels[0]), (high, labels[1])]
+    return list(zip(range(low, high + 1), labels, strict=True))
+
+
+def _labels_fit(labels: tuple[str, ...], scale: tuple[int, int] | None, where: str) -> None:
+    """A scale's verbal labels are its two ends or one per point, low to high; nothing else."""
+    if not labels:
+        return
+    if scale is None:
+        raise ValueError(f"{where}: scale labels need a scale")
+    if len(labels) not in (2, scale_points(scale)):
+        raise ValueError(
+            f"{where}: {len(labels)} scale labels for {scale_points(scale)} points; "
+            "give the two ends or one label per point"
+        )
+
+
 class SpecQuestion(_Frozen):
     """One question a respondent answers. ``options`` already includes "don't know"."""
 
@@ -211,6 +246,10 @@ class SpecQuestion(_Frozen):
     #: by their text as the plan states them. A link is a declaration, never inferred; one
     #: that names no stated research question is the trace's to report, not the compiler's.
     research_questions: tuple[str, ...] = ()
+    #: The scale's verbal labels as the design declared them (``popisky_skaly``): the two ends,
+    #: or one per point, low to high. Empty when none were declared, and then absent from the
+    #: fingerprint. Only a scale question carries them.
+    scale_labels: tuple[str, ...] = ()
 
     @model_validator(mode="after")
     def _shape(self) -> SpecQuestion:
@@ -220,7 +259,17 @@ class SpecQuestion(_Frozen):
             raise ValueError(f"{self.id}: a scale question needs its scale")
         if self.rating_item and self.typ != "skala":
             raise ValueError(f"{self.id}: only a scale question can be a rating item")
+        if self.scale_labels and self.typ != "skala":
+            raise ValueError(f"{self.id}: only a scale question carries scale labels")
+        _labels_fit(self.scale_labels, self.scale, self.id)
         return self
+
+    @property
+    def end_labels(self) -> tuple[str, str] | None:
+        """The labels of the scale's two ends, whichever form was declared; ``None`` for none."""
+        if not self.scale_labels:
+            return None
+        return (self.scale_labels[0], self.scale_labels[-1])
 
 
 class SpecObject(_Frozen):
@@ -240,7 +289,9 @@ class SpecBattery(_Frozen):
     family: str
     question_template: str
     scale: tuple[int, int]
-    scale_labels: tuple[str, str]
+    #: The scale's verbal labels: the two ends (``vůbec`` / ``velmi`` when the design named
+    #: none), or one per point, low to high.
+    scale_labels: tuple[str, ...]
     objects: tuple[SpecObject, ...]
     familiarity_required: bool
     output_type: str
@@ -262,7 +313,15 @@ class SpecBattery(_Frozen):
             raise ValueError(f"{self.id}: context objects that are not in the set: {unknown}")
         if self.context_objects and set(self.context_objects) == ids:
             raise ValueError(f"{self.id}: a set needs at least one PRIMARY object")
+        if not self.scale_labels:
+            raise ValueError(f"{self.id}: a set's scale needs its labels")
+        _labels_fit(self.scale_labels, self.scale, self.id)
         return self
+
+    @property
+    def end_labels(self) -> tuple[str, str]:
+        """The labels of the scale's two ends, whichever form was declared."""
+        return (self.scale_labels[0], self.scale_labels[-1])
 
     def question_id(self, obj: SpecObject) -> str:
         return f"{self.id}_obj_{obj.id}"
@@ -325,6 +384,8 @@ class ResearchSpecification(_Frozen):
                 del question["rating_item"]
             if not question["research_questions"]:
                 del question["research_questions"]
+            if not question["scale_labels"]:
+                del question["scale_labels"]
         for battery in body["batteries"]:
             if not battery["roles_declared"]:
                 del battery["roles_declared"]
@@ -397,15 +458,83 @@ def _unique(base: str, used: set[str]) -> str:
     return candidate
 
 
+def _scale_end(value: Any) -> int | None:
+    """One end of a scale as a whole number, or ``None``: 2.5 is refused, never truncated to 2
+    (IA-2). A whole float (``5.0``) and a numeral (``"5"``) are the number they write; a
+    boolean is not a number."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value) if value.is_integer() else None
+    if isinstance(value, str):
+        try:
+            return int(value.strip())
+        except ValueError:
+            return None
+    return None
+
+
 def _scale(raw: Any, default: tuple[int, int]) -> tuple[int, int] | None:
     values = list(raw) if isinstance(raw, list | tuple) else list(default)
     if len(values) < 2:
         values = list(default)
-    try:
-        low, high = int(values[0]), int(values[1])
-    except (TypeError, ValueError):
+    low, high = _scale_end(values[0]), _scale_end(values[1])
+    if low is None or high is None:
         return None
     return (low, high) if low < high else None
+
+
+def _scale_labels(
+    raw: Any, scale: tuple[int, int], *, where: str, problems: list[CompileProblem]
+) -> tuple[str, ...] | None:
+    """A scale's verbal labels as declared: the two ends or one per point, low to high.
+
+    ``()`` when none were declared (absent, an empty list, or every label blank); ``None``
+    with a problem when they cannot be read. A list of any other length is
+    ``scale_labels_mismatch``; a blank, repeated or over-long label, or anything but a list
+    of texts, is ``scale_label_invalid``. Nothing is padded, cut or guessed."""
+    if raw is None:
+        return ()
+    if not isinstance(raw, list | tuple) or not all(isinstance(x, str) for x in raw):
+        problems.append(
+            CompileProblem(
+                code="scale_label_invalid",
+                where=where,
+                message=f"{where}: popisky škály musí být seznam textů.",
+            )
+        )
+        return None
+    labels = [_text(x) for x in raw]
+    if not any(labels):
+        return ()
+    points = scale_points(scale)
+    if len(labels) not in (2, points):
+        problems.append(
+            CompileProblem(
+                code="scale_labels_mismatch",
+                where=where,
+                message=(
+                    f"{where}: škála {scale[0]}\u2013{scale[1]} má {points} bodů, popisků je "
+                    f"{len(labels)}. Popište oba konce, nebo každý bod."
+                ),
+            )
+        )
+        return None
+    why = None
+    if not all(labels):
+        why = "popisek bodu škály nesmí být prázdný"
+    elif len({label.casefold() for label in labels}) != len(labels):
+        why = "dva body škály nesmí mít stejný popisek"
+    elif any(len(label) > SCALE_LABEL_MAX for label in labels):
+        why = f"popisek bodu škály smí mít nejvýše {SCALE_LABEL_MAX} znaků"
+    if why is not None:
+        problems.append(
+            CompileProblem(code="scale_label_invalid", where=where, message=f"{where}: {why}.")
+        )
+        return None
+    return tuple(labels)
 
 
 def _links(
@@ -457,6 +586,7 @@ def _question(
     allow_dont_know = bool(raw.get("povolit_nevim", False))  # research_project.py:155
     options: tuple[str, ...] = ()
     scale: tuple[int, int] | None = None
+    scale_labels: tuple[str, ...] = ()
     if typ in ("vyber", "multi"):
         cats = [_text(x) for x in (raw.get("kategorie") or raw.get("volby") or []) if _text(x)]
         cats = list(dict.fromkeys(cats))[:24]  # research_project.py:139-143
@@ -481,6 +611,10 @@ def _question(
                 )
             )
             return None
+        declared = _scale_labels(raw.get("popisky_skaly"), scale, where=qid, problems=problems)
+        if declared is None:
+            return None
+        scale_labels = declared
     rating_item = raw.get("sociomap_rating") is True
     if rating_item and typ != "skala":
         problems.append(
@@ -505,6 +639,7 @@ def _question(
         has_filter=bool(_text(raw.get("filtr"))),
         rating_item=rating_item,
         research_questions=links,
+        scale_labels=scale_labels,
     )
 
 
@@ -551,9 +686,10 @@ def _battery(
     template = _text(raw.get("object_question") or "Jak hodnotíte položku {object}?")
     if "{object}" not in template:  # research_project.py:330-332
         template = template.rstrip(" ?") + " {object}?"
-    scale_labels = [_text(x) for x in (raw.get("scale_labels") or [])][:2]
-    if len(scale_labels) != 2 or not all(scale_labels):
-        scale_labels = ["vůbec", "velmi"]
+    stated = _scale_labels(raw.get("scale_labels"), scale, where=section_id, problems=problems)
+    if stated is None:
+        return None
+    scale_labels = stated or ("vůbec", "velmi")
     used: set[str] = set()
     objects = tuple(
         SpecObject(id=_unique(_slug(label, "o"), used), label=label) for label in labels
@@ -596,7 +732,7 @@ def _battery(
         family=family,
         question_template=template,
         scale=scale,
-        scale_labels=(scale_labels[0], scale_labels[1]),
+        scale_labels=scale_labels,
         objects=objects,
         familiarity_required=bool(raw.get("familiarity_required", False)),
         output_type=output_type

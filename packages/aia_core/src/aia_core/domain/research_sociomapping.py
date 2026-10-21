@@ -203,7 +203,7 @@ def battery_sociomapping(
         "family": battery.family,
         "objects": [{"id": o.id, "label": o.label} for o in battery.objects],
         "rating_scale": [low, high],
-        "scale_labels": list(battery.scale_labels),
+        "scale_labels": list(battery.end_labels),  # the map's legend: its two ends
         "support": {
             "respondents_total": total,
             "respondents_complete": len(complete_ids),

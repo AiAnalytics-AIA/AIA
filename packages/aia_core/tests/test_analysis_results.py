@@ -6,6 +6,7 @@ stored with the one builder the executor uses; nothing here trusts a stored numb
 
 from __future__ import annotations
 
+import copy
 import dataclasses
 import hashlib
 import json
@@ -34,7 +35,7 @@ from aia_core.application.analysis_results import (
 from aia_core.application.report import ReportCompositionRefused, compose_internal_report
 from aia_core.application.report_design import compose_design_sections
 from aia_core.application.report_method import compose_method_section
-from aia_core.application.report_tables import compose_question_tables
+from aia_core.application.report_tables import compose_question_tables, scale_notes
 from aia_core.application.research import research_artifacts
 from aia_core.domain.analysis import ANALYSIS_MODULES, AnalysisModuleId
 from aia_core.domain.analysis.artifact import (
@@ -1286,6 +1287,23 @@ def test_every_question_prints_its_numbers_through_admission_after_the_methodolo
             assert isinstance(label, TextCell) and label.text
             # A number is a ref, never text: suppression and intervals stay the ledger's.
             assert isinstance(value, NumberCell) and value.with_interval
+
+    # Without scale notes no table carries one; with them a scale item's table names its
+    # labelled points beside its values (input-interactions 3b).
+    assert all(t.notes == () for t in printed)
+    labelled = copy.deepcopy(DESIGN)
+    labelled["sections"][0]["questions"][0]["popisky_skaly"] = ["nikdy", "denně"]
+    labelled_spec, _ = compile_design(labelled)
+    assert labelled_spec is not None
+    notes = scale_notes(labelled_spec)
+    assert notes == {"q1": "Škála: 1 = nikdy, 5 = denně."}
+    tables = compose_question_tables(run, items, source="Zmrazený běh", scales=notes)
+    (chapter,) = tables.sections
+    by_title = {t.title: t for t in chapter.blocks if isinstance(t, Table)}
+    noted = {i.text: notes[i.question_id] for i in items if i.question_id in notes}
+    assert noted and all(
+        by_title[title].notes == (note,) for title, note in noted.items() if title in by_title
+    )
 
     first = run.modules[AnalysisModuleId.EXECUTIVE].result
     assert first is not None

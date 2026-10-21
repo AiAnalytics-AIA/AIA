@@ -232,3 +232,109 @@ def test_a_fictional_dataset_needs_n() -> None:
     assert spec is not None
     with pytest.raises(ValueError, match="needs the specification's n"):
         synthetic_dataset(spec, seed=1)
+
+
+# --------------------------------------------------------------------------- #
+# Scale labels and whole-number ends (input-interactions 3b; IA-2, IA-7)
+# --------------------------------------------------------------------------- #
+
+#: ``DESIGN``'s specification fingerprint on develop before scale labels were compiled
+#: (@ 45e87184): a design that declares no label must keep it exactly.
+_FINGERPRINT_BEFORE_LABELS = "c3bdb0965fa401bbdcb96a3ceae59496c3ca275e74c2ddfda40b5fb4310f1447"
+
+
+def _scale_question(**fields: Any) -> dict[str, Any]:
+    return {
+        "n": 100,
+        "sections": [
+            {
+                "type": "questions",
+                "questions": [{"id": "s", "text": "Jak?", "typ": "skala", **fields}],
+            }
+        ],
+    }
+
+
+def test_a_design_without_labels_fingerprints_as_it_always_did() -> None:
+    spec, _ = compile_design(DESIGN)
+    assert spec is not None
+    assert all(q.scale_labels == () for q in spec.questions)
+    assert spec.fingerprint() == _FINGERPRINT_BEFORE_LABELS
+    blank = copy.deepcopy(DESIGN)
+    blank["sections"][0]["questions"][0]["popisky_skaly"] = ["", " "]
+    blank_spec, _ = compile_design(blank)
+    assert blank_spec is not None and blank_spec.fingerprint() == _FINGERPRINT_BEFORE_LABELS
+
+
+def test_a_scale_questions_labels_are_compiled_as_its_ends_or_every_point() -> None:
+    ends, problems = compile_design(
+        _scale_question(skala=[1, 10], popisky_skaly=["vůbec", "zcela"])
+    )
+    assert problems == () and ends is not None
+    (q,) = ends.questions
+    assert q.scale_labels == ("vůbec", "zcela") and q.end_labels == ("vůbec", "zcela")
+    every = ["rozhodně ne", "spíše ne", "nevím", "spíše ano", "rozhodně ano"]
+    points, problems = compile_design(_scale_question(skala=[1, 5], popisky_skaly=every))
+    assert problems == () and points is not None
+    assert points.questions[0].scale_labels == tuple(every)
+    assert points.questions[0].end_labels == ("rozhodně ne", "rozhodně ano")
+    # Declared labels are part of what respondents may be told: they move the fingerprint.
+    bare, _ = compile_design(_scale_question(skala=[1, 10]))
+    assert bare is not None and bare.questions[0].end_labels is None
+    assert bare.fingerprint() != ends.fingerprint()
+
+
+@pytest.mark.parametrize(
+    ("fields", "code"),
+    [
+        ({"skala": [1, 10], "popisky_skaly": ["a", "b", "c"]}, "scale_labels_mismatch"),
+        ({"skala": [1, 5], "popisky_skaly": ["a"]}, "scale_labels_mismatch"),
+        ({"skala": [0, 10], "popisky_skaly": [str(i) for i in range(10)]}, "scale_labels_mismatch"),
+        ({"skala": [1, 5], "popisky_skaly": ["a", "", "c", "d", "e"]}, "scale_label_invalid"),
+        ({"skala": [1, 10], "popisky_skaly": ["vůbec", ""]}, "scale_label_invalid"),
+        ({"skala": [1, 10], "popisky_skaly": ["Ano", "ano"]}, "scale_label_invalid"),
+        ({"skala": [1, 10], "popisky_skaly": ["x" * 61, "y"]}, "scale_label_invalid"),
+        ({"skala": [1, 10], "popisky_skaly": "vůbec-zcela"}, "scale_label_invalid"),
+        ({"skala": [1, 10], "popisky_skaly": [1, 10]}, "scale_label_invalid"),
+        ({"skala": [2.5, 10]}, "invalid_scale"),
+        ({"skala": [1, 9.5]}, "invalid_scale"),
+        ({"skala": [True, 10]}, "invalid_scale"),
+        ({"skala": ["1.5", 10]}, "invalid_scale"),
+    ],
+)
+def test_scale_labels_and_ends_that_cannot_be_read_are_refused_never_guessed(
+    fields: dict[str, Any], code: str
+) -> None:
+    spec, problems = compile_design(_scale_question(**fields))
+    assert spec is None
+    assert [p.code for p in problems] == [code]
+
+
+def test_a_whole_number_end_written_otherwise_is_the_number_it_writes() -> None:
+    for skala in ([1.0, 10.0], ["1", " 10 "]):
+        spec, problems = compile_design(_scale_question(skala=skala))
+        assert problems == () and spec is not None and spec.questions[0].scale == (1, 10)
+
+
+def test_a_label_of_sixty_characters_is_kept() -> None:
+    spec, problems = compile_design(_scale_question(skala=[1, 10], popisky_skaly=["x" * 60, "y"]))
+    assert problems == () and spec is not None
+
+
+def test_a_sets_labels_follow_the_same_rule() -> None:
+    battery = DESIGN["sections"][1]
+    every = [f"bod {i}" for i in range(1, 11)]
+    spec, problems = compile_design({**DESIGN, "sections": [{**battery, "scale_labels": every}]})
+    assert problems == () and spec is not None
+    assert spec.batteries[0].scale_labels == tuple(every)
+    assert spec.batteries[0].end_labels == ("bod 1", "bod 10")
+    default, _ = compile_design({**DESIGN, "sections": [battery]})
+    assert default is not None and default.batteries[0].scale_labels == ("vůbec", "velmi")
+    for labels, code in (
+        (["a", "b", "c"], "scale_labels_mismatch"),
+        (["a", "a"], "scale_label_invalid"),
+    ):
+        _, problems = compile_design({**DESIGN, "sections": [{**battery, "scale_labels": labels}]})
+        assert [p.code for p in problems] == [code]
+    _, problems = compile_design({**DESIGN, "sections": [{**battery, "scale": [1, 7.5]}]})
+    assert [p.code for p in problems] == ["invalid_scale"]

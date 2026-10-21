@@ -344,7 +344,8 @@ class Item:
     labels: tuple[str, ...] = ()
     scale: tuple[int, int] | None = None
     allow_dont_know: bool = False
-    scale_labels: tuple[str, str] | None = None
+    #: The scale's verbal labels: the two ends or one per point (``research_design``).
+    scale_labels: tuple[str, ...] | None = None
     question: SpecQuestion | None = None
 
     @property
@@ -567,7 +568,7 @@ def _instruction(item: Item) -> str:
         assert item.scale is not None
         low, high = item.scale
         ends = (
-            f" ({low} = {item.scale_labels[0]}, {high} = {item.scale_labels[1]})"
+            f" ({low} = {item.scale_labels[0]}, {high} = {item.scale_labels[-1]})"
             if item.scale_labels
             else ""
         )

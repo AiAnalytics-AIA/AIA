@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from aia_core.application.report_design import compose_design_sections
+from aia_core.application.report_tables import scale_notes
 from aia_core.domain.report.model import BulletList, Paragraph, Text
 from aia_core.domain.research_design import compile_design
 
@@ -101,3 +102,36 @@ def test_a_sets_count_agrees_with_its_words() -> None:
     assert "Nápoje — 5 položek hodnocených otázkou" in _words(
         compose_design_sections(spec, ()).chapter.blocks
     )
+
+
+def test_a_scales_labels_are_printed_beside_its_values() -> None:
+    """input-interactions 3b: what respondents were told a point means is in the appendix and
+    under the point's table, the two ends or every point."""
+    every = [f"bod {i}" for i in range(1, 11)]
+    labelled = {
+        **DESIGN,
+        "sections": [
+            {
+                "type": "questions",
+                "questions": [
+                    {**DESIGN["sections"][0]["questions"][0], "popisky_skaly": ["nikdy", "denně"]},
+                    *DESIGN["sections"][0]["questions"][1:],
+                ],
+            },
+            {**DESIGN["sections"][1], "scale_labels": every},
+        ],
+    }
+    spec, problems = compile_design(labelled)
+    assert spec is not None, problems
+    words = _words(compose_design_sections(spec, ()).appendix.blocks)
+    assert "Jak často pijete kávu? — škála 1\u20135 (1 = nikdy, 5 = denně)" in words
+    assert "škála 1\u201310 (1 = bod 1, 2 = bod 2," in words and "10 = bod 10)" in words
+    chapter = _words(compose_design_sections(spec, ()).chapter.blocks)
+    assert "na škále 1 (bod 1) až 10 (bod 10)" in chapter
+    notes = scale_notes(spec)
+    assert notes["q1"] == "Škála: 1 = nikdy, 5 = denně."
+    assert notes["napoje_obj_kava"].startswith("Škála: 1 = bod 1, 2 = bod 2,")
+    assert "q2" not in notes
+    bare, _ = compile_design(DESIGN)
+    assert bare is not None and "q1" not in scale_notes(bare)
+    assert scale_notes(bare)["napoje_obj_kava"] == "Škála: 1 = vůbec, 10 = velmi."
