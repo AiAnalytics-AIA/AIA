@@ -5,7 +5,8 @@ started the paid work. :func:`charged_to` is that rule, over facts the infrastru
 the approval ledger and the run (``WorkflowRepository``), in this order:
 
 1. the person who **lifted the budget** of the run, the latest lift before the hold (a lift
-   approves the run's further paid work; ``ApprovalSubject.BUDGET``);
+   approves the run's further paid work; ``ApprovalSubject.BUDGET``). Whoever lifts the budget
+   pays for what runs after the lift: Q67, the product owner, 2026-10-21 20:12 UTC, choice (a);
 2. the person whose **approval let the run start**: a spend confirmation, an answerability
    acknowledgement, a chat start or a plan step naming the run, or the Lead card whose approval
    started it (:data:`START_APPROVALS`, :data:`CARD_APPROVAL`). Two different people there is no

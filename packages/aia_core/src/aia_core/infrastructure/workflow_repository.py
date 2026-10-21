@@ -164,7 +164,8 @@ def _binding_identity(binding: PopulationBinding | None) -> tuple[str, ...] | No
 def charged_to_for_run(
     session: Session, run: WorkflowRunRow, *, at: datetime | None = None
 ) -> str | None:
-    """The person a hold of ``run`` made now (or at ``at``) is booked to (Q40,
+    """The person a hold of ``run`` made now (or at ``at``) is booked to (Q40; the lifter pays
+    for what runs after a lift, Q67, the product owner, 2026-10-21 20:12 UTC, choice (a);
     ``develop-spend-attribution`` 7): ``domain.spend_attribution.charged_to`` over what the
     approval ledger and the run record. Read here because this module is one of the ledger's two
     readers (``make layer_check``).

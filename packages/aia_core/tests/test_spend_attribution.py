@@ -102,7 +102,7 @@ def test_the_activities_follow_the_workflows_and_stages_they_name() -> None:
 def test_the_start_approvals_are_ledger_subjects() -> None:
     assert {s.value for s in START_APPROVALS} == set(_migration()._START_APPROVALS)
     assert CARD_APPROVAL.value == _migration()._CARD
-    assert _migration().down_revision == "60ccc9ff42cf"
+    assert _migration().down_revision == "c663617cf79b"
 
 
 def test_the_periods_are_utc_months_and_the_year() -> None:

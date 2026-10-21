@@ -1,7 +1,7 @@
 """per-researcher spend attribution
 
 Revision ID: 568761e1c719
-Revises: 60ccc9ff42cf
+Revises: c663617cf79b
 Created: 2026-10-21 14:30:00.000000+00:00
 
 ``develop-spend-attribution`` chunk 7 (Q40, the product owner, 2026-10-21): a charge is booked
@@ -11,9 +11,14 @@ the tool-spend rows until ``deep-research`` 4 gives tools a ledger -- and on
 ``ai_usage_events``; with ``ix_reservations_charged_to``, ``ix_usage_charged_to`` and
 ``ix_usage_reservation`` for the per-person read.
 
+Chained after ``c663617cf79b`` (the Lead turn's typed command), which it does not depend on: that
+revision adds ``study_lead_turns.command`` only, and the backfill below reads the approval ledger,
+whose ``chat_start`` rows name their run in ``run_id`` either way.
+
 **The backfill takes the person only from the approval ledger, exactly.** A past hold is booked
 to the person who lifted its run's budget (the latest ``budget`` row with decision ``lift`` and
-the hold's ``run_id``, written no later than the hold), else to the one person whose approval
+the hold's ``run_id``, written no later than the hold; the lifter pays for what runs after the
+lift, Q67, the product owner, 2026-10-21 20:12 UTC, choice (a)), else to the one person whose approval
 started the run (``spend``, ``answerability``, ``chat_start``, ``plan_step`` rows naming the run
 in ``run_id``, and the ``lead_job_request`` row whose comment names it as ``agent_run_id``),
 the same rule ``domain/spend_attribution.py`` ``charged_to`` applies to a new hold, without its
@@ -36,7 +41,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "568761e1c719"
-down_revision: str | None = "60ccc9ff42cf"
+down_revision: str | None = "c663617cf79b"
 branch_labels = None
 depends_on = None
 
