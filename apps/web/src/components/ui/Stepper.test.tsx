@@ -174,6 +174,31 @@ describe("Stepper (I2): bounded numbers, refused and never clamped", () => {
     expect(screen.getByText(/Neuloženo/)).toBeTruthy();
   });
 
+  it("clears a failure once the value that failed has become the saved one (review of #532)", async () => {
+    const save = vi.fn().mockRejectedValueOnce(new Error("x"));
+    const { rerender } = render(<Stepper label="Počet" value={80} onCommit={save} min={0} max={500} />);
+    fireEvent.keyDown(screen.getByRole("spinbutton", { name: "Počet" }), { key: "ArrowUp" });
+    expect(await screen.findByText(/Neuloženo/)).toBeTruthy();
+    // Saved meanwhile by another way: the caller's value is now 81.
+    rerender(<Stepper label="Počet" value={81} onCommit={save} min={0} max={500} />);
+    fireEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }));
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(/Neuloženo/)).toBeNull();
+  });
+
+  it("waits for any thenable, not only a native Promise (review of #532)", async () => {
+    let fail!: () => void;
+    const thenable = { then: (_ok: () => void, bad: () => void) => void (fail = bad) };
+    render(<Stepper label="Počet" value={80} onCommit={() => thenable as unknown as PromiseLike<void>} min={0} max={500} />);
+    const input = screen.getByRole("spinbutton", { name: "Počet" }) as HTMLInputElement;
+    fireEvent.keyDown(input, { key: "ArrowUp" });
+    expect(screen.getByText("Ukládám…")).toBeTruthy();
+    expect(input.value).toBe("81");
+    await act(async () => fail());
+    expect(input.value).toBe("80");
+    expect(screen.getByText(/Neuloženo/)).toBeTruthy();
+  });
+
   it("steps from the value an answered save left unchanged (Codex #532)", async () => {
     let accept!: () => void;
     const save = vi.fn(() => new Promise<void>((resolve) => (accept = resolve)));

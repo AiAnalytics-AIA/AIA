@@ -9,7 +9,7 @@
 import { type KeyboardEvent, type ReactNode, useId, useRef, useState } from "react";
 
 import { tv, t } from "@/i18n/t";
-import type { SaveState } from "@/lib/inline-edit";
+import { type SaveState, isThenable } from "@/lib/inline-edit";
 import { type NumberBounds, canStep, formatNumber, numberProblemWords, rangeWords, readNumber, stepNumber } from "@/lib/number-input";
 import { Icon } from "../rehome/icons";
 import { FIELD_ERROR, FOCUS, SaveNote } from "./parts";
@@ -24,7 +24,7 @@ export function Stepper({
    * is pending, Neuloženo – Zkusit znovu when it rejects or throws); return nothing for a value
    * kept at once.
    */
-  onCommit: (value: number) => void | Promise<unknown>;
+  onCommit: (value: number) => void | PromiseLike<unknown>;
   /**
    * Told when the field holds a refused value (the words) and when it no longer does (null): what
    * is typed there is then not the saved value, and an action beside it must not act on either.
@@ -73,14 +73,24 @@ export function Stepper({
   const latest = useRef(0);
   const saved = sent ?? value;
   const commit = (next: number) => {
-    if (next === saved) return;
+    if (next === saved) {
+      // Nothing to send; and a failure for this very value is over: the caller holds it now
+      // (review of #532: a retry of a value that became `value` stayed stuck on Neuloženo).
+      if (failed !== null) {
+        latest.current++;
+        setFailed(null);
+        setSave("idle");
+      }
+      return;
+    }
     const op = ++latest.current;
+    setFailed(null);
     const fail = () => {
       setSent(null);
       setFailed(next);
       setSave("failed");
     };
-    let result: void | Promise<unknown>;
+    let result: unknown;
     // A synchronous throw is the same refusal as a rejected promise (Codex on #532), as in InlineText.
     try {
       result = onCommit(next);
@@ -88,7 +98,7 @@ export function Stepper({
       fail();
       return;
     }
-    if (!(result instanceof Promise)) {
+    if (!isThenable(result)) {
       setSent(null);
       setSave("idle");
       return;
