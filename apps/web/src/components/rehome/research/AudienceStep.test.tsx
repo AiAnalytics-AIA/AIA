@@ -162,14 +162,21 @@ describe("Audience", () => {
       noUnitCalls();
     });
 
-    it("names the description, the filters, each factor and the preview for the Lead to focus", async () => {
-      aiaStub({ ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", filters: {} } }, live());
+    it("names the description, the filters, each stored filter and the preview for the Lead to focus", async () => {
+      // prijem is outside the category the editor opens on, so its editor is not drawn: its
+      // target is the chip every stored filter has.
+      const income = { ...CATALOGUE.factors[1]!, id: "prijem", column: "prijem", label: "Příjem domácnosti", category: "economy", category_label: "Ekonomika", values: [{ value: "Nad 60 000 Kč", count: 20 }] };
+      const catalogue = { ...CATALOGUE, categories: [...CATALOGUE.categories, { id: "economy", label: "Ekonomika", description: "", count: 1, filterable_count: 1 }], factors: [...CATALOGUE.factors, income] };
+      const filters = { kraj: ["Zlínský kraj"], vek: { min: 30, max: 59 }, prijem: ["Nad 60 000 Kč"] };
+      aiaStub({ ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", filters } }, { [CAT]: () => catalogue });
       const { container } = render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
       await screen.findByText(/z populace v17_4_0/);
-      for (const target of ["audience:definition", "audience:filters", "audience:filter:kraj", "audience:filter:vek", "audience:preview"]) {
+      expect(screen.queryByRole("checkbox", { name: /Nad 60 000 Kč/ })).toBeNull();
+      for (const target of ["audience:definition", "audience:filters", "audience:filter:kraj", "audience:filter:vek", "audience:filter:prijem", "audience:preview"]) {
         expect(container.querySelectorAll(focusSelector(target)), target).toHaveLength(1);
       }
       expect(container.querySelector(focusSelector("audience:filter:kraj"))!.textContent).toContain("Zlínský kraj");
+      expect(container.querySelector(focusSelector("audience:filter:prijem"))!.textContent).toContain("Příjem domácnosti");
       expect(container.querySelector(focusSelector("audience:preview"))!.textContent).toContain("Ověřit proveditelnost");
     });
 

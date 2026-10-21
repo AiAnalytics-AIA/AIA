@@ -177,7 +177,9 @@ try {
       await page.locator(`[data-aia="${target}"]`).waitFor({ timeout: 30000 });
       assert.equal(await page.locator(`[data-aia="${target}"]`).count(), 1, `${target} @${width}`);
     }
-    assert(await page.locator('[data-aia^="audience:filter:"]').count() > 0, `a factor target @${width}`);
+    // Every stored filter's chip carries its target, whichever factors the editor shows.
+    const chips = await page.getByRole("button", { name: /^Odebrat filtr/ }).count();
+    assert.equal(await page.locator('[data-aia^="audience:filter:"]').count(), chips, `a target per stored filter @${width}`);
     await noOverflow(`audience @${width}`);
     await shot(`${width}-audience`);
   }

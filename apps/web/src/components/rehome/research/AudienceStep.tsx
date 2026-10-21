@@ -77,7 +77,11 @@ import { AiFailureCard, useAiStep } from "./useAiStep";
  * focuses them through lib/lead.ts focusSelector's `data-aia` fall-through.
  */
 export const AUDIENCE_TARGET = { definition: "audience:definition", filters: "audience:filters", preview: "audience:preview" } as const;
-/** One factor's target: its catalogue id, as the stored filters key it (`audience:filter:kraj`). */
+/**
+ * One stored filter's target, by its factor's catalogue id (`audience:filter:kraj`). It sits on the
+ * filter's chip under "Vybrané filtry", which every stored filter has whatever category, search or
+ * 80-factor cut the editor shows; a factor's editor may be off screen.
+ */
 export const audienceFactorTarget = (factorId: string) => `audience:filter:${factorId}`;
 /** One built-in subpanel's target, by its key (`audience:subpanel:young_18_29`). */
 export const audienceSubpanelTarget = (key: string) => `audience:subpanel:${key}`;
@@ -321,7 +325,7 @@ function FilterEditor({ live }: { live: Live }) {
             <p className="mt-3 text-xs text-ink-muted">{live.state === "ready" ? t("research.audience.selectedFilters") : t("research.audience.storedFilters")}</p>
             <ul className="mt-1 flex flex-wrap gap-1.5">
               {chips.map((c) => (
-                <li key={c.id} className="inline-flex items-center gap-1 rounded-sm border border-signal-edge bg-signal-wash py-0.5 pl-2 pr-0.5 text-xs">
+                <li key={c.id} data-aia={audienceFactorTarget(c.id)} className="inline-flex items-center gap-1 rounded-sm border border-signal-edge bg-signal-wash py-0.5 pl-2 pr-0.5 text-xs">
                   <b>{c.label}</b>: {c.text}
                   <button
                     type="button"
@@ -388,7 +392,7 @@ function FactorEditor({ factor, project, onChange }: { factor: Factor; project: 
     const { lo, hi } = rangeOf(project, factor.id);
     const commit = (min: string, max: string) => onChange(setRange(project, factor.id, min, max));
     return (
-      <fieldset data-aia={audienceFactorTarget(factor.id)} className="rounded-control border border-border p-3" disabled={!!refusal}>
+      <fieldset className="rounded-control border border-border p-3" disabled={!!refusal}>
         <legend className="px-1 text-sm font-medium">{legend}</legend>
         {refusal ? <p className="text-xs text-ink-muted">{refusal}</p> : null}
         <div className="flex flex-wrap items-end gap-2">
@@ -413,7 +417,7 @@ function FactorEditor({ factor, project, onChange }: { factor: Factor; project: 
     onChange(setAudienceCategory(project, factor.id, [...next]));
   };
   return (
-    <fieldset data-aia={audienceFactorTarget(factor.id)} className="rounded-control border border-border p-3" disabled={!!refusal}>
+    <fieldset className="rounded-control border border-border p-3" disabled={!!refusal}>
       <legend className="px-1 text-sm font-medium">{legend}</legend>
       {refusal ? <p className="text-xs text-ink-muted">{refusal}</p> : null}
       <div className="flex flex-wrap gap-x-4 gap-y-1">
