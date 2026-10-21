@@ -159,7 +159,7 @@ export const ARTIFACTS: Readonly<Record<WorkbenchStage, ArtifactContract>> = {
 
 /** The display filters a stage's `filter` operation names; a filter never changes a computation. */
 export const VIEW_FILTERS: Readonly<Partial<Record<WorkbenchStage, readonly string[]>>> = {
-  sociomap: ["hide_weak", "labels", "view"],
+  sociomap: ["view", "labels", "hide_weak", "mode", "battery"],
 };
 
 /** The stage each target kind belongs to: the one artifact whose screen carries it. */
@@ -171,7 +171,8 @@ export const TARGET_STAGE: Readonly<Record<TargetKind, WorkbenchStage>> = Object
 export const allowsView = (stage: WorkbenchStage, op: string): boolean =>
   (ARTIFACTS[stage].view_ops as readonly string[]).includes(op);
 
-const ID = /^[A-Za-z0-9_.\-~/]{1,80}$/;
+/** An id: letters, digits and _ . - ~ / and : (an id may hold parts, e.g. finding:<module>:<n>). */
+const ID = /^[A-Za-z0-9_.\-~/:]{1,120}$/;
 
 /**
  * The `data-aia` id a screen puts on an element the Lead can name: `<kind>:<id>`. One builder, so a

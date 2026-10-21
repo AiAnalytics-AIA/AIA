@@ -49,6 +49,8 @@ describe("aiaId / parseAiaId", () => {
     expect(aiaId("pair", "fio~air")).toBe("pair:fio~air");
     expect(parseAiaId("pair:fio~air")).toEqual({ kind: "pair", id: "fio~air", stage: "sociomap" });
     expect(parseAiaId(aiaId("question", "q3"))).toEqual({ kind: "question", id: "q3", stage: "questionnaire" });
+    expect(parseAiaId(aiaId("finding", "executive:2"))).toEqual({ kind: "finding", id: "executive:2", stage: "analysis" });
+    expect(parseAiaId(aiaId("pair", "set1/fio~air"))?.stage).toBe("sociomap");
     expect(parseAiaId(aiaId("step", "analysis/executive"))).toEqual({ kind: "step", id: "analysis/executive", stage: "fieldwork" });
   });
 

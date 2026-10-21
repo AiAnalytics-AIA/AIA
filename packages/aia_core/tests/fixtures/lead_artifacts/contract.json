@@ -1,5 +1,5 @@
 {
-  "description": "The Lead's per-artifact contract (research-lead-workbench chunks 14-16, the hand-offs of artifact-chain-to-draft-report). One row per workbench stage, in STAGE_ORDER, every field required. It records which display operations the Lead may run on the artifact (view_ops), which of its elements it can name (targets, the `data-aia` id `<kind>:<id>` a screen puts on the element), which workers and requests its cards start (starts), whether the Lead's edits land there (edits), what it is made from (inputs) and what it hands on, in what form (hands_off), and which internal report sections it feeds (report_sections, by the id the composer gives the Section). `live` marks what works today; anything else is the contract a screen builds to. Read by packages/aia_core/tests/test_lead_artifacts.py against domain/lead_artifacts.py and by apps/web/src/lib/workbench-artifacts.test.ts against lib/workbench-artifacts.ts, so a change to either side is a change to this file too.",
+  "description": "The Lead's per-artifact contract (research-lead-workbench chunks 14-16, the hand-offs of artifact-chain-to-draft-report). One row per workbench stage, in STAGE_ORDER, every field required. It records which display operations the Lead may run on the artifact (view_ops), which of its elements it can name (targets, the `data-aia` id `<kind>:<id>` a screen puts on the element; the kind is everything before the first colon, and an id may itself hold colon-separated parts, e.g. `finding:<module>:<n>`), which workers and requests its cards start (starts), whether the Lead's edits land there (edits), what it is made from (inputs) and what it hands on, in what form (hands_off), and which internal report sections it feeds (report_sections, by the id the composer gives the Section). `live` marks what works today; anything else is the contract a screen builds to. Read by packages/aia_core/tests/test_lead_artifacts.py against domain/lead_artifacts.py and by apps/web/src/lib/workbench-artifacts.test.ts against lib/workbench-artifacts.ts, so a change to either side is a change to this file too.",
   "fields": [
     "stage",
     "artifact",
@@ -46,9 +46,11 @@
   ],
   "filters": {
     "sociomap": [
-      "hide_weak",
+      "view",
       "labels",
-      "view"
+      "hide_weak",
+      "mode",
+      "battery"
     ]
   },
   "targets": [
@@ -127,7 +129,7 @@
     {
       "kind": "sample",
       "stage": "sample",
-      "id": "n|quotas|support|<readiness check id>",
+      "id": "n|size|quota:<cell>|forecast|forecast:<item>|ready:<readiness check id>",
       "live": false
     },
     {
@@ -145,13 +147,13 @@
     {
       "kind": "object",
       "stage": "sociomap",
-      "id": "<object id>",
+      "id": "<battery>/<object id>",
       "live": false
     },
     {
       "kind": "pair",
       "stage": "sociomap",
-      "id": "<object id>~<object id>",
+      "id": "<battery>/<object id>~<object id>",
       "live": false
     },
     {
@@ -163,13 +165,13 @@
     {
       "kind": "finding",
       "stage": "analysis",
-      "id": "<module>.<index>",
+      "id": "<module>:<n>",
       "live": false
     },
     {
       "kind": "claim",
       "stage": "analysis",
-      "id": "<claim id>",
+      "id": "<module>:<claim id>",
       "live": false
     },
     {
