@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import type { ResearchProject } from "./model";
 import type { Section } from "./questionnaire";
-import { comparisonOf, danglingLinks, linksOf, proposedTrace, researchQuestionsOf, setComparison, setConceptTest, toggleQuestionLink, toggleSectionLink, togglesConceptTest } from "./trace";
+import { comparisonOf, coverageOf, danglingLinks, linksOf, proposedTrace, researchQuestionsOf, setComparison, setConceptTest, toggleQuestionLink, toggleSectionLink, togglesConceptTest } from "./trace";
 
 const RQ1 = "Jak často lidé pijí kávu?";
 const RQ2 = "Jak lidé vnímají ranní nápoje?";
@@ -90,5 +90,34 @@ describe("what a proposed design links each research question to (run-recovery-a
       { researchQuestion: RQ1, measures: ["Jak často pijete kávu?", "Nápoje"], comparison: "describe" },
       { researchQuestion: RQ2, measures: [], comparison: null },
     ]);
+  });
+});
+
+describe("Dotazník's coverage strip", () => {
+  it("counts the items a respondent answers and what measures each research question", () => {
+    const p = project({
+      sections: [
+        { type: "questions", questions: [{ text: "A?", typ: "vyber", research_questions: [RQ1] }, { text: "B?", typ: "skala", research_questions: [`  ${RQ1} `, RQ1] }] },
+        { type: "object_battery", title: "Nápoje", objects: ["Káva", "Čaj", "Káva", " "], research_questions: [RQ1] },
+        { type: "intro", questions: [{ text: "Skryto?", research_questions: [RQ2] }] },
+      ],
+    } as never);
+    // Two questions, then the set's two distinct objects, each carrying the set's link.
+    expect(coverageOf(p)).toEqual({ items: 4, linked: true, questions: [{ researchQuestion: RQ1, measures: 4 }, { researchQuestion: RQ2, measures: 0 }] });
+  });
+
+  it("declares nothing through a linked set without objects, as the server's trace has no item for it", () => {
+    const p = project({ sections: [{ type: "object_battery", title: "Prázdná", objects: [], research_questions: [RQ1] }] } as never);
+    expect(coverageOf(p)).toEqual({ items: 0, linked: false, questions: [{ researchQuestion: RQ1, measures: 0 }, { researchQuestion: RQ2, measures: 0 }] });
+  });
+
+  it("leaves coverage unknown, never a gap, until some item declares a link", () => {
+    expect(coverageOf(project())).toEqual({ items: 4, linked: false, questions: [{ researchQuestion: RQ1, measures: 0 }, { researchQuestion: RQ2, measures: 0 }] });
+  });
+
+  it("counts a link to no stated research question as declared, as the server's trace does", () => {
+    const p = project({ sections: [{ type: "questions", questions: [{ text: "A?", typ: "vyber", research_questions: ["Jiná otázka?"] }] }] } as never);
+    expect(coverageOf(p).linked).toBe(true);
+    expect(coverageOf(p).questions.every((q) => q.measures === 0)).toBe(true);
   });
 });

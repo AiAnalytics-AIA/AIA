@@ -176,7 +176,13 @@ class Worker:
         """Run until :meth:`request_stop`. Never raises for a failed iteration."""
         log.info(
             "worker started",
-            extra={"fields": {"kinds": sorted(self._kinds), "build_sha": self._settings.build_sha}},
+            extra={
+                "fields": {
+                    "kinds": sorted(self._kinds),
+                    "build_sha": self._settings.build_sha,
+                    "data_class_gates": self._settings.data_class_gates.value,
+                }
+            },
         )
         while not self._stopping.is_set():
             did_work = False

@@ -42,11 +42,13 @@ import {
 } from "@/research/plan";
 import type { Analysis } from "@/research/store";
 import { applyPlanSets, lines, proposalAnalysis, validMeasurement } from "@/research/plan-edit";
+import { DesignCoverage } from "./DesignCoverage";
 import { ProposalEditor } from "./ProposalEditor";
 import { Icon, type IconName } from "../icons";
 import { ActionDock, ChipInput, InlineConfirm, StepSection } from "../step";
 import { AiButton, Button, Field, TextArea, TextInput } from "../ui";
 import { useResearch } from "./context";
+import { SavedForLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AnalysisFailureCard, modeOf, useAnalysis } from "./useAnalysis";
 import { readyLimits, useSampleLimits } from "./useSampleLimits";
 
@@ -120,6 +122,10 @@ export function PlanStep() {
     return () => window.removeEventListener("hashchange", read);
   }, [drawn]);
   const [answers, setAnswers] = useState<string[]>([]);
+  // In the workbench the Lead updates the design from the person's answers and comments (the owner,
+  // 2026-10-21): these controls save them into the working copy only, with no paid call.
+  const leadOwnsAiStarts = useLeadOwnsAiStarts();
+  const [savedForLead, setSavedForLead] = useState<"answers" | "comments" | null>(null);
   // Comments still being typed: a quote and its text, kept on the page until they have text.
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const seq = useRef(0);
@@ -222,6 +228,7 @@ export function PlanStep() {
         void resume(id).then((ok) => { if (ok && comments) toast(t("research.plan.commentsDone")); });
       }} /> : null}
       {variantSection}
+      <DesignCoverage />
       <Commentable onQuote={(quote) => setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }])}>
         <div className="flex flex-col gap-4">
           <Understanding n={++n} analysis={a} goal={p.goal || ""} changed={Boolean(p.ui_state.plan_changed26)} editing={editingNarrative} setEditing={setEditingNarrative} blocked={editingSet !== null || busy} />
@@ -236,28 +243,39 @@ export function PlanStep() {
           answered={answered}
           setAnswers={setAnswers}
           busy={busy || editing}
+          saveOnly={leadOwnsAiStarts}
           onSubmit={async () => {
             const r = answerFollowUps(store.get().project, followUpAnswers(questions, answers));
             if ("error" in r) return r.error;
             store.update(() => ({ project: r.project }));
             setAnswers([]);
-            await analyse();
+            if (leadOwnsAiStarts) setSavedForLead("answers");
+            else await analyse();
             return null;
           }}
         />
       ) : null}
+      {savedForLead === "answers" ? <SavedForLead saved="Odpovědi jsou uložené" message="Aktualizuj návrh podle mých odpovědí." /> : null}
       <Comments
         n={++n}
         busy={busy || editing}
         drafts={drafts}
         setDrafts={setDrafts}
+        saveOnly={leadOwnsAiStarts}
         onProcess={async () => {
           const reviewed = commentsToReview(store.get().project);
           if (!reviewed) return;
+          if (leadOwnsAiStarts) {
+            // The plan is marked as changed by comments, as the analysis by comments marks it.
+            store.update(() => ({ project: { ...reviewed, ui_state: { ...reviewed.ui_state, plan_changed26: true } } }), { reason: "plan_comments_applied26", invalidateCheck: false });
+            setSavedForLead("comments");
+            return;
+          }
           store.update(() => ({ project: reviewed }), { reason: "plan_comments_applied26", invalidateCheck: false });
           if (await analyse({ force: true, byComments: true })) toast(t("research.plan.commentsDone"));
         }}
       />
+      {savedForLead === "comments" ? <SavedForLead saved="Komentáře jsou uložené" message="Aktualizuj návrh podle mých komentářů." /> : null}
       {dock}
     </div>
   );
@@ -592,7 +610,9 @@ function MeasurementEditor({ set, onSave, onCancel }: { set: TrackedSet; onSave:
   </form>;
 }
 
-function FollowUps({ n, questions, answers, answered, setAnswers, busy, onSubmit }: {
+function FollowUps({ n, questions, answers, answered, setAnswers, busy, onSubmit, saveOnly = false }: {
+  /** The workbench: the answers are saved for the Lead, with no AI call from here. */
+  saveOnly?: boolean;
   n: number;
   questions: string[];
   answers: string[];
@@ -633,15 +653,19 @@ function FollowUps({ n, questions, answers, answered, setAnswers, busy, onSubmit
         ))}
       </ol>
       {error ? <p role="alert" className="mt-2 text-sm text-status-fault">{error}</p> : null}
-      <AiButton
-        className="mt-4"
-        disabled={busy}
-        onClick={async () => {
-          setError(await onSubmit());
-        }}
-      >
-        {t("research.plan.followSubmit")}
-      </AiButton>
+      {saveOnly ? (
+        <Button className="mt-4" disabled={busy} onClick={async () => setError(await onSubmit())}>Uložit odpovědi</Button>
+      ) : (
+        <AiButton
+          className="mt-4"
+          disabled={busy}
+          onClick={async () => {
+            setError(await onSubmit());
+          }}
+        >
+          {t("research.plan.followSubmit")}
+        </AiButton>
+      )}
     </StepSection>
   );
 }
@@ -694,7 +718,9 @@ function Commentable({ onQuote, children }: { onQuote: (quote: string) => void; 
   );
 }
 
-function Comments({ n, busy, drafts, setDrafts, onProcess }: {
+function Comments({ n, busy, drafts, setDrafts, onProcess, saveOnly = false }: {
+  /** The workbench: the comments are saved for the Lead, with no AI call from here. */
+  saveOnly?: boolean;
   n: number;
   busy: boolean;
   drafts: Draft[];
@@ -753,9 +779,13 @@ function Comments({ n, busy, drafts, setDrafts, onProcess }: {
           ))}
         </ul>
       ) : null}
-      <AiButton className={cs.length || drafts.length ? "mt-4" : ""} disabled={!cs.length || busy} onClick={() => void onProcess()}>
-        {t("research.plan.commentsProcess")}
-      </AiButton>
+      {saveOnly ? (
+        <Button className={cs.length || drafts.length ? "mt-4" : ""} disabled={!cs.length || busy} onClick={() => void onProcess()}>Uložit komentáře</Button>
+      ) : (
+        <AiButton className={cs.length || drafts.length ? "mt-4" : ""} disabled={!cs.length || busy} onClick={() => void onProcess()}>
+          {t("research.plan.commentsProcess")}
+        </AiButton>
+      )}
     </StepSection>
   );
 }

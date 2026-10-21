@@ -1,13 +1,15 @@
 ---
-status: planned
+status: in-progress
 chunks:
   - "[ ] RES1. Výsledky's contract as data: view operations, pointable ids (measure, set, object row, open question) and V2's interaction contract"
   - "[ ] RES2. Results read admitted rows from the server: suppression and support decided there, no raw aggregate read by the screen"
   - "[ ] RES3. The body as V2 draws it: each set's means with intervals and Kish n, suppressed rows with their reason, the reading line (an order only where intervals part), shares with bases"
   - "[ ] RES4. Původ a kvalita and the reopened note: run, revision, origin, suppression rule, QC count; 'Výsledky běhu z revize N; studie je na revizi M' when the design moved"
-  - "[ ] RES5. Open answers on Results: up to five raw answers per open question, internal only and labelled as data (RQ1 = Q52 a), and their coded counts once coding exists"
+  - "[x] RES5a. Open answers on Results: up to five raw answers per open question, internal only and labelled as data (RQ1 = Q52 a)"
+  - "[ ] RES5b. Their coded counts once coding exists (after assumptions-and-open-answer-coding#AOC8)"
   - "[ ] RES6. The Lead on Výsledky: Interpretation Research on a question or a set as a Lead card, the stage's own client-knowledge ask removed"
   - "[ ] RES7. Journey: Výsledky at 1440, 1100, 768 and 390 px on a fictional run, zero paid jobs"
+  - "[ ] RES8. CSV and XLSX export of the run's per-question tables, every cell an admitted claim, from the aggregate (report-delivery#RD12, moved here by the PM 2026-10-21)"
 ---
 # Artifact: Výsledky (Results)
 
@@ -107,6 +109,15 @@ připuštěná evidence; nejsou kódované", internal only: never exported, neve
 (RD0's no-drill-down rule). Coded counts after `assumptions-and-open-answer-coding#AOC8`. Test: at
 most five answers show; no export or client report contains one.
 
+RES5a, as built: the raw answers were already in the aggregate (`verbatimy`, up to 200,
+`research_aggregate.py:827`) and already shown, five at most, inside each open question's closed
+details (`research-execution.ts` `resultTable`), unlabelled. §8 "AIA shows none today" was wrong.
+The answers now show on the card itself, quoted, under "data, ne připuštěná evidence; nejsou
+kódované", five at most (`OPEN_ANSWER_EXAMPLES`); a suppressed open question shows none, as
+before. "Never exported, never in a client deliverable" is held by
+`test_open_answers_stay_internal.py`: no Python module but the aggregate names `verbatimy`, so no
+report, analysis prompt or export reads them; RES8's export test repeats it for the file.
+
 **RES6. The Lead on Výsledky.**
 - `ExecutionSteps.tsx:1415`'s ask is removed under `leadOwnsAiStarts`; an Interpretation Research
   card targets a measure.
@@ -121,11 +132,23 @@ most five answers show; no export or client report contains one.
   - an Interpretation Research card on 12a's recorded web.
 - Zero paid jobs. 768 and 390 px depend on `research-lead-workbench#26b`-`#26d`.
 
+**RES8. Export (report-delivery#RD12).** Moved here by the PM on 2026-10-21.
+- A study-scoped route returns the run's per-question tables as CSV and XLSX: `question_tables(...)`
+  (`report_tables.py:130`) over an evidence table built from the run's aggregate artifact (the same
+  builder analysis uses), so a run whose analysis is parked still exports; `compose_question_tables`
+  is unchanged (agreed with the integration coordinator, 2026-10-21; the report's own citation of
+  the aggregate is the chain plan's G5).
+- Every cell an admitted claim for the surface; a suppressed question named, not printed. The file
+  records the aggregate artifact id and SHA-256. No raw open answer (RES5a).
+- Not paid. Depends on RES2 (the same admitted rows the screen shows).
+- Test: a suppressed cell never appears; the file's numbers equal the screen's; no `verbatimy`.
+
 ## 8. Owner questions
 
 **RQ1. Do raw open answers show on Výsledky before they are coded?** **Settled 2026-10-21 via
 /pmstatus Q52: (a).**
-V2 shows example answers labelled "data, ne připuštěná evidence". AIA shows none today.
+V2 shows example answers labelled "data, ne připuštěná evidence". AIA already showed up to five,
+unlabelled, inside a closed detail (corrected under RES5a).
 - (a) Up to five example answers per open question: internal only, never exported, never in a
   client deliverable (RD0's no-drill-down rule), labelled as data.
 - (b) No raw answer until coding exists. The section shows the count answered and "nekódováno".
@@ -138,3 +161,4 @@ deliverable.
 ## Doc follow-up
 
 - Register this plan and its chunks.
+- `report-delivery`: RD12 (the CSV/XLSX export) is built here as RES8; RD12 points to it.

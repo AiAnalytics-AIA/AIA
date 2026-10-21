@@ -13,6 +13,12 @@ OI-61 asked whether that may reach a model provider. On 2026-10-12 the data owne
 determined that it may, over AIA's EU Bedrock route alone (ADR 0010): each
 panel-derived dataset names that one route, and another route needs a determination
 of its own.
+
+A client's approved DATASET, ARTIFACT or FINDING knowledge item records no datasets it
+came from, so a model request carrying one declares the named placeholder lineage
+``unclassified-client-knowledge`` (:data:`CLIENT_KNOWLEDGE_DATASET`). On 2026-10-21 the
+data owner determined that such material may reach a model provider over the same EU
+Bedrock route alone (/pmstatus Q60, answer (a)); another route still needs its own.
 """
 
 from __future__ import annotations
@@ -28,6 +34,7 @@ from .licence import (
 )
 
 __all__ = [
+    "CLIENT_KNOWLEDGE_DATASET",
     "PANEL_APPROVED_ROUTE",
     "PANEL_DERIVED_DATASETS",
     "RECORDED",
@@ -36,7 +43,7 @@ __all__ = [
 ]
 
 #: AIA's EU Bedrock route (ADR 0010; ``AIA_AI_ROUTE_ID``): the only route the
-#: panel-derived determinations approve.
+#: panel-derived determinations, and unrecorded client knowledge's, approve.
 PANEL_APPROVED_ROUTE: Final = "bedrock-eu-primary"
 
 _PANEL_BASIS: Final = (
@@ -45,6 +52,18 @@ _PANEL_BASIS: Final = (
     "alone (ADR 0010); another route needs its own determination."
 )
 _PANEL_DECIDED_BY: Final = "Nigel Blount, data owner"
+
+#: The lineage a client's DATASET, ARTIFACT or FINDING knowledge carries when nobody recorded
+#: which datasets it came from: the Lead's turns, the design jobs and Deep Research's
+#: knowledge (``knowledge_access.UNRESOLVED_LINEAGE``) all declare this one name.
+CLIENT_KNOWLEDGE_DATASET: Final = "unclassified-client-knowledge"
+
+_CLIENT_KNOWLEDGE_BASIS: Final = (
+    "/pmstatus Q60, answer (a), data owner determination of 2026-10-21: approved for the EU "
+    "Bedrock route only. A client's own knowledge, whose source datasets nobody recorded, may "
+    "be sent to a model provider over AIA's EU Bedrock route alone (ADR 0010); another route "
+    "needs its own determination."
+)
 
 #: The lineage of anything computed from AIA's fictional fixture dataset (ADR 0016 D1).
 SYNTHETIC_FIXTURE_DATASET: Final = "aia_synthetic_fixture"
@@ -80,6 +99,18 @@ RECORDED: Final[tuple[LicenceDetermination, ...]] = (
         basis=_PANEL_BASIS,
         decided_by=_PANEL_DECIDED_BY,
         decided_on=date(2026, 10, 12),
+        approved_routes=frozenset({PANEL_APPROVED_ROUTE}),
+    ),
+    LicenceDetermination(
+        dataset=CLIENT_KNOWLEDGE_DATASET,
+        description=(
+            "A client's approved DATASET, ARTIFACT or FINDING knowledge, its source datasets "
+            "unrecorded"
+        ),
+        status=LicenceStatus.APPROVED,
+        basis=_CLIENT_KNOWLEDGE_BASIS,
+        decided_by="Nigel Blount, product owner as data owner",
+        decided_on=date(2026, 10, 21),
         approved_routes=frozenset({PANEL_APPROVED_ROUTE}),
     ),
     LicenceDetermination(

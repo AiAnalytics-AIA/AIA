@@ -1,0 +1,766 @@
+{
+  "description": "The Lead's per-artifact contract (research-lead-workbench chunks 14-16, the hand-offs of artifact-chain-to-draft-report). One row per workbench stage, in STAGE_ORDER, every field required. It records which display operations the Lead may run on the artifact (view_ops), which of its elements it can name (targets, the `data-aia` id `<kind>:<id>` a screen puts on the element; the kind is everything before the first colon, and an id may itself hold colon-separated parts, e.g. `finding:<module>:<n>`), which workers and requests its cards start (starts), whether the Lead's edits land there (edits), what it is made from (inputs) and what it hands on, in what form (hands_off), and which internal report sections it feeds (report_sections, by the id the composer gives the Section). `live` marks what works today; anything else is the contract a screen builds to. Read by packages/aia_core/tests/test_lead_artifacts.py against domain/lead_artifacts.py and by apps/web/src/lib/workbench-artifacts.test.ts against lib/workbench-artifacts.ts, so a change to either side is a change to this file too.",
+  "fields": [
+    "stage",
+    "artifact",
+    "edits",
+    "view_ops",
+    "targets",
+    "starts",
+    "inputs",
+    "hands_off",
+    "report_sections",
+    "refusals"
+  ],
+  "id_pattern": "[A-Za-z0-9_.\\-~/:]{1,80}",
+  "view_ops": [
+    {
+      "op": "open_stage",
+      "live": true,
+      "what": "open the stage, optionally at a target"
+    },
+    {
+      "op": "focus",
+      "live": true,
+      "what": "scroll to and highlight one target"
+    },
+    {
+      "op": "inspect",
+      "live": false,
+      "what": "open a target's detail in the inspector (a claim, a step, a source, a readiness item)"
+    },
+    {
+      "op": "select",
+      "live": false,
+      "what": "select an object or a pair on the map"
+    },
+    {
+      "op": "filter",
+      "live": false,
+      "what": "a display filter, named; it changes no computation"
+    },
+    {
+      "op": "show_diff",
+      "live": false,
+      "what": "show a waiting proposal's or a draft's changes against what is in force"
+    }
+  ],
+  "filters": {
+    "sociomap": [
+      "view",
+      "labels",
+      "hide_weak",
+      "mode",
+      "battery"
+    ]
+  },
+  "targets": [
+    {
+      "kind": "brief",
+      "stage": "brief",
+      "id": "goal|title|type|decision_use|briefing.<field>|files",
+      "live": true
+    },
+    {
+      "kind": "objective",
+      "stage": "brief",
+      "id": "<objective id> (plan.objectives; Návrh points at the same item)",
+      "live": true
+    },
+    {
+      "kind": "material",
+      "stage": "brief",
+      "id": "<attachment or client source id>",
+      "live": true
+    },
+    {
+      "kind": "plan",
+      "stage": "design",
+      "id": "narrative|variants|sets|questions|comments",
+      "live": true
+    },
+    {
+      "kind": "rq",
+      "stage": "design",
+      "id": "<rq id>",
+      "live": true
+    },
+    {
+      "kind": "hypothesis",
+      "stage": "design",
+      "id": "<hypothesis id>",
+      "live": true
+    },
+    {
+      "kind": "set",
+      "stage": "design",
+      "id": "<set id>",
+      "live": true
+    },
+    {
+      "kind": "assumption",
+      "stage": "design",
+      "id": "<assumption id>",
+      "live": true
+    },
+    {
+      "kind": "section",
+      "stage": "questionnaire",
+      "id": "<section id>",
+      "live": true
+    },
+    {
+      "kind": "question",
+      "stage": "questionnaire",
+      "id": "<question id>",
+      "live": true
+    },
+    {
+      "kind": "audience",
+      "stage": "audience",
+      "id": "definition|filters|filter:<factor id>|subpanel:<subpanel key>|preview",
+      "live": true
+    },
+    {
+      "kind": "dimension",
+      "stage": "dimensions",
+      "id": "<dimension id>",
+      "live": true
+    },
+    {
+      "kind": "own_dimension",
+      "stage": "dimensions",
+      "id": "<materialization request id>",
+      "live": true
+    },
+    {
+      "kind": "sample",
+      "stage": "sample",
+      "id": "n|size|quota:<cell>|forecast|forecast:<item>|ready:<readiness check id>",
+      "live": true
+    },
+    {
+      "kind": "step",
+      "stage": "fieldwork",
+      "id": "<run step node_key>",
+      "live": true
+    },
+    {
+      "kind": "measure",
+      "stage": "results",
+      "id": "<measure id>",
+      "live": true
+    },
+    {
+      "kind": "object",
+      "stage": "sociomap",
+      "id": "<battery>/<object id>",
+      "live": true
+    },
+    {
+      "kind": "pair",
+      "stage": "sociomap",
+      "id": "<battery>/<object id>~<object id>",
+      "live": true
+    },
+    {
+      "kind": "module",
+      "stage": "analysis",
+      "id": "<analysis module kind>",
+      "live": true
+    },
+    {
+      "kind": "finding",
+      "stage": "analysis",
+      "id": "<module>:<n>",
+      "live": true
+    },
+    {
+      "kind": "claim",
+      "stage": "analysis",
+      "id": "<module>:<claim id>",
+      "live": true
+    },
+    {
+      "kind": "report",
+      "stage": "report",
+      "id": "<report section id: intro, ch-design, ch-1 … ch-8, literature, methodology, ch-method, ch-questions, ch-native-map-<n>, app-questionnaire, app-evidence, app-audit>",
+      "live": true
+    }
+  ],
+  "report_sections": [
+    {
+      "id": "intro",
+      "title": "Úvod a rámec studie",
+      "source": "application/report.py compose_internal_report (boilerplate + research questions)",
+      "fed_by": [
+        "design"
+      ],
+      "state": "filled"
+    },
+    {
+      "id": "ch-design",
+      "title": "Návrh studie",
+      "source": "application/report_design.py compose_design_sections",
+      "fed_by": [
+        "design",
+        "questionnaire",
+        "audience",
+        "dimensions",
+        "sample"
+      ],
+      "state": "filled"
+    },
+    {
+      "id": "ch-1",
+      "title": "Shrnutí pro vedení",
+      "source": "analysis module EXECUTIVE",
+      "fed_by": [
+        "analysis"
+      ],
+      "state": "filled"
+    },
+    {
+      "id": "ch-2",
+      "title": "Výzkumné otázky",
+      "source": "analysis module RESEARCH_QUESTIONS",
+      "fed_by": [
+        "analysis"
+      ],
+      "state": "filled"
+    },
+    {
+      "id": "literature",
+      "title": "Literární rešerše a externí kontext",
+      "source": "application/contextual_report.py (the sealed Interpretation Research bundle); one document with the draft, labelled external (owner Q58 b, CHN8)",
+      "fed_by": [
+        "report"
+      ],
+      "state": "missing"
+    },
+    {
+      "id": "methodology",
+      "title": "Metodika a způsob interpretace",
+      "source": "application/report.py fixed text",
+      "fed_by": [],
+      "state": "fixed_text"
+    },
+    {
+      "id": "ch-method",
+      "title": "Respondenti a výpočet",
+      "source": "application/report_method.py compose_method_section",
+      "fed_by": [
+        "sample",
+        "fieldwork"
+      ],
+      "state": "filled"
+    },
+    {
+      "id": "ch-questions",
+      "title": "Výsledky jednotlivých otázek",
+      "source": "application/report_tables.py compose_question_tables",
+      "fed_by": [
+        "questionnaire",
+        "results"
+      ],
+      "state": "filled"
+    },
+    {
+      "id": "ch-4",
+      "title": "Cílová skupina",
+      "source": "analysis module AUDIENCE",
+      "fed_by": [
+        "audience",
+        "analysis"
+      ],
+      "state": "filled"
+    },
+    {
+      "id": "ch-3",
+      "title": "Srovnání sledovaných objektů",
+      "source": "analysis module OBJECTS",
+      "fed_by": [
+        "analysis"
+      ],
+      "state": "filled"
+    },
+    {
+      "id": "ch-native-map",
+      "title": "Sociomapy",
+      "source": "application/report_maps.py compose_map_sections",
+      "fed_by": [
+        "sociomap"
+      ],
+      "state": "filled"
+    },
+    {
+      "id": "ch-5",
+      "title": "Segmenty",
+      "source": "analysis module SEGMENTS",
+      "fed_by": [
+        "dimensions",
+        "analysis"
+      ],
+      "state": "filled"
+    },
+    {
+      "id": "ch-6",
+      "title": "Hypotézy",
+      "source": "analysis module HYPOTHESES",
+      "fed_by": [
+        "design",
+        "analysis"
+      ],
+      "state": "filled"
+    },
+    {
+      "id": "ch-7",
+      "title": "Implikace pro rozhodnutí",
+      "source": "analysis module IMPLICATIONS",
+      "fed_by": [
+        "analysis"
+      ],
+      "state": "filled"
+    },
+    {
+      "id": "ch-8",
+      "title": "Limity",
+      "source": "analysis module LIMITATIONS + fixed callouts",
+      "fed_by": [
+        "analysis"
+      ],
+      "state": "filled"
+    },
+    {
+      "id": "app-questionnaire",
+      "title": "Dotazník",
+      "source": "application/report_design.py (appendix)",
+      "fed_by": [
+        "questionnaire"
+      ],
+      "state": "filled"
+    },
+    {
+      "id": "app-evidence",
+      "title": "Evidenční příloha",
+      "source": "EvidenceLedger at render time",
+      "fed_by": [
+        "analysis"
+      ],
+      "state": "filled"
+    },
+    {
+      "id": "app-audit",
+      "title": "Audit",
+      "source": "application/report.py (run id, evidence fingerprint, module SHA-256s)",
+      "fed_by": [
+        "fieldwork",
+        "analysis"
+      ],
+      "state": "filled"
+    }
+  ],
+  "artifacts": [
+    {
+      "stage": "brief",
+      "artifact": "working",
+      "edits": true,
+      "view_ops": [
+        "open_stage",
+        "focus"
+      ],
+      "targets": [
+        "brief",
+        "objective",
+        "material"
+      ],
+      "starts": [
+        "agent_job:analyze_brief",
+        "agent_job:answer_memory"
+      ],
+      "inputs": [],
+      "hands_off": [
+        {
+          "to": "design",
+          "form": "working content `briefing`, read by analyze_brief"
+        }
+      ],
+      "report_sections": [
+        "intro"
+      ],
+      "refusals": [
+        "důvěrný podklad nelze poslat do veřejného vyhledávání"
+      ]
+    },
+    {
+      "stage": "design",
+      "artifact": "working",
+      "edits": true,
+      "view_ops": [
+        "open_stage",
+        "focus",
+        "inspect",
+        "show_diff"
+      ],
+      "targets": [
+        "plan",
+        "rq",
+        "hypothesis",
+        "set",
+        "assumption"
+      ],
+      "starts": [
+        "agent_job:analyze_brief",
+        "agent_job:critique_design",
+        "agent_job:design_copilot",
+        "agent_job:answer_memory",
+        "design_research"
+      ],
+      "inputs": [
+        "brief"
+      ],
+      "hands_off": [
+        {
+          "to": "questionnaire",
+          "form": "research_plan.research_questions, linked by items' research_questions"
+        },
+        {
+          "to": "analysis",
+          "form": "ResearchSpecification research questions (compile_design)"
+        }
+      ],
+      "report_sections": [
+        "intro",
+        "ch-design",
+        "ch-6"
+      ],
+      "refusals": [
+        "metodickou volbu neuzavírá AI"
+      ]
+    },
+    {
+      "stage": "questionnaire",
+      "artifact": "working",
+      "edits": true,
+      "view_ops": [
+        "open_stage",
+        "focus",
+        "show_diff"
+      ],
+      "targets": [
+        "section",
+        "question"
+      ],
+      "starts": [
+        "agent_job:build_questionnaire",
+        "agent_job:optimize_questionnaire",
+        "agent_job:answer_memory",
+        "design_research"
+      ],
+      "inputs": [
+        "design"
+      ],
+      "hands_off": [
+        {
+          "to": "fieldwork",
+          "form": "ResearchSpecification questions and batteries (compile_design)"
+        }
+      ],
+      "report_sections": [
+        "ch-design",
+        "ch-questions",
+        "app-questionnaire"
+      ],
+      "refusals": [
+        "přijetí návrhu jen člověk (APPROVE_GATE)"
+      ]
+    },
+    {
+      "stage": "audience",
+      "artifact": "working",
+      "edits": false,
+      "view_ops": [
+        "open_stage",
+        "focus"
+      ],
+      "targets": [
+        "audience"
+      ],
+      "starts": [
+        "agent_job:propose_audience",
+        "agent_job:answer_memory"
+      ],
+      "inputs": [
+        "design"
+      ],
+      "hands_off": [
+        {
+          "to": "sample",
+          "form": "ResearchSpecification audience and SpecSelection filters"
+        }
+      ],
+      "report_sections": [
+        "ch-design",
+        "ch-4"
+      ],
+      "refusals": [
+        "náhled vrací jen počty, žádné řádky"
+      ]
+    },
+    {
+      "stage": "dimensions",
+      "artifact": "working",
+      "edits": true,
+      "view_ops": [
+        "open_stage",
+        "focus"
+      ],
+      "targets": [
+        "dimension",
+        "own_dimension"
+      ],
+      "starts": [
+        "agent_job:suggest_dimensions",
+        "agent_job:answer_memory"
+      ],
+      "inputs": [
+        "design",
+        "audience"
+      ],
+      "hands_off": [
+        {
+          "to": "fieldwork",
+          "form": "SpecSelection dimensions (persona_dimensions.approved)"
+        }
+      ],
+      "report_sections": [
+        "ch-design",
+        "ch-5"
+      ],
+      "refusals": [
+        "pole použije jen to, co dovolí politika pole (decide)"
+      ]
+    },
+    {
+      "stage": "sample",
+      "artifact": "working",
+      "edits": false,
+      "view_ops": [
+        "open_stage",
+        "focus",
+        "inspect"
+      ],
+      "targets": [
+        "sample"
+      ],
+      "starts": [
+        "agent_job:answer_memory"
+      ],
+      "inputs": [
+        "audience",
+        "dimensions"
+      ],
+      "hands_off": [
+        {
+          "to": "fieldwork",
+          "form": "ResearchSpecification n"
+        }
+      ],
+      "report_sections": [
+        "ch-design",
+        "ch-method"
+      ],
+      "refusals": [
+        "kvóta nezaručuje podporu dvojic"
+      ]
+    },
+    {
+      "stage": "fieldwork",
+      "artifact": "run",
+      "edits": false,
+      "view_ops": [
+        "open_stage",
+        "focus",
+        "inspect"
+      ],
+      "targets": [
+        "step"
+      ],
+      "starts": [
+        "research_run"
+      ],
+      "inputs": [
+        "questionnaire",
+        "audience",
+        "dimensions",
+        "sample"
+      ],
+      "hands_off": [
+        {
+          "to": "results",
+          "form": "research_fieldwork_dataset -> research_aggregate"
+        },
+        {
+          "to": "sociomap",
+          "form": "research_fieldwork_dataset -> research_sociomap"
+        },
+        {
+          "to": "analysis",
+          "form": "research_fieldwork_dataset as admitted evidence"
+        }
+      ],
+      "report_sections": [
+        "ch-method",
+        "app-audit"
+      ],
+      "refusals": [
+        "nad limit potvrzení jen člověk"
+      ]
+    },
+    {
+      "stage": "results",
+      "artifact": "run",
+      "edits": false,
+      "view_ops": [
+        "open_stage",
+        "focus",
+        "inspect"
+      ],
+      "targets": [
+        "measure"
+      ],
+      "starts": [
+        "agent_job:answer_memory"
+      ],
+      "inputs": [
+        "fieldwork"
+      ],
+      "hands_off": [
+        {
+          "to": "analysis",
+          "form": "research_aggregate"
+        }
+      ],
+      "report_sections": [
+        "ch-questions"
+      ],
+      "refusals": [
+        "potlačené číslo se neukáže ani AI"
+      ]
+    },
+    {
+      "stage": "sociomap",
+      "artifact": "run",
+      "edits": false,
+      "view_ops": [
+        "open_stage",
+        "focus",
+        "select",
+        "filter",
+        "inspect"
+      ],
+      "targets": [
+        "object",
+        "pair"
+      ],
+      "starts": [
+        "interpretation_research"
+      ],
+      "inputs": [
+        "fieldwork"
+      ],
+      "hands_off": [
+        {
+          "to": "report",
+          "form": "research_sociomap contract-3 maps (verified_map)"
+        }
+      ],
+      "report_sections": [
+        "ch-native-map"
+      ],
+      "refusals": [
+        "filtr zobrazení nemění výpočet",
+        "externí kontext do výpočtu nevstupuje"
+      ]
+    },
+    {
+      "stage": "analysis",
+      "artifact": "run",
+      "edits": false,
+      "view_ops": [
+        "open_stage",
+        "focus",
+        "inspect"
+      ],
+      "targets": [
+        "module",
+        "finding",
+        "claim"
+      ],
+      "starts": [
+        "analysis_retry",
+        "interpretation_research"
+      ],
+      "inputs": [
+        "fieldwork",
+        "results",
+        "sociomap"
+      ],
+      "hands_off": [
+        {
+          "to": "report",
+          "form": "eight research_analysis modules (RunAnalysis)"
+        }
+      ],
+      "report_sections": [
+        "ch-1",
+        "ch-2",
+        "ch-4",
+        "ch-3",
+        "ch-5",
+        "ch-6",
+        "ch-7",
+        "ch-8",
+        "app-evidence"
+      ],
+      "refusals": [
+        "číslo jen jako AdmittedClaim",
+        "AI neschvaluje vlastní tvrzení"
+      ]
+    },
+    {
+      "stage": "report",
+      "artifact": "draft",
+      "edits": false,
+      "view_ops": [
+        "open_stage",
+        "focus",
+        "show_diff"
+      ],
+      "targets": [
+        "report"
+      ],
+      "starts": [
+        "interpretation_research"
+      ],
+      "inputs": [
+        "design",
+        "questionnaire",
+        "sociomap",
+        "analysis"
+      ],
+      "hands_off": [
+        {
+          "to": null,
+          "form": "research_internal_docx, DRAFT_UNAPPROVED; approved only by a person"
+        }
+      ],
+      "report_sections": [
+        "literature"
+      ],
+      "refusals": [
+        "schválení jen člověk"
+      ]
+    }
+  ]
+}

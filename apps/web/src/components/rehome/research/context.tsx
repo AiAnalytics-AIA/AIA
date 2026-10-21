@@ -37,6 +37,13 @@ export type ResearchContextValue = {
   /** confirm() and prompt(), with the classic words, as the rebuilt interface's dialog. */
   confirm: (message: string) => Promise<boolean>;
   prompt: (message: string, initial?: string) => Promise<string | null>;
+  /**
+   * The one predicate every stage reads for its own AI starts ("Navrhnout", the brief's analysis):
+   * true where the Research Lead owns them (the workbench layout, plan research-lead-workbench D15),
+   * so no stage shows one. Absent or false: the stage keeps its own (the classic layout, which has
+   * no Lead until chunk 26; that chunk removes this predicate). Spuštění's Start shows either way.
+   */
+  leadOwnsAiStarts?: boolean;
   /** Contextual help opens an editor; prefilling a question never sends it. */
   askAssistance?: (action: AdviceAction, question?: string) => void;
   /** The project session's page memory: what the classic interface keeps in globals, never saved. */

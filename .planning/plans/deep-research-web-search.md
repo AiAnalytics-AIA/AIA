@@ -58,7 +58,7 @@ chunks:
   - "[ ] 52. Reach is stated by code: Settings lists every route and connector as built, approved, active or refused, with the reason, read from the composition"
   - "[ ] 53. Open posture (owner, 2026-10-19): `clients.data_posture` OPEN or CLASSIFIED replaces classification for Deep Research in the MVP; a run pins it at enqueue, a retry copies it"
   - "[ ] 54. Before the first activation: each connector probed live once (every interface is UNVERIFIED), AIA_DEEP_RESEARCH_AGENT_DIRECTED named in the activation matrix, Common Crawl's AWS side (workgroup, results bucket, grants, us-east-1 exception) in Terraform or kept out of the first activation"
-  - "[ ] 55. The start's cost ceiling function moves from the API router to the application layer, so a plan step in the worker and the router use one; always computed and stored on create, threshold or not (F-DRL-2); a read-only POST …/deep-research/quote priced by the same function as the start (DRL-0, 2026-10-21)"
+  - "[x] 55. The start's cost ceiling function moves from the API router to the application layer, so a plan step in the worker and the router use one; always computed and stored on create, threshold or not (F-DRL-2); a read-only POST …/deep-research/quote priced by the same function as the start (DRL-0, 2026-10-21)"
   - "[ ] 51a. A run's routes on its record: by_route in CoverageLedger (sent, succeeded, refused) and composed_routes from the plan artifact (G67)"
   - "[ ] 56. A quick single-track lookup for the Lead's Hledat na webu: several search hits and parallel fetches of the top pages through RetrievalGate, captured snapshots, per-call cost against the wallet; OPEN without a card, CLASSIFIED behind a plan card (Q6, Q24)"
   - "[ ] 57. Brave for Class B queries (owner determination 2026-10-20, Q20): a query written from a design reaches Brave at Class B for every client, CLASSIFIED included; Class A only as chunk 57a's code-extracted fields (Q22); recorded as data beside OI-61"
@@ -1890,3 +1890,73 @@ Every card, typed start and plan step there is priced by this chunk. Anchors are
   engine's lead researcher, not the Research Lead (Vedoucí výzkumu)".
 - `CLAUDE.md` map, once built: `application/deep_research_pricing.py` and
   `POST …/deep-research/quote`.
+
+## Chunk 55 delivered (2026-10-21, DRL-0)
+
+Part of the plan for the Research Lead to control Deep Research end to end (#553, where the
+chunk's tightened wording and Q44-Q48 live).
+
+- **The prices live in the application layer.** `application/deep_research_pricing.py`
+  `DeepResearchPricingSettings` holds every key the ceiling is priced from. It offers `prices`,
+  `budgets`, `search_route`, `mode` and `study_prices` (under the study's pinned request limits).
+  These were moved unchanged from `routers/deep_research.py:261-387 @ 095a3e68`. `config.py`
+  `Settings.deep_research_pricing()` builds it, and the router keeps only thin `deep_research_prices`,
+  `_study_prices` and `deep_research_mode` wrappers. The router no longer imports
+  `deep_research_settings_repository`, so its line leaves the import-linter ratchet in
+  `pyproject.toml`.
+- **One admission prices the start and the quote.** `DeepResearchRuns._admit` works out the
+  settings in force, the idempotency key and an existing run, the ceiling, the priced routes with
+  their missing live settings, and the threshold. `_enqueue` acts on it, and `quote` reads it and
+  writes nothing.
+- **The ceiling is always stored (F-DRL-2).** Every new run's metadata has `cost_ceiling_usd`, a
+  number or `null`, and an unknown ceiling names `cost_ceiling_unknown` and
+  `cost_ceiling_unknown_kinds`. Before, the ceiling was stored only under a threshold.
+- **`POST /api/v1/studies/{study_id}/deep-research/quote`.** Its body is a purpose, the
+  `design_revision_id` (design) or `target` (interpretation), the preset and the channels. It
+  answers:
+  - the ceiling, its mode, `usd_by_kind` (`null` for unknown, never 0) and `calls_by_kind`;
+  - `paid_routes` and `live_settings_missing` (ADR 0022);
+  - the threshold, and the budget position (with `VIEW_COSTS`);
+  - `start_verdict` (`start`, `confirm`, `ceiling_unknown`, `live_settings_unapproved` or
+    `exists`), `existing_run_id` and `settings_digest`;
+  - `runtime`: `AIA_DEEP_RESEARCH_ENABLED` as the API's environment carries it (`null` when not
+    given), `runs_would_park` and `park_reason` (`deep_research_unconfigured`).
+
+  It needs `RUN_WORKFLOW` and an open study, as a start does, and nothing is reserved, recorded or
+  started. Both are checked before anything is frozen (`require_start`), so a closed study is 403
+  `study_closed` before any artifact is read. A pinned artifact that fails verification on an open
+  study is 409 `artifact_corrupt` with **no CORRUPT mark**: the quote rolls back the mark the read
+  flushed instead of committing it (`artifact_corrupt()`), and a start over the same artifact marks
+  it as before (Codex on #555).
+- **Kill switch.** The quote answers with Deep Research off and says that a run would park. The
+  develop Compose file now passes `AIA_DEEP_RESEARCH_ENABLED` to the API, which reads it for this
+  statement alone; what the worker composed stays its own to publish (`lead-orchestration#LO12b`).
+  No other behaviour changes, except that a ceiling is now stored on every new run.
+- **Tests.**
+  - `packages/aia_core/tests/test_deep_research_pricing.py`: off, wikipedia by either key, brave with
+    and without its price, Common Crawl full and three partial cases, connectors, the mode, and an
+    unknown switch.
+  - `packages/aia_core/tests/test_deep_research_quote.py`: no threshold still stores the quoted
+    ceiling; a quote writes no run, step, ledger row or reservation; quote and start agree under a
+    threshold; under it, `start`; an unknown price is `null` with its kinds; no prices; live settings
+    named; an open study required.
+  - `apps/api/tests/test_deep_research_quote_api.py`: the same over HTTP, plus 404 for another
+    Study's path and an unknown revision, 422 for a malformed body, the runtime statement off, on and
+    unknown, and every pricing key reaching the application settings.
+  - `test_deep_research_interpretation_api.py::test_the_quote_prices_an_interpretation_start_as_the_start_asks`:
+    an interpretation quote equals the start's asked ceiling, and another Study's target is 404.
+  - The existing `test_deep_research_spend_api.py` price tests pass unchanged through the router's
+    wrappers.
+
+### Doc follow-up (chunk 55 delivered)
+
+- `CLAUDE.md` map, `application/`: "`deep_research_pricing.py` DeepResearchPricingSettings: the
+  keys a Deep Research ceiling is priced from (prices, budgets, search route, mode, study_prices),
+  built by each composition root; the start and the quote use one admission
+  (`DeepResearchRuns._admit`)"; `routers/` (deep research): "POST …/deep-research/quote: the
+  ceiling by kind, priced routes, missing live settings, threshold, budget, start_verdict, and
+  whether a run would park (read-only)"; "every new run stores `cost_ceiling_usd`, threshold or
+  not".
+- `deploy/develop/README.md` (the switches): the API also receives `AIA_DEEP_RESEARCH_ENABLED`, read
+  only for the quote's statement.
+- `open-items.md`: F-DRL-2 and F-DRL-3 closed by this PR (numbered from #553's findings).

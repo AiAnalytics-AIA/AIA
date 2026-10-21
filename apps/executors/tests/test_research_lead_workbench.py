@@ -7,7 +7,9 @@ from typing import Any
 from aia_core.application.research_lead import ResearchLead
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.infrastructure.researcher_lead_repository import ResearcherLeadRepository
+from aia_core.infrastructure.study_design_repository import StudyDesignRepository
 from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRepository
+from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_executors.registry import registry_for
 from aia_executors.research_lead import ResearchLeadExecutor
 from aia_executors.workbench import (
@@ -146,3 +148,51 @@ def test_the_scripted_step_output_says_it_is_scripted(
         run = WorkflowRepository(session, world.lead_scope(session)).get_run(_last(world)["run_id"])
     output = run["steps"][0]["output"]
     assert output["scripted"] is True and output["data_class"] is None
+
+
+def test_a_scripted_message_asking_to_start_prepares_the_research_run(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    _setup(world)
+    _post(world, kind="message", text="Spusť výzkum, prosím.")
+    assert _worker(world, database_url, store, build).run_once()
+    output = _last(world)["output"]
+    assert output["request"] == {"kind": "research_run", "why": "Ukázka spuštění výzkumu"}
+
+
+def test_the_design_update_from_saved_answers_and_comments_goes_through_approve_request(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """Návrh's answers and comments, saved into the working copy in the workbench (the owner,
+    2026-10-21), reach the brief's analysis the Lead prepares: its frozen design holds them, and
+    the approval is the ledger's, as any Lead-prepared job's."""
+    _setup(world)
+    saved = {
+        **CONTENT,
+        "briefing": {
+            "what_is_known": "Doplnění k analýze:\n1. Jezdí hlavně vlakem.",
+            "review_comments": "1. K textu „cíl“: zúžit na Prahu",
+        },
+        "ui_state": {"plan_changed26": True},
+    }
+    with world.sessions() as session:
+        StudyWorkspaceRepository(session).save(
+            world.lead_scope(session), content=saved, base_revision=1
+        )
+        session.commit()
+    _post(world, kind="message", text="Aktualizuj návrh podle mých komentářů.")
+    assert _worker(world, database_url, store, build).run_once()
+    turn = _last(world)
+    assert turn["output"]["request"]["action"] == "analyze_brief"
+
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        approved = ResearchLead(session, scope, enabled=True).approve_request(
+            turn["turn_id"], confirm_cost_usd=None, reservation_usd=None
+        )
+        design = StudyDesignRepository(session, scope).content(approved["design_revision_id"])
+        decisions = WorkflowRepository(session, scope).lead_decisions([turn["turn_id"]])
+        session.commit()
+    assert design["briefing"]["what_is_known"].endswith("Jezdí hlavně vlakem.")
+    assert design["briefing"]["review_comments"] == "1. K textu „cíl“: zúžit na Prahu"
+    assert decisions[turn["turn_id"]]["request"]["run_id"] == approved["run_id"]
