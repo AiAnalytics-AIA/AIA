@@ -26,6 +26,8 @@ import {
   type ActiveDimensions,
   type Change,
   type NewDimension,
+  type SampleLimits,
+  type SampleRefusal,
   PROPOSAL_AI_DONE,
   PROPOSAL_DONE,
   REQUEST_EMPTY,
@@ -41,6 +43,7 @@ import {
   clientDimensions,
   dimensionLabels,
   dimensionProposal,
+  isSampleRefusal,
   matchesDimensionSearch,
   personaDone,
   recommendedSample,
@@ -48,6 +51,7 @@ import {
   removeDimension,
   requestLabel,
   requestedLabels,
+  sampleRefusalMessage,
   setSampleSize,
   suggestPayload,
   suggestedPersonaDims,
@@ -60,6 +64,7 @@ import { AiButton, Button, Field, TextInput } from "../ui";
 import { useResearch, useSessionState } from "./context";
 import { InspectorSlot } from "./Inspector";
 import { AiFailureCard, useAiStep } from "./useAiStep";
+import { readyLimits, useSampleLimits } from "./useSampleLimits";
 
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -86,6 +91,9 @@ export function PersonaStep() {
   const router = useRouter();
   const step = useAiStep();
   const active = useClientDimensions(frame.studyId);
+  const sampleLimits = useSampleLimits(frame.studyId);
+  const limits = readyLimits(sampleLimits);
+  const [sampleError, setSampleError] = useState<string | null>(null);
   const [suggestion, setSuggestion] = useSessionState<Suggestion | null>("persona.suggestion", null);
   const [query, setQuery] = useState("");
   const [custom, setCustom] = useState("");
@@ -102,6 +110,13 @@ export function PersonaStep() {
   const r = recommendedSample(p);
 
   const apply = (c: Change) => store.update(() => ({ project: c.project }), { reason: c.reason });
+  /** A sample size, stored only when it is a valid n; otherwise refused and said, nothing saved. */
+  const applySample = (c: Change | SampleRefusal) => {
+    if (isSampleRefusal(c)) return setSampleError(c.message);
+    setSampleError(null);
+    apply(c);
+  };
+  const allowed = (x: number) => limits !== null && x >= limits.min && x <= limits.max;
 
   // suggestPersonaAI: the provider check, then the job; the model's dimensions become the approval.
   const suggest = () =>
@@ -262,26 +277,31 @@ export function PersonaStep() {
             <SampleInput
               key={n}
               value={n}
-              onCommit={(raw) => {
-                const c = setSampleSize(store.get().project, raw);
-                apply(c);
-                return Number(c.project.n);
-              }}
+              limits={limits}
+              disabled={sampleLimits.state === "loading"}
+              error={sampleError ?? (sampleLimits.state === "failed" ? sampleRefusalMessage("limits_unknown", null) : null)}
+              onCommit={(raw) => applySample(setSampleSize(store.get().project, raw, limits))}
+              onUnchanged={() => setSampleError(null)}
             />
           </div>
-          <SampleSlider key={`s-${n}`} value={n} recommended={r.n} onCommit={(v) => apply(setSampleSize(store.get().project, String(v)))} />
+          {limits ? <SampleSlider key={`s-${n}`} value={n} recommended={r.n} limits={limits} onCommit={(v) => applySample(setSampleSize(store.get().project, String(v), limits))} /> : null}
           <div className="mt-3 flex flex-wrap gap-1.5">
             <button
               type="button"
               aria-label={tv("research.persona.sampleUse", { n: r.n })}
               aria-pressed={n === r.n}
-              onClick={() => apply(applyRecommendedSample(store.get().project))}
+              disabled={!allowed(r.n)}
+              onClick={() => {
+                // Offered only within the valid n (disabled otherwise), so it is stored as it is.
+                setSampleError(null);
+                apply(applyRecommendedSample(store.get().project));
+              }}
               className={`${PRESET} ${n === r.n ? PRESET_ON : ""}`}
             >
               {tv("research.persona.presetRecommended", { n: r.n })}
             </button>
             {[400, 800, 1200].filter((x) => x !== r.n).map((x) => (
-              <button key={x} type="button" aria-pressed={n === x} onClick={() => apply(setSampleSize(store.get().project, String(x)))} className={`${PRESET} ${n === x ? PRESET_ON : ""}`}>
+              <button key={x} type="button" aria-pressed={n === x} disabled={!allowed(x)} onClick={() => applySample(setSampleSize(store.get().project, String(x), limits))} className={`${PRESET} ${n === x ? PRESET_ON : ""}`}>
                 {x}
               </button>
             ))}
@@ -371,17 +391,33 @@ function DimensionGroup({ title, action, rows, chosen, suggested, onToggle }: {
   );
 }
 
-/** The sample as a slider (200–2 000, step 50) with the recommendation marked; it commits on release. */
-function SampleSlider({ value, recommended, onCommit }: { value: number; recommended: number; onCommit: (v: number) => void }) {
-  const [v, setV] = useState(Math.max(200, Math.min(2000, value)));
-  const pos = (x: number) => `${((Math.max(200, Math.min(2000, x)) - 200) / 1800) * 100}%`;
+/**
+ * Where the slider's thumb may go: 200–2 000 in steps of 50, cut to the valid n; when the valid n
+ * leaves less than one step of that (a maximum under 250, say), the whole valid range in steps of 1.
+ * Its ends are always inside the valid n, so every value it commits is one the server takes.
+ */
+export function sliderRange(limits: SampleLimits): { lo: number; hi: number; step: number } {
+  const lo = Math.min(Math.max(200, limits.min), limits.max);
+  const hi = Math.max(Math.min(2000, limits.max), limits.min);
+  return hi - lo >= 50 ? { lo, hi, step: 50 } : { lo: limits.min, hi: limits.max, step: 1 };
+}
+
+/**
+ * The sample as a slider (200–2 000, step 50, within the study's valid n) with the recommendation
+ * marked; it commits on release. Its ends are where the thumb is drawn, never a stored value: what
+ * it commits goes through the same refusal as the typed field.
+ */
+function SampleSlider({ value, recommended, limits, onCommit }: { value: number; recommended: number; limits: SampleLimits; onCommit: (v: number) => void }) {
+  const { lo, hi, step } = sliderRange(limits);
+  const [v, setV] = useState(Math.max(lo, Math.min(hi, value)));
+  const pos = (x: number) => `${hi === lo ? 0 : ((Math.max(lo, Math.min(hi, x)) - lo) / (hi - lo)) * 100}%`;
   return (
     <div className="mt-3">
       <input
         type="range"
-        min={200}
-        max={2000}
-        step={50}
+        min={lo}
+        max={hi}
+        step={step}
         value={v}
         aria-label={t("research.persona.sampleSlider")}
         onChange={(e) => setV(Number(e.target.value))}
@@ -396,26 +432,40 @@ function SampleSlider({ value, recommended, onCommit }: { value: number; recomme
   );
 }
 
-/** The classic number input saves on change (blur or Enter), not on each key; a new stored N redraws it (key). */
-function SampleInput({ value, onCommit }: { value: number; onCommit: (raw: string) => number }) {
+/**
+ * The classic number input saves on change (blur or Enter), not on each key; a new stored N redraws
+ * it (key). A value the server's range refuses is kept as typed with the refusal beside it, and
+ * nothing is stored (RQC9; audit IA-1): the field never shows a number the person did not type.
+ */
+function SampleInput({ value, limits, disabled, error, onCommit, onUnchanged }: { value: number; limits: SampleLimits | null; disabled: boolean; error: string | null; onCommit: (raw: string) => void; onUnchanged: () => void }) {
   const [draft, setDraft] = useState(String(value));
-  const commit = () => {
-    if (draft !== String(value)) setDraft(String(onCommit(draft)));
-  };
+  // Typed back to what is stored: nothing to save, and nothing left to refuse.
+  const commit = () => (draft === String(value) ? onUnchanged() : onCommit(draft));
   return (
-    <Field label={t("research.persona.sampleLabel")} className="w-full">
-      <TextInput
-        className="w-full !rounded-control"
-        type="number"
-        min={50}
-        max={5000}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") commit();
-        }}
-      />
-    </Field>
+    <div className="w-full">
+      <Field label={t("research.persona.sampleLabel")} className="w-full">
+        <TextInput
+          className="w-full !rounded-control"
+          type="number"
+          min={limits?.min}
+          max={limits?.max}
+          step={1}
+          disabled={disabled}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? "per-sample-error" : undefined}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") commit();
+          }}
+        />
+      </Field>
+      {error ? (
+        <p id="per-sample-error" role="alert" className="mt-1 text-xs text-status-fault">
+          {error}
+        </p>
+      ) : null}
+    </div>
   );
 }

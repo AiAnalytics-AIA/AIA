@@ -12,6 +12,8 @@
   "options_on_non_selection",
   "options_on_open_question",
   "plan_not_an_object",
+  "sample_size_limits_unknown",
+  "sample_size_out_of_range",
   "scale_labels_not_two",
   "sections_not_a_list",
   "sociomap_input_locked",

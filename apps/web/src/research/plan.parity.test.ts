@@ -189,13 +189,34 @@ describe("design variants are projectVariants1793 and applyProjectVariant1793", 
   for (const id of ["focused", "recommended", "broad", "fourth", "nope"]) {
     it(`applying ${id}`, () => {
       const ran = classic(`applyProjectVariant1793(${JSON.stringify(id)})`);
-      const got = applyVariant({ project: base, analysis: ANALYSIS }, id);
+      // The preset's valid n (RQC9): every variant here states one inside it, as the classic stored.
+      const got = applyVariant({ project: base, analysis: ANALYSIS }, id, { min: 20, max: 10000 });
       expect(got?.state.project ?? base).toEqual(ran.p);
       expect(got?.state.analysis ?? ANALYSIS).toEqual(ran.a);
       expect(ran.toasts).toEqual(got ? [`Použit návrh: ${got.title}`] : []);
       expect(ran.saves).toEqual(got ? [["project_variant_1793", true]] : []);
     });
   }
+});
+
+describe("a variant's n is held to the server's valid n (RQC9)", () => {
+  const withN = (n: number) => ({ ...ANALYSIS, project_variants: [{ id: "big", title: "Velký", n, objectives: ["O"] }] });
+  it("an n outside the range is not stored, the plan still is, and the refusal says why", () => {
+    const got = applyVariant({ project: { ...base, n: 400 }, analysis: withN(50_000) }, "big", { min: 20, max: 10000 });
+    expect(got?.state.project.n).toBe(400); // left as it was, never moved to 10 000
+    expect(got?.state.project.research_plan?.objectives).toEqual(["O"]);
+    expect(got?.sampleRefused).toContain("od 20 do 10000");
+  });
+  it("unread limits store no n", () => {
+    const got = applyVariant({ project: { ...base, n: 400 }, analysis: withN(800) }, "big", null);
+    expect(got?.state.project.n).toBe(400);
+    expect(got?.sampleRefused).toContain("nepodařilo načíst");
+  });
+  it("an n inside the range is stored as the variant states it", () => {
+    const got = applyVariant({ project: { ...base, n: 400 }, analysis: withN(10000) }, "big", { min: 20, max: 10000 });
+    expect(got?.state.project.n).toBe(10000);
+    expect(got?.sampleRefused).toBeNull();
+  });
 });
 
 describe("follow-up questions are answered as reanalyze does", () => {

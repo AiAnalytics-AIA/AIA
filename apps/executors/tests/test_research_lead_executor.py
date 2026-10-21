@@ -268,6 +268,33 @@ def test_a_turn_is_answered_once_and_its_reply_is_read_from_the_step(
     assert {e.capability for e in events} == {ModelCapability.STUDY_LEAD.value}
 
 
+def test_a_sample_size_outside_the_frozen_readiness_limits_is_dropped_by_name(
+    ready: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """RQC9: the turn is frozen with the readiness limits in force, which the model is shown
+    (``design.readiness``), and a set_n outside them is dropped and named, never clamped."""
+    turn_id = post(ready)
+    reply = {
+        "reply": "Navrhuji jiný vzorek.",
+        "edits": [
+            {"op": "set_n", "value": 40_000, "why": "Větší vzorek."},
+            {"op": "set_n", "value": 600, "why": "Rozumný vzorek."},
+        ],
+    }
+    transport = RecordedBedrock([reply])
+    assert worker(ready, database_url, store, build, transport).run_once()
+    sent = json.loads(transport.requests[0].body["messages"][0]["content"][0]["text"])
+    design = next(entry for entry in sent["context"] if entry["layer"] == "design")
+    assert design["readiness"] == {
+        "methodology_version": "aia-readiness-1",
+        "sample_size": {"min": 20, "max": 10000},
+    }
+    turn = lead_turn(ready, turn_id)
+    assert turn["status"] == "COMPLETED", turn
+    assert [(e["op"], e["value"]) for e in turn["output"]["edits"]] == [("set_n", 600)]
+    assert turn["dropped"] == [{"index": 0, "op": "set_n", "reason": "sample_size_out_of_range"}]
+
+
 def test_the_shared_recorded_wire_answers_a_lead_turn_as_a_recording(
     ready: Any, database_url: str, store: Any, build: Any
 ) -> None:

@@ -141,6 +141,7 @@ __all__ = [
     "ResearchStepNotFound",
     "RunOutlook",
     "RunReservations",
+    "readiness_in_force",
     "report_pdf_key",
     "research_artifacts",
 ]
@@ -415,6 +416,27 @@ def _population_note(binding: PopulationBinding, *, read_by_fieldwork: bool) -> 
         "version_id": binding.version_id,
         "version_label": binding.version_label,
         "read_by_fieldwork": read_by_fieldwork,
+    }
+
+
+def readiness_in_force(
+    session: Session, scope: StudyContext
+) -> tuple[ReadinessSpec, dict[str, Any] | None]:
+    """The readiness limits in force for the Study, and the stored version they come from
+    (``None``: nothing stored, so the code's preset ``aia-readiness-1``).
+
+    The one authority for a valid n (plan ``run-qc-and-checkpoint`` RQC9): what a run start
+    checks and pins, what the API's ``GET …/research/limits`` answers the web, and what a
+    Research Lead turn is frozen with and its ``set_n`` accepted under. Read through the
+    Study's resolved scope; only its organization's methodology rows are read."""
+    in_force = methodology_in_force_for_study(session, scope, "readiness")
+    if in_force.version is None:
+        return readiness_spec_for(None), None
+    return readiness_spec_for(in_force.version.payload), {
+        "module": "readiness",
+        "version": in_force.version.version_number,
+        "name": in_force.version.name,
+        "payload_sha256": in_force.version.payload_sha256,
     }
 
 
@@ -1213,15 +1235,7 @@ class ResearchRuns:
         ``methodology-tab`` V1a); with nothing stored, 18.6.6's product policy."""
         if readiness is not None:
             return readiness, None
-        in_force = methodology_in_force_for_study(self.session, self.scope, "readiness")
-        if in_force.version is None:
-            return readiness_spec_for(None), None
-        return readiness_spec_for(in_force.version.payload), {
-            "module": "readiness",
-            "version": in_force.version.version_number,
-            "name": in_force.version.name,
-            "payload_sha256": in_force.version.payload_sha256,
-        }
+        return readiness_in_force(self.session, self.scope)
 
     def _response(
         self, response: ResponseProcessSpec | None

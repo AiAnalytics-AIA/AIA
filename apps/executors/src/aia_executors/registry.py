@@ -27,7 +27,7 @@ from aia_core.infrastructure.storage import ArtifactStore
 from aia_core.infrastructure.storage_settings import StorageSettings, build_artifact_store
 from aia_worker.executor import StepExecutor
 
-from .ai_fieldwork import AIFieldwork
+from .ai_fieldwork import AIFieldwork, PopulationLoader
 from .ai_runtime import (
     AIRuntimeSettings,
     BedrockSigner,
@@ -168,6 +168,7 @@ def compose_registry(
     *,
     transport: HttpTransport | None = None,
     signer: BedrockSigner | None = None,
+    population: PopulationLoader | None = None,
 ) -> dict[str, StepExecutor]:
     """The production composition from the environment, over a given model wire.
 
@@ -175,6 +176,10 @@ def compose_registry(
     transport and the instance-role signer). A test composition passes a recorded wire
     (:mod:`aia_executors.acceptance_recorded`) and gets every other part of this one
     unchanged: the same settings, the same executors, the same gateway and gates.
+
+    ``population`` replaces the panel path's loader (``build_ai_fieldwork(population=)``); only
+    the local and test composition ``aia_executors.population_double`` passes one. Without it
+    the loader is the production one over ``AIA_POPULATION_ASSET_ROOT``.
     """
     build = BuildIdentity.from_env()
     connectedness_interval = sociomap_connectedness_interval(os.environ)
@@ -245,7 +250,12 @@ def compose_registry(
         build=build,
         ai_runtime=(
             build_ai_fieldwork(
-                settings, build=build, population_store=children, transport=transport, signer=signer
+                settings,
+                build=build,
+                population=population,
+                population_store=children,
+                transport=transport,
+                signer=signer,
             )
             if settings is not None
             else None

@@ -55,6 +55,7 @@ from ..domain.research_lead import (
     is_text_edit,
     new_turn_id,
     notes_layer,
+    readiness_layer,
     stale_files,
 )
 from ..domain.research_template import research_template
@@ -76,7 +77,7 @@ from ..infrastructure.study_workspace_repository import (
     WorkspaceConflict,
 )
 from ..infrastructure.workflow_repository import WorkflowRepository
-from .research import ResearchAgentJobs
+from .research import ResearchAgentJobs, readiness_in_force
 from .workflows import start_workflow
 
 __all__ = [
@@ -567,6 +568,9 @@ class ResearchLead:
             dict(working.content) if working.content is not None else research_template()
         )
         analysis: dict[str, Any] | None = working.analysis
+        # A set_n is accepted under the limits in force now, not those the turn was frozen
+        # with: a version activated meanwhile is what the start will check (RQC9).
+        limits, _ = readiness_in_force(self.session, self.scope)
         for index in order:
             if not 0 <= index < len(output.edits):
                 results[index] = {"index": index, "status": "refused", "reason": "unknown_edit"}
@@ -581,7 +585,9 @@ class ResearchLead:
             if auto and not is_text_edit(output.edits[index]):
                 results[index] = {"index": index, "status": "refused", "reason": "not_a_text_edit"}
                 continue
-            applied = apply_edit(content, analysis, output.edits[index])
+            applied = apply_edit(
+                content, analysis, output.edits[index], sample_size=limits.sample_size
+            )
             if isinstance(applied, Refused):
                 results[index] = {"index": index, "status": "refused", "reason": applied.reason}
                 continue
@@ -848,6 +854,7 @@ class ResearchLead:
         study = scopes.get_study(s)
         client = scopes.client_of_study(s)
         project_id = StudyDesignRepository(self.session, s).project_id()
+        limits, _ = readiness_in_force(self.session, s)
         runs = (
             self._workflows().list_runs(
                 project_id=project_id, workflow_type=RESEARCH, limit=RUNS_IN_CONTEXT
@@ -878,6 +885,8 @@ class ResearchLead:
                 "design_revision_id": design_revision_id,
                 "content": design_material(content),
                 "analysis": analysis,
+                # The valid n as readiness reads it (RQC9): what a set_n is grounded against.
+                "readiness": readiness_layer(limits.sample_size, limits.methodology_version),
             },
             runs=[
                 {
