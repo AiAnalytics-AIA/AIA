@@ -32,7 +32,8 @@ describe("AnalysisInspect", () => {
     const link = screen.getByRole("link");
     expect(link.getAttribute("href")).toBe("#measure-q2");
     expect(link.textContent).toBe("38,4 % podíl odpovědi „Čaj“ · Který nápoj byste si vybrali?");
-    expect(link.closest("li")?.getAttribute("data-aia")).toBe("claim:executive:C1");
+    // The drawer names no target: the page's chip is claim:executive:C1's one element.
+    expect(document.querySelector("[data-aia]")).toBeNull();
   });
 
   it("opens a claim with the sentences that cite it", () => {
@@ -40,7 +41,7 @@ describe("AnalysisInspect", () => {
     render(<AnalysisInspect target={{ kind: "claim", id: "executive:C1" }} />);
     expect(document.querySelector('[data-inspect="claim"]')).toBeTruthy();
     expect(screen.getByText("Zjištění 1")).toBeTruthy();
-    expect(document.querySelector('[data-aia="finding:executive:0"]')).toBeTruthy();
+    expect(screen.getByText("vede").tagName).toBe("STRONG");
   });
 
   it("says what is missing, and refuses a target that is not Analýza's", () => {

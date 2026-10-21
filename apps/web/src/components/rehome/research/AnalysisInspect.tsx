@@ -2,7 +2,8 @@
 // Analýza's inspector body (artifact-analysis ANL3): a finding or a claim opened in the drawer,
 // down to the measure on Výsledky. The frame draws the drawer, its title and its back stack and
 // passes the target alone; the analysis it reads is the one the page shows, published by
-// AnalysisResults (shownAnalysis), so the drawer can never open another run's item. Display only.
+// AnalysisResults (shownAnalysis), so the drawer can never open another run's item. Display only, and
+// it carries no Lead target: each target names one element, which is on the page (claimMarks).
 import { useSyncExternalStore, type ReactNode } from "react";
 import { t } from "@/i18n/t";
 import type { ResearchAnalysis } from "@/lib/api";
@@ -32,7 +33,7 @@ function subscribe(listener: () => void): () => void {
 function CitedLine({ n }: { n: CitedNumber }) {
   const words = numberWords(n);
   return (
-    <li data-aia={n.target ?? undefined} className="rounded-control border border-border bg-surface-sunken px-2.5 py-1 text-xs leading-5">
+    <li className="rounded-control border border-border bg-surface-sunken px-2.5 py-1 text-xs leading-5">
       {n.href && n.measure
         ? <a href={n.href} className="no-underline hover:underline"><span className="font-semibold tabular-nums">{words}</span> · {n.measure.title}</a>
         : <span><span className="font-semibold tabular-nums">{words}</span> <CodedWords inline coded={{ words: t("research.exec.untitled.cited"), code: n.claim.evidence_ref }} /></span>}
@@ -67,7 +68,7 @@ export function AnalysisInspect({ target }: { target: { kind: "module" | "findin
       {view.citedBy.length ? (
         <ul className="flex flex-col gap-2">
           {view.citedBy.map((c, i) => (
-            <li key={i} data-aia={c.kind === "finding" ? c.target ?? undefined : undefined} className="border-l-2 border-signal pl-3">
+            <li key={i} className="border-l-2 border-signal pl-3">
               {c.kind === "answer" ? <p className="text-xs font-medium">{c.question}</p> : <p className="text-xs font-medium">Zjištění {c.index + 1}</p>}
               <FormattedText text={c.text} />
             </li>
