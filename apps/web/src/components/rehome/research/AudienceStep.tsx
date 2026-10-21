@@ -361,7 +361,7 @@ function LiveFilters({ live }: { live: Extract<Live, { state: "ready" }> }) {
           </li>
         ))}
       </ul>
-      <Preview />
+      <Preview catalog={live.catalog} />
     </section>
   );
 }
@@ -416,7 +416,7 @@ function FactorEditor({ factor, project, onChange }: { factor: Factor; project: 
 }
 
 /** The feasibility preview: counted by the API over AIA's population, through the run's own functions. */
-function Preview() {
+function Preview({ catalog }: { catalog: Catalog }) {
   const { store } = useResearch();
   const [answer, setAnswer] = useState<{ ok: boolean; lines: string[]; seed?: number } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -426,7 +426,7 @@ function Preview() {
     const n = Number(p.n);
     try {
       const r = await population.audiencePreview((p.audience.filters as Record<string, unknown>) || {}, Number.isFinite(n) && n >= 1 ? n : null);
-      setAnswer({ ...liveVerdict(r), seed: r.seed });
+      setAnswer({ ...liveVerdict(r, catalog), seed: r.seed });
     } catch (e: unknown) {
       if (e instanceof ApiError && e.code === "audience_preview_unavailable") setAnswer({ ok: false, lines: [t("research.audience.previewUnavailable")] });
       else setAnswer({ ok: false, lines: [tv("research.audience.previewFailed", { message: e instanceof Error ? e.message : String(e) })] });
