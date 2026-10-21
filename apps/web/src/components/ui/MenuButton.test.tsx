@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { MenuButton } from "./MenuButton";
+import { MenuButton, menuSide } from "./MenuButton";
 
 afterEach(cleanup);
 
@@ -71,5 +71,30 @@ describe("MenuButton (I3): an action is a menu, never a select that fires on cha
     render(<MenuButton label="Přidat štítek" items={[]} onSelect={() => {}} empty="Žádné štítky" />);
     fireEvent.click(screen.getByRole("button", { name: "Přidat štítek" }));
     expect(screen.getByText("Žádné štítky")).toBeTruthy();
+  });
+
+  it("as a row's ⋯ shows its icon alone, named by what it acts on, and the menu carries that name (chunk 2)", () => {
+    render(<MenuButton hideLabel align="end" label="Akce složky Archiv" items={ITEMS} onSelect={() => {}} />);
+    const more = screen.getByRole("button", { name: "Akce složky Archiv" });
+    expect(more.textContent).toBe("");
+    fireEvent.click(more);
+    const menu = screen.getByRole("menu", { name: "Akce složky Archiv" });
+    // Opened from the row's end: leftwards from the button's right edge.
+    expect(menu.className).toContain("right-0");
+    expect(menu.className).not.toContain("left-0");
+  });
+});
+
+describe("menuSide: a menu stays inside the viewport", () => {
+  it("opens the side asked for when it fits, else the other side", () => {
+    expect(menuSide("start", { left: 20, right: 120 }, 1440)).toBe("start");
+    // A button wrapped to the right of a bar at 390 px: rightwards would run off the page.
+    expect(menuSide("start", { left: 300, right: 380 }, 390)).toBe("end");
+    expect(menuSide("end", { left: 300, right: 380 }, 390)).toBe("end");
+    // At a row's end near the left edge, leftwards would run off: it opens rightwards.
+    expect(menuSide("end", { left: 10, right: 40 }, 390)).toBe("start");
+    // Neither fits (a viewport narrower than the menu): the side asked for.
+    expect(menuSide("start", { left: 50, right: 100 }, 150)).toBe("start");
+    expect(menuSide("end", { left: 50, right: 100 }, 150)).toBe("end");
   });
 });

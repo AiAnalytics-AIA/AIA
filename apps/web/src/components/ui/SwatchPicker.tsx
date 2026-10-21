@@ -12,7 +12,7 @@ import { type KeyboardEvent, useRef, useState } from "react";
 
 import { tv } from "@/i18n/t";
 import { rovingIndex, tabStop } from "@/lib/roving";
-import { FOCUS, POPOVER, useDismiss } from "./parts";
+import { FOCUS, POPOVER, POPOVER_END, useDismiss } from "./parts";
 
 type Props<C extends string> = {
   value: C;
@@ -73,7 +73,13 @@ function Swatches<C extends string>({
   );
 }
 
-export function SwatchPicker<C extends string>({ popover = false, ...props }: Props<C> & { popover?: boolean }) {
+export function SwatchPicker<C extends string>({
+  popover = false, align = "start", ...props
+}: Props<C> & {
+  popover?: boolean;
+  /** The popover's side: "end" opens leftwards from the trigger's right edge (a trigger at a row's end). */
+  align?: "start" | "end";
+}) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -96,7 +102,8 @@ export function SwatchPicker<C extends string>({ popover = false, ...props }: Pr
         <span aria-hidden="true" className={`size-3 rounded-full ${props.swatch[props.value]}`} />
       </button>
       {open ? (
-        <div className={`${POPOVER} p-1.5`}>
+        // w-max: the six swatches stay one row whatever the room beside the trigger (a narrow nav).
+        <div className={`${align === "end" ? POPOVER_END : POPOVER} w-max p-1.5`}>
           <Swatches
             {...props}
             chooseOnMove={false}
