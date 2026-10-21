@@ -123,7 +123,9 @@ Depends on `evidence-integrity#7`, `lead-orchestration#LO9b`.
 
 ## 8. Owner questions
 
-None here. A module with no supported finding and the draft is the chain plan's CQ3.
+None here. A module with no supported finding blocks the report: MVPQ-04 settled it
+(`mvp-owner-decisions.md:87-99`, 2026-10-20), and its diagnostic is shown here (ANL4) and in the
+refusal (`artifact-chain-to-draft-report#CHN10`); it never satisfies the gate.
 
 ## Doc follow-up
 

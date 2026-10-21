@@ -10,8 +10,9 @@ chunks:
   - "[ ] CHN7. The UI workbench composes analysis and the internal report on recorded models, and runs the stage workers on recordings: local and test only"
   - "[ ] CHN8. The literature chapter in the draft, as the owner decides (CQ4)"
   - "[ ] CHN9. Metodika a způsob interpretace from the run's pins: aggregation methodology, support rule, Sociomap method and QC warnings, the reading guidance kept and labelled"
-  - "[ ] CHN10. A draft when a module has no supported finding, as the owner decides (CQ3)"
-  - "[ ] CHN11. The chain over HTTP: a fictional study from brief to internal DOCX on recorded answers, every section filled from its named source, every number an admitted ref"
+  - "[ ] CHN10. A module with no supported finding blocks the draft (MVPQ-04): composition, approval and export refuse; the module's diagnostic shown on Analýza and Výsledky and in the refusal's own words"
+  - "[ ] CHN11a. The number census: a new scan of the stored document model's text, every numeric token classed as an admitted ledger ref, a value of the stored Sociomap artifact, or a design or document-control number with typed provenance; an unclassed token fails"
+  - "[ ] CHN11. The chain over HTTP: a fictional study from brief to internal DOCX on recorded answers, every hand-off chunk's output (CHN1-CHN6, CHN8-CHN10, RD5a) asserted in the draft, every number in an accepted provenance class"
   - "[ ] CHN12. The chain in a browser: draft_report_journey.mjs on the UI workbench, brief through every stage to the internal DOCX at 1440 px, zero paid calls"
 ---
 # The artifacts in one chain: brief to a draft research document
@@ -69,7 +70,7 @@ Anchors are `file:line @ 25f26232` (origin/develop) unless stated.
 | Cílová skupina (`ch-3`) | AUDIENCE module | — |
 | Srovnání sledovaných objektů (`ch-4`) | OBJECTS module | — |
 | Sociomapy · <set> (`ch-native-map-n`) | the verified Sociomap (`report_maps.py:383`) | respondent and segment figures wait (`signed-off-sociomap-method#9`, `segment-maps-and-drilldown#9`) |
-| Segmenty (`ch-5`) | SEGMENTS module | **no admitted segment producer** (`segment-maps-and-drilldown#10`), and a module with no supported finding blocks the draft once `evidence-integrity#9b` lands (CQ3, CHN10) |
+| Segmenty (`ch-5`) | SEGMENTS module | **no admitted segment producer** (`segment-maps-and-drilldown#10`), and a module with no supported finding blocks the draft once `evidence-integrity#9b` lands (MVPQ-04, CHN10) |
 | Hypotézy (`ch-6`) | HYPOTHESES module | **no hypotheses input** (`assumptions-and-open-answer-coding#AOC3`) |
 | Implikace pro rozhodnutí (`ch-7`) | IMPLICATIONS module | **no `decision_use` input** (AOC3, CHN2) |
 | Limity (`ch-8`) | LIMITATIONS module; the deviation | — |
@@ -112,7 +113,7 @@ G12-G17 are added by this plan.
 | G14 | Deep Research findings as labelled external context: design findings nowhere, interpretation findings only in the variant | **CHN4**, **CHN8**; `evidence-integrity#7` (module preparation) |
 | G15 | The Lead's narrative edits cannot reach the report: no document model is stored (F-ED3, `aia_executors/report.py:101-146`; `domain/report/model.py:87`) | `report-delivery#RD5a`, then `#RD6`; UI `artifact-report#RPT6` |
 | G16 | Q12's five hand-off gaps | `lead-orchestration#LO9d` (worker inputs), `assumptions-and-open-answer-coding#AOC3` (hypotheses), `working-copy-edit-ops#WCE7` (staleness on pending proposals), `lead-orchestration#LO7` (pending proposals in the Lead's context), `lead-orchestration#LO6` (a card-started job returns to the Lead) |
-| G17 | All eight modules must complete or nothing is composed (`report.py:156-157`); SEGMENTS has no admitted producer, so once `evidence-integrity#9b` lands a study cannot reach a draft in one pass | **CHN10** (by CQ3); `segment-maps-and-drilldown#10` |
+| G17 | All eight modules must complete or nothing is composed (`report.py:156-157`); SEGMENTS has no admitted producer, so once `evidence-integrity#9b` lands a study cannot reach a draft in one pass | **CHN10** (MVPQ-04: block); `segment-maps-and-drilldown#10` |
 
 ## 4. Chunks
 
@@ -191,10 +192,53 @@ literature chapter, in its introduction (`_with_contents`) and its manifest.
 - Test: a run pinning `aia-sociomap-5` names it and its status.
 - Depends on `evidence-integrity#3` for QC.
 
-**CHN10. The draft and a module without a supported finding.** By CQ3's answer.
-- Test under (b): the draft composes with the diagnostic in its chapter, and approval and every export
-  refuse by name.
-- Depends on `evidence-integrity#9a`, `#9b`.
+**CHN10. A module without a supported finding blocks the draft** (MVPQ-04, settled 2026-10-20).
+- The owner's answer (`mvp-owner-decisions.md:87-99`): "Block the report until resolved." While any
+  of the eight modules is BLOCKED or has no supported finding, composition of the internal report,
+  its approval and every export (internal DOCX and PDF, with literature, client) refuse. That refusal
+  is `evidence-integrity#9b`; the existing all-eight-modules rule (`report.py:156-157`) is the same
+  rule stated once.
+- The structured "no finding, reason and coverage gap" diagnostic (`evidence-integrity#9a`) is
+  diagnostic output only. It never satisfies the gate, is never counted as a finding, and no draft is
+  composed with it in a chapter.
+- This chunk carries the diagnostic to where a person meets the refusal:
+  - Analýza and Výsledky show each blocked module's diagnostic: the module, its reason codes and what
+    would resolve it (a same-data retry through `retry_analysis`, a changed design, more data), with
+    `artifact-analysis#ANL4`;
+  - the refusal itself, in the API error and on Zpráva (`artifact-report`), names the module and gives
+    the diagnostic's reason and way out in its own words.
+- SEGMENTS (G17): until `segment-maps-and-drilldown#10` gives it an admitted producer, a study whose
+  SEGMENTS module has no supported finding does not reach a draft. That is the decided behaviour, not
+  a gap this chunk works around; no "not requested" bypass is planned without a new owner decision.
+- Tests: a run with one module BLOCKED stores no `research_internal_docx`, and composition, approval
+  and every export refuse by name; the refusal's body carries the module, its reason codes and the way
+  out; Analýza and Výsledky show the diagnostic; a diagnostic patched into a chapter as a finding is
+  refused by the citation gate.
+- Depends on `evidence-integrity#9a`, `#9b`; `artifact-analysis#ANL4`.
+
+**CHN11a. The number census** (new work).
+- `domain/report/validation.py` validates the refs a block declares explicitly (`_prose_refs`,
+  `_data_refs`: unknown, suppressed, interval-less client estimates). It does not scan a paragraph's
+  or a table cell's text for numbers, so a number typed as text passes it today. Scanning text is new
+  code, and this chunk owns it.
+- Over the stored document model (RD5a), every numeric token in a paragraph, callout, table cell,
+  caption or chart label is put in one of three accepted provenance classes:
+  - (a) **an admitted evidence-ledger ref**: the token is printed from a ref the ledger admits (a
+    `NumberCell`, a KPI, a caption's base n, a chart series);
+  - (b) **a value derived from the stored Sociomap artifact**: a pair's signed r, n and Kish n, the
+    credibility metrics (split-half agreement and its threshold, reliable pairs, the uncertainty
+    radius), object, profile and donor counts, Stress-1 (`.planning/evidence/editor-spike-2026-10-21.md:53-55`,
+    paths P7-P9, `application/report_maps.py`). The token is tagged `map:<artifact_id>` and must equal
+    the value the artifact holds. Whether these become ledger refs stays open as OQ-ED1
+    (`artifact-sociomap`); the census accepts this class until OQ-ED1 is answered and changes with it;
+  - (c) **a design or document-control number with typed provenance**: n, scale points, question
+    numbers, dates, version and page numbers, written from a typed specification field or the
+    document's metadata (RD0's design facts), each naming its field.
+- A token in no class fails, named with its section and block. Numbers are not required to be ledger
+  refs beyond class (a).
+- Tests: each of the four sample reports passes; a number typed into a paragraph fails; a map value
+  that differs from its artifact fails; a design number without its field fails.
+- Depends on `report-delivery#RD5a`; class (b)'s tags on the editor spike's P7-P9 regions.
 
 **CHN11. The chain over HTTP** (the acceptance test, part 1).
 - Extends `tests/acceptance/test_acceptance_harness.py:245-316`. A fictional study is walked over
@@ -206,13 +250,28 @@ literature chapter, in its introduction (`_with_contents`) and its manifest.
   5. internal DOCX.
 - It reads the stored document model (RD5a) and asserts:
   - every section is present with the source CHN1 names;
-  - every number in a paragraph, table or caption is a ledger ref the evidence table admits (the
-    validator's rule, `domain/report/validation.py`);
+  - each hand-off chunk's output reaches the draft:
+    - CHN2: the brief's goal, decision_use and objectives in the introduction;
+    - CHN3: each research question's measures and table anchors in the research-questions chapter;
+    - CHN4: the accepted Design Research item, labelled external context, with its bundle seal;
+    - CHN5: the audience's stated description and filters beside those applied;
+    - CHN6: the aggregate, specification, dataset and map ids in the audit;
+    - CHN8: whether the draft holds the literature chapter, by CQ4's answer, in its introduction and
+      manifest (and, when a run is marked, the with-literature variant holds it);
+    - CHN9: the run's pinned methods and support rule in the methodology chapter;
+    - CHN10: the same walk with one module BLOCKED stores no draft, and the refusal carries the
+      module's diagnostic;
+    - RD5a: the stored document model renders to the downloaded DOCX's bytes;
+  - every explicit ref passes `domain/report/validation.py` (refs only; it scans no text), and every
+    numeric token passes CHN11a's census in one of its three classes;
   - design facts are typed blocks;
   - the usage ledger holds no paid row.
 - One record line in the harness (`mvp-acceptance-harness#6`). It is AC-08's and AC-15's evidence on
   this path, and reuses `mvp-acceptance-harness#16`'s per-number walk; it does not duplicate it.
-- Depends on CHN1, CHN7, `report-delivery#RD5a`.
+- Depends on CHN1, CHN2, CHN3, CHN4, CHN5, CHN6, CHN7, CHN8, CHN9, CHN10, CHN11a and
+  `report-delivery#RD5a`. Once `evidence-integrity#9b` lands, the walk reaches a draft only if the
+  fictional design's SEGMENTS module has a supported finding, so it also depends on
+  `segment-maps-and-drilldown#10` (G17).
 
 **CHN12. The chain in a browser** (the acceptance test, part 2).
 - `tools/ui_workbench/draft_report_journey.mjs`, after `make ui-workbench` + `make ui-fixtures`, at
@@ -233,9 +292,11 @@ literature chapter, in its introduction (`_with_contents`) and its manifest.
 ## 5. Order
 
 1. CHN7 (the workbench can make a draft at all), CHN6, CHN5, CHN9.
-2. With RD5a: CHN1, then CHN11.
-3. CHN2 (with AOC3), CHN3, CHN4 (with 7b), CHN8 and CHN10 once CQ4 and CQ3 are answered.
-4. CHN12 last; it grows with the artifact journeys.
+2. With RD5a: CHN1, then CHN11a.
+3. CHN2 (with AOC3, after CQ1), CHN3, CHN4 (with 7b), CHN8 (once CQ4 is answered) and CHN10 (with
+   `evidence-integrity#9a`, `#9b`; MVPQ-04 is settled).
+4. CHN11, once every chunk of steps 1-3 and `segment-maps-and-drilldown#10` have landed.
+5. CHN12 last; it grows with the artifact journeys.
 
 ## 6. Owner questions about the draft document's shape
 
@@ -263,18 +324,9 @@ direct, per researcher. The editor is Q19's spike.
 improves through accepted, recorded edits. (c) makes the first draft a model's output with no
 deterministic baseline to compare an edit against.
 
-**CQ3. Is a draft composed when a module has no supported finding?** MVPQ-04 settled that such a
-module blocks the report, and `evidence-integrity#9b` refuses composition, approval and export. The
-SEGMENTS module has no admitted producer yet (G17), so under the current reading no study reaches a
-draft.
-- (a) As written: no draft until every module has a supported finding.
-- (b) The internal draft composes, with the module's diagnostic in its chapter. Approval and every
-  export refuse until it is resolved.
-- (c) A module the design did not ask for (no `compare_segments` comparison) is "not requested", and
-  neither blocks nor prints.
-
-**Recommendation: (b).** The researcher can read and work the draft, and nothing unsupported leaves
-AIA. (c) could be added to it later, for SEGMENTS alone.
+A module with no supported finding is not an open question here: MVPQ-04 settled it on 2026-10-20
+("Block the report until resolved"), and CHN10 plans it. CQ3 is withdrawn; the remaining questions
+keep their numbers.
 
 **CQ4. Does the draft carry the literature chapter?** Today it is a separate variant composed on
 request (G2).
@@ -290,7 +342,7 @@ bases stay visibly apart. The Report artifact shows both and names which is whic
 - `mvp-master-plan.md` §3: list this plan and the eleven artifact plans. Their chunks need register
   rows in `mvp-execution-contracts.md` (named in the PR body). `tools/master_check.py` fails until
   they are there.
-- `mvp-owner-decisions.md`: CQ1-CQ4, QQ1 (artifact-questionnaire), SQ1 (artifact-sample) and RQ1
+- `mvp-owner-decisions.md`: CQ1, CQ2 and CQ4 (CQ3 withdrawn: MVPQ-04 settles it), QQ1 (artifact-questionnaire), SQ1 (artifact-sample) and RQ1
   (artifact-results).
 - `docs/migration/mvp-acceptance.md`: CHN11 and CHN12 as the draft-report chain's lines under AC-08,
   AC-13 and AC-15.

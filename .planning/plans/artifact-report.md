@@ -120,7 +120,9 @@ sentence refused by RD7 is marked at the sentence. Depends on `report-delivery#R
 
 ## 8. Owner questions
 
-None beyond the chain plan's (the draft's shape: CQ1-CQ4) and the open editor choice (Q19).
+None beyond the chain plan's (the draft's shape: CQ1, CQ2 and CQ4) and the open editor choice
+(Q19). A module with no supported finding is settled: MVPQ-04 blocks composition, approval and export
+(`artifact-chain-to-draft-report#CHN10`).
 
 ## Doc follow-up
 
