@@ -22,11 +22,14 @@ It does not:
 - ask Nigel directly. The coordinator asks him on the PM status page (`/pmstatus`) and relays the
   answers.
 
-## Open PRs (2026-10-21)
+## PRs (2026-10-21)
 
-- #548 chore/register-input-lead-plans @ a5225bf (register: lead-conversation, input-interactions, sociomap-5-web core; K4b/K4c, 3b2). Ready, docs green, Codex running.
-- #549 chore/docs-followups-2026-10-21 @ edfd7ee (worktree /home/user/AIA-docs; OI-139..153, CLAUDE.md §5 hook note). Ready, docs green, Codex running. Merge after #548 (coordinator batches after #517 deploy ~12:10, #546, #547).
-- Next docs PR: the follow-ups of #510, #532-#545, #546, #547. Build it from develop after #549 merges.
+- #548 (register: lead-conversation, input-interactions, sociomap-5-web core; #551/#553 rows; 3b3) and
+  #549 (docs follow-ups, OI-139..153, CLAUDE.md §5 hook note) MERGED 13:38. develop @ 25f2623:
+  master_check ok, 322 assigned, 0 unscheduled. No open PR of this session.
+- Next docs PR (needs Nigel's word to commit): follow-ups of #510, #532-#547, #551 (CLAUDE.md lines
+  when 26a/27a/27c land), #553 (F-DRL-1..7 numbered, overview Q44-Q48, deep-research.md line,
+  ADR 0026 Accepted-with), #552.
 
 ## Earlier PRs: #516, #522 and #523 all MERGED 2026-10-20 (23:13, 23:13, 23:30). MP16 signed 23:10. No open PR of this session.
 
