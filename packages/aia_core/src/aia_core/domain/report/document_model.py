@@ -342,7 +342,16 @@ class _Writer:
 
     def _table(self, table: Table, refs: list[str]) -> dict[str, Any]:
         rows = []
+        removed = 0
         for row in table.rows:
+            # The DOCX removes a row that cites a suppressed ref and counts it, never greys it
+            # (report_docx/tables.py render_table); the stored table says what the file says.
+            if any(
+                isinstance(cell, NumberCell) and self._ledger.is_suppressed(cell.ref)
+                for cell in row.cells
+            ):
+                removed += 1
+                continue
             cells: list[dict[str, Any]] = []
             for cell in row.cells:
                 if isinstance(cell, TextCell):
@@ -365,6 +374,7 @@ class _Writer:
             "title": table.title,
             "columns": [_column(column) for column in table.columns],
             "rows": rows,
+            "suppressed_rows": removed,
             "source": table.source,
             "base_ref": self._cite_optional(table.base_ref, refs),
             "notes": list(table.notes),

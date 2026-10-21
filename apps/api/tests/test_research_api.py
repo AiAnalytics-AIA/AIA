@@ -1335,6 +1335,46 @@ def test_the_client_report_is_read_as_its_document_beside_its_docx(
     assert models == [body["artifact_id"]]
 
 
+def test_a_client_report_stored_again_gets_a_document_of_its_own(
+    app: FastAPI,
+    researcher: TestClient,
+    world: Any,
+    damage_artifact: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Review of #584: the document was reused by fingerprint alone. A draft that turned
+    CORRUPT is stored again under the same fingerprint; its document must be its own, not the
+    first draft's, which the route would refuse on every read."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+
+    def compose(session: Any, scope: Any, store: Any, *, run_id: str) -> Any:
+        return client_report.ComposedClientReport(
+            document=_client_report_document(),
+            sources={"contract": client_report.CLIENT_REPORT_CONTRACT, "run_id": run_id},
+            depends_on=(),
+        )
+
+    monkeypatch.setattr(client_report, "compose_client_report", compose)
+    url = f"{_runs(world)}/{run_id}/report/client"
+    first = researcher.get(f"{url}/download").headers["X-AIA-Artifact-Id"]
+    first_model = researcher.get(f"{url}/document").json()["artifact_id"]
+    damage_artifact(first, "tampered")
+    assert researcher.get(f"{url}/download").status_code == 409  # the damage is found
+    again = researcher.get(f"{url}/download")
+    assert again.status_code == 200, again.text
+    second = again.headers["X-AIA-Artifact-Id"]
+    assert second != first
+    read = researcher.get(f"{url}/document")
+    assert read.status_code == 200, read.text
+    assert read.json()["report_artifact_id"] == second
+    assert read.json()["artifact_id"] != first_model
+    # Found again, not stored a third time.
+    researcher.get(f"{url}/download")
+    assert researcher.get(f"{url}/document").json()["artifact_id"] == read.json()["artifact_id"]
+
+
 def test_a_client_report_stored_before_its_document_says_so(
     app: FastAPI, researcher: TestClient, world: Any
 ) -> None:

@@ -25,11 +25,16 @@ from aia_core.domain.report.document_model import (
     read_document_payload,
 )
 from aia_core.domain.report.model import (
+    Column,
+    NumberCell,
     Paragraph,
     ReportDocument,
     Section,
     SociomapFigure,
+    Table,
+    TableRow,
     Text,
+    TextCell,
     Value,
 )
 
@@ -205,3 +210,28 @@ def test_an_unknown_ref_fails_as_it_fails_the_render(report_ledger: Any) -> None
     bad = Section("X", (Paragraph((Value("no-such-ref"),)),), id="x")
     with pytest.raises(KeyError):
         document_payload(ReportDocument(document.meta, (bad,), document.ledger))
+
+
+def test_a_table_drops_the_rows_the_docx_removes_and_counts_them(report_ledger: Any) -> None:
+    """``render_table`` removes a row citing a suppressed ref and prints how many; the stored
+    table holds the same rows and the same count (review of #584)."""
+    document = build("internal", report_ledger)
+    suppressed = next(iter(document.ledger.suppressed))
+    admitted = next(iter(document.ledger.rows))
+    table = Table(
+        id="tab-x",
+        title="Fiktivní tabulka",
+        columns=(Column("Skupina"), Column("Hodnota")),
+        rows=(
+            TableRow((TextCell("Kept"), NumberCell(admitted))),
+            TableRow((TextCell("Malá skupina"), NumberCell(suppressed))),
+        ),
+        source="Fiktivní běh",
+    )
+    first = replace(document.sections[0], blocks=(table,))
+    payload = document_payload(replace(document, sections=(first,)))
+    stored = payload["sections"][0]["blocks"][0]
+    assert stored["suppressed_rows"] == 1
+    assert [row["cells"][0]["text"] for row in stored["rows"]] == ["Kept"]
+    assert stored["refs"] == [admitted]
+    assert suppressed not in payload["ledger"]["refs"]

@@ -28,6 +28,7 @@ from aia_core.application.analysis_results import SourcesRefused, native_sources
 from aia_core.application.report import RESEARCH_SUBTITLE
 from aia_core.application.report_chapters import verified_map
 from aia_core.application.report_design import compose_design_sections
+from aia_core.application.report_document import beside, store_document_beside
 from aia_core.application.report_export import review_stamp_record
 from aia_core.application.report_maps import compose_map_sections
 from aia_core.application.report_method import compose_method_section
@@ -40,11 +41,6 @@ from aia_core.domain.evidence.report_lift import MODELLED_CLIENT_REPORT_LIFT
 from aia_core.domain.evidence.validation import method_status
 from aia_core.domain.fieldwork import MODELLED_DISCLOSURE, OriginKind, origin_kind
 from aia_core.domain.pipeline import fingerprint
-from aia_core.domain.report.document_model import (
-    DOCUMENT_MODEL_CONTRACT,
-    DOCUMENT_MODEL_MEDIA_TYPE,
-    document_bytes,
-)
 from aia_core.domain.report.evidence import EvidenceLedger
 from aia_core.domain.report.model import (
     Callout,
@@ -320,7 +316,7 @@ def stored_client_report(
     if found is not None:
         # A draft stored before RD5a gets its document now: the same sources compose the same
         # document (the fingerprint holds them and the contract).
-        _store_document(artifacts, run, run_id, found, composed.document, key, build)
+        _store_document(artifacts, run_id, found, composed.document, build)
         return found, artifacts.read(found.artifact_id)
     data = DocxRenderer().render(composed.document)
     artifact, _created = artifacts.put(
@@ -343,41 +339,30 @@ def stored_client_report(
         },
         depends_on=list(composed.depends_on),
     )
-    _store_document(artifacts, run, run_id, artifact, composed.document, key, build)
+    _store_document(artifacts, run_id, artifact, composed.document, build)
     return artifact, data
 
 
 def _store_document(
     artifacts: ArtifactRepository,
-    run: Mapping[str, Any],
     run_id: str,
     docx: Artifact,
     document: ReportDocument,
-    key: str,
     build: str,
 ) -> Artifact:
-    """The document ``docx`` was rendered from, beside it under the same fingerprint
-    (report-delivery RD5a); the one already stored when there is one."""
-    model, _created = artifacts.put(
-        project_id=run["project_id"],
-        revision=int(run["project_revision"]),
-        stage_type=CLIENT_REPORT_STAGE,
+    """The document ``docx`` was rendered from, beside it (report-delivery RD5a)."""
+    return store_document_beside(
+        artifacts,
+        docx,
+        document,
         artifact_type=CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE,
-        data=document_bytes(document),
-        content_type=DOCUMENT_MODEL_MEDIA_TYPE,
-        input_fingerprint=key,
-        runtime_version=build,
         metadata={
             "run_id": run_id,
             "report_kind": ReportKind.CLIENT.value,
-            "docx_artifact_id": docx.artifact_id,
-            "docx_sha256": docx.sha256,
-            "document_contract": DOCUMENT_MODEL_CONTRACT,
             "report_contract": CLIENT_REPORT_CONTRACT,
         },
-        depends_on=[docx.artifact_id],
+        runtime_version=build,
     )
-    return model
 
 
 def client_report_document(
@@ -412,7 +397,6 @@ def client_report_document(
         if a.artifact_type == CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE
         and a.status is ArtifactStatus.VALID
         and a.metadata.get("run_id") == run_id
-        and a.metadata.get("docx_artifact_id") == docx.artifact_id
-        and a.metadata.get("docx_sha256") == docx.sha256
+        and beside(a, docx)
     ]
     return docx, (models[-1] if models else None)
