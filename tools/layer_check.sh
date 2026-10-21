@@ -559,16 +559,20 @@ forbid "no deployment runs the workbench composition" \
   'aia_executors\.workbench|aia_executors/workbench' \
   deploy
 # Recorded model answers (plan mvp-acceptance-harness chunk 4) stand in for Bedrock behind the
-# gateway, in tests and in the acceptance harness's worker. No production composition imports
-# them, and no deployment names either module: a recording never answers a deployed request.
-forbid "among the executors, only the acceptance composition imports the recorded models" \
+# gateway, in tests, in the acceptance harness's worker and in the UI workbench's (its analysis,
+# plan artifact-chain-to-draft-report CHN7; local and test only, named by no deployment above). No
+# production composition imports them, and no deployment names either module: a recording never
+# answers a deployed request.
+forbid "among the executors, only the acceptance and workbench compositions import the recorded models" \
   "$RECORDED_MODELS_IMPORTED" \
   "$EXECUTORS" \
-  "$EXECUTORS/acceptance_recorded.py"
-forbid "among the executors, only the acceptance composition names the recorded models" \
+  "$EXECUTORS/acceptance_recorded.py" \
+  "$EXECUTORS/workbench.py"
+forbid "among the executors, only the acceptance and workbench compositions name the recorded models" \
   "$RECORDED_MODELS_NAMED" \
   "$EXECUTORS" \
-  "$EXECUTORS/acceptance_recorded.py"
+  "$EXECUTORS/acceptance_recorded.py" \
+  "$EXECUTORS/workbench.py"
 forbid "no API code imports or names the recorded models" \
   "$RECORDED_MODELS_IMPORTED|$RECORDED_MODELS_NAMED" \
   "$API"
@@ -628,10 +632,16 @@ forbid "no API code imports recorded web retrieval" \
 forbid "the worker never imports recorded web retrieval" \
   "$RECORDED_WEB|deep_research_recorded" \
   "$WORKER"
-forbid "among the executors, only the recorded composition builds recorded web retrieval" \
+# The workbench composition (local and test only; nothing imports it and no deployment names it,
+# above) composes Deep Research over the recorded composition for its browser journeys
+# (research-lead-workbench 12a); it names the composition and builds no recorded double itself.
+forbid "among the executors, only the recorded and workbench compositions build recorded web retrieval" \
   "$RECORDED_WEB|deep_research_recorded" \
   "$EXECUTORS" \
-  "$EXECUTORS/deep_research_recorded.py"
+  "$EXECUTORS/deep_research_recorded.py" "$EXECUTORS/workbench.py"
+forbid "the workbench composition builds no recorded web double of its own" \
+  "$RECORDED_WEB" \
+  "$EXECUTORS/workbench.py"
 forbid "no deployment runs the recorded Deep Research composition" \
   'deep_research_recorded|load_recorded_web' \
   deploy

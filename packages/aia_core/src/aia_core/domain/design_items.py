@@ -53,6 +53,7 @@ from typing import Any, Final, Literal
 
 from .brief_materials import material_signature
 from .item_ids import ID_LISTS, SIDECAR_KEYS, Entry, bound_of, fold, list_ids, with_item_ids
+from .research_design import keep_point_labels
 
 __all__ = [
     "Documents",
@@ -675,8 +676,14 @@ def merge_items(
             touched_set,
         )
     if "sections" in content or "sections" in p:
+        # A proposal's scale with two ends, where the person's copy labels every point of the
+        # same range, keeps the person's labels (#559): no contract that writes a questionnaire
+        # carries more than the ends, so the merge never drops them without a word.
         merged = _merge_sections(
-            (p.get("sections"), p_res.content.get("sections")),
+            (
+                keep_point_labels(p.get("sections"), content.get("sections")),
+                p_res.content.get("sections"),
+            ),
             (content.get("sections"), c_res.content.get("sections")),
             touched_set,
         )

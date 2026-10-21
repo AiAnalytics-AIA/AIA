@@ -3,10 +3,10 @@ status: in-progress
 chunks:
   - "[x] 0. Audit, standard and this plan (docs only; .planning/evidence/input-interactions-audit.md)"
   - "[ ] 1. Shared primitives with tests: InlineText, Stepper, ChoiceChips (+ Segmented and Switch adopted everywhere), InlineCreateRow, SwatchPicker, MenuButton, UndoToast, SpendDialog; retire AskDialog's prompt form"
-  - "[ ] 2. Knowledge library: folders and labels created in the list, renamed in place, recoloured by swatch; bulk and item filing by menu; search debounced (audit D1-D13)"
+  - "[x] 2. Knowledge library: folders and labels created in the list, renamed in place, recoloured by swatch; bulk and item filing by menu; search debounced (audit D1-D13)"
   - "[ ] 3. Questionnaire: questions, options, blocks and sets created and edited in place; comparisons as segmented; deletes with undo (audit A1-A8, A11-A21)"
   - "[x] 3b1. Scales, server side: the domain compiling a scale's labels (two ends or one per point; labels that break the rule left out with a readiness WARN, scale_labels_ignored; the compiler aia-research-compile-2) and refusing a non-integer end (invalid_scale); the labels reaching respondents behind AIA_AI_SCALE_LABELS_IN_PROMPT (off), the respondent prompt's identity moving with it; the report printing them; the editor's pure rule (apps/web/src/research/scale-labels.ts) (audit IA-2, IA-7)"
-  - "[ ] 3b2. Scales, the editor: range presets 1-5, 1-7, 0-10, 1-10 and Vlastní; a verbal label on every point, on chunk 1's primitives (#532); the range-change rule with its undo toast (audit A9, A10)"
+  - "[x] 3b2. Scales, the editor: range presets 1-5, 1-7, 0-10, 1-10 and Vlastní; a verbal label on every point, on chunk 1's primitives (#532); the range-change rule with its undo toast (audit A9, A10)"
   - "[ ] 3b3. Scale labels switched on for respondents: AIA_AI_SCALE_LABELS_IN_PROMPT on for develop once the methodology owner has approved the wording rule; the moved respondent-system fingerprint recorded; deployment evidence (a run whose respondents read the labels); before any holdout confirmation binds to a fingerprint"
   - "[ ] 4. Brief and plan: the narrative's questions, objectives and hypotheses as items edited in place; the measurement folded into the set card; autosave replaces the explicit editors (audit A22-A36)"
   - "[ ] 5. Sample and audience: one n stepper 50-5000 with the recommendation, no silent clamp; factor ranges as bounded steppers; subpanels and values as chips or combobox (audit B1-B11)"
@@ -250,6 +250,69 @@ list read from the organization's own clients (chunk 8). Everything else is web-
   pure rule it will call (presets, `rescaleLabels`, `describeEveryPoint`, `labelProblem`) is in
   `apps/web/src/research/scale-labels.ts` with its tests, wired to no screen yet.
 
+### Chunk 3b2, as delivered (feature/scale-editor)
+
+- **Where.** `apps/web/src/components/rehome/research/ScaleEditor.tsx` replaces the scale
+  question's Minimum / Maximum fields and both end inputs, and a tracked set's two end inputs, on
+  Dotazník (`QuestionnaireStep.tsx` `QuestionCard`, `TrackedSet`; audit A9, A10). The classic layout
+  and the workbench's Dotazník are the same screen. The editor writes the range and the labels
+  together through the study's working copy (`questionnaire.ts` `setQuestionScale`,
+  `setSetScaleLabels`), so it autosaves (I10); no server change. The classic `setScaleEnd`,
+  `setScaleLabel` and `setObjectLabel` stay for their parity tests and no screen calls them.
+- **Range (I2, I3; Q32 a).** `ChoiceChips` 1–5, 1–7, 0–10, 1–10, Vlastní; Vlastní opens two
+  `Stepper`s, each end bounded by the other (low ≤ high − 1) and by the domain's 0–100
+  (`research_agents.py` `QuestionItem` / `BatterySection`), whole numbers only: 2,5 is "Jen celé
+  číslo; neuloženo." at the field, the server's `invalid_scale`, and an end meeting the other is
+  refused, never clamped. A stored range the editor cannot read (a decimal, reversed or out of
+  bounds, as the old fields let through: IA-2) is said with its value and no chip chosen; its labels
+  wait until a range is chosen (`readRange`), never rounded or swapped into one.
+- **Labels (I1).** "Oba konce" / "Každý bod" (`ChoiceChips`); each label an `InlineText`, Tab from
+  point to point; "Každý bod" prefills the two ends (`describeEveryPoint`). A label over 60
+  characters or repeating another point's (case-folded, as the server compares) is refused at its
+  field; anything else the server would leave out (`scale_labels_ignored`: a blank point, another
+  length) is said under the scale, "Popisky se nepoužijí, dokud je neopravíte: …", in
+  `labelProblem`'s words. Every point is offered up to 11 points (`DESCRIBED_POINTS_MAX`, the
+  presets' largest); a wider scale keeps two ends, said beside the chips; one already labelled point
+  by point is shown as it is.
+- **The range-change rule** is the plan's (§ Scales), `rescaleLabels` from 3b1: two ends stay two
+  ends; per-point labels stay only when the number of points is unchanged (0–4 to 1–5); otherwise
+  the end labels stay, the inner ones are cleared and `UndoToast` says how many ("Odstraněno 8
+  popisků bodů", Czech number agreement in `clearedWords`) with "Vrátit", which restores the range
+  and the labels as they were. "Oba konce" on a per-point scale clears the same way, with the same
+  undo. Arrowing over the presets (single-choice chips choose as they move) adds to the toast's
+  count and Vrátit restores the state before the first loss. One toast for the questionnaire
+  (`ScaleUndoProvider`).
+- **A tracked set** shows its range (it is not edited today and stays 1–10 unless stored otherwise)
+  and offers **its two ends only**, said beside it. See the finding below: with the labels off the
+  prompt, a set labelled point by point would tell respondents its first two points as its ends.
+- **Tests.** `scale-labels.test.ts` (readRange, endBounds, labelMode, withEnd / withPoint,
+  endsOnly, repeatsAnother, clearedWords); `ScaleEditor.test.tsx` (presets, arrows and one Tab
+  stop, Vlastní bounds and a decimal refused, an unreadable stored range, the set's fixed range,
+  every point described, Tab order, repeated / over-long refused, another length said, the 11-point
+  limit, the range-change rule with Vrátit, the chained undo, "Oba konce", the 8 s expiry);
+  `QuestionnaireStep.test.tsx › saves a scale's preset and a label on every point through the
+  working copy`; `tools/ui_workbench/workspace_journey.mjs` 2b: the imported first question on
+  1–10 with a label on every point, reloaded and read back, the card within 390 px, screenshots
+  `2b-scale-1440.png` / `2b-scale-390.png`.
+- **Audit rows closed:** A9, A10 (the set's per-point labels excepted, below); IA-2's web half
+  (no screen sends `+raw` any more). The switch `AIA_AI_SCALE_LABELS_IN_PROMPT` stays off (3b3).
+- **Review of #559 (Codex, P1 + P2).** Every contract that rewrites a questionnaire carries a
+  scale's two ends only: the classic optimiser's `_question_schema` (`maxItems: 2`) and the
+  native agents' `Question.popisky_skaly: tuple[str, str]` (`research_agents.py`). A rewrite
+  would drop the inner labels a person gave every point. Fixed by keeping, not by widening the
+  contract (a new contract shape means a new prompt and harness version and re-validated
+  fixtures; left to 3b3, when the labels reach the prompt): `keep_point_labels`
+  (`research_design.py`) and `keepPointLabels` (`scale-labels.ts`), one rule. A rewritten scale
+  with at most two labels and the same range as a stored question labelled validly on every
+  point keeps the stored labels, when exactly one matches it by id, else by wording, else by its
+  two ends; anything else stays as written. Applied in `proposal_result` (build and optimise),
+  `merge_items` (every accept through `accept_into_working_copy`), and the web's `applyOptimized`
+  and `applyBuilt`. The questionnaire import is not: a file is the person's own replacement, and
+  its template has two label columns. The respondent preview shows a per-point scale's first and
+  last label as its ends (`previewQuestion`, `previewBattery`). Tests:
+  `test_point_labels_kept.py`, `test_proposal_accept_ids.py ›
+  test_an_accept_keeps_a_scale_s_labels_on_every_point`, `point-labels-kept.test.ts`.
+
 ## Where this touches other plans
 
 Planning should fold these together rather than build twice:
@@ -299,6 +362,64 @@ Also in it: `Segmented` (`rehome/step.tsx`) got roving tabindex (IA-8 below); th
 callers (P2–P9) until the area chunks 2, 3 and 7 replace them (the Approach: it is deleted with its
 last caller). No other call site moved in this PR.
 
+### Chunk 2, as delivered (2026-10-21, `feature/input-interactions-knowledge`)
+
+The knowledge library on chunk 1's primitives, web only: **no route, schema or audit changed**.
+Audit rows closed: D1–D11 and D13; D12 kept as it is (below).
+
+- **Folders and labels are rows of the side panel** (`KnowledgeOrganizers.tsx`: `FolderRow`,
+  `LabelRow`, `NewLabelRow`). Each row selects as before; its name is renamed **in place** (I1) on
+  F2, a double click or its ⋯ menu ("Akce složky / štítku {name}": Přejmenovat, Smazat), as an
+  `InlineText` in the row: Enter or blur saves, Esc restores and sends nothing, focus goes back to
+  the row; a taken, empty or over-80-character name is said at the field by the server's own rule
+  (`name-input.ts` `nameProblem`, the row's own name excepted) and never sent; a server refusal
+  stays at the field as "Neuloženo – Zkusit znovu" (D2, D5; P2, P3 retired). A label is recoloured
+  by its **swatch** at the start of its row, a `SwatchPicker` popover where the arrows only move
+  and a click or Enter saves (D6). "+ Nový štítek" is an `InlineCreateRow` like "+ Nová složka",
+  its swatch beside the name, starting on the first colour no label uses (`nextLabelColour`), so
+  Enter alone creates (D4). The folder's heading and the label filter line lost their
+  Přejmenovat / Smazat / colour select: one place for each action, the row.
+- **Deletes happen at once with "Vrátit"** (I6, D3, D7; `UndoToast`, 8 s). The folder's or label's
+  items are read first (`GET …/knowledge?folder=` / `?label=`); undo makes it again with its name
+  (and colour) and files the same items back through `PUT …/placement`: new ids and two audit
+  entries, which audit §5.6 accepts for the MVP. When the read is not every item the API counts
+  there (`undoable`: a different count, or a full 200-item page), nothing is deleted yet and the
+  row asks with `InlineConfirm`, naming what goes and that it cannot be undone; focus on Ponechat.
+- **Filing is by menu** (I3, D11, D13; IA-6 moot here): the bulk bar's Přesunout do složky / Přidat
+  štítek / Odebrat štítek and the open item's Změnit složku (its own folder offered disabled) and
+  Přidat štítek (only labels it lacks) are `MenuButton`s; the arrows move without filing, Enter or
+  a click files once.
+- **Search is debounced** (D9, IA-4): asked 300 ms after typing pauses (`SEARCH_PAUSE_MS`, as
+  `MemorySearch`), trimmed; ten letters are one request.
+- **Primitives extended, each with its test:** `InlineText` `autoOpen` + `onSettled` (a rename
+  opened from elsewhere; settled only once the save answered, never on a failed one);
+  `MenuButton` `hideLabel` (a row's ⋯, named by what it acts on) and `align`, and `menuSide`
+  flips a menu that would run off the viewport (a bar wrapped at 390 px); `SwatchPicker` `align`
+  and one row of swatches (`w-max`); `InlineCreateRow` `adornment`, moving to it not leaving the
+  row; `parts.tsx` `POPOVER_END`; the `more` icon.
+- **D12 kept.** The open item's Název and Shrnutí stay fields with "Uložit jako revizi n": that
+  button is already the batch the owner chose (Q31 a: one session, one revision). Turning the two
+  fields into `InlineText` would only move the batch's commit; left for the workbench's item panel
+  (research-lead-workbench) rather than built twice.
+- **Tests:** `KnowledgeLibrary.test.tsx` (rename from the menu and on F2, Esc, a taken name, a
+  refused save and its retry, recolour with arrows that only move, a new label's colour, delete
+  and Vrátit for a folder and a label, the row's confirm when undo cannot be whole, bulk and item
+  menus by keyboard, the debounced search, a reader offered none of it); `knowledge-library.test.ts`
+  (`nextLabelColour`, `undoable`); the primitives' own files. `tools/ui_workbench/client_journey.mjs`
+  types in place: folder and label created by Enter (the label's swatch chosen), the folder renamed
+  on F2 (Esc restores), the label recoloured, bulk filing by menu (the label by keyboard), a folder
+  deleted and brought back by Vrátit, then folder and label deleted for good; no `<dialog>` or
+  `role=dialog` open at any step; a row's menu and the bulk menu opened at 390 px without overflow;
+  zero paid jobs. Run at its four widths, green twice.
+
+**AskDialog's prompt form after this chunk** (anchors @ `25f26232`): the knowledge area has none
+(P1 went in chunk 1, P2 and P3 here). Left, for chunks 3 and 7: P4 `apps/web/src/components/aia/
+clients/ClientDirectory.tsx:67` (Nový klient), P5 `apps/web/src/components/aia/clients/
+ClientContext.tsx:85` (Nový výzkum / simulace), P6–P9 `apps/web/src/components/rehome/research/
+QuestionnaireStep.tsx:510-521` through `ResearchScreen.tsx:327` (the questionnaire's quick adds).
+The confirm form keeps its callers outside this area (plan leave, three cancels, the spend
+confirmations; `Workbench.tsx:147`); the knowledge area's two delete confirms are gone.
+
 ## What this does not do
 
 No visual redesign beyond the controls; no soft delete (C9 owns it). The server's rules change in
@@ -315,8 +436,27 @@ IA-1 … IA-6, with all six parts, in the audit's §6. For the docs PR to number
   respondent's item (`test_on_a_scale_questions_labels_reach_the_respondent`). Off by default
   until the methodology owner signs the wording.
 - **IA-2 fixed, server side** (chunk 3b1): a non-integer scale end is `invalid_scale`, never
-  truncated by `int()`. The web's `setScaleEnd` still sends `+raw` (min 8 / max 3, an empty field
-  as 0) until the editor's steppers land in 3b2.
+  truncated by `int()`. **Web side fixed in 3b2**: the range is a preset or two bounded steppers
+  (`ScaleEditor.test.tsx › opens two steppers for Vlastní, each bounded by the other, a decimal
+  refused at the field`); no screen calls `setScaleEnd` any more.
+
+- **Finding (3b2; for the docs PR to number). A tracked set labelled point by point tells its
+  respondents and its map legend the wrong ends while the labels are off the prompt.**
+  1. Claim: `SpecBattery.told_ends` is develop's reading, the first two labels as written, so a set
+     whose `scale_labels` describe every point is told "1 = bod 1, 10 = bod 2".
+  2. Anchor: `packages/aia_core/src/aia_core/domain/research_design.py:534 @ 25f26232`
+     (`_develop_ends`), read at `ai_respondent.py:611-614` and `research_sociomapping.py:206 @
+     25f26232` (the map's legend); the report reads `scale_labels` instead
+     (`report_tables.py:96`, `report_design.py:61`).
+  3. Reproduction: `test_ai_respondent.py::test_on_a_set_is_read_by_the_new_rule` asserts
+     `told_ends == ("bod 1", "bod 2")` for a ten-point set.
+  4. Consequence: had the editor offered every point on a set, respondents would rate on a scale
+     whose top end reads as its second point, and the map's legend would say so. 3b1's review kept
+     the reading byte for byte for stored designs; no screen could write a per-point set before 3b2.
+  5. Smallest fix: read a set labelled exactly one per point (valid by the new rule) as its first
+     and last label in `_develop_ends`, a set no stored design holds; or keep sets to two ends until
+     3b3 turns the labels on. 3b2 does the second: the editor offers a set its two ends only.
+  6. Test: the reproduction's assertion, flipped to `("bod 1", "bod 10")` with the first fix.
 
 - **IA-8 (found and fixed in chunk 1). `Segmented` had no arrow keys.**
   `apps/web/src/components/rehome/step.tsx:139 @ e09a6c99`: every option was its own Tab stop and
@@ -324,6 +464,29 @@ IA-1 … IA-6, with all six parts, in the audit's §6. For the docs PR to number
   `step.test.tsx › Segmented is one Tab stop whose arrows move and choose (input-interactions I11)`
   fails on `e09a6c99`. Consequence: a keyboard user tabs through every option of every segmented
   control. Fix: `lib/roving.ts` (`rovingIndex`, `tabStop`) in `Segmented`, the same as ChoiceChips.
+
+- **IA-4 fixed** (chunk 2): the knowledge search asks once typing pauses for 300 ms
+  (`KnowledgeLibrary.test.tsx › asks the API once the typing pauses, never letter by letter`).
+- **IA-6 moot in the knowledge library** (chunk 2): no select there acts on change any more
+  (bulk, the open item, the label colour). Still a hypothesis for the intake sheet's
+  "Přidat štítek" select (`IntakeSheet.tsx:339-355`), chunk 7's.
+
+### CJ-1 (chunk 2): the client journey's bulk filing check passed without filing anything
+
+1. **Claim.** The journey's "the ticked item is moved into the folder" check matched the item's own
+   title, so it passed whether or not the item was filed.
+2. **Anchor.** `tools/ui_workbench/client_journey.mjs:136 @ 25f26232`:
+   `row.getByText(names.folder)`; `names.item` is `` `Cesta ${stamp}: pobočky` `` and `names.folder`
+   `` `Cesta ${stamp}` ``, and Playwright's `getByText` matches a substring by default.
+3. **Reproduction.** Remove the bulk "Přesunout do složky" step from the journey @ `25f26232`
+   and run it: the check at line 136 resolves at once, on the title (the run fails only later, at
+   the folder view). Once the folder is on the row, the same locator fails in strict mode (two
+   elements), which is how it showed up here.
+4. **Consequence.** The browser evidence for bulk filing proved nothing; a broken bulk move would
+   have shipped green.
+5. **Fix.** `{ exact: true }` on the folder and label checks (the journey on this branch).
+6. **Test.** The journey itself: the strict-mode failure is now the signal, and the folder name is
+   matched only as the filed cell says it.
 
 ### WT-1: the web suite timed out on a loaded machine (fixed on `fix/web-test-timeouts-under-load`)
 
@@ -391,6 +554,18 @@ IA-1 … IA-6, with all six parts, in the audit's §6. For the docs PR to number
   expect(el.textContent).toBe("50–5 000 · ↑ ↓ o krok, Shift ×10");
   ```
 - **open-items.md**: number IA-8 (closed by this PR) beside IA-1 … IA-7.
+
+### Doc follow-up (3b2, for the docs PR)
+
+- **CLAUDE.md § 2, the map**, under `src/components/rehome/research/`: add `ScaleEditor (a scale's
+  range and labels on Dotazník: presets 1–5, 1–7, 0–10, 1–10 or Vlastní with two bounded steppers,
+  the two ends or a label on every point edited in place, labels the server would leave out said,
+  a range change that clears labels undone by "Vrátit"; a tracked set its two ends only)`; and under
+  `src/research/`: `scale-labels.ts (a scale's range and labels, the server's rule at the field:
+  presets, readRange, rescaleLabels, endsOnly, labelProblem)`.
+- **CLAUDE.md § 3, the commands**, the `make ui-workspace` row: the journey also sets a 1–10 scale
+  with a label on every point and reads it back after a reload.
+- **open-items.md**: number the 3b2 finding above (a per-point set's ends as develop read them).
 
 ### Chunk 3b3, added by planning (2026-10-21)
 
