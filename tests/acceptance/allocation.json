@@ -1,9 +1,10 @@
 {
   "id": "MVP-ACCEPT-2-tier-B-allocation-1",
-  "status": "PROPOSAL - awaiting owner approval",
-  "approved_by": null,
-  "approved_at": null,
-  "note": "Tier B's spend for the representative study (mvp-acceptance.md section 1, budget USD 25, MVP-20). A ceiling per category, proposed by the harness plan (mvp-acceptance-harness chunk 1). Nothing is dispatched on it until the owner approves it; a paid probe or run names its line. The system enforces only the study's budget (per-request reservations) and the spend-limit confirmation per start; a line is held by the tier B runbook reading the usage ledger after each dispatch (chunk 7).",
+  "status": "APPROVED - option A, by the product owner",
+  "approved_by": "Nigel Blount (product owner), Q37: \"Approve as proposed\"",
+  "approved_at": "2026-10-21T07:56:00Z",
+  "option": "A",
+  "note": "Tier B's spend for the representative study (mvp-acceptance.md section 1, budget USD 25, MVP-20). A ceiling per category, proposed by the harness plan (mvp-acceptance-harness chunk 1). Approved as proposed (option A: n 300, both Deep Research runs shallower than Standard); the evaluations stay outside it. A paid probe or run names its line. The system enforces only the study's budget (per-request reservations) and the spend-limit confirmation per start; a line is held by the tier B runbook reading the usage ledger after each dispatch (chunk 7).",
   "budget_usd": 25.0,
   "prices": {
     "route_model": "Sonnet 4.5 on bedrock-eu-primary, eu-central-1: USD 3.30 input / 16.50 output per million tokens (ADR 0010, verified 2026-09-26)",
