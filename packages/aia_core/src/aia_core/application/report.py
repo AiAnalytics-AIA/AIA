@@ -136,6 +136,7 @@ def compose_internal_report(
     design: DesignSections | None = None,
     method: Section | None = None,
     research_question_gaps: Mapping[str, str] | None = None,
+    map_source: tuple[str, str] | None = None,
 ) -> ReportDocument:
     """Make an unapproved AIA-branded internal draft from all eight admitted modules.
 
@@ -148,6 +149,8 @@ def compose_internal_report(
     ``research_question_gaps`` (``research_question_gaps``): the research questions the run
     recorded at start as gaps, in words, by their text; the introduction's list and every answer
     to one of them say so where the answer is read.
+    ``map_source``: the verified Sociomap's artifact id and SHA-256 (``report_chapters``), named
+    in the audit beside the specification, dataset and aggregate the analysis was built from.
     Client deliverables have a separate admission and review contract; this
     function never upgrades internal claims to a client-facing surface.
     """
@@ -229,7 +232,18 @@ def compose_internal_report(
     sections: list[Section] = [Section("Úvod a rámec studie", tuple(introduction), id="intro")]
     if design is not None:
         sections.append(design.chapter)
-    audit = [("Běh", run.run_id), ("Evidence", table_fingerprint)]
+    refs = first.record.sources
+    audit = [
+        ("Běh", run.run_id),
+        ("Evidence", table_fingerprint),
+        # Every artifact the draft stands on, by id and content (artifact-chain CHN6).
+        ("Revize návrhu", refs.design_revision_id),
+        ("Specifikace", f"{refs.specification.artifact_id} · SHA-256 {refs.specification.sha256}"),
+        ("Data", f"{refs.dataset.artifact_id} · SHA-256 {refs.dataset.sha256}"),
+        ("Agregace", f"{refs.aggregate.artifact_id} · SHA-256 {refs.aggregate.sha256}"),
+    ]
+    if map_source is not None:
+        audit.append(("Sociomapa", f"{map_source[0]} · SHA-256 {map_source[1]}"))
     if deviation is not None:
         audit.append(("Metodika agregace", str(deviation.get("methodology_version") or "?")))
     # Put the population context before object-level findings; keep module IDs
