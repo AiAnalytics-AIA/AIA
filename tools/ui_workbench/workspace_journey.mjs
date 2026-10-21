@@ -12,7 +12,9 @@
  *   * Zadání: types a goal, attaches a file, reloads -- the goal and the file are still
  *     there, read back from AIA -- and downloads the file through the study;
  *   * Dotazník: downloads AIA's template, imports that same file, reloads -- the
- *     imported questionnaire is still there;
+ *     imported questionnaire is still there; puts its first question on the 1–10 preset
+ *     with a label on every point, reloads -- the range and the ten labels are still there,
+ *     and the editor fits at 390 px (input-interactions 3b2);
  *   * Cílová skupina: own audiences and Special Audience say they are not in AIA;
  *   * Dimenze: the panel's factors say they are not in AIA; a dimension request
  *     becomes a proposal to the client's knowledge.
@@ -116,6 +118,8 @@ await page.reload({ waitUntil: "load" });
 await text(FILE.name, "the attachment after a reload");
 if ((await page.getByRole("textbox", { name: "Cíl výzkumu", exact: true }).inputValue()) !== GOAL) fail("the goal did not survive a reload");
 ok("Zadání: goal and attachment read back from AIA after a reload");
+await text("B · odvozené od klienta", "the attachment's data class");
+ok("Zadání: the attachment shows the class the server's rule gives it (BRF3)");
 const [download] = await Promise.all([page.waitForEvent("download", { timeout: 60000 }), page.getByRole("button", { name: `Stáhnout přílohu ${FILE.name}` }).click()]);
 const fileBack = readFileSync(await download.path(), "utf8");
 if (fileBack !== FILE.body) fail(`the downloaded file differs: ${JSON.stringify(fileBack)}`);
@@ -138,6 +142,40 @@ await page.reload({ waitUntil: "load" });
 await text("2 otázek · 1 sledovaných sad", "the imported questionnaire after a reload");
 ok("Dotazník: the template imports in AIA and the questionnaire is read back after a reload");
 await shot("2-questionnaire");
+
+// 2b. Dotazník: a scale on the 1–10 preset with a label on every point (input-interactions 3b2),
+// saved through the working copy and read back after a reload.
+const POINTS = ["vůbec", "téměř vůbec", "velmi málo", "málo", "spíše málo", "spíše hodně", "hodně", "velmi hodně", "téměř zcela", "zcela"];
+const card = () => page.locator('[id^="qedit_"]').first();
+const scaleGroup = (what) => card().getByRole("radiogroup", { name: new RegExp(`^${what} Q1$`) });
+const pointButton = (n) => card().getByRole("button", { name: new RegExp(`^Upravit: Popisek bodu ${n}(\\s|$)`) });
+await card().getByRole("radiogroup", { name: "Typ" }).getByRole("radio", { name: "Škála" }).click({ timeout: 60000 });
+await scaleGroup("Rozsah škály").getByRole("radio", { name: "1–10" }).click();
+await scaleGroup("Popisky škály").getByRole("radio", { name: "Každý bod" }).click();
+for (const [i, label] of POINTS.entries()) {
+  await pointButton(i + 1).click();
+  const field = card().getByRole("textbox", { name: `Popisek bodu ${i + 1}`, exact: true });
+  await field.fill(label);
+  await field.press("Enter");
+}
+await saved();
+if (await card().locator("[data-scale-labels-left-out]").count()) fail("a fully labelled 1–10 scale says its labels are left out");
+await page.reload({ waitUntil: "load" });
+await scaleGroup("Rozsah škály").getByRole("radio", { name: "1–10", checked: true }).waitFor({ timeout: 60000 }).catch(() => fail("the 1–10 preset did not survive a reload"));
+for (const [i, label] of POINTS.entries()) {
+  const shown = (await pointButton(i + 1).textContent())?.trim() ?? "";
+  if (!shown.startsWith(label) || shown.slice(label.length).trim() !== "") fail(`point ${i + 1} reads ${JSON.stringify(shown)} after a reload, not ${JSON.stringify(label)}`);
+}
+ok("Dotazník: a 1–10 scale with a label on every point is saved and read back after a reload");
+await card().scrollIntoViewIfNeeded();
+await card().screenshot({ path: join(OUT, "2b-scale-1440.png") });
+await page.setViewportSize({ width: 390, height: 2000 });
+await card().scrollIntoViewIfNeeded();
+await card().screenshot({ path: join(OUT, "2b-scale-390.png") });
+const wide = await card().evaluate((el) => el.scrollWidth > el.clientWidth + 1 || el.getBoundingClientRect().right > window.innerWidth + 1);
+if (wide) fail("the scale editor overflows its card at 390 px");
+ok("Dotazník: the scale editor fits at 390 px");
+await page.setViewportSize({ width: 1440, height: 1100 });
 
 // 3. Cílová skupina: what 18.6.6 computed from its panel says so.
 await page.goto(stage("audience"), { waitUntil: "load", timeout: 120000 });

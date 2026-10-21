@@ -13,7 +13,13 @@ from functools import lru_cache
 from typing import Literal
 
 from aia_core.application.deep_research_pricing import DeepResearchPricingSettings
-from aia_core.domain.deployment import DeploymentEnvironment, fictional_material_problem
+from aia_core.domain.deployment import (
+    DataClassGates,
+    DeploymentEnvironment,
+    data_class_gates_problem,
+    fictional_material_problem,
+    parse_data_class_gates,
+)
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.infrastructure.build_identity import BuildIdentity, parse_build_sha
 from aia_core.infrastructure.error_tracking import DSN_ENV, ErrorTrackingSettings
@@ -121,6 +127,12 @@ class Settings(BaseSettings):
     # develop, by the same rule the worker applies (aia_core.domain.deployment).
     ai_fictional_client_ids: str = ""
 
+    # Whether a refusal made solely because of a data class stops a call or is recorded and
+    # passed (``AIA_DATA_CLASS_GATES``, the worker's key; plan develop-class-advisory). Enforce
+    # by default; advisory only in local, test and develop, refused in staging and production by
+    # the same rule the worker applies (aia_core.domain.deployment).
+    data_class_gates: DataClassGates = DataClassGates.ENFORCE
+
     # What the worker reserves per model request (``AIA_AI_FIELDWORK_RESERVATION_USD``,
     # ``AIA_AI_ANALYSIS_RESERVATION_USD``), read here so the API can say what a run can cost at
     # most before it starts (plan 5b.2). Unset is not zero: the ceiling is then unknown, and a
@@ -133,9 +145,13 @@ class Settings(BaseSettings):
     ai_research_reservation_usd: float | None = None
 
     # The Research Lead (ADR 0026, ``AIA_AI_RESEARCH_LEAD_ENABLED``, the worker's switch too):
-    # off, a message is refused (409 ``research_lead_unavailable``) and nothing is queued; the
-    # conversation already stored stays readable. Off by default; on for develop by Compose.
-    ai_research_lead_enabled: bool = False
+    # off, a message is refused (409 ``research_lead_unavailable``) and nothing is queued, and a
+    # card its model prepared is refused on approval (409 ``research_lead_disabled``, Q42); the
+    # conversation already stored stays readable. Unset reads as off, but a deployed
+    # environment must state it (``validate_for_production``): with every AI start moving to
+    # the Lead, a deployment that merely forgot the key would lose it (Q43, research-lead-
+    # workbench 27a). On for develop by Compose.
+    ai_research_lead_enabled: bool | None = None
 
     # A study's wallet, Peněženka (ADR 0028 decision 2, lead-orchestration LO1,
     # ``AIA_STUDY_WALLET_ENABLED``): off, GET /studies/{id}/wallet answers unavailable without
@@ -223,6 +239,7 @@ class Settings(BaseSettings):
         "deep_research_common_crawl_usd_per_tb_scanned",
         "deep_research_common_crawl_min_billed_bytes",
         "deep_research_common_crawl_billing_increment_bytes",
+        "ai_research_lead_enabled",
         "deep_research_enabled",
         mode="before",
     )
@@ -231,6 +248,14 @@ class Settings(BaseSettings):
         """A Compose variable passed through empty means "not set", not a number that fails."""
         if isinstance(value, str) and not value.strip():
             return None
+        return value
+
+    @field_validator("data_class_gates", mode="before")
+    @classmethod
+    def _parse_class_gates(cls, value: object) -> object:
+        """Empty is enforce; a value that is not a mode is refused by name, never guessed."""
+        if isinstance(value, str):
+            return parse_data_class_gates(value)
         return value
 
     @field_validator("cors_origins", mode="before")
@@ -285,6 +310,12 @@ class Settings(BaseSettings):
         )
 
     @property
+    def research_lead_on(self) -> bool:
+        """Whether the Research Lead is switched on: only an explicit ``true``. Unset is off
+        here and refused at start in a deployed environment (``validate_for_production``)."""
+        return self.ai_research_lead_enabled is True
+
+    @property
     def build(self) -> BuildIdentity:
         """The build this process runs, or an identity with ``sha=None``."""
         return BuildIdentity(sha=self.build_sha or None, built_at=self.build_time or None)
@@ -331,6 +362,11 @@ class Settings(BaseSettings):
         Raised at startup rather than on first request, so a bad deploy fails its
         health check instead of serving traffic in an unsafe state.
         """
+        if self.data_class_gates.advisory and "env" not in self.model_fields_set:
+            # ``env`` defaults to local, but advisory needs an environment that says so: an
+            # unset AIA_ENV is unknown, as the worker and the executors read it, and refused.
+            problem = data_class_gates_problem(None, self.data_class_gates)
+            raise RuntimeError(f"invalid configuration: {problem}")
         if not self.is_production:
             return
 
@@ -374,12 +410,23 @@ class Settings(BaseSettings):
         fictional = fictional_material_problem(self.env, self.fictional_client_ids)
         if fictional:
             problems.append(fictional)
+        gates = data_class_gates_problem(self.env, self.data_class_gates)
+        if gates:
+            problems.append(gates)
 
         # Fictional respondents must never become a deployed study's fieldwork (D1).
         if self.research_fieldwork_source is FieldworkSource.SYNTHETIC_FIXTURE:
             problems.append(
                 "AIA_RESEARCH_FIELDWORK_SOURCE=synthetic_fixture is refused outside "
                 "local and test (ADR 0016)"
+            )
+
+        # The Lead's kill switch is a decision, never an omission (Q43, research-lead-workbench
+        # 27a): off, every Lead start but a typed command stops, so a deployment says which.
+        if self.ai_research_lead_enabled is None:
+            problems.append(
+                "AIA_AI_RESEARCH_LEAD_ENABLED must be stated (true or false) in a deployed "
+                "environment: unset, the Research Lead would be off by omission"
             )
 
         # The population double is fictional; no deployment composes it (RQC10).

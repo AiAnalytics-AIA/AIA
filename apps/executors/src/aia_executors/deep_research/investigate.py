@@ -304,6 +304,7 @@ class InvestigateExecutor(_Step):
             archive=runtime.archive,
             datasets=runtime.datasets,
             archives=runtime.archives,
+            class_gates=runtime.config.class_gates,
         )
 
     def _stored(

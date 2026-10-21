@@ -34,6 +34,7 @@ from typing import Any, Final
 from sqlalchemy.orm import Session
 
 from ..domain.design import DESIGN_PROJECT_OWNER
+from ..domain.lead_commands import MatchedCommand, match_command
 from ..domain.research_agents import ResearchAction, design_material, knowledge_entries
 from ..domain.research_lead import (
     FOCUS_ID,
@@ -78,6 +79,7 @@ from ..infrastructure.study_workspace_repository import (
     WorkspaceConflict,
 )
 from ..infrastructure.workflow_repository import BudgetWaitNotLiftable, WorkflowRepository
+from .lead_chat_start import RunStartSettings, approve_chat_start, chat_start_decisions
 from .research import ResearchAgentJobs, readiness_in_force
 from .workflows import start_workflow
 
@@ -86,6 +88,7 @@ __all__ = [
     "LeadAlreadyHatched",
     "LeadBusy",
     "LeadContextTooLarge",
+    "LeadDisabled",
     "LeadEditsStale",
     "LeadNotHatched",
     "LeadProfile",
@@ -101,6 +104,7 @@ __all__ = [
     "WorkspaceConflict",
     "release_lead_budget_waits",
     "set_study_budget",
+    "worker_readiness",
 ]
 
 #: A greeting within this long of the Lead's last turn is a no-op: the Lead has spoken.
@@ -120,6 +124,48 @@ class LeadUnavailable(Exception):
     """The deployment has not switched the Lead on (``AIA_AI_RESEARCH_LEAD_ENABLED``)."""
 
     reason = "research_lead_unavailable"
+
+
+class LeadDisabled(LeadUnavailable):
+    """A card the Lead's model prepared, approved while the Lead is switched off (Q42, D22).
+
+    The card waits: it is approvable again once the Lead is on. Deciding a turn's stored
+    edits is not refused: it calls no model and spends nothing.
+    """
+
+    reason = "research_lead_disabled"
+
+
+#: The park reasons that say the worker's composition cannot answer a Lead turn: the Lead's
+#: switch or keys unset there (``aia_executors.research_lead.LEAD_UNCONFIGURED``), or no AI
+#: runtime at all.
+WORKER_NOT_READY_REASONS: Final = frozenset(
+    {"research_lead_unconfigured", "ai_runtime_unavailable"}
+)
+
+
+def worker_readiness(
+    turns: Sequence[Mapping[str, Any]],
+) -> tuple[bool | None, str | None, str | None]:
+    """Whether the worker can answer a Lead turn, as far as the caller's own turns show: the
+    answer, where it was read, and the reason when it is ``False``.
+
+    There is no worker composition record yet (lead-orchestration LO12b), so the one honest
+    source the API holds is this conversation's newest Lead turn a worker has decided. Parked
+    or failed for a reason that names the worker's composition
+    (:data:`WORKER_NOT_READY_REASONS`), the worker is not ready:
+    ``(False, "newest_turn", <reason>)``. Nothing here can say a worker *is* ready -- a turn
+    answered yesterday proves nothing about the worker running today -- so the answer is
+    otherwise ``(None, None, None)``: unknown, never ``True``. LO12b's record replaces this.
+    """
+    for turn in reversed(turns):
+        if turn["actor"] != "lead" or turn["status"] in ("QUEUED", "RUNNING", "CANCELLED"):
+            continue
+        reason = turn["reason"]
+        if turn["status"] in ("WAITING", "FAILED") and reason in WORKER_NOT_READY_REASONS:
+            return False, "newest_turn", str(reason)
+        return None, None, None
+    return None, None, None
 
 
 class LeadBusy(Exception):
@@ -258,6 +304,8 @@ def _view(
         "workspace_revision": turn.workspace_revision,
         "created_at": turn.created_at,
         "created_by": turn.created_by,
+        # The typed start the server matched in a person's message (LO5); its card is theirs.
+        "command": turn.command,
         "status": "COMPLETED",
         "reason": None,
         "output": None,
@@ -278,6 +326,11 @@ def _view(
         "pending_self_update": None,
     }
     if turn.actor == "person":
+        if turn.command is not None and decisions and decisions.get("request"):
+            base["request_decision"] = {
+                "status": "approved",
+                "run_id": decisions["request"].get("run_id"),
+            }
         return base
     if decisions:
         base["edit_decisions"] = dict(decisions.get("edits") or {})
@@ -425,6 +478,12 @@ class ResearchLead:
         decisions = self._workflows().lead_decisions(
             [t.turn_id for t in turns if t.actor == "lead"]
         )
+        # A typed command's card is decided by its chat_start row (LO5).
+        started = chat_start_decisions(
+            self._workflows(), [t.turn_id for t in turns if t.command is not None]
+        )
+        for turn_id, done in started.items():
+            decisions[turn_id] = {"request": {"run_id": done["run_id"]}}
         views = []
         for turn in turns:
             run = runs.get(turn.run_id) if turn.run_id else None
@@ -476,7 +535,16 @@ class ResearchLead:
         turn sees) and a greeting stores nothing. The researcher's Lead row is locked first,
         so two posts at once (two tabs opening the Study) are decided one after the other:
         one greeting, never two. Returns the turns stored, as :meth:`state` reads them.
+
+        A message that is exactly one of the composer's typed start commands
+        (:func:`~aia_core.domain.lead_commands.match_command`) is not sent to the Lead at all:
+        it is stored as the person's command, its card theirs, with no model in the path
+        (lead-orchestration LO5) -- so it is taken while the Lead is switched off (Q43), and
+        needs no hatched Lead and no free conversation (:meth:`_post_command`).
         """
+        matched = match_command(text) if kind == "message" else None
+        if matched is not None:
+            return self._post_command(stage=stage, text=text, focus=focus, matched=matched)
         if not self.enabled:
             raise LeadUnavailable("the Research Lead is not switched on in this deployment")
         self.scope.require(Permission.EDIT_STUDY)
@@ -592,6 +660,33 @@ class ResearchLead:
             )
         )
         return self._annotated(stored)
+
+    def _post_command(
+        self,
+        *,
+        stage: str,
+        text: str | None,
+        focus: Mapping[str, str] | None,
+        matched: MatchedCommand,
+    ) -> list[dict[str, Any]]:
+        """Store a typed start command as the person's own turn, naming the start the server
+        matched. Nothing is queued and nothing is spent: its card starts the work only when the
+        person approves it (:meth:`approve_request`, ledger ``chat_start``)."""
+        self.scope.require(Permission.EDIT_STUDY)
+        self.scope.require(Permission.RUN_WORKFLOW)
+        self.scope.require_open_study()
+        message, focus_ = self._checked(kind="message", stage=stage, text=text, focus=focus)
+        _content, _analysis, workspace_revision = self._working_content()
+        turn = self._turns().append(
+            actor="person",
+            kind="message",
+            stage=stage,
+            text=message,
+            focus=focus_,
+            workspace_revision=workspace_revision,
+            command=matched.start,
+        )
+        return self._annotated([turn])
 
     # -- deciding on what a turn proposed --------------------------------------------
 
@@ -782,13 +877,25 @@ class ResearchLead:
         *,
         confirm_cost_usd: float | None,
         reservation_usd: float | None,
+        run_start: RunStartSettings | None = None,
+        wallet_enabled: bool = False,
     ) -> dict[str, Any]:
         """A person approves the paid job a Lead turn prepared, and it starts (ADR 0026
         decision 7).
 
+        The person's own typed command (a person's turn naming a ``command``, LO5) is approved
+        here too, by :func:`~aia_core.application.lead_chat_start.approve_chat_start`: not Lead
+        output, so not refused while the Lead is off (D22), under the same threshold, the
+        wallet when ``wallet_enabled`` and the ledger row ``chat_start``. ``run_start`` is the
+        deployment's run settings a typed research run starts under.
+
         Needs ``EDIT_STUDY``, ``RUN_WORKFLOW`` and ``APPROVE_GATE`` on an open Study, and the
         caller's own completed Lead turn whose request is an ``agent_job``; any other request
-        only opens a stage (:class:`NotAPaidRequest`). Its ceiling is the design job's
+        only opens a stage (:class:`NotAPaidRequest`). The card is the Lead model's output, as
+        the stored turn says (:func:`_model_prepared`), so with the Lead switched off it is
+        refused (:class:`LeadDisabled`, Q42) before anything is written; it waits until the
+        Lead is on again. A card approved before the switch-off answers with its job, as any
+        repeated approval does. Its ceiling is the design job's
         reservation (``reservation_usd``: a primary and one repair). At or above the study's
         spend limit it needs ``confirm_cost_usd`` at least the ceiling
         (:class:`CostConfirmationRequired`); with a limit and no reservation configured it is
@@ -801,6 +908,24 @@ class ResearchLead:
         self.scope.require(Permission.RUN_WORKFLOW)
         self.scope.require(Permission.APPROVE_GATE)
         self.scope.require_open_study()
+        stored = self._turns().get(turn_id)
+        if stored is not None and stored.actor == "person" and stored.command is not None:
+            self._turns().lock()
+
+            def submit(source_stage: str) -> Any:
+                content, _analysis, workspace_revision = self._working_content()
+                return self._submit_design(content, workspace_revision, source_stage=source_stage)
+
+            return approve_chat_start(
+                self.session,
+                self.scope,
+                stored,
+                submit_design=submit,
+                confirm_cost_usd=confirm_cost_usd,
+                reservation_usd=reservation_usd,
+                run_start=run_start,
+                wallet_enabled=wallet_enabled,
+            )
         turn, output = self._completed(turn_id)
         assert turn.run_id is not None
         request = output.request
@@ -810,6 +935,8 @@ class ResearchLead:
         workflows = self._workflows()
         approved = workflows.lead_decisions([turn_id]).get(turn_id, {}).get("request")
         if approved:
+            # Approved before any switch-off: the job exists and is answered as it is, so a
+            # retry after a lost response is never misreported as refused (review of #561).
             jobs = ResearchAgentJobs(self.session, self.scope)
             run = jobs.get(str(approved["run_id"]))
             return {
@@ -817,6 +944,10 @@ class ResearchLead:
                 "design_revision_id": run["metadata"]["design_revision_id"],
                 "status": run["status"].value,
             }
+        # Q42: only an approval that would create a job is held by the switch, before anything
+        # is submitted, created, written or held.
+        if _model_prepared(turn) and not self.enabled:
+            raise LeadDisabled("the Research Lead is switched off; its card waits until it is on")
 
         # The confirmation threshold's one rule, the job start's own (lead-orchestration LO15):
         # asked here before the design is submitted, and again by the start, which records the
@@ -886,7 +1017,7 @@ class ResearchLead:
             focus_ = {"id": str(focus.get("id") or ""), "label": str(focus.get("label") or "")}
             if not FOCUS_ID.fullmatch(focus_["id"]):
                 raise LeadRejected(
-                    "a focus names an element: question:, section:, brief: or plan: and an id",
+                    "a focus names an element of a stage screen: a known kind and an id",
                     reason="invalid_lead_turn",
                 )
         return message, focus_
@@ -995,6 +1126,12 @@ class ResearchLead:
             view={"kind": kind, "stage": stage, "focus": focus, "message": message},
             conversation=_conversation(history),
         )
+
+
+def _model_prepared(turn: LeadTurn) -> bool:
+    """Whether a card is the Lead model's output, read from the stored turn and never from a
+    request body (D22): a Lead turn's request is what the worker's model answered."""
+    return turn.actor == "lead"
 
 
 def _conversation(history: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
