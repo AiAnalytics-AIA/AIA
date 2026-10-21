@@ -62,6 +62,7 @@ from ..domain.research_template import research_template
 from ..domain.scope import OrganizationContext, Permission, StudyContext
 from ..domain.workflow import StepRunStatus
 from ..domain.workflow_templates import RESEARCH, RESEARCH_LEAD
+from ..domain.workspace import edited_from_current
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from ..infrastructure.prompt_repository import PromptResolver
 from ..infrastructure.researcher_lead_repository import (
@@ -425,6 +426,11 @@ class ResearchLead:
         history = self._annotated(turns.turns(limit=50))
         content, analysis, workspace_revision = self._working_content()
         project_id, design_revision = self._design_project(content, workspace_revision)
+        if workspace_revision is None:
+            # A Study with no working copy had the template saved as one for its first Design
+            # Revision: the turn is frozen from that revision, and names it, so an automatic
+            # accept of its text edits is not refused as written from an older copy.
+            content, analysis, workspace_revision = self._working_content()
         stored: list[LeadTurn] = []
         person: LeadTurn | None = None
         if kind == "message":
@@ -558,7 +564,9 @@ class ResearchLead:
         workspace = StudyWorkspaceRepository(self.session)
         working = workspace.content(self.scope)
         current = working.revision
-        if decision == "accept" and base_revision != current:
+        if decision == "accept" and not edited_from_current(
+            base_revision, current, working.content, working.analysis
+        ):
             raise LeadEditsStale(current)
         if auto and turn.workspace_revision != current:
             # The turn was written from an older working copy: a person's save made while the
