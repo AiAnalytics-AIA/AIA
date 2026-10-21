@@ -192,8 +192,21 @@ list read from the organization's own clients (chunk 8). Everything else is web-
   (case-folded) or over-60-character label, or anything but a list of texts, are left out --
   none declared, nothing sent, nothing printed -- and readiness WARNs `scale_labels_ignored`
   with the reason in words (`test_labels_that_break_the_rule_are_left_out_and_said_never_refused`).
-  A set whose labels are left out gets `vůbec` / `velmi`, as one that names none. The strict
-  refusal is the editor's, at the field (`scale-labels.ts` `labelProblem`, 3b2).
+  The strict refusal is the editor's, at the field (`scale-labels.ts` `labelProblem`, 3b2).
+- **A set sends what it always sent while the switch is off** (re-review of #538, P3). Develop
+  read a set's ends as its first two labels, else `vůbec` / `velmi`; `_develop_ends` keeps that
+  reading exactly, as `SpecBattery.develop_ends` where it differs from `end_labels` (absent from
+  the fingerprint otherwise) and `told_ends`, which the off prompt, the map's legend and the
+  report's two-end wording read. The new reading (`scale_labels`) reaches respondents only with
+  the switch on (`test_off_a_stored_sets_requests_are_develops_bytes`: seven stored label shapes
+  against develop's request bytes; `test_on_a_set_is_read_by_the_new_rule`).
+- **An analysis retry never compiles again** (re-review of #538, P2). `retry_failed_modules`
+  names the original's specification by artifact id and SHA-256 beside its dataset
+  (`FrozenDataset.specification_artifact_id` / `_sha256`); the retry's compile step takes it as
+  stored and verifies it (`CompileExecutor._frozen`, `frozen_specification_mismatch`), so every
+  completed module's reuse key holds and the ceiling counts only what is asked
+  (`test_a_retry_of_a_run_an_earlier_compiler_compiled_reuses_its_specification`,
+  `test_a_retry_naming_another_specification_is_refused_never_compiled_again`).
   `SpecQuestion.scale_labels` (empty, and absent from the fingerprint, when none were declared)
   and `SpecBattery.scale_labels` (two or one per point; `end_labels` on both).
 - **The compiler is `aia-research-compile-2`** (review of #538, P1). Compiling the labels moves
