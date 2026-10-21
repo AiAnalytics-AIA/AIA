@@ -296,6 +296,22 @@ list read from the organization's own clients (chunk 8). Everything else is web-
   `2b-scale-1440.png` / `2b-scale-390.png`.
 - **Audit rows closed:** A9, A10 (the set's per-point labels excepted, below); IA-2's web half
   (no screen sends `+raw` any more). The switch `AIA_AI_SCALE_LABELS_IN_PROMPT` stays off (3b3).
+- **Review of #559 (Codex, P1 + P2).** Every contract that rewrites a questionnaire carries a
+  scale's two ends only: the classic optimiser's `_question_schema` (`maxItems: 2`) and the
+  native agents' `Question.popisky_skaly: tuple[str, str]` (`research_agents.py`). A rewrite
+  would drop the inner labels a person gave every point. Fixed by keeping, not by widening the
+  contract (a new contract shape means a new prompt and harness version and re-validated
+  fixtures; left to 3b3, when the labels reach the prompt): `keep_point_labels`
+  (`research_design.py`) and `keepPointLabels` (`scale-labels.ts`), one rule. A rewritten scale
+  with at most two labels and the same range as a stored question labelled validly on every
+  point keeps the stored labels, when exactly one matches it by id, else by wording, else by its
+  two ends; anything else stays as written. Applied in `proposal_result` (build and optimise),
+  `merge_items` (every accept through `accept_into_working_copy`), and the web's `applyOptimized`
+  and `applyBuilt`. The questionnaire import is not: a file is the person's own replacement, and
+  its template has two label columns. The respondent preview shows a per-point scale's first and
+  last label as its ends (`previewQuestion`, `previewBattery`). Tests:
+  `test_point_labels_kept.py`, `test_proposal_accept_ids.py ›
+  test_an_accept_keeps_a_scale_s_labels_on_every_point`, `point-labels-kept.test.ts`.
 
 ## Where this touches other plans
 
