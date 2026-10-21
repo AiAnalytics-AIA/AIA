@@ -6,6 +6,7 @@
 
 import { listIds, withItemIds } from "./item-ids";
 import type { Json, ResearchProject } from "./model";
+import { proposalAnalysis } from "./plan-edit";
 import type { Analysis } from "./store";
 
 /** The longest objective the edit vocabulary takes (edit_ops ItemText, 1500). */
@@ -31,16 +32,20 @@ export function objectivesOf(design: Design): Objective[] {
   return ids ? texts.map((text, i) => ({ id: ids[i]!, text })) : [];
 }
 
-/** The design with `objectives` as its list, in the plan and in the analysis alike. */
+/**
+ * The design with `objectives` as its list, in the plan and in the analysis alike. Where the stage
+ * has no analysis yet, the one Návrh already reads (plan-edit.ts proposalAnalysis: the plan, once it
+ * states something) is stored, as applyNarrative does: a writer that starts its own analysis when
+ * there is none (plan.ts addSet, `objectives: [goal]`) then extends this one instead of replacing the
+ * objectives typed here (Claude stand-in review on #609).
+ */
 export function withObjectives({ project, analysis }: Design, objectives: string[]): Design {
-  return {
-    project: {
-      ...project,
-      research_plan: { ...project.research_plan, objectives },
-      ui_state: { ...project.ui_state, plan_manual_changed: true },
-    },
-    analysis: analysis ? { ...analysis, objectives } : null,
+  const next: ResearchProject = {
+    ...project,
+    research_plan: { ...project.research_plan, objectives },
+    ui_state: { ...project.ui_state, plan_manual_changed: true },
   };
+  return { project: next, analysis: analysis ? { ...analysis, objectives } : proposalAnalysis({ project: next, analysis: null }) };
 }
 
 /** Whether the objectives can be edited here: a list of strings, or none yet. */

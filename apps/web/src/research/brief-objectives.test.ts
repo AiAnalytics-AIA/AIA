@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { addObjective, objectivesEditable, objectivesOf, removeObjective, restoreObjective, setObjective, withObjectives } from "./brief-objectives";
 import { listIds, withItemIds } from "./item-ids";
+import { addSet } from "./plan";
+import { proposalAnalysis } from "./plan-edit";
 import type { ResearchProject } from "./model";
 import type { Analysis } from "./store";
 
@@ -36,8 +38,21 @@ describe("Cíle on the Brief", () => {
     expect(d.project.research_plan.research_questions).toEqual(["Q"]);
     expect(d.analysis?.objectives).toEqual(["B"]);
     expect(d.project.ui_state.plan_manual_changed).toBe(true);
-    // No analysis is made where the stage had none.
-    expect(withObjectives(design({}), ["B"]).analysis).toBeNull();
+    // Where the stage had none, the analysis Návrh already reads (the plan) is stored with them...
+    const made = withObjectives(design({ research_questions: ["Q"] }), ["B"]);
+    expect(made.analysis).toEqual(proposalAnalysis({ project: made.project, analysis: null } as never));
+    expect(made.analysis?.objectives).toEqual(["B"]);
+    // ...and none when the plan then states nothing.
+    expect(withObjectives(design({}), []).analysis).toBeNull();
+  });
+
+  it("keeps objectives typed before any analysis when Návrh then adds a set (stand-in review, #609)", () => {
+    const typed = addObjective(design({}), "Najít bariéry");
+    const after = addSet({ project: typed.project, analysis: typed.analysis } as never, "Značky", "A, B, C, D");
+    expect(after?.objectives).toEqual(["Najít bariéry"]);
+    expect(objectivesOf({ project: typed.project, analysis: after }).map((o) => o.text)).toEqual(["Najít bariéry"]);
+    // Before the fix the set's new analysis put the goal in their place.
+    expect(after?.objectives).not.toContain("G");
   });
 
   it("rewords, adds, removes and puts back in place", () => {
