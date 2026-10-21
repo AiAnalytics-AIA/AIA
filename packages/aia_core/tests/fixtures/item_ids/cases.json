@@ -1,0 +1,2213 @@
+{
+ "description": "Shared cases for stable item ids (packages/aia_core/src/aia_core/domain/item_ids.py; working-copy-edit-ops WCE1) and the web's apps/web/src/research/item-ids.ts. Read by packages/aia_core/tests/test_item_ids.py and apps/web/src/research/item-ids.test.ts. Expectations are the server's, written by running it on these inputs. case_folds: every code point whose str.casefold is not its lower-casing (the web's CASE_FOLDS). hashes: fnv10 (FNV-1a 64 over UTF-8, MurmurHash3's finaliser, ten hex digits). folds: the wording identity compares. derived: the id a wording takes when nothing names it. reconcile: a list's ids from its own id list, else by wording from previous, else derived. sections: the compiler's ids for sections without one. designs: with_item_ids. settle: settle_item_ids after one change, links followed. Fictional content.",
+ "case_folds": {
+  "µ": "μ",
+  "ß": "ss",
+  "ŉ": "ʼn",
+  "ſ": "s",
+  "ǰ": "ǰ",
+  "ͅ": "ι",
+  "ΐ": "ΐ",
+  "ΰ": "ΰ",
+  "ς": "σ",
+  "ϐ": "β",
+  "ϑ": "θ",
+  "ϕ": "φ",
+  "ϖ": "π",
+  "ϰ": "κ",
+  "ϱ": "ρ",
+  "ϵ": "ε",
+  "և": "եւ",
+  "Ꭰ": "Ꭰ",
+  "Ꭱ": "Ꭱ",
+  "Ꭲ": "Ꭲ",
+  "Ꭳ": "Ꭳ",
+  "Ꭴ": "Ꭴ",
+  "Ꭵ": "Ꭵ",
+  "Ꭶ": "Ꭶ",
+  "Ꭷ": "Ꭷ",
+  "Ꭸ": "Ꭸ",
+  "Ꭹ": "Ꭹ",
+  "Ꭺ": "Ꭺ",
+  "Ꭻ": "Ꭻ",
+  "Ꭼ": "Ꭼ",
+  "Ꭽ": "Ꭽ",
+  "Ꭾ": "Ꭾ",
+  "Ꭿ": "Ꭿ",
+  "Ꮀ": "Ꮀ",
+  "Ꮁ": "Ꮁ",
+  "Ꮂ": "Ꮂ",
+  "Ꮃ": "Ꮃ",
+  "Ꮄ": "Ꮄ",
+  "Ꮅ": "Ꮅ",
+  "Ꮆ": "Ꮆ",
+  "Ꮇ": "Ꮇ",
+  "Ꮈ": "Ꮈ",
+  "Ꮉ": "Ꮉ",
+  "Ꮊ": "Ꮊ",
+  "Ꮋ": "Ꮋ",
+  "Ꮌ": "Ꮌ",
+  "Ꮍ": "Ꮍ",
+  "Ꮎ": "Ꮎ",
+  "Ꮏ": "Ꮏ",
+  "Ꮐ": "Ꮐ",
+  "Ꮑ": "Ꮑ",
+  "Ꮒ": "Ꮒ",
+  "Ꮓ": "Ꮓ",
+  "Ꮔ": "Ꮔ",
+  "Ꮕ": "Ꮕ",
+  "Ꮖ": "Ꮖ",
+  "Ꮗ": "Ꮗ",
+  "Ꮘ": "Ꮘ",
+  "Ꮙ": "Ꮙ",
+  "Ꮚ": "Ꮚ",
+  "Ꮛ": "Ꮛ",
+  "Ꮜ": "Ꮜ",
+  "Ꮝ": "Ꮝ",
+  "Ꮞ": "Ꮞ",
+  "Ꮟ": "Ꮟ",
+  "Ꮠ": "Ꮠ",
+  "Ꮡ": "Ꮡ",
+  "Ꮢ": "Ꮢ",
+  "Ꮣ": "Ꮣ",
+  "Ꮤ": "Ꮤ",
+  "Ꮥ": "Ꮥ",
+  "Ꮦ": "Ꮦ",
+  "Ꮧ": "Ꮧ",
+  "Ꮨ": "Ꮨ",
+  "Ꮩ": "Ꮩ",
+  "Ꮪ": "Ꮪ",
+  "Ꮫ": "Ꮫ",
+  "Ꮬ": "Ꮬ",
+  "Ꮭ": "Ꮭ",
+  "Ꮮ": "Ꮮ",
+  "Ꮯ": "Ꮯ",
+  "Ꮰ": "Ꮰ",
+  "Ꮱ": "Ꮱ",
+  "Ꮲ": "Ꮲ",
+  "Ꮳ": "Ꮳ",
+  "Ꮴ": "Ꮴ",
+  "Ꮵ": "Ꮵ",
+  "Ꮶ": "Ꮶ",
+  "Ꮷ": "Ꮷ",
+  "Ꮸ": "Ꮸ",
+  "Ꮹ": "Ꮹ",
+  "Ꮺ": "Ꮺ",
+  "Ꮻ": "Ꮻ",
+  "Ꮼ": "Ꮼ",
+  "Ꮽ": "Ꮽ",
+  "Ꮾ": "Ꮾ",
+  "Ꮿ": "Ꮿ",
+  "Ᏸ": "Ᏸ",
+  "Ᏹ": "Ᏹ",
+  "Ᏺ": "Ᏺ",
+  "Ᏻ": "Ᏻ",
+  "Ᏼ": "Ᏼ",
+  "Ᏽ": "Ᏽ",
+  "ᏸ": "Ᏸ",
+  "ᏹ": "Ᏹ",
+  "ᏺ": "Ᏺ",
+  "ᏻ": "Ᏻ",
+  "ᏼ": "Ᏼ",
+  "ᏽ": "Ᏽ",
+  "ᲀ": "в",
+  "ᲁ": "д",
+  "ᲂ": "о",
+  "ᲃ": "с",
+  "ᲄ": "т",
+  "ᲅ": "т",
+  "ᲆ": "ъ",
+  "ᲇ": "ѣ",
+  "ᲈ": "ꙋ",
+  "ẖ": "ẖ",
+  "ẗ": "ẗ",
+  "ẘ": "ẘ",
+  "ẙ": "ẙ",
+  "ẚ": "aʾ",
+  "ẛ": "ṡ",
+  "ẞ": "ss",
+  "ὐ": "ὐ",
+  "ὒ": "ὒ",
+  "ὔ": "ὔ",
+  "ὖ": "ὖ",
+  "ᾀ": "ἀι",
+  "ᾁ": "ἁι",
+  "ᾂ": "ἂι",
+  "ᾃ": "ἃι",
+  "ᾄ": "ἄι",
+  "ᾅ": "ἅι",
+  "ᾆ": "ἆι",
+  "ᾇ": "ἇι",
+  "ᾈ": "ἀι",
+  "ᾉ": "ἁι",
+  "ᾊ": "ἂι",
+  "ᾋ": "ἃι",
+  "ᾌ": "ἄι",
+  "ᾍ": "ἅι",
+  "ᾎ": "ἆι",
+  "ᾏ": "ἇι",
+  "ᾐ": "ἠι",
+  "ᾑ": "ἡι",
+  "ᾒ": "ἢι",
+  "ᾓ": "ἣι",
+  "ᾔ": "ἤι",
+  "ᾕ": "ἥι",
+  "ᾖ": "ἦι",
+  "ᾗ": "ἧι",
+  "ᾘ": "ἠι",
+  "ᾙ": "ἡι",
+  "ᾚ": "ἢι",
+  "ᾛ": "ἣι",
+  "ᾜ": "ἤι",
+  "ᾝ": "ἥι",
+  "ᾞ": "ἦι",
+  "ᾟ": "ἧι",
+  "ᾠ": "ὠι",
+  "ᾡ": "ὡι",
+  "ᾢ": "ὢι",
+  "ᾣ": "ὣι",
+  "ᾤ": "ὤι",
+  "ᾥ": "ὥι",
+  "ᾦ": "ὦι",
+  "ᾧ": "ὧι",
+  "ᾨ": "ὠι",
+  "ᾩ": "ὡι",
+  "ᾪ": "ὢι",
+  "ᾫ": "ὣι",
+  "ᾬ": "ὤι",
+  "ᾭ": "ὥι",
+  "ᾮ": "ὦι",
+  "ᾯ": "ὧι",
+  "ᾲ": "ὰι",
+  "ᾳ": "αι",
+  "ᾴ": "άι",
+  "ᾶ": "ᾶ",
+  "ᾷ": "ᾶι",
+  "ᾼ": "αι",
+  "ι": "ι",
+  "ῂ": "ὴι",
+  "ῃ": "ηι",
+  "ῄ": "ήι",
+  "ῆ": "ῆ",
+  "ῇ": "ῆι",
+  "ῌ": "ηι",
+  "ῒ": "ῒ",
+  "ΐ": "ΐ",
+  "ῖ": "ῖ",
+  "ῗ": "ῗ",
+  "ῢ": "ῢ",
+  "ΰ": "ΰ",
+  "ῤ": "ῤ",
+  "ῦ": "ῦ",
+  "ῧ": "ῧ",
+  "ῲ": "ὼι",
+  "ῳ": "ωι",
+  "ῴ": "ώι",
+  "ῶ": "ῶ",
+  "ῷ": "ῶι",
+  "ῼ": "ωι",
+  "ꭰ": "Ꭰ",
+  "ꭱ": "Ꭱ",
+  "ꭲ": "Ꭲ",
+  "ꭳ": "Ꭳ",
+  "ꭴ": "Ꭴ",
+  "ꭵ": "Ꭵ",
+  "ꭶ": "Ꭶ",
+  "ꭷ": "Ꭷ",
+  "ꭸ": "Ꭸ",
+  "ꭹ": "Ꭹ",
+  "ꭺ": "Ꭺ",
+  "ꭻ": "Ꭻ",
+  "ꭼ": "Ꭼ",
+  "ꭽ": "Ꭽ",
+  "ꭾ": "Ꭾ",
+  "ꭿ": "Ꭿ",
+  "ꮀ": "Ꮀ",
+  "ꮁ": "Ꮁ",
+  "ꮂ": "Ꮂ",
+  "ꮃ": "Ꮃ",
+  "ꮄ": "Ꮄ",
+  "ꮅ": "Ꮅ",
+  "ꮆ": "Ꮆ",
+  "ꮇ": "Ꮇ",
+  "ꮈ": "Ꮈ",
+  "ꮉ": "Ꮉ",
+  "ꮊ": "Ꮊ",
+  "ꮋ": "Ꮋ",
+  "ꮌ": "Ꮌ",
+  "ꮍ": "Ꮍ",
+  "ꮎ": "Ꮎ",
+  "ꮏ": "Ꮏ",
+  "ꮐ": "Ꮐ",
+  "ꮑ": "Ꮑ",
+  "ꮒ": "Ꮒ",
+  "ꮓ": "Ꮓ",
+  "ꮔ": "Ꮔ",
+  "ꮕ": "Ꮕ",
+  "ꮖ": "Ꮖ",
+  "ꮗ": "Ꮗ",
+  "ꮘ": "Ꮘ",
+  "ꮙ": "Ꮙ",
+  "ꮚ": "Ꮚ",
+  "ꮛ": "Ꮛ",
+  "ꮜ": "Ꮜ",
+  "ꮝ": "Ꮝ",
+  "ꮞ": "Ꮞ",
+  "ꮟ": "Ꮟ",
+  "ꮠ": "Ꮠ",
+  "ꮡ": "Ꮡ",
+  "ꮢ": "Ꮢ",
+  "ꮣ": "Ꮣ",
+  "ꮤ": "Ꮤ",
+  "ꮥ": "Ꮥ",
+  "ꮦ": "Ꮦ",
+  "ꮧ": "Ꮧ",
+  "ꮨ": "Ꮨ",
+  "ꮩ": "Ꮩ",
+  "ꮪ": "Ꮪ",
+  "ꮫ": "Ꮫ",
+  "ꮬ": "Ꮬ",
+  "ꮭ": "Ꮭ",
+  "ꮮ": "Ꮮ",
+  "ꮯ": "Ꮯ",
+  "ꮰ": "Ꮰ",
+  "ꮱ": "Ꮱ",
+  "ꮲ": "Ꮲ",
+  "ꮳ": "Ꮳ",
+  "ꮴ": "Ꮴ",
+  "ꮵ": "Ꮵ",
+  "ꮶ": "Ꮶ",
+  "ꮷ": "Ꮷ",
+  "ꮸ": "Ꮸ",
+  "ꮹ": "Ꮹ",
+  "ꮺ": "Ꮺ",
+  "ꮻ": "Ꮻ",
+  "ꮼ": "Ꮼ",
+  "ꮽ": "Ꮽ",
+  "ꮾ": "Ꮾ",
+  "ꮿ": "Ꮿ",
+  "ﬀ": "ff",
+  "ﬁ": "fi",
+  "ﬂ": "fl",
+  "ﬃ": "ffi",
+  "ﬄ": "ffl",
+  "ﬅ": "st",
+  "ﬆ": "st",
+  "ﬓ": "մն",
+  "ﬔ": "մե",
+  "ﬕ": "մի",
+  "ﬖ": "վն",
+  "ﬗ": "մխ"
+ },
+ "hashes": [
+  {
+   "text": "",
+   "fnv10": "efd01f60ba"
+  },
+  {
+   "text": "a",
+   "fnv10": "82a2a958a9"
+  },
+  {
+   "text": "Jak cena mění zájem?",
+   "fnv10": "8737fab8b5"
+  },
+  {
+   "text": "Kdo kupuje?",
+   "fnv10": "6ff355be9f"
+  },
+  {
+   "text": "STRASSE",
+   "fnv10": "87085c7e25"
+  },
+  {
+   "text": "straße",
+   "fnv10": "53ab023ea0"
+  },
+  {
+   "text": "ΟΔΟΣ",
+   "fnv10": "466c832ba6"
+  },
+  {
+   "text": "İstanbul",
+   "fnv10": "e2ad5b9187"
+  },
+  {
+   "text": "káva ☕ 🍵",
+   "fnv10": "7a8c0aea4f"
+  },
+  {
+   "text": "� osamocený",
+   "fnv10": "935ae25f96"
+  }
+ ],
+ "folds": [
+  {
+   "text": "  Kdo   kupuje? ",
+   "fold": "kdo kupuje?"
+  },
+  {
+   "text": "Kdo\tkupuje?\n",
+   "fold": "kdo kupuje?"
+  },
+  {
+   "text": "Kdo kupuje?",
+   "fold": "kdo kupuje?"
+  },
+  {
+   "text": "Kdo kupuje?",
+   "fold": "kdo kupuje?"
+  },
+  {
+   "text": "Kdo\u001fkupuje?",
+   "fold": "kdo kupuje?"
+  },
+  {
+   "text": "Kdo﻿kupuje?",
+   "fold": "kdo﻿kupuje?"
+  },
+  {
+   "text": "KDO KUPUJE?",
+   "fold": "kdo kupuje?"
+  },
+  {
+   "text": "ΟΔΟΣ",
+   "fold": "οδοσ"
+  },
+  {
+   "text": "İ",
+   "fold": "i̇"
+  },
+  {
+   "text": "Straße",
+   "fold": "strasse"
+  },
+  {
+   "text": "STRASSE",
+   "fold": "strasse"
+  },
+  {
+   "text": "ẞ",
+   "fold": "ss"
+  },
+  {
+   "text": "ﬁle",
+   "fold": "file"
+  },
+  {
+   "text": "ŉ",
+   "fold": "ʼn"
+  },
+  {
+   "text": "µ",
+   "fold": "μ"
+  }
+ ],
+ "derived": [
+  {
+   "prefix": "rq_",
+   "kind": "research_question",
+   "text": "Kdo kupuje?",
+   "occurrence": 1,
+   "id": "rq_ff3bb7f9ad"
+  },
+  {
+   "prefix": "rq_",
+   "kind": "research_question",
+   "text": "Kdo kupuje?",
+   "occurrence": 2,
+   "id": "rq_4ceb8aec0b"
+  },
+  {
+   "prefix": "rq_",
+   "kind": "research_question",
+   "text": "  KDO  kupuje? ",
+   "occurrence": 1,
+   "id": "rq_ff3bb7f9ad"
+  },
+  {
+   "prefix": "obj_",
+   "kind": "objective",
+   "text": "Kdo kupuje?",
+   "occurrence": 1,
+   "id": "obj_d156d56787"
+  },
+  {
+   "prefix": "opt_",
+   "kind": "option",
+   "text": "Ano",
+   "occurrence": 1,
+   "id": "opt_0985369535"
+  },
+  {
+   "prefix": "o_",
+   "kind": "object",
+   "text": "Tchibo",
+   "occurrence": 1,
+   "id": "o_c7688a7935"
+  }
+ ],
+ "reconcile": [
+  {
+   "name": "no ids: derived",
+   "texts": [
+    "Jak cena mění zájem?",
+    "Kdo kupuje?"
+   ],
+   "entries": null,
+   "previous": null,
+   "ids": [
+    "rq_5688b8a65e",
+    "rq_ff3bb7f9ad"
+   ]
+  },
+  {
+   "name": "a repeated wording: two ids",
+   "texts": [
+    "Kdo kupuje?",
+    "kdo  KUPUJE?"
+   ],
+   "entries": null,
+   "previous": null,
+   "ids": [
+    "rq_ff3bb7f9ad",
+    "rq_4ceb8aec0b"
+   ]
+  },
+  {
+   "name": "ids as stored: kept",
+   "texts": [
+    "Jak cena mění zájem?",
+    "Kdo kupuje?"
+   ],
+   "entries": [
+    {
+     "id": "rq_a",
+     "bound": "b57c02492d"
+    },
+    {
+     "id": "rq_b",
+     "bound": "8b6db655af"
+    }
+   ],
+   "previous": null,
+   "ids": [
+    "rq_a",
+    "rq_b"
+   ]
+  },
+  {
+   "name": "a reword in place keeps its id",
+   "texts": [
+    "Jak cena mění zájem?",
+    "Kde nakupují?"
+   ],
+   "entries": [
+    {
+     "id": "rq_a",
+     "bound": "b57c02492d"
+    },
+    {
+     "id": "rq_b",
+     "bound": "8b6db655af"
+    }
+   ],
+   "previous": null,
+   "ids": [
+    "rq_a",
+    "rq_b"
+   ]
+  },
+  {
+   "name": "two rewords in place keep theirs",
+   "texts": [
+    "Kde nakupují?",
+    "Proč odcházejí?"
+   ],
+   "entries": [
+    {
+     "id": "rq_a",
+     "bound": "b57c02492d"
+    },
+    {
+     "id": "rq_b",
+     "bound": "8b6db655af"
+    }
+   ],
+   "previous": null,
+   "ids": [
+    "rq_a",
+    "rq_b"
+   ]
+  },
+  {
+   "name": "an insert is new, the rest keep theirs",
+   "texts": [
+    "Jak cena mění zájem?",
+    "Kde nakupují?",
+    "Kdo kupuje?"
+   ],
+   "entries": [
+    {
+     "id": "rq_a",
+     "bound": "b57c02492d"
+    },
+    {
+     "id": "rq_b",
+     "bound": "8b6db655af"
+    }
+   ],
+   "previous": null,
+   "ids": [
+    "rq_a",
+    "rq_715968d269",
+    "rq_b"
+   ]
+  },
+  {
+   "name": "a removal drops its id",
+   "texts": [
+    "Kdo kupuje?"
+   ],
+   "entries": [
+    {
+     "id": "rq_a",
+     "bound": "b57c02492d"
+    },
+    {
+     "id": "rq_b",
+     "bound": "8b6db655af"
+    }
+   ],
+   "previous": null,
+   "ids": [
+    "rq_b"
+   ]
+  },
+  {
+   "name": "a move keeps both ids",
+   "texts": [
+    "Kdo kupuje?",
+    "Jak cena mění zájem?"
+   ],
+   "entries": [
+    {
+     "id": "rq_a",
+     "bound": "b57c02492d"
+    },
+    {
+     "id": "rq_b",
+     "bound": "8b6db655af"
+    }
+   ],
+   "previous": null,
+   "ids": [
+    "rq_b",
+    "rq_a"
+   ]
+  },
+  {
+   "name": "a reword and an append in one gap: nothing is guessed",
+   "texts": [
+    "Jak cena mění zájem?",
+    "Kde nakupují?",
+    "Proč odcházejí?"
+   ],
+   "entries": [
+    {
+     "id": "rq_a",
+     "bound": "b57c02492d"
+    },
+    {
+     "id": "rq_b",
+     "bound": "8b6db655af"
+    }
+   ],
+   "previous": null,
+   "ids": [
+    "rq_a",
+    "rq_715968d269",
+    "rq_2e35273d93"
+   ]
+  },
+  {
+   "name": "a repeated id is read once",
+   "texts": [
+    "Jak cena mění zájem?",
+    "Kdo kupuje?"
+   ],
+   "entries": [
+    {
+     "id": "rq_a",
+     "bound": "b57c02492d"
+    },
+    {
+     "id": "rq_a",
+     "bound": "8b6db655af"
+    }
+   ],
+   "previous": null,
+   "ids": [
+    "rq_a",
+    "rq_ff3bb7f9ad"
+   ]
+  },
+  {
+   "name": "an entry that is not one is no entry",
+   "texts": [
+    "Jak cena mění zájem?",
+    "Kdo kupuje?"
+   ],
+   "entries": [
+    {
+     "id": "rq a",
+     "bound": "b57c02492d"
+    },
+    {
+     "id": "rq_b"
+    }
+   ],
+   "previous": null,
+   "ids": [
+    "rq_5688b8a65e",
+    "rq_ff3bb7f9ad"
+   ]
+  },
+  {
+   "name": "without ids of its own, read by wording against the baseline",
+   "texts": [
+    "Kde nakupují?",
+    "Kdo kupuje?"
+   ],
+   "entries": null,
+   "previous": [
+    [
+     "rq_a",
+     "Jak cena mění zájem?"
+    ],
+    [
+     "rq_b",
+     "Kdo kupuje?"
+    ]
+   ],
+   "ids": [
+    "rq_715968d269",
+    "rq_b"
+   ]
+  },
+  {
+   "name": "a new wording that derives a taken id is told apart",
+   "texts": [
+    "Kde nakupují?",
+    "Kdo kupuje?"
+   ],
+   "entries": [
+    {
+     "id": "rq_ff3bb7f9ad",
+     "bound": "6c3669ee8f"
+    }
+   ],
+   "previous": null,
+   "ids": [
+    "rq_ff3bb7f9ad",
+    "rq_ff3bb7f9ad-2"
+   ]
+  }
+ ],
+ "sections": [
+  {
+   "name": "the compiler's ids for sections without one",
+   "sections": [
+    {
+     "type": "questions",
+     "title": "Nákup kávy"
+    },
+    {
+     "id": "sec_x",
+     "type": "questions",
+     "title": "Nákup kávy"
+    },
+    {
+     "type": "questions",
+     "title": "Nákup kávy"
+    },
+    {
+     "type": "object_battery",
+     "title": "1. Značky"
+    },
+    {
+     "type": "questions"
+    },
+    "not a section",
+    {
+     "type": "intro",
+     "title": "Nákup kávy"
+    },
+    {
+     "id": "",
+     "title": "Bez typu"
+    }
+   ],
+   "ids": [
+    "nakup_kavy",
+    "sec_x",
+    "nakup_kavy_2",
+    "sec_1_znacky",
+    "sekce_5",
+    null,
+    "nakup_kavy_3",
+    "bez_typu"
+   ]
+  },
+  {
+   "name": "an id the compiler would make is taken in order",
+   "sections": [
+    {
+     "id": "nakup_kavy_2",
+     "type": "questions",
+     "title": "x"
+    },
+    {
+     "type": "questions",
+     "title": "Nákup kávy"
+    },
+    {
+     "type": "questions",
+     "title": "Nákup kávy"
+    }
+   ],
+   "ids": [
+    "nakup_kavy_2",
+    "nakup_kavy",
+    "nakup_kavy_3"
+   ]
+  }
+ ],
+ "designs": [
+  {
+   "name": "content written before ids",
+   "content": {
+    "title": "Cenový test",
+    "goal": "Zjistit vliv ceny",
+    "research_plan": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "research_question_comparisons": {
+      "Kdo kupuje?": "describe"
+     }
+    },
+    "sections": [
+     {
+      "type": "questions",
+      "title": "Úvod",
+      "questions": [
+       {
+        "id": "Q1",
+        "text": "Kupujete kávu?",
+        "typ": "vyber",
+        "kategorie": [
+         "Ano",
+         "Ne"
+        ],
+        "research_questions": [
+         "Kdo kupuje?"
+        ]
+       },
+       {
+        "id": "Q2",
+        "text": "Jak moc vám chutná?",
+        "typ": "skala"
+       }
+      ]
+     },
+     {
+      "id": "bat_1",
+      "type": "object_battery",
+      "title": "Značky kávy",
+      "object_family": "značky",
+      "objects": [
+       "Tchibo",
+       "Jacobs",
+       "Nescafé",
+       "Lavazza"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ]
+     }
+    ]
+   },
+   "analysis": {
+    "problem_summary": "Cena a zájem",
+    "objectives": [
+     "Zjistit cenovou citlivost"
+    ],
+    "research_questions": [
+     "Jak cena mění zájem?",
+     "Kdo kupuje?"
+    ],
+    "hypotheses": [
+     "Sleva zvýší nákup",
+     "Nová hypotéza"
+    ]
+   },
+   "expect": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "research_question_comparisons": {
+       "Kdo kupuje?": "describe"
+      },
+      "objective_ids": [
+       {
+        "id": "obj_73baba63de",
+        "bound": "b9f25bf6f3"
+       }
+      ],
+      "research_question_ids": [
+       {
+        "id": "rq_5688b8a65e",
+        "bound": "b57c02492d"
+       },
+       {
+        "id": "rq_ff3bb7f9ad",
+        "bound": "8b6db655af"
+       }
+      ],
+      "hypothesis_ids": [
+       {
+        "id": "hyp_5791fbdb07",
+        "bound": "d4553e9368"
+       }
+      ]
+     },
+     "sections": [
+      {
+       "type": "questions",
+       "title": "Úvod",
+       "questions": [
+        {
+         "id": "Q1",
+         "text": "Kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Ano",
+          "Ne"
+         ],
+         "research_questions": [
+          "Kdo kupuje?"
+         ],
+         "kategorie_ids": [
+          {
+           "id": "opt_0985369535",
+           "bound": "d5fc1983f1"
+          },
+          {
+           "id": "opt_77c677d385",
+           "bound": "e0cf44a93f"
+          }
+         ]
+        },
+        {
+         "id": "Q2",
+         "text": "Jak moc vám chutná?",
+         "typ": "skala"
+        }
+       ],
+       "id": "uvod"
+      },
+      {
+       "id": "bat_1",
+       "type": "object_battery",
+       "title": "Značky kávy",
+       "object_family": "značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "research_questions": [
+        "Jak cena mění zájem?",
+        "Kdo kupuje?"
+       ],
+       "object_ids": [
+        {
+         "id": "o_c7688a7935",
+         "bound": "acb2b848e6"
+        },
+        {
+         "id": "o_e1439576a9",
+         "bound": "9bd4e47370"
+        },
+        {
+         "id": "o_00957674ea",
+         "bound": "c03f7d8de1"
+        },
+        {
+         "id": "o_1110c0909a",
+         "bound": "ef69ea031e"
+        }
+       ]
+      }
+     ]
+    },
+    "analysis": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup",
+      "Nová hypotéza"
+     ],
+     "objective_ids": [
+      {
+       "id": "obj_73baba63de",
+       "bound": "b9f25bf6f3"
+      }
+     ],
+     "research_question_ids": [
+      {
+       "id": "rq_5688b8a65e",
+       "bound": "b57c02492d"
+      },
+      {
+       "id": "rq_ff3bb7f9ad",
+       "bound": "8b6db655af"
+      }
+     ],
+     "hypothesis_ids": [
+      {
+       "id": "hyp_5791fbdb07",
+       "bound": "d4553e9368"
+      },
+      {
+       "id": "hyp_5b95d40d3d",
+       "bound": "57519f1b1f"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "no analysis",
+   "content": {
+    "title": "Cenový test",
+    "goal": "Zjistit vliv ceny",
+    "research_plan": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "research_question_comparisons": {
+      "Kdo kupuje?": "describe"
+     }
+    },
+    "sections": [
+     {
+      "type": "questions",
+      "title": "Úvod",
+      "questions": [
+       {
+        "id": "Q1",
+        "text": "Kupujete kávu?",
+        "typ": "vyber",
+        "kategorie": [
+         "Ano",
+         "Ne"
+        ],
+        "research_questions": [
+         "Kdo kupuje?"
+        ]
+       },
+       {
+        "id": "Q2",
+        "text": "Jak moc vám chutná?",
+        "typ": "skala"
+       }
+      ]
+     },
+     {
+      "id": "bat_1",
+      "type": "object_battery",
+      "title": "Značky kávy",
+      "object_family": "značky",
+      "objects": [
+       "Tchibo",
+       "Jacobs",
+       "Nescafé",
+       "Lavazza"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ]
+     }
+    ]
+   },
+   "analysis": null,
+   "expect": {
+    "content": {
+     "title": "Cenový test",
+     "goal": "Zjistit vliv ceny",
+     "research_plan": {
+      "problem_summary": "Cena a zájem",
+      "objectives": [
+       "Zjistit cenovou citlivost"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "hypotheses": [
+       "Sleva zvýší nákup"
+      ],
+      "research_question_comparisons": {
+       "Kdo kupuje?": "describe"
+      },
+      "objective_ids": [
+       {
+        "id": "obj_73baba63de",
+        "bound": "b9f25bf6f3"
+       }
+      ],
+      "research_question_ids": [
+       {
+        "id": "rq_5688b8a65e",
+        "bound": "b57c02492d"
+       },
+       {
+        "id": "rq_ff3bb7f9ad",
+        "bound": "8b6db655af"
+       }
+      ],
+      "hypothesis_ids": [
+       {
+        "id": "hyp_5791fbdb07",
+        "bound": "d4553e9368"
+       }
+      ]
+     },
+     "sections": [
+      {
+       "type": "questions",
+       "title": "Úvod",
+       "questions": [
+        {
+         "id": "Q1",
+         "text": "Kupujete kávu?",
+         "typ": "vyber",
+         "kategorie": [
+          "Ano",
+          "Ne"
+         ],
+         "research_questions": [
+          "Kdo kupuje?"
+         ],
+         "kategorie_ids": [
+          {
+           "id": "opt_0985369535",
+           "bound": "d5fc1983f1"
+          },
+          {
+           "id": "opt_77c677d385",
+           "bound": "e0cf44a93f"
+          }
+         ]
+        },
+        {
+         "id": "Q2",
+         "text": "Jak moc vám chutná?",
+         "typ": "skala"
+        }
+       ],
+       "id": "uvod"
+      },
+      {
+       "id": "bat_1",
+       "type": "object_battery",
+       "title": "Značky kávy",
+       "object_family": "značky",
+       "objects": [
+        "Tchibo",
+        "Jacobs",
+        "Nescafé",
+        "Lavazza"
+       ],
+       "research_questions": [
+        "Jak cena mění zájem?",
+        "Kdo kupuje?"
+       ],
+       "object_ids": [
+        {
+         "id": "o_c7688a7935",
+         "bound": "acb2b848e6"
+        },
+        {
+         "id": "o_e1439576a9",
+         "bound": "9bd4e47370"
+        },
+        {
+         "id": "o_00957674ea",
+         "bound": "c03f7d8de1"
+        },
+        {
+         "id": "o_1110c0909a",
+         "bound": "ef69ea031e"
+        }
+       ]
+      }
+     ]
+    },
+    "analysis": null
+   }
+  }
+ ],
+ "settle": [
+  {
+   "name": "a reword keeps its links",
+   "before": {
+    "title": "Cenový test",
+    "goal": "Zjistit vliv ceny",
+    "research_plan": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "research_question_comparisons": {
+      "Kdo kupuje?": "describe"
+     },
+     "objective_ids": [
+      {
+       "id": "obj_73baba63de",
+       "bound": "b9f25bf6f3"
+      }
+     ],
+     "research_question_ids": [
+      {
+       "id": "rq_5688b8a65e",
+       "bound": "b57c02492d"
+      },
+      {
+       "id": "rq_ff3bb7f9ad",
+       "bound": "8b6db655af"
+      }
+     ],
+     "hypothesis_ids": [
+      {
+       "id": "hyp_5791fbdb07",
+       "bound": "d4553e9368"
+      }
+     ]
+    },
+    "sections": [
+     {
+      "type": "questions",
+      "title": "Úvod",
+      "questions": [
+       {
+        "id": "Q1",
+        "text": "Kupujete kávu?",
+        "typ": "vyber",
+        "kategorie": [
+         "Ano",
+         "Ne"
+        ],
+        "research_questions": [
+         "Kdo kupuje?"
+        ],
+        "kategorie_ids": [
+         {
+          "id": "opt_0985369535",
+          "bound": "d5fc1983f1"
+         },
+         {
+          "id": "opt_77c677d385",
+          "bound": "e0cf44a93f"
+         }
+        ]
+       },
+       {
+        "id": "Q2",
+        "text": "Jak moc vám chutná?",
+        "typ": "skala"
+       }
+      ],
+      "id": "uvod"
+     },
+     {
+      "id": "bat_1",
+      "type": "object_battery",
+      "title": "Značky kávy",
+      "object_family": "značky",
+      "objects": [
+       "Tchibo",
+       "Jacobs",
+       "Nescafé",
+       "Lavazza"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "object_ids": [
+       {
+        "id": "o_c7688a7935",
+        "bound": "acb2b848e6"
+       },
+       {
+        "id": "o_e1439576a9",
+        "bound": "9bd4e47370"
+       },
+       {
+        "id": "o_00957674ea",
+        "bound": "c03f7d8de1"
+       },
+       {
+        "id": "o_1110c0909a",
+        "bound": "ef69ea031e"
+       }
+      ]
+     }
+    ]
+   },
+   "after": {
+    "title": "Cenový test",
+    "goal": "Zjistit vliv ceny",
+    "research_plan": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo si kávu kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "research_question_comparisons": {
+      "Kdo kupuje?": "describe"
+     },
+     "objective_ids": [
+      {
+       "id": "obj_73baba63de",
+       "bound": "b9f25bf6f3"
+      }
+     ],
+     "research_question_ids": [
+      {
+       "id": "rq_5688b8a65e",
+       "bound": "b57c02492d"
+      },
+      {
+       "id": "rq_ff3bb7f9ad",
+       "bound": "8b6db655af"
+      }
+     ],
+     "hypothesis_ids": [
+      {
+       "id": "hyp_5791fbdb07",
+       "bound": "d4553e9368"
+      }
+     ]
+    },
+    "sections": [
+     {
+      "type": "questions",
+      "title": "Úvod",
+      "questions": [
+       {
+        "id": "Q1",
+        "text": "Kupujete kávu?",
+        "typ": "vyber",
+        "kategorie": [
+         "Ano",
+         "Ne"
+        ],
+        "research_questions": [
+         "Kdo kupuje?"
+        ],
+        "kategorie_ids": [
+         {
+          "id": "opt_0985369535",
+          "bound": "d5fc1983f1"
+         },
+         {
+          "id": "opt_77c677d385",
+          "bound": "e0cf44a93f"
+         }
+        ]
+       },
+       {
+        "id": "Q2",
+        "text": "Jak moc vám chutná?",
+        "typ": "skala"
+       }
+      ],
+      "id": "uvod"
+     },
+     {
+      "id": "bat_1",
+      "type": "object_battery",
+      "title": "Značky kávy",
+      "object_family": "značky",
+      "objects": [
+       "Tchibo",
+       "Jacobs",
+       "Nescafé",
+       "Lavazza"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "object_ids": [
+       {
+        "id": "o_c7688a7935",
+        "bound": "acb2b848e6"
+       },
+       {
+        "id": "o_e1439576a9",
+        "bound": "9bd4e47370"
+       },
+       {
+        "id": "o_00957674ea",
+        "bound": "c03f7d8de1"
+       },
+       {
+        "id": "o_1110c0909a",
+        "bound": "ef69ea031e"
+       }
+      ]
+     }
+    ]
+   },
+   "expect": {
+    "title": "Cenový test",
+    "goal": "Zjistit vliv ceny",
+    "research_plan": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo si kávu kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "research_question_comparisons": {
+      "Kdo si kávu kupuje?": "describe"
+     },
+     "objective_ids": [
+      {
+       "id": "obj_73baba63de",
+       "bound": "b9f25bf6f3"
+      }
+     ],
+     "research_question_ids": [
+      {
+       "id": "rq_5688b8a65e",
+       "bound": "b57c02492d"
+      },
+      {
+       "id": "rq_ff3bb7f9ad",
+       "bound": "e1c3d9940d"
+      }
+     ],
+     "hypothesis_ids": [
+      {
+       "id": "hyp_5791fbdb07",
+       "bound": "d4553e9368"
+      }
+     ]
+    },
+    "sections": [
+     {
+      "type": "questions",
+      "title": "Úvod",
+      "questions": [
+       {
+        "id": "Q1",
+        "text": "Kupujete kávu?",
+        "typ": "vyber",
+        "kategorie": [
+         "Ano",
+         "Ne"
+        ],
+        "research_questions": [
+         "Kdo si kávu kupuje?"
+        ],
+        "kategorie_ids": [
+         {
+          "id": "opt_0985369535",
+          "bound": "d5fc1983f1"
+         },
+         {
+          "id": "opt_77c677d385",
+          "bound": "e0cf44a93f"
+         }
+        ]
+       },
+       {
+        "id": "Q2",
+        "text": "Jak moc vám chutná?",
+        "typ": "skala"
+       }
+      ],
+      "id": "uvod"
+     },
+     {
+      "id": "bat_1",
+      "type": "object_battery",
+      "title": "Značky kávy",
+      "object_family": "značky",
+      "objects": [
+       "Tchibo",
+       "Jacobs",
+       "Nescafé",
+       "Lavazza"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo si kávu kupuje?"
+      ],
+      "object_ids": [
+       {
+        "id": "o_c7688a7935",
+        "bound": "acb2b848e6"
+       },
+       {
+        "id": "o_e1439576a9",
+        "bound": "9bd4e47370"
+       },
+       {
+        "id": "o_00957674ea",
+        "bound": "c03f7d8de1"
+       },
+       {
+        "id": "o_1110c0909a",
+        "bound": "ef69ea031e"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "a removal leaves its links dangling, as stated",
+   "before": {
+    "title": "Cenový test",
+    "goal": "Zjistit vliv ceny",
+    "research_plan": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "research_question_comparisons": {
+      "Kdo kupuje?": "describe"
+     },
+     "objective_ids": [
+      {
+       "id": "obj_73baba63de",
+       "bound": "b9f25bf6f3"
+      }
+     ],
+     "research_question_ids": [
+      {
+       "id": "rq_5688b8a65e",
+       "bound": "b57c02492d"
+      },
+      {
+       "id": "rq_ff3bb7f9ad",
+       "bound": "8b6db655af"
+      }
+     ],
+     "hypothesis_ids": [
+      {
+       "id": "hyp_5791fbdb07",
+       "bound": "d4553e9368"
+      }
+     ]
+    },
+    "sections": [
+     {
+      "type": "questions",
+      "title": "Úvod",
+      "questions": [
+       {
+        "id": "Q1",
+        "text": "Kupujete kávu?",
+        "typ": "vyber",
+        "kategorie": [
+         "Ano",
+         "Ne"
+        ],
+        "research_questions": [
+         "Kdo kupuje?"
+        ],
+        "kategorie_ids": [
+         {
+          "id": "opt_0985369535",
+          "bound": "d5fc1983f1"
+         },
+         {
+          "id": "opt_77c677d385",
+          "bound": "e0cf44a93f"
+         }
+        ]
+       },
+       {
+        "id": "Q2",
+        "text": "Jak moc vám chutná?",
+        "typ": "skala"
+       }
+      ],
+      "id": "uvod"
+     },
+     {
+      "id": "bat_1",
+      "type": "object_battery",
+      "title": "Značky kávy",
+      "object_family": "značky",
+      "objects": [
+       "Tchibo",
+       "Jacobs",
+       "Nescafé",
+       "Lavazza"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "object_ids": [
+       {
+        "id": "o_c7688a7935",
+        "bound": "acb2b848e6"
+       },
+       {
+        "id": "o_e1439576a9",
+        "bound": "9bd4e47370"
+       },
+       {
+        "id": "o_00957674ea",
+        "bound": "c03f7d8de1"
+       },
+       {
+        "id": "o_1110c0909a",
+        "bound": "ef69ea031e"
+       }
+      ]
+     }
+    ]
+   },
+   "after": {
+    "title": "Cenový test",
+    "goal": "Zjistit vliv ceny",
+    "research_plan": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "research_question_comparisons": {
+      "Kdo kupuje?": "describe"
+     },
+     "objective_ids": [
+      {
+       "id": "obj_73baba63de",
+       "bound": "b9f25bf6f3"
+      }
+     ],
+     "research_question_ids": [
+      {
+       "id": "rq_5688b8a65e",
+       "bound": "b57c02492d"
+      },
+      {
+       "id": "rq_ff3bb7f9ad",
+       "bound": "8b6db655af"
+      }
+     ],
+     "hypothesis_ids": [
+      {
+       "id": "hyp_5791fbdb07",
+       "bound": "d4553e9368"
+      }
+     ]
+    },
+    "sections": [
+     {
+      "type": "questions",
+      "title": "Úvod",
+      "questions": [
+       {
+        "id": "Q1",
+        "text": "Kupujete kávu?",
+        "typ": "vyber",
+        "kategorie": [
+         "Ano",
+         "Ne"
+        ],
+        "research_questions": [
+         "Kdo kupuje?"
+        ],
+        "kategorie_ids": [
+         {
+          "id": "opt_0985369535",
+          "bound": "d5fc1983f1"
+         },
+         {
+          "id": "opt_77c677d385",
+          "bound": "e0cf44a93f"
+         }
+        ]
+       },
+       {
+        "id": "Q2",
+        "text": "Jak moc vám chutná?",
+        "typ": "skala"
+       }
+      ],
+      "id": "uvod"
+     },
+     {
+      "id": "bat_1",
+      "type": "object_battery",
+      "title": "Značky kávy",
+      "object_family": "značky",
+      "objects": [
+       "Tchibo",
+       "Jacobs",
+       "Nescafé",
+       "Lavazza"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "object_ids": [
+       {
+        "id": "o_c7688a7935",
+        "bound": "acb2b848e6"
+       },
+       {
+        "id": "o_e1439576a9",
+        "bound": "9bd4e47370"
+       },
+       {
+        "id": "o_00957674ea",
+        "bound": "c03f7d8de1"
+       },
+       {
+        "id": "o_1110c0909a",
+        "bound": "ef69ea031e"
+       }
+      ]
+     }
+    ]
+   },
+   "expect": {
+    "title": "Cenový test",
+    "goal": "Zjistit vliv ceny",
+    "research_plan": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "research_question_comparisons": {
+      "Kdo kupuje?": "describe"
+     },
+     "objective_ids": [
+      {
+       "id": "obj_73baba63de",
+       "bound": "b9f25bf6f3"
+      }
+     ],
+     "research_question_ids": [
+      {
+       "id": "rq_5688b8a65e",
+       "bound": "b57c02492d"
+      }
+     ],
+     "hypothesis_ids": [
+      {
+       "id": "hyp_5791fbdb07",
+       "bound": "d4553e9368"
+      }
+     ]
+    },
+    "sections": [
+     {
+      "type": "questions",
+      "title": "Úvod",
+      "questions": [
+       {
+        "id": "Q1",
+        "text": "Kupujete kávu?",
+        "typ": "vyber",
+        "kategorie": [
+         "Ano",
+         "Ne"
+        ],
+        "research_questions": [
+         "Kdo kupuje?"
+        ],
+        "kategorie_ids": [
+         {
+          "id": "opt_0985369535",
+          "bound": "d5fc1983f1"
+         },
+         {
+          "id": "opt_77c677d385",
+          "bound": "e0cf44a93f"
+         }
+        ]
+       },
+       {
+        "id": "Q2",
+        "text": "Jak moc vám chutná?",
+        "typ": "skala"
+       }
+      ],
+      "id": "uvod"
+     },
+     {
+      "id": "bat_1",
+      "type": "object_battery",
+      "title": "Značky kávy",
+      "object_family": "značky",
+      "objects": [
+       "Tchibo",
+       "Jacobs",
+       "Nescafé",
+       "Lavazza"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "object_ids": [
+       {
+        "id": "o_c7688a7935",
+        "bound": "acb2b848e6"
+       },
+       {
+        "id": "o_e1439576a9",
+        "bound": "9bd4e47370"
+       },
+       {
+        "id": "o_00957674ea",
+        "bound": "c03f7d8de1"
+       },
+       {
+        "id": "o_1110c0909a",
+        "bound": "ef69ea031e"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "an option reworded keeps its id",
+   "before": {
+    "title": "Cenový test",
+    "goal": "Zjistit vliv ceny",
+    "research_plan": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "research_question_comparisons": {
+      "Kdo kupuje?": "describe"
+     },
+     "objective_ids": [
+      {
+       "id": "obj_73baba63de",
+       "bound": "b9f25bf6f3"
+      }
+     ],
+     "research_question_ids": [
+      {
+       "id": "rq_5688b8a65e",
+       "bound": "b57c02492d"
+      },
+      {
+       "id": "rq_ff3bb7f9ad",
+       "bound": "8b6db655af"
+      }
+     ],
+     "hypothesis_ids": [
+      {
+       "id": "hyp_5791fbdb07",
+       "bound": "d4553e9368"
+      }
+     ]
+    },
+    "sections": [
+     {
+      "type": "questions",
+      "title": "Úvod",
+      "questions": [
+       {
+        "id": "Q1",
+        "text": "Kupujete kávu?",
+        "typ": "vyber",
+        "kategorie": [
+         "Ano",
+         "Ne"
+        ],
+        "research_questions": [
+         "Kdo kupuje?"
+        ],
+        "kategorie_ids": [
+         {
+          "id": "opt_0985369535",
+          "bound": "d5fc1983f1"
+         },
+         {
+          "id": "opt_77c677d385",
+          "bound": "e0cf44a93f"
+         }
+        ]
+       },
+       {
+        "id": "Q2",
+        "text": "Jak moc vám chutná?",
+        "typ": "skala"
+       }
+      ],
+      "id": "uvod"
+     },
+     {
+      "id": "bat_1",
+      "type": "object_battery",
+      "title": "Značky kávy",
+      "object_family": "značky",
+      "objects": [
+       "Tchibo",
+       "Jacobs",
+       "Nescafé",
+       "Lavazza"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "object_ids": [
+       {
+        "id": "o_c7688a7935",
+        "bound": "acb2b848e6"
+       },
+       {
+        "id": "o_e1439576a9",
+        "bound": "9bd4e47370"
+       },
+       {
+        "id": "o_00957674ea",
+        "bound": "c03f7d8de1"
+       },
+       {
+        "id": "o_1110c0909a",
+        "bound": "ef69ea031e"
+       }
+      ]
+     }
+    ]
+   },
+   "after": {
+    "title": "Cenový test",
+    "goal": "Zjistit vliv ceny",
+    "research_plan": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "research_question_comparisons": {
+      "Kdo kupuje?": "describe"
+     },
+     "objective_ids": [
+      {
+       "id": "obj_73baba63de",
+       "bound": "b9f25bf6f3"
+      }
+     ],
+     "research_question_ids": [
+      {
+       "id": "rq_5688b8a65e",
+       "bound": "b57c02492d"
+      },
+      {
+       "id": "rq_ff3bb7f9ad",
+       "bound": "8b6db655af"
+      }
+     ],
+     "hypothesis_ids": [
+      {
+       "id": "hyp_5791fbdb07",
+       "bound": "d4553e9368"
+      }
+     ]
+    },
+    "sections": [
+     {
+      "type": "questions",
+      "title": "Úvod",
+      "questions": [
+       {
+        "id": "Q1",
+        "text": "Kupujete kávu?",
+        "typ": "vyber",
+        "kategorie": [
+         "Ano, denně",
+         "Ne"
+        ],
+        "research_questions": [
+         "Kdo kupuje?"
+        ],
+        "kategorie_ids": [
+         {
+          "id": "opt_0985369535",
+          "bound": "d5fc1983f1"
+         },
+         {
+          "id": "opt_77c677d385",
+          "bound": "e0cf44a93f"
+         }
+        ]
+       },
+       {
+        "id": "Q2",
+        "text": "Jak moc vám chutná?",
+        "typ": "skala"
+       }
+      ],
+      "id": "uvod"
+     },
+     {
+      "id": "bat_1",
+      "type": "object_battery",
+      "title": "Značky kávy",
+      "object_family": "značky",
+      "objects": [
+       "Tchibo",
+       "Jacobs",
+       "Nescafé",
+       "Lavazza"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "object_ids": [
+       {
+        "id": "o_c7688a7935",
+        "bound": "acb2b848e6"
+       },
+       {
+        "id": "o_e1439576a9",
+        "bound": "9bd4e47370"
+       },
+       {
+        "id": "o_00957674ea",
+        "bound": "c03f7d8de1"
+       },
+       {
+        "id": "o_1110c0909a",
+        "bound": "ef69ea031e"
+       }
+      ]
+     }
+    ]
+   },
+   "expect": {
+    "title": "Cenový test",
+    "goal": "Zjistit vliv ceny",
+    "research_plan": {
+     "problem_summary": "Cena a zájem",
+     "objectives": [
+      "Zjistit cenovou citlivost"
+     ],
+     "research_questions": [
+      "Jak cena mění zájem?",
+      "Kdo kupuje?"
+     ],
+     "hypotheses": [
+      "Sleva zvýší nákup"
+     ],
+     "research_question_comparisons": {
+      "Kdo kupuje?": "describe"
+     },
+     "objective_ids": [
+      {
+       "id": "obj_73baba63de",
+       "bound": "b9f25bf6f3"
+      }
+     ],
+     "research_question_ids": [
+      {
+       "id": "rq_5688b8a65e",
+       "bound": "b57c02492d"
+      },
+      {
+       "id": "rq_ff3bb7f9ad",
+       "bound": "8b6db655af"
+      }
+     ],
+     "hypothesis_ids": [
+      {
+       "id": "hyp_5791fbdb07",
+       "bound": "d4553e9368"
+      }
+     ]
+    },
+    "sections": [
+     {
+      "type": "questions",
+      "title": "Úvod",
+      "questions": [
+       {
+        "id": "Q1",
+        "text": "Kupujete kávu?",
+        "typ": "vyber",
+        "kategorie": [
+         "Ano, denně",
+         "Ne"
+        ],
+        "research_questions": [
+         "Kdo kupuje?"
+        ],
+        "kategorie_ids": [
+         {
+          "id": "opt_0985369535",
+          "bound": "b268776c50"
+         },
+         {
+          "id": "opt_77c677d385",
+          "bound": "e0cf44a93f"
+         }
+        ]
+       },
+       {
+        "id": "Q2",
+        "text": "Jak moc vám chutná?",
+        "typ": "skala"
+       }
+      ],
+      "id": "uvod"
+     },
+     {
+      "id": "bat_1",
+      "type": "object_battery",
+      "title": "Značky kávy",
+      "object_family": "značky",
+      "objects": [
+       "Tchibo",
+       "Jacobs",
+       "Nescafé",
+       "Lavazza"
+      ],
+      "research_questions": [
+       "Jak cena mění zájem?",
+       "Kdo kupuje?"
+      ],
+      "object_ids": [
+       {
+        "id": "o_c7688a7935",
+        "bound": "acb2b848e6"
+       },
+       {
+        "id": "o_e1439576a9",
+        "bound": "9bd4e47370"
+       },
+       {
+        "id": "o_00957674ea",
+        "bound": "c03f7d8de1"
+       },
+       {
+        "id": "o_1110c0909a",
+        "bound": "ef69ea031e"
+       }
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

@@ -1449,7 +1449,12 @@ export type AcceptedProposal = {
   workspace_revision_id: string;
 };
 /** The details of a 409 stale_proposal: why, and each item (`document:kind:key`) both changed. */
-export type StaleProposalDetails = { reason: "design_moved" | "unknown_baseline" | "items_changed" | "lineage_changed" | string; conflicting_items: string[] };
+export type StaleProposalDetails = {
+  reason: "design_moved" | "unknown_baseline" | "items_changed" | "lineage_changed" | string;
+  conflicting_items: string[];
+  /** The words each conflicting item names, from the server (it knows the baseline; WCE1). */
+  conflicting_wording?: Record<string, string>;
+};
 const agentsPath = (studyId: string) => `${studyPath(studyId)}/research/agent-jobs`;
 /** The Research Lead's conversation on a study: the caller's own session (ADR 0026). */
 export const lead = {

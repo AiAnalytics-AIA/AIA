@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] WCE0. The contract: the closed operation set, ids, validation, the lock rule and the text-only marker, with one shared fixture (tests/fixtures/edit_ops/cases.json) read by the Python and the TypeScript tests"
-  - "[ ] WCE1. Stable item identity: ids for objectives, research questions, hypotheses, options, battery objects and sections; existing content gets ids on load; `FOCUS_ID` and `design_items` keys use them"
+  - "[x] WCE1. Stable item identity: ids for objectives, research questions, hypotheses, options, battery objects and sections; existing content gets ids on load; `FOCUS_ID` and `design_items` keys use them"
   - "[ ] WCE2. `workspace_edit_ops` (M1) and `apply_edit_ops`: the one writer of the working copy; every other writer becomes a recorded whole-copy operation"
   - "[ ] WCE3a. The web store on the server vocabulary, Brief and Design stages"
   - "[ ] WCE3b. The web store on the server vocabulary, Questionnaire (manual operations, move, remove, reference by stable id)"
@@ -213,3 +213,128 @@ re-exports them (its output schema and prompt hash unchanged, checked before and
   mirrors the server's `apply_edit`, held to it by `tests/fixtures/edit_ops/cases.json`.
 - `open-items.md`: number F-WCE0-3 (open, WCE1).
 
+
+## WCE1 delivered (2026-10-21)
+
+`packages/aia_core/src/aia_core/domain/item_ids.py` is the identity; `apps/web/src/research/item-ids.ts`
+its port; one case file, `packages/aia_core/tests/fixtures/item_ids/cases.json`, holds the two
+together (`test_item_ids.py`, `item-ids.test.ts`: 47 web cases equal the server's).
+
+**The choice: ids beside the lists, not inside them.** Per-element ids are the known answer to
+index-addressed list edits going wrong under concurrent change (ShareJS addresses JSON arrays by
+index; `articulated` and json-joy give each list element a persistent id). Turning the plan's lists
+of strings into `{id, text}` objects would have broken every reader of them (compile, the trace,
+the analysis, the research agents' contracts and prompts, Deep Research subjects, the report, the
+web's stages and parity tests). So each id-bearing list carries a parallel id list:
+`objective_ids` / `research_question_ids` / `hypothesis_ids` (in `research_plan` and the analysis),
+`kategorie_ids` on a question, `object_ids` on a tracked set. Each entry is `{id, bound}`, `bound`
+the hash of the wording the id was last given with, so a list a writer changed without the ids
+(the stages before WCE3, a proposal spread over its baseline, an accepted Lead edit before WCE2) is
+still read deterministically: anchors by wording (an LCS, so they never cross; a moved item keeps
+its id), rewords in place where a gap between anchors holds as many old entries as new wordings,
+nothing guessed otherwise; a list with no id list is matched by wording to the baseline; the rest
+derive `<prefix><10 hex>` from FNV-1a 64 + MurmurHash3's finaliser over (kind, folded wording,
+occurrence). Content stored before WCE1 therefore has exactly one id per old text key:
+`legacy_keys` reads the shared design_items cases (unchanged file, so no conflict with #539's added
+cases) back through the ids and every case passes; derived ids are that content's identity from now
+on, and the case file pins them.
+
+- **Sections** without an id get the compiler's (`section_ids`: `compile_design`'s slug and
+  uniqueness rules, in order). `test_ids_change_nothing_a_run_compiles` compiles 300 random
+  questionnaires and every fixture design before and after ids: identical problems, spec, fingerprint
+  and respondent columns, so this chunk needs no `COMPILER_VERSION` bump (#538 moved it to `-2` for its own reason). A question keeps the
+  id it has; one without stays keyed by place (no case needs it: every writer gives one).
+- **design_items** keys plan-list items by id (`item_values(docs, previous=)`; `design_items` reads
+  `after` against `before`); a reword its id list records is one changed item. Values exclude the id
+  lists. `merge_items(…, baseline=)` keys by ids and writes nothing that was not stored but a merged
+  plan list whose working copy keeps an id list. `proposal_accept` passes the baseline and reads keys
+  a worker recorded before the deploy as the ids they name (`from_legacy_keys`).
+- **The field view** (`domain/design_fields.py`, the D-06 unit): `item` (existence), each field,
+  a question's `section`, and order as items of its own (`order:sections`, `order:section:<id>`,
+  `order:<kind>`) that differ only when common items stand differently. `edit_ops.touches` is now
+  the field diff of applying the edit (exact by construction, `new_id=` names an added item), which
+  closes **F-WCE0-3**: `touches` and `locked_items` read one keying. Accept still compares items
+  (`design_items`); WCE5 moves it onto the field view.
+- **Links follow a reword** (`follow_rewords`, `settle_item_ids`): a research question's id naming
+  a new wording carries the `research_questions` links and its comparison key to it.
+- **FOCUS_ID** is unchanged: every id is `[A-Za-z0-9_.-]{1,80}`, so `plan:<id>`, `section:<id>`,
+  `question:<id>` are admitted (`test_every_id_is_one_the_interface_can_focus`). Focusing one plan
+  item on screen (a `data-aia` per item for `focusSelector`) is WCE3a's.
+- **Behind a switch, off**: `AIA_WEB_STABLE_ITEM_IDS` (`/config` `stableItemIds`). On, the store
+  writes ids on load (`completed`, so a submit saves first) and settles every change; off, nothing
+  writes an id and the server's derived keys are a one-to-one renaming of the old text keys.
+
+Plan tests: `test_a_reword_keeps_its_research_question_links`,
+`test_two_people_adding_questions_to_one_section_touch_different_keys`, `test_a_section_move_is_an_item`.
+
+### Findings (WCE1)
+
+- **F-WCE1-1. Until WCE2, a reword accepted on the server does not carry its links; the same edit
+  accepted automatically in the browser (switch on) does.** Anchor: `application/research_lead.py`
+  `decide_edits` saves `edit_ops.apply_edit`'s result, which does not call `settle_item_ids`, at this
+  branch's head. Reproduction: with `AIA_WEB_STABLE_ITEM_IDS` on, a Lead `list_replace` of a linked
+  research question accepted by click leaves the link dangling; accepted with auto it does not.
+  Consequence: a dangling link the trace names, only with the switch on. Smallest fix: WCE2's one
+  writer settles every write. Test: a WCE2 test of the accept route asserting no dangling link.
+- **F-WCE1-2. A whole-list replacement that keeps a stale id list reads as rewords, and with the
+  switch on the web then moves questionnaire links onto a different research question.** Blocks
+  turning `AIA_WEB_STABLE_ITEM_IDS` on; owner WCE8b with WCE2. Anchor: `domain/item_ids.py`
+  `reconcile` (the equal-count gap rule) with `follow_rewords`, reached in the web by
+  `apps/web/src/research/plan.ts` `applyVariant` and `plan-edit.ts` `applyNarrative`, which replace
+  `research_questions` and spread the old `research_plan` with its `research_question_ids`.
+  Reproduction (`settle_item_ids`, from the independent review of #543): before
+  `["Kdo kupuje kávu?", "Jak často?", "Kde nakupují?"]` with Q1 linked to "Jak často?", after
+  `["Proč nekupují?", "Které značky znají?", "Kde nakupují?"]`: Q1 now links "Které značky znají?".
+  Consequence: a stamped guess, a measure moved onto an unrelated research question (today the
+  link dangles, which the trace shows). With the switch off nothing stores id lists and no server
+  path settles, so links never move. Smallest fix: the writers that replace a whole list drop its
+  id list, and `follow_rewords` follows only a reword the binding vouches for, never a gap match.
+  Test: the reproduction, asserting the link dangles rather than moves.
+- **F-WCE1-3. `touches` and `lock_refusal` differ from before (switch-on and WCE2 prerequisite).**
+  Anchor: `domain/edit_ops.py` `touches` (the field diff of applying the edit). A `question_edit`
+  that changes nothing on a locked rating question now passes the lock (it touches nothing); an
+  edit `apply_edit` refuses touches nothing, so it is refused with its own word, not the lock's.
+  Reproduction: the review's probe over set_text, list ops, question add / edit / remove, set_n,
+  malformed content and a locked question and battery: no refusal became an apply. Consequence:
+  none today (`lock_refusal` is not wired). Fix: WCE2 asks `refusal` before the lock. Test: WCE2's
+  every-writer lock tests.
+- **F-WCE1-4. Switching on rewrites every loaded study's design bytes (switch-on prerequisite).**
+  The store marks such a copy `completed`, so it is saved before a submit. The agents' context then
+  carries `*_ids` and their hashes, and `research_agents.py` `proposal_result` spreads model output
+  over that plan, so a model can echo stale entries back (F-WCE1-2's input). Deep Research
+  classifies a design by its exact bytes (OI-129), so those designs park until an operator
+  classifies them again. Fix before switching on: a rollout note, the agents' context without id
+  lists (or WCE8b), and the re-classification planned.
+- **F-WCE1-5. On, then off, leaves stale id lists (switch-on prerequisite).** The stored id lists
+  stay and go stale under writers that ignore them; the server keeps reading them by the gap rule
+  (links never move on the server). Fix: strip them when off, or record that turning off is one-way
+  until WCE2.
+
+Fixed in this PR after the independent review: an `items_changed` refusal carries each
+conflicting item's wording (`conflicting_wording`, from the current copy else the baseline; the web
+prefers it), so a reworded or removed item is never named by its hash
+(`test_a_refusal_names_a_reworded_research_question_by_its_wording`, `proposal-items.test.ts`).
+Keys recorded before ids for sections and questions without one (`#i`, `#i#j`) are translated to
+the compiler's ids, and a recorded key that names nothing in either design is refused
+`unknown_baseline`, never accepted and dropped, as is a place (`#0`) the baseline and the proposal
+fill with different sections (`ambiguous_legacy_keys`, from the re-review; `test_proposal_accept_ids.py`). Identity folds
+exactly as the old text keys did (`" ".join(split()).casefold()`, one function; the web adds the
+297 code points where case folding is not lower-casing, `apps/web/src/research/case-folds.ts`), so
+`ß` and final sigma map one to one (`test_a_respelling_the_old_keys_called_one_item_is_still_one`).
+
+### Doc follow-up (WCE1)
+
+- `CLAUDE.md` § 2, under `domain/`: `item_ids.py` (stable item ids beside the lists they name:
+  `*_ids` entries `{id, bound}`, derived for content stored before; section ids the compiler's;
+  links follow a reword; `apps/web/src/research/item-ids.ts` its port, one case file) and
+  `design_fields.py` (the D-06 field view: `item`, fields, a question's `section`, order items).
+  Under `design_items.py`: plan-list items keyed by id; `legacy_keys` / `from_legacy_keys`.
+  Under `edit_ops.py`: `touches` is the field diff of applying the edit.
+- `CLAUDE.md` § 2, under `src/research/`: the store keeps ids behind `AIA_WEB_STABLE_ITEM_IDS`
+  (`/config` `stableItemIds`, off).
+- `AGENTS.md` (Next.js/TypeScript): the web's `tsconfig` targets below ES2020, so BigInt literals
+  do not compile; `item-ids.ts` does 64-bit arithmetic in 16-bit limbs (wrong: `1n << 64n`;
+  right: `mul64` over `[hi, lo]`).
+- `open-items.md`: close F-WCE0-3 (this chunk); number F-WCE1-1 (open, WCE2), F-WCE1-2 (open,
+  WCE8b with WCE2; blocks switching `AIA_WEB_STABLE_ITEM_IDS` on) and F-WCE1-3 to F-WCE1-5 (open,
+  switch-on prerequisites).
