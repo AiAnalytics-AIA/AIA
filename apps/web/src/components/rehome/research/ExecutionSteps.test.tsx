@@ -1117,7 +1117,7 @@ describe("Progress", () => {
     expect(within(card).getByText(t(`${R}.unrecorded`))).toBeTruthy();
   });
 
-  it("keeps both sides of a mismatch in view, the stored origin code beside the pinned source, and is pointable (artifact-fieldwork FLD7)", async () => {
+  it("keeps both sides of a mismatch in view, the stored origin code beside the pinned source (artifact-fieldwork FLD7)", async () => {
     api(listed(run({ ...COMPLETED, persona_source: "panel" })));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
     const R = "research.exec.respondents.receipt";
@@ -1126,7 +1126,6 @@ describe("Progress", () => {
     // Named, never resolved: the pinned panel, what the data say, and the code as stored.
     expect(value(t(`${R}.source`))).toBe(`${t("research.exec.respondents.panel")} · ${t(`${R}.observed.SIMULATED`)}`);
     expect(value(t(`${R}.origin`))).toBe("SYNTHETIC_FIXTURE");
-    expect(card.closest('[data-aia="receipt:respondents"]')).toBeTruthy();
   });
 
   it("says the data's origin is not yet stored while fieldwork has not stored it", async () => {

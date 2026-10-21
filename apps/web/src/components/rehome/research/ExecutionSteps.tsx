@@ -206,8 +206,6 @@ function RespondentsReceipt({ run }: { run: ResearchRun }) {
     rows.push([t(`${R}.filters`), filters.length ? `${filters.join(", ")} · ${applied(sel.filters_applied, sel.filters_reason)}` : t(`${R}.none`)]);
   }
   return (
-    // Pointable by the Lead: the receipt the report's method chapter reads (artifact-fieldwork FLD7).
-    <div data-aia="receipt:respondents">
     <Card title={t(`${R}.title`)}>
       {who.mismatch ? <p role="alert" className="mb-2 text-sm font-semibold text-status-fault">{t(`${R}.mismatch`)}</p> : null}
       <dl data-population={run.population?.version_label} className="divide-y divide-border rounded-control border border-border">
@@ -220,7 +218,6 @@ function RespondentsReceipt({ run }: { run: ResearchRun }) {
       </dl>
       {sel === null || sel === undefined ? <p className="mt-2 text-xs text-ink-muted">{t(`${R}.unrecorded`)}</p> : null}
     </Card>
-    </div>
   );
 }
 
