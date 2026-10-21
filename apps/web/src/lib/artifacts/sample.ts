@@ -6,7 +6,7 @@
 import { aiaId } from "../workbench-artifacts";
 
 /** The screen's numbered sections, in V2's order (SampleStages.tsx SampleArt). */
-export const SAMPLE_SECTIONS = ["size", "forecast", "respondents", "ready"] as const;
+export const SAMPLE_SECTIONS = ["size", "forecast", "ready", "respondents"] as const;
 export type SampleSection = (typeof SAMPLE_SECTIONS)[number];
 
 /** The support forecast's items: the donors the run will draw, and what the questionnaire will answer. */

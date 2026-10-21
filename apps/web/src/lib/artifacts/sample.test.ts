@@ -18,6 +18,10 @@ describe("sampleAia", () => {
     for (const id of every) expect(parseAiaId(id)).toMatchObject({ kind: "sample", stage: "sample" });
   });
 
+  it("keeps V2's section order: size, forecast, readiness, who answers", () => {
+    expect(SAMPLE_SECTIONS).toEqual(["size", "forecast", "ready", "respondents"]);
+  });
+
   it("spells the plan's grammar (artifact-sample §4)", () => {
     expect(sampleAia.n()).toBe("sample:n");
     expect(sampleAia.quota("a")).toBe("sample:quota:a");
