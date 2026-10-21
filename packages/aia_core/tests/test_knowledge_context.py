@@ -276,3 +276,69 @@ def test_a_contexts_hash_covers_what_is_read_and_nothing_else() -> None:
         ).sha256
         != one.sha256
     )
+
+
+def test_verify_rehashes_each_entrys_words_and_the_context_keeps_its_own_copy() -> None:
+    content: dict[str, Any] = {"quote": "Klient vede trh.", "locator": {"page": 1}}
+    entry = FrozenKnowledgeEntry(
+        item_id="KNW-1",
+        revision=1,
+        kind=KnowledgeKind.FACT,
+        title="Vede trh",
+        content=content,
+        author=KnowledgeAuthor.AI,
+        sha256=revision_sha256("Vede trh", "", content),
+        state=ContextEntryState.CURRENT,
+        current_revision=1,
+    )
+    frozen = FrozenKnowledgeContext.freeze(
+        study_id="STD-1", client_id="CLI-1", entries=(entry,), omitted=()
+    )
+    assert frozen.verify()
+    # The caller's dict changed after the freeze: the context holds its own copy.
+    content["locator"]["page"] = 9
+    assert frozen.entries[0].content["locator"] == {"page": 1}
+    assert frozen.verify()
+    # Words changed under an unchanged digest: verify re-hashes them and fails.
+    changed = frozen.entries[0].model_copy(update={"content": {"quote": "Klient prohrává."}})
+    tampered = frozen.model_copy(update={"entries": (changed,)})
+    assert tampered.entries[0].sha256 == frozen.entries[0].sha256
+    assert not tampered.verify()
+
+
+def test_a_choice_changed_while_freezing_does_not_reach_the_freeze(
+    scoped: Any, knowledge: ClientKnowledgeRepository, session: Session, engine: Any
+) -> None:
+    """The freeze reads the revisions it captured, never the live selection a second time."""
+    from aia_core.infrastructure.db import create_session_factory
+
+    if engine.dialect.name != "postgresql":
+        pytest.skip("READ COMMITTED between two connections is PostgreSQL's")
+
+    person = client_scope(scoped)
+    item_id = _fact(knowledge, person, "Dealeři: 120")
+    knowledge.add(person, kind=KnowledgeKind.FACT, title="Dealeři: 134", item_id=item_id)
+    study = scoped.scope(user="researcher")
+    knowledge.select_for_study(study, item_id=item_id, revision=2)
+    session.commit()
+    # A second connection moves the choice to revision 1 and commits after the freeze has read
+    # the selection and before it reads the revisions. Before the fix the second read joined
+    # the live selection and the item came back omitted, a choice nobody made.
+    other_factory = create_session_factory(engine)
+    real_rows = knowledge._selection_rows
+
+    def rows_then_race(scope: Any) -> Any:
+        captured = real_rows(scope)
+        with other_factory() as other:
+            row = other.get(ClientKnowledgeSelectionRow, (study.study_id, item_id))
+            assert row is not None
+            row.revision = 1
+            other.commit()
+        return captured
+
+    knowledge._selection_rows = rows_then_race  # type: ignore[method-assign]
+    frozen = knowledge.freeze_for_study(study)
+    [entry] = frozen.entries
+    assert (entry.revision, entry.title) == (2, "Dealeři: 134")
+    assert frozen.omitted == ()
+    assert frozen.verify()

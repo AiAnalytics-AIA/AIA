@@ -83,7 +83,7 @@ from aia_core.infrastructure.study_workspace_repository import (
 )
 from aia_core.infrastructure.workflow_repository import BudgetWaitNotLiftable, WorkflowNotFound
 from fastapi import APIRouter, HTTPException, Path, Query, Response, status
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, ValidationError
 
 from ..dependencies import (
     ArtifactStoreDep,
@@ -638,9 +638,9 @@ class DecisionRequest(BaseModel):
     note: str = Field(default="", max_length=2_000)
     #: The item's current revision, which the reviewer read: approves an edit written from
     #: an older one over it. Without it such an approval is refused (409). A revision that is
-    #: not the current one is refused too, whatever the edit's base (409); one named for a new
-    #: item is 422 (lifecycle K3).
-    reviewed_revision: int | None = Field(default=None, ge=1)
+    #: not the current one is refused too, whatever the edit's base (409); one the item never
+    #: had, or any for a new item, is 422 (lifecycle K3). Strict: ``true`` is not revision 1.
+    reviewed_revision: StrictInt | None = Field(default=None, ge=1)
 
 
 class StudyContextResponse(BaseModel):

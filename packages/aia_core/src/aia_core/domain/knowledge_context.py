@@ -36,7 +36,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .knowledge import KnowledgeAuthor, KnowledgeKind, RevisionEvidence
+from .knowledge import KnowledgeAuthor, KnowledgeKind, RevisionEvidence, revision_sha256
 
 __all__ = [
     "CONTEXT_VERSION",
@@ -154,8 +154,12 @@ class FrozenKnowledgeContext(BaseModel):
         entries: Sequence[FrozenKnowledgeEntry],
         omitted: Sequence[OmittedKnowledge],
     ) -> FrozenKnowledgeContext:
-        """The context, ordered by item id, with its hash."""
-        ordered = tuple(sorted(entries, key=lambda e: e.item_id))
+        """The context, ordered by item id, with its hash.
+
+        Each entry is deep-copied in, so a caller that still holds the dicts it built the
+        entries from cannot change what the context says after it is frozen.
+        """
+        ordered = tuple(e.model_copy(deep=True) for e in sorted(entries, key=lambda e: e.item_id))
         left_out = tuple(sorted(omitted, key=lambda o: o.item_id))
         return cls(
             study_id=study_id,
@@ -166,7 +170,15 @@ class FrozenKnowledgeContext(BaseModel):
         )
 
     def verify(self) -> bool:
-        """Whether the hash still names what the context holds (a stored one, read back)."""
+        """Whether the context still says what its hash names (a stored one, read back).
+
+        Each entry's words are re-hashed (:func:`revision_sha256` of its title, summary and
+        content) and must equal the entry's own digest, and the context's hash is recomputed
+        over those digests: changed words under an unchanged digest fail, as does a changed
+        digest.
+        """
+        if any(e.sha256 != revision_sha256(e.title, e.summary, e.content) for e in self.entries):
+            return False
         return self.sha256 == context_sha256(
             study_id=self.study_id,
             client_id=self.client_id,

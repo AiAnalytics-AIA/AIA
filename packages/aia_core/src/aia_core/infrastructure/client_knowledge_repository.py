@@ -457,12 +457,15 @@ class ClientKnowledgeRepository:
         """
         scope = _study(scope)
         scope.require(Permission.VIEW_STUDY)
-        chosen = list(self._selection_rows(scope))
+        # The choices, captured once as plain values: every later read is by these exact
+        # (item, revision) pairs, never by the live selection rows, which a person may change
+        # between this statement and the next under READ COMMITTED.
+        chosen = [(s.item_id, s.revision) for s in self._selection_rows(scope)]
         if not chosen:
             return FrozenKnowledgeContext.freeze(
                 study_id=scope.study_id, client_id=scope.client_id, entries=(), omitted=()
             )
-        ids = [s.item_id for s in chosen]
+        ids = [item_id for item_id, _ in chosen]
         items = {
             i.item_id: i
             for i in self._session.scalars(
@@ -473,49 +476,50 @@ class ClientKnowledgeRepository:
                 )
             ).all()
         }
-        # Exactly the chosen revisions: one row per selection, joined on (item, revision).
+        # Exactly the captured revisions: one row per choice, by its (item, revision) pair.
         revision_rows = self._session.scalars(
-            select(ClientKnowledgeRevisionRow)
-            .join(
-                ClientKnowledgeSelectionRow,
-                and_(
-                    ClientKnowledgeSelectionRow.item_id == ClientKnowledgeRevisionRow.item_id,
-                    ClientKnowledgeSelectionRow.revision == ClientKnowledgeRevisionRow.revision,
-                ),
-            )
-            .where(
-                ClientKnowledgeSelectionRow.study_id == scope.study_id,
-                ClientKnowledgeSelectionRow.client_id == scope.client_id,
+            select(ClientKnowledgeRevisionRow).where(
                 ClientKnowledgeRevisionRow.organization_id == scope.organization_id,
                 ClientKnowledgeRevisionRow.client_id == scope.client_id,
+                or_(
+                    *(
+                        and_(
+                            ClientKnowledgeRevisionRow.item_id == item_id,
+                            ClientKnowledgeRevisionRow.revision == revision,
+                        )
+                        for item_id, revision in chosen
+                    )
+                ),
             )
         ).all()
         typed = {(r.item_id, r.revision): r for r in self._typed(scope, revision_rows)}
         entries: list[FrozenKnowledgeEntry] = []
         omitted: list[OmittedKnowledge] = []
-        for s in chosen:
-            item = items.get(s.item_id)
-            revision = typed.get((s.item_id, s.revision))
+        for chosen_id, chosen_revision in chosen:
+            item = items.get(chosen_id)
+            revision = typed.get((chosen_id, chosen_revision))
             # The foreign keys keep both, so this is a row outside the study's scope: named,
             # never skipped.
             if item is None or revision is None:
                 omitted.append(
                     OmittedKnowledge(
-                        item_id=s.item_id, revision=s.revision, reason=OmittedReason.UNAVAILABLE
+                        item_id=chosen_id,
+                        revision=chosen_revision,
+                        reason=OmittedReason.UNAVAILABLE,
                     )
                 )
                 continue
             if item.status != "ACTIVE":
                 omitted.append(
                     OmittedKnowledge(
-                        item_id=s.item_id, revision=s.revision, reason=OmittedReason.RETIRED
+                        item_id=chosen_id, revision=chosen_revision, reason=OmittedReason.RETIRED
                     )
                 )
                 continue
             entries.append(
                 FrozenKnowledgeEntry(
-                    item_id=s.item_id,
-                    revision=s.revision,
+                    item_id=chosen_id,
+                    revision=chosen_revision,
                     kind=KnowledgeKind(item.kind),
                     title=revision.title,
                     summary=revision.summary,
@@ -525,7 +529,7 @@ class ClientKnowledgeRepository:
                     sha256=revision.sha256,
                     state=(
                         ContextEntryState.CURRENT
-                        if item.current_revision == s.revision
+                        if item.current_revision == chosen_revision
                         else ContextEntryState.SUPERSEDED
                     ),
                     current_revision=item.current_revision,
@@ -1466,6 +1470,9 @@ class ClientKnowledgeRepository:
         raises :class:`NoRevisionToReview`, on an approval and a rejection alike -- a
         rejection is never stale, but it does not record a revision nobody could have read.
         """
+        # A bool is an int to Python: ``True`` would be stored as revision 1, which nobody named.
+        if reviewed_revision is not None and type(reviewed_revision) is not int:
+            raise NoRevisionToReview("a reviewed revision is a whole number")
         if reviewed_revision is not None:
             self._require_known_revision(scope, row, reviewed_revision)
         if not approve:

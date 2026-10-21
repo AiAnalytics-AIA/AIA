@@ -449,6 +449,10 @@ def test_decisions_and_revisions_read_back_typed(
         never = reviewer.post(decision, json={"approve": approve, "reviewed_revision": 3})
         assert never.status_code == 422, never.text
         assert never.json()["code"] == "no_revision_to_review"
+    # Strict: JSON true, or "2", is not a revision; refused before anything is decided.
+    for odd in (True, "2", 2.0):
+        not_a_revision = reviewer.post(decision, json={"approve": True, "reviewed_revision": odd})
+        assert not_a_revision.status_code == 422, not_a_revision.text
     accepted = reviewer.post(decision, json={"approve": True, "reviewed_revision": 2})
     assert accepted.status_code == 200, accepted.text
     assert (accepted.json()["decision"], accepted.json()["reviewed_revision"]) == ("ACCEPTED", 2)
