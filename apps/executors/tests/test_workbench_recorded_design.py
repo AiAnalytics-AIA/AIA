@@ -16,7 +16,10 @@ import pytest
 from aia_api.config import Environment, Settings
 from aia_api.main import create_app
 from aia_core.domain.ai_contracts import UsageOutcome
+from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+from aia_core.domain.knowledge import KnowledgeKind
 from aia_core.infrastructure.ai_usage_repository import AIUsageRepository
+from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_executors import workbench
@@ -100,6 +103,17 @@ def test_a_design_job_answers_from_its_recording_at_zero_cost_and_goes_stale_und
     store: InMemoryArtifactStore,
     build: BuildIdentity,
 ) -> None:
+    # The workbench's seeded clients carry approved knowledge, which makes a job's request
+    # Class A by rule (Codex on #597): the recorded route must take it, as the EU route does.
+    with sessions() as session:
+        ctx = ScopeResolver(session).client_context(
+            AuthenticatedPrincipal(user_id=world.lead_id, organization_id=world.organization_id),
+            client_id=world.client_id,
+        )
+        ClientKnowledgeRepository(session).add(
+            ctx, kind=KnowledgeKind.FACT, title="Fiktivní fakt", summary="Ráno se pije káva."
+        )
+        session.commit()
     study = f"{API}/studies/{world.study_id}"
     revision = _save(api, study, DESIGN)
     made = api.post(

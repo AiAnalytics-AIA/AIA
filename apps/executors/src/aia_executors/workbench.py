@@ -516,13 +516,22 @@ def _deep_research(
     }
 
 
+#: The classes the recorded design workers' route takes: a study's design (B), its client's
+#: approved knowledge (A) and internal material (C).
+_DESIGN_CLASSES: Final = "CLASS_A_CLIENT_CONFIDENTIAL,CLASS_B_DERIVED_CLIENT,CLASS_C_INTERNAL"
+
+
 def recorded_research_agent(
     *, store: ArtifactStore, build: BuildIdentity, models: RecordedModels | None = None
 ) -> StepExecutor:
     """The eight design workers over recorded answers behind the real gateway, at zero price
     (:data:`~aia_executors.recorded_models.DESIGN_ANSWERS`, one fixed answer per worker): a
-    job's proposal, its card in the Lead's conversation and its accept, on this machine."""
-    settings = AIRuntimeSettings.from_env({"AIA_ENV": "test", **RECORDED_RUNTIME})
+    job's proposal, its card in the Lead's conversation and its accept, on this machine. A job
+    carries its client's approved knowledge, which makes its request Class A by rule, so this
+    route takes Class A as the EU route does; nothing it is sent leaves the process."""
+    settings = AIRuntimeSettings.from_env(
+        {"AIA_ENV": "test", **RECORDED_RUNTIME, "AIA_AI_ROUTE_APPROVED_FOR": _DESIGN_CLASSES}
+    )
     assert settings is not None
     return ResearchAgentExecutor(
         store=store,
