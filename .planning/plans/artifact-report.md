@@ -63,7 +63,9 @@ V2: `ReportArt` (`InterpretStages.tsx:103-162`).
 ## 4. The Lead on this artifact
 
 - **View operations:** `open_stage(report)`, `focus(target)`, `show_tracked_changes(on|off)` and
-  `show_variant(internal|literature|client)` (display; which stored document is shown).
+  `show_variant(internal|client)` (display; which stored document is shown). Literature is woven
+  into the internal draft (CQ4 = Q58, `artifact-chain-to-draft-report#CHN8`); a stored
+  with-literature document stays downloadable.
 - **Pointing:** `report:section:<id>`, `report:para:<id>` (RD5a's stable ids), `report:figure:<id>` and
   `claim:<ref>`. `data-aia` is `report.<section>` (`InterpretStages.tsx:126`).
 - **Edit operations** (RD6, after its ADR; every number stays a ledger ref):
@@ -120,8 +122,9 @@ sentence refused by RD7 is marked at the sentence. Depends on `report-delivery#R
 
 ## 8. Owner questions
 
-None beyond the chain plan's (the draft's shape: CQ1, CQ2 and CQ4) and the open editor choice
-(Q19). A module with no supported finding is settled: MVPQ-04 blocks composition, approval and export
+The draft's sections (the chain plan's CQ1, Q55) and the editor choice (Q19) stay open. Settled
+2026-10-21 via /pmstatus: CQ2 = Q56 (b), code drafts and the Lead proposes tracked changes (RPT6);
+CQ4 = Q58 (b), one document with the literature woven into its body (CHN8). A module with no supported finding is settled: MVPQ-04 blocks composition, approval and export
 (`artifact-chain-to-draft-report#CHN10`).
 
 ## Doc follow-up

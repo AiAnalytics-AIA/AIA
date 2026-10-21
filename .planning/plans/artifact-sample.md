@@ -5,7 +5,7 @@ chunks:
   - "[ ] SMP2. Velikost a složení: n, the dimensions and the audience summarized; the panel's quota cells before a run, and for the fictional roster the words that it has none"
   - "[ ] SMP3. Odhad podpory před během: the support forecast and the question outlook, labelled a forecast, never a result"
   - "[ ] SMP4. Připravenost ke spuštění: every readiness check with its stage link, on the working revision"
-  - "[ ] SMP5. Kdo bude odpovídat: the persona source offered, its default and why an unoffered one is not, placed as the owner decides"
+  - "[ ] SMP5. Kdo bude odpovídat: the persona source offered, its default and why an unoffered one is not, read only here with a link to Spuštění, where it is chosen (SQ1 = Q54 b)"
   - "[ ] SMP6. Journey: Vzorek at 1440, 1100, 768 and 390 px, zero paid jobs"
 ---
 # Artifact: Vzorek (Sample)
@@ -57,7 +57,7 @@ V2: `SampleArt` (`SampleStages.tsx:232-273`).
 | S-2 | The fictional roster has no quotas: said in words | data exists |
 | S-3 | Forecast and outlook (`support_forecast`, `question_outlook`) | data exists |
 | S-4 | Readiness on the working revision, not only on a submitted Design Revision (`working-copy-edit-ops#WCE7`) | needs a new API (owned there) |
-| S-5 | Persona source: offered, its default and reasons (`persona_sources`) | data exists; its placement needs an owner decision (§8) |
+| S-5 | Persona source: offered, its default and reasons (`persona_sources`) | data exists; placed on Spuštění, read only here (SQ1 = Q54 b) |
 | S-6 | The Lead's targets on this screen (G11) | needs a new API (the target grammar) |
 
 ## 4. The Lead on this artifact
@@ -105,14 +105,17 @@ V2: `SampleArt` (`SampleStages.tsx:232-273`).
 - Test: a FAIL names its stage.
 - Depends on `working-copy-edit-ops#WCE7`.
 
-**SMP5. Kdo bude odpovídat.** By §8's answer. Test: an unoffered source is disabled with its reason.
+**SMP5. Kdo bude odpovídat.** SQ1 = Q54 (b): the choice stays on Spuštění, beside the start that pins
+it (`artifact-fieldwork`); Vzorek shows the offered sources, the default and why an unoffered one is
+not, read only, with a link to Spuštění. No new stored field. Test: Vzorek has no control that sets
+the source, names an unoffered one with its reason, and its link opens Spuštění.
 
 **SMP6. Journey** at 1440, 1100, 768 and 390 px: the readiness list, a check opening its stage;
 zero paid jobs. 768 and 390 px depend on `research-lead-workbench#26b`-`#26d`.
 
 ## 8. Owner questions
 
-**SQ1. Where is the persona source chosen?**
+**SQ1. Where is the persona source chosen?** **Settled 2026-10-21 via /pmstatus Q54: (b).**
 V2 draws the choice in Vzorek §4. The plan's D2 makes Vzorek a read-only projection, and today the
 choice is a start argument on Spuštění (`ExecutionSteps.tsx:820`).
 - (a) In Vzorek, as V2 draws it. The choice is stored in the working copy as a design field (Class

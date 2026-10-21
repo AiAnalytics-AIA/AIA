@@ -69,8 +69,8 @@ V2: `AnalysisArt` (`InterpretStages.tsx:37-101`).
 - **Workers and cards:**
   - the analysis retry as a run card (a new round over the frozen dataset, `retry_failed_modules`);
   - Interpretation Research over a module (Q44: the research-questions module by default;
-    `lead-orchestration#LO5a.1`), with cards 23b and 23c, whose "Použít ve zprávě" selects the report
-    variant;
+    `lead-orchestration#LO5a.1`), with cards 23b and 23c, whose "Použít ve zprávě" weaves its findings into the
+    internal draft's body (CQ4 = Q58, `artifact-chain-to-draft-report#CHN8`);
   - the coder (`assumptions-and-open-answer-coding#AOC7`), if AOC4 lets a model propose codes.
 - **Inline proposals:** coding themes as change blocks (V2 `:82`), accepted by a person into the
   coding review.

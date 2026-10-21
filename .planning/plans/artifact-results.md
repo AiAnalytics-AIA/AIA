@@ -5,7 +5,7 @@ chunks:
   - "[ ] RES2. Results read admitted rows from the server: suppression and support decided there, no raw aggregate read by the screen"
   - "[ ] RES3. The body as V2 draws it: each set's means with intervals and Kish n, suppressed rows with their reason, the reading line (an order only where intervals part), shares with bases"
   - "[ ] RES4. Původ a kvalita and the reopened note: run, revision, origin, suppression rule, QC count; 'Výsledky běhu z revize N; studie je na revizi M' when the design moved"
-  - "[ ] RES5. Open answers on Results, as the owner decides, and their coded counts once coding exists"
+  - "[ ] RES5. Open answers on Results: up to five raw answers per open question, internal only and labelled as data (RQ1 = Q52 a), and their coded counts once coding exists"
   - "[ ] RES6. The Lead on Výsledky: Interpretation Research on a question or a set as a Lead card, the stage's own client-knowledge ask removed"
   - "[ ] RES7. Journey: Výsledky at 1440, 1100, 768 and 390 px on a fictional run, zero paid jobs"
 ---
@@ -50,7 +50,7 @@ V2: `ResultsArt` (`EvidenceStages.tsx`, after `ShareRow`).
 | R-1 | Admitted rows served by the API (`evidence-integrity#6`) | needs a new API (owned there) |
 | R-2 | Means, intervals, Kish n, suppression reason and the reading line | data exists (`result-reading.ts`) |
 | R-3 | The reopened note: the design moved after the run (`productization-coherence#PC5`) | data exists (the run's revision against the study's) |
-| R-4 | Open answers: whether raw answers show | needs an owner decision (§8) |
+| R-4 | Open answers: up to five raw answers, internal only (RQ1 = Q52 a) | needs a new API (the answers, served internal only) |
 | R-5 | Coded counts (`assumptions-and-open-answer-coding#AOC8`) | needs a new API (owned there) |
 | R-6 | Segment comparison: "V AIA zatím není" until `segment-maps-and-drilldown#10` | needs a new API (owned there) |
 | R-7 | Charts (`research-lead-workbench#31`) and CSV/XLSX (`report-delivery#RD12`) | needs a new API (RD12) |
@@ -102,7 +102,10 @@ missing interval reads unknown.
 **RES4. Původ a kvalita and the reopened note.** Test: a run on revision 3 with the study on 4 shows
 the note. Depends on `productization-coherence#PC5`, and `evidence-integrity#3` for QC.
 
-**RES5. Open answers.** By §8. Coded counts after `assumptions-and-open-answer-coding#AOC8`.
+**RES5. Open answers.** RQ1 = Q52 (a): up to five raw answers per open question, labelled "data, ne
+připuštěná evidence; nejsou kódované", internal only: never exported, never in a client deliverable
+(RD0's no-drill-down rule). Coded counts after `assumptions-and-open-answer-coding#AOC8`. Test: at
+most five answers show; no export or client report contains one.
 
 **RES6. The Lead on Výsledky.**
 - `ExecutionSteps.tsx:1415`'s ask is removed under `leadOwnsAiStarts`; an Interpretation Research
@@ -120,7 +123,8 @@ the note. Depends on `productization-coherence#PC5`, and `evidence-integrity#3` 
 
 ## 8. Owner questions
 
-**RQ1. Do raw open answers show on Výsledky before they are coded?**
+**RQ1. Do raw open answers show on Výsledky before they are coded?** **Settled 2026-10-21 via
+/pmstatus Q52: (a).**
 V2 shows example answers labelled "data, ne připuštěná evidence". AIA shows none today.
 - (a) Up to five example answers per open question: internal only, never exported, never in a
   client deliverable (RD0's no-drill-down rule), labelled as data.

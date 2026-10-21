@@ -8,7 +8,7 @@ chunks:
   - "[ ] CHN5. The audience in full: the specification keeps the stated description and filters, and the design chapter prints them"
   - "[ ] CHN6. The report's audit names every artifact it stands on: the aggregate, the map, the specification, the dataset, and the experimental Sociomapping draft when the run made one"
   - "[ ] CHN7. The UI workbench composes analysis and the internal report on recorded models, and runs the stage workers on recordings: local and test only"
-  - "[ ] CHN8. The literature chapter in the draft, as the owner decides (CQ4)"
+  - "[ ] CHN8. Interpretation Research woven into the body (CQ4 = Q58 b): when literature is chosen, each accepted finding in the body section it bears on, labelled external (L class), never respondent evidence; one document, the separate with-research DOCX retired for new reports"
   - "[ ] CHN9. Metodika a způsob interpretace from the run's pins: aggregation methodology, support rule, Sociomap method and QC warnings, the reading guidance kept and labelled"
   - "[ ] CHN10. A module with no supported finding blocks the draft (MVPQ-04): composition, approval and export refuse; the module's diagnostic shown on Analýza and Výsledky and in the refusal's own words"
   - "[ ] CHN11a. The number census: a new scan of the stored document model's text, every numeric token classed as an admitted ledger ref, a value of the stored Sociomap artifact, or a design or document-control number with typed provenance; an unclassed token fails"
@@ -48,7 +48,7 @@ Anchors are `file:line @ 25f26232` (origin/develop) unless stated.
 | Sociomapa | the Sociomap | artifact id + SHA-256, verified against dataset and specification (`report_chapters.py:70-107`) | map chapters, their figures, the audit |
 | Sociomapa | the experimental Sociomapping | its own DOCX (`sociomapping_report.py`) | **not the internal report** (G6, CHN6) |
 | Analýza | eight module results | artifact id + SHA-256 each; claims as ledger refs | eight chapters; the evidence appendix; the audit |
-| Interpretation Research | the sealed bundle | bundle id + seal | the literature chapter, **only in the with-literature variant** (G2, CHN8) |
+| Interpretation Research | the sealed bundle | bundle id + seal | today a literature chapter, **only in the with-literature variant** (G2); woven into the draft's body by CHN8 (Q58) |
 | The Lead | edits to the working copy | working revisions, ledger rows (`lead_edit`) | the report only through a new Design Revision and a new run (ADR 0016) |
 | The Lead | edits to the report | (to come: RD5a, RD6) | **no path today** |
 
@@ -63,7 +63,7 @@ Anchors are `file:line @ 25f26232` (origin/develop) unless stated.
 | Návrh studie (`ch-design`) | the specification: RQs, batteries, n, audience (`report_design.py:114`) | audience is three flags (G4, CHN5); Design Research absent (CHN4) |
 | Shrnutí pro vedení (`ch-1`) | EXECUTIVE module | — |
 | Výzkumné otázky (`ch-2`) | RESEARCH_QUESTIONS module; gaps | measures and tables not traced per RQ (CHN3) |
-| Literární rešerše a externí kontext (`literature`) | sealed bundle (`contextual_report.py:701`) | only in the variant (G2, CHN8) |
+| Literární rešerše a externí kontext (`literature`) | sealed bundle (`contextual_report.py:701`) | only in the variant today (G2); retired for new reports, its findings woven into the body sections (CHN8, Q58) |
 | Metodika a způsob interpretace (`methodology`) | **fixed text** (`report.py:252-293`), plus the deviation | no source (G3, CHN9) |
 | Respondenti a výpočet (`ch-method`) | the run's metadata (`report_method.py:449`) | QC warnings absent (CHN9) |
 | Výsledky jednotlivých otázek (`ch-questions`) | the analysis evidence table, admitted per question (`report_tables.py:228`) | the aggregate artifact not cited (G5, CHN6) |
@@ -98,7 +98,7 @@ G12-G17 are added by this plan.
 | Gap | Claim, verified | Owner chunk |
 |---|---|---|
 | G1 | The briefing reaches no report section: compile keeps only title, n, questions, batteries, three audience flags and the selection (`domain/research_design.py:899-916`) | **CHN2** |
-| G2 | The internal report never receives `context_sections`: the worker calls `compose_internal_report` without them (`apps/executors/src/aia_executors/report.py:101`); literature appears only in the variant (`contextual_report.py:864`) | **CHN8** (by CQ4) |
+| G2 | The internal report never receives `context_sections`: the worker calls `compose_internal_report` without them (`apps/executors/src/aia_executors/report.py:101`); literature appears only in the variant (`contextual_report.py:864`) | **CHN8** (CQ4 = Q58 b: one document) |
 | G3 | "Metodika a způsob interpretace" is fixed text (`application/report.py:252-293`) | **CHN9** |
 | G4 | The report's audience is only `source_mode`, `strategy` and `has_filters` (`research_design.py:910-914`) | **CHN5** (`artifact-audience` hands it on) |
 | G5 | The report does not cite the aggregate artifact; its tables come from the analysis evidence (`report_tables.py:103-130`) | **CHN6** |
@@ -182,8 +182,22 @@ G12-G17 are added by this plan.
   ledger.
 - Pairs with `research-lead-workbench#12a`.
 
-**CHN8. Literature in the draft.** By CQ4's answer. Test: the draft names whether it holds the
-literature chapter, in its introduction (`_with_contents`) and its manifest.
+**CHN8. Interpretation Research woven into the body** (CQ4 = Q58 (b), settled 2026-10-21 via
+/pmstatus Q58: "The literature should be woven into the body of the report").
+- One document. When an Interpretation Research run is marked "Použít ve zprávě", the internal draft
+  is composed with its sealed bundle: each accepted finding is placed in the body section its target
+  bears on (the research question, set, object or module the run was over: RESEARCH_QUESTIONS,
+  OBJECTS, a map chapter, IMPLICATIONS), beside the respondent findings, never merged into them.
+- Every woven statement is labelled external context (the L class), cites its finding and source
+  from the bundle, and is never respondent evidence: it carries no ledger ref, enters no admitted
+  claim and no module's input (ADR 0021). Its section's manifest (CHN1) names the bundle by id and
+  seal. Unmarking the run composes the next draft without it.
+- `research_internal_docx_with_research` (`contextual_report.py:864`) is retired for new reports:
+  nothing composes one after this lands. Stored ones stay downloadable and approvable as they are.
+- Tests: a draft with a marked run holds each accepted finding in its target's section, labelled L,
+  with no ledger ref; a rejected finding does not print; no `research_internal_docx_with_research` is
+  stored for a new report; a stored one still downloads by its artifact id; the census (CHN11a)
+  refuses a number in a woven statement that is not the bundle's own quote.
 
 **CHN9. The methodology chapter from the run's pins.**
 - It prints the aggregation's `RoundingSpec` and methodology version, the support rule (Kish n
@@ -256,8 +270,8 @@ literature chapter, in its introduction (`_with_contents`) and its manifest.
     - CHN4: the accepted Design Research item, labelled external context, with its bundle seal;
     - CHN5: the audience's stated description and filters beside those applied;
     - CHN6: the aggregate, specification, dataset and map ids in the audit;
-    - CHN8: whether the draft holds the literature chapter, by CQ4's answer, in its introduction and
-      manifest (and, when a run is marked, the with-literature variant holds it);
+    - CHN8: with an Interpretation Research run marked, its accepted findings in their body sections,
+      labelled external (L), and no separate with-research document stored;
     - CHN9: the run's pinned methods and support rule in the methodology chapter;
     - CHN10: the same walk with one module BLOCKED stores no draft, and the refusal carries the
       module's diagnostic;
@@ -293,18 +307,18 @@ literature chapter, in its introduction (`_with_contents`) and its manifest.
 
 1. CHN7 (the workbench can make a draft at all), CHN6, CHN5, CHN9.
 2. With RD5a: CHN1, then CHN11a.
-3. CHN2 (with AOC3, after CQ1), CHN3, CHN4 (with 7b), CHN8 (once CQ4 is answered) and CHN10 (with
+3. CHN2 (with AOC3, after CQ1), CHN3, CHN4 (with 7b), CHN8 (Q58: woven into the body) and CHN10 (with
    `evidence-integrity#9a`, `#9b`; MVPQ-04 is settled).
 4. CHN11, once every chunk of steps 1-3 and `segment-maps-and-drilldown#10` have landed.
 5. CHN12 last; it grows with the artifact journeys.
 
 ## 6. Owner questions about the draft document's shape
 
-**CQ1. Which sections must a draft research document contain at MVP?**
+**CQ1. Which sections must a draft research document contain at MVP?** Open (Q55).
 - (a) Today's internal report as composed (§2), with its gaps closed: the brief, the full audience,
   traced RQs, the run's methods.
 - (b) (a) plus the chapters already planned to be added: assumptions (RD9), coding (RD10), and the
-  literature when chosen (CHN8).
+  literature woven into the body when chosen (CHN8, Q58).
 - (c) V2's seven-part document (`fixture.ts:375-396`): Shrnutí a rozhodnutí; Cíle a odpovědi na
   výzkumné otázky; Klíčová zjištění; Sociomapa; Interpretace a doporučení; Metodika a omezení;
   Příloha. Today's chapters are mapped into it.
@@ -312,7 +326,9 @@ literature chapter, in its introduction (`_with_contents`) and its manifest.
 **Recommendation: (b), in today's order.** Every chapter has a producer and a test. V2's order is
 reachable later through RD6's section moves, without a second composer.
 
-**CQ2. Who writes the narrative sections?** Q13 settled how a Lead's edit reaches a report: tracked or
+**CQ2. Who writes the narrative sections?** **Settled 2026-10-21 via /pmstatus Q56: (b).** Code
+writes the first draft; the report writer (`lead-orchestration#LO9b`) and the Lead then propose
+tracked changes a person accepts (RD6, `artifact-report#RPT6`). The options as asked: Q13 settled how a Lead's edit reaches a report: tracked or
 direct, per researcher. The editor is Q19's spike.
 - (a) Code only: the draft is composed from the admitted module texts, as today, with no rewrite
   path.
@@ -320,7 +336,7 @@ direct, per researcher. The editor is Q19's spike.
   then propose rewrites as tracked changes that a person accepts (RD6), every number a ref.
 - (c) The Lead writes each narrative section itself, from the admitted claims, as the draft.
 
-**Recommendation: (b).** The draft stays reproducible from its sources (CHN1), and the wording
+**Recommended and chosen: (b).** The draft stays reproducible from its sources (CHN1), and the wording
 improves through accepted, recorded edits. (c) makes the first draft a model's output with no
 deterministic baseline to compare an edit against.
 
@@ -328,13 +344,16 @@ A module with no supported finding is not an open question here: MVPQ-04 settled
 ("Block the report until resolved"), and CHN10 plans it. CQ3 is withdrawn; the remaining questions
 keep their numbers.
 
-**CQ4. Does the draft carry the literature chapter?** Today it is a separate variant composed on
-request (G2).
+**CQ4. Does the draft carry the literature chapter?** **Settled 2026-10-21 via /pmstatus Q58: (b),
+against the recommendation below.** One document: "The literature should be woven into the body of
+the report." CHN8 weaves the findings into the body sections, labelled external; the separate
+with-research document is retired for new reports, stored ones stay downloadable. The question as
+asked: today it is a separate variant composed on request (G2).
 - (a) Two documents, as today: the draft without literature, and the variant with it, once an
   Interpretation Research run is marked "Použít ve zprávě".
 - (b) One draft: it gains the literature chapter when a run is marked, and loses it when unmarked.
 
-**Recommendation: (a).** Each approval binds to one document (`requestStored`), and the two evidence
+**Recommendation (not taken): (a).** Each approval binds to one document (`requestStored`), and the two evidence
 bases stay visibly apart. The Report artifact shows both and names which is which.
 
 ## Doc follow-up
@@ -342,8 +361,9 @@ bases stay visibly apart. The Report artifact shows both and names which is whic
 - `mvp-master-plan.md` §3: list this plan and the eleven artifact plans. Their chunks need register
   rows in `mvp-execution-contracts.md` (named in the PR body). `tools/master_check.py` fails until
   they are there.
-- `mvp-owner-decisions.md`: CQ1, CQ2 and CQ4 (CQ3 withdrawn: MVPQ-04 settles it), QQ1 (artifact-questionnaire), SQ1 (artifact-sample) and RQ1
-  (artifact-results).
+- `mvp-owner-decisions.md`: open, CQ1 (Q55) and QQ1 (artifact-questionnaire, Q53); settled 2026-10-21
+  via /pmstatus, CQ2 = Q56 (b), CQ4 = Q58 (b), SQ1 (artifact-sample) = Q54 (b) and RQ1
+  (artifact-results) = Q52 (a); CQ3 withdrawn (MVPQ-04 settles it).
 - `docs/migration/mvp-acceptance.md`: CHN11 and CHN12 as the draft-report chain's lines under AC-08,
   AC-13 and AC-15.
 - `CLAUDE.md` § 2, when CHN1 and CHN7 land: `Section.sources` and `report_sources`; the workbench's
