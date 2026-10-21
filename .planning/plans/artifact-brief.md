@@ -183,6 +183,19 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
 - Depends on CHN1 and `research-lead-workbench#15`.
 
 **BRF6. Journey.**
+- *Landed in part* (`workspace_journey.mjs`, `lead_journey.mjs`): an objective added in the list,
+  read back after a reload as one `objective:<id>` target and reworded in place; "@" then a tap on
+  an objective sets the chip at 1440 (split), 768 (drawer) and 390 (sheet), no overflow, nothing
+  paid. Still to come: the scripted Lead focusing `objective:<id>` with the drawer closing to peek
+  (asked of the coordinator: `scripted_lead_output` focuses questions or `brief:title` only).
+
+**Findings**
+- F-BRF-1 (UX, asked of the coordinator 2026-10-21): a picked objective's chip reads its raw id
+  ("Cíl obj_6393c6bada"), not its words. `apps/web/src/lib/lead.ts` `targetOfElement` appends only
+  a heading or label inside a `data-aia` element, and an item row has none. Repro:
+  `node tools/ui_workbench/lead_journey.mjs`, `tmp/ui-workbench/lead-journey/390-brief-picked.png`.
+  Fix: fall back to the element's own text (cut to 60). Test: a `lead.test.ts` case.
+
 - Steps in `tools/ui_workbench/workbench_journey.mjs`, at 1440, 1100, 768 and 390 px:
   - an objective is edited in place and read back after a reload;
   - the scripted Lead focuses `objective:<id>`, and the drawer closes to `peek` at 768 and 390 px;

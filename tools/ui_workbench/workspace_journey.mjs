@@ -120,6 +120,26 @@ if ((await page.getByRole("textbox", { name: "Cíl výzkumu", exact: true }).inp
 ok("Zadání: goal and attachment read back from AIA after a reload");
 await text("B · odvozené od klienta", "the attachment's data class");
 ok("Zadání: the attachment shows the class the server's rule gives it (BRF3)");
+
+// Cíle (artifact-brief BRF2/BRF6): an objective added in the list, read back after a reload as a
+// Lead target, then reworded in place.
+const OBJECTIVE = "Zjistit, kdo kampaň zaznamenal (fiktivní).";
+const objectiveSave = saved();
+await page.getByRole("button", { name: "Přidat cíl" }).click();
+await page.getByRole("textbox", { name: "Přidat cíl" }).fill(OBJECTIVE);
+await page.getByRole("textbox", { name: "Přidat cíl" }).press("Enter");
+await objectiveSave;
+await page.reload({ waitUntil: "load" });
+await text(OBJECTIVE, "the objective after a reload");
+if ((await page.locator("[data-aia^='objective:']").count()) !== 1) fail("the objective is not one Lead target after a reload");
+const rewordSave = saved();
+await page.getByRole("button", { name: /^Upravit: Cíl 1/ }).click();
+await page.getByRole("textbox", { name: "Cíl 1" }).fill(`${OBJECTIVE} Upřesněno.`);
+await page.getByRole("textbox", { name: "Cíl 1" }).press("Control+Enter");
+await rewordSave;
+await page.reload({ waitUntil: "load" });
+await text(`${OBJECTIVE} Upřesněno.`, "the reworded objective after a reload");
+ok("Zadání: an objective added in the list, read back as one Lead target, reworded in place (BRF6)");
 const [download] = await Promise.all([page.waitForEvent("download", { timeout: 60000 }), page.getByRole("button", { name: `Stáhnout přílohu ${FILE.name}` }).click()]);
 const fileBack = readFileSync(await download.path(), "utf8");
 if (fileBack !== FILE.body) fail(`the downloaded file differs: ${JSON.stringify(fileBack)}`);

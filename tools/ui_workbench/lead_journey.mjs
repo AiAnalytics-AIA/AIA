@@ -238,6 +238,32 @@ try {
   await page.setViewportSize({ width: 1440, height: 900 });
   check("390 px: '@' steps the sheet aside, a tap on a question sets the chip and reopens it at the composer");
 
+  // Zadání (artifact-brief BRF6): "@" on the Brief at 1440 (split), 768 (drawer) and 390 (sheet); a
+  // tap on an objective names it as the Lead's objective:<id> target, its chip reads "Cíl".
+  for (const width of [1440, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(base + stagePath("brief"));
+    await page.locator("[data-workbench]").waitFor({ timeout: 30000 });
+    const objective = page.locator("[data-aia^='objective:']").first();
+    await objective.waitFor({ timeout: 30000 });
+    const target = await objective.getAttribute("data-aia");
+    if (width < 1100) await page.locator("[data-lead-launcher]").click();
+    await page.waitForFunction(() => !document.querySelector("button[aria-label='Ukázat na prvek artefaktu (@)']")?.disabled, null, { timeout: 30000 });
+    await page.getByRole("button", { name: "Ukázat na prvek artefaktu (@)" }).click();
+    if (width < 1100) await page.getByRole("dialog", { name: "Vedoucí výzkumu" }).waitFor({ state: "hidden" });
+    await objective.locator("span").first().click();
+    const chip = page.locator(".refchip");
+    await chip.waitFor({ timeout: 10000 });
+    assert.match(await chip.innerText(), /Cíl/, `${width}: the chip names the objective (${target})`);
+    await shot(`${width}-brief-picked`);
+    await page.getByRole("button", { name: "Zrušit odkaz" }).click();
+    if (width < 1100) await page.keyboard.press("Escape");
+    const r = await page.evaluate(() => ({ w: innerWidth, d: document.documentElement.scrollWidth }));
+    assert(r.d <= r.w + 2, `${width}: brief overflow ${r.d} > ${r.w}`);
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
+  check("Zadání at 1440, 768 and 390: '@' then a tap on an objective sets the chip to that objective (BRF6)");
+
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");
   check("nothing paid started");
