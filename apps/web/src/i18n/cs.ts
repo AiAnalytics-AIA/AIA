@@ -2019,6 +2019,21 @@ export const cs = {
       scale: "1–10",
       editorTag: "GUIDED EDITOR",
       editorCounts: "{questions} otázek · {sets} sledovaných sad",
+      // Závislosti (artifact-questionnaire QST8): what reads each item downstream.
+      dependencies: {
+        title: "Závislosti",
+        closed: { one: "1 uzavřená otázka ({items})", few: "{n} uzavřené otázky ({items})", many: "{n} uzavřených otázek ({items})" },
+        open: "Otevřená odpověď: data, ne připuštěná evidence. Výsledky ukážou odpovědi jako ukázky, Analýza z nich necituje.",
+        rating: "Škála pro Sociomapu: každá mapa čte hodnocení respondentů i přes tuto otázku.",
+        ratingNoSet: "Škála pro Sociomapu, ale bez sledované sady žádná mapa nevznikne.",
+        context: "Kontextové položky ({objects}): v mapě, ale mimo hlavní skóre.",
+        held: {
+          no_text: "Bez znění ji nikdo nedostane a nic ji nečte.",
+          condition: "Má podmínku (filtr): běh ji odmítne, dokud ji neodeberete.",
+          set_size: "Sada potřebuje 4–15 různých položek; do té doby ji nic nečte.",
+        },
+        rule: "Co položka napájí, až projde kontrolou před spuštěním; zda projde, rozhodne Kontrola.",
+      },
       editorIntro: "Běžná otázka měří jeden outcome. Sledovaná sada porovnává 4–15 položek stejného typu na stejné škále. Interní technické klasifikace nemusíte řešit.",
       quickAdd: "Rychle přidat",
       addChoice: "Jedna odpověď",
