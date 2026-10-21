@@ -7,7 +7,7 @@
 // first, when the row asks instead, naming what goes. "+ Nová složka / Nový štítek" are rows of
 // the list (I5). No modal anywhere: the person stays in the list they are organizing.
 
-import { type KeyboardEvent, type ReactNode, type Ref, useRef, useState } from "react";
+import { type KeyboardEvent, type ReactNode, type Ref, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { type KnowledgeFolder, type KnowledgeLabel, LABEL_COLOURS, type LabelColour } from "@/lib/api";
@@ -91,13 +91,21 @@ function useJustNamed(name: string): [string, (to: string) => void] {
 function useRenaming(edit: OrganizerEdit | undefined) {
   const [renaming, setRenaming] = useState(false);
   const row = useRef<HTMLButtonElement>(null);
+  // Back to the row, and focus with it (I11: focus returns where the person was). Focused once
+  // the render that brings the row back has committed: a frame scheduled at `stop` can run
+  // before that render, find no row, and leave focus on the page (seen on a loaded CI runner).
+  const refocus = useRef(false);
+  useEffect(() => {
+    if (renaming || !refocus.current) return;
+    refocus.current = false;
+    row.current?.focus();
+  }, [renaming]);
   return {
     renaming: !!edit && renaming,
     start: () => setRenaming(true),
-    // Back to the row, and focus with it (I11: focus returns where the person was).
     stop: () => {
+      refocus.current = true;
       setRenaming(false);
-      requestAnimationFrame(() => row.current?.focus());
     },
     row,
     // F2 on the row opens its name in place, as on any shown value (I1); Enter stays the row's own.
