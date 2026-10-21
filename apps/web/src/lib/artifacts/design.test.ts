@@ -27,6 +27,7 @@ describe("Návrh's targets", () => {
   it("refuses a kind the row does not list, a section Návrh does not draw and an id outside the grammar", () => {
     expect(() => designTarget("question" as DesignKind, "q1")).toThrow(/not a Návrh target/);
     expect(() => designTarget("plan", "coverage")).toThrow(/not a section/);
+    expect(() => designTarget("plan", "toString")).toThrow(/not a section/);
     expect(() => designTarget("rq", "a b")).toThrow(/not an identifier/);
   });
 });

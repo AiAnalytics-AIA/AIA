@@ -29,7 +29,7 @@ const isDesignKind = (kind: string): kind is DesignKind => (DESIGN.targets as re
  */
 export function designTarget(kind: DesignKind, id: string): string {
   if (!isDesignKind(kind)) throw new Error(`designTarget: ${kind} is not a Návrh target`);
-  if (kind === "plan" && !(id in PLAN_PARTS)) throw new Error(`designTarget: plan:${id} is not a section of Návrh`);
+  if (kind === "plan" && !Object.hasOwn(PLAN_PARTS, id)) throw new Error(`designTarget: plan:${id} is not a section of Návrh`);
   return aiaId(kind, id);
 }
 
