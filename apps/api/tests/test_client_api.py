@@ -422,35 +422,47 @@ def test_decisions_and_revisions_read_back_typed(
     first = researcher.post(f"{base}/proposals", json={"kind": "FACT", "title": "Dealers: 120"})
     assert (first.json()["author"], first.json()["decision"]) == ("PERSON", "AUTHORED")
     item_id = first.json()["item_id"]
+    corrected = researcher.post(
+        f"{base}/proposals",
+        json={"kind": "FACT", "title": "Dealers: 134", "item_id": item_id, "base_revision": 1},
+    )
+    assert corrected.json()["revision"] == 2
     edit = researcher.post(
         f"{API}/studies/{world.study_id()}/knowledge-proposals",
-        json={"kind": "FACT", "title": "Dealers: 125", "item_id": item_id},
+        json={"kind": "FACT", "title": "Dealers: 140", "item_id": item_id},
     ).json()
     assert (edit["author"], edit["decision"], edit["reviewed_revision"]) == ("STUDY", None, None)
+    assert edit["base_revision"] == 2
     decision = f"{base}/proposals/{edit['proposal_id']}/decision"
 
-    # The edit is current, but the reviewer names a revision the item is not at: stale.
-    refused = reviewer.post(decision, json={"approve": True, "reviewed_revision": 2})
+    # The edit is current, but the reviewer read revision 1: stale.
+    refused = reviewer.post(decision, json={"approve": True, "reviewed_revision": 1})
     assert refused.status_code == 409, refused.text
     assert refused.json()["details"] == {
         "item_id": item_id,
-        "base_revision": 1,
-        "current_revision": 1,
-        "reviewed_revision": 2,
+        "base_revision": 2,
+        "current_revision": 2,
+        "reviewed_revision": 1,
     }
-    accepted = reviewer.post(decision, json={"approve": True, "reviewed_revision": 1})
+    # A revision the item never had is not one anybody read: 422, on a rejection too.
+    for approve in (True, False):
+        never = reviewer.post(decision, json={"approve": approve, "reviewed_revision": 3})
+        assert never.status_code == 422, never.text
+        assert never.json()["code"] == "no_revision_to_review"
+    accepted = reviewer.post(decision, json={"approve": True, "reviewed_revision": 2})
     assert accepted.status_code == 200, accepted.text
-    assert (accepted.json()["decision"], accepted.json()["reviewed_revision"]) == ("ACCEPTED", 1)
+    assert (accepted.json()["decision"], accepted.json()["reviewed_revision"]) == ("ACCEPTED", 2)
 
     history = researcher.get(f"{base}/items/{item_id}/revisions").json()
     assert [(r["revision"], r["author"], r["decision"]) for r in history] == [
         (1, "PERSON", "AUTHORED"),
-        (2, "STUDY", "ACCEPTED"),
+        (2, "PERSON", "AUTHORED"),
+        (3, "STUDY", "ACCEPTED"),
     ]
-    assert (history[1]["base_revision"], history[1]["reviewed_revision"]) == (1, 1)
-    assert history[1]["evidence"] is None
+    assert (history[2]["base_revision"], history[2]["reviewed_revision"]) == (2, 2)
+    assert history[2]["evidence"] is None
     assert all(len(r["sha256"]) == 64 for r in history)
-    assert history[0]["sha256"] != history[1]["sha256"]
+    assert len({r["sha256"] for r in history}) == 3
 
     new = researcher.post(
         f"{API}/studies/{world.study_id()}/knowledge-proposals",

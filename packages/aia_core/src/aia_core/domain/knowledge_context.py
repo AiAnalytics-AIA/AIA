@@ -12,9 +12,12 @@ carries the state it was in when frozen:
 * ``SUPERSEDED``: the item has moved on since it was chosen. The context still holds the chosen
   revision's text, never the newer one, and says so, so a person can choose again.
 
-An item that is no longer active is **omitted** and named with its reason (``RETIRED``), never
-dropped silently. The context's identity is :func:`context_sha256` over what it holds, so a
-consumer that records it names exactly what it read.
+An item that is no longer active is **omitted** and named with its reason (``RETIRED``), and so
+is a selection that cannot be read in the study's scope (``UNAVAILABLE``); none is dropped
+silently. The context's identity is :func:`context_sha256` over what a consumer reads -- each
+entry's item, revision and the revision's SHA-256 -- so a consumer that records it names
+exactly the text it read, and the identity does not move when only an item's state since does
+(a newer revision elsewhere is not text this context holds).
 
 Formal eligibility for a computational use stays with the population and evidence rules. A
 selection is a person's statement that the text is context for this study, nothing more.
@@ -93,6 +96,8 @@ class OmittedReason(StrEnum):
     """Why a selected item is not in the frozen context."""
 
     RETIRED = "RETIRED"
+    #: The selection's item or revision cannot be read in the study's scope.
+    UNAVAILABLE = "UNAVAILABLE"
 
 
 class FrozenKnowledgeEntry(BaseModel):
@@ -136,7 +141,8 @@ class FrozenKnowledgeContext(BaseModel):
     #: Sorted by item id.
     entries: tuple[FrozenKnowledgeEntry, ...] = ()
     omitted: tuple[OmittedKnowledge, ...] = ()
-    #: :func:`context_sha256` of everything above.
+    #: :func:`context_sha256` of what is read: the version, study, client and each entry's
+    #: item, revision and SHA-256. State and omissions are reported beside it, not hashed.
     sha256: str
 
     @classmethod
@@ -156,9 +162,7 @@ class FrozenKnowledgeContext(BaseModel):
             client_id=client_id,
             entries=ordered,
             omitted=left_out,
-            sha256=context_sha256(
-                study_id=study_id, client_id=client_id, entries=ordered, omitted=left_out
-            ),
+            sha256=context_sha256(study_id=study_id, client_id=client_id, entries=ordered),
         )
 
     def verify(self) -> bool:
@@ -167,7 +171,6 @@ class FrozenKnowledgeContext(BaseModel):
             study_id=self.study_id,
             client_id=self.client_id,
             entries=self.entries,
-            omitted=self.omitted,
             version=self.version,
         )
 
@@ -177,18 +180,21 @@ def context_sha256(
     study_id: str,
     client_id: str,
     entries: Sequence[FrozenKnowledgeEntry],
-    omitted: Sequence[OmittedKnowledge],
     version: str = CONTEXT_VERSION,
 ) -> str:
-    """The SHA-256 of a frozen context: its version, study, client, entries and omissions,
-    canonical JSON (sorted keys, no spaces, UTF-8)."""
+    """The SHA-256 of what a frozen context gives its reader: its version, study, client and
+    each entry's item id, revision and revision SHA-256, in item order, canonical JSON (sorted
+    keys, no spaces, UTF-8). An entry's words are covered through its revision's SHA-256; its
+    state (``SUPERSEDED``) and the omissions are not what is read, so they are not hashed."""
     payload = json.dumps(
         {
             "version": version,
             "study_id": study_id,
             "client_id": client_id,
-            "entries": [e.model_dump(mode="json") for e in entries],
-            "omitted": [o.model_dump(mode="json") for o in omitted],
+            "entries": [
+                {"item_id": e.item_id, "revision": e.revision, "sha256": e.sha256}
+                for e in sorted(entries, key=lambda e: e.item_id)
+            ],
         },
         sort_keys=True,
         separators=(",", ":"),

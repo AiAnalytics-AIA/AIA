@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Final, Literal, cast
 
-from sqlalchemy import delete, func, or_, select
+from sqlalchemy import and_, delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from ..domain.knowledge import (
@@ -449,8 +449,11 @@ class ClientKnowledgeRepository:
 
         An entry holds the chosen revision's words, never the item's newer ones, and says
         whether the item has moved on since (``SUPERSEDED``). An item no longer active is
-        omitted by name (``RETIRED``). Reads only the study's own client, from the study's
-        scope; two freezes of unchanged selections are the same context, hash for hash.
+        omitted by name (``RETIRED``); a selection whose item or revision cannot be read in
+        the study's scope is omitted by name too (``UNAVAILABLE``), never skipped. Reads only
+        the study's own client, from the study's scope, one revision row per selection. Two
+        freezes of unchanged selections are the same context, hash for hash: the hash covers
+        what is read (item, revision, the revision's SHA-256), not the item's state since.
         """
         scope = _study(scope)
         scope.require(Permission.VIEW_STUDY)
@@ -470,26 +473,37 @@ class ClientKnowledgeRepository:
                 )
             ).all()
         }
-        wanted = {(s.item_id, s.revision) for s in chosen}
-        revision_rows = [
-            r
-            for r in self._session.scalars(
-                select(ClientKnowledgeRevisionRow).where(
-                    ClientKnowledgeRevisionRow.organization_id == scope.organization_id,
-                    ClientKnowledgeRevisionRow.client_id == scope.client_id,
-                    ClientKnowledgeRevisionRow.item_id.in_(ids),
-                )
-            ).all()
-            if (r.item_id, r.revision) in wanted
-        ]
+        # Exactly the chosen revisions: one row per selection, joined on (item, revision).
+        revision_rows = self._session.scalars(
+            select(ClientKnowledgeRevisionRow)
+            .join(
+                ClientKnowledgeSelectionRow,
+                and_(
+                    ClientKnowledgeSelectionRow.item_id == ClientKnowledgeRevisionRow.item_id,
+                    ClientKnowledgeSelectionRow.revision == ClientKnowledgeRevisionRow.revision,
+                ),
+            )
+            .where(
+                ClientKnowledgeSelectionRow.study_id == scope.study_id,
+                ClientKnowledgeSelectionRow.client_id == scope.client_id,
+                ClientKnowledgeRevisionRow.organization_id == scope.organization_id,
+                ClientKnowledgeRevisionRow.client_id == scope.client_id,
+            )
+        ).all()
         typed = {(r.item_id, r.revision): r for r in self._typed(scope, revision_rows)}
         entries: list[FrozenKnowledgeEntry] = []
         omitted: list[OmittedKnowledge] = []
         for s in chosen:
             item = items.get(s.item_id)
             revision = typed.get((s.item_id, s.revision))
-            # The foreign keys keep both; a row outside this scope is not this study's.
+            # The foreign keys keep both, so this is a row outside the study's scope: named,
+            # never skipped.
             if item is None or revision is None:
+                omitted.append(
+                    OmittedKnowledge(
+                        item_id=s.item_id, revision=s.revision, reason=OmittedReason.UNAVAILABLE
+                    )
+                )
                 continue
             if item.status != "ACTIVE":
                 omitted.append(
@@ -1446,9 +1460,14 @@ class ClientKnowledgeRepository:
 
         ``authored``: a person's own write (:meth:`add`), whose base :meth:`_add_proposal`
         checked under the same lock a moment ago; it is recorded ``AUTHORED``.
+
+        A named ``reviewed_revision`` is stored only when it is one the item has had: a new
+        item has none, and an edit's item has had 1 to its current revision. Any other
+        raises :class:`NoRevisionToReview`, on an approval and a rejection alike -- a
+        rejection is never stale, but it does not record a revision nobody could have read.
         """
-        if row.item_id is None and reviewed_revision is not None:
-            raise NoRevisionToReview("a new item has no revision to review")
+        if reviewed_revision is not None:
+            self._require_known_revision(scope, row, reviewed_revision)
         if not approve:
             decision = KnowledgeDecision.REJECTED
         elif authored:
@@ -1487,6 +1506,28 @@ class ClientKnowledgeRepository:
         )
         self._session.flush()
         return _proposal(row)
+
+    def _require_known_revision(
+        self, scope: ClientContext, row: ClientKnowledgeProposalRow, reviewed_revision: int
+    ) -> None:
+        """Refuse a named revision the item has never had (a new item has had none)."""
+        if row.item_id is None:
+            raise NoRevisionToReview("a new item has no revision to review")
+        current = self._session.scalar(
+            select(ClientKnowledgeItemRow.current_revision)
+            .where(
+                ClientKnowledgeItemRow.item_id == row.item_id,
+                ClientKnowledgeItemRow.client_id == scope.client_id,
+            )
+            .with_for_update()
+        )
+        if current is None:
+            raise ScopeDenied("not found", reason="unknown_item")
+        if not 1 <= reviewed_revision <= current:
+            raise NoRevisionToReview(
+                f"knowledge item {row.item_id} has had revisions 1 to {current}; "
+                f"revision {reviewed_revision} is none of them"
+            )
 
     def _reviewed(
         self,

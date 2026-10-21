@@ -20,13 +20,20 @@ from aia_core.domain.knowledge_context import (
     CONTEXT_VERSION,
     ContextEntryState,
     FrozenKnowledgeContext,
+    FrozenKnowledgeEntry,
+    OmittedKnowledge,
     OmittedReason,
     StaleKnowledgeSelection,
     context_sha256,
 )
 from aia_core.domain.scope import ClientContext, Permission, ScopeDenied
 from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
-from aia_core.infrastructure.tables import AccessAuditRow, ClientKnowledgeItemRow, StudyRow
+from aia_core.infrastructure.tables import (
+    AccessAuditRow,
+    ClientKnowledgeItemRow,
+    ClientKnowledgeSelectionRow,
+    StudyRow,
+)
 
 
 @pytest.fixture
@@ -109,12 +116,15 @@ def test_an_item_that_moved_on_stays_frozen_at_the_revision_chosen_and_says_so(
     [entry] = after.entries
     assert (entry.title, entry.revision, entry.current_revision) == ("Dealeři: 120", 1, 2)
     assert entry.state is ContextEntryState.SUPERSEDED
-    assert after.sha256 != before.sha256  # the state moved, so the identity did
+    # What is read did not change, so neither did the identity; the state is said beside it.
+    assert after.sha256 == before.sha256
 
-    # Chosen again at the new revision: the newer words, current.
+    # Chosen again at the new revision: the newer words, current, a new identity.
     knowledge.select_for_study(study, item_id=item_id, revision=2)
-    [entry] = knowledge.freeze_for_study(study).entries
+    again = knowledge.freeze_for_study(study)
+    [entry] = again.entries
     assert (entry.title, entry.state) == ("Dealeři: 134", ContextEntryState.CURRENT)
+    assert again.sha256 != after.sha256
     [selection] = knowledge.selections(study)
     assert selection.revision == 2
 
@@ -196,16 +206,73 @@ def test_choosing_needs_edit_rights_on_an_open_study_and_is_audited(
         knowledge.select_for_study(scoped.scope(user="researcher"), item_id=item_id, revision=1)
 
 
-def test_a_contexts_hash_is_its_version_study_client_entries_and_omissions() -> None:
+def test_a_selection_outside_the_studys_scope_is_omitted_by_name_never_skipped(
+    scoped: Any, knowledge: ClientKnowledgeRepository, session: Session
+) -> None:
+    """Only a row written around the repository can do this; the freeze still names it."""
+    theirs = _fact(knowledge, client_scope(scoped, "other_lead", "other"), "Globex: 9")
+    study = scoped.scope(user="researcher")
+    session.add(
+        ClientKnowledgeSelectionRow(
+            study_id=study.study_id,
+            item_id=theirs,
+            organization_id=study.organization_id,
+            client_id=study.client_id,
+            revision=1,
+            selected_by=study.actor_id,
+        )
+    )
+    session.flush()
+    frozen = knowledge.freeze_for_study(study)
+    assert frozen.entries == ()
+    [omitted] = frozen.omitted
+    assert (omitted.item_id, omitted.revision, omitted.reason) == (
+        theirs,
+        1,
+        OmittedReason.UNAVAILABLE,
+    )
+
+
+def _entry(item_id: str, sha: str, state: ContextEntryState) -> FrozenKnowledgeEntry:
+    return FrozenKnowledgeEntry(
+        item_id=item_id,
+        revision=1,
+        kind=KnowledgeKind.FACT,
+        title="t",
+        author=KnowledgeAuthor.PERSON,
+        sha256=sha,
+        state=state,
+        current_revision=1 if state is ContextEntryState.CURRENT else 2,
+    )
+
+
+def test_a_contexts_hash_covers_what_is_read_and_nothing_else() -> None:
     empty = FrozenKnowledgeContext.freeze(
         study_id="STD-1", client_id="CLI-1", entries=(), omitted=()
     )
     assert empty.version == CONTEXT_VERSION
-    assert empty.sha256 == context_sha256(
-        study_id="STD-1", client_id="CLI-1", entries=(), omitted=()
-    )
-    assert empty.sha256 != context_sha256(
-        study_id="STD-2", client_id="CLI-1", entries=(), omitted=()
-    )
+    assert empty.sha256 == context_sha256(study_id="STD-1", client_id="CLI-1", entries=())
+    assert empty.sha256 != context_sha256(study_id="STD-2", client_id="CLI-1", entries=())
     tampered = empty.model_copy(update={"client_id": "CLI-2"})
     assert not tampered.verify()
+
+    current = _entry("KNW-1", "a" * 64, ContextEntryState.CURRENT)
+    superseded = _entry("KNW-1", "a" * 64, ContextEntryState.SUPERSEDED)
+    one = FrozenKnowledgeContext.freeze(
+        study_id="STD-1", client_id="CLI-1", entries=(current,), omitted=()
+    )
+    # The item's state since, and what was left out, are said beside the hash, not in it.
+    two = FrozenKnowledgeContext.freeze(
+        study_id="STD-1",
+        client_id="CLI-1",
+        entries=(superseded,),
+        omitted=(OmittedKnowledge(item_id="KNW-2", revision=1, reason=OmittedReason.RETIRED),),
+    )
+    assert one.sha256 == two.sha256
+    other_words = _entry("KNW-1", "b" * 64, ContextEntryState.CURRENT)
+    assert (
+        FrozenKnowledgeContext.freeze(
+            study_id="STD-1", client_id="CLI-1", entries=(other_words,), omitted=()
+        ).sha256
+        != one.sha256
+    )

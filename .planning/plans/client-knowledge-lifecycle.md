@@ -619,8 +619,11 @@ What was decided, and why:
   - any other base, unknown included, is ACCEPTED_OVER when the reviewer named the current
     revision, and stale otherwise.
 
-  A rejection is never stale and records the revision it names. Naming a revision for a new item
-  is refused by name: `NoRevisionToReview`, API 422 `no_revision_to_review`. The 409
+  A rejection is never stale. It records the revision it names, but only a revision the item has
+  had (1 to current). Any other named revision is refused by name, on an approval and a
+  rejection alike: `NoRevisionToReview`, API 422 `no_revision_to_review`. A new item has had
+  none, so naming one for a new item is refused on either decision too. Storing a revision
+  nobody could have read would stamp a guess (review of #542). The 409
   `knowledge_proposal_stale` details now carry `reviewed_revision`.
 - **A typed revision.** `KnowledgeRevision` carries `author`, `decision`, `base_revision`,
   `reviewed_revision`, `evidence` and `sha256`. They are read through the revision's proposal row
@@ -674,9 +677,15 @@ Three slices:
       evidence, `revision_sha256`. A newer revision's words are never used;
     - an entry is `CURRENT`, or `SUPERSEDED` (the item moved on; `current_revision` says where
       to). A person decides whether to choose again;
-    - an item no longer active is `omitted` with reason `RETIRED`, never dropped silently;
-    - the context's identity is `context_sha256` over its version, study, client, entries and
-      omissions, and `verify()` re-checks it on a stored copy.
+    - an item no longer active is `omitted` with reason `RETIRED`. A selection whose item or
+      revision cannot be read in the study's scope is omitted as `UNAVAILABLE`. Neither is
+      dropped silently;
+    - the chosen revisions are read one row per selection, joined on (item, revision);
+    - the context's identity is `context_sha256` over what a consumer reads: version, study,
+      client, and each entry's item, revision and revision SHA-256. An entry's state and the
+      omissions are reported beside the hash, not inside it, so the identity does not move
+      when only an item's state since does (review of #542). `verify()` re-checks it on a
+      stored copy.
   - **No choice means an empty context.** Nothing defaults to "all active". Unknown is not good:
     a study nobody chose for has nothing chosen.
 - **K4b: the consumers**, behind a switch, off. With it on, the agent jobs' `context_snapshot`,

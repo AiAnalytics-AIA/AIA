@@ -265,6 +265,15 @@ def test_a_rejection_records_the_revision_it_names_and_is_never_stale(
 ) -> None:
     _, proposal_id = _edit_of_the_current_revision(scoped, knowledge)
     reviewer = client_scope(scoped, "reviewer")
+    # A revision the item never had is not recorded, on a rejection either (item at 2).
+    for never in (3, 99):
+        with pytest.raises(NoRevisionToReview):
+            knowledge.decide(
+                reviewer, proposal_id=proposal_id, approve=False, reviewed_revision=never
+            )
+    [pending] = knowledge.proposals(reviewer, status=ProposalStatus.PROPOSED)
+    assert pending.proposal_id == proposal_id
+    # An older revision the item did have is recorded as named: a rejection is never stale.
     rejected = knowledge.decide(
         reviewer, proposal_id=proposal_id, approve=False, reviewed_revision=1
     )
