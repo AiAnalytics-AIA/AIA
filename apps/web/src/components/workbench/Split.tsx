@@ -5,10 +5,33 @@
 // lib/workbench-split.ts: 28-62 %, 2 % per arrow, Home / Enter / double-click back to 40 %, and
 // focus modes that never change the width the person chose.
 
-import { type ReactNode, useRef, useState } from "react";
+import { type KeyboardEvent, type ReactNode, useRef, useState } from "react";
 
 import type { WorkbenchLayout } from "@/lib/workbench-layout";
 import { type FocusMode, SPLIT_DEFAULT, SPLIT_MAX, SPLIT_MIN, leftWidth, splitFromKey, splitFromPointer } from "@/lib/workbench-split";
+
+const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/** The open drawer or sheet is modal: Tab and Shift+Tab go round inside it, never to the artifact behind. */
+export function trapTab(e: KeyboardEvent<HTMLElement>) {
+  if (e.key !== "Tab") return;
+  const items = [...e.currentTarget.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => !el.closest("[hidden]"));
+  if (!items.length) {
+    e.preventDefault();
+    return;
+  }
+  const first = items[0]!;
+  const last = items[items.length - 1]!;
+  const active = document.activeElement;
+  const inside = active instanceof HTMLElement && e.currentTarget.contains(active);
+  if (e.shiftKey && (!inside || active === first)) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && (!inside || active === last)) {
+    e.preventDefault();
+    first.focus();
+  }
+}
 
 export function Split({ split, mode, layout = "split", shown = true, leftLabel, onSplit, onCommit, left, right, rail }: {
   split: number;
@@ -42,7 +65,7 @@ export function Split({ split, mode, layout = "split", shown = true, leftLabel, 
       {/* In artifact focus, and in a closed drawer, the conversation is hidden, not unmounted: its
           draft, queue, poll and once-only view ops survive (D21: one tree, no remount). */}
       {compact ? (
-        <div className="split__left" hidden={!shown} role={shown ? "dialog" : undefined} aria-modal={shown ? true : undefined} aria-label={shown ? leftLabel : undefined}>{left}</div>
+        <div className="split__left" hidden={!shown} role={shown ? "dialog" : undefined} aria-modal={shown ? true : undefined} aria-label={shown ? leftLabel : undefined} onKeyDown={shown ? trapTab : undefined}>{left}</div>
       ) : (
         <div className="split__left" hidden={width === null} style={width === null ? undefined : { width: `${width}%` }}>{left}</div>
       )}

@@ -62,7 +62,7 @@ const time = (iso: string) => {
 /** The newest Lead turn that finished: the one whose view tools have been applied. */
 const newestCompleted = (turns: LeadTurn[]) => [...turns].reverse().find((t) => t.actor === "lead" && t.status === "COMPLETED") ?? null;
 
-export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onClearFocus, onView, onRequest, onTurns, onFocusMode, onClose, mode, epoch, jobs = [], onOpenJob, onLead, beforeMessage, cards, registerSend }: {
+export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onClearFocus, onView, onRequest, onTurns, onFocusMode, onClose, onSession, mode, epoch, jobs = [], onOpenJob, onLead, beforeMessage, cards, registerSend }: {
   studyId: string;
   stage: WorkbenchStage;
   canEdit: boolean;
@@ -90,6 +90,8 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   onFocusMode: () => void;
   /** In the drawer or the sheet (research-lead-workbench 26c): Zavřít, in place of the focus toggle. */
   onClose?: () => void;
+  /** Every read of GET /lead, null and failed when it was refused: the launcher's availability (27a). */
+  onSession?: (state: LeadState | null, failed: boolean) => void;
   mode: "split" | "conversation" | "artifact";
   /** The worker and run cards' context (chunk 23). */
   cards?: LeadCardsContext;
@@ -119,15 +121,17 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
       const s = await leadApi.state(studyId);
       setSession(s);
       onTurns(s.turns);
+      onSession?.(s, false);
       setError(null);
       return s;
     } catch (e) {
+      onSession?.(null, true);
       setError(e instanceof ApiError && e.status === 404 ? "Vedoucí výzkumu v této verzi AIA zatím není." : e instanceof Error ? e.message : String(e));
       return null;
     } finally {
       setReads((n) => n + 1);
     }
-  }, [studyId, onTurns]);
+  }, [studyId, onTurns, onSession]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reads the Lead's state from the API; its setters run when it answers

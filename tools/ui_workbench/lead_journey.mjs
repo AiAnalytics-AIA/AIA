@@ -11,7 +11,9 @@
  * change back after a reload, sees the prepared job as a card it does not approve, and finds the
  * remembered note on Můj Vedoucí only after the researcher's "Pamatovat si", read only. It then
  * turns automatic text edits on, sees the next turn's text edit accepted as automatic, reverts it
- * with Vrátit, and turns the choice off again. Nothing paid starts.
+ * with Vrátit, and turns the choice off again. At 1099, 768 and 390 px it opens the conversation from
+ * the launcher as a dialog, sends a message, keeps Tab inside and closes it with Escape back to the
+ * launcher, and at 390 points at a question with "@". Nothing paid starts.
  */
 import assert from "node:assert/strict";
 import { execSync } from "node:child_process";
@@ -176,6 +178,63 @@ try {
     await off.waitFor({ timeout: 30000 });
     if (await off.isChecked()) await off.uncheck();
   }
+
+  // The Lead at every width (chunk 26c, D21): below 1100 px the launcher opens the same
+  // conversation as a modal drawer (768-1099) or a full-screen sheet (under 768); Tab stays inside,
+  // Escape closes it back to the launcher; "@" steps it aside and a tap on a question reopens it
+  // at the composer with the chip set.
+  for (const width of [1099, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(base + stagePath("questionnaire"));
+    await page.locator("[data-workbench]").waitFor({ timeout: 30000 });
+    const launcher = page.locator("[data-lead-launcher]");
+    await launcher.waitFor();
+    assert.equal(await page.getByRole("dialog", { name: "Vedoucí výzkumu" }).count(), 0, `${width}: the conversation starts closed`);
+    await launcher.press("Enter");
+    const dialog = page.getByRole("dialog", { name: "Vedoucí výzkumu" });
+    await dialog.waitFor();
+    await page.waitForFunction(() => document.activeElement?.id === "composer", null, { timeout: 10000 });
+    const reply = page.locator(`text=${SCRIPTED}`);
+    const answered = await reply.count();
+    const box = page.getByLabel("Napište Vedoucímu výzkumu");
+    await page.waitForFunction(() => !document.querySelector("textarea[aria-label='Napište Vedoucímu výzkumu']")?.disabled, null, { timeout: 30000 });
+    await box.fill(`Jak to vypadá při šířce ${width} px?`);
+    await box.press("Enter");
+    // The scripted answer points at a question: the conversation steps aside to it, focus follows,
+    // and "Zpět k Vedoucímu" brings it back at the composer.
+    await page.locator("[data-peek]").waitFor({ timeout: 60000 });
+    await dialog.waitFor({ state: "hidden" });
+    await page.waitForFunction(() => !!document.activeElement?.closest("#artbody"), null, { timeout: 10000 });
+    await shot(`${width}-peek`);
+    await page.getByRole("button", { name: "Zpět k Vedoucímu" }).click();
+    await dialog.waitFor();
+    await page.waitForFunction(() => document.activeElement?.id === "composer", null, { timeout: 10000 });
+    await page.waitForFunction((n) => document.body.innerText.split("[Workbench · bez modelu]").length - 1 > n, answered, { timeout: 60000 });
+    for (let i = 0; i < 40; i++) {
+      await page.keyboard.press("Tab");
+      const at = await page.evaluate(() => document.activeElement?.closest("[role=dialog]") ? "" : `${document.activeElement?.tagName}.${document.activeElement?.className} ${document.activeElement?.textContent?.slice(0, 40)}`);
+      assert.equal(at, "", `${width}: Tab stays inside the open conversation (tab ${i})`);
+    }
+    await shot(`${width}-drawer`);
+    await page.keyboard.press("Escape");
+    await dialog.waitFor({ state: "hidden" });
+    assert(await page.evaluate(() => document.activeElement?.hasAttribute("data-lead-launcher")), `${width}: Escape returns focus to the launcher`);
+    const r = await page.evaluate(() => ({ w: innerWidth, d: document.documentElement.scrollWidth }));
+    assert(r.d <= r.w + 2, `${width}: page overflow ${r.d} > ${r.w}`);
+    check(`${width} px: the launcher opens the conversation as a dialog; the answer's focus steps it aside to the question and Zpět k Vedoucímu brings it back; Tab stays inside; Escape returns to the launcher`);
+  }
+  // "@" in the sheet: the conversation steps aside, a tap on a question sets the chip and reopens it.
+  await page.locator("[data-lead-launcher]").click();
+  await page.getByRole("button", { name: "Ukázat na prvek artefaktu (@)" }).click();
+  await page.getByRole("dialog", { name: "Vedoucí výzkumu" }).waitFor({ state: "hidden" });
+  await page.locator("[id^=qedit_]").first().click();
+  await page.getByRole("dialog", { name: "Vedoucí výzkumu" }).waitFor();
+  await page.locator(".refchip").waitFor();
+  await shot("390-picked");
+  await page.getByRole("button", { name: "Zrušit odkaz" }).click();
+  await page.keyboard.press("Escape");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  check("390 px: '@' steps the sheet aside, a tap on a question sets the chip and reopens it at the composer");
 
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");

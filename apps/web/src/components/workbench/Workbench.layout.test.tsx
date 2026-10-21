@@ -26,11 +26,18 @@ function setWidth(w: number) {
 const matches = (query: string) => width >= Number(/min-width: (\d+)px/.exec(query)?.[1] ?? 0);
 
 let mounts = 0;
+// What GET /studies/{id}/lead answers, read by read: the last entry repeats.
+let leadReads: object[] = [];
+const leadState = (over: object = {}) => ({ available: true, unavailable_reason: null, busy: false, turns: [], ...over });
+const leadTurn = (id: string, seq: number, view: object[] = []) => ({
+  turn_id: id, sequence_no: seq, actor: "lead", kind: "message", stage: "questionnaire", text: null, focus: null, status: "COMPLETED", reason: null,
+  output: { reply: "Podívejte se sem.", view }, run_id: null, workspace_revision: 3, created_at: "2026-10-21T08:00:00Z", created_by: null,
+});
 function Stage() {
   useEffect(() => {
     mounts += 1;
   }, []);
-  return <div>Dotazník</div>;
+  return <div><div id="qedit_q1">Jak často pijete čaj?</div></div>;
 }
 
 beforeEach(() => {
@@ -38,6 +45,7 @@ beforeEach(() => {
   width = 1440;
   mounts = 0;
   lists.length = 0;
+  leadReads = [leadState()];
   vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
     cb(0);
     return 0;
@@ -58,7 +66,7 @@ beforeEach(() => {
     const u = String(url).split("?")[0]!;
     if (u === "/config") return new Response(JSON.stringify({ apiBase: "", aiRuntime: null }));
     if (u === "/api/v1/lead") return new Response(JSON.stringify({ hatched: true, lead: { lead_id: "LEAD-1", name: "Bára", hatched_at: "2026-10-19T08:00:00Z", updated_at: "2026-10-19T08:00:00Z", files: { soul: "", user: "" }, memories: [] } }));
-    if (u.endsWith("/lead")) return new Response(JSON.stringify({ available: true, unavailable_reason: null, busy: false, turns: [] }));
+    if (u.endsWith("/lead")) return new Response(JSON.stringify(leadReads.length > 1 ? leadReads.shift() : leadReads[0]));
     if (u.endsWith("/research/runs")) return new Response(JSON.stringify([]));
     if (u === "/api/v1/studies/STU-1") return new Response(JSON.stringify({ study_id: "STU-1", budget_usd: null, spent_usd: null }));
     return new Response(JSON.stringify({ code: "not_found" }), { status: 404 });
@@ -150,6 +158,84 @@ describe("the workbench at every width", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
     setWidth(900);
     expect(conversation().hasAttribute("hidden")).toBe(true);
+  });
+});
+
+describe("the launcher and the drawer (26c)", () => {
+  it("keeps Tab and Shift+Tab inside the open drawer", async () => {
+    bench();
+    setWidth(900);
+    fireEvent.click(screen.getByRole("button", { name: /Otevřít konverzaci/ }));
+    const dialog = screen.getByRole("dialog", { name: "Vedoucí výzkumu" });
+    await waitFor(() => expect((screen.getByRole("textbox", { name: /vedoucí/i }) as HTMLTextAreaElement).disabled).toBe(false));
+    const items = [...dialog.querySelectorAll<HTMLElement>("button:not([disabled]), textarea:not([disabled]), a[href]")];
+    const first = items[0]!;
+    const last = items[items.length - 1]!;
+    last.focus();
+    fireEvent.keyDown(last, { key: "Tab" });
+    expect(document.activeElement).toBe(first);
+    fireEvent.keyDown(first, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(last);
+  });
+
+  it("'@' in the drawer steps the conversation aside; a tap on the artifact sets the chip and reopens it at the composer", async () => {
+    bench();
+    setWidth(390);
+    fireEvent.click(screen.getByRole("button", { name: /Otevřít konverzaci/ }));
+    const pick = screen.getByRole("button", { name: "Ukázat na prvek artefaktu (@)" });
+    await waitFor(() => expect((pick as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(pick);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByText(/Klikněte na otázku/)).toBeTruthy();
+    fireEvent.click(screen.getByText("Jak často pijete čaj?"));
+    expect(screen.getByRole("dialog", { name: "Vedoucí výzkumu" })).toBeTruthy();
+    expect(document.querySelector(".refchip")?.textContent).toMatch(/Otázka q1: Jak často pijete čaj\?/);
+    await waitFor(() => expect(document.activeElement?.id).toBe("composer"));
+  });
+
+  it("Escape while pointing in the drawer disarms it and reopens the conversation at the composer", async () => {
+    bench();
+    setWidth(800);
+    fireEvent.click(screen.getByRole("button", { name: /Otevřít konverzaci/ }));
+    const pick = screen.getByRole("button", { name: "Ukázat na prvek artefaktu (@)" });
+    await waitFor(() => expect((pick as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(pick);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(screen.queryByText(/Klikněte na otázku/)).toBeNull();
+    await waitFor(() => expect(document.activeElement?.id).toBe("composer"));
+  });
+
+  it("a finished turn's focus closes the drawer, focuses the target and offers the way back", async () => {
+    leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "focus", target: "question:q1" }])] })];
+    bench();
+    setWidth(900);
+    fireEvent.click(screen.getByRole("button", { name: /Otevřít konverzaci/ }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    Element.prototype.scrollIntoView = vi.fn();
+    const target = document.getElementById("qedit_q1")!;
+    await waitFor(() => expect(document.activeElement).toBe(target), { timeout: 4000 });
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(target.getAttribute("tabindex")).toBe("-1");
+    fireEvent.click(screen.getByRole("button", { name: "Zpět k Vedoucímu" }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    await waitFor(() => expect(document.activeElement?.id).toBe("composer"));
+  });
+
+  it("the launcher says whether the Lead answers: unknown until the worker reports ready, never on", async () => {
+    bench();
+    setWidth(900);
+    await waitFor(() => expect(screen.getByRole("button", { name: /Otevřít konverzaci/ }).getAttribute("aria-label")).toMatch(/Nelze zjistit, zda Vedoucí výzkumu odpovídá/));
+    expect(document.querySelector("[data-lead-launcher]")!.getAttribute("data-availability")).toBe("UNKNOWN");
+  });
+
+  it("the launcher says ON when the worker is ready, and the pending count in its name", async () => {
+    leadReads = [leadState({ worker_ready: true })];
+    bench();
+    setWidth(390);
+    await waitFor(() => expect(document.querySelector("[data-lead-launcher]")!.getAttribute("data-availability")).toBe("ON"));
+    expect(screen.getByRole("button", { name: /Otevřít konverzaci/ }).getAttribute("aria-label")).toMatch(/Vedoucí výzkumu odpovídá\./);
   });
 });
 
