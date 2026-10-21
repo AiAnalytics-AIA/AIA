@@ -38,7 +38,7 @@ import { type StudyFrame, useStudyFrame } from "./frame";
 import { DesignSourceNote } from "./DesignSourceNote";
 import { STEP_SCREENS } from "./steps";
 import { ResearchAssistance, isAdviceAction } from "./ResearchAssistance";
-import { OPEN_REVIEW_KEY, Workbench, useStageWide } from "../../workbench/Workbench";
+import { OPEN_REVIEW_KEY, Workbench } from "../../workbench/Workbench";
 import { leadOwnsAiStarts } from "@/lib/lead-cards";
 import { loadConfig } from "@/lib/auth";
 
@@ -335,7 +335,6 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
   const Screen = STEP_SCREENS[step];
   const aiHelp = aiHelpFor(step);
   const workbench = useWorkbenchSwitch();
-  const wide = useStageWide(step);
   const onTrack = TRACK_STEPS.includes(step) && step !== "run" && step !== "progress" && step !== "results";
   // Stable across the editors' renders, so typing does not keep restarting the workbench's job poll.
   const refreshAgents = agents.refresh;
@@ -344,9 +343,10 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
   // superseded one is not offered again.
   const savedProposals = agents.recent.filter(pendingProposal);
   // In the workbench every AI action goes through the Research Lead (D15): no AI pomoc, no stage
-  // "Navrhnout", no job dialog -- each job is a card in the conversation. The classic layout, which
-  // has no Lead yet (chunk 26), keeps its buttons.
-  const inWorkbench = workbench && wide;
+  // "Navrhnout", no job dialog -- each job is a card in the conversation. The workbench serves at
+  // every width, the Lead beside the artifact or in a drawer over it (research-lead-workbench 26b,
+  // D20, D21); only with the switch off does the classic layout, and its buttons, serve.
+  const inWorkbench = workbench;
   const leadOwns = leadOwnsAiStarts(inWorkbench ? "workbench" : "classic");
   const starts = !leadOwns;
   // A card on another stage asked for this job's review: opened here once the jobs are read.
