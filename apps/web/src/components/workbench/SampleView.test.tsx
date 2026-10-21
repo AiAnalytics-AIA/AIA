@@ -120,12 +120,23 @@ describe("loadSampleReadiness", () => {
   const store = (save: string, revision: number | null, flush: () => Promise<void> = async () => {}) =>
     ({ get: () => ({ save: { kind: save }, revision }), flush: vi.fn(flush) }) as unknown as ResearchStore & { flush: ReturnType<typeof vi.fn> };
 
-  it("reads an editor's readiness on the working revision, saving what waits first and submitting nothing", async () => {
+  it("reads an editor's readiness on the working revision, saving a waiting change first and submitting nothing", async () => {
     const read = vi.fn(async () => readiness({}));
-    const s7 = store("saved", 7);
+    const s7 = store("pending", 7);
     expect(await loadSampleReadiness(s7, "s1", true, { readiness: read })).toMatchObject({ kind: "ready", revision: 7 });
     expect(s7.flush).toHaveBeenCalledTimes(1);
     expect(read).toHaveBeenCalledWith("s1", 7);
+    const saved = store("saved", 7);
+    await loadSampleReadiness(saved, "s1", true, { readiness: read });
+    expect(saved.flush).not.toHaveBeenCalled();
+  });
+
+  it("writes nothing for a new study nobody has touched: no revision, nothing read", async () => {
+    const read = vi.fn();
+    const fresh = store("new", null);
+    expect(await loadSampleReadiness(fresh, "s1", true, { readiness: read })).toEqual({ kind: "none" });
+    expect(fresh.flush).not.toHaveBeenCalled();
+    expect(read).not.toHaveBeenCalled();
   });
 
   it("reads a reader's on the revision loaded, saving nothing", async () => {
