@@ -116,6 +116,8 @@ await page.reload({ waitUntil: "load" });
 await text(FILE.name, "the attachment after a reload");
 if ((await page.getByRole("textbox", { name: "Cíl výzkumu", exact: true }).inputValue()) !== GOAL) fail("the goal did not survive a reload");
 ok("Zadání: goal and attachment read back from AIA after a reload");
+await text("B · odvozené od klienta", "the attachment's data class");
+ok("Zadání: the attachment shows the class the server's rule gives it (BRF3)");
 const [download] = await Promise.all([page.waitForEvent("download", { timeout: 60000 }), page.getByRole("button", { name: `Stáhnout přílohu ${FILE.name}` }).click()]);
 const fileBack = readFileSync(await download.path(), "utf8");
 if (fileBack !== FILE.body) fail(`the downloaded file differs: ${JSON.stringify(fileBack)}`);
