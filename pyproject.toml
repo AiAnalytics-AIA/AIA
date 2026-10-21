@@ -144,6 +144,9 @@ ignore_imports = [
     # The recorded wire (tests and the acceptance harness's worker only; layer_check keeps it
     # out of production): it speaks the transport's request and response types, no adapter.
     "aia_executors.recorded_models -> aia_core.infrastructure.model_adapters.transport",
+    # The workbench's scripted Deep Research wire (local and test only, the same layer_check
+    # rules as the workbench composition): the transport's request and response types, no adapter.
+    "aia_executors.workbench -> aia_core.infrastructure.model_adapters.transport",
 ]
 
 # Live network wires are imported by the compositions that build a route and by
@@ -254,7 +257,6 @@ allow_indirect_imports = true
 ignore_imports = [
     "aia_api.routers.client_sources -> aia_core.infrastructure.client_source_repository",
     "aia_api.routers.client_sources -> aia_core.infrastructure.storage",
-    "aia_api.routers.deep_research -> aia_core.infrastructure.deep_research_settings_repository",
     "aia_api.routers.deep_research -> aia_core.infrastructure.storage",
     "aia_api.routers.deep_research -> aia_core.infrastructure.study_design_repository",
     "aia_api.routers.deep_research_settings -> aia_core.infrastructure.deep_research_settings_repository",

@@ -101,6 +101,26 @@ describe("targetOfElement", () => {
     expect(targetOfElement(document.getElementById("g"))).toEqual({ id: "brief:goal", label: "Zadání: Co potřebujete zjistit" });
     expect(targetOfElement(document.getElementById("n"))).toBeNull();
   });
+
+  it("names any element a screen marked with data-aia, nearest first, and ignores other marks", async () => {
+    const { targetOfElement } = await import("./lead");
+    const { JSDOM } = await import("jsdom");
+    const { document } = new JSDOM(`<fieldset data-aia="audience:filter:kraj"><legend>Kraj</legend><input id="k"></fieldset>
+      <div data-aia="finding:executive:2"><p id="f">text</p></div><div data-aia="lead-edit.x"><i id="o">-</i></div>`).window;
+    expect(targetOfElement(document.getElementById("k"))).toEqual({ id: "audience:filter:kraj", label: "Filtr: kraj: Kraj" });
+    expect(targetOfElement(document.getElementById("f"))).toEqual({ id: "finding:executive:2", label: "Zjištění executive:2" });
+    expect(targetOfElement(document.getElementById("o"))).toBeNull();
+  });
+});
+
+describe("targetLabel for every artifact's kinds", () => {
+  it("says each kind in words, and the audience's parts as the Cílová skupina screen names them", () => {
+    expect(targetLabel("audience:definition")).toBe("Cílová skupina: popis");
+    expect(targetLabel("audience:subpanel:young_18_29")).toBe("Podpanel: young_18_29");
+    expect(targetLabel("pair:set1/fio~air")).toBe("Dvojice set1/fio~air");
+    expect(targetLabel("measure:q3")).toBe("Měření q3");
+    expect(targetLabel("nonsense:q3")).toBe("nonsense:q3");
+  });
 });
 
 describe("targetLabel", () => {

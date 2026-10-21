@@ -60,6 +60,61 @@ def test_develop_accepts_a_fictional_client_list() -> None:
     ).validate_for_production()
 
 
+def test_the_data_class_gates_are_enforced_unless_they_say_advisory(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from aia_core.domain.deployment import DataClassGates
+
+    monkeypatch.delenv("AIA_DATA_CLASS_GATES", raising=False)
+    assert Settings(_env_file=None).data_class_gates is DataClassGates.ENFORCE
+    monkeypatch.setenv("AIA_DATA_CLASS_GATES", "")
+    assert Settings(_env_file=None).data_class_gates is DataClassGates.ENFORCE
+    monkeypatch.setenv("AIA_DATA_CLASS_GATES", "advisory")
+    assert Settings(_env_file=None).data_class_gates is DataClassGates.ADVISORY
+    monkeypatch.setenv("AIA_DATA_CLASS_GATES", "lenient")
+    with pytest.raises(ValueError, match="AIA_DATA_CLASS_GATES='lenient' is not one of"):
+        Settings(_env_file=None)
+
+
+@pytest.mark.parametrize("env", [Environment.STAGING, Environment.PRODUCTION])
+def test_staging_and_production_refuse_advisory_data_class_gates(env: Environment) -> None:
+    """Develop only (the product owner, 2026-10-21); the worker asks the same rule."""
+    settings = Settings(**{**PRODUCTION_OK, "env": env, "data_class_gates": "advisory"})
+    with pytest.raises(
+        RuntimeError, match=f"AIA_DATA_CLASS_GATES=advisory is refused in {env.value}"
+    ):
+        settings.validate_for_production()
+    Settings(
+        **{**PRODUCTION_OK, "env": env, "data_class_gates": "enforce"}
+    ).validate_for_production()
+
+
+def test_an_unset_environment_refuses_advisory_data_class_gates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``env`` defaults to local, but advisory needs AIA_ENV to say so, as the worker does."""
+    monkeypatch.delenv("AIA_ENV", raising=False)
+    monkeypatch.setenv("AIA_DATA_CLASS_GATES", "advisory")
+    settings = Settings(_env_file=None)
+    assert settings.env is Environment.LOCAL and "env" not in settings.model_fields_set
+    with pytest.raises(
+        RuntimeError, match="AIA_DATA_CLASS_GATES=advisory is refused in an unknown environment"
+    ):
+        settings.validate_for_production()
+    monkeypatch.setenv("AIA_DATA_CLASS_GATES", "enforce")
+    Settings(_env_file=None).validate_for_production()
+    monkeypatch.setenv("AIA_ENV", "local")
+    monkeypatch.setenv("AIA_DATA_CLASS_GATES", "advisory")
+    Settings(_env_file=None).validate_for_production()
+
+
+@pytest.mark.parametrize("env", [Environment.DEVELOP, Environment.LOCAL, Environment.TEST])
+def test_develop_local_and_test_accept_advisory_data_class_gates(env: Environment) -> None:
+    Settings(
+        **{**PRODUCTION_OK, "env": env, "data_class_gates": "advisory"}
+    ).validate_for_production()
+
+
 def test_production_refuses_debug_mode() -> None:
     """Debug mode in production leaks internals into responses and logs."""
     settings = Settings(
@@ -105,12 +160,38 @@ PRODUCTION_OK: dict[str, Any] = {
     "storage_backend": "s3",
     "storage_bucket": "aia-develop-artifacts",
     "storage_region": "eu-central-1",
+    "ai_research_lead_enabled": False,
 }
 
 
 def test_valid_production_config_passes() -> None:
     """A correct production configuration validates cleanly."""
     Settings(**PRODUCTION_OK).validate_for_production()
+
+
+@pytest.mark.parametrize("env", [Environment.DEVELOP, Environment.STAGING, Environment.PRODUCTION])
+def test_a_deployment_states_the_research_lead_switch(env: Environment) -> None:
+    """Q43 (research-lead-workbench 27a): unset, the Lead would be off by omission, so a
+    deployed environment refuses to start until it says true or false; either is accepted, and
+    an empty value (a Compose variable passed through blank) is unset, not false."""
+    for stated in (True, False):
+        Settings(
+            **{**PRODUCTION_OK, "env": env, "ai_research_lead_enabled": stated}
+        ).validate_for_production()
+    for unset in (None, "", "  "):
+        settings = Settings(**{**PRODUCTION_OK, "env": env, "ai_research_lead_enabled": unset})
+        assert settings.research_lead_on is False
+        with pytest.raises(RuntimeError, match="AIA_AI_RESEARCH_LEAD_ENABLED must be stated"):
+            settings.validate_for_production()
+
+
+def test_locally_the_research_lead_is_off_unless_switched_on() -> None:
+    """Outside a deployment unset is simply off: only an explicit true switches it on."""
+    local = Settings(env=Environment.LOCAL, ai_research_lead_enabled=None)
+    assert local.research_lead_on is False
+    local.validate_for_production()
+    assert Settings(env=Environment.LOCAL, ai_research_lead_enabled=True).research_lead_on
+    assert not Settings(env=Environment.LOCAL, ai_research_lead_enabled=False).research_lead_on
 
 
 @pytest.mark.parametrize("env", [Environment.DEVELOP, Environment.STAGING])

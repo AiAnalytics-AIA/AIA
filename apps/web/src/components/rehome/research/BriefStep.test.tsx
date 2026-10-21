@@ -159,6 +159,29 @@ describe("Zadání", () => {
     expect(ws.saves[0]).toMatchObject({ base_revision: null, reason: "brief_attachments" });
   });
 
+  it("prints each material's class as the server answers it, and unknown when it names none (BRF3)", async () => {
+    const B = { data_class: "CLASS_B_DERIVED_CLIENT", class_source: "rule:design" };
+    unitStub(
+      { briefing: { attachments: [record({ filename: "zadani.txt" }), { kind: "url", url: "https://example.org/a", title: "A" }, { kind: "url", url: "https://example.org/b", title: "B" }] } },
+      {
+        "/api/v1/studies/STU-1/workspace/materials": () => ({
+          revision: 1,
+          materials: [
+            { index: 0, kind: "file", ref: "ART-1a", ...B },
+            { index: 1, kind: "url", ref: "https://example.org/a", ...B },
+            { index: 2, kind: "url", ref: "https://example.org/b", data_class: null, class_source: null },
+          ],
+        }),
+      },
+    );
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    const chips = await screen.findAllByText("B · odvozené od klienta");
+    expect(chips).toHaveLength(2);
+    expect(chips[0].getAttribute("title")).toBe("Třída podle pravidla rule:design; přísněji ji může zařadit jen operátor.");
+    expect(screen.getByText("třída neznámá").getAttribute("data-data-class")).toBe("unknown");
+    expect(screen.getByText(/třída dat určuje, kam smí/)).toBeTruthy();
+  });
+
   it("downloads a kept file through the study, and says when a file is not in AIA", async () => {
     // jsdom has no object URLs and does not navigate: both are stood in for, and put back.
     const created: Blob[] = [];

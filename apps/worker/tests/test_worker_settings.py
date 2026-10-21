@@ -62,6 +62,28 @@ def test_the_build_sha_is_read_and_a_malformed_one_stops_the_process() -> None:
         WorkerSettings.from_env({**BASE, "AIA_BUILD_SHA": "develop"})
 
 
+def test_the_data_class_gates_are_enforced_unless_they_say_advisory() -> None:
+    from aia_core.domain.deployment import DataClassGates
+
+    assert WorkerSettings.from_env(BASE).data_class_gates is DataClassGates.ENFORCE
+    advisory = {**BASE, "AIA_ENV": "develop", "AIA_DATA_CLASS_GATES": "advisory"}
+    assert WorkerSettings.from_env(advisory).data_class_gates is DataClassGates.ADVISORY
+    with pytest.raises(ValueError, match="AIA_DATA_CLASS_GATES='lenient' is not one of"):
+        WorkerSettings.from_env({**BASE, "AIA_DATA_CLASS_GATES": "lenient"})
+
+
+@pytest.mark.parametrize("env", ["staging", "production", "", "nowhere"])
+def test_a_worker_outside_local_test_and_develop_refuses_advisory_gates(env: str) -> None:
+    """The API asks the same rule (aia_core.domain.deployment.data_class_gates_problem)."""
+    with pytest.raises(ValueError, match="AIA_DATA_CLASS_GATES=advisory is refused"):
+        WorkerSettings.from_env({**BASE, "AIA_ENV": env, "AIA_DATA_CLASS_GATES": "advisory"})
+
+
+@pytest.mark.parametrize("env", ["local", "test", "develop"])
+def test_local_test_and_develop_workers_accept_advisory_gates(env: str) -> None:
+    WorkerSettings.from_env({**BASE, "AIA_ENV": env, "AIA_DATA_CLASS_GATES": "advisory"})
+
+
 def test_a_worker_never_defaults_to_sqlite() -> None:
     """The API may fall back to in-memory SQLite for development. A worker may not:
     it would claim nothing and report healthy."""

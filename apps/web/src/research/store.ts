@@ -211,22 +211,66 @@ export class ResearchStore {
     return { ...r, project, analysis: settledAnalysis };
   }
 
-  /** A debounced save: its failure is shown through `save`, not thrown. */
+  /**
+   * A debounced save: one save, its failure shown through `save`, not thrown. A change typed while
+   * it was in flight waits for its own debounce (the save arms it again), as the classic autosave does.
+   */
   private autosave(): void {
-    this.flush().catch(() => {});
+    this.drain(undefined, 1).catch(() => {});
   }
 
-  /** Save now; resolves when AIA has answered. A conflict is thrown, and kept in `save`. */
-  async flush(reason?: string): Promise<void> {
-    if (this.timer) {
-      clearTimeout(this.timer);
-      this.timer = null;
-    }
-    if (this.inflight) await this.inflight;
+  /**
+   * Whether this copy is owed a save: it was never saved, it changed since its last save (pending,
+   * failed, or changed while a save was in flight), or the template completed it on load.
+   */
+  private owed(): boolean {
     const s = this.state;
-    if (this.opts.readOnly) return;
-    if (s.save.kind === "conflict") throw new ApiError(409, "stale_revision", CONFLICT_MESSAGE, null);
-    if (s.save.kind === "closed") throw new ApiError(403, "study_closed", CLOSED_MESSAGE, null);
+    return s.revision === null || s.save.kind !== "saved" || !!s.completed;
+  }
+
+  /**
+   * Save now; resolves only once AIA holds the copy as it is, edits made while a save was in flight
+   * included. Saves are serialised: one at a time, each naming the revision the one before it
+   * returned, so two callers waiting behind one save never send the same base (F-STORE-1). A copy
+   * nothing is owed on is not sent. A conflict is thrown, and kept in `save`. After
+   * MAX_FLUSH_ROUNDS saves with the copy still changing under them, `FlushIncomplete` is thrown;
+   * the change stays pending and its debounced save stays armed, so nothing is dropped.
+   */
+  async flush(reason?: string): Promise<void> {
+    if (await this.drain(reason, MAX_FLUSH_ROUNDS)) return;
+    if (this.state.save.kind === "pending" && !this.timer) {
+      this.timer = setTimeout(() => this.autosave(), SAVE_DEBOUNCE_MS);
+    }
+    throw new FlushIncomplete();
+  }
+
+  /**
+   * Up to `rounds` serialised saves, until nothing is owed. True when nothing is owed (or the copy
+   * may not change here); false when the rounds ran out with a change still waiting.
+   */
+  private async drain(reason: string | undefined, rounds: number): Promise<boolean> {
+    for (let round = 0; round < rounds; round++) {
+      if (this.timer) {
+        clearTimeout(this.timer);
+        this.timer = null;
+      }
+      // One save at a time: wait for whichever save is in flight, then look at the copy again.
+      while (this.inflight) await this.inflight;
+      if (this.opts.readOnly) return true;
+      if (this.state.save.kind === "conflict") throw new ApiError(409, "stale_revision", CONFLICT_MESSAGE, null);
+      if (this.state.save.kind === "closed") throw new ApiError(403, "study_closed", CLOSED_MESSAGE, null);
+      if (!this.owed()) return true;
+      await this.saveOnce(reason);
+    }
+    return !this.owed();
+  }
+
+  /**
+   * One save of the copy as it is now. Called only with no save in flight: `inflight` is set before
+   * this returns, so a caller resuming after the previous save waits for this one.
+   */
+  private saveOnce(reason?: string): Promise<void> {
+    const s = this.state;
     const body = {
       content: s.project,
       analysis: s.analysis,
@@ -234,7 +278,7 @@ export class ResearchStore {
       reason: saveReason(reason ?? this.reason),
     };
     this.set({ ...this.state, save: { kind: "saving" } });
-    this.inflight = (async () => {
+    const flight = (async () => {
       try {
         const r = await (this.opts.save ?? workspace.saveContent)(this.studyId, body);
         this.set({
@@ -264,7 +308,8 @@ export class ResearchStore {
         this.inflight = null;
       }
     })();
-    await this.inflight;
+    this.inflight = flight;
+    return flight;
   }
 
   /** Replace the project and analysis with what an AI step returned (no autosave of its own). */
@@ -348,6 +393,20 @@ export class ResearchStore {
 export const CONFLICT_MESSAGE = "Obsah studie mezitím uložil někdo jiný. Načtěte ho znovu, než budete pokračovat.";
 export const CLOSED_MESSAGE = "Studie je uzavřená a změny nepřijímá. Načtěte ji znovu.";
 
+/** How many saves one `flush` makes while the copy keeps changing under them, before it says so. */
+export const MAX_FLUSH_ROUNDS = 4;
+
+export const FLUSH_INCOMPLETE_MESSAGE = "Obsah studie se mění rychleji, než se stihne uložit. Změny čekají na uložení.";
+
+/** A flush that saved MAX_FLUSH_ROUNDS times and still has a change waiting: nothing was dropped. */
+export class FlushIncomplete extends Error {
+  readonly code = "flush_incomplete";
+  constructor() {
+    super(FLUSH_INCOMPLETE_MESSAGE);
+    this.name = "FlushIncomplete";
+  }
+}
+
 /** The API's save reason: the classic reasons are already this shape; anything else is `autosave`. */
 export function saveReason(reason: string): string {
   return /^[a-z0-9_:.-]{1,64}$/.test(reason) ? reason : "autosave";
@@ -364,12 +423,10 @@ export async function submitWorkingDesign(
   sourceStage: string,
   submit: typeof research.submitDesign = research.submitDesign,
 ): Promise<DesignRevision> {
-  // A copy AIA already holds as it is needs no save: its revision is what is submitted. One the
-  // template completed on load is not what AIA holds, so it is saved first (its own revision).
-  const owed = () => store.get().revision === null || store.get().save.kind !== "saved" || !!store.get().completed;
-  for (let i = 0; i < 2 && owed(); i++) {
-    await store.flush(sourceStage === "run" ? "run" : undefined);
-  }
+  // A copy AIA already holds as it is needs no save (flush sends nothing): its revision is what is
+  // submitted. One the template completed on load is not what AIA holds, so it is saved first, and
+  // flush saves a change typed during that save too.
+  await store.flush(sourceStage === "run" ? "run" : undefined);
   const s = store.get();
   if (s.revision === null) throw new Error("Pracovní obsah studie ještě není uložený.");
   return submit(studyId, s.project, sourceStage, s.revision);

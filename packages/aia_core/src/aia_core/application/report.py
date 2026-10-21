@@ -42,6 +42,9 @@ from aia_core.domain.report.validation import require_valid
 INTERNAL_REPORT_ARTIFACT_TYPE = "research_internal_docx"
 # The stored DOCX rendered as PDF beside it (complete-study-report B3).
 INTERNAL_REPORT_PDF_ARTIFACT_TYPE = "research_internal_pdf"
+# The draft's document model beside its DOCX, under the same fingerprint (report-delivery RD5a):
+# what the Zpráva pane reads and every later edit names a paragraph in.
+INTERNAL_REPORT_DOCUMENT_ARTIFACT_TYPE = "research_internal_document"
 INTERNAL_REPORT_MEDIA_TYPE = (
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 )

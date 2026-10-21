@@ -56,6 +56,7 @@ from aia_core.domain.ai_respondent import (
     plan_items,
     plan_respondent,
 )
+from aia_core.domain.deployment import DataClassGates
 from aia_core.domain.fieldwork import Answer, PersonaSource, persona_source_of
 from aia_core.domain.licence import DataLineage
 from aia_core.domain.material_rules import MaterialRule, classify_by_rule
@@ -151,6 +152,9 @@ class AIFieldworkConfig:
     #: on (input-interactions 3b). On, it changes the respondent prompt's identity, so the
     #: dataset's respondent system and provenance say so.
     scale_labels_in_prompt: bool = False
+    #: ``AIA_DATA_CLASS_GATES`` (plan develop-class-advisory), the gateway's own: advisory on
+    #: develop only, where the validation's arms send an unclassified specification.
+    class_gates: DataClassGates = DataClassGates.ENFORCE
 
 
 @dataclass(frozen=True, slots=True)
@@ -199,6 +203,11 @@ class AIFieldwork:
         self._build = build
         self._caller_factory = caller_factory
         self._population = population
+
+    @property
+    def class_gates(self) -> DataClassGates:
+        """``AIA_DATA_CLASS_GATES`` as composed: whether a class-only refusal is advisory."""
+        return self._config.class_gates
 
     @property
     def population(self) -> PopulationLoader | None:

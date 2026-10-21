@@ -795,6 +795,9 @@ class StudyLeadTurnRow(Base):
     run_id: Mapped[str | None] = mapped_column(String(64))
     workspace_revision: Mapped[int | None] = mapped_column(Integer)
     design_revision_id: Mapped[str | None] = mapped_column(String(64))
+    #: The typed start the server matched in a person's message (lead-orchestration LO5,
+    #: ``domain/lead_commands.py``), or NULL. Only a person's turn names one.
+    command: Mapped[str | None] = mapped_column(String(64))
     created_by: Mapped[str] = mapped_column(String(64), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
@@ -809,6 +812,10 @@ class StudyLeadTurnRow(Base):
         ForeignKeyConstraint(["user_id"], ["users.user_id"], ondelete="CASCADE"),
         ForeignKeyConstraint(["run_id"], ["workflow_runs.run_id"], ondelete="CASCADE"),
         UniqueConstraint("study_id", "user_id", "sequence_no", name="study_lead_turn_sequence"),
+        # A typed command is a person's: the Lead's model never names a start (D22).
+        CheckConstraint(
+            "command IS NULL OR actor = 'person'", name="study_lead_turn_command_is_a_persons"
+        ),
         CheckConstraint("actor in ('person','lead')", name="study_lead_turn_actor_known"),
         CheckConstraint("kind in ('message','greeting')", name="study_lead_turn_kind_known"),
         CheckConstraint("sequence_no >= 1", name="study_lead_turn_sequence_positive"),

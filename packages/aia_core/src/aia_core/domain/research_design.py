@@ -67,6 +67,7 @@ __all__ = [
     "TrackedSetLimits",
     "assess_readiness",
     "compile_design",
+    "keep_point_labels",
     "labelled_points",
     "prepare",
     "readiness_problems",
@@ -81,7 +82,7 @@ __all__ = [
 #: scale's verbal labels (input-interactions 3b); a specification ``-1`` stored is read as
 #: stored, held to the revision it records, never recompiled under ``-2``
 #: (``application.analysis_results.native_sources``).
-COMPILER_VERSION: Final = "aia-research-compile-2"
+COMPILER_VERSION: Final = "aia-research-compile-3"
 
 #: The unit's "don't know" option (``dotaznik.py`` ``Otazka.volby``).
 DONT_KNOW: Final = "Nevím / neodpovím"
@@ -591,6 +592,105 @@ def _scale_labels(
     return tuple(labels)
 
 
+def _stored_range(raw: Any) -> tuple[int, int] | None:
+    """A question's range as the editor reads it (``scale-labels.ts`` ``readRange``): two whole
+    numbers, 0 <= low < high <= 100; ``None`` otherwise, never rounded or swapped."""
+    if not isinstance(raw, list | tuple) or len(raw) != 2:
+        return None
+    low, high = raw
+    if not all(type(x) is int for x in (low, high)):
+        return None
+    if low < 0 or high > 100 or low >= high:
+        return None
+    return (low, high)
+
+
+def _point_labels(question: Mapping[str, Any]) -> tuple[tuple[int, int], list[str]] | None:
+    """A scale question's labels when they are a valid label on every point of its range."""
+    scale = _stored_range(question.get("skala"))
+    raw = question.get("popisky_skaly")
+    if question.get("typ") != "skala" or scale is None or scale_points(scale) <= 2:
+        return None
+    if not isinstance(raw, list) or len(raw) != scale_points(scale):
+        return None
+    notes: list[CompileProblem] = []
+    if not _scale_labels(raw, scale, where="", instead="", notes=notes) or notes:
+        return None
+    return scale, list(raw)
+
+
+def _fold(value: Any) -> str:
+    return _text(value).casefold()
+
+
+def keep_point_labels(rewritten: Any, stored: Any) -> Any:
+    """A rewritten questionnaire with its scale questions' per-point labels kept.
+
+    A rewrite whose contract carries a scale's two ends only (an agent's ``Question``, the
+    classic optimiser's schema) would otherwise drop the inner labels a person gave every point,
+    without a word (#559). A rewritten scale question with at most two labels and the same range
+    as a stored question labelled validly on every point keeps the stored labels, when exactly
+    one such stored question matches it: by id, else by wording, else by its two ends (folded).
+    Anything else stays as the rewrite wrote it; nothing is guessed. ``rewritten`` and
+    ``stored`` are lists of sections as stored; a value that is not one is returned as it is.
+    The web keeps them by the same rule (``scale-labels.ts`` ``keepPointLabels``).
+    """
+    if not isinstance(rewritten, list):
+        return rewritten
+    kept: list[tuple[Mapping[str, Any], tuple[int, int], list[str]]] = []
+    for section in stored if isinstance(stored, list) else []:
+        questions = section.get("questions") if isinstance(section, Mapping) else None
+        for q in questions if isinstance(questions, list) else []:
+            point = _point_labels(q) if isinstance(q, Mapping) else None
+            if point is not None:
+                kept.append((q, *point))
+    if not kept:
+        return rewritten
+
+    def kept_for(q: Mapping[str, Any]) -> list[str] | None:
+        scale = _stored_range(q.get("skala"))
+        raw = q.get("popisky_skaly")
+        labels = [] if raw is None else raw
+        if q.get("typ") != "skala" or scale is None or not isinstance(labels, list):
+            return None
+        if len(labels) > 2:
+            return None
+        same = [(s, lb) for s, sc, lb in kept if sc == scale]
+        ends = [_fold(x) for x in labels] if len(labels) == 2 else None
+        tiers = (
+            lambda s, lb: q.get("id") is not None and s.get("id") == q.get("id"),
+            lambda s, lb: (
+                _fold(q.get("text")) != "" and _fold(s.get("text")) == _fold(q.get("text"))
+            ),
+            lambda s, lb: ends is not None and ends == [_fold(lb[0]), _fold(lb[-1])],
+        )
+        for tier in tiers:
+            found = [lb for s, lb in same if tier(s, lb)]
+            if len(found) == 1:
+                return list(found[0])
+            if found:
+                return None
+        return None
+
+    out: list[Any] = []
+    for section in rewritten:
+        questions = section.get("questions") if isinstance(section, Mapping) else None
+        if not isinstance(section, Mapping) or not isinstance(questions, list):
+            out.append(section)
+            continue
+        changed = False
+        new_questions: list[Any] = []
+        for q in questions:
+            labels = kept_for(q) if isinstance(q, Mapping) else None
+            if labels is None:
+                new_questions.append(q)
+            else:
+                changed = True
+                new_questions.append({**q, "popisky_skaly": labels})
+        out.append({**section, "questions": new_questions} if changed else section)
+    return out
+
+
 def _links(
     raw: dict[str, Any], where: str, problems: list[CompileProblem]
 ) -> tuple[str, ...] | None:
@@ -907,14 +1007,29 @@ def compile_design(
         n=n,
         questions=tuple(questions),
         batteries=tuple(batteries),
-        audience={
-            "source_mode": _text(audience.get("source_mode")) or "population",
-            "strategy": _text(audience.get("strategy")) or "population",
-            "has_filters": bool(audience.get("filters")),
-        },
+        audience=_audience(audience),
         selection=selection,
     )
     return spec, ()
+
+
+def _audience(audience: dict[str, Any]) -> dict[str, Any]:
+    """The audience as the design stated it: its source and strategy, whether it narrowed, and
+    (compiler 3, artifact-chain CHN5) the description and built-in subpanel a person gave, each
+    only when given (the subpanel only on a population audience), so a design that states
+    neither keeps the body it always had."""
+    out: dict[str, Any] = {
+        "source_mode": _text(audience.get("source_mode")) or "population",
+        "strategy": _text(audience.get("strategy")) or "population",
+        "has_filters": bool(audience.get("filters")),
+    }
+    if description := _text(audience.get("description")):
+        out["description"] = description
+    # A subpanel is a part of AIA's population. The audience step keeps the last one chosen
+    # when the source moves outside it (OI-51), so it is the audience's only on a population.
+    if out["source_mode"] == "population" and (subpanel := _text(audience.get("builtin_subpanel"))):
+        out["builtin_subpanel"] = subpanel
+    return out
 
 
 def _filter_value(value: Any) -> Any:

@@ -13,7 +13,8 @@ Four processes, all under tmp/ui-workbench/ (git-ignored), and a fifth on reques
              develop seed (api_standin.py)                      127.0.0.1:8766
     worker   `python -m aia_worker` over the API's SQLite file and artifact store, with
              the workbench composition (aia_executors.workbench: the fictional
-             fieldwork source, ADR 0016), so a research run finishes here
+             fieldwork source, ADR 0016), so a research run finishes here, and
+             Deep Research on fixtures/deep_research/ (recorded web, scripted agents)
     web      `next dev` for apps/web                            127.0.0.1:13000
     facade   routes like the develop Caddyfile, minus the gates 127.0.0.1:8780
     unit     with --with-unit only: the vendored ui_server.py on a scratch copy of
@@ -256,10 +257,15 @@ def up(fresh: bool, with_unit: bool = False) -> int:
                 "AIA_ENV": "local",
                 "DATABASE_URL": f"sqlite+pysqlite:///{DB}",
                 "AIA_WORKER_EXECUTORS": "aia_executors.workbench:build_registry",
+                # Analysis answered from recordings, at zero price (CHN7).
+                "AIA_AI_ANALYSIS_ENABLED": "true",
                 "AIA_WORKER_ID": "workbench-worker",
                 "AIA_WORKER_POLL_SECONDS": "1",
                 "AIA_STORAGE_BACKEND": "filesystem",
                 "AIA_STORAGE_ROOT": str(ARTIFACTS),
+                # Deep Research on a fictional recorded web, answered by scripted agents:
+                # nothing paid, nothing leaves the machine (research-lead-workbench 12a).
+                "AIA_WORKBENCH_DEEP_RESEARCH_FIXTURES": str(HERE / "fixtures" / "deep_research"),
             },
         )
         STATE.write_text(json.dumps(state, indent=1) + "\n")
