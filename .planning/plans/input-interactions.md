@@ -5,7 +5,8 @@ chunks:
   - "[ ] 1. Shared primitives with tests: InlineText, Stepper, ChoiceChips (+ Segmented and Switch adopted everywhere), InlineCreateRow, SwatchPicker, MenuButton, UndoToast, SpendDialog; retire AskDialog's prompt form"
   - "[ ] 2. Knowledge library: folders and labels created in the list, renamed in place, recoloured by swatch; bulk and item filing by menu; search debounced (audit D1-D13)"
   - "[ ] 3. Questionnaire: questions, options, blocks and sets created and edited in place; comparisons as segmented; deletes with undo (audit A1-A8, A11-A21)"
-  - "[ ] 3b. Scales: range presets 1-5, 1-7, 0-10, 1-10 and Vlastní; a verbal label on every point; the domain compiling the labels and refusing a non-integer end, the labels reaching respondents (audit A9, A10, IA-2, IA-7)"
+  - "[x] 3b1. Scales, server side: the domain compiling a scale's labels (two ends or one per point; labels that break the rule left out with a readiness WARN, scale_labels_ignored; the compiler aia-research-compile-2) and refusing a non-integer end (invalid_scale); the labels reaching respondents behind AIA_AI_SCALE_LABELS_IN_PROMPT (off), the respondent prompt's identity moving with it; the report printing them; the editor's pure rule (apps/web/src/research/scale-labels.ts) (audit IA-2, IA-7)"
+  - "[ ] 3b2. Scales, the editor: range presets 1-5, 1-7, 0-10, 1-10 and Vlastní; a verbal label on every point, on chunk 1's primitives (#532); the range-change rule with its undo toast (audit A9, A10)"
   - "[ ] 4. Brief and plan: the narrative's questions, objectives and hypotheses as items edited in place; the measurement folded into the set card; autosave replaces the explicit editors (audit A22-A36)"
   - "[ ] 5. Sample and audience: one n stepper 50-5000 with the recommendation, no silent clamp; factor ranges as bounded steppers; subpanels and values as chips or combobox (audit B1-B11)"
   - "[ ] 6. Run, spend and results: one SpendDialog for every money confirmation; cancels as inline confirms; report approval as a modal naming the document; JobPanel non-modal (audit B12-B28, C1-C8)"
@@ -182,6 +183,72 @@ list read from the organization's own clients (chunk 8). Everything else is web-
 - The change alters what respondents are told, so it changes the respondent system's fingerprint
   (ADR 0024 §4); runs made before it keep their pinned specification and are not reinterpreted.
 
+### Chunk 3b1, as delivered (feature/scale-labels, PR #538)
+
+- **Compile.** `popisky_skaly` (question) and `scale_labels` (set) are read by one rule,
+  `research_design._scale_labels`: absent, empty or all blank is *none declared*; two labels are
+  the ends; one per point is every point. **No design that compiled on develop stops compiling
+  for its labels** (review of #538, P2): labels of another length, a blank, repeated
+  (case-folded) or over-60-character label, or anything but a list of texts, are left out --
+  none declared, nothing sent, nothing printed -- and readiness WARNs `scale_labels_ignored`
+  with the reason in words (`test_labels_that_break_the_rule_are_left_out_and_said_never_refused`).
+  The strict refusal is the editor's, at the field (`scale-labels.ts` `labelProblem`, 3b2).
+- **A set sends what it always sent while the switch is off** (re-review of #538, P3). Develop
+  read a set's ends as its first two labels, else `vůbec` / `velmi`; `_develop_ends` keeps that
+  reading exactly, as `SpecBattery.develop_ends` where it differs from `end_labels` (absent from
+  the fingerprint otherwise) and `told_ends`, which the off prompt, the map's legend and the
+  report's two-end wording read. The new reading (`scale_labels`) reaches respondents only with
+  the switch on (`test_off_a_stored_sets_requests_are_develops_bytes`: seven stored label shapes
+  against develop's request bytes; `test_on_a_set_is_read_by_the_new_rule`).
+- **An analysis retry never compiles again** (re-review of #538, P2). `retry_failed_modules`
+  names the original's specification by artifact id and SHA-256 beside its dataset
+  (`FrozenDataset.specification_artifact_id` / `_sha256`); the retry's compile step takes it as
+  stored and verifies it (`CompileExecutor._frozen`, `frozen_specification_mismatch`), so every
+  completed module's reuse key holds and the ceiling counts only what is asked
+  (`test_a_retry_of_a_run_an_earlier_compiler_compiled_reuses_its_specification`,
+  `test_a_retry_naming_another_specification_is_refused_never_compiled_again`).
+  `SpecQuestion.scale_labels` (empty, and absent from the fingerprint, when none were declared)
+  and `SpecBattery.scale_labels` (two or one per point; `end_labels` on both).
+- **The compiler is `aia-research-compile-2`** (review of #538, P1). Compiling the labels moves
+  the fingerprint of every design that declares them, so the version moves too: a run whose
+  compile step stored a compile-1 specification is read as stored, held to the revision it
+  records and never recompiled (`analysis_results.native_sources`;
+  `test_a_run_stored_before_scale_labels_compiled_reads_as_stored`, through `reconstruct_run`,
+  `stored_analysis` and the question tables), and a compile-1 artifact is never reused for a new
+  run (`aia_executors.research.compile_fingerprint`;
+  `test_a_specification_the_earlier_compiler_stored_is_never_reused`). A compile-1 specification
+  reads back to develop's fingerprint
+  (`test_a_specification_stored_before_the_labels_reads_back_as_stored`).
+- **IA-2.** `_scale_end` takes a whole number, a whole float (`5.0`) or a numeral (`"5"`); 2.5,
+  `"1.5"` and a boolean are `invalid_scale`, never truncated: a compile refusal, so a readiness
+  FAIL on Kontrola in words ("škála musí mít dvě celá čísla, od menšího k většímu"), never on
+  reading a stored run (`test_a_scale_end_that_is_not_whole_is_refused_in_words`).
+- **Respondents, behind `AIA_AI_SCALE_LABELS_IN_PROMPT`** (worker, off by default, off in test,
+  `false` in the develop Compose file). Off, every request is byte for byte what develop sent
+  (`test_off_the_requests_are_byte_identical_whatever_labels_a_question_declares` pins the SHA-256
+  over a roster's requests). On, a scale question's item carries its labels in
+  `ai_respondent.scale_label_wording` -- **PROVISIONAL**, one function, identity
+  `SCALE_LABEL_WORDING = "aia-scale-labels-provisional-1"`; the methodology owner signs or changes
+  it before the switch is turned on. A set's two ends read exactly as before either way.
+- **The respondent system.** On, `respondent_prompt_sha256(scale_labels_in_prompt=True)` is the
+  SHA-256 over the system prompt and the wording's identity, so `pinned_components` and every
+  panel dataset's respondent system name another prompt and fingerprint
+  (`test_scale_labels_in_the_prompt_are_another_respondent_system`,
+  `test_a_panel_run_with_scale_labels_in_the_prompt_records_another_respondent_system`); the
+  dataset's provenance adds `prompt.scale_labels` only when on, both read from the value the requests were built with (`Answered.scale_labels_in_prompt`), never the switch read again. Off, nothing recorded moves. The
+  switch is read by the worker when fieldwork runs; a finished run keeps the dataset and system it
+  recorded and is never reinterpreted.
+- **Validation.** A holdout arm asks with the labels off whatever the switch
+  (`AIFieldwork.answer_plans(scale_labels_in_prompt=False)`), because a validation's start pins
+  `pinned_components` with them off (`application/validation.py`). Validating a labelled system
+  needs the switch pinned at preregistration: decided with the methodology owner before it is on.
+- **Report.** The questionnaire appendix prints a question's labelled points, a set's every point
+  when it has them; each scale item's question table carries a note, `Škála: 1 = …, 10 = …`
+  (`report_tables.scale_notes`; `test_a_scales_labels_are_printed_beside_its_values`).
+- **Not done here (3b2):** the editor. #532 (chunk 1's primitives) was open when this landed; the
+  pure rule it will call (presets, `rescaleLabels`, `describeEveryPoint`, `labelProblem`) is in
+  `apps/web/src/research/scale-labels.ts` with its tests, wired to no screen yet.
+
 ## Where this touches other plans
 
 Planning should fold these together rather than build twice:
@@ -241,6 +308,14 @@ named.
 ## Findings
 
 IA-1 … IA-6, with all six parts, in the audit's §6. For the docs PR to number in `open-items.md`.
+
+- **IA-7 fixed** (chunk 3b1): a scale question's `popisky_skaly` is compiled into
+  `SpecQuestion.scale_labels` and, with `AIA_AI_SCALE_LABELS_IN_PROMPT` on, written into the
+  respondent's item (`test_on_a_scale_questions_labels_reach_the_respondent`). Off by default
+  until the methodology owner signs the wording.
+- **IA-2 fixed, server side** (chunk 3b1): a non-integer scale end is `invalid_scale`, never
+  truncated by `int()`. The web's `setScaleEnd` still sends `+raw` (min 8 / max 3, an empty field
+  as 0) until the editor's steppers land in 3b2.
 
 - **IA-8 (found and fixed in chunk 1). `Segmented` had no arrow keys.**
   `apps/web/src/components/rehome/step.tsx:139 @ e09a6c99`: every option was its own Tab stop and

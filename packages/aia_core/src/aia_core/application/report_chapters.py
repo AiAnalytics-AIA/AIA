@@ -27,7 +27,11 @@ from aia_core.application.report import ReportCompositionRefused
 from aia_core.application.report_design import DesignSections, compose_design_sections
 from aia_core.application.report_maps import compose_map_sections
 from aia_core.application.report_method import compose_method_section, research_question_gaps
-from aia_core.application.report_tables import QuestionTables, compose_question_tables
+from aia_core.application.report_tables import (
+    QuestionTables,
+    compose_question_tables,
+    scale_notes,
+)
 from aia_core.domain.analysis import AnalysisModuleId
 from aia_core.domain.analysis.native import native_items
 from aia_core.domain.report.model import Section
@@ -136,6 +140,7 @@ def report_chapters(
             native_items(spec),
             source=f"Zmrazený výsledek běhu {run_id}; evidence "
             f"{first.inputs.table.fingerprint()[:12]}",
+            scales=scale_notes(spec),
         ),
         design=compose_design_sections(spec, first.inputs.research_questions),
         method=compose_method_section(run.get("metadata") or {}, first.record.labels.data_origin),
