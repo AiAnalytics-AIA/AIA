@@ -3056,7 +3056,7 @@ export const cs = {
           rangeHelp: "Od nejnižší po nejvyšší hodnotu na mapě",
           relations: "Vztahy",
           relTop: "Top vztahy",
-          relTopHelp: "Nejsilnější spolehlivé vztahy na mapě (5); u vybraného objektu jeho nejsilnější",
+          relTopHelp: "Nejsilnější spolehlivé vztahy na mapě (5); u vybraného objektu jeho nejsilnější, na celé obrazovce vždy celé mapy",
           relSelected: "Vybraný",
           relAll: "Vše",
           legendTitle: "Výška · Průměrné hodnocení",
