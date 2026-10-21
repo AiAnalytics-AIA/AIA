@@ -70,9 +70,10 @@ export function DesignResearchReview({ studyId, runId, store, project, canApply 
     setBusy(true); setError(null); setNotice(null);
     try {
       // A change still waiting for its save is saved first, so the server checks the items against it.
-      // One flush saves what the copy held when it was called, and an edit typed while it was in flight
-      // stays pending. So flush until the copy is saved, as the design submit does, and never post on an
-      // unsaved copy: the reload after the accept would replace what was typed.
+      // ResearchStore.flush resolves only once the copy is saved, an edit typed during its save included
+      // (F-STORE-1), and throws FlushIncomplete otherwise; the loop stays as a guard for a store that
+      // resolves with a change still waiting. Never post on an unsaved copy: the reload after the accept
+      // would replace what was typed.
       for (let i = 0; i < SAVE_ATTEMPTS && store.get().save.kind !== "saved"; i++) await store.flush();
       if (store.get().save.kind !== "saved") {
         setError("Vaše poslední úprava se ještě ukládá. Počkejte, až bude uložená, a podklady přijměte znovu.");
