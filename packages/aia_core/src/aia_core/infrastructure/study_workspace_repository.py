@@ -244,10 +244,11 @@ class StudyWorkspaceRepository:
         """Save the Study's working content as its newest revision.
 
         ``base_revision`` is the revision the content was edited from: ``None`` only
-        for a Study with no content yet, or whose content is still the bare template a server
-        writer saved for it (:func:`~aia_core.domain.workspace.edited_from_current`). A save
-        from any other revision than the current one is refused (``stale_revision``), so two editors cannot silently
-        overwrite each other. Content and analysis identical to the current revision
+        for a Study with no content yet, or whose content is still the bare template a
+        server writer saved for it (:func:`~aia_core.domain.workspace.edited_from_current`).
+        A save from any other revision than the current one is refused
+        (``stale_revision``), so two editors cannot silently overwrite each other.
+        Content and analysis identical to the current revision
         write nothing (``deduplicated``). Needs ``EDIT_STUDY`` on an open research
         Study whose content is not awaiting migration. The first save creates the
         Study's working project.
