@@ -1,4 +1,22 @@
+/**
+ * The four money names (the product owner, 2026-10-20, D-01; ADR 0028), written once: every screen
+ * that names one of these amounts reads it from here. The server's domain/money.py holds the same
+ * names, and both are held to packages/aia_core/tests/fixtures/money/vocabulary.json. The
+ * threshold is a confirmation, never a cap: the study's budget stops spending.
+ */
+export const money = {
+  /** clients.budget_usd: the cap of the client's own AI work, outside every study. */
+  clientBudget: "Rozpočet klienta",
+  /** studies.budget_usd: the cap that stops a study's spending (formerly "Strop rozpočtu"). */
+  studyBudget: "Rozpočet studie",
+  /** study_wallets.cap_usd: what paid work may start without a further card. */
+  wallet: "Peněženka",
+  /** studies.spend_confirm_usd: a start whose ceiling reaches it asks first; unset, nothing asks. */
+  confirmThreshold: "Práh potvrzení",
+} as const;
+
 export const cs = {
+  money,
   // The client-first AIA shell (ADR 0015). AIA's own words, not the classic
   // interface's: Clients first, then one client's work, then one study.
   aia: {
@@ -97,7 +115,7 @@ export const cs = {
       entityWaits: "Přidáno jako návrh: čeká, až ho schválí někdo jiný.",
       entitiesEdit: "Upravit ve Znalostech",
       budget: {
-        title: "Rozpočet klienta",
+        title: money.clientBudget,
         hint: "Platí práci AI přímo na klientovi, například návrhy znalostí z jeho podkladů. Rozpočty studií jsou zvlášť a tento je nečerpá ani neomezuje.",
         limit: "Rozpočet",
         spent: "Utraceno",
@@ -262,7 +280,6 @@ export const cs = {
       noFolders: "Zatím žádná složka.",
       noLabels: "Bez štítků",
       newFolder: "Nová složka",
-      newFolderAsk: "Název nové složky",
       renameFolderAsk: "Nový název složky",
       deleteFolderAsk: "Smazat složku „{name}“? Jejích {n} znalostí zůstane, jen bez složky.",
       newLabel: "Nový štítek",
@@ -889,6 +906,8 @@ export const cs = {
           noRevision: "Tato studie nemá žádnou revizi návrhu.",
           start: "Zadat zkušební úlohu",
           starting: "Zadávám…",
+          costConfirm: "Spustit",
+          costDecline: "Nespouštět",
           close: "Zavřít",
           ranWith: "Prompt {version}",
           parked: "Úloha čeká na povolenou trasu, licenci nebo na zařazení textu promptu operátorem; nic se modelu neodeslalo.",
@@ -1433,7 +1452,7 @@ export const cs = {
           membership_is_access: "Členství v organizaci je přístup: každý člen vidí všechny klienty a studie",
           studies: "Studie",
           study_status: "Stav studie",
-          study_budget: "Rozpočet studie",
+          study_budget: money.studyBudget,
           default_project_max_api_cost: "Výchozí strop placeného API na projekt (prototyp)",
           project_max_api_cost: "Strop placeného API projektu (prototyp)",
           no_spend_past_budget: "Žádná útrata nad rozpočet",
@@ -1494,7 +1513,7 @@ export const cs = {
           budget: "Rozpočet",
           spent: "Utraceno",
           remaining: "Zbývá",
-          ceiling: "Strop rozpočtu",
+          ceiling: money.studyBudget,
           budgetInvalid: "Rozpočet musí být číslo (USD).",
           costsHidden: "náklady nevidíte (chybí oprávnění VIEW_COSTS)",
           permissionNote: "Stav a rozpočet studie smí měnit každý výzkumník. Rozpočet je tvrdý strop: krok, který by ho překročil, se zastaví.",
@@ -1752,6 +1771,12 @@ export const cs = {
       title: "AI úloha čeká na rozpočet studie",
       help: "Úloha se zastavila, protože by překročila rozpočet studie, a sama nepokračuje. Po navýšení rozpočtu pokračuje tatáž úloha; nic dalšího se nespouští.",
       job: "{action} · zadáno {when}",
+      // A stage's own AI step that stopped at the budget, said where the person asked for it (CR-2).
+      waitingTitle: "AI krok čeká na rozpočet studie",
+      waitingHelp: "Nejde o chybu: krok se zastavil, protože by překročil rozpočet studie, a sám nepokračuje. Po zvýšení rozpočtu pokračuje tatáž úloha; nic nového se nespouští.",
+      readOnly: "Rozpočet může zvýšit jen člověk, který smí studii upravovat.",
+      followFailed: "Sledování úlohy po zvýšení rozpočtu se přerušilo. Tatáž úloha pokračuje dál; nic nového se nespouští.",
+      followAgain: "Sledovat znovu",
     },
     // Studio v3's shared step pieces (components/rehome/step.tsx).
     step: { optional: "volitelné", remove: "Odebrat", keep: "Ponechat" },
@@ -1880,6 +1905,8 @@ export const cs = {
       variantChosen: "zvolený návrh",
       variantUse: "Kliknutím použít",
       variantApplied: "Použit návrh: {title}",
+      variantSampleKept: "Velikost vzorku z návrhu nebyla uložena: {why}",
+      variantWaitLimits: "Načítám platný rozsah vzorku; návrh použijte za okamžik.",
       commentsTag: "KOMENTÁŘE K NÁVRHU",
       commentsTitle: "Označte text a přidejte komentář",
       commentsHelp: "Označte konkrétní text podobně jako ve Wordu. Všechny komentáře odešlete najednou.",
@@ -2547,20 +2574,20 @@ export const cs = {
         },
         remaining: "Z rozpočtu studie zbývá {remaining} USD (rozpočet {budget} USD).",
         budgetUnknown: "Rozpočet studie se nepodařilo načíst.",
-        limit: "Kdy se ptát před spuštěním",
+        limit: money.confirmThreshold,
         limitAmount: "Ptát se, když běh může stát alespoň (USD)",
-        limitNone: "Limit není nastaven: běh se spustí bez potvrzení.",
-        limitSet: "Limit studie: {limit} USD.",
-        save: "Uložit limit",
-        clear: "Zrušit limit",
-        willAsk: "Strop dosahuje limitu studie: před spuštěním se zeptám.",
-        unknownBlocks: "Studie má limit a strop nelze spočítat, takže běh nespustím. Doplňte nastavení nasazení, nebo limit zrušte.",
-        confirm: "Tento běh může stát až {ceiling} USD (limit studie je {limit} USD). Spustit?",
+        limitNone: "Práh potvrzení není nastaven: běh se spustí bez potvrzení.",
+        limitSet: "Práh potvrzení: {limit} USD.",
+        save: "Uložit práh",
+        clear: "Zrušit práh",
+        willAsk: "Strop dosahuje prahu potvrzení: před spuštěním se zeptám.",
+        unknownBlocks: "Studie má práh potvrzení a strop nelze spočítat, takže běh nespustím. Doplňte nastavení nasazení, nebo práh zrušte.",
+        confirm: "Tento běh může stát až {ceiling} USD (práh potvrzení studie je {limit} USD). Spustit?",
         // Studio v3: the limit as a switch, the ceiling as a bar.
         switch: "Zeptat se před spuštěním, když běh může stát alespoň",
         saving: "Ukládám…",
         legendCeiling: "Strop běhu",
-        legendLimit: "Limit studie",
+        legendLimit: money.confirmThreshold,
       },
       receiptTitle: "Co spustíte",
       receiptDims: "{d} dimenzí · N={n}",
@@ -2773,6 +2800,7 @@ export const cs = {
         within: "I při nejvyšší ceně by zbylo {after} USD, bez částek, které právě drží běžící kroky.",
         beyond: "To je víc, než nyní zbývá: přesáhne-li skutečná cena zbytek, krok se zastaví, dokud rozpočet nezvýšíte.",
         ceilingUnknown: "Kolik může stát, AIA předem neví.",
+        holdsNotCounted: "Zbytek nezahrnuje částky, které právě drží běžící kroky.",
       },
       budget: {
         title: "Zvýšit rozpočet studie",
@@ -2783,6 +2811,8 @@ export const cs = {
         note: "Poznámka k rozhodnutí",
         lift: "Zvýšit rozpočet a pokračovat",
         hardCap: "Strop zůstává tvrdý: pokud ani nový rozpočet krok nepokryje, krok se znovu zastaví.",
+        runTitle: "Běh čeká na rozpočet studie",
+        runWaiting: "Čekající kroky ({count}): {steps}. Jedno zvýšení rozpočtu pustí dál všechny najednou.",
       },
       failed: "Běh selhal u kroku „{step}“.",
       cancel: "Zrušit běh",
@@ -3253,6 +3283,66 @@ export const cs = {
   dialog: {
     ok: "OK",
     cancel: "Zrušit",
+  },
+  // The input standard's shared controls (input-interactions chunk 1, I1-I11).
+  input: {
+    edit: "Upravit: {label}",
+    editHint: "Enter uloží · Esc vrátí",
+    editHintMulti: "Ctrl+Enter uloží · Esc vrátí",
+    empty: "Bez textu",
+    saving: "Ukládám…",
+    saved: "Uloženo",
+    unsaved: "Neuloženo",
+    retry: "Zkusit znovu",
+    required: "Vyplňte text; neuloženo.",
+    tooLong: "Nejvýš {max} znaků; neuloženo.",
+    decrease: "Snížit: {label}",
+    increase: "Zvýšit: {label}",
+    stepHint: "↑ ↓ o krok, Shift ×10",
+    number: {
+      empty: "Zadejte číslo {range}; neuloženo.",
+      notNumber: "„{raw}“ není číslo; neuloženo.",
+      ambiguous: "„{raw}“ je nejednoznačné: tisíce oddělte mezerou, desetinná místa čárkou; neuloženo.",
+      notInteger: "Jen celé číslo; neuloženo.",
+      oneDecimal: "Nejvýš jedno desetinné místo; neuloženo.",
+      tooPrecise: "Nejvýš {decimals} desetinná místa; neuloženo.",
+      outOfRange: "Musí být {range}; neuloženo.",
+    },
+    name: {
+      empty: "Napište název.",
+      tooLong: "Nejvýš {max} znaků.",
+      taken: "„{name}“ už existuje.",
+      createHint: "Enter vytvoří a otevře další řádek · Esc zruší",
+      failed: "Nevytvořeno. Zkuste to znovu.",
+    },
+    swatch: "{label}: {colour}",
+    undo: "Vrátit",
+    undoClose: "Zavřít",
+    spend: {
+      kinds: {
+        spend_confirm: "Potvrzení útraty",
+        study_budget_lift: "Zvýšení rozpočtu studie",
+        client_budget_lift: "Zvýšení rozpočtu klienta",
+        wallet_lift: "Navýšení peněženky",
+      },
+      names: {
+        client_budget: "Rozpočet klienta",
+        study_budget: "Rozpočet studie",
+        wallet: "Peněženka",
+        threshold: "Práh potvrzení",
+      },
+      ceiling: "Horní mez",
+      ceilingNote: "horní mez, ne odhad",
+      ceilingUnknown: "nelze předem určit",
+      ceilingUnknownNote: "neznámá cena se nikdy nepočítá jako nula",
+      unknown: "neznámé",
+      remaining: "zbývá {usd}",
+      newAmount: "Nová částka",
+      after: "I při nejvyšší ceně zbude {usd}.",
+      beyond: "Může stát víc, než zbývá: krok se pak zastaví a počká na zvýšení.",
+      afterUnknown: "Kolik zbude, nelze spočítat: chybí horní mez nebo zůstatek.",
+      held: "Co drží právě běžící kroky, v zůstatku není.",
+    },
   },
   session: {
     opening: "Otevírám AIA…",

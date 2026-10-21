@@ -27,8 +27,14 @@ from aia_core.infrastructure.storage import ArtifactStore
 from aia_core.infrastructure.storage_settings import StorageSettings, build_artifact_store
 from aia_worker.executor import StepExecutor
 
-from .ai_fieldwork import AIFieldwork
-from .ai_runtime import AIRuntimeSettings, build_ai_fieldwork, build_gateway
+from .ai_fieldwork import AIFieldwork, PopulationLoader
+from .ai_runtime import (
+    AIRuntimeSettings,
+    BedrockSigner,
+    HttpTransport,
+    build_ai_fieldwork,
+    build_gateway,
+)
 from .analysis import AnalysisConfig, analysis_registry
 from .client_source_proposals import KIND as CLIENT_SOURCE_PROPOSALS_KIND
 from .client_source_proposals import ClientSourceProposalsExecutor, SourceProposalsConfig
@@ -50,6 +56,7 @@ __all__ = [
     "POPULATION_ASSET_ROOT_KEY",
     "SOCIOMAP_CONNECTEDNESS_INTERVAL_KEY",
     "build_registry",
+    "compose_registry",
     "materialize_executor",
     "population_store",
     "registry_for",
@@ -154,6 +161,26 @@ def materialize_executor(
 
 def build_registry() -> dict[str, StepExecutor]:
     """The factory named by ``AIA_WORKER_EXECUTORS``; reads the environment."""
+    return compose_registry()
+
+
+def compose_registry(
+    *,
+    transport: HttpTransport | None = None,
+    signer: BedrockSigner | None = None,
+    population: PopulationLoader | None = None,
+) -> dict[str, StepExecutor]:
+    """The production composition from the environment, over a given model wire.
+
+    ``transport`` and ``signer`` default to the live ones (``build_gateway``: the urllib3
+    transport and the instance-role signer). A test composition passes a recorded wire
+    (:mod:`aia_executors.acceptance_recorded`) and gets every other part of this one
+    unchanged: the same settings, the same executors, the same gateway and gates.
+
+    ``population`` replaces the panel path's loader (``build_ai_fieldwork(population=)``); only
+    the local and test composition ``aia_executors.population_double`` passes one. Without it
+    the loader is the production one over ``AIA_POPULATION_ASSET_ROOT``.
+    """
     build = BuildIdentity.from_env()
     connectedness_interval = sociomap_connectedness_interval(os.environ)
     settings = AIRuntimeSettings.from_env()
@@ -163,7 +190,7 @@ def build_registry() -> dict[str, StepExecutor]:
         agent = ResearchAgentExecutor(
             store=store,
             build=build,
-            gateway=build_gateway(settings),
+            gateway=build_gateway(settings, transport=transport, signer=signer),
             config=ResearchAgentConfig(
                 policy_version=settings.policy_version,
                 max_output_tokens=settings.research_max_output_tokens,
@@ -179,7 +206,7 @@ def build_registry() -> dict[str, StepExecutor]:
         lead = ResearchLeadExecutor(
             store=store,
             build=build,
-            gateway=build_gateway(settings),
+            gateway=build_gateway(settings, transport=transport, signer=signer),
             config=ResearchLeadConfig(
                 policy_version=settings.policy_version,
                 max_output_tokens=settings.study_lead_max_output_tokens,
@@ -195,7 +222,7 @@ def build_registry() -> dict[str, StepExecutor]:
         proposals = ClientSourceProposalsExecutor(
             store=store,
             build=build,
-            gateway=build_gateway(settings),
+            gateway=build_gateway(settings, transport=transport, signer=signer),
             config=SourceProposalsConfig.from_settings(settings),
         )
     analysis = None
@@ -206,7 +233,10 @@ def build_registry() -> dict[str, StepExecutor]:
             reservation_usd=settings.analysis_reservation_usd,
         )
         analysis = analysis_registry(
-            store=store, build=build, gateway=build_gateway(settings), config=config
+            store=store,
+            build=build,
+            gateway=build_gateway(settings, transport=transport, signer=signer),
+            config=config,
         )["research_analysis"]
     children = population_store(os.environ)
     return registry_for(
@@ -216,10 +246,17 @@ def build_registry() -> dict[str, StepExecutor]:
         research_lead=lead,
         client_source_proposals=proposals,
         analysis=analysis,
-        deep_research=deep_research_runtime(settings),
+        deep_research=deep_research_runtime(settings, transport=transport, signer=signer),
         build=build,
         ai_runtime=(
-            build_ai_fieldwork(settings, build=build, population_store=children)
+            build_ai_fieldwork(
+                settings,
+                build=build,
+                population=population,
+                population_store=children,
+                transport=transport,
+                signer=signer,
+            )
             if settings is not None
             else None
         ),

@@ -73,6 +73,7 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
 
   useEffect(() => {
     let live = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- another run's bundle is cleared before this one is read
     setBundleFor(null);
     if (current?.status === "COMPLETED" && mayReview) {
       deepResearch.bundle(frame.studyId, current.run_id).then(
@@ -84,6 +85,7 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
   }, [frame.studyId, mayReview, current?.run_id, current?.status]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- no bundle yet: the analysis reads as loading, never as an older answer
     if (!bundle) { setAnalysisReady("loading"); return; }
     let live = true;
     setAnalysisReady("loading");

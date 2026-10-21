@@ -27,10 +27,20 @@ gets disabled the first time that toolchain breaks.
         --json parity-status.json --markdown parity-status.md
     python tools/parity_status.py render --write docs/migration/parity-matrix.md
 
-Exit status: 1 when any capability is FAIL or the matrix is malformed, else 0.
-NOT_EXECUTED and NOT_RUNNABLE do not fail the run -- they are reported, loudly,
-and CI's step summary shows them next to the passes so nobody mistakes one for
-the other.
+The MVP acceptance test (``mvp_acceptance``, MVP-ACCEPT-2) is judged apart from parity
+and never by it (MVP-21): each criterion lists the tier-A tests that prove it
+(``tests``), read from the acceptance step's own JUnit like a gate; a criterion that
+lists none is NOT_RUNNABLE. The acceptance verdict is the worst of its criteria, in
+the order of ``VERDICTS``: PASS only when every criterion passed. How many on-path
+capabilities have release-ready parity is reported beside it, as information.
+``acceptance`` in ``--available`` says the acceptance step ran, so a listed test it
+did not collect is a FAIL. Tier B is a person's live run on develop and is recorded
+by them, never computed here.
+
+Exit status: 1 when any capability or acceptance criterion is FAIL or the matrix is
+malformed, else 0. NOT_EXECUTED and NOT_RUNNABLE do not fail the run -- they are
+reported, loudly, and CI's step summary shows them next to the passes so nobody
+mistakes one for the other.
 """
 
 from __future__ import annotations
@@ -339,6 +349,54 @@ def why_risky(s: CapabilityStatus) -> str:
     return f"{text} -- {s.detail}" if s.detail else text
 
 
+#: What a criterion's tier-A tests need: the acceptance step's stack (tests/acceptance).
+ACCEPTANCE_REQUIRES = ("acceptance",)
+
+
+def evaluate_criterion(
+    criterion: Mapping[str, Any],
+    results: Mapping[tuple[str, str], str] | None,
+    available: frozenset[str] | None,
+) -> dict[str, Any]:
+    """One acceptance criterion's tier-A verdict, from the tests it lists.
+
+    No test listed: NOT_RUNNABLE -- nothing could prove it yet. Otherwise its tests are
+    judged as a gate is: a failure fails it, every one passing passes it, and one skipped
+    or not collected leaves it NOT_EXECUTED (a FAIL when the acceptance step ran).
+    """
+    tests = [str(t) for t in criterion.get("tests", [])]
+    row: dict[str, Any] = {"id": str(criterion["id"]), "tests": tests}
+    if not tests:
+        row.update(verdict=NOT_RUNNABLE, detail="no tier-A test proves it yet")
+        return row
+    result = evaluate_gate(
+        {
+            "id": criterion["id"],
+            "kind": "acceptance",
+            "requires": list(ACCEPTANCE_REQUIRES),
+            "tests": tests,
+        },
+        results,
+        available,
+    )
+    row.update(
+        verdict=result.verdict,
+        detail=result.detail,
+        passed=result.passed,
+        failed=result.failed,
+        skipped=result.skipped,
+    )
+    return row
+
+
+def acceptance_verdict(test: str | None, criteria: Sequence[Mapping[str, Any]]) -> str:
+    """The acceptance test's verdict: the worst criterion's, in ``VERDICTS`` order."""
+    if test is None or not criteria:
+        return NOT_RUNNABLE
+    seen = {str(c["verdict"]) for c in criteria}
+    return next(v for v in (*VERDICTS[:3], PASS) if v in seen)
+
+
 @dataclass
 class Report:
     reference_commit: str
@@ -353,7 +411,7 @@ class Report:
     fixtures: list[dict[str, Any]]
 
     def failed(self) -> bool:
-        return self.counts.get(FAIL, 0) > 0
+        return self.counts.get(FAIL, 0) > 0 or self.acceptance["verdict"] == FAIL
 
     def to_json(self) -> dict[str, Any]:
         return asdict(self)
@@ -375,7 +433,7 @@ def build_report(
     acceptance = matrix["mvp_acceptance"]
     on_path = sorted(s.id for s in statuses if s.on_path)
     not_ready = [cid for cid in on_path if not by_id[cid].release_ready]
-    acceptance_verdict = NOT_RUNNABLE if acceptance["test"] is None or not_ready else NOT_EXECUTED
+    criteria = [evaluate_criterion(c, results, available) for c in acceptance["criteria"]]
 
     gate_verdicts = {g.id: g.verdict for s in statuses for g in s.gates}
     fixture_rows = []
@@ -406,8 +464,11 @@ def build_report(
         unowned=sorted(s.id for s in statuses if not s.owner_confirmed),
         acceptance={
             "id": acceptance["id"],
-            "verdict": acceptance_verdict,
+            "verdict": acceptance_verdict(acceptance["test"], criteria),
             "test": acceptance["test"],
+            "criteria": criteria,
+            "criteria_counts": dict(Counter(str(c["verdict"]) for c in criteria)),
+            # Beside the verdict, never in it (MVP-21).
             "capabilities_on_path": len(on_path),
             "not_release_ready": len(not_ready),
             "not_release_ready_by_state": dict(
@@ -450,8 +511,22 @@ def render_report_markdown(report: Report) -> str:
         "",
         f"### {acc['id']} — MVP acceptance test",
         "",
-        f"`{acc['verdict']}`. {acc['not_release_ready']} of {acc['capabilities_on_path']} "
-        "capabilities on the acceptance path are not release-ready "
+        f"`{acc['verdict']}` in tier A, from the acceptance step's tests"
+        f" ({', '.join(f'{k} {v}' for k, v in sorted(acc['criteria_counts'].items()))}). "
+        "Tier B is a person's live run on develop, recorded by them.",
+        "",
+        "| Criterion | Tier A | Tests | Detail |",
+        "| --- | --- | ---: | --- |",
+    ]
+    lines += [
+        f"| `{c['id']}` | `{c['verdict']}` | {len(c['tests'])} | {c['detail']} |"
+        for c in acc["criteria"]
+    ]
+    lines += [
+        "",
+        f"Beside it, as information only (MVP-21): {acc['not_release_ready']} of "
+        f"{acc['capabilities_on_path']} capabilities on the acceptance path do not have "
+        "release-ready parity "
         f"({', '.join(f'{k} {v}' for k, v in sorted(acc['not_release_ready_by_state'].items()))}).",
         "",
         "### Golden fixtures",
@@ -592,12 +667,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     if report.highest_risk_unverified:
         print(f"highest-risk unverified: {report.highest_risk_unverified[0]}")
     acc = report.acceptance
+    counts = ", ".join(f"{k} {v}" for k, v in sorted(acc["criteria_counts"].items()))
+    print(f"{acc['id']}: {acc['verdict']} (tier A: {counts})")
     print(
-        f"{acc['id']}: {acc['verdict']} -- {acc['not_release_ready']} of "
-        f"{acc['capabilities_on_path']} capabilities on the path are not release-ready"
+        f"  beside it: {acc['not_release_ready']} of {acc['capabilities_on_path']} "
+        "capabilities on the path have no release-ready parity (information, MVP-21)"
     )
     if report.failed():
-        print("parity_status: FAILED -- a parity gate failed or did not run where it could.")
+        print(
+            "parity_status: FAILED -- a parity gate or an acceptance criterion failed, "
+            "or did not run where it could."
+        )
         return 1
     return 0
 

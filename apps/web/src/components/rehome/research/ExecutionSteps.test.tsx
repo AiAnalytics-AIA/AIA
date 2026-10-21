@@ -320,7 +320,7 @@ describe("Run", () => {
     const { rerender } = render(at("brief"));
     fireEvent.change(await screen.findByLabelText(t("research.brief.goalLabel")), { target: { value: "Změna, kterou AIA odmítla" } });
     // The debounced save meets the newer revision while the person is still on the brief.
-    expect(await screen.findByText(t("research.saveConflict"), {}, { timeout: 4000 })).toBeTruthy();
+    expect(await screen.findByText(t("research.saveConflict"))).toBeTruthy();
     rerender(at("run"));
     expect(await screen.findByText(t("research.exec.readinessFailed"))).toBeTruthy();
     expect(screen.getAllByText(CONFLICT_MESSAGE).length).toBeGreaterThan(0);
@@ -591,7 +591,7 @@ describe("Run: what a run can cost (5b.2)", () => {
     fireEvent.click(await screen.findByRole("button", { name: t("research.exec.start") }));
     const dialog = await screen.findByRole("dialog");
     // Beside the question, what remains of the study's budget, read as it asks (6d).
-    expect(within(dialog).getByText("Tento běh může stát až 225.00 USD (limit studie je 100.00 USD). Spustit? Z rozpočtu studie zbývá 400.00 USD. I při nejvyšší ceně by zbylo 175.00 USD, bez částek, které právě drží běžící kroky.")).toBeTruthy();
+    expect(within(dialog).getByText("Tento běh může stát až 225.00 USD (práh potvrzení studie je 100.00 USD). Spustit? Z rozpočtu studie zbývá 400.00 USD. I při nejvyšší ceně by zbylo 175.00 USD, bez částek, které právě drží běžící kroky.")).toBeTruthy();
     fireEvent.click(within(dialog).getByRole("button", { name: t("dialog.cancel") }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(called("POST", RUNS)).toHaveLength(0); // no yes, no run
@@ -982,7 +982,7 @@ describe("Run: what a run can cost (5b.2)", () => {
     fireEvent.click(await screen.findByRole("button", { name: t("research.exec.retry") }));
     const dialog = await screen.findByRole("dialog");
     // Beside the question, what remains of the study's budget, read as it asks (6d).
-    expect(within(dialog).getByText("Tento běh může stát až 225.00 USD (limit studie je 100.00 USD). Spustit? Z rozpočtu studie zbývá 400.00 USD. I při nejvyšší ceně by zbylo 175.00 USD, bez částek, které právě drží běžící kroky.")).toBeTruthy();
+    expect(within(dialog).getByText("Tento běh může stát až 225.00 USD (práh potvrzení studie je 100.00 USD). Spustit? Z rozpočtu studie zbývá 400.00 USD. I při nejvyšší ceně by zbylo 175.00 USD, bez částek, které právě drží běžící kroky.")).toBeTruthy();
     fireEvent.click(within(dialog).getByRole("button", { name: "OK" }));
     expect(await screen.findByText("Opakování běhu RUN-1")).toBeTruthy();
     expect(asked).toBe(1);
@@ -1312,13 +1312,45 @@ describe("Progress", () => {
 
   describe("a step waiting for budget", () => {
     const STUDY = { study_id: "STU-1", name: "Starbucks", budget_usd: 10, spent_usd: 9.5, remaining_usd: 0.5 };
-    const BUDGET_PATH = "/api/v1/studies/STU-1/research/runs/RUN-1/steps/analysis_executive/budget";
+    // The run's lift (CR-3): one path for the run, never one per step.
+    const BUDGET_PATH = "/api/v1/studies/STU-1/research/runs/RUN-1/budget";
     const waiting = () => parkedWith([
       step("compile", "SUCCEEDED", { artifact_id: "ART-1" }),
       step("analysis_executive", "AWAITING_BUDGET", { kind: "research_analysis", waiting_reason: "budget_exceeded" }),
     ]);
 
-    it("offers to raise the budget, showing what is spent, and posts the new total for that step", async () => {
+    it("offers one lift for the run when eight analysis steps wait, and one post releases them all (CR-3)", async () => {
+      const modules = ["executive", "segments", "drivers", "attitudes", "brand", "price", "risks", "recommendations"];
+      const many = parkedWith([
+        step("compile", "SUCCEEDED", { artifact_id: "ART-1" }),
+        ...modules.map((m) => step(`analysis_${m}`, "AWAITING_BUDGET", { kind: "research_analysis", waiting_reason: "budget_exceeded" })),
+      ]);
+      const resumed = run({ steps: [step("compile", "SUCCEEDED"), ...modules.map((m) => step(`analysis_${m}`, "RUNNABLE"))] });
+      let lifted = false;
+      api({
+        ...listed(many),
+        "GET /api/v1/studies/STU-1/research/runs/RUN-1": () => (lifted ? resumed : many),
+        "GET /api/v1/studies/STU-1": () => STUDY,
+        [`POST ${BUDGET_PATH}`]: () => { lifted = true; return resumed; },
+      });
+      render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+      const section = await screen.findByRole("status", { name: t("research.exec.budget.runTitle") });
+      expect(within(section).getByText(/Čekající kroky \(8\)/)).toBeTruthy();
+      // One form on the page, whatever the number of waiting steps.
+      await waitFor(() => expect(screen.getAllByRole("form", { name: t("research.exec.budget.title") })).toHaveLength(1));
+      const form = screen.getByRole("form", { name: t("research.exec.budget.title") });
+      await within(form).findByText(/10\.00/);
+      // The remainder leaves out open holds, and says so.
+      expect(within(form).getByText(t("research.exec.budgetLine.holdsNotCounted"))).toBeTruthy();
+      fireEvent.change(within(form).getByLabelText(t("research.exec.budget.amount")), { target: { value: "30" } });
+      fireEvent.click(within(form).getByRole("button", { name: t("research.exec.budget.lift") }));
+      await waitFor(() => expect(called("POST", BUDGET_PATH)).toHaveLength(1));
+      expect(called("POST", BUDGET_PATH)[0].body).toEqual({ budget_usd: 30, note: "" });
+      expect(calls.filter((c) => c.method === "POST" && /\/steps\/.+\/budget$/.test(c.url))).toEqual([]);
+      await waitFor(() => expect(screen.queryByRole("form", { name: t("research.exec.budget.title") })).toBeNull());
+    });
+
+    it("offers to raise the budget, showing what is spent, and posts the new total for the run", async () => {
       const resumed = run({ steps: [step("compile", "SUCCEEDED"), step("analysis_executive", "RUNNABLE")] });
       // As the API does: once lifted, the run reads resumed (the page reads it again after an action).
       let lifted = false;
@@ -1411,7 +1443,7 @@ describe("Progress", () => {
     // The page is now about the new run, a reload included.
     expect(window.location.search).toBe("?run=RUN-2");
     // And it keeps reading it: the first step finishes on screen without a reload.
-    await waitFor(() => expect(document.querySelector('[data-step="compile"]')?.getAttribute("data-status")).toBe("SUCCEEDED"), { timeout: 6000 });
+    await waitFor(() => expect(document.querySelector('[data-step="compile"]')?.getAttribute("data-status")).toBe("SUCCEEDED"));
     expect(reads).toBeGreaterThanOrEqual(2);
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1").filter((c) => !c.url.includes("/runs/RUN-1/"))).toHaveLength(1);
   }, 10000);

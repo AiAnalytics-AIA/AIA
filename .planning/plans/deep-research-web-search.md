@@ -59,6 +59,11 @@ chunks:
   - "[ ] 53. Open posture (owner, 2026-10-19): `clients.data_posture` OPEN or CLASSIFIED replaces classification for Deep Research in the MVP; a run pins it at enqueue, a retry copies it"
   - "[ ] 54. Before the first activation: each connector probed live once (every interface is UNVERIFIED), AIA_DEEP_RESEARCH_AGENT_DIRECTED named in the activation matrix, Common Crawl's AWS side (workgroup, results bucket, grants, us-east-1 exception) in Terraform or kept out of the first activation"
   - "[ ] 55. The start's cost ceiling function moves from the API router to the application layer, so a plan step in the worker and the router use one"
+  - "[ ] 51a. A run's routes on its record: by_route in CoverageLedger (sent, succeeded, refused) and composed_routes from the plan artifact (G67)"
+  - "[ ] 56. A quick single-track lookup for the Lead's Hledat na webu: several search hits and parallel fetches of the top pages through RetrievalGate, captured snapshots, per-call cost against the wallet; OPEN without a card, CLASSIFIED behind a plan card (Q6, Q24)"
+  - "[ ] 57. Brave for Class B queries (owner determination 2026-10-20, Q20): a query written from a design reaches Brave at Class B for every client, CLASSIFIED included; Class A only as chunk 57a's code-extracted fields (Q22); recorded as data beside OI-61"
+  - "[ ] 57a. Class A in queries only as code-extracted fields (Q22): category, market and named competitors from approved knowledge, picked by code, never the client's free text or documents"
+  - "[ ] 58. Search operators (Q23): site:, filetype: and intitle: written by the model, passed to routes that support them, RetrievalGate checking every URL and hop as today"
 ---
 # Deep Research — wide, precise, and defensible
 
@@ -1709,3 +1714,103 @@ the probe's evidence that no procurement interface is reachable, which then reco
 32** are W3 (row E28, after the Results and Sociomap artifact and the report pieces they cite; the Lens never
 changes a canonical coordinate); **24** is W4 (before the evaluations 25, 26, 39 and the live run 27, which
 the plan's order already requires).
+
+## Scope freeze (2026-10-20)
+
+Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
+
+**New chunk.**
+
+- **51a (W1, E12).** No response names the routes a run used (`coverage.py:42-56, 102-125 @ 854c209`),
+  which chunk 51's test, I-R and AC-11 require. `by_route` in `CoverageLedger` and `composed_routes`
+  read from the plan artifact; a reused track counts under its original run. Test: a recorded run
+  through `public-web-fetch`, one connector and the Wayback lookup lists exactly those route ids.
+
+**Existing chunks, changed by the owner's answers.**
+
+- **53 (D-10).** One refusal behaviour: a run refused for an unclassified design or an unapproved
+  live setting **fails** as a terminal failure worded by its cause, retryable under fresh pins after
+  the approval; no "Pokračovat v běhu" on it. The chunk's contradictory "still parks" test line is
+  replaced; AC-11's negative case and I-R read "refused whole, retryable".
+- **54 and `mvp-acceptance-harness#11` (D-11).** The acceptance study cites one known dead URL, so a
+  real run meets the archive and the run's record names `archive_lookup` / `archive_fetch`.
+- **Deep Research from the Lead (D-12)** is `lead-orchestration#LO5a`; its ceiling is chunk 55's.
+- **The Lead's own web search** (D-35, Q6): its retrieval half is chunk 56, below.
+
+### After the baseline's questions (the owner's answers to the baseline's Q1-Q8, 2026-10-20 19:37-19:46 UTC (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, second table))
+
+- **56 (W3).** Q6: the retrieval half of `lead-orchestration#LO20`. A lookup is one track, not a
+  run: one query (or a few the Lead writes), the route's hits returned together (a page of results
+  per query, the route's own page size), the top pages fetched in parallel with the existing per-host pacing, each captured as
+  a content-addressed snapshot so a quote can be grounded, everything journaled and metered as
+  chunk 47's coverage counts it. It reuses the engine's retrieval and grounding unchanged (ADR 0021:
+  the engine stays frozen; this is a new caller, not a change to the run's steps). Latency target:
+  first results to the Lead within the route's own response time, measured in the PR. Tests: a
+  CLASSIFIED client's lookup sends nothing; a lookup's spend is held against the wallet before it
+  leaves; a quote not in a captured snapshot is refused.
+
+### After the release-route answer (the owner's answers on the PM status page, 2026-10-20 20:50-21:04 UTC, relayed by the coordinator (page ids Q13 to Q18; `.planning/evidence/scope-freeze/answers-2026-10-20.md`, fourth table))
+
+- **53 (page Q16: (a)).** At release, Brave serves OPEN clients' web research, as MVP-27 amended has
+  it. The owner's note asks for Brave for **Class B** queries too (a CLASSIFIED client's design
+  queries); that is being confirmed and is **open** in the baseline. Until it is answered, a
+  CLASSIFIED client's web tracks stay parked as today.
+
+### After the Class B answer (the owner's answers on the PM status page, 2026-10-20, relayed by the coordinator at 21:41 UTC (page ids Q19 to Q21; `.planning/evidence/scope-freeze/answers-2026-10-20.md`, fifth table))
+
+- **57 (W2, page Q20: (b)). The owner's determination of 2026-10-20**, recorded in the style of
+  OI-61 (`licence_determinations.py`): the Brave route may receive **Class B** (design-derived)
+  queries for **every client, CLASSIFIED included**.
+  - It changes MVP-27 (amended 2026-10-19) for Class B: a CLASSIFIED client's design-derived queries
+    no longer leave its web tracks parked. A query takes the class of what it was written from
+    (`deep_research/classification.py`, never lowered by keywords); a CLASSIFIED client's design
+    queries take Class B by rule **for search egress only**. **Brave alone** admits B and C: every
+    other route (Wikipedia, Common Crawl, public fetch, connectors) stays Class C for a CLASSIFIED
+    client, so a Class B query to it is refused by name. Brave's admitted classes come from the
+    recorded determination, not from code defaults. ADR 0032 decision 4 (#512 @ 4502017) records it
+    as an explicit exception to ADR 0008's EU-processing condition, for Brave alone.
+  - **Class A is refused** on Brave (client notes, approved knowledge, a client's sources, by
+    `material_rules`) except the code-extracted fields of chunk 57a (page Q22). **Search operators**
+    (`site:`, `filetype:`, `intitle:`) are chunk 58 (page Q23). The owner's note: "maybe even class A,
+    depends how the query is constructed. I like to implement google search hacking into the
+    workflows, to create highly specific and reputable sources".
+  - Chunk 53's OPEN posture is unchanged: OPEN still lowers an OPEN client's queries to Class C.
+    What changes is the CLASSIFIED path: its edited design no longer needs an operator record to run
+    its web tracks when every query it sends is Class B or C (or 57a's fields); a query from other
+    Class A material is refused by name and sends nothing.
+  - Cost, stated plainly: Brave is NON_EU and keeps logs up to 90 days, so a CLASSIFIED client's
+    design wording (names included) can reach it. The determination is the guard, and it is recorded.
+  - ADR 0008 (residency and classes) and ADR 0032 (#512) record the route's admitted classes; both
+    change with this (Doc follow-up).
+  - Tests: a CLASSIFIED client's design-derived query reaches the recorded Brave double at Class B; a
+    query built from a Class A knowledge item's text is refused before anything is sent; the same Class B
+    query to a Class C route (Wikipedia, Common Crawl) is refused by name; the determination
+    record is the only source of Brave's admitted classes (removing it refuses Class B); an OPEN
+    client's behaviour is unchanged.
+  - The Lead's lookup (`lead-orchestration#LO20`, chunk 56) serves CLASSIFIED clients behind a plan
+    card (page Q24), under the same class rule.
+
+### After the Class A, operators and lookup answers (the owner's answers on the PM status page, 2026-10-20 21:55-21:57 UTC, relayed by the coordinator (page ids Q22 to Q24; `.planning/evidence/scope-freeze/answers-2026-10-20.md`, sixth table))
+
+- **57a (W2, page Q22: (b)).** Class A reaches a search query **only as fields code extracts from
+  approved knowledge**: the client's category, market and named competitors (the ENTITY knowledge of
+  the client's profile, `knowledge.py`). **Code picks the fields, not the model**: the query writer
+  is handed them as a closed list of terms, and a query is checked before it leaves that every Class
+  A term in it is one of them. The client's free text, notes, documents and sources never reach a
+  query. Those terms go to Brave alone (chunk 57; ADR 0032 decision 4); every other route still
+  refuses Class A. Tests: a query carrying a named competitor from approved knowledge reaches the
+  recorded Brave double; a query carrying a phrase from a client document or a pending (unapproved)
+  item is refused before anything is sent; the same competitor to a Class C route is refused.
+- **58 (W2, page Q23: (b)).** Search operators (`site:`, `filetype:`, `intitle:`) are **in the
+  MVP**, written by the model freely (the owner chose this over a curated domain list). An operator
+  is query text: it does not change the query's class, and a route that does not support it (the
+  Wikipedia route) receives the query without it, said in the track's record. `RetrievalGate`
+  checks every URL and every hop as today (`domain/deep_research/web.py`); nothing new is fetched
+  because of an operator. Tests: a `site:` query reaches the recorded Brave double verbatim; the
+  same query to Wikipedia is sent without the operator and the record says so; a result URL on a
+  private address is still refused.
+- **56 (page Q24: (c)).** The lookup serves CLASSIFIED clients too: an OPEN client's lookup runs
+  without a card (Q18's bounds); a CLASSIFIED client's lookup runs only after the person approves a
+  plan card (`lead-orchestration#LO20`), and its queries are Class B or 57a's fields, to Brave alone.
+  The test "a CLASSIFIED client's lookup sends nothing" becomes "sends nothing until its card is
+  approved".

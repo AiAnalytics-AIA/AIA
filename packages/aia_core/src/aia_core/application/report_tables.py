@@ -13,10 +13,11 @@ refuses is named, with the gate's reasons, and the other questions keep their ta
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from aia_core.application.analysis_results import RunAnalysis
+from aia_core.application.report_design import scale_wording
 from aia_core.domain.analysis import AnalysisModuleId
 from aia_core.domain.evidence import (
     AdmittedClaim,
@@ -41,6 +42,7 @@ from aia_core.domain.report.model import (
     TextCell,
     text,
 )
+from aia_core.domain.research_design import ResearchSpecification
 
 #: The suffixes ``native_evidence`` gives a question's rows, in the order a table prints them
 #: (the estimates, then the counts behind them), and how a table names a row that was
@@ -81,8 +83,29 @@ def _label(ref: str, question_id: str, detail: str | None) -> str:
     return _SUFFIX_LABEL.get(suffix, suffix)
 
 
+def scale_notes(spec: ResearchSpecification) -> dict[str, str]:
+    """The note a scale item's table carries, by question id: its labelled points as the
+    design declared them (input-interactions 3b), never a claim about what a respondent was
+    sent (that is the dataset's provenance). A question without labels has none; every
+    tracked object has its set's, its two ends as develop read them (``told_ends``)."""
+    notes: dict[str, str] = {}
+    for q in spec.questions:
+        if q.scale is not None and q.scale_labels:
+            notes[q.id] = f"Škála: {scale_wording(q.scale, q.scale_labels)}."
+    for b in spec.batteries:
+        labels = b.told_ends if len(b.scale_labels) == 2 else b.scale_labels
+        note = f"Škála: {scale_wording(b.scale, labels)}."
+        for o in b.objects:
+            notes[b.question_id(o)] = note
+    return notes
+
+
 def compose_question_tables(
-    run: RunAnalysis, items: Sequence[InstrumentItem], *, source: str
+    run: RunAnalysis,
+    items: Sequence[InstrumentItem],
+    *,
+    source: str,
+    scales: Mapping[str, str] | None = None,
 ) -> QuestionTables:
     """One table per question in ``items`` order, over the run's own evidence table.
 
@@ -100,6 +123,7 @@ def compose_question_tables(
         joint_status=inputs.joint_status,
         source=source,
         surface=ClaimSurface.INTERNAL,
+        scales=scales,
     )
 
 
@@ -111,8 +135,11 @@ def question_tables(
     joint_status: JointStatus,
     source: str,
     surface: ClaimSurface,
+    scales: Mapping[str, str] | None = None,
 ) -> QuestionTables:
     """The question tables over ``table``, every cell admitted for ``surface``.
+
+    ``scales`` (:func:`scale_notes`) puts a scale item's labelled points under its table.
 
     Internal, a question the gate refuses is named with the gate's reasons. Client-facing, it
     is left out and the chapter says only how many were: the reasons are internal terms.
@@ -185,6 +212,7 @@ def question_tables(
                 rows=tuple(rows),
                 source=source,
                 base_ref=kept[0] if kept else None,
+                notes=(scales[qid],) if scales and qid in scales else (),
             )
         )
     if surface is ClaimSurface.CLIENT_FACING and refused:

@@ -527,7 +527,7 @@ describe("the editor a methodologist opens on (product owner, 2026-10-13)", () =
     fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,3" } });
     fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
     const section = await versionsSection();
-    fireEvent.click(await within(section).findByRole("button", { name: "Uvést aia-sociomap-4+e1 v platnost" }, { timeout: 5000 }));
+    fireEvent.click(await within(section).findByRole("button", { name: "Uvést aia-sociomap-4+e1 v platnost" }));
     fireEvent.click(within(await found("[data-methodology-activate]", section)).getByRole("button", { name: "Potvrdit" }));
     await waitFor(() => expect(within(section).getByText("uložená verze")).toBeTruthy());
     cleanup();
@@ -568,7 +568,7 @@ describe("the editor a methodologist opens on (product owner, 2026-10-13)", () =
     fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,35" } });
     fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
     const section = await versionsSection();
-    const offer = await within(section).findByRole("button", { name: "Uvést aia-sociomap-4+e1 v platnost" }, { timeout: 5000 });
+    const offer = await within(section).findByRole("button", { name: "Uvést aia-sociomap-4+e1 v platnost" });
     // Once the list holds the saved version, it still offers one button for it: the confirmation's.
     await found('[data-methodology-version="1"]', section);
     expect(within(section).getAllByRole("button", { name: "Uvést aia-sociomap-4+e1 v platnost" })).toEqual([offer]);

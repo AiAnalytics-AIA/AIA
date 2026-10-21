@@ -119,3 +119,10 @@ MVPQ-04 is settled (block), so the diagnostic of chunk 9a is W1 and the composer
 From the independent cross-check of the master plan against the code (`mvp-master-plan.md` §6.1, G47-G57). Anchors are `@ 085abe0`.
 
 **10. The filtered base (G53, X8).** A routed question's numbers are over those it was asked, never over everyone. The aggregate takes the routed respondents as its base, computes its own effective n and support (a small base is suppressed like any other), and every admitted claim carries the base; Results and the report state it ("n = 84, those who never visit"). Tests: Q7's percentages sum over the routed base; a base below the support floor is suppressed and named; the claim's base appears on Results.
+
+## Scope freeze (2026-10-20)
+
+Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
+
+**Existing chunks, changed.** 5 (G61): its test reads "one authority per evidence source", and AC-08's
+row names it. 1 moves from E20 to E32 (G62), before its W1 consumer 9a.

@@ -61,6 +61,7 @@ export default function ProjectPage() {
   useEffect(() => {
     const artifactId = run?.steps[0]?.output?.artifact_id;
     if (!run?.is_terminal || typeof artifactId !== "string") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- the previous run's artifact is never shown for this one
       setArtifact(null);
       return;
     }

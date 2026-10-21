@@ -2002,6 +2002,33 @@ def test_a_budget_wait_is_lifted_through_its_study_run_and_the_run_goes_on(
     assert _study_budget(app, world) == before + 250.0
 
 
+def test_the_runs_budget_lift_releases_the_run_and_is_refused_when_nothing_waits(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """CR-3: Progress lifts the run, not one step at a time."""
+    run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
+        "run_id"
+    ]
+    node = _park_first_step_on_budget(app, world)
+    before = _study_budget(app, world)
+    url = f"{_runs(world)}/{run_id}/budget"
+
+    lower = researcher.post(url, json={"budget_usd": before - 1.0})
+    assert lower.status_code == 422 and lower.json()["code"] == "budget_not_raised"
+    lifted = researcher.post(url, json={"budget_usd": before + 20.0, "note": "běh"})
+    assert lifted.status_code == 200, lifted.text
+    assert next(s for s in lifted.json()["steps"] if s["node_key"] == node)["status"] == "RUNNABLE"
+    again = researcher.post(url, json={"budget_usd": before + 40.0})
+    assert again.status_code == 409 and again.json()["code"] == "not_waiting_for_budget"
+    assert _study_budget(app, world) == before + 20.0
+    assert (
+        researcher.post(
+            f"{_runs(world)}/RUN-0a1b2c/budget", json={"budget_usd": before + 1.0}
+        ).status_code
+        == 404
+    )
+
+
 def test_a_budget_lift_that_is_refused_changes_nothing(
     app: FastAPI, researcher: TestClient, other_client_lead: TestClient, world: Any
 ) -> None:

@@ -603,6 +603,7 @@ export function RunStep() {
   const [design, setDesign] = useState<DesignEvidence | null>(null);
   useEffect(() => {
     let live = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- another study's evidence is cleared before this one is read
     setDesign(null);
     if (!frame.canEdit) return;
     (async () => {
@@ -1210,6 +1211,7 @@ export function ProgressStep() {
   if (run === null) return <Card><p className="text-sm">{t("research.exec.noRuns")}</p></Card>;
   const parked = parkedForRuntime(run);
   const failed = run.steps.find((s) => s.status === "FAILED");
+  const budgetWaits = run.steps.filter((s) => s.status === "AWAITING_BUDGET");
   // Opened by a start that found this run instead of starting one (PC13).
   const foundByStart = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("found") === "1" && runFromQuery() === run.run_id;
   const listed = [...STEP_ORDER, ...ANALYSIS_ORDER.map((id) => `analysis_${id}`), "report"].map((key) => stepOf(run, key)).filter((s): s is ResearchStep => !!s);
@@ -1251,6 +1253,16 @@ export function ProgressStep() {
             ) : null}
           </div>
         ) : null}
+        {budgetWaits.length && !run.is_terminal ? (
+          // The run's lift (CR-3): every step waiting for budget goes on with one decision.
+          <section role="status" aria-labelledby="run-budget-title" data-run-budget className="mt-3 flex flex-col gap-2 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">
+            <h3 id="run-budget-title" className="font-semibold">{t("research.exec.budget.runTitle")}</h3>
+            <p>{tv("research.exec.budget.runWaiting", { count: budgetWaits.length, steps: budgetWaits.map((s) => stepLabel(s.node_key)).join(", ") })}</p>
+            {frame.canEdit ? (
+              <BudgetLift studyId={frame.studyId} busy={busy} lift={(total, note) => void act(() => research.liftBudget(frame.studyId, run.run_id, total, note))} />
+            ) : null}
+          </section>
+        ) : null}
         {failed ? (
           <p role="alert" className="mt-3 text-sm text-status-fault">
             {tv("research.exec.failed", { step: stepLabel(failed.node_key) })} {failed.error_message ?? ""}
@@ -1281,9 +1293,6 @@ export function ProgressStep() {
               </span>
               {waitingDetail(s) ? <span className="text-xs text-ink">{waitingDetail(s)}</span> : null}
               <StepActivityPanel orb={researchStepOrb(run, s)} activity={activityOf(activity, s.step_id)} startedAt={s.started_at} label={stepLabel(s.node_key)} />
-              {frame.canEdit && s.status === "AWAITING_BUDGET" && !run.is_terminal ? (
-                <BudgetLift studyId={frame.studyId} busy={busy} lift={(total, note) => void act(() => research.liftBudget(frame.studyId, run.run_id, s.node_key, total, note))} />
-              ) : null}
             </li>
           ))}
         </ol>

@@ -42,6 +42,7 @@ from aia_core.domain.research_lead import (
     LeadOutput,
     context_classification,
     context_sha256,
+    frozen_sample_size,
     ground_edits,
     ground_self_update,
     layer,
@@ -280,7 +281,10 @@ class ResearchLeadExecutor:
             return answer
         design = layer(frozen, "design")
         grounded, dropped = ground_edits(
-            answer.output, design.get("content") or {}, design.get("analysis") or None
+            answer.output,
+            design.get("content") or {},
+            design.get("analysis") or None,
+            sample_size=frozen_sample_size(design),
         )
         notes = list(layer(frozen, "lead").get("notes") or ())
         shown = [str(n["memory_id"]) for n in notes]

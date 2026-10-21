@@ -585,6 +585,37 @@ def test_the_readiness_check_previews_the_lines_the_code_writes_under_the_draft(
     assert owner.post(f"{SOCIOMAP}/check", json=_edit()).json()["preview"] == []
 
 
+def test_the_study_reads_the_valid_n_in_force_and_an_activation_moves_it(
+    owner: TestClient, world: Any, as_user: Any
+) -> None:
+    """RQC9: one authority for a valid n. The web reads the readiness limits in force from
+    the Study instead of a range of its own, so an activated version is what it refuses by."""
+    member = as_user("lead")
+    limits = f"{API}/studies/{world.study_id()}/research/limits"
+    preset = member.get(limits)
+    assert preset.status_code == 200, preset.text
+    assert preset.json() == {
+        "methodology_version": "aia-readiness-1",
+        "version": None,
+        "sample_size": {"min": 20, "max": 10000},
+    }
+    number = owner.post(
+        f"{READINESS}/versions",
+        json={**_readiness_edit(sample_size__min=100, sample_size__max=800), "note": "užší"},
+    ).json()["version_number"]
+    put = owner.put(f"{READINESS}/activation", json={"version_number": number, "reason": "test"})
+    assert put.status_code == 200, put.text
+    edited = member.get(limits).json()
+    assert edited["version"] == number and edited["sample_size"] == {"min": 100, "max": 800}
+    assert edited["methodology_version"] == "aia-readiness-1+e1"
+
+
+def test_an_unknown_study_has_no_limits_to_read(as_user: Any) -> None:
+    # Read through the Study's scope like every research route: a study not found is a 404.
+    got = as_user("lead").get(f"{API}/studies/STU-0000ffff/research/limits")
+    assert got.status_code == 404, got.text
+
+
 def test_readiness_compare_lists_the_studies_whose_verdict_the_draft_moves(
     world: Any, as_user: Any
 ) -> None:

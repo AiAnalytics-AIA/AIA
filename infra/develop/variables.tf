@@ -82,11 +82,6 @@ variable "google_client_secret" {
   sensitive   = true
 }
 
-variable "google_hosted_domain" {
-  description = "The Google Workspace domain whose accounts may sign in (Google's `hd` parameter). Cognito still only admits users an administrator has provisioned."
-  type        = string
-}
-
 variable "bedrock_model_id" {
   description = <<-EOT
     The ONE pinned model the instance role may invoke: an EU cross-region inference profile id, written in

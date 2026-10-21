@@ -1033,7 +1033,9 @@ def retry_failed_modules(
     modules that will ask a model. Idempotent: asking twice returns the same retry.
     A cancelled run counts as finished: its unstarted modules were cancelled with it, and
     the data it collected stands. Raises :class:`AnalysisNotRetryable` with ``run_not_finished``,
-    ``analysis_not_in_run``, ``dataset_missing`` or ``nothing_to_retry``.
+    ``analysis_not_in_run``, ``dataset_missing``, ``specification_missing`` or
+    ``nothing_to_retry``. The retry takes this run's specification as it stored it, by id and
+    SHA-256, so a later compiler never moves the reuse key of a module it reuses.
     """
     runs = ResearchRuns(session, scope)
     run = runs.get(run_id)
@@ -1055,6 +1057,18 @@ def retry_failed_modules(
     ):
         raise AnalysisNotRetryable(
             "dataset_missing", f"run {run_id} has no collected dataset to analyse again"
+        )
+    compiled = next((s for s in run.get("steps") or [] if s.get("node_key") == "compile"), None)
+    compiled_output = (compiled or {}).get("output") or {}
+    if (
+        compiled is None
+        or compiled.get("status") is not StepRunStatus.SUCCEEDED
+        or compiled_output.get("artifact_type") != SPECIFICATION_ARTIFACT
+        or not isinstance(compiled_output.get("artifact_id"), str)
+        or not isinstance(compiled_output.get("sha256"), str)
+    ):
+        raise AnalysisNotRetryable(
+            "specification_missing", f"run {run_id} has no compiled specification to reuse"
         )
     # Read as stored, not re-judged: the runs this repairs were stored under an earlier
     # harness, which reconstruct_run refuses to re-admit (and need not: none is shown here).
@@ -1084,6 +1098,8 @@ def retry_failed_modules(
         analysis_round=int(previous.get("round", 0)) + 1,
         retried=tuple(m.value for m in retried),
         modules_asked=asked,
+        specification_artifact_id=compiled_output["artifact_id"],
+        specification_sha256=compiled_output["sha256"],
     )
     return runs.retry_analysis(
         run_id,

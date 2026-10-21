@@ -79,10 +79,10 @@ each one carries.
 
 | Id | The acceptance run must show | Decisions |
 | --- | --- | --- |
-| AC-01 | Researcher and reviewer authenticate through the identity seam; the study is provisioned as Organization → Client → Study; every call is study-scoped; another client's user gets **404, not 403**, on every study route | ADR 0019 |
-| AC-02 | The study is worked in the **Research Lead workbench**: the Lead beside the eleven step artifacts of the canonical V2 prototype, navigator on top, Czech, **reachable at every screen width** (a compact drawer or a stacked layout, never an alternate AI start). **Every AI action is started through the Lead** (no manual AI button), except a client-level source extraction in Client Knowledge, held to its client budget and approval (MVPQ-08); a paid step starts only inside what a person approved: an **approval card**, an **approved plan** whose steps the Lead runs inside the study's envelope, or a typed start by a person (the model never supplies a person's confirmation; a gate the plan does not cover parks); every start is held to the study's budget and recorded in the approval ledger, and the spend limit stays a separate per-start confirmation threshold; the Lead's edits are proposals a person accepts, applied without a click only where the researcher chose; the Lead quotes no number its context does not hold | MVP-3, 8, 13, 14, 15; ADR 0026 |
+| AC-01 | Researcher and reviewer authenticate through the identity seam; the study is provisioned as Organization → Client → Study; every call is study-scoped; a user of **another organization** gets **404, not 403**, on every study route (within an organization, membership is the access) | ADR 0019 |
+| AC-02 | The study is worked in the **Research Lead workbench**: the Lead beside the eleven step artifacts of the canonical V2 prototype, navigator on top, Czech, **reachable at every screen width** (a compact drawer or a stacked layout, never an alternate AI start). **Every AI action is started through the Lead** (no manual AI button), except a client-level source extraction in Client Knowledge, held to its client budget and approval (MVPQ-08); a paid step starts only inside what a person approved: an **approval card**, an **approved plan** whose steps the Lead runs inside the study's wallet, or a typed start by a person (the model never supplies a person's confirmation; a gate the plan does not cover parks); every start is held to the study's budget and recorded in the approval ledger, and the spend limit stays a separate per-start confirmation threshold; the Lead's edits are proposals a person accepts, applied without a click only where the researcher chose; the Lead quotes no number its context does not hold | MVP-3, 8, 13, 14, 15; ADR 0026 |
 | AC-03 | From the brief, the Lead's workers produce the design, questionnaire, audience and dimensions as proposals; each accepted proposal becomes a Design Revision; **tracked assumptions** are design items with a stable id and a status (an explicitly unverified assumption needs no evidence yet), cited evidence where a status asserts something, and status changes a person accepts. Every worker's prompt is editable and pinned on the job that used it; no silent provider fallback | MVP-12, 32; ADR 0020 |
-| AC-04 | A run's cost ceiling is shown before it starts, reserved against the study's budget (`budget_usd`) under the study-row lock, held to the envelope when an approved plan starts it, and confirmed by a person when it reaches the spend limit (`spend_confirm_usd`: a confirmation threshold, never the cap); a deliberately exhausted budget **parks** in `AWAITING_BUDGET` without spending, and concurrent starts cannot exceed it | ADR 0019 gate 2 |
+| AC-04 | A run's cost ceiling is shown before it starts, reserved against the study's budget (`budget_usd`) under the study-row lock, held to the wallet when an approved plan starts it, and confirmed by a person when it reaches the spend limit (`spend_confirm_usd`: a confirmation threshold, never the cap); a deliberately exhausted budget **parks** in `AWAITING_BUDGET` without spending, and concurrent starts cannot exceed it | ADR 0019 gate 2 |
 | AC-05 | Fieldwork draws AI respondents from LIVE `v17_4_0` through **one** canonical loader, after the integrity gate: audience filters and selected dimensions reach the respondents, the weight is declared (removing it **fails the run**), facts are answered by code, and the population version and weight identity are in provenance | ADR 0024 |
 | AC-06 | Killing the worker mid-stage loses no paid work: each answered respondent and its paid-call identity are checkpointed, a restart resumes after them, and a possibly-billed call goes to `RECOVERY_REQUIRED` rather than being retried. An analysis-only retry reuses the frozen dataset | — |
 | AC-07 | An edit after fieldwork reopens exactly the stages the impact preview names and reuses every other stage's artifacts | — |
@@ -92,8 +92,32 @@ each one carries.
 | AC-11 | Design Research runs live **on the full design** through the approved search routes (Brave, public fetch, a connector probed live and the **archive route**, each named in the run's record) under the client's **data posture**: an OPEN client's run proceeds, a CLASSIFIED client's run is refused whole; the posture is pinned when the run is enqueued and a retry copies it; every finding is a quote in a captured source; a person adds a checked source to the client's knowledge in one click; accepted findings appear as cited context in the report (through an Interpretation Research run, budgeted with the Design Research run), never as respondent evidence; the run's sources are kept as a dataset | MVP-26, 27; ADR 0017, 0021 |
 | AC-12 | The same client's past study is found in project memory and its design reused with its citation and labels; another client's studies cannot be found | PM-1 |
 | AC-13 | The internal and client reports (DOCX and PDF) pass the client deliverable's gate: no source marked "Interní dokument", no drill-down content, no number without an admitted claim, and an unsupported claim blocks approval (MVPQ-09). The internal report states each tracked assumption with its status and support and the admitted coded counts with their method, version and limits (raw answers and examples stay labelled source or context, never numerically admitted evidence); the client report carries them only as approved, labelled content, and carries only approved maps and labelled modelled and client-reported numbers, **no analysis prose**; the client receives only **approved exports**: the report and each map snapshot are approved separately, by the researcher or, where the client or the study turns self-approval off, by a different person, and a download of an unapproved or stale version is refused | MVP-2, 10 |
-| AC-14 | Configuration is typed and recorded on the run; a malformed edition file refuses to start | — |
+| AC-14 | **Typed settings** refuse a malformed value by name: the API and the worker do not start on one. Each run records its **composition digest** (the settings and the composition it ran under), served with the run. AIA has no edition file: 18.6.6's was replaced by typed configuration | D-09 |
 | AC-15 | Every number in the report traces to provenance (fingerprints, provider, model, prompt version, population version, weight identity, data contract); model spend reconciles to AIA's usage ledger within USD 0.01 and agrees with the develop-tagged AWS cost record; tool and search spend, open reservations, uncertain calls and non-provider infrastructure charges (compute, storage, database) are reported on their own lines, and cloud billing lag is recorded, never read as zero | MVP-30 |
+
+### 3.1 What each tier proves
+
+A criterion passes only when both tiers pass it. Tier A proves what recorded providers can;
+tier B adds what only the live deployment shows. The machine-readable form is each criterion's
+`tier_a` and `tier_b` in `parity-matrix.json`, and the tier-A tests that prove it are its `tests`.
+
+| Id | Tier A (CI, over HTTP, recorded providers) | Tier B (develop, live, a person) |
+| --- | --- | --- |
+| AC-01 | The `development` identity provider behind the seam; provisioning over HTTP after the declared bootstrap; every study route answers another organization's user 404, the same 404 an absent study gets | Cognito sign-in for both people; the same probe against the deployed API |
+| AC-02 | The workbench's routes on the recorded Lead and workers, and the browser journeys as a line of their own; every paid step from an approval card, an approved plan or a typed start, in the approval ledger | A person works the study in the deployed workbench at every supported width, on the live route |
+| AC-03 | Recorded answers become proposals and accepted ones Design Revisions; assumptions and their status changes; each job pins its prompt; a refused route fails by name | The live workers on the brief, each job's pinned prompt read back |
+| AC-04 | Ceiling before the start, reservations under the lock, `AWAITING_BUDGET` with nothing spent, concurrent starts held, the confirmation in the ledger, at test prices | The same at live prices, inside the allocation's lines |
+| AC-05 | Fieldwork from the recorded population double (RQC10) through the one loader; filters and dimensions reach respondents; a removed weight fails the run; version and weight identity in provenance | LIVE `v17_4_0` on develop, SHA256 verified, `MODELLED_AI_PANEL` on the live route |
+| AC-06 | A killed worker resumes after the last checkpointed respondent; a possibly-billed call goes to `RECOVERY_REQUIRED`; an analysis-only retry reuses the frozen dataset | An analysis-only retry on develop; the kill is not repeated live while a restart repays fieldwork (OI-64), and the record says so |
+| AC-07 | An edit after recorded fieldwork reopens exactly the previewed stages; the rest reused by fingerprint | The same edit on the live study |
+| AC-08 | Every number admitted, every finding cited or refused, coded counts admitted, a module without a supported finding blocking the report | The same rules on the live run's results and reports |
+| AC-09 | Object, respondent and segment maps under the pinned method with the register's status; drill-down; a drag changes the view only (browser) | The live run's maps and their approved snapshots |
+| AC-10 | Document, dataset and page taken in and proposed by a recorded extraction, accepted; a materialized dimension used by a run; the data contract, personal column dropped | The same on develop, extraction charged to the client's budget |
+| AC-11 | Recorded retrieval behind `RetrievalGate`: posture pinned and copied, CLASSIFIED refused whole, quotes grounded in captured snapshots, one-click source, Interpretation context in the report | Live Design and Interpretation runs through Brave, public fetch, a connector and the archive route, each named in the record |
+| AC-12 | Search and reuse over HTTP with citation and labels; another client's studies not found | The same on develop |
+| AC-13 | Both reports (DOCX and PDF) pass the gate; separate approvals; unapproved or stale downloads refused | The live run's reports, approved by the researcher or, with self-approval off, another person |
+| AC-14 | The API and the worker refuse a malformed setting at start, by name; a run read over HTTP carries its composition digest | The live run's digest equals the deployment's |
+| AC-15 | Every report ref resolves to its provenance; recorded spend reconciles to the ledger within USD 0.01; tool spend, reservations and uncertain calls on their own lines | Spend agrees with the develop-tagged AWS cost record, billing lag recorded and never zero; infrastructure on its own line; each allocation line's actual beside its ceiling |
 
 ## 4. Outcome
 
@@ -105,11 +129,18 @@ The run produces its own evidence, stored as artifacts of the study:
 
 Any `FAIL`, or any criterion not observed, fails the acceptance. There is no partial acceptance.
 
-## 5. Where it will live
+## 5. Where it lives
 
-`tests/acceptance/test_mvp_acceptance.py`, marked `acceptance`, driven over HTTP. It lands with the
-first criterion that can pass end to end, and it is **not** a runtime-skipped placeholder before
-then. Until it exists, `parity_status.py` reports the acceptance as `NOT_RUNNABLE`.
+`tests/acceptance/test_mvp_acceptance.py`, marked `acceptance`, driven over HTTP against the
+stack `tests/acceptance/conftest.py` starts: PostgreSQL (`AIA_ACCEPTANCE_DATABASE_URL`), the API
+and the worker as processes of their own, after one declared operator bootstrap (`alembic upgrade
+head`, then the develop seed: no route creates an organization or its owner). The worker runs
+the production composition over recorded model answers (`aia_executors.acceptance_recorded`).
+The tree imports nothing it drives. CI runs it in a step of its own and writes its JUnit;
+`parity_status.py` gives each criterion its tier-A verdict from the tests it lists (`tests` in
+`parity-matrix.json`): `NOT_RUNNABLE` while it lists none, `PASS` only when all of them passed. A
+criterion's test lands with the work that makes it runnable, never as a runtime-skipped
+placeholder. Tier B is recorded by the person who runs it.
 
 ## 6. Not in this test
 

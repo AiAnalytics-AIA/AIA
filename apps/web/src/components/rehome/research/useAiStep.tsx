@@ -5,21 +5,60 @@
 // classic step makes one, the save the job is addressed to, and a failure
 // shown where the person is. The classic interface shows the same failure
 // text in an alert() (research-flow-rehome.md, deliberate differences).
+// A job stopped at the study's budget is not a failure: it waits, and the
+// study's budget lift is offered in its place; the same job then goes on (CR-2).
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { t } from "@/i18n/t";
+import { researchAgents } from "@/lib/api";
 import { JobError } from "@/research/jobs";
+import { BudgetLift } from "./BudgetLift";
 import { Icon } from "../icons";
 import { Button } from "../ui";
 import { useResearch } from "./context";
 
-export type AiFailure = { kind: "job"; message: string; jobId: string | null } | { kind: "provider"; message: string };
+export type AiFailure =
+  | { kind: "job"; message: string; jobId: string | null }
+  | { kind: "provider"; message: string }
+  /** The job stopped at the study's budget cap: it waits for a lift, and is never retried as a new job. */
+  | { kind: "budget"; jobId: string }
+  /**
+   * Following a job that went on after a lift broke off: the job itself may still be running, so
+   * the way on is following it again, never a retry that would start a new paid job.
+   */
+  | { kind: "follow"; message: string; jobId: string };
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
+/** The failure a thrown job error is, as the stage shows it: a budget wait keeps its job. */
+export function failureOf(e: unknown, wording: (m: string) => string = (m) => m): AiFailure {
+  if (e instanceof JobError && e.kind === "awaiting_budget" && e.jobId) return { kind: "budget", jobId: e.jobId };
+  return { kind: "job", message: wording(message(e)), jobId: e instanceof JobError ? e.jobId : null };
+}
+
+/** A continuation's failure: still this job's, waiting again or to be followed again. */
+export function followFailureOf(e: unknown, jobId: string): Extract<AiFailure, { kind: "budget" | "follow" }> {
+  const f = failureOf(e);
+  return f.kind === "budget" ? f : { kind: "follow", message: message(e), jobId };
+}
+
+/**
+ * Follow the same job on after a lift (CR-2), holding the job's claim the whole time: the
+ * screen's list of waiting jobs is read again only when the job settles, and until then it would
+ * still show the job waiting and offer a lift the server refuses (review P2-1).
+ */
+export async function followClaimed<T>(claimWait: (jobId: string) => () => void, jobId: string, follow: () => Promise<T>): Promise<T> {
+  const release = claimWait(jobId);
+  try {
+    return await follow();
+  } finally {
+    release();
+  }
+}
+
 export function useAiStep() {
-  const { store } = useResearch();
+  const { store, continueJob, claimWait } = useResearch();
   const [failure, setFailure] = useState<AiFailure | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -44,18 +83,100 @@ export function useAiStep() {
       await step();
       return true;
     } catch (e) {
-      setFailure({ kind: "job", message: wording(message(e)), jobId: e instanceof JobError ? e.jobId : null });
+      setFailure(failureOf(e, wording));
       return false;
     } finally {
       setBusy(false);
     }
   };
 
-  return { run, providerOk, saved, failure, setFailure, busy };
+  /**
+   * After a budget lift: follow the same job on to its proposal. Starts nothing. `after` gets the
+   * job's result once it is reviewed, so a stage does with it what its own action would have.
+   */
+  const resume = async (jobId: string, after?: (result: unknown) => void): Promise<boolean> => {
+    setFailure(null);
+    setBusy(true);
+    try {
+      const result = await followClaimed(claimWait, jobId, () => continueJob(jobId));
+      after?.(result);
+      return true;
+    } catch (e) {
+      setFailure(followFailureOf(e, jobId));
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return { run, resume, providerOk, saved, failure, setFailure, busy };
 }
 
-/** A failed AI step, said in words, with retry and Diagnostika; or the provider notice. */
-export function AiFailureCard({ failure, title, sub, onRetry }: { failure: AiFailure; title: string; sub?: string; onRetry: () => void }) {
+/** The study's budget lift for the one job that waits for it, in place of the failure. */
+function BudgetWaitCard({ jobId, onContinue }: { jobId: string; onContinue: (jobId: string) => void }) {
+  const { frame, claimWait } = useResearch();
+  // This wait is shown here, so the screen's list of waiting jobs does not offer a second lift.
+  useEffect(() => claimWait(jobId), [claimWait, jobId]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const lift = async (total: number, note: string) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await researchAgents.liftBudget(frame.studyId, jobId, total, note);
+    } catch (e) {
+      setError(message(e));
+      setBusy(false);
+      return;
+    }
+    setBusy(false);
+    onContinue(jobId);
+  };
+  return (
+    <section role="status" aria-labelledby={`ai-budget-${jobId}`} data-ai-budget-wait={jobId} className="rounded-md border border-status-you-ink/40 bg-status-you-wash p-5">
+      <h2 id={`ai-budget-${jobId}`} className="flex items-center gap-2 font-semibold text-status-you-ink">
+        <Icon name="you" size={14} />
+        {t("research.aiBudget.waitingTitle")}
+      </h2>
+      <p className="mt-1 text-sm text-ink">{t("research.aiBudget.waitingHelp")}</p>
+      {frame.canEdit ? (
+        <BudgetLift studyId={frame.studyId} busy={busy} lift={(total, note) => void lift(total, note)} />
+      ) : (
+        <p className="mt-1 text-xs text-ink-muted">{t("research.aiBudget.readOnly")}</p>
+      )}
+      {error ? <p role="alert" className="mt-2 text-sm text-status-fault">{error}</p> : null}
+    </section>
+  );
+}
+
+/**
+ * A failed AI step, said in words, with retry and Diagnostika; or the provider notice; or, for a
+ * job waiting for the study's budget, the lift for that job and no retry (`onContinue` follows it).
+ */
+export function AiFailureCard({ failure, title, sub, onRetry, onContinue }: {
+  failure: AiFailure;
+  title: string;
+  sub?: string;
+  onRetry: () => void;
+  onContinue: (jobId: string) => void;
+}) {
+  if (failure.kind === "budget") return <BudgetWaitCard jobId={failure.jobId} onContinue={onContinue} />;
+  if (failure.kind === "follow") {
+    // The lifted job goes on whatever the screen does: follow it again, never start another.
+    return (
+      <section role="alert" data-ai-follow-failed={failure.jobId} className="rounded-md border border-status-fault/40 bg-status-fault-wash p-5">
+        <h2 className="flex items-center gap-2 font-semibold text-status-fault">
+          <Icon name="fault" size={14} />
+          {title}
+        </h2>
+        <p className="mt-1 text-sm text-ink">{t("research.aiBudget.followFailed")}</p>
+        {failure.message ? <p className="mt-1 whitespace-pre-line text-xs text-ink-muted">{failure.message}</p> : null}
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button variant="primary" onClick={() => onContinue(failure.jobId)}>{t("research.aiBudget.followAgain")}</Button>
+        </div>
+      </section>
+    );
+  }
   if (failure.kind === "provider") {
     return (
       <section role="alert" className="rounded-md border border-status-you-ink/40 bg-status-you-wash p-5">

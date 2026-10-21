@@ -998,6 +998,16 @@ migration and both code revisions; it did not cover the Compose or SSM steps.
 
 ## Disk retention
 
+What a deploy adds depends on the layers it changes. `deploy/docker/python.Dockerfile`
+installs third-party Python dependencies in one layer built from the `pyproject.toml`
+files alone, shared by `aia-api` and `aia-worker`, and AIA's own packages in a small
+layer above it; the worker's LibreOffice layer sits below the code too. A commit that
+changes only source therefore adds a few megabytes per image; a commit that changes a
+dependency adds the dependency layer again (about 800 MB unpacked).
+The dependency layer is reused until a `pyproject.toml` changes or the build cache drops
+it; to pick up releases inside the declared ranges (a security fix, say), change
+`AIA_DEPS_REFRESH` in the Dockerfile, which re-resolves them on the next build.
+
 Every deployment acquires the host's `.deploy.lock`, then runs image retention
 and checks disk headroom **before ECR login, downloads, backup, migration or
 service replacement**. This includes manual `bin/deploy.sh` calls. The

@@ -55,9 +55,13 @@ These need account control an agent does not have. In order.
    - Authorised redirect URI: `https://<cognito_domain_prefix>.auth.<region>.amazoncognito.com/oauth2/idpresponse`
      (Terraform's `google_redirect_uri` output prints the exact value; the
      prefix defaults to `aia-develop`).
-   - OAuth consent screen: *Internal* (Workspace users only).
-   - Copy the client id and secret into `google_client_id` / `google_client_secret`,
-     and the Workspace domain into `google_hosted_domain`.
+   - OAuth consent screen: *Internal* (Workspace users only). **This is the
+     Workspace restriction**; nothing in Terraform restricts the domain.
+     Cognito keeps its own fixed Google endpoints and drops an `hd` hint, so
+     an account outside the Workspace is stopped here or not at all. Whoever
+     passes is created in Cognito on first sign-in, and AIA grants them
+     nothing until provisioned (403 `not_provisioned`, step 12).
+   - Copy the client id and secret into `google_client_id` / `google_client_secret`.
 4. **Bedrock model access** (Bedrock console, region `eu-central-1` → *Model
    access*): enable the Anthropic model you will pin; accept the end-user
    licence if prompted. Then complete the verification table in

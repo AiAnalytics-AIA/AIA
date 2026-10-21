@@ -106,6 +106,12 @@ class Settings(BaseSettings):
     # panel-grounded-respondents 6c): the API loads LIVE once per process and version and
     # answers with counts. Empty (the default): no preview, and the step says so.
     population_asset_root: str = ""
+    # LOCAL AND TEST ONLY: compose the fictional population double (AIA_POPULATION_DOUBLE, plan
+    # run-qc-and-checkpoint RQC10) for tier A of the acceptance harness. The API establishes it at
+    # start, a new run records its LIVE instead of the Czech one, and the audience routes read it;
+    # the worker composes the same double through aia_executors.population_double. Refused in every
+    # deployed environment here and by the double itself outside local and test. Off by default.
+    population_double: bool = False
 
     # The clients whose studies an administrator may run a *draft* prompt on (ADR 0020). The
     # same variable the worker reads (``AIA_AI_FICTIONAL_CLIENT_IDS``), read here so the API
@@ -334,6 +340,13 @@ class Settings(BaseSettings):
             problems.append(
                 "AIA_RESEARCH_FIELDWORK_SOURCE=synthetic_fixture is refused outside "
                 "local and test (ADR 0016)"
+            )
+
+        # The population double is fictional; no deployment composes it (RQC10).
+        if self.population_double:
+            problems.append(
+                "AIA_POPULATION_DOUBLE is refused outside local and test: the population double "
+                "is fictional (plan run-qc-and-checkpoint RQC10)"
             )
 
         if problems:

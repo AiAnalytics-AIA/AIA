@@ -50,6 +50,7 @@ from ..domain.methodology.pins import (
     sociomap_methods_for,
     support_spec_for,
 )
+from ..domain.money import ThresholdVerdict, threshold_verdict
 from ..domain.panel_persona import persona_allowlist
 from ..domain.pipeline import fingerprint
 from ..domain.population import (
@@ -140,6 +141,7 @@ __all__ = [
     "ResearchStepNotFound",
     "RunOutlook",
     "RunReservations",
+    "readiness_in_force",
     "report_pdf_key",
     "research_artifacts",
 ]
@@ -253,6 +255,7 @@ class CostCeilingUnknown(Exception):
 def lift_study_budget_waits(
     session: Session,
     scope: StudyContext,
+    run_id: str,
     steps: Sequence[Mapping[str, Any]],
     *,
     budget_usd: float,
@@ -266,7 +269,12 @@ def lift_study_budget_waits(
     Needs ``APPROVE_BUDGET`` and ``MANAGE_STUDY_BUDGET`` on an open Study, which a worker's
     scope does not hold. ``budget_usd`` equal to the current budget lifts the wait without
     changing it (it was raised by hand); below it is refused: this lifts a cap, it does not
-    lower one. Each step's lift is its own approval in the ledger.
+    lower one. One lift is one decision: every waiting step of ``steps`` goes on under one
+    lock and one approval row in the ledger (CR-3), so a run whose eight analysis modules
+    stopped at the cap needs one lift, not eight. ``steps`` are the steps of run ``run_id``,
+    whose lock is taken before the study's (the order a completing step takes them in); the
+    study's budget is then read locked, so two lifts at once never compare against the same
+    old budget and a raise is never overwritten by a smaller one decided earlier.
 
     Checked before anything is written, so a refused lift changes nothing, not even the
     budget; the budget change and the resumes share the caller's transaction. The callers
@@ -279,16 +287,23 @@ def lift_study_budget_waits(
     if not waiting:
         raise BudgetWaitNotLiftable("only a step waiting for budget can be lifted")
     scopes = ScopeRepository(session)
-    current = float(scopes.get_study(scope).budget_usd)
+    workflows = WorkflowRepository(session, scope)
+    # The run, then the study: the order a completing step takes them in (run, then the payer
+    # it charges), so the two never wait on each other.
+    workflows.lock_run(run_id)
+    # Locked before it is compared: two lifts at once must not compare against the same old
+    # budget, the later one writing a lower cap over the earlier one's raise.
+    current = float(scopes.get_study(scope, for_update=True).budget_usd)
     if budget_usd < current:
         raise BudgetNotRaised(offered=budget_usd, current=current)
     if budget_usd > current:
         scopes.set_study_budget(scope, budget_usd)
-    workflows = WorkflowRepository(session, scope)
-    for step in waiting:
-        workflows.resume_budget_wait(
-            str(step["step_id"]), note=note, budget_before=current, budget_after=budget_usd
-        )
+    workflows.resume_budget_waits(
+        [str(step["step_id"]) for step in waiting],
+        note=note,
+        budget_before=current,
+        budget_after=budget_usd,
+    )
 
 
 def resume_runtime_parks(
@@ -333,6 +348,12 @@ class FrozenDataset:
     #: Modules whose step will ask a model: the retried ones, and any completed one whose
     #: stored harness or prompt is not today's (its reuse key moved).
     modules_asked: int
+    #: The original's specification, by artifact id and SHA-256: the retry's compile step
+    #: takes it as stored, never compiling the revision again under a later compiler (whose
+    #: specification would move every completed module's reuse key, unpaid in the ceiling).
+    #: ``None`` only for a caller that names none; :func:`retry_failed_modules` always does.
+    specification_artifact_id: str | None = None
+    specification_sha256: str | None = None
 
     def __post_init__(self) -> None:
         if self.analysis_round < 1:
@@ -343,6 +364,16 @@ class FrozenDataset:
 
     def note(self) -> dict[str, Any]:
         return {**self.step_input(), "round": self.analysis_round, "modules": list(self.retried)}
+
+    def specification_input(self) -> dict[str, Any] | None:
+        """The compile step's ``frozen_specification``; ``None`` when none is named."""
+        if self.specification_artifact_id is None or self.specification_sha256 is None:
+            return None
+        return {
+            "run_id": self.run_id,
+            "artifact_id": self.specification_artifact_id,
+            "sha256": self.specification_sha256,
+        }
 
 
 @dataclass(frozen=True, slots=True)
@@ -385,6 +416,27 @@ def _population_note(binding: PopulationBinding, *, read_by_fieldwork: bool) -> 
         "version_id": binding.version_id,
         "version_label": binding.version_label,
         "read_by_fieldwork": read_by_fieldwork,
+    }
+
+
+def readiness_in_force(
+    session: Session, scope: StudyContext
+) -> tuple[ReadinessSpec, dict[str, Any] | None]:
+    """The readiness limits in force for the Study, and the stored version they come from
+    (``None``: nothing stored, so the code's preset ``aia-readiness-1``).
+
+    The one authority for a valid n (plan ``run-qc-and-checkpoint`` RQC9): what a run start
+    checks and pins, what the API's ``GET …/research/limits`` answers the web, and what a
+    Research Lead turn is frozen with and its ``set_n`` accepted under. Read through the
+    Study's resolved scope; only its organization's methodology rows are read."""
+    in_force = methodology_in_force_for_study(session, scope, "readiness")
+    if in_force.version is None:
+        return readiness_spec_for(None), None
+    return readiness_spec_for(in_force.version.payload), {
+        "module": "readiness",
+        "version": in_force.version.version_number,
+        "name": in_force.version.name,
+        "payload_sha256": in_force.version.payload_sha256,
     }
 
 
@@ -732,12 +784,15 @@ class ResearchRuns:
                 fieldwork_frozen=frozen_dataset is not None,
                 analysis_modules=frozen_dataset.modules_asked if frozen_dataset else None,
             )
-            if ceiling.total_usd is None:
+            # The confirmation threshold's one rule (domain/money.py; ADR 0019 gate 2).
+            verdict = threshold_verdict(ceiling.total_usd, limit, confirm_cost_usd)
+            if verdict is ThresholdVerdict.CEILING_UNKNOWN:
                 assert ceiling.unknown is not None
                 raise CostCeilingUnknown(ceiling.unknown, limit_usd=limit)
-            if ceiling.total_usd >= limit:
-                if confirm_cost_usd is None or confirm_cost_usd < ceiling.total_usd:
-                    raise CostConfirmationRequired(ceiling_usd=ceiling.total_usd, limit_usd=limit)
+            assert ceiling.total_usd is not None
+            if verdict is ThresholdVerdict.ASK:
+                raise CostConfirmationRequired(ceiling_usd=ceiling.total_usd, limit_usd=limit)
+            if verdict is ThresholdVerdict.CONFIRMED:
                 confirmation = (ceiling.total_usd, limit)
         started = start_workflow(
             self.session,
@@ -783,6 +838,12 @@ class ResearchRuns:
                 "compile": {
                     "design_revision_id": revision.revision_id,
                     "readiness": readiness_pin,
+                    **(
+                        {"frozen_specification": frozen_spec}
+                        if frozen_dataset is not None
+                        and (frozen_spec := frozen_dataset.specification_input()) is not None
+                        else {}
+                    ),
                 },
                 "preflight": {
                     "methods": pinned,
@@ -1034,18 +1095,33 @@ class ResearchRuns:
         return self._workflows().request_cancel(run_id, reason=reason)
 
     def lift_budget_wait(
-        self, run_id: str, node_key: str, *, budget_usd: float, note: str = ""
+        self,
+        run_id: str,
+        node_key: str | None = None,
+        *,
+        budget_usd: float,
+        note: str = "",
     ) -> dict[str, Any]:
-        """Raise the study's budget to ``budget_usd`` and let the waiting step go on
-        (:func:`lift_study_budget_waits`, which states the rule)."""
+        """Raise the study's budget to ``budget_usd`` and let every step of the run stopped at
+        the cap go on, in one decision (:func:`lift_study_budget_waits`, which states the rule).
+
+        A run's analysis modules each reserve their own call, so several can wait at once; the
+        lift is the run's, not one per step (CR-3). ``node_key``, when given (the older
+        per-step route), must name a step of the run that is waiting for budget; the lift
+        still releases every waiting step."""
         self.scope.require(Permission.APPROVE_BUDGET)
         self.scope.require(Permission.MANAGE_STUDY_BUDGET)
         self.scope.require_open_study()
         run = self.get(run_id)
-        step = next((s for s in run["steps"] if s["node_key"] == node_key), None)
-        if step is None:
-            raise ResearchStepNotFound(node_key)
-        lift_study_budget_waits(self.session, self.scope, [step], budget_usd=budget_usd, note=note)
+        if node_key is not None:
+            step = next((s for s in run["steps"] if s["node_key"] == node_key), None)
+            if step is None:
+                raise ResearchStepNotFound(node_key)
+            if step["status"] is not StepRunStatus.AWAITING_BUDGET:
+                raise BudgetWaitNotLiftable("only a step waiting for budget can be lifted")
+        lift_study_budget_waits(
+            self.session, self.scope, run_id, run["steps"], budget_usd=budget_usd, note=note
+        )
         return self.get(run_id)
 
     def resume(self, run_id: str) -> dict[str, Any]:
@@ -1159,15 +1235,7 @@ class ResearchRuns:
         ``methodology-tab`` V1a); with nothing stored, 18.6.6's product policy."""
         if readiness is not None:
             return readiness, None
-        in_force = methodology_in_force_for_study(self.session, self.scope, "readiness")
-        if in_force.version is None:
-            return readiness_spec_for(None), None
-        return readiness_spec_for(in_force.version.payload), {
-            "module": "readiness",
-            "version": in_force.version.version_number,
-            "name": in_force.version.name,
-            "payload_sha256": in_force.version.payload_sha256,
-        }
+        return readiness_in_force(self.session, self.scope)
 
     def _response(
         self, response: ResponseProcessSpec | None
@@ -1300,6 +1368,11 @@ class ResearchAgentJobs:
 
     Approved client memory is frozen at enqueue. Jobs only produce proposals;
     applying one requires EDIT_STUDY and its unchanged Design Revision.
+
+    A job is paid work and meets the study's confirmation threshold like a run
+    (``spend_confirm_usd``, ADR 0019 gate 2, ADR 0028; lead-orchestration LO15): every way a
+    job is created -- a direct start, a rebuild, the Lead's approved request -- goes through
+    :meth:`spend_gate` in :meth:`start`, so none of them evades it.
     """
 
     session: Session
@@ -1307,6 +1380,35 @@ class ResearchAgentJobs:
     #: The clients a draft prompt may be tested on (``AIA_AI_FICTIONAL_CLIENT_IDS``). Empty
     #: by default, so a caller that does not pass it can run no draft at all.
     draft_client_ids: frozenset[str] = frozenset()
+    #: What one job can cost at most: the design job's reservation
+    #: (``AIA_AI_RESEARCH_RESERVATION_USD``, a primary and one repair). ``None`` is unknown,
+    #: never zero: with a threshold set, a new job is then refused (:class:`CostCeilingUnknown`).
+    reservation_usd: float | None = None
+
+    def spend_gate(self, confirm_cost_usd: float | None) -> tuple[float, float] | None:
+        """The confirmation threshold's one rule (``domain/money.py``) for one new job.
+
+        Returns ``(ceiling, threshold)`` when the person's ``confirm_cost_usd`` covers a ceiling
+        that reaches the threshold -- the caller records it once the job exists -- and ``None``
+        when nothing asks. Raises :class:`CostConfirmationRequired` when the ceiling reaches the
+        threshold and nothing covering it was confirmed, and :class:`CostCeilingUnknown` when a
+        threshold is set and the reservation is not configured.
+
+        A confirmation is a person's: using one needs ``APPROVE_BUDGET``, which the worker's
+        scope withholds (``WORKER_PERMISSIONS``), so a step cannot confirm the spend it starts.
+        """
+        limit = ScopeRepository(self.session).get_study(self.scope).spend_confirm_usd
+        verdict = threshold_verdict(self.reservation_usd, limit, confirm_cost_usd)
+        if verdict is ThresholdVerdict.NOT_ASKED:
+            return None
+        assert limit is not None
+        if verdict is ThresholdVerdict.CEILING_UNKNOWN:
+            raise CostCeilingUnknown(CeilingUnknown.RESEARCH_RESERVATION_MISSING, limit_usd=limit)
+        assert self.reservation_usd is not None
+        if verdict is ThresholdVerdict.ASK:
+            raise CostConfirmationRequired(ceiling_usd=self.reservation_usd, limit_usd=limit)
+        self.scope.require(Permission.APPROVE_BUDGET)
+        return (self.reservation_usd, limit)
 
     def start(
         self,
@@ -1316,8 +1418,14 @@ class ResearchAgentJobs:
         instruction: str = "",
         prompt_version: int | None = None,
         rebuild_of: str | None = None,
+        confirm_cost_usd: float | None = None,
     ) -> StartedRun:
         """Queue one proposal. The prompt it runs is chosen here and frozen into the job.
+
+        A start that would create a job is held to the study's confirmation threshold
+        (:meth:`spend_gate`): at or above it, ``confirm_cost_usd`` must cover the job's ceiling
+        (:attr:`reservation_usd`), and the yes is written to the approval ledger with the job.
+        A start that finds its job already there spends nothing and asks nothing, as a run's.
 
         The job records the working revision its Design Revision came from as
         ``base_workspace_revision`` (ADR 0026 decision 5): never the working copy's revision now,
@@ -1384,13 +1492,20 @@ class ResearchAgentJobs:
         round_ = int(newest[0]["metadata"].get("round") or 0) if newest else 0
         if newest and _ended_without_result(workflows.get_run(newest[0]["run_id"])):
             round_ += 1
-        return start_workflow(
+        key = base if round_ == 0 else f"{base}:again-{round_}"
+        # Before anything is created: a job that exists already asks nothing.
+        confirmation = (
+            self.spend_gate(confirm_cost_usd)
+            if workflows.find_run_by_idempotency_key(key) is None
+            else None
+        )
+        started = start_workflow(
             self.session,
             self.scope,
             project_id=project_id,
             revision=revision.revision,
             workflow_type=RESEARCH_AGENT,
-            idempotency_key=base if round_ == 0 else f"{base}:again-{round_}",
+            idempotency_key=key,
             metadata={
                 "design_revision_id": design_revision_id,
                 "action": action.value,
@@ -1405,6 +1520,15 @@ class ResearchAgentJobs:
             step_inputs={"agent": payload},
             owner=DESIGN_PROJECT_OWNER,
         )
+        if confirmation is not None and started.created:
+            assert confirm_cost_usd is not None
+            workflows.record_spend_confirmation(
+                started.run_id,
+                ceiling_usd=confirmation[0],
+                limit_usd=confirmation[1],
+                confirmed_usd=confirm_cost_usd,
+            )
+        return started
 
     def _pin(self, action: ResearchAction, prompt_version: int | None) -> PromptPin:
         """The prompt this job will run: the organization's active one, or a draft to test."""
@@ -1511,14 +1635,17 @@ class ResearchAgentJobs:
             run_id, action=action, artifact_id=str(run["steps"][0]["output"]["artifact_id"])
         )
 
-    def rebuild(self, run_id: str, *, design_revision_id: str) -> StartedRun:
+    def rebuild(
+        self, run_id: str, *, design_revision_id: str, confirm_cost_usd: float | None = None
+    ) -> StartedRun:
         """Ask a proposal again, on the current design: the same action and instruction, a new job.
 
         ADR 0026 decision 5: a stale proposal is never accepted; a rebuild starts a new job on
         ``design_revision_id`` -- which must be the Study's newest Design Revision -- naming the
         old one as ``rebuild_of``, which supersedes it. It accepts nothing, and the old job stays
         readable. The browser submits its working copy first, so the newest revision is the
-        design the person has now.
+        design the person has now. The new job is paid work: held to the threshold as a start
+        is (``confirm_cost_usd``, :meth:`spend_gate`).
         """
         run = self.get(run_id)
         action = ResearchAction(run["metadata"]["action"])
@@ -1535,6 +1662,7 @@ class ResearchAgentJobs:
             action=action,
             instruction=str(asked.get("instruction") or ""),
             rebuild_of=run_id,
+            confirm_cost_usd=confirm_cost_usd,
         )
 
     def cancel(self, run_id: str) -> WorkflowRunStatus:
@@ -1564,7 +1692,7 @@ class ResearchAgentJobs:
         the same revision returns this job, so without the lift it never ends but by a cancel."""
         run = self.get(run_id)
         lift_study_budget_waits(
-            self.session, self.scope, run["steps"], budget_usd=budget_usd, note=note
+            self.session, self.scope, run_id, run["steps"], budget_usd=budget_usd, note=note
         )
         return self.get(run_id)
 

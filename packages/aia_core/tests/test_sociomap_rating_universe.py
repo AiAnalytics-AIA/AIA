@@ -76,9 +76,16 @@ def _with(**changes: Any) -> dict[str, Any]:
 # ------------------------------------------------------------------ the compiler --
 
 
+def _under_compile_1(spec: Any) -> Any:
+    """``spec`` named by the compiler before scale labels: its body, the earlier identity."""
+    return spec.model_copy(update={"compiler_version": "aia-research-compile-1"})
+
+
 def test_a_design_without_the_declarations_keeps_develops_fingerprint() -> None:
     spec = _compile(DESIGN)
-    assert spec.fingerprint() == DEVELOP_FINGERPRINT
+    # The compiler moved to aia-research-compile-2 (scale labels, input-interactions 3b);
+    # the body is what it was, so under the earlier compiler's name it fingerprints as then.
+    assert _under_compile_1(spec).fingerprint() == DEVELOP_FINGERPRINT
     assert spec.rating_questions() == ()
     (battery,) = spec.batteries
     assert battery.roles_declared is False and battery.context_objects == ()

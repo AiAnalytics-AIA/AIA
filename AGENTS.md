@@ -1220,6 +1220,19 @@ tool, never a runtime dependency.
 
 ## CI contracts
 
+**`pip-audit --strict --skip-editable` fails on every skipped editable package**, each counting as
+a strict failure, so AIA's own four packages turn the audit red (#509).
+
+```bash
+# WRONG
+pip-audit --strict --skip-editable
+# RIGHT -- audit the third-party distributions only, keeping --strict
+pip freeze --all --exclude-editable > reqs.txt && pip-audit --strict --no-deps --disable-pip -r reqs.txt
+```
+
+The runner's own pip sits in the audited environment, so upgrade it first (`python -m pip install
+--upgrade pip`): pip 24.0 carried six advisories.
+
 **A contract assertion that outlives the contract is worse than none.** CI
 asserted `/api/v1/projects` after projects had moved under
 `/api/v1/studies/{study_id}/projects`; the check passed on a route that no longer
@@ -1237,7 +1250,10 @@ generates both on every dev start (`node_modules/next/dist/server/lib/generate-a
 a boilerplate "this is NOT the Next.js you know" block and an `@AGENTS.md` include. They are
 **not committed** unless their diff carries an intentional canonical instruction change (data
 owner, 2026-09-24); the project's instructions live in the root `CLAUDE.md` and this file.
-Keep them out of `git add` by path, or list them in your checkout's `.git/info/exclude`:
+Next.js 16.4 also rewrites the committed `apps/web/AGENTS.md`'s managed block on start (its heading
+changes from `#` to `##`), so any workbench run leaves an unrelated diff there: `git checkout --
+apps/web/AGENTS.md` before staging (#509). Keep them out of `git add` by path, or list them in your
+checkout's `.git/info/exclude`:
 
 ```bash
 # WRONG — sweeps the regenerated files into a commit
@@ -1248,6 +1264,15 @@ git add apps/web/src/... docs/...
 
 `npm run lint`, `npx tsc --noEmit` and `npm run build` are three different
 gates and all three are blocking.
+
+**Upgrading eslint-config-next drags eslint-plugin-react-hooks with it.** 16.4.x requires `^7.1`,
+which reports new findings (`set-state-in-effect`, `use-memo`; 11 on the 16.4.2 upgrade, #509).
+
+```bash
+# WRONG -- overriding the plugin back to 7.0.1 breaks eslint-config-next's own range
+# RIGHT -- fix the effect, or disable the rule on that line with its reason:
+# eslint-disable-next-line react-hooks/set-state-in-effect -- <reason>
+```
 
 **Route modules cannot export arbitrary helpers or constants.** The production
 build rejects value exports such as `AI_SWITCHES`, `runtimeSwitch` and

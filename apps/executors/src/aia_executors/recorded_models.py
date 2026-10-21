@@ -1,11 +1,31 @@
-"""A Bedrock Converse double, for runs whose analysis and AI fieldwork a model answers.
+"""Recorded model answers: a Bedrock Converse double the suites and the acceptance harness share.
 
-``ScriptedModels`` is an ``HttpTransport`` standing in for Bedrock Converse: it answers each
-analysis turn with a draft built from the evidence the turn itself sends (or with the recorded
-failure a test asks for), and each AI respondent block with fixed probabilities. Everything around
-it is real: the gateway, its Bedrock adapter, the reservations and the ledger. Nothing leaves the
-process and nothing is paid. Shared by the analysis executor suite and the product acceptance
-suite; tests import this module, never each other.
+:class:`RecordedModels` is an ``HttpTransport`` standing in for Bedrock Converse **behind** the
+gateway: everything around it is real -- ``GovernedModelGateway``, its Bedrock adapter, the
+reservations, the journal and the ledger. It never opens a socket and nothing it answers is
+paid. It answers by the output contract a request names (the tool, ``aia_<agent id>``):
+
+* ``aia_research_respondent`` -- one respondent block: fixed probabilities over each item's
+  options, built from the block's own schema;
+* ``aia_analysis_module`` -- an analysis module's draft citing one number exactly as the
+  evidence the turn sends gives it (or, when a test asks, a draft citing a number no evidence
+  row holds, an off-contract draft, or a recorded provider failure);
+* ``aia_research_lead`` -- one Research Lead turn: a reply with no number in it and no edit.
+
+Every response states that it is a recording: its provider request id is ``recorded-<kind>-<n>``
+(the id the ledger and the dataset's provenance keep for each call) and it carries
+``x-aia-recording: aia-recorded-models-1``. A request for any other contract is answered with
+the provider's validation refusal naming it -- an answered, unbilled 400, so the call fails by
+name and nothing is invented for a contract this double has no recording of.
+
+Not yet recorded here (``mvp-acceptance-harness`` chunk 4, listed in the plan): the eight
+design-worker contracts (``aia_research_<action>``), the client-source extraction contract
+(``aia_knowledge_source_proposals``) and the five Deep Research agents; the suites that drive
+those keep their own doubles until they move here.
+
+Only test compositions use this module: the acceptance harness's worker composition
+(:mod:`aia_executors.acceptance_recorded`, local and test only) and the executor suites. No
+production composition imports it and no deployment names it (``make layer_check``).
 """
 
 from __future__ import annotations
@@ -14,7 +34,7 @@ import json
 import threading
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Final
 
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.residency import DataClass
@@ -24,8 +44,40 @@ from aia_core.infrastructure.model_adapters.transport import (
     TransportFailure,
 )
 
-PROFILE = "eu.example.analysis-model-v1:0"  # a test id; the real one is configuration
-ANALYSIS_TOOL = "aia_analysis_module"
+__all__ = [
+    "ANALYSIS_TOOL",
+    "LEAD_REPLY",
+    "LEAD_TOOL",
+    "PROFILE",
+    "RECORDING",
+    "RESPONDENT_TOOL",
+    "RecordedModels",
+    "RecordedSigner",
+    "grounded_draft",
+    "invented_draft",
+    "runtime_env",
+]
+
+#: What every recorded answer says it is.
+RECORDING: Final = "aia-recorded-models-1"
+PROFILE: Final = "eu.example.analysis-model-v1:0"  # a test id; the real one is configuration
+ANALYSIS_TOOL: Final = "aia_analysis_module"
+RESPONDENT_TOOL: Final = "aia_research_respondent"
+LEAD_TOOL: Final = "aia_research_lead"
+#: The Lead's recorded reply: no number, so the number guard has nothing to refuse.
+LEAD_REPLY: Final = "Zaznamenaná odpověď vedoucího výzkumu: návrh si přečtu a navrhnu další krok."
+
+#: The usage each kind of call reports, as Converse reports it.
+_USAGE: Final[Mapping[str, Mapping[str, int]]] = {
+    ANALYSIS_TOOL: {"inputTokens": 2400, "outputTokens": 380, "totalTokens": 2780},
+    RESPONDENT_TOOL: {"inputTokens": 900, "outputTokens": 120, "totalTokens": 1020},
+    LEAD_TOOL: {"inputTokens": 1800, "outputTokens": 90, "totalTokens": 1890},
+}
+_KIND: Final[Mapping[str, str]] = {
+    ANALYSIS_TOOL: "analysis",
+    RESPONDENT_TOOL: "respondent",
+    LEAD_TOOL: "lead",
+}
 
 
 def runtime_env(
@@ -76,13 +128,15 @@ def runtime_env(
     return env
 
 
-class Signer:
+class RecordedSigner:
+    """Signs nothing: a recorded exchange needs no credential, and none is read."""
+
     def sign(self, *, method: str, url: str, headers: Any, body: bytes) -> dict[str, str]:
-        return {**dict(headers), "authorization": "AWS4-HMAC-SHA256 test"}
+        return {**dict(headers), "authorization": "AWS4-HMAC-SHA256 recorded"}
 
 
 # --------------------------------------------------------------------------- #
-# the recorded model
+# the recorded answers
 # --------------------------------------------------------------------------- #
 
 
@@ -150,8 +204,21 @@ def _respondent(schema: Mapping[str, Any]) -> dict[str, Any]:
     return out
 
 
+def _no_recording(tool: str, number: int) -> HttpResponse:
+    """The provider's own refusal of a request it cannot serve: answered, never billed."""
+    return HttpResponse(
+        status=400,
+        headers={
+            "x-amzn-requestid": f"recorded-none-{number:05d}",
+            "x-amzn-errortype": "ValidationException",
+            "x-aia-recording": RECORDING,
+        },
+        body={"message": f"{RECORDING} holds no recording for the output contract {tool!r}"},
+    )
+
+
 @dataclass
-class ScriptedModels:
+class RecordedModels:
     """An ``HttpTransport`` for Bedrock Converse. Records every request it is sent.
 
     Analysis requests are counted per module: ``(module, n)`` is that module's n-th call.
@@ -187,16 +254,17 @@ class ScriptedModels:
 
     async def send(self, request: HttpRequest, *, timeout_s: float) -> HttpResponse:
         tool = request.body["toolConfig"]["tools"][0]["toolSpec"]
+        name = str(tool["name"])
         with self.lock:
             self.requests.append(request)
             number = len(self.requests)
             payload: dict[str, Any] = {}
-            if tool["name"] == ANALYSIS_TOOL:
+            if name == ANALYSIS_TOOL:
                 payload = json.loads(request.body["messages"][0]["content"][0]["text"])
                 key = (payload["module"], len(self.calls(payload["module"])) + 1)
                 self.asked.append(key)
                 self._index[key] = number - 1
-        if tool["name"] == ANALYSIS_TOOL:
+        if name == ANALYSIS_TOOL:
             if self.hook is not None:
                 self.hook(*key)
             failure = self.failures.get(key)
@@ -210,13 +278,18 @@ class ScriptedModels:
                 answer = invented_draft(payload)
             else:
                 answer = grounded_draft(payload)
-            usage = {"inputTokens": 2400, "outputTokens": 380, "totalTokens": 2780}
-        else:
+        elif name == RESPONDENT_TOOL:
             answer = _respondent(tool["inputSchema"]["json"])
-            usage = {"inputTokens": 900, "outputTokens": 120, "totalTokens": 1020}
+        elif name == LEAD_TOOL:
+            answer = {"reply": LEAD_REPLY}
+        else:
+            return _no_recording(name, number)
         return HttpResponse(
             status=200,
-            headers={"x-amzn-requestid": f"req-{number:05d}"},
+            headers={
+                "x-amzn-requestid": f"recorded-{_KIND[name]}-{number:05d}",
+                "x-aia-recording": RECORDING,
+            },
             body={
                 "output": {
                     "message": {
@@ -225,7 +298,7 @@ class ScriptedModels:
                             {
                                 "toolUse": {
                                     "toolUseId": f"t{number}",
-                                    "name": tool["name"],
+                                    "name": name,
                                     "input": answer,
                                 }
                             }
@@ -233,7 +306,7 @@ class ScriptedModels:
                     }
                 },
                 "stopReason": "tool_use",
-                "usage": usage,
+                "usage": dict(_USAGE[name]),
                 "metrics": {"latencyMs": 900},
             },
         )

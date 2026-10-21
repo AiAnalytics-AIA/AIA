@@ -8,6 +8,7 @@ chunks:
   - "[ ] SDL4. The lifecycle of an attachment's bytes: orphans and removal"
   - "[ ] SDL5. A restore after a deletion does not resurrect it: the restore runbook re-applies the tombstones"
   - "[ ] SDL6. Exercised once on develop: a delete, then a restore, with the evidence recorded"
+  - "[ ] SDL4b. Deleting one client source, its bytes and readings, by any researcher from the source's card (D-29)"
 ---
 # Study and client data lifecycle: retention and the delete path
 
@@ -56,3 +57,14 @@ implement the accepted policy; SDL5 specifies restore ordering and SDL6 exercise
 test data. The original tombstone/journal must survive independently of the restored snapshot;
 its scope ids/cutoff and replay result are evidenced before restored traffic is enabled. Retain
 only the content-free usage and audit rows MVPQ-07 accepts. PE9a cannot pass without SDL6's actual proof.
+
+## Scope freeze (2026-10-20)
+
+Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
+
+**New chunk.** SDL4b (W4), D-29.
+
+**Existing chunks, changed.** SDL3 (D-29) gains its entry points: an OWNER or ADMIN deletes a client
+from Settings with a typed confirmation; knowledge is retired, never deleted. Export of a client's
+data and erasing one person are an operator procedure in the runbook for about ten users. SDL5
+(D-25): RPO 24 h, RTO 4 h.

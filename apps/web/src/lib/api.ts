@@ -950,6 +950,17 @@ export type QuestionOutlook = {
   verdict: OutlookVerdict;
   reasons: string[];
 };
+/**
+ * The readiness limits in force for a study (RQC9): the one authority for a valid n. A run start
+ * checks the same limits and a Research Lead edit is held to them; the web keeps no range of its
+ * own and refuses a value outside this one, never clamps it. `version`: the stored methodology
+ * version in force, null for the code's preset.
+ */
+export type ResearchLimits = {
+  methodology_version: string;
+  version: number | null;
+  sample_size: { min: number; max: number };
+};
 export type Readiness = {
   design_revision_id: string;
   rules: string;
@@ -1209,6 +1220,8 @@ export const research = {
   /** One Design Revision with its content (project memory M2c reads a past study's). */
   revision: (studyId: string, revisionId: string) =>
     request<DesignRevision & { content: Record<string, unknown> }>("GET", `${studyPath(studyId)}/design/revisions/${enc(revisionId)}`),
+  /** The readiness limits in force: the valid sample size the Dimenze stage refuses outside of. */
+  limits: (studyId: string) => request<ResearchLimits>("GET", `${studyPath(studyId)}/research/limits`),
   /** `personaSource` assesses the design under that source of respondents; omitted, the deployment's default. */
   readiness: (studyId: string, revisionId: string, personaSource?: string) =>
     request<Readiness>("GET", `${studyPath(studyId)}/research/readiness${query({ design_revision_id: revisionId, persona_source: personaSource })}`),
@@ -1267,9 +1280,12 @@ export const research = {
       `${studyPath(studyId)}/research/runs/${enc(runId)}/analysis/retry`,
       confirmCostUsd === undefined ? undefined : { confirm_cost_usd: confirmCostUsd },
     ),
-  /** Raise the Study's budget to `budgetUsd` (never below the current one) and let the waiting step go on. */
-  liftBudget: (studyId: string, runId: string, nodeKey: string, budgetUsd: number, note: string) =>
-    request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/steps/${enc(nodeKey)}/budget`, {
+  /**
+   * Raise the Study's budget to `budgetUsd` (never below the current one) and let every step of the
+   * run waiting for it go on: the run's lift, one decision (CR-3), never one per step.
+   */
+  liftBudget: (studyId: string, runId: string, budgetUsd: number, note: string) =>
+    request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/budget`, {
       budget_usd: budgetUsd,
       note,
     }),
@@ -1462,10 +1478,14 @@ export const researcherLead = {
 
 export const researchAgents = {
   design: (studyId: string, revisionId: string) => request<DesignRevision & { content: Record<string, unknown> }>("GET", `${studyPath(studyId)}/design/revisions/${enc(revisionId)}`),
-  /** `promptVersion` runs a stored prompt version instead of the active one (organization administrators; ADR 0020). */
-  start: (studyId: string, revisionId: string, action: ResearchAgentAction, instruction = "", promptVersion?: number) =>
+  /**
+   * `promptVersion` runs a stored prompt version instead of the active one (organization administrators; ADR 0020).
+   * `confirmCostUsd`: the ceiling a person confirmed when the study's threshold asked (409 cost_confirmation_required; LO15).
+   */
+  start: (studyId: string, revisionId: string, action: ResearchAgentAction, instruction = "", promptVersion?: number, confirmCostUsd?: number) =>
     request<ResearchAgentJob>("POST", agentsPath(studyId), {
       design_revision_id: revisionId, action, instruction, ...(promptVersion === undefined ? {} : { prompt_version: promptVersion }),
+      ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
     }),
   jobs: async (studyId: string) => {
     const jobs = await request<unknown>("GET", agentsPath(studyId));
@@ -1493,8 +1513,10 @@ export const researchAgents = {
   /** Set a proposal aside: a ledger row, nothing written to the design (ADR 0026 decision 8). */
   dismiss: (studyId: string, jobId: string) => request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/dismiss`),
   /** Ask the same again on the Study's newest Design Revision (`revisionId`, just submitted): a new job that supersedes this one. */
-  rebuild: (studyId: string, jobId: string, revisionId: string) =>
-    request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/rebuild`, { design_revision_id: revisionId }),
+  rebuild: (studyId: string, jobId: string, revisionId: string, confirmCostUsd?: number) =>
+    request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/rebuild`, {
+      design_revision_id: revisionId, ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
+    }),
 };
 
 // ---- the settings page: every control and how it is set -------------------

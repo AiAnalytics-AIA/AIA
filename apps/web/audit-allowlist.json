@@ -1,0 +1,14 @@
+{
+  "about": "Advisories the security job's npm gate (scripts/audit-gate.mjs) accepts, each by its GHSA id, until its recheck date. After that date the entry stops counting and CI fails until someone looks again (ARCHITECTURE.md §8).",
+  "entries": [
+    {
+      "id": "GHSA-vfj7-8cjw-p6xm",
+      "package": "braces",
+      "path": "eslint-config-next > @next/eslint-plugin-next > fast-glob > micromatch > braces",
+      "added": "2026-10-20",
+      "recheck": "2026-11-20",
+      "reason": "Dev-only lint tooling run over the repository's own glob patterns; not in the production image. No fixed braces exists: every published version (latest 3.0.3) is in the advisory's range <=3.0.3, and micromatch's latest (4.0.8) requires it.",
+      "approved_by": "Nigel Blount, 2026-10-20"
+    }
+  ]
+}

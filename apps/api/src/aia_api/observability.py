@@ -209,7 +209,9 @@ def install_exception_handlers(app: FastAPI) -> None:
             422,
             "validation_error",
             "The request body or parameters are invalid.",
-            {"errors": json.loads(json.dumps(exc.errors(), default=str))},
+            # parse_constant: a non-finite input (Infinity, NaN) is echoed as text; as a float it
+            # made the 422 itself unserialisable, a 500 (E03 review).
+            {"errors": json.loads(json.dumps(exc.errors(), default=str), parse_constant=str)},
         )
 
     @app.exception_handler(StarletteHTTPException)

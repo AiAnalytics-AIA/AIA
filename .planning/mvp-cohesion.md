@@ -404,7 +404,7 @@ undefined.
    scope's self-approval rule; the item-level stale rule already protects overlap
    (`application/proposal_accept.py`). A revision names its author.
 6. **Spend is the study's.** Approval cards go to the person whose Lead prepared the job, and the
-   ledger names them; the budget and any envelope (F13) are shared.
+   ledger names them; the budget and any wallet (F13) are shared.
 
 **Alternatives.** *One shared Lead:* simpler, but the accountability and privacy problems above.
 *One editor at a time (a lock per study or per stage):* safe and cheap, and it makes collaboration
@@ -432,7 +432,7 @@ accept their own only where self-approval allows it, as today). The requirement 
    replaced.
 2. **Order: Results, Sociomap, Analysis, Report.** Matches the engine, the Fieldwork step list and
    the scenario; the V3 rail's Analysis-before-Sociomap is dropped.
-3. **A per-study envelope** for paid work: the Lead may start workers and Deep Research inside an
+3. **A per-study wallet** for paid work: the Lead may start workers and Deep Research inside an
    allowance the owner approves, each job logged, stopping at the cap. **This supersedes MVP-13**
    ("a card at a time, no standing budget"). **Answers (2026-10-19):** the **researcher sets it, up to a
    ceiling the organisation owner sets for the client**, recorded in the approval ledger; the
@@ -444,11 +444,11 @@ threshold, not a stop: corrected 2026-10-19 after the code traces, `research.py:
    This pulls a plan-scoped part of the autopilot into the MVP (MVP-3 had put "continue until you
    need me" after it) and needs the **orchestration-scope ADR** before any code: the Lead holds no
    `APPROVE_GATE` (`domain/scope.py:202-213`, per `mvp-consolidation.md` §6.2), so the person's
-   approval is of the envelope and the plan, and each started job carries a ledger row naming the
+   approval is of the wallet and the plan, and each started job carries a ledger row naming the
    plan. Budget lift, report approval and an unlock stay human-only (commands refuse the Lead). *Decided
    later the same day:* a plain chat request ("start fieldwork") **does** start a run inside the
-   envelope without a plan card: asking is authorising, recorded as one ledger row naming the person's
-   own message; a Lead-initiated run still needs an approved plan. No expiry (the envelope closes with
+   wallet without a plan card: asking is authorising, recorded as one ledger row naming the person's
+   own message; a Lead-initiated run still needs an approved plan. No expiry (the wallet closes with
    the study) and priced Deep Research is inside it (ADR 0022 still requires approved settings for a
    priced route; ADR 0019 gate 2 still requires confirmation when a run's ceiling reaches the spend
    limit).
@@ -497,7 +497,7 @@ screen, and a screen never claims a population was read when it was not.
 ### F16. Money on screen
 
 **Owner decision (2026-10-19): two meters, the rest on click.** The header shows "Study: spent of the
-study budget" (`budget_usd`), with the envelope's remaining allowance **inside** it (the envelope is a
+study budget" (`budget_usd`), with the wallet's remaining allowance **inside** it (the wallet is a
 slice of the budget, F13; the confirmation threshold is a separate, differently labelled figure). A run or a job shows its own ceiling where the person approves it. The client's
 budget, the Deep Research allowance and the Lead's own turn costs are in a details drawer. Lead turns
 and workers all count toward the study's spend. The designs' four unlabelled numbers
@@ -544,9 +544,9 @@ contract in a drawer; accepting it is the person's recorded act (`client-data-in
 An own dimension shows a status chip (waiting for approval, building, ready) with a link to the
 client's review queue, and becomes selectable for the next run when ready. *Open:* after approval,
 does the build start by itself or on a click? **Decided 2026-10-19: on a click, inside the study's
-envelope.** Today a person starts a materialization from a study
+wallet.** Today a person starts a materialization from a study
 (`POST /studies/{id}/population/materializations`) and it is a run with a cost; the chip's "Build"
-button is that call, and it is refused when the envelope has no room.
+button is that call, and it is refused when the wallet has no room.
 
 ---
 
@@ -612,18 +612,18 @@ dated, until the provider contract and the method owner have owners.
 | Q11 | F11: the questionnaire's AI buttons removed (MVP-8) | **decided 2026-10-19** |
 | Q12 | F13: the revision is the unit of acceptance; a stage is current, changed or re-check | **decided 2026-10-19** |
 | Q13 | F13: stage order Results, Sociomap, Analysis, Report | **decided 2026-10-19** |
-| Q14 | F13: a per-study envelope for paid work, superseding MVP-13: set by the researcher up to a client/organisation ceiling; everything inside it, a run through a plan card approved once | **decided 2026-10-19; orchestration-scope ADR first; later F13 resolves no expiry until closure and direct human chat starts (Q25)** |
+| Q14 | F13: a per-study wallet for paid work, superseding MVP-13: set by the researcher up to a client/organisation ceiling; everything inside it, a run through a plan card approved once | **decided 2026-10-19; orchestration-scope ADR first; later F13 resolves no expiry until closure and direct human chat starts (Q25)** |
 | Q15 | F13: a hard lock on Sociomap inputs with a recorded unlock | **decided 2026-10-19** |
 | Q16 | F12: two people on one study: each researcher goes in with their own agent; one working copy; item-level merge, presence, shared proposals | **decided 2026-10-19**: each researcher's own agent; any member with the accept permission may accept another's proposal; the rest as recommended |
 | Q17 | F15: population-built respondents by default, invented ones for tests only | **decided 2026-10-19** |
 | Q18 | F14: the Lead proposes updates to its own files, the researcher approves each | **decided 2026-10-19** |
 | Q19 | F14: an organisation admin can read a researcher's Lead files and hand them on; turns and hand-over rules open | **decided 2026-10-19; amends ADR 0026 decision 8** |
-| Q20 | F16: two meters in the header, the rest on click; the envelope is a slice of the study budget (`budget_usd`), not of the confirmation threshold | **decided 2026-10-19** |
+| Q20 | F16: two meters in the header, the rest on click; the wallet is a slice of the study budget (`budget_usd`), not of the confirmation threshold | **decided 2026-10-19** |
 | Q21 | F17: separate approvals, a second person for the client report and each map snapshot, exports after approval | **decided 2026-10-19; second person withdrawn the same day (clients are not users): independence follows self-approval; snapshot approval is still its own approval** |
 | Q22 | F18: no pause after fieldwork; a QC warning, the worker proposes, replace is a new linked run | **decided 2026-10-19** |
-| Q23 | F19: client datasets and own dimensions are handled in Brief materials and Dimensions | **decided 2026-10-19; the own-dimension build starts on a click inside the envelope** |
+| Q23 | F19: client datasets and own dimensions are handled in Brief materials and Dimensions | **decided 2026-10-19; the own-dimension build starts on a click inside the wallet** |
 | Q24 | Production runs in the **same AWS account** as develop, in separate resources and tags (not a separate account, which was recommended) | **decided 2026-10-19; risks and mitigations in `mvp-target-architecture.md` §6.2** |
-| Q25 | A plain chat request starts a run inside the envelope without a plan card; a Lead-initiated run needs an approved plan | **decided 2026-10-19** |
+| Q25 | A plain chat request starts a run inside the wallet without a plan card; a Lead-initiated run needs an approved plan | **decided 2026-10-19** |
 | Q26 | An admin's read of a Lead covers files and notes only; turns stay private; a handed-on Lead is a copy with personal notes removed | **decided 2026-10-19** |
 | Q27 | Client data is kept until a person deletes it; the operation log is kept with its study; a documented delete path is needed before production | **decided 2026-10-19** |
 | Q28 | F9: parity with 18.6.6 runs and reports, never blocks a merge or a deploy; the matrix's consistency, the vendored golden fixtures F1-F9 and every non-parity test stay blocking | **decided 2026-10-19; CI change is `mvp-acceptance-harness` 8** |
@@ -645,9 +645,9 @@ dated, until the provider contract and the method owner have owners.
   the AI buttons removed) and a chunk for the shared edit vocabulary (F11); ADR 0026 (the Lead's
   edit vocabulary widened, per-change accept) and `ARCHITECTURE.md` §4 (a person and the Lead share
   one set of server-validated edits).
-- `overview.md`: MVP-13 superseded by the per-study envelope (F13) and MVP-3 amended (a plan-scoped part
+- `overview.md`: MVP-13 superseded by the per-study wallet (F13) and MVP-3 amended (a plan-scoped part
   of the autopilot is in the MVP); an **orchestration-scope ADR** (the Lead's plan card, the
-  envelope, what each started job records) before chunk 24 or any envelope code; ADR 0026 decision 8
+  wallet, what each started job records) before chunk 24 or any wallet code; ADR 0026 decision 8
   amended for an admin's read of Lead files and the proposed updates (F14); the Fieldwork, Audience and
   report-cover screens redrawn for population-built respondents (F15); the header's two meters (F16); the Report artifact's
   Approve and Export panel and a chunk for map-snapshot approval in `two-roles-human-ai-gates` 5b.4
@@ -747,3 +747,39 @@ Three rows needed the owner. Each was asked with a worked example; the answers a
 With these dispositions, the cross-check's verified findings meet the planning-readiness condition
 in `mvp-execution-contracts.md`. No paid run, infrastructure change, merge or release is authorized
 by recording them.
+
+## The scope freeze: the owner's 48 answers (2026-10-20)
+
+On 2026-10-20 the owner froze scope. Five inputs collected every open question:
+- #510, the methodology packet;
+- #512, ADRs 0028 to 0038;
+- #513, the reverse scope audit;
+- #514, the client pages and Settings;
+- #515, the cross-check of tracks 5 to 7.
+
+The planning session consolidated them into 48 decisions
+(`.planning/evidence/scope-freeze/decision-list.md`, #516). The owner answered all 48 on a decisions
+page between 16:08 and 17:09 UTC. The answers are recorded word for word in
+`.planning/evidence/scope-freeze/answers-2026-10-20.md`. They are decisions, and are not re-asked.
+
+How they are applied:
+- **The plans.** The master plan's § The scope baseline lists what is in, what is out and what is
+  open. Each child plan's "Scope freeze (2026-10-20)" section lists its new chunks and its amended
+  ones. Each new chunk has a wave in `mvp-execution-contracts.md`.
+- **Scope added.** Five answers moved scope:
+  - D-13: `aia-sociomap-5` is the only method;
+  - D-14: only the methodologist edits methodology;
+  - D-38, D-39, D-41, D-42, D-45, D-47 and D-48 were answered **in**;
+  - D-32 to D-34: a Lead is never transferred;
+  - D-35: the Lead edits documents and searches the web.
+- **Still open.** Their remaining parts are the baseline's open questions Q1 to Q8, for the owner.
+
+No paid run, infrastructure change, merge or release is authorized by recording them.
+
+The baseline's eight follow-up questions were answered the same evening, between 19:37 and 19:46
+UTC. The answers are recorded in the second table of `answers-2026-10-20.md` and applied in #523.
+Three of them added scope:
+
+- Q5: a per-study context file that every researcher's Lead reads (`lead-orchestration#LO19`).
+- Q6: the Lead's governed web search (`lead-orchestration#LO20`, `deep-research-web-search#56`).
+- Q8: Metodika's full `-5` comparison (`signed-off-sociomap-method#11`).

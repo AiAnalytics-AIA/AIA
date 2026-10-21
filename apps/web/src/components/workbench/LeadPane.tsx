@@ -14,7 +14,7 @@ import { lead as leadApi, researcherLead, ApiError, type ResearchAgentJob } from
 import { ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import type { LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
-import { pendingSelfUpdate, targetLabel } from "@/lib/lead";
+import { droppedLines, pendingSelfUpdate, targetLabel } from "@/lib/lead";
 import { STAGES, isWorkbenchStage, type WorkbenchStage } from "@/lib/workbench-stages";
 import { Glyph } from "./Glyph";
 import { Icon, Mark } from "./Icons";
@@ -119,10 +119,12 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   }, [studyId, onTurns]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reads the Lead's state from the API; its setters run when it answers
     if (epoch) void read();
   }, [epoch, read]);
   useEffect(() => {
     researcherLead.get().then(setMe, (e: unknown) => setError(e instanceof ApiError && e.status === 404 ? "Vedoucí výzkumu v této verzi AIA zatím není." : String(e)));
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reads the Lead's state from the API; its setters run when it answers
     void read();
   }, [read]);
   useEffect(() => {
@@ -180,6 +182,7 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   useEffect(() => {
     if (session?.busy || sending || held || !queued.length) return;
     const [next, ...rest] = queued;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the queue drains one message each time the Lead is free
     setQueued(rest);
     if (next) void message(next);
   }, [session, sending, held, queued, message]);
@@ -352,7 +355,7 @@ function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, onSelf
           ) : null}
           {o.view?.length ? <div className="links">{o.view.map((v, i) => <button key={i} type="button" className="linkchip" onClick={() => onView([v])}><Icon name="open" size={12} />{VIEW_LABEL(v)}</button>)}</div> : null}
           <SelfUpdate t={t} o={o} canEdit={canEdit} onDecide={(d) => onSelfUpdate(t, d)} />
-          {o.dropped?.length ? <div className="cap">{o.dropped.length === 1 ? "1 navržená změna se netýkala ničeho v pracovní kopii a byla vynechána." : `${o.dropped.length} navržené změny se netýkaly ničeho v pracovní kopii a byly vynechány.`}</div> : null}
+          {o.dropped?.length ? droppedLines(o.dropped).map((line) => <div key={line} className="cap">{line}</div>) : null}
         </div>
       </div>
       {o.request ? <RequestCard r={o.request} approved={t.request_decision ?? null} onApprove={() => onRequest(t, o.request!)} canEdit={canEdit} /> : null}

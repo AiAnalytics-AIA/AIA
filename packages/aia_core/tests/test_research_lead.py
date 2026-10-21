@@ -19,6 +19,7 @@ from aia_core.domain.ai_models import ModelCapability
 from aia_core.domain.prompt_slots import get_slot
 from aia_core.domain.prompts import PromptPin
 from aia_core.domain.research_agents import FIXED_PREFIX
+from aia_core.domain.research_design import AIA_READINESS_V1
 from aia_core.domain.research_lead import (
     CONTEXT_MAX_BYTES,
     DEFAULT_LEAD_NAME,
@@ -36,6 +37,7 @@ from aia_core.domain.research_lead import (
     context_bytes,
     context_classification,
     freeze_context,
+    frozen_sample_size,
     ground_edits,
     ground_self_update,
     is_text_edit,
@@ -47,6 +49,7 @@ from aia_core.domain.research_lead import (
     model_message,
     number_tokens,
     question_add_problem,
+    readiness_layer,
     split_self_update,
     unreadable_numbers,
     waiting_self_update,
@@ -54,6 +57,8 @@ from aia_core.domain.research_lead import (
 from aia_core.domain.residency import DataClass
 
 WHY = "Protože to zadání potřebuje."
+#: The readiness preset's valid n, 20-10,000: what a set_n is held to (RQC9).
+LIMITS = AIA_READINESS_V1.sample_size
 
 
 def _output(**fields: Any) -> dict[str, Any]:
@@ -83,8 +88,9 @@ VALID_EDITS = [
     {"op": "question_add", "text": "Proč?", "qtype": "otevrena", "why": WHY},
     {"op": "question_edit", "question_id": "q3", "text": "Jinak", "options": None, "why": WHY},
     {"op": "question_remove", "question_id": "q3", "why": WHY},
-    {"op": "set_n", "value": 30, "why": WHY},
-    {"op": "set_n", "value": 40000, "why": WHY},
+    # The shape asks only for a whole number; the range is readiness's (ground_edits).
+    {"op": "set_n", "value": 1, "why": WHY},
+    {"op": "set_n", "value": 40001, "why": WHY},
 ]
 
 INVALID_EDITS = [
@@ -95,8 +101,8 @@ INVALID_EDITS = [
     {"op": "question_add", "text": "Q", "qtype": "vyber", "options": ["Jen jedna"], "why": WHY},
     {"op": "question_add", "text": "Q", "qtype": "matice", "why": WHY},
     {"op": "question_edit", "question_id": "q3", "why": WHY},  # changes nothing
-    {"op": "set_n", "value": 29, "why": WHY},
-    {"op": "set_n", "value": 40001, "why": WHY},
+    {"op": "set_n", "value": 0, "why": WHY},  # a count is a whole number of at least one
+    {"op": "set_n", "value": -5, "why": WHY},
     {"op": "set_n", "value": True, "why": WHY},  # strict: a boolean is not a count
     {"op": "set_n", "value": "300", "why": WHY},
     {"op": "delete_study", "why": WHY},
@@ -420,7 +426,7 @@ def test_ground_edits_drops_what_the_content_does_not_hold_and_names_it() -> Non
             ]
         )
     )
-    kept, dropped = ground_edits(output, CONTENT)
+    kept, dropped = ground_edits(output, CONTENT, sample_size=LIMITS)
     assert [e.op for e in kept.edits] == ["question_edit", "question_add", "list_remove", "set_n"]
     assert [(d.index, d.reason) for d in dropped] == [
         (1, "unknown_question"),
@@ -437,9 +443,9 @@ def test_plan_lists_are_read_from_the_analysis_first() -> None:
             edits=[{"op": "list_remove", "list": "plan.objectives", "old": "Z analýzy", "why": WHY}]
         )
     )
-    kept, dropped = ground_edits(output, CONTENT, {"objectives": ["Z analýzy"]})
+    kept, dropped = ground_edits(output, CONTENT, {"objectives": ["Z analýzy"]}, sample_size=LIMITS)
     assert len(kept.edits) == 1 and dropped == []
-    kept, dropped = ground_edits(output, CONTENT)
+    kept, dropped = ground_edits(output, CONTENT, sample_size=LIMITS)
     assert kept.edits == [] and dropped[0].reason == "unknown_item"
 
 
@@ -623,7 +629,7 @@ def test_a_new_question_carries_only_options_it_can_keep(
     output = LeadOutput.model_construct(
         reply="x", view=[], edits=[stored], request=None, follow=[], self_update=None
     )
-    kept, dropped = ground_edits(output, CONTENT)
+    kept, dropped = ground_edits(output, CONTENT, sample_size=LIMITS)
     assert kept.edits == [] and [d.reason for d in dropped] == [reason]
 
 
@@ -699,7 +705,7 @@ def test_options_on_a_question_that_has_none_are_refused_not_accepted_as_nothing
     ):
         assert apply_edit(content, None, edit) == Refused(reason="options_on_non_selection")
         output = LeadOutput.model_validate(_output(edits=[edit.model_dump()]))
-        kept, dropped = ground_edits(output, content)
+        kept, dropped = ground_edits(output, content, sample_size=LIMITS)
         assert kept.edits == [] and [d.reason for d in dropped] == ["options_on_non_selection"]
 
 
@@ -734,13 +740,61 @@ def test_a_selection_question_keeps_at_least_two_options() -> None:
             )
         ),
         content,
+        sample_size=LIMITS,
     )
     assert len(kept.edits) == 1 and dropped == []
 
 
 def test_set_n_sets_the_sample_size() -> None:
-    content, analysis = apply_edit(CONTENT, {"a": 1}, _edit(op="set_n", value=800))
+    content, analysis = apply_edit(
+        CONTENT, {"a": 1}, _edit(op="set_n", value=800), sample_size=LIMITS
+    )
     assert content["n"] == 800 and analysis == {"a": 1}
+
+
+@pytest.mark.parametrize(
+    ("value", "reason"),
+    [
+        (19, "sample_size_out_of_range"),
+        (10_001, "sample_size_out_of_range"),
+        (20, None),
+        (10_000, None),
+    ],
+)
+def test_a_set_n_is_held_to_the_readiness_limits_at_the_turn_and_at_the_accept(
+    value: int, reason: str | None
+) -> None:
+    # RQC9: one authority for a valid n. The Lead had its own range (30-40,000); it now
+    # reads readiness's, both bounds included, and never clamps.
+    output = LeadOutput.model_validate(_output(edits=[{"op": "set_n", "value": value, "why": WHY}]))
+    kept, dropped = ground_edits(output, CONTENT, sample_size=LIMITS)
+    applied = apply_edit(CONTENT, None, output.edits[0], sample_size=LIMITS)
+    if reason is None:
+        assert len(kept.edits) == 1 and dropped == []
+        assert not isinstance(applied, Refused) and applied[0]["n"] == value
+    else:
+        assert kept.edits == [] and [d.reason for d in dropped] == [reason]
+        assert applied == Refused(reason=reason)
+
+
+def test_a_set_n_with_no_limits_known_is_dropped_and_refused_never_presumed_valid() -> None:
+    output = LeadOutput.model_validate(_output(edits=[{"op": "set_n", "value": 300, "why": WHY}]))
+    kept, dropped = ground_edits(output, CONTENT, sample_size=None)
+    assert kept.edits == [] and [d.reason for d in dropped] == ["sample_size_limits_unknown"]
+    assert apply_edit(CONTENT, None, output.edits[0]) == Refused(
+        reason="sample_size_limits_unknown"
+    )
+
+
+def test_the_frozen_limits_are_read_back_and_an_unreadable_layer_is_none() -> None:
+    frozen = readiness_layer(LIMITS, "aia-readiness-1")
+    assert frozen == {
+        "methodology_version": "aia-readiness-1",
+        "sample_size": {"min": 20, "max": 10000},
+    }
+    assert frozen_sample_size({"readiness": frozen}) == LIMITS
+    assert frozen_sample_size({}) is None
+    assert frozen_sample_size({"readiness": {"sample_size": {"min": "x"}}}) is None
 
 
 # --------------------------------------------------------------------------- the context
