@@ -28,7 +28,7 @@ from aia_core.application.population_double import population_double
 from aia_core.domain.deployment import parse_environment
 from aia_worker.executor import StepExecutor
 
-from .registry import build_registry as production_registry
+from .registry import compose_registry
 
 __all__ = ["build_registry"]
 
@@ -36,4 +36,4 @@ __all__ = ["build_registry"]
 def build_registry() -> dict[str, StepExecutor]:
     """The factory for ``AIA_WORKER_EXECUTORS``; refuses outside local and test."""
     double = population_double(parse_environment(os.environ.get("AIA_ENV")))
-    return production_registry(population=double.loader())
+    return compose_registry(population=double.loader())

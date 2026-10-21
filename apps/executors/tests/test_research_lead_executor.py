@@ -28,6 +28,7 @@ from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRep
 from aia_core.infrastructure.tables import PromptVersionRow
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_executors.ai_runtime import AIRuntimeConfigError, AIRuntimeSettings, build_gateway
+from aia_executors.recorded_models import LEAD_REPLY, RecordedModels
 from aia_executors.registry import registry_for
 from aia_executors.research_lead import ResearchLeadConfig, ResearchLeadExecutor
 from aia_worker.settings import WorkerSettings
@@ -292,6 +293,26 @@ def test_a_sample_size_outside_the_frozen_readiness_limits_is_dropped_by_name(
     assert turn["status"] == "COMPLETED", turn
     assert [(e["op"], e["value"]) for e in turn["output"]["edits"]] == [("set_n", 600)]
     assert turn["dropped"] == [{"index": 0, "op": "set_n", "reason": "sample_size_out_of_range"}]
+
+
+def test_the_shared_recorded_wire_answers_a_lead_turn_as_a_recording(
+    ready: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """The acceptance harness's recorded models (mvp-acceptance-harness chunk 4) answer a Lead
+    turn through the real gateway: one request, the recorded reply, and a ledger row whose
+    provider request id says it was a recording."""
+    turn_id = post(ready)
+    models = RecordedModels()
+    assert worker(ready, database_url, store, build, models).run_once()  # type: ignore[arg-type]
+    assert len(models.requests) == 1
+    turn = lead_turn(ready, turn_id)
+    assert turn["status"] == "COMPLETED", turn
+    assert turn["output"]["reply"] == LEAD_REPLY and turn["output"]["edits"] == []
+    with ready.sessions() as session:
+        events = AIUsageRepository(session, ready.lead_scope(session)).events(run_id=turn["run_id"])
+    # The dispatch row precedes the answer and names no provider request; the answer's does.
+    answered = [e.provider_request_id for e in events if e.provider_request_id is not None]
+    assert answered == ["recorded-lead-00001"], answered
 
 
 def test_a_reply_with_a_number_outside_the_context_gets_its_one_repair(

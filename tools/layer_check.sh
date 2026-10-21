@@ -94,6 +94,11 @@ forbid() {
 # StepModelCaller's own .invoke( is not it). Their rules are below.
 GATEWAY_BUILT='^[^#]*\bGovernedModelGateway\('
 GATEWAY_INVOKED='^[^#]*[Gg]ateway[A-Za-z0-9_]*\.invoke\('
+# The recorded model wire and the composition over it, imported in any form: `import a.b`,
+# `from a import b`, `from . import b`, `from .b import c` (an import line naming either
+# module), or named as a quoted dotted string (importlib, AIA_WORKER_EXECUTORS, a config).
+RECORDED_MODELS_IMPORTED='^\s*(from|import)\s.*\b(recorded_models|acceptance_recorded)\b'
+RECORDED_MODELS_NAMED='['"'"'"]aia_executors\.(recorded_models|acceptance_recorded)'
 
 # Sourced (packages/aia_core/tests/test_layer_check_tool.py), the file defines
 # `forbid` and stops: the rule engine is tested on a scratch tree, apart from the
@@ -536,6 +541,36 @@ forbid "among the executors, only the workbench composition builds fictional fie
 forbid "no deployment runs the workbench composition" \
   'aia_executors\.workbench|aia_executors/workbench' \
   deploy
+# Recorded model answers (plan mvp-acceptance-harness chunk 4) stand in for Bedrock behind the
+# gateway, in tests and in the acceptance harness's worker. No production composition imports
+# them, and no deployment names either module: a recording never answers a deployed request.
+forbid "among the executors, only the acceptance composition imports the recorded models" \
+  "$RECORDED_MODELS_IMPORTED" \
+  "$EXECUTORS" \
+  "$EXECUTORS/acceptance_recorded.py"
+forbid "among the executors, only the acceptance composition names the recorded models" \
+  "$RECORDED_MODELS_NAMED" \
+  "$EXECUTORS" \
+  "$EXECUTORS/acceptance_recorded.py"
+forbid "no API code imports or names the recorded models" \
+  "$RECORDED_MODELS_IMPORTED|$RECORDED_MODELS_NAMED" \
+  "$API"
+forbid "the worker never imports or names the recorded models" \
+  "$RECORDED_MODELS_IMPORTED|$RECORDED_MODELS_NAMED" \
+  "$WORKER"
+forbid "the core never imports or names the recorded models" \
+  "$RECORDED_MODELS_IMPORTED|$RECORDED_MODELS_NAMED" \
+  "$CORE"
+forbid "no deployment runs the recorded models" \
+  'recorded_models|acceptance_recorded' \
+  deploy
+# The acceptance tree (MVP-ACCEPT-2 tier A) drives the product over HTTP and through one
+# declared operator bootstrap, never by import (docs/migration/mvp-acceptance.md §2). Not a
+# package, so no import contract can see it; test_acceptance_harness.py reads every import
+# form from the syntax tree, this is the grep half.
+forbid "the acceptance tree imports nothing it drives" \
+  '^\s*(from|import)\s+(aia_core\.(application|infrastructure)|aia_api|aia_worker|aia_executors|sqlalchemy|psycopg|alembic)\b' \
+  tests/acceptance
 # A validation's persona arms (panel-grounded-respondents 7c, 7e4) show a respondent another
 # person's profile, or none at all. Only the validation's own executor builds them, so no
 # client research run can carry an arm or an exclusion.
@@ -981,6 +1016,9 @@ forbid "no statically skipped or xfailed worker tests" \
 forbid "no statically skipped or xfailed executor tests" \
   '\bmark\.(skip|xfail)' \
   apps/executors/tests
+forbid "no statically skipped or xfailed acceptance tests" \
+  '\bmark\.(skip|xfail)' \
+  tests/acceptance
 
 # --- Presentation: the client renders, it does not decide -------------------
 #
