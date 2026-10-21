@@ -19,6 +19,9 @@ chunks:
   - "[x] K3a. Refuse an edit written from an item revision that is no longer current (F-K1)"
   - "[x] K3. Implement typed knowledge revisions and decisions against the reviewed base revision"
   - "[ ] K4. Resolve a study's selected, eligible client knowledge into an immutable context snapshot"
+  - "[x] K4a. A study's chosen revisions (use in this study) and their frozen context: selection, freeze, hash, migration"
+  - "[ ] K4b. The study's consumers read the frozen context behind a switch (agent jobs, the Lead, Design and Deep Research), and the selection's API"
+  - "[ ] K4c. Web: Použít v této studii on the client's items and in a study; a superseded or omitted entry said where it is read"
   - "[ ] K5. Define and materialize executable dimensions through the existing population authority"
   - "[ ] K6. Implement correction, retirement, conflicts and dependent-study change visibility"
   - "[ ] K7. Prove all four consumers and reconcile the shared documentation after landing"
@@ -641,6 +644,60 @@ What was decided, and why:
   an accept that names a revision the item is no longer at. That was a stale screen accepting
   over a newer correction (F-K1), and refusing it is the fix. The web sends `reviewed_revision`
   only from "Schválit místo revize N", with N read from the 409.
+
+## K4 contract (2026-10-21, written before the code)
+
+Today a study reads every active item of its client (`for_study`, the 200 newest). Each consumer
+then freezes a window of that list on its own terms:
+- the research agents' `context_snapshot`: titles and summaries, `KNOWLEDGE_MAX_BYTES`, omitted
+  ids named;
+- the Lead's `knowledge_entries`;
+- Deep Research's `freeze_knowledge`.
+
+What a job read was whatever was current, and knowledge accepted tomorrow entered every open
+study at once. K4 makes it a person's choice of exact revisions, which consumers read frozen.
+Three slices:
+
+- **K4a (this PR): the choice and the freeze**, in the domain (`domain/knowledge_context.py`)
+  and `ClientKnowledgeRepository`, the one reader and writer.
+  - `client_knowledge_selections` (migration `b5d7f9a1c3e6`) holds one row per study and item,
+    keyed to the exact revision through a foreign key to `client_knowledge_revisions`.
+  - `select_for_study(study, item_id, revision)`:
+    - needs `EDIT_STUDY` on an open study;
+    - `revision` is the one the person was shown. One that is no longer current raises
+      `StaleKnowledgeSelection` and selects nothing;
+    - another client's item, or one no longer active, is not found;
+    - choosing again replaces the earlier choice. `unselect_for_study` takes the item out. Both
+      are audited (`CLIENT_KNOWLEDGE_SELECTED` / `_UNSELECTED`).
+  - `freeze_for_study(study)` returns a `FrozenKnowledgeContext`:
+    - each chosen item at the revision chosen, with K3's typed fields: words, kind, author,
+      evidence, `revision_sha256`. A newer revision's words are never used;
+    - an entry is `CURRENT`, or `SUPERSEDED` (the item moved on; `current_revision` says where
+      to). A person decides whether to choose again;
+    - an item no longer active is `omitted` with reason `RETIRED`, never dropped silently;
+    - the context's identity is `context_sha256` over its version, study, client, entries and
+      omissions, and `verify()` re-checks it on a stored copy.
+  - **No choice means an empty context.** Nothing defaults to "all active". Unknown is not good:
+    a study nobody chose for has nothing chosen.
+- **K4b: the consumers**, behind a switch, off. With it on, the agent jobs' `context_snapshot`,
+  the Lead's context, Design Research's enqueue and Deep Research's `freeze_knowledge` read
+  `freeze_for_study`, record its `sha256` in what they freeze, and name superseded and omitted
+  entries where they already name omitted ids. With it off they read `for_study` as today.
+  This changes what a model sees, so the switch is needed, along with its burst and cost:
+  context bytes per request against today's 200-item window. The selection's API comes with
+  it: `GET/PUT/DELETE /studies/{id}/knowledge/selection[/{item_id}]`, using `SessionDep`, with
+  409 `knowledge_selection_stale`.
+- **K4c: the web.** "Použít v této studii" on a client item and in the study's context panel.
+  The context panel says when an entry is superseded or omitted, wherever the study shows it.
+
+**Deliberately not decided here.**
+- A per-use purpose ("context for design" vs "measure"). Formal eligibility for a computational
+  use stays with the population and evidence rules (K5, `client-data-in-analysis`); a selection
+  says only that the text is context for this study.
+- Licence-lineage omission (productization-coherence D-4) waits for that owner decision. When it
+  lands it is one more `OmittedReason`.
+- F093's silent 200-item truncation ends for a K4b consumer when the switch is on: a selection
+  has no window. Under the switch off it stays as it is.
 
 ## Findings
 

@@ -1270,6 +1270,39 @@ class ClientKnowledgeRevisionRow(Base):
     )
 
 
+class ClientKnowledgeSelectionRow(Base):
+    """One item chosen for one study at one revision (lifecycle K4, "use in this study").
+
+    A study holds at most one selection per item; choosing again replaces it. The revision is
+    an exact revision of the item, never "whichever is current". The row goes with its study
+    and with its item.
+    """
+
+    __tablename__ = "client_knowledge_selections"
+
+    study_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    item_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    selected_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    selected_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
+        # The exact revision chosen; it goes with its item (a revision goes with its item).
+        ForeignKeyConstraint(
+            ["item_id", "revision"],
+            ["client_knowledge_revisions.item_id", "client_knowledge_revisions.revision"],
+            ondelete="CASCADE",
+        ),
+        CheckConstraint("revision >= 1", name="knowledge_selection_revision_positive"),
+        Index("ix_client_knowledge_selections_item", "item_id"),
+    )
+
+
 class ClientWorkJournalRow(Base):
     """One answered model request of the client's own work, kept the moment it returns.
 

@@ -48,6 +48,15 @@ from ..domain.knowledge import (
     revision_sha256,
     source_ref,
 )
+from ..domain.knowledge_context import (
+    ContextEntryState,
+    FrozenKnowledgeContext,
+    FrozenKnowledgeEntry,
+    KnowledgeSelection,
+    OmittedKnowledge,
+    OmittedReason,
+    StaleKnowledgeSelection,
+)
 from ..domain.scope import (
     ClientContext,
     ClientPermission,
@@ -66,6 +75,7 @@ from .tables import (
     ClientKnowledgeLabelRow,
     ClientKnowledgeProposalRow,
     ClientKnowledgeRevisionRow,
+    ClientKnowledgeSelectionRow,
     ClientRow,
     as_utc,
     utcnow,
@@ -150,6 +160,16 @@ def _proposal(row: ClientKnowledgeProposalRow) -> KnowledgeProposal:
         author=author_of(row.author, provenance),
         decision=KnowledgeDecision(row.decision) if row.decision else None,
         reviewed_revision=row.reviewed_revision,
+    )
+
+
+def _selection(row: ClientKnowledgeSelectionRow) -> KnowledgeSelection:
+    return KnowledgeSelection(
+        study_id=row.study_id,
+        item_id=row.item_id,
+        revision=row.revision,
+        selected_by=row.selected_by,
+        selected_at=as_utc(row.selected_at),
     )
 
 
@@ -327,6 +347,193 @@ class ClientKnowledgeRepository:
         scope = _study(scope)
         scope.require(Permission.VIEW_STUDY)
         return self._approved(scope.organization_id, scope.client_id, kinds, text)
+
+    # ------------------------------------------------- use in this study (lifecycle K4)
+
+    def select_for_study(
+        self, scope: StudyContext, *, item_id: str, revision: int
+    ) -> KnowledgeSelection:
+        """A person chooses one of the study's client's items, at its current revision.
+
+        ``revision`` is the revision the person was shown. One that is no longer current
+        raises :class:`StaleKnowledgeSelection` and selects nothing. An item of another
+        client, or one no longer active, is not found. Choosing an item again replaces the
+        earlier choice. Needs ``EDIT_STUDY`` on an open study; audited.
+        """
+        scope = _study(scope)
+        scope.require(Permission.EDIT_STUDY)
+        scope.require_open_study()
+        item = self._session.scalar(
+            select(ClientKnowledgeItemRow)
+            .where(
+                ClientKnowledgeItemRow.item_id == item_id,
+                ClientKnowledgeItemRow.organization_id == scope.organization_id,
+                ClientKnowledgeItemRow.client_id == scope.client_id,
+                ClientKnowledgeItemRow.status == "ACTIVE",
+            )
+            .with_for_update()
+        )
+        if item is None:
+            raise ScopeDenied("not found", reason="unknown_item")
+        if revision != item.current_revision:
+            raise StaleKnowledgeSelection(
+                item_id=item_id, revision=revision, current_revision=item.current_revision
+            )
+        row = self._session.get(ClientKnowledgeSelectionRow, (scope.study_id, item_id))
+        replaced = row.revision if row is not None else None
+        now = utcnow()
+        if row is None:
+            row = ClientKnowledgeSelectionRow(
+                study_id=scope.study_id,
+                item_id=item_id,
+                organization_id=scope.organization_id,
+                client_id=scope.client_id,
+                revision=revision,
+                selected_by=scope.actor_id,
+                selected_at=now,
+            )
+            self._session.add(row)
+        else:
+            row.revision = revision
+            row.selected_by = scope.actor_id
+            row.selected_at = now
+        self._study_audit(
+            scope,
+            "CLIENT_KNOWLEDGE_SELECTED",
+            {"item_id": item_id, "revision": revision, "replaced_revision": replaced},
+        )
+        self._session.flush()
+        return _selection(row)
+
+    def unselect_for_study(self, scope: StudyContext, *, item_id: str) -> bool:
+        """The person takes an item out of the study's context; ``False`` if it was not in."""
+        scope = _study(scope)
+        scope.require(Permission.EDIT_STUDY)
+        scope.require_open_study()
+        row = self._session.scalar(
+            select(ClientKnowledgeSelectionRow).where(
+                ClientKnowledgeSelectionRow.study_id == scope.study_id,
+                ClientKnowledgeSelectionRow.organization_id == scope.organization_id,
+                ClientKnowledgeSelectionRow.client_id == scope.client_id,
+                ClientKnowledgeSelectionRow.item_id == item_id,
+            )
+        )
+        if row is None:
+            return False
+        self._study_audit(
+            scope, "CLIENT_KNOWLEDGE_UNSELECTED", {"item_id": item_id, "revision": row.revision}
+        )
+        self._session.delete(row)
+        self._session.flush()
+        return True
+
+    def selections(self, scope: StudyContext) -> list[KnowledgeSelection]:
+        """What the study's people chose for it, by item id."""
+        scope = _study(scope)
+        scope.require(Permission.VIEW_STUDY)
+        return [_selection(r) for r in self._selection_rows(scope)]
+
+    def _selection_rows(self, scope: StudyContext) -> Sequence[ClientKnowledgeSelectionRow]:
+        return self._session.scalars(
+            select(ClientKnowledgeSelectionRow)
+            .where(
+                ClientKnowledgeSelectionRow.study_id == scope.study_id,
+                ClientKnowledgeSelectionRow.organization_id == scope.organization_id,
+                ClientKnowledgeSelectionRow.client_id == scope.client_id,
+            )
+            .order_by(ClientKnowledgeSelectionRow.item_id)
+        ).all()
+
+    def freeze_for_study(self, scope: StudyContext) -> FrozenKnowledgeContext:
+        """The study's selected knowledge, frozen: each item at the revision chosen.
+
+        An entry holds the chosen revision's words, never the item's newer ones, and says
+        whether the item has moved on since (``SUPERSEDED``). An item no longer active is
+        omitted by name (``RETIRED``). Reads only the study's own client, from the study's
+        scope; two freezes of unchanged selections are the same context, hash for hash.
+        """
+        scope = _study(scope)
+        scope.require(Permission.VIEW_STUDY)
+        chosen = list(self._selection_rows(scope))
+        if not chosen:
+            return FrozenKnowledgeContext.freeze(
+                study_id=scope.study_id, client_id=scope.client_id, entries=(), omitted=()
+            )
+        ids = [s.item_id for s in chosen]
+        items = {
+            i.item_id: i
+            for i in self._session.scalars(
+                select(ClientKnowledgeItemRow).where(
+                    ClientKnowledgeItemRow.organization_id == scope.organization_id,
+                    ClientKnowledgeItemRow.client_id == scope.client_id,
+                    ClientKnowledgeItemRow.item_id.in_(ids),
+                )
+            ).all()
+        }
+        wanted = {(s.item_id, s.revision) for s in chosen}
+        revision_rows = [
+            r
+            for r in self._session.scalars(
+                select(ClientKnowledgeRevisionRow).where(
+                    ClientKnowledgeRevisionRow.organization_id == scope.organization_id,
+                    ClientKnowledgeRevisionRow.client_id == scope.client_id,
+                    ClientKnowledgeRevisionRow.item_id.in_(ids),
+                )
+            ).all()
+            if (r.item_id, r.revision) in wanted
+        ]
+        typed = {(r.item_id, r.revision): r for r in self._typed(scope, revision_rows)}
+        entries: list[FrozenKnowledgeEntry] = []
+        omitted: list[OmittedKnowledge] = []
+        for s in chosen:
+            item = items.get(s.item_id)
+            revision = typed.get((s.item_id, s.revision))
+            # The foreign keys keep both; a row outside this scope is not this study's.
+            if item is None or revision is None:
+                continue
+            if item.status != "ACTIVE":
+                omitted.append(
+                    OmittedKnowledge(
+                        item_id=s.item_id, revision=s.revision, reason=OmittedReason.RETIRED
+                    )
+                )
+                continue
+            entries.append(
+                FrozenKnowledgeEntry(
+                    item_id=s.item_id,
+                    revision=s.revision,
+                    kind=KnowledgeKind(item.kind),
+                    title=revision.title,
+                    summary=revision.summary,
+                    content=revision.content,
+                    author=revision.author,
+                    evidence=revision.evidence,
+                    sha256=revision.sha256,
+                    state=(
+                        ContextEntryState.CURRENT
+                        if item.current_revision == s.revision
+                        else ContextEntryState.SUPERSEDED
+                    ),
+                    current_revision=item.current_revision,
+                )
+            )
+        return FrozenKnowledgeContext.freeze(
+            study_id=scope.study_id, client_id=scope.client_id, entries=entries, omitted=omitted
+        )
+
+    def _study_audit(self, scope: StudyContext, action: str, payload: dict[str, Any]) -> None:
+        self._session.add(
+            AccessAuditRow(
+                organization_id=scope.organization_id,
+                client_id=scope.client_id,
+                study_id=scope.study_id,
+                actor_id=scope.actor_id,
+                action=action,
+                reason="",
+                payload=payload,
+                request_id=scope.request_id,
+            )
+        )
 
     def revisions(self, scope: ClientContext, *, item_id: str) -> list[KnowledgeRevision]:
         """An item's revision history, oldest first; empty when the item is not this client's."""
