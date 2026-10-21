@@ -1650,6 +1650,26 @@ describe("Results", () => {
     expect(rows[2].textContent).toContain("Odpověď necituje žádné připuštěné číslo.");
   });
 
+  it("says the research questions are unknown when the frozen design cannot be read, never that it has none (ANL2)", async () => {
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-7", analysis_outcome: "BLOCKED" }),
+    ] });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/design/revisions/REV-a1": () => { throw new Error("neznámá revize"); },
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: {}, modules: {
+        research_questions: { outcome: "BLOCKED", summary: null, violations: [{ code: "x", subject: "y", detail: "z" }], research_question_answers: [], key_findings: [], claims: [] },
+      } }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const section = await screen.findByRole("region", { name: "Pokrytí výzkumných otázek" });
+    await waitFor(() => expect(section.querySelector("[data-coverage-read]")?.getAttribute("data-coverage-read")).toBe("failed"));
+    expect(section.textContent).toContain("Výzkumné otázky běhu jsou neznámé");
+    expect(section.textContent).not.toContain("neuvádí výzkumné otázky");
+    expect(section.querySelectorAll("tr[data-rq]")).toHaveLength(0);
+  });
+
   it("puts every module's key findings first, each with the numbers it cites, and keeps every word formatted", async () => {
     const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
       step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6" }),

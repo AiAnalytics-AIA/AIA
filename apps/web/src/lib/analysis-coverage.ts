@@ -61,22 +61,22 @@ export function findingsOf(analysis: ResearchAnalysis | null): { ref: FindingRef
 
 /**
  * The coverage table. `questions` are the frozen design's research questions in order
- * (`researchQuestionsOf`); when the design could not be read (null) the research-questions
- * module's own answers stand in, in their order. `gaps` are the run's recorded answerability gaps.
+ * (`researchQuestionsOf`), read; nothing stands in for them, since the module's own answers would
+ * drop a question nobody answered and read as full coverage. `gaps` are the run's recorded
+ * answerability gaps.
  */
 export function coverage(
-  questions: readonly string[] | null,
+  questions: readonly string[],
   analysis: ResearchAnalysis | null,
   gaps: readonly AnswerabilityGap[],
 ): CoverageRow[] {
   const rq = analysis?.modules[RESEARCH_QUESTIONS_MODULE];
   const answers = rq?.outcome === "COMPLETED" ? rq.research_question_answers : [];
-  const asked = questions ?? answers.map((a) => a.question);
   const findings = findingsOf(analysis);
   const recorded = new Map(
     gaps.filter((g) => g.research_question).map((g) => [linkKey(g.research_question as string), g] as const),
   );
-  return asked.map((question, index) => {
+  return questions.map((question, index) => {
     const key = linkKey(question);
     const answer = answers.find((a) => linkKey(a.question) === key) ?? null;
     const gapRecord = recorded.get(key);

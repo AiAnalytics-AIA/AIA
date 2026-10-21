@@ -55,12 +55,13 @@ describe("coverage", () => {
     expect(coverage([RQ1], blocked, [])[0].state).toBe("blocked");
     expect(coverage([RQ1], analysis({}), [])[0].state).toBe("pending");
     expect(coverage([RQ1], null, [gap(RQ1)])[0].state).toBe("gap");
+    expect(coverage([RQ1], null, [])[0].state).toBe("pending");
     expect(coverage(["Nikdo se neptal?"], answered, [])[0].state).toBe("unanswered");
   });
 
-  it("falls back to the module's own questions when the design could not be read", () => {
-    expect(coverage(null, answered, []).map((r) => r.question)).toEqual([RQ1, RQ2]);
-    expect(coverage(null, null, [])).toEqual([]);
+  it("lists only the design's questions: a question the module did not answer keeps its row", () => {
+    expect(coverage([RQ1, "Nikdo se neptal?"], answered, []).map((r) => r.state)).toEqual(["answered", "unanswered"]);
+    expect(coverage([], answered, [])).toEqual([]);
   });
 });
 

@@ -103,7 +103,9 @@ Landed ahead of ANL1, whose registry (`research-lead-workbench#14`, `#16`) is no
 `lib/analysis-coverage.ts` (`coverage`, `findingsOf`, `rqTarget`, `findingAnchor`) and
 `AnalysisCoverage.tsx` (the table and the milestones Sběr dokončen and Povinná analýza; Zpráva
 zrevidována is Zpráva's, read there). The research questions are the frozen Design Revision's
-(`researchQuestionsOf`), else the research-questions module's own. A finding answers a question when it
+(`researchQuestionsOf`) and nothing else: until that revision is read the table says they are loading,
+and after a failed read that they are unknown, never that the design has none and never a list made
+from the module's own answers (which would drop an unanswered question and read as full coverage). A finding answers a question when it
 cites a measure (`evidence_ref`) the module's answer cites; a module stored BLOCKED reads "nelze
 říct", never an answer. Targets `module:research_questions` (the table) and `finding:<module>:<n>`,
 plain strings until ANL1's `aiaId` (#563). No `rq:` target: the coordinator ruled (#563 f174ea5) that

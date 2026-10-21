@@ -32,20 +32,25 @@ function missing(row: CoverageRow): string {
   return "—";
 }
 
-/** The frozen design's research questions; null while unread or when it cannot be read. */
-function useDesignQuestions(studyId: string, revisionId: string): string[] | null {
-  const [questions, setQuestions] = useState<string[] | null>(null);
+/** The frozen design's research questions as read: loading, failed (unknown, never "none"), or read. */
+type DesignQuestions = { state: "loading" } | { state: "failed" } | { state: "ready"; questions: string[] };
+
+function useDesignQuestions(studyId: string, revisionId: string): DesignQuestions {
+  const [read, setRead] = useState<DesignQuestions & { key: string }>({ state: "loading", key: "" });
+  const key = `${studyId}/${revisionId}`;
   useEffect(() => {
     let live = true;
     researchAgents.design(studyId, revisionId).then(
-      (revision) => live && setQuestions(
-        revision?.content && typeof revision.content === "object" ? researchQuestionsOf(revision.content as ResearchProject) : null,
+      (revision) => live && setRead(
+        revision?.content && typeof revision.content === "object"
+          ? { state: "ready", questions: researchQuestionsOf(revision.content as ResearchProject), key }
+          : { state: "failed", key },
       ),
-      () => live && setQuestions(null),
+      () => live && setRead({ state: "failed", key }),
     );
     return () => { live = false; };
-  }, [studyId, revisionId]);
-  return questions;
+  }, [studyId, revisionId, key]);
+  return read.key === key ? read : { state: "loading" };
 }
 
 /** Sběr dokončen · Povinná analýza: where the run stands on the way to a report. */
@@ -72,8 +77,8 @@ export function AnalysisMilestones({ run, analysis }: { run: ResearchRun; analys
 
 export function AnalysisCoverage({ run, analysis }: { run: ResearchRun; analysis: ResearchAnalysis | null }) {
   const frame = useFrame();
-  const questions = useDesignQuestions(frame.studyId, run.design_revision_id);
-  const rows = coverage(questions, analysis, run.answerability?.gaps ?? []);
+  const design = useDesignQuestions(frame.studyId, run.design_revision_id);
+  const rows = design.state === "ready" ? coverage(design.questions, analysis, run.answerability?.gaps ?? []) : [];
   return (
     <section aria-labelledby="analysis-coverage-title" data-analysis-coverage data-aia="module:research_questions" className="rounded-md border border-border bg-surface-raised p-4">
       <h3 id="analysis-coverage-title" className="text-base font-semibold">Pokrytí výzkumných otázek</h3>
@@ -106,7 +111,11 @@ export function AnalysisCoverage({ run, analysis }: { run: ResearchRun; analysis
           </table>
         </div>
       ) : (
-        <p className="mt-2 text-sm text-ink-muted">{questions === null && !analysis ? "Výzkumné otázky běhu se načítají." : "Návrh, ze kterého běh vznikl, neuvádí výzkumné otázky."}</p>
+        <p className="mt-2 text-sm text-ink-muted" data-coverage-read={design.state}>
+          {design.state === "loading" ? "Výzkumné otázky běhu se načítají."
+            : design.state === "failed" ? "Výzkumné otázky běhu jsou neznámé: návrh, ze kterého běh vznikl, se nenačetl. Pokrytí proto nelze posoudit."
+            : "Návrh, ze kterého běh vznikl, neuvádí výzkumné otázky."}
+        </p>
       )}
     </section>
   );
