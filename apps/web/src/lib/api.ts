@@ -1306,6 +1306,12 @@ export const research = {
   /** The run's own report: its bytes and the stored draft they are, so the card approves that draft. */
   downloadReport: (studyId: string, runId: string) =>
     requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/download`),
+  /** The persona topic each dimension lets through, the mapping a run's receipt reads (artifact-dimensions DIM2). */
+  personaTopics: (studyId: string, dimensions: readonly string[]) =>
+    request<{ items: { dimension: string; topic: string | null }[] }>(
+      "GET",
+      `${studyPath(studyId)}/research/persona-topics${dimensions.length ? `?${dimensions.map((d) => `dimension=${encodeURIComponent(d)}`).join("&")}` : ""}`,
+    ),
   /** Which Sociomap methods are approved, by exact spec (complete-study-report B4). */
   sociomapRegister: (studyId: string) =>
     request<{ entries: RegisterEntry[] }>("GET", `${studyPath(studyId)}/research/sociomap-register`),
