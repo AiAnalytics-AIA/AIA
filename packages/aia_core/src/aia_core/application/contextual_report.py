@@ -21,7 +21,9 @@ from aia_core.application.deep_research import BundleNotReady, DeepResearchRuns,
 from aia_core.application.report import (
     RESEARCH_SUBTITLE,
     ReportCompositionRefused,
+    beside_outputs,
     compose_internal_report,
+    sourced,
 )
 from aia_core.application.report_chapters import report_chapters
 from aia_core.application.report_export import review_stamp_record
@@ -56,9 +58,11 @@ from aia_core.domain.deep_research.topicality import (
     topic_screen,
 )
 from aia_core.domain.deep_research.triangulation import publisher_identity
+from aia_core.domain.deep_research.workflow import ARTIFACT_TYPES
 from aia_core.domain.fieldwork import OriginKind, origin_kind
 from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.report.model import (
+    ArtifactSource,
     Block,
     BulletList,
     Callout,
@@ -91,7 +95,9 @@ from aia_core.infrastructure.artifact_repository import (
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import ArtifactStore, IntegrityError, ObjectNotFound
 
-CONTEXT_REPORT_CONTRACT = "aia-contextual-report-8"
+CONTEXT_REPORT_CONTRACT = "aia-contextual-report-9"
+#: The sealed Deep Research bundle the literature chapter is read from.
+BUNDLE_ARTIFACT = ARTIFACT_TYPES["bundle"]
 # Stored beside the run's own report, on the Study's design project (ADR 0016).
 CONTEXT_REPORT_ARTIFACT_TYPE = "research_internal_docx_with_research"
 CONTEXT_REPORT_STAGE = "REPORT"
@@ -1046,12 +1052,23 @@ def _compose(
         analysis,
         meta,
         map_sections=chapters.maps,
-        context_sections=literature_sections(
-            bundle,
-            research_run_id=deep_research_run_id,
-            origin=origin_kind(first.record.labels.data_origin),
-            tiers_approved=tiers_approved,
-            topics=topics,
+        # The chapter names the sealed bundle it is read from (artifact-chain CHN1).
+        context_sections=tuple(
+            sourced(
+                section,
+                ArtifactSource(
+                    BUNDLE_ARTIFACT,
+                    provenance.evidence_bundle_artifact_id,
+                    provenance.evidence_bundle_artifact_sha256,
+                ),
+            )
+            for section in literature_sections(
+                bundle,
+                research_run_id=deep_research_run_id,
+                origin=origin_kind(first.record.labels.data_origin),
+                tiers_approved=tiers_approved,
+                topics=topics,
+            )
         ),
         question_tables=chapters.questions,
         design=chapters.design,
@@ -1059,6 +1076,7 @@ def _compose(
         research_question_gaps=chapters.gaps,
         map_source=(chapters.map_artifact_id, chapters.map_sha256),
         methodology_rules=chapters.methodology,
+        outputs=beside_outputs(run["steps"]),
     )
     modules = [analysis.modules[m.module_id] for m in ANALYSIS_MODULES]
     return _Composed(

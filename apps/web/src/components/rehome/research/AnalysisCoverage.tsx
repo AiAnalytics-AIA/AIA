@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { gapWords } from "@/lib/answerability";
 import { researchAgents, type ResearchAnalysis, type ResearchRun } from "@/lib/api";
+import { analysisTarget } from "@/lib/artifacts/analysis";
 import { coverage, findingAnchor, findingId, type CoverageRow, type CoverageState } from "@/lib/analysis-coverage";
 import { ANALYSIS_ORDER, stepLabel, stepOf } from "@/lib/research-execution";
 import type { ResearchProject } from "@/research/model";
@@ -80,7 +81,7 @@ export function AnalysisCoverage({ run, analysis }: { run: ResearchRun; analysis
   const design = useDesignQuestions(frame.studyId, run.design_revision_id);
   const rows = design.state === "ready" ? coverage(design.questions, analysis, run.answerability?.gaps ?? []) : [];
   return (
-    <section aria-labelledby="analysis-coverage-title" data-analysis-coverage data-aia="module:research_questions" className="rounded-md border border-border bg-surface-raised p-4">
+    <section aria-labelledby="analysis-coverage-title" data-analysis-coverage data-aia={analysisTarget({ kind: "module", module: "research_questions" }) ?? undefined} className="rounded-md border border-border bg-surface-raised p-4">
       <h3 id="analysis-coverage-title" className="text-base font-semibold">Pokrytí výzkumných otázek</h3>
       {rows.length ? (
         <div className="mt-3 overflow-x-auto">

@@ -1,0 +1,222 @@
+{
+  "sections": [
+    {
+      "id": "ch-summary",
+      "sources": [
+        {
+          "artifact_id": "art-exec-7f3a2c",
+          "artifact_type": "research_analysis_module",
+          "kind": "artifact",
+          "sha256": "0567500005abd1b649280152c6f8ca2dcb2096c54576c95ed137a4f9d5efa588"
+        },
+        {
+          "kind": "ledger",
+          "refs": [
+            "trust_total",
+            "n_total"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch-decision",
+      "sources": [
+        {
+          "artifact_id": "art-exec-7f3a2c",
+          "artifact_type": "research_analysis_module",
+          "kind": "artifact",
+          "sha256": "0567500005abd1b649280152c6f8ca2dcb2096c54576c95ed137a4f9d5efa588"
+        },
+        {
+          "kind": "ledger",
+          "refs": [
+            "trust_praha"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch-questions",
+      "sources": [
+        {
+          "artifact_id": "art-rq-7f3a2c",
+          "artifact_type": "research_analysis_module",
+          "kind": "artifact",
+          "sha256": "4b810a94eae45295ec2bf18dc1270bd41dc79bd5e1265ce67fb65924a5984cb5"
+        }
+      ]
+    },
+    {
+      "id": "ch-findings",
+      "sources": [
+        {
+          "artifact_id": "art-obj-7f3a2c",
+          "artifact_type": "research_analysis_module",
+          "kind": "artifact",
+          "sha256": "2ff96114e35a59c7ab98be0c9996e1db44706287637e14e3c01014d8ff9dd970"
+        },
+        {
+          "kind": "ledger",
+          "refs": [
+            "trust_praha",
+            "switch_modelled_young",
+            "trust_total",
+            "trust_brno",
+            "trust_ostrava",
+            "switch_modelled"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch-recommendations",
+      "sources": [
+        {
+          "artifact_id": "art-impl-7f3a2c",
+          "artifact_type": "research_analysis_module",
+          "kind": "artifact",
+          "sha256": "975b29e3ef57003bd3302eafefed89458255eed9af9e79c1b359e6c94344a36b"
+        },
+        {
+          "kind": "ledger",
+          "refs": [
+            "trust_praha",
+            "trust_ostrava"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch-external",
+      "sources": [
+        {
+          "artifact_id": "art-bundle-7f3a2c",
+          "artifact_type": "deep_research_bundle",
+          "kind": "artifact",
+          "sha256": "bb2ce670589536a91d06d29891f1ba0159462d781e716d623d13ac86c7266e66"
+        }
+      ]
+    },
+    {
+      "id": "ch-confidence",
+      "sources": [
+        {
+          "artifact_id": "art-lim-7f3a2c",
+          "artifact_type": "research_analysis_module",
+          "kind": "artifact",
+          "sha256": "15159c7ca7ddf58f2506e0c7f8bffee144399d79d5b4e28a00e8f3e9f9e44afa"
+        }
+      ]
+    },
+    {
+      "id": "ch-method",
+      "sources": [
+        {
+          "artifact_id": "art-data-7f3a2c",
+          "artifact_type": "research_fieldwork_dataset",
+          "kind": "artifact",
+          "sha256": "d77eba0cdeae2f5385f959a5af9e4acf22c3b51033eab632449f70f04a48ebf8"
+        },
+        {
+          "kind": "run",
+          "path": "metadata.population"
+        },
+        {
+          "kind": "run",
+          "path": "metadata.support"
+        }
+      ]
+    },
+    {
+      "id": "ch-limitations",
+      "sources": [
+        {
+          "artifact_id": "art-lim-7f3a2c",
+          "artifact_type": "research_analysis_module",
+          "kind": "artifact",
+          "sha256": "15159c7ca7ddf58f2506e0c7f8bffee144399d79d5b4e28a00e8f3e9f9e44afa"
+        }
+      ]
+    },
+    {
+      "id": "ch-conclusion",
+      "sources": [
+        {
+          "artifact_id": "art-exec-7f3a2c",
+          "artifact_type": "research_analysis_module",
+          "kind": "artifact",
+          "sha256": "0567500005abd1b649280152c6f8ca2dcb2096c54576c95ed137a4f9d5efa588"
+        }
+      ]
+    },
+    {
+      "id": "app-questionnaire",
+      "sources": [
+        {
+          "artifact_id": "art-spec-7f3a2c",
+          "artifact_type": "research_specification",
+          "kind": "artifact",
+          "sha256": "ee301815a29fa6a7a8bacced0cea456985aca8a94451ddda60b96e22e76bdc1f"
+        },
+        {
+          "kind": "spec",
+          "path": "questions"
+        }
+      ]
+    },
+    {
+      "id": "app-evidence",
+      "sources": [
+        {
+          "kind": "ledger",
+          "refs": [
+            "trust_total",
+            "n_total",
+            "trust_praha",
+            "switch_modelled_young",
+            "trust_brno",
+            "trust_ostrava",
+            "switch_modelled"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "app-audit",
+      "sources": [
+        {
+          "artifact_id": "art-spec-7f3a2c",
+          "artifact_type": "research_specification",
+          "kind": "artifact",
+          "sha256": "ee301815a29fa6a7a8bacced0cea456985aca8a94451ddda60b96e22e76bdc1f"
+        },
+        {
+          "artifact_id": "art-data-7f3a2c",
+          "artifact_type": "research_fieldwork_dataset",
+          "kind": "artifact",
+          "sha256": "d77eba0cdeae2f5385f959a5af9e4acf22c3b51033eab632449f70f04a48ebf8"
+        },
+        {
+          "artifact_id": "art-agg-7f3a2c",
+          "artifact_type": "research_aggregate",
+          "kind": "artifact",
+          "sha256": "6247e189b52ab147459dfebd33324097a835c0fd84aa81619b37d9c59b0c2963"
+        }
+      ]
+    }
+  ],
+  "unread": [
+    {
+      "artifact_id": "art-agg-7f3a2c",
+      "artifact_type": "research_aggregate",
+      "kind": "artifact",
+      "sha256": "6247e189b52ab147459dfebd33324097a835c0fd84aa81619b37d9c59b0c2963"
+    },
+    {
+      "artifact_id": "art-smx-7f3a2c",
+      "artifact_type": "research_sociomapping_docx",
+      "kind": "artifact",
+      "sha256": "245d1a6ab776699af30d28775a72a4ca34543a163820916a760a208a199e4ab1"
+    }
+  ]
+}

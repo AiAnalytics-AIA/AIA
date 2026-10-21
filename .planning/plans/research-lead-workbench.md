@@ -31,11 +31,11 @@ chunks:
   - "[ ] 23c. The finished Deep Research card (DRL-7): coverage and counts, the first findings with 'Ověřeno, přidat zdroj', 'Zkontrolovat návrh' (7b), 'Použít ve zprávě' and the report with literature prepared and approved on CompleteReport's routes, a failure's cause and 'Zkusit znovu'"
   - "[ ] 26f.1. The Deep Research half of 26f (DRL-5): the Deep Research starts and retries removed from every layout, their panels kept as readers; after 23b and after lead-orchestration LO5a.3 (Q48); with it lead-orchestration LO5a's acceptance"
   - "[ ] 25. Deep Research reachable from every stage as a capability"
-  - "[ ] 26a. The Lead at every width (D20, MVPQ-11), its pure rules: lib/workbench-layout.ts, the breakpoints (split from 1100 px, drawer 768-1099, sheet under 768), the drawer's states and the one Escape order, tested at 1099, 1100, 768, 767 and 390 px"
+  - "[x] 26a. The Lead at every width (D20, MVPQ-11), its pure rules: lib/workbench-layout.ts, the breakpoints (split from 1100 px, drawer 768-1099, sheet under 768), the drawer's states and the one Escape order, tested at 1099, 1100, 768, 767 and 390 px"
   - "[x] 26b. One tree, three layouts: Workbench renders the artifact and LeadPane once at every width, so crossing 1100 px remounts nothing (a mount-counter test); the workbench serves under 1100 px"
   - "[x] 26c. The launcher and the drawer (D21): the rail or bottom bar opens the same LeadPane as a side drawer (768-1099 px) or a full-screen sheet (under 768 px); keyboard, focus trap and Escape with a return to the targeted artifact; tested at 1099, 768 and 390 px"
   - "[x] 26d. The compact header and stage navigator at 768-1099 and under 768 px: all eleven stages reachable by keyboard, no page overflow"
-  - "[ ] 26e. A stale card refused and a direct request held by the same server gates, in the drawer and in the split"
+  - "[x] 26e. A stale card refused and a direct request held by the same server gates, in the drawer and in the split"
   - "[ ] 26f. The manual AI starts removed in every layout behind one predicate, except Spuštění's own Start (D15, 2026-10-21); a static guard test; the journeys start work through the Lead's cards or a typed start"
   - "[ ] 27a. Availability, said once and honestly (D20): first an anchored inventory of every path that turns the Lead off or stops it answering, each made hard to trigger by accident (Q43); then lib/lead-availability.ts (ON / WAITING / OFF / UNKNOWN from GET /lead, which incorporates the worker's readiness from the composition record, lead-orchestration LO12b; ON only with the worker ready, unknown never on), the launcher's dot and a stage's one line"
   - "[x] 27b. The kill switch holds on every Lead start: a card the Lead model prepared, approved after a switch-off, is 409 research_lead_disabled, stored text edits can still be accepted or dismissed (Q42); with the Lead off the composer takes only LO5's typed start commands, matched by code, and their server-matched chat_start cards stay approvable under the same wallet and LO15 confirmation (Q43); GET /lead reports the worker's readiness (LO12b)"
@@ -787,6 +787,14 @@ so it is rerun on `workbench.py up --fresh`.
   token meets the same LO15 confirmation and ledger; a direct `POST …/lead/turns/{id}/request` for a stale
   or used turn is refused. A server test only if a gap is found (LO15's tests exist,
   `lead-orchestration.md:23`). Depends on `feature/lead-worker-cards`, whose cards are what go stale.
+  *Landed* as its own journey, `tools/ui_workbench/lead_stale_journey.mjs` (`lead_journey.mjs` passes
+  once per workbench, OI-133), on the recorded design workers (`aia_executors.workbench`
+  `recorded_research_agent`, #597). What it established about the direct request: a *used* turn's
+  `…/request` asked again answers 200 with the same job and starts no second one (idempotent, not a
+  refusal). A *stale* turn's request is approved against the current working copy, not refused
+  (`application/research_lead.py` `approve_request` submits `_working_content()`). That is no gap,
+  because the job's own proposal meets the item-level stale rule when a person accepts it, which is
+  the refusal the journey shows. No server change was needed.
 - **26f. Remove the manual AI starts from every layout**, every row of *What exists* above except
   Spuštění's "Spustit výzkum", which stays and whose run also shows as a Lead chat card (D15,
   2026-10-21). Also `AI_HELP` and `ResearchAssistance` (the inspector keeps readiness and blockers),
@@ -1272,3 +1280,27 @@ Recommended with LO12b, whose record makes the disagreement visible instead.
 - `deploy/develop/README.md` (the switches): the same rule; develop states `true` by Compose.
 - `docs/architecture/adr/0026-…` *Accepted with*: Q42's refusal and the switch stated per
   deployment.
+
+## Contract follow-ups from the stage owners (2026-10-21)
+
+Three changes to chunk 16's contract rows, each one a stage owner asked for. They change no server
+behaviour beyond `FOCUS_KINDS` gaining one kind.
+
+- **Sběr dat (FLD7, #563): kind `receipt`.** The fieldwork row targets `step` and `receipt`.
+  `receipt:respondents` is the "Kdo odpovídal" card, which `ch-method` reads. It was added to
+  `domain/lead_artifacts.py` `TargetKind`, `domain/research_lead.py` `FOCUS_KINDS`,
+  `lib/workbench-artifacts.ts` and `contract.json`. The label is "Kdo odpovídal"
+  (`targetLabel`).
+- **Vzorek (SMP4, SMP5, #606): kind `sample` takes `ready`, `respondents` and
+  `respondents:<persona source>`.** These sit beside the existing ids. `FOCUS_ID` already
+  accepted them; the fixture's grammar now says so.
+- **Dotazník (Codex on #607): `targetOfElement`'s `qedit_` / `qblock_` id fallbacks name only an id
+  the contract can send.** For a card without a stored id, the screen invents one, and the
+  fallbacks used to turn it into a target:
+  - `question:Q`, from `questionElementId`'s placeholder;
+  - `section:0`, from a block's index;
+  - `question:Q 2`, which the server refuses.
+
+  Those are now refused, while a stored id stays pickable whether #607's marks have landed yet or
+  not (review of #618). Test: `lead.test.ts` "names an unmarked card by its DOM id only when the
+  id is a stored one the contract can send".

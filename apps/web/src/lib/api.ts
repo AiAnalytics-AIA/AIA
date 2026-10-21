@@ -6,6 +6,7 @@
 
 import type { RegisterEntry } from "@/lib/object-map-view";
 import type { BriefMaterials } from "@/lib/material-class";
+import type { StoredReportDocument } from "@/lib/artifacts/report";
 import { currentIdToken, loadConfig } from "@/lib/auth";
 import type { EditDecisionResult, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
 export type { ResearcherLead as ResearcherLeadView } from "@/lib/lead";
@@ -965,6 +966,10 @@ export type ResearchLimits = {
   methodology_version: string;
   version: number | null;
   sample_size: { min: number; max: number };
+  /** The questionnaire's length rule from Metodika (artifact-questionnaire QST7): seconds per
+   * answer by question type and per tracked-set object, with the methodology version. Absent, or
+   * null, while the methodology owner has set none; read through research/length.ts readRule. */
+  questionnaire_length?: unknown;
 };
 export type Readiness = {
   design_revision_id: string;
@@ -1303,9 +1308,18 @@ export const research = {
     request<ResearchAnalysis>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/analysis`),
   report: (studyId: string, runId: string) =>
     request<ResearchReport>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report`),
+  /** The run's internal draft as its stored document model, beside the DOCX it names (report-delivery RD5a). */
+  reportDocument: (studyId: string, runId: string) =>
+    request<StoredReportDocument>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/document`),
   /** The run's own report: its bytes and the stored draft they are, so the card approves that draft. */
   downloadReport: (studyId: string, runId: string) =>
     requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/download`),
+  /** The persona topic each dimension lets through, the mapping a run's receipt reads (artifact-dimensions DIM2). */
+  personaTopics: (studyId: string, dimensions: readonly string[]) =>
+    request<{ items: { dimension: string; topic: string | null }[] }>(
+      "GET",
+      `${studyPath(studyId)}/research/persona-topics${dimensions.length ? `?${dimensions.map((d) => `dimension=${encodeURIComponent(d)}`).join("&")}` : ""}`,
+    ),
   /** Which Sociomap methods are approved, by exact spec (complete-study-report B4). */
   sociomapRegister: (studyId: string) =>
     request<{ entries: RegisterEntry[] }>("GET", `${studyPath(studyId)}/research/sociomap-register`),

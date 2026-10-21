@@ -408,13 +408,72 @@ class ReportMeta:
 
 
 @dataclass(frozen=True, slots=True)
+class ArtifactSource:
+    """A section read this stored artifact, by type, id and content (artifact-chain CHN1)."""
+
+    artifact_type: str
+    artifact_id: str
+    sha256: str
+
+
+@dataclass(frozen=True, slots=True)
+class SpecSource:
+    """A section read this field of the run's research specification (a dotted path)."""
+
+    path: str
+
+
+@dataclass(frozen=True, slots=True)
+class RunSource:
+    """A section read this field the run recorded at start (a dotted path into the run, e.g.
+    ``metadata.population``): a pin or a note that is the run's own record, not an artifact."""
+
+    path: str
+
+
+@dataclass(frozen=True, slots=True)
+class LedgerSource:
+    """A section printed these evidence refs. Derived from its blocks when not given."""
+
+    refs: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class FixedSource:
+    """Text the composer wrote, read from nothing (only the methodology's guidance)."""
+
+    text_id: str
+
+
+SectionSource = ArtifactSource | SpecSource | RunSource | LedgerSource | FixedSource
+
+
+@dataclass(frozen=True, slots=True)
+class BesideOutput:
+    """An output the run makes beside the report, never upstream of it (the experimental
+    Sociomapping and its draft): named by its step, because no section could have read it and
+    whether it is stored yet when the report is composed is a race, not a fact of the report."""
+
+    node_key: str
+    step_kind: str
+
+
+#: A run's output as the manifest names it: stored and read or not, or made beside the report.
+RunOutput = ArtifactSource | BesideOutput
+
+
+@dataclass(frozen=True, slots=True)
 class Section:
-    """A chapter (numbered 1, 2, …) or, with ``appendix``, an appendix (A, B, …)."""
+    """A chapter (numbered 1, 2, …) or, with ``appendix``, an appendix (A, B, …).
+
+    ``sources`` is what the section was composed from (artifact-chain CHN1); the evidence refs
+    its blocks cite are added to it when it is stored (``domain/report/sources.py``)."""
 
     title: str
     blocks: tuple[Block, ...]
     id: str | None = None
     appendix: bool = False
+    sources: tuple[SectionSource, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -426,3 +485,6 @@ class ReportDocument:
     table_of_contents: bool = True
     list_of_figures: bool = True
     list_of_tables: bool = True
+    #: The run's outputs the report could have read (artifact-chain CHN1). Those no section
+    #: names are the manifest's unread outputs (``domain/report/sources.py``).
+    outputs: tuple[RunOutput, ...] = ()

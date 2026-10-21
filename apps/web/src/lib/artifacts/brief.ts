@@ -6,7 +6,9 @@
 // element for each. A target this file does not name is refused, never guessed. Pure.
 
 import { type BriefingField, type TopField, storedAttachmentId } from "@/research/brief";
+import { objectivesOf } from "@/research/brief-objectives";
 import type { ResearchProject } from "@/research/model";
+import type { Analysis } from "@/research/store";
 import { ARTIFACTS, type ViewOpKind, aiaId, parseAiaId } from "../workbench-artifacts";
 
 /** The Brief's view operations: its row in the registry, never a copy. */
@@ -21,6 +23,7 @@ export const BRIEF_VIEW_OPS: readonly ViewOpKind[] = ARTIFACTS.brief.view_ops;
 export const BRIEF_FIELDS = [
   "goal",
   "title",
+  "objectives",
   "type",
   "files",
   "context",
@@ -47,8 +50,8 @@ export function briefElementId(field: BriefField): string {
   return `brief-${field}`;
 }
 
-/** A target on the Brief, read: a field, or a stored file. */
-export type BriefTarget = { kind: "brief"; field: BriefField } | { kind: "material"; id: string };
+/** A target on the Brief, read: a field, an objective, or a stored file. */
+export type BriefTarget = { kind: "brief"; field: BriefField } | { kind: "objective"; id: string } | { kind: "material"; id: string };
 
 /**
  * A Lead target the Brief carries, or null. Only a field this file names and a material in the
@@ -59,6 +62,7 @@ export function briefTarget(target: string): BriefTarget | null {
   const parsed = parseAiaId(target);
   if (!parsed || parsed.stage !== "brief") return null;
   if (parsed.kind === "brief") return (BRIEF_FIELDS as readonly string[]).includes(parsed.id) ? { kind: "brief", field: parsed.id as BriefField } : null;
+  if (parsed.kind === "objective") return { kind: "objective", id: parsed.id };
   if (parsed.kind === "material") return { kind: "material", id: parsed.id };
   return null;
 }
@@ -70,11 +74,12 @@ export function materialAia(attachmentId: string): string {
 }
 
 /**
- * Every target the Brief shows for `project`: each field, and each file kept in AIA. A link, and a
- * record whose file never came into AIA, have no id to name and are not targets (artifact-brief
- * BRF1; objectives join with BRF2).
+ * Every target the Brief shows for a study: each field, each objective (by item_ids' id), and each
+ * file kept in AIA. A link, and a record whose file never came into AIA, have no id to name and are
+ * not targets.
  */
-export function briefTargets(project: ResearchProject): string[] {
+export function briefTargets(project: ResearchProject, analysis: Analysis | null = null): string[] {
   const files = (project.briefing?.attachments || []).map(storedAttachmentId).filter((id): id is string => id !== null);
-  return [...BRIEF_FIELDS.map((f) => aiaId("brief", f)), ...[...new Set(files)].map(materialAia)];
+  const objectives = objectivesOf({ project, analysis }).map((o) => aiaId("objective", o.id));
+  return [...BRIEF_FIELDS.map((f) => aiaId("brief", f)), ...objectives, ...[...new Set(files)].map(materialAia)];
 }

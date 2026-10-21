@@ -1,8 +1,8 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] RPT1. Zpráva's contract as data: view operations, pointable ids (section, paragraph, figure, claim) and V2's interaction contract"
-  - "[ ] RPT2. The document first: the draft rendered in the pane from its stored document model, paragraphs with claim chips opening the inspector, figures in place"
+  - "[x] RPT1. Zpráva's contract as data: view operations, pointable ids (section, paragraph, figure, claim) and V2's interaction contract"
+  - "[x] RPT2. The document first: the draft rendered in the pane from its stored document model, paragraphs with claim chips opening the inspector, figures in place"
   - "[ ] RPT3. The doc bar and the Approve and Export slot: which document, its draft number and state, approval as a modal naming it, exports after approval"
   - "[ ] RPT4. Záznam pokrytí, outside the text: what the report does not hold and why, from the chain manifest"
   - "[ ] RPT5. Draft revisions: the draft counter and tracked changes per paragraph, a report edit never reopening fieldwork"
@@ -102,6 +102,28 @@ V2: `ReportArt` (`InterpretStages.tsx:103-162`).
   report's print order, with claim chips. The DOCX stays the deliverable.
 - Tests: Vitest: every chip resolves in the ledger; a block kind with no renderer says so.
 - Depends on `report-delivery#RD5a`.
+
+*RPT1 and RPT2, done (`feature/report-document-pane`):*
+- `apps/web/src/lib/artifacts/report.ts` (pure): the stored document model's types (contract
+  `aia-report-document-1`, refused otherwise), the pointable ids through the registry's `aiaId` --
+  `report:<section id>`, `report:<section id>.<n>` for a block, `report:<block id>:<ref>` for a number's first
+  chip in its block (the report's own kind: `claim:` is Analýza's, `claim:<module>:<claim_id>`, #605; none for a
+  ref outside the id grammar, e.g. one carrying an answer's wording) -- and how a ref reads: the stored text only, a
+  suppressed ref "potlačeno", an unknown one "?", an unknown grade or support unknown, never good.
+  The view operations stay the registry's (`open_stage`, `focus`, `show_diff`); `show_tracked_changes` and
+  `show_variant` wait for RD5 and RPT3 and are asked of the coordinator then.
+- The web reads the serializer's own output: `packages/aia_core/tests/fixtures/report_document/internal.json`,
+  pinned by `test_the_web_reads_the_document_model_this_writes` (rewrite with
+  `AIA_WRITE_REPORT_DOCUMENT_FIXTURE=1`), read by `report.test.ts` and `ReportDocumentView.test.tsx`.
+- `ReportDocumentView` on Zpráva (the report view's panel, first): every section and block in print order with
+  its `data-aia`, no two elements sharing one; numbers as chips opening the claim in the item inspector (beside the draft in a wide pane, a
+  sheet in a narrow one); tables without the rows the DOCX removes, with their count; a chart's numbers as a
+  table (the DOCX draws the chart); a map figure's caption (the image is in the DOCX). Each route answer in
+  words: not stored before RD5a, refused, none for a reader the internal draft is not for (403).
+- Journey: `tools/ui_workbench/report_journey.mjs` at 1440, 1100, 768 and 390 px on the workbench's recorded
+  run; zero paid jobs. RPT7 extends it.
+- Not yet: the draft is first in the report view, but the stage still opens with the complete-report card and
+  the run's notices above it; RPT3's doc bar replaces that card's place.
 
 **RPT3. Doc bar and approval.** Tests: approval sends the artifact id shown; a stale version is
 refused. Depends on `report-delivery#RD2`, `#RD3`, `input-interactions#6`.

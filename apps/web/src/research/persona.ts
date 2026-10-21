@@ -338,3 +338,29 @@ export const PROPOSAL_AI_DONE = "Návrh AI je ve Znalostech klienta. Do katalogu
 export function dimensionResearchTopic(label: string): string {
   return `Nová dimenze: ${label}. Dohledej pro českou populaci kvantitativní prevalenci nebo průměr, přesnou definici/škálu a doložené vztahy k existujícím behaviorálním/demografickým predictorům. Bez kvantitativní populační kotvy dimenzi nedosimulovávej.`;
 }
+
+/**
+ * Whether a selected dimension reaches a respondent (artifact-dimensions DIM2): the persona
+ * topic the server's mapping answers (persona_topics.dimension_topic), "unmatched" when it
+ * answers none -- a run then lists it in dimensions_unmatched -- and "unknown" while the
+ * server has not answered, never read as matched.
+ */
+export type DimensionTopic = { state: "matched"; topic: string } | { state: "unmatched" } | { state: "unknown" };
+
+export function dimensionTopic(topics: Readonly<Record<string, string | null>> | null, id: string): DimensionTopic {
+  if (!topics || !(id in topics)) return { state: "unknown" };
+  const topic = topics[id];
+  return topic ? { state: "matched", topic } : { state: "unmatched" };
+}
+
+/** The chip's words: V2's "téma persony: …" or "bez tématu persony". */
+export function dimensionTopicWords(t: DimensionTopic): string {
+  if (t.state === "matched") return `téma persony: ${t.topic}`;
+  if (t.state === "unmatched") return "bez tématu persony";
+  return "téma persony neověřeno";
+}
+
+/** A dimension's pointable id for the Lead (the coordinator's grammar: [A-Za-z0-9_.~/-], at most 80). */
+export function dimensionTarget(id: string): string | null {
+  return /^[A-Za-z0-9_.~/-]{1,80}$/.test(id) ? `dimension:${id}` : null;
+}
