@@ -57,8 +57,9 @@ export function Stepper({
   };
   const errorId = useId();
   const boundsId = useId();
-  // The unit stands beside the value, so the bounds beside it need not repeat it.
-  const range = rangeWords(bounds);
+  // The bounds carry the unit: they are the field's description, and a screen reader hears them
+  // apart from the unit drawn beside the value (Codex on #532).
+  const range = rangeWords(bounds, unit);
   const shownValue = draft ?? (value === null ? "" : formatNumber(value, decimals > 0 ? decimals : undefined));
 
   const commitDraft = (): boolean => {
@@ -132,6 +133,7 @@ export function Stepper({
             aria-valuemin={min}
             aria-valuemax={max}
             aria-valuenow={value ?? undefined}
+            aria-valuetext={value !== null && unit ? `${formatNumber(value, decimals > 0 ? decimals : undefined)} ${unit}` : undefined}
             aria-invalid={problem ? true : undefined}
             aria-describedby={problem ? `${errorId} ${boundsId}` : boundsId}
             disabled={disabled}

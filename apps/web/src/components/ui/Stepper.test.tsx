@@ -121,6 +121,8 @@ describe("Stepper (I2): bounded numbers, refused and never clamped", () => {
     expect((screen.getByRole("spinbutton", { name: "Rozpočet" }) as HTMLInputElement).value).toBe("85,00");
     expect(screen.getByText("USD")).toBeTruthy();
     const money = screen.getByRole("spinbutton", { name: "Rozpočet" });
-    expect(document.getElementById(money.getAttribute("aria-describedby") ?? "")?.textContent).toContain("80,86–500");
+    // The unit reaches a screen reader with the bounds and the value (Codex #532).
+    expect(document.getElementById(money.getAttribute("aria-describedby") ?? "")?.textContent).toBe("80,86–500 USD · ↑ ↓ o krok, Shift ×10");
+    expect(money.getAttribute("aria-valuetext")).toBe("85,00 USD");
   });
 });
