@@ -424,8 +424,10 @@ export function focusSelector(target: string): string {
   const [kind, ...rest] = target.split(":");
   const id = rest.join(":");
   const css = (s: string) => s.replace(/["\\]/g, "\\$&");
-  if (kind === "question" && id) return `[id="qedit_${css(id)}"]`;
-  if (kind === "section" && id) return `[id="qblock_${css(id)}"]`;
+  // A screen's data-aia mark first (a tracked set's card is qset_, not qblock_), then the ids
+  // the stages used before they marked themselves.
+  if (kind === "question" && id) return `[data-aia="${css(target)}"], [id="qedit_${css(id)}"]`;
+  if (kind === "section" && id) return `[data-aia="${css(target)}"], [id="qblock_${css(id)}"]`;
   if (kind === "brief" && id) return `[id="brief-${css(id)}"]`;
   if (kind === "plan" && id) {
     const section: Record<string, string> = { sets: "plan-sets", tracked_sets: "plan-sets", comments: "plan-comments", variants: "plan-variants", questions: "plan-questions" };
@@ -475,6 +477,12 @@ export function targetLabel(target: string): string {
   return `${KIND_WORDS[parsed.kind]} ${id}`;
 }
 
+/** A question card's wording: its first field's value, else the card's text. */
+function wordingOf(card: Element, text: string): string {
+  const field = card.querySelector("textarea, input");
+  return field && "value" in field && typeof field.value === "string" && field.value.trim() ? field.value : text;
+}
+
 /**
  * The Lead target an element of a stage screen stands for: the reverse of focusSelector, for the
  * person pointing at what they mean. Walks up from the clicked element to the nearest one the
@@ -487,16 +495,19 @@ export function targetOfElement(el: Element | null): { id: string; label: string
     const label = (s: string) => (s.length > 60 ? `${s.slice(0, 57)}…` : s);
     // An element a screen marked for the Lead (data-aia="<kind>:<id>", aiaId) names itself.
     const aia = at.getAttribute("data-aia");
-    if (aia && parseAiaId(aia)) {
+    const parsed = aia ? parseAiaId(aia) : null;
+    // A question keeps its wording as its label, a section its title: a card's first heading can
+    // be a part of it (the research-question legend), never what the person pointed at.
+    if (aia && parsed?.kind === "question") return { id: aia, label: `Otázka ${parsed.id}: ${label(wordingOf(at, text))}` };
+    if (aia && parsed?.kind === "section") {
+      return { id: aia, label: `Oddíl: ${label(at.querySelector("h3, h2")?.textContent?.trim() || parsed.id)}` };
+    }
+    if (aia && parsed) {
       const heading = at.querySelector("h2, h3, h4, label, legend")?.textContent?.trim();
       return { id: aia, label: `${targetLabel(aia)}${heading ? `: ${label(heading)}` : ""}` };
     }
     let m: RegExpMatchArray | null;
-    if ((m = id.match(/^qedit_(.+)$/))) {
-      const field = at.querySelector("textarea, input");
-      const wording = field && "value" in field && typeof field.value === "string" && field.value.trim() ? field.value : text;
-      return { id: `question:${m[1]}`, label: `Otázka ${m[1]}: ${label(wording)}` };
-    }
+    if ((m = id.match(/^qedit_(.+)$/))) return { id: `question:${m[1]}`, label: `Otázka ${m[1]}: ${label(wordingOf(at, text))}` };
     if ((m = id.match(/^qblock_(.+)$/))) return { id: `section:${m[1]}`, label: `Oddíl: ${label(at.querySelector("h3, h2")?.textContent?.trim() || m[1]!)}` };
     if ((m = id.match(/^brief-(.+)$/))) return { id: `brief:${m[1]}`, label: `Zadání: ${label(at.querySelector("h2, h3, label")?.textContent?.trim() || m[1]!)}` };
     const plan: Record<string, { id: string; label: string }> = {
