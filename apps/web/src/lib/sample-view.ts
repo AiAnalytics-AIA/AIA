@@ -2,7 +2,7 @@
 // outlook as the server worked them out before the run. Pure. Nothing here decides: the server's
 // readiness is the authority, and what it could not forecast reads as unknown, never as good.
 
-import type { CheckStatus, OutlookVerdict, Readiness } from "./api";
+import type { CheckStatus, OutlookVerdict, PersonaSourceOption, Readiness } from "./api";
 import { outlookCounts } from "./research-execution";
 
 /** The readiness check the server adds with its support forecast (domain/support_forecast.py). */
@@ -35,4 +35,15 @@ export function outlookSummary(readiness: Readiness): Record<OutlookVerdict, num
   const items = readiness.question_outlook;
   if (!items || !items.length) return null;
   return outlookCounts(items);
+}
+
+/**
+ * Who will answer (plan artifact-sample SMP5): every persona source the server lists, whether
+ * this deployment offers it, why not, and which a start takes by default. Read only here: the
+ * source is chosen on Spuštění, beside the start that pins it (SQ1 = Q54 b). `null` when the API
+ * sent no sources (an older API), which reads as unknown, never as a default.
+ */
+export function personaSourcesOf(readiness: Readiness): PersonaSourceOption[] | null {
+  const sources = readiness.persona_sources;
+  return sources && sources.length ? sources : null;
 }
