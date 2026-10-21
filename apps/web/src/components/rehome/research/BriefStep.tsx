@@ -17,6 +17,7 @@ import { t, tv } from "@/i18n/t";
 import { workspace } from "@/lib/api";
 import { saveBlob } from "@/lib/download";
 import { type BriefMaterials, classLabel, classOf } from "@/lib/material-class";
+import { briefElementId, contextField, materialAia } from "@/lib/artifacts/brief";
 import {
   type BriefingField,
   MAX_FILES_PER_PICK,
@@ -187,7 +188,7 @@ export function BriefStep() {
         <div className="mt-3 flex flex-wrap items-end gap-2">
           <label className="flex min-w-60 flex-1 flex-col gap-1">
             <span className="text-xs font-medium text-ink-muted">{t("research.brief.titleLabel")} · {t("research.brief.optional")}</span>
-            <TextInput className="w-full !rounded-control" value={titleValue(p)} placeholder={t("research.brief.titlePlaceholder")} onChange={(e) => edit("title", e.target.value)} />
+            <TextInput id={briefElementId("title")} className="w-full !rounded-control" value={titleValue(p)} placeholder={t("research.brief.titlePlaceholder")} onChange={(e) => edit("title", e.target.value)} />
           </label>
           <Button variant="quiet" className="!rounded-control" disabled={!goalLength} onClick={() => edit("title", titleFromGoal(goal))}>
             {t("research.brief.suggestTitle")}
@@ -321,7 +322,7 @@ function ContextFields({ p, edit }: { p: ResearchProject; edit: (field: TopField
         {open.map((c) => (
           <div key={c.field} className="flex flex-col gap-1">
             <span className="flex items-center justify-between gap-2 text-xs font-medium text-ink-muted">
-              <label htmlFor={`brief-${c.field}`}>{t(c.label)}</label>
+              <label htmlFor={briefElementId(contextField(c.field))}>{t(c.label)}</label>
               <button
                 type="button"
                 aria-label={tv("research.brief.contextRemoveAria", { label: t(c.label) })}
@@ -335,7 +336,7 @@ function ContextFields({ p, edit }: { p: ResearchProject; edit: (field: TopField
               </button>
             </span>
             <textarea
-              id={`brief-${c.field}`}
+              id={briefElementId(contextField(c.field))}
               rows={2}
               placeholder={t(`research.brief.examples.${c.field}`)}
               value={contextValue(p, c.field)}
@@ -349,6 +350,7 @@ function ContextFields({ p, edit }: { p: ResearchProject; edit: (field: TopField
             {closed.map((c) => (
               <button
                 key={c.field}
+                id={briefElementId(contextField(c.field))}
                 type="button"
                 onClick={() => setOpened((s) => new Set([...s, c.field]))}
                 className={`inline-flex items-center gap-1 rounded-pill border border-border bg-surface px-3 py-1 text-[13px] leading-5 text-ink hover:border-signal hover:text-signal ${FOCUS}`}
@@ -549,8 +551,9 @@ function Attachments({ uploads }: { uploads: Uploads }) {
             const missing = x.kind !== "url" && !stored;
             const b = badge(x);
             const cls = classOf(classes, state.revision, x, i);
+            const first = stored !== null && list.findIndex((y) => storedAttachmentId(y) === stored) === i;
             return (
-              <li key={`${i}-${x.sha256 || x.url || x.filename}`} className="flex items-center gap-3 border-b border-border px-2.5 py-2 last:border-b-0">
+              <li key={`${i}-${x.sha256 || x.url || x.filename}`} data-aia={first ? materialAia(stored) : undefined} className="flex items-center gap-3 border-b border-border px-2.5 py-2 last:border-b-0">
                 <span aria-hidden="true" className={`inline-flex h-7 min-w-10 items-center justify-center rounded-md px-1 font-mono text-[10px] font-semibold ${b.look}`}>{b.label}</span>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-medium">{line.name}</div>
