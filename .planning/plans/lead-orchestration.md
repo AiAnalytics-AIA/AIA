@@ -714,6 +714,27 @@ Decided as engineering in the same plan, not asked:
   - a candidate's connections name its research questions.
 
   Fixture: the candidate list for the workbench's fixture run.
+- **The scoped freeze (Q45; Codex on #553).** Today `DeepResearchRuns.freeze_design` and `start`
+  take no focus and rebuild every subject from the whole revision (`extract_subjects`,
+  `application/deep_research.py:293, 319 @ 095a3e68`). A focused card would therefore quote and run
+  the whole design. The contract:
+  - `freeze_design(…, focus=<research-question ids>)` validates each id against the revision's
+    research questions (an unknown id is refused by name, `focus_unknown`, 422) and carries only the
+    selected research-question subjects into the frozen `DeepResearchRequest`. An empty focus is the
+    whole design.
+  - That one frozen spec is used for both the quote and the enqueue: LO5a.2 freezes once and passes
+    the same spec to `DeepResearchRuns.quote` (DRL-0's `_admit`) for the card's price and to the
+    start for the run. The start gains an entry that enqueues a given frozen spec (or `start` takes
+    `focus` and freezes identically), so the run never re-freezes the whole design.
+  - The focused subjects are in the engine request, so a focused run has its own request and spec
+    fingerprint and never reuses the whole design's run by idempotency; its per-subject track
+    fingerprints still reuse what was researched before.
+  - **Dependency on DRL-0 (#555):** `_admit` and `quote` take the frozen spec, so the focus reaches
+    them through it. The quote route's body gains `focus` here, and `_admit` gains a focus parameter
+    only if a caller cannot hand it the focused spec. #555 is not changed for this.
+- Tests (focus): a focused quote equals the focused start's ceiling, and both are smaller than the
+  whole design's; an unknown focus id is refused before anything is priced; the focused run's
+  request holds only the selected subjects.
 - Kill switch: the Lead's own (`AIA_AI_RESEARCH_LEAD_ENABLED`). The fields only prepare.
 
 **LO5a.2 (DRL-3). A Lead card starts Deep Research on the server; this amends D7 for the two kinds.**
@@ -722,8 +743,8 @@ Today `approve_request` raises `NotAPaidRequest` for any request that is not an 
 (`routers/lead.py:335-336`; `test_a_request_that_only_opens_a_stage_is_not_a_paid_request`). The
 web card only navigates (`Workbench.tsx:258-262`).
 - Design: the design must be the revision the card was quoted on (LO10's rule: the turn's working
-  revision, else `LeadTurnStale`, else submit it). Code filters the focus, then calls
-  `DeepResearchRuns.start`.
+  revision, else `LeadTurnStale`, else submit it). The design is frozen once with the card's
+  focus (LO5a.1's scoped freeze), and that spec is the one priced and enqueued.
 - Interpretation: the target is resolved from the turn's frozen candidates, then
   `start_interpretation` is called. Its freeze verifies every pin (`ResearchTargetNotFound` and
   `ResearchTargetInvalid`, answered 404 and 422).
@@ -732,7 +753,29 @@ web card only navigates (`Workbench.tsx:258-262`).
   (D-02). A ceiling that grew asks again with the server's figure (#550's pattern,
   `Workbench.tsx:476-493 @ cd7af699`).
 - The `lead_job_request` ledger row carries the run id, purpose, target, preset, focus, ceiling and
-  `spend`. No migration is needed.
+  `spend`.
+- **The wallet (Codex on #553).** `lead_job_request` is not a wallet authority: a charge accepts only a
+  `chat_start` or `plan_step` row naming the charged run with decision `start`
+  (`domain/wallet.py:72-78`, `infrastructure/study_wallet_repository.py` `charge` and its decision
+  check). Without more, a card-approved run would bypass the wallet cap with the wallet on. So, when
+  `AIA_STUDY_WALLET_ENABLED` is on, the approval writes a wallet-authorising decision and charges the
+  wallet in the same transaction as the start, in LO1's order: quote under the study lock, create
+  the run, write the `lead_card` row naming that run (decision `start`), charge it as
+  `DEEP_RESEARCH` or `INTERPRETATION_RESEARCH` at its ceiling. A refused charge (`outside_wallet`,
+  `ceiling_unknown`, `no_wallet`) rolls the whole transaction back: no run, no ledger row. A person
+  approving a card on the spot is judged by `start_verdict`'s `CHAT_START` rule (inside the wallet,
+  refused outside); whether `StartPath` gets its own member is decided in the PR, with no rule of
+  its own. With the wallet off, nothing is charged, as for every start today.
+- **The authority: a new subject `lead_card`, not a single-step plan.** It is the smaller of the two.
+  A single-step plan needs `lead_plans`, `lead_plan_steps`, the plan authority and the `lead_plan`
+  workflow type (LO3, "the riskiest piece") and the plan card (LO4) before any Deep Research card
+  could charge. A new subject is one value in `ApprovalSubject`, one in `CHARGE_AUTHORITIES`, and one
+  migration (named here **M3b**, `lead_card` added to `approval_decisions.subject_type`'s CHECK, with
+  its round-trip test in `test_approval_ledger.py`). The cost is the one LO16 wanted to avoid: a
+  second migration on the same constraint. It also serves agent-job cards, which are not charged
+  today either (`StartPath.PERSON`). Reusing `lead_job_request` as the authority was rejected: its
+  `run_id` names the Lead turn's run and its decision is `approve` (`workflow_repository.py:2681-2715
+  @ 095a3e68`), so it cannot name the charged run without changing what existing rows mean.
 - Approved once: a second approval returns the same run. `NotAPaidRequest` stays for `research_run`
   only.
 - `routers/lead.py` maps `LiveNotApproved` to 409 `live_settings_unapproved` with `missing` and
@@ -746,8 +789,12 @@ web card only navigates (`Workbench.tsx:258-262`).
   - the threshold asks, and once confirmed the row records `spend`;
   - on a priced composition without approved live settings: 409 with the keys, and nothing written;
   - with the Lead off: 409, with no workflow row and no reservation;
-  - the run's spec and fingerprint equal those of a stage start with the same inputs.
-- Depends on DRL-0, LO5a.1 and LO10 (or this chunk's own revision check for its kinds); ideally 27b.
+  - the run's spec and fingerprint equal those of a stage start with the same inputs;
+  - with the wallet on, an approved card's run is charged once under its `lead_card` row, and a card
+    whose ceiling is over the wallet's remainder is refused with no run, no ledger row and no charge;
+  - with the wallet off, nothing is charged and nothing changes.
+- Depends on DRL-0, LO5a.1, LO1 (done), the M3b migration (in this chunk, after LO16) and LO10 (or
+  this chunk's own revision check for its kinds); ideally 27b.
 
 **LO5a.3 (DRL-8, on LO5). Typed Deep Research starts.**
 - LO5's matcher gains:
@@ -756,13 +803,19 @@ web card only navigates (`Workbench.tsx:258-262`).
     candidates), never parsed from free text;
   - "Zopakuj rešerši";
   - "Zastav rešerši".
-- Each writes `chat_start` and charges the wallet as `DEEP_RESEARCH` or `INTERPRETATION_RESEARCH` at
-  the ceiling (`start_verdict(CHAT_START)`) before the run exists, in one transaction (LO1 choice 4).
+- Each runs in one transaction, in LO1's order (choice 4): quote under the study lock
+  (`start_verdict(CHAT_START)`), create the run, write the `chat_start` row naming it, then charge
+  the wallet as `DEEP_RESEARCH` or `INTERPRETATION_RESEARCH` at the ceiling.
+  `StudyWalletRepository.charge` needs the run to exist (`unknown_run`, `study_wallet_repository.py`
+  `charge`), so the charge comes after the create, never before; a refused charge rolls back the run
+  and the row.
 - It works with the Lead off (Q43).
 - Tests:
   - with the Lead off, a typed design start writes `chat_start`, a charge and one run, while free
     text is 409;
   - outside the wallet, it is refused and nothing is written;
+  - the order holds: the charge names the run created in the same transaction, and a charge refused
+    after the create leaves no run, no `chat_start` row and no charge;
   - a typed stop cancels the run;
   - a journey on recorded web.
 - Kill switch: `AIA_STUDY_WALLET_ENABLED`.
@@ -838,3 +891,5 @@ the scope freeze section.
   description.
 - ADR 0026 *Accepted with*: a Lead card starts Design and Interpretation Research on the server
   through `approve_request` (LO5a.2), with the Q44-Q47 answers.
+- ADR 0028 (the wallet): a person's approval of a Lead card is a charge authority, `lead_card`
+  (migration M3b on the subject CHECK, LO5a.2); LO16's delivered note gains the same line.
