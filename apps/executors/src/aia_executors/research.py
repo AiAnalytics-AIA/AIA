@@ -76,7 +76,10 @@ from aia_core.domain.workflow_templates import RESEARCH_KINDS, SOCIOMAPPING_STEP
 from aia_core.infrastructure.artifact_repository import ArtifactNotFound, ArtifactRepository
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.storage import ArtifactStore, IntegrityError, ObjectNotFound
-from aia_core.infrastructure.study_design_repository import StudyDesignRepository
+from aia_core.infrastructure.study_design_repository import (
+    DesignRevisionNotFound,
+    StudyDesignRepository,
+)
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Succeeded
 from sqlalchemy.orm import Session
@@ -322,21 +325,32 @@ class CompileExecutor(_Step):
                 or artifact.sha256 != sha256
             ):
                 return mismatch
+            corrupt = Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={"reason": "frozen_specification_corrupt", "artifact_id": artifact_id},
+            )
             try:
                 payload = repo.read_json(artifact_id)
-                spec = ResearchSpecification.model_validate(payload["specification"])
             except (IntegrityError, ObjectNotFound):
                 # Returned, not raised: the CORRUPT mark the read made must commit (OI-77).
-                return Failed(
-                    FailureClass.SCHEMA_VIOLATION,
-                    error={"reason": "frozen_specification_corrupt", "artifact_id": artifact_id},
-                )
+                return corrupt
+            # Bytes that verify but do not read as a specification: named, never a crash.
+            if not isinstance(payload, Mapping) or "specification" not in payload:
+                return corrupt
+            try:
+                spec = ResearchSpecification.model_validate(payload["specification"])
+            except ValueError:  # pydantic's ValidationError is one
+                return corrupt
             compiled_from = str(payload.get("design_revision_id") or "")
             if compiled_from != revision_id:
                 designs = StudyDesignRepository(session, context.scope)
-                if fingerprint(designs.content(compiled_from)) != fingerprint(
-                    designs.content(revision_id)
-                ):
+                try:
+                    same = fingerprint(designs.content(compiled_from)) == fingerprint(
+                        designs.content(revision_id)
+                    )
+                except DesignRevisionNotFound:
+                    return mismatch
+                if not same:
                     return mismatch
         context.progress(
             "specifikace z původního běhu převzata, nic se znovu nesestavuje",

@@ -1319,9 +1319,43 @@ def test_a_retry_of_a_run_an_earlier_compiler_compiled_reuses_its_specification(
     assert sorted(reused) == sorted(m for m in MODULES if m != "objects")
 
 
-def test_a_retry_naming_another_specification_is_refused_never_compiled_again(
-    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+def _stored_spec(world: Any, store: InMemoryArtifactStore, like: str, payload: Any) -> Any:
+    """``payload`` stored as a specification artifact of ``like``'s project and revision."""
+    with world.sessions() as session:
+        repo = research_artifacts(session, world.lead_scope(session), store)
+        model = repo.get(like)
+        artifact, _ = repo.put_json(
+            payload=payload,
+            project_id=model.project_id,
+            revision=model.revision,
+            stage_type=model.stage_type,
+            artifact_type=model.artifact_type,
+            input_fingerprint=f"test:{uuid.uuid4().hex}",
+            reuse=False,
+        )
+        session.commit()
+    return artifact
+
+
+@pytest.mark.parametrize(
+    ("shape", "reason"),
+    [
+        ("other_bytes", "frozen_specification_mismatch"),
+        ("no_specification", "frozen_specification_corrupt"),
+        ("not_a_specification", "frozen_specification_corrupt"),
+        ("unknown_revision", "frozen_specification_mismatch"),
+    ],
+)
+def test_a_retry_whose_specification_does_not_read_is_refused_by_name(
+    world: Any,
+    store: InMemoryArtifactStore,
+    run_with: Callable[..., Worker],
+    shape: str,
+    reason: str,
 ) -> None:
+    """Never compiled again, never an unclassified crash: a named specification with other
+    bytes, without one, that does not validate, or of a revision that is not here, fails the
+    retry's compile step by name, before any module is asked."""
     models = RecordedModels(invent={"objects"})
     worker = run_with(models)
     first = _started_with_analysis(world)
@@ -1329,6 +1363,18 @@ def test_a_retry_naming_another_specification_is_refused_never_compiled_again(
     original = _run(world, first)
     dataset = next(s for s in original["steps"] if s["node_key"] == "run")["output"]
     compiled = next(s for s in original["steps"] if s["node_key"] == "compile")["output"]
+    named_id, named_sha = compiled["artifact_id"], compiled["sha256"]
+    stored = _payload(world, store, compiled["artifact_id"])
+    if shape == "other_bytes":
+        named_sha = "0" * 64
+    else:
+        payload = {
+            "no_specification": {k: v for k, v in stored.items() if k != "specification"},
+            "not_a_specification": {**stored, "specification": {"title": "jen název"}},
+            "unknown_revision": {**stored, "design_revision_id": "DRV-not-here"},
+        }[shape]
+        artifact = _stored_spec(world, store, compiled["artifact_id"], payload)
+        named_id, named_sha = artifact.artifact_id, artifact.sha256
     with world.sessions() as session:
         started = ResearchRuns(session, world.lead_scope(session)).start(
             design_revision_id=original["metadata"]["design_revision_id"],
@@ -1342,15 +1388,17 @@ def test_a_retry_naming_another_specification_is_refused_never_compiled_again(
                 analysis_round=1,
                 retried=("objects",),
                 modules_asked=1,
-                specification_artifact_id=compiled["artifact_id"],
-                specification_sha256="0" * 64,
+                specification_artifact_id=named_id,
+                specification_sha256=named_sha,
             ),
         )
         session.commit()
     _drain(worker)
     steps = {s["node_key"]: s for s in _run(world, started.run_id)["steps"]}
     assert steps["compile"]["status"] is StepRunStatus.FAILED
-    assert steps["compile"]["attempts"][-1]["error"]["reason"] == "frozen_specification_mismatch"
+    last = steps["compile"]["attempts"][-1]
+    assert last["error"]["reason"] == reason
+    assert last["failure_class"] is FailureClass.SCHEMA_VIOLATION
     assert not any(s["attempts"] for s in _analysis(_run(world, started.run_id)).values())
 
 
