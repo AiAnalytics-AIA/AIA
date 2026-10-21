@@ -1,5 +1,5 @@
 ---
-status: planned
+status: in-progress
 chunks:
   - "[ ] RQC0. A per-respondent checkpoint (OI-64): each answered respondent and its paid-call identity are stored under the lease; a retry resumes; a possibly-billed uncertain call requires recovery and never triggers an automatic paid replay"
   - "[ ] RQC1. One straight-liner definition in `domain/`, called by the Sociomap engine, the run QC and the worker"
@@ -10,7 +10,7 @@ chunks:
   - "[ ] RQC6. Quotas before a run and a support forecast for the panel path"
   - "[ ] RQC7. The fieldwork event contract: heartbeat, quota-cell fill, a respondent grid, the park reason code"
   - "[ ] RQC8. Readiness reads the worker's egress: a run whose route cannot carry Class A is flagged before it parks"
-  - "[ ] RQC9. One authority for the valid n: the domain readiness limits, read by the web and the Lead"
+  - "[x] RQC9. One authority for the valid n: the domain readiness limits, read by the web and the Lead"
   - "[ ] RQC10. A population double composed in both the API and the worker over HTTP, for tier A's AC-05"
   - "[ ] RQC11. Routing in fieldwork (W1, after working-copy-edit-ops WCE13): a conditional question is asked only of respondents whose earlier answer meets its condition, and the dataset records who was not asked"
   - "[ ] RQC4a. W1 flag contract: deterministic QC flags, ids, lineage and accept-target schema before the W3 model-worker proposal"
@@ -102,3 +102,52 @@ respondent's input, so its prompt part is pinned with the run like the rest of t
 - **RQC9.** The valid-n authority is the organization's readiness methodology in force, not a code
   constant.
 - The attention check (D-43) is **out**.
+
+## RQC9, delivered (2026-10-20, branch `feature/w0-n-authority-population-double`)
+
+**The rule.** `sample_size_problem(n, limits)` in `domain/research_design.py` is the one judgement of
+a valid n: a whole number within the readiness limits in force, both bounds included; a boolean, a
+fraction or text is `sample_size_missing`, a whole number outside the range
+`sample_size_out_of_range`. Nothing clamps. Readiness's `sample_size` check calls it.
+
+**The authority.** `application/research.py` `readiness_in_force(session, scope)`: the
+organization's readiness methodology in force (a stored version, else the preset
+`aia-readiness-1`, 20-10,000), as the scope-freeze note on RQC9 requires. A run start pins it as
+before (`ResearchRuns._readiness` now calls it); the three readers below read the same function.
+
+- **The web** reads `GET /api/v1/studies/{study_id}/research/limits` (`ResearchLimitsResponse`:
+  `methodology_version`, `version`, `sample_size {min, max}`). Its own 50-5,000 copy is gone
+  (`research/persona.ts` `setSampleSize`, `PersonaStep.tsx` `SampleInput`). A value outside the
+  range, an empty field or anything but a whole number is **refused and said, never stored and never
+  clamped** (finding IA-1 closed): the field keeps what the person typed, `role="alert"` says the
+  range, the presets and the recommendation are disabled where the range does not admit them, the
+  slider's thumb range sits inside it. Limits not yet read disable the field; limits that cannot be
+  read refuse every value and say so (unknown is never presumed to admit a value).
+- **The Lead** is frozen with the limits (`design.readiness` in the turn's context,
+  `domain/research_lead.py` `readiness_layer`). `ground_edits(…, sample_size=)` drops a `set_n`
+  outside them by name at the turn; `apply_edit(…, sample_size=)` refuses it at the accept under the
+  limits in force *then* (`decide_edits`), so a version activated while the Lead worked is what is
+  enforced. The closed schema keeps only `ge=1`: its old 30-40,000 was the fourth range. The harness
+  moved to `aia-research-lead-2`, so a turn queued under 1 (no limits frozen) is refused by the
+  executor's existing harness check rather than grounded without limits.
+- **The sampler** is not a fourth authority: it draws the n the run was started with, and a start
+  is refused below or above the readiness limits before any draw.
+
+**Tests.** `test_research_design.py::test_the_one_rule_for_a_valid_n_refuses_and_never_clamps`,
+`::test_a_valid_n_is_judged_by_the_limits_given_not_the_preset`;
+`test_research_lead.py::test_a_set_n_is_held_to_the_readiness_limits_at_the_turn_and_at_the_accept`,
+`::test_a_set_n_with_no_limits_known_is_dropped_and_refused_never_presumed_valid`;
+`test_methodology_api.py::test_the_study_reads_the_valid_n_in_force_and_an_activation_moves_it`;
+`test_research_lead_api.py::test_a_sample_size_is_accepted_only_within_the_readiness_limits_in_force`;
+`test_research_lead_executor.py::test_a_sample_size_outside_the_frozen_readiness_limits_is_dropped_by_name`;
+`PersonaStep.test.tsx` "the sample: a value outside the server's valid n is refused and said, never
+clamped (IA-1)", "… a narrower range in force disables …", "… with the range unread nothing is
+stored …"; `persona.parity.test.ts` "the input: a value the classic stored as typed is stored the
+same; one it clamped is refused".
+
+**A deliberate departure from 18.6.6.** The classic input's clamp (`PROJECT.n=Math.max(50,
+Math.min(5000, …))`) is not ported: the parity test now pins what still matches (an in-range value
+is stored as the classic stored it) and asserts the refusal where the classic clamped.
+
+**Left for the input-interactions plan (not this chunk).** IA-3, one stepper replacing the field and
+the slider, is that plan's B1; the slider here only stays inside the range.

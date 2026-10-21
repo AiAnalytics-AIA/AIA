@@ -99,7 +99,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         title_cs="Velikost vzorku",
         formula_latex=r"n_{\min} \le n \le n_{\max}",
         implements=f"{_R}:assess_readiness",
-        source_sha256="39e3096864f8f3fbc59e93bac544ad4a763362ad24b85f9787b61c3dc12b4aaf",
+        source_sha256="abb20afcd8402a211b300f41dc91a7669882ddc5bca3e0b94ed6c81226d87e0d",
         symbols=(Symbol("n", "velikost vzorku zadaná v návrhu", "respondenti"),),
         parameters=(
             ParameterRef(
@@ -112,6 +112,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         evidence=(_POLICY,),
         tests=(
             f"{_T}/test_research_design.py::test_readiness_is_named_checks_and_a_fail_blocks",
+            f"{_T}/test_research_design.py::test_the_one_rule_for_a_valid_n_refuses_and_never_clamps",
             f"{_T}/test_methodology_readiness.py::test_the_limits_in_force_decide_the_checks",
         ),
         role_cs=(

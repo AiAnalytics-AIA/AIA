@@ -58,6 +58,7 @@ __all__ = [
     "ReadinessSpec",
     "ResearchSpecification",
     "SampleSizeLimits",
+    "SampleSizeProblem",
     "SpecBattery",
     "SpecObject",
     "SpecQuestion",
@@ -68,6 +69,7 @@ __all__ = [
     "prepare",
     "readiness_problems",
     "readiness_values",
+    "sample_size_problem",
     "selection_receipt",
     "settle_selection",
 ]
@@ -97,6 +99,31 @@ class SampleSizeLimits(BaseModel):
 
     min: StrictInt
     max: StrictInt
+
+
+class SampleSizeProblem(StrEnum):
+    """Why a sample size cannot start a run (:func:`sample_size_problem`)."""
+
+    #: No whole number of respondents is set.
+    MISSING = "sample_size_missing"
+    #: A whole number outside ``min``-``max`` of the limits in force.
+    OUT_OF_RANGE = "sample_size_out_of_range"
+
+
+def sample_size_problem(n: object, limits: SampleSizeLimits) -> SampleSizeProblem | None:
+    """The one rule for a valid n (plan ``run-qc-and-checkpoint`` RQC9): a whole number within
+    ``limits``, both bounds included; ``None`` when it is one.
+
+    Readiness, the Research Lead's ``set_n`` (grounded at its turn and checked again at its
+    accept) and the API's ``GET …/research/limits``, which the web reads instead of a copy of
+    its own, all ask this. Nothing clamps: a value out of range is refused, never moved to
+    the nearest bound. A boolean is not a count, nor is a fractional or textual number.
+    """
+    if not isinstance(n, int) or isinstance(n, bool):
+        return SampleSizeProblem.MISSING
+    if not limits.min <= n <= limits.max:
+        return SampleSizeProblem.OUT_OF_RANGE
+    return None
 
 
 class TrackedSetLimits(BaseModel):
@@ -846,9 +873,10 @@ def assess_readiness(
         checks.append(ReadinessCheck(id=check_id, status=status, message=message))
 
     low, high = limits.sample_size.min, limits.sample_size.max
-    if spec.n is None:
+    problem = sample_size_problem(spec.n, limits.sample_size)
+    if problem is SampleSizeProblem.MISSING:
         check("sample_size", CheckStatus.FAIL, "Velikost vzorku (n) není zadaná.")
-    elif not low <= spec.n <= high:
+    elif problem is SampleSizeProblem.OUT_OF_RANGE:
         check(
             "sample_size",
             CheckStatus.FAIL,

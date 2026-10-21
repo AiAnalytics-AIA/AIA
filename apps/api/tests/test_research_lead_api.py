@@ -361,6 +361,39 @@ def test_edits_are_decided_on_the_server_and_once(
     assert researcher.post(url, json={"decision": "accept", "indices": []}).status_code == 422
 
 
+def test_a_sample_size_is_accepted_only_within_the_readiness_limits_in_force(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """RQC9: the Lead's set_n is held to the readiness limits at its accept, the same limits
+    a run start checks (20-10,000 under the preset), and refused outside them -- never
+    clamped to the nearest bound."""
+    turn_id = _turn(
+        researcher,
+        world,
+        app,
+        {
+            "reply": "Navrhuji jiný vzorek.",
+            "edits": [
+                {"op": "set_n", "value": 10_001, "why": WHY},
+                {"op": "set_n", "value": 19, "why": WHY},
+                {"op": "set_n", "value": 10_000, "why": WHY},
+            ],
+        },
+    )
+    url = f"{lead_url(world)}/turns/{turn_id}/edits"
+    decided = researcher.post(
+        url, json={"decision": "accept", "indices": [0, 1, 2], "base_revision": 1}
+    )
+    assert decided.status_code == 200, decided.text
+    assert decided.json()["results"] == [
+        {"index": 0, "status": "refused", "reason": "sample_size_out_of_range"},
+        {"index": 1, "status": "refused", "reason": "sample_size_out_of_range"},
+        {"index": 2, "status": "accepted", "reason": None},
+    ]
+    content = researcher.get(f"/api/v1/studies/{world.study_id()}/workspace/content").json()
+    assert content["content"]["n"] == 10_000
+
+
 TEXT_AND_STRUCTURE = {
     "reply": "Navrhuji změny.",
     "edits": [

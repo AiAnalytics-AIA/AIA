@@ -15,11 +15,15 @@ import pytest
 
 from aia_core.domain.fieldwork import DataOrigin, InvalidDataset, validate_dataset
 from aia_core.domain.research_design import (
+    AIA_READINESS_V1,
     DONT_KNOW,
     CheckStatus,
+    SampleSizeLimits,
+    SampleSizeProblem,
     assess_readiness,
     compile_design,
     prepare,
+    sample_size_problem,
 )
 from aia_core.domain.sociomap.relations import AUDIT_PROVISIONAL_N_MIN
 from aia_core.domain.synthetic_fieldwork import synthetic_dataset
@@ -130,6 +134,31 @@ def test_readiness_is_named_checks_and_a_fail_blocks() -> None:
     ):
         _, r = prepare({**DESIGN, "n": n}, pair_n_min=AUDIT_PROVISIONAL_N_MIN)
         assert _check(r, "sample_size").status is status and r.ready is (status is CheckStatus.PASS)
+
+
+@pytest.mark.parametrize(
+    ("n", "problem"),
+    [
+        (None, SampleSizeProblem.MISSING),
+        (True, SampleSizeProblem.MISSING),  # a boolean is not a count
+        (250.5, SampleSizeProblem.MISSING),
+        ("300", SampleSizeProblem.MISSING),
+        (19, SampleSizeProblem.OUT_OF_RANGE),
+        (10_001, SampleSizeProblem.OUT_OF_RANGE),
+        (20, None),
+        (10_000, None),
+    ],
+)
+def test_the_one_rule_for_a_valid_n_refuses_and_never_clamps(n: object, problem: object) -> None:
+    # RQC9: readiness, the Lead and the web (through the API's limits) all ask this one rule.
+    assert sample_size_problem(n, AIA_READINESS_V1.sample_size) is problem
+
+
+def test_a_valid_n_is_judged_by_the_limits_given_not_the_preset() -> None:
+    narrow = SampleSizeLimits(min=100, max=500)
+    assert sample_size_problem(50, narrow) is SampleSizeProblem.OUT_OF_RANGE
+    assert sample_size_problem(500, narrow) is None
+    assert sample_size_problem(5000, AIA_READINESS_V1.sample_size) is None
 
 
 def test_what_the_unit_does_and_aia_does_not_yet_is_refused_not_skipped() -> None:

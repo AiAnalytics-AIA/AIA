@@ -7,7 +7,9 @@
 // each with the original under Node. Two classic behaviours are kept and
 // characterised, not fixed: the model's dimensions are approved without the
 // catalogue check (OI-53), and an empty approval is refilled with the
-// recommended set (OI-54).
+// recommended set (OI-54). One is deliberately not kept: the sample input
+// clamped to 50–5 000; it now refuses a value outside the server's valid n
+// (setSampleSize; plan run-qc-and-checkpoint RQC9, audit IA-1).
 
 import { type Json, PROVIDER_FORCED, type ResearchProject } from "./model";
 
@@ -174,10 +176,38 @@ export function recommendedSample(p: ResearchProject): { n: number; why: string 
   };
 }
 
-/** The sample input's change: 50–5 000, and the recommendation when it is empty or 0. */
-export function setSampleSize(p: ResearchProject, raw: string): Change {
-  const r = recommendedSample(p);
-  return { project: { ...withChosen(p), n: Math.max(50, Math.min(5000, +raw || r.n)) }, reason: "sample_n_1789" };
+/** A valid n's range as the server reads it (`GET …/research/limits`, RQC9): both bounds included. */
+export type SampleLimits = { min: number; max: number };
+
+/** Why a typed sample size is not stored: nothing is saved, and the person is told. */
+export type SampleRefusal = { refused: "not_a_number" | "out_of_range" | "limits_unknown"; message: string };
+
+export const isSampleRefusal = (c: Change | SampleRefusal): c is SampleRefusal => "refused" in c;
+
+/** What a person is told when a sample size is refused (the server's limits, in Czech). */
+export function sampleRefusalMessage(refused: SampleRefusal["refused"], limits: SampleLimits | null): string {
+  if (refused === "limits_unknown" || limits === null) return "Rozsah vzorku se nepodařilo načíst, proto počet respondentů zatím nelze uložit. Zkuste to znovu.";
+  if (refused === "not_a_number") return `Zadejte celý počet respondentů od ${limits.min} do ${limits.max}.`;
+  return `Počet respondentů musí být od ${limits.min} do ${limits.max}. Nic nebylo uloženo.`;
+}
+
+/**
+ * The sample input's change, refused when it is not a valid n (RQC9; audit IA-1).
+ *
+ * The classic input clamped to 50–5 000 and stored the recommendation for an empty field, so a
+ * person who typed 20 got 50 without a word. The range is now the server's -- the readiness
+ * limits in force, which a run start and the Research Lead are held to -- and a value outside it,
+ * an empty field or anything but a whole number is refused and named, never moved to a bound.
+ * Unknown limits refuse too: an unread range is never presumed to admit the value.
+ */
+export function setSampleSize(p: ResearchProject, raw: string, limits: SampleLimits | null): Change | SampleRefusal {
+  const refuse = (refused: SampleRefusal["refused"]): SampleRefusal => ({ refused, message: sampleRefusalMessage(refused, limits) });
+  if (limits === null) return refuse("limits_unknown");
+  const text = raw.trim();
+  if (!/^\d+$/.test(text)) return refuse("not_a_number");
+  const n = Number(text);
+  if (!Number.isSafeInteger(n) || n < limits.min || n > limits.max) return refuse("out_of_range");
+  return { project: { ...withChosen(p), n }, reason: "sample_n_1789" };
 }
 
 /** useRecommendedSample1789 */

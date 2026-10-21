@@ -54,6 +54,7 @@ from .research_agents import (
     prompt_class_source,
     prompt_data_class,
 )
+from .research_design import SampleSizeLimits, sample_size_problem
 from .residency import DataClass
 
 __all__ = [
@@ -88,6 +89,7 @@ __all__ = [
     "context_data_class",
     "context_sha256",
     "freeze_context",
+    "frozen_sample_size",
     "ground_edits",
     "ground_self_update",
     "is_text_edit",
@@ -98,6 +100,7 @@ __all__ = [
     "lead_request_window_tokens",
     "number_tokens",
     "question_add_problem",
+    "readiness_layer",
     "self_update_base",
     "split_self_update",
     "stale_files",
@@ -108,7 +111,10 @@ __all__ = [
 LEAD_PROMPT_ID: Final = "aia.research.lead"
 LEAD_AGENT_ID: Final = LEAD_PROMPT_ID
 LEAD_PROMPT_VERSION: Final = "1"
-LEAD_HARNESS_VERSION: Final = "aia-research-lead-1"
+#: 2: the frozen design layer carries the readiness limits in force, and ``set_n`` is held to
+#: them rather than to a range of its own (plan ``run-qc-and-checkpoint`` RQC9). A turn queued
+#: under 1 has no limits to be grounded against, so the executor refuses it by name.
+LEAD_HARNESS_VERSION: Final = "aia-research-lead-2"
 #: A turn's stored output. Served only by the Lead's own routes, never the generic ones.
 ARTIFACT_TYPE: Final = "research_lead_turn"
 
@@ -291,8 +297,16 @@ class QuestionRemove(Closed):
 
 
 class SetN(Closed):
+    """A new sample size. Its shape asks only for a whole number; the range is the readiness
+    limits in force (``design.readiness.sample_size`` in the context), which
+    :func:`ground_edits` holds it to at the turn and :func:`apply_edit` again at its accept.
+    The schema keeps no range of its own: a second range is the drift RQC9 removed."""
+
     op: Literal["set_n"]
-    value: int = Field(ge=30, le=40_000)
+    value: int = Field(
+        ge=1,
+        description="Celý počet respondentů v rozsahu design.readiness.sample_size (min až max).",
+    )
     why: Why
 
 
@@ -549,14 +563,19 @@ def ground_edits(
     output: LeadOutput,
     content: Mapping[str, Any],
     analysis: Mapping[str, Any] | None = None,
+    *,
+    sample_size: SampleSizeLimits | None,
 ) -> tuple[LeadOutput, list[Dropped]]:
     """``output`` with only the edits the working content can take, and the rest named.
 
     A question or section id must be one of a questions section in ``content["sections"]``;
     a list item's ``old`` must be in its plan list (the working ``analysis`` first, else
     ``content["research_plan"]``), compared whitespace-collapsed and casefolded; a
-    ``list_add`` already present is dropped too. Nothing else is judged here: a person
-    accepts each edit that is left.
+    ``list_add`` already present is dropped too. A ``set_n`` must be a valid n under
+    ``sample_size``, the readiness limits the turn was frozen with
+    (:func:`~aia_core.domain.research_design.sample_size_problem`); with no limits known it
+    is dropped (``sample_size_limits_unknown``), never presumed valid. Nothing else is judged
+    here: a person accepts each edit that is left.
     """
     sections, questions = _question_ids(content)
     kept: list[Any] = []
@@ -585,11 +604,42 @@ def ground_edits(
             items = {_key(str(x)) for x in _plan_list(content, analysis, edit.list)}
             if _key(edit.value) in items:
                 reason = "already_present"
+        elif isinstance(edit, SetN):
+            reason = _sample_size_reason(edit.value, sample_size)
         if reason is None:
             kept.append(edit)
         else:
             dropped.append(Dropped(index=i, op=edit.op, reason=reason))
     return output.model_copy(update={"edits": kept}), dropped
+
+
+def _sample_size_reason(value: int, limits: SampleSizeLimits | None) -> str | None:
+    """Why a ``set_n`` cannot be taken under ``limits``, or ``None`` when it can."""
+    if limits is None:
+        return "sample_size_limits_unknown"
+    problem = sample_size_problem(value, limits)
+    return None if problem is None else problem.value
+
+
+def readiness_layer(sample_size: SampleSizeLimits, methodology_version: str) -> dict[str, Any]:
+    """The readiness limits in force as the design layer carries them (``design.readiness``):
+    what a turn's ``set_n`` is held to, and what the Lead may say n can be."""
+    return {
+        "methodology_version": methodology_version,
+        "sample_size": {"min": sample_size.min, "max": sample_size.max},
+    }
+
+
+def frozen_sample_size(design: Mapping[str, Any]) -> SampleSizeLimits | None:
+    """The sample-size limits a turn was frozen with (:func:`readiness_layer`), or ``None``
+    when the design layer holds none it can read."""
+    readiness = design.get("readiness")
+    if not isinstance(readiness, Mapping):
+        return None
+    try:
+        return SampleSizeLimits.model_validate(readiness.get("sample_size"))
+    except ValueError:
+        return None
 
 
 def ground_self_update(
@@ -1198,7 +1248,11 @@ def _new_question(edit: QuestionAdd) -> dict[str, Any]:
 
 
 def apply_edit(
-    content: Mapping[str, Any], analysis: Mapping[str, Any] | None, edit: Any
+    content: Mapping[str, Any],
+    analysis: Mapping[str, Any] | None,
+    edit: Any,
+    *,
+    sample_size: SampleSizeLimits | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any] | None] | Refused:
     """One accepted Lead edit applied to the working content and analysis, by the web's rules.
 
@@ -1209,7 +1263,9 @@ def apply_edit(
     options on any other question are refused, never accepted as a change of nothing. The plan
     narrative (``plan.problem_summary`` and the plan lists) is written to both
     ``content.research_plan`` and the analysis (started from the plan when there is none),
-    and marks ``ui_state.plan_manual_changed``.
+    and marks ``ui_state.plan_manual_changed``. A ``set_n`` is refused unless it is a valid n
+    under ``sample_size``, the readiness limits in force at the accept; with none given it is
+    refused (``sample_size_limits_unknown``), never clamped and never presumed valid.
     """
     body: dict[str, Any] = deepcopy(dict(content))
     working: dict[str, Any] | None = deepcopy(dict(analysis)) if analysis is not None else None
@@ -1315,6 +1371,9 @@ def apply_edit(
         section["questions"] = questions
         return body, working
     if isinstance(edit, SetN):
+        reason = _sample_size_reason(edit.value, sample_size)
+        if reason is not None:
+            return Refused(reason=reason)
         body["n"] = edit.value
         return body, working
     return Refused(reason="unknown_edit")

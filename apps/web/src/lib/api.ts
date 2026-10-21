@@ -950,6 +950,17 @@ export type QuestionOutlook = {
   verdict: OutlookVerdict;
   reasons: string[];
 };
+/**
+ * The readiness limits in force for a study (RQC9): the one authority for a valid n. A run start
+ * checks the same limits and a Research Lead edit is held to them; the web keeps no range of its
+ * own and refuses a value outside this one, never clamps it. `version`: the stored methodology
+ * version in force, null for the code's preset.
+ */
+export type ResearchLimits = {
+  methodology_version: string;
+  version: number | null;
+  sample_size: { min: number; max: number };
+};
 export type Readiness = {
   design_revision_id: string;
   rules: string;
@@ -1209,6 +1220,8 @@ export const research = {
   /** One Design Revision with its content (project memory M2c reads a past study's). */
   revision: (studyId: string, revisionId: string) =>
     request<DesignRevision & { content: Record<string, unknown> }>("GET", `${studyPath(studyId)}/design/revisions/${enc(revisionId)}`),
+  /** The readiness limits in force: the valid sample size the Dimenze stage refuses outside of. */
+  limits: (studyId: string) => request<ResearchLimits>("GET", `${studyPath(studyId)}/research/limits`),
   /** `personaSource` assesses the design under that source of respondents; omitted, the deployment's default. */
   readiness: (studyId: string, revisionId: string, personaSource?: string) =>
     request<Readiness>("GET", `${studyPath(studyId)}/research/readiness${query({ design_revision_id: revisionId, persona_source: personaSource })}`),

@@ -71,6 +71,7 @@ from aia_core.application.research import (
     ResearchRuns,
     ResearchStepNotFound,
     RunReservations,
+    readiness_in_force,
     research_artifacts,
 )
 from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFACT_TYPE
@@ -529,6 +530,30 @@ class ResearchTraceResponse(BaseModel):
     dangling: list[DanglingLinkResponse]
     #: Whether any item declares a link; without one, coverage is unknown.
     linked: bool
+
+
+class SampleSizeRange(BaseModel):
+    """A valid n: a whole number from ``min`` to ``max``, both included."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    min: int
+    max: int
+
+
+class ResearchLimitsResponse(BaseModel):
+    """The readiness limits in force for the Study (plan ``run-qc-and-checkpoint`` RQC9).
+
+    The one authority for a valid n: what a run start checks and pins and what a Research Lead
+    edit is held to. The web reads it instead of a range of its own, and refuses a value
+    outside it -- never clamps it. ``version`` is the stored methodology version in force;
+    ``None``: nothing stored, the code's preset (``methodology_version``)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    methodology_version: str
+    version: int | None
+    sample_size: SampleSizeRange
 
 
 class ReadinessResponse(BaseModel):
@@ -1078,6 +1103,22 @@ def _started(runs: ResearchRuns, started: StartedRun, response: Response) -> Res
     else:
         response.status_code = status.HTTP_200_OK
     return _run(runs.get(started.run_id), runs.scope, created=started.created)
+
+
+@router.get(
+    "/research/limits",
+    response_model=ResearchLimitsResponse,
+    summary="The readiness limits in force: the valid sample size",
+)
+def research_limits(scope: StudyScopeDep, session: SessionDep) -> ResearchLimitsResponse:
+    """The limits a run start of this Study checks today, read from the organization's
+    readiness methodology in force (the preset when nothing is stored). Starts nothing."""
+    limits, stored = readiness_in_force(session, scope)
+    return ResearchLimitsResponse(
+        methodology_version=limits.methodology_version,
+        version=None if stored is None else int(stored["version"]),
+        sample_size=SampleSizeRange(min=limits.sample_size.min, max=limits.sample_size.max),
+    )
 
 
 @router.get(
